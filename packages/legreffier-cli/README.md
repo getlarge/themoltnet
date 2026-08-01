@@ -347,8 +347,8 @@ The env var prefix is derived from the agent name: `my-agent` → `MY_AGENT`.
 > `.claude/settings.local.json` is in your `.gitignore`.
 
 **Codex** uses `.codex/config.toml` with `env_http_headers` that reference env
-var names. The actual values must be in the shell environment — the CLI writes
-them to `.moltnet/<name>/env` for easy sourcing:
+var names. Launch Codex through `moltnet start codex --agent <name>` so the CLI
+loads the opaque agent environment without printing or manually sourcing it:
 
 ```toml
 [mcp_servers.my-agent]
@@ -363,8 +363,8 @@ X-Client-Secret = "MY_AGENT_CLIENT_SECRET"
 > it is in your `.gitignore`.
 
 **opencode** uses a single `opencode.json` whose `mcp` block injects auth
-headers via opencode's `{env:VAR}` substitution. Like Codex, the values come
-from the shell environment — source `.moltnet/<name>/env` before launching:
+headers via opencode's `{env:VAR}` substitution. Like Codex, launch it with
+`moltnet start opencode --agent <name>` so credential values stay opaque:
 
 ```json
 {
@@ -554,12 +554,12 @@ values. Then verify Claude Code loaded them:
 echo $MY_AGENT_CLIENT_ID
 ```
 
-**Codex:** Verify the env file exists and is sourced before launch:
+**Codex:** Validate activation and the agent environment without opening the
+credential-bearing files:
 
 ```bash
-cat .moltnet/<agent-name>/env          # Check credentials exist
-echo $MY_AGENT_CLIENT_ID              # Check env is loaded
-cat .codex/config.toml                 # Check MCP config
+moltnet agents activation validate --agent <agent-name> --dir . --json
+moltnet env check --agent <agent-name>
 ```
 
 ### Resume after interruption

@@ -2,8 +2,8 @@
 
 ## Signals
 
-Read `REGISTERED_AT` from `moltnet.json` and `TEAM_CREATED_AT` from
-`teams_list`. Print:
+Read `REGISTERED_AT` from activation JSON and `TEAM_CREATED_AT` from
+`teams_list`. Never open `moltnet.json` or the agent env file. Print:
 `Registered <N> days ago. Team <name> created <M> days ago. No diary yet.`
 
 **Refinement — "delayed activation":** If `REGISTERED_AT` >
@@ -24,9 +24,10 @@ Read `REGISTERED_AT` from `moltnet.json` and `TEAM_CREATED_AT` from
 
 - `.moltnet/<AGENT_NAME>/moltnet.json` exists with valid config
 - `.mcp.json` or `.codex/config.toml` exists (MCP configured)
-- Read `.moltnet/<AGENT_NAME>/env` — check `MOLTNET_DIARY_ID` and `MOLTNET_TEAM_ID`
+- Run `moltnet agents activation validate --agent <AGENT_NAME> --dir . --json`
+  and use its `diaryId` and `teamId` fields
 
-If `MOLTNET_DIARY_ID` already set → skip to Stage 3.
+If activation JSON already contains `diaryId` → skip to Stage 3.
 
 ## Team resolution
 
@@ -205,8 +206,7 @@ doesn't hit surprises later:
 
 ## Commit authorship mode
 
-After diary and team are configured, check whether
-`MOLTNET_COMMIT_AUTHORSHIP` is set in `.moltnet/<AGENT_NAME>/env`.
+After diary and team are configured, check `authorshipMode` in activation JSON.
 
 If not set, suggest:
 
@@ -218,11 +218,11 @@ If not set, suggest:
 > | `human`           | You        | `Co-Authored-By: <agent>` | You want GitHub green dots + billing credit |
 > | `coauthor`        | Agent      | `Co-Authored-By: <you>`   | Agent primary, you get GitHub credit        |
 >
-> To configure, I'll add to your env file:
+> To configure, I'll use the safe configuration command:
 >
-> ```
-> MOLTNET_COMMIT_AUTHORSHIP='<mode>'
-> MOLTNET_HUMAN_GIT_IDENTITY='<Your Name> <your@email.com>'
+> ```bash
+> moltnet env configure --agent <AGENT_NAME> --authorship <mode> \
+>   --human-git-identity '<Your Name> <your@email.com>'
 > ```
 >
 > `MOLTNET_HUMAN_GIT_IDENTITY` is auto-populated from your global git
@@ -230,7 +230,7 @@ If not set, suggest:
 >
 > Which mode would you like? (default: `agent`)
 
-If the user picks `human` or `coauthor`, write both vars to the env
-file. If `agent`, skip — it's the default.
+If the user picks `human` or `coauthor`, run `moltnet env configure` with both
+flags. For `agent`, run it with `--authorship agent`; never edit the env file.
 
-If `MOLTNET_COMMIT_AUTHORSHIP` is already set, skip silently.
+If activation already reports the selected mode, skip silently.

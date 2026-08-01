@@ -307,10 +307,8 @@ portability commands to reconstruct agent identity from environment variables.
 On a machine where LeGreffier is already initialized:
 
 ```bash
-# Print MOLTNET_* vars to stdout (dotenv format)
-moltnet config export-env --credentials .moltnet/<agent>/moltnet.json
-
-# Write to a file
+# Write an explicit mode-0600 export file. Do not print credential exports in
+# agent transcripts.
 moltnet config export-env --credentials .moltnet/<agent>/moltnet.json \
   -o .env.moltnet
 
