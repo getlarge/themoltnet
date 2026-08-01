@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.25.0](https://github.com/getlarge/themoltnet/compare/github-agent-v0.24.22...github-agent-v0.25.0) (2026-08-01)
+
+
+### Features
+
+* **signer:** publish the local signing companion ([df329bf](https://github.com/getlarge/themoltnet/commit/df329bf071f67cc71adec0319ffa30bd83368952))
+
+
+### Bug Fixes
+
+* **github-agent:** alias canonical JSON subpath ([22d0177](https://github.com/getlarge/themoltnet/commit/22d01774fd2c16fcebb8dfc2524092fe0807bdb8))
+
 ## [0.24.22](https://github.com/getlarge/themoltnet/compare/github-agent-v0.24.21...github-agent-v0.24.22) (2026-08-01)
 
 
