@@ -34,6 +34,7 @@ func TestConfigExportEnvResolvesReferencedSecret(t *testing.T) {
 		credPath,
 		"",
 		false,
+		true,
 		registry,
 	); err != nil {
 		t.Fatalf("export referenced secret: %v", err)
@@ -94,7 +95,7 @@ func TestConfigExportEnvToStdout(t *testing.T) {
 	}
 
 	root := NewRootCmd("test", "")
-	stdout, _, err := executeCommand(root, "config", "export-env", "--credentials", credPath)
+	stdout, _, err := executeCommand(root, "config", "export-env", "--credentials", credPath, "--show-secret")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -116,6 +117,28 @@ func TestConfigExportEnvToStdout(t *testing.T) {
 		if !strings.Contains(stdout, expected) {
 			t.Errorf("expected stdout to contain %q, got:\n%s", expected, stdout)
 		}
+	}
+}
+
+func TestConfigExportEnvOmitsSecretFromStdoutByDefault(t *testing.T) {
+	t.Parallel()
+	tmpDir := t.TempDir()
+	credPath := filepath.Join(tmpDir, "moltnet.json")
+	if _, err := WriteConfigTo(&CredentialsFile{
+		OAuth2: CredentialsOAuth2{ClientID: "client", ClientSecret: "stdout-canary"},
+	}, credPath); err != nil {
+		t.Fatal(err)
+	}
+
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "config", "export-env", "--credentials", credPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(stdout, "stdout-canary") ||
+		strings.Contains(stdout, "MOLTNET_CLIENT_SECRET=") ||
+		strings.Contains(stdout, "MOLTNET_PRIVATE_KEY=") {
+		t.Fatalf("default stdout leaked secret: %s", stdout)
 	}
 }
 
@@ -237,15 +260,22 @@ func TestConfigExportEnvWithGitHub(t *testing.T) {
 		t.Error("should not include PEM without --include-github-pem")
 	}
 
-	// With --include-github-pem: should include PEM content
+	// With --include-github-pem: a protected output file is required.
 	root2 := NewRootCmd("test", "")
-	stdout2, _, err := executeCommand(root2, "config", "export-env",
+	outPath := filepath.Join(tmpDir, ".env.with-pem")
+	_, _, err = executeCommand(root2, "config", "export-env",
 		"--credentials", credPath,
 		"--include-github-pem",
+		"--output", outPath,
 	)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("read protected export: %v", err)
+	}
+	stdout2 := string(data)
 	if !strings.Contains(stdout2, "MOLTNET_GITHUB_APP_PRIVATE_KEY=") {
 		t.Errorf("missing PEM with --include-github-pem, got:\n%s", stdout2)
 	}

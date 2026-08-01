@@ -97,6 +97,16 @@ func DoRegister(apiURL string, voucherCode string) (*RegisterResult, error) {
 // runRegisterCmd registers a new agent identity with the given parameters.
 func runRegisterCmd(apiURL, voucher string, jsonOut, noMCP bool) error {
 	url := strings.TrimRight(apiURL, "/")
+	if !jsonOut {
+		provider := OSKeyringSecretProvider{}
+		preflightKey := fmt.Sprintf("preflight/%d/%d", os.Getpid(), time.Now().UnixNano())
+		if err := provider.Set(preflightKey, "credential-store-preflight"); err != nil {
+			return fmt.Errorf("OS keyring is unavailable; registration was not attempted: %w", err)
+		}
+		if err := provider.Delete(preflightKey); err != nil {
+			return fmt.Errorf("OS keyring cleanup failed; registration was not attempted: %w", err)
+		}
+	}
 
 	fmt.Fprintf(os.Stderr, "Generating Ed25519 keypair...\n")
 	result, err := DoRegister(url, voucher)
@@ -111,12 +121,29 @@ func runRegisterCmd(apiURL, voucher string, jsonOut, noMCP bool) error {
 		return outputJSON(result)
 	}
 
+	secretRef := SecretReference{
+		Provider: osKeyringProviderName,
+		Key: OAuth2SecretKey(
+			result.Response.IdentityID,
+			result.Response.ClientID,
+		),
+	}
+	if err := (OSKeyringSecretProvider{}).Set(
+		secretRef.Key,
+		result.Response.ClientSecret,
+	); err != nil {
+		return fmt.Errorf(
+			"store OAuth2 secret in the OS keyring: %w (registration succeeded; re-run with --json only if an explicit recovery copy is required)",
+			err,
+		)
+	}
+
 	// Write credentials
 	credPath, err := WriteConfig(&CredentialsFile{
 		IdentityID: result.Response.IdentityID,
 		OAuth2: CredentialsOAuth2{
-			ClientID:     result.Response.ClientID,
-			ClientSecret: result.Response.ClientSecret,
+			ClientID:        result.Response.ClientID,
+			ClientSecretRef: &secretRef,
 		},
 		Keys: CredentialsKeys{
 			PublicKey:   result.KeyPair.PublicKey,
@@ -130,19 +157,26 @@ func runRegisterCmd(apiURL, voucher string, jsonOut, noMCP bool) error {
 		RegisteredAt: time.Now().UTC().Format(time.RFC3339Nano),
 	})
 	if err != nil {
-		return fmt.Errorf("write credentials: %w", err)
+		if cleanupErr := (OSKeyringSecretProvider{}).Delete(secretRef.Key); cleanupErr != nil {
+			return fmt.Errorf(
+				"credentials could not be written and the keyring entry %s could not be removed: %v (original error: %w)",
+				secretRef.Key,
+				cleanupErr,
+				err,
+			)
+		}
+		return fmt.Errorf(
+			"credentials could not be written; the new keyring entry was removed: %w",
+			err,
+		)
 	}
 	fmt.Fprintf(os.Stderr, "Credentials written to %s\n", credPath)
 
-	// Write MCP config
+	// Generic MCP config files have no portable syntax for keyring references.
+	// LeGreffier setup writes client-specific env references that are populated
+	// by `moltnet start` at launch time.
 	if !noMCP {
-		mcpURL := deriveMCPURL(url)
-		mcpConfig := BuildMcpConfig(mcpURL, result.Response.ClientID, result.Response.ClientSecret)
-		mcpPath, err := WriteMcpConfig(mcpConfig, "")
-		if err != nil {
-			return fmt.Errorf("write MCP config: %w", err)
-		}
-		fmt.Fprintf(os.Stderr, "MCP config written to %s\n", mcpPath)
+		fmt.Fprintln(os.Stderr, "MCP config not written: run 'legreffier setup' to create a credential-safe client configuration")
 	}
 
 	return nil

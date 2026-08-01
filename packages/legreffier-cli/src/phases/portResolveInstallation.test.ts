@@ -138,7 +138,6 @@ describe('runPortResolveInstallationPhase', () => {
       agentName: 'legreffier',
       prefix: 'LEGREFFIER',
       clientId: 'cid',
-      clientSecret: 'csec',
       appId: '2878569',
       pemPath: '/tmp/legreffier.pem',
       installationId: '110518607',

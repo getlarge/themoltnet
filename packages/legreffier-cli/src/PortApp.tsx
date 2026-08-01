@@ -3,7 +3,6 @@ import { basename, join } from 'node:path';
 
 import { CliHero, CliSpinner, cliTheme } from '@themoltnet/design-system/cli';
 import { readConfig } from '@themoltnet/sdk';
-import { resolveNodeOAuth2ClientSecret } from '@themoltnet/sdk/node';
 import { Box, Text, useApp } from 'ink';
 import React, { useEffect, useState } from 'react';
 
@@ -24,6 +23,7 @@ import {
   runPortValidatePhase,
 } from './phases/portValidate.js';
 import { runPortVerifyInstallationPhase } from './phases/portVerifyInstallation.js';
+import { ensureKeyringSecretReference } from './secret-storage.js';
 import { toEnvPrefix } from './setup.js';
 import type { AgentType } from './ui/types.js';
 
@@ -126,6 +126,10 @@ export function PortApp({
           config,
         });
         filesWritten.push(...copyResult.copied);
+        const copiedConfig = await readConfig(targetDir);
+        if (!copiedConfig)
+          throw new Error('Copied agent config is unreadable.');
+        await ensureKeyringSecretReference(targetDir, copiedConfig);
         warnings.push(...copyResult.warnings);
         if (await ensureMoltnetGitignored(targetRepoDir)) {
           filesWritten.push(join(targetRepoDir, '.gitignore'));
@@ -173,22 +177,25 @@ export function PortApp({
         // Per-agent tool files (claude/codex): skills, settings, rules.
         // Mirror what SetupApp does — reuse adapters directly.
         setPhase('agent_setup');
+        const latestConfig = (await readConfig(targetDir)) ?? rewrittenConfig;
+        const securedConfig = await ensureKeyringSecretReference(
+          targetDir,
+          latestConfig,
+        );
         const mcpUrl =
-          config.endpoints?.mcp ??
+          securedConfig.endpoints?.mcp ??
           apiUrl.replace('://api.', '://mcp.') + '/mcp';
-        const clientSecret = await resolveNodeOAuth2ClientSecret(config);
         const adapterOpts: AgentAdapterOptions = {
           repoDir: targetRepoDir,
           agentName: name,
           prefix,
           mcpUrl,
-          clientId: config.oauth2.client_id,
-          clientSecret,
-          appSlug: config.github?.app_slug ?? '',
-          appId: config.github?.app_id ?? '',
+          clientId: securedConfig.oauth2.client_id,
+          appSlug: securedConfig.github?.app_slug ?? '',
+          appId: securedConfig.github?.app_id ?? '',
           pemPath: join(
             targetDir,
-            basename(config.github?.private_key_path ?? ''),
+            basename(securedConfig.github?.private_key_path ?? ''),
           ),
           installationId: resolveResult.installationId,
         };

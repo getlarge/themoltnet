@@ -30,7 +30,6 @@ const baseOpts: AgentAdapterOptions = {
   prefix: 'MY_AGENT',
   mcpUrl: 'https://mcp.themolt.net/mcp',
   clientId: 'cid',
-  clientSecret: 'csec',
   appSlug: 'my-app',
   appId: '2878569',
   pemPath: '/tmp/my-app.pem',

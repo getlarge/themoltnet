@@ -52,7 +52,6 @@ export class ClaudeAdapter implements AgentAdapter {
       pemPath: opts.pemPath,
       installationId: opts.installationId,
       clientId: opts.clientId,
-      clientSecret: opts.clientSecret,
     });
   }
 

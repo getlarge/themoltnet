@@ -6,7 +6,6 @@ export interface AgentAdapterOptions {
   prefix: string;
   mcpUrl: string;
   clientId: string;
-  clientSecret: string;
   appSlug: string;
   appId: string;
   pemPath: string;
