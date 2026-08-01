@@ -129,6 +129,42 @@ func TestResolveMoltnetDir_MissingInLinkedWorktree(t *testing.T) {
 	assertMissingMoltnetCredentialsError(t, err, worktreeRoot, mainRoot)
 }
 
+func TestResolveMoltnetDirAndRoot_LinkedWorktreeWithSharedSymlink(t *testing.T) {
+	t.Parallel()
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not available")
+	}
+
+	mainRoot := filepath.Join(t.TempDir(), "main")
+	if err := os.Mkdir(mainRoot, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	mustGit(t, mainRoot, "init", "-q", "-b", "main")
+	mustGit(t, mainRoot, "-c", "user.email=t@e", "-c", "user.name=t", "commit", "--allow-empty", "-q", "-m", "init")
+	mainMoltnet := filepath.Join(mainRoot, ".moltnet")
+	if err := os.Mkdir(mainMoltnet, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	worktreeRoot := filepath.Join(t.TempDir(), "wt")
+	mustGit(t, mainRoot, "worktree", "add", "-q", worktreeRoot, "-b", "feature-symlink")
+	t.Cleanup(func() { _ = exec.Command("git", "-C", mainRoot, "worktree", "remove", "-f", worktreeRoot).Run() })
+	if err := os.Symlink(mainMoltnet, filepath.Join(worktreeRoot, ".moltnet")); err != nil {
+		t.Fatal(err)
+	}
+
+	gotDir, gotRoot, err := resolveMoltnetDirAndRoot(worktreeRoot)
+	if err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	if gotDir != canonicalizeRoot(mainMoltnet) {
+		t.Fatalf("moltnet dir = %q, want %q", gotDir, canonicalizeRoot(mainMoltnet))
+	}
+	if gotRoot != canonicalizeRoot(mainRoot) {
+		t.Fatalf("repo root = %q, want %q", gotRoot, canonicalizeRoot(mainRoot))
+	}
+}
+
 func assertMissingMoltnetCredentialsError(t *testing.T, err error, want ...string) {
 	t.Helper()
 	message := err.Error()

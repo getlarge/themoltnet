@@ -30,6 +30,13 @@ func TestAgentsActivationValidateMissingCache(t *testing.T) {
 	if result.Reason != "cache_missing" {
 		t.Fatalf("reason = %q, want cache_missing", result.Reason)
 	}
+	var payload map[string]any
+	if err := json.Unmarshal([]byte(stdout), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if len(payload) != 2 {
+		t.Fatalf("invalid activation output must contain only valid/reason, got %v", payload)
+	}
 }
 
 func TestAgentsActivationValidateCorruptedCache(t *testing.T) {
@@ -81,12 +88,24 @@ func TestAgentsActivationRefreshThenValidate(t *testing.T) {
 	if refreshResult.DiaryID != "00000000-0000-4000-8000-000000000001" {
 		t.Fatalf("diary id = %q", refreshResult.DiaryID)
 	}
+	if refreshResult.AuthorshipMode != "agent" || refreshResult.AgentEmail != "test-agent@example.com" {
+		t.Fatalf("missing non-secret activation metadata: %+v", refreshResult)
+	}
+	if refreshResult.CredentialProvider != "legacy-plaintext" || refreshResult.CredentialStatus != "available" {
+		t.Fatalf("credential status = %s/%s", refreshResult.CredentialProvider, refreshResult.CredentialStatus)
+	}
+	if refreshResult.HumanGitIdentityConfigured || refreshResult.HumanGitIdentity != "" {
+		t.Fatalf("unexpected human identity metadata: %+v", refreshResult)
+	}
 	var refreshPayload map[string]any
 	if err := json.Unmarshal([]byte(stdout), &refreshPayload); err != nil {
 		t.Fatalf("unmarshal refresh payload: %v\n%s", err, stdout)
 	}
 	if _, ok := refreshPayload["transport"]; ok {
 		t.Fatal("refresh result must not include session-local transport")
+	}
+	if payload := strings.ToLower(stdout); strings.Contains(payload, "clientsecret") || strings.Contains(payload, `"secret"`) {
+		t.Fatal("activation result must not expose credential values")
 	}
 	cachePath := filepath.Join(dir, ".moltnet", "test-agent", "activation-cache.json")
 	cacheData, err := os.ReadFile(cachePath)
