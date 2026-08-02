@@ -65,6 +65,20 @@ func runEnvConfigureCmd(cmd *cobra.Command, opts envConfigureOptions, changed fu
 	if len(updates) == 0 {
 		return fmt.Errorf("no settings selected; pass at least one configuration flag")
 	}
+	effective, err := parseEnvFile(envPath)
+	if err != nil {
+		return fmt.Errorf("read agent env: %w", err)
+	}
+	for key, value := range updates {
+		if value == nil {
+			delete(effective, key)
+			continue
+		}
+		effective[key] = *value
+	}
+	if err := validateEffectiveAuthorship(effective); err != nil {
+		return err
+	}
 
 	data, err := os.ReadFile(envPath)
 	if err != nil {
@@ -121,6 +135,24 @@ func runEnvConfigureCmd(cmd *cobra.Command, opts envConfigureOptions, changed fu
 	}
 	sort.Strings(changedKeys)
 	fmt.Fprintf(cmd.OutOrStdout(), "Updated %s: %s\n", agentName, strings.Join(changedKeys, ", "))
+	return nil
+}
+
+func validateEffectiveAuthorship(env map[string]string) error {
+	mode := strings.TrimSpace(env["MOLTNET_COMMIT_AUTHORSHIP"])
+	if mode == "" {
+		mode = "agent"
+	}
+	if mode != "agent" && mode != "human" && mode != "coauthor" {
+		return fmt.Errorf("resulting authorship must be agent, human, or coauthor")
+	}
+	humanIdentity := strings.TrimSpace(env["MOLTNET_HUMAN_GIT_IDENTITY"])
+	if humanIdentity != "" && !isValidGitIdentity(humanIdentity) {
+		return fmt.Errorf("resulting human git identity must use Name <email> format")
+	}
+	if (mode == "human" || mode == "coauthor") && humanIdentity == "" {
+		return fmt.Errorf("%s authorship requires --human-git-identity", mode)
+	}
 	return nil
 }
 

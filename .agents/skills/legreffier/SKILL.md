@@ -268,8 +268,9 @@ Activation has two modes:
 4. Identity check: `git config user.name && git config user.email && git config user.signingkey && git config gpg.format`. Expected: name=`AGENT_NAME`, email `...+<AGENT_NAME>[bot]@users.noreply.github.com`, signingkey=`.moltnet/<AGENT_NAME>/ssh/id_ed25519.pub`, format=`ssh`. If any missing, set `GIT_CONFIG_GLOBAL` and restart.
 5. Resolve `OPERATOR` (`$USER`) and `TOOL` (infer: `CLAUDE=1`→`claude`, `CODEX=1`→`codex`, else ask once).
 6. Resolve commit authorship from activation JSON:
-   - Use `authorshipMode` (default: `agent`), `humanGitIdentity`, and
-     `agentEmail` from `activation validate` or `activation refresh`.
+   - Use `authorshipConfigured`, `authorshipMode` (default: `agent`),
+     `humanGitIdentity`, and `agentEmail` from `activation validate` or
+     `activation refresh`.
    - If mode is `human` or `coauthor` and `humanGitIdentityConfigured` is false,
      warn once and fall back to `agent` mode.
    - Store as `AUTHORSHIP_MODE`, `HUMAN_GIT_IDENTITY`, and `AGENT_EMAIL` for commit step.

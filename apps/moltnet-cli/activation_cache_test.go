@@ -91,6 +91,9 @@ func TestAgentsActivationRefreshThenValidate(t *testing.T) {
 	if refreshResult.AuthorshipMode != "agent" || refreshResult.AgentEmail != "test-agent@example.com" {
 		t.Fatalf("missing non-secret activation metadata: %+v", refreshResult)
 	}
+	if refreshResult.AuthorshipConfigured {
+		t.Fatal("default authorship must remain distinguishable from explicit configuration")
+	}
 	if refreshResult.CredentialProvider != "legacy-plaintext" || refreshResult.CredentialStatus != "available" {
 		t.Fatalf("credential status = %s/%s", refreshResult.CredentialProvider, refreshResult.CredentialStatus)
 	}
@@ -134,6 +137,33 @@ func TestAgentsActivationRefreshThenValidate(t *testing.T) {
 	}
 	if !validateResult.Valid {
 		t.Fatalf("validate valid=false, reason=%s changed=%v", validateResult.Reason, validateResult.Changed)
+	}
+}
+
+func TestAgentsActivationRefreshPreservesExplicitAuthorshipPresence(t *testing.T) {
+	t.Parallel()
+	dir := setupActivationCacheFixture(t)
+	envPath := filepath.Join(dir, ".moltnet", "test-agent", "env")
+	data, err := os.ReadFile(envPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data = append(data, []byte("MOLTNET_COMMIT_AUTHORSHIP='agent'\n")...)
+	if err := os.WriteFile(envPath, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, err := resolveActivationContext(dir, "test-agent")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cache, err := buildActivationCache(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := activationResultFromCache(cache)
+	if !result.AuthorshipConfigured || result.AuthorshipMode != "agent" {
+		t.Fatalf("explicit authorship presence was lost: %+v", result)
 	}
 }
 
@@ -296,6 +326,41 @@ func TestAgentsActivationValidateMissingRequiredInput(t *testing.T) {
 	}
 	if len(result.Changed) == 0 || !strings.Contains(strings.Join(result.Changed, ","), "sshPublicKey") {
 		t.Fatalf("expected missing input name in changed paths, got %v", result.Changed)
+	}
+}
+
+func TestAgentsActivationValidateRejectsForgedCacheMetadata(t *testing.T) {
+	t.Parallel()
+	dir := setupActivationCacheFixture(t)
+	if err := runAgentsActivationRefreshCmd(io.Discard, dir, "test-agent", true); err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+	cachePath := filepath.Join(dir, ".moltnet", "test-agent", "activation-cache.json")
+	cache, err := readActivationCache(cachePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cache.AuthorshipMode = "human"
+	cache.AuthorshipConfigured = true
+	cache.HumanGitIdentity = "Mallory <mallory@example.com>"
+	cache.CredentialsPath = "/tmp/forged-moltnet.json"
+	if err := writeActivationCache(cachePath, cache); err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, err := resolveActivationContext(dir, "test-agent")
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := validateActivationCache(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Valid || result.Reason != "cache_metadata_mismatch" {
+		t.Fatalf("forged metadata was trusted: %+v", result)
+	}
+	if len(result.Changed) != 1 || !strings.HasSuffix(result.Changed[0], "activation-cache.json") {
+		t.Fatalf("unexpected changed paths: %v", result.Changed)
 	}
 }
 

@@ -96,7 +96,12 @@ $MOLTNET_CLI diary create --name "<repo>" --team-id "<TEAM_ID>" \
   --visibility moltnet --credentials ".moltnet/<AGENT_NAME>/moltnet.json"
 ```
 
-Write both `MOLTNET_TEAM_ID` and `MOLTNET_DIARY_ID` to `.moltnet/<AGENT_NAME>/env`.
+Persist both values without opening the protected env file:
+
+```bash
+moltnet env configure --agent <AGENT_NAME> \
+  --team-id <TEAM_ID> --diary-id <DIARY_ID>
+```
 
 ## Team lead onboarding (optional branch)
 
@@ -206,7 +211,9 @@ doesn't hit surprises later:
 
 ## Commit authorship mode
 
-After diary and team are configured, check `authorshipMode` in activation JSON.
+After diary and team are configured, check `authorshipConfigured` in activation
+JSON. Use `authorshipMode` only after confirming whether the default was
+explicitly selected.
 
 If not set, suggest:
 
