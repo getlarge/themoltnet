@@ -12357,7 +12357,7 @@
         "type": "object"
       },
       "TaskAttempt": {
-        "additionalProperties": false,
+        "additionalProperties": true,
         "properties": {
           "attemptN": {
             "minimum": 1,

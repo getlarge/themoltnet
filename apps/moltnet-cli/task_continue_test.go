@@ -25,12 +25,21 @@ type stubContinueHandler struct {
 	getCalls    int
 	getParams   moltnetapi.GetTaskParams
 	createCalls int
+	schemaCalls int
+	descriptors []moltnetapi.TaskTypeDescriptor
 	lastCreate  *moltnetapi.CreateTaskReq
 	lastParams  moltnetapi.CreateTaskParams
 	// When set, GetTask returns this error response instead of source.
 	getErr moltnetapi.GetTaskRes
 	// When set, CreateTask returns this error response instead of a Task.
 	createErr moltnetapi.CreateTaskRes
+}
+
+func (h *stubContinueHandler) ListTaskSchemas(_ context.Context) (moltnetapi.ListTaskSchemasRes, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.schemaCalls++
+	return &moltnetapi.ListTaskSchemasResponse{Items: h.descriptors}, nil
 }
 
 func (h *stubContinueHandler) GetTask(_ context.Context, params moltnetapi.GetTaskParams) (moltnetapi.GetTaskRes, error) {
@@ -74,23 +83,45 @@ func freeformSourceFixture(id, teamID, diaryID, correlationID uuid.UUID) *moltne
 	return src
 }
 
+func freeformContinuationSchema() moltnetapi.TaskTypeDescriptor {
+	return moltnetapi.TaskTypeDescriptor{
+		TaskType:       "freeform",
+		OutputKind:     moltnetapi.TaskTypeDescriptorOutputKindArtifact,
+		InputSchemaCid: "bafy-freeform-continuation",
+		InputSchema: moltnetapi.TaskTypeDescriptorInputSchema{
+			"$schema":              jx.Raw(`"https://json-schema.org/draft/2020-12/schema"`),
+			"type":                 jx.Raw(`"object"`),
+			"required":             jx.Raw(`["brief"]`),
+			"additionalProperties": jx.Raw(`false`),
+			"properties": jx.Raw(`{
+				"brief":{"type":"string","minLength":1},
+				"expectedOutput":{"type":"string"},
+				"constraints":{"type":"array","items":{"type":"string"}},
+				"continueFrom":{"type":"object"}
+			}`),
+		},
+	}
+}
+
 func TestRunTaskContinue_HappyPath(t *testing.T) {
 	srcID := uuid.MustParse("11111111-1111-4111-8111-111111111111")
 	teamID := uuid.MustParse("22222222-2222-4222-8222-222222222222")
 	diaryID := uuid.MustParse("33333333-3333-4333-8333-333333333333")
 	corrID := uuid.MustParse("44444444-4444-4444-8444-444444444444")
 
-	h := &stubContinueHandler{source: freeformSourceFixture(srcID, teamID, diaryID, corrID)}
+	h := &stubContinueHandler{
+		source:      freeformSourceFixture(srcID, teamID, diaryID, corrID),
+		descriptors: []moltnetapi.TaskTypeDescriptor{freeformContinuationSchema()},
+	}
 	_, _, client := newTestServer(t, h)
 
 	opts := taskContinueOpts{
-		fromTaskID:     srcID.String(),
-		fromAttemptN:   1,
-		brief:          "Continue the work",
-		title:          "Round 2",
-		titleSet:       true,
-		outputMode:     "json",
-		skipValidation: true, // Stub server doesn't publish schemas
+		fromTaskID:   srcID.String(),
+		fromAttemptN: 1,
+		brief:        "Continue the work",
+		title:        "Round 2",
+		titleSet:     true,
+		outputMode:   "json",
 	}
 	err := runTaskContinueWithClient(context.Background(), client, opts)
 	if err != nil {
@@ -105,6 +136,9 @@ func TestRunTaskContinue_HappyPath(t *testing.T) {
 	}
 	if h.createCalls != 1 {
 		t.Errorf("CreateTask calls = %d, want 1", h.createCalls)
+	}
+	if h.schemaCalls != 1 {
+		t.Errorf("ListTaskSchemas calls = %d, want 1", h.schemaCalls)
 	}
 
 	got := h.lastCreate
@@ -152,12 +186,12 @@ func TestRunTaskContinue_HappyPath(t *testing.T) {
 	if !strings.Contains(string(brief), "Continue the work") {
 		t.Errorf("input.brief = %s, want substring 'Continue the work'", brief)
 	}
-	title, ok := got.Input["title"]
-	if !ok {
-		t.Fatalf("input.title missing despite --title set")
+	title, ok := got.Title.Get()
+	if !ok || title != "Round 2" {
+		t.Errorf("title = %q (set=%v), want Round 2", title, ok)
 	}
-	if !strings.Contains(string(title), "Round 2") {
-		t.Errorf("input.title = %s, want substring 'Round 2'", title)
+	if title, present := got.Input["title"]; present {
+		t.Errorf("input.title must be absent; got %s", title)
 	}
 	cfRaw, ok := got.Input["continueFrom"]
 	if !ok {
@@ -407,6 +441,8 @@ func TestRunTaskContinue_DryRun(t *testing.T) {
 		fromTaskID:     srcID.String(),
 		fromAttemptN:   1,
 		brief:          "Dry-run probe",
+		title:          "Dry-run title",
+		titleSet:       true,
 		dryRun:         true,
 		outputMode:     "json",
 		out:            &out,
@@ -428,6 +464,20 @@ func TestRunTaskContinue_DryRun(t *testing.T) {
 	}
 	if !strings.Contains(body, `"claimCondition"`) {
 		t.Errorf("dry-run output missing claimCondition: %s", body)
+	}
+	var request map[string]any
+	if err := json.Unmarshal([]byte(body), &request); err != nil {
+		t.Fatalf("decode dry-run output: %v", err)
+	}
+	if request["title"] != "Dry-run title" {
+		t.Errorf("dry-run title = %v, want Dry-run title", request["title"])
+	}
+	input, ok := request["input"].(map[string]any)
+	if !ok {
+		t.Fatalf("dry-run input missing or invalid: %v", request["input"])
+	}
+	if title, present := input["title"]; present {
+		t.Errorf("dry-run input.title must be absent; got %v", title)
 	}
 }
 

@@ -181,8 +181,8 @@ func renderDryRunRequest(req *moltnetapi.CreateTaskReq, teamID uuid.UUID) (strin
 // into the CreateTaskReq the server expects. The composition mirrors the
 // MCP tool's handleTasksContinue verbatim: inherit teamId / diaryId /
 // correlationId / allowedProfiles / requiredExecutorTrustLevel from the
-// source; auto-inject a `task_status: completed` claim condition; pack
-// the caller's flags + continueFrom into `input`.
+// source; auto-inject a `task_status: completed` claim condition; set
+// envelope metadata such as title; and pack task-specific fields into `input`.
 func buildContinuationRequest(opts taskContinueOpts, source *moltnetapi.Task) (*moltnetapi.CreateTaskReq, error) {
 	// Already validated upstream — runTaskContinueWithClient rejects an
 	// unparseable --from-task-id before we get here. Failing loudly on
@@ -212,6 +212,9 @@ func buildContinuationRequest(opts taskContinueOpts, source *moltnetapi.Task) (*
 		TaskType: "freeform",
 		DiaryId:  diaryID,
 		Input:    input,
+	}
+	if opts.titleSet && strings.TrimSpace(opts.title) != "" {
+		req.Title = moltnetapi.NewOptString(opts.title)
 	}
 
 	if corrID, ok := source.CorrelationId.Get(); ok {
@@ -270,14 +273,6 @@ func buildContinuationInput(opts taskContinueOpts, fromTaskID uuid.UUID) (moltne
 		return nil, fmt.Errorf("marshal brief: %w", err)
 	}
 	input["brief"] = briefRaw
-
-	if opts.titleSet && strings.TrimSpace(opts.title) != "" {
-		titleRaw, err := json.Marshal(opts.title)
-		if err != nil {
-			return nil, fmt.Errorf("marshal title: %w", err)
-		}
-		input["title"] = titleRaw
-	}
 
 	if opts.expectedSet && strings.TrimSpace(opts.expectedOutput) != "" {
 		eoRaw, err := json.Marshal(opts.expectedOutput)

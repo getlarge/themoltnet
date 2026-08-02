@@ -1343,6 +1343,15 @@ describe('TaskAttempt.daemonState', () => {
     expect(Value.Check(TaskAttempt, makeAttempt(null))).toBe(true);
   });
 
+  it('accepts additive top-level response fields', () => {
+    expect(
+      Value.Check(TaskAttempt, {
+        ...(makeAttempt(null) as Record<string, unknown>),
+        futureServerField: { revision: 2 },
+      }),
+    ).toBe(true);
+  });
+
   it('rejects malformed daemonState payload', () => {
     expect(
       Value.Check(

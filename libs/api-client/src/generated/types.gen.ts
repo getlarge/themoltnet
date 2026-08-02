@@ -2777,6 +2777,86 @@ export type TaskAttempt = {
     provider?: string;
     toolCalls?: number;
   } | null;
+  [key: string]:
+    | unknown
+    | number
+    | string
+    | string
+    | null
+    | {
+        [key: string]: unknown;
+      }
+    | null
+    | string
+    | null
+    | string
+    | null
+    | {
+        [key: string]: unknown;
+      }
+    | null
+    | string
+    | null
+    | {
+        reportedAt: string;
+        slotResumableUntil: string | null;
+      }
+    | null
+    | {
+        code: string;
+        message: string;
+        retry?: {
+          confidence?: 'low' | 'medium' | 'high';
+          decision?: 'retry' | 'do_not_retry';
+          reason?: string;
+          source:
+            | 'explicit'
+            | 'deterministic'
+            | 'attempts_exhausted'
+            | 'triage'
+            | 'triage_failed';
+        };
+        retryable?: boolean;
+        stack?: string;
+      }
+    | null
+    | string
+    | null
+    | {
+        [key: string]: unknown;
+      }
+    | null
+    | string
+    | null
+    | string
+    | null
+    | string
+    | null
+    | string
+    | null
+    | number
+    | null
+    | string
+    | null
+    | string
+    | null
+    | 'claimed'
+    | 'running'
+    | 'completed'
+    | 'failed'
+    | 'cancelled'
+    | 'aborted'
+    | 'timed_out'
+    | {
+        cacheReadTokens?: number;
+        cacheWriteTokens?: number;
+        inputTokens: number;
+        model?: string;
+        outputTokens: number;
+        provider?: string;
+        toolCalls?: number;
+      }
+    | null;
 };
 
 export type TaskAttemptParams = {
