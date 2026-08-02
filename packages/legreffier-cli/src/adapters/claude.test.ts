@@ -74,7 +74,7 @@ describe('ClaudeAdapter.writeSettings', () => {
       settings.hooks.PreToolUse.map(
         (entry: { matcher: string }) => entry.matcher,
       ),
-    ).toEqual(['Bash', 'Read', 'Grep', 'Write', 'Edit', 'Glob']);
+    ).toEqual(['Bash', 'Read', 'Grep', 'Write', 'Edit', 'Glob', 'apply_patch']);
 
     const local = JSON.parse(
       await readFile(join(tmpRepo, '.claude', 'settings.local.json'), 'utf-8'),

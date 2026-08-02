@@ -158,7 +158,15 @@ export function mergeGitHubGuardHook(
   });
 }
 
-const SECRET_GUARD_MATCHERS = ['Bash', 'Read', 'Grep', 'Write', 'Edit', 'Glob'];
+const SECRET_GUARD_MATCHERS = [
+  'Bash',
+  'Read',
+  'Grep',
+  'Write',
+  'Edit',
+  'Glob',
+  'apply_patch',
+];
 
 export function mergeSecretGuardHook(
   hooks: unknown,

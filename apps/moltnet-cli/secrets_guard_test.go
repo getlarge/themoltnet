@@ -45,6 +45,8 @@ func TestSecretsGuardDeniesAlternateShellConstructs(t *testing.T) {
 		`moltnet agents keys create --team-id team --agent-id agent`,
 		`moltnet agents keys rotate key --team-id team`,
 		`moltnet register --name leaked-agent`,
+		`moltnet --api-url https://api.themolt.net config export-env`,
+		`npx --yes @themoltnet/cli config export-env`,
 		`moltnet profile create --from-file .moltnet/agent/env --credentials .moltnet/agent/moltnet.json`,
 		`moltnet task artifacts upload task --file .moltnet/agent/env --credentials .moltnet/agent/moltnet.json`,
 		`GH_TOKEN=$(moltnet github token --credentials .moltnet/agent/moltnet.json) gh pr view 1; moltnet github token --credentials .moltnet/agent/moltnet.json`,
@@ -155,6 +157,59 @@ func TestSecretsGuardDirectFileTools(t *testing.T) {
 	}
 	if !strings.Contains(output.String(), `"permissionDecision":"deny"`) {
 		t.Fatalf("expected deny output, got %s", output.String())
+	}
+}
+
+func TestSecretsGuardProtectsManagedHookConfiguration(t *testing.T) {
+	t.Parallel()
+	paths := []string{
+		".claude/settings.json",
+		".claude/hooks/moltnet-secret-guard.sh",
+		".codex/hooks.json",
+		".opencode/plugins/moltnet-secret-guard.ts",
+	}
+	for _, path := range paths {
+		input := secretHookInput{ToolName: "Write", ToolInput: map[string]any{"filePath": path}}
+		payload, err := json.Marshal(input)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var output bytes.Buffer
+		if err := runSecretsGuardCmd(bytes.NewReader(payload), &output); err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(output.String(), `"permissionDecision":"deny"`) {
+			t.Errorf("expected managed path denial for %s, got %s", path, output.String())
+		}
+	}
+}
+
+func TestSecretsGuardResolvesGlobsAndSymlinks(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	agentDir := filepath.Join(root, ".moltnet", "agent")
+	sshDir := filepath.Join(agentDir, "ssh")
+	if err := os.MkdirAll(sshDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	secretPath := filepath.Join(agentDir, "moltnet.json")
+	if err := os.WriteFile(secretPath, []byte("secret"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	publicLink := filepath.Join(sshDir, "id_ed25519.pub")
+	if err := os.Symlink(filepath.Join("..", "moltnet.json"), publicLink); err != nil {
+		t.Fatal(err)
+	}
+
+	if !pathTouchesProtectedSecret(filepath.Join(root, ".molt?et", "agent", "moltnet.json")) {
+		t.Error("expected glob resolving into .moltnet to be protected")
+	}
+	if !pathTouchesProtectedSecret(publicLink) {
+		t.Error("expected canonical public-key symlink to a secret to be protected")
+	}
+	if pathTouchesProtectedSecret(filepath.Join(agentDir, "ssh", "other.pub")) == false {
+		// Non-canonical .pub names are protected even when they do not yet exist.
+		t.Error("expected non-canonical .pub path to be protected")
 	}
 }
 

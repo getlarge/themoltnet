@@ -198,27 +198,50 @@ func callMentionsProtectedPath(call *syntax.CallExpr) bool {
 
 func shellWordMentionsProtectedPath(word *syntax.Word) bool {
 	mentions := false
+	var literals strings.Builder
 	syntax.Walk(word, func(node syntax.Node) bool {
 		literal, ok := node.(*syntax.Lit)
 		if !ok {
 			return true
 		}
+		literals.WriteString(literal.Value)
 		value := filepath.ToSlash(literal.Value)
-		if strings.Contains(value, ".moltnet/") || strings.Contains(value, ".claude/settings.local.json") {
+		if pathTouchesProtectedSecret(value) {
 			mentions = true
 			return false
 		}
 		return true
 	})
-	return mentions
+	return mentions || pathTouchesProtectedSecret(literals.String())
 }
 
 func pathTouchesProtectedSecret(value string) bool {
-	value = filepath.ToSlash(filepath.Clean(strings.TrimSpace(value)))
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return false
+	}
+	if strings.ContainsAny(value, "*?[") {
+		matches, _ := filepath.Glob(value)
+		for _, match := range matches {
+			if pathTouchesProtectedSecret(match) {
+				return true
+			}
+		}
+	}
+	if resolved, err := filepath.EvalSymlinks(value); err == nil && filepath.Clean(resolved) != filepath.Clean(value) {
+		if pathTouchesProtectedSecretLexical(resolved) {
+			return true
+		}
+	}
+	return pathTouchesProtectedSecretLexical(value)
+}
+
+func pathTouchesProtectedSecretLexical(value string) bool {
+	value = filepath.ToSlash(filepath.Clean(value))
 	if value == "." || value == "" {
 		return false
 	}
-	if strings.Contains(value, "/.claude/settings.local.json") || value == ".claude/settings.local.json" {
+	if isProtectedGuardPath(value) {
 		return true
 	}
 	marker := ".moltnet/"
@@ -228,14 +251,36 @@ func pathTouchesProtectedSecret(value string) bool {
 	}
 	rel := strings.TrimPrefix(value[index+len(marker):], "/")
 	parts := strings.Split(rel, "/")
+	if len(parts) == 1 && parts[0] == "default-agent" {
+		return false
+	}
 	if len(parts) < 2 {
 		return true
 	}
 	name := parts[len(parts)-1]
-	if name == "default-agent" || name == "gitconfig" || strings.HasSuffix(name, ".pub") {
+	if len(parts) == 2 && name == "gitconfig" {
+		return false
+	}
+	if len(parts) == 3 && parts[1] == "ssh" && name == "id_ed25519.pub" {
 		return false
 	}
 	return true
+}
+
+func isProtectedGuardPath(value string) bool {
+	protected := []string{
+		".claude/settings.json",
+		".claude/settings.local.json",
+		".claude/hooks/moltnet-secret-guard.sh",
+		".codex/hooks.json",
+		".opencode/plugins/moltnet-secret-guard.ts",
+	}
+	for _, path := range protected {
+		if value == path || strings.HasSuffix(value, "/"+path) {
+			return true
+		}
+	}
+	return false
 }
 
 func isSecretMetadataCommand(executable string, args []string) bool {
@@ -260,13 +305,56 @@ func isSecretMetadataCommand(executable string, args []string) bool {
 func normalizedMoltnetArgs(executable string, args []string) ([]string, bool) {
 	switch filepath.Base(executable) {
 	case "moltnet":
-		return args, true
+		return stripMoltnetPersistentFlags(args), true
 	case "npx":
-		if len(args) > 0 && args[0] == "@themoltnet/cli" {
-			return args[1:], true
+		packageIndex := npxPackageIndex(args)
+		if packageIndex >= 0 && args[packageIndex] == "@themoltnet/cli" {
+			return stripMoltnetPersistentFlags(args[packageIndex+1:]), true
 		}
 	}
 	return nil, false
+}
+
+func stripMoltnetPersistentFlags(args []string) []string {
+	normalized := make([]string, 0, len(args))
+	for index := 0; index < len(args); index++ {
+		arg := args[index]
+		if arg == "--api-url" || arg == "--credentials" {
+			if index+1 < len(args) {
+				index++
+			}
+			continue
+		}
+		if strings.HasPrefix(arg, "--api-url=") || strings.HasPrefix(arg, "--credentials=") {
+			continue
+		}
+		normalized = append(normalized, arg)
+	}
+	return normalized
+}
+
+func npxPackageIndex(args []string) int {
+	optionsWithValues := map[string]bool{
+		"--cache": true, "--call": true, "-c": true, "--package": true,
+		"-p": true, "--script-shell": true, "--shell": true,
+		"--userconfig": true, "--workspace": true, "-w": true,
+	}
+	for index := 0; index < len(args); index++ {
+		arg := args[index]
+		if arg == "--" {
+			if index+1 < len(args) {
+				return index + 1
+			}
+			return -1
+		}
+		if !strings.HasPrefix(arg, "-") {
+			return index
+		}
+		if optionsWithValues[arg] && index+1 < len(args) {
+			index++
+		}
+	}
+	return -1
 }
 
 func isReviewedMoltnetConsumer(executable string, args []string, allowGitHubToken bool) bool {
