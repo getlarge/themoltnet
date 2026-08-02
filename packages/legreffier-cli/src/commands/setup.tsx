@@ -1,6 +1,7 @@
 import { defineCommand } from 'citty';
 import { render } from 'ink';
 
+import { assertSecretGuardCapability } from '../secret-guard-capability.js';
 import { SetupApp } from '../SetupApp.js';
 import {
   collectAgents,
@@ -23,7 +24,8 @@ export const setupCommand = defineCommand({
     'api-url': commonArgs['api-url'],
     dir: commonArgs.dir,
   },
-  run: withCleanErrors(({ args, rawArgs }) => {
+  run: withCleanErrors(async ({ args, rawArgs }) => {
+    await assertSecretGuardCapability();
     const name = requireAgentName(args.name);
     const agents = collectAgents(rawArgs);
     const apiUrl = resolveApiUrl(args['api-url']);

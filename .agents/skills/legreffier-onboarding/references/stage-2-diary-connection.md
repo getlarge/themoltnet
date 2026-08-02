@@ -24,8 +24,11 @@ Read `REGISTERED_AT` from activation JSON and `TEAM_CREATED_AT` from
 
 - `.moltnet/<AGENT_NAME>/moltnet.json` exists with valid config
 - `.mcp.json` or `.codex/config.toml` exists (MCP configured)
-- Run `moltnet agents activation validate --agent <AGENT_NAME> --dir . --json`
-  and use its `diaryId` and `teamId` fields
+- Run `moltnet agents activation validate --agent <AGENT_NAME> --dir . --json`.
+  If it returns `cache_missing`, `input_hash_mismatch`, or `version_mismatch`,
+  run `moltnet agents activation refresh --agent <AGENT_NAME> --dir . --json`
+  and use the refreshed `diaryId` and `teamId`. Stop on other invalid reasons
+  instead of treating stale metadata as current.
 
 If activation JSON already contains `diaryId` → skip to Stage 3.
 
@@ -102,6 +105,9 @@ Persist both values without opening the protected env file:
 moltnet env configure --agent <AGENT_NAME> \
   --team-id <TEAM_ID> --diary-id <DIARY_ID>
 ```
+
+`env configure` invalidates activation metadata. Refresh activation again before
+using `teamId`, `diaryId`, or authorship fields later in onboarding.
 
 ## Team lead onboarding (optional branch)
 

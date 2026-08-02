@@ -93,6 +93,10 @@ from [the standard engineering context recipe](./running-agents.md#context-catal
 into the profile's `context` field. Leave `context` empty for a minimal task
 path without diary, commit, or PR workflow guidance.
 
+Save the following as `create-local-profile.ts`, then run it inside the
+activated child process so `MOLTNET_TEAM_ID` is available without exporting the
+protected agent environment into the operator shell:
+
 ```ts
 import { connect } from '@themoltnet/sdk';
 
@@ -129,7 +133,11 @@ const profile = await agent.runtimeProfiles.create(
 );
 ```
 
-Set `MOLTNET_AGENT_PROFILE` to the created id or team-scoped name.
+```bash
+moltnet start --agent local-dev -- pnpm exec tsx create-local-profile.ts
+```
+
+The daemon command below uses the team-scoped profile name directly.
 
 ## Run The Daemon
 
@@ -137,12 +145,14 @@ Start the daemon from the same worktree that contains `.moltnet/local-dev/`.
 The daemon reads API/MCP endpoints from `.moltnet/local-dev/moltnet.json`.
 
 ```bash
-pnpm exec nx run @themoltnet/agent-daemon:dev -- poll \
-  --agent local-dev \
-  --team "$MOLTNET_TEAM_ID" \
-  --profile "$MOLTNET_AGENT_PROFILE" \
-  --task-types fulfill_brief \
-  --debug
+moltnet start --agent local-dev -- sh -c '
+  exec pnpm exec nx run @themoltnet/agent-daemon:dev -- poll \
+    --agent local-dev \
+    --team "$MOLTNET_TEAM_ID" \
+    --profile local-ollama \
+    --task-types fulfill_brief \
+    --debug
+'
 ```
 
 Leave it running. It idles until a compatible task lands in the queue.
