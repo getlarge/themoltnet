@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { assertSecretGuardCapability } from '../secret-guard-capability.js';
 import { buildGhTokenRule, installCanonicalSkills } from '../setup.js';
 import type { AgentAdapter, AgentAdapterOptions } from './types.js';
 
@@ -25,9 +26,34 @@ const RULE_REL_PATH = '.opencode/rules/legreffier-gh.md';
 
 export const OPENCODE_SECRET_GUARD_PLUGIN = `import type { Plugin } from '@opencode-ai/plugin';
 
+const GUARD_ARGUMENT_KEYS = [
+  'command',
+  'file_path',
+  'filePath',
+  'path',
+  'directory',
+  'include',
+  'glob',
+  'patch',
+  'patchText',
+] as const;
+
+function normalizeGuardArgs(args: unknown): Record<string, unknown> {
+  if (!args || typeof args !== 'object' || Array.isArray(args)) return {};
+  const source = args as Record<string, unknown>;
+  const normalized: Record<string, unknown> = {};
+  for (const key of GUARD_ARGUMENT_KEYS) {
+    if (key in source) normalized[key] = source[key];
+  }
+  return normalized;
+}
+
 export const MoltNetSecretGuard: Plugin = async () => ({
   'tool.execute.before': async (input, output) => {
-    const payload = JSON.stringify({ tool_name: input.tool, tool_input: output.args });
+    const payload = JSON.stringify({
+      tool_name: input.tool,
+      tool_input: normalizeGuardArgs(output.args),
+    });
     let result;
     try {
       result = Bun.spawnSync(['moltnet', 'secrets', 'guard'], { stdin: payload });
@@ -104,6 +130,7 @@ export class OpencodeAdapter implements AgentAdapter {
   }
 
   async writeSettings(opts: AgentAdapterOptions): Promise<void> {
+    await assertSecretGuardCapability();
     const dir = join(opts.repoDir, '.opencode', 'plugins');
     await mkdir(dir, { recursive: true });
     await writeFile(
