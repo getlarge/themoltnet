@@ -121,10 +121,10 @@ describe('OSKeyringSecretProvider', () => {
           key: 'oauth2/identity/client',
         },
       },
-    } as Parameters<typeof resolveNodeOAuth2ClientSecret>[0];
+    } as unknown as Parameters<typeof resolveNodeOAuth2ClientSecret>[0];
     const plaintext = {
       oauth2: { client_id: 'client', client_secret: 'legacy-secret' },
-    } as Parameters<typeof resolveNodeOAuth2ClientSecret>[0];
+    } as unknown as Parameters<typeof resolveNodeOAuth2ClientSecret>[0];
 
     await expect(resolveNodeOAuth2ClientSecret(referenced)).resolves.toBe(
       'resolved-secret',
@@ -144,7 +144,7 @@ describe('OSKeyringSecretProvider', () => {
           key: 'oauth2/identity/client',
         },
       },
-    } as Parameters<typeof resolveNodeOAuth2ClientSecret>[0];
+    } as unknown as Parameters<typeof resolveNodeOAuth2ClientSecret>[0];
 
     await expect(resolveNodeOAuth2ClientSecret(ambiguous)).rejects.toThrow(
       /exactly one/,
