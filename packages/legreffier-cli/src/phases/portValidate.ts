@@ -60,9 +60,9 @@ export async function runPortValidatePhase(opts: {
       action: 'warning',
     });
   }
-  if (!config.oauth2?.client_secret) {
+  if (!config.oauth2?.client_secret && !config.oauth2?.client_secret_ref) {
     issues.push({
-      field: 'oauth2.client_secret',
+      field: 'oauth2.client_secret/client_secret_ref',
       problem: 'missing — required for port',
       action: 'warning',
     });

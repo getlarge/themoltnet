@@ -79,6 +79,25 @@ describe('runPortValidatePhase', () => {
     expect(result.config.github?.app_id).toBe('2878569');
   });
 
+  it('accepts an opaque client secret reference as complete', async () => {
+    const dir = join(tmpRoot, 'secret-ref');
+    const config = baseConfig(dir);
+    config.oauth2 = {
+      client_id: 'cid',
+      client_secret_ref: {
+        provider: 'os-keyring',
+        key: 'oauth2/identity/cid',
+      },
+    };
+    await writeConfig(dir, config);
+    await writeFiles(dir);
+
+    const result = await runPortValidatePhase({ sourceDir: dir });
+
+    expect(result.canProceed).toBe(true);
+    expect(result.issues).toEqual([]);
+  });
+
   it('throws when moltnet.json is missing', async () => {
     const dir = join(tmpRoot, 'empty');
     await mkdir(dir, { recursive: true });
