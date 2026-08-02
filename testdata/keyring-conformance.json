@@ -1,0 +1,9 @@
+{
+  "windows": [
+    {
+      "key": "oauth2/identity-123/client-456",
+      "service": "themolt.net",
+      "target": "themolt.net:oauth2/identity-123/client-456"
+    }
+  ]
+}

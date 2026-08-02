@@ -30,6 +30,13 @@ func OAuth2SecretKey(identityID, clientID string) string {
 	return fmt.Sprintf("oauth2/%s/%s", identityID, clientID)
 }
 
+// windowsKeyringTarget documents the target convention used internally by
+// github.com/zalando/go-keyring. Node consumers must explicitly use the same
+// target because their keyring binding has a different Windows default.
+func windowsKeyringTarget(service, key string) string {
+	return service + ":" + key
+}
+
 // SecretProvider is the storage boundary used by credential consumers.
 type SecretProvider interface {
 	Get(key string) (string, error)
