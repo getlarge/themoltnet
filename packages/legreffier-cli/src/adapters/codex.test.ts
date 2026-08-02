@@ -2,7 +2,15 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const { assertSecretGuardCapabilityMock } = vi.hoisted(() => ({
+  assertSecretGuardCapabilityMock: vi.fn(),
+}));
+
+vi.mock('../secret-guard-capability.js', () => ({
+  assertSecretGuardCapability: assertSecretGuardCapabilityMock,
+}));
 
 import {
   GITHUB_GUARD_HOOK_COMMAND,
@@ -30,6 +38,7 @@ const baseOpts: AgentAdapterOptions = {
 };
 
 beforeEach(async () => {
+  assertSecretGuardCapabilityMock.mockReset().mockResolvedValue(undefined);
   await mkdir(tmpRepo, { recursive: true });
 });
 
@@ -107,6 +116,7 @@ describe('CodexAdapter.writeSettings', () => {
   it('writes the GitHub guard to .codex/hooks.json', async () => {
     const adapter = new CodexAdapter();
     await adapter.writeSettings(baseOpts);
+    expect(assertSecretGuardCapabilityMock).toHaveBeenCalledOnce();
 
     const parsed = JSON.parse(
       await readFile(join(tmpRepo, '.codex', 'hooks.json'), 'utf-8'),
@@ -140,7 +150,10 @@ describe('CodexAdapter.writeSettings', () => {
           PreToolUse: [
             {
               matcher: 'Bash',
-              hooks: [{ type: 'command', command: 'moltnet github guard' }],
+              hooks: [
+                { type: 'command', command: 'custom secret guard audit' },
+                { type: 'command', command: 'moltnet github guard' },
+              ],
             },
           ],
         },
@@ -157,7 +170,21 @@ describe('CodexAdapter.writeSettings', () => {
     expect(parsed.hooks.SessionStart).toHaveLength(1);
     expect(parsed.hooks.PreToolUse[0].hooks).toEqual([
       { type: 'command', command: SECRET_GUARD_HOOK_COMMAND },
+      { type: 'command', command: 'custom secret guard audit' },
       { type: 'command', command: GITHUB_GUARD_HOOK_COMMAND },
     ]);
+  });
+
+  it('does not write hooks when the released CLI lacks the guard', async () => {
+    assertSecretGuardCapabilityMock.mockRejectedValueOnce(
+      new Error('update moltnet'),
+    );
+
+    await expect(new CodexAdapter().writeSettings(baseOpts)).rejects.toThrow(
+      'update moltnet',
+    );
+    await expect(
+      readFile(join(tmpRepo, '.codex', 'hooks.json'), 'utf-8'),
+    ).rejects.toThrow();
   });
 });

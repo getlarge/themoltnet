@@ -3,6 +3,7 @@ import { join } from 'node:path';
 
 import { type McpConfig, writeMcpConfig } from '@themoltnet/sdk';
 
+import { assertSecretGuardCapability } from '../secret-guard-capability.js';
 import {
   buildGhTokenRule,
   installCanonicalSkills,
@@ -42,6 +43,7 @@ export class ClaudeAdapter implements AgentAdapter {
   }
 
   async writeSettings(opts: AgentAdapterOptions): Promise<void> {
+    await assertSecretGuardCapability();
     await writeClaudeGuardHook(opts.repoDir);
     await writeSettingsLocal({
       repoDir: opts.repoDir,

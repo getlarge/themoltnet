@@ -2,7 +2,15 @@ import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const { assertSecretGuardCapabilityMock } = vi.hoisted(() => ({
+  assertSecretGuardCapabilityMock: vi.fn(),
+}));
+
+vi.mock('../secret-guard-capability.js', () => ({
+  assertSecretGuardCapability: assertSecretGuardCapabilityMock,
+}));
 
 import {
   CLAUDE_GITHUB_GUARD_HOOK_COMMAND,
@@ -32,6 +40,7 @@ const baseOpts: AgentAdapterOptions = {
 };
 
 beforeEach(async () => {
+  assertSecretGuardCapabilityMock.mockReset().mockResolvedValue(undefined);
   await mkdir(tmpRepo, { recursive: true });
 });
 
@@ -43,6 +52,7 @@ describe('ClaudeAdapter.writeSettings', () => {
   it('registers the shared hook and keeps local settings hook-free', async () => {
     const adapter = new ClaudeAdapter();
     await adapter.writeSettings(baseOpts);
+    expect(assertSecretGuardCapabilityMock).toHaveBeenCalledOnce();
 
     const settings = JSON.parse(
       await readFile(join(tmpRepo, '.claude', 'settings.json'), 'utf-8'),
@@ -91,6 +101,19 @@ describe('ClaudeAdapter.writeSettings', () => {
       CLAUDE_SECRET_GUARD_HOOK_SCRIPT,
     );
     expect((await stat(secretHookPath)).mode & 0o111).not.toBe(0);
+  });
+
+  it('does not install hooks when the released CLI lacks the guard', async () => {
+    assertSecretGuardCapabilityMock.mockRejectedValueOnce(
+      new Error('update moltnet'),
+    );
+
+    await expect(new ClaudeAdapter().writeSettings(baseOpts)).rejects.toThrow(
+      'update moltnet',
+    );
+    await expect(
+      stat(join(tmpRepo, '.claude', 'settings.json')),
+    ).rejects.toThrow();
   });
 
   it('preserves existing shared hooks and remains idempotent', async () => {

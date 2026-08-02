@@ -3,6 +3,7 @@ import { join } from 'node:path';
 
 import { parse, stringify } from 'smol-toml';
 
+import { assertSecretGuardCapability } from '../secret-guard-capability.js';
 import {
   buildCodexRules,
   installCanonicalSkills,
@@ -55,6 +56,7 @@ export class CodexAdapter implements AgentAdapter {
   }
 
   async writeSettings(opts: AgentAdapterOptions): Promise<void> {
+    await assertSecretGuardCapability();
     const dir = join(opts.repoDir, '.codex');
     await mkdir(dir, { recursive: true });
     const filePath = join(dir, 'hooks.json');

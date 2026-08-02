@@ -150,38 +150,12 @@ export function mergeGitHubGuardHook(
   hooks: unknown,
   command = GITHUB_GUARD_HOOK_COMMAND,
 ): HookSettings {
-  const existing =
-    hooks && typeof hooks === 'object' && !Array.isArray(hooks)
-      ? (hooks as HookSettings)
-      : {};
-  const preToolUse = Array.isArray(existing.PreToolUse)
-    ? existing.PreToolUse.map((entry) => ({
-        ...entry,
-        hooks: Array.isArray(entry.hooks)
-          ? entry.hooks.filter((hook) => !isGitHubGuardHook(hook))
-          : [],
-      }))
-    : [];
-  const bashMatcherIndex = preToolUse.findIndex(
-    (entry) => entry.matcher === 'Bash',
-  );
-
-  if (bashMatcherIndex >= 0) {
-    preToolUse[bashMatcherIndex] = {
-      ...preToolUse[bashMatcherIndex],
-      hooks: [
-        ...preToolUse[bashMatcherIndex].hooks,
-        { type: 'command', command },
-      ],
-    };
-  } else {
-    preToolUse.push({
-      matcher: 'Bash',
-      hooks: [{ type: 'command', command }],
-    });
-  }
-
-  return { ...existing, PreToolUse: preToolUse };
+  return mergePreToolUseGuard(hooks, {
+    matchers: ['Bash'],
+    command,
+    placement: 'append',
+    isManaged: isGitHubGuardHook,
+  });
 }
 
 const SECRET_GUARD_MATCHERS = ['Bash', 'Read', 'Grep', 'Write', 'Edit', 'Glob'];
@@ -189,6 +163,25 @@ const SECRET_GUARD_MATCHERS = ['Bash', 'Read', 'Grep', 'Write', 'Edit', 'Glob'];
 export function mergeSecretGuardHook(
   hooks: unknown,
   command = SECRET_GUARD_HOOK_COMMAND,
+): HookSettings {
+  return mergePreToolUseGuard(hooks, {
+    matchers: SECRET_GUARD_MATCHERS,
+    command,
+    placement: 'prepend',
+    isManaged: isSecretGuardHook,
+  });
+}
+
+interface GuardHookSpec {
+  matchers: string[];
+  command: string;
+  placement: 'prepend' | 'append';
+  isManaged: (hook: unknown) => boolean;
+}
+
+function mergePreToolUseGuard(
+  hooks: unknown,
+  spec: GuardHookSpec,
 ): HookSettings {
   const existing =
     hooks && typeof hooks === 'object' && !Array.isArray(hooks)
@@ -198,22 +191,26 @@ export function mergeSecretGuardHook(
     ? existing.PreToolUse.map((entry) => ({
         ...entry,
         hooks: Array.isArray(entry.hooks)
-          ? entry.hooks.filter((hook) => !isSecretGuardHook(hook))
+          ? entry.hooks.filter((hook) => !spec.isManaged(hook))
           : [],
       }))
     : [];
 
-  for (const matcher of SECRET_GUARD_MATCHERS) {
+  for (const matcher of spec.matchers) {
     const index = preToolUse.findIndex((entry) => entry.matcher === matcher);
     if (index >= 0) {
+      const guard = { type: 'command' as const, command: spec.command };
       preToolUse[index] = {
         ...preToolUse[index],
-        hooks: [{ type: 'command', command }, ...preToolUse[index].hooks],
+        hooks:
+          spec.placement === 'prepend'
+            ? [guard, ...preToolUse[index].hooks]
+            : [...preToolUse[index].hooks, guard],
       };
     } else {
       preToolUse.push({
         matcher,
-        hooks: [{ type: 'command', command }],
+        hooks: [{ type: 'command', command: spec.command }],
       });
     }
   }
@@ -221,23 +218,25 @@ export function mergeSecretGuardHook(
   return { ...existing, PreToolUse: preToolUse };
 }
 
+function hookCommand(hook: unknown): string | undefined {
+  if (!hook || typeof hook !== 'object' || !('command' in hook)) return;
+  return typeof hook.command === 'string' ? hook.command.trim() : undefined;
+}
+
 function isGitHubGuardHook(hook: unknown): boolean {
+  const command = hookCommand(hook);
   return (
-    !!hook &&
-    typeof hook === 'object' &&
-    'command' in hook &&
-    typeof hook.command === 'string' &&
-    /\bgithub(?:\s+|-)guard\b/.test(hook.command)
+    command === GITHUB_GUARD_CLI_COMMAND ||
+    command === GITHUB_GUARD_HOOK_COMMAND ||
+    command === CLAUDE_GITHUB_GUARD_HOOK_COMMAND
   );
 }
 
 function isSecretGuardHook(hook: unknown): boolean {
+  const command = hookCommand(hook);
   return (
-    !!hook &&
-    typeof hook === 'object' &&
-    'command' in hook &&
-    typeof hook.command === 'string' &&
-    /\bsecret(?:s)?(?:\s+|-)guard\b/.test(hook.command)
+    command === SECRET_GUARD_HOOK_COMMAND ||
+    command === CLAUDE_SECRET_GUARD_HOOK_COMMAND
   );
 }
 
