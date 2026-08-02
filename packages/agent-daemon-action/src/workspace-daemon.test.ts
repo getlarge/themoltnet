@@ -26,6 +26,18 @@ describe('workspace daemon action contract', () => {
     );
   });
 
+  it('materializes executor signing config when agent-key auth also has identity material', () => {
+    const action = readFileSync(actionPath, 'utf8');
+
+    expect(action).toContain(
+      'Materializing executor signing config alongside agent-key authentication',
+    );
+    expect(action).toContain(
+      'Agent-key executor signing configuration is incomplete',
+    );
+    expect(action).toContain('npx -y @themoltnet/cli config init-from-env');
+  });
+
   it('boots the workspace daemon entrypoint with plain Node and tsx', () => {
     const result = spawnSync(
       process.execPath,
@@ -40,5 +52,5 @@ describe('workspace daemon action contract', () => {
     expect(result.stdout).toContain(
       'agent-daemon drain — poll until the queue is empty, then exit.',
     );
-  });
+  }, 15_000);
 });

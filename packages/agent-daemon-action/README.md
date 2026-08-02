@@ -120,10 +120,12 @@ The caller workflow owns the `environment:` binding and maps environment
 variables/secrets into `env:`. This action only consumes the inherited process
 environment; it does not and cannot choose a GitHub Environment.
 
-For CI-only workers, `MOLTNET_AGENT_KEY` is an alternative to the OAuth and
-identity-materialization fields below. When it is present, the action uses the
-SDK's configless agent-key path and does not create `moltnet.json`; set
-`MOLTNET_AGENT_NAME`, `MOLTNET_TEAM_ID`, and `MOLTNET_API_URL` alongside it.
+For CI-only API workloads, `MOLTNET_AGENT_KEY` is an alternative to the OAuth
+and identity-materialization fields below. When it is the only credential, the
+action uses the SDK's configless agent-key path. Agent daemons that execute
+tasks must also attest their executor manifest: provide all six identity,
+OAuth, and Ed25519 fields below so the action materializes `moltnet.json` for
+signing. `MOLTNET_AGENT_KEY` remains authoritative for API authentication.
 
 The exception is `MOLTNET_AGENT_ALLOWLIST` — see [Multi-agent
 routing](#multi-agent-routing) below.

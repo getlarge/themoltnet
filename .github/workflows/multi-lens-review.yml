@@ -127,8 +127,93 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  orchestrate:
+  runtime-preflight:
     needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: legreffier
+    permissions:
+      contents: read
+    env:
+      MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+      MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
+      MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
+      MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
+      MOLTNET_IDENTITY_ID: ${{ secrets.MOLTNET_IDENTITY_ID }}
+      MOLTNET_CLIENT_ID: ${{ secrets.MOLTNET_CLIENT_ID }}
+      MOLTNET_CLIENT_SECRET: ${{ secrets.MOLTNET_CLIENT_SECRET }}
+      MOLTNET_PUBLIC_KEY: ${{ secrets.MOLTNET_PUBLIC_KEY }}
+      MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
+      MOLTNET_FINGERPRINT: ${{ secrets.MOLTNET_FINGERPRINT }}
+      MULTI_LENS_REVIEW_DATABASE_URL: ${{ secrets.MULTI_LENS_REVIEW_DATABASE_URL }}
+      OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.prepare.outputs.base-sha }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Validate configured runtime prerequisites
+        env:
+          REVIEW_PROFILE: ${{ needs.prepare.outputs.profile }}
+        run: |
+          set -euo pipefail
+          required=(
+            MULTI_LENS_REVIEW_DATABASE_URL
+            MOLTNET_AGENT_KEY
+            MOLTNET_AGENT_NAME
+            MOLTNET_TEAM_ID
+            MOLTNET_IDENTITY_ID
+            MOLTNET_CLIENT_ID
+            MOLTNET_CLIENT_SECRET
+            MOLTNET_PUBLIC_KEY
+            MOLTNET_PRIVATE_KEY
+            MOLTNET_FINGERPRINT
+            REVIEW_PROFILE
+          )
+          missing=()
+          for name in "${required[@]}"; do
+            if [ -z "${!name:-}" ]; then
+              missing+=("$name")
+            fi
+          done
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::error::Multi-lens runtime preflight is missing ${missing[*]}" >&2
+            exit 1
+          fi
+
+      - name: Provision Absurd schema
+        env:
+          ABSURD_DATABASE_URL: ${{ env.MULTI_LENS_REVIEW_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          if uvx absurdctl schema-version >/dev/null 2>&1; then
+            uvx absurdctl migrate --to 0.4.0
+          else
+            uvx absurdctl init --ref 0.4.0
+          fi
+          uvx absurdctl schema-version
+
+      - name: Preflight executor authentication and attestation
+        uses: ./packages/agent-daemon-action
+        with:
+          agent-name: ${{ vars.MOLTNET_AGENT_NAME }}
+          mode: drain
+          task-types: freeform
+          correlation-id: ${{ needs.prepare.outputs.correlation-id }}
+          wait-for-first-task-sec: '0'
+          wait-after-task-sec: '0'
+          profile: ${{ needs.prepare.outputs.profile }}
+          daemon-version: workspace
+
+  orchestrate:
+    needs: [prepare, runtime-preflight]
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment: legreffier
@@ -246,7 +331,7 @@ jobs:
             }
 
   review-workers:
-    needs: prepare
+    needs: [prepare, runtime-preflight]
     # Orchestration is authoritative: worker failures surface as missing task
     # completion there, while a post-drain timeout must not mask a completed
     # review.
@@ -265,10 +350,16 @@ jobs:
       MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
       MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
       MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
+      MOLTNET_IDENTITY_ID: ${{ secrets.MOLTNET_IDENTITY_ID }}
+      MOLTNET_CLIENT_ID: ${{ secrets.MOLTNET_CLIENT_ID }}
+      MOLTNET_CLIENT_SECRET: ${{ secrets.MOLTNET_CLIENT_SECRET }}
+      MOLTNET_PUBLIC_KEY: ${{ secrets.MOLTNET_PUBLIC_KEY }}
+      MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
+      MOLTNET_FINGERPRINT: ${{ secrets.MOLTNET_FINGERPRINT }}
       OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
       # Absurd may need time to create the first task; dependency gaps after a
       # completed lens are shorter and use a separate idle grace.
-      REVIEW_WORKER_STARTUP_GRACE_SEC: '900'
+      REVIEW_WORKER_STARTUP_GRACE_SEC: '120'
       # Keep both workers alive across planner -> preflight -> canary gates.
       REVIEW_WORKER_IDLE_GRACE_SEC: '900'
     steps:
