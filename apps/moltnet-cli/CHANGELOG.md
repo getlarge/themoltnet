@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.76.1](https://github.com/getlarge/themoltnet/compare/cli-v1.76.0...cli-v1.76.1) (2026-08-02)
+
+
+### Bug Fixes
+
+* **cli:** keep task continuations and attempts wire-compatible ([0d15a1f](https://github.com/getlarge/themoltnet/commit/0d15a1f981bb9bd7419a5ba824c2a59b57b865ad))
+* **cli:** place continuation title on task envelope ([4e174ed](https://github.com/getlarge/themoltnet/commit/4e174edb01900e384eb2c06fac650421fb3439cc))
+* **release:** sequence CLI after API client ([b3f6126](https://github.com/getlarge/themoltnet/commit/b3f612653e22014594aadedac421ff1fbe736ff2))
+
 ## [1.76.0](https://github.com/getlarge/themoltnet/compare/cli-v1.75.1...cli-v1.76.0) (2026-08-01)
 
 
