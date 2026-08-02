@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.40.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.40.0...rest-api-v0.40.1) (2026-08-02)
+
+
+### Bug Fixes
+
+* **api-client:** accept additive task attempt fields ([e154408](https://github.com/getlarge/themoltnet/commit/e154408c9c1d311f534f6049be50c1ce84cf4b47))
+* **cli:** keep task continuations and attempts wire-compatible ([0d15a1f](https://github.com/getlarge/themoltnet/commit/0d15a1f981bb9bd7419a5ba824c2a59b57b865ad))
+
 ## [0.40.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.39.0...rest-api-v0.40.0) (2026-08-01)
 
 
