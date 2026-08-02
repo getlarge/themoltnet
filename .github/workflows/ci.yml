@@ -620,7 +620,7 @@ jobs:
                 marker,
                 '## :warning: CLI go.mod is behind internal Go module releases',
                 '',
-                'Keep the checked-in CLI dependency aligned with the latest published Go modules so consumer-mode tests match normal development. If a release run publishes a newer API client and CLI together, the release workflow pins that new proxy tag before building CLI artifacts.',
+                'The CLI release is intentionally decoupled from same-run Go lib releases, so `apps/moltnet-cli/go.mod` must already be bumped in a normal PR.',
                 '',
                 'Detected drift:',
                 message,

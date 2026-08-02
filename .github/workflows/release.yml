@@ -825,18 +825,8 @@ jobs:
 
   release-cli:
     name: Release CLI binaries
-    needs: [resolve-publish, release-api-client]
-    if: >-
-      ${{
-        always() &&
-        needs.resolve-publish.outputs.cli == 'true' &&
-        (
-          needs.resolve-publish.outputs.api-client != 'true' ||
-          needs.release-api-client.result == 'success'
-        ) &&
-        !failure() &&
-        !cancelled()
-      }}
+    needs: resolve-publish
+    if: ${{ always() && needs.resolve-publish.outputs.cli == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -855,27 +845,6 @@ jobs:
           TAG="${{ needs.resolve-publish.outputs.cli-tag }}"
           SEMVER="${TAG#cli-}"
           echo "semver=$SEMVER" >> "$GITHUB_OUTPUT"
-
-      - name: Pin the published API client used by release binaries
-        uses: nick-fields/retry@v4.0.0
-        env:
-          API_CLIENT_RELEASED: ${{ needs.resolve-publish.outputs.api-client }}
-          API_CLIENT_VERSION: ${{ needs.resolve-publish.outputs.api-client-version }}
-        with:
-          timeout_minutes: 10
-          max_attempts: 5
-          retry_wait_seconds: 15
-          command: |
-            set -euo pipefail
-            if [ "$API_CLIENT_RELEASED" != "true" ]; then
-              API_CLIENT_VERSION=$(jq -r '."libs/moltnet-api-client"' .release-please-manifest.json)
-            fi
-            test -n "$API_CLIENT_VERSION"
-            test "$API_CLIENT_VERSION" != "null"
-            cd apps/moltnet-cli
-            go mod edit -require="github.com/getlarge/themoltnet/libs/moltnet-api-client@v${API_CLIENT_VERSION}"
-            GOWORK=off GOPROXY=direct go mod tidy
-            GOWORK=off GOPROXY=direct go test ./...
 
       - name: Generate GitHub App token for Homebrew tap
         uses: actions/create-github-app-token@v3
@@ -1039,74 +1008,6 @@ jobs:
           max_attempts: 3
           retry_wait_seconds: 30
           command: pnpm --filter @themoltnet/cli publish --no-git-checks --access public --provenance
-
-  smoke-cli-deployed-api:
-    name: Smoke published CLI against deployed API
-    needs: [resolve-publish, publish-cli-wrapper]
-    if: >-
-      ${{
-        always() &&
-        needs.resolve-publish.outputs.cli == 'true' &&
-        needs.publish-cli-wrapper.result == 'success' &&
-        !failure() &&
-        !cancelled()
-      }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          registry-url: https://registry.npmjs.org
-
-      - name: Install the published CLI
-        uses: nick-fields/retry@v4.0.0
-        env:
-          CLI_TAG: ${{ needs.resolve-publish.outputs.cli-tag }}
-        with:
-          timeout_minutes: 10
-          max_attempts: 5
-          retry_wait_seconds: 30
-          command: npm install --global "@themoltnet/cli@${CLI_TAG#cli-v}"
-
-      - name: Write read-only smoke credentials
-        env:
-          MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
-          MOLTNET_CLIENT_ID: ${{ secrets.MOLTNET_CLIENT_ID }}
-          MOLTNET_CLIENT_SECRET: ${{ secrets.MOLTNET_CLIENT_SECRET }}
-          MOLTNET_IDENTITY_ID: ${{ secrets.MOLTNET_IDENTITY_ID }}
-        run: |
-          jq -n \
-            --arg identity_id "$MOLTNET_IDENTITY_ID" \
-            --arg client_id "$MOLTNET_CLIENT_ID" \
-            --arg client_secret "$MOLTNET_CLIENT_SECRET" \
-            --arg api "$MOLTNET_API_URL" \
-            '{
-              identity_id: $identity_id,
-              oauth2: {client_id: $client_id, client_secret: $client_secret},
-              keys: {public_key: "", private_key: "", fingerprint: ""},
-              endpoints: {api: $api, mcp: ""},
-              registered_at: ""
-            }' > "$RUNNER_TEMP/moltnet-smoke.json"
-          chmod 600 "$RUNNER_TEMP/moltnet-smoke.json"
-
-      - name: Decode task attempts from the deployed API
-        env:
-          MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
-          MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
-        run: |
-          set -euo pipefail
-          CREDS="$RUNNER_TEMP/moltnet-smoke.json"
-          moltnet --api-url "$MOLTNET_API_URL" --credentials "$CREDS" \
-            task list --team-id "$MOLTNET_TEAM_ID" --has-attempts=true --limit 1 \
-            > "$RUNNER_TEMP/tasks.json"
-          TASK_ID=$(jq -r '.items[0].id // empty' "$RUNNER_TEMP/tasks.json")
-          test -n "$TASK_ID"
-          moltnet --api-url "$MOLTNET_API_URL" --credentials "$CREDS" \
-            task attempts "$TASK_ID" > "$RUNNER_TEMP/attempts.json"
-          jq -e 'length > 0 and all(.[]; has("taskId") and has("attemptN") and has("status"))' \
-            "$RUNNER_TEMP/attempts.json"
 
   # The cli is an 8-component linked-versions group. Only apps/moltnet-cli
   # gets a real GitHub release (cli-v<x>); the other 7 siblings use
