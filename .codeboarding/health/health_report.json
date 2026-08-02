@@ -1,7 +1,7 @@
 {
   "repository_name": "themoltnet",
-  "timestamp": "2026-08-01T15:18:28.463941+00:00",
-  "overall_score": 0.9775357114356397,
+  "timestamp": "2026-08-02T06:12:22.096393+00:00",
+  "overall_score": 0.9776063004653753,
   "check_summaries": [
     {
       "check_name": "function_size",
@@ -192,10 +192,10 @@
       "description": "Checks that functions/methods do not exceed line count thresholds",
       "language": "typescript",
       "check_type": "standard",
-      "total_entities_checked": 5533,
+      "total_entities_checked": 5556,
       "findings_count": 119,
       "warning_count": 119,
-      "score": 0.9784926802819447,
+      "score": 0.978581713462923,
       "finding_groups": [
         {
           "severity": "warning",
@@ -1044,10 +1044,10 @@
       "description": "Checks efferent coupling: how many other functions each function calls",
       "language": "typescript",
       "check_type": "standard",
-      "total_entities_checked": 7061,
+      "total_entities_checked": 7086,
       "findings_count": 50,
       "warning_count": 50,
-      "score": 0.9929188500212435,
+      "score": 0.9929438329099634,
       "finding_groups": [
         {
           "severity": "warning",
@@ -1413,10 +1413,10 @@
       "description": "Checks afferent coupling: how many other functions call each function",
       "language": "typescript",
       "check_type": "standard",
-      "total_entities_checked": 7061,
+      "total_entities_checked": 7086,
       "findings_count": 49,
       "warning_count": 49,
-      "score": 0.9930604730208186,
+      "score": 0.9930849562517641,
       "finding_groups": [
         {
           "severity": "warning",
@@ -1775,10 +1775,10 @@
       "description": "Detects classes with too many methods, too much code, or too many outgoing dependencies",
       "language": "typescript",
       "check_type": "standard",
-      "total_entities_checked": 170,
+      "total_entities_checked": 171,
       "findings_count": 6,
       "warning_count": 6,
-      "score": 0.9647058823529412,
+      "score": 0.9649122807017544,
       "finding_groups": [
         {
           "severity": "warning",
@@ -1818,7 +1818,7 @@
       "description": "Checks that class inheritance hierarchies do not exceed depth thresholds",
       "language": "typescript",
       "check_type": "standard",
-      "total_entities_checked": 2188,
+      "total_entities_checked": 2193,
       "findings_count": 0,
       "warning_count": 0,
       "score": 1.0,

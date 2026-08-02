@@ -265,6 +265,16 @@ Handles bootstrap and user-facing configuration of the agent environment, guidin
   - `packages.legreffier-cli.src.ui.types.IdentityResult` ([L61-L70](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/legreffier-cli/src/ui/types.ts#L61-L70)) - Interface
   - `packages.legreffier-cli.src.ui.types.GithubAppResult` ([L72-L78](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/legreffier-cli/src/ui/types.ts#L72-L78)) - Interface
   - `packages.legreffier-cli.src.ui.types.InstallationResult` ([L80-L85](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/legreffier-cli/src/ui/types.ts#L80-L85)) - Interface
+- [`packages/agent-daemon-action/src/cancel-superseded.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/cancel-superseded.ts)
+  - `packages.agent-daemon-action.src.cancel-superseded.TaskSpecIdentity` ([L8-L11](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/cancel-superseded.ts#L8-L11)) - Interface
+  - `packages.agent-daemon-action.src.cancel-superseded.parseSupersessionTags.filter() callback` ([L39-L39](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/cancel-superseded.ts#L39-L39)) - Function
+- [`tools/src/tasks/complexity-review-comment.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/complexity-review-comment.ts)
+  - `tools.src.tasks.complexity-review-comment.IssueComment` ([L16-L20](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/complexity-review-comment.ts#L16-L20)) - Interface
+  - `tools.src.tasks.complexity-review-comment.renderComplexityReviewResult.criteria` ([L95-L101](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/complexity-review-comment.ts#L95-L101)) - Class
+  - `tools.src.tasks.complexity-review-comment.renderComplexityReviewResult.criteria.args.output.scores.map() callback` ([L97-L99](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/complexity-review-comment.ts#L97-L99)) - Function
+  - `tools.src.tasks.complexity-review-comment.findComplexityReviewComment.comments.find() callback` ([L119-L121](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/complexity-review-comment.ts#L119-L121)) - Function
+  - `tools.src.tasks.complexity-review-comment.GitHubPullRequest` ([L125-L127](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/complexity-review-comment.ts#L125-L127)) - Interface
+  - `tools.src.tasks.complexity-review-comment.catch() callback` ([L308-L311](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/complexity-review-comment.ts#L308-L311)) - Function
 
 
 ### Data Integrity & Content Hash Backfiller

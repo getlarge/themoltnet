@@ -1,17 +1,17 @@
 {
   "metadata": {
-    "generated_at": "2026-08-01T15:22:40.686730+00:00",
-    "source_tree_hash": "05e786b11e096cb8756cf6ce7b343f62ba3f9f2a6dff89110aec04e6f3d8149c",
+    "generated_at": "2026-08-02T06:16:05.376416+00:00",
+    "source_tree_hash": "7fb72cda60d48c029a52766a24619502158df9f27d44edaa50f05acf9d3bf79b",
     "repo_name": "themoltnet",
     "depth_level": 2,
     "depth_cap": 2,
     "file_coverage_summary": {
-      "total_files": 2635,
-      "analyzed": 1103,
-      "not_analyzed": 1532,
+      "total_files": 2641,
+      "analyzed": 1106,
+      "not_analyzed": 1535,
       "not_analyzed_by_reason": {
         "other": 624,
-        "codeboardingignore": 908
+        "codeboardingignore": 911
       }
     }
   },
@@ -14813,6 +14813,20 @@
       "content_hash": "e6c318da6fd37ef1",
       "module_hash": "2bbaec414674cb2e"
     },
+    "packages/agent-daemon-action/src/cancel-superseded.ts": {
+      "method_keys": [
+        "packages/agent-daemon-action/src/cancel-superseded.ts|packages.agent-daemon-action.src.cancel-superseded.TaskSpecIdentity",
+        "packages/agent-daemon-action/src/cancel-superseded.ts|packages.agent-daemon-action.src.cancel-superseded.requiredString",
+        "packages/agent-daemon-action/src/cancel-superseded.ts|packages.agent-daemon-action.src.cancel-superseded.readTaskSpecIdentity",
+        "packages/agent-daemon-action/src/cancel-superseded.ts|packages.agent-daemon-action.src.cancel-superseded.parseSupersessionTags",
+        "packages/agent-daemon-action/src/cancel-superseded.ts|packages.agent-daemon-action.src.cancel-superseded.parseSupersessionTags.map() callback",
+        "packages/agent-daemon-action/src/cancel-superseded.ts|packages.agent-daemon-action.src.cancel-superseded.parseSupersessionTags.filter() callback",
+        "packages/agent-daemon-action/src/cancel-superseded.ts|packages.agent-daemon-action.src.cancel-superseded.cancelSupersededTasks",
+        "packages/agent-daemon-action/src/cancel-superseded.ts|packages.agent-daemon-action.src.cancel-superseded.runCancelSupersededFromEnv"
+      ],
+      "content_hash": "f08fa8fcaad34937",
+      "module_hash": "0ea24f2a9e7b1b6f"
+    },
     "packages/agent-daemon-action/src/create-task.ts": {
       "method_keys": [
         "packages/agent-daemon-action/src/create-task.ts|packages.agent-daemon-action.src.create-task.FulfillTaskInput",
@@ -14871,8 +14885,8 @@
         "packages/agent-daemon-action/src/main.ts|packages.agent-daemon-action.src.main.main",
         "packages/agent-daemon-action/src/main.ts|packages.agent-daemon-action.src.main.catch() callback"
       ],
-      "content_hash": "c1cdcb8a898cb0b7",
-      "module_hash": "2ec515a2b905a067"
+      "content_hash": "e475fdf1b7739a49",
+      "module_hash": "a650e16a2812a90a"
     },
     "packages/agent-daemon-action/src/parse-mention.ts": {
       "method_keys": [
@@ -15442,9 +15456,35 @@
       "content_hash": "451b3f2cb6d25ecf",
       "module_hash": "d4479210d98cebe2"
     },
+    "tools/src/tasks/complexity-review-comment.ts": {
+      "method_keys": [
+        "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.IssueComment",
+        "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.requireFullOid",
+        "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.runDetails",
+        "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.renderComplexityReviewProgress",
+        "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.renderComplexityReviewStale",
+        "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.renderComplexityReviewFailure",
+        "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.renderComplexityReviewResult",
+        "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.renderComplexityReviewResult.criteria",
+        "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.renderComplexityReviewResult.criteria.args.output.scores.map() callback",
+        "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.findComplexityReviewComment",
+        "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.findComplexityReviewComment.comments.find() callback",
+        "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.GitHubPullRequest",
+        "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.GitHubApi",
+        "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.GitHubApi.constructor",
+        "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.GitHubApi.request",
+        "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.GitHubApi.getPullRequest",
+        "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.GitHubApi.listComments",
+        "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.GitHubApi.upsertComment",
+        "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.updateComplexityReviewComment",
+        "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.main",
+        "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.catch() callback"
+      ],
+      "content_hash": "b24d29afa3c5ebfd",
+      "module_hash": "02921caaada58294"
+    },
     "tools/src/tasks/compose-pr-review.ts": {
       "method_keys": [
-        "tools/src/tasks/compose-pr-review.ts|tools.src.tasks.compose-pr-review.PullRequestInfo",
         "tools/src/tasks/compose-pr-review.ts|tools.src.tasks.compose-pr-review.ghJson",
         "tools/src/tasks/compose-pr-review.ts|tools.src.tasks.compose-pr-review.gh",
         "tools/src/tasks/compose-pr-review.ts|tools.src.tasks.compose-pr-review.getPullRequestInfo",
@@ -15457,11 +15497,10 @@
         "tools/src/tasks/compose-pr-review.ts|tools.src.tasks.compose-pr-review.readRubric.errors.map() callback",
         "tools/src/tasks/compose-pr-review.ts|tools.src.tasks.compose-pr-review.validateInput",
         "tools/src/tasks/compose-pr-review.ts|tools.src.tasks.compose-pr-review.validateInput.errors.map() callback",
-        "tools/src/tasks/compose-pr-review.ts|tools.src.tasks.compose-pr-review.buildPrReviewInput",
         "tools/src/tasks/compose-pr-review.ts|tools.src.tasks.compose-pr-review.main"
       ],
-      "content_hash": "dda97b4cca9b0a9f",
-      "module_hash": "f9b2e55380005f8b"
+      "content_hash": "232773d038f275b0",
+      "module_hash": "b1d1f0ee4f8cb51e"
     },
     "tools/src/tasks/compose-pr-security-review.ts": {
       "method_keys": [
@@ -15484,6 +15523,15 @@
       ],
       "content_hash": "c5ab28a99067f35e",
       "module_hash": "3408e8a51dbb94d9"
+    },
+    "tools/src/tasks/pr-complexity-review.ts": {
+      "method_keys": [
+        "tools/src/tasks/pr-complexity-review.ts|tools.src.tasks.pr-complexity-review.PullRequestInfo",
+        "tools/src/tasks/pr-complexity-review.ts|tools.src.tasks.pr-complexity-review.requireFullOid",
+        "tools/src/tasks/pr-complexity-review.ts|tools.src.tasks.pr-complexity-review.buildPrReviewInput"
+      ],
+      "content_hash": "22d75b3fa607579e",
+      "module_hash": "c9ec10d7c28f7a9f"
     },
     "tools/src/tasks/seed-judge-fixture.ts": {
       "method_keys": [
@@ -92633,6 +92681,70 @@
       "type": "FUNCTION",
       "content_hash": "692c97f230d80306"
     },
+    "packages/agent-daemon-action/src/cancel-superseded.ts|packages.agent-daemon-action.src.cancel-superseded.TaskSpecIdentity": {
+      "file_path": "packages/agent-daemon-action/src/cancel-superseded.ts",
+      "qualified_name": "packages.agent-daemon-action.src.cancel-superseded.TaskSpecIdentity",
+      "start_line": 8,
+      "end_line": 11,
+      "type": "INTERFACE",
+      "content_hash": "343d33626f8ea125"
+    },
+    "packages/agent-daemon-action/src/cancel-superseded.ts|packages.agent-daemon-action.src.cancel-superseded.requiredString": {
+      "file_path": "packages/agent-daemon-action/src/cancel-superseded.ts",
+      "qualified_name": "packages.agent-daemon-action.src.cancel-superseded.requiredString",
+      "start_line": 13,
+      "end_line": 18,
+      "type": "FUNCTION",
+      "content_hash": "9166bd46dd2d6b0d"
+    },
+    "packages/agent-daemon-action/src/cancel-superseded.ts|packages.agent-daemon-action.src.cancel-superseded.readTaskSpecIdentity": {
+      "file_path": "packages/agent-daemon-action/src/cancel-superseded.ts",
+      "qualified_name": "packages.agent-daemon-action.src.cancel-superseded.readTaskSpecIdentity",
+      "start_line": 20,
+      "end_line": 29,
+      "type": "FUNCTION",
+      "content_hash": "c07532630c98ad98"
+    },
+    "packages/agent-daemon-action/src/cancel-superseded.ts|packages.agent-daemon-action.src.cancel-superseded.parseSupersessionTags": {
+      "file_path": "packages/agent-daemon-action/src/cancel-superseded.ts",
+      "qualified_name": "packages.agent-daemon-action.src.cancel-superseded.parseSupersessionTags",
+      "start_line": 31,
+      "end_line": 42,
+      "type": "FUNCTION",
+      "content_hash": "0f37e4afaf122105"
+    },
+    "packages/agent-daemon-action/src/cancel-superseded.ts|packages.agent-daemon-action.src.cancel-superseded.parseSupersessionTags.map() callback": {
+      "file_path": "packages/agent-daemon-action/src/cancel-superseded.ts",
+      "qualified_name": "packages.agent-daemon-action.src.cancel-superseded.parseSupersessionTags.map() callback",
+      "start_line": 38,
+      "end_line": 38,
+      "type": "FUNCTION",
+      "content_hash": "6dde224e8026dd05"
+    },
+    "packages/agent-daemon-action/src/cancel-superseded.ts|packages.agent-daemon-action.src.cancel-superseded.parseSupersessionTags.filter() callback": {
+      "file_path": "packages/agent-daemon-action/src/cancel-superseded.ts",
+      "qualified_name": "packages.agent-daemon-action.src.cancel-superseded.parseSupersessionTags.filter() callback",
+      "start_line": 39,
+      "end_line": 39,
+      "type": "FUNCTION",
+      "content_hash": "d6793c39bcf2bf24"
+    },
+    "packages/agent-daemon-action/src/cancel-superseded.ts|packages.agent-daemon-action.src.cancel-superseded.cancelSupersededTasks": {
+      "file_path": "packages/agent-daemon-action/src/cancel-superseded.ts",
+      "qualified_name": "packages.agent-daemon-action.src.cancel-superseded.cancelSupersededTasks",
+      "start_line": 44,
+      "end_line": 69,
+      "type": "FUNCTION",
+      "content_hash": "ad4b267b032a251b"
+    },
+    "packages/agent-daemon-action/src/cancel-superseded.ts|packages.agent-daemon-action.src.cancel-superseded.runCancelSupersededFromEnv": {
+      "file_path": "packages/agent-daemon-action/src/cancel-superseded.ts",
+      "qualified_name": "packages.agent-daemon-action.src.cancel-superseded.runCancelSupersededFromEnv",
+      "start_line": 71,
+      "end_line": 86,
+      "type": "FUNCTION",
+      "content_hash": "06d912749e358235"
+    },
     "packages/agent-daemon-action/src/create-task.ts|packages.agent-daemon-action.src.create-task.FulfillTaskInput": {
       "file_path": "packages/agent-daemon-action/src/create-task.ts",
       "qualified_name": "packages.agent-daemon-action.src.create-task.FulfillTaskInput",
@@ -92964,16 +93076,16 @@
     "packages/agent-daemon-action/src/main.ts|packages.agent-daemon-action.src.main.main": {
       "file_path": "packages/agent-daemon-action/src/main.ts",
       "qualified_name": "packages.agent-daemon-action.src.main.main",
-      "start_line": 16,
-      "end_line": 36,
+      "start_line": 17,
+      "end_line": 44,
       "type": "FUNCTION",
-      "content_hash": "d6fc53f3acbd6e35"
+      "content_hash": "ad501b91765f2b90"
     },
     "packages/agent-daemon-action/src/main.ts|packages.agent-daemon-action.src.main.catch() callback": {
       "file_path": "packages/agent-daemon-action/src/main.ts",
       "qualified_name": "packages.agent-daemon-action.src.main.catch() callback",
-      "start_line": 38,
-      "end_line": 41,
+      "start_line": 46,
+      "end_line": 49,
       "type": "FUNCTION",
       "content_hash": "88bc2648db271c96"
     },
@@ -96177,125 +96289,277 @@
       "type": "FUNCTION",
       "content_hash": "2550912b891a1077"
     },
-    "tools/src/tasks/compose-pr-review.ts|tools.src.tasks.compose-pr-review.PullRequestInfo": {
-      "file_path": "tools/src/tasks/compose-pr-review.ts",
-      "qualified_name": "tools.src.tasks.compose-pr-review.PullRequestInfo",
-      "start_line": 79,
-      "end_line": 85,
+    "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.IssueComment": {
+      "file_path": "tools/src/tasks/complexity-review-comment.ts",
+      "qualified_name": "tools.src.tasks.complexity-review-comment.IssueComment",
+      "start_line": 16,
+      "end_line": 20,
       "type": "INTERFACE",
-      "content_hash": "55c02aa03b63960a"
+      "content_hash": "daff471769b8d622"
+    },
+    "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.requireFullOid": {
+      "file_path": "tools/src/tasks/complexity-review-comment.ts",
+      "qualified_name": "tools.src.tasks.complexity-review-comment.requireFullOid",
+      "start_line": 22,
+      "end_line": 27,
+      "type": "FUNCTION",
+      "content_hash": "4b4cb1121087c559"
+    },
+    "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.runDetails": {
+      "file_path": "tools/src/tasks/complexity-review-comment.ts",
+      "qualified_name": "tools.src.tasks.complexity-review-comment.runDetails",
+      "start_line": 29,
+      "end_line": 39,
+      "type": "FUNCTION",
+      "content_hash": "47cead7142ec5df8"
+    },
+    "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.renderComplexityReviewProgress": {
+      "file_path": "tools/src/tasks/complexity-review-comment.ts",
+      "qualified_name": "tools.src.tasks.complexity-review-comment.renderComplexityReviewProgress",
+      "start_line": 41,
+      "end_line": 52,
+      "type": "FUNCTION",
+      "content_hash": "f5e041d7550676bc"
+    },
+    "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.renderComplexityReviewStale": {
+      "file_path": "tools/src/tasks/complexity-review-comment.ts",
+      "qualified_name": "tools.src.tasks.complexity-review-comment.renderComplexityReviewStale",
+      "start_line": 54,
+      "end_line": 73,
+      "type": "FUNCTION",
+      "content_hash": "da157577d7ccb1ac"
+    },
+    "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.renderComplexityReviewFailure": {
+      "file_path": "tools/src/tasks/complexity-review-comment.ts",
+      "qualified_name": "tools.src.tasks.complexity-review-comment.renderComplexityReviewFailure",
+      "start_line": 75,
+      "end_line": 86,
+      "type": "FUNCTION",
+      "content_hash": "37a1990c04ad9606"
+    },
+    "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.renderComplexityReviewResult": {
+      "file_path": "tools/src/tasks/complexity-review-comment.ts",
+      "qualified_name": "tools.src.tasks.complexity-review-comment.renderComplexityReviewResult",
+      "start_line": 88,
+      "end_line": 113,
+      "type": "FUNCTION",
+      "content_hash": "278547e79811f4fd"
+    },
+    "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.renderComplexityReviewResult.criteria": {
+      "file_path": "tools/src/tasks/complexity-review-comment.ts",
+      "qualified_name": "tools.src.tasks.complexity-review-comment.renderComplexityReviewResult.criteria",
+      "start_line": 95,
+      "end_line": 101,
+      "type": "CLASS",
+      "content_hash": "d6642dc6ce5c677a"
+    },
+    "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.renderComplexityReviewResult.criteria.args.output.scores.map() callback": {
+      "file_path": "tools/src/tasks/complexity-review-comment.ts",
+      "qualified_name": "tools.src.tasks.complexity-review-comment.renderComplexityReviewResult.criteria.args.output.scores.map() callback",
+      "start_line": 97,
+      "end_line": 99,
+      "type": "FUNCTION",
+      "content_hash": "550a077414ac763e"
+    },
+    "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.findComplexityReviewComment": {
+      "file_path": "tools/src/tasks/complexity-review-comment.ts",
+      "qualified_name": "tools.src.tasks.complexity-review-comment.findComplexityReviewComment",
+      "start_line": 115,
+      "end_line": 123,
+      "type": "FUNCTION",
+      "content_hash": "255dc526f16f9d91"
+    },
+    "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.findComplexityReviewComment.comments.find() callback": {
+      "file_path": "tools/src/tasks/complexity-review-comment.ts",
+      "qualified_name": "tools.src.tasks.complexity-review-comment.findComplexityReviewComment.comments.find() callback",
+      "start_line": 119,
+      "end_line": 121,
+      "type": "FUNCTION",
+      "content_hash": "08c6cc22c2f00665"
+    },
+    "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.GitHubPullRequest": {
+      "file_path": "tools/src/tasks/complexity-review-comment.ts",
+      "qualified_name": "tools.src.tasks.complexity-review-comment.GitHubPullRequest",
+      "start_line": 125,
+      "end_line": 127,
+      "type": "INTERFACE",
+      "content_hash": "0ecc2893b73ac73f"
+    },
+    "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.GitHubApi": {
+      "file_path": "tools/src/tasks/complexity-review-comment.ts",
+      "qualified_name": "tools.src.tasks.complexity-review-comment.GitHubApi",
+      "start_line": 129,
+      "end_line": 188,
+      "type": "CLASS",
+      "content_hash": "7aa925c50713a467"
+    },
+    "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.GitHubApi.constructor": {
+      "file_path": "tools/src/tasks/complexity-review-comment.ts",
+      "qualified_name": "tools.src.tasks.complexity-review-comment.GitHubApi.constructor",
+      "start_line": 130,
+      "end_line": 134,
+      "type": "CONSTRUCTOR",
+      "content_hash": "0fc723a63ef26d2c"
+    },
+    "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.GitHubApi.request": {
+      "file_path": "tools/src/tasks/complexity-review-comment.ts",
+      "qualified_name": "tools.src.tasks.complexity-review-comment.GitHubApi.request",
+      "start_line": 136,
+      "end_line": 153,
+      "type": "METHOD",
+      "content_hash": "96958df1e2d9ff3e"
+    },
+    "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.GitHubApi.getPullRequest": {
+      "file_path": "tools/src/tasks/complexity-review-comment.ts",
+      "qualified_name": "tools.src.tasks.complexity-review-comment.GitHubApi.getPullRequest",
+      "start_line": 155,
+      "end_line": 159,
+      "type": "METHOD",
+      "content_hash": "2336cc793c7a9161"
+    },
+    "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.GitHubApi.listComments": {
+      "file_path": "tools/src/tasks/complexity-review-comment.ts",
+      "qualified_name": "tools.src.tasks.complexity-review-comment.GitHubApi.listComments",
+      "start_line": 161,
+      "end_line": 170,
+      "type": "METHOD",
+      "content_hash": "65236f801bedea73"
+    },
+    "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.GitHubApi.upsertComment": {
+      "file_path": "tools/src/tasks/complexity-review-comment.ts",
+      "qualified_name": "tools.src.tasks.complexity-review-comment.GitHubApi.upsertComment",
+      "start_line": 172,
+      "end_line": 187,
+      "type": "METHOD",
+      "content_hash": "b9af6917fae1974c"
+    },
+    "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.updateComplexityReviewComment": {
+      "file_path": "tools/src/tasks/complexity-review-comment.ts",
+      "qualified_name": "tools.src.tasks.complexity-review-comment.updateComplexityReviewComment",
+      "start_line": 190,
+      "end_line": 257,
+      "type": "FUNCTION",
+      "content_hash": "752b0e58c827bffd"
+    },
+    "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.main": {
+      "file_path": "tools/src/tasks/complexity-review-comment.ts",
+      "qualified_name": "tools.src.tasks.complexity-review-comment.main",
+      "start_line": 259,
+      "end_line": 302,
+      "type": "FUNCTION",
+      "content_hash": "29f33919bf7af73d"
+    },
+    "tools/src/tasks/complexity-review-comment.ts|tools.src.tasks.complexity-review-comment.catch() callback": {
+      "file_path": "tools/src/tasks/complexity-review-comment.ts",
+      "qualified_name": "tools.src.tasks.complexity-review-comment.catch() callback",
+      "start_line": 308,
+      "end_line": 311,
+      "type": "FUNCTION",
+      "content_hash": "1f2547d0f0dd785c"
     },
     "tools/src/tasks/compose-pr-review.ts|tools.src.tasks.compose-pr-review.ghJson": {
       "file_path": "tools/src/tasks/compose-pr-review.ts",
       "qualified_name": "tools.src.tasks.compose-pr-review.ghJson",
-      "start_line": 87,
-      "end_line": 93,
+      "start_line": 84,
+      "end_line": 90,
       "type": "FUNCTION",
       "content_hash": "4d099d89a82d80fe"
     },
     "tools/src/tasks/compose-pr-review.ts|tools.src.tasks.compose-pr-review.gh": {
       "file_path": "tools/src/tasks/compose-pr-review.ts",
       "qualified_name": "tools.src.tasks.compose-pr-review.gh",
-      "start_line": 95,
-      "end_line": 100,
+      "start_line": 92,
+      "end_line": 97,
       "type": "FUNCTION",
       "content_hash": "1d8d0f394b6613ea"
     },
     "tools/src/tasks/compose-pr-review.ts|tools.src.tasks.compose-pr-review.getPullRequestInfo": {
       "file_path": "tools/src/tasks/compose-pr-review.ts",
       "qualified_name": "tools.src.tasks.compose-pr-review.getPullRequestInfo",
-      "start_line": 102,
-      "end_line": 130,
+      "start_line": 99,
+      "end_line": 131,
       "type": "FUNCTION",
-      "content_hash": "e2f8dba195f2d349"
+      "content_hash": "e8b409bb0ee66a2e"
     },
     "tools/src/tasks/compose-pr-review.ts|tools.src.tasks.compose-pr-review.getPullRequestInfo.commitMessages.pr.commits.map() callback": {
       "file_path": "tools/src/tasks/compose-pr-review.ts",
       "qualified_name": "tools.src.tasks.compose-pr-review.getPullRequestInfo.commitMessages.pr.commits.map() callback",
-      "start_line": 124,
-      "end_line": 127,
+      "start_line": 125,
+      "end_line": 128,
       "type": "FUNCTION",
       "content_hash": "1ae8d9560bf9398d"
     },
     "tools/src/tasks/compose-pr-review.ts|tools.src.tasks.compose-pr-review.getPullRequestInfo.commitMessages.pr.commits.map() callback.filter() callback": {
       "file_path": "tools/src/tasks/compose-pr-review.ts",
       "qualified_name": "tools.src.tasks.compose-pr-review.getPullRequestInfo.commitMessages.pr.commits.map() callback.filter() callback",
-      "start_line": 126,
-      "end_line": 126,
+      "start_line": 127,
+      "end_line": 127,
       "type": "FUNCTION",
       "content_hash": "a9b0c0bc1464b911"
     },
     "tools/src/tasks/compose-pr-review.ts|tools.src.tasks.compose-pr-review.resolveCorrelationId": {
       "file_path": "tools/src/tasks/compose-pr-review.ts",
       "qualified_name": "tools.src.tasks.compose-pr-review.resolveCorrelationId",
-      "start_line": 132,
-      "end_line": 148,
+      "start_line": 133,
+      "end_line": 149,
       "type": "FUNCTION",
       "content_hash": "6f6393fb5575c122"
     },
     "tools/src/tasks/compose-pr-review.ts|tools.src.tasks.compose-pr-review.ensureLegreffierMarker": {
       "file_path": "tools/src/tasks/compose-pr-review.ts",
       "qualified_name": "tools.src.tasks.compose-pr-review.ensureLegreffierMarker",
-      "start_line": 150,
-      "end_line": 162,
+      "start_line": 151,
+      "end_line": 163,
       "type": "FUNCTION",
       "content_hash": "a54ac865ec2d5a83"
     },
     "tools/src/tasks/compose-pr-review.ts|tools.src.tasks.compose-pr-review.updatePrBody": {
       "file_path": "tools/src/tasks/compose-pr-review.ts",
       "qualified_name": "tools.src.tasks.compose-pr-review.updatePrBody",
-      "start_line": 164,
-      "end_line": 173,
+      "start_line": 165,
+      "end_line": 174,
       "type": "FUNCTION",
       "content_hash": "cb7a39480f05415a"
     },
     "tools/src/tasks/compose-pr-review.ts|tools.src.tasks.compose-pr-review.readRubric": {
       "file_path": "tools/src/tasks/compose-pr-review.ts",
       "qualified_name": "tools.src.tasks.compose-pr-review.readRubric",
-      "start_line": 175,
-      "end_line": 190,
+      "start_line": 176,
+      "end_line": 191,
       "type": "FUNCTION",
       "content_hash": "738edd4656169666"
     },
     "tools/src/tasks/compose-pr-review.ts|tools.src.tasks.compose-pr-review.readRubric.errors.map() callback": {
       "file_path": "tools/src/tasks/compose-pr-review.ts",
       "qualified_name": "tools.src.tasks.compose-pr-review.readRubric.errors.map() callback",
-      "start_line": 185,
-      "end_line": 185,
+      "start_line": 186,
+      "end_line": 186,
       "type": "FUNCTION",
       "content_hash": "7e362e91003d077d"
     },
     "tools/src/tasks/compose-pr-review.ts|tools.src.tasks.compose-pr-review.validateInput": {
       "file_path": "tools/src/tasks/compose-pr-review.ts",
       "qualified_name": "tools.src.tasks.compose-pr-review.validateInput",
-      "start_line": 192,
-      "end_line": 202,
+      "start_line": 193,
+      "end_line": 203,
       "type": "FUNCTION",
       "content_hash": "aeb8cfdf527e5f43"
     },
     "tools/src/tasks/compose-pr-review.ts|tools.src.tasks.compose-pr-review.validateInput.errors.map() callback": {
       "file_path": "tools/src/tasks/compose-pr-review.ts",
       "qualified_name": "tools.src.tasks.compose-pr-review.validateInput.errors.map() callback",
-      "start_line": 198,
-      "end_line": 198,
+      "start_line": 199,
+      "end_line": 199,
       "type": "FUNCTION",
       "content_hash": "7e362e91003d077d"
-    },
-    "tools/src/tasks/compose-pr-review.ts|tools.src.tasks.compose-pr-review.buildPrReviewInput": {
-      "file_path": "tools/src/tasks/compose-pr-review.ts",
-      "qualified_name": "tools.src.tasks.compose-pr-review.buildPrReviewInput",
-      "start_line": 204,
-      "end_line": 233,
-      "type": "FUNCTION",
-      "content_hash": "cd8beb645d44ab10"
     },
     "tools/src/tasks/compose-pr-review.ts|tools.src.tasks.compose-pr-review.main": {
       "file_path": "tools/src/tasks/compose-pr-review.ts",
       "qualified_name": "tools.src.tasks.compose-pr-review.main",
-      "start_line": 235,
-      "end_line": 258,
+      "start_line": 205,
+      "end_line": 238,
       "type": "FUNCTION",
-      "content_hash": "11c19c886b212da0"
+      "content_hash": "3000c638c8a3662e"
     },
     "tools/src/tasks/compose-pr-security-review.ts|tools.src.tasks.compose-pr-security-review.PullRequestInfo": {
       "file_path": "tools/src/tasks/compose-pr-security-review.ts",
@@ -96424,6 +96688,30 @@
       "end_line": 290,
       "type": "FUNCTION",
       "content_hash": "717a6645a8c0150f"
+    },
+    "tools/src/tasks/pr-complexity-review.ts|tools.src.tasks.pr-complexity-review.PullRequestInfo": {
+      "file_path": "tools/src/tasks/pr-complexity-review.ts",
+      "qualified_name": "tools.src.tasks.pr-complexity-review.PullRequestInfo",
+      "start_line": 4,
+      "end_line": 12,
+      "type": "INTERFACE",
+      "content_hash": "d6d9340c54d46b33"
+    },
+    "tools/src/tasks/pr-complexity-review.ts|tools.src.tasks.pr-complexity-review.requireFullOid": {
+      "file_path": "tools/src/tasks/pr-complexity-review.ts",
+      "qualified_name": "tools.src.tasks.pr-complexity-review.requireFullOid",
+      "start_line": 16,
+      "end_line": 21,
+      "type": "FUNCTION",
+      "content_hash": "4b4cb1121087c559"
+    },
+    "tools/src/tasks/pr-complexity-review.ts|tools.src.tasks.pr-complexity-review.buildPrReviewInput": {
+      "file_path": "tools/src/tasks/pr-complexity-review.ts",
+      "qualified_name": "tools.src.tasks.pr-complexity-review.buildPrReviewInput",
+      "start_line": 23,
+      "end_line": 65,
+      "type": "FUNCTION",
+      "content_hash": "eb54a3eebc2ddb79"
     },
     "tools/src/tasks/seed-judge-fixture.ts|tools.src.tasks.seed-judge-fixture.ProdEntry": {
       "file_path": "tools/src/tasks/seed-judge-fixture.ts",
@@ -99776,16 +100064,16 @@
             "libs.agent-key-service.src.agent-key-service.decodeCursor",
             "libs.agent-key-service.src.agent-key-service.encodeCursor",
             "libs.agent-key-service.src.agent-key-service.talosRequestId",
-            "libs.agent-key-service.src.agent-key-service.isNotFoundError",
             "libs.agent-key-service.src.agent-key-service.assertDelegableScopes",
             "libs.agent-key-service.src.agent-key-service.assertDelegableScopes.invalid",
             "libs.agent-key-service.src.agent-key-service.assertDelegableScopes.invalid.requested.find() callback",
-            "libs.agent-key-service.src.agent-key-service.talosInit",
-            "libs.agent-key-service.src.agent-key-service.talosFailureKind",
             "libs.agent-key-service.src.agent-key-service.assertDelegableScopes.escalation",
             "libs.agent-key-service.src.agent-key-service.assertDelegableScopes.escalation.requested.find() callback",
-            "libs.agent-key-service.src.agent-key-service.getTeamKey",
+            "libs.agent-key-service.src.agent-key-service.isNotFoundError",
+            "libs.agent-key-service.src.agent-key-service.talosInit",
             "libs.agent-key-service.src.agent-key-service.revokeInvalidIssuedKey",
+            "libs.agent-key-service.src.agent-key-service.talosFailureKind",
+            "libs.agent-key-service.src.agent-key-service.getTeamKey",
             "libs.agent-key-service.src.agent-key-service.canManageAllTeamKeys",
             "libs.agent-key-service.src.agent-key-service.assertCanManageAgentKey",
             "libs.agent-key-service.src.agent-key-service.assertCanManageExistingAgentKey",
@@ -100254,8 +100542,8 @@
           "methods": [
             "libs.auth.src.plugin.ScopeDenialEvent",
             "libs.auth.src.plugin.'fastify'.FastifyContextConfig",
-            "libs.auth.src.plugin.'fastify'.FastifyRequest",
             "libs.auth.src.plugin.'fastify'.FastifyInstance",
+            "libs.auth.src.plugin.'fastify'.FastifyRequest",
             "libs.auth.src.plugin.routeUsesPrincipalAuth",
             "libs.auth.src.plugin.routeUsesPrincipalAuth.schema.security.some() callback",
             "libs.auth.src.plugin.enforceRouteScopes.missingScope",
@@ -107058,16 +107346,16 @@
                 "libs.agent-key-service.src.agent-key-service.decodeCursor",
                 "libs.agent-key-service.src.agent-key-service.encodeCursor",
                 "libs.agent-key-service.src.agent-key-service.talosRequestId",
-                "libs.agent-key-service.src.agent-key-service.isNotFoundError",
                 "libs.agent-key-service.src.agent-key-service.assertDelegableScopes",
                 "libs.agent-key-service.src.agent-key-service.assertDelegableScopes.invalid",
                 "libs.agent-key-service.src.agent-key-service.assertDelegableScopes.invalid.requested.find() callback",
-                "libs.agent-key-service.src.agent-key-service.talosInit",
-                "libs.agent-key-service.src.agent-key-service.talosFailureKind",
                 "libs.agent-key-service.src.agent-key-service.assertDelegableScopes.escalation",
                 "libs.agent-key-service.src.agent-key-service.assertDelegableScopes.escalation.requested.find() callback",
-                "libs.agent-key-service.src.agent-key-service.getTeamKey",
+                "libs.agent-key-service.src.agent-key-service.isNotFoundError",
+                "libs.agent-key-service.src.agent-key-service.talosInit",
                 "libs.agent-key-service.src.agent-key-service.revokeInvalidIssuedKey",
+                "libs.agent-key-service.src.agent-key-service.talosFailureKind",
+                "libs.agent-key-service.src.agent-key-service.getTeamKey",
                 "libs.agent-key-service.src.agent-key-service.canManageAllTeamKeys",
                 "libs.agent-key-service.src.agent-key-service.assertCanManageAgentKey",
                 "libs.agent-key-service.src.agent-key-service.assertCanManageExistingAgentKey",
@@ -107300,8 +107588,8 @@
               "file_path": "libs/auth/src/plugin.ts",
               "methods": [
                 "libs.auth.src.plugin.'fastify'.FastifyContextConfig",
-                "libs.auth.src.plugin.'fastify'.FastifyRequest",
                 "libs.auth.src.plugin.'fastify'.FastifyInstance",
+                "libs.auth.src.plugin.'fastify'.FastifyRequest",
                 "libs.auth.src.plugin.routeUsesPrincipalAuth",
                 "libs.auth.src.plugin.routeUsesPrincipalAuth.schema.security.some() callback"
               ]
@@ -110295,13 +110583,13 @@
           "file_path": "apps/multi-lens-review/src/config.ts",
           "methods": [
             "apps.multi-lens-review.src.config.RuntimeProfileRoutingRefs",
+            "apps.multi-lens-review.src.config.CliRunConfig",
+            "apps.multi-lens-review.src.config.CliPreflightConfig",
             "apps.multi-lens-review.src.config.CliParseDeps",
             "apps.multi-lens-review.src.config.CliParseDeps.readFile",
             "apps.multi-lens-review.src.config.CliParseDeps.randomUUID",
             "apps.multi-lens-review.src.config.currentProcessEnv",
-            "apps.multi-lens-review.src.config.CliRunConfig",
             "apps.multi-lens-review.src.config.positiveInt",
-            "apps.multi-lens-review.src.config.CliPreflightConfig",
             "apps.multi-lens-review.src.config.nonEmpty",
             "apps.multi-lens-review.src.config.parseProfiles",
             "apps.multi-lens-review.src.config.parseMetadata",
@@ -110335,14 +110623,12 @@
         {
           "file_path": "apps/multi-lens-review/src/main.ts",
           "methods": [
-            "apps.multi-lens-review.src.main.main.parsed",
-            "apps.multi-lens-review.src.main.main.parsed.readFile",
             "apps.multi-lens-review.src.main.collectStream",
             "apps.multi-lens-review.src.main.main",
+            "apps.multi-lens-review.src.main.main.parsed",
+            "apps.multi-lens-review.src.main.main.parsed.readFile",
             "apps.multi-lens-review.src.main.main.inspected",
             "apps.multi-lens-review.src.main.main.inspected.initiallyInspected.files.map() callback",
-            "apps.multi-lens-review.src.main.main.cancelled.catch() callback",
-            "apps.multi-lens-review.src.main.then() callback",
             "apps.multi-lens-review.src.main.main.patches",
             "apps.multi-lens-review.src.main.main.patches.inspected.files.map() callback",
             "apps.multi-lens-review.src.main.main.artifacts",
@@ -110350,6 +110636,8 @@
             "apps.multi-lens-review.src.main.main.artifacts.download",
             "apps.multi-lens-review.src.main.main.app.deps.patches.read",
             "apps.multi-lens-review.src.main.cancelled",
+            "apps.multi-lens-review.src.main.main.cancelled.catch() callback",
+            "apps.multi-lens-review.src.main.then() callback",
             "apps.multi-lens-review.src.main.catch() callback"
           ]
         },
@@ -110563,12 +110851,12 @@
         {
           "file_path": "apps/multi-lens-review/src/workflow.ts",
           "methods": [
-            "apps.multi-lens-review.src.workflow.normalizedProfileId",
             "apps.multi-lens-review.src.workflow.NormalizedInput",
             "apps.multi-lens-review.src.workflow.TaskState",
             "apps.multi-lens-review.src.workflow.TopicReviewWork",
             "apps.multi-lens-review.src.workflow.acceptedOutputReference",
             "apps.multi-lens-review.src.workflow.emptyPhaseOutputs",
+            "apps.multi-lens-review.src.workflow.normalizedProfileId",
             "apps.multi-lens-review.src.workflow.normalizeLaneName",
             "apps.multi-lens-review.src.workflow.normalizeProfileRouting",
             "apps.multi-lens-review.src.workflow.assertManifest",
@@ -110581,7 +110869,6 @@
             "apps.multi-lens-review.src.workflow.normalizeMultiLensReviewInput.requested",
             "apps.multi-lens-review.src.workflow.requested.map() callback",
             "apps.multi-lens-review.src.workflow.normalizeMultiLensReviewInput.requested.map() callback",
-            "apps.multi-lens-review.src.workflow.boundLogger",
             "apps.multi-lens-review.src.workflow.artifactReference",
             "apps.multi-lens-review.src.workflow.manifestReferences",
             "apps.multi-lens-review.src.workflow.assertReusablePlannerTask",
@@ -110646,6 +110933,7 @@
             "apps.multi-lens-review.src.workflow.plannerArtifactReference.matches",
             "apps.multi-lens-review.src.workflow.plannerArtifactReference.matches.state.artifacts.filter() callback",
             "apps.multi-lens-review.src.workflow.readPlannerArtifact",
+            "apps.multi-lens-review.src.workflow.boundLogger",
             "apps.multi-lens-review.src.workflow.awaitState",
             "apps.multi-lens-review.src.workflow.stageTopicArtifact",
             "apps.multi-lens-review.src.workflow.stageTopicArtifact.files",
@@ -112401,10 +112689,10 @@
             "apps.agent-daemon.src.lib.execution-plan-cache.createExecutionPlanCache",
             "apps.agent-daemon.src.lib.execution-plan-cache.createExecutionPlanCache.getOrCreate",
             "apps.agent-daemon.src.lib.execution-plan-cache.createExecutionPlanCache.delete",
-            "apps.agent-daemon.src.lib.execution-plan-cache.createNullSourceAttemptResolver.findOutputBranch",
             "apps.agent-daemon.src.lib.execution-plan-cache.createNullSourceAttemptResolver",
-            "apps.agent-daemon.src.lib.execution-plan-cache.createNullRuntimeSessionStore",
+            "apps.agent-daemon.src.lib.execution-plan-cache.createNullSourceAttemptResolver.findOutputBranch",
             "apps.agent-daemon.src.lib.execution-plan-cache.createNullSourceAttemptResolver.findInputRevision",
+            "apps.agent-daemon.src.lib.execution-plan-cache.createNullRuntimeSessionStore",
             "apps.agent-daemon.src.lib.execution-plan-cache.createNullRuntimeSessionStore.findRuntimeSessionByTaskAttempt",
             "apps.agent-daemon.src.lib.execution-plan-cache.createNullRuntimeSessionStore.hydrateSession",
             "apps.agent-daemon.src.lib.execution-plan-cache.createNullRuntimeSessionStore.uploadAttemptFinal",
@@ -112684,8 +112972,8 @@
             "apps.agent-daemon.src.lib.task-execution-plan.DaemonTaskExecutionPlan",
             "apps.agent-daemon.src.lib.task-execution-plan.RuntimeProfileWorkspacePolicy",
             "apps.agent-daemon.src.lib.task-execution-plan.buildDaemonTaskExecutionPlan",
-            "apps.agent-daemon.src.lib.task-execution-plan.buildDaemonSlotId",
             "apps.agent-daemon.src.lib.task-execution-plan.resolveTaskWorkspaceRevision",
+            "apps.agent-daemon.src.lib.task-execution-plan.buildDaemonSlotId",
             "apps.agent-daemon.src.lib.task-execution-plan.buildRuntimeSlotKey",
             "apps.agent-daemon.src.lib.task-execution-plan.runtimeSlotKeyBelongsToInstance",
             "apps.agent-daemon.src.lib.task-execution-plan.slugSlotIdentityComponent",
@@ -113375,10 +113663,10 @@
           "file_path": "apps/console/src/layout/DashboardLayout.tsx",
           "methods": [
             "apps.console.src.layout.DashboardLayout.DashboardLayout",
-            "apps.console.src.layout.DashboardLayout.DashboardLayout.toggleCollapse.useCallback() callback.setCollapsed() callback",
             "apps.console.src.layout.DashboardLayout.DashboardLayout.toggleCollapse",
             "apps.console.src.layout.DashboardLayout.DashboardLayout.toggleCollapse.useCallback() callback",
             "apps.console.src.layout.DashboardLayout.DashboardLayout.toggleCollapse.useCallback() callback.setTabletExpanded() callback",
+            "apps.console.src.layout.DashboardLayout.DashboardLayout.toggleCollapse.useCallback() callback.setCollapsed() callback",
             "apps.console.src.layout.DashboardLayout.useEffect() callback",
             "apps.console.src.layout.DashboardLayout.DashboardLayout.useEffect() callback",
             "apps.console.src.layout.DashboardLayout.DashboardLayout.useEffect() callback.handleKeyDown",
@@ -113396,8 +113684,8 @@
         {
           "file_path": "apps/console/src/layout/Sidebar.tsx",
           "methods": [
-            "apps.console.src.layout.Sidebar.isActive",
             "apps.console.src.layout.Sidebar.NavDefinition",
+            "apps.console.src.layout.Sidebar.isActive",
             "apps.console.src.layout.Sidebar.SidebarProps",
             "apps.console.src.layout.Sidebar.Sidebar",
             "apps.console.src.layout.Sidebar.Sidebar.activePath",
@@ -113483,22 +113771,22 @@
             "apps.console.src.pages.AgentKeysPage.AgentKeysPage.revokeKey",
             "apps.console.src.pages.AgentKeysPage.AgentKeysPage.revealSecret",
             "apps.console.src.pages.AgentKeysPage.AgentKeysPage.clearSecret",
-            "apps.console.src.pages.AgentKeysPage..map() callback",
             "apps.console.src.pages.AgentKeysPage.CreateKeyDialog",
-            "apps.console.src.pages.AgentKeysPage.RotateKeyDialog",
-            "apps.console.src.pages.AgentKeysPage.RevokeKeyDialog",
+            "apps.console.src.pages.AgentKeysPage..map() callback",
             "apps.console.src.pages.AgentKeysPage.CredentialScopeSelector",
             "apps.console.src.pages.AgentKeysPage.CREDENTIAL_SCOPE_OPTIONS.map() callback",
-            "apps.console.src.pages.AgentKeysPage.KeyTable.KeyTable",
-            "apps.console.src.pages.AgentKeysPage.KeyTable",
-            "apps.console.src.pages.AgentKeysPage.KeyTable.styles",
-            "apps.console.src.pages.AgentKeysPage.KeyTable.KeyTable.styles.useMemo() callback",
             "apps.console.src.pages.AgentKeysPage.<unknown>..map(\"checkbox\") callback",
-            "apps.console.src.pages.AgentKeysPage.KeyTable.KeyTable.['Name', 'Agent', 'Status', 'Expires', 'Last used', 'Actions']..map() callback",
             "apps.console.src.pages.AgentKeysPage.<unknown>.const.value.filter() callback",
             "apps.console.src.pages.AgentKeysPage.<unknown>.onChange",
             "apps.console.src.pages.AgentKeysPage.<unknown>.<unknown>..map() callback",
             "apps.console.src.pages.AgentKeysPage.<unknown>.<unknown>.filter() callback",
+            "apps.console.src.pages.AgentKeysPage.RotateKeyDialog",
+            "apps.console.src.pages.AgentKeysPage.RevokeKeyDialog",
+            "apps.console.src.pages.AgentKeysPage.KeyTable.KeyTable",
+            "apps.console.src.pages.AgentKeysPage.KeyTable",
+            "apps.console.src.pages.AgentKeysPage.KeyTable.styles",
+            "apps.console.src.pages.AgentKeysPage.KeyTable.KeyTable.styles.useMemo() callback",
+            "apps.console.src.pages.AgentKeysPage.KeyTable.KeyTable.['Name', 'Agent', 'Status', 'Expires', 'Last used', 'Actions']..map() callback",
             "apps.console.src.pages.AgentKeysPage.keys.map() callback",
             "apps.console.src.pages.AgentKeysPage.OneTimeSecretDialog",
             "apps.console.src.pages.AgentKeysPage.SelectField",
@@ -113824,9 +114112,9 @@
         {
           "file_path": "apps/console/src/pages/TaskDetailPage.tsx",
           "methods": [
+            "apps.console.src.pages.TaskDetailPage.TaskDetailPage",
             "apps.console.src.pages.TaskDetailPage.TaskDetailPage.taskQuery",
             "apps.console.src.pages.TaskDetailPage.TaskDetailPage.taskQuery.refetchInterval",
-            "apps.console.src.pages.TaskDetailPage.TaskDetailPage",
             "apps.console.src.pages.TaskDetailPage.TaskDetailPage.attemptsQuery",
             "apps.console.src.pages.TaskDetailPage.TaskDetailPage.attemptsQuery.refetchInterval",
             "apps.console.src.pages.TaskDetailPage.TaskDetailPage.attemptsQuery.refetchInterval.query.state.data.some() callback",
@@ -113880,10 +114168,10 @@
             "apps.console.src.pages.TasksPage.TasksPage.setStatus",
             "apps.console.src.pages.TasksPage.TASK_STATUS_FILTERS.map() callback",
             "apps.console.src.pages.TasksPage.async",
-            "apps.console.src.pages.TasksPage.inputStyle",
-            "apps.console.src.pages.TasksPage.FilterButton",
             "apps.console.src.pages.TasksPage.TaskPaneState",
-            "apps.console.src.pages.TasksPage.TaskPaneState.onRetry"
+            "apps.console.src.pages.TasksPage.TaskPaneState.onRetry",
+            "apps.console.src.pages.TasksPage.inputStyle",
+            "apps.console.src.pages.TasksPage.FilterButton"
           ]
         },
         {
@@ -115001,19 +115289,19 @@
           "file_path": "apps/moltnet-signer/src/approval-page.ts",
           "methods": [
             "apps.moltnet-signer.src.approval-page.renderApprovalPage",
-            "apps.moltnet-signer.src.approval-page.renderApprovalPage.rows.filter() callback",
             "apps.moltnet-signer.src.approval-page.renderApprovalPage.rows",
+            "apps.moltnet-signer.src.approval-page.renderApprovalPage.rows.filter() callback",
             "apps.moltnet-signer.src.approval-page.renderApprovalPage.rows.map() callback",
             "apps.moltnet-signer.src.approval-page.renderResultPage",
             "apps.moltnet-signer.src.approval-page.page",
-            "apps.moltnet-signer.src.approval-page.escapeHtml",
-            "apps.moltnet-signer.src.approval-page.escapeHtml.value.replace() callback",
             "apps.moltnet-signer.src.approval-page.approvalContent",
             "apps.moltnet-signer.src.approval-page.brandHeader",
             "apps.moltnet-signer.src.approval-page.ceremonyRail",
             "apps.moltnet-signer.src.approval-page.brandMark",
             "apps.moltnet-signer.src.approval-page.bindingRow",
-            "apps.moltnet-signer.src.approval-page.trustFooter"
+            "apps.moltnet-signer.src.approval-page.trustFooter",
+            "apps.moltnet-signer.src.approval-page.escapeHtml",
+            "apps.moltnet-signer.src.approval-page.escapeHtml.value.replace() callback"
           ]
         },
         {
@@ -115819,10 +116107,10 @@
               "file_path": "apps/console/src/layout/DashboardLayout.tsx",
               "methods": [
                 "apps.console.src.layout.DashboardLayout.DashboardLayout",
-                "apps.console.src.layout.DashboardLayout.DashboardLayout.toggleCollapse.useCallback() callback.setCollapsed() callback",
                 "apps.console.src.layout.DashboardLayout.DashboardLayout.toggleCollapse",
                 "apps.console.src.layout.DashboardLayout.DashboardLayout.toggleCollapse.useCallback() callback",
                 "apps.console.src.layout.DashboardLayout.DashboardLayout.toggleCollapse.useCallback() callback.setTabletExpanded() callback",
+                "apps.console.src.layout.DashboardLayout.DashboardLayout.toggleCollapse.useCallback() callback.setCollapsed() callback",
                 "apps.console.src.layout.DashboardLayout.useEffect() callback",
                 "apps.console.src.layout.DashboardLayout.DashboardLayout.useEffect() callback",
                 "apps.console.src.layout.DashboardLayout.DashboardLayout.useEffect() callback.handleKeyDown",
@@ -115840,8 +116128,8 @@
             {
               "file_path": "apps/console/src/layout/Sidebar.tsx",
               "methods": [
-                "apps.console.src.layout.Sidebar.isActive",
                 "apps.console.src.layout.Sidebar.NavDefinition",
+                "apps.console.src.layout.Sidebar.isActive",
                 "apps.console.src.layout.Sidebar.SidebarProps",
                 "apps.console.src.layout.Sidebar.Sidebar",
                 "apps.console.src.layout.Sidebar.Sidebar.activePath",
@@ -115927,22 +116215,22 @@
                 "apps.console.src.pages.AgentKeysPage.AgentKeysPage.revokeKey",
                 "apps.console.src.pages.AgentKeysPage.AgentKeysPage.revealSecret",
                 "apps.console.src.pages.AgentKeysPage.AgentKeysPage.clearSecret",
-                "apps.console.src.pages.AgentKeysPage..map() callback",
                 "apps.console.src.pages.AgentKeysPage.CreateKeyDialog",
-                "apps.console.src.pages.AgentKeysPage.RotateKeyDialog",
-                "apps.console.src.pages.AgentKeysPage.RevokeKeyDialog",
+                "apps.console.src.pages.AgentKeysPage..map() callback",
                 "apps.console.src.pages.AgentKeysPage.CredentialScopeSelector",
                 "apps.console.src.pages.AgentKeysPage.CREDENTIAL_SCOPE_OPTIONS.map() callback",
-                "apps.console.src.pages.AgentKeysPage.KeyTable.KeyTable",
-                "apps.console.src.pages.AgentKeysPage.KeyTable",
-                "apps.console.src.pages.AgentKeysPage.KeyTable.styles",
-                "apps.console.src.pages.AgentKeysPage.KeyTable.KeyTable.styles.useMemo() callback",
                 "apps.console.src.pages.AgentKeysPage.<unknown>..map(\"checkbox\") callback",
-                "apps.console.src.pages.AgentKeysPage.KeyTable.KeyTable.['Name', 'Agent', 'Status', 'Expires', 'Last used', 'Actions']..map() callback",
                 "apps.console.src.pages.AgentKeysPage.<unknown>.const.value.filter() callback",
                 "apps.console.src.pages.AgentKeysPage.<unknown>.onChange",
                 "apps.console.src.pages.AgentKeysPage.<unknown>.<unknown>..map() callback",
                 "apps.console.src.pages.AgentKeysPage.<unknown>.<unknown>.filter() callback",
+                "apps.console.src.pages.AgentKeysPage.RotateKeyDialog",
+                "apps.console.src.pages.AgentKeysPage.RevokeKeyDialog",
+                "apps.console.src.pages.AgentKeysPage.KeyTable.KeyTable",
+                "apps.console.src.pages.AgentKeysPage.KeyTable",
+                "apps.console.src.pages.AgentKeysPage.KeyTable.styles",
+                "apps.console.src.pages.AgentKeysPage.KeyTable.KeyTable.styles.useMemo() callback",
+                "apps.console.src.pages.AgentKeysPage.KeyTable.KeyTable.['Name', 'Agent', 'Status', 'Expires', 'Last used', 'Actions']..map() callback",
                 "apps.console.src.pages.AgentKeysPage.keys.map() callback",
                 "apps.console.src.pages.AgentKeysPage.OneTimeSecretDialog",
                 "apps.console.src.pages.AgentKeysPage.SelectField",
@@ -116268,9 +116556,9 @@
             {
               "file_path": "apps/console/src/pages/TaskDetailPage.tsx",
               "methods": [
+                "apps.console.src.pages.TaskDetailPage.TaskDetailPage",
                 "apps.console.src.pages.TaskDetailPage.TaskDetailPage.taskQuery",
                 "apps.console.src.pages.TaskDetailPage.TaskDetailPage.taskQuery.refetchInterval",
-                "apps.console.src.pages.TaskDetailPage.TaskDetailPage",
                 "apps.console.src.pages.TaskDetailPage.TaskDetailPage.attemptsQuery",
                 "apps.console.src.pages.TaskDetailPage.TaskDetailPage.attemptsQuery.refetchInterval",
                 "apps.console.src.pages.TaskDetailPage.TaskDetailPage.attemptsQuery.refetchInterval.query.state.data.some() callback",
@@ -116324,10 +116612,10 @@
                 "apps.console.src.pages.TasksPage.TasksPage.setStatus",
                 "apps.console.src.pages.TasksPage.TASK_STATUS_FILTERS.map() callback",
                 "apps.console.src.pages.TasksPage.async",
-                "apps.console.src.pages.TasksPage.inputStyle",
-                "apps.console.src.pages.TasksPage.FilterButton",
                 "apps.console.src.pages.TasksPage.TaskPaneState",
-                "apps.console.src.pages.TasksPage.TaskPaneState.onRetry"
+                "apps.console.src.pages.TasksPage.TaskPaneState.onRetry",
+                "apps.console.src.pages.TasksPage.inputStyle",
+                "apps.console.src.pages.TasksPage.FilterButton"
               ]
             },
             {
@@ -116816,10 +117104,10 @@
                 "apps.agent-daemon.src.lib.execution-plan-cache.createExecutionPlanCache",
                 "apps.agent-daemon.src.lib.execution-plan-cache.createExecutionPlanCache.getOrCreate",
                 "apps.agent-daemon.src.lib.execution-plan-cache.createExecutionPlanCache.delete",
-                "apps.agent-daemon.src.lib.execution-plan-cache.createNullSourceAttemptResolver.findOutputBranch",
                 "apps.agent-daemon.src.lib.execution-plan-cache.createNullSourceAttemptResolver",
-                "apps.agent-daemon.src.lib.execution-plan-cache.createNullRuntimeSessionStore",
+                "apps.agent-daemon.src.lib.execution-plan-cache.createNullSourceAttemptResolver.findOutputBranch",
                 "apps.agent-daemon.src.lib.execution-plan-cache.createNullSourceAttemptResolver.findInputRevision",
+                "apps.agent-daemon.src.lib.execution-plan-cache.createNullRuntimeSessionStore",
                 "apps.agent-daemon.src.lib.execution-plan-cache.createNullRuntimeSessionStore.findRuntimeSessionByTaskAttempt",
                 "apps.agent-daemon.src.lib.execution-plan-cache.createNullRuntimeSessionStore.hydrateSession",
                 "apps.agent-daemon.src.lib.execution-plan-cache.createNullRuntimeSessionStore.uploadAttemptFinal",
@@ -117099,8 +117387,8 @@
                 "apps.agent-daemon.src.lib.task-execution-plan.DaemonTaskExecutionPlan",
                 "apps.agent-daemon.src.lib.task-execution-plan.RuntimeProfileWorkspacePolicy",
                 "apps.agent-daemon.src.lib.task-execution-plan.buildDaemonTaskExecutionPlan",
-                "apps.agent-daemon.src.lib.task-execution-plan.buildDaemonSlotId",
                 "apps.agent-daemon.src.lib.task-execution-plan.resolveTaskWorkspaceRevision",
+                "apps.agent-daemon.src.lib.task-execution-plan.buildDaemonSlotId",
                 "apps.agent-daemon.src.lib.task-execution-plan.buildRuntimeSlotKey",
                 "apps.agent-daemon.src.lib.task-execution-plan.runtimeSlotKeyBelongsToInstance",
                 "apps.agent-daemon.src.lib.task-execution-plan.slugSlotIdentityComponent",
@@ -118641,19 +118929,19 @@
               "file_path": "apps/moltnet-signer/src/approval-page.ts",
               "methods": [
                 "apps.moltnet-signer.src.approval-page.renderApprovalPage",
-                "apps.moltnet-signer.src.approval-page.renderApprovalPage.rows.filter() callback",
                 "apps.moltnet-signer.src.approval-page.renderApprovalPage.rows",
+                "apps.moltnet-signer.src.approval-page.renderApprovalPage.rows.filter() callback",
                 "apps.moltnet-signer.src.approval-page.renderApprovalPage.rows.map() callback",
                 "apps.moltnet-signer.src.approval-page.renderResultPage",
                 "apps.moltnet-signer.src.approval-page.page",
-                "apps.moltnet-signer.src.approval-page.escapeHtml",
-                "apps.moltnet-signer.src.approval-page.escapeHtml.value.replace() callback",
                 "apps.moltnet-signer.src.approval-page.approvalContent",
                 "apps.moltnet-signer.src.approval-page.brandHeader",
                 "apps.moltnet-signer.src.approval-page.ceremonyRail",
                 "apps.moltnet-signer.src.approval-page.brandMark",
                 "apps.moltnet-signer.src.approval-page.bindingRow",
-                "apps.moltnet-signer.src.approval-page.trustFooter"
+                "apps.moltnet-signer.src.approval-page.trustFooter",
+                "apps.moltnet-signer.src.approval-page.escapeHtml",
+                "apps.moltnet-signer.src.approval-page.escapeHtml.value.replace() callback"
               ]
             },
             {
@@ -119184,9 +119472,9 @@
             "libs.auth.src.plugin.resolveTeamContext",
             "libs.auth.src.plugin.resolveIdentity",
             "libs.auth.src.plugin.resolveIdentityOnce",
+            "libs.auth.src.plugin.enforceRouteScopes",
             "libs.auth.src.plugin.requireScopes",
-            "libs.auth.src.plugin.requireScopes.requireScopesHandler",
-            "libs.auth.src.plugin.enforceRouteScopes"
+            "libs.auth.src.plugin.requireScopes.requireScopesHandler"
           ]
         },
         {
@@ -121189,8 +121477,8 @@
             "libs.pi-runtime.src.runtime.submit-output-tool.submitOutputRepairHint.required",
             "libs.pi-runtime.src.runtime.submit-output-tool.submitOutputRepairHint.required.objectSchema.required.filter() callback",
             "libs.pi-runtime.src.runtime.submit-output-tool.isRecord",
-            "libs.pi-runtime.src.runtime.submit-output-tool.onlySubmitOutputGate",
             "libs.pi-runtime.src.runtime.submit-output-tool.unwrapSoleOutputEnvelope",
+            "libs.pi-runtime.src.runtime.submit-output-tool.onlySubmitOutputGate",
             "libs.pi-runtime.src.runtime.submit-output-tool.repairProducerSubmitOutput",
             "libs.pi-runtime.src.runtime.submit-output-tool.maybeRepairSubmitOutput",
             "libs.pi-runtime.src.runtime.submit-output-tool.createSubmitOutputTool",
@@ -121236,20 +121524,20 @@
             "libs.pi-runtime.src.runtime.task-workspace.prepareTaskWorkspace",
             "libs.pi-runtime.src.runtime.task-workspace.cleanup.<function>",
             "libs.pi-runtime.src.runtime.task-workspace.prepareTaskWorkspace.cleanup.<function>",
+            "libs.pi-runtime.src.runtime.task-workspace.assertWorkspaceRevision",
             "libs.pi-runtime.src.runtime.task-workspace.resolveTaskWorktreePath",
             "libs.pi-runtime.src.runtime.task-workspace.resolveTaskScratchPath",
             "libs.pi-runtime.src.runtime.task-workspace.ensureReusableTaskWorktree",
-            "libs.pi-runtime.src.runtime.task-workspace.assertWorkspaceRevision",
+            "libs.pi-runtime.src.runtime.task-workspace.ensureReusableRevisionWorktree",
             "libs.pi-runtime.src.runtime.task-workspace.addTaskWorktree",
+            "libs.pi-runtime.src.runtime.task-workspace.addDetachedTaskWorktree",
             "libs.pi-runtime.src.runtime.task-workspace.removeExistingTaskWorktree",
             "libs.pi-runtime.src.runtime.task-workspace.isRegisteredWorktree",
             "libs.pi-runtime.src.runtime.task-workspace.resolveWorktreeBaseRef",
             "libs.pi-runtime.src.runtime.task-workspace.gitRefExists",
             "libs.pi-runtime.src.runtime.task-workspace.findMainWorktreeForDedicatedTask",
             "libs.pi-runtime.src.runtime.task-workspace.copyDirectoryContents",
-            "libs.pi-runtime.src.runtime.task-workspace.ensureReusableRevisionWorktree",
             "libs.pi-runtime.src.runtime.task-workspace.initializeScratchGitRepo",
-            "libs.pi-runtime.src.runtime.task-workspace.addDetachedTaskWorktree",
             "libs.pi-runtime.src.runtime.task-workspace.shouldSkipSeedEntry"
           ]
         },
@@ -125022,9 +125310,9 @@
                 "libs.auth.src.plugin.resolveTeamContext",
                 "libs.auth.src.plugin.resolveIdentity",
                 "libs.auth.src.plugin.resolveIdentityOnce",
+                "libs.auth.src.plugin.enforceRouteScopes",
                 "libs.auth.src.plugin.requireScopes",
-                "libs.auth.src.plugin.requireScopes.requireScopesHandler",
-                "libs.auth.src.plugin.enforceRouteScopes"
+                "libs.auth.src.plugin.requireScopes.requireScopesHandler"
               ]
             },
             {
@@ -125905,8 +126193,8 @@
                 "libs.pi-runtime.src.runtime.submit-output-tool.submitOutputRepairHint.required",
                 "libs.pi-runtime.src.runtime.submit-output-tool.submitOutputRepairHint.required.objectSchema.required.filter() callback",
                 "libs.pi-runtime.src.runtime.submit-output-tool.isRecord",
-                "libs.pi-runtime.src.runtime.submit-output-tool.onlySubmitOutputGate",
                 "libs.pi-runtime.src.runtime.submit-output-tool.unwrapSoleOutputEnvelope",
+                "libs.pi-runtime.src.runtime.submit-output-tool.onlySubmitOutputGate",
                 "libs.pi-runtime.src.runtime.submit-output-tool.repairProducerSubmitOutput",
                 "libs.pi-runtime.src.runtime.submit-output-tool.maybeRepairSubmitOutput",
                 "libs.pi-runtime.src.runtime.submit-output-tool.createSubmitOutputTool",
@@ -125952,20 +126240,20 @@
                 "libs.pi-runtime.src.runtime.task-workspace.prepareTaskWorkspace",
                 "libs.pi-runtime.src.runtime.task-workspace.cleanup.<function>",
                 "libs.pi-runtime.src.runtime.task-workspace.prepareTaskWorkspace.cleanup.<function>",
+                "libs.pi-runtime.src.runtime.task-workspace.assertWorkspaceRevision",
                 "libs.pi-runtime.src.runtime.task-workspace.resolveTaskWorktreePath",
                 "libs.pi-runtime.src.runtime.task-workspace.resolveTaskScratchPath",
                 "libs.pi-runtime.src.runtime.task-workspace.ensureReusableTaskWorktree",
-                "libs.pi-runtime.src.runtime.task-workspace.assertWorkspaceRevision",
+                "libs.pi-runtime.src.runtime.task-workspace.ensureReusableRevisionWorktree",
                 "libs.pi-runtime.src.runtime.task-workspace.addTaskWorktree",
+                "libs.pi-runtime.src.runtime.task-workspace.addDetachedTaskWorktree",
                 "libs.pi-runtime.src.runtime.task-workspace.removeExistingTaskWorktree",
                 "libs.pi-runtime.src.runtime.task-workspace.isRegisteredWorktree",
                 "libs.pi-runtime.src.runtime.task-workspace.resolveWorktreeBaseRef",
                 "libs.pi-runtime.src.runtime.task-workspace.gitRefExists",
                 "libs.pi-runtime.src.runtime.task-workspace.findMainWorktreeForDedicatedTask",
                 "libs.pi-runtime.src.runtime.task-workspace.copyDirectoryContents",
-                "libs.pi-runtime.src.runtime.task-workspace.ensureReusableRevisionWorktree",
                 "libs.pi-runtime.src.runtime.task-workspace.initializeScratchGitRepo",
-                "libs.pi-runtime.src.runtime.task-workspace.addDetachedTaskWorktree",
                 "libs.pi-runtime.src.runtime.task-workspace.shouldSkipSeedEntry"
               ]
             },
@@ -128069,7 +128357,10 @@
         "1231",
         "1232",
         "1233",
-        "1340"
+        "1340",
+        "1466",
+        "1472",
+        "1474"
       ],
       "file_methods": [
         {
@@ -128138,6 +128429,17 @@
             "infra.ory.deploy.oryStdout",
             "infra.ory.deploy.missing",
             "infra.ory.deploy.missing.TEMPLATE_VARS.filter() callback"
+          ]
+        },
+        {
+          "file_path": "packages/agent-daemon-action/src/cancel-superseded.ts",
+          "methods": [
+            "packages.agent-daemon-action.src.cancel-superseded.requiredString",
+            "packages.agent-daemon-action.src.cancel-superseded.readTaskSpecIdentity",
+            "packages.agent-daemon-action.src.cancel-superseded.parseSupersessionTags",
+            "packages.agent-daemon-action.src.cancel-superseded.parseSupersessionTags.map() callback",
+            "packages.agent-daemon-action.src.cancel-superseded.cancelSupersededTasks",
+            "packages.agent-daemon-action.src.cancel-superseded.runCancelSupersededFromEnv"
           ]
         },
         {
@@ -128604,9 +128906,28 @@
           ]
         },
         {
+          "file_path": "tools/src/tasks/complexity-review-comment.ts",
+          "methods": [
+            "tools.src.tasks.complexity-review-comment.requireFullOid",
+            "tools.src.tasks.complexity-review-comment.runDetails",
+            "tools.src.tasks.complexity-review-comment.renderComplexityReviewProgress",
+            "tools.src.tasks.complexity-review-comment.renderComplexityReviewStale",
+            "tools.src.tasks.complexity-review-comment.renderComplexityReviewFailure",
+            "tools.src.tasks.complexity-review-comment.renderComplexityReviewResult",
+            "tools.src.tasks.complexity-review-comment.findComplexityReviewComment",
+            "tools.src.tasks.complexity-review-comment.GitHubApi",
+            "tools.src.tasks.complexity-review-comment.GitHubApi.constructor",
+            "tools.src.tasks.complexity-review-comment.GitHubApi.request",
+            "tools.src.tasks.complexity-review-comment.GitHubApi.getPullRequest",
+            "tools.src.tasks.complexity-review-comment.GitHubApi.listComments",
+            "tools.src.tasks.complexity-review-comment.GitHubApi.upsertComment",
+            "tools.src.tasks.complexity-review-comment.updateComplexityReviewComment",
+            "tools.src.tasks.complexity-review-comment.main"
+          ]
+        },
+        {
           "file_path": "tools/src/tasks/compose-pr-review.ts",
           "methods": [
-            "tools.src.tasks.compose-pr-review.PullRequestInfo",
             "tools.src.tasks.compose-pr-review.ghJson",
             "tools.src.tasks.compose-pr-review.gh",
             "tools.src.tasks.compose-pr-review.getPullRequestInfo",
@@ -128619,7 +128940,6 @@
             "tools.src.tasks.compose-pr-review.readRubric.errors.map() callback",
             "tools.src.tasks.compose-pr-review.validateInput",
             "tools.src.tasks.compose-pr-review.validateInput.errors.map() callback",
-            "tools.src.tasks.compose-pr-review.buildPrReviewInput",
             "tools.src.tasks.compose-pr-review.main"
           ]
         },
@@ -128642,6 +128962,14 @@
             "tools.src.tasks.compose-pr-security-review.validateInput",
             "tools.src.tasks.compose-pr-security-review.validateInput.errors.map() callback",
             "tools.src.tasks.compose-pr-security-review.main"
+          ]
+        },
+        {
+          "file_path": "tools/src/tasks/pr-complexity-review.ts",
+          "methods": [
+            "tools.src.tasks.pr-complexity-review.PullRequestInfo",
+            "tools.src.tasks.pr-complexity-review.requireFullOid",
+            "tools.src.tasks.pr-complexity-review.buildPrReviewInput"
           ]
         },
         {
@@ -129033,7 +129361,6 @@
           "source_cluster_ids": [
             "5.35",
             "5.36",
-            "5.40",
             "5.45",
             "5.46",
             "5.52",
@@ -129062,7 +129389,14 @@
             "5.180",
             "5.182",
             "5.183",
-            "5.184"
+            "5.184",
+            "5.187",
+            "5.188",
+            "5.189",
+            "5.190",
+            "5.191",
+            "5.192",
+            "5.193"
           ],
           "file_methods": [
             {
@@ -129254,9 +129588,28 @@
               ]
             },
             {
+              "file_path": "tools/src/tasks/complexity-review-comment.ts",
+              "methods": [
+                "tools.src.tasks.complexity-review-comment.requireFullOid",
+                "tools.src.tasks.complexity-review-comment.runDetails",
+                "tools.src.tasks.complexity-review-comment.renderComplexityReviewProgress",
+                "tools.src.tasks.complexity-review-comment.renderComplexityReviewStale",
+                "tools.src.tasks.complexity-review-comment.renderComplexityReviewFailure",
+                "tools.src.tasks.complexity-review-comment.renderComplexityReviewResult",
+                "tools.src.tasks.complexity-review-comment.findComplexityReviewComment",
+                "tools.src.tasks.complexity-review-comment.GitHubApi",
+                "tools.src.tasks.complexity-review-comment.GitHubApi.constructor",
+                "tools.src.tasks.complexity-review-comment.GitHubApi.request",
+                "tools.src.tasks.complexity-review-comment.GitHubApi.getPullRequest",
+                "tools.src.tasks.complexity-review-comment.GitHubApi.listComments",
+                "tools.src.tasks.complexity-review-comment.GitHubApi.upsertComment",
+                "tools.src.tasks.complexity-review-comment.updateComplexityReviewComment",
+                "tools.src.tasks.complexity-review-comment.main"
+              ]
+            },
+            {
               "file_path": "tools/src/tasks/compose-pr-review.ts",
               "methods": [
-                "tools.src.tasks.compose-pr-review.PullRequestInfo",
                 "tools.src.tasks.compose-pr-review.ghJson",
                 "tools.src.tasks.compose-pr-review.gh",
                 "tools.src.tasks.compose-pr-review.getPullRequestInfo",
@@ -129269,8 +129622,15 @@
                 "tools.src.tasks.compose-pr-review.readRubric.errors.map() callback",
                 "tools.src.tasks.compose-pr-review.validateInput",
                 "tools.src.tasks.compose-pr-review.validateInput.errors.map() callback",
-                "tools.src.tasks.compose-pr-review.buildPrReviewInput",
                 "tools.src.tasks.compose-pr-review.main"
+              ]
+            },
+            {
+              "file_path": "tools/src/tasks/pr-complexity-review.ts",
+              "methods": [
+                "tools.src.tasks.pr-complexity-review.PullRequestInfo",
+                "tools.src.tasks.pr-complexity-review.requireFullOid",
+                "tools.src.tasks.pr-complexity-review.buildPrReviewInput"
               ]
             },
             {
@@ -129357,7 +129717,9 @@
             "5.159",
             "5.160",
             "5.161",
-            "5.162"
+            "5.162",
+            "5.185",
+            "5.186"
           ],
           "file_methods": [
             {
@@ -129426,6 +129788,17 @@
                 "infra.ory.deploy.oryStdout",
                 "infra.ory.deploy.missing",
                 "infra.ory.deploy.missing.TEMPLATE_VARS.filter() callback"
+              ]
+            },
+            {
+              "file_path": "packages/agent-daemon-action/src/cancel-superseded.ts",
+              "methods": [
+                "packages.agent-daemon-action.src.cancel-superseded.requiredString",
+                "packages.agent-daemon-action.src.cancel-superseded.readTaskSpecIdentity",
+                "packages.agent-daemon-action.src.cancel-superseded.parseSupersessionTags",
+                "packages.agent-daemon-action.src.cancel-superseded.parseSupersessionTags.map() callback",
+                "packages.agent-daemon-action.src.cancel-superseded.cancelSupersededTasks",
+                "packages.agent-daemon-action.src.cancel-superseded.runCancelSupersededFromEnv"
               ]
             },
             {
@@ -129676,7 +130049,14 @@
         "786",
         "788",
         "790",
-        "792"
+        "792",
+        "1465",
+        "1467",
+        "1473",
+        "1475",
+        "1476",
+        "1477",
+        "1478"
       ],
       "file_methods": [
         {
@@ -129767,6 +130147,13 @@
             "infra.otel.custom-collector.oryintrospectionauthextension.factory.NewFactory",
             "infra.otel.custom-collector.oryintrospectionauthextension.factory.createDefaultConfig",
             "infra.otel.custom-collector.oryintrospectionauthextension.factory.createExtension"
+          ]
+        },
+        {
+          "file_path": "packages/agent-daemon-action/src/cancel-superseded.ts",
+          "methods": [
+            "packages.agent-daemon-action.src.cancel-superseded.TaskSpecIdentity",
+            "packages.agent-daemon-action.src.cancel-superseded.parseSupersessionTags.filter() callback"
           ]
         },
         {
@@ -130460,6 +130847,17 @@
           ]
         },
         {
+          "file_path": "tools/src/tasks/complexity-review-comment.ts",
+          "methods": [
+            "tools.src.tasks.complexity-review-comment.IssueComment",
+            "tools.src.tasks.complexity-review-comment.renderComplexityReviewResult.criteria",
+            "tools.src.tasks.complexity-review-comment.renderComplexityReviewResult.criteria.args.output.scores.map() callback",
+            "tools.src.tasks.complexity-review-comment.findComplexityReviewComment.comments.find() callback",
+            "tools.src.tasks.complexity-review-comment.GitHubPullRequest",
+            "tools.src.tasks.complexity-review-comment.catch() callback"
+          ]
+        },
+        {
           "file_path": "tools/src/test-smtp.ts",
           "methods": [
             "tools.src.test-smtp.SmtpClient.startTls.secureSocket.<function>.upgraded",
@@ -130909,6 +131307,24 @@
                 "packages.legreffier-cli.src.ui.types.IdentityResult",
                 "packages.legreffier-cli.src.ui.types.GithubAppResult",
                 "packages.legreffier-cli.src.ui.types.InstallationResult"
+              ]
+            },
+            {
+              "file_path": "packages/agent-daemon-action/src/cancel-superseded.ts",
+              "methods": [
+                "packages.agent-daemon-action.src.cancel-superseded.TaskSpecIdentity",
+                "packages.agent-daemon-action.src.cancel-superseded.parseSupersessionTags.filter() callback"
+              ]
+            },
+            {
+              "file_path": "tools/src/tasks/complexity-review-comment.ts",
+              "methods": [
+                "tools.src.tasks.complexity-review-comment.GitHubPullRequest",
+                "tools.src.tasks.complexity-review-comment.IssueComment",
+                "tools.src.tasks.complexity-review-comment.catch() callback",
+                "tools.src.tasks.complexity-review-comment.findComplexityReviewComment.comments.find() callback",
+                "tools.src.tasks.complexity-review-comment.renderComplexityReviewResult.criteria",
+                "tools.src.tasks.complexity-review-comment.renderComplexityReviewResult.criteria.args.output.scores.map() callback"
               ]
             }
           ],

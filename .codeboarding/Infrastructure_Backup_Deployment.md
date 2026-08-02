@@ -339,22 +339,40 @@ Manages the transition and initialization of governance entities. It is responsi
   - `tools.src.tasks.api.substituteTemplate` ([L60-L80](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/api.ts#L60-L80)) - Function
   - `tools.src.tasks.api.substituteTemplate.applied` ([L64-L67](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/api.ts#L64-L67)) - Class
   - `tools.src.tasks.api.substituteTemplate.applied.raw.replace() callback` ([L66-L66](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/api.ts#L66-L66)) - Function
+- [`tools/src/tasks/complexity-review-comment.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/complexity-review-comment.ts)
+  - `tools.src.tasks.complexity-review-comment.requireFullOid` ([L22-L27](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/complexity-review-comment.ts#L22-L27)) - Function
+  - `tools.src.tasks.complexity-review-comment.runDetails` ([L29-L39](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/complexity-review-comment.ts#L29-L39)) - Function
+  - `tools.src.tasks.complexity-review-comment.renderComplexityReviewProgress` ([L41-L52](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/complexity-review-comment.ts#L41-L52)) - Function
+  - `tools.src.tasks.complexity-review-comment.renderComplexityReviewStale` ([L54-L73](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/complexity-review-comment.ts#L54-L73)) - Function
+  - `tools.src.tasks.complexity-review-comment.renderComplexityReviewFailure` ([L75-L86](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/complexity-review-comment.ts#L75-L86)) - Function
+  - `tools.src.tasks.complexity-review-comment.renderComplexityReviewResult` ([L88-L113](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/complexity-review-comment.ts#L88-L113)) - Function
+  - `tools.src.tasks.complexity-review-comment.findComplexityReviewComment` ([L115-L123](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/complexity-review-comment.ts#L115-L123)) - Function
+  - `tools.src.tasks.complexity-review-comment.GitHubApi` ([L129-L188](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/complexity-review-comment.ts#L129-L188)) - Class
+  - `tools.src.tasks.complexity-review-comment.GitHubApi.constructor` ([L130-L134](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/complexity-review-comment.ts#L130-L134)) - Constructor
+  - `tools.src.tasks.complexity-review-comment.GitHubApi.request` ([L136-L153](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/complexity-review-comment.ts#L136-L153)) - Method
+  - `tools.src.tasks.complexity-review-comment.GitHubApi.getPullRequest` ([L155-L159](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/complexity-review-comment.ts#L155-L159)) - Method
+  - `tools.src.tasks.complexity-review-comment.GitHubApi.listComments` ([L161-L170](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/complexity-review-comment.ts#L161-L170)) - Method
+  - `tools.src.tasks.complexity-review-comment.GitHubApi.upsertComment` ([L172-L187](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/complexity-review-comment.ts#L172-L187)) - Method
+  - `tools.src.tasks.complexity-review-comment.updateComplexityReviewComment` ([L190-L257](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/complexity-review-comment.ts#L190-L257)) - Function
+  - `tools.src.tasks.complexity-review-comment.main` ([L259-L302](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/complexity-review-comment.ts#L259-L302)) - Function
 - [`tools/src/tasks/compose-pr-review.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts)
-  - `tools.src.tasks.compose-pr-review.PullRequestInfo` ([L79-L85](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L79-L85)) - Interface
-  - `tools.src.tasks.compose-pr-review.ghJson` ([L87-L93](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L87-L93)) - Function
-  - `tools.src.tasks.compose-pr-review.gh` ([L95-L100](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L95-L100)) - Function
-  - `tools.src.tasks.compose-pr-review.getPullRequestInfo` ([L102-L130](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L102-L130)) - Function
-  - `tools.src.tasks.compose-pr-review.getPullRequestInfo.commitMessages.pr.commits.map() callback` ([L124-L127](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L124-L127)) - Function
-  - `tools.src.tasks.compose-pr-review.getPullRequestInfo.commitMessages.pr.commits.map() callback.filter() callback` ([L126-L126](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L126-L126)) - Function
-  - `tools.src.tasks.compose-pr-review.resolveCorrelationId` ([L132-L148](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L132-L148)) - Function
-  - `tools.src.tasks.compose-pr-review.ensureLegreffierMarker` ([L150-L162](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L150-L162)) - Function
-  - `tools.src.tasks.compose-pr-review.updatePrBody` ([L164-L173](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L164-L173)) - Function
-  - `tools.src.tasks.compose-pr-review.readRubric` ([L175-L190](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L175-L190)) - Function
-  - `tools.src.tasks.compose-pr-review.readRubric.errors.map() callback` ([L185-L185](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L185-L185)) - Function
-  - `tools.src.tasks.compose-pr-review.validateInput` ([L192-L202](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L192-L202)) - Function
-  - `tools.src.tasks.compose-pr-review.validateInput.errors.map() callback` ([L198-L198](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L198-L198)) - Function
-  - `tools.src.tasks.compose-pr-review.buildPrReviewInput` ([L204-L233](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L204-L233)) - Function
-  - `tools.src.tasks.compose-pr-review.main` ([L235-L258](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L235-L258)) - Function
+  - `tools.src.tasks.compose-pr-review.ghJson` ([L84-L90](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L84-L90)) - Function
+  - `tools.src.tasks.compose-pr-review.gh` ([L92-L97](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L92-L97)) - Function
+  - `tools.src.tasks.compose-pr-review.getPullRequestInfo` ([L99-L131](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L99-L131)) - Function
+  - `tools.src.tasks.compose-pr-review.getPullRequestInfo.commitMessages.pr.commits.map() callback` ([L125-L128](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L125-L128)) - Function
+  - `tools.src.tasks.compose-pr-review.getPullRequestInfo.commitMessages.pr.commits.map() callback.filter() callback` ([L127-L127](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L127-L127)) - Function
+  - `tools.src.tasks.compose-pr-review.resolveCorrelationId` ([L133-L149](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L133-L149)) - Function
+  - `tools.src.tasks.compose-pr-review.ensureLegreffierMarker` ([L151-L163](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L151-L163)) - Function
+  - `tools.src.tasks.compose-pr-review.updatePrBody` ([L165-L174](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L165-L174)) - Function
+  - `tools.src.tasks.compose-pr-review.readRubric` ([L176-L191](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L176-L191)) - Function
+  - `tools.src.tasks.compose-pr-review.readRubric.errors.map() callback` ([L186-L186](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L186-L186)) - Function
+  - `tools.src.tasks.compose-pr-review.validateInput` ([L193-L203](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L193-L203)) - Function
+  - `tools.src.tasks.compose-pr-review.validateInput.errors.map() callback` ([L199-L199](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L199-L199)) - Function
+  - `tools.src.tasks.compose-pr-review.main` ([L205-L238](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L205-L238)) - Function
+- [`tools/src/tasks/pr-complexity-review.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/pr-complexity-review.ts)
+  - `tools.src.tasks.pr-complexity-review.PullRequestInfo` ([L4-L12](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/pr-complexity-review.ts#L4-L12)) - Interface
+  - `tools.src.tasks.pr-complexity-review.requireFullOid` ([L16-L21](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/pr-complexity-review.ts#L16-L21)) - Function
+  - `tools.src.tasks.pr-complexity-review.buildPrReviewInput` ([L23-L65](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/pr-complexity-review.ts#L23-L65)) - Function
 - [`tools/src/test-smtp.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/test-smtp.ts)
   - `tools.src.test-smtp.SmtpClient.auth.capabilities` ([L110-L110](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/test-smtp.ts#L110-L110)) - Class
   - `tools.src.test-smtp.SmtpClient.auth.capabilities.map() callback` ([L110-L110](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/test-smtp.ts#L110-L110)) - Function
@@ -430,6 +448,13 @@ This is the core engine for state persistence. It handles the extraction of iden
   - `infra.ory.deploy.oryStdout` ([L67-L72](https://github.com/getlarge/themoltnet/blob/main/.codeboardinginfra/ory/deploy.mjs#L67-L72)) - Function
   - `infra.ory.deploy.missing` ([L114-L114](https://github.com/getlarge/themoltnet/blob/main/.codeboardinginfra/ory/deploy.mjs#L114-L114)) - Class
   - `infra.ory.deploy.missing.TEMPLATE_VARS.filter() callback` ([L114-L114](https://github.com/getlarge/themoltnet/blob/main/.codeboardinginfra/ory/deploy.mjs#L114-L114)) - Function
+- [`packages/agent-daemon-action/src/cancel-superseded.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/cancel-superseded.ts)
+  - `packages.agent-daemon-action.src.cancel-superseded.requiredString` ([L13-L18](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/cancel-superseded.ts#L13-L18)) - Function
+  - `packages.agent-daemon-action.src.cancel-superseded.readTaskSpecIdentity` ([L20-L29](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/cancel-superseded.ts#L20-L29)) - Function
+  - `packages.agent-daemon-action.src.cancel-superseded.parseSupersessionTags` ([L31-L42](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/cancel-superseded.ts#L31-L42)) - Function
+  - `packages.agent-daemon-action.src.cancel-superseded.parseSupersessionTags.map() callback` ([L38-L38](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/cancel-superseded.ts#L38-L38)) - Function
+  - `packages.agent-daemon-action.src.cancel-superseded.cancelSupersededTasks` ([L44-L69](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/cancel-superseded.ts#L44-L69)) - Function
+  - `packages.agent-daemon-action.src.cancel-superseded.runCancelSupersededFromEnv` ([L71-L86](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/cancel-superseded.ts#L71-L86)) - Function
 - [`packages/agent-daemon-action/src/create-task.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/create-task.ts)
   - `packages.agent-daemon-action.src.create-task.FulfillTaskInput` ([L32-L63](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/create-task.ts#L32-L63)) - Interface
   - `packages.agent-daemon-action.src.create-task.createTask` ([L65-L92](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/create-task.ts#L65-L92)) - Function
@@ -470,8 +495,8 @@ This is the core engine for state persistence. It handles the extraction of iden
   - `packages.agent-daemon-action.src.dispatch.ghBackedBy` ([L381-L413](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L381-L413)) - Function
   - `packages.agent-daemon-action.src.dispatch.postPrComment` ([L415-L426](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L415-L426)) - Function
 - [`packages/agent-daemon-action/src/main.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/main.ts)
-  - `packages.agent-daemon-action.src.main.main` ([L16-L36](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/main.ts#L16-L36)) - Function
-  - `packages.agent-daemon-action.src.main.catch() callback` ([L38-L41](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/main.ts#L38-L41)) - Function
+  - `packages.agent-daemon-action.src.main.main` ([L17-L44](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/main.ts#L17-L44)) - Function
+  - `packages.agent-daemon-action.src.main.catch() callback` ([L46-L49](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/main.ts#L46-L49)) - Function
 - [`packages/agent-daemon-action/src/parse-mention.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/parse-mention.ts)
   - `packages.agent-daemon-action.src.parse-mention.ParseInput` ([L25-L28](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/parse-mention.ts#L25-L28)) - Interface
   - `packages.agent-daemon-action.src.parse-mention.parseMention` ([L32-L54](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/parse-mention.ts#L32-L54)) - Function
