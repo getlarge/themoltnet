@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -8,6 +9,14 @@ import (
 
 	"github.com/zalando/go-keyring"
 )
+
+type keyringConformanceFixture struct {
+	Windows []struct {
+		Service string `json:"service"`
+		Key     string `json:"key"`
+		Target  string `json:"target"`
+	} `json:"windows"`
+}
 
 type memorySecretProvider struct {
 	values map[string]string
@@ -102,6 +111,25 @@ func TestOAuth2SecretKeyIsStable(t *testing.T) {
 	got := OAuth2SecretKey("identity-123", "client-456")
 	if got != "oauth2/identity-123/client-456" {
 		t.Fatalf("OAuth2SecretKey = %q", got)
+	}
+}
+
+func TestWindowsKeyringTargetMatchesCrossRuntimeConformance(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "testdata", "keyring-conformance.json"))
+	if err != nil {
+		t.Fatalf("read conformance fixture: %v", err)
+	}
+	var fixture keyringConformanceFixture
+	if err := json.Unmarshal(data, &fixture); err != nil {
+		t.Fatalf("parse conformance fixture: %v", err)
+	}
+	if len(fixture.Windows) == 0 {
+		t.Fatal("Windows keyring conformance fixture is empty")
+	}
+	for _, vector := range fixture.Windows {
+		if got := windowsKeyringTarget(vector.Service, vector.Key); got != vector.Target {
+			t.Errorf("windowsKeyringTarget(%q, %q) = %q, want %q", vector.Service, vector.Key, got, vector.Target)
+		}
 	}
 }
 
