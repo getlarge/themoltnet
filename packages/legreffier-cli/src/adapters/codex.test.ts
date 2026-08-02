@@ -133,7 +133,7 @@ describe('CodexAdapter.writeSettings', () => {
       parsed.hooks.PreToolUse.map(
         (entry: { matcher: string }) => entry.matcher,
       ),
-    ).toEqual(['Bash', 'Read', 'Grep', 'Write', 'Edit', 'Glob']);
+    ).toEqual(['Bash', 'Read', 'Grep', 'Write', 'Edit', 'Glob', 'apply_patch']);
   });
 
   it('preserves existing hooks and does not duplicate the guard', async () => {
