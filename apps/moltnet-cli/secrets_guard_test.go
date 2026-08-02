@@ -39,12 +39,88 @@ func TestSecretsGuardDeniesAlternateShellConstructs(t *testing.T) {
 		`secret-tool lookup service themolt.net`,
 		`moltnet config export-env --credentials .moltnet/agent/moltnet.json --show-secret`,
 		`moltnet github token --credentials .moltnet/agent/moltnet.json`,
+		`moltnet ssh-key --output-dir /tmp/exported-agent-key`,
+		`"$READER" .moltnet/agent/env`,
+		`moltnet agents credentials rotate --credentials .moltnet/agent/moltnet.json`,
+		`moltnet agents keys create --team-id team --agent-id agent`,
+		`moltnet agents keys rotate key --team-id team`,
+		`moltnet register --name leaked-agent`,
+		`moltnet profile create --from-file .moltnet/agent/env --credentials .moltnet/agent/moltnet.json`,
+		`moltnet task artifacts upload task --file .moltnet/agent/env --credentials .moltnet/agent/moltnet.json`,
 		`GH_TOKEN=$(moltnet github token --credentials .moltnet/agent/moltnet.json) gh pr view 1; moltnet github token --credentials .moltnet/agent/moltnet.json`,
 	}
 	for _, command := range commands {
 		if reason := evaluateSecretsShell(command); reason == "" {
 			t.Errorf("expected denial for %q", command)
 		}
+	}
+}
+
+func TestSecretsGuardDeniesNativeOpenCodeFilePayloads(t *testing.T) {
+	t.Parallel()
+	payloads := []map[string]any{
+		{"tool_name": "read", "tool_input": map[string]any{"filePath": ".moltnet/agent/env"}},
+		{"tool_name": "edit", "tool_input": map[string]any{"filePath": ".moltnet/agent/moltnet.json", "oldString": "old", "newString": "new"}},
+		{"tool_name": "apply_patch", "tool_input": map[string]any{"patchText": "*** Begin Patch\n*** Update File: .moltnet/agent/env\n@@\n-old\n+new\n*** End Patch"}},
+	}
+	for _, payload := range payloads {
+		encoded, err := json.Marshal(payload)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var output bytes.Buffer
+		if err := runSecretsGuardCmd(bytes.NewReader(encoded), &output); err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(output.String(), `"permissionDecision":"deny"`) {
+			t.Fatalf("expected OpenCode payload denial, got %s", output.String())
+		}
+	}
+}
+
+func TestSecretsGuardDeniesAdversarialShellPayloadsEndToEnd(t *testing.T) {
+	t.Parallel()
+	commands := []string{
+		`"$READER" .moltnet/agent/env`,
+		`bash -c '"$READER" .moltnet/agent/moltnet.json'`,
+	}
+	for _, command := range commands {
+		input := secretHookInput{
+			ToolName:  "Bash",
+			ToolInput: map[string]any{"command": command},
+		}
+		payload, err := json.Marshal(input)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var output bytes.Buffer
+		if err := runSecretsGuardCmd(bytes.NewReader(payload), &output); err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(output.String(), `"permissionDecision":"deny"`) {
+			t.Fatalf("expected shell payload denial for %q, got %s", command, output.String())
+		}
+	}
+}
+
+func TestSecretsGuardAllowsPatchWhoseContentOnlyMentionsSecretPath(t *testing.T) {
+	t.Parallel()
+	input := secretHookInput{
+		ToolName: "apply_patch",
+		ToolInput: map[string]any{
+			"patchText": "*** Begin Patch\n*** Update File: docs/security.md\n@@\n-old\n+Never read .moltnet/agent/env directly.\n*** End Patch",
+		},
+	}
+	payload, err := json.Marshal(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var output bytes.Buffer
+	if err := runSecretsGuardCmd(bytes.NewReader(payload), &output); err != nil {
+		t.Fatal(err)
+	}
+	if output.Len() != 0 {
+		t.Fatalf("safe patch was denied: %s", output.String())
 	}
 }
 
@@ -57,6 +133,9 @@ func TestSecretsGuardAllowsSafeOperations(t *testing.T) {
 		`moltnet agents activation validate --agent agent --credentials .moltnet/agent/moltnet.json`,
 		`moltnet env check --agent agent`,
 		`moltnet entry list --credentials .moltnet/agent/moltnet.json`,
+		`moltnet teams delete team --credentials .moltnet/agent/moltnet.json`,
+		`moltnet task artifacts upload task --file report.md --credentials .moltnet/agent/moltnet.json`,
+		`moltnet signing-requests list --credentials=.moltnet/agent/moltnet.json`,
 		`GH_TOKEN=$(moltnet github token --credentials .moltnet/agent/moltnet.json) gh pr view 1`,
 	}
 	for _, command := range commands {
@@ -90,6 +169,34 @@ func TestSecretsGuardMalformedInputFailsClosed(t *testing.T) {
 	}
 }
 
+func TestSecretsGuardOversizedInputHasActionableDenial(t *testing.T) {
+	t.Parallel()
+	payload := `{"tool_name":"Write","tool_input":{"file_path":"docs/large.md","content":"` + strings.Repeat("x", maxSecretHookPayloadBytes) + `"}}`
+	var output bytes.Buffer
+	if err := runSecretsGuardCmd(strings.NewReader(payload), &output); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output.String(), "oversized tool payload") {
+		t.Fatalf("expected size-specific denial, got %s", output.String())
+	}
+}
+
+func TestSecretsGuardProtectsActivationCache(t *testing.T) {
+	t.Parallel()
+	input := secretHookInput{ToolName: "Write", ToolInput: map[string]any{"filePath": ".moltnet/agent/activation-cache.json"}}
+	payload, err := json.Marshal(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var output bytes.Buffer
+	if err := runSecretsGuardCmd(bytes.NewReader(payload), &output); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output.String(), `"permissionDecision":"deny"`) {
+		t.Fatalf("expected activation cache denial, got %s", output.String())
+	}
+}
+
 func TestCanonicalGuidanceDoesNotReadCredentialFiles(t *testing.T) {
 	t.Parallel()
 	repoRoot := filepath.Clean(filepath.Join("..", ".."))
@@ -118,6 +225,40 @@ func TestCanonicalGuidanceDoesNotReadCredentialFiles(t *testing.T) {
 		})
 		if err != nil {
 			t.Fatalf("scan %s: %v", root, err)
+		}
+	}
+}
+
+func TestCanonicalGuidanceUsesAtomicEnvConfiguration(t *testing.T) {
+	t.Parallel()
+	repoRoot := filepath.Clean(filepath.Join("..", ".."))
+	checks := []struct {
+		path       string
+		forbidden  string
+		requireCLI bool
+	}{
+		{
+			path:       filepath.Join(repoRoot, ".agents", "skills", "legreffier-onboarding", "references", "stage-2-diary-connection.md"),
+			forbidden:  "Write both `MOLTNET_TEAM_ID` and `MOLTNET_DIARY_ID`",
+			requireCLI: true,
+		},
+		{
+			path:       filepath.Join(repoRoot, "docs", "reference", "agent-configuration.md"),
+			forbidden:  "Set these variables in `.moltnet/<agent>/env`",
+			requireCLI: true,
+		},
+	}
+	for _, check := range checks {
+		data, err := os.ReadFile(check.path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		content := string(data)
+		if strings.Contains(content, check.forbidden) {
+			t.Errorf("unsafe direct-edit guidance remains in %s", check.path)
+		}
+		if check.requireCLI && !strings.Contains(content, "moltnet env configure") {
+			t.Errorf("atomic env configuration guidance missing from %s", check.path)
 		}
 	}
 }
