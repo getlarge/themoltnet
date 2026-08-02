@@ -1,6 +1,7 @@
 import { basename, join } from 'node:path';
 
 import { type MoltNetConfig, updateConfigSection } from '@themoltnet/sdk';
+import { resolveNodeOAuth2ClientSecret } from '@themoltnet/sdk/node';
 
 import {
   appendAuthorshipVars,
@@ -107,12 +108,13 @@ export async function runPortRewritePhase(opts: {
 
   // 3. Regenerate env file with new PEM path
   const prefix = toEnvPrefix(agentName);
+  const clientSecret = await resolveNodeOAuth2ClientSecret(config);
   await writeEnvFile({
     envDir: targetDir,
     agentName,
     prefix,
     clientId: config.oauth2.client_id,
-    clientSecret: config.oauth2.client_secret,
+    clientSecret,
     appId: config.github.app_id,
     pemPath: newPem,
     installationId: config.github.installation_id ?? '',
