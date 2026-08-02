@@ -38,6 +38,20 @@ inputs:
       limits (max 20, max 128 chars each).
     required: false
     default: ''
+  cancel-superseded:
+    description: >
+      Before creating a task from task-spec-path, terminally cancel active
+      tasks with the same task type and correlation id. Disabled by default.
+      Use supersession-tags to avoid cancelling other logical task lanes that
+      share the same type and correlation chain.
+    required: false
+    default: 'false'
+  supersession-tags:
+    description: >
+      Optional comma- or newline-separated tags that active tasks must also
+      contain before cancel-superseded cancels them.
+    required: false
+    default: ''
   skip-validation:
     description: >
       Pass --skip-validation to moltnet task create when using
@@ -439,6 +453,15 @@ runs:
         path: ~/.cache/moltnet/gondolin
         key: ${{ steps.gondolin-cache-key.outputs.value }}
 
+    - name: Cancel superseded tasks
+      if: ${{ inputs.task-id == '' && inputs.task-spec-path != '' && inputs.cancel-superseded == 'true' }}
+      shell: bash
+      env:
+        MOLTNET_ACTION_COMMAND: cancel-superseded
+        TASK_SPEC_PATH: ${{ inputs.task-spec-path }}
+        SUPERSESSION_TAGS: ${{ inputs.supersession-tags }}
+      run: node "${{ github.action_path }}/dist/main.js"
+
     - id: create-task
       if: ${{ inputs.task-id == '' && inputs.task-spec-path != '' }}
       shell: bash
@@ -452,6 +475,10 @@ runs:
         set -euo pipefail
         if [ ! -f "$TASK_SPEC_PATH" ]; then
           echo "::error::task-spec-path '$TASK_SPEC_PATH' does not exist"
+          exit 1
+        fi
+        if [ "${{ inputs.cancel-superseded }}" != "true" ] && [ "${{ inputs.cancel-superseded }}" != "false" ]; then
+          echo "::error::cancel-superseded must be 'true' or 'false', got '${{ inputs.cancel-superseded }}'"
           exit 1
         fi
         TASK_TYPE=$(jq -r '.taskType // empty' "$TASK_SPEC_PATH")

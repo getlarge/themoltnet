@@ -27571,9 +27571,62 @@ var require_github = /* @__PURE__ */ __commonJSMin(((exports) => {
 	exports.getOctokit = getOctokit;
 }));
 //#endregion
-//#region ../../libs/api-client/src/generated/core/bodySerializer.gen.ts
+//#region ../../libs/sdk/src/errors.ts
 var import_core = /* @__PURE__ */ __toESM(require_core(), 1);
 var import_github = require_github();
+var MoltNetError = class extends Error {
+	code;
+	statusCode;
+	detail;
+	/**
+	* Populated when the server returned a `VALIDATION_FAILED` problem
+	* (status 400) with field-level errors. Empty / undefined for every
+	* other problem kind. Proposer scripts surface these to operators so
+	* they don't have to re-run with curl to see what was rejected.
+	*/
+	validationErrors;
+	constructor(message, options) {
+		super(message);
+		this.name = "MoltNetError";
+		this.code = options.code;
+		this.statusCode = options.statusCode;
+		this.detail = options.detail;
+		this.validationErrors = options.validationErrors;
+	}
+};
+var NetworkError = class extends MoltNetError {
+	constructor(message, options) {
+		super(message, {
+			code: "NETWORK_ERROR",
+			detail: options?.detail
+		});
+		this.name = "NetworkError";
+	}
+};
+var AuthenticationError = class extends MoltNetError {
+	constructor(message, options) {
+		super(message, {
+			code: "AUTH_FAILED",
+			statusCode: options?.statusCode,
+			detail: options?.detail
+		});
+		this.name = "AuthenticationError";
+	}
+};
+function problemToError(problem, statusCode) {
+	const title = problem.title ?? "Request failed";
+	const message = problem.detail ? `${title}: ${problem.detail}` : title;
+	const rawErrors = problem.errors;
+	const validationErrors = Array.isArray(rawErrors) ? rawErrors.filter((e) => typeof e === "object" && e !== null && typeof e.field === "string" && typeof e.message === "string") : void 0;
+	return new MoltNetError(message, {
+		code: problem.type ?? problem.code ?? "UNKNOWN",
+		statusCode,
+		detail: problem.detail,
+		validationErrors
+	});
+}
+//#endregion
+//#region ../../libs/api-client/src/generated/core/bodySerializer.gen.ts
 var jsonBodySerializer = { bodySerializer: (body) => JSON.stringify(body, (_key, value) => typeof value === "bigint" ? value.toString() : value) };
 Object.entries({
 	$body_: "body",
@@ -28189,7 +28242,103 @@ var getNetworkInfo = (options) => (options?.client ?? client).get({
 	...options
 });
 /**
-* Get the authenticated agent identity (requires bearer token).
+* List agent API keys bound to the active team. Team credential managers may list every agent.
+*/
+var listAgentKeys = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/agent-keys",
+	...options
+});
+/**
+* Issue a secret API key bound to one agent and the active team.
+*/
+var createAgentKey = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/agent-keys",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Permanently revoke an agent API key.
+*/
+var revokeAgentKey = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/agent-keys/{keyId}/revoke",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Rotate an agent API key immediately. The previous secret is revoked and expiry is unchanged.
+*/
+var rotateAgentKey = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/agent-keys/{keyId}/rotate",
+	...options
+});
+/**
+* Get the authenticated caller identity and context. Works for both agents (identity plus, under agent-key auth, the credential binding) and humans, via bearer, session, or cookie auth.
 */
 var getWhoami = (options) => (options?.client ?? client).get({
 	security: [
@@ -28272,6 +28421,145 @@ var getCryptoIdentity = (options) => (options?.client ?? client).get({
 	url: "/crypto/identity",
 	...options
 });
+var listSigningCredentials = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/crypto/signing-credentials",
+	...options
+});
+var beginSigningCredentialRegistration = (options) => (options.client ?? client).post({
+	security: [{
+		name: "X-Moltnet-Session-Token",
+		type: "apiKey"
+	}, {
+		in: "cookie",
+		name: "ory_kratos_session",
+		type: "apiKey"
+	}],
+	url: "/crypto/signing-credentials/registrations",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+var completeSigningCredentialRegistration = (options) => (options.client ?? client).post({
+	security: [{
+		name: "X-Moltnet-Session-Token",
+		type: "apiKey"
+	}, {
+		in: "cookie",
+		name: "ory_kratos_session",
+		type: "apiKey"
+	}],
+	url: "/crypto/signing-credentials/registrations/{id}/complete",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+var getSigningCredential = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/crypto/signing-credentials/{id}",
+	...options
+});
+var approveSigningCredential = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/crypto/signing-credentials/{id}/approve",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+var revokeSigningCredential = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/crypto/signing-credentials/{id}/revoke",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+var suspendSigningCredential = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/crypto/signing-credentials/{id}/suspend",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
 /**
 * List signing requests for the authenticated agent.
 */
@@ -28341,6 +28629,54 @@ var getSigningRequest = (options) => (options.client ?? client).get({
 	],
 	url: "/crypto/signing-requests/{id}",
 	...options
+});
+var claimSigningRequest = (options) => (options.client ?? client).post({
+	security: [{
+		name: "X-Moltnet-Session-Token",
+		type: "apiKey"
+	}, {
+		in: "cookie",
+		name: "ory_kratos_session",
+		type: "apiKey"
+	}],
+	url: "/crypto/signing-requests/{id}/claim",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+var completeSigningRequest = (options) => (options.client ?? client).post({
+	security: [{
+		name: "X-Moltnet-Session-Token",
+		type: "apiKey"
+	}, {
+		in: "cookie",
+		name: "ory_kratos_session",
+		type: "apiKey"
+	}],
+	url: "/crypto/signing-requests/{id}/complete",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+var rejectSigningRequest = (options) => (options.client ?? client).post({
+	security: [{
+		name: "X-Moltnet-Session-Token",
+		type: "apiKey"
+	}, {
+		in: "cookie",
+		name: "ory_kratos_session",
+		type: "apiKey"
+	}],
+	url: "/crypto/signing-requests/{id}/reject",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
 });
 /**
 * Submit a signature for a signing request. The DBOS workflow verifies the signature and updates the request status.
@@ -28908,6 +29244,21 @@ var verifyDiaryEntryById = (options) => (options.client ?? client).get({
 	...options
 });
 /**
+* Register an agent-signed executor manifest for fingerprint-only task claims.
+*/
+var registerExecutorManifest = (options) => (options.client ?? client).post({
+	security: [{
+		scheme: "bearer",
+		type: "http"
+	}],
+	url: "/executor-manifests/register",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
 * Shallow liveness probe.
 */
 var getHealth = (options) => (options?.client ?? client).get({
@@ -29233,6 +29584,124 @@ var updateRenderedPack = (options) => (options.client ?? client).patch({
 	}
 });
 /**
+* List tool policies for the active team.
+*/
+var listRuntimePolicies = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/runtime-policies",
+	...options
+});
+/**
+* Create a team-scoped tool policy granting a set of tools.
+*/
+var createRuntimePolicy = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/runtime-policies",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Delete a tool policy and its tool grants.
+*/
+var deleteRuntimePolicy = (options) => (options.client ?? client).delete({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/runtime-policies/{policyId}",
+	...options
+});
+/**
+* Get one tool policy with its granted tools.
+*/
+var getRuntimePolicy = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/runtime-policies/{policyId}",
+	...options
+});
+/**
+* Rename a policy and/or add/remove granted tools.
+*/
+var updateRuntimePolicy = (options) => (options.client ?? client).patch({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/runtime-policies/{policyId}",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
 * List runtime profiles for the active team context.
 */
 var listRuntimeProfiles = (options) => (options?.client ?? client).get({
@@ -29344,6 +29813,76 @@ var updateRuntimeProfile = (options) => (options.client ?? client).patch({
 		}
 	],
 	url: "/runtime-profiles/{profileId}",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Resolve a runtime profile enforcement mode and its allowed-tool set (union of bound policies).
+*/
+var getRuntimeProfileAllowedTools = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/runtime-profiles/{profileId}/allowed-tools",
+	...options
+});
+/**
+* List the tool-policy IDs bound to a runtime profile.
+*/
+var getRuntimeProfilePolicies = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/runtime-profiles/{profileId}/policies",
+	...options
+});
+/**
+* Replace the set of tool policies bound to a runtime profile.
+*/
+var setRuntimeProfilePolicies = (options) => (options.client ?? client).put({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/runtime-profiles/{profileId}/policies",
 	...options,
 	headers: {
 		"Content-Type": "application/json",
@@ -29496,7 +30035,34 @@ var findLatestRuntimeSlotForAttempt = (options) => (options.client ?? client).ge
 	...options
 });
 /**
-* Queue asynchronous deletion of terminal tasks in bulk. By default, live, unauthorized, missing, and protected tasks are skipped. Set force: true with a reason to delete protected terminal tasks.
+* Stage immutable content-addressed artifact bytes for later binding as task input artifacts via task creation references. Creates no metadata row; staged bytes are not downloadable until bound to a task, and unbound objects are garbage-collected after a grace window.
+*/
+var stageTaskArtifact = (options) => (options.client ?? client).put({
+	bodySerializer: null,
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/task-artifacts/staged",
+	...options,
+	headers: {
+		"Content-Type": "application/octet-stream",
+		...options.headers
+	}
+});
+/**
+* Queue asynchronous deletion of waiting, queued, and terminal tasks in bulk. By default, dispatched, running, unauthorized, missing, and protected tasks are skipped. Set force: true with a reason to delete protected terminal tasks.
 */
 var batchDeleteTasks = (options) => (options.client ?? client).delete({
 	security: [
@@ -30342,63 +30908,11 @@ function createRateLimitFetch(options) {
 	});
 }
 //#endregion
-//#region ../../libs/sdk/src/errors.ts
-var MoltNetError = class extends Error {
-	code;
-	statusCode;
-	detail;
-	/**
-	* Populated when the server returned a `VALIDATION_FAILED` problem
-	* (status 400) with field-level errors. Empty / undefined for every
-	* other problem kind. Proposer scripts surface these to operators so
-	* they don't have to re-run with curl to see what was rejected.
-	*/
-	validationErrors;
-	constructor(message, options) {
-		super(message);
-		this.name = "MoltNetError";
-		this.code = options.code;
-		this.statusCode = options.statusCode;
-		this.detail = options.detail;
-		this.validationErrors = options.validationErrors;
-	}
-};
-var NetworkError = class extends MoltNetError {
-	constructor(message, options) {
-		super(message, {
-			code: "NETWORK_ERROR",
-			detail: options?.detail
-		});
-		this.name = "NetworkError";
-	}
-};
-var AuthenticationError = class extends MoltNetError {
-	constructor(message, options) {
-		super(message, {
-			code: "AUTH_FAILED",
-			statusCode: options?.statusCode,
-			detail: options?.detail
-		});
-		this.name = "AuthenticationError";
-	}
-};
-function problemToError(problem, statusCode) {
-	const title = problem.title ?? "Request failed";
-	const message = problem.detail ? `${title}: ${problem.detail}` : title;
-	const rawErrors = problem.errors;
-	const validationErrors = Array.isArray(rawErrors) ? rawErrors.filter((e) => typeof e === "object" && e !== null && typeof e.field === "string" && typeof e.message === "string") : void 0;
-	return new MoltNetError(message, {
-		code: problem.type ?? problem.code ?? "UNKNOWN",
-		statusCode,
-		detail: problem.detail,
-		validationErrors
-	});
-}
-//#endregion
 //#region ../../libs/sdk/src/agent-context.ts
 function unwrapResult(result) {
 	if (result.error !== void 0 && result.error !== null) {
 		const error = result.error;
+		if (error instanceof MoltNetError) throw error;
 		if (isProblemDetails(error)) throw problemToError(error, error.status);
 		if (error instanceof Error && result.response === void 0) {
 			const networkError = new NetworkError(error.message, { detail: error.cause ? stringifyUnknown(error.cause) : void 0 });
@@ -30445,16 +30959,101 @@ function unwrapRequired(result, message, code) {
 	return result.data;
 }
 //#endregion
-//#region ../../libs/sdk/src/namespaces/agents.ts
-function createAgentsNamespace(context) {
+//#region ../../libs/sdk/src/namespaces/query.ts
+/**
+* Remove `undefined`-valued keys from a query object before it is serialized.
+*
+* Returns `undefined` when no defined keys remain, so an all-`undefined` query
+* (`{ agentId: undefined }`) and an omitted query (`undefined`) serialize
+* identically — both send no query params — instead of the former collapsing to
+* an empty `{}` that still reaches the client.
+*/
+function stripUndefinedQuery(query) {
+	if (!query) return;
+	const entries = Object.entries(query).filter(([, value]) => value !== void 0);
+	return entries.length ? Object.fromEntries(entries) : void 0;
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/team-headers.ts
+/**
+* Build the team header from an optional option, or `undefined` when no team
+* context was supplied. Used by diaries and runtime-profiles, whose endpoints
+* accept the header optionally.
+*/
+function teamHeaders(options) {
+	return options?.teamId ? { "x-moltnet-team-id": options.teamId } : void 0;
+}
+/**
+* Build the team header from a required option. Used by tasks and
+* runtime-slots, whose endpoints mandate the header.
+*/
+function requiredTeamHeaders(options) {
+	return { "x-moltnet-team-id": options.teamId };
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/agent-keys.ts
+function createAgentKeysNamespace(context) {
 	const { client, auth } = context;
 	return {
-		async whoami() {
-			return unwrapResult(await getWhoami({
+		async list(query, options) {
+			return unwrapResult(await listAgentKeys({
 				client,
-				auth
+				auth,
+				headers: requiredTeamHeaders(options),
+				query: stripUndefinedQuery(query)
 			}));
 		},
+		async create(body, options) {
+			return unwrapResult(await createAgentKey({
+				client,
+				auth,
+				headers: {
+					...requiredTeamHeaders(options),
+					"idempotency-key": options.idempotencyKey
+				},
+				body
+			}));
+		},
+		async rotate(keyId, options) {
+			return unwrapResult(await rotateAgentKey({
+				client,
+				auth,
+				headers: requiredTeamHeaders(options),
+				path: { keyId }
+			}));
+		},
+		async revoke(keyId, body, options) {
+			const result = await revokeAgentKey({
+				client,
+				auth,
+				headers: requiredTeamHeaders(options),
+				path: { keyId },
+				body
+			});
+			if (result.error) unwrapResult(result);
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/whoami.ts
+/**
+* Build a `whoami()` accessor bound to an authenticated context. Returns the
+* caller's identity and context: `subjectType`, `currentTeamId`, and, for an
+* agent authenticated via an agent key, its `credentialBinding`.
+*/
+function createWhoami(context) {
+	const { client, auth } = context;
+	return async () => unwrapResult(await getWhoami({
+		client,
+		auth
+	}));
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/agents.ts
+function createAgentsNamespace(context) {
+	const { client } = context;
+	return {
+		whoami: createWhoami(context),
 		async lookup(fingerprint) {
 			return unwrapResult(await getAgentProfile({
 				client,
@@ -30483,7 +31082,7 @@ function createAuthNamespace(context) {
 }
 //#endregion
 //#region ../../libs/sdk/src/namespaces/crypto.ts
-function createCryptoNamespace(context, signingRequests) {
+function createCryptoNamespace(context, signingRequests, signingCredentials) {
 	const { client, auth } = context;
 	return {
 		async identity() {
@@ -30498,25 +31097,9 @@ function createCryptoNamespace(context, signingRequests) {
 				body
 			}));
 		},
-		signingRequests
+		signingRequests,
+		signingCredentials
 	};
-}
-//#endregion
-//#region ../../libs/sdk/src/namespaces/team-headers.ts
-/**
-* Build the team header from an optional option, or `undefined` when no team
-* context was supplied. Used by diaries and runtime-profiles, whose endpoints
-* accept the header optionally.
-*/
-function teamHeaders(options) {
-	return options?.teamId ? { "x-moltnet-team-id": options.teamId } : void 0;
-}
-/**
-* Build the team header from a required option. Used by tasks and
-* runtime-slots, whose endpoints mandate the header.
-*/
-function requiredTeamHeaders(options) {
-	return { "x-moltnet-team-id": options.teamId };
 }
 //#endregion
 //#region ../../libs/sdk/src/namespaces/diaries.ts
@@ -32429,7 +33012,10 @@ function createEntriesNamespace(context) {
 			const signingRequest = unwrapResult(await createSigningRequest({
 				client,
 				auth,
-				body: { message: computeContentCid(body.entryType ?? "semantic", body.title ?? null, body.content, body.tags ?? null) }
+				body: {
+					message: computeContentCid(body.entryType ?? "semantic", body.title ?? null, body.content, body.tags ?? null),
+					verificationMethod: "agent-ed25519"
+				}
 			}));
 			const privateKeyBytes = new Uint8Array(Buffer.from(privateKey, "base64"));
 			const signature = await signAsync(new Uint8Array(Buffer.from(signingRequest.signingInput, "base64")), privateKeyBytes);
@@ -32664,6 +33250,54 @@ function createRecoveryNamespace(context) {
 	};
 }
 //#endregion
+//#region ../../libs/sdk/src/namespaces/runtime-policies.ts
+function createRuntimePoliciesNamespace(context) {
+	const { client, auth } = context;
+	return {
+		async create(body, options) {
+			return unwrapResult(await createRuntimePolicy({
+				client,
+				auth,
+				headers: requiredTeamHeaders(options),
+				body
+			}));
+		},
+		async list(options) {
+			return unwrapResult(await listRuntimePolicies({
+				client,
+				auth,
+				headers: requiredTeamHeaders(options)
+			}));
+		},
+		async get(policyId, options) {
+			return unwrapResult(await getRuntimePolicy({
+				client,
+				auth,
+				path: { policyId },
+				headers: requiredTeamHeaders(options)
+			}));
+		},
+		async update(policyId, body, options) {
+			return unwrapResult(await updateRuntimePolicy({
+				client,
+				auth,
+				path: { policyId },
+				headers: requiredTeamHeaders(options),
+				body
+			}));
+		},
+		async delete(policyId, options) {
+			const result = await deleteRuntimePolicy({
+				client,
+				auth,
+				path: { policyId },
+				headers: requiredTeamHeaders(options)
+			});
+			if (result.error) unwrapResult(result);
+		}
+	};
+}
+//#endregion
 //#region ../../libs/sdk/src/namespaces/runtime-profiles.ts
 function createRuntimeProfilesNamespace(context) {
 	const { client, auth } = context;
@@ -32705,6 +33339,32 @@ function createRuntimeProfilesNamespace(context) {
 				path: { profileId }
 			});
 			if (result.error) unwrapResult(result);
+		},
+		async allowedTools(profileId, options) {
+			return unwrapResult(await getRuntimeProfileAllowedTools({
+				client,
+				auth,
+				path: { profileId },
+				headers: requiredTeamHeaders(options)
+			}));
+		},
+		async setPolicies(profileId, policyIds, options) {
+			const result = await setRuntimeProfilePolicies({
+				client,
+				auth,
+				path: { profileId },
+				headers: requiredTeamHeaders(options),
+				body: { policyIds }
+			});
+			if (result.error) unwrapResult(result);
+		},
+		async getPolicies(profileId, options) {
+			return unwrapResult(await getRuntimeProfilePolicies({
+				client,
+				auth,
+				path: { profileId },
+				headers: requiredTeamHeaders(options)
+			}));
 		}
 	};
 }
@@ -32794,13 +33454,76 @@ function createRuntimeSlotsNamespace(context) {
 			}
 		},
 		async list(query, options) {
-			const filteredQuery = Object.fromEntries(Object.entries(query).filter(([, value]) => value !== void 0));
 			return unwrapResult(await listRuntimeSlots({
 				auth,
 				client,
 				headers: requiredTeamHeaders(options),
-				query: filteredQuery
+				query: stripUndefinedQuery(query)
 			})).items;
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/signing-credentials.ts
+function createSigningCredentialsNamespace(context) {
+	const { client, auth } = context;
+	return {
+		async list(query, options) {
+			return unwrapResult(await listSigningCredentials({
+				client,
+				auth,
+				headers: requiredTeamHeaders(options),
+				query
+			}));
+		},
+		async get(id, options) {
+			return unwrapResult(await getSigningCredential({
+				client,
+				auth,
+				headers: requiredTeamHeaders(options),
+				path: { id }
+			}));
+		},
+		async startRegistration(body, options) {
+			return unwrapResult(await beginSigningCredentialRegistration({
+				client,
+				auth,
+				headers: requiredTeamHeaders(options),
+				body
+			}));
+		},
+		async completeRegistration(id, body, options) {
+			return unwrapResult(await completeSigningCredentialRegistration({
+				client,
+				auth,
+				headers: requiredTeamHeaders(options),
+				path: { id },
+				body
+			}));
+		},
+		async approve(id, options) {
+			return unwrapResult(await approveSigningCredential({
+				client,
+				auth,
+				headers: requiredTeamHeaders(options),
+				path: { id }
+			}));
+		},
+		async suspend(id, options) {
+			return unwrapResult(await suspendSigningCredential({
+				client,
+				auth,
+				headers: requiredTeamHeaders(options),
+				path: { id }
+			}));
+		},
+		async revoke(id, options) {
+			return unwrapResult(await revokeSigningCredential({
+				client,
+				auth,
+				headers: requiredTeamHeaders(options),
+				path: { id }
+			}));
 		}
 	};
 }
@@ -32834,6 +33557,33 @@ function createSigningRequestsNamespace(context) {
 			return unwrapResult(await submitSignature({
 				client,
 				auth,
+				path: { id },
+				body
+			}));
+		},
+		async claim(id, body, options) {
+			return unwrapResult(await claimSigningRequest({
+				client,
+				auth,
+				headers: requiredTeamHeaders(options),
+				path: { id },
+				body
+			}));
+		},
+		async complete(id, body, options) {
+			return unwrapResult(await completeSigningRequest({
+				client,
+				auth,
+				headers: requiredTeamHeaders(options),
+				path: { id },
+				body
+			}));
+		},
+		async reject(id, body, options) {
+			return unwrapResult(await rejectSigningRequest({
+				client,
+				auth,
+				headers: requiredTeamHeaders(options),
 				path: { id },
 				body
 			}));
@@ -36948,12 +37698,15 @@ function Evaluate(type, options = {}) {
 * V1 bindings only; Tier-2 (reference_file, mcp_resource, imported_file,
 * tool_response_seed, additional_context_hook) ship in a later slice.
 */
-var ContextBinding = Union([
-	Literal("skill"),
-	Literal("context_inline"),
-	Literal("prompt_prefix"),
-	Literal("user_inline")
-], { $id: "ContextBinding" });
+var CONTEXT_BINDINGS = [
+	"skill",
+	"context_inline",
+	"prompt_prefix",
+	"user_inline"
+];
+/** Maximum UTF-16 code units accepted in one ContextRef content field. */
+var CONTEXT_REF_MAX_CONTENT_LENGTH = 65536;
+var ContextBinding = Unsafe(Union(CONTEXT_BINDINGS.map((binding) => Literal(binding)), { $id: "ContextBinding" }));
 /** Reusable input fragment for any task type. Soft cap at 5 items. */
 var TaskContext = _Array_(_Object_({
 	slug: String$1({
@@ -36964,7 +37717,7 @@ var TaskContext = _Array_(_Object_({
 	binding: ContextBinding,
 	content: String$1({
 		minLength: 1,
-		maxLength: 65536
+		maxLength: CONTEXT_REF_MAX_CONTENT_LENGTH
 	})
 }, {
 	$id: "ContextRef",
@@ -37124,6 +37877,991 @@ _Object_({
 	additionalProperties: false
 });
 //#endregion
+//#region ../../libs/tasks/src/runtime-profile-context-recipes.ts
+var RUNTIME_PROFILE_CONTEXT_CATALOGUE = {
+	version: 1,
+	fragments: {
+		"artifact-planner-v1": {
+			binding: "prompt_prefix",
+			content: "# Bounded artifact planner\n\n- The typed task facts, embedded bounded manifest, exact bound artifact references, registered tools, and runtime capability section are the complete contract. Do not search diaries, inspect a mounted repository, enumerate unrelated tasks or artifacts, modify a checkout, commit, branch, push, or contact GitHub.\n- Read only the exact artifact CIDs named by the task, and only when the embedded manifest does not provide enough evidence. Use the registered task-artifact tools for artifact access; never use shell or CLI wrappers to fetch artifacts, paginate, or discover them speculatively.\n- If the effective runtime exposes a local calculator or shell, use it only inside scratch for coverage accounting, budget arithmetic, and JSON validation. The runtime capability section and policy are authoritative; do not assume a static executable list.\n- Perform semantic classification and planning from supplied content and producer/consumer evidence. Do not substitute filename, directory, language, ecosystem, or repository-specific exclusion rules for evidence.\n- Write and upload exactly the requested versioned plan artifact, then reference its returned metadata through the registered submit-output tool. Do not emit a second prose or JSON representation.",
+			slug: "artifact-planner-v1"
+		},
+		"accountable-delivery-v1": {
+			binding: "prompt_prefix",
+			content: "# Accountable delivery\n\n- Pair every commit made during this task with a signed diary entry created by the `moltnet_create_entry` custom tool. Put the returned id in a `MoltNet-Diary: <id>` commit trailer.\n- Keep commit signing enabled; do not bypass the agent git configuration.\n- Push a branch and open or update a pull request only when the task asks for it. For GitHub mutations, use the credential-bound `GH_TOKEN` command form required by the runtime kernel.\n- Keep changes, commits, and any requested pull request coherent enough to review independently.",
+			slug: "accountable-delivery-v1"
+		},
+		"judgment-diary-v1": {
+			binding: "prompt_prefix",
+			content: "# Judgment diary discipline\n\n- For an `assess_brief`, `judge_pack`, or `pr_review` task, create a signed diary entry with the `moltnet_create_entry` custom tool before submitting the structured judgment. Capture the rationale and evidence that support the verdict.\n- Add the `judgment` tag and the active task type tag (`assess_brief`, `judge_pack`, or `pr_review`). For `judge_pack`, also add `rubric:<rubricId>` from the task facts.\n- Do not use a shell `moltnet entry` command: task provenance is injected only by the custom tool.",
+			slug: "judgment-diary-v1"
+		},
+		"proactive-memory-v1": {
+			binding: "prompt_prefix",
+			content: "# Proactive memory use\n\n- Before non-trivial investigation, debugging, code changes, or review, check the task diary for relevant prior knowledge instead of waiting for a human to ask. Use `moltnet_diary_tags` for cheap reconnaissance, `moltnet_list_entries` when tags or task provenance are known, and `moltnet_search_entries` for semantic similarity. Do not search randomly: pass `taskFilter` for task-local or correlation-local queries, and pass `tags` / `entryTypes` for broader prior-knowledge queries using known tags such as `incident`, `decision`, or `scope:<area>`. Broaden only after constrained searches miss.\n- Before creating an `episodic` incident entry, search for similar incidents using the proposed title, root cause, error text, affected subsystem, and watch-for terms, filtered by `entryTypes: [\"episodic\", \"semantic\"]` and any known `scope:*` or task-provenance tags. If a close prior match exists, do not create an isolated duplicate: reference the prior entry in your response or diary content, update or link it when the new occurrence adds material evidence, or create a new recurrence entry only when the recurrence itself is important signal.\n- When you create a recurrence entry, include the prior matching entry id(s) in the content and explain what is new about this occurrence.",
+			slug: "proactive-memory-v1"
+		},
+		"run-eval-direct-v1": {
+			binding: "prompt_prefix",
+			content: "# Direct evaluation run\n\nThe supplied scenario, typed task facts, injected context, and registered submit-output tool are the complete task contract. Do not search diaries, create diary entries, modify a repository, commit, branch, push, or open a pull request unless a task fact explicitly requires it. Submit the agent-authored payload in the first turn; correction turns exist only to recover a rejected or missing submission.",
+			slug: "run-eval-direct-v1"
+		},
+		"task-diary-discipline-v1": {
+			binding: "prompt_prefix",
+			content: "# Task diary discipline\n\n- During a daemon task, create diary entries only through the `moltnet_create_entry` custom tool. It binds entries to the current task diary and injects task, type, attempt, and correlation provenance tags.\n- Do not shell out to `moltnet entry create`, `moltnet entry create-signed`, or any other `moltnet entry` subcommand from bash while a task is running. Those paths bypass the custom tool's task-tag injection, so task-filtered diary queries cannot find the entry.\n- You may add useful tags, but do not try to replace task provenance supplied by the runtime.",
+			slug: "task-diary-discipline-v1"
+		},
+		"verification-and-artifacts-v1": {
+			binding: "prompt_prefix",
+			content: "# Verification and artifacts\n\n- Run relevant verification before submitting. When task facts include `successCriteria`, assess them honestly in the generated verification contract; a fail or skip with evidence is better than a fabricated pass.\n- The registered submit-output tool owns the exact agent submission schema and validation recovery. Use that schema; do not invent a JSON shape in prose.\n- Upload only task-relevant artifacts, and inspect each before uploading. Never upload secrets, credentials, API keys, auth tokens or headers, .env files, or personal or customer data; redact sensitive values, and prefer minimal, sanitized excerpts over whole logs, bundles, or datasets. Include artifact metadata only where the typed submit contract permits it.\n- If the task depends on prior artifacts, list and download the exact referenced artifact before judging or continuing that work.",
+			slug: "verification-and-artifacts-v1"
+		}
+	},
+	recipes: {
+		"artifact-planner@v1": {
+			description: "Minimal artifact-only context for bounded semantic classification and planning.",
+			fragments: ["artifact-planner-v1"]
+		},
+		"run-eval-direct@v1": {
+			description: "Minimal direct context for a short, isolated evaluation run.",
+			fragments: ["run-eval-direct-v1"]
+		},
+		"standard-engineering@v1": {
+			description: "Full opt-in operating guidance for engineering tasks that need diary research, accountable delivery, and verification discipline.",
+			fragments: [
+				"proactive-memory-v1",
+				"task-diary-discipline-v1",
+				"accountable-delivery-v1",
+				"judgment-diary-v1",
+				"verification-and-artifacts-v1"
+			]
+		}
+	}
+};
+function deepFreeze(value) {
+	if (value && typeof value === "object") {
+		for (const key of Object.keys(value)) deepFreeze(value[key]);
+		Object.freeze(value);
+	}
+	return value;
+}
+deepFreeze(RUNTIME_PROFILE_CONTEXT_CATALOGUE);
+Object.freeze(Object.keys(RUNTIME_PROFILE_CONTEXT_CATALOGUE.recipes));
+//#endregion
+//#region ../../libs/models/src/credential-scopes.ts
+var CREDENTIAL_SCOPES = {
+	AgentProfile: "agent:profile",
+	ConnectorInvoke: "connector:invoke",
+	CryptoSign: "crypto:sign",
+	DiaryManage: "diary:manage",
+	DiaryRead: "diary:read",
+	DiaryWrite: "diary:write",
+	HumanProfile: "human:profile",
+	KeyManage: "key:manage",
+	PackRead: "pack:read",
+	PackWrite: "pack:write",
+	RuntimeManage: "runtime:manage",
+	RuntimeRead: "runtime:read",
+	TaskClaim: "task:claim",
+	TaskExecute: "task:execute",
+	TaskManage: "task:manage",
+	TaskRead: "task:read",
+	TeamManage: "team:manage",
+	TeamRead: "team:read"
+};
+var ALL_CREDENTIAL_SCOPES = Object.freeze(Object.values(CREDENTIAL_SCOPES));
+CREDENTIAL_SCOPES.AgentProfile, CREDENTIAL_SCOPES.RuntimeRead, CREDENTIAL_SCOPES.TaskRead, CREDENTIAL_SCOPES.TaskClaim, CREDENTIAL_SCOPES.TaskExecute;
+/** Full grant ceiling for first-party agent OAuth2 clients. */
+var AGENT_OAUTH_SCOPES = Object.freeze(ALL_CREDENTIAL_SCOPES.filter((scope) => scope !== CREDENTIAL_SCOPES.HumanProfile));
+[
+	CREDENTIAL_SCOPES.AgentProfile,
+	CREDENTIAL_SCOPES.CryptoSign,
+	CREDENTIAL_SCOPES.DiaryManage,
+	CREDENTIAL_SCOPES.DiaryRead,
+	CREDENTIAL_SCOPES.DiaryWrite,
+	CREDENTIAL_SCOPES.HumanProfile,
+	CREDENTIAL_SCOPES.PackRead,
+	CREDENTIAL_SCOPES.PackWrite,
+	CREDENTIAL_SCOPES.TaskExecute,
+	CREDENTIAL_SCOPES.TaskManage,
+	CREDENTIAL_SCOPES.TaskRead,
+	CREDENTIAL_SCOPES.TeamManage,
+	CREDENTIAL_SCOPES.TeamRead
+].filter((scope) => scope !== CREDENTIAL_SCOPES.HumanProfile);
+//#endregion
+//#region ../../libs/models/src/preview-sign.ts
+function schemaRef$1(schema, id) {
+	return Unsafe(Ref$2(id));
+}
+var PreviewSignBase64UrlSchema = String$1({
+	$id: "PreviewSignBase64Url",
+	minLength: 1,
+	maxLength: 5462,
+	pattern: "^[A-Za-z0-9_-]+$"
+});
+var PreviewSignSha256Base64UrlSchema = String$1({
+	$id: "PreviewSignSha256Base64Url",
+	minLength: 43,
+	maxLength: 43,
+	pattern: "^[A-Za-z0-9_-]+$"
+});
+var PreviewSignP256DerSignatureBase64UrlSchema = String$1({
+	$id: "PreviewSignP256DerSignatureBase64Url",
+	minLength: 11,
+	maxLength: 96,
+	pattern: "^[A-Za-z0-9_-]+$"
+});
+var PreviewSignEs256PublicKeySchema = _Object_({
+	kty: Literal(2),
+	algorithm: Literal(-7),
+	curve: Literal(1),
+	x: schemaRef$1(PreviewSignSha256Base64UrlSchema, "PreviewSignSha256Base64Url"),
+	y: schemaRef$1(PreviewSignSha256Base64UrlSchema, "PreviewSignSha256Base64Url")
+}, {
+	$id: "PreviewSignEs256PublicKey",
+	additionalProperties: false
+});
+var PreviewSignEcdhEsHkdf256PublicKeySchema = _Object_({
+	kty: Literal(2),
+	algorithm: Literal(-25),
+	curve: Literal(1),
+	x: schemaRef$1(PreviewSignSha256Base64UrlSchema, "PreviewSignSha256Base64Url"),
+	y: schemaRef$1(PreviewSignSha256Base64UrlSchema, "PreviewSignSha256Base64Url")
+}, {
+	$id: "PreviewSignEcdhEsHkdf256PublicKey",
+	additionalProperties: false
+});
+var PreviewSignEsp256PublicKeySchema = _Object_({
+	kty: Literal(2),
+	algorithm: Literal(-9),
+	curve: Literal(1),
+	x: schemaRef$1(PreviewSignSha256Base64UrlSchema, "PreviewSignSha256Base64Url"),
+	y: schemaRef$1(PreviewSignSha256Base64UrlSchema, "PreviewSignSha256Base64Url")
+}, {
+	$id: "PreviewSignEsp256PublicKey",
+	additionalProperties: false
+});
+var PreviewSignArkgSeedPublicKeySchema = _Object_({
+	kty: Literal(-65537),
+	algorithm: Literal(-65700),
+	derivedAlgorithm: Literal(-9),
+	blindingKey: schemaRef$1(PreviewSignEs256PublicKeySchema, "PreviewSignEs256PublicKey"),
+	kemKey: schemaRef$1(PreviewSignEcdhEsHkdf256PublicKeySchema, "PreviewSignEcdhEsHkdf256PublicKey")
+}, {
+	$id: "PreviewSignArkgSeedPublicKey",
+	additionalProperties: false
+});
+var PreviewSignPublicMaterialSchema = _Object_({
+	version: Literal(1),
+	outerCredentialId: schemaRef$1(PreviewSignBase64UrlSchema, "PreviewSignBase64Url"),
+	outerPublicKey: schemaRef$1(PreviewSignEs256PublicKeySchema, "PreviewSignEs256PublicKey"),
+	previewKeyHandle: schemaRef$1(PreviewSignBase64UrlSchema, "PreviewSignBase64Url"),
+	seedPublicKey: schemaRef$1(PreviewSignArkgSeedPublicKeySchema, "PreviewSignArkgSeedPublicKey")
+}, {
+	$id: "PreviewSignPublicMaterial",
+	additionalProperties: false
+});
+var PreviewSignChallengeSchema = _Object_({
+	verificationMethod: Literal("human-hardware-previewsign"),
+	version: Literal(1),
+	envelope: schemaRef$1(PreviewSignBase64UrlSchema, "PreviewSignBase64Url"),
+	digest: schemaRef$1(PreviewSignSha256Base64UrlSchema, "PreviewSignSha256Base64Url"),
+	additionalArguments: schemaRef$1(PreviewSignBase64UrlSchema, "PreviewSignBase64Url"),
+	outerCredentialId: schemaRef$1(PreviewSignBase64UrlSchema, "PreviewSignBase64Url"),
+	outerPublicKey: schemaRef$1(PreviewSignEs256PublicKeySchema, "PreviewSignEs256PublicKey"),
+	previewKeyHandle: schemaRef$1(PreviewSignBase64UrlSchema, "PreviewSignBase64Url")
+}, {
+	$id: "PreviewSignChallenge",
+	additionalProperties: false
+});
+var PreviewSignChallengeValueSchema = _Object_({
+	verificationMethod: Literal("human-hardware-previewsign"),
+	value: schemaRef$1(PreviewSignChallengeSchema, "PreviewSignChallenge")
+}, {
+	$id: "PreviewSignChallengeValue",
+	additionalProperties: false
+});
+var PreviewSignChallengeOperationSchema = Union([Literal("credential-registration"), Literal("signing-request")], { $id: "PreviewSignChallengeOperation" });
+var PreviewSignReceiptSchema = _Object_({
+	version: Literal(1),
+	signature: schemaRef$1(PreviewSignP256DerSignatureBase64UrlSchema, "PreviewSignP256DerSignatureBase64Url")
+}, {
+	$id: "PreviewSignReceipt",
+	additionalProperties: false
+});
+var PreviewSignReceiptValueSchema = _Object_({
+	verificationMethod: Literal("human-hardware-previewsign"),
+	value: schemaRef$1(PreviewSignReceiptSchema, "PreviewSignReceipt")
+}, {
+	$id: "PreviewSignReceiptValue",
+	additionalProperties: false
+});
+var previewSignSchemaContext = {
+	PreviewSignBase64Url: PreviewSignBase64UrlSchema,
+	PreviewSignSha256Base64Url: PreviewSignSha256Base64UrlSchema,
+	PreviewSignP256DerSignatureBase64Url: PreviewSignP256DerSignatureBase64UrlSchema,
+	PreviewSignEs256PublicKey: PreviewSignEs256PublicKeySchema,
+	PreviewSignEcdhEsHkdf256PublicKey: PreviewSignEcdhEsHkdf256PublicKeySchema,
+	PreviewSignEsp256PublicKey: PreviewSignEsp256PublicKeySchema,
+	PreviewSignArkgSeedPublicKey: PreviewSignArkgSeedPublicKeySchema,
+	PreviewSignPublicMaterial: PreviewSignPublicMaterialSchema,
+	PreviewSignChallenge: PreviewSignChallengeSchema,
+	PreviewSignChallengeValue: PreviewSignChallengeValueSchema,
+	PreviewSignChallengeOperation: PreviewSignChallengeOperationSchema,
+	PreviewSignReceipt: PreviewSignReceiptSchema,
+	PreviewSignReceiptValue: PreviewSignReceiptValueSchema
+};
+//#endregion
+//#region ../../libs/models/src/verification-method.ts
+/**
+* Persisted and wire-level signing verification method identifiers.
+*
+* This vocabulary is append-only. Never rename, remove, or change an existing
+* value: PostgreSQL rows, workflow inputs, and API clients persist these exact
+* strings. Future signing methods must add a new property and value.
+*/
+var VERIFICATION_METHOD = {
+	AgentEd25519: "agent-ed25519",
+	HumanHardwarePreviewSign: "human-hardware-previewsign"
+};
+VERIFICATION_METHOD.AgentEd25519, VERIFICATION_METHOD.HumanHardwarePreviewSign;
+//#endregion
+//#region ../../libs/models/src/schemas.ts
+var UuidSchema = String$1({
+	format: "uuid",
+	description: "UUID v4 identifier"
+});
+var TimestampSchema = String$1({
+	format: "date-time",
+	description: "ISO 8601 timestamp"
+});
+Union([Literal(VERIFICATION_METHOD.AgentEd25519), Literal(VERIFICATION_METHOD.HumanHardwarePreviewSign)], { description: "Stable signing verification method identifier" });
+Union([
+	Literal("private"),
+	Literal("moltnet"),
+	Literal("public")
+], { description: "Entry visibility level" });
+var ENTRY_TYPE_VALUES = [
+	"episodic",
+	"semantic",
+	"procedural",
+	"reflection"
+];
+var EntryTypeSchema = Union([
+	Literal("episodic"),
+	Literal("semantic"),
+	Literal("procedural"),
+	Literal("reflection")
+], { description: "Entry memory type" });
+/** Regex fragment matching a single entry type value. */
+var ENTRY_TYPE_PATTERN = `(${ENTRY_TYPE_VALUES.join("|")})`;
+`${ENTRY_TYPE_PATTERN}${ENTRY_TYPE_PATTERN}`, ENTRY_TYPE_VALUES.length - 1;
+var PublicKeySchema = String$1({
+	pattern: "^ed25519:[A-Za-z0-9+/=]+$",
+	description: "Ed25519 public key with prefix"
+});
+var FingerprintSchema = String$1({
+	pattern: "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+	description: "Key fingerprint (A1B2-C3D4-E5F6-G7H8)"
+});
+_Object_({
+	title: Optional(String$1({ maxLength: 255 })),
+	content: String$1({
+		minLength: 1,
+		maxLength: 1e5
+	}),
+	tags: Optional(_Array_(String$1({ maxLength: 128 }), { maxItems: 20 }))
+});
+_Object_({
+	title: Optional(String$1({ maxLength: 255 })),
+	content: Optional(String$1({
+		minLength: 1,
+		maxLength: 1e5
+	})),
+	tags: Optional(_Array_(String$1({ maxLength: 128 }), { maxItems: 20 }))
+});
+_Object_({
+	query: Optional(String$1({
+		minLength: 1,
+		maxLength: 500
+	})),
+	tags: Optional(_Array_(String$1({ maxLength: 128 }), {
+		minItems: 1,
+		maxItems: 20,
+		description: "Filter: entry must have ALL specified tags"
+	})),
+	limit: Optional(Number$1({
+		minimum: 1,
+		maximum: 100,
+		default: 20
+	})),
+	offset: Optional(Number$1({
+		minimum: 0,
+		default: 0
+	}))
+});
+_Object_({
+	identityId: UuidSchema,
+	publicKey: PublicKeySchema,
+	fingerprint: FingerprintSchema,
+	createdAt: TimestampSchema
+});
+_Object_({
+	publicKey: PublicKeySchema,
+	fingerprint: FingerprintSchema
+});
+_Object_({ message: String$1({
+	minLength: 1,
+	maxLength: 1e4
+}) });
+_Object_({
+	message: String$1(),
+	signature: String$1({ description: "Base64 encoded Ed25519 signature" }),
+	publicKey: PublicKeySchema
+});
+_Object_({
+	message: String$1({
+		minLength: 1,
+		maxLength: 1e4
+	}),
+	signature: String$1({ description: "Base64 encoded signature" }),
+	publicKey: PublicKeySchema
+});
+_Object_({
+	valid: Boolean$1(),
+	signer: Optional(_Object_({ fingerprint: FingerprintSchema }))
+});
+var BaseAuthContextSchema = _Object_({
+	identityId: UuidSchema,
+	scopes: _Array_(String$1()),
+	subjectType: Union([Literal("agent"), Literal("human")]),
+	currentTeamId: Union([UuidSchema, Null()])
+});
+Union([Intersect([BaseAuthContextSchema, _Object_({
+	subjectType: Literal("agent"),
+	publicKey: PublicKeySchema,
+	fingerprint: FingerprintSchema,
+	clientId: String$1()
+})]), Intersect([BaseAuthContextSchema, _Object_({
+	subjectType: Literal("human"),
+	clientId: Union([String$1(), Null()])
+})])]);
+_Object_({
+	success: Boolean$1(),
+	message: Optional(String$1())
+});
+_Object_({ diaryId: UuidSchema });
+_Object_({
+	diaryId: UuidSchema,
+	entryId: UuidSchema
+});
+_Object_({ entryId: UuidSchema });
+_Object_({ id: UuidSchema });
+_Object_({
+	publicKey: PublicKeySchema,
+	fingerprint: FingerprintSchema,
+	agentName: String$1({
+		minLength: 1,
+		maxLength: 34
+	}),
+	org: Optional(String$1({
+		minLength: 1,
+		maxLength: 39,
+		pattern: "^[a-zA-Z0-9-]+$",
+		description: "GitHub organization name. When provided, the GitHub App will be created under this org instead of the personal account."
+	}))
+});
+_Object_({
+	workflowId: String$1(),
+	manifestFormUrl: String$1()
+});
+_Object_({
+	status: Union([
+		Literal("awaiting_github"),
+		Literal("github_code_ready"),
+		Literal("awaiting_installation"),
+		Literal("completed"),
+		Literal("failed")
+	]),
+	githubCode: Optional(String$1()),
+	identityId: Optional(String$1()),
+	clientId: Optional(String$1()),
+	clientSecret: Optional(String$1()),
+	installationId: Optional(String$1())
+});
+_Object_({
+	wf: String$1({
+		minLength: 1,
+		description: "Workflow ID baked into setup_url"
+	}),
+	installation_id: String$1({ minLength: 1 }),
+	setup_action: Optional(String$1())
+});
+_Object_({ id: UuidSchema });
+_Object_({
+	id: UuidSchema,
+	subjectId: UuidSchema
+});
+_Object_({
+	id: UuidSchema,
+	inviteId: UuidSchema
+});
+_Object_({ name: String$1({
+	minLength: 1,
+	maxLength: 255
+}) });
+_Object_({
+	role: Optional(Union([Literal("manager"), Literal("member")])),
+	maxUses: Optional(Integer({
+		minimum: 1,
+		default: 1
+	})),
+	expiresInHours: Optional(Integer({
+		minimum: 1,
+		maximum: 720,
+		default: 168
+	}))
+});
+_Object_({ code: String$1({ minLength: 1 }) });
+_Object_({ role: Union([Literal("manager"), Literal("member")]) });
+var TeamRoleSchema = Union([
+	Literal("owner"),
+	Literal("manager"),
+	Literal("member")
+]);
+_Object_({
+	id: UuidSchema,
+	name: String$1()
+});
+var DateTimeUnsafe = Unsafe(String$1({ format: "date-time" }));
+_Object_({
+	id: UuidSchema,
+	code: String$1(),
+	role: Union([Literal("manager"), Literal("member")]),
+	maxUses: Integer(),
+	useCount: Integer(),
+	expiresAt: DateTimeUnsafe,
+	createdAt: DateTimeUnsafe
+});
+var TeamMemberSchema = _Object_({
+	subjectId: UuidSchema,
+	subjectType: Union([Literal("agent"), Literal("human")]),
+	role: TeamRoleSchema,
+	displayName: String$1(),
+	fingerprint: Optional(String$1()),
+	email: Optional(String$1())
+});
+_Object_({
+	id: UuidSchema,
+	name: String$1(),
+	personal: Boolean$1(),
+	status: String$1(),
+	role: TeamRoleSchema
+});
+_Object_({
+	id: UuidSchema,
+	name: String$1(),
+	status: String$1(),
+	personal: Boolean$1(),
+	createdAt: DateTimeUnsafe,
+	updatedAt: DateTimeUnsafe,
+	members: _Array_(TeamMemberSchema)
+});
+_Object_({
+	teamId: UuidSchema,
+	role: Union([Literal("manager"), Literal("member")])
+});
+_Object_({
+	updated: Boolean$1(),
+	role: Union([Literal("manager"), Literal("member")])
+});
+_Object_({ deleted: Boolean$1() });
+_Object_({ removed: Boolean$1() });
+var FoundingMemberSchema = _Object_({
+	subjectId: UuidSchema,
+	subjectNs: Union([Literal("Agent"), Literal("Human")]),
+	role: Union([
+		Literal("owner"),
+		Literal("manager"),
+		Literal("member")
+	])
+});
+_Object_({
+	name: String$1({
+		minLength: 1,
+		maxLength: 255
+	}),
+	foundingMembers: Optional(_Array_(FoundingMemberSchema, { minItems: 1 }))
+});
+_Object_({
+	id: UuidSchema,
+	name: String$1(),
+	status: String$1(),
+	workflowId: Optional(String$1())
+});
+_Object_({});
+_Object_({
+	accepted: Boolean$1(),
+	teamStatus: String$1()
+});
+_Object_({ destinationTeamId: UuidSchema });
+_Object_({ transferId: UuidSchema });
+_Object_({ items: _Array_(_Object_({
+	id: UuidSchema,
+	diaryId: UuidSchema,
+	sourceTeamId: UuidSchema,
+	destinationTeamId: UuidSchema,
+	status: String$1(),
+	initiatedBy: UuidSchema,
+	expiresAt: Unsafe(String$1({ format: "date-time" })),
+	createdAt: Unsafe(String$1({ format: "date-time" }))
+})) });
+_Object_({ groupId: UuidSchema });
+_Object_({
+	groupId: UuidSchema,
+	subjectId: UuidSchema
+});
+_Object_({ name: String$1({
+	minLength: 1,
+	maxLength: 255
+}) });
+_Object_({
+	subjectId: UuidSchema,
+	subjectNs: Optional(Union([Literal("Agent"), Literal("Human")]))
+});
+_Object_({
+	id: UuidSchema,
+	name: String$1(),
+	teamId: UuidSchema
+});
+var GroupMemberResponseSchema = _Object_({
+	subjectId: UuidSchema,
+	subjectNs: String$1()
+});
+_Object_({
+	id: UuidSchema,
+	name: String$1(),
+	teamId: UuidSchema,
+	createdAt: DateTimeUnsafe,
+	members: _Array_(GroupMemberResponseSchema)
+});
+var DiaryGrantRoleSchema = Union([Literal("writer"), Literal("manager")]);
+var GrantSubjectNsSchema = Union([
+	Literal("Agent"),
+	Literal("Human"),
+	Literal("Group")
+]);
+_Object_({
+	subjectId: UuidSchema,
+	subjectNs: GrantSubjectNsSchema,
+	role: DiaryGrantRoleSchema
+});
+_Object_({
+	subjectId: UuidSchema,
+	subjectNs: GrantSubjectNsSchema,
+	role: DiaryGrantRoleSchema
+});
+_Object_({ grants: _Array_(_Object_({
+	subjectId: UuidSchema,
+	subjectNs: GrantSubjectNsSchema,
+	role: DiaryGrantRoleSchema
+})) });
+_Object_({ revoked: Boolean$1() });
+_Object_({ "x-moltnet-team-id": String$1({
+	format: "uuid",
+	description: "Team ID (UUID) that will own the resource. Required."
+}) });
+_Object_({ "x-moltnet-team-id": Optional(String$1({
+	format: "uuid",
+	description: "Team ID (UUID) for scoping the request. Optional."
+})) });
+_Object_({
+	kind: Literal("agent"),
+	identityId: UuidSchema,
+	fingerprint: FingerprintSchema,
+	publicKey: PublicKeySchema
+}, {
+	$id: "AgentPrincipal",
+	additionalProperties: false
+});
+_Object_({
+	kind: Literal("human"),
+	humanId: UuidSchema,
+	identityId: Union([UuidSchema, Null()])
+}, {
+	$id: "HumanPrincipal",
+	additionalProperties: false
+});
+var principalUnionVariants = [_Object_({
+	kind: Literal("agent"),
+	identityId: UuidSchema,
+	fingerprint: FingerprintSchema,
+	publicKey: PublicKeySchema
+}, { additionalProperties: false }), _Object_({
+	kind: Literal("human"),
+	humanId: UuidSchema,
+	identityId: Union([UuidSchema, Null()])
+}, { additionalProperties: false })];
+Union(principalUnionVariants, {
+	$id: "PrincipalIdentity",
+	discriminator: { propertyName: "kind" }
+});
+/**
+* `$id`-less twin of `PrincipalIdentitySchema`. Required anywhere the
+* schema is **embedded** inline into another schema (MCP `outputSchema`
+* — every tool that returns a creator-bearing object embeds its own
+* copy; provenance-graph node `meta.creator`, etc.). Ajv 8 throws
+* `reference "PrincipalIdentity" resolves to more than one schema` if
+* the same `$id` appears twice in the same compilation pass, which is
+* exactly what happens when the MCP server lists tools and Ajv
+* traverses every advertised `outputSchema`.
+*
+* Structurally identical to `PrincipalIdentitySchema` (they share the
+* variants array); change one, change both.
+*/
+var PrincipalIdentitySchemaInline = Union(principalUnionVariants, { discriminator: { propertyName: "kind" } });
+//#endregion
+//#region ../../libs/models/src/problem-details.ts
+var ProblemCodeSchema = Union([
+	Literal("UNAUTHORIZED"),
+	Literal("FORBIDDEN"),
+	Literal("NOT_FOUND"),
+	Literal("CONFLICT"),
+	Literal("UNSUPPORTED_MEDIA_TYPE"),
+	Literal("VALIDATION_FAILED"),
+	Literal("INVALID_CHALLENGE"),
+	Literal("INVALID_SIGNATURE"),
+	Literal("VOUCHER_LIMIT"),
+	Literal("RATE_LIMIT_EXCEEDED"),
+	Literal("SERIALIZATION_EXHAUSTED"),
+	Literal("SIGNING_REQUEST_EXPIRED"),
+	Literal("SIGNING_REQUEST_ALREADY_COMPLETED"),
+	Literal("SIGNING_REQUEST_LIMIT_REACHED"),
+	Literal("REGISTRATION_FAILED"),
+	Literal("UPSTREAM_ERROR"),
+	Literal("SERVICE_UNAVAILABLE"),
+	Literal("INTERNAL_SERVER_ERROR"),
+	Literal("TEAM_PERSONAL_IMMUTABLE"),
+	Literal("TEAM_NOT_ACTIVE"),
+	Literal("INVITE_EXPIRED"),
+	Literal("INVITE_EXHAUSTED"),
+	Literal("TEAM_LAST_OWNER"),
+	Literal("TEAM_ALREADY_ACTIVE"),
+	Literal("TEAM_NOT_FOUNDING"),
+	Literal("FOUNDING_ALREADY_ACCEPTED"),
+	Literal("DIARY_TRANSFER_PENDING"),
+	Literal("DIARY_TRANSFER_NOT_FOUND"),
+	Literal("DIARY_TRANSFER_ALREADY_RESOLVED")
+]);
+var ProblemDetailsSchema = _Object_({
+	type: String$1({ format: "uri" }),
+	title: String$1(),
+	status: Integer({
+		minimum: 100,
+		maximum: 599
+	}),
+	code: ProblemCodeSchema,
+	detail: Optional(String$1()),
+	instance: Optional(String$1()),
+	retryAfter: Optional(Integer({
+		minimum: 0,
+		description: "Non-negative delay in seconds before retrying, matching the Retry-After response header when present."
+	}))
+}, {
+	$id: "ProblemDetails",
+	additionalProperties: true
+});
+_Object_({
+	field: String$1(),
+	message: String$1(),
+	code: Optional(String$1())
+}, {
+	$id: "ValidationError",
+	additionalProperties: false
+});
+_Object_({
+	resource: String$1(),
+	id: Optional(String$1({ format: "uuid" })),
+	keys: Optional(Record(String$1(), String$1()))
+}, {
+	$id: "ConflictTarget",
+	additionalProperties: false
+});
+_Object_({
+	constraint: Optional(String$1()),
+	target: Optional(Ref$2("ConflictTarget"))
+}, {
+	$id: "ConflictError",
+	additionalProperties: false
+});
+var ConflictProblemDetailsSchema = Intersect([ProblemDetailsSchema, _Object_({ conflict: Ref$2("ConflictError") })], { $id: "ConflictProblemDetails" });
+_Object_({
+	type: String$1(),
+	severity: Number$1(),
+	match: String$1()
+}, {
+	$id: "InjectionThreat",
+	additionalProperties: false
+});
+Intersect([ConflictProblemDetailsSchema, _Object_({ flagged: Optional(_Array_(_Object_({
+	id: String$1({ format: "uuid" }),
+	threats: _Array_(Ref$2("InjectionThreat"))
+}, { additionalProperties: false }))) })], { $id: "InjectionConflictProblemDetails" });
+Intersect([ProblemDetailsSchema, _Object_({ errors: _Array_(Ref$2("ValidationError")) })], { $id: "ValidationProblemDetails" });
+Union([
+	Literal("pack"),
+	Literal("entry"),
+	Literal("rendered_pack")
+]);
+var ProvenanceGraphEdgeKindSchema = Union([
+	Literal("includes"),
+	Literal("supersedes"),
+	Literal("rendered_from")
+]);
+var ProvenanceGraphPackMetaSchema = _Object_({
+	packId: UuidSchema,
+	diaryId: UuidSchema,
+	packCid: String$1(),
+	packType: String$1(),
+	packCodec: String$1(),
+	pinned: Boolean$1(),
+	createdAt: TimestampSchema,
+	expiresAt: Union([TimestampSchema, Null()]),
+	supersedesPackId: Union([UuidSchema, Null()])
+});
+/**
+* Discriminated creator embedded inside provenance-node response
+* payloads. Re-uses the shared `PrincipalIdentitySchemaInline` (the
+* `$id`-less twin) — embedding the named `PrincipalIdentitySchema`
+* here would clash with the top-level registration via @fastify/swagger
+* (`reference "PrincipalIdentity" resolves to more than one schema`).
+*/
+var ProvenanceGraphCreatorSchema = PrincipalIdentitySchemaInline;
+var ProvenanceGraphEntryMetaSchema = _Object_({
+	entryId: UuidSchema,
+	diaryId: UuidSchema,
+	entryType: EntryTypeSchema,
+	contentHash: Union([String$1(), Null()]),
+	createdAt: TimestampSchema,
+	updatedAt: TimestampSchema,
+	signed: Boolean$1(),
+	title: Union([String$1(), Null()]),
+	tags: _Array_(String$1()),
+	creator: Optional(ProvenanceGraphCreatorSchema)
+});
+var ProvenanceGraphPackNodeSchema = _Object_({
+	id: String$1(),
+	kind: Literal("pack"),
+	label: String$1(),
+	cid: Union([String$1(), Null()]),
+	meta: Intersect([ProvenanceGraphPackMetaSchema, _Object_({ creator: Optional(ProvenanceGraphCreatorSchema) })])
+});
+var ProvenanceGraphEntryNodeSchema = _Object_({
+	id: String$1(),
+	kind: Literal("entry"),
+	label: String$1(),
+	cid: Union([String$1(), Null()]),
+	meta: ProvenanceGraphEntryMetaSchema
+});
+var ProvenanceGraphRenderedPackMetaSchema = _Object_({
+	renderedPackId: UuidSchema,
+	sourcePackId: UuidSchema,
+	diaryId: UuidSchema,
+	packCid: String$1(),
+	renderMethod: String$1(),
+	totalTokens: Number$1(),
+	pinned: Boolean$1(),
+	createdAt: TimestampSchema,
+	expiresAt: Union([TimestampSchema, Null()]),
+	creator: Optional(ProvenanceGraphCreatorSchema)
+});
+var ProvenanceGraphNodeSchema = Union([
+	ProvenanceGraphPackNodeSchema,
+	ProvenanceGraphEntryNodeSchema,
+	_Object_({
+		id: String$1(),
+		kind: Literal("rendered_pack"),
+		label: String$1(),
+		cid: Union([String$1(), Null()]),
+		meta: ProvenanceGraphRenderedPackMetaSchema
+	})
+]);
+var ProvenanceGraphEdgeSchema = _Object_({
+	id: String$1(),
+	from: String$1(),
+	to: String$1(),
+	kind: ProvenanceGraphEdgeKindSchema,
+	label: Optional(String$1()),
+	meta: Optional(Record(String$1(), Union([
+		String$1(),
+		Number$1(),
+		Boolean$1(),
+		Null()
+	])))
+});
+_Object_({
+	metadata: _Object_({
+		format: Literal("moltnet.provenance-graph/v1"),
+		generatedAt: TimestampSchema,
+		rootNodeId: String$1(),
+		rootPackId: UuidSchema,
+		depth: Number$1({ minimum: 0 })
+	}),
+	nodes: _Array_(ProvenanceGraphNodeSchema),
+	edges: _Array_(ProvenanceGraphEdgeSchema)
+}, { $id: "ProvenanceGraph" });
+//#endregion
+//#region ../../libs/models/src/signer-constraint.ts
+var SIGNER_CONSTRAINT_TYPE = {
+	Human: "human",
+	TeamRole: "team-role",
+	Group: "group"
+};
+Union([
+	_Object_({
+		type: Literal(SIGNER_CONSTRAINT_TYPE.Human),
+		id: String$1({ format: "uuid" })
+	}),
+	_Object_({
+		type: Literal(SIGNER_CONSTRAINT_TYPE.TeamRole),
+		id: TeamRoleSchema
+	}),
+	_Object_({
+		type: Literal(SIGNER_CONSTRAINT_TYPE.Group),
+		id: String$1({ format: "uuid" })
+	})
+]);
+//#endregion
+//#region ../../libs/models/src/signer-protocol.ts
+function schemaRef(schema) {
+	return Ref$2(schemaId(schema));
+}
+function schemaId(schema) {
+	const id = schema.$id;
+	if (typeof id !== "string" || id.length === 0) throw new Error("Signer protocol schemas must have an identifier");
+	return id;
+}
+var SignerBase64UrlSchema = PreviewSignBase64UrlSchema;
+var SignerUuidSchema = String$1({
+	$id: "SignerUuid",
+	pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+});
+var SignerOperationSchema = Union([
+	Literal("credential-enrollment"),
+	Literal("credential-registration"),
+	Literal("signing-request")
+], { $id: "SignerOperation" });
+var SignerChallengeOperationSchema = PreviewSignChallengeOperationSchema;
+var SignerPreviewSignPublicMaterialSchema = PreviewSignPublicMaterialSchema;
+var SignerPreviewSignChallengeValueSchema = PreviewSignChallengeValueSchema;
+var SignerProblemSchema = _Object_({
+	code: String$1({ minLength: 1 }),
+	message: String$1({ minLength: 1 })
+}, {
+	$id: "SignerProblem",
+	additionalProperties: false
+});
+var SignerCeremonyParamsSchema = _Object_({ ceremonyId: Unsafe(schemaRef(SignerBase64UrlSchema)) }, {
+	$id: "SignerCeremonyParams",
+	additionalProperties: false
+});
+var SignerSessionSchema = _Object_({
+	version: Literal(1),
+	token: Unsafe(schemaRef(SignerBase64UrlSchema)),
+	expiresAt: String$1()
+}, {
+	$id: "SignerSession",
+	additionalProperties: false
+});
+var SignerEnrollmentCeremonyRequestSchema = _Object_({
+	version: Literal(1),
+	operation: Literal("credential-enrollment"),
+	label: String$1({
+		minLength: 1,
+		maxLength: 255
+	}),
+	teamId: Unsafe(schemaRef(SignerUuidSchema))
+}, {
+	$id: "SignerEnrollmentCeremonyRequest",
+	additionalProperties: false
+});
+var SignerChallengeCeremonyRequestSchema = _Object_({
+	version: Literal(1),
+	operation: Unsafe(schemaRef(SignerChallengeOperationSchema)),
+	resourceId: Unsafe(schemaRef(SignerUuidSchema)),
+	challenge: Unsafe(schemaRef(SignerPreviewSignChallengeValueSchema))
+}, {
+	$id: "SignerChallengeCeremonyRequest",
+	additionalProperties: false
+});
+var SignerCeremonyRequestSchema = Union([Unsafe(schemaRef(SignerEnrollmentCeremonyRequestSchema)), Unsafe(schemaRef(SignerChallengeCeremonyRequestSchema))], { $id: "SignerCeremonyRequest" });
+var SignerCeremonySchema = _Object_({
+	version: Literal(1),
+	id: Unsafe(schemaRef(SignerBase64UrlSchema)),
+	operation: Unsafe(schemaRef(SignerOperationSchema)),
+	approvalUrl: String$1(),
+	expiresAt: String$1()
+}, {
+	$id: "SignerCeremony",
+	additionalProperties: false
+});
+var SignerPendingResultSchema = _Object_({
+	version: Literal(1),
+	status: Literal("pending"),
+	operation: Unsafe(schemaRef(SignerOperationSchema))
+}, {
+	$id: "SignerPendingResult",
+	additionalProperties: false
+});
+var SignerEnrollmentResultSchema = _Object_({
+	version: Literal(1),
+	status: Literal("completed"),
+	operation: Literal("credential-enrollment"),
+	publicMaterial: Unsafe(schemaRef(SignerPreviewSignPublicMaterialSchema))
+}, {
+	$id: "SignerEnrollmentResult",
+	additionalProperties: false
+});
+var SignerReceiptSchema = PreviewSignReceiptValueSchema;
+var SignerSignatureResultSchema = _Object_({
+	version: Literal(1),
+	status: Literal("completed"),
+	operation: Unsafe(schemaRef(SignerChallengeOperationSchema)),
+	receipt: Unsafe(schemaRef(SignerReceiptSchema))
+}, {
+	$id: "SignerSignatureResult",
+	additionalProperties: false
+});
+var SignerFailedResultSchema = _Object_({
+	version: Literal(1),
+	status: Literal("failed"),
+	operation: Unsafe(schemaRef(SignerOperationSchema)),
+	code: String$1(),
+	message: String$1()
+}, {
+	$id: "SignerFailedResult",
+	additionalProperties: false
+});
+var SignerCeremonyResultSchema = Union([
+	Unsafe(schemaRef(SignerPendingResultSchema)),
+	Unsafe(schemaRef(SignerEnrollmentResultSchema)),
+	Unsafe(schemaRef(SignerSignatureResultSchema)),
+	Unsafe(schemaRef(SignerFailedResultSchema))
+], { $id: "SignerCeremonyResult" });
+({ ...previewSignSchemaContext }), schemaId(SignerUuidSchema), schemaId(SignerOperationSchema), schemaId(SignerProblemSchema), schemaId(SignerCeremonyParamsSchema), schemaId(SignerSessionSchema), schemaId(SignerEnrollmentCeremonyRequestSchema), schemaId(SignerChallengeCeremonyRequestSchema), schemaId(SignerCeremonyRequestSchema), schemaId(SignerCeremonySchema), schemaId(SignerPendingResultSchema), schemaId(SignerEnrollmentResultSchema), schemaId(SignerSignatureResultSchema), schemaId(SignerFailedResultSchema), schemaId(SignerCeremonyResultSchema);
+//#endregion
+//#region ../../libs/models/src/tool-enforcement.ts
+var TOOL_ENFORCEMENT_VALUES = [
+	"off",
+	"watch",
+	"enforce"
+];
+var ToolEnforcementSchema = Union([
+	Literal(TOOL_ENFORCEMENT_VALUES[0]),
+	Literal(TOOL_ENFORCEMENT_VALUES[1]),
+	Literal(TOOL_ENFORCEMENT_VALUES[2])
+], { description: "Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed)." });
+//#endregion
 //#region ../../libs/tasks/src/runtime-profiles.ts
 var RuntimeProfileName = String$1({
 	minLength: 1,
@@ -37140,11 +38878,24 @@ var RuntimeProfileToolName = String$1({
 	maxLength: 128,
 	pattern: "^[a-zA-Z0-9._/-]+$"
 });
+var RUNTIME_PROFILE_RUNTIME_KIND_PATTERN = "^[a-z][a-z0-9._-]{0,99}$";
+new RegExp(RUNTIME_PROFILE_RUNTIME_KIND_PATTERN);
+var RuntimeProfileRuntimeKind = String$1({
+	minLength: 1,
+	maxLength: 100,
+	pattern: RUNTIME_PROFILE_RUNTIME_KIND_PATTERN
+});
 var RuntimeProfileWorkspaceMode = Union([
 	Literal("none"),
 	Literal("shared_mount"),
 	Literal("dedicated_worktree")
 ]);
+/**
+* Tool-policy enforcement mode for the profile's runtime `tool_call` gate:
+* `off` (inert), `watch` (audit only), `enforce` (block disallowed tools,
+* fail-closed). Read by the daemon via `GET /runtime-profiles/:id/allowed-tools`.
+*/
+var RuntimeProfileToolEnforcement = ToolEnforcementSchema;
 var RuntimeProfileAllowedWorkspaceModes = _Array_(RuntimeProfileWorkspaceMode, {
 	minItems: 1,
 	maxItems: 3,
@@ -37176,49 +38927,16 @@ var RuntimeProfileNullableMaxOutputTokens = Union([Integer({
 	minimum: 1,
 	maximum: 1e6
 }), Null()]);
-var SandboxResumeCommandWhenSchema = _Object_({ workspaceMode: Optional(_Array_(Union([
-	Literal("shared_mount"),
-	Literal("dedicated_worktree"),
-	Literal("scratch_mount")
-]), {
-	minItems: 1,
-	maxItems: 3
-})) }, { additionalProperties: false });
-var RuntimeProfileSandboxResumeCommand = Union([String$1({
+var RuntimeProfileAllowedHost = String$1({
 	minLength: 1,
-	maxLength: 4096
-}), _Object_({
-	run: String$1({
-		minLength: 1,
-		maxLength: 4096
-	}),
-	when: Optional(SandboxResumeCommandWhenSchema),
-	retries: Optional(Integer({
-		minimum: 0,
-		maximum: 5
-	})),
-	retryBackoffMs: Optional(Integer({
-		minimum: 0,
-		maximum: 6e4
-	}))
-}, { additionalProperties: false })]);
+	maxLength: 255,
+	pattern: "^(?:\\*\\.)?(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(?:\\.(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?))*$"
+});
 var RuntimeProfileSandbox = _Object_({
-	snapshot: Optional(_Object_({
-		setupCommands: Optional(_Array_(String$1({
-			minLength: 1,
-			maxLength: 4096
-		}), { maxItems: 20 })),
-		allowedHosts: Optional(_Array_(String$1({
-			minLength: 1,
-			maxLength: 255
-		}), { maxItems: 50 })),
-		overlaySize: Optional(String$1({
-			minLength: 2,
-			maxLength: 16,
-			pattern: "^[0-9]+[KMGTP]?$"
-		}))
+	network: Optional(_Object_({
+		allowedHosts: Optional(_Array_(RuntimeProfileAllowedHost, { maxItems: 50 })),
+		allowedInternalHosts: Optional(_Array_(RuntimeProfileAllowedHost, { maxItems: 50 }))
 	}, { additionalProperties: false })),
-	resumeCommands: Optional(_Array_(RuntimeProfileSandboxResumeCommand, { maxItems: 30 })),
 	vfs: Optional(_Object_({
 		shadow: Optional(_Array_(String$1({
 			minLength: 1,
@@ -37305,7 +39023,7 @@ _Object_({
 	topP: RuntimeProfileNullableTopP,
 	topK: RuntimeProfileNullableTopK,
 	maxOutputTokens: RuntimeProfileNullableMaxOutputTokens,
-	runtimeKind: Literal("gondolin_pi"),
+	runtimeKind: RuntimeProfileRuntimeKind,
 	sandbox: RuntimeProfileSandbox,
 	sessionStorageMode: Literal("local"),
 	workspaceStorageMode: Literal("local"),
@@ -37324,8 +39042,10 @@ _Object_({
 	maxBatchSize: RuntimeProfileMaxBatchSize,
 	maxTurns: RuntimeProfileMaxTurns,
 	maxBashTimeouts: RuntimeProfileMaxBashTimeouts,
+	toolEnforcement: RuntimeProfileToolEnforcement,
 	requiredEnv: _Array_(RuntimeProfileEnvName, { maxItems: 100 }),
 	requiredTools: _Array_(RuntimeProfileToolName, { maxItems: 100 }),
+	requiredExecutables: _Array_(RuntimeProfileToolName, { maxItems: 100 }),
 	context: _Array_(RuntimeProfileContext, { maxItems: 5 }),
 	revision: Integer({ minimum: 1 }),
 	definitionCid: String$1({
@@ -37561,7 +39281,7 @@ _Object_({
 * (server-side schema check). Self-assessment is a truthful self-rating,
 * NOT enforcement — `verification.passed=false` does not block /complete
 * and does not affect `acceptedAttemptN`. See
-* `docs/understand/agent-runtime.md` for the full producer/judge flow.
+* `docs/use/tasks-and-runtime.md` for the full producer/judge flow.
 *
 * **Binding evaluation** (judgment tasks: `assess_brief`, `judge_pack`).
 * A separate task whose IS the application of `successCriteria` to
@@ -37667,7 +39387,7 @@ var VerificationResult = _Object_({
 var VerificationRecord = _Object_({
 	inputCid: String$1({ minLength: 1 }),
 	results: _Array_(VerificationResult),
-	passed: Boolean$1()
+	passed: Boolean$1({ description: "True iff every verification result has status \"pass\" or \"skip\"; false when any result has status \"fail\"." })
 }, {
 	$id: "VerificationRecord",
 	additionalProperties: false
@@ -37677,7 +39397,7 @@ _Object_({
 		id: String$1({ format: "uuid" }),
 		teamId: String$1({ format: "uuid" }),
 		taskId: String$1({ format: "uuid" }),
-		attemptN: Integer({ minimum: 1 }),
+		attemptN: Union([Integer({ minimum: 1 }), Null()]),
 		kind: String$1({
 			minLength: 1,
 			maxLength: 100
@@ -37699,7 +39419,7 @@ _Object_({
 			minLength: 1,
 			maxLength: 100
 		}),
-		createdByAgentId: String$1({ format: "uuid" }),
+		createdByAgentId: Union([String$1({ format: "uuid" }), Null()]),
 		expiresAt: Union([String$1({ format: "date-time" }), Null()]),
 		createdAt: String$1({ format: "date-time" })
 	}, { $id: "TaskArtifact" })),
@@ -37715,6 +39435,16 @@ _Object_({
 	$id: "ListTaskArtifactsQuery",
 	additionalProperties: false
 });
+var HeaderSafeContentType = String$1({
+	minLength: 1,
+	maxLength: 200,
+	pattern: "^[\\x21-\\x7e][\\x20-\\x7e]*$"
+});
+var HeaderSafeContentEncoding = String$1({
+	minLength: 1,
+	maxLength: 100,
+	pattern: "^[\\x21-\\x7e][\\x20-\\x7e]*$"
+});
 _Object_({
 	kind: String$1({
 		minLength: 1,
@@ -37724,14 +39454,8 @@ _Object_({
 		minLength: 1,
 		maxLength: 255
 	}),
-	contentType: Optional(String$1({
-		minLength: 1,
-		maxLength: 200
-	})),
-	contentEncoding: Optional(String$1({
-		minLength: 1,
-		maxLength: 100
-	}))
+	contentType: Optional(HeaderSafeContentType),
+	contentEncoding: Optional(HeaderSafeContentEncoding)
 }, {
 	$id: "UploadTaskArtifactQuery",
 	additionalProperties: false
@@ -37761,6 +39485,34 @@ _Object_({
 	})
 }, {
 	$id: "TaskArtifactContentParams",
+	additionalProperties: false
+});
+_Object_({
+	contentType: Optional(HeaderSafeContentType),
+	contentEncoding: Optional(HeaderSafeContentEncoding)
+}, {
+	$id: "StageTaskArtifactQuery",
+	additionalProperties: false
+});
+_Object_({
+	cid: String$1({
+		minLength: 1,
+		maxLength: 100
+	}),
+	sizeBytes: Integer({ minimum: 0 }),
+	contentType: String$1({
+		minLength: 1,
+		maxLength: 200
+	})
+}, { $id: "StagedTaskArtifact" });
+_Object_({
+	taskId: String$1({ format: "uuid" }),
+	cid: String$1({
+		minLength: 1,
+		maxLength: 100
+	})
+}, {
+	$id: "TaskArtifactTaskContentParams",
 	additionalProperties: false
 });
 new TextEncoder();
@@ -37978,11 +39730,14 @@ var CuratePackOutput = _Object_({
 //#endregion
 //#region ../../libs/tasks/src/task-types/freeform.ts
 var FREEFORM_TYPE = "freeform";
-var FreeformExecutionOptions = _Object_({ workspace: Optional(Union([
-	Literal("none"),
-	Literal("shared_mount"),
-	Literal("dedicated_worktree")
-])) }, {
+var FreeformExecutionOptions = _Object_({
+	workspace: Optional(Union([
+		Literal("none"),
+		Literal("shared_mount"),
+		Literal("dedicated_worktree")
+	])),
+	revision: Optional(String$1({ pattern: "^[0-9a-fA-F]{40}$" }))
+}, {
 	$id: "FreeformExecutionOptions",
 	additionalProperties: false
 });
@@ -38068,6 +39823,12 @@ var FreeformOutput = _Object_({
 * are sequential preconditions, later ones presume earlier ones hold.
 */
 async function validateFreeformInputAsync(input, ctx) {
+	const execution = input.execution;
+	if (execution?.revision && execution.workspace === "none") return [{
+		field: "input/execution/revision",
+		message: "execution.revision requires a repository workspace; use shared_mount or dedicated_worktree",
+		code: "freeform.executionRevisionRequiresRepository"
+	}];
 	const cf = input.continueFrom;
 	if (!cf) return [];
 	const source = await ctx.resolveTask(cf.taskId);
@@ -38081,10 +39842,15 @@ async function validateFreeformInputAsync(input, ctx) {
 		message: `Source task type '${source.taskType}' is not continuable; only freeform → freeform is supported in v1`,
 		code: "freeform.sourceTaskTypeNotSupported"
 	}];
-	if (input.execution?.workspace) return [{
+	if (execution?.workspace) return [{
 		field: "input/execution/workspace",
 		message: "execution.workspace is derived from parent runtime context when continueFrom is set; omit it",
 		code: "freeform.executionWorkspaceNotInheritable"
+	}];
+	if (execution?.revision) return [{
+		field: "input/execution/revision",
+		message: "execution.revision is derived from parent runtime context when continueFrom is set; omit it",
+		code: "freeform.executionRevisionNotInheritable"
 	}];
 	if (ctx.deferReadinessChecks) return [];
 	const attempt = (await ctx.listAttempts(cf.taskId)).find((a) => a.attemptN === cf.attemptN);
@@ -38276,6 +40042,27 @@ var JudgeEvalAttemptInput = _Object_({
 	$id: "JudgeEvalAttemptInput",
 	additionalProperties: false
 });
+/** Agent-authored part of a judge attempt's output. */
+var JudgeEvalAttemptSubmission = _Object_({
+	targetTaskId: String$1({ format: "uuid" }),
+	targetAttemptN: Integer({ minimum: 1 }),
+	variantLabel: String$1({
+		minLength: 1,
+		maxLength: 64,
+		pattern: "^(?!.* - ).*$"
+	}),
+	scores: _Array_(JudgePackScore, { minItems: 1 }),
+	composite: Number$1({
+		minimum: 0,
+		maximum: 1
+	}),
+	verdict: String$1({ minLength: 1 }),
+	judgeModel: Optional(String$1({ minLength: 1 }))
+}, {
+	$id: "JudgeEvalAttemptSubmission",
+	additionalProperties: false
+});
+/** Durable output after the executor stamps the claim trace context. */
 var JudgeEvalAttemptOutput = _Object_({
 	targetTaskId: String$1({ format: "uuid" }),
 	targetAttemptN: Integer({ minimum: 1 }),
@@ -38291,7 +40078,7 @@ var JudgeEvalAttemptOutput = _Object_({
 	}),
 	verdict: String$1({ minLength: 1 }),
 	judgeModel: Optional(String$1({ minLength: 1 })),
-	traceparent: String$1({ minLength: 1 })
+	traceparent: Optional(String$1({ minLength: 1 }))
 }, {
 	$id: "JudgeEvalAttemptOutput",
 	additionalProperties: false
@@ -38583,15 +40370,33 @@ var RunEvalInput = _Object_({
 	$id: "RunEvalInput",
 	additionalProperties: false
 });
+var RunEvalArtifact = _Object_({
+	path: String$1({ minLength: 1 }),
+	cid: String$1({ minLength: 1 })
+}, { additionalProperties: false });
+/**
+* Fields the eval agent authors through its submit-output tool. Runtime
+* telemetry deliberately does not live here: an agent cannot truthfully
+* measure provider token usage, wall-clock duration, or the claim trace.
+*/
+var RunEvalSubmission = _Object_({
+	response: String$1({ minLength: 1 }),
+	artifacts: Optional(_Array_(RunEvalArtifact)),
+	verification: Optional(VerificationRecord)
+}, {
+	$id: "RunEvalSubmission",
+	additionalProperties: false
+});
+/**
+* Durable eval output. The daemon materializes this from RunEvalSubmission
+* and observed execution metadata before the task service accepts it.
+*/
 var RunEvalOutput = _Object_({
 	response: String$1({ minLength: 1 }),
-	artifacts: Optional(_Array_(_Object_({
-		path: String$1({ minLength: 1 }),
-		cid: String$1({ minLength: 1 })
-	}, { additionalProperties: false }))),
+	artifacts: Optional(_Array_(RunEvalArtifact)),
 	totalTokens: Integer({ minimum: 0 }),
 	durationMs: Integer({ minimum: 0 }),
-	traceparent: String$1({ minLength: 1 }),
+	traceparent: Optional(String$1({ minLength: 1 })),
 	verification: Optional(VerificationRecord)
 }, {
 	$id: "RunEvalOutput",
@@ -38656,7 +40461,7 @@ var BUILT_IN_TASK_TYPES = {
 		outputKind: "artifact",
 		resumable: true,
 		workspaceMode: "shared_mount",
-		workspaceScope: "session",
+		workspaceScope: "attempt",
 		sessionScope: "correlation",
 		acceptsInputWorkspaceOverride: true,
 		requiresReferences: false,
@@ -38736,6 +40541,7 @@ var BUILT_IN_TASK_TYPES = {
 		name: RUN_EVAL_TYPE,
 		inputSchema: RunEvalInput,
 		outputSchema: RunEvalOutput,
+		submissionSchema: RunEvalSubmission,
 		outputKind: "artifact",
 		resumable: true,
 		workspaceScope: "session",
@@ -38748,6 +40554,7 @@ var BUILT_IN_TASK_TYPES = {
 		name: JUDGE_EVAL_ATTEMPT_TYPE,
 		inputSchema: JudgeEvalAttemptInput,
 		outputSchema: JudgeEvalAttemptOutput,
+		submissionSchema: JudgeEvalAttemptSubmission,
 		outputKind: "judgment",
 		workspaceScope: "attempt",
 		sessionScope: "none",
@@ -41324,22 +43131,43 @@ function validateTaskInput(taskType, input) {
 	}
 	return [];
 }
-function validateTaskOutput(taskType, output, input) {
+function checkVerificationInputCid(value, runtime) {
+	const verification = value !== null && typeof value === "object" ? value.verification : void 0;
+	if (runtime?.inputCid && verification !== void 0 && verification.inputCid !== runtime.inputCid) return [{
+		field: "output/verification/inputCid",
+		message: "must match the task input CID"
+	}];
+	return [];
+}
+function checkVerificationPassedConsistency(value) {
+	const verification = value !== null && typeof value === "object" ? value.verification : void 0;
+	if (verification === void 0 || !Array.isArray(verification.results) || typeof verification.passed !== "boolean") return [];
+	const expectedPassed = verification.results.every((result) => result.status !== "fail");
+	if (verification.passed !== expectedPassed) return [{
+		field: "output/verification/passed",
+		message: "must be true iff no verification result has status \"fail\""
+	}];
+	return [];
+}
+function validateTaskResult(taskType, value, input, runtime, submission = false) {
 	const entry = getTaskTypeEntry(taskType);
 	if (!entry) return [{
 		field: "taskType",
 		message: `Unknown task type: ${taskType}`
 	}];
-	const errors = schemaErrors("output", entry.outputSchema, output);
+	const errors = schemaErrors("output", submission ? entry.submissionSchema ?? entry.outputSchema : entry.outputSchema, value);
 	if (errors.length > 0) return errors;
 	if (entry.validateOutput) {
-		const validationError = entry.validateOutput(output, input);
+		const validationError = entry.validateOutput(value, input);
 		if (validationError) return [{
 			field: "output",
 			message: validationError
 		}];
 	}
-	return [];
+	return [...checkVerificationInputCid(value, runtime), ...checkVerificationPassedConsistency(value)];
+}
+function validateTaskOutput(taskType, output, input, runtime) {
+	return validateTaskResult(taskType, output, input, runtime);
 }
 /**
 * Resolve the TypeBox output schema registered for `taskType`. Returns
@@ -41361,6 +43189,42 @@ function validateTaskCreateRequest(args) {
 	if (entry.requiresReferences && (!args.references || args.references.length < 1)) errors.push({
 		field: "references",
 		message: `At least one reference is required for task type: ${args.taskType}`
+	});
+	errors.push(...validateTaskReferences(args.references));
+	return errors;
+}
+/**
+* Cross-field rules for the reference shapes the schema alone cannot
+* express. Every reference must be exactly one of:
+*
+* - **task output ref**: taskId set, outputCid required; an optional
+*   artifact must name its producing attempt (attemptN).
+* - **input artifact ref**: taskId null, artifact without attemptN;
+*   outputCid omitted (or equal to artifact.cid when sent) -- the bytes
+*   were staged before any task existed, so there is no output to name.
+* - **external ref**: taskId null, external present, no artifact.
+*
+* Anything else used to be silently persisted into taskRefs and never
+* materialized; now it fails fast with a field error.
+*/
+function validateTaskReferences(references) {
+	const errors = [];
+	(references ?? []).forEach((ref, index) => {
+		const invalid = (message) => errors.push({
+			field: `references[${index}]`,
+			message
+		});
+		if (ref.taskId !== null) {
+			if (ref.outputCid === void 0) invalid("outputCid is required when referencing a task output");
+			if (ref.artifact && ref.artifact.attemptN === void 0) invalid("artifact references to another task must include attemptN; input artifacts are referenced with taskId null");
+			return;
+		}
+		if (ref.artifact) {
+			if (ref.artifact.attemptN !== void 0) invalid("input artifact references (taskId null) must not include attemptN; reference the producing task by id instead");
+			if (ref.outputCid !== void 0 && ref.outputCid !== ref.artifact.cid) invalid("outputCid on an input artifact reference must be omitted or equal artifact.cid");
+			return;
+		}
+		if (!ref.external) invalid("references with taskId null must carry either an artifact (input artifact) or an external descriptor");
 	});
 	return errors;
 }
@@ -41422,8 +43286,6 @@ var TaskMessageKind = Union([
 var Uuid = String$1({ format: "uuid" });
 var Cid = String$1({ minLength: 1 });
 var IsoTimestamp = String$1({ format: "date-time" });
-var MAX_CLAIM_CONDITION_BRANCHES = 8;
-var MAX_CLAIM_CONDITION_STATUSES = 8;
 /**
 * Daemon-asserted runtime state stamped onto a `TaskAttemptSummary` at
 * attempt-completion time. The server persists this block verbatim and
@@ -41449,14 +43311,14 @@ Unsafe(Cyclic({ ClaimCondition: Unsafe(Union([
 		op: Literal("all"),
 		conditions: _Array_(Ref$2("ClaimCondition"), {
 			minItems: 1,
-			maxItems: MAX_CLAIM_CONDITION_BRANCHES
+			maxItems: 8
 		})
 	}, { additionalProperties: false }),
 	_Object_({
 		op: Literal("any"),
 		conditions: _Array_(Ref$2("ClaimCondition"), {
 			minItems: 1,
-			maxItems: MAX_CLAIM_CONDITION_BRANCHES
+			maxItems: 8
 		})
 	}, { additionalProperties: false }),
 	_Object_({
@@ -41464,7 +43326,7 @@ Unsafe(Cyclic({ ClaimCondition: Unsafe(Union([
 		taskId: Uuid,
 		statuses: _Array_(Ref$2("TaskStatus"), {
 			minItems: 1,
-			maxItems: MAX_CLAIM_CONDITION_STATUSES
+			maxItems: 8
 		})
 	}, { additionalProperties: false }),
 	_Object_({
@@ -41478,7 +43340,7 @@ Unsafe(Cyclic({ ClaimCondition: Unsafe(Union([
 */
 var TaskRef = _Object_({
 	taskId: Union([Uuid, Null()]),
-	outputCid: Cid,
+	outputCid: Optional(Cid),
 	role: Union([
 		Literal("judged_work"),
 		Literal("reviewed_diff"),
@@ -41499,7 +43361,7 @@ var TaskRef = _Object_({
 	})),
 	artifact: Optional(_Object_({
 		cid: Cid,
-		attemptN: Integer({ minimum: 1 }),
+		attemptN: Optional(Integer({ minimum: 1 })),
 		kind: Optional(String$1({
 			minLength: 1,
 			maxLength: 100
@@ -41618,6 +43480,10 @@ _Object_({
 	taskId: Uuid,
 	attemptN: Number$1({ minimum: 1 }),
 	claimedByAgentId: Uuid,
+	leaseId: Union([Uuid, Null()]),
+	runtimeProfileId: Union([Uuid, Null()]),
+	runtimeProfileRevision: Union([Integer({ minimum: 1 }), Null()]),
+	policySnapshotHash: Union([String$1({ pattern: "^sha256:[0-9a-f]{64}$" }), Null()]),
 	runtimeId: Union([Uuid, Null()]),
 	claimedAt: IsoTimestamp,
 	startedAt: Union([IsoTimestamp, Null()]),
@@ -41969,30 +43835,53 @@ var TaskBuilder = class {
 		return this;
 	}
 	/**
-	* Add a reference to a persistent task artifact while retaining the accepted
-	* output CID as the provenance anchor.
+	* Add either a staged input artifact or a persistent attempt artifact.
+	* Staged metadata returned by `tasks.artifacts.stage()` carries
+	* `artifactSource: 'staged'` and produces a reference with `taskId: null`, no
+	* `outputCid`, and no `attemptN`. Persistent artifacts require the producing
+	* task, accepted output CID, artifact CID, and positive attempt number so
+	* their provenance remains explicit.
 	*
-	* @param source - A result reader, raw artifact reference, or `TaskRef`.
+	* @param source - Staged SDK metadata, a result reader, raw artifact reference, or `TaskRef`.
 	* @param role - The role the referenced artifact plays.
 	* @returns This builder, for chaining.
-	* @throws {TaskBuildError} when output or artifact CID is missing.
+	* @throws {TaskBuildError} when the source is ambiguous or required provenance is missing.
 	*/
 	artifactReference(source, role) {
 		let ref;
 		if ("artifactRef" in source && typeof source.artifactRef === "function") ref = source.artifactRef(role);
-		else if ("artifact" in source && source.artifact?.cid) {
-			if (typeof source.artifact.attemptN !== "number" || !Number.isInteger(source.artifact.attemptN) || source.artifact.attemptN < 1) throw new TaskBuildError([{
-				field: "references/artifact/attemptN",
-				message: "artifact reference is missing required attemptN"
-			}]);
-			ref = {
-				...source,
-				role
-			};
-		} else {
+		else if ("artifactSource" in source && source.artifactSource === "staged" && source.cid) ref = {
+			taskId: null,
+			role,
+			artifact: {
+				cid: source.cid,
+				...source.kind ? { kind: source.kind } : {},
+				...source.title ? { title: source.title } : {},
+				...source.contentType ? { contentType: source.contentType } : {}
+			}
+		};
+		else if ("cid" in source) throw new TaskBuildError([{
+			field: "references/artifactSource",
+			message: "top-level artifact CID is ambiguous; use metadata returned by tasks.artifacts.stage()"
+		}]);
+		else if ("artifact" in source && source.artifact?.cid) if (source.taskId === null && source.artifact.attemptN === void 0) ref = {
+			taskId: null,
+			role,
+			artifact: { ...source.artifact }
+		};
+		else if (typeof source.artifact.attemptN !== "number" || !Number.isInteger(source.artifact.attemptN) || source.artifact.attemptN < 1) throw new TaskBuildError([{
+			field: "references/artifact/attemptN",
+			message: "artifact reference is missing required attemptN"
+		}]);
+		else ref = {
+			...source,
+			role
+		};
+		else {
 			const s = source;
 			const errors = [];
-			if (!s.outputCid) errors.push({
+			const inputArtifact = s.taskId === null && s.attemptN === void 0;
+			if (!inputArtifact && !s.outputCid) errors.push({
 				field: "references/outputCid",
 				message: "reference is missing required outputCid"
 			});
@@ -42000,19 +43889,18 @@ var TaskBuilder = class {
 				field: "references/artifact/cid",
 				message: "artifact reference is missing required cid"
 			});
-			if (typeof s.attemptN !== "number" || !Number.isInteger(s.attemptN) || s.attemptN < 1) errors.push({
+			if (!inputArtifact && (typeof s.attemptN !== "number" || !Number.isInteger(s.attemptN) || s.attemptN < 1)) errors.push({
 				field: "references/artifact/attemptN",
 				message: "artifact reference is missing required attemptN"
 			});
 			if (errors.length > 0) throw new TaskBuildError(errors);
-			const attemptN = s.attemptN;
 			ref = {
 				taskId: s.taskId ?? null,
-				outputCid: s.outputCid,
+				...!inputArtifact && s.outputCid ? { outputCid: s.outputCid } : {},
 				role,
 				artifact: {
 					cid: s.artifactCid,
-					attemptN,
+					...s.attemptN !== void 0 ? { attemptN: s.attemptN } : {},
 					...s.kind ? { kind: s.kind } : {},
 					...s.title ? { title: s.title } : {},
 					...s.contentType ? { contentType: s.contentType } : {}
@@ -42481,7 +44369,30 @@ function createTasksNamespace(context) {
 				auth
 			}));
 		},
+		async registerExecutorManifest(body) {
+			return unwrapResult(await registerExecutorManifest({
+				client,
+				auth,
+				body
+			}));
+		},
 		artifacts: {
+			async stage(body, query, options) {
+				return {
+					...unwrapResult(await stageTaskArtifact({
+						auth,
+						body,
+						client,
+						duplex: "half",
+						headers: {
+							...requiredTeamHeaders(options),
+							"content-type": "application/octet-stream"
+						},
+						query
+					})),
+					artifactSource: "staged"
+				};
+			},
 			async upload(path, body, query, options) {
 				return unwrapResult(await uploadTaskArtifact({
 					auth,
@@ -42515,17 +44426,24 @@ function createTasksNamespace(context) {
 				}));
 			},
 			async download(path, options) {
-				const result = await client.request({
+				const request = {
 					auth,
 					headers: requiredTeamHeaders(options),
 					method: "GET",
 					parseAs: "stream",
-					path,
 					security: [{
 						scheme: "bearer",
 						type: "http"
-					}],
+					}]
+				};
+				const result = "attemptN" in path ? await client.request({
+					...request,
+					path,
 					url: "/tasks/{taskId}/attempts/{attemptN}/artifacts/{cid}/content"
+				}) : await client.request({
+					...request,
+					path,
+					url: "/tasks/{taskId}/artifacts/{cid}/content"
 				});
 				const normalizedStream = normalizeDownloadStream(unwrapResult(result));
 				if (normalizedStream) return {
@@ -42863,14 +44781,16 @@ function createAgent(options) {
 		client,
 		auth
 	};
+	const diaries = createDiariesNamespace(context);
 	return {
-		diaries: createDiariesNamespace(context),
+		agentKeys: createAgentKeysNamespace(context),
+		diaries,
 		diaryGrants: createDiaryGrantsNamespace(context),
 		diaryTransfers: createDiaryTransfersNamespace(context),
 		packs: createPacksNamespace(context),
 		entries: createEntriesNamespace(context),
 		agents: createAgentsNamespace(context),
-		crypto: createCryptoNamespace(context, createSigningRequestsNamespace(context)),
+		crypto: createCryptoNamespace(context, createSigningRequestsNamespace(context), createSigningCredentialsNamespace(context)),
 		vouch: createVouchNamespace(context),
 		auth: createAuthNamespace(context),
 		recovery: createRecoveryNamespace(context),
@@ -42879,25 +44799,41 @@ function createAgent(options) {
 		problems: createProblemsNamespace(context),
 		teams: createTeamsNamespace(context),
 		runtimeProfiles: createRuntimeProfilesNamespace(context),
+		runtimePolicies: createRuntimePoliciesNamespace(context),
 		tasks: createTasksNamespace(context),
 		runtimeSlots: createRuntimeSlotsNamespace(context),
 		runtimeSessions: createRuntimeSessionsNamespace(context),
 		client,
-		getToken: () => tokenManager.getToken()
+		getToken: () => {
+			if (tokenManager) return tokenManager.getToken();
+			if (auth) return auth();
+			return Promise.reject(new MoltNetError("No token source configured", { code: "NO_TOKEN_SOURCE" }));
+		}
 	};
 }
 //#endregion
 //#region ../../libs/sdk/src/config.ts
 /**
 * Read MoltNet credentials from environment variables.
-* Reads MOLTNET_CLIENT_ID, MOLTNET_CLIENT_SECRET, and MOLTNET_API_URL.
+* Reads MOLTNET_CLIENT_ID, MOLTNET_CLIENT_SECRET, MOLTNET_API_URL, and
+* MOLTNET_AGENT_KEY.
 */
 function readEnvCredentials() {
 	return {
 		clientId: process.env.MOLTNET_CLIENT_ID,
 		clientSecret: process.env.MOLTNET_CLIENT_SECRET,
-		apiUrl: process.env.MOLTNET_API_URL
+		apiUrl: process.env.MOLTNET_API_URL,
+		agentKey: process.env.MOLTNET_AGENT_KEY
 	};
+}
+/**
+* Resolve the API base URL from an ordered list of candidates, falling back to
+* the hosted default, with any trailing slash stripped. Candidates are tried in
+* order — pass them highest-precedence first (typically explicit option, then
+* env, then config file) so every caller shares one precedence rule.
+*/
+function normalizeApiUrl(...candidates) {
+	return (candidates.find((c) => c) ?? "https://api.themolt.net").replace(/\/$/, "");
 }
 //#endregion
 //#region ../../libs/sdk/src/credentials.ts
@@ -42962,12 +44898,39 @@ function createRetryFetch(tokenManager, options) {
 		return doFetch(init);
 	};
 }
+/**
+* Create a fetch wrapper for agent-key (static-bearer) authentication.
+*
+* A static key cannot be refreshed, so there is no token-invalidation/replay
+* (that half of {@link createRetryFetch} is intentionally omitted). What remains
+* is orthogonal to token refresh and still matters for a long-running client:
+*
+* - **429**: delegates to `createRateLimitFetch` (Retry-After / backoff), unless
+*   `retry` is `false`.
+* - **401**: the key was rejected (revoked, expired, or not authorized for the
+*   requested team). Rather than silently returning a bare 401 on every call,
+*   throw an actionable {@link AuthenticationError}. The key value is never
+*   included in the message.
+*/
+function createAgentKeyFetch(retry) {
+	const rateLimitFetch = retry === false ? fetch : createRateLimitFetch({
+		maxRetries: retry?.maxRateLimitRetries,
+		baseDelayMs: retry?.baseDelayMs,
+		maxDelayMs: retry?.maxDelayMs
+	});
+	return async (input, init) => {
+		const response = await rateLimitFetch(input, init);
+		if (response.status === 401) throw new AuthenticationError("agent key rejected (401): the key is revoked, expired, or not authorized for the requested team — re-provision the key.", { statusCode: 401 });
+		return response;
+	};
+}
 //#endregion
 //#region ../../libs/sdk/src/token.ts
 var TokenManager = class {
 	clientId;
 	clientSecret;
 	tokenUrl;
+	scopes;
 	expiryBufferMs;
 	cached = null;
 	constructor(options) {
@@ -42975,6 +44938,7 @@ var TokenManager = class {
 		this.clientId = options.clientId;
 		this.clientSecret = options.clientSecret;
 		this.tokenUrl = `${apiUrl}/oauth2/token`;
+		this.scopes = options.scopes ?? AGENT_OAUTH_SCOPES;
 		this.expiryBufferMs = options.expiryBufferMs ?? 3e4;
 	}
 	/** Return a valid access token, obtaining or refreshing as needed. */
@@ -42987,7 +44951,8 @@ var TokenManager = class {
 		const body = new URLSearchParams({
 			grant_type: "client_credentials",
 			client_id: this.clientId,
-			client_secret: this.clientSecret
+			client_secret: this.clientSecret,
+			scope: this.scopes.join(" ")
 		});
 		let response;
 		try {
@@ -43021,42 +44986,82 @@ var TokenManager = class {
 };
 //#endregion
 //#region ../../libs/sdk/src/connect.ts
-var DEFAULT_API_URL = "https://api.themolt.net";
-async function resolveCredentials(options) {
+async function resolveConnection(options) {
+	const env = readEnvCredentials();
+	const explicitAgentKey = options.agentKey?.trim();
+	if (explicitAgentKey) {
+		const config = await readConfig(options.configDir);
+		return {
+			mode: "agentKey",
+			agentKey: explicitAgentKey,
+			apiUrl: normalizeApiUrl(options.apiUrl, env.apiUrl, config?.endpoints?.api)
+		};
+	}
 	if (options.clientId && options.clientSecret) return {
+		mode: "oauth2",
 		clientId: options.clientId,
 		clientSecret: options.clientSecret,
-		apiUrl: (options.apiUrl ?? DEFAULT_API_URL).replace(/\/$/, "")
+		apiUrl: normalizeApiUrl(options.apiUrl, env.apiUrl)
 	};
-	const env = readEnvCredentials();
+	const envAgentKey = env.agentKey?.trim();
+	if (envAgentKey) {
+		const config = await readConfig(options.configDir);
+		return {
+			mode: "agentKey",
+			agentKey: envAgentKey,
+			apiUrl: normalizeApiUrl(options.apiUrl, env.apiUrl, config?.endpoints?.api)
+		};
+	}
 	if (env.clientId && env.clientSecret) return {
+		mode: "oauth2",
 		clientId: env.clientId,
 		clientSecret: env.clientSecret,
-		apiUrl: (env.apiUrl ?? options.apiUrl ?? DEFAULT_API_URL).replace(/\/$/, "")
+		apiUrl: normalizeApiUrl(options.apiUrl, env.apiUrl)
 	};
 	const config = await readConfig(options.configDir);
 	if (config?.oauth2?.client_id && config?.oauth2?.client_secret) return {
+		mode: "oauth2",
 		clientId: config.oauth2.client_id,
 		clientSecret: config.oauth2.client_secret,
-		apiUrl: (options.apiUrl ?? config.endpoints?.api ?? DEFAULT_API_URL).replace(/\/$/, "")
+		apiUrl: normalizeApiUrl(options.apiUrl, config.endpoints?.api)
 	};
-	throw new MoltNetError("No credentials found. Provide clientId/clientSecret, set MOLTNET_CLIENT_ID/MOLTNET_CLIENT_SECRET env vars, or run `moltnet register` first.", { code: "NO_CREDENTIALS" });
+	throw new MoltNetError("No credentials found. Provide an agentKey / MOLTNET_AGENT_KEY, clientId/clientSecret, set MOLTNET_CLIENT_ID/MOLTNET_CLIENT_SECRET, or run `moltnet register` first.", { code: "NO_CREDENTIALS" });
 }
 /**
 * Connect to MoltNet and return an authenticated Agent facade.
 *
-* Credential resolution order:
-* 1. Explicit `clientId` / `clientSecret` in options
-* 2. `MOLTNET_CLIENT_ID` / `MOLTNET_CLIENT_SECRET` environment variables
-* 3. Config file (`~/.config/moltnet/moltnet.json`)
+* Credential resolution, highest precedence first. Explicit in-code options —
+* of either kind — always win over the environment and config file:
+* 1. Explicit `agentKey` option → agent-key mode (static bearer)
+* 2. Explicit `clientId` / `clientSecret` → OAuth2 client-credentials
+* 3. `MOLTNET_AGENT_KEY` env → agent-key mode
+* 4. `MOLTNET_CLIENT_ID` / `MOLTNET_CLIENT_SECRET` env → OAuth2
+* 5. Config file (`~/.config/moltnet/moltnet.json`) → OAuth2
+*
+* In agent-key mode the key is sent directly as a bearer token — no OAuth2
+* round-trip — and 429 backoff still applies; a rejected key surfaces an
+* `AuthenticationError`.
 */
 async function connect(options = {}) {
-	const creds = await resolveCredentials(options);
+	const resolved = await resolveConnection(options);
+	if (resolved.mode === "agentKey") {
+		const client = createClient({
+			baseUrl: resolved.apiUrl,
+			fetch: createAgentKeyFetch(options.retry)
+		});
+		const auth = () => Promise.resolve(resolved.agentKey);
+		return createAgent({
+			client,
+			auth
+		});
+	}
+	const creds = resolved;
 	const autoToken = options.autoToken ?? true;
 	const tokenManager = new TokenManager({
 		clientId: creds.clientId,
 		clientSecret: creds.clientSecret,
-		apiUrl: creds.apiUrl
+		apiUrl: creds.apiUrl,
+		scopes: options.scopes
 	});
 	const retryFetch = autoToken && options.retry !== false ? createRetryFetch(tokenManager, options.retry === void 0 ? void 0 : options.retry) : void 0;
 	const customFetch = retryFetch ?? (autoToken && !retryFetch ? async (input, init) => {
@@ -44902,6 +46907,56 @@ if (!etc.sha512Sync) etc.sha512Sync = (...m) => {
 	return hash.digest();
 };
 //#endregion
+//#region src/cancel-superseded.ts
+var ACTIVE_STATUSES = [
+	"waiting",
+	"queued",
+	"dispatched",
+	"running"
+];
+function requiredString(value, label) {
+	if (typeof value !== "string" || value.trim().length === 0) throw new Error(`task spec is missing .${label}`);
+	return value.trim();
+}
+function readTaskSpecIdentity(path) {
+	const parsed = JSON.parse(readFileSync(path, "utf8"));
+	return {
+		taskType: requiredString(parsed["taskType"], "taskType"),
+		correlationId: requiredString(parsed["correlationId"], "correlationId")
+	};
+}
+function parseSupersessionTags(value) {
+	return [...new Set((value ?? "").replaceAll("\r\n", "\n").replaceAll("\r", "\n").split(/[\n,]/).map((tag) => tag.trim()).filter((tag) => tag.length > 0))];
+}
+async function cancelSupersededTasks(args) {
+	const tasks = await args.agent.tasks.list({
+		taskTypes: [args.taskType],
+		statuses: [...ACTIVE_STATUSES],
+		correlationId: args.correlationId,
+		...args.selectorTags.length > 0 ? { tags: args.selectorTags } : {},
+		limit: 100
+	}, { teamId: args.teamId });
+	const cancelled = [];
+	for (const task of tasks.items) {
+		await args.agent.tasks.cancel(task.id, { reason: `Superseded by a newer ${args.taskType} task in correlation ${args.correlationId}` });
+		cancelled.push(task.id);
+	}
+	return cancelled;
+}
+async function runCancelSupersededFromEnv(env = process.env) {
+	const taskSpecPath = env["TASK_SPEC_PATH"]?.trim();
+	const teamId = env["MOLTNET_TEAM_ID"]?.trim();
+	if (!taskSpecPath) throw new Error("TASK_SPEC_PATH is required");
+	if (!teamId) throw new Error("MOLTNET_TEAM_ID is required");
+	const identity = readTaskSpecIdentity(taskSpecPath);
+	return cancelSupersededTasks({
+		agent: await connect(),
+		teamId,
+		...identity,
+		selectorTags: parseSupersessionTags(env["SUPERSESSION_TAGS"])
+	});
+}
+//#endregion
 //#region src/create-task.ts
 async function createTask(input) {
 	const briefWithSource = input.brief.includes(input.referenceUrl) ? input.brief : `${input.brief}\n\nSource: ${input.referenceUrl}`;
@@ -45051,7 +47106,7 @@ async function resolveCorrelation(input, deps) {
 * Wrong-context mentions and parse errors are surfaced as info-level
 * logs and (where applicable) PR/issue replies.
 */
-var NO_CRITERIA_NOTICE = "👋 `@moltnet-assess` recognised, but the originating `fulfill_brief` task carried no `input.successCriteria` — there is nothing machine-verifiable to judge against. To enable assessment, the proposer needs to supply `successCriteria` when creating the fulfill task. See [docs/understand/agent-runtime.md](https://github.com/getlarge/themoltnet/blob/main/docs/understand/agent-runtime.md) for the producer/judge model.";
+var NO_CRITERIA_NOTICE = "👋 `@moltnet-assess` recognised, but the originating `fulfill_brief` task carried no `input.successCriteria` — there is nothing machine-verifiable to judge against. To enable assessment, the proposer needs to supply `successCriteria` when creating the fulfill task. See [docs/use/tasks-and-runtime.md](https://github.com/getlarge/themoltnet/blob/main/docs/use/tasks-and-runtime.md) for the producer/judge model.";
 var NO_FULFILL_NOTICE = "👋 `@moltnet-assess` recognised, but no `fulfill_brief` task was found in this chain — assess can only run after fulfill. If you're sure a fulfill task exists, the chain id may have been lost; check the PR branch name (`moltnet/<correlationId>/...`), the first commit trailer (`Moltnet-Correlation-Id: <id>`), or the marker in the PR body.";
 async function dispatch(ctx) {
 	const { context, github, env } = ctx;
@@ -45302,6 +47357,11 @@ async function postPrComment(github, pr, body) {
 * are passed through by action.yml.
 */
 async function main() {
+	if (process.env["MOLTNET_ACTION_COMMAND"] === "cancel-superseded") {
+		const cancelled = await runCancelSupersededFromEnv();
+		import_core.info(`Cancelled ${cancelled.length} superseded task(s): ${cancelled.join(", ") || "none"}`);
+		return;
+	}
 	const eventPath = process.env["GITHUB_EVENT_PATH"];
 	const ghToken = process.env["GITHUB_TOKEN"];
 	if (!eventPath) throw new Error("GITHUB_EVENT_PATH not set");
