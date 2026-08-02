@@ -59,3 +59,74 @@ func TestEnvConfigureClearsManagedValue(t *testing.T) {
 		t.Fatalf("team id was not removed:\n%s", data)
 	}
 }
+
+func TestEnvConfigureRejectsAuthorshipWithoutHumanIdentity(t *testing.T) {
+	t.Parallel()
+	dir := setupActivationCacheFixture(t)
+	envPath := filepath.Join(dir, ".moltnet", "test-agent", "env")
+	before, err := os.ReadFile(envPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	root := NewRootCmd("test", "")
+	_, _, err = executeCommand(root, "env", "configure", "--agent", "test-agent", "--dir", dir, "--authorship", "human")
+	if err == nil || !strings.Contains(err.Error(), "requires --human-git-identity") {
+		t.Fatalf("expected resulting-state validation, got %v", err)
+	}
+	after, readErr := os.ReadFile(envPath)
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
+	if string(after) != string(before) {
+		t.Fatal("invalid authorship transition modified the env file")
+	}
+}
+
+func TestEnvConfigureRejectsClearingRequiredHumanIdentity(t *testing.T) {
+	t.Parallel()
+	dir := setupActivationCacheFixture(t)
+	envPath := filepath.Join(dir, ".moltnet", "test-agent", "env")
+	data, err := os.ReadFile(envPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data = append(data, []byte("MOLTNET_COMMIT_AUTHORSHIP='coauthor'\nMOLTNET_HUMAN_GIT_IDENTITY='Jane Doe <jane@example.com>'\n")...)
+	if err := os.WriteFile(envPath, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	root := NewRootCmd("test", "")
+	_, _, err = executeCommand(root, "env", "configure", "--agent", "test-agent", "--dir", dir, "--clear-human-git-identity")
+	if err == nil || !strings.Contains(err.Error(), "requires --human-git-identity") {
+		t.Fatalf("expected resulting-state validation, got %v", err)
+	}
+}
+
+func TestEnvConfigureAllowsAtomicSwitchToAgentAndIdentityClear(t *testing.T) {
+	t.Parallel()
+	dir := setupActivationCacheFixture(t)
+	envPath := filepath.Join(dir, ".moltnet", "test-agent", "env")
+	data, err := os.ReadFile(envPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data = append(data, []byte("MOLTNET_COMMIT_AUTHORSHIP='coauthor'\nMOLTNET_HUMAN_GIT_IDENTITY='Jane Doe <jane@example.com>'\n")...)
+	if err := os.WriteFile(envPath, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	root := NewRootCmd("test", "")
+	_, _, err = executeCommand(root, "env", "configure", "--agent", "test-agent", "--dir", dir, "--authorship", "agent", "--clear-human-git-identity")
+	if err != nil {
+		t.Fatalf("configure: %v", err)
+	}
+	after, err := os.ReadFile(envPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(after)
+	if !strings.Contains(content, "MOLTNET_COMMIT_AUTHORSHIP='agent'") || strings.Contains(content, "MOLTNET_HUMAN_GIT_IDENTITY=") {
+		t.Fatalf("atomic transition was not persisted: %s", content)
+	}
+}
