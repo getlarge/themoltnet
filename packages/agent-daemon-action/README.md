@@ -15,6 +15,10 @@ Four invocation shapes:
    created task. This is the path used by LeGreffier PR review workflows whose
    composers must stay credential-free. The optional top-level `tags` array is
    merged with the action's `tags` input and forwarded to `moltnet task create`.
+   Set `cancel-superseded: 'true'` to terminally cancel active tasks with the
+   same task type and correlation id before replacement dispatch. Use
+   `supersession-tags` when a correlation contains multiple logical lanes of
+   the same task type.
 3. **Explicit task** — supply `task-id`. The action skips task creation
    and runs the daemon against the provided id.
 4. **Correlated drain** — set `mode: drain`, `task-types`, and
@@ -31,6 +35,8 @@ Four invocation shapes:
     task-id: ${{ inputs.task-id }} # optional
     task-spec-path: ${{ steps.compose.outputs.task-spec-path }} # optional
     tags: ci,review:pr,pr:${{ github.event.pull_request.number }} # optional
+    cancel-superseded: 'true' # optional; task-spec mode only
+    supersession-tags: review:pr,pr:${{ github.event.pull_request.number }}
     skip-validation: 'false' # only applies with task-spec-path
     max-attempts: '2' # optional task-level retry budget
     mode: once # once | drain (poll disallowed in CI)
@@ -114,10 +120,12 @@ The caller workflow owns the `environment:` binding and maps environment
 variables/secrets into `env:`. This action only consumes the inherited process
 environment; it does not and cannot choose a GitHub Environment.
 
-For CI-only workers, `MOLTNET_AGENT_KEY` is an alternative to the OAuth and
-identity-materialization fields below. When it is present, the action uses the
-SDK's configless agent-key path and does not create `moltnet.json`; set
-`MOLTNET_AGENT_NAME`, `MOLTNET_TEAM_ID`, and `MOLTNET_API_URL` alongside it.
+For CI-only API workloads, `MOLTNET_AGENT_KEY` is an alternative to the OAuth
+and identity-materialization fields below. When it is the only credential, the
+action uses the SDK's configless agent-key path. Agent daemons that execute
+tasks must also attest their executor manifest: provide all six identity,
+OAuth, and Ed25519 fields below so the action materializes `moltnet.json` for
+signing. `MOLTNET_AGENT_KEY` remains authoritative for API authentication.
 
 The exception is `MOLTNET_AGENT_ALLOWLIST` — see [Multi-agent
 routing](#multi-agent-routing) below.

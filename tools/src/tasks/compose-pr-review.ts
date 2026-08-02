@@ -33,6 +33,11 @@ import type { Rubric as RubricType } from '@moltnet/tasks';
 import { PR_REVIEW_TYPE, PrReviewInput, Rubric } from '@moltnet/tasks';
 import { Value } from 'typebox/value';
 
+import {
+  buildPrReviewInput,
+  type PullRequestInfo,
+} from './pr-complexity-review.js';
+
 const { values: args } = parseArgs({
   options: {
     pr: { type: 'string', short: 'p' },
@@ -76,14 +81,6 @@ const MOLTNET_MARKER_RE =
 const LEGREFFIER_MARKER_RE =
   /<!--\s*legreffier-correlation:\s*([0-9a-f-]{36})\s*-->/i;
 
-interface PullRequestInfo {
-  title: string;
-  body: string;
-  url: string;
-  headRefName: string;
-  commitMessages: string[];
-}
-
 function ghJson<T>(ghArgs: string[]): T {
   const out = execFileSync('gh', ghArgs, {
     encoding: 'utf8',
@@ -105,6 +102,8 @@ function getPullRequestInfo(): PullRequestInfo {
     body: string | null;
     url: string;
     headRefName: string;
+    headRefOid: string;
+    baseRefOid: string;
     commits: Array<{ messageHeadline: string; messageBody?: string | null }>;
   }>([
     'pr',
@@ -113,7 +112,7 @@ function getPullRequestInfo(): PullRequestInfo {
     '--repo',
     repoSlug,
     '--json',
-    'title,body,url,headRefName,commits',
+    'title,body,url,headRefName,headRefOid,baseRefOid,commits',
   ]);
 
   return {
@@ -121,6 +120,8 @@ function getPullRequestInfo(): PullRequestInfo {
     body: pr.body ?? '',
     url: pr.url,
     headRefName: pr.headRefName,
+    headRefOid: pr.headRefOid,
+    baseRefOid: pr.baseRefOid,
     commitMessages: pr.commits.map((commit) =>
       [commit.messageHeadline, commit.messageBody ?? '']
         .filter((part) => part.length > 0)
@@ -201,37 +202,6 @@ function validateInput(input: unknown): void {
   }
 }
 
-function buildPrReviewInput(
-  pr: PullRequestInfo,
-  rubric: RubricType,
-): PrReviewInput {
-  return {
-    subject: {
-      title: `PR #${prNumber}: ${pr.title}`,
-      summary:
-        `This subject is the GitHub pull request at ${pr.url}. ` +
-        `Review its complexity and reviewability, not functional correctness.`,
-      resourceUrls: [pr.url],
-      inspectionHints: [
-        'Use the local checkout to read touched files and surrounding code as needed.',
-      ],
-    },
-    taskPrompt: [
-      'This review target is a GitHub pull request.',
-      '',
-      `1. Inspect the PR with \`gh pr view ${prNumber} --repo ${repoSlug}\` and \`gh pr diff ${prNumber} --repo ${repoSlug}\`.`,
-      '2. Use the local checkout to inspect the touched files and enough surrounding code to judge reviewer burden.',
-      `3. Before your final structured output, post exactly one advisory PR comment with \`gh pr comment ${prNumber} --repo ${repoSlug} --body <review>\`.`,
-      '4. That PR comment must include the composite score, the overall verdict, each criterion as pass/fail, and concise rationale explaining the main complexity drivers.',
-      '5. This is a complexity/reviewability judgment, not a correctness review.',
-    ].join('\n'),
-    successCriteria: {
-      version: 1,
-      rubric,
-    },
-  };
-}
-
 function main() {
   const repoRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], {
     encoding: 'utf8',
@@ -241,7 +211,7 @@ function main() {
   const correlationId = resolveCorrelationId(pr);
   const nextBody = ensureLegreffierMarker(pr.body, correlationId);
   const rubric = readRubric(repoRoot);
-  const input = buildPrReviewInput(pr, rubric);
+  const input = buildPrReviewInput({ prNumber, repoSlug, pr, rubric });
   validateInput(input);
 
   if (dryRun) {
@@ -253,7 +223,17 @@ function main() {
   }
 
   process.stdout.write(
-    `${JSON.stringify({ taskType: PR_REVIEW_TYPE, correlationId, input }, null, 2)}\n`,
+    `${JSON.stringify(
+      {
+        taskType: PR_REVIEW_TYPE,
+        correlationId,
+        reviewRevision: pr.headRefOid,
+        reviewBaseRevision: pr.baseRefOid,
+        input,
+      },
+      null,
+      2,
+    )}\n`,
   );
 }
 

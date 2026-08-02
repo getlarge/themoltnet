@@ -209,16 +209,47 @@ context; it is not an invitation to inventory or execute the repository.
 ## GitHub Actions
 
 [`multi-lens-review.yml`](../../.github/workflows/multi-lens-review.yml)
-preserves the `pull_request_target` trusted-base checkout and runs only for
-`ready_for_review` or an `@legreffier /multi-lens-review` mention from an owner,
-member, or collaborator. The prepare job fetches the raw diff and paginated
-file metadata. Two ephemeral workers remain available through the staged
+runs only when an owner, member, or collaborator comments
+`@legreffier /multi-lens-review` on a pull request. The workflow checks out the
+trusted base revision and treats the requested head revision as untrusted
+review input. The prepare job fetches the raw diff and paginated file metadata.
+Two ephemeral workers remain available through the staged
 planner/preflight/canary gates and drain the correlation. Trusted synthesis
 cannot weaken a topic recommendation or omit any blocker or major finding.
 The final marker-backed comment renders completed findings, pivot rationale,
 or questions, plus topic, coverage, artifact, task, and token diagnostics.
 
 Local `act` runs never publish or update a PR comment.
+
+### Production prerequisites and recovery
+
+The `legreffier` GitHub Environment must provide the review database secret,
+the team/profile variables, `MOLTNET_AGENT_KEY`, and the six identity/OAuth/key
+secrets documented by `agent-daemon-action`. Agent-key auth remains the API
+credential, while the Ed25519 material is required to attest executor
+manifests.
+
+Every invocation runs a shared preflight before orchestration or drain workers
+start. It validates the required settings, initializes or migrates the Absurd
+schema to `0.4.0`, and performs an empty correlation-scoped daemon drain. That
+drain resolves the configured profile, authenticates the team binding, builds
+and signs the executor manifest, registers it, and exits without claiming work.
+No review task or Absurd workflow task is created until the preflight succeeds.
+
+If preflight fails, fix the named environment setting or database permission,
+then request a fresh review. To inspect or repair the database manually:
+
+```bash
+export ABSURD_DATABASE_URL="$MULTI_LENS_REVIEW_DATABASE_URL"
+uvx absurdctl schema-version
+uvx absurdctl migrate --to 0.4.0
+uvx absurdctl list-queues
+```
+
+Use `uvx absurdctl init --ref 0.4.0` only when `schema-version` confirms that
+the database is uninitialized. A pre-task orchestration failure leaves the
+correlation empty; drain workers time out successfully after the bounded
+startup grace instead of reporting a second executor-configuration error.
 
 ## Provision the review runtime
 
