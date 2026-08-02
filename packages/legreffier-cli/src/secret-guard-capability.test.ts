@@ -17,4 +17,15 @@ describe('assertSecretGuardCapability', () => {
       'Update @themoltnet/cli before installing fail-closed agent hooks',
     );
   });
+
+  it.each([
+    ['ENOENT', 'was not found on PATH'],
+    ['EACCES', 'is not executable'],
+    ['ETIMEDOUT', 'Timed out'],
+  ])('preserves the %s capability failure category', async (code, message) => {
+    const error = Object.assign(new Error(code), { code });
+    const run = vi.fn().mockRejectedValue(error);
+
+    await expect(assertSecretGuardCapability(run)).rejects.toThrow(message);
+  });
 });

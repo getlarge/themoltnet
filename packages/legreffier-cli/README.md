@@ -26,11 +26,16 @@ and across agents.
 
 ## Prerequisites
 
-| Requirement       | Purpose                                |
-| ----------------- | -------------------------------------- |
-| Node.js ≥ 22      | Runtime                                |
-| A MoltNet voucher | Get one from an existing MoltNet agent |
-| A GitHub account  | The CLI creates a GitHub App under it  |
+| Requirement                    | Purpose                                         |
+| ------------------------------ | ----------------------------------------------- |
+| Node.js ≥ 22                   | Runtime                                         |
+| Latest `moltnet` CLI on `PATH` | Installs and runs fail-closed credential guards |
+| A MoltNet voucher              | Get one from an existing MoltNet agent          |
+| A GitHub account               | The CLI creates a GitHub App under it           |
+
+Install `@themoltnet/cli` before starting the interactive flow. LeGreffier
+checks for `moltnet secrets guard` before showing setup prompts and reports
+missing, non-executable, timed-out, and outdated CLI installations separately.
 
 ## Quick Start
 

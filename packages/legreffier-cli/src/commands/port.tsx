@@ -6,6 +6,7 @@ import { render } from 'ink';
 import { validatePortFromArg } from '../phases/portArgs.js';
 import type { PortDiaryMode } from '../phases/portDiary.js';
 import { PortApp } from '../PortApp.js';
+import { assertSecretGuardCapability } from '../secret-guard-capability.js';
 import {
   CliValidationError,
   collectAgents,
@@ -56,7 +57,8 @@ export const portCommand = defineCommand({
       valueHint: 'new|reuse|skip',
     },
   },
-  run: withCleanErrors(({ args, rawArgs }) => {
+  run: withCleanErrors(async ({ args, rawArgs }) => {
+    await assertSecretGuardCapability();
     const name = requireAgentName(args.name);
     const agents = collectAgents(rawArgs);
     const apiUrl = resolveApiUrl(args['api-url']);
