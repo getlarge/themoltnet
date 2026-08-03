@@ -438,6 +438,88 @@ func TestStartDryRunForwardsTargetArgs(t *testing.T) {
 	}
 }
 
+func TestStartInjectsKeyringSecretOnlyIntoChildEnvironment(t *testing.T) {
+	dir := t.TempDir()
+	agentDir := filepath.Join(dir, ".moltnet", "test-agent")
+	if err := os.MkdirAll(agentDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	key := OAuth2SecretKey("identity-123", "client-456")
+	if _, err := WriteConfigTo(&CredentialsFile{
+		IdentityID: "identity-123",
+		OAuth2: CredentialsOAuth2{
+			ClientID: "client-456",
+			ClientSecretRef: &SecretReference{
+				Provider: osKeyringProviderName,
+				Key:      key,
+			},
+		},
+	}, filepath.Join(agentDir, "moltnet.json")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(agentDir, "env"), []byte("MY_VAR='hello'\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("TEST_AGENT_CLIENT_SECRET", "stale-parent-secret")
+
+	registry := NewSecretProviderRegistry()
+	registry.Register(osKeyringProviderName, &memorySecretProvider{values: map[string]string{
+		key: "launch-only-secret",
+	}})
+	var capturedPath string
+	var capturedArgv, capturedEnv []string
+	execFn := func(targetPath string, argv, env []string) error {
+		capturedPath = targetPath
+		capturedArgv = append([]string(nil), argv...)
+		capturedEnv = append([]string(nil), env...)
+		return nil
+	}
+
+	err := runStartCmdWithRegistryAndExec(
+		NewRootCmd("test", ""),
+		dir,
+		"test-agent",
+		"echo",
+		[]string{"hello"},
+		false,
+		registry,
+		execFn,
+	)
+	if err != nil {
+		t.Fatalf("runStartCmdWithRegistryAndExec: %v", err)
+	}
+	if capturedPath == "" {
+		t.Fatal("child process was not invoked")
+	}
+	if got := strings.Join(capturedArgv, " "); got != "echo hello" {
+		t.Fatalf("child argv = %q, want %q", got, "echo hello")
+	}
+	childEnv := make(map[string]string, len(capturedEnv))
+	for _, entry := range capturedEnv {
+		if index := strings.IndexByte(entry, '='); index > 0 {
+			childEnv[entry[:index]] = entry[index+1:]
+		}
+	}
+	if got := childEnv["TEST_AGENT_CLIENT_ID"]; got != "client-456" {
+		t.Fatalf("child client id = %q, want %q", got, "client-456")
+	}
+	if got := childEnv["TEST_AGENT_CLIENT_SECRET"]; got != "launch-only-secret" {
+		t.Fatalf("child client secret = %q, want launch-time keyring value", got)
+	}
+	for _, path := range []string{
+		filepath.Join(agentDir, "moltnet.json"),
+		filepath.Join(agentDir, "env"),
+	} {
+		content, readErr := os.ReadFile(path)
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		if strings.Contains(string(content), "launch-only-secret") {
+			t.Fatalf("launch secret persisted to %s", path)
+		}
+	}
+}
+
 func TestStartMissingAgent(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
