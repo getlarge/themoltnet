@@ -34,18 +34,23 @@ describe('findInstallationForOwner (integration)', () => {
   it('creates a valid JWT and sends correct headers', async () => {
     // Arrange
     const privateKeyPath = createTempRsaKeyFile();
-    const fetchMock = vi.fn(async () => ({
-      ok: true,
-      status: 200,
-      headers: { get: () => null },
-      json: async () => [
-        {
-          id: 42,
-          account: { login: 'target-org' },
-          target_type: 'Organization',
-        },
-      ],
-    }));
+    const fetchMock = vi.fn(
+      async (
+        _input: Parameters<typeof fetch>[0],
+        _init?: Parameters<typeof fetch>[1],
+      ) => ({
+        ok: true,
+        status: 200,
+        headers: { get: () => null },
+        json: async () => [
+          {
+            id: 42,
+            account: { login: 'target-org' },
+            target_type: 'Organization',
+          },
+        ],
+      }),
+    );
     vi.stubGlobal('fetch', fetchMock);
 
     // Act

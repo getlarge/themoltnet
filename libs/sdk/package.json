@@ -55,9 +55,11 @@
     "typebox": "catalog:"
   },
   "devDependencies": {
+    "@moltnet/agent-config": "workspace:*",
     "@moltnet/api-client": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/models": "workspace:*",
+    "@moltnet/os-keyring": "workspace:*",
     "@moltnet/tasks": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
