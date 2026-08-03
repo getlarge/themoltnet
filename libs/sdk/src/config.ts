@@ -13,7 +13,11 @@ export interface EnvCredentials {
 
 /** Read one environment value behind the SDK's config boundary. */
 export function readEnvironmentVariable(name: string): string | undefined {
-  return process.env[name];
+  return (
+    globalThis as {
+      process?: { env?: Record<string, string | undefined> };
+    }
+  ).process?.env?.[name];
 }
 
 /**
@@ -23,10 +27,10 @@ export function readEnvironmentVariable(name: string): string | undefined {
  */
 export function readEnvCredentials(): EnvCredentials {
   return {
-    clientId: process.env.MOLTNET_CLIENT_ID,
-    clientSecret: process.env.MOLTNET_CLIENT_SECRET,
-    apiUrl: process.env.MOLTNET_API_URL,
-    agentKey: process.env.MOLTNET_AGENT_KEY,
+    clientId: readEnvironmentVariable('MOLTNET_CLIENT_ID'),
+    clientSecret: readEnvironmentVariable('MOLTNET_CLIENT_SECRET'),
+    apiUrl: readEnvironmentVariable('MOLTNET_API_URL'),
+    agentKey: readEnvironmentVariable('MOLTNET_AGENT_KEY'),
   };
 }
 
