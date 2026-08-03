@@ -363,4 +363,22 @@ describe('TaskLivePane', () => {
     expect(closed).toBe(true);
     expect(screen.getByRole('tab', { name: /turns/i })).toBeInTheDocument();
   });
+
+  it('uses a bounded, non-sticky viewport inside a dialog', () => {
+    const { container } = renderWithTheme(
+      <TaskLivePane
+        task={taskWith('running', 'abcdef1234')}
+        attempt={attemptFixture}
+        messages={messagesFixture}
+        presentation="dialog"
+      />,
+    );
+
+    const pane = container.querySelector(
+      '[data-presentation="dialog"]',
+    ) as HTMLElement;
+    expect(pane).toBeInTheDocument();
+    expect(pane.style.position).toBe('relative');
+    expect(pane.style.minHeight).toBe('');
+  });
 });
