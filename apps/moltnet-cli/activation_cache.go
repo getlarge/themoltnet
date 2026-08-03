@@ -127,7 +127,7 @@ func resolveActivationContext(dir, agentFlag string) (*activationContext, error)
 	if err != nil {
 		return nil, err
 	}
-	agentName, err := resolveAgentName(moltnetDir, agentFlag)
+	agentName, err := resolveActivationAgentName(moltnetDir, agentFlag)
 	if err != nil {
 		return nil, err
 	}
@@ -151,6 +151,31 @@ func resolveActivationContext(dir, agentFlag string) (*activationContext, error)
 		EnvVars:    envVars,
 		CachePath:  filepath.Join(agentDir, "activation-cache.json"),
 	}, nil
+}
+
+func resolveActivationAgentName(moltnetDir, agentFlag string) (string, error) {
+	agentName, resolveErr := resolveAgentName(moltnetDir, agentFlag)
+	if resolveErr == nil {
+		return agentName, nil
+	}
+
+	// Validation and clearing must still find a warm cache after credentials
+	// disappear; that disappearance is itself the invalidation being reported.
+	candidates := []string{}
+	if agentFlag != "" {
+		candidates = append(candidates, agentFlag)
+	} else if data, err := os.ReadFile(filepath.Join(moltnetDir, "default-agent")); err == nil {
+		if name := strings.TrimSpace(string(data)); name != "" {
+			candidates = append(candidates, name)
+		}
+	}
+	for _, candidate := range candidates {
+		cachePath := filepath.Join(moltnetDir, candidate, "activation-cache.json")
+		if info, err := os.Stat(cachePath); err == nil && !info.IsDir() {
+			return candidate, nil
+		}
+	}
+	return "", resolveErr
 }
 
 func buildActivationCache(ctx *activationContext) (*activationCache, error) {
@@ -256,7 +281,10 @@ func validateActivationCache(ctx *activationContext) (*activationValidationResul
 	}
 	current, err := buildActivationCache(ctx)
 	if err != nil {
-		return nil, err
+		// A vanished or unreadable cache input is an expected invalidation, not
+		// a command failure. Keep validation machine-readable so activation can
+		// route through the documented cold ceremony.
+		return invalidActivation("input_unavailable", nil), nil
 	}
 
 	var changed []string
