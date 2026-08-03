@@ -157,13 +157,16 @@ describe('credentials / config', () => {
       expect(parsed.identity_id).toBe('uuid-123');
     });
 
-    it('sets file permissions to 0o600', async () => {
-      const { writeConfig } = await import('../src/credentials.js');
-      const path = await writeConfig(sampleConfig);
+    it.runIf(process.platform !== 'win32')(
+      'sets file permissions to 0o600',
+      async () => {
+        const { writeConfig } = await import('../src/credentials.js');
+        const path = await writeConfig(sampleConfig);
 
-      const info = await stat(path);
-      expect(info.mode & 0o777).toBe(0o600);
-    });
+        const info = await stat(path);
+        expect(info.mode & 0o777).toBe(0o600);
+      },
+    );
   });
 
   describe('optional sections round-trip', () => {
