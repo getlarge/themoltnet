@@ -259,10 +259,6 @@ func resolveCredentialsPath(explicit string) (string, error) {
 	if regularFileExists(configPath) {
 		return configPath, nil
 	}
-	legacyPath := filepath.Join(filepath.Dir(configPath), "credentials.json")
-	if regularFileExists(legacyPath) {
-		return legacyPath, nil
-	}
 	return configPath, nil
 }
 

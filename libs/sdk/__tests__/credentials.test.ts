@@ -86,7 +86,7 @@ describe('credentials / config', () => {
       expect(result!.oauth2.client_id).toBe('client-id');
     });
 
-    it('falls back to credentials.json when moltnet.json absent, emits deprecation warning', async () => {
+    it('ignores credentials.json when moltnet.json is absent', async () => {
       // Arrange
       const dir = configDir();
       await mkdir(dir, { recursive: true });
@@ -94,21 +94,12 @@ describe('credentials / config', () => {
         join(dir, 'credentials.json'),
         JSON.stringify(sampleConfig, null, 2),
       );
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
       // Act
       const { readConfig } = await import('../src/credentials.js');
       const result = await readConfig();
 
       // Assert
-      expect(result).not.toBeNull();
-      expect(result!.identity_id).toBe('uuid-123');
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('credentials.json'),
-      );
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('deprecated'),
-      );
+      expect(result).toBeNull();
     });
 
     it('prefers moltnet.json when both exist', async () => {

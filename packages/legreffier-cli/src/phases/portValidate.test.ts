@@ -241,7 +241,7 @@ describe('runPortValidatePhase', () => {
     );
   });
 
-  it('sets canProceed=true when only non-blocking (fixed/migrate) issues exist', async () => {
+  it('sets canProceed=true when only non-blocking fixed issues exist', async () => {
     const dir = join(tmpRoot, 'fixed-only');
     const config = baseConfig(dir);
     // Strip endpoints.mcp so repairConfig auto-fixes it with action=fixed

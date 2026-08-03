@@ -61,18 +61,6 @@ export async function readConfig(
     const content = await readFile(join(dir, 'moltnet.json'), 'utf-8');
     return JSON.parse(content) as MoltNetConfig;
   } catch {
-    // Try the legacy path below.
-  }
-  try {
-    const content = await readFile(join(dir, 'credentials.json'), 'utf-8');
-    // eslint-disable-next-line no-console
-    console.warn(
-      'Warning: credentials.json is deprecated. ' +
-        'New writes use moltnet.json. ' +
-        'Support will be removed in 3 minor versions.',
-    );
-    return JSON.parse(content) as MoltNetConfig;
-  } catch {
     return null;
   }
 }

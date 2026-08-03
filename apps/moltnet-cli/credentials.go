@@ -74,36 +74,14 @@ func GetConfigPath() (string, error) {
 	return filepath.Join(dir, "moltnet.json"), nil
 }
 
-// ReadConfig tries moltnet.json first, falls back to credentials.json with
-// a deprecation warning on stderr. Returns nil if neither exists.
+// ReadConfig reads moltnet.json from the default config directory.
 func ReadConfig() (*CredentialsFile, error) {
 	dir, err := GetConfigDir()
 	if err != nil {
 		return nil, err
 	}
 
-	// Try moltnet.json first
-	moltnetPath := filepath.Join(dir, "moltnet.json")
-	creds, err := ReadConfigFrom(moltnetPath)
-	if err != nil {
-		return nil, err
-	}
-	if creds != nil {
-		return creds, nil
-	}
-
-	// Fall back to credentials.json
-	legacyPath := filepath.Join(dir, "credentials.json")
-	creds, err = ReadConfigFrom(legacyPath)
-	if err != nil {
-		return nil, err
-	}
-	if creds != nil {
-		fmt.Fprintf(os.Stderr, "Warning: credentials.json is deprecated. New writes use moltnet.json. Support will be removed in 3 minor versions.\n")
-		return creds, nil
-	}
-
-	return nil, nil
+	return ReadConfigFrom(filepath.Join(dir, "moltnet.json"))
 }
 
 // ReadConfigFrom reads and parses a config file at the given path.

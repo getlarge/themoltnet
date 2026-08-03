@@ -46,8 +46,8 @@ export async function runPortValidatePhase(opts: {
     );
   }
 
-  // Generic SDK checks (identity_id, keys, endpoints, file paths, legacy
-  // credentials.json migration). Dry-run so we don't mutate the source.
+  // Generic SDK checks (identity_id, keys, endpoints, file paths). Dry-run so
+  // we don't mutate the source.
   const { issues: rawBaseIssues } = await repairConfig({
     configDir: sourceDir,
     dryRun: true,
@@ -156,10 +156,8 @@ export async function runPortValidatePhase(opts: {
   // (checked softly; a missing file is a warning, not a blocker)
   // Note: repairConfig already checks the four path fields above.
 
-  // Block only on unresolved warnings. `fixed` (auto-repaired by repairConfig)
-  // and `migrate` (advisory legacy format migration) are non-blocking by
-  // definition — they represent state that is already corrected or will be
-  // handled by the copy/rewrite phases.
+  // Block only on unresolved warnings. `fixed` issues are non-blocking because
+  // they represent state already corrected by repairConfig.
   const blockingIssues = issues.filter((i) => i.action === 'warning');
   const canProceed = blockingIssues.length === 0;
   return { config, issues, canProceed };
