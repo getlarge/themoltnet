@@ -6,7 +6,9 @@ import {
   type MoltNetConfig,
   readConfig,
   repairConfig,
+  type SecretProviderRegistry,
 } from '@themoltnet/sdk';
+import { resolveNodeOAuth2ClientSecret } from '@themoltnet/sdk/node';
 
 export interface PortValidateResult {
   config: MoltNetConfig;
@@ -31,8 +33,9 @@ export interface PortValidateResult {
  */
 export async function runPortValidatePhase(opts: {
   sourceDir: string;
+  secretProviders?: SecretProviderRegistry;
 }): Promise<PortValidateResult> {
-  const { sourceDir } = opts;
+  const { sourceDir, secretProviders } = opts;
 
   const sourceConfig = await readConfig(sourceDir);
   const config = await hydrateLegacyPortConfig(sourceConfig, sourceDir);
@@ -60,7 +63,34 @@ export async function runPortValidatePhase(opts: {
       action: 'warning',
     });
   }
-  if (!config.oauth2?.client_secret && !config.oauth2?.client_secret_ref) {
+  const plaintextSecret = config.oauth2?.client_secret?.trim();
+  const secretReference = config.oauth2?.client_secret_ref;
+  if (plaintextSecret && secretReference) {
+    issues.push({
+      field: 'oauth2.client_secret/client_secret_ref',
+      problem: 'ambiguous — set exactly one secret form',
+      action: 'warning',
+    });
+  } else if (
+    secretReference &&
+    (!secretReference.provider?.trim() || !secretReference.key?.trim())
+  ) {
+    issues.push({
+      field: 'oauth2.client_secret_ref',
+      problem: 'provider and key must both be non-empty',
+      action: 'warning',
+    });
+  } else if (secretReference) {
+    try {
+      await resolveNodeOAuth2ClientSecret(config, secretProviders);
+    } catch (error) {
+      issues.push({
+        field: 'oauth2.client_secret_ref',
+        problem: `cannot be resolved — ${error instanceof Error ? error.message : String(error)}`,
+        action: 'warning',
+      });
+    }
+  } else if (!plaintextSecret) {
     issues.push({
       field: 'oauth2.client_secret/client_secret_ref',
       problem: 'missing — required for port',

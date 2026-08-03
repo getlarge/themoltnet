@@ -1,6 +1,5 @@
 import { cryptoService } from '@moltnet/crypto-service';
 import { readConfig, writeConfig } from '@themoltnet/sdk';
-import { resolveNodeOAuth2ClientSecret } from '@themoltnet/sdk/node';
 
 import { checkWorkflowLive, startOnboarding } from '../api.js';
 import { checkAppNameAvailable, suggestAppNames } from '../github.js';
@@ -20,7 +19,6 @@ export async function runIdentityPhase(opts: {
   const existingState = await readState(configDir);
 
   if (existingConfig?.keys?.public_key && existingConfig?.oauth2?.client_id) {
-    const clientSecret = await resolveNodeOAuth2ClientSecret(existingConfig);
     dispatch({ type: 'step', key: 'keypair', status: 'skipped' });
     dispatch({ type: 'step', key: 'register', status: 'skipped' });
     dispatch({
@@ -38,7 +36,10 @@ export async function runIdentityPhase(opts: {
       workflowId,
       manifestFormUrl: '',
       clientId: existingConfig.oauth2.client_id,
-      clientSecret,
+      clientSecret:
+        'client_secret' in existingConfig.oauth2
+          ? (existingConfig.oauth2.client_secret ?? '')
+          : '',
       skipped: true,
     };
   }
@@ -75,9 +76,6 @@ export async function runIdentityPhase(opts: {
           configDir,
         );
       }
-      const clientSecret = existingConfig
-        ? await resolveNodeOAuth2ClientSecret(existingConfig)
-        : '';
       return {
         publicKey: resumePublicKey,
         privateKey: resumePrivateKey,
@@ -85,7 +83,10 @@ export async function runIdentityPhase(opts: {
         workflowId: existingState.workflowId,
         manifestFormUrl: '',
         clientId: existingConfig?.oauth2?.client_id ?? '',
-        clientSecret,
+        clientSecret:
+          existingConfig && 'client_secret' in existingConfig.oauth2
+            ? (existingConfig.oauth2.client_secret ?? '')
+            : '',
         skipped: true,
       };
     }
