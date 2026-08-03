@@ -39,6 +39,8 @@ func TestSecretsGuardDeniesAlternateShellConstructs(t *testing.T) {
 		`secret-tool lookup service themolt.net`,
 		`moltnet config export-env --credentials .moltnet/agent/moltnet.json --show-secret`,
 		`moltnet github token --credentials .moltnet/agent/moltnet.json`,
+		`moltnet github credential-helper`,
+		`moltnet github credential-helper --credentials .moltnet/agent/moltnet.json`,
 		`moltnet ssh-key --output-dir /tmp/exported-agent-key`,
 		`"$READER" .moltnet/agent/env`,
 		`moltnet agents credentials rotate --credentials .moltnet/agent/moltnet.json`,
@@ -180,6 +182,25 @@ func TestSecretsGuardProtectsManagedHookConfiguration(t *testing.T) {
 		}
 		if !strings.Contains(output.String(), `"permissionDecision":"deny"`) {
 			t.Errorf("expected managed path denial for %s, got %s", path, output.String())
+		}
+	}
+}
+
+func TestSecretsGuardProtectsManagedHookAncestorsAndCaseVariants(t *testing.T) {
+	t.Parallel()
+	paths := []string{
+		".claude",
+		".CLAUDE/settings.json",
+		".codex",
+		".CODEX/hooks.json",
+		".opencode",
+		".opencode/plugins",
+		".OPENCODE/PLUGINS/moltnet-secret-guard.ts",
+		".MOLTNET/agent/env",
+	}
+	for _, path := range paths {
+		if !pathTouchesProtectedSecret(path) {
+			t.Errorf("expected protected path for %s", path)
 		}
 	}
 }

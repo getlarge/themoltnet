@@ -237,7 +237,10 @@ func pathTouchesProtectedSecret(value string) bool {
 }
 
 func pathTouchesProtectedSecretLexical(value string) bool {
-	value = filepath.ToSlash(filepath.Clean(value))
+	// Treat policy paths case-insensitively. This intentionally errs on the
+	// side of blocking case variants on case-sensitive hosts so the same hook
+	// cannot be bypassed when a repository moves to macOS or Windows.
+	value = strings.ToLower(filepath.ToSlash(filepath.Clean(value)))
 	if value == "." || value == "" {
 		return false
 	}
@@ -275,9 +278,17 @@ func isProtectedGuardPath(value string) bool {
 		".codex/hooks.json",
 		".opencode/plugins/moltnet-secret-guard.ts",
 	}
-	for _, path := range protected {
-		if value == path || strings.HasSuffix(value, "/"+path) {
+	value = strings.ToLower(filepath.ToSlash(filepath.Clean(value)))
+	for _, protectedPath := range protected {
+		if value == protectedPath || strings.HasSuffix(value, "/"+protectedPath) {
 			return true
+		}
+		// Removing any ancestor of a managed hook/configuration file removes
+		// enforcement just as surely as deleting the file itself.
+		for parent := filepath.ToSlash(filepath.Dir(protectedPath)); parent != "."; parent = filepath.ToSlash(filepath.Dir(parent)) {
+			if value == parent || strings.HasSuffix(value, "/"+parent) {
+				return true
+			}
 		}
 	}
 	return false
@@ -458,7 +469,6 @@ func isReviewedMoltnetConsumer(executable string, args []string, allowGitHubToke
 	return matchesMoltnetOperation(args,
 		[]string{"github", "setup"},
 		[]string{"github", "guard"},
-		[]string{"github", "credential-helper"},
 	) || (allowGitHubToken && matchesMoltnetOperation(args, []string{"github", "token"}))
 }
 
@@ -514,6 +524,9 @@ func isMoltnetRevealArgs(args []string, allowGitHubToken bool) bool {
 		return true
 	}
 	if len(args) >= 2 && args[0] == "config" && args[1] == "export-env" {
+		return true
+	}
+	if len(args) >= 2 && args[0] == "github" && args[1] == "credential-helper" {
 		return true
 	}
 	if len(args) > 0 && args[0] == "ssh-key" {

@@ -329,6 +329,31 @@ func TestAgentsActivationValidateMissingRequiredInput(t *testing.T) {
 	}
 }
 
+func TestAgentsActivationValidateUnavailableInputReturnsInvalidJSON(t *testing.T) {
+	t.Parallel()
+	dir := setupActivationCacheFixture(t)
+	if err := runAgentsActivationRefreshCmd(io.Discard, dir, "test-agent", true); err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+	credentialsPath := filepath.Join(dir, ".moltnet", "test-agent", "moltnet.json")
+	if err := os.Remove(credentialsPath); err != nil {
+		t.Fatal(err)
+	}
+
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "agents", "activation", "validate", "--agent", "test-agent", "--dir", dir, "--json")
+	if err != nil {
+		t.Fatalf("validate must report invalidation, not fail: %v", err)
+	}
+	var result activationValidationResult
+	if err := json.Unmarshal([]byte(stdout), &result); err != nil {
+		t.Fatalf("unmarshal result: %v\n%s", err, stdout)
+	}
+	if result.Valid || result.Reason != "input_unavailable" {
+		t.Fatalf("result = %+v, want input_unavailable", result)
+	}
+}
+
 func TestAgentsActivationValidateRejectsForgedCacheMetadata(t *testing.T) {
 	t.Parallel()
 	dir := setupActivationCacheFixture(t)

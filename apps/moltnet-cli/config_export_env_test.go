@@ -109,6 +109,9 @@ func TestConfigExportEnvToFile(t *testing.T) {
 	}
 
 	outPath := filepath.Join(tmpDir, ".env.moltnet")
+	if err := os.WriteFile(outPath, []byte("previous contents"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "config", "export-env",
 		"--credentials", credPath,
