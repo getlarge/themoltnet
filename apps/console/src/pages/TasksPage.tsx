@@ -49,7 +49,6 @@ import { getApiClient } from '../api.js';
 import { getConfig } from '../config.js';
 import { useDiarySummaries } from '../diaries/hooks.js';
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
-import { useIsMobile } from '../hooks/useIsMobile.js';
 import { getTaskStatusQuery, TASK_STATUS_FILTERS } from '../tasks/status.js';
 import { useLaneQueries } from '../tasks/useLaneQueries.js';
 import { useTeam } from '../team/useTeam.js';
@@ -98,7 +97,6 @@ export function TasksPage() {
   const [deleteResult, setDeleteResult] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const isMobile = useIsMobile();
   const teamId = selectedTeam?.id;
 
   // Debounce the free-text filters before they feed TanStack query keys. The
@@ -556,23 +554,18 @@ export function TasksPage() {
           {view === 'board' ? (
             <>
               <TaskFunnelStrip counts={laneCounts} />
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: isMobile
-                    ? 'minmax(0, 1fr)'
-                    : selectedTaskId
-                      ? 'minmax(0, 1fr) minmax(320px, 420px)'
-                      : '1fr',
-                  gap: theme.spacing[4],
-                  alignItems: 'start',
-                }}
+              <TaskLaneBoard
+                lanes={lanes}
+                selectedTaskId={selectedTaskId}
+                onSelectTask={(task) => selectTask(task.id)}
+              />
+              <Dialog
+                open={Boolean(selectedTaskId)}
+                onClose={() => selectTask(undefined)}
+                title="Task terminal"
+                width="960px"
+                closeLabel="Close task terminal"
               >
-                <TaskLaneBoard
-                  lanes={lanes}
-                  selectedTaskId={selectedTaskId}
-                  onSelectTask={(task) => selectTask(task.id)}
-                />
                 {selectedTaskId ? (
                   selectedTaskQuery.isLoading ? (
                     <TaskPaneState
@@ -618,12 +611,11 @@ export function TasksPage() {
                       attempt={latestAttempt}
                       messages={selectedMessagesQuery.data ?? []}
                       learnMoreHref={AGENT_DAEMON_DOCS_HREF}
-                      defaultCollapsed={isMobile}
-                      onClose={() => selectTask(undefined)}
+                      presentation="dialog"
                     />
                   ) : null
                 ) : null}
-              </div>
+              </Dialog>
             </>
           ) : (
             <TaskQueueTable

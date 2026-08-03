@@ -49,16 +49,21 @@ export function TaskLaneColumn({
   const theme = useTheme();
   const dot = toneColor(theme, lane.tone);
   const count = total ?? tasks.length;
+  const headingId = `task-lane-${lane.id}-heading`;
 
   return (
-    <div
+    <section
+      aria-labelledby={headingId}
       style={{
         background: theme.color.bg.surface,
         border: `1px solid ${theme.color.border.DEFAULT}`,
         borderRadius: theme.radius.lg,
         display: 'flex',
         flexDirection: 'column',
+        height: 'clamp(24rem, calc(100dvh - 18rem), 42rem)',
         minWidth: 0,
+        overflow: 'hidden',
+        scrollSnapAlign: 'start',
       }}
     >
       <Stack
@@ -82,6 +87,8 @@ export function TaskLaneColumn({
             }}
           />
           <Text
+            as="h2"
+            id={headingId}
             style={{
               fontWeight: theme.font.weight.semibold,
               textTransform: 'uppercase',
@@ -100,7 +107,23 @@ export function TaskLaneColumn({
           {count}
         </Text>
       </Stack>
-      <Stack gap={2} style={{ padding: theme.spacing[3] }}>
+      <div
+        aria-busy={isLoading || undefined}
+        aria-label={`${lane.title} tasks`}
+        role="region"
+        tabIndex={tasks.length > 0 ? 0 : undefined}
+        style={{
+          display: 'flex',
+          flex: 1,
+          flexDirection: 'column',
+          gap: theme.spacing[2],
+          minHeight: 0,
+          overflowY: 'auto',
+          overscrollBehaviorY: 'contain',
+          padding: theme.spacing[3],
+          scrollbarGutter: 'stable',
+        }}
+      >
         {tasks.length === 0 ? (
           <Text variant="caption" color="muted">
             No tasks
@@ -126,7 +149,7 @@ export function TaskLaneColumn({
             {isLoading ? 'Loading…' : 'Load more'}
           </Button>
         ) : null}
-      </Stack>
-    </div>
+      </div>
+    </section>
   );
 }

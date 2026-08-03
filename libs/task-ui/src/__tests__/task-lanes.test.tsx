@@ -137,6 +137,24 @@ describe('TaskLaneColumn', () => {
     );
     expect(screen.getAllByText('Curate task UI context')).toHaveLength(2);
   });
+
+  it('exposes a bounded, independently scrollable lane region', () => {
+    renderWithTheme(
+      <TaskLaneColumn
+        lane={TASK_LANES[1]}
+        tasks={[taskWith('running', 'aaaa1111')]}
+      />,
+    );
+
+    const lane = screen.getByRole('region', { name: 'Active' });
+    const taskList = screen.getByRole('region', { name: 'Active tasks' });
+    expect(lane).toHaveStyle({
+      height: 'clamp(24rem, calc(100dvh - 18rem), 42rem)',
+      overflow: 'hidden',
+    });
+    expect(taskList).toHaveAttribute('tabindex', '0');
+    expect(taskList).toHaveStyle({ overflowY: 'auto' });
+  });
 });
 
 describe('TaskLaneBoard', () => {
@@ -159,6 +177,23 @@ describe('TaskLaneBoard', () => {
     expect(container).toHaveTextContent('q1');
     expect(container).toHaveTextContent('r1');
     expect(container).toHaveTextContent('d1');
+  });
+
+  it('keeps lifecycle lanes on one horizontally scrollable track', () => {
+    renderWithTheme(<TaskLaneBoard lanes={{}} />);
+
+    const board = screen.getByRole('region', {
+      name: /scroll horizontally/i,
+    });
+    expect(board).toHaveAttribute('tabindex', '0');
+    expect(board).toHaveStyle({
+      overflowX: 'auto',
+      scrollSnapType: 'x proximity',
+    });
+    expect(board.firstElementChild).toHaveStyle({
+      gridAutoColumns: 'min(82vw, 18rem)',
+      gridAutoFlow: 'column',
+    });
   });
 
   it('shows the real total in a lane header even when more remain', () => {
@@ -192,6 +227,9 @@ describe('TaskFunnelStrip', () => {
     expect(screen.getByText('4')).toBeInTheDocument();
     expect(screen.getByText('12')).toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();
+    expect(
+      screen.getByRole('region', { name: 'Task lifecycle summary' }),
+    ).toHaveStyle({ overflowX: 'auto' });
   });
 });
 
@@ -324,5 +362,23 @@ describe('TaskLivePane', () => {
     fireEvent.click(screen.getByRole('button', { name: /close/i }));
     expect(closed).toBe(true);
     expect(screen.getByRole('tab', { name: /turns/i })).toBeInTheDocument();
+  });
+
+  it('uses a bounded, non-sticky viewport inside a dialog', () => {
+    const { container } = renderWithTheme(
+      <TaskLivePane
+        task={taskWith('running', 'abcdef1234')}
+        attempt={attemptFixture}
+        messages={messagesFixture}
+        presentation="dialog"
+      />,
+    );
+
+    const pane = container.querySelector(
+      '[data-presentation="dialog"]',
+    ) as HTMLElement;
+    expect(pane).toBeInTheDocument();
+    expect(pane.style.position).toBe('relative');
+    expect(pane.style.minHeight).toBe('');
   });
 });

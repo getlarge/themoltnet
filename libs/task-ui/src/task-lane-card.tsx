@@ -33,7 +33,9 @@ export function TaskLaneCard({
 
   return (
     <button
+      aria-pressed={selected}
       type="button"
+      title={taskTitle}
       onClick={() => onSelect?.(task)}
       style={{
         display: 'block',
@@ -53,7 +55,13 @@ export function TaskLaneCard({
       <Stack gap={1}>
         <Stack direction="row" align="center" gap={2}>
           {isActive ? <LivePulse /> : null}
-          <Text style={{ fontWeight: theme.font.weight.semibold }}>
+          <Text
+            style={{
+              fontWeight: theme.font.weight.semibold,
+              minWidth: 0,
+              overflowWrap: 'anywhere',
+            }}
+          >
             {taskTitle}
           </Text>
         </Stack>
@@ -71,7 +79,14 @@ export function TaskLaneCard({
                 key={tag}
                 variant="caption"
                 color="muted"
-                style={{ fontFamily: theme.font.family.mono }}
+                style={{
+                  display: 'block',
+                  fontFamily: theme.font.family.mono,
+                  maxWidth: '100%',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
               >
                 #{tag}
               </Text>

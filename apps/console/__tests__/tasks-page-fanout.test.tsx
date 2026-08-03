@@ -72,7 +72,13 @@ vi.mock('@moltnet/api-client/query', () => ({
   }),
   getTaskOptions: () => ({
     queryKey: ['getTask'],
-    queryFn: async () => null,
+    queryFn: async () => ({
+      id: 'task-1',
+      title: 'Inspect responsive board',
+      taskType: 'freeform',
+      status: 'queued',
+      input: {},
+    }),
   }),
   listTaskAttemptsOptions: () => ({
     queryKey: ['listTaskAttempts'],
@@ -98,10 +104,6 @@ vi.mock('../src/config.js', () => ({
 
 vi.mock('../src/diaries/hooks.js', () => ({
   useDiarySummaries: () => ({ data: [{ id: 'd1', name: 'diary-1' }] }),
-}));
-
-vi.mock('../src/hooks/useIsMobile.js', () => ({
-  useIsMobile: () => false,
 }));
 
 vi.mock('../src/team/useTeam.js', () => ({
@@ -144,7 +146,9 @@ vi.mock('@moltnet/task-ui', () => {
       <div data-testid="lane-counts">{JSON.stringify(counts)}</div>
     ),
     TaskLaneBoard: () => <div data-testid="lane-board" />,
-    TaskLivePane: () => null,
+    TaskLivePane: ({ presentation }: { presentation?: string }) => (
+      <div data-presentation={presentation} data-testid="task-live-pane" />
+    ),
     TaskQueueTable: () => <div data-testid="queue-table" />,
     TaskTypeFacet: ({
       selected,
@@ -223,6 +227,22 @@ describe('TasksPage query fanout (#1320)', () => {
     // The candidate query is the only consumer of listTasksOptions on mount.
     // It is gated on showCreate, so nothing should have fired yet.
     expect(listTasksRequests.length).toBe(0);
+  });
+
+  it('opens selected task evidence in a modal without replacing the board', async () => {
+    currentSearch = 'selected=task-1';
+    render(<TasksPage />, { wrapper: Wrapper });
+    await flush();
+
+    expect(screen.getByTestId('lane-board')).toBeInTheDocument();
+    expect(
+      screen.getByRole('dialog', { name: 'Task terminal' }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Close task terminal' }),
+    );
+    expect(navigate).toHaveBeenLastCalledWith('/tasks');
   });
 
   it('applies a selected status to its board lane without fetching other lanes', async () => {

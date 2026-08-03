@@ -30,6 +30,8 @@ export interface TaskLivePaneProps {
   onClose?: () => void;
   /** Starts header-only; useful when the pane is stacked below content. */
   defaultCollapsed?: boolean;
+  /** Adapts the pane to a bounded modal viewport instead of a sticky rail. */
+  presentation?: 'panel' | 'dialog';
 }
 
 export function TaskLivePane({
@@ -39,12 +41,14 @@ export function TaskLivePane({
   learnMoreHref,
   onClose,
   defaultCollapsed = false,
+  presentation = 'panel',
 }: TaskLivePaneProps) {
   const theme = useTheme();
   const [tab, setTab] = useState<PaneTab>('turns');
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const live = task.status === 'running' || task.status === 'dispatched';
   const taskTitle = task.title || humanizeToken(task.taskType);
+  const isDialog = presentation === 'dialog';
 
   useEffect(() => {
     setCollapsed(defaultCollapsed);
@@ -68,15 +72,19 @@ export function TaskLivePane({
 
   return (
     <div
+      data-presentation={presentation}
       style={{
         background: theme.color.bg.void,
         border: `1px solid ${theme.color.border.DEFAULT}`,
         borderRadius: theme.radius.lg,
         display: 'flex',
         flexDirection: 'column',
-        minHeight: collapsed ? undefined : 480,
-        position: 'sticky',
-        top: theme.spacing[6],
+        height: collapsed || !isDialog ? undefined : 'min(68dvh, 44rem)',
+        minHeight: collapsed || isDialog ? undefined : 480,
+        maxHeight: isDialog ? '68dvh' : undefined,
+        minWidth: 0,
+        position: isDialog ? 'relative' : 'sticky',
+        top: isDialog ? undefined : theme.spacing[6],
         overflow: 'hidden',
       }}
     >
@@ -193,7 +201,7 @@ export function TaskLivePane({
             ))}
           </div>
 
-          <div style={{ flex: 1, overflow: 'auto' }}>
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
             {tab === 'turns' ? (
               <TaskTurnStream
                 messages={messages}
