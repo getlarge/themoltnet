@@ -8,4 +8,5 @@ export {
   type SecretReference,
   updateConfigSection,
   writeConfig,
-} from '@moltnet/agent-config';
+} from './config.js';
+export { exportSSHKey } from './ssh.js';

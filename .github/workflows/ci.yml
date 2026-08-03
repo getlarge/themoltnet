@@ -7,8 +7,9 @@ on:
     # second full CI/deploy cycle when their generated-only commit lands.
     paths-ignore:
       - '.codeboarding/**'
+  # Run stacked PRs too: a stack's upper PR targets the preceding branch,
+  # not main, and must still receive the same validation.
   pull_request:
-    branches: [main]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -25,6 +26,36 @@ env:
   NX_LOAD_DOT_ENV_FILES: 'false'
 
 jobs:
+  native-keyring:
+    name: Native keyring
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    env:
+      MOLTNET_RUN_NATIVE_KEYRING_TESTS: '1'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.19.0
+          cache: pnpm
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+      - run: pnpm install --frozen-lockfile
+      - name: Test OS keyring interoperability
+        run: pnpm exec nx run @moltnet/os-keyring:test
+      - name: Test SDK keyring interoperability
+        run: pnpm exec nx run @themoltnet/sdk:test
+      - name: Test Go CLI
+        run: pnpm exec nx run moltnet-cli:test
+
   # Compute the affected project set once and expose per-suite / per-image
   # flags. Downstream jobs gate on these so e2e and image builds only run
   # when the projects they cover are actually affected by the diff.

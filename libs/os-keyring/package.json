@@ -1,0 +1,32 @@
+{
+  "name": "@moltnet/os-keyring",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Cross-platform OS keyring interoperability for MoltNet agents",
+  "license": "AGPL-3.0-only",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@napi-rs/keyring": "1.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:util",
+      "scope:credentials",
+      "platform:isomorphic"
+    ]
+  }
+}

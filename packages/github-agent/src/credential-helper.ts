@@ -1,4 +1,4 @@
-import { readConfig } from '@themoltnet/sdk';
+import { readConfig } from '@moltnet/agent-config';
 
 import { getInstallationToken } from './token.js';
 

@@ -1,81 +1,23 @@
-import { AsyncEntry } from '@napi-rs/keyring';
+import { OSKeyringSecretProvider } from '@moltnet/os-keyring';
 
 import type { Agent } from './agent.js';
 import { connect as connectBase, type ConnectOptions } from './connect.js';
 import type { MoltNetConfig } from './credentials.js';
 import {
   createDefaultSecretProviderRegistry,
-  MOLTNET_SECRET_SERVICE,
-  OS_KEYRING_SECRET_PROVIDER,
-  type SecretProvider,
   type SecretProviderRegistry,
 } from './secrets.js';
 
-export class OSKeyringSecretProvider implements SecretProvider {
-  readonly name = OS_KEYRING_SECRET_PROVIDER;
+export {
+  OSKeyringSecretProvider,
+  windowsKeyringTarget,
+} from '@moltnet/os-keyring';
 
-  constructor(private readonly platform: NodeJS.Platform = process.platform) {}
-
-  async read(key: string): Promise<string | null> {
-    try {
-      return (await this.entry(key).getPassword()) || null;
-    } catch (error) {
-      if (isMissingKeyringEntry(error)) {
-        return null;
-      }
-      throw error;
-    }
-  }
-
-  async write(key: string, value: string): Promise<void> {
-    await this.entry(key).setPassword(value);
-  }
-
-  async delete(key: string): Promise<void> {
-    try {
-      const entry = this.entry(key);
-      const deleted = await entry.deleteCredential();
-      if (!deleted && (await entry.getPassword())) {
-        throw new Error('OS keyring reported that the secret was not deleted');
-      }
-    } catch (error) {
-      if (!isMissingKeyringEntry(error)) {
-        throw error;
-      }
-    }
-  }
-
-  private entry(key: string): AsyncEntry {
-    const target = windowsKeyringTarget(
-      MOLTNET_SECRET_SERVICE,
-      key,
-      this.platform,
-    );
-    return target
-      ? AsyncEntry.withTarget(target, MOLTNET_SECRET_SERVICE, key)
-      : new AsyncEntry(MOLTNET_SECRET_SERVICE, key);
-  }
-}
-
-/** Match github.com/zalando/go-keyring's Windows credential target. */
-export function windowsKeyringTarget(
-  service: string,
-  key: string,
+export function createNodeSecretProviderRegistry(
   platform: NodeJS.Platform = process.platform,
-): string | undefined {
-  return platform === 'win32' ? `${service}:${key}` : undefined;
-}
-
-function isMissingKeyringEntry(error: unknown): boolean {
-  return (
-    error instanceof Error &&
-    /no entry|not found|no matching/i.test(error.message)
-  );
-}
-
-export function createNodeSecretProviderRegistry(): SecretProviderRegistry {
+): SecretProviderRegistry {
   return createDefaultSecretProviderRegistry().register(
-    new OSKeyringSecretProvider(),
+    new OSKeyringSecretProvider(platform),
   );
 }
 

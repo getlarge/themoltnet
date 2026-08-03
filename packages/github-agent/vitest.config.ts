@@ -5,15 +5,9 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   resolve: {
     alias: {
-      // The SDK exports from dist/ (it's a published package), but we
-      // want vitest to resolve to source for workspace development.
-      '@themoltnet/sdk': resolve(
+      '@moltnet/agent-config': resolve(
         import.meta.dirname,
-        '../../libs/sdk/src/index.ts',
-      ),
-      '@themoltnet/sdk/human': resolve(
-        import.meta.dirname,
-        '../../libs/sdk/src/human.ts',
+        '../../libs/agent-config/src/index.ts',
       ),
       '@moltnet/crypto-service/content-cid': resolve(
         import.meta.dirname,
@@ -22,6 +16,10 @@ export default defineConfig({
       '@moltnet/crypto-service/canonical-json': resolve(
         import.meta.dirname,
         '../../libs/crypto-service/src/canonical-json.ts',
+      ),
+      '@moltnet/crypto-service/ssh': resolve(
+        import.meta.dirname,
+        '../../libs/crypto-service/src/ssh.ts',
       ),
       '@moltnet/crypto-service': resolve(
         import.meta.dirname,

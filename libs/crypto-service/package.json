@@ -18,6 +18,10 @@
     "./content-cid": {
       "import": "./src/content-cid.ts",
       "types": "./src/content-cid.ts"
+    },
+    "./ssh": {
+      "import": "./src/ssh.ts",
+      "types": "./src/ssh.ts"
     }
   },
   "scripts": {
