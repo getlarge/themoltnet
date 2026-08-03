@@ -1,3 +1,5 @@
+/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- The non-wrapping
+ * summary rail needs a keyboard focus target at high zoom and narrow widths. */
 import { Stack, Text, useTheme } from '@themoltnet/design-system';
 
 import { TASK_LANES, type TaskLane, type TaskLaneId } from './task-lanes.js';
@@ -27,15 +29,23 @@ export interface TaskFunnelStripProps {
 export function TaskFunnelStrip({ counts }: TaskFunnelStripProps) {
   const theme = useTheme();
   return (
-    <Stack
-      direction="row"
-      align="center"
-      wrap
+    <div
+      aria-label="Task lifecycle summary"
+      role="region"
+      tabIndex={0}
       style={{
+        alignItems: 'center',
         background: theme.color.bg.surface,
         border: `1px solid ${theme.color.border.DEFAULT}`,
         borderRadius: theme.radius.lg,
+        display: 'flex',
+        flexDirection: 'row',
+        maxWidth: '100%',
+        overflowX: 'auto',
+        overscrollBehaviorX: 'contain',
         padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
+        scrollbarGutter: 'stable',
+        WebkitOverflowScrolling: 'touch',
       }}
     >
       {TASK_LANES.map((lane, index) => (
@@ -69,6 +79,6 @@ export function TaskFunnelStrip({ counts }: TaskFunnelStripProps) {
           ) : null}
         </Stack>
       ))}
-    </Stack>
+    </div>
   );
 }

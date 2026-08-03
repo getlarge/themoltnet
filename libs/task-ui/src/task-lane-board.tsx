@@ -1,3 +1,5 @@
+/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- The overflow rail
+ * needs a keyboard focus target so arrow-key users can pan between lanes. */
 import { useTheme } from '@themoltnet/design-system';
 
 import { TaskLaneColumn } from './task-lane-column.js';
@@ -38,30 +40,48 @@ export function TaskLaneBoard({
 
   return (
     <div
+      aria-label="Task board lanes. Scroll horizontally to view every lifecycle state."
+      role="region"
+      tabIndex={0}
       style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: theme.spacing[3],
-        alignItems: 'start',
+        maxWidth: '100%',
+        overflowX: 'auto',
+        overscrollBehaviorX: 'contain',
+        paddingBottom: theme.spacing[2],
+        scrollPaddingInline: theme.spacing[1],
+        scrollSnapType: 'x proximity',
+        scrollbarGutter: 'stable',
+        WebkitOverflowScrolling: 'touch',
       }}
     >
-      {TASK_LANES.map((lane) => {
-        const data = lanes[lane.id] ?? EMPTY_LANE;
-        return (
-          <TaskLaneColumn
-            key={lane.id}
-            lane={lane}
-            tasks={data.tasks}
-            total={data.total}
-            hasMore={data.hasMore}
-            isLoading={data.isLoading}
-            onLoadMore={data.onLoadMore}
-            now={now}
-            selectedTaskId={selectedTaskId}
-            onSelectTask={onSelectTask}
-          />
-        );
-      })}
+      <div
+        style={{
+          alignItems: 'start',
+          display: 'grid',
+          gap: theme.spacing[3],
+          gridAutoColumns: 'min(82vw, 18rem)',
+          gridAutoFlow: 'column',
+          width: 'max-content',
+        }}
+      >
+        {TASK_LANES.map((lane) => {
+          const data = lanes[lane.id] ?? EMPTY_LANE;
+          return (
+            <TaskLaneColumn
+              key={lane.id}
+              lane={lane}
+              tasks={data.tasks}
+              total={data.total}
+              hasMore={data.hasMore}
+              isLoading={data.isLoading}
+              onLoadMore={data.onLoadMore}
+              now={now}
+              selectedTaskId={selectedTaskId}
+              onSelectTask={onSelectTask}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 }
