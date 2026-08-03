@@ -99,7 +99,7 @@ describe('runPortValidatePhase', () => {
       client_id: 'cid',
       client_secret_ref: {
         provider: 'os-keyring',
-        key: 'oauth2/identity/cid',
+        key: 'oauth2/11111111-1111-1111-1111-111111111111/cid',
       },
     };
     await writeConfig(dir, config);

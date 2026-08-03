@@ -84,6 +84,11 @@ export async function updateConfigSection(
   data: object,
   configDir?: string,
 ): Promise<void> {
+  if (section === 'oauth2') {
+    throw new Error(
+      'OAuth2 credentials must be updated with updateOAuth2Config()',
+    );
+  }
   const config = await readConfig(configDir);
   if (!config) {
     throw new Error('No config found — run `moltnet register` first');
@@ -93,5 +98,25 @@ export async function updateConfigSection(
   Object.assign(config, {
     [section]: { ...existing, ...(data as Record<string, unknown>) },
   });
+  await writeConfig(config, configDir);
+}
+
+/** Replace the OAuth2 union atomically so the opposite secret form is removed. */
+export async function updateOAuth2Config(
+  oauth2: OAuth2Config,
+  configDir?: string,
+): Promise<void> {
+  const config = await readConfig(configDir);
+  if (!config) {
+    throw new Error('No config found — run `moltnet register` first');
+  }
+  const plaintext = oauth2.client_secret?.trim();
+  const reference = oauth2.client_secret_ref;
+  if (!oauth2.client_id.trim() || Boolean(plaintext) === Boolean(reference)) {
+    throw new Error(
+      'OAuth2 config must set client_id and exactly one of client_secret or client_secret_ref',
+    );
+  }
+  config.oauth2 = oauth2;
   await writeConfig(config, configDir);
 }

@@ -1,5 +1,11 @@
 import { spawn } from 'node:child_process';
 
+const WINDOWS_DIRECTORY = 'C:\\Windows';
+export const WINDOWS_POWERSHELL_PATH =
+  'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';
+const WINDOWS_CREDENTIAL_TIMEOUT_MS = 10_000;
+const WINDOWS_CREDENTIAL_OUTPUT_LIMIT = 64 * 1024;
+
 export interface WindowsCredentialStore {
   read(target: string): Promise<Uint8Array | null>;
   write(target: string, username: string, value: Uint8Array): Promise<void>;
@@ -135,7 +141,7 @@ async function runWindowsCredentialRequest(
 ): Promise<WindowsCredentialResponse> {
   return new Promise((resolve, reject) => {
     const child = spawn(
-      'powershell.exe',
+      WINDOWS_POWERSHELL_PATH,
       [
         '-NoLogo',
         '-NoProfile',
@@ -143,14 +149,53 @@ async function runWindowsCredentialRequest(
         '-EncodedCommand',
         encodedWindowsCredentialScript,
       ],
-      { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true },
+      {
+        stdio: ['pipe', 'pipe', 'pipe'],
+        windowsHide: true,
+        env: {
+          ComSpec: `${WINDOWS_DIRECTORY}\\System32\\cmd.exe`,
+          SystemRoot: WINDOWS_DIRECTORY,
+          WINDIR: WINDOWS_DIRECTORY,
+        },
+      },
     );
     const stdout: Buffer[] = [];
     const stderr: Buffer[] = [];
-    child.stdout.on('data', (chunk: Buffer) => stdout.push(chunk));
-    child.stderr.on('data', (chunk: Buffer) => stderr.push(chunk));
-    child.on('error', reject);
+    let outputBytes = 0;
+    let settled = false;
+    const timeout = setTimeout(() => {
+      fail(
+        new Error(
+          `Windows Credential Manager operation timed out after ${WINDOWS_CREDENTIAL_TIMEOUT_MS}ms`,
+        ),
+      );
+    }, WINDOWS_CREDENTIAL_TIMEOUT_MS);
+    const fail = (error: Error): void => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      child.kill();
+      reject(error);
+    };
+    const capture = (target: Buffer[], chunk: Buffer): void => {
+      outputBytes += chunk.length;
+      if (outputBytes > WINDOWS_CREDENTIAL_OUTPUT_LIMIT) {
+        fail(
+          new Error(
+            `Windows Credential Manager output exceeded ${WINDOWS_CREDENTIAL_OUTPUT_LIMIT} bytes`,
+          ),
+        );
+        return;
+      }
+      target.push(chunk);
+    };
+    child.stdout.on('data', (chunk: Buffer) => capture(stdout, chunk));
+    child.stderr.on('data', (chunk: Buffer) => capture(stderr, chunk));
+    child.on('error', (error) => fail(error));
     child.on('close', (code) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
       if (code !== 0) {
         reject(
           new Error(
@@ -175,6 +220,7 @@ async function runWindowsCredentialRequest(
         );
       }
     });
+    child.stdin.on('error', (error) => fail(error));
     child.stdin.end(JSON.stringify(request));
   });
 }

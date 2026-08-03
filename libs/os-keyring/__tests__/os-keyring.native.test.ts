@@ -16,7 +16,9 @@ type HelperResponse = { found?: boolean; value?: string };
 
 const nativeKeyringEnabled =
   process.env.MOLTNET_RUN_NATIVE_KEYRING_TESTS === '1' &&
-  (process.platform === 'darwin' || process.platform === 'win32');
+  (process.platform === 'darwin' ||
+    process.platform === 'linux' ||
+    process.platform === 'win32');
 
 async function runGoKeyringHelper(
   request: HelperRequest,
@@ -88,36 +90,32 @@ describe.runIf(nativeKeyringEnabled)('native OS keyring', () => {
     }
   }, 60_000);
 
-  it.runIf(process.platform === 'win32')(
-    'round-trips UTF-8 secrets between Go and the Node keyring library',
-    async () => {
-      const provider = new OSKeyringSecretProvider();
-      const key = `oauth2/native-test/${randomUUID()}`;
-      const fromGo = 'go→node-秘密';
-      const fromNode = 'node→go-credential';
+  it('round-trips UTF-8 secrets between Go and the Node keyring library', async () => {
+    const provider = new OSKeyringSecretProvider();
+    const key = `oauth2/native-test/${randomUUID()}`;
+    const fromGo = 'go→node-秘密';
+    const fromNode = 'node→go-credential';
 
-      try {
-        await runGoKeyringHelper({
-          operation: 'write',
-          key,
-          value: Buffer.from(fromGo, 'utf8').toString('base64'),
-        });
-        await expect(provider.read(key)).resolves.toBe(fromGo);
+    try {
+      await runGoKeyringHelper({
+        operation: 'write',
+        key,
+        value: Buffer.from(fromGo, 'utf8').toString('base64'),
+      });
+      await expect(provider.read(key)).resolves.toBe(fromGo);
 
-        await provider.write(key, fromNode);
-        const readByGo = await runGoKeyringHelper({ operation: 'read', key });
-        expect(readByGo.found).toBe(true);
-        expect(Buffer.from(readByGo.value!, 'base64').toString('utf8')).toBe(
-          fromNode,
-        );
+      await provider.write(key, fromNode);
+      const readByGo = await runGoKeyringHelper({ operation: 'read', key });
+      expect(readByGo.found).toBe(true);
+      expect(Buffer.from(readByGo.value!, 'base64').toString('utf8')).toBe(
+        fromNode,
+      );
 
-        await provider.delete(key);
-        const deleted = await runGoKeyringHelper({ operation: 'read', key });
-        expect(deleted.found ?? false).toBe(false);
-      } finally {
-        await runGoKeyringHelper({ operation: 'delete', key });
-      }
-    },
-    60_000,
-  );
+      await provider.delete(key);
+      const deleted = await runGoKeyringHelper({ operation: 'read', key });
+      expect(deleted.found ?? false).toBe(false);
+    } finally {
+      await runGoKeyringHelper({ operation: 'delete', key });
+    }
+  }, 60_000);
 });

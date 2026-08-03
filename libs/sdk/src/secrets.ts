@@ -88,3 +88,20 @@ export function createDefaultSecretProviderRegistry(): SecretProviderRegistry {
 export function oauth2SecretKey(identityId: string, clientId: string): string {
   return `oauth2/${identityId}/${clientId}`;
 }
+
+export function assertOAuth2SecretReferenceBinding(
+  reference: SecretReference,
+  identityId: string,
+  clientId: string,
+): void {
+  const expectedKey = oauth2SecretKey(identityId, clientId);
+  const validKey =
+    reference.provider === ENVIRONMENT_SECRET_PROVIDER
+      ? reference.key === 'MOLTNET_CLIENT_SECRET'
+      : reference.key === expectedKey;
+  if (!validKey) {
+    throw new Error(
+      'OAuth2 secret reference is not bound to this MoltNet identity and client',
+    );
+  }
+}

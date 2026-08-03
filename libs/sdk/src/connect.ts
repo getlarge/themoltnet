@@ -11,6 +11,7 @@ import { MoltNetError } from './errors.js';
 import type { RetryOptions } from './retry.js';
 import { createAgentKeyFetch, createRetryFetch } from './retry.js';
 import {
+  assertOAuth2SecretReferenceBinding,
   createDefaultSecretProviderRegistry,
   type SecretProviderRegistry,
 } from './secrets.js';
@@ -107,8 +108,17 @@ async function resolveConnection(
         { code: 'INVALID_CONFIG' },
       );
     }
+    const apiUrl = normalizeApiUrl(
+      options.apiUrl,
+      env.apiUrl,
+      config.endpoints?.api,
+    );
+    if (!options.apiUrl && !env.apiUrl) {
+      requireTrustedConfigApiUrl(apiUrl);
+    }
     let clientSecret: string;
     if (secretReference) {
+      requireBoundSecretReference(config, secretReference);
       try {
         clientSecret = await (
           options.secretProviders ?? createDefaultSecretProviderRegistry()
@@ -135,7 +145,7 @@ async function resolveConnection(
       mode: 'oauth2',
       clientId: config.oauth2.client_id,
       clientSecret,
-      apiUrl: normalizeApiUrl(options.apiUrl, config.endpoints?.api),
+      apiUrl,
     };
   }
 
@@ -145,6 +155,41 @@ async function resolveConnection(
       'or run `moltnet register` first.',
     { code: 'NO_CREDENTIALS' },
   );
+}
+
+function requireBoundSecretReference(
+  config: NonNullable<Awaited<ReturnType<typeof readConfig>>>,
+  reference: { provider: string; key: string },
+): void {
+  try {
+    assertOAuth2SecretReferenceBinding(
+      reference,
+      config.identity_id,
+      config.oauth2.client_id,
+    );
+  } catch {
+    throw new MoltNetError(
+      'OAuth2 secret reference is not bound to this MoltNet identity and client.',
+      { code: 'INVALID_CONFIG' },
+    );
+  }
+}
+
+function requireTrustedConfigApiUrl(apiUrl: string): void {
+  const url = new URL(apiUrl);
+  const loopback =
+    url.hostname === 'localhost' ||
+    url.hostname === '127.0.0.1' ||
+    url.hostname === '[::1]';
+  const moltNet =
+    url.protocol === 'https:' &&
+    (url.hostname === 'themolt.net' || url.hostname.endsWith('.themolt.net'));
+  if (!loopback && !moltNet) {
+    throw new MoltNetError(
+      'Config-provided OAuth2 endpoints must use HTTPS on themolt.net or a loopback host.',
+      { code: 'INVALID_CONFIG' },
+    );
+  }
 }
 
 /**

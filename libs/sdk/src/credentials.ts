@@ -7,5 +7,6 @@ export {
   readConfig,
   type SecretReference,
   updateConfigSection,
+  updateOAuth2Config,
   writeConfig,
 } from '@moltnet/agent-config';

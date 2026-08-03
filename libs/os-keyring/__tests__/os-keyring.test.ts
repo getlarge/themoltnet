@@ -4,7 +4,9 @@ import keyringConformance from '../../../testdata/keyring-conformance.json';
 
 const keyring = vi.hoisted(() => ({
   deleteCredential: vi.fn(),
+  getPassword: vi.fn(),
   getSecret: vi.fn(),
+  setPassword: vi.fn(),
   setSecret: vi.fn(),
   constructor: vi.fn(),
 }));
@@ -16,7 +18,9 @@ vi.mock('@napi-rs/keyring', () => ({
     }
 
     getSecret = keyring.getSecret;
+    getPassword = keyring.getPassword;
     setSecret = keyring.setSecret;
+    setPassword = keyring.setPassword;
     deleteCredential = keyring.deleteCredential;
   },
 }));
@@ -26,29 +30,47 @@ import { OSKeyringSecretProvider, windowsKeyringTarget } from '../src/index.js';
 describe('OSKeyringSecretProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    keyring.getPassword.mockResolvedValue(undefined);
     keyring.getSecret.mockResolvedValue(undefined);
   });
 
   it('uses the stable service name on Linux', async () => {
     const key = 'oauth2/identity/client';
-    keyring.getSecret.mockResolvedValue(Buffer.from('secret'));
-    keyring.setSecret.mockResolvedValue(undefined);
-    keyring.deleteCredential.mockResolvedValue(true);
-    const provider = new OSKeyringSecretProvider('linux');
+    const linuxSecrets = {
+      read: vi.fn().mockResolvedValue('secret'),
+      write: vi.fn(),
+      delete: vi.fn(),
+    };
+    const provider = new OSKeyringSecretProvider(
+      'linux',
+      undefined,
+      linuxSecrets,
+    );
 
     await expect(provider.read(key)).resolves.toBe('secret');
     await provider.write(key, 'new-secret');
     await provider.delete(key);
 
-    expect(keyring.constructor).toHaveBeenCalledTimes(3);
-    expect(keyring.constructor).toHaveBeenNthCalledWith(1, 'themolt.net', key);
-    expect(keyring.setSecret).toHaveBeenCalledWith(Buffer.from('new-secret'));
-    expect(keyring.deleteCredential).toHaveBeenCalledOnce();
+    expect(linuxSecrets.read).toHaveBeenCalledWith('themolt.net', key);
+    expect(linuxSecrets.write).toHaveBeenCalledWith(
+      'themolt.net',
+      key,
+      'new-secret',
+    );
+    expect(linuxSecrets.delete).toHaveBeenCalledWith('themolt.net', key);
   });
 
-  it('propagates Linux keyring enumeration failures', async () => {
-    keyring.getSecret.mockRejectedValue(new Error('unavailable'));
-    const provider = new OSKeyringSecretProvider('linux');
+  it('propagates Linux Secret Service failures', async () => {
+    const linuxSecrets = {
+      read: vi.fn().mockRejectedValue(new Error('unavailable')),
+      write: vi.fn(),
+      delete: vi.fn(),
+    };
+    const provider = new OSKeyringSecretProvider(
+      'linux',
+      undefined,
+      linuxSecrets,
+    );
 
     await expect(provider.read('key')).rejects.toThrow(/unavailable/);
   });
@@ -76,26 +98,20 @@ describe('OSKeyringSecretProvider', () => {
     );
   });
 
-  it('uses Go-compatible base64 bytes on macOS', async () => {
-    const stored =
-      'go-keyring-base64:' + Buffer.from('秘密').toString('base64');
-    keyring.getSecret.mockResolvedValue(Buffer.from(stored));
-    keyring.setSecret.mockResolvedValue(undefined);
+  it('uses the Go-compatible password representation on macOS', async () => {
+    keyring.getPassword.mockResolvedValue('秘密');
+    keyring.setPassword.mockResolvedValue(undefined);
     const provider = new OSKeyringSecretProvider('darwin');
 
     await expect(provider.read('key')).resolves.toBe('秘密');
     await provider.write('key', 'new-secret');
 
-    expect(keyring.setSecret).toHaveBeenCalledWith(
-      Buffer.from(
-        'go-keyring-base64:' + Buffer.from('new-secret').toString('base64'),
-      ),
-    );
+    expect(keyring.setPassword).toHaveBeenCalledWith('new-secret');
   });
 
-  it('fails closed when deletion cannot be confirmed', async () => {
+  it('fails closed when macOS deletion cannot be confirmed', async () => {
     keyring.deleteCredential.mockResolvedValue(false);
-    const provider = new OSKeyringSecretProvider('linux');
+    const provider = new OSKeyringSecretProvider('darwin');
 
     await expect(provider.delete('key')).rejects.toThrow(/could not confirm/);
   });

@@ -606,7 +606,8 @@ export interface SettingsLocalOptions {
   pemPath: string;
   installationId: string;
   clientId: string;
-  clientSecret: string;
+  /** @deprecated Secrets are injected by `moltnet start`, never persisted. */
+  clientSecret?: string;
 }
 
 /** Build the permission allow-list for the legreffier skill. */
@@ -671,7 +672,6 @@ export async function writeSettingsLocal({
   pemPath,
   installationId,
   clientId,
-  clientSecret,
 }: SettingsLocalOptions): Promise<void> {
   const dir = join(repoDir, '.claude');
   await mkdir(dir, { recursive: true });
@@ -690,6 +690,8 @@ export async function writeSettingsLocal({
   }
 
   const prefix = toEnvPrefix(agentName);
+  const existingEnv = { ...existing.env };
+  delete existingEnv[`${prefix}_CLIENT_SECRET`];
   const existingServers: string[] = Array.isArray(
     existing.enabledMcpjsonServers,
   )
@@ -716,12 +718,11 @@ export async function writeSettingsLocal({
       allow: mergedAllow,
     },
     env: {
-      ...existing.env,
+      ...existingEnv,
       [`${prefix}_GITHUB_APP_ID`]: appId,
       [`${prefix}_GITHUB_APP_PRIVATE_KEY_PATH`]: pemPath,
       [`${prefix}_GITHUB_APP_INSTALLATION_ID`]: installationId,
       [`${prefix}_CLIENT_ID`]: clientId,
-      [`${prefix}_CLIENT_SECRET`]: clientSecret,
       GIT_CONFIG_GLOBAL: `.moltnet/${agentName}/gitconfig`,
     },
   };
