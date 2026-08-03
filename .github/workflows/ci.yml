@@ -53,6 +53,11 @@ jobs:
         with:
           go-version: '1.25'
       - run: pnpm install --frozen-lockfile
+      # The native test invokes this helper with `go run`. Precompile it so
+      # Vitest's timeout measures keyring operations instead of a cold Go
+      # module download/build on macOS runners.
+      - name: Precompile Go keyring interoperability helper
+        run: go test ./apps/moltnet-cli/testdata/keyring-interop
       - name: Test OS keyring interoperability
         run: pnpm exec nx run @moltnet/os-keyring:test
       - name: Test SDK keyring interoperability
