@@ -102,7 +102,7 @@ public static class MoltNetCredentialManager {
 '@
 
 $request = [Console]::In.ReadToEnd() | ConvertFrom-Json
-switch ($request.operation) {
+$response = switch ($request.operation) {
   'read' {
     $value = [MoltNetCredentialManager]::Read($request.target)
     if ($null -eq $value) { @{ found = $false } }
@@ -121,7 +121,8 @@ switch ($request.operation) {
     @{}
   }
   default { throw "Unsupported credential operation" }
-} | ConvertTo-Json -Compress
+}
+$response | ConvertTo-Json -Compress
 `;
 
 const encodedWindowsCredentialScript = Buffer.from(
