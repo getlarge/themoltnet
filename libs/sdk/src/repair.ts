@@ -11,7 +11,7 @@ import {
 export interface ConfigIssue {
   field: string;
   problem: string;
-  action: 'fixed' | 'warning' | 'migrate';
+  action: 'fixed' | 'warning';
 }
 
 export interface RepairResult {
@@ -22,8 +22,7 @@ export interface RepairResult {
 /**
  * Validate and optionally repair a MoltNet config.
  *
- * Checks required fields, detects stale file paths, and migrates
- * `credentials.json` to `moltnet.json` when found.
+ * Checks required fields and detects stale file paths.
  *
  * Pass `dryRun: true` to report issues without writing changes.
  */
@@ -34,25 +33,9 @@ export async function repairConfig(opts?: {
   const dir = opts?.configDir ?? getConfigDir();
   const issues: ConfigIssue[] = [];
 
-  // Try moltnet.json first, then credentials.json (without readConfig's
-  // silent fallback, so we can detect and report the migration).
-  let config = await tryReadJson(join(dir, 'moltnet.json'));
+  const config = await tryReadJson(join(dir, 'moltnet.json'));
   if (!config) {
-    const legacy = await tryReadJson(join(dir, 'credentials.json'));
-    if (legacy) {
-      config = legacy;
-      issues.push({
-        field: 'file',
-        problem:
-          'using deprecated credentials.json — will migrate to moltnet.json',
-        action: 'migrate',
-      });
-      if (!opts?.dryRun) {
-        await writeConfig(config, dir);
-      }
-    } else {
-      return { issues: [], config: null };
-    }
+    return { issues: [], config: null };
   }
 
   validateConfig(config, issues);

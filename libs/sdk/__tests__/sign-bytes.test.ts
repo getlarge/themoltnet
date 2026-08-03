@@ -17,7 +17,7 @@ describe('signBytes', () => {
     ).toString('base64');
 
     const dir = await mkdtemp(join(tmpdir(), 'moltnet-sdk-test-'));
-    const credPath = join(dir, 'credentials.json');
+    const credPath = join(dir, 'moltnet.json');
     await writeFile(
       credPath,
       JSON.stringify({
@@ -49,7 +49,7 @@ describe('signBytes', () => {
     ).toString('base64');
 
     const dir = await mkdtemp(join(tmpdir(), 'moltnet-sdk-test-'));
-    const credPath = join(dir, 'credentials.json');
+    const credPath = join(dir, 'moltnet.json');
     await writeFile(
       credPath,
       JSON.stringify({

@@ -8,7 +8,7 @@ import { readConfig } from './credentials.js';
  *
  * @param message - The message to sign
  * @param nonce - The nonce supplied by the server
- * @param credentialsPath - Optional path to credentials.json (defaults to ~/.config/moltnet/credentials.json)
+ * @param credentialsPath - Optional config directory containing moltnet.json (defaults to ~/.config/moltnet)
  * @returns Base64-encoded Ed25519 signature
  */
 export async function sign(

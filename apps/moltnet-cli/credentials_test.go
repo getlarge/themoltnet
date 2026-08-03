@@ -40,7 +40,7 @@ func TestReadConfig_MoltnetJson(t *testing.T) {
 	}
 }
 
-func TestReadConfig_FallbackToCredentials(t *testing.T) {
+func TestReadConfig_IgnoresCredentialsJSON(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 
@@ -65,11 +65,8 @@ func TestReadConfig_FallbackToCredentials(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadConfig: %v", err)
 	}
-	if read == nil {
-		t.Fatal("expected non-nil")
-	}
-	if read.IdentityID != "uuid-from-legacy" {
-		t.Errorf("identity_id: got %s, want uuid-from-legacy", read.IdentityID)
+	if read != nil {
+		t.Fatalf("expected credentials.json to be ignored, got identity %q", read.IdentityID)
 	}
 }
 
