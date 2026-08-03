@@ -37,7 +37,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     env:
       MOLTNET_RUN_NATIVE_KEYRING_TESTS: '1'
       NX_BASE: ${{ needs.affected.outputs.base }}
@@ -64,8 +64,19 @@ jobs:
         with:
           go-version: '1.25'
       - run: pnpm install --frozen-lockfile
+      - name: Install Linux Secret Service
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y gnome-keyring dbus dbus-x11
       - name: Test affected native keyring projects
+        if: runner.os != 'Linux'
         run: pnpm exec nx affected -t test-native
+      - name: Test affected native keyring projects with Secret Service
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          dbus-run-session -- bash -c 'rm -f "$HOME"/.local/share/keyrings/*; printf "test" | gnome-keyring-daemon --unlock; pnpm exec nx affected -t test-native'
 
   # Compute the affected project set once and expose per-suite / per-image
   # flags. Downstream jobs gate on these so e2e and image builds only run

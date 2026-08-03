@@ -166,3 +166,63 @@ func TestSecretReferenceConfigRoundTripDoesNotEmbedSecret(t *testing.T) {
 		t.Fatalf("round-tripped reference = %#v, want %#v", got, wantRef)
 	}
 }
+
+func TestResolveAgentOAuth2EnvironmentFromBoundKeyringReference(t *testing.T) {
+	agentDir := t.TempDir()
+	key := OAuth2SecretKey("identity-123", "client-456")
+	config := &CredentialsFile{
+		IdentityID: "identity-123",
+		OAuth2: CredentialsOAuth2{
+			ClientID: "client-456",
+			ClientSecretRef: &SecretReference{
+				Provider: osKeyringProviderName,
+				Key:      key,
+			},
+		},
+	}
+	if _, err := WriteConfigTo(config, filepath.Join(agentDir, "moltnet.json")); err != nil {
+		t.Fatal(err)
+	}
+	registry := NewSecretProviderRegistry()
+	registry.Register(osKeyringProviderName, &memorySecretProvider{values: map[string]string{
+		key: "launch-only-secret",
+	}})
+
+	vars, err := resolveAgentOAuth2Environment(agentDir, "my-agent", registry)
+	if err != nil {
+		t.Fatalf("resolveAgentOAuth2Environment: %v", err)
+	}
+	if vars["MY_AGENT_CLIENT_ID"] != "client-456" {
+		t.Fatalf("client id = %q", vars["MY_AGENT_CLIENT_ID"])
+	}
+	if vars["MY_AGENT_CLIENT_SECRET"] != "launch-only-secret" {
+		t.Fatalf("client secret was not resolved at launch")
+	}
+}
+
+func TestResolveAgentOAuth2EnvironmentRejectsUnboundReference(t *testing.T) {
+	agentDir := t.TempDir()
+	config := &CredentialsFile{
+		IdentityID: "identity-123",
+		OAuth2: CredentialsOAuth2{
+			ClientID: "client-456",
+			ClientSecretRef: &SecretReference{
+				Provider: osKeyringProviderName,
+				Key:      "oauth2/another-identity/another-client",
+			},
+		},
+	}
+	if _, err := WriteConfigTo(config, filepath.Join(agentDir, "moltnet.json")); err != nil {
+		t.Fatal(err)
+	}
+	provider := &memorySecretProvider{values: map[string]string{
+		"oauth2/another-identity/another-client": "canary-secret",
+	}}
+	registry := NewSecretProviderRegistry()
+	registry.Register(osKeyringProviderName, provider)
+
+	_, err := resolveAgentOAuth2Environment(agentDir, "my-agent", registry)
+	if err == nil || !strings.Contains(err.Error(), "not bound") {
+		t.Fatalf("error = %v, want binding rejection", err)
+	}
+}

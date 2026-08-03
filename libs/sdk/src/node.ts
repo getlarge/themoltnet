@@ -4,6 +4,7 @@ import type { Agent } from './agent.js';
 import { connect as connectBase, type ConnectOptions } from './connect.js';
 import type { MoltNetConfig } from './credentials.js';
 import {
+  assertOAuth2SecretReferenceBinding,
   createDefaultSecretProviderRegistry,
   type SecretProviderRegistry,
 } from './secrets.js';
@@ -34,6 +35,11 @@ export async function resolveNodeOAuth2ClientSecret(
     );
   }
   if (secretReference) {
+    assertOAuth2SecretReferenceBinding(
+      secretReference,
+      config.identity_id,
+      config.oauth2.client_id,
+    );
     return secretProviders.resolve(secretReference);
   }
   if (legacySecret) {

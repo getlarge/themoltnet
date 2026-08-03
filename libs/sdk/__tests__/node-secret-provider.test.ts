@@ -53,6 +53,7 @@ describe('Node secret providers', () => {
   it('resolves referenced and plaintext OAuth2 secrets for Node consumers', async () => {
     keyring.read.mockResolvedValue('resolved-secret');
     const referenced = {
+      identity_id: 'identity',
       oauth2: {
         client_id: 'client',
         client_secret_ref: {

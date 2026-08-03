@@ -136,8 +136,11 @@ func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool, envFile string
 	config := &CredentialsFile{
 		IdentityID: identityID,
 		OAuth2: CredentialsOAuth2{
-			ClientID:     clientID,
-			ClientSecret: clientSecret,
+			ClientID: clientID,
+			ClientSecretRef: &SecretReference{
+				Provider: environmentProviderName,
+				Key:      "MOLTNET_CLIENT_SECRET",
+			},
 		},
 		Keys: CredentialsKeys{
 			PublicKey:   publicKey,
@@ -240,7 +243,6 @@ func writeAgentEnvFile(agentDir, agentName string, config *CredentialsFile) erro
 	var lines []string
 	lines = append(lines, "# Managed by moltnet config init-from-env — do not edit above the user section")
 	lines = append(lines, fmt.Sprintf("%s_CLIENT_ID='%s'", prefix, shellQuote(config.OAuth2.ClientID)))
-	lines = append(lines, fmt.Sprintf("%s_CLIENT_SECRET='%s'", prefix, shellQuote(config.OAuth2.ClientSecret)))
 
 	if config.GitHub != nil {
 		lines = append(lines, fmt.Sprintf("%s_GITHUB_APP_ID='%s'", prefix, shellQuote(config.GitHub.AppID)))

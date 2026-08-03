@@ -16,7 +16,13 @@ async function seedTarget(sourceDir: string, targetDir: string) {
   const config = {
     identity_id: '11111111-1111-1111-1111-111111111111',
     registered_at: '2025-01-01T00:00:00.000Z',
-    oauth2: { client_id: 'cid', client_secret: 'csec' },
+    oauth2: {
+      client_id: 'cid',
+      client_secret_ref: {
+        provider: 'os-keyring',
+        key: 'oauth2/11111111-1111-1111-1111-111111111111/cid',
+      },
+    },
     keys: {
       public_key: 'ed25519:abc',
       private_key: 'ed25519:priv',
@@ -56,6 +62,7 @@ async function seedTarget(sourceDir: string, targetDir: string) {
   await writeFile(
     join(targetDir, 'env'),
     [
+      "LEGREFFIER_CLIENT_SECRET='legacy-plaintext-secret'",
       "MOLTNET_TEAM_ID='team-123'",
       "MOLTNET_COMMIT_AUTHORSHIP='human'",
       "MOLTNET_HUMAN_GIT_IDENTITY='Alice <alice@example.com>'",
@@ -123,6 +130,8 @@ describe('runPortRewritePhase', () => {
     expect(envContent).toContain(`LEGREFFIER_GITHUB_APP_ID='2878569'`);
     expect(envContent).toContain(`MOLTNET_AGENT_NAME='legreffier'`);
     expect(envContent).toContain(`MOLTNET_FINGERPRINT='ed25519:fp'`);
+    expect(envContent).not.toContain('LEGREFFIER_CLIENT_SECRET');
+    expect(envContent).not.toContain('legacy-plaintext-secret');
     expect(envContent).toContain("MOLTNET_TEAM_ID='team-123'");
     expect(envContent).toContain("MOLTNET_COMMIT_AUTHORSHIP='human'");
     expect(envContent).toContain(

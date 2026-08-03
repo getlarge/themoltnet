@@ -1,6 +1,6 @@
 import { p256 } from '@noble/curves/nist.js';
 import { verifyP256PrehashedSignature } from '@themoltnet/yubikey-preview-sign/protocol';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import serverVector from './fixtures/preview-sign-server-v1.json';
 import {
@@ -156,6 +156,15 @@ function captureCredentialError(run: () => void): SigningCredentialError {
 }
 
 describe('previewSign production signing method driver', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-08-01T12:01:00.000Z'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('matches the published server vector with the production prehashed verifier', async () => {
     const driver = createPreviewSignSigningMethodDriver({
       randomBytes: () =>

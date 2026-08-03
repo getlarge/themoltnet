@@ -14,6 +14,10 @@ import (
 )
 
 func runStartCmd(cmd *cobra.Command, dir, agentFlag, target string, targetArgs []string, dryRun bool) error {
+	return runStartCmdWithRegistry(cmd, dir, agentFlag, target, targetArgs, dryRun, NewSecretProviderRegistry())
+}
+
+func runStartCmdWithRegistry(cmd *cobra.Command, dir, agentFlag, target string, targetArgs []string, dryRun bool, registry *SecretProviderRegistry) error {
 	moltnetDir, err := resolveMoltnetDir(dir)
 	if err != nil {
 		return err
@@ -27,6 +31,13 @@ func runStartCmd(cmd *cobra.Command, dir, agentFlag, target string, targetArgs [
 	vars, err := parseEnvFile(envPath)
 	if err != nil {
 		return fmt.Errorf("env file not found at %s — run 'legreffier setup --name %s'", envPath, agentName)
+	}
+	credentialVars, err := resolveAgentOAuth2Environment(filepath.Join(moltnetDir, agentName), agentName, registry)
+	if err != nil {
+		return err
+	}
+	for key, value := range credentialVars {
+		vars[key] = value
 	}
 
 	// Resolve target binary
@@ -93,6 +104,37 @@ func runStartCmd(cmd *cobra.Command, dir, agentFlag, target string, targetArgs [
 	// exec replaces the current process
 	argv := append([]string{target}, targetArgs...)
 	return syscall.Exec(targetPath, argv, env)
+}
+
+func resolveAgentOAuth2Environment(agentDir, agentName string, registry *SecretProviderRegistry) (map[string]string, error) {
+	configPath := filepath.Join(agentDir, "moltnet.json")
+	creds, err := ReadConfigFrom(configPath)
+	if err != nil {
+		return nil, fmt.Errorf("load agent credentials: %w", err)
+	}
+	if creds == nil {
+		return nil, fmt.Errorf("agent credentials not found at %s", configPath)
+	}
+	if strings.TrimSpace(creds.OAuth2.ClientID) == "" {
+		return nil, fmt.Errorf("agent credentials are missing oauth2.client_id")
+	}
+	if ref := creds.OAuth2.ClientSecretRef; ref != nil {
+		expectedKey := OAuth2SecretKey(creds.IdentityID, creds.OAuth2.ClientID)
+		valid := (ref.Provider == environmentProviderName && ref.Key == "MOLTNET_CLIENT_SECRET") ||
+			(ref.Provider != environmentProviderName && ref.Key == expectedKey)
+		if !valid {
+			return nil, fmt.Errorf("oauth2 client_secret_ref is not bound to this MoltNet identity and client")
+		}
+	}
+	secret, err := resolveOAuth2Secret(creds, registry)
+	if err != nil {
+		return nil, fmt.Errorf("resolve OAuth2 client secret: %w", err)
+	}
+	prefix := toEnvPrefix(agentName)
+	return map[string]string{
+		prefix + "_CLIENT_ID":     creds.OAuth2.ClientID,
+		prefix + "_CLIENT_SECRET": secret,
+	}, nil
 }
 
 // isSecretKey returns true for env var names that likely contain secrets.

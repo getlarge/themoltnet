@@ -452,6 +452,9 @@ func TestWriteAgentEnvFilePreservesUserSection(t *testing.T) {
 	if !strings.Contains(content, "TEST_AGENT_CLIENT_ID='new-client-id'") {
 		t.Errorf("expected updated CLIENT_ID, got:\n%s", content)
 	}
+	if strings.Contains(content, "TEST_AGENT_CLIENT_SECRET") || strings.Contains(content, "old-secret") || strings.Contains(content, "new-secret") {
+		t.Errorf("expected plaintext client secret to be removed, got:\n%s", content)
+	}
 	// User vars should be preserved
 	if !strings.Contains(content, "MOLTNET_DIARY_ID='some-diary-uuid'") {
 		t.Errorf("expected preserved MOLTNET_DIARY_ID, got:\n%s", content)
@@ -490,6 +493,9 @@ func TestWriteAgentEnvFileNoExistingFile(t *testing.T) {
 
 	if !strings.Contains(content, "FRESH_AGENT_CLIENT_ID='client-id'") {
 		t.Errorf("expected CLIENT_ID, got:\n%s", content)
+	}
+	if strings.Contains(content, "CLIENT_SECRET") || strings.Contains(content, "secret") {
+		t.Errorf("expected no plaintext client secret, got:\n%s", content)
 	}
 	if !strings.Contains(content, "# User section") {
 		t.Errorf("expected user section marker, got:\n%s", content)

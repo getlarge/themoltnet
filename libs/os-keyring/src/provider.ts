@@ -1,5 +1,7 @@
-import { AsyncEntry } from '@napi-rs/keyring';
-
+import {
+  createLinuxSecretStore,
+  type LinuxSecretStore,
+} from './linux-secret-service.js';
 import {
   createWindowsCredentialStore,
   type WindowsCredentialStore,
@@ -7,7 +9,6 @@ import {
 
 export const MOLTNET_SECRET_SERVICE = 'themolt.net';
 export const OS_KEYRING_SECRET_PROVIDER = 'os-keyring';
-const GO_KEYRING_BASE64_PREFIX = 'go-keyring-base64:';
 
 export interface KeyringSecretProvider {
   readonly name: string;
@@ -22,6 +23,7 @@ export class OSKeyringSecretProvider implements KeyringSecretProvider {
   constructor(
     private readonly platform: NodeJS.Platform = process.platform,
     private readonly windowsCredentials: WindowsCredentialStore = createWindowsCredentialStore(),
+    private readonly linuxSecrets: LinuxSecretStore = createLinuxSecretStore(),
   ) {}
 
   async read(key: string): Promise<string | null> {
@@ -30,9 +32,11 @@ export class OSKeyringSecretProvider implements KeyringSecretProvider {
       const value = await this.windowsCredentials.read(target);
       return value ? Buffer.from(value).toString('utf8') : null;
     }
-    const value = await new AsyncEntry(MOLTNET_SECRET_SERVICE, key).getSecret();
-    if (!value) return null;
-    return decodeSecret(Buffer.from(value), this.platform);
+    if (this.platform === 'linux') {
+      return this.linuxSecrets.read(MOLTNET_SECRET_SERVICE, key);
+    }
+    const value = await (await createAsyncEntry(key)).getPassword();
+    return value || null;
   }
 
   async write(key: string, value: string): Promise<void> {
@@ -45,9 +49,11 @@ export class OSKeyringSecretProvider implements KeyringSecretProvider {
       );
       return;
     }
-    await new AsyncEntry(MOLTNET_SECRET_SERVICE, key).setSecret(
-      encodeSecret(value, this.platform),
-    );
+    if (this.platform === 'linux') {
+      await this.linuxSecrets.write(MOLTNET_SECRET_SERVICE, key, value);
+      return;
+    }
+    await (await createAsyncEntry(key)).setPassword(value);
   }
 
   async delete(key: string): Promise<void> {
@@ -56,7 +62,11 @@ export class OSKeyringSecretProvider implements KeyringSecretProvider {
       await this.windowsCredentials.delete(target);
       return;
     }
-    const entry = new AsyncEntry(MOLTNET_SECRET_SERVICE, key);
+    if (this.platform === 'linux') {
+      await this.linuxSecrets.delete(MOLTNET_SECRET_SERVICE, key);
+      return;
+    }
+    const entry = await createAsyncEntry(key);
     if (!(await entry.deleteCredential())) {
       throw new Error(
         'OS keyring could not confirm deletion (credential absent or backend unavailable)',
@@ -65,23 +75,9 @@ export class OSKeyringSecretProvider implements KeyringSecretProvider {
   }
 }
 
-function encodeSecret(value: string, platform: NodeJS.Platform): Uint8Array {
-  const storedValue =
-    platform === 'darwin'
-      ? GO_KEYRING_BASE64_PREFIX + Buffer.from(value, 'utf8').toString('base64')
-      : value;
-  return Buffer.from(storedValue, 'utf8');
-}
-
-function decodeSecret(storedValue: Buffer, platform: NodeJS.Platform): string {
-  const value = storedValue.toString('utf8');
-  if (platform === 'darwin' && value.startsWith(GO_KEYRING_BASE64_PREFIX)) {
-    return Buffer.from(
-      value.slice(GO_KEYRING_BASE64_PREFIX.length),
-      'base64',
-    ).toString('utf8');
-  }
-  return value;
+async function createAsyncEntry(key: string) {
+  const { AsyncEntry } = await import('@napi-rs/keyring');
+  return new AsyncEntry(MOLTNET_SECRET_SERVICE, key);
 }
 
 export function windowsKeyringTarget(
