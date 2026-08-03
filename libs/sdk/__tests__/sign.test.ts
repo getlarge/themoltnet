@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 
 import { cryptoService } from '@moltnet/crypto-service';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -55,7 +56,7 @@ describe('sign', () => {
     );
 
     expect(readFile).toHaveBeenCalledWith(
-      '/custom/credentials.json/moltnet.json',
+      join('/custom/credentials.json', 'moltnet.json'),
       'utf-8',
     );
     const expected = await cryptoService.signWithNonce(
@@ -76,12 +77,12 @@ describe('sign', () => {
 
     expect(readFile).toHaveBeenNthCalledWith(
       1,
-      '/legacy/moltnet.json',
+      join('/legacy', 'moltnet.json'),
       'utf-8',
     );
     expect(readFile).toHaveBeenNthCalledWith(
       2,
-      '/legacy/credentials.json',
+      join('/legacy', 'credentials.json'),
       'utf-8',
     );
     expect(warnSpy).toHaveBeenCalled();

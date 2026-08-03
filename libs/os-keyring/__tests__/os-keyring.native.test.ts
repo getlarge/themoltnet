@@ -48,10 +48,49 @@ async function runGoKeyringHelper(
   });
 }
 
-describe.runIf(nativeKeyringEnabled)(
-  'native OS keyring interoperability',
-  () => {
-    it('round-trips UTF-8 secrets between Go and the Node keyring library', async () => {
+describe.runIf(nativeKeyringEnabled)('native OS keyring', () => {
+  it('round-trips UTF-8 secrets through the Node keyring library', async () => {
+    const provider = new OSKeyringSecretProvider();
+    const key = `oauth2/native-test/${randomUUID()}`;
+    const value = 'node-keyring-秘密';
+
+    try {
+      await provider.write(key, value);
+      await expect(provider.read(key)).resolves.toBe(value);
+      await provider.delete(key);
+      await expect(provider.read(key)).resolves.toBeNull();
+    } finally {
+      await provider.delete(key).catch(() => undefined);
+    }
+  }, 60_000);
+
+  it('round-trips UTF-8 secrets through the Go keyring library', async () => {
+    const key = `oauth2/native-test/${randomUUID()}`;
+    const value = 'go-keyring-秘密';
+
+    try {
+      await runGoKeyringHelper({
+        operation: 'write',
+        key,
+        value: Buffer.from(value, 'utf8').toString('base64'),
+      });
+      const readByGo = await runGoKeyringHelper({ operation: 'read', key });
+      expect(readByGo.found).toBe(true);
+      expect(Buffer.from(readByGo.value!, 'base64').toString('utf8')).toBe(
+        value,
+      );
+
+      await runGoKeyringHelper({ operation: 'delete', key });
+      const deleted = await runGoKeyringHelper({ operation: 'read', key });
+      expect(deleted.found ?? false).toBe(false);
+    } finally {
+      await runGoKeyringHelper({ operation: 'delete', key });
+    }
+  }, 60_000);
+
+  it.runIf(process.platform === 'win32')(
+    'round-trips UTF-8 secrets between Go and the Node keyring library',
+    async () => {
       const provider = new OSKeyringSecretProvider();
       const key = `oauth2/native-test/${randomUUID()}`;
       const fromGo = 'go→node-秘密';
@@ -78,6 +117,7 @@ describe.runIf(nativeKeyringEnabled)(
       } finally {
         await runGoKeyringHelper({ operation: 'delete', key });
       }
-    }, 60_000);
-  },
-);
+    },
+    60_000,
+  );
+});
