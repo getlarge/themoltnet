@@ -3,7 +3,7 @@ import {
   type MessageBus,
   sessionBus,
   Variant,
-} from 'dbus-next';
+} from '@jellybrick/dbus-next';
 
 const SERVICE_NAME = 'org.freedesktop.secrets';
 const SERVICE_PATH = '/org/freedesktop/secrets';
