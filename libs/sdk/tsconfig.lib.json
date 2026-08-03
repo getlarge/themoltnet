@@ -23,9 +23,6 @@
   "include": ["src"],
   "references": [
     {
-      "path": "../agent-config/tsconfig.lib.json"
-    },
-    {
       "path": "../tasks/tsconfig.lib.json"
     },
     {
@@ -33,9 +30,6 @@
     },
     {
       "path": "../models/tsconfig.lib.json"
-    },
-    {
-      "path": "../os-keyring/tsconfig.lib.json"
     },
     {
       "path": "../api-client/tsconfig.lib.json"
