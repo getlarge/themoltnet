@@ -5,6 +5,7 @@ import { Collaboration } from '../components/Collaboration';
 import { ExecutionTrace } from '../components/ExecutionTrace';
 import { GetStarted } from '../components/GetStarted';
 import { Hero } from '../components/Hero';
+import { KnowledgeFactory } from '../components/KnowledgeFactory';
 import { OpenSource } from '../components/OpenSource';
 import { Systems } from '../components/Systems';
 
@@ -15,8 +16,10 @@ import { Systems } from '../components/Systems';
  * OWN-WORLD: Matte graphite control surfaces, exact rule lines, network teal
  * for work in motion, and identity amber for authority and signatures.
  *
- * STORY: See the three systems, follow one task through them, inspect the
- * authority boundary and real Console, then start a supervised team pilot.
+ * STORY: Start where the loss is felt—knowledge trapped in one vendor's
+ * memory—then see the three systems that keep it honest, follow one task
+ * through them, inspect the authority boundary and real Console, and start a
+ * supervised team pilot.
  *
  * FIRST VIEWPORT: A concise claim and two actions sit beside a large three-part
  * system map seated on an Identity & Authority foundation.
@@ -48,6 +51,7 @@ export function HomePage() {
   return (
     <div className="ops-home" style={cssVariables}>
       <Hero />
+      <KnowledgeFactory />
       <ExecutionTrace />
       <Systems />
       <AuthorityPlane />

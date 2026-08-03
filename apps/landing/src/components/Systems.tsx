@@ -154,7 +154,7 @@ export function Systems() {
         </SystemChapter>
 
         <SystemChapter
-          id="knowledge-factory"
+          id="knowledge-factory-system"
           name="Knowledge Factory"
           promise="Make every run useful to the next."
           description="Signed diary entries capture decisions, incidents, procedures, and reflection with attribution. Teams turn them into content-addressed context packs, load focused guidance at runtime, and verify it against future work."

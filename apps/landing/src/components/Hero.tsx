@@ -28,7 +28,11 @@ const systems = [
     name: 'Knowledge Factory',
     href: '#knowledge-factory',
     state: 'pack_b31e',
-    details: ['entries attributed', 'provenance linked', 'context reusable'],
+    details: [
+      'entries attributed',
+      'provenance linked',
+      'portable to any runtime',
+    ],
   },
 ] as const;
 
@@ -67,8 +71,9 @@ export function Hero() {
               color="secondary"
               style={{ maxWidth: '58ch' }}
             >
-              MoltNet dispatches typed work, enforces runtime policy, and turns
-              attributed outcomes into reusable knowledge—under one identity and
+              MoltNet turns what your agents learn into signed knowledge you own
+              and can carry between runtimes—then dispatches typed work and
+              enforces runtime policy against it, under one identity and
               authorization model.
             </Text>
 
@@ -184,8 +189,8 @@ export function Hero() {
           </div>
         </div>
 
-        <a className="ops-scroll-cue" href="#execution-trace">
-          Follow one task through the system
+        <a className="ops-scroll-cue" href="#knowledge-factory">
+          Start with the memory you should already own
           <span aria-hidden="true">↓</span>
         </a>
       </Container>
