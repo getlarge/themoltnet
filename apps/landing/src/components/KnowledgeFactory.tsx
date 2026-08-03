@@ -9,13 +9,16 @@ import {
 import { getConfig } from '../config';
 
 /**
- * Entry-point framing for the Knowledge Factory.
+ * Deep dive on the third pillar, sitting immediately after the three-system
+ * chapters so the control-plane frame is already established.
  *
- * Most visitors do not arrive looking for an agent control plane. They arrive
- * because the context their agents build keeps dying inside one vendor's
- * account. This section leads with that loss, states the two ownership stakes
- * (individual portability, organisational de-siloing), and treats policy and
- * typed dispatch as what you inherit on the way rather than the opening pitch.
+ * MoltNet is one control plane; the Knowledge Factory is the pillar whose value
+ * compounds, and the one most visitors already feel the absence of. This
+ * section gives it the weight the other two get from the trace and the
+ * authority plane: the portability stake stated plainly, both audiences named
+ * (individual ownership, organisational de-siloing), and a closing band that
+ * points back at the Task Engine and Agent Runtime as what makes a pack's
+ * provenance real rather than as separate products.
  */
 
 const ledger = [
@@ -73,13 +76,15 @@ export function KnowledgeFactory() {
 
   return (
     <section
-      id="knowledge-factory"
+      id="knowledge-ownership"
       className="ops-section ops-factory-section"
       aria-labelledby="factory-title"
     >
       <Container maxWidth="xl">
         <div className="ops-section-heading ops-section-heading-wide">
-          <span className="ops-kicker">Start here · Knowledge Factory</span>
+          <span className="ops-kicker">
+            Pillar 03 · Knowledge Factory, up close
+          </span>
           <Text id="factory-title" variant="h2">
             Your agents learn on your work. That memory should be yours.
           </Text>
@@ -91,10 +96,9 @@ export function KnowledgeFactory() {
             the editor, or the team, and it starts over.
           </Text>
           <Text variant="bodyLarge" color="secondary">
-            The Knowledge Factory is the part of MoltNet you can adopt on its
-            own. Capture what agents learn as signed entries you own, condense
-            them into content-addressed packs, and load them into whatever
-            runtime you use next.
+            All three pillars run on one control plane, but this is the one that
+            compounds. Entries signed today are the context an agent loads next
+            quarter, on a runtime that may not exist yet.
           </Text>
         </div>
 
@@ -174,16 +178,21 @@ export function KnowledgeFactory() {
 
         <div className="ops-factory-byproduct">
           <div>
-            <span className="ops-record-label">And on the way</span>
+            <span className="ops-record-label">
+              Why it takes a control plane
+            </span>
             <Text variant="h3">
-              The governance layer is a byproduct, not a second purchase.
+              This pillar is only worth anything because the other two hold it
+              up.
             </Text>
             <Text variant="bodyLarge" color="secondary">
-              Knowledge only counts if you can say where it came from and
-              whether it held up. So the work that produces an entry runs as a
-              typed contract, the runtime that loads a pack is already
-              policy-bound, and every hop is attributed to a key. Teams adopt
-              the Knowledge Factory to stop losing context—and find the audit
+              A pack that claims to be verified means a real task ran against
+              it, under a policy you can name, by an agent you can identify.
+              That is the Task Engine and the Agent Runtime doing their job.
+              Knowledge you cannot trace is a knowledge base with better
+              formatting—so the rest of the control plane is not a second
+              purchase you make later, it is what makes an entry worth loading.
+              Teams who adopt MoltNet to stop losing context inherit the audit
               trail their security review was going to ask for anyway.
             </Text>
           </div>
@@ -196,9 +205,9 @@ export function KnowledgeFactory() {
               <strong>Agent Runtime</strong>
               <span>pinned profiles, tool and command policy</span>
             </a>
-            <a href="#knowledge-factory-system">
-              <strong>How the factory runs</strong>
-              <span>entry → pack → skill → verified task</span>
+            <a href="#identity-authority">
+              <strong>Identity &amp; Authority</strong>
+              <span>the keys every hop is attributed to</span>
             </a>
           </div>
           <ActionLink

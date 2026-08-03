@@ -71,10 +71,9 @@ export function Hero() {
               color="secondary"
               style={{ maxWidth: '58ch' }}
             >
-              MoltNet turns what your agents learn into signed knowledge you own
-              and can carry between runtimes—then dispatches typed work and
-              enforces runtime policy against it, under one identity and
-              authorization model.
+              MoltNet dispatches typed work, enforces runtime policy, and turns
+              attributed outcomes into knowledge you own and can carry between
+              runtimes—under one identity and authorization model.
             </Text>
 
             <Stack direction="row" gap={3} wrap>
@@ -189,8 +188,8 @@ export function Hero() {
           </div>
         </div>
 
-        <a className="ops-scroll-cue" href="#knowledge-factory">
-          Start with the memory you should already own
+        <a className="ops-scroll-cue" href="#execution-trace">
+          Follow one task through the system
           <span aria-hidden="true">↓</span>
         </a>
       </Container>

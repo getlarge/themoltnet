@@ -154,12 +154,14 @@ export function Systems() {
         </SystemChapter>
 
         <SystemChapter
-          id="knowledge-factory-system"
+          id="knowledge-factory"
           name="Knowledge Factory"
           promise="Make every run useful to the next."
           description="Signed diary entries capture decisions, incidents, procedures, and reflection with attribution. Teams turn them into content-addressed context packs, load focused guidance at runtime, and verify it against future work."
-          href={`${docsUrl}/understand/knowledge-factory`}
-          linkLabel="Explore the Knowledge Factory"
+          href="#knowledge-ownership"
+          linkLabel="Why this pillar compounds"
+          linkIcon="↓"
+          external={false}
         >
           <ControlSurface
             as="div"
@@ -205,6 +207,8 @@ function SystemChapter({
   description,
   href,
   linkLabel,
+  linkIcon = '↗',
+  external = true,
   reverse = false,
   children,
 }: {
@@ -214,6 +218,8 @@ function SystemChapter({
   description: string;
   href: string;
   linkLabel: string;
+  linkIcon?: string;
+  external?: boolean;
   reverse?: boolean;
   children: React.ReactNode;
 }) {
@@ -230,12 +236,12 @@ function SystemChapter({
         </Text>
         <ActionLink
           href={href}
-          target="_blank"
-          rel="noopener noreferrer"
+          target={external ? '_blank' : undefined}
+          rel={external ? 'noopener noreferrer' : undefined}
           variant="ghost"
         >
           {linkLabel}
-          <span aria-hidden="true">↗</span>
+          <span aria-hidden="true">{linkIcon}</span>
         </ActionLink>
       </div>
       <div>{children}</div>

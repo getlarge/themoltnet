@@ -191,12 +191,12 @@ describe('content', () => {
     ).toBeInTheDocument();
   });
 
-  it('KnowledgeFactory frames policy and typed work as a byproduct', () => {
+  it('KnowledgeFactory credits the other two pillars rather than demoting them', () => {
     wrap(<KnowledgeFactory />);
 
     expect(
       screen.getByRole('heading', {
-        name: 'The governance layer is a byproduct, not a second purchase.',
+        name: 'This pillar is only worth anything because the other two hold it up.',
       }),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Task Engine/ })).toHaveAttribute(
@@ -208,18 +208,29 @@ describe('content', () => {
       '#agent-runtime',
     );
     expect(
-      screen.getByRole('link', { name: /How the factory runs/ }),
-    ).toHaveAttribute('href', '#knowledge-factory-system');
+      screen.getByRole('link', { name: /Identity & Authority/ }),
+    ).toHaveAttribute('href', '#identity-authority');
   });
 
-  it('Hero routes the first scroll into the Knowledge Factory section', () => {
+  it('Systems chapter three points down at the Knowledge Factory deep dive', () => {
+    wrap(<Systems />);
+
+    const link = screen.getByRole('link', {
+      name: /Why this pillar compounds/,
+    });
+    expect(link).toHaveAttribute('href', '#knowledge-ownership');
+    // In-page anchor, so it must not inherit the docs links' new-tab treatment.
+    expect(link).not.toHaveAttribute('target');
+  });
+
+  it('Hero keeps the control-plane narrative as the first scroll', () => {
     wrap(<Hero />);
 
     expect(
       screen.getByRole('link', {
-        name: /start with the memory you should already own/i,
+        name: /follow one task through the system/i,
       }),
-    ).toHaveAttribute('href', '#knowledge-factory');
+    ).toHaveAttribute('href', '#execution-trace');
   });
 
   it('ExecutionTrace preserves the causal task trail', () => {
