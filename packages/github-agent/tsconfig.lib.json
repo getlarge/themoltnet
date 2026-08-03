@@ -22,6 +22,9 @@
   "include": ["src"],
   "references": [
     {
+      "path": "../../libs/agent-config/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/crypto-service/tsconfig.lib.json"
     }
   ]

@@ -28,6 +28,8 @@ env:
 jobs:
   native-keyring:
     name: Native keyring
+    needs: [affected]
+    if: needs.affected.outputs.native-keyring == 'true'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     permissions:
@@ -38,12 +40,21 @@ jobs:
         os: [macos-latest, windows-latest]
     env:
       MOLTNET_RUN_NATIVE_KEYRING_TESTS: '1'
+      NX_BASE: ${{ needs.affected.outputs.base }}
+      NX_HEAD: ${{ needs.affected.outputs.head }}
       # tools/postinstall.mjs spawns the extensionless `nx` shim, which does
       # not resolve to nx.cmd on Windows. The Nx tasks below still perform the
       # workspace sync check before running.
       MOLTNET_SKIP_NX_SYNC: '1'
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 50
+      - name: Fetch NX_BASE SHA
+        shell: bash
+        run: |
+          git fetch --no-tags origin "$NX_BASE" --depth=1 || \
+            git fetch --no-tags origin "${{ github.base_ref || 'main' }}" --depth=50
       - uses: pnpm/action-setup@v5
       - uses: actions/setup-node@v6
         with:
@@ -53,17 +64,8 @@ jobs:
         with:
           go-version: '1.25'
       - run: pnpm install --frozen-lockfile
-      # The native test invokes this helper with `go run`. Precompile it so
-      # Vitest's timeout measures keyring operations instead of a cold Go
-      # module download/build on macOS runners.
-      - name: Precompile Go keyring interoperability helper
-        run: go test ./apps/moltnet-cli/testdata/keyring-interop
-      - name: Test OS keyring interoperability
-        run: pnpm exec nx run @moltnet/os-keyring:test
-      - name: Test SDK keyring interoperability
-        run: pnpm exec nx run @themoltnet/sdk:test
-      - name: Test Go CLI
-        run: pnpm exec nx run moltnet-cli:test
+      - name: Test affected native keyring projects
+        run: pnpm exec nx affected -t test-native --projects="@moltnet/os-keyring,@themoltnet/sdk,moltnet-cli"
 
   # Compute the affected project set once and expose per-suite / per-image
   # flags. Downstream jobs gate on these so e2e and image builds only run
@@ -85,6 +87,7 @@ jobs:
       e2e-cpp-sdk: ${{ steps.compute.outputs.e2e-cpp-sdk }}
       e2e-orchestration: ${{ steps.compute.outputs.e2e-orchestration }}
       e2e-any: ${{ steps.compute.outputs.e2e-any }}
+      native-keyring: ${{ steps.compute.outputs.native-keyring }}
       landing: ${{ steps.compute.outputs.landing }}
       agents-matrix: ${{ steps.matrix.outputs.matrix }}
       has-agents: ${{ steps.matrix.outputs.has-agents }}
@@ -227,6 +230,12 @@ jobs:
             echo "landing=true" >> "$GITHUB_OUTPUT"
           else
             echo "landing=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if contains "@moltnet/os-keyring" "@themoltnet/sdk" "moltnet-cli"; then
+            echo "native-keyring=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "native-keyring=false" >> "$GITHUB_OUTPUT"
           fi
 
           # Resolve the e2e image ref for each app service. The orchestrator

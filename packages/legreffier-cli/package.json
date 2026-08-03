@@ -26,7 +26,7 @@
     "node": ">=22"
   },
   "dependencies": {
-    "@napi-rs/keyring": "1.3.0",
+    "@napi-rs/keyring": "catalog:",
     "citty": "catalog:",
     "ink": "catalog:",
     "open": "catalog:",
