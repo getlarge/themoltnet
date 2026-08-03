@@ -70,7 +70,7 @@ describe('Windows Credential Manager process', () => {
     const result = createWindowsCredentialStore().read('themolt.net:key');
     const rejection = expect(result).rejects.toThrow(/timed out/);
 
-    await vi.advanceTimersByTimeAsync(10_000);
+    await vi.advanceTimersByTimeAsync(30_000);
 
     await rejection;
     expect(child.kill).toHaveBeenCalledOnce();

@@ -10,6 +10,11 @@ const keyring = vi.hoisted(() => ({
   setSecret: vi.fn(),
   constructor: vi.fn(),
 }));
+const macKeytar = vi.hoisted(() => ({
+  deletePassword: vi.fn(),
+  getPassword: vi.fn(),
+  setPassword: vi.fn(),
+}));
 
 vi.mock('@napi-rs/keyring', () => ({
   AsyncEntry: class {
@@ -25,6 +30,11 @@ vi.mock('@napi-rs/keyring', () => ({
   },
 }));
 
+vi.mock('@github/keytar', () => ({
+  default: macKeytar,
+  ...macKeytar,
+}));
+
 import { OSKeyringSecretProvider, windowsKeyringTarget } from '../src/index.js';
 
 describe('OSKeyringSecretProvider', () => {
@@ -32,6 +42,8 @@ describe('OSKeyringSecretProvider', () => {
     vi.clearAllMocks();
     keyring.getPassword.mockResolvedValue(undefined);
     keyring.getSecret.mockResolvedValue(undefined);
+    macKeytar.deletePassword.mockResolvedValue(true);
+    macKeytar.getPassword.mockResolvedValue(null);
   });
 
   it('uses the stable service name on Linux', async () => {
@@ -99,18 +111,24 @@ describe('OSKeyringSecretProvider', () => {
   });
 
   it('uses the Go-compatible password representation on macOS', async () => {
-    keyring.getPassword.mockResolvedValue('秘密');
-    keyring.setPassword.mockResolvedValue(undefined);
+    macKeytar.getPassword.mockResolvedValue(
+      'go-keyring-base64:' + Buffer.from('秘密').toString('base64'),
+    );
+    macKeytar.setPassword.mockResolvedValue(undefined);
     const provider = new OSKeyringSecretProvider('darwin');
 
     await expect(provider.read('key')).resolves.toBe('秘密');
     await provider.write('key', 'new-secret');
 
-    expect(keyring.setPassword).toHaveBeenCalledWith('new-secret');
+    expect(macKeytar.setPassword).toHaveBeenCalledWith(
+      'themolt.net',
+      'key',
+      'go-keyring-base64:' + Buffer.from('new-secret').toString('base64'),
+    );
   });
 
   it('fails closed when macOS deletion cannot be confirmed', async () => {
-    keyring.deleteCredential.mockResolvedValue(false);
+    macKeytar.getPassword.mockResolvedValue('still-present');
     const provider = new OSKeyringSecretProvider('darwin');
 
     await expect(provider.delete('key')).rejects.toThrow(/could not confirm/);

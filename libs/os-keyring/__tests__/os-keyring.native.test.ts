@@ -1,10 +1,21 @@
-import { spawn } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { resolve } from 'node:path';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { promisify } from 'node:util';
 
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { OSKeyringSecretProvider } from '../src/index.js';
+
+const execFileAsync = promisify(execFile);
+const MACOS_SECURITY = '/usr/bin/security';
+let macOSKeychainDir: string | undefined;
+let macOSKeychainPath: string | undefined;
+let macOSKeychainPassword: string | undefined;
+let originalMacOSDefaultKeychain: string | undefined;
+let originalMacOSKeychainList: string[] = [];
 
 type HelperRequest = {
   operation: 'read' | 'write' | 'delete';
@@ -19,6 +30,92 @@ const nativeKeyringEnabled =
   (process.platform === 'darwin' ||
     process.platform === 'linux' ||
     process.platform === 'win32');
+
+beforeAll(async () => {
+  if (!nativeKeyringEnabled || process.platform !== 'darwin') return;
+  const defaultResult = await execFileAsync(MACOS_SECURITY, [
+    'default-keychain',
+    '-d',
+    'user',
+  ]);
+  originalMacOSDefaultKeychain = unquoteKeychainPath(defaultResult.stdout);
+  const listResult = await execFileAsync(MACOS_SECURITY, [
+    'list-keychains',
+    '-d',
+    'user',
+  ]);
+  originalMacOSKeychainList = Array.from(
+    listResult.stdout.matchAll(/"([^"]+)"/g),
+    (match) => match[1],
+  );
+
+  macOSKeychainDir = await mkdtemp(join(tmpdir(), 'moltnet-keyring-test-'));
+  macOSKeychainPath = join(macOSKeychainDir, 'test.keychain-db');
+  macOSKeychainPassword = randomUUID();
+  await execFileAsync(MACOS_SECURITY, [
+    'create-keychain',
+    '-p',
+    macOSKeychainPassword,
+    macOSKeychainPath,
+  ]);
+  await execFileAsync(MACOS_SECURITY, [
+    'unlock-keychain',
+    '-p',
+    macOSKeychainPassword,
+    macOSKeychainPath,
+  ]);
+  await execFileAsync(MACOS_SECURITY, [
+    'set-keychain-settings',
+    '-lut',
+    '21600',
+    macOSKeychainPath,
+  ]);
+  await execFileAsync(MACOS_SECURITY, [
+    'list-keychains',
+    '-d',
+    'user',
+    '-s',
+    macOSKeychainPath,
+  ]);
+  await execFileAsync(MACOS_SECURITY, [
+    'default-keychain',
+    '-d',
+    'user',
+    '-s',
+    macOSKeychainPath,
+  ]);
+});
+
+afterAll(async () => {
+  if (process.platform !== 'darwin' || !macOSKeychainPath) return;
+  if (originalMacOSKeychainList.length > 0) {
+    await execFileAsync(MACOS_SECURITY, [
+      'list-keychains',
+      '-d',
+      'user',
+      '-s',
+      ...originalMacOSKeychainList,
+    ]);
+  }
+  if (originalMacOSDefaultKeychain) {
+    await execFileAsync(MACOS_SECURITY, [
+      'default-keychain',
+      '-d',
+      'user',
+      '-s',
+      originalMacOSDefaultKeychain,
+    ]);
+  }
+  await execFileAsync(MACOS_SECURITY, [
+    'delete-keychain',
+    macOSKeychainPath,
+  ]).catch(() => undefined);
+  if (macOSKeychainDir) await rm(macOSKeychainDir, { recursive: true });
+});
+
+function unquoteKeychainPath(value: string): string {
+  return value.trim().replace(/^"|"$/g, '');
+}
 
 async function runGoKeyringHelper(
   request: HelperRequest,
@@ -90,32 +187,36 @@ describe.runIf(nativeKeyringEnabled)('native OS keyring', () => {
     }
   }, 60_000);
 
-  it('round-trips UTF-8 secrets between Go and the Node keyring library', async () => {
-    const provider = new OSKeyringSecretProvider();
-    const key = `oauth2/native-test/${randomUUID()}`;
-    const fromGo = 'go→node-秘密';
-    const fromNode = 'node→go-credential';
+  it.runIf(process.platform !== 'darwin')(
+    'round-trips UTF-8 secrets between Go and the Node keyring library',
+    async () => {
+      const provider = new OSKeyringSecretProvider();
+      const key = `oauth2/native-test/${randomUUID()}`;
+      const fromGo = 'go→node-秘密';
+      const fromNode = 'node→go-credential';
 
-    try {
-      await runGoKeyringHelper({
-        operation: 'write',
-        key,
-        value: Buffer.from(fromGo, 'utf8').toString('base64'),
-      });
-      await expect(provider.read(key)).resolves.toBe(fromGo);
+      try {
+        await runGoKeyringHelper({
+          operation: 'write',
+          key,
+          value: Buffer.from(fromGo, 'utf8').toString('base64'),
+        });
+        await expect(provider.read(key)).resolves.toBe(fromGo);
 
-      await provider.write(key, fromNode);
-      const readByGo = await runGoKeyringHelper({ operation: 'read', key });
-      expect(readByGo.found).toBe(true);
-      expect(Buffer.from(readByGo.value!, 'base64').toString('utf8')).toBe(
-        fromNode,
-      );
+        await provider.write(key, fromNode);
+        const readByGo = await runGoKeyringHelper({ operation: 'read', key });
+        expect(readByGo.found).toBe(true);
+        expect(Buffer.from(readByGo.value!, 'base64').toString('utf8')).toBe(
+          fromNode,
+        );
 
-      await provider.delete(key);
-      const deleted = await runGoKeyringHelper({ operation: 'read', key });
-      expect(deleted.found ?? false).toBe(false);
-    } finally {
-      await runGoKeyringHelper({ operation: 'delete', key });
-    }
-  }, 60_000);
+        await provider.delete(key);
+        const deleted = await runGoKeyringHelper({ operation: 'read', key });
+        expect(deleted.found ?? false).toBe(false);
+      } finally {
+        await runGoKeyringHelper({ operation: 'delete', key });
+      }
+    },
+    60_000,
+  );
 });

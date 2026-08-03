@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 const WINDOWS_DIRECTORY = 'C:\\Windows';
 export const WINDOWS_POWERSHELL_PATH =
   'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';
-const WINDOWS_CREDENTIAL_TIMEOUT_MS = 10_000;
+const WINDOWS_CREDENTIAL_TIMEOUT_MS = 30_000;
 const WINDOWS_CREDENTIAL_OUTPUT_LIMIT = 64 * 1024;
 
 export interface WindowsCredentialStore {

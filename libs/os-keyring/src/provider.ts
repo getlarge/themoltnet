@@ -9,6 +9,7 @@ import {
 
 export const MOLTNET_SECRET_SERVICE = 'themolt.net';
 export const OS_KEYRING_SECRET_PROVIDER = 'os-keyring';
+const GO_KEYRING_BASE64_PREFIX = 'go-keyring-base64:';
 
 export interface KeyringSecretProvider {
   readonly name: string;
@@ -35,6 +36,12 @@ export class OSKeyringSecretProvider implements KeyringSecretProvider {
     if (this.platform === 'linux') {
       return this.linuxSecrets.read(MOLTNET_SECRET_SERVICE, key);
     }
+    if (this.platform === 'darwin') {
+      const value = await (
+        await loadMacOSKeytar()
+      ).getPassword(MOLTNET_SECRET_SERVICE, key);
+      return value ? decodeGoKeyringPassword(value) : null;
+    }
     const value = await (await createAsyncEntry(key)).getPassword();
     return value || null;
   }
@@ -53,6 +60,16 @@ export class OSKeyringSecretProvider implements KeyringSecretProvider {
       await this.linuxSecrets.write(MOLTNET_SECRET_SERVICE, key, value);
       return;
     }
+    if (this.platform === 'darwin') {
+      await (
+        await loadMacOSKeytar()
+      ).setPassword(
+        MOLTNET_SECRET_SERVICE,
+        key,
+        encodeGoKeyringPassword(value),
+      );
+      return;
+    }
     await (await createAsyncEntry(key)).setPassword(value);
   }
 
@@ -64,6 +81,14 @@ export class OSKeyringSecretProvider implements KeyringSecretProvider {
     }
     if (this.platform === 'linux') {
       await this.linuxSecrets.delete(MOLTNET_SECRET_SERVICE, key);
+      return;
+    }
+    if (this.platform === 'darwin') {
+      const keytar = await loadMacOSKeytar();
+      await keytar.deletePassword(MOLTNET_SECRET_SERVICE, key);
+      if ((await keytar.getPassword(MOLTNET_SECRET_SERVICE, key)) !== null) {
+        throw new Error('macOS Keychain could not confirm deletion');
+      }
       return;
     }
     const entry = await createAsyncEntry(key);
@@ -78,6 +103,35 @@ export class OSKeyringSecretProvider implements KeyringSecretProvider {
 async function createAsyncEntry(key: string) {
   const { AsyncEntry } = await import('@napi-rs/keyring');
   return new AsyncEntry(MOLTNET_SECRET_SERVICE, key);
+}
+
+interface MacOSKeytar {
+  getPassword(service: string, account: string): Promise<string | null>;
+  setPassword(
+    service: string,
+    account: string,
+    password: string,
+  ): Promise<void>;
+  deletePassword(service: string, account: string): Promise<boolean>;
+}
+
+async function loadMacOSKeytar() {
+  const module = await import('@github/keytar');
+  return (module as { default?: MacOSKeytar }).default ?? module;
+}
+
+function encodeGoKeyringPassword(value: string): string {
+  return (
+    GO_KEYRING_BASE64_PREFIX + Buffer.from(value, 'utf8').toString('base64')
+  );
+}
+
+function decodeGoKeyringPassword(value: string): string {
+  if (!value.startsWith(GO_KEYRING_BASE64_PREFIX)) return value;
+  return Buffer.from(
+    value.slice(GO_KEYRING_BASE64_PREFIX.length),
+    'base64',
+  ).toString('utf8');
 }
 
 export function windowsKeyringTarget(

@@ -16,8 +16,9 @@
     "test-native": "go test ../../apps/moltnet-cli/testdata/keyring-interop && vitest run __tests__/os-keyring.native.test.ts"
   },
   "dependencies": {
-    "@napi-rs/keyring": "catalog:",
-    "dbus-next": "catalog:"
+    "@github/keytar": "catalog:",
+    "@jellybrick/dbus-next": "catalog:",
+    "@napi-rs/keyring": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
