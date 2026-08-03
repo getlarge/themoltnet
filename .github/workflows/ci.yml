@@ -38,6 +38,10 @@ jobs:
         os: [macos-latest, windows-latest]
     env:
       MOLTNET_RUN_NATIVE_KEYRING_TESTS: '1'
+      # tools/postinstall.mjs spawns the extensionless `nx` shim, which does
+      # not resolve to nx.cmd on Windows. The Nx tasks below still perform the
+      # workspace sync check before running.
+      MOLTNET_SKIP_NX_SYNC: '1'
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v5
