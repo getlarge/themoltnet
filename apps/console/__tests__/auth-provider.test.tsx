@@ -1,6 +1,7 @@
 import { FetchError, ResponseError } from '@ory/client-fetch';
 import {
   act,
+  cleanup,
   fireEvent,
   render,
   screen,
@@ -26,11 +27,15 @@ vi.mock('../src/kratos.js', () => ({
 }));
 
 /** Builds the error @ory/client-fetch throws for a non-2xx response. */
-function responseError(status: number): ResponseError {
-  return new ResponseError(
-    new Response(null, { status }),
-    'Response returned an error code',
-  );
+function responseError(status: number, body?: unknown): ResponseError {
+  const response =
+    body === undefined
+      ? new Response(null, { status })
+      : new Response(JSON.stringify(body), {
+          status,
+          headers: { 'content-type': 'application/json' },
+        });
+  return new ResponseError(response, 'Response returned an error code');
 }
 
 const ACTIVE_SESSION = {
@@ -42,7 +47,15 @@ const ACTIVE_SESSION = {
 };
 
 function TestConsumer() {
-  const { isAuthenticated, isLoading, username, email, error } = useAuth();
+  const {
+    isAuthenticated,
+    isLoading,
+    username,
+    email,
+    error,
+    challenge,
+    challengeRedirectTo,
+  } = useAuth();
   return (
     <div>
       <span data-testid="loading">{String(isLoading)}</span>
@@ -50,6 +63,10 @@ function TestConsumer() {
       <span data-testid="username">{username ?? 'null'}</span>
       <span data-testid="email">{email ?? 'null'}</span>
       <span data-testid="error">{error?.message ?? 'null'}</span>
+      <span data-testid="challenge">{challenge}</span>
+      <span data-testid="challenge-redirect">
+        {challengeRedirectTo ?? 'null'}
+      </span>
     </div>
   );
 }
@@ -141,6 +158,43 @@ describe('AuthProvider', () => {
     await waitFor(() => {
       expect(screen.getByTestId('authenticated').textContent).toBe('false');
     });
+  });
+
+  // Regression: 401 and 403 both mean "re-authenticate", but they
+  // need *different* login flows — collapsing them sent an aal1 session to an
+  // aal1 flow, which Kratos answers by redirecting straight back.
+  it('reports 401 and 403 as distinct challenges', async () => {
+    mockToSession.mockRejectedValue(responseError(401));
+    await renderSettled();
+    expect(screen.getByTestId('challenge').textContent).toBe('unauthenticated');
+    expect(screen.getByTestId('challenge-redirect').textContent).toBe('null');
+
+    cleanup();
+    vi.clearAllMocks();
+
+    mockToSession.mockRejectedValue(
+      responseError(403, {
+        error: { id: 'session_aal2_required' },
+        redirect_browser_to: 'https://auth.example.com/login?aal=aal2',
+      }),
+    );
+    await renderSettled();
+    expect(screen.getByTestId('challenge').textContent).toBe(
+      'second_factor_required',
+    );
+    expect(screen.getByTestId('challenge-redirect').textContent).toBe(
+      'https://auth.example.com/login?aal=aal2',
+    );
+  });
+
+  it('reports no challenge while a transient failure is being retried', async () => {
+    mockToSession.mockResolvedValueOnce(ACTIVE_SESSION);
+    await renderSettled();
+
+    mockToSession.mockRejectedValueOnce(responseError(500));
+    await revalidateOnFocus();
+
+    expect(screen.getByTestId('challenge').textContent).toBe('none');
   });
 
   // Regression: issue #1747. A transient failure used to clear the session,

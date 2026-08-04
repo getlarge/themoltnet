@@ -41,12 +41,35 @@ async function toSessionWithTimeout(): Promise<Session> {
   }
 }
 
+/**
+ * Why the session is unusable, when it is.
+ *
+ * - `none` — either authenticated, or we have not resolved yet.
+ * - `unauthenticated` — Kratos has no session for this browser (401).
+ * - `second_factor_required` — Kratos *has* a session, but it does not meet
+ *   the required Authenticator Assurance Level (403). The distinction matters:
+ *   these two need different login flows. See `challengeRedirectTo`.
+ */
+export type AuthChallenge =
+  | 'none'
+  | 'unauthenticated'
+  | 'second_factor_required';
+
 export interface AuthContextValue {
   session: Session | null;
   identity: Identity | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: Error | null;
+  /** Why the session is unusable — drives which login flow AuthGuard opens. */
+  challenge: AuthChallenge;
+  /**
+   * The `redirect_browser_to` Kratos returns alongside a 403. It already points
+   * at the flow that satisfies the missing factor (e.g. `…/self-service/login/
+   * browser?aal=aal2`), so preferring it over a hand-built URL keeps us correct
+   * if Ory ever changes which factor it asks for.
+   */
+  challengeRedirectTo: string | null;
   logout: () => Promise<void>;
   /** Re-check session (e.g. after login completes) */
   refreshSession: () => Promise<void>;
@@ -54,27 +77,70 @@ export interface AuthContextValue {
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
 
+interface OryErrorBody {
+  error?: { id?: string };
+  redirect_browser_to?: string;
+}
+
 /**
- * Distinguishes a genuine "you are logged out" answer from a transient failure
- * (network blip, 5xx, CORS, aborted fetch).
+ * Reads Kratos' JSON error envelope without disturbing the caller's response.
+ *
+ * `.clone()` because @ory/client-fetch hands us an unread body; consuming the
+ * original would break any other reader.
+ */
+async function readOryErrorBody(
+  response: Response,
+): Promise<OryErrorBody | null> {
+  try {
+    return (await response.clone().json()) as OryErrorBody;
+  } catch {
+    return null;
+  }
+}
+
+type SessionFailure =
+  /** Network blip, 5xx, CORS, aborted fetch — keep whatever session we have. */
+  | { kind: 'transient' }
+  | { kind: 'unauthenticated' }
+  | { kind: 'second_factor_required'; redirectTo: string | null };
+
+/**
+ * Classifies a failed `toSession()` call.
  *
  * @ory/client-fetch throws ResponseError (carrying `.response`) for any non-2xx
- * response, and FetchError when fetch() itself rejected. Only 401 (no/invalid
- * session) and 403 (session_aal2_required) mean the user must re-authenticate.
- * Treating anything else as logged-out lets a momentary blip bounce the user to
- * login — see issue #1747.
+ * response, and FetchError when fetch() itself rejected. Only 401 and 403 mean
+ * the user must re-authenticate; treating anything else as logged-out lets a
+ * momentary blip bounce the user to login — see issue #1747.
+ *
+ * 401 and 403 are *not* interchangeable. A 403 from `/sessions/whoami` is
+ * always an AAL error: the cookie is valid, but the session sits at aal1 while
+ * the identity has a second factor enrolled. Sending that user to a plain
+ * (aal1) login flow makes Kratos answer "you are already logged in" and 302
+ * straight back to `return_to` — console redirects to Kratos, Kratos redirects
+ * to console, forever. That is the loop this guard exists to prevent.
  */
-function isAuthenticationFailure(error: unknown): boolean {
-  return (
-    error instanceof ResponseError &&
-    (error.response.status === 401 || error.response.status === 403)
-  );
+async function classifySessionFailure(error: unknown): Promise<SessionFailure> {
+  if (!(error instanceof ResponseError)) return { kind: 'transient' };
+
+  const { status } = error.response;
+  if (status === 401) return { kind: 'unauthenticated' };
+  if (status !== 403) return { kind: 'transient' };
+
+  const body = await readOryErrorBody(error.response);
+  return {
+    kind: 'second_factor_required',
+    redirectTo: body?.redirect_browser_to ?? null,
+  };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [challenge, setChallenge] = useState<AuthChallenge>('none');
+  const [challengeRedirectTo, setChallengeRedirectTo] = useState<string | null>(
+    null,
+  );
   const inFlightCheckRef = useRef<Promise<void> | null>(null);
   const lastForegroundAttemptAtRef = useRef(Number.NEGATIVE_INFINITY);
 
@@ -100,16 +166,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const sess = await toSessionWithTimeout();
           setSession(sess);
           setError(null);
+          setChallenge('none');
+          setChallengeRedirectTo(null);
         } catch (err) {
-          if (isAuthenticationFailure(err)) {
-            // Genuine sign-out: clear so AuthGuard redirects to login.
-            setSession(null);
-            setError(null);
-          } else {
-            // Transient: keep the session we already have. A background blip
-            // must never unmount the app or bounce the user to login.
+          const failure = await classifySessionFailure(err);
+          if (failure.kind === 'transient') {
+            // Keep the session we already have. A background blip must never
+            // unmount the app or bounce the user to login.
             setError(
               err instanceof Error ? err : new Error('Session check failed'),
+            );
+          } else {
+            // Genuine sign-out, or a session that needs a second factor:
+            // clear so AuthGuard redirects to the right login flow.
+            setSession(null);
+            setError(null);
+            setChallenge(failure.kind);
+            setChallengeRedirectTo(
+              failure.kind === 'second_factor_required'
+                ? failure.redirectTo
+                : null,
             );
           }
         } finally {
@@ -170,6 +246,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: !!session?.active,
     isLoading,
     error,
+    challenge,
+    challengeRedirectTo,
     logout,
     refreshSession: checkSession,
   };

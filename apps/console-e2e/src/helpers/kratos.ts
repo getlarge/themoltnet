@@ -4,6 +4,7 @@ import type { Page } from '@playwright/test';
 import { CONSOLE_URL, KRATOS_PUBLIC_URL } from './env.js';
 import { waitForVerificationCode } from './mailslurper.js';
 import type { TestUser } from './test-user.js';
+import { generateTotpCode, waitForFreshTotpWindow } from './totp.js';
 
 export async function submitKratosForm(page: Page): Promise<void> {
   await page.locator('form button[type="submit"]').first().click();
@@ -92,6 +93,123 @@ export async function loginViaBrowser(
   const code = await waitForVerificationCode(user.email, { sinceIso });
   await page.locator('input[name="code"]').fill(code);
   await submitKratosForm(page);
+}
+
+interface KratosUiNode {
+  group: string;
+  attributes: {
+    name?: string;
+    value?: unknown;
+    id?: string;
+    text?: { text?: string; context?: { secret?: string } };
+  };
+}
+
+interface KratosFlow {
+  id: string;
+  ui: { nodes: KratosUiNode[]; messages?: { text: string }[] };
+}
+
+function findNodeValue(flow: KratosFlow, name: string): string | undefined {
+  const node = flow.ui.nodes.find((n) => n.attributes.name === name);
+  return typeof node?.attributes.value === 'string'
+    ? node.attributes.value
+    : undefined;
+}
+
+/**
+ * Enrols an authenticator app for the currently signed-in identity.
+ *
+ * Driven through the Kratos JSON API rather than the reference self-service UI:
+ * the secret only exists inside the flow payload, and scraping it out of the
+ * rendered QR code would couple this to that UI's markup.
+ *
+ * `page.request` shares the browser context's cookie jar, so the session and
+ * CSRF cookies established by the login flow apply here.
+ */
+export async function enrollTotp(page: Page): Promise<string> {
+  await page.goto(`${KRATOS_PUBLIC_URL}/self-service/settings/browser`);
+  const flowId = new URL(page.url()).searchParams.get('flow');
+  if (!flowId) {
+    throw new Error(`Settings flow did not start; landed on ${page.url()}`);
+  }
+
+  const flowResponse = await page.request.get(
+    `${KRATOS_PUBLIC_URL}/self-service/settings/flows?id=${flowId}`,
+    { headers: { accept: 'application/json' } },
+  );
+  if (!flowResponse.ok()) {
+    throw new Error(`Could not read settings flow: ${flowResponse.status()}`);
+  }
+  const flow = (await flowResponse.json()) as KratosFlow;
+
+  const secretNode = flow.ui.nodes.find(
+    (node) => node.attributes.id === 'totp_secret_key',
+  );
+  const secret =
+    secretNode?.attributes.text?.context?.secret ??
+    secretNode?.attributes.text?.text;
+  if (!secret) {
+    throw new Error(
+      'Settings flow exposed no TOTP secret — is the totp method enabled in kratos.yaml?',
+    );
+  }
+
+  const csrfToken = findNodeValue(flow, 'csrf_token');
+  await waitForFreshTotpWindow();
+
+  const submission = await page.request.post(
+    `${KRATOS_PUBLIC_URL}/self-service/settings?flow=${flowId}`,
+    {
+      headers: { accept: 'application/json' },
+      data: {
+        csrf_token: csrfToken,
+        method: 'totp',
+        totp_code: generateTotpCode(secret),
+      },
+    },
+  );
+  if (!submission.ok()) {
+    throw new Error(
+      `TOTP enrolment failed (${submission.status()}): ${await submission.text()}`,
+    );
+  }
+
+  // Returned rather than re-read later: Kratos only exposes the secret while
+  // the credential is being set up.
+  return secret;
+}
+
+/**
+ * Ends the browser session through the Kratos logout flow.
+ *
+ * No-op when there is nothing to end. Playwright hands every test its own
+ * browser context — `test.describe.serial` orders tests, it does not share
+ * cookies between them — so a suite that logs out before logging in usually
+ * starts from an empty jar. Kratos answers that with 401 `session_inactive`
+ * and no `logout_url`, and the caller's postcondition ("signed out") already
+ * holds. Any other non-2xx is a real failure and is surfaced.
+ */
+export async function logoutViaBrowser(page: Page): Promise<void> {
+  const response = await page.request.get(
+    `${KRATOS_PUBLIC_URL}/self-service/logout/browser`,
+    { headers: { accept: 'application/json' } },
+  );
+  if (response.status() === 401) {
+    return;
+  }
+  if (!response.ok()) {
+    throw new Error(
+      `Could not start logout flow (${response.status()}): ${await response.text()}`,
+    );
+  }
+  const { logout_url: logoutUrl } = (await response.json()) as {
+    logout_url?: string;
+  };
+  if (!logoutUrl) {
+    throw new Error('Logout flow returned no logout_url');
+  }
+  await page.goto(logoutUrl);
 }
 
 export async function getSessionCookie(page: Page): Promise<string> {

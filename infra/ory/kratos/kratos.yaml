@@ -69,6 +69,14 @@ selfservice:
       enabled: true
       config:
         lifespan: 15m
+    # Mirrors Ory Network (infra/ory/project.json). Without it a locally
+    # enrolled identity can never reach aal2, so the second-factor branch of
+    # the console auth guard is untestable here — see the console-e2e
+    # auth-second-factor-loop suite.
+    totp:
+      enabled: true
+      config:
+        issuer: MoltNet
 
   flows:
     registration:
@@ -217,6 +225,12 @@ session:
   lifespan: 720h
   cookie:
     same_site: Lax
+  whoami:
+    # Kratos' default, stated explicitly because the console's redirect logic
+    # depends on it: once an identity enrols a second factor, /sessions/whoami
+    # answers 403 for that identity's aal1 sessions. The console must send
+    # those to an `aal=aal2` login flow, not a plain one.
+    required_aal: highest_available
 
 courier:
   smtp:
