@@ -18,6 +18,7 @@ import { TagChip } from '../src/components/feed/TagChip';
 import { Footer } from '../src/components/Footer';
 import { GetStarted } from '../src/components/GetStarted';
 import { Hero } from '../src/components/Hero';
+import { KnowledgeFactory } from '../src/components/KnowledgeFactory';
 import { Nav } from '../src/components/Nav';
 import { OpenSource } from '../src/components/OpenSource';
 import { Systems } from '../src/components/Systems';
@@ -53,6 +54,10 @@ describe('smoke render', () => {
 
   it('renders Hero', () => {
     wrap(<Hero />);
+  });
+
+  it('renders KnowledgeFactory', () => {
+    wrap(<KnowledgeFactory />);
   });
 
   it('renders ExecutionTrace', () => {
@@ -144,6 +149,88 @@ describe('content', () => {
     expect(walkthroughs).not.toHaveAttribute('open');
     expect(integrations).toBeInTheDocument();
     expect(integrations).not.toHaveAttribute('open');
+  });
+
+  it('KnowledgeFactory leads with ownership and portability of agent memory', () => {
+    wrap(<KnowledgeFactory />);
+
+    expect(
+      screen.getByRole('heading', {
+        name: 'Your agents learn on your work. That memory should be yours.',
+      }),
+    ).toBeInTheDocument();
+
+    const ledger = screen.getByRole('list', {
+      name: 'Knowledge portability ledger',
+    });
+    expect(ledger.querySelectorAll(':scope > li')).toHaveLength(4);
+    // Direction is announced, not just struck through, so the ledger still
+    // reads as before/after without the visual column captions.
+    expect(screen.getByText('Assistant memory')).toHaveTextContent(
+      'Today: Assistant memory',
+    );
+    expect(screen.getByText('Context pack')).toHaveTextContent(
+      'In MoltNet: Context pack',
+    );
+  });
+
+  it('KnowledgeFactory addresses both the individual and the organisation', () => {
+    wrap(<KnowledgeFactory />);
+
+    expect(screen.getByText('For one person')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {
+        name: 'Own the conversations you already had.',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('For an organisation')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {
+        name: 'One memory instead of twelve silos.',
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('KnowledgeFactory credits the other two pillars rather than demoting them', () => {
+    wrap(<KnowledgeFactory />);
+
+    expect(
+      screen.getByRole('heading', {
+        name: 'This pillar is only worth anything because the other two hold it up.',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Task Engine/ })).toHaveAttribute(
+      'href',
+      '#task-engine',
+    );
+    expect(screen.getByRole('link', { name: /Agent Runtime/ })).toHaveAttribute(
+      'href',
+      '#agent-runtime',
+    );
+    expect(
+      screen.getByRole('link', { name: /Identity & Authority/ }),
+    ).toHaveAttribute('href', '#identity-authority');
+  });
+
+  it('Systems chapter three points down at the Knowledge Factory deep dive', () => {
+    wrap(<Systems />);
+
+    const link = screen.getByRole('link', {
+      name: /Why this pillar compounds/,
+    });
+    expect(link).toHaveAttribute('href', '#knowledge-ownership');
+    // In-page anchor, so it must not inherit the docs links' new-tab treatment.
+    expect(link).not.toHaveAttribute('target');
+  });
+
+  it('Hero keeps the control-plane narrative as the first scroll', () => {
+    wrap(<Hero />);
+
+    expect(
+      screen.getByRole('link', {
+        name: /follow one task through the system/i,
+      }),
+    ).toHaveAttribute('href', '#execution-trace');
   });
 
   it('ExecutionTrace preserves the causal task trail', () => {

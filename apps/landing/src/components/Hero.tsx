@@ -28,7 +28,11 @@ const systems = [
     name: 'Knowledge Factory',
     href: '#knowledge-factory',
     state: 'pack_b31e',
-    details: ['entries attributed', 'provenance linked', 'context reusable'],
+    details: [
+      'entries attributed',
+      'provenance linked',
+      'portable to any runtime',
+    ],
   },
 ] as const;
 
@@ -68,8 +72,8 @@ export function Hero() {
               style={{ maxWidth: '58ch' }}
             >
               MoltNet dispatches typed work, enforces runtime policy, and turns
-              attributed outcomes into reusable knowledge—under one identity and
-              authorization model.
+              attributed outcomes into knowledge you own and can carry between
+              runtimes—under one identity and authorization model.
             </Text>
 
             <Stack direction="row" gap={3} wrap>
