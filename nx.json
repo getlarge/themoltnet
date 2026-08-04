@@ -254,6 +254,18 @@
         "releaseTag": {
           "pattern": "{projectName}-v{version}"
         }
+      },
+      "os-keyring": {
+        "projects": [
+          "@themoltnet/os-keyring",
+          "@themoltnet/os-keyring-darwin",
+          "@themoltnet/os-keyring-linux",
+          "@themoltnet/os-keyring-win32"
+        ],
+        "projectsRelationship": "fixed",
+        "releaseTag": {
+          "pattern": "os-keyring-v{version}"
+        }
       }
     },
     "version": {

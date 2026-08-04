@@ -31,7 +31,7 @@ on:
       republish:
         description: >
           Comma-separated packages to re-publish from existing draft releases.
-          Valid values: sdk, tasks-orchestrator, credentials, credential-broker, ctap, yubikey-preview-sign, signer, github-agent, legreffier, cli, api-client, dspy-adapters, skill, design-system, pi-extension, pi-runtime, shell-command-analyzer, agent-runtime, node-red-theme, agent-daemon
+          Valid values: sdk, os-keyring, tasks-orchestrator, credentials, credential-broker, ctap, yubikey-preview-sign, signer, github-agent, legreffier, cli, api-client, dspy-adapters, skill, design-system, pi-extension, pi-runtime, shell-command-analyzer, agent-runtime, node-red-theme, agent-daemon
         required: false
         type: string
 
@@ -65,6 +65,8 @@ jobs:
     outputs:
       sdk-release-created: ${{ steps.release.outputs['libs/sdk--release_created'] }}
       sdk-tag-name: ${{ steps.release.outputs['libs/sdk--tag_name'] }}
+      os-keyring-release-created: ${{ steps.release.outputs['libs/os-keyring--release_created'] }}
+      os-keyring-tag-name: ${{ steps.release.outputs['libs/os-keyring--tag_name'] }}
       tasks-orchestrator-release-created: ${{ steps.release.outputs['libs/tasks-orchestrator--release_created'] }}
       tasks-orchestrator-tag-name: ${{ steps.release.outputs['libs/tasks-orchestrator--tag_name'] }}
       credentials-release-created: ${{ steps.release.outputs['libs/credentials--release_created'] }}
@@ -128,6 +130,8 @@ jobs:
     outputs:
       sdk: ${{ steps.resolve.outputs.sdk }}
       sdk-tag: ${{ steps.resolve.outputs.sdk-tag }}
+      os-keyring: ${{ steps.resolve.outputs.os-keyring }}
+      os-keyring-tag: ${{ steps.resolve.outputs.os-keyring-tag }}
       tasks-orchestrator: ${{ steps.resolve.outputs.tasks-orchestrator }}
       tasks-orchestrator-tag: ${{ steps.resolve.outputs.tasks-orchestrator-tag }}
       credentials: ${{ steps.resolve.outputs.credentials }}
@@ -180,6 +184,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RP_SDK_CREATED: ${{ needs.release-please.outputs.sdk-release-created }}
           RP_SDK_TAG: ${{ needs.release-please.outputs.sdk-tag-name }}
+          RP_OS_KEYRING_CREATED: ${{ needs.release-please.outputs.os-keyring-release-created }}
+          RP_OS_KEYRING_TAG: ${{ needs.release-please.outputs.os-keyring-tag-name }}
           RP_TASKS_ORCHESTRATOR_CREATED: ${{ needs.release-please.outputs.tasks-orchestrator-release-created }}
           RP_TASKS_ORCHESTRATOR_TAG: ${{ needs.release-please.outputs.tasks-orchestrator-tag-name }}
           RP_CREDENTIALS_CREATED: ${{ needs.release-please.outputs.credentials-release-created }}
@@ -268,6 +274,7 @@ jobs:
 
           echo "Resolving publish targets..."
           resolve "sdk"          "$RP_SDK_CREATED"       "$RP_SDK_TAG"       "sdk"
+          resolve "os-keyring"   "$RP_OS_KEYRING_CREATED" "$RP_OS_KEYRING_TAG" "os-keyring"
           resolve "tasks-orchestrator" "$RP_TASKS_ORCHESTRATOR_CREATED" "$RP_TASKS_ORCHESTRATOR_TAG" "tasks-orchestrator"
           resolve "credentials" "$RP_CREDENTIALS_CREATED" "$RP_CREDENTIALS_TAG" "credentials"
           resolve "credential-broker" "$RP_CREDENTIAL_BROKER_CREATED" "$RP_CREDENTIAL_BROKER_TAG" "credential-broker"
@@ -441,6 +448,68 @@ jobs:
 
       - name: Publish SDK release
         run: gh release edit "${{ needs.resolve-publish.outputs.sdk-tag }}" --draft=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-os-keyring:
+    name: Publish OS keyring packages to npm
+    needs: resolve-publish
+    if: ${{ always() && needs.resolve-publish.outputs.os-keyring == 'true' && !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm exec nx run-many -t build test check:pack --projects=@themoltnet/os-keyring,@themoltnet/os-keyring-darwin,@themoltnet/os-keyring-linux,@themoltnet/os-keyring-win32
+
+      # Publish platform packages first so the adapter's optional dependencies
+      # are resolvable as soon as its tarball reaches the registry.
+      - name: Publish @themoltnet/os-keyring-darwin
+        uses: nick-fields/retry@v4.0.0
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: pnpm --filter @themoltnet/os-keyring-darwin publish --no-git-checks --access public --provenance
+
+      - name: Publish @themoltnet/os-keyring-linux
+        uses: nick-fields/retry@v4.0.0
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: pnpm --filter @themoltnet/os-keyring-linux publish --no-git-checks --access public --provenance
+
+      - name: Publish @themoltnet/os-keyring-win32
+        uses: nick-fields/retry@v4.0.0
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: pnpm --filter @themoltnet/os-keyring-win32 publish --no-git-checks --access public --provenance
+
+      - name: Publish @themoltnet/os-keyring
+        uses: nick-fields/retry@v4.0.0
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: pnpm --filter @themoltnet/os-keyring publish --no-git-checks --access public --provenance
+
+      - name: Publish OS keyring release
+        run: gh release edit "${{ needs.resolve-publish.outputs.os-keyring-tag }}" --draft=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

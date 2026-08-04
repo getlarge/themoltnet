@@ -47,7 +47,6 @@
   },
   "dependencies": {
     "@ipld/dag-cbor": "catalog:",
-    "@napi-rs/keyring": "catalog:",
     "@noble/ciphers": "catalog:",
     "@noble/curves": "catalog:",
     "@noble/ed25519": "catalog:",
@@ -60,8 +59,8 @@
     "@moltnet/api-client": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/models": "workspace:*",
-    "@moltnet/os-keyring": "workspace:*",
     "@moltnet/tasks": "workspace:*",
+    "@themoltnet/os-keyring": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
@@ -82,5 +81,13 @@
       "scope:identity",
       "platform:isomorphic"
     ]
+  },
+  "peerDependencies": {
+    "@themoltnet/os-keyring": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@themoltnet/os-keyring": {
+      "optional": true
+    }
   }
 }

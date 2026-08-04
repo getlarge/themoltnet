@@ -3,14 +3,18 @@ import { PassThrough } from 'node:stream';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import keyringConformance from '../../../testdata/keyring-conformance.json';
+
 const spawnMock = vi.hoisted(() => vi.fn());
 
 vi.mock('node:child_process', () => ({ spawn: spawnMock }));
 
 import {
+  createPlatformKeyringSecretProvider,
   createWindowsCredentialStore,
   WINDOWS_POWERSHELL_PATH,
-} from '../src/windows-credential.js';
+  windowsKeyringTarget,
+} from '../src/index.js';
 
 function fakeChild() {
   const child = new EventEmitter() as EventEmitter & {
@@ -26,9 +30,47 @@ function fakeChild() {
   return child;
 }
 
-describe('Windows Credential Manager process', () => {
+describe('Windows keyring provider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('uses Go-compatible raw bytes and target', async () => {
+    const vector = keyringConformance.windows[0];
+    const credentials = {
+      read: vi.fn().mockResolvedValue(Buffer.from('secret')),
+      write: vi.fn(),
+      delete: vi.fn(),
+    };
+    const provider = createPlatformKeyringSecretProvider(credentials);
+
+    await expect(provider.read(vector.key)).resolves.toBe('secret');
+    await provider.write(vector.key, '秘密');
+    await provider.delete(vector.key);
+
+    expect(windowsKeyringTarget(vector.service, vector.key)).toBe(
+      vector.target,
+    );
+    expect(credentials.write).toHaveBeenCalledWith(
+      vector.target,
+      vector.key,
+      Buffer.from('秘密'),
+    );
+  });
+
+  it('frames one JSON request line for non-interactive PowerShell', async () => {
+    const child = fakeChild();
+    spawnMock.mockReturnValue(child);
+    let stdin = '';
+    child.stdin.on('data', (chunk) => {
+      stdin += chunk.toString();
+    });
+    const result = createWindowsCredentialStore().read('themolt.net:key');
+    child.stdout.write('{"found":false}');
+    child.emit('close', 0);
+
+    await expect(result).resolves.toBeNull();
+    expect(stdin).toBe('{"operation":"read","target":"themolt.net:key"}\n');
   });
 
   it('uses the absolute system PowerShell with a controlled environment', async () => {
@@ -50,7 +92,6 @@ describe('Windows Credential Manager process', () => {
         },
       }),
     );
-    expect(WINDOWS_POWERSHELL_PATH).not.toBe('powershell.exe');
   });
 
   it('kills a process whose output exceeds the fixed bound', async () => {

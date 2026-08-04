@@ -1,13 +1,13 @@
 {
-  "name": "@themoltnet/os-keyring",
+  "name": "@themoltnet/os-keyring-linux",
   "version": "0.1.0",
   "type": "module",
-  "description": "Optional platform adapter for MoltNet OS keyring secret providers",
+  "description": "Linux Secret Service provider for the MoltNet OS keyring adapter",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/getlarge/themoltnet.git",
-    "directory": "libs/os-keyring"
+    "directory": "libs/os-keyring-linux"
   },
   "homepage": "https://themolt.net",
   "main": "./dist/index.js",
@@ -33,13 +33,13 @@
   "scripts": {
     "build": "tsc -b",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package .",
-    "test": "vitest run --passWithNoTests",
-    "test-native": "go test ../../apps/moltnet-cli/testdata/keyring-interop && vitest run __tests__/os-keyring.native.test.ts"
+    "test": "vitest run --passWithNoTests"
   },
-  "optionalDependencies": {
-    "@themoltnet/os-keyring-darwin": "workspace:*",
-    "@themoltnet/os-keyring-linux": "workspace:*",
-    "@themoltnet/os-keyring-win32": "workspace:*"
+  "os": [
+    "linux"
+  ],
+  "dependencies": {
+    "@jellybrick/dbus-next": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
@@ -51,20 +51,12 @@
     "node": ">=18"
   },
   "nx": {
-    "implicitDependencies": [
-      "moltnet-cli"
-    ],
     "tags": [
       "type:util",
       "scope:credentials",
       "platform:cli"
     ],
     "targets": {
-      "test-native": {
-        "dependsOn": [
-          "^build"
-        ]
-      },
       "typecheck": {
         "executor": "nx:noop",
         "dependsOn": [

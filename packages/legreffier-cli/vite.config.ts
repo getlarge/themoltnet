@@ -13,6 +13,7 @@ export default defineConfig({
       },
       external: [
         /^node:/,
+        '@themoltnet/os-keyring',
         'ink',
         'react',
         'yoga-wasm-web',

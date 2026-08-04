@@ -15,16 +15,5 @@
     "src/**/*.spec.ts"
   ],
   "extends": "./tsconfig.json",
-  "include": ["src/**/*.ts"],
-  "references": [
-    {
-      "path": "../os-keyring-darwin/tsconfig.lib.json"
-    },
-    {
-      "path": "../os-keyring-linux/tsconfig.lib.json"
-    },
-    {
-      "path": "../os-keyring-win32/tsconfig.lib.json"
-    }
-  ]
+  "include": ["src/**/*.ts"]
 }

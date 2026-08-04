@@ -107,7 +107,7 @@ public static class MoltNetCredentialManager {
 }
 '@
 
-$request = [Console]::In.ReadToEnd() | ConvertFrom-Json
+$request = [Console]::In.ReadLine() | ConvertFrom-Json
 $response = switch ($request.operation) {
   'read' {
     $value = [MoltNetCredentialManager]::Read($request.target)
@@ -221,7 +221,7 @@ async function runWindowsCredentialRequest(
       }
     });
     child.stdin.on('error', (error) => fail(error));
-    child.stdin.end(JSON.stringify(request));
+    child.stdin.end(`${JSON.stringify(request)}\n`);
   });
 }
 
