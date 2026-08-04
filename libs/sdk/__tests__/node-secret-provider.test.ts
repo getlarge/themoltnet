@@ -9,7 +9,7 @@ const keyring = vi.hoisted(() => ({
   constructor: vi.fn(),
 }));
 
-vi.mock('@moltnet/os-keyring', () => ({
+vi.mock('@themoltnet/os-keyring', () => ({
   OSKeyringSecretProvider: class {
     readonly name = 'os-keyring';
 
@@ -36,9 +36,13 @@ describe('Node secret providers', () => {
     keyring.read.mockResolvedValue(null);
   });
 
-  it('registers both env and OS-keyring providers for Node consumers', async () => {
-    keyring.read.mockResolvedValue('resolved-secret');
+  it('registers both env and a lazy OS-keyring provider for Node consumers', async () => {
     const registry = createNodeSecretProviderRegistry('linux');
+
+    expect(registry.get('env')).toBeDefined();
+    expect(keyring.constructor).not.toHaveBeenCalled();
+
+    keyring.read.mockResolvedValue('resolved-secret');
 
     await expect(
       registry.resolve({
@@ -46,7 +50,6 @@ describe('Node secret providers', () => {
         key: 'oauth2/identity-123/client-456',
       }),
     ).resolves.toBe('resolved-secret');
-    expect(registry.get('env')).toBeDefined();
     expect(keyring.constructor).toHaveBeenCalledWith('linux');
   });
 

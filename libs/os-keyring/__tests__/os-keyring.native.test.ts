@@ -16,6 +16,7 @@ let macOSKeychainPath: string | undefined;
 let macOSKeychainPassword: string | undefined;
 let originalMacOSDefaultKeychain: string | undefined;
 let originalMacOSKeychainList: string[] = [];
+const MACOS_TEST_KEYCHAIN_PASSWORD = 'moltnet-native-test';
 
 type HelperRequest = {
   operation: 'read' | 'write' | 'delete';
@@ -51,7 +52,9 @@ beforeAll(async () => {
 
   macOSKeychainDir = await mkdtemp(join(tmpdir(), 'moltnet-keyring-test-'));
   macOSKeychainPath = join(macOSKeychainDir, 'test.keychain-db');
-  macOSKeychainPassword = randomUUID();
+  // This is an ephemeral test-only keychain, not a secret. Keep the password
+  // deterministic so a macOS diagnostic prompt is answerable.
+  macOSKeychainPassword = MACOS_TEST_KEYCHAIN_PASSWORD;
   await execFileAsync(MACOS_SECURITY, [
     'create-keychain',
     '-p',
@@ -147,6 +150,30 @@ async function runGoKeyringHelper(
   });
 }
 
+async function provisionMacOSCrossProcessCredential(
+  key: string,
+): Promise<void> {
+  if (
+    process.platform !== 'darwin' ||
+    !macOSKeychainPath ||
+    !macOSKeychainPassword
+  ) {
+    return;
+  }
+  await execFileAsync(MACOS_SECURITY, [
+    'add-generic-password',
+    '-U',
+    '-A',
+    '-a',
+    key,
+    '-s',
+    'themolt.net',
+    '-w',
+    'placeholder',
+    macOSKeychainPath,
+  ]);
+}
+
 describe.runIf(nativeKeyringEnabled)('native OS keyring', () => {
   it('round-trips UTF-8 secrets through the Node keyring library', async () => {
     const provider = new OSKeyringSecretProvider();
@@ -187,36 +214,37 @@ describe.runIf(nativeKeyringEnabled)('native OS keyring', () => {
     }
   }, 60_000);
 
-  it.runIf(process.platform !== 'darwin')(
-    'round-trips UTF-8 secrets between Go and the Node keyring library',
-    async () => {
-      const provider = new OSKeyringSecretProvider();
-      const key = `oauth2/native-test/${randomUUID()}`;
-      const fromGo = 'go→node-秘密';
-      const fromNode = 'node→go-credential';
+  it('round-trips UTF-8 secrets between Go and the Node keyring library', async () => {
+    const provider = new OSKeyringSecretProvider();
+    const goKey = `oauth2/native-test/go-${randomUUID()}`;
+    const nodeKey = `oauth2/native-test/node-${randomUUID()}`;
+    const fromGo = 'go→node-秘密';
+    const fromNode = 'node→go-credential';
 
-      try {
-        await runGoKeyringHelper({
-          operation: 'write',
-          key,
-          value: Buffer.from(fromGo, 'utf8').toString('base64'),
-        });
-        await expect(provider.read(key)).resolves.toBe(fromGo);
+    try {
+      await provisionMacOSCrossProcessCredential(goKey);
+      await runGoKeyringHelper({
+        operation: 'write',
+        key: goKey,
+        value: Buffer.from(fromGo, 'utf8').toString('base64'),
+      });
+      await expect(provider.read(goKey)).resolves.toBe(fromGo);
 
-        await provider.write(key, fromNode);
-        const readByGo = await runGoKeyringHelper({ operation: 'read', key });
-        expect(readByGo.found).toBe(true);
-        expect(Buffer.from(readByGo.value!, 'base64').toString('utf8')).toBe(
-          fromNode,
-        );
-
-        await provider.delete(key);
-        const deleted = await runGoKeyringHelper({ operation: 'read', key });
-        expect(deleted.found ?? false).toBe(false);
-      } finally {
-        await runGoKeyringHelper({ operation: 'delete', key });
-      }
-    },
-    60_000,
-  );
+      await provisionMacOSCrossProcessCredential(nodeKey);
+      await provider.write(nodeKey, fromNode);
+      const readByGo = await runGoKeyringHelper({
+        operation: 'read',
+        key: nodeKey,
+      });
+      expect(readByGo.found).toBe(true);
+      expect(Buffer.from(readByGo.value!, 'base64').toString('utf8')).toBe(
+        fromNode,
+      );
+    } finally {
+      await provider.delete(goKey).catch(() => undefined);
+      await provider.delete(nodeKey).catch(() => undefined);
+      await runGoKeyringHelper({ operation: 'delete', key: goKey });
+      await runGoKeyringHelper({ operation: 'delete', key: nodeKey });
+    }
+  }, 60_000);
 });

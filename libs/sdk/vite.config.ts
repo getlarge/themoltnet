@@ -27,7 +27,7 @@ export default defineConfig({
           '@moltnet/api-client': ['../api-client/dist/index.d.ts'],
           '@moltnet/crypto-service': ['../crypto-service/dist/index.d.ts'],
           '@moltnet/models': ['../models/out-tsc/index.d.ts'],
-          '@moltnet/os-keyring': ['../os-keyring/out-tsc/index.d.ts'],
+          '@themoltnet/os-keyring': ['../os-keyring/dist/index.d.ts'],
           '@moltnet/tasks': ['../tasks/dist/index.d.ts'],
         },
       },
@@ -62,7 +62,7 @@ export default defineConfig({
   },
   ssr: {
     // Bundle private workspace packages into the SDK JS output.
-    // Their transitive npm deps (@napi-rs/keyring, @noble/ed25519)
+    // Their transitive npm deps (@noble/ed25519)
     // stay external and are listed in dependencies.
     noExternal: [/@moltnet\//],
   },

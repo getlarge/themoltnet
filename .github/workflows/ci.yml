@@ -243,7 +243,7 @@ jobs:
             echo "landing=false" >> "$GITHUB_OUTPUT"
           fi
 
-          if contains "@moltnet/os-keyring" "@themoltnet/sdk" "moltnet-cli"; then
+          if contains "@themoltnet/os-keyring" "@themoltnet/os-keyring-darwin" "@themoltnet/os-keyring-linux" "@themoltnet/os-keyring-win32" "@themoltnet/sdk" "moltnet-cli"; then
             echo "native-keyring=true" >> "$GITHUB_OUTPUT"
           else
             echo "native-keyring=false" >> "$GITHUB_OUTPUT"
