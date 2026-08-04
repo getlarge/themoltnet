@@ -1,17 +1,17 @@
 {
   "metadata": {
-    "generated_at": "2026-08-02T06:16:05.376416+00:00",
-    "source_tree_hash": "7fb72cda60d48c029a52766a24619502158df9f27d44edaa50f05acf9d3bf79b",
+    "generated_at": "2026-08-04T10:03:10.975294+00:00",
+    "source_tree_hash": "3874df463e67ba58766df858e4072226a51cd008528b3fc1dd8a7cf9166a9bf0",
     "repo_name": "themoltnet",
     "depth_level": 2,
     "depth_cap": 2,
     "file_coverage_summary": {
-      "total_files": 2641,
-      "analyzed": 1106,
-      "not_analyzed": 1535,
+      "total_files": 2646,
+      "analyzed": 1109,
+      "not_analyzed": 1537,
       "not_analyzed_by_reason": {
         "other": 624,
-        "codeboardingignore": 911
+        "codeboardingignore": 913
       }
     }
   },
@@ -4471,8 +4471,8 @@
         "libs/task-ui/src/task-funnel-strip.tsx|libs.task-ui.src.task-funnel-strip.TaskFunnelStrip",
         "libs/task-ui/src/task-funnel-strip.tsx|libs.task-ui.src.task-funnel-strip.<unknown>..map() callback"
       ],
-      "content_hash": "0dcfdea3999049d5",
-      "module_hash": "e6f575821051fd0a"
+      "content_hash": "1bcd8a85335266c3",
+      "module_hash": "225a335581f4781a"
     },
     "libs/task-ui/src/task-lane-card.tsx": {
       "method_keys": [
@@ -4486,8 +4486,8 @@
         "libs/task-ui/src/task-lane-card.tsx|libs.task-ui.src.task-lane-card.formatRelativeAge",
         "libs/task-ui/src/task-lane-card.tsx|libs.task-ui.src.task-lane-card.LivePulse"
       ],
-      "content_hash": "a5c97899fedfbb76",
-      "module_hash": "317dfa3b071883b8"
+      "content_hash": "a302c272b5f229bb",
+      "module_hash": "03f48ca4dbca9e91"
     },
     "libs/task-ui/src/task-lane-column.tsx": {
       "method_keys": [
@@ -4496,8 +4496,8 @@
         "libs/task-ui/src/task-lane-column.tsx|libs.task-ui.src.task-lane-column.TaskLaneColumn",
         "libs/task-ui/src/task-lane-column.tsx|libs.task-ui.src.task-lane-column.tasks.map() callback"
       ],
-      "content_hash": "a046e9a67239d1ce",
-      "module_hash": "869af4f1fe6c2fc2"
+      "content_hash": "c51081714e9f92a4",
+      "module_hash": "bf4e5a555868826d"
     },
     "libs/task-ui/src/task-live-pane.tsx": {
       "method_keys": [
@@ -4511,8 +4511,8 @@
         "libs/task-ui/src/task-live-pane.tsx|libs.task-ui.src.task-live-pane.humanizeToken",
         "libs/task-ui/src/task-live-pane.tsx|libs.task-ui.src.task-live-pane.<unknown>..map() callback"
       ],
-      "content_hash": "6ce8b890404ccf4d",
-      "module_hash": "e5e33b300169ec1b"
+      "content_hash": "2c8d1bb0aabb06c5",
+      "module_hash": "e735cda6743fb236"
     },
     "libs/task-ui/src/task-messages-timeline.tsx": {
       "method_keys": [
@@ -5139,13 +5139,22 @@
         "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.LoginOptions",
         "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.loginViaBrowser",
         "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.loginViaBrowser.catch() callback",
+        "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.KratosUiNode",
+        "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.KratosFlow",
+        "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.findNodeValue",
+        "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.findNodeValue.node",
+        "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.findNodeValue.node.flow.ui.nodes.find() callback",
+        "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.enrollTotp",
+        "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.enrollTotp.secretNode",
+        "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.enrollTotp.secretNode.flow.ui.nodes.find() callback",
+        "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.logoutViaBrowser",
         "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.getSessionCookie",
         "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.getSessionCookie.sessionCookie",
         "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.getSessionCookie.sessionCookie.cookies.find() callback",
         "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.createNativeSessionToken"
       ],
-      "content_hash": "b0fc97388bcb2029",
-      "module_hash": "deb55a76888294b5"
+      "content_hash": "76ee70e00e95dcba",
+      "module_hash": "74acbc5ef5d34071"
     },
     "apps/console-e2e/src/kratos-cookie-auth.e2e.ts": {
       "method_keys": [
@@ -5733,8 +5742,18 @@
         "apps/landing/src/components/Hero.tsx|apps.landing.src.components.Hero.system.details.map() callback",
         "apps/landing/src/components/Hero.tsx|apps.landing.src.components.Hero.<unknown>..map() callback"
       ],
-      "content_hash": "2b68371480952418",
-      "module_hash": "267d971be520de0a"
+      "content_hash": "8394e6ef3c04eba1",
+      "module_hash": "22fd18b8554db3d2"
+    },
+    "apps/landing/src/components/KnowledgeFactory.tsx": {
+      "method_keys": [
+        "apps/landing/src/components/KnowledgeFactory.tsx|apps.landing.src.components.KnowledgeFactory.KnowledgeFactory",
+        "apps/landing/src/components/KnowledgeFactory.tsx|apps.landing.src.components.KnowledgeFactory.<unknown>..map() callback",
+        "apps/landing/src/components/KnowledgeFactory.tsx|apps.landing.src.components.KnowledgeFactory.KnowledgeFactory.<unknown>..map() callback",
+        "apps/landing/src/components/KnowledgeFactory.tsx|apps.landing.src.components.KnowledgeFactory.KnowledgeFactory.<unknown>.<unknown>..points.map() callback"
+      ],
+      "content_hash": "7ea62d68553bf96a",
+      "module_hash": "e94f9e05b825563f"
     },
     "apps/landing/src/components/Manifesto.tsx": {
       "method_keys": [
@@ -5769,8 +5788,8 @@
         "apps/landing/src/components/Systems.tsx|apps.landing.src.components.Systems.<unknown>..map() callback",
         "apps/landing/src/components/Systems.tsx|apps.landing.src.components.Systems.SystemChapter"
       ],
-      "content_hash": "725a91a6faabdac5",
-      "module_hash": "5ded4fd12e42350f"
+      "content_hash": "5e77549d84335d0f",
+      "module_hash": "4bd9d30d18a53a48"
     },
     "apps/landing/src/components/feed/DiaryCard.tsx": {
       "method_keys": [
@@ -5915,8 +5934,8 @@
       "method_keys": [
         "apps/landing/src/pages/HomePage.tsx|apps.landing.src.pages.HomePage.HomePage"
       ],
-      "content_hash": "a99208ef31710e40",
-      "module_hash": "b75d953843055c4d"
+      "content_hash": "52bfdce48a427bdd",
+      "module_hash": "397be4003a0787ab"
     },
     "apps/landing/src/pages/ManifestoPage.tsx": {
       "method_keys": [
@@ -6866,8 +6885,8 @@
         "apps/moltnet-cli/task_continue.go|apps.moltnet-cli.task_continue.buildContinuationInput",
         "apps/moltnet-cli/task_continue.go|apps.moltnet-cli.task_continue.mapTaskTrustLevelToExecutor"
       ],
-      "content_hash": "4623040b82b7b00f",
-      "module_hash": "71aa2e0808d6e066"
+      "content_hash": "3951286fb34f7a9f",
+      "module_hash": "cf22a5714995a68e"
     },
     "apps/moltnet-cli/task_schemas.go": {
       "method_keys": [
@@ -9017,6 +9036,20 @@
       "content_hash": "9e5d90a0d9eeabd0",
       "module_hash": "cfb5aedf594d58e1"
     },
+    "apps/console-e2e/src/auth-second-factor-loop.e2e.ts": {
+      "method_keys": [
+        "apps/console-e2e/src/auth-second-factor-loop.e2e.ts|apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback",
+        "apps/console-e2e/src/auth-second-factor-loop.e2e.ts|apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('enrols an authenticator app') callback",
+        "apps/console-e2e/src/auth-second-factor-loop.e2e.ts|apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('does not loop when the user abandons the second-factor step') callback",
+        "apps/console-e2e/src/auth-second-factor-loop.e2e.ts|apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('does not loop when the user abandons the second-factor step') callback.page.on('framenavigated') callback",
+        "apps/console-e2e/src/auth-second-factor-loop.e2e.ts|apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('sends the second-factor challenge to an aal2 login flow') callback",
+        "apps/console-e2e/src/auth-second-factor-loop.e2e.ts|apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('sends the second-factor challenge to an aal2 login flow') callback.page.on('request') callback",
+        "apps/console-e2e/src/auth-second-factor-loop.e2e.ts|apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('sends the second-factor challenge to an aal2 login flow') callback.kratosLoginRequests.some() callback",
+        "apps/console-e2e/src/auth-second-factor-loop.e2e.ts|apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('completing the second factor lands back on the requested page') callback"
+      ],
+      "content_hash": "6774615532455e15",
+      "module_hash": "20d00979e0228e73"
+    },
     "apps/console-e2e/src/diary-transfer.e2e.ts": {
       "method_keys": [
         "apps/console-e2e/src/diary-transfer.e2e.ts|apps.console-e2e.src.diary-transfer.e2e.ensureConsoleSession",
@@ -9092,6 +9125,15 @@
       "content_hash": "a7a384852f915ff6",
       "module_hash": "b1321e8823b72594"
     },
+    "apps/console-e2e/src/helpers/totp.ts": {
+      "method_keys": [
+        "apps/console-e2e/src/helpers/totp.ts|apps.console-e2e.src.helpers.totp.base32Decode",
+        "apps/console-e2e/src/helpers/totp.ts|apps.console-e2e.src.helpers.totp.generateTotpCode",
+        "apps/console-e2e/src/helpers/totp.ts|apps.console-e2e.src.helpers.totp.waitForFreshTotpWindow"
+      ],
+      "content_hash": "9b17096a388a2569",
+      "module_hash": "1d1666a51bc238e2"
+    },
     "apps/console-e2e/src/landing-setup.e2e.ts": {
       "method_keys": [
         "apps/console-e2e/src/landing-setup.e2e.ts|apps.console-e2e.src.landing-setup.e2e.test('seed shared team, diary, tasks, and agent invite') callback",
@@ -9164,11 +9206,23 @@
     },
     "apps/console/src/auth/AuthGuard.tsx": {
       "method_keys": [
+        "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.readHopToken",
+        "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.writeHopToken",
+        "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.newHopToken",
+        "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.Arrival",
+        "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.parseArrival",
         "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.buildReturnTo",
-        "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.AuthGuard"
+        "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.sameOriginAsKratos",
+        "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.buildSignInUrl",
+        "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.AuthGuard",
+        "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.AuthGuard.goToSignIn",
+        "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.AuthGuard.goToSignIn.useCallback() callback",
+        "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.useEffect() callback",
+        "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.AuthGuard.useEffect() callback",
+        "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.SignInRecovery"
       ],
-      "content_hash": "e6a3e0c17ab2bb7c",
-      "module_hash": "4b29097f51398d74"
+      "content_hash": "3176b806e419f0f7",
+      "module_hash": "4e069dd4665ea1a2"
     },
     "apps/console/src/auth/AuthProvider.tsx": {
       "method_keys": [
@@ -9177,7 +9231,9 @@
         "apps/console/src/auth/AuthProvider.tsx|apps.console.src.auth.AuthProvider.toSessionWithTimeout.timeout.<function>",
         "apps/console/src/auth/AuthProvider.tsx|apps.console.src.auth.AuthProvider.toSessionWithTimeout.timeout.<function>.setTimeout() callback",
         "apps/console/src/auth/AuthProvider.tsx|apps.console.src.auth.AuthProvider.AuthContextValue",
-        "apps/console/src/auth/AuthProvider.tsx|apps.console.src.auth.AuthProvider.isAuthenticationFailure",
+        "apps/console/src/auth/AuthProvider.tsx|apps.console.src.auth.AuthProvider.OryErrorBody",
+        "apps/console/src/auth/AuthProvider.tsx|apps.console.src.auth.AuthProvider.readOryErrorBody",
+        "apps/console/src/auth/AuthProvider.tsx|apps.console.src.auth.AuthProvider.classifySessionFailure",
         "apps/console/src/auth/AuthProvider.tsx|apps.console.src.auth.AuthProvider.AuthProvider",
         "apps/console/src/auth/AuthProvider.tsx|apps.console.src.auth.AuthProvider.AuthProvider.checkSession",
         "apps/console/src/auth/AuthProvider.tsx|apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback",
@@ -9189,8 +9245,8 @@
         "apps/console/src/auth/AuthProvider.tsx|apps.console.src.auth.AuthProvider.AuthProvider.logout",
         "apps/console/src/auth/AuthProvider.tsx|apps.console.src.auth.AuthProvider.AuthProvider.logout.useCallback() callback"
       ],
-      "content_hash": "e1b2741332bca1bc",
-      "module_hash": "4a4d1abd06870dfd"
+      "content_hash": "43498144e75875b4",
+      "module_hash": "744d93f821b8ff58"
     },
     "apps/console/src/auth/useAuth.ts": {
       "method_keys": [
@@ -10038,14 +10094,16 @@
         "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.selectedMessagesQuery.refetchInterval",
         "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.setStatus",
         "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TASK_STATUS_FILTERS.map() callback",
+        "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.Boolean",
+        "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.selectTask",
         "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.async",
         "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TaskPaneState",
         "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TaskPaneState.onRetry",
         "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.inputStyle",
         "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.FilterButton"
       ],
-      "content_hash": "a423557d15162306",
-      "module_hash": "a43a53bb7c70c050"
+      "content_hash": "4e02c7a48fd3a692",
+      "module_hash": "2837961be96763e6"
     },
     "apps/console/src/pages/TeamDetailPage.tsx": {
       "method_keys": [
@@ -14353,8 +14411,8 @@
         "libs/task-ui/src/task-lane-board.tsx|libs.task-ui.src.task-lane-board.TaskLaneBoard",
         "libs/task-ui/src/task-lane-board.tsx|libs.task-ui.src.task-lane-board.<unknown>..map() callback"
       ],
-      "content_hash": "1e49693be45d08ca",
-      "module_hash": "a8ef6aba24c32aa6"
+      "content_hash": "11723b9620d93a8b",
+      "module_hash": "040b99f502cbc503"
     },
     "libs/task-ui/src/task-lanes.ts": {
       "method_keys": [
@@ -39604,32 +39662,32 @@
     "libs/task-ui/src/task-funnel-strip.tsx|libs.task-ui.src.task-funnel-strip.toneColor": {
       "file_path": "libs/task-ui/src/task-funnel-strip.tsx",
       "qualified_name": "libs.task-ui.src.task-funnel-strip.toneColor",
-      "start_line": 7,
-      "end_line": 21,
+      "start_line": 9,
+      "end_line": 23,
       "type": "FUNCTION",
       "content_hash": "a42bb03f34e35d45"
     },
     "libs/task-ui/src/task-funnel-strip.tsx|libs.task-ui.src.task-funnel-strip.TaskFunnelStripProps": {
       "file_path": "libs/task-ui/src/task-funnel-strip.tsx",
       "qualified_name": "libs.task-ui.src.task-funnel-strip.TaskFunnelStripProps",
-      "start_line": 23,
-      "end_line": 25,
+      "start_line": 25,
+      "end_line": 27,
       "type": "INTERFACE",
       "content_hash": "e4bd946ef46fd1fa"
     },
     "libs/task-ui/src/task-funnel-strip.tsx|libs.task-ui.src.task-funnel-strip.TaskFunnelStrip": {
       "file_path": "libs/task-ui/src/task-funnel-strip.tsx",
       "qualified_name": "libs.task-ui.src.task-funnel-strip.TaskFunnelStrip",
-      "start_line": 27,
-      "end_line": 39,
+      "start_line": 29,
+      "end_line": 49,
       "type": "FUNCTION",
-      "content_hash": "2e88140a94471008"
+      "content_hash": "3b6aeded6e80e445"
     },
     "libs/task-ui/src/task-funnel-strip.tsx|libs.task-ui.src.task-funnel-strip.<unknown>..map() callback": {
       "file_path": "libs/task-ui/src/task-funnel-strip.tsx",
       "qualified_name": "libs.task-ui.src.task-funnel-strip.<unknown>..map() callback",
-      "start_line": 41,
-      "end_line": 42,
+      "start_line": 51,
+      "end_line": 52,
       "type": "FUNCTION",
       "content_hash": "07b7761d829eda0c"
     },
@@ -39645,9 +39703,9 @@
       "file_path": "libs/task-ui/src/task-lane-card.tsx",
       "qualified_name": "libs.task-ui.src.task-lane-card.TaskLaneCard",
       "start_line": 16,
-      "end_line": 37,
+      "end_line": 39,
       "type": "FUNCTION",
-      "content_hash": "95bb2b6ff51fa14c"
+      "content_hash": "19041e5d5315a40b"
     },
     "libs/task-ui/src/task-lane-card.tsx|libs.task-ui.src.task-lane-card.TaskLaneCard.prRef": {
       "file_path": "libs/task-ui/src/task-lane-card.tsx",
@@ -39668,40 +39726,40 @@
     "libs/task-ui/src/task-lane-card.tsx|libs.task-ui.src.task-lane-card.isActive": {
       "file_path": "libs/task-ui/src/task-lane-card.tsx",
       "qualified_name": "libs.task-ui.src.task-lane-card.isActive",
-      "start_line": 55,
-      "end_line": 55,
+      "start_line": 57,
+      "end_line": 57,
       "type": "METHOD",
       "content_hash": "3f441ff7bef82c07"
     },
     "libs/task-ui/src/task-lane-card.tsx|libs.task-ui.src.task-lane-card.humanizeToken": {
       "file_path": "libs/task-ui/src/task-lane-card.tsx",
       "qualified_name": "libs.task-ui.src.task-lane-card.humanizeToken",
-      "start_line": 65,
-      "end_line": 65,
+      "start_line": 73,
+      "end_line": 73,
       "type": "METHOD",
       "content_hash": "e6ea7d6bb276fa13"
     },
     "libs/task-ui/src/task-lane-card.tsx|libs.task-ui.src.task-lane-card.<unknown>.map() callback": {
       "file_path": "libs/task-ui/src/task-lane-card.tsx",
       "qualified_name": "libs.task-ui.src.task-lane-card.<unknown>.map() callback",
-      "start_line": 69,
-      "end_line": 71,
+      "start_line": 77,
+      "end_line": 79,
       "type": "FUNCTION",
       "content_hash": "2d7f6c6d15672c3d"
     },
     "libs/task-ui/src/task-lane-card.tsx|libs.task-ui.src.task-lane-card.formatRelativeAge": {
       "file_path": "libs/task-ui/src/task-lane-card.tsx",
       "qualified_name": "libs.task-ui.src.task-lane-card.formatRelativeAge",
-      "start_line": 90,
-      "end_line": 90,
+      "start_line": 105,
+      "end_line": 105,
       "type": "METHOD",
       "content_hash": "f6751ca5ed8bc129"
     },
     "libs/task-ui/src/task-lane-card.tsx|libs.task-ui.src.task-lane-card.LivePulse": {
       "file_path": "libs/task-ui/src/task-lane-card.tsx",
       "qualified_name": "libs.task-ui.src.task-lane-card.LivePulse",
-      "start_line": 109,
-      "end_line": 120,
+      "start_line": 124,
+      "end_line": 135,
       "type": "FUNCTION",
       "content_hash": "b51ba2de2cf87156"
     },
@@ -39725,15 +39783,15 @@
       "file_path": "libs/task-ui/src/task-lane-column.tsx",
       "qualified_name": "libs.task-ui.src.task-lane-column.TaskLaneColumn",
       "start_line": 38,
-      "end_line": 62,
+      "end_line": 67,
       "type": "FUNCTION",
-      "content_hash": "69e3520bc19bf25f"
+      "content_hash": "2629fcc2b49f4028"
     },
     "libs/task-ui/src/task-lane-column.tsx|libs.task-ui.src.task-lane-column.tasks.map() callback": {
       "file_path": "libs/task-ui/src/task-lane-column.tsx",
       "qualified_name": "libs.task-ui.src.task-lane-column.tasks.map() callback",
-      "start_line": 109,
-      "end_line": 111,
+      "start_line": 132,
+      "end_line": 134,
       "type": "FUNCTION",
       "content_hash": "16c997a3b030f71f"
     },
@@ -39741,71 +39799,71 @@
       "file_path": "libs/task-ui/src/task-live-pane.tsx",
       "qualified_name": "libs.task-ui.src.task-live-pane.TaskLivePaneProps",
       "start_line": 23,
-      "end_line": 33,
+      "end_line": 35,
       "type": "INTERFACE",
-      "content_hash": "c70f4840ff3cfebf"
+      "content_hash": "80439f1f80eefe3f"
     },
     "libs/task-ui/src/task-live-pane.tsx|libs.task-ui.src.task-live-pane.TaskLivePane": {
       "file_path": "libs/task-ui/src/task-live-pane.tsx",
       "qualified_name": "libs.task-ui.src.task-live-pane.TaskLivePane",
-      "start_line": 35,
-      "end_line": 81,
+      "start_line": 37,
+      "end_line": 89,
       "type": "FUNCTION",
-      "content_hash": "62bacd0986854c48"
+      "content_hash": "0a542d18b0335fde"
     },
     "libs/task-ui/src/task-live-pane.tsx|libs.task-ui.src.task-live-pane.TaskLivePane.useEffect() callback": {
       "file_path": "libs/task-ui/src/task-live-pane.tsx",
       "qualified_name": "libs.task-ui.src.task-live-pane.TaskLivePane.useEffect() callback",
-      "start_line": 49,
-      "end_line": 51,
+      "start_line": 53,
+      "end_line": 55,
       "type": "FUNCTION",
       "content_hash": "93fa0bb7431e69e9"
     },
     "libs/task-ui/src/task-live-pane.tsx|libs.task-ui.src.task-live-pane.TaskLivePane.toggleCollapsed": {
       "file_path": "libs/task-ui/src/task-live-pane.tsx",
       "qualified_name": "libs.task-ui.src.task-live-pane.TaskLivePane.toggleCollapsed",
-      "start_line": 53,
-      "end_line": 55,
+      "start_line": 57,
+      "end_line": 59,
       "type": "FUNCTION",
       "content_hash": "e0f61db53bcf82b1"
     },
     "libs/task-ui/src/task-live-pane.tsx|libs.task-ui.src.task-live-pane.TaskLivePane.toggleCollapsed.setCollapsed() callback": {
       "file_path": "libs/task-ui/src/task-live-pane.tsx",
       "qualified_name": "libs.task-ui.src.task-live-pane.TaskLivePane.toggleCollapsed.setCollapsed() callback",
-      "start_line": 54,
-      "end_line": 54,
+      "start_line": 58,
+      "end_line": 58,
       "type": "FUNCTION",
       "content_hash": "48832e8996e02758"
     },
     "libs/task-ui/src/task-live-pane.tsx|libs.task-ui.src.task-live-pane.TaskLivePane.handleHeaderKeyDown": {
       "file_path": "libs/task-ui/src/task-live-pane.tsx",
       "qualified_name": "libs.task-ui.src.task-live-pane.TaskLivePane.handleHeaderKeyDown",
-      "start_line": 57,
-      "end_line": 62,
+      "start_line": 61,
+      "end_line": 66,
       "type": "FUNCTION",
       "content_hash": "930b9b8a0e0a9d11"
     },
     "libs/task-ui/src/task-live-pane.tsx|libs.task-ui.src.task-live-pane.TaskLivePane.handleClose": {
       "file_path": "libs/task-ui/src/task-live-pane.tsx",
       "qualified_name": "libs.task-ui.src.task-live-pane.TaskLivePane.handleClose",
-      "start_line": 64,
-      "end_line": 67,
+      "start_line": 68,
+      "end_line": 71,
       "type": "FUNCTION",
       "content_hash": "311754d4bddf127f"
     },
     "libs/task-ui/src/task-live-pane.tsx|libs.task-ui.src.task-live-pane.humanizeToken": {
       "file_path": "libs/task-ui/src/task-live-pane.tsx",
       "qualified_name": "libs.task-ui.src.task-live-pane.humanizeToken",
-      "start_line": 109,
-      "end_line": 109,
+      "start_line": 117,
+      "end_line": 117,
       "type": "METHOD",
       "content_hash": "21a6bbe034116796"
     },
     "libs/task-ui/src/task-live-pane.tsx|libs.task-ui.src.task-live-pane.<unknown>..map() callback": {
       "file_path": "libs/task-ui/src/task-live-pane.tsx",
       "qualified_name": "libs.task-ui.src.task-live-pane.<unknown>..map() callback",
-      "start_line": 165,
-      "end_line": 167,
+      "start_line": 173,
+      "end_line": 175,
       "type": "FUNCTION",
       "content_hash": "07b515bdd1a87308"
     },
@@ -42772,88 +42830,160 @@
     "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.submitKratosForm": {
       "file_path": "apps/console-e2e/src/helpers/kratos.ts",
       "qualified_name": "apps.console-e2e.src.helpers.kratos.submitKratosForm",
-      "start_line": 8,
-      "end_line": 10,
+      "start_line": 9,
+      "end_line": 11,
       "type": "FUNCTION",
       "content_hash": "e635e368be0c8481"
     },
     "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.RegisterOptions": {
       "file_path": "apps/console-e2e/src/helpers/kratos.ts",
       "qualified_name": "apps.console-e2e.src.helpers.kratos.RegisterOptions",
-      "start_line": 12,
-      "end_line": 17,
+      "start_line": 13,
+      "end_line": 18,
       "type": "INTERFACE",
       "content_hash": "b46e3498feffbe19"
     },
     "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.registerViaBrowser": {
       "file_path": "apps/console-e2e/src/helpers/kratos.ts",
       "qualified_name": "apps.console-e2e.src.helpers.kratos.registerViaBrowser",
-      "start_line": 19,
-      "end_line": 56,
+      "start_line": 20,
+      "end_line": 57,
       "type": "FUNCTION",
       "content_hash": "9053cbe2d2ffdbd5"
     },
     "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.registerViaBrowser.catch() callback": {
       "file_path": "apps/console-e2e/src/helpers/kratos.ts",
       "qualified_name": "apps.console-e2e.src.helpers.kratos.registerViaBrowser.catch() callback",
-      "start_line": 44,
-      "end_line": 44,
+      "start_line": 45,
+      "end_line": 45,
       "type": "FUNCTION",
       "content_hash": "9ce27ebb9397ace9"
     },
     "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.LoginOptions": {
       "file_path": "apps/console-e2e/src/helpers/kratos.ts",
       "qualified_name": "apps.console-e2e.src.helpers.kratos.LoginOptions",
-      "start_line": 58,
-      "end_line": 66,
+      "start_line": 59,
+      "end_line": 67,
       "type": "INTERFACE",
       "content_hash": "f64d39e123b6a1f1"
     },
     "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.loginViaBrowser": {
       "file_path": "apps/console-e2e/src/helpers/kratos.ts",
       "qualified_name": "apps.console-e2e.src.helpers.kratos.loginViaBrowser",
-      "start_line": 68,
-      "end_line": 95,
+      "start_line": 69,
+      "end_line": 96,
       "type": "FUNCTION",
       "content_hash": "4f708386e3dc38f3"
     },
     "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.loginViaBrowser.catch() callback": {
       "file_path": "apps/console-e2e/src/helpers/kratos.ts",
       "qualified_name": "apps.console-e2e.src.helpers.kratos.loginViaBrowser.catch() callback",
-      "start_line": 85,
-      "end_line": 85,
+      "start_line": 86,
+      "end_line": 86,
       "type": "FUNCTION",
       "content_hash": "384fb405d7d0e11e"
+    },
+    "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.KratosUiNode": {
+      "file_path": "apps/console-e2e/src/helpers/kratos.ts",
+      "qualified_name": "apps.console-e2e.src.helpers.kratos.KratosUiNode",
+      "start_line": 98,
+      "end_line": 106,
+      "type": "INTERFACE",
+      "content_hash": "5160f263a2665570"
+    },
+    "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.KratosFlow": {
+      "file_path": "apps/console-e2e/src/helpers/kratos.ts",
+      "qualified_name": "apps.console-e2e.src.helpers.kratos.KratosFlow",
+      "start_line": 108,
+      "end_line": 111,
+      "type": "INTERFACE",
+      "content_hash": "7de31995f62fdcec"
+    },
+    "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.findNodeValue": {
+      "file_path": "apps/console-e2e/src/helpers/kratos.ts",
+      "qualified_name": "apps.console-e2e.src.helpers.kratos.findNodeValue",
+      "start_line": 113,
+      "end_line": 118,
+      "type": "FUNCTION",
+      "content_hash": "94c385019019a3ce"
+    },
+    "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.findNodeValue.node": {
+      "file_path": "apps/console-e2e/src/helpers/kratos.ts",
+      "qualified_name": "apps.console-e2e.src.helpers.kratos.findNodeValue.node",
+      "start_line": 114,
+      "end_line": 114,
+      "type": "CLASS",
+      "content_hash": "b48bba83d3cf76e3"
+    },
+    "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.findNodeValue.node.flow.ui.nodes.find() callback": {
+      "file_path": "apps/console-e2e/src/helpers/kratos.ts",
+      "qualified_name": "apps.console-e2e.src.helpers.kratos.findNodeValue.node.flow.ui.nodes.find() callback",
+      "start_line": 114,
+      "end_line": 114,
+      "type": "FUNCTION",
+      "content_hash": "b48bba83d3cf76e3"
+    },
+    "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.enrollTotp": {
+      "file_path": "apps/console-e2e/src/helpers/kratos.ts",
+      "qualified_name": "apps.console-e2e.src.helpers.kratos.enrollTotp",
+      "start_line": 130,
+      "end_line": 181,
+      "type": "FUNCTION",
+      "content_hash": "0fc10945043064d8"
+    },
+    "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.enrollTotp.secretNode": {
+      "file_path": "apps/console-e2e/src/helpers/kratos.ts",
+      "qualified_name": "apps.console-e2e.src.helpers.kratos.enrollTotp.secretNode",
+      "start_line": 146,
+      "end_line": 148,
+      "type": "CLASS",
+      "content_hash": "d5bfc254b1ce0fb6"
+    },
+    "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.enrollTotp.secretNode.flow.ui.nodes.find() callback": {
+      "file_path": "apps/console-e2e/src/helpers/kratos.ts",
+      "qualified_name": "apps.console-e2e.src.helpers.kratos.enrollTotp.secretNode.flow.ui.nodes.find() callback",
+      "start_line": 147,
+      "end_line": 147,
+      "type": "FUNCTION",
+      "content_hash": "df9e47bd1d5babc6"
+    },
+    "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.logoutViaBrowser": {
+      "file_path": "apps/console-e2e/src/helpers/kratos.ts",
+      "qualified_name": "apps.console-e2e.src.helpers.kratos.logoutViaBrowser",
+      "start_line": 193,
+      "end_line": 213,
+      "type": "FUNCTION",
+      "content_hash": "c3d11739ef9ede04"
     },
     "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.getSessionCookie": {
       "file_path": "apps/console-e2e/src/helpers/kratos.ts",
       "qualified_name": "apps.console-e2e.src.helpers.kratos.getSessionCookie",
-      "start_line": 97,
-      "end_line": 108,
+      "start_line": 215,
+      "end_line": 226,
       "type": "FUNCTION",
       "content_hash": "57b1750b7bc02bb9"
     },
     "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.getSessionCookie.sessionCookie": {
       "file_path": "apps/console-e2e/src/helpers/kratos.ts",
       "qualified_name": "apps.console-e2e.src.helpers.kratos.getSessionCookie.sessionCookie",
-      "start_line": 99,
-      "end_line": 103,
+      "start_line": 217,
+      "end_line": 221,
       "type": "CLASS",
       "content_hash": "5517a91d3a802923"
     },
     "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.getSessionCookie.sessionCookie.cookies.find() callback": {
       "file_path": "apps/console-e2e/src/helpers/kratos.ts",
       "qualified_name": "apps.console-e2e.src.helpers.kratos.getSessionCookie.sessionCookie.cookies.find() callback",
-      "start_line": 100,
-      "end_line": 102,
+      "start_line": 218,
+      "end_line": 220,
       "type": "FUNCTION",
       "content_hash": "4afaf73a06237eb8"
     },
     "apps/console-e2e/src/helpers/kratos.ts|apps.console-e2e.src.helpers.kratos.createNativeSessionToken": {
       "file_path": "apps/console-e2e/src/helpers/kratos.ts",
       "qualified_name": "apps.console-e2e.src.helpers.kratos.createNativeSessionToken",
-      "start_line": 110,
-      "end_line": 131,
+      "start_line": 228,
+      "end_line": 249,
       "type": "FUNCTION",
       "content_hash": "96b9f0ccda3fa0e8"
     },
@@ -45956,34 +46086,66 @@
     "apps/landing/src/components/Hero.tsx|apps.landing.src.components.Hero.Hero": {
       "file_path": "apps/landing/src/components/Hero.tsx",
       "qualified_name": "apps.landing.src.components.Hero.Hero",
-      "start_line": 43,
-      "end_line": 60,
+      "start_line": 47,
+      "end_line": 64,
       "type": "FUNCTION",
       "content_hash": "66e129ab6524e841"
     },
     "apps/landing/src/components/Hero.tsx|apps.landing.src.components.Hero.<unknown>..map(\"article\") callback": {
       "file_path": "apps/landing/src/components/Hero.tsx",
       "qualified_name": "apps.landing.src.components.Hero.<unknown>..map(\"article\") callback",
-      "start_line": 118,
-      "end_line": 119,
+      "start_line": 122,
+      "end_line": 123,
       "type": "FUNCTION",
       "content_hash": "ab41ded3fcf274ee"
     },
     "apps/landing/src/components/Hero.tsx|apps.landing.src.components.Hero.system.details.map() callback": {
       "file_path": "apps/landing/src/components/Hero.tsx",
       "qualified_name": "apps.landing.src.components.Hero.system.details.map() callback",
-      "start_line": 135,
-      "end_line": 137,
+      "start_line": 139,
+      "end_line": 141,
       "type": "FUNCTION",
       "content_hash": "fc60372aeb50c42a"
     },
     "apps/landing/src/components/Hero.tsx|apps.landing.src.components.Hero.<unknown>..map() callback": {
       "file_path": "apps/landing/src/components/Hero.tsx",
       "qualified_name": "apps.landing.src.components.Hero.<unknown>..map() callback",
-      "start_line": 169,
-      "end_line": 170,
+      "start_line": 173,
+      "end_line": 174,
       "type": "FUNCTION",
       "content_hash": "6781c7499d622ae0"
+    },
+    "apps/landing/src/components/KnowledgeFactory.tsx|apps.landing.src.components.KnowledgeFactory.KnowledgeFactory": {
+      "file_path": "apps/landing/src/components/KnowledgeFactory.tsx",
+      "qualified_name": "apps.landing.src.components.KnowledgeFactory.KnowledgeFactory",
+      "start_line": 74,
+      "end_line": 176,
+      "type": "FUNCTION",
+      "content_hash": "79b170da5cf3d2e6"
+    },
+    "apps/landing/src/components/KnowledgeFactory.tsx|apps.landing.src.components.KnowledgeFactory.<unknown>..map() callback": {
+      "file_path": "apps/landing/src/components/KnowledgeFactory.tsx",
+      "qualified_name": "apps.landing.src.components.KnowledgeFactory.<unknown>..map() callback",
+      "start_line": 117,
+      "end_line": 122,
+      "type": "FUNCTION",
+      "content_hash": "7054b0bcf4160c17"
+    },
+    "apps/landing/src/components/KnowledgeFactory.tsx|apps.landing.src.components.KnowledgeFactory.KnowledgeFactory.<unknown>..map() callback": {
+      "file_path": "apps/landing/src/components/KnowledgeFactory.tsx",
+      "qualified_name": "apps.landing.src.components.KnowledgeFactory.KnowledgeFactory.<unknown>..map() callback",
+      "start_line": 158,
+      "end_line": 160,
+      "type": "FUNCTION",
+      "content_hash": "4ccce7e549203435"
+    },
+    "apps/landing/src/components/KnowledgeFactory.tsx|apps.landing.src.components.KnowledgeFactory.KnowledgeFactory.<unknown>.<unknown>..points.map() callback": {
+      "file_path": "apps/landing/src/components/KnowledgeFactory.tsx",
+      "qualified_name": "apps.landing.src.components.KnowledgeFactory.KnowledgeFactory.<unknown>.<unknown>..points.map() callback",
+      "start_line": 168,
+      "end_line": 170,
+      "type": "FUNCTION",
+      "content_hash": "78c714007cbffa6d"
     },
     "apps/landing/src/components/Manifesto.tsx|apps.landing.src.components.Manifesto.Manifesto": {
       "file_path": "apps/landing/src/components/Manifesto.tsx",
@@ -46068,18 +46230,18 @@
     "apps/landing/src/components/Systems.tsx|apps.landing.src.components.Systems.<unknown>..map() callback": {
       "file_path": "apps/landing/src/components/Systems.tsx",
       "qualified_name": "apps.landing.src.components.Systems.<unknown>..map() callback",
-      "start_line": 172,
-      "end_line": 174,
+      "start_line": 174,
+      "end_line": 176,
       "type": "FUNCTION",
       "content_hash": "3a8f273e2a252b81"
     },
     "apps/landing/src/components/Systems.tsx|apps.landing.src.components.Systems.SystemChapter": {
       "file_path": "apps/landing/src/components/Systems.tsx",
       "qualified_name": "apps.landing.src.components.Systems.SystemChapter",
-      "start_line": 201,
-      "end_line": 223,
+      "start_line": 203,
+      "end_line": 229,
       "type": "FUNCTION",
-      "content_hash": "820d3e85e6440547"
+      "content_hash": "2eda5f149f0fba2c"
     },
     "apps/landing/src/components/feed/DiaryCard.tsx|apps.landing.src.components.feed.DiaryCard.DiaryCardProps": {
       "file_path": "apps/landing/src/components/feed/DiaryCard.tsx",
@@ -46668,10 +46830,10 @@
     "apps/landing/src/pages/HomePage.tsx|apps.landing.src.pages.HomePage.HomePage": {
       "file_path": "apps/landing/src/pages/HomePage.tsx",
       "qualified_name": "apps.landing.src.pages.HomePage.HomePage",
-      "start_line": 27,
-      "end_line": 59,
+      "start_line": 30,
+      "end_line": 63,
       "type": "FUNCTION",
-      "content_hash": "76feced22ed631ad"
+      "content_hash": "aea5efea2068d60d"
     },
     "apps/landing/src/pages/ManifestoPage.tsx|apps.landing.src.pages.ManifestoPage.ManifestoPage": {
       "file_path": "apps/landing/src/pages/ManifestoPage.tsx",
@@ -51573,23 +51735,23 @@
       "file_path": "apps/moltnet-cli/task_continue.go",
       "qualified_name": "apps.moltnet-cli.task_continue.buildContinuationRequest",
       "start_line": 186,
-      "end_line": 259,
+      "end_line": 262,
       "type": "FUNCTION",
-      "content_hash": "2a3a9db8ea2ea85d"
+      "content_hash": "e77b05fac416b672"
     },
     "apps/moltnet-cli/task_continue.go|apps.moltnet-cli.task_continue.buildContinuationInput": {
       "file_path": "apps/moltnet-cli/task_continue.go",
       "qualified_name": "apps.moltnet-cli.task_continue.buildContinuationInput",
-      "start_line": 265,
-      "end_line": 312,
+      "start_line": 268,
+      "end_line": 307,
       "type": "FUNCTION",
-      "content_hash": "0980e8b120a61bed"
+      "content_hash": "c5c38bdf66b12bde"
     },
     "apps/moltnet-cli/task_continue.go|apps.moltnet-cli.task_continue.mapTaskTrustLevelToExecutor": {
       "file_path": "apps/moltnet-cli/task_continue.go",
       "qualified_name": "apps.moltnet-cli.task_continue.mapTaskTrustLevelToExecutor",
-      "start_line": 317,
-      "end_line": 332,
+      "start_line": 312,
+      "end_line": 327,
       "type": "FUNCTION",
       "content_hash": "0be18652dc683bd7"
     },
@@ -63209,6 +63371,70 @@
       "type": "FUNCTION",
       "content_hash": "3d20fedc71707315"
     },
+    "apps/console-e2e/src/auth-second-factor-loop.e2e.ts|apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback": {
+      "file_path": "apps/console-e2e/src/auth-second-factor-loop.e2e.ts",
+      "qualified_name": "apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback",
+      "start_line": 50,
+      "end_line": 143,
+      "type": "FUNCTION",
+      "content_hash": "0f37774b3e91790b"
+    },
+    "apps/console-e2e/src/auth-second-factor-loop.e2e.ts|apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('enrols an authenticator app') callback": {
+      "file_path": "apps/console-e2e/src/auth-second-factor-loop.e2e.ts",
+      "qualified_name": "apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('enrols an authenticator app') callback",
+      "start_line": 56,
+      "end_line": 67,
+      "type": "FUNCTION",
+      "content_hash": "640f7f4a86b58b4d"
+    },
+    "apps/console-e2e/src/auth-second-factor-loop.e2e.ts|apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('does not loop when the user abandons the second-factor step') callback": {
+      "file_path": "apps/console-e2e/src/auth-second-factor-loop.e2e.ts",
+      "qualified_name": "apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('does not loop when the user abandons the second-factor step') callback",
+      "start_line": 69,
+      "end_line": 98,
+      "type": "FUNCTION",
+      "content_hash": "32a95b837ae2bd00"
+    },
+    "apps/console-e2e/src/auth-second-factor-loop.e2e.ts|apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('does not loop when the user abandons the second-factor step') callback.page.on('framenavigated') callback": {
+      "file_path": "apps/console-e2e/src/auth-second-factor-loop.e2e.ts",
+      "qualified_name": "apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('does not loop when the user abandons the second-factor step') callback.page.on('framenavigated') callback",
+      "start_line": 79,
+      "end_line": 83,
+      "type": "FUNCTION",
+      "content_hash": "0474196f8827cccd"
+    },
+    "apps/console-e2e/src/auth-second-factor-loop.e2e.ts|apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('sends the second-factor challenge to an aal2 login flow') callback": {
+      "file_path": "apps/console-e2e/src/auth-second-factor-loop.e2e.ts",
+      "qualified_name": "apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('sends the second-factor challenge to an aal2 login flow') callback",
+      "start_line": 100,
+      "end_line": 124,
+      "type": "FUNCTION",
+      "content_hash": "22d49d60361f9a2e"
+    },
+    "apps/console-e2e/src/auth-second-factor-loop.e2e.ts|apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('sends the second-factor challenge to an aal2 login flow') callback.page.on('request') callback": {
+      "file_path": "apps/console-e2e/src/auth-second-factor-loop.e2e.ts",
+      "qualified_name": "apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('sends the second-factor challenge to an aal2 login flow') callback.page.on('request') callback",
+      "start_line": 107,
+      "end_line": 114,
+      "type": "FUNCTION",
+      "content_hash": "52bdcde50bb89c34"
+    },
+    "apps/console-e2e/src/auth-second-factor-loop.e2e.ts|apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('sends the second-factor challenge to an aal2 login flow') callback.kratosLoginRequests.some() callback": {
+      "file_path": "apps/console-e2e/src/auth-second-factor-loop.e2e.ts",
+      "qualified_name": "apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('sends the second-factor challenge to an aal2 login flow') callback.kratosLoginRequests.some() callback",
+      "start_line": 121,
+      "end_line": 121,
+      "type": "FUNCTION",
+      "content_hash": "ed95f3e8f7b62175"
+    },
+    "apps/console-e2e/src/auth-second-factor-loop.e2e.ts|apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('completing the second factor lands back on the requested page') callback": {
+      "file_path": "apps/console-e2e/src/auth-second-factor-loop.e2e.ts",
+      "qualified_name": "apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('completing the second factor lands back on the requested page') callback",
+      "start_line": 126,
+      "end_line": 142,
+      "type": "FUNCTION",
+      "content_hash": "ee95436dddb2b9a0"
+    },
     "apps/console-e2e/src/diary-transfer.e2e.ts|apps.console-e2e.src.diary-transfer.e2e.ensureConsoleSession": {
       "file_path": "apps/console-e2e/src/diary-transfer.e2e.ts",
       "qualified_name": "apps.console-e2e.src.diary-transfer.e2e.ensureConsoleSession",
@@ -63521,6 +63747,30 @@
       "type": "FUNCTION",
       "content_hash": "0f56e4c687dc2330"
     },
+    "apps/console-e2e/src/helpers/totp.ts|apps.console-e2e.src.helpers.totp.base32Decode": {
+      "file_path": "apps/console-e2e/src/helpers/totp.ts",
+      "qualified_name": "apps.console-e2e.src.helpers.totp.base32Decode",
+      "start_line": 16,
+      "end_line": 33,
+      "type": "FUNCTION",
+      "content_hash": "749d9599921e6c8f"
+    },
+    "apps/console-e2e/src/helpers/totp.ts|apps.console-e2e.src.helpers.totp.generateTotpCode": {
+      "file_path": "apps/console-e2e/src/helpers/totp.ts",
+      "qualified_name": "apps.console-e2e.src.helpers.totp.generateTotpCode",
+      "start_line": 36,
+      "end_line": 53,
+      "type": "FUNCTION",
+      "content_hash": "74038c8f7793e933"
+    },
+    "apps/console-e2e/src/helpers/totp.ts|apps.console-e2e.src.helpers.totp.waitForFreshTotpWindow": {
+      "file_path": "apps/console-e2e/src/helpers/totp.ts",
+      "qualified_name": "apps.console-e2e.src.helpers.totp.waitForFreshTotpWindow",
+      "start_line": 61,
+      "end_line": 70,
+      "type": "FUNCTION",
+      "content_hash": "512fc94dbc55b1bc"
+    },
     "apps/console-e2e/src/landing-setup.e2e.ts|apps.console-e2e.src.landing-setup.e2e.test('seed shared team, diary, tasks, and agent invite') callback": {
       "file_path": "apps/console-e2e/src/landing-setup.e2e.ts",
       "qualified_name": "apps.console-e2e.src.landing-setup.e2e.test('seed shared team, diary, tasks, and agent invite') callback",
@@ -63745,21 +63995,117 @@
       "type": "METHOD",
       "content_hash": "5ad356c9ae35ac55"
     },
+    "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.readHopToken": {
+      "file_path": "apps/console/src/auth/AuthGuard.tsx",
+      "qualified_name": "apps.console.src.auth.AuthGuard.readHopToken",
+      "start_line": 54,
+      "end_line": 60,
+      "type": "FUNCTION",
+      "content_hash": "67c00d0432e3be46"
+    },
+    "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.writeHopToken": {
+      "file_path": "apps/console/src/auth/AuthGuard.tsx",
+      "qualified_name": "apps.console.src.auth.AuthGuard.writeHopToken",
+      "start_line": 62,
+      "end_line": 72,
+      "type": "FUNCTION",
+      "content_hash": "673a0850907d57f6"
+    },
+    "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.newHopToken": {
+      "file_path": "apps/console/src/auth/AuthGuard.tsx",
+      "qualified_name": "apps.console.src.auth.AuthGuard.newHopToken",
+      "start_line": 74,
+      "end_line": 78,
+      "type": "FUNCTION",
+      "content_hash": "df86d27c12d9db30"
+    },
+    "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.Arrival": {
+      "file_path": "apps/console/src/auth/AuthGuard.tsx",
+      "qualified_name": "apps.console.src.auth.AuthGuard.Arrival",
+      "start_line": 81,
+      "end_line": 87,
+      "type": "INTERFACE",
+      "content_hash": "7482f6393d7bb1c3"
+    },
+    "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.parseArrival": {
+      "file_path": "apps/console/src/auth/AuthGuard.tsx",
+      "qualified_name": "apps.console.src.auth.AuthGuard.parseArrival",
+      "start_line": 96,
+      "end_line": 106,
+      "type": "FUNCTION",
+      "content_hash": "250c675e0f826d06"
+    },
     "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.buildReturnTo": {
       "file_path": "apps/console/src/auth/AuthGuard.tsx",
       "qualified_name": "apps.console.src.auth.AuthGuard.buildReturnTo",
-      "start_line": 25,
-      "end_line": 28,
+      "start_line": 121,
+      "end_line": 129,
       "type": "FUNCTION",
-      "content_hash": "77706586b891e582"
+      "content_hash": "53218a6016c731ba"
+    },
+    "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.sameOriginAsKratos": {
+      "file_path": "apps/console/src/auth/AuthGuard.tsx",
+      "qualified_name": "apps.console.src.auth.AuthGuard.sameOriginAsKratos",
+      "start_line": 136,
+      "end_line": 142,
+      "type": "FUNCTION",
+      "content_hash": "69bb58ce1dd74e58"
+    },
+    "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.buildSignInUrl": {
+      "file_path": "apps/console/src/auth/AuthGuard.tsx",
+      "qualified_name": "apps.console.src.auth.AuthGuard.buildSignInUrl",
+      "start_line": 152,
+      "end_line": 186,
+      "type": "FUNCTION",
+      "content_hash": "5148ecf2f8063711"
     },
     "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.AuthGuard": {
       "file_path": "apps/console/src/auth/AuthGuard.tsx",
       "qualified_name": "apps.console.src.auth.AuthGuard.AuthGuard",
-      "start_line": 30,
-      "end_line": 39,
+      "start_line": 188,
+      "end_line": 264,
       "type": "FUNCTION",
-      "content_hash": "298e988d7c9f9e53"
+      "content_hash": "65f5479215ac963c"
+    },
+    "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.AuthGuard.goToSignIn": {
+      "file_path": "apps/console/src/auth/AuthGuard.tsx",
+      "qualified_name": "apps.console.src.auth.AuthGuard.AuthGuard.goToSignIn",
+      "start_line": 205,
+      "end_line": 222,
+      "type": "CLASS",
+      "content_hash": "c5ef5c28e07c40a6"
+    },
+    "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.AuthGuard.goToSignIn.useCallback() callback": {
+      "file_path": "apps/console/src/auth/AuthGuard.tsx",
+      "qualified_name": "apps.console.src.auth.AuthGuard.AuthGuard.goToSignIn.useCallback() callback",
+      "start_line": 205,
+      "end_line": 222,
+      "type": "FUNCTION",
+      "content_hash": "c5ef5c28e07c40a6"
+    },
+    "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.useEffect() callback": {
+      "file_path": "apps/console/src/auth/AuthGuard.tsx",
+      "qualified_name": "apps.console.src.auth.AuthGuard.useEffect() callback",
+      "start_line": 226,
+      "end_line": 237,
+      "type": "FUNCTION",
+      "content_hash": "01c01330c186764b"
+    },
+    "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.AuthGuard.useEffect() callback": {
+      "file_path": "apps/console/src/auth/AuthGuard.tsx",
+      "qualified_name": "apps.console.src.auth.AuthGuard.AuthGuard.useEffect() callback",
+      "start_line": 243,
+      "end_line": 256,
+      "type": "FUNCTION",
+      "content_hash": "9e106c7e252da355"
+    },
+    "apps/console/src/auth/AuthGuard.tsx|apps.console.src.auth.AuthGuard.SignInRecovery": {
+      "file_path": "apps/console/src/auth/AuthGuard.tsx",
+      "qualified_name": "apps.console.src.auth.AuthGuard.SignInRecovery",
+      "start_line": 293,
+      "end_line": 307,
+      "type": "FUNCTION",
+      "content_hash": "2f7e5777f5f87a70"
     },
     "apps/console/src/auth/AuthProvider.tsx|apps.console.src.auth.AuthProvider.toSessionWithTimeout": {
       "file_path": "apps/console/src/auth/AuthProvider.tsx",
@@ -63796,96 +64142,112 @@
     "apps/console/src/auth/AuthProvider.tsx|apps.console.src.auth.AuthProvider.AuthContextValue": {
       "file_path": "apps/console/src/auth/AuthProvider.tsx",
       "qualified_name": "apps.console.src.auth.AuthProvider.AuthContextValue",
-      "start_line": 44,
-      "end_line": 53,
+      "start_line": 58,
+      "end_line": 76,
       "type": "INTERFACE",
-      "content_hash": "b6a6826a672d0434"
+      "content_hash": "60862237b89fc3c5"
     },
-    "apps/console/src/auth/AuthProvider.tsx|apps.console.src.auth.AuthProvider.isAuthenticationFailure": {
+    "apps/console/src/auth/AuthProvider.tsx|apps.console.src.auth.AuthProvider.OryErrorBody": {
       "file_path": "apps/console/src/auth/AuthProvider.tsx",
-      "qualified_name": "apps.console.src.auth.AuthProvider.isAuthenticationFailure",
-      "start_line": 67,
-      "end_line": 72,
+      "qualified_name": "apps.console.src.auth.AuthProvider.OryErrorBody",
+      "start_line": 80,
+      "end_line": 83,
+      "type": "INTERFACE",
+      "content_hash": "661334f5345e2702"
+    },
+    "apps/console/src/auth/AuthProvider.tsx|apps.console.src.auth.AuthProvider.readOryErrorBody": {
+      "file_path": "apps/console/src/auth/AuthProvider.tsx",
+      "qualified_name": "apps.console.src.auth.AuthProvider.readOryErrorBody",
+      "start_line": 91,
+      "end_line": 99,
       "type": "FUNCTION",
-      "content_hash": "d96060e56b5df0f3"
+      "content_hash": "b41b72070827f597"
+    },
+    "apps/console/src/auth/AuthProvider.tsx|apps.console.src.auth.AuthProvider.classifySessionFailure": {
+      "file_path": "apps/console/src/auth/AuthProvider.tsx",
+      "qualified_name": "apps.console.src.auth.AuthProvider.classifySessionFailure",
+      "start_line": 122,
+      "end_line": 134,
+      "type": "FUNCTION",
+      "content_hash": "7706860df217b327"
     },
     "apps/console/src/auth/AuthProvider.tsx|apps.console.src.auth.AuthProvider.AuthProvider": {
       "file_path": "apps/console/src/auth/AuthProvider.tsx",
       "qualified_name": "apps.console.src.auth.AuthProvider.AuthProvider",
-      "start_line": 74,
-      "end_line": 178,
+      "start_line": 136,
+      "end_line": 256,
       "type": "FUNCTION",
-      "content_hash": "6b4181cb0a4a3b96"
+      "content_hash": "cb9c9ecffd4ca192"
     },
     "apps/console/src/auth/AuthProvider.tsx|apps.console.src.auth.AuthProvider.AuthProvider.checkSession": {
       "file_path": "apps/console/src/auth/AuthProvider.tsx",
       "qualified_name": "apps.console.src.auth.AuthProvider.AuthProvider.checkSession",
-      "start_line": 81,
-      "end_line": 132,
+      "start_line": 147,
+      "end_line": 208,
       "type": "CLASS",
-      "content_hash": "3e1e4fd5757e78a0"
+      "content_hash": "c545442b612f348e"
     },
     "apps/console/src/auth/AuthProvider.tsx|apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback": {
       "file_path": "apps/console/src/auth/AuthProvider.tsx",
       "qualified_name": "apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback",
-      "start_line": 82,
-      "end_line": 130,
+      "start_line": 148,
+      "end_line": 206,
       "type": "FUNCTION",
-      "content_hash": "ab80223b4e378efd"
+      "content_hash": "ada74f78d1ac15b2"
     },
     "apps/console/src/auth/AuthProvider.tsx|apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback.request": {
       "file_path": "apps/console/src/auth/AuthProvider.tsx",
       "qualified_name": "apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback.request",
-      "start_line": 98,
-      "end_line": 121,
+      "start_line": 164,
+      "end_line": 197,
       "type": "CLASS",
-      "content_hash": "ac7d221314638e3c"
+      "content_hash": "449aa532d81ba195"
     },
     "apps/console/src/auth/AuthProvider.tsx|apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback.request.<function>": {
       "file_path": "apps/console/src/auth/AuthProvider.tsx",
       "qualified_name": "apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback.request.<function>",
-      "start_line": 98,
-      "end_line": 121,
+      "start_line": 164,
+      "end_line": 197,
       "type": "FUNCTION",
-      "content_hash": "ac7d221314638e3c"
+      "content_hash": "449aa532d81ba195"
     },
     "apps/console/src/auth/AuthProvider.tsx|apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback.request.finally() callback": {
       "file_path": "apps/console/src/auth/AuthProvider.tsx",
       "qualified_name": "apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback.request.finally() callback",
-      "start_line": 124,
-      "end_line": 128,
+      "start_line": 200,
+      "end_line": 204,
       "type": "FUNCTION",
       "content_hash": "fe8ff9fc8c6a9597"
     },
     "apps/console/src/auth/AuthProvider.tsx|apps.console.src.auth.AuthProvider.useEffect() callback": {
       "file_path": "apps/console/src/auth/AuthProvider.tsx",
       "qualified_name": "apps.console.src.auth.AuthProvider.useEffect() callback",
-      "start_line": 134,
-      "end_line": 136,
+      "start_line": 210,
+      "end_line": 212,
       "type": "FUNCTION",
       "content_hash": "84b0c0b2d8fdadc8"
     },
     "apps/console/src/auth/AuthProvider.tsx|apps.console.src.auth.AuthProvider.AuthProvider.useEffect() callback": {
       "file_path": "apps/console/src/auth/AuthProvider.tsx",
       "qualified_name": "apps.console.src.auth.AuthProvider.AuthProvider.useEffect() callback",
-      "start_line": 142,
-      "end_line": 154,
+      "start_line": 218,
+      "end_line": 230,
       "type": "FUNCTION",
       "content_hash": "401b82842a6c844c"
     },
     "apps/console/src/auth/AuthProvider.tsx|apps.console.src.auth.AuthProvider.AuthProvider.logout": {
       "file_path": "apps/console/src/auth/AuthProvider.tsx",
       "qualified_name": "apps.console.src.auth.AuthProvider.AuthProvider.logout",
-      "start_line": 156,
-      "end_line": 165,
+      "start_line": 232,
+      "end_line": 241,
       "type": "CLASS",
       "content_hash": "aa420833b0c9b3c3"
     },
     "apps/console/src/auth/AuthProvider.tsx|apps.console.src.auth.AuthProvider.AuthProvider.logout.useCallback() callback": {
       "file_path": "apps/console/src/auth/AuthProvider.tsx",
       "qualified_name": "apps.console.src.auth.AuthProvider.AuthProvider.logout.useCallback() callback",
-      "start_line": 156,
-      "end_line": 165,
+      "start_line": 232,
+      "end_line": 241,
       "type": "FUNCTION",
       "content_hash": "aa420833b0c9b3c3"
     },
@@ -68156,368 +68518,384 @@
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage",
-      "start_line": 63,
-      "end_line": 399,
+      "start_line": 62,
+      "end_line": 397,
       "type": "FUNCTION",
-      "content_hash": "3779f97fa19d745b"
+      "content_hash": "a1a4faa3bfa0d32e"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.params": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.params",
-      "start_line": 68,
-      "end_line": 68,
+      "start_line": 67,
+      "end_line": 67,
       "type": "CLASS",
       "content_hash": "fce3fbcfb44d85ed"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.params.useMemo() callback": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.params.useMemo() callback",
-      "start_line": 68,
-      "end_line": 68,
+      "start_line": 67,
+      "end_line": 67,
       "type": "FUNCTION",
       "content_hash": "fce3fbcfb44d85ed"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.taskTypes": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.taskTypes",
-      "start_line": 70,
-      "end_line": 82,
+      "start_line": 69,
+      "end_line": 81,
       "type": "CLASS",
       "content_hash": "234ccc23dc054235"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.taskTypes.useMemo() callback": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.taskTypes.useMemo() callback",
-      "start_line": 70,
-      "end_line": 82,
+      "start_line": 69,
+      "end_line": 81,
       "type": "FUNCTION",
       "content_hash": "234ccc23dc054235"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.taskTypes.useMemo() callback.map() callback": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.taskTypes.useMemo() callback.map() callback",
-      "start_line": 77,
-      "end_line": 77,
+      "start_line": 76,
+      "end_line": 76,
       "type": "FUNCTION",
       "content_hash": "09b6fac82ec38c3d"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.useEffect() callback": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.useEffect() callback",
-      "start_line": 119,
-      "end_line": 126,
+      "start_line": 117,
+      "end_line": 124,
       "type": "FUNCTION",
       "content_hash": "a6c10e8eac9a5272"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.diaryOptions": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.diaryOptions",
-      "start_line": 129,
-      "end_line": 132,
+      "start_line": 127,
+      "end_line": 130,
       "type": "CLASS",
       "content_hash": "9fa68e394d2e6bbc"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.diaryOptions.useMemo() callback": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.diaryOptions.useMemo() callback",
-      "start_line": 130,
-      "end_line": 130,
+      "start_line": 128,
+      "end_line": 128,
       "type": "FUNCTION",
       "content_hash": "786f1210f75558c8"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.diaryOptions.useMemo() callback.map() callback": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.diaryOptions.useMemo() callback.map() callback",
-      "start_line": 130,
-      "end_line": 130,
+      "start_line": 128,
+      "end_line": 128,
       "type": "FUNCTION",
       "content_hash": "786f1210f75558c8"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.query": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.query",
-      "start_line": 139,
-      "end_line": 165,
+      "start_line": 137,
+      "end_line": 163,
       "type": "CLASS",
       "content_hash": "e12b5cc8ea8752fc"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.query.getNextPageParam": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.query.getNextPageParam",
-      "start_line": 156,
-      "end_line": 156,
+      "start_line": 154,
+      "end_line": 154,
       "type": "METHOD",
       "content_hash": "b9e72239e3ce08dd"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.query.refetchInterval": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.query.refetchInterval",
-      "start_line": 157,
-      "end_line": 164,
+      "start_line": 155,
+      "end_line": 162,
       "type": "METHOD",
       "content_hash": "08adab8e92eb12e7"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.query.refetchInterval.hasActive.query.state.data.pages.some() callback": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.query.refetchInterval.hasActive.query.state.data.pages.some() callback",
-      "start_line": 158,
-      "end_line": 161,
+      "start_line": 156,
+      "end_line": 159,
       "type": "FUNCTION",
       "content_hash": "2087af6bd797622c"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.query.refetchInterval.hasActive": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.query.refetchInterval.hasActive",
-      "start_line": 158,
-      "end_line": 162,
+      "start_line": 156,
+      "end_line": 160,
       "type": "CLASS",
       "content_hash": "ed23b8831cb0bad1"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.query.refetchInterval.hasActive.query.state.data.pages.some() callback.page.items.some() callback": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.query.refetchInterval.hasActive.query.state.data.pages.some() callback.page.items.some() callback",
-      "start_line": 159,
-      "end_line": 160,
+      "start_line": 157,
+      "end_line": 158,
       "type": "FUNCTION",
       "content_hash": "b178e21fcda676ea"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.tasks": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.tasks",
-      "start_line": 166,
-      "end_line": 169,
+      "start_line": 164,
+      "end_line": 167,
       "type": "CLASS",
       "content_hash": "04b35977fa5f9503"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.tasks.useMemo() callback": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.tasks.useMemo() callback",
-      "start_line": 167,
-      "end_line": 167,
+      "start_line": 165,
+      "end_line": 165,
       "type": "FUNCTION",
       "content_hash": "f53fe15c6d754436"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.tasks.useMemo() callback.query.data.pages.flatMap() callback": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.tasks.useMemo() callback.query.data.pages.flatMap() callback",
-      "start_line": 167,
-      "end_line": 167,
+      "start_line": 165,
+      "end_line": 165,
       "type": "FUNCTION",
       "content_hash": "f53fe15c6d754436"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.registeredTaskTypes": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.registeredTaskTypes",
-      "start_line": 195,
-      "end_line": 198,
+      "start_line": 193,
+      "end_line": 196,
       "type": "CLASS",
       "content_hash": "30c71aadd556a2c6"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.registeredTaskTypes.useMemo() callback": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.registeredTaskTypes.useMemo() callback",
-      "start_line": 196,
-      "end_line": 196,
+      "start_line": 194,
+      "end_line": 194,
       "type": "FUNCTION",
       "content_hash": "b8b71305308b59dc"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.registeredTaskTypes.useMemo() callback.map() callback": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.registeredTaskTypes.useMemo() callback.map() callback",
-      "start_line": 196,
-      "end_line": 196,
+      "start_line": 194,
+      "end_line": 194,
       "type": "FUNCTION",
       "content_hash": "b8b71305308b59dc"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.runtimeProfileOptions": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.runtimeProfileOptions",
-      "start_line": 207,
-      "end_line": 216,
+      "start_line": 205,
+      "end_line": 214,
       "type": "CLASS",
       "content_hash": "256c5a7e5a5351b5"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.runtimeProfileOptions.useMemo() callback": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.runtimeProfileOptions.useMemo() callback",
-      "start_line": 208,
-      "end_line": 214,
+      "start_line": 206,
+      "end_line": 212,
       "type": "FUNCTION",
       "content_hash": "0f6351b1b3e21ecc"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.runtimeProfileOptions.useMemo() callback.map() callback": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.runtimeProfileOptions.useMemo() callback.map() callback",
-      "start_line": 209,
-      "end_line": 214,
+      "start_line": 207,
+      "end_line": 212,
       "type": "FUNCTION",
       "content_hash": "dd91cea3a889c3c5"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.searchPickerCandidates": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.searchPickerCandidates",
-      "start_line": 234,
-      "end_line": 257,
+      "start_line": 232,
+      "end_line": 255,
       "type": "CLASS",
       "content_hash": "d1e6d752334a18a4"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.searchPickerCandidates.useCallback() callback": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.searchPickerCandidates.useCallback() callback",
-      "start_line": 235,
-      "end_line": 255,
+      "start_line": 233,
+      "end_line": 253,
       "type": "FUNCTION",
       "content_hash": "58e508662e37af6f"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.updateTaskTypes": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.updateTaskTypes",
-      "start_line": 259,
-      "end_line": 264,
+      "start_line": 257,
+      "end_line": 262,
       "type": "FUNCTION",
       "content_hash": "1729369ca0ad77df"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.navigateToTaskParams": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.navigateToTaskParams",
-      "start_line": 268,
-      "end_line": 271,
+      "start_line": 266,
+      "end_line": 269,
       "type": "FUNCTION",
       "content_hash": "1fa01da67a262aef"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.selectTask": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.selectTask",
-      "start_line": 273,
-      "end_line": 278,
+      "start_line": 271,
+      "end_line": 276,
       "type": "FUNCTION",
       "content_hash": "97a6f571c138acd4"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.toggleTaskSelection": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.toggleTaskSelection",
-      "start_line": 280,
-      "end_line": 287,
+      "start_line": 278,
+      "end_line": 285,
       "type": "FUNCTION",
       "content_hash": "fa986ef1a86f2cd2"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.toggleTaskSelection.setSelectedTaskIds() callback": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.toggleTaskSelection.setSelectedTaskIds() callback",
-      "start_line": 281,
-      "end_line": 286,
+      "start_line": 279,
+      "end_line": 284,
       "type": "FUNCTION",
       "content_hash": "a81619a63dc1e13b"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.toggleVisibleTaskSelection": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.toggleVisibleTaskSelection",
-      "start_line": 289,
-      "end_line": 298,
+      "start_line": 287,
+      "end_line": 296,
       "type": "FUNCTION",
       "content_hash": "876afae6a6740572"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.toggleVisibleTaskSelection.setSelectedTaskIds() callback": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.toggleVisibleTaskSelection.setSelectedTaskIds() callback",
-      "start_line": 290,
-      "end_line": 297,
+      "start_line": 288,
+      "end_line": 295,
       "type": "FUNCTION",
       "content_hash": "d24012260e9e8707"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.submitDeleteTasks": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.submitDeleteTasks",
-      "start_line": 300,
-      "end_line": 333,
+      "start_line": 298,
+      "end_line": 331,
       "type": "FUNCTION",
       "content_hash": "5a244aca7c7124e3"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.selectedTaskQuery": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.selectedTaskQuery",
-      "start_line": 340,
-      "end_line": 348,
+      "start_line": 338,
+      "end_line": 346,
       "type": "CLASS",
       "content_hash": "9180b89d8e8670b8"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.selectedTaskQuery.refetchInterval": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.selectedTaskQuery.refetchInterval",
-      "start_line": 346,
-      "end_line": 347,
+      "start_line": 344,
+      "end_line": 345,
       "type": "METHOD",
       "content_hash": "49f1062d7d0d06c6"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.selectedMessagesQuery": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.selectedMessagesQuery",
-      "start_line": 364,
-      "end_line": 377,
+      "start_line": 362,
+      "end_line": 375,
       "type": "CLASS",
       "content_hash": "e95f67a9750116fb"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.selectedMessagesQuery.refetchInterval": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.selectedMessagesQuery.refetchInterval",
-      "start_line": 371,
-      "end_line": 376,
+      "start_line": 369,
+      "end_line": 374,
       "type": "METHOD",
       "content_hash": "57b6dc834d9c3b97"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TasksPage.setStatus": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TasksPage.setStatus",
-      "start_line": 379,
-      "end_line": 384,
+      "start_line": 377,
+      "end_line": 382,
       "type": "FUNCTION",
       "content_hash": "34be934defa11903"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TASK_STATUS_FILTERS.map() callback": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TASK_STATUS_FILTERS.map() callback",
-      "start_line": 473,
-      "end_line": 475,
+      "start_line": 471,
+      "end_line": 473,
       "type": "FUNCTION",
       "content_hash": "9be92bc3a9db57d2"
+    },
+    "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.Boolean": {
+      "file_path": "apps/console/src/pages/TasksPage.tsx",
+      "qualified_name": "apps.console.src.pages.TasksPage.Boolean",
+      "start_line": 563,
+      "end_line": 563,
+      "type": "METHOD",
+      "content_hash": "daae46ff349015ed"
+    },
+    "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.selectTask": {
+      "file_path": "apps/console/src/pages/TasksPage.tsx",
+      "qualified_name": "apps.console.src.pages.TasksPage.selectTask",
+      "start_line": 573,
+      "end_line": 573,
+      "type": "METHOD",
+      "content_hash": "8f58301ff50b6bfc"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.async": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.async",
-      "start_line": 664,
-      "end_line": 664,
+      "start_line": 656,
+      "end_line": 656,
       "type": "METHOD",
       "content_hash": "34905a10fb7eb217"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TaskPaneState": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TaskPaneState",
-      "start_line": 753,
-      "end_line": 782,
+      "start_line": 745,
+      "end_line": 774,
       "type": "FUNCTION",
       "content_hash": "da3f9659c26f1c0f"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.TaskPaneState.onRetry": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.TaskPaneState.onRetry",
-      "start_line": 770,
-      "end_line": 774,
+      "start_line": 762,
+      "end_line": 766,
       "type": "METHOD",
       "content_hash": "acaae55f9dd6c59e"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.inputStyle": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.inputStyle",
-      "start_line": 784,
-      "end_line": 794,
+      "start_line": 776,
+      "end_line": 786,
       "type": "FUNCTION",
       "content_hash": "a9523baa2c7d9ee8"
     },
     "apps/console/src/pages/TasksPage.tsx|apps.console.src.pages.TasksPage.FilterButton": {
       "file_path": "apps/console/src/pages/TasksPage.tsx",
       "qualified_name": "apps.console.src.pages.TasksPage.FilterButton",
-      "start_line": 796,
-      "end_line": 815,
+      "start_line": 788,
+      "end_line": 807,
       "type": "FUNCTION",
       "content_hash": "5b0cbfc1aeaca235"
     },
@@ -90436,34 +90814,34 @@
     "libs/task-ui/src/task-lane-board.tsx|libs.task-ui.src.task-lane-board.TaskLaneData": {
       "file_path": "libs/task-ui/src/task-lane-board.tsx",
       "qualified_name": "libs.task-ui.src.task-lane-board.TaskLaneData",
-      "start_line": 8,
-      "end_line": 15,
+      "start_line": 10,
+      "end_line": 17,
       "type": "INTERFACE",
       "content_hash": "f3cb733d7255f466"
     },
     "libs/task-ui/src/task-lane-board.tsx|libs.task-ui.src.task-lane-board.TaskLaneBoardProps": {
       "file_path": "libs/task-ui/src/task-lane-board.tsx",
       "qualified_name": "libs.task-ui.src.task-lane-board.TaskLaneBoardProps",
-      "start_line": 17,
-      "end_line": 27,
+      "start_line": 19,
+      "end_line": 29,
       "type": "INTERFACE",
       "content_hash": "69e65eaee7b624bc"
     },
     "libs/task-ui/src/task-lane-board.tsx|libs.task-ui.src.task-lane-board.TaskLaneBoard": {
       "file_path": "libs/task-ui/src/task-lane-board.tsx",
       "qualified_name": "libs.task-ui.src.task-lane-board.TaskLaneBoard",
-      "start_line": 31,
-      "end_line": 46,
+      "start_line": 33,
+      "end_line": 55,
       "type": "FUNCTION",
-      "content_hash": "2570776e3a023d55"
+      "content_hash": "ea18c145ca449981"
     },
     "libs/task-ui/src/task-lane-board.tsx|libs.task-ui.src.task-lane-board.<unknown>..map() callback": {
       "file_path": "libs/task-ui/src/task-lane-board.tsx",
       "qualified_name": "libs.task-ui.src.task-lane-board.<unknown>..map() callback",
-      "start_line": 48,
-      "end_line": 62,
+      "start_line": 67,
+      "end_line": 81,
       "type": "FUNCTION",
-      "content_hash": "6a55ecd19e8c86df"
+      "content_hash": "b9bccce5b57d6564"
     },
     "libs/task-ui/src/task-lanes.ts|libs.task-ui.src.task-lanes.TaskLane": {
       "file_path": "libs/task-ui/src/task-lanes.ts",
@@ -108673,14 +109051,25 @@
       ],
       "components_relations": [
         {
-          "relation": "calls",
+          "relation": "Key Verification",
           "src_name": "Trust & Provenance Controller",
           "dst_name": "Agent Key & Identity Service",
-          "evidence": "",
+          "evidence": "Outgoing API path: Key Verification: Calls to Agent Key & Identity Service to verify the public key; static edge map() callback -> profilePolicyTuple",
           "key_edges": [],
           "src_id": "1.1",
           "dst_id": "1.3",
           "is_static": true,
+          "all_edges": []
+        },
+        {
+          "relation": "Provenance Commitment",
+          "src_name": "Agent Output & Contract Validator",
+          "dst_name": "Trust & Provenance Controller",
+          "evidence": "Outgoing API path: Provenance Commitment: Upon successful validation, triggers a 'Proof' event to the Trust & Provenance Controller",
+          "key_edges": [],
+          "src_id": "1.2",
+          "dst_id": "1.1",
+          "is_static": false,
           "all_edges": []
         },
         {
@@ -109558,6 +109947,12 @@
             "apps.landing.src.components.Hero.<unknown>..map(\"article\") callback",
             "apps.landing.src.components.Hero.system.details.map() callback",
             "apps.landing.src.components.Hero.<unknown>..map() callback"
+          ]
+        },
+        {
+          "file_path": "apps/landing/src/components/KnowledgeFactory.tsx",
+          "methods": [
+            "apps.landing.src.components.KnowledgeFactory.KnowledgeFactory"
           ]
         },
         {
@@ -113036,6 +113431,19 @@
           ]
         },
         {
+          "file_path": "apps/console-e2e/src/auth-second-factor-loop.e2e.ts",
+          "methods": [
+            "apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback",
+            "apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('enrols an authenticator app') callback",
+            "apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('does not loop when the user abandons the second-factor step') callback",
+            "apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('does not loop when the user abandons the second-factor step') callback.page.on('framenavigated') callback",
+            "apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('sends the second-factor challenge to an aal2 login flow') callback",
+            "apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('sends the second-factor challenge to an aal2 login flow') callback.page.on('request') callback",
+            "apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('sends the second-factor challenge to an aal2 login flow') callback.kratosLoginRequests.some() callback",
+            "apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('completing the second factor lands back on the requested page') callback"
+          ]
+        },
+        {
           "file_path": "apps/console-e2e/src/diary-browser.e2e.ts",
           "methods": [
             "apps.console-e2e.src.diary-browser.e2e.SeededDiary",
@@ -113126,7 +113534,16 @@
             "apps.console-e2e.src.helpers.kratos.loginViaBrowser",
             "apps.console-e2e.src.helpers.kratos.loginViaBrowser.catch() callback",
             "apps.console-e2e.src.helpers.kratos.getSessionCookie",
-            "apps.console-e2e.src.helpers.kratos.createNativeSessionToken"
+            "apps.console-e2e.src.helpers.kratos.KratosUiNode",
+            "apps.console-e2e.src.helpers.kratos.KratosFlow",
+            "apps.console-e2e.src.helpers.kratos.createNativeSessionToken",
+            "apps.console-e2e.src.helpers.kratos.findNodeValue",
+            "apps.console-e2e.src.helpers.kratos.findNodeValue.node",
+            "apps.console-e2e.src.helpers.kratos.findNodeValue.node.flow.ui.nodes.find() callback",
+            "apps.console-e2e.src.helpers.kratos.enrollTotp",
+            "apps.console-e2e.src.helpers.kratos.enrollTotp.secretNode",
+            "apps.console-e2e.src.helpers.kratos.enrollTotp.secretNode.flow.ui.nodes.find() callback",
+            "apps.console-e2e.src.helpers.kratos.logoutViaBrowser"
           ]
         },
         {
@@ -113156,6 +113573,14 @@
             "apps.console-e2e.src.helpers.test-user.TestUser",
             "apps.console-e2e.src.helpers.test-user.CreateTestUserOptions",
             "apps.console-e2e.src.helpers.test-user.createTestUser"
+          ]
+        },
+        {
+          "file_path": "apps/console-e2e/src/helpers/totp.ts",
+          "methods": [
+            "apps.console-e2e.src.helpers.totp.base32Decode",
+            "apps.console-e2e.src.helpers.totp.generateTotpCode",
+            "apps.console-e2e.src.helpers.totp.waitForFreshTotpWindow"
           ]
         },
         {
@@ -113340,8 +113765,20 @@
         {
           "file_path": "apps/console/src/auth/AuthGuard.tsx",
           "methods": [
+            "apps.console.src.auth.AuthGuard.readHopToken",
+            "apps.console.src.auth.AuthGuard.writeHopToken",
+            "apps.console.src.auth.AuthGuard.newHopToken",
+            "apps.console.src.auth.AuthGuard.Arrival",
+            "apps.console.src.auth.AuthGuard.parseArrival",
             "apps.console.src.auth.AuthGuard.buildReturnTo",
-            "apps.console.src.auth.AuthGuard.AuthGuard"
+            "apps.console.src.auth.AuthGuard.sameOriginAsKratos",
+            "apps.console.src.auth.AuthGuard.buildSignInUrl",
+            "apps.console.src.auth.AuthGuard.AuthGuard",
+            "apps.console.src.auth.AuthGuard.AuthGuard.goToSignIn",
+            "apps.console.src.auth.AuthGuard.AuthGuard.goToSignIn.useCallback() callback",
+            "apps.console.src.auth.AuthGuard.useEffect() callback",
+            "apps.console.src.auth.AuthGuard.AuthGuard.useEffect() callback",
+            "apps.console.src.auth.AuthGuard.SignInRecovery"
           ]
         },
         {
@@ -113352,17 +113789,19 @@
             "apps.console.src.auth.AuthProvider.toSessionWithTimeout.timeout.<function>",
             "apps.console.src.auth.AuthProvider.toSessionWithTimeout.timeout.<function>.setTimeout() callback",
             "apps.console.src.auth.AuthProvider.AuthContextValue",
-            "apps.console.src.auth.AuthProvider.isAuthenticationFailure",
-            "apps.console.src.auth.AuthProvider.AuthProvider",
-            "apps.console.src.auth.AuthProvider.AuthProvider.checkSession",
-            "apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback",
-            "apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback.request",
-            "apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback.request.<function>",
+            "apps.console.src.auth.AuthProvider.OryErrorBody",
+            "apps.console.src.auth.AuthProvider.readOryErrorBody",
+            "apps.console.src.auth.AuthProvider.classifySessionFailure",
             "apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback.request.finally() callback",
             "apps.console.src.auth.AuthProvider.useEffect() callback",
+            "apps.console.src.auth.AuthProvider.AuthProvider",
             "apps.console.src.auth.AuthProvider.AuthProvider.useEffect() callback",
+            "apps.console.src.auth.AuthProvider.AuthProvider.checkSession",
+            "apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback",
             "apps.console.src.auth.AuthProvider.AuthProvider.logout",
-            "apps.console.src.auth.AuthProvider.AuthProvider.logout.useCallback() callback"
+            "apps.console.src.auth.AuthProvider.AuthProvider.logout.useCallback() callback",
+            "apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback.request",
+            "apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback.request.<function>"
           ]
         },
         {
@@ -114167,6 +114606,8 @@
             "apps.console.src.pages.TasksPage.TasksPage.selectedMessagesQuery.refetchInterval",
             "apps.console.src.pages.TasksPage.TasksPage.setStatus",
             "apps.console.src.pages.TasksPage.TASK_STATUS_FILTERS.map() callback",
+            "apps.console.src.pages.TasksPage.Boolean",
+            "apps.console.src.pages.TasksPage.selectTask",
             "apps.console.src.pages.TasksPage.async",
             "apps.console.src.pages.TasksPage.TaskPaneState",
             "apps.console.src.pages.TasksPage.TaskPaneState.onRetry",
@@ -114416,6 +114857,14 @@
           "file_path": "apps/landing/src/components/Footer.tsx",
           "methods": [
             "apps.landing.src.components.Footer.Footer.<unknown>..map() callback"
+          ]
+        },
+        {
+          "file_path": "apps/landing/src/components/KnowledgeFactory.tsx",
+          "methods": [
+            "apps.landing.src.components.KnowledgeFactory.<unknown>..map() callback",
+            "apps.landing.src.components.KnowledgeFactory.KnowledgeFactory.<unknown>..map() callback",
+            "apps.landing.src.components.KnowledgeFactory.KnowledgeFactory.<unknown>.<unknown>..points.map() callback"
           ]
         },
         {
@@ -115517,8 +115966,8 @@
             {
               "qualified_name": "apps.console.src.auth.AuthGuard.AuthGuard",
               "reference_file": "apps/console/src/auth/AuthGuard.tsx",
-              "reference_start_line": 30,
-              "reference_end_line": 39
+              "reference_start_line": 188,
+              "reference_end_line": 264
             },
             {
               "qualified_name": "apps.console.src.api.getApiClient",
@@ -115784,8 +116233,20 @@
             {
               "file_path": "apps/console/src/auth/AuthGuard.tsx",
               "methods": [
+                "apps.console.src.auth.AuthGuard.readHopToken",
+                "apps.console.src.auth.AuthGuard.writeHopToken",
+                "apps.console.src.auth.AuthGuard.newHopToken",
+                "apps.console.src.auth.AuthGuard.Arrival",
+                "apps.console.src.auth.AuthGuard.parseArrival",
                 "apps.console.src.auth.AuthGuard.buildReturnTo",
-                "apps.console.src.auth.AuthGuard.AuthGuard"
+                "apps.console.src.auth.AuthGuard.sameOriginAsKratos",
+                "apps.console.src.auth.AuthGuard.buildSignInUrl",
+                "apps.console.src.auth.AuthGuard.AuthGuard",
+                "apps.console.src.auth.AuthGuard.AuthGuard.goToSignIn",
+                "apps.console.src.auth.AuthGuard.AuthGuard.goToSignIn.useCallback() callback",
+                "apps.console.src.auth.AuthGuard.useEffect() callback",
+                "apps.console.src.auth.AuthGuard.AuthGuard.useEffect() callback",
+                "apps.console.src.auth.AuthGuard.SignInRecovery"
               ]
             },
             {
@@ -115796,17 +116257,19 @@
                 "apps.console.src.auth.AuthProvider.toSessionWithTimeout.timeout.<function>",
                 "apps.console.src.auth.AuthProvider.toSessionWithTimeout.timeout.<function>.setTimeout() callback",
                 "apps.console.src.auth.AuthProvider.AuthContextValue",
-                "apps.console.src.auth.AuthProvider.isAuthenticationFailure",
-                "apps.console.src.auth.AuthProvider.AuthProvider",
-                "apps.console.src.auth.AuthProvider.AuthProvider.checkSession",
-                "apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback",
-                "apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback.request",
-                "apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback.request.<function>",
+                "apps.console.src.auth.AuthProvider.OryErrorBody",
+                "apps.console.src.auth.AuthProvider.readOryErrorBody",
+                "apps.console.src.auth.AuthProvider.classifySessionFailure",
                 "apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback.request.finally() callback",
                 "apps.console.src.auth.AuthProvider.useEffect() callback",
+                "apps.console.src.auth.AuthProvider.AuthProvider",
                 "apps.console.src.auth.AuthProvider.AuthProvider.useEffect() callback",
+                "apps.console.src.auth.AuthProvider.AuthProvider.checkSession",
+                "apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback",
                 "apps.console.src.auth.AuthProvider.AuthProvider.logout",
-                "apps.console.src.auth.AuthProvider.AuthProvider.logout.useCallback() callback"
+                "apps.console.src.auth.AuthProvider.AuthProvider.logout.useCallback() callback",
+                "apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback.request",
+                "apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback.request.<function>"
               ]
             },
             {
@@ -116611,6 +117074,8 @@
                 "apps.console.src.pages.TasksPage.TasksPage.selectedMessagesQuery.refetchInterval",
                 "apps.console.src.pages.TasksPage.TasksPage.setStatus",
                 "apps.console.src.pages.TasksPage.TASK_STATUS_FILTERS.map() callback",
+                "apps.console.src.pages.TasksPage.Boolean",
+                "apps.console.src.pages.TasksPage.selectTask",
                 "apps.console.src.pages.TasksPage.async",
                 "apps.console.src.pages.TasksPage.TaskPaneState",
                 "apps.console.src.pages.TasksPage.TaskPaneState.onRetry",
@@ -117684,6 +118149,19 @@
           ],
           "file_methods": [
             {
+              "file_path": "apps/console-e2e/src/auth-second-factor-loop.e2e.ts",
+              "methods": [
+                "apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback",
+                "apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('enrols an authenticator app') callback",
+                "apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('does not loop when the user abandons the second-factor step') callback",
+                "apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('does not loop when the user abandons the second-factor step') callback.page.on('framenavigated') callback",
+                "apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('sends the second-factor challenge to an aal2 login flow') callback",
+                "apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('sends the second-factor challenge to an aal2 login flow') callback.page.on('request') callback",
+                "apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('sends the second-factor challenge to an aal2 login flow') callback.kratosLoginRequests.some() callback",
+                "apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('completing the second factor lands back on the requested page') callback"
+              ]
+            },
+            {
               "file_path": "apps/console-e2e/src/diary-browser.e2e.ts",
               "methods": [
                 "apps.console-e2e.src.diary-browser.e2e.SeededDiary",
@@ -117774,7 +118252,16 @@
                 "apps.console-e2e.src.helpers.kratos.loginViaBrowser",
                 "apps.console-e2e.src.helpers.kratos.loginViaBrowser.catch() callback",
                 "apps.console-e2e.src.helpers.kratos.getSessionCookie",
-                "apps.console-e2e.src.helpers.kratos.createNativeSessionToken"
+                "apps.console-e2e.src.helpers.kratos.KratosUiNode",
+                "apps.console-e2e.src.helpers.kratos.KratosFlow",
+                "apps.console-e2e.src.helpers.kratos.createNativeSessionToken",
+                "apps.console-e2e.src.helpers.kratos.findNodeValue",
+                "apps.console-e2e.src.helpers.kratos.findNodeValue.node",
+                "apps.console-e2e.src.helpers.kratos.findNodeValue.node.flow.ui.nodes.find() callback",
+                "apps.console-e2e.src.helpers.kratos.enrollTotp",
+                "apps.console-e2e.src.helpers.kratos.enrollTotp.secretNode",
+                "apps.console-e2e.src.helpers.kratos.enrollTotp.secretNode.flow.ui.nodes.find() callback",
+                "apps.console-e2e.src.helpers.kratos.logoutViaBrowser"
               ]
             },
             {
@@ -117804,6 +118291,14 @@
                 "apps.console-e2e.src.helpers.test-user.TestUser",
                 "apps.console-e2e.src.helpers.test-user.CreateTestUserOptions",
                 "apps.console-e2e.src.helpers.test-user.createTestUser"
+              ]
+            },
+            {
+              "file_path": "apps/console-e2e/src/helpers/totp.ts",
+              "methods": [
+                "apps.console-e2e.src.helpers.totp.base32Decode",
+                "apps.console-e2e.src.helpers.totp.generateTotpCode",
+                "apps.console-e2e.src.helpers.totp.waitForFreshTotpWindow"
               ]
             },
             {
@@ -117988,6 +118483,14 @@
               "file_path": "apps/landing/src/components/Footer.tsx",
               "methods": [
                 "apps.landing.src.components.Footer.Footer.<unknown>..map() callback"
+              ]
+            },
+            {
+              "file_path": "apps/landing/src/components/KnowledgeFactory.tsx",
+              "methods": [
+                "apps.landing.src.components.KnowledgeFactory.<unknown>..map() callback",
+                "apps.landing.src.components.KnowledgeFactory.KnowledgeFactory.<unknown>..map() callback",
+                "apps.landing.src.components.KnowledgeFactory.KnowledgeFactory.<unknown>.<unknown>..points.map() callback"
               ]
             },
             {
@@ -119099,7 +119602,30 @@
           "components_relations": []
         }
       ],
-      "components_relations": []
+      "components_relations": [
+        {
+          "relation": "Direct function calls during agent startup sequence to validate identity and cache state",
+          "src_name": "Agent CLI & Command Orchestrator",
+          "dst_name": "Activation Cache & Identity Validator",
+          "evidence": "Direct function calls during agent startup sequence to validate identity and cache state",
+          "key_edges": [],
+          "src_id": "3.2",
+          "dst_id": "3.3",
+          "is_static": false,
+          "all_edges": []
+        },
+        {
+          "relation": "CLI spawns the mcp-host process and passes configuration flags/resolved paths",
+          "src_name": "Agent CLI & Command Orchestrator",
+          "dst_name": "MCP Host Runtime & Path Resolver",
+          "evidence": "CLI spawns the mcp-host process and passes configuration flags/resolved paths",
+          "key_edges": [],
+          "src_id": "3.2",
+          "dst_id": "3.4",
+          "is_static": false,
+          "all_edges": []
+        }
+      ]
     },
     {
       "name": "Execution Runtime & LLM Adapters",
@@ -128218,33 +128744,21 @@
       ],
       "components_relations": [
         {
-          "relation": "calls",
+          "relation": "persists cryptographic agent envelopes",
           "src_name": "Agent Execution Harness & Provider Init",
-          "dst_name": "Structured Runtime & Auth Plugin",
-          "evidence": "",
+          "dst_name": "Identity Client & Blob Storage Interface",
+          "evidence": "The Harness uses the Blob Storage interface to write agent manifests and cryptographic 'packs' (envelopes) that ensure the provenance and integrity of the agents being initialized.",
           "key_edges": [],
           "src_id": "4.1",
-          "dst_id": "4.2",
-          "is_static": true,
-          "all_edges": [
-            {
-              "source": "libs/bootstrap/src/e2e-harness.ts|libs.bootstrap.src.e2e-harness.createAgent",
-              "target": "libs/bootstrap/src/bootstrap.ts|libs.bootstrap.src.bootstrap.bootstrapGenesisAgents",
-              "call_sites": [
-                {
-                  "line": 83,
-                  "column": 26
-                }
-              ],
-              "description": ""
-            }
-          ]
+          "dst_id": "4.3",
+          "is_static": false,
+          "all_edges": []
         },
         {
-          "relation": "uses",
+          "relation": "validates session and access identity",
           "src_name": "Structured Runtime & Auth Plugin",
           "dst_name": "Identity Client & Blob Storage Interface",
-          "evidence": "authPlugin utilizes OryClients for session validation and BlobObjectStorage for evidence logging",
+          "evidence": "The authPlugin intercepts Fastify requests and utilizes OryClients to perform synchronous session validation and Keto permission checks to authorize agent actions.",
           "key_edges": [],
           "src_id": "4.2",
           "dst_id": "4.3",
@@ -131319,12 +131833,12 @@
             {
               "file_path": "tools/src/tasks/complexity-review-comment.ts",
               "methods": [
-                "tools.src.tasks.complexity-review-comment.GitHubPullRequest",
                 "tools.src.tasks.complexity-review-comment.IssueComment",
-                "tools.src.tasks.complexity-review-comment.catch() callback",
-                "tools.src.tasks.complexity-review-comment.findComplexityReviewComment.comments.find() callback",
                 "tools.src.tasks.complexity-review-comment.renderComplexityReviewResult.criteria",
-                "tools.src.tasks.complexity-review-comment.renderComplexityReviewResult.criteria.args.output.scores.map() callback"
+                "tools.src.tasks.complexity-review-comment.renderComplexityReviewResult.criteria.args.output.scores.map() callback",
+                "tools.src.tasks.complexity-review-comment.findComplexityReviewComment.comments.find() callback",
+                "tools.src.tasks.complexity-review-comment.GitHubPullRequest",
+                "tools.src.tasks.complexity-review-comment.catch() callback"
               ]
             }
           ],
@@ -131904,14 +132418,25 @@
   ],
   "components_relations": [
     {
-      "relation": "calls",
+      "relation": "Key Verification",
       "src_name": "Trust & Provenance Controller",
       "dst_name": "Agent Key & Identity Service",
-      "evidence": "",
+      "evidence": "Outgoing API path: Key Verification: Calls to Agent Key & Identity Service to verify the public key; static edge map() callback -> profilePolicyTuple",
       "key_edges": [],
       "src_id": "1.1",
       "dst_id": "1.3",
       "is_static": true,
+      "all_edges": []
+    },
+    {
+      "relation": "Provenance Commitment",
+      "src_name": "Agent Output & Contract Validator",
+      "dst_name": "Trust & Provenance Controller",
+      "evidence": "Outgoing API path: Provenance Commitment: Upon successful validation, triggers a 'Proof' event to the Trust & Provenance Controller",
+      "key_edges": [],
+      "src_id": "1.2",
+      "dst_id": "1.1",
+      "is_static": false,
       "all_edges": []
     },
     {
@@ -131963,29 +132488,26 @@
       ]
     },
     {
-      "relation": "Resolves Agent Context",
-      "src_name": "Agent Activation & Host Environment",
-      "dst_name": "Governance & Permissions Engine",
-      "evidence": "The host environment imports ContextPack definitions from the governance engine to configure the agent's operational environment and boundaries during boot.",
-      "key_edges": [
-        {
-          "source": "apps/moltnet-cli/activation_cache.go|apps.moltnet-cli.activation_cache.buildActivationCache",
-          "target": "infra/ory/permissions.ts|infra.ory.permissions.ContextPack",
-          "call_sites": [],
-          "description": "calls infra.ory.permissions.ContextPack"
-        }
-      ],
-      "src_id": "3",
-      "dst_id": "1",
+      "relation": "provisions activation context for agent sandboxes",
+      "src_name": "Agent Key & Runtime Lifecycle Manager",
+      "dst_name": "Agent Activation & Host Environment",
+      "evidence": "Lifecycle management flows into the activation cache, providing the necessary cryptographic and environmental context (`activationContext`) required for the MCP host to boot an agent.",
+      "key_edges": [],
+      "src_id": "2",
+      "dst_id": "3",
       "is_static": false,
-      "all_edges": [
-        {
-          "source": "apps/moltnet-cli/activation_cache.go|apps.moltnet-cli.activation_cache.buildActivationCache",
-          "target": "infra/ory/permissions.ts|infra.ory.permissions.ContextPack",
-          "call_sites": [],
-          "description": "calls infra.ory.permissions.ContextPack"
-        }
-      ]
+      "all_edges": []
+    },
+    {
+      "relation": "Direct function calls during agent startup sequence to validate identity and cache state",
+      "src_name": "Agent CLI & Command Orchestrator",
+      "dst_name": "Activation Cache & Identity Validator",
+      "evidence": "Direct function calls during agent startup sequence to validate identity and cache state",
+      "key_edges": [],
+      "src_id": "3.2",
+      "dst_id": "3.3",
+      "is_static": false,
+      "all_edges": []
     },
     {
       "relation": "Requests Environment Activation",
@@ -132187,29 +132709,15 @@
       ]
     },
     {
-      "relation": "performs data maintenance",
+      "relation": "validates lifecycle health and agent connectivity",
       "src_name": "System Tooling & Database Maintenance",
-      "dst_name": "Governance & Permissions Engine",
-      "evidence": "Low-level tooling like the content-hash backfiller directly manipulates the underlying Postgres store used by the Governance engine's provenance system.",
-      "key_edges": [
-        {
-          "source": "tools/db/backfill-content-hashes.ts|tools.db.backfill-content-hashes.backfill",
-          "target": "infra/ory/permissions.ts|infra.ory.permissions.Diary",
-          "call_sites": [],
-          "description": ""
-        }
-      ],
+      "dst_name": "Agent Key & Runtime Lifecycle Manager",
+      "evidence": "System tooling uses health-check mechanisms (`waitForHealthy`) to ensure that the agent runtime and key management services are operational during deployment or maintenance.",
+      "key_edges": [],
       "src_id": "6",
-      "dst_id": "1",
+      "dst_id": "2",
       "is_static": false,
-      "all_edges": [
-        {
-          "source": "tools/db/backfill-content-hashes.ts|tools.db.backfill-content-hashes.backfill",
-          "target": "infra/ory/permissions.ts|infra.ory.permissions.Diary",
-          "call_sites": [],
-          "description": ""
-        }
-      ]
+      "all_edges": []
     }
   ]
 }

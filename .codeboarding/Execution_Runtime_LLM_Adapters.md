@@ -8,7 +8,7 @@ graph LR
     Identity_Client_Blob_Storage_Interface -- "calls" --> Agent_Execution_Harness_Provider_Init
 ```
 
-[![CodeBoarding](https://img.shields.io/badge/Generated%20by-CodeBoarding-9cf?style=flat-square)](https://github.com/CodeBoarding/CodeBoarding)[![Demo](https://img.shields.io/badge/Try%20our-Demo-blue?style=flat-square)](https://www.codeboarding.org/diagrams)[![Contact](https://img.shields.io/badge/Contact%20us%20-%20contact@codeboarding.org-lightgrey?style=flat-square)](mailto:contact@codeboarding.org)
+[![CodeBoarding](https://img.shields.io/badge/Generated%20by-CodeBoarding-9cf?style=flat-square)](https://github.com/CodeBoarding/CodeBoarding)[![Web platform](https://img.shields.io/badge/Open%20in-Web%20platform-2563EB?style=flat-square)](https://app.codeboarding.org)[![Demo](https://img.shields.io/badge/Try%20our-Demo-blue?style=flat-square)](https://www.codeboarding.org/diagrams)[![Contact](https://img.shields.io/badge/Contact%20us%20-%20contact@codeboarding.org-lightgrey?style=flat-square)](mailto:contact@codeboarding.org)
 
 ## Details
 
@@ -911,9 +911,9 @@ Responsible for the lifecycle and bootstrapping of agents, managing the initiali
   - `libs.task-ui.src.task-input-viewer.TaskInputViewerProps` ([L3-L7](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-input-viewer.tsx#L3-L7)) - Interface
   - `libs.task-ui.src.task-input-viewer.TaskInputViewer` ([L9-L22](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-input-viewer.tsx#L9-L22)) - Function
 - [`libs/task-ui/src/task-lane-board.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-board.tsx)
-  - `libs.task-ui.src.task-lane-board.TaskLaneData` ([L8-L15](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-board.tsx#L8-L15)) - Interface
-  - `libs.task-ui.src.task-lane-board.TaskLaneBoardProps` ([L17-L27](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-board.tsx#L17-L27)) - Interface
-  - `libs.task-ui.src.task-lane-board.TaskLaneBoard` ([L31-L46](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-board.tsx#L31-L46)) - Function
+  - `libs.task-ui.src.task-lane-board.TaskLaneData` ([L10-L17](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-board.tsx#L10-L17)) - Interface
+  - `libs.task-ui.src.task-lane-board.TaskLaneBoardProps` ([L19-L29](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-board.tsx#L19-L29)) - Interface
+  - `libs.task-ui.src.task-lane-board.TaskLaneBoard` ([L33-L55](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-board.tsx#L33-L55)) - Function
 - [`libs/task-ui/src/task-lane-card.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx)
   - `libs.task-ui.src.task-lane-card.TaskLaneCard.prRef` ([L24-L26](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L24-L26)) - Class
   - `libs.task-ui.src.task-lane-card.TaskLaneCard.prRef.task.references.find() callback` ([L25-L25](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L25-L25)) - Function
@@ -2965,11 +2965,11 @@ Provides the low-level client implementations for interacting with the Ory ident
   - `libs.task-ui.src.task-attempt-detail.[              ['Agent', attempt.claimedByAgentId],              ['Runtime', attempt.runtimeId ?? '—'],              ['Claimed', formatDateTime(att.....map("caption") callback` ([L48-L49](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-attempt-detail.tsx#L48-L49)) - Function
   - `libs.task-ui.src.task-attempt-detail.[                ['Input', usage.inputTokens],                ['Output', usage.outputTokens],                ['Cache read', usage.cacheReadTokens ?.....map("caption") callback` ([L97-L98](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-attempt-detail.tsx#L97-L98)) - Function
 - [`libs/task-ui/src/task-lane-board.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-board.tsx)
-  - `libs.task-ui.src.task-lane-board.<unknown>..map() callback` ([L48-L62](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-board.tsx#L48-L62)) - Function
+  - `libs.task-ui.src.task-lane-board.<unknown>..map() callback` ([L67-L81](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-board.tsx#L67-L81)) - Function
 - [`libs/task-ui/src/task-lane-column.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-column.tsx)
   - `libs.task-ui.src.task-lane-column.toneColor` ([L9-L23](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-column.tsx#L9-L23)) - Function
   - `libs.task-ui.src.task-lane-column.TaskLaneColumnProps` ([L25-L36](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-column.tsx#L25-L36)) - Interface
-  - `libs.task-ui.src.task-lane-column.TaskLaneColumn` ([L38-L62](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-column.tsx#L38-L62)) - Function
+  - `libs.task-ui.src.task-lane-column.TaskLaneColumn` ([L38-L67](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-column.tsx#L38-L67)) - Function
 - [`libs/task-workflows/src/task-deletion-policy.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-workflows/src/task-deletion-policy.ts)
   - `libs.task-workflows.src.task-deletion-policy.buildTaskDeletionPlan.acceptedIdSet` ([L73-L73](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-workflows/src/task-deletion-policy.ts#L73-L73)) - Class
   - `libs.task-workflows.src.task-deletion-policy.buildTaskDeletionPlan.acceptedIdSet.acceptedTasks.map() callback` ([L73-L73](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-workflows/src/task-deletion-policy.ts#L73-L73)) - Function
