@@ -180,15 +180,35 @@ export async function enrollTotp(page: Page): Promise<string> {
   return secret;
 }
 
-/** Ends the browser session through the Kratos logout flow. */
+/**
+ * Ends the browser session through the Kratos logout flow.
+ *
+ * No-op when there is nothing to end. Playwright hands every test its own
+ * browser context — `test.describe.serial` orders tests, it does not share
+ * cookies between them — so a suite that logs out before logging in usually
+ * starts from an empty jar. Kratos answers that with 401 `session_inactive`
+ * and no `logout_url`, and the caller's postcondition ("signed out") already
+ * holds. Any other non-2xx is a real failure and is surfaced.
+ */
 export async function logoutViaBrowser(page: Page): Promise<void> {
   const response = await page.request.get(
     `${KRATOS_PUBLIC_URL}/self-service/logout/browser`,
     { headers: { accept: 'application/json' } },
   );
+  if (response.status() === 401) {
+    return;
+  }
+  if (!response.ok()) {
+    throw new Error(
+      `Could not start logout flow (${response.status()}): ${await response.text()}`,
+    );
+  }
   const { logout_url: logoutUrl } = (await response.json()) as {
-    logout_url: string;
+    logout_url?: string;
   };
+  if (!logoutUrl) {
+    throw new Error('Logout flow returned no logout_url');
+  }
   await page.goto(logoutUrl);
 }
 
