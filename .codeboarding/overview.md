@@ -7,11 +7,11 @@ graph LR
     Infrastructure_Backup_Deployment["Infrastructure Backup & Deployment"]
     System_Tooling_Database_Maintenance["System Tooling & Database Maintenance"]
     Agent_Key_Runtime_Lifecycle_Manager -- "Registers Agent Identities" --> Governance_Permissions_Engine
-    Agent_Activation_Host_Environment -- "Resolves Agent Context" --> Governance_Permissions_Engine
+    Agent_Key_Runtime_Lifecycle_Manager -- "provisions activation context for agent sandboxes" --> Agent_Activation_Host_Environment
     Execution_Runtime_LLM_Adapters -- "Requests Environment Activation" --> Agent_Activation_Host_Environment
     Execution_Runtime_LLM_Adapters -- "validates runtime permissions" --> Governance_Permissions_Engine
     Infrastructure_Backup_Deployment -- "Persists Governance State" --> Governance_Permissions_Engine
-    System_Tooling_Database_Maintenance -- "performs data maintenance" --> Governance_Permissions_Engine
+    System_Tooling_Database_Maintenance -- "validates lifecycle health and agent connectivity" --> Agent_Key_Runtime_Lifecycle_Manager
     click Governance_Permissions_Engine href "https://github.com/getlarge/themoltnet/blob/main/.codeboarding/Governance_Permissions_Engine.md" "Details"
     click Agent_Activation_Host_Environment href "https://github.com/getlarge/themoltnet/blob/main/.codeboarding/Agent_Activation_Host_Environment.md" "Details"
     click Execution_Runtime_LLM_Adapters href "https://github.com/getlarge/themoltnet/blob/main/.codeboarding/Execution_Runtime_LLM_Adapters.md" "Details"
@@ -19,7 +19,7 @@ graph LR
     click System_Tooling_Database_Maintenance href "https://github.com/getlarge/themoltnet/blob/main/.codeboarding/System_Tooling_Database_Maintenance.md" "Details"
 ```
 
-[![CodeBoarding](https://img.shields.io/badge/Generated%20by-CodeBoarding-9cf?style=flat-square)](https://github.com/CodeBoarding/CodeBoarding)[![Demo](https://img.shields.io/badge/Try%20our-Demo-blue?style=flat-square)](https://www.codeboarding.org/diagrams)[![Contact](https://img.shields.io/badge/Contact%20us%20-%20contact@codeboarding.org-lightgrey?style=flat-square)](mailto:contact@codeboarding.org)
+[![CodeBoarding](https://img.shields.io/badge/Generated%20by-CodeBoarding-9cf?style=flat-square)](https://github.com/CodeBoarding/CodeBoarding)[![Web platform](https://img.shields.io/badge/Open%20in-Web%20platform-2563EB?style=flat-square)](https://app.codeboarding.org)[![Demo](https://img.shields.io/badge/Try%20our-Demo-blue?style=flat-square)](https://www.codeboarding.org/diagrams)[![Contact](https://img.shields.io/badge/Contact%20us%20-%20contact@codeboarding.org-lightgrey?style=flat-square)](mailto:contact@codeboarding.org)
 
 ## Details
 
@@ -2767,30 +2767,30 @@ Manages the trust framework, defining identities (Humans, Agents, Teams) and enf
   - `libs.task-ui.src.task-execution-record.resultState` ([L174-L188](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-execution-record.tsx#L174-L188)) - Function
   - `libs.task-ui.src.task-execution-record.getKnowledgeStatus` ([L190-L204](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-execution-record.tsx#L190-L204)) - Function
 - [`libs/task-ui/src/task-funnel-strip.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-funnel-strip.tsx)
-  - `libs.task-ui.src.task-funnel-strip.toneColor` ([L7-L21](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-funnel-strip.tsx#L7-L21)) - Function
-  - `libs.task-ui.src.task-funnel-strip.TaskFunnelStripProps` ([L23-L25](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-funnel-strip.tsx#L23-L25)) - Interface
-  - `libs.task-ui.src.task-funnel-strip.TaskFunnelStrip` ([L27-L39](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-funnel-strip.tsx#L27-L39)) - Function
-  - `libs.task-ui.src.task-funnel-strip.<unknown>..map() callback` ([L41-L42](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-funnel-strip.tsx#L41-L42)) - Function
+  - `libs.task-ui.src.task-funnel-strip.toneColor` ([L9-L23](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-funnel-strip.tsx#L9-L23)) - Function
+  - `libs.task-ui.src.task-funnel-strip.TaskFunnelStripProps` ([L25-L27](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-funnel-strip.tsx#L25-L27)) - Interface
+  - `libs.task-ui.src.task-funnel-strip.TaskFunnelStrip` ([L29-L49](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-funnel-strip.tsx#L29-L49)) - Function
+  - `libs.task-ui.src.task-funnel-strip.<unknown>..map() callback` ([L51-L52](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-funnel-strip.tsx#L51-L52)) - Function
 - [`libs/task-ui/src/task-lane-card.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx)
   - `libs.task-ui.src.task-lane-card.TaskLaneCardProps` ([L9-L14](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L9-L14)) - Interface
-  - `libs.task-ui.src.task-lane-card.TaskLaneCard` ([L16-L37](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L16-L37)) - Function
-  - `libs.task-ui.src.task-lane-card.isActive` ([L55-L55](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L55-L55)) - Method
-  - `libs.task-ui.src.task-lane-card.humanizeToken` ([L65-L65](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L65-L65)) - Method
-  - `libs.task-ui.src.task-lane-card.<unknown>.map() callback` ([L69-L71](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L69-L71)) - Function
-  - `libs.task-ui.src.task-lane-card.formatRelativeAge` ([L90-L90](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L90-L90)) - Method
-  - `libs.task-ui.src.task-lane-card.LivePulse` ([L109-L120](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L109-L120)) - Function
+  - `libs.task-ui.src.task-lane-card.TaskLaneCard` ([L16-L39](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L16-L39)) - Function
+  - `libs.task-ui.src.task-lane-card.isActive` ([L57-L57](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L57-L57)) - Method
+  - `libs.task-ui.src.task-lane-card.humanizeToken` ([L73-L73](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L73-L73)) - Method
+  - `libs.task-ui.src.task-lane-card.<unknown>.map() callback` ([L77-L79](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L77-L79)) - Function
+  - `libs.task-ui.src.task-lane-card.formatRelativeAge` ([L105-L105](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L105-L105)) - Method
+  - `libs.task-ui.src.task-lane-card.LivePulse` ([L124-L135](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L124-L135)) - Function
 - [`libs/task-ui/src/task-lane-column.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-column.tsx)
-  - `libs.task-ui.src.task-lane-column.tasks.map() callback` ([L109-L111](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-column.tsx#L109-L111)) - Function
+  - `libs.task-ui.src.task-lane-column.tasks.map() callback` ([L132-L134](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-column.tsx#L132-L134)) - Function
 - [`libs/task-ui/src/task-live-pane.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx)
-  - `libs.task-ui.src.task-live-pane.TaskLivePaneProps` ([L23-L33](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L23-L33)) - Interface
-  - `libs.task-ui.src.task-live-pane.TaskLivePane` ([L35-L81](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L35-L81)) - Function
-  - `libs.task-ui.src.task-live-pane.TaskLivePane.useEffect() callback` ([L49-L51](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L49-L51)) - Function
-  - `libs.task-ui.src.task-live-pane.TaskLivePane.toggleCollapsed` ([L53-L55](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L53-L55)) - Function
-  - `libs.task-ui.src.task-live-pane.TaskLivePane.toggleCollapsed.setCollapsed() callback` ([L54-L54](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L54-L54)) - Function
-  - `libs.task-ui.src.task-live-pane.TaskLivePane.handleHeaderKeyDown` ([L57-L62](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L57-L62)) - Function
-  - `libs.task-ui.src.task-live-pane.TaskLivePane.handleClose` ([L64-L67](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L64-L67)) - Function
-  - `libs.task-ui.src.task-live-pane.humanizeToken` ([L109-L109](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L109-L109)) - Method
-  - `libs.task-ui.src.task-live-pane.<unknown>..map() callback` ([L165-L167](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L165-L167)) - Function
+  - `libs.task-ui.src.task-live-pane.TaskLivePaneProps` ([L23-L35](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L23-L35)) - Interface
+  - `libs.task-ui.src.task-live-pane.TaskLivePane` ([L37-L89](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L37-L89)) - Function
+  - `libs.task-ui.src.task-live-pane.TaskLivePane.useEffect() callback` ([L53-L55](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L53-L55)) - Function
+  - `libs.task-ui.src.task-live-pane.TaskLivePane.toggleCollapsed` ([L57-L59](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L57-L59)) - Function
+  - `libs.task-ui.src.task-live-pane.TaskLivePane.toggleCollapsed.setCollapsed() callback` ([L58-L58](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L58-L58)) - Function
+  - `libs.task-ui.src.task-live-pane.TaskLivePane.handleHeaderKeyDown` ([L61-L66](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L61-L66)) - Function
+  - `libs.task-ui.src.task-live-pane.TaskLivePane.handleClose` ([L68-L71](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L68-L71)) - Function
+  - `libs.task-ui.src.task-live-pane.humanizeToken` ([L117-L117](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L117-L117)) - Method
+  - `libs.task-ui.src.task-live-pane.<unknown>..map() callback` ([L173-L175](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L173-L175)) - Function
 - [`libs/task-ui/src/task-messages-timeline.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-messages-timeline.tsx)
   - `libs.task-ui.src.task-messages-timeline.TaskMessagesTimelineProps` ([L12-L15](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-messages-timeline.tsx#L12-L15)) - Interface
   - `libs.task-ui.src.task-messages-timeline.TaskMessagesTimeline` ([L17-L68](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-messages-timeline.tsx#L17-L68)) - Function
@@ -3061,8 +3061,8 @@ Handles the administrative lifecycle of agent cryptographic keys and the setup o
   - `apps.console-e2e.src.global-setup.waitForHealthy` ([L1-L20](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/global-setup.ts#L1-L20)) - Function
   - `apps.console-e2e.src.global-setup.globalSetup` ([L22-L37](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/global-setup.ts#L22-L37)) - Function
 - [`apps/console-e2e/src/helpers/kratos.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts)
-  - `apps.console-e2e.src.helpers.kratos.getSessionCookie.sessionCookie` ([L99-L103](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L99-L103)) - Class
-  - `apps.console-e2e.src.helpers.kratos.getSessionCookie.sessionCookie.cookies.find() callback` ([L100-L102](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L100-L102)) - Function
+  - `apps.console-e2e.src.helpers.kratos.getSessionCookie.sessionCookie` ([L217-L221](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L217-L221)) - Class
+  - `apps.console-e2e.src.helpers.kratos.getSessionCookie.sessionCookie.cookies.find() callback` ([L218-L220](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L218-L220)) - Function
 - [`apps/console-e2e/src/kratos-cookie-auth.e2e.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/kratos-cookie-auth.e2e.ts)
   - `apps.console-e2e.src.kratos-cookie-auth.e2e.test.describe.serial('Kratos browser cookie auth') callback.test('logout invalidates the session') callback.expect() callback.activeSession` ([L74-L78](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/kratos-cookie-auth.e2e.ts#L74-L78)) - Class
   - `apps.console-e2e.src.kratos-cookie-auth.e2e.test.describe.serial('Kratos browser cookie auth') callback.test('logout invalidates the session') callback.expect() callback.activeSession.cookies.find() callback` ([L75-L77](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/kratos-cookie-auth.e2e.ts#L75-L77)) - Function
@@ -3403,10 +3403,12 @@ Handles the administrative lifecycle of agent cryptographic keys and the setup o
 - [`apps/landing/src/components/GetStarted.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/GetStarted.tsx)
   - `apps.landing.src.components.GetStarted.GetStarted` ([L10-L50](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/GetStarted.tsx#L10-L50)) - Function
 - [`apps/landing/src/components/Hero.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/Hero.tsx)
-  - `apps.landing.src.components.Hero.Hero` ([L43-L60](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/Hero.tsx#L43-L60)) - Function
-  - `apps.landing.src.components.Hero.<unknown>..map("article") callback` ([L118-L119](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/Hero.tsx#L118-L119)) - Function
-  - `apps.landing.src.components.Hero.system.details.map() callback` ([L135-L137](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/Hero.tsx#L135-L137)) - Function
-  - `apps.landing.src.components.Hero.<unknown>..map() callback` ([L169-L170](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/Hero.tsx#L169-L170)) - Function
+  - `apps.landing.src.components.Hero.Hero` ([L47-L64](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/Hero.tsx#L47-L64)) - Function
+  - `apps.landing.src.components.Hero.<unknown>..map("article") callback` ([L122-L123](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/Hero.tsx#L122-L123)) - Function
+  - `apps.landing.src.components.Hero.system.details.map() callback` ([L139-L141](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/Hero.tsx#L139-L141)) - Function
+  - `apps.landing.src.components.Hero.<unknown>..map() callback` ([L173-L174](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/Hero.tsx#L173-L174)) - Function
+- [`apps/landing/src/components/KnowledgeFactory.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/KnowledgeFactory.tsx)
+  - `apps.landing.src.components.KnowledgeFactory.KnowledgeFactory` ([L74-L176](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/KnowledgeFactory.tsx#L74-L176)) - Function
 - [`apps/landing/src/components/Manifesto.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/Manifesto.tsx)
   - `apps.landing.src.components.Manifesto.Manifesto` ([L37-L50](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/Manifesto.tsx#L37-L50)) - Function
   - `apps.landing.src.components.Manifesto.<unknown>..map() callback` ([L189-L191](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/Manifesto.tsx#L189-L191)) - Function
@@ -3418,7 +3420,7 @@ Handles the administrative lifecycle of agent cryptographic keys and the setup o
   - `apps.landing.src.components.OpenSource.OpenSource` ([L24-L53](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/OpenSource.tsx#L24-L53)) - Function
 - [`apps/landing/src/components/Systems.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/Systems.tsx)
   - `apps.landing.src.components.Systems.Systems` ([L34-L59](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/Systems.tsx#L34-L59)) - Function
-  - `apps.landing.src.components.Systems.SystemChapter` ([L201-L223](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/Systems.tsx#L201-L223)) - Function
+  - `apps.landing.src.components.Systems.SystemChapter` ([L203-L229](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/Systems.tsx#L203-L229)) - Function
 - [`apps/landing/src/components/feed/DiaryCard.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/feed/DiaryCard.tsx)
   - `apps.landing.src.components.feed.DiaryCard.DiaryCardProps` ([L10-L13](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/feed/DiaryCard.tsx#L10-L13)) - Interface
   - `apps.landing.src.components.feed.DiaryCard.formatRelativeTime` ([L15-L25](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/feed/DiaryCard.tsx#L15-L25)) - Function
@@ -3491,7 +3493,7 @@ Handles the administrative lifecycle of agent cryptographic keys and the setup o
   - `apps.landing.src.pages.GettingStartedPage.<unknown>..actions.map() callback` ([L262-L264](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/pages/GettingStartedPage.tsx#L262-L264)) - Function
   - `apps.landing.src.pages.GettingStartedPage.<unknown>..map() callback` ([L304-L305](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/pages/GettingStartedPage.tsx#L304-L305)) - Function
 - [`apps/landing/src/pages/HomePage.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/pages/HomePage.tsx)
-  - `apps.landing.src.pages.HomePage.HomePage` ([L27-L59](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/pages/HomePage.tsx#L27-L59)) - Function
+  - `apps.landing.src.pages.HomePage.HomePage` ([L30-L63](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/pages/HomePage.tsx#L30-L63)) - Function
 - [`apps/landing/src/pages/ManifestoPage.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/pages/ManifestoPage.tsx)
   - `apps.landing.src.pages.ManifestoPage.ManifestoPage` ([L7-L11](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/pages/ManifestoPage.tsx#L7-L11)) - Function
 - [`apps/landing/src/pages/ProvenancePage.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/pages/ProvenancePage.tsx)
@@ -4095,9 +4097,9 @@ Handles the administrative lifecycle of agent cryptographic keys and the setup o
   - `apps.moltnet-cli.task_continue.runTaskContinueCmd` ([L57-L63](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/task_continue.go#L57-L63)) - Function
   - `apps.moltnet-cli.task_continue.runTaskContinueWithClient` ([L65-L155](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/task_continue.go#L65-L155)) - Function
   - `apps.moltnet-cli.task_continue.renderDryRunRequest` ([L161-L178](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/task_continue.go#L161-L178)) - Function
-  - `apps.moltnet-cli.task_continue.buildContinuationRequest` ([L186-L259](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/task_continue.go#L186-L259)) - Function
-  - `apps.moltnet-cli.task_continue.buildContinuationInput` ([L265-L312](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/task_continue.go#L265-L312)) - Function
-  - `apps.moltnet-cli.task_continue.mapTaskTrustLevelToExecutor` ([L317-L332](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/task_continue.go#L317-L332)) - Function
+  - `apps.moltnet-cli.task_continue.buildContinuationRequest` ([L186-L262](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/task_continue.go#L186-L262)) - Function
+  - `apps.moltnet-cli.task_continue.buildContinuationInput` ([L268-L307](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/task_continue.go#L268-L307)) - Function
+  - `apps.moltnet-cli.task_continue.mapTaskTrustLevelToExecutor` ([L312-L327](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/task_continue.go#L312-L327)) - Function
 - [`apps/moltnet-cli/task_schemas.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/task_schemas.go)
   - `apps.moltnet-cli.task_schemas.taskSchemasListOpts` ([L13-L17](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/task_schemas.go#L13-L17)) - Struct
   - `apps.moltnet-cli.task_schemas.taskSchemasGetOpts` ([L19-L24](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/task_schemas.go#L19-L24)) - Struct
@@ -5776,6 +5778,15 @@ Manages the activation cache and the MCP host server configuration to bridge the
   - `apps.agent-daemon.src.runtime.DaemonRuntimeAdapter` ([L14-L26](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/runtime.ts#L14-L26)) - Interface
   - `apps.agent-daemon.src.runtime.DaemonRuntimeAdapter.prepare` ([L16-L25](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/runtime.ts#L16-L25)) - Method
   - `apps.agent-daemon.src.runtime.assertRuntimeAdapterSupportsProfile` ([L28-L38](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/runtime.ts#L28-L38)) - Function
+- [`apps/console-e2e/src/auth-second-factor-loop.e2e.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/auth-second-factor-loop.e2e.ts)
+  - `apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback` ([L50-L143](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/auth-second-factor-loop.e2e.ts#L50-L143)) - Function
+  - `apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('enrols an authenticator app') callback` ([L56-L67](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/auth-second-factor-loop.e2e.ts#L56-L67)) - Function
+  - `apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('does not loop when the user abandons the second-factor step') callback` ([L69-L98](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/auth-second-factor-loop.e2e.ts#L69-L98)) - Function
+  - `apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('does not loop when the user abandons the second-factor step') callback.page.on('framenavigated') callback` ([L79-L83](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/auth-second-factor-loop.e2e.ts#L79-L83)) - Function
+  - `apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('sends the second-factor challenge to an aal2 login flow') callback` ([L100-L124](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/auth-second-factor-loop.e2e.ts#L100-L124)) - Function
+  - `apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('sends the second-factor challenge to an aal2 login flow') callback.page.on('request') callback` ([L107-L114](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/auth-second-factor-loop.e2e.ts#L107-L114)) - Function
+  - `apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('sends the second-factor challenge to an aal2 login flow') callback.kratosLoginRequests.some() callback` ([L121-L121](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/auth-second-factor-loop.e2e.ts#L121-L121)) - Function
+  - `apps.console-e2e.src.auth-second-factor-loop.e2e.test.describe.serial('console auth with a pending second factor') callback.test('completing the second factor lands back on the requested page') callback` ([L126-L142](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/auth-second-factor-loop.e2e.ts#L126-L142)) - Function
 - [`apps/console-e2e/src/diary-browser.e2e.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/diary-browser.e2e.ts)
   - `apps.console-e2e.src.diary-browser.e2e.SeededDiary` ([L23-L32](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/diary-browser.e2e.ts#L23-L32)) - Interface
   - `apps.console-e2e.src.diary-browser.e2e.seedDiaryFixtures` ([L34-L120](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/diary-browser.e2e.ts#L34-L120)) - Function
@@ -5829,15 +5840,24 @@ Manages the activation cache and the MCP host server configuration to bridge the
   - `apps.console-e2e.src.helpers.console.expectConsoleOverview` ([L3-L7](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/console.ts#L3-L7)) - Function
   - `apps.console-e2e.src.helpers.console.expectSelectedProjectTeam` ([L9-L16](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/console.ts#L9-L16)) - Function
 - [`apps/console-e2e/src/helpers/kratos.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts)
-  - `apps.console-e2e.src.helpers.kratos.submitKratosForm` ([L8-L10](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L8-L10)) - Function
-  - `apps.console-e2e.src.helpers.kratos.RegisterOptions` ([L12-L17](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L12-L17)) - Interface
-  - `apps.console-e2e.src.helpers.kratos.registerViaBrowser` ([L19-L56](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L19-L56)) - Function
-  - `apps.console-e2e.src.helpers.kratos.registerViaBrowser.catch() callback` ([L44-L44](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L44-L44)) - Function
-  - `apps.console-e2e.src.helpers.kratos.LoginOptions` ([L58-L66](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L58-L66)) - Interface
-  - `apps.console-e2e.src.helpers.kratos.loginViaBrowser` ([L68-L95](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L68-L95)) - Function
-  - `apps.console-e2e.src.helpers.kratos.loginViaBrowser.catch() callback` ([L85-L85](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L85-L85)) - Function
-  - `apps.console-e2e.src.helpers.kratos.getSessionCookie` ([L97-L108](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L97-L108)) - Function
-  - `apps.console-e2e.src.helpers.kratos.createNativeSessionToken` ([L110-L131](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L110-L131)) - Function
+  - `apps.console-e2e.src.helpers.kratos.submitKratosForm` ([L9-L11](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L9-L11)) - Function
+  - `apps.console-e2e.src.helpers.kratos.RegisterOptions` ([L13-L18](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L13-L18)) - Interface
+  - `apps.console-e2e.src.helpers.kratos.registerViaBrowser` ([L20-L57](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L20-L57)) - Function
+  - `apps.console-e2e.src.helpers.kratos.registerViaBrowser.catch() callback` ([L45-L45](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L45-L45)) - Function
+  - `apps.console-e2e.src.helpers.kratos.LoginOptions` ([L59-L67](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L59-L67)) - Interface
+  - `apps.console-e2e.src.helpers.kratos.loginViaBrowser` ([L69-L96](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L69-L96)) - Function
+  - `apps.console-e2e.src.helpers.kratos.loginViaBrowser.catch() callback` ([L86-L86](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L86-L86)) - Function
+  - `apps.console-e2e.src.helpers.kratos.KratosUiNode` ([L98-L106](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L98-L106)) - Interface
+  - `apps.console-e2e.src.helpers.kratos.KratosFlow` ([L108-L111](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L108-L111)) - Interface
+  - `apps.console-e2e.src.helpers.kratos.findNodeValue` ([L113-L118](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L113-L118)) - Function
+  - `apps.console-e2e.src.helpers.kratos.findNodeValue.node` ([L114-L114](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L114-L114)) - Class
+  - `apps.console-e2e.src.helpers.kratos.findNodeValue.node.flow.ui.nodes.find() callback` ([L114-L114](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L114-L114)) - Function
+  - `apps.console-e2e.src.helpers.kratos.enrollTotp` ([L130-L181](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L130-L181)) - Function
+  - `apps.console-e2e.src.helpers.kratos.enrollTotp.secretNode` ([L146-L148](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L146-L148)) - Class
+  - `apps.console-e2e.src.helpers.kratos.enrollTotp.secretNode.flow.ui.nodes.find() callback` ([L147-L147](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L147-L147)) - Function
+  - `apps.console-e2e.src.helpers.kratos.logoutViaBrowser` ([L193-L213](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L193-L213)) - Function
+  - `apps.console-e2e.src.helpers.kratos.getSessionCookie` ([L215-L226](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L215-L226)) - Function
+  - `apps.console-e2e.src.helpers.kratos.createNativeSessionToken` ([L228-L249](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/kratos.ts#L228-L249)) - Function
 - [`apps/console-e2e/src/helpers/mailslurper.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/mailslurper.ts)
   - `apps.console-e2e.src.helpers.mailslurper.MailRecord` ([L3-L9](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/mailslurper.ts#L3-L9)) - Interface
   - `apps.console-e2e.src.helpers.mailslurper.MailVerificationData` ([L11-L14](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/mailslurper.ts#L11-L14)) - Interface
@@ -5859,6 +5879,10 @@ Manages the activation cache and the MCP host server configuration to bridge the
   - `apps.console-e2e.src.helpers.test-user.TestUser` ([L3-L7](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/test-user.ts#L3-L7)) - Interface
   - `apps.console-e2e.src.helpers.test-user.CreateTestUserOptions` ([L9-L11](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/test-user.ts#L9-L11)) - Interface
   - `apps.console-e2e.src.helpers.test-user.createTestUser` ([L13-L23](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/test-user.ts#L13-L23)) - Function
+- [`apps/console-e2e/src/helpers/totp.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/totp.ts)
+  - `apps.console-e2e.src.helpers.totp.base32Decode` ([L16-L33](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/totp.ts#L16-L33)) - Function
+  - `apps.console-e2e.src.helpers.totp.generateTotpCode` ([L36-L53](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/totp.ts#L36-L53)) - Function
+  - `apps.console-e2e.src.helpers.totp.waitForFreshTotpWindow` ([L61-L70](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/helpers/totp.ts#L61-L70)) - Function
 - [`apps/console-e2e/src/kratos-cookie-auth.e2e.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/kratos-cookie-auth.e2e.ts)
   - `apps.console-e2e.src.kratos-cookie-auth.e2e.test.describe.serial('Kratos browser cookie auth') callback` ([L16-L87](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/kratos-cookie-auth.e2e.ts#L16-L87)) - Function
   - `apps.console-e2e.src.kratos-cookie-auth.e2e.test.describe.serial('Kratos browser cookie auth') callback.test('registration flow sends verification email and establishes a session') callback` ([L19-L40](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console-e2e/src/kratos-cookie-auth.e2e.ts#L19-L40)) - Function
@@ -5975,25 +5999,39 @@ Manages the activation cache and the MCP host server configuration to bridge the
   - `apps.console.src.api.getApiClient` ([L27-L39](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/api.ts#L27-L39)) - Function
   - `apps.console.src.api.getApiClient.fetch` ([L32-L32](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/api.ts#L32-L32)) - Method
 - [`apps/console/src/auth/AuthGuard.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthGuard.tsx)
-  - `apps.console.src.auth.AuthGuard.buildReturnTo` ([L25-L28](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthGuard.tsx#L25-L28)) - Function
-  - `apps.console.src.auth.AuthGuard.AuthGuard` ([L30-L39](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthGuard.tsx#L30-L39)) - Function
+  - `apps.console.src.auth.AuthGuard.readHopToken` ([L54-L60](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthGuard.tsx#L54-L60)) - Function
+  - `apps.console.src.auth.AuthGuard.writeHopToken` ([L62-L72](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthGuard.tsx#L62-L72)) - Function
+  - `apps.console.src.auth.AuthGuard.newHopToken` ([L74-L78](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthGuard.tsx#L74-L78)) - Function
+  - `apps.console.src.auth.AuthGuard.Arrival` ([L81-L87](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthGuard.tsx#L81-L87)) - Interface
+  - `apps.console.src.auth.AuthGuard.parseArrival` ([L96-L106](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthGuard.tsx#L96-L106)) - Function
+  - `apps.console.src.auth.AuthGuard.buildReturnTo` ([L121-L129](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthGuard.tsx#L121-L129)) - Function
+  - `apps.console.src.auth.AuthGuard.sameOriginAsKratos` ([L136-L142](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthGuard.tsx#L136-L142)) - Function
+  - `apps.console.src.auth.AuthGuard.buildSignInUrl` ([L152-L186](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthGuard.tsx#L152-L186)) - Function
+  - `apps.console.src.auth.AuthGuard.AuthGuard` ([L188-L264](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthGuard.tsx#L188-L264)) - Function
+  - `apps.console.src.auth.AuthGuard.AuthGuard.goToSignIn` ([L205-L222](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthGuard.tsx#L205-L222)) - Class
+  - `apps.console.src.auth.AuthGuard.AuthGuard.goToSignIn.useCallback() callback` ([L205-L222](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthGuard.tsx#L205-L222)) - Function
+  - `apps.console.src.auth.AuthGuard.useEffect() callback` ([L226-L237](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthGuard.tsx#L226-L237)) - Function
+  - `apps.console.src.auth.AuthGuard.AuthGuard.useEffect() callback` ([L243-L256](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthGuard.tsx#L243-L256)) - Function
+  - `apps.console.src.auth.AuthGuard.SignInRecovery` ([L293-L307](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthGuard.tsx#L293-L307)) - Function
 - [`apps/console/src/auth/AuthProvider.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx)
   - `apps.console.src.auth.AuthProvider.toSessionWithTimeout` ([L24-L42](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L24-L42)) - Function
   - `apps.console.src.auth.AuthProvider.toSessionWithTimeout.timeout` ([L27-L32](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L27-L32)) - Class
   - `apps.console.src.auth.AuthProvider.toSessionWithTimeout.timeout.<function>` ([L27-L32](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L27-L32)) - Function
   - `apps.console.src.auth.AuthProvider.toSessionWithTimeout.timeout.<function>.setTimeout() callback` ([L28-L31](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L28-L31)) - Function
-  - `apps.console.src.auth.AuthProvider.AuthContextValue` ([L44-L53](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L44-L53)) - Interface
-  - `apps.console.src.auth.AuthProvider.isAuthenticationFailure` ([L67-L72](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L67-L72)) - Function
-  - `apps.console.src.auth.AuthProvider.AuthProvider` ([L74-L178](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L74-L178)) - Function
-  - `apps.console.src.auth.AuthProvider.AuthProvider.checkSession` ([L81-L132](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L81-L132)) - Class
-  - `apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback` ([L82-L130](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L82-L130)) - Function
-  - `apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback.request` ([L98-L121](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L98-L121)) - Class
-  - `apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback.request.<function>` ([L98-L121](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L98-L121)) - Function
-  - `apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback.request.finally() callback` ([L124-L128](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L124-L128)) - Function
-  - `apps.console.src.auth.AuthProvider.useEffect() callback` ([L134-L136](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L134-L136)) - Function
-  - `apps.console.src.auth.AuthProvider.AuthProvider.useEffect() callback` ([L142-L154](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L142-L154)) - Function
-  - `apps.console.src.auth.AuthProvider.AuthProvider.logout` ([L156-L165](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L156-L165)) - Class
-  - `apps.console.src.auth.AuthProvider.AuthProvider.logout.useCallback() callback` ([L156-L165](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L156-L165)) - Function
+  - `apps.console.src.auth.AuthProvider.AuthContextValue` ([L58-L76](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L58-L76)) - Interface
+  - `apps.console.src.auth.AuthProvider.OryErrorBody` ([L80-L83](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L80-L83)) - Interface
+  - `apps.console.src.auth.AuthProvider.readOryErrorBody` ([L91-L99](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L91-L99)) - Function
+  - `apps.console.src.auth.AuthProvider.classifySessionFailure` ([L122-L134](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L122-L134)) - Function
+  - `apps.console.src.auth.AuthProvider.AuthProvider` ([L136-L256](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L136-L256)) - Function
+  - `apps.console.src.auth.AuthProvider.AuthProvider.checkSession` ([L147-L208](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L147-L208)) - Class
+  - `apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback` ([L148-L206](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L148-L206)) - Function
+  - `apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback.request` ([L164-L197](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L164-L197)) - Class
+  - `apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback.request.<function>` ([L164-L197](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L164-L197)) - Function
+  - `apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback.request.finally() callback` ([L200-L204](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L200-L204)) - Function
+  - `apps.console.src.auth.AuthProvider.useEffect() callback` ([L210-L212](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L210-L212)) - Function
+  - `apps.console.src.auth.AuthProvider.AuthProvider.useEffect() callback` ([L218-L230](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L218-L230)) - Function
+  - `apps.console.src.auth.AuthProvider.AuthProvider.logout` ([L232-L241](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L232-L241)) - Class
+  - `apps.console.src.auth.AuthProvider.AuthProvider.logout.useCallback() callback` ([L232-L241](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L232-L241)) - Function
 - [`apps/console/src/auth/useAuth.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/useAuth.ts)
   - `apps.console.src.auth.useAuth.UseAuthResult` ([L11-L14](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/useAuth.ts#L11-L14)) - Interface
   - `apps.console.src.auth.useAuth.useAuth` ([L16-L31](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/useAuth.ts#L16-L31)) - Function
@@ -6573,52 +6611,54 @@ Manages the activation cache and the MCP host server configuration to bridge the
   - `apps.console.src.pages.TaskDetailPage.runtimeProfileId` ([L157-L161](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TaskDetailPage.tsx#L157-L161)) - Method
   - `apps.console.src.pages.TaskDetailPage.navigate` ([L172-L172](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TaskDetailPage.tsx#L172-L172)) - Method
 - [`apps/console/src/pages/TasksPage.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx)
-  - `apps.console.src.pages.TasksPage.TasksPage` ([L63-L399](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L63-L399)) - Function
-  - `apps.console.src.pages.TasksPage.TasksPage.params` ([L68-L68](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L68-L68)) - Class
-  - `apps.console.src.pages.TasksPage.TasksPage.params.useMemo() callback` ([L68-L68](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L68-L68)) - Function
-  - `apps.console.src.pages.TasksPage.TasksPage.taskTypes` ([L70-L82](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L70-L82)) - Class
-  - `apps.console.src.pages.TasksPage.TasksPage.taskTypes.useMemo() callback` ([L70-L82](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L70-L82)) - Function
-  - `apps.console.src.pages.TasksPage.TasksPage.taskTypes.useMemo() callback.map() callback` ([L77-L77](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L77-L77)) - Function
-  - `apps.console.src.pages.TasksPage.TasksPage.useEffect() callback` ([L119-L126](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L119-L126)) - Function
-  - `apps.console.src.pages.TasksPage.TasksPage.diaryOptions` ([L129-L132](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L129-L132)) - Class
-  - `apps.console.src.pages.TasksPage.TasksPage.diaryOptions.useMemo() callback` ([L130-L130](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L130-L130)) - Function
-  - `apps.console.src.pages.TasksPage.TasksPage.diaryOptions.useMemo() callback.map() callback` ([L130-L130](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L130-L130)) - Function
-  - `apps.console.src.pages.TasksPage.TasksPage.query` ([L139-L165](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L139-L165)) - Class
-  - `apps.console.src.pages.TasksPage.TasksPage.query.getNextPageParam` ([L156-L156](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L156-L156)) - Method
-  - `apps.console.src.pages.TasksPage.TasksPage.query.refetchInterval` ([L157-L164](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L157-L164)) - Method
-  - `apps.console.src.pages.TasksPage.TasksPage.query.refetchInterval.hasActive.query.state.data.pages.some() callback` ([L158-L161](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L158-L161)) - Function
-  - `apps.console.src.pages.TasksPage.TasksPage.query.refetchInterval.hasActive` ([L158-L162](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L158-L162)) - Class
-  - `apps.console.src.pages.TasksPage.TasksPage.query.refetchInterval.hasActive.query.state.data.pages.some() callback.page.items.some() callback` ([L159-L160](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L159-L160)) - Function
-  - `apps.console.src.pages.TasksPage.TasksPage.tasks` ([L166-L169](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L166-L169)) - Class
-  - `apps.console.src.pages.TasksPage.TasksPage.tasks.useMemo() callback` ([L167-L167](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L167-L167)) - Function
-  - `apps.console.src.pages.TasksPage.TasksPage.tasks.useMemo() callback.query.data.pages.flatMap() callback` ([L167-L167](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L167-L167)) - Function
-  - `apps.console.src.pages.TasksPage.TasksPage.registeredTaskTypes` ([L195-L198](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L195-L198)) - Class
-  - `apps.console.src.pages.TasksPage.TasksPage.registeredTaskTypes.useMemo() callback` ([L196-L196](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L196-L196)) - Function
-  - `apps.console.src.pages.TasksPage.TasksPage.registeredTaskTypes.useMemo() callback.map() callback` ([L196-L196](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L196-L196)) - Function
-  - `apps.console.src.pages.TasksPage.TasksPage.runtimeProfileOptions` ([L207-L216](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L207-L216)) - Class
-  - `apps.console.src.pages.TasksPage.TasksPage.runtimeProfileOptions.useMemo() callback` ([L208-L214](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L208-L214)) - Function
-  - `apps.console.src.pages.TasksPage.TasksPage.runtimeProfileOptions.useMemo() callback.map() callback` ([L209-L214](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L209-L214)) - Function
-  - `apps.console.src.pages.TasksPage.TasksPage.searchPickerCandidates` ([L234-L257](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L234-L257)) - Class
-  - `apps.console.src.pages.TasksPage.TasksPage.searchPickerCandidates.useCallback() callback` ([L235-L255](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L235-L255)) - Function
-  - `apps.console.src.pages.TasksPage.TasksPage.updateTaskTypes` ([L259-L264](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L259-L264)) - Function
-  - `apps.console.src.pages.TasksPage.TasksPage.navigateToTaskParams` ([L268-L271](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L268-L271)) - Function
-  - `apps.console.src.pages.TasksPage.TasksPage.selectTask` ([L273-L278](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L273-L278)) - Function
-  - `apps.console.src.pages.TasksPage.TasksPage.toggleTaskSelection` ([L280-L287](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L280-L287)) - Function
-  - `apps.console.src.pages.TasksPage.TasksPage.toggleTaskSelection.setSelectedTaskIds() callback` ([L281-L286](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L281-L286)) - Function
-  - `apps.console.src.pages.TasksPage.TasksPage.toggleVisibleTaskSelection` ([L289-L298](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L289-L298)) - Function
-  - `apps.console.src.pages.TasksPage.TasksPage.toggleVisibleTaskSelection.setSelectedTaskIds() callback` ([L290-L297](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L290-L297)) - Function
-  - `apps.console.src.pages.TasksPage.TasksPage.submitDeleteTasks` ([L300-L333](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L300-L333)) - Function
-  - `apps.console.src.pages.TasksPage.TasksPage.selectedTaskQuery` ([L340-L348](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L340-L348)) - Class
-  - `apps.console.src.pages.TasksPage.TasksPage.selectedTaskQuery.refetchInterval` ([L346-L347](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L346-L347)) - Method
-  - `apps.console.src.pages.TasksPage.TasksPage.selectedMessagesQuery` ([L364-L377](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L364-L377)) - Class
-  - `apps.console.src.pages.TasksPage.TasksPage.selectedMessagesQuery.refetchInterval` ([L371-L376](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L371-L376)) - Method
-  - `apps.console.src.pages.TasksPage.TasksPage.setStatus` ([L379-L384](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L379-L384)) - Function
-  - `apps.console.src.pages.TasksPage.TASK_STATUS_FILTERS.map() callback` ([L473-L475](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L473-L475)) - Function
-  - `apps.console.src.pages.TasksPage.async` ([L664-L664](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L664-L664)) - Method
-  - `apps.console.src.pages.TasksPage.TaskPaneState` ([L753-L782](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L753-L782)) - Function
-  - `apps.console.src.pages.TasksPage.TaskPaneState.onRetry` ([L770-L774](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L770-L774)) - Method
-  - `apps.console.src.pages.TasksPage.inputStyle` ([L784-L794](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L784-L794)) - Function
-  - `apps.console.src.pages.TasksPage.FilterButton` ([L796-L815](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L796-L815)) - Function
+  - `apps.console.src.pages.TasksPage.TasksPage` ([L62-L397](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L62-L397)) - Function
+  - `apps.console.src.pages.TasksPage.TasksPage.params` ([L67-L67](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L67-L67)) - Class
+  - `apps.console.src.pages.TasksPage.TasksPage.params.useMemo() callback` ([L67-L67](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L67-L67)) - Function
+  - `apps.console.src.pages.TasksPage.TasksPage.taskTypes` ([L69-L81](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L69-L81)) - Class
+  - `apps.console.src.pages.TasksPage.TasksPage.taskTypes.useMemo() callback` ([L69-L81](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L69-L81)) - Function
+  - `apps.console.src.pages.TasksPage.TasksPage.taskTypes.useMemo() callback.map() callback` ([L76-L76](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L76-L76)) - Function
+  - `apps.console.src.pages.TasksPage.TasksPage.useEffect() callback` ([L117-L124](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L117-L124)) - Function
+  - `apps.console.src.pages.TasksPage.TasksPage.diaryOptions` ([L127-L130](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L127-L130)) - Class
+  - `apps.console.src.pages.TasksPage.TasksPage.diaryOptions.useMemo() callback` ([L128-L128](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L128-L128)) - Function
+  - `apps.console.src.pages.TasksPage.TasksPage.diaryOptions.useMemo() callback.map() callback` ([L128-L128](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L128-L128)) - Function
+  - `apps.console.src.pages.TasksPage.TasksPage.query` ([L137-L163](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L137-L163)) - Class
+  - `apps.console.src.pages.TasksPage.TasksPage.query.getNextPageParam` ([L154-L154](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L154-L154)) - Method
+  - `apps.console.src.pages.TasksPage.TasksPage.query.refetchInterval` ([L155-L162](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L155-L162)) - Method
+  - `apps.console.src.pages.TasksPage.TasksPage.query.refetchInterval.hasActive.query.state.data.pages.some() callback` ([L156-L159](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L156-L159)) - Function
+  - `apps.console.src.pages.TasksPage.TasksPage.query.refetchInterval.hasActive` ([L156-L160](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L156-L160)) - Class
+  - `apps.console.src.pages.TasksPage.TasksPage.query.refetchInterval.hasActive.query.state.data.pages.some() callback.page.items.some() callback` ([L157-L158](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L157-L158)) - Function
+  - `apps.console.src.pages.TasksPage.TasksPage.tasks` ([L164-L167](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L164-L167)) - Class
+  - `apps.console.src.pages.TasksPage.TasksPage.tasks.useMemo() callback` ([L165-L165](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L165-L165)) - Function
+  - `apps.console.src.pages.TasksPage.TasksPage.tasks.useMemo() callback.query.data.pages.flatMap() callback` ([L165-L165](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L165-L165)) - Function
+  - `apps.console.src.pages.TasksPage.TasksPage.registeredTaskTypes` ([L193-L196](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L193-L196)) - Class
+  - `apps.console.src.pages.TasksPage.TasksPage.registeredTaskTypes.useMemo() callback` ([L194-L194](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L194-L194)) - Function
+  - `apps.console.src.pages.TasksPage.TasksPage.registeredTaskTypes.useMemo() callback.map() callback` ([L194-L194](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L194-L194)) - Function
+  - `apps.console.src.pages.TasksPage.TasksPage.runtimeProfileOptions` ([L205-L214](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L205-L214)) - Class
+  - `apps.console.src.pages.TasksPage.TasksPage.runtimeProfileOptions.useMemo() callback` ([L206-L212](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L206-L212)) - Function
+  - `apps.console.src.pages.TasksPage.TasksPage.runtimeProfileOptions.useMemo() callback.map() callback` ([L207-L212](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L207-L212)) - Function
+  - `apps.console.src.pages.TasksPage.TasksPage.searchPickerCandidates` ([L232-L255](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L232-L255)) - Class
+  - `apps.console.src.pages.TasksPage.TasksPage.searchPickerCandidates.useCallback() callback` ([L233-L253](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L233-L253)) - Function
+  - `apps.console.src.pages.TasksPage.TasksPage.updateTaskTypes` ([L257-L262](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L257-L262)) - Function
+  - `apps.console.src.pages.TasksPage.TasksPage.navigateToTaskParams` ([L266-L269](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L266-L269)) - Function
+  - `apps.console.src.pages.TasksPage.TasksPage.selectTask` ([L271-L276](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L271-L276)) - Function
+  - `apps.console.src.pages.TasksPage.TasksPage.toggleTaskSelection` ([L278-L285](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L278-L285)) - Function
+  - `apps.console.src.pages.TasksPage.TasksPage.toggleTaskSelection.setSelectedTaskIds() callback` ([L279-L284](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L279-L284)) - Function
+  - `apps.console.src.pages.TasksPage.TasksPage.toggleVisibleTaskSelection` ([L287-L296](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L287-L296)) - Function
+  - `apps.console.src.pages.TasksPage.TasksPage.toggleVisibleTaskSelection.setSelectedTaskIds() callback` ([L288-L295](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L288-L295)) - Function
+  - `apps.console.src.pages.TasksPage.TasksPage.submitDeleteTasks` ([L298-L331](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L298-L331)) - Function
+  - `apps.console.src.pages.TasksPage.TasksPage.selectedTaskQuery` ([L338-L346](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L338-L346)) - Class
+  - `apps.console.src.pages.TasksPage.TasksPage.selectedTaskQuery.refetchInterval` ([L344-L345](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L344-L345)) - Method
+  - `apps.console.src.pages.TasksPage.TasksPage.selectedMessagesQuery` ([L362-L375](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L362-L375)) - Class
+  - `apps.console.src.pages.TasksPage.TasksPage.selectedMessagesQuery.refetchInterval` ([L369-L374](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L369-L374)) - Method
+  - `apps.console.src.pages.TasksPage.TasksPage.setStatus` ([L377-L382](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L377-L382)) - Function
+  - `apps.console.src.pages.TasksPage.TASK_STATUS_FILTERS.map() callback` ([L471-L473](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L471-L473)) - Function
+  - `apps.console.src.pages.TasksPage.Boolean` ([L563-L563](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L563-L563)) - Method
+  - `apps.console.src.pages.TasksPage.selectTask` ([L573-L573](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L573-L573)) - Method
+  - `apps.console.src.pages.TasksPage.async` ([L656-L656](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L656-L656)) - Method
+  - `apps.console.src.pages.TasksPage.TaskPaneState` ([L745-L774](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L745-L774)) - Function
+  - `apps.console.src.pages.TasksPage.TaskPaneState.onRetry` ([L762-L766](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L762-L766)) - Method
+  - `apps.console.src.pages.TasksPage.inputStyle` ([L776-L786](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L776-L786)) - Function
+  - `apps.console.src.pages.TasksPage.FilterButton` ([L788-L807](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TasksPage.tsx#L788-L807)) - Function
 - [`apps/console/src/pages/TeamDetailPage.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TeamDetailPage.tsx)
   - `apps.console.src.pages.TeamDetailPage.TeamDetailPage` ([L50-L326](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TeamDetailPage.tsx#L50-L326)) - Function
   - `apps.console.src.pages.TeamDetailPage.TeamDetailPage.callerTeam` ([L87-L87](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/pages/TeamDetailPage.tsx#L87-L87)) - Class
@@ -6795,6 +6835,10 @@ Manages the activation cache and the MCP host server configuration to bridge the
   - `apps.landing.src.components.ExecutionTrace.item.rows.map() callback` ([L112-L116](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/ExecutionTrace.tsx#L112-L116)) - Function
 - [`apps/landing/src/components/Footer.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/Footer.tsx)
   - `apps.landing.src.components.Footer.Footer.<unknown>..map() callback` ([L31-L32](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/Footer.tsx#L31-L32)) - Function
+- [`apps/landing/src/components/KnowledgeFactory.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/KnowledgeFactory.tsx)
+  - `apps.landing.src.components.KnowledgeFactory.<unknown>..map() callback` ([L117-L122](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/KnowledgeFactory.tsx#L117-L122)) - Function
+  - `apps.landing.src.components.KnowledgeFactory.KnowledgeFactory.<unknown>..map() callback` ([L158-L160](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/KnowledgeFactory.tsx#L158-L160)) - Function
+  - `apps.landing.src.components.KnowledgeFactory.KnowledgeFactory.<unknown>.<unknown>..points.map() callback` ([L168-L170](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/KnowledgeFactory.tsx#L168-L170)) - Function
 - [`apps/landing/src/components/Layout.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/Layout.tsx)
   - `apps.landing.src.components.Layout.Layout` ([L9-L27](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/Layout.tsx#L9-L27)) - Function
   - `apps.landing.src.components.Layout.Layout.useEffect() callback` ([L15-L20](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/Layout.tsx#L15-L20)) - Function
@@ -6803,7 +6847,7 @@ Manages the activation cache and the MCP host server configuration to bridge the
   - `apps.landing.src.components.OpenSource.<unknown>..map() callback` ([L87-L88](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/OpenSource.tsx#L87-L88)) - Function
 - [`apps/landing/src/components/Systems.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/Systems.tsx)
   - `apps.landing.src.components.Systems..map() callback` ([L77-L79](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/Systems.tsx#L77-L79)) - Function
-  - `apps.landing.src.components.Systems.<unknown>..map() callback` ([L172-L174](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/Systems.tsx#L172-L174)) - Function
+  - `apps.landing.src.components.Systems.<unknown>..map() callback` ([L174-L176](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/Systems.tsx#L174-L176)) - Function
 - [`apps/landing/src/components/feed/AuthorBadge.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/feed/AuthorBadge.tsx)
   - `apps.landing.src.components.feed.AuthorBadge.AuthorBadgeProps` ([L8-L12](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/feed/AuthorBadge.tsx#L8-L12)) - Interface
   - `apps.landing.src.components.feed.AuthorBadge.AuthorBadge` ([L14-L30](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/landing/src/components/feed/AuthorBadge.tsx#L14-L30)) - Function
@@ -10258,17 +10302,17 @@ Provides the operational layer for agent execution, including DSPy adapters for 
   - `libs.task-ui.src.task-input-viewer.TaskInputViewerProps` ([L3-L7](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-input-viewer.tsx#L3-L7)) - Interface
   - `libs.task-ui.src.task-input-viewer.TaskInputViewer` ([L9-L22](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-input-viewer.tsx#L9-L22)) - Function
 - [`libs/task-ui/src/task-lane-board.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-board.tsx)
-  - `libs.task-ui.src.task-lane-board.TaskLaneData` ([L8-L15](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-board.tsx#L8-L15)) - Interface
-  - `libs.task-ui.src.task-lane-board.TaskLaneBoardProps` ([L17-L27](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-board.tsx#L17-L27)) - Interface
-  - `libs.task-ui.src.task-lane-board.TaskLaneBoard` ([L31-L46](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-board.tsx#L31-L46)) - Function
-  - `libs.task-ui.src.task-lane-board.<unknown>..map() callback` ([L48-L62](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-board.tsx#L48-L62)) - Function
+  - `libs.task-ui.src.task-lane-board.TaskLaneData` ([L10-L17](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-board.tsx#L10-L17)) - Interface
+  - `libs.task-ui.src.task-lane-board.TaskLaneBoardProps` ([L19-L29](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-board.tsx#L19-L29)) - Interface
+  - `libs.task-ui.src.task-lane-board.TaskLaneBoard` ([L33-L55](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-board.tsx#L33-L55)) - Function
+  - `libs.task-ui.src.task-lane-board.<unknown>..map() callback` ([L67-L81](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-board.tsx#L67-L81)) - Function
 - [`libs/task-ui/src/task-lane-card.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx)
   - `libs.task-ui.src.task-lane-card.TaskLaneCard.prRef` ([L24-L26](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L24-L26)) - Class
   - `libs.task-ui.src.task-lane-card.TaskLaneCard.prRef.task.references.find() callback` ([L25-L25](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L25-L25)) - Function
 - [`libs/task-ui/src/task-lane-column.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-column.tsx)
   - `libs.task-ui.src.task-lane-column.toneColor` ([L9-L23](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-column.tsx#L9-L23)) - Function
   - `libs.task-ui.src.task-lane-column.TaskLaneColumnProps` ([L25-L36](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-column.tsx#L25-L36)) - Interface
-  - `libs.task-ui.src.task-lane-column.TaskLaneColumn` ([L38-L62](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-column.tsx#L38-L62)) - Function
+  - `libs.task-ui.src.task-lane-column.TaskLaneColumn` ([L38-L67](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-column.tsx#L38-L67)) - Function
 - [`libs/task-ui/src/task-lanes.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lanes.ts)
   - `libs.task-ui.src.task-lanes.TaskLane` ([L5-L11](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lanes.ts#L5-L11)) - Interface
   - `libs.task-ui.src.task-lanes.STATUS_TO_LANE` ([L36-L40](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lanes.ts#L36-L40)) - Class

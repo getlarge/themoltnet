@@ -1,7 +1,7 @@
 {
   "repository_name": "themoltnet",
-  "timestamp": "2026-08-02T06:12:22.096393+00:00",
-  "overall_score": 0.9776063004653753,
+  "timestamp": "2026-08-04T10:00:51.964011+00:00",
+  "overall_score": 0.9767671970236682,
   "check_summaries": [
     {
       "check_name": "function_size",
@@ -192,10 +192,10 @@
       "description": "Checks that functions/methods do not exceed line count thresholds",
       "language": "typescript",
       "check_type": "standard",
-      "total_entities_checked": 5556,
+      "total_entities_checked": 5584,
       "findings_count": 119,
       "warning_count": 119,
-      "score": 0.978581713462923,
+      "score": 0.978689111747851,
       "finding_groups": [
         {
           "severity": "warning",
@@ -462,17 +462,17 @@
               "metric_value": 348
             },
             {
-              "entity_name": "apps.console.src.pages.TasksPage.TasksPage",
-              "file_path": "apps/console/src/pages/TasksPage.tsx",
-              "line_start": 63,
-              "line_end": 399,
-              "metric_value": 336
-            },
-            {
               "entity_name": "libs.database.src.repositories.context-pack.repository.createContextPackRepository",
               "file_path": "libs/database/src/repositories/context-pack.repository.ts",
               "line_start": 180,
               "line_end": 515,
+              "metric_value": 335
+            },
+            {
+              "entity_name": "apps.console.src.pages.TasksPage.TasksPage",
+              "file_path": "apps/console/src/pages/TasksPage.tsx",
+              "line_start": 62,
+              "line_end": 397,
               "metric_value": 335
             },
             {
@@ -1044,10 +1044,10 @@
       "description": "Checks efferent coupling: how many other functions each function calls",
       "language": "typescript",
       "check_type": "standard",
-      "total_entities_checked": 7086,
+      "total_entities_checked": 7119,
       "findings_count": 50,
       "warning_count": 50,
-      "score": 0.9929438329099634,
+      "score": 0.992976541649108,
       "finding_groups": [
         {
           "severity": "warning",
@@ -1413,10 +1413,10 @@
       "description": "Checks afferent coupling: how many other functions call each function",
       "language": "typescript",
       "check_type": "standard",
-      "total_entities_checked": 7086,
+      "total_entities_checked": 7119,
       "findings_count": 49,
       "warning_count": 49,
-      "score": 0.9930849562517641,
+      "score": 0.9931170108161259,
       "finding_groups": [
         {
           "severity": "warning",
@@ -1524,9 +1524,9 @@
             {
               "entity_name": "apps.console-e2e.src.helpers.kratos.loginViaBrowser",
               "file_path": "apps/console-e2e/src/helpers/kratos.ts",
-              "line_start": 68,
-              "line_end": 95,
-              "metric_value": 25
+              "line_start": 69,
+              "line_end": 96,
+              "metric_value": 28
             },
             {
               "entity_name": "libs.auth.src.permission-checker.checkPermission",
@@ -1557,17 +1557,24 @@
               "metric_value": 21
             },
             {
-              "entity_name": "apps.console-e2e.src.helpers.kratos.registerViaBrowser",
-              "file_path": "apps/console-e2e/src/helpers/kratos.ts",
-              "line_start": 19,
-              "line_end": 56,
-              "metric_value": 18
-            },
-            {
               "entity_name": "apps.console-e2e.src.helpers.test-user.createTestUser",
               "file_path": "apps/console-e2e/src/helpers/test-user.ts",
               "line_start": 13,
               "line_end": 23,
+              "metric_value": 19
+            },
+            {
+              "entity_name": "apps.console-e2e.src.helpers.kratos.registerViaBrowser",
+              "file_path": "apps/console-e2e/src/helpers/kratos.ts",
+              "line_start": 20,
+              "line_end": 57,
+              "metric_value": 19
+            },
+            {
+              "entity_name": "apps.console-e2e.src.helpers.console.expectConsoleOverview",
+              "file_path": "apps/console-e2e/src/helpers/console.ts",
+              "line_start": 3,
+              "line_end": 7,
               "metric_value": 18
             },
             {
@@ -1589,13 +1596,6 @@
               "file_path": "libs/pi-runtime/src/moltnet/tools.ts",
               "line_start": 161,
               "line_end": 166,
-              "metric_value": 17
-            },
-            {
-              "entity_name": "apps.console-e2e.src.helpers.console.expectConsoleOverview",
-              "file_path": "apps/console-e2e/src/helpers/console.ts",
-              "line_start": 3,
-              "line_end": 7,
               "metric_value": 17
             },
             {
@@ -1678,9 +1678,9 @@
             {
               "entity_name": "apps.console-e2e.src.helpers.kratos.submitKratosForm",
               "file_path": "apps/console-e2e/src/helpers/kratos.ts",
-              "line_start": 8,
-              "line_end": 10,
-              "metric_value": 12
+              "line_start": 9,
+              "line_end": 11,
+              "metric_value": 13
             },
             {
               "entity_name": "apps.rest-api.src.utils.auth-principal.authContextToCreator",
@@ -1818,7 +1818,7 @@
       "description": "Checks that class inheritance hierarchies do not exceed depth thresholds",
       "language": "typescript",
       "check_type": "standard",
-      "total_entities_checked": 2193,
+      "total_entities_checked": 2200,
       "findings_count": 0,
       "warning_count": 0,
       "score": 1.0,
@@ -1829,8 +1829,8 @@
       "description": "Detects unused imports, variables, functions, and dead code via LSP diagnostics",
       "language": "typescript",
       "check_type": "standard",
-      "total_entities_checked": 335,
-      "findings_count": 335,
+      "total_entities_checked": 359,
+      "findings_count": 359,
       "warning_count": 0,
       "score": 0.0,
       "finding_groups": [
@@ -3616,6 +3616,139 @@
               "line_start": 1050,
               "line_end": 1050,
               "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "apps/console/src/auth/AuthGuard.tsx",
+              "line_start": 307,
+              "line_end": 307,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'children' is declared but its value is never read.",
+              "file_path": "apps/console/src/auth/AuthGuard.tsx",
+              "line_start": 188,
+              "line_end": 188,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'logout' is declared but its value is never read.",
+              "file_path": "apps/console/src/auth/AuthGuard.tsx",
+              "line_start": 189,
+              "line_end": 189,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'onRetry' is declared but its value is never read.",
+              "file_path": "apps/console/src/auth/AuthGuard.tsx",
+              "line_start": 295,
+              "line_end": 295,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'onSignOut' is declared but its value is never read.",
+              "file_path": "apps/console/src/auth/AuthGuard.tsx",
+              "line_start": 296,
+              "line_end": 296,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'needsSecondFactor' is declared but its value is never read.",
+              "file_path": "apps/console/src/auth/AuthGuard.tsx",
+              "line_start": 302,
+              "line_end": 302,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "apps/landing/src/components/KnowledgeFactory.tsx",
+              "line_start": 86,
+              "line_end": 86,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "apps/landing/src/components/KnowledgeFactory.tsx",
+              "line_start": 93,
+              "line_end": 93,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "apps/landing/src/components/KnowledgeFactory.tsx",
+              "line_start": 94,
+              "line_end": 94,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "apps/landing/src/components/KnowledgeFactory.tsx",
+              "line_start": 95,
+              "line_end": 95,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "apps/landing/src/components/KnowledgeFactory.tsx",
+              "line_start": 96,
+              "line_end": 96,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "apps/landing/src/components/KnowledgeFactory.tsx",
+              "line_start": 99,
+              "line_end": 99,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "apps/landing/src/components/KnowledgeFactory.tsx",
+              "line_start": 101,
+              "line_end": 101,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "apps/landing/src/components/KnowledgeFactory.tsx",
+              "line_start": 190,
+              "line_end": 190,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "apps/landing/src/components/KnowledgeFactory.tsx",
+              "line_start": 194,
+              "line_end": 194,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "apps/landing/src/components/KnowledgeFactory.tsx",
+              "line_start": 202,
+              "line_end": 202,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "apps/landing/src/components/KnowledgeFactory.tsx",
+              "line_start": 206,
+              "line_end": 206,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'docsUrl' is declared but its value is never read.",
+              "file_path": "apps/landing/src/components/KnowledgeFactory.tsx",
+              "line_start": 75,
+              "line_end": 75,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'audience' is declared but its value is never read.",
+              "file_path": "apps/landing/src/components/KnowledgeFactory.tsx",
+              "line_start": 158,
+              "line_end": 158,
+              "metric_value": 0.0
             }
           ]
         },
@@ -3783,6 +3916,41 @@
               "file_path": "libs/design-system/demo/App.tsx",
               "line_start": 885,
               "line_end": 917,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unreachable_code] Unreachable code detected.",
+              "file_path": "apps/console/src/auth/AuthGuard.tsx",
+              "line_start": 260,
+              "line_end": 260,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unreachable_code] Unreachable code detected.",
+              "file_path": "apps/console/src/auth/AuthGuard.tsx",
+              "line_start": 271,
+              "line_end": 275,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unreachable_code] Unreachable code detected.",
+              "file_path": "apps/console/src/auth/AuthGuard.tsx",
+              "line_start": 282,
+              "line_end": 282,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unreachable_code] Unreachable code detected.",
+              "file_path": "apps/console/src/auth/AuthGuard.tsx",
+              "line_start": 306,
+              "line_end": 307,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unreachable_code] Unreachable code detected.",
+              "file_path": "apps/landing/src/components/KnowledgeFactory.tsx",
+              "line_start": 80,
+              "line_end": 175,
               "metric_value": 0.0
             }
           ]
@@ -4307,20 +4475,20 @@
       "composite_risk_score": 50.0
     },
     {
+      "file_path": "apps/console/src/auth/AuthGuard.tsx",
+      "total_findings": 10,
+      "warning_findings": 0,
+      "composite_risk_score": 50.0
+    },
+    {
+      "file_path": "apps/landing/src/components/KnowledgeFactory.tsx",
+      "total_findings": 14,
+      "warning_findings": 0,
+      "composite_risk_score": 50.0
+    },
+    {
       "file_path": "apps/mcp-server/src/schemas/crypto-schemas.ts",
       "total_findings": 8,
-      "warning_findings": 0,
-      "composite_risk_score": 50.0
-    },
-    {
-      "file_path": "apps/mcp-server/src/schemas/entry-schemas.ts",
-      "total_findings": 13,
-      "warning_findings": 0,
-      "composite_risk_score": 50.0
-    },
-    {
-      "file_path": "apps/mcp-server/src/schemas/relation-schemas.ts",
-      "total_findings": 7,
       "warning_findings": 0,
       "composite_risk_score": 50.0
     }

@@ -3,11 +3,12 @@ graph LR
     Trust_Provenance_Controller["Trust & Provenance Controller"]
     Agent_Output_Contract_Validator["Agent Output & Contract Validator"]
     Agent_Key_Identity_Service["Agent Key & Identity Service"]
-    Trust_Provenance_Controller -- "calls" --> Agent_Key_Identity_Service
+    Trust_Provenance_Controller -- "Key Verification" --> Agent_Key_Identity_Service
+    Agent_Output_Contract_Validator -- "Provenance Commitment" --> Trust_Provenance_Controller
     Agent_Key_Identity_Service -- "Provide Identity Proof for Contract Validation" --> Agent_Output_Contract_Validator
 ```
 
-[![CodeBoarding](https://img.shields.io/badge/Generated%20by-CodeBoarding-9cf?style=flat-square)](https://github.com/CodeBoarding/CodeBoarding)[![Demo](https://img.shields.io/badge/Try%20our-Demo-blue?style=flat-square)](https://www.codeboarding.org/diagrams)[![Contact](https://img.shields.io/badge/Contact%20us%20-%20contact@codeboarding.org-lightgrey?style=flat-square)](mailto:contact@codeboarding.org)
+[![CodeBoarding](https://img.shields.io/badge/Generated%20by-CodeBoarding-9cf?style=flat-square)](https://github.com/CodeBoarding/CodeBoarding)[![Web platform](https://img.shields.io/badge/Open%20in-Web%20platform-2563EB?style=flat-square)](https://app.codeboarding.org)[![Demo](https://img.shields.io/badge/Try%20our-Demo-blue?style=flat-square)](https://www.codeboarding.org/diagrams)[![Contact](https://img.shields.io/badge/Contact%20us%20-%20contact@codeboarding.org-lightgrey?style=flat-square)](mailto:contact@codeboarding.org)
 
 ## Details
 
@@ -1954,10 +1955,10 @@ This component manages the Proof phase of the Governance loop. It validates that
   - `libs.task-ui.src.success-criteria.getRubricWeightSummary.hasInvalidWeight` ([L379-L382](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/success-criteria.ts#L379-L382)) - Class
   - `libs.task-ui.src.success-criteria.getRubricWeightSummary.hasInvalidWeight.criteria.some() callback` ([L379-L382](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/success-criteria.ts#L379-L382)) - Function
 - [`libs/task-ui/src/task-funnel-strip.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-funnel-strip.tsx)
-  - `libs.task-ui.src.task-funnel-strip.toneColor` ([L7-L21](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-funnel-strip.tsx#L7-L21)) - Function
-  - `libs.task-ui.src.task-funnel-strip.TaskFunnelStripProps` ([L23-L25](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-funnel-strip.tsx#L23-L25)) - Interface
-  - `libs.task-ui.src.task-funnel-strip.TaskFunnelStrip` ([L27-L39](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-funnel-strip.tsx#L27-L39)) - Function
-  - `libs.task-ui.src.task-funnel-strip.<unknown>..map() callback` ([L41-L42](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-funnel-strip.tsx#L41-L42)) - Function
+  - `libs.task-ui.src.task-funnel-strip.toneColor` ([L9-L23](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-funnel-strip.tsx#L9-L23)) - Function
+  - `libs.task-ui.src.task-funnel-strip.TaskFunnelStripProps` ([L25-L27](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-funnel-strip.tsx#L25-L27)) - Interface
+  - `libs.task-ui.src.task-funnel-strip.TaskFunnelStrip` ([L29-L49](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-funnel-strip.tsx#L29-L49)) - Function
+  - `libs.task-ui.src.task-funnel-strip.<unknown>..map() callback` ([L51-L52](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-funnel-strip.tsx#L51-L52)) - Function
 - [`libs/task-ui/src/task-status-badge.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-status-badge.tsx)
   - `libs.task-ui.src.task-status-badge.TaskStatusBadgeProps` ([L6-L8](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-status-badge.tsx#L6-L8)) - Interface
   - `libs.task-ui.src.task-status-badge.TaskStatusBadge` ([L10-L14](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-status-badge.tsx#L10-L14)) - Function
@@ -2902,24 +2903,24 @@ Provides the cryptographic foundation for agent identities. It manages the issua
   - `libs.task-ui.src.task-execution-record.getKnowledgeStatus` ([L190-L204](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-execution-record.tsx#L190-L204)) - Function
 - [`libs/task-ui/src/task-lane-card.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx)
   - `libs.task-ui.src.task-lane-card.TaskLaneCardProps` ([L9-L14](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L9-L14)) - Interface
-  - `libs.task-ui.src.task-lane-card.TaskLaneCard` ([L16-L37](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L16-L37)) - Function
-  - `libs.task-ui.src.task-lane-card.isActive` ([L55-L55](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L55-L55)) - Method
-  - `libs.task-ui.src.task-lane-card.humanizeToken` ([L65-L65](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L65-L65)) - Method
-  - `libs.task-ui.src.task-lane-card.<unknown>.map() callback` ([L69-L71](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L69-L71)) - Function
-  - `libs.task-ui.src.task-lane-card.formatRelativeAge` ([L90-L90](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L90-L90)) - Method
-  - `libs.task-ui.src.task-lane-card.LivePulse` ([L109-L120](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L109-L120)) - Function
+  - `libs.task-ui.src.task-lane-card.TaskLaneCard` ([L16-L39](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L16-L39)) - Function
+  - `libs.task-ui.src.task-lane-card.isActive` ([L57-L57](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L57-L57)) - Method
+  - `libs.task-ui.src.task-lane-card.humanizeToken` ([L73-L73](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L73-L73)) - Method
+  - `libs.task-ui.src.task-lane-card.<unknown>.map() callback` ([L77-L79](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L77-L79)) - Function
+  - `libs.task-ui.src.task-lane-card.formatRelativeAge` ([L105-L105](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L105-L105)) - Method
+  - `libs.task-ui.src.task-lane-card.LivePulse` ([L124-L135](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L124-L135)) - Function
 - [`libs/task-ui/src/task-lane-column.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-column.tsx)
-  - `libs.task-ui.src.task-lane-column.tasks.map() callback` ([L109-L111](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-column.tsx#L109-L111)) - Function
+  - `libs.task-ui.src.task-lane-column.tasks.map() callback` ([L132-L134](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-column.tsx#L132-L134)) - Function
 - [`libs/task-ui/src/task-live-pane.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx)
-  - `libs.task-ui.src.task-live-pane.TaskLivePaneProps` ([L23-L33](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L23-L33)) - Interface
-  - `libs.task-ui.src.task-live-pane.TaskLivePane` ([L35-L81](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L35-L81)) - Function
-  - `libs.task-ui.src.task-live-pane.TaskLivePane.useEffect() callback` ([L49-L51](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L49-L51)) - Function
-  - `libs.task-ui.src.task-live-pane.TaskLivePane.toggleCollapsed` ([L53-L55](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L53-L55)) - Function
-  - `libs.task-ui.src.task-live-pane.TaskLivePane.toggleCollapsed.setCollapsed() callback` ([L54-L54](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L54-L54)) - Function
-  - `libs.task-ui.src.task-live-pane.TaskLivePane.handleHeaderKeyDown` ([L57-L62](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L57-L62)) - Function
-  - `libs.task-ui.src.task-live-pane.TaskLivePane.handleClose` ([L64-L67](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L64-L67)) - Function
-  - `libs.task-ui.src.task-live-pane.humanizeToken` ([L109-L109](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L109-L109)) - Method
-  - `libs.task-ui.src.task-live-pane.<unknown>..map() callback` ([L165-L167](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L165-L167)) - Function
+  - `libs.task-ui.src.task-live-pane.TaskLivePaneProps` ([L23-L35](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L23-L35)) - Interface
+  - `libs.task-ui.src.task-live-pane.TaskLivePane` ([L37-L89](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L37-L89)) - Function
+  - `libs.task-ui.src.task-live-pane.TaskLivePane.useEffect() callback` ([L53-L55](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L53-L55)) - Function
+  - `libs.task-ui.src.task-live-pane.TaskLivePane.toggleCollapsed` ([L57-L59](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L57-L59)) - Function
+  - `libs.task-ui.src.task-live-pane.TaskLivePane.toggleCollapsed.setCollapsed() callback` ([L58-L58](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L58-L58)) - Function
+  - `libs.task-ui.src.task-live-pane.TaskLivePane.handleHeaderKeyDown` ([L61-L66](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L61-L66)) - Function
+  - `libs.task-ui.src.task-live-pane.TaskLivePane.handleClose` ([L68-L71](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L68-L71)) - Function
+  - `libs.task-ui.src.task-live-pane.humanizeToken` ([L117-L117](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L117-L117)) - Method
+  - `libs.task-ui.src.task-live-pane.<unknown>..map() callback` ([L173-L175](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-live-pane.tsx#L173-L175)) - Function
 - [`libs/task-ui/src/task-messages-timeline.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-messages-timeline.tsx)
   - `libs.task-ui.src.task-messages-timeline.TaskMessagesTimelineProps` ([L12-L15](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-messages-timeline.tsx#L12-L15)) - Interface
   - `libs.task-ui.src.task-messages-timeline.TaskMessagesTimeline` ([L17-L68](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-messages-timeline.tsx#L17-L68)) - Function
