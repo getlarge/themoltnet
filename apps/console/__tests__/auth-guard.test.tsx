@@ -52,6 +52,10 @@ function aal2RequiredError(
   });
 }
 
+/** Must match AuthGuard's sentinel parameter and storage key. */
+const HOP_PARAM = '_authhop';
+const HOP_STORAGE_KEY = 'moltnet.console.auth-hop';
+
 /** Points window.location at a console path before rendering. */
 function setLocation({
   pathname = '/',
@@ -86,10 +90,18 @@ async function captureSignInUrl(): Promise<URL> {
   return new URL(mockReplace.mock.calls[0][0]);
 }
 
-/** Renders the guard unauthenticated and returns the parsed return_to. */
+/**
+ * Renders the guard unauthenticated and returns return_to with the loop
+ * sentinel taken back out, so destination assertions stay about the
+ * destination. The sentinel itself is covered by its own describe block.
+ */
 async function captureReturnTo(): Promise<string | null> {
   mockToSession.mockRejectedValue(responseError(401));
-  return (await captureSignInUrl()).searchParams.get('return_to');
+  const raw = (await captureSignInUrl()).searchParams.get('return_to');
+  if (raw === null) return null;
+  const url = new URL(raw);
+  url.searchParams.delete(HOP_PARAM);
+  return url.toString();
 }
 
 function Wrapper({ children }: { children: ReactNode }) {
@@ -245,9 +257,9 @@ describe('AuthGuard', () => {
         'https://auth.example.com/self-service/login/browser',
       );
       expect(url.searchParams.get('aal')).toBe('aal2');
-      expect(url.searchParams.get('return_to')).toBe(
-        'https://console.example.com/',
-      );
+      const returnTo = new URL(url.searchParams.get('return_to') as string);
+      returnTo.searchParams.delete(HOP_PARAM);
+      expect(returnTo.toString()).toBe('https://console.example.com/');
     });
 
     it('still requests aal2 when Kratos omits redirect_browser_to', async () => {
@@ -278,19 +290,52 @@ describe('AuthGuard', () => {
     });
   });
 
-  // The counter lives in sessionStorage because every bounce is a full page
-  // load; these tests seed it to stand in for the earlier loads.
-  describe('redirect loop breaker', () => {
-    function seedAttempts(count: number, firstAt = Date.now()) {
-      window.sessionStorage.setItem(
-        'moltnet.console.auth-redirects',
-        JSON.stringify({ firstAt, count }),
-      );
+  /**
+   * The loop is broken by recognising our own round trip, not by counting.
+   * `return_to` carries a nonce; if Kratos hands the browser back with that
+   * nonce and the session is still unusable, the flow we picked cannot fix it,
+   * so re-entering it is exactly the loop.
+   *
+   * The nonce lives in sessionStorage because the round trip is a full page
+   * load. These tests seed it to stand in for the outbound leg.
+   */
+  describe('sign-in bounce detection', () => {
+    /** Simulates having been redirected out with `hop`, then sent back. */
+    function seedBounce(hop: string, returnedHop: string = hop) {
+      window.sessionStorage.setItem(HOP_STORAGE_KEY, hop);
+      setLocation({
+        pathname: '/tasks',
+        search: `?${HOP_PARAM}=${returnedHop}`,
+      });
     }
 
-    it('stops redirecting after too many attempts in a short window', async () => {
+    it('tags return_to with a sentinel and remembers it', async () => {
+      mockToSession.mockRejectedValue(responseError(401));
+
+      const returnTo = (await captureSignInUrl()).searchParams.get('return_to');
+
+      const hop = new URL(returnTo as string).searchParams.get(HOP_PARAM);
+      expect(hop).toBeTruthy();
+      expect(window.sessionStorage.getItem(HOP_STORAGE_KEY)).toBe(hop);
+    });
+
+    it('keeps the real query string alongside the sentinel', async () => {
+      setLocation({ pathname: '/diaries/abc', search: '?filter=open' });
+      mockToSession.mockRejectedValue(responseError(401));
+
+      const returnTo = new URL(
+        (await captureSignInUrl()).searchParams.get('return_to') as string,
+      );
+
+      expect(returnTo.searchParams.get('filter')).toBe('open');
+      expect(returnTo.searchParams.get(HOP_PARAM)).toBeTruthy();
+    });
+
+    // The bug: Kratos answered "already logged in" and 302'd straight back.
+    // One proven bounce is enough to know the flow cannot clear the challenge.
+    it('stops on the first bounce instead of redirecting again', async () => {
       mockToSession.mockRejectedValue(aal2RequiredError());
-      seedAttempts(3);
+      seedBounce('hop-1');
 
       renderGuard();
 
@@ -300,9 +345,9 @@ describe('AuthGuard', () => {
       expect(mockReplace).not.toHaveBeenCalled();
     });
 
-    it('keeps redirecting while under the threshold', async () => {
+    it('redirects normally when no sentinel comes back', async () => {
       mockToSession.mockRejectedValue(aal2RequiredError());
-      seedAttempts(2);
+      window.sessionStorage.setItem(HOP_STORAGE_KEY, 'hop-1');
 
       renderGuard();
 
@@ -312,9 +357,11 @@ describe('AuthGuard', () => {
       expect(screen.queryByTestId('auth-loop-recovery')).toBeNull();
     });
 
-    it('ignores attempts older than the detection window', async () => {
+    // A sentinel from a bookmarked or shared URL is not evidence that *this*
+    // tab just bounced, so it must not strand the visitor on the recovery page.
+    it('ignores a sentinel that does not match the one we issued', async () => {
       mockToSession.mockRejectedValue(aal2RequiredError());
-      seedAttempts(9, Date.now() - 60_000);
+      seedBounce('hop-1', 'pasted-from-somewhere-else');
 
       renderGuard();
 
@@ -322,6 +369,32 @@ describe('AuthGuard', () => {
         expect(mockReplace).toHaveBeenCalled();
       });
       expect(screen.queryByTestId('auth-loop-recovery')).toBeNull();
+    });
+
+    it('does not carry the sentinel into the next return_to', async () => {
+      mockToSession.mockRejectedValue(aal2RequiredError());
+      seedBounce('hop-1', 'stale');
+
+      const returnTo = new URL(
+        (await captureSignInUrl()).searchParams.get('return_to') as string,
+      );
+
+      expect(returnTo.pathname).toBe('/tasks');
+      expect(returnTo.searchParams.get(HOP_PARAM)).not.toBe('stale');
+    });
+
+    // It is machinery: a user who bookmarks or shares the URL should not
+    // carry it along, and it should not sit in history.
+    it('strips the sentinel from the address bar', async () => {
+      const replaceState = vi.spyOn(window.history, 'replaceState');
+      mockToSession.mockRejectedValue(aal2RequiredError());
+      seedBounce('hop-1');
+
+      renderGuard();
+
+      await waitFor(() => {
+        expect(replaceState).toHaveBeenCalledWith(null, '', '/tasks');
+      });
     });
 
     it('offers a sign-out escape hatch that clears the session server-side', async () => {
@@ -329,7 +402,7 @@ describe('AuthGuard', () => {
       mockCreateBrowserLogoutFlow.mockResolvedValue({
         logout_url: 'https://auth.example.com/self-service/logout?token=abc',
       });
-      seedAttempts(3);
+      seedBounce('hop-1');
 
       renderGuard();
 
@@ -343,9 +416,9 @@ describe('AuthGuard', () => {
       });
     });
 
-    it('lets the user retry verification manually', async () => {
+    it('lets the user retry verification with a fresh sentinel', async () => {
       mockToSession.mockRejectedValue(aal2RequiredError());
-      seedAttempts(3);
+      seedBounce('hop-1');
 
       renderGuard();
 
@@ -355,18 +428,20 @@ describe('AuthGuard', () => {
       fireEvent.click(screen.getByText('Continue verification'));
 
       expect(mockReplace).toHaveBeenCalledTimes(1);
-      expect(
-        new URL(mockReplace.mock.calls[0][0]).searchParams.get('aal'),
-      ).toBe('aal2');
-      // The retry resets the counter, otherwise a single mis-typed TOTP code
-      // would drop the user straight back onto the recovery screen.
-      expect(
-        window.sessionStorage.getItem('moltnet.console.auth-redirects'),
-      ).toBeNull();
+      const signInUrl = new URL(mockReplace.mock.calls[0][0]);
+      expect(signInUrl.searchParams.get('aal')).toBe('aal2');
+      // A new nonce, otherwise the retry would arrive carrying the sentinel
+      // that just tripped the guard and land straight back on this screen.
+      const hop = new URL(
+        signInUrl.searchParams.get('return_to') as string,
+      ).searchParams.get(HOP_PARAM);
+      expect(hop).toBeTruthy();
+      expect(hop).not.toBe('hop-1');
+      expect(window.sessionStorage.getItem(HOP_STORAGE_KEY)).toBe(hop);
     });
 
-    it('clears the counter once the user is authenticated', async () => {
-      seedAttempts(2);
+    it('clears the sentinel once the user is authenticated', async () => {
+      window.sessionStorage.setItem(HOP_STORAGE_KEY, 'hop-1');
       mockToSession.mockResolvedValue({
         active: true,
         identity: { id: 'identity-123', traits: {} },
@@ -377,9 +452,7 @@ describe('AuthGuard', () => {
       await waitFor(() => {
         expect(screen.getByTestId('protected')).toBeDefined();
       });
-      expect(
-        window.sessionStorage.getItem('moltnet.console.auth-redirects'),
-      ).toBeNull();
+      expect(window.sessionStorage.getItem(HOP_STORAGE_KEY)).toBeNull();
     });
   });
 });

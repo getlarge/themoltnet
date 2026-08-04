@@ -20,89 +20,112 @@ import type { AuthChallenge } from './AuthProvider.js';
 import { useAuth } from './useAuth.js';
 
 /**
- * How many sign-in redirects we allow inside {@link REDIRECT_WINDOW_MS} before
- * concluding we are ping-ponging with Kratos and stopping to ask the user.
+ * Query parameter the console asks Kratos to echo back on `return_to`, and the
+ * sessionStorage key holding the value we are currently expecting.
  *
- * A healthy flow costs one redirect and then leaves the user on the Kratos
- * form for seconds-to-minutes, so three inside thirty seconds only happens
- * when something is bouncing us straight back.
+ * Together they answer one question directly: *did the login flow we just sent
+ * the browser into hand it straight back to us?* If it did, and we still have
+ * no usable session, that flow cannot fix the problem and re-entering it would
+ * ping-pong forever.
+ *
+ * This replaces counting redirects. A counter cannot tell a genuine loop from
+ * a user navigating back and forth, needs a threshold and a time window that
+ * are both guesses, and only gives up after several wasted bounces. The
+ * sentinel is causal, fires on the first proven bounce, and has nothing to
+ * tune.
+ *
+ * The token is a nonce rather than a fixed marker so that a `_authhop` pasted
+ * into a shared or bookmarked URL cannot strand an otherwise-fine visitor on
+ * the recovery screen.
  */
-const REDIRECT_LOOP_THRESHOLD = 3;
-const REDIRECT_WINDOW_MS = 30_000;
-const REDIRECT_STORAGE_KEY = 'moltnet.console.auth-redirects';
-
-interface RedirectAttempts {
-  firstAt: number;
-  count: number;
-}
+const HOP_PARAM = '_authhop';
+const HOP_STORAGE_KEY = 'moltnet.console.auth-hop';
 
 /**
- * sessionStorage, not component or module state: every bounce through Kratos
- * is a full page load, so anything held in memory resets and the loop stays
- * invisible. It is also per-tab and dies with the tab, which is exactly the
- * lifetime "am I currently stuck" wants.
+ * sessionStorage, not component or module state: the round trip through Kratos
+ * is a full page load, so anything held in memory is gone by the time the
+ * answer arrives. It is also per-tab and dies with the tab, which is exactly
+ * the lifetime "am I mid-sign-in right now" wants.
  *
- * All access is defensive — storage access throws in some privacy modes, and a
- * broken counter must never be the reason sign-in stops working.
+ * All access is defensive — storage throws in some privacy modes, and a broken
+ * sentinel must never be the reason sign-in stops working. Failing to read it
+ * degrades to "always redirect", i.e. the behaviour without this guard.
  */
-function readAttempts(): RedirectAttempts | null {
+function readHopToken(): string | null {
   try {
-    const raw = window.sessionStorage.getItem(REDIRECT_STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<RedirectAttempts>;
-    if (
-      typeof parsed.firstAt !== 'number' ||
-      typeof parsed.count !== 'number'
-    ) {
-      return null;
-    }
-    return { firstAt: parsed.firstAt, count: parsed.count };
+    return window.sessionStorage.getItem(HOP_STORAGE_KEY);
   } catch {
     return null;
   }
 }
 
-function writeAttempts(attempts: RedirectAttempts | null): void {
+function writeHopToken(token: string | null): void {
   try {
-    if (attempts === null) {
-      window.sessionStorage.removeItem(REDIRECT_STORAGE_KEY);
+    if (token === null) {
+      window.sessionStorage.removeItem(HOP_STORAGE_KEY);
       return;
     }
-    window.sessionStorage.setItem(
-      REDIRECT_STORAGE_KEY,
-      JSON.stringify(attempts),
-    );
+    window.sessionStorage.setItem(HOP_STORAGE_KEY, token);
   } catch {
     // Storage unavailable — fall back to always redirecting.
   }
 }
 
-/** Records this page load's redirect and returns the running count. */
-function recordRedirectAttempt(now: number): number {
-  const previous = readAttempts();
-  const withinWindow =
-    previous !== null && now - previous.firstAt <= REDIRECT_WINDOW_MS;
-  const next: RedirectAttempts = withinWindow
-    ? { firstAt: previous.firstAt, count: previous.count + 1 }
-    : { firstAt: now, count: 1 };
-  writeAttempts(next);
-  return next.count;
+function newHopToken(): string {
+  return typeof crypto?.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
+/** Where the user was trying to go, with the sentinel taken back out. */
+interface Arrival {
+  /** The `_authhop` Kratos echoed back on this load, if any. */
+  returnedHop: string | null;
+  pathname: string;
+  search: string;
+  hash: string;
+}
+
+/**
+ * Reads the current location and separates the sentinel from the destination.
+ *
+ * Pure: stripping the parameter from the address bar is a side effect and
+ * happens in an effect instead, so React may call this more than once (it does
+ * under StrictMode) without the second call losing the sentinel.
+ */
+function parseArrival(): Arrival {
+  const { pathname, search, hash } = window.location;
+  const params = new URLSearchParams(search);
+  const returnedHop = params.get(HOP_PARAM);
+  if (returnedHop === null) {
+    return { returnedHop: null, pathname, search, hash };
+  }
+  params.delete(HOP_PARAM);
+  const rest = params.toString();
+  return { returnedHop, pathname, search: rest ? `?${rest}` : '', hash };
 }
 
 /**
  * Builds the absolute URL to return to after login, preserving the path, query
- * and hash the user was actually trying to reach.
+ * and hash the user was actually trying to reach, and tagging it so we can
+ * recognise our own round trip when Kratos sends the browser back.
  *
  * Kratos matches `allowed_return_urls` by scheme + host + path *prefix* (see
  * ory/kratos x/redir/secure_redirect.go), so the existing console origin entry
- * already covers every subpath — no Ory config change is required.
+ * already covers every subpath and the extra query parameter is not part of
+ * the match — no Ory config change is required.
  *
  * `consoleUrl` carries no trailing slash, so this uses the URL constructor
  * rather than string concatenation to avoid producing "//tasks".
  */
-function buildReturnTo(consoleUrl: string): string {
-  const { pathname, search, hash } = window.location;
-  return new URL(`${pathname}${search}${hash}`, consoleUrl).toString();
+function buildReturnTo(
+  consoleUrl: string,
+  { pathname, search, hash }: Pick<Arrival, 'pathname' | 'search' | 'hash'>,
+  hop: string,
+): string {
+  const url = new URL(`${pathname}${search}${hash}`, consoleUrl);
+  url.searchParams.set(HOP_PARAM, hop);
+  return url.toString();
 }
 
 /**
@@ -131,11 +154,17 @@ export function buildSignInUrl({
   challengeRedirectTo,
   kratosUrl,
   consoleUrl,
+  destination,
+  hop,
 }: {
   challenge: AuthChallenge;
   challengeRedirectTo: string | null;
   kratosUrl: string;
   consoleUrl: string;
+  /** Where to come back to, with any previous sentinel already stripped. */
+  destination: Pick<Arrival, 'pathname' | 'search' | 'hash'>;
+  /** Sentinel Kratos will echo back on `return_to`. */
+  hop: string;
 }): string {
   const needsSecondFactor = challenge === 'second_factor_required';
 
@@ -149,7 +178,10 @@ export function buildSignInUrl({
   if (needsSecondFactor && !url.searchParams.has('aal')) {
     url.searchParams.set('aal', 'aal2');
   }
-  url.searchParams.set('return_to', buildReturnTo(consoleUrl));
+  url.searchParams.set(
+    'return_to',
+    buildReturnTo(consoleUrl, destination, hop),
+  );
   return url.toString();
 }
 
@@ -158,19 +190,54 @@ export function AuthGuard({ children }: { children: ReactNode }) {
     useAuth();
   const [loopDetected, setLoopDetected] = useState(false);
   const hasRedirectedRef = useRef(false);
+  // Both captured once, at mount, before anything can clear or rewrite them.
+  const [arrival] = useState(parseArrival);
+  const [expectedHop] = useState(readHopToken);
+
+  /**
+   * True when Kratos returned the browser to a URL we tagged on the way out
+   * and the session still is not usable. The flow we chose demonstrably cannot
+   * clear this challenge, so going back into it is the loop.
+   */
+  const bouncedBack =
+    arrival.returnedHop !== null && arrival.returnedHop === expectedHop;
 
   const goToSignIn = useCallback(() => {
     const { kratosUrl, consoleUrl } = getConfig();
+    const hop = newHopToken();
+    writeHopToken(hop);
     // replace(), not assign(): each bounce through Kratos would otherwise push
     // a history entry, so a loop buries the page the user came from under
     // dozens of entries and Back walks *through* the loop instead of out of it.
     window.location.replace(
-      buildSignInUrl({ challenge, challengeRedirectTo, kratosUrl, consoleUrl }),
+      buildSignInUrl({
+        challenge,
+        challengeRedirectTo,
+        kratosUrl,
+        consoleUrl,
+        destination: arrival,
+        hop,
+      }),
     );
-  }, [challenge, challengeRedirectTo]);
+  }, [challenge, challengeRedirectTo, arrival]);
+
+  // Keep the sentinel out of the address bar: it is machinery, and a user who
+  // bookmarks or shares the URL should not carry it along.
+  useEffect(() => {
+    if (arrival.returnedHop === null) return;
+    try {
+      window.history.replaceState(
+        null,
+        '',
+        `${arrival.pathname}${arrival.search}${arrival.hash}`,
+      );
+    } catch {
+      // Cosmetic only — the sentinel is already read and never re-read.
+    }
+  }, [arrival]);
 
   useEffect(() => {
-    if (isAuthenticated) writeAttempts(null);
+    if (isAuthenticated) writeHopToken(null);
   }, [isAuthenticated]);
 
   useEffect(() => {
@@ -180,12 +247,13 @@ export function AuthGuard({ children }: { children: ReactNode }) {
     if (hasRedirectedRef.current) return;
     hasRedirectedRef.current = true;
 
-    if (recordRedirectAttempt(Date.now()) > REDIRECT_LOOP_THRESHOLD) {
+    if (bouncedBack) {
+      writeHopToken(null);
       setLoopDetected(true);
       return;
     }
     goToSignIn();
-  }, [isLoading, isAuthenticated, loopDetected, goToSignIn]);
+  }, [isLoading, isAuthenticated, loopDetected, bouncedBack, goToSignIn]);
 
   if (isLoading) {
     return (
@@ -200,12 +268,9 @@ export function AuthGuard({ children }: { children: ReactNode }) {
       return (
         <SignInRecovery
           challenge={challenge}
-          onRetry={() => {
-            writeAttempts(null);
-            goToSignIn();
-          }}
+          onRetry={goToSignIn}
           onSignOut={() => {
-            writeAttempts(null);
+            writeHopToken(null);
             void logout();
           }}
         />
@@ -218,7 +283,8 @@ export function AuthGuard({ children }: { children: ReactNode }) {
 }
 
 /**
- * Shown once the loop is detected, instead of redirecting a fourth time.
+ * Shown as soon as a login flow hands the browser back without fixing the
+ * session, instead of walking back into it.
  *
  * "Sign out" is the control that matters: it ends the half-authenticated
  * session server-side. Mobile browsers offer no way to clear cookies for a
@@ -247,8 +313,8 @@ function SignInRecovery({
           </Text>
           <Text color="muted">
             {needsSecondFactor
-              ? 'Your session is signed in but still needs two-factor verification. The console stopped retrying so you are not stuck in a redirect loop.'
-              : 'The console was sent back to sign in repeatedly without a session being established, so it stopped retrying.'}
+              ? 'Your session is signed in but still needs two-factor verification, and the verification step sent you back here without completing. The console stopped rather than retry it in a loop.'
+              : 'Sign-in sent you back here without establishing a session, so the console stopped rather than retry it in a loop.'}
           </Text>
           <Stack direction="row" gap={3} wrap>
             <Button onClick={onRetry}>
