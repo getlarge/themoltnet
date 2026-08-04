@@ -18,6 +18,13 @@ import { createSigningService } from './signing-service.js';
 import type { SigningServiceDeps } from './signing-service.types.js';
 import type { SigningServiceError } from './signing-service-error.js';
 
+/**
+ * Fixed clock. The fixtures below pin expiresAt to a literal, so a driver left
+ * on the real clock starts failing once that timestamp passes — it did, on
+ * 2026-08-01.
+ */
+const NOW = () => new Date('2026-08-01T12:00:00.000Z');
+
 const agent = {
   subjectType: 'agent',
   identityId: 'agent-identity',
@@ -128,6 +135,10 @@ function createDeps(
     groupRepository: {} as never,
     signingTimeoutSeconds: 300,
     maxPendingSigningRequests: MAX_PENDING_SIGNING_REQUESTS,
+    // Default the clock rather than leaving it on Date.now(): the fixtures pin
+    // expiresAt to a literal, so a real clock makes these tests expire. Listed
+    // before the spread so a test that cares about time still overrides it.
+    now: NOW,
     ...overrides,
   };
 }
@@ -203,6 +214,7 @@ describe('createSigningService', () => {
   beforeEach(() => {
     _resetSigningWorkflowsForTesting();
     const driver = createPreviewSignSigningMethodDriver({
+      now: NOW,
       randomBytes: () => IKM,
       verifyPrehashedSignature: vi.fn().mockReturnValue(true),
     });
@@ -838,6 +850,7 @@ describe('createSigningService', () => {
     const verifyPrehashedSignature = vi.fn().mockReturnValue(true);
     _resetSigningWorkflowsForTesting();
     const driver = createPreviewSignSigningMethodDriver({
+      now: NOW,
       randomBytes: () => IKM,
       verifyPrehashedSignature,
     });
@@ -997,6 +1010,7 @@ describe('createSigningService', () => {
     const prepareRandom = vi.fn(() => IKM);
     _resetSigningWorkflowsForTesting();
     const driver = createPreviewSignSigningMethodDriver({
+      now: NOW,
       randomBytes: prepareRandom,
       verifyPrehashedSignature: vi.fn().mockReturnValue(true),
     });

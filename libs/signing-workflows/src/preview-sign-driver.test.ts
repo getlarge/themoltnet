@@ -24,6 +24,11 @@ const TEAM_ID = '990e8400-e29b-41d4-a716-446655440004';
 const HUMAN_ID = 'aa0e8400-e29b-41d4-a716-446655440005';
 const NONCE = 'bb0e8400-e29b-41d4-a716-446655440006';
 const EXPIRES_AT = '2026-08-01T12:05:00.000Z';
+/**
+ * Fixed clock. EXPIRES_AT is a literal, so any driver left on the real clock
+ * starts failing once that timestamp passes — it did, on 2026-08-01.
+ */
+const NOW = () => new Date('2026-08-01T12:00:00.000Z');
 const IKM = Uint8Array.from({ length: 32 }, (_, index) => 0x40 + index);
 const BLINDING_SECRET = new Uint8Array(32).fill(7);
 const KEM_SECRET = new Uint8Array(32).fill(8);
@@ -255,6 +260,7 @@ describe('previewSign production signing method driver', () => {
 
   it('canonicalizes equivalent public material across serializer field order', async () => {
     const driver = createPreviewSignSigningMethodDriver({
+      now: NOW,
       randomBytes: () => IKM,
     });
     const input = claimInput();
@@ -344,6 +350,7 @@ describe('previewSign production signing method driver', () => {
   it('derives a fresh server-owned key and returns no IKM', async () => {
     const verifyPrehashedSignature = vi.fn().mockReturnValue(true);
     const driver = createPreviewSignSigningMethodDriver({
+      now: NOW,
       randomBytes: vi.fn(() => IKM),
       verifyPrehashedSignature,
     });
@@ -382,6 +389,7 @@ describe('previewSign production signing method driver', () => {
   it('verifies the persisted digest exactly once and returns normalized evidence', async () => {
     const verifyPrehashedSignature = vi.fn().mockReturnValue(true);
     const driver = createPreviewSignSigningMethodDriver({
+      now: NOW,
       randomBytes: () => IKM,
       verifyPrehashedSignature,
     });
@@ -432,6 +440,7 @@ describe('previewSign production signing method driver', () => {
     async (_name, override) => {
       const verifyPrehashedSignature = vi.fn().mockReturnValue(true);
       const driver = createPreviewSignSigningMethodDriver({
+        now: NOW,
         randomBytes: () => IKM,
         verifyPrehashedSignature,
       });
@@ -500,6 +509,7 @@ describe('previewSign production signing method driver', () => {
   ])('rejects malformed persisted %s state', async (_name, override) => {
     const verifyPrehashedSignature = vi.fn().mockReturnValue(true);
     const driver = createPreviewSignSigningMethodDriver({
+      now: NOW,
       randomBytes: () => IKM,
       verifyPrehashedSignature,
     });
@@ -578,6 +588,7 @@ describe('previewSign production signing method driver', () => {
 
   it('matches only an identical receipt with intact evidence bindings', async () => {
     const driver = createPreviewSignSigningMethodDriver({
+      now: NOW,
       randomBytes: () => IKM,
       verifyPrehashedSignature: vi.fn().mockReturnValue(true),
     });
@@ -628,6 +639,7 @@ describe('previewSign production signing method driver', () => {
 
   it('rejects an invalid signature against the persisted derived key', async () => {
     const driver = createPreviewSignSigningMethodDriver({
+      now: NOW,
       randomBytes: () => IKM,
       verifyPrehashedSignature: vi.fn().mockReturnValue(false),
     });
