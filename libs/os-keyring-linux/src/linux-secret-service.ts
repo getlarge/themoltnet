@@ -16,6 +16,14 @@ const PROPERTIES_INTERFACE = 'org.freedesktop.DBus.Properties';
 const LOGIN_COLLECTION = '/org/freedesktop/secrets/collection/login';
 const DEFAULT_COLLECTION = '/org/freedesktop/secrets/aliases/default';
 const NO_PROMPT = '/';
+const SECRET_SERVICE_TIMEOUT_MS = 30_000;
+
+export class LinuxSecretServiceTimeoutError extends Error {
+  constructor() {
+    super('Linux Secret Service operation timed out');
+    this.name = 'LinuxSecretServiceTimeoutError';
+  }
+}
 
 type Secret = [string, Uint8Array, Uint8Array, string];
 
@@ -82,11 +90,26 @@ async function withSecretService<T>(
   operation: (client: SecretServiceClient) => Promise<T>,
 ): Promise<T> {
   const bus = sessionBus();
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  let timedOut = false;
   try {
-    return await operation(await SecretServiceClient.connect(bus));
+    return await Promise.race([
+      SecretServiceClient.connect(bus).then((client) => {
+        if (timedOut) throw new LinuxSecretServiceTimeoutError();
+        return operation(client);
+      }),
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => {
+          timedOut = true;
+          reject(new LinuxSecretServiceTimeoutError());
+        }, SECRET_SERVICE_TIMEOUT_MS);
+      }),
+    ]);
   } catch (error) {
+    if (error instanceof LinuxSecretServiceTimeoutError) throw error;
     throw new Error('Linux Secret Service operation failed', { cause: error });
   } finally {
+    if (timeout) clearTimeout(timeout);
     bus.disconnect();
   }
 }

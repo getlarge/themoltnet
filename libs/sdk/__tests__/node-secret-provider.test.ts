@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -28,7 +29,17 @@ import {
   connect,
   createNodeSecretProviderRegistry,
   resolveNodeOAuth2ClientSecret,
+  windowsKeyringTarget,
 } from '../src/node.js';
+
+const keyringConformance = JSON.parse(
+  readFileSync(
+    new URL('../../../testdata/keyring-conformance.json', import.meta.url),
+    'utf8',
+  ),
+) as {
+  windows: Array<{ service: string; key: string; target: string }>;
+};
 
 describe('Node secret providers', () => {
   beforeEach(() => {
@@ -124,5 +135,14 @@ describe('Node secret providers', () => {
       }),
     ).resolves.toBeDefined();
     expect(keyring.read).toHaveBeenCalledWith('oauth2/identity/client');
+  });
+
+  it('uses the shared Windows credential target format', () => {
+    for (const vector of keyringConformance.windows) {
+      expect(windowsKeyringTarget(vector.service, vector.key, 'win32')).toBe(
+        vector.target,
+      );
+    }
+    expect(windowsKeyringTarget('service', 'key', 'linux')).toBeUndefined();
   });
 });

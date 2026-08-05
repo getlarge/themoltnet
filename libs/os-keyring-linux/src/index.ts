@@ -19,5 +19,6 @@ export function createPlatformKeyringSecretProvider(
 
 export {
   createLinuxSecretStore,
+  LinuxSecretServiceTimeoutError,
   type LinuxSecretStore,
 } from './linux-secret-service.js';
