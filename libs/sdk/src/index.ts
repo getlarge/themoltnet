@@ -42,6 +42,7 @@ export {
   readConfig,
   type SecretReference,
   updateConfigSection,
+  updateOAuth2Config,
   writeConfig,
 } from './credentials.js';
 export {

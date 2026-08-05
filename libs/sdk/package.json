@@ -41,7 +41,7 @@
     "!dist/.dts"
   ],
   "scripts": {
-    "check:pack": "tsx ../../tools/src/check-pack.ts --package .",
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package . && tsx ../../tools/src/check-sdk-types-isolation.ts",
     "check:types-isolation": "tsx ../../tools/src/check-sdk-types-isolation.ts",
     "test-native": "vitest run __tests__/node-secret-provider.test.ts"
   },
