@@ -133,8 +133,11 @@ $response | ConvertTo-Json -Compress
 
 const encodedWindowsCredentialScript = Buffer.from(
   WINDOWS_CREDENTIAL_SCRIPT,
-  'utf16le',
+  'utf8',
 ).toString('base64');
+
+const WINDOWS_POWERSHELL_STDIN_BOOTSTRAP =
+  '$script = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String([Console]::In.ReadLine())); & ([ScriptBlock]::Create($script))';
 
 async function runWindowsCredentialRequest(
   request: WindowsCredentialRequest,
@@ -146,8 +149,8 @@ async function runWindowsCredentialRequest(
         '-NoLogo',
         '-NoProfile',
         '-NonInteractive',
-        '-EncodedCommand',
-        encodedWindowsCredentialScript,
+        '-Command',
+        WINDOWS_POWERSHELL_STDIN_BOOTSTRAP,
       ],
       {
         stdio: ['pipe', 'pipe', 'pipe'],
@@ -221,7 +224,13 @@ async function runWindowsCredentialRequest(
       }
     });
     child.stdin.on('error', (error) => fail(error));
-    child.stdin.end(`${JSON.stringify(request)}\n`);
+    // Keep both the implementation and the credential request off the process
+    // command line. In particular, Windows PowerShell may reserve stdin while
+    // evaluating -EncodedCommand; a tiny static bootstrap leaves stdin under
+    // our control and reads the script followed by its newline-framed request.
+    child.stdin.end(
+      `${encodedWindowsCredentialScript}\n${JSON.stringify(request)}\n`,
+    );
   });
 }
 

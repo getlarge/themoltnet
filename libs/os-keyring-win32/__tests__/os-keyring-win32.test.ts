@@ -58,7 +58,7 @@ describe('Windows keyring provider', () => {
     );
   });
 
-  it('frames one JSON request line for non-interactive PowerShell', async () => {
+  it('passes the script and JSON request through stdin', async () => {
     const child = fakeChild();
     spawnMock.mockReturnValue(child);
     let stdin = '';
@@ -70,7 +70,14 @@ describe('Windows keyring provider', () => {
     child.emit('close', 0);
 
     await expect(result).resolves.toBeNull();
-    expect(stdin).toBe('{"operation":"read","target":"themolt.net:key"}\n');
+    const [encodedScript, request, trailing] = stdin.split('\n');
+    expect(encodedScript).toBeTruthy();
+    expect(Buffer.from(encodedScript, 'base64').toString('utf8')).toContain(
+      '[Console]::In.ReadLine() | ConvertFrom-Json',
+    );
+    expect(request).toBe('{"operation":"read","target":"themolt.net:key"}');
+    expect(trailing).toBe('');
+    expect(spawnMock.mock.calls[0]?.[1]).not.toContain(encodedScript);
   });
 
   it('uses the absolute system PowerShell with a controlled environment', async () => {
