@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/zalando/go-keyring"
+	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/oskeyring"
 )
 
 const (
@@ -30,11 +30,10 @@ func OAuth2SecretKey(identityID, clientID string) string {
 	return fmt.Sprintf("oauth2/%s/%s", identityID, clientID)
 }
 
-// windowsKeyringTarget documents the target convention used internally by
-// github.com/zalando/go-keyring. Node consumers must explicitly use the same
-// target because their keyring binding has a different Windows default.
+// windowsKeyringTarget documents the target shared by the Go and Node Windows
+// keyring adapters.
 func windowsKeyringTarget(service, key string) string {
-	return service + ":" + key
+	return service + "/" + key
 }
 
 // SecretProvider is the storage boundary used by credential consumers.
@@ -118,20 +117,20 @@ func (EnvironmentSecretProvider) Delete(_ string) error {
 type OSKeyringSecretProvider struct{}
 
 func (OSKeyringSecretProvider) Get(key string) (string, error) {
-	value, err := keyring.Get(secretServiceName, key)
-	if errors.Is(err, keyring.ErrNotFound) {
+	value, err := oskeyring.Get(secretServiceName, key)
+	if errors.Is(err, oskeyring.ErrNotFound) {
 		return "", fmt.Errorf("secret not found")
 	}
 	return value, err
 }
 
 func (OSKeyringSecretProvider) Set(key, value string) error {
-	return keyring.Set(secretServiceName, key, value)
+	return oskeyring.Set(secretServiceName, key, value)
 }
 
 func (OSKeyringSecretProvider) Delete(key string) error {
-	err := keyring.Delete(secretServiceName, key)
-	if errors.Is(err, keyring.ErrNotFound) {
+	err := oskeyring.Delete(secretServiceName, key)
+	if errors.Is(err, oskeyring.ErrNotFound) {
 		return nil
 	}
 	return err

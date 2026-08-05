@@ -24,6 +24,8 @@ require (
 
 require github.com/zalando/go-keyring v0.2.8
 
+require github.com/danieljoos/wincred v1.2.3
+
 require (
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/XiaoConstantine/mcp-go v0.3.1 // indirect
@@ -31,7 +33,6 @@ require (
 	github.com/anthropics/anthropic-sdk-go v1.27.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
-	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/dlclark/regexp2 v1.12.0 // indirect
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.12 // indirect

@@ -76,5 +76,5 @@ export function windowsKeyringTarget(
   key: string,
   platform: NodeJS.Platform = process.platform,
 ): string | undefined {
-  return platform === 'win32' ? `${service}:${key}` : undefined;
+  return platform === 'win32' ? `${service}/${key}` : undefined;
 }
