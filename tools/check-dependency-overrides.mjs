@@ -220,9 +220,20 @@ async function auditAsShipped() {
   }
 }
 
-function formatMarkdown({ deadOverrides, staleIgnores, total, exempt }) {
+function formatMarkdown({
+  deadOverrides,
+  staleIgnores,
+  staleExemptions,
+  unverifiedExemptions,
+  total,
+  exempt,
+}) {
   const marker = '<!-- override-hygiene -->';
-  if (deadOverrides.length === 0 && staleIgnores.length === 0) {
+  if (
+    deadOverrides.length === 0 &&
+    staleIgnores.length === 0 &&
+    staleExemptions.length === 0
+  ) {
     const security = total - exempt.length;
     return [
       marker,
@@ -275,6 +286,26 @@ function formatMarkdown({ deadOverrides, staleIgnores, total, exempt }) {
     );
   }
 
+  if (staleExemptions.length > 0) {
+    lines.push(
+      'These `dependencyOverridePolicy.keepUnused` exemptions no longer hold —',
+      'the reason each one records has stopped being true:',
+      '',
+      ...staleExemptions.map((e) => `- \`${e.key}\` — ${e.why}`),
+      '',
+    );
+  }
+
+  if (unverifiedExemptions.length > 0) {
+    lines.push(
+      'Kept on a reason this check cannot verify — listed every run so they do',
+      'not go quiet:',
+      '',
+      ...unverifiedExemptions.map((e) => `- \`${e.key}\` — ${e.reason}`),
+      '',
+    );
+  }
+
   return lines.join('\n');
 }
 
@@ -316,23 +347,70 @@ async function main() {
   );
 
   const justified = vulnerablePackages(withoutOverrides.report);
+
+  /** How many extra versions of an override's target appear without the pins. */
+  function dedupeCostOf(key) {
+    const target = overrideTarget(key);
+    const pinned = shippedVersions.get(target) ?? 0;
+    const unpinned = withoutOverrides.versions.get(target) ?? 0;
+    return Math.max(0, unpinned - pinned);
+  }
+
   const deadOverrides = Object.entries(overrides)
     .filter(([key]) => !justified.has(overrideTarget(key)))
     .filter(([key]) => !(key in keepUnused))
-    .map(([key, range]) => {
-      const target = overrideTarget(key);
-      const pinned = shippedVersions.get(target) ?? 0;
-      const unpinned = withoutOverrides.versions.get(target) ?? 0;
-      return {
+    .map(([key, range]) => ({
+      key,
+      range,
+      target: overrideTarget(key),
+      // >0 means the entry is still collapsing versions even though it no
+      // longer holds back an advisory: a reason to record it in keepUnused
+      // rather than delete it.
+      dedupeCost: dedupeCostOf(key),
+    }));
+
+  /**
+   * Exemptions are re-checked against the same evidence as the overrides they
+   * cover, because an exemption is an override entry made invisible to this
+   * check — and an invisible entry that nothing re-validates is the exact
+   * accumulation problem one level up.
+   *
+   * A reason beginning `dedupe:` is a claim about the resolved tree, so it is
+   * verified: if removing the entry no longer costs any versions, the claim has
+   * stopped being true and the exemption fails. Any other reason (a
+   * compatibility pin, say) is not mechanically checkable — those are honoured,
+   * but reported on every run so they stay in front of a reviewer instead of
+   * going quiet.
+   */
+  const staleExemptions = [];
+  const unverifiedExemptions = [];
+  for (const [key, reason] of Object.entries(keepUnused)) {
+    if (typeof reason !== 'string' || reason.trim().length === 0) {
+      staleExemptions.push({
         key,
-        range,
-        target,
-        // >0 means the entry is still collapsing versions even though it no
-        // longer holds back an advisory: a reason to record it in keepUnused
-        // rather than delete it.
-        dedupeCost: Math.max(0, unpinned - pinned),
-      };
-    });
+        why: 'no reason recorded — state why the entry must stay',
+      });
+      continue;
+    }
+    if (!(key in overrides)) {
+      staleExemptions.push({
+        key,
+        why: 'no matching pnpm.overrides entry; the exemption is orphaned',
+      });
+      continue;
+    }
+    if (justified.has(overrideTarget(key))) continue;
+    if (dedupeCostOf(key) > 0) continue;
+
+    if (/^dedupe\b/i.test(reason.trim())) {
+      staleExemptions.push({
+        key,
+        why: 'reason claims a dedupe, but removing it now collapses no versions — the exemption has outlived its reason',
+      });
+    } else {
+      unverifiedExemptions.push({ key, reason: reason.trim() });
+    }
+  }
 
   // An ignored GHSA is justified only while it is both still reachable and
   // still unfixable; either changing means the entry should go.
@@ -360,6 +438,8 @@ async function main() {
     keptCount: Object.keys(overrides).length - deadOverrides.length,
     deadOverrides,
     staleIgnores,
+    staleExemptions,
+    unverifiedExemptions,
     exempt: Object.keys(keepUnused),
   };
 
@@ -383,20 +463,37 @@ async function main() {
     for (const { ghsa, reason } of staleIgnores) {
       console.log(`  STALE ignoreGhsas ${ghsa} — ${reason}`);
     }
-    if (result.exempt.length > 0) {
+    for (const { key, why } of staleExemptions) {
+      console.log(`  STALE keepUnused ${key} — ${why}`);
+    }
+    for (const { key, reason } of unverifiedExemptions) {
       console.log(
-        `  Exempt via dependencyOverridePolicy.keepUnused: ${result.exempt.join(', ')}`,
+        `  NOTE  keepUnused ${key} — not mechanically verifiable: "${reason}"`,
       );
     }
-    if (deadOverrides.length === 0 && staleIgnores.length === 0) {
+    const live = result.exempt.filter(
+      (key) => !staleExemptions.some((s) => s.key === key),
+    );
+    if (live.length > 0) {
+      console.log(
+        `  Exempt via dependencyOverridePolicy.keepUnused: ${live.join(', ')}`,
+      );
+    }
+    if (
+      deadOverrides.length === 0 &&
+      staleIgnores.length === 0 &&
+      staleExemptions.length === 0
+    ) {
       console.log('All entries are load-bearing.');
     }
   }
 
-  if (deadOverrides.length > 0 || staleIgnores.length > 0) {
+  const findings =
+    deadOverrides.length + staleIgnores.length + staleExemptions.length;
+  if (findings > 0) {
     console.error(
-      `\n${deadOverrides.length} dead override(s), ${staleIgnores.length} stale ignore(s). ` +
-        'Remove them, or record a reason in dependencyOverridePolicy.keepUnused.',
+      `\n${deadOverrides.length} dead override(s), ${staleIgnores.length} stale ignore(s), ` +
+        `${staleExemptions.length} stale exemption(s).`,
     );
     process.exitCode = 1;
   }
