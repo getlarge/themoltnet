@@ -150,17 +150,5 @@
   },
   "dependencies": {
     "tslib": "^2.3.0"
-  },
-  "dependencyOverridePolicy": {
-    "keepUnused": {
-      "minimatch": "dedupe: removing it fans the tree from 2 versions to 12",
-      "brace-expansion": "dedupe: the three brace-expansion pins collapse 8 versions to 4",
-      "brace-expansion@1": "dedupe: see brace-expansion",
-      "brace-expansion@2": "dedupe: see brace-expansion",
-      "ajv@8": "dedupe: removing it fans ajv from 5 versions to 8",
-      "picomatch": "dedupe: removing it fans picomatch from 2 versions to 4",
-      "lodash": "dedupe: removing it fans lodash from 2 versions to 4",
-      "path-to-regexp": "dedupe: removing it fans path-to-regexp from 2 versions to 4"
-    }
   }
 }

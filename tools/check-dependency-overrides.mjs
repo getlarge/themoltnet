@@ -222,57 +222,35 @@ async function auditAsShipped() {
 
 function formatMarkdown({
   deadOverrides,
+  dedupeOverrides,
   staleIgnores,
-  staleExemptions,
-  unverifiedExemptions,
+  securityCount,
   total,
-  exempt,
 }) {
   const marker = '<!-- override-hygiene -->';
-  if (
-    deadOverrides.length === 0 &&
-    staleIgnores.length === 0 &&
-    staleExemptions.length === 0
-  ) {
-    const security = total - exempt.length;
+  if (deadOverrides.length === 0 && staleIgnores.length === 0) {
     return [
       marker,
       '## :white_check_mark: Override hygiene — every entry is justified',
       '',
-      `${security} of ${total} \`pnpm.overrides\` entries hold back a live advisory.` +
-        (exempt.length > 0
-          ? ` The other ${exempt.length} are kept deliberately via \`dependencyOverridePolicy.keepUnused\`.`
+      `${securityCount} of ${total} \`pnpm.overrides\` entries hold back a live advisory.` +
+        (dedupeOverrides.length > 0
+          ? ` The other ${dedupeOverrides.length} collapse the tree — removing them would add ` +
+            `${dedupeOverrides.reduce((n, o) => n + o.dedupeCost, 0)} package version(s).`
           : ''),
     ].join('\n');
   }
 
   const lines = [marker, '## :broom: Override hygiene — entries to remove', ''];
 
-  const inert = deadOverrides.filter((o) => o.dedupeCost === 0);
-  const dedupeOnly = deadOverrides.filter((o) => o.dedupeCost > 0);
-
-  if (inert.length > 0) {
+  if (deadOverrides.length > 0) {
     lines.push(
-      `**Delete these ${inert.length}.** They hold back no advisory and collapse no versions —`,
-      'the packages that needed them have caught up upstream:',
+      `**Delete these ${deadOverrides.length}.** They hold back no advisory and collapse no`,
+      'versions — the packages that needed them have caught up upstream:',
       '',
       '```json',
-      ...inert.map(({ key, range }) => `"${key}": "${range}",`),
+      ...deadOverrides.map(({ key, range }) => `"${key}": "${range}",`),
       '```',
-      '',
-    );
-  }
-
-  if (dedupeOnly.length > 0) {
-    lines.push(
-      `**Decide on these ${dedupeOnly.length}.** No advisory needs them any more, but each is still`,
-      'collapsing the tree. Keep one by recording why in `dependencyOverridePolicy.keepUnused`,',
-      'or delete it and accept the extra versions:',
-      '',
-      ...dedupeOnly.map(
-        ({ key, target, dedupeCost }) =>
-          `- \`${key}\` — dropping it adds ${dedupeCost} more \`${target}\` version(s)`,
-      ),
       '',
     );
   }
@@ -282,26 +260,6 @@ function formatMarkdown({
       'These `ignoreGhsas` entries are no longer justified:',
       '',
       ...staleIgnores.map((i) => `- \`${i.ghsa}\` — ${i.reason}`),
-      '',
-    );
-  }
-
-  if (staleExemptions.length > 0) {
-    lines.push(
-      'These `dependencyOverridePolicy.keepUnused` exemptions no longer hold —',
-      'the reason each one records has stopped being true:',
-      '',
-      ...staleExemptions.map((e) => `- \`${e.key}\` — ${e.why}`),
-      '',
-    );
-  }
-
-  if (unverifiedExemptions.length > 0) {
-    lines.push(
-      'Kept on a reason this check cannot verify — listed every run so they do',
-      'not go quiet:',
-      '',
-      ...unverifiedExemptions.map((e) => `- \`${e.key}\` — ${e.reason}`),
       '',
     );
   }
@@ -318,12 +276,6 @@ async function main() {
 
   const overrides = manifest.pnpm?.overrides ?? {};
   const ignored = manifest.pnpm?.auditConfig?.ignoreGhsas ?? [];
-  /**
-   * Escape hatch for overrides kept for reasons an audit cannot see —
-   * compatibility pins, forced dedupes. Each needs a written reason, so the
-   * exemption is reviewable rather than a bare name.
-   */
-  const keepUnused = manifest.dependencyOverridePolicy?.keepUnused ?? {};
 
   // Resolving reaches the registry. Because this check blocks merges, a
   // network blip must not read as "your overrides are wrong" — exit 2 says
@@ -356,61 +308,37 @@ async function main() {
     return Math.max(0, unpinned - pinned);
   }
 
-  const deadOverrides = Object.entries(overrides)
-    .filter(([key]) => !justified.has(overrideTarget(key)))
-    .filter(([key]) => !(key in keepUnused))
-    .map(([key, range]) => ({
+  /**
+   * Every override is classified from measured evidence, not from a declared
+   * reason. Two things justify keeping one:
+   *
+   *   - it holds back a live advisory, or
+   *   - removing it fans the tree out into extra versions.
+   *
+   * Both are recomputed each run, so neither can go stale. An earlier draft
+   * asked authors to declare the dedupe case in a `keepUnused` map; that was
+   * duplicated state — a frozen version count next to a tool that recalculates
+   * it — and a reason string is exactly the thing that rots. Deriving it needs
+   * no configuration and cannot be satisfied by writing a convincing sentence.
+   */
+  const classified = Object.entries(overrides).map(([key, range]) => {
+    const target = overrideTarget(key);
+    const dedupeCost = dedupeCostOf(key);
+    return {
       key,
       range,
-      target: overrideTarget(key),
-      // >0 means the entry is still collapsing versions even though it no
-      // longer holds back an advisory: a reason to record it in keepUnused
-      // rather than delete it.
-      dedupeCost: dedupeCostOf(key),
-    }));
+      target,
+      dedupeCost,
+      kind: justified.has(target)
+        ? 'security'
+        : dedupeCost > 0
+          ? 'dedupe'
+          : 'dead',
+    };
+  });
 
-  /**
-   * Exemptions are re-checked against the same evidence as the overrides they
-   * cover, because an exemption is an override entry made invisible to this
-   * check — and an invisible entry that nothing re-validates is the exact
-   * accumulation problem one level up.
-   *
-   * A reason beginning `dedupe:` is a claim about the resolved tree, so it is
-   * verified: if removing the entry no longer costs any versions, the claim has
-   * stopped being true and the exemption fails. Any other reason (a
-   * compatibility pin, say) is not mechanically checkable — those are honoured,
-   * but reported on every run so they stay in front of a reviewer instead of
-   * going quiet.
-   */
-  const staleExemptions = [];
-  const unverifiedExemptions = [];
-  for (const [key, reason] of Object.entries(keepUnused)) {
-    if (typeof reason !== 'string' || reason.trim().length === 0) {
-      staleExemptions.push({
-        key,
-        why: 'no reason recorded — state why the entry must stay',
-      });
-      continue;
-    }
-    if (!(key in overrides)) {
-      staleExemptions.push({
-        key,
-        why: 'no matching pnpm.overrides entry; the exemption is orphaned',
-      });
-      continue;
-    }
-    if (justified.has(overrideTarget(key))) continue;
-    if (dedupeCostOf(key) > 0) continue;
-
-    if (/^dedupe\b/i.test(reason.trim())) {
-      staleExemptions.push({
-        key,
-        why: 'reason claims a dedupe, but removing it now collapses no versions — the exemption has outlived its reason',
-      });
-    } else {
-      unverifiedExemptions.push({ key, reason: reason.trim() });
-    }
-  }
+  const deadOverrides = classified.filter((o) => o.kind === 'dead');
+  const dedupeOverrides = classified.filter((o) => o.kind === 'dedupe');
 
   // An ignored GHSA is justified only while it is both still reachable and
   // still unfixable; either changing means the entry should go.
@@ -438,9 +366,8 @@ async function main() {
     keptCount: Object.keys(overrides).length - deadOverrides.length,
     deadOverrides,
     staleIgnores,
-    staleExemptions,
-    unverifiedExemptions,
-    exempt: Object.keys(keepUnused),
+    dedupeOverrides,
+    securityCount: classified.filter((o) => o.kind === 'security').length,
   };
 
   if (markdownIndex !== -1 && args[markdownIndex + 1]) {
@@ -463,37 +390,19 @@ async function main() {
     for (const { ghsa, reason } of staleIgnores) {
       console.log(`  STALE ignoreGhsas ${ghsa} — ${reason}`);
     }
-    for (const { key, why } of staleExemptions) {
-      console.log(`  STALE keepUnused ${key} — ${why}`);
-    }
-    for (const { key, reason } of unverifiedExemptions) {
+    for (const { key, target, dedupeCost } of dedupeOverrides) {
       console.log(
-        `  NOTE  keepUnused ${key} — not mechanically verifiable: "${reason}"`,
+        `  KEPT  ${key} — no advisory, but removing it adds ${dedupeCost} ${target} version(s)`,
       );
     }
-    const live = result.exempt.filter(
-      (key) => !staleExemptions.some((s) => s.key === key),
-    );
-    if (live.length > 0) {
-      console.log(
-        `  Exempt via dependencyOverridePolicy.keepUnused: ${live.join(', ')}`,
-      );
-    }
-    if (
-      deadOverrides.length === 0 &&
-      staleIgnores.length === 0 &&
-      staleExemptions.length === 0
-    ) {
+    if (deadOverrides.length === 0 && staleIgnores.length === 0) {
       console.log('All entries are load-bearing.');
     }
   }
 
-  const findings =
-    deadOverrides.length + staleIgnores.length + staleExemptions.length;
-  if (findings > 0) {
+  if (deadOverrides.length > 0 || staleIgnores.length > 0) {
     console.error(
-      `\n${deadOverrides.length} dead override(s), ${staleIgnores.length} stale ignore(s), ` +
-        `${staleExemptions.length} stale exemption(s).`,
+      `\n${deadOverrides.length} dead override(s), ${staleIgnores.length} stale ignore(s).`,
     );
     process.exitCode = 1;
   }
