@@ -35,13 +35,15 @@ try {
   writeFileSync(
     join(tmpDir, 'consumer.ts'),
     `import type { Agent, EntriesNamespace } from '${sdkDist}/index.js';
-import { MoltNetError, connect } from '${sdkDist}/index.js';
+import { MoltNetError, connect, updateOAuth2Config } from '${sdkDist}/index.js';
 
 // Verify types resolve without @moltnet/* packages
 const _err: MoltNetError = new MoltNetError('test', { code: 'TEST' });
 const _connect: typeof connect = connect;
+const _updateOAuth2Config: typeof updateOAuth2Config = updateOAuth2Config;
 void _err;
 void _connect;
+void _updateOAuth2Config;
 `,
   );
 

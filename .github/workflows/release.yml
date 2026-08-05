@@ -435,9 +435,6 @@ jobs:
 
       - run: pnpm exec nx run @themoltnet/sdk:check:pack
 
-      - name: Check SDK type isolation
-        run: pnpm exec nx run @themoltnet/sdk:check:types-isolation
-
       - name: Publish @themoltnet/sdk
         uses: nick-fields/retry@v4.0.0
         with:
@@ -476,42 +473,54 @@ jobs:
 
       # Publish platform packages first so the adapter's optional dependencies
       # are resolvable as soon as its tarball reaches the registry.
-      - name: Publish @themoltnet/os-keyring-darwin
+      - name: Publish OS keyring package set
         uses: nick-fields/retry@v4.0.0
         with:
-          timeout_minutes: 10
+          timeout_minutes: 20
           max_attempts: 3
           retry_wait_seconds: 30
-          command: pnpm --filter @themoltnet/os-keyring-darwin publish --no-git-checks --access public --provenance
-
-      - name: Publish @themoltnet/os-keyring-linux
-        uses: nick-fields/retry@v4.0.0
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          retry_wait_seconds: 30
-          command: pnpm --filter @themoltnet/os-keyring-linux publish --no-git-checks --access public --provenance
-
-      - name: Publish @themoltnet/os-keyring-win32
-        uses: nick-fields/retry@v4.0.0
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          retry_wait_seconds: 30
-          command: pnpm --filter @themoltnet/os-keyring-win32 publish --no-git-checks --access public --provenance
-
-      - name: Publish @themoltnet/os-keyring
-        uses: nick-fields/retry@v4.0.0
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          retry_wait_seconds: 30
-          command: pnpm --filter @themoltnet/os-keyring publish --no-git-checks --access public --provenance
+          command: |
+            set -euo pipefail
+            for DIR in libs/os-keyring-darwin libs/os-keyring-linux libs/os-keyring-win32 libs/os-keyring; do
+              NAME=$(node -p "require('./${DIR}/package.json').name")
+              VERSION=$(node -p "require('./${DIR}/package.json').version")
+              if [ "$(npm view "${NAME}@${VERSION}" version 2>/dev/null || true)" = "${VERSION}" ]; then
+                echo "${NAME}@${VERSION} is already published"
+                continue
+              fi
+              pnpm --filter "${NAME}" publish --no-git-checks --access public --provenance
+            done
 
       - name: Publish OS keyring release
         run: gh release edit "${{ needs.resolve-publish.outputs.os-keyring-tag }}" --draft=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create sibling tags
+        uses: nick-fields/retry@v4.0.0
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OS_KEYRING_TAG: ${{ needs.resolve-publish.outputs.os-keyring-tag }}
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          retry_wait_seconds: 15
+          command: |
+            set -euo pipefail
+            SEMVER="${OS_KEYRING_TAG#os-keyring-v}"
+            COMMIT_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${OS_KEYRING_TAG}" --jq '.sha')
+            echo "${OS_KEYRING_TAG} -> ${COMMIT_SHA}"
+            for COMPONENT in os-keyring-darwin os-keyring-linux os-keyring-win32; do
+              SIB_TAG="${COMPONENT}-v${SEMVER}"
+              if gh api "repos/${GITHUB_REPOSITORY}/git/refs/tags/${SIB_TAG}" >/dev/null 2>&1; then
+                echo "  = ${SIB_TAG} already exists"
+                continue
+              fi
+              gh api -X POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+                -f ref="refs/tags/${SIB_TAG}" \
+                -f sha="${COMMIT_SHA}"
+              echo "  + ${SIB_TAG}"
+            done
 
   publish-tasks-orchestrator:
     name: Publish tasks-orchestrator to npm
@@ -1182,8 +1191,14 @@ jobs:
 
   publish-legreffier:
     name: Publish LeGreffier to npm
-    needs: resolve-publish
-    if: ${{ always() && needs.resolve-publish.outputs.legreffier == 'true' && !failure() && !cancelled() }}
+    needs: [resolve-publish, publish-os-keyring]
+    if: >-
+      ${{
+        always() &&
+        needs.resolve-publish.outputs.legreffier == 'true' &&
+        (needs.publish-os-keyring.result == 'success' || needs.publish-os-keyring.result == 'skipped') &&
+        !cancelled()
+      }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
