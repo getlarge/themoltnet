@@ -327,6 +327,12 @@ catalogs:
     react-dom:
       specifier: ^19.0.0
       version: 19.2.4
+    smol-toml:
+      specifier: ^1.6.1
+      version: 1.6.1
+    tar:
+      specifier: ^7.5.21
+      version: 7.5.22
     testcontainers:
       specifier: ^11.0.0
       version: 11.12.0
@@ -393,38 +399,23 @@ catalogs:
 
 overrides:
   minimatch: '>=10.2.5'
-  '@isaacs/brace-expansion': '>=5.0.1'
   brace-expansion@1: '>=1.1.13'
   brace-expansion@2: '>=2.0.3'
   brace-expansion: '>=5.0.9'
   picomatch: '>=4.0.4'
-  flatted: '>=3.4.2'
   lodash: '>=4.18.1'
   path-to-regexp: '>=8.4.2'
-  handlebars: '>=4.7.9'
-  rollup: '>=4.59.0'
-  yaml: '>=2.8.3'
+  yaml: '>=2.8.3 <3'
   undici@7: '>=7.29.0 <8'
   undici@8: '>=8.9.0 <9'
-  defu: '>=6.1.5'
   ajv@8: '>=8.18.0'
-  '@anthropic-ai/sdk': '>=0.81.0'
-  bn.js: '>=4.12.3'
-  tar: '>=7.5.21'
-  hono: '>=4.12.34'
-  '@hono/node-server': '>=2.0.10'
-  express-rate-limit: '>=8.2.2'
-  qs: '>=6.14.2'
-  smol-toml: '>=1.6.1'
+  '@hono/node-server': '>=2.0.10 <3'
   protobufjs@7: '>=7.6.5 <8'
   protobufjs@8: '>=8.6.6 <9'
   fast-jwt: '>=6.2.4 <7'
-  fast-uri: '>=3.1.5 <4'
-  find-my-way: '>=9.7.0 <10'
   ip-address: '>=10.3.1 <11'
   sharp: '>=0.35.0 <0.36'
   '@opentelemetry/core': '>=2.8.0 <3'
-  body-parser: '>=2.3.0 <3'
   uuid: '>=11.1.1 <12'
 
 importers:
@@ -2850,7 +2841,7 @@ importers:
         specifier: 'catalog:'
         version: 19.2.4
       smol-toml:
-        specifier: '>=1.6.1'
+        specifier: 'catalog:'
         version: 1.6.1
     devDependencies:
       '@moltnet/api-client':
@@ -2959,10 +2950,10 @@ importers:
         specifier: 'catalog:'
         version: 6.1.3
       smol-toml:
-        specifier: '>=1.6.1'
+        specifier: 'catalog:'
         version: 1.6.1
       tar:
-        specifier: '>=7.5.21'
+        specifier: 'catalog:'
         version: 7.5.22
       typebox:
         specifier: 'catalog:'
@@ -3107,8 +3098,8 @@ packages:
   '@antfu/install-pkg@1.1.0':
     resolution: {integrity: sha512-MGQsmw10ZyI+EJo45CdSER4zEb+p31LpDAFp2Z3gkSd1yqVZGi0Ebx++YTEMonJy4oChEMLsxZ64j8FH6sSqtQ==}
 
-  '@anthropic-ai/sdk@0.93.0':
-    resolution: {integrity: sha512-q9vaSZQVFx6B/gPxetGYfLXSJD5v0sOmh0OpZDq7yCrTSA+Rscvrtyol7JJTW40wEpQB4U1B4JXzxQitbQ3CAA==}
+  '@anthropic-ai/sdk@0.91.1':
+    resolution: {integrity: sha512-LAmu761tSN9r66ixvmciswUj/ZC+1Q4iAfpedTfSVLeswRwnY3n2Nb6Tsk+cLPP28aLOPWeMgIuTuCcMC6W/iw==}
     hasBin: true
     peerDependencies:
       zod: ^3.25.0 || ^4.0.0
@@ -4749,7 +4740,7 @@ packages:
     resolution: {integrity: sha512-eWpQYr67tqJLeaSUl0Q+TquuYfUdTibpOJlUMV2FfUP7+KqCC5TufnwnlXL6mobZBJbGAYRd7ZvEBDCbLInjhg==}
     engines: {node: '>=20'}
     peerDependencies:
-      hono: '>=4.12.34'
+      hono: ^4
 
   '@huggingface/jinja@0.5.4':
     resolution: {integrity: sha512-VoQJywjpjy2D88Oj0BTHRuS8JCbUgoOg5t1UGgbtGh2fRia9Dx/k6Wf8FqrEWIvWK9fAkfJeeLB9fcSpCNPCpw==}
@@ -5776,7 +5767,7 @@ packages:
     resolution: {integrity: sha512-5EdhGZtnu3V88ces7s53hhfK5KSASnJZv8Lulpc04cWO3REESroJXg73DFsOmgbU2BhwV0E20bu2IDZb3VKW4Q==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
-      rollup: '>=4.59.0'
+      rollup: ^1.20.0||^2.0.0||^3.0.0||^4.0.0
     peerDependenciesMeta:
       rollup:
         optional: true
@@ -11115,7 +11106,7 @@ packages:
     resolution: {integrity: sha512-XVnGH0QzbOa8fxRSsHdCarVN1BSBXNi7uLMQYlrGRN5apdHkk62XQWRJhVever0lnfuyBkwn+kvVChdm/OoOUg==}
     engines: {node: '>18.0.0'}
     peerDependencies:
-      rollup: '>=4.59.0'
+      rollup: ^4.59.0
       vite: ^5.4.21 || ^6.0.0 || ^7.0.0 || ^8.0.0
     peerDependenciesMeta:
       rollup:
@@ -11167,7 +11158,7 @@ packages:
       sugarss: '*'
       terser: ^5.16.0
       tsx: ^4.8.1
-      yaml: '>=2.8.3'
+      yaml: '>=2.8.3 <3'
     peerDependenciesMeta:
       '@types/node':
         optional: true
@@ -11208,7 +11199,7 @@ packages:
       sugarss: ^5.0.0
       terser: ^5.16.0
       tsx: ^4.8.1
-      yaml: '>=2.8.3'
+      yaml: '>=2.8.3 <3'
     peerDependenciesMeta:
       '@types/node':
         optional: true
@@ -11703,7 +11694,7 @@ snapshots:
       package-manager-detector: 1.6.0
       tinyexec: 1.0.4
 
-  '@anthropic-ai/sdk@0.93.0(zod@4.4.3)':
+  '@anthropic-ai/sdk@0.91.1(zod@4.4.3)':
     dependencies:
       json-schema-to-ts: 3.1.1
     optionalDependencies:
@@ -12924,7 +12915,7 @@ snapshots:
 
   '@earendil-works/pi-ai@0.79.4(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(ws@8.21.0)(zod@4.4.3)':
     dependencies:
-      '@anthropic-ai/sdk': 0.93.0(zod@4.4.3)
+      '@anthropic-ai/sdk': 0.91.1(zod@4.4.3)
       '@aws-sdk/client-bedrock-runtime': 3.1048.0
       '@google/genai': 1.52.0(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))
       '@mistralai/mistralai': 2.2.1

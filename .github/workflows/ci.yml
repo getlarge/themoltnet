@@ -753,6 +753,82 @@ jobs:
           name: audit-report
           path: audit-report.json
           retention-days: 30
+
+  # Deliberately a separate job from `audit`, and deliberately blocking.
+  #
+  # `audit` is advisory (continue-on-error) because it reports on the outside
+  # world: an advisory can be published against an untouched dependency at any
+  # moment, and that must not block a PR whose author cannot act on it.
+  #
+  # This job reports on *our own* configuration and only fails when an entry we
+  # wrote has stopped earning its place — always actionable by whoever is
+  # touching the block. Left non-blocking it would be one more red square that
+  # everyone learns to scroll past, and the overrides would resume growing,
+  # which is the whole thing this is meant to stop.
+  override-hygiene:
+    name: Override Hygiene
+    runs-on: ubuntu-latest
+    # Re-resolves the workspace, so it needs more headroom than a bare audit.
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.19.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Check override hygiene
+        id: overrides
+        run: |
+          set +e
+          node tools/check-dependency-overrides.mjs --markdown override-hygiene.md
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('fs');
+            if (!fs.existsSync('override-hygiene.md')) return;
+            const body = fs.readFileSync('override-hygiene.md', 'utf8');
+            const marker = '<!-- override-hygiene -->';
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+      # Exit 2 means the check could not resolve the workspace (registry blip,
+      # not a verdict). Warn and pass: a blocking gate must fail on evidence,
+      # never on the absence of it.
+      - name: Report unresolvable workspace
+        if: steps.overrides.outputs.exit_code == '2'
+        run: echo "::warning::Override hygiene could not resolve the workspace; skipping the verdict."
+      # Last, so the PR comment explaining what to do is always posted first.
+      - name: Fail on unjustified entries
+        if: steps.overrides.outputs.exit_code == '1'
+        run: |
+          echo "::error::pnpm.overrides or ignoreGhsas contains entries that no longer earn their place. See the PR comment."
+          exit 1
   openapi:
     name: OpenAPI Spec
     runs-on: ubuntu-latest
