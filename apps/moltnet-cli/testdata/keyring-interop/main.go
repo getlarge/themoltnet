@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/zalando/go-keyring"
+	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/oskeyring"
 )
 
 const service = "themolt.net"
@@ -33,8 +33,8 @@ func main() {
 	switch input.Operation {
 	case "read":
 		var value string
-		value, err = keyring.Get(service, input.Key)
-		if errors.Is(err, keyring.ErrNotFound) {
+		value, err = oskeyring.Get(service, input.Key)
+		if errors.Is(err, oskeyring.ErrNotFound) {
 			err = nil
 		} else if err == nil {
 			output.Found = true
@@ -44,11 +44,11 @@ func main() {
 		var value []byte
 		value, err = base64.StdEncoding.DecodeString(input.Value)
 		if err == nil {
-			err = keyring.Set(service, input.Key, string(value))
+			err = oskeyring.Set(service, input.Key, string(value))
 		}
 	case "delete":
-		err = keyring.Delete(service, input.Key)
-		if errors.Is(err, keyring.ErrNotFound) {
+		err = oskeyring.Delete(service, input.Key)
+		if errors.Is(err, oskeyring.ErrNotFound) {
 			err = nil
 		}
 	default:

@@ -41,7 +41,7 @@ describe('OSKeyringSecretProvider', () => {
   it('uses the Go-compatible Windows target', () => {
     expect(
       windowsKeyringTarget('themolt.net', 'oauth2/id/client', 'win32'),
-    ).toBe('themolt.net:oauth2/id/client');
+    ).toBe('themolt.net/oauth2/id/client');
     expect(
       windowsKeyringTarget('themolt.net', 'oauth2/id/client', 'linux'),
     ).toBeUndefined();

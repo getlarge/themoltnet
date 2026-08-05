@@ -38,6 +38,9 @@
   "os": [
     "win32"
   ],
+  "dependencies": {
+    "@github/keytar": "catalog:"
+  },
   "devDependencies": {
     "@types/node": "catalog:",
     "tsx": "catalog:",
