@@ -14,6 +14,7 @@ const (
 	secretServiceName       = "themolt.net"
 	osKeyringProviderName   = "os-keyring"
 	environmentProviderName = "env"
+	environmentSecretKey    = "MOLTNET_CLIENT_SECRET"
 )
 
 var environmentSecretKeyPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
@@ -89,6 +90,25 @@ func (r *SecretProviderRegistry) Resolve(ref SecretReference) (string, error) {
 	return value, nil
 }
 
+func (r *SecretProviderRegistry) Store(ref SecretReference, value string) error {
+	if r == nil {
+		return fmt.Errorf("secret provider registry is unavailable")
+	}
+	providerName := strings.TrimSpace(ref.Provider)
+	key := strings.TrimSpace(ref.Key)
+	if providerName == "" || key == "" || value == "" {
+		return fmt.Errorf("secret reference and value are required")
+	}
+	provider, ok := r.providers[providerName]
+	if !ok {
+		return fmt.Errorf("secret provider %q is not registered", providerName)
+	}
+	if err := provider.Set(key, value); err != nil {
+		return fmt.Errorf("store secret with provider %q: %w", providerName, err)
+	}
+	return nil
+}
+
 // EnvironmentSecretProvider is a read-only provider for headless runtimes.
 // Reference keys are environment variable names, never secret values.
 type EnvironmentSecretProvider struct{}
@@ -146,6 +166,9 @@ func resolveOAuth2Secret(creds *CredentialsFile, registry *SecretProviderRegistr
 		return "", fmt.Errorf("oauth2 config must set exactly one of client_secret or client_secret_ref")
 	}
 	if ref != nil {
+		if err := validateOAuth2SecretReferenceBinding(creds, *ref); err != nil {
+			return "", err
+		}
 		return registry.Resolve(*ref)
 	}
 	if legacy != "" {
@@ -153,4 +176,19 @@ func resolveOAuth2Secret(creds *CredentialsFile, registry *SecretProviderRegistr
 		return legacy, nil
 	}
 	return "", fmt.Errorf("oauth2 config must set exactly one of client_secret or client_secret_ref")
+}
+
+func validateOAuth2SecretReferenceBinding(creds *CredentialsFile, ref SecretReference) error {
+	if creds == nil {
+		return fmt.Errorf("credentials are missing")
+	}
+	expectedKey := OAuth2SecretKey(creds.IdentityID, creds.OAuth2.ClientID)
+	valid := ref.Key == expectedKey
+	if ref.Provider == environmentProviderName {
+		valid = ref.Key == environmentSecretKey
+	}
+	if !valid {
+		return fmt.Errorf("oauth2 secret reference is not bound to this MoltNet identity and client")
+	}
+	return nil
 }

@@ -22,6 +22,13 @@ type memorySecretProvider struct {
 	values map[string]string
 }
 
+func newMemorySecretProviderRegistry() (*SecretProviderRegistry, *memorySecretProvider) {
+	provider := &memorySecretProvider{values: make(map[string]string)}
+	registry := NewSecretProviderRegistry()
+	registry.Register(osKeyringProviderName, provider)
+	return registry, provider
+}
+
 func (p *memorySecretProvider) Get(key string) (string, error) {
 	return p.values[key], nil
 }
@@ -104,6 +111,26 @@ func TestResolveOAuth2SecretRejectsAmbiguousConfig(t *testing.T) {
 	_, err := resolveOAuth2Secret(creds, NewSecretProviderRegistry())
 	if err == nil || !strings.Contains(err.Error(), "exactly one") {
 		t.Fatalf("resolveOAuth2Secret error = %v, want exclusive-union error", err)
+	}
+}
+
+func TestResolveOAuth2SecretRejectsUnboundReference(t *testing.T) {
+	registry, provider := newMemorySecretProviderRegistry()
+	provider.values["oauth2/another-identity/another-client"] = "wrong-secret"
+	creds := &CredentialsFile{
+		IdentityID: "identity-123",
+		OAuth2: CredentialsOAuth2{
+			ClientID: "client-456",
+			ClientSecretRef: &SecretReference{
+				Provider: osKeyringProviderName,
+				Key:      "oauth2/another-identity/another-client",
+			},
+		},
+	}
+
+	_, err := resolveOAuth2Secret(creds, registry)
+	if err == nil || !strings.Contains(err.Error(), "not bound") {
+		t.Fatalf("resolveOAuth2Secret error = %v, want binding rejection", err)
 	}
 }
 

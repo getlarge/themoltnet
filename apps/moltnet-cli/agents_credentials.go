@@ -29,6 +29,8 @@ type agentsCredentialsRotateOpts struct {
 	preflightCredentials func(string) error
 	writeCredentials     func(string, []byte) error
 	writeRecoveryFile    func(rotateCredentialsOutput) (string, error)
+	secretReference      *SecretReference
+	secretProviders      *SecretProviderRegistry
 }
 
 type rotateCredentialsOutput struct {
@@ -51,11 +53,18 @@ func runAgentsCredentialsRotateCmd(opts agentsCredentialsRotateOpts) error {
 	if err != nil {
 		return err
 	}
-	if creds.OAuth2.ClientID == "" || creds.OAuth2.ClientSecret == "" {
+	if creds.OAuth2.ClientID == "" {
 		return fmt.Errorf(
-			"credentials missing client_id or client_secret — run 'moltnet register'",
+			"credentials missing client_id — run 'moltnet register'",
 		)
 	}
+	secretProviders := NewSecretProviderRegistry()
+	clientSecret, err := resolveOAuth2Secret(creds, secretProviders)
+	if err != nil {
+		return fmt.Errorf("resolve OAuth2 client secret: %w", err)
+	}
+	opts.secretReference = creds.OAuth2.ClientSecretRef
+	opts.secretProviders = secretProviders
 	opts.apiURL = resolveAPIURLFromCredentials(
 		opts.apiURL,
 		opts.apiURLExplicit,
@@ -80,7 +89,7 @@ func runAgentsCredentialsRotateCmd(opts agentsCredentialsRotateOpts) error {
 	tm := NewTokenManager(
 		opts.apiURL,
 		creds.OAuth2.ClientID,
-		creds.OAuth2.ClientSecret,
+		clientSecret,
 	)
 	client, err := newBearerClient(
 		opts.apiURL,
@@ -152,6 +161,22 @@ func runAgentsCredentialsRotateWithClient(
 		output.ClientSecret = rotated.ClientSecret
 		if err := printJSONTo(opts.out, output); err != nil {
 			return emitCredentialsRecoveryFile(opts, output)
+		}
+		return nil
+	}
+	if opts.secretReference != nil {
+		if err := opts.secretProviders.Store(*opts.secretReference, rotated.ClientSecret); err != nil {
+			return emitCredentialsRecovery(opts, output, rotated.ClientSecret)
+		}
+		output.CredentialsUpdated = true
+		if opts.showSecret {
+			output.ClientSecret = rotated.ClientSecret
+		}
+		if err := printJSONTo(opts.out, output); err != nil {
+			return err
+		}
+		if opts.errOut != nil {
+			fmt.Fprintln(opts.errOut, "Updated the referenced OAuth2 secret. Restart active agent processes.")
 		}
 		return nil
 	}
