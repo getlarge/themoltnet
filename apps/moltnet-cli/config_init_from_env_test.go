@@ -187,12 +187,14 @@ func TestConfigInitFromEnvWithEnvFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	root := NewRootCmd("test", "")
-	_, _, err := executeCommand(root, "config", "init-from-env",
-		"--agent", "file-agent",
-		"--dir", tmpDir,
-		"--skip-git",
-		"--env-file", envFilePath,
+	registry, provider := newMemorySecretProviderRegistry()
+	err := runConfigInitFromEnvCmdWithRegistry(
+		tmpDir,
+		"file-agent",
+		true,
+		envFilePath,
+		false,
+		registry,
 	)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -215,6 +217,18 @@ func TestConfigInitFromEnvWithEnvFile(t *testing.T) {
 	}
 	if config.OAuth2.ClientID != "file-client-id" {
 		t.Errorf("expected client_id 'file-client-id', got %q", config.OAuth2.ClientID)
+	}
+	key := OAuth2SecretKey("file-identity-456", "file-client-id")
+	if config.OAuth2.ClientSecretRef == nil ||
+		config.OAuth2.ClientSecretRef.Provider != osKeyringProviderName ||
+		config.OAuth2.ClientSecretRef.Key != key {
+		t.Fatalf("unexpected secret reference: %#v", config.OAuth2.ClientSecretRef)
+	}
+	if provider.values[key] != "file-client-secret" {
+		t.Fatal("env-file secret was not persisted to the secret provider")
+	}
+	if secret, err := resolveOAuth2Secret(&config, registry); err != nil || secret != "file-client-secret" {
+		t.Fatalf("resolve persisted env-file secret = %q, %v", secret, err)
 	}
 	if config.Endpoints.API != "https://api.file.example.com" {
 		t.Errorf("expected API URL 'https://api.file.example.com', got %q", config.Endpoints.API)
@@ -302,13 +316,14 @@ func TestConfigInitFromEnvFileOverride(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	root := NewRootCmd("test", "")
-	_, _, err := executeCommand(root, "config", "init-from-env",
-		"--agent", "override-agent",
-		"--dir", tmpDir,
-		"--skip-git",
-		"--env-file", envFilePath,
-		"--override",
+	registry, provider := newMemorySecretProviderRegistry()
+	err := runConfigInitFromEnvCmdWithRegistry(
+		tmpDir,
+		"override-agent",
+		true,
+		envFilePath,
+		true,
+		registry,
 	)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -331,6 +346,10 @@ func TestConfigInitFromEnvFileOverride(t *testing.T) {
 	}
 	if config.OAuth2.ClientID != "file-client-id-wins" {
 		t.Errorf("expected file env to win with --override, got client_id %q", config.OAuth2.ClientID)
+	}
+	key := OAuth2SecretKey("file-identity-wins", "file-client-id-wins")
+	if provider.values[key] != "file-client-secret" {
+		t.Fatal("overridden env-file secret was not persisted to the secret provider")
 	}
 }
 
@@ -372,12 +391,14 @@ func TestConfigInitFromEnvFilePartialWithProcessEnv(t *testing.T) {
 	t.Setenv("MOLTNET_PRIVATE_KEY", testPrivateKey)
 	t.Setenv("MOLTNET_FINGERPRINT", "SHA256:processfingerprint")
 
-	root := NewRootCmd("test", "")
-	_, _, err := executeCommand(root, "config", "init-from-env",
-		"--agent", "partial-agent",
-		"--dir", tmpDir,
-		"--skip-git",
-		"--env-file", envFilePath,
+	registry, provider := newMemorySecretProviderRegistry()
+	err := runConfigInitFromEnvCmdWithRegistry(
+		tmpDir,
+		"partial-agent",
+		true,
+		envFilePath,
+		false,
+		registry,
 	)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -401,6 +422,10 @@ func TestConfigInitFromEnvFilePartialWithProcessEnv(t *testing.T) {
 	// Process vars
 	if config.Keys.Fingerprint != "SHA256:processfingerprint" {
 		t.Errorf("expected 'SHA256:processfingerprint', got %q", config.Keys.Fingerprint)
+	}
+	key := OAuth2SecretKey("file-identity", "file-client-id")
+	if provider.values[key] != "file-client-secret" {
+		t.Fatal("partial env-file secret was not persisted to the secret provider")
 	}
 }
 

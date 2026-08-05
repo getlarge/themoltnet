@@ -55,6 +55,23 @@ func normalizePEMEnvValue(raw string) string {
 // from environment variables. Designed for ephemeral CI/cloud environments
 // (e.g. Claude Code web) where legreffier init cannot run interactively.
 func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool, envFile string, override bool) error {
+	return runConfigInitFromEnvCmdWithRegistry(
+		dir,
+		agentName,
+		skipGit,
+		envFile,
+		override,
+		NewSecretProviderRegistry(),
+	)
+}
+
+func runConfigInitFromEnvCmdWithRegistry(
+	dir, agentName string,
+	skipGit bool,
+	envFile string,
+	override bool,
+	secretProviders *SecretProviderRegistry,
+) error {
 	// Read env file without mutating the process environment.
 	var fileVars map[string]string
 	if envFile != "" {
@@ -132,15 +149,26 @@ func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool, envFile string
 		return fmt.Errorf("create agent dir: %w", err)
 	}
 
+	secretReference := &SecretReference{
+		Provider: environmentProviderName,
+		Key:      environmentSecretKey,
+	}
+	if valueComesFromFile(environmentSecretKey, fileVars, override) {
+		secretReference = &SecretReference{
+			Provider: osKeyringProviderName,
+			Key:      OAuth2SecretKey(identityID, clientID),
+		}
+		if err := secretProviders.Store(*secretReference, clientSecret); err != nil {
+			return fmt.Errorf("persist env-file OAuth2 client secret: %w", err)
+		}
+	}
+
 	// Build config
 	config := &CredentialsFile{
 		IdentityID: identityID,
 		OAuth2: CredentialsOAuth2{
 			ClientID: clientID,
-			ClientSecretRef: &SecretReference{
-				Provider: environmentProviderName,
-				Key:      "MOLTNET_CLIENT_SECRET",
-			},
+			ClientSecretRef: secretReference,
 		},
 		Keys: CredentialsKeys{
 			PublicKey:   publicKey,
@@ -214,6 +242,13 @@ func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool, envFile string
 
 	fmt.Fprintf(os.Stderr, "Agent %q initialized from environment variables\n", agentName)
 	return nil
+}
+
+func valueComesFromFile(key string, fileVars map[string]string, override bool) bool {
+	if _, ok := fileVars[key]; !ok {
+		return false
+	}
+	return override || os.Getenv(key) == ""
 }
 
 // shellQuote escapes a value for single-quoted shell strings by replacing

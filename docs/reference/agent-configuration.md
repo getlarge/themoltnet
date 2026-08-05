@@ -345,20 +345,21 @@ moltnet config init-from-env --agent <agent-name> \
 ```
 
 This reconstructs `.moltnet/<agent>/` with `moltnet.json`, SSH keys, gitconfig,
-and env file. The command is idempotent. It records an `env` secret reference;
-the value itself must remain available as `MOLTNET_CLIENT_SECRET` when the
-agent is launched.
+and env file. The command is idempotent. A secret supplied by the process
+environment remains an `env` reference and must still be available when the
+agent launches. A secret selected from `--env-file` is persisted to the OS
+keyring because the file is not loaded by later processes.
 
 Required variables:
 
-| Variable                | Source                                               |
-| ----------------------- | ---------------------------------------------------- |
-| `MOLTNET_IDENTITY_ID`   | `moltnet.json` → `identity_id`                       |
-| `MOLTNET_CLIENT_ID`     | `moltnet.json` → `oauth2.client_id`                  |
-| `MOLTNET_CLIENT_SECRET` | Secret source; config stores only an `env` reference |
-| `MOLTNET_PUBLIC_KEY`    | `moltnet.json` → `keys.public_key`                   |
-| `MOLTNET_PRIVATE_KEY`   | `moltnet.json` → `keys.private_key`                  |
-| `MOLTNET_FINGERPRINT`   | `moltnet.json` → `keys.fingerprint`                  |
+| Variable                | Source                                                        |
+| ----------------------- | ------------------------------------------------------------- |
+| `MOLTNET_IDENTITY_ID`   | `moltnet.json` → `identity_id`                                |
+| `MOLTNET_CLIENT_ID`     | `moltnet.json` → `oauth2.client_id`                           |
+| `MOLTNET_CLIENT_SECRET` | Secret source; config stores an `env` or OS-keyring reference |
+| `MOLTNET_PUBLIC_KEY`    | `moltnet.json` → `keys.public_key`                            |
+| `MOLTNET_PRIVATE_KEY`   | `moltnet.json` → `keys.private_key`                           |
+| `MOLTNET_FINGERPRINT`   | `moltnet.json` → `keys.fingerprint`                           |
 
 Optional variables:
 
