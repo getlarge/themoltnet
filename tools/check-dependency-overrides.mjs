@@ -36,24 +36,50 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 /** Files a resolution needs: the lockfile, workspace config, and manifests. */
 const ROOT_FILES = ['pnpm-workspace.yaml', 'pnpm-lock.yaml', '.npmrc'];
 
+function pnpmOptions(cwd) {
+  return {
+    cwd,
+    maxBuffer: 64 * 1024 * 1024,
+    env: { ...process.env, NX_LOAD_DOT_ENV_FILES: 'false' },
+  };
+}
+
+/** Runs pnpm and fails loudly — for `install`, where non-zero means broken. */
+async function runPnpmStrict(args, cwd) {
+  const { stdout } = await execFileAsync('pnpm', args, pnpmOptions(cwd));
+  return stdout;
+}
+
 /**
- * `pnpm audit` exits non-zero when it finds anything, which is the normal case
- * here — we are asking *what* it finds, not whether the tree is clean.
+ * Runs `pnpm audit`, which exits non-zero whenever it finds anything — the
+ * normal case here, since we are asking *what* it finds.
+ *
+ * The parsed report is shape-checked before being returned. A failed audit
+ * still prints something on stdout, and an unparsed or empty report would read
+ * as "no advisories" — making every override look dead and this check produce
+ * a confident, wrong verdict on nothing worse than a registry blip.
  */
-async function runPnpm(args, cwd) {
+async function runPnpmAudit(args, cwd) {
+  let stdout;
   try {
-    const { stdout } = await execFileAsync('pnpm', args, {
-      cwd,
-      maxBuffer: 64 * 1024 * 1024,
-      env: { ...process.env, NX_LOAD_DOT_ENV_FILES: 'false' },
-    });
-    return stdout;
+    ({ stdout } = await execFileAsync('pnpm', args, pnpmOptions(cwd)));
   } catch (error) {
-    if (typeof error.stdout === 'string' && error.stdout.length > 0) {
-      return error.stdout;
-    }
-    throw error;
+    stdout = typeof error.stdout === 'string' ? error.stdout : '';
+    if (stdout.length === 0) throw error;
   }
+
+  let report;
+  try {
+    report = JSON.parse(stdout);
+  } catch {
+    throw new Error(`pnpm audit did not return JSON: ${stdout.slice(0, 200)}`);
+  }
+  if (typeof report.metadata?.vulnerabilities !== 'object') {
+    throw new Error(
+      'pnpm audit returned a report without vulnerability counts',
+    );
+  }
+  return report;
 }
 
 /**
@@ -166,9 +192,12 @@ async function auditWithoutOverrides() {
   });
   try {
     // Re-resolve: without the overrides the lockfile no longer matches.
-    await runPnpm(['install', '--lockfile-only', '--ignore-scripts'], dir);
+    await runPnpmStrict(
+      ['install', '--lockfile-only', '--ignore-scripts'],
+      dir,
+    );
     return {
-      report: JSON.parse(await runPnpm(['audit', '--prod', '--json'], dir)),
+      report: await runPnpmAudit(['audit', '--prod', '--json'], dir),
       versions: countVersions(
         await readFile(join(dir, 'pnpm-lock.yaml'), 'utf8'),
       ),
@@ -184,7 +213,7 @@ async function auditAsShipped() {
   const dir = await stageWorkspace(dropIgnores);
   try {
     return {
-      report: JSON.parse(await runPnpm(['audit', '--prod', '--json'], dir)),
+      report: await runPnpmAudit(['audit', '--prod', '--json'], dir),
     };
   } finally {
     await rm(dir, { recursive: true, force: true });
@@ -265,10 +294,22 @@ async function main() {
    */
   const keepUnused = manifest.dependencyOverridePolicy?.keepUnused ?? {};
 
-  const [withoutOverrides, asShipped] = await Promise.all([
-    auditWithoutOverrides(),
-    auditAsShipped(),
-  ]);
+  // Resolving reaches the registry. Because this check blocks merges, a
+  // network blip must not read as "your overrides are wrong" — exit 2 says
+  // "could not answer", which the workflow treats as neutral rather than
+  // failing the PR.
+  let withoutOverrides;
+  let asShipped;
+  try {
+    [withoutOverrides, asShipped] = await Promise.all([
+      auditWithoutOverrides(),
+      auditAsShipped(),
+    ]);
+  } catch (error) {
+    console.error(`Could not resolve the workspace: ${error.message}`);
+    process.exitCode = 2;
+    return;
+  }
 
   const shippedVersions = countVersions(
     await readFile(join(REPO_ROOT, 'pnpm-lock.yaml'), 'utf8'),
