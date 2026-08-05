@@ -1,5 +1,3 @@
-import './formats.js';
-
 import type { TSchema } from 'typebox';
 import { Value } from 'typebox/value';
 
