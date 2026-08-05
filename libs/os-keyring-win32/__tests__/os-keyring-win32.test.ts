@@ -5,9 +5,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import keyringConformance from '../../../testdata/keyring-conformance.json';
 
-const spawnMock = vi.hoisted(() => vi.fn());
+const { createServerMock, spawnMock } = vi.hoisted(() => ({
+  createServerMock: vi.fn(),
+  spawnMock: vi.fn(),
+}));
 
 vi.mock('node:child_process', () => ({ spawn: spawnMock }));
+vi.mock('node:net', () => ({ createServer: createServerMock }));
 
 import {
   createPlatformKeyringSecretProvider,
@@ -30,9 +34,44 @@ function fakeChild() {
   return child;
 }
 
+let pipeInput = '';
+let listenedPipePath = '';
+
+function configureFakePipeServer(): void {
+  createServerMock.mockImplementation(
+    (connectionListener: (socket: PassThrough) => void) => {
+      const server = new EventEmitter() as EventEmitter & {
+        listening: boolean;
+        listen: ReturnType<typeof vi.fn>;
+        close: ReturnType<typeof vi.fn>;
+      };
+      server.listening = false;
+      server.close = vi.fn(() => {
+        server.listening = false;
+        return server;
+      });
+      server.listen = vi.fn((path: string, listeningListener: () => void) => {
+        listenedPipePath = path;
+        server.listening = true;
+        listeningListener();
+        const socket = new PassThrough();
+        socket.on('data', (chunk) => {
+          pipeInput += chunk.toString();
+        });
+        connectionListener(socket);
+        return server;
+      });
+      return server;
+    },
+  );
+}
+
 describe('Windows keyring provider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    pipeInput = '';
+    listenedPipePath = '';
+    configureFakePipeServer();
   });
 
   it('uses Go-compatible raw bytes and target', async () => {
@@ -58,26 +97,28 @@ describe('Windows keyring provider', () => {
     );
   });
 
-  it('passes the script and JSON request through stdin', async () => {
+  it('passes the JSON request through an opaque named pipe', async () => {
     const child = fakeChild();
     spawnMock.mockReturnValue(child);
-    let stdin = '';
-    child.stdin.on('data', (chunk) => {
-      stdin += chunk.toString();
-    });
     const result = createWindowsCredentialStore().read('themolt.net:key');
     child.stdout.write('{"found":false}');
     child.emit('close', 0);
 
     await expect(result).resolves.toBeNull();
-    const [encodedScript, request, trailing] = stdin.split('\n');
-    expect(encodedScript).toBeTruthy();
-    expect(Buffer.from(encodedScript, 'base64').toString('utf8')).toContain(
-      '[Console]::In.ReadLine() | ConvertFrom-Json',
+    expect(listenedPipePath).toMatch(
+      /^\\\\\.\\pipe\\moltnet-keyring-[0-9a-f-]+$/,
     );
-    expect(request).toBe('{"operation":"read","target":"themolt.net:key"}');
-    expect(trailing).toBe('');
-    expect(spawnMock.mock.calls[0]?.[1]).not.toContain(encodedScript);
+    expect(pipeInput).toBe('{"operation":"read","target":"themolt.net:key"}\n');
+    expect(JSON.stringify(spawnMock.mock.calls[0])).not.toContain(
+      'themolt.net:key',
+    );
+    const powershellArgs = spawnMock.mock.calls[0]?.[1] as string[];
+    expect(powershellArgs).toContain('-EncodedCommand');
+    const encodedScript = powershellArgs.at(-1);
+    expect(typeof encodedScript).toBe('string');
+    expect(
+      Buffer.from(encodedScript ?? '', 'base64').toString('utf16le'),
+    ).toContain('NamedPipeClientStream');
   });
 
   it('uses the absolute system PowerShell with a controlled environment', async () => {
@@ -92,11 +133,14 @@ describe('Windows keyring provider', () => {
       WINDOWS_POWERSHELL_PATH,
       expect.any(Array),
       expect.objectContaining({
-        env: {
+        env: expect.objectContaining({
           ComSpec: 'C:\\Windows\\System32\\cmd.exe',
+          MOLTNET_KEYRING_PIPE: expect.stringMatching(
+            /^moltnet-keyring-[0-9a-f-]+$/,
+          ),
           SystemRoot: 'C:\\Windows',
           WINDIR: 'C:\\Windows',
-        },
+        }),
       }),
     );
   });
