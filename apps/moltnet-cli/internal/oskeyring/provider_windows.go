@@ -28,6 +28,7 @@ func Set(service, key, value string) error {
 	credential := wincred.NewGenericCredential(target(service, key))
 	credential.UserName = key
 	credential.CredentialBlob = []byte(value)
+	credential.Persist = wincred.PersistEnterprise
 	return credential.Write()
 }
 

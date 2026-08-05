@@ -34,7 +34,7 @@
     "build": "tsc -b",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package .",
     "test": "vitest run --passWithNoTests",
-    "test-native": "go test ../../apps/moltnet-cli/testdata/keyring-interop && vitest run __tests__/os-keyring.native.test.ts"
+    "test-native": "node scripts/smoke-packed-consumer.mjs && go test ../../apps/moltnet-cli/testdata/keyring-interop && vitest run __tests__/os-keyring.native.test.ts"
   },
   "optionalDependencies": {
     "@themoltnet/os-keyring-darwin": "workspace:*",

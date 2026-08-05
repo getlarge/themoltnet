@@ -1,6 +1,20 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createPlatformKeyringSecretProvider } from '../src/index.js';
+const dbus = vi.hoisted(() => ({
+  disconnect: vi.fn(),
+  getProxyObject: vi.fn(() => new Promise(() => {})),
+}));
+
+vi.mock('@jellybrick/dbus-next', () => ({
+  sessionBus: () => dbus,
+  Variant: class {},
+}));
+
+import {
+  createLinuxSecretStore,
+  createPlatformKeyringSecretProvider,
+  LinuxSecretServiceTimeoutError,
+} from '../src/index.js';
 
 describe('Linux keyring provider', () => {
   it('uses the stable Secret Service name', async () => {
@@ -32,5 +46,18 @@ describe('Linux keyring provider', () => {
     });
 
     await expect(provider.read('key')).rejects.toThrow(/unavailable/);
+  });
+
+  it('times out and disconnects when Secret Service does not respond', async () => {
+    vi.useFakeTimers();
+    const result = expect(
+      createLinuxSecretStore().read('themolt.net', 'key'),
+    ).rejects.toBeInstanceOf(LinuxSecretServiceTimeoutError);
+
+    await vi.advanceTimersByTimeAsync(30_000);
+
+    await result;
+    expect(dbus.disconnect).toHaveBeenCalledOnce();
+    vi.useRealTimers();
   });
 });
