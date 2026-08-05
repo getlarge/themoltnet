@@ -666,7 +666,9 @@ jobs:
   audit:
     name: Dependency Audit
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # The override-hygiene step re-resolves the workspace, which needs more
+    # headroom than a bare audit.
+    timeout-minutes: 10
     continue-on-error: true
     permissions:
       contents: read
@@ -693,6 +695,15 @@ jobs:
             echo "AUDIT_EOF"
           } >> "$GITHUB_OUTPUT"
           pnpm audit --prod --json > audit-report.json 2>&1 || true
+      # A clean audit says nothing about whether the overrides that produced it
+      # are still needed. This re-resolves without them to find entries that
+      # have quietly stopped doing anything, so the block cannot only grow.
+      - name: Check override hygiene
+        id: overrides
+        run: |
+          set +e
+          node tools/check-dependency-overrides.mjs --markdown override-hygiene.md
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
       - name: Comment on PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v8
@@ -701,6 +712,7 @@ jobs:
           AUDIT_OUTPUT: ${{ steps.audit.outputs.output }}
         with:
           script: |
+            const fs = require('fs');
             const marker = '<!-- audit-report -->';
             const exitCode = process.env.AUDIT_EXIT_CODE;
             const output = process.env.AUDIT_OUTPUT;
@@ -722,6 +734,13 @@ jobs:
                 '',
                 '</details>',
               ].join('\n');
+            }
+
+            // Same comment, second section: a green audit and a tidy override
+            // block are different questions and both belong in front of the
+            // author.
+            if (fs.existsSync('override-hygiene.md')) {
+              body += `\n\n---\n\n${fs.readFileSync('override-hygiene.md', 'utf8')}`;
             }
 
             const { data: comments } = await github.rest.issues.listComments({
