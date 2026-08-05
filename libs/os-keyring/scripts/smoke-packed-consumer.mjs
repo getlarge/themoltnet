@@ -26,9 +26,13 @@ function run(command, args, cwd) {
     cwd,
     encoding: 'utf8',
     env: process.env,
+    shell: process.platform === 'win32' && command.endsWith('.cmd'),
   });
-  if (result.status !== 0) {
-    throw new Error(`${command} failed:\n${result.stdout}${result.stderr}`);
+  if (result.error || result.status !== 0) {
+    const details = [result.error?.message, result.stdout, result.stderr]
+      .filter(Boolean)
+      .join('\n');
+    throw new Error(`${command} failed:\n${details}`);
   }
   return result.stdout.trim();
 }
