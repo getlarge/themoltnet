@@ -1,4 +1,6 @@
 import { spawn } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
+import { createServer } from 'node:net';
 
 const WINDOWS_DIRECTORY = 'C:\\Windows';
 export const WINDOWS_POWERSHELL_PATH =
@@ -107,7 +109,25 @@ public static class MoltNetCredentialManager {
 }
 '@
 
-$request = [Console]::In.ReadLine() | ConvertFrom-Json
+$pipe = [System.IO.Pipes.NamedPipeClientStream]::new(
+  '.',
+  $env:MOLTNET_KEYRING_PIPE,
+  [System.IO.Pipes.PipeDirection]::In
+)
+$pipe.Connect(5000)
+$reader = [System.IO.StreamReader]::new(
+  $pipe,
+  [System.Text.Encoding]::UTF8,
+  $false,
+  1024,
+  $true
+)
+try {
+  $request = $reader.ReadLine() | ConvertFrom-Json
+} finally {
+  $reader.Dispose()
+  $pipe.Dispose()
+}
 $response = switch ($request.operation) {
   'read' {
     $value = [MoltNetCredentialManager]::Read($request.target)
@@ -133,39 +153,25 @@ $response | ConvertTo-Json -Compress
 
 const encodedWindowsCredentialScript = Buffer.from(
   WINDOWS_CREDENTIAL_SCRIPT,
-  'utf8',
+  'utf16le',
 ).toString('base64');
-
-const WINDOWS_POWERSHELL_STDIN_BOOTSTRAP =
-  '$script = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String([Console]::In.ReadLine())); & ([ScriptBlock]::Create($script))';
 
 async function runWindowsCredentialRequest(
   request: WindowsCredentialRequest,
 ): Promise<WindowsCredentialResponse> {
   return new Promise((resolve, reject) => {
-    const child = spawn(
-      WINDOWS_POWERSHELL_PATH,
-      [
-        '-NoLogo',
-        '-NoProfile',
-        '-NonInteractive',
-        '-Command',
-        WINDOWS_POWERSHELL_STDIN_BOOTSTRAP,
-      ],
-      {
-        stdio: ['pipe', 'pipe', 'pipe'],
-        windowsHide: true,
-        env: {
-          ComSpec: `${WINDOWS_DIRECTORY}\\System32\\cmd.exe`,
-          SystemRoot: WINDOWS_DIRECTORY,
-          WINDIR: WINDOWS_DIRECTORY,
-        },
-      },
-    );
+    const pipeName = `moltnet-keyring-${randomUUID()}`;
+    const pipePath = `\\\\.\\pipe\\${pipeName}`;
+    let child: ReturnType<typeof spawn> | undefined;
     const stdout: Buffer[] = [];
     const stderr: Buffer[] = [];
     let outputBytes = 0;
     let settled = false;
+    const server = createServer((socket) => {
+      server.close();
+      socket.on('error', (error) => fail(error));
+      socket.end(`${JSON.stringify(request)}\n`);
+    });
     const timeout = setTimeout(() => {
       fail(
         new Error(
@@ -177,7 +183,8 @@ async function runWindowsCredentialRequest(
       if (settled) return;
       settled = true;
       clearTimeout(timeout);
-      child.kill();
+      if (server.listening) server.close();
+      child?.kill();
       reject(error);
     };
     const capture = (target: Buffer[], chunk: Buffer): void => {
@@ -192,45 +199,66 @@ async function runWindowsCredentialRequest(
       }
       target.push(chunk);
     };
-    child.stdout.on('data', (chunk: Buffer) => capture(stdout, chunk));
-    child.stderr.on('data', (chunk: Buffer) => capture(stderr, chunk));
-    child.on('error', (error) => fail(error));
-    child.on('close', (code) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timeout);
-      if (code !== 0) {
-        reject(
-          new Error(
-            `Windows Credential Manager operation failed: ${Buffer.concat(stderr).toString('utf8').trim() || `exit ${code}`}`,
-          ),
-        );
+    server.on('error', (error) => fail(error));
+    server.listen(pipePath, () => {
+      const spawnedChild = spawn(
+        WINDOWS_POWERSHELL_PATH,
+        [
+          '-NoLogo',
+          '-NoProfile',
+          '-NonInteractive',
+          '-EncodedCommand',
+          encodedWindowsCredentialScript,
+        ],
+        {
+          stdio: ['ignore', 'pipe', 'pipe'],
+          windowsHide: true,
+          env: {
+            ComSpec: `${WINDOWS_DIRECTORY}\\System32\\cmd.exe`,
+            MOLTNET_KEYRING_PIPE: pipeName,
+            SystemRoot: WINDOWS_DIRECTORY,
+            WINDIR: WINDOWS_DIRECTORY,
+          },
+        },
+      );
+      child = spawnedChild;
+      if (!spawnedChild.stdout || !spawnedChild.stderr) {
+        fail(new Error('Windows Credential Manager process has no output'));
         return;
       }
-      try {
-        const parsed: unknown = JSON.parse(
-          Buffer.concat(stdout).toString('utf8'),
-        );
-        if (!parsed || typeof parsed !== 'object') {
-          throw new Error('response must be an object');
+      spawnedChild.stdout.on('data', (chunk: Buffer) => capture(stdout, chunk));
+      spawnedChild.stderr.on('data', (chunk: Buffer) => capture(stderr, chunk));
+      spawnedChild.on('error', (error) => fail(error));
+      spawnedChild.on('close', (code) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
+        if (server.listening) server.close();
+        if (code !== 0) {
+          reject(
+            new Error(
+              `Windows Credential Manager operation failed: ${Buffer.concat(stderr).toString('utf8').trim() || `exit ${code}`}`,
+            ),
+          );
+          return;
         }
-        resolve(parsed as WindowsCredentialResponse);
-      } catch (error) {
-        reject(
-          new Error('Windows Credential Manager returned invalid JSON', {
-            cause: error,
-          }),
-        );
-      }
+        try {
+          const parsed: unknown = JSON.parse(
+            Buffer.concat(stdout).toString('utf8'),
+          );
+          if (!parsed || typeof parsed !== 'object') {
+            throw new Error('response must be an object');
+          }
+          resolve(parsed as WindowsCredentialResponse);
+        } catch (error) {
+          reject(
+            new Error('Windows Credential Manager returned invalid JSON', {
+              cause: error,
+            }),
+          );
+        }
+      });
     });
-    child.stdin.on('error', (error) => fail(error));
-    // Keep both the implementation and the credential request off the process
-    // command line. In particular, Windows PowerShell may reserve stdin while
-    // evaluating -EncodedCommand; a tiny static bootstrap leaves stdin under
-    // our control and reads the script followed by its newline-framed request.
-    child.stdin.end(
-      `${encodedWindowsCredentialScript}\n${JSON.stringify(request)}\n`,
-    );
   });
 }
 
