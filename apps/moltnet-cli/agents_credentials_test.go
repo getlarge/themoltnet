@@ -179,9 +179,10 @@ func TestAgentsCredentialsRotateRejectsIncompleteLocalCredentialsBeforeNetwork(
 		name         string
 		clientID     string
 		clientSecret string
+		wantError    string
 	}{
-		{name: "missing client ID", clientSecret: testOldClientSecret},
-		{name: "missing client secret", clientID: "client-id"},
+		{name: "missing client ID", clientSecret: testOldClientSecret, wantError: "missing client_id"},
+		{name: "missing client secret", clientID: "client-id", wantError: "exactly one"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -211,8 +212,7 @@ func TestAgentsCredentialsRotateRejectsIncompleteLocalCredentialsBeforeNetwork(
 				"--yes",
 			)
 
-			if err == nil ||
-				!strings.Contains(err.Error(), "missing client_id or client_secret") {
+			if err == nil || !strings.Contains(err.Error(), tt.wantError) {
 				t.Fatalf("error = %v, want incomplete credentials error", err)
 			}
 		})
@@ -455,6 +455,57 @@ func TestAgentsCredentialsRotatePersistenceFailureEmitsRecoveryJSON(t *testing.T
 		output.ClientSecret != testNewClientSecret ||
 		output.CredentialsPath != "/safe/path/moltnet.json" {
 		t.Fatalf("unexpected recovery output: %#v", output)
+	}
+}
+
+func TestAgentsCredentialsRotateUpdatesReferencedSecret(t *testing.T) {
+	var rotateCalls atomic.Int32
+	server := newCredentialsRotationServer(t, &rotateCalls, "client-id")
+	defer server.Close()
+	client, err := newBearerClient(
+		server.URL,
+		func(_ context.Context) (string, error) { return "access-token", nil },
+		server.Client(),
+	)
+	if err != nil {
+		t.Fatalf("create client: %v", err)
+	}
+	key := OAuth2SecretKey("identity-id", "client-id")
+	ref := SecretReference{Provider: osKeyringProviderName, Key: key}
+	registry, provider := newMemorySecretProviderRegistry()
+	provider.values[key] = testOldClientSecret
+	document := map[string]json.RawMessage{
+		"oauth2": json.RawMessage(
+			`{"client_id":"client-id","client_secret_ref":{"provider":"os-keyring","key":"oauth2/identity-id/client-id"}}`,
+		),
+	}
+	var stdout bytes.Buffer
+
+	err = runAgentsCredentialsRotateWithClient(
+		context.Background(),
+		client,
+		"/safe/path/moltnet.json",
+		document,
+		"client-id",
+		agentsCredentialsRotateOpts{
+			out:               &stdout,
+			secretReference:   &ref,
+			secretProviders:   registry,
+			writeCredentials: func(_ string, _ []byte) error {
+				t.Fatal("referenced rotation rewrote the credentials file")
+				return nil
+			},
+		},
+	)
+
+	if err != nil {
+		t.Fatalf("rotate referenced secret: %v", err)
+	}
+	if provider.values[key] != testNewClientSecret {
+		t.Fatalf("stored secret = %q, want rotated secret", provider.values[key])
+	}
+	if strings.Contains(stdout.String(), testNewClientSecret) {
+		t.Fatal("rotated secret leaked to stdout")
 	}
 }
 
