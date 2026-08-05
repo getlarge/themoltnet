@@ -21,7 +21,9 @@
  */
 
 import * as core from '@actions/core';
-import type { GitHub } from '@actions/github/lib/utils.js';
+// Derived from the public entry point rather than '@actions/github/lib/utils.js':
+// v9 added an `exports` map that no longer exposes the ./lib/* subpaths.
+import type { getOctokit } from '@actions/github';
 import type { SuccessCriteria } from '@moltnet/tasks';
 import { type Agent, connect } from '@themoltnet/sdk';
 
@@ -29,7 +31,7 @@ import { createAssessTask, createTask } from './create-task.js';
 import { parseMention } from './parse-mention.js';
 import { resolveCorrelation } from './resolve-correlation.js';
 
-type Octokit = InstanceType<typeof GitHub>;
+type Octokit = ReturnType<typeof getOctokit>;
 
 interface IssueCommentContext {
   payload: {

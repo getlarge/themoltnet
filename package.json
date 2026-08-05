@@ -123,7 +123,7 @@
       "@isaacs/brace-expansion": ">=5.0.1",
       "brace-expansion@1": ">=1.1.13",
       "brace-expansion@2": ">=2.0.3",
-      "brace-expansion": ">=5.0.5",
+      "brace-expansion": ">=5.0.9",
       "picomatch": ">=4.0.4",
       "flatted": ">=3.4.2",
       "lodash": ">=4.18.1",
@@ -131,17 +131,33 @@
       "handlebars": ">=4.7.9",
       "rollup": ">=4.59.0",
       "yaml": ">=2.8.3",
-      "undici": ">=7.24.0",
+      "undici@7": ">=7.29.0 <8",
+      "undici@8": ">=8.9.0 <9",
       "defu": ">=6.1.5",
       "ajv@8": ">=8.18.0",
       "@anthropic-ai/sdk": ">=0.81.0",
       "bn.js": ">=4.12.3",
-      "tar": ">=7.5.11",
-      "hono": ">=4.12.7",
-      "@hono/node-server": ">=1.19.10",
+      "tar": ">=7.5.21",
+      "hono": ">=4.12.34",
+      "@hono/node-server": ">=2.0.10",
       "express-rate-limit": ">=8.2.2",
       "qs": ">=6.14.2",
-      "smol-toml": ">=1.6.1"
+      "smol-toml": ">=1.6.1",
+      "protobufjs@7": ">=7.6.5 <8",
+      "protobufjs@8": ">=8.6.6 <9",
+      "fast-jwt": ">=6.2.4 <7",
+      "fast-uri": ">=3.1.5 <4",
+      "find-my-way": ">=9.7.0 <10",
+      "ip-address": ">=10.3.1 <11",
+      "sharp": ">=0.35.0 <0.36",
+      "@opentelemetry/core": ">=2.8.0 <3",
+      "body-parser": ">=2.3.0 <3",
+      "uuid": ">=11.1.1 <12"
+    },
+    "auditConfig": {
+      "ignoreGhsas": [
+        "GHSA-848j-6mx2-7j84"
+      ]
     }
   },
   "engines": {
