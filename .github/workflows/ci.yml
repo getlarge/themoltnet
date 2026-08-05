@@ -743,27 +743,26 @@ jobs:
         id: audit
         run: |
           set +e
-          OUTPUT=$(pnpm audit --prod 2>&1)
+          pnpm audit --prod > audit-report.txt 2>&1
           EXIT_CODE=$?
           set -e
           echo "exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
-          {
-            echo "output<<AUDIT_EOF"
-            echo "$OUTPUT"
-            echo "AUDIT_EOF"
-          } >> "$GITHUB_OUTPUT"
           pnpm audit --prod --json > audit-report.json 2>&1 || true
       - name: Comment on PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v8
         env:
           AUDIT_EXIT_CODE: ${{ steps.audit.outputs.exit_code }}
-          AUDIT_OUTPUT: ${{ steps.audit.outputs.output }}
         with:
           script: |
+            const fs = require('node:fs');
             const marker = '<!-- audit-report -->';
             const exitCode = process.env.AUDIT_EXIT_CODE;
-            const output = process.env.AUDIT_OUTPUT;
+            const fullOutput = fs.readFileSync('audit-report.txt', 'utf8');
+            const maxCommentReportLength = 50_000;
+            const output = fullOutput.length > maxCommentReportLength
+              ? `${fullOutput.slice(0, maxCommentReportLength)}\n\n… Full report is available in the audit-report artifact.`
+              : fullOutput;
 
             let body;
             if (exitCode === '0') {
