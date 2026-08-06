@@ -4,9 +4,9 @@ package safefile
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"hash/fnv"
 	"io"
 	"os"
 	"path/filepath"
@@ -47,8 +47,9 @@ func AcquireNamed(namespace, resource string) (*Lock, error) {
 	if err := os.MkdirAll(lockDir, 0o700); err != nil {
 		return nil, fmt.Errorf("create lock directory: %w", err)
 	}
-	digest := sha256.Sum256([]byte(namespace + "\x00" + resource))
-	name := namespace + "-" + hex.EncodeToString(digest[:]) + ".lock"
+	digest := fnv.New128a()
+	_, _ = digest.Write([]byte(namespace + "\x00" + resource))
+	name := namespace + "-" + hex.EncodeToString(digest.Sum(nil)) + ".lock"
 	return acquire(filepath.Join(lockDir, name), namespace+":"+resource)
 }
 
