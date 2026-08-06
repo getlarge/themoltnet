@@ -1,5 +1,3 @@
-import './formats.js';
-
 export * from './async-validation.js';
 export * from './context.js';
 export * from './rubric.js';
