@@ -308,13 +308,16 @@ moltnet config migrate \
 ```
 
 Use `--dry-run` to print the redacted migration plan without changing the
-config. For a reviewable two-step flow, pass `--generate migrations.json`,
-inspect the mode-0600 plan, then apply it with `--run migrations.json`. Plans
-contain trusted migration IDs and descriptions, never executable commands or
-secret values, and are rejected if the credentials file changes after plan
-generation. The OAuth migration also removes the managed client-secret entry
-from the agent env file; client MCP configs continue to use their existing
-env-var references and receive the value from `moltnet start`.
+config. Each invocation applies at most one transition, so run the command
+again to remove the legacy managed client-secret entry from the agent env file.
+Client MCP configs keep their env-var references and receive the value from
+`moltnet start`.
+
+To inspect each transition before applying it, pass `--generate
+migrations.json`, inspect the mode-0600 plan, then apply it with `--run
+migrations.json`. Generate a new plan for the next transition. Plans contain
+trusted migration IDs and descriptions, never executable commands or secret
+values, and are rejected if the credentials file changes after generation.
 
 ## Ephemeral environments
 
