@@ -59,6 +59,10 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: '1.25'
+          cache-dependency-path: |
+            go.work.sum
+            apps/moltnet-cli/go.sum
+            libs/moltnet-api-client/go.sum
       - run: pnpm install --frozen-lockfile
       - name: Install Linux Secret Service
         if: runner.os == 'Linux'
