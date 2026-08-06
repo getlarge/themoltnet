@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/oskeyring"
+	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/safefile"
 )
 
 const (
@@ -70,17 +71,9 @@ func (r *SecretProviderRegistry) Register(name string, provider SecretProvider) 
 }
 
 func (r *SecretProviderRegistry) Resolve(ref SecretReference) (string, error) {
-	if r == nil {
-		return "", fmt.Errorf("secret provider registry is unavailable")
-	}
-	providerName := strings.TrimSpace(ref.Provider)
-	key := strings.TrimSpace(ref.Key)
-	if providerName == "" || key == "" {
-		return "", fmt.Errorf("secret reference requires provider and key")
-	}
-	provider, ok := r.providers[providerName]
-	if !ok {
-		return "", fmt.Errorf("secret provider %q is not registered", providerName)
+	providerName, key, provider, err := r.provider(ref)
+	if err != nil {
+		return "", err
 	}
 	value, err := provider.Get(key)
 	if err != nil {
@@ -93,41 +86,97 @@ func (r *SecretProviderRegistry) Resolve(ref SecretReference) (string, error) {
 }
 
 func (r *SecretProviderRegistry) Store(ref SecretReference, value string) error {
-	if r == nil {
-		return fmt.Errorf("secret provider registry is unavailable")
+	providerName, key, provider, err := r.provider(ref)
+	if err != nil {
+		return err
 	}
-	providerName := strings.TrimSpace(ref.Provider)
-	key := strings.TrimSpace(ref.Key)
-	if providerName == "" || key == "" || value == "" {
-		return fmt.Errorf("secret reference and value are required")
+	if value == "" {
+		return fmt.Errorf("secret value is required")
 	}
-	provider, ok := r.providers[providerName]
-	if !ok {
-		return fmt.Errorf("secret provider %q is not registered", providerName)
+	lock, err := safefile.AcquireNamed("secret-provider", providerName+"\x00"+key)
+	if err != nil {
+		return err
 	}
+	defer lock.Close()
 	if err := provider.Set(key, value); err != nil {
 		return fmt.Errorf("store secret with provider %q: %w", providerName, err)
 	}
 	return nil
 }
 
+// Ensure stores value only when the destination is absent, then verifies the
+// stored value while holding the provider/key lock. The returned changed flag
+// remains true when storage succeeded but verification failed.
+func (r *SecretProviderRegistry) Ensure(ref SecretReference, value string) (changed bool, err error) {
+	providerName, key, provider, err := r.provider(ref)
+	if err != nil {
+		return false, err
+	}
+	if value == "" {
+		return false, fmt.Errorf("secret value is required")
+	}
+	lock, err := safefile.AcquireNamed("secret-provider", providerName+"\x00"+key)
+	if err != nil {
+		return false, err
+	}
+	defer lock.Close()
+
+	existing, err := provider.Get(key)
+	if err == nil && existing == "" {
+		err = ErrSecretNotFound
+	}
+	switch {
+	case err == nil && existing == value:
+		return false, nil
+	case err == nil:
+		return false, fmt.Errorf("destination already contains a different secret")
+	case !errors.Is(err, ErrSecretNotFound):
+		return false, fmt.Errorf("inspect destination secret: %w", err)
+	}
+	if err := provider.Set(key, value); err != nil {
+		return false, fmt.Errorf("store destination secret: %w", err)
+	}
+	changed = true
+	verified, err := provider.Get(key)
+	if err != nil {
+		return true, fmt.Errorf("verify destination secret: %w", err)
+	}
+	if verified != value {
+		return true, fmt.Errorf("verify destination secret: stored value does not match")
+	}
+	return true, nil
+}
+
 func (r *SecretProviderRegistry) Delete(ref SecretReference) error {
-	if r == nil {
-		return fmt.Errorf("secret provider registry is unavailable")
+	providerName, key, provider, err := r.provider(ref)
+	if err != nil {
+		return err
 	}
-	providerName := strings.TrimSpace(ref.Provider)
-	key := strings.TrimSpace(ref.Key)
-	if providerName == "" || key == "" {
-		return fmt.Errorf("secret reference requires provider and key")
+	lock, err := safefile.AcquireNamed("secret-provider", providerName+"\x00"+key)
+	if err != nil {
+		return err
 	}
-	provider, ok := r.providers[providerName]
-	if !ok {
-		return fmt.Errorf("secret provider %q is not registered", providerName)
-	}
+	defer lock.Close()
 	if err := provider.Delete(key); err != nil && !errors.Is(err, ErrSecretNotFound) {
 		return fmt.Errorf("delete secret with provider %q: %w", providerName, err)
 	}
 	return nil
+}
+
+func (r *SecretProviderRegistry) provider(ref SecretReference) (string, string, SecretProvider, error) {
+	if r == nil {
+		return "", "", nil, fmt.Errorf("secret provider registry is unavailable")
+	}
+	providerName := strings.TrimSpace(ref.Provider)
+	key := strings.TrimSpace(ref.Key)
+	if providerName == "" || key == "" {
+		return "", "", nil, fmt.Errorf("secret reference requires provider and key")
+	}
+	provider, ok := r.providers[providerName]
+	if !ok {
+		return "", "", nil, fmt.Errorf("secret provider %q is not registered", providerName)
+	}
+	return providerName, key, provider, nil
 }
 
 // EnvironmentSecretProvider is a read-only provider for headless runtimes.

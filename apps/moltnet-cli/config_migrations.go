@@ -105,10 +105,12 @@ func runAndPrintConfigMigrationPlan(
 	}
 	if err != nil {
 		output.Failure = configmigrate.FailureFromError(plan, err)
+		output.ManualRecoveryRequired = output.Failure.ManualRecoveryRequired
+		output.Changed = output.Changed || output.Failure.Changed
 		if printErr := printJSONTo(w, output); printErr != nil {
-			return errors.Join(err, printErr)
+			return errors.Join(errors.New("configuration migration failed"), printErr)
 		}
-		return err
+		return errors.New(output.Failure.Message)
 	}
 	return printJSONTo(w, output)
 }

@@ -166,23 +166,59 @@ func TestEngineRejectsStaleAndSymlinkedCredentials(t *testing.T) {
 	})
 }
 
-func TestFailureFromErrorPreservesStageAndRollback(t *testing.T) {
+func TestFailureFromErrorPreservesSafeRecoveryState(t *testing.T) {
 	plan := Plan{Migrations: []PlannedMigration{{ID: "first"}}}
 	err := NewStageError(
 		"replace_credentials",
-		"secret-retained-source-changed",
-		true,
+		FailureState{Changed: true, ManualRecoveryRequired: true},
 		fmt.Errorf("provider included secret %q", "do-not-disclose"),
 	)
 
 	failure := FailureFromError(plan, err)
 
 	if failure.Migration != "first" || failure.Stage != "replace_credentials" ||
-		failure.Rollback != "secret-retained-source-changed" || !failure.Retryable {
+		failure.Retryable || !failure.Changed || !failure.ManualRecoveryRequired {
 		t.Fatalf("failure = %+v", failure)
 	}
 	if strings.Contains(failure.Message, "do-not-disclose") {
 		t.Fatalf("failure disclosed provider error: %+v", failure)
+	}
+}
+
+func TestReplaceCredentialsEnforcesUpdatedDocumentLimit(t *testing.T) {
+	for _, tt := range []struct {
+		name    string
+		updated string
+		wantErr bool
+	}{
+		{name: "exact limit", updated: "12345678"},
+		{name: "limit plus one", updated: "123456789", wantErr: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			path := writeState(t, "0")
+			migration := Migration[struct{}]{
+				ID:          "bounded",
+				Description: "bounded output",
+				Operations:  []string{"replace credentials"},
+				Applies:     func(Context) (bool, error) { return true, nil },
+				Run: func(ctx Context, _ struct{}) error {
+					return ctx.ReplaceCredentials([]byte(tt.updated))
+				},
+			}
+			engine := Engine[struct{}]{
+				GeneratedBy:    "moltnet@test",
+				MaxConfigBytes: 8,
+				Migrations:     []Migration[struct{}]{migration},
+			}
+			plan, err := engine.BuildPlan(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = engine.Apply(plan, struct{}{})
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("Apply() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
 	}
 }
 

@@ -309,14 +309,13 @@ func writeAgentEnvFile(agentDir, agentName string, config *CredentialsFile) erro
 
 	content := strings.Join(lines, "\n")
 	if existingEnv == nil {
-		err = writeFileAtomic(envPath, []byte(content), ".moltnet-env-*")
+		err = writeFileAtomic(envPath, []byte(content))
 	} else {
 		err = configmigrate.ReplaceRegularFileAtomic(
 			envPath,
 			existingEnv,
 			[]byte(content),
 			maxMigrationConfigBytes,
-			".moltnet-env-*",
 		)
 	}
 	if err != nil {

@@ -125,7 +125,7 @@ func runEnvConfigureCmd(cmd *cobra.Command, opts envConfigureOptions, changed fu
 	if hadTrailingNewline || result != "" {
 		result += "\n"
 	}
-	if err := writeFileAtomic(envPath, []byte(result), ".moltnet-env-*"); err != nil {
+	if err := writeFileAtomic(envPath, []byte(result)); err != nil {
 		return fmt.Errorf("write agent env: %w", err)
 	}
 
