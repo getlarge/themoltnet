@@ -95,10 +95,11 @@ usable with init-from-env --env-file.`,
 	migrateCmd := &cobra.Command{
 		Use:   "migrate",
 		Short: "Plan and apply configuration migrations",
-		Long: `Plan and apply ordered, state-aware MoltNet configuration migrations.
-Migration plans are redacted JSON bound to the exact credentials file content.
+		Long: `Plan and apply the next state-aware MoltNet configuration migration.
+Each redacted JSON plan is bound to the exact credentials file content and
+contains at most one transition. Run the command again to apply the next one.
 Use --generate to inspect a plan before applying it with --run.`,
-		Example: `  # Apply all migrations directly
+		Example: `  # Apply the next migration
   moltnet config migrate --credentials .moltnet/legreffier/moltnet.json
 
   # Print the redacted plan without changing anything
