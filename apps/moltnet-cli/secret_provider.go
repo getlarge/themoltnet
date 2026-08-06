@@ -19,6 +19,8 @@ const (
 
 var environmentSecretKeyPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
+var ErrSecretNotFound = errors.New("secret not found")
+
 // SecretReference identifies a secret without embedding its value in config.
 type SecretReference struct {
 	Provider string `json:"provider"`
@@ -85,7 +87,7 @@ func (r *SecretProviderRegistry) Resolve(ref SecretReference) (string, error) {
 		return "", fmt.Errorf("resolve secret reference with provider %q: %w", providerName, err)
 	}
 	if value == "" {
-		return "", fmt.Errorf("secret provider %q returned an empty value", providerName)
+		return "", fmt.Errorf("secret provider %q returned an empty value: %w", providerName, ErrSecretNotFound)
 	}
 	return value, nil
 }
@@ -109,6 +111,25 @@ func (r *SecretProviderRegistry) Store(ref SecretReference, value string) error 
 	return nil
 }
 
+func (r *SecretProviderRegistry) Delete(ref SecretReference) error {
+	if r == nil {
+		return fmt.Errorf("secret provider registry is unavailable")
+	}
+	providerName := strings.TrimSpace(ref.Provider)
+	key := strings.TrimSpace(ref.Key)
+	if providerName == "" || key == "" {
+		return fmt.Errorf("secret reference requires provider and key")
+	}
+	provider, ok := r.providers[providerName]
+	if !ok {
+		return fmt.Errorf("secret provider %q is not registered", providerName)
+	}
+	if err := provider.Delete(key); err != nil && !errors.Is(err, ErrSecretNotFound) {
+		return fmt.Errorf("delete secret with provider %q: %w", providerName, err)
+	}
+	return nil
+}
+
 // EnvironmentSecretProvider is a read-only provider for headless runtimes.
 // Reference keys are environment variable names, never secret values.
 type EnvironmentSecretProvider struct{}
@@ -119,7 +140,7 @@ func (EnvironmentSecretProvider) Get(key string) (string, error) {
 	}
 	value, ok := os.LookupEnv(key)
 	if !ok || value == "" {
-		return "", fmt.Errorf("environment variable %s is not set", key)
+		return "", fmt.Errorf("environment variable %s is not set: %w", key, ErrSecretNotFound)
 	}
 	return value, nil
 }
@@ -139,7 +160,7 @@ type OSKeyringSecretProvider struct{}
 func (OSKeyringSecretProvider) Get(key string) (string, error) {
 	value, err := oskeyring.Get(secretServiceName, key)
 	if errors.Is(err, oskeyring.ErrNotFound) {
-		return "", fmt.Errorf("secret not found")
+		return "", ErrSecretNotFound
 	}
 	return value, err
 }
