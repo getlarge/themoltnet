@@ -5,7 +5,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 )
 
 type keyringConformanceFixture struct {
@@ -52,6 +55,65 @@ func TestSecretProviderRegistryResolve(t *testing.T) {
 	}
 	if secret != "canary-secret" {
 		t.Fatalf("Resolve = %q, want canary secret", secret)
+	}
+}
+
+type concurrentEnsureProvider struct {
+	active    atomic.Int32
+	maxActive atomic.Int32
+	mu        sync.Mutex
+	value     string
+}
+
+func (p *concurrentEnsureProvider) enter() func() {
+	active := p.active.Add(1)
+	for current := p.maxActive.Load(); active > current && !p.maxActive.CompareAndSwap(current, active); current = p.maxActive.Load() {
+	}
+	time.Sleep(10 * time.Millisecond)
+	return func() { p.active.Add(-1) }
+}
+
+func (p *concurrentEnsureProvider) Get(string) (string, error) {
+	leave := p.enter()
+	defer leave()
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.value, nil
+}
+
+func (p *concurrentEnsureProvider) Set(_ string, value string) error {
+	leave := p.enter()
+	defer leave()
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.value = value
+	return nil
+}
+
+func (*concurrentEnsureProvider) Delete(string) error { return nil }
+
+func TestSecretProviderEnsureSerializesTheProviderKey(t *testing.T) {
+	provider := &concurrentEnsureProvider{}
+	registry := NewSecretProviderRegistry()
+	registry.Register("memory", provider)
+	ref := SecretReference{Provider: "memory", Key: "shared"}
+	errs := make(chan error, 2)
+	var started sync.WaitGroup
+	started.Add(2)
+	for _, value := range []string{"first", "second"} {
+		go func() {
+			started.Done()
+			started.Wait()
+			_, err := registry.Ensure(ref, value)
+			errs <- err
+		}()
+	}
+	firstErr, secondErr := <-errs, <-errs
+	if (firstErr == nil) == (secondErr == nil) {
+		t.Fatalf("Ensure errors = %v, %v; want one winner", firstErr, secondErr)
+	}
+	if provider.maxActive.Load() != 1 {
+		t.Fatalf("provider operations overlapped: max active = %d", provider.maxActive.Load())
 	}
 }
 

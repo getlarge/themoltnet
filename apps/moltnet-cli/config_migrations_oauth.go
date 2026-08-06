@@ -3,11 +3,11 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"path/filepath"
 
 	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/configmigrate"
+	"github.com/joho/godotenv"
 )
 
 func newOAuth2SecretReferenceMigration(destinationProvider string) configMigration {
@@ -48,77 +48,37 @@ func migrateOAuth2SecretReference(
 ) error {
 	creds, rawDocument, err := parseCredentialsDocument(ctx.CredentialsDocument)
 	if err != nil {
-		return migrationStageError("parse_credentials", "not-required", false, err)
+		return migrationStageError("parse_credentials", configmigrate.FailureState{}, err)
 	}
 	ref := SecretReference{
 		Provider: destinationProvider,
 		Key:      OAuth2SecretKey(creds.IdentityID, creds.OAuth2.ClientID),
 	}
-	storedNewValue := false
-	existing, resolveErr := providers.Resolve(ref)
-	switch {
-	case resolveErr == nil && existing != creds.OAuth2.ClientSecret:
-		return migrationStageError("inspect_destination", "not-required", false, fmt.Errorf("destination already contains a different secret"))
-	case resolveErr == nil:
-		// Resume safely when an interrupted run already stored the same value.
-	case errors.Is(resolveErr, ErrSecretNotFound):
-		if err := providers.Store(ref, creds.OAuth2.ClientSecret); err != nil {
-			return migrationStageError("store_secret", "not-required", true, fmt.Errorf("store OAuth2 client secret: %w", err))
-		}
-		storedNewValue = true
-	default:
-		return migrationStageError("inspect_destination", "not-required", true, fmt.Errorf("inspect destination secret: %w", resolveErr))
-	}
-
-	verified, err := providers.Resolve(ref)
-	if err != nil || verified != creds.OAuth2.ClientSecret {
-		rollback := rollbackNewSecret(providers, ref, storedNewValue)
-		if err != nil {
-			return migrationStageError("verify_secret", rollback, true, fmt.Errorf("verify destination secret: %w", err))
-		}
-		return migrationStageError("verify_secret", rollback, true, fmt.Errorf("verify destination secret: stored value does not match"))
+	storedNewValue, err := providers.Ensure(ref, creds.OAuth2.ClientSecret)
+	if err != nil {
+		return migrationStageError("ensure_secret", retainedSecretState(storedNewValue), err)
 	}
 
 	updated, err := updateCredentialsDocumentReference(rawDocument, creds.OAuth2.ClientID, ref)
 	if err != nil {
-		rollback := rollbackNewSecret(providers, ref, storedNewValue)
-		return migrationStageError("prepare_credentials", rollback, true, err)
+		return migrationStageError("prepare_credentials", retainedSecretState(storedNewValue), err)
 	}
 	if err := ctx.ReplaceCredentials(updated); err != nil {
-		rollback := rollbackSecretIfSourceUnchanged(ctx, providers, ref, storedNewValue)
-		return migrationStageError("replace_credentials", rollback, true, err)
+		return migrationStageError("replace_credentials", retainedSecretState(storedNewValue), err)
 	}
 	return nil
 }
 
-func rollbackSecretIfSourceUnchanged(
-	ctx configMigrationContext,
-	providers *SecretProviderRegistry,
-	ref SecretReference,
-	storedNewValue bool,
-) string {
-	if !storedNewValue {
-		return "not-required"
+func retainedSecretState(stored bool) configmigrate.FailureState {
+	return configmigrate.FailureState{
+		Retryable:              !stored,
+		Changed:                stored,
+		ManualRecoveryRequired: stored,
 	}
-	current, err := configmigrate.ReadBoundedRegularFile(ctx.CredentialsPath, maxMigrationConfigBytes)
-	if err != nil || !bytes.Equal(current, ctx.CredentialsDocument) {
-		return "secret-retained-source-changed"
-	}
-	return rollbackNewSecret(providers, ref, true)
 }
 
-func rollbackNewSecret(registry *SecretProviderRegistry, ref SecretReference, stored bool) string {
-	if !stored {
-		return "not-required"
-	}
-	if err := registry.Delete(ref); err != nil {
-		return "failed-secret-retained"
-	}
-	return "completed"
-}
-
-func migrationStageError(stage, rollback string, retryable bool, err error) error {
-	return configmigrate.NewStageError(stage, rollback, retryable, err)
+func migrationStageError(stage string, state configmigrate.FailureState, err error) error {
+	return configmigrate.NewStageError(stage, state, err)
 }
 
 func newOAuth2EnvironmentCleanupMigration() configMigration {
@@ -138,17 +98,40 @@ func newOAuth2EnvironmentCleanupMigration() configMigration {
 			}
 			return containsEnvAssignment(data, key), nil
 		},
-		Run: func(ctx configMigrationContext, _ *SecretProviderRegistry) error {
+		Run: func(ctx configMigrationContext, providers *SecretProviderRegistry) error {
 			envPath, key, ok, err := oauth2EnvironmentCleanupTarget(ctx)
 			if err != nil {
-				return migrationStageError("inspect_environment", "not-required", true, err)
+				return migrationStageError("inspect_environment", configmigrate.FailureState{Retryable: true}, err)
 			}
 			if !ok {
-				return migrationStageError("inspect_environment", "not-required", false, fmt.Errorf("credentials are not reference-backed agent credentials"))
+				return migrationStageError("inspect_environment", configmigrate.FailureState{}, fmt.Errorf("credentials are not reference-backed agent credentials"))
+			}
+			creds, _, err := parseCredentialsDocument(ctx.CredentialsDocument)
+			if err != nil {
+				return migrationStageError("inspect_credentials", configmigrate.FailureState{}, err)
+			}
+			ref := *creds.OAuth2.ClientSecretRef
+			if err := validateOAuth2SecretReferenceBinding(creds, ref); err != nil {
+				return migrationStageError("validate_reference", configmigrate.FailureState{}, err)
 			}
 			data, err := configmigrate.ReadOptionalBoundedRegularFile(envPath, maxMigrationConfigBytes)
 			if err != nil {
-				return migrationStageError("inspect_environment", "not-required", true, err)
+				return migrationStageError("inspect_environment", configmigrate.FailureState{Retryable: true}, err)
+			}
+			env, err := godotenv.Unmarshal(string(data))
+			if err != nil {
+				return migrationStageError("parse_environment", configmigrate.FailureState{}, err)
+			}
+			legacyValue, found := env[key]
+			if !found {
+				return nil
+			}
+			resolved, err := providers.Resolve(ref)
+			if err != nil {
+				return migrationStageError("verify_reference", configmigrate.FailureState{Retryable: true}, err)
+			}
+			if resolved != legacyValue {
+				return migrationStageError("verify_reference", configmigrate.FailureState{ManualRecoveryRequired: true}, fmt.Errorf("referenced secret does not match the legacy environment value"))
 			}
 			updated := removeEnvAssignment(data, key)
 			if bytes.Equal(updated, data) {
@@ -159,9 +142,8 @@ func newOAuth2EnvironmentCleanupMigration() configMigration {
 				data,
 				updated,
 				maxMigrationConfigBytes,
-				".moltnet-env-*",
 			); err != nil {
-				return migrationStageError("replace_environment", "not-required", true, err)
+				return migrationStageError("replace_environment", configmigrate.FailureState{Retryable: true}, err)
 			}
 			return nil
 		},

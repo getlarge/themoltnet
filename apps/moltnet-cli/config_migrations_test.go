@@ -122,6 +122,50 @@ func TestConfigMigrateUsesResumableSingleStepTransitions(t *testing.T) {
 	}
 }
 
+func TestConfigMigratePreservesLegacyEnvironmentUntilReferenceIsVerified(t *testing.T) {
+	for _, tt := range []struct {
+		name          string
+		destination   string
+		wantRetryable bool
+		wantRecovery  bool
+	}{
+		{name: "missing destination", wantRetryable: true},
+		{name: "different destination", destination: "rotated-secret", wantRecovery: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			credentialsPath, envPath := writeLegacyMigrationFixture(t)
+			registry, provider := newMemorySecretProviderRegistry()
+			runNextConfigMigration(t, credentialsPath, registry)
+			key := OAuth2SecretKey("identity-id", "client-id")
+			if tt.destination == "" {
+				delete(provider.values, key)
+			} else {
+				provider.values[key] = tt.destination
+			}
+
+			var output bytes.Buffer
+			err := runConfigMigrateCmdWithRegistry(
+				&output, credentialsPath, "", "", false, registry, defaultConfigMigrations(),
+			)
+			if err == nil || err.Error() != "configuration migration failed during verify_reference" {
+				t.Fatalf("cleanup error = %v", err)
+			}
+			env, _ := os.ReadFile(envPath)
+			if !strings.Contains(string(env), "legacy-plaintext-secret") {
+				t.Fatalf("cleanup removed the fallback secret: %s", env)
+			}
+			var result configMigrationRunOutput
+			if err := json.Unmarshal(output.Bytes(), &result); err != nil {
+				t.Fatal(err)
+			}
+			if result.Failure == nil || result.Failure.Retryable != tt.wantRetryable ||
+				result.ManualRecoveryRequired != tt.wantRecovery || result.Changed {
+				t.Fatalf("failure state = %+v", result)
+			}
+		})
+	}
+}
+
 func TestConfigMigrateDryRunDoesNotMutateState(t *testing.T) {
 	credentialsPath, envPath := writeLegacyMigrationFixture(t)
 	credentialsBefore, _ := os.ReadFile(credentialsPath)
@@ -141,6 +185,36 @@ func TestConfigMigrateDryRunDoesNotMutateState(t *testing.T) {
 	envAfter, _ := os.ReadFile(envPath)
 	if !bytes.Equal(credentialsAfter, credentialsBefore) || !bytes.Equal(envAfter, envBefore) {
 		t.Fatal("dry-run changed configuration files")
+	}
+}
+
+func TestConfigMigrateNeverReturnsOrPrintsProviderSecrets(t *testing.T) {
+	credentialsPath, _ := writeLegacyMigrationFixture(t)
+	const disclosed = "provider-error-included-super-secret"
+	migration := configMigration{
+		ID:          "redaction-test",
+		Description: "redaction test",
+		Operations:  []string{"fail safely"},
+		Applies:     func(configMigrationContext) (bool, error) { return true, nil },
+		Run: func(configMigrationContext, *SecretProviderRegistry) error {
+			return migrationStageError("provider", retainedSecretState(true), errors.New(disclosed))
+		},
+	}
+	var output bytes.Buffer
+	err := runConfigMigrateCmdWithRegistry(
+		&output,
+		credentialsPath,
+		"",
+		"",
+		false,
+		NewSecretProviderRegistry(),
+		[]configMigration{migration},
+	)
+	if err == nil {
+		t.Fatal("migration unexpectedly succeeded")
+	}
+	if strings.Contains(err.Error(), disclosed) || strings.Contains(output.String(), disclosed) {
+		t.Fatalf("provider secret escaped: err=%v output=%s", err, output.String())
 	}
 }
 
@@ -274,7 +348,7 @@ func TestConfigMigrateDoesNotOverwriteConcurrentCredentialsChange(t *testing.T) 
 	err := runConfigMigrateCmdWithRegistry(
 		&output, credentialsPath, "", "", false, registry, defaultConfigMigrations(),
 	)
-	if err == nil || !strings.Contains(err.Error(), "changed before it could be replaced") {
+	if err == nil || err.Error() != "configuration migration failed during replace_credentials" {
 		t.Fatalf("concurrent migration error = %v", err)
 	}
 	if provider.stored != "legacy-plaintext-secret" {
@@ -288,7 +362,9 @@ func TestConfigMigrateDoesNotOverwriteConcurrentCredentialsChange(t *testing.T) 
 	if err := json.Unmarshal(output.Bytes(), &result); err != nil {
 		t.Fatal(err)
 	}
-	if result.Failure == nil || result.Failure.Stage != "replace_credentials" || result.Failure.Rollback != "secret-retained-source-changed" {
+	if result.Failure == nil || result.Failure.Stage != "replace_credentials" ||
+		!result.Failure.ManualRecoveryRequired || result.Failure.Retryable ||
+		!result.Changed || !result.ManualRecoveryRequired {
 		t.Fatalf("failure envelope = %+v", result.Failure)
 	}
 }
@@ -313,7 +389,7 @@ func (*failedRollbackSecretProvider) Delete(string) error {
 	return errors.New("keyring unavailable")
 }
 
-func TestConfigMigrateReportsFailedRollbackWithoutDeletingSource(t *testing.T) {
+func TestConfigMigrateRetainsUnverifiedSecretForManualRecovery(t *testing.T) {
 	credentialsPath, _ := writeLegacyMigrationFixture(t)
 	provider := &failedRollbackSecretProvider{}
 	registry := NewSecretProviderRegistry()
@@ -323,7 +399,7 @@ func TestConfigMigrateReportsFailedRollbackWithoutDeletingSource(t *testing.T) {
 	err := runConfigMigrateCmdWithRegistry(
 		&output, credentialsPath, "", "", false, registry, defaultConfigMigrations(),
 	)
-	if err == nil || !strings.Contains(err.Error(), "stored value does not match") {
+	if err == nil || err.Error() != "configuration migration failed during ensure_secret" {
 		t.Fatalf("migration error = %v", err)
 	}
 	credentials, _ := os.ReadFile(credentialsPath)
@@ -334,20 +410,23 @@ func TestConfigMigrateReportsFailedRollbackWithoutDeletingSource(t *testing.T) {
 	if err := json.Unmarshal(output.Bytes(), &result); err != nil {
 		t.Fatal(err)
 	}
-	if result.Failure == nil || result.Failure.Stage != "verify_secret" || result.Failure.Rollback != "failed-secret-retained" {
+	if result.Failure == nil || result.Failure.Stage != "ensure_secret" ||
+		!result.Failure.ManualRecoveryRequired || result.Failure.Retryable ||
+		!result.Changed || !result.ManualRecoveryRequired {
 		t.Fatalf("failure envelope = %+v", result.Failure)
 	}
 }
 
 func TestConfigMigrateRejectsConflictingUnavailableAndAmbiguousSecrets(t *testing.T) {
 	tests := []struct {
-		name     string
-		provider SecretProvider
-		mutate   func(t *testing.T, path string)
-		want     string
+		name      string
+		provider  SecretProvider
+		mutate    func(t *testing.T, path string)
+		want      string
+		sanitized bool
 	}{
-		{name: "conflicting destination", provider: mismatchingSecretProvider{}, want: "different secret"},
-		{name: "unavailable destination", provider: failingReadSecretProvider{}, want: "inspect destination secret"},
+		{name: "conflicting destination", provider: mismatchingSecretProvider{}, want: "different secret", sanitized: true},
+		{name: "unavailable destination", provider: failingReadSecretProvider{}, want: "inspect destination secret", sanitized: true},
 		{
 			name:     "ambiguous source",
 			provider: &memorySecretProvider{values: map[string]string{}},
@@ -369,11 +448,18 @@ func TestConfigMigrateRejectsConflictingUnavailableAndAmbiguousSecrets(t *testin
 			}
 			registry := NewSecretProviderRegistry()
 			registry.Register(osKeyringProviderName, tt.provider)
+			var output bytes.Buffer
 			err := runConfigMigrateCmdWithRegistry(
-				io.Discard, credentialsPath, "", "", false, registry, defaultConfigMigrations(),
+				&output, credentialsPath, "", "", false, registry, defaultConfigMigrations(),
 			)
-			if err == nil || !strings.Contains(err.Error(), tt.want) {
+			if err == nil {
+				t.Fatal("migration unexpectedly succeeded")
+			}
+			if !tt.sanitized && !strings.Contains(err.Error(), tt.want) {
 				t.Fatalf("migration error = %v, want %q", err, tt.want)
+			}
+			if tt.sanitized && (strings.Contains(err.Error(), tt.want) || strings.Contains(output.String(), tt.want)) {
+				t.Fatalf("migration output exposed internal provider detail %q", tt.want)
 			}
 		})
 	}

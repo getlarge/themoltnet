@@ -122,7 +122,7 @@ func WriteConfigTo(config *CredentialsFile, path string) (string, error) {
 	}
 	data = append(data, '\n')
 
-	if err := os.WriteFile(path, data, 0o600); err != nil {
+	if err := writeFileAtomic(path, data); err != nil {
 		return "", fmt.Errorf("write config: %w", err)
 	}
 

@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/safefile"
 )
 
 const PlanFormat = 1
@@ -25,34 +27,34 @@ type Plan struct {
 }
 
 type Failure struct {
-	Migration string `json:"migration"`
-	Stage     string `json:"stage"`
-	Rollback  string `json:"rollback"`
-	Retryable bool   `json:"retryable"`
-	Message   string `json:"message"`
+	Migration              string `json:"migration"`
+	Stage                  string `json:"stage"`
+	Retryable              bool   `json:"retryable"`
+	ManualRecoveryRequired bool   `json:"manualRecoveryRequired"`
+	Message                string `json:"message"`
+	Changed                bool   `json:"-"`
 }
 
 type RunOutput struct {
-	Plan    Plan     `json:"plan"`
-	Applied []string `json:"applied"`
-	Changed bool     `json:"changed"`
-	Failure *Failure `json:"failure,omitempty"`
+	Plan                   Plan     `json:"plan"`
+	Applied                []string `json:"applied"`
+	Changed                bool     `json:"changed"`
+	Failure                *Failure `json:"failure,omitempty"`
+	ManualRecoveryRequired bool     `json:"manualRecoveryRequired"`
 }
 
 type Context struct {
 	CredentialsPath     string
 	CredentialsDocument []byte
 	maxConfigBytes      int64
+	lock                *safefile.Lock
 }
 
 func (c Context) ReplaceCredentials(updated []byte) error {
-	return ReplaceRegularFileAtomic(
-		c.CredentialsPath,
-		c.CredentialsDocument,
-		updated,
-		c.maxConfigBytes,
-		".moltnet-credentials-*",
-	)
+	if c.lock == nil {
+		return fmt.Errorf("credentials replacement requires the migration lock")
+	}
+	return c.lock.Replace(c.CredentialsDocument, updated, c.maxConfigBytes)
 }
 
 type Migration[T any] struct {
@@ -125,7 +127,7 @@ func (e Engine[T]) Apply(plan Plan, runtime T) ([]string, error) {
 		return nil, err
 	}
 
-	lock, err := acquireLock(plan.CredentialsPath)
+	lock, err := safefile.Acquire(plan.CredentialsPath)
 	if err != nil {
 		return nil, fmt.Errorf("lock credentials for migration: %w", err)
 	}
@@ -158,6 +160,7 @@ func (e Engine[T]) Apply(plan Plan, runtime T) ([]string, error) {
 			CredentialsPath:     plan.CredentialsPath,
 			CredentialsDocument: document,
 			maxConfigBytes:      e.MaxConfigBytes,
+			lock:                lock,
 		}
 		if err := migration.Run(ctx, runtime); err != nil {
 			return nil, fmt.Errorf("apply config migration %q: %w", migration.ID, err)
@@ -182,28 +185,35 @@ func validateMigrations[T any](migrations []Migration[T]) error {
 }
 
 type StageError struct {
-	Stage     string
-	Rollback  string
-	Retryable bool
-	Err       error
+	Stage                  string
+	Retryable              bool
+	ManualRecoveryRequired bool
+	Changed                bool
+	Err                    error
+}
+
+type FailureState struct {
+	Retryable              bool
+	Changed                bool
+	ManualRecoveryRequired bool
 }
 
 func (e *StageError) Error() string { return e.Err.Error() }
 func (e *StageError) Unwrap() error { return e.Err }
 
-func NewStageError(stage, rollback string, retryable bool, err error) error {
+func NewStageError(stage string, state FailureState, err error) error {
 	return &StageError{
-		Stage:     stage,
-		Rollback:  rollback,
-		Retryable: retryable,
-		Err:       err,
+		Stage:                  stage,
+		Retryable:              state.Retryable,
+		Changed:                state.Changed,
+		ManualRecoveryRequired: state.ManualRecoveryRequired,
+		Err:                    err,
 	}
 }
 
 func FailureFromError(plan Plan, err error) *Failure {
 	failure := &Failure{
 		Stage:     "apply",
-		Rollback:  "not-required",
 		Retryable: true,
 		Message:   "configuration migration failed during apply",
 	}
@@ -213,8 +223,9 @@ func FailureFromError(plan Plan, err error) *Failure {
 	var stageErr *StageError
 	if errors.As(err, &stageErr) {
 		failure.Stage = stageErr.Stage
-		failure.Rollback = stageErr.Rollback
 		failure.Retryable = stageErr.Retryable
+		failure.Changed = stageErr.Changed
+		failure.ManualRecoveryRequired = stageErr.ManualRecoveryRequired
 		failure.Message = "configuration migration failed during " + stageErr.Stage
 	}
 	return failure
