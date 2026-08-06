@@ -1,67 +1,40 @@
 package main
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
-	"strings"
+
+	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/configmigrate"
 )
 
 const (
-	configMigrationPlanFormat = 1
-	maxMigrationPlanBytes     = 1 << 20
-	maxMigrationConfigBytes   = 4 << 20
+	maxMigrationPlanBytes   = 1 << 20
+	maxMigrationConfigBytes = 4 << 20
 )
 
-type plannedConfigMigration struct {
-	ID          string   `json:"id"`
-	Description string   `json:"description"`
-	Operations  []string `json:"operations"`
-}
-
-type configMigrationPlan struct {
-	FormatVersion   int                      `json:"formatVersion"`
-	GeneratedBy     string                   `json:"generatedBy"`
-	CredentialsPath string                   `json:"credentialsPath"`
-	ConfigSHA256    string                   `json:"configSha256"`
-	Migrations      []plannedConfigMigration `json:"migrations"`
-}
-
-type configMigrationRunOutput struct {
-	Plan    configMigrationPlan `json:"plan"`
-	Applied []string            `json:"applied"`
-	Changed bool                `json:"changed"`
-}
-
-type configMigrationContext struct {
-	CredentialsPath string
-	SecretProviders *SecretProviderRegistry
-}
-
-type configMigration struct {
-	ID          string
-	Description string
-	Operations  []string
-	Applies     func([]byte) (bool, error)
-	Run         func(configMigrationContext) error
-}
+type configMigration = configmigrate.Migration[*SecretProviderRegistry]
+type configMigrationContext = configmigrate.Context
+type configMigrationPlan = configmigrate.Plan
+type configMigrationRunOutput = configmigrate.RunOutput
 
 func defaultConfigMigrations() []configMigration {
 	return []configMigration{
 		newOAuth2SecretReferenceMigration(osKeyringProviderName),
+		newOAuth2EnvironmentCleanupMigration(),
 	}
 }
 
-func runConfigMigrateCmd(
-	w io.Writer,
-	credPath, generatePath, runPath string,
-	dryRun bool,
-) error {
+func newConfigMigrationEngine(migrations []configMigration) configmigrate.Engine[*SecretProviderRegistry] {
+	return configmigrate.Engine[*SecretProviderRegistry]{
+		GeneratedBy:    "moltnet@" + version,
+		MaxConfigBytes: maxMigrationConfigBytes,
+		Migrations:     migrations,
+	}
+}
+
+func runConfigMigrateCmd(w io.Writer, credPath, generatePath, runPath string, dryRun bool) error {
 	return runConfigMigrateCmdWithRegistry(
 		w,
 		credPath,
@@ -92,7 +65,7 @@ func runConfigMigrateCmdWithRegistry(
 	}
 
 	if runPath != "" {
-		plan, err := readConfigMigrationPlan(runPath)
+		plan, err := configmigrate.ReadPlan(runPath, maxMigrationPlanBytes)
 		if err != nil {
 			return err
 		}
@@ -110,7 +83,7 @@ func runConfigMigrateCmdWithRegistry(
 		return printJSONTo(w, plan)
 	}
 	if generatePath != "" {
-		if err := writeConfigMigrationPlan(generatePath, plan); err != nil {
+		if err := configmigrate.WritePlan(generatePath, plan); err != nil {
 			return err
 		}
 		return printJSONTo(w, plan)
@@ -125,48 +98,23 @@ func runAndPrintConfigMigrationPlan(
 	migrations []configMigration,
 ) error {
 	applied, err := applyConfigMigrationPlan(plan, secretProviders, migrations)
-	if err != nil {
-		return err
-	}
-	return printJSONTo(w, configMigrationRunOutput{
+	output := configMigrationRunOutput{
 		Plan:    plan,
 		Applied: applied,
 		Changed: len(applied) > 0,
-	})
+	}
+	if err != nil {
+		output.Failure = configmigrate.FailureFromError(plan, err)
+		if printErr := printJSONTo(w, output); printErr != nil {
+			return errors.Join(err, printErr)
+		}
+		return err
+	}
+	return printJSONTo(w, output)
 }
 
-func buildConfigMigrationPlan(
-	credentialsPath string,
-	migrations []configMigration,
-) (configMigrationPlan, error) {
-	document, err := readBoundedFile(credentialsPath, maxMigrationConfigBytes)
-	if err != nil {
-		return configMigrationPlan{}, fmt.Errorf("read credentials for migration: %w", err)
-	}
-	if err := validateConfigMigrations(migrations); err != nil {
-		return configMigrationPlan{}, err
-	}
-	plan := configMigrationPlan{
-		FormatVersion:   configMigrationPlanFormat,
-		GeneratedBy:     "moltnet@" + version,
-		CredentialsPath: credentialsPath,
-		ConfigSHA256:    documentSHA256(document),
-		Migrations:      make([]plannedConfigMigration, 0),
-	}
-	for _, migration := range migrations {
-		applies, err := migration.Applies(document)
-		if err != nil {
-			return configMigrationPlan{}, fmt.Errorf("plan config migration %q: %w", migration.ID, err)
-		}
-		if applies {
-			plan.Migrations = append(plan.Migrations, plannedConfigMigration{
-				ID:          migration.ID,
-				Description: migration.Description,
-				Operations:  append([]string(nil), migration.Operations...),
-			})
-		}
-	}
-	return plan, nil
+func buildConfigMigrationPlan(credentialsPath string, migrations []configMigration) (configMigrationPlan, error) {
+	return newConfigMigrationEngine(migrations).BuildPlan(credentialsPath)
 }
 
 func applyConfigMigrationPlan(
@@ -174,291 +122,9 @@ func applyConfigMigrationPlan(
 	secretProviders *SecretProviderRegistry,
 	migrations []configMigration,
 ) ([]string, error) {
-	if plan.FormatVersion != configMigrationPlanFormat {
-		return nil, fmt.Errorf("unsupported migration plan format %d", plan.FormatVersion)
-	}
-	if plan.GeneratedBy != "moltnet@"+version {
-		return nil, fmt.Errorf("migration plan was generated by %q, not %q", plan.GeneratedBy, "moltnet@"+version)
-	}
-	if err := validateConfigMigrations(migrations); err != nil {
-		return nil, err
-	}
-	document, err := readBoundedFile(plan.CredentialsPath, maxMigrationConfigBytes)
-	if err != nil {
-		return nil, fmt.Errorf("read credentials for migration: %w", err)
-	}
-	if documentSHA256(document) != plan.ConfigSHA256 {
-		return nil, fmt.Errorf("credentials changed after the migration plan was generated; generate a new plan")
-	}
-	expected, err := buildConfigMigrationPlan(plan.CredentialsPath, migrations)
-	if err != nil {
-		return nil, err
-	}
-	if !equalPlannedConfigMigrations(plan.Migrations, expected.Migrations) {
-		return nil, fmt.Errorf("migration plan does not match the migrations currently applicable to these credentials; generate a new plan")
-	}
-
-	byID := make(map[string]configMigration, len(migrations))
-	for _, migration := range migrations {
-		byID[migration.ID] = migration
-	}
-	applied := make([]string, 0, len(plan.Migrations))
-	for _, planned := range plan.Migrations {
-		migration := byID[planned.ID]
-		current, err := readBoundedFile(plan.CredentialsPath, maxMigrationConfigBytes)
-		if err != nil {
-			return applied, fmt.Errorf("read credentials for migration: %w", err)
-		}
-		applies, err := migration.Applies(current)
-		if err != nil {
-			return applied, fmt.Errorf("validate config migration %q: %w", migration.ID, err)
-		}
-		if !applies {
-			return applied, fmt.Errorf("migration %q no longer applies; generate a new plan", migration.ID)
-		}
-		if err := migration.Run(configMigrationContext{
-			CredentialsPath: plan.CredentialsPath,
-			SecretProviders: secretProviders,
-		}); err != nil {
-			return applied, fmt.Errorf("apply config migration %q: %w", migration.ID, err)
-		}
-		applied = append(applied, migration.ID)
-	}
-	return applied, nil
-}
-
-func validateConfigMigrations(migrations []configMigration) error {
-	seen := make(map[string]struct{}, len(migrations))
-	for _, migration := range migrations {
-		if strings.TrimSpace(migration.ID) == "" || migration.Applies == nil || migration.Run == nil {
-			return fmt.Errorf("config migration definitions require an id, applicability check, and run function")
-		}
-		if _, exists := seen[migration.ID]; exists {
-			return fmt.Errorf("duplicate config migration id %q", migration.ID)
-		}
-		seen[migration.ID] = struct{}{}
-	}
-	return nil
-}
-
-func newOAuth2SecretReferenceMigration(destinationProvider string) configMigration {
-	const migrationID = "2026-08-oauth2-secret-reference"
-	operations := []string{
-		"store OAuth2 client secret in the destination provider",
-		"read back and verify the destination value",
-		"replace oauth2.client_secret with oauth2.client_secret_ref",
-		"remove the managed plaintext client secret from the agent environment file",
-	}
-	return configMigration{
-		ID:          migrationID,
-		Description: "Move the plaintext OAuth2 client secret into a provider-backed reference",
-		Operations:  operations,
-		Applies: func(document []byte) (bool, error) {
-			creds, _, err := parseCredentialsDocument(document)
-			if err != nil {
-				return false, err
-			}
-			if creds.OAuth2.ClientSecret != "" && creds.OAuth2.ClientSecretRef != nil {
-				return false, fmt.Errorf("oauth2 config must set exactly one of client_secret or client_secret_ref")
-			}
-			if creds.OAuth2.ClientSecret == "" {
-				return false, nil
-			}
-			if creds.IdentityID == "" || creds.OAuth2.ClientID == "" {
-				return false, fmt.Errorf("plaintext OAuth2 credentials require identity_id and oauth2.client_id")
-			}
-			return true, nil
-		},
-		Run: func(ctx configMigrationContext) error {
-			return migrateOAuth2SecretReference(ctx, destinationProvider)
-		},
-	}
-}
-
-func migrateOAuth2SecretReference(
-	ctx configMigrationContext,
-	destinationProvider string,
-) error {
-	document, err := readBoundedFile(ctx.CredentialsPath, maxMigrationConfigBytes)
-	if err != nil {
-		return err
-	}
-	creds, rawDocument, err := parseCredentialsDocument(document)
-	if err != nil {
-		return err
-	}
-	ref := SecretReference{
-		Provider: destinationProvider,
-		Key:      OAuth2SecretKey(creds.IdentityID, creds.OAuth2.ClientID),
-	}
-	storedNewValue := false
-	existing, resolveErr := ctx.SecretProviders.Resolve(ref)
-	switch {
-	case resolveErr == nil && existing != creds.OAuth2.ClientSecret:
-		return fmt.Errorf("destination already contains a different secret")
-	case resolveErr == nil:
-		// Resume safely when an interrupted run already stored the same value.
-	case errors.Is(resolveErr, ErrSecretNotFound):
-		if err := ctx.SecretProviders.Store(ref, creds.OAuth2.ClientSecret); err != nil {
-			return fmt.Errorf("store OAuth2 client secret: %w", err)
-		}
-		storedNewValue = true
-	default:
-		return fmt.Errorf("inspect destination secret: %w", resolveErr)
-	}
-	rollbackSecret := func() {
-		if storedNewValue {
-			_ = ctx.SecretProviders.Delete(ref)
-		}
-	}
-
-	verified, err := ctx.SecretProviders.Resolve(ref)
-	if err != nil || verified != creds.OAuth2.ClientSecret {
-		rollbackSecret()
-		if err != nil {
-			return fmt.Errorf("verify destination secret: %w", err)
-		}
-		return fmt.Errorf("verify destination secret: stored value does not match")
-	}
-	updated, err := updateCredentialsDocumentReference(rawDocument, creds.OAuth2.ClientID, ref)
-	if err != nil {
-		rollbackSecret()
-		return err
-	}
-	if err := writeCredentialsAtomic(ctx.CredentialsPath, updated); err != nil {
-		rollbackSecret()
-		return err
-	}
-
-	creds.OAuth2.ClientSecret = ""
-	creds.OAuth2.ClientSecretRef = &ref
-	agentDir := filepath.Dir(ctx.CredentialsPath)
-	if filepath.Base(filepath.Dir(agentDir)) == ".moltnet" {
-		if err := writeAgentEnvFile(agentDir, filepath.Base(agentDir), creds); err != nil {
-			restoreErr := writeCredentialsAtomic(ctx.CredentialsPath, document)
-			rollbackSecret()
-			if restoreErr != nil {
-				return fmt.Errorf("remove plaintext secret from agent env: %v; restore credentials: %w", err, restoreErr)
-			}
-			return fmt.Errorf("remove plaintext secret from agent env: %w", err)
-		}
-	}
-	return nil
-}
-
-func parseCredentialsDocument(document []byte) (*CredentialsFile, map[string]json.RawMessage, error) {
-	var creds CredentialsFile
-	if err := json.Unmarshal(document, &creds); err != nil {
-		return nil, nil, fmt.Errorf("parse credentials: %w", err)
-	}
-	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(document, &raw); err != nil {
-		return nil, nil, fmt.Errorf("parse credentials document: %w", err)
-	}
-	return &creds, raw, nil
-}
-
-func updateCredentialsDocumentReference(
-	document map[string]json.RawMessage,
-	clientID string,
-	ref SecretReference,
-) ([]byte, error) {
-	updated := make(map[string]json.RawMessage, len(document))
-	for key, value := range document {
-		updated[key] = value
-	}
-	var oauth2 map[string]json.RawMessage
-	if raw := updated["oauth2"]; raw != nil {
-		if err := json.Unmarshal(raw, &oauth2); err != nil {
-			return nil, fmt.Errorf("parse oauth2 credentials: %w", err)
-		}
-	}
-	if oauth2 == nil {
-		oauth2 = make(map[string]json.RawMessage)
-	}
-	clientIDJSON, _ := json.Marshal(clientID)
-	refJSON, err := json.Marshal(ref)
-	if err != nil {
-		return nil, fmt.Errorf("marshal secret reference: %w", err)
-	}
-	oauth2["client_id"] = clientIDJSON
-	oauth2["client_secret_ref"] = refJSON
-	delete(oauth2, "client_secret")
-	updated["oauth2"], err = json.Marshal(oauth2)
-	if err != nil {
-		return nil, fmt.Errorf("marshal oauth2 credentials: %w", err)
-	}
-	data, err := json.MarshalIndent(updated, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal credentials: %w", err)
-	}
-	return append(data, '\n'), nil
-}
-
-func readConfigMigrationPlan(path string) (configMigrationPlan, error) {
-	data, err := readBoundedFile(path, maxMigrationPlanBytes)
-	if err != nil {
-		return configMigrationPlan{}, fmt.Errorf("read migration plan: %w", err)
-	}
-	var plan configMigrationPlan
-	if err := json.Unmarshal(data, &plan); err != nil {
-		return configMigrationPlan{}, fmt.Errorf("parse migration plan: %w", err)
-	}
-	return plan, nil
+	return newConfigMigrationEngine(migrations).Apply(plan, secretProviders)
 }
 
 func writeConfigMigrationPlan(path string, plan configMigrationPlan) error {
-	data, err := json.MarshalIndent(plan, "", "  ")
-	if err != nil {
-		return fmt.Errorf("marshal migration plan: %w", err)
-	}
-	if err := writeFileAtomic(path, append(data, '\n'), ".moltnet-migrations-*"); err != nil {
-		return fmt.Errorf("write migration plan: %w", err)
-	}
-	return nil
-}
-
-func readBoundedFile(path string, limit int64) ([]byte, error) {
-	info, err := os.Stat(path)
-	if err != nil {
-		return nil, err
-	}
-	if !info.Mode().IsRegular() {
-		return nil, fmt.Errorf("%s is not a regular file", path)
-	}
-	if info.Size() > limit {
-		return nil, fmt.Errorf("%s exceeds the %d-byte limit", path, limit)
-	}
-	return os.ReadFile(path)
-}
-
-func documentSHA256(document []byte) string {
-	digest := sha256.Sum256(document)
-	return hex.EncodeToString(digest[:])
-}
-
-func equalStrings(left, right []string) bool {
-	if len(left) != len(right) {
-		return false
-	}
-	for index := range left {
-		if left[index] != right[index] {
-			return false
-		}
-	}
-	return true
-}
-
-func equalPlannedConfigMigrations(left, right []plannedConfigMigration) bool {
-	if len(left) != len(right) {
-		return false
-	}
-	for index := range left {
-		if left[index].ID != right[index].ID ||
-			left[index].Description != right[index].Description ||
-			!equalStrings(left[index].Operations, right[index].Operations) {
-			return false
-		}
-	}
-	return true
+	return configmigrate.WritePlan(path, plan)
 }

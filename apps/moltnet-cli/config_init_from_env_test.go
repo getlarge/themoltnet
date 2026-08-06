@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -524,6 +525,38 @@ func TestWriteAgentEnvFileNoExistingFile(t *testing.T) {
 	}
 	if !strings.Contains(content, "# User section") {
 		t.Errorf("expected user section marker, got:\n%s", content)
+	}
+}
+
+func TestWriteAgentEnvFileRejectsSymlinkWithoutChangingTarget(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	agentDir := filepath.Join(root, "test-agent")
+	if err := os.MkdirAll(agentDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(root, "target-env")
+	original := []byte("CUSTOM='preserved'\n")
+	if err := os.WriteFile(target, original, privateFileMode); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(target, filepath.Join(agentDir, "env")); err != nil {
+		t.Fatal(err)
+	}
+
+	err := writeAgentEnvFile(agentDir, "test-agent", &CredentialsFile{
+		OAuth2: CredentialsOAuth2{ClientID: "client-id"},
+	})
+
+	if err == nil || !strings.Contains(err.Error(), "symbolic link") {
+		t.Fatalf("writeAgentEnvFile error = %v", err)
+	}
+	current, readErr := os.ReadFile(target)
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
+	if !bytes.Equal(current, original) {
+		t.Fatalf("symlink target changed: %s", current)
 	}
 }
 
