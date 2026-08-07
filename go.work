@@ -4,4 +4,5 @@ use (
 	./apps/moltnet-cli
 	./libs/dspy-adapters
 	./libs/moltnet-api-client
+	./libs/moltnet-authn
 )
