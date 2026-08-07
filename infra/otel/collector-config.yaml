@@ -186,6 +186,7 @@ exporters:
       enabled: true
       sizer: items
       queue_size: 10000
+      num_consumers: 4
 
   otlphttp/axiom_metrics_public:
     endpoint: 'https://api.axiom.co'
@@ -197,6 +198,7 @@ exporters:
       enabled: true
       sizer: items
       queue_size: 10000
+      num_consumers: 4
 
   otlphttp/axiom_logs_public:
     endpoint: 'https://api.axiom.co'
@@ -208,6 +210,7 @@ exporters:
       enabled: true
       sizer: items
       queue_size: 10000
+      num_consumers: 4
 
   # Debug exporter for local development (stdout)
   debug:

@@ -72,7 +72,7 @@ func (c *Config) Validate() error {
 	if c.ProjectURL == "" && (c.HydraAdminURL == "" || c.TalosAdminURL == "" || c.KratosAdminURL == "") {
 		return errors.New("project_url or all three self-hosted admin URLs are required")
 	}
-	if *c.CacheTTL < 0 || *c.RequestTimeout <= 0 || *c.CacheMaxEntries <= 0 {
+	if *c.CacheTTL <= 0 || *c.RequestTimeout <= 0 || *c.CacheMaxEntries <= 0 {
 		return errors.New("cache and timeout bounds must be positive")
 	}
 	if c.GlobalRate <= 0 || c.GlobalBurst <= 0 || c.AgentRate <= 0 || c.AgentBurst <= 0 || c.LimiterMaxEntries <= 0 || c.LimiterIdleTTL <= 0 {

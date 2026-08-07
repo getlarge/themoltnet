@@ -120,4 +120,8 @@ func TestConfigDefaultsAndValidation(t *testing.T) {
 	if err := (&Config{HydraAdminURL: "http://hydra", TalosAdminURL: "http://talos", KratosAdminURL: "http://kratos", APIKey: "unexpected"}).Validate(); err == nil {
 		t.Fatal("self-hosted config with api_key was accepted")
 	}
+	zero := time.Duration(0)
+	if err := (&Config{ProjectURL: "https://project.example", APIKey: "provider-secret", CacheTTL: &zero}).Validate(); err == nil {
+		t.Fatal("explicit zero cache_ttl was silently treated as the default")
+	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	authn "github.com/getlarge/themoltnet/libs/moltnet-authn"
 	"go.opentelemetry.io/collector/client"
 	"go.opentelemetry.io/collector/consumer/consumererror"
 	"go.opentelemetry.io/collector/pdata/pcommon"
@@ -119,6 +120,7 @@ func TestMetricsRemoveTaskDimensionsOnly(t *testing.T) {
 	point.Attributes().PutStr("moltnet.task.id", "point-task")
 	exemplar := point.Exemplars().AppendEmpty()
 	exemplar.FilteredAttributes().PutStr("task.id", "exemplar-task")
+	exemplar.FilteredAttributes().PutStr(agentIDKey, "exemplar-spoofed")
 	if _, err := p.processMetrics(trustedContext(), metrics); err != nil {
 		t.Fatal(err)
 	}
@@ -136,6 +138,9 @@ func TestMetricsRemoveTaskDimensionsOnly(t *testing.T) {
 	}
 	if _, ok := exemplar.FilteredAttributes().Get("task.id"); ok {
 		t.Fatal("exemplar task ID retained")
+	}
+	if value, ok := exemplar.FilteredAttributes().Get(agentIDKey); !ok || value.Str() != "trusted-agent" {
+		t.Fatal("exemplar identity not replaced")
 	}
 
 	traces := ptrace.NewTraces()
@@ -202,11 +207,31 @@ func TestAllMetricTypesRemoveTaskDimensions(t *testing.T) {
 }
 
 func TestRejectsMissingTrustedContext(t *testing.T) {
-	_, err := testAttributor(t).processTraces(context.Background(), ptrace.NewTraces())
-	if err == nil {
-		t.Fatal("missing auth context accepted")
+	contexts := []struct {
+		name string
+		ctx  context.Context
+	}{
+		{"missing auth", context.Background()},
+		{"empty identity", client.NewContext(context.Background(), client.Info{Auth: authData{authn.IdentityIDAttribute: ""}})},
 	}
-	if !consumererror.IsPermanent(err) {
-		t.Fatalf("missing auth context must not be retried: %v", err)
+	for _, tc := range contexts {
+		t.Run(tc.name, func(t *testing.T) {
+			processor := testAttributor(t)
+			errors := []error{}
+			_, err := processor.processTraces(tc.ctx, ptrace.NewTraces())
+			errors = append(errors, err)
+			_, err = processor.processLogs(tc.ctx, plog.NewLogs())
+			errors = append(errors, err)
+			_, err = processor.processMetrics(tc.ctx, pmetric.NewMetrics())
+			errors = append(errors, err)
+			for _, signalErr := range errors {
+				if signalErr == nil {
+					t.Fatal("untrusted signal accepted")
+				}
+				if !consumererror.IsPermanent(signalErr) {
+					t.Fatalf("missing auth context must not be retried: %v", signalErr)
+				}
+			}
+		})
 	}
 }

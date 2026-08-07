@@ -42,8 +42,11 @@ blue "[1/5] Using registered MoltNet agent OAuth client '$CLIENT_ID'..."
 blue "[2/5] Requesting access token via client_credentials..."
 
 TOKEN_RESPONSE=$(curl -sS -X POST "$HYDRA_PUBLIC/oauth2/token" \
-  -u "$CLIENT_ID:$CLIENT_SECRET" \
-  -d 'grant_type=client_credentials&scope=task:execute')
+  --config - \
+  -d 'grant_type=client_credentials&scope=task:execute' <<EOF
+user = "$CLIENT_ID:$CLIENT_SECRET"
+EOF
+)
 
 ACCESS_TOKEN=$(echo "$TOKEN_RESPONSE" | jq -r '.access_token // empty')
 if [[ -z "$ACCESS_TOKEN" ]]; then
@@ -111,30 +114,36 @@ if [[ -n "${TALOS_API_KEY:-}" ]]; then
   post_valid metrics "$OTLP_METRICS_PAYLOAD" "$TALOS_API_KEY"
 fi
 
-# --- 4. Bogus bearer — expect 401 -------------------------------------
+post_rejected() {
+  local signal="$1"
+  local payload="$2"
+  local authorization="${3:-}"
+  local args=(-sS -o /dev/null -w '%{http_code}' -X POST "$OTLP_BASE/v1/$signal" -H 'Content-Type: application/json' -d "$payload")
+  if [[ -n "$authorization" ]]; then
+    args+=(-H "$authorization")
+  fi
+  local status
+  status=$(curl "${args[@]}")
+  if [[ "$status" != "401" ]]; then
+    red "  $signal: expected 401, got $status"
+    exit 1
+  fi
+  green "  $signal status=$status"
+}
 
-blue "[4/5] POST /v1/traces with bogus token (expect 401)..."
-STATUS=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$OTLP_BASE/v1/traces" \
-  -H 'Authorization: Bearer not-a-real-token' \
-  -H 'Content-Type: application/json' \
-  -d "$OTLP_PAYLOAD")
-if [[ "$STATUS" != "401" ]]; then
-  red "  Expected 401, got $STATUS"
-  exit 1
-fi
-green "  status=$STATUS"
+# --- 4. Bogus bearer — expect 401 for every signal --------------------
 
-# --- 5. Missing auth header — expect 401 ------------------------------
+blue "[4/5] POST all signals with a bogus token (expect 401)..."
+post_rejected traces "$OTLP_PAYLOAD" 'Authorization: Bearer not-a-real-token'
+post_rejected logs "$OTLP_LOGS_PAYLOAD" 'Authorization: Bearer not-a-real-token'
+post_rejected metrics "$OTLP_METRICS_PAYLOAD" 'Authorization: Bearer not-a-real-token'
 
-blue "[5/5] POST /v1/traces with no Authorization header (expect 401)..."
-STATUS=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$OTLP_BASE/v1/traces" \
-  -H 'Content-Type: application/json' \
-  -d "$OTLP_PAYLOAD")
-if [[ "$STATUS" != "401" ]]; then
-  red "  Expected 401, got $STATUS"
-  exit 1
-fi
-green "  status=$STATUS"
+# --- 5. Missing auth header — expect 401 for every signal -------------
+
+blue "[5/5] POST all signals with no Authorization header (expect 401)..."
+post_rejected traces "$OTLP_PAYLOAD"
+post_rejected logs "$OTLP_LOGS_PAYLOAD"
+post_rejected metrics "$OTLP_METRICS_PAYLOAD"
 
 green ""
 green "All assertions passed."

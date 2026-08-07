@@ -151,6 +151,14 @@
       "type": "TimeSeries"
     },
     {
+      "id": "otlp-attribution-rejections",
+      "name": "Public OTLP attribution rejections",
+      "query": {
+        "mpl": "`moltnet-metrics`:`moltnet.attribution.rejected`\n| align to 1m using prom::rate\n| group by `signal` using sum"
+      },
+      "type": "TimeSeries"
+    },
+    {
       "id": "otlp-span-export-failures",
       "name": "Collector span export failures",
       "query": {
@@ -408,6 +416,17 @@
       "w": 6,
       "x": 6,
       "y": 40
+    },
+    {
+      "h": 5,
+      "i": "otlp-attribution-rejections",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 6,
+      "x": 0,
+      "y": 45
     }
   ],
   "name": "MoltNet Metrics",
