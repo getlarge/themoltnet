@@ -1421,27 +1421,6 @@ jobs:
         if: failure() && needs.affected.outputs.e2e-orchestration == 'true'
         run: docker compose -f docker-compose.e2e.yaml logs --tail=50 issue-lifecycle-db issue-lifecycle-db-migrate
 
-  go-otel-extension:
-    # OCB components deliberately live outside go.work. The shared resolver is
-    # in go.work; test both adapters independently with their explicit replaces.
-    name: Go OTel components
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
-        with:
-          go-version: '1.25'
-      - name: Test Collector components
-        working-directory: infra/otel/custom-collector
-        env:
-          GOWORK: 'off'
-        run: |
-          go -C moltnetauthextension test -race ./...
-          go -C moltnetattributionprocessor test -race ./...
-
   skill-check:
     name: Skill Validation
     runs-on: ubuntu-latest

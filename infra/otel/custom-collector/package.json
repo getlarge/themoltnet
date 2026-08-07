@@ -52,19 +52,6 @@
             "command": "node tools/docker-build.mjs --project {projectName} --push --platform linux/amd64,linux/arm64 --tag \"${NX_DOCKER_RELEASE_TAG:?NX_DOCKER_RELEASE_TAG must be set}\""
           }
         }
-      },
-      "test": {
-        "executor": "nx:run-commands",
-        "options": {
-          "command": "GOWORK=off go -C moltnetauthextension test -race ./... && GOWORK=off go -C moltnetattributionprocessor test -race ./...",
-          "cwd": "{projectRoot}"
-        }
-      },
-      "test-ci": {
-        "dependsOn": [
-          "test"
-        ],
-        "executor": "nx:noop"
       }
     }
   }

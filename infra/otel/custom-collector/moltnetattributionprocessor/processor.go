@@ -116,12 +116,12 @@ func (p *attributor) processMetrics(ctx context.Context, data pmetric.Metrics) (
 		resource := resources.At(i)
 		attrs := resource.Resource().Attributes()
 		p.setIdentity(ctx, attrs, identity, "metrics")
-		removeTaskIDs(attrs)
+		removeTaskIDDimensions(attrs)
 		scopes := resource.ScopeMetrics()
 		for j := 0; j < scopes.Len(); j++ {
 			scope := scopes.At(j)
 			scopeAttrs := scope.Scope().Attributes()
-			removeTaskIDs(scopeAttrs)
+			removeTaskIDDimensions(scopeAttrs)
 			p.replaceIdentityIfPresent(ctx, scopeAttrs, identity, "metrics")
 			metrics := scope.Metrics()
 			for k := 0; k < metrics.Len(); k++ {
@@ -132,7 +132,10 @@ func (p *attributor) processMetrics(ctx context.Context, data pmetric.Metrics) (
 	return data, nil
 }
 
-func removeTaskIDs(attrs pcommon.Map) {
+// removeTaskIDDimensions prevents client-supplied task identifiers from
+// becoming unbounded public metric dimensions. Traces and logs retain task IDs
+// as client-supplied correlation data.
+func removeTaskIDDimensions(attrs pcommon.Map) {
 	for _, key := range taskIDKeys {
 		attrs.Remove(key)
 	}
@@ -144,7 +147,7 @@ func (p *attributor) cleanMetric(ctx context.Context, item pmetric.Metric, ident
 		for i := 0; i < points.Len(); i++ {
 			point := points.At(i)
 			attrs := point.Attributes()
-			removeTaskIDs(attrs)
+			removeTaskIDDimensions(attrs)
 			p.replaceIdentityIfPresent(ctx, attrs, identity, "metrics")
 			p.cleanExemplars(ctx, point.Exemplars(), identity)
 		}
@@ -153,7 +156,7 @@ func (p *attributor) cleanMetric(ctx context.Context, item pmetric.Metric, ident
 		for i := 0; i < points.Len(); i++ {
 			point := points.At(i)
 			attrs := point.Attributes()
-			removeTaskIDs(attrs)
+			removeTaskIDDimensions(attrs)
 			p.replaceIdentityIfPresent(ctx, attrs, identity, "metrics")
 			p.cleanExemplars(ctx, point.Exemplars(), identity)
 		}
@@ -162,7 +165,7 @@ func (p *attributor) cleanMetric(ctx context.Context, item pmetric.Metric, ident
 		for i := 0; i < points.Len(); i++ {
 			point := points.At(i)
 			attrs := point.Attributes()
-			removeTaskIDs(attrs)
+			removeTaskIDDimensions(attrs)
 			p.replaceIdentityIfPresent(ctx, attrs, identity, "metrics")
 			p.cleanExemplars(ctx, point.Exemplars(), identity)
 		}
@@ -171,7 +174,7 @@ func (p *attributor) cleanMetric(ctx context.Context, item pmetric.Metric, ident
 		for i := 0; i < points.Len(); i++ {
 			point := points.At(i)
 			attrs := point.Attributes()
-			removeTaskIDs(attrs)
+			removeTaskIDDimensions(attrs)
 			p.replaceIdentityIfPresent(ctx, attrs, identity, "metrics")
 			p.cleanExemplars(ctx, point.Exemplars(), identity)
 		}
@@ -179,7 +182,7 @@ func (p *attributor) cleanMetric(ctx context.Context, item pmetric.Metric, ident
 		points := item.Summary().DataPoints()
 		for i := 0; i < points.Len(); i++ {
 			attrs := points.At(i).Attributes()
-			removeTaskIDs(attrs)
+			removeTaskIDDimensions(attrs)
 			p.replaceIdentityIfPresent(ctx, attrs, identity, "metrics")
 		}
 	}
@@ -188,7 +191,7 @@ func (p *attributor) cleanMetric(ctx context.Context, item pmetric.Metric, ident
 func (p *attributor) cleanExemplars(ctx context.Context, exemplars pmetric.ExemplarSlice, identity string) {
 	for i := 0; i < exemplars.Len(); i++ {
 		attrs := exemplars.At(i).FilteredAttributes()
-		removeTaskIDs(attrs)
+		removeTaskIDDimensions(attrs)
 		p.replaceIdentityIfPresent(ctx, attrs, identity, "metrics")
 	}
 }
