@@ -54,6 +54,11 @@
       ],
       "release-type": "node"
     },
+    "infra/otel/custom-collector": {
+      "bump-minor-pre-major": true,
+      "component": "otel-collector",
+      "release-type": "node"
+    },
     "libs/agent-runtime": {
       "component": "agent-runtime",
       "release-type": "node"

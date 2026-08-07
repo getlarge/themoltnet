@@ -209,7 +209,8 @@
           "@moltnet/landing",
           "@moltnet/mcp-host",
           "@moltnet/mcp-server",
-          "@moltnet/rest-api"
+          "@moltnet/rest-api",
+          "otel-custom-collector"
         ],
         "projectsRelationship": "independent",
         "releaseTag": {
