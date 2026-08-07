@@ -40,6 +40,7 @@ import {
   SessionManager,
   type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
+import type { Context } from '@opentelemetry/api';
 
 import { createPiOtelExtension } from '../otel/index.js';
 import {
@@ -84,6 +85,12 @@ export interface BuildAgentSessionArgs {
   skillsOverride?: () => LoadSkillsResult;
   /** Span attributes merged onto every OTel span the session emits. */
   otelSpanAttrs: Record<string, string | number | boolean>;
+  /** Parent context for the Pi session span, normally the task execute span. */
+  otelSessionParentContext?: Context;
+  /** Resolves the provider-request context used to parent each Pi turn. */
+  getOtelTurnParentContext?: () => Context | undefined;
+  /** Receives the live Pi session context for provider-span parenting. */
+  onOtelSessionContextChange?: (context: Context | undefined) => void;
   /** Agent name for `gen_ai.agent.name` on the root span. */
   agentName: string;
   /**
@@ -120,6 +127,9 @@ export async function buildAgentSession(
   const piOtelExtension = createPiOtelExtension({
     agentName: args.agentName,
     spanAttributes: args.otelSpanAttrs,
+    sessionParentContext: args.otelSessionParentContext,
+    getTurnParentContext: args.getOtelTurnParentContext,
+    onSessionContextChange: args.onOtelSessionContextChange,
   });
   const modelOptions = {
     temperature: args.temperature,

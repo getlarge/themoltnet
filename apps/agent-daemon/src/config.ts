@@ -24,6 +24,8 @@ export interface DaemonConfig {
    * itself is never surfaced here.
    */
   authMode: DaemonAuthMode;
+  /** Include empty-list and idle-sleep spans for controlled benchmarks. */
+  traceIdlePolling: boolean;
 }
 
 export function loadConfig(): DaemonConfig {
@@ -34,7 +36,18 @@ export function loadConfig(): DaemonConfig {
     profilePrerequisitePath: process.env.PATH ?? '',
     piCodingAgentDir: process.env['PI_CODING_AGENT_DIR'] ?? '',
     authMode: detectAuthMode(process.env),
+    traceIdlePolling: readBoolean(
+      'MOLTNET_TRACE_IDLE_POLLING',
+      process.env['MOLTNET_TRACE_IDLE_POLLING'],
+    ),
   };
+}
+
+function readBoolean(name: string, value: string | undefined): boolean {
+  if (value === undefined || value === '') return false;
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  throw new Error(`${name} must be either true or false`);
 }
 
 export function activatePiCodingAgentDir(path: string): void {

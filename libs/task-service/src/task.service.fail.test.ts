@@ -1,7 +1,7 @@
 import { KetoNamespace } from '@moltnet/auth';
 import { computeJsonCid } from '@moltnet/crypto-service';
 import { DBOS, type Task as DbTask } from '@moltnet/database';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createTaskService } from './task.service.js';
 
@@ -283,6 +283,9 @@ describe('createTaskService.appendMessages', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   it('authorizes the active DB claimant even when Keto report is denied', async () => {
     const deps = {
@@ -326,6 +329,76 @@ describe('createTaskService.appendMessages', () => {
         taskId: TASK_ID,
       }),
     ]);
+  });
+
+  it('logs server-clock readiness only for a useful event', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-01T00:00:01.250Z'));
+    const deps = {
+      taskRepository: {
+        findById: vi.fn().mockResolvedValue(makeTask('running')),
+        findAttempt: vi.fn().mockResolvedValue({
+          taskId: TASK_ID,
+          attemptN: 1,
+          claimedByAgentId: AGENT_ID,
+          status: 'running',
+        }),
+        appendMessages: vi.fn().mockResolvedValue(undefined),
+      },
+      permissionChecker: {},
+      logger: {
+        info: vi.fn(),
+        debug: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+      },
+    };
+    const service = createTaskService(withRequiredDeps(deps) as never);
+
+    await service.appendMessages(TASK_ID, 1, AGENT_ID, KetoNamespace.Agent, [
+      { kind: 'info', payload: { event: 'execute_start' } },
+      { kind: 'text_delta', payload: { delta: 'ready' } },
+    ]);
+
+    expect(deps.logger.info).toHaveBeenCalledWith(
+      {
+        taskId: TASK_ID,
+        attemptN: 1,
+        usefulEventKind: 'text_delta',
+        queuedToUsefulMs: 1_250,
+        serverProcessingMs: 0,
+      },
+      'task.readiness.useful_event_received',
+    );
+  });
+
+  it('does not log readiness for empty deltas', async () => {
+    const deps = {
+      taskRepository: {
+        findById: vi.fn().mockResolvedValue(makeTask('running')),
+        findAttempt: vi.fn().mockResolvedValue({
+          taskId: TASK_ID,
+          attemptN: 1,
+          claimedByAgentId: AGENT_ID,
+          status: 'running',
+        }),
+        appendMessages: vi.fn().mockResolvedValue(undefined),
+      },
+      permissionChecker: {},
+      logger: {
+        info: vi.fn(),
+        debug: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+      },
+    };
+    const service = createTaskService(withRequiredDeps(deps) as never);
+
+    await service.appendMessages(TASK_ID, 1, AGENT_ID, KetoNamespace.Agent, [
+      { kind: 'text_delta', payload: { delta: ' \n' } },
+    ]);
+
+    expect(deps.logger.info).not.toHaveBeenCalled();
   });
 
   it('rejects append from a non-current claimant', async () => {

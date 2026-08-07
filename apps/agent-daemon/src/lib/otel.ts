@@ -5,11 +5,17 @@
  *   try { ... } finally { await shutdown(); }
  *
  * No-op when MOLTNET_OTEL_ENDPOINT is unset — `@opentelemetry/api` falls
- * back to no-op tracers, so the runtime + pi extension still call into
- * it but nothing is exported.
+ * back to no-op tracers and meters, so the runtime + pi extension still
+ * call into it but nothing is exported.
  */
+import { metrics } from '@opentelemetry/api';
+import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-proto';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
 import { resourceFromAttributes } from '@opentelemetry/resources';
+import {
+  MeterProvider,
+  PeriodicExportingMetricReader,
+} from '@opentelemetry/sdk-metrics';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import {
@@ -75,27 +81,54 @@ export async function initWorkerOtel(
     url: `${endpoint.replace(/\/$/, '')}/v1/traces`,
     ...(headersFactory && { headers: headersFactory }),
   });
+  const metricExporter = new OTLPMetricExporter({
+    url: `${endpoint.replace(/\/$/, '')}/v1/metrics`,
+    ...(headersFactory && { headers: headersFactory }),
+  });
 
   const provider = new NodeTracerProvider({
     resource,
     spanProcessors: [new BatchSpanProcessor(exporter)],
+  });
+  const metricReader = new PeriodicExportingMetricReader({
+    exporter: metricExporter,
+    exportIntervalMillis: 60_000,
+  });
+  const meterProvider = new MeterProvider({
+    resource,
+    readers: [metricReader],
   });
 
   // register() installs the context manager + propagator too — required
   // for parent/child span linkage across await boundaries.
   // setGlobalTracerProvider() alone is NOT enough.
   provider.register();
+  metrics.setGlobalMeterProvider(meterProvider);
 
   return async () => {
-    await provider.forceFlush().catch((err) => {
-      process.stderr.write(
-        `[otel-bootstrap] forceFlush failed: ${err instanceof Error ? err.message : String(err)}\n`,
-      );
-    });
-    await provider.shutdown().catch((err) => {
-      process.stderr.write(
-        `[otel-bootstrap] shutdown failed: ${err instanceof Error ? err.message : String(err)}\n`,
-      );
-    });
+    await Promise.all([
+      provider.forceFlush().catch((err) => {
+        process.stderr.write(
+          `[otel-bootstrap] trace forceFlush failed: ${err instanceof Error ? err.message : String(err)}\n`,
+        );
+      }),
+      meterProvider.forceFlush().catch((err) => {
+        process.stderr.write(
+          `[otel-bootstrap] metric forceFlush failed: ${err instanceof Error ? err.message : String(err)}\n`,
+        );
+      }),
+    ]);
+    await Promise.all([
+      provider.shutdown().catch((err) => {
+        process.stderr.write(
+          `[otel-bootstrap] trace shutdown failed: ${err instanceof Error ? err.message : String(err)}\n`,
+        );
+      }),
+      meterProvider.shutdown().catch((err) => {
+        process.stderr.write(
+          `[otel-bootstrap] metric shutdown failed: ${err instanceof Error ? err.message : String(err)}\n`,
+        );
+      }),
+    ]);
   };
 }

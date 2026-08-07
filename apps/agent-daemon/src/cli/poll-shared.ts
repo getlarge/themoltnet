@@ -305,6 +305,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     resourceAttributes: {
       'moltnet.team.id': teamId,
       'moltnet.agent.name': baseCommon.agent,
+      'moltnet.auth.mode': cfg.authMode,
       'moltnet.runtime_profile.count': String(profiles.length),
       'moltnet.runtime_profile.ids': profiles.map((p) => p.id).join(','),
     },
@@ -477,6 +478,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         waitForFirstTaskMs: waitForFirstTaskSec * 1_000,
         waitAfterTaskMs: waitAfterTaskSec * 1_000,
         debug: baseCommon.debug,
+        traceIdlePolling: cfg.traceIdlePolling,
         logger: rootLogger,
         executorFingerprints: Object.fromEntries(
           profiles.map((profile) => [

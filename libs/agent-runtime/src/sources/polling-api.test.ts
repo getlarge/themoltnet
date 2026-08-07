@@ -6,6 +6,16 @@ import type { Agent, TasksNamespace } from '@themoltnet/sdk';
 import { MoltNetError } from '@themoltnet/sdk';
 import { describe, expect, it, vi } from 'vitest';
 
+const pollingTelemetry = vi.hoisted(() => ({
+  recordCompletedRuntimePhase: vi.fn(),
+  traceRuntimePhase: vi.fn(
+    async (_name: string, _attributes: unknown, run: () => Promise<unknown>) =>
+      run(),
+  ),
+}));
+
+vi.mock('../telemetry.js', () => pollingTelemetry);
+
 import type { AgentRuntimeLogger } from '../runtime.js';
 import { makeFulfillBriefTask } from '../test-fixtures.js';
 import type {
@@ -35,6 +45,7 @@ function makeAgent(
 
 describe('PollingApiTaskSource', () => {
   it('claims the first listed task and returns it', async () => {
+    pollingTelemetry.recordCompletedRuntimePhase.mockClear();
     const task = makeFulfillBriefTask({ status: 'queued' });
     const list = vi
       .fn<TasksNamespace['list']>()
@@ -66,6 +77,40 @@ describe('PollingApiTaskSource', () => {
       { teamId: 'team-1' },
     );
     expect(claim).toHaveBeenCalledWith(task.id, { leaseTtlSec: 60 });
+    expect(pollingTelemetry.recordCompletedRuntimePhase).toHaveBeenCalledWith(
+      'moltnet.task_source.list',
+      expect.objectContaining({ 'moltnet.task_source.candidates': 1 }),
+      expect.any(Number),
+    );
+  });
+
+  it('suppresses empty list spans unless benchmark tracing is enabled', async () => {
+    const list = vi
+      .fn<TasksNamespace['list']>()
+      .mockResolvedValue({ items: [], total: 0 });
+    const claim = vi.fn<TasksNamespace['claim']>();
+    pollingTelemetry.recordCompletedRuntimePhase.mockClear();
+
+    await new PollingApiTaskSource({
+      agent: makeAgent(list, claim),
+      teamId: 'team-1',
+      leaseTtlSec: 60,
+      stopWhenEmpty: true,
+    }).claim();
+    expect(pollingTelemetry.recordCompletedRuntimePhase).not.toHaveBeenCalled();
+
+    await new PollingApiTaskSource({
+      agent: makeAgent(list, claim),
+      teamId: 'team-1',
+      leaseTtlSec: 60,
+      stopWhenEmpty: true,
+      traceIdlePolling: true,
+    }).claim();
+    expect(pollingTelemetry.recordCompletedRuntimePhase).toHaveBeenCalledWith(
+      'moltnet.task_source.list',
+      expect.objectContaining({ 'moltnet.task_source.candidates': 0 }),
+      expect.any(Number),
+    );
   });
 
   it('skips a 409 (race lost) and tries the next candidate', async () => {
@@ -156,6 +201,9 @@ describe('PollingApiTaskSource', () => {
     });
 
     const pending = src.claim();
+    // Let the initial mocked list response settle so the first idle timer is
+    // registered before advancing the fake clock.
+    await vi.advanceTimersByTimeAsync(0);
     await vi.advanceTimersByTimeAsync(110);
     await expect(pending).resolves.toBeNull();
     expect(info).toHaveBeenCalledWith(

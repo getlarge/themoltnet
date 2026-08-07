@@ -15,7 +15,7 @@
 import { Readable } from 'node:stream';
 
 import { computeJsonCid } from '@moltnet/crypto-service';
-import { metrics } from '@opentelemetry/api';
+import { type Context, metrics, ROOT_CONTEXT, trace } from '@opentelemetry/api';
 import {
   AggregationTemporality,
   type CollectionResult,
@@ -276,6 +276,43 @@ describe('provider error same-session retry helpers', () => {
     expect(result).toEqual({ runError: null, retryCount: 1 });
     expect(prompts).toEqual(['do the task', 'Go on']);
     expect(retryEvents).toHaveLength(1);
+  });
+
+  it('publishes the provider request context only while prompt is active', async () => {
+    const controller = new AbortController();
+    const parentSpan = trace.getTracer('provider-context-test').startSpan('pi');
+    const parentContext = trace.setSpan(ROOT_CONTEXT, parentSpan);
+    const publishedContexts: Array<Context | undefined> = [];
+    let contextDuringPrompt: Context | undefined;
+
+    const result = await promptWithProviderErrorRetries({
+      session: {
+        prompt: async () => {
+          contextDuringPrompt = publishedContexts.at(-1);
+        },
+      },
+      initialPrompt: 'do the task',
+      cancelSignal: controller.signal,
+      getProviderErrorState: () => ({
+        llmAbort: false,
+        llmErrorMessage: null,
+      }),
+      maxRetries: 0,
+      baseDelayMs: 0,
+      maxDelayMs: 0,
+      retryPrompt: 'Go on',
+      parentContext,
+      onRequestContextChange: (context) => {
+        publishedContexts.push(context);
+      },
+    });
+    parentSpan.end();
+
+    expect(result).toEqual({ runError: null, retryCount: 0 });
+    expect(contextDuringPrompt).toBeDefined();
+    expect(trace.getSpan(contextDuringPrompt!)).toBeDefined();
+    expect(publishedContexts).toHaveLength(2);
+    expect(publishedContexts.at(-1)).toBeUndefined();
   });
 
   it('does not re-prompt for non-retryable provider configuration errors', async () => {

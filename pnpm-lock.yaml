@@ -564,6 +564,9 @@ importers:
       '@opentelemetry/api':
         specifier: 'catalog:'
         version: 1.9.0
+      '@opentelemetry/exporter-metrics-otlp-proto':
+        specifier: 'catalog:'
+        version: 0.212.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/exporter-trace-otlp-proto':
         specifier: 'catalog:'
         version: 0.212.0(@opentelemetry/api@1.9.0)
@@ -589,6 +592,9 @@ importers:
         specifier: 'catalog:'
         version: 0.22.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/resources':
+        specifier: 'catalog:'
+        version: 2.5.1(@opentelemetry/api@1.9.0)
+      '@opentelemetry/sdk-metrics':
         specifier: 'catalog:'
         version: 2.5.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-trace-base':

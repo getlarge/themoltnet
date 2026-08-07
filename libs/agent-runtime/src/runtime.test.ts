@@ -1,6 +1,25 @@
 import type { Task, TaskOutput } from '@moltnet/tasks';
 import { describe, expect, it, vi } from 'vitest';
 
+const runtimeTelemetry = vi.hoisted(() => ({
+  attributes: new Map<string, unknown>(),
+}));
+
+vi.mock('./telemetry.js', () => ({
+  traceRuntimePhase: async (
+    _name: string,
+    _attributes: unknown,
+    run: (span: {
+      setAttribute: (name: string, value: unknown) => void;
+    }) => Promise<unknown>,
+  ) =>
+    run({
+      setAttribute: (name, value) => {
+        runtimeTelemetry.attributes.set(name, value);
+      },
+    }),
+}));
+
 import type { TaskReporter } from './reporters/index.js';
 import { AgentRuntime } from './runtime.js';
 import type { ClaimedTask, TaskSource } from './sources/index.js';
@@ -89,6 +108,7 @@ describe('AgentRuntime', () => {
   });
 
   it('converts executor throws into failed TaskOutput', async () => {
+    runtimeTelemetry.attributes.clear();
     const task = makeFulfillBriefTask();
     const runtime = new AgentRuntime({
       source: new ArraySource([task]),
@@ -102,6 +122,12 @@ describe('AgentRuntime', () => {
     expect(outputs[0].status).toBe('failed');
     expect(outputs[0].error?.code).toBe('executor_threw');
     expect(outputs[0].error?.message).toBe('boom');
+    expect(runtimeTelemetry.attributes).toEqual(
+      new Map([
+        ['moltnet.task.status', 'failed'],
+        ['error.type', 'executor_threw'],
+      ]),
+    );
   });
 
   it('stop() halts the loop before claiming again', async () => {

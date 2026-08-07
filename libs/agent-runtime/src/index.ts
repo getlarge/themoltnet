@@ -18,4 +18,5 @@ export {
   type SubagentContractRegistry,
   type SubagentOutputContract,
 } from './subagent-output-contracts.js';
+export { traceRuntimePhase } from './telemetry.js';
 export * from '@moltnet/tasks';

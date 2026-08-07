@@ -994,6 +994,14 @@ export function createTaskService(deps: TaskServiceDeps) {
         timestamp?: string;
       }>,
     ): Promise<{ count: number }> {
+      const serverReceivedAtMs = Date.now();
+      const usefulEvent = messages.find(
+        ({ kind, payload }) =>
+          kind === 'tool_call_start' ||
+          (kind === 'text_delta' &&
+            typeof payload['delta'] === 'string' &&
+            payload['delta'].trim().length > 0),
+      );
       const task = await taskRepository.findById(taskId);
       if (!task) throw new TaskServiceError('not_found', 'Task not found');
       if (TERMINAL_STATUSES.has(task.status)) {
@@ -1035,6 +1043,21 @@ export function createTaskService(deps: TaskServiceDeps) {
       }));
 
       await taskRepository.appendMessages(rows);
+      if (usefulEvent) {
+        logger.info(
+          {
+            taskId,
+            attemptN,
+            usefulEventKind: usefulEvent.kind,
+            queuedToUsefulMs: Math.max(
+              0,
+              serverReceivedAtMs - task.queuedAt.getTime(),
+            ),
+            serverProcessingMs: Date.now() - serverReceivedAtMs,
+          },
+          'task.readiness.useful_event_received',
+        );
+      }
       logger.debug(
         { taskId, attemptN, count: messages.length },
         'task.messages_appended',

@@ -113,6 +113,10 @@ const referenceItems = [
 const contributeItems = [
   { text: 'LeGreffier Flows', link: '/contribute/legreffier-flows' },
   { text: 'Agent Executors', link: '/contribute/agent-executors' },
+  {
+    text: 'Task Readiness Benchmark',
+    link: '/contribute/task-readiness-benchmark',
+  },
   { text: 'Design System', link: '/contribute/design-system' },
   { text: 'Accessibility', link: '/contribute/accessibility' },
   {

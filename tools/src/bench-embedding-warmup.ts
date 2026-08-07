@@ -15,6 +15,8 @@
 
 import { createEmbeddingService } from '@moltnet/embedding-service';
 
+import { benchmarkDistribution } from './benchmark-stats.js';
+
 // ── Config ──────────────────────────────────────────────────────────────────
 
 const args = process.argv.slice(2);
@@ -75,17 +77,18 @@ for (let i = 0; i < iterations; i++) {
 
 const cold = durations[0];
 const warmDurations = durations.slice(1);
-const warmAvg = warmDurations.reduce((s, d) => s + d, 0) / warmDurations.length;
-const warmP50 = [...warmDurations].sort((a, b) => a - b)[
-  Math.floor(warmDurations.length * 0.5)
-];
+const warm = benchmarkDistribution(warmDurations);
+
+if (!warm) {
+  throw new Error('iterations must be at least 2 to measure warm latency');
+}
 
 console.log(`\n  ── Summary ──`);
 console.log(`  Cold (first call):  ${cold.toFixed(0)}ms`);
 console.log(
-  `  Warm avg:           ${warmAvg.toFixed(0)}ms  (p50: ${warmP50.toFixed(0)}ms)`,
+  `  Warm avg:           ${warm.mean.toFixed(0)}ms  (p50: ${warm.p50.toFixed(0)}ms)`,
 );
-console.log(`  Cold/warm ratio:    ${(cold / warmAvg).toFixed(1)}x slower`);
+console.log(`  Cold/warm ratio:    ${(cold / warm.mean).toFixed(1)}x slower`);
 console.log(
   `  Startup warm-up would hide ${cold.toFixed(0)}ms from user-facing requests.`,
 );

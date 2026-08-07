@@ -20,6 +20,7 @@ import { pino } from 'pino';
 
 import type { TaskReporter } from './reporters/index.js';
 import type { ClaimedTask, TaskSource } from './sources/index.js';
+import { traceRuntimePhase } from './telemetry.js';
 
 type LogFn = (obj: Record<string, unknown>, msg: string) => void;
 /** Pino-shaped logger; structurally satisfied by `pino.Logger` and `FastifyBaseLogger`. */
@@ -136,7 +137,34 @@ export class AgentRuntime {
         let output: TaskOutput;
         try {
           output = await otelContext.with(taskCtx, () =>
-            this.opts.executeTask(claimedTask, reporter),
+            traceRuntimePhase(
+              'moltnet.task.execute',
+              {
+                'moltnet.task.id': claimedTask.task.id,
+                'moltnet.task.attempt': claimedTask.attemptN,
+                'moltnet.task.type': claimedTask.task.taskType,
+                ...(claimedTask.profileId
+                  ? { 'moltnet.runtime_profile.id': claimedTask.profileId }
+                  : {}),
+              },
+              async (span) => {
+                try {
+                  const result = await this.opts.executeTask(
+                    claimedTask,
+                    reporter,
+                  );
+                  span.setAttribute('moltnet.task.status', result.status);
+                  if (result.error) {
+                    span.setAttribute('error.type', result.error.code);
+                  }
+                  return result;
+                } catch (error) {
+                  span.setAttribute('moltnet.task.status', 'failed');
+                  span.setAttribute('error.type', 'executor_threw');
+                  throw error;
+                }
+              },
+            ),
           );
         } catch (err) {
           // Contract: executors resolve with `status: 'failed'` on agent

@@ -32,6 +32,11 @@ import {
 } from '@earendil-works/pi-coding-agent';
 import { computeJsonCid } from '@moltnet/crypto-service';
 import {
+  type Context,
+  context as otelContext,
+  trace as otelTrace,
+} from '@opentelemetry/api';
+import {
   buildTaskUserPrompt,
   type ClaimedTask,
   type ContextRef,
@@ -43,6 +48,7 @@ import {
   taskTypeUsesSubagents,
   type TaskUsage,
   type TaskUserPromptContext,
+  traceRuntimePhase,
   validateTaskOutput,
 } from '@themoltnet/agent-runtime';
 import { connect } from '@themoltnet/sdk';
@@ -517,6 +523,7 @@ export async function executePiTask(
   const task = claimedTask.task;
   const attemptN = claimedTask.attemptN;
   const startTime = Date.now();
+  const taskOtelContext = otelContext.active();
   const requestedMountPath = opts.mountPath ?? process.cwd();
   const agentRootDir = opts.agentRootDir ?? requestedMountPath;
   const executionPlan = (await opts.makeExecutionPlan?.(claimedTask)) ?? null;
@@ -550,6 +557,8 @@ export async function executePiTask(
   let reporterOpen = opts.reporterAlreadyOpened ?? false;
   let managed: Awaited<ReturnType<typeof resumeVm>> | null = null;
   let session: AgentSession | null = null;
+  let piSessionContext: Context | undefined;
+  let providerRequestContext: Context | undefined;
   // Tracked at function scope so the post-prompt summary block can
   // read the call counter even though the handle is only constructed
   // inside the session-setup `try`. Null means "task type did not
@@ -647,19 +656,31 @@ export async function executePiTask(
               onProgress: opts.onSnapshotProgress,
             });
       }
-      checkpointPath =
-        resolvedVmTemplate?.checkpointPath ??
-        opts.checkpointPath ??
-        (opts.resolveCheckpointPath
-          ? await opts.resolveCheckpointPath()
-          : await ensureSnapshot({
-              config: opts.sandboxConfig?.snapshot,
-              onProgress:
-                opts.onSnapshotProgress ??
-                ((m) => {
-                  process.stderr.write(`[snapshot] ${m}\n`);
-                }),
-            }));
+      checkpointPath = await traceRuntimePhase(
+        'moltnet.execution.snapshot.prepare',
+        {
+          'moltnet.snapshot.source': resolvedVmTemplate
+            ? 'resolved_template'
+            : opts.checkpointPath
+              ? 'configured_checkpoint'
+              : opts.resolveCheckpointPath
+                ? 'resolver'
+                : 'build_or_cache',
+        },
+        async () =>
+          resolvedVmTemplate?.checkpointPath ??
+          opts.checkpointPath ??
+          (opts.resolveCheckpointPath
+            ? await opts.resolveCheckpointPath()
+            : await ensureSnapshot({
+                config: opts.sandboxConfig?.snapshot,
+                onProgress:
+                  opts.onSnapshotProgress ??
+                  ((m) => {
+                    process.stderr.write(`[snapshot] ${m}\n`);
+                  }),
+              })),
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await emitError('snapshot', message);
@@ -669,7 +690,16 @@ export async function executePiTask(
     // Resolve the dedicated worktree after the reporter is live so path
     // collisions / git metadata errors also reach the task attempt stream.
     try {
-      workspace = prepareTaskWorkspace(task, requestedMountPath, executionPlan);
+      workspace = await traceRuntimePhase(
+        'moltnet.execution.workspace.prepare',
+        {
+          'moltnet.workspace.mode':
+            executionPlan?.workspaceMode ?? 'shared_mount',
+          'moltnet.workspace.scope': executionPlan?.workspaceScope ?? 'attempt',
+        },
+        async () =>
+          prepareTaskWorkspace(task, requestedMountPath, executionPlan),
+      );
       mountPath = workspace.mountPath;
       cwdPath = workspace.cwdPath;
     } catch (err) {
@@ -677,6 +707,10 @@ export async function executePiTask(
       await emitError('worktree_setup', message);
       return makeFailedOutput('worktree_setup_failed', message);
     }
+    if (!workspace) {
+      throw new Error('task workspace not prepared');
+    }
+    const preparedWorkspace = workspace;
 
     try {
       effectiveSandboxConfig = applyExecutionPlanSandboxOverrides(
@@ -689,17 +723,22 @@ export async function executePiTask(
           : opts.sandboxConfig,
         executionPlan,
       );
-      managed = await resumeVm({
-        checkpointPath,
-        agentName: opts.agentName,
-        agentRootDir,
-        mountPath,
-        workspaceMode: workspace.mode,
-        extraAllowedHosts: opts.extraAllowedHosts,
-        sandboxConfig: effectiveSandboxConfig,
-        forwardEnv: opts.forwardEnv,
-        signal: reporter.cancelSignal,
-      });
+      managed = await traceRuntimePhase(
+        'moltnet.execution.vm.resume',
+        { 'moltnet.workspace.mode': preparedWorkspace.mode },
+        () =>
+          resumeVm({
+            checkpointPath,
+            agentName: opts.agentName,
+            agentRootDir,
+            mountPath,
+            workspaceMode: preparedWorkspace.mode,
+            extraAllowedHosts: opts.extraAllowedHosts,
+            sandboxConfig: effectiveSandboxConfig,
+            forwardEnv: opts.forwardEnv,
+            signal: reporter.cancelSignal,
+          }),
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       if (reporter.cancelSignal.aborted) {
@@ -715,11 +754,8 @@ export async function executePiTask(
     const diaryId = task.diaryId ?? '';
     const taskTeamId = task.teamId ?? '';
     activateAgentEnv(managed.credentials.agentEnv, agentRootDir);
-    const activeWorkspace = workspace;
+    const activeWorkspace = preparedWorkspace;
     const activeManaged = managed;
-    if (!activeWorkspace) {
-      throw new Error('task workspace not prepared');
-    }
 
     await emit('info', {
       event: 'execute_start',
@@ -784,10 +820,15 @@ export async function executePiTask(
     const rawContext = (task.input as { context?: unknown }).context;
     let effectiveRuntimeContext: ContextRef[];
     try {
-      effectiveRuntimeContext = resolveEffectiveRuntimeContext({
-        rawTaskContext: rawContext,
-        runtimeProfileContext: opts.runtimeProfileContext,
-      });
+      effectiveRuntimeContext = await traceRuntimePhase(
+        'moltnet.execution.context.resolve',
+        {},
+        async () =>
+          resolveEffectiveRuntimeContext({
+            rawTaskContext: rawContext,
+            runtimeProfileContext: opts.runtimeProfileContext,
+          }),
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await emit('error', { message, phase: 'context_resolution' });
@@ -837,11 +878,16 @@ export async function executePiTask(
     // system-prompt prefix, and user-message suffix.
     let injectedContext: InjectedRuntimeContext;
     try {
-      injectedContext = await injectRuntimeContext({
-        context: effectiveRuntimeContext,
-        fs: managed.vm.fs,
-        guestWorkspace: managed.guestWorkspace,
-      });
+      injectedContext = await traceRuntimePhase(
+        'moltnet.execution.context.inject',
+        { 'moltnet.context.ref_count': effectiveRuntimeContext.length },
+        () =>
+          injectRuntimeContext({
+            context: effectiveRuntimeContext,
+            fs: activeManaged.vm.fs,
+            guestWorkspace: activeManaged.guestWorkspace,
+          }),
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await emit('error', { message, phase: 'context_resolution' });
@@ -1205,40 +1251,53 @@ export async function executePiTask(
         ...submitTools,
         ...parentSubagentTools,
       ];
-      session = await buildAgentSession({
-        mountPath,
-        cwdPath,
-        piAuthDir,
-        modelHandle,
-        modelRegistry,
-        thinkingLevel: opts.thinkingLevel,
-        temperature: opts.temperature,
-        topP: opts.topP,
-        topK: opts.topK,
-        maxOutputTokens: opts.maxOutputTokens,
-        agentName: opts.agentName,
-        customTools: parentTools,
-        tools: enabledPiToolNames({
-          tools: parentTools,
-          extensions: opts.runtimeDefinition?.extensions,
-          policy: resolvedToolPolicy,
-        }),
-        appendSystemPrompt,
-        skillsOverride: () => ({ skills: injectedSkills, diagnostics: [] }),
-        // MoltNet-specific span attrs only — pi's OTel extension owns
-        // gen_ai.* keys and filters anything we pass that collides.
-        otelSpanAttrs: {
-          'moltnet.task.id': task.id,
-          'moltnet.task.attempt': attemptN,
-          'moltnet.task.type': task.taskType,
+      session = await traceRuntimePhase(
+        'moltnet.execution.session.create',
+        {
+          'gen_ai.provider.name': opts.provider,
+          'gen_ai.request.model': opts.model,
         },
-        sessionPersistence: executionPlan?.sessionPersistence ?? undefined,
-        extraExtensionFactories: [
-          ...runtimeParentExtensions,
-          ...toolPolicyExtensions,
-          submitCompletion.extension,
-        ],
-      });
+        () =>
+          buildAgentSession({
+            mountPath,
+            cwdPath,
+            piAuthDir,
+            modelHandle,
+            modelRegistry,
+            thinkingLevel: opts.thinkingLevel,
+            temperature: opts.temperature,
+            topP: opts.topP,
+            topK: opts.topK,
+            maxOutputTokens: opts.maxOutputTokens,
+            agentName: opts.agentName,
+            customTools: parentTools,
+            tools: enabledPiToolNames({
+              tools: parentTools,
+              extensions: opts.runtimeDefinition?.extensions,
+              policy: resolvedToolPolicy,
+            }),
+            appendSystemPrompt,
+            skillsOverride: () => ({ skills: injectedSkills, diagnostics: [] }),
+            // MoltNet-specific span attrs only — pi's OTel extension owns
+            // gen_ai.* keys and filters anything we pass that collides.
+            otelSpanAttrs: {
+              'moltnet.task.id': task.id,
+              'moltnet.task.attempt': attemptN,
+              'moltnet.task.type': task.taskType,
+            },
+            otelSessionParentContext: taskOtelContext,
+            getOtelTurnParentContext: () => providerRequestContext,
+            onOtelSessionContextChange: (context) => {
+              piSessionContext = context;
+            },
+            sessionPersistence: executionPlan?.sessionPersistence ?? undefined,
+            extraExtensionFactories: [
+              ...runtimeParentExtensions,
+              ...toolPolicyExtensions,
+              submitCompletion.extension,
+            ],
+          }),
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await emit('error', { message, phase: 'session_setup' });
@@ -1359,6 +1418,10 @@ export async function executePiTask(
         },
         onPromptError: (message) =>
           emit('error', { message, phase: 'session_prompt' }),
+        parentContext: piSessionContext,
+        onRequestContextChange: (context) => {
+          providerRequestContext = context;
+        },
       });
     const submitMissingConfig = resolveSubmitMissingConfig({
       submitToolHandle,
@@ -2322,6 +2385,10 @@ export interface PromptWithProviderErrorRetriesArgs {
   retryPrompt: string;
   onRetry?: (event: ProviderErrorRetryEvent) => Promise<void>;
   onPromptError?: (message: string) => Promise<void>;
+  /** Pi session context used to parent each provider request. */
+  parentContext?: Context;
+  /** Publishes the live provider span context for Pi turn parenting. */
+  onRequestContextChange?: (context: Context | undefined) => void;
 }
 
 export async function promptWithProviderErrorRetries(
@@ -2334,7 +2401,23 @@ export async function promptWithProviderErrorRetries(
   let promptText = args.initialPrompt;
   while (true) {
     try {
-      await args.session.prompt(promptText);
+      await traceRuntimePhase(
+        'moltnet.execution.provider.request',
+        { 'moltnet.provider.retry': retryCount },
+        async (span) => {
+          const requestContext = otelTrace.setSpan(
+            args.parentContext ?? otelContext.active(),
+            span,
+          );
+          args.onRequestContextChange?.(requestContext);
+          try {
+            await args.session.prompt(promptText);
+          } finally {
+            args.onRequestContextChange?.(undefined);
+          }
+        },
+        args.parentContext,
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await args.onPromptError?.(message);
