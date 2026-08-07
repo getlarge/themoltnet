@@ -1,0 +1,16 @@
+{
+  "alertOnNoData": false,
+  "description": "Public OTLP clients attempted to supply an agent identity different from the authenticated principal. The Collector overwrites it; inspect by signal without adding identity values to telemetry.",
+  "intervalMinutes": 10,
+  "mplQuery": "`moltnet-metrics`:`moltnet.attribution.conflicts`\n| align to 5m using prom::increase\n| group by `signal` using sum",
+  "name": "MoltNet public OTLP attribution conflicts",
+  "notifierIds": [],
+  "notifyByGroup": true,
+  "operator": "Above",
+  "rangeMinutes": 15,
+  "resolvable": true,
+  "threshold": 10,
+  "triggerAfterNPositiveResults": 2,
+  "triggerFromNRuns": 3,
+  "type": "Threshold"
+}
