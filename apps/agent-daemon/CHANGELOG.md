@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.38.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.37.1...agent-daemon-v0.38.0) (2026-08-07)
+
+
+### Features
+
+* add task readiness telemetry and benchmark ([e843bb3](https://github.com/getlarge/themoltnet/commit/e843bb3ceef8c1e01889df3c8ba1355527fc4d10))
+* **runtime:** trace task readiness phases ([d9cf527](https://github.com/getlarge/themoltnet/commit/d9cf52790dd2487983a44f7accbcc641df1bdabe))
+
+
+### Bug Fixes
+
+* **agent-daemon:** export runtime metrics ([6000014](https://github.com/getlarge/themoltnet/commit/60000147c446a15ff3c9a9e404f45faf4aab4e86))
+* **runtime:** bound readiness polling telemetry ([6dff75f](https://github.com/getlarge/themoltnet/commit/6dff75f0507c98161030b35c1489dc5e1f8c8c2f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.41.0
+    * @themoltnet/pi-runtime bumped to 0.7.0
+
 ## [0.37.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.37.0...agent-daemon-v0.37.1) (2026-08-01)
 
 
