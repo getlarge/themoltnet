@@ -1,4 +1,4 @@
-import { context, propagation, trace } from '@opentelemetry/api';
+import { context, metrics, propagation, trace } from '@opentelemetry/api';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { initWorkerOtel } from './otel.js';
@@ -9,17 +9,20 @@ describe('initWorkerOtel', () => {
     // propagator. Tests must reset those so they don't leak across runs
     // and cause order-dependent failures in the rest of the suite.
     trace.disable();
+    metrics.disable();
     context.disable();
     propagation.disable();
   });
 
   it('is a no-op when endpoint is missing', async () => {
     const before = trace.getTracerProvider();
+    const meterBefore = metrics.getMeterProvider();
 
     const shutdown = await initWorkerOtel({ serviceName: 'test-service' });
 
     // No-op bootstrap must leave the global provider untouched.
     expect(trace.getTracerProvider()).toBe(before);
+    expect(metrics.getMeterProvider()).toBe(meterBefore);
 
     // shutdown must resolve cleanly even with nothing to flush.
     await expect(shutdown()).resolves.toBeUndefined();
@@ -31,6 +34,7 @@ describe('initWorkerOtel', () => {
     // only flushes on forceFlush() or shutdown(), and we call shutdown
     // immediately. This exercises the "no agentDir → no headers factory"
     // branch without needing a live Hydra.
+    const meterBefore = metrics.getMeterProvider();
     const shutdown = await initWorkerOtel({
       serviceName: 'test-service',
       endpoint: 'http://127.0.0.1:1', // unreachable, but we never send
@@ -39,6 +43,10 @@ describe('initWorkerOtel', () => {
     // Provider has been replaced with something that returns a real tracer.
     const tracer = trace.getTracer('test');
     expect(tracer).toBeDefined();
+    expect(metrics.getMeterProvider()).not.toBe(meterBefore);
+    expect(
+      metrics.getMeter('test').createCounter('test.counter'),
+    ).toBeDefined();
 
     await expect(shutdown()).resolves.toBeUndefined();
   });

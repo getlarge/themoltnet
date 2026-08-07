@@ -96,8 +96,12 @@
   },
   "files": [
     "dist/*.js",
-    "dist/*.d.ts",
-    "dist/*.d.ts.map"
+    "dist/cli.d.ts",
+    "dist/cli.d.ts.map",
+    "dist/pi.d.ts",
+    "dist/pi.d.ts.map",
+    "dist/runtime.d.ts",
+    "dist/runtime.d.ts.map"
   ],
   "engines": {
     "node": ">=22"
@@ -115,6 +119,7 @@
     "@earendil-works/pi-ai": "catalog:",
     "@earendil-works/pi-coding-agent": "catalog:",
     "@opentelemetry/api": "catalog:",
+    "@opentelemetry/exporter-metrics-otlp-proto": "catalog:",
     "@opentelemetry/exporter-trace-otlp-proto": "catalog:",
     "@opentelemetry/instrumentation": "catalog:",
     "@opentelemetry/instrumentation-dns": "catalog:",
@@ -124,6 +129,7 @@
     "@opentelemetry/instrumentation-pino": "catalog:",
     "@opentelemetry/instrumentation-undici": "catalog:",
     "@opentelemetry/resources": "catalog:",
+    "@opentelemetry/sdk-metrics": "catalog:",
     "@opentelemetry/sdk-trace-base": "catalog:",
     "@opentelemetry/sdk-trace-node": "catalog:",
     "@opentelemetry/semantic-conventions": "catalog:",

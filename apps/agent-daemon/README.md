@@ -129,10 +129,10 @@ To force a non-repo Pi directory, set
 
 ### Observability
 
-| Var                     | Default | Purpose                                 |
-| ----------------------- | ------- | --------------------------------------- |
-| `MOLTNET_OTEL_ENDPOINT` | unset   | OTLP traces endpoint. Empty = disabled. |
-| `LOG_LEVEL`             | `info`  | Pino log level override.                |
+| Var                     | Default | Purpose                                             |
+| ----------------------- | ------- | --------------------------------------------------- |
+| `MOLTNET_OTEL_ENDPOINT` | unset   | OTLP traces and metrics endpoint. Empty = disabled. |
+| `LOG_LEVEL`             | `info`  | Pino log level override.                            |
 
 ### Host command auto-approval
 
