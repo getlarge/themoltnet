@@ -16,6 +16,7 @@
     "task:bootstrap-local": "tsx src/tasks/bootstrap-local-agent.ts",
     "bench:ory": "tsx src/bench-ory-connection-reuse.ts",
     "bench:embedding": "tsx src/bench-embedding-warmup.ts",
+    "bench:task-readiness": "tsx src/bench-task-readiness.ts",
     "smtp:test": "tsx src/test-smtp.ts",
     "test": "vitest run --passWithNoTests"
   },

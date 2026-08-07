@@ -1,0 +1,129 @@
+{
+  "charts": [
+    {
+      "id": "overview",
+      "name": "Measurement contract",
+      "text": "Primary KPI: task queued_at to first server-received non-empty model delta or tool call. Server logs are authoritative; select the minimum queuedToUsefulMs per task. Never combine KVM and TCG benchmark cohorts.",
+      "type": "Note"
+    },
+    {
+      "colorScheme": "Purple",
+      "id": "readiness-percentiles",
+      "name": "Task readiness p50 / p95 / p99 (ms)",
+      "query": {
+        "apl": "['moltnet']\n| where body == \"task.readiness.useful_event_received\"\n| extend taskId = tostring(['attributes.taskId']), latency = todouble(['attributes.queuedToUsefulMs'])\n| summarize latency = min(latency) by taskId\n| summarize p50 = percentile(latency, 50), p95 = percentile(latency, 95), p99 = percentile(latency, 99), tasks = count()"
+      },
+      "type": "Table"
+    },
+    {
+      "id": "readiness-over-time",
+      "name": "First useful event latency over time",
+      "query": {
+        "apl": "['moltnet']\n| where body == \"task.readiness.useful_event_received\"\n| extend taskId = tostring(['attributes.taskId']), latency = todouble(['attributes.queuedToUsefulMs'])\n| summarize latency = min(latency) by taskId, bin_auto(_time)\n| summarize p50 = percentile(latency, 50), p95 = percentile(latency, 95), p99 = percentile(latency, 99) by bin_auto(_time)"
+      },
+      "type": "TimeSeries"
+    },
+    {
+      "id": "useful-kind",
+      "name": "First useful candidates by kind",
+      "query": {
+        "apl": "['moltnet']\n| where body == \"task.readiness.useful_event_received\"\n| extend kind = tostring(['attributes.usefulEventKind'])\n| summarize events = count() by kind"
+      },
+      "type": "Table"
+    },
+    {
+      "id": "runtime-phases",
+      "name": "Runtime phase p50 / p95 / p99",
+      "query": {
+        "apl": "['moltnet']\n| extend operation = tostring(name)\n| where operation startswith \"moltnet.\"\n| summarize p50 = percentile(todouble(['duration']), 50), p95 = percentile(todouble(['duration']), 95), p99 = percentile(todouble(['duration']), 99), count = count() by operation\n| order by p95 desc"
+      },
+      "type": "Table"
+    },
+    {
+      "id": "recent-readiness",
+      "name": "Recent server-received useful events",
+      "query": {
+        "apl": "['moltnet']\n| where body == \"task.readiness.useful_event_received\"\n| project _time, ['attributes.taskId'], ['attributes.attemptN'], ['attributes.usefulEventKind'], ['attributes.queuedToUsefulMs'], trace_id\n| order by _time desc\n| take 100"
+      },
+      "type": "LogStream"
+    }
+  ],
+  "datasets": ["moltnet"],
+  "description": "Task queue-to-first-useful-action latency and daemon/runtime phase drilldown.",
+  "layout": [
+    {
+      "h": 2,
+      "i": "overview",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 12,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "h": 4,
+      "i": "readiness-percentiles",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 6,
+      "x": 0,
+      "y": 2
+    },
+    {
+      "h": 5,
+      "i": "readiness-over-time",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 6,
+      "x": 6,
+      "y": 2
+    },
+    {
+      "h": 4,
+      "i": "useful-kind",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 4,
+      "x": 0,
+      "y": 7
+    },
+    {
+      "h": 6,
+      "i": "runtime-phases",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 8,
+      "x": 4,
+      "y": 7
+    },
+    {
+      "h": 6,
+      "i": "recent-readiness",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 12,
+      "x": 0,
+      "y": 13
+    }
+  ],
+  "name": "MoltNet Task Readiness",
+  "overrides": {},
+  "owner": "X-AXIOM-EVERYONE",
+  "refreshTime": 60,
+  "schemaVersion": 2,
+  "timeWindowEnd": "qr-now",
+  "timeWindowStart": "qr-now-24h",
+  "uid": "ed8c63e0-a922-4bea-973c-51e476996483"
+}

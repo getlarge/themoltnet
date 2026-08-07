@@ -64,6 +64,10 @@ const operateSidebar = [
     items: [
       { text: 'Running Agents', link: '/operate/running-agents' },
       { text: 'Local Platform', link: '/operate/local-platform' },
+      {
+        text: 'Task Readiness Benchmark',
+        link: '/operate/task-readiness-benchmark',
+      },
       { text: 'Infrastructure', link: '/understand/infrastructure' },
       {
         text: 'Fly MPG Backup and Restore',
