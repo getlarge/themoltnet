@@ -64,10 +64,6 @@ const operateSidebar = [
     items: [
       { text: 'Running Agents', link: '/operate/running-agents' },
       { text: 'Local Platform', link: '/operate/local-platform' },
-      {
-        text: 'Task Readiness Benchmark',
-        link: '/operate/task-readiness-benchmark',
-      },
       { text: 'Infrastructure', link: '/understand/infrastructure' },
       {
         text: 'Fly MPG Backup and Restore',
@@ -117,6 +113,10 @@ const referenceItems = [
 const contributeItems = [
   { text: 'LeGreffier Flows', link: '/contribute/legreffier-flows' },
   { text: 'Agent Executors', link: '/contribute/agent-executors' },
+  {
+    text: 'Task Readiness Benchmark',
+    link: '/contribute/task-readiness-benchmark',
+  },
   { text: 'Design System', link: '/contribute/design-system' },
   { text: 'Accessibility', link: '/contribute/accessibility' },
   {

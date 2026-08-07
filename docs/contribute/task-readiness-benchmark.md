@@ -40,26 +40,43 @@ export MOLTNET_CELL_TOPOLOGY=split
 export MOLTNET_VIRTUALIZATION_MODE=kvm
 ```
 
+Supported topology labels are `compact`, `split`, and `unclassified`.
 Supported virtualization labels are `kvm`, `tcg`, and `unclassified`. Report
-KVM and TCG independently rather than merging their percentiles.
+KVM and TCG independently rather than merging their percentiles. Invalid set
+values fail daemon startup so benchmark cohorts cannot silently merge.
+
+Normal daemons record task-list spans only for non-empty responses and errors,
+and omit idle-sleep spans. Controlled benchmark runs that need complete polling
+phase accounting must opt in:
+
+```bash
+export MOLTNET_TRACE_IDLE_POLLING=true
+```
+
+Do not enable full idle polling traces on an ordinary long-running daemon; they
+produce one list span per profile and one sleep span per idle tick.
 
 ## Cold and warm categories
 
 Keep these categories separate in every report:
 
-- infrastructure provisioning;
-- daemon process start;
-- snapshot build;
-- cached-snapshot VM resume;
-- warm continuation.
+- `cell-provisioning`;
+- `daemon-start`;
+- `snapshot-build`;
+- `vm-resume` for cached-snapshot resume;
+- `warm-continuation`.
 
 The task-readiness clock starts only at `queued_at`; infrastructure allocation
 and daemon-pool warm-up belong to a separate cell-readiness clock.
 
 ## Sample contract
 
-Every input line is one JSON object matching `TaskReadinessSample`. Generate a
-machine-readable report with Nx:
+Every input line is one JSON object matching `TaskReadinessSample`. Its bounded
+labels reuse the daemon telemetry vocabulary: `agent-key|oauth2` authentication,
+`compact|split|unclassified` topology, `kvm|tcg|unclassified` virtualization,
+and `managed|local-postgres|local-sqlite|unclassified` Ory placement.
+
+Generate a machine-readable report with Nx:
 
 ```bash
 pnpm exec nx run @moltnet/tools:bench:task-readiness -- \
@@ -67,8 +84,12 @@ pnpm exec nx run @moltnet/tools:bench:task-readiness -- \
 ```
 
 The report groups exact scenarios and includes p50/p95/p99, throughput, error
-rate, phase distributions, CPU, RAM, disk I/O, and network bytes. Recommended
-minimums are:
+rate, phase distributions, CPU, RAM, disk I/O, and network bytes. A task that
+emits a useful event and later fails still contributes to readiness latency;
+its terminal result contributes to the error rate. A zero-width observation
+window reports `null` throughput rather than inventing a rate.
+
+Recommended minimums are:
 
 | Workload                   |                  Minimum sample |
 | -------------------------- | ------------------------------: |
