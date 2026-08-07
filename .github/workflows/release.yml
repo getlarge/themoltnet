@@ -134,35 +134,10 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  resolve-docker-images:
-    name: Resolve Docker images to publish
-    needs: release-please
-    if: ${{ github.event_name == 'push' }}
-    runs-on: ubuntu-latest
-    outputs:
-      has-releases: ${{ steps.resolve.outputs.has-releases }}
-      matrix: ${{ steps.resolve.outputs.matrix }}
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Resolve released Docker projects
-        id: resolve
-        env:
-          MOLTNET_DOCKER_RELEASES_JSON: >-
-            [
-              {"project":"@moltnet/console","released":"${{ needs.release-please.outputs.console-release-created }}","tag":"${{ needs.release-please.outputs.console-tag-name }}","version":"${{ needs.release-please.outputs.console-version }}"},
-              {"project":"@moltnet/database","released":"${{ needs.release-please.outputs.database-release-created }}","tag":"${{ needs.release-please.outputs.database-tag-name }}","version":"${{ needs.release-please.outputs.database-version }}"},
-              {"project":"@moltnet/landing","released":"${{ needs.release-please.outputs.landing-release-created }}","tag":"${{ needs.release-please.outputs.landing-tag-name }}","version":"${{ needs.release-please.outputs.landing-version }}"},
-              {"project":"@moltnet/mcp-host","released":"${{ needs.release-please.outputs.mcp-host-release-created }}","tag":"${{ needs.release-please.outputs.mcp-host-tag-name }}","version":"${{ needs.release-please.outputs.mcp-host-version }}"},
-              {"project":"@moltnet/mcp-server","released":"${{ needs.release-please.outputs.mcp-server-release-created }}","tag":"${{ needs.release-please.outputs.mcp-server-tag-name }}","version":"${{ needs.release-please.outputs.mcp-server-version }}"},
-              {"project":"@moltnet/rest-api","released":"${{ needs.release-please.outputs.rest-api-release-created }}","tag":"${{ needs.release-please.outputs.rest-api-tag-name }}","version":"${{ needs.release-please.outputs.rest-api-version }}"}
-            ]
-        run: node tools/release/resolve-docker-release-matrix.mjs
-
   publish-docker-images:
     name: Publish ${{ matrix.project }}:${{ matrix.version }}
-    needs: [release-please, resolve-docker-images]
-    if: ${{ needs.resolve-docker-images.outputs.has-releases == 'true' }}
+    needs: resolve-publish
+    if: ${{ needs.resolve-publish.outputs.docker-has-releases == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
@@ -170,7 +145,7 @@ jobs:
       packages: write
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.resolve-docker-images.outputs.matrix) }}
+      matrix: ${{ fromJSON(needs.resolve-publish.outputs.docker-matrix) }}
     steps:
       - uses: actions/checkout@v6
 
@@ -264,6 +239,8 @@ jobs:
       design-system-tag: ${{ steps.resolve.outputs.design-system-tag }}
       agent-daemon: ${{ steps.resolve.outputs.agent-daemon }}
       agent-daemon-tag: ${{ steps.resolve.outputs.agent-daemon-tag }}
+      docker-has-releases: ${{ steps.resolve-docker.outputs.has-releases }}
+      docker-matrix: ${{ steps.resolve-docker.outputs.matrix }}
     steps:
       - uses: actions/checkout@v6
 
@@ -403,6 +380,21 @@ jobs:
             tag=$(find_draft_tag "openclaw-skill")
             [ -n "$tag" ] && echo "skill-version=$(version_from_tag "$tag" "openclaw-skill")" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Resolve released Docker projects
+        id: resolve-docker
+        if: ${{ github.event_name == 'push' }}
+        env:
+          MOLTNET_DOCKER_RELEASES_JSON: >-
+            [
+              {"project":"@moltnet/console","released":"${{ needs.release-please.outputs.console-release-created }}","tag":"${{ needs.release-please.outputs.console-tag-name }}","version":"${{ needs.release-please.outputs.console-version }}"},
+              {"project":"@moltnet/database","released":"${{ needs.release-please.outputs.database-release-created }}","tag":"${{ needs.release-please.outputs.database-tag-name }}","version":"${{ needs.release-please.outputs.database-version }}"},
+              {"project":"@moltnet/landing","released":"${{ needs.release-please.outputs.landing-release-created }}","tag":"${{ needs.release-please.outputs.landing-tag-name }}","version":"${{ needs.release-please.outputs.landing-version }}"},
+              {"project":"@moltnet/mcp-host","released":"${{ needs.release-please.outputs.mcp-host-release-created }}","tag":"${{ needs.release-please.outputs.mcp-host-tag-name }}","version":"${{ needs.release-please.outputs.mcp-host-version }}"},
+              {"project":"@moltnet/mcp-server","released":"${{ needs.release-please.outputs.mcp-server-release-created }}","tag":"${{ needs.release-please.outputs.mcp-server-tag-name }}","version":"${{ needs.release-please.outputs.mcp-server-version }}"},
+              {"project":"@moltnet/rest-api","released":"${{ needs.release-please.outputs.rest-api-release-created }}","tag":"${{ needs.release-please.outputs.rest-api-tag-name }}","version":"${{ needs.release-please.outputs.rest-api-version }}"}
+            ]
+        run: node tools/release/resolve-docker-release-matrix.mjs
 
   nx-release:
     name: Nx Release

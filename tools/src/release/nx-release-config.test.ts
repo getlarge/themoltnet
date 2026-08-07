@@ -91,10 +91,17 @@ describe('Nx release configuration', () => {
           'utf8',
         ),
       );
-      const configurations =
-        packageConfig.nx.targets['docker:build'].configurations;
+      const dockerBuildTarget = packageConfig.nx.targets['docker:build'];
+      const configurations = dockerBuildTarget.configurations;
 
+      expect(dockerBuildTarget.options.command).toContain(
+        '--project {projectName}',
+      );
+      expect(configurations.ci.command).toContain('--project {projectName}');
       expect(configurations.ci.command).toContain('--platform linux/amd64');
+      expect(configurations.release.command).toContain(
+        '--project {projectName}',
+      );
       expect(configurations.release.command).toContain(
         '--platform linux/amd64,linux/arm64',
       );
@@ -107,6 +114,16 @@ describe('Nx release configuration', () => {
     expect(workflow).toContain('docker/setup-qemu-action@v3');
     expect(workflow).toContain(
       'node tools/release/resolve-docker-release-matrix.mjs',
+    );
+    expect(workflow).not.toContain('resolve-docker-images:');
+    expect(workflow).toContain(
+      'docker-has-releases: ${{ steps.resolve-docker.outputs.has-releases }}',
+    );
+    expect(workflow).toContain(
+      'docker-matrix: ${{ steps.resolve-docker.outputs.matrix }}',
+    );
+    expect(workflow).toContain(
+      'needs: resolve-publish\n    if: ${{ needs.resolve-publish.outputs.docker-has-releases',
     );
     expect(workflow).toContain('--configuration=release');
     expect(workflow).toContain(
