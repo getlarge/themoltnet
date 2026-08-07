@@ -24,6 +24,21 @@ Provides the operational scaffolding required to deploy the AI Agent runtime. Th
 
 **Source Files:**
 
+- [`tools/check-dependency-overrides.mjs`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs)
+  - `tools.check-dependency-overrides.pnpmOptions` ([L39-L45](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L39-L45)) - Function
+  - `tools.check-dependency-overrides.runPnpmStrict` ([L48-L51](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L48-L51)) - Function
+  - `tools.check-dependency-overrides.runPnpmAudit` ([L62-L83](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L62-L83)) - Function
+  - `tools.check-dependency-overrides.vulnerablePackages` ([L114-L118](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L114-L118)) - Function
+  - `tools.check-dependency-overrides.countVersions` ([L129-L137](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L129-L137)) - Function
+  - `tools.check-dependency-overrides.listWorkspaceManifests` ([L139-L149](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L139-L149)) - Function
+  - `tools.check-dependency-overrides.stageWorkspace` ([L155-L181](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L155-L181)) - Function
+  - `tools.check-dependency-overrides.dropIgnores` ([L184-L186](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L184-L186)) - Function
+  - `tools.check-dependency-overrides.auditWithoutOverrides` ([L188-L208](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L188-L208)) - Function
+  - `tools.check-dependency-overrides.auditWithoutOverrides.dir` ([L189-L192](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L189-L192)) - Class
+  - `tools.check-dependency-overrides.auditWithoutOverrides.dir.stageWorkspace() callback` ([L189-L192](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L189-L192)) - Function
+  - `tools.check-dependency-overrides.auditAsShipped` ([L210-L221](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L210-L221)) - Function
+  - `tools.check-dependency-overrides.formatMarkdown` ([L223-L268](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L223-L268)) - Function
+  - `tools.check-dependency-overrides.main` ([L270-L409](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L270-L409)) - Function
 - [`tools/db/backfill-personal-teams.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-personal-teams.ts)
   - `tools.db.backfill-personal-teams.proxyHost` ([L38-L39](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-personal-teams.ts#L38-L39)) - Class
   - `tools.db.backfill-personal-teams.proxyHost.args.find() callback` ([L39-L39](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-personal-teams.ts#L39-L39)) - Function
@@ -37,9 +52,17 @@ Provides the operational scaffolding required to deploy the AI Agent runtime. Th
 - [`tools/release/docker-preversion.mjs`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/release/docker-preversion.mjs)
   - `tools.release.docker-preversion.projects` ([L24-L27](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/release/docker-preversion.mjs#L24-L27)) - Class
   - `tools.release.docker-preversion.projects.map() callback` ([L26-L26](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/release/docker-preversion.mjs#L26-L26)) - Function
-- [`tools/src/bench-ory-connection-reuse.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts)
-  - `tools.src.bench-ory-connection-reuse.computeStats.sum` ([L177-L177](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L177-L177)) - Class
-  - `tools.src.bench-ory-connection-reuse.computeStats.sum.sorted.reduce() callback` ([L177-L177](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L177-L177)) - Function
+- [`tools/release/resolve-docker-release-matrix.mjs`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/release/resolve-docker-release-matrix.mjs)
+  - `tools.release.resolve-docker-release-matrix.resolveMatrix` ([L12-L41](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/release/resolve-docker-release-matrix.mjs#L12-L41)) - Function
+  - `tools.release.resolve-docker-release-matrix.include` ([L18-L38](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/release/resolve-docker-release-matrix.mjs#L18-L38)) - Class
+  - `tools.release.resolve-docker-release-matrix.resolveMatrix.include.candidates.flatMap() callback` ([L18-L38](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/release/resolve-docker-release-matrix.mjs#L18-L38)) - Function
+- [`tools/src/bench-task-readiness.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-task-readiness.ts)
+  - `tools.src.bench-task-readiness.TaskReadinessSample` ([L8-L23](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-task-readiness.ts#L8-L23)) - Interface
+  - `tools.src.bench-task-readiness.distributionsByKey.sort() callback` ([L148-L148](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-task-readiness.ts#L148-L148)) - Function
+  - `tools.src.bench-task-readiness.catch() callback` ([L209-L214](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-task-readiness.ts#L209-L214)) - Function
+- [`tools/src/benchmark-stats.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/benchmark-stats.ts)
+  - `tools.src.benchmark-stats.benchmarkDistribution.sorted` ([L30-L30](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/benchmark-stats.ts#L30-L30)) - Class
+  - `tools.src.benchmark-stats.benchmarkDistribution.sorted.sort() callback` ([L30-L30](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/benchmark-stats.ts#L30-L30)) - Function
 - [`tools/src/check-pack.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/check-pack.ts)
   - `tools.src.check-pack.checkNoWorkspaceDtsLeak.dtsFiles` ([L120-L120](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/check-pack.ts#L120-L120)) - Class
   - `tools.src.check-pack.checkNoWorkspaceDtsLeak.dtsFiles.paths.filter() callback` ([L120-L120](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/check-pack.ts#L120-L120)) - Function
@@ -203,6 +226,12 @@ Manages the transition and initialization of governance entities. It is responsi
 
 **Source Files:**
 
+- [`tools/check-dependency-overrides.mjs`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs)
+  - `tools.check-dependency-overrides.vulnerablePackages.map() callback` ([L116-L116](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L116-L116)) - Function
+  - `tools.check-dependency-overrides.stageWorkspace.catch() callback` ([L166-L171](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L166-L171)) - Function
+  - `tools.check-dependency-overrides.main.staleIgnores.ignored.flatMap() callback.advisory` ([L347-L349](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L347-L349)) - Class
+  - `tools.check-dependency-overrides.main.staleIgnores.ignored.flatMap() callback.advisory.shippedAdvisories.find() callback` ([L348-L348](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L348-L348)) - Function
+  - `tools.check-dependency-overrides.main.result.securityCount.classified.filter() callback` ([L370-L370](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L370-L370)) - Function
 - [`tools/db/backfill-personal-teams.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-personal-teams.ts)
   - `tools.db.backfill-personal-teams.proxyPort` ([L40-L41](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-personal-teams.ts#L40-L41)) - Class
   - `tools.db.backfill-personal-teams.proxyPort.args.find() callback` ([L41-L41](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-personal-teams.ts#L41-L41)) - Function
@@ -227,9 +256,12 @@ Manages the transition and initialization of governance entities. It is responsi
 - [`tools/src/agent-oauth-scope-backfill.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/agent-oauth-scope-backfill.ts)
   - `tools.src.agent-oauth-scope-backfill.AgentOAuthScopeBackfillResult` ([L14-L19](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/agent-oauth-scope-backfill.ts#L14-L19)) - Interface
 - [`tools/src/bench-ory-connection-reuse.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts)
-  - `tools.src.bench-ory-connection-reuse.cleanup.then() callback` ([L155-L155](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L155-L155)) - Function
-  - `tools.src.bench-ory-connection-reuse.computeStats.sorted` ([L176-L176](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L176-L176)) - Class
-  - `tools.src.bench-ory-connection-reuse.computeStats.sorted.sort() callback` ([L176-L176](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L176-L176)) - Function
+  - `tools.src.bench-ory-connection-reuse.cleanup.then() callback` ([L157-L157](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L157-L157)) - Function
+- [`tools/src/bench-task-readiness.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-task-readiness.ts)
+  - `tools.src.bench-task-readiness.TaskReadinessReport` ([L25-L36](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-task-readiness.ts#L25-L36)) - Interface
+  - `tools.src.bench-task-readiness.buildTaskReadinessReport.readiness` ([L47-L52](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-task-readiness.ts#L47-L52)) - Class
+  - `tools.src.bench-task-readiness.buildTaskReadinessReport.readiness.samples.flatMap() callback` ([L47-L52](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-task-readiness.ts#L47-L52)) - Function
+  - `tools.src.bench-task-readiness.buildTaskReadinessReport.phaseMs.samples.map() callback` ([L82-L82](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-task-readiness.ts#L82-L82)) - Function
 - [`tools/src/bootstrap-genesis-agents.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bootstrap-genesis-agents.ts)
   - `tools.src.bootstrap-genesis-agents.requireEnv` ([L80-L87](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bootstrap-genesis-agents.ts#L80-L87)) - Function
   - `tools.src.bootstrap-genesis-agents.optionalEnv` ([L89-L91](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bootstrap-genesis-agents.ts#L89-L91)) - Function
@@ -461,39 +493,39 @@ This is the core engine for state persistence. It handles the extraction of iden
   - `packages.agent-daemon-action.src.create-task.AssessTaskInput` ([L94-L119](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/create-task.ts#L94-L119)) - Interface
   - `packages.agent-daemon-action.src.create-task.createAssessTask` ([L121-L149](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/create-task.ts#L121-L149)) - Function
 - [`packages/agent-daemon-action/src/dispatch.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts)
-  - `packages.agent-daemon-action.src.dispatch.IssueCommentContext` ([L34-L46](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L34-L46)) - Interface
-  - `packages.agent-daemon-action.src.dispatch.DispatchContext` ([L48-L52](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L48-L52)) - Interface
-  - `packages.agent-daemon-action.src.dispatch.dispatch` ([L70-L126](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L70-L126)) - Function
-  - `packages.agent-daemon-action.src.dispatch.parseRunningTimeout` ([L140-L151](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L140-L151)) - Function
-  - `packages.agent-daemon-action.src.dispatch.parseMaxAttempts` ([L153-L164](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L153-L164)) - Function
-  - `packages.agent-daemon-action.src.dispatch.parseTaskTags` ([L166-L190](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L166-L190)) - Function
-  - `packages.agent-daemon-action.src.dispatch.parseTaskTags.tags` ([L170-L179](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L170-L179)) - Class
-  - `packages.agent-daemon-action.src.dispatch.parseTaskTags.tags.map() callback` ([L174-L174](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L174-L174)) - Function
-  - `packages.agent-daemon-action.src.dispatch.parseTaskTags.tags.filter() callback` ([L175-L175](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L175-L175)) - Function
-  - `packages.agent-daemon-action.src.dispatch.parseTaskTags.tags.reduce() callback` ([L177-L177](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L177-L177)) - Function
-  - `packages.agent-daemon-action.src.dispatch.parseTaskTags.oversized` ([L185-L185](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L185-L185)) - Class
-  - `packages.agent-daemon-action.src.dispatch.parseTaskTags.oversized.tags.find() callback` ([L185-L185](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L185-L185)) - Function
-  - `packages.agent-daemon-action.src.dispatch.dispatchFulfill` ([L192-L231](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L192-L231)) - Function
-  - `packages.agent-daemon-action.src.dispatch.dispatchFulfill.correlationId` ([L204-L211](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L204-L211)) - Class
-  - `packages.agent-daemon-action.src.dispatch.dispatchFulfill.correlationId.randomUUID` ([L208-L208](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L208-L208)) - Method
-  - `packages.agent-daemon-action.src.dispatch.dispatchAssess` ([L233-L325](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L233-L325)) - Function
-  - `packages.agent-daemon-action.src.dispatch.dispatchAssess.correlationId` ([L248-L255](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L248-L255)) - Class
-  - `packages.agent-daemon-action.src.dispatch.dispatchAssess.correlationId.randomUUID` ([L252-L252](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L252-L252)) - Method
-  - `packages.agent-daemon-action.src.dispatch.dispatchAssess.fulfill` ([L268-L268](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L268-L268)) - Class
-  - `packages.agent-daemon-action.src.dispatch.dispatchAssess.fulfill.list.items.find() callback` ([L268-L268](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L268-L268)) - Function
-  - `packages.agent-daemon-action.src.dispatch.dispatchAssess.accepted` ([L291-L293](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L291-L293)) - Class
-  - `packages.agent-daemon-action.src.dispatch.dispatchAssess.accepted.attempts.find() callback` ([L292-L292](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L292-L292)) - Function
-  - `packages.agent-daemon-action.src.dispatch.extractContext` ([L327-L348](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L327-L348)) - Function
-  - `packages.agent-daemon-action.src.dispatch.required` ([L350-L356](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L350-L356)) - Function
-  - `packages.agent-daemon-action.src.dispatch.nxLogger` ([L358-L365](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L358-L365)) - Function
-  - `packages.agent-daemon-action.src.dispatch.nxLogger.info` ([L360-L361](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L360-L361)) - Method
-  - `packages.agent-daemon-action.src.dispatch.nxLogger.warn` ([L362-L363](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L362-L363)) - Method
-  - `packages.agent-daemon-action.src.dispatch.prStubGh` ([L367-L379](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L367-L379)) - Function
-  - `packages.agent-daemon-action.src.dispatch.prStubGh.getPrHeadRef` ([L369-L371](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L369-L371)) - Method
-  - `packages.agent-daemon-action.src.dispatch.prStubGh.getPrCommitMessages` ([L372-L374](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L372-L374)) - Method
-  - `packages.agent-daemon-action.src.dispatch.prStubGh.getPrBody` ([L375-L377](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L375-L377)) - Method
-  - `packages.agent-daemon-action.src.dispatch.ghBackedBy` ([L381-L413](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L381-L413)) - Function
-  - `packages.agent-daemon-action.src.dispatch.postPrComment` ([L415-L426](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L415-L426)) - Function
+  - `packages.agent-daemon-action.src.dispatch.IssueCommentContext` ([L36-L48](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L36-L48)) - Interface
+  - `packages.agent-daemon-action.src.dispatch.DispatchContext` ([L50-L54](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L50-L54)) - Interface
+  - `packages.agent-daemon-action.src.dispatch.dispatch` ([L72-L128](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L72-L128)) - Function
+  - `packages.agent-daemon-action.src.dispatch.parseRunningTimeout` ([L142-L153](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L142-L153)) - Function
+  - `packages.agent-daemon-action.src.dispatch.parseMaxAttempts` ([L155-L166](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L155-L166)) - Function
+  - `packages.agent-daemon-action.src.dispatch.parseTaskTags` ([L168-L192](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L168-L192)) - Function
+  - `packages.agent-daemon-action.src.dispatch.parseTaskTags.tags` ([L172-L181](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L172-L181)) - Class
+  - `packages.agent-daemon-action.src.dispatch.parseTaskTags.tags.map() callback` ([L176-L176](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L176-L176)) - Function
+  - `packages.agent-daemon-action.src.dispatch.parseTaskTags.tags.filter() callback` ([L177-L177](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L177-L177)) - Function
+  - `packages.agent-daemon-action.src.dispatch.parseTaskTags.tags.reduce() callback` ([L179-L179](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L179-L179)) - Function
+  - `packages.agent-daemon-action.src.dispatch.parseTaskTags.oversized` ([L187-L187](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L187-L187)) - Class
+  - `packages.agent-daemon-action.src.dispatch.parseTaskTags.oversized.tags.find() callback` ([L187-L187](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L187-L187)) - Function
+  - `packages.agent-daemon-action.src.dispatch.dispatchFulfill` ([L194-L233](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L194-L233)) - Function
+  - `packages.agent-daemon-action.src.dispatch.dispatchFulfill.correlationId` ([L206-L213](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L206-L213)) - Class
+  - `packages.agent-daemon-action.src.dispatch.dispatchFulfill.correlationId.randomUUID` ([L210-L210](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L210-L210)) - Method
+  - `packages.agent-daemon-action.src.dispatch.dispatchAssess` ([L235-L327](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L235-L327)) - Function
+  - `packages.agent-daemon-action.src.dispatch.dispatchAssess.correlationId` ([L250-L257](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L250-L257)) - Class
+  - `packages.agent-daemon-action.src.dispatch.dispatchAssess.correlationId.randomUUID` ([L254-L254](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L254-L254)) - Method
+  - `packages.agent-daemon-action.src.dispatch.dispatchAssess.fulfill` ([L270-L270](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L270-L270)) - Class
+  - `packages.agent-daemon-action.src.dispatch.dispatchAssess.fulfill.list.items.find() callback` ([L270-L270](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L270-L270)) - Function
+  - `packages.agent-daemon-action.src.dispatch.dispatchAssess.accepted` ([L293-L295](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L293-L295)) - Class
+  - `packages.agent-daemon-action.src.dispatch.dispatchAssess.accepted.attempts.find() callback` ([L294-L294](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L294-L294)) - Function
+  - `packages.agent-daemon-action.src.dispatch.extractContext` ([L329-L350](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L329-L350)) - Function
+  - `packages.agent-daemon-action.src.dispatch.required` ([L352-L358](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L352-L358)) - Function
+  - `packages.agent-daemon-action.src.dispatch.nxLogger` ([L360-L367](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L360-L367)) - Function
+  - `packages.agent-daemon-action.src.dispatch.nxLogger.info` ([L362-L363](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L362-L363)) - Method
+  - `packages.agent-daemon-action.src.dispatch.nxLogger.warn` ([L364-L365](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L364-L365)) - Method
+  - `packages.agent-daemon-action.src.dispatch.prStubGh` ([L369-L381](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L369-L381)) - Function
+  - `packages.agent-daemon-action.src.dispatch.prStubGh.getPrHeadRef` ([L371-L373](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L371-L373)) - Method
+  - `packages.agent-daemon-action.src.dispatch.prStubGh.getPrCommitMessages` ([L374-L376](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L374-L376)) - Method
+  - `packages.agent-daemon-action.src.dispatch.prStubGh.getPrBody` ([L377-L379](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L377-L379)) - Method
+  - `packages.agent-daemon-action.src.dispatch.ghBackedBy` ([L383-L415](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L383-L415)) - Function
+  - `packages.agent-daemon-action.src.dispatch.postPrComment` ([L417-L428](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L417-L428)) - Function
 - [`packages/agent-daemon-action/src/main.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/main.ts)
   - `packages.agent-daemon-action.src.main.main` ([L17-L44](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/main.ts#L17-L44)) - Function
   - `packages.agent-daemon-action.src.main.catch() callback` ([L46-L49](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/main.ts#L46-L49)) - Function

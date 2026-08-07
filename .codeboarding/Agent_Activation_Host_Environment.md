@@ -4,7 +4,9 @@ graph LR
     Agent_CLI_Command_Orchestrator["Agent CLI & Command Orchestrator"]
     Activation_Cache_Identity_Validator["Activation Cache & Identity Validator"]
     MCP_Host_Runtime_Path_Resolver["MCP Host Runtime & Path Resolver"]
-    Agent_CLI_Command_Orchestrator -- "Direct function calls during agent startup sequence to validate identity and cache state" --> Activation_Cache_Identity_Validator
+    Governance_Console_UI_UX_Layer_ -- "Configuration & Identity Synchronization" --> Agent_CLI_Command_Orchestrator
+    Agent_CLI_Command_Orchestrator -- "Identity Verification & Lifecycle Management" --> Activation_Cache_Identity_Validator
+    Agent_CLI_Command_Orchestrator -- "Runtime Orchestration & Environment Injection" --> MCP_Host_Runtime_Path_Resolver
 ```
 
 [![CodeBoarding](https://img.shields.io/badge/Generated%20by-CodeBoarding-9cf?style=flat-square)](https://github.com/CodeBoarding/CodeBoarding)[![Web platform](https://img.shields.io/badge/Open%20in-Web%20platform-2563EB?style=flat-square)](https://app.codeboarding.org)[![Demo](https://img.shields.io/badge/Try%20our-Demo-blue?style=flat-square)](https://www.codeboarding.org/diagrams)[![Contact](https://img.shields.io/badge/Contact%20us%20-%20contact@codeboarding.org-lightgrey?style=flat-square)](mailto:contact@codeboarding.org)
@@ -888,61 +890,61 @@ Handles the local command-line interface for agent interactions, including sessi
 - [`apps/agent-daemon/src/cli/drain.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/drain.ts)
   - `apps.agent-daemon.src.cli.drain.runDrain` ([L5-L17](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/drain.ts#L5-L17)) - Function
 - [`apps/agent-daemon/src/cli/once.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts)
-  - `apps.agent-daemon.src.cli.once.runOnce` ([L68-L572](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L68-L572)) - Function
-  - `apps.agent-daemon.src.cli.once.runOnce.reaped` ([L260-L277](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L260-L277)) - Class
-  - `apps.agent-daemon.src.cli.once.runOnce.reaped.onIssue` ([L262-L264](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L262-L264)) - Method
-  - `apps.agent-daemon.src.cli.once.runOnce.signalHandlers` ([L304-L345](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L304-L345)) - Class
-  - `apps.agent-daemon.src.cli.once.runOnce.signalHandlers.logDrain` ([L305-L307](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L305-L307)) - Method
-  - `apps.agent-daemon.src.cli.once.runOnce.signalHandlers.drain` ([L308-L344](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L308-L344)) - Method
-  - `apps.agent-daemon.src.cli.once.runOnce.signalHandlers.drain.abortAttempt` ([L320-L321](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L320-L321)) - Method
-  - `apps.agent-daemon.src.cli.once.runOnce.signalHandlers.drain.logFailure` ([L322-L342](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L322-L342)) - Method
-  - `apps.agent-daemon.src.cli.once.runOnce.rawExecuteTask` ([L348-L370](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L348-L370)) - Class
-  - `apps.agent-daemon.src.cli.once.runOnce.rawExecuteTask.makeExecutionPlan` ([L364-L365](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L364-L365)) - Method
-  - `apps.agent-daemon.src.cli.once.executeTask` ([L371-L467](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L371-L467)) - Class
-  - `apps.agent-daemon.src.cli.once.runOnce.executeTask.runWithDaemonRuntimeContext() callback` ([L445-L445](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L445-L445)) - Function
-  - `apps.agent-daemon.src.cli.once.runOnce.makeReporter` ([L483-L490](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L483-L490)) - Method
-  - `apps.agent-daemon.src.cli.once.runOnce.onTaskFinished` ([L494-L553](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L494-L553)) - Method
-  - `apps.agent-daemon.src.cli.once.runOnce.onTaskFinished.log` ([L551-L551](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L551-L551)) - Method
-  - `apps.agent-daemon.src.cli.once.resolveRecordedWorkspacePath` ([L574-L590](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L574-L590)) - Function
-  - `apps.agent-daemon.src.cli.once.resolveMainWorktree` ([L592-L598](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L592-L598)) - Function
+  - `apps.agent-daemon.src.cli.once.runOnce` ([L68-L573](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L68-L573)) - Function
+  - `apps.agent-daemon.src.cli.once.runOnce.reaped` ([L261-L278](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L261-L278)) - Class
+  - `apps.agent-daemon.src.cli.once.runOnce.reaped.onIssue` ([L263-L265](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L263-L265)) - Method
+  - `apps.agent-daemon.src.cli.once.runOnce.signalHandlers` ([L305-L346](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L305-L346)) - Class
+  - `apps.agent-daemon.src.cli.once.runOnce.signalHandlers.logDrain` ([L306-L308](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L306-L308)) - Method
+  - `apps.agent-daemon.src.cli.once.runOnce.signalHandlers.drain` ([L309-L345](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L309-L345)) - Method
+  - `apps.agent-daemon.src.cli.once.runOnce.signalHandlers.drain.abortAttempt` ([L321-L322](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L321-L322)) - Method
+  - `apps.agent-daemon.src.cli.once.runOnce.signalHandlers.drain.logFailure` ([L323-L343](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L323-L343)) - Method
+  - `apps.agent-daemon.src.cli.once.runOnce.rawExecuteTask` ([L349-L371](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L349-L371)) - Class
+  - `apps.agent-daemon.src.cli.once.runOnce.rawExecuteTask.makeExecutionPlan` ([L365-L366](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L365-L366)) - Method
+  - `apps.agent-daemon.src.cli.once.executeTask` ([L372-L468](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L372-L468)) - Class
+  - `apps.agent-daemon.src.cli.once.runOnce.executeTask.runWithDaemonRuntimeContext() callback` ([L446-L446](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L446-L446)) - Function
+  - `apps.agent-daemon.src.cli.once.runOnce.makeReporter` ([L484-L491](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L484-L491)) - Method
+  - `apps.agent-daemon.src.cli.once.runOnce.onTaskFinished` ([L495-L554](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L495-L554)) - Method
+  - `apps.agent-daemon.src.cli.once.runOnce.onTaskFinished.log` ([L552-L552](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L552-L552)) - Method
+  - `apps.agent-daemon.src.cli.once.resolveRecordedWorkspacePath` ([L575-L591](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L575-L591)) - Function
+  - `apps.agent-daemon.src.cli.once.resolveMainWorktree` ([L593-L599](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/once.ts#L593-L599)) - Function
 - [`apps/agent-daemon/src/cli/poll-shared.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts)
   - `apps.agent-daemon.src.cli.poll-shared.PollSharedArgs` ([L73-L80](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L73-L80)) - Interface
   - `apps.agent-daemon.src.cli.poll-shared.ProfileRuntime` ([L82-L95](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L82-L95)) - Interface
-  - `apps.agent-daemon.src.cli.poll-shared.runPolling` ([L97-L798](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L97-L798)) - Function
-  - `apps.agent-daemon.src.cli.poll-shared.runPolling.otelShutdown.resourceAttributes.'moltnet.runtime_profile.ids'.profiles.map() callback` ([L309-L309](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L309-L309)) - Function
-  - `apps.agent-daemon.src.cli.poll-shared.runPolling.rootLogger.runtimeProfileIds.profiles.map() callback` ([L321-L321](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L321-L321)) - Function
-  - `apps.agent-daemon.src.cli.poll-shared.runPolling.rootLogger.runtimeProfileNames.profiles.map() callback` ([L322-L322](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L322-L322)) - Function
-  - `apps.agent-daemon.src.cli.poll-shared.runPolling.signalHandlers` ([L332-L362](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L332-L362)) - Class
-  - `apps.agent-daemon.src.cli.poll-shared.runPolling.signalHandlers.logDrain` ([L333-L335](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L333-L335)) - Method
-  - `apps.agent-daemon.src.cli.poll-shared.runPolling.signalHandlers.drain` ([L336-L361](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L336-L361)) - Method
-  - `apps.agent-daemon.src.cli.poll-shared.runPolling.signalHandlers.drain.abortAttempt` ([L344-L345](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L344-L345)) - Method
-  - `apps.agent-daemon.src.cli.poll-shared.runPolling.signalHandlers.drain.logFailure` ([L346-L359](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L346-L359)) - Method
-  - `apps.agent-daemon.src.cli.poll-shared.runPolling.profiles.profiles.map() callback` ([L374-L397](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L374-L397)) - Function
-  - `apps.agent-daemon.src.cli.poll-shared.runPolling.reapRuntimeResources.result` ([L411-L431](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L411-L431)) - Class
-  - `apps.agent-daemon.src.cli.poll-shared.runPolling.reapRuntimeResources.result.onIssue` ([L413-L418](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L413-L418)) - Method
-  - `apps.agent-daemon.src.cli.poll-shared.runPolling.reaperTimer` ([L452-L454](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L452-L454)) - Class
-  - `apps.agent-daemon.src.cli.poll-shared.runPolling.reaperTimer.setInterval() callback` ([L452-L454](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L452-L454)) - Function
-  - `apps.agent-daemon.src.cli.poll-shared.runPolling.source.profiles.profiles.map() callback` ([L466-L469](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L466-L469)) - Function
-  - `apps.agent-daemon.src.cli.poll-shared.runPolling.source.executorFingerprints.profiles.map() callback` ([L482-L486](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L482-L486)) - Function
-  - `apps.agent-daemon.src.cli.poll-shared.runPolling.makeReporter` ([L494-L503](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L494-L503)) - Method
-  - `apps.agent-daemon.src.cli.poll-shared.runPolling.onTaskFinished` ([L511-L576](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L511-L576)) - Method
-  - `apps.agent-daemon.src.cli.poll-shared.runPolling.onTaskFinished.log` ([L574-L574](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L574-L574)) - Method
-  - `apps.agent-daemon.src.cli.poll-shared.runPolling.executeTask` ([L577-L783](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L577-L783)) - Method
-  - `apps.agent-daemon.src.cli.poll-shared.runPolling.executeTask.rawExecuteTask` ([L722-L743](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L722-L743)) - Class
-  - `apps.agent-daemon.src.cli.poll-shared.runPolling.executeTask.rawExecuteTask.makeExecutionPlan` ([L738-L738](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L738-L738)) - Method
-  - `apps.agent-daemon.src.cli.poll-shared.runPolling.executeTask.runWithDaemonRuntimeContext() callback` ([L761-L761](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L761-L761)) - Function
-  - `apps.agent-daemon.src.cli.poll-shared.runPolling.anyFailed` ([L789-L789](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L789-L789)) - Class
-  - `apps.agent-daemon.src.cli.poll-shared.runPolling.anyFailed.drained.some() callback` ([L789-L789](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L789-L789)) - Function
-  - `apps.agent-daemon.src.cli.poll-shared.resolveRecordedWorkspacePath` ([L800-L816](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L800-L816)) - Function
-  - `apps.agent-daemon.src.cli.poll-shared.resolveMainWorktree` ([L818-L824](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L818-L824)) - Function
-  - `apps.agent-daemon.src.cli.poll-shared.runtimeForClaimedTask` ([L826-L836](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L826-L836)) - Function
-  - `apps.agent-daemon.src.cli.poll-shared.requireRuntime` ([L838-L847](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L838-L847)) - Function
-  - `apps.agent-daemon.src.cli.poll-shared.parseProfileValues` ([L849-L851](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L849-L851)) - Function
-  - `apps.agent-daemon.src.cli.poll-shared.parseCsv` ([L853-L858](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L853-L858)) - Function
-  - `apps.agent-daemon.src.cli.poll-shared.parseCsv.map() callback` ([L856-L856](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L856-L856)) - Function
-  - `apps.agent-daemon.src.cli.poll-shared.parseCsv.filter() callback` ([L857-L857](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L857-L857)) - Function
-  - `apps.agent-daemon.src.cli.poll-shared.optionalPositiveInt` ([L860-L871](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L860-L871)) - Function
-  - `apps.agent-daemon.src.cli.poll-shared.optionalNonNegativeInt` ([L873-L886](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L873-L886)) - Function
+  - `apps.agent-daemon.src.cli.poll-shared.runPolling` ([L97-L800](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L97-L800)) - Function
+  - `apps.agent-daemon.src.cli.poll-shared.runPolling.otelShutdown.resourceAttributes.'moltnet.runtime_profile.ids'.profiles.map() callback` ([L310-L310](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L310-L310)) - Function
+  - `apps.agent-daemon.src.cli.poll-shared.runPolling.rootLogger.runtimeProfileIds.profiles.map() callback` ([L322-L322](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L322-L322)) - Function
+  - `apps.agent-daemon.src.cli.poll-shared.runPolling.rootLogger.runtimeProfileNames.profiles.map() callback` ([L323-L323](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L323-L323)) - Function
+  - `apps.agent-daemon.src.cli.poll-shared.runPolling.signalHandlers` ([L333-L363](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L333-L363)) - Class
+  - `apps.agent-daemon.src.cli.poll-shared.runPolling.signalHandlers.logDrain` ([L334-L336](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L334-L336)) - Method
+  - `apps.agent-daemon.src.cli.poll-shared.runPolling.signalHandlers.drain` ([L337-L362](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L337-L362)) - Method
+  - `apps.agent-daemon.src.cli.poll-shared.runPolling.signalHandlers.drain.abortAttempt` ([L345-L346](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L345-L346)) - Method
+  - `apps.agent-daemon.src.cli.poll-shared.runPolling.signalHandlers.drain.logFailure` ([L347-L360](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L347-L360)) - Method
+  - `apps.agent-daemon.src.cli.poll-shared.runPolling.profiles.profiles.map() callback` ([L375-L398](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L375-L398)) - Function
+  - `apps.agent-daemon.src.cli.poll-shared.runPolling.reapRuntimeResources.result` ([L412-L432](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L412-L432)) - Class
+  - `apps.agent-daemon.src.cli.poll-shared.runPolling.reapRuntimeResources.result.onIssue` ([L414-L419](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L414-L419)) - Method
+  - `apps.agent-daemon.src.cli.poll-shared.runPolling.reaperTimer` ([L453-L455](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L453-L455)) - Class
+  - `apps.agent-daemon.src.cli.poll-shared.runPolling.reaperTimer.setInterval() callback` ([L453-L455](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L453-L455)) - Function
+  - `apps.agent-daemon.src.cli.poll-shared.runPolling.source.profiles.profiles.map() callback` ([L467-L470](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L467-L470)) - Function
+  - `apps.agent-daemon.src.cli.poll-shared.runPolling.source.executorFingerprints.profiles.map() callback` ([L484-L488](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L484-L488)) - Function
+  - `apps.agent-daemon.src.cli.poll-shared.runPolling.makeReporter` ([L496-L505](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L496-L505)) - Method
+  - `apps.agent-daemon.src.cli.poll-shared.runPolling.onTaskFinished` ([L513-L578](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L513-L578)) - Method
+  - `apps.agent-daemon.src.cli.poll-shared.runPolling.onTaskFinished.log` ([L576-L576](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L576-L576)) - Method
+  - `apps.agent-daemon.src.cli.poll-shared.runPolling.executeTask` ([L579-L785](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L579-L785)) - Method
+  - `apps.agent-daemon.src.cli.poll-shared.runPolling.executeTask.rawExecuteTask` ([L724-L745](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L724-L745)) - Class
+  - `apps.agent-daemon.src.cli.poll-shared.runPolling.executeTask.rawExecuteTask.makeExecutionPlan` ([L740-L740](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L740-L740)) - Method
+  - `apps.agent-daemon.src.cli.poll-shared.runPolling.executeTask.runWithDaemonRuntimeContext() callback` ([L763-L763](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L763-L763)) - Function
+  - `apps.agent-daemon.src.cli.poll-shared.runPolling.anyFailed` ([L791-L791](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L791-L791)) - Class
+  - `apps.agent-daemon.src.cli.poll-shared.runPolling.anyFailed.drained.some() callback` ([L791-L791](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L791-L791)) - Function
+  - `apps.agent-daemon.src.cli.poll-shared.resolveRecordedWorkspacePath` ([L802-L818](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L802-L818)) - Function
+  - `apps.agent-daemon.src.cli.poll-shared.resolveMainWorktree` ([L820-L826](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L820-L826)) - Function
+  - `apps.agent-daemon.src.cli.poll-shared.runtimeForClaimedTask` ([L828-L838](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L828-L838)) - Function
+  - `apps.agent-daemon.src.cli.poll-shared.requireRuntime` ([L840-L849](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L840-L849)) - Function
+  - `apps.agent-daemon.src.cli.poll-shared.parseProfileValues` ([L851-L853](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L851-L853)) - Function
+  - `apps.agent-daemon.src.cli.poll-shared.parseCsv` ([L855-L860](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L855-L860)) - Function
+  - `apps.agent-daemon.src.cli.poll-shared.parseCsv.map() callback` ([L858-L858](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L858-L858)) - Function
+  - `apps.agent-daemon.src.cli.poll-shared.parseCsv.filter() callback` ([L859-L859](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L859-L859)) - Function
+  - `apps.agent-daemon.src.cli.poll-shared.optionalPositiveInt` ([L862-L873](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L862-L873)) - Function
+  - `apps.agent-daemon.src.cli.poll-shared.optionalNonNegativeInt` ([L875-L888](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll-shared.ts#L875-L888)) - Function
 - [`apps/agent-daemon/src/cli/poll.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll.ts)
   - `apps.agent-daemon.src.cli.poll.runPoll` ([L5-L17](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/poll.ts#L5-L17)) - Function
 - [`apps/agent-daemon/src/cli/sync-sessions.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/sync-sessions.ts)
@@ -950,9 +952,10 @@ Handles the local command-line interface for agent interactions, including sessi
   - `apps.agent-daemon.src.cli.sync-sessions.parseState` ([L86-L90](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/sync-sessions.ts#L86-L90)) - Function
   - `apps.agent-daemon.src.cli.sync-sessions.parseLimit` ([L92-L99](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/cli/sync-sessions.ts#L92-L99)) - Function
 - [`apps/agent-daemon/src/config.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/config.ts)
-  - `apps.agent-daemon.src.config.DaemonConfig` ([L10-L27](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/config.ts#L10-L27)) - Interface
-  - `apps.agent-daemon.src.config.loadConfig` ([L29-L38](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/config.ts#L29-L38)) - Function
-  - `apps.agent-daemon.src.config.activatePiCodingAgentDir` ([L40-L42](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/config.ts#L40-L42)) - Function
+  - `apps.agent-daemon.src.config.DaemonConfig` ([L10-L29](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/config.ts#L10-L29)) - Interface
+  - `apps.agent-daemon.src.config.loadConfig` ([L31-L44](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/config.ts#L31-L44)) - Function
+  - `apps.agent-daemon.src.config.readBoolean` ([L46-L51](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/config.ts#L46-L51)) - Function
+  - `apps.agent-daemon.src.config.activatePiCodingAgentDir` ([L53-L55](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/config.ts#L53-L55)) - Function
 - [`apps/agent-daemon/src/lib/abort-active-attempt.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/lib/abort-active-attempt.ts)
   - `apps.agent-daemon.src.lib.abort-active-attempt.ActiveAttempt` ([L1-L4](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/lib/abort-active-attempt.ts#L1-L4)) - Interface
   - `apps.agent-daemon.src.lib.abort-active-attempt.AbortActiveAttemptOptions` ([L6-L15](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/lib/abort-active-attempt.ts#L6-L15)) - Interface
@@ -1062,12 +1065,12 @@ Handles the local command-line interface for agent interactions, including sessi
   - `apps.agent-daemon.src.lib.options.commonOptionDefs` ([L177-L190](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/lib/options.ts#L177-L190)) - Function
   - `apps.agent-daemon.src.lib.options.validateTaskTypes` ([L195-L206](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/lib/options.ts#L195-L206)) - Function
 - [`apps/agent-daemon/src/lib/otel.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/lib/otel.ts)
-  - `apps.agent-daemon.src.lib.otel.InitWorkerOtelOptions` ([L21-L39](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/lib/otel.ts#L21-L39)) - Interface
-  - `apps.agent-daemon.src.lib.otel.initWorkerOtel` ([L43-L101](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/lib/otel.ts#L43-L101)) - Function
-  - `apps.agent-daemon.src.lib.otel.headersFactory` ([L68-L71](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/lib/otel.ts#L68-L71)) - Function
-  - `apps.agent-daemon.src.lib.otel.initWorkerOtel.<function>` ([L89-L100](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/lib/otel.ts#L89-L100)) - Function
-  - `apps.agent-daemon.src.lib.otel.<function>.catch() callback` ([L90-L94](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/lib/otel.ts#L90-L94)) - Function
-  - `apps.agent-daemon.src.lib.otel.initWorkerOtel.<function>.catch() callback` ([L95-L99](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/lib/otel.ts#L95-L99)) - Function
+  - `apps.agent-daemon.src.lib.otel.InitWorkerOtelOptions` ([L27-L45](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/lib/otel.ts#L27-L45)) - Interface
+  - `apps.agent-daemon.src.lib.otel.initWorkerOtel` ([L49-L134](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/lib/otel.ts#L49-L134)) - Function
+  - `apps.agent-daemon.src.lib.otel.headersFactory` ([L74-L77](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/lib/otel.ts#L74-L77)) - Function
+  - `apps.agent-daemon.src.lib.otel.initWorkerOtel.<function>` ([L108-L133](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/lib/otel.ts#L108-L133)) - Function
+  - `apps.agent-daemon.src.lib.otel.<function>.catch() callback` ([L110-L114](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/lib/otel.ts#L110-L114)) - Function
+  - `apps.agent-daemon.src.lib.otel.initWorkerOtel.<function>.catch() callback` ([L127-L131](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/lib/otel.ts#L127-L131)) - Function
 - [`apps/agent-daemon/src/lib/pi-agent-dir.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/lib/pi-agent-dir.ts)
   - `apps.agent-daemon.src.lib.pi-agent-dir.ResolvedPiAgentDir` ([L6-L9](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/lib/pi-agent-dir.ts#L6-L9)) - Interface
   - `apps.agent-daemon.src.lib.pi-agent-dir.ensurePiAgentDir` ([L11-L23](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon/src/lib/pi-agent-dir.ts#L11-L23)) - Function

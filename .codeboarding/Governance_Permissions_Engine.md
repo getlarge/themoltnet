@@ -3,7 +3,7 @@ graph LR
     Trust_Provenance_Controller["Trust & Provenance Controller"]
     Agent_Output_Contract_Validator["Agent Output & Contract Validator"]
     Agent_Key_Identity_Service["Agent Key & Identity Service"]
-    Trust_Provenance_Controller -- "Key Verification" --> Agent_Key_Identity_Service
+    Trust_Provenance_Controller -- "resolves cryptographic identity" --> Agent_Key_Identity_Service
     Agent_Output_Contract_Validator -- "Provenance Commitment" --> Trust_Provenance_Controller
     Agent_Key_Identity_Service -- "Provide Identity Proof for Contract Validation" --> Agent_Output_Contract_Validator
 ```
@@ -1978,42 +1978,42 @@ This component manages the Proof phase of the Governance loop. It validates that
   - `libs.tasks.src.task-types.freeform.validateFreeformInputAsync.attempt` ([L249-L249](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/task-types/freeform.ts#L249-L249)) - Class
   - `libs.tasks.src.task-types.freeform.validateFreeformInputAsync.attempt.attempts.find() callback` ([L249-L249](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/task-types/freeform.ts#L249-L249)) - Function
 - [`libs/tasks/src/validation.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts)
-  - `libs.tasks.src.validation.TaskTypeDefinition` ([L21-L42](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L21-L42)) - Interface
-  - `libs.tasks.src.validation.getSubmitOutputGate` ([L54-L63](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L54-L63)) - Function
-  - `libs.tasks.src.validation.getTaskTypeEntry` ([L65-L76](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L65-L76)) - Function
-  - `libs.tasks.src.validation.formatField` ([L78-L80](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L78-L80)) - Function
-  - `libs.tasks.src.validation.normalizeTaskCreateRequest` ([L103-L114](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L103-L114)) - Function
-  - `libs.tasks.src.validation.normalizeTaskInputForCreate` ([L116-L158](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L116-L158)) - Function
-  - `libs.tasks.src.validation.normalizeTaskInputForCreate.gates.some() callback` ([L140-L144](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L140-L144)) - Function
-  - `libs.tasks.src.validation.schemaErrors` ([L160-L193](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L160-L193)) - Function
-  - `libs.tasks.src.validation.schemaErrors.flatMap() callback` ([L165-L192](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L165-L192)) - Function
-  - `libs.tasks.src.validation.schemaErrors.flatMap() callback.error.params.additionalProperties.map() callback` ([L173-L176](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L173-L176)) - Function
-  - `libs.tasks.src.validation.schemaErrors.flatMap() callback.error.params.requiredProperties.map() callback` ([L180-L183](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L180-L183)) - Function
-  - `libs.tasks.src.validation.validateTaskInput` ([L195-L220](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L195-L220)) - Function
-  - `libs.tasks.src.validation.checkVerificationInputCid` ([L222-L243](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L222-L243)) - Function
-  - `libs.tasks.src.validation.checkVerificationPassedConsistency` ([L245-L279](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L245-L279)) - Function
-  - `libs.tasks.src.validation.checkVerificationPassedConsistency.expectedPassed` ([L267-L269](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L267-L269)) - Class
-  - `libs.tasks.src.validation.checkVerificationPassedConsistency.expectedPassed.verification.results.every() callback` ([L268-L268](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L268-L268)) - Function
-  - `libs.tasks.src.validation.validateTaskResult` ([L281-L315](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L281-L315)) - Function
-  - `libs.tasks.src.validation.validateTaskOutput` ([L317-L333](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L317-L333)) - Function
-  - `libs.tasks.src.validation.validateTaskSubmission` ([L340-L347](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L340-L347)) - Function
-  - `libs.tasks.src.validation.getTaskOutputSchema` ([L354-L356](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L354-L356)) - Function
-  - `libs.tasks.src.validation.getTaskSubmissionSchema` ([L359-L362](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L359-L362)) - Function
-  - `libs.tasks.src.validation.RuntimeOutputFacts` ([L364-L368](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L364-L368)) - Interface
-  - `libs.tasks.src.validation.materializeTaskOutput` ([L375-L394](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L375-L394)) - Function
-  - `libs.tasks.src.validation.taskTypeUsesSubagents` ([L402-L404](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L402-L404)) - Function
-  - `libs.tasks.src.validation.taskTypeWorkspaceMode` ([L412-L416](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L412-L416)) - Function
-  - `libs.tasks.src.validation.taskTypeResumable` ([L424-L426](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L424-L426)) - Function
-  - `libs.tasks.src.validation.taskTypeWorkspaceScope` ([L434-L438](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L434-L438)) - Function
-  - `libs.tasks.src.validation.taskTypeSessionScope` ([L446-L450](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L446-L450)) - Function
-  - `libs.tasks.src.validation.taskTypeAcceptsInputWorkspaceOverride` ([L456-L460](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L456-L460)) - Function
-  - `libs.tasks.src.validation.TaskExecutionPolicy` ([L462-L469](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L462-L469)) - Interface
-  - `libs.tasks.src.validation.getTaskExecutionPolicy` ([L478-L488](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L478-L488)) - Function
-  - `libs.tasks.src.validation.validateTaskCreateRequest` ([L490-L520](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L490-L520)) - Function
-  - `libs.tasks.src.validation.validateTaskReferences` ([L536-L581](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L536-L581)) - Function
-  - `libs.tasks.src.validation.validateTaskReferences.forEach() callback` ([L540-L579](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L540-L579)) - Function
-  - `libs.tasks.src.validation.validateTaskInputAsync` ([L590-L598](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L590-L598)) - Function
-  - `libs.tasks.src.validation.getTaskCreateSideEffects` ([L606-L614](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L606-L614)) - Function
+  - `libs.tasks.src.validation.TaskTypeDefinition` ([L19-L40](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L19-L40)) - Interface
+  - `libs.tasks.src.validation.getSubmitOutputGate` ([L52-L61](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L52-L61)) - Function
+  - `libs.tasks.src.validation.getTaskTypeEntry` ([L63-L74](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L63-L74)) - Function
+  - `libs.tasks.src.validation.formatField` ([L76-L78](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L76-L78)) - Function
+  - `libs.tasks.src.validation.normalizeTaskCreateRequest` ([L101-L112](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L101-L112)) - Function
+  - `libs.tasks.src.validation.normalizeTaskInputForCreate` ([L114-L156](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L114-L156)) - Function
+  - `libs.tasks.src.validation.normalizeTaskInputForCreate.gates.some() callback` ([L138-L142](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L138-L142)) - Function
+  - `libs.tasks.src.validation.schemaErrors` ([L158-L191](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L158-L191)) - Function
+  - `libs.tasks.src.validation.schemaErrors.flatMap() callback` ([L163-L190](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L163-L190)) - Function
+  - `libs.tasks.src.validation.schemaErrors.flatMap() callback.error.params.additionalProperties.map() callback` ([L171-L174](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L171-L174)) - Function
+  - `libs.tasks.src.validation.schemaErrors.flatMap() callback.error.params.requiredProperties.map() callback` ([L178-L181](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L178-L181)) - Function
+  - `libs.tasks.src.validation.validateTaskInput` ([L193-L218](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L193-L218)) - Function
+  - `libs.tasks.src.validation.checkVerificationInputCid` ([L220-L241](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L220-L241)) - Function
+  - `libs.tasks.src.validation.checkVerificationPassedConsistency` ([L243-L277](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L243-L277)) - Function
+  - `libs.tasks.src.validation.checkVerificationPassedConsistency.expectedPassed` ([L265-L267](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L265-L267)) - Class
+  - `libs.tasks.src.validation.checkVerificationPassedConsistency.expectedPassed.verification.results.every() callback` ([L266-L266](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L266-L266)) - Function
+  - `libs.tasks.src.validation.validateTaskResult` ([L279-L313](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L279-L313)) - Function
+  - `libs.tasks.src.validation.validateTaskOutput` ([L315-L331](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L315-L331)) - Function
+  - `libs.tasks.src.validation.validateTaskSubmission` ([L338-L345](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L338-L345)) - Function
+  - `libs.tasks.src.validation.getTaskOutputSchema` ([L352-L354](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L352-L354)) - Function
+  - `libs.tasks.src.validation.getTaskSubmissionSchema` ([L357-L360](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L357-L360)) - Function
+  - `libs.tasks.src.validation.RuntimeOutputFacts` ([L362-L366](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L362-L366)) - Interface
+  - `libs.tasks.src.validation.materializeTaskOutput` ([L373-L392](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L373-L392)) - Function
+  - `libs.tasks.src.validation.taskTypeUsesSubagents` ([L400-L402](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L400-L402)) - Function
+  - `libs.tasks.src.validation.taskTypeWorkspaceMode` ([L410-L414](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L410-L414)) - Function
+  - `libs.tasks.src.validation.taskTypeResumable` ([L422-L424](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L422-L424)) - Function
+  - `libs.tasks.src.validation.taskTypeWorkspaceScope` ([L432-L436](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L432-L436)) - Function
+  - `libs.tasks.src.validation.taskTypeSessionScope` ([L444-L448](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L444-L448)) - Function
+  - `libs.tasks.src.validation.taskTypeAcceptsInputWorkspaceOverride` ([L454-L458](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L454-L458)) - Function
+  - `libs.tasks.src.validation.TaskExecutionPolicy` ([L460-L467](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L460-L467)) - Interface
+  - `libs.tasks.src.validation.getTaskExecutionPolicy` ([L476-L486](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L476-L486)) - Function
+  - `libs.tasks.src.validation.validateTaskCreateRequest` ([L488-L518](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L488-L518)) - Function
+  - `libs.tasks.src.validation.validateTaskReferences` ([L534-L579](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L534-L579)) - Function
+  - `libs.tasks.src.validation.validateTaskReferences.forEach() callback` ([L538-L577](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L538-L577)) - Function
+  - `libs.tasks.src.validation.validateTaskInputAsync` ([L588-L596](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L588-L596)) - Function
+  - `libs.tasks.src.validation.getTaskCreateSideEffects` ([L604-L612](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L604-L612)) - Function
 - [`libs/yubikey-preview-sign/src/types.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/yubikey-preview-sign/src/types.ts)
   - `libs.yubikey-preview-sign.src.types.PreviewSignPresence` ([L14-L18](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/yubikey-preview-sign/src/types.ts#L14-L18)) - Enum
   - `libs.yubikey-preview-sign.src.types.PreviewSignCapabilities` ([L20-L28](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/yubikey-preview-sign/src/types.ts#L20-L28)) - Interface
@@ -2157,29 +2157,30 @@ Provides the cryptographic foundation for agent identities. It manages the issua
   - `libs.agent-runtime.src.prompts.judge-eval-attempt.buildJudgeEvalAttemptUserPrompt.rubricBody` ([L79-L86](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/prompts/judge-eval-attempt.ts#L79-L86)) - Class
   - `libs.agent-runtime.src.prompts.judge-eval-attempt.buildJudgeEvalAttemptUserPrompt.rubricBody.filter() callback` ([L85-L85](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/prompts/judge-eval-attempt.ts#L85-L85)) - Function
 - [`libs/agent-runtime/src/reporters/api.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts)
-  - `libs.agent-runtime.src.reporters.api.ApiTaskReporterOptions` ([L6-L23](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L6-L23)) - Interface
-  - `libs.agent-runtime.src.reporters.api.isKetoConsistencyLag403` ([L44-L50](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L44-L50)) - Function
-  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter` ([L64-L450](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L64-L450)) - Class
-  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.constructor` ([L95-L109](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L95-L109)) - Constructor
-  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.getUsage` ([L111-L113](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L111-L113)) - Method
-  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.cancelSignal` ([L115-L117](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L115-L117)) - Method
-  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.cancelReason` ([L119-L121](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L119-L121)) - Method
-  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.requestCancel` ([L123-L125](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L123-L125)) - Method
-  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.open` ([L127-L162](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L127-L162)) - Method
-  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.open.setInterval() callback` ([L155-L160](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L155-L160)) - Function
-  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.open.setInterval() callback.catch() callback` ([L156-L159](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L156-L159)) - Function
-  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.record` ([L164-L203](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L164-L203)) - Method
-  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.record.setTimeout() callback` ([L182-L201](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L182-L201)) - Function
-  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.record.setTimeout() callback.catch() callback` ([L184-L200](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L184-L200)) - Function
-  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.flush` ([L211-L270](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L211-L270)) - Method
-  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.flush.<function>` ([L226-L262](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L226-L262)) - Function
-  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.finalize` ([L272-L281](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L272-L281)) - Method
-  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.close` ([L283-L324](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L283-L324)) - Method
-  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.throwIfPendingError` ([L326-L332](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L326-L332)) - Method
-  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.sendInitialHeartbeat` ([L345-L363](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L345-L363)) - Method
-  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.appendWithFirstCallRetry` ([L384-L408](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L384-L408)) - Method
-  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.sendHeartbeat` ([L410-L428](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L410-L428)) - Method
-  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.abortForCancel` ([L430-L449](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L430-L449)) - Method
+  - `libs.agent-runtime.src.reporters.api.ApiTaskReporterOptions` ([L7-L24](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L7-L24)) - Interface
+  - `libs.agent-runtime.src.reporters.api.isKetoConsistencyLag403` ([L45-L51](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L45-L51)) - Function
+  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter` ([L65-L472](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L65-L472)) - Class
+  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.constructor` ([L97-L111](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L97-L111)) - Constructor
+  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.getUsage` ([L113-L115](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L113-L115)) - Method
+  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.cancelSignal` ([L117-L119](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L117-L119)) - Method
+  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.cancelReason` ([L121-L123](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L121-L123)) - Method
+  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.requestCancel` ([L125-L127](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L125-L127)) - Method
+  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.open` ([L129-L169](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L129-L169)) - Method
+  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.open.traceRuntimePhase('moltnet.reporter.open') callback` ([L157-L157](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L157-L157)) - Function
+  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.open.setInterval() callback` ([L162-L167](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L162-L167)) - Function
+  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.open.setInterval() callback.catch() callback` ([L163-L166](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L163-L166)) - Function
+  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.record` ([L171-L225](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L171-L225)) - Method
+  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.record.setTimeout() callback` ([L204-L223](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L204-L223)) - Function
+  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.record.setTimeout() callback.catch() callback` ([L206-L222](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L206-L222)) - Function
+  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.flush` ([L233-L292](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L233-L292)) - Method
+  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.flush.<function>` ([L248-L284](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L248-L284)) - Function
+  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.finalize` ([L294-L303](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L294-L303)) - Method
+  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.close` ([L305-L346](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L305-L346)) - Method
+  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.throwIfPendingError` ([L348-L354](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L348-L354)) - Method
+  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.sendInitialHeartbeat` ([L367-L385](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L367-L385)) - Method
+  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.appendWithFirstCallRetry` ([L406-L430](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L406-L430)) - Method
+  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.sendHeartbeat` ([L432-L450](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L432-L450)) - Method
+  - `libs.agent-runtime.src.reporters.api.ApiTaskReporter.abortForCancel` ([L452-L471](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/api.ts#L452-L471)) - Method
 - [`libs/agent-runtime/src/reporters/jsonl.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/jsonl.ts)
   - `libs.agent-runtime.src.reporters.jsonl.JsonlReporter` ([L15-L93](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/jsonl.ts#L15-L93)) - Class
   - `libs.agent-runtime.src.reporters.jsonl.JsonlReporter.cancelSignal` ([L25-L27](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/jsonl.ts#L25-L27)) - Method
@@ -2210,16 +2211,17 @@ Provides the cryptographic foundation for agent identities. It manages the issua
   - `libs.agent-runtime.src.reporters.types.TaskReporter.close` ([L40-L40](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/types.ts#L40-L40)) - Method
   - `libs.agent-runtime.src.reporters.types.TaskReporter.requestCancel` ([L69-L69](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/reporters/types.ts#L69-L69)) - Method
 - [`libs/agent-runtime/src/runtime.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/runtime.ts)
-  - `libs.agent-runtime.src.runtime.AgentRuntimeLogger` ([L26-L32](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/runtime.ts#L26-L32)) - Interface
-  - `libs.agent-runtime.src.runtime.AgentRuntimeLogger.child` ([L31-L31](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/runtime.ts#L31-L31)) - Method
-  - `libs.agent-runtime.src.runtime.AgentRuntimeOptions` ([L44-L75](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/runtime.ts#L44-L75)) - Interface
-  - `libs.agent-runtime.src.runtime.AgentRuntimeStatus` ([L77-L81](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/runtime.ts#L77-L81)) - Interface
-  - `libs.agent-runtime.src.runtime.AgentRuntime` ([L83-L244](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/runtime.ts#L83-L244)) - Class
-  - `libs.agent-runtime.src.runtime.AgentRuntime.constructor` ([L93-L95](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/runtime.ts#L93-L95)) - Constructor
-  - `libs.agent-runtime.src.runtime.AgentRuntime.getStatus` ([L97-L99](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/runtime.ts#L97-L99)) - Method
-  - `libs.agent-runtime.src.runtime.AgentRuntime.start` ([L105-L235](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/runtime.ts#L105-L235)) - Method
-  - `libs.agent-runtime.src.runtime.AgentRuntime.start.otelContext.with() callback` ([L138-L139](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/runtime.ts#L138-L139)) - Function
-  - `libs.agent-runtime.src.runtime.AgentRuntime.stop` ([L238-L243](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/runtime.ts#L238-L243)) - Method
+  - `libs.agent-runtime.src.runtime.AgentRuntimeLogger` ([L27-L33](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/runtime.ts#L27-L33)) - Interface
+  - `libs.agent-runtime.src.runtime.AgentRuntimeLogger.child` ([L32-L32](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/runtime.ts#L32-L32)) - Method
+  - `libs.agent-runtime.src.runtime.AgentRuntimeOptions` ([L45-L76](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/runtime.ts#L45-L76)) - Interface
+  - `libs.agent-runtime.src.runtime.AgentRuntimeStatus` ([L78-L82](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/runtime.ts#L78-L82)) - Interface
+  - `libs.agent-runtime.src.runtime.AgentRuntime` ([L84-L272](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/runtime.ts#L84-L272)) - Class
+  - `libs.agent-runtime.src.runtime.AgentRuntime.constructor` ([L94-L96](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/runtime.ts#L94-L96)) - Constructor
+  - `libs.agent-runtime.src.runtime.AgentRuntime.getStatus` ([L98-L100](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/runtime.ts#L98-L100)) - Method
+  - `libs.agent-runtime.src.runtime.AgentRuntime.start` ([L106-L263](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/runtime.ts#L106-L263)) - Method
+  - `libs.agent-runtime.src.runtime.AgentRuntime.start.otelContext.with() callback` ([L139-L167](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/runtime.ts#L139-L167)) - Function
+  - `libs.agent-runtime.src.runtime.AgentRuntime.start.otelContext.with() callback.traceRuntimePhase('moltnet.task.execute') callback` ([L150-L166](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/runtime.ts#L150-L166)) - Function
+  - `libs.agent-runtime.src.runtime.AgentRuntime.stop` ([L266-L271](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/runtime.ts#L266-L271)) - Method
 - [`libs/agent-runtime/src/sources/api.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/api.ts)
   - `libs.agent-runtime.src.sources.api.ApiTaskSourceOptions` ([L9-L18](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/api.ts#L9-L18)) - Interface
   - `libs.agent-runtime.src.sources.api.ApiTaskSource` ([L20-L61](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/api.ts#L20-L61)) - Class
@@ -2233,41 +2235,50 @@ Provides the cryptographic foundation for agent identities. It manages the issua
   - `libs.agent-runtime.src.sources.file.FileTaskSource.close` ([L30-L32](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/file.ts#L30-L32)) - Method
   - `libs.agent-runtime.src.sources.file.FileTaskSource.load` ([L34-L98](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/file.ts#L34-L98)) - Method
 - [`libs/agent-runtime/src/sources/polling-api.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts)
-  - `libs.agent-runtime.src.sources.polling-api.ContinuationSlotRegistry` ([L22-L41](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L22-L41)) - Interface
-  - `libs.agent-runtime.src.sources.polling-api.ContinuationSlotRegistry.findLatestSlotByTaskAttempt` ([L23-L40](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L23-L40)) - Method
-  - `libs.agent-runtime.src.sources.polling-api.ContinuationSessionRegistry` ([L43-L49](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L43-L49)) - Interface
-  - `libs.agent-runtime.src.sources.polling-api.ContinuationSessionRegistry.findRuntimeSessionByTaskAttempt` ([L44-L48](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L44-L48)) - Method
-  - `libs.agent-runtime.src.sources.polling-api.ContinuationSourceAttemptResolver` ([L51-L56](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L51-L56)) - Interface
-  - `libs.agent-runtime.src.sources.polling-api.ContinuationSourceAttemptResolver.findOutputBranch` ([L52-L55](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L52-L55)) - Method
-  - `libs.agent-runtime.src.sources.polling-api.isContinuationClaimableByThisDaemon` ([L77-L144](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L77-L144)) - Function
-  - `libs.agent-runtime.src.sources.polling-api.isRemoteSessionClaimable` ([L146-L168](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L146-L168)) - Function
-  - `libs.agent-runtime.src.sources.polling-api.hasLocalSessionFile` ([L170-L179](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L170-L179)) - Function
-  - `libs.agent-runtime.src.sources.polling-api.resolveLatestPiSessionPath` ([L181-L192](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L181-L192)) - Function
-  - `libs.agent-runtime.src.sources.polling-api.PollingApiTaskSourceOptions` ([L194-L293](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L194-L293)) - Interface
-  - `libs.agent-runtime.src.sources.polling-api.PollingApiTaskSource` ([L315-L627](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L315-L627)) - Class
-  - `libs.agent-runtime.src.sources.polling-api.PollingApiTaskSource.constructor` ([L326-L343](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L326-L343)) - Constructor
-  - `libs.agent-runtime.src.sources.polling-api.PollingApiTaskSource.claim` ([L345-L404](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L345-L404)) - Method
-  - `libs.agent-runtime.src.sources.polling-api.PollingApiTaskSource.close` ([L406-L408](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L406-L408)) - Method
-  - `libs.agent-runtime.src.sources.polling-api.PollingApiTaskSource.aborted` ([L410-L412](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L410-L412)) - Method
-  - `libs.agent-runtime.src.sources.polling-api.PollingApiTaskSource.listCandidates` ([L414-L545](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L414-L545)) - Method
-  - `libs.agent-runtime.src.sources.polling-api.PollingApiTaskSource.listCandidates.allowed.some() callback` ([L515-L515](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L515-L515)) - Function
-  - `libs.agent-runtime.src.sources.polling-api.PollingApiTaskSource.tryClaimOne` ([L547-L601](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L547-L601)) - Method
-  - `libs.agent-runtime.src.sources.polling-api.PollingApiTaskSource.profileCandidates` ([L603-L613](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L603-L613)) - Method
-  - `libs.agent-runtime.src.sources.polling-api.PollingApiTaskSource.sleepWithBackoff` ([L615-L626](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L615-L626)) - Method
-  - `libs.agent-runtime.src.sources.polling-api.CandidateProfile` ([L629-L632](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L629-L632)) - Interface
-  - `libs.agent-runtime.src.sources.polling-api.CandidateTask` ([L634-L637](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L634-L637)) - Interface
-  - `libs.agent-runtime.src.sources.polling-api.profileKey` ([L639-L641](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L639-L641)) - Function
-  - `libs.agent-runtime.src.sources.polling-api.statusOf` ([L643-L650](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L643-L650)) - Function
-  - `libs.agent-runtime.src.sources.polling-api.abortableSleep` ([L652-L665](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L652-L665)) - Function
-  - `libs.agent-runtime.src.sources.polling-api.abortableSleep.<function>` ([L654-L664](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L654-L664)) - Function
-  - `libs.agent-runtime.src.sources.polling-api.abortableSleep.<function>.timer` ([L659-L662](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L659-L662)) - Class
-  - `libs.agent-runtime.src.sources.polling-api.abortableSleep.<function>.timer.setTimeout() callback` ([L659-L662](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L659-L662)) - Function
+  - `libs.agent-runtime.src.sources.polling-api.ContinuationSlotRegistry` ([L26-L45](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L26-L45)) - Interface
+  - `libs.agent-runtime.src.sources.polling-api.ContinuationSlotRegistry.findLatestSlotByTaskAttempt` ([L27-L44](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L27-L44)) - Method
+  - `libs.agent-runtime.src.sources.polling-api.ContinuationSessionRegistry` ([L47-L53](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L47-L53)) - Interface
+  - `libs.agent-runtime.src.sources.polling-api.ContinuationSessionRegistry.findRuntimeSessionByTaskAttempt` ([L48-L52](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L48-L52)) - Method
+  - `libs.agent-runtime.src.sources.polling-api.ContinuationSourceAttemptResolver` ([L55-L60](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L55-L60)) - Interface
+  - `libs.agent-runtime.src.sources.polling-api.ContinuationSourceAttemptResolver.findOutputBranch` ([L56-L59](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L56-L59)) - Method
+  - `libs.agent-runtime.src.sources.polling-api.isContinuationClaimableByThisDaemon` ([L81-L148](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L81-L148)) - Function
+  - `libs.agent-runtime.src.sources.polling-api.isRemoteSessionClaimable` ([L150-L172](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L150-L172)) - Function
+  - `libs.agent-runtime.src.sources.polling-api.hasLocalSessionFile` ([L174-L183](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L174-L183)) - Function
+  - `libs.agent-runtime.src.sources.polling-api.resolveLatestPiSessionPath` ([L185-L196](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L185-L196)) - Function
+  - `libs.agent-runtime.src.sources.polling-api.PollingApiTaskSourceOptions` ([L198-L302](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L198-L302)) - Interface
+  - `libs.agent-runtime.src.sources.polling-api.PollingApiTaskSource` ([L324-L680](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L324-L680)) - Class
+  - `libs.agent-runtime.src.sources.polling-api.PollingApiTaskSource.constructor` ([L335-L352](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L335-L352)) - Constructor
+  - `libs.agent-runtime.src.sources.polling-api.PollingApiTaskSource.claim` ([L354-L413](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L354-L413)) - Method
+  - `libs.agent-runtime.src.sources.polling-api.PollingApiTaskSource.close` ([L415-L417](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L415-L417)) - Method
+  - `libs.agent-runtime.src.sources.polling-api.PollingApiTaskSource.aborted` ([L419-L421](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L419-L421)) - Method
+  - `libs.agent-runtime.src.sources.polling-api.PollingApiTaskSource.listCandidates` ([L423-L581](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L423-L581)) - Method
+  - `libs.agent-runtime.src.sources.polling-api.PollingApiTaskSource.listCandidates.affinity` ([L513-L523](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L513-L523)) - Class
+  - `libs.agent-runtime.src.sources.polling-api.PollingApiTaskSource.listCandidates.affinity.traceRuntimePhase('moltnet.task_source.affinity') callback` ([L516-L522](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L516-L522)) - Function
+  - `libs.agent-runtime.src.sources.polling-api.PollingApiTaskSource.listCandidates.allowed.some() callback` ([L545-L545](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L545-L545)) - Function
+  - `libs.agent-runtime.src.sources.polling-api.PollingApiTaskSource.tryClaimOne` ([L583-L646](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L583-L646)) - Method
+  - `libs.agent-runtime.src.sources.polling-api.PollingApiTaskSource.tryClaimOne.result` ([L599-L612](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L599-L612)) - Class
+  - `libs.agent-runtime.src.sources.polling-api.PollingApiTaskSource.tryClaimOne.result.traceRuntimePhase('moltnet.task_source.claim') callback` ([L606-L611](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L606-L611)) - Function
+  - `libs.agent-runtime.src.sources.polling-api.PollingApiTaskSource.profileCandidates` ([L648-L658](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L648-L658)) - Method
+  - `libs.agent-runtime.src.sources.polling-api.PollingApiTaskSource.sleepWithBackoff` ([L660-L679](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L660-L679)) - Method
+  - `libs.agent-runtime.src.sources.polling-api.PollingApiTaskSource.sleepWithBackoff.traceRuntimePhase('moltnet.task_source.poll_sleep') callback` ([L669-L669](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L669-L669)) - Function
+  - `libs.agent-runtime.src.sources.polling-api.CandidateProfile` ([L682-L685](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L682-L685)) - Interface
+  - `libs.agent-runtime.src.sources.polling-api.CandidateTask` ([L687-L690](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L687-L690)) - Interface
+  - `libs.agent-runtime.src.sources.polling-api.profileKey` ([L692-L694](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L692-L694)) - Function
+  - `libs.agent-runtime.src.sources.polling-api.statusOf` ([L696-L703](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L696-L703)) - Function
+  - `libs.agent-runtime.src.sources.polling-api.abortableSleep` ([L705-L718](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L705-L718)) - Function
+  - `libs.agent-runtime.src.sources.polling-api.abortableSleep.<function>` ([L707-L717](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L707-L717)) - Function
+  - `libs.agent-runtime.src.sources.polling-api.abortableSleep.<function>.timer` ([L712-L715](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L712-L715)) - Class
+  - `libs.agent-runtime.src.sources.polling-api.abortableSleep.<function>.timer.setTimeout() callback` ([L712-L715](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/polling-api.ts#L712-L715)) - Function
 - [`libs/agent-runtime/src/sources/types.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/types.ts)
   - `libs.agent-runtime.src.sources.types.ExecutorAttestationFields` ([L3-L7](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/types.ts#L3-L7)) - Interface
   - `libs.agent-runtime.src.sources.types.ClaimedTask` ([L14-L23](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/types.ts#L14-L23)) - Interface
   - `libs.agent-runtime.src.sources.types.TaskSource` ([L38-L50](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/types.ts#L38-L50)) - Interface
   - `libs.agent-runtime.src.sources.types.TaskSource.claim` ([L43-L43](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/types.ts#L43-L43)) - Method
   - `libs.agent-runtime.src.sources.types.TaskSource.close` ([L49-L49](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/sources/types.ts#L49-L49)) - Method
+- [`libs/agent-runtime/src/telemetry.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/telemetry.ts)
+  - `libs.agent-runtime.src.telemetry.traceRuntimePhase` ([L12-L35](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/telemetry.ts#L12-L35)) - Function
+  - `libs.agent-runtime.src.telemetry.recordCompletedRuntimePhase` ([L41-L61](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/telemetry.ts#L41-L61)) - Function
+  - `libs.agent-runtime.src.telemetry.addActiveTaskEvent` ([L63-L68](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/telemetry.ts#L63-L68)) - Function
 - [`libs/auth/src/keto-constants.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/keto-constants.ts)
   - `libs.auth.src.keto-constants.KetoNamespace` ([L9-L22](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/keto-constants.ts#L9-L22)) - Enum
   - `libs.auth.src.keto-constants.AgentRelation` ([L27-L29](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/keto-constants.ts#L27-L29)) - Enum
@@ -2832,7 +2843,7 @@ Provides the cryptographic foundation for agent identities. It manages the issua
   - `libs.task-service.src.task-validation-context.createAsyncValidationContextFactory.makeAsyncValidationContext.resolveContextPack` ([L105-L121](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-service/src/task-validation-context.ts#L105-L121)) - Method
   - `libs.task-service.src.task-validation-context.createAsyncValidationContextFactory.makeAsyncValidationContext.resolveRenderedPack` ([L122-L139](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-service/src/task-validation-context.ts#L122-L139)) - Method
 - [`libs/task-service/src/task.service.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-service/src/task.service.ts)
-  - `libs.task-service.src.task.service.createTaskService` ([L51-L1048](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-service/src/task.service.ts#L51-L1048)) - Function
+  - `libs.task-service.src.task.service.createTaskService` ([L51-L1071](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-service/src/task.service.ts#L51-L1071)) - Function
   - `libs.task-service.src.task.service.createTaskService.waitForAttemptFinalTask` ([L74-L114](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-service/src/task.service.ts#L74-L114)) - Function
   - `libs.task-service.src.task.service.createTaskService.registerExecutorManifest` ([L125-L146](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-service/src/task.service.ts#L125-L146)) - Method
   - `libs.task-service.src.task.service.createTaskService.registerExecutorManifest.transactionRunner.runInTransaction() callback` ([L137-L143](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-service/src/task.service.ts#L137-L143)) - Function
@@ -2847,10 +2858,12 @@ Provides the cryptographic foundation for agent identities. It manages the issua
   - `libs.task-service.src.task.service.createTaskService.cancel` ([L880-L982](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-service/src/task.service.ts#L880-L982)) - Method
   - `libs.task-service.src.task.service.createTaskService.cancel.active` ([L952-L954](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-service/src/task.service.ts#L952-L954)) - Class
   - `libs.task-service.src.task.service.createTaskService.cancel.active.attempts.find() callback` ([L953-L953](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-service/src/task.service.ts#L953-L953)) - Function
-  - `libs.task-service.src.task.service.createTaskService.appendMessages` ([L986-L1043](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-service/src/task.service.ts#L986-L1043)) - Method
-  - `libs.task-service.src.task.service.createTaskService.appendMessages.rows` ([L1029-L1035](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-service/src/task.service.ts#L1029-L1035)) - Class
-  - `libs.task-service.src.task.service.createTaskService.appendMessages.rows.messages.map() callback` ([L1029-L1035](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-service/src/task.service.ts#L1029-L1035)) - Function
-  - `libs.task-service.src.task.service.createTaskService.promoteSatisfiedWaitingTasks` ([L1045-L1046](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-service/src/task.service.ts#L1045-L1046)) - Method
+  - `libs.task-service.src.task.service.createTaskService.appendMessages` ([L986-L1066](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-service/src/task.service.ts#L986-L1066)) - Method
+  - `libs.task-service.src.task.service.createTaskService.appendMessages.usefulEvent` ([L998-L1004](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-service/src/task.service.ts#L998-L1004)) - Class
+  - `libs.task-service.src.task.service.createTaskService.appendMessages.usefulEvent.messages.find() callback` ([L999-L1003](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-service/src/task.service.ts#L999-L1003)) - Function
+  - `libs.task-service.src.task.service.createTaskService.appendMessages.rows` ([L1037-L1043](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-service/src/task.service.ts#L1037-L1043)) - Class
+  - `libs.task-service.src.task.service.createTaskService.appendMessages.rows.messages.map() callback` ([L1037-L1043](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-service/src/task.service.ts#L1037-L1043)) - Function
+  - `libs.task-service.src.task.service.createTaskService.promoteSatisfiedWaitingTasks` ([L1068-L1069](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-service/src/task.service.ts#L1068-L1069)) - Method
 - [`libs/task-service/src/wire-mappers.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-service/src/wire-mappers.ts)
   - `libs.task-service.src.wire-mappers.dbTaskToWire` ([L26-L58](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-service/src/wire-mappers.ts#L26-L58)) - Function
   - `libs.task-service.src.wire-mappers.dbAttemptToWire` ([L60-L94](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-service/src/wire-mappers.ts#L60-L94)) - Function

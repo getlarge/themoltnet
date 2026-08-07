@@ -1,7 +1,7 @@
 {
   "repository_name": "themoltnet",
-  "timestamp": "2026-08-04T10:00:51.964011+00:00",
-  "overall_score": 0.9767671970236682,
+  "timestamp": "2026-08-07T13:24:54.190038+00:00",
+  "overall_score": 0.976871122280688,
   "check_summaries": [
     {
       "check_name": "function_size",
@@ -96,10 +96,10 @@
       "description": "Checks that functions/methods do not exceed line count thresholds",
       "language": "javascript",
       "check_type": "standard",
-      "total_entities_checked": 83,
+      "total_entities_checked": 103,
       "findings_count": 1,
       "warning_count": 1,
-      "score": 0.9879518072289156,
+      "score": 0.9902912621359223,
       "finding_groups": [
         {
           "severity": "warning",
@@ -122,10 +122,10 @@
       "description": "Checks efferent coupling: how many other functions each function calls",
       "language": "javascript",
       "check_type": "standard",
-      "total_entities_checked": 117,
+      "total_entities_checked": 148,
       "findings_count": 1,
       "warning_count": 1,
-      "score": 0.9914529914529915,
+      "score": 0.9932432432432432,
       "finding_groups": [
         {
           "severity": "warning",
@@ -148,7 +148,7 @@
       "description": "Checks afferent coupling: how many other functions call each function",
       "language": "javascript",
       "check_type": "standard",
-      "total_entities_checked": 117,
+      "total_entities_checked": 148,
       "findings_count": 0,
       "warning_count": 0,
       "score": 1.0,
@@ -170,7 +170,7 @@
       "description": "Checks that class inheritance hierarchies do not exceed depth thresholds",
       "language": "javascript",
       "check_type": "standard",
-      "total_entities_checked": 26,
+      "total_entities_checked": 32,
       "findings_count": 0,
       "warning_count": 0,
       "score": 1.0,
@@ -192,10 +192,10 @@
       "description": "Checks that functions/methods do not exceed line count thresholds",
       "language": "typescript",
       "check_type": "standard",
-      "total_entities_checked": 5584,
-      "findings_count": 119,
-      "warning_count": 119,
-      "score": 0.978689111747851,
+      "total_entities_checked": 5616,
+      "findings_count": 121,
+      "warning_count": 121,
+      "score": 0.978454415954416,
       "finding_groups": [
         {
           "severity": "warning",
@@ -219,9 +219,9 @@
             {
               "entity_name": "libs.pi-runtime.src.runtime.execute-pi-task.executePiTask",
               "file_path": "libs/pi-runtime/src/runtime/execute-pi-task.ts",
-              "line_start": 512,
-              "line_end": 1536,
-              "metric_value": 1024
+              "line_start": 518,
+              "line_end": 1599,
+              "metric_value": 1081
             },
             {
               "entity_name": "libs.database.src.repositories.task.repository.createTaskRepository",
@@ -234,8 +234,8 @@
               "entity_name": "libs.task-service.src.task.service.createTaskService",
               "file_path": "libs/task-service/src/task.service.ts",
               "line_start": 51,
-              "line_end": 1048,
-              "metric_value": 997
+              "line_end": 1071,
+              "metric_value": 1020
             },
             {
               "entity_name": "apps.rest-api.src.routes.tasks.taskRoutes",
@@ -283,8 +283,8 @@
               "entity_name": "apps.agent-daemon.src.cli.poll-shared.runPolling",
               "file_path": "apps/agent-daemon/src/cli/poll-shared.ts",
               "line_start": 97,
-              "line_end": 798,
-              "metric_value": 701
+              "line_end": 800,
+              "metric_value": 703
             },
             {
               "entity_name": "libs.database.src.repositories.diary-entry.repository.createDiaryEntryRepository",
@@ -353,8 +353,8 @@
               "entity_name": "apps.agent-daemon.src.cli.once.runOnce",
               "file_path": "apps/agent-daemon/src/cli/once.ts",
               "line_start": 68,
-              "line_end": 572,
-              "metric_value": 504
+              "line_end": 573,
+              "metric_value": 505
             },
             {
               "entity_name": "libs.auth.src.token-validator.createTokenValidator",
@@ -630,17 +630,17 @@
               "metric_value": 261
             },
             {
-              "entity_name": "libs.task-service.src.task.service.createTaskService.claim",
-              "file_path": "libs/task-service/src/task.service.ts",
-              "line_start": 148,
-              "line_end": 396,
-              "metric_value": 248
-            },
-            {
               "entity_name": "apps.console.src.overview.team-pilot.buildTeamPilotBriefing",
               "file_path": "apps/console/src/overview/team-pilot.ts",
               "line_start": 122,
               "line_end": 370,
+              "metric_value": 248
+            },
+            {
+              "entity_name": "libs.task-service.src.task.service.createTaskService.claim",
+              "file_path": "libs/task-service/src/task.service.ts",
+              "line_start": 148,
+              "line_end": 396,
               "metric_value": 248
             },
             {
@@ -749,17 +749,17 @@
               "metric_value": 207
             },
             {
-              "entity_name": "apps.agent-daemon.src.cli.poll-shared.runPolling.executeTask",
-              "file_path": "apps/agent-daemon/src/cli/poll-shared.ts",
-              "line_start": 577,
-              "line_end": 783,
-              "metric_value": 206
-            },
-            {
               "entity_name": "packages.legreffier-cli.src.PortApp.PortApp",
               "file_path": "packages/legreffier-cli/src/PortApp.tsx",
               "line_start": 76,
               "line_end": 282,
+              "metric_value": 206
+            },
+            {
+              "entity_name": "apps.agent-daemon.src.cli.poll-shared.runPolling.executeTask",
+              "file_path": "apps/agent-daemon/src/cli/poll-shared.ts",
+              "line_start": 579,
+              "line_end": 785,
               "metric_value": 206
             },
             {
@@ -973,6 +973,13 @@
               "metric_value": 162
             },
             {
+              "entity_name": "libs.pi-runtime.src.otel.index.createPiOtelExtension",
+              "file_path": "libs/pi-runtime/src/otel/index.ts",
+              "line_start": 90,
+              "line_end": 251,
+              "metric_value": 161
+            },
+            {
               "entity_name": "libs.database.src.schema.runtime-profiles.defineRuntimeProfilesTable",
               "file_path": "libs/database/src/schema/runtime-profiles.ts",
               "line_start": 30,
@@ -987,11 +994,25 @@
               "metric_value": 160
             },
             {
-              "entity_name": "libs.pi-runtime.src.otel.index.createPiOtelExtension",
+              "entity_name": "libs.pi-runtime.src.otel.index.createPiOtelExtension.piOtelExtension",
               "file_path": "libs/pi-runtime/src/otel/index.ts",
-              "line_start": 84,
-              "line_end": 240,
-              "metric_value": 156
+              "line_start": 91,
+              "line_end": 250,
+              "metric_value": 159
+            },
+            {
+              "entity_name": "libs.agent-runtime.src.sources.polling-api.PollingApiTaskSource.listCandidates",
+              "file_path": "libs/agent-runtime/src/sources/polling-api.ts",
+              "line_start": 423,
+              "line_end": 581,
+              "metric_value": 158
+            },
+            {
+              "entity_name": "libs.agent-runtime.src.runtime.AgentRuntime.start",
+              "file_path": "libs/agent-runtime/src/runtime.ts",
+              "line_start": 106,
+              "line_end": 263,
+              "metric_value": 157
             },
             {
               "entity_name": "apps.rest-api.src.routes.registration.registrationRoutes",
@@ -999,13 +1020,6 @@
               "line_start": 39,
               "line_end": 194,
               "metric_value": 155
-            },
-            {
-              "entity_name": "libs.pi-runtime.src.otel.index.createPiOtelExtension.piOtelExtension",
-              "file_path": "libs/pi-runtime/src/otel/index.ts",
-              "line_start": 85,
-              "line_end": 239,
-              "metric_value": 154
             },
             {
               "entity_name": "libs.bootstrap.src.bootstrap.createGenesisAgent",
@@ -1044,10 +1058,10 @@
       "description": "Checks efferent coupling: how many other functions each function calls",
       "language": "typescript",
       "check_type": "standard",
-      "total_entities_checked": 7119,
+      "total_entities_checked": 7155,
       "findings_count": 50,
       "warning_count": 50,
-      "score": 0.992976541649108,
+      "score": 0.9930118798043326,
       "finding_groups": [
         {
           "severity": "warning",
@@ -1057,16 +1071,23 @@
             {
               "entity_name": "libs.pi-runtime.src.runtime.execute-pi-task.executePiTask",
               "file_path": "libs/pi-runtime/src/runtime/execute-pi-task.ts",
-              "line_start": 512,
-              "line_end": 1536,
-              "metric_value": 54
+              "line_start": 518,
+              "line_end": 1599,
+              "metric_value": 52
+            },
+            {
+              "entity_name": "apps.agent-daemon.src.cli.once.runOnce",
+              "file_path": "apps/agent-daemon/src/cli/once.ts",
+              "line_start": 68,
+              "line_end": 573,
+              "metric_value": 40
             },
             {
               "entity_name": "apps.agent-daemon.src.cli.poll-shared.runPolling",
               "file_path": "apps/agent-daemon/src/cli/poll-shared.ts",
               "line_start": 97,
-              "line_end": 798,
-              "metric_value": 31
+              "line_end": 800,
+              "metric_value": 35
             },
             {
               "entity_name": "apps.rest-api.src.app.registerApiRoutes",
@@ -1081,13 +1102,6 @@
               "line_start": 1434,
               "line_end": 1794,
               "metric_value": 28
-            },
-            {
-              "entity_name": "apps.agent-daemon.src.cli.once.runOnce",
-              "file_path": "apps/agent-daemon/src/cli/once.ts",
-              "line_start": 68,
-              "line_end": 572,
-              "metric_value": 27
             },
             {
               "entity_name": "packages.legreffier-cli.src.PortApp.PortApp.useEffect() callback.<function>",
@@ -1181,18 +1195,18 @@
               "metric_value": 15
             },
             {
-              "entity_name": "apps.agent-daemon.src.cli.poll-shared.runPolling.onTaskFinished",
+              "entity_name": "apps.agent-daemon.src.cli.poll-shared.runPolling.executeTask",
               "file_path": "apps/agent-daemon/src/cli/poll-shared.ts",
-              "line_start": 511,
-              "line_end": 576,
+              "line_start": 579,
+              "line_end": 785,
               "metric_value": 14
             },
             {
-              "entity_name": "libs.agent-runtime.src.runtime.AgentRuntime.start",
-              "file_path": "libs/agent-runtime/src/runtime.ts",
-              "line_start": 105,
-              "line_end": 235,
-              "metric_value": 13
+              "entity_name": "apps.agent-daemon.src.cli.poll-shared.runPolling.onTaskFinished",
+              "file_path": "apps/agent-daemon/src/cli/poll-shared.ts",
+              "line_start": 513,
+              "line_end": 578,
+              "metric_value": 14
             },
             {
               "entity_name": "libs.pi-runtime.src.vm-manager.resumeVm",
@@ -1207,13 +1221,6 @@
               "line_start": 310,
               "line_end": 553,
               "metric_value": 13
-            },
-            {
-              "entity_name": "apps.agent-daemon.src.cli.poll-shared.runPolling.executeTask",
-              "file_path": "apps/agent-daemon/src/cli/poll-shared.ts",
-              "line_start": 577,
-              "line_end": 783,
-              "metric_value": 12
             },
             {
               "entity_name": "apps.issue-lifecycle.src.workflow.runGithubIssueLifecycle",
@@ -1272,13 +1279,6 @@
               "metric_value": 12
             },
             {
-              "entity_name": "apps.agent-daemon.src.cli.once.runOnce.onTaskFinished",
-              "file_path": "apps/agent-daemon/src/cli/once.ts",
-              "line_start": 494,
-              "line_end": 553,
-              "metric_value": 11
-            },
-            {
               "entity_name": "apps.agent-daemon.src.cli.sync-sessions.runSyncSessions",
               "file_path": "apps/agent-daemon/src/cli/sync-sessions.ts",
               "line_start": 19,
@@ -1332,6 +1332,20 @@
               "file_path": "libs/task-service/src/task.service.ts",
               "line_start": 520,
               "line_end": 680,
+              "metric_value": 11
+            },
+            {
+              "entity_name": "apps.agent-daemon.src.cli.once.runOnce.onTaskFinished",
+              "file_path": "apps/agent-daemon/src/cli/once.ts",
+              "line_start": 495,
+              "line_end": 554,
+              "metric_value": 11
+            },
+            {
+              "entity_name": "libs.agent-runtime.src.runtime.AgentRuntime.start",
+              "file_path": "libs/agent-runtime/src/runtime.ts",
+              "line_start": 106,
+              "line_end": 263,
               "metric_value": 11
             },
             {
@@ -1413,10 +1427,10 @@
       "description": "Checks afferent coupling: how many other functions call each function",
       "language": "typescript",
       "check_type": "standard",
-      "total_entities_checked": 7119,
+      "total_entities_checked": 7155,
       "findings_count": 49,
       "warning_count": 49,
-      "score": 0.9931170108161259,
+      "score": 0.993151642208246,
       "finding_groups": [
         {
           "severity": "warning",
@@ -1669,17 +1683,17 @@
               "metric_value": 13
             },
             {
-              "entity_name": "libs.tasks.src.validation.getTaskTypeEntry",
-              "file_path": "libs/tasks/src/validation.ts",
-              "line_start": 65,
-              "line_end": 76,
-              "metric_value": 13
-            },
-            {
               "entity_name": "apps.console-e2e.src.helpers.kratos.submitKratosForm",
               "file_path": "apps/console-e2e/src/helpers/kratos.ts",
               "line_start": 9,
               "line_end": 11,
+              "metric_value": 13
+            },
+            {
+              "entity_name": "libs.tasks.src.validation.getTaskTypeEntry",
+              "file_path": "libs/tasks/src/validation.ts",
+              "line_start": 63,
+              "line_end": 74,
               "metric_value": 13
             },
             {
@@ -1818,7 +1832,7 @@
       "description": "Checks that class inheritance hierarchies do not exceed depth thresholds",
       "language": "typescript",
       "check_type": "standard",
-      "total_entities_checked": 2200,
+      "total_entities_checked": 2208,
       "findings_count": 0,
       "warning_count": 0,
       "score": 1.0,
@@ -2397,41 +2411,6 @@
               "file_path": "apps/console/src/components/ProfileToolAccess.tsx",
               "line_start": 223,
               "line_end": 223,
-              "metric_value": 0.0
-            },
-            {
-              "entity_name": "[unused_variable] 'callerNs' is declared but its value is never read.",
-              "file_path": "libs/task-service/src/task.service.ts",
-              "line_start": 402,
-              "line_end": 402,
-              "metric_value": 0.0
-            },
-            {
-              "entity_name": "[unused_variable] 'callerNs' is declared but its value is never read.",
-              "file_path": "libs/task-service/src/task.service.ts",
-              "line_start": 524,
-              "line_end": 524,
-              "metric_value": 0.0
-            },
-            {
-              "entity_name": "[unused_variable] 'callerNs' is declared but its value is never read.",
-              "file_path": "libs/task-service/src/task.service.ts",
-              "line_start": 686,
-              "line_end": 686,
-              "metric_value": 0.0
-            },
-            {
-              "entity_name": "[unused_variable] 'callerNs' is declared but its value is never read.",
-              "file_path": "libs/task-service/src/task.service.ts",
-              "line_start": 787,
-              "line_end": 787,
-              "metric_value": 0.0
-            },
-            {
-              "entity_name": "[unused_variable] 'callerNs' is declared but its value is never read.",
-              "file_path": "libs/task-service/src/task.service.ts",
-              "line_start": 990,
-              "line_end": 990,
               "metric_value": 0.0
             },
             {
@@ -3748,6 +3727,41 @@
               "file_path": "apps/landing/src/components/KnowledgeFactory.tsx",
               "line_start": 158,
               "line_end": 158,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'callerNs' is declared but its value is never read.",
+              "file_path": "libs/task-service/src/task.service.ts",
+              "line_start": 402,
+              "line_end": 402,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'callerNs' is declared but its value is never read.",
+              "file_path": "libs/task-service/src/task.service.ts",
+              "line_start": 524,
+              "line_end": 524,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'callerNs' is declared but its value is never read.",
+              "file_path": "libs/task-service/src/task.service.ts",
+              "line_start": 686,
+              "line_end": 686,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'callerNs' is declared but its value is never read.",
+              "file_path": "libs/task-service/src/task.service.ts",
+              "line_start": 787,
+              "line_end": 787,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'callerNs' is declared but its value is never read.",
+              "file_path": "libs/task-service/src/task.service.ts",
+              "line_start": 990,
+              "line_end": 990,
               "metric_value": 0.0
             }
           ]
