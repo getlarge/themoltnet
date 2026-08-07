@@ -17,6 +17,7 @@ import {
   ATTR_SERVICE_VERSION,
 } from '@opentelemetry/semantic-conventions';
 import { connect } from '@themoltnet/sdk';
+import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
 
 export interface InitWorkerOtelOptions {
   serviceName: string;
@@ -64,7 +65,10 @@ export async function initWorkerOtel(
   // caching + refresh.
   let headersFactory: (() => Promise<Record<string, string>>) | undefined;
   if (options.agentDir) {
-    const agent = await connect({ configDir: options.agentDir });
+    const agent = await connect({
+      configDir: options.agentDir,
+      secretProviders: createNodeSecretProviderRegistry(),
+    });
     headersFactory = async () => {
       const token = await agent.getToken();
       return { Authorization: `Bearer ${token}` };

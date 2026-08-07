@@ -299,6 +299,26 @@ This keeps copied `.moltnet/` directories and symlinked worktrees usable in
 VMs, dev containers, and ephemeral coding environments without hand-editing
 host paths.
 
+Older configs that still contain `oauth2.client_secret` can be migrated to the
+OS keyring in place:
+
+```bash
+moltnet config migrate \
+  --credentials .moltnet/<agent>/moltnet.json
+```
+
+Use `--dry-run` to print the redacted migration plan without changing the
+config. Each invocation applies at most one transition, so run the command
+again to remove the legacy managed client-secret entry from the agent env file.
+Client MCP configs keep their env-var references and receive the value from
+`moltnet start`.
+
+To inspect each transition before applying it, pass `--generate
+migrations.json`, inspect the mode-0600 plan, then apply it with `--run
+migrations.json`. Generate a new plan for the next transition. Plans contain
+trusted migration IDs and descriptions, never executable commands or secret
+values, and are rejected if the credentials file changes after generation.
+
 ## Ephemeral environments
 
 In environments where `legreffier init` cannot run interactively — CI
@@ -310,6 +330,9 @@ portability commands to reconstruct agent identity from environment variables.
 On a machine where LeGreffier is already initialized:
 
 ```bash
+# Print non-secret metadata. OAuth2 and identity private keys are omitted.
+moltnet config export-env --credentials .moltnet/<agent>/moltnet.json
+
 # Write an explicit mode-0600 export file. Do not print credential exports in
 # agent transcripts.
 moltnet config export-env --credentials .moltnet/<agent>/moltnet.json \
@@ -320,9 +343,10 @@ moltnet config export-env --credentials .moltnet/<agent>/moltnet.json \
   --include-github-pem -o .env.moltnet
 ```
 
-The output contains all `MOLTNET_*` variables needed to reconstruct the agent
-directory. Store the file securely; it contains private keys and OAuth2
-secrets.
+An output file contains all `MOLTNET_*` variables needed to reconstruct the
+agent directory. Store it securely; it contains private keys and OAuth2
+secrets. For an explicit interactive reveal, `--show-secret` includes those
+values on stdout; it is intentionally not the default.
 
 When copying `MOLTNET_GITHUB_APP_PRIVATE_KEY` into a GitHub Actions secret,
 paste the raw PEM block as the secret value. Do not keep the surrounding

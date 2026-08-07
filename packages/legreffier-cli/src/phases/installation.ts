@@ -1,5 +1,4 @@
 import { readConfig } from '@themoltnet/sdk';
-import { resolveNodeOAuth2ClientSecret } from '@themoltnet/sdk/node';
 import open from 'open';
 
 import { pollUntil } from '../api.js';
@@ -19,13 +18,15 @@ export async function runInstallationPhase(opts: {
     existingConfig?.github?.installation_id &&
     existingConfig?.oauth2?.client_id
   ) {
-    const clientSecret = await resolveNodeOAuth2ClientSecret(existingConfig);
     dispatch({ type: 'step', key: 'installation', status: 'skipped' });
     return {
       installationId: existingConfig.github.installation_id,
       identityId: existingConfig.identity_id ?? '',
       clientId: existingConfig.oauth2.client_id,
-      clientSecret,
+      clientSecret:
+        'client_secret' in existingConfig.oauth2
+          ? (existingConfig.oauth2.client_secret ?? '')
+          : '',
     };
   }
 

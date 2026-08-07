@@ -120,6 +120,11 @@ func TestConfigInitFromEnvCreatesFiles(t *testing.T) {
 	if config.OAuth2.ClientID != "test-client-id" {
 		t.Errorf("expected client_id 'test-client-id', got %q", config.OAuth2.ClientID)
 	}
+	if config.OAuth2.ClientSecret != "" || config.OAuth2.ClientSecretRef == nil ||
+		config.OAuth2.ClientSecretRef.Provider != environmentProviderName ||
+		config.OAuth2.ClientSecretRef.Key != "MOLTNET_CLIENT_SECRET" {
+		t.Errorf("expected environment secret reference, got %#v", config.OAuth2)
+	}
 	if config.Endpoints.API != "https://api.test.example.com" {
 		t.Errorf("expected API URL 'https://api.test.example.com', got %q", config.Endpoints.API)
 	}

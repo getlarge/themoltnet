@@ -8,6 +8,7 @@ import {
   connect,
   type Whoami,
 } from '@themoltnet/sdk';
+import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
 
 export interface DaemonAgentContext {
   agentDir: string;
@@ -135,7 +136,10 @@ export async function resolveAgentContext(
   for (const rootDir of roots) {
     const agentDir = join(rootDir, '.moltnet', agentName);
     if (existsSync(join(agentDir, 'moltnet.json'))) {
-      const agent = await connect({ configDir: agentDir });
+      const agent = await connect({
+        configDir: agentDir,
+        secretProviders: createNodeSecretProviderRegistry(),
+      });
       return { agentDir, agentRootDir: rootDir, agent };
     }
   }
@@ -143,7 +147,10 @@ export async function resolveAgentContext(
   if (options.allowMissingConfig) {
     const rootDir = roots[0] ?? process.cwd();
     const agentDir = join(rootDir, '.moltnet', agentName);
-    const agent = await connect({ configDir: agentDir });
+    const agent = await connect({
+      configDir: agentDir,
+      secretProviders: createNodeSecretProviderRegistry(),
+    });
     return { agentDir, agentRootDir: rootDir, agent };
   }
 

@@ -1,4 +1,4 @@
-import { readConfig, writeConfig } from '@themoltnet/sdk';
+import { readConfig } from '@themoltnet/sdk';
 
 import { adapters } from '../adapters/index.js';
 import type { AgentAdapterOptions } from '../adapters/types.js';
@@ -7,6 +7,7 @@ import {
   resolveHumanGitIdentity,
   writeEnvFile,
 } from '../env-file.js';
+import { ensureKeyringSecretReference } from '../secret-storage.js';
 import { toEnvPrefix } from '../setup.js';
 import { clearState } from '../state.js';
 import type { AgentType, UIAction } from '../ui/types.js';
@@ -51,10 +52,11 @@ export async function runAgentSetupPhase(opts: {
   } = opts;
 
   dispatch({ type: 'phase', phase: 'agent_setup' });
-  const existingConfig = await readConfig(configDir);
+  let existingConfig = await readConfig(configDir);
 
   if (!existingConfig?.oauth2?.client_id && clientId) {
-    await writeConfig(
+    existingConfig = await ensureKeyringSecretReference(
+      configDir,
       {
         identity_id: identityId,
         registered_at: new Date().toISOString(),
@@ -76,7 +78,15 @@ export async function runAgentSetupPhase(opts: {
           ...(org ? { org } : {}),
         },
       },
+      clientSecret,
+    );
+  }
+  if (!existingConfig) throw new Error('Agent config was not written.');
+  if ('client_secret' in existingConfig.oauth2) {
+    existingConfig = await ensureKeyringSecretReference(
       configDir,
+      existingConfig,
+      clientSecret,
     );
   }
 
@@ -88,7 +98,6 @@ export async function runAgentSetupPhase(opts: {
     prefix,
     mcpUrl,
     clientId,
-    clientSecret,
     appSlug,
     appId,
     pemPath,
@@ -116,7 +125,6 @@ export async function runAgentSetupPhase(opts: {
     agentName,
     prefix,
     clientId,
-    clientSecret,
     appId,
     pemPath,
     installationId,

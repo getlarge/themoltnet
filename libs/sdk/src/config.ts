@@ -9,6 +9,7 @@ export interface EnvCredentials {
   clientSecret?: string;
   apiUrl?: string;
   agentKey?: string;
+  credentialsPath?: string;
 }
 
 /** Read one environment value behind the SDK's config boundary. */
@@ -31,6 +32,7 @@ export function readEnvCredentials(): EnvCredentials {
     clientSecret: readEnvironmentVariable('MOLTNET_CLIENT_SECRET'),
     apiUrl: readEnvironmentVariable('MOLTNET_API_URL'),
     agentKey: readEnvironmentVariable('MOLTNET_AGENT_KEY'),
+    credentialsPath: readEnvironmentVariable('MOLTNET_CREDENTIALS_PATH'),
   };
 }
 
