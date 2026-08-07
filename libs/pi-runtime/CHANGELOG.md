@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.7.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.6.2...pi-runtime-v0.7.0) (2026-08-07)
+
+
+### Features
+
+* add task readiness telemetry and benchmark ([e843bb3](https://github.com/getlarge/themoltnet/commit/e843bb3ceef8c1e01889df3c8ba1355527fc4d10))
+* **runtime:** trace task readiness phases ([d9cf527](https://github.com/getlarge/themoltnet/commit/d9cf52790dd2487983a44f7accbcc641df1bdabe))
+
+
+### Bug Fixes
+
+* **pi-runtime:** enforce readiness span hierarchy ([3e73bf4](https://github.com/getlarge/themoltnet/commit/3e73bf40f64b6db2f693186bbf0bda9d9d82075d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.41.0
+
 ## [0.6.2](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.6.1...pi-runtime-v0.6.2) (2026-08-01)
 
 

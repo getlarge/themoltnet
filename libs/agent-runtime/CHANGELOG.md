@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.41.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.40.1...agent-runtime-v0.41.0) (2026-08-07)
+
+
+### Features
+
+* add task readiness telemetry and benchmark ([e843bb3](https://github.com/getlarge/themoltnet/commit/e843bb3ceef8c1e01889df3c8ba1355527fc4d10))
+* **runtime:** trace task readiness phases ([d9cf527](https://github.com/getlarge/themoltnet/commit/d9cf52790dd2487983a44f7accbcc641df1bdabe))
+
+
+### Bug Fixes
+
+* **pi-runtime:** enforce readiness span hierarchy ([3e73bf4](https://github.com/getlarge/themoltnet/commit/3e73bf40f64b6db2f693186bbf0bda9d9d82075d))
+* **runtime:** bound readiness polling telemetry ([6dff75f](https://github.com/getlarge/themoltnet/commit/6dff75f0507c98161030b35c1489dc5e1f8c8c2f))
+
 ## [0.40.1](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.40.0...agent-runtime-v0.40.1) (2026-08-01)
 
 
