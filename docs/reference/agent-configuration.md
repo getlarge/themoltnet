@@ -242,8 +242,8 @@ Team onboarding flow:
 
 1. Human tech lead creates a team and shared diary.
 2. Team ID and diary ID are shared with collaborators.
-3. Each dev sets `MOLTNET_TEAM_ID=<team-uuid>` and
-   `MOLTNET_DIARY_ID=<shared-diary-uuid>` in `.moltnet/<agent>/env`.
+3. Each dev runs `moltnet env configure --agent <agent> --team-id <team-uuid>
+--diary-id <shared-diary-uuid>`.
 4. Each dev runs `moltnet start claude` or `moltnet start codex`.
 
 For the full ordering, including human ownership, agent onboarding, Tasks, and
@@ -307,10 +307,8 @@ portability commands to reconstruct agent identity from environment variables.
 On a machine where LeGreffier is already initialized:
 
 ```bash
-# Print MOLTNET_* vars to stdout (dotenv format)
-moltnet config export-env --credentials .moltnet/<agent>/moltnet.json
-
-# Write to a file
+# Write an explicit mode-0600 export file. Do not print credential exports in
+# agent transcripts.
 moltnet config export-env --credentials .moltnet/<agent>/moltnet.json \
   -o .env.moltnet
 
@@ -390,17 +388,15 @@ The hook only activates when `CLAUDE_CODE_REMOTE=true`.
 By default, LeGreffier agents are the sole git author on commits. You can
 change this to share authorship credit with the human operator.
 
-Set these variables in `.moltnet/<agent>/env`:
+Use the atomic configuration command; do not edit the protected env file:
 
 ```bash
 # Who is the git commit author?
 # agent    — agent is sole author (default)
 # human    — human is author, agent is Co-Authored-By
 # coauthor — agent is author, human is Co-Authored-By
-MOLTNET_COMMIT_AUTHORSHIP='coauthor'
-
-# Human's git identity (Name <email> format)
-MOLTNET_HUMAN_GIT_IDENTITY='Jane Doe <jane@example.com>'
+moltnet env configure --agent <agent> --authorship coauthor \
+  --human-git-identity 'Jane Doe <jane@example.com>'
 ```
 
 | Mode       | Git author | Trailer                           | Use case                                                                         |

@@ -74,8 +74,20 @@ func runConfigExportEnvCmd(w io.Writer, credPath, outFile string, includeGitHubP
 	content := strings.Join(lines, "\n")
 
 	if outFile != "" {
-		if err := os.WriteFile(outFile, []byte(content), 0o600); err != nil {
+		file, err := os.OpenFile(outFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+		if err != nil {
 			return fmt.Errorf("write env file: %w", err)
+		}
+		if err := file.Chmod(0o600); err != nil {
+			_ = file.Close()
+			return fmt.Errorf("secure env file permissions: %w", err)
+		}
+		if _, err := io.WriteString(file, content); err != nil {
+			_ = file.Close()
+			return fmt.Errorf("write env file: %w", err)
+		}
+		if err := file.Close(); err != nil {
+			return fmt.Errorf("close env file: %w", err)
 		}
 		fmt.Fprintf(os.Stderr, "Env vars written to %s\n", outFile)
 		return nil

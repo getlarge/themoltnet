@@ -373,6 +373,20 @@ func TestGitHubSetupNoCreds(t *testing.T) {
 	}
 }
 
+func TestSecurityConfigurationCommandsAreRegistered(t *testing.T) {
+	t.Parallel()
+	for _, args := range [][]string{{"secrets", "guard", "--help"}, {"env", "configure", "--help"}} {
+		root := NewRootCmd("test", "")
+		stdout, _, err := executeCommand(root, args...)
+		if err != nil {
+			t.Fatalf("%s: %v", strings.Join(args, " "), err)
+		}
+		if !strings.Contains(stdout, "credential") && !strings.Contains(stdout, "non-secret") {
+			t.Fatalf("unexpected help for %s: %s", strings.Join(args, " "), stdout)
+		}
+	}
+}
+
 func TestGitHubTokenHelp(t *testing.T) {
 	t.Parallel()
 	root := NewRootCmd("test", "")
