@@ -30,16 +30,19 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc -b",
+    "build": "vite build",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
   },
   "dependencies": {
-    "@themoltnet/sdk": "workspace:*"
+    "@noble/ed25519": "catalog:"
   },
   "devDependencies": {
+    "@moltnet/agent-config": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-dts": "catalog:",
     "vitest": "catalog:"
   },
   "engines": {
@@ -50,20 +53,6 @@
       "type:client",
       "scope:identity",
       "platform:cli"
-    ],
-    "targets": {
-      "typecheck": {
-        "executor": "nx:noop",
-        "dependsOn": [
-          "build"
-        ],
-        "cache": true,
-        "inputs": [
-          "production",
-          "^production"
-        ],
-        "outputs": []
-      }
-    }
+    ]
   }
 }

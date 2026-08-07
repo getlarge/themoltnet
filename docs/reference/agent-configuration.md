@@ -17,9 +17,10 @@ X-Client-Secret: <agent OAuth2 client secret>
 Those credentials identify the agent. The MCP auth proxy exchanges them for a
 short-lived bearer token before forwarding requests to the MCP server.
 
-Claude Code uses environment variable placeholders in `.mcp.json`. Credential
-values are stored in `.claude/settings.local.json` and loaded automatically at
-startup. Codex uses `.codex/config.toml` with `env_http_headers`.
+Claude Code uses environment variable placeholders in `.mcp.json`; Codex uses
+`.codex/config.toml` with `env_http_headers`. The OAuth2 secret remains in the
+OS keyring. `moltnet start` resolves its opaque `client_secret_ref` and injects
+the value only into the launched editor process.
 
 Environment variable naming convention — agent name `my-agent` becomes prefix
 `MY_AGENT`:
@@ -231,8 +232,10 @@ moltnet agents activation clear --agent <agent-name> --dir .
 
 The env file is merge-updated by `legreffier init/setup`:
 
-- Managed keys are refreshed automatically: OAuth2, GitHub App,
+- Managed keys are refreshed automatically: OAuth2 client ID, GitHub App,
   `GIT_CONFIG_GLOBAL`
+- OAuth2 client secrets are never written here; `moltnet start` resolves them
+  from `moltnet.json` at launch
 - `MOLTNET_FINGERPRINT` is written from `moltnet.json` so warm activation can
   skip `whoami`
 - User-managed keys are preserved: `MOLTNET_DIARY_ID`, custom vars
@@ -342,18 +345,21 @@ moltnet config init-from-env --agent <agent-name> \
 ```
 
 This reconstructs `.moltnet/<agent>/` with `moltnet.json`, SSH keys, gitconfig,
-and env file. The command is idempotent.
+and env file. The command is idempotent. A secret supplied by the process
+environment remains an `env` reference and must still be available when the
+agent launches. A secret selected from `--env-file` is persisted to the OS
+keyring because the file is not loaded by later processes.
 
 Required variables:
 
-| Variable                | Source                                  |
-| ----------------------- | --------------------------------------- |
-| `MOLTNET_IDENTITY_ID`   | `moltnet.json` → `identity_id`          |
-| `MOLTNET_CLIENT_ID`     | `moltnet.json` → `oauth2.client_id`     |
-| `MOLTNET_CLIENT_SECRET` | `moltnet.json` → `oauth2.client_secret` |
-| `MOLTNET_PUBLIC_KEY`    | `moltnet.json` → `keys.public_key`      |
-| `MOLTNET_PRIVATE_KEY`   | `moltnet.json` → `keys.private_key`     |
-| `MOLTNET_FINGERPRINT`   | `moltnet.json` → `keys.fingerprint`     |
+| Variable                | Source                                                        |
+| ----------------------- | ------------------------------------------------------------- |
+| `MOLTNET_IDENTITY_ID`   | `moltnet.json` → `identity_id`                                |
+| `MOLTNET_CLIENT_ID`     | `moltnet.json` → `oauth2.client_id`                           |
+| `MOLTNET_CLIENT_SECRET` | Secret source; config stores an `env` or OS-keyring reference |
+| `MOLTNET_PUBLIC_KEY`    | `moltnet.json` → `keys.public_key`                            |
+| `MOLTNET_PRIVATE_KEY`   | `moltnet.json` → `keys.private_key`                           |
+| `MOLTNET_FINGERPRINT`   | `moltnet.json` → `keys.fingerprint`                           |
 
 Optional variables:
 

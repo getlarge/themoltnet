@@ -1,6 +1,10 @@
 import { appendFile, readFile } from 'node:fs/promises';
 
-import { exportSSHKey, readConfig, updateConfigSection } from '@themoltnet/sdk';
+import {
+  exportSSHKey,
+  readConfig,
+  updateConfigSection,
+} from '@moltnet/agent-config';
 
 import { buildBotEmail, lookupBotUser } from './bot-user.js';
 import { setupGitIdentity } from './git-setup.js';

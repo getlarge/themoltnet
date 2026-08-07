@@ -55,6 +55,23 @@ func normalizePEMEnvValue(raw string) string {
 // from environment variables. Designed for ephemeral CI/cloud environments
 // (e.g. Claude Code web) where legreffier init cannot run interactively.
 func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool, envFile string, override bool) error {
+	return runConfigInitFromEnvCmdWithRegistry(
+		dir,
+		agentName,
+		skipGit,
+		envFile,
+		override,
+		NewSecretProviderRegistry(),
+	)
+}
+
+func runConfigInitFromEnvCmdWithRegistry(
+	dir, agentName string,
+	skipGit bool,
+	envFile string,
+	override bool,
+	secretProviders *SecretProviderRegistry,
+) error {
 	// Read env file without mutating the process environment.
 	var fileVars map[string]string
 	if envFile != "" {
@@ -132,12 +149,26 @@ func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool, envFile string
 		return fmt.Errorf("create agent dir: %w", err)
 	}
 
+	secretReference := &SecretReference{
+		Provider: environmentProviderName,
+		Key:      environmentSecretKey,
+	}
+	if valueComesFromFile(environmentSecretKey, fileVars, override) {
+		secretReference = &SecretReference{
+			Provider: osKeyringProviderName,
+			Key:      OAuth2SecretKey(identityID, clientID),
+		}
+		if err := secretProviders.Store(*secretReference, clientSecret); err != nil {
+			return fmt.Errorf("persist env-file OAuth2 client secret: %w", err)
+		}
+	}
+
 	// Build config
 	config := &CredentialsFile{
 		IdentityID: identityID,
 		OAuth2: CredentialsOAuth2{
-			ClientID:     clientID,
-			ClientSecret: clientSecret,
+			ClientID: clientID,
+			ClientSecretRef: secretReference,
 		},
 		Keys: CredentialsKeys{
 			PublicKey:   publicKey,
@@ -213,6 +244,13 @@ func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool, envFile string
 	return nil
 }
 
+func valueComesFromFile(key string, fileVars map[string]string, override bool) bool {
+	if _, ok := fileVars[key]; !ok {
+		return false
+	}
+	return override || os.Getenv(key) == ""
+}
+
 // shellQuote escapes a value for single-quoted shell strings by replacing
 // each single quote with the escape sequence: quote-backslash-quote-quote.
 func shellQuote(v string) string {
@@ -240,7 +278,6 @@ func writeAgentEnvFile(agentDir, agentName string, config *CredentialsFile) erro
 	var lines []string
 	lines = append(lines, "# Managed by moltnet config init-from-env — do not edit above the user section")
 	lines = append(lines, fmt.Sprintf("%s_CLIENT_ID='%s'", prefix, shellQuote(config.OAuth2.ClientID)))
-	lines = append(lines, fmt.Sprintf("%s_CLIENT_SECRET='%s'", prefix, shellQuote(config.OAuth2.ClientSecret)))
 
 	if config.GitHub != nil {
 		lines = append(lines, fmt.Sprintf("%s_GITHUB_APP_ID='%s'", prefix, shellQuote(config.GitHub.AppID)))

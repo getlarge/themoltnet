@@ -67,33 +67,39 @@ describe('exportSSHKey', () => {
     expect(pubContent).toMatch(/^ssh-ed25519 /);
   });
 
-  it('sets private key file permissions to 0o600', async () => {
-    // Arrange
-    const configDir = join(tempDir, 'config');
-    const outputDir = join(tempDir, 'ssh-out');
-    await writeTestConfig(configDir);
+  it.runIf(process.platform !== 'win32')(
+    'sets private key file permissions to 0o600',
+    async () => {
+      // Arrange
+      const configDir = join(tempDir, 'config');
+      const outputDir = join(tempDir, 'ssh-out');
+      await writeTestConfig(configDir);
 
-    // Act
-    const result = await exportSSHKey({ configDir, outputDir });
+      // Act
+      const result = await exportSSHKey({ configDir, outputDir });
 
-    // Assert
-    const info = await stat(result.privatePath);
-    expect(info.mode & 0o777).toBe(0o600);
-  });
+      // Assert
+      const info = await stat(result.privatePath);
+      expect(info.mode & 0o777).toBe(0o600);
+    },
+  );
 
-  it('sets public key file permissions to 0o644', async () => {
-    // Arrange
-    const configDir = join(tempDir, 'config');
-    const outputDir = join(tempDir, 'ssh-out');
-    await writeTestConfig(configDir);
+  it.runIf(process.platform !== 'win32')(
+    'sets public key file permissions to 0o644',
+    async () => {
+      // Arrange
+      const configDir = join(tempDir, 'config');
+      const outputDir = join(tempDir, 'ssh-out');
+      await writeTestConfig(configDir);
 
-    // Act
-    const result = await exportSSHKey({ configDir, outputDir });
+      // Act
+      const result = await exportSSHKey({ configDir, outputDir });
 
-    // Assert
-    const info = await stat(result.publicPath);
-    expect(info.mode & 0o777).toBe(0o644);
-  });
+      // Assert
+      const info = await stat(result.publicPath);
+      expect(info.mode & 0o777).toBe(0o644);
+    },
+  );
 
   it('updates ssh section in moltnet.json with correct paths', async () => {
     // Arrange

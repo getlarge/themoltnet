@@ -11,12 +11,31 @@ import (
 // runConfigExportEnvCmd reads a moltnet.json and prints MOLTNET_* env vars
 // in dotenv format. The output is directly usable with init-from-env --env-file.
 func runConfigExportEnvCmd(w io.Writer, credPath, outFile string, includeGitHubPEM bool) error {
+	return runConfigExportEnvCmdWithRegistry(
+		w,
+		credPath,
+		outFile,
+		includeGitHubPEM,
+		NewSecretProviderRegistry(),
+	)
+}
+
+func runConfigExportEnvCmdWithRegistry(
+	w io.Writer,
+	credPath, outFile string,
+	includeGitHubPEM bool,
+	secretProviders *SecretProviderRegistry,
+) error {
 	creds, err := loadCredentials(credPath)
 	if err != nil {
 		return err
 	}
 	if creds == nil {
 		return fmt.Errorf("no config found at %s", credPath)
+	}
+	clientSecret, err := resolveOAuth2Secret(creds, secretProviders)
+	if err != nil {
+		return fmt.Errorf("resolve OAuth2 client secret: %w", err)
 	}
 
 	// Derive agent name from credential path when it matches .moltnet/<agent>/moltnet.json.
@@ -36,7 +55,7 @@ func runConfigExportEnvCmd(w io.Writer, credPath, outFile string, includeGitHubP
 	}
 	lines = append(lines, fmt.Sprintf("MOLTNET_IDENTITY_ID=%s", creds.IdentityID))
 	lines = append(lines, fmt.Sprintf("MOLTNET_CLIENT_ID=%s", creds.OAuth2.ClientID))
-	lines = append(lines, fmt.Sprintf("MOLTNET_CLIENT_SECRET=%s", creds.OAuth2.ClientSecret))
+	lines = append(lines, fmt.Sprintf("MOLTNET_CLIENT_SECRET=%s", clientSecret))
 	lines = append(lines, fmt.Sprintf("MOLTNET_PUBLIC_KEY=%s", creds.Keys.PublicKey))
 	lines = append(lines, fmt.Sprintf("MOLTNET_PRIVATE_KEY=%s", creds.Keys.PrivateKey))
 	lines = append(lines, fmt.Sprintf("MOLTNET_FINGERPRINT=%s", creds.Keys.Fingerprint))

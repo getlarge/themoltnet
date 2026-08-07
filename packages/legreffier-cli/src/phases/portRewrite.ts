@@ -112,7 +112,6 @@ export async function runPortRewritePhase(opts: {
     agentName,
     prefix,
     clientId: config.oauth2.client_id,
-    clientSecret: config.oauth2.client_secret,
     appId: config.github.app_id,
     pemPath: newPem,
     installationId: config.github.installation_id ?? '',

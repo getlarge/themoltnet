@@ -13,7 +13,7 @@ import (
 type ConfigIssue struct {
 	Field   string
 	Problem string
-	Action  string // "fixed", "warning", "migrate"
+	Action  string // "fixed" or "warning"
 }
 
 // runConfigRepairCmd is the flag-free business logic for config repair.
@@ -90,22 +90,13 @@ func runConfigRepairCmd(credPath string, dryRun bool) error {
 		}
 	}
 
-	// Apply moltnet.json fixes. Only struct-level changes (in-memory "fixed"
-	// edits and "migrate") gate the WriteConfigTo below; git-config scrubs are
+	// Apply moltnet.json fixes. Only struct-level in-memory edits gate the
+	// WriteConfigTo below; git-config scrubs are
 	// already persisted above and must not force a redundant moltnet.json write.
 	jsonChanged := false
 	for _, iss := range issues {
 		if iss.Field == "git-config" {
 			continue
-		}
-		if iss.Action == "migrate" {
-			newPath, err := migrateConfig(resolvedPath, creds)
-			if err != nil {
-				return fmt.Errorf("migrate: %w", err)
-			}
-			resolvedPath = newPath
-			jsonChanged = true
-			fixed++
 		}
 		if iss.Action == "fixed" {
 			jsonChanged = true
@@ -154,32 +145,15 @@ func loadAndValidate(credPath string) (string, *CredentialsFile, []ConfigIssue, 
 		}
 
 		moltnetPath := filepath.Join(dir, "moltnet.json")
-		legacyPath := filepath.Join(dir, "credentials.json")
-
 		c, err := ReadConfigFrom(moltnetPath)
 		if err != nil {
 			return "", nil, nil, err
 		}
-		if c != nil {
-			configPath = moltnetPath
-			creds = c
-		} else {
-			c, err = ReadConfigFrom(legacyPath)
-			if err != nil {
-				return "", nil, nil, err
-			}
-			if c != nil {
-				configPath = legacyPath
-				creds = c
-				issues = append(issues, ConfigIssue{
-					Field:   "file",
-					Problem: fmt.Sprintf("using deprecated credentials.json at %s — will migrate to moltnet.json", legacyPath),
-					Action:  "migrate",
-				})
-			} else {
-				return "", nil, nil, fmt.Errorf("no config found at %s or %s", moltnetPath, legacyPath)
-			}
+		if c == nil {
+			return "", nil, nil, fmt.Errorf("no config found at %s", moltnetPath)
 		}
+		configPath = moltnetPath
+		creds = c
 	}
 
 	// Required fields
@@ -380,16 +354,4 @@ func shadowProneGitconfigs(candidates []string) []string {
 		}
 	}
 	return prone
-}
-
-// migrateConfig writes the config to moltnet.json in the same directory.
-func migrateConfig(legacyPath string, creds *CredentialsFile) (string, error) {
-	dir := filepath.Dir(legacyPath)
-	newPath := filepath.Join(dir, "moltnet.json")
-
-	if _, err := WriteConfigTo(creds, newPath); err != nil {
-		return "", err
-	}
-	fmt.Fprintf(os.Stderr, "  Migrated to %s (you can now delete %s)\n", newPath, legacyPath)
-	return newPath, nil
 }

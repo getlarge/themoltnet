@@ -7,6 +7,7 @@ import {
   cliTheme,
 } from '@themoltnet/design-system/cli';
 import { readConfig } from '@themoltnet/sdk';
+import { resolveNodeOAuth2ClientSecret } from '@themoltnet/sdk/node';
 import { Box, Text, useApp } from 'ink';
 import React, { useEffect, useState } from 'react';
 
@@ -59,13 +60,14 @@ export function SetupApp({
         const mcpUrl =
           config.endpoints?.mcp ??
           apiUrl.replace('://api.', '://mcp.') + '/mcp';
+        const clientSecret = await resolveNodeOAuth2ClientSecret(config);
         const opts: AgentAdapterOptions = {
           repoDir: dir,
           agentName: name,
           prefix,
           mcpUrl,
           clientId: config.oauth2.client_id,
-          clientSecret: config.oauth2.client_secret,
+          clientSecret,
           appSlug: config.github?.app_slug ?? config.github?.app_id ?? '',
           appId: config.github?.app_id ?? '',
           pemPath: config.github?.private_key_path ?? '',

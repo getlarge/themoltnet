@@ -1,11 +1,47 @@
 package main
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func TestConfigExportEnvResolvesReferencedSecret(t *testing.T) {
+	t.Parallel()
+	key := OAuth2SecretKey("export-id", "export-client")
+	config := &CredentialsFile{
+		IdentityID: "export-id",
+		OAuth2: CredentialsOAuth2{
+			ClientID: "export-client",
+			ClientSecretRef: &SecretReference{
+				Provider: osKeyringProviderName,
+				Key:      key,
+			},
+		},
+	}
+	credPath := filepath.Join(t.TempDir(), "moltnet.json")
+	if _, err := WriteConfigTo(config, credPath); err != nil {
+		t.Fatal(err)
+	}
+	registry, provider := newMemorySecretProviderRegistry()
+	provider.values[key] = "referenced-secret"
+	var output bytes.Buffer
+
+	if err := runConfigExportEnvCmdWithRegistry(
+		&output,
+		credPath,
+		"",
+		false,
+		registry,
+	); err != nil {
+		t.Fatalf("export referenced secret: %v", err)
+	}
+	if !strings.Contains(output.String(), "MOLTNET_CLIENT_SECRET=referenced-secret") {
+		t.Fatalf("export did not resolve referenced secret:\n%s", output.String())
+	}
+}
 
 func TestConfigExportEnvHelp(t *testing.T) {
 	t.Parallel()
@@ -295,11 +331,14 @@ func TestConfigExportEnvRoundTrip(t *testing.T) {
 
 	// Step 2: init-from-env WITHOUT --agent — should derive from MOLTNET_AGENT_NAME
 	targetDir := filepath.Join(tmpDir, "target")
-	root2 := NewRootCmd("test", "")
-	_, _, err = executeCommand(root2, "config", "init-from-env",
-		"--dir", targetDir,
-		"--skip-git",
-		"--env-file", envFile,
+	registry, _ := newMemorySecretProviderRegistry()
+	err = runConfigInitFromEnvCmdWithRegistry(
+		targetDir,
+		"",
+		true,
+		envFile,
+		false,
+		registry,
 	)
 	if err != nil {
 		t.Fatalf("init-from-env failed: %v", err)

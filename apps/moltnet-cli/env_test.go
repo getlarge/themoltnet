@@ -313,14 +313,17 @@ func TestEnvCheckPass(t *testing.T) {
 	moltnetDir := filepath.Join(dir, ".moltnet")
 	agentDir := filepath.Join(moltnetDir, "test-agent")
 	os.MkdirAll(agentDir, 0o755)
-	os.WriteFile(filepath.Join(agentDir, "moltnet.json"), []byte("{}"), 0o644)
+	_, _ = WriteConfigTo(&CredentialsFile{
+		IdentityID: "test-identity",
+		OAuth2:     CredentialsOAuth2{ClientID: "cid", ClientSecret: "csec"},
+	}, filepath.Join(agentDir, "moltnet.json"))
 
 	gitconfigPath := filepath.Join(agentDir, "gitconfig")
 	os.WriteFile(gitconfigPath, []byte("[user]\n"), 0o644)
 	pemPath := filepath.Join(agentDir, "test-agent.pem")
 	os.WriteFile(pemPath, []byte("---PEM---"), 0o600)
 
-	envContent := fmt.Sprintf("TEST_AGENT_CLIENT_ID='cid'\nTEST_AGENT_CLIENT_SECRET='csec'\nTEST_AGENT_GITHUB_APP_ID='test-agent'\nTEST_AGENT_GITHUB_APP_PRIVATE_KEY_PATH='%s'\nTEST_AGENT_GITHUB_APP_INSTALLATION_ID='12345'\nGIT_CONFIG_GLOBAL='%s'\n", pemPath, gitconfigPath)
+	envContent := fmt.Sprintf("TEST_AGENT_CLIENT_ID='cid'\nTEST_AGENT_GITHUB_APP_ID='test-agent'\nTEST_AGENT_GITHUB_APP_PRIVATE_KEY_PATH='%s'\nTEST_AGENT_GITHUB_APP_INSTALLATION_ID='12345'\nGIT_CONFIG_GLOBAL='%s'\n", pemPath, gitconfigPath)
 	os.WriteFile(filepath.Join(agentDir, "env"), []byte(envContent), 0o644)
 
 	root := NewRootCmd("test", "")
@@ -357,8 +360,11 @@ func TestStartDryRun(t *testing.T) {
 	moltnetDir := filepath.Join(dir, ".moltnet")
 	agentDir := filepath.Join(moltnetDir, "test-agent")
 	os.MkdirAll(agentDir, 0o755)
-	os.WriteFile(filepath.Join(agentDir, "moltnet.json"), []byte("{}"), 0o644)
-	os.WriteFile(filepath.Join(agentDir, "env"), []byte("MY_VAR='hello'\nGIT_CONFIG_GLOBAL='.moltnet/test-agent/gitconfig'\nTEST_AGENT_CLIENT_SECRET='super-secret'\n"), 0o644)
+	_, _ = WriteConfigTo(&CredentialsFile{
+		IdentityID: "test-identity",
+		OAuth2:     CredentialsOAuth2{ClientID: "cid", ClientSecret: "super-secret"},
+	}, filepath.Join(agentDir, "moltnet.json"))
+	os.WriteFile(filepath.Join(agentDir, "env"), []byte("MY_VAR='hello'\nGIT_CONFIG_GLOBAL='.moltnet/test-agent/gitconfig'\n"), 0o644)
 
 	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "start", "echo", "--agent", "test-agent", "--dir", dir, "--dry-run")
@@ -397,7 +403,10 @@ func TestStartDryRunForwardsTargetArgs(t *testing.T) {
 	moltnetDir := filepath.Join(dir, ".moltnet")
 	agentDir := filepath.Join(moltnetDir, "test-agent")
 	os.MkdirAll(agentDir, 0o755)
-	os.WriteFile(filepath.Join(agentDir, "moltnet.json"), []byte("{}"), 0o644)
+	_, _ = WriteConfigTo(&CredentialsFile{
+		IdentityID: "test-identity",
+		OAuth2:     CredentialsOAuth2{ClientID: "cid", ClientSecret: "target-secret"},
+	}, filepath.Join(agentDir, "moltnet.json"))
 	os.WriteFile(filepath.Join(agentDir, "env"), []byte("MY_VAR='hello'\n"), 0o644)
 
 	root := NewRootCmd("test", "")

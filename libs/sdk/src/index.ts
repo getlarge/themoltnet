@@ -38,8 +38,11 @@ export {
   getConfigDir,
   getConfigPath,
   type MoltNetConfig,
+  type OAuth2Config,
   readConfig,
+  type SecretReference,
   updateConfigSection,
+  updateOAuth2Config,
   writeConfig,
 } from './credentials.js';
 export {
@@ -110,6 +113,16 @@ export {
 } from './register.js';
 export { type ConfigIssue, repairConfig, type RepairResult } from './repair.js';
 export { type RetryOptions } from './retry.js';
+export {
+  createDefaultSecretProviderRegistry,
+  ENVIRONMENT_SECRET_PROVIDER,
+  EnvironmentSecretProvider,
+  MOLTNET_SECRET_SERVICE,
+  oauth2SecretKey,
+  OS_KEYRING_SECRET_PROVIDER,
+  type SecretProvider,
+  SecretProviderRegistry,
+} from './secrets.js';
 export { sign, signBytes } from './sign.js';
 export { exportSSHKey } from './ssh.js';
 export {

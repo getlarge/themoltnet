@@ -57,6 +57,7 @@ import { readEnvCredentials } from '../src/config.js';
 import { connect } from '../src/connect.js';
 import { readConfig } from '../src/credentials.js';
 import { MoltNetError } from '../src/errors.js';
+import { SecretProviderRegistry } from '../src/secrets.js';
 import { TokenManager } from '../src/token.js';
 
 const mockCreateClient = vi.mocked(createClient);
@@ -128,7 +129,7 @@ describe('connect', () => {
         private_key: 'sk',
         fingerprint: 'fp',
       },
-      endpoints: { api: 'https://cfg.api.net', mcp: 'mcp' },
+      endpoints: { api: 'https://api.themolt.net', mcp: 'mcp' },
     });
 
     await connect();
@@ -136,9 +137,78 @@ describe('connect', () => {
     expect(MockTokenManager).toHaveBeenCalledWith({
       clientId: 'cfg-id',
       clientSecret: 'cfg-secret',
-      apiUrl: 'https://cfg.api.net',
+      apiUrl: 'https://api.themolt.net',
       scopes: undefined,
     });
+  });
+
+  it('resolves a config secret reference only when connecting', async () => {
+    mockReadConfig.mockResolvedValueOnce({
+      identity_id: 'id-1',
+      registered_at: '2024-01-01',
+      oauth2: {
+        client_id: 'cfg-id',
+        client_secret_ref: {
+          provider: 'memory',
+          key: 'oauth2/id-1/cfg-id',
+        },
+      },
+      keys: { public_key: 'pk', private_key: 'sk', fingerprint: 'fp' },
+      endpoints: { api: 'https://api.themolt.net', mcp: 'mcp' },
+    });
+    const secretProviders = new SecretProviderRegistry().register({
+      name: 'memory',
+      read: async () => 'resolved-secret',
+    });
+
+    await connect({ secretProviders });
+
+    expect(MockTokenManager).toHaveBeenCalledWith(
+      expect.objectContaining({
+        clientId: 'cfg-id',
+        clientSecret: 'resolved-secret',
+      }),
+    );
+  });
+
+  it('never resolves an arbitrary config-selected secret for an arbitrary origin', async () => {
+    mockReadConfig.mockResolvedValueOnce({
+      identity_id: 'id-1',
+      registered_at: '2024-01-01',
+      oauth2: {
+        client_id: 'cfg-id',
+        client_secret_ref: { provider: 'memory', key: 'unrelated-secret' },
+      },
+      keys: { public_key: 'pk', private_key: 'sk', fingerprint: 'fp' },
+      endpoints: { api: 'https://attacker.example', mcp: 'mcp' },
+    });
+    const read = vi.fn().mockResolvedValue('canary-secret');
+    const secretProviders = new SecretProviderRegistry().register({
+      name: 'memory',
+      read,
+    });
+
+    await expect(connect({ secretProviders })).rejects.toMatchObject({
+      code: 'INVALID_CONFIG',
+    });
+    expect(read).not.toHaveBeenCalled();
+    expect(MockTokenManager).not.toHaveBeenCalled();
+  });
+
+  it('rejects config that contains plaintext and a secret reference', async () => {
+    mockReadConfig.mockResolvedValueOnce({
+      identity_id: 'id-1',
+      registered_at: '2024-01-01',
+      oauth2: {
+        client_id: 'cfg-id',
+        client_secret: 'plaintext',
+        client_secret_ref: { provider: 'memory', key: 'oauth' },
+      },
+      keys: { public_key: 'pk', private_key: 'sk', fingerprint: 'fp' },
+      endpoints: { api: 'https://api.themolt.net', mcp: 'mcp' },
+    } as never);
+
+    await expect(connect()).rejects.toThrow(/exactly one/);
   });
 
   it('passes an explicit OAuth2 scope subset to the token manager', async () => {
@@ -173,7 +243,7 @@ describe('connect', () => {
         private_key: 'sk',
         fingerprint: 'fp',
       },
-      endpoints: { api: 'https://cfg.api.net', mcp: 'mcp' },
+      endpoints: { api: 'https://api.themolt.net', mcp: 'mcp' },
     });
 
     await connect({
@@ -364,13 +434,13 @@ describe('connect (agent-key mode)', () => {
       registered_at: '2024-01-01',
       oauth2: { client_id: 'x', client_secret: 'y' },
       keys: { public_key: 'pk', private_key: 'sk', fingerprint: 'fp' },
-      endpoints: { api: 'https://cfg.api.net', mcp: 'mcp' },
+      endpoints: { api: 'https://api.themolt.net', mcp: 'mcp' },
     });
 
     await connect({ agentKey: 'k' });
 
     expect(mockCreateClient).toHaveBeenCalledWith(
-      expect.objectContaining({ baseUrl: 'https://cfg.api.net' }),
+      expect.objectContaining({ baseUrl: 'https://api.themolt.net' }),
     );
   });
 });

@@ -3,6 +3,7 @@ import { basename, join } from 'node:path';
 
 import { CliHero, CliSpinner, cliTheme } from '@themoltnet/design-system/cli';
 import { readConfig } from '@themoltnet/sdk';
+import { resolveNodeOAuth2ClientSecret } from '@themoltnet/sdk/node';
 import { Box, Text, useApp } from 'ink';
 import React, { useEffect, useState } from 'react';
 
@@ -175,13 +176,14 @@ export function PortApp({
         const mcpUrl =
           config.endpoints?.mcp ??
           apiUrl.replace('://api.', '://mcp.') + '/mcp';
+        const clientSecret = await resolveNodeOAuth2ClientSecret(config);
         const adapterOpts: AgentAdapterOptions = {
           repoDir: targetRepoDir,
           agentName: name,
           prefix,
           mcpUrl,
           clientId: config.oauth2.client_id,
-          clientSecret: config.oauth2.client_secret,
+          clientSecret,
           appSlug: config.github?.app_slug ?? '',
           appId: config.github?.app_id ?? '',
           pemPath: join(

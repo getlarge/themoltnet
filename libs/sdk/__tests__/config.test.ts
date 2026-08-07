@@ -3,7 +3,11 @@ import { join } from 'node:path';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { writeMcpConfig } from '../src/config.js';
+import {
+  readEnvCredentials,
+  readEnvironmentVariable,
+  writeMcpConfig,
+} from '../src/config.js';
 import type { McpConfig } from '../src/register.js';
 
 vi.mock('node:fs/promises', () => ({
@@ -13,6 +17,21 @@ vi.mock('node:fs/promises', () => ({
 
 afterEach(() => {
   vi.clearAllMocks();
+  vi.unstubAllGlobals();
+});
+
+describe('environment credentials', () => {
+  it('returns missing values without throwing when process is unavailable', () => {
+    vi.stubGlobal('process', undefined);
+
+    expect(readEnvironmentVariable('MOLTNET_CLIENT_ID')).toBeUndefined();
+    expect(readEnvCredentials()).toEqual({
+      clientId: undefined,
+      clientSecret: undefined,
+      apiUrl: undefined,
+      agentKey: undefined,
+    });
+  });
 });
 
 const mcpConfig: McpConfig = {
