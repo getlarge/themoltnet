@@ -31,8 +31,7 @@
           "{projectRoot}/build.mjs"
         ],
         "outputs": [
-          "{projectRoot}/_build/linux-amd64/moltnet-otelcol",
-          "{projectRoot}/_build/linux-arm64/moltnet-otelcol"
+          "{projectRoot}/_build"
         ],
         "options": {
           "command": "node build.mjs",
