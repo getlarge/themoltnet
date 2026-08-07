@@ -2,8 +2,7 @@
 #
 # End-to-end smoke test for the authenticated OTLP receiver.
 #
-#   1. Register an agent OAuth2 client with the `task:execute` scope
-#      (idempotent — deletes & recreates if it already exists)
+#   1. Use a registered MoltNet agent OAuth2 client
 #   2. Obtain an access token via client credentials
 #   3. POST minimal OTLP traces, logs, and metrics with the token → expect 2xx
 #   4. POST with bogus and missing credentials → expect 401
@@ -13,65 +12,30 @@
 #   - jq and curl on PATH
 #
 # Usage:
-#   ./smoke-test.sh
+#   AGENT_CLIENT_ID=... AGENT_CLIENT_SECRET=... ./smoke-test.sh
 #   AGENT_CLIENT_ID=... AGENT_CLIENT_SECRET=... TALOS_API_KEY=ory_ak_... ./smoke-test.sh
 #
 # Exit non-zero on any assertion failure.
 
 set -euo pipefail
 
-HYDRA_ADMIN="${HYDRA_ADMIN:-http://localhost:4445}"
 HYDRA_PUBLIC="${HYDRA_PUBLIC:-http://localhost:4444}"
 OTLP_BASE="${OTLP_BASE:-http://localhost:4319}"
-CLIENT_ID="${AGENT_CLIENT_ID:-${CLIENT_ID:-otel-smoke-test}}"
-CLIENT_SECRET="${AGENT_CLIENT_SECRET:-${CLIENT_SECRET:-$(openssl rand -hex 16)}}"
+CLIENT_ID="${AGENT_CLIENT_ID:-}"
+CLIENT_SECRET="${AGENT_CLIENT_SECRET:-}"
 
 red()   { printf '\033[31m%s\033[0m\n' "$*" >&2; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
 blue()  { printf '\033[34m%s\033[0m\n' "$*"; }
 
-USE_REGISTERED_AGENT=false
-if [[ -n "${AGENT_CLIENT_ID:-}" || -n "${AGENT_CLIENT_SECRET:-}" ]]; then
-  if [[ -z "${AGENT_CLIENT_ID:-}" || -z "${AGENT_CLIENT_SECRET:-}" ]]; then
-    red "AGENT_CLIENT_ID and AGENT_CLIENT_SECRET must be set together"
-    exit 1
-  fi
-  USE_REGISTERED_AGENT=true
+if [[ -z "$CLIENT_ID" || -z "$CLIENT_SECRET" ]]; then
+  red "AGENT_CLIENT_ID and AGENT_CLIENT_SECRET for a registered MoltNet agent are required"
+  exit 1
 fi
 
-# --- 1. Register client (idempotent) ----------------------------------
+# --- 1. Confirm registered agent input --------------------------------
 
-if [[ "$USE_REGISTERED_AGENT" == "true" ]]; then
-  blue "[1/5] Using registered MoltNet agent OAuth client '$CLIENT_ID'..."
-else
-  blue "[1/5] Ensuring compatibility OAuth2 agent client '$CLIENT_ID' has task:execute..."
-
-  # Delete only the disposable smoke client — never mutate a supplied agent.
-  curl -sS -X DELETE "$HYDRA_ADMIN/admin/clients/$CLIENT_ID" >/dev/null 2>&1 || true
-
-  REGISTER_RESPONSE=$(curl -sS -X POST "$HYDRA_ADMIN/admin/clients" \
-    -H 'Content-Type: application/json' \
-    -d @- <<EOF
-{
-  "client_id": "$CLIENT_ID",
-  "client_secret": "$CLIENT_SECRET",
-  "grant_types": ["client_credentials"],
-  "response_types": ["token"],
-  "scope": "task:execute",
-  "metadata": {"type": "moltnet_agent", "identity_id": "00000000-0000-4000-8000-000000000183"},
-  "token_endpoint_auth_method": "client_secret_basic",
-  "access_token_strategy": "opaque"
-}
-EOF
-)
-
-  if ! echo "$REGISTER_RESPONSE" | jq -e '.client_id' >/dev/null 2>&1; then
-    red "Client registration failed:"
-    echo "$REGISTER_RESPONSE" >&2
-    exit 1
-  fi
-  green "  Compatibility client registered."
-fi
+blue "[1/5] Using registered MoltNet agent OAuth client '$CLIENT_ID'..."
 
 # --- 2. Obtain access token -------------------------------------------
 

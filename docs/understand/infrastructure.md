@@ -251,7 +251,10 @@ Axiom dataset split: logs go to `AXIOM_LOGS_DATASET`, traces to
 `AXIOM_TRACES_DATASET`, and metrics to `AXIOM_METRICS_DATASET`. Its public
 OTLP/HTTP receiver on port `4319` accepts OAuth tokens and Talos agent keys
 with `task:execute`; internal service telemetry remains on ports `4317` and
-`4318`. See the [Collector runbook](../../infra/otel/custom-collector/README.md)
+`4318` inside the Docker network. The development Compose stack binds `4319`
+only to host loopback. Remote agents require the deployment's TLS ingress in
+front of `4319`; this repository does not define a production Compose stack or
+add a dedicated proxy. See the [Collector runbook](../../infra/otel/custom-collector/README.md)
 for Ory Network and self-hosted configuration, limits, builds, and incident
 signals. The Collector is packaged as an image but is not deployed on Fly by
 this repository.

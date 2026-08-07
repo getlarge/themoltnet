@@ -39,7 +39,7 @@ processors:
     send_batch_size: 1024
     send_batch_max_size: 2048
 
-  memory_limiter/public:
+  memory_limiter:
     check_interval: 1s
     limit_percentage: 75
     spike_limit_percentage: 15
@@ -69,8 +69,32 @@ processors:
 
   resource/public:
     attributes:
+      - key: http.request.header.authorization
+        action: delete
+      - key: http.request.header.cookie
+        action: delete
+      - key: http.request.header.x-api-key
+        action: delete
+      - key: http.request.header.x-ory-api-key
+        action: delete
+      - key: password
+        action: delete
+      - key: token
+        action: delete
+      - key: secret
+        action: delete
+      - key: api_key
+        action: delete
+      - key: private_key
+        action: delete
       - key: service.namespace
-        value: moltnet
+        value: moltnet-public
+        action: upsert
+      - key: service.name
+        value: moltnet-agent
+        action: upsert
+      - key: moltnet.telemetry.origin
+        value: public-agent
         action: upsert
 
   # Filter out health check spans to reduce noise
@@ -117,6 +141,18 @@ processors:
           - replace_pattern(attributes["secret"], ".*", "[REDACTED]")
           - replace_pattern(attributes["api_key"], ".*", "[REDACTED]")
           - replace_pattern(attributes["private_key"], ".*", "[REDACTED]")
+    metric_statements:
+      - context: datapoint
+        statements:
+          - replace_pattern(attributes["http.request.header.authorization"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["http.request.header.cookie"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["http.request.header.x-api-key"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["http.request.header.x-ory-api-key"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["password"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["token"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["secret"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["api_key"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["private_key"], ".*", "[REDACTED]")
 
 exporters:
   otlphttp/axiom_traces:
@@ -148,7 +184,8 @@ exporters:
     compression: gzip
     sending_queue:
       enabled: true
-      queue_size: 2048
+      sizer: items
+      queue_size: 10000
 
   otlphttp/axiom_metrics_public:
     endpoint: 'https://api.axiom.co'
@@ -158,7 +195,8 @@ exporters:
     compression: gzip
     sending_queue:
       enabled: true
-      queue_size: 2048
+      sizer: items
+      queue_size: 10000
 
   otlphttp/axiom_logs_public:
     endpoint: 'https://api.axiom.co'
@@ -168,7 +206,8 @@ exporters:
     compression: gzip
     sending_queue:
       enabled: true
-      queue_size: 2048
+      sizer: items
+      queue_size: 10000
 
   # Debug exporter for local development (stdout)
   debug:
@@ -201,24 +240,25 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [filter/health, transform/redact, resource, batch]
+      processors:
+        [memory_limiter, filter/health, transform/redact, resource, batch]
       exporters: [otlphttp/axiom_traces]
 
     metrics:
       receivers: [otlp]
-      processors: [resource, batch]
+      processors: [memory_limiter, transform/redact, resource, batch]
       exporters: [otlphttp/axiom_metrics]
 
     logs:
       receivers: [otlp]
-      processors: [transform/redact, resource, batch]
+      processors: [memory_limiter, transform/redact, resource, batch]
       exporters: [otlphttp/axiom_logs]
 
     traces/public:
       receivers: [otlp/public]
       processors:
         [
-          memory_limiter/public,
+          memory_limiter,
           moltnetattribution,
           transform/redact,
           resource/public,
@@ -230,7 +270,7 @@ service:
       receivers: [otlp/public]
       processors:
         [
-          memory_limiter/public,
+          memory_limiter,
           moltnetattribution,
           transform/redact,
           resource/public,
@@ -242,8 +282,9 @@ service:
       receivers: [otlp/public]
       processors:
         [
-          memory_limiter/public,
+          memory_limiter,
           moltnetattribution,
+          transform/redact,
           resource/public,
           batch/public_metrics,
         ]
@@ -255,8 +296,9 @@ service:
     metrics:
       level: detailed
       readers:
-        - pull:
+        - periodic:
+            interval: 10000
             exporter:
-              prometheus:
-                host: '0.0.0.0'
-                port: 8888
+              otlp:
+                protocol: http/protobuf
+                endpoint: 'http://127.0.0.1:4318'

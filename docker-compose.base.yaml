@@ -244,10 +244,10 @@ services:
     image: ${OTEL_COLLECTOR_IMAGE:-ghcr.io/getlarge/themoltnet/otel-collector:dev}
     command: ['--config=/etc/otelcol/config.yaml']
     ports:
-      - '4317:4317' # internal OTLP gRPC (unauthenticated, service mesh)
-      - '4318:4318' # internal OTLP HTTP (unauthenticated, service mesh)
-      - '4319:4319' # public OTLP HTTP (authenticated agents)
-      - '13133:13133'
+      # Host daemons use authenticated OTLP. Internal receivers remain reachable
+      # only as otel-collector:4317/4318 on the Compose network.
+      - '127.0.0.1:4319:4319'
+      - '127.0.0.1:13133:13133'
     volumes:
       - ./infra/otel/collector-config.dev.yaml:/etc/otelcol/config.yaml:ro
     depends_on:

@@ -159,6 +159,12 @@ jobs:
           node-version: 24
           cache: pnpm
 
+      - uses: actions/setup-go@v6
+        if: ${{ matrix.project == 'otel-custom-collector' }}
+        with:
+          go-version-file: infra/otel/custom-collector/moltnetauthextension/go.mod
+          cache: true
+
       - uses: docker/setup-qemu-action@v3
 
       - uses: docker/setup-buildx-action@v3

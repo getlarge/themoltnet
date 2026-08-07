@@ -143,6 +143,14 @@
       "type": "TimeSeries"
     },
     {
+      "id": "otlp-auth-rejections",
+      "name": "Public OTLP authentication rejections",
+      "query": {
+        "mpl": "`moltnet-metrics`:`moltnet.auth.rejected.requests`\n| align to 1m using prom::rate\n| group by `reason` using sum"
+      },
+      "type": "TimeSeries"
+    },
+    {
       "id": "otlp-span-export-failures",
       "name": "Collector span export failures",
       "query": {
@@ -388,6 +396,17 @@
       "static": false,
       "w": 6,
       "x": 0,
+      "y": 40
+    },
+    {
+      "h": 5,
+      "i": "otlp-auth-rejections",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 6,
+      "x": 6,
       "y": 40
     }
   ],

@@ -1,7 +1,7 @@
 # MoltNet authenticated OTLP Collector
 
-The custom Collector exposes internal OTLP on `4317`/`4318` and authenticated
-public OTLP/HTTP on `4319`. Public traces, logs, and metrics accept either an
+The custom Collector listens for internal OTLP on `4317`/`4318` and authenticated
+agent OTLP/HTTP on `4319`. Public traces, logs, and metrics accept either an
 active Ory OAuth bearer token or an active secret Talos key (`ory_ak_...`). The
 resolved principal must be an agent and have `task:execute`.
 
@@ -53,7 +53,7 @@ moltnetauth:
   required_scopes: ['task:execute']
 ```
 
-The production defaults are a 4 MiB request body, pre-auth 100 requests/second
+The hardened defaults are a 4 MiB request body, pre-auth 100 requests/second
 with burst 200, per-agent 2 requests/second with burst 20, and bounded 10,000
 entry credential and limiter state. Provider `429`, timeout, and `5xx` failures
 fail closed and remain distinct in Collector metrics.
@@ -68,16 +68,52 @@ docker compose --env-file .env.local up -d hydra kratos talos otel-collector
 ./infra/otel/custom-collector/smoke-test.sh
 ```
 
-For the production integration path, supply a registered agent as
+Supply a registered agent as
 `AGENT_CLIENT_ID`/`AGENT_CLIENT_SECRET`; optionally set `TALOS_API_KEY` to run
-the same three-signal checks through Talos and Kratos. Without those variables,
-the script creates only a disposable local compatibility client.
+the same three-signal checks through Talos and Kratos. The script never creates,
+deletes, or modifies an OAuth client.
 
-For production-style configuration, set `OTEL_CONFIG=collector-config.yaml`,
+For Axiom-backed configuration, set `OTEL_CONFIG=collector-config.yaml`,
 the Axiom variables, and either the managed or self-hosted Ory variables in
 [`../docker-compose.yaml`](../docker-compose.yaml).
 
+## Network boundary and TLS
+
+This repository does not define a production Compose deployment. In the root
+development stack, unauthenticated `4317`/`4318` stay inside the Compose network
+and authenticated `4319` is published on loopback only for a daemon running on
+the Docker host. The standalone Compose file also uses loopback bindings.
+
+Do not publish the Collector container ports directly on a remote host. When
+agents must connect over a network, put the deployment's existing TLS ingress
+(Nginx, Traefik, Caddy, or the platform load balancer) in front of **only**
+`4319`, enforce HTTPS there, and forward to `otel-collector:4319` on the private
+Docker network. Keep the proxy body limit at or below 4 MiB. A dedicated Nginx
+container is unnecessary when the Portainer stack already has a TLS ingress.
+
+## Capacity and delivery
+
+One shared memory limiter runs first in every internal and agent pipeline at
+75% of the container memory limit with a 15% spike allowance. Each agent signal
+has a separate exporter queue bounded to 10,000 telemetry items. These queues
+absorb short Axiom interruptions but are in-memory and are not durable across a
+Collector restart.
+
+For the first Portainer deployment, use Axiom as the system of record and give
+the Collector an explicit container memory limit. If restart-surviving buffers
+become a requirement, add the Collector `file_storage` extension and a named
+volume as a separate deployment decision; do not treat the exporter queue as a
+telemetry database. Self-telemetry is sent back through the internal OTLP
+receiver and exported to Axiom, so queue pressure and exporter failures remain
+observable without exposing port `8888`.
+
 When debugging ingestion, inspect `moltnet.auth.provider.*`,
-`moltnet.auth.cache.*`, `moltnet.auth.throttled.requests`,
+`moltnet.auth.cache.*`, `moltnet.auth.rejected.requests`,
+`moltnet.auth.throttled.requests`,
 `moltnet.attribution.conflicts`, and Collector exporter queue/failure metrics.
 Do not log credentials or identity values while investigating.
+
+The upstream Collector HTTP authentication middleware currently returns `401`
+for every authentication extension error. Provider throttling and outages still
+fail closed and remain distinguishable through the typed resolver errors,
+bounded rejection reasons, provider metrics, and warning logs.

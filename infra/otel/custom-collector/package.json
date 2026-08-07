@@ -4,6 +4,11 @@
   "private": true,
   "license": "AGPL-3.0-only",
   "nx": {
+    "implicitDependencies": [
+      "moltnet-authn",
+      "moltnetauthextension",
+      "moltnetattributionprocessor"
+    ],
     "release": {
       "docker": {
         "repositoryName": "getlarge/themoltnet/otel-collector"
@@ -23,16 +28,39 @@
           "{projectRoot}/moltnetauthextension/**/*",
           "{projectRoot}/moltnetattributionprocessor/**/*",
           "{workspaceRoot}/libs/moltnet-authn/**/*",
-          "{workspaceRoot}/tools/build-otel-collector.mjs"
+          "{projectRoot}/build.mjs"
         ],
         "outputs": [
           "{projectRoot}/_build/linux-amd64/moltnet-otelcol",
           "{projectRoot}/_build/linux-arm64/moltnet-otelcol"
         ],
         "options": {
-          "command": "node tools/build-otel-collector.mjs",
-          "cwd": "{workspaceRoot}"
+          "command": "node build.mjs",
+          "cwd": "{projectRoot}"
         }
+      },
+      "test": {
+        "cache": true,
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "build"
+        ],
+        "inputs": [
+          "{projectRoot}/validate.mjs",
+          "{projectRoot}/testdata/sanity-config.yaml",
+          "{workspaceRoot}/infra/otel/collector-config.dev.yaml",
+          "{workspaceRoot}/infra/otel/collector-config.yaml"
+        ],
+        "options": {
+          "command": "node validate.mjs",
+          "cwd": "{projectRoot}"
+        }
+      },
+      "test-ci": {
+        "dependsOn": [
+          "test"
+        ],
+        "executor": "nx:noop"
       },
       "docker:build": {
         "executor": "nx:run-commands",

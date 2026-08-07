@@ -4,7 +4,7 @@
 #
 #   - otlp (4317 gRPC / 4318 HTTP) — UNAUTHENTICATED, for internal service-
 #     mesh traffic (rest-api, mcp-server, etc.). Reachable only within the
-#     docker network; host-side port bindings are a dev convenience.
+#     Docker network in the root development stack.
 #
 #   - otlp/public (4319 HTTP) — authenticated via `moltnetauth`. OAuth tokens
 #     go to Hydra; `ory_ak_` keys go to Talos and their actor is checked in
@@ -52,7 +52,7 @@ processors:
     timeout: 2s
     send_batch_size: 256
 
-  memory_limiter/public:
+  memory_limiter:
     check_interval: 1s
     limit_percentage: 75
     spike_limit_percentage: 15
@@ -73,6 +73,39 @@ processors:
     attributes:
       - key: service.namespace
         value: moltnet
+        action: upsert
+      - key: deployment.environment
+        value: development
+        action: upsert
+
+  resource/public:
+    attributes:
+      - key: http.request.header.authorization
+        action: delete
+      - key: http.request.header.cookie
+        action: delete
+      - key: http.request.header.x-api-key
+        action: delete
+      - key: http.request.header.x-ory-api-key
+        action: delete
+      - key: password
+        action: delete
+      - key: token
+        action: delete
+      - key: secret
+        action: delete
+      - key: api_key
+        action: delete
+      - key: private_key
+        action: delete
+      - key: service.namespace
+        value: moltnet-public
+        action: upsert
+      - key: service.name
+        value: moltnet-agent
+        action: upsert
+      - key: moltnet.telemetry.origin
+        value: public-agent
         action: upsert
       - key: deployment.environment
         value: development
@@ -108,6 +141,18 @@ processors:
           - replace_pattern(attributes["secret"], ".*", "[REDACTED]")
           - replace_pattern(attributes["api_key"], ".*", "[REDACTED]")
           - replace_pattern(attributes["private_key"], ".*", "[REDACTED]")
+    metric_statements:
+      - context: datapoint
+        statements:
+          - replace_pattern(attributes["http.request.header.authorization"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["http.request.header.cookie"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["http.request.header.x-api-key"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["http.request.header.x-ory-api-key"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["password"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["token"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["secret"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["api_key"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["private_key"], ".*", "[REDACTED]")
 
 exporters:
   debug:
@@ -127,17 +172,17 @@ service:
     # Internal pipeline — unauthenticated receiver, full processing chain.
     traces:
       receivers: [otlp]
-      processors: [transform/redact, resource, batch]
+      processors: [memory_limiter, transform/redact, resource, batch]
       exporters: [debug]
 
     metrics:
       receivers: [otlp]
-      processors: [resource, batch]
+      processors: [memory_limiter, transform/redact, resource, batch]
       exporters: [debug]
 
     logs:
       receivers: [otlp]
-      processors: [transform/redact, resource, batch]
+      processors: [memory_limiter, transform/redact, resource, batch]
       exporters: [debug]
 
     # Public pipeline — authenticated receiver. Shares processors with
@@ -150,10 +195,10 @@ service:
       receivers: [otlp/public]
       processors:
         [
-          memory_limiter/public,
+          memory_limiter,
           moltnetattribution,
           transform/redact,
-          resource,
+          resource/public,
           batch/public_traces,
         ]
       exporters: [debug/public_traces]
@@ -162,10 +207,10 @@ service:
       receivers: [otlp/public]
       processors:
         [
-          memory_limiter/public,
+          memory_limiter,
           moltnetattribution,
           transform/redact,
-          resource,
+          resource/public,
           batch/public_logs,
         ]
       exporters: [debug/public_logs]
@@ -174,9 +219,10 @@ service:
       receivers: [otlp/public]
       processors:
         [
-          memory_limiter/public,
+          memory_limiter,
           moltnetattribution,
-          resource,
+          transform/redact,
+          resource/public,
           batch/public_metrics,
         ]
       exporters: [debug/public_metrics]
