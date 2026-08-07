@@ -1,0 +1,18 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "moltnet-authn",
+  "projectType": "library",
+  "sourceRoot": "libs/moltnet-authn",
+  "tags": ["lang:go", "type:lib", "scope:auth"],
+  "targets": {
+    "test": {
+      "options": {
+        "race": true
+      }
+    },
+    "test-ci": {
+      "dependsOn": ["test"],
+      "executor": "nx:noop"
+    }
+  }
+}
