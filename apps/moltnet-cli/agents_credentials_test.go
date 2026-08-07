@@ -488,9 +488,9 @@ func TestAgentsCredentialsRotateUpdatesReferencedSecret(t *testing.T) {
 		document,
 		"client-id",
 		agentsCredentialsRotateOpts{
-			out:               &stdout,
-			secretReference:   &ref,
-			secretProviders:   registry,
+			out:             &stdout,
+			secretReference: &ref,
+			secretProviders: registry,
 			writeCredentials: func(_ string, _ []byte) error {
 				t.Fatal("referenced rotation rewrote the credentials file")
 				return nil
@@ -767,14 +767,13 @@ func TestWriteFileAtomicRemovesTempFileAfterRenameFailure(t *testing.T) {
 	err := writeFileAtomic(
 		target,
 		[]byte("secret"),
-		".moltnet-cleanup-test-*",
 	)
 
 	if err == nil {
 		t.Fatal("expected rename failure")
 	}
 	matches, globErr := filepath.Glob(
-		filepath.Join(parent, ".moltnet-cleanup-test-*"),
+		filepath.Join(parent, ".existing-directory*"),
 	)
 	if globErr != nil {
 		t.Fatalf("glob temporary files: %v", globErr)

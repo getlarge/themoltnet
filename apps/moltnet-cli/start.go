@@ -18,6 +18,12 @@ func runStartCmd(cmd *cobra.Command, dir, agentFlag, target string, targetArgs [
 }
 
 func runStartCmdWithRegistry(cmd *cobra.Command, dir, agentFlag, target string, targetArgs []string, dryRun bool, registry *SecretProviderRegistry) error {
+	return runStartCmdWithRegistryAndExec(cmd, dir, agentFlag, target, targetArgs, dryRun, registry, syscall.Exec)
+}
+
+type execProcess func(targetPath string, argv, env []string) error
+
+func runStartCmdWithRegistryAndExec(cmd *cobra.Command, dir, agentFlag, target string, targetArgs []string, dryRun bool, registry *SecretProviderRegistry, execFn execProcess) error {
 	moltnetDir, err := resolveMoltnetDir(dir)
 	if err != nil {
 		return err
@@ -103,7 +109,7 @@ func runStartCmdWithRegistry(cmd *cobra.Command, dir, agentFlag, target string, 
 
 	// exec replaces the current process
 	argv := append([]string{target}, targetArgs...)
-	return syscall.Exec(targetPath, argv, env)
+	return execFn(targetPath, argv, env)
 }
 
 func resolveAgentOAuth2Environment(agentDir, agentName string, registry *SecretProviderRegistry) (map[string]string, error) {

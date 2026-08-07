@@ -377,11 +377,7 @@ func updateCredentialsDocument(
 }
 
 func writeCredentialsAtomic(path string, data []byte) error {
-	if err := writeFileAtomic(
-		path,
-		data,
-		".moltnet-credentials-*",
-	); err != nil {
+	if err := writeFileAtomic(path, data); err != nil {
 		return fmt.Errorf("replace credentials file: %w", err)
 	}
 	return nil
@@ -442,4 +438,13 @@ func writeCredentialsRecoveryFileToDir(
 	syncDirectoryBestEffort(recoveryDir)
 	keep = true
 	return recoveryPath, nil
+}
+
+func syncDirectoryBestEffort(path string) {
+	directory, err := os.Open(path)
+	if err != nil {
+		return
+	}
+	defer directory.Close()
+	_ = directory.Sync()
 }

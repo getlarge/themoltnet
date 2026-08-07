@@ -89,8 +89,44 @@ usable with init-from-env --env-file.`,
 	exportEnvCmd.Flags().StringP("output", "o", "", "Write to file instead of stdout")
 	exportEnvCmd.Flags().Bool("include-github-pem", false, "Include GitHub App private key content")
 
+	var migrateGeneratePath string
+	var migrateRunPath string
+	var migrateDryRun bool
+	migrateCmd := &cobra.Command{
+		Use:   "migrate",
+		Short: "Plan and apply configuration migrations",
+		Long: `Plan and apply the next state-aware MoltNet configuration migration.
+Each redacted JSON plan is bound to the exact credentials file content and
+contains at most one transition. Run the command again to apply the next one.
+Use --generate to inspect a plan before applying it with --run.`,
+		Example: `  # Apply the next migration
+  moltnet config migrate --credentials .moltnet/legreffier/moltnet.json
+
+  # Print the redacted plan without changing anything
+  moltnet config migrate --credentials .moltnet/legreffier/moltnet.json --dry-run
+
+  # Generate, inspect, and then run a plan
+  moltnet config migrate --credentials .moltnet/legreffier/moltnet.json --generate migrations.json
+  moltnet config migrate --credentials .moltnet/legreffier/moltnet.json --run migrations.json`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			credPath, _ := cmd.Flags().GetString("credentials")
+			return runConfigMigrateCmd(
+				cmd.OutOrStdout(),
+				credPath,
+				migrateGeneratePath,
+				migrateRunPath,
+				migrateDryRun,
+			)
+		},
+	}
+	migrateCmd.Flags().StringVar(&migrateGeneratePath, "generate", "", "Write a redacted migration plan to this file")
+	migrateCmd.Flags().StringVar(&migrateRunPath, "run", "", "Run a previously generated migration plan")
+	migrateCmd.Flags().BoolVar(&migrateDryRun, "dry-run", false, "Print the migration plan without changing local state")
+
 	configCmd.AddCommand(repairCmd)
 	configCmd.AddCommand(initFromEnvCmd)
 	configCmd.AddCommand(exportEnvCmd)
+	configCmd.AddCommand(migrateCmd)
 	return configCmd
 }

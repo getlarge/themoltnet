@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/configmigrate"
 	"github.com/joho/godotenv"
 )
 
@@ -167,7 +168,7 @@ func runConfigInitFromEnvCmdWithRegistry(
 	config := &CredentialsFile{
 		IdentityID: identityID,
 		OAuth2: CredentialsOAuth2{
-			ClientID: clientID,
+			ClientID:        clientID,
 			ClientSecretRef: secretReference,
 		},
 		Keys: CredentialsKeys{
@@ -293,7 +294,11 @@ func writeAgentEnvFile(agentDir, agentName string, config *CredentialsFile) erro
 
 	// Preserve user-section content from existing env file.
 	envPath := filepath.Join(agentDir, "env")
-	userLines := extractUserSection(envPath, managedKeys)
+	existingEnv, err := configmigrate.ReadOptionalBoundedRegularFile(envPath, maxMigrationConfigBytes)
+	if err != nil {
+		return fmt.Errorf("inspect env file: %w", err)
+	}
+	userLines := extractUserSection(existingEnv, managedKeys)
 
 	lines = append(lines, "")
 	lines = append(lines, "# User section — add custom variables below")
@@ -303,19 +308,27 @@ func writeAgentEnvFile(agentDir, agentName string, config *CredentialsFile) erro
 	}
 
 	content := strings.Join(lines, "\n")
-	if err := os.WriteFile(envPath, []byte(content), 0o600); err != nil {
+	if existingEnv == nil {
+		err = writeFileAtomic(envPath, []byte(content))
+	} else {
+		err = configmigrate.ReplaceRegularFileAtomic(
+			envPath,
+			existingEnv,
+			[]byte(content),
+			maxMigrationConfigBytes,
+		)
+	}
+	if err != nil {
 		return fmt.Errorf("write env file: %w", err)
 	}
 	fmt.Fprintf(os.Stderr, "Env file written to %s\n", envPath)
 	return nil
 }
 
-// extractUserSection reads an existing env file and returns lines that
-// belong to the user section: everything after "# User section", plus
-// any non-managed key=value lines found anywhere in the file.
-func extractUserSection(envPath string, managedKeys map[string]bool) []string {
-	data, err := os.ReadFile(envPath)
-	if err != nil {
+// extractUserSection returns lines that belong to the user section: everything
+// after "# User section", plus non-managed key=value lines found anywhere.
+func extractUserSection(data []byte, managedKeys map[string]bool) []string {
+	if data == nil {
 		return nil
 	}
 
