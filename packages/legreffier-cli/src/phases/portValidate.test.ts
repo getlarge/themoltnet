@@ -55,8 +55,6 @@ function testSecretProviders(value: string | null = 'resolved-secret') {
   return new SecretProviderRegistry().register({
     name: 'os-keyring',
     read: async () => value,
-    write: async () => undefined,
-    delete: async () => undefined,
   });
 }
 

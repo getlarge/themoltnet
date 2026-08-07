@@ -6,8 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/zalando/go-keyring"
 )
 
 type keyringConformanceFixture struct {
@@ -77,7 +75,9 @@ func TestEnvironmentSecretProviderIsReadOnly(t *testing.T) {
 }
 
 func TestOSKeyringSecretProviderRoundTrip(t *testing.T) {
-	keyring.MockInit()
+	if os.Getenv("MOLTNET_RUN_NATIVE_KEYRING_TESTS") != "1" {
+		t.Skip("set MOLTNET_RUN_NATIVE_KEYRING_TESTS=1 to use the native credential store")
+	}
 	provider := OSKeyringSecretProvider{}
 	key := "oauth2/test-identity/test-client"
 

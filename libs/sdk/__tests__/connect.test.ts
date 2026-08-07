@@ -159,8 +159,6 @@ describe('connect', () => {
     const secretProviders = new SecretProviderRegistry().register({
       name: 'memory',
       read: async () => 'resolved-secret',
-      write: async () => undefined,
-      delete: async () => undefined,
     });
 
     await connect({ secretProviders });
@@ -188,8 +186,6 @@ describe('connect', () => {
     const secretProviders = new SecretProviderRegistry().register({
       name: 'memory',
       read,
-      write: async () => undefined,
-      delete: async () => undefined,
     });
 
     await expect(connect({ secretProviders })).rejects.toMatchObject({
