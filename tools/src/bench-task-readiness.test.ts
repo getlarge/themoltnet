@@ -14,12 +14,6 @@ function sample(
   const queuedAt = Date.parse('2026-08-06T10:00:00.000Z');
   return {
     runId,
-    scenario: 'scratch-warm',
-    coldCategory: 'warm-continuation',
-    topology: 'split',
-    authMode: 'agent-key',
-    oryPlacement: 'local-sqlite',
-    virtualization: 'kvm',
     queuedAt: new Date(queuedAt).toISOString(),
     firstUsefulReceivedAt: new Date(queuedAt + latencyMs).toISOString(),
     completedAt: new Date(queuedAt + latencyMs + 1_000).toISOString(),
@@ -37,8 +31,7 @@ describe('buildTaskReadinessReport', () => {
       '2026-08-06T12:00:00.000Z',
     );
 
-    expect(report.groups).toHaveLength(1);
-    expect(report.groups[0]).toMatchObject({
+    expect(report).toMatchObject({
       tasks: 3,
       successes: 3,
       errors: 0,
@@ -57,17 +50,6 @@ describe('buildTaskReadinessReport', () => {
     });
   });
 
-  it('separates SQLite and Postgres Ory placements', () => {
-    const report = buildTaskReadinessReport([
-      sample('sqlite', 100),
-      sample('postgres', 100, { oryPlacement: 'local-postgres' }),
-    ]);
-
-    expect(
-      report.groups.map((group) => group.dimensions.oryPlacement).sort(),
-    ).toEqual(['local-postgres', 'local-sqlite']);
-  });
-
   it('rejects successful samples without the primary KPI', () => {
     expect(() =>
       buildTaskReadinessReport([
@@ -81,11 +63,11 @@ describe('buildTaskReadinessReport', () => {
       sample('failed-after-useful', 250, { success: false }),
     ]);
 
-    expect(report.groups[0].queuedToFirstUsefulMs).toMatchObject({
+    expect(report.queuedToFirstUsefulMs).toMatchObject({
       count: 1,
       p50: 250,
     });
-    expect(report.groups[0]).toMatchObject({ successes: 0, errors: 1 });
+    expect(report).toMatchObject({ successes: 0, errors: 1 });
   });
 
   it('reports null throughput for a zero-width observation window', () => {
@@ -93,9 +75,7 @@ describe('buildTaskReadinessReport', () => {
       completedAt: '2026-08-06T10:00:00.000Z',
     });
 
-    expect(
-      buildTaskReadinessReport([instant]).groups[0].throughputPerMinute,
-    ).toBeNull();
+    expect(buildTaskReadinessReport([instant]).throughputPerMinute).toBeNull();
   });
 
   it.each(['null', '[]', '42'])(

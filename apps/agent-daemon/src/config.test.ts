@@ -2,34 +2,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { loadConfig } from './config.js';
 
-describe('loadConfig benchmark dimensions', () => {
+describe('loadConfig observability settings', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
   });
 
-  it('accepts only bounded cell and virtualization labels', () => {
-    vi.stubEnv('MOLTNET_CELL_TOPOLOGY', 'split');
-    vi.stubEnv('MOLTNET_VIRTUALIZATION_MODE', 'kvm');
-
-    expect(loadConfig()).toMatchObject({
-      cellTopology: 'split',
-      virtualizationMode: 'kvm',
-    });
-  });
-
-  it('uses unclassified labels when dimensions are unset', () => {
-    expect(loadConfig()).toMatchObject({
-      cellTopology: 'unclassified',
-      virtualizationMode: 'unclassified',
-      traceIdlePolling: false,
-    });
-  });
-
-  it('rejects unknown labels instead of silently merging cohorts', () => {
-    vi.stubEnv('MOLTNET_CELL_TOPOLOGY', 'customer-123');
-    vi.stubEnv('MOLTNET_VIRTUALIZATION_MODE', 'magic');
-
-    expect(() => loadConfig()).toThrow('MOLTNET_CELL_TOPOLOGY must be one of');
+  it('keeps full idle polling traces disabled by default', () => {
+    expect(loadConfig().traceIdlePolling).toBe(false);
   });
 
   it('enables full idle polling traces only with an explicit boolean', () => {

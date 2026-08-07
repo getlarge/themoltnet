@@ -1,8 +1,4 @@
-import {
-  firstUsefulTaskEvent,
-  type TaskMessage,
-  type TaskUsage,
-} from '@moltnet/tasks';
+import { type TaskMessage, type TaskUsage } from '@moltnet/tasks';
 import type { TasksNamespace } from '@themoltnet/sdk';
 
 import { addActiveTaskEvent, traceRuntimePhase } from '../telemetry.js';
@@ -177,11 +173,17 @@ export class ApiTaskReporter implements TaskReporter {
   ): Promise<void> {
     this.throwIfPendingError();
     if (!this.firstUsefulEventEmitted) {
-      const useful = firstUsefulTaskEvent([body]);
-      if (useful) {
+      const usefulKind =
+        body.kind === 'tool_call_start' ||
+        (body.kind === 'text_delta' &&
+          typeof body.payload['delta'] === 'string' &&
+          body.payload['delta'].trim().length > 0)
+          ? body.kind
+          : null;
+      if (usefulKind) {
         this.firstUsefulEventEmitted = true;
         addActiveTaskEvent('moltnet.task.first_useful_event.emitted', {
-          'moltnet.task.first_useful.kind': useful.kind,
+          'moltnet.task.first_useful.kind': usefulKind,
         });
       }
     }

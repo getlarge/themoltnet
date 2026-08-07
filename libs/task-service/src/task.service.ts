@@ -13,7 +13,6 @@ import {
 } from '@moltnet/task-workflows';
 import {
   type DaemonState,
-  firstUsefulTaskEvent,
   type Task,
   type TaskAttempt,
   type TaskError,
@@ -996,7 +995,13 @@ export function createTaskService(deps: TaskServiceDeps) {
       }>,
     ): Promise<{ count: number }> {
       const serverReceivedAtMs = Date.now();
-      const usefulEvent = firstUsefulTaskEvent(messages);
+      const usefulEvent = messages.find(
+        ({ kind, payload }) =>
+          kind === 'tool_call_start' ||
+          (kind === 'text_delta' &&
+            typeof payload['delta'] === 'string' &&
+            payload['delta'].trim().length > 0),
+      );
       const task = await taskRepository.findById(taskId);
       if (!task) throw new TaskServiceError('not_found', 'Task not found');
       if (TERMINAL_STATUSES.has(task.status)) {

@@ -30,20 +30,11 @@ first useful event:
 | `moltnet.execution.session.create`    | model session and tool construction                |
 | `moltnet.execution.provider.request`  | each provider prompt attempt                       |
 
-Task IDs belong in traces and logs, never metric attributes. Benchmark
-dimensions are bounded to topology, virtualization, authentication mode,
-runtime phase, cache/source category, and identity-service placement. Configure
-optional daemon labels with:
-
-```bash
-export MOLTNET_CELL_TOPOLOGY=split
-export MOLTNET_VIRTUALIZATION_MODE=kvm
-```
-
-Supported topology labels are `compact`, `split`, and `unclassified`.
-Supported virtualization labels are `kvm`, `tcg`, and `unclassified`. Report
-KVM and TCG independently rather than merging their percentiles. Invalid set
-values fail daemon startup so benchmark cohorts cannot silently merge.
+Task IDs belong in traces and logs, never metric attributes. Deployment shape,
+virtualization, and identity-service placement are properties of the benchmark
+environment, not task-domain or daemon configuration. The runner should record
+facts it can observe alongside each report; MoltNet does not ask operators to
+duplicate those facts as labels on every task sample.
 
 Normal daemons record task-list spans only for non-empty responses and errors,
 and omit idle-sleep spans. Controlled benchmark runs that need complete polling
@@ -71,10 +62,9 @@ and daemon-pool warm-up belong to a separate cell-readiness clock.
 
 ## Sample contract
 
-Every input line is one JSON object matching `TaskReadinessSample`. Its bounded
-labels reuse the daemon telemetry vocabulary: `agent-key|oauth2` authentication,
-`compact|split|unclassified` topology, `kvm|tcg|unclassified` virtualization,
-and `managed|local-postgres|local-sqlite|unclassified` Ory placement.
+Every input line is one JSON object matching `TaskReadinessSample`. One JSONL
+file represents one benchmark cohort. Samples carry measurements and outcomes,
+not a second copy of deployment configuration.
 
 Generate a machine-readable report with Nx:
 
@@ -83,8 +73,8 @@ pnpm exec nx run @moltnet/tools:bench:task-readiness -- \
   test-fixtures/task-readiness-samples.jsonl
 ```
 
-The report groups exact scenarios and includes p50/p95/p99, throughput, error
-rate, phase distributions, CPU, RAM, disk I/O, and network bytes. A task that
+The report includes p50/p95/p99, throughput, error rate, phase distributions,
+CPU, RAM, disk I/O, and network bytes. A task that
 emits a useful event and later fails still contributes to readiness latency;
 its terminal result contributes to the error rate. A zero-width observation
 window reports `null` throughput rather than inventing a rate.
@@ -93,7 +83,7 @@ Recommended minimums are:
 
 | Workload                   |                  Minimum sample |
 | -------------------------- | ------------------------------: |
-| deterministic warm scratch |          100 tasks per scenario |
+| deterministic warm scratch |            100 tasks per cohort |
 | daemon process cold        |                         10 runs |
 | snapshot build cold        |                          3 runs |
 | real provider              | 30 runs for baseline and winner |
@@ -113,5 +103,6 @@ lower completion reliability.
 
 The Axiom dashboard definition lives at
 [`infra/axiom/dashboards/moltnet-task-readiness.json`](../../infra/axiom/dashboards/moltnet-task-readiness.json).
-Keep task identifiers out of dashboard groupings and use only the bounded
-dimensions defined above.
+Keep task identifiers out of dashboard groupings. Environment metadata belongs
+to runner evidence or collector-owned resource enrichment when it is derived
+from authoritative facts.
