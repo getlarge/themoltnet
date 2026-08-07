@@ -506,6 +506,19 @@ func TestStartInjectsKeyringSecretOnlyIntoChildEnvironment(t *testing.T) {
 	if got := childEnv["TEST_AGENT_CLIENT_SECRET"]; got != "launch-only-secret" {
 		t.Fatalf("child client secret = %q, want launch-time keyring value", got)
 	}
+	if got := childEnv["MOLTNET_CLIENT_ID"]; got != "client-456" {
+		t.Fatalf("generic child client id = %q, want %q", got, "client-456")
+	}
+	if got := childEnv["MOLTNET_CLIENT_SECRET"]; got != "launch-only-secret" {
+		t.Fatalf("generic child client secret = %q, want launch-time keyring value", got)
+	}
+	wantCredentialsPath, err := filepath.EvalSymlinks(filepath.Join(agentDir, "moltnet.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := childEnv["MOLTNET_CREDENTIALS_PATH"]; got != wantCredentialsPath {
+		t.Fatalf("child credentials path = %q", got)
+	}
 	for _, path := range []string{
 		filepath.Join(agentDir, "moltnet.json"),
 		filepath.Join(agentDir, "env"),

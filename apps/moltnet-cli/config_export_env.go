@@ -105,7 +105,7 @@ func runConfigExportEnvCmdWithRegistry(
 	content := strings.Join(lines, "\n")
 
 	if outFile != "" {
-		if err := writeFileAtomic(outFile, []byte(content), ".moltnet-env-export-*"); err != nil {
+		if err := writeFileAtomic(outFile, []byte(content)); err != nil {
 			return fmt.Errorf("write env file atomically: %w", err)
 		}
 		fmt.Fprintf(os.Stderr, "Env vars written to %s\n", outFile)

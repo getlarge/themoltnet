@@ -606,6 +606,9 @@ importers:
       '@themoltnet/agent-runtime':
         specifier: workspace:*
         version: link:../../libs/agent-runtime
+      '@themoltnet/os-keyring':
+        specifier: workspace:*
+        version: link:../../libs/os-keyring
       '@themoltnet/pi-runtime':
         specifier: workspace:*
         version: link:../../libs/pi-runtime
