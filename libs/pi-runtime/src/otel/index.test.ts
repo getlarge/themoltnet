@@ -1,4 +1,9 @@
-import { SpanStatusCode, trace } from '@opentelemetry/api';
+import {
+  type Context,
+  ROOT_CONTEXT,
+  SpanStatusCode,
+  trace,
+} from '@opentelemetry/api';
 import {
   BasicTracerProvider,
   InMemorySpanExporter,
@@ -115,6 +120,78 @@ describe('createPiOtelExtension', () => {
     // Tree: tool.parent == chat, chat.parent == agent
     expect(tool!.parentSpanContext?.spanId).toBe(chat!.spanContext().spanId);
     expect(chat!.parentSpanContext?.spanId).toBe(agent!.spanContext().spanId);
+  });
+
+  it('parents the Pi tree through task, session, and provider contexts', () => {
+    const tracer = trace.getTracer('pi-topology-test');
+    const taskSpan = tracer.startSpan('moltnet.task.execute');
+    const taskContext = trace.setSpan(ROOT_CONTEXT, taskSpan);
+    const providerState: { context?: Context } = {};
+    let publishedSessionContext: Context | undefined;
+    const { pi, emit } = makeFakePi();
+    createPiOtelExtension({
+      sessionParentContext: taskContext,
+      getTurnParentContext: () => providerState.context,
+      onSessionContextChange: (context) => {
+        publishedSessionContext = context;
+      },
+    })(pi);
+
+    emit(
+      'session_start',
+      { type: 'session_start', reason: 'new' },
+      { cwd: '/tmp' },
+    );
+    if (!publishedSessionContext) {
+      throw new Error('Pi OTel extension did not publish its session context');
+    }
+    const providerSpan = tracer.startSpan(
+      'moltnet.execution.provider.request',
+      {},
+      publishedSessionContext,
+    );
+    providerState.context = trace.setSpan(
+      publishedSessionContext,
+      providerSpan,
+    );
+    emit('turn_start', { type: 'turn_start', turnIndex: 0, timestamp: 0 });
+    emit('tool_execution_start', {
+      type: 'tool_execution_start',
+      toolCallId: 'call-topology',
+      toolName: 'bash',
+      args: {},
+    });
+    emit('tool_execution_end', {
+      type: 'tool_execution_end',
+      toolCallId: 'call-topology',
+      toolName: 'bash',
+      result: {},
+      isError: false,
+    });
+    emit('turn_end', {
+      type: 'turn_end',
+      turnIndex: 0,
+      message: { role: 'assistant', usage: { input: 1, output: 1 } },
+      toolResults: [],
+    });
+    emit('session_shutdown', { type: 'session_shutdown' });
+    providerSpan.end();
+    taskSpan.end();
+
+    const task = byName('moltnet.task.execute');
+    const agent = byName('invoke_agent pi');
+    const providerRequest = byName('moltnet.execution.provider.request');
+    const chat = byName('chat unknown');
+    const tool = byName('execute_tool bash');
+
+    expect(agent!.parentSpanContext?.spanId).toBe(task!.spanContext().spanId);
+    expect(providerRequest!.parentSpanContext?.spanId).toBe(
+      agent!.spanContext().spanId,
+    );
+    expect(chat!.parentSpanContext?.spanId).toBe(
+      providerRequest!.spanContext().spanId,
+    );
+    expect(tool!.parentSpanContext?.spanId).toBe(chat!.spanContext().spanId);
   });
 
   it('marks tool span as error when isError is true', () => {

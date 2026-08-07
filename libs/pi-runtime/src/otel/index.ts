@@ -68,6 +68,12 @@ export interface PiOtelOptions {
    * since the extension is authoritative for those.
    */
   spanAttributes?: Record<string, string | number | boolean>;
+  /** Explicit parent for the session-level `invoke_agent` span. */
+  sessionParentContext?: Context;
+  /** Parent context for the next Pi turn, normally a provider-request span. */
+  getTurnParentContext?: () => Context | undefined;
+  /** Publishes the live session span context to the embedding runtime. */
+  onSessionContextChange?: (context: Context | undefined) => void;
 }
 
 function stripReservedAttrs(
@@ -123,6 +129,7 @@ export function createPiOtelExtension(options: PiOtelOptions = {}) {
         sessionSpan.end();
         sessionSpan = undefined;
         sessionCtx = otelContext.active();
+        options.onSessionContextChange?.(undefined);
       }
       currentModel = undefined;
     }
@@ -136,6 +143,8 @@ export function createPiOtelExtension(options: PiOtelOptions = {}) {
         endSessionSpan();
 
         const agentName = options.agentName ?? 'pi';
+        const parentContext =
+          options.sessionParentContext ?? otelContext.active();
         sessionSpan = tracer.startSpan(
           `invoke_agent ${agentName}`,
           {
@@ -147,9 +156,10 @@ export function createPiOtelExtension(options: PiOtelOptions = {}) {
               'session.cwd': ctx.cwd,
             },
           },
-          otelContext.active(),
+          parentContext,
         );
-        sessionCtx = trace.setSpan(otelContext.active(), sessionSpan);
+        sessionCtx = trace.setSpan(parentContext, sessionSpan);
+        options.onSessionContextChange?.(sessionCtx);
         turnCtx = sessionCtx;
       },
     );
@@ -169,6 +179,7 @@ export function createPiOtelExtension(options: PiOtelOptions = {}) {
     pi.on('turn_start', (event: TurnStartEvent) => {
       if (!sessionSpan) return;
       const modelLabel = currentModel?.id ?? 'unknown';
+      const turnParentContext = options.getTurnParentContext?.() ?? sessionCtx;
       turnSpan = tracer.startSpan(
         `chat ${modelLabel}`,
         {
@@ -180,9 +191,9 @@ export function createPiOtelExtension(options: PiOtelOptions = {}) {
             'turn.index': event.turnIndex,
           },
         },
-        sessionCtx,
+        turnParentContext,
       );
-      turnCtx = trace.setSpan(sessionCtx, turnSpan);
+      turnCtx = trace.setSpan(turnParentContext, turnSpan);
     });
 
     pi.on('turn_end', (event: TurnEndEvent) => {

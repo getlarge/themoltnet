@@ -1,5 +1,6 @@
 import {
   type Attributes,
+  type Context,
   type Span,
   SpanStatusCode,
   trace,
@@ -12,8 +13,9 @@ export async function traceRuntimePhase<T>(
   name: string,
   attributes: Attributes,
   run: (span: Span) => Promise<T>,
+  parentContext?: Context,
 ): Promise<T> {
-  return tracer.startActiveSpan(name, { attributes }, async (span) => {
+  const execute = async (span: Span): Promise<T> => {
     try {
       const result = await run(span);
       span.setStatus({ code: SpanStatusCode.OK });
@@ -26,7 +28,10 @@ export async function traceRuntimePhase<T>(
     } finally {
       span.end();
     }
-  });
+  };
+  return parentContext
+    ? tracer.startActiveSpan(name, { attributes }, parentContext, execute)
+    : tracer.startActiveSpan(name, { attributes }, execute);
 }
 
 /**

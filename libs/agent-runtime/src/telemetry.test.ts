@@ -1,5 +1,5 @@
 import type * as OpenTelemetryApi from '@opentelemetry/api';
-import { SpanStatusCode } from '@opentelemetry/api';
+import { type Context, SpanStatusCode } from '@opentelemetry/api';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const telemetryMocks = vi.hoisted(() => {
@@ -10,13 +10,10 @@ const telemetryMocks = vi.hoisted(() => {
   };
   return {
     span,
-    startActiveSpan: vi.fn(
-      async (
-        _name: string,
-        _options: unknown,
-        run: (activeSpan: typeof span) => Promise<unknown>,
-      ) => run(span),
-    ),
+    startActiveSpan: vi.fn(async (...args: unknown[]) => {
+      const run = args.at(-1) as (activeSpan: typeof span) => Promise<unknown>;
+      return run(span);
+    }),
   };
 });
 
@@ -53,5 +50,23 @@ describe('traceRuntimePhase', () => {
       message: error.message,
     });
     expect(telemetryMocks.span.end).toHaveBeenCalledOnce();
+  });
+
+  it('uses an explicit parent context when one is supplied', async () => {
+    const parentContext = {} as Context;
+
+    await traceRuntimePhase(
+      'moltnet.test.child',
+      { bounded: true },
+      async () => 'done',
+      parentContext,
+    );
+
+    expect(telemetryMocks.startActiveSpan).toHaveBeenCalledWith(
+      'moltnet.test.child',
+      { attributes: { bounded: true } },
+      parentContext,
+      expect.any(Function),
+    );
   });
 });

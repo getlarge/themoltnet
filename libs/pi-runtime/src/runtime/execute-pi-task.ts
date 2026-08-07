@@ -32,6 +32,11 @@ import {
 } from '@earendil-works/pi-coding-agent';
 import { computeJsonCid } from '@moltnet/crypto-service';
 import {
+  type Context,
+  context as otelContext,
+  trace as otelTrace,
+} from '@opentelemetry/api';
+import {
   buildTaskUserPrompt,
   type ClaimedTask,
   type ContextRef,
@@ -518,6 +523,7 @@ export async function executePiTask(
   const task = claimedTask.task;
   const attemptN = claimedTask.attemptN;
   const startTime = Date.now();
+  const taskOtelContext = otelContext.active();
   const requestedMountPath = opts.mountPath ?? process.cwd();
   const agentRootDir = opts.agentRootDir ?? requestedMountPath;
   const executionPlan = (await opts.makeExecutionPlan?.(claimedTask)) ?? null;
@@ -551,6 +557,8 @@ export async function executePiTask(
   let reporterOpen = opts.reporterAlreadyOpened ?? false;
   let managed: Awaited<ReturnType<typeof resumeVm>> | null = null;
   let session: AgentSession | null = null;
+  let piSessionContext: Context | undefined;
+  let providerRequestContext: Context | undefined;
   // Tracked at function scope so the post-prompt summary block can
   // read the call counter even though the handle is only constructed
   // inside the session-setup `try`. Null means "task type did not
@@ -1277,6 +1285,11 @@ export async function executePiTask(
               'moltnet.task.attempt': attemptN,
               'moltnet.task.type': task.taskType,
             },
+            otelSessionParentContext: taskOtelContext,
+            getOtelTurnParentContext: () => providerRequestContext,
+            onOtelSessionContextChange: (context) => {
+              piSessionContext = context;
+            },
             sessionPersistence: executionPlan?.sessionPersistence ?? undefined,
             extraExtensionFactories: [
               ...runtimeParentExtensions,
@@ -1405,6 +1418,10 @@ export async function executePiTask(
         },
         onPromptError: (message) =>
           emit('error', { message, phase: 'session_prompt' }),
+        parentContext: piSessionContext,
+        onRequestContextChange: (context) => {
+          providerRequestContext = context;
+        },
       });
     const submitMissingConfig = resolveSubmitMissingConfig({
       submitToolHandle,
@@ -2368,6 +2385,10 @@ export interface PromptWithProviderErrorRetriesArgs {
   retryPrompt: string;
   onRetry?: (event: ProviderErrorRetryEvent) => Promise<void>;
   onPromptError?: (message: string) => Promise<void>;
+  /** Pi session context used to parent each provider request. */
+  parentContext?: Context;
+  /** Publishes the live provider span context for Pi turn parenting. */
+  onRequestContextChange?: (context: Context | undefined) => void;
 }
 
 export async function promptWithProviderErrorRetries(
@@ -2383,7 +2404,19 @@ export async function promptWithProviderErrorRetries(
       await traceRuntimePhase(
         'moltnet.execution.provider.request',
         { 'moltnet.provider.retry': retryCount },
-        () => args.session.prompt(promptText),
+        async (span) => {
+          const requestContext = otelTrace.setSpan(
+            args.parentContext ?? otelContext.active(),
+            span,
+          );
+          args.onRequestContextChange?.(requestContext);
+          try {
+            await args.session.prompt(promptText);
+          } finally {
+            args.onRequestContextChange?.(undefined);
+          }
+        },
+        args.parentContext,
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
