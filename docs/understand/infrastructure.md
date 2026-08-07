@@ -445,17 +445,18 @@ Releases are automated via [release-please](https://github.com/googleapis/releas
 3. **Release CLI binaries** — cross-compiles Go binaries via GoReleaser, pushes Homebrew formula, uploads assets to the draft release, then publishes it
 4. **Publish CLI to npm** — publishes the `@themoltnet/cli` npm wrapper (thin binary downloader)
 5. **Publish bundled Node apps/libs** — jobs such as `publish-agent-daemon`, `publish-agent-runtime`, and `publish-pi-extension` publish the packages selected by the release PR
+6. **Publish Docker images** — each released Docker component is built through its Nx `docker:build` target and pushed to GHCR as a `linux/amd64` + `linux/arm64` manifest. The image uses the bare Release Please version (for example `0.41.0`), matching the Nx Docker production version scheme; repository names still come from each project's `nx.release.docker.repositoryName`.
 
 Releases are created as drafts (`"draft": true` in `release-please-config.json`) to support [GitHub immutable releases](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases). Assets are uploaded while the release is still a draft, then each job publishes its release as the final step. Once published, the release and its assets become immutable.
 
 ### Release configuration files
 
-| File                               | Purpose                                                                                                                        |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `release-please-config.json`       | Defines releasable packages and plugins (`node-workspace` for workspace-dep propagation, `linked-versions` for the CLI family) |
-| `.release-please-manifest.json`    | Tracks current versions                                                                                                        |
-| `apps/moltnet-cli/.goreleaser.yml` | Cross-compilation targets, archive format, Homebrew formula publisher                                                          |
-| `packages/cli/`                    | npm wrapper — postinstall downloads the correct Go binary                                                                      |
+| File                               | Purpose                                                                                                                                            |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `release-please-config.json`       | Defines releasable packages, Docker components, and plugins (`node-workspace` for workspace-dep propagation, `linked-versions` for the CLI family) |
+| `.release-please-manifest.json`    | Tracks current versions                                                                                                                            |
+| `apps/moltnet-cli/.goreleaser.yml` | Cross-compilation targets, archive format, Homebrew formula publisher                                                                              |
+| `packages/cli/`                    | npm wrapper — postinstall downloads the correct Go binary                                                                                          |
 
 ### npm trusted publishing (OIDC)
 
