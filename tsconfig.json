@@ -72,15 +72,6 @@
       "path": "libs/os-keyring"
     },
     {
-      "path": "libs/os-keyring-darwin"
-    },
-    {
-      "path": "libs/os-keyring-linux"
-    },
-    {
-      "path": "libs/os-keyring-win32"
-    },
-    {
       "path": "libs/agent-key-service"
     },
     {

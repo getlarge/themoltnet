@@ -6,19 +6,8 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 const packageDir = dirname(dirname(fileURLToPath(import.meta.url)));
-const libsDir = dirname(packageDir);
 const pnpmCommand = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-const platformDir = {
-  darwin: 'os-keyring-darwin',
-  linux: 'os-keyring-linux',
-  win32: 'os-keyring-win32',
-}[process.platform];
-
-if (!platformDir) {
-  throw new Error(`unsupported keyring platform: ${process.platform}`);
-}
-
 const tempDir = mkdtempSync(join(tmpdir(), 'os-keyring-pack-'));
 
 function run(command, args, cwd) {
@@ -37,27 +26,28 @@ function run(command, args, cwd) {
   return result.stdout.trim();
 }
 
-function pack(dir) {
+try {
   const output = JSON.parse(
-    run(pnpmCommand, ['pack', '--pack-destination', tempDir, '--json'], dir),
+    run(
+      pnpmCommand,
+      ['pack', '--pack-destination', tempDir, '--json'],
+      packageDir,
+    ),
   );
-  const tarball = existsSync(output.filename)
+  const adapterTarball = existsSync(output.filename)
     ? output.filename
     : join(tempDir, output.filename);
-  if (!existsSync(tarball)) throw new Error(`missing tarball: ${tarball}`);
-  return tarball;
-}
+  if (!existsSync(adapterTarball)) {
+    throw new Error(`missing tarball: ${adapterTarball}`);
+  }
 
-try {
-  const platformTarball = pack(join(libsDir, platformDir));
-  const adapterTarball = pack(packageDir);
   writeFileSync(
     join(tempDir, 'package.json'),
     JSON.stringify({ name: 'keyring-smoke', private: true }),
   );
   run(
     npmCommand,
-    ['install', '--no-audit', '--no-fund', platformTarball, adapterTarball],
+    ['install', '--no-audit', '--no-fund', adapterTarball],
     tempDir,
   );
   run(

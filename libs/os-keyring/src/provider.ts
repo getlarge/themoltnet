@@ -4,71 +4,68 @@ export const OS_KEYRING_SECRET_PROVIDER = 'os-keyring';
 export interface KeyringSecretProvider {
   readonly name: string;
   read(key: string): Promise<string | null>;
-  write(key: string, value: string): Promise<void>;
-  delete(key: string): Promise<void>;
 }
 
-type PlatformKeyringModule = {
-  createPlatformKeyringSecretProvider(): KeyringSecretProvider;
+interface Keytar {
+  getPassword(service: string, account: string): Promise<string | null>;
+}
+
+type KeytarModule = Keytar & {
+  default?: Keytar;
 };
 
-export type PlatformKeyringProviderLoader = (
-  platform: NodeJS.Platform,
-) => Promise<KeyringSecretProvider>;
+export type KeytarLoader = () => Promise<Keytar>;
+
+const GO_KEYRING_BASE64_PREFIX = 'go-keyring-base64:';
+const SUPPORTED_PLATFORMS = new Set<NodeJS.Platform>([
+  'darwin',
+  'linux',
+  'win32',
+]);
 
 export class OSKeyringSecretProvider implements KeyringSecretProvider {
   readonly name = OS_KEYRING_SECRET_PROVIDER;
-  private providerPromise: Promise<KeyringSecretProvider> | undefined;
+  private keytarPromise: Promise<Keytar> | undefined;
 
   constructor(
     private readonly platform: NodeJS.Platform = process.platform,
-    private readonly loadProvider: PlatformKeyringProviderLoader = loadPlatformKeyringProvider,
+    private readonly loadKeytar: KeytarLoader = loadNativeKeytar,
   ) {}
 
   async read(key: string): Promise<string | null> {
-    return (await this.provider()).read(key);
+    if (!SUPPORTED_PLATFORMS.has(this.platform)) {
+      throw new Error(`OS keyring is not supported on ${this.platform}`);
+    }
+    const value = await (
+      await this.keytar()
+    ).getPassword(MOLTNET_SECRET_SERVICE, key);
+    if (value === null || this.platform !== 'darwin') return value;
+    return decodeGoKeyringPassword(value);
   }
 
-  async write(key: string, value: string): Promise<void> {
-    return (await this.provider()).write(key, value);
-  }
-
-  async delete(key: string): Promise<void> {
-    return (await this.provider()).delete(key);
-  }
-
-  private provider(): Promise<KeyringSecretProvider> {
-    this.providerPromise ??= this.loadProvider(this.platform);
-    return this.providerPromise;
+  private keytar(): Promise<Keytar> {
+    this.keytarPromise ??= this.loadKeytar();
+    return this.keytarPromise;
   }
 }
 
-async function loadPlatformKeyringProvider(
-  platform: NodeJS.Platform,
-): Promise<KeyringSecretProvider> {
-  let modulePromise: Promise<PlatformKeyringModule>;
-  switch (platform) {
-    case 'darwin':
-      modulePromise = import('@themoltnet/os-keyring-darwin');
-      break;
-    case 'linux':
-      modulePromise = import('@themoltnet/os-keyring-linux');
-      break;
-    case 'win32':
-      modulePromise = import('@themoltnet/os-keyring-win32');
-      break;
-    default:
-      throw new Error(`OS keyring is not supported on ${platform}`);
-  }
-
+async function loadNativeKeytar(): Promise<Keytar> {
   try {
-    return (await modulePromise).createPlatformKeyringSecretProvider();
+    const module = (await import('@github/keytar')) as KeytarModule;
+    return module.default ?? module;
   } catch (error) {
-    throw new Error(
-      `OS keyring support for ${platform} is unavailable; install @themoltnet/os-keyring with optional dependencies enabled`,
-      { cause: error },
-    );
+    throw new Error('OS keyring native bindings are unavailable', {
+      cause: error,
+    });
   }
+}
+
+export function decodeGoKeyringPassword(value: string): string {
+  if (!value.startsWith(GO_KEYRING_BASE64_PREFIX)) return value;
+  return Buffer.from(
+    value.slice(GO_KEYRING_BASE64_PREFIX.length),
+    'base64',
+  ).toString('utf8');
 }
 
 export function windowsKeyringTarget(

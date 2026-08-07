@@ -12,8 +12,6 @@ describe('secret providers', () => {
     const provider: SecretProvider = {
       name: 'memory',
       read: async (key) => (key === 'oauth' ? 'canary-secret' : null),
-      write: async () => undefined,
-      delete: async () => undefined,
     };
     const registry = new SecretProviderRegistry().register(provider);
 
@@ -22,7 +20,7 @@ describe('secret providers', () => {
     ).resolves.toBe('canary-secret');
   });
 
-  it('keeps the environment provider read-only', async () => {
+  it('reads environment secrets without exposing mutation methods', async () => {
     const provider = new EnvironmentSecretProvider((key) =>
       key === 'MOLTNET_CLIENT_SECRET' ? 'environment-secret' : undefined,
     );
@@ -30,12 +28,8 @@ describe('secret providers', () => {
     await expect(provider.read('MOLTNET_CLIENT_SECRET')).resolves.toBe(
       'environment-secret',
     );
-    await expect(
-      provider.write('MOLTNET_CLIENT_SECRET', 'new'),
-    ).rejects.toThrow(/read-only/);
-    await expect(provider.delete('MOLTNET_CLIENT_SECRET')).rejects.toThrow(
-      /read-only/,
-    );
+    expect('write' in provider).toBe(false);
+    expect('delete' in provider).toBe(false);
   });
 
   it('uses a stable OAuth2 key shape', () => {

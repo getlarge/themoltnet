@@ -47,7 +47,6 @@ catalog:
   '@ipld/dag-cbor': '^9.2.5'
   '@modelcontextprotocol/sdk': '^1.29.0'
   '@modelcontextprotocol/ext-apps': '^1.7.1'
-  '@jellybrick/dbus-next': '0.11.1'
   '@github/keytar': '7.10.6'
   '@noble/ciphers': '^1.2.0'
   '@noble/curves': '^2.0.0'

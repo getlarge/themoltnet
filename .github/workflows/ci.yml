@@ -68,7 +68,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y gnome-keyring dbus dbus-x11
+          sudo apt-get install -y gnome-keyring libsecret-1-dev dbus dbus-x11
       - name: Test affected native keyring projects
         if: runner.os != 'Linux'
         run: pnpm exec nx affected -t test-native
@@ -244,7 +244,7 @@ jobs:
             echo "landing=false" >> "$GITHUB_OUTPUT"
           fi
 
-          if contains "@themoltnet/os-keyring" "@themoltnet/os-keyring-darwin" "@themoltnet/os-keyring-linux" "@themoltnet/os-keyring-win32" "@themoltnet/sdk" "moltnet-cli"; then
+          if contains "@themoltnet/os-keyring" "@themoltnet/sdk" "moltnet-cli"; then
             echo "native-keyring=true" >> "$GITHUB_OUTPUT"
           else
             echo "native-keyring=false" >> "$GITHUB_OUTPUT"

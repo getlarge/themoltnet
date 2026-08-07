@@ -8,8 +8,6 @@ export const MOLTNET_SECRET_SERVICE = 'themolt.net';
 export interface SecretProvider {
   readonly name: string;
   read(key: string): Promise<string | null>;
-  write(key: string, value: string): Promise<void>;
-  delete(key: string): Promise<void>;
 }
 
 export class SecretProviderRegistry {
@@ -66,18 +64,6 @@ export class EnvironmentSecretProvider implements SecretProvider {
       );
     }
     return Promise.resolve(this.readValue(key) || null);
-  }
-
-  write(_key: string, _value: string): Promise<void> {
-    return Promise.reject(
-      new Error('Environment secret provider is read-only'),
-    );
-  }
-
-  delete(_key: string): Promise<void> {
-    return Promise.reject(
-      new Error('Environment secret provider is read-only'),
-    );
   }
 }
 
