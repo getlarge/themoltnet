@@ -953,7 +953,7 @@ jobs:
   e2e-agent-daemon:
     name: E2E Tests (Agent Daemon)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     permissions:
       contents: read
       packages: read
@@ -993,11 +993,41 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
+      - name: Resolve Gondolin APT cache key
+        id: gondolin-apt-key
+        if: needs.affected.outputs.e2e-agent-daemon == 'true'
+        run: |
+          os_release="$(. /etc/os-release && echo "${ID}-${VERSION_ID}")"
+          echo "prefix=${{ runner.os }}-${os_release}-${{ runner.arch }}-gondolin-qemu-v1-" >> "$GITHUB_OUTPUT"
+      - name: Restore Gondolin APT cache
+        id: gondolin-apt-cache
+        if: needs.affected.outputs.e2e-agent-daemon == 'true'
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.cache/moltnet/apt/archives
+          key: ${{ steps.gondolin-apt-key.outputs.prefix }}${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: ${{ steps.gondolin-apt-key.outputs.prefix }}
       - name: Install Gondolin sandbox dependencies
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
         run: |
+          apt_archives="$HOME/.cache/moltnet/apt/archives"
+          mkdir -p "$apt_archives/partial"
+          sudo chown -R _apt:root "$apt_archives"
           sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends qemu-utils qemu-system-x86
+          sudo apt-get \
+            -o Dir::Cache::archives="$apt_archives" \
+            -o APT::Keep-Downloaded-Packages=true \
+            install -y --no-install-recommends qemu-utils qemu-system-x86
+          sudo apt-get \
+            -o Dir::Cache::archives="$apt_archives" \
+            autoclean -qq
+          sudo chown -R "$(id -u):$(id -g)" "$apt_archives"
+      - name: Save Gondolin APT cache
+        if: needs.affected.outputs.e2e-agent-daemon == 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: ~/.cache/moltnet/apt/archives
+          key: ${{ steps.gondolin-apt-cache.outputs.cache-primary-key }}
       - name: Cache Gondolin snapshots
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
         uses: actions/cache@v5
