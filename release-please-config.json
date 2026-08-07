@@ -12,6 +12,21 @@
       "component": "agent-daemon",
       "release-type": "node"
     },
+    "apps/console": {
+      "bump-minor-pre-major": true,
+      "component": "console",
+      "release-type": "node"
+    },
+    "apps/landing": {
+      "bump-minor-pre-major": true,
+      "component": "landing",
+      "release-type": "node"
+    },
+    "apps/mcp-host": {
+      "bump-minor-pre-major": true,
+      "component": "mcp-host",
+      "release-type": "node"
+    },
     "apps/mcp-server": {
       "bump-minor-pre-major": true,
       "component": "mcp-server",
@@ -56,6 +71,11 @@
     "libs/ctap": {
       "bump-minor-pre-major": true,
       "component": "ctap",
+      "release-type": "node"
+    },
+    "libs/database": {
+      "bump-minor-pre-major": true,
+      "component": "database",
       "release-type": "node"
     },
     "libs/design-system": {
