@@ -59,19 +59,19 @@ func NewResolver(cfg Config, observer Observer) (*Resolver, error) {
 		cfg.RequiredScopes = []string{DefaultRequiredScope}
 	}
 	if cfg.CacheTTL == 0 {
-		cfg.CacheTTL = 60 * time.Second
+		cfg.CacheTTL = DefaultCacheTTL
 	}
 	if cfg.CacheTTL < 0 {
 		return nil, errors.New("cache TTL must not be negative")
 	}
 	if cfg.CacheMaxEntries == 0 {
-		cfg.CacheMaxEntries = 10_000
+		cfg.CacheMaxEntries = DefaultCacheMaxEntries
 	}
 	if cfg.CacheMaxEntries < 0 {
 		return nil, errors.New("cache max entries must not be negative")
 	}
 	if cfg.RequestTimeout == 0 {
-		cfg.RequestTimeout = 5 * time.Second
+		cfg.RequestTimeout = DefaultRequestTimeout
 	}
 	if cfg.RequestTimeout < 0 {
 		return nil, errors.New("request timeout must not be negative")
@@ -105,12 +105,12 @@ func (r *Resolver) Resolve(ctx context.Context, credential string) (Principal, e
 		return Principal{}, &InvalidError{Reason: "missing credential"}
 	}
 	if strings.HasPrefix(credential, "ory_ak_") {
-		return r.cache.resolve(ctx, CredentialTalos, r.cfg.TalosAdminURL, credential, func() (Principal, string, error) {
-			return r.resolveTalos(ctx, credential)
+		return r.cache.resolve(ctx, CredentialTalos, r.cfg.TalosAdminURL, credential, func(loadCtx context.Context) (Principal, string, error) {
+			return r.resolveTalos(loadCtx, credential)
 		})
 	}
-	return r.cache.resolve(ctx, CredentialOAuth, r.cfg.HydraAdminURL, credential, func() (Principal, string, error) {
-		return r.resolveOAuth(ctx, credential)
+	return r.cache.resolve(ctx, CredentialOAuth, r.cfg.HydraAdminURL, credential, func(loadCtx context.Context) (Principal, string, error) {
+		return r.resolveOAuth(loadCtx, credential)
 	})
 }
 
@@ -169,6 +169,9 @@ func (r *Resolver) resolveOAuth(ctx context.Context, credential string) (Princip
 	if err := r.authorize(&principal); err != nil {
 		return Principal{}, "", err
 	}
+	if err := r.requireActiveIdentity(ctx, principal.IdentityID, "OAuth actor is inactive"); err != nil {
+		return Principal{}, "", err
+	}
 	if response.Exp > 0 {
 		principal.ExpiresAt = time.Unix(response.Exp, 0)
 	}
@@ -219,17 +222,24 @@ func (r *Resolver) resolveTalos(ctx context.Context, credential string) (Princip
 	if err := r.authorize(&principal); err != nil {
 		return Principal{}, "", err
 	}
+	if err := r.requireActiveIdentity(ctx, response.ActorID, "Talos actor is inactive"); err != nil {
+		return Principal{}, "", err
+	}
+	return principal, cacheTag("talos-key", response.KeyID), nil
+}
+
+func (r *Resolver) requireActiveIdentity(ctx context.Context, identityID, reason string) error {
 	var identity struct {
 		ID    string `json:"id"`
 		State string `json:"state"`
 	}
-	if err := r.request(ctx, "kratos.identity", http.MethodGet, r.cfg.KratosAdminURL+"/admin/identities/"+url.PathEscape(response.ActorID), nil, "", &identity); err != nil {
-		return Principal{}, "", err
+	if err := r.request(ctx, "kratos.identity", http.MethodGet, r.cfg.KratosAdminURL+"/admin/identities/"+url.PathEscape(identityID), nil, "", &identity); err != nil {
+		return err
 	}
-	if identity.ID != response.ActorID || identity.State != "active" {
-		return Principal{}, "", &InvalidError{Reason: "Talos actor is inactive"}
+	if identity.ID != identityID || identity.State != "active" {
+		return &InvalidError{Reason: reason}
 	}
-	return principal, cacheTag("talos-key", response.KeyID), nil
+	return nil
 }
 
 func (r *Resolver) authorize(principal *Principal) error {

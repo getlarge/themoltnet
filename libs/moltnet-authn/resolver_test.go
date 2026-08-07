@@ -90,6 +90,8 @@ func TestResolveOAuthUsesHookClaimsAndRequiresAgentScope(t *testing.T) {
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{"active": true, "client_id": "client-1", "scope": "task:read task:execute", "exp": time.Now().Add(time.Hour).Unix(), "ext": map[string]interface{}{"moltnet:identity_id": "identity-1", "moltnet:subject_type": "agent"}})
 		case "/admin/clients/client-1":
 			metadataCalls.Add(1)
+		case "/admin/identities/identity-1":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"id": "identity-1", "state": "active"})
 		default:
 			http.NotFound(w, req)
 		}
@@ -106,6 +108,28 @@ func TestResolveOAuthUsesHookClaimsAndRequiresAgentScope(t *testing.T) {
 	}
 }
 
+func TestResolveOAuthRejectsInactiveKratosIdentity(t *testing.T) {
+	resolver, _ := newTestResolver(t, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		switch req.URL.Path {
+		case "/admin/oauth2/introspect":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"active": true, "client_id": "client-1", "scope": "task:execute",
+				"ext": map[string]interface{}{"moltnet:identity_id": "identity-1", "moltnet:subject_type": "agent"},
+			})
+		case "/admin/identities/identity-1":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"id": "identity-1", "state": "inactive"})
+		default:
+			http.NotFound(w, req)
+		}
+	}), nil)
+
+	_, err := resolver.Resolve(context.Background(), "oauth-secret")
+	var invalid *InvalidError
+	if !errors.As(err, &invalid) || invalid.Reason != "OAuth actor is inactive" {
+		t.Fatalf("inactive OAuth identity should be invalid, got %T %v", err, err)
+	}
+}
+
 func TestResolveOAuthClientMetadataFallbackAndHumanRejection(t *testing.T) {
 	var human atomic.Bool
 	resolver, _ := newTestResolver(t, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -118,6 +142,8 @@ func TestResolveOAuthClientMetadataFallbackAndHumanRejection(t *testing.T) {
 				kind = "moltnet_human"
 			}
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{"metadata": map[string]interface{}{"type": kind, "identity_id": "legacy-identity"}})
+		case "/admin/identities/legacy-identity":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"id": "legacy-identity", "state": "active"})
 		}
 	}), func(cfg *Config) { cfg.CacheTTL = time.Nanosecond })
 	principal, err := resolver.Resolve(context.Background(), "legacy-token")
@@ -293,6 +319,11 @@ func TestPositiveCacheSingleFlightExpiryLRUAndEviction(t *testing.T) {
 	var calls atomic.Int32
 	now := time.Now()
 	resolver, _ := newTestResolver(t, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if strings.HasPrefix(req.URL.Path, "/admin/identities/") {
+			identityID := strings.TrimPrefix(req.URL.Path, "/admin/identities/")
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"id": identityID, "state": "active"})
+			return
+		}
 		calls.Add(1)
 		time.Sleep(10 * time.Millisecond)
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{"active": true, "client_id": req.FormValue("token"), "scope": "task:execute", "exp": now.Add(time.Hour).Unix(), "ext": map[string]interface{}{"moltnet:identity_id": req.FormValue("token") + "-identity", "moltnet:subject_type": "agent"}})
@@ -335,6 +366,10 @@ func TestPositiveCacheTTLIsCappedByCredentialExpiry(t *testing.T) {
 	now := time.Now().Truncate(time.Second)
 	expiresAt := now.Add(10 * time.Second)
 	resolver, _ := newTestResolver(t, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if req.URL.Path == "/admin/identities/identity" {
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"id": "identity", "state": "active"})
+			return
+		}
 		if calls.Add(1) > 1 {
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{"active": false})
 			return
@@ -357,5 +392,74 @@ func TestPositiveCacheTTLIsCappedByCredentialExpiry(t *testing.T) {
 	}
 	if calls.Load() != 2 {
 		t.Fatalf("credential expiry did not cap cache TTL, calls=%d", calls.Load())
+	}
+}
+
+func TestSingleFlightLoadOutlivesLeaderCancellation(t *testing.T) {
+	started := make(chan struct{})
+	release := make(chan struct{})
+	var calls atomic.Int32
+	resolver, _ := newTestResolver(t, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		switch {
+		case req.URL.Path == "/admin/oauth2/introspect":
+			if calls.Add(1) == 1 {
+				close(started)
+			}
+			<-release
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"active": true, "client_id": "client", "scope": "task:execute",
+				"ext": map[string]interface{}{"moltnet:identity_id": "identity", "moltnet:subject_type": "agent"},
+			})
+		case req.URL.Path == "/admin/identities/identity":
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"id": "identity", "state": "active"})
+		default:
+			http.NotFound(w, req)
+		}
+	}), nil)
+
+	leaderCtx, cancel := context.WithCancel(context.Background())
+	leaderResult := make(chan error, 1)
+	go func() {
+		_, err := resolver.Resolve(leaderCtx, "oauth-secret")
+		leaderResult <- err
+	}()
+	<-started
+	cancel()
+	if err := <-leaderResult; !errors.Is(err, context.Canceled) {
+		t.Fatalf("cancelled leader returned %v", err)
+	}
+
+	waiterResult := make(chan error, 1)
+	go func() {
+		_, err := resolver.Resolve(context.Background(), "oauth-secret")
+		waiterResult <- err
+	}()
+	close(release)
+	if err := <-waiterResult; err != nil {
+		t.Fatalf("shared load did not survive leader cancellation: %v", err)
+	}
+	if calls.Load() != 1 {
+		t.Fatalf("leader cancellation started %d provider loads", calls.Load())
+	}
+}
+
+func TestSingleFlightPanicReleasesWaiters(t *testing.T) {
+	cache := newAuthCache(Config{
+		CacheTTL:        time.Minute,
+		CacheMaxEntries: 10,
+		HMACKey:         []byte("01234567890123456789012345678901"),
+		Now:             time.Now,
+	}, noopObserver{})
+	_, err := cache.resolve(context.Background(), CredentialOAuth, "issuer", "secret", func(context.Context) (Principal, string, error) {
+		panic("boom")
+	})
+	if err == nil || strings.Contains(err.Error(), "boom") {
+		t.Fatalf("panic should become a secret-safe load failure: %v", err)
+	}
+	principal, err := cache.resolve(context.Background(), CredentialOAuth, "issuer", "secret", func(context.Context) (Principal, string, error) {
+		return Principal{IdentityID: "identity"}, "tag", nil
+	})
+	if err != nil || principal.IdentityID != "identity" {
+		t.Fatalf("flight remained stuck after panic: %#v %v", principal, err)
 	}
 }

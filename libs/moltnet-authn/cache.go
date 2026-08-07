@@ -6,6 +6,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"strconv"
 	"strings"
 	"sync"
@@ -64,7 +65,7 @@ func clonePrincipal(p Principal) Principal {
 	return p
 }
 
-func (c *authCache) resolve(ctx context.Context, kind, issuer, credential string, load func() (Principal, string, error)) (Principal, error) {
+func (c *authCache) resolve(ctx context.Context, kind, issuer, credential string, load func(context.Context) (Principal, string, error)) (Principal, error) {
 	key := c.digest(kind, issuer, credential)
 	for {
 		c.mu.Lock()
@@ -99,9 +100,36 @@ func (c *authCache) resolve(ctx context.Context, kind, issuer, credential string
 		c.flights[key] = current
 		c.mu.Unlock()
 		c.observer.CacheAccess(ctx, kind, "miss")
+		go c.runFlight(context.WithoutCancel(ctx), key, current, load)
+		select {
+		case <-ctx.Done():
+			return Principal{}, ctx.Err()
+		case <-current.done:
+			if current.err != nil {
+				return Principal{}, current.err
+			}
+			if current.principal.IdentityID == "" {
+				continue
+			}
+			return clonePrincipal(current.principal), nil
+		}
+	}
+}
 
-		principal, tag, err := load()
+func (c *authCache) runFlight(ctx context.Context, key string, current *flight, load func(context.Context) (Principal, string, error)) {
+	var principal Principal
+	var tag string
+	var err error
+	defer func() {
+		if recover() != nil {
+			principal = Principal{}
+			err = &UnavailableError{
+				Provider: "credential_resolver",
+				Cause:    errors.New("credential resolver failed unexpectedly"),
+			}
+		}
 		c.mu.Lock()
+		defer c.mu.Unlock()
 		if err == nil {
 			if _, invalidated := current.invalidated[tag]; invalidated {
 				principal = Principal{}
@@ -118,15 +146,8 @@ func (c *authCache) resolve(ctx context.Context, kind, issuer, credential string
 		current.principal, current.err = clonePrincipal(principal), err
 		delete(c.flights, key)
 		close(current.done)
-		c.mu.Unlock()
-		if err != nil {
-			return Principal{}, err
-		}
-		if principal.IdentityID == "" {
-			continue
-		}
-		return clonePrincipal(principal), nil
-	}
+	}()
+	principal, tag, err = load(ctx)
 }
 
 func (c *authCache) insertLocked(key string, principal Principal, expiresAt time.Time, tag string, ctx context.Context) {

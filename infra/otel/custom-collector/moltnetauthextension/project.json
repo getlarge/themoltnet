@@ -5,11 +5,12 @@
   "tags": ["lang:go", "type:lib", "scope:observability"],
   "targets": {
     "lint": {
-      "executor": "nx:run-commands",
+      "executor": "@nx-go/nx-go:lint",
       "options": {
-        "command": "GOWORK=off go fmt ./...",
-        "cwd": "{projectRoot}"
-      }
+        "args": ["GOWORK=off", "golangci-lint", "run"],
+        "linter": "env"
+      },
+      "parallelism": false
     },
     "test": {
       "executor": "nx:run-commands",

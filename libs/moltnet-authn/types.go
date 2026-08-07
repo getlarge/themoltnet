@@ -10,10 +10,14 @@ import (
 )
 
 const (
-	SubjectAgent         = "agent"
-	CredentialOAuth      = "oauth"
-	CredentialTalos      = "talos"
-	DefaultRequiredScope = "task:execute"
+	SubjectAgent           = "agent"
+	CredentialOAuth        = "oauth"
+	CredentialTalos        = "talos"
+	IdentityIDAttribute    = "moltnet.identity_id"
+	DefaultRequiredScope   = "task:execute"
+	DefaultCacheTTL        = 60 * time.Second
+	DefaultCacheMaxEntries = 10_000
+	DefaultRequestTimeout  = 5 * time.Second
 )
 
 // Principal is the trusted identity resolved from a bearer credential.

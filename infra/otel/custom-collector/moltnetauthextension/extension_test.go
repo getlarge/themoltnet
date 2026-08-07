@@ -3,6 +3,7 @@ package moltnetauthextension
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -21,6 +22,26 @@ func TestExtractBearer(t *testing.T) {
 	for _, headers := range []map[string][]string{{}, {"Authorization": {"Basic abc"}}, {"Authorization": {"Bearer"}}, {"Authorization": {"Bearer a", "Bearer b"}}} {
 		if _, err := extractBearer(headers); err == nil {
 			t.Fatalf("expected malformed header rejection: %#v", headers)
+		}
+	}
+}
+
+func TestRejectionReasonsAreBounded(t *testing.T) {
+	tests := []struct {
+		err    error
+		reason string
+	}{
+		{errMissingAuthorization, "missing_authorization"},
+		{errMalformedAuthorization, "malformed_authorization"},
+		{&authn.InvalidError{Reason: "insufficient scope"}, "insufficient_scope"},
+		{&authn.InvalidError{Reason: "inactive token"}, "invalid_credential"},
+		{&authn.RateLimitedError{Provider: "hydra"}, "provider_rate_limited"},
+		{&authn.UnavailableError{Provider: "kratos"}, "provider_unavailable"},
+		{errors.New("unexpected"), "authentication_error"},
+	}
+	for _, tc := range tests {
+		if actual := rejectionReason(tc.err); actual != tc.reason {
+			t.Fatalf("rejectionReason(%v) = %q, want %q", tc.err, actual, tc.reason)
 		}
 	}
 }
@@ -52,6 +73,10 @@ func TestBoundedLimiterIsolatesAgentsAndBoundsState(t *testing.T) {
 
 func TestAuthenticatePropagatesTrustedPrincipal(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if req.URL.Path == "/admin/identities/agent-identity" {
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"id": "agent-identity", "state": "active"})
+			return
+		}
 		if req.URL.Path != "/admin/oauth2/introspect" {
 			http.NotFound(w, req)
 			return

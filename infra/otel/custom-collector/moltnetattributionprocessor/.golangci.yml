@@ -1,0 +1,20 @@
+version: '2'
+
+run:
+  timeout: 3m
+  modules-download-mode: readonly
+
+linters:
+  default: none
+  enable:
+    - depguard
+  settings:
+    depguard:
+      rules:
+        collector-processor-boundary:
+          list-mode: lax
+          files:
+            - '$all'
+          deny:
+            - pkg: github.com/getlarge/themoltnet/apps
+              desc: 'the attribution processor must not depend on applications.'

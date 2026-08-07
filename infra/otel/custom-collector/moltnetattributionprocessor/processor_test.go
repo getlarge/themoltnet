@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"go.opentelemetry.io/collector/client"
+	"go.opentelemetry.io/collector/consumer/consumererror"
+	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/ptrace"
@@ -40,6 +42,10 @@ func TestAllSignalsOverwriteSpoofedIdentity(t *testing.T) {
 	tr.Resource().Attributes().PutStr(agentIDKey, "spoofed")
 	span := tr.ScopeSpans().AppendEmpty().Spans().AppendEmpty()
 	span.Attributes().PutStr(agentIDKey, "span-spoofed")
+	event := span.Events().AppendEmpty()
+	event.Attributes().PutStr(agentIDKey, "event-spoofed")
+	link := span.Links().AppendEmpty()
+	link.Attributes().PutStr(agentIDKey, "link-spoofed")
 	if _, err := p.processTraces(ctx, traces); err != nil {
 		t.Fatal(err)
 	}
@@ -51,9 +57,19 @@ func TestAllSignalsOverwriteSpoofedIdentity(t *testing.T) {
 	if value.Str() != "trusted-agent" {
 		t.Fatal("span identity not replaced")
 	}
+	if value, _ = event.Attributes().Get(agentIDKey); value.Str() != "trusted-agent" {
+		t.Fatal("span event identity not replaced")
+	}
+	if value, _ = link.Attributes().Get(agentIDKey); value.Str() != "trusted-agent" {
+		t.Fatal("span link identity not replaced")
+	}
 	logs := plog.NewLogs()
 	lr := logs.ResourceLogs().AppendEmpty()
 	lr.Resource().Attributes().PutStr(agentIDKey, "spoofed")
+	ls := lr.ScopeLogs().AppendEmpty()
+	ls.Scope().Attributes().PutStr(agentIDKey, "scope-spoofed")
+	record := ls.LogRecords().AppendEmpty()
+	record.Attributes().PutStr(agentIDKey, "record-spoofed")
 	if _, err := p.processLogs(ctx, logs); err != nil {
 		t.Fatal(err)
 	}
@@ -61,15 +77,31 @@ func TestAllSignalsOverwriteSpoofedIdentity(t *testing.T) {
 	if value.Str() != "trusted-agent" {
 		t.Fatal("log identity not replaced")
 	}
+	if value, _ = ls.Scope().Attributes().Get(agentIDKey); value.Str() != "trusted-agent" {
+		t.Fatal("log scope identity not replaced")
+	}
+	if value, _ = record.Attributes().Get(agentIDKey); value.Str() != "trusted-agent" {
+		t.Fatal("log record identity not replaced")
+	}
 	metrics := pmetric.NewMetrics()
 	mr := metrics.ResourceMetrics().AppendEmpty()
 	mr.Resource().Attributes().PutStr(agentIDKey, "spoofed")
+	ms := mr.ScopeMetrics().AppendEmpty()
+	ms.Scope().Attributes().PutStr(agentIDKey, "scope-spoofed")
+	metricItem := ms.Metrics().AppendEmpty()
+	metricItem.SetEmptyGauge().DataPoints().AppendEmpty().Attributes().PutStr(agentIDKey, "point-spoofed")
 	if _, err := p.processMetrics(ctx, metrics); err != nil {
 		t.Fatal(err)
 	}
 	value, _ = mr.Resource().Attributes().Get(agentIDKey)
 	if value.Str() != "trusted-agent" {
 		t.Fatal("metric identity not replaced")
+	}
+	if value, _ = ms.Scope().Attributes().Get(agentIDKey); value.Str() != "trusted-agent" {
+		t.Fatal("metric scope identity not replaced")
+	}
+	if value, _ = metricItem.Gauge().DataPoints().At(0).Attributes().Get(agentIDKey); value.Str() != "trusted-agent" {
+		t.Fatal("metric point identity not replaced")
 	}
 }
 
@@ -115,10 +147,66 @@ func TestMetricsRemoveTaskDimensionsOnly(t *testing.T) {
 	if value, ok := span.Attributes().Get("taskId"); !ok || value.Str() != "kept" {
 		t.Fatal("trace task correlation removed")
 	}
+	logs := plog.NewLogs()
+	record := logs.ResourceLogs().AppendEmpty().ScopeLogs().AppendEmpty().LogRecords().AppendEmpty()
+	record.Attributes().PutStr("task_id", "kept")
+	if _, err := p.processLogs(trustedContext(), logs); err != nil {
+		t.Fatal(err)
+	}
+	if value, ok := record.Attributes().Get("task_id"); !ok || value.Str() != "kept" {
+		t.Fatal("log task correlation removed")
+	}
+}
+
+func TestAllMetricTypesRemoveTaskDimensions(t *testing.T) {
+	metricAttributes := []struct {
+		name string
+		add  func(pmetric.Metric) pcommon.Map
+	}{
+		{"gauge", func(metric pmetric.Metric) pcommon.Map {
+			return metric.SetEmptyGauge().DataPoints().AppendEmpty().Attributes()
+		}},
+		{"sum", func(metric pmetric.Metric) pcommon.Map {
+			return metric.SetEmptySum().DataPoints().AppendEmpty().Attributes()
+		}},
+		{"histogram", func(metric pmetric.Metric) pcommon.Map {
+			return metric.SetEmptyHistogram().DataPoints().AppendEmpty().Attributes()
+		}},
+		{"exponential histogram", func(metric pmetric.Metric) pcommon.Map {
+			return metric.SetEmptyExponentialHistogram().DataPoints().AppendEmpty().Attributes()
+		}},
+		{"summary", func(metric pmetric.Metric) pcommon.Map {
+			return metric.SetEmptySummary().DataPoints().AppendEmpty().Attributes()
+		}},
+	}
+
+	for _, tc := range metricAttributes {
+		t.Run(tc.name, func(t *testing.T) {
+			metrics := pmetric.NewMetrics()
+			metricItem := metrics.ResourceMetrics().AppendEmpty().ScopeMetrics().AppendEmpty().Metrics().AppendEmpty()
+			attrs := tc.add(metricItem)
+			attrs.PutStr("task.id", "remove-me")
+			attrs.PutStr(agentIDKey, "spoofed")
+
+			if _, err := testAttributor(t).processMetrics(trustedContext(), metrics); err != nil {
+				t.Fatal(err)
+			}
+			if _, ok := attrs.Get("task.id"); ok {
+				t.Fatal("task dimension retained")
+			}
+			if value, ok := attrs.Get(agentIDKey); !ok || value.Str() != "trusted-agent" {
+				t.Fatal("metric identity not replaced")
+			}
+		})
+	}
 }
 
 func TestRejectsMissingTrustedContext(t *testing.T) {
-	if _, err := testAttributor(t).processTraces(context.Background(), ptrace.NewTraces()); err == nil {
+	_, err := testAttributor(t).processTraces(context.Background(), ptrace.NewTraces())
+	if err == nil {
 		t.Fatal("missing auth context accepted")
+	}
+	if !consumererror.IsPermanent(err) {
+		t.Fatalf("missing auth context must not be retried: %v", err)
 	}
 }

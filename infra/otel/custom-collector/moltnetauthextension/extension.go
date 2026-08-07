@@ -22,6 +22,7 @@ type authExtension struct {
 	resolver  *authn.Resolver
 	limiter   *boundedLimiter
 	throttled metric.Int64Counter
+	rejected  metric.Int64Counter
 }
 
 func newExtension(cfg *Config, settings extension.Settings) (*authExtension, error) {
@@ -34,11 +35,15 @@ func newExtension(cfg *Config, settings extension.Settings) (*authExtension, err
 	if err != nil {
 		return nil, err
 	}
+	rejected, err := meter.Int64Counter("moltnet.auth.rejected.requests", metric.WithDescription("Rejected public OTLP authentication attempts by bounded reason"))
+	if err != nil {
+		return nil, err
+	}
 	resolver, err := authn.NewResolver(authn.Config{ProjectURL: cfg.ProjectURL, APIKey: cfg.APIKey, HydraAdminURL: cfg.HydraAdminURL, TalosAdminURL: cfg.TalosAdminURL, KratosAdminURL: cfg.KratosAdminURL, RequiredScopes: cfg.RequiredScopes, CacheTTL: *cfg.CacheTTL, CacheMaxEntries: *cfg.CacheMaxEntries, RequestTimeout: *cfg.RequestTimeout}, observer)
 	if err != nil {
 		return nil, err
 	}
-	return &authExtension{cfg: cfg, logger: settings.Logger, resolver: resolver, limiter: newBoundedLimiter(cfg), throttled: throttled}, nil
+	return &authExtension{cfg: cfg, logger: settings.Logger, resolver: resolver, limiter: newBoundedLimiter(cfg), throttled: throttled, rejected: rejected}, nil
 }
 func (a *authExtension) Start(context.Context, component.Host) error {
 	a.logger.Info("MoltNet public OTLP authentication started", zap.Strings("required_scopes", a.cfg.RequiredScopes))
@@ -49,25 +54,72 @@ func (a *authExtension) Shutdown(context.Context) error { return nil }
 func (a *authExtension) Authenticate(ctx context.Context, headers map[string][]string) (context.Context, error) {
 	if !a.limiter.allowGlobal() {
 		a.throttled.Add(ctx, 1, metric.WithAttributes(attribute.String("stage", "pre_auth")))
-		return ctx, errors.New("public OTLP request rate limited")
+		err := &authn.RateLimitedError{Provider: "public_ingress"}
+		a.recordRejection(ctx, "pre_auth_rate_limited", err)
+		return ctx, err
 	}
 	credential, err := extractBearer(headers)
 	if err != nil {
+		a.recordRejection(ctx, rejectionReason(err), err)
 		return ctx, err
 	}
 	principal, err := a.resolver.Resolve(ctx, credential)
 	if err != nil {
+		a.recordRejection(ctx, rejectionReason(err), err)
 		return ctx, err
 	}
 	if !a.limiter.allowAgent(principal.IdentityID) {
 		a.throttled.Add(ctx, 1, metric.WithAttributes(attribute.String("stage", "agent")))
-		return ctx, errors.New("public OTLP agent rate limited")
+		err := &authn.RateLimitedError{Provider: "agent_ingress"}
+		a.recordRejection(ctx, "agent_rate_limited", err)
+		return ctx, err
 	}
 	info := client.FromContext(ctx)
 	info.Metadata = client.NewMetadata(map[string][]string{"auth.subject_type": {principal.SubjectType}, "auth.identity_id": {principal.IdentityID}, "auth.credential_type": {principal.CredentialType}})
 	info.Auth = principalAuth{principal: principal}
 	return client.NewContext(ctx, info), nil
 }
+
+func (a *authExtension) recordRejection(ctx context.Context, reason string, err error) {
+	if a.rejected != nil {
+		a.rejected.Add(ctx, 1, metric.WithAttributes(attribute.String("reason", reason)))
+	}
+	var rateLimited *authn.RateLimitedError
+	var unavailable *authn.UnavailableError
+	if a.logger != nil && (errors.As(err, &rateLimited) || errors.As(err, &unavailable)) {
+		a.logger.Warn("MoltNet public OTLP authentication rejected", zap.String("reason", reason))
+	}
+}
+
+func rejectionReason(err error) string {
+	switch {
+	case errors.Is(err, errMissingAuthorization):
+		return "missing_authorization"
+	case errors.Is(err, errMalformedAuthorization):
+		return "malformed_authorization"
+	}
+	var invalid *authn.InvalidError
+	if errors.As(err, &invalid) {
+		if invalid.Reason == "insufficient scope" {
+			return "insufficient_scope"
+		}
+		return "invalid_credential"
+	}
+	var rateLimited *authn.RateLimitedError
+	if errors.As(err, &rateLimited) {
+		return "provider_rate_limited"
+	}
+	var unavailable *authn.UnavailableError
+	if errors.As(err, &unavailable) {
+		return "provider_unavailable"
+	}
+	return "authentication_error"
+}
+
+var (
+	errMissingAuthorization   = errors.New("missing Authorization header")
+	errMalformedAuthorization = errors.New(`Authorization header must be "Bearer <credential>"`)
+)
 
 func extractBearer(headers map[string][]string) (string, error) {
 	for key, values := range headers {
@@ -78,16 +130,16 @@ func extractBearer(headers map[string][]string) (string, error) {
 		if len(parts) == 2 && strings.EqualFold(parts[0], "bearer") && parts[1] != "" {
 			return parts[1], nil
 		}
-		return "", errors.New(`Authorization header must be "Bearer <credential>"`)
+		return "", errMalformedAuthorization
 	}
-	return "", errors.New("missing Authorization header")
+	return "", errMissingAuthorization
 }
 
 type principalAuth struct{ principal authn.Principal }
 
 func (a principalAuth) GetAttribute(name string) any {
 	switch name {
-	case "sub", "subject", "moltnet.identity_id":
+	case "sub", "subject", authn.IdentityIDAttribute:
 		return a.principal.IdentityID
 	case "subject_type":
 		return a.principal.SubjectType
@@ -106,7 +158,7 @@ func (a principalAuth) GetAttribute(name string) any {
 	}
 }
 func (a principalAuth) GetAttributeNames() []string {
-	return []string{"sub", "subject", "moltnet.identity_id", "subject_type", "client_id", "key_id", "credential_type", "scope", "team_id"}
+	return []string{"sub", "subject", authn.IdentityIDAttribute, "subject_type", "client_id", "key_id", "credential_type", "scope", "team_id"}
 }
 
 type metricObserver struct {

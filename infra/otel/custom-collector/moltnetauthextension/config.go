@@ -3,6 +3,8 @@ package moltnetauthextension
 import (
 	"errors"
 	"time"
+
+	authn "github.com/getlarge/themoltnet/libs/moltnet-authn"
 )
 
 type Config struct {
@@ -25,19 +27,19 @@ type Config struct {
 
 func (c *Config) withDefaults() {
 	if c.CacheTTL == nil {
-		value := 60 * time.Second
+		value := authn.DefaultCacheTTL
 		c.CacheTTL = &value
 	}
 	if c.CacheMaxEntries == nil {
-		value := 10_000
+		value := authn.DefaultCacheMaxEntries
 		c.CacheMaxEntries = &value
 	}
 	if c.RequestTimeout == nil {
-		value := 5 * time.Second
+		value := authn.DefaultRequestTimeout
 		c.RequestTimeout = &value
 	}
 	if len(c.RequiredScopes) == 0 {
-		c.RequiredScopes = []string{"task:execute"}
+		c.RequiredScopes = []string{authn.DefaultRequiredScope}
 	}
 	if c.GlobalRate == 0 {
 		c.GlobalRate = 100

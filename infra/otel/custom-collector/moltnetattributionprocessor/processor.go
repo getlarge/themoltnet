@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 
+	authn "github.com/getlarge/themoltnet/libs/moltnet-authn"
 	"go.opentelemetry.io/collector/client"
+	"go.opentelemetry.io/collector/consumer/consumererror"
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/plog"
 	"go.opentelemetry.io/collector/pdata/pmetric"
@@ -16,7 +18,12 @@ import (
 
 const agentIDKey = "moltnet.agent.id"
 
-var taskIDKeys = []string{"moltnet.task.id", "task.id", "taskId", "task_id"}
+var taskIDKeys = map[string]struct{}{
+	"moltnet.task.id": {},
+	"task.id":         {},
+	"taskId":          {},
+	"task_id":         {},
+}
 
 type attributor struct {
 	conflicts metric.Int64Counter
@@ -40,12 +47,12 @@ func trustedIdentity(ctx context.Context, rejected metric.Int64Counter, signal s
 	info := client.FromContext(ctx)
 	if info.Auth == nil {
 		rejected.Add(ctx, 1, metric.WithAttributes(attribute.String("signal", signal)))
-		return "", errors.New("trusted MoltNet authentication context is required")
+		return "", consumererror.NewPermanent(errors.New("trusted MoltNet authentication context is required"))
 	}
-	identity, ok := info.Auth.GetAttribute("moltnet.identity_id").(string)
+	identity, ok := info.Auth.GetAttribute(authn.IdentityIDAttribute).(string)
 	if !ok || identity == "" {
 		rejected.Add(ctx, 1, metric.WithAttributes(attribute.String("signal", signal)))
-		return "", errors.New("trusted MoltNet identity is required")
+		return "", consumererror.NewPermanent(errors.New("trusted MoltNet identity is required"))
 	}
 	return identity, nil
 }
@@ -79,7 +86,16 @@ func (p *attributor) processTraces(ctx context.Context, data ptrace.Traces) (ptr
 			p.replaceIdentityIfPresent(ctx, scope.Scope().Attributes(), identity, "traces")
 			spans := scope.Spans()
 			for k := 0; k < spans.Len(); k++ {
-				p.replaceIdentityIfPresent(ctx, spans.At(k).Attributes(), identity, "traces")
+				span := spans.At(k)
+				p.replaceIdentityIfPresent(ctx, span.Attributes(), identity, "traces")
+				events := span.Events()
+				for eventIndex := 0; eventIndex < events.Len(); eventIndex++ {
+					p.replaceIdentityIfPresent(ctx, events.At(eventIndex).Attributes(), identity, "traces")
+				}
+				links := span.Links()
+				for linkIndex := 0; linkIndex < links.Len(); linkIndex++ {
+					p.replaceIdentityIfPresent(ctx, links.At(linkIndex).Attributes(), identity, "traces")
+				}
 			}
 		}
 	}
@@ -136,9 +152,10 @@ func (p *attributor) processMetrics(ctx context.Context, data pmetric.Metrics) (
 // becoming unbounded public metric dimensions. Traces and logs retain task IDs
 // as client-supplied correlation data.
 func removeTaskIDDimensions(attrs pcommon.Map) {
-	for _, key := range taskIDKeys {
-		attrs.Remove(key)
-	}
+	attrs.RemoveIf(func(key string, _ pcommon.Value) bool {
+		_, remove := taskIDKeys[key]
+		return remove
+	})
 }
 func (p *attributor) cleanMetric(ctx context.Context, item pmetric.Metric, identity string) {
 	switch item.Type() {
