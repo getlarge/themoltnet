@@ -480,6 +480,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         waitForFirstTaskMs: waitForFirstTaskSec * 1_000,
         waitAfterTaskMs: waitAfterTaskSec * 1_000,
         debug: baseCommon.debug,
+        traceIdlePolling: cfg.traceIdlePolling,
         logger: rootLogger,
         executorFingerprints: Object.fromEntries(
           profiles.map((profile) => [

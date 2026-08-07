@@ -148,15 +148,21 @@ export class AgentRuntime {
                   : {}),
               },
               async (span) => {
-                const result = await this.opts.executeTask(
-                  claimedTask,
-                  reporter,
-                );
-                span.setAttribute('moltnet.task.status', result.status);
-                if (result.error) {
-                  span.setAttribute('error.type', result.error.code);
+                try {
+                  const result = await this.opts.executeTask(
+                    claimedTask,
+                    reporter,
+                  );
+                  span.setAttribute('moltnet.task.status', result.status);
+                  if (result.error) {
+                    span.setAttribute('error.type', result.error.code);
+                  }
+                  return result;
+                } catch (error) {
+                  span.setAttribute('moltnet.task.status', 'failed');
+                  span.setAttribute('error.type', 'executor_threw');
+                  throw error;
                 }
-                return result;
               },
             ),
           );

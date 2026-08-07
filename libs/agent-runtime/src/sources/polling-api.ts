@@ -7,7 +7,10 @@ import { MoltNetError } from '@themoltnet/sdk';
 import { pino } from 'pino';
 
 import type { AgentRuntimeLogger } from '../runtime.js';
-import { traceRuntimePhase } from '../telemetry.js';
+import {
+  recordCompletedRuntimePhase,
+  traceRuntimePhase,
+} from '../telemetry.js';
 import type {
   ClaimedTask,
   CreateClaimAttestation,
@@ -291,6 +294,11 @@ export interface PollingApiTaskSourceOptions {
    * unconditionally regardless of this flag.
    */
   debug?: boolean;
+  /**
+   * Record empty list calls and idle sleeps for benchmark phase accounting.
+   * Disabled by default to avoid an unbounded stream of idle root spans.
+   */
+  traceIdlePolling?: boolean;
 }
 
 const DEFAULT_LIST_LIMIT = 10;
@@ -429,32 +437,39 @@ export class PollingApiTaskSource implements TaskSource {
       const key = profileKey(profile, i);
       if (exhausted.has(key)) continue;
       if (this.aborted()) break;
+      const spanAttributes = {
+        'moltnet.task_source.profile_bound': Boolean(profile.profileId),
+        'moltnet.task_source.page_size': this.listLimit,
+      };
+      const listStartedAt = Date.now();
       try {
         const taskTypes =
           this.opts.taskTypes && this.opts.taskTypes.length > 0
             ? this.opts.taskTypes
             : undefined;
-        const result = await traceRuntimePhase(
-          'moltnet.task_source.list',
+        const result = await this.opts.agent.tasks.list(
           {
-            'moltnet.task_source.profile_bound': Boolean(profile.profileId),
-            'moltnet.task_source.page_size': this.listLimit,
+            status: 'queued' satisfies TaskStatus,
+            ...(taskTypes ? { taskTypes } : {}),
+            ...(this.opts.correlationId
+              ? { correlationId: this.opts.correlationId }
+              : {}),
+            ...(profile.profileId ? { profileId: profile.profileId } : {}),
+            ...(cursors.get(key) ? { cursor: cursors.get(key) } : {}),
+            limit: this.listLimit,
           },
-          () =>
-            this.opts.agent.tasks.list(
-              {
-                status: 'queued' satisfies TaskStatus,
-                ...(taskTypes ? { taskTypes } : {}),
-                ...(this.opts.correlationId
-                  ? { correlationId: this.opts.correlationId }
-                  : {}),
-                ...(profile.profileId ? { profileId: profile.profileId } : {}),
-                ...(cursors.get(key) ? { cursor: cursors.get(key) } : {}),
-                limit: this.listLimit,
-              },
-              { teamId: this.opts.teamId },
-            ),
+          { teamId: this.opts.teamId },
         );
+        if (this.opts.traceIdlePolling || result.items.length > 0) {
+          recordCompletedRuntimePhase(
+            'moltnet.task_source.list',
+            {
+              ...spanAttributes,
+              'moltnet.task_source.candidates': result.items.length,
+            },
+            listStartedAt,
+          );
+        }
         if (result.nextCursor) {
           cursors.set(key, result.nextCursor);
         } else {
@@ -539,6 +554,12 @@ export class PollingApiTaskSource implements TaskSource {
           out.push({ task: item, profile });
         }
       } catch (err) {
+        recordCompletedRuntimePhase(
+          'moltnet.task_source.list',
+          spanAttributes,
+          listStartedAt,
+          err,
+        );
         // List failures (e.g. 5xx) are transient. Log + signal the caller
         // so drain-mode doesn't misread an empty result as a drained
         // queue. The poll loop backs off and retries; a real exit only
@@ -641,11 +662,15 @@ export class PollingApiTaskSource implements TaskSource {
     // Full jitter: random in [base/2, base * 1.5). Avoids thundering-herd
     // when multiple daemons (eventually) share a queue.
     const jittered = Math.floor(base * 0.5 + Math.random() * base);
-    await traceRuntimePhase(
-      'moltnet.task_source.poll_sleep',
-      { 'moltnet.task_source.backoff_ms': jittered },
-      () => abortableSleep(jittered, this.opts.signal),
-    );
+    if (this.opts.traceIdlePolling) {
+      await traceRuntimePhase(
+        'moltnet.task_source.poll_sleep',
+        { 'moltnet.task_source.backoff_ms': jittered },
+        () => abortableSleep(jittered, this.opts.signal),
+      );
+    } else {
+      await abortableSleep(jittered, this.opts.signal);
+    }
     // Double for next idle tick, capped.
     this.currentBackoffMs = Math.min(
       this.maxBackoffMs,

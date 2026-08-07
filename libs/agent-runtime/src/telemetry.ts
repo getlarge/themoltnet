@@ -29,6 +29,32 @@ export async function traceRuntimePhase<T>(
   });
 }
 
+/**
+ * Record a phase after it completes. This lets callers suppress routine idle
+ * work without losing the duration of non-empty or failed operations.
+ */
+export function recordCompletedRuntimePhase(
+  name: string,
+  attributes: Attributes,
+  startedAt: number,
+  error?: unknown,
+): void {
+  const span = tracer.startSpan(name, { attributes, startTime: startedAt });
+  if (error === undefined) {
+    span.setStatus({ code: SpanStatusCode.OK });
+  } else {
+    const message =
+      error instanceof Error
+        ? error.message
+        : typeof error === 'string'
+          ? error
+          : 'Unknown runtime phase error';
+    span.recordException(error instanceof Error ? error : new Error(message));
+    span.setStatus({ code: SpanStatusCode.ERROR, message });
+  }
+  span.end(Date.now());
+}
+
 export function addActiveTaskEvent(
   name: string,
   attributes: Attributes = {},

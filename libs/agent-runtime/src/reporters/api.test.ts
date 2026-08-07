@@ -1,6 +1,19 @@
 import type { TasksNamespace } from '@themoltnet/sdk';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+const reporterTelemetry = vi.hoisted(() => ({
+  addActiveTaskEvent: vi.fn(),
+}));
+
+vi.mock('../telemetry.js', () => ({
+  addActiveTaskEvent: reporterTelemetry.addActiveTaskEvent,
+  traceRuntimePhase: async (
+    _name: string,
+    _attributes: unknown,
+    run: () => Promise<unknown>,
+  ) => run(),
+}));
+
 import { ApiTaskReporter } from './api.js';
 
 function makeMockTasks(overrides: Partial<TasksNamespace> = {}): {
@@ -38,6 +51,7 @@ const TASK_ID = '11111111-1111-4111-8111-111111111111';
 describe('ApiTaskReporter', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    reporterTelemetry.addActiveTaskEvent.mockClear();
   });
 
   afterEach(() => {
@@ -73,6 +87,32 @@ describe('ApiTaskReporter', () => {
     // Immediate + one periodic heartbeat
     expect(heartbeatMock).toHaveBeenCalledTimes(2);
     expect(reporter.getUsage()).toEqual({ inputTokens: 1, outputTokens: 2 });
+  });
+
+  it('emits the first-useful event once per open lifecycle', async () => {
+    const { tasks } = makeMockTasks();
+    const reporter = new ApiTaskReporter({
+      tasks,
+      heartbeatIntervalMs: 60_000,
+      maxBatchSize: 10,
+      flushIntervalMs: 0,
+    });
+
+    await reporter.open({ taskId: TASK_ID, attemptN: 1 });
+    await reporter.record({ kind: 'text_delta', payload: { delta: 'one' } });
+    await reporter.record({ kind: 'text_delta', payload: { delta: 'two' } });
+    expect(reporterTelemetry.addActiveTaskEvent).toHaveBeenCalledTimes(1);
+
+    await reporter.open({
+      taskId: '22222222-2222-4222-8222-222222222222',
+      attemptN: 1,
+    });
+    await reporter.record({
+      kind: 'tool_call_start',
+      payload: { tool: 'read' },
+    });
+
+    expect(reporterTelemetry.addActiveTaskEvent).toHaveBeenCalledTimes(2);
   });
 
   it('throws when appending messages fails', async () => {
