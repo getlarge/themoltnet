@@ -449,7 +449,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish-os-keyring:
-    name: Publish OS keyring packages to npm
+    name: Publish OS keyring package to npm
     needs: resolve-publish
     if: ${{ always() && needs.resolve-publish.outputs.os-keyring == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
@@ -469,58 +469,20 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm exec nx run-many -t build test check:pack --projects=@themoltnet/os-keyring,@themoltnet/os-keyring-darwin,@themoltnet/os-keyring-linux,@themoltnet/os-keyring-win32
+      - run: pnpm exec nx run-many -t build test check:pack --projects=@themoltnet/os-keyring
 
-      # Publish platform packages first so the adapter's optional dependencies
-      # are resolvable as soon as its tarball reaches the registry.
-      - name: Publish OS keyring package set
+      - name: Publish @themoltnet/os-keyring
         uses: nick-fields/retry@v4.0.0
         with:
-          timeout_minutes: 20
+          timeout_minutes: 10
           max_attempts: 3
           retry_wait_seconds: 30
-          command: |
-            set -euo pipefail
-            for DIR in libs/os-keyring-darwin libs/os-keyring-linux libs/os-keyring-win32 libs/os-keyring; do
-              NAME=$(node -p "require('./${DIR}/package.json').name")
-              VERSION=$(node -p "require('./${DIR}/package.json').version")
-              if [ "$(npm view "${NAME}@${VERSION}" version 2>/dev/null || true)" = "${VERSION}" ]; then
-                echo "${NAME}@${VERSION} is already published"
-                continue
-              fi
-              pnpm --filter "${NAME}" publish --no-git-checks --access public --provenance
-            done
+          command: pnpm --filter @themoltnet/os-keyring publish --no-git-checks --access public --provenance
 
       - name: Publish OS keyring release
         run: gh release edit "${{ needs.resolve-publish.outputs.os-keyring-tag }}" --draft=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create sibling tags
-        uses: nick-fields/retry@v4.0.0
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OS_KEYRING_TAG: ${{ needs.resolve-publish.outputs.os-keyring-tag }}
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          retry_wait_seconds: 15
-          command: |
-            set -euo pipefail
-            SEMVER="${OS_KEYRING_TAG#os-keyring-v}"
-            COMMIT_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${OS_KEYRING_TAG}" --jq '.sha')
-            echo "${OS_KEYRING_TAG} -> ${COMMIT_SHA}"
-            for COMPONENT in os-keyring-darwin os-keyring-linux os-keyring-win32; do
-              SIB_TAG="${COMPONENT}-v${SEMVER}"
-              if gh api "repos/${GITHUB_REPOSITORY}/git/refs/tags/${SIB_TAG}" >/dev/null 2>&1; then
-                echo "  = ${SIB_TAG} already exists"
-                continue
-              fi
-              gh api -X POST "repos/${GITHUB_REPOSITORY}/git/refs" \
-                -f ref="refs/tags/${SIB_TAG}" \
-                -f sha="${COMMIT_SHA}"
-              echo "  + ${SIB_TAG}"
-            done
 
   publish-tasks-orchestrator:
     name: Publish tasks-orchestrator to npm

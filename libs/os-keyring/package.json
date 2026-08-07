@@ -2,7 +2,7 @@
   "name": "@themoltnet/os-keyring",
   "version": "0.1.0",
   "type": "module",
-  "description": "Optional platform adapter for MoltNet OS keyring secret providers",
+  "description": "Optional read-only Node adapter for MoltNet OS keyring secrets",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -36,10 +36,8 @@
     "test": "vitest run --passWithNoTests",
     "test-native": "node scripts/smoke-packed-consumer.mjs && go test ../../apps/moltnet-cli/testdata/keyring-interop && vitest run __tests__/os-keyring.native.test.ts"
   },
-  "optionalDependencies": {
-    "@themoltnet/os-keyring-darwin": "workspace:*",
-    "@themoltnet/os-keyring-linux": "workspace:*",
-    "@themoltnet/os-keyring-win32": "workspace:*"
+  "dependencies": {
+    "@github/keytar": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",

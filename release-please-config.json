@@ -100,27 +100,6 @@
       "component": "os-keyring",
       "release-type": "node"
     },
-    "libs/os-keyring-darwin": {
-      "bump-minor-pre-major": true,
-      "component": "os-keyring-darwin",
-      "release-type": "node",
-      "skip-changelog": true,
-      "skip-github-release": true
-    },
-    "libs/os-keyring-linux": {
-      "bump-minor-pre-major": true,
-      "component": "os-keyring-linux",
-      "release-type": "node",
-      "skip-changelog": true,
-      "skip-github-release": true
-    },
-    "libs/os-keyring-win32": {
-      "bump-minor-pre-major": true,
-      "component": "os-keyring-win32",
-      "release-type": "node",
-      "skip-changelog": true,
-      "skip-github-release": true
-    },
     "libs/pi-extension": {
       "component": "pi-extension",
       "release-type": "node"
@@ -218,16 +197,6 @@
         "cli-win32-x64"
       ],
       "groupName": "cli",
-      "type": "linked-versions"
-    },
-    {
-      "components": [
-        "os-keyring",
-        "os-keyring-darwin",
-        "os-keyring-linux",
-        "os-keyring-win32"
-      ],
-      "groupName": "os-keyring",
       "type": "linked-versions"
     }
   ],

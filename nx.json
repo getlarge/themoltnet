@@ -256,13 +256,8 @@
         }
       },
       "os-keyring": {
-        "projects": [
-          "@themoltnet/os-keyring",
-          "@themoltnet/os-keyring-darwin",
-          "@themoltnet/os-keyring-linux",
-          "@themoltnet/os-keyring-win32"
-        ],
-        "projectsRelationship": "fixed",
+        "projects": ["@themoltnet/os-keyring"],
+        "projectsRelationship": "independent",
         "releaseTag": {
           "pattern": "os-keyring-v{version}"
         }

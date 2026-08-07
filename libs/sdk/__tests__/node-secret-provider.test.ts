@@ -19,8 +19,6 @@ vi.mock('@themoltnet/os-keyring', () => ({
     }
 
     read = keyring.read;
-    write = vi.fn();
-    delete = vi.fn();
   },
   windowsKeyringTarget: vi.fn(),
 }));

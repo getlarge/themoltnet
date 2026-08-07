@@ -29,14 +29,6 @@ export class OSKeyringSecretProvider implements SecretProvider {
     return (await this.provider()).read(key);
   }
 
-  async write(key: string, value: string): Promise<void> {
-    return (await this.provider()).write(key, value);
-  }
-
-  async delete(key: string): Promise<void> {
-    return (await this.provider()).delete(key);
-  }
-
   private provider(): Promise<SecretProvider> {
     // The package remains isomorphic; this explicit /node entry is the only
     // surface allowed to load the optional Node-only adapter.
