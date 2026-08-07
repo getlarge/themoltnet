@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "name": "moltnetauthextension",
+  "projectType": "library",
+  "tags": ["lang:go", "type:lib", "scope:observability"],
+  "targets": {
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "GOWORK=off go fmt ./...",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "GOWORK=off go test -race ./...",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "test-ci": {
+      "dependsOn": ["test"],
+      "executor": "nx:noop"
+    }
+  }
+}
