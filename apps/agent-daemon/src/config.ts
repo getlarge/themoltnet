@@ -24,6 +24,10 @@ export interface DaemonConfig {
    * itself is never surfaced here.
    */
   authMode: DaemonAuthMode;
+  /** Bounded benchmark dimension; never derived from task/customer data. */
+  cellTopology: 'compact' | 'split' | 'unclassified';
+  /** QEMU acceleration mode used by the executor host. */
+  virtualizationMode: 'kvm' | 'tcg' | 'unclassified';
 }
 
 export function loadConfig(): DaemonConfig {
@@ -34,7 +38,24 @@ export function loadConfig(): DaemonConfig {
     profilePrerequisitePath: process.env.PATH ?? '',
     piCodingAgentDir: process.env['PI_CODING_AGENT_DIR'] ?? '',
     authMode: detectAuthMode(process.env),
+    cellTopology: readEnum(process.env['MOLTNET_CELL_TOPOLOGY'], [
+      'compact',
+      'split',
+    ] as const),
+    virtualizationMode: readEnum(process.env['MOLTNET_VIRTUALIZATION_MODE'], [
+      'kvm',
+      'tcg',
+    ] as const),
   };
+}
+
+function readEnum<const T extends readonly string[]>(
+  value: string | undefined,
+  allowed: T,
+): T[number] | 'unclassified' {
+  return allowed.includes(value as T[number])
+    ? (value as T[number])
+    : 'unclassified';
 }
 
 export function activatePiCodingAgentDir(path: string): void {

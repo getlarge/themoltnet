@@ -7,6 +7,7 @@ import { MoltNetError } from '@themoltnet/sdk';
 import { pino } from 'pino';
 
 import type { AgentRuntimeLogger } from '../runtime.js';
+import { traceRuntimePhase } from '../telemetry.js';
 import type {
   ClaimedTask,
   CreateClaimAttestation,
@@ -433,18 +434,26 @@ export class PollingApiTaskSource implements TaskSource {
           this.opts.taskTypes && this.opts.taskTypes.length > 0
             ? this.opts.taskTypes
             : undefined;
-        const result = await this.opts.agent.tasks.list(
+        const result = await traceRuntimePhase(
+          'moltnet.task_source.list',
           {
-            status: 'queued' satisfies TaskStatus,
-            ...(taskTypes ? { taskTypes } : {}),
-            ...(this.opts.correlationId
-              ? { correlationId: this.opts.correlationId }
-              : {}),
-            ...(profile.profileId ? { profileId: profile.profileId } : {}),
-            ...(cursors.get(key) ? { cursor: cursors.get(key) } : {}),
-            limit: this.listLimit,
+            'moltnet.task_source.profile_bound': Boolean(profile.profileId),
+            'moltnet.task_source.page_size': this.listLimit,
           },
-          { teamId: this.opts.teamId },
+          () =>
+            this.opts.agent.tasks.list(
+              {
+                status: 'queued' satisfies TaskStatus,
+                ...(taskTypes ? { taskTypes } : {}),
+                ...(this.opts.correlationId
+                  ? { correlationId: this.opts.correlationId }
+                  : {}),
+                ...(profile.profileId ? { profileId: profile.profileId } : {}),
+                ...(cursors.get(key) ? { cursor: cursors.get(key) } : {}),
+                limit: this.listLimit,
+              },
+              { teamId: this.opts.teamId },
+            ),
         );
         if (result.nextCursor) {
           cursors.set(key, result.nextCursor);
@@ -484,12 +493,18 @@ export class PollingApiTaskSource implements TaskSource {
           // slot cannot be resolved to a local sessionDir on this daemon. The
           // task lingers queued until a daemon with that context polls or the
           // server's dispatch_timeout_sec fires. See #1287, #1299.
-          if (this.opts.slotRegistry) {
-            const affinity = await isContinuationClaimableByThisDaemon(
-              item,
-              this.opts.slotRegistry,
-              this.opts.sessionRegistry,
-              this.opts.sourceAttemptResolver,
+          const slotRegistry = this.opts.slotRegistry;
+          if (slotRegistry) {
+            const affinity = await traceRuntimePhase(
+              'moltnet.task_source.affinity',
+              { 'moltnet.task.id': item.id },
+              () =>
+                isContinuationClaimableByThisDaemon(
+                  item,
+                  slotRegistry,
+                  this.opts.sessionRegistry,
+                  this.opts.sourceAttemptResolver,
+                ),
             );
             if (!affinity.claimable) {
               this.logger.debug(
@@ -560,11 +575,20 @@ export class PollingApiTaskSource implements TaskSource {
               taskId: task.id,
               ...(profile.profileId ? { profileId: profile.profileId } : {}),
             });
-        const result = await this.opts.agent.tasks.claim(task.id, {
-          leaseTtlSec: profile.leaseTtlSec ?? this.opts.leaseTtlSec,
-          ...(profile.profileId ? { profileId: profile.profileId } : {}),
-          ...attestation,
-        });
+        const result = await traceRuntimePhase(
+          'moltnet.task_source.claim',
+          {
+            'moltnet.task.id': task.id,
+            'moltnet.task.type': task.taskType,
+            'moltnet.task_source.profile_bound': Boolean(profile.profileId),
+          },
+          () =>
+            this.opts.agent.tasks.claim(task.id, {
+              leaseTtlSec: profile.leaseTtlSec ?? this.opts.leaseTtlSec,
+              ...(profile.profileId ? { profileId: profile.profileId } : {}),
+              ...attestation,
+            }),
+        );
         if (this.opts.debug) {
           this.logger.debug(
             {
@@ -617,7 +641,11 @@ export class PollingApiTaskSource implements TaskSource {
     // Full jitter: random in [base/2, base * 1.5). Avoids thundering-herd
     // when multiple daemons (eventually) share a queue.
     const jittered = Math.floor(base * 0.5 + Math.random() * base);
-    await abortableSleep(jittered, this.opts.signal);
+    await traceRuntimePhase(
+      'moltnet.task_source.poll_sleep',
+      { 'moltnet.task_source.backoff_ms': jittered },
+      () => abortableSleep(jittered, this.opts.signal),
+    );
     // Double for next idle tick, capped.
     this.currentBackoffMs = Math.min(
       this.maxBackoffMs,

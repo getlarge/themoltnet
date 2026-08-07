@@ -305,6 +305,9 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     resourceAttributes: {
       'moltnet.team.id': teamId,
       'moltnet.agent.name': baseCommon.agent,
+      'moltnet.auth.mode': cfg.authMode,
+      'moltnet.cell.topology': cfg.cellTopology,
+      'moltnet.virtualization.mode': cfg.virtualizationMode,
       'moltnet.runtime_profile.count': String(profiles.length),
       'moltnet.runtime_profile.ids': profiles.map((p) => p.id).join(','),
     },

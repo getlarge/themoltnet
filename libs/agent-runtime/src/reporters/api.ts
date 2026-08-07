@@ -1,6 +1,11 @@
-import type { TaskMessage, TaskUsage } from '@moltnet/tasks';
+import {
+  firstUsefulTaskEvent,
+  type TaskMessage,
+  type TaskUsage,
+} from '@moltnet/tasks';
 import type { TasksNamespace } from '@themoltnet/sdk';
 
+import { addActiveTaskEvent, traceRuntimePhase } from '../telemetry.js';
 import type { TaskReporter } from './types.js';
 
 export interface ApiTaskReporterOptions {
@@ -85,6 +90,7 @@ export class ApiTaskReporter implements TaskReporter {
    * authorization failure that should surface immediately.
    */
   private firstAppendSucceeded = false;
+  private firstUsefulEventEmitted = false;
 
   private readonly cancelController = new AbortController();
   private observedCancelReason: string | null = null;
@@ -136,6 +142,7 @@ export class ApiTaskReporter implements TaskReporter {
     // skip the Keto consistency-window retry — the exact path
     // appendWithFirstCallRetry exists to protect.
     this.firstAppendSucceeded = false;
+    this.firstUsefulEventEmitted = false;
 
     // Send immediately so the DBOS workflow receives the 'started' signal
     // before the dispatch timeout (default 5 min). Without this, fast tasks
@@ -148,7 +155,11 @@ export class ApiTaskReporter implements TaskReporter {
     // absorb the consistency window. After the first successful heartbeat
     // the timer-driven heartbeats fall through to the silent-failure path
     // and any further 403s would surface via cancellation observation.
-    await this.sendInitialHeartbeat();
+    await traceRuntimePhase(
+      'moltnet.reporter.open',
+      { 'moltnet.task.attempt': this.attemptN },
+      () => this.sendInitialHeartbeat(),
+    );
 
     const intervalMs = this.opts.heartbeatIntervalMs ?? 60_000;
     if (intervalMs > 0) {
@@ -165,6 +176,15 @@ export class ApiTaskReporter implements TaskReporter {
     body: Omit<TaskMessage, 'taskId' | 'attemptN' | 'seq' | 'timestamp'>,
   ): Promise<void> {
     this.throwIfPendingError();
+    if (!this.firstUsefulEventEmitted) {
+      const useful = firstUsefulTaskEvent([body]);
+      if (useful) {
+        this.firstUsefulEventEmitted = true;
+        addActiveTaskEvent('moltnet.task.first_useful_event.emitted', {
+          'moltnet.task.first_useful.kind': useful.kind,
+        });
+      }
+    }
     this.buffer.push({
       kind: body.kind,
       payload: body.payload,
