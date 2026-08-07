@@ -24,12 +24,15 @@
 //   --project <name>   workspace package name (required), e.g. @moltnet/rest-api
 //   --tag <suffix>     clean-ref tag suffix (default "dev"), e.g. ci-<sha>
 //   --push             push to the registry (buildx --push); default is --load
+//   --platform <list>  target platform(s); push defaults to amd64+arm64, while
+//                      local --load defaults to the Docker host platform
 //   --no-cache-to      skip writing the registry build cache (e.g. on PRs from
 //                      forks without registry write access)
 //   --dry-run          print the docker command without running it
 //
 // Local dev (load into daemon, :dev):   node tools/docker-build.mjs --project @moltnet/rest-api
-// CI (push, :ci-<sha>):                  node tools/docker-build.mjs --project @moltnet/rest-api --push --tag ci-$GITHUB_SHA
+// CI (push, :ci-<sha>, amd64 only):      node tools/docker-build.mjs --project @moltnet/rest-api --push --platform linux/amd64 --tag ci-$GITHUB_SHA
+// Release (multi-platform, semver):      node tools/docker-build.mjs --project @moltnet/rest-api --push --tag 1.2.3
 
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -49,16 +52,31 @@ function parseArgs(argv) {
       project: { type: 'string' },
       tag: { type: 'string', default: 'dev' },
       push: { type: 'boolean', default: false },
+      platform: { type: 'string' },
       'no-cache-to': { type: 'boolean', default: false },
       'dry-run': { type: 'boolean', default: false },
     },
     strict: true,
   });
   if (!values.project) throw new Error('--project <package-name> is required');
+  const platform =
+    values.platform ?? (values.push ? 'linux/amd64,linux/arm64' : undefined);
+  if (
+    platform &&
+    !/^linux\/(?:amd64|arm64)(?:,linux\/(?:amd64|arm64))*$/.test(platform)
+  ) {
+    throw new Error(
+      '--platform supports comma-separated linux/amd64 and linux/arm64 targets',
+    );
+  }
+  if (!values.push && platform?.includes(',')) {
+    throw new Error('docker buildx --load supports only one platform');
+  }
   return {
     project: values.project,
     tag: values.tag,
     push: values.push,
+    platform,
     cacheTo: !values['no-cache-to'],
     dryRun: values['dry-run'],
   };
@@ -111,20 +129,24 @@ async function main() {
   const dockerfile = join(projectRoot, 'Dockerfile');
 
   const commitSha = process.env.GITHUB_SHA ?? '';
-  const isMainBuild = opts.push && process.env.GITHUB_REF === 'refs/heads/main';
+  const isMainBuild =
+    opts.push &&
+    opts.tag.startsWith('ci-') &&
+    process.env.GITHUB_REF === 'refs/heads/main';
 
   const args = [
     'buildx',
     'build',
     '-f',
     dockerfile,
-    '--platform',
-    'linux/amd64',
     '--tag',
     cleanRef,
     '--label',
     'org.opencontainers.image.created=' + new Date().toISOString(),
   ];
+  if (opts.platform) {
+    args.push('--platform', opts.platform);
+  }
   // The path-derived ref (apps-rest-api) has NO registry, so `--push` would
   // resolve it to docker.io/library/apps-rest-api and fail with a 401. It is
   // only needed in --load mode, where `nx release` later retags from it in the
@@ -162,6 +184,7 @@ async function main() {
       `  clean tag  : ${cleanRef}\n` +
       (isMainBuild ? `  main tag   : ${mainRef}\n` : '') +
       `  cache ref  : ${cacheRef}\n` +
+      `  platform   : ${opts.platform ?? 'docker-host'}\n` +
       `  mode       : ${opts.push ? 'push' : 'load'}\n`,
   );
 

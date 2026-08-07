@@ -46,11 +46,14 @@
         ],
         "options": {
           "cwd": "{workspaceRoot}",
-          "command": "node tools/docker-build.mjs --project @moltnet/landing"
+          "command": "node tools/docker-build.mjs --project {projectName}"
         },
         "configurations": {
           "ci": {
-            "command": "node tools/docker-build.mjs --project @moltnet/landing --push --tag \"${NX_DOCKER_CI_TAG:?NX_DOCKER_CI_TAG must be set}\""
+            "command": "node tools/docker-build.mjs --project {projectName} --push --platform linux/amd64 --tag \"${NX_DOCKER_CI_TAG:?NX_DOCKER_CI_TAG must be set}\""
+          },
+          "release": {
+            "command": "node tools/docker-build.mjs --project {projectName} --push --platform linux/amd64,linux/arm64 --tag \"${NX_DOCKER_RELEASE_TAG:?NX_DOCKER_RELEASE_TAG must be set}\""
           }
         }
       }

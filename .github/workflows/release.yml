@@ -108,6 +108,24 @@ jobs:
       design-system-tag-name: ${{ steps.release.outputs['libs/design-system--tag_name'] }}
       agent-daemon-release-created: ${{ steps.release.outputs['apps/agent-daemon--release_created'] }}
       agent-daemon-tag-name: ${{ steps.release.outputs['apps/agent-daemon--tag_name'] }}
+      console-release-created: ${{ steps.release.outputs['apps/console--release_created'] }}
+      console-tag-name: ${{ steps.release.outputs['apps/console--tag_name'] }}
+      console-version: ${{ steps.release.outputs['apps/console--version'] }}
+      database-release-created: ${{ steps.release.outputs['libs/database--release_created'] }}
+      database-tag-name: ${{ steps.release.outputs['libs/database--tag_name'] }}
+      database-version: ${{ steps.release.outputs['libs/database--version'] }}
+      landing-release-created: ${{ steps.release.outputs['apps/landing--release_created'] }}
+      landing-tag-name: ${{ steps.release.outputs['apps/landing--tag_name'] }}
+      landing-version: ${{ steps.release.outputs['apps/landing--version'] }}
+      mcp-host-release-created: ${{ steps.release.outputs['apps/mcp-host--release_created'] }}
+      mcp-host-tag-name: ${{ steps.release.outputs['apps/mcp-host--tag_name'] }}
+      mcp-host-version: ${{ steps.release.outputs['apps/mcp-host--version'] }}
+      mcp-server-release-created: ${{ steps.release.outputs['apps/mcp-server--release_created'] }}
+      mcp-server-tag-name: ${{ steps.release.outputs['apps/mcp-server--tag_name'] }}
+      mcp-server-version: ${{ steps.release.outputs['apps/mcp-server--version'] }}
+      rest-api-release-created: ${{ steps.release.outputs['apps/rest-api--release_created'] }}
+      rest-api-tag-name: ${{ steps.release.outputs['apps/rest-api--tag_name'] }}
+      rest-api-version: ${{ steps.release.outputs['apps/rest-api--version'] }}
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
@@ -115,6 +133,56 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+  publish-docker-images:
+    name: Publish ${{ matrix.project }}:${{ matrix.version }}
+    needs: resolve-publish
+    if: ${{ needs.resolve-publish.outputs.docker-has-releases == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.resolve-publish.outputs.docker-matrix) }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - uses: docker/setup-qemu-action@v3
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build and publish multi-platform image
+        env:
+          NX_DOCKER_RELEASE_PROJECT: ${{ matrix.project }}
+          NX_DOCKER_RELEASE_TAG: ${{ matrix.version }}
+        run: >-
+          pnpm exec nx run
+          "$NX_DOCKER_RELEASE_PROJECT:docker:build"
+          --configuration=release
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NX_DOCKER_RELEASE_GIT_TAG: ${{ matrix.tag }}
+        run: gh release edit "$NX_DOCKER_RELEASE_GIT_TAG" --draft=false
 
   # Unified resolution: merges release-please outputs with manual republish
   # inputs so downstream jobs use a single set of outputs regardless of trigger.
@@ -171,6 +239,8 @@ jobs:
       design-system-tag: ${{ steps.resolve.outputs.design-system-tag }}
       agent-daemon: ${{ steps.resolve.outputs.agent-daemon }}
       agent-daemon-tag: ${{ steps.resolve.outputs.agent-daemon-tag }}
+      docker-has-releases: ${{ steps.resolve-docker.outputs.has-releases }}
+      docker-matrix: ${{ steps.resolve-docker.outputs.matrix }}
     steps:
       - uses: actions/checkout@v6
 
@@ -310,6 +380,21 @@ jobs:
             tag=$(find_draft_tag "openclaw-skill")
             [ -n "$tag" ] && echo "skill-version=$(version_from_tag "$tag" "openclaw-skill")" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Resolve released Docker projects
+        id: resolve-docker
+        if: ${{ github.event_name == 'push' }}
+        env:
+          MOLTNET_DOCKER_RELEASES_JSON: >-
+            [
+              {"project":"@moltnet/console","released":"${{ needs.release-please.outputs.console-release-created }}","tag":"${{ needs.release-please.outputs.console-tag-name }}","version":"${{ needs.release-please.outputs.console-version }}"},
+              {"project":"@moltnet/database","released":"${{ needs.release-please.outputs.database-release-created }}","tag":"${{ needs.release-please.outputs.database-tag-name }}","version":"${{ needs.release-please.outputs.database-version }}"},
+              {"project":"@moltnet/landing","released":"${{ needs.release-please.outputs.landing-release-created }}","tag":"${{ needs.release-please.outputs.landing-tag-name }}","version":"${{ needs.release-please.outputs.landing-version }}"},
+              {"project":"@moltnet/mcp-host","released":"${{ needs.release-please.outputs.mcp-host-release-created }}","tag":"${{ needs.release-please.outputs.mcp-host-tag-name }}","version":"${{ needs.release-please.outputs.mcp-host-version }}"},
+              {"project":"@moltnet/mcp-server","released":"${{ needs.release-please.outputs.mcp-server-release-created }}","tag":"${{ needs.release-please.outputs.mcp-server-tag-name }}","version":"${{ needs.release-please.outputs.mcp-server-version }}"},
+              {"project":"@moltnet/rest-api","released":"${{ needs.release-please.outputs.rest-api-release-created }}","tag":"${{ needs.release-please.outputs.rest-api-tag-name }}","version":"${{ needs.release-please.outputs.rest-api-version }}"}
+            ]
+        run: node tools/release/resolve-docker-release-matrix.mjs
 
   nx-release:
     name: Nx Release
