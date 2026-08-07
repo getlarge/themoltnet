@@ -26,11 +26,14 @@ Handles bootstrap and user-facing configuration of the agent environment, guidin
 
 **Source Files:**
 
+- [`packages/agent-daemon-action/src/cancel-superseded.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/cancel-superseded.ts)
+  - `packages.agent-daemon-action.src.cancel-superseded.TaskSpecIdentity` ([L8-L11](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/cancel-superseded.ts#L8-L11)) - Interface
+  - `packages.agent-daemon-action.src.cancel-superseded.parseSupersessionTags.filter() callback` ([L39-L39](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/cancel-superseded.ts#L39-L39)) - Function
 - [`packages/agent-daemon-action/src/dispatch.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts)
-  - `packages.agent-daemon-action.src.dispatch.ghBackedBy.getPrHeadRef` ([L383-L390](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L383-L390)) - Method
-  - `packages.agent-daemon-action.src.dispatch.ghBackedBy.getPrCommitMessages` ([L391-L403](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L391-L403)) - Method
-  - `packages.agent-daemon-action.src.dispatch.ghBackedBy.getPrCommitMessages.r.data.map() callback` ([L402-L402](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L402-L402)) - Function
-  - `packages.agent-daemon-action.src.dispatch.ghBackedBy.getPrBody` ([L404-L411](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L404-L411)) - Method
+  - `packages.agent-daemon-action.src.dispatch.ghBackedBy.getPrHeadRef` ([L385-L392](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L385-L392)) - Method
+  - `packages.agent-daemon-action.src.dispatch.ghBackedBy.getPrCommitMessages` ([L393-L405](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L393-L405)) - Method
+  - `packages.agent-daemon-action.src.dispatch.ghBackedBy.getPrCommitMessages.r.data.map() callback` ([L404-L404](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L404-L404)) - Function
+  - `packages.agent-daemon-action.src.dispatch.ghBackedBy.getPrBody` ([L406-L413](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/dispatch.ts#L406-L413)) - Method
 - [`packages/agent-daemon-action/src/resolve-correlation.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/resolve-correlation.ts)
   - `packages.agent-daemon-action.src.resolve-correlation.resolveCorrelation.headRef` ([L58-L58](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/resolve-correlation.ts#L58-L58)) - Class
   - `packages.agent-daemon-action.src.resolve-correlation.resolveCorrelation.headRef.catch() callback` ([L58-L58](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/resolve-correlation.ts#L58-L58)) - Function
@@ -265,9 +268,8 @@ Handles bootstrap and user-facing configuration of the agent environment, guidin
   - `packages.legreffier-cli.src.ui.types.IdentityResult` ([L61-L70](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/legreffier-cli/src/ui/types.ts#L61-L70)) - Interface
   - `packages.legreffier-cli.src.ui.types.GithubAppResult` ([L72-L78](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/legreffier-cli/src/ui/types.ts#L72-L78)) - Interface
   - `packages.legreffier-cli.src.ui.types.InstallationResult` ([L80-L85](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/legreffier-cli/src/ui/types.ts#L80-L85)) - Interface
-- [`packages/agent-daemon-action/src/cancel-superseded.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/cancel-superseded.ts)
-  - `packages.agent-daemon-action.src.cancel-superseded.TaskSpecIdentity` ([L8-L11](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/cancel-superseded.ts#L8-L11)) - Interface
-  - `packages.agent-daemon-action.src.cancel-superseded.parseSupersessionTags.filter() callback` ([L39-L39](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/agent-daemon-action/src/cancel-superseded.ts#L39-L39)) - Function
+- [`tools/check-dependency-overrides.mjs`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs)
+  - `tools.check-dependency-overrides.formatMarkdown.deadOverrides.map() callback` ([L252-L252](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L252-L252)) - Function
 - [`tools/src/tasks/complexity-review-comment.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/complexity-review-comment.ts)
   - `tools.src.tasks.complexity-review-comment.IssueComment` ([L16-L20](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/complexity-review-comment.ts#L16-L20)) - Interface
   - `tools.src.tasks.complexity-review-comment.renderComplexityReviewResult.criteria` ([L95-L101](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/complexity-review-comment.ts#L95-L101)) - Class
@@ -336,6 +338,22 @@ Provides utilities to retroactively compute and apply content-hashes and subject
   - `test-fixtures.generate-x25519-vectors.sha512Sync.m.forEach() callback` ([L42-L42](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtest-fixtures/generate-x25519-vectors.mjs#L42-L42)) - Function
   - `test-fixtures.generate-x25519-vectors.x25519Vectors` ([L72-L102](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtest-fixtures/generate-x25519-vectors.mjs#L72-L102)) - Class
   - `test-fixtures.generate-x25519-vectors.x25519Vectors.seeds.map() callback` ([L72-L102](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtest-fixtures/generate-x25519-vectors.mjs#L72-L102)) - Function
+- [`tools/check-dependency-overrides.mjs`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs)
+  - `tools.check-dependency-overrides.overrideTarget` ([L98-L111](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L98-L111)) - Function
+  - `tools.check-dependency-overrides.listWorkspaceManifests.map() callback` ([L147-L147](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L147-L147)) - Function
+  - `tools.check-dependency-overrides.listWorkspaceManifests.filter() callback` ([L148-L148](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L148-L148)) - Function
+  - `tools.check-dependency-overrides.catch() callback` ([L159-L159](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L159-L159)) - Function
+  - `tools.check-dependency-overrides.formatMarkdown.dedupeOverrides.reduce() callback` ([L239-L239](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L239-L239)) - Function
+  - `tools.check-dependency-overrides.formatMarkdown.staleIgnores.map() callback` ([L262-L262](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L262-L262)) - Function
+  - `tools.check-dependency-overrides.main.dedupeCostOf` ([L304-L309](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L304-L309)) - Function
+  - `tools.check-dependency-overrides.main.classified` ([L324-L338](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L324-L338)) - Class
+  - `tools.check-dependency-overrides.main.classified.map() callback` ([L324-L338](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L324-L338)) - Function
+  - `tools.check-dependency-overrides.main.deadOverrides` ([L340-L340](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L340-L340)) - Class
+  - `tools.check-dependency-overrides.main.deadOverrides.classified.filter() callback` ([L340-L340](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L340-L340)) - Function
+  - `tools.check-dependency-overrides.main.dedupeOverrides` ([L341-L341](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L341-L341)) - Class
+  - `tools.check-dependency-overrides.main.dedupeOverrides.classified.filter() callback` ([L341-L341](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L341-L341)) - Function
+  - `tools.check-dependency-overrides.main.staleIgnores` ([L346-L362](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L346-L362)) - Class
+  - `tools.check-dependency-overrides.main.staleIgnores.ignored.flatMap() callback` ([L346-L362](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/check-dependency-overrides.mjs#L346-L362)) - Function
 - [`tools/db/backfill-content-hashes.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-content-hashes.ts)
   - `tools.db.backfill-content-hashes.proxyHost` ([L33-L34](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-content-hashes.ts#L33-L34)) - Class
   - `tools.db.backfill-content-hashes.proxyHost.args.find() callback` ([L34-L34](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-content-hashes.ts#L34-L34)) - Function
@@ -397,6 +415,15 @@ Provides utilities to retroactively compute and apply content-hashes and subject
   - `tools.generators.split-tsconfigs.index.isString` ([L405-L407](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/generators/split-tsconfigs/index.ts#L405-L407)) - Function
   - `tools.generators.split-tsconfigs.index.isJson` ([L409-L411](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/generators/split-tsconfigs/index.ts#L409-L411)) - Function
   - `tools.generators.split-tsconfigs.index.unique` ([L413-L415](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/generators/split-tsconfigs/index.ts#L413-L415)) - Function
+- [`tools/src/bench-task-readiness.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-task-readiness.ts)
+  - `tools.src.bench-task-readiness.buildTaskReadinessReport.bounds` ([L53-L65](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-task-readiness.ts#L53-L65)) - Class
+  - `tools.src.bench-task-readiness.buildTaskReadinessReport.bounds.samples.reduce() callback` ([L54-L63](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-task-readiness.ts#L54-L63)) - Function
+  - `tools.src.bench-task-readiness.buildTaskReadinessReport.resources.samples.map() callback` ([L83-L83](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-task-readiness.ts#L83-L83)) - Function
+  - `tools.src.bench-task-readiness.main.lines` ([L193-L195](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-task-readiness.ts#L193-L195)) - Class
+  - `tools.src.bench-task-readiness.main.lines.filter() callback` ([L195-L195](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-task-readiness.ts#L195-L195)) - Function
+- [`tools/src/benchmark-stats.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/benchmark-stats.ts)
+  - `tools.src.benchmark-stats.BenchmarkDistribution` ([L1-L9](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/benchmark-stats.ts#L1-L9)) - Interface
+  - `tools.src.benchmark-stats.benchmarkDistribution.mean.sorted.reduce() callback` ([L38-L38](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/benchmark-stats.ts#L38-L38)) - Function
 - [`tools/src/bootstrap-genesis-agents.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bootstrap-genesis-agents.ts)
   - `tools.src.bootstrap-genesis-agents.main.names` ([L106-L108](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bootstrap-genesis-agents.ts#L106-L108)) - Class
   - `tools.src.bootstrap-genesis-agents.main.names.map() callback` ([L107-L107](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bootstrap-genesis-agents.ts#L107-L107)) - Function
@@ -436,7 +463,7 @@ Provides low-level machinery for deploying the agent runtime and verifying its s
 
 **Related Classes/Methods**:
 
-- `tools.docker-build.main`:76-178
+- `tools.docker-build.main`:94-201
 - `test-fixtures.generate-ssh-vectors.encodeSSHPublicKey`:47-67
 - `tools.db.backfill-diary-team-links.main`:141-246
 - `docs.scripts.check-runtime-profile-contexts.resolved`:51-57
@@ -498,50 +525,63 @@ Provides low-level machinery for deploying the agent runtime and verifying its s
   - `tools.db.backfill-keto-subject-set.main` ([L184-L332](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-keto-subject-set.ts#L184-L332)) - Function
   - `tools.db.backfill-keto-subject-set.catch() callback` ([L334-L337](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-keto-subject-set.ts#L334-L337)) - Function
 - [`tools/docker-build.mjs`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/docker-build.mjs)
-  - `tools.docker-build.parseArgs` ([L45-L65](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/docker-build.mjs#L45-L65)) - Function
-  - `tools.docker-build.pathDerivedRef` ([L69-L74](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/docker-build.mjs#L69-L74)) - Function
-  - `tools.docker-build.main` ([L76-L178](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/docker-build.mjs#L76-L178)) - Function
-  - `tools.docker-build.catch() callback` ([L180-L183](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/docker-build.mjs#L180-L183)) - Function
+  - `tools.docker-build.parseArgs` ([L48-L83](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/docker-build.mjs#L48-L83)) - Function
+  - `tools.docker-build.pathDerivedRef` ([L87-L92](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/docker-build.mjs#L87-L92)) - Function
+  - `tools.docker-build.main` ([L94-L201](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/docker-build.mjs#L94-L201)) - Function
+  - `tools.docker-build.catch() callback` ([L203-L206](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/docker-build.mjs#L203-L206)) - Function
 - [`tools/src/bench-embedding-warmup.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-embedding-warmup.ts)
-  - `tools.src.bench-embedding-warmup.iterations` ([L21-L24](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-embedding-warmup.ts#L21-L24)) - Class
-  - `tools.src.bench-embedding-warmup.iterations.args.find() callback` ([L22-L22](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-embedding-warmup.ts#L22-L22)) - Function
-  - `tools.src.bench-embedding-warmup.logger` ([L28-L36](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-embedding-warmup.ts#L28-L36)) - Class
-  - `tools.src.bench-embedding-warmup.logger.info` ([L29-L30](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-embedding-warmup.ts#L29-L30)) - Method
-  - `tools.src.bench-embedding-warmup.logger.warn` ([L31-L32](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-embedding-warmup.ts#L31-L32)) - Method
-  - `tools.src.bench-embedding-warmup.logger.error` ([L33-L34](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-embedding-warmup.ts#L33-L34)) - Method
-  - `tools.src.bench-embedding-warmup.logger.debug` ([L35-L35](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-embedding-warmup.ts#L35-L35)) - Method
-  - `tools.src.bench-embedding-warmup.warmAvg` ([L78-L78](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-embedding-warmup.ts#L78-L78)) - Class
-  - `tools.src.bench-embedding-warmup.warmAvg.warmDurations.reduce() callback` ([L78-L78](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-embedding-warmup.ts#L78-L78)) - Function
-  - `tools.src.bench-embedding-warmup.warmP50.sort() callback` ([L79-L79](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-embedding-warmup.ts#L79-L79)) - Function
-  - `tools.src.bench-embedding-warmup.warmP50` ([L79-L81](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-embedding-warmup.ts#L79-L81)) - Class
+  - `tools.src.bench-embedding-warmup.iterations` ([L23-L26](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-embedding-warmup.ts#L23-L26)) - Class
+  - `tools.src.bench-embedding-warmup.iterations.args.find() callback` ([L24-L24](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-embedding-warmup.ts#L24-L24)) - Function
+  - `tools.src.bench-embedding-warmup.logger` ([L30-L38](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-embedding-warmup.ts#L30-L38)) - Class
+  - `tools.src.bench-embedding-warmup.logger.info` ([L31-L32](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-embedding-warmup.ts#L31-L32)) - Method
+  - `tools.src.bench-embedding-warmup.logger.warn` ([L33-L34](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-embedding-warmup.ts#L33-L34)) - Method
+  - `tools.src.bench-embedding-warmup.logger.error` ([L35-L36](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-embedding-warmup.ts#L35-L36)) - Method
+  - `tools.src.bench-embedding-warmup.logger.debug` ([L37-L37](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-embedding-warmup.ts#L37-L37)) - Method
 - [`tools/src/bench-ory-connection-reuse.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts)
-  - `tools.src.bench-ory-connection-reuse.iterations` ([L52-L55](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L52-L55)) - Class
-  - `tools.src.bench-ory-connection-reuse.iterations.args.find() callback` ([L53-L53](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L53-L53)) - Function
-  - `tools.src.bench-ory-connection-reuse.OryClients` ([L60-L63](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L60-L63)) - Interface
-  - `tools.src.bench-ory-connection-reuse.makeClients` ([L65-L75](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L65-L75)) - Function
-  - `tools.src.bench-ory-connection-reuse.runRead` ([L78-L89](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L78-L89)) - Function
-  - `tools.src.bench-ory-connection-reuse.runWrite` ([L97-L112](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L97-L112)) - Function
-  - `tools.src.bench-ory-connection-reuse.runWriteSimple` ([L117-L128](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L117-L128)) - Function
-  - `tools.src.bench-ory-connection-reuse.cleanup` ([L131-L165](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L131-L165)) - Function
-  - `tools.src.bench-ory-connection-reuse.then() callback` ([L143-L143](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L143-L143)) - Function
-  - `tools.src.bench-ory-connection-reuse.Stats` ([L167-L173](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L167-L173)) - Interface
-  - `tools.src.bench-ory-connection-reuse.computeStats` ([L175-L185](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L175-L185)) - Function
-  - `tools.src.bench-ory-connection-reuse.fmt` ([L187-L189](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L187-L189)) - Function
-  - `tools.src.bench-ory-connection-reuse.printStats` ([L191-L195](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L191-L195)) - Function
-  - `tools.src.bench-ory-connection-reuse.benchmark` ([L197-L220](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L197-L220)) - Function
-  - `tools.src.bench-ory-connection-reuse.printSummary` ([L222-L234](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L222-L234)) - Function
-  - `tools.src.bench-ory-connection-reuse.readDefault` ([L258-L262](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L258-L262)) - Class
-  - `tools.src.bench-ory-connection-reuse.readDefault.benchmark('Default fetch') callback` ([L260-L260](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L260-L260)) - Function
-  - `tools.src.bench-ory-connection-reuse.readKeepAlive` ([L263-L267](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L263-L267)) - Class
-  - `tools.src.bench-ory-connection-reuse.readKeepAlive.benchmark('Undici Agent (keepAlive)') callback` ([L265-L265](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L265-L265)) - Function
-  - `tools.src.bench-ory-connection-reuse.writeComplexDefault` ([L272-L276](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L272-L276)) - Class
-  - `tools.src.bench-ory-connection-reuse.writeComplexDefault.benchmark('Default fetch') callback` ([L274-L274](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L274-L274)) - Function
-  - `tools.src.bench-ory-connection-reuse.writeComplexKeepAlive` ([L277-L281](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L277-L281)) - Class
-  - `tools.src.bench-ory-connection-reuse.writeComplexKeepAlive.benchmark('Undici Agent (keepAlive)') callback` ([L279-L279](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L279-L279)) - Function
-  - `tools.src.bench-ory-connection-reuse.writeSimpleDefault` ([L286-L290](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L286-L290)) - Class
-  - `tools.src.bench-ory-connection-reuse.writeSimpleDefault.benchmark('Default fetch') callback` ([L288-L288](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L288-L288)) - Function
-  - `tools.src.bench-ory-connection-reuse.writeSimpleKeepAlive` ([L291-L295](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L291-L295)) - Class
-  - `tools.src.bench-ory-connection-reuse.writeSimpleKeepAlive.benchmark('Undici Agent (keepAlive)') callback` ([L293-L293](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L293-L293)) - Function
+  - `tools.src.bench-ory-connection-reuse.iterations` ([L54-L57](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L54-L57)) - Class
+  - `tools.src.bench-ory-connection-reuse.iterations.args.find() callback` ([L55-L55](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L55-L55)) - Function
+  - `tools.src.bench-ory-connection-reuse.OryClients` ([L62-L65](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L62-L65)) - Interface
+  - `tools.src.bench-ory-connection-reuse.makeClients` ([L67-L77](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L67-L77)) - Function
+  - `tools.src.bench-ory-connection-reuse.runRead` ([L80-L91](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L80-L91)) - Function
+  - `tools.src.bench-ory-connection-reuse.runWrite` ([L99-L114](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L99-L114)) - Function
+  - `tools.src.bench-ory-connection-reuse.runWriteSimple` ([L119-L130](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L119-L130)) - Function
+  - `tools.src.bench-ory-connection-reuse.cleanup` ([L133-L167](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L133-L167)) - Function
+  - `tools.src.bench-ory-connection-reuse.then() callback` ([L145-L145](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L145-L145)) - Function
+  - `tools.src.bench-ory-connection-reuse.Stats` ([L169-L175](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L169-L175)) - Interface
+  - `tools.src.bench-ory-connection-reuse.computeStats` ([L177-L187](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L177-L187)) - Function
+  - `tools.src.bench-ory-connection-reuse.fmt` ([L189-L191](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L189-L191)) - Function
+  - `tools.src.bench-ory-connection-reuse.printStats` ([L193-L197](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L193-L197)) - Function
+  - `tools.src.bench-ory-connection-reuse.benchmark` ([L199-L222](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L199-L222)) - Function
+  - `tools.src.bench-ory-connection-reuse.printSummary` ([L224-L236](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L224-L236)) - Function
+  - `tools.src.bench-ory-connection-reuse.readDefault` ([L260-L264](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L260-L264)) - Class
+  - `tools.src.bench-ory-connection-reuse.readDefault.benchmark('Default fetch') callback` ([L262-L262](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L262-L262)) - Function
+  - `tools.src.bench-ory-connection-reuse.readKeepAlive` ([L265-L269](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L265-L269)) - Class
+  - `tools.src.bench-ory-connection-reuse.readKeepAlive.benchmark('Undici Agent (keepAlive)') callback` ([L267-L267](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L267-L267)) - Function
+  - `tools.src.bench-ory-connection-reuse.writeComplexDefault` ([L274-L278](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L274-L278)) - Class
+  - `tools.src.bench-ory-connection-reuse.writeComplexDefault.benchmark('Default fetch') callback` ([L276-L276](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L276-L276)) - Function
+  - `tools.src.bench-ory-connection-reuse.writeComplexKeepAlive` ([L279-L283](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L279-L283)) - Class
+  - `tools.src.bench-ory-connection-reuse.writeComplexKeepAlive.benchmark('Undici Agent (keepAlive)') callback` ([L281-L281](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L281-L281)) - Function
+  - `tools.src.bench-ory-connection-reuse.writeSimpleDefault` ([L288-L292](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L288-L292)) - Class
+  - `tools.src.bench-ory-connection-reuse.writeSimpleDefault.benchmark('Default fetch') callback` ([L290-L290](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L290-L290)) - Function
+  - `tools.src.bench-ory-connection-reuse.writeSimpleKeepAlive` ([L293-L297](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L293-L297)) - Class
+  - `tools.src.bench-ory-connection-reuse.writeSimpleKeepAlive.benchmark('Undici Agent (keepAlive)') callback` ([L295-L295](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L295-L295)) - Function
+- [`tools/src/bench-task-readiness.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-task-readiness.ts)
+  - `tools.src.bench-task-readiness.buildTaskReadinessReport` ([L38-L85](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-task-readiness.ts#L38-L85)) - Function
+  - `tools.src.bench-task-readiness.buildTaskReadinessReport.successful` ([L46-L46](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-task-readiness.ts#L46-L46)) - Class
+  - `tools.src.bench-task-readiness.buildTaskReadinessReport.successful.samples.filter() callback` ([L46-L46](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-task-readiness.ts#L46-L46)) - Function
+  - `tools.src.bench-task-readiness.validateSample` ([L87-L132](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-task-readiness.ts#L87-L132)) - Function
+  - `tools.src.bench-task-readiness.distributionsByKey` ([L134-L154](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-task-readiness.ts#L134-L154)) - Function
+  - `tools.src.bench-task-readiness.distributionsByKey.flatMap() callback` ([L149-L152](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-task-readiness.ts#L149-L152)) - Function
+  - `tools.src.bench-task-readiness.round` ([L156-L158](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-task-readiness.ts#L156-L158)) - Function
+  - `tools.src.bench-task-readiness.parseTaskReadinessSample` ([L160-L186](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-task-readiness.ts#L160-L186)) - Function
+  - `tools.src.bench-task-readiness.main` ([L188-L202](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-task-readiness.ts#L188-L202)) - Function
+  - `tools.src.bench-task-readiness.main.samples.lines.map() callback` ([L196-L197](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-task-readiness.ts#L196-L197)) - Function
+  - `tools.src.bench-task-readiness.main.samples` ([L196-L198](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-task-readiness.ts#L196-L198)) - Class
+  - `tools.src.bench-task-readiness.isRecord` ([L204-L206](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-task-readiness.ts#L204-L206)) - Function
+- [`tools/src/benchmark-stats.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/benchmark-stats.ts)
+  - `tools.src.benchmark-stats.nearestRankPercentile` ([L12-L24](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/benchmark-stats.ts#L12-L24)) - Function
+  - `tools.src.benchmark-stats.benchmarkDistribution` ([L26-L40](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/benchmark-stats.ts#L26-L40)) - Function
+  - `tools.src.benchmark-stats.round` ([L42-L44](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/benchmark-stats.ts#L42-L44)) - Function
 - [`tools/src/check-pack.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/check-pack.ts)
   - `tools.src.check-pack.checkDistIndexEntry.isBinaryOnly` ([L64-L65](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/check-pack.ts#L64-L65)) - Class
   - `tools.src.check-pack.checkDistIndexEntry.isBinaryOnly.paths.some() callback` ([L65-L65](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/check-pack.ts#L65-L65)) - Function
