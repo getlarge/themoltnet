@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildTaskReadinessReport,
+  parseTaskReadinessSample,
   type TaskReadinessSample,
 } from './bench-task-readiness.js';
 
@@ -14,10 +15,10 @@ function sample(
   return {
     runId,
     scenario: 'scratch-warm',
-    coldCategory: 'warm_continuation',
+    coldCategory: 'warm-continuation',
     topology: 'split',
-    authMode: 'agent_key',
-    oryPlacement: 'local_sqlite',
+    authMode: 'agent-key',
+    oryPlacement: 'local-sqlite',
     virtualization: 'kvm',
     queuedAt: new Date(queuedAt).toISOString(),
     firstUsefulReceivedAt: new Date(queuedAt + latencyMs).toISOString(),
@@ -59,12 +60,12 @@ describe('buildTaskReadinessReport', () => {
   it('separates SQLite and Postgres Ory placements', () => {
     const report = buildTaskReadinessReport([
       sample('sqlite', 100),
-      sample('postgres', 100, { oryPlacement: 'local_postgres' }),
+      sample('postgres', 100, { oryPlacement: 'local-postgres' }),
     ]);
 
     expect(
       report.groups.map((group) => group.dimensions.oryPlacement).sort(),
-    ).toEqual(['local_postgres', 'local_sqlite']);
+    ).toEqual(['local-postgres', 'local-sqlite']);
   });
 
   it('rejects successful samples without the primary KPI', () => {
@@ -74,4 +75,35 @@ describe('buildTaskReadinessReport', () => {
       ]),
     ).toThrow('has no useful event');
   });
+
+  it('includes useful-event latency even when the task later fails', () => {
+    const report = buildTaskReadinessReport([
+      sample('failed-after-useful', 250, { success: false }),
+    ]);
+
+    expect(report.groups[0].queuedToFirstUsefulMs).toMatchObject({
+      count: 1,
+      p50: 250,
+    });
+    expect(report.groups[0]).toMatchObject({ successes: 0, errors: 1 });
+  });
+
+  it('reports null throughput for a zero-width observation window', () => {
+    const instant = sample('instant', 0, {
+      completedAt: '2026-08-06T10:00:00.000Z',
+    });
+
+    expect(
+      buildTaskReadinessReport([instant]).groups[0].throughputPerMinute,
+    ).toBeNull();
+  });
+
+  it.each(['null', '[]', '42'])(
+    'rejects non-object JSONL samples with their line number: %s',
+    (line) => {
+      expect(() => parseTaskReadinessSample(line, 7)).toThrow(
+        'Invalid sample on line 7: expected a JSON object',
+      );
+    },
+  );
 });

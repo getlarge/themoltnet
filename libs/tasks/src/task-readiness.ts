@@ -1,5 +1,42 @@
 export type UsefulTaskEventKind = 'text_delta' | 'tool_call_start';
 
+export const TASK_READINESS_COLD_CATEGORIES = [
+  'cell-provisioning',
+  'daemon-start',
+  'snapshot-build',
+  'vm-resume',
+  'warm-continuation',
+] as const;
+export type TaskReadinessColdCategory =
+  (typeof TASK_READINESS_COLD_CATEGORIES)[number];
+
+export const TASK_READINESS_TOPOLOGIES = [
+  'compact',
+  'split',
+  'unclassified',
+] as const;
+export type TaskReadinessTopology = (typeof TASK_READINESS_TOPOLOGIES)[number];
+
+export const TASK_READINESS_AUTH_MODES = ['agent-key', 'oauth2'] as const;
+export type TaskReadinessAuthMode = (typeof TASK_READINESS_AUTH_MODES)[number];
+
+export const TASK_READINESS_ORY_PLACEMENTS = [
+  'managed',
+  'local-postgres',
+  'local-sqlite',
+  'unclassified',
+] as const;
+export type TaskReadinessOryPlacement =
+  (typeof TASK_READINESS_ORY_PLACEMENTS)[number];
+
+export const TASK_READINESS_VIRTUALIZATION_MODES = [
+  'kvm',
+  'tcg',
+  'unclassified',
+] as const;
+export type TaskReadinessVirtualizationMode =
+  (typeof TASK_READINESS_VIRTUALIZATION_MODES)[number];
+
 export interface TaskEventCandidate {
   kind: string;
   payload: Record<string, unknown>;

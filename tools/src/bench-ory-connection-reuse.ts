@@ -30,6 +30,8 @@ import {
 } from '@ory/client-fetch';
 import { Agent as UndiciAgent } from 'undici';
 
+import { benchmarkDistribution } from './benchmark-stats.js';
+
 // ── Config ──────────────────────────────────────────────────────────────────
 
 config({ path: ['env.public', '.env.infra.local'], override: false });
@@ -173,14 +175,14 @@ interface Stats {
 }
 
 function computeStats(durations: number[]): Stats {
-  const sorted = [...durations].sort((a, b) => a - b);
-  const sum = sorted.reduce((s, d) => s + d, 0);
+  const distribution = benchmarkDistribution(durations);
+  if (!distribution) throw new Error('benchmark produced no samples');
   return {
-    avg: sum / sorted.length,
-    p50: sorted[Math.floor(sorted.length * 0.5)],
-    p95: sorted[Math.floor(sorted.length * 0.95)],
-    min: sorted[0],
-    max: sorted[sorted.length - 1],
+    avg: distribution.mean,
+    p50: distribution.p50,
+    p95: distribution.p95,
+    min: distribution.min,
+    max: distribution.max,
   };
 }
 
