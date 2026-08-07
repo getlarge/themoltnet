@@ -1,0 +1,71 @@
+{
+  "name": "otel-custom-collector",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "nx": {
+    "release": {
+      "docker": {
+        "repositoryName": "getlarge/themoltnet/otel-collector"
+      }
+    },
+    "tags": [
+      "type:app",
+      "scope:observability",
+      "platform:server"
+    ],
+    "targets": {
+      "build": {
+        "cache": true,
+        "executor": "nx:run-commands",
+        "inputs": [
+          "{projectRoot}/builder.yaml",
+          "{projectRoot}/moltnetauthextension/**/*",
+          "{projectRoot}/moltnetattributionprocessor/**/*",
+          "{workspaceRoot}/libs/moltnet-authn/**/*",
+          "{workspaceRoot}/tools/build-otel-collector.mjs"
+        ],
+        "outputs": [
+          "{projectRoot}/_build/linux-amd64/moltnet-otelcol",
+          "{projectRoot}/_build/linux-arm64/moltnet-otelcol"
+        ],
+        "options": {
+          "command": "node tools/build-otel-collector.mjs",
+          "cwd": "{workspaceRoot}"
+        }
+      },
+      "docker:build": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "cwd": "{workspaceRoot}",
+          "command": "node tools/docker-build.mjs --project {projectName}"
+        },
+        "configurations": {
+          "ci": {
+            "command": "node tools/docker-build.mjs --project {projectName} --push --platform linux/amd64 --tag \"${NX_DOCKER_CI_TAG:?NX_DOCKER_CI_TAG must be set}\""
+          },
+          "release": {
+            "command": "node tools/docker-build.mjs --project {projectName} --push --platform linux/amd64,linux/arm64 --tag \"${NX_DOCKER_RELEASE_TAG:?NX_DOCKER_RELEASE_TAG must be set}\""
+          }
+        }
+      },
+      "test": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "GOWORK=off go -C moltnetauthextension test -race ./... && GOWORK=off go -C moltnetattributionprocessor test -race ./...",
+          "cwd": "{projectRoot}"
+        }
+      },
+      "test-ci": {
+        "dependsOn": [
+          "test"
+        ],
+        "executor": "nx:noop"
+      }
+    }
+  }
+}
