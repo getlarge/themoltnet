@@ -2,30 +2,14 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { readConfig, writeConfig } from '@themoltnet/sdk';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { oauth2SecretKey, readConfig, writeConfig } from '@themoltnet/sdk';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ensureKeyringSecretReference } from './secret-storage.js';
 
-const keyring = vi.hoisted(() => new Map<string, string>());
 const tempDirs: string[] = [];
 
-vi.mock('@themoltnet/sdk/node', () => ({
-  createNodeSecretProviderRegistry: () => ({
-    get: () => ({
-      read: async (key: string) => keyring.get(key) ?? null,
-      write: async (key: string, value: string) => {
-        keyring.set(key, value);
-      },
-      delete: async (key: string) => {
-        keyring.delete(key);
-      },
-    }),
-  }),
-}));
-
 describe('ensureKeyringSecretReference', () => {
-  beforeEach(() => keyring.clear());
   afterEach(async () => {
     await Promise.all(
       tempDirs.splice(0).map((dir) => rm(dir, { recursive: true })),
@@ -51,7 +35,37 @@ describe('ensureKeyringSecretReference', () => {
     const config = await readConfig(configDir);
     if (!config) throw new Error('missing fixture config');
 
-    const secured = await ensureKeyringSecretReference(configDir, config);
+    const migrate = vi.fn(async (credentialsPath: string) => {
+      expect(credentialsPath).toBe(join(configDir, 'moltnet.json'));
+      const pending = await readConfig(configDir);
+      if (!pending || !('client_secret' in pending.oauth2)) {
+        throw new Error('missing plaintext migration input');
+      }
+      expect(pending.oauth2.client_secret).toBe('plaintext-canary');
+      await writeConfig(
+        {
+          ...pending,
+          oauth2: {
+            client_id: pending.oauth2.client_id,
+            client_secret_ref: {
+              provider: 'os-keyring',
+              key: oauth2SecretKey(
+                pending.identity_id,
+                pending.oauth2.client_id,
+              ),
+            },
+          },
+        },
+        configDir,
+      );
+    });
+
+    const secured = await ensureKeyringSecretReference(
+      configDir,
+      config,
+      '',
+      migrate,
+    );
 
     expect(secured.oauth2).toEqual({
       client_id: 'client-456',
@@ -60,9 +74,7 @@ describe('ensureKeyringSecretReference', () => {
         key: 'oauth2/identity-123/client-456',
       },
     });
-    expect(keyring.get('oauth2/identity-123/client-456')).toBe(
-      'plaintext-canary',
-    );
+    expect(migrate).toHaveBeenCalledOnce();
     const raw = await readFile(join(configDir, 'moltnet.json'), 'utf8');
     expect(raw).not.toContain('plaintext-canary');
     expect(raw).not.toContain('"client_secret"');

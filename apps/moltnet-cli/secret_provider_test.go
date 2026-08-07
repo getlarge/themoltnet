@@ -287,6 +287,12 @@ func TestResolveAgentOAuth2EnvironmentFromBoundKeyringReference(t *testing.T) {
 	if vars["MY_AGENT_CLIENT_SECRET"] != "launch-only-secret" {
 		t.Fatalf("client secret was not resolved at launch")
 	}
+	if vars["MOLTNET_CLIENT_ID"] != "client-456" || vars["MOLTNET_CLIENT_SECRET"] != "launch-only-secret" {
+		t.Fatalf("generic SDK credentials were not resolved at launch")
+	}
+	if vars["MOLTNET_CREDENTIALS_PATH"] != filepath.Join(agentDir, "moltnet.json") {
+		t.Fatalf("credentials path = %q", vars["MOLTNET_CREDENTIALS_PATH"])
+	}
 }
 
 func TestResolveAgentOAuth2EnvironmentRejectsUnboundReference(t *testing.T) {

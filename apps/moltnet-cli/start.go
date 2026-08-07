@@ -8,7 +8,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"syscall"
 
 	"github.com/spf13/cobra"
 )
@@ -18,7 +17,7 @@ func runStartCmd(cmd *cobra.Command, dir, agentFlag, target string, targetArgs [
 }
 
 func runStartCmdWithRegistry(cmd *cobra.Command, dir, agentFlag, target string, targetArgs []string, dryRun bool, registry *SecretProviderRegistry) error {
-	return runStartCmdWithRegistryAndExec(cmd, dir, agentFlag, target, targetArgs, dryRun, registry, syscall.Exec)
+	return runStartCmdWithRegistryAndExec(cmd, dir, agentFlag, target, targetArgs, dryRun, registry, launchProcess)
 }
 
 type execProcess func(targetPath string, argv, env []string) error
@@ -138,8 +137,11 @@ func resolveAgentOAuth2Environment(agentDir, agentName string, registry *SecretP
 	}
 	prefix := toEnvPrefix(agentName)
 	return map[string]string{
-		prefix + "_CLIENT_ID":     creds.OAuth2.ClientID,
-		prefix + "_CLIENT_SECRET": secret,
+		"MOLTNET_CLIENT_ID":        creds.OAuth2.ClientID,
+		"MOLTNET_CLIENT_SECRET":    secret,
+		"MOLTNET_CREDENTIALS_PATH": configPath,
+		prefix + "_CLIENT_ID":      creds.OAuth2.ClientID,
+		prefix + "_CLIENT_SECRET":  secret,
 	}, nil
 }
 
