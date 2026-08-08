@@ -73,8 +73,13 @@ func TestBoundedLimiterIsolatesAgentsAndBoundsState(t *testing.T) {
 
 func TestAuthenticatePropagatesTrustedPrincipal(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		if req.URL.Path == "/admin/identities/agent-identity" {
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{"id": "agent-identity", "state": "active"})
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"id": "agent-identity", "state": "active",
+				"schema_id": "agent", "schema_url": "https://schemas.example/agent.json",
+				"traits": map[string]interface{}{},
+			})
 			return
 		}
 		if req.URL.Path != "/admin/oauth2/introspect" {

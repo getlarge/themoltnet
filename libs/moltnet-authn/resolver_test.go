@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -14,6 +15,10 @@ import (
 )
 
 type observedEvent struct{ operation, outcome string }
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) { return f(req) }
+
 type recordingObserver struct {
 	mu        sync.Mutex
 	providers []observedEvent
@@ -39,7 +44,10 @@ func (o *recordingObserver) CacheEviction(_ context.Context, reason string) {
 
 func newTestResolver(t *testing.T, handler http.Handler, mutate func(*Config)) (*Resolver, *httptest.Server) {
 	t.Helper()
-	server := httptest.NewServer(handler)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		handler.ServeHTTP(w, req)
+	}))
 	cfg := Config{ProjectURL: server.URL, APIKey: "provider-secret", CacheTTL: time.Minute, CacheMaxEntries: 10, RequestTimeout: time.Second, HMACKey: []byte("01234567890123456789012345678901")}
 	if mutate != nil {
 		mutate(&cfg)
@@ -50,6 +58,14 @@ func newTestResolver(t *testing.T, handler http.Handler, mutate func(*Config)) (
 	}
 	t.Cleanup(server.Close)
 	return resolver, server
+}
+
+func identityResponse(identityID, state string) map[string]interface{} {
+	return map[string]interface{}{
+		"id": identityID, "state": state,
+		"schema_id": "agent", "schema_url": "https://schemas.example/agent.json",
+		"traits": map[string]interface{}{},
+	}
 }
 
 func TestNewResolverResolvesManagedAndSelfHostedURLs(t *testing.T) {
@@ -75,6 +91,52 @@ func TestNewResolverResolvesManagedAndSelfHostedURLs(t *testing.T) {
 	}
 }
 
+func TestResolverUsesConfiguredHTTPClientForOrySDK(t *testing.T) {
+	var calls atomic.Int32
+	httpClient := &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		calls.Add(1)
+		if req.Header.Get("Authorization") != "Bearer provider-secret" {
+			t.Fatalf("provider API key missing from %s", req.URL.Path)
+		}
+		var body interface{}
+		switch req.URL.Path {
+		case "/admin/oauth2/introspect":
+			body = map[string]interface{}{
+				"active": true, "client_id": "client", "scope": "task:execute",
+				"ext": map[string]interface{}{"moltnet:identity_id": "identity", "moltnet:subject_type": "agent"},
+			}
+		case "/admin/identities/identity":
+			body = identityResponse("identity", "active")
+		default:
+			t.Fatalf("unexpected Ory SDK request: %s", req.URL.Path)
+		}
+		encoded, err := json.Marshal(body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     http.Header{"Content-Type": {"application/json"}},
+			Body:       io.NopCloser(strings.NewReader(string(encoded))),
+			Request:    req,
+		}, nil
+	})}
+	resolver, err := NewResolver(Config{
+		ProjectURL: "https://project.example", APIKey: "provider-secret",
+		HTTPClient: httpClient, HMACKey: []byte("01234567890123456789012345678901"),
+	}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	principal, err := resolver.Resolve(context.Background(), "oauth-secret")
+	if err != nil || principal.IdentityID != "identity" {
+		t.Fatalf("custom HTTP client resolution failed: %#v %v", principal, err)
+	}
+	if calls.Load() != 2 {
+		t.Fatalf("custom HTTP client made %d calls, want 2", calls.Load())
+	}
+}
+
 func TestResolveOAuthUsesHookClaimsAndRequiresAgentScope(t *testing.T) {
 	var metadataCalls atomic.Int32
 	resolver, _ := newTestResolver(t, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -91,7 +153,7 @@ func TestResolveOAuthUsesHookClaimsAndRequiresAgentScope(t *testing.T) {
 		case "/admin/clients/client-1":
 			metadataCalls.Add(1)
 		case "/admin/identities/identity-1":
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{"id": "identity-1", "state": "active"})
+			_ = json.NewEncoder(w).Encode(identityResponse("identity-1", "active"))
 		default:
 			http.NotFound(w, req)
 		}
@@ -117,7 +179,7 @@ func TestResolveOAuthRejectsInactiveKratosIdentity(t *testing.T) {
 				"ext": map[string]interface{}{"moltnet:identity_id": "identity-1", "moltnet:subject_type": "agent"},
 			})
 		case "/admin/identities/identity-1":
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{"id": "identity-1", "state": "inactive"})
+			_ = json.NewEncoder(w).Encode(identityResponse("identity-1", "inactive"))
 		default:
 			http.NotFound(w, req)
 		}
@@ -135,7 +197,7 @@ func TestResolveOAuthClientMetadataFallbackAndHumanRejection(t *testing.T) {
 	resolver, _ := newTestResolver(t, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		switch req.URL.Path {
 		case "/admin/oauth2/introspect":
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{"active": true, "client_id": "legacy", "scope": []string{"task:execute"}})
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"active": true, "client_id": "legacy", "scope": "task:execute"})
 		case "/admin/clients/legacy":
 			kind := "moltnet_agent"
 			if human.Load() {
@@ -143,7 +205,7 @@ func TestResolveOAuthClientMetadataFallbackAndHumanRejection(t *testing.T) {
 			}
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{"metadata": map[string]interface{}{"type": kind, "identity_id": "legacy-identity"}})
 		case "/admin/identities/legacy-identity":
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{"id": "legacy-identity", "state": "active"})
+			_ = json.NewEncoder(w).Encode(identityResponse("legacy-identity", "active"))
 		}
 	}), func(cfg *Config) { cfg.CacheTTL = time.Nanosecond })
 	principal, err := resolver.Resolve(context.Background(), "legacy-token")
@@ -213,7 +275,7 @@ func TestResolveTalosChecksStatusVisibilityExpiryKratosAndTeam(t *testing.T) {
 			}
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{"is_valid": true, "actor_id": "identity-talos", "key_id": "key-1", "status": "KEY_STATUS_ACTIVE", "visibility": "KEY_VISIBILITY_SECRET", "expire_time": time.Now().Add(time.Hour).Format(time.RFC3339), "scopes": []string{"task:execute"}, "metadata": map[string]interface{}{"subject_type": "agent", "team_id": "team-1"}})
 		case "/admin/identities/identity-talos":
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{"id": "identity-talos", "state": kratosState.Load()})
+			_ = json.NewEncoder(w).Encode(identityResponse("identity-talos", kratosState.Load().(string)))
 		default:
 			http.NotFound(w, req)
 		}
@@ -240,7 +302,7 @@ func TestResolveTalosRejectsInvalidStatusVisibilityAndExpiry(t *testing.T) {
 		name   string
 		mutate func(map[string]interface{})
 	}{
-		{"inactive status", func(response map[string]interface{}) { response["status"] = "KEY_STATUS_INACTIVE" }},
+		{"revoked status", func(response map[string]interface{}) { response["status"] = "KEY_STATUS_REVOKED" }},
 		{"public visibility", func(response map[string]interface{}) { response["visibility"] = "KEY_VISIBILITY_PUBLIC" }},
 		{"expired", func(response map[string]interface{}) {
 			response["expire_time"] = now.Add(-time.Second).Format(time.RFC3339)
@@ -254,7 +316,7 @@ func TestResolveTalosRejectsInvalidStatusVisibilityAndExpiry(t *testing.T) {
 			resolver, _ := newTestResolver(t, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 				if req.URL.Path == "/admin/identities/identity-talos" {
 					kratosCalls.Add(1)
-					_ = json.NewEncoder(w).Encode(map[string]interface{}{"id": "identity-talos", "state": "active"})
+					_ = json.NewEncoder(w).Encode(identityResponse("identity-talos", "active"))
 					return
 				}
 				response := map[string]interface{}{
@@ -321,7 +383,7 @@ func TestPositiveCacheSingleFlightExpiryLRUAndEviction(t *testing.T) {
 	resolver, _ := newTestResolver(t, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if strings.HasPrefix(req.URL.Path, "/admin/identities/") {
 			identityID := strings.TrimPrefix(req.URL.Path, "/admin/identities/")
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{"id": identityID, "state": "active"})
+			_ = json.NewEncoder(w).Encode(identityResponse(identityID, "active"))
 			return
 		}
 		calls.Add(1)
@@ -367,7 +429,7 @@ func TestPositiveCacheTTLIsCappedByCredentialExpiry(t *testing.T) {
 	expiresAt := now.Add(10 * time.Second)
 	resolver, _ := newTestResolver(t, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.URL.Path == "/admin/identities/identity" {
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{"id": "identity", "state": "active"})
+			_ = json.NewEncoder(w).Encode(identityResponse("identity", "active"))
 			return
 		}
 		if calls.Add(1) > 1 {
@@ -411,7 +473,7 @@ func TestSingleFlightLoadOutlivesLeaderCancellation(t *testing.T) {
 				"ext": map[string]interface{}{"moltnet:identity_id": "identity", "moltnet:subject_type": "agent"},
 			})
 		case req.URL.Path == "/admin/identities/identity":
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{"id": "identity", "state": "active"})
+			_ = json.NewEncoder(w).Encode(identityResponse("identity", "active"))
 		default:
 			http.NotFound(w, req)
 		}
