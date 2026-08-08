@@ -1,14 +1,12 @@
-# Minimal config to confirm the custom collector starts with our auth
-# extension wired to an OTLP receiver. Not for production — points at a
-# non-routable introspection endpoint and exports to debug only.
+# Minimal config used only to validate component wiring.
 extensions:
   health_check:
     endpoint: '0.0.0.0:13133'
-  oryintrospectionauth:
-    introspection_endpoint: 'http://127.0.0.1:4445/admin/oauth2/introspect'
-    introspection_auth:
-      type: 'none'
-    cache_ttl: 30s
+  moltnetauth:
+    hydra_admin_url: 'http://127.0.0.1:4445'
+    talos_admin_url: 'http://127.0.0.1:4420'
+    kratos_admin_url: 'http://127.0.0.1:4434'
+    required_scopes: ['task:execute']
 
 receivers:
   otlp:
@@ -16,15 +14,19 @@ receivers:
       http:
         endpoint: '0.0.0.0:4319'
         auth:
-          authenticator: oryintrospectionauth
+          authenticator: moltnetauth
+
+processors:
+  moltnetattribution:
 
 exporters:
   debug:
     verbosity: basic
 
 service:
-  extensions: [health_check, oryintrospectionauth]
+  extensions: [health_check, moltnetauth]
   pipelines:
     traces:
       receivers: [otlp]
+      processors: [moltnetattribution]
       exporters: [debug]

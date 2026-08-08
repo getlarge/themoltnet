@@ -1421,28 +1421,6 @@ jobs:
         if: failure() && needs.affected.outputs.e2e-orchestration == 'true'
         run: docker compose -f docker-compose.e2e.yaml logs --tail=50 issue-lifecycle-db issue-lifecycle-db-migrate
 
-  go-otel-extension:
-    # The oryintrospectionauth extension deliberately lives OUTSIDE go.work
-    # (it's build-time infra for OCB, not part of the app's module graph).
-    # Tests there are not picked up by the `go` job above, which walks the
-    # workspace. Run them with GOWORK=off from their own directory so any
-    # future refactor that breaks them shows up in CI.
-    name: Go OTel extension
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
-        with:
-          go-version: '1.25'
-      - name: Test oryintrospectionauthextension
-        working-directory: infra/otel/custom-collector/oryintrospectionauthextension
-        env:
-          GOWORK: 'off'
-        run: go test -race ./...
-
   skill-check:
     name: Skill Validation
     runs-on: ubuntu-latest

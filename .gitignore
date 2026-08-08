@@ -193,6 +193,7 @@ genesis-credentials.json
 # Go binaries
 cmd/moltnet/moltnet
 *.exe
+infra/otel/custom-collector/_build/
 
 # npm CLI wrapper (downloaded binary)
 packages/cli/bin/moltnet

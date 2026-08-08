@@ -1,0 +1,16 @@
+{
+  "alertOnNoData": false,
+  "description": "Public OTLP authentication provider throttling or outages. Inspect the MoltNet Metrics dashboard, separate 429 from unavailable outcomes, and verify Hydra/Talos/Kratos health before changing rate limits.",
+  "intervalMinutes": 5,
+  "mplQuery": "`moltnet-metrics`:`moltnet.auth.provider.requests`\n| filter `outcome` in (\"rate_limited\", \"unavailable\")\n| align to 1m using prom::rate\n| group by `operation`, `outcome` using sum",
+  "name": "MoltNet public OTLP auth provider failures",
+  "notifierIds": [],
+  "notifyByGroup": true,
+  "operator": "Above",
+  "rangeMinutes": 10,
+  "resolvable": true,
+  "threshold": 0.1,
+  "triggerAfterNPositiveResults": 2,
+  "triggerFromNRuns": 3,
+  "type": "Threshold"
+}

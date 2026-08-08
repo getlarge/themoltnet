@@ -1,6 +1,6 @@
 # Docker Compose for the OpenTelemetry Collector
 #
-# Production (exports to Axiom):
+# Axiom-backed standalone/local use:
 #   AXIOM_API_TOKEN=xxx docker compose -f infra/otel/docker-compose.yaml up -d
 #
 # Development (exports to stdout):
@@ -8,24 +8,27 @@
 
 services:
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.115.0
+    image: ${OTEL_COLLECTOR_IMAGE:-ghcr.io/getlarge/themoltnet/otel-collector:dev}
     command: ['--config=/etc/otelcol/config.yaml']
     volumes:
       - ./${OTEL_CONFIG:-collector-config.yaml}:/etc/otelcol/config.yaml:ro
     ports:
-      # OTLP gRPC receiver
-      - '4317:4317'
-      # OTLP HTTP receiver
-      - '4318:4318'
-      # Health check
-      - '13133:13133'
-      # Collector metrics
-      - '8888:8888'
+      # Loopback bindings are for trusted host processes. Remote ingress must
+      # terminate TLS before forwarding to authenticated port 4319.
+      - '127.0.0.1:4317:4317'
+      - '127.0.0.1:4318:4318'
+      - '127.0.0.1:4319:4319'
+      - '127.0.0.1:13133:13133'
     environment:
       - AXIOM_API_TOKEN=${AXIOM_API_TOKEN:-}
       - AXIOM_LOGS_DATASET=${AXIOM_LOGS_DATASET:-moltnet-logs}
       - AXIOM_TRACES_DATASET=${AXIOM_TRACES_DATASET:-moltnet-traces}
       - AXIOM_METRICS_DATASET=${AXIOM_METRICS_DATASET:-moltnet-metrics}
+      - ORY_PROJECT_URL=${ORY_PROJECT_URL:-}
+      - ORY_API_KEY=${ORY_API_KEY:-}
+      - ORY_HYDRA_ADMIN_URL=${ORY_HYDRA_ADMIN_URL:-}
+      - ORY_TALOS_ADMIN_URL=${ORY_TALOS_ADMIN_URL:-}
+      - ORY_KRATOS_ADMIN_URL=${ORY_KRATOS_ADMIN_URL:-}
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:13133']

@@ -248,7 +248,16 @@ Non-secret env vars (`PORT`, `NODE_ENV`, `REST_API_URL`, `ORY_PROJECT_URL`, `AUT
 
 The standalone OpenTelemetry Collector config in `infra/otel/` uses the same
 Axiom dataset split: logs go to `AXIOM_LOGS_DATASET`, traces to
-`AXIOM_TRACES_DATASET`, and metrics to `AXIOM_METRICS_DATASET`.
+`AXIOM_TRACES_DATASET`, and metrics to `AXIOM_METRICS_DATASET`. Its public
+OTLP/HTTP receiver on port `4319` accepts OAuth tokens and Talos agent keys
+with `task:execute`; internal service telemetry remains on ports `4317` and
+`4318` inside the Docker network. The development Compose stack binds `4319`
+only to host loopback. Remote agents require the deployment's TLS ingress in
+front of `4319`; this repository does not define a production Compose stack or
+add a dedicated proxy. See the [Collector runbook](../../infra/otel/custom-collector/README.md)
+for Ory Network and self-hosted configuration, limits, builds, and incident
+signals. The Collector is packaged as an image but is not deployed on Fly by
+this repository.
 
 > **Note:** GitHub Actions and Fly.io secret names don't always match.
 > `ORY_PROJECT_API_KEY` maps to `ORY_API_KEY` on the server app, and
@@ -421,6 +430,10 @@ Axiom receives all traces, metrics, and logs via OTLP. It does **not** poll endp
 - **Latency**: `http.server.request.duration` P95 > 2s
 - **Event loop lag**: `nodejs.eventloop.delay.p99` (from runtime metrics) > 500ms
 - **Memory pressure**: `nodejs.memory.heap.used` approaching machine limit (1 GB)
+- **Public OTLP auth**: provider `rate_limited`/`unavailable` outcomes and
+  attribution conflicts
+- **Collector delivery**: exporter send failures and queue pressure, grouped by
+  the isolated public/internal exporter
 
 Axiom can dispatch alerts directly to Slack, email, PagerDuty, or webhooks — configure notification targets in the Axiom dashboard under **Notifiers**.
 

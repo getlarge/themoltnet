@@ -27,6 +27,10 @@ const dockerProjects = [
   { name: '@moltnet/mcp-host', root: 'apps/mcp-host' },
   { name: '@moltnet/mcp-server', root: 'apps/mcp-server' },
   { name: '@moltnet/rest-api', root: 'apps/rest-api' },
+  {
+    name: 'otel-custom-collector',
+    root: 'infra/otel/custom-collector',
+  },
 ] as const;
 
 function runNode(script: string, args: string[], env: NodeJS.ProcessEnv = {}) {

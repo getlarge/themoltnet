@@ -7,6 +7,7 @@
   "apps/moltnet-cli": "1.76.1",
   "apps/moltnet-signer": "0.2.0",
   "apps/rest-api": "0.40.2",
+  "infra/otel/custom-collector": "0.1.0",
   "libs/agent-runtime": "0.41.0",
   "libs/credential-broker": "0.3.0",
   "libs/credentials": "0.2.0",
