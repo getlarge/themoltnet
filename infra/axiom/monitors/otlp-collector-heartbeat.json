@@ -1,0 +1,16 @@
+{
+  "alertOnNoData": true,
+  "description": "No Collector self-telemetry reached Axiom. Verify the container, its internal loopback OTLP metrics reader, Axiom credentials, and exporter queues before treating public ingestion monitors as healthy.",
+  "intervalMinutes": 5,
+  "mplQuery": "`moltnet-metrics`:`otelcol_process_uptime`\n| align to 1m using max\n| group by `service.instance.id` using max",
+  "name": "MoltNet OTLP Collector self-telemetry heartbeat",
+  "notifierIds": [],
+  "notifyByGroup": true,
+  "operator": "Below",
+  "rangeMinutes": 10,
+  "resolvable": true,
+  "threshold": 1,
+  "triggerAfterNPositiveResults": 2,
+  "triggerFromNRuns": 3,
+  "type": "Threshold"
+}

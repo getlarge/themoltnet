@@ -1,0 +1,132 @@
+package moltnetauthextension
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
+	authn "github.com/getlarge/themoltnet/libs/moltnet-authn"
+	"go.opentelemetry.io/collector/client"
+	"go.opentelemetry.io/otel/metric/noop"
+)
+
+func TestExtractBearer(t *testing.T) {
+	credential, err := extractBearer(map[string][]string{"authorization": {"Bearer secret"}})
+	if err != nil || credential != "secret" {
+		t.Fatalf("unexpected parse: %q %v", credential, err)
+	}
+	for _, headers := range []map[string][]string{{}, {"Authorization": {"Basic abc"}}, {"Authorization": {"Bearer"}}, {"Authorization": {"Bearer a", "Bearer b"}}} {
+		if _, err := extractBearer(headers); err == nil {
+			t.Fatalf("expected malformed header rejection: %#v", headers)
+		}
+	}
+}
+
+func TestRejectionReasonsAreBounded(t *testing.T) {
+	tests := []struct {
+		err    error
+		reason string
+	}{
+		{errMissingAuthorization, "missing_authorization"},
+		{errMalformedAuthorization, "malformed_authorization"},
+		{&authn.InvalidError{Reason: "insufficient scope"}, "insufficient_scope"},
+		{&authn.InvalidError{Reason: "inactive token"}, "invalid_credential"},
+		{&authn.RateLimitedError{Provider: "hydra"}, "provider_rate_limited"},
+		{&authn.UnavailableError{Provider: "kratos"}, "provider_unavailable"},
+		{errors.New("unexpected"), "authentication_error"},
+	}
+	for _, tc := range tests {
+		if actual := rejectionReason(tc.err); actual != tc.reason {
+			t.Fatalf("rejectionReason(%v) = %q, want %q", tc.err, actual, tc.reason)
+		}
+	}
+}
+
+func TestBoundedLimiterIsolatesAgentsAndBoundsState(t *testing.T) {
+	cfg := &Config{GlobalRate: 100, GlobalBurst: 200, AgentRate: 2, AgentBurst: 2, LimiterMaxEntries: 3, LimiterIdleTTL: time.Minute}
+	limiter := newBoundedLimiter(cfg)
+	now := time.Now()
+	limiter.now = func() time.Time { return now }
+	limiter.global = newTokenBucket(cfg.GlobalRate, cfg.GlobalBurst, now)
+	if !limiter.allowAgent("a") || !limiter.allowAgent("a") || limiter.allowAgent("a") {
+		t.Fatal("agent bucket did not enforce its burst")
+	}
+	if !limiter.allowAgent("b") {
+		t.Fatal("agent b was throttled by agent a")
+	}
+	for _, identity := range []string{"c", "d", "e"} {
+		limiter.allowAgent(identity)
+	}
+	if limiter.size() != 3 {
+		t.Fatalf("limiter state grew to %d", limiter.size())
+	}
+	now = now.Add(2 * time.Minute)
+	limiter.allowAgent("fresh")
+	if limiter.size() != 1 {
+		t.Fatalf("idle limiter state was not evicted: %d", limiter.size())
+	}
+}
+
+func TestAuthenticatePropagatesTrustedPrincipal(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if req.URL.Path == "/admin/identities/agent-identity" {
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"id": "agent-identity", "state": "active",
+				"schema_id": "agent", "schema_url": "https://schemas.example/agent.json",
+				"traits": map[string]interface{}{},
+			})
+			return
+		}
+		if req.URL.Path != "/admin/oauth2/introspect" {
+			http.NotFound(w, req)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"active": true, "client_id": "agent-client", "scope": "task:execute",
+			"ext": map[string]interface{}{"moltnet:identity_id": "agent-identity", "moltnet:subject_type": "agent"},
+		})
+	}))
+	defer server.Close()
+	resolver, err := authn.NewResolver(authn.Config{ProjectURL: server.URL, APIKey: "provider-secret"}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := &Config{GlobalRate: 100, GlobalBurst: 200, AgentRate: 2, AgentBurst: 20, LimiterMaxEntries: 100, LimiterIdleTTL: time.Minute}
+	meter := noop.NewMeterProvider().Meter("test")
+	throttled, _ := meter.Int64Counter("throttled")
+	extension := &authExtension{cfg: cfg, resolver: resolver, limiter: newBoundedLimiter(cfg), throttled: throttled}
+
+	ctx, err := extension.Authenticate(context.Background(), map[string][]string{"Authorization": {"Bearer oauth-secret"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	info := client.FromContext(ctx)
+	if info.Auth == nil || info.Auth.GetAttribute("moltnet.identity_id") != "agent-identity" || info.Auth.GetAttribute("subject_type") != "agent" {
+		t.Fatalf("trusted principal was not propagated: %#v", info.Auth)
+	}
+}
+
+func TestConfigDefaultsAndValidation(t *testing.T) {
+	cfg := &Config{ProjectURL: "https://project.example", APIKey: "provider-secret"}
+	if err := cfg.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	if cfg.RequiredScopes[0] != "task:execute" || *cfg.CacheTTL != time.Minute || cfg.GlobalRate != 100 || cfg.AgentBurst != 20 {
+		t.Fatalf("unexpected defaults: %#v", cfg)
+	}
+	if err := (&Config{ProjectURL: "https://project.example"}).Validate(); err == nil {
+		t.Fatal("managed config without api_key was accepted")
+	}
+	if err := (&Config{HydraAdminURL: "http://hydra", TalosAdminURL: "http://talos", KratosAdminURL: "http://kratos", APIKey: "unexpected"}).Validate(); err == nil {
+		t.Fatal("self-hosted config with api_key was accepted")
+	}
+	zero := time.Duration(0)
+	if err := (&Config{ProjectURL: "https://project.example", APIKey: "provider-secret", CacheTTL: &zero}).Validate(); err == nil {
+		t.Fatal("explicit zero cache_ttl was silently treated as the default")
+	}
+}

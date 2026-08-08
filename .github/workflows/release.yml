@@ -126,6 +126,9 @@ jobs:
       rest-api-release-created: ${{ steps.release.outputs['apps/rest-api--release_created'] }}
       rest-api-tag-name: ${{ steps.release.outputs['apps/rest-api--tag_name'] }}
       rest-api-version: ${{ steps.release.outputs['apps/rest-api--version'] }}
+      otel-collector-release-created: ${{ steps.release.outputs['infra/otel/custom-collector--release_created'] }}
+      otel-collector-tag-name: ${{ steps.release.outputs['infra/otel/custom-collector--tag_name'] }}
+      otel-collector-version: ${{ steps.release.outputs['infra/otel/custom-collector--version'] }}
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
@@ -156,6 +159,12 @@ jobs:
           node-version: 24
           cache: pnpm
 
+      - uses: actions/setup-go@v6
+        if: ${{ matrix.project == 'otel-custom-collector' }}
+        with:
+          go-version-file: infra/otel/custom-collector/moltnetauthextension/go.mod
+          cache: true
+
       - uses: docker/setup-qemu-action@v3
 
       - uses: docker/setup-buildx-action@v3
@@ -177,6 +186,15 @@ jobs:
           pnpm exec nx run
           "$NX_DOCKER_RELEASE_PROJECT:docker:build"
           --configuration=release
+
+      - name: Verify published multi-platform manifest
+        env:
+          NX_DOCKER_RELEASE_PROJECT: ${{ matrix.project }}
+          NX_DOCKER_RELEASE_TAG: ${{ matrix.version }}
+        run: >-
+          node tools/verify-docker-manifest.mjs
+          --project "$NX_DOCKER_RELEASE_PROJECT"
+          --tag "$NX_DOCKER_RELEASE_TAG"
 
       - name: Publish GitHub release
         env:
@@ -392,7 +410,8 @@ jobs:
               {"project":"@moltnet/landing","released":"${{ needs.release-please.outputs.landing-release-created }}","tag":"${{ needs.release-please.outputs.landing-tag-name }}","version":"${{ needs.release-please.outputs.landing-version }}"},
               {"project":"@moltnet/mcp-host","released":"${{ needs.release-please.outputs.mcp-host-release-created }}","tag":"${{ needs.release-please.outputs.mcp-host-tag-name }}","version":"${{ needs.release-please.outputs.mcp-host-version }}"},
               {"project":"@moltnet/mcp-server","released":"${{ needs.release-please.outputs.mcp-server-release-created }}","tag":"${{ needs.release-please.outputs.mcp-server-tag-name }}","version":"${{ needs.release-please.outputs.mcp-server-version }}"},
-              {"project":"@moltnet/rest-api","released":"${{ needs.release-please.outputs.rest-api-release-created }}","tag":"${{ needs.release-please.outputs.rest-api-tag-name }}","version":"${{ needs.release-please.outputs.rest-api-version }}"}
+              {"project":"@moltnet/rest-api","released":"${{ needs.release-please.outputs.rest-api-release-created }}","tag":"${{ needs.release-please.outputs.rest-api-tag-name }}","version":"${{ needs.release-please.outputs.rest-api-version }}"},
+              {"project":"otel-custom-collector","released":"${{ needs.release-please.outputs.otel-collector-release-created }}","tag":"${{ needs.release-please.outputs.otel-collector-tag-name }}","version":"${{ needs.release-please.outputs.otel-collector-version }}"}
             ]
         run: node tools/release/resolve-docker-release-matrix.mjs
 

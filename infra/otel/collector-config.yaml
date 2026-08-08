@@ -8,6 +8,8 @@
 #   AXIOM_LOGS_DATASET    - Axiom logs dataset name (e.g. "moltnet-logs")
 #   AXIOM_TRACES_DATASET  - Axiom traces dataset name (e.g. "moltnet-traces")
 #   AXIOM_METRICS_DATASET - Axiom metrics dataset name (e.g. "moltnet-metrics")
+#   ORY_PROJECT_URL / ORY_API_KEY - Ory Network authentication, or the three
+#   ORY_*_ADMIN_URL variables for a self-hosted Ory deployment.
 #
 # Usage with Docker:
 #   docker compose -f infra/otel/docker-compose.yaml up
@@ -23,16 +25,76 @@ receivers:
       http:
         endpoint: '0.0.0.0:4318'
 
+  otlp/public:
+    protocols:
+      http:
+        endpoint: '0.0.0.0:4319'
+        max_request_body_size: 4194304
+        auth:
+          authenticator: moltnetauth
+
 processors:
   batch:
     timeout: 5s
     send_batch_size: 1024
     send_batch_max_size: 2048
 
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 75
+    spike_limit_percentage: 15
+
+  batch/public_traces:
+    timeout: 5s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+
+  batch/public_logs:
+    timeout: 5s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+
+  batch/public_metrics:
+    timeout: 5s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+
+  moltnetattribution:
+
   resource:
     attributes:
       - key: service.namespace
         value: moltnet
+        action: upsert
+
+  resource/public:
+    attributes:
+      - key: http.request.header.authorization
+        action: delete
+      - key: http.request.header.cookie
+        action: delete
+      - key: http.request.header.x-api-key
+        action: delete
+      - key: http.request.header.x-ory-api-key
+        action: delete
+      - key: password
+        action: delete
+      - key: token
+        action: delete
+      - key: secret
+        action: delete
+      - key: api_key
+        action: delete
+      - key: private_key
+        action: delete
+      - key: service.namespace
+        value: moltnet-public
+        action: upsert
+      - key: service.name
+        value: moltnet-agent
+        action: upsert
+      - key: moltnet.telemetry.origin
+        value: public-agent
         action: upsert
 
   # Filter out health check spans to reduce noise
@@ -79,6 +141,18 @@ processors:
           - replace_pattern(attributes["secret"], ".*", "[REDACTED]")
           - replace_pattern(attributes["api_key"], ".*", "[REDACTED]")
           - replace_pattern(attributes["private_key"], ".*", "[REDACTED]")
+    metric_statements:
+      - context: datapoint
+        statements:
+          - replace_pattern(attributes["http.request.header.authorization"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["http.request.header.cookie"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["http.request.header.x-api-key"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["http.request.header.x-ory-api-key"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["password"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["token"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["secret"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["api_key"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["private_key"], ".*", "[REDACTED]")
 
 exporters:
   otlphttp/axiom_traces:
@@ -102,6 +176,42 @@ exporters:
       x-axiom-dataset: '${env:AXIOM_LOGS_DATASET}'
     compression: gzip
 
+  otlphttp/axiom_traces_public:
+    endpoint: 'https://api.axiom.co'
+    headers:
+      authorization: 'Bearer ${env:AXIOM_API_TOKEN}'
+      x-axiom-dataset: '${env:AXIOM_TRACES_DATASET}'
+    compression: gzip
+    sending_queue:
+      enabled: true
+      sizer: items
+      queue_size: 10000
+      num_consumers: 4
+
+  otlphttp/axiom_metrics_public:
+    endpoint: 'https://api.axiom.co'
+    headers:
+      authorization: 'Bearer ${env:AXIOM_API_TOKEN}'
+      x-axiom-dataset: '${env:AXIOM_METRICS_DATASET}'
+    compression: gzip
+    sending_queue:
+      enabled: true
+      sizer: items
+      queue_size: 10000
+      num_consumers: 4
+
+  otlphttp/axiom_logs_public:
+    endpoint: 'https://api.axiom.co'
+    headers:
+      authorization: 'Bearer ${env:AXIOM_API_TOKEN}'
+      x-axiom-dataset: '${env:AXIOM_LOGS_DATASET}'
+    compression: gzip
+    sending_queue:
+      enabled: true
+      sizer: items
+      queue_size: 10000
+      num_consumers: 4
+
   # Debug exporter for local development (stdout)
   debug:
     verbosity: basic
@@ -110,27 +220,88 @@ extensions:
   health_check:
     endpoint: '0.0.0.0:13133'
 
+  moltnetauth:
+    project_url: '${env:ORY_PROJECT_URL}'
+    api_key: '${env:ORY_API_KEY}'
+    hydra_admin_url: '${env:ORY_HYDRA_ADMIN_URL}'
+    talos_admin_url: '${env:ORY_TALOS_ADMIN_URL}'
+    kratos_admin_url: '${env:ORY_KRATOS_ADMIN_URL}'
+    required_scopes: ['task:execute']
+    cache_ttl: 60s
+    cache_max_entries: 10000
+    request_timeout: 5s
+    global_rate: 100
+    global_burst: 200
+    agent_rate: 2
+    agent_burst: 20
+    limiter_max_entries: 10000
+    limiter_idle_ttl: 10m
+
 service:
-  extensions: [health_check]
+  extensions: [health_check, moltnetauth]
 
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [filter/health, transform/redact, resource, batch]
+      processors:
+        [memory_limiter, filter/health, transform/redact, resource, batch]
       exporters: [otlphttp/axiom_traces]
 
     metrics:
       receivers: [otlp]
-      processors: [resource, batch]
+      processors: [memory_limiter, transform/redact, resource, batch]
       exporters: [otlphttp/axiom_metrics]
 
     logs:
       receivers: [otlp]
-      processors: [transform/redact, resource, batch]
+      processors: [memory_limiter, transform/redact, resource, batch]
       exporters: [otlphttp/axiom_logs]
+
+    traces/public:
+      receivers: [otlp/public]
+      processors:
+        [
+          memory_limiter,
+          moltnetattribution,
+          transform/redact,
+          resource/public,
+          batch/public_traces,
+        ]
+      exporters: [otlphttp/axiom_traces_public]
+
+    logs/public:
+      receivers: [otlp/public]
+      processors:
+        [
+          memory_limiter,
+          moltnetattribution,
+          transform/redact,
+          resource/public,
+          batch/public_logs,
+        ]
+      exporters: [otlphttp/axiom_logs_public]
+
+    metrics/public:
+      receivers: [otlp/public]
+      processors:
+        [
+          memory_limiter,
+          moltnetattribution,
+          transform/redact,
+          resource/public,
+          batch/public_metrics,
+        ]
+      exporters: [otlphttp/axiom_metrics_public]
 
   telemetry:
     logs:
       level: info
     metrics:
-      address: '0.0.0.0:8888'
+      level: detailed
+      readers:
+        - periodic:
+            interval: 10000
+            exporter:
+              otlp:
+                protocol: http/protobuf
+                endpoint: 'http://127.0.0.1:4318'

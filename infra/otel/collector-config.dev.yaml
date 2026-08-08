@@ -4,12 +4,11 @@
 #
 #   - otlp (4317 gRPC / 4318 HTTP) — UNAUTHENTICATED, for internal service-
 #     mesh traffic (rest-api, mcp-server, etc.). Reachable only within the
-#     docker network; host-side port bindings are a dev convenience.
+#     Docker network in the root development stack.
 #
-#   - otlp/public (4319 HTTP) — AUTHENTICATED via the `oryintrospectionauth`
-#     extension. This is the endpoint that agent workers (work-task,
-#     hosted runners) use. Tokens are validated against local Hydra's
-#     `/admin/oauth2/introspect`.
+#   - otlp/public (4319 HTTP) — authenticated via `moltnetauth`. OAuth tokens
+#     go to Hydra; `ory_ak_` keys go to Talos and their actor is checked in
+#     Kratos. All public signals pass through trusted attribution.
 #
 # Exports to debug (stdout) so telemetry is visible without cloud creds.
 
@@ -17,16 +16,20 @@ extensions:
   health_check:
     endpoint: '0.0.0.0:13133'
 
-  # Gates the public OTLP receiver. For local dev we point at local Hydra
-  # admin on port 4445 and don't require additional auth on the
-  # introspection call itself (`type: none`) — local Hydra admin is
-  # network-isolated inside docker-compose.
-  oryintrospectionauth:
-    introspection_endpoint: 'http://hydra:4445/admin/oauth2/introspect'
-    introspection_auth:
-      type: 'none'
-    required_scopes: ['telemetry:write']
-    cache_ttl: 30s
+  moltnetauth:
+    hydra_admin_url: 'http://hydra:4445'
+    talos_admin_url: 'http://talos:4420'
+    kratos_admin_url: 'http://kratos:4434'
+    required_scopes: ['task:execute']
+    cache_ttl: 60s
+    cache_max_entries: 10000
+    request_timeout: 5s
+    global_rate: 100
+    global_burst: 200
+    agent_rate: 2
+    agent_burst: 20
+    limiter_max_entries: 10000
+    limiter_idle_ttl: 10m
 
 receivers:
   otlp:
@@ -40,18 +43,69 @@ receivers:
     protocols:
       http:
         endpoint: '0.0.0.0:4319'
+        max_request_body_size: 4194304
         auth:
-          authenticator: oryintrospectionauth
+          authenticator: moltnetauth
 
 processors:
   batch:
     timeout: 2s
     send_batch_size: 256
 
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 75
+    spike_limit_percentage: 15
+
+  batch/public_traces:
+    timeout: 2s
+    send_batch_size: 256
+  batch/public_logs:
+    timeout: 2s
+    send_batch_size: 256
+  batch/public_metrics:
+    timeout: 2s
+    send_batch_size: 256
+
+  moltnetattribution:
+
   resource:
     attributes:
       - key: service.namespace
         value: moltnet
+        action: upsert
+      - key: deployment.environment
+        value: development
+        action: upsert
+
+  resource/public:
+    attributes:
+      - key: http.request.header.authorization
+        action: delete
+      - key: http.request.header.cookie
+        action: delete
+      - key: http.request.header.x-api-key
+        action: delete
+      - key: http.request.header.x-ory-api-key
+        action: delete
+      - key: password
+        action: delete
+      - key: token
+        action: delete
+      - key: secret
+        action: delete
+      - key: api_key
+        action: delete
+      - key: private_key
+        action: delete
+      - key: service.namespace
+        value: moltnet-public
+        action: upsert
+      - key: service.name
+        value: moltnet-agent
+        action: upsert
+      - key: moltnet.telemetry.origin
+        value: public-agent
         action: upsert
       - key: deployment.environment
         value: development
@@ -87,29 +141,48 @@ processors:
           - replace_pattern(attributes["secret"], ".*", "[REDACTED]")
           - replace_pattern(attributes["api_key"], ".*", "[REDACTED]")
           - replace_pattern(attributes["private_key"], ".*", "[REDACTED]")
+    metric_statements:
+      - context: datapoint
+        statements:
+          - replace_pattern(attributes["http.request.header.authorization"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["http.request.header.cookie"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["http.request.header.x-api-key"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["http.request.header.x-ory-api-key"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["password"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["token"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["secret"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["api_key"], ".*", "[REDACTED]")
+          - replace_pattern(attributes["private_key"], ".*", "[REDACTED]")
 
 exporters:
   debug:
     verbosity: detailed
 
+  debug/public_traces:
+    verbosity: detailed
+  debug/public_logs:
+    verbosity: detailed
+  debug/public_metrics:
+    verbosity: detailed
+
 service:
-  extensions: [health_check, oryintrospectionauth]
+  extensions: [health_check, moltnetauth]
 
   pipelines:
     # Internal pipeline — unauthenticated receiver, full processing chain.
     traces:
       receivers: [otlp]
-      processors: [transform/redact, resource, batch]
+      processors: [memory_limiter, transform/redact, resource, batch]
       exporters: [debug]
 
     metrics:
       receivers: [otlp]
-      processors: [resource, batch]
+      processors: [memory_limiter, transform/redact, resource, batch]
       exporters: [debug]
 
     logs:
       receivers: [otlp]
-      processors: [transform/redact, resource, batch]
+      processors: [memory_limiter, transform/redact, resource, batch]
       exporters: [debug]
 
     # Public pipeline — authenticated receiver. Shares processors with
@@ -120,8 +193,39 @@ service:
     # entangling internal traffic.
     traces/public:
       receivers: [otlp/public]
-      processors: [transform/redact, resource, batch]
-      exporters: [debug]
+      processors:
+        [
+          memory_limiter,
+          moltnetattribution,
+          transform/redact,
+          resource/public,
+          batch/public_traces,
+        ]
+      exporters: [debug/public_traces]
+
+    logs/public:
+      receivers: [otlp/public]
+      processors:
+        [
+          memory_limiter,
+          moltnetattribution,
+          transform/redact,
+          resource/public,
+          batch/public_logs,
+        ]
+      exporters: [debug/public_logs]
+
+    metrics/public:
+      receivers: [otlp/public]
+      processors:
+        [
+          memory_limiter,
+          moltnetattribution,
+          transform/redact,
+          resource/public,
+          batch/public_metrics,
+        ]
+      exporters: [debug/public_metrics]
 
   telemetry:
     logs:
