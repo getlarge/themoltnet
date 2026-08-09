@@ -10,12 +10,13 @@ import (
 
 // runConfigExportEnvCmd reads a moltnet.json and prints MOLTNET_* env vars
 // in dotenv format. The output is directly usable with init-from-env --env-file.
-func runConfigExportEnvCmd(w io.Writer, credPath, outFile string, includeGitHubPEM bool) error {
+func runConfigExportEnvCmd(w io.Writer, credPath, outFile string, includeGitHubPEM, showSecret bool) error {
 	return runConfigExportEnvCmdWithRegistry(
 		w,
 		credPath,
 		outFile,
 		includeGitHubPEM,
+		showSecret,
 		NewSecretProviderRegistry(),
 	)
 }
@@ -23,9 +24,12 @@ func runConfigExportEnvCmd(w io.Writer, credPath, outFile string, includeGitHubP
 func runConfigExportEnvCmdWithRegistry(
 	w io.Writer,
 	credPath, outFile string,
-	includeGitHubPEM bool,
+	includeGitHubPEM, showSecret bool,
 	secretProviders *SecretProviderRegistry,
 ) error {
+	if includeGitHubPEM && outFile == "" {
+		return fmt.Errorf("--include-github-pem requires --output")
+	}
 	creds, err := loadCredentials(credPath)
 	if err != nil {
 		return err
@@ -33,9 +37,13 @@ func runConfigExportEnvCmdWithRegistry(
 	if creds == nil {
 		return fmt.Errorf("no config found at %s", credPath)
 	}
-	clientSecret, err := resolveOAuth2Secret(creds, secretProviders)
-	if err != nil {
-		return fmt.Errorf("resolve OAuth2 client secret: %w", err)
+	includeSecrets := outFile != "" || showSecret
+	clientSecret := ""
+	if includeSecrets {
+		clientSecret, err = resolveOAuth2Secret(creds, secretProviders)
+		if err != nil {
+			return fmt.Errorf("resolve OAuth2 client secret: %w", err)
+		}
 	}
 
 	// Derive agent name from credential path when it matches .moltnet/<agent>/moltnet.json.
@@ -55,9 +63,13 @@ func runConfigExportEnvCmdWithRegistry(
 	}
 	lines = append(lines, fmt.Sprintf("MOLTNET_IDENTITY_ID=%s", creds.IdentityID))
 	lines = append(lines, fmt.Sprintf("MOLTNET_CLIENT_ID=%s", creds.OAuth2.ClientID))
-	lines = append(lines, fmt.Sprintf("MOLTNET_CLIENT_SECRET=%s", clientSecret))
+	if includeSecrets {
+		lines = append(lines, fmt.Sprintf("MOLTNET_CLIENT_SECRET=%s", clientSecret))
+	}
 	lines = append(lines, fmt.Sprintf("MOLTNET_PUBLIC_KEY=%s", creds.Keys.PublicKey))
-	lines = append(lines, fmt.Sprintf("MOLTNET_PRIVATE_KEY=%s", creds.Keys.PrivateKey))
+	if includeSecrets {
+		lines = append(lines, fmt.Sprintf("MOLTNET_PRIVATE_KEY=%s", creds.Keys.PrivateKey))
+	}
 	lines = append(lines, fmt.Sprintf("MOLTNET_FINGERPRINT=%s", creds.Keys.Fingerprint))
 	lines = append(lines, fmt.Sprintf("MOLTNET_API_URL=%s", creds.Endpoints.API))
 	if creds.RegisteredAt != "" {
@@ -93,20 +105,8 @@ func runConfigExportEnvCmdWithRegistry(
 	content := strings.Join(lines, "\n")
 
 	if outFile != "" {
-		file, err := os.OpenFile(outFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
-		if err != nil {
-			return fmt.Errorf("write env file: %w", err)
-		}
-		if err := file.Chmod(0o600); err != nil {
-			_ = file.Close()
-			return fmt.Errorf("secure env file permissions: %w", err)
-		}
-		if _, err := io.WriteString(file, content); err != nil {
-			_ = file.Close()
-			return fmt.Errorf("write env file: %w", err)
-		}
-		if err := file.Close(); err != nil {
-			return fmt.Errorf("close env file: %w", err)
+		if err := writeFileAtomic(outFile, []byte(content)); err != nil {
+			return fmt.Errorf("write env file atomically: %w", err)
 		}
 		fmt.Fprintf(os.Stderr, "Env vars written to %s\n", outFile)
 		return nil

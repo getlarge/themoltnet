@@ -7,13 +7,14 @@ import {
   cliTheme,
 } from '@themoltnet/design-system/cli';
 import { readConfig } from '@themoltnet/sdk';
-import { resolveNodeOAuth2ClientSecret } from '@themoltnet/sdk/node';
 import { Box, Text, useApp } from 'ink';
 import React, { useEffect, useState } from 'react';
 
 import { adapters } from './adapters/index.js';
 import type { AgentAdapterOptions } from './adapters/types.js';
 import { toErrorMessage } from './api.js';
+import { writeEnvFile } from './env-file.js';
+import { ensureKeyringSecretReference } from './secret-storage.js';
 import { toEnvPrefix } from './setup.js';
 import { AgentSelect } from './ui/AgentSelect.js';
 import type { AgentType, UISummary } from './ui/types.js';
@@ -49,25 +50,27 @@ export function SetupApp({
     void (async () => {
       try {
         const configDir = join(dir, '.moltnet', name);
-        const config = await readConfig(configDir);
-        if (!config) {
+        const loadedConfig = await readConfig(configDir);
+        if (!loadedConfig) {
           throw new Error(
             `Config not found at ${configDir}/moltnet.json. Run "legreffier init" first.`,
           );
         }
+        const config = await ensureKeyringSecretReference(
+          configDir,
+          loadedConfig,
+        );
 
         const prefix = toEnvPrefix(name);
         const mcpUrl =
           config.endpoints?.mcp ??
           apiUrl.replace('://api.', '://mcp.') + '/mcp';
-        const clientSecret = await resolveNodeOAuth2ClientSecret(config);
         const opts: AgentAdapterOptions = {
           repoDir: dir,
           agentName: name,
           prefix,
           mcpUrl,
           clientId: config.oauth2.client_id,
-          clientSecret,
           appSlug: config.github?.app_slug ?? config.github?.app_id ?? '',
           appId: config.github?.app_id ?? '',
           pemPath: config.github?.private_key_path ?? '',
@@ -86,6 +89,16 @@ export function SetupApp({
           await adapter.writeRules(opts);
           written.push(`${agentType}: gh token rule`);
         }
+        await writeEnvFile({
+          envDir: configDir,
+          agentName: name,
+          prefix,
+          clientId: config.oauth2.client_id,
+          appId: config.github?.app_id ?? '',
+          pemPath: config.github?.private_key_path ?? '',
+          installationId: config.github?.installation_id ?? '',
+          fingerprint: config.keys?.fingerprint,
+        });
 
         setFilesWritten(written);
         setSummary({

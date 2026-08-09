@@ -1536,7 +1536,13 @@ jobs:
 
   publish-agent-daemon:
     name: Publish Agent Daemon to npm
-    needs: [resolve-publish, publish-agent-runtime, publish-pi-runtime]
+    needs:
+      [
+        resolve-publish,
+        publish-agent-runtime,
+        publish-pi-runtime,
+        publish-os-keyring,
+      ]
     # Always run (even if upstream publish jobs were skipped because they
     # had no release this run); only publish if release-please cut a tag
     # for the daemon itself.

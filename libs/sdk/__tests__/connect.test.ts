@@ -21,6 +21,7 @@ vi.mock('../src/config.js', () => ({
     clientSecret: undefined,
     apiUrl: undefined,
     agentKey: undefined,
+    credentialsPath: undefined,
   })),
 }));
 
@@ -117,6 +118,19 @@ describe('connect', () => {
       apiUrl: 'https://env.api.net',
       scopes: undefined,
     });
+  });
+
+  it('rejects a config directory outside the identity activated by moltnet start', async () => {
+    mockReadEnvCredentials.mockReturnValue({
+      clientId: 'env-id',
+      clientSecret: 'env-secret',
+      credentialsPath: '/repo/.moltnet/active/moltnet.json',
+    });
+
+    await expect(
+      connect({ configDir: '/repo/.moltnet/another' }),
+    ).rejects.toMatchObject({ code: 'INVALID_CONFIG' });
+    expect(MockTokenManager).not.toHaveBeenCalled();
   });
 
   it('should connect with config file', async () => {

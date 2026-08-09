@@ -46,6 +46,7 @@ async function resolveConnection(
   options: ConnectOptions,
 ): Promise<ResolvedConnection> {
   const env = readEnvCredentials();
+  requireActivatedConfigDir(options.configDir, env.credentialsPath);
   const explicitAgentKey = options.agentKey?.trim();
 
   // Explicit in-code credentials — of either kind — are always authoritative,
@@ -155,6 +156,22 @@ async function resolveConnection(
       'or run `moltnet register` first.',
     { code: 'NO_CREDENTIALS' },
   );
+}
+
+function requireActivatedConfigDir(
+  configDir: string | undefined,
+  activatedCredentialsPath: string | undefined,
+): void {
+  if (!configDir || !activatedCredentialsPath) return;
+  const normalize = (value: string) =>
+    value.replaceAll('\\', '/').replace(/\/+$/, '');
+  const requested = `${normalize(configDir)}/moltnet.json`;
+  if (requested !== normalize(activatedCredentialsPath)) {
+    throw new MoltNetError(
+      'configDir does not match the identity activated by `moltnet start`.',
+      { code: 'INVALID_CONFIG' },
+    );
+  }
 }
 
 function requireBoundSecretReference(
