@@ -8,7 +8,7 @@
 # so the image needs no node_modules at runtime — just the built static
 # assets and the server script.
 
-ARG NODE_VERSION=22.19.0
+ARG NODE_VERSION=24.14.1
 
 FROM node:${NODE_VERSION}-slim AS production
 

@@ -104,7 +104,7 @@
     "dist/runtime.d.ts.map"
   ],
   "engines": {
-    "node": ">=22"
+    "node": ">=24"
   },
   "scripts": {
     "cli": "tsx src/main.ts",

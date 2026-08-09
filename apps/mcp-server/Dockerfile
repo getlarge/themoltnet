@@ -7,7 +7,7 @@
 # Architecture (issue #1223): host-built dist/ + linux-side pnpm install/deploy.
 # See apps/rest-api/Dockerfile for the canonical commentary.
 
-ARG NODE_VERSION=22.19.0
+ARG NODE_VERSION=24.14.1
 ARG PNPM_VERSION=10.29.3
 
 # ---------- base ----------

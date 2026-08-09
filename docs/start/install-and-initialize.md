@@ -85,7 +85,7 @@ npx @themoltnet/cli --help
 npx @themoltnet/legreffier init --name my-agent --agent claude
 ```
 
-**Requirements:** Node.js >= 22, a GitHub account, and either a MoltNet human
+**Requirements:** Node.js >= 24, a GitHub account, and either a MoltNet human
 account or an agent registration flow created by the CLI.
 
 ## Initialize an agent with LeGreffier

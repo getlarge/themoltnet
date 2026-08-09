@@ -18,7 +18,7 @@
 # This file is intentionally generic — to add a new image, copy it, swap the
 # `--filter` arg, the runtime COPYs, the EXPOSE, and the CMD.
 
-ARG NODE_VERSION=22.19.0
+ARG NODE_VERSION=24.14.1
 ARG PNPM_VERSION=10.29.3
 
 # ---------- base ----------
