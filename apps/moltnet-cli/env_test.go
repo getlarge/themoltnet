@@ -440,6 +440,14 @@ func TestStartDryRunForwardsTargetArgs(t *testing.T) {
 
 func TestStartInjectsKeyringSecretOnlyIntoChildEnvironment(t *testing.T) {
 	dir := t.TempDir()
+	workingDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	relativeDir, err := filepath.Rel(workingDir, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
 	agentDir := filepath.Join(dir, ".moltnet", "test-agent")
 	if err := os.MkdirAll(agentDir, 0o755); err != nil {
 		t.Fatal(err)
@@ -475,9 +483,9 @@ func TestStartInjectsKeyringSecretOnlyIntoChildEnvironment(t *testing.T) {
 		return nil
 	}
 
-	err := runStartCmdWithRegistryAndExec(
+	err = runStartCmdWithRegistryAndExec(
 		NewRootCmd("test", ""),
-		dir,
+		relativeDir,
 		"test-agent",
 		"echo",
 		[]string{"hello"},
@@ -512,12 +520,15 @@ func TestStartInjectsKeyringSecretOnlyIntoChildEnvironment(t *testing.T) {
 	if got := childEnv["MOLTNET_CLIENT_SECRET"]; got != "launch-only-secret" {
 		t.Fatalf("generic child client secret = %q, want launch-time keyring value", got)
 	}
-	wantCredentialsPath, err := filepath.EvalSymlinks(filepath.Join(agentDir, "moltnet.json"))
+	wantCredentialsPath, err := filepath.Abs(filepath.Join(relativeDir, ".moltnet", "test-agent", "moltnet.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got := childEnv["MOLTNET_CREDENTIALS_PATH"]; got != wantCredentialsPath {
 		t.Fatalf("child credentials path = %q", got)
+	}
+	if !filepath.IsAbs(childEnv["MOLTNET_CREDENTIALS_PATH"]) {
+		t.Fatalf("child credentials path is not absolute: %q", childEnv["MOLTNET_CREDENTIALS_PATH"])
 	}
 	for _, path := range []string{
 		filepath.Join(agentDir, "moltnet.json"),

@@ -44,6 +44,15 @@ func runStartCmdWithRegistryAndExec(cmd *cobra.Command, dir, agentFlag, target s
 	for key, value := range credentialVars {
 		vars[key] = value
 	}
+	launchConfigPath := filepath.Join(dir, ".moltnet", agentName, "moltnet.json")
+	if !regularFileExists(launchConfigPath) {
+		launchConfigPath = filepath.Join(moltnetDir, agentName, "moltnet.json")
+	}
+	launchConfigPath, err = filepath.Abs(launchConfigPath)
+	if err != nil {
+		return fmt.Errorf("resolve agent credentials path: %w", err)
+	}
+	vars["MOLTNET_CREDENTIALS_PATH"] = filepath.Clean(launchConfigPath)
 
 	// Resolve target binary
 	targetPath, err := osExec.LookPath(target)
