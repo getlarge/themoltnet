@@ -135,6 +135,33 @@ describe('Nx release configuration', () => {
     );
   });
 
+  it('builds the collector release with the latest Go 1.25 patch', () => {
+    expect(workflow).toContain(
+      `      - uses: actions/setup-go@v6
+        if: \${{ matrix.project == 'otel-custom-collector' }}
+        with:
+          go-version: '1.25'
+          check-latest: true
+          cache: true`,
+    );
+  });
+
+  it('can republish failed Docker releases from their existing drafts', () => {
+    expect(workflow).toContain(
+      'agent-daemon, console, database, landing, mcp-host, mcp-server, rest-api, otel-custom-collector',
+    );
+    expect(workflow).toContain(
+      'resolve_docker "otel-custom-collector" "$RP_OTEL_COLLECTOR_CREATED" "$RP_OTEL_COLLECTOR_TAG" "$RP_OTEL_COLLECTOR_VERSION" "otel-collector"',
+    );
+    expect(workflow).toContain(
+      '"released":"${{ steps.resolve.outputs.docker-otel-custom-collector }}"',
+    );
+    expect(workflow).not.toContain(
+      `id: resolve-docker
+        if: \${{ github.event_name == 'push' }}`,
+    );
+  });
+
   it('resolves only released Docker projects with exact SemVer tags', () => {
     const temporaryDirectory = mkdtempSync(
       join(tmpdir(), 'moltnet-docker-release-'),
