@@ -1,5 +1,39 @@
 # Changelog
 
+## [1.77.0](https://github.com/getlarge/themoltnet/compare/cli-v1.76.1...cli-v1.77.0) (2026-08-09)
+
+
+### Features
+
+* **cli:** add configuration migration plans ([549811a](https://github.com/getlarge/themoltnet/commit/549811a54a79ae1d3ab290e9e2a4310d65898172))
+* **cli:** add state-aware config migrations ([917e48e](https://github.com/getlarge/themoltnet/commit/917e48eafd0daef1690502636286f6258a5e89bf))
+* **credentials:** add secret provider abstraction ([7f0b66d](https://github.com/getlarge/themoltnet/commit/7f0b66d7dbeb35eadccf9f228295ac286c585e13))
+* **otel:** productionize authenticated public ingestion ([4f9fef6](https://github.com/getlarge/themoltnet/commit/4f9fef675f3f097daa2e2e48bf5ead386927663a))
+* **security:** guard local agent credentials ([6f8fc63](https://github.com/getlarge/themoltnet/commit/6f8fc6321ad3fa43926cca558d75735dd31d55d4))
+
+
+### Bug Fixes
+
+* **ci:** keep native Nx selectors out of targets ([8fc29ef](https://github.com/getlarge/themoltnet/commit/8fc29ef23be50d12ba724110a81c7158c3708d18))
+* **ci:** make keyring checks hermetic ([646a160](https://github.com/getlarge/themoltnet/commit/646a16011465a3576e3e20354ef2091b4f7a0a16))
+* **ci:** scope native keyring matrix with Nx ([28e9670](https://github.com/getlarge/themoltnet/commit/28e967090bcb6b0f931a99ef0da224ab4094f8ea))
+* **cli:** authenticate activation configuration state ([59de528](https://github.com/getlarge/themoltnet/commit/59de5283e34d0321344be1e923a65291d53d34ff))
+* **cli:** avoid cryptographic provider lock hashes ([2c904db](https://github.com/getlarge/themoltnet/commit/2c904dbf3be3dede7127930724856edc0045bda7))
+* **cli:** close credential guard bypasses ([d03d28d](https://github.com/getlarge/themoltnet/commit/d03d28d7c769277954953e38296c04c48ee1928b))
+* **cli:** close remaining secret guard bypasses ([4eaecf6](https://github.com/getlarge/themoltnet/commit/4eaecf6de691c0ecff1e6d5325f35d0a53594cf0))
+* **cli:** close reviewed credential bypasses ([8cdfc80](https://github.com/getlarge/themoltnet/commit/8cdfc8004b23493976914c4b4c659baf90a8a875))
+* **cli:** complete referenced secret lifecycle ([49be540](https://github.com/getlarge/themoltnet/commit/49be540b3654cdae9dd96816da4c648dfe43aee3))
+* **cli:** make activation credential-safe ([3dbe746](https://github.com/getlarge/themoltnet/commit/3dbe7463fba467f32c59361c1dd5fec1adf50cdd))
+* **cli:** make config migrations resumable ([3161445](https://github.com/getlarge/themoltnet/commit/31614451e82dce0c60db6e2b5db5ed4119fa293d))
+* **cli:** persist env-file client secrets ([a93362c](https://github.com/getlarge/themoltnet/commit/a93362c3a2230d16714ffdad7f4258727f8a0cbf))
+* **cli:** simplify secret migrations ([992eea3](https://github.com/getlarge/themoltnet/commit/992eea39e9df39bd6f9089f99c9ffc2b7cfa1917))
+* **credentials:** isolate cross-platform keyring access ([c5bf569](https://github.com/getlarge/themoltnet/commit/c5bf5691735d7ae54889dca651554d1753e3d853))
+* **keyring:** align native provider contracts ([f4619e7](https://github.com/getlarge/themoltnet/commit/f4619e792f9167a9cb37140d5d6de610b596629d))
+* **keyring:** use native Windows keyring bindings ([8840cd6](https://github.com/getlarge/themoltnet/commit/8840cd6eeb1f38bb3c5672a15f5c6a39e0e9f3b3))
+* **otel:** lock down collector deployment ([931422b](https://github.com/getlarge/themoltnet/commit/931422bb2c56c975bb52744244ee93dafe0254af))
+* **sdk:** align cross-runtime keyring behavior ([2cef43a](https://github.com/getlarge/themoltnet/commit/2cef43ad8d660c300021f599a044a3d284a53807))
+* **secrets:** harden provider boundaries ([704fe1d](https://github.com/getlarge/themoltnet/commit/704fe1d62fe5a9b3997a3bbca362955d91a144de))
+
 ## [1.76.1](https://github.com/getlarge/themoltnet/compare/cli-v1.76.0...cli-v1.76.1) (2026-08-02)
 
 

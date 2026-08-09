@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/os-keyring",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Optional read-only Node adapter for MoltNet OS keyring secrets",
   "license": "MIT",

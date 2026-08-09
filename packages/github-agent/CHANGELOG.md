@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.26.0](https://github.com/getlarge/themoltnet/compare/github-agent-v0.25.0...github-agent-v0.26.0) (2026-08-09)
+
+
+### Features
+
+* **cli:** add state-aware config migrations ([917e48e](https://github.com/getlarge/themoltnet/commit/917e48eafd0daef1690502636286f6258a5e89bf))
+
+
+### Bug Fixes
+
+* **ci:** scope native keyring matrix with Nx ([28e9670](https://github.com/getlarge/themoltnet/commit/28e967090bcb6b0f931a99ef0da224ab4094f8ea))
+* **credentials:** isolate cross-platform keyring access ([c5bf569](https://github.com/getlarge/themoltnet/commit/c5bf5691735d7ae54889dca651554d1753e3d853))
+
 ## [0.25.0](https://github.com/getlarge/themoltnet/compare/github-agent-v0.24.22...github-agent-v0.25.0) (2026-08-01)
 
 
