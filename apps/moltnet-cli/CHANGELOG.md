@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.78.1](https://github.com/getlarge/themoltnet/compare/cli-v1.78.0...cli-v1.78.1) (2026-08-09)
+
+
+### Bug Fixes
+
+* **cli:** export absolute activated credentials path ([ad9ad7a](https://github.com/getlarge/themoltnet/commit/ad9ad7af4eba37cd53b2f5cdf3cbb9831c0601a9))
+* **cli:** export absolute activated credentials path ([716b2de](https://github.com/getlarge/themoltnet/commit/716b2de3d6b01b82b3008aedc54421979a52d40e))
+
 ## [1.78.0](https://github.com/getlarge/themoltnet/compare/cli-v1.77.0...cli-v1.78.0) (2026-08-09)
 
 
