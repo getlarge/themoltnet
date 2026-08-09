@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.39.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.38.1...agent-daemon-v0.39.0) (2026-08-09)
+
+
+### Features
+
+* **credentials:** cut over to launch-time secrets ([0d349c5](https://github.com/getlarge/themoltnet/commit/0d349c580ba2ca1ed6b362bf56f6cf101247687e))
+* **credentials:** cut over to launch-time secrets ([a6ec90c](https://github.com/getlarge/themoltnet/commit/a6ec90c35d8ce35077cf3ff45212824a3a0330af))
+
+
+### Bug Fixes
+
+* **credentials:** enforce canonical launch boundary ([b1a4f51](https://github.com/getlarge/themoltnet/commit/b1a4f510f723a3c19d55f1a194eb284f114ca58f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.41.2
+    * @themoltnet/pi-runtime bumped to 0.7.2
+    * @themoltnet/sdk bumped to 0.131.0
+
 ## [0.38.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.38.0...agent-daemon-v0.38.1) (2026-08-09)
 
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.131.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.130.0...sdk-v0.131.0) (2026-08-09)
+
+
+### Features
+
+* **credentials:** cut over to launch-time secrets ([0d349c5](https://github.com/getlarge/themoltnet/commit/0d349c580ba2ca1ed6b362bf56f6cf101247687e))
+
+
+### Bug Fixes
+
+* **credentials:** enforce canonical launch boundary ([b1a4f51](https://github.com/getlarge/themoltnet/commit/b1a4f510f723a3c19d55f1a194eb284f114ca58f))
+
 ## [0.130.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.129.0...sdk-v0.130.0) (2026-08-09)
 
 

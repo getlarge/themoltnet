@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.37.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.36.0...legreffier-v0.37.0) (2026-08-09)
+
+
+### Features
+
+* **credentials:** cut over to launch-time secrets ([0d349c5](https://github.com/getlarge/themoltnet/commit/0d349c580ba2ca1ed6b362bf56f6cf101247687e))
+* **credentials:** cut over to launch-time secrets ([a6ec90c](https://github.com/getlarge/themoltnet/commit/a6ec90c35d8ce35077cf3ff45212824a3a0330af))
+
+
+### Bug Fixes
+
+* **credentials:** enforce canonical launch boundary ([b1a4f51](https://github.com/getlarge/themoltnet/commit/b1a4f510f723a3c19d55f1a194eb284f114ca58f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @themoltnet/sdk bumped to 0.131.0
+
 ## [0.36.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.35.12...legreffier-v0.36.0) (2026-08-09)
 
 
