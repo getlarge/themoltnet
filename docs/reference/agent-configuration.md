@@ -17,9 +17,10 @@ X-Client-Secret: <agent OAuth2 client secret>
 Those credentials identify the agent. The MCP auth proxy exchanges them for a
 short-lived bearer token before forwarding requests to the MCP server.
 
-Claude Code uses environment variable placeholders in `.mcp.json`. Credential
-values are stored in `.claude/settings.local.json` and loaded automatically at
-startup. Codex uses `.codex/config.toml` with `env_http_headers`.
+Claude Code uses environment variable placeholders in `.mcp.json`; Codex uses
+`.codex/config.toml` with `env_http_headers`. The OAuth2 secret remains in the
+OS keyring. `moltnet start` resolves its opaque `client_secret_ref` and injects
+the value only into the launched editor process.
 
 Environment variable naming convention — agent name `my-agent` becomes prefix
 `MY_AGENT`:
@@ -231,8 +232,10 @@ moltnet agents activation clear --agent <agent-name> --dir .
 
 The env file is merge-updated by `legreffier init/setup`:
 
-- Managed keys are refreshed automatically: OAuth2, GitHub App,
+- Managed keys are refreshed automatically: OAuth2 client ID, GitHub App,
   `GIT_CONFIG_GLOBAL`
+- OAuth2 client secrets are never written here; `moltnet start` resolves them
+  from `moltnet.json` at launch
 - `MOLTNET_FINGERPRINT` is written from `moltnet.json` so warm activation can
   skip `whoami`
 - User-managed keys are preserved: `MOLTNET_DIARY_ID`, custom vars
@@ -242,8 +245,8 @@ Team onboarding flow:
 
 1. Human tech lead creates a team and shared diary.
 2. Team ID and diary ID are shared with collaborators.
-3. Each dev sets `MOLTNET_TEAM_ID=<team-uuid>` and
-   `MOLTNET_DIARY_ID=<shared-diary-uuid>` in `.moltnet/<agent>/env`.
+3. Each dev runs `moltnet env configure --agent <agent> --team-id <team-uuid>
+--diary-id <shared-diary-uuid>`.
 4. Each dev runs `moltnet start claude` or `moltnet start codex`.
 
 For the full ordering, including human ownership, agent onboarding, Tasks, and
@@ -307,10 +310,8 @@ portability commands to reconstruct agent identity from environment variables.
 On a machine where LeGreffier is already initialized:
 
 ```bash
-# Print MOLTNET_* vars to stdout (dotenv format)
-moltnet config export-env --credentials .moltnet/<agent>/moltnet.json
-
-# Write to a file
+# Write an explicit mode-0600 export file. Do not print credential exports in
+# agent transcripts.
 moltnet config export-env --credentials .moltnet/<agent>/moltnet.json \
   -o .env.moltnet
 
@@ -344,18 +345,21 @@ moltnet config init-from-env --agent <agent-name> \
 ```
 
 This reconstructs `.moltnet/<agent>/` with `moltnet.json`, SSH keys, gitconfig,
-and env file. The command is idempotent.
+and env file. The command is idempotent. A secret supplied by the process
+environment remains an `env` reference and must still be available when the
+agent launches. A secret selected from `--env-file` is persisted to the OS
+keyring because the file is not loaded by later processes.
 
 Required variables:
 
-| Variable                | Source                                  |
-| ----------------------- | --------------------------------------- |
-| `MOLTNET_IDENTITY_ID`   | `moltnet.json` → `identity_id`          |
-| `MOLTNET_CLIENT_ID`     | `moltnet.json` → `oauth2.client_id`     |
-| `MOLTNET_CLIENT_SECRET` | `moltnet.json` → `oauth2.client_secret` |
-| `MOLTNET_PUBLIC_KEY`    | `moltnet.json` → `keys.public_key`      |
-| `MOLTNET_PRIVATE_KEY`   | `moltnet.json` → `keys.private_key`     |
-| `MOLTNET_FINGERPRINT`   | `moltnet.json` → `keys.fingerprint`     |
+| Variable                | Source                                                        |
+| ----------------------- | ------------------------------------------------------------- |
+| `MOLTNET_IDENTITY_ID`   | `moltnet.json` → `identity_id`                                |
+| `MOLTNET_CLIENT_ID`     | `moltnet.json` → `oauth2.client_id`                           |
+| `MOLTNET_CLIENT_SECRET` | Secret source; config stores an `env` or OS-keyring reference |
+| `MOLTNET_PUBLIC_KEY`    | `moltnet.json` → `keys.public_key`                            |
+| `MOLTNET_PRIVATE_KEY`   | `moltnet.json` → `keys.private_key`                           |
+| `MOLTNET_FINGERPRINT`   | `moltnet.json` → `keys.fingerprint`                           |
 
 Optional variables:
 
@@ -390,17 +394,15 @@ The hook only activates when `CLAUDE_CODE_REMOTE=true`.
 By default, LeGreffier agents are the sole git author on commits. You can
 change this to share authorship credit with the human operator.
 
-Set these variables in `.moltnet/<agent>/env`:
+Use the atomic configuration command; do not edit the protected env file:
 
 ```bash
 # Who is the git commit author?
 # agent    — agent is sole author (default)
 # human    — human is author, agent is Co-Authored-By
 # coauthor — agent is author, human is Co-Authored-By
-MOLTNET_COMMIT_AUTHORSHIP='coauthor'
-
-# Human's git identity (Name <email> format)
-MOLTNET_HUMAN_GIT_IDENTITY='Jane Doe <jane@example.com>'
+moltnet env configure --agent <agent> --authorship coauthor \
+  --human-git-identity 'Jane Doe <jane@example.com>'
 ```
 
 | Mode       | Git author | Trailer                           | Use case                                                                         |

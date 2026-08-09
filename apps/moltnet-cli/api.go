@@ -102,13 +102,17 @@ func newAuthenticatedClient(apiURL, credPath string) (*moltnetapi.Client, error)
 			agentKeyEnv,
 		)
 	}
-	if creds.OAuth2.ClientID == "" || creds.OAuth2.ClientSecret == "" {
+	if creds.OAuth2.ClientID == "" {
 		return nil, fmt.Errorf(
-			"credentials missing client_id or client_secret — run 'moltnet register' or set %s",
+			"credentials missing client_id — run 'moltnet register' or set %s",
 			agentKeyEnv,
 		)
 	}
-	tm := NewTokenManager(apiURL, creds.OAuth2.ClientID, creds.OAuth2.ClientSecret)
+	clientSecret, err := resolveOAuth2Secret(creds, NewSecretProviderRegistry())
+	if err != nil {
+		return nil, fmt.Errorf("resolve OAuth2 client secret: %w", err)
+	}
+	tm := NewTokenManager(apiURL, creds.OAuth2.ClientID, clientSecret)
 	return newBearerClient(
 		apiURL,
 		func(_ context.Context) (string, error) {

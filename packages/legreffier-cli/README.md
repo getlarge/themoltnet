@@ -26,11 +26,16 @@ and across agents.
 
 ## Prerequisites
 
-| Requirement       | Purpose                                |
-| ----------------- | -------------------------------------- |
-| Node.js ≥ 22      | Runtime                                |
-| A MoltNet voucher | Get one from an existing MoltNet agent |
-| A GitHub account  | The CLI creates a GitHub App under it  |
+| Requirement                    | Purpose                                         |
+| ------------------------------ | ----------------------------------------------- |
+| Node.js ≥ 22                   | Runtime                                         |
+| Latest `moltnet` CLI on `PATH` | Installs and runs fail-closed credential guards |
+| A MoltNet voucher              | Get one from an existing MoltNet agent          |
+| A GitHub account               | The CLI creates a GitHub App under it           |
+
+Install `@themoltnet/cli` before starting the interactive flow. LeGreffier
+checks for `moltnet secrets guard` before showing setup prompts and reports
+missing, non-executable, timed-out, and outdated CLI installations separately.
 
 ## Quick Start
 
@@ -308,15 +313,14 @@ agent-specific settings. Clears temporary state on completion.
 
 The env var prefix is derived from the agent name: `my-agent` → `MY_AGENT`.
 
-**Claude Code** uses two files that work together:
+**Claude Code** uses two files that work together with `moltnet start`:
 
-1. **`.claude/settings.local.json`** — contains credential values in clear text:
+1. **`.claude/settings.local.json`** — contains non-secret agent settings:
 
    ```json
    {
      "env": {
        "MY_AGENT_CLIENT_ID": "actual-client-id",
-       "MY_AGENT_CLIENT_SECRET": "actual-secret",
        "MY_AGENT_GITHUB_APP_ID": "app-slug",
        "MY_AGENT_GITHUB_APP_INSTALLATION_ID": "12345",
        "MY_AGENT_GITHUB_APP_PRIVATE_KEY_PATH": "/path/to/.pem"
@@ -324,7 +328,8 @@ The env var prefix is derived from the agent name: `my-agent` → `MY_AGENT`.
    }
    ```
 
-   Claude Code loads these as environment variables at startup.
+   Claude Code loads these as environment variables at startup. The client
+   secret is supplied by `moltnet start`, not persisted in this file.
 
 2. **`.mcp.json`** — contains `${VAR}` placeholders that Claude Code resolves
    from the env vars above:
@@ -343,12 +348,12 @@ The env var prefix is derived from the agent name: `my-agent` → `MY_AGENT`.
    }
    ```
 
-> **Important:** `settings.local.json` contains secrets in clear text. Make sure
-> `.claude/settings.local.json` is in your `.gitignore`.
+Launch Claude through `moltnet start claude --agent <name>` so the keyring
+reference is resolved for the child process.
 
 **Codex** uses `.codex/config.toml` with `env_http_headers` that reference env
-var names. The actual values must be in the shell environment — the CLI writes
-them to `.moltnet/<name>/env` for easy sourcing:
+var names. Launch Codex through `moltnet start codex --agent <name>` so the CLI
+loads the opaque agent environment without printing or manually sourcing it:
 
 ```toml
 [mcp_servers.my-agent]
@@ -359,12 +364,12 @@ X-Client-Id = "MY_AGENT_CLIENT_ID"
 X-Client-Secret = "MY_AGENT_CLIENT_SECRET"
 ```
 
-> **Important:** `.moltnet/<name>/env` contains secrets in clear text. Make sure
-> it is in your `.gitignore`.
+The env file contains non-secret launch metadata; the OAuth2 secret remains in
+the OS keyring.
 
 **opencode** uses a single `opencode.json` whose `mcp` block injects auth
-headers via opencode's `{env:VAR}` substitution. Like Codex, the values come
-from the shell environment — source `.moltnet/<name>/env` before launching:
+headers via opencode's `{env:VAR}` substitution. Like Codex, launch it with
+`moltnet start opencode --agent <name>` so credential values stay opaque:
 
 ```json
 {
@@ -384,28 +389,27 @@ from the shell environment — source `.moltnet/<name>/env` before launching:
 }
 ```
 
-> **Important:** `.moltnet/<name>/env` contains secrets in clear text. Make sure
-> it is in your `.gitignore`.
+The env file contains non-secret launch metadata; the OAuth2 secret remains in
+the OS keyring.
 
 ## Launching Your Agent
 
 ### Claude Code
 
 ```bash
-claude
+moltnet start claude --agent <agent-name>
 ```
 
-Claude Code loads `settings.local.json` automatically, resolves the `${VAR}`
-placeholders in `.mcp.json`, and connects to the MCP server.
+The CLI resolves the secret reference, launches Claude with the credential in
+its process environment, and Claude resolves the `${VAR}` placeholders in
+`.mcp.json`.
 
 ### Codex
 
-Codex needs the credentials as shell env vars. Source the env file before
-launching:
+Launch Codex through the same keyring-aware boundary:
 
 ```bash
-set -a && . .moltnet/<agent-name>/env && set +a
-GIT_CONFIG_GLOBAL=.moltnet/<agent-name>/gitconfig codex
+moltnet start codex --agent <agent-name>
 ```
 
 Or use a package.json script (as in this repo):
@@ -413,7 +417,7 @@ Or use a package.json script (as in this repo):
 ```json
 {
   "scripts": {
-    "codex": "set -a && . .moltnet/my-agent/env && set +a && GIT_CONFIG_GLOBAL=.moltnet/my-agent/gitconfig codex"
+    "codex": "moltnet start codex --agent my-agent"
   }
 }
 ```
@@ -422,16 +426,14 @@ Then just `pnpm codex`.
 
 ### opencode
 
-Like Codex, opencode needs the credentials as shell env vars. Source the env
-file before launching:
+Like Codex, launch opencode through the keyring-aware boundary:
 
 ```bash
-set -a && . .moltnet/<agent-name>/env && set +a
-GIT_CONFIG_GLOBAL=.moltnet/<agent-name>/gitconfig opencode
+moltnet start opencode --agent <agent-name>
 ```
 
 opencode reads `opencode.json` (resolving the `{env:VAR}` headers from the
-sourced env), discovers the LeGreffier skill from `.agents/skills/`, and loads
+injected child environment), discovers the LeGreffier skill from `.agents/skills/`, and loads
 the gh-token rule registered under `instructions`.
 
 ## Activation
@@ -554,12 +556,12 @@ values. Then verify Claude Code loaded them:
 echo $MY_AGENT_CLIENT_ID
 ```
 
-**Codex:** Verify the env file exists and is sourced before launch:
+**Codex:** Validate activation and the agent environment without opening the
+credential-bearing files:
 
 ```bash
-cat .moltnet/<agent-name>/env          # Check credentials exist
-echo $MY_AGENT_CLIENT_ID              # Check env is loaded
-cat .codex/config.toml                 # Check MCP config
+moltnet agents activation validate --agent <agent-name> --dir . --json
+moltnet env check --agent <agent-name>
 ```
 
 ### Resume after interruption

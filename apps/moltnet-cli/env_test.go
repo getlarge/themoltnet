@@ -129,6 +129,42 @@ func TestResolveMoltnetDir_MissingInLinkedWorktree(t *testing.T) {
 	assertMissingMoltnetCredentialsError(t, err, worktreeRoot, mainRoot)
 }
 
+func TestResolveMoltnetDirAndRoot_LinkedWorktreeWithSharedSymlink(t *testing.T) {
+	t.Parallel()
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not available")
+	}
+
+	mainRoot := filepath.Join(t.TempDir(), "main")
+	if err := os.Mkdir(mainRoot, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	mustGit(t, mainRoot, "init", "-q", "-b", "main")
+	mustGit(t, mainRoot, "-c", "user.email=t@e", "-c", "user.name=t", "commit", "--allow-empty", "-q", "-m", "init")
+	mainMoltnet := filepath.Join(mainRoot, ".moltnet")
+	if err := os.Mkdir(mainMoltnet, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	worktreeRoot := filepath.Join(t.TempDir(), "wt")
+	mustGit(t, mainRoot, "worktree", "add", "-q", worktreeRoot, "-b", "feature-symlink")
+	t.Cleanup(func() { _ = exec.Command("git", "-C", mainRoot, "worktree", "remove", "-f", worktreeRoot).Run() })
+	if err := os.Symlink(mainMoltnet, filepath.Join(worktreeRoot, ".moltnet")); err != nil {
+		t.Fatal(err)
+	}
+
+	gotDir, gotRoot, err := resolveMoltnetDirAndRoot(worktreeRoot)
+	if err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	if gotDir != canonicalizeRoot(mainMoltnet) {
+		t.Fatalf("moltnet dir = %q, want %q", gotDir, canonicalizeRoot(mainMoltnet))
+	}
+	if gotRoot != canonicalizeRoot(mainRoot) {
+		t.Fatalf("repo root = %q, want %q", gotRoot, canonicalizeRoot(mainRoot))
+	}
+}
+
 func assertMissingMoltnetCredentialsError(t *testing.T, err error, want ...string) {
 	t.Helper()
 	message := err.Error()
@@ -277,14 +313,17 @@ func TestEnvCheckPass(t *testing.T) {
 	moltnetDir := filepath.Join(dir, ".moltnet")
 	agentDir := filepath.Join(moltnetDir, "test-agent")
 	os.MkdirAll(agentDir, 0o755)
-	os.WriteFile(filepath.Join(agentDir, "moltnet.json"), []byte("{}"), 0o644)
+	_, _ = WriteConfigTo(&CredentialsFile{
+		IdentityID: "test-identity",
+		OAuth2:     CredentialsOAuth2{ClientID: "cid", ClientSecret: "csec"},
+	}, filepath.Join(agentDir, "moltnet.json"))
 
 	gitconfigPath := filepath.Join(agentDir, "gitconfig")
 	os.WriteFile(gitconfigPath, []byte("[user]\n"), 0o644)
 	pemPath := filepath.Join(agentDir, "test-agent.pem")
 	os.WriteFile(pemPath, []byte("---PEM---"), 0o600)
 
-	envContent := fmt.Sprintf("TEST_AGENT_CLIENT_ID='cid'\nTEST_AGENT_CLIENT_SECRET='csec'\nTEST_AGENT_GITHUB_APP_ID='test-agent'\nTEST_AGENT_GITHUB_APP_PRIVATE_KEY_PATH='%s'\nTEST_AGENT_GITHUB_APP_INSTALLATION_ID='12345'\nGIT_CONFIG_GLOBAL='%s'\n", pemPath, gitconfigPath)
+	envContent := fmt.Sprintf("TEST_AGENT_CLIENT_ID='cid'\nTEST_AGENT_GITHUB_APP_ID='test-agent'\nTEST_AGENT_GITHUB_APP_PRIVATE_KEY_PATH='%s'\nTEST_AGENT_GITHUB_APP_INSTALLATION_ID='12345'\nGIT_CONFIG_GLOBAL='%s'\n", pemPath, gitconfigPath)
 	os.WriteFile(filepath.Join(agentDir, "env"), []byte(envContent), 0o644)
 
 	root := NewRootCmd("test", "")
@@ -321,8 +360,11 @@ func TestStartDryRun(t *testing.T) {
 	moltnetDir := filepath.Join(dir, ".moltnet")
 	agentDir := filepath.Join(moltnetDir, "test-agent")
 	os.MkdirAll(agentDir, 0o755)
-	os.WriteFile(filepath.Join(agentDir, "moltnet.json"), []byte("{}"), 0o644)
-	os.WriteFile(filepath.Join(agentDir, "env"), []byte("MY_VAR='hello'\nGIT_CONFIG_GLOBAL='.moltnet/test-agent/gitconfig'\nTEST_AGENT_CLIENT_SECRET='super-secret'\n"), 0o644)
+	_, _ = WriteConfigTo(&CredentialsFile{
+		IdentityID: "test-identity",
+		OAuth2:     CredentialsOAuth2{ClientID: "cid", ClientSecret: "super-secret"},
+	}, filepath.Join(agentDir, "moltnet.json"))
+	os.WriteFile(filepath.Join(agentDir, "env"), []byte("MY_VAR='hello'\nGIT_CONFIG_GLOBAL='.moltnet/test-agent/gitconfig'\n"), 0o644)
 
 	root := NewRootCmd("test", "")
 	stdout, _, err := executeCommand(root, "start", "echo", "--agent", "test-agent", "--dir", dir, "--dry-run")
@@ -361,7 +403,10 @@ func TestStartDryRunForwardsTargetArgs(t *testing.T) {
 	moltnetDir := filepath.Join(dir, ".moltnet")
 	agentDir := filepath.Join(moltnetDir, "test-agent")
 	os.MkdirAll(agentDir, 0o755)
-	os.WriteFile(filepath.Join(agentDir, "moltnet.json"), []byte("{}"), 0o644)
+	_, _ = WriteConfigTo(&CredentialsFile{
+		IdentityID: "test-identity",
+		OAuth2:     CredentialsOAuth2{ClientID: "cid", ClientSecret: "target-secret"},
+	}, filepath.Join(agentDir, "moltnet.json"))
 	os.WriteFile(filepath.Join(agentDir, "env"), []byte("MY_VAR='hello'\n"), 0o644)
 
 	root := NewRootCmd("test", "")
@@ -389,6 +434,88 @@ func TestStartDryRunForwardsTargetArgs(t *testing.T) {
 	for _, want := range []string{`"--model"`, `"gpt-5.4"`, `"--profile"`, `"dev"`} {
 		if !strings.Contains(stdout, want) {
 			t.Errorf("expected dry-run output to include %s, got: %s", want, stdout)
+		}
+	}
+}
+
+func TestStartInjectsKeyringSecretOnlyIntoChildEnvironment(t *testing.T) {
+	dir := t.TempDir()
+	agentDir := filepath.Join(dir, ".moltnet", "test-agent")
+	if err := os.MkdirAll(agentDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	key := OAuth2SecretKey("identity-123", "client-456")
+	if _, err := WriteConfigTo(&CredentialsFile{
+		IdentityID: "identity-123",
+		OAuth2: CredentialsOAuth2{
+			ClientID: "client-456",
+			ClientSecretRef: &SecretReference{
+				Provider: osKeyringProviderName,
+				Key:      key,
+			},
+		},
+	}, filepath.Join(agentDir, "moltnet.json")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(agentDir, "env"), []byte("MY_VAR='hello'\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("TEST_AGENT_CLIENT_SECRET", "stale-parent-secret")
+
+	registry := NewSecretProviderRegistry()
+	registry.Register(osKeyringProviderName, &memorySecretProvider{values: map[string]string{
+		key: "launch-only-secret",
+	}})
+	var capturedPath string
+	var capturedArgv, capturedEnv []string
+	execFn := func(targetPath string, argv, env []string) error {
+		capturedPath = targetPath
+		capturedArgv = append([]string(nil), argv...)
+		capturedEnv = append([]string(nil), env...)
+		return nil
+	}
+
+	err := runStartCmdWithRegistryAndExec(
+		NewRootCmd("test", ""),
+		dir,
+		"test-agent",
+		"echo",
+		[]string{"hello"},
+		false,
+		registry,
+		execFn,
+	)
+	if err != nil {
+		t.Fatalf("runStartCmdWithRegistryAndExec: %v", err)
+	}
+	if capturedPath == "" {
+		t.Fatal("child process was not invoked")
+	}
+	if got := strings.Join(capturedArgv, " "); got != "echo hello" {
+		t.Fatalf("child argv = %q, want %q", got, "echo hello")
+	}
+	childEnv := make(map[string]string, len(capturedEnv))
+	for _, entry := range capturedEnv {
+		if index := strings.IndexByte(entry, '='); index > 0 {
+			childEnv[entry[:index]] = entry[index+1:]
+		}
+	}
+	if got := childEnv["TEST_AGENT_CLIENT_ID"]; got != "client-456" {
+		t.Fatalf("child client id = %q, want %q", got, "client-456")
+	}
+	if got := childEnv["TEST_AGENT_CLIENT_SECRET"]; got != "launch-only-secret" {
+		t.Fatalf("child client secret = %q, want launch-time keyring value", got)
+	}
+	for _, path := range []string{
+		filepath.Join(agentDir, "moltnet.json"),
+		filepath.Join(agentDir, "env"),
+	} {
+		content, readErr := os.ReadFile(path)
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		if strings.Contains(string(content), "launch-only-secret") {
+			t.Fatalf("launch secret persisted to %s", path)
 		}
 	}
 }

@@ -37,11 +37,16 @@ func runEnvCheckCmd(cmd *cobra.Command, dir, agentFlag string) error {
 		checkFile bool
 	}{
 		{prefix + "_CLIENT_ID", false},
-		{prefix + "_CLIENT_SECRET", false},
 		{prefix + "_GITHUB_APP_ID", false},
 		{prefix + "_GITHUB_APP_PRIVATE_KEY_PATH", true},
 		{prefix + "_GITHUB_APP_INSTALLATION_ID", false},
 		{"GIT_CONFIG_GLOBAL", true},
+	}
+	if _, err := resolveAgentOAuth2Environment(filepath.Join(moltnetDir, agentName), agentName, NewSecretProviderRegistry()); err != nil {
+		fmt.Fprintf(cmd.OutOrStdout(), "✗ %s_CLIENT_SECRET → %v\n", prefix, err)
+		failed = true
+	} else {
+		fmt.Fprintf(cmd.OutOrStdout(), "✓ %s_CLIENT_SECRET → resolved at launch\n", prefix)
 	}
 
 	for _, r := range required {

@@ -10,6 +10,11 @@ import { readConfig } from './credentials.js';
 import { MoltNetError } from './errors.js';
 import type { RetryOptions } from './retry.js';
 import { createAgentKeyFetch, createRetryFetch } from './retry.js';
+import {
+  assertOAuth2SecretReferenceBinding,
+  createDefaultSecretProviderRegistry,
+  type SecretProviderRegistry,
+} from './secrets.js';
 import { TokenManager } from './token.js';
 
 export interface ConnectOptions {
@@ -29,6 +34,8 @@ export interface ConnectOptions {
   autoToken?: boolean;
   /** Retry options for 401/429. Set false to disable retries. Default: enabled */
   retry?: RetryOptions | false;
+  /** Providers used to resolve oauth2.client_secret_ref at connection time. */
+  secretProviders?: SecretProviderRegistry;
 }
 
 type ResolvedConnection =
@@ -92,12 +99,53 @@ async function resolveConnection(
   }
   // 5. Config file (~/.config/moltnet/moltnet.json)
   const config = await readConfig(options.configDir);
-  if (config?.oauth2?.client_id && config?.oauth2?.client_secret) {
+  if (config?.oauth2?.client_id) {
+    const legacySecret = config.oauth2.client_secret;
+    const secretReference = config.oauth2.client_secret_ref;
+    if (legacySecret && secretReference) {
+      throw new MoltNetError(
+        'Invalid OAuth2 config: set exactly one of client_secret or client_secret_ref.',
+        { code: 'INVALID_CONFIG' },
+      );
+    }
+    const apiUrl = normalizeApiUrl(
+      options.apiUrl,
+      env.apiUrl,
+      config.endpoints?.api,
+    );
+    if (!options.apiUrl && !env.apiUrl) {
+      requireTrustedConfigApiUrl(apiUrl);
+    }
+    let clientSecret: string;
+    if (secretReference) {
+      requireBoundSecretReference(config, secretReference);
+      try {
+        clientSecret = await (
+          options.secretProviders ?? createDefaultSecretProviderRegistry()
+        ).resolve(secretReference);
+      } catch (error) {
+        throw new MoltNetError('Unable to resolve OAuth2 client secret.', {
+          code: 'NO_CREDENTIALS',
+          detail: error instanceof Error ? error.message : String(error),
+        });
+      }
+    } else if (legacySecret) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        'Warning: plaintext oauth2.client_secret is deprecated; migrate it to a secret provider.',
+      );
+      clientSecret = legacySecret;
+    } else {
+      throw new MoltNetError(
+        'Invalid OAuth2 config: set exactly one of client_secret or client_secret_ref.',
+        { code: 'INVALID_CONFIG' },
+      );
+    }
     return {
       mode: 'oauth2',
       clientId: config.oauth2.client_id,
-      clientSecret: config.oauth2.client_secret,
-      apiUrl: normalizeApiUrl(options.apiUrl, config.endpoints?.api),
+      clientSecret,
+      apiUrl,
     };
   }
 
@@ -109,6 +157,41 @@ async function resolveConnection(
   );
 }
 
+function requireBoundSecretReference(
+  config: NonNullable<Awaited<ReturnType<typeof readConfig>>>,
+  reference: { provider: string; key: string },
+): void {
+  try {
+    assertOAuth2SecretReferenceBinding(
+      reference,
+      config.identity_id,
+      config.oauth2.client_id,
+    );
+  } catch {
+    throw new MoltNetError(
+      'OAuth2 secret reference is not bound to this MoltNet identity and client.',
+      { code: 'INVALID_CONFIG' },
+    );
+  }
+}
+
+function requireTrustedConfigApiUrl(apiUrl: string): void {
+  const url = new URL(apiUrl);
+  const loopback =
+    url.hostname === 'localhost' ||
+    url.hostname === '127.0.0.1' ||
+    url.hostname === '[::1]';
+  const moltNet =
+    url.protocol === 'https:' &&
+    (url.hostname === 'themolt.net' || url.hostname.endsWith('.themolt.net'));
+  if (!loopback && !moltNet) {
+    throw new MoltNetError(
+      'Config-provided OAuth2 endpoints must use HTTPS on themolt.net or a loopback host.',
+      { code: 'INVALID_CONFIG' },
+    );
+  }
+}
+
 /**
  * Connect to MoltNet and return an authenticated Agent facade.
  *
@@ -118,7 +201,8 @@ async function resolveConnection(
  * 2. Explicit `clientId` / `clientSecret` → OAuth2 client-credentials
  * 3. `MOLTNET_AGENT_KEY` env → agent-key mode
  * 4. `MOLTNET_CLIENT_ID` / `MOLTNET_CLIENT_SECRET` env → OAuth2
- * 5. Config file (`~/.config/moltnet/moltnet.json`) → OAuth2
+ * 5. Config file (`~/.config/moltnet/moltnet.json`) → OAuth2, resolving a
+ *    `client_secret_ref` only at this use boundary
  *
  * In agent-key mode the key is sent directly as a bearer token — no OAuth2
  * round-trip — and 429 backoff still applies; a rejected key surfaces an

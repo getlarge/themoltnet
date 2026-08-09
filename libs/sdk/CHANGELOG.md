@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.130.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.129.0...sdk-v0.130.0) (2026-08-09)
+
+
+### Features
+
+* **cli:** add state-aware config migrations ([917e48e](https://github.com/getlarge/themoltnet/commit/917e48eafd0daef1690502636286f6258a5e89bf))
+* **credentials:** add secret provider abstraction ([7f0b66d](https://github.com/getlarge/themoltnet/commit/7f0b66d7dbeb35eadccf9f228295ac286c585e13))
+
+
+### Bug Fixes
+
+* **ci:** scope native keyring matrix with Nx ([28e9670](https://github.com/getlarge/themoltnet/commit/28e967090bcb6b0f931a99ef0da224ab4094f8ea))
+* **credentials:** isolate cross-platform keyring access ([c5bf569](https://github.com/getlarge/themoltnet/commit/c5bf5691735d7ae54889dca651554d1753e3d853))
+* **keyring:** align native provider contracts ([f4619e7](https://github.com/getlarge/themoltnet/commit/f4619e792f9167a9cb37140d5d6de610b596629d))
+* **release:** make keyring publication recoverable ([7c04803](https://github.com/getlarge/themoltnet/commit/7c04803c50d102c2c5d02af32daa7d89ea01dca4))
+* **sdk:** align cross-runtime keyring behavior ([2cef43a](https://github.com/getlarge/themoltnet/commit/2cef43ad8d660c300021f599a044a3d284a53807))
+* **sdk:** guard browser environment access ([94857bf](https://github.com/getlarge/themoltnet/commit/94857bf643c621ccafddb7676c7d435db663aecd))
+* **sdk:** load OS keyring providers lazily ([cb5765d](https://github.com/getlarge/themoltnet/commit/cb5765d57656576932105947fd7c90f6ecc3c067))
+* **secrets:** harden provider boundaries ([704fe1d](https://github.com/getlarge/themoltnet/commit/704fe1d62fe5a9b3997a3bbca362955d91a144de))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @themoltnet/os-keyring bumped to 0.2.0
+  * peerDependencies
+    * @themoltnet/os-keyring bumped to 0.2.0
+
 ## [0.129.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.128.0...sdk-v0.129.0) (2026-08-01)
 
 

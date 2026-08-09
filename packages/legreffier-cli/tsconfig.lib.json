@@ -23,6 +23,9 @@
   "include": ["src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
+      "path": "../../libs/os-keyring/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/sdk/tsconfig.lib.json"
     },
     {

@@ -7,8 +7,9 @@ on:
     # second full CI/deploy cycle when their generated-only commit lands.
     paths-ignore:
       - '.codeboarding/**'
+  # Run stacked PRs too: a stack's upper PR targets the preceding branch,
+  # not main, and must still receive the same validation.
   pull_request:
-    branches: [main]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -25,6 +26,58 @@ env:
   NX_LOAD_DOT_ENV_FILES: 'false'
 
 jobs:
+  native-keyring:
+    name: Native keyring
+    needs: [affected]
+    if: needs.affected.outputs.native-keyring == 'true'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    env:
+      MOLTNET_RUN_NATIVE_KEYRING_TESTS: '1'
+      NX_BASE: ${{ needs.affected.outputs.base }}
+      NX_HEAD: ${{ needs.affected.outputs.head }}
+      # tools/postinstall.mjs spawns the extensionless `nx` shim, which does
+      # not resolve to nx.cmd on Windows. The Nx tasks below still perform the
+      # workspace sync check before running.
+      MOLTNET_SKIP_NX_SYNC: '1'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          filter: tree:0
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+          cache-dependency-path: |
+            go.work.sum
+            apps/moltnet-cli/go.sum
+            libs/moltnet-api-client/go.sum
+      - run: pnpm install --frozen-lockfile
+      - name: Install Linux Secret Service
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y gnome-keyring libsecret-1-dev dbus dbus-x11
+      - name: Test affected native keyring projects
+        if: runner.os != 'Linux'
+        run: pnpm exec nx affected -t test-native
+      - name: Test affected native keyring projects with Secret Service
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          dbus-run-session -- bash -c 'rm -f "$HOME"/.local/share/keyrings/*; printf "test" | gnome-keyring-daemon --unlock; pnpm exec nx affected -t test-native'
+
   # Compute the affected project set once and expose per-suite / per-image
   # flags. Downstream jobs gate on these so e2e and image builds only run
   # when the projects they cover are actually affected by the diff.
@@ -45,6 +98,7 @@ jobs:
       e2e-cpp-sdk: ${{ steps.compute.outputs.e2e-cpp-sdk }}
       e2e-orchestration: ${{ steps.compute.outputs.e2e-orchestration }}
       e2e-any: ${{ steps.compute.outputs.e2e-any }}
+      native-keyring: ${{ steps.compute.outputs.native-keyring }}
       landing: ${{ steps.compute.outputs.landing }}
       agents-matrix: ${{ steps.matrix.outputs.matrix }}
       has-agents: ${{ steps.matrix.outputs.has-agents }}
@@ -60,7 +114,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          fetch-depth: 50
+          fetch-depth: 0
+          filter: tree:0
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with:
@@ -189,6 +244,12 @@ jobs:
             echo "landing=false" >> "$GITHUB_OUTPUT"
           fi
 
+          if contains "@themoltnet/os-keyring" "@themoltnet/sdk" "moltnet-cli"; then
+            echo "native-keyring=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "native-keyring=false" >> "$GITHUB_OUTPUT"
+          fi
+
           # Resolve the e2e image ref for each app service. The orchestrator
           # runs `nx affected -t ... docker:build`, so a fresh ghcr.io/.../<svc>:ci-<sha>
           # image exists ONLY for docker-images projects in the affected set.
@@ -263,15 +324,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          fetch-depth: 50
-      # NX_BASE points at a SHA on the base branch (typically main); the
-      # PR-branch checkout above doesn't include it. Fetch it explicitly
-      # so `nx affected` can `git diff $NX_BASE $NX_HEAD` without
-      # `fatal: bad object`.
-      - name: Fetch NX_BASE SHA
-        run: |
-          git fetch --no-tags origin "$NX_BASE" --depth=1 || \
-            git fetch --no-tags origin "${{ github.base_ref || 'main' }}" --depth=50
+          fetch-depth: 0
+          filter: tree:0
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with:
@@ -361,15 +415,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          fetch-depth: 50
-      # NX_BASE points at a SHA on the base branch (typically main); the
-      # PR-branch checkout above doesn't include it. Fetch it explicitly
-      # so `nx affected` can `git diff $NX_BASE $NX_HEAD` without
-      # `fatal: bad object`.
-      - name: Fetch NX_BASE SHA
-        run: |
-          git fetch --no-tags origin "$NX_BASE" --depth=1 || \
-            git fetch --no-tags origin "${{ github.base_ref || 'main' }}" --depth=50
+          fetch-depth: 0
+          filter: tree:0
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with:
@@ -683,27 +730,26 @@ jobs:
         id: audit
         run: |
           set +e
-          OUTPUT=$(pnpm audit --prod 2>&1)
+          pnpm audit --prod > audit-report.txt 2>&1
           EXIT_CODE=$?
           set -e
           echo "exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
-          {
-            echo "output<<AUDIT_EOF"
-            echo "$OUTPUT"
-            echo "AUDIT_EOF"
-          } >> "$GITHUB_OUTPUT"
           pnpm audit --prod --json > audit-report.json 2>&1 || true
       - name: Comment on PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v8
         env:
           AUDIT_EXIT_CODE: ${{ steps.audit.outputs.exit_code }}
-          AUDIT_OUTPUT: ${{ steps.audit.outputs.output }}
         with:
           script: |
+            const fs = require('node:fs');
             const marker = '<!-- audit-report -->';
             const exitCode = process.env.AUDIT_EXIT_CODE;
-            const output = process.env.AUDIT_OUTPUT;
+            const fullOutput = fs.readFileSync('audit-report.txt', 'utf8');
+            const maxCommentReportLength = 50_000;
+            const output = fullOutput.length > maxCommentReportLength
+              ? `${fullOutput.slice(0, maxCommentReportLength)}\n\n… Full report is available in the audit-report artifact.`
+              : fullOutput;
 
             let body;
             if (exitCode === '0') {

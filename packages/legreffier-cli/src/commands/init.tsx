@@ -2,6 +2,7 @@ import { defineCommand } from 'citty';
 import { render } from 'ink';
 
 import { InitApp } from '../InitApp.js';
+import { assertSecretGuardCapability } from '../secret-guard-capability.js';
 import {
   collectAgents,
   commonArgs,
@@ -28,7 +29,8 @@ export const initCommand = defineCommand({
       valueHint: 'github-org',
     },
   },
-  run: withCleanErrors(({ args, rawArgs }) => {
+  run: withCleanErrors(async ({ args, rawArgs }) => {
+    await assertSecretGuardCapability();
     const name = requireAgentName(args.name);
     const agents = collectAgents(rawArgs);
     const apiUrl = resolveApiUrl(args['api-url']);

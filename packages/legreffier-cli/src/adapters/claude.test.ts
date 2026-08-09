@@ -2,11 +2,21 @@ import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const { assertSecretGuardCapabilityMock } = vi.hoisted(() => ({
+  assertSecretGuardCapabilityMock: vi.fn(),
+}));
+
+vi.mock('../secret-guard-capability.js', () => ({
+  assertSecretGuardCapability: assertSecretGuardCapabilityMock,
+}));
 
 import {
   CLAUDE_GITHUB_GUARD_HOOK_COMMAND,
   CLAUDE_GITHUB_GUARD_HOOK_SCRIPT,
+  CLAUDE_SECRET_GUARD_HOOK_COMMAND,
+  CLAUDE_SECRET_GUARD_HOOK_SCRIPT,
 } from '../setup.js';
 import { ClaudeAdapter } from './claude.js';
 import type { AgentAdapterOptions } from './types.js';
@@ -30,6 +40,7 @@ const baseOpts: AgentAdapterOptions = {
 };
 
 beforeEach(async () => {
+  assertSecretGuardCapabilityMock.mockReset().mockResolvedValue(undefined);
   await mkdir(tmpRepo, { recursive: true });
 });
 
@@ -41,21 +52,29 @@ describe('ClaudeAdapter.writeSettings', () => {
   it('registers the shared hook and keeps local settings hook-free', async () => {
     const adapter = new ClaudeAdapter();
     await adapter.writeSettings(baseOpts);
+    expect(assertSecretGuardCapabilityMock).toHaveBeenCalledOnce();
 
     const settings = JSON.parse(
       await readFile(join(tmpRepo, '.claude', 'settings.json'), 'utf-8'),
     );
-    expect(settings.hooks.PreToolUse).toEqual([
-      {
-        matcher: 'Bash',
-        hooks: [
-          {
-            type: 'command',
-            command: CLAUDE_GITHUB_GUARD_HOOK_COMMAND,
-          },
-        ],
-      },
-    ]);
+    expect(settings.hooks.PreToolUse[0]).toEqual({
+      matcher: 'Bash',
+      hooks: [
+        {
+          type: 'command',
+          command: CLAUDE_SECRET_GUARD_HOOK_COMMAND,
+        },
+        {
+          type: 'command',
+          command: CLAUDE_GITHUB_GUARD_HOOK_COMMAND,
+        },
+      ],
+    });
+    expect(
+      settings.hooks.PreToolUse.map(
+        (entry: { matcher: string }) => entry.matcher,
+      ),
+    ).toEqual(['Bash', 'Read', 'Grep', 'Write', 'Edit', 'Glob', 'apply_patch']);
 
     const local = JSON.parse(
       await readFile(join(tmpRepo, '.claude', 'settings.local.json'), 'utf-8'),
@@ -72,6 +91,29 @@ describe('ClaudeAdapter.writeSettings', () => {
       CLAUDE_GITHUB_GUARD_HOOK_SCRIPT,
     );
     expect((await stat(hookPath)).mode & 0o111).not.toBe(0);
+    const secretHookPath = join(
+      tmpRepo,
+      '.claude',
+      'hooks',
+      'moltnet-secret-guard.sh',
+    );
+    expect(await readFile(secretHookPath, 'utf-8')).toBe(
+      CLAUDE_SECRET_GUARD_HOOK_SCRIPT,
+    );
+    expect((await stat(secretHookPath)).mode & 0o111).not.toBe(0);
+  });
+
+  it('does not install hooks when the released CLI lacks the guard', async () => {
+    assertSecretGuardCapabilityMock.mockRejectedValueOnce(
+      new Error('update moltnet'),
+    );
+
+    await expect(new ClaudeAdapter().writeSettings(baseOpts)).rejects.toThrow(
+      'update moltnet',
+    );
+    await expect(
+      stat(join(tmpRepo, '.claude', 'settings.json')),
+    ).rejects.toThrow();
   });
 
   it('preserves existing shared hooks and remains idempotent', async () => {
@@ -104,6 +146,7 @@ describe('ClaudeAdapter.writeSettings', () => {
     );
     expect(settings.hooks.SessionStart).toHaveLength(1);
     expect(settings.hooks.PreToolUse[0].hooks).toEqual([
+      { type: 'command', command: CLAUDE_SECRET_GUARD_HOOK_COMMAND },
       { type: 'command', command: 'custom-guard' },
       { type: 'command', command: CLAUDE_GITHUB_GUARD_HOOK_COMMAND },
     ]);

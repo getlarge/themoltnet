@@ -255,6 +255,13 @@
         "releaseTag": {
           "pattern": "{projectName}-v{version}"
         }
+      },
+      "os-keyring": {
+        "projects": ["@themoltnet/os-keyring"],
+        "projectsRelationship": "independent",
+        "releaseTag": {
+          "pattern": "os-keyring-v{version}"
+        }
       }
     },
     "version": {

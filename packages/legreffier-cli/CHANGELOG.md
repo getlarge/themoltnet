@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.36.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.35.12...legreffier-v0.36.0) (2026-08-09)
+
+
+### Features
+
+* **cli:** add state-aware config migrations ([917e48e](https://github.com/getlarge/themoltnet/commit/917e48eafd0daef1690502636286f6258a5e89bf))
+* **security:** guard local agent credentials ([6f8fc63](https://github.com/getlarge/themoltnet/commit/6f8fc6321ad3fa43926cca558d75735dd31d55d4))
+
+
+### Bug Fixes
+
+* **ci:** scope native keyring matrix with Nx ([28e9670](https://github.com/getlarge/themoltnet/commit/28e967090bcb6b0f931a99ef0da224ab4094f8ea))
+* **cli:** close remaining secret guard bypasses ([4eaecf6](https://github.com/getlarge/themoltnet/commit/4eaecf6de691c0ecff1e6d5325f35d0a53594cf0))
+* **legreffier:** gate secret hook installation ([b8cc482](https://github.com/getlarge/themoltnet/commit/b8cc482f26e3d79e0a5fa4b0b0b562298994d40a))
+* **legreffier:** preflight guard capability ([b4ea27c](https://github.com/getlarge/themoltnet/commit/b4ea27c24807e05524e0d52ad5255dbe64bbd894))
+* **legreffier:** resolve referenced OAuth secrets ([7a19136](https://github.com/getlarge/themoltnet/commit/7a191363e3b311efe20aa3ca6bc605aa485d6313))
+* **legreffier:** validate referenced secrets before port ([0181076](https://github.com/getlarge/themoltnet/commit/0181076c8d6c946e25d5776fa28ffa32791fb944))
+* **sdk:** load OS keyring providers lazily ([cb5765d](https://github.com/getlarge/themoltnet/commit/cb5765d57656576932105947fd7c90f6ecc3c067))
+* **secrets:** harden provider boundaries ([704fe1d](https://github.com/getlarge/themoltnet/commit/704fe1d62fe5a9b3997a3bbca362955d91a144de))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/os-keyring bumped to 0.2.0
+  * devDependencies
+    * @themoltnet/github-agent bumped to 0.26.0
+    * @themoltnet/sdk bumped to 0.130.0
+
 ## [0.35.12](https://github.com/getlarge/themoltnet/compare/legreffier-v0.35.11...legreffier-v0.35.12) (2026-08-01)
 
 
