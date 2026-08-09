@@ -127,7 +127,7 @@ describe('Nx release configuration', () => {
       'docker-matrix: ${{ steps.resolve-docker.outputs.matrix }}',
     );
     expect(workflow).toContain(
-      'needs: resolve-publish\n    if: ${{ needs.resolve-publish.outputs.docker-has-releases',
+      "if: ${{ always() && needs.resolve-publish.outputs.docker-has-releases == 'true' && !failure() && !cancelled() }}",
     );
     expect(workflow).toContain('--configuration=release');
     expect(workflow).toContain(
