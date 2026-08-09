@@ -31,7 +31,7 @@ on:
       republish:
         description: >
           Comma-separated packages to re-publish from existing draft releases.
-          Valid values: sdk, os-keyring, tasks-orchestrator, credentials, credential-broker, ctap, yubikey-preview-sign, signer, github-agent, legreffier, cli, api-client, dspy-adapters, skill, design-system, pi-extension, pi-runtime, shell-command-analyzer, agent-runtime, node-red-theme, agent-daemon
+          Valid values: sdk, os-keyring, tasks-orchestrator, credentials, credential-broker, ctap, yubikey-preview-sign, signer, github-agent, legreffier, cli, api-client, dspy-adapters, skill, design-system, pi-extension, pi-runtime, shell-command-analyzer, agent-runtime, node-red-theme, agent-daemon, console, database, landing, mcp-host, mcp-server, rest-api, otel-custom-collector
         required: false
         type: string
 
@@ -164,7 +164,8 @@ jobs:
       - uses: actions/setup-go@v6
         if: ${{ matrix.project == 'otel-custom-collector' }}
         with:
-          go-version-file: infra/otel/custom-collector/moltnetauthextension/go.mod
+          go-version: '1.25'
+          check-latest: true
           cache: true
 
       - uses: docker/setup-qemu-action@v4
@@ -317,6 +318,27 @@ jobs:
           RP_DESIGN_SYSTEM_TAG: ${{ needs.release-please.outputs.design-system-tag-name }}
           RP_AGENT_DAEMON_CREATED: ${{ needs.release-please.outputs.agent-daemon-release-created }}
           RP_AGENT_DAEMON_TAG: ${{ needs.release-please.outputs.agent-daemon-tag-name }}
+          RP_CONSOLE_CREATED: ${{ needs.release-please.outputs.console-release-created }}
+          RP_CONSOLE_TAG: ${{ needs.release-please.outputs.console-tag-name }}
+          RP_CONSOLE_VERSION: ${{ needs.release-please.outputs.console-version }}
+          RP_DATABASE_CREATED: ${{ needs.release-please.outputs.database-release-created }}
+          RP_DATABASE_TAG: ${{ needs.release-please.outputs.database-tag-name }}
+          RP_DATABASE_VERSION: ${{ needs.release-please.outputs.database-version }}
+          RP_LANDING_CREATED: ${{ needs.release-please.outputs.landing-release-created }}
+          RP_LANDING_TAG: ${{ needs.release-please.outputs.landing-tag-name }}
+          RP_LANDING_VERSION: ${{ needs.release-please.outputs.landing-version }}
+          RP_MCP_HOST_CREATED: ${{ needs.release-please.outputs.mcp-host-release-created }}
+          RP_MCP_HOST_TAG: ${{ needs.release-please.outputs.mcp-host-tag-name }}
+          RP_MCP_HOST_VERSION: ${{ needs.release-please.outputs.mcp-host-version }}
+          RP_MCP_SERVER_CREATED: ${{ needs.release-please.outputs.mcp-server-release-created }}
+          RP_MCP_SERVER_TAG: ${{ needs.release-please.outputs.mcp-server-tag-name }}
+          RP_MCP_SERVER_VERSION: ${{ needs.release-please.outputs.mcp-server-version }}
+          RP_REST_API_CREATED: ${{ needs.release-please.outputs.rest-api-release-created }}
+          RP_REST_API_TAG: ${{ needs.release-please.outputs.rest-api-tag-name }}
+          RP_REST_API_VERSION: ${{ needs.release-please.outputs.rest-api-version }}
+          RP_OTEL_COLLECTOR_CREATED: ${{ needs.release-please.outputs.otel-collector-release-created }}
+          RP_OTEL_COLLECTOR_TAG: ${{ needs.release-please.outputs.otel-collector-tag-name }}
+          RP_OTEL_COLLECTOR_VERSION: ${{ needs.release-please.outputs.otel-collector-version }}
           REPUBLISH: ${{ github.event.inputs.republish || '' }}
         run: |
           find_draft_tag() {
@@ -360,6 +382,34 @@ jobs:
             echo "  - ${name}: skip"
           }
 
+          resolve_docker() {
+            local name="$1" rp_created="$2" rp_tag="$3" rp_version="$4" component="$5"
+            local tag version
+
+            if [ "$rp_created" = "true" ]; then
+              tag="$rp_tag"
+              version="$rp_version"
+              echo "  ✓ ${name}: release-please → ${tag}"
+            elif wants_republish "$name"; then
+              tag=$(find_draft_tag "$component")
+              if [ -z "$tag" ]; then
+                echo "  ✗ ${name}: requested but no draft release found for '${component}'"
+                echo "docker-${name}=false" >> "$GITHUB_OUTPUT"
+                return
+              fi
+              version=$(version_from_tag "$tag" "$component")
+              echo "  ✓ ${name}: republish Docker draft → ${tag}"
+            else
+              echo "docker-${name}=false" >> "$GITHUB_OUTPUT"
+              echo "  - ${name}: skip"
+              return
+            fi
+
+            echo "docker-${name}=true" >> "$GITHUB_OUTPUT"
+            echo "docker-${name}-tag=${tag}" >> "$GITHUB_OUTPUT"
+            echo "docker-${name}-version=${version}" >> "$GITHUB_OUTPUT"
+          }
+
           echo "Resolving publish targets..."
           resolve "sdk"          "$RP_SDK_CREATED"       "$RP_SDK_TAG"       "sdk"
           resolve "os-keyring"   "$RP_OS_KEYRING_CREATED" "$RP_OS_KEYRING_TAG" "os-keyring"
@@ -383,6 +433,14 @@ jobs:
           resolve "node-red"     "$RP_NODE_RED_CREATED"  "$RP_NODE_RED_TAG"  "node-red-contrib-core"
           resolve "node-red-theme" "$RP_NODE_RED_THEME_CREATED" "$RP_NODE_RED_THEME_TAG" "node-red-theme"
           resolve "agent-daemon" "$RP_AGENT_DAEMON_CREATED" "$RP_AGENT_DAEMON_TAG" "agent-daemon"
+
+          resolve_docker "console" "$RP_CONSOLE_CREATED" "$RP_CONSOLE_TAG" "$RP_CONSOLE_VERSION" "console"
+          resolve_docker "database" "$RP_DATABASE_CREATED" "$RP_DATABASE_TAG" "$RP_DATABASE_VERSION" "database"
+          resolve_docker "landing" "$RP_LANDING_CREATED" "$RP_LANDING_TAG" "$RP_LANDING_VERSION" "landing"
+          resolve_docker "mcp-host" "$RP_MCP_HOST_CREATED" "$RP_MCP_HOST_TAG" "$RP_MCP_HOST_VERSION" "mcp-host"
+          resolve_docker "mcp-server" "$RP_MCP_SERVER_CREATED" "$RP_MCP_SERVER_TAG" "$RP_MCP_SERVER_VERSION" "mcp-server"
+          resolve_docker "rest-api" "$RP_REST_API_CREATED" "$RP_REST_API_TAG" "$RP_REST_API_VERSION" "rest-api"
+          resolve_docker "otel-custom-collector" "$RP_OTEL_COLLECTOR_CREATED" "$RP_OTEL_COLLECTOR_TAG" "$RP_OTEL_COLLECTOR_VERSION" "otel-collector"
 
           # Forward version outputs
           if [ -n "$RP_API_VERSION" ]; then
@@ -408,17 +466,16 @@ jobs:
 
       - name: Resolve released Docker projects
         id: resolve-docker
-        if: ${{ github.event_name == 'push' }}
         env:
           MOLTNET_DOCKER_RELEASES_JSON: >-
             [
-              {"project":"@moltnet/console","released":"${{ needs.release-please.outputs.console-release-created }}","tag":"${{ needs.release-please.outputs.console-tag-name }}","version":"${{ needs.release-please.outputs.console-version }}"},
-              {"project":"@moltnet/database","released":"${{ needs.release-please.outputs.database-release-created }}","tag":"${{ needs.release-please.outputs.database-tag-name }}","version":"${{ needs.release-please.outputs.database-version }}"},
-              {"project":"@moltnet/landing","released":"${{ needs.release-please.outputs.landing-release-created }}","tag":"${{ needs.release-please.outputs.landing-tag-name }}","version":"${{ needs.release-please.outputs.landing-version }}"},
-              {"project":"@moltnet/mcp-host","released":"${{ needs.release-please.outputs.mcp-host-release-created }}","tag":"${{ needs.release-please.outputs.mcp-host-tag-name }}","version":"${{ needs.release-please.outputs.mcp-host-version }}"},
-              {"project":"@moltnet/mcp-server","released":"${{ needs.release-please.outputs.mcp-server-release-created }}","tag":"${{ needs.release-please.outputs.mcp-server-tag-name }}","version":"${{ needs.release-please.outputs.mcp-server-version }}"},
-              {"project":"@moltnet/rest-api","released":"${{ needs.release-please.outputs.rest-api-release-created }}","tag":"${{ needs.release-please.outputs.rest-api-tag-name }}","version":"${{ needs.release-please.outputs.rest-api-version }}"},
-              {"project":"otel-custom-collector","released":"${{ needs.release-please.outputs.otel-collector-release-created }}","tag":"${{ needs.release-please.outputs.otel-collector-tag-name }}","version":"${{ needs.release-please.outputs.otel-collector-version }}"}
+              {"project":"@moltnet/console","released":"${{ steps.resolve.outputs.docker-console }}","tag":"${{ steps.resolve.outputs.docker-console-tag }}","version":"${{ steps.resolve.outputs.docker-console-version }}"},
+              {"project":"@moltnet/database","released":"${{ steps.resolve.outputs.docker-database }}","tag":"${{ steps.resolve.outputs.docker-database-tag }}","version":"${{ steps.resolve.outputs.docker-database-version }}"},
+              {"project":"@moltnet/landing","released":"${{ steps.resolve.outputs.docker-landing }}","tag":"${{ steps.resolve.outputs.docker-landing-tag }}","version":"${{ steps.resolve.outputs.docker-landing-version }}"},
+              {"project":"@moltnet/mcp-host","released":"${{ steps.resolve.outputs.docker-mcp-host }}","tag":"${{ steps.resolve.outputs.docker-mcp-host-tag }}","version":"${{ steps.resolve.outputs.docker-mcp-host-version }}"},
+              {"project":"@moltnet/mcp-server","released":"${{ steps.resolve.outputs.docker-mcp-server }}","tag":"${{ steps.resolve.outputs.docker-mcp-server-tag }}","version":"${{ steps.resolve.outputs.docker-mcp-server-version }}"},
+              {"project":"@moltnet/rest-api","released":"${{ steps.resolve.outputs.docker-rest-api }}","tag":"${{ steps.resolve.outputs.docker-rest-api-tag }}","version":"${{ steps.resolve.outputs.docker-rest-api-version }}"},
+              {"project":"otel-custom-collector","released":"${{ steps.resolve.outputs.docker-otel-custom-collector }}","tag":"${{ steps.resolve.outputs.docker-otel-custom-collector-tag }}","version":"${{ steps.resolve.outputs.docker-otel-custom-collector-version }}"}
             ]
         run: node tools/release/resolve-docker-release-matrix.mjs
 
