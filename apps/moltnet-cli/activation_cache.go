@@ -15,24 +15,30 @@ import (
 	"time"
 )
 
-const activationCacheVersion = 1
+const activationCacheVersion = 3
 
 var requiredActivationInputs = []string{"credentials", "env", "gitconfig", "sshPublicKey"}
 
 type activationCache struct {
-	Version         int                             `json:"version"`
-	AgentName       string                          `json:"agentName"`
-	RepoRoot        string                          `json:"repoRoot"`
-	RepoName        string                          `json:"repoName"`
-	Fingerprint     string                          `json:"fingerprint"`
-	DiaryID         string                          `json:"diaryId,omitempty"`
-	TeamID          string                          `json:"teamId,omitempty"`
-	GitConfigGlobal string                          `json:"gitConfigGlobal"`
-	CredentialsPath string                          `json:"credentialsPath"`
-	AuthorshipMode  string                          `json:"authorshipMode"`
-	AgentEmail      string                          `json:"agentEmail"`
-	Inputs          map[string]activationCacheInput `json:"inputs"`
-	CreatedAt       string                          `json:"createdAt"`
+	Version              int                             `json:"version"`
+	AgentName            string                          `json:"agentName"`
+	RepoRoot             string                          `json:"repoRoot"`
+	RepoName             string                          `json:"repoName"`
+	Fingerprint          string                          `json:"fingerprint"`
+	DiaryID              string                          `json:"diaryId,omitempty"`
+	TeamID               string                          `json:"teamId,omitempty"`
+	GitConfigGlobal      string                          `json:"gitConfigGlobal"`
+	CredentialsPath      string                          `json:"credentialsPath"`
+	AuthorshipMode       string                          `json:"authorshipMode"`
+	AuthorshipConfigured bool                            `json:"authorshipConfigured"`
+	HumanGitIdentity     string                          `json:"humanGitIdentity,omitempty"`
+	AgentEmail           string                          `json:"agentEmail"`
+	GitHubAppConfigured  bool                            `json:"githubAppConfigured"`
+	CredentialProvider   string                          `json:"credentialProvider"`
+	CredentialStatus     string                          `json:"credentialStatus"`
+	RegisteredAt         string                          `json:"registeredAt,omitempty"`
+	Inputs               map[string]activationCacheInput `json:"inputs"`
+	CreatedAt            string                          `json:"createdAt"`
 }
 
 type activationCacheInput struct {
@@ -41,15 +47,24 @@ type activationCacheInput struct {
 }
 
 type activationValidationResult struct {
-	Valid           bool     `json:"valid"`
-	Reason          string   `json:"reason,omitempty"`
-	Changed         []string `json:"changed,omitempty"`
-	AgentName       string   `json:"agentName,omitempty"`
-	Fingerprint     string   `json:"fingerprint,omitempty"`
-	DiaryID         string   `json:"diaryId,omitempty"`
-	TeamID          string   `json:"teamId,omitempty"`
-	CredentialsPath string   `json:"credentialsPath,omitempty"`
-	GitConfigGlobal string   `json:"gitConfigGlobal,omitempty"`
+	Valid                      bool     `json:"valid"`
+	Reason                     string   `json:"reason,omitempty"`
+	Changed                    []string `json:"changed,omitempty"`
+	AgentName                  string   `json:"agentName,omitempty"`
+	Fingerprint                string   `json:"fingerprint,omitempty"`
+	DiaryID                    string   `json:"diaryId,omitempty"`
+	TeamID                     string   `json:"teamId,omitempty"`
+	CredentialsPath            string   `json:"credentialsPath,omitempty"`
+	GitConfigGlobal            string   `json:"gitConfigGlobal,omitempty"`
+	AuthorshipMode             string   `json:"authorshipMode,omitempty"`
+	AuthorshipConfigured       bool     `json:"authorshipConfigured"`
+	HumanGitIdentity           string   `json:"humanGitIdentity,omitempty"`
+	HumanGitIdentityConfigured bool     `json:"humanGitIdentityConfigured"`
+	AgentEmail                 string   `json:"agentEmail,omitempty"`
+	GitHubAppConfigured        bool     `json:"githubAppConfigured"`
+	CredentialProvider         string   `json:"credentialProvider,omitempty"`
+	CredentialStatus           string   `json:"credentialStatus,omitempty"`
+	RegisteredAt               string   `json:"registeredAt,omitempty"`
 }
 
 type activationContext struct {
@@ -87,15 +102,7 @@ func runAgentsActivationRefreshCmd(w io.Writer, dir, agent string, jsonOut bool)
 	if err := writeActivationCache(ctx.CachePath, cache); err != nil {
 		return err
 	}
-	result := activationValidationResult{
-		Valid:           true,
-		AgentName:       cache.AgentName,
-		Fingerprint:     cache.Fingerprint,
-		DiaryID:         cache.DiaryID,
-		TeamID:          cache.TeamID,
-		CredentialsPath: cache.CredentialsPath,
-		GitConfigGlobal: cache.GitConfigGlobal,
-	}
+	result := activationResultFromCache(cache)
 	return printActivationValidationResult(w, &result, jsonOut)
 }
 
@@ -120,7 +127,7 @@ func resolveActivationContext(dir, agentFlag string) (*activationContext, error)
 	if err != nil {
 		return nil, err
 	}
-	agentName, err := resolveAgentName(moltnetDir, agentFlag)
+	agentName, err := resolveActivationAgentName(moltnetDir, agentFlag)
 	if err != nil {
 		return nil, err
 	}
@@ -146,6 +153,31 @@ func resolveActivationContext(dir, agentFlag string) (*activationContext, error)
 	}, nil
 }
 
+func resolveActivationAgentName(moltnetDir, agentFlag string) (string, error) {
+	agentName, resolveErr := resolveAgentName(moltnetDir, agentFlag)
+	if resolveErr == nil {
+		return agentName, nil
+	}
+
+	// Validation and clearing must still find a warm cache after credentials
+	// disappear; that disappearance is itself the invalidation being reported.
+	candidates := []string{}
+	if agentFlag != "" {
+		candidates = append(candidates, agentFlag)
+	} else if data, err := os.ReadFile(filepath.Join(moltnetDir, "default-agent")); err == nil {
+		if name := strings.TrimSpace(string(data)); name != "" {
+			candidates = append(candidates, name)
+		}
+	}
+	for _, candidate := range candidates {
+		cachePath := filepath.Join(moltnetDir, candidate, "activation-cache.json")
+		if info, err := os.Stat(cachePath); err == nil && !info.IsDir() {
+			return candidate, nil
+		}
+	}
+	return "", resolveErr
+}
+
 func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 	credentialsPath := filepath.Join(ctx.AgentDir, "moltnet.json")
 	creds, err := ReadConfigFrom(credentialsPath)
@@ -169,7 +201,20 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 	if gitIdentity.Email == "" || gitIdentity.SigningKey == "" || gitIdentity.GPGFormat != "ssh" {
 		return nil, fmt.Errorf("gitconfig %s is missing user.email, user.signingkey, or gpg.format=ssh", gitconfigPath)
 	}
-	authorshipMode := firstNonEmpty(ctx.EnvVars["MOLTNET_COMMIT_AUTHORSHIP"], "agent")
+	authorshipMode := strings.TrimSpace(ctx.EnvVars["MOLTNET_COMMIT_AUTHORSHIP"])
+	authorshipConfigured := authorshipMode != ""
+	if !authorshipConfigured {
+		authorshipMode = "agent"
+	}
+	credentialProvider := "legacy-plaintext"
+	credentialStatus := "missing"
+	if creds.OAuth2.ClientSecret != "" {
+		credentialStatus = "available"
+	}
+	if creds.OAuth2.ClientSecretRef != nil {
+		credentialProvider = creds.OAuth2.ClientSecretRef.Provider
+		credentialStatus = "configured"
+	}
 	fingerprint := firstNonEmpty(ctx.EnvVars["MOLTNET_FINGERPRINT"], creds.Keys.Fingerprint)
 	if fingerprint == "" {
 		return nil, fmt.Errorf("missing fingerprint in env or moltnet.json")
@@ -195,19 +240,25 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 
 	now := time.Now().UTC().Format(time.RFC3339)
 	return &activationCache{
-		Version:         activationCacheVersion,
-		AgentName:       ctx.AgentName,
-		RepoRoot:        ctx.RepoRoot,
-		RepoName:        ctx.RepoName,
-		Fingerprint:     fingerprint,
-		DiaryID:         ctx.EnvVars["MOLTNET_DIARY_ID"],
-		TeamID:          ctx.EnvVars["MOLTNET_TEAM_ID"],
-		GitConfigGlobal: relativeToRepo(ctx.RepoRoot, gitconfigPath),
-		CredentialsPath: relativeToRepo(ctx.RepoRoot, credentialsPath),
-		AuthorshipMode:  authorshipMode,
-		AgentEmail:      gitIdentity.Email,
-		Inputs:          inputs,
-		CreatedAt:       now,
+		Version:              activationCacheVersion,
+		AgentName:            ctx.AgentName,
+		RepoRoot:             ctx.RepoRoot,
+		RepoName:             ctx.RepoName,
+		Fingerprint:          fingerprint,
+		DiaryID:              ctx.EnvVars["MOLTNET_DIARY_ID"],
+		TeamID:               ctx.EnvVars["MOLTNET_TEAM_ID"],
+		GitConfigGlobal:      relativeToRepo(ctx.RepoRoot, gitconfigPath),
+		CredentialsPath:      relativeToRepo(ctx.RepoRoot, credentialsPath),
+		AuthorshipMode:       authorshipMode,
+		AuthorshipConfigured: authorshipConfigured,
+		HumanGitIdentity:     ctx.EnvVars["MOLTNET_HUMAN_GIT_IDENTITY"],
+		AgentEmail:           gitIdentity.Email,
+		GitHubAppConfigured:  creds.GitHub != nil && creds.GitHub.AppID != "" && creds.GitHub.PrivateKeyPath != "",
+		CredentialProvider:   credentialProvider,
+		CredentialStatus:     credentialStatus,
+		RegisteredAt:         creds.RegisteredAt,
+		Inputs:               inputs,
+		CreatedAt:            now,
 	}, nil
 }
 
@@ -233,50 +284,77 @@ func validateActivationCache(ctx *activationContext) (*activationValidationResul
 	if filepath.Clean(cache.RepoRoot) != ctx.RepoRoot {
 		return invalidActivation("repo_mismatch", nil), nil
 	}
+	current, err := buildActivationCache(ctx)
+	if err != nil {
+		// A vanished or unreadable cache input is an expected invalidation, not
+		// a command failure. Keep validation machine-readable so activation can
+		// route through the documented cold ceremony.
+		return invalidActivation("input_unavailable", nil), nil
+	}
 
 	var changed []string
 	for _, name := range requiredActivationInputs {
-		if _, ok := cache.Inputs[name]; !ok {
+		cached, ok := cache.Inputs[name]
+		if !ok {
 			changed = append(changed, name)
-		}
-	}
-	for _, cached := range cache.Inputs {
-		current, err := hashActivationInput(ctx.RepoRoot, cached.Path)
-		if err != nil {
-			changed = append(changed, cached.Path)
 			continue
 		}
-		if current.SHA256 != cached.SHA256 {
-			changed = append(changed, cached.Path)
-		}
-	}
-	for _, envKey := range []struct {
-		key   string
-		value string
-	}{
-		{"MOLTNET_AGENT_NAME", cache.AgentName},
-		{"MOLTNET_FINGERPRINT", cache.Fingerprint},
-		{"MOLTNET_DIARY_ID", cache.DiaryID},
-		{"MOLTNET_TEAM_ID", cache.TeamID},
-	} {
-		if v := ctx.EnvVars[envKey.key]; v != "" && v != envKey.value {
-			changed = append(changed, relativeToRepo(ctx.RepoRoot, ctx.EnvPath))
+		expected := current.Inputs[name]
+		if filepath.Clean(cached.Path) != filepath.Clean(expected.Path) || cached.SHA256 != expected.SHA256 {
+			changed = append(changed, expected.Path)
 		}
 	}
 	if len(changed) > 0 {
 		sort.Strings(changed)
 		return invalidActivation("input_hash_mismatch", uniqueStrings(changed)), nil
 	}
+	if !activationMetadataEqual(cache, current) {
+		return invalidActivation("cache_metadata_mismatch", []string{relativeToRepo(ctx.RepoRoot, ctx.CachePath)}), nil
+	}
 
-	return &activationValidationResult{
-		Valid:           true,
-		AgentName:       cache.AgentName,
-		Fingerprint:     cache.Fingerprint,
-		DiaryID:         cache.DiaryID,
-		TeamID:          cache.TeamID,
-		CredentialsPath: cache.CredentialsPath,
-		GitConfigGlobal: cache.GitConfigGlobal,
-	}, nil
+	result := activationResultFromCache(current)
+	return &result, nil
+}
+
+func activationMetadataEqual(cached, current *activationCache) bool {
+	return cached.Version == current.Version &&
+		cached.AgentName == current.AgentName &&
+		filepath.Clean(cached.RepoRoot) == filepath.Clean(current.RepoRoot) &&
+		cached.RepoName == current.RepoName &&
+		cached.Fingerprint == current.Fingerprint &&
+		cached.DiaryID == current.DiaryID &&
+		cached.TeamID == current.TeamID &&
+		cached.GitConfigGlobal == current.GitConfigGlobal &&
+		cached.CredentialsPath == current.CredentialsPath &&
+		cached.AuthorshipMode == current.AuthorshipMode &&
+		cached.AuthorshipConfigured == current.AuthorshipConfigured &&
+		cached.HumanGitIdentity == current.HumanGitIdentity &&
+		cached.AgentEmail == current.AgentEmail &&
+		cached.GitHubAppConfigured == current.GitHubAppConfigured &&
+		cached.CredentialProvider == current.CredentialProvider &&
+		cached.CredentialStatus == current.CredentialStatus &&
+		cached.RegisteredAt == current.RegisteredAt
+}
+
+func activationResultFromCache(cache *activationCache) activationValidationResult {
+	return activationValidationResult{
+		Valid:                      true,
+		AgentName:                  cache.AgentName,
+		Fingerprint:                cache.Fingerprint,
+		DiaryID:                    cache.DiaryID,
+		TeamID:                     cache.TeamID,
+		CredentialsPath:            cache.CredentialsPath,
+		GitConfigGlobal:            cache.GitConfigGlobal,
+		AuthorshipMode:             cache.AuthorshipMode,
+		AuthorshipConfigured:       cache.AuthorshipConfigured,
+		HumanGitIdentity:           cache.HumanGitIdentity,
+		HumanGitIdentityConfigured: cache.HumanGitIdentity != "",
+		AgentEmail:                 cache.AgentEmail,
+		GitHubAppConfigured:        cache.GitHubAppConfigured,
+		CredentialProvider:         cache.CredentialProvider,
+		CredentialStatus:           cache.CredentialStatus,
+		RegisteredAt:               cache.RegisteredAt,
+	}
 }
 
 func readActivationCache(path string) (*activationCache, error) {
@@ -359,7 +437,15 @@ func readGitConfigValue(gitconfigPath, key string) (string, error) {
 
 func printActivationValidationResult(w io.Writer, result *activationValidationResult, jsonOut bool) error {
 	if jsonOut {
-		data, err := json.MarshalIndent(result, "", "  ")
+		value := any(result)
+		if !result.Valid {
+			value = struct {
+				Valid   bool     `json:"valid"`
+				Reason  string   `json:"reason,omitempty"`
+				Changed []string `json:"changed,omitempty"`
+			}{Valid: false, Reason: result.Reason, Changed: result.Changed}
+		}
+		data, err := json.MarshalIndent(value, "", "  ")
 		if err != nil {
 			return err
 		}

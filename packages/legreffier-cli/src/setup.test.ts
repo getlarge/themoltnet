@@ -477,7 +477,7 @@ describe('writeSettingsLocal', () => {
     );
     expect(parsed.env.MY_AGENT_GITHUB_APP_INSTALLATION_ID).toBe('99999');
     expect(parsed.env.MY_AGENT_CLIENT_ID).toBe('cid');
-    expect(parsed.env.MY_AGENT_CLIENT_SECRET).toBe('csec');
+    expect(parsed.env).not.toHaveProperty('MY_AGENT_CLIENT_SECRET');
     expect(parsed.env.GIT_CONFIG_GLOBAL).toBe('.moltnet/my-agent/gitconfig');
     expect(parsed.enabledMcpjsonServers).toEqual(['my-agent']);
     // Permissions include agent-specific MCP wildcard
@@ -542,7 +542,11 @@ describe('writeSettingsLocal', () => {
     const filePath = join(tmpRepo, '.claude', 'settings.local.json');
     await mkdir(join(tmpRepo, '.claude'), { recursive: true });
     const existing = {
-      env: { EXISTING_VAR: 'keep-me', OTHER_CLIENT_ID: 'other' },
+      env: {
+        EXISTING_VAR: 'keep-me',
+        OTHER_CLIENT_ID: 'other',
+        MY_AGENT_CLIENT_SECRET: 'legacy-plaintext-secret',
+      },
       enabledMcpjsonServers: ['other-agent'],
       permissions: { allow: ['Bash(custom-cmd *)', 'Bash(git config *)'] },
       hooks: {
@@ -574,7 +578,7 @@ describe('writeSettingsLocal', () => {
     expect(parsed.env.OTHER_CLIENT_ID).toBe('other');
     // New agent vars added
     expect(parsed.env.MY_AGENT_CLIENT_ID).toBe('cid');
-    expect(parsed.env.MY_AGENT_CLIENT_SECRET).toBe('csec');
+    expect(parsed.env).not.toHaveProperty('MY_AGENT_CLIENT_SECRET');
     expect(parsed.env.GIT_CONFIG_GLOBAL).toBe('.moltnet/my-agent/gitconfig');
     // Non-env keys preserved
     expect(parsed.customKey).toBe(true);
@@ -632,7 +636,8 @@ describe('writeEnvFile', () => {
 
     const content = await readFile(join(envDir, 'env'), 'utf-8');
     expect(content).toContain("MY_AGENT_CLIENT_ID='cid'");
-    expect(content).toContain("MY_AGENT_CLIENT_SECRET='csec'");
+    expect(content).not.toContain('MY_AGENT_CLIENT_SECRET');
+    expect(content).not.toContain('csec');
     expect(content).toContain("MY_AGENT_GITHUB_APP_ID='2878569'");
     expect(content).toContain(
       "MY_AGENT_GITHUB_APP_PRIVATE_KEY_PATH='/tmp/my-app.pem'",
@@ -702,7 +707,8 @@ describe('writeEnvFile', () => {
     const content = await readFile(join(envDir, 'env'), 'utf-8');
     // Updated managed vars
     expect(content).toContain("MY_AGENT_CLIENT_ID='cid-v2'");
-    expect(content).toContain("MY_AGENT_CLIENT_SECRET='csec-v2'");
+    expect(content).not.toContain('MY_AGENT_CLIENT_SECRET');
+    expect(content).not.toContain('csec-v2');
     // Preserved user vars
     expect(content).toContain("MOLTNET_DIARY_ID='abc-123'");
     expect(content).toContain("CUSTOM_VAR='keep-me'");

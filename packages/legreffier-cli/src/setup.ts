@@ -110,6 +110,7 @@ export async function downloadSkills(
 export const CANONICAL_SKILL_DIR = '.agents/skills';
 
 const GITHUB_GUARD_CLI_COMMAND = 'moltnet github guard';
+const SECRET_GUARD_CLI_COMMAND = 'moltnet secrets guard';
 
 export const GITHUB_GUARD_HOOK_COMMAND = `command -v moltnet >/dev/null 2>&1 && ${GITHUB_GUARD_CLI_COMMAND} 2>/dev/null || true`;
 
@@ -119,6 +120,15 @@ export const CLAUDE_GITHUB_GUARD_HOOK_COMMAND =
 export const CLAUDE_GITHUB_GUARD_HOOK_SCRIPT = `#!/bin/sh
 command -v moltnet >/dev/null 2>&1 || exit 0
 ${GITHUB_GUARD_CLI_COMMAND} 2>/dev/null || true
+`;
+
+export const SECRET_GUARD_HOOK_COMMAND = SECRET_GUARD_CLI_COMMAND;
+export const CLAUDE_SECRET_GUARD_HOOK_COMMAND =
+  '"$CLAUDE_PROJECT_DIR"/.claude/hooks/moltnet-secret-guard.sh';
+export const CLAUDE_SECRET_GUARD_HOOK_SCRIPT = `#!/bin/sh
+deny='{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"MoltNet secret guard is unavailable; protected credential access is blocked."}}'
+command -v moltnet >/dev/null 2>&1 || { printf '%s\\n' "$deny"; exit 0; }
+${SECRET_GUARD_CLI_COMMAND} 2>/dev/null || printf '%s\\n' "$deny"
 `;
 
 interface CommandHook {
@@ -140,6 +150,47 @@ export function mergeGitHubGuardHook(
   hooks: unknown,
   command = GITHUB_GUARD_HOOK_COMMAND,
 ): HookSettings {
+  return mergePreToolUseGuard(hooks, {
+    matchers: ['Bash'],
+    command,
+    placement: 'append',
+    isManaged: isGitHubGuardHook,
+  });
+}
+
+const SECRET_GUARD_MATCHERS = [
+  'Bash',
+  'Read',
+  'Grep',
+  'Write',
+  'Edit',
+  'Glob',
+  'apply_patch',
+];
+
+export function mergeSecretGuardHook(
+  hooks: unknown,
+  command = SECRET_GUARD_HOOK_COMMAND,
+): HookSettings {
+  return mergePreToolUseGuard(hooks, {
+    matchers: SECRET_GUARD_MATCHERS,
+    command,
+    placement: 'prepend',
+    isManaged: isSecretGuardHook,
+  });
+}
+
+interface GuardHookSpec {
+  matchers: string[];
+  command: string;
+  placement: 'prepend' | 'append';
+  isManaged: (hook: unknown) => boolean;
+}
+
+function mergePreToolUseGuard(
+  hooks: unknown,
+  spec: GuardHookSpec,
+): HookSettings {
   const existing =
     hooks && typeof hooks === 'object' && !Array.isArray(hooks)
       ? (hooks as HookSettings)
@@ -148,39 +199,52 @@ export function mergeGitHubGuardHook(
     ? existing.PreToolUse.map((entry) => ({
         ...entry,
         hooks: Array.isArray(entry.hooks)
-          ? entry.hooks.filter((hook) => !isGitHubGuardHook(hook))
+          ? entry.hooks.filter((hook) => !spec.isManaged(hook))
           : [],
       }))
     : [];
-  const bashMatcherIndex = preToolUse.findIndex(
-    (entry) => entry.matcher === 'Bash',
-  );
 
-  if (bashMatcherIndex >= 0) {
-    preToolUse[bashMatcherIndex] = {
-      ...preToolUse[bashMatcherIndex],
-      hooks: [
-        ...preToolUse[bashMatcherIndex].hooks,
-        { type: 'command', command },
-      ],
-    };
-  } else {
-    preToolUse.push({
-      matcher: 'Bash',
-      hooks: [{ type: 'command', command }],
-    });
+  for (const matcher of spec.matchers) {
+    const index = preToolUse.findIndex((entry) => entry.matcher === matcher);
+    if (index >= 0) {
+      const guard = { type: 'command' as const, command: spec.command };
+      preToolUse[index] = {
+        ...preToolUse[index],
+        hooks:
+          spec.placement === 'prepend'
+            ? [guard, ...preToolUse[index].hooks]
+            : [...preToolUse[index].hooks, guard],
+      };
+    } else {
+      preToolUse.push({
+        matcher,
+        hooks: [{ type: 'command', command: spec.command }],
+      });
+    }
   }
 
   return { ...existing, PreToolUse: preToolUse };
 }
 
+function hookCommand(hook: unknown): string | undefined {
+  if (!hook || typeof hook !== 'object' || !('command' in hook)) return;
+  return typeof hook.command === 'string' ? hook.command.trim() : undefined;
+}
+
 function isGitHubGuardHook(hook: unknown): boolean {
+  const command = hookCommand(hook);
   return (
-    !!hook &&
-    typeof hook === 'object' &&
-    'command' in hook &&
-    typeof hook.command === 'string' &&
-    /\bgithub(?:\s+|-)guard\b/.test(hook.command)
+    command === GITHUB_GUARD_CLI_COMMAND ||
+    command === GITHUB_GUARD_HOOK_COMMAND ||
+    command === CLAUDE_GITHUB_GUARD_HOOK_COMMAND
+  );
+}
+
+function isSecretGuardHook(hook: unknown): boolean {
+  const command = hookCommand(hook);
+  return (
+    command === SECRET_GUARD_HOOK_COMMAND ||
+    command === CLAUDE_SECRET_GUARD_HOOK_COMMAND
   );
 }
 
@@ -189,10 +253,13 @@ export async function writeClaudeGuardHook(repoDir: string): Promise<void> {
   const dir = join(repoDir, '.claude');
   const hooksDir = join(dir, 'hooks');
   const scriptPath = join(hooksDir, 'moltnet-github-guard.sh');
+  const secretScriptPath = join(hooksDir, 'moltnet-secret-guard.sh');
   const settingsPath = join(dir, 'settings.json');
   await mkdir(hooksDir, { recursive: true });
   await writeFile(scriptPath, CLAUDE_GITHUB_GUARD_HOOK_SCRIPT, 'utf-8');
   await chmod(scriptPath, 0o755);
+  await writeFile(secretScriptPath, CLAUDE_SECRET_GUARD_HOOK_SCRIPT, 'utf-8');
+  await chmod(secretScriptPath, 0o755);
 
   let existing: Record<string, unknown> = {};
   try {
@@ -210,7 +277,10 @@ export async function writeClaudeGuardHook(repoDir: string): Promise<void> {
       {
         ...existing,
         hooks: mergeGitHubGuardHook(
-          existing.hooks,
+          mergeSecretGuardHook(
+            existing.hooks,
+            CLAUDE_SECRET_GUARD_HOOK_COMMAND,
+          ),
           CLAUDE_GITHUB_GUARD_HOOK_COMMAND,
         ),
       },
@@ -536,7 +606,8 @@ export interface SettingsLocalOptions {
   pemPath: string;
   installationId: string;
   clientId: string;
-  clientSecret: string;
+  /** @deprecated Secrets are injected by `moltnet start`, never persisted. */
+  clientSecret?: string;
 }
 
 /** Build the permission allow-list for the legreffier skill. */
@@ -601,7 +672,6 @@ export async function writeSettingsLocal({
   pemPath,
   installationId,
   clientId,
-  clientSecret,
 }: SettingsLocalOptions): Promise<void> {
   const dir = join(repoDir, '.claude');
   await mkdir(dir, { recursive: true });
@@ -620,6 +690,8 @@ export async function writeSettingsLocal({
   }
 
   const prefix = toEnvPrefix(agentName);
+  const existingEnv = { ...existing.env };
+  delete existingEnv[`${prefix}_CLIENT_SECRET`];
   const existingServers: string[] = Array.isArray(
     existing.enabledMcpjsonServers,
   )
@@ -646,12 +718,11 @@ export async function writeSettingsLocal({
       allow: mergedAllow,
     },
     env: {
-      ...existing.env,
+      ...existingEnv,
       [`${prefix}_GITHUB_APP_ID`]: appId,
       [`${prefix}_GITHUB_APP_PRIVATE_KEY_PATH`]: pemPath,
       [`${prefix}_GITHUB_APP_INSTALLATION_ID`]: installationId,
       [`${prefix}_CLIENT_ID`]: clientId,
-      [`${prefix}_CLIENT_SECRET`]: clientSecret,
       GIT_CONFIG_GLOBAL: `.moltnet/${agentName}/gitconfig`,
     },
   };

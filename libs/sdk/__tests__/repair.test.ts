@@ -82,23 +82,11 @@ describe('repairConfig', () => {
     expect(sshIssues.every((i) => i.action === 'warning')).toBe(true);
   });
 
-  it('detects legacy credentials.json and migrates', async () => {
+  it('ignores credentials.json', async () => {
     await writeConfig(tempDir, 'credentials.json', validConfig);
     const result = await repairConfig({ configDir: tempDir });
 
-    expect(result.issues.some((i) => i.action === 'migrate')).toBe(true);
-
-    // Verify moltnet.json was written
-    const content = await readFile(join(tempDir, 'moltnet.json'), 'utf-8');
-    const migrated = JSON.parse(content) as MoltNetConfig;
-    expect(migrated.identity_id).toBe('test-agent');
-  });
-
-  it('does not write in dry-run mode', async () => {
-    await writeConfig(tempDir, 'credentials.json', validConfig);
-    await repairConfig({ configDir: tempDir, dryRun: true });
-
-    // moltnet.json should NOT exist
+    expect(result).toEqual({ issues: [], config: null });
     await expect(
       readFile(join(tempDir, 'moltnet.json'), 'utf-8'),
     ).rejects.toThrow();

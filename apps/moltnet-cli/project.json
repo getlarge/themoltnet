@@ -28,6 +28,13 @@
       "metadata": {
         "description": "Alias for `test` on projects without atomization."
       }
+    },
+    "test-native": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go test . -run \"^(TestOSKeyringSecretProviderRoundTrip|TestWindowsKeyringTargetMatchesCrossRuntimeConformance)$\"",
+        "cwd": "apps/moltnet-cli"
+      }
     }
   }
 }

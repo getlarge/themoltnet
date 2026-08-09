@@ -26,6 +26,7 @@
     "node": ">=22"
   },
   "dependencies": {
+    "@themoltnet/os-keyring": "workspace:*",
     "citty": "catalog:",
     "ink": "catalog:",
     "open": "catalog:",

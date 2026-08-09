@@ -9,6 +9,10 @@ export default [
       '@moltnet/api-client',
       '@moltnet/crypto-service',
       '@moltnet/tasks',
+      // Runtime imports promoted from bundled private workspace packages.
+      '@ipld/dag-cbor',
+      '@napi-rs/keyring',
+      'multiformats',
       'typebox',
     ],
   }),

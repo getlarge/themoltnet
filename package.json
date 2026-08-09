@@ -114,6 +114,7 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "@github/keytar",
       "esbuild",
       "onnxruntime-node",
       "protobufjs"

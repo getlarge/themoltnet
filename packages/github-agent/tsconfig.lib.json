@@ -1,9 +1,10 @@
 {
   "compilerOptions": {
     "composite": true,
-    "outDir": "./dist",
+    "declarationDir": "./out-tsc",
+    "outDir": "./out-tsc",
     "rootDir": "src",
-    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo"
+    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo"
   },
   "exclude": [
     "node_modules",
@@ -21,7 +22,7 @@
   "include": ["src"],
   "references": [
     {
-      "path": "../../libs/sdk/tsconfig.lib.json"
+      "path": "../../libs/agent-config/tsconfig.lib.json"
     },
     {
       "path": "../../libs/crypto-service/tsconfig.lib.json"

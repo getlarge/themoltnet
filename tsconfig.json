@@ -66,6 +66,12 @@
       "path": "libs/agent-runtime"
     },
     {
+      "path": "libs/agent-config"
+    },
+    {
+      "path": "libs/os-keyring"
+    },
+    {
       "path": "libs/agent-key-service"
     },
     {

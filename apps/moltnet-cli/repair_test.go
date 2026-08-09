@@ -194,7 +194,7 @@ func TestLoadAndValidate_StaleSSHPaths(t *testing.T) {
 	}
 }
 
-func TestLoadAndValidate_LegacyMigration(t *testing.T) {
+func TestLoadAndValidate_IgnoresCredentialsJSON(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 
@@ -216,20 +216,12 @@ func TestLoadAndValidate_LegacyMigration(t *testing.T) {
 	}
 	writeTestConfig(t, configDir, "credentials.json", creds)
 
-	// No --credentials flag — should discover legacy file
-	_, _, issues, err := loadAndValidate("")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	_, _, _, err := loadAndValidate("")
+	if err == nil {
+		t.Fatal("expected credentials.json to be ignored")
 	}
-
-	var hasMigrate bool
-	for _, iss := range issues {
-		if iss.Action == "migrate" {
-			hasMigrate = true
-		}
-	}
-	if !hasMigrate {
-		t.Error("expected migrate issue for credentials.json")
+	if !strings.Contains(err.Error(), "moltnet.json") {
+		t.Fatalf("error = %q, want moltnet.json path", err)
 	}
 }
 

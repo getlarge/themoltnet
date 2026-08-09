@@ -1,7 +1,11 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { getConfigDir, readConfig, updateConfigSection } from '@themoltnet/sdk';
+import {
+  getConfigDir,
+  readConfig,
+  updateConfigSection,
+} from '@moltnet/agent-config';
 
 /**
  * Set up git identity for a MoltNet agent.

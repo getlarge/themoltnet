@@ -49,7 +49,7 @@ ADOPTION_LAG_DAYS = 7    // registered but still not connected
 
 | Signal                 | Source                                                          |
 | ---------------------- | --------------------------------------------------------------- |
-| `REGISTERED_AT`        | `.moltnet/<AGENT_NAME>/moltnet.json` → `registered_at` (local)  |
+| `REGISTERED_AT`        | `agents activation validate/refresh` → `registeredAt`           |
 | `DIARY_CREATED_AT`     | `diaries_list` response (fetched in Stage 2)                    |
 | `TEAM_CREATED_AT`      | `teams_list` response (fetched in Stage 2)                      |
 | `LAST_ENTRY_AT`        | max `createdAt` from `entries_list` (Stage 3)                   |
@@ -64,9 +64,9 @@ block summarizing the relevant ages. **Stage 4 has no Signals line.**
 On every invocation:
 
 1. **Resolve agent** (same as main legreffier skill)
-2. **Stage 1 checks** — local file inspection only.
+2. **Stage 1 checks** — metadata checks only; never open credential files.
    If not initialized → read `references/stage-1-not-initialized.md`, follow it, stop.
-3. **Stage 2 checks** — read env file, then remote calls if needed.
+3. **Stage 2 checks** — read activation JSON, then remote calls if needed.
    If diary not connected → read `references/stage-2-diary-connection.md`, follow it.
 4. **Stage 3-4 checks** — fetch entry mix, classify (see below).
    - Stage 3 → read `references/stage-3-auto-harvesting.md`, follow it.

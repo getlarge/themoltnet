@@ -36,7 +36,10 @@ export async function runIdentityPhase(opts: {
       workflowId,
       manifestFormUrl: '',
       clientId: existingConfig.oauth2.client_id,
-      clientSecret: existingConfig.oauth2.client_secret,
+      clientSecret:
+        'client_secret' in existingConfig.oauth2
+          ? (existingConfig.oauth2.client_secret ?? '')
+          : '',
       skipped: true,
     };
   }
@@ -80,7 +83,10 @@ export async function runIdentityPhase(opts: {
         workflowId: existingState.workflowId,
         manifestFormUrl: '',
         clientId: existingConfig?.oauth2?.client_id ?? '',
-        clientSecret: existingConfig?.oauth2?.client_secret ?? '',
+        clientSecret:
+          existingConfig && 'client_secret' in existingConfig.oauth2
+            ? (existingConfig.oauth2.client_secret ?? '')
+            : '',
         skipped: true,
       };
     }

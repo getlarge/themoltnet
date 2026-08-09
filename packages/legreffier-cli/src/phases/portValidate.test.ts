@@ -2,6 +2,7 @@ import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { SecretProviderRegistry } from '@themoltnet/sdk';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { runPortValidatePhase } from './portValidate.js';
@@ -50,6 +51,13 @@ function baseConfig(dir: string): Record<string, unknown> {
   };
 }
 
+function testSecretProviders(value: string | null = 'resolved-secret') {
+  return new SecretProviderRegistry().register({
+    name: 'os-keyring',
+    read: async () => value,
+  });
+}
+
 async function writeFiles(dir: string): Promise<void> {
   await mkdir(join(dir, 'ssh'), { recursive: true });
   await writeFile(join(dir, 'ssh', 'id_ed25519'), 'privkey', { mode: 0o600 });
@@ -72,11 +80,111 @@ describe('runPortValidatePhase', () => {
     await writeConfig(dir, baseConfig(dir));
     await writeFiles(dir);
 
-    const result = await runPortValidatePhase({ sourceDir: dir });
+    const result = await runPortValidatePhase({
+      sourceDir: dir,
+      secretProviders: testSecretProviders(),
+    });
 
     expect(result.canProceed).toBe(true);
     expect(result.issues).toEqual([]);
     expect(result.config.github?.app_id).toBe('2878569');
+  });
+
+  it('accepts an opaque client secret reference as complete', async () => {
+    const dir = join(tmpRoot, 'secret-ref');
+    const config = baseConfig(dir);
+    config.oauth2 = {
+      client_id: 'cid',
+      client_secret_ref: {
+        provider: 'os-keyring',
+        key: 'oauth2/11111111-1111-1111-1111-111111111111/cid',
+      },
+    };
+    await writeConfig(dir, config);
+    await writeFiles(dir);
+
+    const result = await runPortValidatePhase({
+      sourceDir: dir,
+      secretProviders: testSecretProviders(),
+    });
+
+    expect(result.canProceed).toBe(true);
+    expect(result.issues).toEqual([]);
+  });
+
+  it('rejects an empty opaque secret reference before porting', async () => {
+    const dir = join(tmpRoot, 'empty-secret-ref');
+    const config = baseConfig(dir);
+    config.oauth2 = {
+      client_id: 'cid',
+      client_secret_ref: { provider: '', key: '' },
+    };
+    await writeConfig(dir, config);
+    await writeFiles(dir);
+
+    const result = await runPortValidatePhase({ sourceDir: dir });
+
+    expect(result.canProceed).toBe(false);
+    expect(result.issues).toContainEqual({
+      field: 'oauth2.client_secret_ref',
+      problem: 'provider and key must both be non-empty',
+      action: 'warning',
+    });
+  });
+
+  it('rejects configs containing both OAuth2 secret forms', async () => {
+    const dir = join(tmpRoot, 'ambiguous-secret');
+    const config = baseConfig(dir);
+    config.oauth2 = {
+      client_id: 'cid',
+      client_secret: 'plaintext',
+      client_secret_ref: {
+        provider: 'os-keyring',
+        key: 'oauth2/identity/cid',
+      },
+    };
+    await writeConfig(dir, config);
+    await writeFiles(dir);
+
+    const result = await runPortValidatePhase({
+      sourceDir: dir,
+      secretProviders: testSecretProviders(),
+    });
+
+    expect(result.canProceed).toBe(false);
+    expect(result.issues).toContainEqual({
+      field: 'oauth2.client_secret/client_secret_ref',
+      problem: 'ambiguous — set exactly one secret form',
+      action: 'warning',
+    });
+  });
+
+  it('resolves an opaque secret before mutating the target', async () => {
+    const dir = join(tmpRoot, 'unresolvable-secret');
+    const config = baseConfig(dir);
+    config.oauth2 = {
+      client_id: 'cid',
+      client_secret_ref: {
+        provider: 'os-keyring',
+        key: 'oauth2/identity/cid',
+      },
+    };
+    await writeConfig(dir, config);
+    await writeFiles(dir);
+
+    const result = await runPortValidatePhase({
+      sourceDir: dir,
+      secretProviders: testSecretProviders(null),
+    });
+
+    expect(result.canProceed).toBe(false);
+    expect(
+      result.issues.some(
+        (issue) =>
+          issue.field === 'oauth2.client_secret_ref' &&
+          issue.problem.startsWith('cannot be resolved'),
+      ),
+    ).toBe(true);
   });
 
   it('throws when moltnet.json is missing', async () => {
@@ -131,7 +239,7 @@ describe('runPortValidatePhase', () => {
     );
   });
 
-  it('sets canProceed=true when only non-blocking (fixed/migrate) issues exist', async () => {
+  it('sets canProceed=true when only non-blocking fixed issues exist', async () => {
     const dir = join(tmpRoot, 'fixed-only');
     const config = baseConfig(dir);
     // Strip endpoints.mcp so repairConfig auto-fixes it with action=fixed

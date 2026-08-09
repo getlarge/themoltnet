@@ -6,7 +6,9 @@ import {
   type MoltNetConfig,
   readConfig,
   repairConfig,
+  type SecretProviderRegistry,
 } from '@themoltnet/sdk';
+import { resolveNodeOAuth2ClientSecret } from '@themoltnet/sdk/node';
 
 export interface PortValidateResult {
   config: MoltNetConfig;
@@ -31,8 +33,9 @@ export interface PortValidateResult {
  */
 export async function runPortValidatePhase(opts: {
   sourceDir: string;
+  secretProviders?: SecretProviderRegistry;
 }): Promise<PortValidateResult> {
-  const { sourceDir } = opts;
+  const { sourceDir, secretProviders } = opts;
 
   const sourceConfig = await readConfig(sourceDir);
   const config = await hydrateLegacyPortConfig(sourceConfig, sourceDir);
@@ -43,8 +46,8 @@ export async function runPortValidatePhase(opts: {
     );
   }
 
-  // Generic SDK checks (identity_id, keys, endpoints, file paths, legacy
-  // credentials.json migration). Dry-run so we don't mutate the source.
+  // Generic SDK checks (identity_id, keys, endpoints, file paths). Dry-run so
+  // we don't mutate the source.
   const { issues: rawBaseIssues } = await repairConfig({
     configDir: sourceDir,
     dryRun: true,
@@ -60,9 +63,36 @@ export async function runPortValidatePhase(opts: {
       action: 'warning',
     });
   }
-  if (!config.oauth2?.client_secret) {
+  const plaintextSecret = config.oauth2?.client_secret?.trim();
+  const secretReference = config.oauth2?.client_secret_ref;
+  if (plaintextSecret && secretReference) {
     issues.push({
-      field: 'oauth2.client_secret',
+      field: 'oauth2.client_secret/client_secret_ref',
+      problem: 'ambiguous — set exactly one secret form',
+      action: 'warning',
+    });
+  } else if (
+    secretReference &&
+    (!secretReference.provider?.trim() || !secretReference.key?.trim())
+  ) {
+    issues.push({
+      field: 'oauth2.client_secret_ref',
+      problem: 'provider and key must both be non-empty',
+      action: 'warning',
+    });
+  } else if (secretReference) {
+    try {
+      await resolveNodeOAuth2ClientSecret(config, secretProviders);
+    } catch (error) {
+      issues.push({
+        field: 'oauth2.client_secret_ref',
+        problem: `cannot be resolved — ${error instanceof Error ? error.message : String(error)}`,
+        action: 'warning',
+      });
+    }
+  } else if (!plaintextSecret) {
+    issues.push({
+      field: 'oauth2.client_secret/client_secret_ref',
       problem: 'missing — required for port',
       action: 'warning',
     });
@@ -126,10 +156,8 @@ export async function runPortValidatePhase(opts: {
   // (checked softly; a missing file is a warning, not a blocker)
   // Note: repairConfig already checks the four path fields above.
 
-  // Block only on unresolved warnings. `fixed` (auto-repaired by repairConfig)
-  // and `migrate` (advisory legacy format migration) are non-blocking by
-  // definition — they represent state that is already corrected or will be
-  // handled by the copy/rewrite phases.
+  // Block only on unresolved warnings. `fixed` issues are non-blocking because
+  // they represent state already corrected by repairConfig.
   const blockingIssues = issues.filter((i) => i.action === 'warning');
   const canProceed = blockingIssues.length === 0;
   return { config, issues, canProceed };

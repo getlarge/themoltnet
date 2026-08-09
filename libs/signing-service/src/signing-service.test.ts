@@ -12,7 +12,7 @@ import {
   setSigningVerifier,
   SigningReceiptInvalidError,
 } from '@moltnet/signing-workflows';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createSigningService } from './signing-service.js';
 import type { SigningServiceDeps } from './signing-service.types.js';
@@ -212,6 +212,8 @@ function companionChallenge() {
 
 describe('createSigningService', () => {
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-08-01T12:01:00.000Z'));
     _resetSigningWorkflowsForTesting();
     const driver = createPreviewSignSigningMethodDriver({
       now: NOW,
@@ -223,6 +225,10 @@ describe('createSigningService', () => {
       verify: vi.fn().mockResolvedValue(true),
       verifyWithNonce: vi.fn().mockResolvedValue(true),
     });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('keeps signing credentials and signing requests behind one boundary', () => {

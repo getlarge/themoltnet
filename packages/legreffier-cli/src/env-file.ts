@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { isAbsolute, join, relative, sep } from 'node:path';
 import { parseEnv } from 'node:util';
 
@@ -8,7 +8,8 @@ export interface WriteEnvFileOptions {
   agentName: string;
   prefix: string;
   clientId: string;
-  clientSecret: string;
+  /** @deprecated Secrets are resolved by `moltnet start`, never persisted. */
+  clientSecret?: string;
   appId: string;
   pemPath: string;
   installationId: string;
@@ -54,7 +55,6 @@ export async function writeEnvFile(opts: WriteEnvFileOptions): Promise<void> {
 
   const managedEntries: [string, string][] = [
     [`${opts.prefix}_CLIENT_ID`, q(opts.clientId)],
-    [`${opts.prefix}_CLIENT_SECRET`, q(opts.clientSecret)],
     [`${opts.prefix}_GITHUB_APP_ID`, q(opts.appId)],
     [`${opts.prefix}_GITHUB_APP_PRIVATE_KEY_PATH`, q(pemPath)],
     [`${opts.prefix}_GITHUB_APP_INSTALLATION_ID`, q(opts.installationId)],
@@ -65,6 +65,7 @@ export async function writeEnvFile(opts: WriteEnvFileOptions): Promise<void> {
       : []),
   ];
   const managedKeys = new Set(managedEntries.map(([k]) => k));
+  managedKeys.add(`${opts.prefix}_CLIENT_SECRET`);
 
   let existingLines: string[] = [];
   try {
@@ -104,7 +105,11 @@ export async function writeEnvFile(opts: WriteEnvFileOptions): Promise<void> {
     outputLines.push(line);
   }
 
-  await writeFile(envPath, outputLines.join('\n') + '\n', 'utf-8');
+  await writeFile(envPath, outputLines.join('\n') + '\n', {
+    encoding: 'utf-8',
+    mode: 0o600,
+  });
+  await chmod(envPath, 0o600);
 }
 
 /**

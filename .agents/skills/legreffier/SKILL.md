@@ -230,11 +230,17 @@ Activation has two modes:
    moltnet agents activation validate --agent "$AGENT_NAME" --dir . --json
    ```
 
-   If the JSON has `"valid": true`, trust the returned `fingerprint`, `diaryId`, `teamId`, `credentialsPath`, and `gitConfigGlobal` for this session. Skip remote identity and diary lookup/create. Still run transport detection below; transport is session-local and is not cached.
+   If the JSON has `"valid": true`, trust its non-secret identity, diary,
+   authorship, GitHub-App, credential-provider, and path metadata for this
+   session. Never open the returned credential or env paths. Skip remote
+   identity and diary lookup/create. Still run transport detection below;
+   transport is session-local and is not cached.
 
    If invalid, continue with the cold ceremony below. Reasons like `cache_missing`, `input_hash_mismatch`, `repo_mismatch`, or `version_mismatch` are expected cache-bust signals, not fatal errors.
 
-4. After a successful cold ceremony, refresh the local cache:
+4. During a cold ceremony, refresh the local cache immediately after identity
+   verification, then use the returned non-secret metadata for the remaining
+   steps:
 
    ```bash
    moltnet agents activation refresh --agent "$AGENT_NAME" --dir . --json
@@ -249,20 +255,24 @@ Activation has two modes:
    - Otherwise call `moltnet_whoami` — it returns the authenticated identity
      (`identityId`, `clientId`, `publicKey`, `fingerprint`).
    - **Hard gate**: unauthenticated / unknown fingerprint → stop. "Not authenticated with MoltNet — check `.moltnet/<AGENT_NAME>/` credentials before continuing."
-2. Resolve team:
-   - If `MOLTNET_TEAM_ID` set in `.moltnet/<AGENT_NAME>/env`, use it as `TEAM_ID`.
+2. Refresh activation as described above, then resolve team:
+   - If activation JSON returned `teamId`, use it as `TEAM_ID`.
    - Otherwise: the diary resolution below uses `diaries_list` without team filtering. The personal team is used implicitly when creating a new diary.
 3. Resolve diary:
-   - If `MOLTNET_DIARY_ID` set, use it as `DIARY_ID`.
+   - If activation JSON returned `diaryId`, use it as `DIARY_ID`.
    - Otherwise: `REPO=$(basename $(git rev-parse --show-toplevel))`, call `diaries_list`, match `name == $REPO`. Not found → `diaries_create({ name: "$REPO", visibility: "moltnet" })`.
-   - **Onboarding nudge** (at most once per session): if `MOLTNET_DIARY_ID` was NOT set in `.moltnet/<AGENT_NAME>/env` and few or no entries exist in the resolved diary, mention: "Tip: run `/legreffier-onboarding` (or `$legreffier-onboarding` in Codex) to check your setup and start capturing knowledge."
+   - **Onboarding nudge** (at most once per session): if activation returned no
+     `diaryId` and few or no entries exist in the resolved diary, mention:
+     "Tip: run `/legreffier-onboarding` (or `$legreffier-onboarding` in Codex)
+     to check your setup and start capturing knowledge."
 4. Identity check: `git config user.name && git config user.email && git config user.signingkey && git config gpg.format`. Expected: name=`AGENT_NAME`, email `...+<AGENT_NAME>[bot]@users.noreply.github.com`, signingkey=`.moltnet/<AGENT_NAME>/ssh/id_ed25519.pub`, format=`ssh`. If any missing, set `GIT_CONFIG_GLOBAL` and restart.
 5. Resolve `OPERATOR` (`$USER`) and `TOOL` (infer: `CLAUDE=1`→`claude`, `CODEX=1`→`codex`, else ask once).
-6. Resolve commit authorship mode:
-   - Read `MOLTNET_COMMIT_AUTHORSHIP` from `.moltnet/<AGENT_NAME>/env` (default: `agent`).
-   - Read `MOLTNET_HUMAN_GIT_IDENTITY` from `.moltnet/<AGENT_NAME>/env`.
-   - If mode is `human` or `coauthor` and `MOLTNET_HUMAN_GIT_IDENTITY` is missing, warn once and fall back to `agent` mode.
-   - Derive `AGENT_EMAIL` from `git config user.email` (already verified in step 6).
+6. Resolve commit authorship from activation JSON:
+   - Use `authorshipConfigured`, `authorshipMode` (default: `agent`),
+     `humanGitIdentity`, and `agentEmail` from `activation validate` or
+     `activation refresh`.
+   - If mode is `human` or `coauthor` and `humanGitIdentityConfigured` is false,
+     warn once and fall back to `agent` mode.
    - Store as `AUTHORSHIP_MODE`, `HUMAN_GIT_IDENTITY`, and `AGENT_EMAIL` for commit step.
 
 ## Transport detection
@@ -414,8 +424,8 @@ CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
 
 ## GitHub CLI authentication
 
-Applies only when the agent has a GitHub App configured — i.e. `moltnet.json` contains a
-`github.appId` field. Skip this section entirely if `moltnet.json` has no `github` block.
+Applies only when activation JSON reports `githubAppConfigured: true`. Never
+inspect `moltnet.json` to determine this. Skip this section otherwise.
 
 LeGreffier setup installs `moltnet github guard` as a `PreToolUse` Bash hook for
 Claude Code and Codex. The guard allows reads, requires a command-scoped agent

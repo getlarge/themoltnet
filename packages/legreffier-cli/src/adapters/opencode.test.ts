@@ -2,9 +2,17 @@ import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { OpencodeAdapter } from './opencode.js';
+const { assertSecretGuardCapabilityMock } = vi.hoisted(() => ({
+  assertSecretGuardCapabilityMock: vi.fn(),
+}));
+
+vi.mock('../secret-guard-capability.js', () => ({
+  assertSecretGuardCapability: assertSecretGuardCapabilityMock,
+}));
+
+import { OPENCODE_SECRET_GUARD_PLUGIN, OpencodeAdapter } from './opencode.js';
 import type { AgentAdapterOptions } from './types.js';
 
 const tmpRepo = join(
@@ -26,6 +34,7 @@ const baseOpts: AgentAdapterOptions = {
 };
 
 beforeEach(async () => {
+  assertSecretGuardCapabilityMock.mockReset().mockResolvedValue(undefined);
   await mkdir(tmpRepo, { recursive: true });
 });
 
@@ -126,10 +135,43 @@ describe('OpencodeAdapter.writeRules', () => {
 });
 
 describe('OpencodeAdapter.writeSettings', () => {
-  it('is a no-op (credentials come from the shared env file)', async () => {
+  it('installs the fail-closed secret guard plugin', async () => {
     const adapter = new OpencodeAdapter();
     await adapter.writeSettings(baseOpts);
-    // No opencode.json or .opencode dir should be created by writeSettings.
-    await expect(stat(join(tmpRepo, 'opencode.json'))).rejects.toThrow();
+    expect(assertSecretGuardCapabilityMock).toHaveBeenCalledOnce();
+    const pluginPath = join(
+      tmpRepo,
+      '.opencode',
+      'plugins',
+      'moltnet-secret-guard.ts',
+    );
+    expect(await readFile(pluginPath, 'utf-8')).toBe(
+      OPENCODE_SECRET_GUARD_PLUGIN,
+    );
+    expect((await stat(pluginPath)).isFile()).toBe(true);
+  });
+
+  it('does not install a plugin when the released CLI lacks the guard', async () => {
+    assertSecretGuardCapabilityMock.mockRejectedValueOnce(
+      new Error('update moltnet'),
+    );
+
+    await expect(new OpencodeAdapter().writeSettings(baseOpts)).rejects.toThrow(
+      'update moltnet',
+    );
+    await expect(
+      stat(join(tmpRepo, '.opencode', 'plugins', 'moltnet-secret-guard.ts')),
+    ).rejects.toThrow();
+  });
+
+  it('normalizes native file-tool arguments without forwarding file contents', () => {
+    expect(OPENCODE_SECRET_GUARD_PLUGIN).toContain("'filePath'");
+    expect(OPENCODE_SECRET_GUARD_PLUGIN).toContain("'patchText'");
+    expect(OPENCODE_SECRET_GUARD_PLUGIN).toContain(
+      'normalizeGuardArgs(output.args)',
+    );
+    expect(OPENCODE_SECRET_GUARD_PLUGIN).not.toContain(
+      'tool_input: output.args',
+    );
   });
 });
