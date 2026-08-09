@@ -184,7 +184,7 @@ the base snapshot is used (Alpine + git + gh + MoltNet CLI + agent user).
     "overlaySize": "8G",
     "setupCommands": [
       "apk add --no-cache libgcc libstdc++ python3 go",
-      "sh -eu -c 'ARCH=$(uname -m | sed \"s/x86_64/x64/;s/aarch64/arm64/\") && curl -fsSL \"https://unofficial-builds.nodejs.org/download/release/v22.22.2/node-v22.22.2-linux-${ARCH}-musl.tar.xz\" -o /tmp/node.tar.xz && tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 && rm /tmp/node.tar.xz'",
+      "sh -eu -c 'ARCH=$(uname -m | sed \"s/x86_64/x64/;s/aarch64/arm64/\") && curl -fsSL \"https://unofficial-builds.nodejs.org/download/release/v24.14.1/node-v24.14.1-linux-${ARCH}-musl.tar.xz\" -o /tmp/node.tar.xz && tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 && rm /tmp/node.tar.xz'",
       "npm install -g pnpm tsx"
     ]
   },

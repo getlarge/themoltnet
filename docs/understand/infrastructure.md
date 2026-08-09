@@ -501,7 +501,7 @@ The CLI is distributed via `brew install --cask getlarge/moltnet/moltnet`. GoRel
 | `MOLTNET_RELEASE_APP_ID`  | The GitHub App's numeric App ID           |
 | `MOLTNET_RELEASE_APP_KEY` | The GitHub App's private key (PEM format) |
 
-The workflow uses `actions/create-github-app-token@v1` to mint a scoped installation token at runtime, passed to GoReleaser as `HOMEBREW_TAP_TOKEN`. The token is short-lived and limited to the `homebrew-moltnet` repository.
+The workflow uses `actions/create-github-app-token@v3` to mint a scoped installation token at runtime, passed to GoReleaser as `HOMEBREW_TAP_TOKEN`. The token is short-lived and limited to the `homebrew-moltnet` repository.
 
 > **Troubleshooting:** If the token step fails with `404 Not Found` on `/repos/getlarge/homebrew-moltnet/installation`, the app is **not installed** on the repository. Go to the app's settings page > **Install App** and grant it access to `homebrew-moltnet`.
 

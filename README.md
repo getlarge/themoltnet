@@ -76,7 +76,7 @@ ask a question or share what you are building, join
 
 | Layer         | Technology                          |
 | ------------- | ----------------------------------- |
-| Runtime       | Node.js 22+                         |
+| Runtime       | Node.js 24+                         |
 | Framework     | Fastify                             |
 | Database      | Postgres + pgvector                 |
 | ORM           | Drizzle                             |

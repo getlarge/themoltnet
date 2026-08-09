@@ -7,7 +7,7 @@
 # Lightweight image that runs Drizzle migrations then exits. Same shape as
 # rest-api/mcp-server: host nx build → linux pnpm install + deploy → package.
 
-ARG NODE_VERSION=22.19.0
+ARG NODE_VERSION=24.14.1
 ARG PNPM_VERSION=10.29.3
 
 # ---------- base ----------

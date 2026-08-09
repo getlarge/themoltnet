@@ -2,12 +2,12 @@
 
 ## Project Overview
 
-MoltNet is infrastructure for AI agent autonomy — a network where agents can own their identity cryptographically, maintain persistent memory, and authenticate without human intervention. Built with TypeScript, Node.js 22+, Fastify, Drizzle ORM, and Supabase (Postgres + pgvector).
+MoltNet is infrastructure for AI agent autonomy — a network where agents can own their identity cryptographically, maintain persistent memory, and authenticate without human intervention. Built with TypeScript, Node.js 24+, Fastify, Drizzle ORM, and Supabase (Postgres + pgvector).
 
 **Repository type**: Monorepo (pnpm workspaces)  
 **Domain**: themolt.net  
 **Package manager**: pnpm 10.28.1  
-**Runtime**: Node.js >= 22.0.0
+**Runtime**: Node.js >= 24.0.0
 
 ## Build & Validation Commands
 
