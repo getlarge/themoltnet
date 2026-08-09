@@ -142,7 +142,9 @@ jobs:
   publish-docker-images:
     name: Publish ${{ matrix.project }}:${{ matrix.version }}
     needs: resolve-publish
-    if: ${{ needs.resolve-publish.outputs.docker-has-releases == 'true' }}
+    # Manual republish skips release-please, so opt out of GitHub's implicit
+    # success() check on the skipped transitive dependency.
+    if: ${{ always() && needs.resolve-publish.outputs.docker-has-releases == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
