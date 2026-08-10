@@ -34,7 +34,8 @@ export function describeDecay(
   { pinned, expiresAt }: DecayInput,
   now: Date,
 ): DecayState {
-  // Pinning does not clear expiresAt, so pinned must win.
+  // Pinned wins defensively: storage clears expiresAt on pin, so a row that
+  // carries both is a stale client copy fetched before the pin landed.
   if (pinned) return { kind: 'pinned' };
   if (!expiresAt) return { kind: 'no-expiry' };
 
@@ -53,16 +54,30 @@ export function isExpiringSoon(state: DecayState): boolean {
 }
 
 /**
+ * Days assumed for the server's retention window when the console has to
+ * compute a deadline itself.
+ *
+ * KNOWN DIVERGENCE: the server's real window is `PACK_GC_COMPILE_TTL_DAYS`
+ * (`apps/rest-api/src/config.ts`), which is operator-configurable and only
+ * *defaults* to 7. The console cannot read it — no endpoint exposes it — so on
+ * a deployment configured for, say, 30 days an unpin here shortens retention
+ * to 7. The real fix is server-side: `PATCH /packs/:id` should accept a bare
+ * `{ pinned: false }` and assign the deadline from its own config and clock.
+ * Tracked in #1858; until then this constant is the closest honest guess.
+ */
+export const ASSUMED_SERVER_TTL_DAYS = 7;
+
+/**
  * The `expiresAt` to send when unpinning.
  *
  * `PATCH /packs/:id` and `PATCH /rendered-packs/:id` both reject
  * `pinned: false` without an `expiresAt`, because the repository's
- * `unpin(id, expiresAt)` has nowhere to fall back to. Restoring the standard
- * decay window matches the column's own `now() + interval '7 days'` default,
- * so an unpinned pack re-enters the GC queue exactly where a fresh one would.
+ * `unpin(id, expiresAt)` has nowhere to fall back to. Callers that know the
+ * intended retention should pass it explicitly rather than rely on the
+ * assumed default above.
  */
 export function defaultUnpinExpiry(now: Date): string {
   return new Date(
-    now.getTime() + EXPIRING_SOON_DAYS * 86_400_000,
+    now.getTime() + ASSUMED_SERVER_TTL_DAYS * 86_400_000,
   ).toISOString();
 }

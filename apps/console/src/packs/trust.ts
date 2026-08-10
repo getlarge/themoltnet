@@ -15,9 +15,14 @@ export type TrustTier =
   | 'agent-refined-verified'
   | 'unknown';
 
+/**
+ * Mirrors the generated `RenderedPackWithContent`, where `verifiedTaskId` is
+ * `?: string | null` — so a response can be passed straight in without a cast
+ * or a normalisation step.
+ */
 export interface TrustTierInput {
   renderMethod: string;
-  verifiedTaskId: string | null;
+  verifiedTaskId?: string | null;
 }
 
 /**

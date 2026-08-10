@@ -34,8 +34,16 @@ const TEST_CLIENT = {
 
 vi.mock('../src/api.js', () => ({ getApiClient: () => TEST_CLIENT }));
 
+const teamMock = vi.hoisted(() => ({
+  selectedTeam: null as { id: string } | null,
+}));
+vi.mock('../src/team/useTeam.js', () => ({
+  useTeam: () => ({ selectedTeam: teamMock.selectedTeam }),
+}));
+
 import {
   PackMutationError,
+  useDiaryPacks,
   usePinPack,
   usePinRenderedPack,
 } from '../src/packs/hooks.js';
@@ -223,5 +231,51 @@ describe('invalidation against real cached queries', () => {
     // survive a rendered-pack mutation.
     expect(invalidated(queryClient, COMBINED_KEY)).toBe(true);
     expect(invalidated(queryClient, UNRELATED_KEY)).toBe(false);
+  });
+});
+
+describe('team scoping', () => {
+  it('gives two teams different cache keys for the same diary', async () => {
+    const seen: string[] = [];
+
+    for (const teamId of ['team-a', 'team-b']) {
+      teamMock.selectedTeam = { id: teamId };
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      renderHook(() => useDiaryPacks('diary-1'), {
+        wrapper: createTestWrapper(queryClient),
+      });
+      await waitFor(() =>
+        expect(queryClient.getQueryCache().getAll().length).toBe(1),
+      );
+      seen.push(
+        JSON.stringify(queryClient.getQueryCache().getAll()[0].queryKey),
+      );
+    }
+
+    // Before team headers were passed into the options, both teams produced an
+    // identical key and React Query served team A's packs under team B.
+    expect(seen[0]).not.toBe(seen[1]);
+    expect(seen[0]).toContain('team-a');
+    expect(seen[1]).toContain('team-b');
+  });
+
+  it('omits the header entirely when no team is selected', async () => {
+    teamMock.selectedTeam = null;
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    renderHook(() => useDiaryPacks('diary-1'), {
+      wrapper: createTestWrapper(queryClient),
+    });
+    await waitFor(() =>
+      expect(queryClient.getQueryCache().getAll().length).toBe(1),
+    );
+
+    const key = JSON.stringify(
+      queryClient.getQueryCache().getAll()[0].queryKey,
+    );
+    expect(key).not.toContain('x-moltnet-team-id');
   });
 });

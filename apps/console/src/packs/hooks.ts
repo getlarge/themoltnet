@@ -15,18 +15,46 @@ import {
 } from '@moltnet/api-client';
 import {
   getContextPackByIdOptions,
+  getContextPackByIdQueryKey,
   getContextPackProvenanceByIdOptions,
+  getContextPackProvenanceByIdQueryKey,
+  getLatestRenderedPackQueryKey,
   getRenderedPackByIdOptions,
+  getRenderedPackByIdQueryKey,
+  listContextPacksQueryKey,
   listDiaryPacksOptions,
+  listDiaryPacksQueryKey,
   listDiaryRenderedPacksOptions,
+  listDiaryRenderedPacksQueryKey,
 } from '@moltnet/api-client/query';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { getApiClient } from '../api.js';
+import { TEAM_HEADER } from '../team/permissions.js';
+import { useTeam } from '../team/useTeam.js';
 import { defaultUnpinExpiry } from './decay.js';
 
 function client() {
   return getApiClient();
+}
+
+/**
+ * The selected team, as an explicit header on every team-scoped request.
+ *
+ * `getApiClient()` already injects this header from its own config, but
+ * `createQueryKey` only records `baseUrl`, `path`, `query` and `headers`
+ * **passed in the options** — not headers configured on the client. Relying on
+ * the client alone would give two different teams the same cache key, so after
+ * a team switch React Query would serve the previous team's packs as fresh.
+ * `TeamProvider.selectTeam` swaps the header without clearing the cache, so
+ * nothing else prevents that.
+ *
+ * Passing it here makes the team part of the key. `useDiarySummaries` solves
+ * the same problem by putting `teamId` in a hand-written key.
+ */
+function useTeamHeaders(): Record<string, string> | undefined {
+  const { selectedTeam } = useTeam();
+  return selectedTeam ? { [TEAM_HEADER]: selectedTeam.id } : undefined;
 }
 
 /**
@@ -35,18 +63,33 @@ function client() {
  * query }]`. Invalidating with a bare `['listDiaryPacks']` therefore matches
  * nothing. These predicates key off `_id` so a pin flips every affected query
  * regardless of which diary or pack it was scoped to.
+ *
+ * The `_id` strings are read out of the generated key factories rather than
+ * copied as literals: if the generator renames an operation, the import below
+ * fails to compile instead of the invalidation silently ceasing to match.
  */
+const KEY_STUB = {
+  getConfig: () => ({ baseUrl: '' }),
+} as unknown as Parameters<typeof listDiaryPacksQueryKey>[0]['client'];
+
+const idOf = (key: ReadonlyArray<{ _id: string }>) => key[0]._id;
+
 const PACK_QUERY_IDS = new Set([
-  'listContextPacks',
-  'listDiaryPacks',
-  'getContextPackById',
-  'getContextPackProvenanceById',
+  idOf(listContextPacksQueryKey({ client: KEY_STUB })),
+  idOf(listDiaryPacksQueryKey({ client: KEY_STUB, path: { id: '' } })),
+  idOf(getContextPackByIdQueryKey({ client: KEY_STUB, path: { id: '' } })),
+  idOf(
+    getContextPackProvenanceByIdQueryKey({
+      client: KEY_STUB,
+      path: { id: '' },
+    }),
+  ),
 ]);
 
 const RENDERED_PACK_QUERY_IDS = new Set([
-  'listDiaryRenderedPacks',
-  'getRenderedPackById',
-  'getLatestRenderedPack',
+  idOf(listDiaryRenderedPacksQueryKey({ client: KEY_STUB, path: { id: '' } })),
+  idOf(getRenderedPackByIdQueryKey({ client: KEY_STUB, path: { id: '' } })),
+  idOf(getLatestRenderedPackQueryKey({ client: KEY_STUB, path: { id: '' } })),
 ]);
 
 function queryId(queryKey: unknown): string | undefined {
@@ -68,16 +111,26 @@ export function isRenderedPackQueryKey(queryKey: unknown): boolean {
 }
 
 export function useDiaryPacks(diaryId: string) {
+  const headers = useTeamHeaders();
   return useQuery({
-    ...listDiaryPacksOptions({ client: client(), path: { id: diaryId } }),
+    ...listDiaryPacksOptions({
+      client: client(),
+      headers,
+      path: { id: diaryId },
+    }),
     enabled: Boolean(diaryId),
     staleTime: 30_000,
   });
 }
 
 export function usePack(packId: string) {
+  const headers = useTeamHeaders();
   return useQuery({
-    ...getContextPackByIdOptions({ client: client(), path: { id: packId } }),
+    ...getContextPackByIdOptions({
+      client: client(),
+      headers,
+      path: { id: packId },
+    }),
     enabled: Boolean(packId),
     staleTime: 30_000,
   });
@@ -85,9 +138,11 @@ export function usePack(packId: string) {
 
 /** Single pack only — see the file-top note before calling this anywhere else. */
 export function usePackWithEntries(packId: string) {
+  const headers = useTeamHeaders();
   return useQuery({
     ...getContextPackByIdOptions({
       client: client(),
+      headers,
       path: { id: packId },
       query: { expand: 'entries' },
     }),
@@ -97,9 +152,11 @@ export function usePackWithEntries(packId: string) {
 }
 
 export function usePackProvenance(packId: string) {
+  const headers = useTeamHeaders();
   return useQuery({
     ...getContextPackProvenanceByIdOptions({
       client: client(),
+      headers,
       path: { id: packId },
     }),
     enabled: Boolean(packId),
@@ -108,9 +165,11 @@ export function usePackProvenance(packId: string) {
 }
 
 export function useDiaryRenderedPacks(diaryId: string) {
+  const headers = useTeamHeaders();
   return useQuery({
     ...listDiaryRenderedPacksOptions({
       client: client(),
+      headers,
       path: { id: diaryId },
     }),
     enabled: Boolean(diaryId),
@@ -119,9 +178,11 @@ export function useDiaryRenderedPacks(diaryId: string) {
 }
 
 export function useRenderedPack(renderedPackId: string) {
+  const headers = useTeamHeaders();
   return useQuery({
     ...getRenderedPackByIdOptions({
       client: client(),
+      headers,
       path: { id: renderedPackId },
     }),
     enabled: Boolean(renderedPackId),

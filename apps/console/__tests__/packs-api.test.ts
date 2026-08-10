@@ -14,32 +14,39 @@ const mocks = vi.hoisted(() => ({
 // produces a single-element array holding an object: [{ _id, baseUrl, path,
 // query }]. These stubs reproduce that shape so the invalidation predicates are
 // exercised against a realistic key, not a plain string array.
-vi.mock('@moltnet/api-client/query', () => ({
-  listDiaryPacksOptions: (options: { path: { id: string } }) => ({
-    queryKey: [{ _id: 'listDiaryPacks', path: options.path }],
-    queryFn: () => mocks.listDiaryPacks(options),
-  }),
-  getContextPackByIdOptions: (options: {
-    path: { id: string };
-    query?: { expand?: string };
-  }) => ({
-    queryKey: [
-      { _id: 'getContextPackById', path: options.path, query: options.query },
-    ],
-    queryFn: () => mocks.getContextPackById(options),
-  }),
-  getContextPackProvenanceByIdOptions: (options: { path: { id: string } }) => ({
-    queryKey: [{ _id: 'getContextPackProvenanceById', path: options.path }],
-    queryFn: vi.fn(),
-  }),
-  listDiaryRenderedPacksOptions: (options: { path: { id: string } }) => ({
-    queryKey: [{ _id: 'listDiaryRenderedPacks', path: options.path }],
-    queryFn: vi.fn(),
-  }),
-  getRenderedPackByIdOptions: (options: { path: { id: string } }) => ({
-    queryKey: [{ _id: 'getRenderedPackById', path: options.path }],
-    queryFn: vi.fn(),
-  }),
+vi.mock('@moltnet/api-client/query', async (importOriginal) => ({
+  // Partial mock: the real *QueryKey factories stay intact (hooks.ts reads the
+  // generated operation ids from them), only the *Options factories are stubbed.
+  ...(await importOriginal<Record<string, unknown>>()),
+  ...{
+    listDiaryPacksOptions: (options: { path: { id: string } }) => ({
+      queryKey: [{ _id: 'listDiaryPacks', path: options.path }],
+      queryFn: () => mocks.listDiaryPacks(options),
+    }),
+    getContextPackByIdOptions: (options: {
+      path: { id: string };
+      query?: { expand?: string };
+    }) => ({
+      queryKey: [
+        { _id: 'getContextPackById', path: options.path, query: options.query },
+      ],
+      queryFn: () => mocks.getContextPackById(options),
+    }),
+    getContextPackProvenanceByIdOptions: (options: {
+      path: { id: string };
+    }) => ({
+      queryKey: [{ _id: 'getContextPackProvenanceById', path: options.path }],
+      queryFn: vi.fn(),
+    }),
+    listDiaryRenderedPacksOptions: (options: { path: { id: string } }) => ({
+      queryKey: [{ _id: 'listDiaryRenderedPacks', path: options.path }],
+      queryFn: vi.fn(),
+    }),
+    getRenderedPackByIdOptions: (options: { path: { id: string } }) => ({
+      queryKey: [{ _id: 'getRenderedPackById', path: options.path }],
+      queryFn: vi.fn(),
+    }),
+  },
 }));
 
 vi.mock('@moltnet/api-client', () => ({
@@ -47,7 +54,15 @@ vi.mock('@moltnet/api-client', () => ({
   updateRenderedPack: (...args: unknown[]) => mocks.updateRenderedPack(...args),
 }));
 
-vi.mock('../src/api.js', () => ({ getApiClient: () => ({}) }));
+vi.mock('../src/api.js', () => ({
+  getApiClient: () => ({
+    getConfig: () => ({ baseUrl: 'http://console.test' }),
+  }),
+}));
+
+vi.mock('../src/team/useTeam.js', () => ({
+  useTeam: () => ({ selectedTeam: null }),
+}));
 
 import {
   isPackQueryKey,
