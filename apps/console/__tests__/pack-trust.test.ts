@@ -12,26 +12,43 @@ describe('deriveTrustTier', () => {
     ).toBe('server-rendered');
   });
 
-  it('classifies an unjudged agent render as agent-refined', () => {
-    expect(
-      deriveTrustTier({ renderMethod: 'agent-refined', verifiedTaskId: null }),
-    ).toBe('agent-refined');
-  });
+  // The canonical agent label is `agent:pack-to-docs-v1` (colon), per
+  // docs/use/context-packs.md. `agent-refined*` appears only in older test
+  // fixtures, and libs/pi-runtime defaults to `pi:pack-to-docs-v1`.
+  it.each([
+    'agent:pack-to-docs-v1',
+    'pi:pack-to-docs-v1',
+    'agent-refined',
+    'agent-refined-v2',
+  ])(
+    'classifies unjudged caller-authored render %s as agent-refined',
+    (renderMethod) => {
+      expect(deriveTrustTier({ renderMethod, verifiedTaskId: null })).toBe(
+        'agent-refined',
+      );
+    },
+  );
 
-  it('classifies a judged agent render as agent-refined-verified', () => {
-    expect(
-      deriveTrustTier({
-        renderMethod: 'agent-refined-v2',
-        verifiedTaskId: '2b0a1f4e-0000-4000-8000-000000000000',
-      }),
-    ).toBe('agent-refined-verified');
-  });
+  it.each(['agent:pack-to-docs-v1', 'pi:pack-to-docs-v1', 'agent-refined-v2'])(
+    'classifies judged caller-authored render %s as agent-refined-verified',
+    (renderMethod) => {
+      expect(
+        deriveTrustTier({
+          renderMethod,
+          verifiedTaskId: '2b0a1f4e-0000-4000-8000-000000000000',
+        }),
+      ).toBe('agent-refined-verified');
+    },
+  );
 
-  it('returns unknown for a render method matching no convention', () => {
-    expect(
-      deriveTrustTier({ renderMethod: 'homegrown', verifiedTaskId: null }),
-    ).toBe('unknown');
-  });
+  it.each(['homegrown', 'pack-to-docs-v1', ''])(
+    'returns unknown for render method %s, matching no convention',
+    (renderMethod) => {
+      expect(deriveTrustTier({ renderMethod, verifiedTaskId: null })).toBe(
+        'unknown',
+      );
+    },
+  );
 
   it('never promotes a server render to verified', () => {
     expect(

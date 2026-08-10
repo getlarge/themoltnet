@@ -20,15 +20,29 @@ export interface TrustTierInput {
   verifiedTaskId: string | null;
 }
 
+/**
+ * Prefixes that identify caller-authored markdown.
+ *
+ * `agent:` is the canonical label documented in docs/use/context-packs.md;
+ * `pi:` is what libs/pi-runtime emits by default; `agent-` covers the
+ * `agent-refined` / `agent-refined-v2` values that appear in older fixtures.
+ * All three mean the same thing to the server, which bifurcates only on
+ * `server:` (see ContextPackService.resolveRenderedMarkdown — a non-`server:`
+ * method *requires* `renderedMarkdown` from the caller).
+ */
+const AGENT_AUTHORED_PREFIXES = ['agent:', 'agent-', 'pi:'] as const;
+
 export function deriveTrustTier({
   renderMethod,
   verifiedTaskId,
 }: TrustTierInput): TrustTier {
   if (renderMethod.startsWith('server:')) return 'server-rendered';
-  if (renderMethod.startsWith('agent-')) {
+  if (
+    AGENT_AUTHORED_PREFIXES.some((prefix) => renderMethod.startsWith(prefix))
+  ) {
     return verifiedTaskId ? 'agent-refined-verified' : 'agent-refined';
   }
-  // A method matching neither convention is not forced into a tier —
+  // A method matching no known convention is not forced into a tier —
   // mislabelling a render silently is worse than admitting ignorance.
   return 'unknown';
 }

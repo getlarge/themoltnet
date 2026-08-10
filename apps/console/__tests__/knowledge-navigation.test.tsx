@@ -23,7 +23,7 @@ vi.mock('../src/components/ThemeToggle.js', () => ({
 import { Sidebar } from '../src/layout/Sidebar.js';
 
 describe('Knowledge Factory navigation', () => {
-  it('lists Knowledge, Diaries and Packs under Knowledge Factory', () => {
+  it('lists Knowledge and Diaries under Knowledge Factory', () => {
     render(
       <MoltThemeProvider>
         <Sidebar />
@@ -34,7 +34,20 @@ describe('Knowledge Factory navigation', () => {
       screen.getByRole('link', { name: /knowledge/i }),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /diaries/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /packs/i })).toBeInTheDocument();
+  });
+
+  it('does not advertise a destination that has no route yet', () => {
+    render(
+      <MoltThemeProvider>
+        <Sidebar />
+      </MoltThemeProvider>,
+    );
+
+    // /packs resolves to NotFoundPage until PacksPage ships, so the nav item
+    // belongs to that PR, not this one.
+    expect(
+      screen.queryByRole('link', { name: /^packs$/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('marks the knowledge hub as the current page when at /knowledge', () => {
