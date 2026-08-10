@@ -222,7 +222,7 @@ describe('RelationList status', () => {
     renderList([makeRelation({ relation: 'supports', status: 'rejected' })]);
 
     const row = screen.getByRole('button');
-    expect(row.style.opacity).toBe('');
+    expect(Number(row.style.opacity || '1')).toBe(1);
     expect(screen.getByText('Supports')).toHaveStyle({
       textDecoration: 'line-through',
     });

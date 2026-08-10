@@ -138,48 +138,42 @@ export function RelationList({
             const status = STATUS_META[relation.status];
 
             return (
-              <button
+              // `Card interactive` is the design-system action surface: it
+              // renders a native button with the style reset, hover border,
+              // focus ring and 44px touch target already handled.
+              <Card
                 key={relation.id}
-                type="button"
+                variant="surface"
+                padding="sm"
+                interactive
                 onClick={() => onRelationOpen(relatedEntryId)}
-                style={{
-                  background: 'transparent',
-                  border: 0,
-                  padding: 0,
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  color: 'inherit',
-                  font: 'inherit',
-                }}
               >
-                <Card variant="surface" padding="sm">
-                  <Stack gap={1}>
-                    <Stack direction="row" gap={3} wrap align="center">
-                      <Text
-                        weight="medium"
-                        style={
-                          relation.status === 'rejected'
-                            ? { textDecoration: 'line-through' }
-                            : undefined
-                        }
-                      >
-                        {label}
-                      </Text>
-                      {status && (
-                        <Badge variant={status.variant}>{status.label}</Badge>
-                      )}
-                      <Text variant="caption" color="muted" mono>
-                        {relatedEntryId}
-                      </Text>
-                    </Stack>
-                    {relation.status === 'proposed' && (
-                      <Text variant="caption" color="muted">
-                        {proposalNote(relation.workflowId)}
-                      </Text>
+                <Stack gap={1}>
+                  <Stack direction="row" gap={3} wrap align="center">
+                    <Text
+                      weight="medium"
+                      style={
+                        relation.status === 'rejected'
+                          ? { textDecoration: 'line-through' }
+                          : undefined
+                      }
+                    >
+                      {label}
+                    </Text>
+                    {status && (
+                      <Badge variant={status.variant}>{status.label}</Badge>
                     )}
+                    <Text variant="caption" color="muted" mono>
+                      {relatedEntryId}
+                    </Text>
                   </Stack>
-                </Card>
-              </button>
+                  {relation.status === 'proposed' && (
+                    <Text variant="caption" color="muted">
+                      {proposalNote(relation.workflowId)}
+                    </Text>
+                  )}
+                </Stack>
+              </Card>
             );
           })}
         </Stack>

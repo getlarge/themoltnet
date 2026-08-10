@@ -73,6 +73,14 @@ export function Card({
     },
   };
 
+  // Interactive controls meet the WCAG 2.5.5 minimum touch target (44x44px),
+  // matching Button and ActionLink. Applied only to the anchor/button branches
+  // so static container cards keep their natural height.
+  const touchTarget: React.CSSProperties = {
+    minHeight: '44px',
+    boxSizing: 'border-box',
+  };
+
   const glowShadow =
     glow === 'primary'
       ? theme.shadow.glowPrimary
@@ -99,6 +107,7 @@ export function Card({
         href={href}
         style={{
           ...computed,
+          ...touchTarget,
           color: 'inherit',
           textDecoration: 'none',
           cursor: 'pointer',
@@ -118,6 +127,7 @@ export function Card({
         disabled={disabled}
         style={{
           ...computed,
+          ...touchTarget,
           width: '100%',
           appearance: 'none',
           border:
