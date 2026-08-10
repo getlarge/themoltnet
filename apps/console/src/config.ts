@@ -32,12 +32,20 @@ const DEFAULT_SIGNER_URL = 'http://127.0.0.1:17373';
 /** Matches the rest-api default in `apps/rest-api/src/config.ts`. */
 const DEFAULT_PACK_GC_TTL_DAYS = 7;
 
-function normalizePositiveInt(
+/**
+ * Any finite positive number, NOT an integer.
+ *
+ * `PACK_GC_COMPILE_TTL_DAYS` is `Type.Number()` on the server, so a
+ * sub-day window such as `0.5` (12 hours) is valid there. Flooring it here
+ * would turn 0.5 into 0 — an unpin deadline of "now", which PATCH then
+ * rejects for not being in the future — and would silently shorten 1.5 to 1.
+ */
+function normalizePositiveNumber(
   value: string | number | undefined,
 ): number | undefined {
   const parsed = typeof value === 'string' ? Number(value.trim()) : value;
   return typeof parsed === 'number' && Number.isFinite(parsed) && parsed > 0
-    ? Math.floor(parsed)
+    ? parsed
     : undefined;
 }
 
@@ -58,7 +66,8 @@ export function getConfig(): AppConfig {
   // Non-critical: an unset or malformed value falls back rather than blocking
   // boot, since a wrong retention window is far less bad than a dead console.
   const packGcTtlDays =
-    normalizePositiveInt(injected?.packGcTtlDays) ?? DEFAULT_PACK_GC_TTL_DAYS;
+    normalizePositiveNumber(injected?.packGcTtlDays) ??
+    DEFAULT_PACK_GC_TTL_DAYS;
 
   if (injectedKratosUrl && injectedApiBaseUrl && injectedConsoleUrl) {
     return {
@@ -91,7 +100,7 @@ export function getConfig(): AppConfig {
     signerUrl:
       normalizeUrl(import.meta.env.VITE_SIGNER_URL) || DEFAULT_SIGNER_URL,
     packGcTtlDays:
-      normalizePositiveInt(import.meta.env.VITE_PACK_GC_TTL_DAYS) ??
+      normalizePositiveNumber(import.meta.env.VITE_PACK_GC_TTL_DAYS) ??
       DEFAULT_PACK_GC_TTL_DAYS,
   };
 }

@@ -7,6 +7,7 @@
  * instead of passing against hand-built keys.
  */
 import {
+  getContextPackProvenanceByCidQueryKey,
   getRenderedPackByIdOptions,
   listContextPacksQueryKey,
   listDiaryPacksQueryKey,
@@ -44,8 +45,13 @@ vi.mock('../src/team/useTeam.js', () => ({
 import {
   PackMutationError,
   useDiaryPacks,
+  useDiaryRenderedPacks,
+  usePack,
+  usePackProvenance,
+  usePackWithEntries,
   usePinPack,
   usePinRenderedPack,
+  useRenderedPack,
 } from '../src/packs/hooks.js';
 
 const asClient = TEST_CLIENT as unknown as Parameters<
@@ -64,12 +70,17 @@ const RENDERED_KEY = listDiaryRenderedPacksQueryKey({
   client: asClient,
   path: { id: 'diary-1' },
 });
+const CID_PROVENANCE_KEY = getContextPackProvenanceByCidQueryKey({
+  client: asClient,
+  path: { cid: 'bafy-test' },
+});
 const UNRELATED_KEY = ['diaries', 'summaries', null];
 
 function seed(queryClient: QueryClient) {
   queryClient.setQueryData(PACK_KEY, { items: [], total: 0 });
   queryClient.setQueryData(COMBINED_KEY, { items: [], total: 0 });
   queryClient.setQueryData(RENDERED_KEY, { items: [], total: 0 });
+  queryClient.setQueryData(CID_PROVENANCE_KEY, { nodes: [], edges: [] });
   queryClient.setQueryData(UNRELATED_KEY, [{ id: 'diary-1' }]);
 }
 
@@ -208,6 +219,8 @@ describe('invalidation against real cached queries', () => {
     await waitFor(() => expect(invalidated(queryClient, PACK_KEY)).toBe(true));
 
     expect(invalidated(queryClient, COMBINED_KEY)).toBe(true);
+    // Provenance meta carries pinned/expiresAt, so the by-CID graph is stale too.
+    expect(invalidated(queryClient, CID_PROVENANCE_KEY)).toBe(true);
     expect(invalidated(queryClient, UNRELATED_KEY)).toBe(false);
   });
 
@@ -228,54 +241,56 @@ describe('invalidation against real cached queries', () => {
     );
 
     // GET /packs?includeRendered=true embeds rendered packs, so it must not
-    // survive a rendered-pack mutation.
+    // survive a rendered-pack mutation. Provenance embeds rendered-pack
+    // pinned/expiresAt too.
     expect(invalidated(queryClient, COMBINED_KEY)).toBe(true);
+    expect(invalidated(queryClient, CID_PROVENANCE_KEY)).toBe(true);
     expect(invalidated(queryClient, UNRELATED_KEY)).toBe(false);
   });
 });
 
 describe('team scoping', () => {
-  it('gives two teams different cache keys for the same diary', async () => {
-    const seen: string[] = [];
+  // Every query hook must pass the team header into its own generated options
+  // call — the client's default header does not reach the key. Table-driven so
+  // dropping `headers` from any single hook fails here.
+  const HOOKS: Array<[string, () => unknown]> = [
+    ['useDiaryPacks', () => useDiaryPacks('diary-1')],
+    ['usePack', () => usePack('pack-1')],
+    ['usePackWithEntries', () => usePackWithEntries('pack-1')],
+    ['usePackProvenance', () => usePackProvenance('pack-1')],
+    ['useDiaryRenderedPacks', () => useDiaryRenderedPacks('diary-1')],
+    ['useRenderedPack', () => useRenderedPack('rendered-1')],
+  ];
 
-    for (const teamId of ['team-a', 'team-b']) {
-      teamMock.selectedTeam = { id: teamId };
-      const queryClient = new QueryClient({
-        defaultOptions: { queries: { retry: false } },
-      });
-      renderHook(() => useDiaryPacks('diary-1'), {
-        wrapper: createTestWrapper(queryClient),
-      });
-      await waitFor(() =>
-        expect(queryClient.getQueryCache().getAll().length).toBe(1),
-      );
-      seen.push(
-        JSON.stringify(queryClient.getQueryCache().getAll()[0].queryKey),
-      );
-    }
-
-    // Before team headers were passed into the options, both teams produced an
-    // identical key and React Query served team A's packs under team B.
-    expect(seen[0]).not.toBe(seen[1]);
-    expect(seen[0]).toContain('team-a');
-    expect(seen[1]).toContain('team-b');
-  });
-
-  it('omits the header entirely when no team is selected', async () => {
-    teamMock.selectedTeam = null;
+  const keyFor = async (hook: () => unknown, teamId: string | null) => {
+    teamMock.selectedTeam = teamId ? { id: teamId } : null;
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
-    renderHook(() => useDiaryPacks('diary-1'), {
-      wrapper: createTestWrapper(queryClient),
-    });
+    renderHook(hook, { wrapper: createTestWrapper(queryClient) });
     await waitFor(() =>
       expect(queryClient.getQueryCache().getAll().length).toBe(1),
     );
+    return JSON.stringify(queryClient.getQueryCache().getAll()[0].queryKey);
+  };
 
-    const key = JSON.stringify(
-      queryClient.getQueryCache().getAll()[0].queryKey,
-    );
-    expect(key).not.toContain('x-moltnet-team-id');
-  });
+  it.each(HOOKS)(
+    '%s gives two teams different cache keys',
+    async (_name, hook) => {
+      const a = await keyFor(hook, 'team-a');
+      const b = await keyFor(hook, 'team-b');
+
+      expect(a).not.toBe(b);
+      expect(a).toContain('team-a');
+      expect(b).toContain('team-b');
+    },
+  );
+
+  it.each(HOOKS)(
+    '%s omits the header entirely when no team is selected',
+    async (_name, hook) => {
+      const key = await keyFor(hook, null);
+      expect(key).not.toContain('x-moltnet-team-id');
+    },
+  );
 });

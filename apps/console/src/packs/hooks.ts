@@ -16,6 +16,7 @@ import {
 import {
   getContextPackByIdOptions,
   getContextPackByIdQueryKey,
+  getContextPackProvenanceByCidQueryKey,
   getContextPackProvenanceByIdOptions,
   getContextPackProvenanceByIdQueryKey,
   getLatestRenderedPackQueryKey,
@@ -82,6 +83,15 @@ const PACK_QUERY_IDS = new Set([
     getContextPackProvenanceByIdQueryKey({
       client: KEY_STUB,
       path: { id: '' },
+    }),
+  ),
+  // Provenance nodes embed `pinned` and `expiresAt` for both context and
+  // rendered packs (apps/rest-api/src/routes/pack-provenance.ts), so the
+  // by-CID graph goes stale on a pin exactly like the by-ID one.
+  idOf(
+    getContextPackProvenanceByCidQueryKey({
+      client: KEY_STUB,
+      path: { cid: '' },
     }),
   ),
 ]);
@@ -218,7 +228,10 @@ export class PackMutationError extends Error {
   readonly problem: ProblemDetails;
 
   constructor(problem: ProblemDetails) {
-    super(problem.title ?? problem.detail ?? 'Failed to update pin state');
+    // `detail` first: `title` is required and usually generic ("Validation
+    // Failed"), while `detail` carries the actionable explanation. Matches the
+    // console's `getApiErrorDetail` convention in ../api-error.ts.
+    super(problem.detail ?? problem.title ?? 'Failed to update pin state');
     this.name = 'PackMutationError';
     this.problem = problem;
   }
