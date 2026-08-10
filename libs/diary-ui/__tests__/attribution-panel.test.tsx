@@ -9,7 +9,7 @@ import type {
 } from '../src/components/AttributionPanel.js';
 import {
   AttributionPanel,
-  partitionProvenanceTags,
+  partitionStructuredTags,
 } from '../src/components/AttributionPanel.js';
 import type { EntryVerifyResult } from '../src/types.js';
 
@@ -141,6 +141,59 @@ describe('AttributionPanel signature state', () => {
   });
 });
 
+describe('AttributionPanel signer attribution', () => {
+  it('never says "Not signed" for an entry the API reports as signed', () => {
+    // The server resolves no fingerprint when the signing_request row backing
+    // the signature is gone. `signed` is still true.
+    const { container } = renderPanel({
+      entry: makeEntry({ contentSignature: 'c2lnbmF0dXJl' }),
+      verification: {
+        ...VERIFIED_VERIFICATION,
+        agentFingerprint: null,
+        signatureValid: false,
+        valid: false,
+      },
+    });
+
+    expect(container.textContent).not.toMatch(/not signed/i);
+    expect(
+      screen.getByText(/signer could not be resolved/i),
+    ).toBeInTheDocument();
+  });
+
+  it('does not claim a signer while the signature is unchecked', () => {
+    const { container } = renderPanel({
+      entry: makeEntry({ contentSignature: 'c2lnbmF0dXJl' }),
+      verification: null,
+    });
+
+    expect(container.textContent).not.toMatch(/not signed/i);
+    expect(screen.getByText(/not checked/i)).toBeInTheDocument();
+  });
+
+  it('marks the fingerprint as unconfirmed when verification failed', () => {
+    renderPanel({
+      entry: makeEntry({ contentSignature: 'c2lnbmF0dXJl' }),
+      verification: {
+        ...VERIFIED_VERIFICATION,
+        hashMatches: false,
+        valid: false,
+      },
+    });
+
+    expect(screen.getByText(/unconfirmed/i)).toBeInTheDocument();
+  });
+
+  it('says "Not signed" only when the entry really is unsigned', () => {
+    renderPanel({
+      entry: makeEntry({ contentSignature: null }),
+      verification: UNSIGNED_VERIFICATION,
+    });
+
+    expect(screen.getByText(/not signed/i)).toBeInTheDocument();
+  });
+});
+
 describe('AttributionPanel evidence', () => {
   it('renders the entry content hash even when verification carries none', () => {
     renderPanel({
@@ -187,7 +240,7 @@ describe('AttributionPanel evidence', () => {
 });
 
 describe('AttributionPanel tags', () => {
-  it('groups machine-emitted provenance tags separately from free tags', () => {
+  it('groups convention-prefixed tags separately from free tags', () => {
     renderPanel({
       entry: makeEntry({
         tags: [
@@ -200,31 +253,42 @@ describe('AttributionPanel tags', () => {
       }),
     });
 
-    const provenance = screen.getByRole('group', { name: /provenance/i });
+    const structured = screen.getByRole('group', { name: /structured/i });
     const free = screen.getByRole('group', { name: /^tags$/i });
 
-    expect(provenance).toHaveTextContent('branch:issue-1853-entry-evidence');
-    expect(provenance).toHaveTextContent('scope:console');
-    expect(provenance).toHaveTextContent('accountable-commit');
-    expect(provenance).not.toHaveTextContent('design-system');
+    expect(structured).toHaveTextContent('branch:issue-1853-entry-evidence');
+    expect(structured).toHaveTextContent('scope:console');
+    expect(structured).toHaveTextContent('accountable-commit');
+    expect(structured).not.toHaveTextContent('design-system');
     expect(free).toHaveTextContent('design-system');
     expect(free).not.toHaveTextContent('scope:console');
+  });
+
+  it('does not present author-supplied tags as authenticated provenance', () => {
+    const { container } = renderPanel({
+      entry: makeEntry({ tags: ['branch:issue-1853-entry-evidence'] }),
+    });
+
+    // Tags are a free text[] with no server-side origin enforcement, so the
+    // copy must not claim the commit flow emitted them.
+    expect(container.textContent).toMatch(/not verified by the server/i);
+    expect(container.textContent).not.toMatch(/not chosen by the author/i);
   });
 
   it('omits a tag group entirely when it has no members', () => {
     renderPanel({ entry: makeEntry({ tags: ['design-system'] }) });
 
     expect(
-      screen.queryByRole('group', { name: /provenance/i }),
+      screen.queryByRole('group', { name: /structured/i }),
     ).not.toBeInTheDocument();
     expect(screen.getByRole('group', { name: /^tags$/i })).toBeInTheDocument();
   });
 });
 
-describe('partitionProvenanceTags', () => {
+describe('partitionStructuredTags', () => {
   it('splits on the accountable-commit vocabulary and preserves order', () => {
     expect(
-      partitionProvenanceTags([
+      partitionStructuredTags([
         'ui',
         'task-group:kf-console',
         'risk:low',
@@ -233,7 +297,7 @@ describe('partitionProvenanceTags', () => {
         'pr:1900',
       ]),
     ).toEqual({
-      provenance: [
+      structured: [
         'task-group:kf-console',
         'risk:low',
         'issue:1853',
@@ -244,8 +308,8 @@ describe('partitionProvenanceTags', () => {
   });
 
   it('treats a null tag list as two empty groups', () => {
-    expect(partitionProvenanceTags(null)).toEqual({
-      provenance: [],
+    expect(partitionStructuredTags(null)).toEqual({
+      structured: [],
       free: [],
     });
   });

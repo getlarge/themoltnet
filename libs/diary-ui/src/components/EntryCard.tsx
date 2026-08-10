@@ -2,6 +2,7 @@ import { Card, SignatureStatus, Stack, Text } from '@themoltnet/design-system';
 
 import type { EntryType } from '../types.js';
 import { formatRelativeTime } from '../utils/format.js';
+import { deriveSignatureState } from './AttributionPanel.js';
 import { ImportanceIndicator } from './ImportanceIndicator.js';
 import { TagChip } from './TagChip.js';
 import { TypeBadge } from './TypeBadge.js';
@@ -52,12 +53,15 @@ export function EntryCard({
   //   undefined            → source gave no signature data → show nothing
   //   non-empty string     → a signature exists but wasn't verified here → "Unverified"
   //   null / empty / blank  → no usable signature → "Unsigned"
+  //
+  // The classification itself lives in `deriveSignatureState` so this card and
+  // the entry detail panel can never disagree about what a signature means.
+  // A list row has no verification result, hence `verification: null`.
   const showSignatureStatus = entry.contentSignature !== undefined;
-  const signatureState: 'unverified' | 'unsigned' =
-    typeof entry.contentSignature === 'string' &&
-    entry.contentSignature.trim() !== ''
-      ? 'unverified'
-      : 'unsigned';
+  const { state: signatureState } = deriveSignatureState({
+    contentSignature: entry.contentSignature ?? null,
+    verification: null,
+  });
 
   return (
     <Card

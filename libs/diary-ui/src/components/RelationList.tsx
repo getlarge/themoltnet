@@ -1,6 +1,7 @@
 import {
   Badge,
   type BadgeVariant,
+  Button,
   Card,
   InlineNotice,
   Stack,
@@ -44,17 +45,24 @@ const RELATION_LABELS: Record<
 
 const STATUS_META: Record<
   RelationStatus,
-  { label: string; variant: BadgeVariant; note?: string } | null
+  { label: string; variant: BadgeVariant } | null
 > = {
   // An accepted relation is the baseline; badging it would only add noise.
   accepted: null,
-  proposed: {
-    label: 'Proposed',
-    variant: 'warning',
-    note: 'Suggested by a consolidation workflow. Not yet accepted.',
-  },
+  proposed: { label: 'Proposed', variant: 'warning' },
   rejected: { label: 'Rejected', variant: 'default' },
 };
+
+/**
+ * Proposals come from consolidation workflows *and* from editors creating them
+ * by hand, and `workflowId` is nullable — so the origin is only stated when the
+ * record actually carries one.
+ */
+function proposalNote(workflowId: string | null): string {
+  return workflowId
+    ? 'Suggested by a workflow. Not yet accepted.'
+    : 'Suggested. Not yet accepted.';
+}
 
 /** Accepted first, then proposals, then rejections. Stable within each group. */
 const STATUS_ORDER: Record<RelationStatus, number> = {
@@ -69,7 +77,7 @@ const STATUS_ORDER: Record<RelationStatus, number> = {
  * This is the Decay phase at entry level: the single most important thing the
  * list can say is that an entry has been superseded, and it says that only for
  * an **accepted** `supersedes` edge pointing at this entry. A proposal is a
- * suggestion from a consolidation workflow, not a fact about the entry.
+ * suggestion, not a fact about the entry.
  */
 export function RelationList({
   entryId,
@@ -107,11 +115,13 @@ export function RelationList({
               A newer entry replaces this one. Prefer the superseding entry
               unless you are reading history.
             </Text>
-            <RelationButton
-              label="Open the superseding entry"
-              entryId={supersededBy.relatedEntryId}
-              onRelationOpen={onRelationOpen}
-            />
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => onRelationOpen(supersededBy.relatedEntryId)}
+            >
+              Open the superseding entry
+            </Button>
           </Stack>
         </InlineNotice>
       )}
@@ -140,13 +150,21 @@ export function RelationList({
                   textAlign: 'left',
                   color: 'inherit',
                   font: 'inherit',
-                  opacity: relation.status === 'rejected' ? 0.6 : 1,
                 }}
               >
                 <Card variant="surface" padding="sm">
                   <Stack gap={1}>
                     <Stack direction="row" gap={3} wrap align="center">
-                      <Text weight="medium">{label}</Text>
+                      <Text
+                        weight="medium"
+                        style={
+                          relation.status === 'rejected'
+                            ? { textDecoration: 'line-through' }
+                            : undefined
+                        }
+                      >
+                        {label}
+                      </Text>
                       {status && (
                         <Badge variant={status.variant}>{status.label}</Badge>
                       )}
@@ -154,9 +172,9 @@ export function RelationList({
                         {relatedEntryId}
                       </Text>
                     </Stack>
-                    {status?.note && (
+                    {relation.status === 'proposed' && (
                       <Text variant="caption" color="muted">
-                        {status.note}
+                        {proposalNote(relation.workflowId)}
                       </Text>
                     )}
                   </Stack>
@@ -167,33 +185,5 @@ export function RelationList({
         </Stack>
       )}
     </Stack>
-  );
-}
-
-function RelationButton({
-  label,
-  entryId,
-  onRelationOpen,
-}: {
-  label: string;
-  entryId: string;
-  onRelationOpen: (entryId: string) => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onRelationOpen(entryId)}
-      style={{
-        background: 'transparent',
-        border: 0,
-        padding: 0,
-        cursor: 'pointer',
-        color: 'inherit',
-        font: 'inherit',
-        textDecoration: 'underline',
-      }}
-    >
-      {label}
-    </button>
   );
 }

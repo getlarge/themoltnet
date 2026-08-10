@@ -41,12 +41,17 @@ export interface AttributionPanelProps {
 }
 
 /**
- * Tag prefixes emitted by machines — the accountable-commit flow, the task
- * runtime, and the consolidation workflows — rather than chosen by an author.
- * Grounded in the live tag vocabulary, not invented: `scope:`, `branch:`,
- * `task:`, `issue:` and `pr:` are the five most common prefixes in the diary.
+ * Tag prefixes used by the accountable-commit and task conventions. Grounded in
+ * the live tag vocabulary, not invented: `scope:`, `branch:`, `task:`, `issue:`
+ * and `pr:` are the five most common prefixes in the diary.
+ *
+ * **These are a naming convention, not authenticated provenance.** `tags` is a
+ * plain `text[]` (`apps/rest-api/src/schemas/diary.ts`) with no server-side
+ * check that a `branch:` tag names a real branch or that `accountable-commit`
+ * accompanied a commit. Any writer can set them by hand, so the UI groups them
+ * for legibility and says nothing about where they came from.
  */
-export const PROVENANCE_TAG_PREFIXES = [
+export const STRUCTURED_TAG_PREFIXES = [
   'branch:',
   'commit:',
   'issue:',
@@ -59,32 +64,52 @@ export const PROVENANCE_TAG_PREFIXES = [
   'task-summary:',
 ] as const;
 
-/** Machine-emitted markers that carry no `prefix:` but are still provenance. */
-export const PROVENANCE_TAG_LITERALS = ['accountable-commit'] as const;
+/** Convention markers that carry no `prefix:`. Same caveat as the prefixes. */
+export const STRUCTURED_TAG_LITERALS = ['accountable-commit'] as const;
 
 export interface PartitionedTags {
-  provenance: string[];
+  structured: string[];
   free: string[];
 }
 
 /**
- * Split provenance tags from free tags, preserving the author's ordering
- * within each group.
+ * Split convention-prefixed tags from free tags, preserving the author's
+ * ordering within each group. Purely a legibility aid — see
+ * {@link STRUCTURED_TAG_PREFIXES} for why this is not a provenance claim.
  */
-export function partitionProvenanceTags(
+export function partitionStructuredTags(
   tags: string[] | null | undefined,
 ): PartitionedTags {
-  const provenance: string[] = [];
+  const structured: string[] = [];
   const free: string[] = [];
 
   for (const tag of tags ?? []) {
-    const isProvenance =
-      PROVENANCE_TAG_PREFIXES.some((prefix) => tag.startsWith(prefix)) ||
-      (PROVENANCE_TAG_LITERALS as readonly string[]).includes(tag);
-    (isProvenance ? provenance : free).push(tag);
+    const isStructured =
+      STRUCTURED_TAG_PREFIXES.some((prefix) => tag.startsWith(prefix)) ||
+      (STRUCTURED_TAG_LITERALS as readonly string[]).includes(tag);
+    (isStructured ? structured : free).push(tag);
   }
 
-  return { provenance, free };
+  return { structured, free };
+}
+
+/**
+ * How much weight the signer fingerprint carries.
+ *
+ * - `confirmed`   — the signature verified against this agent's public key.
+ * - `unconfirmed` — a fingerprint is known but the signature did not verify,
+ *   so it is a claim, not an attribution.
+ * - `unknown`     — the entry is signed but no signer could be established,
+ *   either because verification has not run or because the server could not
+ *   resolve the signing request. **Never "not signed".**
+ * - `none`        — the entry carries no signature at all.
+ */
+export type SignerConfidence = 'confirmed' | 'unconfirmed' | 'unknown' | 'none';
+
+export interface SignerAttribution {
+  fingerprint: string | null;
+  confidence: SignerConfidence;
+  label: string;
 }
 
 export interface DerivedSignatureState {
@@ -92,7 +117,19 @@ export interface DerivedSignatureState {
   /** Overrides the primitive's default label when the default would mislead. */
   label?: string;
   explanation: string;
+  /**
+   * Who the signature is attributed to, derived from the *whole* verification
+   * state. Reading `agentFingerprint` alone would render "Not signed" for a
+   * signed entry whose signing request the server could not resolve.
+   */
+  signer: SignerAttribution;
 }
+
+const NO_SIGNER: SignerAttribution = {
+  fingerprint: null,
+  confidence: 'none',
+  label: 'Not signed',
+};
 
 /**
  * Map an entry plus its verification result onto an honest signature state.
@@ -121,6 +158,7 @@ export function deriveSignatureState({
       state: 'unsigned',
       explanation:
         'This entry is unsigned. Signing is opt-in in MoltNet, and semantic and episodic entries are frequently left unsigned. The content hash below still fingerprints the bytes; nothing locks them.',
+      signer: NO_SIGNER,
     };
   }
 
@@ -129,6 +167,11 @@ export function deriveSignatureState({
       state: 'unverified',
       explanation:
         'A signature is present but has not been checked in this session.',
+      signer: {
+        fingerprint: null,
+        confidence: 'unknown',
+        label: 'Signature not checked',
+      },
     };
   }
 
@@ -137,8 +180,25 @@ export function deriveSignatureState({
       state: 'verified',
       explanation:
         'The entry bytes still hash to the signed content hash, and that hash carries a valid signature from the signing agent.',
+      signer: verification.agentFingerprint
+        ? {
+            fingerprint: verification.agentFingerprint,
+            confidence: 'confirmed',
+            label: verification.agentFingerprint,
+          }
+        : unresolvedSigner(),
     };
   }
+
+  // Signed but not valid. A fingerprint here is a claim the check did not
+  // confirm, so it must never be presented as settled attribution.
+  const signer: SignerAttribution = verification.agentFingerprint
+    ? {
+        fingerprint: verification.agentFingerprint,
+        confidence: 'unconfirmed',
+        label: `${verification.agentFingerprint} · unconfirmed`,
+      }
+    : unresolvedSigner();
 
   if (!verification.hashMatches) {
     return {
@@ -146,6 +206,7 @@ export function deriveSignatureState({
       label: 'Content changed',
       explanation:
         'Content changed since signing — the entry no longer hashes to the content hash that was signed.',
+      signer,
     };
   }
 
@@ -154,6 +215,16 @@ export function deriveSignatureState({
     label: 'Signature not verified',
     explanation:
       "Signature did not verify against the signing agent's public key. The bytes still match the recorded content hash.",
+    signer,
+  };
+}
+
+/** Signed, but the server could not establish who signed it. */
+function unresolvedSigner(): SignerAttribution {
+  return {
+    fingerprint: null,
+    confidence: 'unknown',
+    label: 'Signer could not be resolved',
   };
 }
 
@@ -173,7 +244,7 @@ export function AttributionPanel({
     contentSignature: entry.contentSignature,
     verification,
   });
-  const { provenance, free } = partitionProvenanceTags(entry.tags);
+  const { structured, free } = partitionStructuredTags(entry.tags);
 
   const items: DescriptionListItem[] = [
     {
@@ -186,13 +257,19 @@ export function AttributionPanel({
     },
     {
       label: 'Signed by',
-      value: verification?.agentFingerprint ? (
-        <Text mono color="accent">
-          {verification.agentFingerprint}
-        </Text>
-      ) : (
-        <Text color="muted">Not signed</Text>
-      ),
+      value:
+        signature.signer.confidence === 'confirmed' ? (
+          <Text mono color="accent">
+            {signature.signer.label}
+          </Text>
+        ) : (
+          <Text
+            mono={signature.signer.fingerprint !== null}
+            color={signature.signer.fingerprint ? 'warning' : 'muted'}
+          >
+            {signature.signer.label}
+          </Text>
+        ),
     },
     {
       label: 'Content hash (CID)',
@@ -225,11 +302,11 @@ export function AttributionPanel({
         ariaLabel="Entry attribution"
       />
 
-      {provenance.length > 0 && (
+      {structured.length > 0 && (
         <TagGroup
-          label="Provenance tags"
-          description="Emitted by the commit and task flows, not chosen by the author."
-          tags={provenance}
+          label="Structured tags"
+          description="Follow the prefix:value convention used by the commit and task flows. Tags are author-supplied and are not verified by the server."
+          tags={structured}
           onTagClick={onTagClick}
         />
       )}

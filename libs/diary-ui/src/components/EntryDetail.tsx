@@ -11,7 +11,7 @@ import type {
   DiaryEntryWithRelations,
   EntryVerifyResult,
 } from '../types.js';
-import { estimateTokenCount, formatDateTime } from '../utils/format.js';
+import { estimateTokenCount } from '../utils/format.js';
 import { AttributionPanel } from './AttributionPanel.js';
 import { ImportanceIndicator } from './ImportanceIndicator.js';
 import { RelationList } from './RelationList.js';
@@ -69,10 +69,6 @@ export function EntryDetail({
           </Stack>
 
           <Stack gap={2}>
-            <MetadataRow
-              label="Created"
-              value={formatDateTime(entry.createdAt)}
-            />
             <MetadataRow
               label="Tokens"
               value={`~${estimateTokenCount(entry.content)}`}

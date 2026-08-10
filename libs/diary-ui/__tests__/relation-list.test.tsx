@@ -184,10 +184,48 @@ describe('RelationList status', () => {
     expect(screen.getByText(/proposed/i)).toBeInTheDocument();
   });
 
+  it('does not attribute a hand-created proposal to a workflow', () => {
+    const { container } = renderList([
+      makeRelation({
+        relation: 'supports',
+        status: 'proposed',
+        workflowId: null,
+      }),
+    ]);
+
+    expect(container.textContent).toMatch(/suggested\. not yet accepted/i);
+    expect(container.textContent).not.toMatch(/workflow/i);
+  });
+
+  it('names a workflow only when the relation records one', () => {
+    const { container } = renderList([
+      makeRelation({
+        relation: 'supports',
+        status: 'proposed',
+        workflowId: 'wf-1',
+      }),
+    ]);
+
+    expect(container.textContent).toMatch(/suggested by a workflow/i);
+  });
+
   it('labels a rejected relation', () => {
     renderList([makeRelation({ relation: 'supports', status: 'rejected' })]);
 
     expect(screen.getByText(/rejected/i)).toBeInTheDocument();
+  });
+
+  it('does not dim a rejected row below the AA contrast floor', () => {
+    // `text.muted` sits at ~4.8:1 on `bg.surface` by design (#1643). Any
+    // opacity on the row composites it toward the background — 0.6 lands at
+    // ~2.5:1 — so rejection must be carried by non-colour signals instead.
+    renderList([makeRelation({ relation: 'supports', status: 'rejected' })]);
+
+    const row = screen.getByRole('button');
+    expect(row.style.opacity).toBe('');
+    expect(screen.getByText('Supports')).toHaveStyle({
+      textDecoration: 'line-through',
+    });
   });
 
   it('orders accepted relations before proposed and rejected ones', () => {

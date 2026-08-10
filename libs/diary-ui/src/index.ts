@@ -9,10 +9,8 @@ export {
   type DerivedSignatureState,
   deriveSignatureState,
   type EntryCreator,
-  type PartitionedTags,
-  partitionProvenanceTags,
-  PROVENANCE_TAG_LITERALS,
-  PROVENANCE_TAG_PREFIXES,
+  type SignerAttribution,
+  type SignerConfidence,
 } from './components/AttributionPanel.js';
 export {
   EntryCard,
