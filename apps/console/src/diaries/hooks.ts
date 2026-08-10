@@ -202,7 +202,9 @@ export function useEntryDetail(
     ...getDiaryEntryByIdOptions({
       client: client(),
       path: { entryId },
-      query: { expand: 'relations', depth: 2 },
+      // One hop. `entry_relations` is not acyclic, so a deeper expansion has no
+      // safe rendering — `RelationList` drops anything past depth 1 anyway.
+      query: { expand: 'relations', depth: 1 },
     }),
     staleTime: 10_000,
   });

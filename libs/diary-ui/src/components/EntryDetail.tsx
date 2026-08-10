@@ -14,6 +14,7 @@ import type {
 import { estimateTokenCount, formatDateTime } from '../utils/format.js';
 import { AttributionPanel } from './AttributionPanel.js';
 import { ImportanceIndicator } from './ImportanceIndicator.js';
+import { RelationList } from './RelationList.js';
 import { TypeBadge } from './TypeBadge.js';
 
 export interface EntryDetailData {
@@ -98,47 +99,11 @@ export function EntryDetail({
 
           <Divider />
 
-          <Stack gap={2}>
-            <Text variant="h4">Relations</Text>
-            {entry.relations?.items.length ? (
-              <Stack gap={2}>
-                {entry.relations.items.map((relation) => {
-                  const relatedEntryId =
-                    relation.sourceId === entry.id
-                      ? relation.targetId
-                      : relation.sourceId;
-
-                  return (
-                    <button
-                      key={relation.id}
-                      type="button"
-                      onClick={() => onRelationOpen(relatedEntryId)}
-                      style={{
-                        background: 'transparent',
-                        border: 0,
-                        padding: 0,
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        color: 'inherit',
-                        font: 'inherit',
-                      }}
-                    >
-                      <Card variant="surface" padding="sm">
-                        <Stack direction="row" gap={3} wrap align="center">
-                          <Text>{relation.relation}</Text>
-                          <Text variant="caption" color="muted" mono>
-                            {relatedEntryId}
-                          </Text>
-                        </Stack>
-                      </Card>
-                    </button>
-                  );
-                })}
-              </Stack>
-            ) : (
-              <Text color="muted">No related entries recorded.</Text>
-            )}
-          </Stack>
+          <RelationList
+            entryId={entry.id}
+            relations={entry.relations?.items}
+            onRelationOpen={onRelationOpen}
+          />
         </Stack>
       </Card>
     </Stack>

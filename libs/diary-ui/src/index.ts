@@ -29,6 +29,10 @@ export {
   ImportanceIndicator,
   type ImportanceIndicatorProps,
 } from './components/ImportanceIndicator.js';
+export {
+  RelationList,
+  type RelationListProps,
+} from './components/RelationList.js';
 export { SortFacet, type SortFacetProps } from './components/SortFacet.js';
 export { TagChip, type TagChipProps } from './components/TagChip.js';
 export { TagCloud, type TagCloudProps } from './components/TagCloud.js';
