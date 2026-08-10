@@ -11,8 +11,10 @@ import {
 import {
   Activity,
   BarChart3,
+  BookMarked,
   BookOpen,
   Bot,
+  Boxes,
   KeyRound,
   LibraryBig,
   ListTodo,
@@ -99,10 +101,22 @@ const baseGroups: Array<{
     label: 'Knowledge Factory',
     items: [
       {
+        id: 'knowledge',
+        label: 'Knowledge',
+        path: '/knowledge',
+        icon: <BookMarked size={ICON_SIZE} strokeWidth={1.8} />,
+      },
+      {
         id: 'diaries',
         label: 'Diaries',
         path: '/diaries',
         icon: <LibraryBig size={ICON_SIZE} strokeWidth={1.8} />,
+      },
+      {
+        id: 'packs',
+        label: 'Packs',
+        path: '/packs',
+        icon: <Boxes size={ICON_SIZE} strokeWidth={1.8} />,
       },
     ],
   },
