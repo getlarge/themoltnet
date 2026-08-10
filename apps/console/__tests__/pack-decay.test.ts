@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   defaultUnpinExpiry,
@@ -6,6 +6,10 @@ import {
   EXPIRING_SOON_DAYS,
   isExpiringSoon,
 } from '../src/packs/decay.js';
+
+vi.mock('../src/config.js', () => ({
+  getConfig: () => ({ packGcTtlDays: 30 }),
+}));
 
 const NOW = new Date('2026-08-09T12:00:00Z');
 const inDays = (days: number) =>
@@ -94,8 +98,16 @@ describe('isExpiringSoon', () => {
 });
 
 describe('defaultUnpinExpiry', () => {
-  it('restores the standard decay window, which unpin requires', () => {
-    expect(defaultUnpinExpiry(NOW)).toBe(inDays(EXPIRING_SOON_DAYS));
+  // The mocked runtime config reports a 30-day retention window, i.e. a
+  // deployment that overrode PACK_GC_COMPILE_TTL_DAYS. The console must follow
+  // it rather than re-imposing the 7-day default.
+  it('uses the server-configured retention window, not the local default', () => {
+    expect(defaultUnpinExpiry(NOW)).toBe(inDays(30));
+    expect(defaultUnpinExpiry(NOW)).not.toBe(inDays(EXPIRING_SOON_DAYS));
+  });
+
+  it('accepts an explicit override', () => {
+    expect(defaultUnpinExpiry(NOW, 3)).toBe(inDays(3));
   });
 
   it('lands in the future so the API accepts it', () => {
