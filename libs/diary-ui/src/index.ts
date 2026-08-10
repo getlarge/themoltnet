@@ -3,6 +3,18 @@ export {
   type ActiveFilterChipsProps,
 } from './components/ActiveFilterChips.js';
 export {
+  type AttributionEntry,
+  AttributionPanel,
+  type AttributionPanelProps,
+  type DerivedSignatureState,
+  deriveSignatureState,
+  type EntryCreator,
+  type PartitionedTags,
+  partitionProvenanceTags,
+  PROVENANCE_TAG_LITERALS,
+  PROVENANCE_TAG_PREFIXES,
+} from './components/AttributionPanel.js';
+export {
   EntryCard,
   type EntryCardEntry,
   type EntryCardProps,

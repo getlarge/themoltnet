@@ -12,8 +12,8 @@ import type {
   EntryVerifyResult,
 } from '../types.js';
 import { estimateTokenCount, formatDateTime } from '../utils/format.js';
+import { AttributionPanel } from './AttributionPanel.js';
 import { ImportanceIndicator } from './ImportanceIndicator.js';
-import { TagChip } from './TagChip.js';
 import { TypeBadge } from './TypeBadge.js';
 
 export interface EntryDetailData {
@@ -69,24 +69,6 @@ export function EntryDetail({
 
           <Stack gap={2}>
             <MetadataRow
-              label="CID"
-              value={entry.contentHash ?? 'Not computed'}
-              mono
-              accent
-            />
-            <MetadataRow
-              label="Signed"
-              value={
-                verification?.signed
-                  ? verification.agentFingerprint
-                    ? `Yes · ${verification.agentFingerprint}`
-                    : 'Yes'
-                  : 'Unsigned'
-              }
-              mono={!!verification?.agentFingerprint}
-              accent={!!verification?.agentFingerprint}
-            />
-            <MetadataRow
               label="Created"
               value={formatDateTime(entry.createdAt)}
             />
@@ -95,19 +77,6 @@ export function EntryDetail({
               value={`~${estimateTokenCount(entry.content)}`}
             />
           </Stack>
-
-          {entry.tags && entry.tags.length > 0 && (
-            <Stack gap={2}>
-              <Text variant="overline" color="muted">
-                Tags
-              </Text>
-              <Stack direction="row" gap={2} wrap>
-                {entry.tags.map((tag) => (
-                  <TagChip key={tag} tag={tag} onClick={onTagClick} />
-                ))}
-              </Stack>
-            </Stack>
-          )}
 
           <Divider />
 
@@ -118,6 +87,14 @@ export function EntryDetail({
           >
             {entry.content}
           </Text>
+
+          <Divider />
+
+          <AttributionPanel
+            entry={entry}
+            verification={verification}
+            onTagClick={onTagClick}
+          />
 
           <Divider />
 
@@ -168,25 +145,13 @@ export function EntryDetail({
   );
 }
 
-function MetadataRow({
-  label,
-  value,
-  mono = false,
-  accent = false,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-  accent?: boolean;
-}) {
+function MetadataRow({ label, value }: { label: string; value: string }) {
   return (
     <Stack direction="row" gap={3} wrap>
       <Text variant="caption" color="muted">
         {label}
       </Text>
-      <Text variant="caption" mono={mono} color={accent ? 'accent' : 'default'}>
-        {value}
-      </Text>
+      <Text variant="caption">{value}</Text>
     </Stack>
   );
 }
