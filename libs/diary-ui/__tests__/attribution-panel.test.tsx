@@ -22,6 +22,13 @@ const AGENT_CREATOR = {
 
 const CID = 'bafkreiearfzy52cdm4hkkjku4eiusca73cnegtwufokzvwgb2quucymkvq';
 
+/**
+ * Deliberately different from the creator's fingerprint. If the two matched,
+ * a signer assertion would pass on the creator row alone and a regression that
+ * dropped signer attribution entirely would stay green.
+ */
+const SIGNER_FINGERPRINT = '9C3D-40AA-51EF-7B22';
+
 function makeEntry(
   overrides: Partial<AttributionEntry> = {},
 ): AttributionEntry {
@@ -51,7 +58,7 @@ const VERIFIED_VERIFICATION: EntryVerifyResult = {
   signatureValid: true,
   valid: true,
   contentHash: CID,
-  agentFingerprint: '1671-B080-99BF-4270',
+  agentFingerprint: SIGNER_FINGERPRINT,
 };
 
 function renderPanel(props: Partial<AttributionPanelProps> = {}) {
@@ -72,9 +79,11 @@ describe('AttributionPanel signature state', () => {
     });
 
     expect(screen.getByText('Verified')).toBeInTheDocument();
-    expect(
-      screen.getAllByText('1671-B080-99BF-4270').length,
-    ).toBeGreaterThanOrEqual(1);
+
+    // The signer row must render the *signer*, not merely repeat the creator.
+    const signerRow = screen.getByText('Signed by').closest('div');
+    expect(signerRow).toHaveTextContent(SIGNER_FINGERPRINT);
+    expect(signerRow).not.toHaveTextContent(AGENT_CREATOR.fingerprint);
   });
 
   it('reads an unsigned entry as unsigned, never as failed or invalid', () => {
@@ -181,7 +190,9 @@ describe('AttributionPanel signer attribution', () => {
       },
     });
 
-    expect(screen.getByText(/unconfirmed/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(`${SIGNER_FINGERPRINT} · unconfirmed`),
+    ).toBeInTheDocument();
   });
 
   it('says "Not signed" only when the entry really is unsigned', () => {

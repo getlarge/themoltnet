@@ -223,6 +223,15 @@ test.describe.serial('Diary browser', () => {
     ).toBeVisible();
     await expect(page.getByText('Content hash (CID)')).toBeVisible();
     await expect(page.getByText('Signed by')).toBeVisible();
+
+    // Assert the derived values, not just the labels: the seeded entry is
+    // created without a signing request, so it must read as unsigned. Exact
+    // matching is required because the explanatory copy also contains the word
+    // "unsigned" and would otherwise make these locators ambiguous.
+    await expect(page.getByText('Unsigned', { exact: true })).toBeVisible();
+    await expect(page.getByText('Not signed', { exact: true })).toBeVisible();
+    await expect(page.getByText(/signing is opt-in/i)).toBeVisible();
+
     await expect(page.getByText(seeded.entryTag).first()).toBeVisible();
 
     // Relations render one hop only; the seeded entry has none.

@@ -74,10 +74,14 @@ export function Card({
   };
 
   // Interactive controls meet the WCAG 2.5.5 minimum touch target (44x44px),
-  // matching Button and ActionLink. Applied only to the anchor/button branches
-  // so static container cards keep their natural height.
+  // matching Button and ActionLink. Both dimensions are pinned: the anchor
+  // branch has no `width: 100%`, so a linked card in a shrink-to-content or
+  // flex layout would otherwise render narrower than the target. Applied only
+  // to the anchor/button branches so static container cards keep their
+  // natural size.
   const touchTarget: React.CSSProperties = {
     minHeight: '44px',
+    minWidth: '44px',
     boxSizing: 'border-box',
   };
 

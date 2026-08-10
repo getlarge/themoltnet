@@ -18,12 +18,14 @@ describe('Card', () => {
   it('renders interactive cards as native buttons', () => {
     renderWithTheme(<Card interactive>Open diary</Card>);
 
-    expect(
-      screen.getByRole('button', { name: 'Open diary' }),
-    ).toBeInTheDocument();
+    // `getByRole('button')` alone would also accept `<div role="button">`,
+    // which carries none of the native keyboard or form semantics.
+    const button = screen.getByRole('button', { name: 'Open diary' });
+    expect(button.tagName).toBe('BUTTON');
+    expect(button).toHaveAttribute('type', 'button');
   });
 
-  it('meets the 44px minimum touch target when it is an action', () => {
+  it('meets the 44x44px minimum touch target in both dimensions', () => {
     renderWithTheme(
       <>
         <Card interactive padding="none">
@@ -38,9 +40,13 @@ describe('Card', () => {
     const action = screen.getByRole('button', { name: 'Compact action' });
     const link = screen.getByRole('link', { name: 'Compact link' });
 
+    // WCAG 2.5.5 is 44x44, not 44 tall. The anchor branch has no
+    // `width: 100%`, so a linked card in a shrink-to-content or flex layout
+    // can otherwise render narrower than the target.
     for (const element of [action, link]) {
-      const minHeight = parseInt(getComputedStyle(element).minHeight, 10);
-      expect(minHeight).toBeGreaterThanOrEqual(44);
+      const styles = getComputedStyle(element);
+      expect(parseInt(styles.minHeight, 10)).toBeGreaterThanOrEqual(44);
+      expect(parseInt(styles.minWidth, 10)).toBeGreaterThanOrEqual(44);
     }
   });
 
