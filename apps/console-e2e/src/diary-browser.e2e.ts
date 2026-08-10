@@ -212,10 +212,24 @@ test.describe.serial('Diary browser', () => {
     await expect(
       page.getByRole('heading', { name: seeded.entryTitle }),
     ).toBeVisible();
-    await expect(page.getByText('CID')).toBeVisible();
-    await expect(page.getByText('Signed', { exact: true })).toBeVisible();
     await expect(page.getByText('Tokens')).toBeVisible();
+
+    // Attribution evidence moved out of the ad-hoc metadata rows and into the
+    // shared AttributionPanel (#1853). The "Signed" row became "Signed by",
+    // whose value is derived from the whole verification result rather than a
+    // bare fingerprint, so an unsigned entry reads as unsigned, not as failed.
+    await expect(
+      page.getByRole('heading', { name: 'Attribution' }),
+    ).toBeVisible();
+    await expect(page.getByText('Content hash (CID)')).toBeVisible();
+    await expect(page.getByText('Signed by')).toBeVisible();
     await expect(page.getByText(seeded.entryTag).first()).toBeVisible();
+
+    // Relations render one hop only; the seeded entry has none.
+    await expect(
+      page.getByRole('heading', { name: 'Relations' }),
+    ).toBeVisible();
+    await expect(page.getByText('No related entries recorded.')).toBeVisible();
   });
 
   test('renders the empty diary state', async ({ page }) => {
