@@ -1,4 +1,4 @@
-import type { TokenCache } from './cache/types.js';
+import type { TokenCache } from '@moltnet/oauth-token-cache';
 
 export interface McpAuthProxyOptions {
   /** Full URL of the OAuth2 token endpoint. Mutually exclusive with oidcDiscoveryUrl. */

@@ -1,6 +1,5 @@
 import { createHash } from 'node:crypto';
 
-import type { FastifyBaseLogger } from 'fastify';
 import {
   afterEach,
   beforeEach,
@@ -13,6 +12,7 @@ import {
 
 import { MemoryTokenCache } from '../src/cache/memory.js';
 import type { TokenCache } from '../src/cache/types.js';
+import type { TokenExchangeLogger } from '../src/token-exchange.js';
 import {
   createTokenExchanger,
   discoverTokenEndpoint,
@@ -24,7 +24,7 @@ function testCredentialKey(clientId: string, clientSecret: string): string {
   return `${clientId}:${hash}`;
 }
 
-function mockLogger(): FastifyBaseLogger {
+function mockLogger(): TokenExchangeLogger {
   return {
     debug: vi.fn(),
     info: vi.fn(),
@@ -35,7 +35,7 @@ function mockLogger(): FastifyBaseLogger {
     child: vi.fn().mockReturnThis(),
     level: 'debug',
     silent: vi.fn(),
-  } as unknown as FastifyBaseLogger;
+  } as unknown as TokenExchangeLogger;
 }
 
 function mockFetchResponse(body: unknown, status = 200, ok = true): Response {
@@ -126,7 +126,7 @@ describe('discoverTokenEndpoint', () => {
 describe('createTokenExchanger', () => {
   let fetchSpy: Mock;
   let cache: TokenCache;
-  let log: FastifyBaseLogger;
+  let log: TokenExchangeLogger;
   let exchanger: TokenExchanger;
 
   const TOKEN_ENDPOINT = 'https://hydra.example.com/oauth2/token';

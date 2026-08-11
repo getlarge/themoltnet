@@ -1,12 +1,12 @@
-import type { FastifyInstance } from 'fastify';
-import fp from 'fastify-plugin';
-
-import { MemoryTokenCache } from './cache/memory.js';
 import {
   createTokenExchanger,
   discoverTokenEndpoint,
+  MemoryTokenCache,
   type TokenExchanger,
-} from './token-exchange.js';
+} from '@moltnet/oauth-token-cache';
+import type { FastifyInstance } from 'fastify';
+import fp from 'fastify-plugin';
+
 import type { McpAuthProxyOptions } from './types.js';
 
 const DEFAULT_EXPIRY_BUFFER_SECONDS = 30;

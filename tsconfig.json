@@ -217,6 +217,9 @@
     },
     {
       "path": "libs/agent-eval"
+    },
+    {
+      "path": "libs/oauth-token-cache"
     }
   ]
 }

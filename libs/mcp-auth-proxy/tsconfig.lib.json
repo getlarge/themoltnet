@@ -19,5 +19,9 @@
   ],
   "extends": "./tsconfig.json",
   "include": ["src/**/*.ts"],
-  "references": []
+  "references": [
+    {
+      "path": "../oauth-token-cache/tsconfig.lib.json"
+    }
+  ]
 }

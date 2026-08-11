@@ -1,8 +1,15 @@
 import { createHash } from 'node:crypto';
 
-import type { FastifyBaseLogger } from 'fastify';
-
 import type { CachedToken, TokenCache } from './cache/types.js';
+
+/**
+ * Minimal structural logger. Kept local rather than importing Fastify's so this
+ * package stays framework-agnostic — `FastifyBaseLogger` satisfies it, as does
+ * a bare Pino instance or a test double.
+ */
+export interface TokenExchangeLogger {
+  debug(obj: unknown, msg?: string): void;
+}
 
 function credentialKey(clientId: string, clientSecret: string): string {
   const hash = createHash('sha256').update(clientSecret).digest('hex');
@@ -76,7 +83,7 @@ export interface TokenExchangerConfig {
     maxFailures: number;
     cooldownMs: number;
   };
-  log: FastifyBaseLogger;
+  log: TokenExchangeLogger;
 }
 
 interface FailureEntry {
