@@ -21,8 +21,11 @@
   "nx": {
     "tags": [
       "type:util",
-      "scope:credentials",
-      "platform:isomorphic"
+      "scope:identity",
+      "platform:server"
     ]
+  },
+  "dependencies": {
+    "@moltnet/observability": "workspace:*"
   }
 }

@@ -1,4 +1,7 @@
-import type { TokenCache } from '@moltnet/oauth-token-cache';
+import type {
+  TokenCache,
+  TokenExchangeMetrics,
+} from '@moltnet/oauth-token-cache';
 
 export interface McpAuthProxyOptions {
   /** Full URL of the OAuth2 token endpoint. Mutually exclusive with oidcDiscoveryUrl. */
@@ -13,6 +16,8 @@ export interface McpAuthProxyOptions {
   expiryBufferSeconds?: number;
   /** Custom cache implementation (default: MemoryTokenCache) */
   cache?: TokenCache;
+  /** Override token-exchange metrics (default: OTel-backed instruments). */
+  metrics?: TokenExchangeMetrics;
   /** Header names for client credentials */
   clientHeaderNames?: {
     clientId?: string;

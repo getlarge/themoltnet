@@ -11,11 +11,13 @@ export type {
   CreateMeterProviderOptions,
   MetricAttributes,
   MetricCounter,
+  MetricHistogram,
   MetricUpDownCounter,
 } from './metrics.js';
 export {
   createMeterProvider,
   createMetricCounter,
+  createMetricHistogram,
   createMetricUpDownCounter,
   createRequestMetrics,
 } from './metrics.js';

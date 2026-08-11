@@ -1,4 +1,5 @@
 import {
+  createTokenExchangeMetrics,
   createTokenExchanger,
   discoverTokenEndpoint,
   MemoryTokenCache,
@@ -53,6 +54,8 @@ export const mcpAuthProxyPlugin = fp(
       cache,
       rateLimit: { maxFailures, cooldownMs },
       log: fastify.log,
+      metrics: opts.metrics ?? createTokenExchangeMetrics(),
+      source: 'mcp-proxy',
     });
 
     fastify.addHook('onRequest', async (request, reply) => {
