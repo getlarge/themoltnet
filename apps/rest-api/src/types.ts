@@ -90,11 +90,20 @@ import type { TaskArtifactStorage } from '@moltnet/task-artifact-service';
 
 import type { SecurityOptions } from './app.js';
 import type { PackGcConfig } from './config.js';
+import type { GrantCache } from './routes/oauth2.js';
 import type { TaskService } from './services/task.service.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
     security: SecurityOptions;
+    /**
+     * Evict every cached OAuth2 token grant for a client. Registered by
+     * oauth2Routes; called on credential rotation so the old secret stops
+     * working immediately instead of when the cached token expires.
+     */
+    invalidateOAuth2ClientCache(clientId: string): Promise<void>;
+    /** Shared OAuth2 grant cache, built by oauth2GrantCachePlugin. */
+    oauth2GrantCache: GrantCache;
     diaryService: DiaryService;
     /** Raw entry repository — used only by public feed routes (listPublic, searchPublic, findPublicById) */
     diaryEntryRepository: DiaryEntryRepository;

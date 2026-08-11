@@ -34,6 +34,15 @@ export interface CacheStore<T> {
   get(key: string): Promise<CacheEntry<T> | null>;
   set(key: string, entry: CacheEntry<T>): Promise<void>;
   delete(key: string): Promise<void>;
+  /**
+   * Drop every key starting with `prefix`.
+   *
+   * Exists so a credential change can evict the tokens minted from the old
+   * credential. Without it a rotated client secret keeps working until the
+   * cached token expires, which defeats rotation — a regression an e2e test
+   * caught for real.
+   */
+  deleteByPrefix(prefix: string): Promise<void>;
   close(): Promise<void>;
 }
 

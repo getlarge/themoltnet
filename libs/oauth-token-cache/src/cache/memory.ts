@@ -29,6 +29,12 @@ export class MemoryCacheStore<T> implements CacheStore<T> {
     this.store.delete(key);
   }
 
+  async deleteByPrefix(prefix: string): Promise<void> {
+    for (const key of this.store.keys()) {
+      if (key.startsWith(prefix)) this.store.delete(key);
+    }
+  }
+
   async close(): Promise<void> {
     this.store.clear();
   }

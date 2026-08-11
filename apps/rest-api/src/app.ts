@@ -51,7 +51,7 @@ import { entryRelationRoutes } from './routes/entry-relations.js';
 import { groupRoutes } from './routes/groups.js';
 import { type HealthRouteOptions, healthRoutes } from './routes/health.js';
 import { hookRoutes } from './routes/hooks.js';
-import { oauth2Routes } from './routes/oauth2.js';
+import { oauth2GrantCachePlugin, oauth2Routes } from './routes/oauth2.js';
 import { packRoutes } from './routes/packs.js';
 import { previewSignChallengeRoutes } from './routes/preview-sign-challenges.js';
 import { problemRoutes } from './routes/problems.js';
@@ -479,6 +479,12 @@ export async function registerApiRoutes(
   app.decorate('identityApi', options.oryClients.identity);
 
   // Register routes
+  // Registered before the routes so the rotation decorator is visible to
+  // sibling plugins (see oauth2GrantCachePlugin).
+  await app.register(oauth2GrantCachePlugin, {
+    hydraPublicUrl: options.hydraPublicUrl,
+    redis: options.rateLimitRedis,
+  });
   await app.register(oauth2Routes, {
     hydraPublicUrl: options.hydraPublicUrl,
     // Reuse the rate limiter's client so cached grants survive a deploy and

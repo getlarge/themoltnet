@@ -180,6 +180,10 @@ export async function registrationRoutes(fastify: FastifyInstance) {
           },
         });
         fastify.tokenValidator.evictOAuthClient(clientId);
+        // Evict cached token grants too. Without this the OLD secret keeps
+        // producing 200s from the proxy cache until the token expires, which
+        // defeats rotation entirely (issue #1860).
+        await fastify.invalidateOAuth2ClientCache(clientId);
 
         return {
           clientId,

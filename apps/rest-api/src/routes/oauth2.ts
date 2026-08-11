@@ -35,6 +35,7 @@ import {
   type TokenExchangeMetrics,
 } from '@moltnet/oauth-token-cache';
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
+import fp from 'fastify-plugin';
 import { Type } from 'typebox';
 
 import { createProblem } from '../problems/index.js';
@@ -104,6 +105,38 @@ function sha256(value: string): string {
 }
 
 /**
+ * The client this grant belongs to.
+ *
+ * Under `client_secret_basic` the id is in the Authorization header, not the
+ * body, so reading `body.client_id` alone would leave those entries
+ * un-invalidatable on rotation.
+ */
+function resolveClientId(
+  body: Record<string, string>,
+  authorization: string | undefined,
+): string {
+  if (body.client_id) return body.client_id;
+  if (authorization?.startsWith('Basic ')) {
+    try {
+      const decoded = Buffer.from(
+        authorization.slice('Basic '.length),
+        'base64',
+      ).toString('utf8');
+      const separator = decoded.indexOf(':');
+      return separator === -1 ? decoded : decoded.slice(0, separator);
+    } catch {
+      return '';
+    }
+  }
+  return '';
+}
+
+/** Key prefix owning every cached grant for a client. */
+export function clientCacheKeyPrefix(clientId: string): string {
+  return `${clientId}|`;
+}
+
+/**
  * Cache key for a grant.
  *
  * Every input that can change the resulting token participates, so a token
@@ -120,8 +153,9 @@ function grantCacheKey(
   authorization: string | undefined,
 ): string {
   return [
+    // client id first so rotation can evict a whole client by prefix
+    resolveClientId(body, authorization),
     body.grant_type ?? '',
-    body.client_id ?? '',
     sha256(body.client_secret ?? ''),
     sha256(body.refresh_token ?? ''),
     sha256(body.code ?? ''),
@@ -164,6 +198,52 @@ const OAuth2ErrorResponseSchema = Type.Object(
   { $id: 'OAuth2ErrorResponse', additionalProperties: true },
 );
 
+export type GrantCache = ReturnType<
+  typeof createSingleFlightCache<{
+    status: number;
+    body: HydraResponse;
+    headers: Record<string, string>;
+  }>
+>;
+
+/**
+ * Builds the grant cache and exposes credential-rotation invalidation.
+ *
+ * fastify-plugin wrapped deliberately: a bare `fastify.decorate` inside a
+ * route plugin only decorates that plugin's encapsulated scope, so
+ * `/auth/rotate-secret` — a sibling plugin — could not see it and rotation
+ * silently failed to evict. An e2e test caught that; keep the fp wrapper.
+ */
+export const oauth2GrantCachePlugin = fp(
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async function oauth2GrantCachePluginImpl(
+    fastify: FastifyInstance,
+    options: OAuth2RouteOptions,
+  ) {
+    const metrics = options.metrics ?? createTokenExchangeMetrics();
+    const grantCache: GrantCache = createSingleFlightCache({
+      store: options.redis
+        ? createRedisCacheStore({ client: options.redis })
+        : undefined,
+      metrics,
+      source: 'rest-proxy',
+    });
+
+    fastify.log.info(
+      { store: options.redis ? 'redis' : 'memory' },
+      'OAuth2 grant cache configured',
+    );
+
+    fastify.decorate('oauth2GrantCache', grantCache);
+    fastify.decorate(
+      'invalidateOAuth2ClientCache',
+      (clientId: string): Promise<void> =>
+        grantCache.invalidatePrefix(clientCacheKeyPrefix(clientId)),
+    );
+  },
+  { name: 'oauth2-grant-cache' },
+);
+
 export async function oauth2Routes(
   fastify: FastifyInstance,
   options: OAuth2RouteOptions,
@@ -177,26 +257,7 @@ export async function oauth2Routes(
       maxSeconds: options.refreshGrantCacheSeconds,
     };
   }
-
-  // Expiry, single-flight and cache metrics come from the shared primitive,
-  // the same one the MCP proxy uses. Default store is process-local, so it is
-  // per machine and lost on deploy — pass a Redis-backed CacheStore once
-  // rest-api scales past one instance (issue #1860).
-  const grantCache = createSingleFlightCache<{
-    status: number;
-    body: HydraResponse;
-    headers: Record<string, string>;
-  }>({
-    store: options.redis
-      ? createRedisCacheStore({ client: options.redis })
-      : undefined,
-    metrics,
-    source: 'rest-proxy',
-  });
-  fastify.log.info(
-    { store: options.redis ? 'redis' : 'memory' },
-    'OAuth2 grant cache configured',
-  );
+  const grantCache = fastify.oauth2GrantCache;
 
   // Parse application/x-www-form-urlencoded into a Record<string, string>
   fastify.addContentTypeParser(
@@ -343,7 +404,7 @@ export async function oauth2Routes(
       // actually returns and is what the published OpenAPI documents.
       return reply
         .status(resolved.value.status as 200 | 400 | 401 | 403 | 429 | 500 | 503)
-        .send(payload as HydraResponse);
+        .send(payload);
     },
   );
 }

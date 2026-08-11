@@ -21,6 +21,19 @@ function fakeRedis(): RedisLikeClient & { data: Map<string, string> } {
       data.delete(key);
       return 1;
     }),
+    // Minimal SCAN: one page, MATCH honoured for the trailing-* patterns the
+    // store builds. Enough to exercise the cursor loop.
+    scan: vi.fn(
+      async (
+        _cursor: string,
+        _matchToken: 'MATCH',
+        pattern: string,
+      ): Promise<[string, string[]]> => {
+        const prefix = pattern.endsWith('*') ? pattern.slice(0, -1) : pattern;
+        const keys = [...data.keys()].filter((k) => k.startsWith(prefix));
+        return ['0', keys];
+      },
+    ),
   };
 }
 
@@ -97,6 +110,30 @@ describe('createRedisCacheStore', () => {
 
     // Assert
     expect(await store.get('k')).toBeNull();
+  });
+
+  it('deletes every key under a prefix so a rotated secret stops working', async () => {
+    // Arrange — two grants for the same client, one for another
+    await store.set('client-a|cc|hash1', {
+      value: 'a1',
+      expiresAt: Date.now() + 60_000,
+    });
+    await store.set('client-a|cc|hash2', {
+      value: 'a2',
+      expiresAt: Date.now() + 60_000,
+    });
+    await store.set('client-b|cc|hash3', {
+      value: 'b1',
+      expiresAt: Date.now() + 60_000,
+    });
+
+    // Act
+    await store.deleteByPrefix('client-a|');
+
+    // Assert — only that client's entries go
+    expect(await store.get('client-a|cc|hash1')).toBeNull();
+    expect(await store.get('client-a|cc|hash2')).toBeNull();
+    expect((await store.get('client-b|cc|hash3'))?.value).toBe('b1');
   });
 
   it('does not disconnect the shared client on close', async () => {

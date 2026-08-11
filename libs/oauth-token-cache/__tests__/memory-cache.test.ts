@@ -62,6 +62,21 @@ describe('MemoryCacheStore', () => {
     expect(await store.get('k')).toBeNull();
   });
 
+  it('deletes every key under a prefix, leaving others intact', async () => {
+    // Arrange
+    await store.set('client-a|one', entry('a1'));
+    await store.set('client-a|two', entry('a2'));
+    await store.set('client-b|one', entry('b1'));
+
+    // Act
+    await store.deleteByPrefix('client-a|');
+
+    // Assert
+    expect(await store.get('client-a|one')).toBeNull();
+    expect(await store.get('client-a|two')).toBeNull();
+    expect((await store.get('client-b|one'))?.value).toBe('b1');
+  });
+
   it('clears everything on close', async () => {
     // Arrange
     await store.set('a', entry('1'));

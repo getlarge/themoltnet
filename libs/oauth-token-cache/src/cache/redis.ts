@@ -16,6 +16,13 @@ export interface RedisLikeClient {
     ttlMs: number,
   ): Promise<unknown>;
   del(key: string): Promise<unknown>;
+  scan(
+    cursor: string,
+    matchToken: 'MATCH',
+    pattern: string,
+    countToken: 'COUNT',
+    count: number,
+  ): Promise<[string, string[]]>;
 }
 
 export interface RedisCacheStoreOptions {
@@ -65,6 +72,23 @@ export function createRedisCacheStore<T>(
 
     async delete(key) {
       await client.del(namespaced(key));
+    },
+
+    async deleteByPrefix(keyPrefix) {
+      // SCAN rather than KEYS: KEYS blocks the server, and this runs on the
+      // credential-rotation path where latency is fine but a stall is not.
+      let cursor = '0';
+      do {
+        const [next, found] = await client.scan(
+          cursor,
+          'MATCH',
+          `${namespaced(keyPrefix)}*`,
+          'COUNT',
+          100,
+        );
+        cursor = next;
+        for (const key of found) await client.del(key);
+      } while (cursor !== '0');
     },
 
     async close() {

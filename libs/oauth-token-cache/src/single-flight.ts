@@ -27,6 +27,8 @@ export interface SingleFlightCacheOptions<T> {
 export interface SingleFlightCache<T> {
   resolve(key: string, load: () => Promise<LoadResult<T>>): Promise<Resolved<T>>;
   invalidate(key: string): Promise<void>;
+  /** Evict everything under a key prefix — see CacheStore.deleteByPrefix. */
+  invalidatePrefix(prefix: string): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -103,6 +105,7 @@ export function createSingleFlightCache<T>(
   return {
     resolve,
     invalidate: (key) => store.delete(key),
+    invalidatePrefix: (prefix) => store.deleteByPrefix(prefix),
     close: async () => {
       inFlight.clear();
       await store.close();
