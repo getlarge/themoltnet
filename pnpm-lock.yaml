@@ -1251,6 +1251,9 @@ importers:
       '@moltnet/models':
         specifier: workspace:*
         version: link:../../libs/models
+      '@moltnet/oauth-token-cache':
+        specifier: workspace:*
+        version: link:../../libs/oauth-token-cache
       '@moltnet/observability':
         specifier: workspace:*
         version: link:../../libs/observability

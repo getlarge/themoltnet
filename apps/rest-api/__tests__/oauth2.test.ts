@@ -125,6 +125,9 @@ describe('POST /oauth2/token', () => {
     expect(response.json()).toMatchObject(errorPayload);
   });
 
+  // Distinct credentials per test: the proxy caches successful grants, so
+  // reusing the ids from the happy-path test above would serve from cache and
+  // never reach the upstream-failure path these tests exercise.
   it('returns 502 when Hydra returns invalid JSON', async () => {
     fetchMock.mockResolvedValueOnce({
       status: 200,
@@ -138,7 +141,7 @@ describe('POST /oauth2/token', () => {
       url: '/oauth2/token',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
       payload:
-        'grant_type=client_credentials&client_id=test-id&client_secret=test-secret',
+        'grant_type=client_credentials&client_id=badjson-id&client_secret=badjson-secret',
     });
 
     expect(response.statusCode).toBe(502);
@@ -154,7 +157,7 @@ describe('POST /oauth2/token', () => {
       url: '/oauth2/token',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
       payload:
-        'grant_type=client_credentials&client_id=test-id&client_secret=test-secret',
+        'grant_type=client_credentials&client_id=unreach-id&client_secret=unreach-secret',
     });
 
     expect(response.statusCode).toBe(502);

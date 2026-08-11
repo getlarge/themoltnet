@@ -5,6 +5,17 @@
  * Exists so external callers only need a single domain (api.themolt.net)
  * instead of hitting the Ory Hydra public URL directly.
  *
+ * Successful grants are cached in-process until shortly before they expire,
+ * because every upstream call is a billed Ory M2M token (issue #1860). Two
+ * consequences worth knowing:
+ *
+ * - While a token is cached, Hydra being unreachable no longer produces a 502
+ *   for that client. The cached token is still valid, so this is deliberate
+ *   resilience — but it does mean upstream outages surface later than before.
+ * - Revoking a client at Hydra does not take effect here until the cached
+ *   token expires. Authorization is still enforced downstream on every
+ *   request, so a revoked agent is rejected at the auth chokepoint regardless.
+ *
  * Upstream response schemas follow Ory Hydra's OpenAPI spec:
  * https://www.ory.com/docs/hydra/reference/api
  *
@@ -12,7 +23,13 @@
  * - 4xx: errorOAuth2 — { error, error_description, error_hint?, error_debug?, status_code? }
  */
 
+import { createHash } from 'node:crypto';
+
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
+import {
+  createTokenExchangeMetrics,
+  type TokenExchangeMetrics,
+} from '@moltnet/oauth-token-cache';
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { Type } from 'typebox';
 
@@ -20,6 +37,54 @@ import { createProblem } from '../problems/index.js';
 
 export interface OAuth2RouteOptions extends FastifyPluginOptions {
   hydraPublicUrl: string;
+  /** Seconds shaved off the upstream lifetime so a served token never expires
+   * in the caller's hand. Default 30. */
+  expiryBufferSeconds?: number;
+  /** Override instrumentation (tests). */
+  metrics?: TokenExchangeMetrics;
+}
+
+/** Hydra oauth2TokenExchange success payload. */
+interface HydraTokenSuccess {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  scope?: string;
+  refresh_token?: string;
+  id_token?: string;
+}
+
+/** Hydra errorOAuth2 payload. */
+interface HydraError {
+  error: string;
+  error_description?: string;
+}
+
+type HydraResponse = HydraError | HydraTokenSuccess;
+
+interface CachedGrant {
+  body: HydraTokenSuccess;
+  expiresAt: number;
+}
+
+/**
+ * Cache key for a grant.
+ *
+ * Every parameter that can change the resulting token participates, so a
+ * token minted for one scope, audience or secret can never be served to a
+ * request asking for another. The secret is hashed, never stored.
+ */
+function grantCacheKey(body: Record<string, string>): string {
+  const secretHash = createHash('sha256')
+    .update(body.client_secret ?? '')
+    .digest('hex');
+  return [
+    body.grant_type ?? '',
+    body.client_id ?? '',
+    secretHash,
+    body.scope ?? '',
+    body.audience ?? '',
+  ].join('|');
 }
 
 /**
@@ -59,6 +124,17 @@ export async function oauth2Routes(
 ) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
   const { hydraPublicUrl } = options;
+  const expiryBufferSeconds = options.expiryBufferSeconds ?? 30;
+  const metrics = options.metrics ?? createTokenExchangeMetrics();
+
+  // Process-local. Survives across requests but not restarts, and is per
+  // machine — a Redis-backed store is the follow-up once rest-api scales past
+  // one instance (issue #1860).
+  const tokenCache = new Map<string, CachedGrant>();
+  const inFlightGrants = new Map<
+    string,
+    Promise<{ status: number; body: unknown }>
+  >();
 
   // Parse application/x-www-form-urlencoded into a Record<string, string>
   fastify.addContentTypeParser(
@@ -105,42 +181,104 @@ export async function oauth2Routes(
         });
       }
 
-      // Forward to Hydra as form-encoded
-      const params = new URLSearchParams(body);
-      let upstreamResponse: Response;
-      try {
-        upstreamResponse = await fetch(`${hydraPublicUrl}/oauth2/token`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: params.toString(),
-        });
-      } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        fastify.log.error({ error }, 'Hydra token endpoint unreachable');
-        throw createProblem(
-          'upstream-error',
-          `Token endpoint unreachable: ${message}`,
-        );
+      // Serve an unexpired token for identical credentials and parameters
+      // without touching Hydra. Every upstream call is a billed M2M token
+      // (issue #1860), and the CLI re-authenticates on every process start so
+      // its own in-memory cache never hits.
+      const cacheKey = grantCacheKey(body);
+      const cached = tokenCache.get(cacheKey);
+      if (cached && cached.expiresAt > Date.now()) {
+        metrics.recordCacheAccess('rest-proxy', 'hit');
+        const remaining = Math.floor((cached.expiresAt - Date.now()) / 1000);
+        metrics.recordServedTtl('rest-proxy', remaining);
+        // expires_in must report what is left, not the original lifetime.
+        return reply
+          .status(200)
+          .send({ ...cached.body, expires_in: remaining });
+      }
+      if (cached) tokenCache.delete(cacheKey);
+
+      // Collapse concurrent identical grants into a single upstream call.
+      const inFlight = inFlightGrants.get(cacheKey);
+      if (inFlight) {
+        metrics.recordCacheAccess('rest-proxy', 'single_flight');
+        const shared = await inFlight;
+        return reply
+          .status(shared.status as 200 | 400 | 401)
+          .send(shared.body as HydraResponse);
       }
 
-      let responseBody: unknown;
-      try {
-        responseBody = await upstreamResponse.json();
-      } catch {
-        fastify.log.error('Failed to parse JSON from Hydra token endpoint');
-        throw createProblem(
-          'upstream-error',
-          'Token endpoint returned invalid JSON response',
+      metrics.recordCacheAccess('rest-proxy', 'miss');
+
+      const exchange = (async () => {
+        // Forward to Hydra as form-encoded
+        const params = new URLSearchParams(body);
+        let upstreamResponse: Response;
+        try {
+          upstreamResponse = await fetch(`${hydraPublicUrl}/oauth2/token`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params.toString(),
+          });
+        } catch (error: unknown) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          fastify.log.error({ error }, 'Hydra token endpoint unreachable');
+          metrics.recordExchange('rest-proxy', grantType, 'unavailable');
+          throw createProblem(
+            'upstream-error',
+            `Token endpoint unreachable: ${message}`,
+          );
+        }
+
+        let responseBody: unknown;
+        try {
+          responseBody = await upstreamResponse.json();
+        } catch {
+          fastify.log.error('Failed to parse JSON from Hydra token endpoint');
+          metrics.recordExchange('rest-proxy', grantType, 'unavailable');
+          throw createProblem(
+            'upstream-error',
+            'Token endpoint returned invalid JSON response',
+          );
+        }
+
+        const status = upstreamResponse.status;
+        const grant = responseBody as Record<string, unknown>;
+
+        // Cache successes only. An error response must never be replayed —
+        // rotated credentials have to reach Hydra on the next attempt.
+        if (status === 200 && typeof grant.expires_in === 'number') {
+          tokenCache.set(cacheKey, {
+            body: grant as unknown as HydraTokenSuccess,
+            expiresAt:
+              Date.now() +
+              grant.expires_in * 1_000 -
+              expiryBufferSeconds * 1_000,
+          });
+        }
+        metrics.recordExchange(
+          'rest-proxy',
+          grantType,
+          status === 200 ? 'success' : 'invalid',
         );
+
+        return { status, body: responseBody };
+      })();
+
+      inFlightGrants.set(cacheKey, exchange);
+      let result: { status: number; body: unknown };
+      try {
+        result = await exchange;
+      } finally {
+        inFlightGrants.delete(cacheKey);
       }
 
       // Forward Hydra's status and body transparently.
       // Error responses match Hydra's errorOAuth2 schema, not ProblemDetails.
-      type HydraResponse =
-        | { access_token: string; token_type: string; expires_in: number }
-        | { error: string; error_description?: string };
-      const status = upstreamResponse.status as 200 | 400 | 401;
-      return reply.status(status).send(responseBody as HydraResponse);
+      return reply
+        .status(result.status as 200 | 400 | 401)
+        .send(result.body as HydraResponse);
     },
   );
 }
