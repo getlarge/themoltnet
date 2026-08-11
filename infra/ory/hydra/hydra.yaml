@@ -102,7 +102,9 @@ oidc:
       - team:read
 
 ttl:
-  access_token: 1h
+  # Mirrors services.oauth2.config.ttl.access_token in project.json. Keep these
+  # aligned so e2e exercises production token lifetimes (issue #1860).
+  access_token: 24h
   refresh_token: 720h
   id_token: 1h
   auth_code: 10m
