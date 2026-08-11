@@ -4,8 +4,12 @@ import type {
   DiaryEntryWithRelations,
   DiaryList,
   DiarySearchResult,
+  EntryRelationWithDepth,
   EntryVerifyResult,
+  ExpandedRelations,
   ListDiaryEntriesData,
+  RelationStatus,
+  RelationType,
   SearchDiaryData,
 } from '@moltnet/api-client';
 
@@ -81,5 +85,9 @@ export type {
   DiaryEntryWithRelations,
   DiaryList,
   DiarySearchResult,
+  EntryRelationWithDepth,
   EntryVerifyResult,
+  ExpandedRelations,
+  RelationStatus,
+  RelationType,
 };

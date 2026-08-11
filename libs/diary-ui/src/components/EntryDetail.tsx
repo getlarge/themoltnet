@@ -11,9 +11,10 @@ import type {
   DiaryEntryWithRelations,
   EntryVerifyResult,
 } from '../types.js';
-import { estimateTokenCount, formatDateTime } from '../utils/format.js';
+import { estimateTokenCount } from '../utils/format.js';
+import { AttributionPanel } from './AttributionPanel.js';
 import { ImportanceIndicator } from './ImportanceIndicator.js';
-import { TagChip } from './TagChip.js';
+import { RelationList } from './RelationList.js';
 import { TypeBadge } from './TypeBadge.js';
 
 export interface EntryDetailData {
@@ -69,45 +70,10 @@ export function EntryDetail({
 
           <Stack gap={2}>
             <MetadataRow
-              label="CID"
-              value={entry.contentHash ?? 'Not computed'}
-              mono
-              accent
-            />
-            <MetadataRow
-              label="Signed"
-              value={
-                verification?.signed
-                  ? verification.agentFingerprint
-                    ? `Yes · ${verification.agentFingerprint}`
-                    : 'Yes'
-                  : 'Unsigned'
-              }
-              mono={!!verification?.agentFingerprint}
-              accent={!!verification?.agentFingerprint}
-            />
-            <MetadataRow
-              label="Created"
-              value={formatDateTime(entry.createdAt)}
-            />
-            <MetadataRow
               label="Tokens"
               value={`~${estimateTokenCount(entry.content)}`}
             />
           </Stack>
-
-          {entry.tags && entry.tags.length > 0 && (
-            <Stack gap={2}>
-              <Text variant="overline" color="muted">
-                Tags
-              </Text>
-              <Stack direction="row" gap={2} wrap>
-                {entry.tags.map((tag) => (
-                  <TagChip key={tag} tag={tag} onClick={onTagClick} />
-                ))}
-              </Stack>
-            </Stack>
-          )}
 
           <Divider />
 
@@ -121,72 +87,32 @@ export function EntryDetail({
 
           <Divider />
 
-          <Stack gap={2}>
-            <Text variant="h4">Relations</Text>
-            {entry.relations?.items.length ? (
-              <Stack gap={2}>
-                {entry.relations.items.map((relation) => {
-                  const relatedEntryId =
-                    relation.sourceId === entry.id
-                      ? relation.targetId
-                      : relation.sourceId;
+          <AttributionPanel
+            entry={entry}
+            verification={verification}
+            onTagClick={onTagClick}
+          />
 
-                  return (
-                    <button
-                      key={relation.id}
-                      type="button"
-                      onClick={() => onRelationOpen(relatedEntryId)}
-                      style={{
-                        background: 'transparent',
-                        border: 0,
-                        padding: 0,
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        color: 'inherit',
-                        font: 'inherit',
-                      }}
-                    >
-                      <Card variant="surface" padding="sm">
-                        <Stack direction="row" gap={3} wrap align="center">
-                          <Text>{relation.relation}</Text>
-                          <Text variant="caption" color="muted" mono>
-                            {relatedEntryId}
-                          </Text>
-                        </Stack>
-                      </Card>
-                    </button>
-                  );
-                })}
-              </Stack>
-            ) : (
-              <Text color="muted">No related entries recorded.</Text>
-            )}
-          </Stack>
+          <Divider />
+
+          <RelationList
+            entryId={entry.id}
+            relations={entry.relations?.items}
+            onRelationOpen={onRelationOpen}
+          />
         </Stack>
       </Card>
     </Stack>
   );
 }
 
-function MetadataRow({
-  label,
-  value,
-  mono = false,
-  accent = false,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-  accent?: boolean;
-}) {
+function MetadataRow({ label, value }: { label: string; value: string }) {
   return (
     <Stack direction="row" gap={3} wrap>
       <Text variant="caption" color="muted">
         {label}
       </Text>
-      <Text variant="caption" mono={mono} color={accent ? 'accent' : 'default'}>
-        {value}
-      </Text>
+      <Text variant="caption">{value}</Text>
     </Stack>
   );
 }

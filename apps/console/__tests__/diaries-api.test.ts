@@ -6,6 +6,7 @@ import { createTestWrapper } from './test-query-client.js';
 const mockListDiaries = vi.fn();
 const mockListDiaryEntries = vi.fn();
 const mockListDiaryTags = vi.fn();
+const mockGetDiaryEntryByIdOptions = vi.fn();
 
 vi.mock('@moltnet/api-client', () => ({
   listDiaries: (...args: unknown[]) => mockListDiaries(...args),
@@ -22,10 +23,10 @@ vi.mock('@moltnet/api-client/query', () => ({
     queryKey: ['getDiary'],
     queryFn: vi.fn(),
   })),
-  getDiaryEntryByIdOptions: vi.fn(() => ({
-    queryKey: ['getDiaryEntryById'],
-    queryFn: vi.fn(),
-  })),
+  getDiaryEntryByIdOptions: (...args: unknown[]) => {
+    mockGetDiaryEntryByIdOptions(...args);
+    return { queryKey: ['getDiaryEntryById'], queryFn: vi.fn() };
+  },
   listDiaryEntriesInfiniteOptions: vi.fn(() => ({
     queryKey: ['listDiaryEntries'],
     queryFn: vi.fn(),
@@ -44,7 +45,29 @@ vi.mock('../src/api.js', () => ({
   getApiClient: () => ({}),
 }));
 
-import { useDiarySummaries } from '../src/diaries/hooks.js';
+import { useDiarySummaries, useEntryDetail } from '../src/diaries/hooks.js';
+
+describe('useEntryDetail request contract', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  // `RelationList` filters extra hops locally, so a regression to a deeper
+  // expansion would leave every component test green. `entry_relations` is not
+  // acyclic, so the request itself must stay pinned to one hop.
+  it('requests exactly one hop of relations', () => {
+    renderHook(() => useEntryDetail('diary-1', 'entry-1'), {
+      wrapper: createTestWrapper(),
+    });
+
+    expect(mockGetDiaryEntryByIdOptions).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: { entryId: 'entry-1' },
+        query: { expand: 'relations', depth: 1 },
+      }),
+    );
+  });
+});
 
 describe('useDiarySummaries', () => {
   beforeEach(() => {
