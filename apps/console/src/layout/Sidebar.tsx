@@ -11,6 +11,7 @@ import {
 import {
   Activity,
   BarChart3,
+  BookMarked,
   BookOpen,
   Bot,
   KeyRound,
@@ -99,11 +100,19 @@ const baseGroups: Array<{
     label: 'Knowledge Factory',
     items: [
       {
+        id: 'knowledge',
+        label: 'Knowledge',
+        path: '/knowledge',
+        icon: <BookMarked size={ICON_SIZE} strokeWidth={1.8} />,
+      },
+      {
         id: 'diaries',
         label: 'Diaries',
         path: '/diaries',
         icon: <LibraryBig size={ICON_SIZE} strokeWidth={1.8} />,
       },
+      // `Packs` (/packs, <Boxes/>) is added by the PR that creates PacksPage.
+      // Listing it here first would route to NotFoundPage — dead navigation.
     ],
   },
   {

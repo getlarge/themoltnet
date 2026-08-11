@@ -9,7 +9,11 @@ server {
     location = /config.js {
         default_type application/javascript;
         add_header Cache-Control "no-cache, must-revalidate";
-        return 200 'window.__MOLTNET_CONFIG__={kratosUrl:"${KRATOS_PUBLIC_URL}",apiBaseUrl:"${API_BASE_URL}",consoleUrl:"${CONSOLE_BASE_URL}",signerUrl:"${SIGNER_BASE_URL}"};';
+        # packGcTtlDays mirrors the rest-api's PACK_GC_COMPILE_TTL_DAYS so the
+        # console computes the same retention window the server enforces. Quoted
+        # so an unset var yields "" rather than invalid JS; the client parses it
+        # and falls back. Set it from the same value as the API deployment.
+        return 200 'window.__MOLTNET_CONFIG__={kratosUrl:"${KRATOS_PUBLIC_URL}",apiBaseUrl:"${API_BASE_URL}",consoleUrl:"${CONSOLE_BASE_URL}",signerUrl:"${SIGNER_BASE_URL}",packGcTtlDays:"${PACK_GC_COMPILE_TTL_DAYS}"};';
     }
 
     # Cache hashed assets immutably

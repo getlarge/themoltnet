@@ -215,7 +215,9 @@ out-tsc/
 evals/runs
 tasksmith/verified
 tasksmith/reports
-packs/
+# Repo-root local pack renders only. Anchored: an unanchored `packs/` also
+# matched source directories such as apps/console/src/packs/.
+/packs/
 
 # Python cache files
 __pycache__/

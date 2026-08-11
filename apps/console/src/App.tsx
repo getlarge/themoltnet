@@ -9,6 +9,7 @@ import { DiaryDetailPage } from './pages/DiaryDetailPage.js';
 import { DiaryExplorePage } from './pages/DiaryExplorePage.js';
 import { EntryDetailPage } from './pages/EntryDetailPage.js';
 import { GroupDetailPage } from './pages/GroupDetailPage.js';
+import { KnowledgePage } from './pages/KnowledgePage.js';
 import { NotFoundPage } from './pages/NotFoundPage.js';
 import { OverviewPage } from './pages/OverviewPage.js';
 import { ProfilesPage } from './pages/ProfilesPage.js';
@@ -29,6 +30,7 @@ export function App() {
       <DashboardLayout>
         <Switch>
           <Route path="/" component={OverviewPage} />
+          <Route path="/knowledge" component={KnowledgePage} />
           <Route path="/diaries" component={DiariesPage} />
           <Route path="/diaries/:diaryId/entries/:entryId">
             {(params: { diaryId: string; entryId: string }) => (
