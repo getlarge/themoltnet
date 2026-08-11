@@ -200,6 +200,17 @@ if (!tokenHook?.url) {
 const verificationFailures = [];
 
 function recordFailure(message) {
+  // CodeQL flags this sink because the callers interpolate values reached via
+  // `.oauth2` property accesses, which its heuristic treats as sensitive. The
+  // three call sites pass only a public webhook URL
+  // (services.oauth2.config.oauth2.token_hook.url, committed in project.json),
+  // access-token lifetimes such as "24h" / "24h0m0s", and an HTTP status code.
+  // The one genuine secret in that config —
+  // token_hook.auth.config.value — never reaches this function; it is logged
+  // only as a redacted length. These expected-vs-actual values are the entire
+  // diagnostic payload: the 2026-08-11 outage was identified from
+  // "Expected 24h, got 24h0m0s" (entry e570da85), so they must stay.
+  // codeql[js/clear-text-logging]
   console.error(`VERIFICATION FAILED: ${message}`);
   verificationFailures.push(message);
 }
