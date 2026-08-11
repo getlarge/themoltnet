@@ -162,15 +162,79 @@ if (!projectId) fatal('ORY_PROJECT_ID must be set for --apply');
 if (!apiKey) fatal('ORY_WORKSPACE_API_KEY must be set for --apply');
 
 // ---------------------------------------------------------------------------
-// 4. Push project config via ory CLI
+// 4. Validate the resolved config BEFORE mutating anything in Ory.
+//
+//    These guards only read project.resolved.json, so they belong ahead of
+//    the first write. Running them afterwards means a malformed local config
+//    aborts the deploy midway through, which is how a config assertion took
+//    down authorization on 2026-08-11 (see step 5).
+// ---------------------------------------------------------------------------
+
+const projectForPatch = JSON.parse(readFileSync(outputFile, 'utf8'));
+const oauth2Config = projectForPatch.services?.oauth2?.config;
+const tokenHook = oauth2Config?.oauth2?.token_hook;
+const accessTokenTtl = oauth2Config?.ttl?.access_token;
+
+if (!accessTokenTtl) {
+  fatal(
+    'services.oauth2.config.ttl.access_token not found in project.json. ' +
+      'Access-token lifetime drives billed Ory M2M token volume — a missing ' +
+      'value silently falls back to the Ory Network default (1h), which is ' +
+      'what issue #1860 exists to change. Restore the ttl block.',
+  );
+}
+
+if (!tokenHook?.url) {
+  fatal(
+    'services.oauth2.config.oauth2.token_hook.url not found in project.json. ' +
+      'Without a token_hook, Hydra issues unenriched access tokens (no ' +
+      '`ext.moltnet:identity_id`) and human auth-code logins 401 on every ' +
+      'protected REST API call. Restore the token_hook block in project.json ' +
+      'or remove this guard explicitly if the project no longer needs it.',
+  );
+}
+
+// Verification failures are collected rather than thrown, so that no check can
+// abort the deploy between a destructive write and the write that repairs it.
+// Reported together at the end, which still fails the job.
+const verificationFailures = [];
+
+function recordFailure(message) {
+  console.error(`VERIFICATION FAILED: ${message}`);
+  verificationFailures.push(message);
+}
+
+// ---------------------------------------------------------------------------
+// 5. Push project config, then IMMEDIATELY restore the OPL.
+//
+//    `ory update project` pushes project.json, whose
+//    `services.permission.config` is an empty object — which empties the live
+//    Keto permission config. `ory update opl` is the ONLY thing that puts it
+//    back. Anything that runs between them is inside a window where Keto has
+//    no rules: authentication still succeeds and every authorization check
+//    denies.
+//
+//    On 2026-08-11 a failed access-token TTL assertion sat in that window and
+//    took down all MoltNet authorization for ~25 minutes (run 31488345867).
+//    These two calls must stay adjacent — do not insert steps between them,
+//    and do not introduce a code path that can exit in between.
 // ---------------------------------------------------------------------------
 
 log(`Applying project config to Ory project: ${projectId} ...`);
 ory(['update', 'project', projectId, '--file', outputFile, '--yes']);
 log('Project config applied.\n');
 
+const oplFile = join(__dirname, 'permissions.ts');
+if (existsSync(oplFile)) {
+  log('Applying OPL permissions ...');
+  ory(['update', 'opl', '--project', projectId, '--file', oplFile]);
+  log('OPL permissions applied.\n');
+} else {
+  console.error(`WARNING: OPL file not found at ${oplFile} — skipping.`);
+}
+
 // ---------------------------------------------------------------------------
-// 5. Patch OAuth2 fields that `ory update project` silently strips.
+// 6. Patch OAuth2 fields that `ory update project` silently strips.
 //
 //    The Ory Network API behind `ory update project` whitelists writes:
 //    it accepts the full project JSON, exits 0, prints "Project updated
@@ -239,30 +303,6 @@ function durationSeconds(value) {
   return matched === value.trim().length ? total : Number.NaN;
 }
 
-const projectForPatch = JSON.parse(readFileSync(outputFile, 'utf8'));
-const oauth2Config = projectForPatch.services?.oauth2?.config;
-const tokenHook = oauth2Config?.oauth2?.token_hook;
-const accessTokenTtl = oauth2Config?.ttl?.access_token;
-
-if (!accessTokenTtl) {
-  fatal(
-    'services.oauth2.config.ttl.access_token not found in project.json. ' +
-      'Access-token lifetime drives billed Ory M2M token volume — a missing ' +
-      'value silently falls back to the Ory Network default (1h), which is ' +
-      'what issue #1860 exists to change. Restore the ttl block.',
-  );
-}
-
-if (!tokenHook?.url) {
-  fatal(
-    'services.oauth2.config.oauth2.token_hook.url not found in project.json. ' +
-      'Without a token_hook, Hydra issues unenriched access tokens (no ' +
-      '`ext.moltnet:identity_id`) and human auth-code logins 401 on every ' +
-      'protected REST API call. Restore the token_hook block in project.json ' +
-      'or remove this guard explicitly if the project no longer needs it.',
-  );
-}
-
 log('Patching OAuth2 token_hook + access-token TTL ...');
 log(`  TTL:    access_token=${accessTokenTtl}`);
 log(`  URL:    ${tokenHook.url}`);
@@ -325,8 +365,8 @@ const liveConfig = JSON.parse(liveJson);
 
 const liveUrl = liveConfig?.oauth2?.token_hook?.url;
 if (liveUrl !== tokenHook.url) {
-  fatal(
-    `token_hook verification failed. Expected url=${tokenHook.url}, got ` +
+  recordFailure(
+    `token_hook. Expected url=${tokenHook.url}, got ` +
       `${liveUrl ?? '<missing>'}. The patch may have been silently rejected ` +
       'or the live config drifted. Re-run with debug logging or run ' +
       '`ory get oauth2-config --project <id> --format json` to inspect.',
@@ -335,18 +375,20 @@ if (liveUrl !== tokenHook.url) {
 
 const liveTtl = liveConfig?.ttl?.access_token;
 if (durationSeconds(liveTtl) !== durationSeconds(accessTokenTtl)) {
-  fatal(
-    `access_token TTL verification failed. Expected ${accessTokenTtl}, got ` +
+  recordFailure(
+    `access_token TTL. Expected ${accessTokenTtl}, got ` +
       `${liveTtl ?? '<missing>'}. Hydra is still issuing tokens on the old ` +
       'lifetime, so billed M2M volume is unchanged (issue #1860). Run ' +
       '`ory get oauth2-config --project <id> --format json` to inspect.',
   );
 }
 
-log('OAuth2 token_hook + access-token TTL verified live.\n');
+if (verificationFailures.length === 0) {
+  log('OAuth2 token_hook + access-token TTL verified live.\n');
+}
 
 // ---------------------------------------------------------------------------
-// 6. Sync Account Experience branding
+// 7. Sync Account Experience branding
 //    The ory CLI ignores theme_variables_dark/light, so we sync them via
 //    the console normalized API (JSON Patch + base64-encoded theme JSON).
 // ---------------------------------------------------------------------------
@@ -368,9 +410,14 @@ if (darkKeys > 0 || lightKeys > 0) {
     { headers: { Authorization: `Bearer ${apiKey}` } },
   );
   if (!projectRes.ok) {
-    fatal(`Failed to fetch project revision (HTTP ${projectRes.status})`);
+    recordFailure(
+      `Failed to fetch project revision (HTTP ${projectRes.status}) — ` +
+        'branding not applied.',
+    );
   }
-  const revisionId = (await projectRes.json()).current_revision.id;
+  const revisionId = projectRes.ok
+    ? (await projectRes.json()).current_revision.id
+    : null;
 
   const ops = [];
   if (darkKeys > 0) {
@@ -391,40 +438,45 @@ if (darkKeys > 0 || lightKeys > 0) {
     });
   }
 
-  const patchRes = await fetch(
-    `${CONSOLE_API}/normalized/projects/${projectId}/revision/${revisionId}`,
-    {
-      method: 'PATCH',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
+  if (revisionId) {
+    const patchRes = await fetch(
+      `${CONSOLE_API}/normalized/projects/${projectId}/revision/${revisionId}`,
+      {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(ops),
       },
-      body: JSON.stringify(ops),
-    },
-  );
-
-  if (patchRes.ok) {
-    log('Branding applied.\n');
-  } else {
-    console.error(
-      `WARNING: Branding PATCH returned HTTP ${patchRes.status} — theme may not be updated.`,
     );
+
+    if (patchRes.ok) {
+      log('Branding applied.\n');
+    } else {
+      console.error(
+        `WARNING: Branding PATCH returned HTTP ${patchRes.status} — theme may not be updated.`,
+      );
+    }
   }
 } else {
   log('No theme variables to deploy — skipping branding.\n');
 }
 
 // ---------------------------------------------------------------------------
-// 7. Push OPL permissions
+// 8. Report collected verification failures.
+//
+//    Deliberately last: every write has completed by now, so failing here
+//    cannot leave Ory half-configured. See step 5 for why no check between
+//    the project update and the OPL restore may exit early.
 // ---------------------------------------------------------------------------
 
-const oplFile = join(__dirname, 'permissions.ts');
-if (existsSync(oplFile)) {
-  log('Applying OPL permissions ...');
-  ory(['update', 'opl', '--project', projectId, '--file', oplFile]);
-  log('OPL permissions applied.\n');
-} else {
-  console.error(`WARNING: OPL file not found at ${oplFile} — skipping.`);
+if (verificationFailures.length > 0) {
+  fatal(
+    `${verificationFailures.length} verification check(s) failed after a ` +
+      'fully applied deploy:\n  - ' +
+      verificationFailures.join('\n  - '),
+  );
 }
 
 log('Done.');
