@@ -197,10 +197,28 @@ log('Project config applied.\n');
 //    and need a matching patch step here. Always verify by fetching live
 //    config with `ory get project --format json` after a deploy — do not
 //    trust the success message.
+//
+//    `services.oauth2.config.ttl.access_token` is patched here too. It is
+//    NOT known to be on the strip-list — `webfinger.*` survives, and ttl may
+//    well survive too — but access-token lifetime is the single lever that
+//    controls billed M2M token volume (issue #1860), so it gets the same
+//    patch-then-read-back treatment rather than being trusted to land. The
+//    patch is idempotent when `update project` already wrote the value.
 // ---------------------------------------------------------------------------
 
 const projectForPatch = JSON.parse(readFileSync(outputFile, 'utf8'));
-const tokenHook = projectForPatch.services?.oauth2?.config?.oauth2?.token_hook;
+const oauth2Config = projectForPatch.services?.oauth2?.config;
+const tokenHook = oauth2Config?.oauth2?.token_hook;
+const accessTokenTtl = oauth2Config?.ttl?.access_token;
+
+if (!accessTokenTtl) {
+  fatal(
+    'services.oauth2.config.ttl.access_token not found in project.json. ' +
+      'Access-token lifetime drives billed Ory M2M token volume — a missing ' +
+      'value silently falls back to the Ory Network default (1h), which is ' +
+      'what issue #1860 exists to change. Restore the ttl block.',
+  );
+}
 
 if (!tokenHook?.url) {
   fatal(
@@ -212,7 +230,8 @@ if (!tokenHook?.url) {
   );
 }
 
-log('Patching OAuth2 token_hook (workaround for `update project` strip) ...');
+log('Patching OAuth2 token_hook + access-token TTL ...');
+log(`  TTL:    access_token=${accessTokenTtl}`);
 log(`  URL:    ${tokenHook.url}`);
 log(`  Auth:   ${tokenHook.auth?.type ?? 'api_key'}`);
 if (tokenHook.auth?.config?.in) log(`  In:     ${tokenHook.auth.config.in}`);
@@ -224,6 +243,7 @@ if (tokenHook.auth?.config?.value) {
 }
 
 const patchAdds = [
+  `/ttl/access_token="${accessTokenTtl}"`,
   `/oauth2/token_hook/url="${tokenHook.url}"`,
   `/oauth2/token_hook/auth/type="${tokenHook.auth?.type ?? 'api_key'}"`,
 ];
@@ -254,10 +274,12 @@ const patchArgs = [
 for (const add of patchAdds) patchArgs.push('--add', add);
 ory(patchArgs);
 
-// Verify by fetching the live oauth2 config and checking token_hook.url.
-// `update project` silently strips this field with no warning, so we
-// always read back to confirm the patch landed.
-log('Verifying token_hook landed in live config ...');
+// Verify by fetching the live oauth2 config and checking what we just wrote.
+// `update project` silently strips token_hook with no warning, so we always
+// read back to confirm the patch landed. access_token TTL is read back for
+// the same reason: a silently-rejected value leaves Hydra on the 1h default
+// and quietly restores the M2M token spend this change exists to cut.
+log('Verifying token_hook + access-token TTL landed in live config ...');
 const liveJson = oryStdout([
   'get',
   'oauth2-config',
@@ -267,6 +289,7 @@ const liveJson = oryStdout([
   'json',
 ]);
 const liveConfig = JSON.parse(liveJson);
+
 const liveUrl = liveConfig?.oauth2?.token_hook?.url;
 if (liveUrl !== tokenHook.url) {
   fatal(
@@ -276,7 +299,18 @@ if (liveUrl !== tokenHook.url) {
       '`ory get oauth2-config --project <id> --format json` to inspect.',
   );
 }
-log('OAuth2 token_hook verified live.\n');
+
+const liveTtl = liveConfig?.ttl?.access_token;
+if (liveTtl !== accessTokenTtl) {
+  fatal(
+    `access_token TTL verification failed. Expected ${accessTokenTtl}, got ` +
+      `${liveTtl ?? '<missing>'}. Hydra is still issuing tokens on the old ` +
+      'lifetime, so billed M2M volume is unchanged (issue #1860). Run ' +
+      '`ory get oauth2-config --project <id> --format json` to inspect.',
+  );
+}
+
+log('OAuth2 token_hook + access-token TTL verified live.\n');
 
 // ---------------------------------------------------------------------------
 // 6. Sync Account Experience branding

@@ -488,7 +488,7 @@
           "scope": "wildcard"
         },
         "ttl": {
-          "access_token": "1h",
+          "access_token": "24h",
           "auth_code": "10m",
           "id_token": "1h",
           "login_consent_request": "30m",
