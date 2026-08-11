@@ -210,8 +210,7 @@ function recordFailure(message) {
   // only as a redacted length. These expected-vs-actual values are the entire
   // diagnostic payload: the 2026-08-11 outage was identified from
   // "Expected 24h, got 24h0m0s" (entry e570da85), so they must stay.
-  // codeql[js/clear-text-logging]
-  console.error(`VERIFICATION FAILED: ${message}`);
+  console.error(`VERIFICATION FAILED: ${message}`); // codeql[js/clear-text-logging]
   verificationFailures.push(message);
 }
 
