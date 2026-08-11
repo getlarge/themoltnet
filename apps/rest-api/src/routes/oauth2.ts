@@ -27,9 +27,11 @@ import { createHash } from 'node:crypto';
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import {
+  createRedisCacheStore,
   createSingleFlightCache,
   createTokenExchangeMetrics,
   entryFromExpiresIn,
+  type RedisLikeClient,
   type TokenExchangeMetrics,
 } from '@moltnet/oauth-token-cache';
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
@@ -44,6 +46,8 @@ export interface OAuth2RouteOptions extends FastifyPluginOptions {
   expiryBufferSeconds?: number;
   /** Override instrumentation (tests). */
   metrics?: TokenExchangeMetrics;
+  /** Shared Redis client. Omit to use a process-local store. */
+  redis?: RedisLikeClient | null;
 }
 
 /** Hydra oauth2TokenExchange success payload. */
@@ -131,7 +135,17 @@ export async function oauth2Routes(
   const grantCache = createSingleFlightCache<{
     status: number;
     body: HydraResponse;
-  }>({ metrics, source: 'rest-proxy' });
+  }>({
+    store: options.redis
+      ? createRedisCacheStore({ client: options.redis })
+      : undefined,
+    metrics,
+    source: 'rest-proxy',
+  });
+  fastify.log.info(
+    { store: options.redis ? 'redis' : 'memory' },
+    'OAuth2 grant cache configured',
+  );
 
   // Parse application/x-www-form-urlencoded into a Record<string, string>
   fastify.addContentTypeParser(

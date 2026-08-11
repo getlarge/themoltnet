@@ -1,5 +1,10 @@
 export { MemoryCacheStore } from './cache/memory.js';
 export {
+  createRedisCacheStore,
+  type RedisCacheStoreOptions,
+  type RedisLikeClient,
+} from './cache/redis.js';
+export {
   type CacheEntry,
   type CacheStore,
   entryFromExpiresIn,

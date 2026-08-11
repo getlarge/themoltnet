@@ -481,6 +481,10 @@ export async function registerApiRoutes(
   // Register routes
   await app.register(oauth2Routes, {
     hydraPublicUrl: options.hydraPublicUrl,
+    // Reuse the rate limiter's client so cached grants survive a deploy and
+    // are shared across instances. Falls back to a process-local store when
+    // Redis is unconfigured (issue #1860).
+    redis: options.rateLimitRedis,
   });
   await app.register(hookRoutes);
   await app.register(healthRoutes, {
