@@ -48,7 +48,38 @@ export interface OAuth2RouteOptions extends FastifyPluginOptions {
   metrics?: TokenExchangeMetrics;
   /** Shared Redis client. Omit to use a process-local store. */
   redis?: RedisLikeClient | null;
+  /**
+   * Ceiling on how long a `refresh_token` grant may be served from cache.
+   * Kept deliberately short — see `GRANT_CACHE_POLICY`. Default 60s.
+   */
+  refreshGrantCacheSeconds?: number;
 }
+
+/**
+ * Which grants may be served from cache, and for how long.
+ *
+ * `client_credentials` is cached for the token's full life: the same
+ * credentials always yield an equivalent token, so replaying one leaks
+ * nothing that presenting the credentials again would not.
+ *
+ * `refresh_token` is capped at a short window. Caching it at all trades away
+ * part of Hydra's refresh-token reuse detection: normally a stolen refresh
+ * token rotates the chain and the legitimate client's next refresh trips the
+ * alarm, whereas a cache hit never reaches Hydra and so never rotates. A short
+ * window still collapses retry storms and duplicate refreshes — the actual
+ * source of churn — while keeping that blind spot to seconds rather than the
+ * token's full 24h lifetime. Widen only with metrics showing real refresh
+ * cadence, and treat it as a security decision, not a tuning one.
+ *
+ * `authorization_code` is never cached. The code is single-use by design and
+ * Hydra's reuse detection is a security control; serving a second redemption
+ * from cache would silently defeat it.
+ */
+const GRANT_CACHE_POLICY: Record<string, { maxSeconds?: number } | undefined> =
+  {
+    client_credentials: {},
+    refresh_token: { maxSeconds: 60 },
+  };
 
 /** Hydra oauth2TokenExchange success payload. */
 interface HydraTokenSuccess {
@@ -68,23 +99,35 @@ interface HydraError {
 
 type HydraResponse = HydraError | HydraTokenSuccess;
 
+function sha256(value: string): string {
+  return createHash('sha256').update(value).digest('hex');
+}
+
 /**
  * Cache key for a grant.
  *
- * Every parameter that can change the resulting token participates, so a
- * token minted for one scope, audience or secret can never be served to a
- * request asking for another. The secret is hashed, never stored.
+ * Every input that can change the resulting token participates, so a token
+ * minted for one scope, audience, secret or refresh token can never be served
+ * to a request asking for another.
+ *
+ * The Authorization header is part of the key and not an afterthought: under
+ * `client_secret_basic` and `private_key_jwt` the client's identity lives
+ * there and not in the body, so a key built from the body alone would serve
+ * one client's token to another. Secrets are hashed, never stored.
  */
-function grantCacheKey(body: Record<string, string>): string {
-  const secretHash = createHash('sha256')
-    .update(body.client_secret ?? '')
-    .digest('hex');
+function grantCacheKey(
+  body: Record<string, string>,
+  authorization: string | undefined,
+): string {
   return [
     body.grant_type ?? '',
     body.client_id ?? '',
-    secretHash,
+    sha256(body.client_secret ?? ''),
+    sha256(body.refresh_token ?? ''),
+    sha256(body.code ?? ''),
     body.scope ?? '',
     body.audience ?? '',
+    sha256(authorization ?? ''),
   ].join('|');
 }
 
@@ -116,7 +159,9 @@ const OAuth2ErrorResponseSchema = Type.Object(
     error_debug: Type.Optional(Type.String()),
     status_code: Type.Optional(Type.Number()),
   },
-  { $id: 'OAuth2ErrorResponse' },
+  // additionalProperties so Fastify's serializer cannot strip fields Hydra
+  // sends that we have not enumerated — this is a proxy, not a rewriter.
+  { $id: 'OAuth2ErrorResponse', additionalProperties: true },
 );
 
 export async function oauth2Routes(
@@ -127,6 +172,11 @@ export async function oauth2Routes(
   const { hydraPublicUrl } = options;
   const expiryBufferSeconds = options.expiryBufferSeconds ?? 30;
   const metrics = options.metrics ?? createTokenExchangeMetrics();
+  if (options.refreshGrantCacheSeconds !== undefined) {
+    GRANT_CACHE_POLICY.refresh_token = {
+      maxSeconds: options.refreshGrantCacheSeconds,
+    };
+  }
 
   // Expiry, single-flight and cache metrics come from the shared primitive,
   // the same one the MCP proxy uses. Default store is process-local, so it is
@@ -135,6 +185,7 @@ export async function oauth2Routes(
   const grantCache = createSingleFlightCache<{
     status: number;
     body: HydraResponse;
+    headers: Record<string, string>;
   }>({
     store: options.redis
       ? createRedisCacheStore({ client: options.redis })
@@ -167,44 +218,51 @@ export async function oauth2Routes(
         operationId: 'getOAuth2Token',
         tags: ['auth'],
         description:
-          'Exchange OAuth2 client credentials for an access token. ' +
-          'Only the client_credentials grant type is supported. ' +
-          'Proxies the request to the upstream identity provider.',
+          'OAuth2 token endpoint. Proxies every grant to the upstream ' +
+          'identity provider, which remains the authority on which grants ' +
+          'and client authentication methods are accepted. Successful ' +
+          'client_credentials and refresh_token grants may be served from ' +
+          'cache.',
         consumes: ['application/x-www-form-urlencoded'],
         response: {
           200: OAuth2TokenResponseSchema,
           400: OAuth2ErrorResponseSchema,
           401: OAuth2ErrorResponseSchema,
+          403: OAuth2ErrorResponseSchema,
+          429: OAuth2ErrorResponseSchema,
+          500: OAuth2ErrorResponseSchema,
+          503: OAuth2ErrorResponseSchema,
         },
       },
     },
     async (request, reply) => {
       // Content-type parser already gives us Record<string, string>
       const body = request.body as Record<string, string>;
+      const grantType = body.grant_type ?? '';
+      const authorization = request.headers.authorization;
 
-      const grantType = body.grant_type;
-      if (grantType !== 'client_credentials') {
-        return reply.status(400).send({
-          error: 'unsupported_grant_type',
-          error_description:
-            `Unsupported grant_type "${grantType ?? ''}". ` +
-            'Only client_credentials is supported.',
-        });
-      }
+      // Every grant Hydra supports is forwarded. This endpoint is advertised
+      // as the token endpoint, so an allowlist here would silently break any
+      // grant Hydra gains later; Hydra stays the authority on what is valid.
+      const policy = GRANT_CACHE_POLICY[grantType];
+      const cacheKey = grantCacheKey(body, authorization);
 
-      // Serve an unexpired token for identical credentials and parameters
-      // without touching Hydra. Every upstream call is a billed M2M token
-      // (issue #1860), and the CLI re-authenticates on every process start so
-      // its own in-memory cache never hits.
-      const resolved = await grantCache.resolve(grantCacheKey(body), async () => {
-        // Forward to Hydra as form-encoded
-        const params = new URLSearchParams(body);
+      const resolved = await grantCache.resolve(cacheKey, async () => {
+        const upstreamHeaders: Record<string, string> = {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        };
+        // client_secret_basic and private_key_jwt carry the client's identity
+        // here; dropping it silently broke both.
+        if (authorization) upstreamHeaders.Authorization = authorization;
+        const dpop = request.headers.dpop;
+        if (typeof dpop === 'string') upstreamHeaders.DPoP = dpop;
+
         let upstreamResponse: Response;
         try {
           upstreamResponse = await fetch(`${hydraPublicUrl}/oauth2/token`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: params.toString(),
+            headers: upstreamHeaders,
+            body: new URLSearchParams(body).toString(),
           });
         } catch (error: unknown) {
           const message =
@@ -238,18 +296,31 @@ export async function oauth2Routes(
           status === 200 ? 'success' : 'invalid',
         );
 
-        // Omitting expiresAt tells the cache not to store this. Error
-        // responses must never be replayed — rotated credentials have to
-        // reach Hydra on the next attempt.
-        if (status !== 200 || typeof expiresIn !== 'number') {
-          return { value: { status, body: grant } };
+        // Headers Hydra uses to drive the client's next step must survive the
+        // proxy, or DPoP nonce negotiation and 401 challenges break.
+        const passthroughHeaders: Record<string, string> = {};
+        for (const name of ['dpop-nonce', 'www-authenticate']) {
+          const value = upstreamResponse.headers?.get?.(name);
+          if (value) passthroughHeaders[name] = value;
         }
-        return entryFromExpiresIn(
-          { status, body: grant },
-          expiresIn,
-          expiryBufferSeconds,
-        );
+
+        const value = { status, body: grant, headers: passthroughHeaders };
+
+        // Omitting expiresAt tells the cache not to store this. Errors are
+        // never cached, and neither is any grant outside the policy.
+        if (status !== 200 || typeof expiresIn !== 'number' || !policy) {
+          return { value };
+        }
+        const cappedSeconds =
+          policy.maxSeconds === undefined
+            ? expiresIn
+            : Math.min(expiresIn, policy.maxSeconds);
+        return entryFromExpiresIn(value, cappedSeconds, expiryBufferSeconds);
       });
+
+      for (const [name, value] of Object.entries(resolved.value.headers)) {
+        void reply.header(name, value);
+      }
 
       // A grant served from cache must report the life it has left. A freshly
       // minted one is forwarded verbatim: the token really is valid for the
@@ -265,11 +336,14 @@ export async function oauth2Routes(
             }
           : resolved.value.body;
 
-      // Forward Hydra's status and body transparently.
-      // Error responses match Hydra's errorOAuth2 schema, not ProblemDetails.
+      // Forward Hydra's status and body transparently. Error responses match
+      // Hydra's errorOAuth2 schema, not ProblemDetails.
+      // Cast: Hydra is the authority on status, and Fastify forwards any
+      // numeric code at runtime. The declared set above covers what Hydra
+      // actually returns and is what the published OpenAPI documents.
       return reply
-        .status(resolved.value.status as 200 | 400 | 401)
-        .send(payload);
+        .status(resolved.value.status as 200 | 400 | 401 | 403 | 429 | 500 | 503)
+        .send(payload as HydraResponse);
     },
   );
 }
