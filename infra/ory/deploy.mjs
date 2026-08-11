@@ -206,6 +206,39 @@ log('Project config applied.\n');
 //    patch is idempotent when `update project` already wrote the value.
 // ---------------------------------------------------------------------------
 
+/**
+ * Compare Ory duration strings by value, not by spelling.
+ *
+ * Ory normalises durations on write: `24h` in project.json reads back from the
+ * live config as `24h0m0s`. A string comparison therefore fails on a correctly
+ * applied value, which is exactly what broke the deploy that shipped the 24h
+ * TTL (run 31488345867) — the config had landed, the assertion had not caught
+ * up. Returns NaN for missing or unparseable input so the caller still fails.
+ */
+function durationSeconds(value) {
+  if (typeof value !== 'string' || value.trim() === '') return Number.NaN;
+  const units = {
+    ns: 1e-9,
+    us: 1e-6,
+    µs: 1e-6,
+    ms: 1e-3,
+    s: 1,
+    m: 60,
+    h: 3600,
+  };
+  const pattern = /(\d+(?:\.\d+)?)(ns|us|µs|ms|s|m|h)/g;
+  let total = 0;
+  let matched = 0;
+  let match;
+  while ((match = pattern.exec(value)) !== null) {
+    total += Number(match[1]) * units[match[2]];
+    matched += match[0].length;
+  }
+  // Reject partially-parsed input (e.g. "24hxyz") rather than silently
+  // accepting the prefix.
+  return matched === value.trim().length ? total : Number.NaN;
+}
+
 const projectForPatch = JSON.parse(readFileSync(outputFile, 'utf8'));
 const oauth2Config = projectForPatch.services?.oauth2?.config;
 const tokenHook = oauth2Config?.oauth2?.token_hook;
@@ -301,7 +334,7 @@ if (liveUrl !== tokenHook.url) {
 }
 
 const liveTtl = liveConfig?.ttl?.access_token;
-if (liveTtl !== accessTokenTtl) {
+if (durationSeconds(liveTtl) !== durationSeconds(accessTokenTtl)) {
   fatal(
     `access_token TTL verification failed. Expected ${accessTokenTtl}, got ` +
       `${liveTtl ?? '<missing>'}. Hydra is still issuing tokens on the old ` +
