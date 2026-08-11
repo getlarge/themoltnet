@@ -22,6 +22,7 @@ import {
   getLatestRenderedPackQueryKey,
   getRenderedPackByIdOptions,
   getRenderedPackByIdQueryKey,
+  listContextPacksOptions,
   listContextPacksQueryKey,
   listDiaryPacksOptions,
   listDiaryPacksQueryKey,
@@ -118,6 +119,34 @@ export function isPackQueryKey(queryKey: unknown): boolean {
 export function isRenderedPackQueryKey(queryKey: unknown): boolean {
   const id = queryId(queryKey);
   return id !== undefined && RENDERED_PACK_QUERY_IDS.has(id);
+}
+
+/**
+ * The pack catalog.
+ *
+ * `GET /packs` is team-wide with `diaryId` **optional**, so a cross-diary
+ * catalog is one paginated request — not a per-diary fan-out (Constraint 2).
+ * It has no `expiresAt`/`pinned` filter and no sort, so any lifecycle view has
+ * to page and filter client-side.
+ */
+export function usePacks(options: {
+  diaryId?: string;
+  limit: number;
+  offset: number;
+}) {
+  const headers = useTeamHeaders();
+  return useQuery({
+    ...listContextPacksOptions({
+      client: client(),
+      headers,
+      query: {
+        limit: options.limit,
+        offset: options.offset,
+        ...(options.diaryId ? { diaryId: options.diaryId } : {}),
+      },
+    }),
+    staleTime: 30_000,
+  });
 }
 
 export function useDiaryPacks(diaryId: string) {

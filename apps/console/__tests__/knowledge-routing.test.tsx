@@ -22,6 +22,17 @@ vi.mock('../src/layout/DashboardLayout.js', () => ({
   DashboardLayout: ({ children }: { children: ReactNode }) => children,
 }));
 
+// The route table is under test, not data fetching: stub the pack queries so
+// PacksPage renders without a QueryClient in the tree.
+vi.mock('../src/packs/hooks.js', () => ({
+  usePacks: () => ({
+    isLoading: false,
+    isError: false,
+    data: { items: [], total: 0 },
+  }),
+  usePinPack: () => ({ mutate: vi.fn(), isPending: false, isError: false }),
+}));
+
 import { App } from '../src/App.js';
 
 function renderAt(path: string) {
@@ -50,12 +61,11 @@ describe('/knowledge route', () => {
     expect(screen.queryByText(/not found/i)).not.toBeInTheDocument();
   });
 
-  it('still returns not-found for a route this PR did not add', () => {
-    // /packs arrives with PacksPage; until then it must not silently resolve.
+  it('renders the pack catalog at /packs', () => {
     renderAt('/packs');
 
     expect(
-      screen.queryByRole('heading', { name: /knowledge factory/i }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('heading', { name: /^packs$/i }),
+    ).toBeInTheDocument();
   });
 });
