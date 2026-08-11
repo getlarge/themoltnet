@@ -34,6 +34,11 @@ jobs:
     environment: legreffier
     env:
       OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+      # scripts/action/with-auth.sh hard-requires OLLAMA_BASE_URL (or
+      # OLLAMA_HOST) whenever llm_provider is ollama, and exits 1 before any
+      # analysis runs. It reads them from the job environment — the action has
+      # no input for the endpoint.
+      OLLAMA_BASE_URL: ${{ secrets.OLLAMA_API_KEY != '' && 'https://ollama.com' || '' }}
     steps:
       - name: Mint CodeBoarding sync token
         id: app-token
@@ -53,11 +58,14 @@ jobs:
           # GITHUB_TOKEN so opening/updating that PR triggers required checks.
           sync_strategy: pull_request
           push_token: ${{ steps.app-token.outputs.token }}
-          # CodeBoarding maps llm_api_key to OLLAMA_BASE_URL for this provider;
-          # its engine reads the cloud credential separately from the job env.
+          # llm_api_key must be the credential, not the endpoint:
+          # scripts/action/configure-auth.sh derives the provider env var name
+          # from llm_provider (ollama -> OLLAMA_API_KEY) and writes llm_api_key
+          # into it verbatim. Passing the base URL here set OLLAMA_API_KEY to a
+          # URL and clobbered the real secret.
           # Fall back to the free OIDC tier when the secret is unavailable.
           llm_provider: ${{ secrets.OLLAMA_API_KEY != '' && 'ollama' || 'openrouter' }}
-          llm_api_key: ${{ secrets.OLLAMA_API_KEY != '' && 'https://ollama.com' || '' }}
+          llm_api_key: ${{ secrets.OLLAMA_API_KEY }}
           agent_model: ${{ secrets.OLLAMA_API_KEY != '' && 'gemma4:31b-cloud' || '' }}
           parsing_model: ${{ secrets.OLLAMA_API_KEY != '' && 'gpt-oss:20b-cloud' || '' }}
           # Keep generated output separate from the canonical hand-maintained
