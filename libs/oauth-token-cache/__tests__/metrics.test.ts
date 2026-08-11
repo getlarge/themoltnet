@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { MemoryTokenCache } from '../src/cache/memory.js';
+import { MemoryCacheStore } from '../src/cache/memory.js';
 import type { TokenExchangeMetrics } from '../src/metrics.js';
 import {
   createTokenExchanger,
@@ -46,7 +46,7 @@ describe('token exchange metrics', () => {
       tokenEndpoint: 'https://hydra.example.com/oauth2/token',
       scopes: ['diary:read'],
       expiryBufferSeconds: 30,
-      cache: new MemoryTokenCache(),
+      cache: new MemoryCacheStore<string>(),
       rateLimit: { maxFailures: 5, cooldownMs: 60_000 },
       log: mockLogger(),
       metrics,
@@ -198,7 +198,7 @@ describe('token exchange metrics', () => {
       tokenEndpoint: 'https://hydra.example.com/oauth2/token',
       scopes: ['diary:read'],
       expiryBufferSeconds: 30,
-      cache: new MemoryTokenCache(),
+      cache: new MemoryCacheStore<string>(),
       rateLimit: { maxFailures: 5, cooldownMs: 60_000 },
       log: mockLogger(),
     });

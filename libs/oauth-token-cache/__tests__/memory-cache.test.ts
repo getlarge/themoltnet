@@ -1,82 +1,77 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-import { MemoryTokenCache } from '../src/cache/memory.js';
-import type { CachedToken } from '../src/cache/types.js';
+import { MemoryCacheStore } from '../src/cache/memory.js';
+import type { CacheEntry } from '../src/cache/types.js';
 
-describe('MemoryTokenCache', () => {
-  let cache: MemoryTokenCache;
+describe('MemoryCacheStore', () => {
+  let store: MemoryCacheStore<string>;
+
+  function entry(value: string, expiresAt = Date.now() + 60_000) {
+    return { value, expiresAt } satisfies CacheEntry<string>;
+  }
 
   beforeEach(() => {
-    cache = new MemoryTokenCache();
-    vi.useFakeTimers();
-    vi.setSystemTime(1_000_000);
+    store = new MemoryCacheStore<string>();
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
+  it('stores and returns an entry', async () => {
+    // Arrange
+    const stored = entry('tok');
+
+    // Act
+    await store.set('k', stored);
+
+    // Assert
+    expect(await store.get('k')).toEqual(stored);
   });
 
-  it('should set and get a token', async () => {
-    const token: CachedToken = {
-      token: 'access-token-123',
-      expiresAt: 2_000_000,
-    };
-
-    await cache.set('client-a', token);
-    const result = await cache.get('client-a');
-
-    expect(result).toEqual(token);
+  it('returns null for an unknown key', async () => {
+    // Act + Assert
+    expect(await store.get('missing')).toBeNull();
   });
 
-  it('should return null for expired tokens', async () => {
-    const token: CachedToken = {
-      token: 'expired-token',
-      expiresAt: 500_000,
-    };
+  it('returns expired entries rather than filtering them', async () => {
+    // Arrange — expiry is the cache layer's job, deliberately not the
+    // store's, so the two never compare against different clocks.
+    const expired = entry('stale', Date.now() - 60_000);
+    await store.set('k', expired);
 
-    await cache.set('client-a', token);
-    const result = await cache.get('client-a');
-
-    expect(result).toBeNull();
+    // Act + Assert
+    expect(await store.get('k')).toEqual(expired);
   });
 
-  it('should return null for unknown keys', async () => {
-    const result = await cache.get('unknown-client');
+  it('overwrites an existing entry', async () => {
+    // Arrange
+    await store.set('k', entry('first'));
 
-    expect(result).toBeNull();
+    // Act
+    await store.set('k', entry('second'));
+
+    // Assert
+    expect((await store.get('k'))?.value).toBe('second');
   });
 
-  it('should delete a token', async () => {
-    const token: CachedToken = {
-      token: 'to-delete',
-      expiresAt: 2_000_000,
-    };
+  it('deletes an entry', async () => {
+    // Arrange
+    await store.set('k', entry('tok'));
 
-    await cache.set('client-a', token);
-    await cache.delete('client-a');
-    const result = await cache.get('client-a');
+    // Act
+    await store.delete('k');
 
-    expect(result).toBeNull();
+    // Assert
+    expect(await store.get('k')).toBeNull();
   });
 
-  it('should overwrite existing tokens', async () => {
-    const first: CachedToken = { token: 'first', expiresAt: 2_000_000 };
-    const second: CachedToken = { token: 'second', expiresAt: 3_000_000 };
+  it('clears everything on close', async () => {
+    // Arrange
+    await store.set('a', entry('1'));
+    await store.set('b', entry('2'));
 
-    await cache.set('client-a', first);
-    await cache.set('client-a', second);
-    const result = await cache.get('client-a');
+    // Act
+    await store.close();
 
-    expect(result).toEqual(second);
-  });
-
-  it('should clear all tokens on close', async () => {
-    await cache.set('client-a', { token: 'a', expiresAt: 2_000_000 });
-    await cache.set('client-b', { token: 'b', expiresAt: 2_000_000 });
-
-    await cache.close();
-
-    expect(await cache.get('client-a')).toBeNull();
-    expect(await cache.get('client-b')).toBeNull();
+    // Assert
+    expect(await store.get('a')).toBeNull();
+    expect(await store.get('b')).toBeNull();
   });
 });

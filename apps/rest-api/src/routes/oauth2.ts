@@ -27,7 +27,9 @@ import { createHash } from 'node:crypto';
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import {
+  createSingleFlightCache,
   createTokenExchangeMetrics,
+  entryFromExpiresIn,
   type TokenExchangeMetrics,
 } from '@moltnet/oauth-token-cache';
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
@@ -61,11 +63,6 @@ interface HydraError {
 }
 
 type HydraResponse = HydraError | HydraTokenSuccess;
-
-interface CachedGrant {
-  body: HydraTokenSuccess;
-  expiresAt: number;
-}
 
 /**
  * Cache key for a grant.
@@ -127,14 +124,14 @@ export async function oauth2Routes(
   const expiryBufferSeconds = options.expiryBufferSeconds ?? 30;
   const metrics = options.metrics ?? createTokenExchangeMetrics();
 
-  // Process-local. Survives across requests but not restarts, and is per
-  // machine — a Redis-backed store is the follow-up once rest-api scales past
-  // one instance (issue #1860).
-  const tokenCache = new Map<string, CachedGrant>();
-  const inFlightGrants = new Map<
-    string,
-    Promise<{ status: number; body: unknown }>
-  >();
+  // Expiry, single-flight and cache metrics come from the shared primitive,
+  // the same one the MCP proxy uses. Default store is process-local, so it is
+  // per machine and lost on deploy — pass a Redis-backed CacheStore once
+  // rest-api scales past one instance (issue #1860).
+  const grantCache = createSingleFlightCache<{
+    status: number;
+    body: HydraResponse;
+  }>({ metrics, source: 'rest-proxy' });
 
   // Parse application/x-www-form-urlencoded into a Record<string, string>
   fastify.addContentTypeParser(
@@ -185,32 +182,7 @@ export async function oauth2Routes(
       // without touching Hydra. Every upstream call is a billed M2M token
       // (issue #1860), and the CLI re-authenticates on every process start so
       // its own in-memory cache never hits.
-      const cacheKey = grantCacheKey(body);
-      const cached = tokenCache.get(cacheKey);
-      if (cached && cached.expiresAt > Date.now()) {
-        metrics.recordCacheAccess('rest-proxy', 'hit');
-        const remaining = Math.floor((cached.expiresAt - Date.now()) / 1000);
-        metrics.recordServedTtl('rest-proxy', remaining);
-        // expires_in must report what is left, not the original lifetime.
-        return reply
-          .status(200)
-          .send({ ...cached.body, expires_in: remaining });
-      }
-      if (cached) tokenCache.delete(cacheKey);
-
-      // Collapse concurrent identical grants into a single upstream call.
-      const inFlight = inFlightGrants.get(cacheKey);
-      if (inFlight) {
-        metrics.recordCacheAccess('rest-proxy', 'single_flight');
-        const shared = await inFlight;
-        return reply
-          .status(shared.status as 200 | 400 | 401)
-          .send(shared.body as HydraResponse);
-      }
-
-      metrics.recordCacheAccess('rest-proxy', 'miss');
-
-      const exchange = (async () => {
+      const resolved = await grantCache.resolve(grantCacheKey(body), async () => {
         // Forward to Hydra as form-encoded
         const params = new URLSearchParams(body);
         let upstreamResponse: Response;
@@ -244,41 +216,46 @@ export async function oauth2Routes(
         }
 
         const status = upstreamResponse.status;
-        const grant = responseBody as Record<string, unknown>;
-
-        // Cache successes only. An error response must never be replayed —
-        // rotated credentials have to reach Hydra on the next attempt.
-        if (status === 200 && typeof grant.expires_in === 'number') {
-          tokenCache.set(cacheKey, {
-            body: grant as unknown as HydraTokenSuccess,
-            expiresAt:
-              Date.now() +
-              grant.expires_in * 1_000 -
-              expiryBufferSeconds * 1_000,
-          });
-        }
+        const grant = responseBody as HydraResponse;
+        const expiresIn = (grant as HydraTokenSuccess).expires_in;
         metrics.recordExchange(
           'rest-proxy',
           grantType,
           status === 200 ? 'success' : 'invalid',
         );
 
-        return { status, body: responseBody };
-      })();
+        // Omitting expiresAt tells the cache not to store this. Error
+        // responses must never be replayed — rotated credentials have to
+        // reach Hydra on the next attempt.
+        if (status !== 200 || typeof expiresIn !== 'number') {
+          return { value: { status, body: grant } };
+        }
+        return entryFromExpiresIn(
+          { status, body: grant },
+          expiresIn,
+          expiryBufferSeconds,
+        );
+      });
 
-      inFlightGrants.set(cacheKey, exchange);
-      let result: { status: number; body: unknown };
-      try {
-        result = await exchange;
-      } finally {
-        inFlightGrants.delete(cacheKey);
-      }
+      // A grant served from cache must report the life it has left. A freshly
+      // minted one is forwarded verbatim: the token really is valid for the
+      // lifetime Hydra returned, and our expiry buffer is a cache policy, not
+      // a property of the token.
+      const payload =
+        resolved.origin === 'hit' &&
+        resolved.remainingSeconds !== null &&
+        resolved.value.status === 200
+          ? {
+              ...(resolved.value.body as HydraTokenSuccess),
+              expires_in: resolved.remainingSeconds,
+            }
+          : resolved.value.body;
 
       // Forward Hydra's status and body transparently.
       // Error responses match Hydra's errorOAuth2 schema, not ProblemDetails.
       return reply
-        .status(result.status as 200 | 400 | 401)
-        .send(result.body as HydraResponse);
+        .status(resolved.value.status as 200 | 400 | 401)
+        .send(payload);
     },
   );
 }

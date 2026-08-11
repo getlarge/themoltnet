@@ -1,5 +1,10 @@
-export { MemoryTokenCache } from './cache/memory.js';
-export type { CachedToken, TokenCache } from './cache/types.js';
+export { MemoryCacheStore } from './cache/memory.js';
+export {
+  type CacheEntry,
+  type CacheStore,
+  entryFromExpiresIn,
+  type LoadResult,
+} from './cache/types.js';
 export {
   createTokenExchangeMetrics,
   NOOP_TOKEN_EXCHANGE_METRICS,
@@ -8,6 +13,13 @@ export {
   type TokenExchangeOutcome,
   type TokenExchangeSource,
 } from './metrics.js';
+export {
+  createSingleFlightCache,
+  type Resolved,
+  type ResolveOrigin,
+  type SingleFlightCache,
+  type SingleFlightCacheOptions,
+} from './single-flight.js';
 export {
   createTokenExchanger,
   discoverTokenEndpoint,

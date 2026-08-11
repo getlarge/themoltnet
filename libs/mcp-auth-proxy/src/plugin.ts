@@ -2,7 +2,6 @@ import {
   createTokenExchangeMetrics,
   createTokenExchanger,
   discoverTokenEndpoint,
-  MemoryTokenCache,
   type TokenExchanger,
 } from '@moltnet/oauth-token-cache';
 import type { FastifyInstance } from 'fastify';
@@ -33,7 +32,6 @@ export const mcpAuthProxyPlugin = fp(
       );
     }
 
-    const cache = opts.cache ?? new MemoryTokenCache();
     const expiryBufferSeconds =
       opts.expiryBufferSeconds ?? DEFAULT_EXPIRY_BUFFER_SECONDS;
     const maxFailures = opts.rateLimit?.maxFailures ?? DEFAULT_MAX_FAILURES;
@@ -51,7 +49,7 @@ export const mcpAuthProxyPlugin = fp(
       scopes: opts.scopes,
       audience: opts.audience,
       expiryBufferSeconds,
-      cache,
+      cache: opts.cache,
       rateLimit: { maxFailures, cooldownMs },
       log: fastify.log,
       metrics: opts.metrics ?? createTokenExchangeMetrics(),
@@ -89,9 +87,10 @@ export const mcpAuthProxyPlugin = fp(
       delete request.headers[clientSecretHeader];
     });
 
-    fastify.addHook('onClose', async () => {
+    fastify.addHook('onClose', () => {
+      // Closes the underlying store too, including one supplied via
+      // opts.cache — same ownership as before the shared-cache refactor.
       exchanger.close();
-      await cache.close();
     });
   },
   {

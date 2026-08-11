@@ -1,5 +1,5 @@
 import type {
-  TokenCache,
+  CacheStore,
   TokenExchangeMetrics,
 } from '@moltnet/oauth-token-cache';
 
@@ -14,8 +14,8 @@ export interface McpAuthProxyOptions {
   audience?: string;
   /** Seconds to subtract from token expiry for early refresh (default: 30) */
   expiryBufferSeconds?: number;
-  /** Custom cache implementation (default: MemoryTokenCache) */
-  cache?: TokenCache;
+  /** Custom cache store (default: in-process MemoryCacheStore). */
+  cache?: CacheStore<string>;
   /** Override token-exchange metrics (default: OTel-backed instruments). */
   metrics?: TokenExchangeMetrics;
   /** Header names for client credentials */
