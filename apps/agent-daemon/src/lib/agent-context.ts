@@ -14,6 +14,7 @@ export interface DaemonAgentContext {
   agentDir: string;
   agentRootDir: string;
   agent: Agent;
+  guestCredentialMode: DaemonGuestCredentialMode;
 }
 
 /**
@@ -24,6 +25,28 @@ export interface DaemonAgentContext {
  *   `moltnet.json` client id/secret.
  */
 export type DaemonAuthMode = 'agent-key' | 'oauth2';
+export type DaemonGuestCredentialMode = 'guest-config' | 'host-authenticated';
+
+/**
+ * Agent-key authentication permits a genuinely configless guest, but does not
+ * silently disable a complete local guest setup. A partial setup is rejected
+ * because injecting only half of the credential tree is neither useful nor a
+ * coherent security boundary.
+ */
+export function resolveDaemonGuestCredentialMode(
+  authMode: DaemonAuthMode,
+  agentDir: string,
+): DaemonGuestCredentialMode {
+  if (authMode === 'oauth2') return 'guest-config';
+  const hasConfig = existsSync(join(agentDir, 'moltnet.json'));
+  const hasEnv = existsSync(join(agentDir, 'env'));
+  if (hasConfig && hasEnv) return 'guest-config';
+  if (!hasConfig && !hasEnv) return 'host-authenticated';
+  throw new Error(
+    `Incomplete guest credentials in ${agentDir}: moltnet.json and env must ` +
+      'either both exist or both be absent in agent-key mode.',
+  );
+}
 
 /**
  * Report which auth mode `connect()` will use, without ever reading the secret
@@ -139,8 +162,17 @@ export async function resolveAgentContext(
   if (options.authMode === 'agent-key') {
     const rootDir = roots[0] ?? process.cwd();
     const agentDir = join(rootDir, '.moltnet', agentName);
+    const guestCredentialMode = resolveDaemonGuestCredentialMode(
+      'agent-key',
+      agentDir,
+    );
     const agent = await connect();
-    return { agentDir, agentRootDir: rootDir, agent };
+    return {
+      agentDir,
+      agentRootDir: rootDir,
+      agent,
+      guestCredentialMode,
+    };
   }
 
   for (const rootDir of roots) {
@@ -150,7 +182,12 @@ export async function resolveAgentContext(
         configDir: agentDir,
         secretProviders: createNodeSecretProviderRegistry(),
       });
-      return { agentDir, agentRootDir: rootDir, agent };
+      return {
+        agentDir,
+        agentRootDir: rootDir,
+        agent,
+        guestCredentialMode: 'guest-config',
+      };
     }
   }
 

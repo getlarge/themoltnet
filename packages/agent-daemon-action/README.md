@@ -127,6 +127,13 @@ public-key, fingerprint, and identity fields are neither required nor written
 to disk in this mode. Without `MOLTNET_AGENT_KEY`, the existing OAuth
 materialization path remains unchanged.
 
+> **v0 migration:** agent-key action runs now require
+> `MOLTNET_PRIVATE_KEY`. Earlier revisions allowed API-only invocations without
+> a signing seed, but this action always starts an executor-capable daemon and
+> therefore must attest registration, claim, and completion. Add the matching
+> seed before updating the moving `@v0` tag. Read-only automation that does not
+> execute tasks should invoke the MoltNet CLI or SDK directly instead.
+
 The exception is `MOLTNET_AGENT_ALLOWLIST` — see [Multi-agent
 routing](#multi-agent-routing) below.
 

@@ -171,6 +171,22 @@ describe('createMoltNetAgentResolver', () => {
     expect(connectAgent).toHaveBeenCalledOnce();
     expect(connectAgent).toHaveBeenCalledWith('/repo/.moltnet/agent');
   });
+
+  it('retries the standalone connection after a transient rejection', async () => {
+    const agent = { tasks: {} } as never;
+    const connectAgent = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('temporary network failure'))
+      .mockResolvedValueOnce(agent);
+    const resolveAgent = createMoltNetAgentResolver({
+      configDir: '/repo/.moltnet/agent',
+      connectAgent,
+    });
+
+    await expect(resolveAgent()).rejects.toThrow('temporary network failure');
+    await expect(resolveAgent()).resolves.toBe(agent);
+    expect(connectAgent).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('provider error same-session retry helpers', () => {

@@ -70,6 +70,7 @@ describe('resolveAgentContext', () => {
       const agentDir = join(root, '.moltnet', 'legreffier');
       expect(ctx.agentDir).toBe(agentDir);
       expect(ctx.agentRootDir).toBe(root);
+      expect(ctx.guestCredentialMode).toBe('guest-config');
       expect(connectMock).toHaveBeenCalledWith(
         expect.objectContaining({
           configDir: agentDir,
@@ -97,6 +98,7 @@ describe('resolveAgentContext', () => {
       const agentDir = join(gitRoot, '.moltnet', 'legreffier');
       expect(ctx.agentDir).toBe(agentDir);
       expect(ctx.agentRootDir).toBe(gitRoot);
+      expect(ctx.guestCredentialMode).toBe('guest-config');
       expect(connectMock).toHaveBeenCalledWith(
         expect.objectContaining({ configDir: agentDir }),
       );
@@ -120,8 +122,51 @@ describe('resolveAgentContext', () => {
 
       const agentDir = join(root, '.moltnet', 'legreffier');
       expect(ctx.agentDir).toBe(agentDir);
+      expect(ctx.guestCredentialMode).toBe('host-authenticated');
       expect(connectMock).toHaveBeenCalledWith();
       expect(createNodeSecretProviderRegistryMock).not.toHaveBeenCalled();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('preserves a complete local guest config in agent-key mode', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'daemon-agent-key-configured-'));
+    execFileSyncMock.mockImplementation(() => {
+      throw new Error('not a git repo');
+    });
+
+    try {
+      writeCredentials(root, 'legreffier');
+      const ctx = await resolveAgentContext('legreffier', {
+        agentRootDir: root,
+        authMode: 'agent-key',
+      });
+
+      expect(ctx.guestCredentialMode).toBe('guest-config');
+      expect(connectMock).toHaveBeenCalledWith();
+      expect(createNodeSecretProviderRegistryMock).not.toHaveBeenCalled();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects a partial local guest config in agent-key mode', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'daemon-agent-key-partial-'));
+    const agentDir = join(root, '.moltnet', 'legreffier');
+    mkdirSync(agentDir, { recursive: true });
+    writeFileSync(join(agentDir, 'moltnet.json'), '{}', 'utf8');
+    execFileSyncMock.mockImplementation(() => {
+      throw new Error('not a git repo');
+    });
+
+    try {
+      await expect(
+        resolveAgentContext('legreffier', {
+          agentRootDir: root,
+          authMode: 'agent-key',
+        }),
+      ).rejects.toThrow('moltnet.json and env must either both exist');
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -259,4 +304,5 @@ function writeCredentials(root: string, agentName: string): void {
   const agentDir = join(root, '.moltnet', agentName);
   mkdirSync(agentDir, { recursive: true });
   writeFileSync(join(agentDir, 'moltnet.json'), '{}\n', 'utf8');
+  writeFileSync(join(agentDir, 'env'), '', 'utf8');
 }

@@ -157,4 +157,5 @@ catalog:
   winston: '3.17.0'
   winston-transport: '4.7.0'
   wouter: '^3.7.0'
+  yaml: '^2.8.4'
   zod: '^4.3.6'

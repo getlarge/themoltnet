@@ -37293,7 +37293,7 @@ async function resolveConnection(options) {
 	if (explicitAgentKey) return {
 		mode: "agentKey",
 		agentKey: explicitAgentKey,
-		apiUrl: normalizeApiUrl(options.apiUrl, env.apiUrl)
+		apiUrl: requireAgentKeyApiUrl(options.apiUrl, env.apiUrl)
 	};
 	if (options.clientId && options.clientSecret) return {
 		mode: "oauth2",
@@ -37305,7 +37305,7 @@ async function resolveConnection(options) {
 	if (envAgentKey) return {
 		mode: "agentKey",
 		agentKey: envAgentKey,
-		apiUrl: normalizeApiUrl(options.apiUrl, env.apiUrl)
+		apiUrl: requireAgentKeyApiUrl(options.apiUrl, env.apiUrl)
 	};
 	if (env.clientId && env.clientSecret) return {
 		mode: "oauth2",
@@ -37343,6 +37343,11 @@ async function resolveConnection(options) {
 		};
 	}
 	throw new MoltNetError("No credentials found. Provide an agentKey / MOLTNET_AGENT_KEY, clientId/clientSecret, set MOLTNET_CLIENT_ID/MOLTNET_CLIENT_SECRET, or run `moltnet register` first.", { code: "NO_CREDENTIALS" });
+}
+function requireAgentKeyApiUrl(explicitApiUrl, environmentApiUrl) {
+	const apiUrl = explicitApiUrl?.trim() || environmentApiUrl?.trim();
+	if (!apiUrl) throw new MoltNetError("Agent-key authentication requires an explicit API endpoint. Set apiUrl or MOLTNET_API_URL; agent-key mode does not read moltnet.json.", { code: "INVALID_CONFIG" });
+	return normalizeApiUrl(apiUrl);
 }
 function requireActivatedConfigDir(configDir, activatedCredentialsPath) {
 	if (!configDir || !activatedCredentialsPath) return;

@@ -7,7 +7,10 @@ import {
   ApiTaskSource,
   type TaskExecutor,
 } from '@themoltnet/agent-runtime';
-import { findMainWorktree } from '@themoltnet/pi-runtime';
+import {
+  assertHostAuthenticatedGuestEnvironment,
+  findMainWorktree,
+} from '@themoltnet/pi-runtime';
 
 import { activatePiCodingAgentDir, loadConfig } from '../config.js';
 import { abortActiveAttemptOnSignal } from '../lib/abort-active-attempt.js';
@@ -182,6 +185,12 @@ export async function runOnce(
     tools: preparedRuntime.tools,
     executables: preparedRuntime.executables,
   });
+  if (ctx.guestCredentialMode === 'host-authenticated') {
+    assertHostAuthenticatedGuestEnvironment({
+      forwardEnv: profile.requiredEnv,
+      sandboxEnv: profile.sandboxConfig.env,
+    });
+  }
   await ctx.agent.tasks.registerExecutorManifest(
     await preparedRuntime.attestor.registration(),
   );
@@ -289,6 +298,7 @@ export async function runOnce(
       profileId: profile.id,
       profileSessionTtlSec: profile.sessionTtlSec,
       profileWorkspaceTtlSec: profile.workspaceTtlSec,
+      guestCredentialMode: ctx.guestCredentialMode,
       piAgentDir: piAgentDir.path,
       piAgentDirSource: piAgentDir.source,
     },
@@ -386,7 +396,7 @@ export async function runOnce(
     const rawExecuteTask = preparedRuntime.createTaskExecutor({
       agentName: opts.agent,
       moltnetAgent: ctx.agent,
-      agentConfigMode: cfg.authMode === 'agent-key' ? 'optional' : 'required',
+      guestCredentialMode: ctx.guestCredentialMode,
       agentRootDir: ctx.agentRootDir,
       mountPath: sandbox.rootDir,
       provider: profile.provider,
@@ -398,6 +408,17 @@ export async function runOnce(
       maxOutputTokens: profile.maxOutputTokens,
       sandboxConfig: sandbox.config,
       forwardEnv: profile.requiredEnv,
+      onVmDiagnostic: (diagnostic) => {
+        const fields = {
+          event: diagnostic.event,
+          credentialMode: diagnostic.credentialMode,
+        };
+        if (diagnostic.level === 'warning') {
+          rootLogger.warn(fields, diagnostic.message);
+        } else {
+          rootLogger.info(fields, diagnostic.message);
+        }
+      },
       runtimeProfileContext: profile.context,
       runtimeProfileId: profile.id,
       toolEnforcement: profile.toolEnforcement,

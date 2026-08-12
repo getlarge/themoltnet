@@ -9,7 +9,10 @@ import {
   type ClaimedTask,
   PollingApiTaskSource,
 } from '@themoltnet/agent-runtime';
-import { findMainWorktree } from '@themoltnet/pi-runtime';
+import {
+  assertHostAuthenticatedGuestEnvironment,
+  findMainWorktree,
+} from '@themoltnet/pi-runtime';
 
 import { activatePiCodingAgentDir, loadConfig } from '../config.js';
 import { abortActiveAttemptOnSignal } from '../lib/abort-active-attempt.js';
@@ -270,6 +273,12 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       tools: prepared.tools,
       executables: prepared.executables,
     });
+    if (ctx.guestCredentialMode === 'host-authenticated') {
+      assertHostAuthenticatedGuestEnvironment({
+        forwardEnv: profile.requiredEnv,
+        sandboxEnv: profile.sandboxConfig.env,
+      });
+    }
     await ctx.agent.tasks.registerExecutorManifest(
       await prepared.attestor.registration(),
     );
@@ -405,6 +414,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       authMode: cfg.authMode,
       subjectType: startupWhoami.subjectType,
       boundTeamId: startupWhoami.credentialBinding?.boundTeamId ?? null,
+      guestCredentialMode: ctx.guestCredentialMode,
       taskTypes: taskTypes.length > 0 ? taskTypes : ['*'],
       correlationId: values['correlation-id'] ?? null,
       diaryIds: diaryIds.length > 0 ? diaryIds : ['*'],
@@ -762,8 +772,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         const rawExecuteTask = selected.preparedRuntime.createTaskExecutor({
           agentName: common.agent,
           moltnetAgent: ctx.agent,
-          agentConfigMode:
-            cfg.authMode === 'agent-key' ? 'optional' : 'required',
+          guestCredentialMode: ctx.guestCredentialMode,
           agentRootDir: ctx.agentRootDir,
           mountPath: sandbox.rootDir,
           provider: profile.provider,
@@ -775,6 +784,17 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           maxOutputTokens: profile.maxOutputTokens,
           sandboxConfig: sandbox.config,
           forwardEnv: profile.requiredEnv,
+          onVmDiagnostic: (diagnostic) => {
+            const fields = {
+              event: diagnostic.event,
+              credentialMode: diagnostic.credentialMode,
+            };
+            if (diagnostic.level === 'warning') {
+              taskLogger.warn(fields, diagnostic.message);
+            } else {
+              taskLogger.info(fields, diagnostic.message);
+            }
+          },
           runtimeProfileContext: profile.context,
           runtimeProfileId: profile.id,
           toolEnforcement: profile.toolEnforcement,

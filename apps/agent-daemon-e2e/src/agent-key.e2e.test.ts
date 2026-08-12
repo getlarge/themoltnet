@@ -581,7 +581,7 @@ describe('Agent daemon agent-key auth (e2e)', () => {
     expect(executorOptions).toMatchObject({
       agentName: AGENT_NAME,
       agentRootDir: root,
-      agentConfigMode: 'optional',
+      guestCredentialMode: 'host-authenticated',
     });
     const executorWhoami = await executorOptions?.moltnetAgent?.agents.whoami();
     expect(executorWhoami?.credentialBinding?.boundTeamId).toBe(teamId);

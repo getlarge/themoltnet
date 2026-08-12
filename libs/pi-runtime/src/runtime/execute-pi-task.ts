@@ -99,8 +99,10 @@ import {
 } from '../tool-policy/session-policy.js';
 import {
   activateAgentEnv,
+  type GuestCredentialMode,
   resolveVfsShadowConfig,
   resumeVm,
+  type VmDiagnostic,
 } from '../vm-manager.js';
 import { buildAgentSession } from './agent-session-factory.js';
 import {
@@ -259,8 +261,8 @@ export interface ExecutePiTaskOptions {
   agentName: string;
   /** Already-authenticated host-side Agent. Daemon callers always supply it. */
   moltnetAgent?: Agent;
-  /** Whether guest API config is required, or omitted for host authentication. */
-  agentConfigMode?: 'required' | 'optional';
+  /** Explicit trust boundary for MoltNet credentials inside the guest. */
+  guestCredentialMode?: GuestCredentialMode;
   /**
    * Host root that owns `.moltnet/<agentName>/`.
    *
@@ -318,6 +320,8 @@ export interface ExecutePiTaskOptions {
   promptExtras?: Record<string, unknown>;
   /** Snapshot progress callback; defaults to stderr logging. */
   onSnapshotProgress?: (message: string) => void;
+  /** Structured VM credential-boundary diagnostics. */
+  onVmDiagnostic?: (diagnostic: VmDiagnostic) => void;
   /**
    * Optional pre-resolved checkpoint path. If omitted, `ensureSnapshot` is
    * invoked. Useful for batch execution where the caller wants to cache
@@ -459,11 +463,17 @@ export function createMoltNetAgentResolver(input: {
 }): () => Promise<Agent> {
   let resolved: Promise<Agent> | undefined;
   return () => {
-    resolved ??= input.moltnetAgent
-      ? Promise.resolve(input.moltnetAgent)
-      : (input.connectAgent ?? ((configDir) => connect({ configDir })))(
-          input.configDir,
-        );
+    if (!resolved) {
+      const attempt = input.moltnetAgent
+        ? Promise.resolve(input.moltnetAgent)
+        : (input.connectAgent ?? ((configDir) => connect({ configDir })))(
+            input.configDir,
+          );
+      resolved = attempt.catch((error: unknown) => {
+        resolved = undefined;
+        throw error;
+      });
+    }
     return resolved;
   };
 }
@@ -752,12 +762,13 @@ export async function executePiTask(
             checkpointPath,
             agentName: opts.agentName,
             agentRootDir,
-            agentConfigMode: opts.agentConfigMode,
+            guestCredentialMode: opts.guestCredentialMode,
             mountPath,
             workspaceMode: preparedWorkspace.mode,
             extraAllowedHosts: opts.extraAllowedHosts,
             sandboxConfig: effectiveSandboxConfig,
             forwardEnv: opts.forwardEnv,
+            onDiagnostic: opts.onVmDiagnostic,
             signal: reporter.cancelSignal,
           }),
       );

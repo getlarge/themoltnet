@@ -58,6 +58,18 @@ import {
   resumeVm,
 } from './vm-manager.js';
 
+const HOST_ONLY_ENV_NAMES = [
+  'MOLTNET_AGENT_KEY',
+  'MOLTNET_CLIENT_ID',
+  'MOLTNET_CLIENT_SECRET',
+  'MOLTNET_CREDENTIALS_PATH',
+  'MOLTNET_FINGERPRINT',
+  'MOLTNET_PRIVATE_KEY',
+  'MOLTNET_PUBLIC_KEY',
+  'MOLTNET_GITHUB_APP_PRIVATE_KEY',
+  'DATABASE_URL',
+] as const;
+
 describe('resumeVm task-context mount', () => {
   const tempRoots: string[] = [];
 
@@ -70,9 +82,9 @@ describe('resumeVm task-context mount', () => {
     gondolinMock.createHttpHooks.mockClear();
     delete process.env.MOLTNET_TEST_FORWARD_ME;
     delete process.env.MOLTNET_TEST_DO_NOT_FORWARD;
-    delete process.env.MOLTNET_AGENT_KEY;
-    delete process.env.MOLTNET_PRIVATE_KEY;
-    delete process.env.MOLTNET_CLIENT_SECRET;
+    for (const name of HOST_ONLY_ENV_NAMES) delete process.env[name];
+    delete process.env.MOLTNET_API_URL;
+    delete process.env.OLLAMA_API_KEY;
     for (const root of tempRoots.splice(0)) {
       rmSync(root, { recursive: true, force: true });
     }
@@ -157,47 +169,107 @@ describe('resumeVm task-context mount', () => {
     expect(resumeOptions.env.NODE_OPTIONS).toBe('--dns-result-order=ipv4first');
   });
 
-  it('boots without agent files and excludes MoltNet secrets in optional mode', async () => {
+  it.each(HOST_ONLY_ENV_NAMES)(
+    'refuses host env %s outside the local guest allowlist',
+    async (name) => {
+      const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-refused-env-'));
+      tempRoots.push(root);
+      const workspace = path.join(root, 'workspace');
+      mkdirSync(workspace, { recursive: true });
+      process.env[name] = 'must-not-enter-guest';
+
+      await expect(
+        resumeVm({
+          checkpointPath: path.join(root, 'checkpoint.qcow2'),
+          agentName: 'configless',
+          agentRootDir: root,
+          guestCredentialMode: 'host-authenticated',
+          mountPath: workspace,
+          forwardEnv: [name],
+        }),
+      ).rejects.toThrow(name);
+      expect(gondolinMock.resumeCalls).toHaveLength(0);
+    },
+  );
+
+  it('rejects MoltNet variables supplied through sandbox overrides', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-configless-'));
     tempRoots.push(root);
     const workspace = path.join(root, 'workspace');
     mkdirSync(workspace, { recursive: true });
-    process.env.MOLTNET_AGENT_KEY = 'agent-key-secret';
-    process.env.MOLTNET_PRIVATE_KEY = 'signing-seed-secret';
-    process.env.MOLTNET_CLIENT_SECRET = 'oauth-secret';
+
+    await expect(
+      resumeVm({
+        checkpointPath: path.join(root, 'checkpoint.qcow2'),
+        agentName: 'configless',
+        agentRootDir: root,
+        guestCredentialMode: 'host-authenticated',
+        mountPath: workspace,
+        sandboxConfig: {
+          env: { MOLTNET_FUTURE_SECRET: 'must-not-enter-guest' },
+        },
+      }),
+    ).rejects.toThrow('MOLTNET_FUTURE_SECRET');
+    expect(gondolinMock.resumeCalls).toHaveLength(0);
+  });
+
+  it('injects only allowlisted model env and no agent files in host-authenticated mode', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-host-auth-'));
+    tempRoots.push(root);
+    const workspace = path.join(root, 'workspace');
+    const agentDir = path.join(root, '.moltnet', 'legacy');
+    const sshDir = path.join(agentDir, 'ssh');
+    mkdirSync(workspace, { recursive: true });
+    mkdirSync(sshDir, { recursive: true });
+    writeFileSync(
+      path.join(agentDir, 'moltnet.json'),
+      JSON.stringify({
+        endpoints: { api: 'https://must-not-be-read.invalid' },
+        oauth2: { client_secret: 'oauth-secret' },
+        github: { private_key_path: path.join(agentDir, 'github.pem') },
+      }),
+      'utf8',
+    );
+    writeFileSync(
+      path.join(agentDir, 'env'),
+      'MOLTNET_AGENT_KEY=agent-key-secret\n',
+      'utf8',
+    );
+    writeFileSync(path.join(agentDir, 'gitconfig'), '[user]\nname = Agent\n');
+    writeFileSync(path.join(sshDir, 'id_ed25519'), 'signing-private-key');
+    writeFileSync(path.join(sshDir, 'id_ed25519.pub'), 'signing-public-key');
+    writeFileSync(path.join(sshDir, 'allowed_signers'), 'allowed-signers');
+    writeFileSync(path.join(agentDir, 'github.pem'), 'github-app-private-key');
+    process.env.OLLAMA_API_KEY = 'model-secret';
 
     await resumeVm({
       checkpointPath: path.join(root, 'checkpoint.qcow2'),
-      agentName: 'configless',
+      agentName: 'legacy',
       agentRootDir: root,
-      agentConfigMode: 'optional',
+      guestCredentialMode: 'host-authenticated',
       mountPath: workspace,
-      forwardEnv: [
-        'MOLTNET_AGENT_KEY',
-        'MOLTNET_PRIVATE_KEY',
-        'MOLTNET_CLIENT_SECRET',
-      ],
-      sandboxConfig: {
-        env: {
-          MOLTNET_AGENT_KEY: 'sandbox-agent-key',
-          MOLTNET_PRIVATE_KEY: 'sandbox-seed',
-        },
-      },
+      forwardEnv: ['OLLAMA_API_KEY'],
     });
 
     const resumeOptions = gondolinMock.resumeCalls[0] as {
       env: Record<string, string>;
     };
-    expect(resumeOptions.env).not.toHaveProperty('MOLTNET_AGENT_KEY');
-    expect(resumeOptions.env).not.toHaveProperty('MOLTNET_PRIVATE_KEY');
-    expect(resumeOptions.env).not.toHaveProperty('MOLTNET_CLIENT_SECRET');
+    expect(resumeOptions.env.OLLAMA_API_KEY).toBe('model-secret');
     const writtenPaths = gondolinMock.vm.fs.writeFile.mock.calls.map(
       ([filePath]) => String(filePath),
     );
-    expect(writtenPaths).not.toContain(
-      '/home/agent/.moltnet/configless/moltnet.json',
+    expect(writtenPaths).not.toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('/home/agent/.moltnet/'),
+      ]),
     );
-    expect(writtenPaths).not.toContain('/home/agent/.moltnet/configless/env');
+    expect(
+      (gondolinMock.vm.exec.mock.calls as unknown[][]).map(([command]) =>
+        String(command),
+      ),
+    ).not.toEqual(
+      expect.arrayContaining([expect.stringContaining('.moltnet')]),
+    );
   });
 
   it('ignores existing API credential files in host-authenticated mode', () => {
@@ -219,11 +291,16 @@ describe('resumeVm task-context mount', () => {
       'utf8',
     );
 
-    const credentials = loadCredentials(agentDir, 'optional');
+    const credentials = loadCredentials(agentDir, 'host-authenticated');
 
-    expect(credentials.moltnetJson).toBeNull();
-    expect(credentials.agentEnvRaw).toBeNull();
+    expect(credentials.moltnetJson).toBe('');
+    expect(credentials.agentEnvRaw).toBe('');
     expect(credentials.agentEnv).toEqual({});
+    expect(credentials.gitconfig).toBeNull();
+    expect(credentials.sshPrivateKey).toBeNull();
+    expect(credentials.sshPublicKey).toBeNull();
+    expect(credentials.allowedSigners).toBeNull();
+    expect(credentials.githubAppPem).toBeNull();
   });
 
   it('keeps agent files required by default', async () => {
@@ -285,6 +362,30 @@ describe('resumeVm task-context mount', () => {
       ]),
       allowedInternalHosts: ['onboard-api.internal'],
     });
+  });
+
+  it('protects the env-configured MoltNet API host without guest config', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-api-host-'));
+    tempRoots.push(root);
+    const workspace = path.join(root, 'workspace');
+    mkdirSync(workspace, { recursive: true });
+    process.env.MOLTNET_API_URL = 'https://api.local.example';
+
+    await expect(
+      resumeVm({
+        checkpointPath: path.join(root, 'checkpoint.qcow2'),
+        agentName: 'configless',
+        agentRootDir: root,
+        guestCredentialMode: 'host-authenticated',
+        mountPath: workspace,
+        sandboxConfig: {
+          network: { allowedInternalHosts: ['*.local.example'] },
+        },
+      }),
+    ).rejects.toThrow(
+      'pattern "*.local.example" overlaps external-only host pattern "api.local.example"',
+    );
+    expect(gondolinMock.createHttpHooks).not.toHaveBeenCalled();
   });
 
   it.each([

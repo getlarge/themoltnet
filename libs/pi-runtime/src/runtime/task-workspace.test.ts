@@ -23,6 +23,7 @@ function repository(): { root: string; first: string; second: string } {
   execFileSync('git', ['init', '-b', 'main', root]);
   execFileSync('git', ['-C', root, 'config', 'user.name', 'Test']);
   execFileSync('git', ['-C', root, 'config', 'user.email', 'test@example.com']);
+  execFileSync('git', ['-C', root, 'config', 'commit.gpgsign', 'false']);
   writeFileSync(join(root, 'file.txt'), 'first\n');
   execFileSync('git', ['-C', root, 'add', 'file.txt']);
   execFileSync('git', ['-C', root, 'commit', '-m', 'first']);

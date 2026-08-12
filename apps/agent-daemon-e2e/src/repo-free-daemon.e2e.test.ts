@@ -190,7 +190,7 @@ describe('Agent daemon repo-free execution (e2e)', () => {
 
     expect(createPiTaskExecutorMock).toHaveBeenCalledTimes(1);
     const executorOptions = createPiTaskExecutorMock.mock.calls[0]?.[0] as {
-      agentConfigMode: 'required' | 'optional';
+      guestCredentialMode: 'guest-config' | 'host-authenticated';
       agentName: string;
       agentRootDir: string;
       mountPath: string;
@@ -201,7 +201,7 @@ describe('Agent daemon repo-free execution (e2e)', () => {
     expect(executorOptions).toMatchObject({
       agentName,
       agentRootDir: agentRoot,
-      agentConfigMode: 'required',
+      guestCredentialMode: 'guest-config',
       mountPath: agentRoot,
       provider: 'anthropic',
       model: 'claude-sonnet-4-5',
