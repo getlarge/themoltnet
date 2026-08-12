@@ -45,6 +45,7 @@ import {
   openVmWorkspaceFileForRead,
   promptUntilSubmitted,
   promptWithProviderErrorRetries,
+  resolveHostExecBaseEnv,
   resolveSubmitMissingConfig,
   sanitizeProviderErrorRetryReason,
   type SessionSubscribeEvent,
@@ -53,6 +54,35 @@ import {
   submitRepromptStopped,
   wireSessionAbort,
 } from './execute-pi-task.js';
+
+describe('resolveHostExecBaseEnv', () => {
+  it('withholds credential paths from trusted host exec in configless mode', () => {
+    const env = resolveHostExecBaseEnv('host-authenticated', {
+      MOLTNET_AGENT_KEY: 'secret',
+      GIT_CONFIG_GLOBAL: '/credentials/gitconfig',
+      SSH_AUTH_SOCK: '/tmp/agent.sock',
+      OPENAI_BASE_URL: 'https://models.example.test',
+    });
+
+    expect(env).not.toContain('MOLTNET_AGENT_KEY');
+    expect(env).not.toContain('MOLTNET_CREDENTIALS_PATH');
+    expect(env).not.toContain('GIT_CONFIG_GLOBAL');
+    expect(env).not.toContain('SSH_AUTH_SOCK');
+    expect(env).toContain('OPENAI_BASE_URL');
+    expect(env).toContain('GIT_AUTHOR_NAME');
+  });
+
+  it('retains the legacy credential-bearing host exec env in guest-config mode', () => {
+    const env = resolveHostExecBaseEnv('guest-config', {
+      MOLTNET_AGENT_KEY: 'secret',
+    });
+
+    expect(env).toContain('MOLTNET_AGENT_KEY');
+    expect(env).toContain('MOLTNET_CREDENTIALS_PATH');
+    expect(env).toContain('GIT_CONFIG_GLOBAL');
+    expect(env).toContain('SSH_AUTH_SOCK');
+  });
+});
 import {
   __resetTaskOutputCounterForTests,
   extractJsonObject,

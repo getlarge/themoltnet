@@ -431,29 +431,66 @@ const HOST_AUTHENTICATED_GUEST_ENV_ALLOWLIST = new Set([
   'LINEAR_API_KEY',
 ]);
 
-function isProtectedAgentEnvironmentName(name: string): boolean {
-  return name.startsWith('MOLTNET_') || name === 'GIT_CONFIG_GLOBAL';
+const RESERVED_GUEST_ENVIRONMENT_NAMES = new Set([
+  'PATH',
+  'HOME',
+  'NODE_EXTRA_CA_CERTS',
+  'MOLTNET_GUEST_WORKSPACE',
+  'GIT_SSH',
+  'GIT_SSH_COMMAND',
+  'SSH_AUTH_SOCK',
+]);
+
+function isReservedGuestEnvironmentName(name: string): boolean {
+  return (
+    name.startsWith('MOLTNET_') ||
+    name.startsWith('GIT_CONFIG_') ||
+    RESERVED_GUEST_ENVIRONMENT_NAMES.has(name)
+  );
 }
 
-export function assertHostAuthenticatedGuestEnvironment(options: {
+export class GuestEnvironmentBoundaryError extends Error {
+  constructor(public readonly refusedNames: readonly string[]) {
+    super(
+      'Guest credential boundary refuses runtime-controlled environment ' +
+        `variables: ${refusedNames.join(', ')}. Remove them from the runtime ` +
+        'profile; MoltNet operations use the trusted host-side Agent.',
+    );
+    this.name = 'GuestEnvironmentBoundaryError';
+  }
+}
+
+export function assertGuestEnvironmentBoundary(options: {
+  guestCredentialMode: GuestCredentialMode;
   forwardEnv?: readonly string[];
   sandboxEnv?: Readonly<Record<string, string>>;
 }): void {
   const refusedForwardEnv = (options.forwardEnv ?? []).filter(
-    (name) => !HOST_AUTHENTICATED_GUEST_ENV_ALLOWLIST.has(name),
+    (name) =>
+      isReservedGuestEnvironmentName(name) ||
+      (options.guestCredentialMode === 'host-authenticated' &&
+        !HOST_AUTHENTICATED_GUEST_ENV_ALLOWLIST.has(name)),
   );
   const refusedSandboxEnv = Object.keys(options.sandboxEnv ?? {}).filter(
-    isProtectedAgentEnvironmentName,
+    isReservedGuestEnvironmentName,
   );
-  const refused = [...new Set([...refusedForwardEnv, ...refusedSandboxEnv])];
+  const refused = [
+    ...new Set([...refusedForwardEnv, ...refusedSandboxEnv]),
+  ].sort();
   if (refused.length > 0) {
-    throw new Error(
-      'Host-authenticated guest mode refuses environment variables outside ' +
-        `the local guest allowlist: ${refused.sort().join(', ')}. ` +
-        'Remove them from the runtime profile; MoltNet operations use the ' +
-        'trusted host-side Agent.',
-    );
+    throw new GuestEnvironmentBoundaryError(refused);
   }
+}
+
+/** @deprecated Prefer assertGuestEnvironmentBoundary for mode-aware checks. */
+export function assertHostAuthenticatedGuestEnvironment(options: {
+  forwardEnv?: readonly string[];
+  sandboxEnv?: Readonly<Record<string, string>>;
+}): void {
+  assertGuestEnvironmentBoundary({
+    guestCredentialMode: 'host-authenticated',
+    ...options,
+  });
 }
 
 /**
@@ -573,12 +610,11 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       `Agent directory not found: ${agentDir}. Run: moltnet register --name ${config.agentName}`,
     );
   }
-  if (guestCredentialMode === 'host-authenticated') {
-    assertHostAuthenticatedGuestEnvironment({
-      forwardEnv: config.forwardEnv,
-      sandboxEnv: config.sandboxConfig?.env,
-    });
-  }
+  assertGuestEnvironmentBoundary({
+    guestCredentialMode,
+    forwardEnv: config.forwardEnv,
+    sandboxEnv: config.sandboxConfig?.env,
+  });
   config.onDiagnostic?.({
     event: 'vm.credentials.mode',
     level: 'info',
@@ -672,6 +708,14 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     workspaceProvider = new ShadowProvider(workspaceProvider, {
       shouldShadow: predicate,
       writeMode: vfsConfig.mode,
+    });
+  }
+  if (guestCredentialMode === 'host-authenticated') {
+    workspaceProvider = new ShadowProvider(workspaceProvider, {
+      shouldShadow: ({ path: shadowPath }) =>
+        shadowPath.split('/').includes('.moltnet'),
+      denySymlinkBypass: true,
+      writeMode: 'deny',
     });
   }
 

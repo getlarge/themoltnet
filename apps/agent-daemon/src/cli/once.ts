@@ -8,7 +8,7 @@ import {
   type TaskExecutor,
 } from '@themoltnet/agent-runtime';
 import {
-  assertHostAuthenticatedGuestEnvironment,
+  assertGuestEnvironmentBoundary,
   findMainWorktree,
 } from '@themoltnet/pi-runtime';
 
@@ -136,6 +136,7 @@ export async function runOnce(
       const resolvedContext = await resolveAgentContext(initialOpts.agent, {
         agentRootDir,
         authMode: cfg.authMode,
+        guestCredentialMode: values['guest-credential-mode'],
       });
       // Authenticate and validate team binding before resolving signing
       // material, consistently with poll/drain.
@@ -185,12 +186,11 @@ export async function runOnce(
     tools: preparedRuntime.tools,
     executables: preparedRuntime.executables,
   });
-  if (ctx.guestCredentialMode === 'host-authenticated') {
-    assertHostAuthenticatedGuestEnvironment({
-      forwardEnv: profile.requiredEnv,
-      sandboxEnv: profile.sandboxConfig.env,
-    });
-  }
+  assertGuestEnvironmentBoundary({
+    guestCredentialMode: ctx.guestCredentialMode,
+    forwardEnv: profile.requiredEnv,
+    sandboxEnv: profile.sandboxConfig.env,
+  });
   await ctx.agent.tasks.registerExecutorManifest(
     await preparedRuntime.attestor.registration(),
   );

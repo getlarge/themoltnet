@@ -61,16 +61,6 @@ import {
   HOST_EXEC_DEFAULT_BASE_ENV,
   type HostExecAutoApproveConfig,
 } from '../moltnet/tools.js';
-
-export const GONDOLIN_TOOL_NAMES = [
-  'read',
-  'write',
-  'edit',
-  'bash',
-  'ls',
-  'find',
-  'grep',
-] as const;
 import {
   enabledPiToolNames,
   filterModelVisibleTools,
@@ -104,6 +94,41 @@ import {
   resumeVm,
   type VmDiagnostic,
 } from '../vm-manager.js';
+
+export const GONDOLIN_TOOL_NAMES = [
+  'read',
+  'write',
+  'edit',
+  'bash',
+  'ls',
+  'find',
+  'grep',
+] as const;
+
+const HOST_AUTHENTICATED_HOST_EXEC_REFUSED_ENV = new Set([
+  'GIT_CONFIG_GLOBAL',
+  'MOLTNET_CREDENTIALS_PATH',
+  'SSH_AUTH_SOCK',
+]);
+
+export function resolveHostExecBaseEnv(
+  guestCredentialMode: GuestCredentialMode,
+  agentEnv: Readonly<Record<string, string | undefined>>,
+): Set<string> {
+  const names = new Set([
+    ...HOST_EXEC_DEFAULT_BASE_ENV,
+    ...Object.keys(agentEnv),
+  ]);
+  if (guestCredentialMode === 'host-authenticated') {
+    for (const name of HOST_AUTHENTICATED_HOST_EXEC_REFUSED_ENV) {
+      names.delete(name);
+    }
+    for (const name of names) {
+      if (name.startsWith('MOLTNET_')) names.delete(name);
+    }
+  }
+  return names;
+}
 import { buildAgentSession } from './agent-session-factory.js';
 import {
   discoverGuestExecutables,
@@ -988,10 +1013,10 @@ export async function executePiTask(
       const moltnetAgent = await getMoltNetAgent();
       // Build the host-exec env allowlist: default keys + all agent env keys
       // (MOLTNET_*, GIT_CONFIG_GLOBAL, etc. set by activateAgentEnv).
-      const hostExecBaseEnv = new Set([
-        ...HOST_EXEC_DEFAULT_BASE_ENV,
-        ...Object.keys(managed.credentials.agentEnv),
-      ]);
+      const hostExecBaseEnv = resolveHostExecBaseEnv(
+        opts.guestCredentialMode ?? 'guest-config',
+        managed.credentials.agentEnv,
+      );
       const moltnetTools = createMoltNetTools({
         getAgent: () => moltnetAgent,
         getDiaryId: () => diaryId,

@@ -270,6 +270,7 @@ runs:
           echo "::error::MOLTNET_AGENT_NAME is required (set as env on the caller step or pass agent-name input)" >&2
           exit 1
         fi
+        export MOLTNET_API_URL="${MOLTNET_API_URL:-https://api.themolt.net}"
         AGENT_DIR="$GITHUB_WORKSPACE/.moltnet/$MOLTNET_AGENT_NAME"
         if [ -n "${MOLTNET_AGENT_KEY:-}" ]; then
           if [ -z "${MOLTNET_PRIVATE_KEY:-}" ]; then
@@ -283,6 +284,7 @@ runs:
           {
             echo "MOLTNET_AGENT_DIR=$AGENT_DIR"
             echo "MOLTNET_AGENT_NAME=$MOLTNET_AGENT_NAME"
+            echo "MOLTNET_API_URL=$MOLTNET_API_URL"
           } >> "$GITHUB_ENV"
           echo "::notice::Using configless MoltNet agent-key authentication"
           exit 0

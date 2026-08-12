@@ -20,6 +20,7 @@ export {
   type ProviderErrorRetryEvent,
   type ProviderErrorRetryLevel,
   type ProviderErrorRetryUi,
+  resolveHostExecBaseEnv,
   resolveTaskWorktreePath,
   type TurnEventHandlerFactory,
 } from './runtime/execute-pi-task.js';
@@ -127,8 +128,10 @@ export type {
 } from './vm-manager.js';
 export {
   activateAgentEnv,
+  assertGuestEnvironmentBoundary,
   assertHostAuthenticatedGuestEnvironment,
   findMainWorktree,
   loadCredentials,
   resumeVm,
 } from './vm-manager.js';
+export { GuestEnvironmentBoundaryError } from './vm-manager.js';

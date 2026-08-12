@@ -46,6 +46,15 @@ function runNode(script: string, args: string[], env: NodeJS.ProcessEnv = {}) {
 }
 
 describe('Nx release configuration', () => {
+  it('keeps breaking pre-1.0 SDK changes on minor releases', () => {
+    expect(releasePleaseConfig.packages['libs/sdk']).toMatchObject({
+      'bump-minor-pre-major': true,
+    });
+    expect(releasePleaseConfig.packages['libs/pi-runtime']).toMatchObject({
+      'bump-minor-pre-major': true,
+    });
+  });
+
   it('keeps independent projects in stable artifact-type groups', () => {
     expect(nxConfig.release.groups['npm-packages']).toMatchObject({
       projectsRelationship: 'independent',

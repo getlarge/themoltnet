@@ -10,8 +10,9 @@ import {
   PollingApiTaskSource,
 } from '@themoltnet/agent-runtime';
 import {
-  assertHostAuthenticatedGuestEnvironment,
+  assertGuestEnvironmentBoundary,
   findMainWorktree,
+  GuestEnvironmentBoundaryError,
 } from '@themoltnet/pi-runtime';
 
 import { activatePiCodingAgentDir, loadConfig } from '../config.js';
@@ -218,6 +219,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       const resolvedContext = await resolveAgentContext(baseCommon.agent, {
         agentRootDir,
         authMode: cfg.authMode,
+        guestCredentialMode: values['guest-credential-mode'],
       });
       // Fail fast, before polling, on a rejected or wrong-team credential.
       gate = 'authenticate_and_bind';
@@ -255,7 +257,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       throw error;
     }
   })();
-  const profiles = await resolveRuntimeProfiles({
+  const resolvedProfiles = await resolveRuntimeProfiles({
     agent: ctx.agent,
     profiles: profileValues,
     teamId,
@@ -263,26 +265,42 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   });
   const runtimeAdapter = opts.runtimeAdapter ?? defaultPiDaemonAdapter;
   const preparedRuntimes = new Map<string, AttestedDaemonRuntime>();
-  for (const profile of profiles) {
-    assertRuntimeAdapterSupportsProfile(runtimeAdapter, profile);
-    const prepared = attestPreparedRuntime(
-      await runtimeAdapter.prepare({ profile }),
-      signingPrivateKey,
-    );
-    validateRuntimeProfilePrerequisites(profile, cfg.profilePrerequisiteEnv, {
-      tools: prepared.tools,
-      executables: prepared.executables,
-    });
-    if (ctx.guestCredentialMode === 'host-authenticated') {
-      assertHostAuthenticatedGuestEnvironment({
+  const profiles: typeof resolvedProfiles = [];
+  const skippedProfileBoundaries: Array<{
+    profile: (typeof resolvedProfiles)[number];
+    error: GuestEnvironmentBoundaryError;
+  }> = [];
+  for (const profile of resolvedProfiles) {
+    try {
+      assertRuntimeAdapterSupportsProfile(runtimeAdapter, profile);
+      const prepared = attestPreparedRuntime(
+        await runtimeAdapter.prepare({ profile }),
+        signingPrivateKey,
+      );
+      validateRuntimeProfilePrerequisites(profile, cfg.profilePrerequisiteEnv, {
+        tools: prepared.tools,
+        executables: prepared.executables,
+      });
+      assertGuestEnvironmentBoundary({
+        guestCredentialMode: ctx.guestCredentialMode,
         forwardEnv: profile.requiredEnv,
         sandboxEnv: profile.sandboxConfig.env,
       });
+      await ctx.agent.tasks.registerExecutorManifest(
+        await prepared.attestor.registration(),
+      );
+      preparedRuntimes.set(profile.id, prepared);
+      profiles.push(profile);
+    } catch (error) {
+      if (!(error instanceof GuestEnvironmentBoundaryError)) throw error;
+      skippedProfileBoundaries.push({ profile, error });
     }
-    await ctx.agent.tasks.registerExecutorManifest(
-      await prepared.attestor.registration(),
-    );
-    preparedRuntimes.set(profile.id, prepared);
+  }
+  if (profiles.length === 0) {
+    const details = skippedProfileBoundaries
+      .map(({ profile, error }) => `${profile.name}: ${error.message}`)
+      .join('; ');
+    throw new Error(`No safe runtime profiles remain. ${details}`);
   }
   const slotRegistry = createApiRuntimeSlotStore({ agent: ctx.agent });
   const runtimeSessionStore = createApiRuntimeSessionStore({
@@ -369,6 +387,16 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     runtimeProfileIds: profiles.map((p) => p.id),
     runtimeProfileNames: profiles.map((p) => p.name),
   });
+  for (const { profile, error } of skippedProfileBoundaries) {
+    rootLogger.warn(
+      {
+        runtimeProfileId: profile.id,
+        runtimeProfileName: profile.name,
+        refusedEnvironmentNames: error.refusedNames,
+      },
+      'agent-daemon.runtime_profile_skipped_credential_boundary',
+    );
+  }
 
   const abort = new AbortController();
   let runtime: AgentRuntime | null = null;

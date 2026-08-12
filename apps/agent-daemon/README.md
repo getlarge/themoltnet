@@ -102,11 +102,13 @@ fails fast if the key is rejected, is not an agent, or is bound to a different
 team. See
 [Run the daemon with an agent key](../../docs/operate/running-agents.md#run-the-daemon-with-an-agent-key).
 
-For Pi guests, a complete local `moltnet.json` + `env` pair keeps the existing
-guest-config behavior. When both files are absent in agent-key mode, the daemon
-selects the explicit `host-authenticated` boundary: no `.moltnet` file,
-gitconfig, SSH signing key, GitHub App PEM, or MoltNet environment credential is
-read from the host or injected into Gondolin. A partial pair fails startup.
+Agent-key Pi guests always default to the `host-authenticated` boundary,
+regardless of local files: no `.moltnet` file, gitconfig, SSH signing key,
+GitHub App PEM, or MoltNet environment credential is read from the host or
+injected into Gondolin. Mounted `.moltnet` paths are hidden as well. Operators
+may explicitly opt into the legacy credential-bearing boundary with
+`--guest-credential-mode guest-config`; that mode requires a complete local
+`moltnet.json` + `env` pair. OAuth2 defaults to and requires `guest-config`.
 
 `sync-sessions` does not prepare or attest executors, so it remains independent
 of `MOLTNET_PRIVATE_KEY`.

@@ -130,7 +130,7 @@ describe('resolveAgentContext', () => {
     }
   });
 
-  it('preserves a complete local guest config in agent-key mode', async () => {
+  it('does not implicitly expose a complete local guest config in agent-key mode', async () => {
     const root = mkdtempSync(join(tmpdir(), 'daemon-agent-key-configured-'));
     execFileSyncMock.mockImplementation(() => {
       throw new Error('not a git repo');
@@ -143,6 +143,28 @@ describe('resolveAgentContext', () => {
         authMode: 'agent-key',
       });
 
+      expect(ctx.guestCredentialMode).toBe('host-authenticated');
+      expect(connectMock).toHaveBeenCalledWith();
+      expect(createNodeSecretProviderRegistryMock).not.toHaveBeenCalled();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('uses complete local guest config only after explicit opt-in', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'daemon-agent-key-opt-in-'));
+    execFileSyncMock.mockImplementation(() => {
+      throw new Error('not a git repo');
+    });
+
+    try {
+      writeCredentials(root, 'legreffier');
+      const ctx = await resolveAgentContext('legreffier', {
+        agentRootDir: root,
+        authMode: 'agent-key',
+        guestCredentialMode: 'guest-config',
+      });
+
       expect(ctx.guestCredentialMode).toBe('guest-config');
       expect(connectMock).toHaveBeenCalledWith();
       expect(createNodeSecretProviderRegistryMock).not.toHaveBeenCalled();
@@ -151,7 +173,7 @@ describe('resolveAgentContext', () => {
     }
   });
 
-  it('rejects a partial local guest config in agent-key mode', async () => {
+  it('rejects a partial local guest config after explicit opt-in', async () => {
     const root = mkdtempSync(join(tmpdir(), 'daemon-agent-key-partial-'));
     const agentDir = join(root, '.moltnet', 'legreffier');
     mkdirSync(agentDir, { recursive: true });
@@ -165,11 +187,22 @@ describe('resolveAgentContext', () => {
         resolveAgentContext('legreffier', {
           agentRootDir: root,
           authMode: 'agent-key',
+          guestCredentialMode: 'guest-config',
         }),
-      ).rejects.toThrow('moltnet.json and env must either both exist');
+      ).rejects.toThrow('moltnet.json and env must both exist');
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+  });
+
+  it('rejects host-authenticated guest mode with OAuth2', async () => {
+    await expect(
+      resolveAgentContext('legreffier', {
+        authMode: 'oauth2',
+        guestCredentialMode: 'host-authenticated',
+      }),
+    ).rejects.toThrow('requires agent-key authentication');
+    expect(connectMock).not.toHaveBeenCalled();
   });
 });
 
@@ -297,6 +330,26 @@ describe('validateStartupBinding', () => {
     await expect(
       validateStartupBinding({ agent, teamId: TEAM_A }),
     ).rejects.toBe(boom);
+  });
+
+  it('retries transient whoami failures before startup validation', async () => {
+    const whoami: Whoami = {
+      identityId: 'id-1',
+      scopes: ['agent:profile'],
+      subjectType: 'agent',
+    };
+    const transient = Object.assign(new Error('upstream unavailable'), {
+      statusCode: 503,
+    });
+    const source = vi
+      .fn<() => Promise<Whoami>>()
+      .mockRejectedValueOnce(transient)
+      .mockResolvedValueOnce(whoami);
+
+    await expect(
+      validateStartupBinding({ agent: stubAgent(source), teamId: TEAM_A }),
+    ).resolves.toEqual(whoami);
+    expect(source).toHaveBeenCalledTimes(2);
   });
 });
 

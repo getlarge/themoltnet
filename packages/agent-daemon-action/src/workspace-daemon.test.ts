@@ -89,6 +89,39 @@ describe('workspace daemon action contract', () => {
         existsSync(resolve(root, '.moltnet/configless/moltnet.json')),
       ).toBe(false);
       expect(existsSync(resolve(root, '.moltnet/configless/env'))).toBe(false);
+      expect(readFileSync(githubEnv, 'utf8')).toContain(
+        'MOLTNET_API_URL=https://api.themolt.net',
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('preserves an explicit API URL in configless agent-key mode', () => {
+    const run = actionStep('Materialize MoltNet agent dir from env').run!;
+    const root = mkdtempSync(resolve(tmpdir(), 'agent-daemon-action-url-'));
+    const githubEnv = resolve(root, 'github-env');
+    writeFileSync(githubEnv, '', 'utf8');
+
+    try {
+      const result = spawnSync('bash', ['-c', run], {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          GITHUB_WORKSPACE: root,
+          GITHUB_ENV: githubEnv,
+          AGENT_NAME_OVERRIDE: '',
+          MOLTNET_AGENT_NAME: 'configless',
+          MOLTNET_AGENT_KEY: 'agent-key-secret',
+          MOLTNET_PRIVATE_KEY: 'signing-seed',
+          MOLTNET_API_URL: 'https://staging.example.test',
+        },
+      });
+
+      expect(result.status).toBe(0);
+      expect(readFileSync(githubEnv, 'utf8')).toContain(
+        'MOLTNET_API_URL=https://staging.example.test',
+      );
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

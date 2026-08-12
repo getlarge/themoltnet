@@ -175,9 +175,13 @@ describe('Agent daemon agent-key auth (e2e)', () => {
   // Captured for the CLI/entry-point wiring tests below.
   let keySecret: string;
   let underScopedKeySecret: string;
-  let completedConfiglessTaskId: string;
-  let completedConfiglessAttemptN: number;
-  let completedConfiglessProfileId: string;
+  let completedConfiglessFixture: {
+    root: string;
+    taskId: string;
+    attemptN: number;
+    profileId: string;
+    executorOptions: ExecutePiTaskOptions;
+  };
 
   beforeAll(async () => {
     harness = await createDaemonTestHarness();
@@ -224,10 +228,16 @@ describe('Agent daemon agent-key auth (e2e)', () => {
   }, 120_000);
 
   afterAll(async () => {
-    if (completedConfiglessProfileId) {
+    if (completedConfiglessFixture?.profileId) {
       await oauthAgent.runtimeProfiles
-        .delete(completedConfiglessProfileId)
+        .delete(completedConfiglessFixture.profileId)
         .catch(() => undefined);
+    }
+    if (completedConfiglessFixture?.root) {
+      rmSync(completedConfiglessFixture.root, {
+        recursive: true,
+        force: true,
+      });
     }
     await harness?.teardown();
   });
@@ -380,6 +390,93 @@ describe('Agent daemon agent-key auth (e2e)', () => {
     };
   }
 
+  beforeAll(async () => {
+    const root = createConfiglessAgentRoot();
+    const restoreEnv = activateConfiglessEnv();
+    const oldCwd = process.cwd();
+    const task = await oauthAgent.tasks.create(
+      {
+        taskType: 'freeform',
+        diaryId,
+        correlationId: randomUUID(),
+        input: {
+          brief: 'Exercise the configless daemon boundary.',
+          execution: { workspace: 'none' },
+        },
+      },
+      { teamId },
+    );
+    const profile = await oauthAgent.runtimeProfiles.create(
+      {
+        name: `configless-${randomUUID()}`,
+        runtimeKind: 'gondolin_pi',
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-5',
+        leaseTtlSec: 300,
+        heartbeatIntervalMs: 15_000,
+        maxBatchSize: 10,
+        sandbox: {},
+      },
+      { teamId },
+    );
+    createPiTaskExecutorMock.mockClear();
+
+    try {
+      process.chdir(root);
+      const exitCode = await runOnce([
+        '--agent',
+        AGENT_NAME,
+        '--agent-root',
+        root,
+        '--task-id',
+        task.id,
+        '--profile',
+        profile.id,
+        '--team',
+        teamId,
+        '--warm-session-ttl-sec',
+        '600',
+      ]);
+      if (exitCode !== 0) {
+        throw new Error(`configless fixture exited with code ${exitCode}`);
+      }
+      const final = await keyAgent.tasks.get(task.id);
+      if (final.status !== 'completed' || final.acceptedAttemptN === null) {
+        throw new Error(
+          `configless fixture did not complete: ${final.status} ` +
+            `(acceptedAttemptN=${String(final.acceptedAttemptN)})`,
+        );
+      }
+      const executorOptions = createPiTaskExecutorMock.mock.calls[0]?.[0] as
+        | ExecutePiTaskOptions
+        | undefined;
+      if (
+        !executorOptions ||
+        createPiTaskExecutorMock.mock.calls.length !== 1
+      ) {
+        throw new Error(
+          'configless fixture did not create exactly one Pi task executor',
+        );
+      }
+      completedConfiglessFixture = {
+        root,
+        taskId: task.id,
+        attemptN: final.acceptedAttemptN,
+        profileId: profile.id,
+        executorOptions,
+      };
+    } catch (error) {
+      await oauthAgent.runtimeProfiles
+        .delete(profile.id)
+        .catch(() => undefined);
+      rmSync(root, { recursive: true, force: true });
+      throw error;
+    } finally {
+      process.chdir(oldCwd);
+      restoreEnv();
+    }
+  }, 90_000);
+
   it('resolveAgentContext authenticates without reading an agent config', async () => {
     const root = createConfiglessAgentRoot();
     const restoreEnv = activateConfiglessEnv();
@@ -520,93 +617,32 @@ describe('Agent daemon agent-key auth (e2e)', () => {
   );
 
   it('runs configless once through attestation, task IO, artifacts, slots, and sessions', async () => {
-    const root = createConfiglessAgentRoot();
-    const restoreEnv = activateConfiglessEnv();
-    const oldCwd = process.cwd();
-    const task = await oauthAgent.tasks.create(
-      {
-        taskType: 'freeform',
-        diaryId,
-        correlationId: randomUUID(),
-        input: {
-          brief: 'Exercise the configless daemon boundary.',
-          execution: { workspace: 'none' },
-        },
-      },
-      { teamId },
-    );
-    const profile = await oauthAgent.runtimeProfiles.create(
-      {
-        name: `configless-${randomUUID()}`,
-        runtimeKind: 'gondolin_pi',
-        provider: 'anthropic',
-        model: 'claude-sonnet-4-5',
-        leaseTtlSec: 300,
-        heartbeatIntervalMs: 15_000,
-        maxBatchSize: 10,
-        sandbox: {},
-      },
-      { teamId },
-    );
-    completedConfiglessProfileId = profile.id;
-    createPiTaskExecutorMock.mockClear();
-
-    try {
-      process.chdir(root);
-      await expect(
-        runOnce([
-          '--agent',
-          AGENT_NAME,
-          '--agent-root',
-          root,
-          '--task-id',
-          task.id,
-          '--profile',
-          profile.id,
-          '--team',
-          teamId,
-          '--warm-session-ttl-sec',
-          '600',
-        ]),
-      ).resolves.toBe(0);
-    } finally {
-      process.chdir(oldCwd);
-      restoreEnv();
-    }
-
-    expect(createPiTaskExecutorMock).toHaveBeenCalledOnce();
-    const executorOptions = createPiTaskExecutorMock.mock.calls[0]?.[0] as
-      | ExecutePiTaskOptions
-      | undefined;
+    const { root, taskId, attemptN, executorOptions } =
+      completedConfiglessFixture;
     expect(executorOptions).toMatchObject({
       agentName: AGENT_NAME,
       agentRootDir: root,
       guestCredentialMode: 'host-authenticated',
     });
-    const executorWhoami = await executorOptions?.moltnetAgent?.agents.whoami();
+    const executorWhoami = await executorOptions.moltnetAgent?.agents.whoami();
     expect(executorWhoami?.credentialBinding?.boundTeamId).toBe(teamId);
 
-    const final = await keyAgent.tasks.get(task.id);
+    const final = await keyAgent.tasks.get(taskId);
     expect(final.status).toBe('completed');
     expect(final.acceptedAttemptN).toBe(1);
-    completedConfiglessTaskId = task.id;
-    completedConfiglessAttemptN = final.acceptedAttemptN!;
 
-    const messages = await keyAgent.tasks.listMessages(
-      task.id,
-      completedConfiglessAttemptN,
-    );
+    const messages = await keyAgent.tasks.listMessages(taskId, attemptN);
     expect(JSON.stringify(messages)).toContain('configless_agent_key_e2e');
 
-    const artifacts = await keyAgent.tasks.artifacts.list(task.id, { teamId });
+    const artifacts = await keyAgent.tasks.artifacts.list(taskId, { teamId });
     const artifact = artifacts.find(
       (item) => item.title === 'configless-agent-key.txt',
     );
     expect(artifact).toBeTruthy();
     const downloadedArtifact = await keyAgent.tasks.artifacts.download(
       {
-        taskId: task.id,
-        attemptN: completedConfiglessAttemptN,
+        taskId,
+        attemptN,
         cid: artifact!.cid,
       },
       { teamId },
@@ -616,58 +652,62 @@ describe('Agent daemon agent-key auth (e2e)', () => {
     ).resolves.toContain('configless artifact');
 
     const slot = await keyAgent.runtimeSlots.findLatestForAttempt(
-      { taskId: task.id, attemptN: completedConfiglessAttemptN },
+      { taskId, attemptN },
       { teamId },
     );
     expect(slot?.slot.sessionDir).toBeTruthy();
     const session = await keyAgent.runtimeSessions.getForAttempt(
-      { taskId: task.id, attemptN: completedConfiglessAttemptN },
+      { taskId, attemptN },
       { teamId },
     );
     expect(session).toBeTruthy();
     const downloadedSession = await keyAgent.runtimeSessions.download(
-      { taskId: task.id, attemptN: completedConfiglessAttemptN },
+      { taskId, attemptN },
       { teamId },
     );
     await expect(collectStreamText(downloadedSession)).resolves.toContain(
-      task.id,
+      taskId,
     );
 
     expect(existsSync(join(root, '.moltnet', AGENT_NAME, 'moltnet.json'))).toBe(
       false,
     );
     expect(existsSync(join(root, '.moltnet', AGENT_NAME, 'env'))).toBe(false);
-    rmSync(root, { recursive: true, force: true });
   }, 90_000);
 
   it.each([
     ['identity', () => keyAgent.agents.whoami()],
     [
       'runtime profile',
-      () => keyAgent.runtimeProfiles.get(completedConfiglessProfileId),
+      () => keyAgent.runtimeProfiles.get(completedConfiglessFixture.profileId),
     ],
     ['task queue', () => keyAgent.tasks.list({ limit: 1 }, { teamId })],
-    ['task record', () => keyAgent.tasks.get(completedConfiglessTaskId)],
+    [
+      'task record',
+      () => keyAgent.tasks.get(completedConfiglessFixture.taskId),
+    ],
     [
       'task messages',
       () =>
         keyAgent.tasks.listMessages(
-          completedConfiglessTaskId,
-          completedConfiglessAttemptN,
+          completedConfiglessFixture.taskId,
+          completedConfiglessFixture.attemptN,
         ),
     ],
     [
       'task artifacts',
       () =>
-        keyAgent.tasks.artifacts.list(completedConfiglessTaskId, { teamId }),
+        keyAgent.tasks.artifacts.list(completedConfiglessFixture.taskId, {
+          teamId,
+        }),
     ],
     [
       'runtime slots',
       () =>
         keyAgent.runtimeSlots.findLatestForAttempt(
           {
-            taskId: completedConfiglessTaskId,
-            attemptN: completedConfiglessAttemptN,
+            taskId: completedConfiglessFixture.taskId,
+            attemptN: completedConfiglessFixture.attemptN,
           },
           { teamId },
         ),
@@ -677,8 +717,8 @@ describe('Agent daemon agent-key auth (e2e)', () => {
       () =>
         keyAgent.runtimeSessions.getForAttempt(
           {
-            taskId: completedConfiglessTaskId,
-            attemptN: completedConfiglessAttemptN,
+            taskId: completedConfiglessFixture.taskId,
+            attemptN: completedConfiglessFixture.attemptN,
           },
           { teamId },
         ),

@@ -297,14 +297,21 @@ doubles as an API-reachability and identity check. The daemon logs the active
 auth mode (`agent-key` or `oauth2`) at startup and never logs the secret.
 
 Guest credentials are a separate decision from daemon authentication. In
-agent-key mode, a complete `.moltnet/<agent>/moltnet.json` + `env` pair retains
-the existing guest-config behavior. When both are absent, the daemon selects
-`host-authenticated`: MoltNet tools use the trusted host-side SDK agent and the
-VM receives no agent config, gitconfig, SSH signing key, GitHub App PEM, or
-MoltNet credential environment variable. A partial pair is rejected. In this
-mode, server-supplied `requiredEnv` is intersected with a local allowlist of Pi
-provider and documented tool credentials; refused names fail before claiming a
-task rather than disappearing silently.
+agent-key mode the daemon always defaults to `host-authenticated`, even when a
+legacy `.moltnet/<agent>` directory exists: MoltNet tools use the trusted
+host-side SDK agent, mounted `.moltnet` paths are hidden, and the VM receives no
+agent config, gitconfig, SSH signing key, GitHub App PEM, or MoltNet credential
+environment variable. Server-supplied `requiredEnv` is intersected with a local
+allowlist of Pi provider and documented tool credentials; credential and
+runtime-control names are reserved, and an unsafe profile is skipped before it
+can claim a task. Ordinary provider settings such as `OPENAI_BASE_URL` remain
+available.
+
+An operator can deliberately restore the legacy credential-bearing guest with
+`--guest-credential-mode guest-config`. This explicit opt-in requires both
+`.moltnet/<agent>/moltnet.json` and `env` and exposes the complete configured
+agent tree to Gondolin. OAuth2 defaults to and requires `guest-config` because
+its host-side Agent is resolved from that configuration.
 
 Keep one key per running daemon and rotate on a schedule; a rotated secret must
 be re-exported as `MOLTNET_AGENT_KEY` before the next start, since rotation
