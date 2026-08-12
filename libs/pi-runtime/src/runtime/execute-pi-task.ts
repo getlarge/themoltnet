@@ -51,7 +51,7 @@ import {
   traceRuntimePhase,
   validateTaskOutput,
 } from '@themoltnet/agent-runtime';
-import { connect } from '@themoltnet/sdk';
+import { connect } from '@themoltnet/sdk/node';
 import { ShellCommandAnalyzer } from '@themoltnet/shell-command-analyzer';
 
 import { resolvePiCodingAgentDir } from '../config.js';

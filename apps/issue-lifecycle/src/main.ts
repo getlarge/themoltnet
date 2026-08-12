@@ -1,4 +1,4 @@
-import { connect } from '@themoltnet/sdk';
+import { connect } from '@themoltnet/sdk/node';
 import pino from 'pino';
 
 import {

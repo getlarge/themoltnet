@@ -27,6 +27,9 @@
     },
     {
       "path": "../sdk/tsconfig.lib.json"
+    },
+    {
+      "path": "../os-keyring/tsconfig.lib.json"
     }
   ]
 }

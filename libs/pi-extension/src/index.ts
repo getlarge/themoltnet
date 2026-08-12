@@ -43,7 +43,7 @@ import {
   resumeVm,
   type SandboxConfig,
 } from '@themoltnet/pi-runtime';
-import { connect } from '@themoltnet/sdk';
+import { connect } from '@themoltnet/sdk/node';
 
 import type { ExtensionState, TrackedError } from './commands/index.js';
 import {

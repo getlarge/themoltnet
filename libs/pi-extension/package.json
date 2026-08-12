@@ -47,6 +47,7 @@
   },
   "dependencies": {
     "@earendil-works/gondolin": "catalog:",
+    "@themoltnet/os-keyring": "workspace:*",
     "@themoltnet/pi-runtime": "workspace:*",
     "@themoltnet/sdk": "workspace:*"
   },
