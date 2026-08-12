@@ -6,22 +6,27 @@
  *  - startup validation accepts a key bound to the daemon's `--team`;
  *  - startup validation fails fast when the key is bound to a different team
  *    (the actionable fatal that replaces an obscure mid-poll 403);
- *  - a full claim → execute → complete task loop runs while authenticated with
- *    the key (no OAuth2 round-trip), so the whole daemon flow works key-only;
- *  - the production daemon wiring — `MOLTNET_AGENT_KEY`, `.moltnet/<agent>/`
- *    credential resolution, and the `once` entry point — honours env precedence
- *    and blocks a wrong `--team` before any work starts.
+ *  - a full configless `once` run covers signed executor registration, claim,
+ *    heartbeat/messages, artifacts, runtime slots/sessions, and completion;
+ *  - missing or mismatched signing seeds fail before a task is claimed;
+ *  - core and knowledge key scopes remain independent from runtime policy.
  *
- * The executor is stubbed — the pi/Gondolin path lives in its own suites; here
- * we only care that the agent key carries the daemon through the lifecycle.
+ * The executor is stubbed — Pi/Gondolin secret isolation has focused runtime
+ * tests; this suite exercises the daemon and live API authorization boundary.
  */
 
-import { randomUUID } from 'node:crypto';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { randomBytes, randomUUID } from 'node:crypto';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { computeJsonCid, cryptoService } from '@moltnet/crypto-service';
+import { computeBytesCid, computeJsonCid } from '@moltnet/crypto-service';
 // eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises the daemon app entry point.
 import { runOnce } from '@themoltnet/agent-daemon/cli/once.js';
 // eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises daemon app internals.
@@ -35,13 +40,110 @@ import {
   AgentRuntime,
   type AgentRuntimeLogger,
   ApiTaskReporter,
+  type ClaimedTask,
   PollingApiTaskSource,
+  type TaskReporter,
 } from '@themoltnet/agent-runtime';
-import { type Agent, connect } from '@themoltnet/sdk';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import type { ExecutePiTaskOptions } from '@themoltnet/pi-runtime';
+import { type Agent, connect, type MoltNetError } from '@themoltnet/sdk';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { buildProducerVerification } from './fixtures.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
+
+const { createPiTaskExecutorMock } = vi.hoisted(() => ({
+  createPiTaskExecutorMock: vi.fn(),
+}));
+
+vi.mock('@themoltnet/pi-runtime', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
+    createPiTaskExecutor: createPiTaskExecutorMock,
+  };
+});
+
+createPiTaskExecutorMock.mockImplementation(
+  (options: ExecutePiTaskOptions) =>
+    async (claimedTask: ClaimedTask, reporter: TaskReporter) => {
+      await reporter.open({
+        taskId: claimedTask.task.id,
+        attemptN: claimedTask.attemptN,
+      });
+      await reporter.record({
+        kind: 'info',
+        payload: {
+          event: 'configless_agent_key_e2e',
+          message: 'host-side Agent executed without guest credentials',
+        },
+      });
+
+      const executionPlan = await options.makeExecutionPlan?.(claimedTask);
+      if (executionPlan?.sessionPersistence?.sessionDir) {
+        mkdirSync(executionPlan.sessionPersistence.sessionDir, {
+          recursive: true,
+        });
+        writeFileSync(
+          join(
+            executionPlan.sessionPersistence.sessionDir,
+            '20260812T000000.jsonl',
+          ),
+          JSON.stringify({
+            type: 'session',
+            taskId: claimedTask.task.id,
+            attemptN: claimedTask.attemptN,
+          }) + '\n',
+          'utf8',
+        );
+      }
+
+      const agent = options.moltnetAgent;
+      if (!agent) throw new Error('daemon did not supply its connected Agent');
+      const artifactBytes = new TextEncoder().encode(
+        `configless artifact for ${claimedTask.task.id}`,
+      );
+      const artifact = await agent.tasks.artifacts.upload(
+        {
+          taskId: claimedTask.task.id,
+          attemptN: claimedTask.attemptN,
+        },
+        artifactBytes,
+        {
+          kind: 'report',
+          title: 'configless-agent-key.txt',
+          contentType: 'text/plain',
+        },
+        { teamId: claimedTask.task.teamId },
+      );
+      expect(artifact.cid).toBe(await computeBytesCid(artifactBytes));
+
+      const payload = {
+        summary: 'Configless agent-key daemon execution completed.',
+        artifacts: [
+          {
+            kind: 'report',
+            title: artifact.title,
+            cid: artifact.cid,
+            contentType: artifact.contentType,
+            sizeBytes: artifact.sizeBytes,
+          },
+        ],
+        verification: buildProducerVerification(claimedTask.task.inputCid),
+      };
+      const output = {
+        taskId: claimedTask.task.id,
+        attemptN: claimedTask.attemptN,
+        status: 'completed' as const,
+        output: payload,
+        outputCid: await computeJsonCid(payload),
+        usage: { inputTokens: 1, outputTokens: 1 },
+        durationMs: 1,
+      };
+      await reporter.finalize(output.usage);
+      await reporter.close();
+      return output;
+    },
+);
 
 const silentLogger: AgentRuntimeLogger = {
   debug: () => {},
@@ -69,12 +171,13 @@ describe('Agent daemon agent-key auth (e2e)', () => {
   let teamId: string;
   let diaryId: string;
   let identityId: string;
+  let signingPrivateKey: string;
   // Captured for the CLI/entry-point wiring tests below.
   let keySecret: string;
   let underScopedKeySecret: string;
-  let signingPrivateKey: string;
-  let clientId: string;
-  let clientSecret: string;
+  let completedConfiglessTaskId: string;
+  let completedConfiglessAttemptN: number;
+  let completedConfiglessProfileId: string;
 
   beforeAll(async () => {
     harness = await createDaemonTestHarness();
@@ -82,8 +185,6 @@ describe('Agent daemon agent-key auth (e2e)', () => {
     teamId = creds.personalTeamId;
     diaryId = creds.privateDiaryId;
     identityId = creds.identityId;
-    clientId = creds.clientId;
-    clientSecret = creds.clientSecret;
     signingPrivateKey = creds.keyPair.privateKey;
 
     oauthAgent = await connect({
@@ -123,6 +224,11 @@ describe('Agent daemon agent-key auth (e2e)', () => {
   }, 120_000);
 
   afterAll(async () => {
+    if (completedConfiglessProfileId) {
+      await oauthAgent.runtimeProfiles
+        .delete(completedConfiglessProfileId)
+        .catch(() => undefined);
+    }
     await harness?.teardown();
   });
 
@@ -239,60 +345,62 @@ describe('Agent daemon agent-key auth (e2e)', () => {
     expect(final.acceptedAttemptN).toBe(1);
   }, 60_000);
 
-  // The tests above call the SDK/validation helpers directly. These two exercise
-  // the *production* daemon wiring — the `MOLTNET_AGENT_KEY` env var, the
-  // `.moltnet/<agent>/` credential resolution, and the `once` entry point — so a
-  // broken env precedence or an un-wired startup check can't stay green.
+  // The tests above call the SDK/validation helpers directly. The remainder
+  // exercises production daemon wiring with no credential files at all.
   const AGENT_NAME = 'e2e-key-daemon';
 
-  function writeKeyAgentDir(): string {
+  function createConfiglessAgentRoot(): string {
     const root = mkdtempSync(join(tmpdir(), 'daemon-key-wiring-'));
-    const agentDir = join(root, '.moltnet', AGENT_NAME);
-    mkdirSync(agentDir, { recursive: true });
-    // Real OAuth2 credentials live in config. If env precedence broke, connect()
-    // would fall back to them and whoami would carry no credentialBinding — so
-    // the presence of a binding proves MOLTNET_AGENT_KEY won.
-    writeFileSync(
-      join(agentDir, 'moltnet.json'),
-      JSON.stringify({
-        identity_id: identityId,
-        oauth2: { client_id: clientId, client_secret: clientSecret },
-        endpoints: { api: harness.restApiUrl },
-      }),
-      'utf8',
-    );
+    mkdirSync(join(root, '.moltnet', AGENT_NAME), { recursive: true });
     return root;
   }
 
-  it('resolveAgentContext authenticates via MOLTNET_AGENT_KEY over config OAuth2', async () => {
-    const root = writeKeyAgentDir();
-    const previousKey = process.env.MOLTNET_AGENT_KEY;
-    const previousApiUrl = process.env.MOLTNET_API_URL;
+  function activateConfiglessEnv(privateKey = signingPrivateKey): () => void {
+    const names = [
+      'MOLTNET_AGENT_KEY',
+      'MOLTNET_PRIVATE_KEY',
+      'MOLTNET_API_URL',
+      'MOLTNET_CLIENT_ID',
+      'MOLTNET_CLIENT_SECRET',
+      'MOLTNET_CREDENTIALS_PATH',
+    ] as const;
+    const previous = new Map(names.map((name) => [name, process.env[name]]));
     process.env.MOLTNET_AGENT_KEY = keySecret;
+    process.env.MOLTNET_PRIVATE_KEY = privateKey;
     process.env.MOLTNET_API_URL = harness.restApiUrl;
+    delete process.env.MOLTNET_CLIENT_ID;
+    delete process.env.MOLTNET_CLIENT_SECRET;
+    delete process.env.MOLTNET_CREDENTIALS_PATH;
+    return () => {
+      for (const name of names) {
+        const value = previous.get(name);
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
+    };
+  }
+
+  it('resolveAgentContext authenticates without reading an agent config', async () => {
+    const root = createConfiglessAgentRoot();
+    const restoreEnv = activateConfiglessEnv();
     try {
-      const ctx = await resolveAgentContext(AGENT_NAME, { agentRootDir: root });
+      const ctx = await resolveAgentContext(AGENT_NAME, {
+        agentRootDir: root,
+        authMode: 'agent-key',
+      });
       const whoami = await ctx.agent.agents.whoami();
-      // Binding present + correct ⇒ the env key was used, not the config OAuth2.
       expect(whoami.credentialBinding?.boundTeamId).toBe(teamId);
+      expect(ctx.agentDir).toBe(join(root, '.moltnet', AGENT_NAME));
     } finally {
-      if (previousKey === undefined) delete process.env.MOLTNET_AGENT_KEY;
-      else process.env.MOLTNET_AGENT_KEY = previousKey;
-      if (previousApiUrl === undefined) delete process.env.MOLTNET_API_URL;
-      else process.env.MOLTNET_API_URL = previousApiUrl;
+      restoreEnv();
       rmSync(root, { recursive: true, force: true });
     }
   }, 30_000);
 
   it('the `once` entry point fails fast on a wrong --team with MOLTNET_AGENT_KEY set', async () => {
-    const root = writeKeyAgentDir();
+    const root = createConfiglessAgentRoot();
     const otherTeam = randomUUID();
-    const previousKey = process.env.MOLTNET_AGENT_KEY;
-    const previousApiUrl = process.env.MOLTNET_API_URL;
-    const previousPrivateKey = process.env.MOLTNET_PRIVATE_KEY;
-    process.env.MOLTNET_AGENT_KEY = keySecret;
-    process.env.MOLTNET_API_URL = harness.restApiUrl;
-    process.env.MOLTNET_PRIVATE_KEY = signingPrivateKey;
+    const restoreEnv = activateConfiglessEnv();
     try {
       // Startup validation runs right after resolveAgentContext, before profile
       // resolution — the bogus --profile/--task-id are never reached.
@@ -319,124 +427,338 @@ describe('Agent daemon agent-key auth (e2e)', () => {
       expect(message).toContain(teamId); // the key's real bound team
       expect(message).toContain(otherTeam); // the wrong --team requested
     } finally {
-      if (previousKey === undefined) delete process.env.MOLTNET_AGENT_KEY;
-      else process.env.MOLTNET_AGENT_KEY = previousKey;
-      if (previousApiUrl === undefined) delete process.env.MOLTNET_API_URL;
-      else process.env.MOLTNET_API_URL = previousApiUrl;
-      if (previousPrivateKey === undefined)
-        delete process.env.MOLTNET_PRIVATE_KEY;
-      else process.env.MOLTNET_PRIVATE_KEY = previousPrivateKey;
+      restoreEnv();
       rmSync(root, { recursive: true, force: true });
     }
   }, 30_000);
 
   it('refuses an under-scoped key before claiming the task', async () => {
-    const root = writeKeyAgentDir();
-    const created = await oauthAgent.tasks.create(
+    const root = createConfiglessAgentRoot();
+    const restoreEnv = activateConfiglessEnv();
+    process.env.MOLTNET_AGENT_KEY = underScopedKeySecret;
+    const task = await oauthAgent.tasks.create(
       {
-        taskType: 'curate_pack',
+        taskType: 'freeform',
         diaryId,
-        input: { diaryId, taskPrompt: 'must remain unclaimed' },
+        input: {
+          brief: 'This task must remain unclaimed.',
+          execution: { workspace: 'none' },
+        },
       },
       { teamId },
     );
-    const previousKey = process.env.MOLTNET_AGENT_KEY;
-    const previousApiUrl = process.env.MOLTNET_API_URL;
-    const previousPrivateKey = process.env.MOLTNET_PRIVATE_KEY;
-    process.env.MOLTNET_AGENT_KEY = underScopedKeySecret;
-    process.env.MOLTNET_API_URL = harness.restApiUrl;
-    process.env.MOLTNET_PRIVATE_KEY = signingPrivateKey;
 
     try {
-      const error = await runOnce([
-        '--agent',
-        AGENT_NAME,
-        '--agent-root',
-        root,
-        '--task-id',
-        created.id,
-        '--profile',
-        'unused-profile',
-        '--team',
-        teamId,
-      ]).then(
-        () => null,
-        (err: unknown) => (err instanceof Error ? err : new Error(String(err))),
-      );
-
-      expect(error?.message).toContain('missing required scopes');
-      expect(error?.message).toContain(
-        'runtime:read task:read task:claim task:execute',
-      );
-      await expect(oauthAgent.tasks.get(created.id)).resolves.toMatchObject({
-        status: 'queued',
-      });
-    } finally {
-      if (previousKey === undefined) delete process.env.MOLTNET_AGENT_KEY;
-      else process.env.MOLTNET_AGENT_KEY = previousKey;
-      if (previousApiUrl === undefined) delete process.env.MOLTNET_API_URL;
-      else process.env.MOLTNET_API_URL = previousApiUrl;
-      if (previousPrivateKey === undefined)
-        delete process.env.MOLTNET_PRIVATE_KEY;
-      else process.env.MOLTNET_PRIVATE_KEY = previousPrivateKey;
-      rmSync(root, { recursive: true, force: true });
-    }
-  }, 30_000);
-
-  it('leaves tasks unclaimed when signing material is missing or mismatched', async () => {
-    const root = writeKeyAgentDir();
-    const mismatched = await cryptoService.generateKeyPair();
-    const previousKey = process.env.MOLTNET_AGENT_KEY;
-    const previousApiUrl = process.env.MOLTNET_API_URL;
-    const previousPrivateKey = process.env.MOLTNET_PRIVATE_KEY;
-    process.env.MOLTNET_AGENT_KEY = keySecret;
-    process.env.MOLTNET_API_URL = harness.restApiUrl;
-
-    try {
-      for (const candidate of ['', mismatched.privateKey]) {
-        const created = await oauthAgent.tasks.create(
-          {
-            taskType: 'curate_pack',
-            diaryId,
-            input: { diaryId, taskPrompt: 'signing gate must not claim this' },
-          },
-          { teamId },
-        );
-        process.env.MOLTNET_PRIVATE_KEY = candidate;
-
-        const error = await runOnce([
+      await expect(
+        runOnce([
           '--agent',
           AGENT_NAME,
           '--agent-root',
           root,
           '--task-id',
-          created.id,
+          task.id,
           '--profile',
-          'unused-profile',
+          'must-not-resolve',
           '--team',
           teamId,
-        ]).then(
-          () => null,
-          (err: unknown) =>
-            err instanceof Error ? err : new Error(String(err)),
-        );
-
-        expect(error?.message).toMatch(
-          /MOLTNET_PRIVATE_KEY|does not match the authenticated agent/,
-        );
-        await expect(oauthAgent.tasks.get(created.id)).resolves.toMatchObject({
-          status: 'queued',
-        });
-      }
+        ]),
+      ).rejects.toThrow(
+        /missing required scopes.*runtime:read task:read task:claim task:execute/,
+      );
+      const unchanged = await oauthAgent.tasks.get(task.id);
+      expect(unchanged.status).toBe(task.status);
+      expect(unchanged.acceptedAttemptN).toBeNull();
     } finally {
-      if (previousKey === undefined) delete process.env.MOLTNET_AGENT_KEY;
-      else process.env.MOLTNET_AGENT_KEY = previousKey;
-      if (previousApiUrl === undefined) delete process.env.MOLTNET_API_URL;
-      else process.env.MOLTNET_API_URL = previousApiUrl;
-      if (previousPrivateKey === undefined)
-        delete process.env.MOLTNET_PRIVATE_KEY;
-      else process.env.MOLTNET_PRIVATE_KEY = previousPrivateKey;
+      restoreEnv();
       rmSync(root, { recursive: true, force: true });
     }
+  }, 30_000);
+
+  it.each([
+    ['missing', ''],
+    ['mismatched', randomBytes(32).toString('base64')],
+  ])(
+    '%s signing material leaves the task unclaimed',
+    async (_caseName, privateKey) => {
+      const root = createConfiglessAgentRoot();
+      const restoreEnv = activateConfiglessEnv(privateKey);
+      const task = await oauthAgent.tasks.create(
+        {
+          taskType: 'freeform',
+          diaryId,
+          input: {
+            brief: 'This task must remain unclaimed.',
+            execution: { workspace: 'none' },
+          },
+        },
+        { teamId },
+      );
+      try {
+        await expect(
+          runOnce([
+            '--agent',
+            AGENT_NAME,
+            '--agent-root',
+            root,
+            '--task-id',
+            task.id,
+            '--profile',
+            'must-not-resolve',
+            '--team',
+            teamId,
+          ]),
+        ).rejects.toThrow(/MOLTNET_PRIVATE_KEY|does not match/);
+        const unchanged = await oauthAgent.tasks.get(task.id);
+        expect(unchanged.status).toBe(task.status);
+        expect(unchanged.acceptedAttemptN).toBeNull();
+      } finally {
+        restoreEnv();
+        rmSync(root, { recursive: true, force: true });
+      }
+    },
+    30_000,
+  );
+
+  it('runs configless once through attestation, task IO, artifacts, slots, and sessions', async () => {
+    const root = createConfiglessAgentRoot();
+    const restoreEnv = activateConfiglessEnv();
+    const oldCwd = process.cwd();
+    const task = await oauthAgent.tasks.create(
+      {
+        taskType: 'freeform',
+        diaryId,
+        correlationId: randomUUID(),
+        input: {
+          brief: 'Exercise the configless daemon boundary.',
+          execution: { workspace: 'none' },
+        },
+      },
+      { teamId },
+    );
+    const profile = await oauthAgent.runtimeProfiles.create(
+      {
+        name: `configless-${randomUUID()}`,
+        runtimeKind: 'gondolin_pi',
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-5',
+        leaseTtlSec: 300,
+        heartbeatIntervalMs: 15_000,
+        maxBatchSize: 10,
+        sandbox: {},
+      },
+      { teamId },
+    );
+    completedConfiglessProfileId = profile.id;
+    createPiTaskExecutorMock.mockClear();
+
+    try {
+      process.chdir(root);
+      await expect(
+        runOnce([
+          '--agent',
+          AGENT_NAME,
+          '--agent-root',
+          root,
+          '--task-id',
+          task.id,
+          '--profile',
+          profile.id,
+          '--team',
+          teamId,
+          '--warm-session-ttl-sec',
+          '600',
+        ]),
+      ).resolves.toBe(0);
+    } finally {
+      process.chdir(oldCwd);
+      restoreEnv();
+    }
+
+    expect(createPiTaskExecutorMock).toHaveBeenCalledOnce();
+    const executorOptions = createPiTaskExecutorMock.mock.calls[0]?.[0] as
+      | ExecutePiTaskOptions
+      | undefined;
+    expect(executorOptions).toMatchObject({
+      agentName: AGENT_NAME,
+      agentRootDir: root,
+      agentConfigMode: 'optional',
+    });
+    const executorWhoami = await executorOptions?.moltnetAgent?.agents.whoami();
+    expect(executorWhoami?.credentialBinding?.boundTeamId).toBe(teamId);
+
+    const final = await keyAgent.tasks.get(task.id);
+    expect(final.status).toBe('completed');
+    expect(final.acceptedAttemptN).toBe(1);
+    completedConfiglessTaskId = task.id;
+    completedConfiglessAttemptN = final.acceptedAttemptN!;
+
+    const messages = await keyAgent.tasks.listMessages(
+      task.id,
+      completedConfiglessAttemptN,
+    );
+    expect(JSON.stringify(messages)).toContain('configless_agent_key_e2e');
+
+    const artifacts = await keyAgent.tasks.artifacts.list(task.id, { teamId });
+    const artifact = artifacts.find(
+      (item) => item.title === 'configless-agent-key.txt',
+    );
+    expect(artifact).toBeTruthy();
+    const downloadedArtifact = await keyAgent.tasks.artifacts.download(
+      {
+        taskId: task.id,
+        attemptN: completedConfiglessAttemptN,
+        cid: artifact!.cid,
+      },
+      { teamId },
+    );
+    await expect(
+      collectStreamText(downloadedArtifact.stream),
+    ).resolves.toContain('configless artifact');
+
+    const slot = await keyAgent.runtimeSlots.findLatestForAttempt(
+      { taskId: task.id, attemptN: completedConfiglessAttemptN },
+      { teamId },
+    );
+    expect(slot?.slot.sessionDir).toBeTruthy();
+    const session = await keyAgent.runtimeSessions.getForAttempt(
+      { taskId: task.id, attemptN: completedConfiglessAttemptN },
+      { teamId },
+    );
+    expect(session).toBeTruthy();
+    const downloadedSession = await keyAgent.runtimeSessions.download(
+      { taskId: task.id, attemptN: completedConfiglessAttemptN },
+      { teamId },
+    );
+    await expect(collectStreamText(downloadedSession)).resolves.toContain(
+      task.id,
+    );
+
+    expect(existsSync(join(root, '.moltnet', AGENT_NAME, 'moltnet.json'))).toBe(
+      false,
+    );
+    expect(existsSync(join(root, '.moltnet', AGENT_NAME, 'env'))).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+  }, 90_000);
+
+  it.each([
+    ['identity', () => keyAgent.agents.whoami()],
+    [
+      'runtime profile',
+      () => keyAgent.runtimeProfiles.get(completedConfiglessProfileId),
+    ],
+    ['task queue', () => keyAgent.tasks.list({ limit: 1 }, { teamId })],
+    ['task record', () => keyAgent.tasks.get(completedConfiglessTaskId)],
+    [
+      'task messages',
+      () =>
+        keyAgent.tasks.listMessages(
+          completedConfiglessTaskId,
+          completedConfiglessAttemptN,
+        ),
+    ],
+    [
+      'task artifacts',
+      () =>
+        keyAgent.tasks.artifacts.list(completedConfiglessTaskId, { teamId }),
+    ],
+    [
+      'runtime slots',
+      () =>
+        keyAgent.runtimeSlots.findLatestForAttempt(
+          {
+            taskId: completedConfiglessTaskId,
+            attemptN: completedConfiglessAttemptN,
+          },
+          { teamId },
+        ),
+    ],
+    [
+      'runtime sessions',
+      () =>
+        keyAgent.runtimeSessions.getForAttempt(
+          {
+            taskId: completedConfiglessTaskId,
+            attemptN: completedConfiglessAttemptN,
+          },
+          { teamId },
+        ),
+    ],
+  ] as const)(
+    'canonical daemon scopes authorize the %s endpoint family',
+    async (_family, request) => {
+      await expect(request()).resolves.toBeDefined();
+    },
+  );
+
+  it('keeps core keys out of knowledge APIs and permits explicitly scoped replacements', async () => {
+    await expect(keyAgent.entries.list(diaryId)).rejects.toMatchObject({
+      statusCode: 403,
+    } satisfies Partial<MoltNetError>);
+    await expect(keyAgent.packs.list({ diaryId })).rejects.toMatchObject({
+      statusCode: 403,
+    } satisfies Partial<MoltNetError>);
+
+    const issued = await oauthAgent.agentKeys.create(
+      {
+        agentId: identityId,
+        name: 'daemon-e2e-knowledge-key',
+        scopes: [
+          ...DAEMON_CREDENTIAL_SCOPES,
+          'diary:read',
+          'diary:write',
+          'pack:read',
+          'pack:write',
+        ],
+        ttlDays: 1,
+      },
+      { teamId, idempotencyKey: randomUUID() },
+    );
+    const knowledgeAgent = await connect({
+      apiUrl: harness.restApiUrl,
+      agentKey: issued.secret,
+    });
+    const entry = await knowledgeAgent.entries.create(diaryId, {
+      title: 'Knowledge key e2e entry',
+      content: 'Knowledge-enabled keys may write diary and pack data.',
+      tags: ['e2e:agent-key'],
+    });
+    const entries = await knowledgeAgent.entries.list(diaryId);
+    expect(entries.items.map((item) => item.id)).toContain(entry.id);
+
+    await expect(
+      keyAgent.entries.create(diaryId, { content: 'must be denied' }),
+    ).rejects.toMatchObject({
+      statusCode: 403,
+    } satisfies Partial<MoltNetError>);
+    await expect(
+      keyAgent.packs.create(diaryId, {
+        packType: 'custom',
+        entries: [{ entryId: entry.id, rank: 1 }],
+        params: {},
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 403,
+    } satisfies Partial<MoltNetError>);
+
+    const pack = await knowledgeAgent.packs.create(diaryId, {
+      packType: 'custom',
+      entries: [{ entryId: entry.id, rank: 1 }],
+      params: {},
+    });
+    expect(pack.packId).toBeTruthy();
+    await expect(knowledgeAgent.packs.get(pack.packId!)).resolves.toMatchObject(
+      {
+        id: pack.packId,
+      },
+    );
+    await expect(knowledgeAgent.packs.list({ diaryId })).resolves.toBeDefined();
   }, 60_000);
 });
+
+async function collectStreamText(
+  stream: AsyncIterable<Uint8Array>,
+): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+  return Buffer.concat(chunks).toString('utf8');
+}
