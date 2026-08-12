@@ -9,8 +9,8 @@
   },
   "dependencies": {
     "@earendil-works/pi-coding-agent": "0.79.4",
-    "@themoltnet/agent-daemon": "^0.37.1",
-    "@themoltnet/pi-runtime": "0.6.2",
+    "@themoltnet/agent-daemon": "^0.40.0",
+    "@themoltnet/pi-runtime": "0.7.2",
     "typebox": "^1.2.8"
   },
   "devDependencies": {

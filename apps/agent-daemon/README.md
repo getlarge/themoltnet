@@ -81,12 +81,13 @@ All config flows from environment variables. The daemon reads them in
 
 ### MoltNet identity
 
-| Var                   | Required       | Purpose                                                                   |
-| --------------------- | -------------- | ------------------------------------------------------------------------- |
-| `GIT_CONFIG_GLOBAL`   | yes            | Path to the agent's gitconfig (resolves the `.moltnet/<agent>/` dir).     |
-| `MOLTNET_AGENT_NAME`  | yes            | Agent name (matches `.moltnet/<name>/`).                                  |
-| `MOLTNET_AGENT_KEY`   | no             | Team-bound agent key. Set to authenticate with the key instead of OAuth2. |
-| `MOLTNET_PRIVATE_KEY` | agent-key only | Base64 Ed25519 seed used by daemon-owned executor attestation.            |
+| Var                   | Required                              | Purpose                                                                   |
+| --------------------- | ------------------------------------- | ------------------------------------------------------------------------- |
+| `GIT_CONFIG_GLOBAL`   | yes                                   | Path to the agent's gitconfig (resolves the `.moltnet/<agent>/` dir).     |
+| `MOLTNET_AGENT_NAME`  | yes                                   | Agent name (matches `.moltnet/<name>/`).                                  |
+| `MOLTNET_API_URL`     | agent-key only                        | Explicit API endpoint; key mode never reads it from `moltnet.json`.       |
+| `MOLTNET_AGENT_KEY`   | no                                    | Team-bound agent key. Set to authenticate with the key instead of OAuth2. |
+| `MOLTNET_PRIVATE_KEY` | agent-key `once`, `poll`, and `drain` | Base64 Ed25519 seed used by daemon-owned executor attestation.            |
 
 The agent's `moltnet.json` and gitconfig live next to each other in
 `.moltnet/<agent>/`. Provision them once via
@@ -100,6 +101,9 @@ exactly one team, the daemon reconciles `--team` against the key at startup and
 fails fast if the key is rejected, is not an agent, or is bound to a different
 team. See
 [Run the daemon with an agent key](../../docs/operate/running-agents.md#run-the-daemon-with-an-agent-key).
+
+`sync-sessions` does not prepare or attest executors, so it remains independent
+of `MOLTNET_PRIVATE_KEY`.
 
 An agent key used by the daemon needs this least-privilege scope set:
 

@@ -111,6 +111,49 @@ describe('daemon credential validation', () => {
       }),
     ).rejects.toThrow('does not match the authenticated agent');
   });
+
+  it('accepts an equivalent bare base64 authenticated public key', async () => {
+    const signing = await cryptoService.generateKeyPair();
+
+    await expect(
+      validateExecutorSigningIdentity({
+        whoami: agentWhoami({
+          publicKey: signing.publicKey.replace(/^ed25519:/, ''),
+          fingerprint: signing.fingerprint,
+        }),
+        signingPrivateKey: signing.privateKey,
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  it.each([
+    { publicKey: undefined, fingerprint: 'fingerprint' },
+    { publicKey: 'ed25519:not-a-key', fingerprint: 'fingerprint' },
+    { publicKey: 'ed25519:Zm9v', fingerprint: undefined },
+  ])('rejects absent or malformed whoami public material', async (material) => {
+    const signing = await cryptoService.generateKeyPair();
+
+    await expect(
+      validateExecutorSigningIdentity({
+        whoami: agentWhoami(material),
+        signingPrivateKey: signing.privateKey,
+      }),
+    ).rejects.toThrow(/whoami response/);
+  });
+
+  it('rejects a whoami fingerprint inconsistent with its public key', async () => {
+    const signing = await cryptoService.generateKeyPair();
+
+    await expect(
+      validateExecutorSigningIdentity({
+        whoami: agentWhoami({
+          publicKey: signing.publicKey,
+          fingerprint: '0000-0000-0000-0000',
+        }),
+        signingPrivateKey: signing.privateKey,
+      }),
+    ).rejects.toThrow('does not match the authenticated agent');
+  });
 });
 
 describe('attestPreparedRuntime', () => {
@@ -133,5 +176,30 @@ describe('attestPreparedRuntime', () => {
       manifest: prepared.manifest,
       signingPrivateKey: 'signing-seed',
     });
+  });
+
+  it('preserves the prepared runtime prototype', () => {
+    class CustomPreparedRuntime {
+      runtimeKind = 'custom' as const;
+      manifest = { runtime: { id: 'custom' } };
+      tools = ['tool'];
+      executables = ['bin'];
+      createTaskExecutor = vi.fn();
+      adapterMethod() {
+        return 'preserved';
+      }
+    }
+    createExecutorAttestorMock.mockReturnValue({
+      fingerprint: 'executor-fingerprint',
+    });
+    const prepared = new CustomPreparedRuntime();
+
+    const attested = attestPreparedRuntime(prepared, 'signing-seed');
+
+    expect(attested).toBe(prepared);
+    expect(attested).toBeInstanceOf(CustomPreparedRuntime);
+    expect((attested as unknown as CustomPreparedRuntime).adapterMethod()).toBe(
+      'preserved',
+    );
   });
 });

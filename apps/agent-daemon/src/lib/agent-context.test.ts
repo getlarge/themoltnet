@@ -71,8 +71,12 @@ describe('resolveAgentContext', () => {
       expect(ctx.agentDir).toBe(agentDir);
       expect(ctx.agentRootDir).toBe(root);
       expect(connectMock).toHaveBeenCalledWith(
-        expect.objectContaining({ configDir: agentDir }),
+        expect.objectContaining({
+          configDir: agentDir,
+          secretProviders: { provider: 'registry' },
+        }),
       );
+      expect(createNodeSecretProviderRegistryMock).toHaveBeenCalledOnce();
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

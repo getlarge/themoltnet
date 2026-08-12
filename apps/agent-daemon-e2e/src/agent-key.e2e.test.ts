@@ -21,7 +21,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { computeJsonCid } from '@moltnet/crypto-service';
+import { computeJsonCid, cryptoService } from '@moltnet/crypto-service';
 // eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises the daemon app entry point.
 import { runOnce } from '@themoltnet/agent-daemon/cli/once.js';
 // eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises daemon app internals.
@@ -71,6 +71,8 @@ describe('Agent daemon agent-key auth (e2e)', () => {
   let identityId: string;
   // Captured for the CLI/entry-point wiring tests below.
   let keySecret: string;
+  let underScopedKeySecret: string;
+  let signingPrivateKey: string;
   let clientId: string;
   let clientSecret: string;
 
@@ -82,6 +84,7 @@ describe('Agent daemon agent-key auth (e2e)', () => {
     identityId = creds.identityId;
     clientId = creds.clientId;
     clientSecret = creds.clientSecret;
+    signingPrivateKey = creds.keyPair.privateKey;
 
     oauthAgent = await connect({
       apiUrl: harness.restApiUrl,
@@ -100,6 +103,17 @@ describe('Agent daemon agent-key auth (e2e)', () => {
     );
     expect(issued.key.scopes).toEqual(DAEMON_CREDENTIAL_SCOPES);
     keySecret = issued.secret;
+
+    const underScoped = await oauthAgent.agentKeys.create(
+      {
+        agentId: identityId,
+        name: 'daemon-e2e-under-scoped-key',
+        scopes: ['agent:profile'],
+        ttlDays: 1,
+      },
+      { teamId, idempotencyKey: randomUUID() },
+    );
+    underScopedKeySecret = underScoped.secret;
 
     // Env-only secret in production; here it flows straight into connect().
     keyAgent = await connect({
@@ -253,7 +267,9 @@ describe('Agent daemon agent-key auth (e2e)', () => {
   it('resolveAgentContext authenticates via MOLTNET_AGENT_KEY over config OAuth2', async () => {
     const root = writeKeyAgentDir();
     const previousKey = process.env.MOLTNET_AGENT_KEY;
+    const previousApiUrl = process.env.MOLTNET_API_URL;
     process.env.MOLTNET_AGENT_KEY = keySecret;
+    process.env.MOLTNET_API_URL = harness.restApiUrl;
     try {
       const ctx = await resolveAgentContext(AGENT_NAME, { agentRootDir: root });
       const whoami = await ctx.agent.agents.whoami();
@@ -262,6 +278,8 @@ describe('Agent daemon agent-key auth (e2e)', () => {
     } finally {
       if (previousKey === undefined) delete process.env.MOLTNET_AGENT_KEY;
       else process.env.MOLTNET_AGENT_KEY = previousKey;
+      if (previousApiUrl === undefined) delete process.env.MOLTNET_API_URL;
+      else process.env.MOLTNET_API_URL = previousApiUrl;
       rmSync(root, { recursive: true, force: true });
     }
   }, 30_000);
@@ -270,7 +288,11 @@ describe('Agent daemon agent-key auth (e2e)', () => {
     const root = writeKeyAgentDir();
     const otherTeam = randomUUID();
     const previousKey = process.env.MOLTNET_AGENT_KEY;
+    const previousApiUrl = process.env.MOLTNET_API_URL;
+    const previousPrivateKey = process.env.MOLTNET_PRIVATE_KEY;
     process.env.MOLTNET_AGENT_KEY = keySecret;
+    process.env.MOLTNET_API_URL = harness.restApiUrl;
+    process.env.MOLTNET_PRIVATE_KEY = signingPrivateKey;
     try {
       // Startup validation runs right after resolveAgentContext, before profile
       // resolution — the bogus --profile/--task-id are never reached.
@@ -299,7 +321,122 @@ describe('Agent daemon agent-key auth (e2e)', () => {
     } finally {
       if (previousKey === undefined) delete process.env.MOLTNET_AGENT_KEY;
       else process.env.MOLTNET_AGENT_KEY = previousKey;
+      if (previousApiUrl === undefined) delete process.env.MOLTNET_API_URL;
+      else process.env.MOLTNET_API_URL = previousApiUrl;
+      if (previousPrivateKey === undefined)
+        delete process.env.MOLTNET_PRIVATE_KEY;
+      else process.env.MOLTNET_PRIVATE_KEY = previousPrivateKey;
       rmSync(root, { recursive: true, force: true });
     }
   }, 30_000);
+
+  it('refuses an under-scoped key before claiming the task', async () => {
+    const root = writeKeyAgentDir();
+    const created = await oauthAgent.tasks.create(
+      {
+        taskType: 'curate_pack',
+        diaryId,
+        input: { diaryId, taskPrompt: 'must remain unclaimed' },
+      },
+      { teamId },
+    );
+    const previousKey = process.env.MOLTNET_AGENT_KEY;
+    const previousApiUrl = process.env.MOLTNET_API_URL;
+    const previousPrivateKey = process.env.MOLTNET_PRIVATE_KEY;
+    process.env.MOLTNET_AGENT_KEY = underScopedKeySecret;
+    process.env.MOLTNET_API_URL = harness.restApiUrl;
+    process.env.MOLTNET_PRIVATE_KEY = signingPrivateKey;
+
+    try {
+      const error = await runOnce([
+        '--agent',
+        AGENT_NAME,
+        '--agent-root',
+        root,
+        '--task-id',
+        created.id,
+        '--profile',
+        'unused-profile',
+        '--team',
+        teamId,
+      ]).then(
+        () => null,
+        (err: unknown) => (err instanceof Error ? err : new Error(String(err))),
+      );
+
+      expect(error?.message).toContain('missing required scopes');
+      expect(error?.message).toContain(
+        'runtime:read task:read task:claim task:execute',
+      );
+      await expect(oauthAgent.tasks.get(created.id)).resolves.toMatchObject({
+        status: 'queued',
+      });
+    } finally {
+      if (previousKey === undefined) delete process.env.MOLTNET_AGENT_KEY;
+      else process.env.MOLTNET_AGENT_KEY = previousKey;
+      if (previousApiUrl === undefined) delete process.env.MOLTNET_API_URL;
+      else process.env.MOLTNET_API_URL = previousApiUrl;
+      if (previousPrivateKey === undefined)
+        delete process.env.MOLTNET_PRIVATE_KEY;
+      else process.env.MOLTNET_PRIVATE_KEY = previousPrivateKey;
+      rmSync(root, { recursive: true, force: true });
+    }
+  }, 30_000);
+
+  it('leaves tasks unclaimed when signing material is missing or mismatched', async () => {
+    const root = writeKeyAgentDir();
+    const mismatched = await cryptoService.generateKeyPair();
+    const previousKey = process.env.MOLTNET_AGENT_KEY;
+    const previousApiUrl = process.env.MOLTNET_API_URL;
+    const previousPrivateKey = process.env.MOLTNET_PRIVATE_KEY;
+    process.env.MOLTNET_AGENT_KEY = keySecret;
+    process.env.MOLTNET_API_URL = harness.restApiUrl;
+
+    try {
+      for (const candidate of ['', mismatched.privateKey]) {
+        const created = await oauthAgent.tasks.create(
+          {
+            taskType: 'curate_pack',
+            diaryId,
+            input: { diaryId, taskPrompt: 'signing gate must not claim this' },
+          },
+          { teamId },
+        );
+        process.env.MOLTNET_PRIVATE_KEY = candidate;
+
+        const error = await runOnce([
+          '--agent',
+          AGENT_NAME,
+          '--agent-root',
+          root,
+          '--task-id',
+          created.id,
+          '--profile',
+          'unused-profile',
+          '--team',
+          teamId,
+        ]).then(
+          () => null,
+          (err: unknown) =>
+            err instanceof Error ? err : new Error(String(err)),
+        );
+
+        expect(error?.message).toMatch(
+          /MOLTNET_PRIVATE_KEY|does not match the authenticated agent/,
+        );
+        await expect(oauthAgent.tasks.get(created.id)).resolves.toMatchObject({
+          status: 'queued',
+        });
+      }
+    } finally {
+      if (previousKey === undefined) delete process.env.MOLTNET_AGENT_KEY;
+      else process.env.MOLTNET_AGENT_KEY = previousKey;
+      if (previousApiUrl === undefined) delete process.env.MOLTNET_API_URL;
+      else process.env.MOLTNET_API_URL = previousApiUrl;
+      if (previousPrivateKey === undefined)
+        delete process.env.MOLTNET_PRIVATE_KEY;
+      else process.env.MOLTNET_PRIVATE_KEY = previousPrivateKey;
+      rmSync(root, { recursive: true, force: true });
+    }
+  }, 60_000);
 });
