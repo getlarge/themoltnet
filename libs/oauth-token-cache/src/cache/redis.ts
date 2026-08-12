@@ -9,12 +9,7 @@ import type { CacheEntry, CacheStore } from './types.js';
  */
 export interface RedisLikeClient {
   get(key: string): Promise<string | null>;
-  set(
-    key: string,
-    value: string,
-    mode: 'PX',
-    ttlMs: number,
-  ): Promise<unknown>;
+  set(key: string, value: string, mode: 'PX', ttlMs: number): Promise<unknown>;
   del(key: string): Promise<unknown>;
   scan(
     cursor: string,

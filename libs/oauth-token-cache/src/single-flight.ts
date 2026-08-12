@@ -25,7 +25,10 @@ export interface SingleFlightCacheOptions<T> {
 }
 
 export interface SingleFlightCache<T> {
-  resolve(key: string, load: () => Promise<LoadResult<T>>): Promise<Resolved<T>>;
+  resolve(
+    key: string,
+    load: () => Promise<LoadResult<T>>,
+  ): Promise<Resolved<T>>;
   invalidate(key: string): Promise<void>;
   /** Evict everything under a key prefix — see CacheStore.deleteByPrefix. */
   invalidatePrefix(prefix: string): Promise<void>;
@@ -81,7 +84,10 @@ export function createSingleFlightCache<T>(
         // token endpoint again on the next attempt.
         return { value: result.value, origin: 'load', remainingSeconds: null };
       }
-      await store.set(key, { value: result.value, expiresAt: result.expiresAt });
+      await store.set(key, {
+        value: result.value,
+        expiresAt: result.expiresAt,
+      });
       return {
         value: result.value,
         origin: 'load',

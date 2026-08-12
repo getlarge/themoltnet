@@ -50,7 +50,10 @@ async function post(
   return app.inject({
     method: 'POST',
     url: '/oauth2/token',
-    headers: { 'content-type': 'application/x-www-form-urlencoded', ...headers },
+    headers: {
+      'content-type': 'application/x-www-form-urlencoded',
+      ...headers,
+    },
     payload: new URLSearchParams(payload).toString(),
   });
 }
@@ -104,7 +107,9 @@ describe('POST /oauth2/token passthrough', () => {
     );
 
     // Act
-    const res = await post(app, { grant_type: 'urn:ietf:params:oauth:grant-type:device_code' });
+    const res = await post(app, {
+      grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
+    });
 
     // Assert
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -209,8 +214,16 @@ describe('POST /oauth2/token passthrough', () => {
     const bob = `Basic ${Buffer.from('bob:pw').toString('base64')}`;
 
     // Act
-    const a = await post(app, { grant_type: 'client_credentials' }, { authorization: alice });
-    const b = await post(app, { grant_type: 'client_credentials' }, { authorization: bob });
+    const a = await post(
+      app,
+      { grant_type: 'client_credentials' },
+      { authorization: alice },
+    );
+    const b = await post(
+      app,
+      { grant_type: 'client_credentials' },
+      { authorization: bob },
+    );
 
     // Assert
     expect(a.json().access_token).toBe('tok-alice');

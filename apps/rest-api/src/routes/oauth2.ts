@@ -403,7 +403,9 @@ export async function oauth2Routes(
       // numeric code at runtime. The declared set above covers what Hydra
       // actually returns and is what the published OpenAPI documents.
       return reply
-        .status(resolved.value.status as 200 | 400 | 401 | 403 | 429 | 500 | 503)
+        .status(
+          resolved.value.status as 200 | 400 | 401 | 403 | 429 | 500 | 503,
+        )
         .send(payload);
     },
   );

@@ -22424,7 +22424,7 @@
     },
     "/oauth2/token": {
       "post": {
-        "description": "Exchange OAuth2 client credentials for an access token. Only the client_credentials grant type is supported. Proxies the request to the upstream identity provider.",
+        "description": "OAuth2 token endpoint. Proxies every grant to the upstream identity provider, which remains the authority on which grants and client authentication methods are accepted. Successful client_credentials and refresh_token grants may be served from cache.",
         "operationId": "getOAuth2Token",
         "responses": {
           "200": {
@@ -22467,6 +22467,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "properties": {
                     "error": {
                       "type": "string"
@@ -22497,6 +22498,131 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "error_debug": {
+                      "type": "string"
+                    },
+                    "error_description": {
+                      "type": "string"
+                    },
+                    "error_hint": {
+                      "type": "string"
+                    },
+                    "status_code": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "error_debug": {
+                      "type": "string"
+                    },
+                    "error_description": {
+                      "type": "string"
+                    },
+                    "error_hint": {
+                      "type": "string"
+                    },
+                    "status_code": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "error_debug": {
+                      "type": "string"
+                    },
+                    "error_description": {
+                      "type": "string"
+                    },
+                    "error_hint": {
+                      "type": "string"
+                    },
+                    "status_code": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "error_debug": {
+                      "type": "string"
+                    },
+                    "error_description": {
+                      "type": "string"
+                    },
+                    "error_hint": {
+                      "type": "string"
+                    },
+                    "status_code": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
                   "properties": {
                     "error": {
                       "type": "string"

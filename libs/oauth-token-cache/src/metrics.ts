@@ -27,10 +27,7 @@ export type TokenExchangeOutcome =
  * instrumented.
  */
 export interface TokenExchangeMetrics {
-  recordCacheAccess(
-    source: string,
-    result: TokenExchangeCacheResult,
-  ): void;
+  recordCacheAccess(source: string, result: TokenExchangeCacheResult): void;
   /** Called only when an upstream request actually happened. */
   recordExchange(
     source: string,

@@ -204,8 +204,8 @@ describe('token exchange metrics', () => {
     });
 
     // Act + Assert
-    await expect(
-      exchanger.exchange('client-a', 'secret-a'),
-    ).resolves.toBe('tok');
+    await expect(exchanger.exchange('client-a', 'secret-a')).resolves.toBe(
+      'tok',
+    );
   });
 });
