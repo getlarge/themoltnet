@@ -45,8 +45,12 @@ export function getTarballEntries(pkgDir: string): string[] {
     cwd: pkgDir,
     encoding: 'utf-8',
   });
-  const parsed = JSON.parse(output) as { files: PackEntry[] }[];
-  return (parsed[0]?.files ?? []).map((e) => e.path);
+  const parsed = JSON.parse(output) as
+    | { files: PackEntry[] }[]
+    | Record<string, { files: PackEntry[] }>;
+  // npm <12 returns an array; npm 12+ returns a dict keyed by package name.
+  const entry = Array.isArray(parsed) ? parsed[0] : Object.values(parsed)[0];
+  return (entry?.files ?? []).map((e) => e.path);
 }
 
 /**

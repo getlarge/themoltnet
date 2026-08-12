@@ -107,15 +107,11 @@ const tarballs = [
   pack('libs/pi-runtime'),
   pack('libs/pi-extension'),
 ];
-const install = spawnSync(
-  'npm',
-  ['install', ...tarballs, '--no-audit', '--no-fund', '--loglevel=error'],
-  {
-    cwd: installDir,
-    encoding: 'utf8',
-    env: { ...process.env, npm_config_cache: npmCache },
-  },
-);
+const install = spawnSync('pnpm', ['add', ...tarballs, '--ignore-scripts'], {
+  cwd: installDir,
+  encoding: 'utf8',
+  env: { ...process.env, npm_config_cache: npmCache },
+});
 if (install.status !== 0) {
   fail(
     'npm install of the packed pi-extension dependency set failed',
