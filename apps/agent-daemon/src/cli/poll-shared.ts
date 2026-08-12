@@ -29,6 +29,13 @@ import {
   createExecutionPlanCache,
   ProducerContextResolutionError,
 } from '../lib/execution-plan-cache.js';
+import {
+  type AttestedDaemonRuntime,
+  attestPreparedRuntime,
+  resolveExecutorSigningPrivateKey,
+  validateDaemonScopes,
+  validateExecutorSigningIdentity,
+} from '../lib/executor-attestation.js';
 import { finalizeTask } from '../lib/finalize.js';
 import { isHelpFlag } from '../lib/help.js';
 import { createRootLogger } from '../lib/logger.js';
@@ -67,7 +74,6 @@ import { defaultPiDaemonAdapter } from '../pi.js';
 import {
   assertRuntimeAdapterSupportsProfile,
   type DaemonRuntimeAdapter,
-  type PreparedDaemonRuntime,
 } from '../runtime.js';
 
 export interface PollSharedArgs {
@@ -91,7 +97,7 @@ interface ProfileRuntime {
   piAgentDir: ReturnType<typeof ensurePiAgentDir>;
   slotIdentity: DaemonSlotIdentity;
   executionPlans: ReturnType<typeof createExecutionPlanCache>;
-  preparedRuntime: PreparedDaemonRuntime;
+  preparedRuntime: AttestedDaemonRuntime;
 }
 
 export async function runPolling(opts: PollSharedArgs): Promise<number> {
@@ -205,7 +211,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   );
   const ctx = await resolveAgentContext(baseCommon.agent, {
     agentRootDir,
-    allowMissingConfig: cfg.authMode === 'agent-key',
+    authMode: cfg.authMode,
   });
   // Fail fast, before polling, on a rejected or wrong-team credential. In
   // agent-key mode this turns an obscure mid-poll 401/403 into an actionable
@@ -214,6 +220,16 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     agent: ctx.agent,
     teamId,
   });
+  const signingPrivateKey = await resolveExecutorSigningPrivateKey({
+    authMode: cfg.authMode,
+    agentDir: ctx.agentDir,
+    configuredPrivateKey: cfg.signingPrivateKey,
+  });
+  validateDaemonScopes(startupWhoami);
+  await validateExecutorSigningIdentity({
+    whoami: startupWhoami,
+    signingPrivateKey,
+  });
   const profiles = await resolveRuntimeProfiles({
     agent: ctx.agent,
     profiles: profileValues,
@@ -221,13 +237,13 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     cwd: ctx.agentRootDir,
   });
   const runtimeAdapter = opts.runtimeAdapter ?? defaultPiDaemonAdapter;
-  const preparedRuntimes = new Map<string, PreparedDaemonRuntime>();
+  const preparedRuntimes = new Map<string, AttestedDaemonRuntime>();
   for (const profile of profiles) {
     assertRuntimeAdapterSupportsProfile(runtimeAdapter, profile);
-    const prepared = await runtimeAdapter.prepare({
-      profile,
-      configDir: ctx.agentDir,
-    });
+    const prepared = attestPreparedRuntime(
+      await runtimeAdapter.prepare({ profile }),
+      signingPrivateKey,
+    );
     validateRuntimeProfilePrerequisites(profile, cfg.profilePrerequisiteEnv, {
       tools: prepared.tools,
       executables: prepared.executables,

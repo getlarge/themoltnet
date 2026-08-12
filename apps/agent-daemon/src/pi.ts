@@ -8,7 +8,6 @@ import {
   MOLTNET_TOOL_NAMES,
   type PiRuntimeDefinition,
 } from '@themoltnet/pi-runtime';
-import { createExecutorAttestor } from '@themoltnet/sdk';
 
 import type { DaemonRuntimeAdapter, PreparedDaemonRuntime } from './runtime.js';
 
@@ -52,17 +51,12 @@ export function createPiDaemonAdapter(
         template: resolvedTemplate,
         builtInToolNames: PI_KERNEL_TOOL_NAMES,
       });
-      const attestor = await createExecutorAttestor({
-        manifest: manifest as unknown as Record<string, unknown>,
-        configDir: input.configDir,
-      });
       const extensionTools = runtime.extensions.flatMap(
         (extension) => extension.declaredTools,
       );
       return {
         runtimeKind: runtime.runtimeKind,
         manifest: manifest as unknown as Record<string, unknown>,
-        attestor,
         tools: [
           ...PI_KERNEL_TOOL_NAMES,
           ...runtime.tools.map((tool) => tool.descriptor.name),

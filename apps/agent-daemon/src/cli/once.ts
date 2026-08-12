@@ -27,6 +27,12 @@ import {
   createExecutionPlanCache,
   ProducerContextResolutionError,
 } from '../lib/execution-plan-cache.js';
+import {
+  attestPreparedRuntime,
+  resolveExecutorSigningPrivateKey,
+  validateDaemonScopes,
+  validateExecutorSigningIdentity,
+} from '../lib/executor-attestation.js';
 import { finalizeTask } from '../lib/finalize.js';
 import { isHelpFlag, ONCE_HELP } from '../lib/help.js';
 import { createRootLogger } from '../lib/logger.js';
@@ -123,13 +129,22 @@ export async function runOnce(
   );
   const ctx = await resolveAgentContext(initialOpts.agent, {
     agentRootDir,
+    authMode: cfg.authMode,
   });
-  // Fail fast on a rejected or wrong-team credential before running the task.
-  // `once` allows a profile UUID without --team, so only assert the binding
-  // when a team is in scope.
-  if (values.team) {
-    await validateStartupBinding({ agent: ctx.agent, teamId: values.team });
-  }
+  const signingPrivateKey = await resolveExecutorSigningPrivateKey({
+    authMode: cfg.authMode,
+    agentDir: ctx.agentDir,
+    configuredPrivateKey: cfg.signingPrivateKey,
+  });
+  const startupWhoami = await validateStartupBinding({
+    agent: ctx.agent,
+    teamId: values.team,
+  });
+  validateDaemonScopes(startupWhoami);
+  await validateExecutorSigningIdentity({
+    whoami: startupWhoami,
+    signingPrivateKey,
+  });
   const profile = await resolveRuntimeProfile({
     agent: ctx.agent,
     profile: values.profile,
@@ -137,10 +152,10 @@ export async function runOnce(
     cwd: ctx.agentRootDir,
   });
   assertRuntimeAdapterSupportsProfile(runtimeAdapter, profile);
-  const preparedRuntime = await runtimeAdapter.prepare({
-    profile,
-    configDir: ctx.agentDir,
-  });
+  const preparedRuntime = attestPreparedRuntime(
+    await runtimeAdapter.prepare({ profile }),
+    signingPrivateKey,
+  );
   validateRuntimeProfilePrerequisites(profile, cfg.profilePrerequisiteEnv, {
     tools: preparedRuntime.tools,
     executables: preparedRuntime.executables,
