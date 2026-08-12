@@ -35,7 +35,7 @@ import {
 } from '../lib/executor-attestation.js';
 import { finalizeTask } from '../lib/finalize.js';
 import { isHelpFlag, ONCE_HELP } from '../lib/help.js';
-import { createRootLogger } from '../lib/logger.js';
+import { createRootLogger, logDaemonStartupFailure } from '../lib/logger.js';
 import {
   commonOptionDefs,
   type CommonOptions,
@@ -127,24 +127,46 @@ export async function runOnce(
     process.cwd(),
     values['agent-root'] ?? process.cwd(),
   );
-  const ctx = await resolveAgentContext(initialOpts.agent, {
-    agentRootDir,
-    authMode: cfg.authMode,
-  });
-  const signingPrivateKey = await resolveExecutorSigningPrivateKey({
-    authMode: cfg.authMode,
-    agentDir: ctx.agentDir,
-    configuredPrivateKey: cfg.signingPrivateKey,
-  });
-  const startupWhoami = await validateStartupBinding({
-    agent: ctx.agent,
-    teamId: values.team,
-  });
-  validateDaemonScopes(startupWhoami);
-  await validateExecutorSigningIdentity({
-    whoami: startupWhoami,
-    signingPrivateKey,
-  });
+  const { ctx, signingPrivateKey } = await (async () => {
+    let gate = 'resolve_agent_context';
+    try {
+      const resolvedContext = await resolveAgentContext(initialOpts.agent, {
+        agentRootDir,
+        authMode: cfg.authMode,
+      });
+      // Authenticate and validate team binding before resolving signing
+      // material, consistently with poll/drain.
+      gate = 'authenticate_and_bind';
+      const whoami = await validateStartupBinding({
+        agent: resolvedContext.agent,
+        teamId: values.team,
+      });
+      gate = 'resolve_signing_material';
+      const privateKey = await resolveExecutorSigningPrivateKey({
+        authMode: cfg.authMode,
+        agentDir: resolvedContext.agentDir,
+        configuredPrivateKey: cfg.signingPrivateKey,
+      });
+      gate = 'validate_scopes';
+      validateDaemonScopes(whoami);
+      gate = 'validate_signing_identity';
+      await validateExecutorSigningIdentity({
+        whoami,
+        signingPrivateKey: privateKey,
+      });
+      return { ctx: resolvedContext, signingPrivateKey: privateKey };
+    } catch (error) {
+      await logDaemonStartupFailure({
+        serviceName: 'agent-daemon.once',
+        level: cfg.logLevel || (initialOpts.debug ? 'debug' : 'info'),
+        gate,
+        agent: initialOpts.agent,
+        authMode: cfg.authMode,
+        error,
+      });
+      throw error;
+    }
+  })();
   const profile = await resolveRuntimeProfile({
     agent: ctx.agent,
     profile: values.profile,
@@ -208,7 +230,7 @@ export async function runOnce(
   });
   const otelShutdown = await initWorkerOtel({
     serviceName: 'moltnet.agent-daemon.once',
-    agentDir: ctx.agentDir,
+    agent: ctx.agent,
     endpoint: cfg.otelEndpoint,
     resourceAttributes: {
       'moltnet.task.id': taskId,

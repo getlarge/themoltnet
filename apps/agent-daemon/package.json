@@ -144,6 +144,7 @@
   "devDependencies": {
     "@moltnet/bootstrap": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/models": "workspace:*",
     "@moltnet/observability": "workspace:*",
     "@moltnet/tasks": "workspace:*",
     "tsx": "catalog:",

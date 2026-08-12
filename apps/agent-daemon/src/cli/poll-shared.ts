@@ -38,7 +38,7 @@ import {
 } from '../lib/executor-attestation.js';
 import { finalizeTask } from '../lib/finalize.js';
 import { isHelpFlag } from '../lib/help.js';
-import { createRootLogger } from '../lib/logger.js';
+import { createRootLogger, logDaemonStartupFailure } from '../lib/logger.js';
 import {
   commonOptionDefs,
   type CommonOptions,
@@ -209,27 +209,49 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     process.cwd(),
     values['agent-root'] ?? process.cwd(),
   );
-  const ctx = await resolveAgentContext(baseCommon.agent, {
-    agentRootDir,
-    authMode: cfg.authMode,
-  });
-  // Fail fast, before polling, on a rejected or wrong-team credential. In
-  // agent-key mode this turns an obscure mid-poll 401/403 into an actionable
-  // startup error; in OAuth2 mode it doubles as an API-reachability check.
-  const startupWhoami = await validateStartupBinding({
-    agent: ctx.agent,
-    teamId,
-  });
-  const signingPrivateKey = await resolveExecutorSigningPrivateKey({
-    authMode: cfg.authMode,
-    agentDir: ctx.agentDir,
-    configuredPrivateKey: cfg.signingPrivateKey,
-  });
-  validateDaemonScopes(startupWhoami);
-  await validateExecutorSigningIdentity({
-    whoami: startupWhoami,
-    signingPrivateKey,
-  });
+  const { ctx, signingPrivateKey, startupWhoami } = await (async () => {
+    let gate = 'resolve_agent_context';
+    try {
+      const resolvedContext = await resolveAgentContext(baseCommon.agent, {
+        agentRootDir,
+        authMode: cfg.authMode,
+      });
+      // Fail fast, before polling, on a rejected or wrong-team credential.
+      gate = 'authenticate_and_bind';
+      const whoami = await validateStartupBinding({
+        agent: resolvedContext.agent,
+        teamId,
+      });
+      gate = 'resolve_signing_material';
+      const privateKey = await resolveExecutorSigningPrivateKey({
+        authMode: cfg.authMode,
+        agentDir: resolvedContext.agentDir,
+        configuredPrivateKey: cfg.signingPrivateKey,
+      });
+      gate = 'validate_scopes';
+      validateDaemonScopes(whoami);
+      gate = 'validate_signing_identity';
+      await validateExecutorSigningIdentity({
+        whoami,
+        signingPrivateKey: privateKey,
+      });
+      return {
+        ctx: resolvedContext,
+        signingPrivateKey: privateKey,
+        startupWhoami: whoami,
+      };
+    } catch (error) {
+      await logDaemonStartupFailure({
+        serviceName: `agent-daemon.${opts.modeLabel}`,
+        level: cfg.logLevel || (baseCommon.debug ? 'debug' : 'info'),
+        gate,
+        agent: baseCommon.agent,
+        authMode: cfg.authMode,
+        error,
+      });
+      throw error;
+    }
+  })();
   const profiles = await resolveRuntimeProfiles({
     agent: ctx.agent,
     profiles: profileValues,
@@ -316,7 +338,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   activatePiCodingAgentDir(piAgentDir.path);
   const otelShutdown = await initWorkerOtel({
     serviceName: opts.serviceName,
-    agentDir: ctx.agentDir,
+    agent: ctx.agent,
     endpoint: cfg.otelEndpoint,
     resourceAttributes: {
       'moltnet.team.id': teamId,

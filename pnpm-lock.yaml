@@ -636,6 +636,9 @@ importers:
       '@moltnet/crypto-service':
         specifier: workspace:*
         version: link:../../libs/crypto-service
+      '@moltnet/models':
+        specifier: workspace:*
+        version: link:../../libs/models
       '@moltnet/observability':
         specifier: workspace:*
         version: link:../../libs/observability

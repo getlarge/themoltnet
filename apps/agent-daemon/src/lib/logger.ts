@@ -92,3 +92,29 @@ export function createRootLogger(options: LoggerOptions): RootLoggerHandle {
 
   return { logger, shutdown };
 }
+
+/** Emit one machine-readable record when a pre-runtime startup gate fails. */
+export async function logDaemonStartupFailure(input: {
+  serviceName: string;
+  level: string;
+  gate: string;
+  agent: string;
+  authMode: string;
+  error: unknown;
+}): Promise<void> {
+  const { logger, shutdown } = createRootLogger({
+    name: input.serviceName,
+    level: input.level,
+  });
+  logger.error(
+    {
+      err: input.error,
+      event: 'agent-daemon.startup_failed',
+      gate: input.gate,
+      agent: input.agent,
+      authMode: input.authMode,
+    },
+    'Agent daemon startup validation failed',
+  );
+  await shutdown();
+}
