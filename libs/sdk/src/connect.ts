@@ -53,15 +53,10 @@ async function resolveConnection(
   // so a stray environment variable can never override what the caller wrote.
   // 1. Explicit agent key
   if (explicitAgentKey) {
-    const config = await readConfig(options.configDir);
     return {
       mode: 'agentKey',
       agentKey: explicitAgentKey,
-      apiUrl: normalizeApiUrl(
-        options.apiUrl,
-        env.apiUrl,
-        config?.endpoints?.api,
-      ),
+      apiUrl: normalizeApiUrl(options.apiUrl, env.apiUrl),
     };
   }
   // 2. Explicit OAuth2 client credentials
@@ -78,15 +73,10 @@ async function resolveConnection(
   // 3. Env agent key (opts into key mode only once explicit options are ruled out)
   const envAgentKey = env.agentKey?.trim();
   if (envAgentKey) {
-    const config = await readConfig(options.configDir);
     return {
       mode: 'agentKey',
       agentKey: envAgentKey,
-      apiUrl: normalizeApiUrl(
-        options.apiUrl,
-        env.apiUrl,
-        config?.endpoints?.api,
-      ),
+      apiUrl: normalizeApiUrl(options.apiUrl, env.apiUrl),
     };
   }
   // 4. Env OAuth2 client credentials

@@ -1,50 +1,25 @@
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-
 import { cryptoService } from '@moltnet/crypto-service';
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { writeConfig } from '../src/credentials.js';
 import { createExecutorAttestor } from '../src/executor-attestation.js';
 
-const temporaryDirectories: string[] = [];
+const readConfigMock = vi.hoisted(() => vi.fn());
 
-afterEach(async () => {
-  await Promise.all(
-    temporaryDirectories
-      .splice(0)
-      .map((directory) => rm(directory, { recursive: true, force: true })),
-  );
-});
+vi.mock('../src/credentials.js', () => ({
+  readConfig: readConfigMock,
+}));
 
 describe('createExecutorAttestor', () => {
   it('clones and deterministically signs one executor manifest', async () => {
-    const configDir = await mkdtemp(join(tmpdir(), 'moltnet-attestor-'));
-    temporaryDirectories.push(configDir);
     const keys = await cryptoService.generateKeyPair();
-    await writeConfig(
-      {
-        identity_id: '11111111-1111-4111-8111-111111111111',
-        registered_at: '2026-07-28T00:00:00.000Z',
-        oauth2: { client_id: 'test', client_secret: 'test' },
-        keys: {
-          public_key: keys.publicKey,
-          private_key: keys.privateKey,
-          fingerprint: keys.fingerprint,
-        },
-        endpoints: {
-          api: 'https://api.example.test',
-          mcp: 'https://mcp.example.test',
-        },
-      },
-      configDir,
-    );
     const manifest = {
       schemaVersion: 'moltnet:executor-manifest:v1',
       runtime: { id: 'custom', version: '1' },
     };
-    const attestor = await createExecutorAttestor({ manifest, configDir });
+    const attestor = createExecutorAttestor({
+      manifest,
+      signingPrivateKey: keys.privateKey,
+    });
     manifest.runtime.version = 'mutated';
 
     const registration = await attestor.registration();
@@ -67,5 +42,41 @@ describe('createExecutorAttestor', () => {
       runtime: { id: 'custom', version: '1' },
     });
     expect(first.executorFingerprint).toBe(attestor.fingerprint);
+    expect(readConfigMock).not.toHaveBeenCalled();
+  });
+
+  it.each(['', 'not-base64', Buffer.alloc(31).toString('base64')])(
+    'rejects malformed signing material before returning an attestor',
+    (signingPrivateKey) => {
+      expect(() =>
+        createExecutorAttestor({ manifest: {}, signingPrivateKey }),
+      ).toThrow('base64-encoded 32-byte Ed25519 private key');
+    },
+  );
+
+  it('produces deterministic registration, claim, and completion signatures', async () => {
+    const keys = await cryptoService.generateKeyPair();
+    const input = {
+      manifest: { schemaVersion: 'moltnet:executor-manifest:v1' },
+      signingPrivateKey: keys.privateKey,
+    };
+    const first = createExecutorAttestor(input);
+    const second = createExecutorAttestor(input);
+
+    await expect(first.registration()).resolves.toEqual(
+      await second.registration(),
+    );
+    await expect(first.claim('task-1')).resolves.toEqual(
+      await second.claim('task-1'),
+    );
+    await expect(
+      first.complete({ taskId: 'task-1', attemptN: 2, outputCid: 'cid-1' }),
+    ).resolves.toEqual(
+      await second.complete({
+        taskId: 'task-1',
+        attemptN: 2,
+        outputCid: 'cid-1',
+      }),
+    );
   });
 });

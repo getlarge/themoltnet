@@ -6,8 +6,6 @@ import {
   signExecutorAttestation,
 } from '@moltnet/crypto-service';
 
-import { readConfig } from './credentials.js';
-
 export interface ExecutorAttestationFields {
   executorManifest: Record<string, unknown>;
   executorFingerprint: string;
@@ -37,19 +35,14 @@ export interface ExecutorAttestor {
  * The returned signatures use the server's existing task-executor
  * attestation framing and can be spread directly into claim/complete bodies.
  */
-export async function createExecutorAttestor(input: {
+export function createExecutorAttestor(input: {
   manifest: Record<string, unknown>;
-  configDir: string;
-}): Promise<ExecutorAttestor> {
-  const config = await readConfig(input.configDir);
-  if (!config) {
-    throw new Error(
-      `Cannot attest executor manifest: no MoltNet config in ${input.configDir}`,
-    );
-  }
+  signingPrivateKey: string;
+}): ExecutorAttestor {
+  assertSigningPrivateKey(input.signingPrivateKey);
   const manifest = structuredClone(input.manifest);
   const fingerprint = computeExecutorManifestCid(manifest);
-  const privateKey = config.keys.private_key;
+  const privateKey = input.signingPrivateKey;
   let registrationPromise: Promise<ExecutorAttestationFields> | undefined;
 
   return {
@@ -105,4 +98,19 @@ export async function createExecutorAttestor(input: {
       };
     },
   };
+}
+
+function assertSigningPrivateKey(value: string): void {
+  const normalized = value.trim();
+  const bytes = Buffer.from(normalized, 'base64');
+  const canonical = bytes.toString('base64');
+  if (
+    normalized.length === 0 ||
+    bytes.length !== 32 ||
+    canonical !== normalized
+  ) {
+    throw new Error(
+      'Cannot attest executor manifest: signingPrivateKey must be a base64-encoded 32-byte Ed25519 private key.',
+    );
+  }
 }
