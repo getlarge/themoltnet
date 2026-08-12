@@ -58,7 +58,7 @@ export type StartupBindingAssessment =
  */
 export function assessStartupBinding(
   whoami: Whoami,
-  teamId: string,
+  teamId?: string,
 ): StartupBindingAssessment {
   if (whoami.subjectType !== 'agent') {
     return {
@@ -70,7 +70,7 @@ export function assessStartupBinding(
     };
   }
   const boundTeamId = whoami.credentialBinding?.boundTeamId;
-  if (boundTeamId && boundTeamId !== teamId) {
+  if (teamId && boundTeamId && boundTeamId !== teamId) {
     return {
       ok: false,
       reason:
@@ -98,7 +98,7 @@ export interface StartupWhoamiSource {
  */
 export async function validateStartupBinding(options: {
   agent: StartupWhoamiSource;
-  teamId: string;
+  teamId?: string;
 }): Promise<Whoami> {
   let whoami: Whoami;
   try {
@@ -125,7 +125,10 @@ export async function validateStartupBinding(options: {
  */
 export async function resolveAgentContext(
   agentName: string,
-  options: { agentRootDir?: string; allowMissingConfig?: boolean } = {},
+  options: {
+    agentRootDir?: string;
+    authMode?: DaemonAuthMode;
+  } = {},
 ): Promise<DaemonAgentContext> {
   if (!/^[a-zA-Z0-9_-]+$/.test(agentName)) {
     throw new Error(
@@ -133,6 +136,13 @@ export async function resolveAgentContext(
     );
   }
   const roots = resolveCredentialRoots(options.agentRootDir);
+  if (options.authMode === 'agent-key') {
+    const rootDir = roots[0] ?? process.cwd();
+    const agentDir = join(rootDir, '.moltnet', agentName);
+    const agent = await connect();
+    return { agentDir, agentRootDir: rootDir, agent };
+  }
+
   for (const rootDir of roots) {
     const agentDir = join(rootDir, '.moltnet', agentName);
     if (existsSync(join(agentDir, 'moltnet.json'))) {
@@ -142,16 +152,6 @@ export async function resolveAgentContext(
       });
       return { agentDir, agentRootDir: rootDir, agent };
     }
-  }
-
-  if (options.allowMissingConfig) {
-    const rootDir = roots[0] ?? process.cwd();
-    const agentDir = join(rootDir, '.moltnet', agentName);
-    const agent = await connect({
-      configDir: agentDir,
-      secretProviders: createNodeSecretProviderRegistry(),
-    });
-    return { agentDir, agentRootDir: rootDir, agent };
   }
 
   const tried = roots.map((root) => join(root, '.moltnet', agentName));

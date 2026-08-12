@@ -24,6 +24,8 @@ export interface DaemonConfig {
    * itself is never surfaced here.
    */
   authMode: DaemonAuthMode;
+  /** Base64 Ed25519 seed used for executor attestation in agent-key mode. */
+  signingPrivateKey: string;
   /** Include empty-list and idle-sleep spans for controlled benchmarks. */
   traceIdlePolling: boolean;
 }
@@ -36,6 +38,7 @@ export function loadConfig(): DaemonConfig {
     profilePrerequisitePath: process.env.PATH ?? '',
     piCodingAgentDir: process.env['PI_CODING_AGENT_DIR'] ?? '',
     authMode: detectAuthMode(process.env),
+    signingPrivateKey: process.env['MOLTNET_PRIVATE_KEY'] ?? '',
     traceIdlePolling: readBoolean(
       'MOLTNET_TRACE_IDLE_POLLING',
       process.env['MOLTNET_TRACE_IDLE_POLLING'],

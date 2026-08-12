@@ -30,6 +30,12 @@ vi.mock('@themoltnet/sdk', () => ({
   AuthenticationError: AuthenticationErrorMock,
 }));
 
+const createNodeSecretProviderRegistryMock = vi.hoisted(() => vi.fn());
+
+vi.mock('@themoltnet/sdk/node', () => ({
+  createNodeSecretProviderRegistry: createNodeSecretProviderRegistryMock,
+}));
+
 import {
   assessStartupBinding,
   detectAuthMode,
@@ -42,6 +48,10 @@ describe('resolveAgentContext', () => {
     connectMock.mockReset();
     connectMock.mockResolvedValue({ agent: 'connected' });
     execFileSyncMock.mockReset();
+    createNodeSecretProviderRegistryMock.mockReset();
+    createNodeSecretProviderRegistryMock.mockReturnValue({
+      provider: 'registry',
+    });
   });
 
   it('uses an explicit repo-free root when credentials exist there', async () => {
@@ -92,7 +102,7 @@ describe('resolveAgentContext', () => {
     }
   });
 
-  it('connects without moltnet.json when agent-key mode permits it', async () => {
+  it('connects without config or secret providers in agent-key mode', async () => {
     const root = mkdtempSync(join(tmpdir(), 'daemon-agent-key-root-'));
     execFileSyncMock.mockImplementation(() => {
       throw new Error('not a git repo');
@@ -101,14 +111,13 @@ describe('resolveAgentContext', () => {
     try {
       const ctx = await resolveAgentContext('legreffier', {
         agentRootDir: root,
-        allowMissingConfig: true,
+        authMode: 'agent-key',
       });
 
       const agentDir = join(root, '.moltnet', 'legreffier');
       expect(ctx.agentDir).toBe(agentDir);
-      expect(connectMock).toHaveBeenCalledWith(
-        expect.objectContaining({ configDir: agentDir }),
-      );
+      expect(connectMock).toHaveBeenCalledWith();
+      expect(createNodeSecretProviderRegistryMock).not.toHaveBeenCalled();
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

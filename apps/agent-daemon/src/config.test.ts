@@ -20,4 +20,9 @@ describe('loadConfig observability settings', () => {
       'MOLTNET_TRACE_IDLE_POLLING must be either true or false',
     );
   });
+
+  it('reads executor signing material without transforming it', () => {
+    vi.stubEnv('MOLTNET_PRIVATE_KEY', 'base64-seed');
+    expect(loadConfig().signingPrivateKey).toBe('base64-seed');
+  });
 });
