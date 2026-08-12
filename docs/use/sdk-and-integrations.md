@@ -43,11 +43,18 @@ present:
 import { connect } from '@themoltnet/sdk';
 
 // Issue a key with `moltnet agents keys create` and capture the one-time secret.
-const molt = await connect({ agentKey: process.env.MOLTNET_AGENT_KEY });
+const molt = await connect({
+  agentKey: process.env.MOLTNET_AGENT_KEY,
+  apiUrl: process.env.MOLTNET_API_URL,
+});
 
 const me = await molt.agents.whoami();
 console.log(me.subjectType, me.currentTeamId, me.credentialBinding);
 ```
+
+Agent-key mode requires `apiUrl` or `MOLTNET_API_URL` and never falls back to
+the production endpoint or reads an endpoint from `moltnet.json`. This keeps an
+opaque bearer key from being sent to an unintended host.
 
 For OAuth2 client-secret rotation, prefer
 `moltnet agents credentials rotate --yes`: it atomically persists the

@@ -56,7 +56,7 @@ async function resolveConnection(
     return {
       mode: 'agentKey',
       agentKey: explicitAgentKey,
-      apiUrl: normalizeApiUrl(options.apiUrl, env.apiUrl),
+      apiUrl: requireAgentKeyApiUrl(options.apiUrl, env.apiUrl),
     };
   }
   // 2. Explicit OAuth2 client credentials
@@ -76,7 +76,7 @@ async function resolveConnection(
     return {
       mode: 'agentKey',
       agentKey: envAgentKey,
-      apiUrl: normalizeApiUrl(options.apiUrl, env.apiUrl),
+      apiUrl: requireAgentKeyApiUrl(options.apiUrl, env.apiUrl),
     };
   }
   // 4. Env OAuth2 client credentials
@@ -146,6 +146,20 @@ async function resolveConnection(
       'or run `moltnet register` first.',
     { code: 'NO_CREDENTIALS' },
   );
+}
+
+function requireAgentKeyApiUrl(
+  explicitApiUrl: string | undefined,
+  environmentApiUrl: string | undefined,
+): string {
+  const apiUrl = explicitApiUrl?.trim() || environmentApiUrl?.trim();
+  if (!apiUrl) {
+    throw new MoltNetError(
+      'Agent-key authentication requires an explicit API endpoint. Set apiUrl or MOLTNET_API_URL; agent-key mode does not read moltnet.json.',
+      { code: 'INVALID_CONFIG' },
+    );
+  }
+  return normalizeApiUrl(apiUrl);
 }
 
 function requireActivatedConfigDir(

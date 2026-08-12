@@ -389,7 +389,7 @@ describe('connect (agent-key mode)', () => {
     mockReadEnvCredentials.mockReturnValue({
       clientId: undefined,
       clientSecret: undefined,
-      apiUrl: undefined,
+      apiUrl: 'https://agent-key.example.test',
       agentKey: 'env-key',
     });
 
@@ -404,7 +404,7 @@ describe('connect (agent-key mode)', () => {
     mockReadEnvCredentials.mockReturnValue({
       clientId: undefined,
       clientSecret: undefined,
-      apiUrl: undefined,
+      apiUrl: 'https://agent-key.example.test',
       agentKey: 'env-key',
     });
 
@@ -456,5 +456,14 @@ describe('connect (agent-key mode)', () => {
     expect(mockCreateClient).toHaveBeenCalledWith(
       expect.objectContaining({ baseUrl: 'https://agent-key.example.test' }),
     );
+  });
+
+  it('fails closed without an explicit agent-key API endpoint', async () => {
+    await expect(connect({ agentKey: 'k' })).rejects.toThrow(
+      'Set apiUrl or MOLTNET_API_URL',
+    );
+
+    expect(mockReadConfig).not.toHaveBeenCalled();
+    expect(mockCreateClient).not.toHaveBeenCalled();
   });
 });

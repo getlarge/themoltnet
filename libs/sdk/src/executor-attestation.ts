@@ -39,10 +39,9 @@ export function createExecutorAttestor(input: {
   manifest: Record<string, unknown>;
   signingPrivateKey: string;
 }): ExecutorAttestor {
-  assertSigningPrivateKey(input.signingPrivateKey);
+  const privateKey = normalizeSigningPrivateKey(input.signingPrivateKey);
   const manifest = structuredClone(input.manifest);
   const fingerprint = computeExecutorManifestCid(manifest);
-  const privateKey = input.signingPrivateKey;
   let registrationPromise: Promise<ExecutorAttestationFields> | undefined;
 
   return {
@@ -100,17 +99,20 @@ export function createExecutorAttestor(input: {
   };
 }
 
-function assertSigningPrivateKey(value: string): void {
+function normalizeSigningPrivateKey(value: string): string {
   const normalized = value.trim();
-  const bytes = Buffer.from(normalized, 'base64');
-  const canonical = bytes.toString('base64');
-  if (
-    normalized.length === 0 ||
-    bytes.length !== 32 ||
-    canonical !== normalized
-  ) {
-    throw new Error(
-      'Cannot attest executor manifest: signingPrivateKey must be a base64-encoded 32-byte Ed25519 private key.',
-    );
+  if (!/^[A-Za-z0-9+/_-]+={0,2}$/.test(normalized)) {
+    throwInvalidSigningPrivateKey();
   }
+  const bytes = Buffer.from(normalized, 'base64');
+  if (bytes.length !== 32) {
+    throwInvalidSigningPrivateKey();
+  }
+  return bytes.toString('base64');
+}
+
+function throwInvalidSigningPrivateKey(): never {
+  throw new Error(
+    'Cannot attest executor manifest: signingPrivateKey must be a base64-encoded 32-byte Ed25519 private key.',
+  );
 }

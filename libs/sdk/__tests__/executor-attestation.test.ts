@@ -79,4 +79,29 @@ describe('createExecutorAttestor', () => {
       }),
     );
   });
+
+  it('normalizes unpadded base64url signing material before use', async () => {
+    const keys = await cryptoService.generateKeyPair();
+    const base64url = keys.privateKey
+      .replaceAll('+', '-')
+      .replaceAll('/', '_')
+      .replace(/=+$/, '');
+    const manifest = { schemaVersion: 'moltnet:executor-manifest:v1' };
+
+    const canonical = createExecutorAttestor({
+      manifest,
+      signingPrivateKey: keys.privateKey,
+    });
+    const normalized = createExecutorAttestor({
+      manifest,
+      signingPrivateKey: `  ${base64url}  `,
+    });
+
+    await expect(normalized.registration()).resolves.toEqual(
+      await canonical.registration(),
+    );
+    await expect(normalized.claim('task-1')).resolves.toEqual(
+      await canonical.claim('task-1'),
+    );
+  });
 });
