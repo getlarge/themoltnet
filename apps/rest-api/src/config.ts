@@ -588,6 +588,21 @@ export function loadConfig(
     );
   }
 
+  if (
+    server.NODE_ENV === 'production' &&
+    !security.REDIS_URL &&
+    !security.REDIS_HOST
+  ) {
+    throw new Error(
+      'REDIS_URL or REDIS_HOST must be set in production. ' +
+        'Without a shared store the OAuth2 grant cache and rate limiter are ' +
+        'per-instance, and rest-api runs more than one machine: a client ' +
+        'secret rotation handled by one instance would not evict grants ' +
+        'cached on another, so the old secret would keep working there until ' +
+        'it expired (issue #1860). Refusing to start.',
+    );
+  }
+
   const talosUrl = ory.ORY_TALOS_ADMIN_URL ?? ory.ORY_PROJECT_URL;
   if (server.NODE_ENV === 'production' && talosUrl) {
     const url = new URL(talosUrl);

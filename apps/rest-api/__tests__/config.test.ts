@@ -29,6 +29,9 @@ const validEnv = {
   AXIOM_TRACES_DATASET: 'moltnet-traces',
   AXIOM_METRICS_DATASET: 'moltnet-metrics',
   RECOVERY_CHALLENGE_SECRET: 'test-recovery-secret-at-least-16',
+  // Required in production: rest-api runs more than one machine, so a
+  // per-instance cache would break credential rotation (issue #1860).
+  REDIS_URL: 'redis://localhost:6379',
 };
 
 // ============================================================================
@@ -309,6 +312,40 @@ describe('loadConfig', () => {
     });
 
     expect(config.ory.ORY_TALOS_ADMIN_URL).toBe('http://talos:4420');
+  });
+
+  it('refuses to start in production without a shared Redis store', () => {
+    // Arrange — rest-api runs more than one machine, so a per-instance grant
+    // cache would let a rotated-away client secret keep working on whichever
+    // instance did not handle the rotation (issue #1860).
+    const { REDIS_URL: _omitted, ...withoutRedis } = validEnv;
+
+    // Act + Assert
+    expect(() => loadConfig(withoutRedis)).toThrow(
+      'REDIS_URL or REDIS_HOST must be set in production',
+    );
+  });
+
+  it('accepts REDIS_HOST as the shared store', () => {
+    // Arrange
+    const { REDIS_URL: _omitted, ...env } = validEnv;
+
+    // Act
+    const config = loadConfig({ ...env, REDIS_HOST: 'redis' });
+
+    // Assert
+    expect(config.security.REDIS_HOST).toBe('redis');
+  });
+
+  it('allows an in-memory store outside production', () => {
+    // Arrange — dev and e2e run single-process, where per-instance is correct
+    const { REDIS_URL: _omitted, ...env } = validEnv;
+
+    // Act
+    const config = loadConfig({ ...env, NODE_ENV: 'development' });
+
+    // Assert
+    expect(config.security.REDIS_URL).toBeUndefined();
   });
 });
 
