@@ -264,21 +264,19 @@ describe('buildApp', () => {
   });
 
   it('requests the bounded MCP scope set during client credential exchange', async () => {
-    const fetchSpy: Mock = vi
-      .fn()
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            access_token: 'mcp-token',
-            token_type: 'bearer',
-            expires_in: 3600,
-          }),
-          {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-          },
-        ),
-      );
+    const fetchSpy: Mock = vi.fn().mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          access_token: 'mcp-token',
+          token_type: 'bearer',
+          expires_in: 3600,
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
+    );
     vi.stubGlobal('fetch', fetchSpy);
 
     const app = await buildApp({
@@ -304,7 +302,10 @@ describe('buildApp', () => {
 
     // calls[0], not calls[1]: the discovery round-trip that used to precede
     // the exchange is gone.
-    const [tokenUrl, tokenRequest] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    const [tokenUrl, tokenRequest] = fetchSpy.mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
     const body = new URLSearchParams(tokenRequest.body as string);
     // The exchange must go to the MoltNet proxy, not straight to Hydra —
     // that routing is the entire point of the flip (issue #1860).
