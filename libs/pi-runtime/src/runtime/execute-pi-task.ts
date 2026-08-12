@@ -51,6 +51,7 @@ import {
   traceRuntimePhase,
   validateTaskOutput,
 } from '@themoltnet/agent-runtime';
+import type { Agent } from '@themoltnet/sdk';
 import { connect } from '@themoltnet/sdk/node';
 import { ShellCommandAnalyzer } from '@themoltnet/shell-command-analyzer';
 
@@ -256,6 +257,10 @@ export function createGondolinToolDefinitions(config: {
 export interface ExecutePiTaskOptions {
   /** MoltNet agent whose credentials the VM boots with. */
   agentName: string;
+  /** Already-authenticated host-side Agent. Daemon callers always supply it. */
+  moltnetAgent?: Agent;
+  /** Whether guest API config is required, or omitted for host authentication. */
+  agentConfigMode?: 'required' | 'optional';
   /**
    * Host root that owns `.moltnet/<agentName>/`.
    *
@@ -446,6 +451,22 @@ export interface ExecutePiTaskOptions {
 }
 
 export const DEFAULT_PROVIDER_ERROR_RETRIES = 4;
+
+export function createMoltNetAgentResolver(input: {
+  moltnetAgent?: Agent;
+  configDir: string;
+  connectAgent?: (configDir: string) => Promise<Agent>;
+}): () => Promise<Agent> {
+  let resolved: Promise<Agent> | undefined;
+  return () => {
+    resolved ??= input.moltnetAgent
+      ? Promise.resolve(input.moltnetAgent)
+      : (input.connectAgent ?? ((configDir) => connect({ configDir })))(
+          input.configDir,
+        );
+    return resolved;
+  };
+}
 
 /**
  * Factory that builds a pi-specific `executeTask` function suitable for
@@ -731,6 +752,7 @@ export async function executePiTask(
             checkpointPath,
             agentName: opts.agentName,
             agentRootDir,
+            agentConfigMode: opts.agentConfigMode,
             mountPath,
             workspaceMode: preparedWorkspace.mode,
             extraAllowedHosts: opts.extraAllowedHosts,
@@ -756,6 +778,10 @@ export async function executePiTask(
     activateAgentEnv(managed.credentials.agentEnv, agentRootDir);
     const activeWorkspace = preparedWorkspace;
     const activeManaged = managed;
+    const getMoltNetAgent = createMoltNetAgentResolver({
+      moltnetAgent: opts.moltnetAgent,
+      configDir: managed.agentDir,
+    });
 
     await emit('info', {
       event: 'execute_start',
@@ -779,8 +805,10 @@ export async function executePiTask(
     )?.continueFrom;
     if (task.taskType === FREEFORM_TYPE && continueFrom) {
       try {
-        const priorAgent = await connect({ configDir: managed.agentDir });
-        const resolved = await resolvePriorContext(priorAgent, continueFrom);
+        const resolved = await resolvePriorContext(
+          await getMoltNetAgent(),
+          continueFrom,
+        );
         if (resolved) {
           resolvedPriorContext = resolved;
           await emit('info', {
@@ -946,7 +974,7 @@ export async function executePiTask(
       submitToolDefs as unknown as ToolDefinition[];
 
     try {
-      const moltnetAgent = await connect({ configDir: managed.agentDir });
+      const moltnetAgent = await getMoltNetAgent();
       // Build the host-exec env allowlist: default keys + all agent env keys
       // (MOLTNET_*, GIT_CONFIG_GLOBAL, etc. set by activateAgentEnv).
       const hostExecBaseEnv = new Set([

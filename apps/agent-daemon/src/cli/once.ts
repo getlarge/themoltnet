@@ -385,6 +385,8 @@ export async function runOnce(
   try {
     const rawExecuteTask = preparedRuntime.createTaskExecutor({
       agentName: opts.agent,
+      moltnetAgent: ctx.agent,
+      agentConfigMode: cfg.authMode === 'agent-key' ? 'optional' : 'required',
       agentRootDir: ctx.agentRootDir,
       mountPath: sandbox.rootDir,
       provider: profile.provider,

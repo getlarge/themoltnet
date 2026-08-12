@@ -761,6 +761,9 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         }
         const rawExecuteTask = selected.preparedRuntime.createTaskExecutor({
           agentName: common.agent,
+          moltnetAgent: ctx.agent,
+          agentConfigMode:
+            cfg.authMode === 'agent-key' ? 'optional' : 'required',
           agentRootDir: ctx.agentRootDir,
           mountPath: sandbox.rootDir,
           provider: profile.provider,

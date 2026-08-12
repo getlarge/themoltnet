@@ -32,6 +32,7 @@ import {
   cleanupAttempt,
   computeProviderErrorRetryDelay,
   createGondolinToolDefinitions,
+  createMoltNetAgentResolver,
   createSessionTurnState,
   DEFAULT_PROVIDER_ERROR_RETRIES,
   describeToolErrorMessage,
@@ -138,6 +139,37 @@ describe('createGondolinToolDefinitions', () => {
       'find',
       'grep',
     ]);
+  });
+});
+
+describe('createMoltNetAgentResolver', () => {
+  it('reuses a supplied daemon Agent for every runtime consumer', async () => {
+    const agent = { tasks: {}, runtimePolicies: {} } as never;
+    const connectAgent = vi.fn();
+    const resolveAgent = createMoltNetAgentResolver({
+      moltnetAgent: agent,
+      configDir: '/missing/.moltnet/agent',
+      connectAgent,
+    });
+
+    await expect(resolveAgent()).resolves.toBe(agent);
+    await expect(resolveAgent()).resolves.toBe(agent);
+    await expect(resolveAgent()).resolves.toBe(agent);
+    expect(connectAgent).not.toHaveBeenCalled();
+  });
+
+  it('retains the config-backed fallback for standalone Pi consumers', async () => {
+    const agent = { tasks: {} } as never;
+    const connectAgent = vi.fn().mockResolvedValue(agent);
+    const resolveAgent = createMoltNetAgentResolver({
+      configDir: '/repo/.moltnet/agent',
+      connectAgent,
+    });
+
+    await expect(resolveAgent()).resolves.toBe(agent);
+    await expect(resolveAgent()).resolves.toBe(agent);
+    expect(connectAgent).toHaveBeenCalledOnce();
+    expect(connectAgent).toHaveBeenCalledWith('/repo/.moltnet/agent');
   });
 });
 
