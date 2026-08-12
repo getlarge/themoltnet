@@ -30,7 +30,10 @@
       "path": "../../libs/signing-service/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/models/tsconfig.lib.json"
+      "path": "../../libs/runtime-policy-service/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/oauth-token-cache/tsconfig.lib.json"
     },
     {
       "path": "../../libs/embedding-service/tsconfig.lib.json"
@@ -45,9 +48,6 @@
       "path": "../../libs/agent-key-service/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/runtime-policy-service/tsconfig.lib.json"
-    },
-    {
       "path": "../../libs/bootstrap/tsconfig.lib.json"
     },
     {
@@ -58,6 +58,9 @@
     },
     {
       "path": "../../libs/signing-workflows/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/models/tsconfig.lib.json"
     },
     {
       "path": "../../libs/observability/tsconfig.lib.json"

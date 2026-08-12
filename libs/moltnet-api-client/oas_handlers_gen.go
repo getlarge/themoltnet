@@ -13398,8 +13398,9 @@ func (s *Server) handleGetNetworkInfoRequest(args [0]string, argsEscaped bool, w
 
 // handleGetOAuth2TokenRequest handles getOAuth2Token operation.
 //
-// Exchange OAuth2 client credentials for an access token. Only the client_credentials grant type is
-// supported. Proxies the request to the upstream identity provider.
+// OAuth2 token endpoint. Proxies every grant to the upstream identity provider, which remains the
+// authority on which grants and client authentication methods are accepted. Successful
+// client_credentials and refresh_token grants may be served from cache.
 //
 // POST /oauth2/token
 func (s *Server) handleGetOAuth2TokenRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {

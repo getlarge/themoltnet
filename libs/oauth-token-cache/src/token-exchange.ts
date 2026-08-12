@@ -1,8 +1,27 @@
 import { createHash } from 'node:crypto';
 
-import type { FastifyBaseLogger } from 'fastify';
+import {
+  type CacheStore,
+  entryFromExpiresIn,
+  type LoadResult,
+} from './cache/types.js';
+import {
+  NOOP_TOKEN_EXCHANGE_METRICS,
+  type TokenExchangeMetrics,
+} from './metrics.js';
+import { createSingleFlightCache } from './single-flight.js';
 
-import type { CachedToken, TokenCache } from './cache/types.js';
+/** The only grant this exchanger performs; kept explicit for metric tagging. */
+const GRANT_TYPE = 'client_credentials';
+
+/**
+ * Minimal structural logger. Kept local rather than importing Fastify's so this
+ * package stays framework-agnostic — `FastifyBaseLogger` satisfies it, as does
+ * a bare Pino instance or a test double.
+ */
+export interface TokenExchangeLogger {
+  debug(obj: unknown, msg?: string): void;
+}
 
 function credentialKey(clientId: string, clientSecret: string): string {
   const hash = createHash('sha256').update(clientSecret).digest('hex');
@@ -71,12 +90,16 @@ export interface TokenExchangerConfig {
   scopes: string[];
   audience?: string;
   expiryBufferSeconds: number;
-  cache: TokenCache;
+  cache?: CacheStore<string>;
   rateLimit: {
     maxFailures: number;
     cooldownMs: number;
   };
-  log: FastifyBaseLogger;
+  log: TokenExchangeLogger;
+  /** Optional. Defaults to a no-op so callers can opt out of instrumentation. */
+  metrics?: TokenExchangeMetrics;
+  /** Tags every metric so callers stay distinguishable. */
+  source?: string;
 }
 
 interface FailureEntry {
@@ -92,8 +115,17 @@ export interface TokenExchanger {
 export function createTokenExchanger(
   config: TokenExchangerConfig,
 ): TokenExchanger {
-  const inFlight = new Map<string, Promise<CachedToken>>();
   const failureTracker = new Map<string, FailureEntry>();
+  const metrics = config.metrics ?? NOOP_TOKEN_EXCHANGE_METRICS;
+  const source = config.source ?? 'unknown';
+  // Expiry, de-duplication and cache-access metrics all live in the shared
+  // primitive; this function keeps only what is specific to minting a token:
+  // the request shape, failure back-off, and outcome metrics.
+  const cache = createSingleFlightCache<string>({
+    store: config.cache,
+    metrics,
+    source,
+  });
 
   function checkRateLimit(clientId: string): void {
     const entry = failureTracker.get(clientId);
@@ -129,7 +161,7 @@ export function createTokenExchanger(
   async function doExchange(
     clientId: string,
     clientSecret: string,
-  ): Promise<CachedToken> {
+  ): Promise<LoadResult<string>> {
     const params = new URLSearchParams({
       grant_type: 'client_credentials',
       client_id: clientId,
@@ -150,6 +182,7 @@ export function createTokenExchanger(
       });
     } catch (err) {
       recordFailure(clientId);
+      metrics.recordExchange(source, GRANT_TYPE, 'unavailable');
       throw createError(
         502,
         'BAD_GATEWAY',
@@ -160,12 +193,14 @@ export function createTokenExchanger(
     if (!response.ok) {
       recordFailure(clientId);
       if (response.status === 400 || response.status === 401) {
+        metrics.recordExchange(source, GRANT_TYPE, 'invalid');
         throw createError(
           401,
           'UNAUTHORIZED',
           `Token endpoint rejected credentials (HTTP ${response.status})`,
         );
       }
+      metrics.recordExchange(source, GRANT_TYPE, 'unavailable');
       throw createError(
         502,
         'BAD_GATEWAY',
@@ -179,20 +214,19 @@ export function createTokenExchanger(
       token_type: string;
     };
 
-    const expiresAt =
-      Date.now() + body.expires_in * 1_000 - config.expiryBufferSeconds * 1_000;
-
-    const cached: CachedToken = { token: body.access_token, expiresAt };
-    const cacheKey = credentialKey(clientId, clientSecret);
-    await config.cache.set(cacheKey, cached);
     resetFailures(clientId);
+    metrics.recordExchange(source, GRANT_TYPE, 'success');
 
     config.log.debug(
       { clientId, expiresIn: body.expires_in },
       'Token exchanged successfully',
     );
 
-    return cached;
+    return entryFromExpiresIn(
+      body.access_token,
+      body.expires_in,
+      config.expiryBufferSeconds,
+    );
   }
 
   async function exchange(
@@ -201,32 +235,15 @@ export function createTokenExchanger(
   ): Promise<string> {
     checkRateLimit(clientId);
 
-    const key = credentialKey(clientId, clientSecret);
-
-    const cached = await config.cache.get(key);
-    if (cached && cached.expiresAt > Date.now()) {
-      return cached.token;
-    }
-
-    const existing = inFlight.get(key);
-    if (existing) {
-      const result = await existing;
-      return result.token;
-    }
-
-    const promise = doExchange(clientId, clientSecret);
-    inFlight.set(key, promise);
-
-    try {
-      const result = await promise;
-      return result.token;
-    } finally {
-      inFlight.delete(key);
-    }
+    const resolved = await cache.resolve(
+      credentialKey(clientId, clientSecret),
+      () => doExchange(clientId, clientSecret),
+    );
+    return resolved.value;
   }
 
   function close(): void {
-    inFlight.clear();
+    void cache.close();
     failureTracker.clear();
   }
 

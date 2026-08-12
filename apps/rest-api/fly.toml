@@ -15,6 +15,16 @@ kill_timeout = 30        # seconds to wait for graceful shutdown before SIGKILL
   NODE_ENV = "production"
   ORY_PROJECT_URL = "https://auth.themolt.net"
   ORY_TALOS_ADMIN_URL = "https://auth.themolt.net"
+  # REDIS_URL is a Fly secret (it carries credentials), so it is not set here.
+  # It backs both the rate limiter and the OAuth2 grant cache, and is REQUIRED
+  # in production — loadConfig refuses to start without it. This app runs more
+  # than one machine, so a per-instance memory store would mean a client secret
+  # rotation handled by one instance never evicts grants cached on another
+  # (issue #1860). Provision with:
+  #   fly redis status moltnet-redis            # private URL, region fra
+  #   fly secrets set REDIS_URL="<url>" -a moltnet
+  # Shares the moltnet-redis instance with moltnet-mcp; keys are namespaced
+  # (`moltnet:oauth-token:` here) so the two cannot collide.
   ORY_AUTH_CACHE_TTL_MS = "60000"
   ORY_AUTH_CACHE_MAX_ENTRIES = "10000"
   ORY_AUTH_REQUEST_TIMEOUT_MS = "5000"
@@ -37,7 +47,9 @@ kill_timeout = 30        # seconds to wait for graceful shutdown before SIGKILL
   force_https = true
   auto_stop_machines = "off"
   auto_start_machines = true
-  min_machines_running = 1
+  # Two machines have been running since well before this was written; the
+  # floor now matches reality so a scale-down cannot silently drop below it.
+  min_machines_running = 2
   processes = ["app"]
 
   [http_service.concurrency]

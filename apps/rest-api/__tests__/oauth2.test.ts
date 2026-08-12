@@ -72,7 +72,22 @@ describe('POST /oauth2/token', () => {
     });
   });
 
-  it('rejects non-client_credentials grant_type with 400', async () => {
+  // Contract change: this endpoint no longer gates grant types locally. It is
+  // advertised as the token endpoint, so an allowlist here would silently
+  // break any grant Hydra gains later — Hydra decides what is valid and its
+  // rejection is forwarded verbatim.
+  it('forwards a non-client_credentials grant to Hydra rather than rejecting it', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: () =>
+        Promise.resolve({
+          error: 'unsupported_grant_type',
+          error_description: 'from Hydra',
+        }),
+      headers: new Headers(),
+    });
+
     const response = await app.inject({
       method: 'POST',
       url: '/oauth2/token',
@@ -80,26 +95,29 @@ describe('POST /oauth2/token', () => {
       payload: 'grant_type=authorization_code&code=abc',
     });
 
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(response.statusCode).toBe(400);
-    const body = response.json();
-    expect(body.error).toBe('unsupported_grant_type');
-    expect(body.error_description).toContain('authorization_code');
-    expect(body.error_description).toContain('client_credentials');
-
-    // Should NOT have called Hydra
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(response.json().error_description).toBe('from Hydra');
   });
 
-  it('rejects missing grant_type with 400', async () => {
+  it('forwards a request with no grant_type to Hydra', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: () => Promise.resolve({ error: 'invalid_request' }),
+      headers: new Headers(),
+    });
+
     const response = await app.inject({
       method: 'POST',
       url: '/oauth2/token',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      payload: 'client_id=test-id&client_secret=test-secret',
+      payload: 'client_id=nogrant-id&client_secret=nogrant-secret',
     });
 
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(response.statusCode).toBe(400);
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(response.json().error).toBe('invalid_request');
   });
 
   it('forwards Hydra 401 for invalid credentials', async () => {
@@ -125,6 +143,9 @@ describe('POST /oauth2/token', () => {
     expect(response.json()).toMatchObject(errorPayload);
   });
 
+  // Distinct credentials per test: the proxy caches successful grants, so
+  // reusing the ids from the happy-path test above would serve from cache and
+  // never reach the upstream-failure path these tests exercise.
   it('returns 502 when Hydra returns invalid JSON', async () => {
     fetchMock.mockResolvedValueOnce({
       status: 200,
@@ -138,7 +159,7 @@ describe('POST /oauth2/token', () => {
       url: '/oauth2/token',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
       payload:
-        'grant_type=client_credentials&client_id=test-id&client_secret=test-secret',
+        'grant_type=client_credentials&client_id=badjson-id&client_secret=badjson-secret',
     });
 
     expect(response.statusCode).toBe(502);
@@ -154,7 +175,7 @@ describe('POST /oauth2/token', () => {
       url: '/oauth2/token',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
       payload:
-        'grant_type=client_credentials&client_id=test-id&client_secret=test-secret',
+        'grant_type=client_credentials&client_id=unreach-id&client_secret=unreach-secret',
     });
 
     expect(response.statusCode).toBe(502);

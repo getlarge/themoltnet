@@ -2608,7 +2608,7 @@ export const getLlmsTxtOptions = (options?: Options<GetLlmsTxtData>) =>
   });
 
 /**
- * Exchange OAuth2 client credentials for an access token. Only the client_credentials grant type is supported. Proxies the request to the upstream identity provider.
+ * OAuth2 token endpoint. Proxies every grant to the upstream identity provider, which remains the authority on which grants and client authentication methods are accepted. Successful client_credentials and refresh_token grants may be served from cache.
  */
 export const getOAuth2TokenMutation = (
   options?: Partial<Options<GetOAuth2TokenData>>,

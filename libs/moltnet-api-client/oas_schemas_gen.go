@@ -23002,6 +23002,7 @@ type GetOAuth2TokenBadRequest struct {
 	ErrorDescription OptString  `json:"error_description"`
 	ErrorHint        OptString  `json:"error_hint"`
 	StatusCode       OptFloat64 `json:"status_code"`
+	AdditionalProps  GetOAuth2TokenBadRequestAdditional
 }
 
 // GetError returns the value of Error.
@@ -23029,6 +23030,11 @@ func (s *GetOAuth2TokenBadRequest) GetStatusCode() OptFloat64 {
 	return s.StatusCode
 }
 
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *GetOAuth2TokenBadRequest) GetAdditionalProps() GetOAuth2TokenBadRequestAdditional {
+	return s.AdditionalProps
+}
+
 // SetError sets the value of Error.
 func (s *GetOAuth2TokenBadRequest) SetError(val string) {
 	s.Error = val
@@ -23054,7 +23060,187 @@ func (s *GetOAuth2TokenBadRequest) SetStatusCode(val OptFloat64) {
 	s.StatusCode = val
 }
 
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *GetOAuth2TokenBadRequest) SetAdditionalProps(val GetOAuth2TokenBadRequestAdditional) {
+	s.AdditionalProps = val
+}
+
 func (*GetOAuth2TokenBadRequest) getOAuth2TokenRes() {}
+
+type GetOAuth2TokenBadRequestAdditional map[string]jx.Raw
+
+func (s *GetOAuth2TokenBadRequestAdditional) init() GetOAuth2TokenBadRequestAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type GetOAuth2TokenForbidden struct {
+	Error            string     `json:"error"`
+	ErrorDebug       OptString  `json:"error_debug"`
+	ErrorDescription OptString  `json:"error_description"`
+	ErrorHint        OptString  `json:"error_hint"`
+	StatusCode       OptFloat64 `json:"status_code"`
+	AdditionalProps  GetOAuth2TokenForbiddenAdditional
+}
+
+// GetError returns the value of Error.
+func (s *GetOAuth2TokenForbidden) GetError() string {
+	return s.Error
+}
+
+// GetErrorDebug returns the value of ErrorDebug.
+func (s *GetOAuth2TokenForbidden) GetErrorDebug() OptString {
+	return s.ErrorDebug
+}
+
+// GetErrorDescription returns the value of ErrorDescription.
+func (s *GetOAuth2TokenForbidden) GetErrorDescription() OptString {
+	return s.ErrorDescription
+}
+
+// GetErrorHint returns the value of ErrorHint.
+func (s *GetOAuth2TokenForbidden) GetErrorHint() OptString {
+	return s.ErrorHint
+}
+
+// GetStatusCode returns the value of StatusCode.
+func (s *GetOAuth2TokenForbidden) GetStatusCode() OptFloat64 {
+	return s.StatusCode
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *GetOAuth2TokenForbidden) GetAdditionalProps() GetOAuth2TokenForbiddenAdditional {
+	return s.AdditionalProps
+}
+
+// SetError sets the value of Error.
+func (s *GetOAuth2TokenForbidden) SetError(val string) {
+	s.Error = val
+}
+
+// SetErrorDebug sets the value of ErrorDebug.
+func (s *GetOAuth2TokenForbidden) SetErrorDebug(val OptString) {
+	s.ErrorDebug = val
+}
+
+// SetErrorDescription sets the value of ErrorDescription.
+func (s *GetOAuth2TokenForbidden) SetErrorDescription(val OptString) {
+	s.ErrorDescription = val
+}
+
+// SetErrorHint sets the value of ErrorHint.
+func (s *GetOAuth2TokenForbidden) SetErrorHint(val OptString) {
+	s.ErrorHint = val
+}
+
+// SetStatusCode sets the value of StatusCode.
+func (s *GetOAuth2TokenForbidden) SetStatusCode(val OptFloat64) {
+	s.StatusCode = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *GetOAuth2TokenForbidden) SetAdditionalProps(val GetOAuth2TokenForbiddenAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*GetOAuth2TokenForbidden) getOAuth2TokenRes() {}
+
+type GetOAuth2TokenForbiddenAdditional map[string]jx.Raw
+
+func (s *GetOAuth2TokenForbiddenAdditional) init() GetOAuth2TokenForbiddenAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type GetOAuth2TokenInternalServerError struct {
+	Error            string     `json:"error"`
+	ErrorDebug       OptString  `json:"error_debug"`
+	ErrorDescription OptString  `json:"error_description"`
+	ErrorHint        OptString  `json:"error_hint"`
+	StatusCode       OptFloat64 `json:"status_code"`
+	AdditionalProps  GetOAuth2TokenInternalServerErrorAdditional
+}
+
+// GetError returns the value of Error.
+func (s *GetOAuth2TokenInternalServerError) GetError() string {
+	return s.Error
+}
+
+// GetErrorDebug returns the value of ErrorDebug.
+func (s *GetOAuth2TokenInternalServerError) GetErrorDebug() OptString {
+	return s.ErrorDebug
+}
+
+// GetErrorDescription returns the value of ErrorDescription.
+func (s *GetOAuth2TokenInternalServerError) GetErrorDescription() OptString {
+	return s.ErrorDescription
+}
+
+// GetErrorHint returns the value of ErrorHint.
+func (s *GetOAuth2TokenInternalServerError) GetErrorHint() OptString {
+	return s.ErrorHint
+}
+
+// GetStatusCode returns the value of StatusCode.
+func (s *GetOAuth2TokenInternalServerError) GetStatusCode() OptFloat64 {
+	return s.StatusCode
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *GetOAuth2TokenInternalServerError) GetAdditionalProps() GetOAuth2TokenInternalServerErrorAdditional {
+	return s.AdditionalProps
+}
+
+// SetError sets the value of Error.
+func (s *GetOAuth2TokenInternalServerError) SetError(val string) {
+	s.Error = val
+}
+
+// SetErrorDebug sets the value of ErrorDebug.
+func (s *GetOAuth2TokenInternalServerError) SetErrorDebug(val OptString) {
+	s.ErrorDebug = val
+}
+
+// SetErrorDescription sets the value of ErrorDescription.
+func (s *GetOAuth2TokenInternalServerError) SetErrorDescription(val OptString) {
+	s.ErrorDescription = val
+}
+
+// SetErrorHint sets the value of ErrorHint.
+func (s *GetOAuth2TokenInternalServerError) SetErrorHint(val OptString) {
+	s.ErrorHint = val
+}
+
+// SetStatusCode sets the value of StatusCode.
+func (s *GetOAuth2TokenInternalServerError) SetStatusCode(val OptFloat64) {
+	s.StatusCode = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *GetOAuth2TokenInternalServerError) SetAdditionalProps(val GetOAuth2TokenInternalServerErrorAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*GetOAuth2TokenInternalServerError) getOAuth2TokenRes() {}
+
+type GetOAuth2TokenInternalServerErrorAdditional map[string]jx.Raw
+
+func (s *GetOAuth2TokenInternalServerErrorAdditional) init() GetOAuth2TokenInternalServerErrorAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
 
 type GetOAuth2TokenOK struct {
 	AccessToken     string    `json:"access_token"`
@@ -23149,12 +23335,177 @@ func (s *GetOAuth2TokenOKAdditional) init() GetOAuth2TokenOKAdditional {
 	return m
 }
 
+type GetOAuth2TokenServiceUnavailable struct {
+	Error            string     `json:"error"`
+	ErrorDebug       OptString  `json:"error_debug"`
+	ErrorDescription OptString  `json:"error_description"`
+	ErrorHint        OptString  `json:"error_hint"`
+	StatusCode       OptFloat64 `json:"status_code"`
+	AdditionalProps  GetOAuth2TokenServiceUnavailableAdditional
+}
+
+// GetError returns the value of Error.
+func (s *GetOAuth2TokenServiceUnavailable) GetError() string {
+	return s.Error
+}
+
+// GetErrorDebug returns the value of ErrorDebug.
+func (s *GetOAuth2TokenServiceUnavailable) GetErrorDebug() OptString {
+	return s.ErrorDebug
+}
+
+// GetErrorDescription returns the value of ErrorDescription.
+func (s *GetOAuth2TokenServiceUnavailable) GetErrorDescription() OptString {
+	return s.ErrorDescription
+}
+
+// GetErrorHint returns the value of ErrorHint.
+func (s *GetOAuth2TokenServiceUnavailable) GetErrorHint() OptString {
+	return s.ErrorHint
+}
+
+// GetStatusCode returns the value of StatusCode.
+func (s *GetOAuth2TokenServiceUnavailable) GetStatusCode() OptFloat64 {
+	return s.StatusCode
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *GetOAuth2TokenServiceUnavailable) GetAdditionalProps() GetOAuth2TokenServiceUnavailableAdditional {
+	return s.AdditionalProps
+}
+
+// SetError sets the value of Error.
+func (s *GetOAuth2TokenServiceUnavailable) SetError(val string) {
+	s.Error = val
+}
+
+// SetErrorDebug sets the value of ErrorDebug.
+func (s *GetOAuth2TokenServiceUnavailable) SetErrorDebug(val OptString) {
+	s.ErrorDebug = val
+}
+
+// SetErrorDescription sets the value of ErrorDescription.
+func (s *GetOAuth2TokenServiceUnavailable) SetErrorDescription(val OptString) {
+	s.ErrorDescription = val
+}
+
+// SetErrorHint sets the value of ErrorHint.
+func (s *GetOAuth2TokenServiceUnavailable) SetErrorHint(val OptString) {
+	s.ErrorHint = val
+}
+
+// SetStatusCode sets the value of StatusCode.
+func (s *GetOAuth2TokenServiceUnavailable) SetStatusCode(val OptFloat64) {
+	s.StatusCode = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *GetOAuth2TokenServiceUnavailable) SetAdditionalProps(val GetOAuth2TokenServiceUnavailableAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*GetOAuth2TokenServiceUnavailable) getOAuth2TokenRes() {}
+
+type GetOAuth2TokenServiceUnavailableAdditional map[string]jx.Raw
+
+func (s *GetOAuth2TokenServiceUnavailableAdditional) init() GetOAuth2TokenServiceUnavailableAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type GetOAuth2TokenTooManyRequests struct {
+	Error            string     `json:"error"`
+	ErrorDebug       OptString  `json:"error_debug"`
+	ErrorDescription OptString  `json:"error_description"`
+	ErrorHint        OptString  `json:"error_hint"`
+	StatusCode       OptFloat64 `json:"status_code"`
+	AdditionalProps  GetOAuth2TokenTooManyRequestsAdditional
+}
+
+// GetError returns the value of Error.
+func (s *GetOAuth2TokenTooManyRequests) GetError() string {
+	return s.Error
+}
+
+// GetErrorDebug returns the value of ErrorDebug.
+func (s *GetOAuth2TokenTooManyRequests) GetErrorDebug() OptString {
+	return s.ErrorDebug
+}
+
+// GetErrorDescription returns the value of ErrorDescription.
+func (s *GetOAuth2TokenTooManyRequests) GetErrorDescription() OptString {
+	return s.ErrorDescription
+}
+
+// GetErrorHint returns the value of ErrorHint.
+func (s *GetOAuth2TokenTooManyRequests) GetErrorHint() OptString {
+	return s.ErrorHint
+}
+
+// GetStatusCode returns the value of StatusCode.
+func (s *GetOAuth2TokenTooManyRequests) GetStatusCode() OptFloat64 {
+	return s.StatusCode
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *GetOAuth2TokenTooManyRequests) GetAdditionalProps() GetOAuth2TokenTooManyRequestsAdditional {
+	return s.AdditionalProps
+}
+
+// SetError sets the value of Error.
+func (s *GetOAuth2TokenTooManyRequests) SetError(val string) {
+	s.Error = val
+}
+
+// SetErrorDebug sets the value of ErrorDebug.
+func (s *GetOAuth2TokenTooManyRequests) SetErrorDebug(val OptString) {
+	s.ErrorDebug = val
+}
+
+// SetErrorDescription sets the value of ErrorDescription.
+func (s *GetOAuth2TokenTooManyRequests) SetErrorDescription(val OptString) {
+	s.ErrorDescription = val
+}
+
+// SetErrorHint sets the value of ErrorHint.
+func (s *GetOAuth2TokenTooManyRequests) SetErrorHint(val OptString) {
+	s.ErrorHint = val
+}
+
+// SetStatusCode sets the value of StatusCode.
+func (s *GetOAuth2TokenTooManyRequests) SetStatusCode(val OptFloat64) {
+	s.StatusCode = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *GetOAuth2TokenTooManyRequests) SetAdditionalProps(val GetOAuth2TokenTooManyRequestsAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*GetOAuth2TokenTooManyRequests) getOAuth2TokenRes() {}
+
+type GetOAuth2TokenTooManyRequestsAdditional map[string]jx.Raw
+
+func (s *GetOAuth2TokenTooManyRequestsAdditional) init() GetOAuth2TokenTooManyRequestsAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
 type GetOAuth2TokenUnauthorized struct {
 	Error            string     `json:"error"`
 	ErrorDebug       OptString  `json:"error_debug"`
 	ErrorDescription OptString  `json:"error_description"`
 	ErrorHint        OptString  `json:"error_hint"`
 	StatusCode       OptFloat64 `json:"status_code"`
+	AdditionalProps  GetOAuth2TokenUnauthorizedAdditional
 }
 
 // GetError returns the value of Error.
@@ -23182,6 +23533,11 @@ func (s *GetOAuth2TokenUnauthorized) GetStatusCode() OptFloat64 {
 	return s.StatusCode
 }
 
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *GetOAuth2TokenUnauthorized) GetAdditionalProps() GetOAuth2TokenUnauthorizedAdditional {
+	return s.AdditionalProps
+}
+
 // SetError sets the value of Error.
 func (s *GetOAuth2TokenUnauthorized) SetError(val string) {
 	s.Error = val
@@ -23207,7 +23563,23 @@ func (s *GetOAuth2TokenUnauthorized) SetStatusCode(val OptFloat64) {
 	s.StatusCode = val
 }
 
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *GetOAuth2TokenUnauthorized) SetAdditionalProps(val GetOAuth2TokenUnauthorizedAdditional) {
+	s.AdditionalProps = val
+}
+
 func (*GetOAuth2TokenUnauthorized) getOAuth2TokenRes() {}
+
+type GetOAuth2TokenUnauthorizedAdditional map[string]jx.Raw
+
+func (s *GetOAuth2TokenUnauthorizedAdditional) init() GetOAuth2TokenUnauthorizedAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
 
 // GetProblemTypeOK is response for GetProblemType operation.
 type GetProblemTypeOK struct{}

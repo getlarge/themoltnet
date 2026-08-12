@@ -1,20 +1,18 @@
 {
-  "name": "@moltnet/mcp-auth-proxy",
+  "name": "@moltnet/oauth-token-cache",
   "version": "0.1.0",
-  "license": "AGPL-3.0-only",
   "private": true,
   "type": "module",
+  "description": "Expiry-aware in-memory cache for OAuth2 access tokens",
+  "license": "AGPL-3.0-only",
   "exports": {
     ".": {
       "import": "./src/index.ts",
       "types": "./src/index.ts"
     }
   },
-  "scripts": {},
-  "dependencies": {
-    "@moltnet/oauth-token-cache": "workspace:*",
-    "fastify": "catalog:",
-    "fastify-plugin": "catalog:"
+  "scripts": {
+    "test": "vitest run --passWithNoTests"
   },
   "devDependencies": {
     "typescript": "catalog:",
@@ -22,9 +20,12 @@
   },
   "nx": {
     "tags": [
-      "type:runtime",
+      "type:util",
       "scope:identity",
       "platform:server"
     ]
+  },
+  "dependencies": {
+    "@moltnet/observability": "workspace:*"
   }
 }

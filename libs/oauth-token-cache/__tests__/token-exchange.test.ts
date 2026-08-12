@@ -1,6 +1,5 @@
 import { createHash } from 'node:crypto';
 
-import type { FastifyBaseLogger } from 'fastify';
 import {
   afterEach,
   beforeEach,
@@ -11,8 +10,9 @@ import {
   vi,
 } from 'vitest';
 
-import { MemoryTokenCache } from '../src/cache/memory.js';
-import type { TokenCache } from '../src/cache/types.js';
+import { MemoryCacheStore } from '../src/cache/memory.js';
+import type { CacheStore } from '../src/cache/types.js';
+import type { TokenExchangeLogger } from '../src/token-exchange.js';
 import {
   createTokenExchanger,
   discoverTokenEndpoint,
@@ -24,7 +24,7 @@ function testCredentialKey(clientId: string, clientSecret: string): string {
   return `${clientId}:${hash}`;
 }
 
-function mockLogger(): FastifyBaseLogger {
+function mockLogger(): TokenExchangeLogger {
   return {
     debug: vi.fn(),
     info: vi.fn(),
@@ -35,7 +35,7 @@ function mockLogger(): FastifyBaseLogger {
     child: vi.fn().mockReturnThis(),
     level: 'debug',
     silent: vi.fn(),
-  } as unknown as FastifyBaseLogger;
+  } as unknown as TokenExchangeLogger;
 }
 
 function mockFetchResponse(body: unknown, status = 200, ok = true): Response {
@@ -125,8 +125,8 @@ describe('discoverTokenEndpoint', () => {
 
 describe('createTokenExchanger', () => {
   let fetchSpy: Mock;
-  let cache: TokenCache;
-  let log: FastifyBaseLogger;
+  let cache: CacheStore<string>;
+  let log: TokenExchangeLogger;
   let exchanger: TokenExchanger;
 
   const TOKEN_ENDPOINT = 'https://hydra.example.com/oauth2/token';
@@ -161,7 +161,7 @@ describe('createTokenExchanger', () => {
     vi.setSystemTime(1_000_000);
     fetchSpy = vi.fn();
     vi.stubGlobal('fetch', fetchSpy);
-    cache = new MemoryTokenCache();
+    cache = new MemoryCacheStore<string>();
     log = mockLogger();
   });
 
@@ -258,7 +258,7 @@ describe('createTokenExchanger', () => {
   it('should return cached token without calling fetch', async () => {
     const key = testCredentialKey('client-1', 'secret-1');
     await cache.set(key, {
-      token: 'cached-token',
+      value: 'cached-token',
       expiresAt: 2_000_000,
     });
     exchanger = makeExchanger();
@@ -272,7 +272,7 @@ describe('createTokenExchanger', () => {
   it('should re-exchange when cache is expired', async () => {
     const key = testCredentialKey('client-1', 'secret-1');
     await cache.set(key, {
-      token: 'old-token',
+      value: 'old-token',
       expiresAt: 500_000,
     });
     fetchSpy.mockResolvedValueOnce(mockTokenResponse('fresh-token'));

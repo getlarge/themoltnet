@@ -561,8 +561,9 @@ func (UnimplementedHandler) GetNetworkInfo(ctx context.Context) (r *NetworkInfo,
 
 // GetOAuth2Token implements getOAuth2Token operation.
 //
-// Exchange OAuth2 client credentials for an access token. Only the client_credentials grant type is
-// supported. Proxies the request to the upstream identity provider.
+// OAuth2 token endpoint. Proxies every grant to the upstream identity provider, which remains the
+// authority on which grants and client authentication methods are accepted. Successful
+// client_credentials and refresh_token grants may be served from cache.
 //
 // POST /oauth2/token
 func (UnimplementedHandler) GetOAuth2Token(ctx context.Context) (r GetOAuth2TokenRes, _ error) {

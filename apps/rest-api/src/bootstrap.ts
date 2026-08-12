@@ -271,6 +271,21 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     );
   } else {
     app.log.info('rate limiter using in-memory store (Redis not configured)');
+    if (config.server.NODE_ENV === 'production') {
+      // Not fatal — a single-instance deployment is still correct — but the
+      // consequence changed when the OAuth2 proxy started caching grants
+      // (issue #1860). Without a shared store, a client-secret rotation
+      // handled by one instance does not evict tokens cached on another, so
+      // the old secret keeps working there until it expires. Deliberately a
+      // warning rather than a throw: rest-api runs min_machines_running = 1
+      // today, and failing startup would take production down for a
+      // configuration that is currently correct.
+      app.log.warn(
+        'Redis is not configured in production: the OAuth2 grant cache and ' +
+          'rate limiter are per-instance. Credential rotation will not ' +
+          'propagate across instances — set REDIS_URL before scaling out.',
+      );
+    }
   }
 
   // ── Ory clients ────────────────────────────────────────────────

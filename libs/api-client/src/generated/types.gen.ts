@@ -6559,6 +6559,7 @@ export type GetOAuth2TokenErrors = {
     error_description?: string;
     error_hint?: string;
     status_code?: number;
+    [key: string]: unknown | string | number | undefined;
   };
   /**
    * Default Response
@@ -6569,6 +6570,51 @@ export type GetOAuth2TokenErrors = {
     error_description?: string;
     error_hint?: string;
     status_code?: number;
+    [key: string]: unknown | string | number | undefined;
+  };
+  /**
+   * Default Response
+   */
+  403: {
+    error: string;
+    error_debug?: string;
+    error_description?: string;
+    error_hint?: string;
+    status_code?: number;
+    [key: string]: unknown | string | number | undefined;
+  };
+  /**
+   * Default Response
+   */
+  429: {
+    error: string;
+    error_debug?: string;
+    error_description?: string;
+    error_hint?: string;
+    status_code?: number;
+    [key: string]: unknown | string | number | undefined;
+  };
+  /**
+   * Default Response
+   */
+  500: {
+    error: string;
+    error_debug?: string;
+    error_description?: string;
+    error_hint?: string;
+    status_code?: number;
+    [key: string]: unknown | string | number | undefined;
+  };
+  /**
+   * Default Response
+   */
+  503: {
+    error: string;
+    error_debug?: string;
+    error_description?: string;
+    error_hint?: string;
+    status_code?: number;
+    [key: string]: unknown | string | number | undefined;
   };
 };
 

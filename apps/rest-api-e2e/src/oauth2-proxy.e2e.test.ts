@@ -7,7 +7,8 @@
  * 1. Happy path: register agent, exchange credentials via proxy → access_token
  * 2. Access token from proxy works for /agents/whoami
  * 3. Invalid credentials → 401 passthrough
- * 4. Unsupported grant_type → 400
+ * 4. Unknown grant_type is forwarded — Hydra decides, not the proxy
+ * 5. Repeat client_credentials grants are served from cache (issue #1860)
  */
 
 import { createClient, getWhoami } from '@moltnet/api-client';
@@ -15,7 +16,7 @@ import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
 import { cryptoService } from '@moltnet/crypto-service';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createTestVoucher } from './helpers.js';
+import { createAgent, createTestVoucher } from './helpers.js';
 import {
   createTestHarness,
   SERVER_BASE_URL,
@@ -149,22 +150,62 @@ describe('POST /oauth2/token (proxy)', () => {
     expect(tokenRes.status).toBe(401);
   });
 
-  it('returns 400 for unsupported grant_type', async () => {
+  it('forwards an authorization_code grant to Hydra instead of rejecting it', async () => {
+    // The proxy no longer gates grant types: it is advertised as the token
+    // endpoint, so Hydra stays the authority. A bogus code must therefore be
+    // rejected by Hydra, not by us — asserted here against real Hydra so the
+    // passthrough cannot regress to a local allowlist.
     const tokenRes = await fetch(`${SERVER_BASE_URL}/oauth2/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
         grant_type: 'authorization_code',
         code: 'some-code',
+        redirect_uri: 'http://localhost:9999/callback',
       }),
     });
 
-    expect(tokenRes.status).toBe(400);
-    const body = (await tokenRes.json()) as {
-      error?: string;
-      error_description?: string;
+    expect(tokenRes.status).toBeGreaterThanOrEqual(400);
+    const body = (await tokenRes.json()) as { error?: string };
+    // Hydra's own vocabulary, not the proxy's former 'unsupported_grant_type'
+    expect(body.error).toBeDefined();
+    expect(body.error).not.toBe('unsupported_grant_type');
+  });
+
+  it('serves a repeat client_credentials grant from cache', async () => {
+    // Real Hydra mints a distinct access token per grant, so two identical
+    // requests returning the same token proves the cache served the second —
+    // i.e. that a billed M2M token was not issued (issue #1860).
+    const agent = await createAgent({
+      baseUrl: SERVER_BASE_URL,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
+    });
+
+    const grant = () =>
+      fetch(`${SERVER_BASE_URL}/oauth2/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'client_credentials',
+          client_id: agent.clientId,
+          client_secret: agent.clientSecret,
+          scope: AGENT_OAUTH_SCOPES.join(' '),
+        }),
+      });
+
+    const first = (await (await grant()).json()) as {
+      access_token: string;
+      expires_in: number;
     };
-    expect(body.error).toBe('unsupported_grant_type');
-    expect(body.error_description).toContain('client_credentials');
+    const second = (await (await grant()).json()) as {
+      access_token: string;
+      expires_in: number;
+    };
+
+    expect(first.access_token).toBeTruthy();
+    expect(second.access_token).toBe(first.access_token);
+    // The cached reply reports the life left, never more than the original.
+    expect(second.expires_in).toBeLessThanOrEqual(first.expires_in);
   });
 });

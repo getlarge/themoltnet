@@ -21,6 +21,10 @@ export interface MetricUpDownCounter {
   add(value: number, attributes?: MetricAttributes): void;
 }
 
+export interface MetricHistogram {
+  record(value: number, attributes?: MetricAttributes): void;
+}
+
 export interface CreateMeterProviderOptions {
   /** Service name for resource identification */
   serviceName: string;
@@ -117,4 +121,15 @@ export function createMetricUpDownCounter(
   return metricsApi
     .getMeter(serviceName)
     .createUpDownCounter(name, { description });
+}
+
+export function createMetricHistogram(
+  serviceName: string,
+  name: string,
+  description: string,
+  unit?: string,
+): MetricHistogram {
+  return metricsApi
+    .getMeter(serviceName)
+    .createHistogram(name, { description, ...(unit ? { unit } : {}) });
 }
