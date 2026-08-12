@@ -234,17 +234,6 @@ describe('buildApp', () => {
     const fetchSpy: Mock = vi.fn();
     vi.stubGlobal('fetch', fetchSpy);
 
-    // Mock OIDC discovery (called during plugin registration)
-    fetchSpy.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: () =>
-        Promise.resolve({
-          token_endpoint: 'https://hydra.example.com/oauth2/token',
-          issuer: 'https://hydra.example.com/',
-        }),
-    });
-
     const deps = createMockDeps();
     const app = await buildApp({
       config: {
@@ -258,11 +247,10 @@ describe('buildApp', () => {
       logger: false,
     });
 
-    // OIDC discovery should have been called during registration
-    expect(fetchSpy).toHaveBeenCalledWith(
-      'https://hydra.example.com/.well-known/openid-configuration',
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
-    );
+    // Discovery is no longer consulted at boot: it advertises this same proxy
+    // (issue #1860), so resolving it would be a round-trip to learn a value we
+    // already have — and would make startup depend on Ory being reachable.
+    expect(fetchSpy).not.toHaveBeenCalled();
 
     // App should still work — healthz bypasses auth
     const response = await app.inject({
@@ -278,15 +266,6 @@ describe('buildApp', () => {
   it('requests the bounded MCP scope set during client credential exchange', async () => {
     const fetchSpy: Mock = vi
       .fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: () =>
-          Promise.resolve({
-            token_endpoint: 'https://hydra.example.com/oauth2/token',
-            issuer: 'https://hydra.example.com/',
-          }),
-      })
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
@@ -323,8 +302,13 @@ describe('buildApp', () => {
       },
     });
 
-    const [, tokenRequest] = fetchSpy.mock.calls[1] as [string, RequestInit];
+    // calls[0], not calls[1]: the discovery round-trip that used to precede
+    // the exchange is gone.
+    const [tokenUrl, tokenRequest] = fetchSpy.mock.calls[0] as [string, RequestInit];
     const body = new URLSearchParams(tokenRequest.body as string);
+    // The exchange must go to the MoltNet proxy, not straight to Hydra —
+    // that routing is the entire point of the flip (issue #1860).
+    expect(tokenUrl).toBe('http://localhost:3000/oauth2/token');
     expect(body.get('scope')).toBe(MCP_M2M_SCOPES.join(' '));
 
     await app.close();

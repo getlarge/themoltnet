@@ -260,7 +260,11 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     config.CLIENT_CREDENTIALS_PROXY === true && !!config.ORY_PROJECT_URL;
   if (proxyEnabled) {
     await app.register(mcpAuthProxyPlugin, {
-      oidcDiscoveryUrl: `${config.ORY_PROJECT_URL}/.well-known/openid-configuration`,
+      // Explicit endpoint rather than OIDC discovery: discovery now advertises
+      // this same proxy (webfinger.oidc_discovery.token_url, issue #1860), so
+      // resolving it at boot would be a round-trip to learn a value we already
+      // know — and would make startup depend on Ory being reachable.
+      tokenEndpoint: `${config.REST_API_URL}/oauth2/token`,
       scopes: [...MCP_M2M_SCOPES],
     });
     app.log.info('Client credentials proxy enabled');
