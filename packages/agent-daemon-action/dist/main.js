@@ -25862,706 +25862,6 @@ function createSigningRequestsNamespace(context) {
 	};
 }
 //#endregion
-//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/date.mjs
-var DAYS = [
-	0,
-	31,
-	28,
-	31,
-	30,
-	31,
-	30,
-	31,
-	31,
-	30,
-	31,
-	30,
-	31
-];
-var DATE = /^(\d\d\d\d)-(\d\d)-(\d\d)$/;
-function IsLeapYear(year) {
-	return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
-}
-/**
-* Returns true if the value is a ISO8601 Date component string
-* @source ajv-formats
-* @example `2020-12-12`
-*/
-function IsDate$1(value) {
-	const matches = DATE.exec(value);
-	if (!matches) return false;
-	const year = +matches[1];
-	const month = +matches[2];
-	const day = +matches[3];
-	return month >= 1 && month <= 12 && day >= 1 && day <= (month === 2 && IsLeapYear(year) ? 29 : DAYS[month]);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/time.mjs
-var TIME = /^(\d\d):(\d\d):(\d\d(?:\.\d+)?)(?:Z|([+-])(\d\d):(\d\d))?$/i;
-/**
-* Returns true if the value is a ISO time string
-* @specification
-*/
-function IsTime(value, strictTimeZone = true) {
-	const matches = TIME.exec(value);
-	if (!matches) return false;
-	const hr = +matches[1];
-	const min = +matches[2];
-	const sec = +matches[3];
-	const tzSign = matches[4] === "-" ? -1 : 1;
-	const tzH = +(matches[5] || 0);
-	const tzM = +(matches[6] || 0);
-	if (tzH > 23 || tzM > 59) return false;
-	if (strictTimeZone && !matches[4] && value.toLowerCase().indexOf("z") === -1) return false;
-	if (hr <= 23 && min <= 59 && sec < 60) return true;
-	const utcMin = min - tzM * tzSign;
-	const utcHr = hr - tzH * tzSign - (utcMin < 0 ? 1 : 0);
-	return (utcHr === 23 || utcHr === -1) && (utcMin === 59 || utcMin === -1) && sec < 61;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/date_time.mjs
-/**
-* Returns true if the value is a ISO8601 DateTime string
-* @source ajv-formats
-* @example `2020-12-12T20:20:40+00:00`
-*/
-function IsDateTime(value, strictTimeZone = true) {
-	const dateTime = value.split(/T/i);
-	return dateTime.length === 2 && IsDate$1(dateTime[0]) && IsTime(dateTime[1], strictTimeZone);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/duration.mjs
-var Duration = /^P((\d+Y(\d+M(\d+D)?)?|\d+M(\d+D)?|\d+D)(T(\d+H(\d+M(\d+S)?)?|\d+M(\d+S)?|\d+S))?|T(\d+H(\d+M(\d+S)?)?|\d+M(\d+S)?|\d+S)|\d+W)$/;
-/**
-* Returns true if the value is a valid ISO-8601 duration.
-* @specification https://tools.ietf.org/html/rfc3339
-*/
-function IsDuration(value) {
-	return Duration.test(value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/email.mjs
-var Email = /^(?!.*\.\.)[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/i;
-/**
-* Returns true if the value is an Email
-* @specification ajv-formats
-*/
-function IsEmail(value) {
-	return Email.test(value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/_puny.mjs
-var PUNYCODE_BASE = 36;
-var PUNYCODE_TMIN = 1;
-var PUNYCODE_TMAX = 26;
-var PUNYCODE_SKEW = 38;
-var PUNYCODE_DAMP = 700;
-var PUNYCODE_INITIAL_BIAS = 72;
-var PUNYCODE_INITIAL_N = 128;
-function Adapt(delta, numPoints, firstTime) {
-	delta = firstTime ? Math.floor(delta / PUNYCODE_DAMP) : delta >> 1;
-	delta += Math.floor(delta / numPoints);
-	let k = 0;
-	while (delta > (PUNYCODE_BASE - PUNYCODE_TMIN) * PUNYCODE_TMAX >> 1) {
-		delta = Math.floor(delta / (PUNYCODE_BASE - PUNYCODE_TMIN));
-		k += PUNYCODE_BASE;
-	}
-	return k + Math.floor((PUNYCODE_BASE - PUNYCODE_TMIN + 1) * delta / (delta + PUNYCODE_SKEW));
-}
-function Decode$7(value) {
-	const output = [];
-	let n = PUNYCODE_INITIAL_N;
-	let i = 0;
-	let bias = PUNYCODE_INITIAL_BIAS;
-	const delimIdx = value.lastIndexOf("-");
-	if (delimIdx > 0) for (let j = 0; j < delimIdx; j++) {
-		const cp = value.charCodeAt(j);
-		if (cp >= 128) throw new Error("Invalid punycode: non-basic before delimiter");
-		output.push(cp);
-	}
-	let inIdx = delimIdx < 0 ? 0 : delimIdx + 1;
-	while (inIdx < value.length) {
-		const oldi = i;
-		let w = 1;
-		let k = PUNYCODE_BASE;
-		while (true) {
-			if (inIdx >= value.length) throw new Error("Invalid punycode: unexpected end of input");
-			const ch = value.charCodeAt(inIdx++);
-			let digit;
-			if (ch >= 97 && ch <= 122) digit = ch - 97;
-			else if (ch >= 48 && ch <= 57) digit = ch - 48 + 26;
-			else if (ch >= 65 && ch <= 90) digit = ch - 65;
-			else throw new Error("Invalid punycode: bad digit character");
-			i += digit * w;
-			const t = k <= bias ? PUNYCODE_TMIN : k >= bias + PUNYCODE_TMAX ? PUNYCODE_TMAX : k - bias;
-			if (digit < t) break;
-			w *= PUNYCODE_BASE - t;
-			k += PUNYCODE_BASE;
-		}
-		const outLen = output.length + 1;
-		bias = Adapt(i - oldi, outLen, oldi === 0);
-		n += Math.floor(i / outLen);
-		i %= outLen;
-		output.splice(i, 0, n);
-		i++;
-	}
-	return globalThis.String.fromCodePoint(...output);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/_idna.mjs
-function IsNonspacingMark(cp) {
-	return /\p{Mn}/u.test(String.fromCodePoint(cp));
-}
-function IsSpacingCombiningMark(cp) {
-	return /\p{Mc}/u.test(String.fromCodePoint(cp));
-}
-function IsEnclosingMark(cp) {
-	return /\p{Me}/u.test(String.fromCodePoint(cp));
-}
-function IsCombiningMark$1(cp) {
-	return IsNonspacingMark(cp) || IsSpacingCombiningMark(cp) || IsEnclosingMark(cp);
-}
-var RFC5892_DISALLOWED = new Set([
-	1600,
-	2042,
-	12334,
-	12335,
-	12337,
-	12338,
-	12339,
-	12340,
-	12341,
-	12347
-]);
-var VIRAMA_CPS = new Set([
-	2381,
-	2509,
-	2637,
-	2765,
-	2893,
-	3021,
-	3149,
-	3277,
-	3387,
-	3388,
-	3405,
-	3530,
-	6980,
-	7082,
-	7083,
-	43456,
-	69702,
-	69759,
-	69817,
-	69939,
-	69940,
-	70080,
-	70197,
-	70477,
-	70722,
-	70850,
-	71103,
-	71231,
-	71350,
-	72767,
-	73028,
-	73029
-]);
-function IsGreek(cp) {
-	return /\p{Script=Greek}/u.test(String.fromCodePoint(cp));
-}
-function IsHebrew(cp) {
-	return /\p{Script=Hebrew}/u.test(String.fromCodePoint(cp));
-}
-function IsHiragana(cp) {
-	return /\p{Script=Hiragana}/u.test(String.fromCodePoint(cp));
-}
-function IsKatakana(cp) {
-	return /\p{Script=Katakana}/u.test(String.fromCodePoint(cp));
-}
-function IsHan(cp) {
-	return /\p{Script=Han}/u.test(String.fromCodePoint(cp));
-}
-function IsArabicIndicDigit(cp) {
-	return cp >= 1632 && cp <= 1641;
-}
-function IsExtendedArabicIndicDigit(cp) {
-	return cp >= 1776 && cp <= 1785;
-}
-function IsVirama(cp) {
-	return VIRAMA_CPS.has(cp);
-}
-function IsUnicodeLabel(value) {
-	if (value.length === 0) return false;
-	const cps = [...value].map((c) => c.codePointAt(0));
-	const len = cps.length;
-	if (cps[0] === 45 || cps[len - 1] === 45) return false;
-	if (len >= 4 && cps[2] === 45 && cps[3] === 45) return false;
-	if (IsCombiningMark$1(cps[0])) return false;
-	let hasJapanese = false;
-	let hasArabicIndic = false;
-	let hasExtendedArabicIndic = false;
-	for (let i = 0; i < len; i++) {
-		const cp = cps[i];
-		if (RFC5892_DISALLOWED.has(cp)) return false;
-		if (IsHiragana(cp) || IsKatakana(cp) || IsHan(cp)) hasJapanese = true;
-		if (IsArabicIndicDigit(cp)) hasArabicIndic = true;
-		if (IsExtendedArabicIndicDigit(cp)) hasExtendedArabicIndic = true;
-		const prev = cps[i - 1], next = cps[i + 1];
-		switch (cp) {
-			case 183:
-				if (prev !== 108 || next !== 108) return false;
-				break;
-			case 885:
-				if (next === void 0 || !IsGreek(next)) return false;
-				break;
-			case 1523:
-			case 1524:
-				if (prev === void 0 || !IsHebrew(prev)) return false;
-				break;
-			case 8205:
-				if (prev === void 0 || !IsVirama(prev)) return false;
-				break;
-			case 12539: break;
-		}
-	}
-	if (value.includes("・") && !hasJapanese) return false;
-	if (hasArabicIndic && hasExtendedArabicIndic) return false;
-	return true;
-}
-function IsAsciiLabel(value) {
-	if (value.charCodeAt(0) === 45 || value.charCodeAt(value.length - 1) === 45) return false;
-	if (value.length >= 4 && value.charCodeAt(2) === 45 && value.charCodeAt(3) === 45) return false;
-	for (let i = 0; i < value.length; i++) {
-		const ch = value.charCodeAt(i);
-		if (!(ch >= 97 && ch <= 122 || ch >= 65 && ch <= 90 || ch >= 48 && ch <= 57 || ch === 45)) return false;
-	}
-	return true;
-}
-function IsPuny(value) {
-	return value.toLowerCase().startsWith("xn--");
-}
-function IsPunyLabel(value) {
-	try {
-		return IsUnicodeLabel(Decode$7(value.slice(4)));
-	} catch {
-		return false;
-	}
-}
-function IsIdnLabel(value) {
-	if (value.length === 0 || value.length > 63) return false;
-	return IsPuny(value) ? IsPunyLabel(value) : IsUnicodeLabel(value);
-}
-function IsLabel(value) {
-	if (value.length === 0 || value.length > 63) return false;
-	return IsPuny(value) ? IsPunyLabel(value) : IsAsciiLabel(value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/hostname.mjs
-/**
-* Returns true if the value is a valid hostname.
-* @specification https://tools.ietf.org/html/rfc1123
-* @specification https://tools.ietf.org/html/rfc5891
-* @specification https://tools.ietf.org/html/rfc5892
-*/
-function IsHostname(value) {
-	if (value.length === 0 || value.length > 253) return false;
-	if (value.charCodeAt(value.length - 1) === 46) return false;
-	for (const label of value.split(".")) if (!IsLabel(label)) return false;
-	return true;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/idn_email.mjs
-var IdnEmail = /^(?!.*\.\.)[\p{L}\p{N}!#$%&'*+/=?^_`{|}~-]+(?:\.[\p{L}\p{N}!#$%&'*+/=?^_`{|}~-]+)*@[\p{L}\p{N}](?:[\p{L}\p{N}-]{0,61}[\p{L}\p{N}])?(?:\.[\p{L}\p{N}](?:[\p{L}\p{N}-]{0,61}[\p{L}\p{N}])?)*$/iu;
-/**
-* Returns true if the value is an IdnEmail
-* @specification ajv-formats (unicode-extension)
-*/
-function IsIdnEmail(value) {
-	return IdnEmail.test(value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/idn_hostname.mjs
-/**
-* Returns true if the value is a valid internationalized (IDN) hostname.
-* @specification https://tools.ietf.org/html/rfc3490
-* @specification https://tools.ietf.org/html/rfc5891
-* @specification https://tools.ietf.org/html/rfc5892
-*/
-function IsIdnHostname(value) {
-	if (value.length === 0 || value.includes(" ")) return false;
-	const canonical = value.normalize("NFC").replace(/[\u002E\u3002\uFF0E\uFF61]/g, ".");
-	if (canonical.length > 253) return false;
-	for (const label of canonical.split(".")) if (!IsIdnLabel(label)) return false;
-	return true;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/ipv4.mjs
-function IsIPv4Internal(value, start, end) {
-	let dots = 0;
-	let num = 0;
-	let digits = 0;
-	let leading = 0;
-	for (let i = start; i < end; i++) {
-		const ch = value.charCodeAt(i);
-		if (ch === 46) {
-			if (digits === 0 || num > 255 || leading === 48 && digits > 1) return false;
-			dots++;
-			num = 0;
-			digits = 0;
-			leading = 0;
-		} else if (ch >= 48 && ch <= 57) {
-			if (digits === 0) leading = ch;
-			num = num * 10 + (ch - 48);
-			digits++;
-		} else return false;
-	}
-	return dots === 3 && digits > 0 && num <= 255 && !(leading === 48 && digits > 1);
-}
-/**
-* Returns true if the value is a IPV4 address
-* @specification http://tools.ietf.org/html/rfc2673#section-3.2
-*/
-function IsIPv4(value) {
-	return IsIPv4Internal(value, 0, value.length);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/ipv6.mjs
-function InRange(ch) {
-	return ch >= 48 && ch <= 57 || ch >= 65 && ch <= 70 || ch >= 97 && ch <= 102;
-}
-/**
-* Returns true if the value is an IPv6 address
-* @specification http://tools.ietf.org/html/rfc2373#section-2.2
-*/
-function IsIPv6(value) {
-	const length = value.length;
-	if (length === 0) return false;
-	let groups = 0;
-	let compressed = false;
-	let i = 0;
-	if (value.charCodeAt(0) === 58 && value.charCodeAt(1) === 58) {
-		if (length === 2) return true;
-		compressed = true;
-		i = 2;
-	}
-	while (i < length) {
-		let digits = 0;
-		const start = i;
-		while (i < length && InRange(value.charCodeAt(i))) {
-			i++;
-			digits++;
-		}
-		if (digits === 0) return false;
-		const next = value.charCodeAt(i);
-		if (next === 46) {
-			if (!IsIPv4Internal(value, start, length)) return false;
-			groups += 2;
-			i = length;
-			break;
-		}
-		if (digits > 4) return false;
-		groups++;
-		if (i === length) break;
-		if (next !== 58) return false;
-		i++;
-		if (value.charCodeAt(i) === 58) {
-			if (compressed) return false;
-			if (value.charCodeAt(i + 1) === 58) return false;
-			compressed = true;
-			i++;
-			if (i === length) break;
-		}
-	}
-	return compressed ? groups <= 7 : groups === 8;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/iri_reference.mjs
-function TryUrl(value) {
-	try {
-		new URL(value, "http://example.com");
-		return true;
-	} catch {
-		return false;
-	}
-}
-/**
-* Returns true if the value is a Iri reference
-* @specification
-*/
-function IsIriReference(value) {
-	if (value.includes(" ")) return false;
-	if (value.includes("\\")) return false;
-	if (/[\x00-\x1F\x7F]/.test(value)) return false;
-	if (/%(?![0-9a-fA-F]{2})/.test(value)) return false;
-	if (value === "") return true;
-	const colonIndex = value.indexOf(":");
-	if (colonIndex > 0 && /^[a-zA-Z][a-zA-Z0-9+\-.]*$/.test(value.substring(0, colonIndex))) return TryUrl(value);
-	else {
-		if (value.match(/^([a-zA-Z][a-zA-Z0-9+\-.]*)(\/\/)/) && colonIndex === -1) return false;
-		return TryUrl(value);
-	}
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/iri.mjs
-/**
-* Returns true if the value is a Iri
-* @specification
-*/
-function IsIri(value) {
-	try {
-		new URL(value);
-		return true;
-	} catch {
-		return false;
-	}
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/json_pointer_uri_fragment.mjs
-var JsonPointerUriFragment = /^#(?:\/(?:[a-z0-9_\-.!$&'()*+,;:=@]|%[0-9a-f]{2}|~0|~1)*)*$/i;
-/**
-* Returns true if the value is a json pointer uri fragment
-* @specification
-* @source ajv-formats
-*/
-function IsJsonPointerUriFragment(value) {
-	return JsonPointerUriFragment.test(value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/json_pointer.mjs
-var JsonPointer = /^(?:\/(?:[^~/]|~0|~1)*)*$/;
-/**
-* Returns true if the value is a json pointer
-* @specification
-* @source ajv-formats
-*/
-function IsJsonPointer(value) {
-	return JsonPointer.test(value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/regex.mjs
-/**
-* Returns true if the value is a regular expression string pattern
-* @specification
-* @source ajv-formats
-*/
-function IsRegex(value) {
-	if (value.length === 0) return false;
-	try {
-		new RegExp(value);
-		return true;
-	} catch {
-		return false;
-	}
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/relative_json_pointer.mjs
-var RelativeJsonPointer = /^(?:0|[1-9][0-9]*)(?:#|(?:\/(?:[^~/]|~0|~1)*)*)$/;
-/**
-* Returns true if the value is a relative json pointer
-* @specification
-* @source ajv-formats
-*/
-function IsRelativeJsonPointer(value) {
-	return RelativeJsonPointer.test(value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/uri_reference.mjs
-var UriReference = /^(?!.*[^\x00-\x7F])(?!.*\\)(?:(?:[a-z][a-z0-9+\-.]*:)?(?:\/\/[^\s[\]{}<>^`|]*)?|[^\s[\]{}<>^`|]*)(?:\?[^\s[\]{}<>^`|]*)?(?:#[^\s[\]{}<>^`|]*)?$/i;
-/**
-* Returns true if the value is a valid URI Reference.
-* @specification https://tools.ietf.org/html/rfc3986
-*/
-function IsUriReference(value) {
-	return UriReference.test(value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/uri_template.mjs
-var UriTemplate = /^(?:(?:[^\x00-\x20"'<>%\\^`{|}]|%[0-9a-f]{2})|\{[+#./;?&=,!@|]?(?:[a-z0-9_]|%[0-9a-f]{2})+(?::[1-9][0-9]{0,3}|\*)?(?:,(?:[a-z0-9_]|%[0-9a-f]{2})+(?::[1-9][0-9]{0,3}|\*)?)*\})*$/i;
-/**
-* Returns true if the value is a uri template
-* @specification
-* @source ajv-formats
-*/
-function IsUriTemplate(value) {
-	return UriTemplate.test(value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/uri.mjs
-function IsAlpha(ch) {
-	return ch >= 97 && ch <= 122 || ch >= 65 && ch <= 90;
-}
-function IsAlphaNumeric(ch) {
-	return IsAlpha(ch) || ch >= 48 && ch <= 57;
-}
-function IsHex(ch) {
-	return ch >= 48 && ch <= 57 || ch >= 65 && ch <= 70 || ch >= 97 && ch <= 102;
-}
-function IsSchemeChar(ch) {
-	return IsAlphaNumeric(ch) || ch === 43 || ch === 45 || ch === 46;
-}
-function IsUnreserved(ch) {
-	return IsAlphaNumeric(ch) || ch === 45 || ch === 46 || ch === 95 || ch === 126;
-}
-function IsSubDelim(ch) {
-	return ch === 33 || ch === 36 || ch === 38 || ch === 39 || ch === 40 || ch === 41 || ch === 42 || ch === 43 || ch === 44 || ch === 59 || ch === 61;
-}
-function IsPchar(ch) {
-	return IsUnreserved(ch) || IsSubDelim(ch) || ch === 58 || ch === 64;
-}
-/**
-* Returns true if the value matches RFC 3986 URI syntax.
-* @specification https://tools.ietf.org/html/rfc3986
-*/
-function IsUri(value) {
-	const length = value.length;
-	if (length === 0) return false;
-	if (!IsAlpha(value.charCodeAt(0))) return false;
-	let i = 1;
-	while (i < length) {
-		const ch = value.charCodeAt(i);
-		if (ch === 58) break;
-		if (!IsSchemeChar(ch)) return false;
-		i++;
-	}
-	if (value.charCodeAt(i) !== 58) return false;
-	i++;
-	if (value.charCodeAt(i) === 47 && value.charCodeAt(i + 1) === 47) {
-		i += 2;
-		const authorityStart = i;
-		let atPos = -1;
-		for (let j = i; j < length; j++) {
-			const ch = value.charCodeAt(j);
-			if (ch === 64) {
-				atPos = j;
-				break;
-			}
-			if (ch === 47 || ch === 63 || ch === 35) break;
-		}
-		if (atPos !== -1) {
-			for (let j = authorityStart; j < atPos; j++) {
-				const ch = value.charCodeAt(j);
-				if (ch === 91 || ch === 93) return false;
-				if (ch === 37) {
-					if (j + 2 >= atPos || !IsHex(value.charCodeAt(j + 1)) || !IsHex(value.charCodeAt(j + 2))) return false;
-					j += 2;
-				} else if (!IsUnreserved(ch) && !IsSubDelim(ch) && ch !== 58) return false;
-			}
-			i = atPos + 1;
-		}
-		if (value.charCodeAt(i) === 91) {
-			i++;
-			while (i < length && value.charCodeAt(i) !== 93) i++;
-			if (value.charCodeAt(i) !== 93) return false;
-			i++;
-		} else while (i < length) {
-			const ch = value.charCodeAt(i);
-			if (ch === 47 || ch === 63 || ch === 35 || ch === 58) break;
-			if (ch < 128 && !IsUnreserved(ch) && !IsSubDelim(ch)) return false;
-			i++;
-		}
-		if (value.charCodeAt(i) === 58) {
-			i++;
-			while (i < length) {
-				const ch = value.charCodeAt(i);
-				if (ch === 47 || ch === 63 || ch === 35) break;
-				if (ch < 48 || ch > 57) return false;
-				i++;
-			}
-		}
-	}
-	while (i < length) {
-		const ch = value.charCodeAt(i);
-		if (ch === 37) {
-			if (i + 2 >= length || !IsHex(value.charCodeAt(i + 1)) || !IsHex(value.charCodeAt(i + 2))) return false;
-			i += 2;
-		} else if (ch > 127) return false;
-		else if (!(IsPchar(ch) || ch === 47 || ch === 63 || ch === 35)) return false;
-		i++;
-	}
-	return true;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/url.mjs
-var Url = /^(?:https?|ftp):\/\/(?:\S+(?::\S*)?@)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z0-9\u{00a1}-\u{ffff}]+-)*[a-z0-9\u{00a1}-\u{ffff}]+)(?:\.(?:[a-z0-9\u{00a1}-\u{ffff}]+-)*[a-z0-9\u{00a1}-\u{ffff}]+)*(?:\.(?:[a-z\u{00a1}-\u{ffff}]{2,})))(?::\d{2,5})?(?:\/[^\s]*)?$/iu;
-/**
-* Returns true if the value is a Url
-* @specification
-* @source ajv-formats
-*/
-function IsUrl(value) {
-	return Url.test(value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/uuid.mjs
-var Uuid$1 = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
-/**
-* Returns true if the value is a uuid
-* @specification https://www.rfc-editor.org/info/rfc4122/
-* @specification https://www.rfc-editor.org/info/rfc9562/
-*/
-function IsUuid(value) {
-	return Uuid$1.test(value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/_registry.mjs
-var formats = /* @__PURE__ */ new Map();
-/** Clears all entries */
-function Clear() {
-	formats.clear();
-}
-/** Sets a format */
-function Set$1(format, check) {
-	formats.set(format, check);
-}
-/** Returns true if the registry has this format */
-function Has(format) {
-	return formats.has(format);
-}
-/** Tests a value against a format, if the format is not registered, true */
-function Test(format, value) {
-	return formats.get(format)?.(value) ?? true;
-}
-/** Resets all formats to defaults */
-function Reset() {
-	Clear();
-	formats.set("date-time", IsDateTime);
-	formats.set("date", IsDate$1);
-	formats.set("duration", IsDuration);
-	formats.set("email", IsEmail);
-	formats.set("hostname", IsHostname);
-	formats.set("idn-email", IsIdnEmail);
-	formats.set("idn-hostname", IsIdnHostname);
-	formats.set("ipv4", IsIPv4);
-	formats.set("ipv6", IsIPv6);
-	formats.set("iri-reference", IsIriReference);
-	formats.set("iri", IsIri);
-	formats.set("json-pointer-uri-fragment", IsJsonPointerUriFragment);
-	formats.set("json-pointer", IsJsonPointer);
-	formats.set("regex", IsRegex);
-	formats.set("relative-json-pointer", IsRelativeJsonPointer);
-	formats.set("time", IsTime);
-	formats.set("uri-reference", IsUriReference);
-	formats.set("uri-template", IsUriTemplate);
-	formats.set("uri", IsUri);
-	formats.set("url", IsUrl);
-	formats.set("uuid", IsUuid);
-}
-Reset();
-//#endregion
-//#region ../../libs/tasks/src/formats.ts
-/**
-* Register TypeBox string formats used across Task / TaskOutput / task-type
-* schemas. Import this module for its side effect (the package index does so
-* automatically) before compiling or Check()ing any schema that references
-* `format: 'uuid'` or `format: 'date-time'`.
-*
-* Idempotent: registration is guarded by `Format.Has(...)`.
-*/
-var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-if (!Has("uuid")) Set$1("uuid", (v) => UUID_RE.test(v));
-if (!Has("date-time")) Set$1("date-time", (v) => !Number.isNaN(Date.parse(v)));
-//#endregion
 //#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/system/memory/metrics.mjs
 /** TypeBox instantiation metrics */
 var Metrics = {
@@ -26595,7 +25895,7 @@ function IsRegionalIndicator(value) {
 function IsVariationSelector(value) {
 	return IsBetween(value, 65024, 65039);
 }
-function IsCombiningMark(value) {
+function IsCombiningMark$1(value) {
 	return IsBetween(value, 768, 879) || IsBetween(value, 6832, 6911) || IsBetween(value, 7616, 7679) || IsBetween(value, 65056, 65071);
 }
 function CodePointLength(value) {
@@ -26604,7 +25904,7 @@ function CodePointLength(value) {
 function ConsumeModifiers(value, index) {
 	while (index < value.length) {
 		const point = value.codePointAt(index);
-		if (IsCombiningMark(point) || IsVariationSelector(point)) index += CodePointLength(point);
+		if (IsCombiningMark$1(point) || IsVariationSelector(point)) index += CodePointLength(point);
 		else break;
 	}
 	return index;
@@ -26849,7 +26149,7 @@ function IsRegExp(value) {
 	return value instanceof globalThis.RegExp;
 }
 /** Returns true if the value is a Date */
-function IsDate(value) {
+function IsDate$1(value) {
 	return value instanceof globalThis.Date;
 }
 /** Returns true if the value is a Set */
@@ -27436,7 +26736,7 @@ function FromUndefined$1(_value) {
 	return FNV1A64_OP(ByteMarker.Undefined);
 }
 function FromValue$2(value) {
-	return IsTypeArray(value) ? FromTypeArray(value) : IsDate(value) ? FromDate(value) : IsRegExp(value) ? FromRegExp(value) : IsBoolean$1(value) ? FromBoolean$5(value.valueOf()) : IsString$1(value) ? FromString$6(value.valueOf()) : IsNumber$1(value) ? FromNumber$4(value.valueOf()) : IsIEEE754(value) ? FromNumber$4(value) : IsArray$1(value) ? FromArray$9(value) : IsBoolean$2(value) ? FromBoolean$5(value) : IsBigInt$1(value) ? FromBigInt$5(value) : IsConstructor$1(value) ? FromConstructor(value) : IsNull$1(value) ? FromNull$1(value) : IsObject$1(value) ? FromObject$12(value) : IsString$2(value) ? FromString$6(value) : IsSymbol$1(value) ? FromSymbol(value) : IsUndefined$1(value) ? FromUndefined$1(value) : IsFunction$1(value) ? FromFunction(value) : Unreachable();
+	return IsTypeArray(value) ? FromTypeArray(value) : IsDate$1(value) ? FromDate(value) : IsRegExp(value) ? FromRegExp(value) : IsBoolean$1(value) ? FromBoolean$5(value.valueOf()) : IsString$1(value) ? FromString$6(value.valueOf()) : IsNumber$1(value) ? FromNumber$4(value.valueOf()) : IsIEEE754(value) ? FromNumber$4(value) : IsArray$1(value) ? FromArray$9(value) : IsBoolean$2(value) ? FromBoolean$5(value) : IsBigInt$1(value) ? FromBigInt$5(value) : IsConstructor$1(value) ? FromConstructor(value) : IsNull$1(value) ? FromNull$1(value) : IsObject$1(value) ? FromObject$12(value) : IsString$2(value) ? FromString$6(value) : IsSymbol$1(value) ? FromSymbol(value) : IsUndefined$1(value) ? FromUndefined$1(value) : IsFunction$1(value) ? FromFunction(value) : Unreachable();
 }
 /** Generates a FNV1A-64 non cryptographic hash of the given value */
 function HashCode(value) {
@@ -33680,6 +32980,685 @@ function ErrorExclusiveMinimum(stack, context, schemaPath, instancePath, schema,
 	});
 }
 //#endregion
+//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/date.mjs
+var DAYS = [
+	0,
+	31,
+	28,
+	31,
+	30,
+	31,
+	30,
+	31,
+	31,
+	30,
+	31,
+	30,
+	31
+];
+var DATE = /^(\d\d\d\d)-(\d\d)-(\d\d)$/;
+function IsLeapYear(year) {
+	return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+}
+/**
+* Returns true if the value is a ISO8601 Date component string
+* @source ajv-formats
+* @example `2020-12-12`
+*/
+function IsDate(value) {
+	const matches = DATE.exec(value);
+	if (!matches) return false;
+	const year = +matches[1];
+	const month = +matches[2];
+	const day = +matches[3];
+	return month >= 1 && month <= 12 && day >= 1 && day <= (month === 2 && IsLeapYear(year) ? 29 : DAYS[month]);
+}
+//#endregion
+//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/time.mjs
+var TIME = /^(\d\d):(\d\d):(\d\d(?:\.\d+)?)(?:Z|([+-])(\d\d):(\d\d))?$/i;
+/**
+* Returns true if the value is a ISO time string
+* @specification
+*/
+function IsTime(value, strictTimeZone = true) {
+	const matches = TIME.exec(value);
+	if (!matches) return false;
+	const hr = +matches[1];
+	const min = +matches[2];
+	const sec = +matches[3];
+	const tzSign = matches[4] === "-" ? -1 : 1;
+	const tzH = +(matches[5] || 0);
+	const tzM = +(matches[6] || 0);
+	if (tzH > 23 || tzM > 59) return false;
+	if (strictTimeZone && !matches[4] && value.toLowerCase().indexOf("z") === -1) return false;
+	if (hr <= 23 && min <= 59 && sec < 60) return true;
+	const utcMin = min - tzM * tzSign;
+	const utcHr = hr - tzH * tzSign - (utcMin < 0 ? 1 : 0);
+	return (utcHr === 23 || utcHr === -1) && (utcMin === 59 || utcMin === -1) && sec < 61;
+}
+//#endregion
+//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/date_time.mjs
+/**
+* Returns true if the value is a ISO8601 DateTime string
+* @source ajv-formats
+* @example `2020-12-12T20:20:40+00:00`
+*/
+function IsDateTime(value, strictTimeZone = true) {
+	const dateTime = value.split(/T/i);
+	return dateTime.length === 2 && IsDate(dateTime[0]) && IsTime(dateTime[1], strictTimeZone);
+}
+//#endregion
+//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/duration.mjs
+var Duration = /^P((\d+Y(\d+M(\d+D)?)?|\d+M(\d+D)?|\d+D)(T(\d+H(\d+M(\d+S)?)?|\d+M(\d+S)?|\d+S))?|T(\d+H(\d+M(\d+S)?)?|\d+M(\d+S)?|\d+S)|\d+W)$/;
+/**
+* Returns true if the value is a valid ISO-8601 duration.
+* @specification https://tools.ietf.org/html/rfc3339
+*/
+function IsDuration(value) {
+	return Duration.test(value);
+}
+//#endregion
+//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/email.mjs
+var Email = /^(?!.*\.\.)[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/i;
+/**
+* Returns true if the value is an Email
+* @specification ajv-formats
+*/
+function IsEmail(value) {
+	return Email.test(value);
+}
+//#endregion
+//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/_puny.mjs
+var PUNYCODE_BASE = 36;
+var PUNYCODE_TMIN = 1;
+var PUNYCODE_TMAX = 26;
+var PUNYCODE_SKEW = 38;
+var PUNYCODE_DAMP = 700;
+var PUNYCODE_INITIAL_BIAS = 72;
+var PUNYCODE_INITIAL_N = 128;
+function Adapt(delta, numPoints, firstTime) {
+	delta = firstTime ? Math.floor(delta / PUNYCODE_DAMP) : delta >> 1;
+	delta += Math.floor(delta / numPoints);
+	let k = 0;
+	while (delta > (PUNYCODE_BASE - PUNYCODE_TMIN) * PUNYCODE_TMAX >> 1) {
+		delta = Math.floor(delta / (PUNYCODE_BASE - PUNYCODE_TMIN));
+		k += PUNYCODE_BASE;
+	}
+	return k + Math.floor((PUNYCODE_BASE - PUNYCODE_TMIN + 1) * delta / (delta + PUNYCODE_SKEW));
+}
+function Decode$7(value) {
+	const output = [];
+	let n = PUNYCODE_INITIAL_N;
+	let i = 0;
+	let bias = PUNYCODE_INITIAL_BIAS;
+	const delimIdx = value.lastIndexOf("-");
+	if (delimIdx > 0) for (let j = 0; j < delimIdx; j++) {
+		const cp = value.charCodeAt(j);
+		if (cp >= 128) throw new Error("Invalid punycode: non-basic before delimiter");
+		output.push(cp);
+	}
+	let inIdx = delimIdx < 0 ? 0 : delimIdx + 1;
+	while (inIdx < value.length) {
+		const oldi = i;
+		let w = 1;
+		let k = PUNYCODE_BASE;
+		while (true) {
+			if (inIdx >= value.length) throw new Error("Invalid punycode: unexpected end of input");
+			const ch = value.charCodeAt(inIdx++);
+			let digit;
+			if (ch >= 97 && ch <= 122) digit = ch - 97;
+			else if (ch >= 48 && ch <= 57) digit = ch - 48 + 26;
+			else if (ch >= 65 && ch <= 90) digit = ch - 65;
+			else throw new Error("Invalid punycode: bad digit character");
+			i += digit * w;
+			const t = k <= bias ? PUNYCODE_TMIN : k >= bias + PUNYCODE_TMAX ? PUNYCODE_TMAX : k - bias;
+			if (digit < t) break;
+			w *= PUNYCODE_BASE - t;
+			k += PUNYCODE_BASE;
+		}
+		const outLen = output.length + 1;
+		bias = Adapt(i - oldi, outLen, oldi === 0);
+		n += Math.floor(i / outLen);
+		i %= outLen;
+		output.splice(i, 0, n);
+		i++;
+	}
+	return globalThis.String.fromCodePoint(...output);
+}
+//#endregion
+//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/_idna.mjs
+function IsNonspacingMark(cp) {
+	return /\p{Mn}/u.test(String.fromCodePoint(cp));
+}
+function IsSpacingCombiningMark(cp) {
+	return /\p{Mc}/u.test(String.fromCodePoint(cp));
+}
+function IsEnclosingMark(cp) {
+	return /\p{Me}/u.test(String.fromCodePoint(cp));
+}
+function IsCombiningMark(cp) {
+	return IsNonspacingMark(cp) || IsSpacingCombiningMark(cp) || IsEnclosingMark(cp);
+}
+var RFC5892_DISALLOWED = new Set([
+	1600,
+	2042,
+	12334,
+	12335,
+	12337,
+	12338,
+	12339,
+	12340,
+	12341,
+	12347
+]);
+var VIRAMA_CPS = new Set([
+	2381,
+	2509,
+	2637,
+	2765,
+	2893,
+	3021,
+	3149,
+	3277,
+	3387,
+	3388,
+	3405,
+	3530,
+	6980,
+	7082,
+	7083,
+	43456,
+	69702,
+	69759,
+	69817,
+	69939,
+	69940,
+	70080,
+	70197,
+	70477,
+	70722,
+	70850,
+	71103,
+	71231,
+	71350,
+	72767,
+	73028,
+	73029
+]);
+function IsGreek(cp) {
+	return /\p{Script=Greek}/u.test(String.fromCodePoint(cp));
+}
+function IsHebrew(cp) {
+	return /\p{Script=Hebrew}/u.test(String.fromCodePoint(cp));
+}
+function IsHiragana(cp) {
+	return /\p{Script=Hiragana}/u.test(String.fromCodePoint(cp));
+}
+function IsKatakana(cp) {
+	return /\p{Script=Katakana}/u.test(String.fromCodePoint(cp));
+}
+function IsHan(cp) {
+	return /\p{Script=Han}/u.test(String.fromCodePoint(cp));
+}
+function IsArabicIndicDigit(cp) {
+	return cp >= 1632 && cp <= 1641;
+}
+function IsExtendedArabicIndicDigit(cp) {
+	return cp >= 1776 && cp <= 1785;
+}
+function IsVirama(cp) {
+	return VIRAMA_CPS.has(cp);
+}
+function IsUnicodeLabel(value) {
+	if (value.length === 0) return false;
+	const cps = [...value].map((c) => c.codePointAt(0));
+	const len = cps.length;
+	if (cps[0] === 45 || cps[len - 1] === 45) return false;
+	if (len >= 4 && cps[2] === 45 && cps[3] === 45) return false;
+	if (IsCombiningMark(cps[0])) return false;
+	let hasJapanese = false;
+	let hasArabicIndic = false;
+	let hasExtendedArabicIndic = false;
+	for (let i = 0; i < len; i++) {
+		const cp = cps[i];
+		if (RFC5892_DISALLOWED.has(cp)) return false;
+		if (IsHiragana(cp) || IsKatakana(cp) || IsHan(cp)) hasJapanese = true;
+		if (IsArabicIndicDigit(cp)) hasArabicIndic = true;
+		if (IsExtendedArabicIndicDigit(cp)) hasExtendedArabicIndic = true;
+		const prev = cps[i - 1], next = cps[i + 1];
+		switch (cp) {
+			case 183:
+				if (prev !== 108 || next !== 108) return false;
+				break;
+			case 885:
+				if (next === void 0 || !IsGreek(next)) return false;
+				break;
+			case 1523:
+			case 1524:
+				if (prev === void 0 || !IsHebrew(prev)) return false;
+				break;
+			case 8205:
+				if (prev === void 0 || !IsVirama(prev)) return false;
+				break;
+			case 12539: break;
+		}
+	}
+	if (value.includes("・") && !hasJapanese) return false;
+	if (hasArabicIndic && hasExtendedArabicIndic) return false;
+	return true;
+}
+function IsAsciiLabel(value) {
+	if (value.charCodeAt(0) === 45 || value.charCodeAt(value.length - 1) === 45) return false;
+	if (value.length >= 4 && value.charCodeAt(2) === 45 && value.charCodeAt(3) === 45) return false;
+	for (let i = 0; i < value.length; i++) {
+		const ch = value.charCodeAt(i);
+		if (!(ch >= 97 && ch <= 122 || ch >= 65 && ch <= 90 || ch >= 48 && ch <= 57 || ch === 45)) return false;
+	}
+	return true;
+}
+function IsPuny(value) {
+	return value.toLowerCase().startsWith("xn--");
+}
+function IsPunyLabel(value) {
+	try {
+		return IsUnicodeLabel(Decode$7(value.slice(4)));
+	} catch {
+		return false;
+	}
+}
+function IsIdnLabel(value) {
+	if (value.length === 0 || value.length > 63) return false;
+	return IsPuny(value) ? IsPunyLabel(value) : IsUnicodeLabel(value);
+}
+function IsLabel(value) {
+	if (value.length === 0 || value.length > 63) return false;
+	return IsPuny(value) ? IsPunyLabel(value) : IsAsciiLabel(value);
+}
+//#endregion
+//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/hostname.mjs
+/**
+* Returns true if the value is a valid hostname.
+* @specification https://tools.ietf.org/html/rfc1123
+* @specification https://tools.ietf.org/html/rfc5891
+* @specification https://tools.ietf.org/html/rfc5892
+*/
+function IsHostname(value) {
+	if (value.length === 0 || value.length > 253) return false;
+	if (value.charCodeAt(value.length - 1) === 46) return false;
+	for (const label of value.split(".")) if (!IsLabel(label)) return false;
+	return true;
+}
+//#endregion
+//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/idn_email.mjs
+var IdnEmail = /^(?!.*\.\.)[\p{L}\p{N}!#$%&'*+/=?^_`{|}~-]+(?:\.[\p{L}\p{N}!#$%&'*+/=?^_`{|}~-]+)*@[\p{L}\p{N}](?:[\p{L}\p{N}-]{0,61}[\p{L}\p{N}])?(?:\.[\p{L}\p{N}](?:[\p{L}\p{N}-]{0,61}[\p{L}\p{N}])?)*$/iu;
+/**
+* Returns true if the value is an IdnEmail
+* @specification ajv-formats (unicode-extension)
+*/
+function IsIdnEmail(value) {
+	return IdnEmail.test(value);
+}
+//#endregion
+//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/idn_hostname.mjs
+/**
+* Returns true if the value is a valid internationalized (IDN) hostname.
+* @specification https://tools.ietf.org/html/rfc3490
+* @specification https://tools.ietf.org/html/rfc5891
+* @specification https://tools.ietf.org/html/rfc5892
+*/
+function IsIdnHostname(value) {
+	if (value.length === 0 || value.includes(" ")) return false;
+	const canonical = value.normalize("NFC").replace(/[\u002E\u3002\uFF0E\uFF61]/g, ".");
+	if (canonical.length > 253) return false;
+	for (const label of canonical.split(".")) if (!IsIdnLabel(label)) return false;
+	return true;
+}
+//#endregion
+//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/ipv4.mjs
+function IsIPv4Internal(value, start, end) {
+	let dots = 0;
+	let num = 0;
+	let digits = 0;
+	let leading = 0;
+	for (let i = start; i < end; i++) {
+		const ch = value.charCodeAt(i);
+		if (ch === 46) {
+			if (digits === 0 || num > 255 || leading === 48 && digits > 1) return false;
+			dots++;
+			num = 0;
+			digits = 0;
+			leading = 0;
+		} else if (ch >= 48 && ch <= 57) {
+			if (digits === 0) leading = ch;
+			num = num * 10 + (ch - 48);
+			digits++;
+		} else return false;
+	}
+	return dots === 3 && digits > 0 && num <= 255 && !(leading === 48 && digits > 1);
+}
+/**
+* Returns true if the value is a IPV4 address
+* @specification http://tools.ietf.org/html/rfc2673#section-3.2
+*/
+function IsIPv4(value) {
+	return IsIPv4Internal(value, 0, value.length);
+}
+//#endregion
+//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/ipv6.mjs
+function InRange(ch) {
+	return ch >= 48 && ch <= 57 || ch >= 65 && ch <= 70 || ch >= 97 && ch <= 102;
+}
+/**
+* Returns true if the value is an IPv6 address
+* @specification http://tools.ietf.org/html/rfc2373#section-2.2
+*/
+function IsIPv6(value) {
+	const length = value.length;
+	if (length === 0) return false;
+	let groups = 0;
+	let compressed = false;
+	let i = 0;
+	if (value.charCodeAt(0) === 58 && value.charCodeAt(1) === 58) {
+		if (length === 2) return true;
+		compressed = true;
+		i = 2;
+	}
+	while (i < length) {
+		let digits = 0;
+		const start = i;
+		while (i < length && InRange(value.charCodeAt(i))) {
+			i++;
+			digits++;
+		}
+		if (digits === 0) return false;
+		const next = value.charCodeAt(i);
+		if (next === 46) {
+			if (!IsIPv4Internal(value, start, length)) return false;
+			groups += 2;
+			i = length;
+			break;
+		}
+		if (digits > 4) return false;
+		groups++;
+		if (i === length) break;
+		if (next !== 58) return false;
+		i++;
+		if (value.charCodeAt(i) === 58) {
+			if (compressed) return false;
+			if (value.charCodeAt(i + 1) === 58) return false;
+			compressed = true;
+			i++;
+			if (i === length) break;
+		}
+	}
+	return compressed ? groups <= 7 : groups === 8;
+}
+//#endregion
+//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/iri_reference.mjs
+function TryUrl(value) {
+	try {
+		new URL(value, "http://example.com");
+		return true;
+	} catch {
+		return false;
+	}
+}
+/**
+* Returns true if the value is a Iri reference
+* @specification
+*/
+function IsIriReference(value) {
+	if (value.includes(" ")) return false;
+	if (value.includes("\\")) return false;
+	if (/[\x00-\x1F\x7F]/.test(value)) return false;
+	if (/%(?![0-9a-fA-F]{2})/.test(value)) return false;
+	if (value === "") return true;
+	const colonIndex = value.indexOf(":");
+	if (colonIndex > 0 && /^[a-zA-Z][a-zA-Z0-9+\-.]*$/.test(value.substring(0, colonIndex))) return TryUrl(value);
+	else {
+		if (value.match(/^([a-zA-Z][a-zA-Z0-9+\-.]*)(\/\/)/) && colonIndex === -1) return false;
+		return TryUrl(value);
+	}
+}
+//#endregion
+//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/iri.mjs
+/**
+* Returns true if the value is a Iri
+* @specification
+*/
+function IsIri(value) {
+	try {
+		new URL(value);
+		return true;
+	} catch {
+		return false;
+	}
+}
+//#endregion
+//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/json_pointer_uri_fragment.mjs
+var JsonPointerUriFragment = /^#(?:\/(?:[a-z0-9_\-.!$&'()*+,;:=@]|%[0-9a-f]{2}|~0|~1)*)*$/i;
+/**
+* Returns true if the value is a json pointer uri fragment
+* @specification
+* @source ajv-formats
+*/
+function IsJsonPointerUriFragment(value) {
+	return JsonPointerUriFragment.test(value);
+}
+//#endregion
+//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/json_pointer.mjs
+var JsonPointer = /^(?:\/(?:[^~/]|~0|~1)*)*$/;
+/**
+* Returns true if the value is a json pointer
+* @specification
+* @source ajv-formats
+*/
+function IsJsonPointer(value) {
+	return JsonPointer.test(value);
+}
+//#endregion
+//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/regex.mjs
+/**
+* Returns true if the value is a regular expression string pattern
+* @specification
+* @source ajv-formats
+*/
+function IsRegex(value) {
+	if (value.length === 0) return false;
+	try {
+		new RegExp(value);
+		return true;
+	} catch {
+		return false;
+	}
+}
+//#endregion
+//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/relative_json_pointer.mjs
+var RelativeJsonPointer = /^(?:0|[1-9][0-9]*)(?:#|(?:\/(?:[^~/]|~0|~1)*)*)$/;
+/**
+* Returns true if the value is a relative json pointer
+* @specification
+* @source ajv-formats
+*/
+function IsRelativeJsonPointer(value) {
+	return RelativeJsonPointer.test(value);
+}
+//#endregion
+//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/uri_reference.mjs
+var UriReference = /^(?!.*[^\x00-\x7F])(?!.*\\)(?:(?:[a-z][a-z0-9+\-.]*:)?(?:\/\/[^\s[\]{}<>^`|]*)?|[^\s[\]{}<>^`|]*)(?:\?[^\s[\]{}<>^`|]*)?(?:#[^\s[\]{}<>^`|]*)?$/i;
+/**
+* Returns true if the value is a valid URI Reference.
+* @specification https://tools.ietf.org/html/rfc3986
+*/
+function IsUriReference(value) {
+	return UriReference.test(value);
+}
+//#endregion
+//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/uri_template.mjs
+var UriTemplate = /^(?:(?:[^\x00-\x20"'<>%\\^`{|}]|%[0-9a-f]{2})|\{[+#./;?&=,!@|]?(?:[a-z0-9_]|%[0-9a-f]{2})+(?::[1-9][0-9]{0,3}|\*)?(?:,(?:[a-z0-9_]|%[0-9a-f]{2})+(?::[1-9][0-9]{0,3}|\*)?)*\})*$/i;
+/**
+* Returns true if the value is a uri template
+* @specification
+* @source ajv-formats
+*/
+function IsUriTemplate(value) {
+	return UriTemplate.test(value);
+}
+//#endregion
+//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/uri.mjs
+function IsAlpha(ch) {
+	return ch >= 97 && ch <= 122 || ch >= 65 && ch <= 90;
+}
+function IsAlphaNumeric(ch) {
+	return IsAlpha(ch) || ch >= 48 && ch <= 57;
+}
+function IsHex(ch) {
+	return ch >= 48 && ch <= 57 || ch >= 65 && ch <= 70 || ch >= 97 && ch <= 102;
+}
+function IsSchemeChar(ch) {
+	return IsAlphaNumeric(ch) || ch === 43 || ch === 45 || ch === 46;
+}
+function IsUnreserved(ch) {
+	return IsAlphaNumeric(ch) || ch === 45 || ch === 46 || ch === 95 || ch === 126;
+}
+function IsSubDelim(ch) {
+	return ch === 33 || ch === 36 || ch === 38 || ch === 39 || ch === 40 || ch === 41 || ch === 42 || ch === 43 || ch === 44 || ch === 59 || ch === 61;
+}
+function IsPchar(ch) {
+	return IsUnreserved(ch) || IsSubDelim(ch) || ch === 58 || ch === 64;
+}
+/**
+* Returns true if the value matches RFC 3986 URI syntax.
+* @specification https://tools.ietf.org/html/rfc3986
+*/
+function IsUri(value) {
+	const length = value.length;
+	if (length === 0) return false;
+	if (!IsAlpha(value.charCodeAt(0))) return false;
+	let i = 1;
+	while (i < length) {
+		const ch = value.charCodeAt(i);
+		if (ch === 58) break;
+		if (!IsSchemeChar(ch)) return false;
+		i++;
+	}
+	if (value.charCodeAt(i) !== 58) return false;
+	i++;
+	if (value.charCodeAt(i) === 47 && value.charCodeAt(i + 1) === 47) {
+		i += 2;
+		const authorityStart = i;
+		let atPos = -1;
+		for (let j = i; j < length; j++) {
+			const ch = value.charCodeAt(j);
+			if (ch === 64) {
+				atPos = j;
+				break;
+			}
+			if (ch === 47 || ch === 63 || ch === 35) break;
+		}
+		if (atPos !== -1) {
+			for (let j = authorityStart; j < atPos; j++) {
+				const ch = value.charCodeAt(j);
+				if (ch === 91 || ch === 93) return false;
+				if (ch === 37) {
+					if (j + 2 >= atPos || !IsHex(value.charCodeAt(j + 1)) || !IsHex(value.charCodeAt(j + 2))) return false;
+					j += 2;
+				} else if (!IsUnreserved(ch) && !IsSubDelim(ch) && ch !== 58) return false;
+			}
+			i = atPos + 1;
+		}
+		if (value.charCodeAt(i) === 91) {
+			i++;
+			while (i < length && value.charCodeAt(i) !== 93) i++;
+			if (value.charCodeAt(i) !== 93) return false;
+			i++;
+		} else while (i < length) {
+			const ch = value.charCodeAt(i);
+			if (ch === 47 || ch === 63 || ch === 35 || ch === 58) break;
+			if (ch < 128 && !IsUnreserved(ch) && !IsSubDelim(ch)) return false;
+			i++;
+		}
+		if (value.charCodeAt(i) === 58) {
+			i++;
+			while (i < length) {
+				const ch = value.charCodeAt(i);
+				if (ch === 47 || ch === 63 || ch === 35) break;
+				if (ch < 48 || ch > 57) return false;
+				i++;
+			}
+		}
+	}
+	while (i < length) {
+		const ch = value.charCodeAt(i);
+		if (ch === 37) {
+			if (i + 2 >= length || !IsHex(value.charCodeAt(i + 1)) || !IsHex(value.charCodeAt(i + 2))) return false;
+			i += 2;
+		} else if (ch > 127) return false;
+		else if (!(IsPchar(ch) || ch === 47 || ch === 63 || ch === 35)) return false;
+		i++;
+	}
+	return true;
+}
+//#endregion
+//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/url.mjs
+var Url = /^(?:https?|ftp):\/\/(?:\S+(?::\S*)?@)?(?:(?!(?:10|127)(?:\.\d{1,3}){3})(?!(?:169\.254|192\.168)(?:\.\d{1,3}){2})(?!172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?:[1-9]\d?|1\d\d|2[01]\d|22[0-3])(?:\.(?:1?\d{1,2}|2[0-4]\d|25[0-5])){2}(?:\.(?:[1-9]\d?|1\d\d|2[0-4]\d|25[0-4]))|(?:(?:[a-z0-9\u{00a1}-\u{ffff}]+-)*[a-z0-9\u{00a1}-\u{ffff}]+)(?:\.(?:[a-z0-9\u{00a1}-\u{ffff}]+-)*[a-z0-9\u{00a1}-\u{ffff}]+)*(?:\.(?:[a-z\u{00a1}-\u{ffff}]{2,})))(?::\d{2,5})?(?:\/[^\s]*)?$/iu;
+/**
+* Returns true if the value is a Url
+* @specification
+* @source ajv-formats
+*/
+function IsUrl(value) {
+	return Url.test(value);
+}
+//#endregion
+//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/uuid.mjs
+var Uuid$1 = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
+/**
+* Returns true if the value is a uuid
+* @specification https://www.rfc-editor.org/info/rfc4122/
+* @specification https://www.rfc-editor.org/info/rfc9562/
+*/
+function IsUuid(value) {
+	return Uuid$1.test(value);
+}
+//#endregion
+//#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/format/_registry.mjs
+var formats = /* @__PURE__ */ new Map();
+/** Clears all entries */
+function Clear() {
+	formats.clear();
+}
+/** Tests a value against a format, if the format is not registered, true */
+function Test(format, value) {
+	return formats.get(format)?.(value) ?? true;
+}
+/** Resets all formats to defaults */
+function Reset() {
+	Clear();
+	formats.set("date-time", IsDateTime);
+	formats.set("date", IsDate);
+	formats.set("duration", IsDuration);
+	formats.set("email", IsEmail);
+	formats.set("hostname", IsHostname);
+	formats.set("idn-email", IsIdnEmail);
+	formats.set("idn-hostname", IsIdnHostname);
+	formats.set("ipv4", IsIPv4);
+	formats.set("ipv6", IsIPv6);
+	formats.set("iri-reference", IsIriReference);
+	formats.set("iri", IsIri);
+	formats.set("json-pointer-uri-fragment", IsJsonPointerUriFragment);
+	formats.set("json-pointer", IsJsonPointer);
+	formats.set("regex", IsRegex);
+	formats.set("relative-json-pointer", IsRelativeJsonPointer);
+	formats.set("time", IsTime);
+	formats.set("uri-reference", IsUriReference);
+	formats.set("uri-template", IsUriTemplate);
+	formats.set("uri", IsUri);
+	formats.set("url", IsUrl);
+	formats.set("uuid", IsUuid);
+}
+Reset();
+//#endregion
 //#region ../../node_modules/.pnpm/typebox@1.2.8/node_modules/typebox/build/schema/engine/format.mjs
 function CheckFormat(_stack, _context, schema, value) {
 	return Test(schema.format, value);
@@ -37084,6 +37063,10 @@ function createAgent(options) {
 }
 //#endregion
 //#region ../../libs/sdk/src/config.ts
+/** Read one environment value behind the SDK's config boundary. */
+function readEnvironmentVariable(name) {
+	return globalThis.process?.env?.[name];
+}
 /**
 * Read MoltNet credentials from environment variables.
 * Reads MOLTNET_CLIENT_ID, MOLTNET_CLIENT_SECRET, MOLTNET_API_URL, and
@@ -37091,10 +37074,11 @@ function createAgent(options) {
 */
 function readEnvCredentials() {
 	return {
-		clientId: process.env.MOLTNET_CLIENT_ID,
-		clientSecret: process.env.MOLTNET_CLIENT_SECRET,
-		apiUrl: process.env.MOLTNET_API_URL,
-		agentKey: process.env.MOLTNET_AGENT_KEY
+		clientId: readEnvironmentVariable("MOLTNET_CLIENT_ID"),
+		clientSecret: readEnvironmentVariable("MOLTNET_CLIENT_SECRET"),
+		apiUrl: readEnvironmentVariable("MOLTNET_API_URL"),
+		agentKey: readEnvironmentVariable("MOLTNET_AGENT_KEY"),
+		credentialsPath: readEnvironmentVariable("MOLTNET_CREDENTIALS_PATH")
 	};
 }
 /**
@@ -37107,29 +37091,32 @@ function normalizeApiUrl(...candidates) {
 	return (candidates.find((c) => c) ?? "https://api.themolt.net").replace(/\/$/, "");
 }
 //#endregion
-//#region ../../libs/sdk/src/credentials.ts
+//#region ../../libs/agent-config/src/config.ts
 function getConfigDir() {
 	return join(homedir(), ".config", "moltnet");
 }
-/**
-* Read the MoltNet config file.
-* Tries `moltnet.json` first; falls back to `credentials.json` with a
-* deprecation warning printed to stderr.
-*/
 async function readConfig(configDir) {
 	const dir = configDir ?? getConfigDir();
 	try {
 		const content = await readFile(join(dir, "moltnet.json"), "utf-8");
 		return JSON.parse(content);
-	} catch {}
-	try {
-		const content = await readFile(join(dir, "credentials.json"), "utf-8");
-		console.warn("Warning: credentials.json is deprecated. New writes use moltnet.json. Support will be removed in 3 minor versions.");
-		return JSON.parse(content);
 	} catch {
 		return null;
 	}
 }
+//#endregion
+//#region ../../libs/crypto-service/src/ssh.ts
+/**
+* SSH key format conversion for MoltNet Ed25519 keys
+*
+* Converts MoltNet agent keys (ed25519:<base64>) to OpenSSH format
+* for use with git commit signing and SSH authentication.
+*/
+if (!etc.sha512Sync) etc.sha512Sync = (...m) => {
+	const hash = createHash("sha512");
+	m.forEach((msg) => hash.update(msg));
+	return hash.digest();
+};
 //#endregion
 //#region ../../libs/sdk/src/retry.ts
 var AUTH_RETRY_DEFAULT = 1;
@@ -37195,6 +37182,48 @@ function createAgentKeyFetch(retry) {
 		return response;
 	};
 }
+var SecretProviderRegistry = class {
+	#providers = /* @__PURE__ */ new Map();
+	register(provider) {
+		const name = provider.name.trim();
+		if (!name) throw new Error("Secret provider name must not be empty");
+		this.#providers.set(name, provider);
+		return this;
+	}
+	get(name) {
+		return this.#providers.get(name);
+	}
+	async resolve(reference) {
+		const providerName = reference.provider.trim();
+		const key = reference.key.trim();
+		if (!providerName || !key) throw new Error("Secret reference requires provider and key");
+		const provider = this.get(providerName);
+		if (!provider) throw new Error(`Secret provider ${JSON.stringify(providerName)} is not registered`);
+		const value = await provider.read(key);
+		if (!value) throw new Error(`Secret provider ${JSON.stringify(providerName)} has no value for the requested key`);
+		return value;
+	}
+};
+var EnvironmentSecretProvider = class {
+	name = "env";
+	constructor(readValue = readEnvironmentVariable) {
+		this.readValue = readValue;
+	}
+	read(key) {
+		if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) return Promise.reject(/* @__PURE__ */ new Error("Environment secret key must be a variable name"));
+		return Promise.resolve(this.readValue(key) || null);
+	}
+};
+function createDefaultSecretProviderRegistry() {
+	return new SecretProviderRegistry().register(new EnvironmentSecretProvider());
+}
+function oauth2SecretKey(identityId, clientId) {
+	return `oauth2/${identityId}/${clientId}`;
+}
+function assertOAuth2SecretReferenceBinding(reference, identityId, clientId) {
+	const expectedKey = oauth2SecretKey(identityId, clientId);
+	if (!(reference.provider === "env" ? reference.key === "MOLTNET_CLIENT_SECRET" : reference.key === expectedKey)) throw new Error("OAuth2 secret reference is not bound to this MoltNet identity and client");
+}
 //#endregion
 //#region ../../libs/sdk/src/token.ts
 var TokenManager = class {
@@ -37259,15 +37288,13 @@ var TokenManager = class {
 //#region ../../libs/sdk/src/connect.ts
 async function resolveConnection(options) {
 	const env = readEnvCredentials();
+	requireActivatedConfigDir(options.configDir, env.credentialsPath);
 	const explicitAgentKey = options.agentKey?.trim();
-	if (explicitAgentKey) {
-		const config = await readConfig(options.configDir);
-		return {
-			mode: "agentKey",
-			agentKey: explicitAgentKey,
-			apiUrl: normalizeApiUrl(options.apiUrl, env.apiUrl, config?.endpoints?.api)
-		};
-	}
+	if (explicitAgentKey) return {
+		mode: "agentKey",
+		agentKey: explicitAgentKey,
+		apiUrl: normalizeApiUrl(options.apiUrl, env.apiUrl)
+	};
 	if (options.clientId && options.clientSecret) return {
 		mode: "oauth2",
 		clientId: options.clientId,
@@ -37275,14 +37302,11 @@ async function resolveConnection(options) {
 		apiUrl: normalizeApiUrl(options.apiUrl, env.apiUrl)
 	};
 	const envAgentKey = env.agentKey?.trim();
-	if (envAgentKey) {
-		const config = await readConfig(options.configDir);
-		return {
-			mode: "agentKey",
-			agentKey: envAgentKey,
-			apiUrl: normalizeApiUrl(options.apiUrl, env.apiUrl, config?.endpoints?.api)
-		};
-	}
+	if (envAgentKey) return {
+		mode: "agentKey",
+		agentKey: envAgentKey,
+		apiUrl: normalizeApiUrl(options.apiUrl, env.apiUrl)
+	};
 	if (env.clientId && env.clientSecret) return {
 		mode: "oauth2",
 		clientId: env.clientId,
@@ -37290,13 +37314,53 @@ async function resolveConnection(options) {
 		apiUrl: normalizeApiUrl(options.apiUrl, env.apiUrl)
 	};
 	const config = await readConfig(options.configDir);
-	if (config?.oauth2?.client_id && config?.oauth2?.client_secret) return {
-		mode: "oauth2",
-		clientId: config.oauth2.client_id,
-		clientSecret: config.oauth2.client_secret,
-		apiUrl: normalizeApiUrl(options.apiUrl, config.endpoints?.api)
-	};
+	if (config?.oauth2?.client_id) {
+		const legacySecret = config.oauth2.client_secret;
+		const secretReference = config.oauth2.client_secret_ref;
+		if (legacySecret && secretReference) throw new MoltNetError("Invalid OAuth2 config: set exactly one of client_secret or client_secret_ref.", { code: "INVALID_CONFIG" });
+		const apiUrl = normalizeApiUrl(options.apiUrl, env.apiUrl, config.endpoints?.api);
+		if (!options.apiUrl && !env.apiUrl) requireTrustedConfigApiUrl(apiUrl);
+		let clientSecret;
+		if (secretReference) {
+			requireBoundSecretReference(config, secretReference);
+			try {
+				clientSecret = await (options.secretProviders ?? createDefaultSecretProviderRegistry()).resolve(secretReference);
+			} catch (error) {
+				throw new MoltNetError("Unable to resolve OAuth2 client secret.", {
+					code: "NO_CREDENTIALS",
+					detail: error instanceof Error ? error.message : String(error)
+				});
+			}
+		} else if (legacySecret) {
+			console.warn("Warning: plaintext oauth2.client_secret is deprecated; migrate it to a secret provider.");
+			clientSecret = legacySecret;
+		} else throw new MoltNetError("Invalid OAuth2 config: set exactly one of client_secret or client_secret_ref.", { code: "INVALID_CONFIG" });
+		return {
+			mode: "oauth2",
+			clientId: config.oauth2.client_id,
+			clientSecret,
+			apiUrl
+		};
+	}
 	throw new MoltNetError("No credentials found. Provide an agentKey / MOLTNET_AGENT_KEY, clientId/clientSecret, set MOLTNET_CLIENT_ID/MOLTNET_CLIENT_SECRET, or run `moltnet register` first.", { code: "NO_CREDENTIALS" });
+}
+function requireActivatedConfigDir(configDir, activatedCredentialsPath) {
+	if (!configDir || !activatedCredentialsPath) return;
+	const normalize = (value) => value.replaceAll("\\", "/").replace(/\/+$/, "");
+	if (`${normalize(configDir)}/moltnet.json` !== normalize(activatedCredentialsPath)) throw new MoltNetError("configDir does not match the identity activated by `moltnet start`.", { code: "INVALID_CONFIG" });
+}
+function requireBoundSecretReference(config, reference) {
+	try {
+		assertOAuth2SecretReferenceBinding(reference, config.identity_id, config.oauth2.client_id);
+	} catch {
+		throw new MoltNetError("OAuth2 secret reference is not bound to this MoltNet identity and client.", { code: "INVALID_CONFIG" });
+	}
+}
+function requireTrustedConfigApiUrl(apiUrl) {
+	const url = new URL(apiUrl);
+	const loopback = url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "[::1]";
+	const moltNet = url.protocol === "https:" && (url.hostname === "themolt.net" || url.hostname.endsWith(".themolt.net"));
+	if (!loopback && !moltNet) throw new MoltNetError("Config-provided OAuth2 endpoints must use HTTPS on themolt.net or a loopback host.", { code: "INVALID_CONFIG" });
 }
 /**
 * Connect to MoltNet and return an authenticated Agent facade.
@@ -37307,7 +37371,8 @@ async function resolveConnection(options) {
 * 2. Explicit `clientId` / `clientSecret` → OAuth2 client-credentials
 * 3. `MOLTNET_AGENT_KEY` env → agent-key mode
 * 4. `MOLTNET_CLIENT_ID` / `MOLTNET_CLIENT_SECRET` env → OAuth2
-* 5. Config file (`~/.config/moltnet/moltnet.json`) → OAuth2
+* 5. Config file (`~/.config/moltnet/moltnet.json`) → OAuth2, resolving a
+*    `client_secret_ref` only at this use boundary
 *
 * In agent-key mode the key is sent directly as a bearer token — no OAuth2
 * round-trip — and 429 backoff still applies; a rejected key surfaces an
@@ -39164,19 +39229,6 @@ var _decodeOptions = {
 };
 _decodeOptions.tags[CID_CBOR_TAG] = cidDecoder;
 ({ ..._decodeOptions }), _decodeOptions.tags.slice();
-//#endregion
-//#region ../../libs/crypto-service/src/ssh.ts
-/**
-* SSH key format conversion for MoltNet Ed25519 keys
-*
-* Converts MoltNet agent keys (ed25519:<base64>) to OpenSSH format
-* for use with git commit signing and SSH authentication.
-*/
-if (!etc.sha512Sync) etc.sha512Sync = (...m) => {
-	const hash = createHash("sha512");
-	m.forEach((msg) => hash.update(msg));
-	return hash.digest();
-};
 //#endregion
 //#region src/cancel-superseded.ts
 var ACTIVE_STATUSES = [

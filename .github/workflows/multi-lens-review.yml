@@ -139,12 +139,7 @@ jobs:
       MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
       MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
       MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
-      MOLTNET_IDENTITY_ID: ${{ secrets.MOLTNET_IDENTITY_ID }}
-      MOLTNET_CLIENT_ID: ${{ secrets.MOLTNET_CLIENT_ID }}
-      MOLTNET_CLIENT_SECRET: ${{ secrets.MOLTNET_CLIENT_SECRET }}
-      MOLTNET_PUBLIC_KEY: ${{ secrets.MOLTNET_PUBLIC_KEY }}
       MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
-      MOLTNET_FINGERPRINT: ${{ secrets.MOLTNET_FINGERPRINT }}
       MULTI_LENS_REVIEW_DATABASE_URL: ${{ secrets.MULTI_LENS_REVIEW_DATABASE_URL }}
       OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
     steps:
@@ -169,12 +164,7 @@ jobs:
             MOLTNET_AGENT_KEY
             MOLTNET_AGENT_NAME
             MOLTNET_TEAM_ID
-            MOLTNET_IDENTITY_ID
-            MOLTNET_CLIENT_ID
-            MOLTNET_CLIENT_SECRET
-            MOLTNET_PUBLIC_KEY
             MOLTNET_PRIVATE_KEY
-            MOLTNET_FINGERPRINT
             REVIEW_PROFILE
           )
           missing=()
@@ -350,12 +340,7 @@ jobs:
       MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
       MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
       MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
-      MOLTNET_IDENTITY_ID: ${{ secrets.MOLTNET_IDENTITY_ID }}
-      MOLTNET_CLIENT_ID: ${{ secrets.MOLTNET_CLIENT_ID }}
-      MOLTNET_CLIENT_SECRET: ${{ secrets.MOLTNET_CLIENT_SECRET }}
-      MOLTNET_PUBLIC_KEY: ${{ secrets.MOLTNET_PUBLIC_KEY }}
       MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
-      MOLTNET_FINGERPRINT: ${{ secrets.MOLTNET_FINGERPRINT }}
       OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
       # Absurd may need time to create the first task; dependency gaps after a
       # completed lens are shorter and use a separate idle grace.

@@ -83,14 +83,14 @@ All config flows from environment variables. The daemon reads them in
 
 | Var                   | Required                              | Purpose                                                                   |
 | --------------------- | ------------------------------------- | ------------------------------------------------------------------------- |
-| `GIT_CONFIG_GLOBAL`   | yes                                   | Path to the agent's gitconfig (resolves the `.moltnet/<agent>/` dir).     |
+| `GIT_CONFIG_GLOBAL`   | OAuth2/local                          | Optional git identity path; not needed for configless agent-key startup.  |
 | `MOLTNET_AGENT_NAME`  | yes                                   | Agent name (matches `.moltnet/<name>/`).                                  |
 | `MOLTNET_API_URL`     | agent-key only                        | Explicit API endpoint; key mode never reads it from `moltnet.json`.       |
 | `MOLTNET_AGENT_KEY`   | no                                    | Team-bound agent key. Set to authenticate with the key instead of OAuth2. |
 | `MOLTNET_PRIVATE_KEY` | agent-key `once`, `poll`, and `drain` | Base64 Ed25519 seed used by daemon-owned executor attestation.            |
 
-The agent's `moltnet.json` and gitconfig live next to each other in
-`.moltnet/<agent>/`. Provision them once via
+For OAuth2/local mode, the agent's `moltnet.json` and gitconfig live next to
+each other in `.moltnet/<agent>/`. Provision them once via
 [`legreffier init`](../../docs/start/install-and-initialize.md).
 
 **Auth mode.** When `MOLTNET_AGENT_KEY` is set the daemon authenticates with
@@ -111,9 +111,11 @@ An agent key used by the daemon needs this least-privilege scope set:
 agent:profile runtime:read task:read task:claim task:execute
 ```
 
-The Console selects these five scopes by default. Broader key, diary, pack,
-team-management, and runtime-management scopes are not required for normal
-daemon operation.
+The Console selects these five scopes by default. Knowledge-enabled workers
+must add `diary:read`, `diary:write`, `pack:read`, and `pack:write` when the key
+is issued. Runtime policy can narrow key authority but cannot add missing
+scopes, and existing keys are never widened automatically; issue a replacement
+credential when broader authority is required.
 
 ### Pi provider auth
 
