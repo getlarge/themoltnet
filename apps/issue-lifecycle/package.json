@@ -32,6 +32,7 @@
   },
   "dependencies": {
     "@themoltnet/github-agent": "workspace:*",
+    "@themoltnet/os-keyring": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
     "absurd-sdk": "catalog:",
     "pino": "catalog:",

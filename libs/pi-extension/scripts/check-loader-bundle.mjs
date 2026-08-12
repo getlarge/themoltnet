@@ -6,7 +6,13 @@ const distPath = join(import.meta.dirname, '..', 'dist', 'index.js');
 const dist = readFileSync(distPath, 'utf8');
 
 for (const dependency of ['@themoltnet/pi-runtime', '@themoltnet/sdk']) {
-  if (!dist.includes(`from "${dependency}"`)) {
+  // Accept both the isomorphic entry ("@themoltnet/sdk") and the Node
+  // entry ("@themoltnet/sdk/node") — the Node entry is required for OS
+  // keyring secret resolution.
+  const importMatched =
+    dist.includes(`from "${dependency}"`) ||
+    dist.includes(`from "${dependency}/node"`);
+  if (!importMatched) {
     process.stderr.write(
       `FAIL: pi-extension must import the published ${dependency} package\n`,
     );

@@ -13,6 +13,9 @@
       "path": "../../libs/sdk/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/os-keyring/tsconfig.lib.json"
+    },
+    {
       "path": "../../packages/github-agent/tsconfig.lib.json"
     },
     {

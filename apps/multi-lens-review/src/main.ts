@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 
-import { connect } from '@themoltnet/sdk';
+import { connect } from '@themoltnet/sdk/node';
 import { createSdkTaskClient } from '@themoltnet/tasks-orchestrator';
 import pino from 'pino';
 

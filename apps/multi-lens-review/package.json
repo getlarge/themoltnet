@@ -36,6 +36,7 @@
     "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --bin moltnet-multi-lens-review --args --help --expect \"preflight is read-only\""
   },
   "dependencies": {
+    "@themoltnet/os-keyring": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
     "absurd-sdk": "catalog:",
     "pino": "catalog:"

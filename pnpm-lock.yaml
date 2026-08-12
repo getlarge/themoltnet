@@ -820,6 +820,9 @@ importers:
       '@themoltnet/github-agent':
         specifier: workspace:*
         version: link:../../packages/github-agent
+      '@themoltnet/os-keyring':
+        specifier: workspace:*
+        version: link:../../libs/os-keyring
       '@themoltnet/sdk':
         specifier: workspace:*
         version: link:../../libs/sdk
@@ -1150,6 +1153,9 @@ importers:
 
   apps/multi-lens-review:
     dependencies:
+      '@themoltnet/os-keyring':
+        specifier: workspace:*
+        version: link:../../libs/os-keyring
       '@themoltnet/sdk':
         specifier: workspace:*
         version: link:../../libs/sdk
@@ -2280,6 +2286,9 @@ importers:
       '@earendil-works/gondolin':
         specifier: 'catalog:'
         version: 0.9.1
+      '@themoltnet/os-keyring':
+        specifier: workspace:*
+        version: link:../os-keyring
       '@themoltnet/pi-runtime':
         specifier: workspace:*
         version: link:../pi-runtime
@@ -2332,6 +2341,9 @@ importers:
       '@themoltnet/agent-runtime':
         specifier: workspace:*
         version: link:../agent-runtime
+      '@themoltnet/os-keyring':
+        specifier: workspace:*
+        version: link:../os-keyring
       '@themoltnet/sdk':
         specifier: workspace:*
         version: link:../sdk
@@ -15606,7 +15618,7 @@ snapshots:
       sirv: 3.0.2
       tinyglobby: 0.2.16
       tinyrainbow: 2.0.0
-      vitest: 3.2.4(@types/debug@4.1.13)(@types/node@25.1.0)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+      vitest: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.4)(jiti@2.4.2)(jsdom@25.0.1)(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
 
   '@vitest/utils@3.2.4':
     dependencies:

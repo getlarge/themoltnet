@@ -5,7 +5,13 @@ import baseConfig, {
 export default [
   ...baseConfig,
   createNxDependencyChecksConfig({
-    ignoredDependencies: ['@earendil-works/pi-ai', '@moltnet/crypto-service'],
+    ignoredDependencies: [
+      '@earendil-works/pi-ai',
+      '@moltnet/crypto-service',
+      // Dynamically imported by @themoltnet/sdk/node for OS keyring
+      // secret resolution; not directly imported by this package.
+      '@themoltnet/os-keyring',
+    ],
   }),
   {
     files: ['src/**/*.ts'],

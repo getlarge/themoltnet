@@ -16,6 +16,9 @@ export default [
       '@noble/ed25519',
       '@noble/hashes',
       'multiformats',
+      // Dynamically imported by @themoltnet/sdk/node for OS keyring
+      // secret resolution; not directly imported by this package.
+      '@themoltnet/os-keyring',
     ],
   }),
   {

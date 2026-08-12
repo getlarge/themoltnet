@@ -31,7 +31,13 @@ const publishedRuntimeDependencies = [
   '@themoltnet/shell-command-analyzer',
 ];
 for (const dependency of publishedRuntimeDependencies) {
-  if (!bundle.includes(`from "${dependency}"`)) {
+  // Accept both the isomorphic entry ("@themoltnet/sdk") and the Node
+  // entry ("@themoltnet/sdk/node") — the Node entry is required for OS
+  // keyring secret resolution.
+  const importMatched =
+    bundle.includes(`from "${dependency}"`) ||
+    bundle.includes(`from "${dependency}/node"`);
+  if (!importMatched) {
     fail(`pi-runtime must import the published ${dependency} package`);
   }
 }

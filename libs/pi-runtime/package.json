@@ -42,6 +42,7 @@
     "@noble/hashes": "catalog:",
     "@opentelemetry/api": "catalog:",
     "@themoltnet/agent-runtime": "workspace:*",
+    "@themoltnet/os-keyring": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
     "@themoltnet/shell-command-analyzer": "workspace:*",
     "multiformats": "catalog:",
