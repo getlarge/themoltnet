@@ -4,6 +4,11 @@ This standalone package owns its Pi tools and Gondolin VM template. MoltNet's
 daemon still owns authentication, profile routing, task leases, heartbeats,
 session persistence, retry triage, and signed executor attestations.
 
+This is an intentional pre-1.0 adapter boundary: custom runtimes return their
+manifest and runtime inventory, while daemon core resolves and validates the
+authenticated agent's signing key. Adapters neither receive a MoltNet config
+directory nor construct or return an executor attestor.
+
 Install the published dependencies and build the runtime module:
 
 ```bash

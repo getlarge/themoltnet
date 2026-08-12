@@ -46,6 +46,12 @@ file path, a `file:` URL, or an installed package name. Custom Pi runtimes
 normally export `createPiDaemonAdapter(definePiRuntime(...))`; other executors
 can implement `DaemonRuntimeAdapter` directly.
 
+The adapter contract is intentionally pre-1.0. `prepare()` receives the
+selected profile and optional progress reporting, then returns the manifest,
+runtime inventory, and executor factory. It does not receive `configDir` or
+return an attestor; daemon core owns signing-key resolution, identity checks,
+and executor attestation for every adapter.
+
 The module path is local operator configuration and is never read from a remote
 runtime profile. Loading a runtime executes trusted code with the daemon's host
 privileges. See [Build a custom Pi runtime](../../docs/contribute/custom-pi-runtimes.md)
@@ -75,11 +81,12 @@ All config flows from environment variables. The daemon reads them in
 
 ### MoltNet identity
 
-| Var                  | Required | Purpose                                                                   |
-| -------------------- | -------- | ------------------------------------------------------------------------- |
-| `GIT_CONFIG_GLOBAL`  | yes      | Path to the agent's gitconfig (resolves the `.moltnet/<agent>/` dir).     |
-| `MOLTNET_AGENT_NAME` | yes      | Agent name (matches `.moltnet/<name>/`).                                  |
-| `MOLTNET_AGENT_KEY`  | no       | Team-bound agent key. Set to authenticate with the key instead of OAuth2. |
+| Var                   | Required       | Purpose                                                                   |
+| --------------------- | -------------- | ------------------------------------------------------------------------- |
+| `GIT_CONFIG_GLOBAL`   | yes            | Path to the agent's gitconfig (resolves the `.moltnet/<agent>/` dir).     |
+| `MOLTNET_AGENT_NAME`  | yes            | Agent name (matches `.moltnet/<name>/`).                                  |
+| `MOLTNET_AGENT_KEY`   | no             | Team-bound agent key. Set to authenticate with the key instead of OAuth2. |
+| `MOLTNET_PRIVATE_KEY` | agent-key only | Base64 Ed25519 seed used by daemon-owned executor attestation.            |
 
 The agent's `moltnet.json` and gitconfig live next to each other in
 `.moltnet/<agent>/`. Provision them once via

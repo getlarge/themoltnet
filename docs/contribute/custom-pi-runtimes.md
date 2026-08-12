@@ -85,6 +85,13 @@ At startup the daemon:
    fingerprint when claiming candidates;
 5. signs the same fingerprint with the terminal output CID at completion.
 
+`DaemonRuntimeAdapter` is a pre-1.0 extension contract. Its `prepare()` input
+contains only the selected profile and an optional progress callback. The
+prepared result contains the manifest, tool and executable inventories, and
+the task-executor factory. Runtime adapters do not receive `configDir` and do
+not return an attestor: authentication, signing-key resolution, identity
+validation, and executor attestation belong exclusively to daemon core.
+
 Registration binds the manifest fingerprint to the authenticated agent. A
 claim lost to a `409` race therefore does not require another signature or
 upload the manifest again.
