@@ -49,8 +49,28 @@ describe('DecayBadge', () => {
     expect(container.textContent ?? '').toMatch(pattern);
   });
 
-  // Retention is a human attestation, so pinned is the one Identity Amber
-  // case here; the rest are ordinary lifecycle signals.
+  // DESIGN.md reserves Identity Amber for attestation (keys, signatures,
+  // fingerprints). Pinning is a retention setting, and the card already paints
+  // the creator fingerprint amber — spending it here would put amber twice in
+  // one row meaning two different things.
+  it('does not spend Identity Amber on a lifecycle state', () => {
+    renderBadge({ kind: 'pinned' });
+    // Scoped to the badge itself — the theme provider injects a <style> block
+    // that legitimately defines every token, amber included.
+    const style = screen.getByText('Pinned').getAttribute('style') ?? '';
+    expect(style).not.toContain('230, 168, 23');
+    expect(style.toLowerCase()).not.toContain('#e6a817');
+    expect(style.toLowerCase()).not.toContain('accent');
+  });
+
+  // Gives EXPIRING_SOON_DAYS a production consumer: a pack 90 days out must
+  // not wear the same warning as one going tomorrow.
+  it('warns only inside the decay window', () => {
+    const soon = renderBadge({ kind: 'expiring', daysRemaining: 7 });
+    const later = renderBadge({ kind: 'expiring', daysRemaining: 30 });
+    expect(soon.container.innerHTML).not.toBe(later.container.innerHTML);
+  });
+
   it('renders pinned distinctly from expiring', () => {
     const { container: pinned } = renderBadge({ kind: 'pinned' });
     const { container: expiring } = renderBadge({

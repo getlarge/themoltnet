@@ -4,6 +4,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({ mutate: vi.fn(), state: {} as unknown }));
 
+vi.mock('../src/config.js', () => ({
+  getConfig: () => ({ packGcTtlDays: 7 }),
+}));
+
 vi.mock('../src/packs/hooks.js', () => ({
   usePinPack: () => ({
     mutate: mocks.mutate,
@@ -16,13 +20,25 @@ import { PinControl } from '../src/components/packs/PinControl.js';
 const renderControl = (props: { packId: string; pinned: boolean }) =>
   render(
     <MoltThemeProvider>
-      <PinControl {...props} />
+      <PinControl
+        packId={props.packId}
+        state={
+          props.pinned
+            ? { kind: 'pinned' }
+            : { kind: 'expiring', daysRemaining: 3 }
+        }
+      />
     </MoltThemeProvider>,
   );
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.state = { isPending: false, isError: false, error: null };
+  mocks.state = {
+    isPending: false,
+    isError: false,
+    isSuccess: false,
+    error: null,
+  };
 });
 
 describe('PinControl', () => {
@@ -55,10 +71,25 @@ describe('PinControl', () => {
     });
   });
 
-  it('inverts the other way for a pinned pack', () => {
+  it('confirms before unpinning, and names the deletion deadline', () => {
     renderControl({ packId: 'pack-2', pinned: true });
 
-    fireEvent.click(screen.getByRole('button'));
+    fireEvent.click(
+      screen.getByRole('button', { name: /let this pack expire/i }),
+    );
+
+    // Unpinning starts a deletion clock; it must not fire on a single click.
+    expect(mocks.mutate).not.toHaveBeenCalled();
+    expect(screen.getByText(/deleted 7 days from now/i)).toBeInTheDocument();
+  });
+
+  it('unpins once confirmed', () => {
+    renderControl({ packId: 'pack-2', pinned: true });
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /let this pack expire/i }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: /^unpin$/i }));
 
     expect(mocks.mutate).toHaveBeenCalledWith({
       packId: 'pack-2',
@@ -66,15 +97,62 @@ describe('PinControl', () => {
     });
   });
 
+  it('cancelling the confirmation leaves the pack pinned', () => {
+    renderControl({ packId: 'pack-2', pinned: true });
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /let this pack expire/i }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: /keep pinned/i }));
+
+    expect(mocks.mutate).not.toHaveBeenCalled();
+  });
+
+  it('exposes the pressed state of the toggle', () => {
+    renderControl({ packId: 'pack-1', pinned: true });
+    expect(
+      screen.getByRole('button', { name: /let this pack expire/i }),
+    ).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('reports not-pressed when the pack is unpinned', () => {
+    renderControl({ packId: 'pack-1', pinned: false });
+    expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('announces the outcome for anyone who cannot see the badge swap', async () => {
+    mocks.state = {
+      isPending: false,
+      isError: false,
+      isSuccess: true,
+      error: null,
+    };
+    renderControl({ packId: 'pack-1', pinned: false });
+
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(/pack pinned/i),
+    );
+  });
+
   it('disables the control while the mutation is in flight', () => {
-    mocks.state = { isPending: true, isError: false, error: null };
+    mocks.state = {
+      isPending: true,
+      isError: false,
+      isSuccess: false,
+      error: null,
+    };
     renderControl({ packId: 'pack-1', pinned: false });
 
     expect(screen.getByRole('button')).toBeDisabled();
   });
 
   it('does not fire a second mutation while pending', () => {
-    mocks.state = { isPending: true, isError: false, error: null };
+    mocks.state = {
+      isPending: true,
+      isError: false,
+      isSuccess: false,
+      error: null,
+    };
     renderControl({ packId: 'pack-1', pinned: false });
 
     fireEvent.click(screen.getByRole('button'));
@@ -86,6 +164,7 @@ describe('PinControl', () => {
     mocks.state = {
       isPending: false,
       isError: true,
+      isSuccess: false,
       error: new Error('expiresAt is required when setting pinned to false'),
     };
     renderControl({ packId: 'pack-1', pinned: true });
@@ -98,7 +177,12 @@ describe('PinControl', () => {
   });
 
   it('falls back to a generic message when the error carries none', async () => {
-    mocks.state = { isPending: false, isError: true, error: null };
+    mocks.state = {
+      isPending: false,
+      isError: true,
+      isSuccess: false,
+      error: null,
+    };
     renderControl({ packId: 'pack-1', pinned: true });
 
     await waitFor(() =>

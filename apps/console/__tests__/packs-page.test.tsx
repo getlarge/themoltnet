@@ -17,12 +17,12 @@ vi.mock('../src/packs/hooks.js', () => ({
   }),
 }));
 
-vi.mock('wouter', () => ({
-  useLocation: () => ['/packs', mocks.navigate],
+vi.mock('../src/config.js', () => ({
+  getConfig: () => ({ docsUrl: 'https://docs.example.test', packGcTtlDays: 7 }),
 }));
 
-vi.mock('../src/config.js', () => ({
-  getConfig: () => ({ docsUrl: 'https://docs.example.test' }),
+vi.mock('../src/team/useTeam.js', () => ({
+  useTeam: () => ({ selectedTeam: { id: 'team-1' } }),
 }));
 
 import { PacksPage } from '../src/pages/PacksPage.js';
@@ -43,7 +43,12 @@ const pack = (over: Record<string, unknown> = {}) => ({
   packCid: 'bafyreiexamplecid',
   packCodec: 'dag-cbor',
   packType: 'optimized',
-  params: { taskPrompt: 'How does auth work?' },
+  // The shape libs/agent-runtime/src/prompts/curate-pack.ts actually writes.
+  params: {
+    recipe: 'topic-focused-v1',
+    prompt: 'How does auth work?',
+    selection_rationale: 'Picked the auth decisions and the incident.',
+  },
   payload: {},
   creator: AGENT,
   supersedesPackId: null,
@@ -69,15 +74,56 @@ describe('PacksPage', () => {
     expect(screen.getByText(/loading packs/i)).toBeInTheDocument();
   });
 
-  it('surfaces the API problem detail on error', () => {
+  // The generated client throws the parsed JSON body — a plain object with
+  // detail/title/status — for every HTTP error. That is the branch that runs in
+  // production; `instanceof Error` is only the network-failure path.
+  it('surfaces the problem detail from a plain API error body', () => {
     mocks.packs = {
       isLoading: false,
       isError: true,
-      error: new Error('Forbidden for this team'),
+      error: {
+        title: 'Forbidden',
+        detail: 'You do not have read access to this team.',
+        status: 403,
+      },
       data: undefined,
+      refetch: vi.fn(),
     };
     renderPage();
-    expect(screen.getByText(/forbidden for this team/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/you do not have read access to this team/i),
+    ).toBeInTheDocument();
+  });
+
+  it('surfaces a network-failure Error too', () => {
+    mocks.packs = {
+      isLoading: false,
+      isError: true,
+      error: new Error('Failed to fetch'),
+      data: undefined,
+      refetch: vi.fn(),
+    };
+    renderPage();
+    expect(screen.getByText(/failed to fetch/i)).toBeInTheDocument();
+  });
+
+  it('offers a retry on load failure', () => {
+    const refetch = vi.fn();
+    mocks.packs = {
+      isLoading: false,
+      isError: true,
+      error: {
+        title: 'Server Error',
+        detail: 'Upstream timed out',
+        status: 503,
+      },
+      data: undefined,
+      refetch,
+    };
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: /retry/i }));
+    expect(refetch).toHaveBeenCalled();
   });
 
   it('teaches what a pack is when there are none', () => {
@@ -91,6 +137,33 @@ describe('PacksPage', () => {
     // Must explain the concept, not just say "nothing here".
     expect(screen.getByText(/no packs yet/i)).toBeInTheDocument();
     expect(screen.getByText(/curate_pack/i)).toBeInTheDocument();
+  });
+
+  it("prefers the producer's prompt over its recipe slug", () => {
+    mocks.packs = {
+      isLoading: false,
+      isError: false,
+      data: { items: [pack()], total: 1 },
+    };
+    renderPage();
+
+    expect(screen.getByText(/how does auth work\?/i)).toBeInTheDocument();
+    expect(screen.queryByText('topic-focused-v1')).not.toBeInTheDocument();
+  });
+
+  it('falls back to the recipe slug, labelled, when no prompt was recorded', () => {
+    mocks.packs = {
+      isLoading: false,
+      isError: false,
+      data: {
+        items: [pack({ params: { recipe: 'scope-inventory-v1' } })],
+        total: 1,
+      },
+    };
+    renderPage();
+
+    expect(screen.getByText('scope-inventory-v1')).toBeInTheDocument();
+    expect(screen.getByText(/^recipe$/i)).toBeInTheDocument();
   });
 
   it('renders a pack with its evidence and lifecycle state', () => {
@@ -128,7 +201,7 @@ describe('PacksPage', () => {
     expect(screen.getByText(/pack 11111111/i)).toBeInTheDocument();
   });
 
-  it('opens the pack detail on click', () => {
+  it('does not advertise a pack detail route that does not exist yet', () => {
     mocks.packs = {
       isLoading: false,
       isError: false,
@@ -136,11 +209,14 @@ describe('PacksPage', () => {
     };
     renderPage();
 
-    fireEvent.click(screen.getByText(/how does auth work\?/i));
-
-    expect(mocks.navigate).toHaveBeenCalledWith(
-      '/packs/11111111-2222-3333-4444-555555555555',
-    );
+    // /packs/:id resolves to NotFoundPage until the detail PR lands, so the
+    // row must not present itself as navigable.
+    expect(
+      screen.queryByRole('link', { name: /how does auth work/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /how does auth work/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('hides pagination for a single page', () => {
@@ -153,6 +229,20 @@ describe('PacksPage', () => {
     expect(
       screen.queryByRole('button', { name: /next/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it('keeps a way back when the list shrinks under a non-zero offset', () => {
+    mocks.packs = {
+      isLoading: false,
+      isError: false,
+      isFetching: true,
+      data: { items: [], total: 0 },
+    };
+    renderPage();
+
+    // total is 0 but the pager must not vanish while offset > 0 would strand
+    // the operator. With offset 0 here, the empty state is the correct surface.
+    expect(screen.getByText(/no packs yet/i)).toBeInTheDocument();
   });
 
   it('paginates when the catalog exceeds one page', () => {

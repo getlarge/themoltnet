@@ -29,7 +29,12 @@ import {
   listDiaryRenderedPacksOptions,
   listDiaryRenderedPacksQueryKey,
 } from '@moltnet/api-client/query';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 
 import { getApiClient } from '../api.js';
 import { TEAM_HEADER } from '../team/permissions.js';
@@ -145,6 +150,10 @@ export function usePacks(options: {
         ...(options.diaryId ? { diaryId: options.diaryId } : {}),
       },
     }),
+    // Keeps the current page rendered while the next resolves. Without it
+    // `data` empties on every page turn, the pager unmounts under the button
+    // the user just activated, and focus falls to <body>.
+    placeholderData: keepPreviousData,
     staleTime: 30_000,
   });
 }
@@ -294,11 +303,13 @@ export function usePinPack() {
       if (!data) throw new Error('Failed to update pin state');
       return data;
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({
+    // Returned, not fire-and-forget: the mutation must not settle before the
+    // refetch lands, or the control re-enables while `pinned` is still stale
+    // and its label lies about what the next click will do.
+    onSuccess: () =>
+      queryClient.invalidateQueries({
         predicate: (query) => isPackQueryKey(query.queryKey),
-      });
-    },
+      }),
   });
 }
 
@@ -323,15 +334,15 @@ export function usePinRenderedPack() {
       if (!data) throw new Error('Failed to update pin state');
       return data;
     },
-    onSuccess: () => {
-      // Also invalidates context-pack queries: `GET /packs` accepts
-      // `includeRendered=true` and embeds rendered packs in that response, so
-      // a rendered-pack pin leaves those combined rows stale otherwise.
-      void queryClient.invalidateQueries({
+    // Also invalidates context-pack queries: `GET /packs` accepts
+    // `includeRendered=true` and embeds rendered packs in that response, so a
+    // rendered-pack pin leaves those combined rows stale otherwise. Returned so
+    // the mutation does not settle before the refetch lands.
+    onSuccess: () =>
+      queryClient.invalidateQueries({
         predicate: (query) =>
           isRenderedPackQueryKey(query.queryKey) ||
           isPackQueryKey(query.queryKey),
-      });
-    },
+      }),
   });
 }

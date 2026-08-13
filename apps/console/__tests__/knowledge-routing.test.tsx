@@ -24,6 +24,10 @@ vi.mock('../src/layout/DashboardLayout.js', () => ({
 
 // The route table is under test, not data fetching: stub the pack queries so
 // PacksPage renders without a QueryClient in the tree.
+vi.mock('../src/team/useTeam.js', () => ({
+  useTeam: () => ({ selectedTeam: { id: 'team-1' } }),
+}));
+
 vi.mock('../src/packs/hooks.js', () => ({
   usePacks: () => ({
     isLoading: false,
