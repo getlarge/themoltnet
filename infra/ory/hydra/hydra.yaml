@@ -74,6 +74,20 @@ oauth2:
         name: X-Ory-Api-Key
         value: local-dev-webhook-key
 
+# Mirrors services.oauth2.config.webfinger.oidc_discovery in project.json.
+# Advertising the MoltNet proxy rather than Hydra directly is what routes every
+# client through our cache (issue #1860); keeping local and prod aligned is why
+# e2e can assert the flip at all. In-network host to match URLS_SELF_ISSUER —
+# host-side tests assert the advertised value, they do not follow it.
+webfinger:
+  oidc_discovery:
+    token_url: http://rest-api:8080/oauth2/token
+    # Hydra omits registration_endpoint entirely unless this is set, so local
+    # discovery advertised no DCR endpoint at all while prod did — verified by
+    # removing the block and re-reading the document. Set for parity; DCR
+    # itself already worked because callers hit /oauth2/register directly.
+    client_registration_url: http://hydra:4444/oauth2/register
+
 oidc:
   subject_identifiers:
     supported_types:

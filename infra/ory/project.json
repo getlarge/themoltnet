@@ -507,7 +507,8 @@
         },
         "webfinger": {
           "oidc_discovery": {
-            "client_registration_url": "${ORY_PROJECT_URL}/oauth2/register"
+            "client_registration_url": "${ORY_PROJECT_URL}/oauth2/register",
+            "token_url": "${API_BASE_URL}/oauth2/token"
           }
         }
       }

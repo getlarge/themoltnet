@@ -174,6 +174,16 @@ const projectForPatch = JSON.parse(readFileSync(outputFile, 'utf8'));
 const oauth2Config = projectForPatch.services?.oauth2?.config;
 const tokenHook = oauth2Config?.oauth2?.token_hook;
 const accessTokenTtl = oauth2Config?.ttl?.access_token;
+const discoveryTokenUrl = oauth2Config?.webfinger?.oidc_discovery?.token_url;
+
+if (!discoveryTokenUrl) {
+  fatal(
+    'services.oauth2.config.webfinger.oidc_discovery.token_url not found in ' +
+      'project.json. Without it Hydra advertises its own token endpoint and ' +
+      'every client bypasses the MoltNet proxy and its cache, restoring the ' +
+      'billed M2M token volume issue #1860 exists to cut.',
+  );
+}
 
 if (!accessTokenTtl) {
   fatal(
@@ -315,6 +325,7 @@ function durationSeconds(value) {
 
 log('Patching OAuth2 token_hook + access-token TTL ...');
 log(`  TTL:    access_token=${accessTokenTtl}`);
+log(`  Token:  advertised token_url=${discoveryTokenUrl}`);
 log(`  URL:    ${tokenHook.url}`);
 log(`  Auth:   ${tokenHook.auth?.type ?? 'api_key'}`);
 if (tokenHook.auth?.config?.in) log(`  In:     ${tokenHook.auth.config.in}`);
@@ -327,6 +338,7 @@ if (tokenHook.auth?.config?.value) {
 
 const patchAdds = [
   `/ttl/access_token="${accessTokenTtl}"`,
+  `/webfinger/oidc_discovery/token_url="${discoveryTokenUrl}"`,
   `/oauth2/token_hook/url="${tokenHook.url}"`,
   `/oauth2/token_hook/auth/type="${tokenHook.auth?.type ?? 'api_key'}"`,
 ];
@@ -380,6 +392,15 @@ if (liveUrl !== tokenHook.url) {
       `${liveUrl ?? '<missing>'}. The patch may have been silently rejected ` +
       'or the live config drifted. Re-run with debug logging or run ' +
       '`ory get oauth2-config --project <id> --format json` to inspect.',
+  );
+}
+
+const liveTokenUrl = liveConfig?.webfinger?.oidc_discovery?.token_url;
+if (liveTokenUrl !== discoveryTokenUrl) {
+  recordFailure(
+    `advertised token_url. Expected ${discoveryTokenUrl}, got ` +
+      `${liveTokenUrl ?? '<missing>'}. Clients reading OIDC discovery are ` +
+      'bypassing the MoltNet proxy, so grants are not cached (issue #1860).',
   );
 }
 

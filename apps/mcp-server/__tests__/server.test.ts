@@ -234,13 +234,14 @@ describe('buildApp', () => {
     const fetchSpy: Mock = vi.fn();
     vi.stubGlobal('fetch', fetchSpy);
 
-    // Mock OIDC discovery (called during plugin registration)
+    // OIDC discovery is consulted at registration; it now advertises the
+    // MoltNet proxy rather than Hydra (issue #1860).
     fetchSpy.mockResolvedValueOnce({
       ok: true,
       status: 200,
       json: () =>
         Promise.resolve({
-          token_endpoint: 'https://hydra.example.com/oauth2/token',
+          token_endpoint: 'http://localhost:3000/oauth2/token',
           issuer: 'https://hydra.example.com/',
         }),
     });
@@ -258,7 +259,6 @@ describe('buildApp', () => {
       logger: false,
     });
 
-    // OIDC discovery should have been called during registration
     expect(fetchSpy).toHaveBeenCalledWith(
       'https://hydra.example.com/.well-known/openid-configuration',
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
@@ -278,15 +278,18 @@ describe('buildApp', () => {
   it('requests the bounded MCP scope set during client credential exchange', async () => {
     const fetchSpy: Mock = vi
       .fn()
+      // calls[0] — OIDC discovery, which now advertises the MoltNet proxy
+      // rather than Hydra (issue #1860).
       .mockResolvedValueOnce({
         ok: true,
         status: 200,
         json: () =>
           Promise.resolve({
-            token_endpoint: 'https://hydra.example.com/oauth2/token',
+            token_endpoint: 'http://localhost:3000/oauth2/token',
             issuer: 'https://hydra.example.com/',
           }),
       })
+      // calls[1] — the token exchange itself
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
@@ -323,8 +326,15 @@ describe('buildApp', () => {
       },
     });
 
-    const [, tokenRequest] = fetchSpy.mock.calls[1] as [string, RequestInit];
+    // calls[1]: calls[0] is the OIDC discovery fetch that precedes it.
+    const [tokenUrl, tokenRequest] = fetchSpy.mock.calls[1] as [
+      string,
+      RequestInit,
+    ];
     const body = new URLSearchParams(tokenRequest.body as string);
+    // The exchange must land on the MoltNet proxy, which is what discovery
+    // now advertises — that routing is the entire point of the flip (#1860).
+    expect(tokenUrl).toBe('http://localhost:3000/oauth2/token');
     expect(body.get('scope')).toBe(MCP_M2M_SCOPES.join(' '));
 
     await app.close();

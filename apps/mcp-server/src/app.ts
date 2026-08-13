@@ -260,6 +260,11 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     config.CLIENT_CREDENTIALS_PROXY === true && !!config.ORY_PROJECT_URL;
   if (proxyEnabled) {
     await app.register(mcpAuthProxyPlugin, {
+      // Resolved from OIDC discovery, which now advertises the MoltNet proxy
+      // (webfinger.oidc_discovery.token_url, issue #1860). Deliberately not
+      // hardcoded: discovery is the contract, so if the advertised endpoint
+      // ever changes — including reverting the flip — this follows it instead
+      // of silently disagreeing with what every other client is told.
       oidcDiscoveryUrl: `${config.ORY_PROJECT_URL}/.well-known/openid-configuration`,
       scopes: [...MCP_M2M_SCOPES],
     });
