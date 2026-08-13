@@ -313,6 +313,18 @@ An operator can deliberately restore the legacy credential-bearing guest with
 agent tree to Gondolin. OAuth2 defaults to and requires `guest-config` because
 its host-side Agent is resolved from that configuration.
 
+::: warning Guest config expands the trust boundary
+`guest-config` is a compatibility mode, not the recommended deployment path.
+It copies the agent config, environment, SSH signing key, and any configured
+GitHub App private key into the guest, where task code can reach them. Do not
+use it for unattended automation, shared runners, or remote deployments.
+Prefer agent-key authentication with the default `host-authenticated` guest so
+credentials remain on the trusted host and MoltNet operations cross the
+structured host-side Agent boundary. OAuth2 still requires `guest-config`; use
+that path only for local or otherwise operator-trusted execution that needs
+guest-shell MoltNet, Git signing, or GitHub authentication.
+:::
+
 Keep one key per running daemon and rotate on a schedule; a rotated secret must
 be re-exported as `MOLTNET_AGENT_KEY` before the next start, since rotation
 invalidates the old secret immediately.

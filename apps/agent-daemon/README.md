@@ -108,7 +108,12 @@ GitHub App PEM, or MoltNet environment credential is read from the host or
 injected into Gondolin. Mounted `.moltnet` paths are hidden as well. Operators
 may explicitly opt into the legacy credential-bearing boundary with
 `--guest-credential-mode guest-config`; that mode requires a complete local
-`moltnet.json` + `env` pair. OAuth2 defaults to and requires `guest-config`.
+`moltnet.json` + `env` pair. This compatibility mode copies the complete agent
+configuration and signing credentials into the guest; reserve it for local or
+otherwise operator-trusted execution. For unattended automation, shared
+runners, and remote deployments, prefer agent-key authentication with the
+default `host-authenticated` guest boundary. OAuth2 currently defaults to and
+requires `guest-config`.
 
 `sync-sessions` does not prepare or attest executors, so it remains independent
 of `MOLTNET_PRIVATE_KEY`.
