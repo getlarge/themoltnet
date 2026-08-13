@@ -22,13 +22,19 @@ import {
   getLatestRenderedPackQueryKey,
   getRenderedPackByIdOptions,
   getRenderedPackByIdQueryKey,
+  listContextPacksOptions,
   listContextPacksQueryKey,
   listDiaryPacksOptions,
   listDiaryPacksQueryKey,
   listDiaryRenderedPacksOptions,
   listDiaryRenderedPacksQueryKey,
 } from '@moltnet/api-client/query';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 
 import { getApiClient } from '../api.js';
 import { TEAM_HEADER } from '../team/permissions.js';
@@ -118,6 +124,38 @@ export function isPackQueryKey(queryKey: unknown): boolean {
 export function isRenderedPackQueryKey(queryKey: unknown): boolean {
   const id = queryId(queryKey);
   return id !== undefined && RENDERED_PACK_QUERY_IDS.has(id);
+}
+
+/**
+ * The pack catalog.
+ *
+ * `GET /packs` is team-wide with `diaryId` **optional**, so a cross-diary
+ * catalog is one paginated request — not a per-diary fan-out (Constraint 2).
+ * It has no `expiresAt`/`pinned` filter and no sort, so any lifecycle view has
+ * to page and filter client-side.
+ */
+export function usePacks(options: {
+  diaryId?: string;
+  limit: number;
+  offset: number;
+}) {
+  const headers = useTeamHeaders();
+  return useQuery({
+    ...listContextPacksOptions({
+      client: client(),
+      headers,
+      query: {
+        limit: options.limit,
+        offset: options.offset,
+        ...(options.diaryId ? { diaryId: options.diaryId } : {}),
+      },
+    }),
+    // Keeps the current page rendered while the next resolves. Without it
+    // `data` empties on every page turn, the pager unmounts under the button
+    // the user just activated, and focus falls to <body>.
+    placeholderData: keepPreviousData,
+    staleTime: 30_000,
+  });
 }
 
 export function useDiaryPacks(diaryId: string) {
@@ -265,11 +303,13 @@ export function usePinPack() {
       if (!data) throw new Error('Failed to update pin state');
       return data;
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({
+    // Returned, not fire-and-forget: the mutation must not settle before the
+    // refetch lands, or the control re-enables while `pinned` is still stale
+    // and its label lies about what the next click will do.
+    onSuccess: () =>
+      queryClient.invalidateQueries({
         predicate: (query) => isPackQueryKey(query.queryKey),
-      });
-    },
+      }),
   });
 }
 
@@ -294,15 +334,15 @@ export function usePinRenderedPack() {
       if (!data) throw new Error('Failed to update pin state');
       return data;
     },
-    onSuccess: () => {
-      // Also invalidates context-pack queries: `GET /packs` accepts
-      // `includeRendered=true` and embeds rendered packs in that response, so
-      // a rendered-pack pin leaves those combined rows stale otherwise.
-      void queryClient.invalidateQueries({
+    // Also invalidates context-pack queries: `GET /packs` accepts
+    // `includeRendered=true` and embeds rendered packs in that response, so a
+    // rendered-pack pin leaves those combined rows stale otherwise. Returned so
+    // the mutation does not settle before the refetch lands.
+    onSuccess: () =>
+      queryClient.invalidateQueries({
         predicate: (query) =>
           isRenderedPackQueryKey(query.queryKey) ||
           isPackQueryKey(query.queryKey),
-      });
-    },
+      }),
   });
 }

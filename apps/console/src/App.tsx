@@ -12,6 +12,7 @@ import { GroupDetailPage } from './pages/GroupDetailPage.js';
 import { KnowledgePage } from './pages/KnowledgePage.js';
 import { NotFoundPage } from './pages/NotFoundPage.js';
 import { OverviewPage } from './pages/OverviewPage.js';
+import { PacksPage } from './pages/PacksPage.js';
 import { ProfilesPage } from './pages/ProfilesPage.js';
 import { RuntimePage } from './pages/RuntimePage.js';
 import { RuntimePoliciesPage } from './pages/RuntimePoliciesPage.js';
@@ -31,6 +32,7 @@ export function App() {
         <Switch>
           <Route path="/" component={OverviewPage} />
           <Route path="/knowledge" component={KnowledgePage} />
+          <Route path="/packs" component={PacksPage} />
           <Route path="/diaries" component={DiariesPage} />
           <Route path="/diaries/:diaryId/entries/:entryId">
             {(params: { diaryId: string; entryId: string }) => (

@@ -14,6 +14,7 @@ import {
   BookMarked,
   BookOpen,
   Bot,
+  Boxes,
   KeyRound,
   LibraryBig,
   ListTodo,
@@ -111,8 +112,12 @@ const baseGroups: Array<{
         path: '/diaries',
         icon: <LibraryBig size={ICON_SIZE} strokeWidth={1.8} />,
       },
-      // `Packs` (/packs, <Boxes/>) is added by the PR that creates PacksPage.
-      // Listing it here first would route to NotFoundPage — dead navigation.
+      {
+        id: 'packs',
+        label: 'Packs',
+        path: '/packs',
+        icon: <Boxes size={ICON_SIZE} strokeWidth={1.8} />,
+      },
     ],
   },
   {
