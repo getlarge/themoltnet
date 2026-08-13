@@ -389,7 +389,7 @@ describe('connect (agent-key mode)', () => {
     mockReadEnvCredentials.mockReturnValue({
       clientId: undefined,
       clientSecret: undefined,
-      apiUrl: undefined,
+      apiUrl: 'https://agent-key.example.test',
       agentKey: 'env-key',
     });
 
@@ -404,7 +404,7 @@ describe('connect (agent-key mode)', () => {
     mockReadEnvCredentials.mockReturnValue({
       clientId: undefined,
       clientSecret: undefined,
-      apiUrl: undefined,
+      apiUrl: 'https://agent-key.example.test',
       agentKey: 'env-key',
     });
 
@@ -442,19 +442,28 @@ describe('connect (agent-key mode)', () => {
     );
   });
 
-  it('resolves apiUrl from the config file in key mode', async () => {
-    mockReadConfig.mockResolvedValueOnce({
-      identity_id: 'id-1',
-      registered_at: '2024-01-01',
-      oauth2: { client_id: 'x', client_secret: 'y' },
-      keys: { public_key: 'pk', private_key: 'sk', fingerprint: 'fp' },
-      endpoints: { api: 'https://api.themolt.net', mcp: 'mcp' },
+  it('does not read config in key mode', async () => {
+    mockReadEnvCredentials.mockReturnValue({
+      clientId: undefined,
+      clientSecret: undefined,
+      apiUrl: 'https://agent-key.example.test',
+      agentKey: undefined,
     });
 
     await connect({ agentKey: 'k' });
 
+    expect(mockReadConfig).not.toHaveBeenCalled();
     expect(mockCreateClient).toHaveBeenCalledWith(
-      expect.objectContaining({ baseUrl: 'https://api.themolt.net' }),
+      expect.objectContaining({ baseUrl: 'https://agent-key.example.test' }),
     );
+  });
+
+  it('fails closed without an explicit agent-key API endpoint', async () => {
+    await expect(connect({ agentKey: 'k' })).rejects.toThrow(
+      'Set apiUrl or MOLTNET_API_URL',
+    );
+
+    expect(mockReadConfig).not.toHaveBeenCalled();
+    expect(mockCreateClient).not.toHaveBeenCalled();
   });
 });

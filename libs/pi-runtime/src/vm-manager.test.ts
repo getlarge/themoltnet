@@ -17,7 +17,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import { RealFSProvider, ShadowProvider } from '@earendil-works/gondolin';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { prepareTaskWorkspace } from './runtime/task-workspace.js';
 import {
@@ -505,7 +505,7 @@ describe('loadCredentials PEM reading', () => {
     }
   });
 
-  it('sets githubAppPem to null and writes a warning when PEM file is missing', () => {
+  it('reports a structured diagnostic when the GitHub PEM is missing', () => {
     const missingPemPath = path.join(tmpdir(), 'nonexistent-pem-sentinel.pem');
     const dir = makeAgentDir({
       moltnetJsonGithub: {
@@ -521,20 +521,17 @@ describe('loadCredentials PEM reading', () => {
       JSON.stringify({ token: 'fake' }),
     );
     process.env.HOME = fakeHome;
-    const stderrChunks: string[] = [];
-    const origWrite = process.stderr.write.bind(process.stderr);
-    process.stderr.write = (chunk: unknown) => {
-      stderrChunks.push(String(chunk));
-      return true;
-    };
+    const onDiagnostic = vi.fn();
     try {
-      const creds = loadCredentials(dir);
+      const creds = loadCredentials(dir, 'guest-config', onDiagnostic);
       expect(creds.githubAppPem).toBeNull();
-      expect(stderrChunks.join('')).toMatch(
-        /Warning.*nonexistent-pem-sentinel/,
-      );
+      expect(onDiagnostic).toHaveBeenCalledWith({
+        event: 'vm.credentials.github_key_missing',
+        level: 'warning',
+        credentialMode: 'guest-config',
+        message: expect.stringContaining('nonexistent-pem-sentinel'),
+      });
     } finally {
-      process.stderr.write = origWrite;
       process.env.HOME = oldHome;
       rmSync(fakeHome, { recursive: true, force: true });
       rmSync(dir, { recursive: true, force: true });
@@ -635,11 +632,18 @@ describe('loadCredentials Pi auth optionality', () => {
 
 describe('dedicated worktree mount topology', () => {
   function runGit(cwd: string, args: string[]): string {
-    return execFileSync('git', args, {
+    const output = execFileSync('git', args, {
       cwd,
       encoding: 'utf8',
       stdio: 'pipe',
     }).trim();
+    if (args[0] === 'init') {
+      execFileSync('git', ['config', 'commit.gpgsign', 'false'], {
+        cwd,
+        stdio: 'pipe',
+      });
+    }
+    return output;
   }
 
   it('discovers the main worktree from the requested mount path', () => {

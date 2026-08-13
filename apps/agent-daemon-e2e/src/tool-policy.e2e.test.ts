@@ -8,6 +8,8 @@
  * all asserted directly against real policy data.
  */
 
+import { randomUUID } from 'node:crypto';
+
 import {
   decideToolCall,
   resolveSessionToolPolicy,
@@ -27,6 +29,7 @@ const noopLogger = {
 describe('Tool-policy enforcement (daemon)', () => {
   let harness: DaemonTestHarness;
   let agent: Awaited<ReturnType<typeof connect>>;
+  let knowledgeKeyAgent: Awaited<ReturnType<typeof connect>>;
   let analyzer: ShellCommandAnalyzer;
   let teamId: string;
 
@@ -39,6 +42,29 @@ describe('Tool-policy enforcement (daemon)', () => {
       clientSecret: creds.clientSecret,
     });
     teamId = creds.personalTeamId;
+    const issued = await agent.agentKeys.create(
+      {
+        agentId: creds.identityId,
+        name: 'tool-policy-knowledge-key',
+        scopes: [
+          'agent:profile',
+          'runtime:read',
+          'task:read',
+          'task:claim',
+          'task:execute',
+          'diary:read',
+          'diary:write',
+          'pack:read',
+          'pack:write',
+        ],
+        ttlDays: 1,
+      },
+      { teamId, idempotencyKey: randomUUID() },
+    );
+    knowledgeKeyAgent = await connect({
+      apiUrl: harness.restApiUrl,
+      agentKey: issued.secret,
+    });
     analyzer = await ShellCommandAnalyzer.create();
   }, 120_000);
 
@@ -93,7 +119,7 @@ describe('Tool-policy enforcement (daemon)', () => {
     });
 
     const policy = await resolveSessionToolPolicy({
-      agent,
+      agent: knowledgeKeyAgent,
       profileId: profile.id,
       teamId,
       runtimeKind: profile.runtimeKind,
@@ -119,6 +145,18 @@ describe('Tool-policy enforcement (daemon)', () => {
     expect(
       decideToolCall({
         toolName: 'write',
+        enforcement: policy.enforcement,
+        allowedTools: policy.allowedTools,
+        allowedShellCommands: policy.allowedShellCommands,
+        analyze,
+      }),
+    ).toMatchObject({ allow: false });
+    // The credential has diary:write, but this execution's runtime policy does
+    // not expose the corresponding structured tool. Policy narrows authority;
+    // it never derives its allowlist from the key's broader API scopes.
+    expect(
+      decideToolCall({
+        toolName: 'moltnet_create_entry',
         enforcement: policy.enforcement,
         allowedTools: policy.allowedTools,
         allowedShellCommands: policy.allowedShellCommands,

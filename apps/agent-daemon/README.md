@@ -46,6 +46,12 @@ file path, a `file:` URL, or an installed package name. Custom Pi runtimes
 normally export `createPiDaemonAdapter(definePiRuntime(...))`; other executors
 can implement `DaemonRuntimeAdapter` directly.
 
+The adapter contract is intentionally pre-1.0. `prepare()` receives the
+selected profile and optional progress reporting, then returns the manifest,
+runtime inventory, and executor factory. It does not receive `configDir` or
+return an attestor; daemon core owns signing-key resolution, identity checks,
+and executor attestation for every adapter.
+
 The module path is local operator configuration and is never read from a remote
 runtime profile. Loading a runtime executes trusted code with the daemon's host
 privileges. See [Build a custom Pi runtime](../../docs/contribute/custom-pi-runtimes.md)
@@ -75,14 +81,16 @@ All config flows from environment variables. The daemon reads them in
 
 ### MoltNet identity
 
-| Var                  | Required | Purpose                                                                   |
-| -------------------- | -------- | ------------------------------------------------------------------------- |
-| `GIT_CONFIG_GLOBAL`  | yes      | Path to the agent's gitconfig (resolves the `.moltnet/<agent>/` dir).     |
-| `MOLTNET_AGENT_NAME` | yes      | Agent name (matches `.moltnet/<name>/`).                                  |
-| `MOLTNET_AGENT_KEY`  | no       | Team-bound agent key. Set to authenticate with the key instead of OAuth2. |
+| Var                   | Required                              | Purpose                                                                   |
+| --------------------- | ------------------------------------- | ------------------------------------------------------------------------- |
+| `GIT_CONFIG_GLOBAL`   | OAuth2/local                          | Optional git identity path; not needed for configless agent-key startup.  |
+| `MOLTNET_AGENT_NAME`  | yes                                   | Agent name (matches `.moltnet/<name>/`).                                  |
+| `MOLTNET_API_URL`     | agent-key only                        | Explicit API endpoint; key mode never reads it from `moltnet.json`.       |
+| `MOLTNET_AGENT_KEY`   | no                                    | Team-bound agent key. Set to authenticate with the key instead of OAuth2. |
+| `MOLTNET_PRIVATE_KEY` | agent-key `once`, `poll`, and `drain` | Base64 Ed25519 seed used by daemon-owned executor attestation.            |
 
-The agent's `moltnet.json` and gitconfig live next to each other in
-`.moltnet/<agent>/`. Provision them once via
+For OAuth2/local mode, the agent's `moltnet.json` and gitconfig live next to
+each other in `.moltnet/<agent>/`. Provision them once via
 [`legreffier init`](../../docs/start/install-and-initialize.md).
 
 **Auth mode.** When `MOLTNET_AGENT_KEY` is set the daemon authenticates with
@@ -94,15 +102,33 @@ fails fast if the key is rejected, is not an agent, or is bound to a different
 team. See
 [Run the daemon with an agent key](../../docs/operate/running-agents.md#run-the-daemon-with-an-agent-key).
 
+Agent-key Pi guests always default to the `host-authenticated` boundary,
+regardless of local files: no `.moltnet` file, gitconfig, SSH signing key,
+GitHub App PEM, or MoltNet environment credential is read from the host or
+injected into Gondolin. Mounted `.moltnet` paths are hidden as well. Operators
+may explicitly opt into the legacy credential-bearing boundary with
+`--guest-credential-mode guest-config`; that mode requires a complete local
+`moltnet.json` + `env` pair. This compatibility mode copies the complete agent
+configuration and signing credentials into the guest; reserve it for local or
+otherwise operator-trusted execution. For unattended automation, shared
+runners, and remote deployments, prefer agent-key authentication with the
+default `host-authenticated` guest boundary. OAuth2 currently defaults to and
+requires `guest-config`.
+
+`sync-sessions` does not prepare or attest executors, so it remains independent
+of `MOLTNET_PRIVATE_KEY`.
+
 An agent key used by the daemon needs this least-privilege scope set:
 
 ```text
 agent:profile runtime:read task:read task:claim task:execute
 ```
 
-The Console selects these five scopes by default. Broader key, diary, pack,
-team-management, and runtime-management scopes are not required for normal
-daemon operation.
+The Console selects these five scopes by default. Knowledge-enabled workers
+must add `diary:read`, `diary:write`, `pack:read`, and `pack:write` when the key
+is issued. Runtime policy can narrow key authority but cannot add missing
+scopes, and existing keys are never widened automatically; issue a replacement
+credential when broader authority is required.
 
 ### Pi provider auth
 

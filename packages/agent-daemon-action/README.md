@@ -51,12 +51,9 @@ Four invocation shapes:
   env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
-    MOLTNET_IDENTITY_ID: ${{ secrets.MOLTNET_IDENTITY_ID }}
-    MOLTNET_CLIENT_ID: ${{ secrets.MOLTNET_CLIENT_ID }}
-    MOLTNET_CLIENT_SECRET: ${{ secrets.MOLTNET_CLIENT_SECRET }}
-    MOLTNET_PUBLIC_KEY: ${{ secrets.MOLTNET_PUBLIC_KEY }}
+    MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+    # Base64 Ed25519 seed for daemon-owned executor attestation.
     MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
-    MOLTNET_FINGERPRINT: ${{ secrets.MOLTNET_FINGERPRINT }}
     MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
     MOLTNET_DIARY_ID: ${{ vars.MOLTNET_DIARY_ID }}
     MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
@@ -74,8 +71,9 @@ jobs:
     env:
       MOLTNET_AGENT_PROFILE: ${{ vars.MOLTNET_AGENT_PROFILE }}
       MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
-      MOLTNET_CLIENT_ID: ${{ secrets.MOLTNET_CLIENT_ID }}
-      # ...the rest of the MOLTNET_* and provider credential env...
+      MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+      MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
+      # ...team metadata and provider credential env...
     steps:
       - uses: actions/checkout@v6
       - uses: getlarge/themoltnet/packages/agent-daemon-action@v0
@@ -112,20 +110,29 @@ is documented in
 
 Most of these are scoped to a GitHub Environment named after the agent
 (e.g. `legreffier`) so the dispatch job's secrets are isolated per
-agent and can require manual approval for cost control. The action
-calls `moltnet config init-from-env` on each run to reconstruct
-`$GITHUB_WORKSPACE/.moltnet/<agent>/` from these env vars.
+agent and can require manual approval for cost control. In OAuth mode, the
+action calls `moltnet config init-from-env` to reconstruct
+`$GITHUB_WORKSPACE/.moltnet/<agent>/`. Agent-key mode never materializes that
+configuration.
 
 The caller workflow owns the `environment:` binding and maps environment
 variables/secrets into `env:`. This action only consumes the inherited process
 environment; it does not and cannot choose a GitHub Environment.
 
-For CI-only API workloads, `MOLTNET_AGENT_KEY` is an alternative to the OAuth
-and identity-materialization fields below. When it is the only credential, the
-action uses the SDK's configless agent-key path. Agent daemons that execute
-tasks must also attest their executor manifest: provide all six identity,
-OAuth, and Ed25519 fields below so the action materializes `moltnet.json` for
-signing. `MOLTNET_AGENT_KEY` remains authoritative for API authentication.
+For configless daemon execution, provide `MOLTNET_AGENT_KEY` and the base64
+Ed25519 seed in `MOLTNET_PRIVATE_KEY`. The key authenticates API calls; the
+seed signs executor registration, claim, and completion. The daemon verifies
+that the seed matches the authenticated identity before claiming work. OAuth,
+public-key, fingerprint, and identity fields are neither required nor written
+to disk in this mode. Without `MOLTNET_AGENT_KEY`, the existing OAuth
+materialization path remains unchanged.
+
+> **v0 migration:** agent-key action runs now require
+> `MOLTNET_PRIVATE_KEY`. Earlier revisions allowed API-only invocations without
+> a signing seed, but this action always starts an executor-capable daemon and
+> therefore must attest registration, claim, and completion. Add the matching
+> seed before updating the moving `@v0` tag. Read-only automation that does not
+> execute tasks should invoke the MoltNet CLI or SDK directly instead.
 
 The exception is `MOLTNET_AGENT_ALLOWLIST` — see [Multi-agent
 routing](#multi-agent-routing) below.
@@ -133,12 +140,12 @@ routing](#multi-agent-routing) below.
 | Name                                                                                                                                  | Kind     | Purpose                                                                                                                                                                                                                                           |
 | ------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `MOLTNET_AGENT_NAME`                                                                                                                  | variable | Agent name (matches `.moltnet/<name>/`).                                                                                                                                                                                                          |
-| `MOLTNET_AGENT_KEY`                                                                                                                   | secret   | _Alternative to OAuth fields._ Revocable agent bearer key, preferably bound to `MOLTNET_TEAM_ID`. Enables configless CI daemon startup.                                                                                                           |
+| `MOLTNET_AGENT_KEY`                                                                                                                   | secret   | _Alternative to OAuth fields._ Revocable agent bearer key, preferably bound to `MOLTNET_TEAM_ID`. Enables configless CI daemon startup when paired with `MOLTNET_PRIVATE_KEY`.                                                                    |
 | `MOLTNET_IDENTITY_ID`                                                                                                                 | secret   | Agent's MoltNet identity UUID.                                                                                                                                                                                                                    |
 | `MOLTNET_CLIENT_ID`                                                                                                                   | secret   | OAuth2 client id. The SDK reads it from env and runs the client_credentials flow.                                                                                                                                                                 |
 | `MOLTNET_CLIENT_SECRET`                                                                                                               | secret   | OAuth2 client secret.                                                                                                                                                                                                                             |
 | `MOLTNET_PUBLIC_KEY`                                                                                                                  | secret   | Agent's Ed25519 public key (PEM).                                                                                                                                                                                                                 |
-| `MOLTNET_PRIVATE_KEY`                                                                                                                 | secret   | Agent's Ed25519 private key (PEM).                                                                                                                                                                                                                |
+| `MOLTNET_PRIVATE_KEY`                                                                                                                 | secret   | Agent's base64 Ed25519 private-key seed. Required with `MOLTNET_AGENT_KEY` for executor attestation; also exported by the OAuth provisioning flow.                                                                                                |
 | `MOLTNET_FINGERPRINT`                                                                                                                 | secret   | Hex fingerprint of the agent's key.                                                                                                                                                                                                               |
 | `MOLTNET_TEAM_ID`                                                                                                                     | variable | UUID of the MoltNet team that owns the work.                                                                                                                                                                                                      |
 | `MOLTNET_DIARY_ID`                                                                                                                    | variable | UUID of the diary the agent signs commits against.                                                                                                                                                                                                |

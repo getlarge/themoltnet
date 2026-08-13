@@ -14,6 +14,7 @@ export interface DaemonAgentContext {
   agentDir: string;
   agentRootDir: string;
   agent: Agent;
+  guestCredentialMode: DaemonGuestCredentialMode;
 }
 
 /**
@@ -24,6 +25,40 @@ export interface DaemonAgentContext {
  *   `moltnet.json` client id/secret.
  */
 export type DaemonAuthMode = 'agent-key' | 'oauth2';
+export type DaemonGuestCredentialMode = 'guest-config' | 'host-authenticated';
+
+/**
+ * Guest credentials are an explicit trust decision, never an incidental
+ * consequence of files found on disk. Agent-key mode defaults to the
+ * configless host-authenticated boundary; OAuth2 keeps its config-backed
+ * behavior. OAuth2 cannot use the host-authenticated mode because its Agent is
+ * itself resolved from the local credential tree.
+ */
+export function resolveDaemonGuestCredentialMode(
+  authMode: DaemonAuthMode,
+  requested?: string,
+): DaemonGuestCredentialMode {
+  if (
+    requested !== undefined &&
+    requested !== 'guest-config' &&
+    requested !== 'host-authenticated'
+  ) {
+    throw new Error(
+      `Invalid --guest-credential-mode "${requested}": expected ` +
+        'guest-config or host-authenticated.',
+    );
+  }
+  const mode =
+    requested ??
+    (authMode === 'agent-key' ? 'host-authenticated' : 'guest-config');
+  if (authMode === 'oauth2' && mode === 'host-authenticated') {
+    throw new Error(
+      '--guest-credential-mode host-authenticated requires agent-key ' +
+        'authentication. OAuth2 requires the local agent configuration.',
+    );
+  }
+  return mode;
+}
 
 /**
  * Report which auth mode `connect()` will use, without ever reading the secret
@@ -58,7 +93,7 @@ export type StartupBindingAssessment =
  */
 export function assessStartupBinding(
   whoami: Whoami,
-  teamId: string,
+  teamId?: string,
 ): StartupBindingAssessment {
   if (whoami.subjectType !== 'agent') {
     return {
@@ -70,7 +105,7 @@ export function assessStartupBinding(
     };
   }
   const boundTeamId = whoami.credentialBinding?.boundTeamId;
-  if (boundTeamId && boundTeamId !== teamId) {
+  if (teamId && boundTeamId && boundTeamId !== teamId) {
     return {
       ok: false,
       reason:
@@ -98,16 +133,23 @@ export interface StartupWhoamiSource {
  */
 export async function validateStartupBinding(options: {
   agent: StartupWhoamiSource;
-  teamId: string;
+  teamId?: string;
 }): Promise<Whoami> {
   let whoami: Whoami;
-  try {
-    whoami = await options.agent.agents.whoami();
-  } catch (err) {
-    if (err instanceof AuthenticationError) {
-      throw new Error(`Daemon startup authentication failed: ${err.message}`);
+  const maxAttempts = 3;
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      whoami = await options.agent.agents.whoami();
+      break;
+    } catch (err) {
+      if (err instanceof AuthenticationError) {
+        throw new Error(`Daemon startup authentication failed: ${err.message}`);
+      }
+      if (attempt >= maxAttempts || !isTransientWhoamiError(err)) throw err;
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 100 * attempt);
+      });
     }
-    throw err;
   }
   const assessment = assessStartupBinding(whoami, options.teamId);
   if (!assessment.ok) {
@@ -125,7 +167,11 @@ export async function validateStartupBinding(options: {
  */
 export async function resolveAgentContext(
   agentName: string,
-  options: { agentRootDir?: string; allowMissingConfig?: boolean } = {},
+  options: {
+    agentRootDir?: string;
+    authMode?: DaemonAuthMode;
+    guestCredentialMode?: string;
+  } = {},
 ): Promise<DaemonAgentContext> {
   if (!/^[a-zA-Z0-9_-]+$/.test(agentName)) {
     throw new Error(
@@ -133,6 +179,29 @@ export async function resolveAgentContext(
     );
   }
   const roots = resolveCredentialRoots(options.agentRootDir);
+  if (options.authMode === 'agent-key') {
+    const guestCredentialMode = resolveDaemonGuestCredentialMode(
+      'agent-key',
+      options.guestCredentialMode,
+    );
+    const { rootDir, agentDir } =
+      guestCredentialMode === 'guest-config'
+        ? resolveCompleteGuestCredentials(roots, agentName)
+        : {
+            rootDir: roots[0] ?? process.cwd(),
+            agentDir: join(roots[0] ?? process.cwd(), '.moltnet', agentName),
+          };
+    const agent = await connect();
+    return {
+      agentDir,
+      agentRootDir: rootDir,
+      agent,
+      guestCredentialMode,
+    };
+  }
+
+  resolveDaemonGuestCredentialMode('oauth2', options.guestCredentialMode);
+
   for (const rootDir of roots) {
     const agentDir = join(rootDir, '.moltnet', agentName);
     if (existsSync(join(agentDir, 'moltnet.json'))) {
@@ -140,24 +209,54 @@ export async function resolveAgentContext(
         configDir: agentDir,
         secretProviders: createNodeSecretProviderRegistry(),
       });
-      return { agentDir, agentRootDir: rootDir, agent };
+      return {
+        agentDir,
+        agentRootDir: rootDir,
+        agent,
+        guestCredentialMode: 'guest-config',
+      };
     }
-  }
-
-  if (options.allowMissingConfig) {
-    const rootDir = roots[0] ?? process.cwd();
-    const agentDir = join(rootDir, '.moltnet', agentName);
-    const agent = await connect({
-      configDir: agentDir,
-      secretProviders: createNodeSecretProviderRegistry(),
-    });
-    return { agentDir, agentRootDir: rootDir, agent };
   }
 
   const tried = roots.map((root) => join(root, '.moltnet', agentName));
   throw new Error(
     `Missing credentials for ${agentName}. ` +
       `Checked ${tried.join(', ')}. Run the agent onboarding flow first.`,
+  );
+}
+
+function isTransientWhoamiError(error: unknown): boolean {
+  if (error instanceof TypeError) return true;
+  if (!error || typeof error !== 'object') return false;
+  const statusCode = (error as { statusCode?: unknown }).statusCode;
+  return (
+    typeof statusCode === 'number' &&
+    (statusCode === 408 || statusCode === 429 || statusCode >= 500)
+  );
+}
+
+function resolveCompleteGuestCredentials(
+  roots: readonly string[],
+  agentName: string,
+): { rootDir: string; agentDir: string } {
+  const partial: string[] = [];
+  for (const rootDir of roots) {
+    const agentDir = join(rootDir, '.moltnet', agentName);
+    const hasConfig = existsSync(join(agentDir, 'moltnet.json'));
+    const hasEnv = existsSync(join(agentDir, 'env'));
+    if (hasConfig && hasEnv) return { rootDir, agentDir };
+    if (hasConfig || hasEnv) partial.push(agentDir);
+  }
+  if (partial.length > 0) {
+    throw new Error(
+      `Incomplete guest credentials in ${partial.join(', ')}: moltnet.json ` +
+        'and env must both exist for --guest-credential-mode guest-config.',
+    );
+  }
+  const tried = roots.map((root) => join(root, '.moltnet', agentName));
+  throw new Error(
+    '--guest-credential-mode guest-config requires an explicitly provisioned ' +
+      `moltnet.json and env. Checked ${tried.join(', ')}.`,
   );
 }
 

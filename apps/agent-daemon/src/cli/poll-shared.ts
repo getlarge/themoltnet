@@ -9,7 +9,11 @@ import {
   type ClaimedTask,
   PollingApiTaskSource,
 } from '@themoltnet/agent-runtime';
-import { findMainWorktree } from '@themoltnet/pi-runtime';
+import {
+  assertGuestEnvironmentBoundary,
+  findMainWorktree,
+  GuestEnvironmentBoundaryError,
+} from '@themoltnet/pi-runtime';
 
 import { activatePiCodingAgentDir, loadConfig } from '../config.js';
 import { abortActiveAttemptOnSignal } from '../lib/abort-active-attempt.js';
@@ -29,9 +33,16 @@ import {
   createExecutionPlanCache,
   ProducerContextResolutionError,
 } from '../lib/execution-plan-cache.js';
+import {
+  type AttestedDaemonRuntime,
+  attestPreparedRuntime,
+  resolveExecutorSigningPrivateKey,
+  validateDaemonScopes,
+  validateExecutorSigningIdentity,
+} from '../lib/executor-attestation.js';
 import { finalizeTask } from '../lib/finalize.js';
 import { isHelpFlag } from '../lib/help.js';
-import { createRootLogger } from '../lib/logger.js';
+import { createRootLogger, logDaemonStartupFailure } from '../lib/logger.js';
 import {
   commonOptionDefs,
   type CommonOptions,
@@ -67,7 +78,6 @@ import { defaultPiDaemonAdapter } from '../pi.js';
 import {
   assertRuntimeAdapterSupportsProfile,
   type DaemonRuntimeAdapter,
-  type PreparedDaemonRuntime,
 } from '../runtime.js';
 
 export interface PollSharedArgs {
@@ -91,7 +101,7 @@ interface ProfileRuntime {
   piAgentDir: ReturnType<typeof ensurePiAgentDir>;
   slotIdentity: DaemonSlotIdentity;
   executionPlans: ReturnType<typeof createExecutionPlanCache>;
-  preparedRuntime: PreparedDaemonRuntime;
+  preparedRuntime: AttestedDaemonRuntime;
 }
 
 export async function runPolling(opts: PollSharedArgs): Promise<number> {
@@ -203,39 +213,94 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     process.cwd(),
     values['agent-root'] ?? process.cwd(),
   );
-  const ctx = await resolveAgentContext(baseCommon.agent, {
-    agentRootDir,
-    allowMissingConfig: cfg.authMode === 'agent-key',
-  });
-  // Fail fast, before polling, on a rejected or wrong-team credential. In
-  // agent-key mode this turns an obscure mid-poll 401/403 into an actionable
-  // startup error; in OAuth2 mode it doubles as an API-reachability check.
-  const startupWhoami = await validateStartupBinding({
-    agent: ctx.agent,
-    teamId,
-  });
-  const profiles = await resolveRuntimeProfiles({
+  const { ctx, signingPrivateKey, startupWhoami } = await (async () => {
+    let gate = 'resolve_agent_context';
+    try {
+      const resolvedContext = await resolveAgentContext(baseCommon.agent, {
+        agentRootDir,
+        authMode: cfg.authMode,
+        guestCredentialMode: values['guest-credential-mode'],
+      });
+      // Fail fast, before polling, on a rejected or wrong-team credential.
+      gate = 'authenticate_and_bind';
+      const whoami = await validateStartupBinding({
+        agent: resolvedContext.agent,
+        teamId,
+      });
+      gate = 'resolve_signing_material';
+      const privateKey = await resolveExecutorSigningPrivateKey({
+        authMode: cfg.authMode,
+        agentDir: resolvedContext.agentDir,
+        configuredPrivateKey: cfg.signingPrivateKey,
+      });
+      gate = 'validate_scopes';
+      validateDaemonScopes(whoami);
+      gate = 'validate_signing_identity';
+      await validateExecutorSigningIdentity({
+        whoami,
+        signingPrivateKey: privateKey,
+      });
+      return {
+        ctx: resolvedContext,
+        signingPrivateKey: privateKey,
+        startupWhoami: whoami,
+      };
+    } catch (error) {
+      await logDaemonStartupFailure({
+        serviceName: `agent-daemon.${opts.modeLabel}`,
+        level: cfg.logLevel || (baseCommon.debug ? 'debug' : 'info'),
+        gate,
+        agent: baseCommon.agent,
+        authMode: cfg.authMode,
+        error,
+      });
+      throw error;
+    }
+  })();
+  const resolvedProfiles = await resolveRuntimeProfiles({
     agent: ctx.agent,
     profiles: profileValues,
     teamId,
     cwd: ctx.agentRootDir,
   });
   const runtimeAdapter = opts.runtimeAdapter ?? defaultPiDaemonAdapter;
-  const preparedRuntimes = new Map<string, PreparedDaemonRuntime>();
-  for (const profile of profiles) {
-    assertRuntimeAdapterSupportsProfile(runtimeAdapter, profile);
-    const prepared = await runtimeAdapter.prepare({
-      profile,
-      configDir: ctx.agentDir,
-    });
-    validateRuntimeProfilePrerequisites(profile, cfg.profilePrerequisiteEnv, {
-      tools: prepared.tools,
-      executables: prepared.executables,
-    });
-    await ctx.agent.tasks.registerExecutorManifest(
-      await prepared.attestor.registration(),
-    );
-    preparedRuntimes.set(profile.id, prepared);
+  const preparedRuntimes = new Map<string, AttestedDaemonRuntime>();
+  const profiles: typeof resolvedProfiles = [];
+  const skippedProfileBoundaries: Array<{
+    profile: (typeof resolvedProfiles)[number];
+    error: GuestEnvironmentBoundaryError;
+  }> = [];
+  for (const profile of resolvedProfiles) {
+    try {
+      assertRuntimeAdapterSupportsProfile(runtimeAdapter, profile);
+      const prepared = attestPreparedRuntime(
+        await runtimeAdapter.prepare({ profile }),
+        signingPrivateKey,
+      );
+      validateRuntimeProfilePrerequisites(profile, cfg.profilePrerequisiteEnv, {
+        tools: prepared.tools,
+        executables: prepared.executables,
+      });
+      assertGuestEnvironmentBoundary({
+        guestCredentialMode: ctx.guestCredentialMode,
+        forwardEnv: profile.requiredEnv,
+        sandboxEnv: profile.sandboxConfig.env,
+      });
+      await ctx.agent.tasks.registerExecutorManifest(
+        await prepared.attestor.registration(),
+      );
+      preparedRuntimes.set(profile.id, prepared);
+      profiles.push(profile);
+    } catch (error) {
+      if (!(error instanceof GuestEnvironmentBoundaryError)) throw error;
+      skippedProfileBoundaries.push({ profile, error });
+    }
+  }
+  if (profiles.length === 0) {
+    const details = skippedProfileBoundaries
+      .map(({ profile, error }) => `${profile.name}: ${error.message}`)
+      .join('; ');
+    throw new Error(`No safe runtime profiles remain. ${details}`);
   }
   const slotRegistry = createApiRuntimeSlotStore({ agent: ctx.agent });
   const runtimeSessionStore = createApiRuntimeSessionStore({
@@ -300,7 +365,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   activatePiCodingAgentDir(piAgentDir.path);
   const otelShutdown = await initWorkerOtel({
     serviceName: opts.serviceName,
-    agentDir: ctx.agentDir,
+    agent: ctx.agent,
     endpoint: cfg.otelEndpoint,
     resourceAttributes: {
       'moltnet.team.id': teamId,
@@ -322,6 +387,16 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     runtimeProfileIds: profiles.map((p) => p.id),
     runtimeProfileNames: profiles.map((p) => p.name),
   });
+  for (const { profile, error } of skippedProfileBoundaries) {
+    rootLogger.warn(
+      {
+        runtimeProfileId: profile.id,
+        runtimeProfileName: profile.name,
+        refusedEnvironmentNames: error.refusedNames,
+      },
+      'agent-daemon.runtime_profile_skipped_credential_boundary',
+    );
+  }
 
   const abort = new AbortController();
   let runtime: AgentRuntime | null = null;
@@ -367,6 +442,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       authMode: cfg.authMode,
       subjectType: startupWhoami.subjectType,
       boundTeamId: startupWhoami.credentialBinding?.boundTeamId ?? null,
+      guestCredentialMode: ctx.guestCredentialMode,
       taskTypes: taskTypes.length > 0 ? taskTypes : ['*'],
       correlationId: values['correlation-id'] ?? null,
       diaryIds: diaryIds.length > 0 ? diaryIds : ['*'],
@@ -723,6 +799,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         }
         const rawExecuteTask = selected.preparedRuntime.createTaskExecutor({
           agentName: common.agent,
+          moltnetAgent: ctx.agent,
+          guestCredentialMode: ctx.guestCredentialMode,
           agentRootDir: ctx.agentRootDir,
           mountPath: sandbox.rootDir,
           provider: profile.provider,
@@ -734,6 +812,17 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           maxOutputTokens: profile.maxOutputTokens,
           sandboxConfig: sandbox.config,
           forwardEnv: profile.requiredEnv,
+          onVmDiagnostic: (diagnostic) => {
+            const fields = {
+              event: diagnostic.event,
+              credentialMode: diagnostic.credentialMode,
+            };
+            if (diagnostic.level === 'warning') {
+              taskLogger.warn(fields, diagnostic.message);
+            } else {
+              taskLogger.info(fields, diagnostic.message);
+            }
+          },
           runtimeProfileContext: profile.context,
           runtimeProfileId: profile.id,
           toolEnforcement: profile.toolEnforcement,

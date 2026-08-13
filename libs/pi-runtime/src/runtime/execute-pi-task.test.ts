@@ -32,6 +32,7 @@ import {
   cleanupAttempt,
   computeProviderErrorRetryDelay,
   createGondolinToolDefinitions,
+  createMoltNetAgentResolver,
   createSessionTurnState,
   DEFAULT_PROVIDER_ERROR_RETRIES,
   describeToolErrorMessage,
@@ -44,6 +45,7 @@ import {
   openVmWorkspaceFileForRead,
   promptUntilSubmitted,
   promptWithProviderErrorRetries,
+  resolveHostExecBaseEnv,
   resolveSubmitMissingConfig,
   sanitizeProviderErrorRetryReason,
   type SessionSubscribeEvent,
@@ -52,6 +54,35 @@ import {
   submitRepromptStopped,
   wireSessionAbort,
 } from './execute-pi-task.js';
+
+describe('resolveHostExecBaseEnv', () => {
+  it('withholds credential paths from trusted host exec in configless mode', () => {
+    const env = resolveHostExecBaseEnv('host-authenticated', {
+      MOLTNET_AGENT_KEY: 'secret',
+      GIT_CONFIG_GLOBAL: '/credentials/gitconfig',
+      SSH_AUTH_SOCK: '/tmp/agent.sock',
+      OPENAI_BASE_URL: 'https://models.example.test',
+    });
+
+    expect(env).not.toContain('MOLTNET_AGENT_KEY');
+    expect(env).not.toContain('MOLTNET_CREDENTIALS_PATH');
+    expect(env).not.toContain('GIT_CONFIG_GLOBAL');
+    expect(env).not.toContain('SSH_AUTH_SOCK');
+    expect(env).toContain('OPENAI_BASE_URL');
+    expect(env).toContain('GIT_AUTHOR_NAME');
+  });
+
+  it('retains the legacy credential-bearing host exec env in guest-config mode', () => {
+    const env = resolveHostExecBaseEnv('guest-config', {
+      MOLTNET_AGENT_KEY: 'secret',
+    });
+
+    expect(env).toContain('MOLTNET_AGENT_KEY');
+    expect(env).toContain('MOLTNET_CREDENTIALS_PATH');
+    expect(env).toContain('GIT_CONFIG_GLOBAL');
+    expect(env).toContain('SSH_AUTH_SOCK');
+  });
+});
 import {
   __resetTaskOutputCounterForTests,
   extractJsonObject,
@@ -138,6 +169,53 @@ describe('createGondolinToolDefinitions', () => {
       'find',
       'grep',
     ]);
+  });
+});
+
+describe('createMoltNetAgentResolver', () => {
+  it('reuses a supplied daemon Agent for every runtime consumer', async () => {
+    const agent = { tasks: {}, runtimePolicies: {} } as never;
+    const connectAgent = vi.fn();
+    const resolveAgent = createMoltNetAgentResolver({
+      moltnetAgent: agent,
+      configDir: '/missing/.moltnet/agent',
+      connectAgent,
+    });
+
+    await expect(resolveAgent()).resolves.toBe(agent);
+    await expect(resolveAgent()).resolves.toBe(agent);
+    await expect(resolveAgent()).resolves.toBe(agent);
+    expect(connectAgent).not.toHaveBeenCalled();
+  });
+
+  it('retains the config-backed fallback for standalone Pi consumers', async () => {
+    const agent = { tasks: {} } as never;
+    const connectAgent = vi.fn().mockResolvedValue(agent);
+    const resolveAgent = createMoltNetAgentResolver({
+      configDir: '/repo/.moltnet/agent',
+      connectAgent,
+    });
+
+    await expect(resolveAgent()).resolves.toBe(agent);
+    await expect(resolveAgent()).resolves.toBe(agent);
+    expect(connectAgent).toHaveBeenCalledOnce();
+    expect(connectAgent).toHaveBeenCalledWith('/repo/.moltnet/agent');
+  });
+
+  it('retries the standalone connection after a transient rejection', async () => {
+    const agent = { tasks: {} } as never;
+    const connectAgent = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('temporary network failure'))
+      .mockResolvedValueOnce(agent);
+    const resolveAgent = createMoltNetAgentResolver({
+      configDir: '/repo/.moltnet/agent',
+      connectAgent,
+    });
+
+    await expect(resolveAgent()).rejects.toThrow('temporary network failure');
+    await expect(resolveAgent()).resolves.toBe(agent);
+    expect(connectAgent).toHaveBeenCalledTimes(2);
   });
 });
 

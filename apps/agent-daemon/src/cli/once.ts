@@ -7,7 +7,10 @@ import {
   ApiTaskSource,
   type TaskExecutor,
 } from '@themoltnet/agent-runtime';
-import { findMainWorktree } from '@themoltnet/pi-runtime';
+import {
+  assertGuestEnvironmentBoundary,
+  findMainWorktree,
+} from '@themoltnet/pi-runtime';
 
 import { activatePiCodingAgentDir, loadConfig } from '../config.js';
 import { abortActiveAttemptOnSignal } from '../lib/abort-active-attempt.js';
@@ -27,9 +30,15 @@ import {
   createExecutionPlanCache,
   ProducerContextResolutionError,
 } from '../lib/execution-plan-cache.js';
+import {
+  attestPreparedRuntime,
+  resolveExecutorSigningPrivateKey,
+  validateDaemonScopes,
+  validateExecutorSigningIdentity,
+} from '../lib/executor-attestation.js';
 import { finalizeTask } from '../lib/finalize.js';
 import { isHelpFlag, ONCE_HELP } from '../lib/help.js';
-import { createRootLogger } from '../lib/logger.js';
+import { createRootLogger, logDaemonStartupFailure } from '../lib/logger.js';
 import {
   commonOptionDefs,
   type CommonOptions,
@@ -121,15 +130,47 @@ export async function runOnce(
     process.cwd(),
     values['agent-root'] ?? process.cwd(),
   );
-  const ctx = await resolveAgentContext(initialOpts.agent, {
-    agentRootDir,
-  });
-  // Fail fast on a rejected or wrong-team credential before running the task.
-  // `once` allows a profile UUID without --team, so only assert the binding
-  // when a team is in scope.
-  if (values.team) {
-    await validateStartupBinding({ agent: ctx.agent, teamId: values.team });
-  }
+  const { ctx, signingPrivateKey } = await (async () => {
+    let gate = 'resolve_agent_context';
+    try {
+      const resolvedContext = await resolveAgentContext(initialOpts.agent, {
+        agentRootDir,
+        authMode: cfg.authMode,
+        guestCredentialMode: values['guest-credential-mode'],
+      });
+      // Authenticate and validate team binding before resolving signing
+      // material, consistently with poll/drain.
+      gate = 'authenticate_and_bind';
+      const whoami = await validateStartupBinding({
+        agent: resolvedContext.agent,
+        teamId: values.team,
+      });
+      gate = 'resolve_signing_material';
+      const privateKey = await resolveExecutorSigningPrivateKey({
+        authMode: cfg.authMode,
+        agentDir: resolvedContext.agentDir,
+        configuredPrivateKey: cfg.signingPrivateKey,
+      });
+      gate = 'validate_scopes';
+      validateDaemonScopes(whoami);
+      gate = 'validate_signing_identity';
+      await validateExecutorSigningIdentity({
+        whoami,
+        signingPrivateKey: privateKey,
+      });
+      return { ctx: resolvedContext, signingPrivateKey: privateKey };
+    } catch (error) {
+      await logDaemonStartupFailure({
+        serviceName: 'agent-daemon.once',
+        level: cfg.logLevel || (initialOpts.debug ? 'debug' : 'info'),
+        gate,
+        agent: initialOpts.agent,
+        authMode: cfg.authMode,
+        error,
+      });
+      throw error;
+    }
+  })();
   const profile = await resolveRuntimeProfile({
     agent: ctx.agent,
     profile: values.profile,
@@ -137,13 +178,18 @@ export async function runOnce(
     cwd: ctx.agentRootDir,
   });
   assertRuntimeAdapterSupportsProfile(runtimeAdapter, profile);
-  const preparedRuntime = await runtimeAdapter.prepare({
-    profile,
-    configDir: ctx.agentDir,
-  });
+  const preparedRuntime = attestPreparedRuntime(
+    await runtimeAdapter.prepare({ profile }),
+    signingPrivateKey,
+  );
   validateRuntimeProfilePrerequisites(profile, cfg.profilePrerequisiteEnv, {
     tools: preparedRuntime.tools,
     executables: preparedRuntime.executables,
+  });
+  assertGuestEnvironmentBoundary({
+    guestCredentialMode: ctx.guestCredentialMode,
+    forwardEnv: profile.requiredEnv,
+    sandboxEnv: profile.sandboxConfig.env,
   });
   await ctx.agent.tasks.registerExecutorManifest(
     await preparedRuntime.attestor.registration(),
@@ -193,7 +239,7 @@ export async function runOnce(
   });
   const otelShutdown = await initWorkerOtel({
     serviceName: 'moltnet.agent-daemon.once',
-    agentDir: ctx.agentDir,
+    agent: ctx.agent,
     endpoint: cfg.otelEndpoint,
     resourceAttributes: {
       'moltnet.task.id': taskId,
@@ -252,6 +298,7 @@ export async function runOnce(
       profileId: profile.id,
       profileSessionTtlSec: profile.sessionTtlSec,
       profileWorkspaceTtlSec: profile.workspaceTtlSec,
+      guestCredentialMode: ctx.guestCredentialMode,
       piAgentDir: piAgentDir.path,
       piAgentDirSource: piAgentDir.source,
     },
@@ -348,6 +395,8 @@ export async function runOnce(
   try {
     const rawExecuteTask = preparedRuntime.createTaskExecutor({
       agentName: opts.agent,
+      moltnetAgent: ctx.agent,
+      guestCredentialMode: ctx.guestCredentialMode,
       agentRootDir: ctx.agentRootDir,
       mountPath: sandbox.rootDir,
       provider: profile.provider,
@@ -359,6 +408,17 @@ export async function runOnce(
       maxOutputTokens: profile.maxOutputTokens,
       sandboxConfig: sandbox.config,
       forwardEnv: profile.requiredEnv,
+      onVmDiagnostic: (diagnostic) => {
+        const fields = {
+          event: diagnostic.event,
+          credentialMode: diagnostic.credentialMode,
+        };
+        if (diagnostic.level === 'warning') {
+          rootLogger.warn(fields, diagnostic.message);
+        } else {
+          rootLogger.info(fields, diagnostic.message);
+        }
+      },
       runtimeProfileContext: profile.context,
       runtimeProfileId: profile.id,
       toolEnforcement: profile.toolEnforcement,

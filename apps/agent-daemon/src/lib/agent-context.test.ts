@@ -30,6 +30,12 @@ vi.mock('@themoltnet/sdk', () => ({
   AuthenticationError: AuthenticationErrorMock,
 }));
 
+const createNodeSecretProviderRegistryMock = vi.hoisted(() => vi.fn());
+
+vi.mock('@themoltnet/sdk/node', () => ({
+  createNodeSecretProviderRegistry: createNodeSecretProviderRegistryMock,
+}));
+
 import {
   assessStartupBinding,
   detectAuthMode,
@@ -42,6 +48,10 @@ describe('resolveAgentContext', () => {
     connectMock.mockReset();
     connectMock.mockResolvedValue({ agent: 'connected' });
     execFileSyncMock.mockReset();
+    createNodeSecretProviderRegistryMock.mockReset();
+    createNodeSecretProviderRegistryMock.mockReturnValue({
+      provider: 'registry',
+    });
   });
 
   it('uses an explicit repo-free root when credentials exist there', async () => {
@@ -60,9 +70,14 @@ describe('resolveAgentContext', () => {
       const agentDir = join(root, '.moltnet', 'legreffier');
       expect(ctx.agentDir).toBe(agentDir);
       expect(ctx.agentRootDir).toBe(root);
+      expect(ctx.guestCredentialMode).toBe('guest-config');
       expect(connectMock).toHaveBeenCalledWith(
-        expect.objectContaining({ configDir: agentDir }),
+        expect.objectContaining({
+          configDir: agentDir,
+          secretProviders: { provider: 'registry' },
+        }),
       );
+      expect(createNodeSecretProviderRegistryMock).toHaveBeenCalledOnce();
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -83,6 +98,7 @@ describe('resolveAgentContext', () => {
       const agentDir = join(gitRoot, '.moltnet', 'legreffier');
       expect(ctx.agentDir).toBe(agentDir);
       expect(ctx.agentRootDir).toBe(gitRoot);
+      expect(ctx.guestCredentialMode).toBe('guest-config');
       expect(connectMock).toHaveBeenCalledWith(
         expect.objectContaining({ configDir: agentDir }),
       );
@@ -92,7 +108,7 @@ describe('resolveAgentContext', () => {
     }
   });
 
-  it('connects without moltnet.json when agent-key mode permits it', async () => {
+  it('connects without config or secret providers in agent-key mode', async () => {
     const root = mkdtempSync(join(tmpdir(), 'daemon-agent-key-root-'));
     execFileSyncMock.mockImplementation(() => {
       throw new Error('not a git repo');
@@ -101,17 +117,92 @@ describe('resolveAgentContext', () => {
     try {
       const ctx = await resolveAgentContext('legreffier', {
         agentRootDir: root,
-        allowMissingConfig: true,
+        authMode: 'agent-key',
       });
 
       const agentDir = join(root, '.moltnet', 'legreffier');
       expect(ctx.agentDir).toBe(agentDir);
-      expect(connectMock).toHaveBeenCalledWith(
-        expect.objectContaining({ configDir: agentDir }),
-      );
+      expect(ctx.guestCredentialMode).toBe('host-authenticated');
+      expect(connectMock).toHaveBeenCalledWith();
+      expect(createNodeSecretProviderRegistryMock).not.toHaveBeenCalled();
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+  });
+
+  it('does not implicitly expose a complete local guest config in agent-key mode', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'daemon-agent-key-configured-'));
+    execFileSyncMock.mockImplementation(() => {
+      throw new Error('not a git repo');
+    });
+
+    try {
+      writeCredentials(root, 'legreffier');
+      const ctx = await resolveAgentContext('legreffier', {
+        agentRootDir: root,
+        authMode: 'agent-key',
+      });
+
+      expect(ctx.guestCredentialMode).toBe('host-authenticated');
+      expect(connectMock).toHaveBeenCalledWith();
+      expect(createNodeSecretProviderRegistryMock).not.toHaveBeenCalled();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('uses complete local guest config only after explicit opt-in', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'daemon-agent-key-opt-in-'));
+    execFileSyncMock.mockImplementation(() => {
+      throw new Error('not a git repo');
+    });
+
+    try {
+      writeCredentials(root, 'legreffier');
+      const ctx = await resolveAgentContext('legreffier', {
+        agentRootDir: root,
+        authMode: 'agent-key',
+        guestCredentialMode: 'guest-config',
+      });
+
+      expect(ctx.guestCredentialMode).toBe('guest-config');
+      expect(connectMock).toHaveBeenCalledWith();
+      expect(createNodeSecretProviderRegistryMock).not.toHaveBeenCalled();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects a partial local guest config after explicit opt-in', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'daemon-agent-key-partial-'));
+    const agentDir = join(root, '.moltnet', 'legreffier');
+    mkdirSync(agentDir, { recursive: true });
+    writeFileSync(join(agentDir, 'moltnet.json'), '{}', 'utf8');
+    execFileSyncMock.mockImplementation(() => {
+      throw new Error('not a git repo');
+    });
+
+    try {
+      await expect(
+        resolveAgentContext('legreffier', {
+          agentRootDir: root,
+          authMode: 'agent-key',
+          guestCredentialMode: 'guest-config',
+        }),
+      ).rejects.toThrow('moltnet.json and env must both exist');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects host-authenticated guest mode with OAuth2', async () => {
+    await expect(
+      resolveAgentContext('legreffier', {
+        authMode: 'oauth2',
+        guestCredentialMode: 'host-authenticated',
+      }),
+    ).rejects.toThrow('requires agent-key authentication');
+    expect(connectMock).not.toHaveBeenCalled();
   });
 });
 
@@ -240,10 +331,31 @@ describe('validateStartupBinding', () => {
       validateStartupBinding({ agent, teamId: TEAM_A }),
     ).rejects.toBe(boom);
   });
+
+  it('retries transient whoami failures before startup validation', async () => {
+    const whoami: Whoami = {
+      identityId: 'id-1',
+      scopes: ['agent:profile'],
+      subjectType: 'agent',
+    };
+    const transient = Object.assign(new Error('upstream unavailable'), {
+      statusCode: 503,
+    });
+    const source = vi
+      .fn<() => Promise<Whoami>>()
+      .mockRejectedValueOnce(transient)
+      .mockResolvedValueOnce(whoami);
+
+    await expect(
+      validateStartupBinding({ agent: stubAgent(source), teamId: TEAM_A }),
+    ).resolves.toEqual(whoami);
+    expect(source).toHaveBeenCalledTimes(2);
+  });
 });
 
 function writeCredentials(root: string, agentName: string): void {
   const agentDir = join(root, '.moltnet', agentName);
   mkdirSync(agentDir, { recursive: true });
   writeFileSync(join(agentDir, 'moltnet.json'), '{}\n', 'utf8');
+  writeFileSync(join(agentDir, 'env'), '', 'utf8');
 }

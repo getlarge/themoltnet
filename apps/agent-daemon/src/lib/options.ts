@@ -33,6 +33,7 @@ export interface CommonOptions {
 export interface CommonRawArgs {
   agent?: string;
   'agent-root'?: string;
+  'guest-credential-mode'?: string;
   'lease-ttl-sec'?: string;
   'heartbeat-interval-ms'?: string;
   'max-batch-size'?: string;
@@ -178,6 +179,7 @@ export function commonOptionDefs() {
   return {
     agent: { type: 'string', short: 'a' },
     'agent-root': { type: 'string' },
+    'guest-credential-mode': { type: 'string' },
     'lease-ttl-sec': { type: 'string' },
     'heartbeat-interval-ms': { type: 'string' },
     'max-batch-size': { type: 'string' },

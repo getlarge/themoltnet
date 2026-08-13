@@ -190,20 +190,25 @@ describe('Agent daemon repo-free execution (e2e)', () => {
 
     expect(createPiTaskExecutorMock).toHaveBeenCalledTimes(1);
     const executorOptions = createPiTaskExecutorMock.mock.calls[0]?.[0] as {
+      guestCredentialMode: 'guest-config' | 'host-authenticated';
       agentName: string;
       agentRootDir: string;
       mountPath: string;
+      moltnetAgent: Agent;
       provider: string;
       model: string;
     };
     expect(executorOptions).toMatchObject({
       agentName,
       agentRootDir: agentRoot,
+      guestCredentialMode: 'guest-config',
       mountPath: agentRoot,
       provider: 'anthropic',
       model: 'claude-sonnet-4-5',
     });
     expect(executorOptions.mountPath).not.toBe(sandboxRoot);
+    const executorWhoami = await executorOptions.moltnetAgent.agents.whoami();
+    expect(executorWhoami.credentialBinding).toBeUndefined();
 
     const final = await agent.tasks.get(created.id);
     expect(final.status).toBe('completed');

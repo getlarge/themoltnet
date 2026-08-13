@@ -51,6 +51,7 @@ import {
   traceRuntimePhase,
   validateTaskOutput,
 } from '@themoltnet/agent-runtime';
+import type { Agent } from '@themoltnet/sdk';
 import { connect } from '@themoltnet/sdk/node';
 import { ShellCommandAnalyzer } from '@themoltnet/shell-command-analyzer';
 
@@ -60,16 +61,6 @@ import {
   HOST_EXEC_DEFAULT_BASE_ENV,
   type HostExecAutoApproveConfig,
 } from '../moltnet/tools.js';
-
-export const GONDOLIN_TOOL_NAMES = [
-  'read',
-  'write',
-  'edit',
-  'bash',
-  'ls',
-  'find',
-  'grep',
-] as const;
 import {
   enabledPiToolNames,
   filterModelVisibleTools,
@@ -98,9 +89,46 @@ import {
 } from '../tool-policy/session-policy.js';
 import {
   activateAgentEnv,
+  type GuestCredentialMode,
   resolveVfsShadowConfig,
   resumeVm,
+  type VmDiagnostic,
 } from '../vm-manager.js';
+
+export const GONDOLIN_TOOL_NAMES = [
+  'read',
+  'write',
+  'edit',
+  'bash',
+  'ls',
+  'find',
+  'grep',
+] as const;
+
+const HOST_AUTHENTICATED_HOST_EXEC_REFUSED_ENV = new Set([
+  'GIT_CONFIG_GLOBAL',
+  'MOLTNET_CREDENTIALS_PATH',
+  'SSH_AUTH_SOCK',
+]);
+
+export function resolveHostExecBaseEnv(
+  guestCredentialMode: GuestCredentialMode,
+  agentEnv: Readonly<Record<string, string | undefined>>,
+): Set<string> {
+  const names = new Set([
+    ...HOST_EXEC_DEFAULT_BASE_ENV,
+    ...Object.keys(agentEnv),
+  ]);
+  if (guestCredentialMode === 'host-authenticated') {
+    for (const name of HOST_AUTHENTICATED_HOST_EXEC_REFUSED_ENV) {
+      names.delete(name);
+    }
+    for (const name of names) {
+      if (name.startsWith('MOLTNET_')) names.delete(name);
+    }
+  }
+  return names;
+}
 import { buildAgentSession } from './agent-session-factory.js';
 import {
   discoverGuestExecutables,
@@ -256,6 +284,10 @@ export function createGondolinToolDefinitions(config: {
 export interface ExecutePiTaskOptions {
   /** MoltNet agent whose credentials the VM boots with. */
   agentName: string;
+  /** Already-authenticated host-side Agent. Daemon callers always supply it. */
+  moltnetAgent?: Agent;
+  /** Explicit trust boundary for MoltNet credentials inside the guest. */
+  guestCredentialMode?: GuestCredentialMode;
   /**
    * Host root that owns `.moltnet/<agentName>/`.
    *
@@ -313,6 +345,8 @@ export interface ExecutePiTaskOptions {
   promptExtras?: Record<string, unknown>;
   /** Snapshot progress callback; defaults to stderr logging. */
   onSnapshotProgress?: (message: string) => void;
+  /** Structured VM credential-boundary diagnostics. */
+  onVmDiagnostic?: (diagnostic: VmDiagnostic) => void;
   /**
    * Optional pre-resolved checkpoint path. If omitted, `ensureSnapshot` is
    * invoked. Useful for batch execution where the caller wants to cache
@@ -446,6 +480,28 @@ export interface ExecutePiTaskOptions {
 }
 
 export const DEFAULT_PROVIDER_ERROR_RETRIES = 4;
+
+export function createMoltNetAgentResolver(input: {
+  moltnetAgent?: Agent;
+  configDir: string;
+  connectAgent?: (configDir: string) => Promise<Agent>;
+}): () => Promise<Agent> {
+  let resolved: Promise<Agent> | undefined;
+  return () => {
+    if (!resolved) {
+      const attempt = input.moltnetAgent
+        ? Promise.resolve(input.moltnetAgent)
+        : (input.connectAgent ?? ((configDir) => connect({ configDir })))(
+            input.configDir,
+          );
+      resolved = attempt.catch((error: unknown) => {
+        resolved = undefined;
+        throw error;
+      });
+    }
+    return resolved;
+  };
+}
 
 /**
  * Factory that builds a pi-specific `executeTask` function suitable for
@@ -731,11 +787,13 @@ export async function executePiTask(
             checkpointPath,
             agentName: opts.agentName,
             agentRootDir,
+            guestCredentialMode: opts.guestCredentialMode,
             mountPath,
             workspaceMode: preparedWorkspace.mode,
             extraAllowedHosts: opts.extraAllowedHosts,
             sandboxConfig: effectiveSandboxConfig,
             forwardEnv: opts.forwardEnv,
+            onDiagnostic: opts.onVmDiagnostic,
             signal: reporter.cancelSignal,
           }),
       );
@@ -756,6 +814,10 @@ export async function executePiTask(
     activateAgentEnv(managed.credentials.agentEnv, agentRootDir);
     const activeWorkspace = preparedWorkspace;
     const activeManaged = managed;
+    const getMoltNetAgent = createMoltNetAgentResolver({
+      moltnetAgent: opts.moltnetAgent,
+      configDir: managed.agentDir,
+    });
 
     await emit('info', {
       event: 'execute_start',
@@ -779,8 +841,10 @@ export async function executePiTask(
     )?.continueFrom;
     if (task.taskType === FREEFORM_TYPE && continueFrom) {
       try {
-        const priorAgent = await connect({ configDir: managed.agentDir });
-        const resolved = await resolvePriorContext(priorAgent, continueFrom);
+        const resolved = await resolvePriorContext(
+          await getMoltNetAgent(),
+          continueFrom,
+        );
         if (resolved) {
           resolvedPriorContext = resolved;
           await emit('info', {
@@ -946,13 +1010,13 @@ export async function executePiTask(
       submitToolDefs as unknown as ToolDefinition[];
 
     try {
-      const moltnetAgent = await connect({ configDir: managed.agentDir });
+      const moltnetAgent = await getMoltNetAgent();
       // Build the host-exec env allowlist: default keys + all agent env keys
       // (MOLTNET_*, GIT_CONFIG_GLOBAL, etc. set by activateAgentEnv).
-      const hostExecBaseEnv = new Set([
-        ...HOST_EXEC_DEFAULT_BASE_ENV,
-        ...Object.keys(managed.credentials.agentEnv),
-      ]);
+      const hostExecBaseEnv = resolveHostExecBaseEnv(
+        opts.guestCredentialMode ?? 'guest-config',
+        managed.credentials.agentEnv,
+      );
       const moltnetTools = createMoltNetTools({
         getAgent: () => moltnetAgent,
         getDiaryId: () => diaryId,

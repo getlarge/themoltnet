@@ -338,6 +338,7 @@ async function makeLegacyFixture() {
     mkdir(scratchRootDir, { recursive: true }),
   ]);
   runGit(mainWorktree, ['init']);
+  runGit(mainWorktree, ['config', 'commit.gpgsign', 'false']);
   runGit(mainWorktree, ['config', 'user.name', 'Test Agent']);
   runGit(mainWorktree, ['config', 'user.email', 'agent@example.com']);
   await writeFile(join(mainWorktree, 'README.md'), 'seed\n');

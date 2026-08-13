@@ -20,6 +20,7 @@ export {
   type ProviderErrorRetryEvent,
   type ProviderErrorRetryLevel,
   type ProviderErrorRetryUi,
+  resolveHostExecBaseEnv,
   resolveTaskWorktreePath,
   type TurnEventHandlerFactory,
 } from './runtime/execute-pi-task.js';
@@ -118,10 +119,19 @@ export {
   type SessionToolPolicy,
   type ToolPolicyExtensionDeps,
 } from './tool-policy/session-policy.js';
-export type { ManagedVm, VmConfig, VmCredentials } from './vm-manager.js';
+export type {
+  GuestCredentialMode,
+  ManagedVm,
+  VmConfig,
+  VmCredentials,
+  VmDiagnostic,
+} from './vm-manager.js';
 export {
   activateAgentEnv,
+  assertGuestEnvironmentBoundary,
+  assertHostAuthenticatedGuestEnvironment,
   findMainWorktree,
   loadCredentials,
   resumeVm,
 } from './vm-manager.js';
+export { GuestEnvironmentBoundaryError } from './vm-manager.js';

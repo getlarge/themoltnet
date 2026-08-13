@@ -22,7 +22,7 @@ import {
   ATTR_SERVICE_NAME,
   ATTR_SERVICE_VERSION,
 } from '@opentelemetry/semantic-conventions';
-import { connect } from '@themoltnet/sdk';
+import { type Agent, connect } from '@themoltnet/sdk';
 import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
 
 export interface InitWorkerOtelOptions {
@@ -35,6 +35,12 @@ export interface InitWorkerOtelOptions {
    * unauthenticated receiver (e.g. local :4318), never the public one.
    */
   agentDir?: string;
+  /**
+   * Already-authenticated host agent. Daemon callers should pass this so
+   * telemetry authentication follows the selected daemon auth mode without
+   * reconnecting through config files.
+   */
+  agent?: Pick<Agent, 'getToken'>;
   /**
    * OTLP endpoint base URL. Empty/undefined → bootstrap is a no-op.
    * Callers usually source this from `loadConfig()` so env reads stay in
@@ -70,11 +76,14 @@ export async function initWorkerOtel(
   // bearer token is always fresh. TokenManager inside connect() handles
   // caching + refresh.
   let headersFactory: (() => Promise<Record<string, string>>) | undefined;
-  if (options.agentDir) {
-    const agent = await connect({
+  let agent = options.agent;
+  if (!agent && options.agentDir) {
+    agent = await connect({
       configDir: options.agentDir,
       secretProviders: createNodeSecretProviderRegistry(),
     });
+  }
+  if (agent) {
     headersFactory = async () => {
       const token = await agent.getToken();
       return { Authorization: `Bearer ${token}` };
