@@ -2,6 +2,9 @@
 #
 # Allow the commands that the legreffier skill needs to run.
 # The GitHub guard owns authorship policy; these rules only reduce prompts.
+#
+# After regenerating this file, restart the Codex trusted project session
+# so the new rules are loaded (Codex reads project rules at startup only).
 
 # Read-only git commands (session activation & commit workflow)
 prefix_rule(
@@ -25,113 +28,200 @@ prefix_rule(
     decision = "allow",
 )
 
-# MoltNet CLI — signing, entry, & token generation
+# MoltNet CLI — signing, entry, memory reads, & token generation
+# Native binary and npx forms are generated from the same allowlist.
+# Signing
 prefix_rule(
-    pattern = ["npx", "@themoltnet/cli"],
+    pattern = ["moltnet", "sign"],
     decision = "allow",
 )
 prefix_rule(
     pattern = ["npx", "@themoltnet/cli", "sign"],
     decision = "allow",
 )
+# Entry commit
+prefix_rule(
+    pattern = ["moltnet", "entry", "commit"],
+    decision = "allow",
+)
 prefix_rule(
     pattern = ["npx", "@themoltnet/cli", "entry", "commit"],
+    decision = "allow",
+)
+# Entry create-signed
+prefix_rule(
+    pattern = ["moltnet", "entry", "create-signed"],
     decision = "allow",
 )
 prefix_rule(
     pattern = ["npx", "@themoltnet/cli", "entry", "create-signed"],
     decision = "allow",
 )
+# Entry verify
+prefix_rule(
+    pattern = ["moltnet", "entry", "verify"],
+    decision = "allow",
+)
 prefix_rule(
     pattern = ["npx", "@themoltnet/cli", "entry", "verify"],
+    decision = "allow",
+)
+# GitHub token generation
+prefix_rule(
+    pattern = ["moltnet", "github", "token"],
     decision = "allow",
 )
 prefix_rule(
     pattern = ["npx", "@themoltnet/cli", "github", "token"],
     decision = "allow",
 )
+# GitHub exec wrapper (issue #1824)
+prefix_rule(
+    pattern = ["moltnet", "github", "exec"],
+    decision = "allow",
+)
+prefix_rule(
+    pattern = ["npx", "@themoltnet/cli", "github", "exec"],
+    decision = "allow",
+)
+# Agent activation
 prefix_rule(
     pattern = ["moltnet", "agents", "activation"],
     decision = "allow",
 )
 prefix_rule(
-    pattern = ["moltnet", "sign"],
+    pattern = ["npx", "@themoltnet/cli", "agents", "activation"],
+    decision = "allow",
+)
+# Diary list
+prefix_rule(
+    pattern = ["moltnet", "diary", "list"],
     decision = "allow",
 )
 prefix_rule(
-    pattern = ["moltnet", "entry", "commit"],
+    pattern = ["npx", "@themoltnet/cli", "diary", "list"],
+    decision = "allow",
+)
+# Diary get
+prefix_rule(
+    pattern = ["moltnet", "diary", "get"],
     decision = "allow",
 )
 prefix_rule(
-    pattern = ["moltnet", "entry", "create-signed"],
+    pattern = ["npx", "@themoltnet/cli", "diary", "get"],
+    decision = "allow",
+)
+# Diary tags
+prefix_rule(
+    pattern = ["moltnet", "diary", "tags"],
     decision = "allow",
 )
 prefix_rule(
-    pattern = ["moltnet", "entry", "verify"],
+    pattern = ["npx", "@themoltnet/cli", "diary", "tags"],
+    decision = "allow",
+)
+# Entry list
+prefix_rule(
+    pattern = ["moltnet", "entry", "list"],
     decision = "allow",
 )
 prefix_rule(
-    pattern = ["moltnet", "github", "token"],
+    pattern = ["npx", "@themoltnet/cli", "entry", "list"],
     decision = "allow",
 )
+# Entry get
+prefix_rule(
+    pattern = ["moltnet", "entry", "get"],
+    decision = "allow",
+)
+prefix_rule(
+    pattern = ["npx", "@themoltnet/cli", "entry", "get"],
+    decision = "allow",
+)
+# Entry search
+prefix_rule(
+    pattern = ["moltnet", "entry", "search"],
+    decision = "allow",
+)
+prefix_rule(
+    pattern = ["npx", "@themoltnet/cli", "entry", "search"],
+    decision = "allow",
+)
+# Relations list
+prefix_rule(
+    pattern = ["moltnet", "relations", "list"],
+    decision = "allow",
+)
+prefix_rule(
+    pattern = ["npx", "@themoltnet/cli", "relations", "list"],
+    decision = "allow",
+)
+# Task list
 prefix_rule(
     pattern = ["moltnet", "task", "list"],
-    decision = "allow",
-)
-prefix_rule(
-    pattern = ["moltnet", "task", "get"],
-    decision = "allow",
-)
-prefix_rule(
-    pattern = ["moltnet", "task", "attempts"],
-    decision = "allow",
-)
-prefix_rule(
-    pattern = ["moltnet", "task", "tail"],
-    decision = "allow",
-)
-prefix_rule(
-    pattern = ["moltnet", "pack", "list"],
-    decision = "allow",
-)
-prefix_rule(
-    pattern = ["moltnet", "pack", "get"],
-    decision = "allow",
-)
-prefix_rule(
-    pattern = ["moltnet", "rendered-pack", "list"],
-    decision = "allow",
-)
-prefix_rule(
-    pattern = ["moltnet", "rendered-pack", "get"],
     decision = "allow",
 )
 prefix_rule(
     pattern = ["npx", "@themoltnet/cli", "task", "list"],
     decision = "allow",
 )
+# Task get
+prefix_rule(
+    pattern = ["moltnet", "task", "get"],
+    decision = "allow",
+)
 prefix_rule(
     pattern = ["npx", "@themoltnet/cli", "task", "get"],
+    decision = "allow",
+)
+# Task attempts
+prefix_rule(
+    pattern = ["moltnet", "task", "attempts"],
     decision = "allow",
 )
 prefix_rule(
     pattern = ["npx", "@themoltnet/cli", "task", "attempts"],
     decision = "allow",
 )
+# Task tail
+prefix_rule(
+    pattern = ["moltnet", "task", "tail"],
+    decision = "allow",
+)
 prefix_rule(
     pattern = ["npx", "@themoltnet/cli", "task", "tail"],
+    decision = "allow",
+)
+# Pack list
+prefix_rule(
+    pattern = ["moltnet", "pack", "list"],
     decision = "allow",
 )
 prefix_rule(
     pattern = ["npx", "@themoltnet/cli", "pack", "list"],
     decision = "allow",
 )
+# Pack get
+prefix_rule(
+    pattern = ["moltnet", "pack", "get"],
+    decision = "allow",
+)
 prefix_rule(
     pattern = ["npx", "@themoltnet/cli", "pack", "get"],
     decision = "allow",
 )
+# Rendered-pack list
+prefix_rule(
+    pattern = ["moltnet", "rendered-pack", "list"],
+    decision = "allow",
+)
 prefix_rule(
     pattern = ["npx", "@themoltnet/cli", "rendered-pack", "list"],
+    decision = "allow",
+)
+# Rendered-pack get
+prefix_rule(
+    pattern = ["moltnet", "rendered-pack", "get"],
     decision = "allow",
 )
 prefix_rule(

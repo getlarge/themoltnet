@@ -273,6 +273,172 @@ func TestSecretsGuardProtectsActivationCache(t *testing.T) {
 	}
 }
 
+// --- Issue #1868: distinguish credential access from harmless config reads ---
+
+func TestSecretsGuardAllowsReadsOfManagedConfigFiles(t *testing.T) {
+	t.Parallel()
+	commands := []string{
+		`rg -n TODO .codex/hooks.json`,
+		`sed -n 1,40p .claude/hooks/moltnet-secret-guard.sh`,
+		`git diff -- .codex/hooks.json`,
+		`git status --short .codex/hooks.json`,
+		`git log -- .claude/settings.json`,
+		`git grep TODO HEAD -- .codex/hooks.json`,
+		`head -n 5 .claude/settings.json`,
+		`cat .codex/hooks.json`,
+		`ls .claude`,
+		`cp .codex/hooks.json /tmp/hooks-backup.json`,
+		`wc -l .claude/settings.json`,
+		`stat .codex/hooks.json`,
+		`test -f .codex/hooks.json`,
+	}
+	for _, command := range commands {
+		if reason := evaluateSecretsShell(command); reason != "" {
+			t.Errorf("expected allow for managed config read %q, got denial: %s", command, reason)
+		}
+	}
+}
+
+func TestSecretsGuardDeniesMutationsOfManagedConfigFiles(t *testing.T) {
+	t.Parallel()
+	commands := []string{
+		`cp /tmp/hooks.json .codex/hooks.json`,
+		`mv /tmp/hooks.json .codex/hooks.json`,
+		`mv .codex/hooks.json /tmp/old.json`,
+		`chmod 600 .codex/hooks.json`,
+		`rm .claude/hooks/moltnet-secret-guard.sh`,
+		`echo x > .codex/hooks.json`,
+		`tee .claude/settings.json`,
+	}
+	for _, command := range commands {
+		if reason := evaluateSecretsShell(command); reason == "" {
+			t.Errorf("expected denial for managed config mutation %q", command)
+		}
+	}
+}
+
+func TestSecretsGuardAllowsNativeReadOfManagedConfigFiles(t *testing.T) {
+	t.Parallel()
+	payloads := []map[string]any{
+		{"tool_name": "Read", "tool_input": map[string]any{"file_path": ".codex/hooks.json"}},
+		{"tool_name": "Read", "tool_input": map[string]any{"file_path": ".claude/settings.json"}},
+		{"tool_name": "Grep", "tool_input": map[string]any{"path": ".claude/hooks"}},
+	}
+	for _, payload := range payloads {
+		encoded, _ := json.Marshal(payload)
+		var output bytes.Buffer
+		if err := runSecretsGuardCmd(bytes.NewReader(encoded), &output); err != nil {
+			t.Fatal(err)
+	}
+		if output.Len() != 0 {
+			t.Errorf("expected allow for managed config read %v, got: %s", payload, output.String())
+		}
+	}
+}
+
+func TestSecretsGuardDeniesNativeWriteOfManagedConfigFiles(t *testing.T) {
+	t.Parallel()
+	payloads := []map[string]any{
+		{"tool_name": "Write", "tool_input": map[string]any{"filePath": ".codex/hooks.json"}},
+		{"tool_name": "Edit", "tool_input": map[string]any{"filePath": ".claude/settings.json"}},
+	}
+	for _, payload := range payloads {
+		encoded, _ := json.Marshal(payload)
+		var output bytes.Buffer
+		if err := runSecretsGuardCmd(bytes.NewReader(encoded), &output); err != nil {
+			t.Fatal(err)
+	}
+		if !strings.Contains(output.String(), `"permissionDecision":"deny"`) {
+			t.Errorf("expected managed config write denial for %v, got %s", payload, output.String())
+		}
+	}
+}
+
+func TestSecretsGuardDoesNotMatchSuffixFalsePositives(t *testing.T) {
+	t.Parallel()
+	paths := []string{
+		"/tmp/unrelated-project/.codex/hooks.json",
+		"/tmp/unrelated-project/.claude/settings.json",
+		"~/.codex/config.toml",
+		"~/.claude/settings.json",
+		"/etc/.opencode/plugins/moltnet-secret-guard.ts",
+	}
+	for _, path := range paths {
+		if classifyProtectedPath(path) != pathNone {
+			t.Errorf("expected pathNone for unrelated path %s, got %v", path, classifyProtectedPath(path))
+		}
+	}
+
+	// Shell commands against unrelated dirs should be allowed.
+	commands := []string{
+		`ls ~/.codex`,
+		`ls ~/.claude`,
+		`ls ~/.opencode`,
+		`ls /tmp/unrelated-project/.codex`,
+		`head -n 5 /tmp/unrelated-project/.claude/settings.json`,
+		`rg model ~/.codex/config.toml`,
+	}
+	for _, command := range commands {
+		if reason := evaluateSecretsShell(command); reason != "" {
+			t.Errorf("expected allow for unrelated path %q, got denial: %s", command, reason)
+		}
+	}
+}
+
+func TestSecretsGuardDeniesRecursiveTraversalOfRepoRoot(t *testing.T) {
+	t.Parallel()
+	commands := []string{
+		`rg --hidden canary .`,
+		`rg -H canary .`,
+		`grep -R canary .`,
+		`grep -r canary .`,
+		`find . -type f -print`,
+		`tar -cf /tmp/repo.tar .`,
+		`zip -r /tmp/repo.zip .`,
+		`cp -R . /tmp/backup`,
+	}
+	for _, command := range commands {
+		if reason := evaluateSecretsShell(command); reason == "" {
+			t.Errorf("expected denial for recursive traversal %q", command)
+		}
+	}
+}
+
+func TestSecretsGuardAllowsNonRecursiveTraversalOfSubdirs(t *testing.T) {
+	t.Parallel()
+	commands := []string{
+		`rg canary docs`,
+		`grep canary docs`,
+		`find docs -type f -print`,
+		`tar -cf /tmp/docs.tar docs`,
+		`rg --hidden canary docs`,
+	}
+	for _, command := range commands {
+		if reason := evaluateSecretsShell(command); reason != "" {
+			t.Errorf("expected allow for non-recursive subdir %q, got denial: %s", command, reason)
+		}
+	}
+}
+
+func TestSecretsGuardKeepsCredentialConfidentialityStrict(t *testing.T) {
+	t.Parallel()
+	// Reads of actual credential material remain denied even with read tools.
+	commands := []string{
+		`cat .moltnet/agent/moltnet.json`,
+		`sed -n 1p .moltnet/agent/env`,
+		`rg secret .moltnet/agent/moltnet.json`,
+		`head .moltnet/agent/moltnet.json`,
+		`jq . .moltnet/agent/moltnet.json`,
+		`cp .moltnet/agent/moltnet.json /tmp/leaked.json`,
+		`cp .moltnet/agent/env /tmp/leaked-env`,
+	}
+	for _, command := range commands {
+		if reason := evaluateSecretsShell(command); reason == "" {
+			t.Errorf("expected denial for credential read %q", command)
+		}
+	}
+}
+
 func TestCanonicalGuidanceDoesNotReadCredentialFiles(t *testing.T) {
 	t.Parallel()
 	repoRoot := filepath.Clean(filepath.Join("..", ".."))

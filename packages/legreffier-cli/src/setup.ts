@@ -11,16 +11,18 @@ import {
 import { dirname, join, relative } from 'node:path';
 
 /** Pinned to the release tag — updated by release-please. */
-const SKILL_VERSION = 'legreffier-v0.1.0';
-const SKILL_FALLBACK = 'main';
+const SKILL_VERSION = 'main';
 
 interface SkillDefinition {
   name: string;
   files: string[];
 }
 
+/** Canonical source-of-truth directory for skill files (see CANONICAL_SKILL_DIR). */
+const SKILL_SOURCE_DIR = '.agents/skills';
+
 function skillFileUrl(name: string, ref: string, file: string): string {
-  return `https://raw.githubusercontent.com/getlarge/themoltnet/${ref}/.claude/skills/${name}/${file}`;
+  return `https://raw.githubusercontent.com/getlarge/themoltnet/${ref}/${SKILL_SOURCE_DIR}/${name}/${file}`;
 }
 
 const SKILLS: SkillDefinition[] = [
@@ -37,34 +39,31 @@ const SKILLS: SkillDefinition[] = [
 
 async function downloadSkillFiles(
   skill: SkillDefinition,
-): Promise<Map<string, string> | null> {
-  for (const ref of [SKILL_VERSION, SKILL_FALLBACK]) {
-    const files = new Map<string, string>();
-    let ok = true;
+): Promise<Map<string, string>> {
+  const ref = SKILL_VERSION;
+  const files = new Map<string, string>();
 
-    for (const file of skill.files) {
-      let res: Response;
-      try {
-        res = await fetch(skillFileUrl(skill.name, ref, file));
-      } catch {
-        ok = false;
-        break;
-      }
-
-      if (!res.ok) {
-        ok = false;
-        break;
-      }
-
-      files.set(file, await res.text());
+  for (const file of skill.files) {
+    const url = skillFileUrl(skill.name, ref, file);
+    let res: Response;
+    try {
+      res = await fetch(url);
+    } catch (err) {
+      throw new Error(
+        `Failed to download skill "${skill.name}" file "${file}" from ${url}: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
 
-    if (ok) {
-      return files;
+    if (!res.ok) {
+      throw new Error(
+        `Failed to download skill "${skill.name}" file "${file}" from ${url}: HTTP ${res.status}`,
+      );
     }
+
+    files.set(file, await res.text());
   }
 
-  return null;
+  return files;
 }
 
 /**
@@ -74,18 +73,21 @@ async function downloadSkillFiles(
  * @param repoDir - Root of the target repository
  * @param skillDir - Relative path for skill files (e.g. '.claude/skills', '.agents/skills')
  */
+/**
+ * Install MoltNet skills into the given skill directory.
+ * Fetches from GitHub pinned to the CLI release tag.
+ *
+ * @param repoDir - Root of the target repository
+ * @param skillDir - Relative path for skill files (e.g. '.claude/skills', '.agents/skills')
+ * @throws when any skill file cannot be downloaded — setup must not silently
+ *   report success when skills are missing (issue #1867).
+ */
 export async function downloadSkills(
   repoDir: string,
   skillDir: string,
 ): Promise<void> {
   for (const skill of SKILLS) {
     const files = await downloadSkillFiles(skill);
-    if (!files) {
-      process.stderr.write(
-        `Warning: could not download skill "${skill.name}", skipping.\n`,
-      );
-      continue;
-    }
 
     const destDir = join(repoDir, skillDir, skill.name);
     await mkdir(destDir, { recursive: true });
@@ -381,7 +383,23 @@ export function buildGhTokenRule(): string {
     '`MOLTNET_GITHUB_GUARD_STRICT=1` to fail closed instead. Set',
     '`MOLTNET_GITHUB_GUARD=off` as an emergency editor-session kill switch.',
     '',
-    'For writes the App can perform, use the canonical command-scoped form:',
+    'For writes the App can perform, use the first-class execution wrapper',
+    '(recommended — the guard recognises it structurally, no shell variable',
+    'provenance required):',
+    '',
+    '```bash',
+    'moltnet github exec -- gh <command>',
+    '# or, if `moltnet` is not installed:',
+    'npx @themoltnet/cli github exec -- gh <command>',
+    '```',
+    '',
+    'This resolves credentials from the activated context, mints a command-scoped',
+    'App token, and runs exactly one `gh` child process. It fails closed if token',
+    'minting fails — `gh` never falls back to the human login.',
+    '',
+    'Alternatively, use the manual command-scoped form (the guard verifies the',
+    'token when the credentials path is a literal or single statically-assigned',
+    'variable):',
     '',
     '```bash',
     'CFG="$GIT_CONFIG_GLOBAL"',
@@ -416,15 +434,85 @@ export function buildGhTokenRule(): string {
 }
 
 /**
+ * Single source of truth for MoltNet CLI sub-commands that the legreffier
+ * skill needs to run outside the Codex sandbox. Both `buildCodexRules` and
+ * `buildPermissions` derive their native `moltnet …` and `npx @themoltnet/cli
+ * …` entries from this matrix so the two invocation forms cannot drift (issue
+ * #1877).
+ */
+interface CliAllowEntry {
+  /** Sub-command path after the binary, e.g. ["diary", "list"]. */
+  command: string[];
+  /** Human-readable comment used in the generated rules file. */
+  comment: string;
+}
+
+const MOLTNET_CLI_ALLOWLIST: CliAllowEntry[] = [
+  // Signing & entry workflow
+  { command: ['sign'], comment: 'Signing' },
+  { command: ['entry', 'commit'], comment: 'Entry commit' },
+  { command: ['entry', 'create-signed'], comment: 'Entry create-signed' },
+  { command: ['entry', 'verify'], comment: 'Entry verify' },
+  { command: ['github', 'token'], comment: 'GitHub token generation' },
+  { command: ['github', 'exec'], comment: 'GitHub exec wrapper (issue #1824)' },
+  { command: ['agents', 'activation'], comment: 'Agent activation' },
+  // Diary memory reads (issue #1877)
+  { command: ['diary', 'list'], comment: 'Diary list' },
+  { command: ['diary', 'get'], comment: 'Diary get' },
+  { command: ['diary', 'tags'], comment: 'Diary tags' },
+  { command: ['entry', 'list'], comment: 'Entry list' },
+  { command: ['entry', 'get'], comment: 'Entry get' },
+  { command: ['entry', 'search'], comment: 'Entry search' },
+  { command: ['relations', 'list'], comment: 'Relations list' },
+  // Task reads
+  { command: ['task', 'list'], comment: 'Task list' },
+  { command: ['task', 'get'], comment: 'Task get' },
+  { command: ['task', 'attempts'], comment: 'Task attempts' },
+  { command: ['task', 'tail'], comment: 'Task tail' },
+  // Pack reads
+  { command: ['pack', 'list'], comment: 'Pack list' },
+  { command: ['pack', 'get'], comment: 'Pack get' },
+  { command: ['rendered-pack', 'list'], comment: 'Rendered-pack list' },
+  { command: ['rendered-pack', 'get'], comment: 'Rendered-pack get' },
+];
+
+/** Build a Starlark prefix_rule pattern for the native `moltnet` binary. */
+function nativePattern(command: string[]): string {
+  return '[' + ['"moltnet"', ...command.map((c) => `"${c}"`)].join(', ') + ']';
+}
+
+/** Build a Starlark prefix_rule pattern for `npx @themoltnet/cli`. */
+function npxPattern(command: string[]): string {
+  return '[' + ['"npx"', '"@themoltnet/cli"', ...command.map((c) => `"${c}"`)].join(', ') + ']';
+}
+
+/** Build a Claude `Bash(…)` permission string for the native binary. */
+function nativePermission(command: string[]): string {
+  return `Bash(moltnet ${command.join(' ')} *)`;
+}
+
+/** Build a Claude `Bash(…)` permission string for the npx form. */
+function npxPermission(command: string[]): string {
+  return `Bash(npx @themoltnet/cli ${command.join(' ')} *)`;
+}
+
+/**
  * Build a Starlark `.rules` file for Codex with prefix_rule() entries
  * that allow the commands the legreffier skill needs.
+ *
+ * Codex loads project rules at startup. After regenerating this file, the
+ * operator must restart the trusted project session for the new rules to take
+ * effect (issue #1877).
  */
 export function buildCodexRules(_agentName: string): string {
-  return [
+  const lines: string[] = [
     '# Codex sandbox rules for LeGreffier',
     '#',
     '# Allow the commands that the legreffier skill needs to run.',
     '# The GitHub guard owns authorship policy; these rules only reduce prompts.',
+    '#',
+    '# After regenerating this file, restart the Codex trusted project session',
+    '# so the new rules are loaded (Codex reads project rules at startup only).',
     '',
     '# Read-only git commands (session activation & commit workflow)',
     'prefix_rule(',
@@ -448,119 +536,23 @@ export function buildCodexRules(_agentName: string): string {
     '    decision = "allow",',
     ')',
     '',
-    '# MoltNet CLI — signing, entry, & token generation',
-    'prefix_rule(',
-    '    pattern = ["npx", "@themoltnet/cli"],',
-    '    decision = "allow",',
-    ')',
-    'prefix_rule(',
-    '    pattern = ["npx", "@themoltnet/cli", "sign"],',
-    '    decision = "allow",',
-    ')',
-    'prefix_rule(',
-    '    pattern = ["npx", "@themoltnet/cli", "entry", "commit"],',
-    '    decision = "allow",',
-    ')',
-    'prefix_rule(',
-    '    pattern = ["npx", "@themoltnet/cli", "entry", "create-signed"],',
-    '    decision = "allow",',
-    ')',
-    'prefix_rule(',
-    '    pattern = ["npx", "@themoltnet/cli", "entry", "verify"],',
-    '    decision = "allow",',
-    ')',
-    'prefix_rule(',
-    '    pattern = ["npx", "@themoltnet/cli", "github", "token"],',
-    '    decision = "allow",',
-    ')',
-    'prefix_rule(',
-    '    pattern = ["moltnet", "agents", "activation"],',
-    '    decision = "allow",',
-    ')',
-    'prefix_rule(',
-    '    pattern = ["moltnet", "sign"],',
-    '    decision = "allow",',
-    ')',
-    'prefix_rule(',
-    '    pattern = ["moltnet", "entry", "commit"],',
-    '    decision = "allow",',
-    ')',
-    'prefix_rule(',
-    '    pattern = ["moltnet", "entry", "create-signed"],',
-    '    decision = "allow",',
-    ')',
-    'prefix_rule(',
-    '    pattern = ["moltnet", "entry", "verify"],',
-    '    decision = "allow",',
-    ')',
-    'prefix_rule(',
-    '    pattern = ["moltnet", "github", "token"],',
-    '    decision = "allow",',
-    ')',
-    'prefix_rule(',
-    '    pattern = ["moltnet", "task", "list"],',
-    '    decision = "allow",',
-    ')',
-    'prefix_rule(',
-    '    pattern = ["moltnet", "task", "get"],',
-    '    decision = "allow",',
-    ')',
-    'prefix_rule(',
-    '    pattern = ["moltnet", "task", "attempts"],',
-    '    decision = "allow",',
-    ')',
-    'prefix_rule(',
-    '    pattern = ["moltnet", "task", "tail"],',
-    '    decision = "allow",',
-    ')',
-    'prefix_rule(',
-    '    pattern = ["moltnet", "pack", "list"],',
-    '    decision = "allow",',
-    ')',
-    'prefix_rule(',
-    '    pattern = ["moltnet", "pack", "get"],',
-    '    decision = "allow",',
-    ')',
-    'prefix_rule(',
-    '    pattern = ["moltnet", "rendered-pack", "list"],',
-    '    decision = "allow",',
-    ')',
-    'prefix_rule(',
-    '    pattern = ["moltnet", "rendered-pack", "get"],',
-    '    decision = "allow",',
-    ')',
-    'prefix_rule(',
-    '    pattern = ["npx", "@themoltnet/cli", "task", "list"],',
-    '    decision = "allow",',
-    ')',
-    'prefix_rule(',
-    '    pattern = ["npx", "@themoltnet/cli", "task", "get"],',
-    '    decision = "allow",',
-    ')',
-    'prefix_rule(',
-    '    pattern = ["npx", "@themoltnet/cli", "task", "attempts"],',
-    '    decision = "allow",',
-    ')',
-    'prefix_rule(',
-    '    pattern = ["npx", "@themoltnet/cli", "task", "tail"],',
-    '    decision = "allow",',
-    ')',
-    'prefix_rule(',
-    '    pattern = ["npx", "@themoltnet/cli", "pack", "list"],',
-    '    decision = "allow",',
-    ')',
-    'prefix_rule(',
-    '    pattern = ["npx", "@themoltnet/cli", "pack", "get"],',
-    '    decision = "allow",',
-    ')',
-    'prefix_rule(',
-    '    pattern = ["npx", "@themoltnet/cli", "rendered-pack", "list"],',
-    '    decision = "allow",',
-    ')',
-    'prefix_rule(',
-    '    pattern = ["npx", "@themoltnet/cli", "rendered-pack", "get"],',
-    '    decision = "allow",',
-    ')',
+    '# MoltNet CLI — signing, entry, memory reads, & token generation',
+    '# Native binary and npx forms are generated from the same allowlist.',
+  ];
+
+  for (const entry of MOLTNET_CLI_ALLOWLIST) {
+    lines.push(`# ${entry.comment}`);
+    lines.push('prefix_rule(');
+    lines.push(`    pattern = ${nativePattern(entry.command)},`);
+    lines.push('    decision = "allow",');
+    lines.push(')');
+    lines.push('prefix_rule(');
+    lines.push(`    pattern = ${npxPattern(entry.command)},`);
+    lines.push('    decision = "allow",');
+    lines.push(')');
+  }
+
+  lines.push(
     '',
     '# GitHub CLI — read-only subcommands (write ops prompt the user)',
     'prefix_rule(',
@@ -596,7 +588,9 @@ export function buildCodexRules(_agentName: string): string {
     '    decision = "allow",',
     ')',
     '',
-  ].join('\n');
+  );
+
+  return lines.join('\n');
 }
 
 export interface SettingsLocalOptions {
@@ -612,51 +606,32 @@ export interface SettingsLocalOptions {
 
 /** Build the permission allow-list for the legreffier skill. */
 export function buildPermissions(agentName: string): string[] {
-  return [
+  const perms: string[] = [
     // Read-only git commands used by session activation & commit workflow
     'Bash(git config *)',
     'Bash(git diff *)',
     'Bash(git log *)',
     'Bash(git rev-parse *)',
     'Bash(git worktree list)',
-    // Signing CLI (native binary)
-    'Bash(moltnet sign *)',
-    'Bash(moltnet entry commit *)',
-    'Bash(moltnet entry create-signed *)',
-    'Bash(moltnet entry verify *)',
-    'Bash(moltnet github token *)',
-    'Bash(moltnet agents activation *)',
-    'Bash(moltnet task list *)',
-    'Bash(moltnet task get *)',
-    'Bash(moltnet task attempts *)',
-    'Bash(moltnet task tail *)',
-    'Bash(moltnet pack list *)',
-    'Bash(moltnet pack get *)',
-    'Bash(moltnet rendered-pack list *)',
-    'Bash(moltnet rendered-pack get *)',
-    // Signing CLI (npm package — equivalent commands)
-    'Bash(npx @themoltnet/cli *)',
-    'Bash(npx @themoltnet/cli sign *)',
-    'Bash(npx @themoltnet/cli entry commit *)',
-    'Bash(npx @themoltnet/cli entry create-signed *)',
-    'Bash(npx @themoltnet/cli entry verify *)',
-    'Bash(npx @themoltnet/cli github token *)',
-    'Bash(npx @themoltnet/cli agents activation *)',
-    'Bash(npx @themoltnet/cli task list *)',
-    'Bash(npx @themoltnet/cli task get *)',
-    'Bash(npx @themoltnet/cli task attempts *)',
-    'Bash(npx @themoltnet/cli task tail *)',
-    'Bash(npx @themoltnet/cli pack list *)',
-    'Bash(npx @themoltnet/cli pack get *)',
-    'Bash(npx @themoltnet/cli rendered-pack list *)',
-    'Bash(npx @themoltnet/cli rendered-pack get *)',
+  ];
+
+  // MoltNet CLI commands — native and npx forms derived from the same
+  // allowlist so they cannot drift (issue #1877).
+  for (const entry of MOLTNET_CLI_ALLOWLIST) {
+    perms.push(nativePermission(entry.command));
+    perms.push(npxPermission(entry.command));
+  }
+
+  perms.push(
     // Worktree symlink creation
     'Bash(ln -s *)',
     // Session activation env export
     'Bash(echo "GIT_CONFIG_GLOBAL=*")',
     // All MCP tools for this agent's server
     `mcp__${agentName}__*`,
-  ];
+  );
+
+  return perms;
 }
 
 /** Convert an agent name to an uppercase env-var prefix, e.g. "my-agent" → "MY_AGENT". */

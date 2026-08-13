@@ -26,7 +26,23 @@ default unavailable optional permission state fails open silently; set
 `MOLTNET_GITHUB_GUARD_STRICT=1` to fail closed instead. Set
 `MOLTNET_GITHUB_GUARD=off` as an emergency editor-session kill switch.
 
-For writes the App can perform, use the canonical command-scoped form:
+For writes the App can perform, use the first-class execution wrapper
+(recommended — the guard recognises it structurally, no shell variable
+provenance required):
+
+```bash
+moltnet github exec -- gh <command>
+# or, if `moltnet` is not installed:
+npx @themoltnet/cli github exec -- gh <command>
+```
+
+This resolves credentials from the activated context, mints a command-scoped
+App token, and runs exactly one `gh` child process. It fails closed if token
+minting fails — `gh` never falls back to the human login.
+
+Alternatively, use the manual command-scoped form (the guard verifies the
+token when the credentials path is a literal or single statically-assigned
+variable):
 
 ```bash
 CFG="$GIT_CONFIG_GLOBAL"

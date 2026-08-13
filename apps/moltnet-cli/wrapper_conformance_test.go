@@ -66,7 +66,7 @@ func resolvePrefixRunnerTarget(t *testing.T, command string) string {
 	if call == nil {
 		t.Fatalf("no command found in %q", command)
 	}
-	executable, _, _, ok := parseShellInvocation(call, "", collectStaticShellVars(file))
+	executable, _, _, ok, _ := parseShellInvocation(call, "", collectStaticShellVars(file))
 	if !ok {
 		t.Fatalf("could not resolve %q", command)
 	}

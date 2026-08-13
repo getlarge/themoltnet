@@ -97,58 +97,41 @@ describe('downloadSkills', () => {
     expect(template).toContain('operator_controls');
   });
 
-  it('warns and skips if fetch returns non-200', async () => {
+  it('throws when a skill file cannot be downloaded (issue #1867)', async () => {
     vi.stubGlobal('fetch', async () => ({ ok: false, status: 404 }));
-    const stderrSpy = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
 
-    await downloadSkills(tmpRepo, '.claude/skills');
-
-    expect(stderrSpy).toHaveBeenCalledWith(
-      expect.stringContaining('could not download skill'),
+    await expect(downloadSkills(tmpRepo, '.claude/skills')).rejects.toThrow(
+      /Failed to download skill.*HTTP 404/,
     );
     await expect(
       stat(join(tmpRepo, '.claude', 'skills', 'legreffier', 'SKILL.md')),
     ).rejects.toThrow();
   });
 
-  it('falls back to main only when a full skill payload is available', async () => {
-    vi.stubGlobal('fetch', async (url: string) => {
-      if (
-        url.includes('legreffier-v0.1.0/.claude/skills/legreffier-explore/') &&
-        url.endsWith('references/exploration-pack-plan.yaml')
-      ) {
-        return { ok: false, status: 404 };
-      }
+  it('throws with the failing URL on network error (issue #1867)', async () => {
+    vi.stubGlobal('fetch', async () => {
+      throw new Error('network unreachable');
+    });
 
+    await expect(downloadSkills(tmpRepo, '.agents/skills')).rejects.toThrow(
+      /network unreachable/,
+    );
+  });
+
+  it('fetches from the canonical .agents/skills source, not .claude/skills (issue #1867)', async () => {
+    const urls: string[] = [];
+    vi.stubGlobal('fetch', async (url: string) => {
+      urls.push(url);
       return {
         ok: true,
-        text: async () =>
-          url.includes('/main/')
-            ? `main payload for ${url}`
-            : `tag payload for ${url}`,
+        text: async () => `# Skill content for ${url}`,
       };
     });
 
-    await downloadSkills(tmpRepo, '.claude/skills');
+    await downloadSkills(tmpRepo, '.agents/skills');
 
-    const skill = await readFile(
-      join(tmpRepo, '.claude', 'skills', 'legreffier-explore', 'SKILL.md'),
-      'utf-8',
-    );
-    const template = await readFile(
-      join(
-        tmpRepo,
-        '.claude',
-        'skills',
-        'legreffier-explore',
-        'references',
-        'exploration-pack-plan.yaml',
-      ),
-      'utf-8',
-    );
-
-    expect(skill).toContain('/main/');
-    expect(template).toContain('/main/');
+    expect(urls.every((u) => u.includes('/.agents/skills/'))).toBe(true);
+    expect(urls.some((u) => u.includes('/.claude/skills/'))).toBe(false);
   });
 });
 
@@ -265,7 +248,46 @@ describe('buildPermissions', () => {
     expect(perms).toContain('Bash(moltnet pack get *)');
     expect(perms).toContain('Bash(moltnet rendered-pack list *)');
     expect(perms).toContain('Bash(moltnet rendered-pack get *)');
-    expect(perms).toContain('Bash(npx @themoltnet/cli *)');
+  });
+
+  it('includes diary/entry/relations memory read commands (issue #1877)', () => {
+    const perms = buildPermissions('x');
+    expect(perms).toContain('Bash(moltnet diary list *)');
+    expect(perms).toContain('Bash(moltnet diary get *)');
+    expect(perms).toContain('Bash(moltnet diary tags *)');
+    expect(perms).toContain('Bash(moltnet entry list *)');
+    expect(perms).toContain('Bash(moltnet entry get *)');
+    expect(perms).toContain('Bash(moltnet entry search *)');
+    expect(perms).toContain('Bash(moltnet relations list *)');
+  });
+
+  it('includes npx equivalents for memory reads (issue #1877)', () => {
+    const perms = buildPermissions('x');
+    expect(perms).toContain('Bash(npx @themoltnet/cli diary list *)');
+    expect(perms).toContain('Bash(npx @themoltnet/cli entry search *)');
+    expect(perms).toContain('Bash(npx @themoltnet/cli relations list *)');
+  });
+
+  it('does NOT include the broad npx catch-all (issue #1877)', () => {
+    const perms = buildPermissions('x');
+    expect(perms).not.toContain('Bash(npx @themoltnet/cli *)');
+  });
+
+  it('does NOT allow mutation commands through the allowlist (issue #1877)', () => {
+    const perms = buildPermissions('x');
+    expect(perms).not.toContain('Bash(moltnet entry create *)');
+    expect(perms).not.toContain('Bash(moltnet entry update *)');
+    expect(perms).not.toContain('Bash(moltnet entry delete *)');
+    expect(perms).not.toContain('Bash(moltnet diary create *)');
+    expect(perms).not.toContain('Bash(moltnet relations create *)');
+    expect(perms).not.toContain('Bash(moltnet relations update *)');
+    expect(perms).not.toContain('Bash(moltnet relations delete *)');
+    expect(perms).not.toContain('Bash(npx @themoltnet/cli entry create *)');
+    expect(perms).not.toContain('Bash(npx @themoltnet/cli entry delete *)');
+  });
+
+  it('includes other standard entries', () => {
+    const perms = buildPermissions('x');
     expect(perms).toContain('Bash(npx @themoltnet/cli sign *)');
     expect(perms).toContain('Bash(npx @themoltnet/cli entry commit *)');
     expect(perms).toContain('Bash(npx @themoltnet/cli entry create-signed *)');
@@ -363,21 +385,27 @@ describe('buildCodexRules', () => {
     expect(rules).toContain('pattern = ["git", "diff"]');
     expect(rules).toContain('pattern = ["git", "log"]');
     expect(rules).toContain('pattern = ["git", "rev-parse"]');
-    expect(rules).toContain('pattern = ["npx", "@themoltnet/cli"]');
+    // Signing & entry workflow
+    expect(rules).toContain('pattern = ["moltnet", "sign"]');
     expect(rules).toContain('pattern = ["npx", "@themoltnet/cli", "sign"]');
+    expect(rules).toContain('pattern = ["moltnet", "entry", "commit"]');
     expect(rules).toContain(
       'pattern = ["npx", "@themoltnet/cli", "entry", "commit"]',
     );
+    expect(rules).toContain('pattern = ["moltnet", "entry", "create-signed"]');
     expect(rules).toContain(
       'pattern = ["npx", "@themoltnet/cli", "entry", "create-signed"]',
     );
+    expect(rules).toContain('pattern = ["moltnet", "entry", "verify"]');
     expect(rules).toContain(
       'pattern = ["npx", "@themoltnet/cli", "entry", "verify"]',
     );
+    expect(rules).toContain('pattern = ["moltnet", "github", "token"]');
+    expect(rules).toContain(
+      'pattern = ["npx", "@themoltnet/cli", "github", "token"]',
+    );
     expect(rules).toContain('pattern = ["moltnet", "agents", "activation"]');
-    expect(rules).toContain('pattern = ["moltnet", "entry", "commit"]');
-    expect(rules).toContain('pattern = ["moltnet", "entry", "create-signed"]');
-    expect(rules).toContain('pattern = ["moltnet", "entry", "verify"]');
+    // Task reads
     expect(rules).toContain('pattern = ["moltnet", "task", "list"]');
     expect(rules).toContain('pattern = ["moltnet", "task", "get"]');
     expect(rules).toContain('pattern = ["moltnet", "task", "attempts"]');
@@ -386,43 +414,81 @@ describe('buildCodexRules', () => {
     expect(rules).toContain('pattern = ["moltnet", "pack", "get"]');
     expect(rules).toContain('pattern = ["moltnet", "rendered-pack", "list"]');
     expect(rules).toContain('pattern = ["moltnet", "rendered-pack", "get"]');
-    expect(rules).toContain(
-      'pattern = ["npx", "@themoltnet/cli", "task", "list"]',
-    );
-    expect(rules).toContain(
-      'pattern = ["npx", "@themoltnet/cli", "task", "get"]',
-    );
+    expect(rules).toContain('pattern = ["npx", "@themoltnet/cli", "task", "list"]');
+    expect(rules).toContain('pattern = ["npx", "@themoltnet/cli", "task", "get"]');
     expect(rules).toContain(
       'pattern = ["npx", "@themoltnet/cli", "task", "attempts"]',
     );
-    expect(rules).toContain(
-      'pattern = ["npx", "@themoltnet/cli", "task", "tail"]',
-    );
-    expect(rules).toContain(
-      'pattern = ["npx", "@themoltnet/cli", "pack", "list"]',
-    );
-    expect(rules).toContain(
-      'pattern = ["npx", "@themoltnet/cli", "pack", "get"]',
-    );
+    expect(rules).toContain('pattern = ["npx", "@themoltnet/cli", "task", "tail"]');
+    expect(rules).toContain('pattern = ["npx", "@themoltnet/cli", "pack", "list"]');
+    expect(rules).toContain('pattern = ["npx", "@themoltnet/cli", "pack", "get"]');
     expect(rules).toContain(
       'pattern = ["npx", "@themoltnet/cli", "rendered-pack", "list"]',
     );
     expect(rules).toContain(
       'pattern = ["npx", "@themoltnet/cli", "rendered-pack", "get"]',
     );
-    expect(rules).toContain(
-      'pattern = ["npx", "@themoltnet/cli", "github", "token"]',
-    );
-    expect(rules).toContain('pattern = ["ln", "-s"]');
-    expect(rules).toContain('decision = "allow"');
     // gh CLI — read-only subcommands only (write ops prompt the user)
     expect(rules).toContain('pattern = ["gh", "pr", "view"]');
     expect(rules).toContain('pattern = ["gh", "pr", "list"]');
     expect(rules).toContain('pattern = ["gh", "issue", "view"]');
     expect(rules).toContain('pattern = ["gh", "issue", "list"]');
     expect(rules).toContain('pattern = ["gh", "repo", "view"]');
+    expect(rules).toContain('pattern = ["ln", "-s"]');
+    expect(rules).toContain('decision = "allow"');
     expect(rules).not.toContain('pattern = ["gh", "pr"]');
     expect(rules).not.toContain('pattern = ["gh", "issue"]');
+  });
+
+  it('includes diary/entry/relations memory read rules (issue #1877)', () => {
+    const rules = buildCodexRules('legreffier');
+    // Native moltnet form
+    expect(rules).toContain('pattern = ["moltnet", "diary", "list"]');
+    expect(rules).toContain('pattern = ["moltnet", "diary", "get"]');
+    expect(rules).toContain('pattern = ["moltnet", "diary", "tags"]');
+    expect(rules).toContain('pattern = ["moltnet", "entry", "list"]');
+    expect(rules).toContain('pattern = ["moltnet", "entry", "get"]');
+    expect(rules).toContain('pattern = ["moltnet", "entry", "search"]');
+    expect(rules).toContain('pattern = ["moltnet", "relations", "list"]');
+    // npx form
+    expect(rules).toContain('pattern = ["npx", "@themoltnet/cli", "diary", "list"]');
+    expect(rules).toContain('pattern = ["npx", "@themoltnet/cli", "diary", "get"]');
+    expect(rules).toContain('pattern = ["npx", "@themoltnet/cli", "diary", "tags"]');
+    expect(rules).toContain('pattern = ["npx", "@themoltnet/cli", "entry", "list"]');
+    expect(rules).toContain('pattern = ["npx", "@themoltnet/cli", "entry", "get"]');
+    expect(rules).toContain(
+      'pattern = ["npx", "@themoltnet/cli", "entry", "search"]',
+    );
+    expect(rules).toContain(
+      'pattern = ["npx", "@themoltnet/cli", "relations", "list"]',
+    );
+  });
+
+  it('does NOT include the broad npx catch-all (issue #1877)', () => {
+    const rules = buildCodexRules('legreffier');
+    expect(rules).not.toContain('pattern = ["npx", "@themoltnet/cli"]');
+  });
+
+  it('does NOT allow mutation commands through the rules (issue #1877)', () => {
+    const rules = buildCodexRules('legreffier');
+    expect(rules).not.toContain('pattern = ["moltnet", "entry", "create"]');
+    expect(rules).not.toContain('pattern = ["moltnet", "entry", "update"]');
+    expect(rules).not.toContain('pattern = ["moltnet", "entry", "delete"]');
+    expect(rules).not.toContain('pattern = ["moltnet", "diary", "create"]');
+    expect(rules).not.toContain('pattern = ["moltnet", "relations", "create"]');
+    expect(rules).not.toContain('pattern = ["moltnet", "relations", "update"]');
+    expect(rules).not.toContain('pattern = ["moltnet", "relations", "delete"]');
+    expect(rules).not.toContain(
+      'pattern = ["npx", "@themoltnet/cli", "entry", "create"]',
+    );
+    expect(rules).not.toContain(
+      'pattern = ["npx", "@themoltnet/cli", "entry", "delete"]',
+    );
+  });
+
+  it('states that Codex must restart after rules change (issue #1877)', () => {
+    const rules = buildCodexRules('legreffier');
+    expect(rules).toContain('restart the Codex trusted project session');
   });
 
   it('does not contain markdown', () => {
@@ -501,7 +567,6 @@ describe('writeSettingsLocal', () => {
     expect(parsed.permissions.allow).toContain(
       'Bash(moltnet rendered-pack get *)',
     );
-    expect(parsed.permissions.allow).toContain('Bash(npx @themoltnet/cli *)');
     expect(parsed.permissions.allow).toContain(
       'Bash(npx @themoltnet/cli entry commit *)',
     );

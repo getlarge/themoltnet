@@ -441,7 +441,21 @@ In `human` authorship mode, visible `gh pr` and `gh issue` writes run bare so
 GitHub attributes them to the human. `git push` still uses the agent credential
 helper.
 
-When using the agent token:
+When using the agent token, the recommended first-class wrapper is:
+
+```bash
+moltnet github exec -- gh <command>
+# or, if `moltnet` is not installed:
+npx @themoltnet/cli github exec -- gh <command>
+```
+
+This resolves credentials from the activated context, mints a command-scoped
+App token, and runs exactly one `gh` child process. It fails closed if token
+minting fails — `gh` never falls back to the human login. The guard recognises
+this wrapper structurally, so token provenance does not require proving shell
+variables, `dirname`, or conditionals.
+
+Alternatively, use the manual command-scoped form:
 
 ```bash
 CFG="$GIT_CONFIG_GLOBAL"
@@ -453,9 +467,8 @@ GH_TOKEN=$(moltnet github token --credentials "$CREDS") gh <command>
 GH_TOKEN=$(npx @themoltnet/cli github token --credentials "$CREDS") gh <command>
 ```
 
-Use that exact wrapper whenever the agent token is in play. Keep the assignment
-on the same simple command: a token attached to one command in a chain does not
-authorize another `gh` process.
+Keep the assignment on the same simple command: a token attached to one command
+in a chain does not authorize another `gh` process.
 
 The `git rev-parse --show-toplevel` anchor is required because
 `GIT_CONFIG_GLOBAL` may be a relative path (e.g.
