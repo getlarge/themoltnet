@@ -10,9 +10,9 @@ injectWorkspacePackages: false
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
   - '@getlarge/fastify-mcp'
-  - '@themoltnet/sdk'
-  - '@themoltnet/cli'
-  - '@themoltnet/github-agent'
+  # Release jobs consume repository-owned packages published earlier in the
+  # same run, before the external-package quarantine has elapsed.
+  - '@themoltnet/*'
 allowBuilds:
   '@github/keytar': true
   cpu-features: false
