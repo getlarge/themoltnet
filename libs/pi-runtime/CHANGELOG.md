@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.7.3](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.7.2...pi-runtime-v0.7.3) (2026-08-13)
+
+
+### Bug Fixes
+
+* npm 12 compatibility for check-pack and smoke scripts ([09bef90](https://github.com/getlarge/themoltnet/commit/09bef90db57c4df31aac7ff564fa7c76b3801fd2))
+* npm 12 compatibility for check-pack and smoke scripts ([c85644a](https://github.com/getlarge/themoltnet/commit/c85644a3750950bc29e71fb65206f8c2d4a1fbd8))
+* use Node SDK entry for OS keyring secret resolution ([b17a1af](https://github.com/getlarge/themoltnet/commit/b17a1af5d4533a602eb84f1570df42a98bece97d))
+* use Node SDK entry for OS keyring secret resolution ([3a303c5](https://github.com/getlarge/themoltnet/commit/3a303c54d64eb0660c2323be30b0b9240bd67fc2))
+
 ## [0.7.2](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.7.1...pi-runtime-v0.7.2) (2026-08-09)
 
 

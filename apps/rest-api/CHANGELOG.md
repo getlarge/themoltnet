@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.41.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.40.2...rest-api-v0.41.0) (2026-08-13)
+
+
+### Features
+
+* **oauth-token-cache:** add Redis-backed store ([1296493](https://github.com/getlarge/themoltnet/commit/1296493d4aa61caac6e2f53311a8ed2fb4091c30)), closes [#1860](https://github.com/getlarge/themoltnet/issues/1860)
+* **oauth:** cache client_credentials grants server-side ([70e8da5](https://github.com/getlarge/themoltnet/commit/70e8da5110d9dd751c82a89aa0712a2c82b60af0))
+* **rest-api:** cache client_credentials grants in the OAuth2 proxy ([9fa1338](https://github.com/getlarge/themoltnet/commit/9fa1338efd3d6864d845b353c2d82c0151dcb246)), closes [#1860](https://github.com/getlarge/themoltnet/issues/1860)
+* **rest-api:** forward every grant and cache refresh_token briefly ([bad61a6](https://github.com/getlarge/themoltnet/commit/bad61a6ec489ffe7f6e28747c5ba43f5654cd6c2)), closes [#1860](https://github.com/getlarge/themoltnet/issues/1860)
+* **rest-api:** require Redis in production ([a44cdd0](https://github.com/getlarge/themoltnet/commit/a44cdd01982b7389669a93234b1cecb2d4eec1f8)), closes [#1860](https://github.com/getlarge/themoltnet/issues/1860)
+* **rest-api:** warn when production runs without shared Redis ([f234ead](https://github.com/getlarge/themoltnet/commit/f234ead14ad3496464213ba0fbdb35acc13705cf)), closes [#1860](https://github.com/getlarge/themoltnet/issues/1860)
+
+
+### Bug Fixes
+
+* **rest-api:** evict cached grants on client secret rotation ([9a67e73](https://github.com/getlarge/themoltnet/commit/9a67e735f5ac4ff06b287b8b8be311f2cea89e02)), closes [#1860](https://github.com/getlarge/themoltnet/issues/1860)
+
 ## [0.40.2](https://github.com/getlarge/themoltnet/compare/rest-api-v0.40.1...rest-api-v0.40.2) (2026-08-07)
 
 
