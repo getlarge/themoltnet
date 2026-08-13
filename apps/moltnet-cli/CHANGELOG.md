@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.78.2](https://github.com/getlarge/themoltnet/compare/cli-v1.78.1...cli-v1.78.2) (2026-08-13)
+
+
+### Bug Fixes
+
+* **credentials:** address self-review guard findings ([d7523e3](https://github.com/getlarge/themoltnet/commit/d7523e3005231f54d1698ed7fad8756397a8b45a))
+* **credentials:** resolve credentials protection issues [#1877](https://github.com/getlarge/themoltnet/issues/1877) [#1868](https://github.com/getlarge/themoltnet/issues/1868) [#1867](https://github.com/getlarge/themoltnet/issues/1867) [#1824](https://github.com/getlarge/themoltnet/issues/1824) ([94bc1ff](https://github.com/getlarge/themoltnet/commit/94bc1ff8c386aa82cc629548bdb906f0af4528d2))
+* **credentials:** resolve credentials protection issues [#1877](https://github.com/getlarge/themoltnet/issues/1877) [#1868](https://github.com/getlarge/themoltnet/issues/1868) [#1867](https://github.com/getlarge/themoltnet/issues/1867) [#1824](https://github.com/getlarge/themoltnet/issues/1824) ([2b85752](https://github.com/getlarge/themoltnet/commit/2b85752c3aa982e71a6993f4d4b905fddcf42807))
+* formatting, codex adapter test, and go.mod sync for CI ([e4e9d32](https://github.com/getlarge/themoltnet/commit/e4e9d325a169b6502e4d9646904fbeece032795b))
+
 ## [1.78.1](https://github.com/getlarge/themoltnet/compare/cli-v1.78.0...cli-v1.78.1) (2026-08-09)
 
 

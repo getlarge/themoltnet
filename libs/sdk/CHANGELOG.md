@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.132.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.131.0...sdk-v0.132.0) (2026-08-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sdk:** fail closed for agent-key endpoints
+
+### Features
+
+* **daemon:** run agent-key workers without config files ([b3e4948](https://github.com/getlarge/themoltnet/commit/b3e49480235d856c5963d48d8f57700f9518b9c1))
+
+
+### Bug Fixes
+
+* **sdk:** fail closed for agent-key endpoints ([735f34b](https://github.com/getlarge/themoltnet/commit/735f34b4dba148e0e953ff705ce55d788c5989c8))
+
 ## [0.131.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.130.0...sdk-v0.131.0) (2026-08-09)
 
 

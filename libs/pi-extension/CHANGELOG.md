@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.38.8](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.38.7...pi-extension-v0.38.8) (2026-08-13)
+
+
+### Bug Fixes
+
+* **release:** allow fresh internal packages ([c2cb8fa](https://github.com/getlarge/themoltnet/commit/c2cb8fa9b248ccead392d477a2ec6af101549a3c))
+* **release:** allow fresh internal packages ([51da825](https://github.com/getlarge/themoltnet/commit/51da8252f9b3d9ae074dce04452fe3bcde7582cc))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/pi-runtime bumped to 0.8.0
+    * @themoltnet/sdk bumped to 0.132.0
+
 ## [0.38.7](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.38.6...pi-extension-v0.38.7) (2026-08-13)
 
 
