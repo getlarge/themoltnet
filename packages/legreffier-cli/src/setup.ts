@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import {
   chmod,
   cp,
@@ -10,8 +11,26 @@ import {
 } from 'node:fs/promises';
 import { dirname, join, relative } from 'node:path';
 
-/** Pinned to the release tag — updated by release-please. */
-const SKILL_VERSION = 'main';
+function resolveSkillVersion(): string {
+  const packageJsonUrl = new URL('../package.json', import.meta.url);
+  const packageJson = JSON.parse(readFileSync(packageJsonUrl, 'utf-8')) as {
+    version?: unknown;
+  };
+  if (
+    typeof packageJson.version !== 'string' ||
+    !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(
+      packageJson.version,
+    )
+  ) {
+    throw new Error(
+      'Cannot resolve the LeGreffier release tag: invalid package version',
+    );
+  }
+  return `legreffier-v${packageJson.version}`;
+}
+
+/** Immutable release tag corresponding to this installed CLI package. */
+const SKILL_VERSION = resolveSkillVersion();
 
 interface SkillDefinition {
   name: string;

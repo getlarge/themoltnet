@@ -11,6 +11,15 @@ import (
 	"testing"
 )
 
+func testSecretGuardPathContext(t *testing.T) secretGuardPathContext {
+	t.Helper()
+	repoRoot, err := filepath.Abs(filepath.Join("..", ".."))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return newSecretGuardPathContext(repoRoot, repoRoot, repoRoot)
+}
+
 func TestSecretsGuardDeniesCredentialReaders(t *testing.T) {
 	t.Parallel()
 	readers := []string{"cat", "sed -n 1p", "rg secret", "grep secret", "head", "tail", "awk '{print}'", "jq .", "strings", "xxd", "base64", "ls"}
@@ -18,7 +27,7 @@ func TestSecretsGuardDeniesCredentialReaders(t *testing.T) {
 		reader := reader
 		t.Run(reader, func(t *testing.T) {
 			command := reader + " .moltnet/agent/moltnet.json"
-			if reason := evaluateSecretsShell(command); reason == "" {
+			if reason := evaluateSecretsShellWithContext(command, testSecretGuardPathContext(t)); reason == "" {
 				t.Fatalf("expected denial for %q", command)
 			}
 		})
@@ -54,7 +63,7 @@ func TestSecretsGuardDeniesAlternateShellConstructs(t *testing.T) {
 		`GH_TOKEN=$(moltnet github token --credentials .moltnet/agent/moltnet.json) gh pr view 1; moltnet github token --credentials .moltnet/agent/moltnet.json`,
 	}
 	for _, command := range commands {
-		if reason := evaluateSecretsShell(command); reason == "" {
+		if reason := evaluateSecretsShellWithContext(command, testSecretGuardPathContext(t)); reason == "" {
 			t.Errorf("expected denial for %q", command)
 		}
 	}
@@ -143,7 +152,7 @@ func TestSecretsGuardAllowsSafeOperations(t *testing.T) {
 		`GH_TOKEN=$(moltnet github token --credentials .moltnet/agent/moltnet.json) gh pr view 1`,
 	}
 	for _, command := range commands {
-		if reason := evaluateSecretsShell(command); reason != "" {
+		if reason := evaluateSecretsShellWithContext(command, testSecretGuardPathContext(t)); reason != "" {
 			t.Errorf("unexpected denial for %q: %s", command, reason)
 		}
 	}
@@ -151,7 +160,13 @@ func TestSecretsGuardAllowsSafeOperations(t *testing.T) {
 
 func TestSecretsGuardDirectFileTools(t *testing.T) {
 	t.Parallel()
-	input := secretHookInput{ToolName: "Read", ToolInput: map[string]any{"file_path": "/repo/.moltnet/agent/env"}}
+	pathContext := testSecretGuardPathContext(t)
+	input := secretHookInput{
+		ToolName: "Read",
+		ToolInput: map[string]any{
+			"file_path": filepath.Join(pathContext.currentRoot, ".moltnet", "agent", "env"),
+		},
+	}
 	payload, _ := json.Marshal(input)
 	var output bytes.Buffer
 	if err := runSecretsGuardCmd(bytes.NewReader(payload), &output); err != nil {
@@ -164,11 +179,12 @@ func TestSecretsGuardDirectFileTools(t *testing.T) {
 
 func TestSecretsGuardProtectsManagedHookConfiguration(t *testing.T) {
 	t.Parallel()
+	pathContext := testSecretGuardPathContext(t)
 	paths := []string{
-		".claude/settings.json",
-		".claude/hooks/moltnet-secret-guard.sh",
-		".codex/hooks.json",
-		".opencode/plugins/moltnet-secret-guard.ts",
+		filepath.Join(pathContext.currentRoot, ".claude", "settings.json"),
+		filepath.Join(pathContext.currentRoot, ".claude", "hooks", "moltnet-secret-guard.sh"),
+		filepath.Join(pathContext.currentRoot, ".codex", "hooks.json"),
+		filepath.Join(pathContext.currentRoot, ".opencode", "plugins", "moltnet-secret-guard.ts"),
 	}
 	for _, path := range paths {
 		input := secretHookInput{ToolName: "Write", ToolInput: map[string]any{"filePath": path}}
@@ -199,7 +215,7 @@ func TestSecretsGuardProtectsManagedHookAncestorsAndCaseVariants(t *testing.T) {
 		".MOLTNET/agent/env",
 	}
 	for _, path := range paths {
-		if !pathTouchesProtectedSecret(path) {
+		if !pathTouchesProtectedSecret(path, testSecretGuardPathContext(t)) {
 			t.Errorf("expected protected path for %s", path)
 		}
 	}
@@ -221,14 +237,15 @@ func TestSecretsGuardResolvesGlobsAndSymlinks(t *testing.T) {
 	if err := os.Symlink(filepath.Join("..", "moltnet.json"), publicLink); err != nil {
 		t.Fatal(err)
 	}
+	pathContext := newSecretGuardPathContext(root, root, root)
 
-	if !pathTouchesProtectedSecret(filepath.Join(root, ".molt?et", "agent", "moltnet.json")) {
+	if !pathTouchesProtectedSecret(filepath.Join(root, ".molt?et", "agent", "moltnet.json"), pathContext) {
 		t.Error("expected glob resolving into .moltnet to be protected")
 	}
-	if !pathTouchesProtectedSecret(publicLink) {
+	if !pathTouchesProtectedSecret(publicLink, pathContext) {
 		t.Error("expected canonical public-key symlink to a secret to be protected")
 	}
-	if pathTouchesProtectedSecret(filepath.Join(agentDir, "ssh", "other.pub")) == false {
+	if pathTouchesProtectedSecret(filepath.Join(agentDir, "ssh", "other.pub"), pathContext) == false {
 		// Non-canonical .pub names are protected even when they do not yet exist.
 		t.Error("expected non-canonical .pub path to be protected")
 	}
@@ -293,7 +310,7 @@ func TestSecretsGuardAllowsReadsOfManagedConfigFiles(t *testing.T) {
 		`test -f .codex/hooks.json`,
 	}
 	for _, command := range commands {
-		if reason := evaluateSecretsShell(command); reason != "" {
+		if reason := evaluateSecretsShellWithContext(command, testSecretGuardPathContext(t)); reason != "" {
 			t.Errorf("expected allow for managed config read %q, got denial: %s", command, reason)
 		}
 	}
@@ -311,7 +328,7 @@ func TestSecretsGuardDeniesMutationsOfManagedConfigFiles(t *testing.T) {
 		`tee .claude/settings.json`,
 	}
 	for _, command := range commands {
-		if reason := evaluateSecretsShell(command); reason == "" {
+		if reason := evaluateSecretsShellWithContext(command, testSecretGuardPathContext(t)); reason == "" {
 			t.Errorf("expected denial for managed config mutation %q", command)
 		}
 	}
@@ -319,17 +336,18 @@ func TestSecretsGuardDeniesMutationsOfManagedConfigFiles(t *testing.T) {
 
 func TestSecretsGuardAllowsNativeReadOfManagedConfigFiles(t *testing.T) {
 	t.Parallel()
+	pathContext := testSecretGuardPathContext(t)
 	payloads := []map[string]any{
-		{"tool_name": "Read", "tool_input": map[string]any{"file_path": ".codex/hooks.json"}},
-		{"tool_name": "Read", "tool_input": map[string]any{"file_path": ".claude/settings.json"}},
-		{"tool_name": "Grep", "tool_input": map[string]any{"path": ".claude/hooks"}},
+		{"tool_name": "Read", "tool_input": map[string]any{"file_path": filepath.Join(pathContext.currentRoot, ".codex", "hooks.json")}},
+		{"tool_name": "Read", "tool_input": map[string]any{"file_path": filepath.Join(pathContext.currentRoot, ".claude", "settings.json")}},
+		{"tool_name": "Grep", "tool_input": map[string]any{"path": filepath.Join(pathContext.currentRoot, ".claude", "hooks")}},
 	}
 	for _, payload := range payloads {
 		encoded, _ := json.Marshal(payload)
 		var output bytes.Buffer
 		if err := runSecretsGuardCmd(bytes.NewReader(encoded), &output); err != nil {
 			t.Fatal(err)
-	}
+		}
 		if output.Len() != 0 {
 			t.Errorf("expected allow for managed config read %v, got: %s", payload, output.String())
 		}
@@ -338,16 +356,17 @@ func TestSecretsGuardAllowsNativeReadOfManagedConfigFiles(t *testing.T) {
 
 func TestSecretsGuardDeniesNativeWriteOfManagedConfigFiles(t *testing.T) {
 	t.Parallel()
+	pathContext := testSecretGuardPathContext(t)
 	payloads := []map[string]any{
-		{"tool_name": "Write", "tool_input": map[string]any{"filePath": ".codex/hooks.json"}},
-		{"tool_name": "Edit", "tool_input": map[string]any{"filePath": ".claude/settings.json"}},
+		{"tool_name": "Write", "tool_input": map[string]any{"filePath": filepath.Join(pathContext.currentRoot, ".codex", "hooks.json")}},
+		{"tool_name": "Edit", "tool_input": map[string]any{"filePath": filepath.Join(pathContext.currentRoot, ".claude", "settings.json")}},
 	}
 	for _, payload := range payloads {
 		encoded, _ := json.Marshal(payload)
 		var output bytes.Buffer
 		if err := runSecretsGuardCmd(bytes.NewReader(encoded), &output); err != nil {
 			t.Fatal(err)
-	}
+		}
 		if !strings.Contains(output.String(), `"permissionDecision":"deny"`) {
 			t.Errorf("expected managed config write denial for %v, got %s", payload, output.String())
 		}
@@ -379,8 +398,96 @@ func TestSecretsGuardDoesNotMatchSuffixFalsePositives(t *testing.T) {
 		`rg model ~/.codex/config.toml`,
 	}
 	for _, command := range commands {
-		if reason := evaluateSecretsShell(command); reason != "" {
+		if reason := evaluateSecretsShellWithContext(command, testSecretGuardPathContext(t)); reason != "" {
 			t.Errorf("expected allow for unrelated path %q, got denial: %s", command, reason)
+		}
+	}
+}
+
+func TestSecretsGuardClassifiesManagedConfigAcrossRepositoryPathSpellings(t *testing.T) {
+	t.Parallel()
+	tempRoot := t.TempDir()
+	mainRoot := filepath.Join(tempRoot, "main")
+	currentRoot := filepath.Join(tempRoot, "linked-worktree")
+	cwd := filepath.Join(currentRoot, "apps", "cli")
+	for _, dir := range []string{
+		filepath.Join(mainRoot, ".codex"),
+		filepath.Join(currentRoot, ".codex"),
+		cwd,
+	} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	alias := filepath.Join(tempRoot, "checkout-alias")
+	if err := os.Symlink(currentRoot, alias); err != nil {
+		t.Fatal(err)
+	}
+
+	pathContext := newSecretGuardPathContext(cwd, currentRoot, mainRoot)
+	protected := []string{
+		filepath.Join("..", "..", ".codex", "hooks.json"),
+		filepath.Join(currentRoot, ".codex", "hooks.json"),
+		filepath.Join(mainRoot, ".codex", "hooks.json"),
+		filepath.Join(alias, ".codex", "hooks.json"),
+	}
+	for _, path := range protected {
+		if got := classifyProtectedPathWithContext(path, pathContext); got != pathManagedConfig {
+			t.Errorf("classify %q = %v, want pathManagedConfig", path, got)
+		}
+	}
+	if reason := evaluateSecretsShellWithContext(`cat ../../.codex/hooks.json`, pathContext); reason != "" {
+		t.Errorf("expected nested-CWD managed config read to be allowed, got: %s", reason)
+	}
+	if reason := evaluateSecretsShellWithContext(`echo x > ../../.codex/hooks.json`, pathContext); reason == "" {
+		t.Error("expected nested-CWD managed config mutation to be denied")
+	}
+
+	unrelated := []string{
+		filepath.Join(cwd, ".codex", "hooks.json"),
+		filepath.Join(tempRoot, "unrelated", ".codex", "hooks.json"),
+		"~/.codex/hooks.json",
+	}
+	for _, path := range unrelated {
+		if got := classifyProtectedPathWithContext(path, pathContext); got != pathNone {
+			t.Errorf("classify unrelated %q = %v, want pathNone", path, got)
+		}
+	}
+}
+
+func TestSecretsGuardTraversalUsesRepositoryContext(t *testing.T) {
+	t.Parallel()
+	tempRoot := t.TempDir()
+	mainRoot := filepath.Join(tempRoot, "main")
+	currentRoot := filepath.Join(tempRoot, "linked-worktree")
+	cwd := filepath.Join(currentRoot, "apps", "cli")
+	for _, dir := range []string{mainRoot, cwd} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	pathContext := newSecretGuardPathContext(cwd, currentRoot, mainRoot)
+
+	denied := []string{
+		`find ../.. -type f -print`,
+		`rg --hidden canary ../..`,
+		`find ` + mainRoot + ` -type f -print`,
+		`tar -cf /tmp/repo.tar ` + currentRoot,
+	}
+	for _, command := range denied {
+		if reason := evaluateSecretsShellWithContext(command, pathContext); reason == "" {
+			t.Errorf("expected contextual traversal denial for %q", command)
+		}
+	}
+
+	allowed := []string{
+		`find . -type f -print`,
+		`rg --hidden canary .`,
+		`find ` + filepath.Join(tempRoot, "unrelated") + ` -type f -print`,
+	}
+	for _, command := range allowed {
+		if reason := evaluateSecretsShellWithContext(command, pathContext); reason != "" {
+			t.Errorf("expected contextual traversal allow for %q, got: %s", command, reason)
 		}
 	}
 }
@@ -398,7 +505,7 @@ func TestSecretsGuardDeniesRecursiveTraversalOfRepoRoot(t *testing.T) {
 		`cp -R . /tmp/backup`,
 	}
 	for _, command := range commands {
-		if reason := evaluateSecretsShell(command); reason == "" {
+		if reason := evaluateSecretsShellWithContext(command, testSecretGuardPathContext(t)); reason == "" {
 			t.Errorf("expected denial for recursive traversal %q", command)
 		}
 	}
@@ -414,7 +521,7 @@ func TestSecretsGuardAllowsNonRecursiveTraversalOfSubdirs(t *testing.T) {
 		`rg --hidden canary docs`,
 	}
 	for _, command := range commands {
-		if reason := evaluateSecretsShell(command); reason != "" {
+		if reason := evaluateSecretsShellWithContext(command, testSecretGuardPathContext(t)); reason != "" {
 			t.Errorf("expected allow for non-recursive subdir %q, got denial: %s", command, reason)
 		}
 	}
@@ -433,7 +540,7 @@ func TestSecretsGuardKeepsCredentialConfidentialityStrict(t *testing.T) {
 		`cp .moltnet/agent/env /tmp/leaked-env`,
 	}
 	for _, command := range commands {
-		if reason := evaluateSecretsShell(command); reason == "" {
+		if reason := evaluateSecretsShellWithContext(command, testSecretGuardPathContext(t)); reason == "" {
 			t.Errorf("expected denial for credential read %q", command)
 		}
 	}

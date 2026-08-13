@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -33,6 +34,40 @@ const (
 	pathManagedConfig           // .claude/settings.json, .codex/hooks.json, …
 )
 
+// secretGuardPathContext anchors path classification to the repositories that
+// own the active guard. currentRoot is the checkout the tool runs in; mainRoot
+// is the stable root shared by linked worktrees. Keeping both prevents an
+// absolute or nested-CWD spelling from bypassing managed-config protection.
+type secretGuardPathContext struct {
+	cwd         string
+	currentRoot string
+	mainRoot    string
+}
+
+func resolveSecretGuardPathContext() (secretGuardPathContext, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return secretGuardPathContext{}, fmt.Errorf("get working directory: %w", err)
+	}
+	currentRoot, err := currentRepoRoot()
+	if err != nil {
+		return secretGuardPathContext{}, err
+	}
+	mainRoot, ok := resolveGitCommonRoot(cwd)
+	if !ok {
+		mainRoot = currentRoot
+	}
+	return newSecretGuardPathContext(cwd, currentRoot, mainRoot), nil
+}
+
+func newSecretGuardPathContext(cwd, currentRoot, mainRoot string) secretGuardPathContext {
+	return secretGuardPathContext{
+		cwd:         canonicalizeRoot(cwd),
+		currentRoot: canonicalizeRoot(currentRoot),
+		mainRoot:    canonicalizeRoot(mainRoot),
+	}
+}
+
 func runSecretsGuardCmd(in io.Reader, out io.Writer) error {
 	payload, err := io.ReadAll(io.LimitReader(in, maxSecretHookPayloadBytes+1))
 	if err != nil {
@@ -49,6 +84,10 @@ func runSecretsGuardCmd(in io.Reader, out io.Writer) error {
 	if input.ToolInput == nil {
 		return writeSecretGuardDenial(out, secretGuardFailure)
 	}
+	pathContext, err := resolveSecretGuardPathContext()
+	if err != nil {
+		return writeSecretGuardDenial(out, secretGuardFailure)
+	}
 
 	tool := normalizeSecretToolName(input.ToolName)
 	if tool == "" {
@@ -63,15 +102,15 @@ func runSecretsGuardCmd(in io.Reader, out io.Writer) error {
 		if !ok || strings.TrimSpace(command) == "" {
 			reason = secretGuardFailure
 		} else {
-			reason = evaluateSecretsShell(command)
+			reason = evaluateSecretsShellWithContext(command, pathContext)
 		}
 	case "read", "write", "edit", "grep", "glob", "applypatch":
-		reason = evaluateSecretsFileTool(input.ToolInput, tool)
+		reason = evaluateSecretsFileTool(input.ToolInput, tool, pathContext)
 	default:
 		// Hosts add tool names faster than the guard can release. Unknown tools
 		// remain allowed only when their path-bearing fields do not target a
 		// protected location.
-		reason = evaluateSecretsFileTool(input.ToolInput, tool)
+		reason = evaluateSecretsFileTool(input.ToolInput, tool, pathContext)
 	}
 	if reason == "" {
 		return nil
@@ -93,7 +132,7 @@ func writeSecretGuardDenial(out io.Writer, reason string) error {
 	return json.NewEncoder(out).Encode(result)
 }
 
-func evaluateSecretsFileTool(input map[string]any, tool string) string {
+func evaluateSecretsFileTool(input map[string]any, tool string, pathContext secretGuardPathContext) string {
 	isWriteTool := false
 	switch tool {
 	case "write", "edit", "applypatch":
@@ -107,7 +146,7 @@ func evaluateSecretsFileTool(input map[string]any, tool string) string {
 		normalizedKey := normalizeSecretToolName(key)
 		switch normalizedKey {
 		case "filepath", "path", "directory", "include", "glob":
-			class := classifyProtectedPath(value)
+			class := classifyProtectedPathWithContext(value, pathContext)
 			if class == pathCredential {
 				return "Direct agent file-tool access to MoltNet credential material is blocked. Use activation, env check, or another non-revealing MoltNet command."
 			}
@@ -115,7 +154,7 @@ func evaluateSecretsFileTool(input map[string]any, tool string) string {
 				return "Direct agent file-tool mutation of MoltNet enforcement files is blocked. Use a reviewed non-revealing MoltNet command or edit outside the activated agent session."
 			}
 		case "patch", "patchtext":
-			if patchTouchesProtectedSecret(value) {
+			if patchTouchesProtectedSecret(value, pathContext) {
 				return "A patch targeting MoltNet credential material is blocked. Use a reviewed non-revealing MoltNet command."
 			}
 		}
@@ -123,7 +162,7 @@ func evaluateSecretsFileTool(input map[string]any, tool string) string {
 	return ""
 }
 
-func patchTouchesProtectedSecret(patch string) bool {
+func patchTouchesProtectedSecret(patch string, pathContext secretGuardPathContext) bool {
 	prefixes := []string{"*** Add File:", "*** Update File:", "*** Delete File:", "*** Move to:", "--- ", "+++ "}
 	for _, line := range strings.Split(patch, "\n") {
 		line = strings.TrimSpace(line)
@@ -133,7 +172,7 @@ func patchTouchesProtectedSecret(patch string) bool {
 			}
 			path := strings.TrimSpace(strings.TrimPrefix(line, prefix))
 			path = strings.TrimPrefix(strings.TrimPrefix(path, "a/"), "b/")
-			if pathTouchesProtectedSecret(path) {
+			if pathTouchesProtectedSecret(path, pathContext) {
 				return true
 			}
 		}
@@ -142,6 +181,14 @@ func patchTouchesProtectedSecret(patch string) bool {
 }
 
 func evaluateSecretsShell(command string) string {
+	pathContext, err := resolveSecretGuardPathContext()
+	if err != nil {
+		return secretGuardFailure
+	}
+	return evaluateSecretsShellWithContext(command, pathContext)
+}
+
+func evaluateSecretsShellWithContext(command string, pathContext secretGuardPathContext) string {
 	file, err := syntax.NewParser(syntax.Variant(syntax.LangBash)).Parse(strings.NewReader(command), "secret-hook")
 	if err != nil {
 		return secretGuardFailure
@@ -157,7 +204,7 @@ func evaluateSecretsShell(command string) string {
 		case *syntax.Redirect:
 			target, static := staticShellWord(node.Word, vars)
 			if static {
-				switch classifyProtectedPath(target) {
+				switch classifyProtectedPathWithContext(target, pathContext) {
 				case pathCredential:
 					denial = "Shell redirection involving MoltNet credential material is blocked."
 					return false
@@ -165,14 +212,14 @@ func evaluateSecretsShell(command string) string {
 					denial = "Shell redirection into MoltNet enforcement files is blocked."
 					return false
 				}
-			} else if shellWordMentionsProtectedPath(node.Word) {
+			} else if shellWordMentionsProtectedPath(node.Word, pathContext) {
 				denial = "Shell redirection involving MoltNet credential material is blocked."
 				return false
 			}
 		case *syntax.CallExpr:
 			executable, args, _, ok, argsComplete := parseShellInvocation(node, "", vars)
 			if !ok {
-				if callMentionsProtectedPath(node) {
+				if callMentionsProtectedPath(node, pathContext) {
 					denial = "An unresolved shell invocation references MoltNet credential material. Use a statically verifiable non-revealing command."
 					return false
 				}
@@ -192,7 +239,7 @@ func evaluateSecretsShell(command string) string {
 			hasCredentialArg := false
 			hasManagedConfigArg := false
 			for _, arg := range args {
-				switch classifyProtectedPath(arg) {
+				switch classifyProtectedPathWithContext(arg, pathContext) {
 				case pathCredential:
 					hasCredentialArg = true
 				case pathManagedConfig:
@@ -205,7 +252,7 @@ func evaluateSecretsShell(command string) string {
 			// raw words that were not captured in the static prefix.
 			if !argsComplete {
 				for _, word := range node.Args[1:] {
-					if shellWordMentionsProtectedPath(word) {
+					if shellWordMentionsProtectedPath(word, pathContext) {
 						hasCredentialArg = true
 						break
 					}
@@ -215,7 +262,7 @@ func evaluateSecretsShell(command string) string {
 			if !hasCredentialArg && !hasManagedConfigArg {
 				// No explicit protected path — check for implicit recursive
 				// traversal that could expose .moltnet/ credentials (issue #1868).
-				if isRecursiveTraversalRisk(executable, args) {
+				if isRecursiveTraversalRisk(executable, args, pathContext) {
 					denial = "Recursive traversal from the repository root may expose MoltNet credential material under .moltnet/. Specify explicit paths that exclude .moltnet/."
 					return false
 				}
@@ -224,7 +271,7 @@ func evaluateSecretsShell(command string) string {
 
 			// Credential paths: always deny generic access (existing behavior).
 			if hasCredentialArg {
-				if isSecretMetadataCommand(executable, args) || isReviewedMoltnetConsumer(executable, args, allowGitHubToken) {
+				if isSecretMetadataCommand(executable, args, pathContext) || isReviewedMoltnetConsumer(executable, args, allowGitHubToken, pathContext) {
 					return true
 				}
 				denial = fmt.Sprintf("%s may access protected MoltNet credential material. Use activation, env check, or another reviewed non-revealing MoltNet command.", filepath.Base(executable))
@@ -232,10 +279,10 @@ func evaluateSecretsShell(command string) string {
 			}
 
 			// Managed config paths: allow reads, deny mutations (issue #1868).
-			if isManagedConfigReadCommand(executable, args) {
+			if isManagedConfigReadCommand(executable, args, pathContext) {
 				return true
 			}
-			if isSecretMetadataCommand(executable, args) {
+			if isSecretMetadataCommand(executable, args, pathContext) {
 				return true
 			}
 			denial = fmt.Sprintf("%s may modify managed MoltNet enforcement files. Use a reviewed MoltNet command or edit outside the activated agent session.", filepath.Base(executable))
@@ -246,16 +293,16 @@ func evaluateSecretsShell(command string) string {
 	return denial
 }
 
-func callMentionsProtectedPath(call *syntax.CallExpr) bool {
+func callMentionsProtectedPath(call *syntax.CallExpr, pathContext secretGuardPathContext) bool {
 	for _, word := range call.Args {
-		if shellWordMentionsProtectedPath(word) {
+		if shellWordMentionsProtectedPath(word, pathContext) {
 			return true
 		}
 	}
 	return false
 }
 
-func shellWordMentionsProtectedPath(word *syntax.Word) bool {
+func shellWordMentionsProtectedPath(word *syntax.Word, pathContext secretGuardPathContext) bool {
 	mentions := false
 	var literals strings.Builder
 	syntax.Walk(word, func(node syntax.Node) bool {
@@ -265,51 +312,138 @@ func shellWordMentionsProtectedPath(word *syntax.Word) bool {
 		}
 		literals.WriteString(literal.Value)
 		value := filepath.ToSlash(literal.Value)
-		if pathTouchesProtectedSecret(value) {
+		if pathTouchesProtectedSecret(value, pathContext) {
 			mentions = true
 			return false
 		}
 		return true
 	})
-	return mentions || pathTouchesProtectedSecret(literals.String())
+	return mentions || pathTouchesProtectedSecret(literals.String(), pathContext)
 }
 
-func pathTouchesProtectedSecret(value string) bool {
-	return classifyProtectedPath(value) != pathNone
+func pathTouchesProtectedSecret(value string, pathContext secretGuardPathContext) bool {
+	return classifyProtectedPathWithContext(value, pathContext) != pathNone
 }
 
-// classifyProtectedPath determines the protection class of a path.
-// Credential paths are confidential — no generic read or write is allowed.
-// Managed config paths are integrity-sensitive — reads are allowed, but
-// writes and mutations are denied. Only repo-relative managed paths are
-// classified; absolute paths and paths in unrelated directories are pathNone
-// (issue #1868).
+// classifyProtectedPath is retained for tests and compatibility helpers. Hook
+// evaluation resolves the context once and calls classifyProtectedPathWithContext
+// directly.
 func classifyProtectedPath(value string) pathClass {
+	pathContext, err := resolveSecretGuardPathContext()
+	if err != nil {
+		return classifyPathLexical(value)
+	}
+	return classifyProtectedPathWithContext(value, pathContext)
+}
+
+// classifyProtectedPathWithContext determines the protection class of a path
+// relative to the active checkout and its main worktree. Absolute paths,
+// nested-CWD spellings, and symlink aliases therefore receive the same class,
+// while identical suffixes in unrelated directories remain unprotected.
+func classifyProtectedPathWithContext(value string, pathContext secretGuardPathContext) pathClass {
 	value = strings.TrimSpace(value)
 	if value == "" {
 		return pathNone
 	}
 	if strings.ContainsAny(value, "*?[") {
-		matches, _ := filepath.Glob(value)
+		pattern := value
+		if !filepath.IsAbs(pattern) {
+			pattern = filepath.Join(pathContext.cwd, pattern)
+		}
+		matches, _ := filepath.Glob(pattern)
 		for _, match := range matches {
-			if class := classifyProtectedPath(match); class != pathNone {
+			if class := classifyProtectedPathWithContext(match, pathContext); class != pathNone {
 				return class
 			}
 		}
 	}
-	if resolved, err := filepath.EvalSymlinks(value); err == nil && filepath.Clean(resolved) != filepath.Clean(value) {
-		if class := classifyPathLexical(resolved); class != pathNone {
+
+	absolute := value
+	if !filepath.IsAbs(absolute) {
+		absolute = filepath.Join(pathContext.cwd, absolute)
+	}
+	candidates := []string{filepath.Clean(absolute), canonicalizeGuardTarget(absolute)}
+	for _, candidate := range candidates {
+		for _, root := range pathContext.roots() {
+			relative, ok := relativePathWithinRoot(root, candidate)
+			if !ok {
+				continue
+			}
+			if class := classifyRepoRelativePath(relative); class != pathNone {
+				return class
+			}
+		}
+	}
+
+	// Preserve fail-closed handling for unresolved relative credential
+	// references (for example a dynamic shell fragment containing .moltnet/).
+	// Absolute paths must belong to an active root to avoid suffix false
+	// positives in unrelated repositories.
+	if !filepath.IsAbs(value) {
+		if class := classifyCredentialPath(normalizePolicyPath(value)); class != pathNone {
 			return class
 		}
 	}
-	return classifyPathLexical(value)
+	return pathNone
+}
+
+func (c secretGuardPathContext) roots() []string {
+	if c.mainRoot == "" || c.mainRoot == c.currentRoot {
+		return []string{c.currentRoot}
+	}
+	return []string{c.currentRoot, c.mainRoot}
+}
+
+func canonicalizeGuardTarget(path string) string {
+	path = filepath.Clean(path)
+	for existing := path; ; existing = filepath.Dir(existing) {
+		if resolved, err := filepath.EvalSymlinks(existing); err == nil {
+			remainder, relErr := filepath.Rel(existing, path)
+			if relErr == nil {
+				return filepath.Clean(filepath.Join(resolved, remainder))
+			}
+		}
+		parent := filepath.Dir(existing)
+		if parent == existing {
+			return path
+		}
+	}
+}
+
+func relativePathWithinRoot(root, target string) (string, bool) {
+	if root == "" {
+		return "", false
+	}
+	relative, err := filepath.Rel(root, target)
+	if err != nil || filepath.IsAbs(relative) || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+		return "", false
+	}
+	return relative, true
+}
+
+func normalizePolicyPath(value string) string {
+	return strings.ToLower(filepath.ToSlash(filepath.Clean(value)))
+}
+
+func classifyRepoRelativePath(value string) pathClass {
+	value = normalizePolicyPath(value)
+	if value == "." || value == "" {
+		return pathNone
+	}
+	if class := classifyCredentialPath(value); class != pathNone {
+		return class
+	}
+	if isManagedConfigPath(value) {
+		return pathManagedConfig
+	}
+	return pathNone
 }
 
 func classifyPathLexical(value string) pathClass {
 	// Treat policy paths case-insensitively. This intentionally errs on the
 	// side of blocking case variants on case-sensitive hosts so the same hook
 	// cannot be bypassed when a repository moves to macOS or Windows.
-	value = strings.ToLower(filepath.ToSlash(filepath.Clean(value)))
+	value = normalizePolicyPath(value)
 	if value == "." || value == "" {
 		return pathNone
 	}
@@ -405,7 +539,7 @@ func isProtectedGuardPath(value string) bool {
 // read-only operation on a managed config file. Managed config files (e.g.
 // .claude/settings.json, .codex/hooks.json) are integrity-sensitive but safe
 // to inspect — reads are allowed, writes are denied (issue #1868).
-func isManagedConfigReadCommand(executable string, args []string) bool {
+func isManagedConfigReadCommand(executable string, args []string, pathContext secretGuardPathContext) bool {
 	base := filepath.Base(executable)
 	switch base {
 	case "rg", "grep", "egrep", "fgrep", "ag",
@@ -433,7 +567,7 @@ func isManagedConfigReadCommand(executable string, args []string) bool {
 			return false
 		}
 		dest := args[len(args)-1]
-		if classifyProtectedPath(dest) == pathManagedConfig {
+		if classifyProtectedPathWithContext(dest, pathContext) == pathManagedConfig {
 			return false // destination is managed config → write
 		}
 		return true
@@ -448,40 +582,49 @@ func isManagedConfigReadCommand(executable string, args []string) bool {
 // isRecursiveTraversalRisk returns true when a command can recursively
 // traverse the repository tree and potentially expose .moltnet/ credentials
 // without naming the protected path explicitly (issue #1868).
-func isRecursiveTraversalRisk(executable string, args []string) bool {
+func isRecursiveTraversalRisk(executable string, args []string, pathContext secretGuardPathContext) bool {
 	base := filepath.Base(executable)
 	switch base {
 	case "rg", "ag":
 		// rg traverses hidden files with --hidden or -H (short for --hidden
 		// in ripgrep). Without --hidden, .moltnet/ is still searched because
 		// it is not gitignored — but the guard checks for explicit dot targets.
-		return hasDotTarget(args) && hasRecursiveFlag(args, "--hidden", "-H", "--no-ignore", "--no-ignore-vcs", "-u", "-uu", "--unrestricted")
+		return hasRepositoryTraversalTarget(args, pathContext) && hasRecursiveFlag(args, "--hidden", "-H", "--no-ignore", "--no-ignore-vcs", "-u", "-uu", "--unrestricted")
 	case "grep", "egrep", "fgrep":
-		return hasDotTarget(args) && hasRecursiveFlag(args, "-R", "-r", "--recursive")
+		return hasRepositoryTraversalTarget(args, pathContext) && hasRecursiveFlag(args, "-R", "-r", "--recursive")
 	case "find":
-		// find . is inherently recursive.
-		return hasDotTarget(args)
+		return hasRepositoryTraversalTarget(args, pathContext)
 	case "tar":
-		return hasDotTarget(args)
+		return hasRepositoryTraversalTarget(args, pathContext)
 	case "zip":
-		return hasDotTarget(args) && hasRecursiveFlag(args, "-r", "--recurse-paths")
+		return hasRepositoryTraversalTarget(args, pathContext) && hasRecursiveFlag(args, "-r", "--recurse-paths")
 	case "rsync":
-		return hasDotTarget(args)
+		return hasRepositoryTraversalTarget(args, pathContext)
 	case "cp":
-		// cp -R/-r with . as source is recursive.
-		return hasDotTarget(args) && hasRecursiveFlag(args, "-R", "-r", "--recursive")
+		return hasRepositoryTraversalTarget(args, pathContext) && hasRecursiveFlag(args, "-R", "-r", "--recursive")
 	default:
 		return false
 	}
 }
 
-// hasDotTarget returns true if any argument is "." or "./" — the repository
-// root, which contains .moltnet/.
-func hasDotTarget(args []string) bool {
+// hasRepositoryTraversalTarget reports whether any argument resolves to the
+// active repository root or one of its ancestors. Traversing a nested
+// directory is safe; traversing a root (regardless of spelling or CWD) can
+// expose the .moltnet/ credential tree.
+func hasRepositoryTraversalTarget(args []string, pathContext secretGuardPathContext) bool {
 	for _, arg := range args {
-		cleaned := filepath.ToSlash(filepath.Clean(arg))
-		if cleaned == "." {
-			return true
+		if strings.HasPrefix(arg, "-") {
+			continue
+		}
+		target := arg
+		if !filepath.IsAbs(target) {
+			target = filepath.Join(pathContext.cwd, target)
+		}
+		target = canonicalizeGuardTarget(target)
+		for _, root := range pathContext.roots() {
+			if _, containsRoot := relativePathWithinRoot(target, root); containsRoot {
+				return true
+			}
 		}
 	}
 	return false
@@ -510,7 +653,7 @@ func hasRecursiveFlag(args []string, flags ...string) bool {
 	return false
 }
 
-func isSecretMetadataCommand(executable string, args []string) bool {
+func isSecretMetadataCommand(executable string, args []string, pathContext secretGuardPathContext) bool {
 	switch filepath.Base(executable) {
 	case "stat":
 		return true
@@ -519,7 +662,7 @@ func isSecretMetadataCommand(executable string, args []string) bool {
 			if arg == "-f" || arg == "-d" || arg == "-e" || arg == "]" {
 				continue
 			}
-			if !pathTouchesProtectedSecret(arg) {
+			if !pathTouchesProtectedSecret(arg, pathContext) {
 				return false
 			}
 		}
@@ -584,9 +727,9 @@ func npxPackageIndex(args []string) int {
 	return -1
 }
 
-func isReviewedMoltnetConsumer(executable string, args []string, allowGitHubToken bool) bool {
+func isReviewedMoltnetConsumer(executable string, args []string, allowGitHubToken bool, pathContext secretGuardPathContext) bool {
 	args, ok := normalizedMoltnetArgs(executable, args)
-	if !ok || len(args) == 0 || isMoltnetRevealArgs(args, allowGitHubToken) || moltnetArgsTouchNonCredentialSecret(args) {
+	if !ok || len(args) == 0 || isMoltnetRevealArgs(args, allowGitHubToken) || moltnetArgsTouchNonCredentialSecret(args, pathContext) {
 		return false
 	}
 	if matchesMoltnetOperation(args,
@@ -688,7 +831,7 @@ func isReviewedMoltnetConsumer(executable string, args []string, allowGitHubToke
 	) || (allowGitHubToken && matchesMoltnetOperation(args, []string{"github", "token"}))
 }
 
-func moltnetArgsTouchNonCredentialSecret(args []string) bool {
+func moltnetArgsTouchNonCredentialSecret(args []string, pathContext secretGuardPathContext) bool {
 	for index := 0; index < len(args); index++ {
 		arg := args[index]
 		if arg == "--credentials" && index+1 < len(args) {
@@ -698,7 +841,7 @@ func moltnetArgsTouchNonCredentialSecret(args []string) bool {
 		if strings.HasPrefix(arg, "--credentials=") {
 			continue
 		}
-		if pathTouchesProtectedSecret(arg) {
+		if pathTouchesProtectedSecret(arg, pathContext) {
 			return true
 		}
 	}

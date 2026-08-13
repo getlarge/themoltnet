@@ -133,6 +133,31 @@ describe('downloadSkills', () => {
     expect(urls.every((u) => u.includes('/.agents/skills/'))).toBe(true);
     expect(urls.some((u) => u.includes('/.claude/skills/'))).toBe(false);
   });
+
+  it('pins downloads to the immutable tag for the installed package version', async () => {
+    const urls: string[] = [];
+    vi.stubGlobal('fetch', async (url: string) => {
+      urls.push(url);
+      return {
+        ok: true,
+        text: async () => `# Skill content for ${url}`,
+      };
+    });
+    const packageJson = JSON.parse(
+      await readFile(
+        fileURLToPath(new URL('../package.json', import.meta.url)),
+        'utf-8',
+      ),
+    ) as { version: string };
+
+    await downloadSkills(tmpRepo, '.agents/skills');
+
+    expect(urls.length).toBeGreaterThan(0);
+    expect(
+      urls.every((url) => url.includes(`/legreffier-v${packageJson.version}/`)),
+    ).toBe(true);
+    expect(urls.every((url) => !url.includes('/main/'))).toBe(true);
+  });
 });
 
 describe('installCanonicalSkills', () => {
