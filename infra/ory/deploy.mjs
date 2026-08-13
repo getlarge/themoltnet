@@ -100,6 +100,7 @@ const TEMPLATE_VARS = [
   'CONSOLE_BASE_URL',
   'API_BASE_URL',
   'DOCS_BASE_URL',
+  'MCP_BASE_URL',
   'ORY_PROJECT_URL',
   'OIDC_PAIRWISE_SALT',
   'ORY_ACTION_API_KEY',
@@ -175,6 +176,8 @@ const oauth2Config = projectForPatch.services?.oauth2?.config;
 const tokenHook = oauth2Config?.oauth2?.token_hook;
 const accessTokenTtl = oauth2Config?.ttl?.access_token;
 const discoveryTokenUrl = oauth2Config?.webfinger?.oidc_discovery?.token_url;
+const discoveryRegistrationUrl =
+  oauth2Config?.webfinger?.oidc_discovery?.client_registration_url;
 
 if (!discoveryTokenUrl) {
   fatal(
@@ -339,6 +342,7 @@ if (tokenHook.auth?.config?.value) {
 const patchAdds = [
   `/ttl/access_token="${accessTokenTtl}"`,
   `/webfinger/oidc_discovery/token_url="${discoveryTokenUrl}"`,
+  `/webfinger/oidc_discovery/client_registration_url="${discoveryRegistrationUrl}"`,
   `/oauth2/token_hook/url="${tokenHook.url}"`,
   `/oauth2/token_hook/auth/type="${tokenHook.auth?.type ?? 'api_key'}"`,
 ];
@@ -401,6 +405,17 @@ if (liveTokenUrl !== discoveryTokenUrl) {
     `advertised token_url. Expected ${discoveryTokenUrl}, got ` +
       `${liveTokenUrl ?? '<missing>'}. Clients reading OIDC discovery are ` +
       'bypassing the MoltNet proxy, so grants are not cached (issue #1860).',
+  );
+}
+
+const liveRegistrationUrl =
+  liveConfig?.webfinger?.oidc_discovery?.client_registration_url;
+if (liveRegistrationUrl !== discoveryRegistrationUrl) {
+  recordFailure(
+    `advertised client_registration_url. Expected ${discoveryRegistrationUrl}, ` +
+      `got ${liveRegistrationUrl ?? '<missing>'}. Clients are registering ` +
+      'straight against Ory, bypassing the DCR sanitisation that strips ' +
+      'client-supplied token lifespans (issue #1860).',
   );
 }
 

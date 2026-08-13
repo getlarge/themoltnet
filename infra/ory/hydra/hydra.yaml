@@ -86,7 +86,10 @@ webfinger:
     # discovery advertised no DCR endpoint at all while prod did — verified by
     # removing the block and re-reading the document. Set for parity; DCR
     # itself already worked because callers hit /oauth2/register directly.
-    client_registration_url: http://hydra:4444/oauth2/register
+    # Points at the MCP server, not Hydra: that is where client-supplied token
+    # lifespans are stripped (stripDcrLifespans). Sending clients straight to
+    # Ory would bypass the only enforcement point we have.
+    client_registration_url: http://mcp-server:8001/oauth/register
 
 oidc:
   subject_identifiers:

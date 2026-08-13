@@ -50,13 +50,18 @@ describe('OIDC discovery', () => {
     expect(doc.token_endpoint).toBe('http://rest-api:8080/oauth2/token');
   });
 
-  it('still advertises Hydra for everything the proxy does not serve', async () => {
+  it('routes registration through the MCP server, not Hydra directly', async () => {
     // Act
     const doc = await fetchDiscovery('/.well-known/openid-configuration');
 
-    // Assert — only the token endpoint moved; registration and issuer must
-    // still point at Hydra or DCR and token validation break.
-    expect(doc.registration_endpoint).toContain('/oauth2/register');
+    // Assert — DCR must reach the sanitising proxy, which strips
+    // client-supplied token lifespans before they reach Hydra. Advertising
+    // Hydra's own /oauth2/register would bypass that entirely.
+    expect(doc.registration_endpoint).toBe(
+      'http://mcp-server:8001/oauth/register',
+    );
+    // The token endpoint is a different service again — registration and
+    // token issuance are not the same proxy.
     expect(doc.registration_endpoint).not.toContain('rest-api:8080');
     expect(doc.issuer).toBeTruthy();
   });

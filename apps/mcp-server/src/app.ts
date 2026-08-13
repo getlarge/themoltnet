@@ -46,6 +46,55 @@ export interface AppOptions {
  * Clean DCR response to remove empty/null fields that break Claude Code's Zod validation.
  * Claude Code expects optional URI fields to be valid URLs or absent, not empty strings.
  */
+/**
+ * Every per-client token-lifespan override Hydra accepts.
+ *
+ * A self-registering client can set these in its DCR payload and Hydra
+ * persists them — verified against a real Hydra, which stored
+ * `client_credentials_grant_access_token_lifespan: 720h0m0s` from an
+ * unauthenticated registration. A client could therefore mint itself a 720h
+ * token while the project-wide ttl.access_token is 24h, undoing both the cost
+ * control and the bound on how long a leaked token stays usable (issue #1860).
+ *
+ * Hydra has no server-side switch to forbid this, so stripping the fields as
+ * the request passes through is the only enforcement point we own.
+ */
+const DCR_LIFESPAN_FIELDS = [
+  'authorization_code_grant_access_token_lifespan',
+  'authorization_code_grant_id_token_lifespan',
+  'authorization_code_grant_refresh_token_lifespan',
+  'client_credentials_grant_access_token_lifespan',
+  'device_authorization_grant_access_token_lifespan',
+  'device_authorization_grant_id_token_lifespan',
+  'device_authorization_grant_refresh_token_lifespan',
+  'implicit_grant_access_token_lifespan',
+  'implicit_grant_id_token_lifespan',
+  'jwt_bearer_grant_access_token_lifespan',
+  'refresh_token_grant_access_token_lifespan',
+  'refresh_token_grant_id_token_lifespan',
+  'refresh_token_grant_refresh_token_lifespan',
+] as const;
+
+/**
+ * Drop any lifespan override a client tried to register itself with, so the
+ * project-wide TTL always wins. Returns the stripped field names so the
+ * attempt is visible in logs rather than silently discarded.
+ */
+function stripDcrLifespans(request: DCRRequest): {
+  sanitised: DCRRequest;
+  stripped: string[];
+} {
+  const sanitised = { ...request } as Record<string, unknown>;
+  const stripped: string[] = [];
+  for (const field of DCR_LIFESPAN_FIELDS) {
+    if (sanitised[field] !== undefined) {
+      delete sanitised[field];
+      stripped.push(field);
+    }
+  }
+  return { sanitised: sanitised as DCRRequest, stripped };
+}
+
 function cleanDcrResponse(response: DCRResponse): DCRResponse {
   const cleaned = { ...response };
   const uriFields = [
@@ -81,6 +130,10 @@ export function buildAuthConfig(config: McpServerConfig): AuthorizationConfig {
     enabled: true,
     authorizationServers: [hydra.publicUrl],
     resourceUri,
+    // Note: the DCR route (POST /oauth/register) does not need listing here —
+    // fastify-mcp already serves it without authentication, which is required
+    // since a registering client has no credentials yet. Verified against the
+    // running server: it returns 200 unauthenticated.
     excludedPaths: ['/healthz', '/healthz/ready'],
     tokenValidation: {
       jwksUri: `${hydra.publicUrl}/.well-known/jwks.json`,
@@ -100,8 +153,15 @@ export function buildAuthConfig(config: McpServerConfig): AuthorizationConfig {
     dcrHooks: {
       upstreamEndpoint: `${hydra.publicUrl}/oauth2/register`,
       onRequest: (request: DCRRequest, log) => {
-        log.info({ dcrRequest: request }, 'DCR: forwarding request to Ory');
-        return request;
+        const { sanitised, stripped } = stripDcrLifespans(request);
+        if (stripped.length > 0) {
+          log.warn(
+            { stripped, clientName: request.client_name },
+            'DCR: stripped client-supplied token lifespans',
+          );
+        }
+        log.info({ dcrRequest: sanitised }, 'DCR: forwarding request to Ory');
+        return sanitised;
       },
       onResponse: (response: DCRResponse, _request: DCRRequest, log) => {
         log.info({ dcrResponse: response }, 'DCR: received response from Ory');
