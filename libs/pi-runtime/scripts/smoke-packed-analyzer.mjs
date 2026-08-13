@@ -14,6 +14,7 @@ import process from 'node:process';
 const packageDir = resolve(import.meta.dirname, '..');
 const repoRoot = resolve(packageDir, '../..');
 const distPath = join(packageDir, 'dist', 'index.js');
+const internalPackageReleaseAgeExclude = '@themoltnet/*';
 
 function fail(message, output = '') {
   process.stderr.write(`FAIL: ${message}\n${output ? `\n${output}\n` : ''}`);
@@ -105,7 +106,14 @@ try {
   const install = spawnSync('pnpm', ['add', ...tarballs, '--ignore-scripts'], {
     cwd: installDir,
     encoding: 'utf8',
-    env: { ...process.env, npm_config_cache: npmCache },
+    env: {
+      ...process.env,
+      npm_config_cache: npmCache,
+      // pnpm exports the scalar minimumReleaseAge setting to lifecycle scripts,
+      // but not its array-valued exclusions. Preserve the internal-package
+      // exception when this consumer install runs outside the workspace.
+      npm_config_minimum_release_age_exclude: internalPackageReleaseAgeExclude,
+    },
   });
   if (install.status !== 0) {
     cleanup();
