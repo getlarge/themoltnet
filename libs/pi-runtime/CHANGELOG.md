@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.8.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.7.3...pi-runtime-v0.8.0) (2026-08-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* **pi-runtime:** enforce explicit guest credential boundary
+* **pi-runtime:** replace agentConfigMode required|optional with guestCredentialMode guest-config|host-authenticated.
+
+### Features
+
+* **daemon:** run agent-key workers without config files ([b3e4948](https://github.com/getlarge/themoltnet/commit/b3e49480235d856c5963d48d8f57700f9518b9c1))
+* **pi-runtime:** support host-authenticated agents ([2d80edd](https://github.com/getlarge/themoltnet/commit/2d80edde4eac626e8f0adfe86dc35f91c184832a))
+
+
+### Bug Fixes
+
+* **pi-runtime:** enforce explicit guest credential boundary ([db22faa](https://github.com/getlarge/themoltnet/commit/db22faaacddfdefc2dc3c7dc9238883c5e2d01a9))
+* **pi-runtime:** seal host-authenticated guest boundary ([e8aa6b1](https://github.com/getlarge/themoltnet/commit/e8aa6b11921d94ae350979f9f6f7264b9eb3cab0))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.41.3
+    * @themoltnet/sdk bumped to 0.132.0
+
 ## [0.7.3](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.7.2...pi-runtime-v0.7.3) (2026-08-13)
 
 
