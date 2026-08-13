@@ -17,6 +17,13 @@ const localDistPath = join(packageDir, 'dist', 'index.js');
 const piBin = process.env.MOLTNET_PI_BIN || 'pi';
 const internalPackageReleaseAgeExclude = '@themoltnet/*';
 
+if (process.env.MOLTNET_SKIP_REGISTRY_SMOKE === '1') {
+  process.stdout.write(
+    'Skipped registry install smoke (MOLTNET_SKIP_REGISTRY_SMOKE=1)\n',
+  );
+  process.exit(0);
+}
+
 if (!existsSync(localDistPath)) {
   process.stderr.write(
     'FAIL: pi-extension dist/index.js is missing; run the build before smoke:pi-loader\n',
