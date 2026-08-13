@@ -483,7 +483,11 @@ function nativePattern(command: string[]): string {
 
 /** Build a Starlark prefix_rule pattern for `npx @themoltnet/cli`. */
 function npxPattern(command: string[]): string {
-  return '[' + ['"npx"', '"@themoltnet/cli"', ...command.map((c) => `"${c}"`)].join(', ') + ']';
+  return (
+    '[' +
+    ['"npx"', '"@themoltnet/cli"', ...command.map((c) => `"${c}"`)].join(', ') +
+    ']'
+  );
 }
 
 /** Build a Claude `Bash(…)` permission string for the native binary. */

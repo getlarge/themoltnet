@@ -90,7 +90,7 @@ describe('CodexAdapter.writeRules', () => {
     );
     expect(raw).toContain('prefix_rule(');
     expect(raw).toContain('pattern = ["git", "config"]');
-    expect(raw).toContain('pattern = ["npx", "@themoltnet/cli"]');
+    expect(raw).toContain('pattern = ["npx", "@themoltnet/cli", "sign"]');
     expect(raw).toContain('pattern = ["npx", "@themoltnet/cli", "sign"]');
     expect(raw).toContain(
       'pattern = ["npx", "@themoltnet/cli", "entry", "commit"]',

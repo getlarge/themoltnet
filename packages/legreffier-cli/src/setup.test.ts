@@ -414,14 +414,24 @@ describe('buildCodexRules', () => {
     expect(rules).toContain('pattern = ["moltnet", "pack", "get"]');
     expect(rules).toContain('pattern = ["moltnet", "rendered-pack", "list"]');
     expect(rules).toContain('pattern = ["moltnet", "rendered-pack", "get"]');
-    expect(rules).toContain('pattern = ["npx", "@themoltnet/cli", "task", "list"]');
-    expect(rules).toContain('pattern = ["npx", "@themoltnet/cli", "task", "get"]');
+    expect(rules).toContain(
+      'pattern = ["npx", "@themoltnet/cli", "task", "list"]',
+    );
+    expect(rules).toContain(
+      'pattern = ["npx", "@themoltnet/cli", "task", "get"]',
+    );
     expect(rules).toContain(
       'pattern = ["npx", "@themoltnet/cli", "task", "attempts"]',
     );
-    expect(rules).toContain('pattern = ["npx", "@themoltnet/cli", "task", "tail"]');
-    expect(rules).toContain('pattern = ["npx", "@themoltnet/cli", "pack", "list"]');
-    expect(rules).toContain('pattern = ["npx", "@themoltnet/cli", "pack", "get"]');
+    expect(rules).toContain(
+      'pattern = ["npx", "@themoltnet/cli", "task", "tail"]',
+    );
+    expect(rules).toContain(
+      'pattern = ["npx", "@themoltnet/cli", "pack", "list"]',
+    );
+    expect(rules).toContain(
+      'pattern = ["npx", "@themoltnet/cli", "pack", "get"]',
+    );
     expect(rules).toContain(
       'pattern = ["npx", "@themoltnet/cli", "rendered-pack", "list"]',
     );
@@ -451,11 +461,21 @@ describe('buildCodexRules', () => {
     expect(rules).toContain('pattern = ["moltnet", "entry", "search"]');
     expect(rules).toContain('pattern = ["moltnet", "relations", "list"]');
     // npx form
-    expect(rules).toContain('pattern = ["npx", "@themoltnet/cli", "diary", "list"]');
-    expect(rules).toContain('pattern = ["npx", "@themoltnet/cli", "diary", "get"]');
-    expect(rules).toContain('pattern = ["npx", "@themoltnet/cli", "diary", "tags"]');
-    expect(rules).toContain('pattern = ["npx", "@themoltnet/cli", "entry", "list"]');
-    expect(rules).toContain('pattern = ["npx", "@themoltnet/cli", "entry", "get"]');
+    expect(rules).toContain(
+      'pattern = ["npx", "@themoltnet/cli", "diary", "list"]',
+    );
+    expect(rules).toContain(
+      'pattern = ["npx", "@themoltnet/cli", "diary", "get"]',
+    );
+    expect(rules).toContain(
+      'pattern = ["npx", "@themoltnet/cli", "diary", "tags"]',
+    );
+    expect(rules).toContain(
+      'pattern = ["npx", "@themoltnet/cli", "entry", "list"]',
+    );
+    expect(rules).toContain(
+      'pattern = ["npx", "@themoltnet/cli", "entry", "get"]',
+    );
     expect(rules).toContain(
       'pattern = ["npx", "@themoltnet/cli", "entry", "search"]',
     );
