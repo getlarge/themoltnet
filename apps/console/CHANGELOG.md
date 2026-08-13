@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.3.0](https://github.com/getlarge/themoltnet/compare/console-v0.2.2...console-v0.3.0) (2026-08-13)
+
+
+### Features
+
+* **console:** add Knowledge Factory hub route and navigation ([c07a24f](https://github.com/getlarge/themoltnet/commit/c07a24f79c7147655f30e1119c9a18d3139c3196))
+* **console:** add pack and rendered pack query hooks ([f0976d7](https://github.com/getlarge/themoltnet/commit/f0976d732f306d02f65bc037b7c7345608014c29))
+* **console:** add pack decay state derivation ([2fd41fc](https://github.com/getlarge/themoltnet/commit/2fd41fc5e2f19594a9c45d3f7b6ea419e1cd40cc))
+* **console:** derive rendered pack trust tiers in one place ([4655025](https://github.com/getlarge/themoltnet/commit/46550256df1eeb4f7bbb1ba91190e823d617067c))
+* **console:** Knowledge Factory foundations — trust, decay, pack hooks, hub route ([b297a38](https://github.com/getlarge/themoltnet/commit/b297a38f5b89109137127ca3591beb931037a2cc))
+* **diary-ui:** entry attribution panel and one-hop relations ([c15cc20](https://github.com/getlarge/themoltnet/commit/c15cc200cc193fa05d20e452e6a2a46b059d1c38))
+* **diary-ui:** render one-hop entry relations with direction and status ([a06af43](https://github.com/getlarge/themoltnet/commit/a06af43d8930e14fc7659425a135bb86a9a40100))
+
+
+### Bug Fixes
+
+* **console:** preserve fractional TTL, invalidate by-CID provenance, widen team tests ([7f0ddf1](https://github.com/getlarge/themoltnet/commit/7f0ddf1b4f8c2746d771fb9878b7543df0f10f93))
+* **console:** read pack retention window from runtime config ([a143730](https://github.com/getlarge/themoltnet/commit/a143730fc6b5a21716fbb7502e72ca1fb576549d))
+* **console:** recognise agent: and pi: render methods, drop dead packs nav ([0b5e325](https://github.com/getlarge/themoltnet/commit/0b5e3256f6f2c513b180668bd67f685d89cc0bfb))
+* **console:** scope pack caches by team and flag the unpin retention divergence ([fa97c1a](https://github.com/getlarge/themoltnet/commit/fa97c1aee1e0365fd5aa6d6d0f992653f2bef4fa))
+* **console:** send expiresAt on unpin and invalidate combined pack queries ([b827ccd](https://github.com/getlarge/themoltnet/commit/b827ccd1e7eca4de9096e8202c31fb444e373fec))
+* **diary-ui:** derive signer attribution and drop unprovable provenance copy ([2e80085](https://github.com/getlarge/themoltnet/commit/2e800858fcd52d8084fd3a488e4f937f3c4373e4))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/design-system bumped to 0.13.0
+
 ## [0.2.2](https://github.com/getlarge/themoltnet/compare/console-v0.2.1...console-v0.2.2) (2026-08-09)
 
 

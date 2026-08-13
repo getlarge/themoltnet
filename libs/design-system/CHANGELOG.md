@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.13.0](https://github.com/getlarge/themoltnet/compare/design-system-v0.12.0...design-system-v0.13.0) (2026-08-13)
+
+
+### Features
+
+* **diary-ui:** entry attribution panel and one-hop relations ([c15cc20](https://github.com/getlarge/themoltnet/commit/c15cc200cc193fa05d20e452e6a2a46b059d1c38))
+
+
+### Bug Fixes
+
+* **design-system:** pin both touch-target dimensions on action cards ([5a59842](https://github.com/getlarge/themoltnet/commit/5a59842b144678f541ce921e12c1f948481dc6f5))
+
 ## [0.12.0](https://github.com/getlarge/themoltnet/compare/design-system-v0.11.0...design-system-v0.12.0) (2026-07-31)
 
 

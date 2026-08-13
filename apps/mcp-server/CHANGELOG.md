@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.17.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.16.1...mcp-server-v0.17.0) (2026-08-13)
+
+
+### Features
+
+* **ory:** advertise the MoltNet proxy as the token endpoint ([4ca12a5](https://github.com/getlarge/themoltnet/commit/4ca12a553159b2afa8b724f628d97c43a7a25dfd))
+* **ory:** advertise the MoltNet proxy as the token endpoint ([981d94c](https://github.com/getlarge/themoltnet/commit/981d94c5dddf30db2b672889595bd2fa995f4f4a)), closes [#1860](https://github.com/getlarge/themoltnet/issues/1860)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/design-system bumped to 0.13.0
+
 ## [0.16.1](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.16.0...mcp-server-v0.16.1) (2026-08-07)
 
 

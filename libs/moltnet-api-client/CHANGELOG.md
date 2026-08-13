@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.57.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.56.1...moltnet-api-client-v1.57.0) (2026-08-13)
+
+
+### Features
+
+* **oauth:** cache client_credentials grants server-side ([70e8da5](https://github.com/getlarge/themoltnet/commit/70e8da5110d9dd751c82a89aa0712a2c82b60af0))
+
+
+### Codegen
+
+* **api:** regenerate OpenAPI spec and clients ([9aac134](https://github.com/getlarge/themoltnet/commit/9aac134c259b3444578af02c1914318a0cd64e06)), closes [#1860](https://github.com/getlarge/themoltnet/issues/1860)
+
 ## [1.56.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.56.0...moltnet-api-client-v1.56.1) (2026-08-02)
 
 

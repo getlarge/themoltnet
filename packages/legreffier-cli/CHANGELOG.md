@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.37.1](https://github.com/getlarge/themoltnet/compare/legreffier-v0.37.0...legreffier-v0.37.1) (2026-08-13)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @themoltnet/design-system bumped to 0.13.0
+
 ## [0.37.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.36.0...legreffier-v0.37.0) (2026-08-09)
 
 
