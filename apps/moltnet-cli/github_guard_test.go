@@ -714,3 +714,89 @@ func TestIsMoltnetGitConfig(t *testing.T) {
 		}
 	}
 }
+
+// --- Issue #1824: canonical GitHub guard write path ---
+
+func TestEvaluateGitHubGuard_MoltnetGitHubExecAllowsWrite(t *testing.T) {
+	t.Parallel()
+	commands := []string{
+		`moltnet github exec -- gh issue edit 1788 --body-file issue.md`,
+		`moltnet github exec -- gh pr create --title "Fix" --body "Description"`,
+		`moltnet github exec -- gh issue close 42`,
+		`npx @themoltnet/cli github exec -- gh pr merge 10`,
+	}
+	for _, command := range commands {
+		reason := evaluateGitHubGuard(command, staticGuardContext("agent"), guardPermissions(map[string]string{"issues": "write", "pull_requests": "write"}))
+		if reason != "" {
+			t.Errorf("expected allow for exec wrapper %q, got denial: %s", command, reason)
+		}
+	}
+}
+
+func TestEvaluateGitHubGuard_MoltnetGitHubExecReadOnlyAllows(t *testing.T) {
+	t.Parallel()
+	reason := evaluateGitHubGuard(
+		`moltnet github exec -- gh pr view 1615`,
+		staticGuardContext("agent"),
+		guardPermissions(map[string]string{"pull_requests": "write"}),
+	)
+	if reason != "" {
+		t.Fatalf("expected allow for read-only via exec, got denial: %s", reason)
+	}
+}
+
+func TestEvaluateGitHubGuard_MoltnetGitHubExecDynamicSubcommandDenies(t *testing.T) {
+	t.Parallel()
+	reason := evaluateGitHubGuard(
+		`moltnet github exec -- gh "$CMD" 42`,
+		staticGuardContext("agent"),
+		guardPermissions(map[string]string{"issues": "write"}),
+	)
+	if reason == "" {
+		t.Fatal("expected denial for dynamic subcommand via exec")
+	}
+}
+
+func TestEvaluateGitHubGuard_OpaquePayloadKeepsKnownOperation(t *testing.T) {
+	t.Parallel()
+	// gh issue edit with a dynamic --body value should still be classified as
+	// issues:write, not ghUnknown (issue #1824).
+	reason := evaluateGitHubGuard(
+		`GH_TOKEN=$(moltnet github token --credentials "/repo/.moltnet/test-agent/moltnet.json") gh issue edit 1789 --body "$CURRENT_BODY"`,
+		staticGuardContext("agent"),
+		guardPermissions(map[string]string{"issues": "write"}),
+	)
+	if reason != "" {
+		t.Fatalf("expected allow for known write with opaque payload, got denial: %s", reason)
+	}
+}
+
+func TestEvaluateGitHubGuard_OpaqueSubcommandDenies(t *testing.T) {
+	t.Parallel()
+	// gh "$CMD" — the subcommand itself is opaque → ghUnknown.
+	reason := evaluateGitHubGuard(
+		`GH_TOKEN=$(moltnet github token --credentials "/repo/.moltnet/test-agent/moltnet.json") gh "$CMD" 42`,
+		staticGuardContext("agent"),
+		guardPermissions(map[string]string{"issues": "write"}),
+	)
+	if reason == "" {
+		t.Fatal("expected denial for opaque subcommand")
+	}
+}
+
+func TestEvaluateGitHubGuard_BareWriteWithOpaquePayloadStillDenies(t *testing.T) {
+	t.Parallel()
+	// Without a scoped token, a bare write with opaque payload should still
+	// deny (the App holds the permission).
+	reason := evaluateGitHubGuard(
+		`gh issue edit 1789 --body "$CURRENT_BODY"`,
+		staticGuardContext("agent"),
+		guardPermissions(map[string]string{"issues": "write"}),
+	)
+	if reason == "" {
+		t.Fatal("expected denial for bare write with opaque payload when App has permission")
+	}
+	if !strings.Contains(reason, "issues:write") {
+		t.Fatalf("expected issues:write in denial, got: %s", reason)
+	}
+}

@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os/exec"
 	"os"
 	"path/filepath"
 	"strings"
@@ -472,4 +473,62 @@ func runGitHubToken(args []string) error {
 		return err
 	}
 	return runGitHubTokenCmd(*credPath)
+}
+
+// runGitHubExecCmd resolves credentials from the activated context, mints a
+// command-scoped GitHub App installation token, and executes exactly one child
+// `gh` process with GH_TOKEN set. It fails closed if token minting fails — gh
+// never falls back to the human login (issue #1824).
+func runGitHubExecCmd(credPath string, args []string, stdin io.Reader, stdout, stderr io.Writer) error {
+	// Strip leading `--` separator if present (cobra leaves it in args).
+	for len(args) > 0 && args[0] == "--" {
+		args = args[1:]
+	}
+	if len(args) == 0 {
+		return fmt.Errorf("moltnet github exec: no command provided — usage: moltnet github exec -- gh <command>")
+	}
+	if filepath.Base(args[0]) != "gh" {
+		return fmt.Errorf("moltnet github exec: only `gh` commands are supported — got %q", args[0])
+	}
+
+	path := credPath
+	if path == "" {
+		path = os.Getenv("MOLTNET_CREDENTIALS_PATH")
+	}
+	if path == "" {
+		configured := strings.TrimSpace(os.Getenv("GIT_CONFIG_GLOBAL"))
+		if isMoltnetGitConfig(configured) {
+			gitConfigPath, err := resolveGitConfigGlobalPath(configured)
+			if err == nil && isMoltnetGitConfig(gitConfigPath) {
+				path = filepath.Join(filepath.Dir(gitConfigPath), "moltnet.json")
+			}
+		}
+	}
+
+	creds, err := loadCredentials(path)
+	if err != nil {
+		return fmt.Errorf("moltnet github exec: cannot load credentials: %w", err)
+	}
+	if creds.GitHub == nil {
+		return fmt.Errorf("moltnet github exec: GitHub App not configured — add 'github' section to moltnet.json")
+	}
+
+	token, err := getCachedInstallationToken(
+		creds.GitHub.AppID,
+		creds.GitHub.PrivateKeyPath,
+		creds.GitHub.InstallationID,
+	)
+	if err != nil {
+		return fmt.Errorf("moltnet github exec: cannot mint GitHub App token: %w", err)
+	}
+	if token == "" {
+		return fmt.Errorf("moltnet github exec: minted token is empty — refusing to fall back to human gh login")
+	}
+
+	cmd := exec.Command(args[0], args[1:]...)
+	cmd.Env = append(os.Environ(), "GH_TOKEN="+token)
+	cmd.Stdin = stdin
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+	return cmd.Run()
 }

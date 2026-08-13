@@ -353,7 +353,7 @@ func TestGitHubNoSubcommand(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	for _, sub := range []string{"setup", "credential-helper", "token", "guard"} {
+	for _, sub := range []string{"setup", "credential-helper", "token", "guard", "exec"} {
 		if !strings.Contains(stdout, sub) {
 			t.Errorf("expected github help to list '%s' subcommand, got: %s", sub, stdout)
 		}

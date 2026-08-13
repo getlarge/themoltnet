@@ -240,7 +240,7 @@ func evaluateGitHubGuardScript(
 			return true
 		}
 
-		executable, args, scopedToken, ok := parseShellInvocation(call, guardCtx.CredentialsPath, shellVars)
+		executable, args, scopedToken, ok, argsComplete := parseShellInvocation(call, guardCtx.CredentialsPath, shellVars)
 		if !ok {
 			return true
 		}
@@ -271,12 +271,37 @@ func evaluateGitHubGuardScript(
 			denial = "Cannot verify a dynamic command passed through a shell prefix runner."
 			return false
 		}
+		// Recognize `moltnet github exec -- gh ...` as a first-class wrapper that
+		// guarantees a command-scoped App token (issue #1824).
+		if isMoltnetGitHubExec(executable, args) {
+			ghArgs, ghArgsComplete := moltnetGitHubExecArgs(call, shellVars)
+			if len(ghArgs) == 0 && !ghArgsComplete {
+				denial = "Cannot verify a dynamic gh command passed to moltnet github exec."
+				return false
+			}
+			op := ghOperation{Kind: ghUnknown}
+			if ghArgsComplete || len(ghArgs) > 0 {
+				op = classifyGitHubOperation(ghArgs)
+			}
+			verdict := decideGitHubCall(op, true, state, guardCtx, permissions)
+			if verdict.Allow {
+				return true
+			}
+			denial = verdict.Reason
+			return false
+		}
 		if filepath.Base(executable) != "gh" {
 			return true
 		}
 
 		op := ghOperation{Kind: ghUnknown}
-		if args != nil {
+		// When some args are opaque, classify with the static prefix. Known
+		// operations (e.g. `gh issue edit`) remain classified even if a payload
+		// value like `--body "$VAR"` is dynamic (issue #1824). Only authority-
+		// bearing parts (executable, subcommand, api method/endpoint) cause
+		// ghUnknown when opaque — and that happens naturally because the partial
+		// prefix won't be long enough to classify.
+		if argsComplete || len(args) > 0 {
 			op = classifyGitHubOperation(args)
 		}
 		verdict := decideGitHubCall(
@@ -363,6 +388,75 @@ func decideGitHubCall(
 	}
 }
 
+// isMoltnetGitHubExec returns true when the command is
+// `moltnet github exec -- gh ...` (or the npx equivalent), the first-class
+// agent-authored GitHub execution path (issue #1824).
+func isMoltnetGitHubExec(executable string, args []string) bool {
+	base := filepath.Base(executable)
+	if base == "moltnet" && len(args) >= 2 && args[0] == "github" && args[1] == "exec" {
+		return true
+	}
+	if base == "npx" && len(args) >= 3 && args[0] == "@themoltnet/cli" && args[1] == "github" && args[2] == "exec" {
+		return true
+	}
+	return false
+}
+
+// moltnetGitHubExecArgs extracts the gh arguments from
+// `moltnet github exec -- gh <args>`. Returns the static prefix and whether
+// all args were statically resolvable.
+func moltnetGitHubExecArgs(call *syntax.CallExpr, vars map[string]string) ([]string, bool) {
+	words := call.Args
+	// Strip the moltnet/github/exec prefix to find the `--` separator.
+	start := 0
+	for i, word := range words {
+		lit, ok := staticShellWord(word, vars)
+		if !ok {
+			return nil, false
+		}
+		if lit == "moltnet" || lit == "npx" || lit == "@themoltnet/cli" || lit == "github" || lit == "exec" {
+			start = i + 1
+			continue
+		}
+		break
+	}
+	// Find the `--` separator.
+	words = words[start:]
+	sepIndex := -1
+	for i, word := range words {
+		lit, ok := staticShellWord(word, vars)
+		if !ok {
+			return nil, false
+		}
+		if lit == "--" {
+			sepIndex = i
+			break
+		}
+	}
+	if sepIndex < 0 || sepIndex+1 >= len(words) {
+		return nil, false
+	}
+	// The first word after `--` should be `gh`.
+	ghWord := words[sepIndex+1]
+	ghExec, ok := staticShellWord(ghWord, vars)
+	if !ok || filepath.Base(ghExec) != "gh" {
+		return nil, false
+	}
+	// Collect the remaining args (the gh subcommand and flags).
+	rest := words[sepIndex+2:]
+	args := make([]string, 0, len(rest))
+	complete := true
+	for _, word := range rest {
+		arg, literal := staticShellWord(word, vars)
+		if !literal {
+			complete = false
+			break
+		}
+		args = append(args, arg)
+	}
+	return args, complete
+}
+
 func nestedShellScript(executable string, args []string) (string, bool, bool) {
 	base := filepath.Base(executable)
 	if base != "eval" && base != "sh" && base != "bash" && base != "dash" && base != "zsh" {
@@ -406,7 +500,7 @@ func permissionAllowsWrite(level string) bool {
 	}
 }
 
-func parseShellInvocation(call *syntax.CallExpr, credentialsPath string, vars map[string]string) (string, []string, bool, bool) {
+func parseShellInvocation(call *syntax.CallExpr, credentialsPath string, vars map[string]string) (string, []string, bool, bool, bool) {
 	scopedToken := false
 	for _, assign := range call.Assigns {
 		if assign.Name != nil && assign.Name.Value == "GH_TOKEN" && isMoltnetTokenWord(assign.Value, credentialsPath, vars) {
@@ -418,7 +512,7 @@ func parseShellInvocation(call *syntax.CallExpr, credentialsPath string, vars ma
 	for len(words) > 0 {
 		executable, ok := staticShellWord(words[0], vars)
 		if !ok {
-			return "", nil, false, false
+			return "", nil, false, false, false
 		}
 		switch filepath.Base(executable) {
 		case "command":
@@ -443,7 +537,7 @@ func parseShellInvocation(call *syntax.CallExpr, credentialsPath string, vars ma
 				}
 				arg, literal := staticShellWord(words[0], vars)
 				if !literal {
-					return "", nil, false, false
+					return "", nil, false, false, false
 				}
 				if arg == "--" {
 					words = words[1:]
@@ -451,7 +545,7 @@ func parseShellInvocation(call *syntax.CallExpr, credentialsPath string, vars ma
 				}
 				if arg == "-u" || arg == "--unset" {
 					if len(words) < 2 {
-						return "", nil, false, false
+						return "", nil, false, false, false
 					}
 					words = words[2:]
 					continue
@@ -460,7 +554,7 @@ func parseShellInvocation(call *syntax.CallExpr, credentialsPath string, vars ma
 					arg == "--split-string" ||
 					strings.HasPrefix(arg, "-S") ||
 					strings.HasPrefix(arg, "--split-string=") {
-					return "env", nil, scopedToken, true
+					return "env", nil, scopedToken, true, true
 				}
 				if strings.HasPrefix(arg, "-") {
 					words = words[1:]
@@ -474,17 +568,19 @@ func parseShellInvocation(call *syntax.CallExpr, credentialsPath string, vars ma
 	}
 
 	if len(words) == 0 {
-		return "", nil, false, false
+		return "", nil, false, false, false
 	}
 	executable, ok := staticShellWord(words[0], vars)
 	if !ok {
-		return "", nil, false, false
+		return "", nil, false, false, false
 	}
 	args := make([]string, 0, len(words)-1)
+	argsComplete := true
 	for _, word := range words[1:] {
 		arg, literal := staticShellWord(word, vars)
 		if !literal {
-			return executable, nil, scopedToken, true
+			argsComplete = false
+			break
 		}
 		args = append(args, arg)
 	}
@@ -492,10 +588,10 @@ func parseShellInvocation(call *syntax.CallExpr, credentialsPath string, vars ma
 		var unwrapped bool
 		executable, args, unwrapped = unwrapPrefixRunner(executable, args)
 		if !unwrapped {
-			return executable, nil, scopedToken, true
+			return executable, nil, scopedToken, true, false
 		}
 	}
-	return executable, args, scopedToken, true
+	return executable, args, scopedToken, true, argsComplete
 }
 
 func isKnownPrefixRunner(executable string) bool {
@@ -774,7 +870,7 @@ func isMoltnetTokenParts(parts []syntax.WordPart, credentialsPath string, vars m
 	if !ok || len(call.Assigns) != 0 {
 		return false
 	}
-	executable, args, _, ok := parseShellInvocation(call, credentialsPath, vars)
+	executable, args, _, ok, _ := parseShellInvocation(call, credentialsPath, vars)
 	if !ok {
 		return false
 	}

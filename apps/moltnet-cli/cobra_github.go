@@ -64,6 +64,30 @@ guard for an emergency editor session.`,
 		},
 	}
 
-	githubCmd.AddCommand(setupCmd, credHelperCmd, tokenCmd, guardCmd)
+	// exec subcommand — first-class agent-authored GitHub execution path
+	// (issue #1824). Resolves credentials from the activated context, mints
+	// a command-scoped App token, and runs exactly one `gh` child process.
+	execCmd := &cobra.Command{
+		Use:   "exec -- gh <command>",
+		Short: "Run a gh command with a command-scoped MoltNet GitHub App token",
+		Long: `Resolve the active .moltnet/<agent>/moltnet.json from the activated
+context, mint a GitHub App installation token, and execute exactly one child
+gh process with GH_TOKEN set to that token.
+
+The token is never printed or persisted. If token minting fails, the command
+fails closed — gh never falls back to the human login. stdin, stdout, stderr,
+and the child exit code are preserved.
+
+The guard recognises this wrapper structurally, so token provenance no longer
+requires proving shell variables, dirname, or conditionals.`,
+		Example: `  moltnet github exec -- gh issue edit 1788 --body-file issue.md
+  moltnet github exec -- gh pr create --title "Fix" --body "Description"`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			credPath, _ := cmd.Flags().GetString("credentials")
+			return runGitHubExecCmd(credPath, args, cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr())
+		},
+	}
+
+	githubCmd.AddCommand(setupCmd, credHelperCmd, tokenCmd, guardCmd, execCmd)
 	return githubCmd
 }
