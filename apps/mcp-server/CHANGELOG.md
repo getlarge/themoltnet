@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.18.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.17.0...mcp-server-v0.18.0) (2026-08-14)
+
+
+### Features
+
+* **auth:** implement signed registration core ([b6e477f](https://github.com/getlarge/themoltnet/commit/b6e477fb3a850fe68d1e297899d677dcc4bb7e64))
+* **auth:** replace vouchers with signed registration ([2d39a41](https://github.com/getlarge/themoltnet/commit/2d39a418bb3558cd93eac0d3f05c53e9df5de34d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @moltnet/database bumped to 0.3.0
+
 ## [0.17.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.16.1...mcp-server-v0.17.0) (2026-08-13)
 
 

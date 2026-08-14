@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.38.9](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.38.8...pi-extension-v0.38.9) (2026-08-14)
+
+
+### Bug Fixes
+
+* **pi-extension:** honor registry smoke skip ([c9fc5b7](https://github.com/getlarge/themoltnet/commit/c9fc5b79831136a14556bc7f1f4e7e4f55c73d3f))
+* **pi-runtime:** allow fresh packages in pack smoke ([713bf73](https://github.com/getlarge/themoltnet/commit/713bf73d8644ee4f4a243aa5a6c1e90f21305c44))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/pi-runtime bumped to 0.9.0
+    * @themoltnet/sdk bumped to 0.133.0
+
 ## [0.38.8](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.38.7...pi-extension-v0.38.8) (2026-08-13)
 
 

@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.4.0](https://github.com/getlarge/themoltnet/compare/console-v0.3.1...console-v0.4.0) (2026-08-14)
+
+
+### Features
+
+* **console:** pack catalog, decay badge and pin control ([4f75121](https://github.com/getlarge/themoltnet/commit/4f75121e4f8435a5b4accee705e3d59046a97d8b))
+* **console:** register /packs/:id with pack detail page ([121131c](https://github.com/getlarge/themoltnet/commit/121131cb0fe7a54aa9c12ba967cfb6a96d3d2b54))
+* **console:** register /packs/:id with pack detail page ([6481b09](https://github.com/getlarge/themoltnet/commit/6481b097e31ae138770482d813fbf4ae49bc76f8))
+
+
+### Bug Fixes
+
+* **console:** address deep review of pack catalog ([50d2294](https://github.com/getlarge/themoltnet/commit/50d22945e17524d9f70d1bc1c5136b0289c3dca1))
+* **console:** address deep review of pack detail page ([8b10ed8](https://github.com/getlarge/themoltnet/commit/8b10ed8fa7f83a218144b09f46f6727e5df3db62))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @moltnet/database bumped to 0.3.0
+    * @themoltnet/sdk bumped to 0.133.0
+
 ## [0.3.1](https://github.com/getlarge/themoltnet/compare/console-v0.3.0...console-v0.3.1) (2026-08-13)
 
 
