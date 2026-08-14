@@ -17,6 +17,10 @@ export interface SessionToolPolicy {
   enforcement: ToolEnforcement;
   allowedTools: ReadonlySet<string>;
   allowedShellCommands: readonly ShellCommandRule[];
+  /** Latest effective policy hash resolved for this Pi session. */
+  policySnapshotHash?: string;
+  /** Latest runtime profile revision resolved with the session policy. */
+  runtimeProfileRevision?: number;
   /**
    * `true` when the allow-set is a **degraded fallback** — the allowed-tools
    * fetch failed or timed out and this policy is the fail-closed/fail-open
@@ -55,6 +59,8 @@ export interface AllowedToolsClient {
       allowedTools: string[];
       allowedShellCommands: Array<{ argvPrefix: string[] }>;
       runtimeKind: string;
+      policySnapshotHash: string;
+      runtimeProfileRevision: number;
     }>;
   };
 }
@@ -137,6 +143,8 @@ export async function resolveSessionToolPolicy(
           argvPrefix: rule.argvPrefix as [string, string, ...string[]],
         };
       }),
+      policySnapshotHash: resolved.policySnapshotHash,
+      runtimeProfileRevision: resolved.runtimeProfileRevision,
       degraded: false,
     };
   } catch (err) {
@@ -238,6 +246,22 @@ export interface ToolPolicyExtensionDeps {
   policy: SessionToolPolicy;
   analyzer: ShellCommandAnalyzer;
   logger: ToolPolicyLogger;
+  context: ToolPolicyDecisionContext;
+}
+
+/** Correlation and claim evidence repeated on every tool-policy decision. */
+export interface ToolPolicyDecisionContext {
+  taskId: string;
+  attemptN: number;
+  teamId: string;
+  claimantAgentId?: string;
+  leaseId?: string;
+  proposerKind?: 'agent' | 'human';
+  proposerId?: string;
+  runtimeProfileId?: string;
+  claimRuntimeProfileRevision?: number;
+  claimPolicySnapshotHash?: string;
+  claimedExecutorFingerprint?: string;
 }
 
 /**
@@ -246,6 +270,21 @@ export interface ToolPolicyExtensionDeps {
  * `off`. Register it in a session's `extensionFactories`.
  */
 export function createToolPolicyExtension(deps: ToolPolicyExtensionDeps) {
+  if (
+    deps.context.claimPolicySnapshotHash &&
+    deps.policy.policySnapshotHash &&
+    deps.context.claimPolicySnapshotHash !== deps.policy.policySnapshotHash
+  ) {
+    deps.logger.info(
+      {
+        ...decisionContext(deps),
+        decision: 'continue',
+        reason: 'claim_execution_policy_drift',
+      },
+      'tool_policy.snapshot_drift',
+    );
+  }
+
   return (pi: ExtensionAPI): void => {
     if (deps.policy.enforcement === 'off') return;
 
@@ -255,26 +294,36 @@ export function createToolPolicyExtension(deps: ToolPolicyExtensionDeps) {
       );
 
       if ('allow' in decision && decision.allow) {
-        if (decision.matchedShellCommands?.length) {
-          deps.logger.debug(
-            {
-              toolName: event.toolName,
-              toolCallId: event.toolCallId,
-              matchedShellCommands: decision.matchedShellCommands,
-            },
-            'tool_policy.shell_command_allowed',
-          );
-        }
+        deps.logger.info(
+          {
+            ...decisionContext(deps),
+            toolName: event.toolName,
+            toolCallId: event.toolCallId,
+            decision: 'allowed',
+            reason: stableDecisionReason(event.toolName, decision),
+            ...(decision.matchedShellCommands?.length
+              ? { shellFingerprints: decision.matchedShellCommands }
+              : {}),
+          },
+          'tool_policy.allowed',
+        );
         return;
       }
 
       if ('audit' in decision) {
         deps.logger.info(
           {
+            ...decisionContext(deps),
             toolName: event.toolName,
             toolCallId: event.toolCallId,
-            degraded: deps.policy.degraded,
-            decision,
+            decision: 'audit',
+            reason: stableDecisionReason(event.toolName, decision),
+            ...(decision.missing?.length
+              ? { missingExecutables: decision.missing }
+              : {}),
+            ...(decision.missingShellCommands?.length
+              ? { shellFingerprints: decision.missingShellCommands }
+              : {}),
           },
           'tool_policy.audit',
         );
@@ -283,18 +332,63 @@ export function createToolPolicyExtension(deps: ToolPolicyExtensionDeps) {
 
       deps.logger.warn(
         {
+          ...decisionContext(deps),
           toolName: event.toolName,
           toolCallId: event.toolCallId,
-          // Degraded → blocked because the policy could not be read, not because
-          // the operator's policy disallows this tool. Critical for triage.
-          degraded: deps.policy.degraded,
-          reason: decision.reason,
-          missingExecutables: decision.missing,
-          missingShellCommands: decision.missingShellCommands,
+          decision: 'blocked',
+          reason: stableDecisionReason(event.toolName, decision),
+          ...(decision.missing?.length
+            ? { missingExecutables: decision.missing }
+            : {}),
+          ...(decision.missingShellCommands?.length
+            ? { shellFingerprints: decision.missingShellCommands }
+            : {}),
         },
         'tool_policy.blocked',
       );
       return { block: true, reason: decision.reason };
     });
   };
+}
+
+function decisionContext(
+  deps: ToolPolicyExtensionDeps,
+): Record<string, unknown> {
+  return {
+    ...deps.context,
+    enforcement: deps.policy.enforcement,
+    degraded: deps.policy.degraded,
+    executionPolicySnapshotHash: deps.policy.policySnapshotHash,
+    executionRuntimeProfileRevision: deps.policy.runtimeProfileRevision,
+  };
+}
+
+/** Convert human-facing gate messages into bounded, queryable reason codes. */
+function stableDecisionReason(
+  toolName: string,
+  decision: GateDecision,
+): string {
+  if ('allow' in decision && decision.allow) {
+    if (toolName.startsWith('submit_') || toolName === 'subagent') {
+      return 'executor_protocol_tool';
+    }
+    return decision.matchedShellCommands?.length
+      ? 'shell_command_prefix_allowed'
+      : 'policy_allowed';
+  }
+
+  const detail = 'audit' in decision ? decision.audit : decision.reason;
+  if (
+    detail.includes('could not be statically authorized') ||
+    detail.includes('unresolvable shell command')
+  ) {
+    return 'shell_command_unresolvable';
+  }
+  if (detail.includes('arbitrary-code interpreter')) {
+    return 'arbitrary_code_interpreter';
+  }
+  if (detail.includes('output redirection')) {
+    return 'shell_output_redirection_requires_broad_permission';
+  }
+  return 'tool_not_permitted';
 }

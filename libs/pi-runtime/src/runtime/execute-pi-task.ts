@@ -85,6 +85,7 @@ import type { ToolEnforcement } from '../tool-policy/gate.js';
 import {
   createToolPolicyExtension,
   resolveSessionToolPolicy,
+  type ToolPolicyDecisionContext,
   type ToolPolicyLogger,
 } from '../tool-policy/session-policy.js';
 import {
@@ -1103,6 +1104,10 @@ export async function executePiTask(
         warn: (obj: Record<string, unknown>, msg: string) =>
           console.error(JSON.stringify({ level: 'warn', msg, ...obj })),
       };
+      const toolPolicyDecisionContext = buildToolPolicyDecisionContext(
+        claimedTask,
+        opts.runtimeProfileId,
+      );
       if (
         opts.runtimeProfileId &&
         opts.toolEnforcement &&
@@ -1145,6 +1150,7 @@ export async function executePiTask(
             policy: resolvedToolPolicy,
             analyzer,
             logger: toolPolicyLogger,
+            context: toolPolicyDecisionContext,
           }),
         );
       }
@@ -1660,6 +1666,45 @@ export async function executePiTask(
       attemptN,
     });
   }
+}
+
+function buildToolPolicyDecisionContext(
+  claimedTask: ClaimedTask,
+  fallbackRuntimeProfileId?: string,
+): ToolPolicyDecisionContext {
+  const { task, attemptN, claimAuthority } = claimedTask;
+  const proposer = task.proposedByAgentId
+    ? { proposerKind: 'agent' as const, proposerId: task.proposedByAgentId }
+    : task.proposedByHumanId
+      ? { proposerKind: 'human' as const, proposerId: task.proposedByHumanId }
+      : {};
+  return {
+    taskId: task.id,
+    attemptN,
+    teamId: task.teamId,
+    ...proposer,
+    ...(claimAuthority?.claimantAgentId
+      ? { claimantAgentId: claimAuthority.claimantAgentId }
+      : {}),
+    ...(claimAuthority?.leaseId ? { leaseId: claimAuthority.leaseId } : {}),
+    ...((claimAuthority?.runtimeProfileId ?? fallbackRuntimeProfileId)
+      ? {
+          runtimeProfileId:
+            claimAuthority?.runtimeProfileId ?? fallbackRuntimeProfileId,
+        }
+      : {}),
+    ...(typeof claimAuthority?.runtimeProfileRevision === 'number'
+      ? {
+          claimRuntimeProfileRevision: claimAuthority.runtimeProfileRevision,
+        }
+      : {}),
+    ...(claimAuthority?.policySnapshotHash
+      ? { claimPolicySnapshotHash: claimAuthority.policySnapshotHash }
+      : {}),
+    ...(claimAuthority?.executorFingerprint
+      ? { claimedExecutorFingerprint: claimAuthority.executorFingerprint }
+      : {}),
+  };
 }
 
 /** Event delivered to an `AgentSession` subscriber. */

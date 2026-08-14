@@ -16,6 +16,21 @@ import {
 } from './session-policy.js';
 
 const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn() };
+const EXECUTION_POLICY_HASH = `sha256:${'b'.repeat(64)}`;
+const CLAIM_POLICY_HASH = `sha256:${'a'.repeat(64)}`;
+const decisionContext = {
+  taskId: 'task-1',
+  attemptN: 2,
+  teamId: 'team-1',
+  claimantAgentId: 'agent-1',
+  leaseId: 'lease-1',
+  proposerKind: 'human' as const,
+  proposerId: 'human-1',
+  runtimeProfileId: 'R',
+  claimRuntimeProfileRevision: 6,
+  claimPolicySnapshotHash: CLAIM_POLICY_HASH,
+  claimedExecutorFingerprint: 'bafkreiexecutor',
+};
 
 function agentReturning(
   enforcement: 'off' | 'watch' | 'enforce',
@@ -29,6 +44,8 @@ function agentReturning(
         allowedTools,
         allowedShellCommands,
         runtimeKind: 'gondolin_pi',
+        policySnapshotHash: EXECUTION_POLICY_HASH,
+        runtimeProfileRevision: 7,
       }),
     },
   };
@@ -93,6 +110,8 @@ describe('resolveSessionToolPolicy', () => {
     expect(policy.allowedShellCommands).toEqual([
       { argvPrefix: ['git', 'diff'] },
     ]);
+    expect(policy.policySnapshotHash).toBe(EXECUTION_POLICY_HASH);
+    expect(policy.runtimeProfileRevision).toBe(7);
   });
 
   it('fails closed and marks degraded when the fetch fails in enforce', async () => {
@@ -117,6 +136,8 @@ describe('resolveSessionToolPolicy', () => {
       allowedTools: ['git'],
       allowedShellCommands: [],
       runtimeKind: 'custom_pi',
+      policySnapshotHash: EXECUTION_POLICY_HASH,
+      runtimeProfileRevision: 7,
     });
 
     const policy = await resolveSessionToolPolicy({
@@ -219,10 +240,15 @@ function toolCall(
 }
 
 function registerHandler(
-  deps: Parameters<typeof createToolPolicyExtension>[0],
+  deps: Omit<Parameters<typeof createToolPolicyExtension>[0], 'context'> & {
+    context?: Parameters<typeof createToolPolicyExtension>[0]['context'];
+  },
 ) {
   const on = vi.fn();
-  createToolPolicyExtension(deps)({ on } as unknown as ExtensionAPI);
+  createToolPolicyExtension({
+    ...deps,
+    context: deps.context ?? decisionContext,
+  })({ on } as unknown as ExtensionAPI);
   return on;
 }
 
@@ -261,7 +287,16 @@ describe('createToolPolicyExtension', () => {
     expect(blocked).toMatchObject({ block: true });
     expect((blocked as { reason: string }).reason).toContain('curl');
     expect(logger.warn).toHaveBeenCalledWith(
-      expect.objectContaining({ degraded: false }),
+      expect.objectContaining({
+        degraded: false,
+        taskId: 'task-1',
+        attemptN: 2,
+        teamId: 'team-1',
+        decision: 'blocked',
+        reason: 'tool_not_permitted',
+        claimPolicySnapshotHash: CLAIM_POLICY_HASH,
+        executionPolicySnapshotHash: undefined,
+      }),
       'tool_policy.blocked',
     );
 
@@ -285,7 +320,11 @@ describe('createToolPolicyExtension', () => {
     const result = handler(toolCall('write', { path: 'x' }));
     expect(result).toBeUndefined();
     expect(logger.info).toHaveBeenCalledWith(
-      expect.objectContaining({ toolName: 'write' }),
+      expect.objectContaining({
+        toolName: 'write',
+        decision: 'audit',
+        reason: 'tool_not_permitted',
+      }),
       'tool_policy.audit',
     );
   });
@@ -341,9 +380,11 @@ describe('createToolPolicyExtension', () => {
     const handler = on.mock.calls[0][1] as (e: ToolCallEvent) => unknown;
 
     expect(handler(toolCall('bash', { command }))).toBeUndefined();
-    expect(logger.debug).toHaveBeenCalledWith(
+    expect(logger.info).toHaveBeenCalledWith(
       expect.objectContaining({
-        matchedShellCommands: [
+        decision: 'allowed',
+        reason: 'shell_command_prefix_allowed',
+        shellFingerprints: [
           expect.objectContaining({
             executable: 'gh',
             argvPrefixFingerprint: expect.stringMatching(
@@ -353,9 +394,72 @@ describe('createToolPolicyExtension', () => {
           }),
         ],
       }),
-      'tool_policy.shell_command_allowed',
+      'tool_policy.allowed',
     );
-    expect(JSON.stringify(logger.debug.mock.calls)).not.toContain(secret);
+    expect(JSON.stringify(logger.info.mock.calls)).not.toContain(secret);
+  });
+
+  it('logs correlated allowed decisions without tool arguments', () => {
+    const policy: SessionToolPolicy = {
+      enforcement: 'enforce',
+      allowedTools: new Set(['write']),
+      allowedShellCommands: [],
+      policySnapshotHash: EXECUTION_POLICY_HASH,
+      runtimeProfileRevision: 7,
+      degraded: false,
+    };
+    const on = registerHandler({ policy, analyzer, logger });
+    const handler = on.mock.calls[0][1] as (e: ToolCallEvent) => unknown;
+    const secret = 'sentinel-tool-argument';
+
+    expect(handler(toolCall('write', { content: secret }))).toBeUndefined();
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        taskId: 'task-1',
+        attemptN: 2,
+        teamId: 'team-1',
+        claimantAgentId: 'agent-1',
+        leaseId: 'lease-1',
+        proposerKind: 'human',
+        proposerId: 'human-1',
+        toolName: 'write',
+        toolCallId: 'call-1',
+        decision: 'allowed',
+        reason: 'policy_allowed',
+        enforcement: 'enforce',
+        claimPolicySnapshotHash: CLAIM_POLICY_HASH,
+        executionPolicySnapshotHash: EXECUTION_POLICY_HASH,
+        claimRuntimeProfileRevision: 6,
+        executionRuntimeProfileRevision: 7,
+        claimedExecutorFingerprint: 'bafkreiexecutor',
+      }),
+      'tool_policy.allowed',
+    );
+    expect(JSON.stringify(logger.info.mock.calls)).not.toContain(secret);
+  });
+
+  it('logs claim/execution policy drift once and keeps the gate active', () => {
+    const policy: SessionToolPolicy = {
+      enforcement: 'enforce',
+      allowedTools: new Set(['read']),
+      allowedShellCommands: [],
+      policySnapshotHash: EXECUTION_POLICY_HASH,
+      runtimeProfileRevision: 7,
+      degraded: false,
+    };
+    const on = registerHandler({ policy, analyzer, logger });
+
+    expect(logger.info).toHaveBeenCalledTimes(1);
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        decision: 'continue',
+        reason: 'claim_execution_policy_drift',
+        claimPolicySnapshotHash: CLAIM_POLICY_HASH,
+        executionPolicySnapshotHash: EXECUTION_POLICY_HASH,
+      }),
+      'tool_policy.snapshot_drift',
+    );
+    expect(on).toHaveBeenCalledTimes(1);
   });
 
   it('flags degraded:true in the block log when the policy is a fallback', () => {
