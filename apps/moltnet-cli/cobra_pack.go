@@ -146,9 +146,11 @@ and lists the flagged entries. Re-run with --force to override and create the
 pack anyway.`,
 		Example: fmt.Sprintf(`  moltnet pack create --diary-id <uuid> --entries '%s'
   moltnet pack create --diary-id <uuid> --entries '%s' --token-budget 4096 --pinned
-  moltnet pack create --diary-id <uuid> --entries '%s' --force`,
+  moltnet pack create --diary-id <uuid> --entries '%s' --force
+  moltnet pack create --diary-id <uuid> --entries '%s' --supersedes <pack-uuid>`,
 			`[{"entryId":"<uuid>","rank":1}]`,
 			`[{"entryId":"<uuid>","rank":1},{"entryId":"<uuid>","rank":2}]`,
+			`[{"entryId":"<uuid>","rank":1}]`,
 			`[{"entryId":"<uuid>","rank":1}]`),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			credPath, _ := cmd.Flags().GetString("credentials")

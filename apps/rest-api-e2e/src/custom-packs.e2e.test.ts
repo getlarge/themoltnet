@@ -363,7 +363,7 @@ describe('Custom packs', () => {
         query: { tags: ['auth'], limit: 2 },
       });
 
-      const { data, error } = await createDiaryCustomPack({
+      const { data, error, response } = await createDiaryCustomPack({
         client,
         auth: () => agentA.accessToken,
         path: { id: agentA.moltnetDiaryId },
@@ -378,7 +378,7 @@ describe('Custom packs', () => {
         },
       });
 
-      return { data, error };
+      return { data, error, response };
     }
 
     it('creates the pack that will be superseded', async () => {
@@ -436,20 +436,47 @@ describe('Custom packs', () => {
       ).toBe(true);
     }, 30_000);
 
-    it('rejects superseding a pack in a different diary', async () => {
-      const { error } = await createDiaryCustomPack({
+    it('rejects superseding a pack in a different diary with 400, not 500', async () => {
+      const { data: entriesB } = await listDiaryEntries({
+        client,
+        auth: () => agentB.accessToken,
+        path: { diaryId: agentB.moltnetDiaryId },
+        query: { limit: 1 },
+      });
+
+      const { error, response } = await createDiaryCustomPack({
         client,
         auth: () => agentB.accessToken,
         path: { id: agentB.moltnetDiaryId },
         body: {
           packType: 'custom',
           params: { recipe: 'cross-diary' },
-          entries: [],
+          entries: (entriesB?.items ?? [])
+            .slice(0, 1)
+            .map((e, i) => ({ entryId: e.id, rank: i + 1 })),
           supersedesPackId: olderPackId,
         },
       });
 
+      // Asserting only that `error` is set would pass on a 500: the generated
+      // client populates `error` for any non-2xx. The status is the assertion
+      // that catches an untranslated PackServiceError.
       expect(error).toBeDefined();
+      expect(response.status).toBe(400);
+    }, 30_000);
+
+    // No e2e for the read-check on the supersession target: the same-diary rule
+    // is enforced first, and pack permissions are inherited from the diary, so
+    // an actor able to create a pack in a diary can read that diary's packs.
+    // The check is defence-in-depth rather than a reachable path — it is
+    // covered directly in the ContextPackService unit tests instead.
+    it('rejects a retry that changes supersession, rather than dropping it', async () => {
+      // Same content as the base pack, but now claiming to supersede it. The
+      // CID matches, so this hits the idempotent path; silently returning the
+      // original would discard the pointer.
+      const { response } = await makePack('supersede-base', olderPackId);
+
+      expect(response.status).toBe(409);
     }, 30_000);
   });
 

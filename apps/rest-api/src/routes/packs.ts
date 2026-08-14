@@ -360,15 +360,6 @@ export async function packRoutes(fastify: FastifyInstance) {
       throw err;
     }
 
-    // One source of truth with ContextPackService.createCustomPack: this route
-    // still duplicates the create path (TODO issue-456), so the guard is called
-    // rather than reimplemented.
-    await fastify.contextPackService.validateSupersession({
-      diaryId: diary.id,
-      supersedesPackId: request.body.supersedesPackId,
-      actor: { identityId, subjectNs },
-    });
-
     const selectedEntries = await loadSelectedEntries(
       fastify,
       diary.id,
@@ -408,6 +399,27 @@ export async function packRoutes(fastify: FastifyInstance) {
     let persistedPackId: string | undefined;
 
     if (persist) {
+      // Inside `persist` deliberately: preview shares this helper, and
+      // supersession affects neither the previewed composition nor the CID, so
+      // running the check there would make a what-if call perform a real
+      // read-permission probe against another pack.
+      //
+      // One source of truth with ContextPackService.createCustomPack — the
+      // route still duplicates the create path (TODO issue-456), so the guard
+      // is called rather than reimplemented. Translated like every other
+      // service call in this file: PackServiceError carries no statusCode, so
+      // an untranslated throw surfaces as a 500.
+      try {
+        await fastify.contextPackService.validateSupersession({
+          diaryId: diary.id,
+          supersedesPackId: request.body.supersedesPackId,
+          actor: { identityId, subjectNs },
+        });
+      } catch (err) {
+        if (err instanceof PackServiceError) translatePackServiceError(err);
+        throw err;
+      }
+
       const createdAtDate = new Date(createdAt);
       const pinned = request.body.pinned ?? false;
       const compileTtlDays =
@@ -421,6 +433,21 @@ export async function packRoutes(fastify: FastifyInstance) {
       // Idempotent: return existing pack if CID already exists (retry/double-submit)
       const existing = await fastify.contextPackRepository.findByCid(packCid);
       if (existing) {
+        // `packCid` covers diaryId, packType, params and entries — not
+        // supersession. So a retry that changes only `supersedesPackId` hits
+        // this idempotent path and would silently discard the new pointer.
+        // Returning the original pack as if the request succeeded would
+        // undercut the "declared at creation, not patched later" guarantee, so
+        // a genuine divergence is a conflict rather than a silent drop.
+        const requested = request.body.supersedesPackId ?? null;
+        if (requested !== null && requested !== existing.supersedesPackId) {
+          throw createProblem(
+            'conflict',
+            'A pack with this content already exists and supersedes a different pack. ' +
+              'Supersession is fixed at creation and cannot be changed by re-creating the same pack.',
+          );
+        }
+
         return {
           packId: existing.id,
           packCid: existing.packCid,
