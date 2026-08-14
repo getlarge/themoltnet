@@ -5,16 +5,31 @@
   "scripts": {
     "build": "tsc",
     "start": "npx @themoltnet/agent-daemon --runtime ./dist/runtime.js",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@earendil-works/pi-ai": "0.79.4",
     "@earendil-works/pi-coding-agent": "0.79.4",
-    "@themoltnet/agent-daemon": "^0.40.0",
-    "@themoltnet/pi-runtime": "^0.8.0",
+    "@themoltnet/agent-daemon": "0.40.0",
+    "@themoltnet/pi-runtime": "0.8.0",
     "typebox": "^1.2.8"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
-    "typescript": "^5.9.0"
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.4"
+  },
+  "nx": {
+    "name": "moltnet-custom-pi-runtime-example",
+    "targets": {
+      "test-ci": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "npm_config_minimum_release_age_exclude='@themoltnet/*' pnpm install --ignore-workspace --frozen-lockfile && pnpm typecheck && pnpm test && pnpm build",
+          "cwd": "examples/custom-pi-runtime"
+        }
+      }
+    }
   }
 }

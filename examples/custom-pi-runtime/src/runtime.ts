@@ -7,6 +7,8 @@ import {
 } from '@themoltnet/pi-runtime';
 import { Type } from 'typebox';
 
+import { githubIssueRead } from './github-issue-tool.js';
+
 const hello = definePiTool(
   defineTool({
     name: 'hello',
@@ -24,7 +26,7 @@ const hello = definePiTool(
   }),
 );
 
-const runtime = definePiRuntime({
+export const runtime = definePiRuntime({
   id: 'example-custom-pi',
   version: '1',
   runtimeKind: 'example_pi',
@@ -37,7 +39,7 @@ const runtime = definePiRuntime({
     },
     executables: ['git', 'node', 'npm'],
   }),
-  tools: [hello],
+  tools: [hello, githubIssueRead],
 });
 
 export default createPiDaemonAdapter(runtime);

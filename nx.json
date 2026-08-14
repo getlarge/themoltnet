@@ -47,6 +47,10 @@
   },
   "plugins": [
     {
+      "include": ["examples/custom-pi-runtime/**/*"],
+      "plugin": "nx/plugins/package-json"
+    },
+    {
       "options": {
         "extensions": ["ts", "tsx"],
         "targetName": "lint"
