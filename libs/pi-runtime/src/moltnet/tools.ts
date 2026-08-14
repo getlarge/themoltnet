@@ -135,6 +135,11 @@ export interface MoltNetToolsConfig {
    * entry creation behaves as before (env-derived diary, no auto-tags).
    */
   getTaskContext?(): MoltNetTaskContext | null;
+  /** Records recoverable task-provenance failures without ending the task. */
+  onTaskProvenanceEvent?(
+    event: 'task.provenance.entry_denied',
+    details: { taskId: string; diaryId: string; error: string },
+  ): void | Promise<void>;
 }
 
 const DIARY_TAG_MAX_LENGTH = 128;
@@ -976,13 +981,33 @@ export function createMoltNetTools(
         ? [...autoTags, ...userTags.filter((t) => !autoTags.includes(t))]
         : userTags;
 
-      const entry = await agent.entries.create(targetDiaryId, {
-        title: params.title,
-        content: params.content,
-        tags: mergedTags,
-        importance: params.importance ?? 5,
-        ...(params.entryType ? { entryType: params.entryType } : {}),
-      });
+      let entry: Awaited<ReturnType<typeof agent.entries.create>>;
+      try {
+        entry = await agent.entries.create(targetDiaryId, {
+          title: params.title,
+          content: params.content,
+          tags: mergedTags,
+          importance: params.importance ?? 5,
+          ...(params.entryType ? { entryType: params.entryType } : {}),
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (
+          taskCtx &&
+          /\b403\b|forbidden|not authorized|permission/i.test(message)
+        ) {
+          await config.onTaskProvenanceEvent?.('task.provenance.entry_denied', {
+            taskId: taskCtx.taskId,
+            diaryId: targetDiaryId,
+            error: message,
+          });
+          throw new Error(
+            `entries_create: the task provenance diary denied this entry. The diary may have moved to another team or its grants may have changed. The task and runtime session remain active; ask a diary manager to restore write access, then retry. (${message})`,
+            { cause: error },
+          );
+        }
+        throw error;
+      }
       const text = JSON.stringify(
         {
           id: entry.id,

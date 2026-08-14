@@ -1049,6 +1049,8 @@ export async function executePiTask(
           diaryId,
           correlationId: task.correlationId ?? null,
         }),
+        onTaskProvenanceEvent: (event, details) =>
+          emit('info', { event, severity: 'warn', ...details }),
       });
 
       // Pi-coding-agent's own env-var convention is
