@@ -27,6 +27,7 @@ import {
   contextPackEntries,
   type ContextPackEntry,
   contextPacks,
+  diaries,
   diaryEntries,
   humans,
   type NewContextPack,
@@ -372,6 +373,45 @@ export function createContextPackRepository(db: Database) {
         getExecutor(db)
           .select({ count: count() })
           .from(contextPacks)
+          .where(whereClause),
+      ]);
+
+      return {
+        items: rows.map(normalizePack),
+        total: countResult[0]?.count ?? 0,
+      };
+    },
+
+    /**
+     * All packs in a team, newest first.
+     *
+     * Packs carry no team column — they belong to a diary, and the diary
+     * carries the team — so this joins through `diaries` (indexed on
+     * `teamId`). Callers still filter the result by pack readability; this
+     * only bounds the set to one team.
+     */
+    async listByTeam(
+      teamId: string,
+      limit = 20,
+      offset = 0,
+    ): Promise<{ items: ContextPackWithCreator[]; total: number }> {
+      const whereClause = eq(diaries.teamId, teamId);
+
+      const [rows, countResult] = await Promise.all([
+        getExecutor(db)
+          .select(packSelection)
+          .from(contextPacks)
+          .innerJoin(diaries, eq(contextPacks.diaryId, diaries.id))
+          .leftJoin(agents, eq(contextPacks.creatorAgentId, agents.identityId))
+          .leftJoin(humans, eq(contextPacks.creatorHumanId, humans.id))
+          .where(whereClause)
+          .orderBy(desc(contextPacks.createdAt))
+          .limit(limit)
+          .offset(offset) as Promise<PackRow[]>,
+        getExecutor(db)
+          .select({ count: count() })
+          .from(contextPacks)
+          .innerJoin(diaries, eq(contextPacks.diaryId, diaries.id))
           .where(whereClause),
       ]);
 

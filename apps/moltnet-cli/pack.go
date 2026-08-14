@@ -518,10 +518,14 @@ func runPackUpdateCmd(apiURL, credPath, packID string, pinned *bool, expiresAt s
 	return printJSON(pack)
 }
 
-// runPackListCmd lists context packs either by diary or by entry membership.
+// runPackListCmd lists context packs: the whole team catalog by default, or
+// narrowed to one diary or to the packs containing one entry.
+//
+// Neither flag is required. They remain mutually exclusive because the API
+// serves diary-scoped listing from a different route.
 func runPackListCmd(apiURL, credPath, diaryID, containsEntry string, includeRendered bool, limit, offset int, expand string) error {
-	if (diaryID == "") == (containsEntry == "") {
-		return fmt.Errorf("exactly one of --diary-id or --contains-entry must be provided")
+	if diaryID != "" && containsEntry != "" {
+		return fmt.Errorf("--diary-id and --contains-entry cannot be combined")
 	}
 
 	client, err := newAuthenticatedClient(apiURL, credPath)

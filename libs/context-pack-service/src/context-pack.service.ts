@@ -28,6 +28,7 @@ import type {
   ListPacksByDiaryInput,
   ListPacksByDiaryResult,
   ListPacksByEntryInput,
+  ListPacksByTeamInput,
   ListRenderedPacksByDiaryInput,
   ListRenderedPacksByDiaryResult,
   PackActor,
@@ -54,6 +55,7 @@ export interface ContextPackServiceDeps {
     | 'findByCid'
     | 'findByEntryId'
     | 'listByDiary'
+    | 'listByTeam'
     | 'listEntriesExpanded'
     | 'listEntriesExpandedByPackIds'
     | 'diffPacks'
@@ -147,6 +149,55 @@ export class ContextPackService {
         limit: input.limit,
         offset: input.offset,
       },
+    );
+
+    if (result.items.length === 0) {
+      return input.includeRendered
+        ? { items: [], total: result.total, renderedPacks: [] }
+        : { items: [], total: result.total };
+    }
+
+    const readablePacks = await this.deps.permissionChecker.canReadPacks(
+      result.items.map((pack) => pack.id),
+      input.actor.identityId,
+      input.actor.subjectNs,
+    );
+    const visibleItems = result.items.filter(
+      (pack) => readablePacks.get(pack.id) ?? false,
+    );
+    const deniedOnPage = result.items.length - visibleItems.length;
+
+    const response: PacksByEntryResult = {
+      items: visibleItems,
+      total: result.total - deniedOnPage,
+    };
+
+    if (input.includeRendered && visibleItems.length > 0) {
+      response.renderedPacks =
+        await this.deps.renderedPackRepository.listBySourcePackIds(
+          visibleItems.map((pack) => pack.id),
+        );
+    }
+
+    return response;
+  }
+
+  /**
+   * The team-wide pack catalog.
+   *
+   * Readability is filtered per pack, mirroring `listPacksByEntry`: a team
+   * member may not be able to read every diary in the team, so two members can
+   * legitimately see different catalogs. `total` is adjusted by what was denied
+   * on the page, which keeps pagination honest for the caller rather than
+   * advertising rows they cannot open.
+   */
+  async listPacksByTeam(
+    input: ListPacksByTeamInput,
+  ): Promise<PacksByEntryResult> {
+    const result = await this.deps.contextPackRepository.listByTeam(
+      input.teamId,
+      input.limit,
+      input.offset,
     );
 
     if (result.items.length === 0) {

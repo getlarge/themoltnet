@@ -13,6 +13,7 @@ import {
   createDiaryEntry,
   getContextPackById,
   getContextPackProvenanceById,
+  listContextPacks,
   listDiaryEntries,
   listDiaryPacks,
   previewDiaryCustomPack,
@@ -349,6 +350,80 @@ describe('Custom packs', () => {
 
     expect(error).toBeDefined();
     expect(response.status).toBe(400);
+  });
+
+  describe('GET /packs (team catalog)', () => {
+    /**
+     * This endpoint used to require `containsEntry` and 400 without it, which
+     * is why the console pack catalog could never load: it lists a team's
+     * packs and has no entry to filter by.
+     */
+    it('lists the team catalog with no diary or entry filter', async () => {
+      const { data, error, response } = await listContextPacks({
+        client,
+        auth: () => agentA.accessToken,
+        headers: { 'x-moltnet-team-id': agentA.personalTeamId },
+        query: { limit: 20, offset: 0 },
+      });
+
+      expect(error).toBeUndefined();
+      expect(response.status).toBe(200);
+      expect(Array.isArray(data!.items)).toBe(true);
+      expect(typeof data!.total).toBe('number');
+    });
+
+    it('requires the team header, since the catalog is team-scoped', async () => {
+      const { response } = await listContextPacks({
+        client,
+        auth: () => agentA.accessToken,
+        query: { limit: 20, offset: 0 },
+      });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('still supports containsEntry as a filter', async () => {
+      const { data: entries } = await listDiaryEntries({
+        client,
+        auth: () => agentA.accessToken,
+        path: { diaryId: agentA.moltnetDiaryId },
+        query: { limit: 1 },
+      });
+
+      const { error, response } = await listContextPacks({
+        client,
+        auth: () => agentA.accessToken,
+        headers: { 'x-moltnet-team-id': agentA.personalTeamId },
+        query: { containsEntry: entries!.items[0].id },
+      });
+
+      expect(error).toBeUndefined();
+      expect(response.status).toBe(200);
+    });
+
+    it('rejects diaryId, which has its own route', async () => {
+      const { response } = await listContextPacks({
+        client,
+        auth: () => agentA.accessToken,
+        headers: { 'x-moltnet-team-id': agentA.personalTeamId },
+        query: { diaryId: agentA.moltnetDiaryId },
+      });
+
+      expect(response.status).toBe(400);
+    });
+
+    it("does not leak another team's packs", async () => {
+      const { data } = await listContextPacks({
+        client,
+        auth: () => agentB.accessToken,
+        headers: { 'x-moltnet-team-id': agentB.personalTeamId },
+        query: { limit: 100 },
+      });
+
+      // agentA seeded packs in its own team throughout this file.
+      const diaryIds = new Set(data!.items.map((pack) => pack.diaryId));
+      expect(diaryIds.has(agentA.moltnetDiaryId)).toBe(false);
+    });
   });
 
   describe('supersession', () => {

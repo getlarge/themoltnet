@@ -134,6 +134,14 @@ export interface ListPacksByEntryInput {
   includeRendered?: boolean;
 }
 
+export interface ListPacksByTeamInput {
+  teamId: string;
+  actor: PackActor;
+  limit?: number;
+  offset?: number;
+  includeRendered?: boolean;
+}
+
 export interface PacksByEntryResult {
   items: ContextPackWithCreator[];
   total: number;

@@ -38,6 +38,7 @@ import {
   PackUpdateBodySchema,
 } from '../schemas.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
+import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
 import { requireKetoSubject } from '../utils/require-keto-subject.js';
 import { buildPackProvenanceGraph } from './pack-provenance.js';
 
@@ -777,12 +778,29 @@ export async function packRoutes(fastify: FastifyInstance) {
           'Use GET /diaries/:id/packs for diary-scoped listing',
         );
       }
-      if (!request.query.containsEntry) {
-        throw createProblem('validation-failed', 'containsEntry is required');
-      }
 
       const limit = request.query.limit ?? 20;
       const offset = request.query.offset ?? 0;
+
+      // Without `containsEntry` this is the team catalog. It used to 400,
+      // which meant the console's /packs page could never load: it lists a
+      // team's packs and has no entry to filter by.
+      if (!request.query.containsEntry) {
+        const teamId = requireCurrentTeamId(request, 'packs');
+        try {
+          return await fastify.contextPackService.listPacksByTeam({
+            teamId,
+            actor: { identityId, subjectNs },
+            limit,
+            offset,
+            includeRendered: request.query.includeRendered,
+          });
+        } catch (err) {
+          if (err instanceof PackServiceError)
+            return translatePackServiceError(err);
+          throw err;
+        }
+      }
 
       let packs: Awaited<
         ReturnType<typeof fastify.contextPackService.listPacksByEntry>

@@ -1341,17 +1341,15 @@ func TestValidateCommitFlagsErrorFormat(t *testing.T) {
 	}
 }
 
-func TestPackListRequiresDiaryIDOrContainsEntry(t *testing.T) {
+func TestPackListAllowsNoSelector(t *testing.T) {
 	t.Parallel()
 	root := NewRootCmd("test", "")
 
+	// No selector means the team catalog. This used to be rejected, which is
+	// why the console pack list could never load: it has no entry to filter by.
 	_, _, err := executeCommand(root, "pack", "list")
-	if err == nil {
-		t.Fatal("expected error when neither --diary-id nor --contains-entry is provided")
-	}
-	if !strings.Contains(err.Error(), "--diary-id") ||
-		!strings.Contains(err.Error(), "--contains-entry") {
-		t.Errorf("expected error to mention both selector flags, got: %v", err)
+	if err != nil && strings.Contains(err.Error(), "must be provided") {
+		t.Errorf("pack list should not require a selector flag, got: %v", err)
 	}
 }
 

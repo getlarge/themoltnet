@@ -28,6 +28,7 @@ func newPackListCmd() *cobra.Command {
 		Short: "List context packs by diary or entry membership",
 		Example: `  moltnet pack list --diary-id <uuid>
   moltnet pack list --diary-id <uuid> --limit 20 --offset 0
+  moltnet pack list
   moltnet pack list --contains-entry <uuid> --include-rendered
   moltnet pack list --contains-entry <uuid> --expand entries`,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -51,7 +52,7 @@ func newPackListCmd() *cobra.Command {
 			)
 		},
 	}
-	cmd.Flags().String("diary-id", "", "Diary UUID (mutually exclusive with --contains-entry)")
+	cmd.Flags().String("diary-id", "", "Diary UUID (optional; mutually exclusive with --contains-entry)")
 	cmd.Flags().String("contains-entry", "", "Entry UUID to reverse-lookup packs for (mutually exclusive with --diary-id)")
 	cmd.Flags().Bool("include-rendered", false, "Include rendered packs when using --contains-entry")
 	cmd.Flags().Int("limit", 0, "Maximum number of packs to return")
