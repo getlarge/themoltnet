@@ -55,6 +55,7 @@
     "check:vite-aliases": "tsx tools/src/check-vite-alias-exports.ts",
     "validate": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build && pnpm run check:pack && pnpm run check:quickstart && pnpm run check:vite-aliases",
     "docker:up": "docker compose --env-file .env.local up -d",
+    "docker:images": "NX_LOAD_DOT_ENV_FILES=false nx run-many -t build --projects=@moltnet/database && NX_LOAD_DOT_ENV_FILES=false nx run otel-custom-collector:docker:build && docker compose --env-file .env.local build app-db-migrate",
     "docker:down": "docker compose down",
     "docker:reset": "docker compose down -v",
     "docker:logs": "docker compose logs -f",

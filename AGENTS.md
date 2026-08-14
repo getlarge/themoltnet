@@ -65,11 +65,32 @@ pnpm run generate:openapi  # Generate OpenAPI spec
 
 # Docker (local infra)
 cp env.local.example .env.local               # First time only
+pnpm run docker:images                        # First time + after changing libs/database or infra/otel
 docker compose --env-file .env.local up -d     # Start infra (DB, Ory, OTel)
 docker compose down                           # Stop all
 docker compose down -v                        # Stop + remove volumes
 docker compose logs -f                        # Tail logs
+```
 
+`docker:images` covers the two images this stack cannot simply pull:
+
+- **`otel-collector`** resolves to `ghcr.io/getlarge/themoltnet/otel-collector:dev`,
+  which is **not published**. It is built from the `otel-custom-collector` Nx
+  project (`infra/otel/custom-collector`). Without it, `docker compose up` fails
+  with `manifest unknown`.
+- **`app-db-migrate`** builds from `libs/database/Dockerfile`, which is
+  packaging-only per the Docker image contract (`CMD node
+dist/src/migrate-cli.js`). The host `dist/` must exist **before** the image is
+  built, or the container restart-loops on
+  `Cannot find module '/app/dist/src/migrate-cli.js'`. Building the host artifact
+  alone is not enough — `docker compose up` reuses a cached image, so the script
+  also runs `docker compose build app-db-migrate` to pick the new `dist/` up.
+
+Neither is covered by `e2e:build`: the e2e stack has no otel service and builds
+its own migrate image. Re-run `docker:images` after changing `libs/database` or
+`infra/otel`.
+
+```bash
 # Dev servers (run against Docker infra)
 pnpm run dev:mcp           # MCP server
 pnpm run dev:api           # REST API
