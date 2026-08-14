@@ -985,7 +985,7 @@ jobs:
         if: needs.affected.outputs.e2e-node == 'true'
         env:
           COMPOSE_DISABLE_ENV_FILE: true
-        run: docker compose -f docker-compose.e2e.yaml up -d
+        run: docker compose -f docker-compose.e2e.yaml up -d rest-api
       # rest-api e2e MUST run first: its setup restarts the rest-api container
       # (sponsor flow), which would invalidate any in-flight test in another
       # suite running against the same stack.
@@ -1093,7 +1093,7 @@ jobs:
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
         env:
           COMPOSE_DISABLE_ENV_FILE: true
-        run: docker compose -f docker-compose.e2e.yaml up -d
+        run: docker compose -f docker-compose.e2e.yaml up -d rest-api
       - name: Run pi-runtime VM integration tests
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
         env:
@@ -1166,7 +1166,7 @@ jobs:
         if: needs.affected.outputs.e2e-browser == 'true'
         env:
           COMPOSE_DISABLE_ENV_FILE: true
-        run: docker compose -f docker-compose.e2e.yaml up -d
+        run: docker compose -f docker-compose.e2e.yaml up -d console
       - name: Run Console Browser E2E tests
         if: needs.affected.outputs.e2e-browser == 'true'
         env:
@@ -1254,7 +1254,7 @@ jobs:
         if: needs.affected.outputs.e2e-mcp == 'true'
         env:
           COMPOSE_DISABLE_ENV_FILE: true
-        run: docker compose -f docker-compose.e2e.yaml up -d
+        run: docker compose -f docker-compose.e2e.yaml up -d mcp-host
       - name: Run MCP server E2E tests
         if: needs.affected.outputs.e2e-mcp == 'true'
         env:
@@ -1337,7 +1337,7 @@ jobs:
         if: needs.affected.outputs.e2e-go-cli == 'true'
         env:
           COMPOSE_DISABLE_ENV_FILE: true
-        run: docker compose -f docker-compose.e2e.yaml up -d
+        run: docker compose -f docker-compose.e2e.yaml up -d rest-api
       - name: Run Go CLI E2E tests
         if: needs.affected.outputs.e2e-go-cli == 'true'
         env:
@@ -1408,7 +1408,7 @@ jobs:
         if: needs.affected.outputs.e2e-cpp-sdk == 'true'
         env:
           COMPOSE_DISABLE_ENV_FILE: true
-        run: docker compose -f docker-compose.e2e.yaml up -d
+        run: docker compose -f docker-compose.e2e.yaml up -d rest-api
       - name: Run C++ SDK E2E tests
         if: needs.affected.outputs.e2e-cpp-sdk == 'true'
         run: pnpm exec nx run @themoltnet/cpp-sdk:e2e
