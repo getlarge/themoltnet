@@ -32,10 +32,13 @@ import {
 
 const NOW = new Date('2026-08-14T00:00:00.000Z');
 
-const renderChain = (graph: Parameters<typeof buildLineage>[0]) =>
+const renderChain = (
+  graph: Parameters<typeof buildLineage>[0],
+  hrefFor?: (packId: string) => string,
+) =>
   render(
     <MoltThemeProvider>
-      <LineageChain lineage={buildLineage(graph)} now={NOW} />
+      <LineageChain lineage={buildLineage(graph)} now={NOW} hrefFor={hrefFor} />
     </MoltThemeProvider>,
   );
 
@@ -72,7 +75,7 @@ describe('LineageChain', () => {
     expect(within(items[1]!).getByText(/compile/)).toBeInTheDocument();
   });
 
-  it('marks the pack being viewed as current', () => {
+  it('marks the pack being viewed without claiming it is the latest', () => {
     const graph = graphFixture({
       nodes: [packNode('p2'), packNode('p1')],
       edges: [edge(packNodeId('p2'), packNodeId('p1'), 'supersedes')],
@@ -82,8 +85,11 @@ describe('LineageChain', () => {
     renderChain(graph);
 
     const items = screen.getAllByRole('listitem');
-    expect(within(items[0]!).getByText(/current/i)).toBeInTheDocument();
-    expect(within(items[1]!).queryByText(/current/i)).not.toBeInTheDocument();
+    // Deliberately not "Current": lineage walks ancestors only, so a pack that
+    // has itself been superseded is still the root of its own graph.
+    expect(within(items[0]!).getByText('Viewing')).toBeInTheDocument();
+    expect(within(items[0]!).queryByText(/^current$/i)).not.toBeInTheDocument();
+    expect(within(items[1]!).queryByText('Viewing')).not.toBeInTheDocument();
   });
 
   it('renders lifecycle state per node through DecayBadge', () => {
@@ -183,5 +189,47 @@ describe('LineageChain', () => {
     renderChain(graph);
 
     expect(screen.getByText(/1671-B080-99BF-4270/)).toBeInTheDocument();
+  });
+
+  it('links ancestors through a real href, not a click handler', () => {
+    const graph = graphFixture({
+      nodes: [packNode('p2'), packNode('p1')],
+      edges: [edge(packNodeId('p2'), packNodeId('p1'), 'supersedes')],
+      rootSeed: 'p2',
+    });
+
+    renderChain(graph, (packId) => `/packs/${packId}`);
+
+    // An <a> carrying only onClick is not focusable and not a tab stop, so
+    // asserting the link role alone would pass on an unusable control.
+    const link = screen.getByRole('link', { name: /compile pack/ });
+    expect(link).toHaveAttribute(
+      'href',
+      `/packs/${packNodeId('p1').replace('pack:', '')}`,
+    );
+  });
+
+  it('does not advertise a destination when no href builder is given', () => {
+    const graph = graphFixture({
+      nodes: [packNode('p2'), packNode('p1')],
+      edges: [edge(packNodeId('p2'), packNodeId('p1'), 'supersedes')],
+      rootSeed: 'p2',
+    });
+
+    renderChain(graph);
+
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  it('never links the pack being viewed to itself', () => {
+    const graph = graphFixture({
+      nodes: [packNode('p2'), packNode('p1')],
+      edges: [edge(packNodeId('p2'), packNodeId('p1'), 'supersedes')],
+      rootSeed: 'p2',
+    });
+
+    renderChain(graph, (packId) => `/packs/${packId}`);
+
+    expect(screen.getAllByRole('link')).toHaveLength(1);
   });
 });

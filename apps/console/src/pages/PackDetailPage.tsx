@@ -10,7 +10,6 @@ import {
   Text,
   useTheme,
 } from '@themoltnet/design-system';
-import { useLocation } from 'wouter';
 
 import { getApiErrorDetail } from '../api-error.js';
 import { DecayBadge } from '../components/packs/DecayBadge.js';
@@ -26,7 +25,6 @@ export interface PackDetailPageProps {
 
 export function PackDetailPage({ id }: PackDetailPageProps) {
   const theme = useTheme();
-  const [, navigate] = useLocation();
   const packQuery = usePack(id);
 
   // One `now` per render so every decay surface on this page agrees.
@@ -113,7 +111,7 @@ export function PackDetailPage({ id }: PackDetailPageProps) {
           <PackLineage
             packId={pack.id}
             now={now}
-            onOpen={(packId) => navigate(`/packs/${packId}`)}
+            hrefFor={(packId) => `/packs/${packId}`}
           />
         </Stack>
       ) : null}

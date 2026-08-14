@@ -1,12 +1,12 @@
 import { formatRelativeTime } from '@moltnet/diary-ui';
 import {
-  ActionLink,
   Badge,
   KeyFingerprint,
   Stack,
   Text,
   useTheme,
 } from '@themoltnet/design-system';
+import { Link } from 'wouter';
 
 import { describeDecay } from '../../packs/decay.js';
 import type { Lineage, SpineNode } from '../../packs/lineage.js';
@@ -16,8 +16,16 @@ import { PinControl } from './PinControl.js';
 export interface LineageChainProps {
   lineage: Lineage;
   now: Date;
-  /** Navigates to another pack in the chain. Context packs only. */
-  onOpen?: (packId: string) => void;
+  /**
+   * Builds the destination for another pack in the chain, e.g.
+   * `(id) => `/packs/${id}``.
+   *
+   * A real `href` rather than a click handler: an `<a>` without one is not
+   * focusable and not a tab stop, so keyboard users could not walk the chain,
+   * and open-in-new-tab and copy-link would be lost. Same reason `PackCard`
+   * takes an href.
+   */
+  hrefFor?: (packId: string) => string;
 }
 
 function entryCountLabel(count: number): string {
@@ -39,7 +47,7 @@ function entryCountLabel(count: number): string {
  * packs are read-only for now — `usePinRenderedPack` exists but has no control
  * yet (that belongs with #655).
  */
-export function LineageChain({ lineage, now, onOpen }: LineageChainProps) {
+export function LineageChain({ lineage, now, hrefFor }: LineageChainProps) {
   const theme = useTheme();
 
   return (
@@ -96,15 +104,23 @@ export function LineageChain({ lineage, now, onOpen }: LineageChainProps) {
             <Stack gap={2} style={{ paddingBottom: isLast ? 0 : '24px' }}>
               <Stack direction="row" gap={3} align="center" wrap>
                 <Text weight={node.isRoot ? 'semibold' : 'normal'}>
-                  {node.packId && onOpen && !node.isRoot ? (
-                    <ActionLink onClick={() => onOpen(node.packId as string)}>
+                  {node.packId && hrefFor && !node.isRoot ? (
+                    <Link
+                      href={hrefFor(node.packId)}
+                      style={{ color: 'inherit', textDecoration: 'underline' }}
+                    >
                       {node.label}
-                    </ActionLink>
+                    </Link>
                   ) : (
                     node.label
                   )}
                 </Text>
-                {node.isRoot ? <Badge variant="info">Current</Badge> : null}
+                {/* "This pack", not "Current": the provenance endpoint walks
+                    ancestors only, so a pack that has itself been superseded is
+                    still the root of its own graph. Labelling it "Current"
+                    would tell an operator viewing a replaced pack that it is
+                    the live one. */}
+                {node.isRoot ? <Badge variant="info">Viewing</Badge> : null}
                 <DecayBadge
                   state={describeDecay(
                     { pinned: node.pinned, expiresAt: node.expiresAt },

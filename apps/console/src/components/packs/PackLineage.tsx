@@ -14,8 +14,8 @@ import { LineageChain } from './LineageChain.js';
 export interface PackLineageProps {
   packId: string;
   now: Date;
-  /** Navigates to another pack in the chain. */
-  onOpen?: (packId: string) => void;
+  /** Builds the destination for another pack in the chain. */
+  hrefFor?: (packId: string) => string;
 }
 
 /**
@@ -29,7 +29,7 @@ export interface PackLineageProps {
  * pointer upward per pack and never queries descendants, so lineage cannot
  * branch. See `LineageForm` for why there is no graph form.
  */
-export function PackLineage({ packId, now, onOpen }: PackLineageProps) {
+export function PackLineage({ packId, now, hrefFor }: PackLineageProps) {
   const provenance = usePackProvenance(packId);
   const lineage = provenance.data ? buildLineage(provenance.data) : null;
 
@@ -80,7 +80,7 @@ export function PackLineage({ packId, now, onOpen }: PackLineageProps) {
         ) : null}
 
         {lineage && lineage.form !== 'none' ? (
-          <LineageChain lineage={lineage} now={now} onOpen={onOpen} />
+          <LineageChain lineage={lineage} now={now} hrefFor={hrefFor} />
         ) : null}
       </Stack>
     </Card>
