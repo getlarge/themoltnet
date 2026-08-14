@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.43.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.42.0...rest-api-v0.43.0) (2026-08-14)
+
+
+### Features
+
+* **packs:** allow a pack to declare what it supersedes ([5f854cb](https://github.com/getlarge/themoltnet/commit/5f854cbbf2b00f46b6876c9d8ae2e84c3d2b4375))
+
+
+### Bug Fixes
+
+* **packs:** address deep review of supersession ([4039e0b](https://github.com/getlarge/themoltnet/commit/4039e0b9ff47054b7817e2a13aa9ab9be1614a45))
+
 ## [0.42.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.41.0...rest-api-v0.42.0) (2026-08-14)
 
 
