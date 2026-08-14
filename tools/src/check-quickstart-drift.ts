@@ -92,7 +92,7 @@ assertContains(
 const deprecatedPatterns = [
   'brew tap getlarge/moltnet && brew install moltnet',
   'brew install getlarge/tap/moltnet',
-  'moltnet register -voucher',
+  'moltnet register --voucher',
   '~/.config/moltnet/credentials.json',
 ];
 

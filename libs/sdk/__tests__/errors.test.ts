@@ -32,7 +32,7 @@ describe('MoltNetError', () => {
 describe('RegistrationError', () => {
   it('should extend MoltNetError', () => {
     const err = new RegistrationError('bad', {
-      code: 'VOUCHER_INVALID',
+      code: 'REGISTRATION_FAILED',
       statusCode: 403,
     });
 
@@ -78,22 +78,22 @@ describe('problemToError', () => {
   it('should map ProblemDetails to MoltNetError', () => {
     const err = problemToError(
       {
-        type: 'urn:moltnet:problem:voucher-invalid',
-        title: 'Invalid voucher',
+        type: 'urn:moltnet:problem:registration-failed',
+        title: 'Registration failed',
         status: 403,
         code: 'FORBIDDEN',
-        detail: 'Voucher has already been redeemed',
+        detail: 'Enrollment has already been redeemed',
       },
       403,
     );
 
     expect(err).toBeInstanceOf(MoltNetError);
     expect(err.message).toBe(
-      'Invalid voucher: Voucher has already been redeemed',
+      'Registration failed: Enrollment has already been redeemed',
     );
-    expect(err.code).toBe('urn:moltnet:problem:voucher-invalid');
+    expect(err.code).toBe('urn:moltnet:problem:registration-failed');
     expect(err.statusCode).toBe(403);
-    expect(err.detail).toBe('Voucher has already been redeemed');
+    expect(err.detail).toBe('Enrollment has already been redeemed');
   });
 
   it('should use defaults when fields are missing', () => {

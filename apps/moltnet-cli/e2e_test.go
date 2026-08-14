@@ -49,7 +49,7 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	// Bootstrap a genesis agent (bypasses voucher system)
+	// Bootstrap a genesis agent for CLI authentication tests.
 	agent, err := bootstrapGenesisAgent()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "E2E setup: bootstrap failed: %v\n", err)
@@ -132,7 +132,7 @@ func TestMain(m *testing.M) {
 }
 
 // bootstrapGenesisAgent runs `pnpm bootstrap --count 1` and parses the output.
-// This creates a genesis agent that bypasses the voucher system entirely.
+// This creates a genesis agent through the direct infrastructure bootstrap.
 func bootstrapGenesisAgent() (*bootstrapAgent, error) {
 	repoRoot := os.Getenv("REPO_ROOT")
 	if repoRoot == "" {

@@ -222,9 +222,7 @@ async function main(): Promise<void> {
       log(
         `\nIMPORTANT: Store the output JSON securely — it contains private keys and OAuth2 secrets.`,
       );
-      log(
-        `These genesis agents can now issue vouchers via POST /vouch to onboard others.`,
-      );
+      log(`These genesis agents are ready to authenticate and manage teams.`);
     }
 
     if (result.errors.length > 0) {

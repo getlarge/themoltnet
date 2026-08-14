@@ -21,7 +21,9 @@ import type {
   CompleteTaskData,
   ContextPackResponse,
   ContextPackResponseListWithRendered,
+  CreateAgentEnrollmentData,
   CreateAgentKeyData,
+  CreatedAgentEnrollment,
   CreateDiaryCustomPackData,
   CreateDiaryData,
   CreateDiaryEntryData,
@@ -64,7 +66,6 @@ import type {
   GetRenderedPackByIdData,
   GetRuntimeSessionData,
   GetTeamResponse,
-  GetTrustGraphData,
   Health,
   HeartbeatResponse,
   InitiateTransferData,
@@ -152,7 +153,6 @@ import type {
   UploadTaskArtifactData,
   VerifyRecoveryChallengeData,
   VerifyResult,
-  Voucher,
   Whoami,
 } from '@moltnet/api-client';
 import type {
@@ -169,6 +169,7 @@ import type {
 
 import type { AgentContext } from './agent-context.js';
 import { MoltNetError } from './errors.js';
+import { createAgentEnrollmentsNamespace } from './namespaces/agent-enrollments.js';
 import { createAgentKeysNamespace } from './namespaces/agent-keys.js';
 import { createAgentsNamespace } from './namespaces/agents.js';
 import { createAuthNamespace } from './namespaces/auth.js';
@@ -191,7 +192,6 @@ import { createSigningRequestsNamespace } from './namespaces/signing-requests.js
 import { createTasksNamespace } from './namespaces/tasks.js';
 import type { RequiredTeamRequestOptions } from './namespaces/team-headers.js';
 import { createTeamsNamespace } from './namespaces/teams.js';
-import { createVouchNamespace } from './namespaces/vouch.js';
 import type {
   BuildRubricSuccessCriteriaOptions,
   BuiltTask,
@@ -525,16 +525,15 @@ export interface CryptoNamespace {
   signingCredentials: SigningCredentialsNamespace;
 }
 
-export interface VouchNamespace {
-  issue(): Promise<Voucher>;
-  listActive(): Promise<{ vouchers: Voucher[] }>;
-  trustGraph(query?: GetTrustGraphData['query']): Promise<{
-    edges: Array<{
-      issuerFingerprint: string;
-      redeemerFingerprint: string;
-      redeemedAt: string;
-    }>;
-  }>;
+export interface AgentEnrollmentsNamespace {
+  /** Create a single-use enrollment. The raw token is returned only once. */
+  create(
+    body: CreateAgentEnrollmentData['body'],
+    options: RequiredTeamRequestOptions,
+  ): Promise<CreatedAgentEnrollment>;
+
+  /** Revoke an unused enrollment. */
+  revoke(id: string, options: RequiredTeamRequestOptions): Promise<void>;
 }
 
 export interface AuthNamespace {
@@ -564,6 +563,7 @@ export interface PublicNamespace {
 export interface LegreffierNamespace {
   startOnboarding(
     body: StartLegreffierOnboardingData['body'],
+    idempotencyKey: string,
   ): Promise<StartLegreffierOnboardingResponse>;
   getOnboardingStatus(
     workflowId: GetLegreffierOnboardingStatusData['path']['workflowId'],
@@ -975,6 +975,7 @@ export type RuntimeSessionDownloadStream = AsyncIterable<Uint8Array>;
 
 export interface Agent {
   agentKeys: AgentKeysNamespace;
+  agentEnrollments: AgentEnrollmentsNamespace;
   diaries: DiariesNamespace;
   diaryGrants: DiaryGrantsNamespace;
   diaryTransfers: DiaryTransfersNamespace;
@@ -982,7 +983,6 @@ export interface Agent {
   entries: EntriesNamespace;
   agents: AgentsNamespace;
   crypto: CryptoNamespace;
-  vouch: VouchNamespace;
   auth: AuthNamespace;
   recovery: RecoveryNamespace;
   public: PublicNamespace;
@@ -1020,6 +1020,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
 
   const diaries = createDiariesNamespace(context);
   const agentKeys = createAgentKeysNamespace(context);
+  const agentEnrollments = createAgentEnrollmentsNamespace(context);
   const diaryGrants = createDiaryGrantsNamespace(context);
   const diaryTransfers = createDiaryTransfersNamespace(context);
   const packs = createPacksNamespace(context);
@@ -1032,7 +1033,6 @@ export function createAgent(options: CreateAgentOptions): Agent {
     signingRequests,
     signingCredentials,
   );
-  const vouch = createVouchNamespace(context);
   const authNs = createAuthNamespace(context);
   const recovery = createRecoveryNamespace(context);
   const publicNs = createPublicNamespace(context);
@@ -1047,6 +1047,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
 
   return {
     agentKeys,
+    agentEnrollments,
     diaries,
     diaryGrants,
     diaryTransfers,
@@ -1054,7 +1055,6 @@ export function createAgent(options: CreateAgentOptions): Agent {
     entries,
     agents,
     crypto,
-    vouch,
     auth: authNs,
     recovery,
     public: publicNs,
