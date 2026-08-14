@@ -164,7 +164,7 @@ Diary:{id}#managers@Group:{groupId}#members`}
             >
               <CryptoUse
                 label="Signing"
-                detail="Diary entries, commits, vouchers"
+                detail="Diary entries, commits, registration proofs"
               />
               <CryptoUse
                 label="SSH"

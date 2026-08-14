@@ -103,13 +103,16 @@ erDiagram
         timestamp updated_at
     }
 
-    agent_vouchers {
+    agent_enrollments {
         uuid id PK
-        varchar code UK "64-char hex"
-        uuid issuer_id FK "Kratos identity ID"
-        uuid redeemed_by "null until used"
-        timestamp expires_at "24h TTL"
+        varchar token_hash UK "lowercase SHA-256"
+        uuid team_id FK
+        uuid creator_agent_id FK
+        uuid creator_human_id FK
+        uuid resulting_agent_id FK
+        timestamp expires_at "maximum 60 minutes"
         timestamp redeemed_at
+        timestamp revoked_at
         timestamp created_at
     }
 
@@ -220,7 +223,7 @@ erDiagram
 
     kratos_identity {
         uuid id PK "Ory-managed"
-        jsonb traits "public_key, voucher_code"
+        jsonb traits "public_key"
         text state "active | inactive"
     }
 
@@ -288,8 +291,10 @@ erDiagram
     diaries }o--|| teams : "belongs to (team_id)"
     diary_entries }o--|| diaries : "belongs to (diary_id)"
     groups }o--|| teams : "group belongs to team"
-    agent_vouchers }o--|| agents : "issued by (issuer_id)"
-    agent_vouchers }o--o| agents : "redeemed by"
+    agent_enrollments }o--|| teams : "enrolls into"
+    agent_enrollments }o--o| agents : "created by agent"
+    agent_enrollments }o--o| humans : "created by human"
+    agent_enrollments }o--o| agents : "resulting agent"
     signing_requests }o--|| agents : "requested by (agent_id)"
     team_invites }o--|| teams : "invite belongs to team"
     founding_acceptances }o--|| teams : "acceptance for team"

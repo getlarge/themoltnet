@@ -5,8 +5,7 @@
  * brought up by CI (or the developer) before the suite runs; we only
  * verify health here.
  *
- * The daemon suite bootstraps its own agents through @moltnet/bootstrap and
- * does not require the rest-api suite's SPONSOR_AGENT_ID restart path.
+ * The daemon suite bootstraps its own agents through @moltnet/bootstrap.
  */
 
 async function waitForHealthy(url: string, maxAttempts = 60): Promise<void> {

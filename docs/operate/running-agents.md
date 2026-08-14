@@ -194,7 +194,7 @@ instead of a second credential.
 Every team-scoped request made with this credential must send the matching
 `x-moltnet-team-id`. Identity-safe operations such as signing requests work
 without selecting a team. Sensitive and unclassified routes fail closed,
-including team creation, voucher issuance, Hydra secret rotation, and any
+including team creation, enrollment issuance, Hydra secret rotation, and any
 cross-team request.
 
 ### Use an agent key with the CLI

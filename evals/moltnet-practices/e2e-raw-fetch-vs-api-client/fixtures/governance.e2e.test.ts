@@ -16,7 +16,9 @@
 
 import { randomBytes } from 'node:crypto';
 
-import { agentVouchers, type Database } from '@moltnet/database';
+import { cryptoService } from '@moltnet/crypto-service';
+import type { Database } from '@moltnet/database';
+import { buildSelfRegistrationMessage } from '@moltnet/models';
 
 export interface TestAgent {
   identityId: string;
@@ -24,28 +26,6 @@ export interface TestAgent {
   clientSecret: string;
   accessToken: string;
   personalTeamId: string;
-}
-
-/**
- * Create a voucher code directly in the database for E2E tests.
- * Bypasses the normal "issue via authenticated agent" flow.
- */
-export async function createTestVoucher(opts: {
-  db: Database;
-  issuerId: string;
-}): Promise<string> {
-  const code = randomBytes(32).toString('hex');
-  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
-  await opts.db.insert(agentVouchers).values({
-    code,
-    issuerId: opts.issuerId,
-    expiresAt,
-    redeemedAt: null,
-    redeemedBy: null,
-  });
-
-  return code;
 }
 
 /**
@@ -58,12 +38,18 @@ export async function createAgent(opts: {
   db: Database;
   bootstrapIdentityId: string;
 }): Promise<TestAgent> {
-  const { publicKey } = await generateEd25519KeyPair();
-
-  const voucherCode = await createTestVoucher({
-    db: opts.db,
-    issuerId: opts.bootstrapIdentityId,
-  });
+  void opts.db;
+  void opts.bootstrapIdentityId;
+  const keyPair = await cryptoService.generateKeyPair();
+  const idempotencyKey = randomBytes(32).toString('base64url');
+  const proof = await cryptoService.sign(
+    buildSelfRegistrationMessage({
+      idempotencyKey,
+      publicKey: keyPair.publicKey,
+      credentialType: 'oauth2',
+    }),
+    keyPair.privateKey,
+  );
 
   // Register via Ory proxy — NOT in OpenAPI spec
   const regRes = await fetch(`${opts.baseUrl}/auth/register`, {
@@ -71,10 +57,12 @@ export async function createAgent(opts: {
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
+      'Idempotency-Key': idempotencyKey,
     },
     body: JSON.stringify({
-      public_key: publicKey,
-      voucher_code: voucherCode,
+      publicKey: keyPair.publicKey,
+      proof,
+      credentialType: 'oauth2',
     }),
   });
 
@@ -86,8 +74,7 @@ export async function createAgent(opts: {
 
   const creds = (await regRes.json()) as {
     identityId: string;
-    clientId: string;
-    clientSecret: string;
+    credential: { type: 'oauth2'; clientId: string; clientSecret: string };
   };
 
   // Acquire access token via Hydra proxy — NOT in OpenAPI spec
@@ -96,8 +83,8 @@ export async function createAgent(opts: {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       grant_type: 'client_credentials',
-      client_id: creds.clientId,
-      client_secret: creds.clientSecret,
+      client_id: creds.credential.clientId,
+      client_secret: creds.credential.clientSecret,
       scope: 'diary:read diary:write crypto:sign agent:profile',
     }),
   });
@@ -129,8 +116,8 @@ export async function createAgent(opts: {
 
   return {
     identityId: creds.identityId,
-    clientId: creds.clientId,
-    clientSecret: creds.clientSecret,
+    clientId: creds.credential.clientId,
+    clientSecret: creds.credential.clientSecret,
     accessToken: access_token,
     personalTeamId: personalTeam.id,
   };
@@ -196,6 +183,3 @@ export async function createEntry(opts: {
 }
 
 // Stub — in real code this wraps tweetnacl
-async function generateEd25519KeyPair() {
-  return { publicKey: randomBytes(32).toString('hex') };
-}

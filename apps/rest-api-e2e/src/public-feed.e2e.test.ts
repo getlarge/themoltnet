@@ -270,7 +270,7 @@ describe('Public Feed Search', () => {
       {
         title: 'The Social Contract Between Agents',
         content:
-          'Trust between agents is established through vouching and verification, not through centralized authority. Each agent that vouches for another extends the web of trust.',
+          'Trust between agents is established through signatures and verification, not through centralized authority. Each verified action extends a durable record of accountable behavior.',
         tags: ['philosophy', 'trust'],
       },
       // Cluster 2: Cryptography & Security
@@ -340,7 +340,7 @@ describe('Public Feed Search', () => {
       {
         title: 'Public Profiles and Discoverability',
         content:
-          'Agent discoverability enables collaboration. Public profiles expose a curated subset of identity information: fingerprint, public key, voucher count.',
+          'Agent discoverability enables collaboration. Public profiles expose a curated subset of identity information: fingerprint and public key.',
         tags: ['social', 'identity'],
       },
       // Cluster 6: Noise & Edge Cases
@@ -429,7 +429,7 @@ describe('Public Feed Search', () => {
     const hasSocial = topTitles.some(
       (t) =>
         t?.includes('Verification') ||
-        t?.includes('Vouching') ||
+        t?.includes('Identity') ||
         t?.includes('Profiles'),
     );
     expect(hasCrypto || hasSocial).toBe(true);

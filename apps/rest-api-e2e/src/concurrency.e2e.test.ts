@@ -1,25 +1,28 @@
 /**
  * E2E: Concurrency tests
  *
- * Tests concurrent diary and voucher operations to verify atomicity and
+ * Tests concurrent diary and enrollment operations to verify atomicity and
  * consistency at the HTTP API level. These tests verify that Keto permissions
  * are immediately available after create/delete operations complete, and that
- * voucher race conditions are properly handled.
+ * enrollment redemption races are properly handled.
  */
+
+import { createHash, randomBytes } from 'node:crypto';
 
 import {
   type Client,
+  createAgentEnrollment,
   createClient,
   createDiaryEntry as apiCreateDiaryEntry,
+  createTeam,
   deleteDiaryEntryById as apiDeleteDiaryEntryById,
   getDiaryEntryById as apiGetDiaryEntryById,
-  issueVoucher,
-  listActiveVouchers,
 } from '@moltnet/api-client';
 import { cryptoService } from '@moltnet/crypto-service';
+import { buildTeamRegistrationMessage } from '@moltnet/models';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
+import { createAgent, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
 describe('Concurrency and Atomicity', () => {
@@ -164,108 +167,78 @@ describe('Concurrency and Atomicity', () => {
     }
   });
 
-  // ── Concurrent Voucher Issuance ────────────────────────────
-
-  describe('concurrent voucher issuance', () => {
-    it(
-      'enforces max-5 invariant under concurrent POST /vouch',
-      { retry: 2 },
-      async () => {
-        // Create a fresh agent so its voucher count starts at 0
-        const freshAgent = await createAgent({
-          baseUrl: harness.baseUrl,
-          db: harness.db,
-          bootstrapIdentityId: harness.bootstrapIdentityId,
-        });
-
-        // Issue 4 vouchers sequentially
-        for (let i = 0; i < 4; i++) {
-          const { error } = await issueVoucher({
-            client,
-            auth: () => freshAgent.accessToken,
-          });
-          expect(error).toBeUndefined();
-        }
-
-        // Fire 3 concurrent issuance requests — at most 1 should succeed
-        const responses = await Promise.all(
-          Array.from({ length: 3 }, () =>
-            issueVoucher({
-              client,
-              auth: () => freshAgent.accessToken,
-            }),
-          ),
-        );
-
-        const statuses = responses.map((r) => r.response.status);
-        const succeeded = responses.filter((r) => r.response.status === 201);
-
-        // The total active count should never exceed 5 — this is the critical invariant
-        const { data: activeList } = await listActiveVouchers({
-          client,
-          auth: () => freshAgent.accessToken,
-        });
-        expect(activeList!.vouchers.length).toBeLessThanOrEqual(5);
-
-        // At most 1 of the concurrent batch should have succeeded
-        expect(succeeded.length).toBeLessThanOrEqual(1);
-        // Every response must be either 201 (success) or 429 (rate-limited / serialization exhausted)
-        // No 500s allowed — serialization exhaustion is now handled gracefully
-        for (const status of statuses) {
-          expect(
-            status,
-            `Unexpected status ${status} in concurrent voucher issuance (all statuses: ${statuses.join(', ')})`,
-          ).toSatisfy((s: number) => s === 201 || s === 429);
-        }
-      },
-    );
-  });
-
-  // ── Concurrent Voucher Redemption ─────────────────────────
-
-  describe('concurrent voucher redemption', () => {
-    it('only one agent registers with the same voucher code', async () => {
-      // Create a single voucher
-      const sharedVoucher = await createTestVoucher({
-        db: harness.db,
-        issuerId: harness.bootstrapIdentityId,
+  describe('concurrent enrollment redemption', () => {
+    it('allows only one agent to redeem a single-use enrollment', async () => {
+      const { data: team, error: teamError } = await createTeam({
+        client,
+        auth: () => agent.accessToken,
+        body: { name: `enrollment-race-${Date.now()}` },
       });
+      expect(teamError).toBeUndefined();
+      const { data: enrollment, error: enrollmentError } =
+        await createAgentEnrollment({
+          client,
+          auth: () => agent.accessToken,
+          headers: { 'x-moltnet-team-id': team!.id },
+          body: { expiresInMinutes: 15 },
+        });
+      expect(enrollmentError).toBeUndefined();
 
-      // Two agents race to register with the same voucher via DBOS workflow
       const keyPairA = await cryptoService.generateKeyPair();
       const keyPairB = await cryptoService.generateKeyPair();
-
-      // Race: both call POST /auth/register with the same voucher
+      const tokenHash = createHash('sha256')
+        .update(enrollment!.token)
+        .digest('hex');
+      const nonceA = randomBytes(32).toString('base64url');
+      const nonceB = randomBytes(32).toString('base64url');
+      const proofA = await cryptoService.sign(
+        buildTeamRegistrationMessage({
+          enrollmentTokenHash: tokenHash,
+          idempotencyKey: nonceA,
+          publicKey: keyPairA.publicKey,
+          credentialType: 'oauth2',
+        }),
+        keyPairA.privateKey,
+      );
+      const proofB = await cryptoService.sign(
+        buildTeamRegistrationMessage({
+          enrollmentTokenHash: tokenHash,
+          idempotencyKey: nonceB,
+          publicKey: keyPairB.publicKey,
+          credentialType: 'oauth2',
+        }),
+        keyPairB.privateKey,
+      );
       const [respA, respB] = await Promise.all([
-        fetch(`${harness.baseUrl}/auth/register`, {
+        fetch(`${harness.baseUrl}/auth/enroll`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Accept: 'application/json',
+            'Idempotency-Key': nonceA,
           },
           body: JSON.stringify({
-            public_key: keyPairA.publicKey,
-            voucher_code: sharedVoucher,
+            token: enrollment!.token,
+            publicKey: keyPairA.publicKey,
+            proof: proofA,
+            credentialType: 'oauth2',
           }),
         }),
-        fetch(`${harness.baseUrl}/auth/register`, {
+        fetch(`${harness.baseUrl}/auth/enroll`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Accept: 'application/json',
+            'Idempotency-Key': nonceB,
           },
           body: JSON.stringify({
-            public_key: keyPairB.publicKey,
-            voucher_code: sharedVoucher,
+            token: enrollment!.token,
+            publicKey: keyPairB.publicKey,
+            proof: proofB,
+            credentialType: 'oauth2',
           }),
         }),
       ]);
 
       const statuses = [respA.status, respB.status].sort();
-
-      // Exactly one should succeed (200), the other should fail:
-      // - 403: voucher already redeemed (checked before Kratos identity creation)
-      // - 502: upstream error (Kratos identity creation or DBOS workflow step fails)
       expect(statuses[0]).toBe(200);
       expect([403, 502]).toContain(statuses[1]);
     });

@@ -14,7 +14,8 @@ import { randomBytes } from 'node:crypto';
 import { createClient, createDiary, listDiaries } from '@moltnet/api-client';
 import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
 import { cryptoService, type KeyPair } from '@moltnet/crypto-service';
-import { agentVouchers, type Database } from '@moltnet/database';
+import type { Database } from '@moltnet/database';
+import { buildSelfRegistrationMessage } from '@moltnet/models';
 import type { FrontendApi } from '@ory/client-fetch';
 
 // ── Polling Helpers ───────────────────────────────────────────────────────────
@@ -102,28 +103,6 @@ export interface TestAgent {
 }
 
 /**
- * Create a voucher code directly in the database for E2E tests.
- * Bypasses the normal "issue via authenticated agent" flow.
- */
-export async function createTestVoucher(opts: {
-  db: Database;
-  issuerId: string;
-}): Promise<string> {
-  const code = randomBytes(32).toString('hex');
-  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h from now
-
-  await opts.db.insert(agentVouchers).values({
-    code,
-    issuerId: opts.issuerId,
-    expiresAt,
-    redeemedAt: null,
-    redeemedBy: null,
-  });
-
-  return code;
-}
-
-/**
  * Create a fully-registered agent via POST /auth/register.
  * The DBOS workflow handles: Kratos identity, agent record, Keto relations,
  * personal team, and OAuth2 client creation.
@@ -136,22 +115,32 @@ export async function createAgent(opts: {
   // 1. Generate Ed25519 keypair
   const keyPair = await cryptoService.generateKeyPair();
 
-  // 2. Create voucher
-  const voucherCode = await createTestVoucher({
-    db: opts.db,
-    issuerId: opts.bootstrapIdentityId,
-  });
+  // Keep the legacy setup inputs while callers migrate; self-registration no
+  // longer needs direct database access or a bootstrap issuer.
+  void opts.db;
+  void opts.bootstrapIdentityId;
+  const idempotencyKey = randomBytes(32).toString('base64url');
+  const proof = await cryptoService.sign(
+    buildSelfRegistrationMessage({
+      idempotencyKey,
+      publicKey: keyPair.publicKey,
+      credentialType: 'oauth2',
+    }),
+    keyPair.privateKey,
+  );
 
-  // 3. Register via DBOS workflow
+  // 2. Register via DBOS workflow
   const regRes = await fetch(`${opts.baseUrl}/auth/register`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
+      'Idempotency-Key': idempotencyKey,
     },
     body: JSON.stringify({
-      public_key: keyPair.publicKey,
-      voucher_code: voucherCode,
+      publicKey: keyPair.publicKey,
+      proof,
+      credentialType: 'oauth2',
     }),
   });
 
@@ -164,8 +153,11 @@ export async function createAgent(opts: {
     identityId: string;
     fingerprint: string;
     publicKey: string;
-    clientId: string;
-    clientSecret: string;
+    credential: {
+      type: 'oauth2';
+      clientId: string;
+      clientSecret: string;
+    };
   };
 
   // 4. Acquire access token via client_credentials grant
@@ -174,8 +166,8 @@ export async function createAgent(opts: {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       grant_type: 'client_credentials',
-      client_id: creds.clientId,
-      client_secret: creds.clientSecret,
+      client_id: creds.credential.clientId,
+      client_secret: creds.credential.clientSecret,
       scope: AGENT_OAUTH_SCOPES.join(' '),
     }),
   });
@@ -234,8 +226,8 @@ export async function createAgent(opts: {
   return {
     identityId: creds.identityId,
     keyPair,
-    clientId: creds.clientId,
-    clientSecret: creds.clientSecret,
+    clientId: creds.credential.clientId,
+    clientSecret: creds.credential.clientSecret,
     accessToken,
     privateDiaryId: privateDiary.id,
     moltnetDiaryId: moltnetDiary.id,

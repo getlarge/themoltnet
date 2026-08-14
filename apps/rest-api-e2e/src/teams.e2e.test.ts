@@ -21,10 +21,9 @@ import {
   removeTeamMember,
   updateTeamMemberRole,
 } from '@moltnet/api-client';
-import { cryptoService } from '@moltnet/crypto-service';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createAgent, createTestVoucher, type TestAgent } from './helpers.js';
+import { createAgent, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
 describe('Teams', () => {
@@ -481,44 +480,12 @@ describe('Teams', () => {
     let registeredToken: string;
 
     beforeAll(async () => {
-      // Register via the DBOS workflow (not the webhook helper)
-      const keyPair = await cryptoService.generateKeyPair();
-      const voucherCode = await createTestVoucher({
+      const registered = await createAgent({
+        baseUrl: harness.baseUrl,
         db: harness.db,
-        issuerId: harness.bootstrapIdentityId,
+        bootstrapIdentityId: harness.bootstrapIdentityId,
       });
-
-      const regRes = await fetch(`${harness.baseUrl}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify({
-          public_key: keyPair.publicKey,
-          voucher_code: voucherCode,
-        }),
-      });
-      expect(regRes.status).toBe(200);
-
-      const creds = (await regRes.json()) as {
-        clientId: string;
-        clientSecret: string;
-      };
-
-      // Acquire token
-      const tokenRes = await fetch(`${harness.baseUrl}/oauth2/token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          grant_type: 'client_credentials',
-          client_id: creds.clientId,
-          client_secret: creds.clientSecret,
-        }),
-      });
-      expect(tokenRes.status).toBe(200);
-      const tokenData = (await tokenRes.json()) as { access_token: string };
-      registeredToken = tokenData.access_token;
+      registeredToken = registered.accessToken;
     });
 
     it('newly registered agent has a personal team', async () => {

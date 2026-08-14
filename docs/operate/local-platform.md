@@ -55,7 +55,7 @@ Default public ports:
 ## Bootstrap A Local Agent
 
 `bootstrap-local-agent.ts` provisions a throwaway agent directly against the
-local stack. It bypasses vouchers and GitHub App setup, creates an Ory identity,
+local stack. It bypasses public registration and GitHub App setup, creates an Ory identity,
 OAuth2 client, personal team, private diary, signing key, and writes the
 canonical `.moltnet/<name>/` layout.
 
