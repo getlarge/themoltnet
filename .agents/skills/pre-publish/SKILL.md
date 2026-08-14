@@ -9,11 +9,9 @@ Mandatory checklist before publishing any package to npm. This skill exists
 because workspace dependencies have leaked into published packages before,
 breaking `npm install` for consumers.
 
-For deeper incident context, load
-`../rendered-pack-708fda04/SKILL.md` when debugging `check:pack` failures,
-Vite SSR packaging, or private `@moltnet/*` dependency leaks. That rendered
-pack links the pi-extension recurrence to the earlier legreffier,
-pi-extension, agent-runtime, check-pack, and Vite 8 incidents.
+Before changing dependencies in a publishable MoltNet package, also load
+`../rendered-pack-3252bc08/SKILL.md`. It records the workspace protocol,
+private-package bundling, and lockfile rules that apply here.
 
 ## When to trigger
 
@@ -23,18 +21,17 @@ pi-extension, agent-runtime, check-pack, and Vite 8 incidents.
 - When modifying a package's Vite/bundler config
 - Any time release-please creates a release PR
 
-## Publishable packages
+## Discover the publish surface
 
 A package is publishable if it has a `files` field in `package.json` and is
-not marked `"private": true`. Current published packages:
+not marked `"private": true`. Do not maintain a package list in this skill; it
+goes stale. Discover the current set from `apps/*/package.json`,
+`libs/*/package.json`, and `packages/*/package.json`, then confirm each project
+has a `check:pack` target with `pnpm exec nx show project <name> --json`.
 
-- `@themoltnet/sdk` (libs/sdk)
-- `@themoltnet/design-system` (libs/design-system)
-- `@themoltnet/pi-extension` (libs/pi-extension)
-- `@themoltnet/agent-runtime` (libs/agent-runtime)
-- `@themoltnet/cli` (packages/cli)
-- `@themoltnet/github-agent` (packages/github-agent)
-- `@themoltnet/legreffier` (packages/legreffier-cli)
+The native CLI platform packages under `packages/cli/npm/*` are assembled and
+validated by the Go CLI release job. Do not mistake them for ordinary
+TypeScript package projects.
 
 ## Checklist
 
@@ -71,7 +68,7 @@ bundles it (Vite SSR, esbuild, etc.), it belongs in `devDependencies`.
 Check:
 
 ```bash
-grep -n '@moltnet/' <package>/package.json
+rg -n '@moltnet/' <package>/package.json
 ```
 
 Expected: `@moltnet/*` entries appear only under `devDependencies`, never
@@ -81,7 +78,35 @@ under `dependencies`.
 in `dependencies` — pnpm rewrites `workspace:*` to concrete versions on
 publish.
 
-### 3. Preserve the runtime dependency boundary
+### 3. Run Nx dependency checks as an early warning
+
+Every ordinary publishable Node project with a build target must opt into
+`createNxDependencyChecksConfig` in its local `eslint.config.mjs`.
+
+Keep `includeTransitiveDependencies` at its default (`false`) unless the entire
+transitive graph is intentionally shipped as manifest dependencies. A Vite SSR
+package that bundles private `@moltnet/*` libraries will otherwise receive
+false demands for their implementation dependencies.
+
+Document every `ignoredDependencies` entry next to the exception. Valid
+exceptions include:
+
+- private `@moltnet/*` build inputs that are bundled into `dist`;
+- dependencies loaded by a plugin name, dynamic adapter, or other edge Nx
+  cannot discover statically;
+- runtime dependencies promoted from a bundled private package closure.
+
+Nx dependency checks compare the source/project graph with `package.json`.
+They do **not** inspect emitted JS, `package.json#files`, code-split chunks, or
+the packed manifest. A passing lint target is never publication proof.
+
+Run through Nx:
+
+```bash
+pnpm exec nx run <project>:lint
+```
+
+### 4. Preserve the runtime dependency boundary
 
 For publishable Node packages, use this default:
 
@@ -104,17 +129,17 @@ bundled private package reaches an undeclared third-party import; promote that
 package to the public manifest. Do not rely on comments and `ssr.external`:
 inspect emitted JS.
 
-### 4. Build produces a valid bundle
+### 5. Build produces a valid bundle
 
 For bundled packages (Vite SSR), verify the bundle doesn't contain runtime
 imports to private workspace packages:
 
 ```bash
 # Build the package and its workspace deps first
-pnpm --filter <package> build
+pnpm exec nx run <project>:build
 
 # Check the bundle has no @moltnet/ imports
-grep '@moltnet/' <package>/dist/index.js
+rg '@moltnet/' <package>/dist
 ```
 
 Expected: zero matches. All `@moltnet/*` code should be inlined.
@@ -123,10 +148,10 @@ Also verify that runtime imports for public workspace dependencies remain in the
 emitted JS and that asset filenames such as `.wasm`, migrations, and native
 bindings were not detached from the package that owns them.
 
-### 5. Run check:pack
+### 6. Run check:pack
 
 ```bash
-pnpm --filter <package> run check:pack
+pnpm exec nx run <project>:check:pack
 ```
 
 This validates:
@@ -137,11 +162,16 @@ This validates:
 - No `@moltnet/` imports in `.d.ts` files
 - No `@moltnet/` packages in `dependencies`
 - Canonical npm provenance repository URL and monorepo directory
+- Every relative static or dynamic import in packed JavaScript resolves to a
+  file included in the tarball
 
-### 6. Verify the tarball contents
+This relative-import check is what catches a generated `dist/assets/*.js`
+chunk that exists after build but is excluded by `package.json#files`.
+
+### 7. Verify the tarball contents
 
 ```bash
-npm pack --dry-run --json 2>/dev/null | jq '.[0].files[].path'
+pnpm pack --dry-run --json | jq '.files[].path'
 ```
 
 Check that:
@@ -149,11 +179,15 @@ Check that:
 - Only expected files are included (typically `dist/` and `package.json`)
 - No source files, test files, or config files leaked
 
-### 7. Test install
+Use `pnpm pack`, not `npm pack`, when validating the publish transformation:
+pnpm resolves `catalog:` and `workspace:*` protocols for the packed manifest.
+
+### 8. Test install and exercised runtime paths
 
 ```bash
-npm pack
-mkdir /tmp/test-install && cd /tmp/test-install
+pnpm pack
+test_dir="$(mktemp -d)"
+cd "$test_dir"
 npm init -y
 npm install <tarball-path>
 node -e "import('<package-name>')"
@@ -163,6 +197,11 @@ Use a clean temporary consumer for packages with assets, native bindings, source
 exports, or chained public workspace dependencies. Pack and install the whole
 local dependency set so the smoke tests published `dist` exports rather than
 workspace source shortcuts.
+
+Importing a package or running `--help` only checks eagerly loaded modules.
+For lazy adapters, optional native dependencies, dynamic imports, and command
+branches, add a focused smoke that exercises that path. Do not claim the smoke
+loads the full module graph unless it actually invokes those paths.
 
 ## Common mistakes and how they happen
 
@@ -216,6 +255,21 @@ it belongs in `devDependencies`, not `dependencies`.
 - If the failure says `private workspace packages in dependencies`, fix
   `package.json` placement before changing Vite.
 
+### Generated SDK chunk omitted from agent-daemon
+
+**What happened**: the daemon bundled the source-direct `@themoltnet/sdk/node`
+entry. SDK's lazy OS-keyring import became a relative `dist/assets/*.js` chunk,
+but agent-daemon's `files` allowlist shipped only `dist/*.js`. The local build
+worked while the npm tarball failed to resolve OAuth2 client secrets.
+
+**Why lint and the old smoke missed it**: Nx dependency checks were not enabled
+for agent-daemon and cannot inspect tarball file selection. The bin smoke ran a
+help path that never invoked OAuth/keyring resolution.
+
+**Prevention**: externalize installable public dependencies with
+`externalizeInstallableDependencies`, validate relative imports against actual
+tarball entries, and exercise lazy runtime paths when they are release-critical.
+
 ### SDK pattern (correct)
 
 `@themoltnet/sdk` does it right:
@@ -235,7 +289,7 @@ dependency packages publish and remain the last line of defense.
 
 ```yaml
 # From .github/workflows/release.yml
-- run: pnpm --filter <package> run check:pack
+- run: pnpm exec nx run <project>:check:pack
 - run: pnpm --filter <package> publish --no-git-checks --access public --provenance
 ```
 
@@ -247,3 +301,5 @@ dependency packages publish and remain the last line of defense.
   Vite may otherwise inline them even though registry dependencies stay external
 - The `files` field in `package.json` controls what goes in the tarball —
   keep it minimal
+- Nx dependency checks are source-graph lint, not emitted-artifact validation
+- A clean consumer smoke must exercise lazy paths to validate them

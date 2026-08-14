@@ -35,6 +35,8 @@
  *                      target (repeatable; useful before a first publish)
  *   --copy-file source and destination paths for a fixture copied into the
  *               clean consumer project before the bin runs (repeatable)
+ *   --probe-file source and destination paths for an ESM fixture copied into
+ *                the clean consumer project and run before the bin (repeatable)
  *
  * Set MOLTNET_SKIP_REGISTRY_SMOKE=1 in pre-merge CI. A coordinated release can
  * reference another workspace package version that is not on npm yet, so the
@@ -62,12 +64,14 @@ function parseFlags(argv: string[]): {
   expect: string;
   localDependencies: string[];
   copiedFiles: Array<{ source: string; destination: string }>;
+  probeFiles: Array<{ source: string; destination: string }>;
 } {
   let pkg = '.';
   let bin = '';
   let expect = '';
   const localDependencies: string[] = [];
   const copiedFiles: Array<{ source: string; destination: string }> = [];
+  const probeFiles: Array<{ source: string; destination: string }> = [];
   const args: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i];
@@ -77,6 +81,11 @@ function parseFlags(argv: string[]): {
     else if (flag === '--local-dependency') localDependencies.push(argv[++i]);
     else if (flag === '--copy-file') {
       copiedFiles.push({
+        source: argv[++i],
+        destination: argv[++i],
+      });
+    } else if (flag === '--probe-file') {
+      probeFiles.push({
         source: argv[++i],
         destination: argv[++i],
       });
@@ -90,6 +99,7 @@ function parseFlags(argv: string[]): {
           '--expect',
           '--local-dependency',
           '--copy-file',
+          '--probe-file',
         ].includes(argv[i + 1])
       ) {
         args.push(argv[++i]);
@@ -103,12 +113,12 @@ function parseFlags(argv: string[]): {
     expect,
     localDependencies,
     copiedFiles,
+    probeFiles,
   };
 }
 
-const { pkg, bin, args, expect, localDependencies, copiedFiles } = parseFlags(
-  process.argv.slice(2),
-);
+const { pkg, bin, args, expect, localDependencies, copiedFiles, probeFiles } =
+  parseFlags(process.argv.slice(2));
 
 if (process.env.MOLTNET_SKIP_REGISTRY_SMOKE === '1') {
   process.stdout.write(
@@ -204,6 +214,30 @@ writeFileSync(
   join(installDir, 'package.json'),
   JSON.stringify({ name: 'smoke', version: '1.0.0', private: true }),
 );
+const npmUserConfig = join(installDir, '.npmrc');
+const npmGlobalConfig = join(installDir, '.npm-globalrc');
+writeFileSync(npmUserConfig, '');
+writeFileSync(npmGlobalConfig, '');
+
+// This script is launched through pnpm, which exports pnpm-only npm_config_*
+// settings (notably allow-scripts and catalog). npm 12 rejects some of them in
+// a project-scoped install. Use empty consumer configs and strip only the
+// incompatible inherited settings so the smoke matches a normal npm install.
+const npmEnv = { ...process.env };
+for (const key of [
+  'npm_config__jsr_registry',
+  'npm_config_allow_scripts',
+  'npm_config_catalog',
+  'npm_config_enable_pre_post_scripts',
+  'npm_config_minimum_release_age',
+  'npm_config_npm_globalconfig',
+  'npm_config_verify_deps_before_run',
+  'pnpm_config_verify_deps_before_run',
+]) {
+  delete npmEnv[key];
+}
+npmEnv.npm_config_userconfig = npmUserConfig;
+npmEnv.npm_config_globalconfig = npmGlobalConfig;
 
 function cleanup(): void {
   rmSync(packDest, { recursive: true, force: true });
@@ -220,7 +254,7 @@ const install = spawnSync(
     '--no-fund',
     '--loglevel=error',
   ],
-  { cwd: installDir, encoding: 'utf8', env: process.env },
+  { cwd: installDir, encoding: 'utf8', env: npmEnv },
 );
 if (install.status !== 0) {
   const out = `${install.stdout}${install.stderr}`;
@@ -228,7 +262,7 @@ if (install.status !== 0) {
   fail('npm install of the packed tarball failed', out);
 }
 
-for (const { source, destination } of copiedFiles) {
+function copyConsumerFile(source: string, destination: string): string {
   const sourcePath = resolve(pkgDir, source);
   const destinationPath = resolve(installDir, destination);
   const relativeDestination = relative(installDir, destinationPath);
@@ -242,6 +276,25 @@ for (const { source, destination } of copiedFiles) {
   }
   mkdirSync(dirname(destinationPath), { recursive: true });
   copyFileSync(sourcePath, destinationPath);
+  return destinationPath;
+}
+
+for (const { source, destination } of copiedFiles) {
+  copyConsumerFile(source, destination);
+}
+
+for (const { source, destination } of probeFiles) {
+  const probePath = copyConsumerFile(source, destination);
+  const probe = spawnSync('node', [probePath], {
+    cwd: installDir,
+    encoding: 'utf8',
+    env: process.env,
+  });
+  const probeOutput = `${probe.stdout ?? ''}${probe.stderr ?? ''}`;
+  if (probe.status !== 0) {
+    cleanup();
+    fail(`consumer probe ${destination} exited ${probe.status}`, probeOutput);
+  }
 }
 
 // 3. Run the bin. This loads the full module graph, evaluating every top-level
