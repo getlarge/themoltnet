@@ -78,7 +78,7 @@ type Invoker interface {
 	// delete protected terminal tasks.
 	//
 	// DELETE /tasks
-	BatchDeleteTasks(ctx context.Context, request *BatchDeleteTasksReq) (BatchDeleteTasksRes, error)
+	BatchDeleteTasks(ctx context.Context, request *BatchDeleteTasksReq, params BatchDeleteTasksParams) (BatchDeleteTasksRes, error)
 	// BeginRuntimeSlot invokes beginRuntimeSlot operation.
 	//
 	// Upsert a team-scoped runtime slot for audit and continuation affinity lookup.
@@ -2193,12 +2193,12 @@ func (c *Client) sendBatchDeleteDiaryEntries(ctx context.Context, request *Batch
 // delete protected terminal tasks.
 //
 // DELETE /tasks
-func (c *Client) BatchDeleteTasks(ctx context.Context, request *BatchDeleteTasksReq) (BatchDeleteTasksRes, error) {
-	res, err := c.sendBatchDeleteTasks(ctx, request)
+func (c *Client) BatchDeleteTasks(ctx context.Context, request *BatchDeleteTasksReq, params BatchDeleteTasksParams) (BatchDeleteTasksRes, error) {
+	res, err := c.sendBatchDeleteTasks(ctx, request, params)
 	return res, err
 }
 
-func (c *Client) sendBatchDeleteTasks(ctx context.Context, request *BatchDeleteTasksReq) (res BatchDeleteTasksRes, err error) {
+func (c *Client) sendBatchDeleteTasks(ctx context.Context, request *BatchDeleteTasksReq, params BatchDeleteTasksParams) (res BatchDeleteTasksRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("batchDeleteTasks"),
 		semconv.HTTPRequestMethodKey.String("DELETE"),
@@ -2246,6 +2246,23 @@ func (c *Client) sendBatchDeleteTasks(ctx context.Context, request *BatchDeleteT
 	}
 	if err := encodeBatchDeleteTasksRequest(request, r); err != nil {
 		return res, errors.Wrap(err, "encode request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XMoltnetTeamID.Get(); ok {
+				return e.EncodeValue(conv.UUIDToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
 	}
 
 	{

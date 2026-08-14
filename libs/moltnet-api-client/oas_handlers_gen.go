@@ -1849,6 +1849,16 @@ func (s *Server) handleBatchDeleteTasksRequest(args [0]string, argsEscaped bool,
 			return
 		}
 	}
+	params, err := decodeBatchDeleteTasksParams(args, argsEscaped, r)
+	if err != nil {
+		err = &ogenerrors.DecodeParamsError{
+			OperationContext: opErrContext,
+			Err:              err,
+		}
+		defer recordError("DecodeParams", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
+		return
+	}
 
 	var rawBody []byte
 	request, rawBody, close, err := s.decodeBatchDeleteTasksRequest(r)
@@ -1876,13 +1886,18 @@ func (s *Server) handleBatchDeleteTasksRequest(args [0]string, argsEscaped bool,
 			OperationID:      "batchDeleteTasks",
 			Body:             request,
 			RawBody:          rawBody,
-			Params:           middleware.Parameters{},
-			Raw:              r,
+			Params: middleware.Parameters{
+				{
+					Name: "x-moltnet-team-id",
+					In:   "header",
+				}: params.XMoltnetTeamID,
+			},
+			Raw: r,
 		}
 
 		type (
 			Request  = *BatchDeleteTasksReq
-			Params   = struct{}
+			Params   = BatchDeleteTasksParams
 			Response = BatchDeleteTasksRes
 		)
 		response, err = middleware.HookMiddleware[
@@ -1892,14 +1907,14 @@ func (s *Server) handleBatchDeleteTasksRequest(args [0]string, argsEscaped bool,
 		](
 			m,
 			mreq,
-			nil,
+			unpackBatchDeleteTasksParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.BatchDeleteTasks(ctx, request)
+				response, err = s.h.BatchDeleteTasks(ctx, request, params)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.BatchDeleteTasks(ctx, request)
+		response, err = s.h.BatchDeleteTasks(ctx, request, params)
 	}
 	if err != nil {
 		defer recordError("Internal", err)

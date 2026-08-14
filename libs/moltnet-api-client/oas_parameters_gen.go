@@ -698,6 +698,69 @@ func decodeApproveSigningCredentialParams(args [1]string, argsEscaped bool, r *h
 	return params, nil
 }
 
+// BatchDeleteTasksParams is parameters of batchDeleteTasks operation.
+type BatchDeleteTasksParams struct {
+	// Team ID (UUID) for scoping the request. Optional.
+	XMoltnetTeamID OptUUID `json:",omitempty,omitzero"`
+}
+
+func unpackBatchDeleteTasksParams(packed middleware.Parameters) (params BatchDeleteTasksParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		if v, ok := packed[key]; ok {
+			params.XMoltnetTeamID = v.(OptUUID)
+		}
+	}
+	return params
+}
+
+func decodeBatchDeleteTasksParams(args [0]string, argsEscaped bool, r *http.Request) (params BatchDeleteTasksParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotXMoltnetTeamIDVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXMoltnetTeamIDVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.XMoltnetTeamID.SetTo(paramsDotXMoltnetTeamIDVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // BeginRuntimeSlotParams is parameters of beginRuntimeSlot operation.
 type BeginRuntimeSlotParams struct {
 	// Team ID (UUID) that will own the resource. Required.

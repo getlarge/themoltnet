@@ -12698,6 +12698,12 @@ export type BatchDeleteTasksData = {
     ids: Array<string>;
     reason?: string;
   };
+  headers?: {
+    /**
+     * Team ID (UUID) for scoping the request. Optional.
+     */
+    'x-moltnet-team-id'?: string;
+  };
   path?: never;
   query?: never;
   url: '/tasks';

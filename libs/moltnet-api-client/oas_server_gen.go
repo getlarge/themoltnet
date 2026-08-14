@@ -57,7 +57,7 @@ type Handler interface {
 	// delete protected terminal tasks.
 	//
 	// DELETE /tasks
-	BatchDeleteTasks(ctx context.Context, req *BatchDeleteTasksReq) (BatchDeleteTasksRes, error)
+	BatchDeleteTasks(ctx context.Context, req *BatchDeleteTasksReq, params BatchDeleteTasksParams) (BatchDeleteTasksRes, error)
 	// BeginRuntimeSlot implements beginRuntimeSlot operation.
 	//
 	// Upsert a team-scoped runtime slot for audit and continuation affinity lookup.

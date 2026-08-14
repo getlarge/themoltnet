@@ -36,6 +36,10 @@ const TEAM_ID = 'bbbbbbbb-0000-0000-0000-000000000002';
 const DIARY_ID = 'cccccccc-0000-0000-0000-000000000003';
 const PROFILE_ID = 'dddddddd-0000-0000-0000-000000000004';
 const ATTEMPT_N = 1;
+const TEAM_AUTH_HEADERS = {
+  authorization: 'Bearer test-token',
+  'x-moltnet-team-id': TEAM_ID,
+};
 
 const MOCK_TASK = {
   id: TASK_ID,
@@ -126,6 +130,13 @@ function emptyActivityMetrics() {
     totalTokens: 0,
     turnCount: 0,
   };
+}
+
+function resetTeamRouteMocks(
+  mocks: ReturnType<typeof createMockServices>,
+): void {
+  resetMockServices(mocks);
+  mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
 }
 
 describe('POST /tasks', () => {
@@ -622,6 +633,7 @@ describe('GET /tasks/analytics/activity', () => {
     ).toHaveBeenCalledWith({
       callerId: OWNER_ID,
       callerNs: KetoNamespace.Agent,
+      teamId: TEAM_ID,
       claimedByAgentIds: [OWNER_ID],
       completedAfter: '2026-04-01T00:00:00.000Z',
       completedBefore: '2026-05-01T00:00:00.000Z',
@@ -630,7 +642,6 @@ describe('GET /tasks/analytics/activity', () => {
       profileIds: [PROFILE_ID, secondProfileId],
       tags: ['observability'],
       taskTypes: ['fulfill_brief'],
-      teamId: TEAM_ID,
     });
     expect(response.json()).toMatchObject({
       overall: {
@@ -667,7 +678,7 @@ describe('PATCH /tasks/:id', () => {
   });
 
   beforeEach(() => {
-    resetMockServices(mocks);
+    resetTeamRouteMocks(mocks);
   });
 
   it('updates mutable task metadata', async () => {
@@ -680,7 +691,7 @@ describe('PATCH /tasks/:id', () => {
     const response = await app.inject({
       method: 'PATCH',
       url: `/tasks/${TASK_ID}`,
-      headers: { authorization: 'Bearer test-token' },
+      headers: TEAM_AUTH_HEADERS,
       payload: {
         title: 'Renamed cohort',
         tags: ['cohort', 'retry'],
@@ -698,6 +709,7 @@ describe('PATCH /tasks/:id', () => {
       tags: ['cohort', 'retry'],
       callerId: OWNER_ID,
       callerNs: KetoNamespace.Agent,
+      teamId: TEAM_ID,
     });
   });
 
@@ -710,7 +722,7 @@ describe('PATCH /tasks/:id', () => {
     const response = await app.inject({
       method: 'PATCH',
       url: `/tasks/${TASK_ID}`,
-      headers: { authorization: 'Bearer test-token' },
+      headers: TEAM_AUTH_HEADERS,
       payload: { title: null },
     });
 
@@ -719,6 +731,7 @@ describe('PATCH /tasks/:id', () => {
       title: null,
       callerId: OWNER_ID,
       callerNs: KetoNamespace.Agent,
+      teamId: TEAM_ID,
     });
   });
 });
@@ -737,7 +750,7 @@ describe('GET /tasks/:id', () => {
   });
 
   beforeEach(() => {
-    resetMockServices(mocks);
+    resetTeamRouteMocks(mocks);
   });
 
   it('returns 200 with task', async () => {
@@ -746,11 +759,36 @@ describe('GET /tasks/:id', () => {
     const response = await app.inject({
       method: 'GET',
       url: `/tasks/${TASK_ID}`,
-      headers: { authorization: 'Bearer test-token' },
+      headers: TEAM_AUTH_HEADERS,
     });
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({ id: TASK_ID });
+    expect(mocks.taskService.get).toHaveBeenCalledWith(
+      TASK_ID,
+      OWNER_ID,
+      KetoNamespace.Agent,
+      TEAM_ID,
+    );
+  });
+
+  it('defers team membership to task authorization for direct grantees', async () => {
+    mocks.permissionChecker.canAccessTeam.mockResolvedValue(false);
+    mocks.taskService.get.mockResolvedValue(MOCK_TASK);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/tasks/${TASK_ID}`,
+      headers: TEAM_AUTH_HEADERS,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(mocks.taskService.get).toHaveBeenCalledWith(
+      TASK_ID,
+      OWNER_ID,
+      KetoNamespace.Agent,
+      TEAM_ID,
+    );
   });
 
   it('returns 404 when task not found', async () => {
@@ -761,7 +799,7 @@ describe('GET /tasks/:id', () => {
     const response = await app.inject({
       method: 'GET',
       url: `/tasks/${TASK_ID}`,
-      headers: { authorization: 'Bearer test-token' },
+      headers: TEAM_AUTH_HEADERS,
     });
 
     expect(response.statusCode).toBe(404);
@@ -775,7 +813,7 @@ describe('GET /tasks/:id', () => {
     const response = await app.inject({
       method: 'GET',
       url: `/tasks/${TASK_ID}`,
-      headers: { authorization: 'Bearer test-token' },
+      headers: TEAM_AUTH_HEADERS,
     });
 
     expect(response.statusCode).toBe(403);
@@ -796,7 +834,7 @@ describe('POST /tasks/:id/claim', () => {
   });
 
   beforeEach(() => {
-    resetMockServices(mocks);
+    resetTeamRouteMocks(mocks);
     mocks.taskService.claim.mockResolvedValue({
       task: MOCK_TASK,
       attempt: MOCK_ATTEMPT,
@@ -807,7 +845,7 @@ describe('POST /tasks/:id/claim', () => {
     const response = await app.inject({
       method: 'POST',
       url: `/tasks/${TASK_ID}/claim`,
-      headers: { authorization: 'Bearer test-token' },
+      headers: TEAM_AUTH_HEADERS,
       payload: {},
     });
 
@@ -817,6 +855,14 @@ describe('POST /tasks/:id/claim', () => {
       attempt: { taskId: TASK_ID, attemptN: ATTEMPT_N },
     });
     expect(mocks.taskService.claim).toHaveBeenCalledOnce();
+    expect(mocks.taskService.claim).toHaveBeenCalledWith(
+      TASK_ID,
+      OWNER_ID,
+      KetoNamespace.Agent,
+      300,
+      expect.any(Object),
+      TEAM_ID,
+    );
   });
 
   it('returns 409 when task is not in queued state', async () => {
@@ -827,7 +873,7 @@ describe('POST /tasks/:id/claim', () => {
     const response = await app.inject({
       method: 'POST',
       url: `/tasks/${TASK_ID}/claim`,
-      headers: { authorization: 'Bearer test-token' },
+      headers: TEAM_AUTH_HEADERS,
       payload: {},
     });
 
@@ -835,9 +881,9 @@ describe('POST /tasks/:id/claim', () => {
   });
 });
 
-// A team-bound agent key must not reach a task outside its bound team, even on
-// the identity-authorized by-id routes. One shared preHandler enforces this for
-// every opened route family; claim (mutation) and get (read) exercise both.
+// A team-bound agent key must not escape its bound team. The auth plugin rejects
+// a mismatched explicit context, while a missing header resolves to the bound
+// team and is passed to the naturally scoped service query.
 describe('team-bound agent key ceiling (task by-id routes)', () => {
   let app: FastifyInstance;
   let mocks: ReturnType<typeof createMockServices>;
@@ -865,13 +911,11 @@ describe('team-bound agent key ceiling (task by-id routes)', () => {
     });
   });
 
-  it('rejects claiming a task outside the bound team (403) without claiming', async () => {
-    mocks.taskService.get.mockResolvedValue(MOCK_TASK); // teamId != boundTeamId
-
+  it('rejects claiming with a mismatched team context (403) without claiming', async () => {
     const response = await app.inject({
       method: 'POST',
       url: `/tasks/${TASK_ID}/claim`,
-      headers: { authorization: 'Bearer test-token' },
+      headers: TEAM_AUTH_HEADERS,
       payload: {},
     });
 
@@ -879,21 +923,18 @@ describe('team-bound agent key ceiling (task by-id routes)', () => {
     expect(mocks.taskService.claim).not.toHaveBeenCalled();
   });
 
-  it('rejects reading a task outside the bound team (403)', async () => {
-    mocks.taskService.get.mockResolvedValue(MOCK_TASK); // teamId != boundTeamId
-
+  it('rejects reading with a mismatched team context (403)', async () => {
     const response = await app.inject({
       method: 'GET',
       url: `/tasks/${TASK_ID}`,
-      headers: { authorization: 'Bearer test-token' },
+      headers: TEAM_AUTH_HEADERS,
     });
 
     expect(response.statusCode).toBe(403);
+    expect(mocks.taskService.get).not.toHaveBeenCalled();
   });
 
-  it('allows claiming a task inside the bound team', async () => {
-    mocks.taskService.get.mockResolvedValue(SAME_TEAM_TASK); // teamId == boundTeamId
-
+  it('infers the bound team when claiming without an explicit header', async () => {
     const response = await app.inject({
       method: 'POST',
       url: `/tasks/${TASK_ID}/claim`,
@@ -903,6 +944,14 @@ describe('team-bound agent key ceiling (task by-id routes)', () => {
 
     expect(response.statusCode).toBe(200);
     expect(mocks.taskService.claim).toHaveBeenCalledOnce();
+    expect(mocks.taskService.claim).toHaveBeenCalledWith(
+      TASK_ID,
+      OWNER_ID,
+      KetoNamespace.Agent,
+      300,
+      expect.any(Object),
+      OWNER_ID,
+    );
   });
 });
 
@@ -920,7 +969,7 @@ describe('POST /tasks/:id/attempts/:n/heartbeat', () => {
   });
 
   beforeEach(() => {
-    resetMockServices(mocks);
+    resetTeamRouteMocks(mocks);
     mocks.taskService.heartbeat.mockResolvedValue({
       claimExpiresAt: new Date(Date.now() + 300_000).toISOString(),
       cancelled: false,
@@ -932,7 +981,7 @@ describe('POST /tasks/:id/attempts/:n/heartbeat', () => {
     const response = await app.inject({
       method: 'POST',
       url: `/tasks/${TASK_ID}/attempts/${ATTEMPT_N}/heartbeat`,
-      headers: { authorization: 'Bearer test-token' },
+      headers: TEAM_AUTH_HEADERS,
       payload: {},
     });
 
@@ -944,6 +993,7 @@ describe('POST /tasks/:id/attempts/:n/heartbeat', () => {
       OWNER_ID,
       expect.any(String),
       undefined,
+      TEAM_ID,
     );
   });
 });
@@ -962,7 +1012,7 @@ describe('POST /tasks/:id/attempts/:n/complete', () => {
   });
 
   beforeEach(() => {
-    resetMockServices(mocks);
+    resetTeamRouteMocks(mocks);
     mocks.taskService.complete.mockResolvedValue({
       ...MOCK_TASK,
       status: 'completed' as const,
@@ -973,7 +1023,7 @@ describe('POST /tasks/:id/attempts/:n/complete', () => {
     const response = await app.inject({
       method: 'POST',
       url: `/tasks/${TASK_ID}/attempts/${ATTEMPT_N}/complete`,
-      headers: { authorization: 'Bearer test-token' },
+      headers: TEAM_AUTH_HEADERS,
       payload: {
         output: {
           branch: 'feat/tasks-api',
@@ -1017,7 +1067,7 @@ describe('POST /tasks/:id/attempts/:n/complete', () => {
       method: 'POST',
       url: `/tasks/${TASK_ID}/attempts/${ATTEMPT_N}/complete`,
       headers: {
-        authorization: 'Bearer test-token',
+        ...TEAM_AUTH_HEADERS,
         accept: 'application/problem+json',
       },
       payload: {
@@ -1050,7 +1100,7 @@ describe('POST /tasks/:id/attempts/:n/fail', () => {
   });
 
   beforeEach(() => {
-    resetMockServices(mocks);
+    resetTeamRouteMocks(mocks);
     mocks.taskService.failAttempt.mockResolvedValue({
       ...MOCK_TASK,
       status: 'failed' as const,
@@ -1061,7 +1111,7 @@ describe('POST /tasks/:id/attempts/:n/fail', () => {
     const response = await app.inject({
       method: 'POST',
       url: `/tasks/${TASK_ID}/attempts/${ATTEMPT_N}/fail`,
-      headers: { authorization: 'Bearer test-token' },
+      headers: TEAM_AUTH_HEADERS,
       payload: {
         error: { code: 'TOOL_FAILURE', message: 'Tool call failed' },
       },
@@ -1075,6 +1125,7 @@ describe('POST /tasks/:id/attempts/:n/fail', () => {
       OWNER_ID,
       KetoNamespace.Agent,
       { code: 'TOOL_FAILURE', message: 'Tool call failed' },
+      TEAM_ID,
     );
   });
 });
@@ -1093,7 +1144,7 @@ describe('POST /tasks/:id/cancel', () => {
   });
 
   beforeEach(() => {
-    resetMockServices(mocks);
+    resetTeamRouteMocks(mocks);
     mocks.taskService.cancel.mockResolvedValue({
       ...MOCK_TASK,
       status: 'cancelled' as const,
@@ -1104,7 +1155,7 @@ describe('POST /tasks/:id/cancel', () => {
     const response = await app.inject({
       method: 'POST',
       url: `/tasks/${TASK_ID}/cancel`,
-      headers: { authorization: 'Bearer test-token' },
+      headers: TEAM_AUTH_HEADERS,
       payload: { reason: 'No longer needed' },
     });
 
@@ -1117,6 +1168,7 @@ describe('POST /tasks/:id/cancel', () => {
       'No longer needed',
       // cancellerId: agents resolve to identityId (== OWNER_ID here).
       OWNER_ID,
+      TEAM_ID,
     );
   });
 
@@ -1124,7 +1176,7 @@ describe('POST /tasks/:id/cancel', () => {
     const response = await app.inject({
       method: 'POST',
       url: `/tasks/${TASK_ID}/cancel`,
-      headers: { authorization: 'Bearer test-token' },
+      headers: TEAM_AUTH_HEADERS,
       payload: {},
     });
     expect(response.statusCode).toBe(400);
@@ -1145,7 +1197,7 @@ describe('DELETE /tasks', () => {
   });
 
   beforeEach(() => {
-    resetMockServices(mocks);
+    resetTeamRouteMocks(mocks);
     vi.mocked(startTaskDeletionWorkflow).mockReset();
     mocks.taskService.planDeleteMany.mockResolvedValue({
       accepted: [TASK_ID],
@@ -1161,7 +1213,7 @@ describe('DELETE /tasks', () => {
     const response = await app.inject({
       method: 'DELETE',
       url: '/tasks',
-      headers: { authorization: 'Bearer test-token' },
+      headers: TEAM_AUTH_HEADERS,
       payload: { ids: [TASK_ID] },
     });
 
@@ -1187,11 +1239,14 @@ describe('DELETE /tasks', () => {
     const response = await app.inject({
       method: 'DELETE',
       url: '/tasks',
-      headers: { authorization: 'Bearer test-token' },
+      headers: TEAM_AUTH_HEADERS,
       payload: { ids: [TASK_ID] },
     });
 
     expect(response.statusCode).toBe(202);
+    expect(mocks.taskService.planDeleteMany).toHaveBeenCalledWith(
+      expect.objectContaining({ teamId: TEAM_ID }),
+    );
     expect(response.json()).toEqual({
       workflowId: null,
       operationId: expect.stringMatching(/^task-delete:[a-f0-9]{64}$/),
@@ -1216,7 +1271,7 @@ describe('GET /tasks/:id/attempts', () => {
   });
 
   beforeEach(() => {
-    resetMockServices(mocks);
+    resetTeamRouteMocks(mocks);
     mocks.taskService.listAttempts.mockResolvedValue([MOCK_ATTEMPT]);
   });
 
@@ -1224,7 +1279,7 @@ describe('GET /tasks/:id/attempts', () => {
     const response = await app.inject({
       method: 'GET',
       url: `/tasks/${TASK_ID}/attempts`,
-      headers: { authorization: 'Bearer test-token' },
+      headers: TEAM_AUTH_HEADERS,
     });
 
     expect(response.statusCode).toBe(200);
@@ -1257,7 +1312,7 @@ describe('GET /tasks/:id/attempts/:n/messages', () => {
   });
 
   beforeEach(() => {
-    resetMockServices(mocks);
+    resetTeamRouteMocks(mocks);
     mocks.taskService.listMessages.mockResolvedValue([MOCK_MESSAGE]);
   });
 
@@ -1265,7 +1320,7 @@ describe('GET /tasks/:id/attempts/:n/messages', () => {
     const response = await app.inject({
       method: 'GET',
       url: `/tasks/${TASK_ID}/attempts/${ATTEMPT_N}/messages`,
-      headers: { authorization: 'Bearer test-token' },
+      headers: TEAM_AUTH_HEADERS,
     });
 
     expect(response.statusCode).toBe(200);
@@ -1276,6 +1331,7 @@ describe('GET /tasks/:id/attempts/:n/messages', () => {
       OWNER_ID,
       expect.any(String),
       expect.objectContaining({ afterSeq: undefined, limit: 200 }),
+      TEAM_ID,
     );
   });
 });
@@ -1294,7 +1350,7 @@ describe('POST /tasks/:id/attempts/:n/messages', () => {
   });
 
   beforeEach(() => {
-    resetMockServices(mocks);
+    resetTeamRouteMocks(mocks);
     mocks.taskService.appendMessages.mockResolvedValue({ count: 2 });
   });
 
@@ -1302,7 +1358,7 @@ describe('POST /tasks/:id/attempts/:n/messages', () => {
     const response = await app.inject({
       method: 'POST',
       url: `/tasks/${TASK_ID}/attempts/${ATTEMPT_N}/messages`,
-      headers: { authorization: 'Bearer test-token' },
+      headers: TEAM_AUTH_HEADERS,
       payload: {
         messages: [
           { kind: 'text_delta', payload: { text: 'hello' } },

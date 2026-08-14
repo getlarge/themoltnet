@@ -85,7 +85,7 @@ func (UnimplementedHandler) BatchDeleteDiaryEntries(ctx context.Context, req *Ba
 // delete protected terminal tasks.
 //
 // DELETE /tasks
-func (UnimplementedHandler) BatchDeleteTasks(ctx context.Context, req *BatchDeleteTasksReq) (r BatchDeleteTasksRes, _ error) {
+func (UnimplementedHandler) BatchDeleteTasks(ctx context.Context, req *BatchDeleteTasksReq, params BatchDeleteTasksParams) (r BatchDeleteTasksRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

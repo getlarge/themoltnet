@@ -39622,6 +39622,18 @@
       "delete": {
         "description": "Queue asynchronous deletion of waiting, queued, and terminal tasks in bulk. By default, dispatched, running, unauthorized, missing, and protected tasks are skipped. Set force: true with a reason to delete protected terminal tasks.",
         "operationId": "batchDeleteTasks",
+        "parameters": [
+          {
+            "description": "Team ID (UUID) for scoping the request. Optional.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
