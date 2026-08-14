@@ -47,6 +47,7 @@
   },
   "plugins": [
     {
+      "exclude": ["examples/custom-pi-runtime/**/*"],
       "options": {
         "extensions": ["ts", "tsx"],
         "targetName": "lint"
