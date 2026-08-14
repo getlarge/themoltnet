@@ -196,6 +196,7 @@ export async function handleTasksContinue(
   const { data: source, error: getErr } = await getTask({
     client: deps.client,
     auth: () => token,
+    headers: { 'x-moltnet-team-id': args.team_id },
     path: { id: args.fromTaskId },
   });
   if (getErr || !source) {
@@ -297,6 +298,7 @@ export async function handleTasksGet(
   const { data, error } = await getTask({
     client: deps.client,
     auth: () => token,
+    headers: { 'x-moltnet-team-id': args.team_id },
     path: { id: args.id },
   });
 

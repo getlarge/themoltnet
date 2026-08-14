@@ -89,6 +89,9 @@ import type {
   CreateSigningRequestResponses,
   CreateTaskData,
   CreateTaskErrors,
+  CreateTaskGrantData,
+  CreateTaskGrantErrors,
+  CreateTaskGrantResponses,
   CreateTaskResponses,
   CreateTeamData,
   CreateTeamErrors,
@@ -307,6 +310,9 @@ import type {
   ListTaskAttemptsData,
   ListTaskAttemptsErrors,
   ListTaskAttemptsResponses,
+  ListTaskGrantsData,
+  ListTaskGrantsErrors,
+  ListTaskGrantsResponses,
   ListTaskMessagesData,
   ListTaskMessagesErrors,
   ListTaskMessagesResponses,
@@ -367,6 +373,9 @@ import type {
   RevokeSigningCredentialData,
   RevokeSigningCredentialErrors,
   RevokeSigningCredentialResponses,
+  RevokeTaskGrantData,
+  RevokeTaskGrantErrors,
+  RevokeTaskGrantResponses,
   RotateAgentKeyData,
   RotateAgentKeyErrors,
   RotateAgentKeyResponses,
@@ -3555,6 +3564,86 @@ export const claimTask = <ThrowOnError extends boolean = false>(
       },
     ],
     url: '/tasks/{id}/claim',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Revoke an explicit writer or manager task grant.
+ */
+export const revokeTaskGrant = <ThrowOnError extends boolean = false>(
+  options: Options<RevokeTaskGrantData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    RevokeTaskGrantResponses,
+    RevokeTaskGrantErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/tasks/{id}/grants',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * List explicit writer and manager grants for a task.
+ */
+export const listTaskGrants = <ThrowOnError extends boolean = false>(
+  options: Options<ListTaskGrantsData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListTaskGrantsResponses,
+    ListTaskGrantsErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/tasks/{id}/grants',
+    ...options,
+  });
+
+/**
+ * Grant writer or manager access to a task for an agent, human, or group.
+ */
+export const createTaskGrant = <ThrowOnError extends boolean = false>(
+  options: Options<CreateTaskGrantData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateTaskGrantResponses,
+    CreateTaskGrantErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/tasks/{id}/grants',
     ...options,
     headers: {
       'Content-Type': 'application/json',

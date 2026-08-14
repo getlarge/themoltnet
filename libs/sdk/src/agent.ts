@@ -33,6 +33,8 @@ import type {
   CreateRuntimeProfileData,
   CreateSigningRequestData,
   CreateTaskData,
+  CreateTaskGrantData,
+  CreateTaskGrantResponse,
   CreateTeamData,
   CreateTeamInviteData,
   CreateTeamInviteResponse,
@@ -86,6 +88,7 @@ import type {
   ListSigningCredentialsData,
   ListSigningRequestsData,
   ListTaskArtifactsData,
+  ListTaskGrantsResponse,
   ListTaskMessagesData,
   ListTaskSchemasResponse,
   ListTasksData,
@@ -115,6 +118,8 @@ import type {
   RevokeAgentKeyData,
   RevokeDiaryGrantData,
   RevokeDiaryGrantResponse,
+  RevokeTaskGrantData,
+  RevokeTaskGrantResponse,
   RotateSecretResponse,
   RuntimePolicyList,
   RuntimePolicyWithTools,
@@ -189,6 +194,7 @@ import { createRuntimeSessionsNamespace } from './namespaces/runtime-sessions.js
 import { createRuntimeSlotsNamespace } from './namespaces/runtime-slots.js';
 import { createSigningCredentialsNamespace } from './namespaces/signing-credentials.js';
 import { createSigningRequestsNamespace } from './namespaces/signing-requests.js';
+import { createTaskGrantsNamespace } from './namespaces/task-grants.js';
 import { createTasksNamespace } from './namespaces/tasks.js';
 import type { RequiredTeamRequestOptions } from './namespaces/team-headers.js';
 import { createTeamsNamespace } from './namespaces/teams.js';
@@ -690,6 +696,25 @@ export interface DiaryGrantsNamespace {
   ): Promise<RevokeDiaryGrantResponse>;
 }
 
+export interface TaskGrantsNamespace {
+  create(
+    taskId: string,
+    body: CreateTaskGrantData['body'],
+    options: RequiredTeamRequestOptions,
+  ): Promise<CreateTaskGrantResponse>;
+
+  list(
+    taskId: string,
+    options: RequiredTeamRequestOptions,
+  ): Promise<ListTaskGrantsResponse>;
+
+  revoke(
+    taskId: string,
+    body: RevokeTaskGrantData['body'],
+    options: RequiredTeamRequestOptions,
+  ): Promise<RevokeTaskGrantResponse>;
+}
+
 /**
  * Two-phase diary transfer between teams. The source-team owner/manager
  * initiates a transfer; the destination-team owner accepts or rejects. The
@@ -992,6 +1017,7 @@ export interface Agent {
   runtimeProfiles: RuntimeProfilesNamespace;
   runtimePolicies: RuntimePoliciesNamespace;
   tasks: TasksNamespace;
+  taskGrants: TaskGrantsNamespace;
   runtimeSlots: RuntimeSlotsNamespace;
   runtimeSessions: RuntimeSessionsNamespace;
 
@@ -1042,6 +1068,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
   const runtimeProfiles = createRuntimeProfilesNamespace(context);
   const runtimePolicies = createRuntimePoliciesNamespace(context);
   const tasks = createTasksNamespace(context);
+  const taskGrants = createTaskGrantsNamespace(context);
   const runtimeSlots = createRuntimeSlotsNamespace(context);
   const runtimeSessions = createRuntimeSessionsNamespace(context);
 
@@ -1064,6 +1091,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
     runtimeProfiles,
     runtimePolicies,
     tasks,
+    taskGrants,
     runtimeSlots,
     runtimeSessions,
     client,

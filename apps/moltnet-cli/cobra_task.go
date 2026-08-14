@@ -21,8 +21,67 @@ func newTaskCmd() *cobra.Command {
 	taskCmd.AddCommand(newTaskSchemasCmd())
 	taskCmd.AddCommand(newTaskCreateCmd())
 	taskCmd.AddCommand(newTaskContinueCmd())
+	taskCmd.AddCommand(newTaskGrantsCmd())
 
 	return taskCmd
+}
+
+func newTaskGrantsCmd() *cobra.Command {
+	cmd := &cobra.Command{Use: "grants", Short: "Manage task access grants"}
+	cmd.AddCommand(newTaskGrantsListCmd())
+	cmd.AddCommand(newTaskGrantsCreateCmd())
+	cmd.AddCommand(newTaskGrantsRevokeCmd())
+	return cmd
+}
+
+func newTaskGrantsListCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use: "list <task-id>", Short: "List explicit access grants on a task",
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			credPath := flagString(cmd, "credentials")
+			return runTaskGrantsListCmd(resolveAPIURL(cmd, credPath), credPath, args[0], flagString(cmd, "team-id"))
+		},
+	}
+	cmd.Flags().String("team-id", "", "Owning team UUID (required)")
+	_ = cmd.MarkFlagRequired("team-id")
+	return cmd
+}
+
+func newTaskGrantsCreateCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use: "create <task-id>", Short: "Grant a subject access to a task",
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			credPath := flagString(cmd, "credentials")
+			return runTaskGrantsCreateCmd(resolveAPIURL(cmd, credPath), credPath, args[0], flagString(cmd, "team-id"), flagString(cmd, "subject-id"), flagString(cmd, "subject-ns"), flagString(cmd, "role"))
+		},
+	}
+	addTaskGrantFlags(cmd, "grant")
+	return cmd
+}
+
+func newTaskGrantsRevokeCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use: "revoke <task-id>", Short: "Revoke a subject's access grant on a task",
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			credPath := flagString(cmd, "credentials")
+			return runTaskGrantsRevokeCmd(resolveAPIURL(cmd, credPath), credPath, args[0], flagString(cmd, "team-id"), flagString(cmd, "subject-id"), flagString(cmd, "subject-ns"), flagString(cmd, "role"))
+		},
+	}
+	addTaskGrantFlags(cmd, "revoke")
+	return cmd
+}
+
+func addTaskGrantFlags(cmd *cobra.Command, action string) {
+	cmd.Flags().String("team-id", "", "Owning team UUID (required)")
+	cmd.Flags().String("subject-id", "", "Subject UUID (required)")
+	cmd.Flags().String("subject-ns", "", "Subject namespace: Agent, Human, or Group (required)")
+	cmd.Flags().String("role", "", "Role to "+action+": writer or manager (required)")
+	for _, name := range []string{"team-id", "subject-id", "subject-ns", "role"} {
+		_ = cmd.MarkFlagRequired(name)
+	}
 }
 
 func newTaskArtifactsCmd() *cobra.Command {

@@ -182,6 +182,12 @@ type Handler interface {
 	//
 	// POST /tasks
 	CreateTask(ctx context.Context, req *CreateTaskReq, params CreateTaskParams) (CreateTaskRes, error)
+	// CreateTaskGrant implements createTaskGrant operation.
+	//
+	// Grant writer or manager access to a task for an agent, human, or group.
+	//
+	// POST /tasks/{id}/grants
+	CreateTaskGrant(ctx context.Context, req *CreateTaskGrantReq, params CreateTaskGrantParams) (CreateTaskGrantRes, error)
 	// CreateTeam implements createTeam operation.
 	//
 	// Create a new project team. Caller becomes owner. If foundingMembers are provided, team starts in
@@ -638,6 +644,12 @@ type Handler interface {
 	//
 	// GET /tasks/{id}/attempts
 	ListTaskAttempts(ctx context.Context, params ListTaskAttemptsParams) (ListTaskAttemptsRes, error)
+	// ListTaskGrants implements listTaskGrants operation.
+	//
+	// List explicit writer and manager grants for a task.
+	//
+	// GET /tasks/{id}/grants
+	ListTaskGrants(ctx context.Context, params ListTaskGrantsParams) (ListTaskGrantsRes, error)
 	// ListTaskMessages implements listTaskMessages operation.
 	//
 	// List messages for a task attempt.
@@ -757,6 +769,12 @@ type Handler interface {
 	//
 	// POST /crypto/signing-credentials/{id}/revoke
 	RevokeSigningCredential(ctx context.Context, req OptRevokeSigningCredentialReq, params RevokeSigningCredentialParams) (RevokeSigningCredentialRes, error)
+	// RevokeTaskGrant implements revokeTaskGrant operation.
+	//
+	// Revoke an explicit writer or manager task grant.
+	//
+	// DELETE /tasks/{id}/grants
+	RevokeTaskGrant(ctx context.Context, req *RevokeTaskGrantReq, params RevokeTaskGrantParams) (RevokeTaskGrantRes, error)
 	// RotateAgentKey implements rotateAgentKey operation.
 	//
 	// Rotate an agent API key immediately. The previous secret is revoked and expiry is unchanged.

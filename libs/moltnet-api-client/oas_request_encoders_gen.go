@@ -446,6 +446,20 @@ func encodeCreateTaskRequest(
 	return nil
 }
 
+func encodeCreateTaskGrantRequest(
+	req *CreateTaskGrantReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeCreateTeamRequest(
 	req *CreateTeamReq,
 	r *http.Request,
@@ -708,6 +722,20 @@ func encodeRevokeSigningCredentialRequest(
 		if req.Set {
 			req.Encode(e)
 		}
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeRevokeTaskGrantRequest(
+	req *RevokeTaskGrantReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
 	}
 	encoded := e.Bytes()
 	ht.SetBody(r, bytes.NewReader(encoded), contentType)

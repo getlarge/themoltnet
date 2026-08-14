@@ -40535,6 +40535,16 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "Team ID (UUID) for scoping the request. Optional.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -40622,6 +40632,16 @@
             "in": "path",
             "name": "id",
             "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Team ID (UUID) for scoping the request. Optional.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": false,
             "schema": {
               "format": "uuid",
               "type": "string"
@@ -40763,6 +40783,16 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "Team ID (UUID) for scoping the request. Optional.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -40867,6 +40897,16 @@
             "schema": {
               "minimum": 1,
               "type": "integer"
+            }
+          },
+          {
+            "description": "Team ID (UUID) for scoping the request. Optional.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
             }
           }
         ],
@@ -41005,6 +41045,16 @@
             "schema": {
               "minimum": 1,
               "type": "integer"
+            }
+          },
+          {
+            "description": "Team ID (UUID) for scoping the request. Optional.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
             }
           }
         ],
@@ -41181,6 +41231,16 @@
               "minimum": 1,
               "type": "integer"
             }
+          },
+          {
+            "description": "Team ID (UUID) for scoping the request. Optional.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -41321,6 +41381,16 @@
               "minimum": 1,
               "type": "integer"
             }
+          },
+          {
+            "description": "Team ID (UUID) for scoping the request. Optional.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -41460,6 +41530,16 @@
               "minimum": 1,
               "type": "integer"
             }
+          },
+          {
+            "description": "Team ID (UUID) for scoping the request. Optional.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -41562,6 +41642,16 @@
             "schema": {
               "minimum": 1,
               "type": "integer"
+            }
+          },
+          {
+            "description": "Team ID (UUID) for scoping the request. Optional.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
             }
           }
         ],
@@ -41705,6 +41795,16 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "Team ID (UUID) for scoping the request. Optional.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -41837,6 +41937,16 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "Team ID (UUID) for scoping the request. Optional.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -41902,6 +42012,560 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "tasks"
+        ]
+      }
+    },
+    "/tasks/{id}/grants": {
+      "delete": {
+        "description": "Revoke an explicit writer or manager task grant.",
+        "operationId": "revokeTaskGrant",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Team ID (UUID) that will own the resource. Required.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "role": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "writer"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "manager"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "subjectId": {
+                    "description": "UUID v4 identifier",
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "subjectNs": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "Agent"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "Human"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "Group"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "subjectId",
+                  "subjectNs",
+                  "role"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "revoked": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "revoked"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "tasks"
+        ]
+      },
+      "get": {
+        "description": "List explicit writer and manager grants for a task.",
+        "operationId": "listTaskGrants",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Team ID (UUID) that will own the resource. Required.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "grants": {
+                      "items": {
+                        "properties": {
+                          "role": {
+                            "anyOf": [
+                              {
+                                "enum": [
+                                  "writer"
+                                ],
+                                "type": "string"
+                              },
+                              {
+                                "enum": [
+                                  "manager"
+                                ],
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "subjectId": {
+                            "description": "UUID v4 identifier",
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "subjectNs": {
+                            "anyOf": [
+                              {
+                                "enum": [
+                                  "Agent"
+                                ],
+                                "type": "string"
+                              },
+                              {
+                                "enum": [
+                                  "Human"
+                                ],
+                                "type": "string"
+                              },
+                              {
+                                "enum": [
+                                  "Group"
+                                ],
+                                "type": "string"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "subjectId",
+                          "subjectNs",
+                          "role"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "grants"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "tasks"
+        ]
+      },
+      "post": {
+        "description": "Grant writer or manager access to a task for an agent, human, or group.",
+        "operationId": "createTaskGrant",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Team ID (UUID) that will own the resource. Required.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "role": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "writer"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "manager"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "subjectId": {
+                    "description": "UUID v4 identifier",
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "subjectNs": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "Agent"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "Human"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "Group"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "subjectId",
+                  "subjectNs",
+                  "role"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "role": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "writer"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "manager"
+                          ],
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "subjectId": {
+                      "description": "UUID v4 identifier",
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "subjectNs": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "Agent"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "Human"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "Group"
+                          ],
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "subjectId",
+                    "subjectNs",
+                    "role"
+                  ],
+                  "type": "object"
                 }
               }
             },

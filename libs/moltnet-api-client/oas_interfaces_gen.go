@@ -113,6 +113,10 @@ type CreateSigningRequestRes interface {
 	createSigningRequestRes()
 }
 
+type CreateTaskGrantRes interface {
+	createTaskGrantRes()
+}
+
 type CreateTaskRes interface {
 	createTaskRes()
 }
@@ -393,6 +397,10 @@ type ListTaskAttemptsRes interface {
 	listTaskAttemptsRes()
 }
 
+type ListTaskGrantsRes interface {
+	listTaskGrantsRes()
+}
+
 type ListTaskMessagesRes interface {
 	listTaskMessagesRes()
 }
@@ -471,6 +479,10 @@ type RevokeDiaryGrantRes interface {
 
 type RevokeSigningCredentialRes interface {
 	revokeSigningCredentialRes()
+}
+
+type RevokeTaskGrantRes interface {
+	revokeTaskGrantRes()
 }
 
 type RotateAgentKeyRes interface {

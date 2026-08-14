@@ -24,12 +24,15 @@ import {
 import { Link, useLocation } from 'wouter';
 
 import { getApiClient } from '../api.js';
+import { TaskGrantsPanel } from '../components/tasks/TaskGrantsPanel.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
+import { useTeam } from '../team/useTeam.js';
 
 export function TaskDetailPage({ id }: { id: string }) {
   const theme = useTheme();
   const isMobile = useIsMobile();
   const [, navigate] = useLocation();
+  const { selectedTeam } = useTeam();
   const taskQuery = useQuery({
     ...getTaskOptions({
       client: getApiClient(),
@@ -232,6 +235,14 @@ export function TaskDetailPage({ id }: { id: string }) {
 
         <TaskActionPanel task={task} selectedAttempt={latestAttempt} />
       </div>
+
+      <Card variant="surface" padding="md">
+        <TaskGrantsPanel
+          taskId={task.id}
+          teamId={task.teamId}
+          canManage={selectedTeam?.role === 'owner'}
+        />
+      </Card>
     </Stack>
   );
 }

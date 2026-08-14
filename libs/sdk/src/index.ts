@@ -27,6 +27,7 @@ export type {
   TaskArtifactDownload,
   TaskArtifactsNamespace,
   TaskArtifactUploadBody,
+  TaskGrantsNamespace,
   TasksNamespace,
   TeamsNamespace,
 } from './agent.js';

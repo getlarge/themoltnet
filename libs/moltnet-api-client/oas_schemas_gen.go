@@ -4777,6 +4777,7 @@ func (*ConflictProblemDetails) createGroupRes()                           {}
 func (*ConflictProblemDetails) createRuntimeModelRes()                    {}
 func (*ConflictProblemDetails) createRuntimePolicyRes()                   {}
 func (*ConflictProblemDetails) createRuntimeProfileRes()                  {}
+func (*ConflictProblemDetails) createTaskGrantRes()                       {}
 func (*ConflictProblemDetails) createTaskRes()                            {}
 func (*ConflictProblemDetails) failTaskAttemptRes()                       {}
 func (*ConflictProblemDetails) initiateTransferRes()                      {}
@@ -8042,6 +8043,280 @@ func (*CreateSigningRequestUnauthorized) createSigningRequestRes() {}
 type CreateTaskForbidden ProblemDetails
 
 func (*CreateTaskForbidden) createTaskRes() {}
+
+type CreateTaskGrantCreated struct {
+	Role CreateTaskGrantCreatedRole `json:"role"`
+	// UUID v4 identifier.
+	SubjectId uuid.UUID                       `json:"subjectId"`
+	SubjectNs CreateTaskGrantCreatedSubjectNs `json:"subjectNs"`
+}
+
+// GetRole returns the value of Role.
+func (s *CreateTaskGrantCreated) GetRole() CreateTaskGrantCreatedRole {
+	return s.Role
+}
+
+// GetSubjectId returns the value of SubjectId.
+func (s *CreateTaskGrantCreated) GetSubjectId() uuid.UUID {
+	return s.SubjectId
+}
+
+// GetSubjectNs returns the value of SubjectNs.
+func (s *CreateTaskGrantCreated) GetSubjectNs() CreateTaskGrantCreatedSubjectNs {
+	return s.SubjectNs
+}
+
+// SetRole sets the value of Role.
+func (s *CreateTaskGrantCreated) SetRole(val CreateTaskGrantCreatedRole) {
+	s.Role = val
+}
+
+// SetSubjectId sets the value of SubjectId.
+func (s *CreateTaskGrantCreated) SetSubjectId(val uuid.UUID) {
+	s.SubjectId = val
+}
+
+// SetSubjectNs sets the value of SubjectNs.
+func (s *CreateTaskGrantCreated) SetSubjectNs(val CreateTaskGrantCreatedSubjectNs) {
+	s.SubjectNs = val
+}
+
+func (*CreateTaskGrantCreated) createTaskGrantRes() {}
+
+type CreateTaskGrantCreatedRole string
+
+const (
+	CreateTaskGrantCreatedRoleWriter  CreateTaskGrantCreatedRole = "writer"
+	CreateTaskGrantCreatedRoleManager CreateTaskGrantCreatedRole = "manager"
+)
+
+// AllValues returns all CreateTaskGrantCreatedRole values.
+func (CreateTaskGrantCreatedRole) AllValues() []CreateTaskGrantCreatedRole {
+	return []CreateTaskGrantCreatedRole{
+		CreateTaskGrantCreatedRoleWriter,
+		CreateTaskGrantCreatedRoleManager,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CreateTaskGrantCreatedRole) MarshalText() ([]byte, error) {
+	switch s {
+	case CreateTaskGrantCreatedRoleWriter:
+		return []byte(s), nil
+	case CreateTaskGrantCreatedRoleManager:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CreateTaskGrantCreatedRole) UnmarshalText(data []byte) error {
+	switch CreateTaskGrantCreatedRole(data) {
+	case CreateTaskGrantCreatedRoleWriter:
+		*s = CreateTaskGrantCreatedRoleWriter
+		return nil
+	case CreateTaskGrantCreatedRoleManager:
+		*s = CreateTaskGrantCreatedRoleManager
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CreateTaskGrantCreatedSubjectNs string
+
+const (
+	CreateTaskGrantCreatedSubjectNsAgent CreateTaskGrantCreatedSubjectNs = "Agent"
+	CreateTaskGrantCreatedSubjectNsHuman CreateTaskGrantCreatedSubjectNs = "Human"
+	CreateTaskGrantCreatedSubjectNsGroup CreateTaskGrantCreatedSubjectNs = "Group"
+)
+
+// AllValues returns all CreateTaskGrantCreatedSubjectNs values.
+func (CreateTaskGrantCreatedSubjectNs) AllValues() []CreateTaskGrantCreatedSubjectNs {
+	return []CreateTaskGrantCreatedSubjectNs{
+		CreateTaskGrantCreatedSubjectNsAgent,
+		CreateTaskGrantCreatedSubjectNsHuman,
+		CreateTaskGrantCreatedSubjectNsGroup,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CreateTaskGrantCreatedSubjectNs) MarshalText() ([]byte, error) {
+	switch s {
+	case CreateTaskGrantCreatedSubjectNsAgent:
+		return []byte(s), nil
+	case CreateTaskGrantCreatedSubjectNsHuman:
+		return []byte(s), nil
+	case CreateTaskGrantCreatedSubjectNsGroup:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CreateTaskGrantCreatedSubjectNs) UnmarshalText(data []byte) error {
+	switch CreateTaskGrantCreatedSubjectNs(data) {
+	case CreateTaskGrantCreatedSubjectNsAgent:
+		*s = CreateTaskGrantCreatedSubjectNsAgent
+		return nil
+	case CreateTaskGrantCreatedSubjectNsHuman:
+		*s = CreateTaskGrantCreatedSubjectNsHuman
+		return nil
+	case CreateTaskGrantCreatedSubjectNsGroup:
+		*s = CreateTaskGrantCreatedSubjectNsGroup
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CreateTaskGrantForbidden ProblemDetails
+
+func (*CreateTaskGrantForbidden) createTaskGrantRes() {}
+
+type CreateTaskGrantNotFound ProblemDetails
+
+func (*CreateTaskGrantNotFound) createTaskGrantRes() {}
+
+type CreateTaskGrantReq struct {
+	Role CreateTaskGrantReqRole `json:"role"`
+	// UUID v4 identifier.
+	SubjectId uuid.UUID                   `json:"subjectId"`
+	SubjectNs CreateTaskGrantReqSubjectNs `json:"subjectNs"`
+}
+
+// GetRole returns the value of Role.
+func (s *CreateTaskGrantReq) GetRole() CreateTaskGrantReqRole {
+	return s.Role
+}
+
+// GetSubjectId returns the value of SubjectId.
+func (s *CreateTaskGrantReq) GetSubjectId() uuid.UUID {
+	return s.SubjectId
+}
+
+// GetSubjectNs returns the value of SubjectNs.
+func (s *CreateTaskGrantReq) GetSubjectNs() CreateTaskGrantReqSubjectNs {
+	return s.SubjectNs
+}
+
+// SetRole sets the value of Role.
+func (s *CreateTaskGrantReq) SetRole(val CreateTaskGrantReqRole) {
+	s.Role = val
+}
+
+// SetSubjectId sets the value of SubjectId.
+func (s *CreateTaskGrantReq) SetSubjectId(val uuid.UUID) {
+	s.SubjectId = val
+}
+
+// SetSubjectNs sets the value of SubjectNs.
+func (s *CreateTaskGrantReq) SetSubjectNs(val CreateTaskGrantReqSubjectNs) {
+	s.SubjectNs = val
+}
+
+type CreateTaskGrantReqRole string
+
+const (
+	CreateTaskGrantReqRoleWriter  CreateTaskGrantReqRole = "writer"
+	CreateTaskGrantReqRoleManager CreateTaskGrantReqRole = "manager"
+)
+
+// AllValues returns all CreateTaskGrantReqRole values.
+func (CreateTaskGrantReqRole) AllValues() []CreateTaskGrantReqRole {
+	return []CreateTaskGrantReqRole{
+		CreateTaskGrantReqRoleWriter,
+		CreateTaskGrantReqRoleManager,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CreateTaskGrantReqRole) MarshalText() ([]byte, error) {
+	switch s {
+	case CreateTaskGrantReqRoleWriter:
+		return []byte(s), nil
+	case CreateTaskGrantReqRoleManager:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CreateTaskGrantReqRole) UnmarshalText(data []byte) error {
+	switch CreateTaskGrantReqRole(data) {
+	case CreateTaskGrantReqRoleWriter:
+		*s = CreateTaskGrantReqRoleWriter
+		return nil
+	case CreateTaskGrantReqRoleManager:
+		*s = CreateTaskGrantReqRoleManager
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CreateTaskGrantReqSubjectNs string
+
+const (
+	CreateTaskGrantReqSubjectNsAgent CreateTaskGrantReqSubjectNs = "Agent"
+	CreateTaskGrantReqSubjectNsHuman CreateTaskGrantReqSubjectNs = "Human"
+	CreateTaskGrantReqSubjectNsGroup CreateTaskGrantReqSubjectNs = "Group"
+)
+
+// AllValues returns all CreateTaskGrantReqSubjectNs values.
+func (CreateTaskGrantReqSubjectNs) AllValues() []CreateTaskGrantReqSubjectNs {
+	return []CreateTaskGrantReqSubjectNs{
+		CreateTaskGrantReqSubjectNsAgent,
+		CreateTaskGrantReqSubjectNsHuman,
+		CreateTaskGrantReqSubjectNsGroup,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CreateTaskGrantReqSubjectNs) MarshalText() ([]byte, error) {
+	switch s {
+	case CreateTaskGrantReqSubjectNsAgent:
+		return []byte(s), nil
+	case CreateTaskGrantReqSubjectNsHuman:
+		return []byte(s), nil
+	case CreateTaskGrantReqSubjectNsGroup:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CreateTaskGrantReqSubjectNs) UnmarshalText(data []byte) error {
+	switch CreateTaskGrantReqSubjectNs(data) {
+	case CreateTaskGrantReqSubjectNsAgent:
+		*s = CreateTaskGrantReqSubjectNsAgent
+		return nil
+	case CreateTaskGrantReqSubjectNsHuman:
+		*s = CreateTaskGrantReqSubjectNsHuman
+		return nil
+	case CreateTaskGrantReqSubjectNsGroup:
+		*s = CreateTaskGrantReqSubjectNsGroup
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CreateTaskGrantServiceUnavailable ProblemDetails
+
+func (*CreateTaskGrantServiceUnavailable) createTaskGrantRes() {}
+
+type CreateTaskGrantTooManyRequests ProblemDetails
+
+func (*CreateTaskGrantTooManyRequests) createTaskGrantRes() {}
+
+type CreateTaskGrantUnauthorized ProblemDetails
+
+func (*CreateTaskGrantUnauthorized) createTaskGrantRes() {}
 
 type CreateTaskNotFound ProblemDetails
 
@@ -31426,6 +31701,168 @@ type ListTaskAttemptsUnauthorized ProblemDetails
 
 func (*ListTaskAttemptsUnauthorized) listTaskAttemptsRes() {}
 
+type ListTaskGrantsForbidden ProblemDetails
+
+func (*ListTaskGrantsForbidden) listTaskGrantsRes() {}
+
+type ListTaskGrantsNotFound ProblemDetails
+
+func (*ListTaskGrantsNotFound) listTaskGrantsRes() {}
+
+type ListTaskGrantsOK struct {
+	Grants []ListTaskGrantsOKGrantsItem `json:"grants"`
+}
+
+// GetGrants returns the value of Grants.
+func (s *ListTaskGrantsOK) GetGrants() []ListTaskGrantsOKGrantsItem {
+	return s.Grants
+}
+
+// SetGrants sets the value of Grants.
+func (s *ListTaskGrantsOK) SetGrants(val []ListTaskGrantsOKGrantsItem) {
+	s.Grants = val
+}
+
+func (*ListTaskGrantsOK) listTaskGrantsRes() {}
+
+type ListTaskGrantsOKGrantsItem struct {
+	Role ListTaskGrantsOKGrantsItemRole `json:"role"`
+	// UUID v4 identifier.
+	SubjectId uuid.UUID                           `json:"subjectId"`
+	SubjectNs ListTaskGrantsOKGrantsItemSubjectNs `json:"subjectNs"`
+}
+
+// GetRole returns the value of Role.
+func (s *ListTaskGrantsOKGrantsItem) GetRole() ListTaskGrantsOKGrantsItemRole {
+	return s.Role
+}
+
+// GetSubjectId returns the value of SubjectId.
+func (s *ListTaskGrantsOKGrantsItem) GetSubjectId() uuid.UUID {
+	return s.SubjectId
+}
+
+// GetSubjectNs returns the value of SubjectNs.
+func (s *ListTaskGrantsOKGrantsItem) GetSubjectNs() ListTaskGrantsOKGrantsItemSubjectNs {
+	return s.SubjectNs
+}
+
+// SetRole sets the value of Role.
+func (s *ListTaskGrantsOKGrantsItem) SetRole(val ListTaskGrantsOKGrantsItemRole) {
+	s.Role = val
+}
+
+// SetSubjectId sets the value of SubjectId.
+func (s *ListTaskGrantsOKGrantsItem) SetSubjectId(val uuid.UUID) {
+	s.SubjectId = val
+}
+
+// SetSubjectNs sets the value of SubjectNs.
+func (s *ListTaskGrantsOKGrantsItem) SetSubjectNs(val ListTaskGrantsOKGrantsItemSubjectNs) {
+	s.SubjectNs = val
+}
+
+type ListTaskGrantsOKGrantsItemRole string
+
+const (
+	ListTaskGrantsOKGrantsItemRoleWriter  ListTaskGrantsOKGrantsItemRole = "writer"
+	ListTaskGrantsOKGrantsItemRoleManager ListTaskGrantsOKGrantsItemRole = "manager"
+)
+
+// AllValues returns all ListTaskGrantsOKGrantsItemRole values.
+func (ListTaskGrantsOKGrantsItemRole) AllValues() []ListTaskGrantsOKGrantsItemRole {
+	return []ListTaskGrantsOKGrantsItemRole{
+		ListTaskGrantsOKGrantsItemRoleWriter,
+		ListTaskGrantsOKGrantsItemRoleManager,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListTaskGrantsOKGrantsItemRole) MarshalText() ([]byte, error) {
+	switch s {
+	case ListTaskGrantsOKGrantsItemRoleWriter:
+		return []byte(s), nil
+	case ListTaskGrantsOKGrantsItemRoleManager:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListTaskGrantsOKGrantsItemRole) UnmarshalText(data []byte) error {
+	switch ListTaskGrantsOKGrantsItemRole(data) {
+	case ListTaskGrantsOKGrantsItemRoleWriter:
+		*s = ListTaskGrantsOKGrantsItemRoleWriter
+		return nil
+	case ListTaskGrantsOKGrantsItemRoleManager:
+		*s = ListTaskGrantsOKGrantsItemRoleManager
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ListTaskGrantsOKGrantsItemSubjectNs string
+
+const (
+	ListTaskGrantsOKGrantsItemSubjectNsAgent ListTaskGrantsOKGrantsItemSubjectNs = "Agent"
+	ListTaskGrantsOKGrantsItemSubjectNsHuman ListTaskGrantsOKGrantsItemSubjectNs = "Human"
+	ListTaskGrantsOKGrantsItemSubjectNsGroup ListTaskGrantsOKGrantsItemSubjectNs = "Group"
+)
+
+// AllValues returns all ListTaskGrantsOKGrantsItemSubjectNs values.
+func (ListTaskGrantsOKGrantsItemSubjectNs) AllValues() []ListTaskGrantsOKGrantsItemSubjectNs {
+	return []ListTaskGrantsOKGrantsItemSubjectNs{
+		ListTaskGrantsOKGrantsItemSubjectNsAgent,
+		ListTaskGrantsOKGrantsItemSubjectNsHuman,
+		ListTaskGrantsOKGrantsItemSubjectNsGroup,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListTaskGrantsOKGrantsItemSubjectNs) MarshalText() ([]byte, error) {
+	switch s {
+	case ListTaskGrantsOKGrantsItemSubjectNsAgent:
+		return []byte(s), nil
+	case ListTaskGrantsOKGrantsItemSubjectNsHuman:
+		return []byte(s), nil
+	case ListTaskGrantsOKGrantsItemSubjectNsGroup:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListTaskGrantsOKGrantsItemSubjectNs) UnmarshalText(data []byte) error {
+	switch ListTaskGrantsOKGrantsItemSubjectNs(data) {
+	case ListTaskGrantsOKGrantsItemSubjectNsAgent:
+		*s = ListTaskGrantsOKGrantsItemSubjectNsAgent
+		return nil
+	case ListTaskGrantsOKGrantsItemSubjectNsHuman:
+		*s = ListTaskGrantsOKGrantsItemSubjectNsHuman
+		return nil
+	case ListTaskGrantsOKGrantsItemSubjectNsGroup:
+		*s = ListTaskGrantsOKGrantsItemSubjectNsGroup
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ListTaskGrantsServiceUnavailable ProblemDetails
+
+func (*ListTaskGrantsServiceUnavailable) listTaskGrantsRes() {}
+
+type ListTaskGrantsTooManyRequests ProblemDetails
+
+func (*ListTaskGrantsTooManyRequests) listTaskGrantsRes() {}
+
+type ListTaskGrantsUnauthorized ProblemDetails
+
+func (*ListTaskGrantsUnauthorized) listTaskGrantsRes() {}
+
 type ListTaskMessagesForbidden ProblemDetails
 
 func (*ListTaskMessagesForbidden) listTaskMessagesRes() {}
@@ -46497,6 +46934,168 @@ func (*RevokeSigningCredentialTooManyRequests) revokeSigningCredentialRes() {}
 type RevokeSigningCredentialUnauthorized ProblemDetails
 
 func (*RevokeSigningCredentialUnauthorized) revokeSigningCredentialRes() {}
+
+type RevokeTaskGrantForbidden ProblemDetails
+
+func (*RevokeTaskGrantForbidden) revokeTaskGrantRes() {}
+
+type RevokeTaskGrantNotFound ProblemDetails
+
+func (*RevokeTaskGrantNotFound) revokeTaskGrantRes() {}
+
+type RevokeTaskGrantOK struct {
+	Revoked bool `json:"revoked"`
+}
+
+// GetRevoked returns the value of Revoked.
+func (s *RevokeTaskGrantOK) GetRevoked() bool {
+	return s.Revoked
+}
+
+// SetRevoked sets the value of Revoked.
+func (s *RevokeTaskGrantOK) SetRevoked(val bool) {
+	s.Revoked = val
+}
+
+func (*RevokeTaskGrantOK) revokeTaskGrantRes() {}
+
+type RevokeTaskGrantReq struct {
+	Role RevokeTaskGrantReqRole `json:"role"`
+	// UUID v4 identifier.
+	SubjectId uuid.UUID                   `json:"subjectId"`
+	SubjectNs RevokeTaskGrantReqSubjectNs `json:"subjectNs"`
+}
+
+// GetRole returns the value of Role.
+func (s *RevokeTaskGrantReq) GetRole() RevokeTaskGrantReqRole {
+	return s.Role
+}
+
+// GetSubjectId returns the value of SubjectId.
+func (s *RevokeTaskGrantReq) GetSubjectId() uuid.UUID {
+	return s.SubjectId
+}
+
+// GetSubjectNs returns the value of SubjectNs.
+func (s *RevokeTaskGrantReq) GetSubjectNs() RevokeTaskGrantReqSubjectNs {
+	return s.SubjectNs
+}
+
+// SetRole sets the value of Role.
+func (s *RevokeTaskGrantReq) SetRole(val RevokeTaskGrantReqRole) {
+	s.Role = val
+}
+
+// SetSubjectId sets the value of SubjectId.
+func (s *RevokeTaskGrantReq) SetSubjectId(val uuid.UUID) {
+	s.SubjectId = val
+}
+
+// SetSubjectNs sets the value of SubjectNs.
+func (s *RevokeTaskGrantReq) SetSubjectNs(val RevokeTaskGrantReqSubjectNs) {
+	s.SubjectNs = val
+}
+
+type RevokeTaskGrantReqRole string
+
+const (
+	RevokeTaskGrantReqRoleWriter  RevokeTaskGrantReqRole = "writer"
+	RevokeTaskGrantReqRoleManager RevokeTaskGrantReqRole = "manager"
+)
+
+// AllValues returns all RevokeTaskGrantReqRole values.
+func (RevokeTaskGrantReqRole) AllValues() []RevokeTaskGrantReqRole {
+	return []RevokeTaskGrantReqRole{
+		RevokeTaskGrantReqRoleWriter,
+		RevokeTaskGrantReqRoleManager,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RevokeTaskGrantReqRole) MarshalText() ([]byte, error) {
+	switch s {
+	case RevokeTaskGrantReqRoleWriter:
+		return []byte(s), nil
+	case RevokeTaskGrantReqRoleManager:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RevokeTaskGrantReqRole) UnmarshalText(data []byte) error {
+	switch RevokeTaskGrantReqRole(data) {
+	case RevokeTaskGrantReqRoleWriter:
+		*s = RevokeTaskGrantReqRoleWriter
+		return nil
+	case RevokeTaskGrantReqRoleManager:
+		*s = RevokeTaskGrantReqRoleManager
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type RevokeTaskGrantReqSubjectNs string
+
+const (
+	RevokeTaskGrantReqSubjectNsAgent RevokeTaskGrantReqSubjectNs = "Agent"
+	RevokeTaskGrantReqSubjectNsHuman RevokeTaskGrantReqSubjectNs = "Human"
+	RevokeTaskGrantReqSubjectNsGroup RevokeTaskGrantReqSubjectNs = "Group"
+)
+
+// AllValues returns all RevokeTaskGrantReqSubjectNs values.
+func (RevokeTaskGrantReqSubjectNs) AllValues() []RevokeTaskGrantReqSubjectNs {
+	return []RevokeTaskGrantReqSubjectNs{
+		RevokeTaskGrantReqSubjectNsAgent,
+		RevokeTaskGrantReqSubjectNsHuman,
+		RevokeTaskGrantReqSubjectNsGroup,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RevokeTaskGrantReqSubjectNs) MarshalText() ([]byte, error) {
+	switch s {
+	case RevokeTaskGrantReqSubjectNsAgent:
+		return []byte(s), nil
+	case RevokeTaskGrantReqSubjectNsHuman:
+		return []byte(s), nil
+	case RevokeTaskGrantReqSubjectNsGroup:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RevokeTaskGrantReqSubjectNs) UnmarshalText(data []byte) error {
+	switch RevokeTaskGrantReqSubjectNs(data) {
+	case RevokeTaskGrantReqSubjectNsAgent:
+		*s = RevokeTaskGrantReqSubjectNsAgent
+		return nil
+	case RevokeTaskGrantReqSubjectNsHuman:
+		*s = RevokeTaskGrantReqSubjectNsHuman
+		return nil
+	case RevokeTaskGrantReqSubjectNsGroup:
+		*s = RevokeTaskGrantReqSubjectNsGroup
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type RevokeTaskGrantServiceUnavailable ProblemDetails
+
+func (*RevokeTaskGrantServiceUnavailable) revokeTaskGrantRes() {}
+
+type RevokeTaskGrantTooManyRequests ProblemDetails
+
+func (*RevokeTaskGrantTooManyRequests) revokeTaskGrantRes() {}
+
+type RevokeTaskGrantUnauthorized ProblemDetails
+
+func (*RevokeTaskGrantUnauthorized) revokeTaskGrantRes() {}
 
 type RotateAgentKeyBadGateway ProblemDetails
 

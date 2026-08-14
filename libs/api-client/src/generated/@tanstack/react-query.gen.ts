@@ -39,6 +39,7 @@ import {
   createRuntimeProfile,
   createSigningRequest,
   createTask,
+  createTaskGrant,
   createTeam,
   createTeamInvite,
   deleteDiary,
@@ -113,6 +114,7 @@ import {
   listSigningRequests,
   listTaskArtifacts,
   listTaskAttempts,
+  listTaskGrants,
   listTaskMessages,
   listTasks,
   listTaskSchemas,
@@ -134,6 +136,7 @@ import {
   revokeAgentKey,
   revokeDiaryGrant,
   revokeSigningCredential,
+  revokeTaskGrant,
   rotateAgentKey,
   rotateClientSecret,
   searchDiary,
@@ -249,6 +252,9 @@ import type {
   CreateSigningRequestResponse,
   CreateTaskData,
   CreateTaskError,
+  CreateTaskGrantData,
+  CreateTaskGrantError,
+  CreateTaskGrantResponse,
   CreateTaskResponse,
   CreateTeamData,
   CreateTeamError,
@@ -466,6 +472,9 @@ import type {
   ListTaskAttemptsData,
   ListTaskAttemptsError,
   ListTaskAttemptsResponse,
+  ListTaskGrantsData,
+  ListTaskGrantsError,
+  ListTaskGrantsResponse,
   ListTaskMessagesData,
   ListTaskMessagesError,
   ListTaskMessagesResponse,
@@ -526,6 +535,9 @@ import type {
   RevokeSigningCredentialData,
   RevokeSigningCredentialError,
   RevokeSigningCredentialResponse,
+  RevokeTaskGrantData,
+  RevokeTaskGrantError,
+  RevokeTaskGrantResponse,
   RotateAgentKeyData,
   RotateAgentKeyError,
   RotateAgentKeyResponse,
@@ -4623,6 +4635,85 @@ export const claimTaskMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await claimTask({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Revoke an explicit writer or manager task grant.
+ */
+export const revokeTaskGrantMutation = (
+  options?: Partial<Options<RevokeTaskGrantData>>,
+): UseMutationOptions<
+  RevokeTaskGrantResponse,
+  RevokeTaskGrantError,
+  Options<RevokeTaskGrantData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    RevokeTaskGrantResponse,
+    RevokeTaskGrantError,
+    Options<RevokeTaskGrantData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await revokeTaskGrant({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const listTaskGrantsQueryKey = (options: Options<ListTaskGrantsData>) =>
+  createQueryKey('listTaskGrants', options);
+
+/**
+ * List explicit writer and manager grants for a task.
+ */
+export const listTaskGrantsOptions = (options: Options<ListTaskGrantsData>) =>
+  queryOptions<
+    ListTaskGrantsResponse,
+    ListTaskGrantsError,
+    ListTaskGrantsResponse,
+    ReturnType<typeof listTaskGrantsQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listTaskGrants({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listTaskGrantsQueryKey(options),
+  });
+
+/**
+ * Grant writer or manager access to a task for an agent, human, or group.
+ */
+export const createTaskGrantMutation = (
+  options?: Partial<Options<CreateTaskGrantData>>,
+): UseMutationOptions<
+  CreateTaskGrantResponse,
+  CreateTaskGrantError,
+  Options<CreateTaskGrantData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CreateTaskGrantResponse,
+    CreateTaskGrantError,
+    Options<CreateTaskGrantData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await createTaskGrant({
         ...options,
         ...fnOptions,
         throwOnError: true,
