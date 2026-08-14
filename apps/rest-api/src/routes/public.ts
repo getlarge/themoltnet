@@ -37,6 +37,7 @@ import {
   decodeOpaqueCursor,
   encodeOpaqueCursor,
 } from '../utils/opaque-cursor.js';
+import { verifyRegistrationProof } from '../utils/registration-proof.js';
 import {
   AWAITING_INSTALLATION_EVENT,
   GITHUB_CODE_EVENT,
@@ -415,47 +416,16 @@ export async function publicRoutes(fastify: FastifyInstance) {
       const { publicKey, fingerprint, proof, credentialType, agentName, org } =
         request.body;
       const idempotencyKey = request.headers['idempotency-key'];
-      let publicKeyBytes: Uint8Array;
-      try {
-        publicKeyBytes = fastify.cryptoService.parsePublicKey(publicKey);
-      } catch {
-        throw createProblem('validation-failed', 'Invalid Ed25519 public key');
-      }
-      if (publicKeyBytes.length !== 32) {
-        throw createProblem(
-          'validation-failed',
-          'Ed25519 public key must contain exactly 32 raw bytes',
-        );
-      }
-      const derivedFingerprint =
-        fastify.cryptoService.generateFingerprint(publicKeyBytes);
-      if (derivedFingerprint !== fingerprint) {
-        throw createProblem(
-          'validation-failed',
-          'Fingerprint does not match publicKey',
-        );
-      }
-      const message = buildSelfRegistrationMessage({
-        idempotencyKey,
-        publicKey,
-        credentialType,
-      });
-      let validProof = false;
-      try {
-        validProof = await fastify.cryptoService.verify(
-          message,
-          proof,
+      await verifyRegistrationProof(fastify.cryptoService, {
+        expectedFingerprint: fingerprint,
+        message: buildSelfRegistrationMessage({
+          idempotencyKey,
           publicKey,
-        );
-      } catch {
-        // Malformed signatures have the same public contract as invalid ones.
-      }
-      if (!validProof) {
-        throw createProblem(
-          'invalid-signature',
-          'Ed25519 registration proof verification failed',
-        );
-      }
+          credentialType,
+        }),
+        proof,
+        publicKey,
+      });
 
       const registrationInput = {
         publicKey,

@@ -25,6 +25,7 @@ import {
   RegistrationCredentialTypeSchema,
   RotateSecretResponseSchema,
 } from '../schemas.js';
+import { verifyRegistrationProof } from '../utils/registration-proof.js';
 import {
   EnrollmentValidationError,
   type RegistrationInput,
@@ -78,45 +79,6 @@ function registrationWorkflowId(
 
 export async function registrationRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
-
-  const validatePublicKey = (publicKey: string): string => {
-    let publicKeyBytes: Uint8Array;
-    try {
-      publicKeyBytes = fastify.cryptoService.parsePublicKey(publicKey);
-    } catch {
-      throw createProblem(
-        'validation-failed',
-        'publicKey must use format "ed25519:<base64>" where <base64> is your raw 32-byte Ed25519 public key.',
-      );
-    }
-
-    if (publicKeyBytes.length !== 32) {
-      throw createProblem(
-        'validation-failed',
-        `publicKey must be exactly 32 bytes (got ${publicKeyBytes.length}). Provide the raw Ed25519 public key, not an SPKI/X.509 wrapper.`,
-      );
-    }
-    return fastify.cryptoService.generateFingerprint(publicKeyBytes);
-  };
-
-  const verifyProof = async (
-    message: string,
-    proof: string,
-    publicKey: string,
-  ): Promise<void> => {
-    let valid = false;
-    try {
-      valid = await fastify.cryptoService.verify(message, proof, publicKey);
-    } catch {
-      // Malformed signatures have the same contract as incorrect signatures.
-    }
-    if (!valid) {
-      throw createProblem(
-        'invalid-signature',
-        'Ed25519 registration proof verification failed',
-      );
-    }
-  };
 
   const runRegistration = async (
     input: RegistrationInput,
@@ -177,16 +139,15 @@ export async function registrationRoutes(fastify: FastifyInstance) {
     async (request) => {
       const { publicKey, proof, credentialType } = request.body;
       const idempotencyKey = request.headers['idempotency-key'];
-      const fingerprint = validatePublicKey(publicKey);
-      await verifyProof(
-        buildSelfRegistrationMessage({
+      const fingerprint = await verifyRegistrationProof(fastify.cryptoService, {
+        message: buildSelfRegistrationMessage({
           idempotencyKey,
           publicKey,
           credentialType,
         }),
         proof,
         publicKey,
-      );
+      });
       return runRegistration(
         {
           publicKey,
@@ -225,9 +186,8 @@ export async function registrationRoutes(fastify: FastifyInstance) {
       const { token, publicKey, proof, credentialType } = request.body;
       const idempotencyKey = request.headers['idempotency-key'];
       const tokenHash = hashAgentEnrollmentToken(token);
-      const fingerprint = validatePublicKey(publicKey);
-      await verifyProof(
-        buildTeamRegistrationMessage({
+      const fingerprint = await verifyRegistrationProof(fastify.cryptoService, {
+        message: buildTeamRegistrationMessage({
           enrollmentTokenHash: tokenHash,
           idempotencyKey,
           publicKey,
@@ -235,7 +195,7 @@ export async function registrationRoutes(fastify: FastifyInstance) {
         }),
         proof,
         publicKey,
-      );
+      });
       return runRegistration(
         {
           publicKey,

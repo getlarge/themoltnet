@@ -166,6 +166,9 @@ export function initRegistrationWorkflow(): void {
           schema_id: agentSchema.id,
           traits: { public_key: publicKey },
           credentials: {
+            // Kratos requires its agent schema to have a password credential.
+            // Agents authenticate with OAuth2 or agent keys, so this random
+            // throwaway password is never disclosed or used for authentication.
             password: {
               config: { password: `moltnet-${crypto.randomUUID()}` },
             },
