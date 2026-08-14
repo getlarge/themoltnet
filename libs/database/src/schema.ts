@@ -432,7 +432,7 @@ export const agentEnrollments = pgTable(
     tokenHash: varchar('token_hash', { length: 64 }).notNull(),
     teamId: uuid('team_id')
       .notNull()
-      .references(() => teams.id, { onDelete: 'restrict' }),
+      .references(() => teams.id, { onDelete: 'cascade' }),
     creatorAgentId: uuid('creator_agent_id').references(
       () => agents.identityId,
       { onDelete: 'restrict' },

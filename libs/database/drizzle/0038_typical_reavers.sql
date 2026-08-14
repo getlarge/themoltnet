@@ -14,7 +14,7 @@ CREATE TABLE "agent_enrollments" (
 );
 --> statement-breakpoint
 DROP TABLE "agent_vouchers" CASCADE;--> statement-breakpoint
-ALTER TABLE "agent_enrollments" ADD CONSTRAINT "agent_enrollments_team_id_teams_id_fk" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "agent_enrollments" ADD CONSTRAINT "agent_enrollments_team_id_teams_id_fk" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "agent_enrollments" ADD CONSTRAINT "agent_enrollments_creator_agent_id_agents_identity_id_fk" FOREIGN KEY ("creator_agent_id") REFERENCES "public"."agents"("identity_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "agent_enrollments" ADD CONSTRAINT "agent_enrollments_creator_human_id_humans_id_fk" FOREIGN KEY ("creator_human_id") REFERENCES "public"."humans"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "agent_enrollments" ADD CONSTRAINT "agent_enrollments_resulting_agent_id_agents_identity_id_fk" FOREIGN KEY ("resulting_agent_id") REFERENCES "public"."agents"("identity_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint

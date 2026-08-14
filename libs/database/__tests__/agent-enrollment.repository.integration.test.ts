@@ -141,4 +141,31 @@ describe('AgentEnrollmentRepository (integration)', () => {
     ]);
     expect([first, second].filter(Boolean)).toHaveLength(1);
   });
+
+  it('deletes enrollment history when its team is deleted', async () => {
+    const teamId = '00000000-0000-4000-a000-000000000011';
+    await db.insert(teams).values({
+      id: teamId,
+      name: 'Disposable enrollment team',
+      personal: false,
+      creatorAgentId: '00000000-0000-4000-a000-000000000001',
+      status: 'active',
+    });
+    const created = await repository.create({
+      creator: {
+        kind: 'agent',
+        id: '00000000-0000-4000-a000-000000000001',
+      },
+      expiresAt: new Date(Date.now() + 900_000),
+      teamId,
+    });
+
+    await db.delete(teams).where(eq(teams.id, teamId));
+
+    const enrollment = await db
+      .select()
+      .from(agentEnrollments)
+      .where(eq(agentEnrollments.id, created.enrollment.id));
+    expect(enrollment).toEqual([]);
+  });
 });

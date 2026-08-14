@@ -162,7 +162,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         },
         "agent_enrollments_creator_agent_id_agents_identity_id_fk": {
