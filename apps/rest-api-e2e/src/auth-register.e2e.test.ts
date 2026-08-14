@@ -1,9 +1,24 @@
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 
+import {
+  type Client,
+  createAgentEnrollment,
+  createClient,
+  createTeam,
+  enrollAgent,
+  getWhoami,
+  revokeAgentEnrollment,
+  rotateClientSecret,
+} from '@moltnet/api-client';
+import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
 import { cryptoService } from '@moltnet/crypto-service';
-import { buildSelfRegistrationMessage } from '@moltnet/models';
+import {
+  buildSelfRegistrationMessage,
+  buildTeamRegistrationMessage,
+} from '@moltnet/models';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { createAgent, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
 async function signedSelfRegistration(credentialType: 'oauth2' | 'agent_key') {
@@ -20,11 +35,52 @@ async function signedSelfRegistration(credentialType: 'oauth2' | 'agent_key') {
   return { credentialType, idempotencyKey, keyPair, proof };
 }
 
+async function signedTeamRegistration(token: string) {
+  const keyPair = await cryptoService.generateKeyPair();
+  const idempotencyKey = randomBytes(32).toString('base64url');
+  const enrollmentTokenHash = createHash('sha256').update(token).digest('hex');
+  const proof = await cryptoService.sign(
+    buildTeamRegistrationMessage({
+      enrollmentTokenHash,
+      idempotencyKey,
+      publicKey: keyPair.publicKey,
+      credentialType: 'oauth2',
+    }),
+    keyPair.privateKey,
+  );
+  return { idempotencyKey, keyPair, proof };
+}
+
+function requestOAuthToken(
+  baseUrl: string,
+  clientId: string,
+  clientSecret: string,
+) {
+  return fetch(`${baseUrl}/oauth2/token`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: clientId,
+      client_secret: clientSecret,
+      scope: AGENT_OAUTH_SCOPES.join(' '),
+    }),
+  });
+}
+
 describe('proof-based registration', () => {
   let harness: TestHarness;
+  let client: Client;
+  let manager: TestAgent;
 
   beforeAll(async () => {
     harness = await createTestHarness();
+    client = createClient({ baseUrl: harness.baseUrl });
+    manager = await createAgent({
+      baseUrl: harness.baseUrl,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
+    });
   });
   afterAll(async () => harness?.teardown());
 
@@ -57,15 +113,11 @@ describe('proof-based registration', () => {
     expect(result.publicKey).toBe(input.keyPair.publicKey);
     expect(result.credential.type).toBe('oauth2');
 
-    const tokenResponse = await fetch(`${harness.baseUrl}/oauth2/token`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'client_credentials',
-        client_id: result.credential.clientId,
-        client_secret: result.credential.clientSecret,
-      }),
-    });
+    const tokenResponse = await requestOAuthToken(
+      harness.baseUrl,
+      result.credential.clientId,
+      result.credential.clientSecret,
+    );
     expect(tokenResponse.status).toBe(200);
   });
 
@@ -133,5 +185,119 @@ describe('proof-based registration', () => {
     expect((await response.json()) as { code: string }).toEqual(
       expect.objectContaining({ code: 'INVALID_SIGNATURE' }),
     );
+  });
+
+  it('enrolls an agent whose OAuth2 credential can authenticate', async () => {
+    const { data: team, error: teamError } = await createTeam({
+      client,
+      auth: () => manager.accessToken,
+      body: { name: `enrollment-happy-${Date.now()}` },
+    });
+    expect(teamError).toBeUndefined();
+
+    const { data: enrollment, error: enrollmentError } =
+      await createAgentEnrollment({
+        client,
+        auth: () => manager.accessToken,
+        headers: { 'x-moltnet-team-id': team!.id },
+        body: { expiresInMinutes: 15 },
+      });
+    expect(enrollmentError).toBeUndefined();
+
+    const input = await signedTeamRegistration(enrollment!.token);
+    const enrolled = await enrollAgent({
+      client,
+      headers: { 'idempotency-key': input.idempotencyKey },
+      body: {
+        token: enrollment!.token,
+        publicKey: input.keyPair.publicKey,
+        proof: input.proof,
+        credentialType: 'oauth2',
+      },
+    });
+    expect(enrolled.response.status).toBe(200);
+    expect(enrolled.error).toBeUndefined();
+    expect(enrolled.data?.credential.type).toBe('oauth2');
+    if (enrolled.data?.credential.type !== 'oauth2') {
+      throw new Error('Enrollment did not return an OAuth2 credential');
+    }
+
+    const tokenResponse = await requestOAuthToken(
+      harness.baseUrl,
+      enrolled.data.credential.clientId,
+      enrolled.data.credential.clientSecret,
+    );
+    expect(tokenResponse.status).toBe(200);
+    const token = (await tokenResponse.json()) as { access_token: string };
+    const whoami = await getWhoami({
+      client,
+      auth: () => token.access_token,
+    });
+    expect(whoami.response.status).toBe(200);
+    expect(whoami.data?.identityId).toBe(enrolled.data.identityId);
+  });
+
+  it('prevents redemption after an enrollment is revoked', async () => {
+    const { data: team, error: teamError } = await createTeam({
+      client,
+      auth: () => manager.accessToken,
+      body: { name: `enrollment-revoke-${Date.now()}` },
+    });
+    expect(teamError).toBeUndefined();
+
+    const { data: enrollment, error: enrollmentError } =
+      await createAgentEnrollment({
+        client,
+        auth: () => manager.accessToken,
+        headers: { 'x-moltnet-team-id': team!.id },
+        body: { expiresInMinutes: 15 },
+      });
+    expect(enrollmentError).toBeUndefined();
+
+    const revoked = await revokeAgentEnrollment({
+      client,
+      auth: () => manager.accessToken,
+      headers: { 'x-moltnet-team-id': team!.id },
+      path: { id: enrollment!.id },
+    });
+    expect(revoked.response.status).toBe(204);
+    expect(revoked.error).toBeUndefined();
+
+    const input = await signedTeamRegistration(enrollment!.token);
+    const redemption = await enrollAgent({
+      client,
+      headers: { 'idempotency-key': input.idempotencyKey },
+      body: {
+        token: enrollment!.token,
+        publicKey: input.keyPair.publicKey,
+        proof: input.proof,
+        credentialType: 'oauth2',
+      },
+    });
+    expect(redemption.response.status).toBe(403);
+    expect(redemption.data).toBeUndefined();
+  });
+
+  it('invalidates the old OAuth2 secret when rotating credentials', async () => {
+    const rotated = await rotateClientSecret({
+      client,
+      auth: () => manager.accessToken,
+    });
+    expect(rotated.response.status).toBe(200);
+    expect(rotated.error).toBeUndefined();
+
+    const oldSecretResponse = await requestOAuthToken(
+      harness.baseUrl,
+      manager.clientId,
+      manager.clientSecret,
+    );
+    expect(oldSecretResponse.status).toBe(401);
+
+    const newSecretResponse = await requestOAuthToken(
+      harness.baseUrl,
+      rotated.data!.clientId,
+      rotated.data!.clientSecret,
+    );
+    expect(newSecretResponse.status).toBe(200);
   });
 });

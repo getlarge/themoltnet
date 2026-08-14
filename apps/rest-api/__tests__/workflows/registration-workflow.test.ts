@@ -228,4 +228,33 @@ describe('registration workflow', () => {
       id: IDENTITY_ID,
     });
   });
+
+  it('releases a redeemed enrollment when credential creation fails', async () => {
+    const deps = createDeps();
+    deps.issueAgentKey.mockRejectedValueOnce(new Error('Talos unavailable'));
+    setRegistrationDeps(deps as never);
+
+    await expect(
+      registrationWorkflow.registerAgent({
+        publicKey: PUBLIC_KEY,
+        fingerprint: FINGERPRINT,
+        credentialType: 'agent_key',
+        idempotencyKey: 'nonce',
+        mode: { type: 'team', enrollmentTokenHash: TOKEN_HASH },
+      }),
+    ).rejects.toThrow('Talos unavailable');
+    expect(
+      deps.relationshipWriter.removeTeamMemberRelation,
+    ).toHaveBeenCalledWith(TEAM_ID, IDENTITY_ID, 'Agent');
+    expect(deps.relationshipWriter.removeAgentRelations).toHaveBeenCalledWith(
+      IDENTITY_ID,
+    );
+    expect(
+      deps.agentEnrollmentRepository.releaseRedemption,
+    ).toHaveBeenCalledWith(TOKEN_HASH, IDENTITY_ID);
+    expect(deps.agentRepository.delete).toHaveBeenCalledWith(IDENTITY_ID);
+    expect(deps.identityApi.deleteIdentity).toHaveBeenCalledWith({
+      id: IDENTITY_ID,
+    });
+  });
 });
