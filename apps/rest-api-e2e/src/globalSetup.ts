@@ -1,169 +1,38 @@
 /**
- * E2E Global Setup — Health Check + Sponsor Agent Bootstrap
+ * E2E global setup.
  *
- * Assumes Docker Compose is already running (started by CI or the developer).
- * Verifies all services are healthy, then bootstraps a sponsor genesis agent
- * and restarts the rest-api container with SPONSOR_AGENT_ID set so that
- * LeGreffier onboarding e2e tests can exercise the full happy path.
- *
- * Both locally and in CI the stack uses the single docker-compose.e2e.yaml;
- * CI selects pre-built images via the *_IMAGE env vars rather than a separate
- * override file (see #1498). To start the stack:
- *   COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml up -d
+ * The Compose stack must already be running. Registration is public, so the
+ * suite only needs to wait for dependencies.
  */
 
-import { execFileSync } from 'node:child_process';
-import { resolve } from 'node:path';
-
-import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
-// eslint-disable-next-line @nx/enforce-module-boundaries -- Rest API e2e setup provisions the live server through the CLI-tagged bootstrap harness.
-import {
-  type BootstrapConfig,
-  bootstrapGenesisAgents,
-} from '@moltnet/bootstrap';
-import { createDatabase } from '@moltnet/database';
-
-// ── Infrastructure URLs (Docker Compose e2e — localhost mappings) ──
-
-const DATABASE_URL =
-  process.env['DATABASE_URL'] ??
-  'postgresql://moltnet:moltnet_secret@localhost:5433/moltnet';
-
-const HYDRA_ADMIN_URL =
-  process.env['ORY_HYDRA_ADMIN_URL'] ?? 'http://localhost:4445';
 const HYDRA_PUBLIC_URL =
   process.env['ORY_HYDRA_PUBLIC_URL'] ?? 'http://localhost:4444';
 const KETO_READ_URL =
   process.env['ORY_KETO_PUBLIC_URL'] ?? 'http://localhost:4466';
-const KETO_WRITE_URL =
-  process.env['ORY_KETO_ADMIN_URL'] ?? 'http://localhost:4467';
-const KRATOS_ADMIN_URL =
-  process.env['ORY_KRATOS_ADMIN_URL'] ?? 'http://localhost:4434';
 const KRATOS_PUBLIC_URL =
   process.env['ORY_KRATOS_PUBLIC_URL'] ?? 'http://localhost:4433';
 const REST_API_URL = process.env['SERVER_BASE_URL'] ?? 'http://localhost:8080';
 
-// Resolve repo root for docker compose -f path
-const REPO_ROOT = resolve(import.meta.dirname, '../../..');
-const COMPOSE_FILE = resolve(REPO_ROOT, 'docker-compose.e2e.yaml');
-const COMPOSE_OVERRIDE_FILE = process.env['E2E_COMPOSE_OVERRIDE_FILE'];
-
-// ── Helpers ───────────────────────────────────────────────────────
-
 async function waitForHealthy(url: string, maxAttempts = 60): Promise<void> {
-  for (let i = 0; i < maxAttempts; i++) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
       const response = await fetch(url);
-      if (response.ok) {
-        return;
-      }
+      if (response.ok) return;
     } catch {
-      // Service not ready yet
+      // The service may still be starting.
     }
-    await new Promise((resolve) => {
-      setTimeout(resolve, 2000);
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 2_000);
     });
   }
-  throw new Error(
-    `Service at ${url} did not become healthy after ${maxAttempts} attempts`,
-  );
+  throw new Error(`Service at ${url} did not become healthy`);
 }
-
-async function bootstrapSponsorAgent(): Promise<string> {
-  const bootstrapConfig: BootstrapConfig = {
-    databaseUrl: DATABASE_URL,
-    ory: {
-      mode: 'split',
-      kratosAdminUrl: KRATOS_ADMIN_URL,
-      hydraAdminUrl: HYDRA_ADMIN_URL,
-      hydraPublicUrl: HYDRA_PUBLIC_URL,
-      ketoReadUrl: KETO_READ_URL,
-      ketoWriteUrl: KETO_WRITE_URL,
-    },
-  };
-
-  const { db, pool } = createDatabase(DATABASE_URL);
-  try {
-    const result = await bootstrapGenesisAgents({
-      config: bootstrapConfig,
-      db,
-      names: ['E2E-Sponsor'],
-      scopes: AGENT_OAUTH_SCOPES.join(' '),
-      log: (msg) => console.log(`[E2E Setup] ${msg}`),
-    });
-
-    if (result.agents.length === 0) {
-      const errorMsg = result.errors.map((e) => e.error).join('; ');
-      throw new Error(`Sponsor bootstrap failed: ${errorMsg}`);
-    }
-
-    return result.agents[0].identityId;
-  } finally {
-    await pool.end();
-  }
-}
-
-function restartRestApi(sponsorAgentId: string): void {
-  console.log(
-    `[E2E Setup] Restarting rest-api with SPONSOR_AGENT_ID=${sponsorAgentId}...`,
-  );
-
-  // docker compose up --no-deps --force-recreate inherits the current process
-  // env, so setting process.env before the call is enough.
-  // COMPOSE_DISABLE_ENV_FILE prevents the root .env (dotenvx) from leaking
-  // encrypted/decrypted values into the container environment.
-  process.env['SPONSOR_AGENT_ID'] = sponsorAgentId;
-  process.env['COMPOSE_DISABLE_ENV_FILE'] = 'true';
-
-  const composeFiles = [COMPOSE_FILE, COMPOSE_OVERRIDE_FILE]
-    .filter((file): file is string => Boolean(file))
-    .flatMap((file) => ['-f', file]);
-  execFileSync(
-    'docker',
-    [
-      'compose',
-      ...composeFiles,
-      'up',
-      '-d',
-      '--no-deps',
-      '--force-recreate',
-      'rest-api',
-    ],
-    { stdio: 'inherit', env: process.env },
-  );
-}
-
-// ── Main ──────────────────────────────────────────────────────────
 
 export default async function setup() {
-  console.log('[E2E Setup] Waiting for services to be healthy...');
-
   await Promise.all([
     waitForHealthy(new URL('/health/alive', KRATOS_PUBLIC_URL).href),
     waitForHealthy(new URL('/health/alive', HYDRA_PUBLIC_URL).href),
     waitForHealthy(new URL('/health/alive', KETO_READ_URL).href),
     waitForHealthy(new URL('/health', REST_API_URL).href),
   ]);
-
-  console.log('[E2E Setup] All services ready');
-
-  // Bootstrap the sponsor agent and restart rest-api so that the
-  // LeGreffier onboarding happy path is available to e2e tests.
-  // Skip if SPONSOR_AGENT_ID is already provided (e.g. CI override).
-  if (!process.env['SPONSOR_AGENT_ID']) {
-    console.log('[E2E Setup] Bootstrapping sponsor agent...');
-    const sponsorAgentId = await bootstrapSponsorAgent();
-    console.log(`[E2E Setup] Sponsor created: ${sponsorAgentId}`);
-
-    restartRestApi(sponsorAgentId);
-
-    // Wait for rest-api to become healthy again after restart
-    console.log('[E2E Setup] Waiting for rest-api to recover...');
-    await waitForHealthy(new URL('/health', REST_API_URL).href);
-    console.log('[E2E Setup] rest-api healthy with SPONSOR_AGENT_ID');
-  } else {
-    console.log(
-      `[E2E Setup] Using existing SPONSOR_AGENT_ID=${process.env['SPONSOR_AGENT_ID']}`,
-    );
-  }
 }

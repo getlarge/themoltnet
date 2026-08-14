@@ -11,6 +11,7 @@
 
 import { resolve } from 'node:path';
 
+import { createAgentKeyService } from '@moltnet/agent-key-service';
 import {
   createOryClients,
   createPermissionChecker,
@@ -24,6 +25,7 @@ import {
 import { ContextPackService } from '@moltnet/context-pack-service';
 import { cryptoService } from '@moltnet/crypto-service';
 import {
+  createAgentEnrollmentRepository,
   createAgentRepository,
   createContextPackRepository,
   createCorrelationSealRepository,
@@ -49,7 +51,6 @@ import {
   createTaskArtifactRepository,
   createTaskRepository,
   createTeamRepository,
-  createVoucherRepository,
   type DatabaseConnection,
   enqueueWorkflowInCurrentTransaction as enqueueDbosWorkflowInCurrentTransaction,
   getDatabase,
@@ -331,7 +332,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     dbConnection.db,
   );
   const groupRepository = createGroupRepository(dbConnection.db);
-  const voucherRepository = createVoucherRepository(dbConnection.db);
+  const agentEnrollmentRepository = createAgentEnrollmentRepository(
+    dbConnection.db,
+  );
   const signingRequestRepository = createSigningRequestRepository(
     dbConnection.db,
   );
@@ -358,6 +361,12 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     oryClients.relationshipRead,
   );
   const relationshipWriter = createRelationshipWriter(oryClients.relationship);
+  const registrationAgentKeyService = createAgentKeyService({
+    agentRepository,
+    permissionChecker,
+    relationshipReader,
+    talosApi: oryClients.apiKeys,
+  });
   const runtimeSessionStorage = createRuntimeSessionStorage(
     config.runtimeSessionStorage,
   );
@@ -504,11 +513,12 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
         setRegistrationDeps({
           identityApi: oryClients.identity,
           oauth2Api: oryClients.oauth2,
+          agentEnrollmentRepository,
           agentRepository,
           diaryRepository,
           teamRepository,
-          voucherRepository,
           relationshipWriter,
+          issueAgentKey: (input) => registrationAgentKeyService.issue(input),
           dataSource,
           logger: app.log,
         });
@@ -525,7 +535,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       },
       () => {
         setLegreffierOnboardingDeps({
-          voucherRepository,
           identityApi: oryClients.identity,
           logger: app.log,
         });
@@ -717,7 +726,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     agentRepository,
     humanRepository,
     cryptoService,
-    voucherRepository,
+    agentEnrollmentRepository,
     groupRepository,
     teamRepository,
     diaryTransferRepository,
@@ -777,7 +786,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       rateLimitGlobalAuth: config.security.RATE_LIMIT_GLOBAL_AUTH,
       rateLimitGlobalAnon: config.security.RATE_LIMIT_GLOBAL_ANON,
       rateLimitEmbedding: config.security.RATE_LIMIT_EMBEDDING,
-      rateLimitVouch: config.security.RATE_LIMIT_VOUCH,
       rateLimitSigning: config.security.RATE_LIMIT_SIGNING,
       rateLimitAgentKey: config.security.RATE_LIMIT_AGENT_KEY,
       rateLimitRecovery: config.security.RATE_LIMIT_RECOVERY,
@@ -796,7 +804,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
         .filter((path) => path.length > 0),
       trustProxy: config.security.TRUST_PROXY,
       apiBaseUrl: config.security.API_BASE_URL.replace(/\/$/, ''),
-      sponsorAgentId: config.security.SPONSOR_AGENT_ID,
     },
     packGcConfig: config.packGc,
     pool: dbConnection.pool,

@@ -1,5 +1,6 @@
 export type {
   Agent,
+  AgentEnrollmentsNamespace,
   AgentKeyIssueRequestOptions,
   AgentKeysNamespace,
   AgentsNamespace,
@@ -28,7 +29,6 @@ export type {
   TaskArtifactUploadBody,
   TasksNamespace,
   TeamsNamespace,
-  VouchNamespace,
 } from './agent.js';
 export { createAgent } from './agent.js';
 export { writeMcpConfig } from './config.js';
@@ -105,11 +105,18 @@ export {
   type ValidatePreviewSignChallengeOptions,
 } from './preview-sign.js';
 export {
+  type BootstrapCredentialType,
   buildMcpConfig,
+  buildSelfRegistrationMessage,
+  buildTeamRegistrationMessage,
+  createIdempotencyKey,
+  enroll,
+  type EnrollOptions,
   type McpConfig,
   register,
   type RegisterOptions,
   type RegisterResult,
+  type RegistrationCredentials,
 } from './register.js';
 export { type ConfigIssue, repairConfig, type RepairResult } from './repair.js';
 export { type RetryOptions } from './retry.js';
@@ -183,11 +190,12 @@ export {
 import { connect } from './connect.js';
 import { connectHuman } from './human.js';
 import { info } from './info.js';
-import { register } from './register.js';
+import { enroll, register } from './register.js';
 import { sign } from './sign.js';
 
 export const MoltNet = {
   register,
+  enroll,
   info,
   sign,
   connect,

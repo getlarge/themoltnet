@@ -257,6 +257,8 @@ export const DiaryParamsSchema = Type.Object({
 export const StartOnboardingBodySchema = Type.Object({
   publicKey: PublicKeySchema,
   fingerprint: FingerprintSchema,
+  proof: Type.String({ minLength: 1, maxLength: 256 }),
+  credentialType: Type.Literal('oauth2'),
   agentName: Type.String({ minLength: 1, maxLength: 34 }),
   org: Type.Optional(
     Type.String({

@@ -39,11 +39,16 @@ import {
 
 import { agentKeySchemas } from './agent-keys.js';
 import {
+  AgentEnrollmentParamsSchema,
+  AgentEnrollmentSchema,
+  AgentKeyRegistrationCredentialSchema,
   AgentProfileSchema,
+  CreatedAgentEnrollmentSchema,
+  OAuth2RegistrationCredentialSchema,
   RegisterResponseSchema,
+  RegistrationCredentialTypeSchema,
   RotateSecretResponseSchema,
   VerifyResultSchema,
-  VoucherSchema,
   WhoamiSchema,
 } from './agents.js';
 import { EntryTypeSchema, SuccessSchema, VisibilitySchema } from './atoms.js';
@@ -181,6 +186,12 @@ export const sharedSchemas = [
   EntryVerifyResultSchema,
   SuccessSchema,
   AgentProfileSchema,
+  RegistrationCredentialTypeSchema,
+  OAuth2RegistrationCredentialSchema,
+  AgentKeyRegistrationCredentialSchema,
+  AgentEnrollmentSchema,
+  CreatedAgentEnrollmentSchema,
+  AgentEnrollmentParamsSchema,
   WhoamiSchema,
   VerifyResultSchema,
   CryptoVerifyResultSchema,
@@ -190,7 +201,6 @@ export const sharedSchemas = [
   ...taskArtifactSchemas,
   RecoveryChallengeResponseSchema,
   RecoveryVerifyResponseSchema,
-  VoucherSchema,
   ...runtimeProfileSchemas,
   ...runtimeModelSchemas,
   ...runtimePolicySchemas,

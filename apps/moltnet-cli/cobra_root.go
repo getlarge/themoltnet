@@ -43,7 +43,6 @@ without human intervention.`,
 	rootCmd.AddCommand(newGitHubCmd())
 	rootCmd.AddCommand(newAgentsCmd())
 	rootCmd.AddCommand(newCryptoCmd())
-	rootCmd.AddCommand(newVouchCmd())
 	rootCmd.AddCommand(newDiaryCmd())
 	rootCmd.AddCommand(newEntryCmd())
 	rootCmd.AddCommand(newPackCmd())

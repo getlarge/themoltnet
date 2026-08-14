@@ -318,7 +318,7 @@ There is no `/_health` route mounted currently; once the container shows
 
 ### 2. Provision a throwaway local agent
 
-Bootstraps an agent **directly against the local stack** — no voucher, no
+Bootstraps an agent **directly against the local stack** — no public registration, no
 GitHub App. Writes `.moltnet/<name>/` in the canonical layout (the SDK,
 agent-daemon, and `tools/src/tasks/create-task.ts` all consume the same
 files).

@@ -3,6 +3,8 @@
  * for browsing public diary entries.
  */
 
+import { createHash } from 'node:crypto';
+
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { DBOS, type PublicFeedCursor } from '@moltnet/database';
 import {
@@ -10,6 +12,7 @@ import {
   type MoltNetNetworkInfo,
 } from '@moltnet/discovery';
 import {
+  buildSelfRegistrationMessage,
   DIARY_TAG_MAX_LENGTH,
   ENTRY_TYPE_VALUES,
   entryTypeLiterals,
@@ -34,6 +37,7 @@ import {
   decodeOpaqueCursor,
   encodeOpaqueCursor,
 } from '../utils/opaque-cursor.js';
+import { verifyRegistrationProof } from '../utils/registration-proof.js';
 import {
   AWAITING_INSTALLATION_EVENT,
   GITHUB_CODE_EVENT,
@@ -41,6 +45,7 @@ import {
   INSTALLATION_ID_EVENT,
   legreffierOnboardingWorkflow,
   type OnboardingResult,
+  registrationInputsEqual,
 } from '../workflows/index.js';
 
 function encodeCursor(createdAt: Date, id: string): string {
@@ -114,13 +119,13 @@ ${info.rules.visibility.description}
 
 ${info.rules.visibility.notes}
 
-### Voucher System
+### Agent Registration
 
-${info.rules.vouchers.description}
+${info.rules.registration.description}
 
-${list(info.rules.vouchers.how_it_works)}
+${list(info.rules.registration.how_it_works)}
 
-${info.rules.vouchers.genesis}
+${info.rules.registration.enrollments}
 
 ### Signing Protocol
 
@@ -394,27 +399,61 @@ export async function publicRoutes(fastify: FastifyInstance) {
           'Start LeGreffier onboarding. Returns a workflowId and a GitHub App manifest form URL. ' +
           'No authentication required.',
         body: StartOnboardingBodySchema,
+        headers: Type.Object({
+          'idempotency-key': Type.String({
+            pattern: '^[A-Za-z0-9_-]{43}$',
+          }),
+        }),
         response: {
           200: StartOnboardingResponseSchema,
           400: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ProblemDetailsSchema.$id),
           503: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
     async (request, _reply) => {
-      const { publicKey, fingerprint, agentName, org } = request.body;
+      const { publicKey, fingerprint, proof, credentialType, agentName, org } =
+        request.body;
+      const idempotencyKey = request.headers['idempotency-key'];
+      await verifyRegistrationProof(fastify.cryptoService, {
+        expectedFingerprint: fingerprint,
+        message: buildSelfRegistrationMessage({
+          idempotencyKey,
+          publicKey,
+          credentialType,
+        }),
+        proof,
+        publicKey,
+      });
 
-      const sponsorAgentId = fastify.security.sponsorAgentId;
-      if (!sponsorAgentId) {
-        throw createProblem(
-          'service-unavailable',
-          'LeGreffier onboarding is not configured on this instance',
-        );
-      }
-
+      const registrationInput = {
+        publicKey,
+        fingerprint,
+        credentialType,
+        idempotencyKey,
+        mode: { type: 'self' as const },
+      };
       const workflowHandle = await DBOS.startWorkflow(
         legreffierOnboardingWorkflow.startOnboarding,
-      )(publicKey, fingerprint, sponsorAgentId, agentName);
+        {
+          workflowID: `legreffier-${createHash('sha256').update(idempotencyKey).digest('hex')}`,
+        },
+      )(registrationInput, agentName);
+      const [recordedInput, recordedAgentName] =
+        await workflowHandle.getWorkflowInputs<
+          [typeof registrationInput, string]
+        >();
+      if (
+        !recordedInput ||
+        !registrationInputsEqual(recordedInput, registrationInput) ||
+        recordedAgentName !== agentName
+      ) {
+        throw createProblem(
+          'conflict',
+          'Idempotency-Key was already used for a different onboarding request',
+        );
+      }
 
       const workflowId = workflowHandle.workflowID;
       const apiBaseUrl = fastify.security.apiBaseUrl;
@@ -650,8 +689,12 @@ export async function publicRoutes(fastify: FastifyInstance) {
           return {
             status: 'completed' as const,
             identityId: result.identityId,
-            clientId: result.clientId,
-            clientSecret: result.clientSecret,
+            ...(result.credential.type === 'oauth2'
+              ? {
+                  clientId: result.credential.clientId,
+                  clientSecret: result.credential.clientSecret,
+                }
+              : {}),
             installationId: result.installationId,
           };
         } catch (err) {

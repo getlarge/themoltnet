@@ -51,6 +51,9 @@ import type {
   CompleteTaskData,
   CompleteTaskErrors,
   CompleteTaskResponses,
+  CreateAgentEnrollmentData,
+  CreateAgentEnrollmentErrors,
+  CreateAgentEnrollmentResponses,
   CreateAgentKeyData,
   CreateAgentKeyErrors,
   CreateAgentKeyResponses,
@@ -135,6 +138,9 @@ import type {
   DownloadTaskArtifactData,
   DownloadTaskArtifactErrors,
   DownloadTaskArtifactResponses,
+  EnrollAgentData,
+  EnrollAgentErrors,
+  EnrollAgentResponses,
   FailTaskAttemptData,
   FailTaskAttemptErrors,
   FailTaskAttemptResponses,
@@ -230,24 +236,15 @@ import type {
   GetTeamData,
   GetTeamErrors,
   GetTeamResponses,
-  GetTrustGraphData,
-  GetTrustGraphErrors,
-  GetTrustGraphResponses,
   GetWhoamiData,
   GetWhoamiErrors,
   GetWhoamiResponses,
   InitiateTransferData,
   InitiateTransferErrors,
   InitiateTransferResponses,
-  IssueVoucherData,
-  IssueVoucherErrors,
-  IssueVoucherResponses,
   JoinTeamData,
   JoinTeamErrors,
   JoinTeamResponses,
-  ListActiveVouchersData,
-  ListActiveVouchersErrors,
-  ListActiveVouchersResponses,
   ListAgentKeysData,
   ListAgentKeysErrors,
   ListAgentKeysResponses,
@@ -358,6 +355,9 @@ import type {
   RequestRecoveryChallengeData,
   RequestRecoveryChallengeErrors,
   RequestRecoveryChallengeResponses,
+  RevokeAgentEnrollmentData,
+  RevokeAgentEnrollmentErrors,
+  RevokeAgentEnrollmentResponses,
   RevokeAgentKeyData,
   RevokeAgentKeyErrors,
   RevokeAgentKeyResponses,
@@ -478,6 +478,58 @@ export const getNetworkInfo = <ThrowOnError extends boolean = false>(
     unknown,
     ThrowOnError
   >({ url: '/.well-known/moltnet.json', ...options });
+
+/**
+ * Create a single-use agent enrollment for the active team. Requires Team#manage_members. The raw token is returned once and only its SHA-256 hash is stored.
+ */
+export const createAgentEnrollment = <ThrowOnError extends boolean = false>(
+  options: Options<CreateAgentEnrollmentData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateAgentEnrollmentResponses,
+    CreateAgentEnrollmentErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/agent-enrollments',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Revoke an unused agent enrollment. Requires Team#manage_members.
+ */
+export const revokeAgentEnrollment = <ThrowOnError extends boolean = false>(
+  options: Options<RevokeAgentEnrollmentData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    RevokeAgentEnrollmentResponses,
+    RevokeAgentEnrollmentErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/agent-enrollments/{id}',
+    ...options,
+  });
 
 /**
  * List agent API keys bound to the active team. Team credential managers may list every agent.
@@ -639,7 +691,26 @@ export const verifyAgentSignature = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Register a new agent on MoltNet. Creates the Kratos identity and an OAuth2 client. Returns clientId/clientSecret for authentication. Requires an Ed25519 public key and a voucher code from an existing member. No authentication needed.
+ * Redeem a single-use enrollment token using an Ed25519 proof of key possession. Grants only membership in the issuing team and returns exactly one selected credential.
+ */
+export const enrollAgent = <ThrowOnError extends boolean = false>(
+  options: Options<EnrollAgentData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    EnrollAgentResponses,
+    EnrollAgentErrors,
+    ThrowOnError
+  >({
+    url: '/auth/enroll',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Self-register using an Ed25519 proof of key possession. Creates a personal team and private diary, then returns exactly one selected credential.
  */
 export const registerAgent = <ThrowOnError extends boolean = false>(
   options: Options<RegisterAgentData, ThrowOnError>,
@@ -4021,63 +4092,3 @@ export const rejectTransfer = <ThrowOnError extends boolean = false>(
     url: '/transfers/{transferId}/reject',
     ...options,
   });
-
-/**
- * Generate a single-use voucher code that another agent can use to register. Requires authentication. Max 5 active vouchers per agent.
- */
-export const issueVoucher = <ThrowOnError extends boolean = false>(
-  options?: Options<IssueVoucherData, ThrowOnError>,
-) =>
-  (options?.client ?? client).post<
-    IssueVoucherResponses,
-    IssueVoucherErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/vouch',
-    ...options,
-  });
-
-/**
- * List your active (unredeemed, unexpired) voucher codes.
- */
-export const listActiveVouchers = <ThrowOnError extends boolean = false>(
-  options?: Options<ListActiveVouchersData, ThrowOnError>,
-) =>
-  (options?.client ?? client).get<
-    ListActiveVouchersResponses,
-    ListActiveVouchersErrors,
-    ThrowOnError
-  >({
-    security: [
-      { scheme: 'bearer', type: 'http' },
-      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
-      {
-        in: 'cookie',
-        name: 'ory_kratos_session',
-        type: 'apiKey',
-      },
-    ],
-    url: '/vouch/active',
-    ...options,
-  });
-
-/**
- * Get the public web-of-trust graph. Each edge represents a redeemed voucher. Identified by key fingerprints (derived from public keys), not names.
- */
-export const getTrustGraph = <ThrowOnError extends boolean = false>(
-  options?: Options<GetTrustGraphData, ThrowOnError>,
-) =>
-  (options?.client ?? client).get<
-    GetTrustGraphResponses,
-    GetTrustGraphErrors,
-    ThrowOnError
-  >({ url: '/vouch/graph', ...options });

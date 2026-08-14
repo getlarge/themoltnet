@@ -5,11 +5,12 @@
  *
  * Validation / error tests: always available.
  *
- * Happy path: requires globalSetup to have bootstrapped a sponsor genesis
- * agent and restarted rest-api with SPONSOR_AGENT_ID set.
+ * Happy path self-registers from a locally signed Ed25519 request.
  * Note: the server does NOT call GitHub — /callback and /installed simply
  * forward data to the DBOS workflow via DBOS.send/recv. No mocking needed.
  */
+
+import { randomBytes } from 'node:crypto';
 
 import type {
   Client,
@@ -21,6 +22,7 @@ import {
   startLegreffierOnboarding,
 } from '@moltnet/api-client';
 import { cryptoService } from '@moltnet/crypto-service';
+import { buildSelfRegistrationMessage } from '@moltnet/models';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createTestHarness, type TestHarness } from './setup.js';
@@ -174,27 +176,34 @@ describe('LeGreffier onboarding', () => {
   });
 
   // ── Happy path ───────────────────────────────────────────────────────────
-  // Skipped when SPONSOR_AGENT_ID was not injected (e.g. bare `up` without globalSetup).
-
-  describe('happy path (requires SPONSOR_AGENT_ID)', () => {
+  describe('happy path', () => {
     it('full onboarding flow: start → callback → installed → completed', async () => {
       // Arrange
       const keyPair = await cryptoService.generateKeyPair();
+      const idempotencyKey = randomBytes(32).toString('base64url');
+      const proof = await cryptoService.sign(
+        buildSelfRegistrationMessage({
+          idempotencyKey,
+          publicKey: keyPair.publicKey,
+          credentialType: 'oauth2',
+        }),
+        keyPair.privateKey,
+      );
       const { data: startData, error: startError } =
         await startLegreffierOnboarding({
           client,
+          headers: { 'idempotency-key': idempotencyKey },
           body: {
             publicKey: keyPair.publicKey,
             fingerprint: keyPair.fingerprint,
+            proof,
+            credentialType: 'oauth2',
             agentName: 'e2e-test-bot',
           },
         });
 
-      if (startError) {
-        // SPONSOR_AGENT_ID not configured — globalSetup did not run or was skipped
-        expect((startError as Record<string, unknown>)['status']).toBe(503);
-        return;
-      }
+      expect(startError).toBeUndefined();
+      if (!startData) throw new Error('Missing onboarding start response');
 
       const { workflowId } = startData;
       expect(workflowId).toBeTruthy();

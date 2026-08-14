@@ -10,7 +10,6 @@ export const ProblemCodeSchema = Type.Union([
   Type.Literal('VALIDATION_FAILED'),
   Type.Literal('INVALID_CHALLENGE'),
   Type.Literal('INVALID_SIGNATURE'),
-  Type.Literal('VOUCHER_LIMIT'),
   Type.Literal('RATE_LIMIT_EXCEEDED'),
   Type.Literal('SERIALIZATION_EXHAUSTED'),
   Type.Literal('SIGNING_REQUEST_EXPIRED'),

@@ -8,6 +8,7 @@
     "@moltnet/bootstrap": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/database": "workspace:*",
+    "@moltnet/models": "workspace:*",
     "@ory/client-fetch": "catalog:",
     "@themoltnet/sdk": "workspace:*",
     "drizzle-orm": "catalog:",

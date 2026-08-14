@@ -20513,6 +20513,54 @@ var getNetworkInfo = (options) => (options?.client ?? client).get({
 	...options
 });
 /**
+* Create a single-use agent enrollment for the active team. Requires Team#manage_members. The raw token is returned once and only its SHA-256 hash is stored.
+*/
+var createAgentEnrollment = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/agent-enrollments",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Revoke an unused agent enrollment. Requires Team#manage_members.
+*/
+var revokeAgentEnrollment = (options) => (options.client ?? client).delete({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/agent-enrollments/{id}",
+	...options
+});
+/**
 * List agent API keys bound to the active team. Team credential managers may list every agent.
 */
 var listAgentKeys = (options) => (options.client ?? client).get({
@@ -23049,57 +23097,6 @@ var rejectTransfer = (options) => (options.client ?? client).post({
 	url: "/transfers/{transferId}/reject",
 	...options
 });
-/**
-* Generate a single-use voucher code that another agent can use to register. Requires authentication. Max 5 active vouchers per agent.
-*/
-var issueVoucher = (options) => (options?.client ?? client).post({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/vouch",
-	...options
-});
-/**
-* List your active (unredeemed, unexpired) voucher codes.
-*/
-var listActiveVouchers = (options) => (options?.client ?? client).get({
-	security: [
-		{
-			scheme: "bearer",
-			type: "http"
-		},
-		{
-			name: "X-Moltnet-Session-Token",
-			type: "apiKey"
-		},
-		{
-			in: "cookie",
-			name: "ory_kratos_session",
-			type: "apiKey"
-		}
-	],
-	url: "/vouch/active",
-	...options
-});
-/**
-* Get the public web-of-trust graph. Each edge represents a redeemed voucher. Identified by key fingerprints (derived from public keys), not names.
-*/
-var getTrustGraph = (options) => (options?.client ?? client).get({
-	url: "/vouch/graph",
-	...options
-});
 //#endregion
 //#region ../../libs/api-client/src/retry-fetch.ts
 var DEFAULT_RETRY_STATUSES = [
@@ -23230,21 +23227,6 @@ function unwrapRequired(result, message, code) {
 	return result.data;
 }
 //#endregion
-//#region ../../libs/sdk/src/namespaces/query.ts
-/**
-* Remove `undefined`-valued keys from a query object before it is serialized.
-*
-* Returns `undefined` when no defined keys remain, so an all-`undefined` query
-* (`{ agentId: undefined }`) and an omitted query (`undefined`) serialize
-* identically — both send no query params — instead of the former collapsing to
-* an empty `{}` that still reaches the client.
-*/
-function stripUndefinedQuery(query) {
-	if (!query) return;
-	const entries = Object.entries(query).filter(([, value]) => value !== void 0);
-	return entries.length ? Object.fromEntries(entries) : void 0;
-}
-//#endregion
 //#region ../../libs/sdk/src/namespaces/team-headers.ts
 /**
 * Build the team header from an optional option, or `undefined` when no team
@@ -23260,6 +23242,45 @@ function teamHeaders(options) {
 */
 function requiredTeamHeaders(options) {
 	return { "x-moltnet-team-id": options.teamId };
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/agent-enrollments.ts
+function createAgentEnrollmentsNamespace(context) {
+	const { client, auth } = context;
+	return {
+		async create(body, options) {
+			return unwrapResult(await createAgentEnrollment({
+				client,
+				auth,
+				headers: requiredTeamHeaders(options),
+				body
+			}));
+		},
+		async revoke(id, options) {
+			const result = await revokeAgentEnrollment({
+				client,
+				auth,
+				headers: requiredTeamHeaders(options),
+				path: { id }
+			});
+			if (result.error) unwrapResult(result);
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/query.ts
+/**
+* Remove `undefined`-valued keys from a query object before it is serialized.
+*
+* Returns `undefined` when no defined keys remain, so an all-`undefined` query
+* (`{ agentId: undefined }`) and an omitted query (`undefined`) serialize
+* identically — both send no query params — instead of the former collapsing to
+* an empty `{}` that still reaches the client.
+*/
+function stripUndefinedQuery(query) {
+	if (!query) return;
+	const entries = Object.entries(query).filter(([, value]) => value !== void 0);
+	return entries.length ? Object.fromEntries(entries) : void 0;
 }
 //#endregion
 //#region ../../libs/sdk/src/namespaces/agent-keys.ts
@@ -25314,10 +25335,11 @@ function createEntriesNamespace(context) {
 function createLegreffierNamespace(context) {
 	const { client } = context;
 	return {
-		async startOnboarding(body) {
+		async startOnboarding(body, idempotencyKey) {
 			return unwrapResult(await startLegreffierOnboarding({
 				client,
-				body
+				body,
+				headers: { "idempotency-key": idempotencyKey }
 			}));
 		},
 		async getOnboardingStatus(workflowId) {
@@ -29831,6 +29853,11 @@ _Object_({ id: UuidSchema });
 _Object_({
 	publicKey: PublicKeySchema,
 	fingerprint: FingerprintSchema,
+	proof: String$1({
+		minLength: 1,
+		maxLength: 256
+	}),
+	credentialType: Literal("oauth2"),
 	agentName: String$1({
 		minLength: 1,
 		maxLength: 34
@@ -30102,7 +30129,6 @@ var ProblemCodeSchema = Union([
 	Literal("VALIDATION_FAILED"),
 	Literal("INVALID_CHALLENGE"),
 	Literal("INVALID_SIGNATURE"),
-	Literal("VOUCHER_LIMIT"),
 	Literal("RATE_LIMIT_EXCEEDED"),
 	Literal("SERIALIZATION_EXHAUSTED"),
 	Literal("SIGNING_REQUEST_EXPIRED"),
@@ -36999,31 +37025,6 @@ function createTeamsNamespace(context) {
 	};
 }
 //#endregion
-//#region ../../libs/sdk/src/namespaces/vouch.ts
-function createVouchNamespace(context) {
-	const { client, auth } = context;
-	return {
-		async issue() {
-			return unwrapResult(await issueVoucher({
-				client,
-				auth
-			}));
-		},
-		async listActive() {
-			return unwrapResult(await listActiveVouchers({
-				client,
-				auth
-			}));
-		},
-		async trustGraph(query) {
-			return unwrapResult(await getTrustGraph({
-				client,
-				query
-			}));
-		}
-	};
-}
-//#endregion
 //#region ../../libs/sdk/src/agent.ts
 function createAgent(options) {
 	const { client, tokenManager, auth } = options;
@@ -37034,6 +37035,7 @@ function createAgent(options) {
 	const diaries = createDiariesNamespace(context);
 	return {
 		agentKeys: createAgentKeysNamespace(context),
+		agentEnrollments: createAgentEnrollmentsNamespace(context),
 		diaries,
 		diaryGrants: createDiaryGrantsNamespace(context),
 		diaryTransfers: createDiaryTransfersNamespace(context),
@@ -37041,7 +37043,6 @@ function createAgent(options) {
 		entries: createEntriesNamespace(context),
 		agents: createAgentsNamespace(context),
 		crypto: createCryptoNamespace(context, createSigningRequestsNamespace(context), createSigningCredentialsNamespace(context)),
-		vouch: createVouchNamespace(context),
 		auth: createAuthNamespace(context),
 		recovery: createRecoveryNamespace(context),
 		public: createPublicNamespace(context),

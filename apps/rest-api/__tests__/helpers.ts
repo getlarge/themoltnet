@@ -13,7 +13,7 @@ import {
   type TokenValidator,
 } from '@moltnet/auth';
 import { ContextPackService } from '@moltnet/context-pack-service';
-import type { Agent, AgentVoucher, DiaryEntry } from '@moltnet/database';
+import type { Agent, DiaryEntry } from '@moltnet/database';
 import type { RuntimeSessionStorage } from '@moltnet/runtime-session-service';
 import type { TaskAnalyticsService } from '@moltnet/task-analytics-service';
 import type { TaskArtifactStorage } from '@moltnet/task-artifact-service';
@@ -23,6 +23,7 @@ import { vi } from 'vitest';
 import { type AppOptions, buildApp } from '../src/app.js';
 import { createAssertDiaryReadable } from '../src/services/diary-readable.js';
 import type {
+  AgentEnrollmentRepository,
   AgentRepository,
   CryptoService,
   DataSource,
@@ -46,7 +47,6 @@ import type {
   TaskService,
   TeamRepository,
   TransactionRunner,
-  VoucherRepository,
 } from '../src/types.js';
 
 export const TEST_WEBHOOK_API_KEY = 'test-webhook-api-key-for-testing';
@@ -57,7 +57,6 @@ export const TEST_SECURITY_OPTIONS = {
   rateLimitGlobalAuth: 1000, // Higher limits for tests
   rateLimitGlobalAnon: 1000,
   rateLimitEmbedding: 1000,
-  rateLimitVouch: 1000,
   rateLimitSigning: 1000,
   rateLimitAgentKey: 1000,
   rateLimitRecovery: 1000,
@@ -151,21 +150,6 @@ export function createMockAgent(overrides: Partial<Agent> = {}): Agent {
   };
 }
 
-export function createMockVoucher(
-  overrides: Partial<AgentVoucher> = {},
-): AgentVoucher {
-  return {
-    id: '880e8400-e29b-41d4-a716-446655440003',
-    code: 'a'.repeat(64),
-    issuerId: OWNER_ID,
-    redeemedBy: null,
-    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    redeemedAt: null,
-    createdAt: new Date('2026-01-30T10:00:00Z'),
-    ...overrides,
-  };
-}
-
 export interface MockServices {
   diaryService: {
     [K in keyof DiaryService]: ReturnType<typeof vi.fn>;
@@ -173,8 +157,8 @@ export interface MockServices {
   agentRepository: { [K in keyof AgentRepository]: ReturnType<typeof vi.fn> };
   humanRepository: { [K in keyof HumanRepository]: ReturnType<typeof vi.fn> };
   cryptoService: { [K in keyof CryptoService]: ReturnType<typeof vi.fn> };
-  voucherRepository: {
-    [K in keyof VoucherRepository]: ReturnType<typeof vi.fn>;
+  agentEnrollmentRepository: {
+    [K in keyof AgentEnrollmentRepository]: ReturnType<typeof vi.fn>;
   };
   embeddingService: {
     embedPassage: ReturnType<typeof vi.fn>;
@@ -470,13 +454,12 @@ export function createMockServices(): MockServices {
       createIdentityProof: vi.fn(),
       verifyIdentityProof: vi.fn(),
     },
-    voucherRepository: {
-      issue: vi.fn(),
-      issueUnlimited: vi.fn(),
+    agentEnrollmentRepository: {
+      create: vi.fn(),
+      findPendingByTokenHash: vi.fn(),
       redeem: vi.fn(),
-      findByCode: vi.fn(),
-      listActiveByIssuer: vi.fn(),
-      getTrustGraph: vi.fn(),
+      revoke: vi.fn(),
+      releaseRedemption: vi.fn(),
     },
     embeddingService: {
       embedPassage: vi.fn().mockResolvedValue([]),
@@ -824,7 +807,7 @@ export async function createTestApp(
     listIdentitySchemas: vi.fn().mockResolvedValue([
       {
         id: 'moltnet_agent',
-        schema: { $id: 'https://schemas.themolt.net/agent.json' },
+        schema: { $id: 'https://schemas.themolt.net/agent-v2.json' },
       },
       {
         id: 'moltnet_human',
@@ -906,7 +889,8 @@ export async function createTestApp(
     agentRepository: mocks.agentRepository as unknown as AgentRepository,
     humanRepository: mocks.humanRepository as unknown as HumanRepository,
     cryptoService: mocks.cryptoService as unknown as CryptoService,
-    voucherRepository: mocks.voucherRepository as unknown as VoucherRepository,
+    agentEnrollmentRepository:
+      mocks.agentEnrollmentRepository as unknown as AgentEnrollmentRepository,
     signingRequestRepository:
       mocks.signingRequestRepository as unknown as SigningRequestRepository,
     signingCredentialRepository:

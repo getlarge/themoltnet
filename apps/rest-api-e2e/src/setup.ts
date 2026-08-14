@@ -3,7 +3,7 @@
  *
  * Points at the containerized combined server (localhost:8080) instead of
  * bootstrapping in-process. Database and Ory admin clients connect via
- * localhost port mappings for test scaffolding (bootstrap identity, vouchers).
+ * localhost port mappings for test scaffolding.
  *
  * Uses @moltnet/bootstrap to create the genesis agent, proving the bootstrap
  * library works against the real Docker Compose infrastructure.
@@ -116,7 +116,7 @@ export interface TestHarness {
 export async function createTestHarness(): Promise<TestHarness> {
   console.log('[E2E] Creating test harness (Docker mode)...');
 
-  // Direct DB connection for test scaffolding (voucher creation)
+  // Direct DB connection for test scaffolding and cleanup.
   const { db, pool } = createDatabase(DATABASE_URL);
 
   // Verify database is reachable

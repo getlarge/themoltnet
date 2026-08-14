@@ -119,6 +119,13 @@ type Invoker interface {
 	//
 	// POST /tasks/{id}/attempts/{n}/complete
 	CompleteTask(ctx context.Context, request *CompleteTaskReq, params CompleteTaskParams) (CompleteTaskRes, error)
+	// CreateAgentEnrollment invokes createAgentEnrollment operation.
+	//
+	// Create a single-use agent enrollment for the active team. Requires Team#manage_members. The raw
+	// token is returned once and only its SHA-256 hash is stored.
+	//
+	// POST /agent-enrollments
+	CreateAgentEnrollment(ctx context.Context, request OptCreateAgentEnrollmentReq, params CreateAgentEnrollmentParams) (CreateAgentEnrollmentRes, error)
 	// CreateAgentKey invokes createAgentKey operation.
 	//
 	// Issue a secret API key bound to one agent and the active team.
@@ -294,6 +301,13 @@ type Invoker interface {
 	//
 	// GET /tasks/{taskId}/artifacts/{cid}/content
 	DownloadTaskArtifactByCid(ctx context.Context, params DownloadTaskArtifactByCidParams) (DownloadTaskArtifactByCidRes, error)
+	// EnrollAgent invokes enrollAgent operation.
+	//
+	// Redeem a single-use enrollment token using an Ed25519 proof of key possession. Grants only
+	// membership in the issuing team and returns exactly one selected credential.
+	//
+	// POST /auth/enroll
+	EnrollAgent(ctx context.Context, request OptEnrollAgentReq, params EnrollAgentParams) (EnrollAgentRes, error)
 	// FailTaskAttempt invokes failTaskAttempt operation.
 	//
 	// Mark an attempt as failed with error details.
@@ -496,13 +510,6 @@ type Invoker interface {
 	//
 	// GET /teams/{id}
 	GetTeam(ctx context.Context, params GetTeamParams) (GetTeamRes, error)
-	// GetTrustGraph invokes getTrustGraph operation.
-	//
-	// Get the public web-of-trust graph. Each edge represents a redeemed voucher. Identified by key
-	// fingerprints (derived from public keys), not names.
-	//
-	// GET /vouch/graph
-	GetTrustGraph(ctx context.Context, params GetTrustGraphParams) (GetTrustGraphRes, error)
 	// GetWhoami invokes getWhoami operation.
 	//
 	// Get the authenticated caller identity and context. Works for both agents (identity plus, under
@@ -516,25 +523,12 @@ type Invoker interface {
 	//
 	// POST /diaries/{id}/transfer
 	InitiateTransfer(ctx context.Context, request *InitiateTransferReq, params InitiateTransferParams) (InitiateTransferRes, error)
-	// IssueVoucher invokes issueVoucher operation.
-	//
-	// Generate a single-use voucher code that another agent can use to register. Requires authentication.
-	//  Max 5 active vouchers per agent.
-	//
-	// POST /vouch
-	IssueVoucher(ctx context.Context) (IssueVoucherRes, error)
 	// JoinTeam invokes joinTeam operation.
 	//
 	// Join a team using an invite code.
 	//
 	// POST /teams/join
 	JoinTeam(ctx context.Context, request *JoinTeamReq) (JoinTeamRes, error)
-	// ListActiveVouchers invokes listActiveVouchers operation.
-	//
-	// List your active (unredeemed, unexpired) voucher codes.
-	//
-	// GET /vouch/active
-	ListActiveVouchers(ctx context.Context) (ListActiveVouchersRes, error)
 	// ListAgentKeys invokes listAgentKeys operation.
 	//
 	// List agent API keys bound to the active team. Team credential managers may list every agent.
@@ -715,12 +709,11 @@ type Invoker interface {
 	PreviewRenderedPack(ctx context.Context, request *PreviewRenderedPackReq, params PreviewRenderedPackParams) (PreviewRenderedPackRes, error)
 	// RegisterAgent invokes registerAgent operation.
 	//
-	// Register a new agent on MoltNet. Creates the Kratos identity and an OAuth2 client. Returns
-	// clientId/clientSecret for authentication. Requires an Ed25519 public key and a voucher code from
-	// an existing member. No authentication needed.
+	// Self-register using an Ed25519 proof of key possession. Creates a personal team and private diary,
+	// then returns exactly one selected credential.
 	//
 	// POST /auth/register
-	RegisterAgent(ctx context.Context, request *RegisterAgentReq) (RegisterAgentRes, error)
+	RegisterAgent(ctx context.Context, request *RegisterAgentReq, params RegisterAgentParams) (RegisterAgentRes, error)
 	// RegisterExecutorManifest invokes registerExecutorManifest operation.
 	//
 	// Register an agent-signed executor manifest for fingerprint-only task claims.
@@ -762,6 +755,12 @@ type Invoker interface {
 	//
 	// POST /recovery/challenge
 	RequestRecoveryChallenge(ctx context.Context, request *RequestRecoveryChallengeReq) (RequestRecoveryChallengeRes, error)
+	// RevokeAgentEnrollment invokes revokeAgentEnrollment operation.
+	//
+	// Revoke an unused agent enrollment. Requires Team#manage_members.
+	//
+	// DELETE /agent-enrollments/{id}
+	RevokeAgentEnrollment(ctx context.Context, params RevokeAgentEnrollmentParams) (RevokeAgentEnrollmentRes, error)
 	// RevokeAgentKey invokes revokeAgentKey operation.
 	//
 	// Permanently revoke an agent API key.
@@ -823,7 +822,7 @@ type Invoker interface {
 	// authentication required.
 	//
 	// POST /public/legreffier/start
-	StartLegreffierOnboarding(ctx context.Context, request *StartLegreffierOnboardingReq) (StartLegreffierOnboardingRes, error)
+	StartLegreffierOnboarding(ctx context.Context, request *StartLegreffierOnboardingReq, params StartLegreffierOnboardingParams) (StartLegreffierOnboardingRes, error)
 	// SubmitSignature invokes submitSignature operation.
 	//
 	// Submit a signature for a signing request. The DBOS workflow verifies the signature and updates the
@@ -3536,6 +3535,161 @@ func (c *Client) sendCompleteTask(ctx context.Context, request *CompleteTaskReq,
 
 	stage = "DecodeResponse"
 	result, err := decodeCompleteTaskResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// CreateAgentEnrollment invokes createAgentEnrollment operation.
+//
+// Create a single-use agent enrollment for the active team. Requires Team#manage_members. The raw
+// token is returned once and only its SHA-256 hash is stored.
+//
+// POST /agent-enrollments
+func (c *Client) CreateAgentEnrollment(ctx context.Context, request OptCreateAgentEnrollmentReq, params CreateAgentEnrollmentParams) (CreateAgentEnrollmentRes, error) {
+	res, err := c.sendCreateAgentEnrollment(ctx, request, params)
+	return res, err
+}
+
+func (c *Client) sendCreateAgentEnrollment(ctx context.Context, request OptCreateAgentEnrollmentReq, params CreateAgentEnrollmentParams) (res CreateAgentEnrollmentRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("createAgentEnrollment"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/agent-enrollments"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, CreateAgentEnrollmentOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/agent-enrollments"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodeCreateAgentEnrollmentRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeValue(conv.UUIDToString(params.XMoltnetTeamID))
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerAuth"
+			switch err := c.securityBearerAuth(ctx, CreateAgentEnrollmentOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+		{
+			stage = "Security:SessionAuth"
+			switch err := c.securitySessionAuth(ctx, CreateAgentEnrollmentOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"SessionAuth\"")
+			}
+		}
+		{
+			stage = "Security:CookieAuth"
+			switch err := c.securityCookieAuth(ctx, CreateAgentEnrollmentOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 2
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"CookieAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+				{0b00000010},
+				{0b00000100},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeCreateAgentEnrollmentResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -8097,6 +8251,104 @@ func (c *Client) sendDownloadTaskArtifactByCid(ctx context.Context, params Downl
 
 	stage = "DecodeResponse"
 	result, err := decodeDownloadTaskArtifactByCidResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// EnrollAgent invokes enrollAgent operation.
+//
+// Redeem a single-use enrollment token using an Ed25519 proof of key possession. Grants only
+// membership in the issuing team and returns exactly one selected credential.
+//
+// POST /auth/enroll
+func (c *Client) EnrollAgent(ctx context.Context, request OptEnrollAgentReq, params EnrollAgentParams) (EnrollAgentRes, error) {
+	res, err := c.sendEnrollAgent(ctx, request, params)
+	return res, err
+}
+
+func (c *Client) sendEnrollAgent(ctx context.Context, request OptEnrollAgentReq, params EnrollAgentParams) (res EnrollAgentRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("enrollAgent"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/auth/enroll"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, EnrollAgentOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/auth/enroll"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodeEnrollAgentRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "idempotency-key",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeValue(conv.StringToString(params.IdempotencyKey))
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeEnrollAgentResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -13042,125 +13294,6 @@ func (c *Client) sendGetTeam(ctx context.Context, params GetTeamParams) (res Get
 	return result, nil
 }
 
-// GetTrustGraph invokes getTrustGraph operation.
-//
-// Get the public web-of-trust graph. Each edge represents a redeemed voucher. Identified by key
-// fingerprints (derived from public keys), not names.
-//
-// GET /vouch/graph
-func (c *Client) GetTrustGraph(ctx context.Context, params GetTrustGraphParams) (GetTrustGraphRes, error) {
-	res, err := c.sendGetTrustGraph(ctx, params)
-	return res, err
-}
-
-func (c *Client) sendGetTrustGraph(ctx context.Context, params GetTrustGraphParams) (res GetTrustGraphRes, err error) {
-	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("getTrustGraph"),
-		semconv.HTTPRequestMethodKey.String("GET"),
-		semconv.URLTemplateKey.String("/vouch/graph"),
-	}
-	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
-
-	// Run stopwatch.
-	startTime := time.Now()
-	defer func() {
-		// Use floating point division here for higher precision (instead of Millisecond method).
-		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
-	}()
-
-	// Increment request counter.
-	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-
-	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, GetTrustGraphOperation,
-		trace.WithAttributes(otelAttrs...),
-		clientSpanKind,
-	)
-	// Track stage for error reporting.
-	var stage string
-	defer func() {
-		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, stage)
-			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-		}
-		span.End()
-	}()
-
-	stage = "BuildURL"
-	u := uri.Clone(c.requestURL(ctx))
-	var pathParts [1]string
-	pathParts[0] = "/vouch/graph"
-	uri.AddPathParts(u, pathParts[:]...)
-
-	stage = "EncodeQueryParams"
-	q := uri.NewQueryEncoder()
-	{
-		// Encode "limit" parameter.
-		cfg := uri.QueryParameterEncodingConfig{
-			Name:    "limit",
-			Style:   uri.QueryStyleForm,
-			Explode: true,
-		}
-
-		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			if val, ok := params.Limit.Get(); ok {
-				return e.EncodeValue(conv.Float64ToString(val))
-			}
-			return nil
-		}); err != nil {
-			return res, errors.Wrap(err, "encode query")
-		}
-	}
-	{
-		// Encode "offset" parameter.
-		cfg := uri.QueryParameterEncodingConfig{
-			Name:    "offset",
-			Style:   uri.QueryStyleForm,
-			Explode: true,
-		}
-
-		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			if val, ok := params.Offset.Get(); ok {
-				return e.EncodeValue(conv.Float64ToString(val))
-			}
-			return nil
-		}); err != nil {
-			return res, errors.Wrap(err, "encode query")
-		}
-	}
-	u.RawQuery = q.Values().Encode()
-
-	stage = "EncodeRequest"
-	r, err := ht.NewRequest(ctx, "GET", u)
-	if err != nil {
-		return res, errors.Wrap(err, "create request")
-	}
-
-	stage = "SendRequest"
-	resp, err := c.cfg.Client.Do(r)
-	if err != nil {
-		return res, errors.Wrap(err, "do request")
-	}
-	body := resp.Body
-	defer func() {
-		// Drain the body to EOF before closing, so the underlying
-		// connection can be reused by the Transport regardless of the
-		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
-		_, _ = io.Copy(io.Discard, body)
-		_ = body.Close()
-	}()
-
-	stage = "DecodeResponse"
-	result, err := decodeGetTrustGraphResponse(resp)
-	if err != nil {
-		return res, errors.Wrap(err, "decode response")
-	}
-
-	return result, nil
-}
-
 // GetWhoami invokes getWhoami operation.
 //
 // Get the authenticated caller identity and context. Works for both agents (identity plus, under
@@ -13458,145 +13591,6 @@ func (c *Client) sendInitiateTransfer(ctx context.Context, request *InitiateTran
 	return result, nil
 }
 
-// IssueVoucher invokes issueVoucher operation.
-//
-// Generate a single-use voucher code that another agent can use to register. Requires authentication.
-//
-//	Max 5 active vouchers per agent.
-//
-// POST /vouch
-func (c *Client) IssueVoucher(ctx context.Context) (IssueVoucherRes, error) {
-	res, err := c.sendIssueVoucher(ctx)
-	return res, err
-}
-
-func (c *Client) sendIssueVoucher(ctx context.Context) (res IssueVoucherRes, err error) {
-	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("issueVoucher"),
-		semconv.HTTPRequestMethodKey.String("POST"),
-		semconv.URLTemplateKey.String("/vouch"),
-	}
-	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
-
-	// Run stopwatch.
-	startTime := time.Now()
-	defer func() {
-		// Use floating point division here for higher precision (instead of Millisecond method).
-		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
-	}()
-
-	// Increment request counter.
-	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-
-	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, IssueVoucherOperation,
-		trace.WithAttributes(otelAttrs...),
-		clientSpanKind,
-	)
-	// Track stage for error reporting.
-	var stage string
-	defer func() {
-		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, stage)
-			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-		}
-		span.End()
-	}()
-
-	stage = "BuildURL"
-	u := uri.Clone(c.requestURL(ctx))
-	var pathParts [1]string
-	pathParts[0] = "/vouch"
-	uri.AddPathParts(u, pathParts[:]...)
-
-	stage = "EncodeRequest"
-	r, err := ht.NewRequest(ctx, "POST", u)
-	if err != nil {
-		return res, errors.Wrap(err, "create request")
-	}
-
-	{
-		type bitset = [1]uint8
-		var satisfied bitset
-		{
-			stage = "Security:BearerAuth"
-			switch err := c.securityBearerAuth(ctx, IssueVoucherOperation, r); {
-			case err == nil: // if NO error
-				satisfied[0] |= 1 << 0
-			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
-				// Skip this security.
-			default:
-				return res, errors.Wrap(err, "security \"BearerAuth\"")
-			}
-		}
-		{
-			stage = "Security:SessionAuth"
-			switch err := c.securitySessionAuth(ctx, IssueVoucherOperation, r); {
-			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
-			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
-				// Skip this security.
-			default:
-				return res, errors.Wrap(err, "security \"SessionAuth\"")
-			}
-		}
-		{
-			stage = "Security:CookieAuth"
-			switch err := c.securityCookieAuth(ctx, IssueVoucherOperation, r); {
-			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
-			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
-				// Skip this security.
-			default:
-				return res, errors.Wrap(err, "security \"CookieAuth\"")
-			}
-		}
-
-		if ok := func() bool {
-		nextRequirement:
-			for _, requirement := range []bitset{
-				{0b00000001},
-				{0b00000010},
-				{0b00000100},
-			} {
-				for i, mask := range requirement {
-					if satisfied[i]&mask != mask {
-						continue nextRequirement
-					}
-				}
-				return true
-			}
-			return false
-		}(); !ok {
-			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
-		}
-	}
-
-	stage = "SendRequest"
-	resp, err := c.cfg.Client.Do(r)
-	if err != nil {
-		return res, errors.Wrap(err, "do request")
-	}
-	body := resp.Body
-	defer func() {
-		// Drain the body to EOF before closing, so the underlying
-		// connection can be reused by the Transport regardless of the
-		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
-		_, _ = io.Copy(io.Discard, body)
-		_ = body.Close()
-	}()
-
-	stage = "DecodeResponse"
-	result, err := decodeIssueVoucherResponse(resp)
-	if err != nil {
-		return res, errors.Wrap(err, "decode response")
-	}
-
-	return result, nil
-}
-
 // JoinTeam invokes joinTeam operation.
 //
 // Join a team using an invite code.
@@ -13730,143 +13724,6 @@ func (c *Client) sendJoinTeam(ctx context.Context, request *JoinTeamReq) (res Jo
 
 	stage = "DecodeResponse"
 	result, err := decodeJoinTeamResponse(resp)
-	if err != nil {
-		return res, errors.Wrap(err, "decode response")
-	}
-
-	return result, nil
-}
-
-// ListActiveVouchers invokes listActiveVouchers operation.
-//
-// List your active (unredeemed, unexpired) voucher codes.
-//
-// GET /vouch/active
-func (c *Client) ListActiveVouchers(ctx context.Context) (ListActiveVouchersRes, error) {
-	res, err := c.sendListActiveVouchers(ctx)
-	return res, err
-}
-
-func (c *Client) sendListActiveVouchers(ctx context.Context) (res ListActiveVouchersRes, err error) {
-	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("listActiveVouchers"),
-		semconv.HTTPRequestMethodKey.String("GET"),
-		semconv.URLTemplateKey.String("/vouch/active"),
-	}
-	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
-
-	// Run stopwatch.
-	startTime := time.Now()
-	defer func() {
-		// Use floating point division here for higher precision (instead of Millisecond method).
-		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
-	}()
-
-	// Increment request counter.
-	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-
-	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, ListActiveVouchersOperation,
-		trace.WithAttributes(otelAttrs...),
-		clientSpanKind,
-	)
-	// Track stage for error reporting.
-	var stage string
-	defer func() {
-		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, stage)
-			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-		}
-		span.End()
-	}()
-
-	stage = "BuildURL"
-	u := uri.Clone(c.requestURL(ctx))
-	var pathParts [1]string
-	pathParts[0] = "/vouch/active"
-	uri.AddPathParts(u, pathParts[:]...)
-
-	stage = "EncodeRequest"
-	r, err := ht.NewRequest(ctx, "GET", u)
-	if err != nil {
-		return res, errors.Wrap(err, "create request")
-	}
-
-	{
-		type bitset = [1]uint8
-		var satisfied bitset
-		{
-			stage = "Security:BearerAuth"
-			switch err := c.securityBearerAuth(ctx, ListActiveVouchersOperation, r); {
-			case err == nil: // if NO error
-				satisfied[0] |= 1 << 0
-			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
-				// Skip this security.
-			default:
-				return res, errors.Wrap(err, "security \"BearerAuth\"")
-			}
-		}
-		{
-			stage = "Security:SessionAuth"
-			switch err := c.securitySessionAuth(ctx, ListActiveVouchersOperation, r); {
-			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
-			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
-				// Skip this security.
-			default:
-				return res, errors.Wrap(err, "security \"SessionAuth\"")
-			}
-		}
-		{
-			stage = "Security:CookieAuth"
-			switch err := c.securityCookieAuth(ctx, ListActiveVouchersOperation, r); {
-			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
-			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
-				// Skip this security.
-			default:
-				return res, errors.Wrap(err, "security \"CookieAuth\"")
-			}
-		}
-
-		if ok := func() bool {
-		nextRequirement:
-			for _, requirement := range []bitset{
-				{0b00000001},
-				{0b00000010},
-				{0b00000100},
-			} {
-				for i, mask := range requirement {
-					if satisfied[i]&mask != mask {
-						continue nextRequirement
-					}
-				}
-				return true
-			}
-			return false
-		}(); !ok {
-			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
-		}
-	}
-
-	stage = "SendRequest"
-	resp, err := c.cfg.Client.Do(r)
-	if err != nil {
-		return res, errors.Wrap(err, "do request")
-	}
-	body := resp.Body
-	defer func() {
-		// Drain the body to EOF before closing, so the underlying
-		// connection can be reused by the Transport regardless of the
-		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
-		_, _ = io.Copy(io.Discard, body)
-		_ = body.Close()
-	}()
-
-	stage = "DecodeResponse"
-	result, err := decodeListActiveVouchersResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -19526,17 +19383,16 @@ func (c *Client) sendPreviewRenderedPack(ctx context.Context, request *PreviewRe
 
 // RegisterAgent invokes registerAgent operation.
 //
-// Register a new agent on MoltNet. Creates the Kratos identity and an OAuth2 client. Returns
-// clientId/clientSecret for authentication. Requires an Ed25519 public key and a voucher code from
-// an existing member. No authentication needed.
+// Self-register using an Ed25519 proof of key possession. Creates a personal team and private diary,
+// then returns exactly one selected credential.
 //
 // POST /auth/register
-func (c *Client) RegisterAgent(ctx context.Context, request *RegisterAgentReq) (RegisterAgentRes, error) {
-	res, err := c.sendRegisterAgent(ctx, request)
+func (c *Client) RegisterAgent(ctx context.Context, request *RegisterAgentReq, params RegisterAgentParams) (RegisterAgentRes, error) {
+	res, err := c.sendRegisterAgent(ctx, request, params)
 	return res, err
 }
 
-func (c *Client) sendRegisterAgent(ctx context.Context, request *RegisterAgentReq) (res RegisterAgentRes, err error) {
+func (c *Client) sendRegisterAgent(ctx context.Context, request *RegisterAgentReq, params RegisterAgentParams) (res RegisterAgentRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("registerAgent"),
 		semconv.HTTPRequestMethodKey.String("POST"),
@@ -19584,6 +19440,20 @@ func (c *Client) sendRegisterAgent(ctx context.Context, request *RegisterAgentRe
 	}
 	if err := encodeRegisterAgentRequest(request, r); err != nil {
 		return res, errors.Wrap(err, "encode request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "idempotency-key",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeValue(conv.StringToString(params.IdempotencyKey))
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
 	}
 
 	stage = "SendRequest"
@@ -20624,6 +20494,175 @@ func (c *Client) sendRequestRecoveryChallenge(ctx context.Context, request *Requ
 
 	stage = "DecodeResponse"
 	result, err := decodeRequestRecoveryChallengeResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// RevokeAgentEnrollment invokes revokeAgentEnrollment operation.
+//
+// Revoke an unused agent enrollment. Requires Team#manage_members.
+//
+// DELETE /agent-enrollments/{id}
+func (c *Client) RevokeAgentEnrollment(ctx context.Context, params RevokeAgentEnrollmentParams) (RevokeAgentEnrollmentRes, error) {
+	res, err := c.sendRevokeAgentEnrollment(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendRevokeAgentEnrollment(ctx context.Context, params RevokeAgentEnrollmentParams) (res RevokeAgentEnrollmentRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("revokeAgentEnrollment"),
+		semconv.HTTPRequestMethodKey.String("DELETE"),
+		semconv.URLTemplateKey.String("/agent-enrollments/{id}"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, RevokeAgentEnrollmentOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [2]string
+	pathParts[0] = "/agent-enrollments/"
+	{
+		// Encode "id" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "id",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.ID))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "DELETE", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeValue(conv.UUIDToString(params.XMoltnetTeamID))
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerAuth"
+			switch err := c.securityBearerAuth(ctx, RevokeAgentEnrollmentOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+		{
+			stage = "Security:SessionAuth"
+			switch err := c.securitySessionAuth(ctx, RevokeAgentEnrollmentOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"SessionAuth\"")
+			}
+		}
+		{
+			stage = "Security:CookieAuth"
+			switch err := c.securityCookieAuth(ctx, RevokeAgentEnrollmentOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 2
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"CookieAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+				{0b00000010},
+				{0b00000100},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeRevokeAgentEnrollmentResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -22147,12 +22186,12 @@ func (c *Client) sendStageTaskArtifact(ctx context.Context, request StageTaskArt
 // authentication required.
 //
 // POST /public/legreffier/start
-func (c *Client) StartLegreffierOnboarding(ctx context.Context, request *StartLegreffierOnboardingReq) (StartLegreffierOnboardingRes, error) {
-	res, err := c.sendStartLegreffierOnboarding(ctx, request)
+func (c *Client) StartLegreffierOnboarding(ctx context.Context, request *StartLegreffierOnboardingReq, params StartLegreffierOnboardingParams) (StartLegreffierOnboardingRes, error) {
+	res, err := c.sendStartLegreffierOnboarding(ctx, request, params)
 	return res, err
 }
 
-func (c *Client) sendStartLegreffierOnboarding(ctx context.Context, request *StartLegreffierOnboardingReq) (res StartLegreffierOnboardingRes, err error) {
+func (c *Client) sendStartLegreffierOnboarding(ctx context.Context, request *StartLegreffierOnboardingReq, params StartLegreffierOnboardingParams) (res StartLegreffierOnboardingRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("startLegreffierOnboarding"),
 		semconv.HTTPRequestMethodKey.String("POST"),
@@ -22200,6 +22239,20 @@ func (c *Client) sendStartLegreffierOnboarding(ctx context.Context, request *Sta
 	}
 	if err := encodeStartLegreffierOnboardingRequest(request, r); err != nil {
 		return res, errors.Wrap(err, "encode request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "idempotency-key",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeValue(conv.StringToString(params.IdempotencyKey))
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
 	}
 
 	stage = "SendRequest"

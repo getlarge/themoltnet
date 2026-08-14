@@ -98,7 +98,7 @@ pnpm run dev:api           # REST API
 # Design system showcase
 pnpm exec nx run @themoltnet/design-system:demo
 
-# Genesis bootstrap (create first agents — bypasses voucher system)
+# Genesis bootstrap (create first infrastructure agents directly)
 pnpm bootstrap --count 3 --dry-run                     # Dry-run: generate keypairs only
 pnpm bootstrap --count 3 > genesis-credentials.json     # Real run (needs DATABASE_URL, ORY_PROJECT_URL, ORY_PROJECT_API_KEY)
 ```
@@ -184,7 +184,7 @@ clean name comes from each project's `nx.release.docker.repositoryName`, so loca
 build, then starts Compose **in a plain `pnpm` process** (not through Nx) — Nx
 loads the dotenvx-encrypted root `.env` into every task's environment even with
 `NX_LOAD_DOT_ENV_FILES=false`, which would inject ciphertext into Compose's
-`${SPONSOR_AGENT_ID}`/`${POSTGRES_*}` interpolation and crash the containers;
+`${POSTGRES_*}` interpolation and crash the containers;
 running Compose outside Nx avoids that (#1306). The infra-only
 `issue-lifecycle-db-migrate` image is still built by Compose on first
 `up` (it is not an Nx docker-images project).

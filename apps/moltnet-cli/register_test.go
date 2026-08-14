@@ -1,103 +1,121 @@
 package main
 
 import (
+	"crypto/ed25519"
+	"encoding/base64"
 	"encoding/json"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
-func TestDoRegister_Success(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/auth/register" {
-			t.Errorf("unexpected path: %s", r.URL.Path)
-		}
-		if r.Method != http.MethodPost {
-			t.Errorf("unexpected method: %s", r.Method)
-		}
-		if r.Header.Get("Content-Type") != "application/json" {
-			t.Errorf("unexpected content type: %s", r.Header.Get("Content-Type"))
-		}
+type capturedRegistrationRequest struct {
+	CredentialType string `json:"credentialType"`
+	Proof          string `json:"proof"`
+	PublicKey      string `json:"publicKey"`
+	Token          string `json:"token"`
+}
 
-		body, _ := io.ReadAll(r.Body)
-		var req RegisterRequest
-		if err := json.Unmarshal(body, &req); err != nil {
-			t.Fatalf("unmarshal request: %v", err)
-		}
-		if req.VoucherCode != "test-voucher" {
-			t.Errorf("unexpected voucher: %s", req.VoucherCode)
-		}
-		if len(req.PublicKey) < 10 {
-			t.Errorf("public key too short: %s", req.PublicKey)
-		}
-
-		resp := RegisterResponse{
-			IdentityID:   "uuid-123",
-			Fingerprint:  "ABCD-1234-EF56-7890",
-			PublicKey:    req.PublicKey,
-			ClientID:     "client-id",
-			ClientSecret: "client-secret",
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
-	}))
-	defer server.Close()
-
-	result, err := DoRegister(server.URL, "test-voucher")
+func assertRegistrationProof(t *testing.T, request *http.Request, body capturedRegistrationRequest, message string) {
+	t.Helper()
+	nonce := request.Header.Get("Idempotency-Key")
+	if len(nonce) != 43 {
+		t.Fatalf("idempotency key length = %d, want 43", len(nonce))
+	}
+	publicKey, err := ParsePublicKey(body.PublicKey)
 	if err != nil {
-		t.Fatalf("register: %v", err)
+		t.Fatal(err)
 	}
-
-	if result.Response.IdentityID != "uuid-123" {
-		t.Errorf("identity: got %s, want uuid-123", result.Response.IdentityID)
+	proof, err := base64.StdEncoding.DecodeString(body.Proof)
+	if err != nil {
+		t.Fatal(err)
 	}
-	if result.Response.ClientID != "client-id" {
-		t.Errorf("clientId: got %s, want client-id", result.Response.ClientID)
-	}
-	if result.KeyPair == nil {
-		t.Fatal("keypair is nil")
+	if !ed25519.Verify(publicKey, []byte(message), proof) {
+		t.Fatal("registration proof did not verify")
 	}
 }
 
-func TestDoRegister_HTTPError(t *testing.T) {
+func TestDoRegisterSelfOAuth2(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/auth/register" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		var body capturedRegistrationRequest
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		nonce := r.Header.Get("Idempotency-Key")
+		assertRegistrationProof(t, r, body, buildSelfRegistrationMessage(nonce, body.PublicKey, body.CredentialType))
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusForbidden)
-		json.NewEncoder(w).Encode(ProblemDetails{
-			Type:   "urn:moltnet:problem:voucher-invalid",
-			Title:  "Invalid voucher",
-			Status: 403,
-			Detail: "Already redeemed",
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"identityId":  "00000000-0000-0000-0000-000000000123",
+			"fingerprint": "ABCD-1234-EF56-7890", "publicKey": body.PublicKey,
+			"credential": map[string]any{"type": "oauth2", "clientId": "client-id", "clientSecret": "client-secret"},
 		})
 	}))
 	defer server.Close()
 
-	_, err := DoRegister(server.URL, "bad-voucher")
-	if err == nil {
-		t.Fatal("expected error")
+	result, err := DoRegister(server.URL, credentialTypeOAuth2, "")
+	if err != nil {
+		t.Fatalf("register: %v", err)
 	}
-	if got := err.Error(); got == "" {
-		t.Error("error message is empty")
+	if result.Response.Credential.ClientID != "client-id" {
+		t.Fatalf("client ID = %q", result.Response.Credential.ClientID)
 	}
 }
 
-func TestDoRegister_ServerError(t *testing.T) {
+func TestDoRegisterRedeemsEnrollmentForAgentKey(t *testing.T) {
+	const token = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("internal error"))
+		if r.URL.Path != "/auth/enroll" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		var body capturedRegistrationRequest
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		nonce := r.Header.Get("Idempotency-Key")
+		assertRegistrationProof(t, r, body, buildTeamRegistrationMessage(token, nonce, body.PublicKey, body.CredentialType))
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"identityId":  "00000000-0000-0000-0000-000000000123",
+			"fingerprint": "ABCD-1234-EF56-7890", "publicKey": body.PublicKey,
+			"credential": map[string]any{
+				"type": "agent_key", "secret": "secret",
+				"key": map[string]any{
+					"id": "key-1", "agentId": "00000000-0000-0000-0000-000000000123",
+					"teamId": "00000000-0000-0000-0000-000000000456", "name": "Bootstrap credential",
+					"status": "active", "scopes": []string{}, "createdAt": nil, "expiresAt": nil,
+					"lastUsedAt": nil, "updatedAt": nil, "revocationReason": nil, "revocationDescription": nil,
+				},
+			},
+		})
 	}))
 	defer server.Close()
 
-	_, err := DoRegister(server.URL, "voucher")
-	if err == nil {
-		t.Fatal("expected error")
+	result, err := DoRegister(server.URL, credentialTypeAgentKey, token)
+	if err != nil {
+		t.Fatalf("enroll: %v", err)
+	}
+	if result.Response.Credential.AgentKey != "secret" {
+		t.Fatalf("agent key = %q", result.Response.Credential.AgentKey)
 	}
 }
 
-func TestDoRegister_NetworkFailure(t *testing.T) {
-	_, err := DoRegister("http://127.0.0.1:1", "voucher")
-	if err == nil {
-		t.Fatal("expected error")
+func TestDoRegisterErrors(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/problem+json")
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write([]byte(`{"type":"urn:moltnet:problem:registration-failed","title":"Registration Failed","status":403}`))
+	}))
+	defer server.Close()
+	if _, err := DoRegister(server.URL, credentialTypeOAuth2, ""); err == nil {
+		t.Fatal("expected HTTP error")
+	}
+	if _, err := DoRegister("http://127.0.0.1:1", credentialTypeOAuth2, ""); err == nil {
+		t.Fatal("expected network error")
+	}
+	if _, err := DoRegister(server.URL, "password", ""); err == nil {
+		t.Fatal("expected credential type validation error")
 	}
 }

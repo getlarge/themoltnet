@@ -1,5 +1,11 @@
+import { randomBytes } from 'node:crypto';
+
 import { cryptoService } from '@moltnet/crypto-service';
-import { readConfig, writeConfig } from '@themoltnet/sdk';
+import {
+  buildSelfRegistrationMessage,
+  readConfig,
+  writeConfig,
+} from '@themoltnet/sdk';
 
 import { checkWorkflowLive, startOnboarding } from '../api.js';
 import { checkAppNameAvailable, suggestAppNames } from '../github.js';
@@ -110,9 +116,22 @@ export async function runIdentityPhase(opts: {
   dispatch({ type: 'step', key: 'keypair', status: 'done' });
 
   dispatch({ type: 'step', key: 'register', status: 'running' });
+  const idempotencyKey = randomBytes(32).toString('base64url');
+  const credentialType = 'oauth2' as const;
+  const proof = await cryptoService.sign(
+    buildSelfRegistrationMessage({
+      idempotencyKey,
+      publicKey: kp.publicKey,
+      credentialType,
+    }),
+    kp.privateKey,
+  );
   const started = await startOnboarding(apiUrl, {
     publicKey: kp.publicKey,
     fingerprint: kp.fingerprint,
+    proof,
+    credentialType,
+    idempotencyKey,
     agentName,
     ...(org ? { org } : {}),
   });

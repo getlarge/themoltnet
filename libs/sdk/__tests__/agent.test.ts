@@ -7,6 +7,7 @@ import {
   batchDeleteDiaryEntries,
   batchDeleteTasks,
   claimSigningRequest,
+  createAgentEnrollment,
   createDiary,
   createDiaryEntry,
   createDiaryGrant,
@@ -34,12 +35,9 @@ import {
   getRuntimeProfile,
   getSigningRequest,
   getTeam,
-  getTrustGraph,
   getWhoami,
   initiateTransfer,
-  issueVoucher,
   joinTeam,
-  listActiveVouchers,
   listDiaries,
   listDiaryEntries,
   listDiaryGrants,
@@ -56,6 +54,7 @@ import {
   rejectTransfer,
   removeTeamMember,
   requestRecoveryChallenge,
+  revokeAgentEnrollment,
   revokeDiaryGrant,
   rotateClientSecret,
   searchDiary,
@@ -115,9 +114,8 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
     approveSigningCredential: vi.fn(),
     suspendSigningCredential: vi.fn(),
     revokeSigningCredential: vi.fn(),
-    issueVoucher: vi.fn(),
-    listActiveVouchers: vi.fn(),
-    getTrustGraph: vi.fn(),
+    createAgentEnrollment: vi.fn(),
+    revokeAgentEnrollment: vi.fn(),
     rotateClientSecret: vi.fn(),
     requestRecoveryChallenge: vi.fn(),
     verifyRecoveryChallenge: vi.fn(),
@@ -1044,48 +1042,52 @@ describe('Agent facade', () => {
   });
 
   // -----------------------------------------------------------------------
-  // vouch
+  // agent enrollments
   // -----------------------------------------------------------------------
-  describe('vouch', () => {
-    it('vouch.issue calls issueVoucher', async () => {
-      const voucher = {
-        code: 'abc',
-        expiresAt: '2024-12-31',
-        issuedBy: 'fp',
+  describe('agentEnrollments', () => {
+    it('creates an enrollment in the active team', async () => {
+      const enrollment = {
+        id: 'enrollment-1',
+        teamId: 'team-1',
+        token: 'token',
       };
-      vi.mocked(issueVoucher).mockResolvedValueOnce({
-        data: voucher,
+      vi.mocked(createAgentEnrollment).mockResolvedValueOnce({
+        data: enrollment,
         error: undefined,
       } as any);
 
       const agent = makeAgent();
-      const result = await agent.vouch.issue();
+      const result = await agent.agentEnrollments.create(
+        { expiresInMinutes: 30 },
+        { teamId: 'team-1' },
+      );
 
-      expect(result).toEqual(voucher);
+      expect(result).toEqual(enrollment);
+      expect(createAgentEnrollment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: { expiresInMinutes: 30 },
+          headers: { 'x-moltnet-team-id': 'team-1' },
+        }),
+      );
     });
 
-    it('vouch.listActive calls listActiveVouchers', async () => {
-      vi.mocked(listActiveVouchers).mockResolvedValueOnce({
-        data: { vouchers: [] },
+    it('revokes an unused enrollment in the active team', async () => {
+      vi.mocked(revokeAgentEnrollment).mockResolvedValueOnce({
+        data: null,
         error: undefined,
       } as any);
 
       const agent = makeAgent();
-      await agent.vouch.listActive();
+      await agent.agentEnrollments.revoke('enrollment-1', {
+        teamId: 'team-1',
+      });
 
-      expect(listActiveVouchers).toHaveBeenCalled();
-    });
-
-    it('vouch.trustGraph calls getTrustGraph', async () => {
-      vi.mocked(getTrustGraph).mockResolvedValueOnce({
-        data: { edges: [] },
-        error: undefined,
-      } as any);
-
-      const agent = makeAgent();
-      await agent.vouch.trustGraph();
-
-      expect(getTrustGraph).toHaveBeenCalled();
+      expect(revokeAgentEnrollment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: 'enrollment-1' },
+          headers: { 'x-moltnet-team-id': 'team-1' },
+        }),
+      );
     });
   });
 
@@ -1411,11 +1413,16 @@ describe('Agent facade', () => {
       } as any);
 
       const agent = makeAgent();
-      const result = await agent.legreffier.startOnboarding({
-        publicKey: 'ed25519:abc',
-        fingerprint: 'A1B2-C3D4',
-        agentName: 'test-agent',
-      });
+      const result = await agent.legreffier.startOnboarding(
+        {
+          publicKey: 'ed25519:abc',
+          fingerprint: 'A1B2-C3D4',
+          proof: 'proof',
+          credentialType: 'oauth2',
+          agentName: 'test-agent',
+        },
+        'A'.repeat(43),
+      );
 
       expect(result).toEqual(response);
       expect(startLegreffierOnboarding).toHaveBeenCalledWith(
@@ -1423,8 +1430,11 @@ describe('Agent facade', () => {
           body: {
             publicKey: 'ed25519:abc',
             fingerprint: 'A1B2-C3D4',
+            proof: 'proof',
+            credentialType: 'oauth2',
             agentName: 'test-agent',
           },
+          headers: { 'idempotency-key': 'A'.repeat(43) },
         }),
       );
     });
@@ -1452,11 +1462,16 @@ describe('Agent facade', () => {
 
       const agent = makeAgent();
       await expect(
-        agent.legreffier.startOnboarding({
-          publicKey: 'ed25519:abc',
-          fingerprint: 'A1B2-C3D4',
-          agentName: 'test-agent',
-        }),
+        agent.legreffier.startOnboarding(
+          {
+            publicKey: 'ed25519:abc',
+            fingerprint: 'A1B2-C3D4',
+            proof: 'proof',
+            credentialType: 'oauth2',
+            agentName: 'test-agent',
+          },
+          'A'.repeat(43),
+        ),
       ).rejects.toThrow(MoltNetError);
     });
   });

@@ -13,10 +13,9 @@
 
 import { createClient, getWhoami } from '@moltnet/api-client';
 import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
-import { cryptoService } from '@moltnet/crypto-service';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createAgent, createTestVoucher } from './helpers.js';
+import { createAgent } from './helpers.js';
 import {
   createTestHarness,
   SERVER_BASE_URL,
@@ -35,30 +34,11 @@ describe('POST /oauth2/token (proxy)', () => {
   });
 
   it('exchanges valid credentials for an access token via proxy', async () => {
-    const keyPair = await cryptoService.generateKeyPair();
-    const voucherCode = await createTestVoucher({
+    const agent = await createAgent({
+      baseUrl: harness.baseUrl,
       db: harness.db,
-      issuerId: harness.bootstrapIdentityId,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
     });
-
-    // Register to get OAuth2 credentials
-    const regRes = await fetch(`${harness.baseUrl}/auth/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify({
-        public_key: keyPair.publicKey,
-        voucher_code: voucherCode,
-      }),
-    });
-
-    expect(regRes.status).toBe(200);
-    const creds = (await regRes.json()) as {
-      clientId: string;
-      clientSecret: string;
-    };
 
     // Exchange via proxy
     const tokenRes = await fetch(`${SERVER_BASE_URL}/oauth2/token`, {
@@ -66,8 +46,8 @@ describe('POST /oauth2/token (proxy)', () => {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
         grant_type: 'client_credentials',
-        client_id: creds.clientId,
-        client_secret: creds.clientSecret,
+        client_id: agent.clientId,
+        client_secret: agent.clientSecret,
         scope: AGENT_OAUTH_SCOPES.join(' '),
       }),
     });
@@ -84,30 +64,11 @@ describe('POST /oauth2/token (proxy)', () => {
   });
 
   it('proxy-issued token works for /agents/whoami', async () => {
-    const keyPair = await cryptoService.generateKeyPair();
-    const voucherCode = await createTestVoucher({
+    const agent = await createAgent({
+      baseUrl: harness.baseUrl,
       db: harness.db,
-      issuerId: harness.bootstrapIdentityId,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
     });
-
-    const regRes = await fetch(`${harness.baseUrl}/auth/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify({
-        public_key: keyPair.publicKey,
-        voucher_code: voucherCode,
-      }),
-    });
-    expect(regRes.status).toBe(200);
-    const creds = (await regRes.json()) as {
-      identityId: string;
-      fingerprint: string;
-      clientId: string;
-      clientSecret: string;
-    };
 
     // Get token via proxy
     const tokenRes = await fetch(`${SERVER_BASE_URL}/oauth2/token`, {
@@ -115,8 +76,8 @@ describe('POST /oauth2/token (proxy)', () => {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
         grant_type: 'client_credentials',
-        client_id: creds.clientId,
-        client_secret: creds.clientSecret,
+        client_id: agent.clientId,
+        client_secret: agent.clientSecret,
         scope: AGENT_OAUTH_SCOPES.join(' '),
       }),
     });
@@ -132,8 +93,8 @@ describe('POST /oauth2/token (proxy)', () => {
     });
 
     expect(error).toBeUndefined();
-    expect(data!.identityId).toBe(creds.identityId);
-    expect(data!.fingerprint).toBe(creds.fingerprint);
+    expect(data!.identityId).toBe(agent.identityId);
+    expect(data!.fingerprint).toBe(agent.keyPair.fingerprint);
   });
 
   it('returns 401 for invalid credentials', async () => {

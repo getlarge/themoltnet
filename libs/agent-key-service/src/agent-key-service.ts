@@ -92,6 +92,12 @@ export interface IssueAgentKeyInput {
   idempotencyKey: string;
   logger: Logger;
   name: string;
+  /**
+   * Registration-only recovery path. Talos cannot replay the original secret,
+   * so rotate the idempotently-created key and return the replacement when a
+   * durable registration step retries after losing the first response.
+   */
+  recoverReplayByRotation?: boolean;
   scopes?: string[];
   signal?: AbortSignal;
   subject: AgentKeySubject;
@@ -738,6 +744,37 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
           'agent_key.upstream_error',
         );
         throw createProblem('upstream-error', 'Failed to issue agent key');
+      }
+      if (
+        result.issued_api_key &&
+        !result.secret &&
+        input.recoverReplayByRotation
+      ) {
+        const replayedKey = toAgentKey(result.issued_api_key);
+        result = await api.adminRotateIssuedApiKey(
+          {
+            keyId: replayedKey.id,
+            adminRotateIssuedApiKeyBody: {
+              metadata: {
+                schema_version: 1,
+                subject_type: 'agent',
+                team_id: input.teamId,
+              },
+              scopes,
+              visibility: KeyVisibility.KeyVisibilitySecret,
+            },
+          },
+          talosInit(input.signal),
+        );
+        input.logger.warn(
+          {
+            action: 'issue:replay-recovered',
+            keyId: replayedKey.id,
+            agentId: input.agentId,
+            teamId: input.teamId,
+          },
+          'agent_key.idempotency_replay_rotated',
+        );
       }
       if (result.issued_api_key && !result.secret) {
         input.logger.warn(

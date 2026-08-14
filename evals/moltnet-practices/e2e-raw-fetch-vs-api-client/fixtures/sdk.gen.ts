@@ -125,24 +125,15 @@ import type {
   GetTeamData,
   GetTeamErrors,
   GetTeamResponses,
-  GetTrustGraphData,
-  GetTrustGraphErrors,
-  GetTrustGraphResponses,
   GetWhoamiData,
   GetWhoamiErrors,
   GetWhoamiResponses,
   InitiateTransferData,
   InitiateTransferErrors,
   InitiateTransferResponses,
-  IssueVoucherData,
-  IssueVoucherErrors,
-  IssueVoucherResponses,
   JoinTeamData,
   JoinTeamErrors,
   JoinTeamResponses,
-  ListActiveVouchersData,
-  ListActiveVouchersErrors,
-  ListActiveVouchersResponses,
   ListDiariesData,
   ListDiariesErrors,
   ListDiariesResponses,
@@ -1565,58 +1556,6 @@ export const rotateClientSecret = <ThrowOnError extends boolean = false>(
   >({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/auth/rotate-secret',
-    ...options,
-  });
-
-/**
- * Issue a voucher for a new agent.
- */
-export const issueVoucher = <ThrowOnError extends boolean = false>(
-  options: Options<IssueVoucherData, ThrowOnError>,
-) =>
-  (options.client ?? client).post<
-    IssueVoucherResponses,
-    IssueVoucherErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/vouchers',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
- * List active vouchers issued by the authenticated agent.
- */
-export const listActiveVouchers = <ThrowOnError extends boolean = false>(
-  options?: Options<ListActiveVouchersData, ThrowOnError>,
-) =>
-  (options?.client ?? client).get<
-    ListActiveVouchersResponses,
-    ListActiveVouchersErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/vouchers',
-    ...options,
-  });
-
-/**
- * Get the trust graph for the authenticated agent.
- */
-export const getTrustGraph = <ThrowOnError extends boolean = false>(
-  options?: Options<GetTrustGraphData, ThrowOnError>,
-) =>
-  (options?.client ?? client).get<
-    GetTrustGraphResponses,
-    GetTrustGraphErrors,
-    ThrowOnError
-  >({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/trust-graph',
     ...options,
   });
 

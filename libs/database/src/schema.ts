@@ -419,44 +419,58 @@ export const humans = pgTable('humans', {
 });
 
 /**
- * Agent Vouchers Table
+ * Agent Enrollments Table
  *
- * Voucher codes for the web-of-trust registration gate.
- * An existing agent generates a voucher code; a new agent
- * submits it during Kratos self-service registration.
- * The after-registration webhook validates and voids it.
+ * Short-lived, single-use bearer tokens for adding a new agent directly to an
+ * existing team. Only the SHA-256 token hash is persisted; the raw token is
+ * returned once by the repository.
  */
-export const agentVouchers = pgTable(
-  'agent_vouchers',
+export const agentEnrollments = pgTable(
+  'agent_enrollments',
   {
     id: uuid('id').defaultRandom().primaryKey(),
-
-    // Random voucher code (URL-safe, 32 bytes hex)
-    code: varchar('code', { length: 64 }).notNull(),
-
-    // The registered agent who created this voucher
-    issuerId: uuid('issuer_id').notNull(),
-
-    // The identity that redeemed this voucher (null until used)
-    redeemedBy: uuid('redeemed_by'),
-
-    // When the voucher expires (24h after creation by default)
+    tokenHash: varchar('token_hash', { length: 64 }).notNull(),
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'cascade' }),
+    creatorAgentId: uuid('creator_agent_id').references(
+      () => agents.identityId,
+      { onDelete: 'restrict' },
+    ),
+    creatorHumanId: uuid('creator_human_id').references(() => humans.id, {
+      onDelete: 'restrict',
+    }),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
-
-    // When it was redeemed (null until used)
     redeemedAt: timestamp('redeemed_at', { withTimezone: true }),
-
-    // Timestamps
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    resultingAgentId: uuid('resulting_agent_id').references(
+      () => agents.identityId,
+      { onDelete: 'restrict' },
+    ),
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
   },
   (table) => [
-    // Fast lookup by code during registration
-    uniqueIndex('agent_vouchers_code_idx').on(table.code),
-
-    // Find vouchers issued by an agent
-    index('agent_vouchers_issuer_idx').on(table.issuerId),
+    uniqueIndex('agent_enrollments_token_hash_idx').on(table.tokenHash),
+    index('agent_enrollments_team_idx').on(table.teamId),
+    index('agent_enrollments_creator_agent_idx')
+      .on(table.creatorAgentId)
+      .where(sql`creator_agent_id IS NOT NULL`),
+    index('agent_enrollments_creator_human_idx')
+      .on(table.creatorHumanId)
+      .where(sql`creator_human_id IS NOT NULL`),
+    index('agent_enrollments_pending_expiry_idx')
+      .on(table.expiresAt)
+      .where(sql`redeemed_at IS NULL AND revoked_at IS NULL`),
+    check(
+      'agent_enrollments_creator_xor',
+      sql`(creator_agent_id IS NOT NULL) <> (creator_human_id IS NOT NULL)`,
+    ),
+    check(
+      'agent_enrollments_redemption_result_pair',
+      sql`(redeemed_at IS NULL) = (resulting_agent_id IS NULL)`,
+    ),
   ],
 );
 
@@ -1026,7 +1040,7 @@ export const groups = pgTable(
  * Team Invites Table
  *
  * Code-based invitations for joining teams.
- * Same pattern as agent vouchers — no email required.
+ * Human team invitations do not require email addresses.
  */
 export const teamInvites = pgTable(
   'team_invites',
@@ -1246,8 +1260,8 @@ export type Agent = typeof agents.$inferSelect;
 export type NewAgent = typeof agents.$inferInsert;
 export type Human = typeof humans.$inferSelect;
 export type NewHuman = typeof humans.$inferInsert;
-export type AgentVoucher = typeof agentVouchers.$inferSelect;
-export type NewAgentVoucher = typeof agentVouchers.$inferInsert;
+export type AgentEnrollment = typeof agentEnrollments.$inferSelect;
+export type NewAgentEnrollment = typeof agentEnrollments.$inferInsert;
 export type SigningCredential = typeof signingCredentials.$inferSelect;
 export type NewSigningCredential = typeof signingCredentials.$inferInsert;
 export type SigningCredentialEvent =

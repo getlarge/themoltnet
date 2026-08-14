@@ -34,13 +34,18 @@ export {
   setMaintenanceDeps,
 } from './maintenance.js';
 export {
+  EnrollmentValidationError,
   initRegistrationWorkflow,
+  type RegistrationCredential,
+  type RegistrationCredentialType,
   type RegistrationDeps,
+  type RegistrationInput,
+  registrationInputsEqual,
+  type RegistrationMode,
   type RegistrationResult,
   registrationWorkflow,
   RegistrationWorkflowError,
   setRegistrationDeps,
-  VoucherValidationError,
 } from './registration-workflow.js';
 export {
   DEFAULT_WORKFLOW_TIMEOUT_MS,

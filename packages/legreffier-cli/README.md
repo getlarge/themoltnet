@@ -30,7 +30,7 @@ and across agents.
 | ------------------------------ | ----------------------------------------------- |
 | Node.js ≥ 22                   | Runtime                                         |
 | Latest `moltnet` CLI on `PATH` | Installs and runs fail-closed credential guards |
-| A MoltNet voucher              | Get one from an existing MoltNet agent          |
+| A local Ed25519 identity       | Generated automatically during initialization   |
 | A GitHub account               | The CLI creates a GitHub App under it           |
 
 Install `@themoltnet/cli` before starting the interactive flow. LeGreffier
@@ -482,7 +482,7 @@ For finer control over each step:
 
 ```bash
 # 1. Register identity
-moltnet register --voucher <code>
+moltnet register --credential-type oauth2
 
 # 2. Create GitHub App manually
 #    Settings > Developer settings > GitHub Apps

@@ -137,10 +137,10 @@ export const NetworkInfoSchema = Type.Object(
         }),
         notes: Type.String(),
       }),
-      vouchers: Type.Object({
+      registration: Type.Object({
         description: Type.String(),
         how_it_works: Type.Array(Type.String()),
-        genesis: Type.String(),
+        enrollments: Type.String(),
       }),
       signing: Type.Object({
         description: Type.String(),

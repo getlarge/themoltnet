@@ -60,6 +60,7 @@ export interface CreateLoggerOptions {
 export const DEFAULT_REDACT_PATHS = [
   // Request headers
   'req.headers.authorization',
+  'req.headers["idempotency-key"]',
   'req.headers.cookie',
   'req.headers["x-api-key"]',
   'req.headers["x-ory-api-key"]',

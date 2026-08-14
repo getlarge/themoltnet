@@ -101,6 +101,19 @@ func SignForRequest(message, nonce, privateKeyBase64 string) (string, error) {
 	return base64.StdEncoding.EncodeToString(sig), nil
 }
 
+// SignRawMessage signs the exact UTF-8 bytes of a protocol message. Registration
+// uses its own domain-separated, newline-delimited format and must not be
+// wrapped in BuildSigningBytes.
+func SignRawMessage(message, privateKeyBase64 string) (string, error) {
+	seed, err := decodeEd25519Seed(privateKeyBase64)
+	if err != nil {
+		return "", err
+	}
+	privateKey := ed25519.NewKeyFromSeed(seed)
+	signature := ed25519.Sign(privateKey, []byte(message))
+	return base64.StdEncoding.EncodeToString(signature), nil
+}
+
 func decodeEd25519Seed(privateKeyBase64 string) ([]byte, error) {
 	seed, err := base64.StdEncoding.DecodeString(privateKeyBase64)
 	if err != nil {

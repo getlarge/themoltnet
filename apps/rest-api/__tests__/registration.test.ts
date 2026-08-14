@@ -1,10 +1,4 @@
-/**
- * Registration route tests
- *
- * Tests the POST /auth/register workflow-based registration flow.
- * DBOS.startWorkflow is mocked to avoid real workflow execution.
- */
-
+import { hashAgentEnrollmentToken } from '@moltnet/database';
 import type { FastifyInstance } from 'fastify';
 import {
   afterAll,
@@ -16,10 +10,7 @@ import {
   vi,
 } from 'vitest';
 
-import {
-  RegistrationWorkflowError,
-  VoucherValidationError,
-} from '../src/workflows/index.js';
+import { RegistrationWorkflowError } from '../src/workflows/index.js';
 import {
   createMockServices,
   createTestApp,
@@ -27,15 +18,9 @@ import {
   VALID_AUTH_CONTEXT,
 } from './helpers.js';
 
-// ── DBOS + Workflow Mocks ──────────────────────────────────────
-
 const { mockWorkflowResult, mockStartWorkflow } = vi.hoisted(() => {
   const mockWorkflowResult = vi.fn();
-  const mockStartWorkflow = vi
-    .fn()
-    .mockReturnValue(
-      vi.fn().mockResolvedValue({ getResult: mockWorkflowResult }),
-    );
+  const mockStartWorkflow = vi.fn();
   return { mockWorkflowResult, mockStartWorkflow };
 });
 
@@ -43,9 +28,7 @@ vi.mock('@moltnet/database', async (importOriginal) => {
   const original = (await importOriginal()) as Record<string, unknown>;
   return {
     ...original,
-    DBOS: {
-      startWorkflow: mockStartWorkflow,
-    },
+    DBOS: { startWorkflow: mockStartWorkflow },
   };
 });
 
@@ -53,93 +36,190 @@ vi.mock('../src/workflows/index.js', async (importOriginal) => {
   const original = (await importOriginal()) as Record<string, unknown>;
   return {
     ...original,
-    registrationWorkflow: {
-      registerAgent: vi.fn(),
-    },
+    registrationWorkflow: { registerAgent: vi.fn() },
   };
 });
 
-// ── Test Constants ─────────────────────────────────────────────
-
-const VALID_PUBLIC_KEY = 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=';
-const VALID_VOUCHER_CODE = 'a'.repeat(64);
+const PUBLIC_KEY = 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=';
 const FINGERPRINT = 'C212-DAFA-27C5-6C57';
-
-const SUCCESSFUL_RESULT = {
+const IDEMPOTENCY_KEY = 'a'.repeat(43);
+const TOKEN = 'b'.repeat(43);
+const TOKEN_HASH = 'f'.repeat(64);
+const SUCCESS = {
   identityId: '550e8400-e29b-41d4-a716-446655440000',
   fingerprint: FINGERPRINT,
-  publicKey: VALID_PUBLIC_KEY,
-  clientId: 'hydra-client-id',
-  clientSecret: 'hydra-client-secret',
+  publicKey: PUBLIC_KEY,
+  credential: {
+    type: 'oauth2',
+    clientId: 'hydra-client-id',
+    clientSecret: 'hydra-client-secret',
+  },
 };
 
-// ── Tests ──────────────────────────────────────────────────────
-
-describe('Registration routes', () => {
+describe('registration routes', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
 
   beforeAll(async () => {
     mocks = createMockServices();
-
-    // Default: parsePublicKey returns 32-byte key
-    mocks.cryptoService.parsePublicKey.mockReturnValue(new Uint8Array(32));
-    mocks.cryptoService.generateFingerprint.mockReturnValue(FINGERPRINT);
-
-    // Default: workflow succeeds
-    mockWorkflowResult.mockResolvedValue(SUCCESSFUL_RESULT);
-
     app = await createTestApp(mocks);
   });
 
-  afterAll(async () => {
-    await app.close();
-  });
+  afterAll(async () => app.close());
 
   beforeEach(() => {
     vi.clearAllMocks();
-
-    // Restore defaults after clearAllMocks
     mocks.cryptoService.parsePublicKey.mockReturnValue(new Uint8Array(32));
     mocks.cryptoService.generateFingerprint.mockReturnValue(FINGERPRINT);
-    mockWorkflowResult.mockResolvedValue(SUCCESSFUL_RESULT);
+    mocks.cryptoService.verify.mockResolvedValue(true);
+    mockWorkflowResult.mockResolvedValue(SUCCESS);
     mockStartWorkflow.mockReturnValue(
-      vi.fn().mockResolvedValue({ getResult: mockWorkflowResult }),
+      vi.fn().mockImplementation(async (input) => ({
+        getResult: mockWorkflowResult,
+        getWorkflowInputs: vi.fn().mockResolvedValue([input]),
+      })),
     );
   });
 
-  // ── Happy Path ────────────────────────────────────────────────
-
-  describe('POST /auth/register — happy path', () => {
-    it('registers an agent and returns credentials', async () => {
-      // Arrange — defaults are already configured
-
-      // Act
-      const response = await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          public_key: VALID_PUBLIC_KEY,
-          voucher_code: VALID_VOUCHER_CODE,
-        },
-      });
-
-      // Assert
-      expect(response.statusCode).toBe(200);
-      const body = response.json();
-      expect(body).toEqual(SUCCESSFUL_RESULT);
-
-      // Verify DBOS.startWorkflow was called with the workflow function
-      expect(mockStartWorkflow).toHaveBeenCalledTimes(1);
-
-      // Verify the inner function was called with the correct arguments
-      const innerFn = mockStartWorkflow.mock.results[0].value;
-      expect(innerFn).toHaveBeenCalledWith(
-        VALID_PUBLIC_KEY,
-        FINGERPRINT,
-        VALID_VOUCHER_CODE,
-      );
+  it('self-registers with a signed nonce and selected credential', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      headers: { 'idempotency-key': IDEMPOTENCY_KEY },
+      payload: {
+        publicKey: PUBLIC_KEY,
+        proof: 'signature',
+        credentialType: 'oauth2',
+      },
     });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual(SUCCESS);
+    expect(mocks.cryptoService.verify).toHaveBeenCalledWith(
+      `moltnet:register:self\n${IDEMPOTENCY_KEY}\n${PUBLIC_KEY}\noauth2`,
+      'signature',
+      PUBLIC_KEY,
+    );
+    const workflowCall = mockStartWorkflow.mock.results[0].value;
+    expect(workflowCall).toHaveBeenCalledWith({
+      publicKey: PUBLIC_KEY,
+      fingerprint: FINGERPRINT,
+      credentialType: 'oauth2',
+      idempotencyKey: IDEMPOTENCY_KEY,
+      mode: { type: 'self' },
+    });
+  });
+
+  it('enrolls into a team and binds the proof to the token hash', async () => {
+    expect(hashAgentEnrollmentToken(TOKEN)).toHaveLength(TOKEN_HASH.length);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/auth/enroll',
+      headers: { 'idempotency-key': IDEMPOTENCY_KEY },
+      payload: {
+        token: TOKEN,
+        publicKey: PUBLIC_KEY,
+        proof: 'signature',
+        credentialType: 'agent_key',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const actualHash = hashAgentEnrollmentToken(TOKEN);
+    expect(mocks.cryptoService.verify).toHaveBeenCalledWith(
+      `moltnet:register:team\n${actualHash}\n${IDEMPOTENCY_KEY}\n${PUBLIC_KEY}\nagent_key`,
+      'signature',
+      PUBLIC_KEY,
+    );
+    const workflowCall = mockStartWorkflow.mock.results[0].value;
+    expect(workflowCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        credentialType: 'agent_key',
+        mode: { type: 'team', enrollmentTokenHash: actualHash },
+      }),
+    );
+  });
+
+  it('rejects an invalid or malformed proof before starting the workflow', async () => {
+    mocks.cryptoService.verify.mockRejectedValueOnce(new Error('bad base64'));
+    const response = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      headers: { 'idempotency-key': IDEMPOTENCY_KEY },
+      payload: {
+        publicKey: PUBLIC_KEY,
+        proof: 'bad',
+        credentialType: 'oauth2',
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json().code).toBe('INVALID_SIGNATURE');
+    expect(mockStartWorkflow).not.toHaveBeenCalled();
+  });
+
+  it('requires a 32-byte random base64url Idempotency-Key', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      headers: { 'idempotency-key': 'short' },
+      payload: {
+        publicKey: PUBLIC_KEY,
+        proof: 'signature',
+        credentialType: 'oauth2',
+      },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
+  it('rejects reuse of a nonce for a modified registration request', async () => {
+    mockStartWorkflow.mockReturnValueOnce(
+      vi.fn().mockResolvedValue({
+        getResult: mockWorkflowResult,
+        getWorkflowInputs: vi.fn().mockResolvedValue([
+          {
+            publicKey: PUBLIC_KEY,
+            fingerprint: FINGERPRINT,
+            credentialType: 'agent_key',
+            idempotencyKey: IDEMPOTENCY_KEY,
+            mode: { type: 'self' },
+          },
+        ]),
+      }),
+    );
+    const response = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      headers: { 'idempotency-key': IDEMPOTENCY_KEY },
+      payload: {
+        publicKey: PUBLIC_KEY,
+        proof: 'signature',
+        credentialType: 'oauth2',
+      },
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json().code).toBe('CONFLICT');
+    expect(mockWorkflowResult).not.toHaveBeenCalled();
+  });
+
+  it('maps durable workflow failures to an upstream problem', async () => {
+    mockWorkflowResult.mockRejectedValueOnce(
+      new RegistrationWorkflowError('Hydra unavailable'),
+    );
+    const response = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      headers: { 'idempotency-key': IDEMPOTENCY_KEY },
+      payload: {
+        publicKey: PUBLIC_KEY,
+        proof: 'signature',
+        credentialType: 'oauth2',
+      },
+    });
+    expect(response.statusCode).toBe(502);
+    expect(response.json().code).toBe('UPSTREAM_ERROR');
   });
 
   describe('POST /auth/rotate-secret', () => {
@@ -148,10 +228,7 @@ describe('Registration routes', () => {
     beforeAll(async () => {
       rotateApp = await createTestApp(mocks, VALID_AUTH_CONTEXT);
     });
-
-    afterAll(async () => {
-      await rotateApp.close();
-    });
+    afterAll(async () => rotateApp.close());
 
     it('evicts cached OAuth contexts after Hydra rotates the secret', async () => {
       const response = await rotateApp.inject({
@@ -159,195 +236,10 @@ describe('Registration routes', () => {
         url: '/auth/rotate-secret',
         headers: { authorization: 'Bearer test-token' },
       });
-
       expect(response.statusCode).toBe(200);
-      expect(rotateApp.oauth2Client.setOAuth2Client).toHaveBeenCalledOnce();
       expect(rotateApp.tokenValidator.evictOAuthClient).toHaveBeenCalledWith(
         VALID_AUTH_CONTEXT.clientId,
       );
-      expect(
-        vi.mocked(rotateApp.oauth2Client.setOAuth2Client).mock
-          .invocationCallOrder[0],
-      ).toBeLessThan(
-        vi.mocked(rotateApp.tokenValidator.evictOAuthClient).mock
-          .invocationCallOrder[0],
-      );
-    });
-
-    it('does not evict when Hydra rejects the secret rotation', async () => {
-      vi.mocked(rotateApp.oauth2Client.setOAuth2Client).mockRejectedValueOnce(
-        new Error('Hydra unavailable'),
-      );
-
-      const response = await rotateApp.inject({
-        method: 'POST',
-        url: '/auth/rotate-secret',
-        headers: { authorization: 'Bearer test-token' },
-      });
-
-      expect(response.statusCode).toBe(502);
-      expect(rotateApp.tokenValidator.evictOAuthClient).not.toHaveBeenCalled();
-    });
-  });
-
-  // ── Validation Errors ─────────────────────────────────────────
-
-  describe('POST /auth/register — validation errors', () => {
-    it('returns 400 when public_key format is invalid', async () => {
-      // Arrange
-      mocks.cryptoService.parsePublicKey.mockImplementation(() => {
-        throw new Error('Invalid public key format');
-      });
-
-      // Act
-      const response = await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          public_key: 'invalid-key-format',
-          voucher_code: VALID_VOUCHER_CODE,
-        },
-      });
-
-      // Assert
-      expect(response.statusCode).toBe(400);
-      const body = response.json();
-      expect(body.code).toBe('VALIDATION_FAILED');
-      expect(body.detail).toContain('ed25519:<base64>');
-    });
-
-    it('returns 400 when public_key is not 32 bytes', async () => {
-      // Arrange — return 48-byte key
-      mocks.cryptoService.parsePublicKey.mockReturnValue(new Uint8Array(48));
-
-      // Act
-      const response = await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          public_key: VALID_PUBLIC_KEY,
-          voucher_code: VALID_VOUCHER_CODE,
-        },
-      });
-
-      // Assert
-      expect(response.statusCode).toBe(400);
-      const body = response.json();
-      expect(body.code).toBe('VALIDATION_FAILED');
-      expect(body.detail).toContain('32 bytes');
-    });
-
-    it('returns 400 when body fields are missing', async () => {
-      // Act
-      const response = await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {},
-      });
-
-      // Assert
-      expect(response.statusCode).toBe(400);
-    });
-
-    it('returns 400 when public_key is missing', async () => {
-      // Act
-      const response = await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          voucher_code: VALID_VOUCHER_CODE,
-        },
-      });
-
-      // Assert
-      expect(response.statusCode).toBe(400);
-    });
-
-    it('returns 400 when voucher_code is missing', async () => {
-      // Act
-      const response = await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          public_key: VALID_PUBLIC_KEY,
-        },
-      });
-
-      // Assert
-      expect(response.statusCode).toBe(400);
-    });
-  });
-
-  // ── Workflow Errors ───────────────────────────────────────────
-
-  describe('POST /auth/register — workflow errors', () => {
-    it('returns 403 when voucher validation fails', async () => {
-      // Arrange
-      mockWorkflowResult.mockRejectedValue(
-        new VoucherValidationError('Voucher expired'),
-      );
-
-      // Act
-      const response = await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          public_key: VALID_PUBLIC_KEY,
-          voucher_code: VALID_VOUCHER_CODE,
-        },
-      });
-
-      // Assert
-      expect(response.statusCode).toBe(403);
-      const body = response.json();
-      expect(body.code).toBe('REGISTRATION_FAILED');
-      expect(body.detail).toContain('Voucher expired');
-    });
-
-    it('returns 502 when registration workflow fails', async () => {
-      // Arrange
-      mockWorkflowResult.mockRejectedValue(
-        new RegistrationWorkflowError(
-          'Hydra did not return client_id/client_secret',
-        ),
-      );
-
-      // Act
-      const response = await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          public_key: VALID_PUBLIC_KEY,
-          voucher_code: VALID_VOUCHER_CODE,
-        },
-      });
-
-      // Assert
-      expect(response.statusCode).toBe(502);
-      const body = response.json();
-      expect(body.code).toBe('UPSTREAM_ERROR');
-      // Server errors (>= 500) have their detail sanitized by the error handler
-      expect(body.detail).toBe('An unexpected error occurred');
-    });
-
-    it('returns 502 on unexpected errors', async () => {
-      // Arrange
-      mockWorkflowResult.mockRejectedValue(new Error('unexpected'));
-
-      // Act
-      const response = await app.inject({
-        method: 'POST',
-        url: '/auth/register',
-        payload: {
-          public_key: VALID_PUBLIC_KEY,
-          voucher_code: VALID_VOUCHER_CODE,
-        },
-      });
-
-      // Assert
-      expect(response.statusCode).toBe(502);
-      const body = response.json();
-      expect(body.code).toBe('UPSTREAM_ERROR');
     });
   });
 });

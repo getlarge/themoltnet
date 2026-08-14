@@ -153,6 +153,16 @@ func (UnimplementedHandler) CompleteTask(ctx context.Context, req *CompleteTaskR
 	return r, ht.ErrNotImplemented
 }
 
+// CreateAgentEnrollment implements createAgentEnrollment operation.
+//
+// Create a single-use agent enrollment for the active team. Requires Team#manage_members. The raw
+// token is returned once and only its SHA-256 hash is stored.
+//
+// POST /agent-enrollments
+func (UnimplementedHandler) CreateAgentEnrollment(ctx context.Context, req OptCreateAgentEnrollmentReq, params CreateAgentEnrollmentParams) (r CreateAgentEnrollmentRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // CreateAgentKey implements createAgentKey operation.
 //
 // Issue a secret API key bound to one agent and the active team.
@@ -409,6 +419,16 @@ func (UnimplementedHandler) DownloadTaskArtifact(ctx context.Context, params Dow
 //
 // GET /tasks/{taskId}/artifacts/{cid}/content
 func (UnimplementedHandler) DownloadTaskArtifactByCid(ctx context.Context, params DownloadTaskArtifactByCidParams) (r DownloadTaskArtifactByCidRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// EnrollAgent implements enrollAgent operation.
+//
+// Redeem a single-use enrollment token using an Ed25519 proof of key possession. Grants only
+// membership in the issuing team and returns exactly one selected credential.
+//
+// POST /auth/enroll
+func (UnimplementedHandler) EnrollAgent(ctx context.Context, req OptEnrollAgentReq, params EnrollAgentParams) (r EnrollAgentRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -713,16 +733,6 @@ func (UnimplementedHandler) GetTeam(ctx context.Context, params GetTeamParams) (
 	return r, ht.ErrNotImplemented
 }
 
-// GetTrustGraph implements getTrustGraph operation.
-//
-// Get the public web-of-trust graph. Each edge represents a redeemed voucher. Identified by key
-// fingerprints (derived from public keys), not names.
-//
-// GET /vouch/graph
-func (UnimplementedHandler) GetTrustGraph(ctx context.Context, params GetTrustGraphParams) (r GetTrustGraphRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
 // GetWhoami implements getWhoami operation.
 //
 // Get the authenticated caller identity and context. Works for both agents (identity plus, under
@@ -742,32 +752,12 @@ func (UnimplementedHandler) InitiateTransfer(ctx context.Context, req *InitiateT
 	return r, ht.ErrNotImplemented
 }
 
-// IssueVoucher implements issueVoucher operation.
-//
-// Generate a single-use voucher code that another agent can use to register. Requires authentication.
-//
-//	Max 5 active vouchers per agent.
-//
-// POST /vouch
-func (UnimplementedHandler) IssueVoucher(ctx context.Context) (r IssueVoucherRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
 // JoinTeam implements joinTeam operation.
 //
 // Join a team using an invite code.
 //
 // POST /teams/join
 func (UnimplementedHandler) JoinTeam(ctx context.Context, req *JoinTeamReq) (r JoinTeamRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
-// ListActiveVouchers implements listActiveVouchers operation.
-//
-// List your active (unredeemed, unexpired) voucher codes.
-//
-// GET /vouch/active
-func (UnimplementedHandler) ListActiveVouchers(ctx context.Context) (r ListActiveVouchersRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -1038,12 +1028,11 @@ func (UnimplementedHandler) PreviewRenderedPack(ctx context.Context, req *Previe
 
 // RegisterAgent implements registerAgent operation.
 //
-// Register a new agent on MoltNet. Creates the Kratos identity and an OAuth2 client. Returns
-// clientId/clientSecret for authentication. Requires an Ed25519 public key and a voucher code from
-// an existing member. No authentication needed.
+// Self-register using an Ed25519 proof of key possession. Creates a personal team and private diary,
+// then returns exactly one selected credential.
 //
 // POST /auth/register
-func (UnimplementedHandler) RegisterAgent(ctx context.Context, req *RegisterAgentReq) (r RegisterAgentRes, _ error) {
+func (UnimplementedHandler) RegisterAgent(ctx context.Context, req *RegisterAgentReq, params RegisterAgentParams) (r RegisterAgentRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -1106,6 +1095,15 @@ func (UnimplementedHandler) RenderContextPack(ctx context.Context, req *RenderCo
 //
 // POST /recovery/challenge
 func (UnimplementedHandler) RequestRecoveryChallenge(ctx context.Context, req *RequestRecoveryChallengeReq) (r RequestRecoveryChallengeRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// RevokeAgentEnrollment implements revokeAgentEnrollment operation.
+//
+// Revoke an unused agent enrollment. Requires Team#manage_members.
+//
+// DELETE /agent-enrollments/{id}
+func (UnimplementedHandler) RevokeAgentEnrollment(ctx context.Context, params RevokeAgentEnrollmentParams) (r RevokeAgentEnrollmentRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -1197,7 +1195,7 @@ func (UnimplementedHandler) StageTaskArtifact(ctx context.Context, req StageTask
 // authentication required.
 //
 // POST /public/legreffier/start
-func (UnimplementedHandler) StartLegreffierOnboarding(ctx context.Context, req *StartLegreffierOnboardingReq) (r StartLegreffierOnboardingRes, _ error) {
+func (UnimplementedHandler) StartLegreffierOnboarding(ctx context.Context, req *StartLegreffierOnboardingReq, params StartLegreffierOnboardingParams) (r StartLegreffierOnboardingRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

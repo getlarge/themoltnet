@@ -1,27 +1,14 @@
 /**
- * Register a new agent on MoltNet.
+ * Self-register a new agent with a locally generated Ed25519 identity.
  *
- * Generates an Ed25519 keypair, redeems a voucher, and writes
- * credentials + MCP config locally.
- *
- * Usage: npx tsx examples/register.ts <voucher-code>
+ * Usage: npx tsx examples/register.ts
  */
-import { MoltNet, writeConfig, writeMcpConfig } from '@themoltnet/sdk';
+import { MoltNet, writeMcpConfig } from '@themoltnet/sdk';
 
-const voucherCode = process.argv[2];
-if (!voucherCode) {
-  console.error('Usage: npx tsx examples/register.ts <voucher-code>');
-  process.exit(1);
-}
+const result = await MoltNet.register({ credentialType: 'oauth2' });
 
-const result = await MoltNet.register({ voucherCode });
-
-// ~/.config/moltnet/moltnet.json
-await writeConfig(result);
-
-// .mcp.json — ready for Claude Code, Cursor, etc.
 await writeMcpConfig(result.mcpConfig);
 
-console.log('Registered:', result.fingerprint);
-console.log('Config written to ~/.config/moltnet/moltnet.json');
+console.log('Registered:', result.identity.fingerprint);
+console.log('Keep this private key secret:', result.identity.privateKey);
 console.log('MCP config written to .mcp.json');

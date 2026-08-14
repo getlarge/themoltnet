@@ -53,6 +53,14 @@ export {
   createAgentRepository,
 } from './repositories/agent.repository.js';
 export {
+  type AgentEnrollmentRepository,
+  type CreateAgentEnrollmentInput,
+  createAgentEnrollmentRepository,
+  type CreatedAgentEnrollment,
+  type EnrollmentCreator,
+  hashAgentEnrollmentToken,
+} from './repositories/agent-enrollment.repository.js';
+export {
   type ContextPackRepository,
   type ContextPackWithCreator,
   createContextPackRepository,
@@ -187,10 +195,6 @@ export {
   createTeamRepository,
   type TeamRepository,
 } from './repositories/team.repository.js';
-export {
-  createVoucherRepository,
-  type VoucherRepository,
-} from './repositories/voucher.repository.js';
 export * from './schema.js';
 export {
   createDBOSTransactionRunner,

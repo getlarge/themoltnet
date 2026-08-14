@@ -28,8 +28,6 @@ export interface RateLimitPluginOptions {
   globalAnonLimit: number;
   /** Max requests per minute for embedding endpoints (default: 20) */
   embeddingLimit: number;
-  /** Max requests per minute for vouch endpoints (default: 10) */
-  vouchLimit: number;
   /** Max requests per minute for signing request creation (default: 5) */
   signingLimit: number;
   /** Max requests per minute shared by agent-key lifecycle writes (default: 5) */
@@ -166,7 +164,6 @@ async function rateLimitPluginImpl(
     globalAuthLimit,
     globalAnonLimit,
     embeddingLimit,
-    vouchLimit,
     signingLimit,
     agentKeyLimit,
     recoveryLimit,
@@ -277,10 +274,6 @@ async function rateLimitPluginImpl(
       max: embeddingLimit,
       timeWindow: '1 minute',
     },
-    vouch: {
-      max: vouchLimit,
-      timeWindow: '1 minute',
-    },
     signing: {
       max: signingLimit,
       timeWindow: '1 minute',
@@ -343,7 +336,6 @@ declare module 'fastify' {
     };
     rateLimitConfig: {
       embedding: { max: number; timeWindow: string };
-      vouch: { max: number; timeWindow: string };
       signing: { max: number; timeWindow: string };
       recovery: { max: number; timeWindow: string };
       publicSearch: { max: number; timeWindow: string };

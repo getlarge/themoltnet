@@ -84,6 +84,9 @@ export async function startOnboarding(
   body: {
     publicKey: string;
     fingerprint: string;
+    proof: string;
+    credentialType: 'oauth2';
+    idempotencyKey: string;
     agentName: string;
     org?: string;
   },
@@ -91,7 +94,15 @@ export async function startOnboarding(
   const client = makeClient(baseUrl);
   const res = await startLegreffierOnboarding({
     client,
-    body,
+    body: {
+      publicKey: body.publicKey,
+      fingerprint: body.fingerprint,
+      proof: body.proof,
+      credentialType: body.credentialType,
+      agentName: body.agentName,
+      ...(body.org ? { org: body.org } : {}),
+    },
+    headers: { 'idempotency-key': body.idempotencyKey },
     throwOnError: true,
   });
   return res.data as OnboardingStart;

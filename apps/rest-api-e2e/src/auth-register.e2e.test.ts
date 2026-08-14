@@ -1,386 +1,303 @@
-/**
- * E2E: POST /auth/register — Registration Proxy
- *
- * Tests the server-side proxy that wraps the Kratos self-service
- * registration flow into a single POST call. Covers:
- *
- * 1. Happy path: valid public key + voucher → identity + OAuth2 credentials
- * 2. Returned credentials work for client_credentials grant
- * 3. Returned credentials allow calling /agents/whoami
- * 4. Invalid voucher → 403 with detail mentioning voucher
- * 5. Malformed public key → 400 with detail mentioning ed25519
- * 6. Already-used voucher → 403
- * 7. Rotate client secret → new secret works, old secret invalidated
- * 8. Rotate-secret without auth → 401
- * 9. Missing required fields → 400
- */
+import { createHash, randomBytes } from 'node:crypto';
 
-import { createClient, getWhoami } from '@moltnet/api-client';
+import {
+  type Client,
+  createAgentEnrollment,
+  createClient,
+  createTeam,
+  enrollAgent,
+  getWhoami,
+  revokeAgentEnrollment,
+  rotateClientSecret,
+} from '@moltnet/api-client';
+import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
 import { cryptoService } from '@moltnet/crypto-service';
+import {
+  buildSelfRegistrationMessage,
+  buildTeamRegistrationMessage,
+} from '@moltnet/models';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createTestVoucher } from './helpers.js';
+import { createAgent, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
-describe('POST /auth/register', () => {
+async function signedSelfRegistration(credentialType: 'oauth2' | 'agent_key') {
+  const keyPair = await cryptoService.generateKeyPair();
+  const idempotencyKey = randomBytes(32).toString('base64url');
+  const proof = await cryptoService.sign(
+    buildSelfRegistrationMessage({
+      idempotencyKey,
+      publicKey: keyPair.publicKey,
+      credentialType,
+    }),
+    keyPair.privateKey,
+  );
+  return { credentialType, idempotencyKey, keyPair, proof };
+}
+
+async function signedTeamRegistration(token: string) {
+  const keyPair = await cryptoService.generateKeyPair();
+  const idempotencyKey = randomBytes(32).toString('base64url');
+  const enrollmentTokenHash = createHash('sha256').update(token).digest('hex');
+  const proof = await cryptoService.sign(
+    buildTeamRegistrationMessage({
+      enrollmentTokenHash,
+      idempotencyKey,
+      publicKey: keyPair.publicKey,
+      credentialType: 'oauth2',
+    }),
+    keyPair.privateKey,
+  );
+  return { idempotencyKey, keyPair, proof };
+}
+
+function requestOAuthToken(
+  baseUrl: string,
+  clientId: string,
+  clientSecret: string,
+) {
+  return fetch(`${baseUrl}/oauth2/token`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: clientId,
+      client_secret: clientSecret,
+      scope: AGENT_OAUTH_SCOPES.join(' '),
+    }),
+  });
+}
+
+describe('proof-based registration', () => {
   let harness: TestHarness;
+  let client: Client;
+  let manager: TestAgent;
 
   beforeAll(async () => {
     harness = await createTestHarness();
-  });
-
-  afterAll(async () => {
-    await harness?.teardown();
-  });
-
-  // ── Happy Path ──────────────────────────────────────────────
-
-  it('registers an agent with valid public key and voucher', async () => {
-    const keyPair = await cryptoService.generateKeyPair();
-    const voucherCode = await createTestVoucher({
+    client = createClient({ baseUrl: harness.baseUrl });
+    manager = await createAgent({
+      baseUrl: harness.baseUrl,
       db: harness.db,
-      issuerId: harness.bootstrapIdentityId,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
     });
+  });
+  afterAll(async () => harness?.teardown());
 
-    const res = await fetch(`${harness.baseUrl}/auth/register`, {
+  it('self-registers and returns a usable OAuth2 credential', async () => {
+    const input = await signedSelfRegistration('oauth2');
+    const response = await fetch(`${harness.baseUrl}/auth/register`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
+        'content-type': 'application/json',
+        'idempotency-key': input.idempotencyKey,
       },
       body: JSON.stringify({
-        public_key: keyPair.publicKey,
-        voucher_code: voucherCode,
+        publicKey: input.keyPair.publicKey,
+        proof: input.proof,
+        credentialType: input.credentialType,
       }),
     });
-
-    expect(res.status).toBe(200);
-
-    const data = (await res.json()) as {
+    expect(response.status).toBe(200);
+    const result = (await response.json()) as {
       identityId: string;
       fingerprint: string;
       publicKey: string;
-      clientId: string;
-      clientSecret: string;
+      credential: {
+        type: 'oauth2';
+        clientId: string;
+        clientSecret: string;
+      };
     };
+    expect(result.fingerprint).toBe(input.keyPair.fingerprint);
+    expect(result.publicKey).toBe(input.keyPair.publicKey);
+    expect(result.credential.type).toBe('oauth2');
 
-    expect(data.identityId).toBeDefined();
-    expect(data.fingerprint).toBe(keyPair.fingerprint);
-    expect(data.publicKey).toBe(keyPair.publicKey);
-    expect(data.clientId).toBeDefined();
-    expect(data.clientSecret).toBeDefined();
+    const tokenResponse = await requestOAuthToken(
+      harness.baseUrl,
+      result.credential.clientId,
+      result.credential.clientSecret,
+    );
+    expect(tokenResponse.status).toBe(200);
   });
 
-  // ── Credential Flow ───────────────────────────────────────────
+  it('returns the original credential when the exact request is retried', async () => {
+    const input = await signedSelfRegistration('oauth2');
+    const request = () =>
+      fetch(`${harness.baseUrl}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'idempotency-key': input.idempotencyKey,
+        },
+        body: JSON.stringify({
+          publicKey: input.keyPair.publicKey,
+          proof: input.proof,
+          credentialType: input.credentialType,
+        }),
+      });
 
-  it('returned credentials can acquire a Bearer token', async () => {
-    const keyPair = await cryptoService.generateKeyPair();
-    const voucherCode = await createTestVoucher({
-      db: harness.db,
-      issuerId: harness.bootstrapIdentityId,
-    });
-
-    const regRes = await fetch(`${harness.baseUrl}/auth/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify({
-        public_key: keyPair.publicKey,
-        voucher_code: voucherCode,
-      }),
-    });
-
-    expect(regRes.status).toBe(200);
-    const creds = (await regRes.json()) as {
-      clientId: string;
-      clientSecret: string;
-    };
-
-    // Exchange credentials for an access token
-    const tokenRes = await fetch(`${harness.baseUrl}/oauth2/token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'client_credentials',
-        client_id: creds.clientId,
-        client_secret: creds.clientSecret,
-      }),
-    });
-
-    expect(tokenRes.status).toBe(200);
-    const tokenData = (await tokenRes.json()) as { access_token: string };
-    expect(tokenData.access_token).toBeDefined();
+    const first = await request();
+    const second = await request();
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(await second.json()).toEqual(await first.json());
   });
 
-  it('returned credentials allow calling /agents/whoami', async () => {
-    const keyPair = await cryptoService.generateKeyPair();
-    const voucherCode = await createTestVoucher({
-      db: harness.db,
-      issuerId: harness.bootstrapIdentityId,
-    });
-
-    const regRes = await fetch(`${harness.baseUrl}/auth/register`, {
+  it('creates exactly one agent-key credential when selected', async () => {
+    const input = await signedSelfRegistration('agent_key');
+    const response = await fetch(`${harness.baseUrl}/auth/register`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
+        'content-type': 'application/json',
+        'idempotency-key': input.idempotencyKey,
       },
       body: JSON.stringify({
-        public_key: keyPair.publicKey,
-        voucher_code: voucherCode,
+        publicKey: input.keyPair.publicKey,
+        proof: input.proof,
+        credentialType: input.credentialType,
       }),
     });
-
-    expect(regRes.status).toBe(200);
-    const creds = (await regRes.json()) as {
-      identityId: string;
-      fingerprint: string;
-      clientId: string;
-      clientSecret: string;
+    expect(response.status).toBe(200);
+    const result = (await response.json()) as {
+      credential: { type: string; key: { id: string }; secret: string };
     };
+    expect(result.credential.type).toBe('agent_key');
+    expect(result.credential.key.id.length).toBeGreaterThan(0);
+    expect(result.credential.secret.length).toBeGreaterThan(0);
+  });
 
-    // Get access token
-    const tokenRes = await fetch(`${harness.baseUrl}/oauth2/token`, {
+  it('rejects a proof after the nonce is modified', async () => {
+    const input = await signedSelfRegistration('oauth2');
+    const response = await fetch(`${harness.baseUrl}/auth/register`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'client_credentials',
-        client_id: creds.clientId,
-        client_secret: creds.clientSecret,
+      headers: {
+        'content-type': 'application/json',
+        'idempotency-key': randomBytes(32).toString('base64url'),
+      },
+      body: JSON.stringify({
+        publicKey: input.keyPair.publicKey,
+        proof: input.proof,
+        credentialType: input.credentialType,
       }),
     });
+    expect(response.status).toBe(400);
+    expect((await response.json()) as { code: string }).toEqual(
+      expect.objectContaining({ code: 'INVALID_SIGNATURE' }),
+    );
+  });
 
-    const { access_token } = (await tokenRes.json()) as {
-      access_token: string;
-    };
-
-    // Call whoami with the token
-    const client = createClient({ baseUrl: harness.baseUrl });
-    const { data, error } = await getWhoami({
+  it('enrolls an agent whose OAuth2 credential can authenticate', async () => {
+    const { data: team, error: teamError } = await createTeam({
       client,
-      auth: () => access_token,
+      auth: () => manager.accessToken,
+      body: { name: `enrollment-happy-${Date.now()}` },
     });
+    expect(teamError).toBeUndefined();
 
-    expect(error).toBeUndefined();
-    expect(data!.identityId).toBe(creds.identityId);
-    expect(data!.fingerprint).toBe(creds.fingerprint);
-    expect(data!.clientId).toBe(creds.clientId);
+    const { data: enrollment, error: enrollmentError } =
+      await createAgentEnrollment({
+        client,
+        auth: () => manager.accessToken,
+        headers: { 'x-moltnet-team-id': team!.id },
+        body: { expiresInMinutes: 15 },
+      });
+    expect(enrollmentError).toBeUndefined();
+
+    const input = await signedTeamRegistration(enrollment!.token);
+    const enrolled = await enrollAgent({
+      client,
+      headers: { 'idempotency-key': input.idempotencyKey },
+      body: {
+        token: enrollment!.token,
+        publicKey: input.keyPair.publicKey,
+        proof: input.proof,
+        credentialType: 'oauth2',
+      },
+    });
+    expect(enrolled.response.status).toBe(200);
+    expect(enrolled.error).toBeUndefined();
+    expect(enrolled.data?.credential.type).toBe('oauth2');
+    if (enrolled.data?.credential.type !== 'oauth2') {
+      throw new Error('Enrollment did not return an OAuth2 credential');
+    }
+
+    const tokenResponse = await requestOAuthToken(
+      harness.baseUrl,
+      enrolled.data.credential.clientId,
+      enrolled.data.credential.clientSecret,
+    );
+    expect(tokenResponse.status).toBe(200);
+    const token = (await tokenResponse.json()) as { access_token: string };
+    const whoami = await getWhoami({
+      client,
+      auth: () => token.access_token,
+    });
+    expect(whoami.response.status).toBe(200);
+    expect(whoami.data?.identityId).toBe(enrolled.data.identityId);
   });
 
-  // ── Error Cases ─────────────────────────────────────────────
-
-  it('rejects registration with invalid voucher code (403)', async () => {
-    const keyPair = await cryptoService.generateKeyPair();
-
-    const res = await fetch(`${harness.baseUrl}/auth/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify({
-        public_key: keyPair.publicKey,
-        voucher_code:
-          'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
-      }),
+  it('prevents redemption after an enrollment is revoked', async () => {
+    const { data: team, error: teamError } = await createTeam({
+      client,
+      auth: () => manager.accessToken,
+      body: { name: `enrollment-revoke-${Date.now()}` },
     });
+    expect(teamError).toBeUndefined();
 
-    expect(res.status).toBe(403);
+    const { data: enrollment, error: enrollmentError } =
+      await createAgentEnrollment({
+        client,
+        auth: () => manager.accessToken,
+        headers: { 'x-moltnet-team-id': team!.id },
+        body: { expiresInMinutes: 15 },
+      });
+    expect(enrollmentError).toBeUndefined();
 
-    const data = (await res.json()) as { detail?: string; code?: string };
-    expect(data.detail?.toLowerCase()).toContain('voucher');
+    const revoked = await revokeAgentEnrollment({
+      client,
+      auth: () => manager.accessToken,
+      headers: { 'x-moltnet-team-id': team!.id },
+      path: { id: enrollment!.id },
+    });
+    expect(revoked.response.status).toBe(204);
+    expect(revoked.error).toBeUndefined();
+
+    const input = await signedTeamRegistration(enrollment!.token);
+    const redemption = await enrollAgent({
+      client,
+      headers: { 'idempotency-key': input.idempotencyKey },
+      body: {
+        token: enrollment!.token,
+        publicKey: input.keyPair.publicKey,
+        proof: input.proof,
+        credentialType: 'oauth2',
+      },
+    });
+    expect(redemption.response.status).toBe(403);
+    expect(redemption.data).toBeUndefined();
   });
 
-  it('rejects registration with malformed voucher code format (400)', async () => {
-    const keyPair = await cryptoService.generateKeyPair();
-
-    const res = await fetch(`${harness.baseUrl}/auth/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify({
-        public_key: keyPair.publicKey,
-        voucher_code: 'not-a-hex-string',
-      }),
+  it('invalidates the old OAuth2 secret when rotating credentials', async () => {
+    const rotated = await rotateClientSecret({
+      client,
+      auth: () => manager.accessToken,
     });
+    expect(rotated.response.status).toBe(200);
+    expect(rotated.error).toBeUndefined();
 
-    expect(res.status).toBe(400);
-  });
+    const oldSecretResponse = await requestOAuthToken(
+      harness.baseUrl,
+      manager.clientId,
+      manager.clientSecret,
+    );
+    expect(oldSecretResponse.status).toBe(401);
 
-  it('rejects registration with malformed public key (400)', async () => {
-    const voucherCode = await createTestVoucher({
-      db: harness.db,
-      issuerId: harness.bootstrapIdentityId,
-    });
-
-    const res = await fetch(`${harness.baseUrl}/auth/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify({
-        public_key: 'not-ed25519-format',
-        voucher_code: voucherCode,
-      }),
-    });
-
-    expect(res.status).toBe(400);
-
-    const data = (await res.json()) as { detail?: string; code?: string };
-    expect(data.detail?.toLowerCase()).toContain('ed25519');
-  });
-
-  it('rejects registration with already-used voucher (403)', async () => {
-    // Use the voucher with the first registration
-    const keyPair1 = await cryptoService.generateKeyPair();
-    const voucherCode = await createTestVoucher({
-      db: harness.db,
-      issuerId: harness.bootstrapIdentityId,
-    });
-
-    const res1 = await fetch(`${harness.baseUrl}/auth/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify({
-        public_key: keyPair1.publicKey,
-        voucher_code: voucherCode,
-      }),
-    });
-    expect(res1.status).toBe(200);
-
-    // Try to reuse the same voucher
-    const keyPair2 = await cryptoService.generateKeyPair();
-
-    const res2 = await fetch(`${harness.baseUrl}/auth/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify({
-        public_key: keyPair2.publicKey,
-        voucher_code: voucherCode,
-      }),
-    });
-
-    expect(res2.status).toBe(403);
-  });
-
-  // ── Rotate Secret ──────────────────────────────────────────
-
-  it('rotates client secret and new secret works', async () => {
-    const keyPair = await cryptoService.generateKeyPair();
-    const voucherCode = await createTestVoucher({
-      db: harness.db,
-      issuerId: harness.bootstrapIdentityId,
-    });
-
-    // Register
-    const regRes = await fetch(`${harness.baseUrl}/auth/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify({
-        public_key: keyPair.publicKey,
-        voucher_code: voucherCode,
-      }),
-    });
-    expect(regRes.status).toBe(200);
-    const creds = (await regRes.json()) as {
-      clientId: string;
-      clientSecret: string;
-    };
-    const oldSecret = creds.clientSecret;
-
-    // Get access token with original credentials
-    const tokenRes = await fetch(`${harness.baseUrl}/oauth2/token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'client_credentials',
-        client_id: creds.clientId,
-        client_secret: creds.clientSecret,
-      }),
-    });
-    const { access_token } = (await tokenRes.json()) as {
-      access_token: string;
-    };
-
-    // Rotate the secret
-    const rotateRes = await fetch(`${harness.baseUrl}/auth/rotate-secret`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${access_token}`,
-        Accept: 'application/json',
-      },
-    });
-
-    expect(rotateRes.status).toBe(200);
-    const rotated = (await rotateRes.json()) as {
-      clientId: string;
-      clientSecret: string;
-    };
-
-    expect(rotated.clientId).toBe(creds.clientId);
-    expect(rotated.clientSecret).toBeDefined();
-    expect(rotated.clientSecret).not.toBe(oldSecret);
-
-    // New secret works for token acquisition
-    const newTokenRes = await fetch(`${harness.baseUrl}/oauth2/token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'client_credentials',
-        client_id: rotated.clientId,
-        client_secret: rotated.clientSecret,
-      }),
-    });
-    expect(newTokenRes.status).toBe(200);
-
-    // Old secret no longer works
-    const oldTokenRes = await fetch(`${harness.baseUrl}/oauth2/token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'client_credentials',
-        client_id: creds.clientId,
-        client_secret: oldSecret,
-      }),
-    });
-    expect(oldTokenRes.status).not.toBe(200);
-  });
-
-  it('rejects rotate-secret without authentication', async () => {
-    const res = await fetch(`${harness.baseUrl}/auth/rotate-secret`, {
-      method: 'POST',
-      headers: { Accept: 'application/json' },
-    });
-
-    expect(res.status).toBe(401);
-  });
-
-  // ── Validation ──────────────────────────────────────────────
-
-  it('returns 400 when body is missing required fields', async () => {
-    const res = await fetch(`${harness.baseUrl}/auth/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify({}),
-    });
-
-    expect(res.status).toBe(400);
+    const newSecretResponse = await requestOAuthToken(
+      harness.baseUrl,
+      rotated.data!.clientId,
+      rotated.data!.clientSecret,
+    );
+    expect(newSecretResponse.status).toBe(200);
   });
 });

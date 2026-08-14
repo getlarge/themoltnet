@@ -25,7 +25,7 @@ Prerequisites:
   - Verify: npx clawhub whoami
 
 Examples:
-  $(basename "$0") --changelog "Added trust graph tools"
+  $(basename "$0") --changelog "Updated task tools"
   $(basename "$0") --dry-run
 EOF
 }

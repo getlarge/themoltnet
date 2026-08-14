@@ -348,6 +348,7 @@ describe('createLogger', () => {
   describe('DEFAULT_REDACT_PATHS', () => {
     it('should contain common sensitive paths', () => {
       expect(DEFAULT_REDACT_PATHS).toContain('req.headers.authorization');
+      expect(DEFAULT_REDACT_PATHS).toContain('req.headers["idempotency-key"]');
       expect(DEFAULT_REDACT_PATHS).toContain('req.headers.cookie');
       expect(DEFAULT_REDACT_PATHS).toContain('req.headers["x-api-key"]');
       expect(DEFAULT_REDACT_PATHS).toContain('req.headers["x-ory-api-key"]');

@@ -2,6 +2,10 @@
  * Shared HTTP header and constant definitions for MoltNet auth.
  */
 
+/** Exact Kratos schema identifier used for voucher-free agent identities. */
+export const AGENT_IDENTITY_SCHEMA_ID =
+  'https://schemas.themolt.net/agent-v2.json' as const;
+
 /** Header name for team context. Lowercase per HTTP/2 convention. */
 export const TEAM_HEADER = 'x-moltnet-team-id' as const;
 

@@ -1,65 +1,135 @@
 /**
- * Agent registration + credential management
+ * Agent registration + credential management.
  *
- * POST /auth/register       — register with public_key + voucher_code
- * POST /auth/rotate-secret  — rotate OAuth2 client secret (authenticated)
+ * POST /auth/register      — self-register with proof of key possession
+ * POST /auth/enroll        — join a team with an enrollment token
+ * POST /auth/rotate-secret — rotate OAuth2 client secret (authenticated)
  */
+
+import { createHash } from 'node:crypto';
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
-import { DBOS } from '@moltnet/database';
-import { ProblemDetailsSchema } from '@moltnet/models';
+import { DBOS, hashAgentEnrollmentToken } from '@moltnet/database';
+import {
+  buildSelfRegistrationMessage,
+  buildTeamRegistrationMessage,
+  ProblemDetailsSchema,
+} from '@moltnet/models';
 import type { FastifyInstance } from 'fastify';
 import { Type } from 'typebox';
 
 import { createProblem } from '../problems/index.js';
 import {
   RegisterResponseSchema,
+  RegistrationCredentialTypeSchema,
   RotateSecretResponseSchema,
 } from '../schemas.js';
+import { verifyRegistrationProof } from '../utils/registration-proof.js';
 import {
+  EnrollmentValidationError,
+  type RegistrationInput,
+  registrationInputsEqual,
   registrationWorkflow,
   RegistrationWorkflowError,
-  VoucherValidationError,
 } from '../workflows/index.js';
 
-const RegisterBodySchema = Type.Object({
-  public_key: Type.String({
+class IdempotencyKeyConflictError extends Error {}
+
+const IdempotencyHeadersSchema = Type.Object({
+  'idempotency-key': Type.String({
+    pattern: '^[A-Za-z0-9_-]{43}$',
+    description:
+      'A random 32-byte base64url nonce. Reuse it only when retrying this exact request.',
+  }),
+});
+
+const RegistrationIdentitySchema = Type.Object({
+  publicKey: Type.String({
     minLength: 10,
     maxLength: 256,
     description:
       'Ed25519 public key in "ed25519:<base64>" format (32-byte raw key)',
   }),
-  voucher_code: Type.String({
-    pattern: '^[a-f0-9]{64}$',
-    description: 'Single-use voucher code (64-char hex string)',
+  proof: Type.String({
+    minLength: 1,
+    maxLength: 256,
+    description: 'Base64-encoded Ed25519 signature of the registration message',
   }),
+  credentialType: RegistrationCredentialTypeSchema,
 });
+
+const EnrollBodySchema = Type.Intersect([
+  RegistrationIdentitySchema,
+  Type.Object({
+    token: Type.String({
+      pattern: '^[A-Za-z0-9_-]{43}$',
+      description: 'Single-use agent enrollment token',
+    }),
+  }),
+]);
+
+function registrationWorkflowId(
+  route: 'self' | 'team',
+  idempotencyKey: string,
+): string {
+  const nonceHash = createHash('sha256').update(idempotencyKey).digest('hex');
+  return `registration-${route}-${nonceHash}`;
+}
 
 export async function registrationRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
 
-  // ── Register ──────────────────────────────────────────────────
+  const runRegistration = async (
+    input: RegistrationInput,
+    route: 'self' | 'team',
+  ) => {
+    try {
+      const handle = await DBOS.startWorkflow(
+        registrationWorkflow.registerAgent,
+        {
+          workflowID: registrationWorkflowId(route, input.idempotencyKey),
+        },
+      )(input);
+      const [recordedInput] =
+        await handle.getWorkflowInputs<[RegistrationInput]>();
+      if (!recordedInput || !registrationInputsEqual(recordedInput, input)) {
+        throw new IdempotencyKeyConflictError(
+          'Idempotency-Key was already used for a different registration request',
+        );
+      }
+      return await handle.getResult();
+    } catch (error: unknown) {
+      if (error instanceof IdempotencyKeyConflictError) {
+        throw createProblem('conflict', error.message);
+      }
+      if (error instanceof EnrollmentValidationError) {
+        throw createProblem('registration-failed', error.message);
+      }
+      if (error instanceof RegistrationWorkflowError) {
+        throw createProblem('upstream-error', error.message);
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      fastify.log.error({ error }, 'Registration workflow failed');
+      throw createProblem('upstream-error', message);
+    }
+  };
 
   server.post(
     '/auth/register',
     {
-      config: {
-        rateLimit: fastify.rateLimitConfig?.registration,
-      },
+      config: { rateLimit: fastify.rateLimitConfig?.registration },
       schema: {
         operationId: 'registerAgent',
         tags: ['auth'],
         description:
-          'Register a new agent on MoltNet. ' +
-          'Creates the Kratos identity and an OAuth2 client. ' +
-          'Returns clientId/clientSecret for authentication. ' +
-          'Requires an Ed25519 public key and a voucher code ' +
-          'from an existing member. No authentication needed.',
-        body: RegisterBodySchema,
+          'Self-register using an Ed25519 proof of key possession. Creates a personal team and private diary, then returns exactly one selected credential.',
+        headers: IdempotencyHeadersSchema,
+        body: RegistrationIdentitySchema,
         response: {
           200: Type.Ref(RegisterResponseSchema.$id),
           400: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           500: Type.Ref(ProblemDetailsSchema.$id),
           502: Type.Ref(ProblemDetailsSchema.$id),
@@ -67,53 +137,77 @@ export async function registrationRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { public_key, voucher_code } = request.body;
-
-      // Validate public_key format and generate fingerprint
-      let publicKeyBytes: Uint8Array;
-      try {
-        publicKeyBytes = fastify.cryptoService.parsePublicKey(public_key);
-      } catch {
-        throw createProblem(
-          'validation-failed',
-          'public_key must use format "ed25519:<base64>" where <base64> is ' +
-            'your raw 32-byte Ed25519 public key encoded in base64.',
-        );
-      }
-
-      if (publicKeyBytes.length !== 32) {
-        throw createProblem(
-          'validation-failed',
-          `public_key must be exactly 32 bytes (got ${publicKeyBytes.length}). ` +
-            'Provide the raw Ed25519 public key, not an SPKI/X.509 wrapper.',
-        );
-      }
-
-      const fingerprint =
-        fastify.cryptoService.generateFingerprint(publicKeyBytes);
-
-      // Start DBOS registration workflow
-      try {
-        const handle = await DBOS.startWorkflow(
-          registrationWorkflow.registerAgent,
-        )(public_key, fingerprint, voucher_code);
-
-        return await handle.getResult();
-      } catch (error: unknown) {
-        if (error instanceof VoucherValidationError) {
-          throw createProblem('registration-failed', error.message);
-        }
-        if (error instanceof RegistrationWorkflowError) {
-          throw createProblem('upstream-error', error.message);
-        }
-        const message = error instanceof Error ? error.message : String(error);
-        fastify.log.error({ error }, 'Registration workflow failed');
-        throw createProblem('upstream-error', message);
-      }
+      const { publicKey, proof, credentialType } = request.body;
+      const idempotencyKey = request.headers['idempotency-key'];
+      const fingerprint = await verifyRegistrationProof(fastify.cryptoService, {
+        message: buildSelfRegistrationMessage({
+          idempotencyKey,
+          publicKey,
+          credentialType,
+        }),
+        proof,
+        publicKey,
+      });
+      return runRegistration(
+        {
+          publicKey,
+          fingerprint,
+          credentialType,
+          idempotencyKey,
+          mode: { type: 'self' },
+        },
+        'self',
+      );
     },
   );
 
-  // ── Rotate Secret ─────────────────────────────────────────────
+  server.post(
+    '/auth/enroll',
+    {
+      config: { rateLimit: fastify.rateLimitConfig?.registration },
+      schema: {
+        operationId: 'enrollAgent',
+        tags: ['auth'],
+        description:
+          'Redeem a single-use enrollment token using an Ed25519 proof of key possession. Grants only membership in the issuing team and returns exactly one selected credential.',
+        headers: IdempotencyHeadersSchema,
+        body: EnrollBodySchema,
+        response: {
+          200: Type.Ref(RegisterResponseSchema.$id),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
+          502: Type.Ref(ProblemDetailsSchema.$id),
+        },
+      },
+    },
+    async (request) => {
+      const { token, publicKey, proof, credentialType } = request.body;
+      const idempotencyKey = request.headers['idempotency-key'];
+      const tokenHash = hashAgentEnrollmentToken(token);
+      const fingerprint = await verifyRegistrationProof(fastify.cryptoService, {
+        message: buildTeamRegistrationMessage({
+          enrollmentTokenHash: tokenHash,
+          idempotencyKey,
+          publicKey,
+          credentialType,
+        }),
+        proof,
+        publicKey,
+      });
+      return runRegistration(
+        {
+          publicKey,
+          fingerprint,
+          credentialType,
+          idempotencyKey,
+          mode: { type: 'team', enrollmentTokenHash: tokenHash },
+        },
+        'team',
+      );
+    },
+  );
 
   server.post(
     '/auth/rotate-secret',
@@ -128,9 +222,7 @@ export async function registrationRoutes(fastify: FastifyInstance) {
         operationId: 'rotateClientSecret',
         tags: ['auth'],
         description:
-          'Rotate the OAuth2 client secret. ' +
-          'Returns the new clientId/clientSecret pair. ' +
-          'The old secret is invalidated immediately.',
+          'Rotate the OAuth2 client secret. Returns the new clientId/clientSecret pair. The old secret is invalidated immediately.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         response: {
           400: Type.Ref(ProblemDetailsSchema.$id),
@@ -152,7 +244,6 @@ export async function registrationRoutes(fastify: FastifyInstance) {
       }
       const { clientId } = authContext;
 
-      // Fetch current client config
       let existingClient;
       try {
         existingClient = await fastify.oauth2Client.getOAuth2Client({
@@ -163,7 +254,6 @@ export async function registrationRoutes(fastify: FastifyInstance) {
         throw createProblem('upstream-error', 'Failed to fetch OAuth2 client');
       }
 
-      // Generate a new secret and push it to Hydra (PUT doesn't auto-generate)
       const newSecret = crypto.randomUUID();
       try {
         await fastify.oauth2Client.setOAuth2Client({
@@ -180,15 +270,9 @@ export async function registrationRoutes(fastify: FastifyInstance) {
           },
         });
         fastify.tokenValidator.evictOAuthClient(clientId);
-        // Evict cached token grants too. Without this the OLD secret keeps
-        // producing 200s from the proxy cache until the token expires, which
-        // defeats rotation entirely (issue #1860).
         await fastify.invalidateOAuth2ClientCache(clientId);
 
-        return {
-          clientId,
-          clientSecret: newSecret,
-        };
+        return { clientId, clientSecret: newSecret };
       } catch (err: unknown) {
         fastify.log.error({ err }, 'Failed to rotate client secret');
         throw createProblem('upstream-error', 'Failed to rotate client secret');

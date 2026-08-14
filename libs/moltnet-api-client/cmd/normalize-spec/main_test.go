@@ -25,6 +25,52 @@ func TestTryConvertEnum_BasicPattern(t *testing.T) {
 	}
 }
 
+func TestConvertReferencedDiscriminatedUnions(t *testing.T) {
+	spec := map[string]any{
+		"components": map[string]any{
+			"schemas": map[string]any{
+				"OAuth": map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"type": map[string]any{"type": "string", "enum": []any{"oauth2"}},
+					},
+				},
+				"AgentKey": map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"type": map[string]any{"type": "string", "enum": []any{"agent_key"}},
+					},
+				},
+				"Response": map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"credential": map[string]any{
+							"anyOf": []any{
+								map[string]any{"$ref": "#/components/schemas/OAuth"},
+								map[string]any{"$ref": "#/components/schemas/AgentKey"},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	convertReferencedDiscriminatedUnions(spec)
+	schemas := spec["components"].(map[string]any)["schemas"].(map[string]any)
+	credential := schemas["Response"].(map[string]any)["properties"].(map[string]any)["credential"].(map[string]any)
+	if _, ok := credential["anyOf"]; ok {
+		t.Fatal("anyOf should be removed")
+	}
+	if len(credential["oneOf"].([]any)) != 2 {
+		t.Fatal("expected two referenced variants")
+	}
+	discriminator := credential["discriminator"].(map[string]any)
+	if discriminator["propertyName"] != "type" {
+		t.Fatalf("unexpected discriminator: %v", discriminator)
+	}
+}
+
 func TestTryConvertEnum_PreservesDescription(t *testing.T) {
 	input := map[string]any{
 		"description": "Entry memory type",

@@ -2,7 +2,7 @@
 /**
  * bootstrap-local-agent — provision a throwaway agent against the local stack.
  *
- * Bypasses the voucher system (uses the same path as the genesis bootstrap)
+ * Uses the same direct infrastructure path as the genesis bootstrap.
  * and writes the resulting agent into `.moltnet/<name>/` in the canonical
  * shape so the SDK, agent-daemon, and `tools/src/tasks/create-task.ts` can
  * all use it via `--agent <name>`.

@@ -37,15 +37,15 @@ func TestInfoMissingServer(t *testing.T) {
 	}
 }
 
-func TestRegisterRequiresVoucher(t *testing.T) {
+func TestRegisterRequiresCredentialType(t *testing.T) {
 	t.Parallel()
 	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "register")
 	if err == nil {
-		t.Fatal("expected error when voucher is missing, got nil")
+		t.Fatal("expected error when credential type is missing, got nil")
 	}
-	if !strings.Contains(err.Error(), "voucher") {
-		t.Errorf("expected error to mention 'voucher', got: %v", err)
+	if !strings.Contains(err.Error(), "credential-type") {
+		t.Errorf("expected error to mention 'credential-type', got: %v", err)
 	}
 }
 
@@ -56,8 +56,8 @@ func TestRegisterHelp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !strings.Contains(stdout, "--voucher") {
-		t.Errorf("expected help to contain '--voucher', got: %s", stdout)
+	if !strings.Contains(stdout, "--credential-type") {
+		t.Errorf("expected help to contain '--credential-type', got: %s", stdout)
 	}
 	if !strings.Contains(stdout, "Example") {
 		t.Errorf("expected help to contain 'Example', got: %s", stdout)
@@ -487,49 +487,6 @@ func TestCryptoIdentityNoCreds(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "crypto", "identity")
-	if err == nil {
-		t.Fatal("expected error when no credentials found, got nil")
-	}
-	if !strings.Contains(err.Error(), "no credentials found") &&
-		!strings.Contains(err.Error(), "no config found") {
-		t.Errorf("expected 'no credentials found' error, got: %v", err)
-	}
-}
-
-// --- vouch command tests ---
-
-func TestVouchNoSubcommand(t *testing.T) {
-	t.Parallel()
-	root := NewRootCmd("test", "")
-	stdout, _, err := executeCommand(root, "vouch")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !strings.Contains(stdout, "issue") {
-		t.Errorf("expected vouch help to list 'issue' subcommand, got: %s", stdout)
-	}
-	if !strings.Contains(stdout, "list") {
-		t.Errorf("expected vouch help to list 'list' subcommand, got: %s", stdout)
-	}
-}
-
-func TestVouchIssueNoCreds(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
-	root := NewRootCmd("test", "")
-	_, _, err := executeCommand(root, "vouch", "issue")
-	if err == nil {
-		t.Fatal("expected error when no credentials found, got nil")
-	}
-	if !strings.Contains(err.Error(), "no credentials found") &&
-		!strings.Contains(err.Error(), "no config found") {
-		t.Errorf("expected 'no credentials found' error, got: %v", err)
-	}
-}
-
-func TestVouchListNoCreds(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
-	root := NewRootCmd("test", "")
-	_, _, err := executeCommand(root, "vouch", "list")
 	if err == nil {
 		t.Fatal("expected error when no credentials found, got nil")
 	}
@@ -1225,7 +1182,7 @@ func TestCredentialsFlagPlumbedToAgentsWhoami(t *testing.T) {
 	}
 }
 
-func TestCredentialsFlagPlumbedToVouchList(t *testing.T) {
+func TestCredentialsFlagPlumbedToAgentEnrollmentCreate(t *testing.T) {
 	kp, err := GenerateKeyPair()
 	if err != nil {
 		t.Fatalf("generate keypair: %v", err)
@@ -1242,7 +1199,8 @@ func TestCredentialsFlagPlumbedToVouchList(t *testing.T) {
 
 	t.Setenv("HOME", t.TempDir())
 	root := NewRootCmd("test", "")
-	_, _, err = executeCommand(root, "vouch", "list",
+	_, _, err = executeCommand(root, "agents", "enrollments", "create",
+		"--team-id", "00000000-0000-0000-0000-000000000001",
 		"--credentials", credPath,
 		"--api-url", "http://127.0.0.1:1")
 	if err == nil {
@@ -1317,38 +1275,6 @@ func TestCredentialsFlagPlumbedToSignRequestID(t *testing.T) {
 	// The error should be about connection, not about missing credentials
 	if strings.Contains(err.Error(), "no credentials found") {
 		t.Errorf("credentials flag was ignored — got 'no credentials found' error: %v", err)
-	}
-}
-
-// --- Issue 5: vouch has examples ---
-
-func TestVouchIssueHelpShowsExample(t *testing.T) {
-	t.Parallel()
-	root := NewRootCmd("test", "")
-	stdout, _, err := executeCommand(root, "vouch", "issue", "--help")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !strings.Contains(stdout, "Example") {
-		t.Errorf("expected vouch issue help to contain 'Example', got: %s", stdout)
-	}
-	if !strings.Contains(stdout, "moltnet vouch issue") {
-		t.Errorf("expected vouch issue help to contain example command, got: %s", stdout)
-	}
-}
-
-func TestVouchListHelpShowsExample(t *testing.T) {
-	t.Parallel()
-	root := NewRootCmd("test", "")
-	stdout, _, err := executeCommand(root, "vouch", "list", "--help")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !strings.Contains(stdout, "Example") {
-		t.Errorf("expected vouch list help to contain 'Example', got: %s", stdout)
-	}
-	if !strings.Contains(stdout, "moltnet vouch list") {
-		t.Errorf("expected vouch list help to contain example command, got: %s", stdout)
 	}
 }
 

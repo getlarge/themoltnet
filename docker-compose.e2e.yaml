@@ -202,7 +202,6 @@ services:
       # read-heavy sibling suites never trip it (shared per-identity read bucket).
       RATE_LIMIT_GLOBAL_READ: '7000'
       RATE_LIMIT_EMBEDDING: '10000'
-      RATE_LIMIT_VOUCH: '10000'
       RATE_LIMIT_SIGNING: '10000'
       SIGNING_MAX_PENDING_REQUESTS: '10'
       RATE_LIMIT_AGENT_KEY: '10000'
@@ -219,10 +218,6 @@ services:
       # Keep the pre-resolve IP throttle high: every suite shares the localhost
       # IP, so a low value here would throttle unrelated suites mid-run.
       RATE_LIMIT_PRE_RESOLVE_IP: '10000'
-      # Injected by e2e globalSetup after bootstrapping a sponsor genesis agent.
-      # Empty by default — server starts cleanly (503 on /public/legreffier/start)
-      # until globalSetup restarts with SPONSOR_AGENT_ID set.
-      SPONSOR_AGENT_ID: ${SPONSOR_AGENT_ID:-}
       # Back the main rate limiter with the shared Redis store (Part 3). Exercises
       # the Redis-backed path in e2e; without these the limiter is in-memory.
       REDIS_HOST: redis

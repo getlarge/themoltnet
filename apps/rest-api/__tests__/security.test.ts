@@ -247,7 +247,7 @@ describe('Security features', () => {
         max: 1000, // Test limit
         timeWindow: '1 minute',
       });
-      expect(app.rateLimitConfig.vouch).toEqual({
+      expect(app.rateLimitConfig.registration).toEqual({
         max: 1000, // Test limit
         timeWindow: '1 minute',
       });

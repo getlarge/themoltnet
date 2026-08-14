@@ -13,8 +13,14 @@ export function createLegreffierNamespace(
   const { client } = context;
 
   return {
-    async startOnboarding(body) {
-      return unwrapResult(await startLegreffierOnboarding({ client, body }));
+    async startOnboarding(body, idempotencyKey) {
+      return unwrapResult(
+        await startLegreffierOnboarding({
+          client,
+          body,
+          headers: { 'idempotency-key': idempotencyKey },
+        }),
+      );
     },
 
     async getOnboardingStatus(workflowId) {

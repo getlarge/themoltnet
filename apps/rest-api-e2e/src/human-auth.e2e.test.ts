@@ -197,7 +197,6 @@ describe('Human Authentication E2E', { timeout: 60_000 }, () => {
               schema_id: 'moltnet_agent',
               traits: {
                 public_key: 'ed25519:AAAA',
-                voucher_code: 'fake',
               },
             },
           }),

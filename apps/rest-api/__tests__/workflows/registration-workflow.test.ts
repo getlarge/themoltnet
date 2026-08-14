@@ -1,492 +1,270 @@
-import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// ── DBOS Mock (vi.hoisted for proper hoisting) ────────────────
+const { registerStep, registerWorkflow } = vi.hoisted(() => ({
+  registerStep: vi.fn((fn) => fn),
+  registerWorkflow: vi.fn((fn) => fn),
+}));
 
-const { mockRegisterStep, mockRegisterWorkflow, mockLogger } = vi.hoisted(
-  () => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-    const mockRegisterStep = vi.fn((fn: Function) => fn);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-    const mockRegisterWorkflow = vi.fn((fn: Function) => fn);
-    const mockLogger = {
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-    };
-    return { mockRegisterStep, mockRegisterWorkflow, mockLogger };
-  },
-);
-
-vi.mock('@moltnet/database', async (importOriginal) => {
-  const original = (await importOriginal()) as Record<string, unknown>;
-  return {
-    ...original,
-    DBOS: {
-      registerStep: mockRegisterStep,
-      registerWorkflow: mockRegisterWorkflow,
-      logger: mockLogger,
-    },
-  };
-});
-
-// ── Imports (after mock) ──────────────────────────────────────
+vi.mock('@moltnet/database', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  DBOS: { registerStep, registerWorkflow },
+}));
 
 import {
+  EnrollmentValidationError,
   initRegistrationWorkflow,
   registrationWorkflow,
-  RegistrationWorkflowError,
   setRegistrationDeps,
-  VoucherValidationError,
-} from '../../src/workflows/index.js';
+} from '../../src/workflows/registration-workflow.js';
 
-// ── Mock Dependencies ─────────────────────────────────────────
+const IDENTITY_ID = '550e8400-e29b-41d4-a716-446655440000';
+const TEAM_ID = '660e8400-e29b-41d4-a716-446655440000';
+const PUBLIC_KEY = 'ed25519:dGVzdA==';
+const FINGERPRINT = 'AAAA-BBBB-CCCC-DDDD';
+const TOKEN_HASH = 'f'.repeat(64);
 
-function createMockDeps() {
+function createDeps() {
+  const diary = {
+    id: '770e8400-e29b-41d4-a716-446655440000',
+    name: 'Private',
+    teamId: TEAM_ID,
+  };
   return {
     identityApi: {
-      listIdentitySchemas: vi.fn(),
-      createIdentity: vi.fn(),
+      listIdentitySchemas: vi.fn().mockResolvedValue([
+        {
+          id: 'agent-v1',
+          schema: { $id: 'https://schemas.themolt.net/agent.json' },
+        },
+        {
+          id: 'agent-v2',
+          schema: { $id: 'https://schemas.themolt.net/agent-v2.json' },
+        },
+      ]),
+      createIdentity: vi.fn().mockResolvedValue({ id: IDENTITY_ID }),
       deleteIdentity: vi.fn(),
     },
     oauth2Api: {
       createOAuth2Client: vi.fn(),
+      deleteOAuth2Client: vi.fn(),
+      setOAuth2Client: vi.fn(),
     },
-    voucherRepository: {
-      findByCode: vi.fn(),
-      redeem: vi.fn(),
+    agentEnrollmentRepository: {
+      findPendingByTokenHash: vi.fn().mockResolvedValue({ teamId: TEAM_ID }),
+      redeem: vi.fn().mockResolvedValue({ teamId: TEAM_ID }),
+      releaseRedemption: vi.fn().mockResolvedValue(true),
     },
     agentRepository: {
       upsert: vi.fn(),
+      delete: vi.fn(),
     },
     diaryRepository: {
       listByCreator: vi.fn().mockResolvedValue([]),
-      create: vi
-        .fn()
-        .mockResolvedValue({ id: 'private-diary-id', name: 'Private' }),
+      create: vi.fn().mockResolvedValue(diary),
+      delete: vi.fn().mockResolvedValue(true),
     },
     teamRepository: {
       findPersonalByCreator: vi.fn().mockResolvedValue(null),
-      create: vi.fn().mockResolvedValue({ id: 'personal-team-id' }),
+      create: vi.fn().mockResolvedValue({ id: TEAM_ID }),
+      delete: vi.fn().mockResolvedValue(true),
     },
     relationshipWriter: {
       registerAgent: vi.fn(),
+      removeAgentRelations: vi.fn(),
       grantTeamOwners: vi.fn(),
+      grantTeamMembers: vi.fn(),
+      removeTeamMemberRelation: vi.fn(),
       grantDiaryTeam: vi.fn(),
+      removeDiaryRelations: vi.fn(),
     },
+    issueAgentKey: vi.fn().mockResolvedValue({
+      key: {
+        id: 'key-id',
+        agentId: IDENTITY_ID,
+        teamId: TEAM_ID,
+        name: 'Bootstrap credential',
+        scopes: [],
+        status: 'active',
+        createdAt: null,
+        expiresAt: null,
+        lastUsedAt: null,
+        updatedAt: null,
+        revocationReason: null,
+        revocationDescription: null,
+      },
+      secret: 'agent-secret',
+    }),
     dataSource: {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-      runTransaction: vi.fn((fn: Function) => fn()),
-      client: {},
+      runTransaction: vi.fn(async (fn) => fn()),
     },
-    logger: {
-      info: vi.fn(),
-      warn: vi.fn(),
-      debug: vi.fn(),
-      error: vi.fn(),
-    },
+    logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
   };
 }
-
-type MockDeps = ReturnType<typeof createMockDeps>;
-
-// ── Fixtures ──────────────────────────────────────────────────
-
-const PUBLIC_KEY = 'ed25519:test-public-key-base64';
-const FINGERPRINT = 'ABCD-EF01-2345-6789';
-const VOUCHER_CODE = 'valid-voucher-code';
-const IDENTITY_ID = 'identity-123';
-const CLIENT_ID = 'client-123';
-const CLIENT_SECRET = 'secret-456';
-
-function createValidVoucher() {
-  return {
-    id: 'voucher-1',
-    code: VOUCHER_CODE,
-    issuerId: 'issuer-123',
-    redeemedBy: null,
-    redeemedAt: null,
-    expiresAt: new Date(Date.now() + 3_600_000), // 1 hour from now
-    createdAt: new Date(),
-  };
-}
-
-function setupHappyPath(mocks: MockDeps) {
-  mocks.voucherRepository.findByCode.mockResolvedValue(createValidVoucher());
-
-  mocks.identityApi.listIdentitySchemas.mockResolvedValue([
-    {
-      id: 'schema-hash-123',
-      schema: { $id: 'https://schemas.themolt.net/agent.json' },
-    },
-  ]);
-
-  mocks.identityApi.createIdentity.mockResolvedValue({ id: IDENTITY_ID });
-
-  mocks.agentRepository.upsert.mockResolvedValue(undefined);
-
-  mocks.voucherRepository.redeem.mockResolvedValue({
-    ...createValidVoucher(),
-    redeemedBy: IDENTITY_ID,
-    redeemedAt: new Date(),
-  });
-
-  mocks.relationshipWriter.registerAgent.mockResolvedValue(undefined);
-
-  mocks.oauth2Api.createOAuth2Client.mockResolvedValue({
-    client_id: CLIENT_ID,
-    client_secret: CLIENT_SECRET,
-  });
-}
-
-// ── Tests ─────────────────────────────────────────────────────
 
 describe('registration workflow', () => {
-  let mocks: MockDeps;
+  beforeAll(() => initRegistrationWorkflow());
 
-  beforeAll(() => {
-    initRegistrationWorkflow();
+  beforeEach(() => vi.clearAllMocks());
+
+  it('self-registers with a personal team, private diary, and OAuth2 credential', async () => {
+    const deps = createDeps();
+    setRegistrationDeps(deps as never);
+
+    const result = await registrationWorkflow.registerAgent({
+      publicKey: PUBLIC_KEY,
+      fingerprint: FINGERPRINT,
+      credentialType: 'oauth2',
+      idempotencyKey: 'nonce',
+      mode: { type: 'self' },
+    });
+
+    expect(result).toEqual({
+      identityId: IDENTITY_ID,
+      publicKey: PUBLIC_KEY,
+      fingerprint: FINGERPRINT,
+      credential: {
+        type: 'oauth2',
+        clientId: `moltnet-agent-${IDENTITY_ID}`,
+        clientSecret: expect.any(String),
+      },
+    });
+    expect(deps.teamRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ personal: true }),
+    );
+    expect(deps.identityApi.createIdentity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        createIdentityBody: expect.objectContaining({ schema_id: 'agent-v2' }),
+      }),
+    );
+    expect(deps.relationshipWriter.grantTeamOwners).toHaveBeenCalledOnce();
+    expect(deps.diaryRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Private', visibility: 'private' }),
+    );
+    expect(deps.issueAgentKey).not.toHaveBeenCalled();
   });
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mocks = createMockDeps();
-    setRegistrationDeps(mocks as never);
+  it('atomically redeems an enrollment and grants only Team#members', async () => {
+    const deps = createDeps();
+    setRegistrationDeps(deps as never);
+
+    const result = await registrationWorkflow.registerAgent({
+      publicKey: PUBLIC_KEY,
+      fingerprint: FINGERPRINT,
+      credentialType: 'agent_key',
+      idempotencyKey: 'nonce',
+      mode: { type: 'team', enrollmentTokenHash: TOKEN_HASH },
+    });
+
+    expect(result.credential).toEqual(
+      expect.objectContaining({ type: 'agent_key', secret: 'agent-secret' }),
+    );
+    expect(deps.agentEnrollmentRepository.redeem).toHaveBeenCalledWith(
+      TOKEN_HASH,
+      IDENTITY_ID,
+    );
+    expect(deps.relationshipWriter.grantTeamMembers).toHaveBeenCalledWith(
+      TEAM_ID,
+      IDENTITY_ID,
+      'Agent',
+    );
+    expect(deps.relationshipWriter.grantTeamOwners).not.toHaveBeenCalled();
+    expect(deps.teamRepository.create).not.toHaveBeenCalled();
+    expect(deps.diaryRepository.create).not.toHaveBeenCalled();
+    expect(deps.issueAgentKey).toHaveBeenCalledWith(
+      expect.objectContaining({
+        idempotencyKey: 'nonce',
+        recoverReplayByRotation: true,
+        teamId: TEAM_ID,
+      }),
+    );
   });
 
-  describe('happy path', () => {
-    it('registers an agent and returns credentials', async () => {
-      // Arrange
-      setupHappyPath(mocks);
+  it('allows only one winner when redemption loses a concurrent race', async () => {
+    const deps = createDeps();
+    deps.agentEnrollmentRepository.redeem.mockResolvedValueOnce(null);
+    setRegistrationDeps(deps as never);
 
-      // Act
-      const result = await registrationWorkflow.registerAgent(
-        PUBLIC_KEY,
-        FINGERPRINT,
-        VOUCHER_CODE,
-      );
-
-      // Assert
-      expect(result).toEqual({
-        identityId: IDENTITY_ID,
-        fingerprint: FINGERPRINT,
+    await expect(
+      registrationWorkflow.registerAgent({
         publicKey: PUBLIC_KEY,
-        clientId: CLIENT_ID,
-        clientSecret: CLIENT_SECRET,
-      });
+        fingerprint: FINGERPRINT,
+        credentialType: 'oauth2',
+        idempotencyKey: 'nonce',
+        mode: { type: 'team', enrollmentTokenHash: TOKEN_HASH },
+      }),
+    ).rejects.toThrow(EnrollmentValidationError);
+    expect(deps.oauth2Api.createOAuth2Client).not.toHaveBeenCalled();
+    expect(deps.identityApi.deleteIdentity).toHaveBeenCalledWith({
+      id: IDENTITY_ID,
+    });
+  });
 
-      // Verify step calls
-      expect(mocks.voucherRepository.findByCode).toHaveBeenCalledWith(
-        VOUCHER_CODE,
-      );
-      expect(mocks.identityApi.createIdentity).toHaveBeenCalledWith({
-        createIdentityBody: expect.objectContaining({
-          schema_id: 'schema-hash-123',
-          traits: {
-            public_key: PUBLIC_KEY,
-            voucher_code: VOUCHER_CODE,
-          },
-        }),
-      });
-      expect(mocks.agentRepository.upsert).toHaveBeenCalledWith({
-        identityId: IDENTITY_ID,
+  it('compensates self-registration resources when credential creation fails', async () => {
+    const deps = createDeps();
+    deps.oauth2Api.createOAuth2Client.mockRejectedValueOnce(
+      new Error('Hydra unavailable'),
+    );
+    deps.teamRepository.findPersonalByCreator
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: TEAM_ID });
+    deps.diaryRepository.listByCreator
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        { id: 'diary-id', name: 'Private', teamId: TEAM_ID },
+      ]);
+    setRegistrationDeps(deps as never);
+
+    await expect(
+      registrationWorkflow.registerAgent({
         publicKey: PUBLIC_KEY,
         fingerprint: FINGERPRINT,
-      });
-      expect(mocks.voucherRepository.redeem).toHaveBeenCalledWith(
-        VOUCHER_CODE,
-        IDENTITY_ID,
-      );
-      expect(mocks.relationshipWriter.registerAgent).toHaveBeenCalledWith(
-        IDENTITY_ID,
-      );
-      expect(mocks.oauth2Api.createOAuth2Client).toHaveBeenCalledWith({
-        oAuth2Client: expect.objectContaining({
-          client_name: `Agent: ${FINGERPRINT}`,
-          grant_types: ['client_credentials'],
-          scope: AGENT_OAUTH_SCOPES.join(' '),
-          metadata: expect.objectContaining({
-            identity_id: IDENTITY_ID,
-            public_key: PUBLIC_KEY,
-            fingerprint: FINGERPRINT,
-          }),
-        }),
-      });
+        credentialType: 'oauth2',
+        idempotencyKey: 'nonce',
+        mode: { type: 'self' },
+      }),
+    ).rejects.toThrow('Hydra unavailable');
+    expect(deps.relationshipWriter.removeDiaryRelations).toHaveBeenCalledWith(
+      'diary-id',
+    );
+    expect(deps.relationshipWriter.removeAgentRelations).toHaveBeenCalledWith(
+      IDENTITY_ID,
+    );
+    expect(deps.oauth2Api.deleteOAuth2Client).toHaveBeenCalledWith({
+      id: `moltnet-agent-${IDENTITY_ID}`,
+    });
+    expect(deps.teamRepository.delete).toHaveBeenCalledWith(TEAM_ID);
+    expect(deps.agentRepository.delete).toHaveBeenCalledWith(IDENTITY_ID);
+    expect(deps.identityApi.deleteIdentity).toHaveBeenCalledWith({
+      id: IDENTITY_ID,
     });
   });
 
-  describe('voucher validation', () => {
-    it('throws when voucher is not found', async () => {
-      // Arrange
-      mocks.voucherRepository.findByCode.mockResolvedValue(null);
+  it('releases a redeemed enrollment when credential creation fails', async () => {
+    const deps = createDeps();
+    deps.issueAgentKey.mockRejectedValueOnce(new Error('Talos unavailable'));
+    setRegistrationDeps(deps as never);
 
-      // Act & Assert
-      await expect(
-        registrationWorkflow.registerAgent(
-          PUBLIC_KEY,
-          FINGERPRINT,
-          VOUCHER_CODE,
-        ),
-      ).rejects.toThrow(VoucherValidationError);
-
-      await expect(
-        registrationWorkflow.registerAgent(
-          PUBLIC_KEY,
-          FINGERPRINT,
-          VOUCHER_CODE,
-        ),
-      ).rejects.toThrow('Voucher not found');
-
-      // No further steps called
-      expect(mocks.identityApi.createIdentity).not.toHaveBeenCalled();
-      expect(mocks.dataSource.runTransaction).not.toHaveBeenCalled();
-    });
-
-    it('throws when voucher has expired', async () => {
-      // Arrange
-      const expiredVoucher = {
-        ...createValidVoucher(),
-        expiresAt: new Date(Date.now() - 3_600_000), // 1 hour ago
-      };
-      mocks.voucherRepository.findByCode.mockResolvedValue(expiredVoucher);
-
-      // Act & Assert
-      await expect(
-        registrationWorkflow.registerAgent(
-          PUBLIC_KEY,
-          FINGERPRINT,
-          VOUCHER_CODE,
-        ),
-      ).rejects.toThrow(VoucherValidationError);
-
-      await expect(
-        registrationWorkflow.registerAgent(
-          PUBLIC_KEY,
-          FINGERPRINT,
-          VOUCHER_CODE,
-        ),
-      ).rejects.toThrow('Voucher has expired');
-
-      expect(mocks.identityApi.createIdentity).not.toHaveBeenCalled();
-    });
-
-    it('throws when voucher has already been redeemed', async () => {
-      // Arrange
-      const redeemedVoucher = {
-        ...createValidVoucher(),
-        redeemedAt: new Date(),
-        redeemedBy: 'some-other-agent',
-      };
-      mocks.voucherRepository.findByCode.mockResolvedValue(redeemedVoucher);
-
-      // Act & Assert
-      await expect(
-        registrationWorkflow.registerAgent(
-          PUBLIC_KEY,
-          FINGERPRINT,
-          VOUCHER_CODE,
-        ),
-      ).rejects.toThrow(VoucherValidationError);
-
-      await expect(
-        registrationWorkflow.registerAgent(
-          PUBLIC_KEY,
-          FINGERPRINT,
-          VOUCHER_CODE,
-        ),
-      ).rejects.toThrow('Voucher has already been redeemed');
-
-      expect(mocks.identityApi.createIdentity).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('schema resolution', () => {
-    it('throws when no agent identity schema is found', async () => {
-      // Arrange
-      mocks.voucherRepository.findByCode.mockResolvedValue(
-        createValidVoucher(),
-      );
-      mocks.identityApi.listIdentitySchemas.mockResolvedValue([
-        {
-          id: 'other-schema',
-          schema: { $id: 'https://example.com/user.json' },
-        },
-      ]);
-
-      // Act & Assert
-      await expect(
-        registrationWorkflow.registerAgent(
-          PUBLIC_KEY,
-          FINGERPRINT,
-          VOUCHER_CODE,
-        ),
-      ).rejects.toThrow(RegistrationWorkflowError);
-
-      await expect(
-        registrationWorkflow.registerAgent(
-          PUBLIC_KEY,
-          FINGERPRINT,
-          VOUCHER_CODE,
-        ),
-      ).rejects.toThrow('Agent identity schema not found');
-
-      // No identity created
-      expect(mocks.identityApi.createIdentity).not.toHaveBeenCalled();
-    });
-
-    it('throws when schemas list is empty', async () => {
-      // Arrange
-      mocks.voucherRepository.findByCode.mockResolvedValue(
-        createValidVoucher(),
-      );
-      mocks.identityApi.listIdentitySchemas.mockResolvedValue([]);
-
-      // Act & Assert
-      await expect(
-        registrationWorkflow.registerAgent(
-          PUBLIC_KEY,
-          FINGERPRINT,
-          VOUCHER_CODE,
-        ),
-      ).rejects.toThrow(RegistrationWorkflowError);
-
-      expect(mocks.identityApi.createIdentity).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('compensation', () => {
-    it('does not compensate when Kratos identity creation fails', async () => {
-      // Arrange
-      mocks.voucherRepository.findByCode.mockResolvedValue(
-        createValidVoucher(),
-      );
-      mocks.identityApi.listIdentitySchemas.mockResolvedValue([
-        {
-          id: 'schema-hash-123',
-          schema: { $id: 'https://schemas.themolt.net/agent.json' },
-        },
-      ]);
-      mocks.identityApi.createIdentity.mockRejectedValue(
-        new Error('Kratos unavailable'),
-      );
-
-      // Act & Assert
-      await expect(
-        registrationWorkflow.registerAgent(
-          PUBLIC_KEY,
-          FINGERPRINT,
-          VOUCHER_CODE,
-        ),
-      ).rejects.toThrow('Kratos unavailable');
-
-      // No compensation since identity doesn't exist
-      expect(mocks.identityApi.deleteIdentity).not.toHaveBeenCalled();
-    });
-
-    it('compensates by deleting Kratos identity when DB transaction fails', async () => {
-      // Arrange
-      mocks.voucherRepository.findByCode.mockResolvedValue(
-        createValidVoucher(),
-      );
-      mocks.identityApi.listIdentitySchemas.mockResolvedValue([
-        {
-          id: 'schema-hash-123',
-          schema: { $id: 'https://schemas.themolt.net/agent.json' },
-        },
-      ]);
-      mocks.identityApi.createIdentity.mockResolvedValue({ id: IDENTITY_ID });
-      mocks.dataSource.runTransaction.mockRejectedValue(new Error('DB error'));
-      mocks.identityApi.deleteIdentity.mockResolvedValue(undefined);
-
-      // Act & Assert
-      await expect(
-        registrationWorkflow.registerAgent(
-          PUBLIC_KEY,
-          FINGERPRINT,
-          VOUCHER_CODE,
-        ),
-      ).rejects.toThrow('DB error');
-
-      expect(mocks.identityApi.deleteIdentity).toHaveBeenCalledWith({
-        id: IDENTITY_ID,
-      });
-    });
-
-    it('compensates by deleting Kratos identity when Keto registration fails', async () => {
-      // Arrange
-      setupHappyPath(mocks);
-      mocks.relationshipWriter.registerAgent.mockRejectedValue(
-        new Error('Keto unavailable'),
-      );
-      mocks.identityApi.deleteIdentity.mockResolvedValue(undefined);
-
-      // Act & Assert
-      await expect(
-        registrationWorkflow.registerAgent(
-          PUBLIC_KEY,
-          FINGERPRINT,
-          VOUCHER_CODE,
-        ),
-      ).rejects.toThrow('Keto unavailable');
-
-      expect(mocks.identityApi.deleteIdentity).toHaveBeenCalledWith({
-        id: IDENTITY_ID,
-      });
-    });
-
-    it('compensates by deleting Kratos identity when OAuth2 client creation fails', async () => {
-      // Arrange
-      setupHappyPath(mocks);
-      mocks.oauth2Api.createOAuth2Client.mockRejectedValue(
-        new Error('Hydra unavailable'),
-      );
-      mocks.identityApi.deleteIdentity.mockResolvedValue(undefined);
-
-      // Act & Assert
-      await expect(
-        registrationWorkflow.registerAgent(
-          PUBLIC_KEY,
-          FINGERPRINT,
-          VOUCHER_CODE,
-        ),
-      ).rejects.toThrow('Hydra unavailable');
-
-      expect(mocks.identityApi.deleteIdentity).toHaveBeenCalledWith({
-        id: IDENTITY_ID,
-      });
-    });
-
-    it('re-throws original error when compensation also fails', async () => {
-      // Arrange
-      mocks.voucherRepository.findByCode.mockResolvedValue(
-        createValidVoucher(),
-      );
-      mocks.identityApi.listIdentitySchemas.mockResolvedValue([
-        {
-          id: 'schema-hash-123',
-          schema: { $id: 'https://schemas.themolt.net/agent.json' },
-        },
-      ]);
-      mocks.identityApi.createIdentity.mockResolvedValue({ id: IDENTITY_ID });
-      mocks.dataSource.runTransaction.mockRejectedValue(new Error('DB error'));
-      mocks.identityApi.deleteIdentity.mockRejectedValue(
-        new Error('Kratos delete also failed'),
-      );
-
-      // Act & Assert — original error is thrown, not compensation error
-      await expect(
-        registrationWorkflow.registerAgent(
-          PUBLIC_KEY,
-          FINGERPRINT,
-          VOUCHER_CODE,
-        ),
-      ).rejects.toThrow('DB error');
-
-      // Compensation failure logged via injected logger (not DBOS.logger)
-      expect(mocks.logger.error).toHaveBeenCalledWith(
-        expect.objectContaining({ identityId: IDENTITY_ID }),
-        'registration.compensation_failed',
-      );
+    await expect(
+      registrationWorkflow.registerAgent({
+        publicKey: PUBLIC_KEY,
+        fingerprint: FINGERPRINT,
+        credentialType: 'agent_key',
+        idempotencyKey: 'nonce',
+        mode: { type: 'team', enrollmentTokenHash: TOKEN_HASH },
+      }),
+    ).rejects.toThrow('Talos unavailable');
+    expect(
+      deps.relationshipWriter.removeTeamMemberRelation,
+    ).toHaveBeenCalledWith(TEAM_ID, IDENTITY_ID, 'Agent');
+    expect(deps.relationshipWriter.removeAgentRelations).toHaveBeenCalledWith(
+      IDENTITY_ID,
+    );
+    expect(
+      deps.agentEnrollmentRepository.releaseRedemption,
+    ).toHaveBeenCalledWith(TOKEN_HASH, IDENTITY_ID);
+    expect(deps.agentRepository.delete).toHaveBeenCalledWith(IDENTITY_ID);
+    expect(deps.identityApi.deleteIdentity).toHaveBeenCalledWith({
+      id: IDENTITY_ID,
     });
   });
 });

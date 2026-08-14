@@ -9,6 +9,13 @@ import {
 } from './api.js';
 
 const BASE_URL = 'http://localhost:8000';
+const SIGNED_IDENTITY = {
+  publicKey: 'ed25519:abc',
+  fingerprint: 'A1B2-C3D4-E5F6-G7H8',
+  proof: 'proof',
+  credentialType: 'oauth2' as const,
+  idempotencyKey: 'A'.repeat(43),
+};
 
 function makeResponse(body: unknown, status = 200) {
   return {
@@ -34,8 +41,7 @@ describe('startOnboarding', () => {
     );
 
     const result = await startOnboarding(BASE_URL, {
-      publicKey: 'ed25519:abc',
-      fingerprint: 'A1B2-C3D4-E5F6-G7H8',
+      ...SIGNED_IDENTITY,
       agentName: 'my-agent',
     });
 
@@ -63,8 +69,7 @@ describe('startOnboarding', () => {
       });
 
     const result = await startOnboarding(BASE_URL, {
-      publicKey: 'ed25519:abc',
-      fingerprint: 'A1B2-C3D4-E5F6-G7H8',
+      ...SIGNED_IDENTITY,
       agentName: 'my-agent',
       org: 'my-org',
     });
@@ -94,8 +99,7 @@ describe('startOnboarding', () => {
     );
 
     await startOnboarding(BASE_URL, {
-      publicKey: 'ed25519:abc',
-      fingerprint: 'A1B2-C3D4-E5F6-G7H8',
+      ...SIGNED_IDENTITY,
       agentName: 'my-agent',
     });
 
@@ -109,8 +113,7 @@ describe('startOnboarding', () => {
 
     await expect(
       startOnboarding(BASE_URL, {
-        publicKey: 'ed25519:abc',
-        fingerprint: 'A1B2-C3D4-E5F6-G7H8',
+        ...SIGNED_IDENTITY,
         agentName: 'my-agent',
       }),
     ).rejects.toThrow();

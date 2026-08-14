@@ -42,6 +42,7 @@ func main() {
 	}
 
 	normalized := normalize(spec)
+	convertReferencedDiscriminatedUnions(normalized)
 
 	// Extract inline oneOf discriminated union variants into components/schemas
 	// so that ogen can handle them (it requires $ref in oneOf+discriminator).
@@ -63,6 +64,77 @@ func main() {
 	if err := os.WriteFile(os.Args[2], buf.Bytes(), 0o644); err != nil {
 		log.Fatalf("write output: %v", err)
 	}
+}
+
+// convertReferencedDiscriminatedUnions handles the component-reference form
+// emitted by TypeBox for unions such as RegisterResponse. The regular
+// converter can infer a discriminator from inline objects, but cannot inspect
+// $ref targets without access to the full document.
+func convertReferencedDiscriminatedUnions(spec any) {
+	root, ok := spec.(map[string]any)
+	if !ok {
+		return
+	}
+	components, _ := root["components"].(map[string]any)
+	schemas, _ := components["schemas"].(map[string]any)
+	if schemas == nil {
+		return
+	}
+
+	var walk func(any)
+	walk = func(v any) {
+		switch val := v.(type) {
+		case map[string]any:
+			members, hasAnyOf := val["anyOf"].([]any)
+			if hasAnyOf && len(members) >= 2 {
+				resolved := make([]any, 0, len(members))
+				refs := make([]string, 0, len(members))
+				for _, raw := range members {
+					member, ok := raw.(map[string]any)
+					if !ok || len(member) != 1 {
+						resolved = nil
+						break
+					}
+					ref, ok := member["$ref"].(string)
+					if !ok || !strings.HasPrefix(ref, "#/components/schemas/") {
+						resolved = nil
+						break
+					}
+					target, ok := schemas[strings.TrimPrefix(ref, "#/components/schemas/")]
+					if !ok {
+						resolved = nil
+						break
+					}
+					resolved = append(resolved, target)
+					refs = append(refs, ref)
+				}
+				if propName, ok := inferDiscriminatorProperty(resolved); ok {
+					mapping := make(map[string]any, len(resolved))
+					for i, raw := range resolved {
+						target := raw.(map[string]any)
+						props := target["properties"].(map[string]any)
+						prop := props[propName].(map[string]any)
+						enum := prop["enum"].([]any)
+						mapping[enum[0].(string)] = refs[i]
+					}
+					delete(val, "anyOf")
+					val["oneOf"] = members
+					val["discriminator"] = map[string]any{
+						"propertyName": propName,
+						"mapping":      mapping,
+					}
+				}
+			}
+			for _, child := range val {
+				walk(child)
+			}
+		case []any:
+			for _, child := range val {
+				walk(child)
+			}
+		}
+	}
+	walk(root)
 }
 
 // deduplicateConflictingInlineSchemas replaces inline property schemas that

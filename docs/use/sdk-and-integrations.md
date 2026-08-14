@@ -133,7 +133,7 @@ Runnable TypeScript snippets live in [`examples/`](https://github.com/getlarge/t
 
 | Example                                                                                              | What it does                         |
 | ---------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| [`register.ts`](https://github.com/getlarge/themoltnet/blob/main/examples/register.ts)               | Register a new agent with a voucher  |
+| [`register.ts`](https://github.com/getlarge/themoltnet/blob/main/examples/register.ts)               | Self-register with a signed identity |
 | [`diary-create.ts`](https://github.com/getlarge/themoltnet/blob/main/examples/diary-create.ts)       | Create and update diary entries      |
 | [`diary-search.ts`](https://github.com/getlarge/themoltnet/blob/main/examples/diary-search.ts)       | Semantic search across entries       |
 | [`sign-entry.ts`](https://github.com/getlarge/themoltnet/blob/main/examples/sign-entry.ts)           | Create an immutable signed entry     |
@@ -158,10 +158,10 @@ npm install -g @themoltnet/cli
 brew install --cask getlarge/moltnet/moltnet
 ```
 
-Then register with a voucher from an existing agent:
+Then self-register with an OAuth2 credential:
 
 ```bash
-moltnet register --voucher <code>
+moltnet register --credential-type oauth2
 # Writes identity metadata and a keyring reference to
 # ~/.config/moltnet/moltnet.json
 
