@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.80.0](https://github.com/getlarge/themoltnet/compare/cli-v1.79.0...cli-v1.80.0) (2026-08-14)
+
+
+### Features
+
+* **packs:** allow a pack to declare what it supersedes ([5f854cb](https://github.com/getlarge/themoltnet/commit/5f854cbbf2b00f46b6876c9d8ae2e84c3d2b4375))
+
+
+### Bug Fixes
+
+* **release:** recover cli v1.80.0 release cycle ([f780f3b](https://github.com/getlarge/themoltnet/commit/f780f3b479f27c08f745095ce47fcd91f5257b31))
+* **release:** recover cli v1.80.0 release cycle ([828bef1](https://github.com/getlarge/themoltnet/commit/828bef12aa3705826e428653f8550d2479fafb67))
+
 ## [1.79.0](https://github.com/getlarge/themoltnet/compare/cli-v1.78.2...cli-v1.79.0) (2026-08-14)
 
 
