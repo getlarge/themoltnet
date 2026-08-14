@@ -807,7 +807,7 @@ export async function createTestApp(
     listIdentitySchemas: vi.fn().mockResolvedValue([
       {
         id: 'moltnet_agent',
-        schema: { $id: 'https://schemas.themolt.net/agent.json' },
+        schema: { $id: 'https://schemas.themolt.net/agent-v2.json' },
       },
       {
         id: 'moltnet_human',

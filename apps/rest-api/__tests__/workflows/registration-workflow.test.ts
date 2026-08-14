@@ -31,11 +31,16 @@ function createDeps() {
   };
   return {
     identityApi: {
-      listIdentitySchemas: vi
-        .fn()
-        .mockResolvedValue([
-          { id: 'agent', schema: { $id: 'https://example.test/agent' } },
-        ]),
+      listIdentitySchemas: vi.fn().mockResolvedValue([
+        {
+          id: 'agent-v1',
+          schema: { $id: 'https://schemas.themolt.net/agent.json' },
+        },
+        {
+          id: 'agent-v2',
+          schema: { $id: 'https://schemas.themolt.net/agent-v2.json' },
+        },
+      ]),
       createIdentity: vi.fn().mockResolvedValue({ id: IDENTITY_ID }),
       deleteIdentity: vi.fn(),
     },
@@ -125,6 +130,11 @@ describe('registration workflow', () => {
     });
     expect(deps.teamRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({ personal: true }),
+    );
+    expect(deps.identityApi.createIdentity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        createIdentityBody: expect.objectContaining({ schema_id: 'agent-v2' }),
+      }),
     );
     expect(deps.relationshipWriter.grantTeamOwners).toHaveBeenCalledOnce();
     expect(deps.diaryRepository.create).toHaveBeenCalledWith(

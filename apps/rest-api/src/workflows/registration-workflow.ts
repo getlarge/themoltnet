@@ -4,6 +4,7 @@ import type {
   IssueAgentKeyInput,
 } from '@moltnet/agent-key-service';
 import {
+  AGENT_IDENTITY_SCHEMA_ID,
   AGENT_OAUTH_SCOPES,
   KetoNamespace,
   type RelationshipWriter,
@@ -156,10 +157,12 @@ export function initRegistrationWorkflow(): void {
       const schemas = await identityApi.listIdentitySchemas();
       const agentSchema = schemas.find(
         (schema) =>
-          (schema.schema as { $id?: string })?.$id?.includes('agent') ?? false,
+          (schema.schema as { $id?: string })?.$id === AGENT_IDENTITY_SCHEMA_ID,
       );
       if (!agentSchema) {
-        throw new RegistrationWorkflowError('Agent identity schema not found');
+        throw new RegistrationWorkflowError(
+          `Agent identity schema not found: ${AGENT_IDENTITY_SCHEMA_ID}`,
+        );
       }
       const identity = await identityApi.createIdentity({
         createIdentityBody: {
