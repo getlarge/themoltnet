@@ -330,10 +330,12 @@ The daemon enforces tool policy through a Pi extension that gates every
    allowed-tool and shell-command sets once, through the SDK
    (`runtimeProfiles.allowedTools(profileId, { teamId })`). The fetch is bounded
    by a **5-second deadline**. `off` short-circuits with no network call.
-2. **Snapshot.** The resolved policy is cached for the session's lifetime. A
-   policy edit made while a task is running takes effect on the **next** session,
-   not mid-run — a deliberate trade for stable, predictable enforcement during a
-   run.
+2. **Execution snapshot.** The latest effective profile policy returned at
+   session start is cached for the session's lifetime. It is distinct from the
+   immutable claim snapshot used as claim and derived-credential evidence. A
+   policy edit made before session start applies immediately; an edit made while
+   a session is running takes effect on the **next** session, not mid-run — a
+   deliberate trade for stable, predictable enforcement during a run.
 3. **Model-visible capability projection.** The same snapshot filters the
    session's visible tools. Their tool definitions are the authoritative
    structured-tool surface; the immutable runtime kernel adds the enforcement
@@ -344,10 +346,17 @@ The daemon enforces tool policy through a Pi extension that gates every
    model guidance aligned with the gate without making the prompt an
    authorization mechanism.
 4. **Gate.** For each `tool_call`, the extension runs the decision above and
-   returns block/allow/audit. Blocks and audits are logged with the task and
-   attempt context.
+   returns block/allow/audit. Allowed, audited, and blocked decisions are logged
+   with task, attempt, team, claimant, proposer, tool-call, enforcement,
+   claim-hash, execution-hash, profile-revision, and safe shell-fingerprint
+   evidence. Generic tool arguments and shell literals are never logged.
 5. **Subagents.** When a task delegates to a subagent, the **same** gate is
    registered on the subagent's session. Delegation cannot escape enforcement.
+
+When the immutable claim hash differs from the session's execution hash, the
+runtime emits one informational `tool_policy.snapshot_drift` record and
+continues with the execution snapshot. Drift is expected when an operator edits
+policy between claim and session start; it is evidence, not a denial condition.
 
 ### Fail-closed and degraded resolution
 

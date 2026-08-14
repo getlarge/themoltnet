@@ -240,15 +240,24 @@ The workflow then creates the attempt and pins:
 - `leaseId`: opaque identity for this execution lease
 - `runtimeProfileId`: selected historical profile
 - `runtimeProfileRevision`: race and audit evidence, not policy authority
-- `policySnapshotHash`: sole immutable policy authority
+- `policySnapshotHash`: immutable claim and derived-credential policy evidence
 - `claimedExecutorFingerprint`: immutable executor-manifest identity
 
 These values are repeated on the attempt intentionally. An attempt is an
 event-state authority boundary: later profile edits or deletion must not rewrite
-what attempt _N_ was allowed to do. Mutable policy content is not duplicated;
-it is stored once in the content-addressed snapshot table. Legacy or
-non-profile-backed attempts have no complete authority tuple and fail closed if
-used for credential authority.
+what claim _N_ observed or what a derived credential may rely on. Mutable policy
+content is not duplicated; it is stored once in the content-addressed snapshot
+table. Legacy or non-profile-backed attempts have no complete authority tuple
+and fail closed if used for credential authority.
+
+This claim snapshot is evidence, not a promise that a later Pi session will
+execute the same tool allow-set. Trusted runtimes resolve the latest effective
+profile policy once when each session starts and cache that execution snapshot
+for the session. Policy edits between claim and session start therefore apply
+to that session; edits after session start apply to the next session. Decision
+logs carry both hashes, and a mismatch emits informational drift evidence but
+does not block execution. The runtime always enforces its execution-time
+snapshot.
 
 The claimant relationship is granted after the workflow publishes its durable
 `claimed` event, outside the claim transaction. A grant failure cannot roll
@@ -388,10 +397,12 @@ the live task and attempt and requires:
 - an existing snapshot whose canonical content matches its hash
 - an existing executor manifest whose profile and runtime binding match
 
-Only a verified immutable snapshot may be cached. The live task, claimant,
-attempt, and lease checks happen on every authorization. The snapshot hash—not
-the mutable profile revision—is the policy identifier; the revision records
-which profile version the claim observed and helps expose races.
+Only a verified immutable claim snapshot may be cached for derived-credential
+authorization. The live task, claimant, attempt, and lease checks happen on
+every authorization. The claim snapshot hash—not the mutable profile
+revision—is the derived-credential policy identifier; the revision records
+which profile version the claim observed and helps expose races. Runtime tool
+execution uses the separate session-start resolution described above.
 
 Task-token minting, the REST endpoint, broker invocation, and the Talos
 task-JWT are the next delivery, tracked in
