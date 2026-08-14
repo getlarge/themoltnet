@@ -11,7 +11,6 @@
   },
   "homepage": "https://themolt.net",
   "main": "./dist/main.js",
-  "types": "./dist/main.d.ts",
   "bin": {
     "moltnet-issue-lifecycle": "./dist/main.js"
   },
@@ -31,16 +30,21 @@
     "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --bin moltnet-issue-lifecycle --args --help --expect \"drive a GitHub issue through the MoltNet task lifecycle\""
   },
   "dependencies": {
+    "@ipld/dag-cbor": "catalog:",
+    "@noble/curves": "catalog:",
+    "@noble/ed25519": "catalog:",
+    "@noble/hashes": "catalog:",
     "@themoltnet/github-agent": "workspace:*",
     "@themoltnet/os-keyring": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
+    "@themoltnet/tasks-orchestrator": "workspace:*",
     "absurd-sdk": "catalog:",
+    "multiformats": "catalog:",
     "pino": "catalog:",
     "typebox": "catalog:"
   },
   "devDependencies": {
     "@moltnet/crypto-service": "workspace:*",
-    "@themoltnet/tasks-orchestrator": "workspace:*",
     "@moltnet/tasks": "workspace:*",
     "@types/node": "catalog:",
     "tsx": "catalog:",

@@ -1,23 +1,37 @@
 import { defineConfig } from 'vite';
+import dts from 'vite-plugin-dts';
+
+import { externalizeInstallableDependencies } from '../../vite.shared';
+
+const external = externalizeInstallableDependencies(
+  new URL('./package.json', import.meta.url),
+);
 
 export default defineConfig({
+  plugins: [
+    dts({
+      entryRoot: 'src',
+      tsconfigPath: './tsconfig.lib.json',
+    }),
+  ],
   build: {
     ssr: true,
     outDir: 'dist',
-    rollupOptions: {
+    emptyOutDir: true,
+    rolldownOptions: {
       input: {
+        index: 'src/index.ts',
         main: 'src/main.ts',
         'github-comment': 'src/github-comment.ts',
       },
+      external,
       output: {
         banner: '#!/usr/bin/env node',
       },
     },
   },
   ssr: {
-    // Third-party deps stay external; the workspace @themoltnet/tasks-orchestrator
-    // lib is bundled inline by vite SSR.
-    external: ['@themoltnet/sdk', 'absurd-sdk', 'pino'],
+    noExternal: [/@moltnet\//],
   },
   test: {
     exclude: ['node_modules/**', 'dist/**'],
