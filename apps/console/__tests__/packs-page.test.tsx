@@ -201,7 +201,7 @@ describe('PacksPage', () => {
     expect(screen.getByText(/pack 11111111/i)).toBeInTheDocument();
   });
 
-  it('does not advertise a pack detail route that does not exist yet', () => {
+  it('opens the pack detail through a real link, not a click handler', () => {
     mocks.packs = {
       isLoading: false,
       isError: false,
@@ -209,14 +209,15 @@ describe('PacksPage', () => {
     };
     renderPage();
 
-    // /packs/:id resolves to NotFoundPage until the detail PR lands, so the
-    // row must not present itself as navigable.
-    expect(
-      screen.queryByRole('link', { name: /how does auth work/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /how does auth work/i }),
-    ).not.toBeInTheDocument();
+    // A native anchor with an href, so the row is a keyboard tab stop and
+    // supports open-in-new-tab and copy-link. An <a> carrying only onClick is
+    // none of those things.
+    const link = screen.getByRole('link', { name: /how does auth work/i });
+
+    expect(link).toHaveAttribute(
+      'href',
+      '/packs/11111111-2222-3333-4444-555555555555',
+    );
   });
 
   it('hides pagination for a single page', () => {

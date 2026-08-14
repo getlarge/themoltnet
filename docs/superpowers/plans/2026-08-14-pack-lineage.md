@@ -100,7 +100,7 @@ describe('PackDetailPage', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd apps/console && pnpm exec vitest run __tests__/pack-detail-page.test.tsx`
+Run: `pnpm exec nx run @moltnet/console:test -- __tests__/pack-detail-page.test.tsx`
 Expected: FAIL — cannot resolve `../src/pages/PackDetailPage.js`
 
 - [ ] **Step 3: Write minimal implementation**
@@ -115,7 +115,7 @@ and in `PacksPage.tsx` pass `onOpen={(packId) => navigate(`/packs/${packId}`)}` 
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd apps/console && pnpm exec vitest run __tests__/pack-detail-page.test.tsx`
+Run: `pnpm exec nx run @moltnet/console:test -- __tests__/pack-detail-page.test.tsx`
 Expected: PASS
 
 - [ ] **Step 5: Update the routing guard**
@@ -160,7 +160,7 @@ export interface SpineNode {
   packId?: string;
   renderedPackId?: string;
 }
-export type LineageForm = 'none' | 'linear' | 'branching';
+export type LineageForm = 'none' | 'linear';
 export interface Lineage {
   form: LineageForm;
   spine: SpineNode[];
@@ -215,12 +215,14 @@ describe('buildLineage', () => {
     expect(lineage.spine[0]?.isRoot).toBe(true);
   });
 
-  it('reports form "branching" when one pack supersedes two', () => {
+  it('flags a pack whose recorded ancestor is not in the graph', () => {
+    // The server omits packs the caller cannot read and stops at the requested
+    // depth, so the chain can continue past what we received.
     const graph = graphFixture({
-      nodes: [packNode('p2'), packNode('p1'), packNode('p0')],
-      edges: [edge('p2', 'p1', 'supersedes'), edge('p2', 'p0', 'supersedes')],
+      nodes: [packNode('p1', { supersedesPackId: 'an-older-pack' })],
+      edges: [],
     });
-    expect(buildLineage(graph).form).toBe('branching');
+    expect(buildLineage(graph).spine[0]?.hasHiddenAncestor).toBe(true);
   });
 
   it('groups rendered packs under their source pack without putting them on the spine', () => {
@@ -242,20 +244,19 @@ Create `apps/console/__tests__/fixtures/provenance.ts` with `graphFixture`, `pac
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd apps/console && pnpm exec vitest run __tests__/pack-lineage.test.ts`
+Run: `pnpm exec nx run @moltnet/console:test -- __tests__/pack-lineage.test.ts`
 Expected: FAIL — `buildLineage` is not defined
 
 - [ ] **Step 3: Implement `buildLineage`**
 
-Walk `supersedes` edges from `graph.metadata.rootNodeId` breadth-first; collect pack nodes in encounter order (newest first, root at index 0). Attach `rendered_pack` nodes to `renderedByPackId` keyed by the `to` end of their `rendered_from` edge. Count `includes` edges per pack for `entryCount`. Set `form`:
+Walk `supersedes` edges from `graph.metadata.rootNodeId` breadth-first; collect pack nodes in encounter order (newest first, root at index 0). Attach `rendered_pack` nodes to `renderedByPackId` keyed by the **`from`** end of their `rendered_from` edge — the producer emits `from` = source pack, `to` = rendered pack. Count `includes` edges per pack for `entryCount`. Set `form`:
 
 - `none` when the spine has one node and no rendered packs,
-- `branching` when any pack has more than one outgoing `supersedes` edge or more than one incoming,
 - `linear` otherwise.
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd apps/console && pnpm exec vitest run __tests__/pack-lineage.test.ts`
+Run: `pnpm exec nx run @moltnet/console:test -- __tests__/pack-lineage.test.ts`
 Expected: PASS (6 tests)
 
 - [ ] **Step 5: Commit**
@@ -284,35 +285,10 @@ Render an ordered list (`<ol>` semantics — the lineage must be readable as str
 Per spec decision 2, use `isExpiringSoon` to distinguish "expiring soon" from "expires eventually" in the chain — this is the consumer that threshold has been missing.
 
 - [ ] **Step 1: Write failing tests** covering: newest-first order; `DecayBadge` present per node; `PinControl` rendered for packs and **absent** for rendered packs; list semantics exposed (`getAllByRole('listitem')`); root node marked as current.
-- [ ] **Step 2: Run tests, verify they fail.** Run: `cd apps/console && pnpm exec vitest run __tests__/lineage-chain.test.tsx`
+- [ ] **Step 2: Run tests, verify they fail.** Run: `pnpm exec nx run @moltnet/console:test -- __tests__/lineage-chain.test.tsx`
 - [ ] **Step 3: Implement** using `Stack`, `Card`, `Text`, `Badge`, `KeyFingerprint` from the design system. **Load `.claude/skills/impeccable/reference/craft-floor.md` before writing this component.**
 - [ ] **Step 4: Run tests, verify they pass.**
 - [ ] **Step 5: Commit** — `feat(console): add linear lineage chain component`
-
----
-
-### Task 4: `LineageGraph` — the branching form
-
-**Files:**
-
-- Create: `apps/console/src/components/packs/LineageGraph.tsx`
-- Create: `apps/console/src/packs/lineage-layout.ts` (vertical adaptation of `buildGraphLayout`)
-- Test: `apps/console/__tests__/lineage-layout.test.ts`
-
-**Interfaces:**
-
-- Consumes: `Lineage` (Task 2)
-- Produces: `buildLineageLayout(lineage: Lineage): { positions: Record<string, {id: string; x: number; y: number}>; width: number; height: number }` and `LineageGraph({ lineage, now, onOpen })`
-
-Port the level-assignment idea from `apps/landing/src/provenance/graph-layout.ts` but **transpose it**: levels advance on the **y** axis (newest at top), siblings spread on **x**. The landing constants (`COLUMN_WIDTH 392`, `ROW_HEIGHT 184`) are tuned for a full-page canvas — size for an embedded panel instead. No pan, no zoom, no drag; the SVG sizes to its content within a bounded panel height.
-
-Every node must remain keyboard reachable, and the graph must carry the same `<ol>` text structure as the chain as an accessible alternative — an SVG alone is not readable.
-
-- [ ] **Step 1: Write failing layout tests** — newest node has the smallest `y`; two packs superseded by one share a `y` and differ in `x`; layout is deterministic for a given input.
-- [ ] **Step 2: Run tests, verify they fail.**
-- [ ] **Step 3: Implement** `lineage-layout.ts`, then `LineageGraph.tsx`. **Load craft-floor.md before the component.**
-- [ ] **Step 4: Run tests, verify they pass.**
-- [ ] **Step 5: Commit** — `feat(console): add branching lineage graph`
 
 ---
 
@@ -325,19 +301,18 @@ Every node must remain keyboard reachable, and the graph must carry the same `<o
 
 **Interfaces:**
 
-- Consumes: `usePackProvenance(packId)`, `buildLineage`, `LineageChain`, `LineageGraph`
+- Consumes: `usePackProvenance(packId)`, `buildLineage`, `LineageChain`
 - Produces: `PackLineage({ packId, now }: { packId: string; now: Date })`
 
 Every material state from the spec:
 
-| State               | Render                                                                                                                                |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| loading             | skeleton preserving row geometry — not a bare text node; give it `role="status"`                                                      |
-| error               | `InlineNotice` with `getApiErrorDetail` **plus a retry**, matching `AgentKeysPage`'s treatment                                        |
-| `form: 'none'`      | "This pack has no lineage yet" — explain that supersession happens when a newer pack replaces this one. Do not render an empty graph. |
-| `form: 'linear'`    | `LineageChain`                                                                                                                        |
-| `form: 'branching'` | `LineageGraph`                                                                                                                        |
-| partial             | ancestor the operator cannot read renders as an explicit gap node, never a silent omission                                            |
+| State            | Render                                                                                                                                |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| loading          | skeleton preserving row geometry — not a bare text node; give it `role="status"`                                                      |
+| error            | `InlineNotice` with `getApiErrorDetail` **plus a retry**, matching `AgentKeysPage`'s treatment                                        |
+| `form: 'none'`   | "This pack has no lineage yet" — explain that supersession happens when a newer pack replaces this one. Do not render an empty graph. |
+| `form: 'linear'` | `LineageChain`                                                                                                                        |
+| partial          | ancestor the operator cannot read renders as an explicit gap node, never a silent omission                                            |
 
 - [ ] **Step 1: Write failing tests** for all six rows above. Include one asserting the error branch receives a **plain `{ detail }` object**, not an `Error` instance — the generated client throws the parsed body (the gap the #1883 review found).
 - [ ] **Step 2: Run tests, verify they fail.**
@@ -401,7 +376,7 @@ docker compose --env-file .env.local up -d
 pnpm exec nx run @moltnet/console:dev
 ```
 
-- [ ] **Step 4: Browser verification.** Drive the console with the Chrome tools. Confirm each state against a real pack: no-lineage, linear chain, and — seeding a branching supersession if none exists — the graph form. Check **both themes**, keyboard traversal of the spine, and that pinning from the panel updates the badge without a page reload.
+- [ ] **Step 4: Browser verification.** Drive the console with the Chrome tools. Confirm each state against a real pack: no-lineage, linear chain, and a chain truncated by depth or permission. Check **both themes**, keyboard traversal of the spine, and that pinning from the panel updates the badge without a page reload.
 - [ ] **Step 5: Accessibility check.** Verify the `<ol>` structure is exposed, every node is keyboard reachable, focus is visible, and the pin toggle announces its state (`aria-pressed`, per the fix that landed in #1883).
 - [ ] **Step 6: Commit any fixes, then open the PR.**
 

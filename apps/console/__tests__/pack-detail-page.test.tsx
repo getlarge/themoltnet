@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MoltThemeProvider } from '@themoltnet/design-system';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -98,16 +98,22 @@ describe('PackDetailPage', () => {
     expect(screen.getByText('Forbidden for this team')).toBeInTheDocument();
   });
 
-  it('offers a retry when the pack fails to load', () => {
+  it('recovers from a load failure by refetching', () => {
+    const refetch = vi.fn();
     mocks.pack = {
       isLoading: false,
       isError: true,
       error: { detail: 'Upstream timeout' },
       data: undefined,
-      refetch: vi.fn(),
+      refetch,
     };
     renderPage();
-    expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
+
+    // Asserting only that the button exists would stay green if the handler
+    // were removed, leaving the error state unrecoverable.
+    fireEvent.click(screen.getByRole('button', { name: /retry/i }));
+
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 
   it('renders the lifecycle state and the pin control for the pack', () => {

@@ -7,7 +7,6 @@ import {
   Text,
 } from '@themoltnet/design-system';
 import { useEffect, useState } from 'react';
-import { useLocation } from 'wouter';
 
 import { getApiErrorDetail } from '../api-error.js';
 import { PackCard } from '../components/packs/PackCard.js';
@@ -19,7 +18,6 @@ const PAGE_SIZE = 20;
 
 export function PacksPage() {
   const { selectedTeam } = useTeam();
-  const [, navigate] = useLocation();
   const [offset, setOffset] = useState(0);
   const packs = usePacks({ limit: PAGE_SIZE, offset });
 
@@ -104,7 +102,7 @@ export function PacksPage() {
               key={pack.id}
               pack={pack}
               now={now}
-              onOpen={(packId) => navigate(`/packs/${packId}`)}
+              href={`/packs/${pack.id}`}
             />
           ))}
         </Stack>

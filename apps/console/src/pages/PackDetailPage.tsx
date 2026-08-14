@@ -13,10 +13,10 @@ import {
 
 import { getApiErrorDetail } from '../api-error.js';
 import { DecayBadge } from '../components/packs/DecayBadge.js';
-import { packSummary } from '../components/packs/PackCard.js';
 import { PinControl } from '../components/packs/PinControl.js';
 import { describeDecay } from '../packs/decay.js';
 import { usePack } from '../packs/hooks.js';
+import { packSummary } from '../packs/summary.js';
 
 export interface PackDetailPageProps {
   id: string;
@@ -24,16 +24,15 @@ export interface PackDetailPageProps {
 
 export function PackDetailPage({ id }: PackDetailPageProps) {
   const theme = useTheme();
-  const pack = usePack(id);
+  const packQuery = usePack(id);
 
-  // One `now` per render so the badge and any lineage below agree on the
-  // countdown.
+  // One `now` per render so every decay surface on this page agrees.
   const now = new Date();
-  const data = pack.data;
-  const decay = data
-    ? describeDecay({ pinned: data.pinned, expiresAt: data.expiresAt }, now)
+  const pack = packQuery.data;
+  const decay = pack
+    ? describeDecay({ pinned: pack.pinned, expiresAt: pack.expiresAt }, now)
     : null;
-  const summary = data ? packSummary(data) : null;
+  const summary = pack ? packSummary(pack) : null;
 
   return (
     <Stack gap={6}>
@@ -44,13 +43,13 @@ export function PackDetailPage({ id }: PackDetailPageProps) {
 
       {/* role="status" implies aria-live=polite, so the transient load
           announces instead of silently swapping content. */}
-      {pack.isLoading ? (
+      {packQuery.isLoading ? (
         <div role="status">
           <Text color="muted">Loading pack…</Text>
         </div>
       ) : null}
 
-      {pack.isError ? (
+      {packQuery.isError ? (
         <InlineNotice
           tone="error"
           title="Could not load this pack"
@@ -58,18 +57,18 @@ export function PackDetailPage({ id }: PackDetailPageProps) {
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => void pack.refetch?.()}
-              disabled={pack.isFetching}
+              onClick={() => void packQuery.refetch?.()}
+              disabled={packQuery.isFetching}
             >
-              {pack.isFetching ? 'Retrying…' : 'Retry'}
+              {packQuery.isFetching ? 'Retrying…' : 'Retry'}
             </Button>
           }
         >
-          {getApiErrorDetail(pack.error, 'The pack failed to load.')}
+          {getApiErrorDetail(packQuery.error, 'The pack failed to load.')}
         </InlineNotice>
       ) : null}
 
-      {data && decay ? (
+      {pack && decay ? (
         <Stack gap={4}>
           <Stack direction="row" gap={3} align="center" wrap>
             {summary?.derivedFrom === 'recipe' ? (
@@ -77,14 +76,14 @@ export function PackDetailPage({ id }: PackDetailPageProps) {
                 recipe
               </Text>
             ) : null}
-            <Badge variant="default">{data.packType}</Badge>
+            <Badge variant="default">{pack.packType}</Badge>
             <DecayBadge state={decay} />
           </Stack>
 
           <Stack direction="row" gap={4} align="center" wrap>
-            {data.creator.kind === 'agent' ? (
+            {pack.creator.kind === 'agent' ? (
               <KeyFingerprint
-                fingerprint={data.creator.fingerprint}
+                fingerprint={pack.creator.fingerprint}
                 label="Created by"
                 size="sm"
                 copyable
@@ -92,18 +91,18 @@ export function PackDetailPage({ id }: PackDetailPageProps) {
               />
             ) : (
               <Text variant="caption" color="muted">
-                {`Created by human ${data.creator.humanId.slice(0, 8)}`}
+                {`Created by human ${pack.creator.humanId.slice(0, 8)}`}
               </Text>
             )}
             <Text variant="caption" color="muted">
-              {formatRelativeTime(data.createdAt)}
+              {formatRelativeTime(pack.createdAt)}
             </Text>
           </Stack>
 
           <Stack direction="row" gap={3} align="center" wrap>
             {/* Full value: a partial CID is not copyable evidence. */}
-            <CopyButton value={data.packCid} label="Pack CID" size="sm" />
-            <PinControl packId={data.id} state={decay} />
+            <CopyButton value={pack.packCid} label="Pack CID" size="sm" />
+            <PinControl packId={pack.id} state={decay} />
           </Stack>
         </Stack>
       ) : null}

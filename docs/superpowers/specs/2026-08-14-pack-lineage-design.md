@@ -67,10 +67,19 @@ pinned behind it, and what happens if I do nothing" without leaving the page.
 
 **The spine is a control surface; membership is a list.**
 
-**Form adapts to the data.** A vertical chain, newest first, when lineage is
-linear (the common case); escalation to the node-edge graph only when the DAG
-genuinely branches. One visual language across both — the graph is the chain that
-outgrew a line, not a separate widget.
+**A vertical chain, newest first.**
+
+> **Corrected after the #1887 review.** This section originally specified a form
+> that adapts to the data, escalating to a node-edge graph when the DAG branches.
+> **Branching cannot occur.** `buildPackProvenanceGraph` follows the single
+> `supersedesPackId` pointer strictly upward, one parent per pack, and never
+> queries descendants — so the response is always a linear ancestor chain.
+> Multiple outgoing `supersedes` edges are impossible (one column); multiple
+> incoming edges are unreachable from a single root walking upward.
+>
+> Consequences: `LineageForm` is `none | linear`, the planned `LineageGraph` is
+> cancelled, and PR 3 reduces to removing the landing lab. A branching form would
+> require expanding the server traversal and contract first.
 
 **Focal moment: the decay horizon.** Each spine node carries its lifecycle state
 and pin control inline, so the retention decision happens where the evidence is,
@@ -89,15 +98,15 @@ deleted.
 genuinely carries forward. This is a fresh build informed by the old code, not a
 move:
 
-| Module                                                               | Fate            | Reason                                                                                               |
-| -------------------------------------------------------------------- | --------------- | ---------------------------------------------------------------------------------------------------- |
-| `parse-graph.ts` (141)                                               | obsolete        | Hand-validates untrusted pasted JSON; `usePackProvenance` returns typed, validated data              |
-| `graph-sharing.ts` (86)                                              | deleted         | Share links die with the move                                                                        |
-| `graph-viewport.ts` (32)                                             | deleted         | Pan-zoom dies                                                                                        |
-| `viewer-utils.toggleCollapsedPack` / `filterCollapsedGraph`          | obsolete        | Collapse/expand exists _because_ entries pollute the graph; `PackComposition` removes them           |
-| `viewer-utils.summarizeValue` / `splitIntoLines` / `summarizeNodeId` | graph form only | SVG text-wrapping helpers                                                                            |
-| `viewer-utils.countEdges`                                            | **reused**      | Counting `supersedes` / `includes` / `rendered_from`                                                 |
-| `graph-layout.buildGraphLayout` (109)                                | **adapted**     | Lays out horizontal columns (`x = level * COLUMN_WIDTH`); the brief calls for vertical, newest-first |
+| Module                                                               | Fate            | Reason                                                                                     |
+| -------------------------------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------ |
+| `parse-graph.ts` (141)                                               | obsolete        | Hand-validates untrusted pasted JSON; `usePackProvenance` returns typed, validated data    |
+| `graph-sharing.ts` (86)                                              | deleted         | Share links die with the move                                                              |
+| `graph-viewport.ts` (32)                                             | deleted         | Pan-zoom dies                                                                              |
+| `viewer-utils.toggleCollapsedPack` / `filterCollapsedGraph`          | obsolete        | Collapse/expand exists _because_ entries pollute the graph; `PackComposition` removes them |
+| `viewer-utils.summarizeValue` / `splitIntoLines` / `summarizeNodeId` | graph form only | SVG text-wrapping helpers                                                                  |
+| `viewer-utils.countEdges`                                            | **reused**      | Counting `supersedes` / `includes` / `rendered_from`                                       |
+| `graph-layout.buildGraphLayout` (109)                                | **dropped**     | Only a branching graph needed a layout engine, and branching cannot occur                  |
 
 **Deleted:** textarea, file upload, `?graph=` URL param, share-link + Safari
 clipboard path, pan-zoom / drag / fit-to-viewport, the Root/Nodes/Edges/Depth
@@ -132,7 +141,6 @@ From the builder, not estimates:
 - **No lineage** — root pack, nothing superseded. The common first case, and the
   one most likely to be designed badly.
 - **Linear chain** — the typical case; vertical chain form.
-- **Branching DAG** — two packs superseded by one; escalates to graph form.
 - **Loading**, **error** — bound to `usePackProvenance`.
 - **Partial** — the operator lacks read access to an ancestor pack. Must render
   as an explicit gap, never a silent omission.
@@ -168,8 +176,9 @@ React + `@themoltnet/design-system`; dark and light themes; WCAG AA binding; no
 
 ## Verification
 
-- Unit tests for the adaptive form selection (linear → chain, branching → graph)
-  and every material state above.
+- Unit tests for form selection (`none` vs `linear`, including a hidden
+  ancestor forcing `linear` so truncated lineage never reads as absent) and
+  every material state above.
 - Existing `parse-graph` tests move with the code and must keep passing.
 - Browser verification against the local Docker stack with a real supersession
   chain, in both themes.
