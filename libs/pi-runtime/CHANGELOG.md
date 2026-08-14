@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.9.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.8.0...pi-runtime-v0.9.0) (2026-08-14)
+
+
+### Features
+
+* **pi-runtime:** log policy decision provenance ([328025c](https://github.com/getlarge/themoltnet/commit/328025cf8bdce48a4553dbaf7437162e6f35ae9a))
+* **pi-runtime:** record tool-policy decision provenance ([3f44efe](https://github.com/getlarge/themoltnet/commit/3f44efe28324adb90f4cab713df27b3ba798a53e))
+
+
+### Bug Fixes
+
+* **pi-runtime:** allow fresh packages in pack smoke ([713bf73](https://github.com/getlarge/themoltnet/commit/713bf73d8644ee4f4a243aa5a6c1e90f21305c44))
+* **pi-runtime:** allow fresh packages in pack smoke ([0be2122](https://github.com/getlarge/themoltnet/commit/0be2122f72c7abfd2aa70859e4c4407c02f88b16))
+* **pi-runtime:** harden policy provenance ([b94e62f](https://github.com/getlarge/themoltnet/commit/b94e62ffba3329817c690737a585a38937462cff))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.42.0
+    * @themoltnet/sdk bumped to 0.133.0
+
 ## [0.8.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.7.3...pi-runtime-v0.8.0) (2026-08-13)
 
 

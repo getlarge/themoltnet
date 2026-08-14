@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.42.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.41.3...agent-runtime-v0.42.0) (2026-08-14)
+
+
+### Features
+
+* **agent-runtime:** preserve claim authority evidence ([a261b8a](https://github.com/getlarge/themoltnet/commit/a261b8a6a5d50ef9847613bc019b7c340c7be9cb))
+* **pi-runtime:** record tool-policy decision provenance ([3f44efe](https://github.com/getlarge/themoltnet/commit/3f44efe28324adb90f4cab713df27b3ba798a53e))
+
+
+### Bug Fixes
+
+* **pi-runtime:** harden policy provenance ([b94e62f](https://github.com/getlarge/themoltnet/commit/b94e62ffba3329817c690737a585a38937462cff))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.133.0
+
 ## [0.41.3](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.41.2...agent-runtime-v0.41.3) (2026-08-13)
 
 
