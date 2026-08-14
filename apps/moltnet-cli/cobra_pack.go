@@ -157,6 +157,7 @@ pack anyway.`,
 			entries, _ := cmd.Flags().GetString("entries")
 			tokenBudget, _ := cmd.Flags().GetInt("token-budget")
 			force, _ := cmd.Flags().GetBool("force")
+			supersedes, _ := cmd.Flags().GetString("supersedes")
 
 			var pinned *bool
 			if cmd.Flags().Changed("pinned") {
@@ -164,7 +165,7 @@ pack anyway.`,
 				pinned = &v
 			}
 
-			return runPackCreateCmd(apiURL, credPath, diaryID, entries, tokenBudget, pinned, force)
+			return runPackCreateCmd(apiURL, credPath, diaryID, entries, tokenBudget, pinned, force, supersedes)
 		},
 	}
 	cmd.Flags().String("diary-id", "", "Diary UUID (required)")
@@ -172,6 +173,7 @@ pack anyway.`,
 	cmd.Flags().Int("token-budget", 0, "Token budget for the pack")
 	cmd.Flags().Bool("pinned", false, "Pin the pack")
 	cmd.Flags().Bool("force", false, "Override the prompt-injection guard and create the pack even if entries are flagged")
+	cmd.Flags().String("supersedes", "", "UUID of the pack this one replaces (same diary, must be readable)")
 	_ = cmd.MarkFlagRequired("diary-id")
 	_ = cmd.MarkFlagRequired("entries")
 	return cmd

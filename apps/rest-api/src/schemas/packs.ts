@@ -287,6 +287,14 @@ export const CustomPackBodySchema = Type.Object({
   ),
   tokenBudget: Type.Optional(Type.Integer({ minimum: 1, maximum: 100000 })),
   pinned: Type.Optional(Type.Boolean()),
+  supersedesPackId: Type.Optional(
+    Type.String({
+      format: 'uuid',
+      description:
+        'The pack this one replaces. Must be in the same diary and readable by the caller. ' +
+        'Declared at creation rather than patched later, so the chain cannot be rewritten after the fact.',
+    }),
+  ),
   force: Type.Optional(
     Type.Boolean({
       description:

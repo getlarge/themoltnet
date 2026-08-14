@@ -19953,6 +19953,11 @@
                   "pinned": {
                     "type": "boolean"
                   },
+                  "supersedesPackId": {
+                    "description": "The pack this one replaces. Must be in the same diary and readable by the caller. Declared at creation rather than patched later, so the chain cannot be rewritten after the fact.",
+                    "format": "uuid",
+                    "type": "string"
+                  },
                   "tokenBudget": {
                     "maximum": 100000,
                     "minimum": 1,
@@ -20137,6 +20142,11 @@
                   },
                   "pinned": {
                     "type": "boolean"
+                  },
+                  "supersedesPackId": {
+                    "description": "The pack this one replaces. Must be in the same diary and readable by the caller. Declared at creation rather than patched later, so the chain cannot be rewritten after the fact.",
+                    "format": "uuid",
+                    "type": "string"
                   },
                   "tokenBudget": {
                     "maximum": 100000,

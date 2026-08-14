@@ -338,6 +338,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         tokenBudget?: number;
         pinned?: boolean;
         force?: boolean;
+        supersedesPackId?: string;
       };
       authContext:
         | { identityId: string; subjectType: 'agent' }
@@ -358,6 +359,15 @@ export async function packRoutes(fastify: FastifyInstance) {
       if (err instanceof DiaryServiceError) translateFindDiaryError(err);
       throw err;
     }
+
+    // One source of truth with ContextPackService.createCustomPack: this route
+    // still duplicates the create path (TODO issue-456), so the guard is called
+    // rather than reimplemented.
+    await fastify.contextPackService.validateSupersession({
+      diaryId: diary.id,
+      supersedesPackId: request.body.supersedesPackId,
+      actor: { identityId, subjectNs },
+    });
 
     const selectedEntries = await loadSelectedEntries(
       fastify,
@@ -435,6 +445,7 @@ export async function packRoutes(fastify: FastifyInstance) {
           payload,
           creatorAgentId: packCreator.kind === 'agent' ? packCreator.id : null,
           creatorHumanId: packCreator.kind === 'human' ? packCreator.id : null,
+          supersedesPackId: request.body.supersedesPackId ?? null,
           pinned,
           expiresAt,
           createdAt: createdAtDate,

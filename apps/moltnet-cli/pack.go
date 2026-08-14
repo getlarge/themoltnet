@@ -376,7 +376,7 @@ func renderPackMarkdown(id string, pack *moltnetapi.ContextPackResponse) string 
 }
 
 // runPackCreateCmd is the flag-free business logic for pack create.
-func runPackCreateCmd(apiURL, credPath, diaryID, entriesJSON string, tokenBudget int, pinned *bool, force bool) error {
+func runPackCreateCmd(apiURL, credPath, diaryID, entriesJSON string, tokenBudget int, pinned *bool, force bool, supersedes string) error {
 	diaryUUID, err := uuid.Parse(diaryID)
 	if err != nil {
 		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
@@ -423,6 +423,13 @@ func runPackCreateCmd(apiURL, credPath, diaryID, entriesJSON string, tokenBudget
 	}
 	if force {
 		req.Force = moltnetapi.NewOptBool(true)
+	}
+	if supersedes != "" {
+		supersedesUUID, err := uuid.Parse(supersedes)
+		if err != nil {
+			return fmt.Errorf("invalid --supersedes UUID: %w", err)
+		}
+		req.SupersedesPackId = moltnetapi.NewOptUUID(supersedesUUID)
 	}
 
 	res, err := client.CreateDiaryCustomPack(

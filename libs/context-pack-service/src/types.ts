@@ -67,6 +67,20 @@ export interface CreateCustomPackInput {
   pinned?: boolean;
   creator: PackCreator;
   ttlDays?: number;
+  /**
+   * The pack this one replaces.
+   *
+   * Declared at creation rather than patched later: a supersession chain is
+   * evidence, and a pointer that can be rewritten after the fact is a weaker
+   * claim than one fixed when the pack is made. It also makes cycles
+   * impossible by construction — a pack that does not exist yet cannot be
+   * anyone's ancestor.
+   */
+  supersedesPackId?: string;
+  /**
+   * Required when `supersedesPackId` is set, to authorize reading the target.
+   */
+  actor?: PackActor;
 }
 
 export interface CreateRenderedPackInput {
