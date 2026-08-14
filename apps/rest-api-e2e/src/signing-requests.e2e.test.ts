@@ -115,7 +115,7 @@ describe('Signing requests', () => {
     const rejected = results.filter(({ response }) => response.status === 429);
     expect(successful).toHaveLength(MAX_PENDING_SIGNING_REQUESTS);
     expect(rejected).toHaveLength(1);
-    expect(rejected[0]!.error).toEqual(
+    expect(rejected[0].error).toEqual(
       expect.objectContaining({
         code: 'SIGNING_REQUEST_LIMIT_REACHED',
       }),

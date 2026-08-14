@@ -796,8 +796,7 @@ export async function packRoutes(fastify: FastifyInstance) {
             includeRendered: request.query.includeRendered,
           });
         } catch (err) {
-          if (err instanceof PackServiceError)
-            return translatePackServiceError(err);
+          if (err instanceof PackServiceError) translatePackServiceError(err);
           throw err;
         }
       }

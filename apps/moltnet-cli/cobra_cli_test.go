@@ -1347,9 +1347,25 @@ func TestPackListAllowsNoSelector(t *testing.T) {
 
 	// No selector means the team catalog. This used to be rejected, which is
 	// why the console pack list could never load: it has no entry to filter by.
+	//
+	// Asserting only that the message differs from the old one is too loose: an
+	// earlier version of this test passed while `pack list` failed on
+	// `uuid.Parse("")`, because "invalid entry ID" is not "must be provided".
+	// The command must get as far as a transport attempt, so anything that
+	// looks like local validation is a failure.
 	_, _, err := executeCommand(root, "pack", "list")
-	if err != nil && strings.Contains(err.Error(), "must be provided") {
-		t.Errorf("pack list should not require a selector flag, got: %v", err)
+	if err == nil {
+		return
+	}
+	for _, local := range []string{
+		"must be provided",
+		"invalid entry ID",
+		"invalid UUID",
+		"cannot be combined",
+	} {
+		if strings.Contains(err.Error(), local) {
+			t.Errorf("pack list rejected a bare invocation locally: %v", err)
+		}
 	}
 }
 

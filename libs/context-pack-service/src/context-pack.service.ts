@@ -8,6 +8,7 @@ import {
 } from '@moltnet/crypto-service';
 import type {
   ContextPackRepository,
+  ContextPackWithCreator,
   DiaryEntryRepository,
   RenderedPackRepository,
 } from '@moltnet/database';
@@ -151,16 +152,34 @@ export class ContextPackService {
       },
     );
 
+    return this.shapeVisiblePacks(result, input.actor, input.includeRendered);
+  }
+
+  /**
+   * Shared tail of the list methods: drop packs the actor cannot read, adjust
+   * `total` by what was denied on this page, and attach rendered packs when
+   * asked.
+   *
+   * `total` is deliberately per-caller. Two members of a team can see
+   * different catalogs, so an unadjusted total would advertise rows the caller
+   * cannot open. The cost is that `total` varies between callers, and can vary
+   * between pages when denial rates differ.
+   */
+  private async shapeVisiblePacks(
+    result: { items: ContextPackWithCreator[]; total: number },
+    actor: PackActor,
+    includeRendered?: boolean,
+  ): Promise<PacksByEntryResult> {
     if (result.items.length === 0) {
-      return input.includeRendered
+      return includeRendered
         ? { items: [], total: result.total, renderedPacks: [] }
         : { items: [], total: result.total };
     }
 
     const readablePacks = await this.deps.permissionChecker.canReadPacks(
       result.items.map((pack) => pack.id),
-      input.actor.identityId,
-      input.actor.subjectNs,
+      actor.identityId,
+      actor.subjectNs,
     );
     const visibleItems = result.items.filter(
       (pack) => readablePacks.get(pack.id) ?? false,
@@ -172,7 +191,7 @@ export class ContextPackService {
       total: result.total - deniedOnPage,
     };
 
-    if (input.includeRendered && visibleItems.length > 0) {
+    if (includeRendered && visibleItems.length > 0) {
       response.renderedPacks =
         await this.deps.renderedPackRepository.listBySourcePackIds(
           visibleItems.map((pack) => pack.id),
@@ -200,35 +219,7 @@ export class ContextPackService {
       input.offset,
     );
 
-    if (result.items.length === 0) {
-      return input.includeRendered
-        ? { items: [], total: result.total, renderedPacks: [] }
-        : { items: [], total: result.total };
-    }
-
-    const readablePacks = await this.deps.permissionChecker.canReadPacks(
-      result.items.map((pack) => pack.id),
-      input.actor.identityId,
-      input.actor.subjectNs,
-    );
-    const visibleItems = result.items.filter(
-      (pack) => readablePacks.get(pack.id) ?? false,
-    );
-    const deniedOnPage = result.items.length - visibleItems.length;
-
-    const response: PacksByEntryResult = {
-      items: visibleItems,
-      total: result.total - deniedOnPage,
-    };
-
-    if (input.includeRendered && visibleItems.length > 0) {
-      response.renderedPacks =
-        await this.deps.renderedPackRepository.listBySourcePackIds(
-          visibleItems.map((pack) => pack.id),
-        );
-    }
-
-    return response;
+    return this.shapeVisiblePacks(result, input.actor, input.includeRendered);
   }
 
   async getPackById(input: GetPackByIdInput) {

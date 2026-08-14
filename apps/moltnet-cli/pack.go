@@ -563,13 +563,15 @@ func runPackListCmd(apiURL, credPath, diaryID, containsEntry string, includeRend
 		return printJSON(list)
 	}
 
-	entryUUID, err := uuid.Parse(containsEntry)
-	if err != nil {
-		return fmt.Errorf("invalid entry ID %q: %w", containsEntry, err)
-	}
-
-	params := moltnetapi.ListContextPacksParams{
-		ContainsEntry: moltnetapi.NewOptUUID(entryUUID),
+	params := moltnetapi.ListContextPacksParams{}
+	// No selector means the whole team catalog. Parsing an empty string as a
+	// UUID here is what made `pack list` fail before this branch existed.
+	if containsEntry != "" {
+		entryUUID, err := uuid.Parse(containsEntry)
+		if err != nil {
+			return fmt.Errorf("invalid entry ID %q: %w", containsEntry, err)
+		}
+		params.ContainsEntry = moltnetapi.NewOptUUID(entryUUID)
 	}
 	if includeRendered {
 		params.IncludeRendered = moltnetapi.NewOptBool(true)

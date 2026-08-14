@@ -25,7 +25,7 @@ func newPackCmd() *cobra.Command {
 func newPackListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List context packs by diary or entry membership",
+		Short: "List context packs: team catalog, or filtered by diary or entry",
 		Example: `  moltnet pack list --diary-id <uuid>
   moltnet pack list --diary-id <uuid> --limit 20 --offset 0
   moltnet pack list
