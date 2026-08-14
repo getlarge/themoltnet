@@ -76,6 +76,7 @@ function makeDeps(
         .fn()
         .mockResolvedValue({ items: [createdPack], total: 1 }),
       listByDiary: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+      listByTeam: vi.fn().mockResolvedValue({ items: [createdPack], total: 1 }),
       listEntriesExpanded: vi.fn().mockResolvedValue([]),
       listEntriesExpandedByPackIds: vi.fn().mockResolvedValue(new Map()),
     },
@@ -120,6 +121,85 @@ function makeDeps(
 }
 
 describe('ContextPackService', () => {
+  describe('listPacksByTeam', () => {
+    it('lists the team catalog and filters to readable packs', async () => {
+      const deps = makeDeps();
+      const service = new ContextPackService(deps);
+
+      const result = await service.listPacksByTeam({
+        teamId: 'team-uuid',
+        actor: { identityId: 'identity-uuid', subjectNs: KetoNamespace.Agent },
+        limit: 20,
+        offset: 0,
+      });
+
+      expect(deps.contextPackRepository.listByTeam).toHaveBeenCalledWith(
+        'team-uuid',
+        20,
+        0,
+      );
+      expect(result.items).toHaveLength(1);
+      expect(result.total).toBe(1);
+    });
+
+    it('drops packs the actor cannot read and adjusts the total', async () => {
+      // A team member need not be able to read every diary in the team, so the
+      // advertised total must not include rows they cannot open.
+      const deps = makeDeps({
+        permissionChecker: {
+          canViewEntry: vi.fn().mockResolvedValue(true),
+          canReadPacks: vi.fn().mockResolvedValue(new Map()),
+        },
+      });
+      const service = new ContextPackService(deps);
+
+      const result = await service.listPacksByTeam({
+        teamId: 'team-uuid',
+        actor: { identityId: 'identity-uuid', subjectNs: KetoNamespace.Agent },
+      });
+
+      expect(result.items).toHaveLength(0);
+      expect(result.total).toBe(0);
+    });
+
+    it('returns an empty catalog without asking Keto', async () => {
+      const base = makeDeps();
+      const deps = makeDeps({
+        contextPackRepository: {
+          ...base.contextPackRepository,
+          listByTeam: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+        },
+      });
+      const service = new ContextPackService(deps);
+
+      const result = await service.listPacksByTeam({
+        teamId: 'empty-team',
+        actor: { identityId: 'identity-uuid', subjectNs: KetoNamespace.Agent },
+      });
+
+      expect(result.items).toEqual([]);
+      expect(deps.permissionChecker.canReadPacks).not.toHaveBeenCalled();
+    });
+
+    it('includes rendered packs only when asked', async () => {
+      const deps = makeDeps();
+      const service = new ContextPackService(deps);
+
+      const withRendered = await service.listPacksByTeam({
+        teamId: 'team-uuid',
+        actor: { identityId: 'identity-uuid', subjectNs: KetoNamespace.Agent },
+        includeRendered: true,
+      });
+      expect(withRendered.renderedPacks).toBeDefined();
+
+      const without = await service.listPacksByTeam({
+        teamId: 'team-uuid',
+        actor: { identityId: 'identity-uuid', subjectNs: KetoNamespace.Agent },
+      });
+      expect(without.renderedPacks).toBeUndefined();
+    });
+  });
+
   describe('listPacksByEntry', () => {
     it('returns visible packs and optional rendered packs', async () => {
       const deps = makeDeps();

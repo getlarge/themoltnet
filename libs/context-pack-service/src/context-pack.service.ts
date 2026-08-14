@@ -8,6 +8,7 @@ import {
 } from '@moltnet/crypto-service';
 import type {
   ContextPackRepository,
+  ContextPackWithCreator,
   DiaryEntryRepository,
   RenderedPackRepository,
 } from '@moltnet/database';
@@ -28,6 +29,7 @@ import type {
   ListPacksByDiaryInput,
   ListPacksByDiaryResult,
   ListPacksByEntryInput,
+  ListPacksByTeamInput,
   ListRenderedPacksByDiaryInput,
   ListRenderedPacksByDiaryResult,
   PackActor,
@@ -54,6 +56,7 @@ export interface ContextPackServiceDeps {
     | 'findByCid'
     | 'findByEntryId'
     | 'listByDiary'
+    | 'listByTeam'
     | 'listEntriesExpanded'
     | 'listEntriesExpandedByPackIds'
     | 'diffPacks'
@@ -149,16 +152,34 @@ export class ContextPackService {
       },
     );
 
+    return this.shapeVisiblePacks(result, input.actor, input.includeRendered);
+  }
+
+  /**
+   * Shared tail of the list methods: drop packs the actor cannot read, adjust
+   * `total` by what was denied on this page, and attach rendered packs when
+   * asked.
+   *
+   * `total` is deliberately per-caller. Two members of a team can see
+   * different catalogs, so an unadjusted total would advertise rows the caller
+   * cannot open. The cost is that `total` varies between callers, and can vary
+   * between pages when denial rates differ.
+   */
+  private async shapeVisiblePacks(
+    result: { items: ContextPackWithCreator[]; total: number },
+    actor: PackActor,
+    includeRendered?: boolean,
+  ): Promise<PacksByEntryResult> {
     if (result.items.length === 0) {
-      return input.includeRendered
+      return includeRendered
         ? { items: [], total: result.total, renderedPacks: [] }
         : { items: [], total: result.total };
     }
 
     const readablePacks = await this.deps.permissionChecker.canReadPacks(
       result.items.map((pack) => pack.id),
-      input.actor.identityId,
-      input.actor.subjectNs,
+      actor.identityId,
+      actor.subjectNs,
     );
     const visibleItems = result.items.filter(
       (pack) => readablePacks.get(pack.id) ?? false,
@@ -170,7 +191,7 @@ export class ContextPackService {
       total: result.total - deniedOnPage,
     };
 
-    if (input.includeRendered && visibleItems.length > 0) {
+    if (includeRendered && visibleItems.length > 0) {
       response.renderedPacks =
         await this.deps.renderedPackRepository.listBySourcePackIds(
           visibleItems.map((pack) => pack.id),
@@ -178,6 +199,27 @@ export class ContextPackService {
     }
 
     return response;
+  }
+
+  /**
+   * The team-wide pack catalog.
+   *
+   * Readability is filtered per pack, mirroring `listPacksByEntry`: a team
+   * member may not be able to read every diary in the team, so two members can
+   * legitimately see different catalogs. `total` is adjusted by what was denied
+   * on the page, which keeps pagination honest for the caller rather than
+   * advertising rows they cannot open.
+   */
+  async listPacksByTeam(
+    input: ListPacksByTeamInput,
+  ): Promise<PacksByEntryResult> {
+    const result = await this.deps.contextPackRepository.listByTeam(
+      input.teamId,
+      input.limit,
+      input.offset,
+    );
+
+    return this.shapeVisiblePacks(result, input.actor, input.includeRendered);
   }
 
   async getPackById(input: GetPackByIdInput) {

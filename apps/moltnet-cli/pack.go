@@ -518,10 +518,14 @@ func runPackUpdateCmd(apiURL, credPath, packID string, pinned *bool, expiresAt s
 	return printJSON(pack)
 }
 
-// runPackListCmd lists context packs either by diary or by entry membership.
-func runPackListCmd(apiURL, credPath, diaryID, containsEntry string, includeRendered bool, limit, offset int, expand string) error {
-	if (diaryID == "") == (containsEntry == "") {
-		return fmt.Errorf("exactly one of --diary-id or --contains-entry must be provided")
+// runPackListCmd lists context packs: the whole team catalog by default, or
+// narrowed to one diary or to the packs containing one entry.
+//
+// Neither flag is required. They remain mutually exclusive because the API
+// serves diary-scoped listing from a different route.
+func runPackListCmd(apiURL, credPath, diaryID, containsEntry, teamID string, includeRendered bool, limit, offset int, expand string) error {
+	if diaryID != "" && containsEntry != "" {
+		return fmt.Errorf("--diary-id and --contains-entry cannot be combined")
 	}
 
 	client, err := newAuthenticatedClient(apiURL, credPath)
@@ -559,13 +563,25 @@ func runPackListCmd(apiURL, credPath, diaryID, containsEntry string, includeRend
 		return printJSON(list)
 	}
 
-	entryUUID, err := uuid.Parse(containsEntry)
-	if err != nil {
-		return fmt.Errorf("invalid entry ID %q: %w", containsEntry, err)
+	params := moltnetapi.ListContextPacksParams{}
+	// The team catalog is scoped by header when given; a team-bound credential
+	// supplies it otherwise. Agents working in a non-personal team must say
+	// which one, so nothing is inferred from the identity alone.
+	if teamID != "" {
+		teamUUID, err := uuid.Parse(teamID)
+		if err != nil {
+			return fmt.Errorf("invalid --team-id %q: %w", teamID, err)
+		}
+		params.XMoltnetTeamID = moltnetapi.NewOptUUID(teamUUID)
 	}
-
-	params := moltnetapi.ListContextPacksParams{
-		ContainsEntry: moltnetapi.NewOptUUID(entryUUID),
+	// No selector means the whole team catalog. Parsing an empty string as a
+	// UUID here is what made `pack list` fail before this branch existed.
+	if containsEntry != "" {
+		entryUUID, err := uuid.Parse(containsEntry)
+		if err != nil {
+			return fmt.Errorf("invalid entry ID %q: %w", containsEntry, err)
+		}
+		params.ContainsEntry = moltnetapi.NewOptUUID(entryUUID)
 	}
 	if includeRendered {
 		params.IncludeRendered = moltnetapi.NewOptBool(true)
@@ -587,7 +603,17 @@ func runPackListCmd(apiURL, credPath, diaryID, containsEntry string, includeRend
 
 	list, ok := res.(*moltnetapi.ContextPackResponseListWithRendered)
 	if !ok {
-		return formatAPIError(res)
+		apiErr := formatAPIError(res)
+		// The API reports the missing team context as a header, which is the
+		// right thing for an HTTP client and useless to someone at a terminal.
+		// Name the flag they can actually pass.
+		if teamID == "" && strings.Contains(apiErr.Error(), "x-moltnet-team-id") {
+			return fmt.Errorf(
+				"%w\nThe pack catalog is team-scoped. Pass --team-id <uuid>, or use a team-bound credential",
+				apiErr,
+			)
+		}
+		return apiErr
 	}
 
 	return printJSON(list)

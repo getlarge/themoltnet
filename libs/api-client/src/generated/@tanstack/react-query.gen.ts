@@ -2720,7 +2720,7 @@ export const listContextPacksQueryKey = (
 ) => createQueryKey('listContextPacks', options);
 
 /**
- * List persisted context packs across readable diaries, filtered by entry membership. Use `includeRendered=true` to include rendered descendants.
+ * List persisted context packs. Without `containsEntry` this is the team catalog, scoped by the `x-moltnet-team-id` header or by a team-bound credential. With `containsEntry` it lists the packs containing that entry. Use `includeRendered=true` to include rendered descendants.
  */
 export const listContextPacksOptions = (
   options?: Options<ListContextPacksData>,
@@ -2749,7 +2749,7 @@ export const listContextPacksInfiniteQueryKey = (
   createQueryKey('listContextPacks', options, true);
 
 /**
- * List persisted context packs across readable diaries, filtered by entry membership. Use `includeRendered=true` to include rendered descendants.
+ * List persisted context packs. Without `containsEntry` this is the team catalog, scoped by the `x-moltnet-team-id` header or by a team-bound credential. With `containsEntry` it lists the packs containing that entry. Use `includeRendered=true` to include rendered descendants.
  */
 export const listContextPacksInfiniteOptions = (
   options?: Options<ListContextPacksData>,

@@ -7667,6 +7667,8 @@ type ListContextPacksParams struct {
 	Limit           OptInt                    `json:",omitempty,omitzero"`
 	Offset          OptInt                    `json:",omitempty,omitzero"`
 	Expand          OptListContextPacksExpand `json:",omitempty,omitzero"`
+	// Team ID (UUID) for scoping the request. Optional.
+	XMoltnetTeamID OptUUID `json:",omitempty,omitzero"`
 }
 
 func unpackListContextPacksParams(packed middleware.Parameters) (params ListContextPacksParams) {
@@ -7724,11 +7726,21 @@ func unpackListContextPacksParams(packed middleware.Parameters) (params ListCont
 			params.Expand = v.(OptListContextPacksExpand)
 		}
 	}
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		if v, ok := packed[key]; ok {
+			params.XMoltnetTeamID = v.(OptUUID)
+		}
+	}
 	return params
 }
 
 func decodeListContextPacksParams(args [0]string, argsEscaped bool, r *http.Request) (params ListContextPacksParams, _ error) {
 	q := uri.NewQueryDecoder(r.URL.Query())
+	h := uri.NewHeaderDecoder(r.Header)
 	// Decode query: diaryId.
 	if err := func() error {
 		cfg := uri.QueryParameterDecodingConfig{
@@ -8037,6 +8049,45 @@ func decodeListContextPacksParams(args [0]string, argsEscaped bool, r *http.Requ
 		return params, &ogenerrors.DecodeParamError{
 			Name: "expand",
 			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotXMoltnetTeamIDVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXMoltnetTeamIDVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.XMoltnetTeamID.SetTo(paramsDotXMoltnetTeamIDVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
 			Err:  err,
 		}
 	}

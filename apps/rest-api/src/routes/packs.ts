@@ -15,6 +15,7 @@ import {
   InjectionConflictProblemDetailsSchema,
   ProblemDetailsSchema,
   ProvenanceGraphSchema,
+  TeamHeaderOptionalSchema,
 } from '@moltnet/models';
 import type { FastifyInstance } from 'fastify';
 import { Type } from 'typebox';
@@ -38,6 +39,7 @@ import {
   PackUpdateBodySchema,
 } from '../schemas.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
+import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
 import { requireKetoSubject } from '../utils/require-keto-subject.js';
 import { buildPackProvenanceGraph } from './pack-provenance.js';
 
@@ -749,8 +751,9 @@ export async function packRoutes(fastify: FastifyInstance) {
         operationId: 'listContextPacks',
         tags: ['diary'],
         description:
-          'List persisted context packs across readable diaries, filtered by entry membership. Use `includeRendered=true` to include rendered descendants.',
+          'List persisted context packs. Without `containsEntry` this is the team catalog, scoped by the `x-moltnet-team-id` header or by a team-bound credential. With `containsEntry` it lists the packs containing that entry. Use `includeRendered=true` to include rendered descendants.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderOptionalSchema,
         querystring: PackCollectionQuerySchema,
         response: {
           200: Type.Ref(ContextPackResponseListWithRenderedSchema.$id),
@@ -777,12 +780,40 @@ export async function packRoutes(fastify: FastifyInstance) {
           'Use GET /diaries/:id/packs for diary-scoped listing',
         );
       }
-      if (!request.query.containsEntry) {
-        throw createProblem('validation-failed', 'containsEntry is required');
-      }
 
       const limit = request.query.limit ?? 20;
       const offset = request.query.offset ?? 0;
+
+      // Without `containsEntry` this is the team catalog. It used to 400,
+      // which meant the console's /packs page could never load: it lists a
+      // team's packs and has no entry to filter by.
+      if (!request.query.containsEntry) {
+        const teamId = requireCurrentTeamId(request, 'packs');
+        try {
+          const catalog = await fastify.contextPackService.listPacksByTeam({
+            teamId,
+            actor: { identityId, subjectNs },
+            limit,
+            offset,
+            includeRendered: request.query.includeRendered,
+          });
+
+          // The list response schema requires `limit` and `offset`; the
+          // entry-filtered branch below supplies them the same way.
+          return {
+            items: catalog.items,
+            total: catalog.total,
+            limit,
+            offset,
+            ...(catalog.renderedPacks
+              ? { renderedPacks: catalog.renderedPacks }
+              : {}),
+          };
+        } catch (err) {
+          if (err instanceof PackServiceError) translatePackServiceError(err);
+          throw err;
+        }
+      }
 
       let packs: Awaited<
         ReturnType<typeof fastify.contextPackService.listPacksByEntry>

@@ -158,7 +158,7 @@ var (
 		"DELETE": "Authorization,X-Moltnet-Session-Token",
 	}
 	rn136AllowedHeaders = map[string]string{
-		"GET": "Authorization,X-Moltnet-Session-Token",
+		"GET": "Authorization,X-Moltnet-Session-Token,X-Moltnet-Team-Id",
 	}
 	rn77AllowedHeaders = map[string]string{
 		"GET": "Authorization,X-Moltnet-Session-Token",

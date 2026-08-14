@@ -1341,17 +1341,31 @@ func TestValidateCommitFlagsErrorFormat(t *testing.T) {
 	}
 }
 
-func TestPackListRequiresDiaryIDOrContainsEntry(t *testing.T) {
+func TestPackListAllowsNoSelector(t *testing.T) {
 	t.Parallel()
 	root := NewRootCmd("test", "")
 
+	// No selector means the team catalog. This used to be rejected, which is
+	// why the console pack list could never load: it has no entry to filter by.
+	//
+	// Asserting only that the message differs from the old one is too loose: an
+	// earlier version of this test passed while `pack list` failed on
+	// `uuid.Parse("")`, because "invalid entry ID" is not "must be provided".
+	// The command must get as far as a transport attempt, so anything that
+	// looks like local validation is a failure.
 	_, _, err := executeCommand(root, "pack", "list")
 	if err == nil {
-		t.Fatal("expected error when neither --diary-id nor --contains-entry is provided")
+		return
 	}
-	if !strings.Contains(err.Error(), "--diary-id") ||
-		!strings.Contains(err.Error(), "--contains-entry") {
-		t.Errorf("expected error to mention both selector flags, got: %v", err)
+	for _, local := range []string{
+		"must be provided",
+		"invalid entry ID",
+		"invalid UUID",
+		"cannot be combined",
+	} {
+		if strings.Contains(err.Error(), local) {
+			t.Errorf("pack list rejected a bare invocation locally: %v", err)
+		}
 	}
 }
 
