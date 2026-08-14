@@ -141,7 +141,7 @@ describe('Tool-policy enforcement (daemon)', () => {
         allowedShellCommands: policy.allowedShellCommands,
         analyze,
       }),
-    ).toEqual({ allow: true });
+    ).toEqual({ allow: true, reasonCode: 'policy_allowed' });
     expect(
       decideToolCall({
         toolName: 'write',
@@ -174,7 +174,7 @@ describe('Tool-policy enforcement (daemon)', () => {
         allowedShellCommands: policy.allowedShellCommands,
         analyze,
       }),
-    ).toEqual({ allow: true });
+    ).toEqual({ allow: true, reasonCode: 'policy_allowed' });
     expect(
       decideToolCall({
         toolName: 'bash',
@@ -264,7 +264,7 @@ describe('Tool-policy enforcement (daemon)', () => {
     });
   });
 
-  it('off: short-circuits (no fetch) and allows everything', async () => {
+  it('off: resolves execution provenance and allows everything', async () => {
     const profile = await createProfile(`off-${Date.now()}`, 'off');
 
     const policy = await resolveSessionToolPolicy({
@@ -275,10 +275,13 @@ describe('Tool-policy enforcement (daemon)', () => {
       enforcement: 'off',
       logger: noopLogger,
     });
-    expect(policy).toEqual({
+    const { executionPolicySnapshotHash, ...policyWithoutHash } = policy;
+    expect(executionPolicySnapshotHash).toMatch(/^sha256:[0-9a-f]{64}$/);
+    expect(policyWithoutHash).toEqual({
       enforcement: 'off',
       allowedTools: new Set(),
       allowedShellCommands: [],
+      executionRuntimeProfileRevision: profile.revision,
       degraded: false,
     });
 
@@ -290,7 +293,7 @@ describe('Tool-policy enforcement (daemon)', () => {
         allowedShellCommands: policy.allowedShellCommands,
         analyze,
       }),
-    ).toEqual({ allow: true });
+    ).toEqual({ allow: true, reasonCode: 'policy_off' });
   });
 
   it('enforce: a resolve failure fails closed (blocks everything)', async () => {
