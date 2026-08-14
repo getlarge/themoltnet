@@ -14,6 +14,7 @@ import {
   KetoNamespace,
   RuntimePolicyRelation,
   RuntimeProfileRelation,
+  TaskRelation,
 } from './keto-constants.js';
 import {
   normalizeTeamRelation,
@@ -44,6 +45,8 @@ export interface DiaryGrantTuple {
   subjectRelation?: string;
 }
 
+export type TaskGrantTuple = DiaryGrantTuple;
+
 export interface RelationshipReader {
   /** Returns all team IDs where the subject has any relationship (owner, manager, member). */
   listTeamIdsBySubject(subjectId: string): Promise<string[]>;
@@ -63,6 +66,8 @@ export interface RelationshipReader {
   listGroupIdsBySubject(subjectId: string): Promise<string[]>;
   /** Returns all per-diary grants (writers + managers). */
   listDiaryGrants(diaryId: string): Promise<DiaryGrantTuple[]>;
+  /** Returns all explicit per-task grants (writers + managers). */
+  listTaskGrants(taskId: string): Promise<TaskGrantTuple[]>;
   /** Returns the RuntimePolicy IDs bound to a runtime profile. */
   listRuntimeProfilePolicies(profileId: string): Promise<string[]>;
   /** Returns the tool names granted by a runtime policy. */
@@ -336,6 +341,38 @@ export function createRelationshipReader(
           const result = await relationshipApi.getRelationships({
             namespace: KetoNamespace.Diary,
             object: diaryId,
+            relation,
+            pageToken,
+          });
+          for (const tuple of result.relation_tuples ?? []) {
+            if (tuple.subject_set?.object) {
+              grants.push({
+                subjectId: tuple.subject_set.object,
+                subjectNs: tuple.subject_set.namespace ?? '',
+                role,
+                subjectRelation: tuple.subject_set.relation || undefined,
+              });
+            }
+          }
+          pageToken = result.next_page_token || undefined;
+        } while (pageToken);
+      }
+
+      return grants;
+    },
+
+    async listTaskGrants(taskId: string): Promise<TaskGrantTuple[]> {
+      const grants: TaskGrantTuple[] = [];
+
+      for (const [relation, role] of [
+        [TaskRelation.Writers, 'writer'],
+        [TaskRelation.Managers, 'manager'],
+      ] as const) {
+        let pageToken: string | undefined;
+        do {
+          const result = await relationshipApi.getRelationships({
+            namespace: KetoNamespace.Task,
+            object: taskId,
             relation,
             pageToken,
           });

@@ -45,7 +45,12 @@ export interface TaskQueryService {
     total: number;
     nextCursor?: string;
   }>;
-  get(taskId: string, callerId: string, callerNs: KetoNamespace): Promise<Task>;
+  get(
+    taskId: string,
+    callerId: string,
+    callerNs: KetoNamespace,
+    teamId?: string,
+  ): Promise<Task>;
   updateMetadata(
     taskId: string,
     input: {
@@ -53,12 +58,14 @@ export interface TaskQueryService {
       tags?: string[];
       callerId: string;
       callerNs: KetoNamespace;
+      teamId?: string;
     },
   ): Promise<Task>;
   listAttempts(
     taskId: string,
     callerId: string,
     callerNs: KetoNamespace,
+    teamId?: string,
   ): Promise<TaskAttempt[]>;
   listMessages(
     taskId: string,
@@ -66,6 +73,7 @@ export interface TaskQueryService {
     callerId: string,
     callerNs: KetoNamespace,
     opts: { afterSeq?: number; limit?: number },
+    teamId?: string,
   ): Promise<TaskMessage[]>;
 }
 
@@ -128,7 +136,12 @@ export function createTaskQueryService(
       };
     },
 
-    async get(taskId, callerId, callerNs) {
+    async get(taskId, callerId, callerNs, teamId) {
+      const row = teamId
+        ? await taskRepository.findByIdInTeam(taskId, teamId)
+        : await taskRepository.findById(taskId);
+      if (!row) throw new TaskServiceError('not_found', 'Task not found');
+
       const canView = await permissionChecker.canViewTask(
         taskId,
         callerId,
@@ -140,14 +153,13 @@ export function createTaskQueryService(
           'Not authorized to view this task',
         );
 
-      const row = await taskRepository.findById(taskId);
-      if (!row) throw new TaskServiceError('not_found', 'Task not found');
-
       return dbTaskToWire(row);
     },
 
     async updateMetadata(taskId, input) {
-      const row = await taskRepository.findById(taskId);
+      const row = input.teamId
+        ? await taskRepository.findByIdInTeam(taskId, input.teamId)
+        : await taskRepository.findById(taskId);
       if (!row) throw new TaskServiceError('not_found', 'Task not found');
 
       const canEditMetadata = await permissionChecker.canEditTaskMetadata(
@@ -173,7 +185,12 @@ export function createTaskQueryService(
       return dbTaskToWire(updated);
     },
 
-    async listAttempts(taskId, callerId, callerNs) {
+    async listAttempts(taskId, callerId, callerNs, teamId) {
+      const row = teamId
+        ? await taskRepository.findByIdInTeam(taskId, teamId)
+        : await taskRepository.findById(taskId);
+      if (!row) throw new TaskServiceError('not_found', 'Task not found');
+
       const canView = await permissionChecker.canViewTask(
         taskId,
         callerId,
@@ -185,14 +202,16 @@ export function createTaskQueryService(
           'Not authorized to view this task',
         );
 
-      const row = await taskRepository.findById(taskId);
-      if (!row) throw new TaskServiceError('not_found', 'Task not found');
-
       const attempts = await taskRepository.listAttempts(taskId);
       return attempts.map(dbAttemptToWire);
     },
 
-    async listMessages(taskId, attemptN, callerId, callerNs, opts) {
+    async listMessages(taskId, attemptN, callerId, callerNs, opts, teamId) {
+      const row = teamId
+        ? await taskRepository.findByIdInTeam(taskId, teamId)
+        : await taskRepository.findById(taskId);
+      if (!row) throw new TaskServiceError('not_found', 'Task not found');
+
       const canView = await permissionChecker.canViewTask(
         taskId,
         callerId,

@@ -8,6 +8,7 @@ import {
 interface MockRelationshipApi {
   createRelationship: ReturnType<typeof vi.fn>;
   deleteRelationships: ReturnType<typeof vi.fn>;
+  getRelationships: ReturnType<typeof vi.fn>;
   patchRelationships: ReturnType<typeof vi.fn>;
 }
 
@@ -15,6 +16,7 @@ function createMockRelationshipApi(): MockRelationshipApi {
   return {
     createRelationship: vi.fn(),
     deleteRelationships: vi.fn(),
+    getRelationships: vi.fn().mockResolvedValue({ relation_tuples: [] }),
     patchRelationships: vi.fn(),
   };
 }
@@ -303,8 +305,47 @@ describe('RelationshipWriter', () => {
     const TASK_DIARY_ID = 'dddd0000-0000-0000-0000-000000000001';
     const CLAIMANT_ID = 'eeee0000-0000-0000-0000-000000000001';
 
-    it('sends one patchRelationships call for parent and claimant deletes', async () => {
+    it('removes every Task tuple, including ownership and explicit grants', async () => {
       mockRelationshipApi.patchRelationships.mockResolvedValue(undefined);
+      mockRelationshipApi.getRelationships
+        .mockResolvedValueOnce({
+          relation_tuples: [
+            {
+              namespace: 'Task',
+              object: TASK_ID_1,
+              relation: 'team',
+              subject_set: {
+                namespace: 'Team',
+                object: 'team-1',
+                relation: '',
+              },
+            },
+            {
+              namespace: 'Task',
+              object: TASK_ID_1,
+              relation: 'writers',
+              subject_set: {
+                namespace: 'Group',
+                object: 'group-1',
+                relation: 'members',
+              },
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          relation_tuples: [
+            {
+              namespace: 'Task',
+              object: TASK_ID_2,
+              relation: 'parent',
+              subject_set: {
+                namespace: 'Diary',
+                object: TASK_DIARY_ID,
+                relation: '',
+              },
+            },
+          ],
+        });
 
       await writer.removeTaskRelationsBatch([
         {
@@ -323,10 +364,10 @@ describe('RelationshipWriter', () => {
             relation_tuple: {
               namespace: 'Task',
               object: TASK_ID_1,
-              relation: 'parent',
+              relation: 'team',
               subject_set: {
-                namespace: 'Diary',
-                object: TASK_DIARY_ID,
+                namespace: 'Team',
+                object: 'team-1',
                 relation: '',
               },
             },
@@ -336,11 +377,11 @@ describe('RelationshipWriter', () => {
             relation_tuple: {
               namespace: 'Task',
               object: TASK_ID_1,
-              relation: 'claimant',
+              relation: 'writers',
               subject_set: {
-                namespace: 'Agent',
-                object: CLAIMANT_ID,
-                relation: '',
+                namespace: 'Group',
+                object: 'group-1',
+                relation: 'members',
               },
             },
           },
@@ -367,12 +408,56 @@ describe('RelationshipWriter', () => {
       expect(mockRelationshipApi.patchRelationships).not.toHaveBeenCalled();
     });
 
-    it('is a no-op when tasks have no task relations to remove', async () => {
+    it('is a no-op when Keto has no task relations to remove', async () => {
       await writer.removeTaskRelationsBatch([
         { id: TASK_ID_1, diaryId: null, claimAgentId: null },
       ]);
 
       expect(mockRelationshipApi.patchRelationships).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('task ownership and grants', () => {
+    it('writes team and provenance parent in one atomic patch', async () => {
+      await writer.grantTaskOwnership('task-1', 'team-1', DIARY_ID);
+
+      expect(mockRelationshipApi.patchRelationships).toHaveBeenCalledWith({
+        relationshipPatch: [
+          expect.objectContaining({
+            action: 'insert',
+            relation_tuple: expect.objectContaining({
+              namespace: 'Task',
+              object: 'task-1',
+              relation: 'team',
+            }),
+          }),
+          expect.objectContaining({
+            action: 'insert',
+            relation_tuple: expect.objectContaining({
+              namespace: 'Task',
+              object: 'task-1',
+              relation: 'parent',
+            }),
+          }),
+        ],
+      });
+    });
+
+    it('preserves Group subject-set membership semantics for writers', async () => {
+      await writer.grantTaskWriters('task-1', 'group-1', 'Group' as never);
+
+      expect(mockRelationshipApi.createRelationship).toHaveBeenCalledWith({
+        createRelationshipBody: expect.objectContaining({
+          namespace: 'Task',
+          object: 'task-1',
+          relation: 'writers',
+          subject_set: {
+            namespace: 'Group',
+            object: 'group-1',
+            relation: 'members',
+          },
+        }),
+      });
     });
   });
 });

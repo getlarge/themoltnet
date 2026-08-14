@@ -71,6 +71,12 @@ export function createTaskService(deps: TaskServiceDeps) {
     makeAsyncValidationContext,
   );
 
+  function findTaskForTeam(taskId: string, teamId?: string) {
+    return teamId
+      ? taskRepository.findByIdInTeam(taskId, teamId)
+      : taskRepository.findById(taskId);
+  }
+
   async function waitForAttemptFinalTask(
     workflowId: string,
     taskId: string,
@@ -151,13 +157,16 @@ export function createTaskService(deps: TaskServiceDeps) {
       callerNs: KetoNamespace,
       leaseTtlSec = DEFAULT_LEASE_TTL_SEC,
       executorAttestation: ExecutorAttestationInput = {},
+      teamId?: string,
     ): Promise<{ task: Task; attempt: TaskAttempt }> {
       // Only agents may claim tasks (Issue 4).
       if (callerNs !== KetoNamespace.Agent) {
         throw new TaskServiceError('invalid', 'Only agents may claim tasks');
       }
 
-      const initialRow = await taskRepository.findById(taskId);
+      const initialRow = await findTaskForTeam(taskId, teamId);
+      if (!initialRow)
+        throw new TaskServiceError('not_found', 'Task not found');
       if (initialRow?.status === 'waiting') {
         const canClaimWaiting = await permissionChecker.canClaimTask(
           taskId,
@@ -401,12 +410,13 @@ export function createTaskService(deps: TaskServiceDeps) {
       callerId: string,
       callerNs: KetoNamespace,
       leaseTtlSec = DEFAULT_LEASE_TTL_SEC,
+      teamId?: string,
     ): Promise<{
       claimExpiresAt: string;
       cancelled: boolean;
       cancelReason: string | null;
     }> {
-      const task = await taskRepository.findById(taskId);
+      const task = await findTaskForTeam(taskId, teamId);
       if (!task) throw new TaskServiceError('not_found', 'Task not found');
 
       const attempt = await taskRepository.findAttempt(taskId, attemptN);
@@ -532,8 +542,9 @@ export function createTaskService(deps: TaskServiceDeps) {
         executorSignature?: string;
         daemonState?: DaemonState | null;
       },
+      teamId?: string,
     ): Promise<Task> {
-      const task = await taskRepository.findById(taskId);
+      const task = await findTaskForTeam(taskId, teamId);
       if (!task) throw new TaskServiceError('not_found', 'Task not found');
       if (TERMINAL_STATUSES.has(task.status)) {
         // Defense in depth (#938): a /complete that races with a /cancel
@@ -685,8 +696,9 @@ export function createTaskService(deps: TaskServiceDeps) {
       callerId: string,
       callerNs: KetoNamespace,
       error: TaskError,
+      teamId?: string,
     ): Promise<Task> {
-      const task = await taskRepository.findById(taskId);
+      const task = await findTaskForTeam(taskId, teamId);
       if (!task) throw new TaskServiceError('not_found', 'Task not found');
       if (TERMINAL_STATUSES.has(task.status)) {
         // Defense in depth (#938): a /fail that races with a /cancel
@@ -786,12 +798,13 @@ export function createTaskService(deps: TaskServiceDeps) {
       callerId: string,
       callerNs: KetoNamespace,
       reason?: string,
+      teamId?: string,
     ): Promise<Task> {
       // Attempt-level abort (#1382): the active claimant intentionally
       // abandons this attempt (e.g. daemon SIGINT/SIGTERM) without
       // cancelling the whole task. The task requeues for another claim
       // when retry policy allows, or settles `failed` when exhausted.
-      const task = await taskRepository.findById(taskId);
+      const task = await findTaskForTeam(taskId, teamId);
       if (!task) throw new TaskServiceError('not_found', 'Task not found');
       if (TERMINAL_STATUSES.has(task.status)) {
         throw new TaskServiceError(
@@ -886,8 +899,9 @@ export function createTaskService(deps: TaskServiceDeps) {
       // the Kratos identityId used for Keto checks (see auth-principal.ts).
       // Defaults to callerId to preserve the agent path.
       cancellerId: string = callerId,
+      teamId?: string,
     ): Promise<Task> {
-      const row = await taskRepository.findById(taskId);
+      const row = await findTaskForTeam(taskId, teamId);
       if (!row) throw new TaskServiceError('not_found', 'Task not found');
 
       const terminalStatuses: DbTask['status'][] = [
@@ -993,6 +1007,7 @@ export function createTaskService(deps: TaskServiceDeps) {
         payload: Record<string, unknown>;
         timestamp?: string;
       }>,
+      teamId?: string,
     ): Promise<{ count: number }> {
       const serverReceivedAtMs = Date.now();
       const usefulEvent = messages.find(
@@ -1002,7 +1017,7 @@ export function createTaskService(deps: TaskServiceDeps) {
             typeof payload['delta'] === 'string' &&
             payload['delta'].trim().length > 0),
       );
-      const task = await taskRepository.findById(taskId);
+      const task = await findTaskForTeam(taskId, teamId);
       if (!task) throw new TaskServiceError('not_found', 'Task not found');
       if (TERMINAL_STATUSES.has(task.status)) {
         throw new TaskServiceError(

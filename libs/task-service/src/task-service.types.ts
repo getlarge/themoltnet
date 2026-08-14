@@ -1,4 +1,8 @@
-import type { PermissionChecker, RelationshipWriter } from '@moltnet/auth';
+import type {
+  PermissionChecker,
+  RelationshipReader,
+  RelationshipWriter,
+} from '@moltnet/auth';
 import type { KetoNamespace } from '@moltnet/auth';
 import type { ExecutorTrustLevel } from '@moltnet/crypto-service';
 import type {
@@ -96,6 +100,8 @@ export interface TaskServiceDeps {
   correlationSealRepository: CorrelationSealRepository;
   permissionChecker: PermissionChecker;
   relationshipWriter: RelationshipWriter;
+  relationshipReader?: RelationshipReader;
+  bridgeDiaryTaskGrants?: boolean;
   transactionRunner: TransactionRunner;
   enqueueWorkflowInCurrentTransaction: TransactionalWorkflowEnqueue;
   logger: Logger;

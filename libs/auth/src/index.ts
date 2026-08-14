@@ -61,6 +61,7 @@ export {
   type DiaryGrantTuple,
   type GroupMemberTuple,
   type RelationshipReader,
+  type TaskGrantTuple,
   type TeamIdWithRole,
   type TeamMemberTuple,
 } from './relationship-reader.js';

@@ -62,6 +62,8 @@ export function createTaskCreateService(
     | 'correlationSealRepository'
     | 'permissionChecker'
     | 'relationshipWriter'
+    | 'relationshipReader'
+    | 'bridgeDiaryTaskGrants'
     | 'transactionRunner'
     | 'logger'
     | 'taskLifetime'
@@ -80,6 +82,8 @@ export function createTaskCreateService(
     correlationSealRepository,
     permissionChecker,
     relationshipWriter,
+    relationshipReader,
+    bridgeDiaryTaskGrants,
     transactionRunner,
     logger,
     taskLifetime,
@@ -150,20 +154,32 @@ export function createTaskCreateService(
         ]);
       }
 
+      const canWriteTeam = await permissionChecker.canWriteTeam(
+        input.teamId,
+        input.callerId,
+        input.callerNs,
+      );
+      if (!canWriteTeam) {
+        throw new TaskServiceError(
+          'forbidden',
+          'Not authorized to create tasks for this team',
+        );
+      }
+
       const diary = await diaryRepository.findById(input.diaryId);
       if (!diary) {
         throw new TaskServiceError('not_found', 'Diary not found');
       }
 
-      const canPropose = await permissionChecker.canProposeTask(
+      const canWriteDiary = await permissionChecker.canWriteDiary(
         input.diaryId,
         input.callerId,
         input.callerNs,
       );
-      if (!canPropose) {
+      if (!canWriteDiary) {
         throw new TaskServiceError(
           'forbidden',
-          'Not authorized to propose tasks on this diary',
+          'Not authorized to write task provenance to this diary',
         );
       }
 
@@ -385,12 +401,52 @@ export function createTaskCreateService(
       }
 
       try {
-        await relationshipWriter.grantTaskParent(row.id, input.diaryId);
+        await relationshipWriter.grantTaskOwnership(
+          row.id,
+          input.teamId,
+          input.diaryId,
+        );
+        if (bridgeDiaryTaskGrants) {
+          if (!relationshipReader) {
+            throw new Error(
+              'Task ownership bridge requires relationshipReader',
+            );
+          }
+          const grants = await relationshipReader.listDiaryGrants(
+            input.diaryId,
+          );
+          for (const grant of grants) {
+            const namespace = grant.subjectNs as Parameters<
+              typeof relationshipWriter.grantTaskWriters
+            >[2];
+            if (grant.role === 'writer') {
+              await relationshipWriter.grantTaskWriters(
+                row.id,
+                grant.subjectId,
+                namespace,
+              );
+            } else {
+              await relationshipWriter.grantTaskManagers(
+                row.id,
+                grant.subjectId,
+                namespace,
+              );
+            }
+          }
+        }
       } catch (err) {
         logger.error(
           { taskId: row.id, diaryId: input.diaryId, err },
           'task.create.grant_failed - rolling back task',
         );
+        try {
+          await relationshipWriter.removeTaskRelations(row.id);
+        } catch (relationCleanupErr) {
+          logger.error(
+            { taskId: row.id, err: relationCleanupErr },
+            'task.create.grant_failed.relation_cleanup_failed - manual intervention required',
+          );
+        }
         try {
           await correlationSealRepository.deleteBySealingTaskId(row.id);
         } catch (sealDelErr) {

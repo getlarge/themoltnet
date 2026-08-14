@@ -154,6 +154,8 @@ function createIntegrationDeps() {
         deleteBySealingTaskId: vi.fn(() => Promise.resolve(null)),
       },
       permissionChecker: {
+        canWriteTeam: vi.fn(() => Promise.resolve(true)),
+        canWriteDiary: vi.fn(() => Promise.resolve(true)),
         canProposeTask: vi.fn(() => Promise.resolve(true)),
         canAccessTeam: vi.fn(() => Promise.resolve(true)),
         canViewTask: vi.fn(() => Promise.resolve(true)),
@@ -171,6 +173,7 @@ function createIntegrationDeps() {
         canClaimTask: vi.fn(() => Promise.resolve(true)),
       },
       relationshipWriter: {
+        grantTaskOwnership: grants.parent.mockResolvedValue(undefined),
         grantTaskParent: grants.parent.mockResolvedValue(undefined),
         grantTaskClaimant: vi.fn(() => Promise.resolve(undefined)),
         removeTaskRelationsBatch: grants.removed.mockResolvedValue(undefined),
@@ -217,7 +220,7 @@ describe('createTaskService composition integration', () => {
       tags: ['refactor', 'tests'],
       status: 'queued',
     });
-    expect(grants.parent).toHaveBeenCalledWith(TASK_ID, DIARY_ID);
+    expect(grants.parent).toHaveBeenCalledWith(TASK_ID, TEAM_ID, DIARY_ID);
 
     await expect(
       service.get(TASK_ID, AGENT_ID, KetoNamespace.Agent),

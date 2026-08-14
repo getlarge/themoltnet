@@ -204,6 +204,12 @@ type PermissionCheckerMocks = {
   canAccessTeam: Mock<
     (teamId: string, callerId: string, callerNs: string) => Promise<boolean>
   >;
+  canWriteTeam: Mock<
+    (teamId: string, callerId: string, callerNs: string) => Promise<boolean>
+  >;
+  canWriteDiary: Mock<
+    (diaryId: string, callerId: string, callerNs: string) => Promise<boolean>
+  >;
   canProposeTask: Mock<
     (diaryId: string, callerId: string, callerNs: string) => Promise<boolean>
   >;
@@ -243,6 +249,9 @@ type PermissionCheckerMocks = {
 };
 
 type RelationshipWriterMocks = {
+  grantTaskOwnership: Mock<
+    (taskId: string, teamId: string, diaryId: string) => Promise<void>
+  >;
   grantTaskParent: Mock<(taskId: string, diaryId: string) => Promise<void>>;
   grantTaskClaimant: Mock<(taskId: string, agentId: string) => Promise<void>>;
   removeTaskRelationsBatch: Mock<
@@ -634,6 +643,24 @@ function makeMocks(
           ) => Promise<boolean>
         >()
         .mockResolvedValue(true),
+      canWriteTeam: vi
+        .fn<
+          (
+            teamId: string,
+            callerId: string,
+            callerNs: string,
+          ) => Promise<boolean>
+        >()
+        .mockResolvedValue(true),
+      canWriteDiary: vi
+        .fn<
+          (
+            diaryId: string,
+            callerId: string,
+            callerNs: string,
+          ) => Promise<boolean>
+        >()
+        .mockResolvedValue(true),
       canProposeTask: vi
         .fn<
           (
@@ -737,6 +764,15 @@ function makeMocks(
         .mockResolvedValue(true),
     },
     relationshipWriter: {
+      grantTaskOwnership: vi
+        .fn<
+          (taskId: string, teamId: string, diaryId: string) => Promise<void>
+        >()
+        .mockImplementation(() =>
+          opts.grantThrows
+            ? Promise.reject(new Error('keto down'))
+            : Promise.resolve(),
+        ),
       grantTaskParent: vi
         .fn<(taskId: string, diaryId: string) => Promise<void>>()
         .mockImplementation(() =>
@@ -1307,7 +1343,46 @@ describe('createTaskService.create — judge_eval_attempt flow', () => {
       mocks.correlationSealRepository.acquireCorrelationLock,
     ).not.toHaveBeenCalled();
     expect(mocks.correlationSealRepository.create).not.toHaveBeenCalled();
-    expect(mocks.relationshipWriter.grantTaskParent).toHaveBeenCalledOnce();
+    expect(mocks.relationshipWriter.grantTaskOwnership).toHaveBeenCalledWith(
+      task.id,
+      TEAM_ID,
+      DIARY_ID,
+    );
+  });
+
+  it('requires write permission on the owning team before reading the diary', async () => {
+    mocks.permissionChecker.canWriteTeam.mockResolvedValue(false);
+
+    await expect(
+      service.create(judgeCreateInput() as never),
+    ).rejects.toMatchObject({ code: 'forbidden' });
+    expect(mocks.permissionChecker.canWriteDiary).not.toHaveBeenCalled();
+    expect(mocks.taskRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('requires write permission on the provenance diary', async () => {
+    mocks.permissionChecker.canWriteDiary.mockResolvedValue(false);
+
+    await expect(
+      service.create(judgeCreateInput() as never),
+    ).rejects.toMatchObject({ code: 'forbidden' });
+    expect(mocks.taskRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('allows an explicitly writable provenance diary owned by another team', async () => {
+    mocks.diaryRepository.findById.mockResolvedValue({
+      id: DIARY_ID,
+      teamId: '99999999-9999-4999-8999-999999999999',
+    });
+
+    const task = await service.create(judgeCreateInput() as never);
+
+    expect(task.teamId).toBe(TEAM_ID);
+    expect(mocks.relationshipWriter.grantTaskOwnership).toHaveBeenCalledWith(
+      task.id,
+      TEAM_ID,
+      DIARY_ID,
+    );
   });
 
   it('rejects a duplicate judge for the same target attempt and rubric identity', async () => {
@@ -2092,7 +2167,7 @@ describe('createTaskService.deleteMany', () => {
       accepted: [],
       skipped: [JUDGE_TASK],
     });
-    expect(mocks.taskRepository.findByIds).not.toHaveBeenCalled();
+    expect(mocks.taskRepository.findByIds).toHaveBeenCalledWith([JUDGE_TASK]);
     expect(mocks.taskRepository.deleteMany).not.toHaveBeenCalled();
     expect(mocks.taskRepository.deleteManyIfStatusIn).not.toHaveBeenCalled();
   });

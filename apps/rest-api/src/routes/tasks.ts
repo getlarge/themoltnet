@@ -6,10 +6,16 @@ import type {
   TaskActivityAnalyticsResult,
   TaskActivityMetricBucket,
 } from '@moltnet/database';
-import { DBOSErrors } from '@moltnet/database';
+import { DBOSErrors, getDatabase, getExecutor } from '@moltnet/database';
 import {
   ConflictProblemDetailsSchema,
+  CreateTaskGrantSchema,
   ProblemDetailsSchema,
+  RevokedResponseSchema,
+  RevokeTaskGrantSchema,
+  TaskGrantListResponseSchema,
+  TaskGrantResponseSchema,
+  TeamHeaderOptionalSchema,
   TeamHeaderRequiredSchema,
   ValidationProblemDetailsSchema,
 } from '@moltnet/models';
@@ -22,9 +28,11 @@ import {
   TaskAttempt,
   TaskMessage,
 } from '@moltnet/tasks';
+import { sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { type Static, Type } from 'typebox';
 
+import { loadTaskOwnershipRolloutConfig } from '../config.js';
 import { createProblem, createValidationProblem } from '../problems/index.js';
 import {
   AbortTaskBodySchema,
@@ -64,6 +72,19 @@ function taskDeletionDeduplicationId(ids: string[], force: boolean): string {
   const payload = JSON.stringify({ force, ids: [...ids].sort() });
   const digest = createHash('sha256').update(payload).digest('hex');
   return `task-delete:${digest}`;
+}
+
+function taskGrantLockKey(taskId: string, subjectId: string): bigint {
+  return createHash('sha256')
+    .update(`${taskId}:${subjectId}`)
+    .digest()
+    .readBigInt64BE(0);
+}
+
+function mapTaskSubjectNs(
+  subjectNs: 'Agent' | 'Human' | 'Group',
+): KetoNamespace {
+  return KetoNamespace[subjectNs];
 }
 
 function toTaskProblem(error: TaskServiceError) {
@@ -250,37 +271,9 @@ async function validateAllowedProfiles(
 
 export function taskRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
+  const bridgeTaskGrants =
+    loadTaskOwnershipRolloutConfig().MOLTNET_TASK_OWNERSHIP_BRIDGE === '1';
   server.addHook('preHandler', requireAuth);
-
-  // Enforce the agent-key team ceiling at the resource boundary. A team-bound
-  // key resolves its bound team as the request ceiling, but a task addressed by
-  // id could still belong to a *different* team the same agent can otherwise
-  // access — the by-id lifecycle routes authorize by identity + per-task Keto,
-  // not by the resolved team. Reject when the addressed task is outside the
-  // key's bound team so the "immutable team ceiling" holds for task execution.
-  // Only team-bound agent credentials are constrained; OAuth2 agents and humans
-  // have no binding, skip immediately, and keep their existing authorization.
-  server.addHook('preHandler', async (request) => {
-    const authContext = request.authContext;
-    if (authContext?.subjectType !== 'agent') return;
-    const boundTeamId = authContext.credentialBinding?.boundTeamId;
-    if (!boundTeamId) return;
-    const taskId = (request.params as { id?: string } | undefined)?.id;
-    if (!taskId) return;
-    // `get` is a read (canViewTask + findById); a claimant can always view, so
-    // this never rejects a legitimate operation — it only trips the ceiling.
-    const task = await fastify.taskService.get(
-      taskId,
-      authContext.identityId,
-      KetoNamespace.Agent,
-    );
-    if (task.teamId !== boundTeamId) {
-      throw createProblem(
-        'forbidden',
-        'Agent key is bound to a different team than the addressed task',
-      );
-    }
-  });
 
   // GET /tasks/schemas
   server.get(
@@ -484,10 +477,12 @@ export function taskRoutes(fastify: FastifyInstance) {
         subjectNs: callerNs,
         subjectType,
       } = requireKetoSubject(request);
+      const teamId = requireCurrentTeamId(request, 'tasks');
       try {
         const force = request.body.force ?? false;
         const plan = await fastify.taskService.planDeleteMany({
           ids: request.body.ids,
+          teamId,
           callerId: identityId,
           callerNs,
           force,
@@ -680,6 +675,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         tags: ['tasks'],
         description: 'Get a task by ID.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderOptionalSchema,
         params: TaskParamsSchema,
         response: {
           200: Type.Ref(Task.$id),
@@ -691,11 +687,13 @@ export function taskRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const teamId = requireCurrentTeamId(request, 'tasks');
       try {
         return await fastify.taskService.get(
           request.params.id,
           identityId,
           callerNs,
+          teamId,
         );
       } catch (error) {
         if (error instanceof TaskServiceError) throw toTaskProblem(error);
@@ -720,6 +718,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         description:
           'Update mutable task metadata used for cohorting and search.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderOptionalSchema,
         params: TaskParamsSchema,
         body: UpdateTaskMetadataBodySchema,
         response: {
@@ -733,17 +732,245 @@ export function taskRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const teamId = requireCurrentTeamId(request, 'tasks');
       try {
         return await fastify.taskService.updateMetadata(request.params.id, {
           ...('title' in request.body ? { title: request.body.title } : {}),
           ...('tags' in request.body ? { tags: request.body.tags } : {}),
           callerId: identityId,
           callerNs,
+          teamId,
         });
       } catch (error) {
         if (error instanceof TaskServiceError) throw toTaskProblem(error);
         throw error;
       }
+    },
+  );
+
+  server.get(
+    '/tasks/:id/grants',
+    {
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: { credentialBindingScope: 'team', requiredScopes: ['task:read'] },
+      },
+      schema: {
+        operationId: 'listTaskGrants',
+        tags: ['tasks'],
+        description: 'List explicit writer and manager grants for a task.',
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderRequiredSchema,
+        params: TaskParamsSchema,
+        response: {
+          200: TaskGrantListResponseSchema,
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+        },
+      },
+    },
+    async (request) => {
+      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const teamId = requireCurrentTeamId(request, 'tasks');
+      try {
+        await fastify.taskService.get(
+          request.params.id,
+          identityId,
+          callerNs,
+          teamId,
+        );
+      } catch (error) {
+        if (error instanceof TaskServiceError) throw toTaskProblem(error);
+        throw error;
+      }
+      const grants = await fastify.relationshipReader.listTaskGrants(
+        request.params.id,
+      );
+      return {
+        grants: grants.map((grant) => ({
+          subjectId: grant.subjectId,
+          subjectNs: grant.subjectNs as 'Agent' | 'Human' | 'Group',
+          role: grant.role,
+        })),
+      };
+    },
+  );
+
+  server.post(
+    '/tasks/:id/grants',
+    {
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['task:manage'],
+        },
+      },
+      schema: {
+        operationId: 'createTaskGrant',
+        tags: ['tasks'],
+        description:
+          'Grant writer or manager access to a task for an agent, human, or group.',
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderRequiredSchema,
+        params: TaskParamsSchema,
+        body: CreateTaskGrantSchema,
+        response: {
+          201: TaskGrantResponseSchema,
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
+          503: Type.Ref(ProblemDetailsSchema.$id),
+        },
+      },
+    },
+    async (request, reply) => {
+      if (bridgeTaskGrants) {
+        throw createProblem(
+          'service-unavailable',
+          'Explicit task grants are disabled while diary grants are being mirrored during the ownership cutover.',
+        );
+      }
+      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const teamId = requireCurrentTeamId(request, 'tasks');
+      try {
+        await fastify.taskService.get(
+          request.params.id,
+          identityId,
+          callerNs,
+          teamId,
+        );
+      } catch (error) {
+        if (error instanceof TaskServiceError) throw toTaskProblem(error);
+        throw error;
+      }
+      if (
+        !(await fastify.permissionChecker.canManageTask(
+          request.params.id,
+          identityId,
+          callerNs,
+        ))
+      ) {
+        throw createProblem('forbidden', 'Only task managers can grant access');
+      }
+
+      const { subjectId, subjectNs, role } = request.body;
+      const ketoNs = mapTaskSubjectNs(subjectNs);
+      await fastify.transactionRunner.runInTransaction(
+        async () => {
+          const db = getExecutor(getDatabase());
+          const lockKey = taskGrantLockKey(request.params.id, subjectId);
+          await db.execute(sql`SELECT pg_advisory_xact_lock(${lockKey})`);
+          const grants = await fastify.relationshipReader.listTaskGrants(
+            request.params.id,
+          );
+          const existing = grants.find(
+            (grant) =>
+              grant.subjectId === subjectId && grant.subjectNs === subjectNs,
+          );
+          if (existing && existing.role !== role) {
+            throw createProblem(
+              'conflict',
+              `Subject already has '${existing.role}' access on this task. Revoke it first.`,
+            );
+          }
+          if (role === 'writer') {
+            await fastify.relationshipWriter.grantTaskWriters(
+              request.params.id,
+              subjectId,
+              ketoNs,
+            );
+          } else {
+            await fastify.relationshipWriter.grantTaskManagers(
+              request.params.id,
+              subjectId,
+              ketoNs,
+            );
+          }
+        },
+        { name: 'task-grant-uniqueness' },
+      );
+
+      return reply.status(201).send({ subjectId, subjectNs, role });
+    },
+  );
+
+  server.delete(
+    '/tasks/:id/grants',
+    {
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['task:manage'],
+        },
+      },
+      schema: {
+        operationId: 'revokeTaskGrant',
+        tags: ['tasks'],
+        description: 'Revoke an explicit writer or manager task grant.',
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderRequiredSchema,
+        params: TaskParamsSchema,
+        body: RevokeTaskGrantSchema,
+        response: {
+          200: RevokedResponseSchema,
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+          503: Type.Ref(ProblemDetailsSchema.$id),
+        },
+      },
+    },
+    async (request) => {
+      if (bridgeTaskGrants) {
+        throw createProblem(
+          'service-unavailable',
+          'Explicit task grants are disabled while diary grants are being mirrored during the ownership cutover.',
+        );
+      }
+      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const teamId = requireCurrentTeamId(request, 'tasks');
+      try {
+        await fastify.taskService.get(
+          request.params.id,
+          identityId,
+          callerNs,
+          teamId,
+        );
+      } catch (error) {
+        if (error instanceof TaskServiceError) throw toTaskProblem(error);
+        throw error;
+      }
+      if (
+        !(await fastify.permissionChecker.canManageTask(
+          request.params.id,
+          identityId,
+          callerNs,
+        ))
+      ) {
+        throw createProblem(
+          'forbidden',
+          'Only task managers can revoke access',
+        );
+      }
+
+      const { subjectId, subjectNs, role } = request.body;
+      const ketoNs = mapTaskSubjectNs(subjectNs);
+      if (role === 'writer') {
+        await fastify.relationshipWriter.revokeTaskWriter(
+          request.params.id,
+          subjectId,
+          ketoNs,
+        );
+      } else {
+        await fastify.relationshipWriter.revokeTaskManager(
+          request.params.id,
+          subjectId,
+          ketoNs,
+        );
+      }
+      return { revoked: true };
     },
   );
 
@@ -803,6 +1030,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         tags: ['tasks'],
         description: 'Claim a queued task and start an attempt.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderOptionalSchema,
         params: TaskParamsSchema,
         body: ClaimTaskBodySchema,
         response: {
@@ -830,6 +1058,7 @@ export function taskRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const teamId = requireCurrentTeamId(request, 'tasks');
       try {
         const result = await fastify.taskService.claim(
           request.params.id,
@@ -842,6 +1071,7 @@ export function taskRoutes(fastify: FastifyInstance) {
             executorSignature: request.body.executorSignature,
             profileId: request.body.profileId,
           },
+          teamId,
         );
         if (typeof request.opentelemetry === 'function') {
           const carrier: Record<string, string> = {};
@@ -876,6 +1106,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         tags: ['tasks'],
         description: 'Send a heartbeat to keep the attempt lease alive.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderOptionalSchema,
         params: TaskAttemptParamsSchema,
         body: HeartbeatBodySchema,
         response: {
@@ -888,6 +1119,7 @@ export function taskRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const teamId = requireCurrentTeamId(request, 'tasks');
       try {
         return await fastify.taskService.heartbeat(
           request.params.id,
@@ -895,6 +1127,7 @@ export function taskRoutes(fastify: FastifyInstance) {
           identityId,
           callerNs,
           request.body.leaseTtlSec,
+          teamId,
         );
       } catch (error) {
         if (error instanceof TaskServiceError) throw toTaskProblem(error);
@@ -918,6 +1151,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         tags: ['tasks'],
         description: 'Mark an attempt as completed with output.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderOptionalSchema,
         params: TaskAttemptParamsSchema,
         body: CompleteTaskBodySchema,
         response: {
@@ -932,6 +1166,7 @@ export function taskRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const teamId = requireCurrentTeamId(request, 'tasks');
       try {
         return await fastify.taskService.complete(
           request.params.id,
@@ -948,6 +1183,7 @@ export function taskRoutes(fastify: FastifyInstance) {
             executorSignature: request.body.executorSignature,
             daemonState: request.body.daemonState ?? null,
           },
+          teamId,
         );
       } catch (error) {
         if (error instanceof TaskServiceError) throw toTaskProblem(error);
@@ -971,6 +1207,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         tags: ['tasks'],
         description: 'Mark an attempt as failed with error details.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderOptionalSchema,
         params: TaskAttemptParamsSchema,
         body: FailTaskBodySchema,
         response: {
@@ -985,6 +1222,7 @@ export function taskRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const teamId = requireCurrentTeamId(request, 'tasks');
       try {
         return await fastify.taskService.failAttempt(
           request.params.id,
@@ -992,6 +1230,7 @@ export function taskRoutes(fastify: FastifyInstance) {
           identityId,
           callerNs,
           request.body.error,
+          teamId,
         );
       } catch (error) {
         if (error instanceof TaskServiceError) throw toTaskProblem(error);
@@ -1018,6 +1257,7 @@ export function taskRoutes(fastify: FastifyInstance) {
           'The attempt becomes aborted and the task requeues for another claim ' +
           '(or fails when retries are exhausted). Does NOT cancel the task.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderOptionalSchema,
         params: TaskAttemptParamsSchema,
         body: AbortTaskBodySchema,
         response: {
@@ -1032,6 +1272,7 @@ export function taskRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const teamId = requireCurrentTeamId(request, 'tasks');
       try {
         return await fastify.taskService.abort(
           request.params.id,
@@ -1039,6 +1280,7 @@ export function taskRoutes(fastify: FastifyInstance) {
           identityId,
           callerNs,
           request.body.reason,
+          teamId,
         );
       } catch (error) {
         if (error instanceof TaskServiceError) throw toTaskProblem(error);
@@ -1062,6 +1304,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         tags: ['tasks'],
         description: 'Cancel a task.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderOptionalSchema,
         params: TaskParamsSchema,
         body: CancelTaskBodySchema,
         response: {
@@ -1076,6 +1319,7 @@ export function taskRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const teamId = requireCurrentTeamId(request, 'tasks');
       try {
         return await fastify.taskService.cancel(
           request.params.id,
@@ -1085,6 +1329,7 @@ export function taskRoutes(fastify: FastifyInstance) {
           // cancelledBy*Id FKs to humans.id/agents.identity_id, not the
           // Kratos identityId used for the Keto check above.
           authContextToCreator(request).id,
+          teamId,
         );
       } catch (error) {
         if (error instanceof TaskServiceError) throw toTaskProblem(error);
@@ -1106,6 +1351,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         tags: ['tasks'],
         description: 'List all attempts for a task.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderOptionalSchema,
         params: TaskParamsSchema,
         response: {
           200: Type.Array(Type.Ref(TaskAttempt.$id)),
@@ -1117,11 +1363,13 @@ export function taskRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const teamId = requireCurrentTeamId(request, 'tasks');
       try {
         return await fastify.taskService.listAttempts(
           request.params.id,
           identityId,
           callerNs,
+          teamId,
         );
       } catch (error) {
         if (error instanceof TaskServiceError) throw toTaskProblem(error);
@@ -1143,6 +1391,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         tags: ['tasks'],
         description: 'List messages for a task attempt.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderOptionalSchema,
         params: TaskAttemptParamsSchema,
         querystring: ListMessagesQuerySchema,
         response: {
@@ -1155,6 +1404,7 @@ export function taskRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const teamId = requireCurrentTeamId(request, 'tasks');
       try {
         return await fastify.taskService.listMessages(
           request.params.id,
@@ -1165,6 +1415,7 @@ export function taskRoutes(fastify: FastifyInstance) {
             afterSeq: request.query.afterSeq,
             limit: request.query.limit,
           },
+          teamId,
         );
       } catch (error) {
         if (error instanceof TaskServiceError) throw toTaskProblem(error);
@@ -1188,6 +1439,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         tags: ['tasks'],
         description: 'Append messages to a task attempt.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderOptionalSchema,
         params: TaskAttemptParamsSchema,
         body: AppendMessagesBodySchema,
         response: {
@@ -1201,6 +1453,7 @@ export function taskRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const teamId = requireCurrentTeamId(request, 'tasks');
       try {
         return await fastify.taskService.appendMessages(
           request.params.id,
@@ -1208,6 +1461,7 @@ export function taskRoutes(fastify: FastifyInstance) {
           identityId,
           callerNs,
           request.body.messages,
+          teamId,
         );
       } catch (error) {
         if (error instanceof TaskServiceError) throw toTaskProblem(error);

@@ -135,6 +135,25 @@ describe('PermissionChecker', () => {
     });
   });
 
+  describe('task permissions', () => {
+    it('checks task grant management against Task#manage', async () => {
+      mockPermissionApi.checkPermission.mockResolvedValue({ allowed: true });
+
+      await expect(
+        checker.canManageTask(TASK_ID, AGENT_ID, KetoNamespace.Agent),
+      ).resolves.toBe(true);
+      expect(mockPermissionApi.checkPermission).toHaveBeenCalledWith({
+        namespace: 'Task',
+        object: TASK_ID,
+        relation: 'manage',
+        subjectId: undefined,
+        subjectSetNamespace: 'Agent',
+        subjectSetObject: AGENT_ID,
+        subjectSetRelation: '',
+      });
+    });
+  });
+
   describe('canViewEntry', () => {
     it('returns true when agent has view permission', async () => {
       mockPermissionApi.checkPermission.mockResolvedValue({

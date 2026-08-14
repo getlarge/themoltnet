@@ -10,6 +10,7 @@ import type { TaskServiceDeps } from './task-service.types.js';
 
 export interface DeleteManyInput {
   ids: string[];
+  teamId?: string;
   callerId: string;
   callerNs: KetoNamespace;
   force?: boolean;
@@ -56,17 +57,21 @@ export function createTaskDeleteService(
     }
 
     const uniqueIds = [...new Set(input.ids)];
+    const scopedRows = input.teamId
+      ? await taskRepository.findByIdsInTeam(uniqueIds, input.teamId)
+      : await taskRepository.findByIds(uniqueIds);
+    const scopedIds = scopedRows.map((row) => row.id);
     const allowedMap = await permissionChecker.canDeleteTasks(
-      uniqueIds,
+      scopedIds,
       input.callerId,
       input.callerNs,
     );
-    const allowedIds = uniqueIds.filter((id) => allowedMap.get(id));
+    const allowedIds = scopedIds.filter((id) => allowedMap.get(id));
     if (allowedIds.length === 0) {
       return { accepted: [], forceDeleteSealedTaskIds: [], skipped: uniqueIds };
     }
 
-    const rows = await taskRepository.findByIds(allowedIds);
+    const rows = scopedRows.filter((row) => allowedIds.includes(row.id));
     const { deleteEligibleTasks, terminalTaskIds } =
       classifyTaskDeletionCandidates(rows);
     const sealedIds = new Set(

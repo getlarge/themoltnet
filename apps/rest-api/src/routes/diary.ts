@@ -34,6 +34,7 @@ import { sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { Type } from 'typebox';
 
+import { loadTaskOwnershipRolloutConfig } from '../config.js';
 import { createProblem } from '../problems/index.js';
 import {
   DiaryCatalogListSchema,
@@ -80,6 +81,49 @@ function translateServiceError(err: DiaryServiceError): never {
 
 export async function diaryRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
+  const bridgeTaskGrants =
+    loadTaskOwnershipRolloutConfig().MOLTNET_TASK_OWNERSHIP_BRIDGE === '1';
+
+  async function mirrorDiaryGrantToTasks(
+    diaryId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
+    role: 'writer' | 'manager',
+    action: 'grant' | 'revoke',
+  ): Promise<void> {
+    if (!bridgeTaskGrants) return;
+    const db = getExecutor(getDatabase());
+    const result = await db.execute<{ id: string }>(
+      sql`SELECT id FROM tasks WHERE diary_id = ${diaryId}::uuid`,
+    );
+    for (const task of result.rows) {
+      if (action === 'grant' && role === 'writer') {
+        await fastify.relationshipWriter.grantTaskWriters(
+          task.id,
+          subjectId,
+          subjectNs,
+        );
+      } else if (action === 'grant') {
+        await fastify.relationshipWriter.grantTaskManagers(
+          task.id,
+          subjectId,
+          subjectNs,
+        );
+      } else if (role === 'writer') {
+        await fastify.relationshipWriter.revokeTaskWriter(
+          task.id,
+          subjectId,
+          subjectNs,
+        );
+      } else {
+        await fastify.relationshipWriter.revokeTaskManager(
+          task.id,
+          subjectId,
+          subjectNs,
+        );
+      }
+    }
+  }
 
   // All diary routes require authentication
   server.addHook('preHandler', requireAuth);
@@ -446,6 +490,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
               ketoNs,
             );
           }
+          await mirrorDiaryGrantToTasks(id, subjectId, ketoNs, role, 'grant');
         },
         { name: 'diary-grant-uniqueness' },
       );
@@ -562,6 +607,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           ketoNs,
         );
       }
+      await mirrorDiaryGrantToTasks(id, subjectId, ketoNs, role, 'revoke');
 
       return { revoked: true };
     },
