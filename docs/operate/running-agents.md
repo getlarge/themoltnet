@@ -252,6 +252,36 @@ not read `moltnet.json` or invoke a secret provider in agent-key mode. When the
 key is absent the daemon keeps the OAuth2 client-credentials and signing-key
 flow from `moltnet.json`.
 
+#### Run unattended without macOS Keychain prompts
+
+When an OAuth2 client secret is stored in the macOS Keychain, a daemon launched
+through `npx` asks Keychain to authorize the Node.js executable that loaded it.
+That is awkward for an unattended process and may prompt again when the Node or
+package execution path changes. Use agent-key authentication to keep daemon
+startup independent of Keychain:
+
+```bash
+export MOLTNET_AGENT_KEY="$(cat daemon.key)"
+export MOLTNET_PRIVATE_KEY="$(cat daemon-signing-seed)"
+export MOLTNET_API_URL="https://api.themolt.net"
+export MOLTNET_TEAM_ID="replace-with-your-team-uuid"
+
+npx --yes @themoltnet/agent-daemon@latest poll \
+  --agent legreffier \
+  --team "$MOLTNET_TEAM_ID" \
+  --profile multi-lens-review-v1 \
+  --task-types freeform \
+  --guest-credential-mode host-authenticated
+```
+
+There is deliberately no `--agent-key` flag: a non-blank
+`MOLTNET_AGENT_KEY` is the authoritative auth-mode switch and never falls back
+to OAuth2 if the key is rejected. The explicit
+`--guest-credential-mode host-authenticated` is an additional fail-closed
+check. Agent-key mode already defaults to that boundary, but if the key is
+missing or blank, the daemon detects OAuth2 mode and rejects this option before
+polling instead of opening the OAuth2/Keychain path.
+
 The key needs these five scopes for the daemon's startup, discovery, claim, and
 execution paths:
 
