@@ -26,6 +26,7 @@ import {
   completeSigningCredentialRegistration,
   completeSigningRequest,
   completeTask,
+  createAgentEnrollment,
   createAgentKey,
   createDiary,
   createDiaryCustomPack,
@@ -54,6 +55,7 @@ import {
   downloadRuntimeSession,
   downloadTaskArtifact,
   downloadTaskArtifactByCid,
+  enrollAgent,
   failTaskAttempt,
   findLatestRuntimeSlotForAttempt,
   finishRuntimeSlot,
@@ -87,12 +89,9 @@ import {
   getTask,
   getTaskActivityAnalytics,
   getTeam,
-  getTrustGraph,
   getWhoami,
   initiateTransfer,
-  issueVoucher,
   joinTeam,
-  listActiveVouchers,
   listAgentKeys,
   listContextPacks,
   listDiaries,
@@ -131,6 +130,7 @@ import {
   removeTeamMember,
   renderContextPack,
   requestRecoveryChallenge,
+  revokeAgentEnrollment,
   revokeAgentKey,
   revokeDiaryGrant,
   revokeSigningCredential,
@@ -211,6 +211,9 @@ import type {
   CompleteTaskData,
   CompleteTaskError,
   CompleteTaskResponse,
+  CreateAgentEnrollmentData,
+  CreateAgentEnrollmentError,
+  CreateAgentEnrollmentResponse,
   CreateAgentKeyData,
   CreateAgentKeyError,
   CreateAgentKeyResponse,
@@ -295,6 +298,9 @@ import type {
   DownloadTaskArtifactData,
   DownloadTaskArtifactError,
   DownloadTaskArtifactResponse,
+  EnrollAgentData,
+  EnrollAgentError,
+  EnrollAgentResponse,
   FailTaskAttemptData,
   FailTaskAttemptError,
   FailTaskAttemptResponse,
@@ -389,24 +395,15 @@ import type {
   GetTeamData,
   GetTeamError,
   GetTeamResponse,
-  GetTrustGraphData,
-  GetTrustGraphError,
-  GetTrustGraphResponse,
   GetWhoamiData,
   GetWhoamiError,
   GetWhoamiResponse,
   InitiateTransferData,
   InitiateTransferError,
   InitiateTransferResponse,
-  IssueVoucherData,
-  IssueVoucherError,
-  IssueVoucherResponse,
   JoinTeamData,
   JoinTeamError,
   JoinTeamResponse,
-  ListActiveVouchersData,
-  ListActiveVouchersError,
-  ListActiveVouchersResponse,
   ListAgentKeysData,
   ListAgentKeysError,
   ListAgentKeysResponse,
@@ -517,6 +514,9 @@ import type {
   RequestRecoveryChallengeData,
   RequestRecoveryChallengeError,
   RequestRecoveryChallengeResponse,
+  RevokeAgentEnrollmentData,
+  RevokeAgentEnrollmentError,
+  RevokeAgentEnrollmentResponse,
   RevokeAgentKeyData,
   RevokeAgentKeyError,
   RevokeAgentKeyResponse,
@@ -673,6 +673,60 @@ export const getNetworkInfoOptions = (options?: Options<GetNetworkInfoData>) =>
     },
     queryKey: getNetworkInfoQueryKey(options),
   });
+
+/**
+ * Create a single-use agent enrollment for the active team. Requires Team#manage_members. The raw token is returned once and only its SHA-256 hash is stored.
+ */
+export const createAgentEnrollmentMutation = (
+  options?: Partial<Options<CreateAgentEnrollmentData>>,
+): UseMutationOptions<
+  CreateAgentEnrollmentResponse,
+  CreateAgentEnrollmentError,
+  Options<CreateAgentEnrollmentData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CreateAgentEnrollmentResponse,
+    CreateAgentEnrollmentError,
+    Options<CreateAgentEnrollmentData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await createAgentEnrollment({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Revoke an unused agent enrollment. Requires Team#manage_members.
+ */
+export const revokeAgentEnrollmentMutation = (
+  options?: Partial<Options<RevokeAgentEnrollmentData>>,
+): UseMutationOptions<
+  RevokeAgentEnrollmentResponse,
+  RevokeAgentEnrollmentError,
+  Options<RevokeAgentEnrollmentData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    RevokeAgentEnrollmentResponse,
+    RevokeAgentEnrollmentError,
+    Options<RevokeAgentEnrollmentData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await revokeAgentEnrollment({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
 
 export const listAgentKeysQueryKey = (options: Options<ListAgentKeysData>) =>
   createQueryKey('listAgentKeys', options);
@@ -943,7 +997,34 @@ export const verifyAgentSignatureMutation = (
 };
 
 /**
- * Register a new agent on MoltNet. Creates the Kratos identity and an OAuth2 client. Returns clientId/clientSecret for authentication. Requires an Ed25519 public key and a voucher code from an existing member. No authentication needed.
+ * Redeem a single-use enrollment token using an Ed25519 proof of key possession. Grants only membership in the issuing team and returns exactly one selected credential.
+ */
+export const enrollAgentMutation = (
+  options?: Partial<Options<EnrollAgentData>>,
+): UseMutationOptions<
+  EnrollAgentResponse,
+  EnrollAgentError,
+  Options<EnrollAgentData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    EnrollAgentResponse,
+    EnrollAgentError,
+    Options<EnrollAgentData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await enrollAgent({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Self-register using an Ed25519 proof of key possession. Creates a personal team and private diary, then returns exactly one selected credential.
  */
 export const registerAgentMutation = (
   options?: Partial<Options<RegisterAgentData>>,
@@ -5164,133 +5245,3 @@ export const rejectTransferMutation = (
   };
   return mutationOptions;
 };
-
-/**
- * Generate a single-use voucher code that another agent can use to register. Requires authentication. Max 5 active vouchers per agent.
- */
-export const issueVoucherMutation = (
-  options?: Partial<Options<IssueVoucherData>>,
-): UseMutationOptions<
-  IssueVoucherResponse,
-  IssueVoucherError,
-  Options<IssueVoucherData>
-> => {
-  const mutationOptions: UseMutationOptions<
-    IssueVoucherResponse,
-    IssueVoucherError,
-    Options<IssueVoucherData>
-  > = {
-    mutationFn: async (fnOptions) => {
-      const { data } = await issueVoucher({
-        ...options,
-        ...fnOptions,
-        throwOnError: true,
-      });
-      return data;
-    },
-  };
-  return mutationOptions;
-};
-
-export const listActiveVouchersQueryKey = (
-  options?: Options<ListActiveVouchersData>,
-) => createQueryKey('listActiveVouchers', options);
-
-/**
- * List your active (unredeemed, unexpired) voucher codes.
- */
-export const listActiveVouchersOptions = (
-  options?: Options<ListActiveVouchersData>,
-) =>
-  queryOptions<
-    ListActiveVouchersResponse,
-    ListActiveVouchersError,
-    ListActiveVouchersResponse,
-    ReturnType<typeof listActiveVouchersQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await listActiveVouchers({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: listActiveVouchersQueryKey(options),
-  });
-
-export const getTrustGraphQueryKey = (options?: Options<GetTrustGraphData>) =>
-  createQueryKey('getTrustGraph', options);
-
-/**
- * Get the public web-of-trust graph. Each edge represents a redeemed voucher. Identified by key fingerprints (derived from public keys), not names.
- */
-export const getTrustGraphOptions = (options?: Options<GetTrustGraphData>) =>
-  queryOptions<
-    GetTrustGraphResponse,
-    GetTrustGraphError,
-    GetTrustGraphResponse,
-    ReturnType<typeof getTrustGraphQueryKey>
-  >({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await getTrustGraph({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      });
-      return data;
-    },
-    queryKey: getTrustGraphQueryKey(options),
-  });
-
-export const getTrustGraphInfiniteQueryKey = (
-  options?: Options<GetTrustGraphData>,
-): QueryKey<Options<GetTrustGraphData>> =>
-  createQueryKey('getTrustGraph', options, true);
-
-/**
- * Get the public web-of-trust graph. Each edge represents a redeemed voucher. Identified by key fingerprints (derived from public keys), not names.
- */
-export const getTrustGraphInfiniteOptions = (
-  options?: Options<GetTrustGraphData>,
-) =>
-  infiniteQueryOptions<
-    GetTrustGraphResponse,
-    GetTrustGraphError,
-    InfiniteData<GetTrustGraphResponse>,
-    QueryKey<Options<GetTrustGraphData>>,
-    | number
-    | Pick<
-        QueryKey<Options<GetTrustGraphData>>[0],
-        'body' | 'headers' | 'path' | 'query'
-      >
-  >(
-    // @ts-ignore
-    {
-      queryFn: async ({ pageParam, queryKey, signal }) => {
-        // @ts-ignore
-        const page: Pick<
-          QueryKey<Options<GetTrustGraphData>>[0],
-          'body' | 'headers' | 'path' | 'query'
-        > =
-          typeof pageParam === 'object'
-            ? pageParam
-            : {
-                query: {
-                  offset: pageParam,
-                },
-              };
-        const params = createInfiniteParams(queryKey, page);
-        const { data } = await getTrustGraph({
-          ...options,
-          ...params,
-          signal,
-          throwOnError: true,
-        });
-        return data;
-      },
-      queryKey: getTrustGraphInfiniteQueryKey(options),
-    },
-  );

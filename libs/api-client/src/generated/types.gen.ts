@@ -8,6 +8,20 @@ export type AbortTaskBody = {
   reason?: string;
 };
 
+export type AgentEnrollment = {
+  createdAt: string;
+  expiresAt: string;
+  id: string;
+  redeemedAt: string | null;
+  resultingAgentId: string | null;
+  revokedAt: string | null;
+  teamId: string;
+};
+
+export type AgentEnrollmentParams = {
+  id: string;
+};
+
 export type AgentIdentity = {
   /**
    * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
@@ -71,6 +85,12 @@ export type AgentKeyList = {
 
 export type AgentKeyParams = {
   keyId: string;
+};
+
+export type AgentKeyRegistrationCredential = {
+  key: AgentKey;
+  secret: string;
+  type: 'agent_key';
 };
 
 export type AgentKeyRevocationReason =
@@ -264,7 +284,6 @@ export type ConflictProblemDetails = {
     | 'VALIDATION_FAILED'
     | 'INVALID_CHALLENGE'
     | 'INVALID_SIGNATURE'
-    | 'VOUCHER_LIMIT'
     | 'RATE_LIMIT_EXCEEDED'
     | 'SERIALIZATION_EXHAUSTED'
     | 'SIGNING_REQUEST_EXPIRED'
@@ -304,7 +323,6 @@ export type ConflictProblemDetails = {
     | 'VALIDATION_FAILED'
     | 'INVALID_CHALLENGE'
     | 'INVALID_SIGNATURE'
-    | 'VOUCHER_LIMIT'
     | 'RATE_LIMIT_EXCEEDED'
     | 'SERIALIZATION_EXHAUSTED'
     | 'SIGNING_REQUEST_EXPIRED'
@@ -637,6 +655,10 @@ export type CreateTaskBody = {
   tags?: Array<string>;
   taskType: string;
   title?: string;
+};
+
+export type CreatedAgentEnrollment = AgentEnrollment & {
+  token: string;
 };
 
 export type CredentialScope =
@@ -1025,7 +1047,6 @@ export type InjectionConflictProblemDetails = {
     | 'VALIDATION_FAILED'
     | 'INVALID_CHALLENGE'
     | 'INVALID_SIGNATURE'
-    | 'VOUCHER_LIMIT'
     | 'RATE_LIMIT_EXCEEDED'
     | 'SERIALIZATION_EXHAUSTED'
     | 'SIGNING_REQUEST_EXPIRED'
@@ -1065,7 +1086,6 @@ export type InjectionConflictProblemDetails = {
     | 'VALIDATION_FAILED'
     | 'INVALID_CHALLENGE'
     | 'INVALID_SIGNATURE'
-    | 'VOUCHER_LIMIT'
     | 'RATE_LIMIT_EXCEEDED'
     | 'SERIALIZATION_EXHAUSTED'
     | 'SIGNING_REQUEST_EXPIRED'
@@ -1275,6 +1295,11 @@ export type NetworkInfo = {
       description: string;
       endpoints: Array<string>;
     };
+    registration: {
+      description: string;
+      enrollments: string;
+      how_it_works: Array<string>;
+    };
     signing: {
       description: string;
       steps: Array<string>;
@@ -1289,11 +1314,6 @@ export type NetworkInfo = {
       };
       notes: string;
     };
-    vouchers: {
-      description: string;
-      genesis: string;
-      how_it_works: Array<string>;
-    };
   };
   technical: {
     auth_flow: string;
@@ -1303,6 +1323,12 @@ export type NetworkInfo = {
     mcp_library: string;
   };
   version: string;
+};
+
+export type OAuth2RegistrationCredential = {
+  clientId: string;
+  clientSecret: string;
+  type: 'oauth2';
 };
 
 export type OutputKind = 'artifact' | 'judgment';
@@ -1446,7 +1472,6 @@ export type ProblemDetails = {
     | 'VALIDATION_FAILED'
     | 'INVALID_CHALLENGE'
     | 'INVALID_SIGNATURE'
-    | 'VOUCHER_LIMIT'
     | 'RATE_LIMIT_EXCEEDED'
     | 'SERIALIZATION_EXHAUSTED'
     | 'SIGNING_REQUEST_EXPIRED'
@@ -1486,7 +1511,6 @@ export type ProblemDetails = {
     | 'VALIDATION_FAILED'
     | 'INVALID_CHALLENGE'
     | 'INVALID_SIGNATURE'
-    | 'VOUCHER_LIMIT'
     | 'RATE_LIMIT_EXCEEDED'
     | 'SERIALIZATION_EXHAUSTED'
     | 'SIGNING_REQUEST_EXPIRED'
@@ -1770,12 +1794,13 @@ export type RecoveryVerifyResponse = {
 };
 
 export type RegisterResponse = {
-  clientId: string;
-  clientSecret: string;
+  credential: OAuth2RegistrationCredential | AgentKeyRegistrationCredential;
   fingerprint: string;
   identityId: string;
   publicKey: string;
 };
+
+export type RegistrationCredentialType = 'oauth2' | 'agent_key';
 
 export type RelationStatus = 'proposed' | 'accepted' | 'rejected';
 
@@ -3121,7 +3146,6 @@ export type ValidationProblemDetails = {
     | 'VALIDATION_FAILED'
     | 'INVALID_CHALLENGE'
     | 'INVALID_SIGNATURE'
-    | 'VOUCHER_LIMIT'
     | 'RATE_LIMIT_EXCEEDED'
     | 'SERIALIZATION_EXHAUSTED'
     | 'SIGNING_REQUEST_EXPIRED'
@@ -3161,7 +3185,6 @@ export type ValidationProblemDetails = {
     | 'VALIDATION_FAILED'
     | 'INVALID_CHALLENGE'
     | 'INVALID_SIGNATURE'
-    | 'VOUCHER_LIMIT'
     | 'RATE_LIMIT_EXCEEDED'
     | 'SERIALIZATION_EXHAUSTED'
     | 'SIGNING_REQUEST_EXPIRED'
@@ -3199,12 +3222,6 @@ export type VerifyResult = {
 
 export type Visibility = 'private' | 'moltnet' | 'public';
 
-export type Voucher = {
-  code: string;
-  expiresAt: string;
-  issuedBy: string;
-};
-
 export type Whoami = {
   clientId?: string;
   credentialBinding?: {
@@ -3235,6 +3252,116 @@ export type GetNetworkInfoResponses = {
 
 export type GetNetworkInfoResponse =
   GetNetworkInfoResponses[keyof GetNetworkInfoResponses];
+
+export type CreateAgentEnrollmentData = {
+  body?: {
+    expiresInMinutes?: number;
+  };
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path?: never;
+  query?: never;
+  url: '/agent-enrollments';
+};
+
+export type CreateAgentEnrollmentErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type CreateAgentEnrollmentError =
+  CreateAgentEnrollmentErrors[keyof CreateAgentEnrollmentErrors];
+
+export type CreateAgentEnrollmentResponses = {
+  /**
+   * Default Response
+   */
+  201: CreatedAgentEnrollment;
+};
+
+export type CreateAgentEnrollmentResponse =
+  CreateAgentEnrollmentResponses[keyof CreateAgentEnrollmentResponses];
+
+export type RevokeAgentEnrollmentData = {
+  body?: never;
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/agent-enrollments/{id}';
+};
+
+export type RevokeAgentEnrollmentErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type RevokeAgentEnrollmentError =
+  RevokeAgentEnrollmentErrors[keyof RevokeAgentEnrollmentErrors];
+
+export type RevokeAgentEnrollmentResponses = {
+  /**
+   * Default Response
+   */
+  204: void;
+};
+
+export type RevokeAgentEnrollmentResponse =
+  RevokeAgentEnrollmentResponses[keyof RevokeAgentEnrollmentResponses];
 
 export type ListAgentKeysData = {
   body?: never;
@@ -3635,16 +3762,86 @@ export type VerifyAgentSignatureResponses = {
 export type VerifyAgentSignatureResponse =
   VerifyAgentSignatureResponses[keyof VerifyAgentSignatureResponses];
 
-export type RegisterAgentData = {
-  body: {
+export type EnrollAgentData = {
+  body?: {
+    credentialType: 'oauth2' | 'agent_key';
+    /**
+     * Base64-encoded Ed25519 signature of the registration message
+     */
+    proof: string;
     /**
      * Ed25519 public key in "ed25519:<base64>" format (32-byte raw key)
      */
-    public_key: string;
+    publicKey: string;
+  } & {
     /**
-     * Single-use voucher code (64-char hex string)
+     * Single-use agent enrollment token
      */
-    voucher_code: string;
+    token: string;
+  };
+  headers: {
+    /**
+     * A random 32-byte base64url nonce. Reuse it only when retrying this exact request.
+     */
+    'idempotency-key': string;
+  };
+  path?: never;
+  query?: never;
+  url: '/auth/enroll';
+};
+
+export type EnrollAgentErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  502: ProblemDetails;
+};
+
+export type EnrollAgentError = EnrollAgentErrors[keyof EnrollAgentErrors];
+
+export type EnrollAgentResponses = {
+  /**
+   * Default Response
+   */
+  200: RegisterResponse;
+};
+
+export type EnrollAgentResponse =
+  EnrollAgentResponses[keyof EnrollAgentResponses];
+
+export type RegisterAgentData = {
+  body: {
+    credentialType: 'oauth2' | 'agent_key';
+    /**
+     * Base64-encoded Ed25519 signature of the registration message
+     */
+    proof: string;
+    /**
+     * Ed25519 public key in "ed25519:<base64>" format (32-byte raw key)
+     */
+    publicKey: string;
+  };
+  headers: {
+    /**
+     * A random 32-byte base64url nonce. Reuse it only when retrying this exact request.
+     */
+    'idempotency-key': string;
   };
   path?: never;
   query?: never;
@@ -3660,6 +3857,10 @@ export type RegisterAgentErrors = {
    * Default Response
    */
   403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
   /**
    * Default Response
    */
@@ -7596,7 +7797,6 @@ export type GetProblemTypeData = {
       | 'unsupported-media-type'
       | 'invalid-challenge'
       | 'invalid-signature'
-      | 'voucher-limit'
       | 'serialization-exhausted'
       | 'rate-limit-exceeded'
       | 'signing-request-expired'
@@ -7750,6 +7950,7 @@ export type SearchPublicFeedResponse =
 export type StartLegreffierOnboardingData = {
   body: {
     agentName: string;
+    credentialType: 'oauth2';
     /**
      * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
      */
@@ -7758,10 +7959,14 @@ export type StartLegreffierOnboardingData = {
      * GitHub organization name. When provided, the GitHub App will be created under this org instead of the personal account.
      */
     org?: string;
+    proof: string;
     /**
      * Ed25519 public key with prefix
      */
     publicKey: string;
+  };
+  headers: {
+    'idempotency-key': string;
   };
   path?: never;
   query?: never;
@@ -7773,6 +7978,10 @@ export type StartLegreffierOnboardingErrors = {
    * Default Response
    */
   400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
   /**
    * Default Response
    */
@@ -9080,7 +9289,6 @@ export type GetRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -9120,7 +9328,6 @@ export type GetRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -9161,7 +9368,6 @@ export type GetRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -9201,7 +9407,6 @@ export type GetRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -9240,7 +9445,6 @@ export type GetRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -9280,7 +9484,6 @@ export type GetRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -9319,7 +9522,6 @@ export type GetRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -9359,7 +9561,6 @@ export type GetRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -9454,7 +9655,6 @@ export type DownloadRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -9494,7 +9694,6 @@ export type DownloadRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -9535,7 +9734,6 @@ export type DownloadRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -9575,7 +9773,6 @@ export type DownloadRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -9614,7 +9811,6 @@ export type DownloadRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -9654,7 +9850,6 @@ export type DownloadRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -9693,7 +9888,6 @@ export type DownloadRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -9733,7 +9927,6 @@ export type DownloadRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -9776,7 +9969,6 @@ export type DownloadRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -9816,7 +10008,6 @@ export type DownloadRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -9895,7 +10086,6 @@ export type UploadRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -9935,7 +10125,6 @@ export type UploadRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -9976,7 +10165,6 @@ export type UploadRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -10016,7 +10204,6 @@ export type UploadRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -10055,7 +10242,6 @@ export type UploadRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -10095,7 +10281,6 @@ export type UploadRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -10134,7 +10319,6 @@ export type UploadRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -10174,7 +10358,6 @@ export type UploadRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -10213,7 +10396,6 @@ export type UploadRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -10253,7 +10435,6 @@ export type UploadRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -10296,7 +10477,6 @@ export type UploadRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -10336,7 +10516,6 @@ export type UploadRuntimeSessionErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -10425,7 +10604,6 @@ export type ListRuntimeSlotsErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -10465,7 +10643,6 @@ export type ListRuntimeSlotsErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -10506,7 +10683,6 @@ export type ListRuntimeSlotsErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -10546,7 +10722,6 @@ export type ListRuntimeSlotsErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -10585,7 +10760,6 @@ export type ListRuntimeSlotsErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -10625,7 +10799,6 @@ export type ListRuntimeSlotsErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -10664,7 +10837,6 @@ export type ListRuntimeSlotsErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -10704,7 +10876,6 @@ export type ListRuntimeSlotsErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -10827,7 +10998,6 @@ export type BeginRuntimeSlotErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -10867,7 +11037,6 @@ export type BeginRuntimeSlotErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -10908,7 +11077,6 @@ export type BeginRuntimeSlotErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -10948,7 +11116,6 @@ export type BeginRuntimeSlotErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -10987,7 +11154,6 @@ export type BeginRuntimeSlotErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -11027,7 +11193,6 @@ export type BeginRuntimeSlotErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -11066,7 +11231,6 @@ export type BeginRuntimeSlotErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -11106,7 +11270,6 @@ export type BeginRuntimeSlotErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -11145,7 +11308,6 @@ export type BeginRuntimeSlotErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -11185,7 +11347,6 @@ export type BeginRuntimeSlotErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -11290,7 +11451,6 @@ export type FinishRuntimeSlotErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -11330,7 +11490,6 @@ export type FinishRuntimeSlotErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -11371,7 +11530,6 @@ export type FinishRuntimeSlotErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -11411,7 +11569,6 @@ export type FinishRuntimeSlotErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -11450,7 +11607,6 @@ export type FinishRuntimeSlotErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -11490,7 +11646,6 @@ export type FinishRuntimeSlotErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -11529,7 +11684,6 @@ export type FinishRuntimeSlotErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -11569,7 +11723,6 @@ export type FinishRuntimeSlotErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -11608,7 +11761,6 @@ export type FinishRuntimeSlotErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -11648,7 +11800,6 @@ export type FinishRuntimeSlotErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -11747,7 +11898,6 @@ export type FindLatestRuntimeSlotForAttemptErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -11787,7 +11937,6 @@ export type FindLatestRuntimeSlotForAttemptErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -11828,7 +11977,6 @@ export type FindLatestRuntimeSlotForAttemptErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -11868,7 +12016,6 @@ export type FindLatestRuntimeSlotForAttemptErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -11907,7 +12054,6 @@ export type FindLatestRuntimeSlotForAttemptErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -11947,7 +12093,6 @@ export type FindLatestRuntimeSlotForAttemptErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -11986,7 +12131,6 @@ export type FindLatestRuntimeSlotForAttemptErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -12026,7 +12170,6 @@ export type FindLatestRuntimeSlotForAttemptErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -12138,7 +12281,6 @@ export type StageTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -12178,7 +12320,6 @@ export type StageTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -12219,7 +12360,6 @@ export type StageTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -12259,7 +12399,6 @@ export type StageTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -12298,7 +12437,6 @@ export type StageTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -12338,7 +12476,6 @@ export type StageTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -12377,7 +12514,6 @@ export type StageTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -12417,7 +12553,6 @@ export type StageTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -12460,7 +12595,6 @@ export type StageTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -12500,7 +12634,6 @@ export type StageTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -13467,7 +13600,6 @@ export type ListTaskArtifactsErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -13507,7 +13639,6 @@ export type ListTaskArtifactsErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -13548,7 +13679,6 @@ export type ListTaskArtifactsErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -13588,7 +13718,6 @@ export type ListTaskArtifactsErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -13627,7 +13756,6 @@ export type ListTaskArtifactsErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -13667,7 +13795,6 @@ export type ListTaskArtifactsErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -13706,7 +13833,6 @@ export type ListTaskArtifactsErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -13746,7 +13872,6 @@ export type ListTaskArtifactsErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -13842,7 +13967,6 @@ export type DownloadTaskArtifactByCidErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -13882,7 +14006,6 @@ export type DownloadTaskArtifactByCidErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -13923,7 +14046,6 @@ export type DownloadTaskArtifactByCidErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -13963,7 +14085,6 @@ export type DownloadTaskArtifactByCidErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -14002,7 +14123,6 @@ export type DownloadTaskArtifactByCidErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -14042,7 +14162,6 @@ export type DownloadTaskArtifactByCidErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -14081,7 +14200,6 @@ export type DownloadTaskArtifactByCidErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -14121,7 +14239,6 @@ export type DownloadTaskArtifactByCidErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -14164,7 +14281,6 @@ export type DownloadTaskArtifactByCidErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -14204,7 +14320,6 @@ export type DownloadTaskArtifactByCidErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -14283,7 +14398,6 @@ export type UploadTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -14323,7 +14437,6 @@ export type UploadTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -14364,7 +14477,6 @@ export type UploadTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -14404,7 +14516,6 @@ export type UploadTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -14443,7 +14554,6 @@ export type UploadTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -14483,7 +14593,6 @@ export type UploadTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -14522,7 +14631,6 @@ export type UploadTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -14562,7 +14670,6 @@ export type UploadTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -14609,7 +14716,6 @@ export type UploadTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -14649,7 +14755,6 @@ export type UploadTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -14735,7 +14840,6 @@ export type DownloadTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -14775,7 +14879,6 @@ export type DownloadTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -14816,7 +14919,6 @@ export type DownloadTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -14856,7 +14958,6 @@ export type DownloadTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -14895,7 +14996,6 @@ export type DownloadTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -14935,7 +15035,6 @@ export type DownloadTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -14974,7 +15073,6 @@ export type DownloadTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -15014,7 +15112,6 @@ export type DownloadTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -15057,7 +15154,6 @@ export type DownloadTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -15097,7 +15193,6 @@ export type DownloadTaskArtifactErrors = {
       | 'VALIDATION_FAILED'
       | 'INVALID_CHALLENGE'
       | 'INVALID_SIGNATURE'
-      | 'VOUCHER_LIMIT'
       | 'RATE_LIMIT_EXCEEDED'
       | 'SERIALIZATION_EXHAUSTED'
       | 'SIGNING_REQUEST_EXPIRED'
@@ -16212,131 +16307,3 @@ export type RejectTransferResponses = {
 
 export type RejectTransferResponse =
   RejectTransferResponses[keyof RejectTransferResponses];
-
-export type IssueVoucherData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/vouch';
-};
-
-export type IssueVoucherErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  429: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-  /**
-   * Default Response
-   */
-  503: ProblemDetails;
-};
-
-export type IssueVoucherError = IssueVoucherErrors[keyof IssueVoucherErrors];
-
-export type IssueVoucherResponses = {
-  /**
-   * Default Response
-   */
-  201: Voucher;
-};
-
-export type IssueVoucherResponse =
-  IssueVoucherResponses[keyof IssueVoucherResponses];
-
-export type ListActiveVouchersData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/vouch/active';
-};
-
-export type ListActiveVouchersErrors = {
-  /**
-   * Default Response
-   */
-  400: ProblemDetails;
-  /**
-   * Default Response
-   */
-  401: ProblemDetails;
-  /**
-   * Default Response
-   */
-  429: ProblemDetails;
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-  /**
-   * Default Response
-   */
-  503: ProblemDetails;
-};
-
-export type ListActiveVouchersError =
-  ListActiveVouchersErrors[keyof ListActiveVouchersErrors];
-
-export type ListActiveVouchersResponses = {
-  /**
-   * Default Response
-   */
-  200: {
-    vouchers: Array<Voucher>;
-  };
-};
-
-export type ListActiveVouchersResponse =
-  ListActiveVouchersResponses[keyof ListActiveVouchersResponses];
-
-export type GetTrustGraphData = {
-  body?: never;
-  path?: never;
-  query?: {
-    limit?: number;
-    offset?: number;
-  };
-  url: '/vouch/graph';
-};
-
-export type GetTrustGraphErrors = {
-  /**
-   * Default Response
-   */
-  500: ProblemDetails;
-};
-
-export type GetTrustGraphError = GetTrustGraphErrors[keyof GetTrustGraphErrors];
-
-export type GetTrustGraphResponses = {
-  /**
-   * Default Response
-   */
-  200: {
-    edges: Array<{
-      /**
-       * Fingerprint of the vouching agent (A1B2-C3D4-E5F6-G7H8)
-       */
-      issuerFingerprint: string;
-      redeemedAt: string;
-      /**
-       * Fingerprint of the joining agent
-       */
-      redeemerFingerprint: string;
-    }>;
-  };
-};
-
-export type GetTrustGraphResponse =
-  GetTrustGraphResponses[keyof GetTrustGraphResponses];

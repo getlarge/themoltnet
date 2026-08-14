@@ -390,6 +390,49 @@ func (s *AgentKeyList) Validate() error {
 	return nil
 }
 
+func (s *AgentKeyRegistrationCredential) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Key.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "key",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := s.Type.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "type",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s AgentKeyRegistrationCredentialType) Validate() error {
+	switch s {
+	case "agent_key":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s AgentKeyRevocationReason) Validate() error {
 	switch s {
 	case "key_compromise":
@@ -1323,8 +1366,6 @@ func (s BeginRuntimeSlotBadRequestCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -1459,8 +1500,6 @@ func (s BeginRuntimeSlotConflictCode) Validate() error {
 	case "INVALID_CHALLENGE":
 		return nil
 	case "INVALID_SIGNATURE":
-		return nil
-	case "VOUCHER_LIMIT":
 		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
@@ -1597,8 +1636,6 @@ func (s BeginRuntimeSlotForbiddenCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -1733,8 +1770,6 @@ func (s BeginRuntimeSlotNotFoundCode) Validate() error {
 	case "INVALID_CHALLENGE":
 		return nil
 	case "INVALID_SIGNATURE":
-		return nil
-	case "VOUCHER_LIMIT":
 		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
@@ -2508,8 +2543,6 @@ func (s BeginRuntimeSlotUnauthorizedCode) Validate() error {
 	case "INVALID_CHALLENGE":
 		return nil
 	case "INVALID_SIGNATURE":
-		return nil
-	case "VOUCHER_LIMIT":
 		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
@@ -3768,8 +3801,6 @@ func (s ConflictProblemDetailsCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -4071,6 +4102,94 @@ func (s ContextPackResponsePackType) Validate() error {
 	default:
 		return errors.Errorf("invalid value: %v", s)
 	}
+}
+
+func (s *CreateAgentEnrollmentBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *CreateAgentEnrollmentForbidden) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *CreateAgentEnrollmentNotFound) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *CreateAgentEnrollmentReq) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if value, ok := s.ExpiresInMinutes.Get(); ok {
+			if err := func() error {
+				if err := (validate.Int{
+					MinSet:        true,
+					Min:           1,
+					MaxSet:        true,
+					Max:           60,
+					MinExclusive:  false,
+					MaxExclusive:  false,
+					MultipleOfSet: false,
+					MultipleOf:    0,
+					Pattern:       nil,
+				}).Validate(int64(value)); err != nil {
+					return errors.Wrap(err, "int")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "expiresInMinutes",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *CreateAgentEnrollmentServiceUnavailable) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *CreateAgentEnrollmentTooManyRequests) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *CreateAgentEnrollmentUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *CreateAgentKeyBadGateway) Validate() error {
@@ -10129,8 +10248,6 @@ func (s DownloadRuntimeSessionBadRequestCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -10265,8 +10382,6 @@ func (s DownloadRuntimeSessionForbiddenCode) Validate() error {
 	case "INVALID_CHALLENGE":
 		return nil
 	case "INVALID_SIGNATURE":
-		return nil
-	case "VOUCHER_LIMIT":
 		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
@@ -10403,8 +10518,6 @@ func (s DownloadRuntimeSessionNotFoundCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -10540,8 +10653,6 @@ func (s DownloadRuntimeSessionServiceUnavailableCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -10676,8 +10787,6 @@ func (s DownloadRuntimeSessionUnauthorizedCode) Validate() error {
 	case "INVALID_CHALLENGE":
 		return nil
 	case "INVALID_SIGNATURE":
-		return nil
-	case "VOUCHER_LIMIT":
 		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
@@ -10825,8 +10934,6 @@ func (s DownloadTaskArtifactBadRequestCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -10973,8 +11080,6 @@ func (s DownloadTaskArtifactByCidBadRequestCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -11109,8 +11214,6 @@ func (s DownloadTaskArtifactByCidForbiddenCode) Validate() error {
 	case "INVALID_CHALLENGE":
 		return nil
 	case "INVALID_SIGNATURE":
-		return nil
-	case "VOUCHER_LIMIT":
 		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
@@ -11247,8 +11350,6 @@ func (s DownloadTaskArtifactByCidNotFoundCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -11383,8 +11484,6 @@ func (s DownloadTaskArtifactByCidServiceUnavailableCode) Validate() error {
 	case "INVALID_CHALLENGE":
 		return nil
 	case "INVALID_SIGNATURE":
-		return nil
-	case "VOUCHER_LIMIT":
 		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
@@ -11521,8 +11620,6 @@ func (s DownloadTaskArtifactByCidUnauthorizedCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -11657,8 +11754,6 @@ func (s DownloadTaskArtifactForbiddenCode) Validate() error {
 	case "INVALID_CHALLENGE":
 		return nil
 	case "INVALID_SIGNATURE":
-		return nil
-	case "VOUCHER_LIMIT":
 		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
@@ -11795,8 +11890,6 @@ func (s DownloadTaskArtifactNotFoundCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -11931,8 +12024,6 @@ func (s DownloadTaskArtifactServiceUnavailableCode) Validate() error {
 	case "INVALID_CHALLENGE":
 		return nil
 	case "INVALID_SIGNATURE":
-		return nil
-	case "VOUCHER_LIMIT":
 		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
@@ -12069,8 +12160,6 @@ func (s DownloadTaskArtifactUnauthorizedCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -12110,6 +12199,149 @@ func (s DownloadTaskArtifactUnauthorizedCode) Validate() error {
 	case "DIARY_TRANSFER_NOT_FOUND":
 		return nil
 	case "DIARY_TRANSFER_ALREADY_RESOLVED":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *EnrollAgentBadGateway) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *EnrollAgentBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *EnrollAgentConflict) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *EnrollAgentForbidden) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *EnrollAgentInternalServerError) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *EnrollAgentReq) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.CredentialType.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "credentialType",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     256,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Proof)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "proof",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     10,
+			MinLengthSet:  true,
+			MaxLength:     256,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.PublicKey)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "publicKey",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     0,
+			MinLengthSet:  false,
+			MaxLength:     0,
+			MaxLengthSet:  false,
+			Email:         false,
+			Hostname:      false,
+			Regex:         regexMap["^[A-Za-z0-9_-]{43}$"],
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Token)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "token",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s EnrollAgentReqCredentialType) Validate() error {
+	switch s {
+	case "oauth2":
+		return nil
+	case "agent_key":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
@@ -12702,8 +12934,6 @@ func (s FindLatestRuntimeSlotForAttemptBadRequestCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -12839,8 +13069,6 @@ func (s FindLatestRuntimeSlotForAttemptForbiddenCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -12975,8 +13203,6 @@ func (s FindLatestRuntimeSlotForAttemptNotFoundCode) Validate() error {
 	case "INVALID_CHALLENGE":
 		return nil
 	case "INVALID_SIGNATURE":
-		return nil
-	case "VOUCHER_LIMIT":
 		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
@@ -13617,8 +13843,6 @@ func (s FindLatestRuntimeSlotForAttemptUnauthorizedCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -13765,8 +13989,6 @@ func (s FinishRuntimeSlotBadRequestCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -13901,8 +14123,6 @@ func (s FinishRuntimeSlotConflictCode) Validate() error {
 	case "INVALID_CHALLENGE":
 		return nil
 	case "INVALID_SIGNATURE":
-		return nil
-	case "VOUCHER_LIMIT":
 		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
@@ -14039,8 +14259,6 @@ func (s FinishRuntimeSlotForbiddenCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -14175,8 +14393,6 @@ func (s FinishRuntimeSlotNotFoundCode) Validate() error {
 	case "INVALID_CHALLENGE":
 		return nil
 	case "INVALID_SIGNATURE":
-		return nil
-	case "VOUCHER_LIMIT":
 		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
@@ -14776,8 +14992,6 @@ func (s FinishRuntimeSlotUnauthorizedCode) Validate() error {
 	case "INVALID_CHALLENGE":
 		return nil
 	case "INVALID_SIGNATURE":
-		return nil
-	case "VOUCHER_LIMIT":
 		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
@@ -15746,8 +15960,6 @@ func (s GetProblemTypeType) Validate() error {
 		return nil
 	case "invalid-signature":
 		return nil
-	case "voucher-limit":
-		return nil
 	case "serialization-exhausted":
 		return nil
 	case "rate-limit-exceeded":
@@ -16192,8 +16404,6 @@ func (s GetRuntimeSessionBadRequestCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -16329,8 +16539,6 @@ func (s GetRuntimeSessionForbiddenCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -16465,8 +16673,6 @@ func (s GetRuntimeSessionNotFoundCode) Validate() error {
 	case "INVALID_CHALLENGE":
 		return nil
 	case "INVALID_SIGNATURE":
-		return nil
-	case "VOUCHER_LIMIT":
 		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
@@ -16827,8 +17033,6 @@ func (s GetRuntimeSessionUnauthorizedCode) Validate() error {
 	case "INVALID_CHALLENGE":
 		return nil
 	case "INVALID_SIGNATURE":
-		return nil
-	case "VOUCHER_LIMIT":
 		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
@@ -17196,29 +17400,6 @@ func (s *GetTeamUnauthorized) Validate() error {
 	return nil
 }
 
-func (s *GetTrustGraphOK) Validate() error {
-	if s == nil {
-		return validate.ErrNilPointer
-	}
-
-	var failures []validate.FieldError
-	if err := func() error {
-		if s.Edges == nil {
-			return errors.New("nil is invalid value")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "edges",
-			Error: err,
-		})
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-	return nil
-}
-
 func (s *GetWhoamiInternalServerError) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -17454,8 +17635,6 @@ func (s InjectionConflictProblemDetailsCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -17560,46 +17739,6 @@ func (s *InjectionThreat) Validate() error {
 	}
 	if len(failures) > 0 {
 		return &validate.Error{Fields: failures}
-	}
-	return nil
-}
-
-func (s *IssueVoucherBadRequest) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *IssueVoucherInternalServerError) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *IssueVoucherServiceUnavailable) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *IssueVoucherTooManyRequests) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *IssueVoucherUnauthorized) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
 	}
 	return nil
 }
@@ -17714,69 +17853,6 @@ func (s *JoinTeamTooManyRequests) Validate() error {
 }
 
 func (s *JoinTeamUnauthorized) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *ListActiveVouchersBadRequest) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *ListActiveVouchersInternalServerError) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *ListActiveVouchersOK) Validate() error {
-	if s == nil {
-		return validate.ErrNilPointer
-	}
-
-	var failures []validate.FieldError
-	if err := func() error {
-		if s.Vouchers == nil {
-			return errors.New("nil is invalid value")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "vouchers",
-			Error: err,
-		})
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-	return nil
-}
-
-func (s *ListActiveVouchersServiceUnavailable) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *ListActiveVouchersTooManyRequests) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *ListActiveVouchersUnauthorized) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -18782,8 +18858,6 @@ func (s ListRuntimeSlotsBadRequestCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -18919,8 +18993,6 @@ func (s ListRuntimeSlotsForbiddenCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -19055,8 +19127,6 @@ func (s ListRuntimeSlotsNotFoundCode) Validate() error {
 	case "INVALID_CHALLENGE":
 		return nil
 	case "INVALID_SIGNATURE":
-		return nil
-	case "VOUCHER_LIMIT":
 		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
@@ -19748,8 +19818,6 @@ func (s ListRuntimeSlotsUnauthorizedCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -19996,8 +20064,6 @@ func (s ListTaskArtifactsBadRequestCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -20133,8 +20199,6 @@ func (s ListTaskArtifactsForbiddenCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -20269,8 +20333,6 @@ func (s ListTaskArtifactsNotFoundCode) Validate() error {
 	case "INVALID_CHALLENGE":
 		return nil
 	case "INVALID_SIGNATURE":
-		return nil
-	case "VOUCHER_LIMIT":
 		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
@@ -20675,8 +20737,6 @@ func (s ListTaskArtifactsUnauthorizedCode) Validate() error {
 	case "INVALID_CHALLENGE":
 		return nil
 	case "INVALID_SIGNATURE":
-		return nil
-	case "VOUCHER_LIMIT":
 		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
@@ -21712,6 +21772,17 @@ func (s *NetworkInfoRules) Validate() error {
 		})
 	}
 	if err := func() error {
+		if err := s.Registration.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "registration",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if err := s.Signing.Validate(); err != nil {
 			return err
 		}
@@ -21719,17 +21790,6 @@ func (s *NetworkInfoRules) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "signing",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := s.Vouchers.Validate(); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "vouchers",
 			Error: err,
 		})
 	}
@@ -21762,6 +21822,29 @@ func (s *NetworkInfoRulesPublicFeed) Validate() error {
 	return nil
 }
 
+func (s *NetworkInfoRulesRegistration) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if s.HowItWorks == nil {
+			return errors.New("nil is invalid value")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "how_it_works",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
 func (s *NetworkInfoRulesSigning) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -21785,20 +21868,20 @@ func (s *NetworkInfoRulesSigning) Validate() error {
 	return nil
 }
 
-func (s *NetworkInfoRulesVouchers) Validate() error {
+func (s *OAuth2RegistrationCredential) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
 	}
 
 	var failures []validate.FieldError
 	if err := func() error {
-		if s.HowItWorks == nil {
-			return errors.New("nil is invalid value")
+		if err := s.Type.Validate(); err != nil {
+			return err
 		}
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "how_it_works",
+			Name:  "type",
 			Error: err,
 		})
 	}
@@ -21806,6 +21889,15 @@ func (s *NetworkInfoRulesVouchers) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
+}
+
+func (s OAuth2RegistrationCredentialType) Validate() error {
+	switch s {
+	case "oauth2":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *PreviewDiaryCustomPackBadRequest) Validate() error {
@@ -23189,8 +23281,6 @@ func (s ProblemDetailsCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -24388,6 +24478,14 @@ func (s *RegisterAgentBadRequest) Validate() error {
 	return nil
 }
 
+func (s *RegisterAgentConflict) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *RegisterAgentForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -24411,6 +24509,40 @@ func (s *RegisterAgentReq) Validate() error {
 
 	var failures []validate.FieldError
 	if err := func() error {
+		if err := s.CredentialType.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "credentialType",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     256,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Proof)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "proof",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if err := (validate.String{
 			MinLength:     10,
 			MinLengthSet:  true,
@@ -24429,30 +24561,7 @@ func (s *RegisterAgentReq) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "public_key",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.String{
-			MinLength:     0,
-			MinLengthSet:  false,
-			MaxLength:     0,
-			MaxLengthSet:  false,
-			Email:         false,
-			Hostname:      false,
-			Regex:         regexMap["^[a-f0-9]{64}$"],
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.VoucherCode)); err != nil {
-			return errors.Wrap(err, "string")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "voucher_code",
+			Name:  "publicKey",
 			Error: err,
 		})
 	}
@@ -24460,6 +24569,17 @@ func (s *RegisterAgentReq) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
+}
+
+func (s RegisterAgentReqCredentialType) Validate() error {
+	switch s {
+	case "oauth2":
+		return nil
+	case "agent_key":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *RegisterExecutorManifestNotFound) Validate() error {
@@ -24585,6 +24705,46 @@ func (s *RegisterExecutorManifestUnauthorized) Validate() error {
 		return err
 	}
 	return nil
+}
+
+func (s *RegisterResponse) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Credential.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "credential",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s RegisterResponseCredential) Validate() error {
+	switch s.Type {
+	case OAuth2RegistrationCredentialRegisterResponseCredential:
+		if err := s.OAuth2RegistrationCredential.Validate(); err != nil {
+			return err
+		}
+		return nil
+	case AgentKeyRegistrationCredentialRegisterResponseCredential:
+		if err := s.AgentKeyRegistrationCredential.Validate(); err != nil {
+			return err
+		}
+		return nil
+	default:
+		return errors.Errorf("invalid type %q", s.Type)
+	}
 }
 
 func (s *RejectSigningRequestForbidden) Validate() error {
@@ -25190,6 +25350,54 @@ func (s *RequestRecoveryChallengeReq) Validate() error {
 	}
 	if len(failures) > 0 {
 		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *RevokeAgentEnrollmentBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *RevokeAgentEnrollmentForbidden) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *RevokeAgentEnrollmentNotFound) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *RevokeAgentEnrollmentServiceUnavailable) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *RevokeAgentEnrollmentTooManyRequests) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *RevokeAgentEnrollmentUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
 	}
 	return nil
 }
@@ -29956,8 +30164,6 @@ func (s StageTaskArtifactBadRequestCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -30093,8 +30299,6 @@ func (s StageTaskArtifactForbiddenCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -30229,8 +30433,6 @@ func (s StageTaskArtifactNotFoundCode) Validate() error {
 	case "INVALID_CHALLENGE":
 		return nil
 	case "INVALID_SIGNATURE":
-		return nil
-	case "VOUCHER_LIMIT":
 		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
@@ -30446,8 +30648,6 @@ func (s StageTaskArtifactServiceUnavailableCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -30583,8 +30783,6 @@ func (s StageTaskArtifactUnauthorizedCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -30638,6 +30836,14 @@ func (s *StartLegreffierOnboardingBadRequest) Validate() error {
 	return nil
 }
 
+func (s *StartLegreffierOnboardingConflict) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *StartLegreffierOnboardingReq) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -30664,6 +30870,17 @@ func (s *StartLegreffierOnboardingReq) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "agentName",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := s.CredentialType.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "credentialType",
 			Error: err,
 		})
 	}
@@ -30722,6 +30939,29 @@ func (s *StartLegreffierOnboardingReq) Validate() error {
 	}
 	if err := func() error {
 		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     256,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Proof)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "proof",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
 			MinLength:     0,
 			MinLengthSet:  false,
 			MaxLength:     0,
@@ -30747,6 +30987,15 @@ func (s *StartLegreffierOnboardingReq) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
+}
+
+func (s StartLegreffierOnboardingReqCredentialType) Validate() error {
+	switch s {
+	case "oauth2":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *StartLegreffierOnboardingServiceUnavailable) Validate() error {
@@ -36977,8 +37226,6 @@ func (s UploadRuntimeSessionBadRequestCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -37113,8 +37360,6 @@ func (s UploadRuntimeSessionConflictCode) Validate() error {
 	case "INVALID_CHALLENGE":
 		return nil
 	case "INVALID_SIGNATURE":
-		return nil
-	case "VOUCHER_LIMIT":
 		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
@@ -37251,8 +37496,6 @@ func (s UploadRuntimeSessionForbiddenCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -37387,8 +37630,6 @@ func (s UploadRuntimeSessionNotFoundCode) Validate() error {
 	case "INVALID_CHALLENGE":
 		return nil
 	case "INVALID_SIGNATURE":
-		return nil
-	case "VOUCHER_LIMIT":
 		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
@@ -37734,8 +37975,6 @@ func (s UploadRuntimeSessionServiceUnavailableCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -37884,8 +38123,6 @@ func (s UploadRuntimeSessionUnauthorizedCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -38032,8 +38269,6 @@ func (s UploadTaskArtifactBadRequestCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -38169,8 +38404,6 @@ func (s UploadTaskArtifactForbiddenCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -38305,8 +38538,6 @@ func (s UploadTaskArtifactNotFoundCode) Validate() error {
 	case "INVALID_CHALLENGE":
 		return nil
 	case "INVALID_SIGNATURE":
-		return nil
-	case "VOUCHER_LIMIT":
 		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
@@ -38626,8 +38857,6 @@ func (s UploadTaskArtifactServiceUnavailableCode) Validate() error {
 		return nil
 	case "INVALID_SIGNATURE":
 		return nil
-	case "VOUCHER_LIMIT":
-		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
 	case "SERIALIZATION_EXHAUSTED":
@@ -38762,8 +38991,6 @@ func (s UploadTaskArtifactUnauthorizedCode) Validate() error {
 	case "INVALID_CHALLENGE":
 		return nil
 	case "INVALID_SIGNATURE":
-		return nil
-	case "VOUCHER_LIMIT":
 		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil
@@ -38988,8 +39215,6 @@ func (s ValidationProblemDetailsCode) Validate() error {
 	case "INVALID_CHALLENGE":
 		return nil
 	case "INVALID_SIGNATURE":
-		return nil
-	case "VOUCHER_LIMIT":
 		return nil
 	case "RATE_LIMIT_EXCEEDED":
 		return nil

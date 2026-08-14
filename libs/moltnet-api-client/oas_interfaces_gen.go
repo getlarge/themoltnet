@@ -65,6 +65,10 @@ type CompleteTaskRes interface {
 	completeTaskRes()
 }
 
+type CreateAgentEnrollmentRes interface {
+	createAgentEnrollmentRes()
+}
+
 type CreateAgentKeyRes interface {
 	createAgentKeyRes()
 }
@@ -175,6 +179,10 @@ type DownloadTaskArtifactByCidRes interface {
 
 type DownloadTaskArtifactRes interface {
 	downloadTaskArtifactRes()
+}
+
+type EnrollAgentRes interface {
+	enrollAgentRes()
 }
 
 type FailTaskAttemptRes interface {
@@ -293,10 +301,6 @@ type GetTeamRes interface {
 	getTeamRes()
 }
 
-type GetTrustGraphRes interface {
-	getTrustGraphRes()
-}
-
 type GetWhoamiRes interface {
 	getWhoamiRes()
 }
@@ -305,16 +309,8 @@ type InitiateTransferRes interface {
 	initiateTransferRes()
 }
 
-type IssueVoucherRes interface {
-	issueVoucherRes()
-}
-
 type JoinTeamRes interface {
 	joinTeamRes()
-}
-
-type ListActiveVouchersRes interface {
-	listActiveVouchersRes()
 }
 
 type ListAgentKeysRes interface {
@@ -459,6 +455,10 @@ type RenderContextPackRes interface {
 
 type RequestRecoveryChallengeRes interface {
 	requestRecoveryChallengeRes()
+}
+
+type RevokeAgentEnrollmentRes interface {
+	revokeAgentEnrollmentRes()
 }
 
 type RevokeAgentKeyRes interface {

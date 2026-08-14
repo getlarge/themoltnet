@@ -510,6 +510,77 @@ func (s *AgentKeyList) SetNextCursor(val NilString) {
 
 func (*AgentKeyList) listAgentKeysRes() {}
 
+// Ref: #/components/schemas/AgentKeyRegistrationCredential
+type AgentKeyRegistrationCredential struct {
+	Key    AgentKey                           `json:"key"`
+	Secret string                             `json:"secret"`
+	Type   AgentKeyRegistrationCredentialType `json:"type"`
+}
+
+// GetKey returns the value of Key.
+func (s *AgentKeyRegistrationCredential) GetKey() AgentKey {
+	return s.Key
+}
+
+// GetSecret returns the value of Secret.
+func (s *AgentKeyRegistrationCredential) GetSecret() string {
+	return s.Secret
+}
+
+// GetType returns the value of Type.
+func (s *AgentKeyRegistrationCredential) GetType() AgentKeyRegistrationCredentialType {
+	return s.Type
+}
+
+// SetKey sets the value of Key.
+func (s *AgentKeyRegistrationCredential) SetKey(val AgentKey) {
+	s.Key = val
+}
+
+// SetSecret sets the value of Secret.
+func (s *AgentKeyRegistrationCredential) SetSecret(val string) {
+	s.Secret = val
+}
+
+// SetType sets the value of Type.
+func (s *AgentKeyRegistrationCredential) SetType(val AgentKeyRegistrationCredentialType) {
+	s.Type = val
+}
+
+type AgentKeyRegistrationCredentialType string
+
+const (
+	AgentKeyRegistrationCredentialTypeAgentKey AgentKeyRegistrationCredentialType = "agent_key"
+)
+
+// AllValues returns all AgentKeyRegistrationCredentialType values.
+func (AgentKeyRegistrationCredentialType) AllValues() []AgentKeyRegistrationCredentialType {
+	return []AgentKeyRegistrationCredentialType{
+		AgentKeyRegistrationCredentialTypeAgentKey,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s AgentKeyRegistrationCredentialType) MarshalText() ([]byte, error) {
+	switch s {
+	case AgentKeyRegistrationCredentialTypeAgentKey:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *AgentKeyRegistrationCredentialType) UnmarshalText(data []byte) error {
+	switch AgentKeyRegistrationCredentialType(data) {
+	case AgentKeyRegistrationCredentialTypeAgentKey:
+		*s = AgentKeyRegistrationCredentialTypeAgentKey
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 type AgentKeyRevocationReason string
 
 const (
@@ -1491,7 +1562,6 @@ const (
 	BeginRuntimeSlotBadRequestCodeVALIDATIONFAILED               BeginRuntimeSlotBadRequestCode = "VALIDATION_FAILED"
 	BeginRuntimeSlotBadRequestCodeINVALIDCHALLENGE               BeginRuntimeSlotBadRequestCode = "INVALID_CHALLENGE"
 	BeginRuntimeSlotBadRequestCodeINVALIDSIGNATURE               BeginRuntimeSlotBadRequestCode = "INVALID_SIGNATURE"
-	BeginRuntimeSlotBadRequestCodeVOUCHERLIMIT                   BeginRuntimeSlotBadRequestCode = "VOUCHER_LIMIT"
 	BeginRuntimeSlotBadRequestCodeRATELIMITEXCEEDED              BeginRuntimeSlotBadRequestCode = "RATE_LIMIT_EXCEEDED"
 	BeginRuntimeSlotBadRequestCodeSERIALIZATIONEXHAUSTED         BeginRuntimeSlotBadRequestCode = "SERIALIZATION_EXHAUSTED"
 	BeginRuntimeSlotBadRequestCodeSIGNINGREQUESTEXPIRED          BeginRuntimeSlotBadRequestCode = "SIGNING_REQUEST_EXPIRED"
@@ -1525,7 +1595,6 @@ func (BeginRuntimeSlotBadRequestCode) AllValues() []BeginRuntimeSlotBadRequestCo
 		BeginRuntimeSlotBadRequestCodeVALIDATIONFAILED,
 		BeginRuntimeSlotBadRequestCodeINVALIDCHALLENGE,
 		BeginRuntimeSlotBadRequestCodeINVALIDSIGNATURE,
-		BeginRuntimeSlotBadRequestCodeVOUCHERLIMIT,
 		BeginRuntimeSlotBadRequestCodeRATELIMITEXCEEDED,
 		BeginRuntimeSlotBadRequestCodeSERIALIZATIONEXHAUSTED,
 		BeginRuntimeSlotBadRequestCodeSIGNINGREQUESTEXPIRED,
@@ -1567,8 +1636,6 @@ func (s BeginRuntimeSlotBadRequestCode) MarshalText() ([]byte, error) {
 	case BeginRuntimeSlotBadRequestCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case BeginRuntimeSlotBadRequestCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case BeginRuntimeSlotBadRequestCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case BeginRuntimeSlotBadRequestCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -1641,9 +1708,6 @@ func (s *BeginRuntimeSlotBadRequestCode) UnmarshalText(data []byte) error {
 		return nil
 	case BeginRuntimeSlotBadRequestCodeINVALIDSIGNATURE:
 		*s = BeginRuntimeSlotBadRequestCodeINVALIDSIGNATURE
-		return nil
-	case BeginRuntimeSlotBadRequestCodeVOUCHERLIMIT:
-		*s = BeginRuntimeSlotBadRequestCodeVOUCHERLIMIT
 		return nil
 	case BeginRuntimeSlotBadRequestCodeRATELIMITEXCEEDED:
 		*s = BeginRuntimeSlotBadRequestCodeRATELIMITEXCEEDED
@@ -1839,7 +1903,6 @@ const (
 	BeginRuntimeSlotConflictCodeVALIDATIONFAILED               BeginRuntimeSlotConflictCode = "VALIDATION_FAILED"
 	BeginRuntimeSlotConflictCodeINVALIDCHALLENGE               BeginRuntimeSlotConflictCode = "INVALID_CHALLENGE"
 	BeginRuntimeSlotConflictCodeINVALIDSIGNATURE               BeginRuntimeSlotConflictCode = "INVALID_SIGNATURE"
-	BeginRuntimeSlotConflictCodeVOUCHERLIMIT                   BeginRuntimeSlotConflictCode = "VOUCHER_LIMIT"
 	BeginRuntimeSlotConflictCodeRATELIMITEXCEEDED              BeginRuntimeSlotConflictCode = "RATE_LIMIT_EXCEEDED"
 	BeginRuntimeSlotConflictCodeSERIALIZATIONEXHAUSTED         BeginRuntimeSlotConflictCode = "SERIALIZATION_EXHAUSTED"
 	BeginRuntimeSlotConflictCodeSIGNINGREQUESTEXPIRED          BeginRuntimeSlotConflictCode = "SIGNING_REQUEST_EXPIRED"
@@ -1873,7 +1936,6 @@ func (BeginRuntimeSlotConflictCode) AllValues() []BeginRuntimeSlotConflictCode {
 		BeginRuntimeSlotConflictCodeVALIDATIONFAILED,
 		BeginRuntimeSlotConflictCodeINVALIDCHALLENGE,
 		BeginRuntimeSlotConflictCodeINVALIDSIGNATURE,
-		BeginRuntimeSlotConflictCodeVOUCHERLIMIT,
 		BeginRuntimeSlotConflictCodeRATELIMITEXCEEDED,
 		BeginRuntimeSlotConflictCodeSERIALIZATIONEXHAUSTED,
 		BeginRuntimeSlotConflictCodeSIGNINGREQUESTEXPIRED,
@@ -1915,8 +1977,6 @@ func (s BeginRuntimeSlotConflictCode) MarshalText() ([]byte, error) {
 	case BeginRuntimeSlotConflictCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case BeginRuntimeSlotConflictCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case BeginRuntimeSlotConflictCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case BeginRuntimeSlotConflictCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -1989,9 +2049,6 @@ func (s *BeginRuntimeSlotConflictCode) UnmarshalText(data []byte) error {
 		return nil
 	case BeginRuntimeSlotConflictCodeINVALIDSIGNATURE:
 		*s = BeginRuntimeSlotConflictCodeINVALIDSIGNATURE
-		return nil
-	case BeginRuntimeSlotConflictCodeVOUCHERLIMIT:
-		*s = BeginRuntimeSlotConflictCodeVOUCHERLIMIT
 		return nil
 	case BeginRuntimeSlotConflictCodeRATELIMITEXCEEDED:
 		*s = BeginRuntimeSlotConflictCodeRATELIMITEXCEEDED
@@ -2175,7 +2232,6 @@ const (
 	BeginRuntimeSlotForbiddenCodeVALIDATIONFAILED               BeginRuntimeSlotForbiddenCode = "VALIDATION_FAILED"
 	BeginRuntimeSlotForbiddenCodeINVALIDCHALLENGE               BeginRuntimeSlotForbiddenCode = "INVALID_CHALLENGE"
 	BeginRuntimeSlotForbiddenCodeINVALIDSIGNATURE               BeginRuntimeSlotForbiddenCode = "INVALID_SIGNATURE"
-	BeginRuntimeSlotForbiddenCodeVOUCHERLIMIT                   BeginRuntimeSlotForbiddenCode = "VOUCHER_LIMIT"
 	BeginRuntimeSlotForbiddenCodeRATELIMITEXCEEDED              BeginRuntimeSlotForbiddenCode = "RATE_LIMIT_EXCEEDED"
 	BeginRuntimeSlotForbiddenCodeSERIALIZATIONEXHAUSTED         BeginRuntimeSlotForbiddenCode = "SERIALIZATION_EXHAUSTED"
 	BeginRuntimeSlotForbiddenCodeSIGNINGREQUESTEXPIRED          BeginRuntimeSlotForbiddenCode = "SIGNING_REQUEST_EXPIRED"
@@ -2209,7 +2265,6 @@ func (BeginRuntimeSlotForbiddenCode) AllValues() []BeginRuntimeSlotForbiddenCode
 		BeginRuntimeSlotForbiddenCodeVALIDATIONFAILED,
 		BeginRuntimeSlotForbiddenCodeINVALIDCHALLENGE,
 		BeginRuntimeSlotForbiddenCodeINVALIDSIGNATURE,
-		BeginRuntimeSlotForbiddenCodeVOUCHERLIMIT,
 		BeginRuntimeSlotForbiddenCodeRATELIMITEXCEEDED,
 		BeginRuntimeSlotForbiddenCodeSERIALIZATIONEXHAUSTED,
 		BeginRuntimeSlotForbiddenCodeSIGNINGREQUESTEXPIRED,
@@ -2251,8 +2306,6 @@ func (s BeginRuntimeSlotForbiddenCode) MarshalText() ([]byte, error) {
 	case BeginRuntimeSlotForbiddenCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case BeginRuntimeSlotForbiddenCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case BeginRuntimeSlotForbiddenCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case BeginRuntimeSlotForbiddenCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -2325,9 +2378,6 @@ func (s *BeginRuntimeSlotForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case BeginRuntimeSlotForbiddenCodeINVALIDSIGNATURE:
 		*s = BeginRuntimeSlotForbiddenCodeINVALIDSIGNATURE
-		return nil
-	case BeginRuntimeSlotForbiddenCodeVOUCHERLIMIT:
-		*s = BeginRuntimeSlotForbiddenCodeVOUCHERLIMIT
 		return nil
 	case BeginRuntimeSlotForbiddenCodeRATELIMITEXCEEDED:
 		*s = BeginRuntimeSlotForbiddenCodeRATELIMITEXCEEDED
@@ -2511,7 +2561,6 @@ const (
 	BeginRuntimeSlotNotFoundCodeVALIDATIONFAILED               BeginRuntimeSlotNotFoundCode = "VALIDATION_FAILED"
 	BeginRuntimeSlotNotFoundCodeINVALIDCHALLENGE               BeginRuntimeSlotNotFoundCode = "INVALID_CHALLENGE"
 	BeginRuntimeSlotNotFoundCodeINVALIDSIGNATURE               BeginRuntimeSlotNotFoundCode = "INVALID_SIGNATURE"
-	BeginRuntimeSlotNotFoundCodeVOUCHERLIMIT                   BeginRuntimeSlotNotFoundCode = "VOUCHER_LIMIT"
 	BeginRuntimeSlotNotFoundCodeRATELIMITEXCEEDED              BeginRuntimeSlotNotFoundCode = "RATE_LIMIT_EXCEEDED"
 	BeginRuntimeSlotNotFoundCodeSERIALIZATIONEXHAUSTED         BeginRuntimeSlotNotFoundCode = "SERIALIZATION_EXHAUSTED"
 	BeginRuntimeSlotNotFoundCodeSIGNINGREQUESTEXPIRED          BeginRuntimeSlotNotFoundCode = "SIGNING_REQUEST_EXPIRED"
@@ -2545,7 +2594,6 @@ func (BeginRuntimeSlotNotFoundCode) AllValues() []BeginRuntimeSlotNotFoundCode {
 		BeginRuntimeSlotNotFoundCodeVALIDATIONFAILED,
 		BeginRuntimeSlotNotFoundCodeINVALIDCHALLENGE,
 		BeginRuntimeSlotNotFoundCodeINVALIDSIGNATURE,
-		BeginRuntimeSlotNotFoundCodeVOUCHERLIMIT,
 		BeginRuntimeSlotNotFoundCodeRATELIMITEXCEEDED,
 		BeginRuntimeSlotNotFoundCodeSERIALIZATIONEXHAUSTED,
 		BeginRuntimeSlotNotFoundCodeSIGNINGREQUESTEXPIRED,
@@ -2587,8 +2635,6 @@ func (s BeginRuntimeSlotNotFoundCode) MarshalText() ([]byte, error) {
 	case BeginRuntimeSlotNotFoundCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case BeginRuntimeSlotNotFoundCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case BeginRuntimeSlotNotFoundCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case BeginRuntimeSlotNotFoundCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -2661,9 +2707,6 @@ func (s *BeginRuntimeSlotNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case BeginRuntimeSlotNotFoundCodeINVALIDSIGNATURE:
 		*s = BeginRuntimeSlotNotFoundCodeINVALIDSIGNATURE
-		return nil
-	case BeginRuntimeSlotNotFoundCodeVOUCHERLIMIT:
-		*s = BeginRuntimeSlotNotFoundCodeVOUCHERLIMIT
 		return nil
 	case BeginRuntimeSlotNotFoundCodeRATELIMITEXCEEDED:
 		*s = BeginRuntimeSlotNotFoundCodeRATELIMITEXCEEDED
@@ -3293,7 +3336,6 @@ const (
 	BeginRuntimeSlotUnauthorizedCodeVALIDATIONFAILED               BeginRuntimeSlotUnauthorizedCode = "VALIDATION_FAILED"
 	BeginRuntimeSlotUnauthorizedCodeINVALIDCHALLENGE               BeginRuntimeSlotUnauthorizedCode = "INVALID_CHALLENGE"
 	BeginRuntimeSlotUnauthorizedCodeINVALIDSIGNATURE               BeginRuntimeSlotUnauthorizedCode = "INVALID_SIGNATURE"
-	BeginRuntimeSlotUnauthorizedCodeVOUCHERLIMIT                   BeginRuntimeSlotUnauthorizedCode = "VOUCHER_LIMIT"
 	BeginRuntimeSlotUnauthorizedCodeRATELIMITEXCEEDED              BeginRuntimeSlotUnauthorizedCode = "RATE_LIMIT_EXCEEDED"
 	BeginRuntimeSlotUnauthorizedCodeSERIALIZATIONEXHAUSTED         BeginRuntimeSlotUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
 	BeginRuntimeSlotUnauthorizedCodeSIGNINGREQUESTEXPIRED          BeginRuntimeSlotUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
@@ -3327,7 +3369,6 @@ func (BeginRuntimeSlotUnauthorizedCode) AllValues() []BeginRuntimeSlotUnauthoriz
 		BeginRuntimeSlotUnauthorizedCodeVALIDATIONFAILED,
 		BeginRuntimeSlotUnauthorizedCodeINVALIDCHALLENGE,
 		BeginRuntimeSlotUnauthorizedCodeINVALIDSIGNATURE,
-		BeginRuntimeSlotUnauthorizedCodeVOUCHERLIMIT,
 		BeginRuntimeSlotUnauthorizedCodeRATELIMITEXCEEDED,
 		BeginRuntimeSlotUnauthorizedCodeSERIALIZATIONEXHAUSTED,
 		BeginRuntimeSlotUnauthorizedCodeSIGNINGREQUESTEXPIRED,
@@ -3369,8 +3410,6 @@ func (s BeginRuntimeSlotUnauthorizedCode) MarshalText() ([]byte, error) {
 	case BeginRuntimeSlotUnauthorizedCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case BeginRuntimeSlotUnauthorizedCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case BeginRuntimeSlotUnauthorizedCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case BeginRuntimeSlotUnauthorizedCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -3443,9 +3482,6 @@ func (s *BeginRuntimeSlotUnauthorizedCode) UnmarshalText(data []byte) error {
 		return nil
 	case BeginRuntimeSlotUnauthorizedCodeINVALIDSIGNATURE:
 		*s = BeginRuntimeSlotUnauthorizedCodeINVALIDSIGNATURE
-		return nil
-	case BeginRuntimeSlotUnauthorizedCodeVOUCHERLIMIT:
-		*s = BeginRuntimeSlotUnauthorizedCodeVOUCHERLIMIT
 		return nil
 	case BeginRuntimeSlotUnauthorizedCodeRATELIMITEXCEEDED:
 		*s = BeginRuntimeSlotUnauthorizedCodeRATELIMITEXCEEDED
@@ -4784,7 +4820,6 @@ const (
 	ConflictProblemDetailsCodeVALIDATIONFAILED               ConflictProblemDetailsCode = "VALIDATION_FAILED"
 	ConflictProblemDetailsCodeINVALIDCHALLENGE               ConflictProblemDetailsCode = "INVALID_CHALLENGE"
 	ConflictProblemDetailsCodeINVALIDSIGNATURE               ConflictProblemDetailsCode = "INVALID_SIGNATURE"
-	ConflictProblemDetailsCodeVOUCHERLIMIT                   ConflictProblemDetailsCode = "VOUCHER_LIMIT"
 	ConflictProblemDetailsCodeRATELIMITEXCEEDED              ConflictProblemDetailsCode = "RATE_LIMIT_EXCEEDED"
 	ConflictProblemDetailsCodeSERIALIZATIONEXHAUSTED         ConflictProblemDetailsCode = "SERIALIZATION_EXHAUSTED"
 	ConflictProblemDetailsCodeSIGNINGREQUESTEXPIRED          ConflictProblemDetailsCode = "SIGNING_REQUEST_EXPIRED"
@@ -4818,7 +4853,6 @@ func (ConflictProblemDetailsCode) AllValues() []ConflictProblemDetailsCode {
 		ConflictProblemDetailsCodeVALIDATIONFAILED,
 		ConflictProblemDetailsCodeINVALIDCHALLENGE,
 		ConflictProblemDetailsCodeINVALIDSIGNATURE,
-		ConflictProblemDetailsCodeVOUCHERLIMIT,
 		ConflictProblemDetailsCodeRATELIMITEXCEEDED,
 		ConflictProblemDetailsCodeSERIALIZATIONEXHAUSTED,
 		ConflictProblemDetailsCodeSIGNINGREQUESTEXPIRED,
@@ -4860,8 +4894,6 @@ func (s ConflictProblemDetailsCode) MarshalText() ([]byte, error) {
 	case ConflictProblemDetailsCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case ConflictProblemDetailsCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case ConflictProblemDetailsCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case ConflictProblemDetailsCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -4934,9 +4966,6 @@ func (s *ConflictProblemDetailsCode) UnmarshalText(data []byte) error {
 		return nil
 	case ConflictProblemDetailsCodeINVALIDSIGNATURE:
 		*s = ConflictProblemDetailsCodeINVALIDSIGNATURE
-		return nil
-	case ConflictProblemDetailsCodeVOUCHERLIMIT:
-		*s = ConflictProblemDetailsCodeVOUCHERLIMIT
 		return nil
 	case ConflictProblemDetailsCodeRATELIMITEXCEEDED:
 		*s = ConflictProblemDetailsCodeRATELIMITEXCEEDED
@@ -5454,6 +5483,44 @@ func (s *CookieAuth) SetAPIKey(val string) {
 func (s *CookieAuth) SetRoles(val []string) {
 	s.Roles = val
 }
+
+type CreateAgentEnrollmentBadRequest ProblemDetails
+
+func (*CreateAgentEnrollmentBadRequest) createAgentEnrollmentRes() {}
+
+type CreateAgentEnrollmentForbidden ProblemDetails
+
+func (*CreateAgentEnrollmentForbidden) createAgentEnrollmentRes() {}
+
+type CreateAgentEnrollmentNotFound ProblemDetails
+
+func (*CreateAgentEnrollmentNotFound) createAgentEnrollmentRes() {}
+
+type CreateAgentEnrollmentReq struct {
+	ExpiresInMinutes OptInt `json:"expiresInMinutes"`
+}
+
+// GetExpiresInMinutes returns the value of ExpiresInMinutes.
+func (s *CreateAgentEnrollmentReq) GetExpiresInMinutes() OptInt {
+	return s.ExpiresInMinutes
+}
+
+// SetExpiresInMinutes sets the value of ExpiresInMinutes.
+func (s *CreateAgentEnrollmentReq) SetExpiresInMinutes(val OptInt) {
+	s.ExpiresInMinutes = val
+}
+
+type CreateAgentEnrollmentServiceUnavailable ProblemDetails
+
+func (*CreateAgentEnrollmentServiceUnavailable) createAgentEnrollmentRes() {}
+
+type CreateAgentEnrollmentTooManyRequests ProblemDetails
+
+func (*CreateAgentEnrollmentTooManyRequests) createAgentEnrollmentRes() {}
+
+type CreateAgentEnrollmentUnauthorized ProblemDetails
+
+func (*CreateAgentEnrollmentUnauthorized) createAgentEnrollmentRes() {}
 
 type CreateAgentKeyBadGateway ProblemDetails
 
@@ -8620,6 +8687,101 @@ func (*CreateTeamTooManyRequests) createTeamRes() {}
 type CreateTeamUnauthorized ProblemDetails
 
 func (*CreateTeamUnauthorized) createTeamRes() {}
+
+// Merged schema.
+// Ref: #/components/schemas/CreatedAgentEnrollment
+type CreatedAgentEnrollment struct {
+	CreatedAt        time.Time   `json:"createdAt"`
+	ExpiresAt        time.Time   `json:"expiresAt"`
+	ID               uuid.UUID   `json:"id"`
+	RedeemedAt       NilDateTime `json:"redeemedAt"`
+	ResultingAgentId NilUUID     `json:"resultingAgentId"`
+	RevokedAt        NilDateTime `json:"revokedAt"`
+	TeamId           uuid.UUID   `json:"teamId"`
+	Token            string      `json:"token"`
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *CreatedAgentEnrollment) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *CreatedAgentEnrollment) GetExpiresAt() time.Time {
+	return s.ExpiresAt
+}
+
+// GetID returns the value of ID.
+func (s *CreatedAgentEnrollment) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetRedeemedAt returns the value of RedeemedAt.
+func (s *CreatedAgentEnrollment) GetRedeemedAt() NilDateTime {
+	return s.RedeemedAt
+}
+
+// GetResultingAgentId returns the value of ResultingAgentId.
+func (s *CreatedAgentEnrollment) GetResultingAgentId() NilUUID {
+	return s.ResultingAgentId
+}
+
+// GetRevokedAt returns the value of RevokedAt.
+func (s *CreatedAgentEnrollment) GetRevokedAt() NilDateTime {
+	return s.RevokedAt
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *CreatedAgentEnrollment) GetTeamId() uuid.UUID {
+	return s.TeamId
+}
+
+// GetToken returns the value of Token.
+func (s *CreatedAgentEnrollment) GetToken() string {
+	return s.Token
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *CreatedAgentEnrollment) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *CreatedAgentEnrollment) SetExpiresAt(val time.Time) {
+	s.ExpiresAt = val
+}
+
+// SetID sets the value of ID.
+func (s *CreatedAgentEnrollment) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetRedeemedAt sets the value of RedeemedAt.
+func (s *CreatedAgentEnrollment) SetRedeemedAt(val NilDateTime) {
+	s.RedeemedAt = val
+}
+
+// SetResultingAgentId sets the value of ResultingAgentId.
+func (s *CreatedAgentEnrollment) SetResultingAgentId(val NilUUID) {
+	s.ResultingAgentId = val
+}
+
+// SetRevokedAt sets the value of RevokedAt.
+func (s *CreatedAgentEnrollment) SetRevokedAt(val NilDateTime) {
+	s.RevokedAt = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *CreatedAgentEnrollment) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
+}
+
+// SetToken sets the value of Token.
+func (s *CreatedAgentEnrollment) SetToken(val string) {
+	s.Token = val
+}
+
+func (*CreatedAgentEnrollment) createAgentEnrollmentRes() {}
 
 // Ref: #/components/schemas/CryptoIdentity
 type CryptoIdentity struct {
@@ -12488,7 +12650,6 @@ const (
 	DownloadRuntimeSessionBadRequestCodeVALIDATIONFAILED               DownloadRuntimeSessionBadRequestCode = "VALIDATION_FAILED"
 	DownloadRuntimeSessionBadRequestCodeINVALIDCHALLENGE               DownloadRuntimeSessionBadRequestCode = "INVALID_CHALLENGE"
 	DownloadRuntimeSessionBadRequestCodeINVALIDSIGNATURE               DownloadRuntimeSessionBadRequestCode = "INVALID_SIGNATURE"
-	DownloadRuntimeSessionBadRequestCodeVOUCHERLIMIT                   DownloadRuntimeSessionBadRequestCode = "VOUCHER_LIMIT"
 	DownloadRuntimeSessionBadRequestCodeRATELIMITEXCEEDED              DownloadRuntimeSessionBadRequestCode = "RATE_LIMIT_EXCEEDED"
 	DownloadRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED         DownloadRuntimeSessionBadRequestCode = "SERIALIZATION_EXHAUSTED"
 	DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED          DownloadRuntimeSessionBadRequestCode = "SIGNING_REQUEST_EXPIRED"
@@ -12522,7 +12683,6 @@ func (DownloadRuntimeSessionBadRequestCode) AllValues() []DownloadRuntimeSession
 		DownloadRuntimeSessionBadRequestCodeVALIDATIONFAILED,
 		DownloadRuntimeSessionBadRequestCodeINVALIDCHALLENGE,
 		DownloadRuntimeSessionBadRequestCodeINVALIDSIGNATURE,
-		DownloadRuntimeSessionBadRequestCodeVOUCHERLIMIT,
 		DownloadRuntimeSessionBadRequestCodeRATELIMITEXCEEDED,
 		DownloadRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED,
 		DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED,
@@ -12564,8 +12724,6 @@ func (s DownloadRuntimeSessionBadRequestCode) MarshalText() ([]byte, error) {
 	case DownloadRuntimeSessionBadRequestCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case DownloadRuntimeSessionBadRequestCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case DownloadRuntimeSessionBadRequestCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case DownloadRuntimeSessionBadRequestCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -12638,9 +12796,6 @@ func (s *DownloadRuntimeSessionBadRequestCode) UnmarshalText(data []byte) error 
 		return nil
 	case DownloadRuntimeSessionBadRequestCodeINVALIDSIGNATURE:
 		*s = DownloadRuntimeSessionBadRequestCodeINVALIDSIGNATURE
-		return nil
-	case DownloadRuntimeSessionBadRequestCodeVOUCHERLIMIT:
-		*s = DownloadRuntimeSessionBadRequestCodeVOUCHERLIMIT
 		return nil
 	case DownloadRuntimeSessionBadRequestCodeRATELIMITEXCEEDED:
 		*s = DownloadRuntimeSessionBadRequestCodeRATELIMITEXCEEDED
@@ -12824,7 +12979,6 @@ const (
 	DownloadRuntimeSessionForbiddenCodeVALIDATIONFAILED               DownloadRuntimeSessionForbiddenCode = "VALIDATION_FAILED"
 	DownloadRuntimeSessionForbiddenCodeINVALIDCHALLENGE               DownloadRuntimeSessionForbiddenCode = "INVALID_CHALLENGE"
 	DownloadRuntimeSessionForbiddenCodeINVALIDSIGNATURE               DownloadRuntimeSessionForbiddenCode = "INVALID_SIGNATURE"
-	DownloadRuntimeSessionForbiddenCodeVOUCHERLIMIT                   DownloadRuntimeSessionForbiddenCode = "VOUCHER_LIMIT"
 	DownloadRuntimeSessionForbiddenCodeRATELIMITEXCEEDED              DownloadRuntimeSessionForbiddenCode = "RATE_LIMIT_EXCEEDED"
 	DownloadRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED         DownloadRuntimeSessionForbiddenCode = "SERIALIZATION_EXHAUSTED"
 	DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED          DownloadRuntimeSessionForbiddenCode = "SIGNING_REQUEST_EXPIRED"
@@ -12858,7 +13012,6 @@ func (DownloadRuntimeSessionForbiddenCode) AllValues() []DownloadRuntimeSessionF
 		DownloadRuntimeSessionForbiddenCodeVALIDATIONFAILED,
 		DownloadRuntimeSessionForbiddenCodeINVALIDCHALLENGE,
 		DownloadRuntimeSessionForbiddenCodeINVALIDSIGNATURE,
-		DownloadRuntimeSessionForbiddenCodeVOUCHERLIMIT,
 		DownloadRuntimeSessionForbiddenCodeRATELIMITEXCEEDED,
 		DownloadRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED,
 		DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED,
@@ -12900,8 +13053,6 @@ func (s DownloadRuntimeSessionForbiddenCode) MarshalText() ([]byte, error) {
 	case DownloadRuntimeSessionForbiddenCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case DownloadRuntimeSessionForbiddenCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case DownloadRuntimeSessionForbiddenCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case DownloadRuntimeSessionForbiddenCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -12974,9 +13125,6 @@ func (s *DownloadRuntimeSessionForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case DownloadRuntimeSessionForbiddenCodeINVALIDSIGNATURE:
 		*s = DownloadRuntimeSessionForbiddenCodeINVALIDSIGNATURE
-		return nil
-	case DownloadRuntimeSessionForbiddenCodeVOUCHERLIMIT:
-		*s = DownloadRuntimeSessionForbiddenCodeVOUCHERLIMIT
 		return nil
 	case DownloadRuntimeSessionForbiddenCodeRATELIMITEXCEEDED:
 		*s = DownloadRuntimeSessionForbiddenCodeRATELIMITEXCEEDED
@@ -13160,7 +13308,6 @@ const (
 	DownloadRuntimeSessionNotFoundCodeVALIDATIONFAILED               DownloadRuntimeSessionNotFoundCode = "VALIDATION_FAILED"
 	DownloadRuntimeSessionNotFoundCodeINVALIDCHALLENGE               DownloadRuntimeSessionNotFoundCode = "INVALID_CHALLENGE"
 	DownloadRuntimeSessionNotFoundCodeINVALIDSIGNATURE               DownloadRuntimeSessionNotFoundCode = "INVALID_SIGNATURE"
-	DownloadRuntimeSessionNotFoundCodeVOUCHERLIMIT                   DownloadRuntimeSessionNotFoundCode = "VOUCHER_LIMIT"
 	DownloadRuntimeSessionNotFoundCodeRATELIMITEXCEEDED              DownloadRuntimeSessionNotFoundCode = "RATE_LIMIT_EXCEEDED"
 	DownloadRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED         DownloadRuntimeSessionNotFoundCode = "SERIALIZATION_EXHAUSTED"
 	DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED          DownloadRuntimeSessionNotFoundCode = "SIGNING_REQUEST_EXPIRED"
@@ -13194,7 +13341,6 @@ func (DownloadRuntimeSessionNotFoundCode) AllValues() []DownloadRuntimeSessionNo
 		DownloadRuntimeSessionNotFoundCodeVALIDATIONFAILED,
 		DownloadRuntimeSessionNotFoundCodeINVALIDCHALLENGE,
 		DownloadRuntimeSessionNotFoundCodeINVALIDSIGNATURE,
-		DownloadRuntimeSessionNotFoundCodeVOUCHERLIMIT,
 		DownloadRuntimeSessionNotFoundCodeRATELIMITEXCEEDED,
 		DownloadRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED,
 		DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED,
@@ -13236,8 +13382,6 @@ func (s DownloadRuntimeSessionNotFoundCode) MarshalText() ([]byte, error) {
 	case DownloadRuntimeSessionNotFoundCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case DownloadRuntimeSessionNotFoundCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case DownloadRuntimeSessionNotFoundCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case DownloadRuntimeSessionNotFoundCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -13310,9 +13454,6 @@ func (s *DownloadRuntimeSessionNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case DownloadRuntimeSessionNotFoundCodeINVALIDSIGNATURE:
 		*s = DownloadRuntimeSessionNotFoundCodeINVALIDSIGNATURE
-		return nil
-	case DownloadRuntimeSessionNotFoundCodeVOUCHERLIMIT:
-		*s = DownloadRuntimeSessionNotFoundCodeVOUCHERLIMIT
 		return nil
 	case DownloadRuntimeSessionNotFoundCodeRATELIMITEXCEEDED:
 		*s = DownloadRuntimeSessionNotFoundCodeRATELIMITEXCEEDED
@@ -13513,7 +13654,6 @@ const (
 	DownloadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED               DownloadRuntimeSessionServiceUnavailableCode = "VALIDATION_FAILED"
 	DownloadRuntimeSessionServiceUnavailableCodeINVALIDCHALLENGE               DownloadRuntimeSessionServiceUnavailableCode = "INVALID_CHALLENGE"
 	DownloadRuntimeSessionServiceUnavailableCodeINVALIDSIGNATURE               DownloadRuntimeSessionServiceUnavailableCode = "INVALID_SIGNATURE"
-	DownloadRuntimeSessionServiceUnavailableCodeVOUCHERLIMIT                   DownloadRuntimeSessionServiceUnavailableCode = "VOUCHER_LIMIT"
 	DownloadRuntimeSessionServiceUnavailableCodeRATELIMITEXCEEDED              DownloadRuntimeSessionServiceUnavailableCode = "RATE_LIMIT_EXCEEDED"
 	DownloadRuntimeSessionServiceUnavailableCodeSERIALIZATIONEXHAUSTED         DownloadRuntimeSessionServiceUnavailableCode = "SERIALIZATION_EXHAUSTED"
 	DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTEXPIRED          DownloadRuntimeSessionServiceUnavailableCode = "SIGNING_REQUEST_EXPIRED"
@@ -13547,7 +13687,6 @@ func (DownloadRuntimeSessionServiceUnavailableCode) AllValues() []DownloadRuntim
 		DownloadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED,
 		DownloadRuntimeSessionServiceUnavailableCodeINVALIDCHALLENGE,
 		DownloadRuntimeSessionServiceUnavailableCodeINVALIDSIGNATURE,
-		DownloadRuntimeSessionServiceUnavailableCodeVOUCHERLIMIT,
 		DownloadRuntimeSessionServiceUnavailableCodeRATELIMITEXCEEDED,
 		DownloadRuntimeSessionServiceUnavailableCodeSERIALIZATIONEXHAUSTED,
 		DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTEXPIRED,
@@ -13589,8 +13728,6 @@ func (s DownloadRuntimeSessionServiceUnavailableCode) MarshalText() ([]byte, err
 	case DownloadRuntimeSessionServiceUnavailableCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case DownloadRuntimeSessionServiceUnavailableCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case DownloadRuntimeSessionServiceUnavailableCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case DownloadRuntimeSessionServiceUnavailableCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -13663,9 +13800,6 @@ func (s *DownloadRuntimeSessionServiceUnavailableCode) UnmarshalText(data []byte
 		return nil
 	case DownloadRuntimeSessionServiceUnavailableCodeINVALIDSIGNATURE:
 		*s = DownloadRuntimeSessionServiceUnavailableCodeINVALIDSIGNATURE
-		return nil
-	case DownloadRuntimeSessionServiceUnavailableCodeVOUCHERLIMIT:
-		*s = DownloadRuntimeSessionServiceUnavailableCodeVOUCHERLIMIT
 		return nil
 	case DownloadRuntimeSessionServiceUnavailableCodeRATELIMITEXCEEDED:
 		*s = DownloadRuntimeSessionServiceUnavailableCodeRATELIMITEXCEEDED
@@ -13849,7 +13983,6 @@ const (
 	DownloadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED               DownloadRuntimeSessionUnauthorizedCode = "VALIDATION_FAILED"
 	DownloadRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE               DownloadRuntimeSessionUnauthorizedCode = "INVALID_CHALLENGE"
 	DownloadRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE               DownloadRuntimeSessionUnauthorizedCode = "INVALID_SIGNATURE"
-	DownloadRuntimeSessionUnauthorizedCodeVOUCHERLIMIT                   DownloadRuntimeSessionUnauthorizedCode = "VOUCHER_LIMIT"
 	DownloadRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED              DownloadRuntimeSessionUnauthorizedCode = "RATE_LIMIT_EXCEEDED"
 	DownloadRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED         DownloadRuntimeSessionUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
 	DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED          DownloadRuntimeSessionUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
@@ -13883,7 +14016,6 @@ func (DownloadRuntimeSessionUnauthorizedCode) AllValues() []DownloadRuntimeSessi
 		DownloadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED,
 		DownloadRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE,
 		DownloadRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE,
-		DownloadRuntimeSessionUnauthorizedCodeVOUCHERLIMIT,
 		DownloadRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED,
 		DownloadRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED,
 		DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED,
@@ -13925,8 +14057,6 @@ func (s DownloadRuntimeSessionUnauthorizedCode) MarshalText() ([]byte, error) {
 	case DownloadRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case DownloadRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case DownloadRuntimeSessionUnauthorizedCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case DownloadRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -13999,9 +14129,6 @@ func (s *DownloadRuntimeSessionUnauthorizedCode) UnmarshalText(data []byte) erro
 		return nil
 	case DownloadRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE:
 		*s = DownloadRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE
-		return nil
-	case DownloadRuntimeSessionUnauthorizedCodeVOUCHERLIMIT:
-		*s = DownloadRuntimeSessionUnauthorizedCodeVOUCHERLIMIT
 		return nil
 	case DownloadRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED:
 		*s = DownloadRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED
@@ -14197,7 +14324,6 @@ const (
 	DownloadTaskArtifactBadRequestCodeVALIDATIONFAILED               DownloadTaskArtifactBadRequestCode = "VALIDATION_FAILED"
 	DownloadTaskArtifactBadRequestCodeINVALIDCHALLENGE               DownloadTaskArtifactBadRequestCode = "INVALID_CHALLENGE"
 	DownloadTaskArtifactBadRequestCodeINVALIDSIGNATURE               DownloadTaskArtifactBadRequestCode = "INVALID_SIGNATURE"
-	DownloadTaskArtifactBadRequestCodeVOUCHERLIMIT                   DownloadTaskArtifactBadRequestCode = "VOUCHER_LIMIT"
 	DownloadTaskArtifactBadRequestCodeRATELIMITEXCEEDED              DownloadTaskArtifactBadRequestCode = "RATE_LIMIT_EXCEEDED"
 	DownloadTaskArtifactBadRequestCodeSERIALIZATIONEXHAUSTED         DownloadTaskArtifactBadRequestCode = "SERIALIZATION_EXHAUSTED"
 	DownloadTaskArtifactBadRequestCodeSIGNINGREQUESTEXPIRED          DownloadTaskArtifactBadRequestCode = "SIGNING_REQUEST_EXPIRED"
@@ -14231,7 +14357,6 @@ func (DownloadTaskArtifactBadRequestCode) AllValues() []DownloadTaskArtifactBadR
 		DownloadTaskArtifactBadRequestCodeVALIDATIONFAILED,
 		DownloadTaskArtifactBadRequestCodeINVALIDCHALLENGE,
 		DownloadTaskArtifactBadRequestCodeINVALIDSIGNATURE,
-		DownloadTaskArtifactBadRequestCodeVOUCHERLIMIT,
 		DownloadTaskArtifactBadRequestCodeRATELIMITEXCEEDED,
 		DownloadTaskArtifactBadRequestCodeSERIALIZATIONEXHAUSTED,
 		DownloadTaskArtifactBadRequestCodeSIGNINGREQUESTEXPIRED,
@@ -14273,8 +14398,6 @@ func (s DownloadTaskArtifactBadRequestCode) MarshalText() ([]byte, error) {
 	case DownloadTaskArtifactBadRequestCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case DownloadTaskArtifactBadRequestCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case DownloadTaskArtifactBadRequestCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case DownloadTaskArtifactBadRequestCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -14347,9 +14470,6 @@ func (s *DownloadTaskArtifactBadRequestCode) UnmarshalText(data []byte) error {
 		return nil
 	case DownloadTaskArtifactBadRequestCodeINVALIDSIGNATURE:
 		*s = DownloadTaskArtifactBadRequestCodeINVALIDSIGNATURE
-		return nil
-	case DownloadTaskArtifactBadRequestCodeVOUCHERLIMIT:
-		*s = DownloadTaskArtifactBadRequestCodeVOUCHERLIMIT
 		return nil
 	case DownloadTaskArtifactBadRequestCodeRATELIMITEXCEEDED:
 		*s = DownloadTaskArtifactBadRequestCodeRATELIMITEXCEEDED
@@ -14545,7 +14665,6 @@ const (
 	DownloadTaskArtifactByCidBadRequestCodeVALIDATIONFAILED               DownloadTaskArtifactByCidBadRequestCode = "VALIDATION_FAILED"
 	DownloadTaskArtifactByCidBadRequestCodeINVALIDCHALLENGE               DownloadTaskArtifactByCidBadRequestCode = "INVALID_CHALLENGE"
 	DownloadTaskArtifactByCidBadRequestCodeINVALIDSIGNATURE               DownloadTaskArtifactByCidBadRequestCode = "INVALID_SIGNATURE"
-	DownloadTaskArtifactByCidBadRequestCodeVOUCHERLIMIT                   DownloadTaskArtifactByCidBadRequestCode = "VOUCHER_LIMIT"
 	DownloadTaskArtifactByCidBadRequestCodeRATELIMITEXCEEDED              DownloadTaskArtifactByCidBadRequestCode = "RATE_LIMIT_EXCEEDED"
 	DownloadTaskArtifactByCidBadRequestCodeSERIALIZATIONEXHAUSTED         DownloadTaskArtifactByCidBadRequestCode = "SERIALIZATION_EXHAUSTED"
 	DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTEXPIRED          DownloadTaskArtifactByCidBadRequestCode = "SIGNING_REQUEST_EXPIRED"
@@ -14579,7 +14698,6 @@ func (DownloadTaskArtifactByCidBadRequestCode) AllValues() []DownloadTaskArtifac
 		DownloadTaskArtifactByCidBadRequestCodeVALIDATIONFAILED,
 		DownloadTaskArtifactByCidBadRequestCodeINVALIDCHALLENGE,
 		DownloadTaskArtifactByCidBadRequestCodeINVALIDSIGNATURE,
-		DownloadTaskArtifactByCidBadRequestCodeVOUCHERLIMIT,
 		DownloadTaskArtifactByCidBadRequestCodeRATELIMITEXCEEDED,
 		DownloadTaskArtifactByCidBadRequestCodeSERIALIZATIONEXHAUSTED,
 		DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTEXPIRED,
@@ -14621,8 +14739,6 @@ func (s DownloadTaskArtifactByCidBadRequestCode) MarshalText() ([]byte, error) {
 	case DownloadTaskArtifactByCidBadRequestCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case DownloadTaskArtifactByCidBadRequestCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case DownloadTaskArtifactByCidBadRequestCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case DownloadTaskArtifactByCidBadRequestCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -14695,9 +14811,6 @@ func (s *DownloadTaskArtifactByCidBadRequestCode) UnmarshalText(data []byte) err
 		return nil
 	case DownloadTaskArtifactByCidBadRequestCodeINVALIDSIGNATURE:
 		*s = DownloadTaskArtifactByCidBadRequestCodeINVALIDSIGNATURE
-		return nil
-	case DownloadTaskArtifactByCidBadRequestCodeVOUCHERLIMIT:
-		*s = DownloadTaskArtifactByCidBadRequestCodeVOUCHERLIMIT
 		return nil
 	case DownloadTaskArtifactByCidBadRequestCodeRATELIMITEXCEEDED:
 		*s = DownloadTaskArtifactByCidBadRequestCodeRATELIMITEXCEEDED
@@ -14881,7 +14994,6 @@ const (
 	DownloadTaskArtifactByCidForbiddenCodeVALIDATIONFAILED               DownloadTaskArtifactByCidForbiddenCode = "VALIDATION_FAILED"
 	DownloadTaskArtifactByCidForbiddenCodeINVALIDCHALLENGE               DownloadTaskArtifactByCidForbiddenCode = "INVALID_CHALLENGE"
 	DownloadTaskArtifactByCidForbiddenCodeINVALIDSIGNATURE               DownloadTaskArtifactByCidForbiddenCode = "INVALID_SIGNATURE"
-	DownloadTaskArtifactByCidForbiddenCodeVOUCHERLIMIT                   DownloadTaskArtifactByCidForbiddenCode = "VOUCHER_LIMIT"
 	DownloadTaskArtifactByCidForbiddenCodeRATELIMITEXCEEDED              DownloadTaskArtifactByCidForbiddenCode = "RATE_LIMIT_EXCEEDED"
 	DownloadTaskArtifactByCidForbiddenCodeSERIALIZATIONEXHAUSTED         DownloadTaskArtifactByCidForbiddenCode = "SERIALIZATION_EXHAUSTED"
 	DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTEXPIRED          DownloadTaskArtifactByCidForbiddenCode = "SIGNING_REQUEST_EXPIRED"
@@ -14915,7 +15027,6 @@ func (DownloadTaskArtifactByCidForbiddenCode) AllValues() []DownloadTaskArtifact
 		DownloadTaskArtifactByCidForbiddenCodeVALIDATIONFAILED,
 		DownloadTaskArtifactByCidForbiddenCodeINVALIDCHALLENGE,
 		DownloadTaskArtifactByCidForbiddenCodeINVALIDSIGNATURE,
-		DownloadTaskArtifactByCidForbiddenCodeVOUCHERLIMIT,
 		DownloadTaskArtifactByCidForbiddenCodeRATELIMITEXCEEDED,
 		DownloadTaskArtifactByCidForbiddenCodeSERIALIZATIONEXHAUSTED,
 		DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTEXPIRED,
@@ -14957,8 +15068,6 @@ func (s DownloadTaskArtifactByCidForbiddenCode) MarshalText() ([]byte, error) {
 	case DownloadTaskArtifactByCidForbiddenCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case DownloadTaskArtifactByCidForbiddenCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case DownloadTaskArtifactByCidForbiddenCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case DownloadTaskArtifactByCidForbiddenCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -15031,9 +15140,6 @@ func (s *DownloadTaskArtifactByCidForbiddenCode) UnmarshalText(data []byte) erro
 		return nil
 	case DownloadTaskArtifactByCidForbiddenCodeINVALIDSIGNATURE:
 		*s = DownloadTaskArtifactByCidForbiddenCodeINVALIDSIGNATURE
-		return nil
-	case DownloadTaskArtifactByCidForbiddenCodeVOUCHERLIMIT:
-		*s = DownloadTaskArtifactByCidForbiddenCodeVOUCHERLIMIT
 		return nil
 	case DownloadTaskArtifactByCidForbiddenCodeRATELIMITEXCEEDED:
 		*s = DownloadTaskArtifactByCidForbiddenCodeRATELIMITEXCEEDED
@@ -15217,7 +15323,6 @@ const (
 	DownloadTaskArtifactByCidNotFoundCodeVALIDATIONFAILED               DownloadTaskArtifactByCidNotFoundCode = "VALIDATION_FAILED"
 	DownloadTaskArtifactByCidNotFoundCodeINVALIDCHALLENGE               DownloadTaskArtifactByCidNotFoundCode = "INVALID_CHALLENGE"
 	DownloadTaskArtifactByCidNotFoundCodeINVALIDSIGNATURE               DownloadTaskArtifactByCidNotFoundCode = "INVALID_SIGNATURE"
-	DownloadTaskArtifactByCidNotFoundCodeVOUCHERLIMIT                   DownloadTaskArtifactByCidNotFoundCode = "VOUCHER_LIMIT"
 	DownloadTaskArtifactByCidNotFoundCodeRATELIMITEXCEEDED              DownloadTaskArtifactByCidNotFoundCode = "RATE_LIMIT_EXCEEDED"
 	DownloadTaskArtifactByCidNotFoundCodeSERIALIZATIONEXHAUSTED         DownloadTaskArtifactByCidNotFoundCode = "SERIALIZATION_EXHAUSTED"
 	DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTEXPIRED          DownloadTaskArtifactByCidNotFoundCode = "SIGNING_REQUEST_EXPIRED"
@@ -15251,7 +15356,6 @@ func (DownloadTaskArtifactByCidNotFoundCode) AllValues() []DownloadTaskArtifactB
 		DownloadTaskArtifactByCidNotFoundCodeVALIDATIONFAILED,
 		DownloadTaskArtifactByCidNotFoundCodeINVALIDCHALLENGE,
 		DownloadTaskArtifactByCidNotFoundCodeINVALIDSIGNATURE,
-		DownloadTaskArtifactByCidNotFoundCodeVOUCHERLIMIT,
 		DownloadTaskArtifactByCidNotFoundCodeRATELIMITEXCEEDED,
 		DownloadTaskArtifactByCidNotFoundCodeSERIALIZATIONEXHAUSTED,
 		DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTEXPIRED,
@@ -15293,8 +15397,6 @@ func (s DownloadTaskArtifactByCidNotFoundCode) MarshalText() ([]byte, error) {
 	case DownloadTaskArtifactByCidNotFoundCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case DownloadTaskArtifactByCidNotFoundCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case DownloadTaskArtifactByCidNotFoundCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case DownloadTaskArtifactByCidNotFoundCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -15367,9 +15469,6 @@ func (s *DownloadTaskArtifactByCidNotFoundCode) UnmarshalText(data []byte) error
 		return nil
 	case DownloadTaskArtifactByCidNotFoundCodeINVALIDSIGNATURE:
 		*s = DownloadTaskArtifactByCidNotFoundCodeINVALIDSIGNATURE
-		return nil
-	case DownloadTaskArtifactByCidNotFoundCodeVOUCHERLIMIT:
-		*s = DownloadTaskArtifactByCidNotFoundCodeVOUCHERLIMIT
 		return nil
 	case DownloadTaskArtifactByCidNotFoundCodeRATELIMITEXCEEDED:
 		*s = DownloadTaskArtifactByCidNotFoundCodeRATELIMITEXCEEDED
@@ -15629,7 +15728,6 @@ const (
 	DownloadTaskArtifactByCidServiceUnavailableCodeVALIDATIONFAILED               DownloadTaskArtifactByCidServiceUnavailableCode = "VALIDATION_FAILED"
 	DownloadTaskArtifactByCidServiceUnavailableCodeINVALIDCHALLENGE               DownloadTaskArtifactByCidServiceUnavailableCode = "INVALID_CHALLENGE"
 	DownloadTaskArtifactByCidServiceUnavailableCodeINVALIDSIGNATURE               DownloadTaskArtifactByCidServiceUnavailableCode = "INVALID_SIGNATURE"
-	DownloadTaskArtifactByCidServiceUnavailableCodeVOUCHERLIMIT                   DownloadTaskArtifactByCidServiceUnavailableCode = "VOUCHER_LIMIT"
 	DownloadTaskArtifactByCidServiceUnavailableCodeRATELIMITEXCEEDED              DownloadTaskArtifactByCidServiceUnavailableCode = "RATE_LIMIT_EXCEEDED"
 	DownloadTaskArtifactByCidServiceUnavailableCodeSERIALIZATIONEXHAUSTED         DownloadTaskArtifactByCidServiceUnavailableCode = "SERIALIZATION_EXHAUSTED"
 	DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTEXPIRED          DownloadTaskArtifactByCidServiceUnavailableCode = "SIGNING_REQUEST_EXPIRED"
@@ -15663,7 +15761,6 @@ func (DownloadTaskArtifactByCidServiceUnavailableCode) AllValues() []DownloadTas
 		DownloadTaskArtifactByCidServiceUnavailableCodeVALIDATIONFAILED,
 		DownloadTaskArtifactByCidServiceUnavailableCodeINVALIDCHALLENGE,
 		DownloadTaskArtifactByCidServiceUnavailableCodeINVALIDSIGNATURE,
-		DownloadTaskArtifactByCidServiceUnavailableCodeVOUCHERLIMIT,
 		DownloadTaskArtifactByCidServiceUnavailableCodeRATELIMITEXCEEDED,
 		DownloadTaskArtifactByCidServiceUnavailableCodeSERIALIZATIONEXHAUSTED,
 		DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTEXPIRED,
@@ -15705,8 +15802,6 @@ func (s DownloadTaskArtifactByCidServiceUnavailableCode) MarshalText() ([]byte, 
 	case DownloadTaskArtifactByCidServiceUnavailableCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case DownloadTaskArtifactByCidServiceUnavailableCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case DownloadTaskArtifactByCidServiceUnavailableCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case DownloadTaskArtifactByCidServiceUnavailableCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -15779,9 +15874,6 @@ func (s *DownloadTaskArtifactByCidServiceUnavailableCode) UnmarshalText(data []b
 		return nil
 	case DownloadTaskArtifactByCidServiceUnavailableCodeINVALIDSIGNATURE:
 		*s = DownloadTaskArtifactByCidServiceUnavailableCodeINVALIDSIGNATURE
-		return nil
-	case DownloadTaskArtifactByCidServiceUnavailableCodeVOUCHERLIMIT:
-		*s = DownloadTaskArtifactByCidServiceUnavailableCodeVOUCHERLIMIT
 		return nil
 	case DownloadTaskArtifactByCidServiceUnavailableCodeRATELIMITEXCEEDED:
 		*s = DownloadTaskArtifactByCidServiceUnavailableCodeRATELIMITEXCEEDED
@@ -15965,7 +16057,6 @@ const (
 	DownloadTaskArtifactByCidUnauthorizedCodeVALIDATIONFAILED               DownloadTaskArtifactByCidUnauthorizedCode = "VALIDATION_FAILED"
 	DownloadTaskArtifactByCidUnauthorizedCodeINVALIDCHALLENGE               DownloadTaskArtifactByCidUnauthorizedCode = "INVALID_CHALLENGE"
 	DownloadTaskArtifactByCidUnauthorizedCodeINVALIDSIGNATURE               DownloadTaskArtifactByCidUnauthorizedCode = "INVALID_SIGNATURE"
-	DownloadTaskArtifactByCidUnauthorizedCodeVOUCHERLIMIT                   DownloadTaskArtifactByCidUnauthorizedCode = "VOUCHER_LIMIT"
 	DownloadTaskArtifactByCidUnauthorizedCodeRATELIMITEXCEEDED              DownloadTaskArtifactByCidUnauthorizedCode = "RATE_LIMIT_EXCEEDED"
 	DownloadTaskArtifactByCidUnauthorizedCodeSERIALIZATIONEXHAUSTED         DownloadTaskArtifactByCidUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
 	DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTEXPIRED          DownloadTaskArtifactByCidUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
@@ -15999,7 +16090,6 @@ func (DownloadTaskArtifactByCidUnauthorizedCode) AllValues() []DownloadTaskArtif
 		DownloadTaskArtifactByCidUnauthorizedCodeVALIDATIONFAILED,
 		DownloadTaskArtifactByCidUnauthorizedCodeINVALIDCHALLENGE,
 		DownloadTaskArtifactByCidUnauthorizedCodeINVALIDSIGNATURE,
-		DownloadTaskArtifactByCidUnauthorizedCodeVOUCHERLIMIT,
 		DownloadTaskArtifactByCidUnauthorizedCodeRATELIMITEXCEEDED,
 		DownloadTaskArtifactByCidUnauthorizedCodeSERIALIZATIONEXHAUSTED,
 		DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTEXPIRED,
@@ -16041,8 +16131,6 @@ func (s DownloadTaskArtifactByCidUnauthorizedCode) MarshalText() ([]byte, error)
 	case DownloadTaskArtifactByCidUnauthorizedCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case DownloadTaskArtifactByCidUnauthorizedCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case DownloadTaskArtifactByCidUnauthorizedCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case DownloadTaskArtifactByCidUnauthorizedCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -16115,9 +16203,6 @@ func (s *DownloadTaskArtifactByCidUnauthorizedCode) UnmarshalText(data []byte) e
 		return nil
 	case DownloadTaskArtifactByCidUnauthorizedCodeINVALIDSIGNATURE:
 		*s = DownloadTaskArtifactByCidUnauthorizedCodeINVALIDSIGNATURE
-		return nil
-	case DownloadTaskArtifactByCidUnauthorizedCodeVOUCHERLIMIT:
-		*s = DownloadTaskArtifactByCidUnauthorizedCodeVOUCHERLIMIT
 		return nil
 	case DownloadTaskArtifactByCidUnauthorizedCodeRATELIMITEXCEEDED:
 		*s = DownloadTaskArtifactByCidUnauthorizedCodeRATELIMITEXCEEDED
@@ -16301,7 +16386,6 @@ const (
 	DownloadTaskArtifactForbiddenCodeVALIDATIONFAILED               DownloadTaskArtifactForbiddenCode = "VALIDATION_FAILED"
 	DownloadTaskArtifactForbiddenCodeINVALIDCHALLENGE               DownloadTaskArtifactForbiddenCode = "INVALID_CHALLENGE"
 	DownloadTaskArtifactForbiddenCodeINVALIDSIGNATURE               DownloadTaskArtifactForbiddenCode = "INVALID_SIGNATURE"
-	DownloadTaskArtifactForbiddenCodeVOUCHERLIMIT                   DownloadTaskArtifactForbiddenCode = "VOUCHER_LIMIT"
 	DownloadTaskArtifactForbiddenCodeRATELIMITEXCEEDED              DownloadTaskArtifactForbiddenCode = "RATE_LIMIT_EXCEEDED"
 	DownloadTaskArtifactForbiddenCodeSERIALIZATIONEXHAUSTED         DownloadTaskArtifactForbiddenCode = "SERIALIZATION_EXHAUSTED"
 	DownloadTaskArtifactForbiddenCodeSIGNINGREQUESTEXPIRED          DownloadTaskArtifactForbiddenCode = "SIGNING_REQUEST_EXPIRED"
@@ -16335,7 +16419,6 @@ func (DownloadTaskArtifactForbiddenCode) AllValues() []DownloadTaskArtifactForbi
 		DownloadTaskArtifactForbiddenCodeVALIDATIONFAILED,
 		DownloadTaskArtifactForbiddenCodeINVALIDCHALLENGE,
 		DownloadTaskArtifactForbiddenCodeINVALIDSIGNATURE,
-		DownloadTaskArtifactForbiddenCodeVOUCHERLIMIT,
 		DownloadTaskArtifactForbiddenCodeRATELIMITEXCEEDED,
 		DownloadTaskArtifactForbiddenCodeSERIALIZATIONEXHAUSTED,
 		DownloadTaskArtifactForbiddenCodeSIGNINGREQUESTEXPIRED,
@@ -16377,8 +16460,6 @@ func (s DownloadTaskArtifactForbiddenCode) MarshalText() ([]byte, error) {
 	case DownloadTaskArtifactForbiddenCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case DownloadTaskArtifactForbiddenCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case DownloadTaskArtifactForbiddenCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case DownloadTaskArtifactForbiddenCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -16451,9 +16532,6 @@ func (s *DownloadTaskArtifactForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case DownloadTaskArtifactForbiddenCodeINVALIDSIGNATURE:
 		*s = DownloadTaskArtifactForbiddenCodeINVALIDSIGNATURE
-		return nil
-	case DownloadTaskArtifactForbiddenCodeVOUCHERLIMIT:
-		*s = DownloadTaskArtifactForbiddenCodeVOUCHERLIMIT
 		return nil
 	case DownloadTaskArtifactForbiddenCodeRATELIMITEXCEEDED:
 		*s = DownloadTaskArtifactForbiddenCodeRATELIMITEXCEEDED
@@ -16637,7 +16715,6 @@ const (
 	DownloadTaskArtifactNotFoundCodeVALIDATIONFAILED               DownloadTaskArtifactNotFoundCode = "VALIDATION_FAILED"
 	DownloadTaskArtifactNotFoundCodeINVALIDCHALLENGE               DownloadTaskArtifactNotFoundCode = "INVALID_CHALLENGE"
 	DownloadTaskArtifactNotFoundCodeINVALIDSIGNATURE               DownloadTaskArtifactNotFoundCode = "INVALID_SIGNATURE"
-	DownloadTaskArtifactNotFoundCodeVOUCHERLIMIT                   DownloadTaskArtifactNotFoundCode = "VOUCHER_LIMIT"
 	DownloadTaskArtifactNotFoundCodeRATELIMITEXCEEDED              DownloadTaskArtifactNotFoundCode = "RATE_LIMIT_EXCEEDED"
 	DownloadTaskArtifactNotFoundCodeSERIALIZATIONEXHAUSTED         DownloadTaskArtifactNotFoundCode = "SERIALIZATION_EXHAUSTED"
 	DownloadTaskArtifactNotFoundCodeSIGNINGREQUESTEXPIRED          DownloadTaskArtifactNotFoundCode = "SIGNING_REQUEST_EXPIRED"
@@ -16671,7 +16748,6 @@ func (DownloadTaskArtifactNotFoundCode) AllValues() []DownloadTaskArtifactNotFou
 		DownloadTaskArtifactNotFoundCodeVALIDATIONFAILED,
 		DownloadTaskArtifactNotFoundCodeINVALIDCHALLENGE,
 		DownloadTaskArtifactNotFoundCodeINVALIDSIGNATURE,
-		DownloadTaskArtifactNotFoundCodeVOUCHERLIMIT,
 		DownloadTaskArtifactNotFoundCodeRATELIMITEXCEEDED,
 		DownloadTaskArtifactNotFoundCodeSERIALIZATIONEXHAUSTED,
 		DownloadTaskArtifactNotFoundCodeSIGNINGREQUESTEXPIRED,
@@ -16713,8 +16789,6 @@ func (s DownloadTaskArtifactNotFoundCode) MarshalText() ([]byte, error) {
 	case DownloadTaskArtifactNotFoundCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case DownloadTaskArtifactNotFoundCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case DownloadTaskArtifactNotFoundCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case DownloadTaskArtifactNotFoundCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -16787,9 +16861,6 @@ func (s *DownloadTaskArtifactNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case DownloadTaskArtifactNotFoundCodeINVALIDSIGNATURE:
 		*s = DownloadTaskArtifactNotFoundCodeINVALIDSIGNATURE
-		return nil
-	case DownloadTaskArtifactNotFoundCodeVOUCHERLIMIT:
-		*s = DownloadTaskArtifactNotFoundCodeVOUCHERLIMIT
 		return nil
 	case DownloadTaskArtifactNotFoundCodeRATELIMITEXCEEDED:
 		*s = DownloadTaskArtifactNotFoundCodeRATELIMITEXCEEDED
@@ -17049,7 +17120,6 @@ const (
 	DownloadTaskArtifactServiceUnavailableCodeVALIDATIONFAILED               DownloadTaskArtifactServiceUnavailableCode = "VALIDATION_FAILED"
 	DownloadTaskArtifactServiceUnavailableCodeINVALIDCHALLENGE               DownloadTaskArtifactServiceUnavailableCode = "INVALID_CHALLENGE"
 	DownloadTaskArtifactServiceUnavailableCodeINVALIDSIGNATURE               DownloadTaskArtifactServiceUnavailableCode = "INVALID_SIGNATURE"
-	DownloadTaskArtifactServiceUnavailableCodeVOUCHERLIMIT                   DownloadTaskArtifactServiceUnavailableCode = "VOUCHER_LIMIT"
 	DownloadTaskArtifactServiceUnavailableCodeRATELIMITEXCEEDED              DownloadTaskArtifactServiceUnavailableCode = "RATE_LIMIT_EXCEEDED"
 	DownloadTaskArtifactServiceUnavailableCodeSERIALIZATIONEXHAUSTED         DownloadTaskArtifactServiceUnavailableCode = "SERIALIZATION_EXHAUSTED"
 	DownloadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTEXPIRED          DownloadTaskArtifactServiceUnavailableCode = "SIGNING_REQUEST_EXPIRED"
@@ -17083,7 +17153,6 @@ func (DownloadTaskArtifactServiceUnavailableCode) AllValues() []DownloadTaskArti
 		DownloadTaskArtifactServiceUnavailableCodeVALIDATIONFAILED,
 		DownloadTaskArtifactServiceUnavailableCodeINVALIDCHALLENGE,
 		DownloadTaskArtifactServiceUnavailableCodeINVALIDSIGNATURE,
-		DownloadTaskArtifactServiceUnavailableCodeVOUCHERLIMIT,
 		DownloadTaskArtifactServiceUnavailableCodeRATELIMITEXCEEDED,
 		DownloadTaskArtifactServiceUnavailableCodeSERIALIZATIONEXHAUSTED,
 		DownloadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTEXPIRED,
@@ -17125,8 +17194,6 @@ func (s DownloadTaskArtifactServiceUnavailableCode) MarshalText() ([]byte, error
 	case DownloadTaskArtifactServiceUnavailableCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case DownloadTaskArtifactServiceUnavailableCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case DownloadTaskArtifactServiceUnavailableCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case DownloadTaskArtifactServiceUnavailableCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -17199,9 +17266,6 @@ func (s *DownloadTaskArtifactServiceUnavailableCode) UnmarshalText(data []byte) 
 		return nil
 	case DownloadTaskArtifactServiceUnavailableCodeINVALIDSIGNATURE:
 		*s = DownloadTaskArtifactServiceUnavailableCodeINVALIDSIGNATURE
-		return nil
-	case DownloadTaskArtifactServiceUnavailableCodeVOUCHERLIMIT:
-		*s = DownloadTaskArtifactServiceUnavailableCodeVOUCHERLIMIT
 		return nil
 	case DownloadTaskArtifactServiceUnavailableCodeRATELIMITEXCEEDED:
 		*s = DownloadTaskArtifactServiceUnavailableCodeRATELIMITEXCEEDED
@@ -17385,7 +17449,6 @@ const (
 	DownloadTaskArtifactUnauthorizedCodeVALIDATIONFAILED               DownloadTaskArtifactUnauthorizedCode = "VALIDATION_FAILED"
 	DownloadTaskArtifactUnauthorizedCodeINVALIDCHALLENGE               DownloadTaskArtifactUnauthorizedCode = "INVALID_CHALLENGE"
 	DownloadTaskArtifactUnauthorizedCodeINVALIDSIGNATURE               DownloadTaskArtifactUnauthorizedCode = "INVALID_SIGNATURE"
-	DownloadTaskArtifactUnauthorizedCodeVOUCHERLIMIT                   DownloadTaskArtifactUnauthorizedCode = "VOUCHER_LIMIT"
 	DownloadTaskArtifactUnauthorizedCodeRATELIMITEXCEEDED              DownloadTaskArtifactUnauthorizedCode = "RATE_LIMIT_EXCEEDED"
 	DownloadTaskArtifactUnauthorizedCodeSERIALIZATIONEXHAUSTED         DownloadTaskArtifactUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
 	DownloadTaskArtifactUnauthorizedCodeSIGNINGREQUESTEXPIRED          DownloadTaskArtifactUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
@@ -17419,7 +17482,6 @@ func (DownloadTaskArtifactUnauthorizedCode) AllValues() []DownloadTaskArtifactUn
 		DownloadTaskArtifactUnauthorizedCodeVALIDATIONFAILED,
 		DownloadTaskArtifactUnauthorizedCodeINVALIDCHALLENGE,
 		DownloadTaskArtifactUnauthorizedCodeINVALIDSIGNATURE,
-		DownloadTaskArtifactUnauthorizedCodeVOUCHERLIMIT,
 		DownloadTaskArtifactUnauthorizedCodeRATELIMITEXCEEDED,
 		DownloadTaskArtifactUnauthorizedCodeSERIALIZATIONEXHAUSTED,
 		DownloadTaskArtifactUnauthorizedCodeSIGNINGREQUESTEXPIRED,
@@ -17461,8 +17523,6 @@ func (s DownloadTaskArtifactUnauthorizedCode) MarshalText() ([]byte, error) {
 	case DownloadTaskArtifactUnauthorizedCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case DownloadTaskArtifactUnauthorizedCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case DownloadTaskArtifactUnauthorizedCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case DownloadTaskArtifactUnauthorizedCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -17536,9 +17596,6 @@ func (s *DownloadTaskArtifactUnauthorizedCode) UnmarshalText(data []byte) error 
 	case DownloadTaskArtifactUnauthorizedCodeINVALIDSIGNATURE:
 		*s = DownloadTaskArtifactUnauthorizedCodeINVALIDSIGNATURE
 		return nil
-	case DownloadTaskArtifactUnauthorizedCodeVOUCHERLIMIT:
-		*s = DownloadTaskArtifactUnauthorizedCodeVOUCHERLIMIT
-		return nil
 	case DownloadTaskArtifactUnauthorizedCodeRATELIMITEXCEEDED:
 		*s = DownloadTaskArtifactUnauthorizedCodeRATELIMITEXCEEDED
 		return nil
@@ -17598,6 +17655,118 @@ func (s *DownloadTaskArtifactUnauthorizedCode) UnmarshalText(data []byte) error 
 		return nil
 	case DownloadTaskArtifactUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED:
 		*s = DownloadTaskArtifactUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type EnrollAgentBadGateway ProblemDetails
+
+func (*EnrollAgentBadGateway) enrollAgentRes() {}
+
+type EnrollAgentBadRequest ProblemDetails
+
+func (*EnrollAgentBadRequest) enrollAgentRes() {}
+
+type EnrollAgentConflict ProblemDetails
+
+func (*EnrollAgentConflict) enrollAgentRes() {}
+
+type EnrollAgentForbidden ProblemDetails
+
+func (*EnrollAgentForbidden) enrollAgentRes() {}
+
+type EnrollAgentInternalServerError ProblemDetails
+
+func (*EnrollAgentInternalServerError) enrollAgentRes() {}
+
+// Merged schema.
+type EnrollAgentReq struct {
+	CredentialType EnrollAgentReqCredentialType `json:"credentialType"`
+	// Base64-encoded Ed25519 signature of the registration message.
+	Proof string `json:"proof"`
+	// Ed25519 public key in "ed25519:<base64>" format (32-byte raw key).
+	PublicKey string `json:"publicKey"`
+	// Single-use agent enrollment token.
+	Token string `json:"token"`
+}
+
+// GetCredentialType returns the value of CredentialType.
+func (s *EnrollAgentReq) GetCredentialType() EnrollAgentReqCredentialType {
+	return s.CredentialType
+}
+
+// GetProof returns the value of Proof.
+func (s *EnrollAgentReq) GetProof() string {
+	return s.Proof
+}
+
+// GetPublicKey returns the value of PublicKey.
+func (s *EnrollAgentReq) GetPublicKey() string {
+	return s.PublicKey
+}
+
+// GetToken returns the value of Token.
+func (s *EnrollAgentReq) GetToken() string {
+	return s.Token
+}
+
+// SetCredentialType sets the value of CredentialType.
+func (s *EnrollAgentReq) SetCredentialType(val EnrollAgentReqCredentialType) {
+	s.CredentialType = val
+}
+
+// SetProof sets the value of Proof.
+func (s *EnrollAgentReq) SetProof(val string) {
+	s.Proof = val
+}
+
+// SetPublicKey sets the value of PublicKey.
+func (s *EnrollAgentReq) SetPublicKey(val string) {
+	s.PublicKey = val
+}
+
+// SetToken sets the value of Token.
+func (s *EnrollAgentReq) SetToken(val string) {
+	s.Token = val
+}
+
+type EnrollAgentReqCredentialType string
+
+const (
+	EnrollAgentReqCredentialTypeOAuth2   EnrollAgentReqCredentialType = "oauth2"
+	EnrollAgentReqCredentialTypeAgentKey EnrollAgentReqCredentialType = "agent_key"
+)
+
+// AllValues returns all EnrollAgentReqCredentialType values.
+func (EnrollAgentReqCredentialType) AllValues() []EnrollAgentReqCredentialType {
+	return []EnrollAgentReqCredentialType{
+		EnrollAgentReqCredentialTypeOAuth2,
+		EnrollAgentReqCredentialTypeAgentKey,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s EnrollAgentReqCredentialType) MarshalText() ([]byte, error) {
+	switch s {
+	case EnrollAgentReqCredentialTypeOAuth2:
+		return []byte(s), nil
+	case EnrollAgentReqCredentialTypeAgentKey:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *EnrollAgentReqCredentialType) UnmarshalText(data []byte) error {
+	switch EnrollAgentReqCredentialType(data) {
+	case EnrollAgentReqCredentialTypeOAuth2:
+		*s = EnrollAgentReqCredentialTypeOAuth2
+		return nil
+	case EnrollAgentReqCredentialTypeAgentKey:
+		*s = EnrollAgentReqCredentialTypeAgentKey
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -18451,7 +18620,6 @@ const (
 	FindLatestRuntimeSlotForAttemptBadRequestCodeVALIDATIONFAILED               FindLatestRuntimeSlotForAttemptBadRequestCode = "VALIDATION_FAILED"
 	FindLatestRuntimeSlotForAttemptBadRequestCodeINVALIDCHALLENGE               FindLatestRuntimeSlotForAttemptBadRequestCode = "INVALID_CHALLENGE"
 	FindLatestRuntimeSlotForAttemptBadRequestCodeINVALIDSIGNATURE               FindLatestRuntimeSlotForAttemptBadRequestCode = "INVALID_SIGNATURE"
-	FindLatestRuntimeSlotForAttemptBadRequestCodeVOUCHERLIMIT                   FindLatestRuntimeSlotForAttemptBadRequestCode = "VOUCHER_LIMIT"
 	FindLatestRuntimeSlotForAttemptBadRequestCodeRATELIMITEXCEEDED              FindLatestRuntimeSlotForAttemptBadRequestCode = "RATE_LIMIT_EXCEEDED"
 	FindLatestRuntimeSlotForAttemptBadRequestCodeSERIALIZATIONEXHAUSTED         FindLatestRuntimeSlotForAttemptBadRequestCode = "SERIALIZATION_EXHAUSTED"
 	FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTEXPIRED          FindLatestRuntimeSlotForAttemptBadRequestCode = "SIGNING_REQUEST_EXPIRED"
@@ -18485,7 +18653,6 @@ func (FindLatestRuntimeSlotForAttemptBadRequestCode) AllValues() []FindLatestRun
 		FindLatestRuntimeSlotForAttemptBadRequestCodeVALIDATIONFAILED,
 		FindLatestRuntimeSlotForAttemptBadRequestCodeINVALIDCHALLENGE,
 		FindLatestRuntimeSlotForAttemptBadRequestCodeINVALIDSIGNATURE,
-		FindLatestRuntimeSlotForAttemptBadRequestCodeVOUCHERLIMIT,
 		FindLatestRuntimeSlotForAttemptBadRequestCodeRATELIMITEXCEEDED,
 		FindLatestRuntimeSlotForAttemptBadRequestCodeSERIALIZATIONEXHAUSTED,
 		FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTEXPIRED,
@@ -18527,8 +18694,6 @@ func (s FindLatestRuntimeSlotForAttemptBadRequestCode) MarshalText() ([]byte, er
 	case FindLatestRuntimeSlotForAttemptBadRequestCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case FindLatestRuntimeSlotForAttemptBadRequestCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case FindLatestRuntimeSlotForAttemptBadRequestCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case FindLatestRuntimeSlotForAttemptBadRequestCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -18601,9 +18766,6 @@ func (s *FindLatestRuntimeSlotForAttemptBadRequestCode) UnmarshalText(data []byt
 		return nil
 	case FindLatestRuntimeSlotForAttemptBadRequestCodeINVALIDSIGNATURE:
 		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeINVALIDSIGNATURE
-		return nil
-	case FindLatestRuntimeSlotForAttemptBadRequestCodeVOUCHERLIMIT:
-		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeVOUCHERLIMIT
 		return nil
 	case FindLatestRuntimeSlotForAttemptBadRequestCodeRATELIMITEXCEEDED:
 		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeRATELIMITEXCEEDED
@@ -18787,7 +18949,6 @@ const (
 	FindLatestRuntimeSlotForAttemptForbiddenCodeVALIDATIONFAILED               FindLatestRuntimeSlotForAttemptForbiddenCode = "VALIDATION_FAILED"
 	FindLatestRuntimeSlotForAttemptForbiddenCodeINVALIDCHALLENGE               FindLatestRuntimeSlotForAttemptForbiddenCode = "INVALID_CHALLENGE"
 	FindLatestRuntimeSlotForAttemptForbiddenCodeINVALIDSIGNATURE               FindLatestRuntimeSlotForAttemptForbiddenCode = "INVALID_SIGNATURE"
-	FindLatestRuntimeSlotForAttemptForbiddenCodeVOUCHERLIMIT                   FindLatestRuntimeSlotForAttemptForbiddenCode = "VOUCHER_LIMIT"
 	FindLatestRuntimeSlotForAttemptForbiddenCodeRATELIMITEXCEEDED              FindLatestRuntimeSlotForAttemptForbiddenCode = "RATE_LIMIT_EXCEEDED"
 	FindLatestRuntimeSlotForAttemptForbiddenCodeSERIALIZATIONEXHAUSTED         FindLatestRuntimeSlotForAttemptForbiddenCode = "SERIALIZATION_EXHAUSTED"
 	FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTEXPIRED          FindLatestRuntimeSlotForAttemptForbiddenCode = "SIGNING_REQUEST_EXPIRED"
@@ -18821,7 +18982,6 @@ func (FindLatestRuntimeSlotForAttemptForbiddenCode) AllValues() []FindLatestRunt
 		FindLatestRuntimeSlotForAttemptForbiddenCodeVALIDATIONFAILED,
 		FindLatestRuntimeSlotForAttemptForbiddenCodeINVALIDCHALLENGE,
 		FindLatestRuntimeSlotForAttemptForbiddenCodeINVALIDSIGNATURE,
-		FindLatestRuntimeSlotForAttemptForbiddenCodeVOUCHERLIMIT,
 		FindLatestRuntimeSlotForAttemptForbiddenCodeRATELIMITEXCEEDED,
 		FindLatestRuntimeSlotForAttemptForbiddenCodeSERIALIZATIONEXHAUSTED,
 		FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTEXPIRED,
@@ -18863,8 +19023,6 @@ func (s FindLatestRuntimeSlotForAttemptForbiddenCode) MarshalText() ([]byte, err
 	case FindLatestRuntimeSlotForAttemptForbiddenCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case FindLatestRuntimeSlotForAttemptForbiddenCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case FindLatestRuntimeSlotForAttemptForbiddenCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case FindLatestRuntimeSlotForAttemptForbiddenCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -18937,9 +19095,6 @@ func (s *FindLatestRuntimeSlotForAttemptForbiddenCode) UnmarshalText(data []byte
 		return nil
 	case FindLatestRuntimeSlotForAttemptForbiddenCodeINVALIDSIGNATURE:
 		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeINVALIDSIGNATURE
-		return nil
-	case FindLatestRuntimeSlotForAttemptForbiddenCodeVOUCHERLIMIT:
-		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeVOUCHERLIMIT
 		return nil
 	case FindLatestRuntimeSlotForAttemptForbiddenCodeRATELIMITEXCEEDED:
 		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeRATELIMITEXCEEDED
@@ -19123,7 +19278,6 @@ const (
 	FindLatestRuntimeSlotForAttemptNotFoundCodeVALIDATIONFAILED               FindLatestRuntimeSlotForAttemptNotFoundCode = "VALIDATION_FAILED"
 	FindLatestRuntimeSlotForAttemptNotFoundCodeINVALIDCHALLENGE               FindLatestRuntimeSlotForAttemptNotFoundCode = "INVALID_CHALLENGE"
 	FindLatestRuntimeSlotForAttemptNotFoundCodeINVALIDSIGNATURE               FindLatestRuntimeSlotForAttemptNotFoundCode = "INVALID_SIGNATURE"
-	FindLatestRuntimeSlotForAttemptNotFoundCodeVOUCHERLIMIT                   FindLatestRuntimeSlotForAttemptNotFoundCode = "VOUCHER_LIMIT"
 	FindLatestRuntimeSlotForAttemptNotFoundCodeRATELIMITEXCEEDED              FindLatestRuntimeSlotForAttemptNotFoundCode = "RATE_LIMIT_EXCEEDED"
 	FindLatestRuntimeSlotForAttemptNotFoundCodeSERIALIZATIONEXHAUSTED         FindLatestRuntimeSlotForAttemptNotFoundCode = "SERIALIZATION_EXHAUSTED"
 	FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTEXPIRED          FindLatestRuntimeSlotForAttemptNotFoundCode = "SIGNING_REQUEST_EXPIRED"
@@ -19157,7 +19311,6 @@ func (FindLatestRuntimeSlotForAttemptNotFoundCode) AllValues() []FindLatestRunti
 		FindLatestRuntimeSlotForAttemptNotFoundCodeVALIDATIONFAILED,
 		FindLatestRuntimeSlotForAttemptNotFoundCodeINVALIDCHALLENGE,
 		FindLatestRuntimeSlotForAttemptNotFoundCodeINVALIDSIGNATURE,
-		FindLatestRuntimeSlotForAttemptNotFoundCodeVOUCHERLIMIT,
 		FindLatestRuntimeSlotForAttemptNotFoundCodeRATELIMITEXCEEDED,
 		FindLatestRuntimeSlotForAttemptNotFoundCodeSERIALIZATIONEXHAUSTED,
 		FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTEXPIRED,
@@ -19199,8 +19352,6 @@ func (s FindLatestRuntimeSlotForAttemptNotFoundCode) MarshalText() ([]byte, erro
 	case FindLatestRuntimeSlotForAttemptNotFoundCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case FindLatestRuntimeSlotForAttemptNotFoundCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case FindLatestRuntimeSlotForAttemptNotFoundCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case FindLatestRuntimeSlotForAttemptNotFoundCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -19273,9 +19424,6 @@ func (s *FindLatestRuntimeSlotForAttemptNotFoundCode) UnmarshalText(data []byte)
 		return nil
 	case FindLatestRuntimeSlotForAttemptNotFoundCodeINVALIDSIGNATURE:
 		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeINVALIDSIGNATURE
-		return nil
-	case FindLatestRuntimeSlotForAttemptNotFoundCodeVOUCHERLIMIT:
-		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeVOUCHERLIMIT
 		return nil
 	case FindLatestRuntimeSlotForAttemptNotFoundCodeRATELIMITEXCEEDED:
 		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeRATELIMITEXCEEDED
@@ -19864,7 +20012,6 @@ const (
 	FindLatestRuntimeSlotForAttemptUnauthorizedCodeVALIDATIONFAILED               FindLatestRuntimeSlotForAttemptUnauthorizedCode = "VALIDATION_FAILED"
 	FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVALIDCHALLENGE               FindLatestRuntimeSlotForAttemptUnauthorizedCode = "INVALID_CHALLENGE"
 	FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVALIDSIGNATURE               FindLatestRuntimeSlotForAttemptUnauthorizedCode = "INVALID_SIGNATURE"
-	FindLatestRuntimeSlotForAttemptUnauthorizedCodeVOUCHERLIMIT                   FindLatestRuntimeSlotForAttemptUnauthorizedCode = "VOUCHER_LIMIT"
 	FindLatestRuntimeSlotForAttemptUnauthorizedCodeRATELIMITEXCEEDED              FindLatestRuntimeSlotForAttemptUnauthorizedCode = "RATE_LIMIT_EXCEEDED"
 	FindLatestRuntimeSlotForAttemptUnauthorizedCodeSERIALIZATIONEXHAUSTED         FindLatestRuntimeSlotForAttemptUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
 	FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTEXPIRED          FindLatestRuntimeSlotForAttemptUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
@@ -19898,7 +20045,6 @@ func (FindLatestRuntimeSlotForAttemptUnauthorizedCode) AllValues() []FindLatestR
 		FindLatestRuntimeSlotForAttemptUnauthorizedCodeVALIDATIONFAILED,
 		FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVALIDCHALLENGE,
 		FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVALIDSIGNATURE,
-		FindLatestRuntimeSlotForAttemptUnauthorizedCodeVOUCHERLIMIT,
 		FindLatestRuntimeSlotForAttemptUnauthorizedCodeRATELIMITEXCEEDED,
 		FindLatestRuntimeSlotForAttemptUnauthorizedCodeSERIALIZATIONEXHAUSTED,
 		FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTEXPIRED,
@@ -19940,8 +20086,6 @@ func (s FindLatestRuntimeSlotForAttemptUnauthorizedCode) MarshalText() ([]byte, 
 	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -20014,9 +20158,6 @@ func (s *FindLatestRuntimeSlotForAttemptUnauthorizedCode) UnmarshalText(data []b
 		return nil
 	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVALIDSIGNATURE:
 		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeINVALIDSIGNATURE
-		return nil
-	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeVOUCHERLIMIT:
-		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeVOUCHERLIMIT
 		return nil
 	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeRATELIMITEXCEEDED:
 		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeRATELIMITEXCEEDED
@@ -20212,7 +20353,6 @@ const (
 	FinishRuntimeSlotBadRequestCodeVALIDATIONFAILED               FinishRuntimeSlotBadRequestCode = "VALIDATION_FAILED"
 	FinishRuntimeSlotBadRequestCodeINVALIDCHALLENGE               FinishRuntimeSlotBadRequestCode = "INVALID_CHALLENGE"
 	FinishRuntimeSlotBadRequestCodeINVALIDSIGNATURE               FinishRuntimeSlotBadRequestCode = "INVALID_SIGNATURE"
-	FinishRuntimeSlotBadRequestCodeVOUCHERLIMIT                   FinishRuntimeSlotBadRequestCode = "VOUCHER_LIMIT"
 	FinishRuntimeSlotBadRequestCodeRATELIMITEXCEEDED              FinishRuntimeSlotBadRequestCode = "RATE_LIMIT_EXCEEDED"
 	FinishRuntimeSlotBadRequestCodeSERIALIZATIONEXHAUSTED         FinishRuntimeSlotBadRequestCode = "SERIALIZATION_EXHAUSTED"
 	FinishRuntimeSlotBadRequestCodeSIGNINGREQUESTEXPIRED          FinishRuntimeSlotBadRequestCode = "SIGNING_REQUEST_EXPIRED"
@@ -20246,7 +20386,6 @@ func (FinishRuntimeSlotBadRequestCode) AllValues() []FinishRuntimeSlotBadRequest
 		FinishRuntimeSlotBadRequestCodeVALIDATIONFAILED,
 		FinishRuntimeSlotBadRequestCodeINVALIDCHALLENGE,
 		FinishRuntimeSlotBadRequestCodeINVALIDSIGNATURE,
-		FinishRuntimeSlotBadRequestCodeVOUCHERLIMIT,
 		FinishRuntimeSlotBadRequestCodeRATELIMITEXCEEDED,
 		FinishRuntimeSlotBadRequestCodeSERIALIZATIONEXHAUSTED,
 		FinishRuntimeSlotBadRequestCodeSIGNINGREQUESTEXPIRED,
@@ -20288,8 +20427,6 @@ func (s FinishRuntimeSlotBadRequestCode) MarshalText() ([]byte, error) {
 	case FinishRuntimeSlotBadRequestCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case FinishRuntimeSlotBadRequestCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case FinishRuntimeSlotBadRequestCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case FinishRuntimeSlotBadRequestCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -20362,9 +20499,6 @@ func (s *FinishRuntimeSlotBadRequestCode) UnmarshalText(data []byte) error {
 		return nil
 	case FinishRuntimeSlotBadRequestCodeINVALIDSIGNATURE:
 		*s = FinishRuntimeSlotBadRequestCodeINVALIDSIGNATURE
-		return nil
-	case FinishRuntimeSlotBadRequestCodeVOUCHERLIMIT:
-		*s = FinishRuntimeSlotBadRequestCodeVOUCHERLIMIT
 		return nil
 	case FinishRuntimeSlotBadRequestCodeRATELIMITEXCEEDED:
 		*s = FinishRuntimeSlotBadRequestCodeRATELIMITEXCEEDED
@@ -20560,7 +20694,6 @@ const (
 	FinishRuntimeSlotConflictCodeVALIDATIONFAILED               FinishRuntimeSlotConflictCode = "VALIDATION_FAILED"
 	FinishRuntimeSlotConflictCodeINVALIDCHALLENGE               FinishRuntimeSlotConflictCode = "INVALID_CHALLENGE"
 	FinishRuntimeSlotConflictCodeINVALIDSIGNATURE               FinishRuntimeSlotConflictCode = "INVALID_SIGNATURE"
-	FinishRuntimeSlotConflictCodeVOUCHERLIMIT                   FinishRuntimeSlotConflictCode = "VOUCHER_LIMIT"
 	FinishRuntimeSlotConflictCodeRATELIMITEXCEEDED              FinishRuntimeSlotConflictCode = "RATE_LIMIT_EXCEEDED"
 	FinishRuntimeSlotConflictCodeSERIALIZATIONEXHAUSTED         FinishRuntimeSlotConflictCode = "SERIALIZATION_EXHAUSTED"
 	FinishRuntimeSlotConflictCodeSIGNINGREQUESTEXPIRED          FinishRuntimeSlotConflictCode = "SIGNING_REQUEST_EXPIRED"
@@ -20594,7 +20727,6 @@ func (FinishRuntimeSlotConflictCode) AllValues() []FinishRuntimeSlotConflictCode
 		FinishRuntimeSlotConflictCodeVALIDATIONFAILED,
 		FinishRuntimeSlotConflictCodeINVALIDCHALLENGE,
 		FinishRuntimeSlotConflictCodeINVALIDSIGNATURE,
-		FinishRuntimeSlotConflictCodeVOUCHERLIMIT,
 		FinishRuntimeSlotConflictCodeRATELIMITEXCEEDED,
 		FinishRuntimeSlotConflictCodeSERIALIZATIONEXHAUSTED,
 		FinishRuntimeSlotConflictCodeSIGNINGREQUESTEXPIRED,
@@ -20636,8 +20768,6 @@ func (s FinishRuntimeSlotConflictCode) MarshalText() ([]byte, error) {
 	case FinishRuntimeSlotConflictCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case FinishRuntimeSlotConflictCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case FinishRuntimeSlotConflictCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case FinishRuntimeSlotConflictCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -20710,9 +20840,6 @@ func (s *FinishRuntimeSlotConflictCode) UnmarshalText(data []byte) error {
 		return nil
 	case FinishRuntimeSlotConflictCodeINVALIDSIGNATURE:
 		*s = FinishRuntimeSlotConflictCodeINVALIDSIGNATURE
-		return nil
-	case FinishRuntimeSlotConflictCodeVOUCHERLIMIT:
-		*s = FinishRuntimeSlotConflictCodeVOUCHERLIMIT
 		return nil
 	case FinishRuntimeSlotConflictCodeRATELIMITEXCEEDED:
 		*s = FinishRuntimeSlotConflictCodeRATELIMITEXCEEDED
@@ -20896,7 +21023,6 @@ const (
 	FinishRuntimeSlotForbiddenCodeVALIDATIONFAILED               FinishRuntimeSlotForbiddenCode = "VALIDATION_FAILED"
 	FinishRuntimeSlotForbiddenCodeINVALIDCHALLENGE               FinishRuntimeSlotForbiddenCode = "INVALID_CHALLENGE"
 	FinishRuntimeSlotForbiddenCodeINVALIDSIGNATURE               FinishRuntimeSlotForbiddenCode = "INVALID_SIGNATURE"
-	FinishRuntimeSlotForbiddenCodeVOUCHERLIMIT                   FinishRuntimeSlotForbiddenCode = "VOUCHER_LIMIT"
 	FinishRuntimeSlotForbiddenCodeRATELIMITEXCEEDED              FinishRuntimeSlotForbiddenCode = "RATE_LIMIT_EXCEEDED"
 	FinishRuntimeSlotForbiddenCodeSERIALIZATIONEXHAUSTED         FinishRuntimeSlotForbiddenCode = "SERIALIZATION_EXHAUSTED"
 	FinishRuntimeSlotForbiddenCodeSIGNINGREQUESTEXPIRED          FinishRuntimeSlotForbiddenCode = "SIGNING_REQUEST_EXPIRED"
@@ -20930,7 +21056,6 @@ func (FinishRuntimeSlotForbiddenCode) AllValues() []FinishRuntimeSlotForbiddenCo
 		FinishRuntimeSlotForbiddenCodeVALIDATIONFAILED,
 		FinishRuntimeSlotForbiddenCodeINVALIDCHALLENGE,
 		FinishRuntimeSlotForbiddenCodeINVALIDSIGNATURE,
-		FinishRuntimeSlotForbiddenCodeVOUCHERLIMIT,
 		FinishRuntimeSlotForbiddenCodeRATELIMITEXCEEDED,
 		FinishRuntimeSlotForbiddenCodeSERIALIZATIONEXHAUSTED,
 		FinishRuntimeSlotForbiddenCodeSIGNINGREQUESTEXPIRED,
@@ -20972,8 +21097,6 @@ func (s FinishRuntimeSlotForbiddenCode) MarshalText() ([]byte, error) {
 	case FinishRuntimeSlotForbiddenCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case FinishRuntimeSlotForbiddenCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case FinishRuntimeSlotForbiddenCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case FinishRuntimeSlotForbiddenCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -21046,9 +21169,6 @@ func (s *FinishRuntimeSlotForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case FinishRuntimeSlotForbiddenCodeINVALIDSIGNATURE:
 		*s = FinishRuntimeSlotForbiddenCodeINVALIDSIGNATURE
-		return nil
-	case FinishRuntimeSlotForbiddenCodeVOUCHERLIMIT:
-		*s = FinishRuntimeSlotForbiddenCodeVOUCHERLIMIT
 		return nil
 	case FinishRuntimeSlotForbiddenCodeRATELIMITEXCEEDED:
 		*s = FinishRuntimeSlotForbiddenCodeRATELIMITEXCEEDED
@@ -21232,7 +21352,6 @@ const (
 	FinishRuntimeSlotNotFoundCodeVALIDATIONFAILED               FinishRuntimeSlotNotFoundCode = "VALIDATION_FAILED"
 	FinishRuntimeSlotNotFoundCodeINVALIDCHALLENGE               FinishRuntimeSlotNotFoundCode = "INVALID_CHALLENGE"
 	FinishRuntimeSlotNotFoundCodeINVALIDSIGNATURE               FinishRuntimeSlotNotFoundCode = "INVALID_SIGNATURE"
-	FinishRuntimeSlotNotFoundCodeVOUCHERLIMIT                   FinishRuntimeSlotNotFoundCode = "VOUCHER_LIMIT"
 	FinishRuntimeSlotNotFoundCodeRATELIMITEXCEEDED              FinishRuntimeSlotNotFoundCode = "RATE_LIMIT_EXCEEDED"
 	FinishRuntimeSlotNotFoundCodeSERIALIZATIONEXHAUSTED         FinishRuntimeSlotNotFoundCode = "SERIALIZATION_EXHAUSTED"
 	FinishRuntimeSlotNotFoundCodeSIGNINGREQUESTEXPIRED          FinishRuntimeSlotNotFoundCode = "SIGNING_REQUEST_EXPIRED"
@@ -21266,7 +21385,6 @@ func (FinishRuntimeSlotNotFoundCode) AllValues() []FinishRuntimeSlotNotFoundCode
 		FinishRuntimeSlotNotFoundCodeVALIDATIONFAILED,
 		FinishRuntimeSlotNotFoundCodeINVALIDCHALLENGE,
 		FinishRuntimeSlotNotFoundCodeINVALIDSIGNATURE,
-		FinishRuntimeSlotNotFoundCodeVOUCHERLIMIT,
 		FinishRuntimeSlotNotFoundCodeRATELIMITEXCEEDED,
 		FinishRuntimeSlotNotFoundCodeSERIALIZATIONEXHAUSTED,
 		FinishRuntimeSlotNotFoundCodeSIGNINGREQUESTEXPIRED,
@@ -21308,8 +21426,6 @@ func (s FinishRuntimeSlotNotFoundCode) MarshalText() ([]byte, error) {
 	case FinishRuntimeSlotNotFoundCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case FinishRuntimeSlotNotFoundCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case FinishRuntimeSlotNotFoundCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case FinishRuntimeSlotNotFoundCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -21382,9 +21498,6 @@ func (s *FinishRuntimeSlotNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case FinishRuntimeSlotNotFoundCodeINVALIDSIGNATURE:
 		*s = FinishRuntimeSlotNotFoundCodeINVALIDSIGNATURE
-		return nil
-	case FinishRuntimeSlotNotFoundCodeVOUCHERLIMIT:
-		*s = FinishRuntimeSlotNotFoundCodeVOUCHERLIMIT
 		return nil
 	case FinishRuntimeSlotNotFoundCodeRATELIMITEXCEEDED:
 		*s = FinishRuntimeSlotNotFoundCodeRATELIMITEXCEEDED
@@ -21900,7 +22013,6 @@ const (
 	FinishRuntimeSlotUnauthorizedCodeVALIDATIONFAILED               FinishRuntimeSlotUnauthorizedCode = "VALIDATION_FAILED"
 	FinishRuntimeSlotUnauthorizedCodeINVALIDCHALLENGE               FinishRuntimeSlotUnauthorizedCode = "INVALID_CHALLENGE"
 	FinishRuntimeSlotUnauthorizedCodeINVALIDSIGNATURE               FinishRuntimeSlotUnauthorizedCode = "INVALID_SIGNATURE"
-	FinishRuntimeSlotUnauthorizedCodeVOUCHERLIMIT                   FinishRuntimeSlotUnauthorizedCode = "VOUCHER_LIMIT"
 	FinishRuntimeSlotUnauthorizedCodeRATELIMITEXCEEDED              FinishRuntimeSlotUnauthorizedCode = "RATE_LIMIT_EXCEEDED"
 	FinishRuntimeSlotUnauthorizedCodeSERIALIZATIONEXHAUSTED         FinishRuntimeSlotUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
 	FinishRuntimeSlotUnauthorizedCodeSIGNINGREQUESTEXPIRED          FinishRuntimeSlotUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
@@ -21934,7 +22046,6 @@ func (FinishRuntimeSlotUnauthorizedCode) AllValues() []FinishRuntimeSlotUnauthor
 		FinishRuntimeSlotUnauthorizedCodeVALIDATIONFAILED,
 		FinishRuntimeSlotUnauthorizedCodeINVALIDCHALLENGE,
 		FinishRuntimeSlotUnauthorizedCodeINVALIDSIGNATURE,
-		FinishRuntimeSlotUnauthorizedCodeVOUCHERLIMIT,
 		FinishRuntimeSlotUnauthorizedCodeRATELIMITEXCEEDED,
 		FinishRuntimeSlotUnauthorizedCodeSERIALIZATIONEXHAUSTED,
 		FinishRuntimeSlotUnauthorizedCodeSIGNINGREQUESTEXPIRED,
@@ -21976,8 +22087,6 @@ func (s FinishRuntimeSlotUnauthorizedCode) MarshalText() ([]byte, error) {
 	case FinishRuntimeSlotUnauthorizedCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case FinishRuntimeSlotUnauthorizedCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case FinishRuntimeSlotUnauthorizedCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case FinishRuntimeSlotUnauthorizedCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -22050,9 +22159,6 @@ func (s *FinishRuntimeSlotUnauthorizedCode) UnmarshalText(data []byte) error {
 		return nil
 	case FinishRuntimeSlotUnauthorizedCodeINVALIDSIGNATURE:
 		*s = FinishRuntimeSlotUnauthorizedCodeINVALIDSIGNATURE
-		return nil
-	case FinishRuntimeSlotUnauthorizedCodeVOUCHERLIMIT:
-		*s = FinishRuntimeSlotUnauthorizedCodeVOUCHERLIMIT
 		return nil
 	case FinishRuntimeSlotUnauthorizedCodeRATELIMITEXCEEDED:
 		*s = FinishRuntimeSlotUnauthorizedCodeRATELIMITEXCEEDED
@@ -23594,7 +23700,6 @@ const (
 	GetProblemTypeTypeUnsupportedMediaType           GetProblemTypeType = "unsupported-media-type"
 	GetProblemTypeTypeInvalidChallenge               GetProblemTypeType = "invalid-challenge"
 	GetProblemTypeTypeInvalidSignature               GetProblemTypeType = "invalid-signature"
-	GetProblemTypeTypeVoucherLimit                   GetProblemTypeType = "voucher-limit"
 	GetProblemTypeTypeSerializationExhausted         GetProblemTypeType = "serialization-exhausted"
 	GetProblemTypeTypeRateLimitExceeded              GetProblemTypeType = "rate-limit-exceeded"
 	GetProblemTypeTypeSigningRequestExpired          GetProblemTypeType = "signing-request-expired"
@@ -23628,7 +23733,6 @@ func (GetProblemTypeType) AllValues() []GetProblemTypeType {
 		GetProblemTypeTypeUnsupportedMediaType,
 		GetProblemTypeTypeInvalidChallenge,
 		GetProblemTypeTypeInvalidSignature,
-		GetProblemTypeTypeVoucherLimit,
 		GetProblemTypeTypeSerializationExhausted,
 		GetProblemTypeTypeRateLimitExceeded,
 		GetProblemTypeTypeSigningRequestExpired,
@@ -23669,8 +23773,6 @@ func (s GetProblemTypeType) MarshalText() ([]byte, error) {
 	case GetProblemTypeTypeInvalidChallenge:
 		return []byte(s), nil
 	case GetProblemTypeTypeInvalidSignature:
-		return []byte(s), nil
-	case GetProblemTypeTypeVoucherLimit:
 		return []byte(s), nil
 	case GetProblemTypeTypeSerializationExhausted:
 		return []byte(s), nil
@@ -23742,9 +23844,6 @@ func (s *GetProblemTypeType) UnmarshalText(data []byte) error {
 		return nil
 	case GetProblemTypeTypeInvalidSignature:
 		*s = GetProblemTypeTypeInvalidSignature
-		return nil
-	case GetProblemTypeTypeVoucherLimit:
-		*s = GetProblemTypeTypeVoucherLimit
 		return nil
 	case GetProblemTypeTypeSerializationExhausted:
 		*s = GetProblemTypeTypeSerializationExhausted
@@ -24091,7 +24190,6 @@ const (
 	GetRuntimeSessionBadRequestCodeVALIDATIONFAILED               GetRuntimeSessionBadRequestCode = "VALIDATION_FAILED"
 	GetRuntimeSessionBadRequestCodeINVALIDCHALLENGE               GetRuntimeSessionBadRequestCode = "INVALID_CHALLENGE"
 	GetRuntimeSessionBadRequestCodeINVALIDSIGNATURE               GetRuntimeSessionBadRequestCode = "INVALID_SIGNATURE"
-	GetRuntimeSessionBadRequestCodeVOUCHERLIMIT                   GetRuntimeSessionBadRequestCode = "VOUCHER_LIMIT"
 	GetRuntimeSessionBadRequestCodeRATELIMITEXCEEDED              GetRuntimeSessionBadRequestCode = "RATE_LIMIT_EXCEEDED"
 	GetRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED         GetRuntimeSessionBadRequestCode = "SERIALIZATION_EXHAUSTED"
 	GetRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED          GetRuntimeSessionBadRequestCode = "SIGNING_REQUEST_EXPIRED"
@@ -24125,7 +24223,6 @@ func (GetRuntimeSessionBadRequestCode) AllValues() []GetRuntimeSessionBadRequest
 		GetRuntimeSessionBadRequestCodeVALIDATIONFAILED,
 		GetRuntimeSessionBadRequestCodeINVALIDCHALLENGE,
 		GetRuntimeSessionBadRequestCodeINVALIDSIGNATURE,
-		GetRuntimeSessionBadRequestCodeVOUCHERLIMIT,
 		GetRuntimeSessionBadRequestCodeRATELIMITEXCEEDED,
 		GetRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED,
 		GetRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED,
@@ -24167,8 +24264,6 @@ func (s GetRuntimeSessionBadRequestCode) MarshalText() ([]byte, error) {
 	case GetRuntimeSessionBadRequestCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case GetRuntimeSessionBadRequestCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case GetRuntimeSessionBadRequestCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case GetRuntimeSessionBadRequestCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -24241,9 +24336,6 @@ func (s *GetRuntimeSessionBadRequestCode) UnmarshalText(data []byte) error {
 		return nil
 	case GetRuntimeSessionBadRequestCodeINVALIDSIGNATURE:
 		*s = GetRuntimeSessionBadRequestCodeINVALIDSIGNATURE
-		return nil
-	case GetRuntimeSessionBadRequestCodeVOUCHERLIMIT:
-		*s = GetRuntimeSessionBadRequestCodeVOUCHERLIMIT
 		return nil
 	case GetRuntimeSessionBadRequestCodeRATELIMITEXCEEDED:
 		*s = GetRuntimeSessionBadRequestCodeRATELIMITEXCEEDED
@@ -24427,7 +24519,6 @@ const (
 	GetRuntimeSessionForbiddenCodeVALIDATIONFAILED               GetRuntimeSessionForbiddenCode = "VALIDATION_FAILED"
 	GetRuntimeSessionForbiddenCodeINVALIDCHALLENGE               GetRuntimeSessionForbiddenCode = "INVALID_CHALLENGE"
 	GetRuntimeSessionForbiddenCodeINVALIDSIGNATURE               GetRuntimeSessionForbiddenCode = "INVALID_SIGNATURE"
-	GetRuntimeSessionForbiddenCodeVOUCHERLIMIT                   GetRuntimeSessionForbiddenCode = "VOUCHER_LIMIT"
 	GetRuntimeSessionForbiddenCodeRATELIMITEXCEEDED              GetRuntimeSessionForbiddenCode = "RATE_LIMIT_EXCEEDED"
 	GetRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED         GetRuntimeSessionForbiddenCode = "SERIALIZATION_EXHAUSTED"
 	GetRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED          GetRuntimeSessionForbiddenCode = "SIGNING_REQUEST_EXPIRED"
@@ -24461,7 +24552,6 @@ func (GetRuntimeSessionForbiddenCode) AllValues() []GetRuntimeSessionForbiddenCo
 		GetRuntimeSessionForbiddenCodeVALIDATIONFAILED,
 		GetRuntimeSessionForbiddenCodeINVALIDCHALLENGE,
 		GetRuntimeSessionForbiddenCodeINVALIDSIGNATURE,
-		GetRuntimeSessionForbiddenCodeVOUCHERLIMIT,
 		GetRuntimeSessionForbiddenCodeRATELIMITEXCEEDED,
 		GetRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED,
 		GetRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED,
@@ -24503,8 +24593,6 @@ func (s GetRuntimeSessionForbiddenCode) MarshalText() ([]byte, error) {
 	case GetRuntimeSessionForbiddenCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case GetRuntimeSessionForbiddenCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case GetRuntimeSessionForbiddenCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case GetRuntimeSessionForbiddenCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -24577,9 +24665,6 @@ func (s *GetRuntimeSessionForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case GetRuntimeSessionForbiddenCodeINVALIDSIGNATURE:
 		*s = GetRuntimeSessionForbiddenCodeINVALIDSIGNATURE
-		return nil
-	case GetRuntimeSessionForbiddenCodeVOUCHERLIMIT:
-		*s = GetRuntimeSessionForbiddenCodeVOUCHERLIMIT
 		return nil
 	case GetRuntimeSessionForbiddenCodeRATELIMITEXCEEDED:
 		*s = GetRuntimeSessionForbiddenCodeRATELIMITEXCEEDED
@@ -24763,7 +24848,6 @@ const (
 	GetRuntimeSessionNotFoundCodeVALIDATIONFAILED               GetRuntimeSessionNotFoundCode = "VALIDATION_FAILED"
 	GetRuntimeSessionNotFoundCodeINVALIDCHALLENGE               GetRuntimeSessionNotFoundCode = "INVALID_CHALLENGE"
 	GetRuntimeSessionNotFoundCodeINVALIDSIGNATURE               GetRuntimeSessionNotFoundCode = "INVALID_SIGNATURE"
-	GetRuntimeSessionNotFoundCodeVOUCHERLIMIT                   GetRuntimeSessionNotFoundCode = "VOUCHER_LIMIT"
 	GetRuntimeSessionNotFoundCodeRATELIMITEXCEEDED              GetRuntimeSessionNotFoundCode = "RATE_LIMIT_EXCEEDED"
 	GetRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED         GetRuntimeSessionNotFoundCode = "SERIALIZATION_EXHAUSTED"
 	GetRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED          GetRuntimeSessionNotFoundCode = "SIGNING_REQUEST_EXPIRED"
@@ -24797,7 +24881,6 @@ func (GetRuntimeSessionNotFoundCode) AllValues() []GetRuntimeSessionNotFoundCode
 		GetRuntimeSessionNotFoundCodeVALIDATIONFAILED,
 		GetRuntimeSessionNotFoundCodeINVALIDCHALLENGE,
 		GetRuntimeSessionNotFoundCodeINVALIDSIGNATURE,
-		GetRuntimeSessionNotFoundCodeVOUCHERLIMIT,
 		GetRuntimeSessionNotFoundCodeRATELIMITEXCEEDED,
 		GetRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED,
 		GetRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED,
@@ -24839,8 +24922,6 @@ func (s GetRuntimeSessionNotFoundCode) MarshalText() ([]byte, error) {
 	case GetRuntimeSessionNotFoundCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case GetRuntimeSessionNotFoundCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case GetRuntimeSessionNotFoundCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case GetRuntimeSessionNotFoundCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -24913,9 +24994,6 @@ func (s *GetRuntimeSessionNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case GetRuntimeSessionNotFoundCodeINVALIDSIGNATURE:
 		*s = GetRuntimeSessionNotFoundCodeINVALIDSIGNATURE
-		return nil
-	case GetRuntimeSessionNotFoundCodeVOUCHERLIMIT:
-		*s = GetRuntimeSessionNotFoundCodeVOUCHERLIMIT
 		return nil
 	case GetRuntimeSessionNotFoundCodeRATELIMITEXCEEDED:
 		*s = GetRuntimeSessionNotFoundCodeRATELIMITEXCEEDED
@@ -25400,7 +25478,6 @@ const (
 	GetRuntimeSessionUnauthorizedCodeVALIDATIONFAILED               GetRuntimeSessionUnauthorizedCode = "VALIDATION_FAILED"
 	GetRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE               GetRuntimeSessionUnauthorizedCode = "INVALID_CHALLENGE"
 	GetRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE               GetRuntimeSessionUnauthorizedCode = "INVALID_SIGNATURE"
-	GetRuntimeSessionUnauthorizedCodeVOUCHERLIMIT                   GetRuntimeSessionUnauthorizedCode = "VOUCHER_LIMIT"
 	GetRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED              GetRuntimeSessionUnauthorizedCode = "RATE_LIMIT_EXCEEDED"
 	GetRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED         GetRuntimeSessionUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
 	GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED          GetRuntimeSessionUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
@@ -25434,7 +25511,6 @@ func (GetRuntimeSessionUnauthorizedCode) AllValues() []GetRuntimeSessionUnauthor
 		GetRuntimeSessionUnauthorizedCodeVALIDATIONFAILED,
 		GetRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE,
 		GetRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE,
-		GetRuntimeSessionUnauthorizedCodeVOUCHERLIMIT,
 		GetRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED,
 		GetRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED,
 		GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED,
@@ -25476,8 +25552,6 @@ func (s GetRuntimeSessionUnauthorizedCode) MarshalText() ([]byte, error) {
 	case GetRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case GetRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case GetRuntimeSessionUnauthorizedCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case GetRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -25550,9 +25624,6 @@ func (s *GetRuntimeSessionUnauthorizedCode) UnmarshalText(data []byte) error {
 		return nil
 	case GetRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE:
 		*s = GetRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE
-		return nil
-	case GetRuntimeSessionUnauthorizedCodeVOUCHERLIMIT:
-		*s = GetRuntimeSessionUnauthorizedCodeVOUCHERLIMIT
 		return nil
 	case GetRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED:
 		*s = GetRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED
@@ -26044,60 +26115,6 @@ type GetTeamUnauthorized ProblemDetails
 
 func (*GetTeamUnauthorized) getTeamRes() {}
 
-type GetTrustGraphOK struct {
-	Edges []GetTrustGraphOKEdgesItem `json:"edges"`
-}
-
-// GetEdges returns the value of Edges.
-func (s *GetTrustGraphOK) GetEdges() []GetTrustGraphOKEdgesItem {
-	return s.Edges
-}
-
-// SetEdges sets the value of Edges.
-func (s *GetTrustGraphOK) SetEdges(val []GetTrustGraphOKEdgesItem) {
-	s.Edges = val
-}
-
-func (*GetTrustGraphOK) getTrustGraphRes() {}
-
-type GetTrustGraphOKEdgesItem struct {
-	// Fingerprint of the vouching agent (A1B2-C3D4-E5F6-G7H8).
-	IssuerFingerprint string    `json:"issuerFingerprint"`
-	RedeemedAt        time.Time `json:"redeemedAt"`
-	// Fingerprint of the joining agent.
-	RedeemerFingerprint string `json:"redeemerFingerprint"`
-}
-
-// GetIssuerFingerprint returns the value of IssuerFingerprint.
-func (s *GetTrustGraphOKEdgesItem) GetIssuerFingerprint() string {
-	return s.IssuerFingerprint
-}
-
-// GetRedeemedAt returns the value of RedeemedAt.
-func (s *GetTrustGraphOKEdgesItem) GetRedeemedAt() time.Time {
-	return s.RedeemedAt
-}
-
-// GetRedeemerFingerprint returns the value of RedeemerFingerprint.
-func (s *GetTrustGraphOKEdgesItem) GetRedeemerFingerprint() string {
-	return s.RedeemerFingerprint
-}
-
-// SetIssuerFingerprint sets the value of IssuerFingerprint.
-func (s *GetTrustGraphOKEdgesItem) SetIssuerFingerprint(val string) {
-	s.IssuerFingerprint = val
-}
-
-// SetRedeemedAt sets the value of RedeemedAt.
-func (s *GetTrustGraphOKEdgesItem) SetRedeemedAt(val time.Time) {
-	s.RedeemedAt = val
-}
-
-// SetRedeemerFingerprint sets the value of RedeemerFingerprint.
-func (s *GetTrustGraphOKEdgesItem) SetRedeemerFingerprint(val string) {
-	s.RedeemerFingerprint = val
-}
-
 type GetWhoamiInternalServerError ProblemDetails
 
 func (*GetWhoamiInternalServerError) getWhoamiRes() {}
@@ -26534,7 +26551,6 @@ const (
 	InjectionConflictProblemDetailsCodeVALIDATIONFAILED               InjectionConflictProblemDetailsCode = "VALIDATION_FAILED"
 	InjectionConflictProblemDetailsCodeINVALIDCHALLENGE               InjectionConflictProblemDetailsCode = "INVALID_CHALLENGE"
 	InjectionConflictProblemDetailsCodeINVALIDSIGNATURE               InjectionConflictProblemDetailsCode = "INVALID_SIGNATURE"
-	InjectionConflictProblemDetailsCodeVOUCHERLIMIT                   InjectionConflictProblemDetailsCode = "VOUCHER_LIMIT"
 	InjectionConflictProblemDetailsCodeRATELIMITEXCEEDED              InjectionConflictProblemDetailsCode = "RATE_LIMIT_EXCEEDED"
 	InjectionConflictProblemDetailsCodeSERIALIZATIONEXHAUSTED         InjectionConflictProblemDetailsCode = "SERIALIZATION_EXHAUSTED"
 	InjectionConflictProblemDetailsCodeSIGNINGREQUESTEXPIRED          InjectionConflictProblemDetailsCode = "SIGNING_REQUEST_EXPIRED"
@@ -26568,7 +26584,6 @@ func (InjectionConflictProblemDetailsCode) AllValues() []InjectionConflictProble
 		InjectionConflictProblemDetailsCodeVALIDATIONFAILED,
 		InjectionConflictProblemDetailsCodeINVALIDCHALLENGE,
 		InjectionConflictProblemDetailsCodeINVALIDSIGNATURE,
-		InjectionConflictProblemDetailsCodeVOUCHERLIMIT,
 		InjectionConflictProblemDetailsCodeRATELIMITEXCEEDED,
 		InjectionConflictProblemDetailsCodeSERIALIZATIONEXHAUSTED,
 		InjectionConflictProblemDetailsCodeSIGNINGREQUESTEXPIRED,
@@ -26610,8 +26625,6 @@ func (s InjectionConflictProblemDetailsCode) MarshalText() ([]byte, error) {
 	case InjectionConflictProblemDetailsCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case InjectionConflictProblemDetailsCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case InjectionConflictProblemDetailsCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case InjectionConflictProblemDetailsCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -26684,9 +26697,6 @@ func (s *InjectionConflictProblemDetailsCode) UnmarshalText(data []byte) error {
 		return nil
 	case InjectionConflictProblemDetailsCodeINVALIDSIGNATURE:
 		*s = InjectionConflictProblemDetailsCodeINVALIDSIGNATURE
-		return nil
-	case InjectionConflictProblemDetailsCodeVOUCHERLIMIT:
-		*s = InjectionConflictProblemDetailsCodeVOUCHERLIMIT
 		return nil
 	case InjectionConflictProblemDetailsCodeRATELIMITEXCEEDED:
 		*s = InjectionConflictProblemDetailsCodeRATELIMITEXCEEDED
@@ -26815,26 +26825,6 @@ func (s *InjectionThreat) SetType(val string) {
 	s.Type = val
 }
 
-type IssueVoucherBadRequest ProblemDetails
-
-func (*IssueVoucherBadRequest) issueVoucherRes() {}
-
-type IssueVoucherInternalServerError ProblemDetails
-
-func (*IssueVoucherInternalServerError) issueVoucherRes() {}
-
-type IssueVoucherServiceUnavailable ProblemDetails
-
-func (*IssueVoucherServiceUnavailable) issueVoucherRes() {}
-
-type IssueVoucherTooManyRequests ProblemDetails
-
-func (*IssueVoucherTooManyRequests) issueVoucherRes() {}
-
-type IssueVoucherUnauthorized ProblemDetails
-
-func (*IssueVoucherUnauthorized) issueVoucherRes() {}
-
 type JoinTeamBadRequest ProblemDetails
 
 func (*JoinTeamBadRequest) joinTeamRes() {}
@@ -26941,42 +26931,6 @@ func (*JoinTeamTooManyRequests) joinTeamRes() {}
 type JoinTeamUnauthorized ProblemDetails
 
 func (*JoinTeamUnauthorized) joinTeamRes() {}
-
-type ListActiveVouchersBadRequest ProblemDetails
-
-func (*ListActiveVouchersBadRequest) listActiveVouchersRes() {}
-
-type ListActiveVouchersInternalServerError ProblemDetails
-
-func (*ListActiveVouchersInternalServerError) listActiveVouchersRes() {}
-
-type ListActiveVouchersOK struct {
-	Vouchers []Voucher `json:"vouchers"`
-}
-
-// GetVouchers returns the value of Vouchers.
-func (s *ListActiveVouchersOK) GetVouchers() []Voucher {
-	return s.Vouchers
-}
-
-// SetVouchers sets the value of Vouchers.
-func (s *ListActiveVouchersOK) SetVouchers(val []Voucher) {
-	s.Vouchers = val
-}
-
-func (*ListActiveVouchersOK) listActiveVouchersRes() {}
-
-type ListActiveVouchersServiceUnavailable ProblemDetails
-
-func (*ListActiveVouchersServiceUnavailable) listActiveVouchersRes() {}
-
-type ListActiveVouchersTooManyRequests ProblemDetails
-
-func (*ListActiveVouchersTooManyRequests) listActiveVouchersRes() {}
-
-type ListActiveVouchersUnauthorized ProblemDetails
-
-func (*ListActiveVouchersUnauthorized) listActiveVouchersRes() {}
 
 type ListAgentKeysBadGateway ProblemDetails
 
@@ -28128,7 +28082,6 @@ const (
 	ListRuntimeSlotsBadRequestCodeVALIDATIONFAILED               ListRuntimeSlotsBadRequestCode = "VALIDATION_FAILED"
 	ListRuntimeSlotsBadRequestCodeINVALIDCHALLENGE               ListRuntimeSlotsBadRequestCode = "INVALID_CHALLENGE"
 	ListRuntimeSlotsBadRequestCodeINVALIDSIGNATURE               ListRuntimeSlotsBadRequestCode = "INVALID_SIGNATURE"
-	ListRuntimeSlotsBadRequestCodeVOUCHERLIMIT                   ListRuntimeSlotsBadRequestCode = "VOUCHER_LIMIT"
 	ListRuntimeSlotsBadRequestCodeRATELIMITEXCEEDED              ListRuntimeSlotsBadRequestCode = "RATE_LIMIT_EXCEEDED"
 	ListRuntimeSlotsBadRequestCodeSERIALIZATIONEXHAUSTED         ListRuntimeSlotsBadRequestCode = "SERIALIZATION_EXHAUSTED"
 	ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTEXPIRED          ListRuntimeSlotsBadRequestCode = "SIGNING_REQUEST_EXPIRED"
@@ -28162,7 +28115,6 @@ func (ListRuntimeSlotsBadRequestCode) AllValues() []ListRuntimeSlotsBadRequestCo
 		ListRuntimeSlotsBadRequestCodeVALIDATIONFAILED,
 		ListRuntimeSlotsBadRequestCodeINVALIDCHALLENGE,
 		ListRuntimeSlotsBadRequestCodeINVALIDSIGNATURE,
-		ListRuntimeSlotsBadRequestCodeVOUCHERLIMIT,
 		ListRuntimeSlotsBadRequestCodeRATELIMITEXCEEDED,
 		ListRuntimeSlotsBadRequestCodeSERIALIZATIONEXHAUSTED,
 		ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTEXPIRED,
@@ -28204,8 +28156,6 @@ func (s ListRuntimeSlotsBadRequestCode) MarshalText() ([]byte, error) {
 	case ListRuntimeSlotsBadRequestCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case ListRuntimeSlotsBadRequestCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case ListRuntimeSlotsBadRequestCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case ListRuntimeSlotsBadRequestCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -28278,9 +28228,6 @@ func (s *ListRuntimeSlotsBadRequestCode) UnmarshalText(data []byte) error {
 		return nil
 	case ListRuntimeSlotsBadRequestCodeINVALIDSIGNATURE:
 		*s = ListRuntimeSlotsBadRequestCodeINVALIDSIGNATURE
-		return nil
-	case ListRuntimeSlotsBadRequestCodeVOUCHERLIMIT:
-		*s = ListRuntimeSlotsBadRequestCodeVOUCHERLIMIT
 		return nil
 	case ListRuntimeSlotsBadRequestCodeRATELIMITEXCEEDED:
 		*s = ListRuntimeSlotsBadRequestCodeRATELIMITEXCEEDED
@@ -28464,7 +28411,6 @@ const (
 	ListRuntimeSlotsForbiddenCodeVALIDATIONFAILED               ListRuntimeSlotsForbiddenCode = "VALIDATION_FAILED"
 	ListRuntimeSlotsForbiddenCodeINVALIDCHALLENGE               ListRuntimeSlotsForbiddenCode = "INVALID_CHALLENGE"
 	ListRuntimeSlotsForbiddenCodeINVALIDSIGNATURE               ListRuntimeSlotsForbiddenCode = "INVALID_SIGNATURE"
-	ListRuntimeSlotsForbiddenCodeVOUCHERLIMIT                   ListRuntimeSlotsForbiddenCode = "VOUCHER_LIMIT"
 	ListRuntimeSlotsForbiddenCodeRATELIMITEXCEEDED              ListRuntimeSlotsForbiddenCode = "RATE_LIMIT_EXCEEDED"
 	ListRuntimeSlotsForbiddenCodeSERIALIZATIONEXHAUSTED         ListRuntimeSlotsForbiddenCode = "SERIALIZATION_EXHAUSTED"
 	ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTEXPIRED          ListRuntimeSlotsForbiddenCode = "SIGNING_REQUEST_EXPIRED"
@@ -28498,7 +28444,6 @@ func (ListRuntimeSlotsForbiddenCode) AllValues() []ListRuntimeSlotsForbiddenCode
 		ListRuntimeSlotsForbiddenCodeVALIDATIONFAILED,
 		ListRuntimeSlotsForbiddenCodeINVALIDCHALLENGE,
 		ListRuntimeSlotsForbiddenCodeINVALIDSIGNATURE,
-		ListRuntimeSlotsForbiddenCodeVOUCHERLIMIT,
 		ListRuntimeSlotsForbiddenCodeRATELIMITEXCEEDED,
 		ListRuntimeSlotsForbiddenCodeSERIALIZATIONEXHAUSTED,
 		ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTEXPIRED,
@@ -28540,8 +28485,6 @@ func (s ListRuntimeSlotsForbiddenCode) MarshalText() ([]byte, error) {
 	case ListRuntimeSlotsForbiddenCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case ListRuntimeSlotsForbiddenCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case ListRuntimeSlotsForbiddenCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case ListRuntimeSlotsForbiddenCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -28614,9 +28557,6 @@ func (s *ListRuntimeSlotsForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case ListRuntimeSlotsForbiddenCodeINVALIDSIGNATURE:
 		*s = ListRuntimeSlotsForbiddenCodeINVALIDSIGNATURE
-		return nil
-	case ListRuntimeSlotsForbiddenCodeVOUCHERLIMIT:
-		*s = ListRuntimeSlotsForbiddenCodeVOUCHERLIMIT
 		return nil
 	case ListRuntimeSlotsForbiddenCodeRATELIMITEXCEEDED:
 		*s = ListRuntimeSlotsForbiddenCodeRATELIMITEXCEEDED
@@ -28800,7 +28740,6 @@ const (
 	ListRuntimeSlotsNotFoundCodeVALIDATIONFAILED               ListRuntimeSlotsNotFoundCode = "VALIDATION_FAILED"
 	ListRuntimeSlotsNotFoundCodeINVALIDCHALLENGE               ListRuntimeSlotsNotFoundCode = "INVALID_CHALLENGE"
 	ListRuntimeSlotsNotFoundCodeINVALIDSIGNATURE               ListRuntimeSlotsNotFoundCode = "INVALID_SIGNATURE"
-	ListRuntimeSlotsNotFoundCodeVOUCHERLIMIT                   ListRuntimeSlotsNotFoundCode = "VOUCHER_LIMIT"
 	ListRuntimeSlotsNotFoundCodeRATELIMITEXCEEDED              ListRuntimeSlotsNotFoundCode = "RATE_LIMIT_EXCEEDED"
 	ListRuntimeSlotsNotFoundCodeSERIALIZATIONEXHAUSTED         ListRuntimeSlotsNotFoundCode = "SERIALIZATION_EXHAUSTED"
 	ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTEXPIRED          ListRuntimeSlotsNotFoundCode = "SIGNING_REQUEST_EXPIRED"
@@ -28834,7 +28773,6 @@ func (ListRuntimeSlotsNotFoundCode) AllValues() []ListRuntimeSlotsNotFoundCode {
 		ListRuntimeSlotsNotFoundCodeVALIDATIONFAILED,
 		ListRuntimeSlotsNotFoundCodeINVALIDCHALLENGE,
 		ListRuntimeSlotsNotFoundCodeINVALIDSIGNATURE,
-		ListRuntimeSlotsNotFoundCodeVOUCHERLIMIT,
 		ListRuntimeSlotsNotFoundCodeRATELIMITEXCEEDED,
 		ListRuntimeSlotsNotFoundCodeSERIALIZATIONEXHAUSTED,
 		ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTEXPIRED,
@@ -28876,8 +28814,6 @@ func (s ListRuntimeSlotsNotFoundCode) MarshalText() ([]byte, error) {
 	case ListRuntimeSlotsNotFoundCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case ListRuntimeSlotsNotFoundCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case ListRuntimeSlotsNotFoundCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case ListRuntimeSlotsNotFoundCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -28950,9 +28886,6 @@ func (s *ListRuntimeSlotsNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case ListRuntimeSlotsNotFoundCodeINVALIDSIGNATURE:
 		*s = ListRuntimeSlotsNotFoundCodeINVALIDSIGNATURE
-		return nil
-	case ListRuntimeSlotsNotFoundCodeVOUCHERLIMIT:
-		*s = ListRuntimeSlotsNotFoundCodeVOUCHERLIMIT
 		return nil
 	case ListRuntimeSlotsNotFoundCodeRATELIMITEXCEEDED:
 		*s = ListRuntimeSlotsNotFoundCodeRATELIMITEXCEEDED
@@ -29596,7 +29529,6 @@ const (
 	ListRuntimeSlotsUnauthorizedCodeVALIDATIONFAILED               ListRuntimeSlotsUnauthorizedCode = "VALIDATION_FAILED"
 	ListRuntimeSlotsUnauthorizedCodeINVALIDCHALLENGE               ListRuntimeSlotsUnauthorizedCode = "INVALID_CHALLENGE"
 	ListRuntimeSlotsUnauthorizedCodeINVALIDSIGNATURE               ListRuntimeSlotsUnauthorizedCode = "INVALID_SIGNATURE"
-	ListRuntimeSlotsUnauthorizedCodeVOUCHERLIMIT                   ListRuntimeSlotsUnauthorizedCode = "VOUCHER_LIMIT"
 	ListRuntimeSlotsUnauthorizedCodeRATELIMITEXCEEDED              ListRuntimeSlotsUnauthorizedCode = "RATE_LIMIT_EXCEEDED"
 	ListRuntimeSlotsUnauthorizedCodeSERIALIZATIONEXHAUSTED         ListRuntimeSlotsUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
 	ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTEXPIRED          ListRuntimeSlotsUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
@@ -29630,7 +29562,6 @@ func (ListRuntimeSlotsUnauthorizedCode) AllValues() []ListRuntimeSlotsUnauthoriz
 		ListRuntimeSlotsUnauthorizedCodeVALIDATIONFAILED,
 		ListRuntimeSlotsUnauthorizedCodeINVALIDCHALLENGE,
 		ListRuntimeSlotsUnauthorizedCodeINVALIDSIGNATURE,
-		ListRuntimeSlotsUnauthorizedCodeVOUCHERLIMIT,
 		ListRuntimeSlotsUnauthorizedCodeRATELIMITEXCEEDED,
 		ListRuntimeSlotsUnauthorizedCodeSERIALIZATIONEXHAUSTED,
 		ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTEXPIRED,
@@ -29672,8 +29603,6 @@ func (s ListRuntimeSlotsUnauthorizedCode) MarshalText() ([]byte, error) {
 	case ListRuntimeSlotsUnauthorizedCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case ListRuntimeSlotsUnauthorizedCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case ListRuntimeSlotsUnauthorizedCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case ListRuntimeSlotsUnauthorizedCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -29746,9 +29675,6 @@ func (s *ListRuntimeSlotsUnauthorizedCode) UnmarshalText(data []byte) error {
 		return nil
 	case ListRuntimeSlotsUnauthorizedCodeINVALIDSIGNATURE:
 		*s = ListRuntimeSlotsUnauthorizedCodeINVALIDSIGNATURE
-		return nil
-	case ListRuntimeSlotsUnauthorizedCodeVOUCHERLIMIT:
-		*s = ListRuntimeSlotsUnauthorizedCodeVOUCHERLIMIT
 		return nil
 	case ListRuntimeSlotsUnauthorizedCodeRATELIMITEXCEEDED:
 		*s = ListRuntimeSlotsUnauthorizedCodeRATELIMITEXCEEDED
@@ -30083,7 +30009,6 @@ const (
 	ListTaskArtifactsBadRequestCodeVALIDATIONFAILED               ListTaskArtifactsBadRequestCode = "VALIDATION_FAILED"
 	ListTaskArtifactsBadRequestCodeINVALIDCHALLENGE               ListTaskArtifactsBadRequestCode = "INVALID_CHALLENGE"
 	ListTaskArtifactsBadRequestCodeINVALIDSIGNATURE               ListTaskArtifactsBadRequestCode = "INVALID_SIGNATURE"
-	ListTaskArtifactsBadRequestCodeVOUCHERLIMIT                   ListTaskArtifactsBadRequestCode = "VOUCHER_LIMIT"
 	ListTaskArtifactsBadRequestCodeRATELIMITEXCEEDED              ListTaskArtifactsBadRequestCode = "RATE_LIMIT_EXCEEDED"
 	ListTaskArtifactsBadRequestCodeSERIALIZATIONEXHAUSTED         ListTaskArtifactsBadRequestCode = "SERIALIZATION_EXHAUSTED"
 	ListTaskArtifactsBadRequestCodeSIGNINGREQUESTEXPIRED          ListTaskArtifactsBadRequestCode = "SIGNING_REQUEST_EXPIRED"
@@ -30117,7 +30042,6 @@ func (ListTaskArtifactsBadRequestCode) AllValues() []ListTaskArtifactsBadRequest
 		ListTaskArtifactsBadRequestCodeVALIDATIONFAILED,
 		ListTaskArtifactsBadRequestCodeINVALIDCHALLENGE,
 		ListTaskArtifactsBadRequestCodeINVALIDSIGNATURE,
-		ListTaskArtifactsBadRequestCodeVOUCHERLIMIT,
 		ListTaskArtifactsBadRequestCodeRATELIMITEXCEEDED,
 		ListTaskArtifactsBadRequestCodeSERIALIZATIONEXHAUSTED,
 		ListTaskArtifactsBadRequestCodeSIGNINGREQUESTEXPIRED,
@@ -30159,8 +30083,6 @@ func (s ListTaskArtifactsBadRequestCode) MarshalText() ([]byte, error) {
 	case ListTaskArtifactsBadRequestCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case ListTaskArtifactsBadRequestCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case ListTaskArtifactsBadRequestCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case ListTaskArtifactsBadRequestCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -30233,9 +30155,6 @@ func (s *ListTaskArtifactsBadRequestCode) UnmarshalText(data []byte) error {
 		return nil
 	case ListTaskArtifactsBadRequestCodeINVALIDSIGNATURE:
 		*s = ListTaskArtifactsBadRequestCodeINVALIDSIGNATURE
-		return nil
-	case ListTaskArtifactsBadRequestCodeVOUCHERLIMIT:
-		*s = ListTaskArtifactsBadRequestCodeVOUCHERLIMIT
 		return nil
 	case ListTaskArtifactsBadRequestCodeRATELIMITEXCEEDED:
 		*s = ListTaskArtifactsBadRequestCodeRATELIMITEXCEEDED
@@ -30419,7 +30338,6 @@ const (
 	ListTaskArtifactsForbiddenCodeVALIDATIONFAILED               ListTaskArtifactsForbiddenCode = "VALIDATION_FAILED"
 	ListTaskArtifactsForbiddenCodeINVALIDCHALLENGE               ListTaskArtifactsForbiddenCode = "INVALID_CHALLENGE"
 	ListTaskArtifactsForbiddenCodeINVALIDSIGNATURE               ListTaskArtifactsForbiddenCode = "INVALID_SIGNATURE"
-	ListTaskArtifactsForbiddenCodeVOUCHERLIMIT                   ListTaskArtifactsForbiddenCode = "VOUCHER_LIMIT"
 	ListTaskArtifactsForbiddenCodeRATELIMITEXCEEDED              ListTaskArtifactsForbiddenCode = "RATE_LIMIT_EXCEEDED"
 	ListTaskArtifactsForbiddenCodeSERIALIZATIONEXHAUSTED         ListTaskArtifactsForbiddenCode = "SERIALIZATION_EXHAUSTED"
 	ListTaskArtifactsForbiddenCodeSIGNINGREQUESTEXPIRED          ListTaskArtifactsForbiddenCode = "SIGNING_REQUEST_EXPIRED"
@@ -30453,7 +30371,6 @@ func (ListTaskArtifactsForbiddenCode) AllValues() []ListTaskArtifactsForbiddenCo
 		ListTaskArtifactsForbiddenCodeVALIDATIONFAILED,
 		ListTaskArtifactsForbiddenCodeINVALIDCHALLENGE,
 		ListTaskArtifactsForbiddenCodeINVALIDSIGNATURE,
-		ListTaskArtifactsForbiddenCodeVOUCHERLIMIT,
 		ListTaskArtifactsForbiddenCodeRATELIMITEXCEEDED,
 		ListTaskArtifactsForbiddenCodeSERIALIZATIONEXHAUSTED,
 		ListTaskArtifactsForbiddenCodeSIGNINGREQUESTEXPIRED,
@@ -30495,8 +30412,6 @@ func (s ListTaskArtifactsForbiddenCode) MarshalText() ([]byte, error) {
 	case ListTaskArtifactsForbiddenCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case ListTaskArtifactsForbiddenCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case ListTaskArtifactsForbiddenCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case ListTaskArtifactsForbiddenCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -30569,9 +30484,6 @@ func (s *ListTaskArtifactsForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case ListTaskArtifactsForbiddenCodeINVALIDSIGNATURE:
 		*s = ListTaskArtifactsForbiddenCodeINVALIDSIGNATURE
-		return nil
-	case ListTaskArtifactsForbiddenCodeVOUCHERLIMIT:
-		*s = ListTaskArtifactsForbiddenCodeVOUCHERLIMIT
 		return nil
 	case ListTaskArtifactsForbiddenCodeRATELIMITEXCEEDED:
 		*s = ListTaskArtifactsForbiddenCodeRATELIMITEXCEEDED
@@ -30755,7 +30667,6 @@ const (
 	ListTaskArtifactsNotFoundCodeVALIDATIONFAILED               ListTaskArtifactsNotFoundCode = "VALIDATION_FAILED"
 	ListTaskArtifactsNotFoundCodeINVALIDCHALLENGE               ListTaskArtifactsNotFoundCode = "INVALID_CHALLENGE"
 	ListTaskArtifactsNotFoundCodeINVALIDSIGNATURE               ListTaskArtifactsNotFoundCode = "INVALID_SIGNATURE"
-	ListTaskArtifactsNotFoundCodeVOUCHERLIMIT                   ListTaskArtifactsNotFoundCode = "VOUCHER_LIMIT"
 	ListTaskArtifactsNotFoundCodeRATELIMITEXCEEDED              ListTaskArtifactsNotFoundCode = "RATE_LIMIT_EXCEEDED"
 	ListTaskArtifactsNotFoundCodeSERIALIZATIONEXHAUSTED         ListTaskArtifactsNotFoundCode = "SERIALIZATION_EXHAUSTED"
 	ListTaskArtifactsNotFoundCodeSIGNINGREQUESTEXPIRED          ListTaskArtifactsNotFoundCode = "SIGNING_REQUEST_EXPIRED"
@@ -30789,7 +30700,6 @@ func (ListTaskArtifactsNotFoundCode) AllValues() []ListTaskArtifactsNotFoundCode
 		ListTaskArtifactsNotFoundCodeVALIDATIONFAILED,
 		ListTaskArtifactsNotFoundCodeINVALIDCHALLENGE,
 		ListTaskArtifactsNotFoundCodeINVALIDSIGNATURE,
-		ListTaskArtifactsNotFoundCodeVOUCHERLIMIT,
 		ListTaskArtifactsNotFoundCodeRATELIMITEXCEEDED,
 		ListTaskArtifactsNotFoundCodeSERIALIZATIONEXHAUSTED,
 		ListTaskArtifactsNotFoundCodeSIGNINGREQUESTEXPIRED,
@@ -30831,8 +30741,6 @@ func (s ListTaskArtifactsNotFoundCode) MarshalText() ([]byte, error) {
 	case ListTaskArtifactsNotFoundCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case ListTaskArtifactsNotFoundCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case ListTaskArtifactsNotFoundCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case ListTaskArtifactsNotFoundCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -30905,9 +30813,6 @@ func (s *ListTaskArtifactsNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case ListTaskArtifactsNotFoundCodeINVALIDSIGNATURE:
 		*s = ListTaskArtifactsNotFoundCodeINVALIDSIGNATURE
-		return nil
-	case ListTaskArtifactsNotFoundCodeVOUCHERLIMIT:
-		*s = ListTaskArtifactsNotFoundCodeVOUCHERLIMIT
 		return nil
 	case ListTaskArtifactsNotFoundCodeRATELIMITEXCEEDED:
 		*s = ListTaskArtifactsNotFoundCodeRATELIMITEXCEEDED
@@ -31272,7 +31177,6 @@ const (
 	ListTaskArtifactsUnauthorizedCodeVALIDATIONFAILED               ListTaskArtifactsUnauthorizedCode = "VALIDATION_FAILED"
 	ListTaskArtifactsUnauthorizedCodeINVALIDCHALLENGE               ListTaskArtifactsUnauthorizedCode = "INVALID_CHALLENGE"
 	ListTaskArtifactsUnauthorizedCodeINVALIDSIGNATURE               ListTaskArtifactsUnauthorizedCode = "INVALID_SIGNATURE"
-	ListTaskArtifactsUnauthorizedCodeVOUCHERLIMIT                   ListTaskArtifactsUnauthorizedCode = "VOUCHER_LIMIT"
 	ListTaskArtifactsUnauthorizedCodeRATELIMITEXCEEDED              ListTaskArtifactsUnauthorizedCode = "RATE_LIMIT_EXCEEDED"
 	ListTaskArtifactsUnauthorizedCodeSERIALIZATIONEXHAUSTED         ListTaskArtifactsUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
 	ListTaskArtifactsUnauthorizedCodeSIGNINGREQUESTEXPIRED          ListTaskArtifactsUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
@@ -31306,7 +31210,6 @@ func (ListTaskArtifactsUnauthorizedCode) AllValues() []ListTaskArtifactsUnauthor
 		ListTaskArtifactsUnauthorizedCodeVALIDATIONFAILED,
 		ListTaskArtifactsUnauthorizedCodeINVALIDCHALLENGE,
 		ListTaskArtifactsUnauthorizedCodeINVALIDSIGNATURE,
-		ListTaskArtifactsUnauthorizedCodeVOUCHERLIMIT,
 		ListTaskArtifactsUnauthorizedCodeRATELIMITEXCEEDED,
 		ListTaskArtifactsUnauthorizedCodeSERIALIZATIONEXHAUSTED,
 		ListTaskArtifactsUnauthorizedCodeSIGNINGREQUESTEXPIRED,
@@ -31348,8 +31251,6 @@ func (s ListTaskArtifactsUnauthorizedCode) MarshalText() ([]byte, error) {
 	case ListTaskArtifactsUnauthorizedCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case ListTaskArtifactsUnauthorizedCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case ListTaskArtifactsUnauthorizedCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case ListTaskArtifactsUnauthorizedCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -31422,9 +31323,6 @@ func (s *ListTaskArtifactsUnauthorizedCode) UnmarshalText(data []byte) error {
 		return nil
 	case ListTaskArtifactsUnauthorizedCodeINVALIDSIGNATURE:
 		*s = ListTaskArtifactsUnauthorizedCodeINVALIDSIGNATURE
-		return nil
-	case ListTaskArtifactsUnauthorizedCodeVOUCHERLIMIT:
-		*s = ListTaskArtifactsUnauthorizedCodeVOUCHERLIMIT
 		return nil
 	case ListTaskArtifactsUnauthorizedCodeRATELIMITEXCEEDED:
 		*s = ListTaskArtifactsUnauthorizedCodeRATELIMITEXCEEDED
@@ -33121,15 +33019,20 @@ func (s *NetworkInfoQuickstartSdk) SetUsage(val string) {
 }
 
 type NetworkInfoRules struct {
-	PublicFeed NetworkInfoRulesPublicFeed `json:"public_feed"`
-	Signing    NetworkInfoRulesSigning    `json:"signing"`
-	Visibility NetworkInfoRulesVisibility `json:"visibility"`
-	Vouchers   NetworkInfoRulesVouchers   `json:"vouchers"`
+	PublicFeed   NetworkInfoRulesPublicFeed   `json:"public_feed"`
+	Registration NetworkInfoRulesRegistration `json:"registration"`
+	Signing      NetworkInfoRulesSigning      `json:"signing"`
+	Visibility   NetworkInfoRulesVisibility   `json:"visibility"`
 }
 
 // GetPublicFeed returns the value of PublicFeed.
 func (s *NetworkInfoRules) GetPublicFeed() NetworkInfoRulesPublicFeed {
 	return s.PublicFeed
+}
+
+// GetRegistration returns the value of Registration.
+func (s *NetworkInfoRules) GetRegistration() NetworkInfoRulesRegistration {
+	return s.Registration
 }
 
 // GetSigning returns the value of Signing.
@@ -33142,14 +33045,14 @@ func (s *NetworkInfoRules) GetVisibility() NetworkInfoRulesVisibility {
 	return s.Visibility
 }
 
-// GetVouchers returns the value of Vouchers.
-func (s *NetworkInfoRules) GetVouchers() NetworkInfoRulesVouchers {
-	return s.Vouchers
-}
-
 // SetPublicFeed sets the value of PublicFeed.
 func (s *NetworkInfoRules) SetPublicFeed(val NetworkInfoRulesPublicFeed) {
 	s.PublicFeed = val
+}
+
+// SetRegistration sets the value of Registration.
+func (s *NetworkInfoRules) SetRegistration(val NetworkInfoRulesRegistration) {
+	s.Registration = val
 }
 
 // SetSigning sets the value of Signing.
@@ -33160,11 +33063,6 @@ func (s *NetworkInfoRules) SetSigning(val NetworkInfoRulesSigning) {
 // SetVisibility sets the value of Visibility.
 func (s *NetworkInfoRules) SetVisibility(val NetworkInfoRulesVisibility) {
 	s.Visibility = val
-}
-
-// SetVouchers sets the value of Vouchers.
-func (s *NetworkInfoRules) SetVouchers(val NetworkInfoRulesVouchers) {
-	s.Vouchers = val
 }
 
 type NetworkInfoRulesPublicFeed struct {
@@ -33190,6 +33088,42 @@ func (s *NetworkInfoRulesPublicFeed) SetDescription(val string) {
 // SetEndpoints sets the value of Endpoints.
 func (s *NetworkInfoRulesPublicFeed) SetEndpoints(val []string) {
 	s.Endpoints = val
+}
+
+type NetworkInfoRulesRegistration struct {
+	Description string   `json:"description"`
+	Enrollments string   `json:"enrollments"`
+	HowItWorks  []string `json:"how_it_works"`
+}
+
+// GetDescription returns the value of Description.
+func (s *NetworkInfoRulesRegistration) GetDescription() string {
+	return s.Description
+}
+
+// GetEnrollments returns the value of Enrollments.
+func (s *NetworkInfoRulesRegistration) GetEnrollments() string {
+	return s.Enrollments
+}
+
+// GetHowItWorks returns the value of HowItWorks.
+func (s *NetworkInfoRulesRegistration) GetHowItWorks() []string {
+	return s.HowItWorks
+}
+
+// SetDescription sets the value of Description.
+func (s *NetworkInfoRulesRegistration) SetDescription(val string) {
+	s.Description = val
+}
+
+// SetEnrollments sets the value of Enrollments.
+func (s *NetworkInfoRulesRegistration) SetEnrollments(val string) {
+	s.Enrollments = val
+}
+
+// SetHowItWorks sets the value of HowItWorks.
+func (s *NetworkInfoRulesRegistration) SetHowItWorks(val []string) {
+	s.HowItWorks = val
 }
 
 type NetworkInfoRulesSigning struct {
@@ -33298,42 +33232,6 @@ func (s *NetworkInfoRulesVisibilityLevels) SetPrivate(val string) {
 // SetPublic sets the value of Public.
 func (s *NetworkInfoRulesVisibilityLevels) SetPublic(val string) {
 	s.Public = val
-}
-
-type NetworkInfoRulesVouchers struct {
-	Description string   `json:"description"`
-	Genesis     string   `json:"genesis"`
-	HowItWorks  []string `json:"how_it_works"`
-}
-
-// GetDescription returns the value of Description.
-func (s *NetworkInfoRulesVouchers) GetDescription() string {
-	return s.Description
-}
-
-// GetGenesis returns the value of Genesis.
-func (s *NetworkInfoRulesVouchers) GetGenesis() string {
-	return s.Genesis
-}
-
-// GetHowItWorks returns the value of HowItWorks.
-func (s *NetworkInfoRulesVouchers) GetHowItWorks() []string {
-	return s.HowItWorks
-}
-
-// SetDescription sets the value of Description.
-func (s *NetworkInfoRulesVouchers) SetDescription(val string) {
-	s.Description = val
-}
-
-// SetGenesis sets the value of Genesis.
-func (s *NetworkInfoRulesVouchers) SetGenesis(val string) {
-	s.Genesis = val
-}
-
-// SetHowItWorks sets the value of HowItWorks.
-func (s *NetworkInfoRulesVouchers) SetHowItWorks(val []string) {
-	s.HowItWorks = val
 }
 
 type NetworkInfoTechnical struct {
@@ -34294,6 +34192,77 @@ func (o NilUUID) Or(d uuid.UUID) uuid.UUID {
 	return d
 }
 
+// Ref: #/components/schemas/OAuth2RegistrationCredential
+type OAuth2RegistrationCredential struct {
+	ClientId     string                           `json:"clientId"`
+	ClientSecret string                           `json:"clientSecret"`
+	Type         OAuth2RegistrationCredentialType `json:"type"`
+}
+
+// GetClientId returns the value of ClientId.
+func (s *OAuth2RegistrationCredential) GetClientId() string {
+	return s.ClientId
+}
+
+// GetClientSecret returns the value of ClientSecret.
+func (s *OAuth2RegistrationCredential) GetClientSecret() string {
+	return s.ClientSecret
+}
+
+// GetType returns the value of Type.
+func (s *OAuth2RegistrationCredential) GetType() OAuth2RegistrationCredentialType {
+	return s.Type
+}
+
+// SetClientId sets the value of ClientId.
+func (s *OAuth2RegistrationCredential) SetClientId(val string) {
+	s.ClientId = val
+}
+
+// SetClientSecret sets the value of ClientSecret.
+func (s *OAuth2RegistrationCredential) SetClientSecret(val string) {
+	s.ClientSecret = val
+}
+
+// SetType sets the value of Type.
+func (s *OAuth2RegistrationCredential) SetType(val OAuth2RegistrationCredentialType) {
+	s.Type = val
+}
+
+type OAuth2RegistrationCredentialType string
+
+const (
+	OAuth2RegistrationCredentialTypeOAuth2 OAuth2RegistrationCredentialType = "oauth2"
+)
+
+// AllValues returns all OAuth2RegistrationCredentialType values.
+func (OAuth2RegistrationCredentialType) AllValues() []OAuth2RegistrationCredentialType {
+	return []OAuth2RegistrationCredentialType{
+		OAuth2RegistrationCredentialTypeOAuth2,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s OAuth2RegistrationCredentialType) MarshalText() ([]byte, error) {
+	switch s {
+	case OAuth2RegistrationCredentialTypeOAuth2:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *OAuth2RegistrationCredentialType) UnmarshalText(data []byte) error {
+	switch OAuth2RegistrationCredentialType(data) {
+	case OAuth2RegistrationCredentialTypeOAuth2:
+		*s = OAuth2RegistrationCredentialTypeOAuth2
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // NewOptAbortTaskAttemptReq returns new OptAbortTaskAttemptReq with value set to v.
 func NewOptAbortTaskAttemptReq(v AbortTaskAttemptReq) OptAbortTaskAttemptReq {
 	return OptAbortTaskAttemptReq{
@@ -34794,6 +34763,52 @@ func (o OptConflictTargetKeys) Get() (v ConflictTargetKeys, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptConflictTargetKeys) Or(d ConflictTargetKeys) ConflictTargetKeys {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptCreateAgentEnrollmentReq returns new OptCreateAgentEnrollmentReq with value set to v.
+func NewOptCreateAgentEnrollmentReq(v CreateAgentEnrollmentReq) OptCreateAgentEnrollmentReq {
+	return OptCreateAgentEnrollmentReq{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptCreateAgentEnrollmentReq is optional CreateAgentEnrollmentReq.
+type OptCreateAgentEnrollmentReq struct {
+	Value CreateAgentEnrollmentReq
+	Set   bool
+}
+
+// IsSet returns true if OptCreateAgentEnrollmentReq was set.
+func (o OptCreateAgentEnrollmentReq) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptCreateAgentEnrollmentReq) Reset() {
+	var v CreateAgentEnrollmentReq
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptCreateAgentEnrollmentReq) SetTo(v CreateAgentEnrollmentReq) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptCreateAgentEnrollmentReq) Get() (v CreateAgentEnrollmentReq, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptCreateAgentEnrollmentReq) Or(d CreateAgentEnrollmentReq) CreateAgentEnrollmentReq {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -35806,6 +35821,52 @@ func (o OptDateTime) Get() (v time.Time, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptDateTime) Or(d time.Time) time.Time {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptEnrollAgentReq returns new OptEnrollAgentReq with value set to v.
+func NewOptEnrollAgentReq(v EnrollAgentReq) OptEnrollAgentReq {
+	return OptEnrollAgentReq{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptEnrollAgentReq is optional EnrollAgentReq.
+type OptEnrollAgentReq struct {
+	Value EnrollAgentReq
+	Set   bool
+}
+
+// IsSet returns true if OptEnrollAgentReq was set.
+func (o OptEnrollAgentReq) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptEnrollAgentReq) Reset() {
+	var v EnrollAgentReq
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptEnrollAgentReq) SetTo(v EnrollAgentReq) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptEnrollAgentReq) Get() (v EnrollAgentReq, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptEnrollAgentReq) Or(d EnrollAgentReq) EnrollAgentReq {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -41983,7 +42044,6 @@ func (*ProblemDetails) downloadRuntimeSessionRes()        {}
 func (*ProblemDetails) downloadTaskArtifactByCidRes()     {}
 func (*ProblemDetails) downloadTaskArtifactRes()          {}
 func (*ProblemDetails) getLegreffierOnboardingStatusRes() {}
-func (*ProblemDetails) getTrustGraphRes()                 {}
 func (*ProblemDetails) stageTaskArtifactRes()             {}
 func (*ProblemDetails) uploadRuntimeSessionRes()          {}
 func (*ProblemDetails) uploadTaskArtifactRes()            {}
@@ -42010,7 +42070,6 @@ const (
 	ProblemDetailsCodeVALIDATIONFAILED               ProblemDetailsCode = "VALIDATION_FAILED"
 	ProblemDetailsCodeINVALIDCHALLENGE               ProblemDetailsCode = "INVALID_CHALLENGE"
 	ProblemDetailsCodeINVALIDSIGNATURE               ProblemDetailsCode = "INVALID_SIGNATURE"
-	ProblemDetailsCodeVOUCHERLIMIT                   ProblemDetailsCode = "VOUCHER_LIMIT"
 	ProblemDetailsCodeRATELIMITEXCEEDED              ProblemDetailsCode = "RATE_LIMIT_EXCEEDED"
 	ProblemDetailsCodeSERIALIZATIONEXHAUSTED         ProblemDetailsCode = "SERIALIZATION_EXHAUSTED"
 	ProblemDetailsCodeSIGNINGREQUESTEXPIRED          ProblemDetailsCode = "SIGNING_REQUEST_EXPIRED"
@@ -42044,7 +42103,6 @@ func (ProblemDetailsCode) AllValues() []ProblemDetailsCode {
 		ProblemDetailsCodeVALIDATIONFAILED,
 		ProblemDetailsCodeINVALIDCHALLENGE,
 		ProblemDetailsCodeINVALIDSIGNATURE,
-		ProblemDetailsCodeVOUCHERLIMIT,
 		ProblemDetailsCodeRATELIMITEXCEEDED,
 		ProblemDetailsCodeSERIALIZATIONEXHAUSTED,
 		ProblemDetailsCodeSIGNINGREQUESTEXPIRED,
@@ -42086,8 +42144,6 @@ func (s ProblemDetailsCode) MarshalText() ([]byte, error) {
 	case ProblemDetailsCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case ProblemDetailsCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case ProblemDetailsCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case ProblemDetailsCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -42160,9 +42216,6 @@ func (s *ProblemDetailsCode) UnmarshalText(data []byte) error {
 		return nil
 	case ProblemDetailsCodeINVALIDSIGNATURE:
 		*s = ProblemDetailsCodeINVALIDSIGNATURE
-		return nil
-	case ProblemDetailsCodeVOUCHERLIMIT:
-		*s = ProblemDetailsCodeVOUCHERLIMIT
 		return nil
 	case ProblemDetailsCodeRATELIMITEXCEEDED:
 		*s = ProblemDetailsCodeRATELIMITEXCEEDED
@@ -44562,6 +44615,10 @@ type RegisterAgentBadRequest ProblemDetails
 
 func (*RegisterAgentBadRequest) registerAgentRes() {}
 
+type RegisterAgentConflict ProblemDetails
+
+func (*RegisterAgentConflict) registerAgentRes() {}
+
 type RegisterAgentForbidden ProblemDetails
 
 func (*RegisterAgentForbidden) registerAgentRes() {}
@@ -44571,10 +44628,21 @@ type RegisterAgentInternalServerError ProblemDetails
 func (*RegisterAgentInternalServerError) registerAgentRes() {}
 
 type RegisterAgentReq struct {
+	CredentialType RegisterAgentReqCredentialType `json:"credentialType"`
+	// Base64-encoded Ed25519 signature of the registration message.
+	Proof string `json:"proof"`
 	// Ed25519 public key in "ed25519:<base64>" format (32-byte raw key).
-	PublicKey string `json:"public_key"`
-	// Single-use voucher code (64-char hex string).
-	VoucherCode string `json:"voucher_code"`
+	PublicKey string `json:"publicKey"`
+}
+
+// GetCredentialType returns the value of CredentialType.
+func (s *RegisterAgentReq) GetCredentialType() RegisterAgentReqCredentialType {
+	return s.CredentialType
+}
+
+// GetProof returns the value of Proof.
+func (s *RegisterAgentReq) GetProof() string {
+	return s.Proof
 }
 
 // GetPublicKey returns the value of PublicKey.
@@ -44582,9 +44650,14 @@ func (s *RegisterAgentReq) GetPublicKey() string {
 	return s.PublicKey
 }
 
-// GetVoucherCode returns the value of VoucherCode.
-func (s *RegisterAgentReq) GetVoucherCode() string {
-	return s.VoucherCode
+// SetCredentialType sets the value of CredentialType.
+func (s *RegisterAgentReq) SetCredentialType(val RegisterAgentReqCredentialType) {
+	s.CredentialType = val
+}
+
+// SetProof sets the value of Proof.
+func (s *RegisterAgentReq) SetProof(val string) {
+	s.Proof = val
 }
 
 // SetPublicKey sets the value of PublicKey.
@@ -44592,9 +44665,45 @@ func (s *RegisterAgentReq) SetPublicKey(val string) {
 	s.PublicKey = val
 }
 
-// SetVoucherCode sets the value of VoucherCode.
-func (s *RegisterAgentReq) SetVoucherCode(val string) {
-	s.VoucherCode = val
+type RegisterAgentReqCredentialType string
+
+const (
+	RegisterAgentReqCredentialTypeOAuth2   RegisterAgentReqCredentialType = "oauth2"
+	RegisterAgentReqCredentialTypeAgentKey RegisterAgentReqCredentialType = "agent_key"
+)
+
+// AllValues returns all RegisterAgentReqCredentialType values.
+func (RegisterAgentReqCredentialType) AllValues() []RegisterAgentReqCredentialType {
+	return []RegisterAgentReqCredentialType{
+		RegisterAgentReqCredentialTypeOAuth2,
+		RegisterAgentReqCredentialTypeAgentKey,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RegisterAgentReqCredentialType) MarshalText() ([]byte, error) {
+	switch s {
+	case RegisterAgentReqCredentialTypeOAuth2:
+		return []byte(s), nil
+	case RegisterAgentReqCredentialTypeAgentKey:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RegisterAgentReqCredentialType) UnmarshalText(data []byte) error {
+	switch RegisterAgentReqCredentialType(data) {
+	case RegisterAgentReqCredentialTypeOAuth2:
+		*s = RegisterAgentReqCredentialTypeOAuth2
+		return nil
+	case RegisterAgentReqCredentialTypeAgentKey:
+		*s = RegisterAgentReqCredentialTypeAgentKey
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 type RegisterExecutorManifestNotFound ProblemDetails
@@ -44678,21 +44787,15 @@ func (*RegisterExecutorManifestUnauthorized) registerExecutorManifestRes() {}
 
 // Ref: #/components/schemas/RegisterResponse
 type RegisterResponse struct {
-	ClientId     string    `json:"clientId"`
-	ClientSecret string    `json:"clientSecret"`
-	Fingerprint  string    `json:"fingerprint"`
-	IdentityId   uuid.UUID `json:"identityId"`
-	PublicKey    string    `json:"publicKey"`
+	Credential  RegisterResponseCredential `json:"credential"`
+	Fingerprint string                     `json:"fingerprint"`
+	IdentityId  uuid.UUID                  `json:"identityId"`
+	PublicKey   string                     `json:"publicKey"`
 }
 
-// GetClientId returns the value of ClientId.
-func (s *RegisterResponse) GetClientId() string {
-	return s.ClientId
-}
-
-// GetClientSecret returns the value of ClientSecret.
-func (s *RegisterResponse) GetClientSecret() string {
-	return s.ClientSecret
+// GetCredential returns the value of Credential.
+func (s *RegisterResponse) GetCredential() RegisterResponseCredential {
+	return s.Credential
 }
 
 // GetFingerprint returns the value of Fingerprint.
@@ -44710,14 +44813,9 @@ func (s *RegisterResponse) GetPublicKey() string {
 	return s.PublicKey
 }
 
-// SetClientId sets the value of ClientId.
-func (s *RegisterResponse) SetClientId(val string) {
-	s.ClientId = val
-}
-
-// SetClientSecret sets the value of ClientSecret.
-func (s *RegisterResponse) SetClientSecret(val string) {
-	s.ClientSecret = val
+// SetCredential sets the value of Credential.
+func (s *RegisterResponse) SetCredential(val RegisterResponseCredential) {
+	s.Credential = val
 }
 
 // SetFingerprint sets the value of Fingerprint.
@@ -44735,7 +44833,77 @@ func (s *RegisterResponse) SetPublicKey(val string) {
 	s.PublicKey = val
 }
 
+func (*RegisterResponse) enrollAgentRes()   {}
 func (*RegisterResponse) registerAgentRes() {}
+
+// RegisterResponseCredential represents sum type.
+type RegisterResponseCredential struct {
+	// Type selects the active sum variant, switch on this field.
+	Type                           RegisterResponseCredentialType
+	OAuth2RegistrationCredential   OAuth2RegistrationCredential
+	AgentKeyRegistrationCredential AgentKeyRegistrationCredential
+}
+
+// RegisterResponseCredentialType is oneOf type of RegisterResponseCredential.
+type RegisterResponseCredentialType string
+
+// Possible values for RegisterResponseCredentialType.
+const (
+	OAuth2RegistrationCredentialRegisterResponseCredential   RegisterResponseCredentialType = "oauth2"
+	AgentKeyRegistrationCredentialRegisterResponseCredential RegisterResponseCredentialType = "agent_key"
+)
+
+// IsOAuth2RegistrationCredential reports whether RegisterResponseCredential is OAuth2RegistrationCredential.
+func (s RegisterResponseCredential) IsOAuth2RegistrationCredential() bool {
+	return s.Type == OAuth2RegistrationCredentialRegisterResponseCredential
+}
+
+// IsAgentKeyRegistrationCredential reports whether RegisterResponseCredential is AgentKeyRegistrationCredential.
+func (s RegisterResponseCredential) IsAgentKeyRegistrationCredential() bool {
+	return s.Type == AgentKeyRegistrationCredentialRegisterResponseCredential
+}
+
+// SetOAuth2RegistrationCredential sets RegisterResponseCredential to OAuth2RegistrationCredential.
+func (s *RegisterResponseCredential) SetOAuth2RegistrationCredential(v OAuth2RegistrationCredential) {
+	s.Type = OAuth2RegistrationCredentialRegisterResponseCredential
+	s.OAuth2RegistrationCredential = v
+}
+
+// GetOAuth2RegistrationCredential returns OAuth2RegistrationCredential and true boolean if RegisterResponseCredential is OAuth2RegistrationCredential.
+func (s RegisterResponseCredential) GetOAuth2RegistrationCredential() (v OAuth2RegistrationCredential, ok bool) {
+	if !s.IsOAuth2RegistrationCredential() {
+		return v, false
+	}
+	return s.OAuth2RegistrationCredential, true
+}
+
+// NewOAuth2RegistrationCredentialRegisterResponseCredential returns new RegisterResponseCredential from OAuth2RegistrationCredential.
+func NewOAuth2RegistrationCredentialRegisterResponseCredential(v OAuth2RegistrationCredential) RegisterResponseCredential {
+	var s RegisterResponseCredential
+	s.SetOAuth2RegistrationCredential(v)
+	return s
+}
+
+// SetAgentKeyRegistrationCredential sets RegisterResponseCredential to AgentKeyRegistrationCredential.
+func (s *RegisterResponseCredential) SetAgentKeyRegistrationCredential(v AgentKeyRegistrationCredential) {
+	s.Type = AgentKeyRegistrationCredentialRegisterResponseCredential
+	s.AgentKeyRegistrationCredential = v
+}
+
+// GetAgentKeyRegistrationCredential returns AgentKeyRegistrationCredential and true boolean if RegisterResponseCredential is AgentKeyRegistrationCredential.
+func (s RegisterResponseCredential) GetAgentKeyRegistrationCredential() (v AgentKeyRegistrationCredential, ok bool) {
+	if !s.IsAgentKeyRegistrationCredential() {
+		return v, false
+	}
+	return s.AgentKeyRegistrationCredential, true
+}
+
+// NewAgentKeyRegistrationCredentialRegisterResponseCredential returns new RegisterResponseCredential from AgentKeyRegistrationCredential.
+func NewAgentKeyRegistrationCredentialRegisterResponseCredential(v AgentKeyRegistrationCredential) RegisterResponseCredential {
+	var s RegisterResponseCredential
+	s.SetAgentKeyRegistrationCredential(v)
+	return s
+}
 
 type RejectSigningRequestForbidden ProblemDetails
 
@@ -45920,6 +46088,35 @@ func (s *RequestRecoveryChallengeReq) GetPublicKey() string {
 func (s *RequestRecoveryChallengeReq) SetPublicKey(val string) {
 	s.PublicKey = val
 }
+
+type RevokeAgentEnrollmentBadRequest ProblemDetails
+
+func (*RevokeAgentEnrollmentBadRequest) revokeAgentEnrollmentRes() {}
+
+type RevokeAgentEnrollmentForbidden ProblemDetails
+
+func (*RevokeAgentEnrollmentForbidden) revokeAgentEnrollmentRes() {}
+
+// RevokeAgentEnrollmentNoContent is response for RevokeAgentEnrollment operation.
+type RevokeAgentEnrollmentNoContent struct{}
+
+func (*RevokeAgentEnrollmentNoContent) revokeAgentEnrollmentRes() {}
+
+type RevokeAgentEnrollmentNotFound ProblemDetails
+
+func (*RevokeAgentEnrollmentNotFound) revokeAgentEnrollmentRes() {}
+
+type RevokeAgentEnrollmentServiceUnavailable ProblemDetails
+
+func (*RevokeAgentEnrollmentServiceUnavailable) revokeAgentEnrollmentRes() {}
+
+type RevokeAgentEnrollmentTooManyRequests ProblemDetails
+
+func (*RevokeAgentEnrollmentTooManyRequests) revokeAgentEnrollmentRes() {}
+
+type RevokeAgentEnrollmentUnauthorized ProblemDetails
+
+func (*RevokeAgentEnrollmentUnauthorized) revokeAgentEnrollmentRes() {}
 
 type RevokeAgentKeyBadGateway ProblemDetails
 
@@ -50625,7 +50822,6 @@ const (
 	StageTaskArtifactBadRequestCodeVALIDATIONFAILED               StageTaskArtifactBadRequestCode = "VALIDATION_FAILED"
 	StageTaskArtifactBadRequestCodeINVALIDCHALLENGE               StageTaskArtifactBadRequestCode = "INVALID_CHALLENGE"
 	StageTaskArtifactBadRequestCodeINVALIDSIGNATURE               StageTaskArtifactBadRequestCode = "INVALID_SIGNATURE"
-	StageTaskArtifactBadRequestCodeVOUCHERLIMIT                   StageTaskArtifactBadRequestCode = "VOUCHER_LIMIT"
 	StageTaskArtifactBadRequestCodeRATELIMITEXCEEDED              StageTaskArtifactBadRequestCode = "RATE_LIMIT_EXCEEDED"
 	StageTaskArtifactBadRequestCodeSERIALIZATIONEXHAUSTED         StageTaskArtifactBadRequestCode = "SERIALIZATION_EXHAUSTED"
 	StageTaskArtifactBadRequestCodeSIGNINGREQUESTEXPIRED          StageTaskArtifactBadRequestCode = "SIGNING_REQUEST_EXPIRED"
@@ -50659,7 +50855,6 @@ func (StageTaskArtifactBadRequestCode) AllValues() []StageTaskArtifactBadRequest
 		StageTaskArtifactBadRequestCodeVALIDATIONFAILED,
 		StageTaskArtifactBadRequestCodeINVALIDCHALLENGE,
 		StageTaskArtifactBadRequestCodeINVALIDSIGNATURE,
-		StageTaskArtifactBadRequestCodeVOUCHERLIMIT,
 		StageTaskArtifactBadRequestCodeRATELIMITEXCEEDED,
 		StageTaskArtifactBadRequestCodeSERIALIZATIONEXHAUSTED,
 		StageTaskArtifactBadRequestCodeSIGNINGREQUESTEXPIRED,
@@ -50701,8 +50896,6 @@ func (s StageTaskArtifactBadRequestCode) MarshalText() ([]byte, error) {
 	case StageTaskArtifactBadRequestCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case StageTaskArtifactBadRequestCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case StageTaskArtifactBadRequestCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case StageTaskArtifactBadRequestCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -50775,9 +50968,6 @@ func (s *StageTaskArtifactBadRequestCode) UnmarshalText(data []byte) error {
 		return nil
 	case StageTaskArtifactBadRequestCodeINVALIDSIGNATURE:
 		*s = StageTaskArtifactBadRequestCodeINVALIDSIGNATURE
-		return nil
-	case StageTaskArtifactBadRequestCodeVOUCHERLIMIT:
-		*s = StageTaskArtifactBadRequestCodeVOUCHERLIMIT
 		return nil
 	case StageTaskArtifactBadRequestCodeRATELIMITEXCEEDED:
 		*s = StageTaskArtifactBadRequestCodeRATELIMITEXCEEDED
@@ -50961,7 +51151,6 @@ const (
 	StageTaskArtifactForbiddenCodeVALIDATIONFAILED               StageTaskArtifactForbiddenCode = "VALIDATION_FAILED"
 	StageTaskArtifactForbiddenCodeINVALIDCHALLENGE               StageTaskArtifactForbiddenCode = "INVALID_CHALLENGE"
 	StageTaskArtifactForbiddenCodeINVALIDSIGNATURE               StageTaskArtifactForbiddenCode = "INVALID_SIGNATURE"
-	StageTaskArtifactForbiddenCodeVOUCHERLIMIT                   StageTaskArtifactForbiddenCode = "VOUCHER_LIMIT"
 	StageTaskArtifactForbiddenCodeRATELIMITEXCEEDED              StageTaskArtifactForbiddenCode = "RATE_LIMIT_EXCEEDED"
 	StageTaskArtifactForbiddenCodeSERIALIZATIONEXHAUSTED         StageTaskArtifactForbiddenCode = "SERIALIZATION_EXHAUSTED"
 	StageTaskArtifactForbiddenCodeSIGNINGREQUESTEXPIRED          StageTaskArtifactForbiddenCode = "SIGNING_REQUEST_EXPIRED"
@@ -50995,7 +51184,6 @@ func (StageTaskArtifactForbiddenCode) AllValues() []StageTaskArtifactForbiddenCo
 		StageTaskArtifactForbiddenCodeVALIDATIONFAILED,
 		StageTaskArtifactForbiddenCodeINVALIDCHALLENGE,
 		StageTaskArtifactForbiddenCodeINVALIDSIGNATURE,
-		StageTaskArtifactForbiddenCodeVOUCHERLIMIT,
 		StageTaskArtifactForbiddenCodeRATELIMITEXCEEDED,
 		StageTaskArtifactForbiddenCodeSERIALIZATIONEXHAUSTED,
 		StageTaskArtifactForbiddenCodeSIGNINGREQUESTEXPIRED,
@@ -51037,8 +51225,6 @@ func (s StageTaskArtifactForbiddenCode) MarshalText() ([]byte, error) {
 	case StageTaskArtifactForbiddenCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case StageTaskArtifactForbiddenCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case StageTaskArtifactForbiddenCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case StageTaskArtifactForbiddenCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -51111,9 +51297,6 @@ func (s *StageTaskArtifactForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case StageTaskArtifactForbiddenCodeINVALIDSIGNATURE:
 		*s = StageTaskArtifactForbiddenCodeINVALIDSIGNATURE
-		return nil
-	case StageTaskArtifactForbiddenCodeVOUCHERLIMIT:
-		*s = StageTaskArtifactForbiddenCodeVOUCHERLIMIT
 		return nil
 	case StageTaskArtifactForbiddenCodeRATELIMITEXCEEDED:
 		*s = StageTaskArtifactForbiddenCodeRATELIMITEXCEEDED
@@ -51297,7 +51480,6 @@ const (
 	StageTaskArtifactNotFoundCodeVALIDATIONFAILED               StageTaskArtifactNotFoundCode = "VALIDATION_FAILED"
 	StageTaskArtifactNotFoundCodeINVALIDCHALLENGE               StageTaskArtifactNotFoundCode = "INVALID_CHALLENGE"
 	StageTaskArtifactNotFoundCodeINVALIDSIGNATURE               StageTaskArtifactNotFoundCode = "INVALID_SIGNATURE"
-	StageTaskArtifactNotFoundCodeVOUCHERLIMIT                   StageTaskArtifactNotFoundCode = "VOUCHER_LIMIT"
 	StageTaskArtifactNotFoundCodeRATELIMITEXCEEDED              StageTaskArtifactNotFoundCode = "RATE_LIMIT_EXCEEDED"
 	StageTaskArtifactNotFoundCodeSERIALIZATIONEXHAUSTED         StageTaskArtifactNotFoundCode = "SERIALIZATION_EXHAUSTED"
 	StageTaskArtifactNotFoundCodeSIGNINGREQUESTEXPIRED          StageTaskArtifactNotFoundCode = "SIGNING_REQUEST_EXPIRED"
@@ -51331,7 +51513,6 @@ func (StageTaskArtifactNotFoundCode) AllValues() []StageTaskArtifactNotFoundCode
 		StageTaskArtifactNotFoundCodeVALIDATIONFAILED,
 		StageTaskArtifactNotFoundCodeINVALIDCHALLENGE,
 		StageTaskArtifactNotFoundCodeINVALIDSIGNATURE,
-		StageTaskArtifactNotFoundCodeVOUCHERLIMIT,
 		StageTaskArtifactNotFoundCodeRATELIMITEXCEEDED,
 		StageTaskArtifactNotFoundCodeSERIALIZATIONEXHAUSTED,
 		StageTaskArtifactNotFoundCodeSIGNINGREQUESTEXPIRED,
@@ -51373,8 +51554,6 @@ func (s StageTaskArtifactNotFoundCode) MarshalText() ([]byte, error) {
 	case StageTaskArtifactNotFoundCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case StageTaskArtifactNotFoundCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case StageTaskArtifactNotFoundCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case StageTaskArtifactNotFoundCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -51447,9 +51626,6 @@ func (s *StageTaskArtifactNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case StageTaskArtifactNotFoundCodeINVALIDSIGNATURE:
 		*s = StageTaskArtifactNotFoundCodeINVALIDSIGNATURE
-		return nil
-	case StageTaskArtifactNotFoundCodeVOUCHERLIMIT:
-		*s = StageTaskArtifactNotFoundCodeVOUCHERLIMIT
 		return nil
 	case StageTaskArtifactNotFoundCodeRATELIMITEXCEEDED:
 		*s = StageTaskArtifactNotFoundCodeRATELIMITEXCEEDED
@@ -51686,7 +51862,6 @@ const (
 	StageTaskArtifactServiceUnavailableCodeVALIDATIONFAILED               StageTaskArtifactServiceUnavailableCode = "VALIDATION_FAILED"
 	StageTaskArtifactServiceUnavailableCodeINVALIDCHALLENGE               StageTaskArtifactServiceUnavailableCode = "INVALID_CHALLENGE"
 	StageTaskArtifactServiceUnavailableCodeINVALIDSIGNATURE               StageTaskArtifactServiceUnavailableCode = "INVALID_SIGNATURE"
-	StageTaskArtifactServiceUnavailableCodeVOUCHERLIMIT                   StageTaskArtifactServiceUnavailableCode = "VOUCHER_LIMIT"
 	StageTaskArtifactServiceUnavailableCodeRATELIMITEXCEEDED              StageTaskArtifactServiceUnavailableCode = "RATE_LIMIT_EXCEEDED"
 	StageTaskArtifactServiceUnavailableCodeSERIALIZATIONEXHAUSTED         StageTaskArtifactServiceUnavailableCode = "SERIALIZATION_EXHAUSTED"
 	StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTEXPIRED          StageTaskArtifactServiceUnavailableCode = "SIGNING_REQUEST_EXPIRED"
@@ -51720,7 +51895,6 @@ func (StageTaskArtifactServiceUnavailableCode) AllValues() []StageTaskArtifactSe
 		StageTaskArtifactServiceUnavailableCodeVALIDATIONFAILED,
 		StageTaskArtifactServiceUnavailableCodeINVALIDCHALLENGE,
 		StageTaskArtifactServiceUnavailableCodeINVALIDSIGNATURE,
-		StageTaskArtifactServiceUnavailableCodeVOUCHERLIMIT,
 		StageTaskArtifactServiceUnavailableCodeRATELIMITEXCEEDED,
 		StageTaskArtifactServiceUnavailableCodeSERIALIZATIONEXHAUSTED,
 		StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTEXPIRED,
@@ -51762,8 +51936,6 @@ func (s StageTaskArtifactServiceUnavailableCode) MarshalText() ([]byte, error) {
 	case StageTaskArtifactServiceUnavailableCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case StageTaskArtifactServiceUnavailableCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case StageTaskArtifactServiceUnavailableCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case StageTaskArtifactServiceUnavailableCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -51836,9 +52008,6 @@ func (s *StageTaskArtifactServiceUnavailableCode) UnmarshalText(data []byte) err
 		return nil
 	case StageTaskArtifactServiceUnavailableCodeINVALIDSIGNATURE:
 		*s = StageTaskArtifactServiceUnavailableCodeINVALIDSIGNATURE
-		return nil
-	case StageTaskArtifactServiceUnavailableCodeVOUCHERLIMIT:
-		*s = StageTaskArtifactServiceUnavailableCodeVOUCHERLIMIT
 		return nil
 	case StageTaskArtifactServiceUnavailableCodeRATELIMITEXCEEDED:
 		*s = StageTaskArtifactServiceUnavailableCodeRATELIMITEXCEEDED
@@ -52022,7 +52191,6 @@ const (
 	StageTaskArtifactUnauthorizedCodeVALIDATIONFAILED               StageTaskArtifactUnauthorizedCode = "VALIDATION_FAILED"
 	StageTaskArtifactUnauthorizedCodeINVALIDCHALLENGE               StageTaskArtifactUnauthorizedCode = "INVALID_CHALLENGE"
 	StageTaskArtifactUnauthorizedCodeINVALIDSIGNATURE               StageTaskArtifactUnauthorizedCode = "INVALID_SIGNATURE"
-	StageTaskArtifactUnauthorizedCodeVOUCHERLIMIT                   StageTaskArtifactUnauthorizedCode = "VOUCHER_LIMIT"
 	StageTaskArtifactUnauthorizedCodeRATELIMITEXCEEDED              StageTaskArtifactUnauthorizedCode = "RATE_LIMIT_EXCEEDED"
 	StageTaskArtifactUnauthorizedCodeSERIALIZATIONEXHAUSTED         StageTaskArtifactUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
 	StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTEXPIRED          StageTaskArtifactUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
@@ -52056,7 +52224,6 @@ func (StageTaskArtifactUnauthorizedCode) AllValues() []StageTaskArtifactUnauthor
 		StageTaskArtifactUnauthorizedCodeVALIDATIONFAILED,
 		StageTaskArtifactUnauthorizedCodeINVALIDCHALLENGE,
 		StageTaskArtifactUnauthorizedCodeINVALIDSIGNATURE,
-		StageTaskArtifactUnauthorizedCodeVOUCHERLIMIT,
 		StageTaskArtifactUnauthorizedCodeRATELIMITEXCEEDED,
 		StageTaskArtifactUnauthorizedCodeSERIALIZATIONEXHAUSTED,
 		StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTEXPIRED,
@@ -52098,8 +52265,6 @@ func (s StageTaskArtifactUnauthorizedCode) MarshalText() ([]byte, error) {
 	case StageTaskArtifactUnauthorizedCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case StageTaskArtifactUnauthorizedCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case StageTaskArtifactUnauthorizedCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case StageTaskArtifactUnauthorizedCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -52173,9 +52338,6 @@ func (s *StageTaskArtifactUnauthorizedCode) UnmarshalText(data []byte) error {
 	case StageTaskArtifactUnauthorizedCodeINVALIDSIGNATURE:
 		*s = StageTaskArtifactUnauthorizedCodeINVALIDSIGNATURE
 		return nil
-	case StageTaskArtifactUnauthorizedCodeVOUCHERLIMIT:
-		*s = StageTaskArtifactUnauthorizedCodeVOUCHERLIMIT
-		return nil
 	case StageTaskArtifactUnauthorizedCodeRATELIMITEXCEEDED:
 		*s = StageTaskArtifactUnauthorizedCodeRATELIMITEXCEEDED
 		return nil
@@ -52245,6 +52407,10 @@ type StartLegreffierOnboardingBadRequest ProblemDetails
 
 func (*StartLegreffierOnboardingBadRequest) startLegreffierOnboardingRes() {}
 
+type StartLegreffierOnboardingConflict ProblemDetails
+
+func (*StartLegreffierOnboardingConflict) startLegreffierOnboardingRes() {}
+
 type StartLegreffierOnboardingOK struct {
 	ManifestFormUrl string `json:"manifestFormUrl"`
 	WorkflowId      string `json:"workflowId"`
@@ -52273,12 +52439,14 @@ func (s *StartLegreffierOnboardingOK) SetWorkflowId(val string) {
 func (*StartLegreffierOnboardingOK) startLegreffierOnboardingRes() {}
 
 type StartLegreffierOnboardingReq struct {
-	AgentName string `json:"agentName"`
+	AgentName      string                                     `json:"agentName"`
+	CredentialType StartLegreffierOnboardingReqCredentialType `json:"credentialType"`
 	// Key fingerprint (A1B2-C3D4-E5F6-G7H8).
 	Fingerprint string `json:"fingerprint"`
 	// GitHub organization name. When provided, the GitHub App will be created under this org instead of
 	// the personal account.
-	Org OptString `json:"org"`
+	Org   OptString `json:"org"`
+	Proof string    `json:"proof"`
 	// Ed25519 public key with prefix.
 	PublicKey string `json:"publicKey"`
 }
@@ -52286,6 +52454,11 @@ type StartLegreffierOnboardingReq struct {
 // GetAgentName returns the value of AgentName.
 func (s *StartLegreffierOnboardingReq) GetAgentName() string {
 	return s.AgentName
+}
+
+// GetCredentialType returns the value of CredentialType.
+func (s *StartLegreffierOnboardingReq) GetCredentialType() StartLegreffierOnboardingReqCredentialType {
+	return s.CredentialType
 }
 
 // GetFingerprint returns the value of Fingerprint.
@@ -52298,6 +52471,11 @@ func (s *StartLegreffierOnboardingReq) GetOrg() OptString {
 	return s.Org
 }
 
+// GetProof returns the value of Proof.
+func (s *StartLegreffierOnboardingReq) GetProof() string {
+	return s.Proof
+}
+
 // GetPublicKey returns the value of PublicKey.
 func (s *StartLegreffierOnboardingReq) GetPublicKey() string {
 	return s.PublicKey
@@ -52306,6 +52484,11 @@ func (s *StartLegreffierOnboardingReq) GetPublicKey() string {
 // SetAgentName sets the value of AgentName.
 func (s *StartLegreffierOnboardingReq) SetAgentName(val string) {
 	s.AgentName = val
+}
+
+// SetCredentialType sets the value of CredentialType.
+func (s *StartLegreffierOnboardingReq) SetCredentialType(val StartLegreffierOnboardingReqCredentialType) {
+	s.CredentialType = val
 }
 
 // SetFingerprint sets the value of Fingerprint.
@@ -52318,9 +52501,48 @@ func (s *StartLegreffierOnboardingReq) SetOrg(val OptString) {
 	s.Org = val
 }
 
+// SetProof sets the value of Proof.
+func (s *StartLegreffierOnboardingReq) SetProof(val string) {
+	s.Proof = val
+}
+
 // SetPublicKey sets the value of PublicKey.
 func (s *StartLegreffierOnboardingReq) SetPublicKey(val string) {
 	s.PublicKey = val
+}
+
+type StartLegreffierOnboardingReqCredentialType string
+
+const (
+	StartLegreffierOnboardingReqCredentialTypeOAuth2 StartLegreffierOnboardingReqCredentialType = "oauth2"
+)
+
+// AllValues returns all StartLegreffierOnboardingReqCredentialType values.
+func (StartLegreffierOnboardingReqCredentialType) AllValues() []StartLegreffierOnboardingReqCredentialType {
+	return []StartLegreffierOnboardingReqCredentialType{
+		StartLegreffierOnboardingReqCredentialTypeOAuth2,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s StartLegreffierOnboardingReqCredentialType) MarshalText() ([]byte, error) {
+	switch s {
+	case StartLegreffierOnboardingReqCredentialTypeOAuth2:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *StartLegreffierOnboardingReqCredentialType) UnmarshalText(data []byte) error {
+	switch StartLegreffierOnboardingReqCredentialType(data) {
+	case StartLegreffierOnboardingReqCredentialTypeOAuth2:
+		*s = StartLegreffierOnboardingReqCredentialTypeOAuth2
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 type StartLegreffierOnboardingServiceUnavailable ProblemDetails
@@ -57585,7 +57807,6 @@ const (
 	UploadRuntimeSessionBadRequestCodeVALIDATIONFAILED               UploadRuntimeSessionBadRequestCode = "VALIDATION_FAILED"
 	UploadRuntimeSessionBadRequestCodeINVALIDCHALLENGE               UploadRuntimeSessionBadRequestCode = "INVALID_CHALLENGE"
 	UploadRuntimeSessionBadRequestCodeINVALIDSIGNATURE               UploadRuntimeSessionBadRequestCode = "INVALID_SIGNATURE"
-	UploadRuntimeSessionBadRequestCodeVOUCHERLIMIT                   UploadRuntimeSessionBadRequestCode = "VOUCHER_LIMIT"
 	UploadRuntimeSessionBadRequestCodeRATELIMITEXCEEDED              UploadRuntimeSessionBadRequestCode = "RATE_LIMIT_EXCEEDED"
 	UploadRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED         UploadRuntimeSessionBadRequestCode = "SERIALIZATION_EXHAUSTED"
 	UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED          UploadRuntimeSessionBadRequestCode = "SIGNING_REQUEST_EXPIRED"
@@ -57619,7 +57840,6 @@ func (UploadRuntimeSessionBadRequestCode) AllValues() []UploadRuntimeSessionBadR
 		UploadRuntimeSessionBadRequestCodeVALIDATIONFAILED,
 		UploadRuntimeSessionBadRequestCodeINVALIDCHALLENGE,
 		UploadRuntimeSessionBadRequestCodeINVALIDSIGNATURE,
-		UploadRuntimeSessionBadRequestCodeVOUCHERLIMIT,
 		UploadRuntimeSessionBadRequestCodeRATELIMITEXCEEDED,
 		UploadRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED,
 		UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED,
@@ -57661,8 +57881,6 @@ func (s UploadRuntimeSessionBadRequestCode) MarshalText() ([]byte, error) {
 	case UploadRuntimeSessionBadRequestCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case UploadRuntimeSessionBadRequestCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case UploadRuntimeSessionBadRequestCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case UploadRuntimeSessionBadRequestCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -57735,9 +57953,6 @@ func (s *UploadRuntimeSessionBadRequestCode) UnmarshalText(data []byte) error {
 		return nil
 	case UploadRuntimeSessionBadRequestCodeINVALIDSIGNATURE:
 		*s = UploadRuntimeSessionBadRequestCodeINVALIDSIGNATURE
-		return nil
-	case UploadRuntimeSessionBadRequestCodeVOUCHERLIMIT:
-		*s = UploadRuntimeSessionBadRequestCodeVOUCHERLIMIT
 		return nil
 	case UploadRuntimeSessionBadRequestCodeRATELIMITEXCEEDED:
 		*s = UploadRuntimeSessionBadRequestCodeRATELIMITEXCEEDED
@@ -57921,7 +58136,6 @@ const (
 	UploadRuntimeSessionConflictCodeVALIDATIONFAILED               UploadRuntimeSessionConflictCode = "VALIDATION_FAILED"
 	UploadRuntimeSessionConflictCodeINVALIDCHALLENGE               UploadRuntimeSessionConflictCode = "INVALID_CHALLENGE"
 	UploadRuntimeSessionConflictCodeINVALIDSIGNATURE               UploadRuntimeSessionConflictCode = "INVALID_SIGNATURE"
-	UploadRuntimeSessionConflictCodeVOUCHERLIMIT                   UploadRuntimeSessionConflictCode = "VOUCHER_LIMIT"
 	UploadRuntimeSessionConflictCodeRATELIMITEXCEEDED              UploadRuntimeSessionConflictCode = "RATE_LIMIT_EXCEEDED"
 	UploadRuntimeSessionConflictCodeSERIALIZATIONEXHAUSTED         UploadRuntimeSessionConflictCode = "SERIALIZATION_EXHAUSTED"
 	UploadRuntimeSessionConflictCodeSIGNINGREQUESTEXPIRED          UploadRuntimeSessionConflictCode = "SIGNING_REQUEST_EXPIRED"
@@ -57955,7 +58169,6 @@ func (UploadRuntimeSessionConflictCode) AllValues() []UploadRuntimeSessionConfli
 		UploadRuntimeSessionConflictCodeVALIDATIONFAILED,
 		UploadRuntimeSessionConflictCodeINVALIDCHALLENGE,
 		UploadRuntimeSessionConflictCodeINVALIDSIGNATURE,
-		UploadRuntimeSessionConflictCodeVOUCHERLIMIT,
 		UploadRuntimeSessionConflictCodeRATELIMITEXCEEDED,
 		UploadRuntimeSessionConflictCodeSERIALIZATIONEXHAUSTED,
 		UploadRuntimeSessionConflictCodeSIGNINGREQUESTEXPIRED,
@@ -57997,8 +58210,6 @@ func (s UploadRuntimeSessionConflictCode) MarshalText() ([]byte, error) {
 	case UploadRuntimeSessionConflictCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case UploadRuntimeSessionConflictCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case UploadRuntimeSessionConflictCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case UploadRuntimeSessionConflictCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -58071,9 +58282,6 @@ func (s *UploadRuntimeSessionConflictCode) UnmarshalText(data []byte) error {
 		return nil
 	case UploadRuntimeSessionConflictCodeINVALIDSIGNATURE:
 		*s = UploadRuntimeSessionConflictCodeINVALIDSIGNATURE
-		return nil
-	case UploadRuntimeSessionConflictCodeVOUCHERLIMIT:
-		*s = UploadRuntimeSessionConflictCodeVOUCHERLIMIT
 		return nil
 	case UploadRuntimeSessionConflictCodeRATELIMITEXCEEDED:
 		*s = UploadRuntimeSessionConflictCodeRATELIMITEXCEEDED
@@ -58257,7 +58465,6 @@ const (
 	UploadRuntimeSessionForbiddenCodeVALIDATIONFAILED               UploadRuntimeSessionForbiddenCode = "VALIDATION_FAILED"
 	UploadRuntimeSessionForbiddenCodeINVALIDCHALLENGE               UploadRuntimeSessionForbiddenCode = "INVALID_CHALLENGE"
 	UploadRuntimeSessionForbiddenCodeINVALIDSIGNATURE               UploadRuntimeSessionForbiddenCode = "INVALID_SIGNATURE"
-	UploadRuntimeSessionForbiddenCodeVOUCHERLIMIT                   UploadRuntimeSessionForbiddenCode = "VOUCHER_LIMIT"
 	UploadRuntimeSessionForbiddenCodeRATELIMITEXCEEDED              UploadRuntimeSessionForbiddenCode = "RATE_LIMIT_EXCEEDED"
 	UploadRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED         UploadRuntimeSessionForbiddenCode = "SERIALIZATION_EXHAUSTED"
 	UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED          UploadRuntimeSessionForbiddenCode = "SIGNING_REQUEST_EXPIRED"
@@ -58291,7 +58498,6 @@ func (UploadRuntimeSessionForbiddenCode) AllValues() []UploadRuntimeSessionForbi
 		UploadRuntimeSessionForbiddenCodeVALIDATIONFAILED,
 		UploadRuntimeSessionForbiddenCodeINVALIDCHALLENGE,
 		UploadRuntimeSessionForbiddenCodeINVALIDSIGNATURE,
-		UploadRuntimeSessionForbiddenCodeVOUCHERLIMIT,
 		UploadRuntimeSessionForbiddenCodeRATELIMITEXCEEDED,
 		UploadRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED,
 		UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED,
@@ -58333,8 +58539,6 @@ func (s UploadRuntimeSessionForbiddenCode) MarshalText() ([]byte, error) {
 	case UploadRuntimeSessionForbiddenCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case UploadRuntimeSessionForbiddenCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case UploadRuntimeSessionForbiddenCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case UploadRuntimeSessionForbiddenCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -58407,9 +58611,6 @@ func (s *UploadRuntimeSessionForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case UploadRuntimeSessionForbiddenCodeINVALIDSIGNATURE:
 		*s = UploadRuntimeSessionForbiddenCodeINVALIDSIGNATURE
-		return nil
-	case UploadRuntimeSessionForbiddenCodeVOUCHERLIMIT:
-		*s = UploadRuntimeSessionForbiddenCodeVOUCHERLIMIT
 		return nil
 	case UploadRuntimeSessionForbiddenCodeRATELIMITEXCEEDED:
 		*s = UploadRuntimeSessionForbiddenCodeRATELIMITEXCEEDED
@@ -58593,7 +58794,6 @@ const (
 	UploadRuntimeSessionNotFoundCodeVALIDATIONFAILED               UploadRuntimeSessionNotFoundCode = "VALIDATION_FAILED"
 	UploadRuntimeSessionNotFoundCodeINVALIDCHALLENGE               UploadRuntimeSessionNotFoundCode = "INVALID_CHALLENGE"
 	UploadRuntimeSessionNotFoundCodeINVALIDSIGNATURE               UploadRuntimeSessionNotFoundCode = "INVALID_SIGNATURE"
-	UploadRuntimeSessionNotFoundCodeVOUCHERLIMIT                   UploadRuntimeSessionNotFoundCode = "VOUCHER_LIMIT"
 	UploadRuntimeSessionNotFoundCodeRATELIMITEXCEEDED              UploadRuntimeSessionNotFoundCode = "RATE_LIMIT_EXCEEDED"
 	UploadRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED         UploadRuntimeSessionNotFoundCode = "SERIALIZATION_EXHAUSTED"
 	UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED          UploadRuntimeSessionNotFoundCode = "SIGNING_REQUEST_EXPIRED"
@@ -58627,7 +58827,6 @@ func (UploadRuntimeSessionNotFoundCode) AllValues() []UploadRuntimeSessionNotFou
 		UploadRuntimeSessionNotFoundCodeVALIDATIONFAILED,
 		UploadRuntimeSessionNotFoundCodeINVALIDCHALLENGE,
 		UploadRuntimeSessionNotFoundCodeINVALIDSIGNATURE,
-		UploadRuntimeSessionNotFoundCodeVOUCHERLIMIT,
 		UploadRuntimeSessionNotFoundCodeRATELIMITEXCEEDED,
 		UploadRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED,
 		UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED,
@@ -58669,8 +58868,6 @@ func (s UploadRuntimeSessionNotFoundCode) MarshalText() ([]byte, error) {
 	case UploadRuntimeSessionNotFoundCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case UploadRuntimeSessionNotFoundCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case UploadRuntimeSessionNotFoundCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case UploadRuntimeSessionNotFoundCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -58743,9 +58940,6 @@ func (s *UploadRuntimeSessionNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case UploadRuntimeSessionNotFoundCodeINVALIDSIGNATURE:
 		*s = UploadRuntimeSessionNotFoundCodeINVALIDSIGNATURE
-		return nil
-	case UploadRuntimeSessionNotFoundCodeVOUCHERLIMIT:
-		*s = UploadRuntimeSessionNotFoundCodeVOUCHERLIMIT
 		return nil
 	case UploadRuntimeSessionNotFoundCodeRATELIMITEXCEEDED:
 		*s = UploadRuntimeSessionNotFoundCodeRATELIMITEXCEEDED
@@ -59237,7 +59431,6 @@ const (
 	UploadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED               UploadRuntimeSessionServiceUnavailableCode = "VALIDATION_FAILED"
 	UploadRuntimeSessionServiceUnavailableCodeINVALIDCHALLENGE               UploadRuntimeSessionServiceUnavailableCode = "INVALID_CHALLENGE"
 	UploadRuntimeSessionServiceUnavailableCodeINVALIDSIGNATURE               UploadRuntimeSessionServiceUnavailableCode = "INVALID_SIGNATURE"
-	UploadRuntimeSessionServiceUnavailableCodeVOUCHERLIMIT                   UploadRuntimeSessionServiceUnavailableCode = "VOUCHER_LIMIT"
 	UploadRuntimeSessionServiceUnavailableCodeRATELIMITEXCEEDED              UploadRuntimeSessionServiceUnavailableCode = "RATE_LIMIT_EXCEEDED"
 	UploadRuntimeSessionServiceUnavailableCodeSERIALIZATIONEXHAUSTED         UploadRuntimeSessionServiceUnavailableCode = "SERIALIZATION_EXHAUSTED"
 	UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTEXPIRED          UploadRuntimeSessionServiceUnavailableCode = "SIGNING_REQUEST_EXPIRED"
@@ -59271,7 +59464,6 @@ func (UploadRuntimeSessionServiceUnavailableCode) AllValues() []UploadRuntimeSes
 		UploadRuntimeSessionServiceUnavailableCodeVALIDATIONFAILED,
 		UploadRuntimeSessionServiceUnavailableCodeINVALIDCHALLENGE,
 		UploadRuntimeSessionServiceUnavailableCodeINVALIDSIGNATURE,
-		UploadRuntimeSessionServiceUnavailableCodeVOUCHERLIMIT,
 		UploadRuntimeSessionServiceUnavailableCodeRATELIMITEXCEEDED,
 		UploadRuntimeSessionServiceUnavailableCodeSERIALIZATIONEXHAUSTED,
 		UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTEXPIRED,
@@ -59313,8 +59505,6 @@ func (s UploadRuntimeSessionServiceUnavailableCode) MarshalText() ([]byte, error
 	case UploadRuntimeSessionServiceUnavailableCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case UploadRuntimeSessionServiceUnavailableCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case UploadRuntimeSessionServiceUnavailableCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case UploadRuntimeSessionServiceUnavailableCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -59387,9 +59577,6 @@ func (s *UploadRuntimeSessionServiceUnavailableCode) UnmarshalText(data []byte) 
 		return nil
 	case UploadRuntimeSessionServiceUnavailableCodeINVALIDSIGNATURE:
 		*s = UploadRuntimeSessionServiceUnavailableCodeINVALIDSIGNATURE
-		return nil
-	case UploadRuntimeSessionServiceUnavailableCodeVOUCHERLIMIT:
-		*s = UploadRuntimeSessionServiceUnavailableCodeVOUCHERLIMIT
 		return nil
 	case UploadRuntimeSessionServiceUnavailableCodeRATELIMITEXCEEDED:
 		*s = UploadRuntimeSessionServiceUnavailableCodeRATELIMITEXCEEDED
@@ -59621,7 +59808,6 @@ const (
 	UploadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED               UploadRuntimeSessionUnauthorizedCode = "VALIDATION_FAILED"
 	UploadRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE               UploadRuntimeSessionUnauthorizedCode = "INVALID_CHALLENGE"
 	UploadRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE               UploadRuntimeSessionUnauthorizedCode = "INVALID_SIGNATURE"
-	UploadRuntimeSessionUnauthorizedCodeVOUCHERLIMIT                   UploadRuntimeSessionUnauthorizedCode = "VOUCHER_LIMIT"
 	UploadRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED              UploadRuntimeSessionUnauthorizedCode = "RATE_LIMIT_EXCEEDED"
 	UploadRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED         UploadRuntimeSessionUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
 	UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED          UploadRuntimeSessionUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
@@ -59655,7 +59841,6 @@ func (UploadRuntimeSessionUnauthorizedCode) AllValues() []UploadRuntimeSessionUn
 		UploadRuntimeSessionUnauthorizedCodeVALIDATIONFAILED,
 		UploadRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE,
 		UploadRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE,
-		UploadRuntimeSessionUnauthorizedCodeVOUCHERLIMIT,
 		UploadRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED,
 		UploadRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED,
 		UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED,
@@ -59697,8 +59882,6 @@ func (s UploadRuntimeSessionUnauthorizedCode) MarshalText() ([]byte, error) {
 	case UploadRuntimeSessionUnauthorizedCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case UploadRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case UploadRuntimeSessionUnauthorizedCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case UploadRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -59771,9 +59954,6 @@ func (s *UploadRuntimeSessionUnauthorizedCode) UnmarshalText(data []byte) error 
 		return nil
 	case UploadRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE:
 		*s = UploadRuntimeSessionUnauthorizedCodeINVALIDSIGNATURE
-		return nil
-	case UploadRuntimeSessionUnauthorizedCodeVOUCHERLIMIT:
-		*s = UploadRuntimeSessionUnauthorizedCodeVOUCHERLIMIT
 		return nil
 	case UploadRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED:
 		*s = UploadRuntimeSessionUnauthorizedCodeRATELIMITEXCEEDED
@@ -59969,7 +60149,6 @@ const (
 	UploadTaskArtifactBadRequestCodeVALIDATIONFAILED               UploadTaskArtifactBadRequestCode = "VALIDATION_FAILED"
 	UploadTaskArtifactBadRequestCodeINVALIDCHALLENGE               UploadTaskArtifactBadRequestCode = "INVALID_CHALLENGE"
 	UploadTaskArtifactBadRequestCodeINVALIDSIGNATURE               UploadTaskArtifactBadRequestCode = "INVALID_SIGNATURE"
-	UploadTaskArtifactBadRequestCodeVOUCHERLIMIT                   UploadTaskArtifactBadRequestCode = "VOUCHER_LIMIT"
 	UploadTaskArtifactBadRequestCodeRATELIMITEXCEEDED              UploadTaskArtifactBadRequestCode = "RATE_LIMIT_EXCEEDED"
 	UploadTaskArtifactBadRequestCodeSERIALIZATIONEXHAUSTED         UploadTaskArtifactBadRequestCode = "SERIALIZATION_EXHAUSTED"
 	UploadTaskArtifactBadRequestCodeSIGNINGREQUESTEXPIRED          UploadTaskArtifactBadRequestCode = "SIGNING_REQUEST_EXPIRED"
@@ -60003,7 +60182,6 @@ func (UploadTaskArtifactBadRequestCode) AllValues() []UploadTaskArtifactBadReque
 		UploadTaskArtifactBadRequestCodeVALIDATIONFAILED,
 		UploadTaskArtifactBadRequestCodeINVALIDCHALLENGE,
 		UploadTaskArtifactBadRequestCodeINVALIDSIGNATURE,
-		UploadTaskArtifactBadRequestCodeVOUCHERLIMIT,
 		UploadTaskArtifactBadRequestCodeRATELIMITEXCEEDED,
 		UploadTaskArtifactBadRequestCodeSERIALIZATIONEXHAUSTED,
 		UploadTaskArtifactBadRequestCodeSIGNINGREQUESTEXPIRED,
@@ -60045,8 +60223,6 @@ func (s UploadTaskArtifactBadRequestCode) MarshalText() ([]byte, error) {
 	case UploadTaskArtifactBadRequestCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case UploadTaskArtifactBadRequestCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case UploadTaskArtifactBadRequestCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case UploadTaskArtifactBadRequestCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -60119,9 +60295,6 @@ func (s *UploadTaskArtifactBadRequestCode) UnmarshalText(data []byte) error {
 		return nil
 	case UploadTaskArtifactBadRequestCodeINVALIDSIGNATURE:
 		*s = UploadTaskArtifactBadRequestCodeINVALIDSIGNATURE
-		return nil
-	case UploadTaskArtifactBadRequestCodeVOUCHERLIMIT:
-		*s = UploadTaskArtifactBadRequestCodeVOUCHERLIMIT
 		return nil
 	case UploadTaskArtifactBadRequestCodeRATELIMITEXCEEDED:
 		*s = UploadTaskArtifactBadRequestCodeRATELIMITEXCEEDED
@@ -60305,7 +60478,6 @@ const (
 	UploadTaskArtifactForbiddenCodeVALIDATIONFAILED               UploadTaskArtifactForbiddenCode = "VALIDATION_FAILED"
 	UploadTaskArtifactForbiddenCodeINVALIDCHALLENGE               UploadTaskArtifactForbiddenCode = "INVALID_CHALLENGE"
 	UploadTaskArtifactForbiddenCodeINVALIDSIGNATURE               UploadTaskArtifactForbiddenCode = "INVALID_SIGNATURE"
-	UploadTaskArtifactForbiddenCodeVOUCHERLIMIT                   UploadTaskArtifactForbiddenCode = "VOUCHER_LIMIT"
 	UploadTaskArtifactForbiddenCodeRATELIMITEXCEEDED              UploadTaskArtifactForbiddenCode = "RATE_LIMIT_EXCEEDED"
 	UploadTaskArtifactForbiddenCodeSERIALIZATIONEXHAUSTED         UploadTaskArtifactForbiddenCode = "SERIALIZATION_EXHAUSTED"
 	UploadTaskArtifactForbiddenCodeSIGNINGREQUESTEXPIRED          UploadTaskArtifactForbiddenCode = "SIGNING_REQUEST_EXPIRED"
@@ -60339,7 +60511,6 @@ func (UploadTaskArtifactForbiddenCode) AllValues() []UploadTaskArtifactForbidden
 		UploadTaskArtifactForbiddenCodeVALIDATIONFAILED,
 		UploadTaskArtifactForbiddenCodeINVALIDCHALLENGE,
 		UploadTaskArtifactForbiddenCodeINVALIDSIGNATURE,
-		UploadTaskArtifactForbiddenCodeVOUCHERLIMIT,
 		UploadTaskArtifactForbiddenCodeRATELIMITEXCEEDED,
 		UploadTaskArtifactForbiddenCodeSERIALIZATIONEXHAUSTED,
 		UploadTaskArtifactForbiddenCodeSIGNINGREQUESTEXPIRED,
@@ -60381,8 +60552,6 @@ func (s UploadTaskArtifactForbiddenCode) MarshalText() ([]byte, error) {
 	case UploadTaskArtifactForbiddenCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case UploadTaskArtifactForbiddenCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case UploadTaskArtifactForbiddenCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case UploadTaskArtifactForbiddenCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -60455,9 +60624,6 @@ func (s *UploadTaskArtifactForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case UploadTaskArtifactForbiddenCodeINVALIDSIGNATURE:
 		*s = UploadTaskArtifactForbiddenCodeINVALIDSIGNATURE
-		return nil
-	case UploadTaskArtifactForbiddenCodeVOUCHERLIMIT:
-		*s = UploadTaskArtifactForbiddenCodeVOUCHERLIMIT
 		return nil
 	case UploadTaskArtifactForbiddenCodeRATELIMITEXCEEDED:
 		*s = UploadTaskArtifactForbiddenCodeRATELIMITEXCEEDED
@@ -60641,7 +60807,6 @@ const (
 	UploadTaskArtifactNotFoundCodeVALIDATIONFAILED               UploadTaskArtifactNotFoundCode = "VALIDATION_FAILED"
 	UploadTaskArtifactNotFoundCodeINVALIDCHALLENGE               UploadTaskArtifactNotFoundCode = "INVALID_CHALLENGE"
 	UploadTaskArtifactNotFoundCodeINVALIDSIGNATURE               UploadTaskArtifactNotFoundCode = "INVALID_SIGNATURE"
-	UploadTaskArtifactNotFoundCodeVOUCHERLIMIT                   UploadTaskArtifactNotFoundCode = "VOUCHER_LIMIT"
 	UploadTaskArtifactNotFoundCodeRATELIMITEXCEEDED              UploadTaskArtifactNotFoundCode = "RATE_LIMIT_EXCEEDED"
 	UploadTaskArtifactNotFoundCodeSERIALIZATIONEXHAUSTED         UploadTaskArtifactNotFoundCode = "SERIALIZATION_EXHAUSTED"
 	UploadTaskArtifactNotFoundCodeSIGNINGREQUESTEXPIRED          UploadTaskArtifactNotFoundCode = "SIGNING_REQUEST_EXPIRED"
@@ -60675,7 +60840,6 @@ func (UploadTaskArtifactNotFoundCode) AllValues() []UploadTaskArtifactNotFoundCo
 		UploadTaskArtifactNotFoundCodeVALIDATIONFAILED,
 		UploadTaskArtifactNotFoundCodeINVALIDCHALLENGE,
 		UploadTaskArtifactNotFoundCodeINVALIDSIGNATURE,
-		UploadTaskArtifactNotFoundCodeVOUCHERLIMIT,
 		UploadTaskArtifactNotFoundCodeRATELIMITEXCEEDED,
 		UploadTaskArtifactNotFoundCodeSERIALIZATIONEXHAUSTED,
 		UploadTaskArtifactNotFoundCodeSIGNINGREQUESTEXPIRED,
@@ -60717,8 +60881,6 @@ func (s UploadTaskArtifactNotFoundCode) MarshalText() ([]byte, error) {
 	case UploadTaskArtifactNotFoundCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case UploadTaskArtifactNotFoundCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case UploadTaskArtifactNotFoundCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case UploadTaskArtifactNotFoundCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -60791,9 +60953,6 @@ func (s *UploadTaskArtifactNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case UploadTaskArtifactNotFoundCodeINVALIDSIGNATURE:
 		*s = UploadTaskArtifactNotFoundCodeINVALIDSIGNATURE
-		return nil
-	case UploadTaskArtifactNotFoundCodeVOUCHERLIMIT:
-		*s = UploadTaskArtifactNotFoundCodeVOUCHERLIMIT
 		return nil
 	case UploadTaskArtifactNotFoundCodeRATELIMITEXCEEDED:
 		*s = UploadTaskArtifactNotFoundCodeRATELIMITEXCEEDED
@@ -61140,7 +61299,6 @@ const (
 	UploadTaskArtifactServiceUnavailableCodeVALIDATIONFAILED               UploadTaskArtifactServiceUnavailableCode = "VALIDATION_FAILED"
 	UploadTaskArtifactServiceUnavailableCodeINVALIDCHALLENGE               UploadTaskArtifactServiceUnavailableCode = "INVALID_CHALLENGE"
 	UploadTaskArtifactServiceUnavailableCodeINVALIDSIGNATURE               UploadTaskArtifactServiceUnavailableCode = "INVALID_SIGNATURE"
-	UploadTaskArtifactServiceUnavailableCodeVOUCHERLIMIT                   UploadTaskArtifactServiceUnavailableCode = "VOUCHER_LIMIT"
 	UploadTaskArtifactServiceUnavailableCodeRATELIMITEXCEEDED              UploadTaskArtifactServiceUnavailableCode = "RATE_LIMIT_EXCEEDED"
 	UploadTaskArtifactServiceUnavailableCodeSERIALIZATIONEXHAUSTED         UploadTaskArtifactServiceUnavailableCode = "SERIALIZATION_EXHAUSTED"
 	UploadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTEXPIRED          UploadTaskArtifactServiceUnavailableCode = "SIGNING_REQUEST_EXPIRED"
@@ -61174,7 +61332,6 @@ func (UploadTaskArtifactServiceUnavailableCode) AllValues() []UploadTaskArtifact
 		UploadTaskArtifactServiceUnavailableCodeVALIDATIONFAILED,
 		UploadTaskArtifactServiceUnavailableCodeINVALIDCHALLENGE,
 		UploadTaskArtifactServiceUnavailableCodeINVALIDSIGNATURE,
-		UploadTaskArtifactServiceUnavailableCodeVOUCHERLIMIT,
 		UploadTaskArtifactServiceUnavailableCodeRATELIMITEXCEEDED,
 		UploadTaskArtifactServiceUnavailableCodeSERIALIZATIONEXHAUSTED,
 		UploadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTEXPIRED,
@@ -61216,8 +61373,6 @@ func (s UploadTaskArtifactServiceUnavailableCode) MarshalText() ([]byte, error) 
 	case UploadTaskArtifactServiceUnavailableCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case UploadTaskArtifactServiceUnavailableCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case UploadTaskArtifactServiceUnavailableCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case UploadTaskArtifactServiceUnavailableCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -61290,9 +61445,6 @@ func (s *UploadTaskArtifactServiceUnavailableCode) UnmarshalText(data []byte) er
 		return nil
 	case UploadTaskArtifactServiceUnavailableCodeINVALIDSIGNATURE:
 		*s = UploadTaskArtifactServiceUnavailableCodeINVALIDSIGNATURE
-		return nil
-	case UploadTaskArtifactServiceUnavailableCodeVOUCHERLIMIT:
-		*s = UploadTaskArtifactServiceUnavailableCodeVOUCHERLIMIT
 		return nil
 	case UploadTaskArtifactServiceUnavailableCodeRATELIMITEXCEEDED:
 		*s = UploadTaskArtifactServiceUnavailableCodeRATELIMITEXCEEDED
@@ -61476,7 +61628,6 @@ const (
 	UploadTaskArtifactUnauthorizedCodeVALIDATIONFAILED               UploadTaskArtifactUnauthorizedCode = "VALIDATION_FAILED"
 	UploadTaskArtifactUnauthorizedCodeINVALIDCHALLENGE               UploadTaskArtifactUnauthorizedCode = "INVALID_CHALLENGE"
 	UploadTaskArtifactUnauthorizedCodeINVALIDSIGNATURE               UploadTaskArtifactUnauthorizedCode = "INVALID_SIGNATURE"
-	UploadTaskArtifactUnauthorizedCodeVOUCHERLIMIT                   UploadTaskArtifactUnauthorizedCode = "VOUCHER_LIMIT"
 	UploadTaskArtifactUnauthorizedCodeRATELIMITEXCEEDED              UploadTaskArtifactUnauthorizedCode = "RATE_LIMIT_EXCEEDED"
 	UploadTaskArtifactUnauthorizedCodeSERIALIZATIONEXHAUSTED         UploadTaskArtifactUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
 	UploadTaskArtifactUnauthorizedCodeSIGNINGREQUESTEXPIRED          UploadTaskArtifactUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
@@ -61510,7 +61661,6 @@ func (UploadTaskArtifactUnauthorizedCode) AllValues() []UploadTaskArtifactUnauth
 		UploadTaskArtifactUnauthorizedCodeVALIDATIONFAILED,
 		UploadTaskArtifactUnauthorizedCodeINVALIDCHALLENGE,
 		UploadTaskArtifactUnauthorizedCodeINVALIDSIGNATURE,
-		UploadTaskArtifactUnauthorizedCodeVOUCHERLIMIT,
 		UploadTaskArtifactUnauthorizedCodeRATELIMITEXCEEDED,
 		UploadTaskArtifactUnauthorizedCodeSERIALIZATIONEXHAUSTED,
 		UploadTaskArtifactUnauthorizedCodeSIGNINGREQUESTEXPIRED,
@@ -61552,8 +61702,6 @@ func (s UploadTaskArtifactUnauthorizedCode) MarshalText() ([]byte, error) {
 	case UploadTaskArtifactUnauthorizedCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case UploadTaskArtifactUnauthorizedCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case UploadTaskArtifactUnauthorizedCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case UploadTaskArtifactUnauthorizedCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -61626,9 +61774,6 @@ func (s *UploadTaskArtifactUnauthorizedCode) UnmarshalText(data []byte) error {
 		return nil
 	case UploadTaskArtifactUnauthorizedCodeINVALIDSIGNATURE:
 		*s = UploadTaskArtifactUnauthorizedCodeINVALIDSIGNATURE
-		return nil
-	case UploadTaskArtifactUnauthorizedCodeVOUCHERLIMIT:
-		*s = UploadTaskArtifactUnauthorizedCodeVOUCHERLIMIT
 		return nil
 	case UploadTaskArtifactUnauthorizedCodeRATELIMITEXCEEDED:
 		*s = UploadTaskArtifactUnauthorizedCodeRATELIMITEXCEEDED
@@ -61948,7 +62093,6 @@ const (
 	ValidationProblemDetailsCodeVALIDATIONFAILED               ValidationProblemDetailsCode = "VALIDATION_FAILED"
 	ValidationProblemDetailsCodeINVALIDCHALLENGE               ValidationProblemDetailsCode = "INVALID_CHALLENGE"
 	ValidationProblemDetailsCodeINVALIDSIGNATURE               ValidationProblemDetailsCode = "INVALID_SIGNATURE"
-	ValidationProblemDetailsCodeVOUCHERLIMIT                   ValidationProblemDetailsCode = "VOUCHER_LIMIT"
 	ValidationProblemDetailsCodeRATELIMITEXCEEDED              ValidationProblemDetailsCode = "RATE_LIMIT_EXCEEDED"
 	ValidationProblemDetailsCodeSERIALIZATIONEXHAUSTED         ValidationProblemDetailsCode = "SERIALIZATION_EXHAUSTED"
 	ValidationProblemDetailsCodeSIGNINGREQUESTEXPIRED          ValidationProblemDetailsCode = "SIGNING_REQUEST_EXPIRED"
@@ -61982,7 +62126,6 @@ func (ValidationProblemDetailsCode) AllValues() []ValidationProblemDetailsCode {
 		ValidationProblemDetailsCodeVALIDATIONFAILED,
 		ValidationProblemDetailsCodeINVALIDCHALLENGE,
 		ValidationProblemDetailsCodeINVALIDSIGNATURE,
-		ValidationProblemDetailsCodeVOUCHERLIMIT,
 		ValidationProblemDetailsCodeRATELIMITEXCEEDED,
 		ValidationProblemDetailsCodeSERIALIZATIONEXHAUSTED,
 		ValidationProblemDetailsCodeSIGNINGREQUESTEXPIRED,
@@ -62024,8 +62167,6 @@ func (s ValidationProblemDetailsCode) MarshalText() ([]byte, error) {
 	case ValidationProblemDetailsCodeINVALIDCHALLENGE:
 		return []byte(s), nil
 	case ValidationProblemDetailsCodeINVALIDSIGNATURE:
-		return []byte(s), nil
-	case ValidationProblemDetailsCodeVOUCHERLIMIT:
 		return []byte(s), nil
 	case ValidationProblemDetailsCodeRATELIMITEXCEEDED:
 		return []byte(s), nil
@@ -62098,9 +62239,6 @@ func (s *ValidationProblemDetailsCode) UnmarshalText(data []byte) error {
 		return nil
 	case ValidationProblemDetailsCodeINVALIDSIGNATURE:
 		*s = ValidationProblemDetailsCodeINVALIDSIGNATURE
-		return nil
-	case ValidationProblemDetailsCodeVOUCHERLIMIT:
-		*s = ValidationProblemDetailsCodeVOUCHERLIMIT
 		return nil
 	case ValidationProblemDetailsCodeRATELIMITEXCEEDED:
 		*s = ValidationProblemDetailsCodeRATELIMITEXCEEDED
@@ -62342,45 +62480,6 @@ func (s *VerifyResultSigner) GetFingerprint() string {
 func (s *VerifyResultSigner) SetFingerprint(val string) {
 	s.Fingerprint = val
 }
-
-// Ref: #/components/schemas/Voucher
-type Voucher struct {
-	Code      string    `json:"code"`
-	ExpiresAt time.Time `json:"expiresAt"`
-	IssuedBy  string    `json:"issuedBy"`
-}
-
-// GetCode returns the value of Code.
-func (s *Voucher) GetCode() string {
-	return s.Code
-}
-
-// GetExpiresAt returns the value of ExpiresAt.
-func (s *Voucher) GetExpiresAt() time.Time {
-	return s.ExpiresAt
-}
-
-// GetIssuedBy returns the value of IssuedBy.
-func (s *Voucher) GetIssuedBy() string {
-	return s.IssuedBy
-}
-
-// SetCode sets the value of Code.
-func (s *Voucher) SetCode(val string) {
-	s.Code = val
-}
-
-// SetExpiresAt sets the value of ExpiresAt.
-func (s *Voucher) SetExpiresAt(val time.Time) {
-	s.ExpiresAt = val
-}
-
-// SetIssuedBy sets the value of IssuedBy.
-func (s *Voucher) SetIssuedBy(val string) {
-	s.IssuedBy = val
-}
-
-func (*Voucher) issueVoucherRes() {}
 
 // Ref: #/components/schemas/Whoami
 type Whoami struct {

@@ -19,6 +19,14 @@ func (s *ClaimTaskReq) setDefaults() {
 }
 
 // setDefaults set default value of fields.
+func (s *CreateAgentEnrollmentReq) setDefaults() {
+	{
+		val := int(15)
+		s.ExpiresInMinutes.SetTo(val)
+	}
+}
+
+// setDefaults set default value of fields.
 func (s *CreateAgentKeyReq) setDefaults() {
 	{
 		val := int(30)
