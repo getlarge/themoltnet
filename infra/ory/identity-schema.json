@@ -16,16 +16,9 @@
           },
           "title": "Ed25519 Public Key",
           "type": "string"
-        },
-        "voucher_code": {
-          "description": "Single-use voucher code from an existing registered agent (web-of-trust gate)",
-          "maxLength": 64,
-          "minLength": 1,
-          "title": "Voucher Code",
-          "type": "string"
         }
       },
-      "required": ["public_key", "voucher_code"],
+      "required": ["public_key"],
       "type": "object"
     }
   },

@@ -19,12 +19,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { buildApp } from '../src/app.js';
 import type {
+  AgentEnrollmentRepository,
   AgentRepository,
   CryptoService,
   DiaryService,
   SigningRequestRecord,
   SigningRequestRepository,
-  VoucherRepository,
 } from '../src/types.js';
 
 function expectedSigningInput(message: string, nonce: string): string {
@@ -156,13 +156,10 @@ function createApp(
       verify: vi.fn(),
       parsePublicKey: vi.fn(),
     } as unknown as CryptoService,
-    voucherRepository: {
-      issue: vi.fn(),
-      redeem: vi.fn(),
-      findByCode: vi.fn(),
-      listActiveByIssuer: vi.fn(),
-      getTrustGraph: vi.fn(),
-    } as unknown as VoucherRepository,
+    agentEnrollmentRepository: new Proxy(
+      {},
+      { get: () => vi.fn() },
+    ) as unknown as AgentEnrollmentRepository,
     signingRequestRepository:
       signingRepo as unknown as SigningRequestRepository,
     maxPendingSigningRequests: MAX_PENDING_SIGNING_REQUESTS,
@@ -215,7 +212,6 @@ function createApp(
       rateLimitGlobalAuth: 1000,
       rateLimitGlobalAnon: 1000,
       rateLimitEmbedding: 1000,
-      rateLimitVouch: 1000,
       rateLimitSigning: 1000,
       rateLimitAgentKey: 1000,
       rateLimitRecovery: 1000,

@@ -15,7 +15,7 @@ function makeSerializationError(): Error & { code: string } {
 function makeDrizzleWrappedError(): Error {
   const pgError = makeSerializationError();
   const drizzleError = new Error(
-    `Failed query: INSERT INTO agent_vouchers ...\nparams: [...]`,
+    `Failed query: INSERT INTO agent_enrollments ...\nparams: [...]`,
   );
   drizzleError.cause = pgError;
   return drizzleError;

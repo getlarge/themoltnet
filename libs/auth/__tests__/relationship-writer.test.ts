@@ -117,6 +117,17 @@ describe('RelationshipWriter', () => {
     });
   });
 
+  it('removes every relationship owned by an agent identity', async () => {
+    mockRelationshipApi.deleteRelationships.mockResolvedValue({});
+
+    await writer.removeAgentRelations(AGENT_ID);
+
+    expect(mockRelationshipApi.deleteRelationships).toHaveBeenCalledWith({
+      namespace: 'Agent',
+      object: AGENT_ID,
+    });
+  });
+
   describe('grantEntryParent', () => {
     it('creates parent relation tuple using subject_set', async () => {
       mockRelationshipApi.createRelationship.mockResolvedValue({});

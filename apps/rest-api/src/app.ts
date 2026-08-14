@@ -42,6 +42,7 @@ import {
 } from './plugins/rate-limit.js';
 import { requestContextPlugin } from './plugins/request-context.js';
 import { securityHeadersPlugin } from './plugins/security-headers.js';
+import { agentEnrollmentRoutes } from './routes/agent-enrollments.js';
 import { agentKeyRoutes } from './routes/agent-keys.js';
 import { agentRoutes } from './routes/agents.js';
 import { cryptoRoutes } from './routes/crypto.js';
@@ -69,9 +70,9 @@ import { signingRequestRoutes } from './routes/signing-requests.js';
 import { taskArtifactRoutes } from './routes/task-artifacts.js';
 import { taskRoutes } from './routes/tasks.js';
 import { teamRoutes } from './routes/teams.js';
-import { vouchRoutes } from './routes/vouch.js';
 import { sharedSchemas } from './schemas.js';
 import type {
+  AgentEnrollmentRepository,
   AgentRepository,
   ContextPackRepository,
   ContextPackService,
@@ -99,7 +100,6 @@ import type {
   TaskService,
   TeamRepository,
   TransactionRunner,
-  VoucherRepository,
 } from './types.js';
 
 export interface SecurityOptions {
@@ -113,8 +113,6 @@ export interface SecurityOptions {
   rateLimitGlobalAnon: number;
   /** Max requests per minute for embedding endpoints */
   rateLimitEmbedding: number;
-  /** Max requests per minute for vouch endpoints */
-  rateLimitVouch: number;
   /** Max requests per minute for signing request creation */
   rateLimitSigning: number;
   rateLimitAgentKey: number;
@@ -154,8 +152,6 @@ export interface SecurityOptions {
   trustProxy: number;
   /** Base URL for callback URLs in GitHub App manifests (e.g. http://localhost:8000 in dev) */
   apiBaseUrl: string;
-  /** Sponsor agent identity ID for issuing vouchers */
-  sponsorAgentId?: string;
 }
 
 export interface AppOptions {
@@ -170,7 +166,7 @@ export interface AppOptions {
   agentRepository: AgentRepository;
   humanRepository: HumanRepository;
   cryptoService: CryptoService;
-  voucherRepository: VoucherRepository;
+  agentEnrollmentRepository: AgentEnrollmentRepository;
   groupRepository: GroupRepository;
   teamRepository: TeamRepository;
   diaryTransferRepository: DiaryTransferRepository;
@@ -392,7 +388,6 @@ export async function registerApiRoutes(
     globalAuthLimit: options.security.rateLimitGlobalAuth,
     globalAnonLimit: options.security.rateLimitGlobalAnon,
     embeddingLimit: options.security.rateLimitEmbedding,
-    vouchLimit: options.security.rateLimitVouch,
     signingLimit: options.security.rateLimitSigning,
     agentKeyLimit: options.security.rateLimitAgentKey,
     recoveryLimit: options.security.rateLimitRecovery,
@@ -424,7 +419,7 @@ export async function registerApiRoutes(
   decorateSafe('agentRepository', options.agentRepository);
   decorateSafe('humanRepository', options.humanRepository);
   decorateSafe('cryptoService', options.cryptoService);
-  decorateSafe('voucherRepository', options.voucherRepository);
+  decorateSafe('agentEnrollmentRepository', options.agentEnrollmentRepository);
   decorateSafe('groupRepository', options.groupRepository);
   decorateSafe('teamRepository', options.teamRepository);
   decorateSafe('diaryTransferRepository', options.diaryTransferRepository);
@@ -507,6 +502,7 @@ export async function registerApiRoutes(
   await app.register(agentKeyRoutes, {
     talosApi: options.oryClients.apiKeys,
   });
+  await app.register(agentEnrollmentRoutes);
   await app.register(cryptoRoutes);
   await app.register(previewSignChallengeRoutes);
   await app.register(signingRequestRoutes);
@@ -525,7 +521,6 @@ export async function registerApiRoutes(
   await app.register(runtimeProfileRoutes);
   await app.register(runtimeModelRoutes);
   await app.register(runtimePolicyRoutes);
-  await app.register(vouchRoutes);
   await app.register(publicRoutes);
   await app.register(taskRoutes);
   await app.register(problemRoutes);

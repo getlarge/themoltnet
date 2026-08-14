@@ -60,6 +60,7 @@ export interface RelationshipWriter {
   ): Promise<void>;
   // Identity relations
   registerAgent(agentId: string): Promise<void>;
+  removeAgentRelations(agentId: string): Promise<void>;
   registerHuman(humanId: string): Promise<void>;
   // Team membership (Keto is the sole membership store)
   // subjectNs: KetoNamespace.Agent or KetoNamespace.Human
@@ -245,6 +246,13 @@ export function createRelationshipWriter(
           relation: AgentRelation.Self,
           subject_id: agentId,
         },
+      });
+    },
+
+    async removeAgentRelations(agentId: string): Promise<void> {
+      await relationshipApi.deleteRelationships({
+        namespace: KetoNamespace.Agent,
+        object: agentId,
       });
     },
 

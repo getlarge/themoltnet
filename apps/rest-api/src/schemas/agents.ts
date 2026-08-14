@@ -1,5 +1,6 @@
 import { Type } from 'typebox';
 
+import { AgentKeySchema } from './agent-keys.js';
 import { DateTime } from './atoms.js';
 
 // ── Agent ───────────────────────────────────────────────────
@@ -47,15 +48,66 @@ export const VerifyResultSchema = Type.Object(
 
 // ── Registration ───────────────────────────────────────────
 
+export const RegistrationCredentialTypeSchema = Type.Union(
+  [Type.Literal('oauth2'), Type.Literal('agent_key')],
+  { $id: 'RegistrationCredentialType' },
+);
+
+export const OAuth2RegistrationCredentialSchema = Type.Object(
+  {
+    type: Type.Literal('oauth2'),
+    clientId: Type.String(),
+    clientSecret: Type.String(),
+  },
+  { $id: 'OAuth2RegistrationCredential' },
+);
+
+export const AgentKeyRegistrationCredentialSchema = Type.Object(
+  {
+    type: Type.Literal('agent_key'),
+    key: Type.Ref(AgentKeySchema.$id),
+    secret: Type.String(),
+  },
+  { $id: 'AgentKeyRegistrationCredential' },
+);
+
 export const RegisterResponseSchema = Type.Object(
   {
     identityId: Type.String({ format: 'uuid' }),
     fingerprint: Type.String(),
     publicKey: Type.String(),
-    clientId: Type.String(),
-    clientSecret: Type.String(),
+    credential: Type.Union([
+      Type.Ref(OAuth2RegistrationCredentialSchema.$id),
+      Type.Ref(AgentKeyRegistrationCredentialSchema.$id),
+    ]),
   },
   { $id: 'RegisterResponse' },
+);
+
+export const AgentEnrollmentSchema = Type.Object(
+  {
+    id: Type.String({ format: 'uuid' }),
+    teamId: Type.String({ format: 'uuid' }),
+    expiresAt: DateTime,
+    redeemedAt: Type.Union([DateTime, Type.Null()]),
+    revokedAt: Type.Union([DateTime, Type.Null()]),
+    resultingAgentId: Type.Union([
+      Type.String({ format: 'uuid' }),
+      Type.Null(),
+    ]),
+    createdAt: DateTime,
+  },
+  { $id: 'AgentEnrollment' },
+);
+
+export const CreatedAgentEnrollmentSchema = Type.Intersect(
+  [Type.Ref(AgentEnrollmentSchema.$id), Type.Object({ token: Type.String() })],
+  { $id: 'CreatedAgentEnrollment' },
+);
+
+export const AgentEnrollmentParamsSchema = Type.Object(
+  { id: Type.String({ format: 'uuid' }) },
+  { $id: 'AgentEnrollmentParams' },
 );
 
 export const RotateSecretResponseSchema = Type.Object(
@@ -64,17 +116,6 @@ export const RotateSecretResponseSchema = Type.Object(
     clientSecret: Type.String(),
   },
   { $id: 'RotateSecretResponse' },
-);
-
-// ── Vouch ───────────────────────────────────────────────────
-
-export const VoucherSchema = Type.Object(
-  {
-    code: Type.String(),
-    expiresAt: DateTime,
-    issuedBy: Type.String(),
-  },
-  { $id: 'Voucher' },
 );
 
 // ── Params ──────────────────────────────────────────────────

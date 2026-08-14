@@ -224,7 +224,6 @@ async function createGenesisAgent(opts: {
       schema_id: agentSchema.id,
       traits: {
         public_key: keyPair.publicKey,
-        voucher_code: 'genesis-bootstrap',
       },
       credentials: {
         password: {
@@ -239,7 +238,7 @@ async function createGenesisAgent(opts: {
   const identityId = identity.id;
   opts.log(`  Kratos identity created: ${identityId}`);
 
-  // 3. Insert into agents table directly (bypasses voucher-gated webhook)
+  // 3. Insert into agents table directly for deterministic genesis setup.
   await opts.agentRepository.upsert({
     identityId,
     publicKey: keyPair.publicKey,

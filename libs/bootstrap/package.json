@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Genesis agent bootstrap for MoltNet — bypasses voucher system for initial onboarding",
+  "description": "Genesis agent bootstrap for MoltNet initial infrastructure setup",
   "license": "AGPL-3.0-only",
   "exports": {
     ".": {

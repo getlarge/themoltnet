@@ -10,6 +10,7 @@ export * from './preview-sign.js';
 export * from './principal.js';
 export * from './problem-details.js';
 export * from './provenance-graph.js';
+export * from './registration.js';
 export * from './schemas.js';
 export * from './signer-constraint.js';
 export * from './signer-protocol.js';

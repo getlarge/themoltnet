@@ -43,9 +43,6 @@ import {
 
 function createMockDeps() {
   return {
-    voucherRepository: {
-      issueUnlimited: vi.fn(),
-    },
     identityApi: {
       deleteIdentity: vi.fn(),
     },
@@ -65,10 +62,6 @@ describe('initLegreffierOnboardingWorkflow', () => {
   });
 
   it('registers steps and workflow with DBOS', () => {
-    expect(mockRegisterStep).toHaveBeenCalledWith(
-      expect.any(Function),
-      expect.objectContaining({ name: 'legreffier.step.issueVoucher' }),
-    );
     expect(mockRegisterStep).toHaveBeenCalledWith(
       expect.any(Function),
       expect.objectContaining({

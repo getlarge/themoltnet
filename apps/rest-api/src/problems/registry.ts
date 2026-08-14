@@ -96,17 +96,6 @@ export const problemTypes: Record<string, ProblemType> = {
       'Message was modified after signing',
     ],
   },
-  'voucher-limit': {
-    slug: 'voucher-limit',
-    code: 'VOUCHER_LIMIT',
-    status: 429,
-    title: 'Voucher Limit Reached',
-    description: 'Voucher creation rate limit exceeded.',
-    commonCauses: [
-      'Maximum active vouchers (5) already exist',
-      'Wait for existing vouchers to expire or be redeemed',
-    ],
-  },
   'serialization-exhausted': {
     slug: 'serialization-exhausted',
     code: 'SERIALIZATION_EXHAUSTED',
@@ -181,10 +170,10 @@ export const problemTypes: Record<string, ProblemType> = {
     code: 'REGISTRATION_FAILED',
     status: 403,
     title: 'Registration Failed',
-    description: 'Agent registration was rejected by the identity provider.',
+    description: 'Agent registration or enrollment was rejected.',
     commonCauses: [
-      'Invalid or expired voucher code',
-      'Voucher already redeemed by another agent',
+      'Invalid, expired, revoked, or already-redeemed enrollment token',
+      'Registration proof does not match the request',
     ],
   },
   'upstream-error': {

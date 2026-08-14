@@ -4,14 +4,13 @@
  * DBOS workflow for one-command agent onboarding via GitHub App.
  *
  * Steps:
- * 1. Issue sponsor voucher
- * 2. Register agent (reuses registrationWorkflow.registerAgent)
- * 3. Wait for GitHub OAuth callback (recv github_code)  — 10 min
- * 4. If timeout: compensate (delete Kratos identity)
- * 5. Signal github_code_ready (for status polling)
- * 6. Wait for GitHub installation callback (recv installation_id) — 1 hour
- * 7. If timeout: compensate (delete Kratos identity)
- * 8. Return result
+ * 1. Self-register the locally signed identity with an OAuth2 credential
+ * 2. Wait for GitHub OAuth callback (recv github_code)  — 10 min
+ * 3. If timeout: compensate all registration resources
+ * 4. Signal github_code_ready (for status polling)
+ * 5. Wait for GitHub installation callback (recv installation_id) — 1 hour
+ * 6. If timeout: compensate all registration resources
+ * 7. Return result
  *
  * ## Initialization Order
  *
@@ -19,11 +18,12 @@
  * Call `setLegreffierOnboardingDeps()` in afterLaunch.
  */
 
-import { DBOS, type VoucherRepository } from '@moltnet/database';
+import { DBOS } from '@moltnet/database';
 import type { IdentityApi } from '@ory/client-fetch';
 
 import type { Logger } from './logger.js';
 import {
+  type RegistrationInput,
   type RegistrationResult,
   registrationWorkflow,
 } from './registration-workflow.js';
@@ -56,7 +56,6 @@ export class OnboardingWorkflowError extends Error {
 // ── Types ──────────────────────────────────────────────────────
 
 export interface LegreffierOnboardingDeps {
-  voucherRepository: VoucherRepository;
   identityApi: IdentityApi;
   logger: Logger;
 }
@@ -87,9 +86,7 @@ function getDeps(): LegreffierOnboardingDeps {
 // ── Lazy Registration ──────────────────────────────────────────
 
 type StartOnboardingFn = (
-  publicKey: string,
-  fingerprint: string,
-  sponsorAgentId: string,
+  registrationInput: RegistrationInput,
   agentName: string, // durably recorded for CLI git config integration
 ) => Promise<OnboardingResult>;
 
@@ -105,21 +102,6 @@ export function initLegreffierOnboardingWorkflow(): void {
   if (_workflow) return;
 
   // ── Steps ────────────────────────────────────────────────────
-
-  const issueVoucherStep = DBOS.registerStep(
-    async (sponsorAgentId: string): Promise<string> => {
-      const { voucherRepository } = getDeps();
-      const voucher = await voucherRepository.issueUnlimited(sponsorAgentId);
-      return voucher.code;
-    },
-    {
-      name: 'legreffier.step.issueVoucher',
-      retriesAllowed: true,
-      maxAttempts: 3,
-      intervalSeconds: 2,
-      backoffRate: 2,
-    },
-  );
 
   const deleteKratosIdentityStep = DBOS.registerStep(
     async (identityId: string): Promise<void> => {
@@ -139,9 +121,7 @@ export function initLegreffierOnboardingWorkflow(): void {
 
   _workflow = DBOS.registerWorkflow(
     async (
-      publicKey: string,
-      fingerprint: string,
-      sponsorAgentId: string,
+      registrationInput: RegistrationInput,
       // agentName is durably recorded by DBOS as a workflow argument so it
       // survives restarts; the CLI integration will use it for git config.
 
@@ -149,16 +129,14 @@ export function initLegreffierOnboardingWorkflow(): void {
     ): Promise<OnboardingResult> => {
       const workflowId = DBOS.workflowID ?? 'unknown';
 
-      // Step 1: Issue voucher from sponsor
-      const voucherCode = await issueVoucherStep(sponsorAgentId);
-
-      // Step 2: Register agent (Kratos + Keto + OAuth2 client)
+      // Step 1: Register agent (Kratos + Keto + selected credential)
       // startWorkflow + getResult is the correct DBOS pattern for calling a
       // child workflow from a parent workflow. DBOS records the child handle
       // and resumes from there on replay.
       const registrationHandle = await DBOS.startWorkflow(
         registrationWorkflow.registerAgent,
-      )(publicKey, fingerprint, voucherCode);
+        { workflowID: `legreffier-registration-${workflowId}` },
+      )(registrationInput);
       const registration = await registrationHandle.getResult();
 
       // Step 3: Wait for GitHub OAuth callback
@@ -168,13 +146,16 @@ export function initLegreffierOnboardingWorkflow(): void {
       );
 
       if (!githubCode) {
-        // Compensation: delete Kratos identity on timeout
+        // Compensation: remove all registration resources on timeout.
         const { logger } = getDeps();
         logger.error(
           { workflowId, identityId: registration.identityId },
           'legreffier.github_callback_timeout',
         );
         try {
+          await registrationWorkflow.compensateSelfRegistration(
+            registration.identityId,
+          );
           await deleteKratosIdentityStep(registration.identityId);
         } catch (err) {
           logger.error(
@@ -201,13 +182,16 @@ export function initLegreffierOnboardingWorkflow(): void {
       );
 
       if (!installationId) {
-        // Compensation: delete Kratos identity on installation timeout
+        // Compensation: remove all registration resources on timeout.
         const { logger } = getDeps();
         logger.error(
           { workflowId, identityId: registration.identityId },
           'legreffier.installation_timeout',
         );
         try {
+          await registrationWorkflow.compensateSelfRegistration(
+            registration.identityId,
+          );
           await deleteKratosIdentityStep(registration.identityId);
         } catch (err) {
           logger.error(

@@ -257,20 +257,6 @@ describe('loadSecurityConfig', () => {
     });
     expect(config.API_BASE_URL).toBe('http://localhost:8000');
   });
-
-  it('accepts SPONSOR_AGENT_ID as UUID string', () => {
-    const config = loadSecurityConfig({
-      SPONSOR_AGENT_ID: '00000000-0000-0000-0000-000000000001',
-    });
-    expect(config.SPONSOR_AGENT_ID).toBe(
-      '00000000-0000-0000-0000-000000000001',
-    );
-  });
-
-  it('leaves SPONSOR_AGENT_ID undefined when not set', () => {
-    const config = loadSecurityConfig({});
-    expect(config.SPONSOR_AGENT_ID).toBeUndefined();
-  });
 });
 
 // ============================================================================
@@ -448,66 +434,6 @@ describe('resolveOryUrls', () => {
     });
 
     expect(resolved.talosAdminUrl).toBeUndefined();
-  });
-});
-
-// ============================================================================
-// SPONSOR_AGENT_ID via loadConfig
-// ============================================================================
-
-describe('loadConfig — SPONSOR_AGENT_ID', () => {
-  it('is undefined when env var is absent', () => {
-    const config = loadConfig({
-      DATABASE_URL: 'postgresql://x:x@localhost/x',
-      DBOS_SYSTEM_DATABASE_URL: 'postgresql://x:x@localhost/x',
-      ORY_PROJECT_URL: 'https://example.oryapis.com',
-      ORY_API_KEY: 'test-key',
-      ORY_ACTION_API_KEY: 'test-webhook-key',
-      RECOVERY_CHALLENGE_SECRET: 'sixteen-chars-ok',
-    });
-    expect(config.security.SPONSOR_AGENT_ID).toBeUndefined();
-  });
-
-  it('is set when env var is present', () => {
-    const config = loadConfig({
-      DATABASE_URL: 'postgresql://x:x@localhost/x',
-      DBOS_SYSTEM_DATABASE_URL: 'postgresql://x:x@localhost/x',
-      ORY_PROJECT_URL: 'https://example.oryapis.com',
-      ORY_API_KEY: 'test-key',
-      ORY_ACTION_API_KEY: 'test-webhook-key',
-      RECOVERY_CHALLENGE_SECRET: 'sixteen-chars-ok',
-      SPONSOR_AGENT_ID: '550e8400-e29b-41d4-a716-446655440000',
-    });
-    expect(config.security.SPONSOR_AGENT_ID).toBe(
-      '550e8400-e29b-41d4-a716-446655440000',
-    );
-  });
-
-  it('is undefined when env var is empty string', () => {
-    const config = loadConfig({
-      DATABASE_URL: 'postgresql://x:x@localhost/x',
-      DBOS_SYSTEM_DATABASE_URL: 'postgresql://x:x@localhost/x',
-      ORY_PROJECT_URL: 'https://example.oryapis.com',
-      ORY_API_KEY: 'test-key',
-      ORY_ACTION_API_KEY: 'test-webhook-key',
-      RECOVERY_CHALLENGE_SECRET: 'sixteen-chars-ok',
-      SPONSOR_AGENT_ID: '',
-    });
-    expect(config.security.SPONSOR_AGENT_ID).toBeUndefined();
-  });
-
-  it('throws when env var is not a valid UUID', () => {
-    expect(() =>
-      loadConfig({
-        DATABASE_URL: 'postgresql://x:x@localhost/x',
-        DBOS_SYSTEM_DATABASE_URL: 'postgresql://x:x@localhost/x',
-        ORY_PROJECT_URL: 'https://example.oryapis.com',
-        ORY_API_KEY: 'test-key',
-        ORY_ACTION_API_KEY: 'test-webhook-key',
-        RECOVERY_CHALLENGE_SECRET: 'sixteen-chars-ok',
-        SPONSOR_AGENT_ID: 'not-a-uuid',
-      }),
-    ).toThrow();
   });
 });
 

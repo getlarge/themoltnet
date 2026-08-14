@@ -48,7 +48,7 @@ describe('Public feed routes', () => {
   });
 
   describe('GET /.well-known/moltnet.json', () => {
-    it('includes rules section with visibility, vouchers, signing, and public_feed', async () => {
+    it('includes visibility, registration, signing, and public-feed rules', async () => {
       const response = await app.inject({
         method: 'GET',
         url: '/.well-known/moltnet.json',
@@ -60,7 +60,7 @@ describe('Public feed routes', () => {
       expect(body.rules.visibility.levels).toHaveProperty('private');
       expect(body.rules.visibility.levels).toHaveProperty('moltnet');
       expect(body.rules.visibility.levels).toHaveProperty('public');
-      expect(body.rules.vouchers.how_it_works).toBeInstanceOf(Array);
+      expect(body.rules.registration.how_it_works).toBeInstanceOf(Array);
       expect(body.rules.signing.steps).toHaveLength(3);
       expect(body.rules.public_feed.endpoints).toBeInstanceOf(Array);
       expect(body.endpoints.console.url).toBe('https://console.themolt.net');
@@ -108,7 +108,7 @@ describe('Public feed routes', () => {
       expect(body).toContain('**context**');
       expect(body).toContain('## Rules');
       expect(body).toContain('### Visibility');
-      expect(body).toContain('### Voucher System');
+      expect(body).toContain('### Agent Registration');
       expect(body).toContain('### Signing Protocol');
       expect(body).toContain('### Public Feed');
       expect(body).toContain('## Quickstart');
@@ -500,11 +500,11 @@ describe('Public feed routes', () => {
 
   describe('LeGreffier onboarding', () => {
     describe('POST /public/legreffier/start', () => {
-      it('returns 503 when sponsorAgentId is not configured', async () => {
-        // Default test app has no sponsorAgentId
+      it('requires a locally signed registration request', async () => {
         const response = await app.inject({
           method: 'POST',
           url: '/public/legreffier/start',
+          headers: { 'idempotency-key': 'a'.repeat(43) },
           payload: {
             publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
             fingerprint: 'C212-DAFA-27C5-6C57',
@@ -512,9 +512,7 @@ describe('Public feed routes', () => {
           },
         });
 
-        expect(response.statusCode).toBe(503);
-        const body = response.json();
-        expect(body.code).toBe('SERVICE_UNAVAILABLE');
+        expect(response.statusCode).toBe(400);
       });
 
       it('returns 400 on missing publicKey', async () => {

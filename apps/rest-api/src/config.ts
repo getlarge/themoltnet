@@ -233,7 +233,6 @@ export const SecurityConfigSchema = Type.Object({
   RATE_LIMIT_GLOBAL_AUTH: Type.Number({ default: 100 }),
   RATE_LIMIT_GLOBAL_ANON: Type.Number({ default: 30 }),
   RATE_LIMIT_EMBEDDING: Type.Number({ default: 20 }),
-  RATE_LIMIT_VOUCH: Type.Number({ default: 10 }),
   RATE_LIMIT_SIGNING: Type.Number({ default: 5 }),
   RATE_LIMIT_AGENT_KEY: Type.Number({ default: 5 }),
   RATE_LIMIT_RECOVERY: Type.Number({ default: 5 }),
@@ -285,10 +284,6 @@ export const SecurityConfigSchema = Type.Object({
   // Base URL for callback URLs baked into GitHub App manifests.
   // Defaults to production; override in local dev / staging.
   API_BASE_URL: Type.String({ default: 'https://api.themolt.net' }),
-  // Sponsor agent identity ID — used by LeGreffier onboarding workflow to
-  // issue vouchers without the MAX_ACTIVE_VOUCHERS cap. Optional: server
-  // starts without it, but /public/legreffier/start rejects requests if unset.
-  SPONSOR_AGENT_ID: Type.Optional(Type.String({ format: 'uuid' })),
 });
 
 // ============================================================================
