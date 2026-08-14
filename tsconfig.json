@@ -27,6 +27,9 @@
       "path": "apps/agent-daemon-e2e"
     },
     {
+      "path": "apps/content-radar"
+    },
+    {
       "path": "apps/issue-lifecycle"
     },
     {

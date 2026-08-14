@@ -1,0 +1,30 @@
+{
+  "$comment": "Work-scan phase. Reads the team diary for rationale behind recent work. Deliberately has NO network tools: this phase must not be able to reach the open web, so a compromised page cannot influence what it reports about your own repositories. Create with: moltnet profile create --from-file content-radar-scan.json --team-id <team-uuid>",
+  "context": [],
+  "heartbeatIntervalMs": 60000,
+  "leaseTtlSec": 900,
+  "maxOutputTokens": 8000,
+  "model": "claude-sonnet-5",
+  "name": "content-radar-scan",
+  "provider": "anthropic",
+  "requiredTools": [
+    "moltnet_search_entries",
+    "moltnet_list_entries",
+    "moltnet_get_entry",
+    "moltnet_diary_tags"
+  ],
+  "runtimeKind": "content_radar_pi",
+  "sandbox": {
+    "hostExec": { "autoApprove": false },
+    "network": { "allowedHosts": [] },
+    "resources": { "cpus": 2, "memory": "4G" },
+    "vfs": {
+      "shadow": [".env", ".env.local", ".moltnet"],
+      "shadowMode": "deny"
+    }
+  },
+  "sessionTtlSec": 1800,
+  "thinkingLevel": "medium",
+  "toolEnforcement": "enforce",
+  "workspaceTtlSec": 1800
+}

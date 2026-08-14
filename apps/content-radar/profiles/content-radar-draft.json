@@ -1,0 +1,25 @@
+{
+  "$comment": "Draft phase. Writes dossier.md and wireframe.md into scratch and uploads both as task artifacts. It gets write + the artifact upload tool, and no network: its sources are the per-track packet already in the brief. Add a `context` entry carrying your voice guide if you want the wireframe beats shaped to your register.",
+  "context": [],
+  "heartbeatIntervalMs": 60000,
+  "leaseTtlSec": 1800,
+  "maxOutputTokens": 24000,
+  "model": "claude-opus-5",
+  "name": "content-radar-draft",
+  "provider": "anthropic",
+  "requiredTools": ["read", "write", "moltnet_upload_task_artifact"],
+  "runtimeKind": "content_radar_pi",
+  "sandbox": {
+    "hostExec": { "autoApprove": false },
+    "network": { "allowedHosts": [] },
+    "resources": { "cpus": 2, "memory": "4G" },
+    "vfs": {
+      "shadow": [".env", ".env.local", ".moltnet"],
+      "shadowMode": "deny"
+    }
+  },
+  "sessionTtlSec": 2700,
+  "thinkingLevel": "high",
+  "toolEnforcement": "enforce",
+  "workspaceTtlSec": 1800
+}

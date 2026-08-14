@@ -1,0 +1,23 @@
+{
+  "name": "moltnet-content-radar-runtime",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "npx @themoltnet/agent-daemon --runtime ./dist/runtime.js",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@earendil-works/pi-ai": "0.79.4",
+    "@earendil-works/pi-coding-agent": "0.79.4",
+    "@themoltnet/agent-daemon": "0.41.1",
+    "@themoltnet/pi-runtime": "0.9.0",
+    "typebox": "^1.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.4"
+  }
+}

@@ -47,7 +47,10 @@
   },
   "plugins": [
     {
-      "exclude": ["examples/custom-pi-runtime/**/*"],
+      "exclude": [
+        "examples/custom-pi-runtime/**/*",
+        "examples/content-radar-runtime/**/*"
+      ],
       "options": {
         "extensions": ["ts", "tsx"],
         "targetName": "lint"
@@ -100,7 +103,10 @@
       "plugin": "@nx/docker"
     },
     {
-      "exclude": ["examples/custom-pi-runtime/**/*"],
+      "exclude": [
+        "examples/custom-pi-runtime/**/*",
+        "examples/content-radar-runtime/**/*"
+      ],
       "options": {
         "typecheck": {
           "targetName": "typecheck"

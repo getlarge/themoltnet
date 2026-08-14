@@ -1,0 +1,44 @@
+{
+  "$comment": "Example content-radar watchlist. Pass with --watchlist <path>. Validate it before a run with `moltnet-content-radar --validate --watchlist watchlist.example.json` — that is read-only and never connects. The organisations list is the hard boundary of the market sweep: an announcement from anyone not named here is rejected by trusted code, so widening scope is an edit to this file, not a prompt.",
+  "editorialFocus": "Autumn talk season. The through-line is agents moving from local and interactive to headless, remote and orchestrated — and what that move costs in accountability, identity and verification. Prefer tracks where hands-on experience contradicts or predates the market's framing.",
+  "repos": [
+    {
+      "diaryId": "6e4d9948-8ec5-4f59-b82a-3acbc4bbc396",
+      "focus": "Task orchestration, agent runtimes, runtime profiles and tool policies. Prefer entries that explain a reversal or a measured constraint over entries that describe a feature.",
+      "repository": "getlarge/themoltnet",
+      "sinceDays": 30,
+      "slug": "themoltnet"
+    },
+    {
+      "focus": "What building an industrial-operations product teaches about agent accountability. Skip pure GTM copy edits.",
+      "repository": "getlarge/clairon-gtm",
+      "sinceDays": 45,
+      "slug": "clairon-gtm"
+    }
+  ],
+  "segments": [
+    {
+      "organisations": ["Anthropic", "OpenAI", "Google", "Cursor", "Cognition"],
+      "queries": [
+        "headless coding agent remote execution",
+        "agent sandbox runtime isolation",
+        "long-running background agent sessions"
+      ],
+      "sinceDays": 30,
+      "slug": "agent-runtimes",
+      "title": "Agent runtimes and headless execution"
+    },
+    {
+      "organisations": ["LangChain", "Temporal", "Anthropic", "Microsoft"],
+      "queries": [
+        "durable multi-agent workflow orchestration",
+        "agent task queue fan-out join",
+        "agent memory and context handoff between sessions"
+      ],
+      "sinceDays": 30,
+      "slug": "agent-orchestration",
+      "title": "Multi-agent orchestration and durable workflows"
+    }
+  ],
+  "version": 1
+}

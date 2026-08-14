@@ -1,0 +1,26 @@
+{
+  "$comment": "Market-sweep phase. The ONLY phase with network reach, and only through the two Exa tools declared by the content-radar runtime. EXA_API_KEY must be present in the daemon process environment; keep the value out of sandbox.env. Note: exa_search/exa_contents are parent-scope host tools, so sandbox.network.allowedHosts does not constrain them — the tool implementation pins the origin. See examples/content-radar-runtime/README.md.",
+  "context": [],
+  "heartbeatIntervalMs": 60000,
+  "leaseTtlSec": 1800,
+  "maxOutputTokens": 12000,
+  "model": "claude-sonnet-5",
+  "name": "content-radar-sweep",
+  "provider": "anthropic",
+  "requiredEnv": ["EXA_API_KEY"],
+  "requiredTools": ["exa_search", "exa_contents"],
+  "runtimeKind": "content_radar_pi",
+  "sandbox": {
+    "hostExec": { "autoApprove": false },
+    "network": { "allowedHosts": [] },
+    "resources": { "cpus": 2, "memory": "4G" },
+    "vfs": {
+      "shadow": [".env", ".env.local", ".moltnet"],
+      "shadowMode": "deny"
+    }
+  },
+  "sessionTtlSec": 2700,
+  "thinkingLevel": "medium",
+  "toolEnforcement": "enforce",
+  "workspaceTtlSec": 1800
+}

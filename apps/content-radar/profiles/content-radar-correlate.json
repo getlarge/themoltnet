@@ -1,0 +1,25 @@
+{
+  "$comment": "Correlation phase. Plans tracks from the attached signal ledger and nothing else — no network, no repository, no diary. Every id it may cite was already issued by trusted code, so this phase needs judgement, not tools. Give it the strongest reasoning model you are willing to pay for; it is one task per run.",
+  "context": [],
+  "heartbeatIntervalMs": 60000,
+  "leaseTtlSec": 900,
+  "maxOutputTokens": 16000,
+  "model": "claude-opus-5",
+  "name": "content-radar-correlate",
+  "provider": "anthropic",
+  "requiredTools": [],
+  "runtimeKind": "content_radar_pi",
+  "sandbox": {
+    "hostExec": { "autoApprove": false },
+    "network": { "allowedHosts": [] },
+    "resources": { "cpus": 2, "memory": "4G" },
+    "vfs": {
+      "shadow": [".env", ".env.local", ".moltnet"],
+      "shadowMode": "deny"
+    }
+  },
+  "sessionTtlSec": 1800,
+  "thinkingLevel": "high",
+  "toolEnforcement": "enforce",
+  "workspaceTtlSec": 900
+}
