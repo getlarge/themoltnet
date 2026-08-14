@@ -11,8 +11,8 @@
   "dependencies": {
     "@earendil-works/pi-ai": "0.79.4",
     "@earendil-works/pi-coding-agent": "0.79.4",
-    "@themoltnet/agent-daemon": "0.40.0",
-    "@themoltnet/pi-runtime": "0.8.0",
+    "@themoltnet/agent-daemon": "0.41.1",
+    "@themoltnet/pi-runtime": "0.9.0",
     "typebox": "^1.2.8"
   },
   "devDependencies": {
