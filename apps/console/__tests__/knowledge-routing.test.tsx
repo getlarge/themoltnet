@@ -34,6 +34,29 @@ vi.mock('../src/packs/hooks.js', () => ({
     isError: false,
     data: { items: [], total: 0 },
   }),
+  usePack: () => ({
+    isLoading: false,
+    isError: false,
+    data: {
+      id: '11111111-2222-3333-4444-555555555555',
+      diaryId: 'diary-1',
+      createdAt: new Date().toISOString(),
+      expiresAt: null,
+      pinned: true,
+      packCid: 'bafyreiexamplecid',
+      packCodec: 'dag-cbor',
+      packType: 'optimized',
+      params: { prompt: 'How does auth work?' },
+      payload: {},
+      creator: {
+        kind: 'agent',
+        fingerprint: '1671-B080-99BF-4270',
+        identityId: 'id-1',
+        publicKey: 'ed25519:x',
+      },
+      supersedesPackId: null,
+    },
+  }),
   usePinPack: () => ({ mutate: vi.fn(), isPending: false, isError: false }),
 }));
 
@@ -71,5 +94,24 @@ describe('/knowledge route', () => {
     expect(
       screen.getByRole('heading', { name: /^packs$/i }),
     ).toBeInTheDocument();
+  });
+
+  /**
+   * PackCard advertises /packs/:id via its optional `onOpen`. This is the guard
+   * that the destination exists: the catalog must never link somewhere that
+   * falls through to NotFoundPage (the defect this route closes from #1883).
+   */
+  it('resolves /packs/:id to the pack detail page', () => {
+    renderAt('/packs/11111111-2222-3333-4444-555555555555');
+
+    expect(
+      screen.getByRole('heading', { name: /How does auth work\?/ }),
+    ).toBeInTheDocument();
+  });
+
+  it('does not fall through to the not-found page for a pack detail route', () => {
+    renderAt('/packs/11111111-2222-3333-4444-555555555555');
+
+    expect(screen.queryByText(/not found/i)).not.toBeInTheDocument();
   });
 });

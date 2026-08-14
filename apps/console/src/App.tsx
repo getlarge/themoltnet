@@ -12,6 +12,7 @@ import { GroupDetailPage } from './pages/GroupDetailPage.js';
 import { KnowledgePage } from './pages/KnowledgePage.js';
 import { NotFoundPage } from './pages/NotFoundPage.js';
 import { OverviewPage } from './pages/OverviewPage.js';
+import { PackDetailPage } from './pages/PackDetailPage.js';
 import { PacksPage } from './pages/PacksPage.js';
 import { ProfilesPage } from './pages/ProfilesPage.js';
 import { RuntimePage } from './pages/RuntimePage.js';
@@ -33,6 +34,9 @@ export function App() {
           <Route path="/" component={OverviewPage} />
           <Route path="/knowledge" component={KnowledgePage} />
           <Route path="/packs" component={PacksPage} />
+          <Route path="/packs/:id">
+            {(params: { id: string }) => <PackDetailPage id={params.id} />}
+          </Route>
           <Route path="/diaries" component={DiariesPage} />
           <Route path="/diaries/:diaryId/entries/:entryId">
             {(params: { diaryId: string; entryId: string }) => (

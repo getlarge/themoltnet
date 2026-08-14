@@ -7,6 +7,7 @@ import {
   Text,
 } from '@themoltnet/design-system';
 import { useEffect, useState } from 'react';
+import { useLocation } from 'wouter';
 
 import { getApiErrorDetail } from '../api-error.js';
 import { PackCard } from '../components/packs/PackCard.js';
@@ -18,6 +19,7 @@ const PAGE_SIZE = 20;
 
 export function PacksPage() {
   const { selectedTeam } = useTeam();
+  const [, navigate] = useLocation();
   const [offset, setOffset] = useState(0);
   const packs = usePacks({ limit: PAGE_SIZE, offset });
 
@@ -98,9 +100,12 @@ export function PacksPage() {
       {items.length > 0 ? (
         <Stack gap={5}>
           {items.map((pack) => (
-            // No `onOpen`: /packs/:id does not exist yet, and a row must not
-            // advertise a destination that resolves to NotFoundPage.
-            <PackCard key={pack.id} pack={pack} now={now} />
+            <PackCard
+              key={pack.id}
+              pack={pack}
+              now={now}
+              onOpen={(packId) => navigate(`/packs/${packId}`)}
+            />
           ))}
         </Stack>
       ) : null}
