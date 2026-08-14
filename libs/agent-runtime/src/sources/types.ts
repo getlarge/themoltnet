@@ -27,50 +27,6 @@ export interface ClaimAuthority {
   executorFingerprint?: string;
 }
 
-export interface ClaimAttemptAuthorityFields {
-  claimedByAgentId?: string | null;
-  leaseId?: string | null;
-  runtimeProfileId?: string | null;
-  runtimeProfileRevision?: number | null;
-  policySnapshotHash?: string | null;
-  claimedExecutorFingerprint?: string | null;
-}
-
-/** Preserve the claim response without manufacturing evidence for legacy APIs. */
-export function claimAuthorityFromAttempt(
-  attempt: ClaimAttemptAuthorityFields,
-  fallback?: {
-    runtimeProfileId?: string;
-    executorFingerprint?: string;
-  },
-): ClaimAuthority | undefined {
-  const authority: ClaimAuthority = {
-    ...(attempt.claimedByAgentId
-      ? { claimantAgentId: attempt.claimedByAgentId }
-      : {}),
-    ...(attempt.leaseId ? { leaseId: attempt.leaseId } : {}),
-    ...((attempt.runtimeProfileId ?? fallback?.runtimeProfileId)
-      ? {
-          runtimeProfileId:
-            attempt.runtimeProfileId ?? fallback?.runtimeProfileId,
-        }
-      : {}),
-    ...(typeof attempt.runtimeProfileRevision === 'number'
-      ? { runtimeProfileRevision: attempt.runtimeProfileRevision }
-      : {}),
-    ...(attempt.policySnapshotHash
-      ? { policySnapshotHash: attempt.policySnapshotHash }
-      : {}),
-    ...((attempt.claimedExecutorFingerprint ?? fallback?.executorFingerprint)
-      ? {
-          executorFingerprint:
-            attempt.claimedExecutorFingerprint ?? fallback?.executorFingerprint,
-        }
-      : {}),
-  };
-  return Object.keys(authority).length > 0 ? authority : undefined;
-}
-
 export interface ClaimedTask {
   /** The claimed task payload itself. */
   task: Task;

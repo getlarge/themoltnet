@@ -172,11 +172,11 @@ across every policy bound to it.
 Policies are inert on their own. A profile turns them on with its
 **enforcement mode**:
 
-| Mode      | Behaviour                                                                |
-| --------- | ------------------------------------------------------------------------ |
-| `off`     | No gate. Tools run unchecked; no allow-set is even fetched.              |
-| `watch`   | Audit only. Disallowed calls are **logged** as would-block, but allowed. |
-| `enforce` | Disallowed calls are **blocked**. Fail-closed (see below).               |
+| Mode      | Behaviour                                                                 |
+| --------- | ------------------------------------------------------------------------- |
+| `off`     | No call-time gate. Session start still refreshes the latest profile mode. |
+| `watch`   | Audit only. Disallowed calls are **logged** as would-block, but allowed.  |
+| `enforce` | Disallowed calls are **blocked**. Fail-closed (see below).                |
 
 `watch` is the migration path: enable it first, read the audit logs to see what
 a real workload calls, then curate policies until `enforce` blocks nothing
@@ -326,17 +326,12 @@ than a tier-wide block. Tracked as follow-up work.
 The daemon enforces tool policy through a Pi extension that gates every
 `tool_call`.
 
-1. **Session start.** The daemon resolves the profile's enforcement mode and
-   allowed-tool and shell-command sets once, through the SDK
-   (`runtimeProfiles.allowedTools(profileId, { teamId })`). The fetch is bounded
-   by a **5-second deadline**. `off` short-circuits with no network call.
-2. **Execution snapshot.** The latest effective profile policy returned at
-   session start is cached for the session's lifetime. It is distinct from the
-   immutable claim snapshot used as claim and derived-credential evidence. A
-   policy edit made before session start applies immediately; an edit made while
-   a session is running takes effect on the **next** session, not mid-run — a
-   deliberate trade for stable, predictable enforcement during a run.
-3. **Model-visible capability projection.** The same snapshot filters the
+1. **Session start.** Every profile-backed session resolves the latest
+   enforcement mode and allow-sets through the SDK, including when the daemon's
+   cached mode is `off`. The fetch has a **5-second deadline**. The canonical
+   claim/execution snapshot lifecycle is documented in
+   [Tasks and Runtime](../use/tasks-and-runtime.md#map-3-claim-and-pin-authority).
+2. **Model-visible capability projection.** The execution snapshot filters the
    session's visible tools. Their tool definitions are the authoritative
    structured-tool surface; the immutable runtime kernel adds the enforcement
    mode and a bounded summary of shell restrictions. In `enforce`, `bash` is
@@ -345,18 +340,17 @@ The daemon enforces tool policy through a Pi extension that gates every
    without asserting a static inventory of installed executables. This keeps
    model guidance aligned with the gate without making the prompt an
    authorization mechanism.
-4. **Gate.** For each `tool_call`, the extension runs the decision above and
+3. **Gate.** For each `tool_call`, the extension runs the decision above and
    returns block/allow/audit. Allowed, audited, and blocked decisions are logged
    with task, attempt, team, claimant, proposer, tool-call, enforcement,
    claim-hash, execution-hash, profile-revision, and safe shell-fingerprint
    evidence. Generic tool arguments and shell literals are never logged.
-5. **Subagents.** When a task delegates to a subagent, the **same** gate is
+4. **Subagents.** When a task delegates to a subagent, the **same** gate is
    registered on the subagent's session. Delegation cannot escape enforcement.
 
-When the immutable claim hash differs from the session's execution hash, the
-runtime emits one informational `tool_policy.snapshot_drift` record and
-continues with the execution snapshot. Drift is expected when an operator edits
-policy between claim and session start; it is evidence, not a denial condition.
+Claim/execution hash drift emits one informational
+`tool_policy.snapshot_drift` record and never blocks execution; see the
+canonical lifecycle linked above.
 
 ### Fail-closed and degraded resolution
 

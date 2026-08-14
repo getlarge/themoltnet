@@ -22,12 +22,14 @@ import {
   MeterProvider,
   MetricReader,
 } from '@opentelemetry/sdk-metrics';
+import type { ClaimedTask } from '@themoltnet/agent-runtime';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   buildAttemptResult,
   buildSubmitMissingPrompt,
   buildSubmitValidationPrompt,
+  buildToolPolicyDecisionContext,
   captureAttemptOutput,
   cleanupAttempt,
   computeProviderErrorRetryDelay,
@@ -54,6 +56,70 @@ import {
   submitRepromptStopped,
   wireSessionAbort,
 } from './execute-pi-task.js';
+
+describe('buildToolPolicyDecisionContext', () => {
+  it('keeps claim and execution profile provenance distinct', () => {
+    const claimedTask = {
+      task: {
+        id: 'task-1',
+        teamId: 'team-1',
+        proposedByAgentId: 'proposer-agent',
+        proposedByHumanId: null,
+      },
+      attemptN: 3,
+      claimAuthority: {
+        claimantAgentId: 'claimant-agent',
+        leaseId: 'lease-1',
+        runtimeProfileId: 'claim-profile',
+        runtimeProfileRevision: 6,
+        policySnapshotHash: 'sha256:claim',
+        executorFingerprint: 'bafkreiexecutor',
+      },
+      traceHeaders: {},
+    } as unknown as ClaimedTask;
+
+    expect(
+      buildToolPolicyDecisionContext(claimedTask, 'execution-profile'),
+    ).toEqual({
+      taskId: 'task-1',
+      attemptN: 3,
+      teamId: 'team-1',
+      proposerKind: 'agent',
+      proposerId: 'proposer-agent',
+      claimantAgentId: 'claimant-agent',
+      leaseId: 'lease-1',
+      claimRuntimeProfileId: 'claim-profile',
+      executionRuntimeProfileId: 'execution-profile',
+      claimRuntimeProfileRevision: 6,
+      claimPolicySnapshotHash: 'sha256:claim',
+      claimedExecutorFingerprint: 'bafkreiexecutor',
+    });
+  });
+
+  it('does not manufacture missing claim authority', () => {
+    const claimedTask = {
+      task: {
+        id: 'task-2',
+        teamId: 'team-1',
+        proposedByAgentId: null,
+        proposedByHumanId: 'proposer-human',
+      },
+      attemptN: 1,
+      traceHeaders: {},
+    } as unknown as ClaimedTask;
+
+    expect(
+      buildToolPolicyDecisionContext(claimedTask, 'execution-profile'),
+    ).toEqual({
+      taskId: 'task-2',
+      attemptN: 1,
+      teamId: 'team-1',
+      proposerKind: 'human',
+      proposerId: 'proposer-human',
+      executionRuntimeProfileId: 'execution-profile',
+    });
+  });
+});
 
 describe('resolveHostExecBaseEnv', () => {
   it('withholds credential paths from trusted host exec in configless mode', () => {

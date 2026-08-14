@@ -26,7 +26,8 @@ const decisionContext = {
   leaseId: 'lease-1',
   proposerKind: 'human' as const,
   proposerId: 'human-1',
-  runtimeProfileId: 'R',
+  claimRuntimeProfileId: 'claim-R',
+  executionRuntimeProfileId: 'execution-R',
   claimRuntimeProfileRevision: 6,
   claimPolicySnapshotHash: CLAIM_POLICY_HASH,
   claimedExecutorFingerprint: 'bafkreiexecutor',
@@ -78,7 +79,7 @@ describe('resolveSessionToolPolicy', () => {
     logger,
   };
 
-  it('short-circuits off without a network call', async () => {
+  it('refreshes policy when the cached enforcement mode is off', async () => {
     const agent = agentReturning('enforce', ['git']);
     const policy = await resolveSessionToolPolicy({
       ...params,
@@ -86,12 +87,14 @@ describe('resolveSessionToolPolicy', () => {
       enforcement: 'off',
     });
     expect(policy).toEqual({
-      enforcement: 'off',
-      allowedTools: new Set(),
+      enforcement: 'enforce',
+      allowedTools: new Set(['git']),
       allowedShellCommands: [],
+      executionPolicySnapshotHash: EXECUTION_POLICY_HASH,
+      executionRuntimeProfileRevision: 7,
       degraded: false,
     });
-    expect(agent.runtimeProfiles.allowedTools).not.toHaveBeenCalled();
+    expect(agent.runtimeProfiles.allowedTools).toHaveBeenCalledOnce();
   });
 
   it('resolves the allow-set from the API for enforce (not degraded)', async () => {
@@ -110,8 +113,42 @@ describe('resolveSessionToolPolicy', () => {
     expect(policy.allowedShellCommands).toEqual([
       { argvPrefix: ['git', 'diff'] },
     ]);
-    expect(policy.policySnapshotHash).toBe(EXECUTION_POLICY_HASH);
-    expect(policy.runtimeProfileRevision).toBe(7);
+    expect(policy.executionPolicySnapshotHash).toBe(EXECUTION_POLICY_HASH);
+    expect(policy.executionRuntimeProfileRevision).toBe(7);
+  });
+
+  it('accepts legacy allowed-tools responses without provenance fields', async () => {
+    const agent = agentReturning('enforce', ['git']);
+    vi.mocked(agent.runtimeProfiles.allowedTools).mockResolvedValue({
+      enforcement: 'enforce',
+      allowedTools: ['git'],
+      allowedShellCommands: [],
+      runtimeKind: 'gondolin_pi',
+    });
+
+    const policy = await resolveSessionToolPolicy({
+      ...params,
+      agent,
+      enforcement: 'enforce',
+    });
+
+    expect(policy.executionPolicySnapshotHash).toBeUndefined();
+    expect(policy.executionRuntimeProfileRevision).toBeUndefined();
+  });
+
+  it('uses a degraded off fallback when refreshing cached off fails', async () => {
+    const policy = await resolveSessionToolPolicy({
+      ...params,
+      agent: agentFailing(),
+      enforcement: 'off',
+    });
+
+    expect(policy).toEqual({
+      enforcement: 'off',
+      allowedTools: new Set(),
+      allowedShellCommands: [],
+      degraded: true,
+    });
   });
 
   it('fails closed and marks degraded when the fetch fails in enforce', async () => {
@@ -273,6 +310,30 @@ describe('createToolPolicyExtension', () => {
     expect(on).not.toHaveBeenCalled();
   });
 
+  it('remains compatible with callers that omit decision context', () => {
+    const on = vi.fn();
+    createToolPolicyExtension({
+      policy: {
+        enforcement: 'enforce',
+        allowedTools: new Set(['read']),
+        allowedShellCommands: [],
+        degraded: false,
+      },
+      analyzer,
+      logger,
+    })({ on } as unknown as ExtensionAPI);
+    const handler = on.mock.calls[0][1] as (e: ToolCallEvent) => unknown;
+
+    expect(handler(toolCall('read', { path: 'README.md' }))).toBeUndefined();
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        decision: 'allowed',
+        reason: 'policy_allowed',
+      }),
+      'tool_policy.allowed',
+    );
+  });
+
   it('blocks a disallowed bash executable in enforce', () => {
     const policy: SessionToolPolicy = {
       enforcement: 'enforce',
@@ -404,8 +465,8 @@ describe('createToolPolicyExtension', () => {
       enforcement: 'enforce',
       allowedTools: new Set(['write']),
       allowedShellCommands: [],
-      policySnapshotHash: EXECUTION_POLICY_HASH,
-      runtimeProfileRevision: 7,
+      executionPolicySnapshotHash: EXECUTION_POLICY_HASH,
+      executionRuntimeProfileRevision: 7,
       degraded: false,
     };
     const on = registerHandler({ policy, analyzer, logger });
@@ -443,13 +504,18 @@ describe('createToolPolicyExtension', () => {
       enforcement: 'enforce',
       allowedTools: new Set(['read']),
       allowedShellCommands: [],
-      policySnapshotHash: EXECUTION_POLICY_HASH,
-      runtimeProfileRevision: 7,
+      executionPolicySnapshotHash: EXECUTION_POLICY_HASH,
+      executionRuntimeProfileRevision: 7,
       degraded: false,
     };
     const on = registerHandler({ policy, analyzer, logger });
+    const handler = on.mock.calls[0][1] as (e: ToolCallEvent) => unknown;
 
-    expect(logger.info).toHaveBeenCalledTimes(1);
+    expect(handler(toolCall('read', { path: 'README.md' }))).toBeUndefined();
+    expect(handler(toolCall('write', { path: 'README.md' }))).toMatchObject({
+      block: true,
+    });
+
     expect(logger.info).toHaveBeenCalledWith(
       expect.objectContaining({
         decision: 'continue',
@@ -459,6 +525,11 @@ describe('createToolPolicyExtension', () => {
       }),
       'tool_policy.snapshot_drift',
     );
+    expect(
+      logger.info.mock.calls.filter(
+        ([, message]) => message === 'tool_policy.snapshot_drift',
+      ),
+    ).toHaveLength(1);
     expect(on).toHaveBeenCalledTimes(1);
   });
 

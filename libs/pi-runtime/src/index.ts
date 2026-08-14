@@ -110,6 +110,7 @@ export {
   type GateDecision,
   type GateInput,
   type ToolEnforcement,
+  type ToolPolicyDecisionReason,
 } from './tool-policy/gate.js';
 export {
   type AllowedToolsClient,
@@ -117,6 +118,7 @@ export {
   decideForEvent,
   resolveSessionToolPolicy,
   type SessionToolPolicy,
+  type ToolPolicyDecisionContext,
   type ToolPolicyExtensionDeps,
 } from './tool-policy/session-policy.js';
 export type {

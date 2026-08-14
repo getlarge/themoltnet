@@ -37,7 +37,7 @@ describe('ApiTaskSource', () => {
         usage: null,
         contentSignature: null,
         signedAt: null,
-        claimedExecutorFingerprint: null,
+        claimedExecutorFingerprint: 'bafkreiexecutor',
         claimedExecutorManifest: null,
         completedExecutorFingerprint: null,
         completedExecutorManifest: null,
@@ -62,6 +62,7 @@ describe('ApiTaskSource', () => {
         runtimeProfileRevision: 1,
         policySnapshotHash:
           'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        executorFingerprint: 'bafkreiexecutor',
       },
       traceHeaders: { traceparent: '00-abc-def-01' },
     });
@@ -182,9 +183,6 @@ describe('ApiTaskSource', () => {
       profileId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
       ...attestation,
     });
-    expect(claimed?.claimAuthority).toEqual({
-      runtimeProfileId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-      executorFingerprint: 'bafkreiexecutor',
-    });
+    expect(claimed?.claimAuthority).toBeUndefined();
   });
 });

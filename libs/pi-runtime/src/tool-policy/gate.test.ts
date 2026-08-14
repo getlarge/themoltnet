@@ -64,13 +64,13 @@ describe('decideToolCall', () => {
   it('off allows anything', () => {
     expect(
       decideToolCall(base({ toolName: 'write', enforcement: 'off' })),
-    ).toEqual({ allow: true });
+    ).toEqual({ allow: true, reasonCode: 'policy_off' });
   });
 
   it('enforce allows a listed structured tool', () => {
     expect(
       decideToolCall(base({ toolName: 'read', allowedTools: set(['read']) })),
-    ).toEqual({ allow: true });
+    ).toEqual({ allow: true, reasonCode: 'policy_allowed' });
   });
 
   it('always allows the runtime-owned typed submit protocol', () => {
@@ -81,13 +81,13 @@ describe('decideToolCall', () => {
           allowedTools: set([]),
         }),
       ),
-    ).toEqual({ allow: true });
+    ).toEqual({ allow: true, reasonCode: 'executor_protocol_tool' });
   });
 
   it('always allows task-type-gated delegation without widening child policy', () => {
     expect(
       decideToolCall(base({ toolName: 'subagent', allowedTools: set([]) })),
-    ).toEqual({ allow: true });
+    ).toEqual({ allow: true, reasonCode: 'executor_protocol_tool' });
   });
 
   it('enforce blocks an unlisted structured tool', () => {
@@ -118,7 +118,7 @@ describe('decideToolCall', () => {
           analyze: analyzerOf({ 'git add . && git commit': ['git'] }),
         }),
       ),
-    ).toEqual({ allow: true });
+    ).toEqual({ allow: true, reasonCode: 'policy_allowed' });
   });
 
   it('bash: an unlisted executable → block', () => {
@@ -306,7 +306,7 @@ describe('decideToolCall', () => {
           }),
         }),
       ),
-    ).toEqual({ allow: true });
+    ).toEqual({ allow: true, reasonCode: 'policy_allowed' });
   });
 
   it('does not expose analyzer command text in denial reasons', () => {
@@ -376,7 +376,7 @@ describe('decideToolCall', () => {
           }),
         }),
       ),
-    ).toEqual({ allow: true });
+    ).toEqual({ allow: true, reasonCode: 'policy_allowed' });
   });
 
   it('bash: wrapper and nested command must each be authorized', () => {
@@ -431,7 +431,7 @@ describe('decideToolCall', () => {
       decideToolCall(
         base({ toolName: 'bash', command: '   ', allowedTools: set([]) }),
       ),
-    ).toEqual({ allow: true });
+    ).toEqual({ allow: true, reasonCode: 'policy_allowed' });
   });
 
   it('bash: partially-listed executables → block naming the missing one', () => {
@@ -443,7 +443,7 @@ describe('decideToolCall', () => {
         analyze: analyzerOf({ 'sudo apt-get update': ['apt-get'] }),
       }),
     );
-    expect(decision).toEqual({ allow: true });
+    expect(decision).toEqual({ allow: true, reasonCode: 'policy_allowed' });
   });
 
   it('bash: arbitrary-code interpreter → block in enforce even when listed', () => {
@@ -495,6 +495,6 @@ describe('decideToolCall', () => {
         }),
       }),
     );
-    expect(decision).toEqual({ allow: true });
+    expect(decision).toEqual({ allow: true, reasonCode: 'policy_allowed' });
   });
 });

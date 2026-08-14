@@ -36,15 +36,31 @@ export interface GateInput {
  * - `{ allow: false, reason }` — block it (enforce mode).
  * - `{ audit, ... }` — would-block, but proceed and record it (watch mode).
  */
+export type ToolPolicyDecisionReason =
+  | 'policy_off'
+  | 'executor_protocol_tool'
+  | 'policy_allowed'
+  | 'shell_command_prefix_allowed'
+  | 'shell_command_unresolvable'
+  | 'arbitrary_code_interpreter'
+  | 'shell_output_redirection_requires_broad_permission'
+  | 'tool_not_permitted';
+
 export type GateDecision =
-  | { allow: true; matchedShellCommands?: MatchedShellCommand[] }
+  | {
+      allow: true;
+      reasonCode: ToolPolicyDecisionReason;
+      matchedShellCommands?: MatchedShellCommand[];
+    }
   | {
       allow: false;
+      reasonCode: ToolPolicyDecisionReason;
       reason: string;
       missing?: string[];
       missingShellCommands?: MissingShellCommand[];
     }
   | {
+      reasonCode: ToolPolicyDecisionReason;
       audit: string;
       missing?: string[];
       missingShellCommands?: MissingShellCommand[];
@@ -94,7 +110,9 @@ export interface MissingShellCommand {
  * capability-aware allow-set) is tracked as future work.
  */
 export function decideToolCall(input: GateInput): GateDecision {
-  if (input.enforcement === 'off') return { allow: true };
+  if (input.enforcement === 'off') {
+    return { allow: true, reasonCode: 'policy_off' };
+  }
   // Task-specific submit and delegation tools are part of the immutable
   // executor protocol, not operator-granted external capabilities. Runtime
   // definitions reserve these names, and `subagent` is only registered for
@@ -102,13 +120,14 @@ export function decideToolCall(input: GateInput): GateDecision {
   // gate, so delegation cannot widen filesystem, shell, network, or MoltNet
   // authority.
   if (input.toolName.startsWith('submit_') || input.toolName === 'subagent') {
-    return { allow: true };
+    return { allow: true, reasonCode: 'executor_protocol_tool' };
   }
 
   const resolved = resolveNames(input);
   if (resolved.kind === 'unresolvable') {
     return fenced(
       input.enforcement,
+      'shell_command_unresolvable',
       'shell command could not be statically authorized',
       'unresolvable shell command (watch)',
     );
@@ -127,6 +146,7 @@ export function decideToolCall(input: GateInput): GateDecision {
   if (arbitraryCode.length > 0) {
     return fenced(
       input.enforcement,
+      'arbitrary_code_interpreter',
       `arbitrary-code interpreter not authorizable by tool policy: ${arbitraryCode.join(', ')}`,
       `would block — arbitrary-code interpreter (watch): ${arbitraryCode.join(', ')}`,
       arbitraryCode,
@@ -137,9 +157,12 @@ export function decideToolCall(input: GateInput): GateDecision {
     const missing = resolved.tools
       .map((tool) => tool.name)
       .filter((name) => !input.allowedTools.has(name));
-    if (missing.length === 0) return { allow: true };
+    if (missing.length === 0) {
+      return { allow: true, reasonCode: 'policy_allowed' };
+    }
     return fenced(
       input.enforcement,
+      'tool_not_permitted',
       `not permitted by tool policy: ${missing.join(', ')}`,
       `would block (watch): ${missing.join(', ')}`,
       missing,
@@ -168,6 +191,7 @@ export function decideToolCall(input: GateInput): GateDecision {
   ) {
     return fenced(
       input.enforcement,
+      'shell_output_redirection_requires_broad_permission',
       'shell output redirection requires broad executable permission',
       'would block shell output redirection under scoped command policy',
       [...new Set(matchedShellCommands.map(({ executable }) => executable))],
@@ -188,8 +212,12 @@ export function decideToolCall(input: GateInput): GateDecision {
 
   if (missingShellCommands.length === 0) {
     return matchedShellCommands.length > 0
-      ? { allow: true, matchedShellCommands }
-      : { allow: true };
+      ? {
+          allow: true,
+          reasonCode: 'shell_command_prefix_allowed',
+          matchedShellCommands,
+        }
+      : { allow: true, reasonCode: 'policy_allowed' };
   }
 
   const missing = [
@@ -197,6 +225,7 @@ export function decideToolCall(input: GateInput): GateDecision {
   ];
   return fenced(
     input.enforcement,
+    'tool_not_permitted',
     `not permitted by tool policy: ${missing.join(', ')}`,
     `would block (watch): ${missing.join(', ')}`,
     missing,
@@ -253,6 +282,7 @@ function matchesArgvPrefix(
  */
 function fenced(
   enforcement: ToolEnforcement,
+  reasonCode: ToolPolicyDecisionReason,
   blockReason: string,
   auditReason: string,
   missing?: string[],
@@ -261,12 +291,14 @@ function fenced(
   if (enforcement === 'enforce') {
     return {
       allow: false,
+      reasonCode,
       reason: blockReason,
       ...(missing ? { missing } : {}),
       ...(missingShellCommands?.length ? { missingShellCommands } : {}),
     };
   }
   return {
+    reasonCode,
     audit: auditReason,
     ...(missing ? { missing } : {}),
     ...(missingShellCommands?.length ? { missingShellCommands } : {}),

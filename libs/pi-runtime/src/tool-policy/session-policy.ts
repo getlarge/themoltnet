@@ -18,9 +18,9 @@ export interface SessionToolPolicy {
   allowedTools: ReadonlySet<string>;
   allowedShellCommands: readonly ShellCommandRule[];
   /** Latest effective policy hash resolved for this Pi session. */
-  policySnapshotHash?: string;
+  executionPolicySnapshotHash?: string;
   /** Latest runtime profile revision resolved with the session policy. */
-  runtimeProfileRevision?: number;
+  executionRuntimeProfileRevision?: number;
   /**
    * `true` when the allow-set is a **degraded fallback** — the allowed-tools
    * fetch failed or timed out and this policy is the fail-closed/fail-open
@@ -28,7 +28,7 @@ export interface SessionToolPolicy {
    * empty-but-resolved policy (e.g. a profile with no bound tools) has
    * `degraded: false`. Surfaced in every audit/block log so an operator can tell
    * "blocked because the policy is empty" from "blocked because we couldn't read
-   * the policy". `off` and successful resolutions are never degraded.
+   * the policy". Successful resolutions are never degraded.
    */
   degraded: boolean;
 }
@@ -59,8 +59,8 @@ export interface AllowedToolsClient {
       allowedTools: string[];
       allowedShellCommands: Array<{ argvPrefix: string[] }>;
       runtimeKind: string;
-      policySnapshotHash: string;
-      runtimeProfileRevision: number;
+      policySnapshotHash?: string;
+      runtimeProfileRevision?: number;
     }>;
   };
 }
@@ -90,8 +90,9 @@ export interface ResolveSessionToolPolicyInput {
 /**
  * Resolve the session's tool policy at start-up.
  *
- * `off` short-circuits without a network call. Otherwise the allowed-tool set
- * is fetched from the API. If that fetch fails, the mode decides the fallback:
+ * The latest allowed-tool set and enforcement mode are fetched from the API,
+ * including when the daemon's cached profile says `off`. If that fetch fails,
+ * the cached mode decides the fallback:
  * `enforce` **fails closed** (empty allow-set → every non-`off` tool is
  * blocked); `watch` fails open (empty allow-set → every tool is audited but
  * allowed).
@@ -104,15 +105,6 @@ export interface ResolveSessionToolPolicyInput {
 export async function resolveSessionToolPolicy(
   input: ResolveSessionToolPolicyInput,
 ): Promise<SessionToolPolicy> {
-  if (input.enforcement === 'off') {
-    return {
-      enforcement: 'off',
-      allowedTools: new Set(),
-      allowedShellCommands: [],
-      degraded: false,
-    };
-  }
-
   const timeoutMs = input.timeoutMs ?? DEFAULT_RESOLVE_TIMEOUT_MS;
   try {
     const resolved = await withTimeout(
@@ -143,8 +135,8 @@ export async function resolveSessionToolPolicy(
           argvPrefix: rule.argvPrefix as [string, string, ...string[]],
         };
       }),
-      policySnapshotHash: resolved.policySnapshotHash,
-      runtimeProfileRevision: resolved.runtimeProfileRevision,
+      executionPolicySnapshotHash: resolved.policySnapshotHash,
+      executionRuntimeProfileRevision: resolved.runtimeProfileRevision,
       degraded: false,
     };
   } catch (err) {
@@ -246,7 +238,7 @@ export interface ToolPolicyExtensionDeps {
   policy: SessionToolPolicy;
   analyzer: ShellCommandAnalyzer;
   logger: ToolPolicyLogger;
-  context: ToolPolicyDecisionContext;
+  context?: ToolPolicyDecisionContext;
 }
 
 /** Correlation and claim evidence repeated on every tool-policy decision. */
@@ -258,7 +250,8 @@ export interface ToolPolicyDecisionContext {
   leaseId?: string;
   proposerKind?: 'agent' | 'human';
   proposerId?: string;
-  runtimeProfileId?: string;
+  claimRuntimeProfileId?: string;
+  executionRuntimeProfileId?: string;
   claimRuntimeProfileRevision?: number;
   claimPolicySnapshotHash?: string;
   claimedExecutorFingerprint?: string;
@@ -271,9 +264,10 @@ export interface ToolPolicyDecisionContext {
  */
 export function createToolPolicyExtension(deps: ToolPolicyExtensionDeps) {
   if (
-    deps.context.claimPolicySnapshotHash &&
-    deps.policy.policySnapshotHash &&
-    deps.context.claimPolicySnapshotHash !== deps.policy.policySnapshotHash
+    deps.context?.claimPolicySnapshotHash &&
+    deps.policy.executionPolicySnapshotHash &&
+    deps.context.claimPolicySnapshotHash !==
+      deps.policy.executionPolicySnapshotHash
   ) {
     deps.logger.info(
       {
@@ -300,7 +294,7 @@ export function createToolPolicyExtension(deps: ToolPolicyExtensionDeps) {
             toolName: event.toolName,
             toolCallId: event.toolCallId,
             decision: 'allowed',
-            reason: stableDecisionReason(event.toolName, decision),
+            reason: decision.reasonCode,
             ...(decision.matchedShellCommands?.length
               ? { shellFingerprints: decision.matchedShellCommands }
               : {}),
@@ -317,7 +311,7 @@ export function createToolPolicyExtension(deps: ToolPolicyExtensionDeps) {
             toolName: event.toolName,
             toolCallId: event.toolCallId,
             decision: 'audit',
-            reason: stableDecisionReason(event.toolName, decision),
+            reason: decision.reasonCode,
             ...(decision.missing?.length
               ? { missingExecutables: decision.missing }
               : {}),
@@ -336,7 +330,7 @@ export function createToolPolicyExtension(deps: ToolPolicyExtensionDeps) {
           toolName: event.toolName,
           toolCallId: event.toolCallId,
           decision: 'blocked',
-          reason: stableDecisionReason(event.toolName, decision),
+          reason: decision.reasonCode,
           ...(decision.missing?.length
             ? { missingExecutables: decision.missing }
             : {}),
@@ -355,40 +349,11 @@ function decisionContext(
   deps: ToolPolicyExtensionDeps,
 ): Record<string, unknown> {
   return {
-    ...deps.context,
+    ...(deps.context ?? {}),
     enforcement: deps.policy.enforcement,
     degraded: deps.policy.degraded,
-    executionPolicySnapshotHash: deps.policy.policySnapshotHash,
-    executionRuntimeProfileRevision: deps.policy.runtimeProfileRevision,
+    executionPolicySnapshotHash: deps.policy.executionPolicySnapshotHash,
+    executionRuntimeProfileRevision:
+      deps.policy.executionRuntimeProfileRevision,
   };
-}
-
-/** Convert human-facing gate messages into bounded, queryable reason codes. */
-function stableDecisionReason(
-  toolName: string,
-  decision: GateDecision,
-): string {
-  if ('allow' in decision && decision.allow) {
-    if (toolName.startsWith('submit_') || toolName === 'subagent') {
-      return 'executor_protocol_tool';
-    }
-    return decision.matchedShellCommands?.length
-      ? 'shell_command_prefix_allowed'
-      : 'policy_allowed';
-  }
-
-  const detail = 'audit' in decision ? decision.audit : decision.reason;
-  if (
-    detail.includes('could not be statically authorized') ||
-    detail.includes('unresolvable shell command')
-  ) {
-    return 'shell_command_unresolvable';
-  }
-  if (detail.includes('arbitrary-code interpreter')) {
-    return 'arbitrary_code_interpreter';
-  }
-  if (detail.includes('output redirection')) {
-    return 'shell_output_redirection_requires_broad_permission';
-  }
-  return 'tool_not_permitted';
 }

@@ -257,7 +257,9 @@ for the session. Policy edits between claim and session start therefore apply
 to that session; edits after session start apply to the next session. Decision
 logs carry both hashes, and a mismatch emits informational drift evidence but
 does not block execution. The runtime always enforces its execution-time
-snapshot.
+snapshot. That hash identifies the server-resolved profile policy; local runtime
+capability checks may further remove unavailable shell commands without
+rewriting the server snapshot identity.
 
 The claimant relationship is granted after the workflow publishes its durable
 `claimed` event, outside the claim transaction. A grant failure cannot roll

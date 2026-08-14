@@ -11,12 +11,12 @@ import {
   recordCompletedRuntimePhase,
   traceRuntimePhase,
 } from '../telemetry.js';
+import { claimAuthorityFromAttempt } from './claim-authority.js';
 import type {
   ClaimedTask,
   CreateClaimAttestation,
   TaskSource,
 } from './types.js';
-import { claimAuthorityFromAttempt } from './types.js';
 
 /**
  * Structural shape of the runtime slot store needed by the affinity filter.
@@ -621,12 +621,7 @@ export class PollingApiTaskSource implements TaskSource {
             'polling-api.claim_ok',
           );
         }
-        const claimAuthority = claimAuthorityFromAttempt(result.attempt, {
-          ...(profile.profileId ? { runtimeProfileId: profile.profileId } : {}),
-          ...(attestation?.executorFingerprint
-            ? { executorFingerprint: attestation.executorFingerprint }
-            : {}),
-        });
+        const claimAuthority = claimAuthorityFromAttempt(result.attempt);
         return {
           task: result.task,
           attemptN: result.attempt.attemptN,
