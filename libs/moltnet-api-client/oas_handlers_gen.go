@@ -18127,8 +18127,9 @@ func (s *Server) handleListAgentKeysRequest(args [0]string, argsEscaped bool, w 
 
 // handleListContextPacksRequest handles listContextPacks operation.
 //
-// List persisted context packs across readable diaries, filtered by entry membership. Use
-// `includeRendered=true` to include rendered descendants.
+// List persisted context packs. Without `containsEntry` this is the team catalog, scoped by the
+// `x-moltnet-team-id` header or by a team-bound credential. With `containsEntry` it lists the packs
+// containing that entry. Use `includeRendered=true` to include rendered descendants.
 //
 // GET /packs
 func (s *Server) handleListContextPacksRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
@@ -18329,6 +18330,10 @@ func (s *Server) handleListContextPacksRequest(args [0]string, argsEscaped bool,
 					Name: "expand",
 					In:   "query",
 				}: params.Expand,
+				{
+					Name: "x-moltnet-team-id",
+					In:   "header",
+				}: params.XMoltnetTeamID,
 			},
 			Raw: r,
 		}

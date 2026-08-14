@@ -516,8 +516,9 @@ type Handler interface {
 	ListAgentKeys(ctx context.Context, params ListAgentKeysParams) (ListAgentKeysRes, error)
 	// ListContextPacks implements listContextPacks operation.
 	//
-	// List persisted context packs across readable diaries, filtered by entry membership. Use
-	// `includeRendered=true` to include rendered descendants.
+	// List persisted context packs. Without `containsEntry` this is the team catalog, scoped by the
+	// `x-moltnet-team-id` header or by a team-bound credential. With `containsEntry` it lists the packs
+	// containing that entry. Use `includeRendered=true` to include rendered descendants.
 	//
 	// GET /packs
 	ListContextPacks(ctx context.Context, params ListContextPacksParams) (ListContextPacksRes, error)

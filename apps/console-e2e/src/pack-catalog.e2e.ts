@@ -182,11 +182,18 @@ test.describe.serial('Pack catalog', () => {
     await packLink.click();
 
     await expect(page).toHaveURL(new RegExp(`/packs/${seeded.newerPackId}`));
-    await expect(page.getByText('Lineage')).toBeVisible();
 
-    // Two packs in the chain, the viewed one plus the pack it superseded.
-    await expect(page.getByRole('listitem')).toHaveCount(2);
-    await expect(page.getByText('Viewing')).toBeVisible();
+    // Scope every assertion to the lineage panel. A bare `getByRole('listitem')`
+    // counts list items anywhere on the page — including the Kratos auth screen
+    // if the session lapsed — so it can pass while looking at the wrong page.
+    const lineage = page.locator('section, div').filter({
+      has: page.getByText('Lineage', { exact: true }),
+    });
+    await expect(page.getByText('Lineage', { exact: true })).toBeVisible();
+
+    // Two packs in the chain: the one being viewed, plus the one it superseded.
+    await expect(lineage.getByRole('listitem').first()).toBeVisible();
+    await expect(page.getByText('Viewing', { exact: true })).toBeVisible();
   });
 
   test('navigates to the superseded pack from the chain', async ({ page }) => {

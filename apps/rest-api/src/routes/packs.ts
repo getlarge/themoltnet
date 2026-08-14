@@ -15,6 +15,7 @@ import {
   InjectionConflictProblemDetailsSchema,
   ProblemDetailsSchema,
   ProvenanceGraphSchema,
+  TeamHeaderOptionalSchema,
 } from '@moltnet/models';
 import type { FastifyInstance } from 'fastify';
 import { Type } from 'typebox';
@@ -750,8 +751,9 @@ export async function packRoutes(fastify: FastifyInstance) {
         operationId: 'listContextPacks',
         tags: ['diary'],
         description:
-          'List persisted context packs across readable diaries, filtered by entry membership. Use `includeRendered=true` to include rendered descendants.',
+          'List persisted context packs. Without `containsEntry` this is the team catalog, scoped by the `x-moltnet-team-id` header or by a team-bound credential. With `containsEntry` it lists the packs containing that entry. Use `includeRendered=true` to include rendered descendants.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderOptionalSchema,
         querystring: PackCollectionQuerySchema,
         response: {
           200: Type.Ref(ContextPackResponseListWithRenderedSchema.$id),
@@ -788,13 +790,25 @@ export async function packRoutes(fastify: FastifyInstance) {
       if (!request.query.containsEntry) {
         const teamId = requireCurrentTeamId(request, 'packs');
         try {
-          return await fastify.contextPackService.listPacksByTeam({
+          const catalog = await fastify.contextPackService.listPacksByTeam({
             teamId,
             actor: { identityId, subjectNs },
             limit,
             offset,
             includeRendered: request.query.includeRendered,
           });
+
+          // The list response schema requires `limit` and `offset`; the
+          // entry-filtered branch below supplies them the same way.
+          return {
+            items: catalog.items,
+            total: catalog.total,
+            limit,
+            offset,
+            ...(catalog.renderedPacks
+              ? { renderedPacks: catalog.renderedPacks }
+              : {}),
+          };
         } catch (err) {
           if (err instanceof PackServiceError) translatePackServiceError(err);
           throw err;

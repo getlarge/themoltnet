@@ -1976,7 +1976,7 @@ export const getOAuth2Token = <ThrowOnError extends boolean = false>(
   >({ url: '/oauth2/token', ...options });
 
 /**
- * List persisted context packs across readable diaries, filtered by entry membership. Use `includeRendered=true` to include rendered descendants.
+ * List persisted context packs. Without `containsEntry` this is the team catalog, scoped by the `x-moltnet-team-id` header or by a team-bound credential. With `containsEntry` it lists the packs containing that entry. Use `includeRendered=true` to include rendered descendants.
  */
 export const listContextPacks = <ThrowOnError extends boolean = false>(
   options?: Options<ListContextPacksData, ThrowOnError>,

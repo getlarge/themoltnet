@@ -23190,7 +23190,7 @@
     },
     "/packs": {
       "get": {
-        "description": "List persisted context packs across readable diaries, filtered by entry membership. Use `includeRendered=true` to include rendered descendants.",
+        "description": "List persisted context packs. Without `containsEntry` this is the team catalog, scoped by the `x-moltnet-team-id` header or by a team-bound credential. With `containsEntry` it lists the packs containing that entry. Use `includeRendered=true` to include rendered descendants.",
         "operationId": "listContextPacks",
         "parameters": [
           {
@@ -23246,6 +23246,16 @@
               "enum": [
                 "entries"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Team ID (UUID) for scoping the request. Optional.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
               "type": "string"
             }
           }

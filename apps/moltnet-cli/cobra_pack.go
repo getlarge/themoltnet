@@ -29,6 +29,7 @@ func newPackListCmd() *cobra.Command {
 		Example: `  moltnet pack list --diary-id <uuid>
   moltnet pack list --diary-id <uuid> --limit 20 --offset 0
   moltnet pack list
+  moltnet pack list --team-id <uuid>
   moltnet pack list --contains-entry <uuid> --include-rendered
   moltnet pack list --contains-entry <uuid> --expand entries`,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -36,6 +37,7 @@ func newPackListCmd() *cobra.Command {
 			apiURL := resolveAPIURL(cmd, credPath)
 			diaryID, _ := cmd.Flags().GetString("diary-id")
 			containsEntry, _ := cmd.Flags().GetString("contains-entry")
+			teamID, _ := cmd.Flags().GetString("team-id")
 			includeRendered, _ := cmd.Flags().GetBool("include-rendered")
 			limit, _ := cmd.Flags().GetInt("limit")
 			offset, _ := cmd.Flags().GetInt("offset")
@@ -45,6 +47,7 @@ func newPackListCmd() *cobra.Command {
 				credPath,
 				diaryID,
 				containsEntry,
+				teamID,
 				includeRendered,
 				limit,
 				offset,
@@ -53,6 +56,7 @@ func newPackListCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().String("diary-id", "", "Diary UUID (optional; mutually exclusive with --contains-entry)")
+	cmd.Flags().String("team-id", "", "Team UUID for the catalog (optional; inferred from a team-bound credential)")
 	cmd.Flags().String("contains-entry", "", "Entry UUID to reverse-lookup packs for (mutually exclusive with --diary-id)")
 	cmd.Flags().Bool("include-rendered", false, "Include rendered packs when using --contains-entry")
 	cmd.Flags().Int("limit", 0, "Maximum number of packs to return")

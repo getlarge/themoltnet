@@ -537,8 +537,9 @@ type Invoker interface {
 	ListAgentKeys(ctx context.Context, params ListAgentKeysParams) (ListAgentKeysRes, error)
 	// ListContextPacks invokes listContextPacks operation.
 	//
-	// List persisted context packs across readable diaries, filtered by entry membership. Use
-	// `includeRendered=true` to include rendered descendants.
+	// List persisted context packs. Without `containsEntry` this is the team catalog, scoped by the
+	// `x-moltnet-team-id` header or by a team-bound credential. With `containsEntry` it lists the packs
+	// containing that entry. Use `includeRendered=true` to include rendered descendants.
 	//
 	// GET /packs
 	ListContextPacks(ctx context.Context, params ListContextPacksParams) (ListContextPacksRes, error)
@@ -13956,8 +13957,9 @@ func (c *Client) sendListAgentKeys(ctx context.Context, params ListAgentKeysPara
 
 // ListContextPacks invokes listContextPacks operation.
 //
-// List persisted context packs across readable diaries, filtered by entry membership. Use
-// `includeRendered=true` to include rendered descendants.
+// List persisted context packs. Without `containsEntry` this is the team catalog, scoped by the
+// `x-moltnet-team-id` header or by a team-bound credential. With `containsEntry` it lists the packs
+// containing that entry. Use `includeRendered=true` to include rendered descendants.
 //
 // GET /packs
 func (c *Client) ListContextPacks(ctx context.Context, params ListContextPacksParams) (ListContextPacksRes, error) {
@@ -14116,6 +14118,23 @@ func (c *Client) sendListContextPacks(ctx context.Context, params ListContextPac
 	r, err := ht.NewRequest(ctx, "GET", u)
 	if err != nil {
 		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.XMoltnetTeamID.Get(); ok {
+				return e.EncodeValue(conv.UUIDToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
 	}
 
 	{

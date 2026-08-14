@@ -6850,6 +6850,12 @@ export type GetOAuth2TokenResponse =
 
 export type ListContextPacksData = {
   body?: never;
+  headers?: {
+    /**
+     * Team ID (UUID) for scoping the request. Optional.
+     */
+    'x-moltnet-team-id'?: string;
+  };
   path?: never;
   query?: {
     diaryId?: string;
