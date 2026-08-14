@@ -10,9 +10,11 @@ import {
   Text,
   useTheme,
 } from '@themoltnet/design-system';
+import { useLocation } from 'wouter';
 
 import { getApiErrorDetail } from '../api-error.js';
 import { DecayBadge } from '../components/packs/DecayBadge.js';
+import { PackLineage } from '../components/packs/PackLineage.js';
 import { PinControl } from '../components/packs/PinControl.js';
 import { describeDecay } from '../packs/decay.js';
 import { usePack } from '../packs/hooks.js';
@@ -24,6 +26,7 @@ export interface PackDetailPageProps {
 
 export function PackDetailPage({ id }: PackDetailPageProps) {
   const theme = useTheme();
+  const [, navigate] = useLocation();
   const packQuery = usePack(id);
 
   // One `now` per render so every decay surface on this page agrees.
@@ -104,6 +107,14 @@ export function PackDetailPage({ id }: PackDetailPageProps) {
             <CopyButton value={pack.packCid} label="Pack CID" size="sm" />
             <PinControl packId={pack.id} state={decay} />
           </Stack>
+
+          {/* Same `now` as the badge above, so the page cannot show one pack
+              expiring in 3 days here and 4 days in its own lineage row. */}
+          <PackLineage
+            packId={pack.id}
+            now={now}
+            onOpen={(packId) => navigate(`/packs/${packId}`)}
+          />
         </Stack>
       ) : null}
     </Stack>

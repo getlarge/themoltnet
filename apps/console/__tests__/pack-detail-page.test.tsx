@@ -4,11 +4,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   pack: {} as Record<string, unknown>,
+  provenance: {} as Record<string, unknown>,
 }));
 
 vi.mock('../src/packs/hooks.js', () => ({
   usePack: () => mocks.pack,
-  usePinPack: () => ({ mutate: vi.fn(), isPending: false, isError: false }),
+  usePackProvenance: () => mocks.provenance,
+  usePinPack: () => ({
+    mutate: vi.fn(),
+    isPending: false,
+    isError: false,
+    isSuccess: false,
+  }),
 }));
 
 vi.mock('../src/config.js', () => ({
@@ -16,6 +23,7 @@ vi.mock('../src/config.js', () => ({
 }));
 
 import { PackDetailPage } from '../src/pages/PackDetailPage.js';
+import { graphFixture, packNode } from './fixtures/provenance.js';
 
 const AGENT = {
   kind: 'agent' as const,
@@ -57,6 +65,7 @@ const renderPage = () =>
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.pack = { isLoading: false, isError: false, data: undefined };
+  mocks.provenance = { isLoading: false, isError: false, data: undefined };
 });
 
 describe('PackDetailPage', () => {
@@ -129,5 +138,27 @@ describe('PackDetailPage', () => {
     mocks.pack = { isLoading: false, isError: false, data: pack() };
     renderPage();
     expect(screen.getByText('bafyreiexamplecid')).toBeInTheDocument();
+  });
+
+  it('mounts the lineage panel for the pack being viewed', () => {
+    mocks.pack = { isLoading: false, isError: false, data: pack() };
+    mocks.provenance = {
+      isLoading: false,
+      isError: false,
+      data: graphFixture({ nodes: [packNode('p1')], edges: [] }),
+    };
+    renderPage();
+
+    expect(screen.getByText('Lineage')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Nothing has replaced this pack/),
+    ).toBeInTheDocument();
+  });
+
+  it('does not render lineage before the pack itself has loaded', () => {
+    mocks.pack = { isLoading: true, isError: false, data: undefined };
+    renderPage();
+
+    expect(screen.queryByText('Lineage')).not.toBeInTheDocument();
   });
 });
