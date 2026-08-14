@@ -45,6 +45,16 @@ export interface SpineNode {
   packId?: string;
   /** Set for rendered packs only. These render read-only for now. */
   renderedPackId?: string;
+  /**
+   * This pack records a `supersedesPackId`, but that ancestor is not in the
+   * graph — the server omits packs the caller cannot read, and also stops at
+   * the requested depth. Either way earlier lineage exists that is not shown,
+   * and a surface that renders the chain as complete would be lying.
+   *
+   * The two causes are indistinguishable from the payload, so the label must
+   * cover both rather than claiming a permission problem.
+   */
+  hasHiddenAncestor: boolean;
 }
 
 /**
@@ -71,6 +81,7 @@ function toSpineNode(
   node: ProvenanceGraphNode,
   isRoot: boolean,
   entryCount: number,
+  hasHiddenAncestor = false,
 ): SpineNode | null {
   if (node.kind === 'pack') {
     return {
@@ -85,6 +96,7 @@ function toSpineNode(
       entryCount,
       creator: creatorOf(node),
       packId: node.meta.packId,
+      hasHiddenAncestor,
     };
   }
 
@@ -101,6 +113,7 @@ function toSpineNode(
       entryCount: 0,
       creator: creatorOf(node),
       renderedPackId: node.meta.renderedPackId,
+      hasHiddenAncestor: false,
     };
   }
 
@@ -153,10 +166,21 @@ export function buildLineage(graph: ProvenanceGraph): Lineage {
     const node = nodeById.get(currentId);
     if (!node) continue;
 
+    // A recorded ancestor with no edge to a node we actually have means the
+    // chain continues past what the server returned.
+    const reachedAncestors = (supersedesFrom.get(currentId) ?? []).filter(
+      (id) => nodeById.has(id),
+    );
+    const hasHiddenAncestor =
+      node.kind === 'pack' &&
+      node.meta.supersedesPackId !== null &&
+      reachedAncestors.length === 0;
+
     const spineNode = toSpineNode(
       node,
       currentId === rootId,
       entryCounts.get(currentId) ?? 0,
+      hasHiddenAncestor,
     );
     if (spineNode) spine.push(spineNode);
 
@@ -186,10 +210,14 @@ export function buildLineage(graph: ProvenanceGraph): Lineage {
 
   const hasRendered = Object.keys(renderedByPackId).length > 0;
   const hasSupersession = spine.length > 1;
+  // A pack whose only ancestor is hidden still *has* lineage. Reporting `none`
+  // would render "no lineage yet", which is false — the chain must render so
+  // the gap marker can say earlier packs exist but are not shown.
+  const hasHiddenLineage = spine.some((node) => node.hasHiddenAncestor);
 
   const form: LineageForm = branches
     ? 'branching'
-    : hasSupersession || hasRendered
+    : hasSupersession || hasRendered || hasHiddenLineage
       ? 'linear'
       : 'none';
 

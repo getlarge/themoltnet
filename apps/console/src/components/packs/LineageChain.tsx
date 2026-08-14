@@ -142,6 +142,14 @@ export function LineageChain({ lineage, now, onOpen }: LineageChainProps) {
                   )}
                 />
               ) : null}
+
+              {/* Never let a truncated chain read as a complete one. */}
+              {node.hasHiddenAncestor ? (
+                <Text variant="caption" color="muted">
+                  This pack replaced an earlier one that isn’t shown — either
+                  beyond the depth requested, or in a diary you can’t read.
+                </Text>
+              ) : null}
             </Stack>
           </li>
         );

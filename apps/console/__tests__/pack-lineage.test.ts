@@ -184,6 +184,37 @@ describe('buildLineage', () => {
     });
   });
 
+  describe('hidden ancestors', () => {
+    it('flags a pack whose recorded ancestor is not in the graph', () => {
+      // The server omits packs the caller cannot read, and stops at the
+      // requested depth. Either way the chain continues past what we received.
+      const graph = graphFixture({
+        nodes: [packNode('p1', { supersedesPackId: 'some-older-pack' })],
+        edges: [],
+      });
+
+      expect(buildLineage(graph).spine[0]?.hasHiddenAncestor).toBe(true);
+    });
+
+    it('does not flag a pack whose ancestor is present', () => {
+      const graph = graphFixture({
+        nodes: [packNode('p1', { supersedesPackId: 'p0' }), packNode('p0')],
+        edges: [edge(packNodeId('p1'), packNodeId('p0'), 'supersedes')],
+      });
+
+      expect(buildLineage(graph).spine[0]?.hasHiddenAncestor).toBe(false);
+    });
+
+    it('reports "linear" so a hidden ancestor is never rendered as "no lineage"', () => {
+      const graph = graphFixture({
+        nodes: [packNode('p1', { supersedesPackId: 'some-older-pack' })],
+        edges: [],
+      });
+
+      expect(buildLineage(graph).form).toBe('linear');
+    });
+  });
+
   describe('degenerate input', () => {
     it('returns an empty spine when the root node is missing from nodes', () => {
       const graph = graphFixture({ nodes: [packNode('p9')], edges: [] });
