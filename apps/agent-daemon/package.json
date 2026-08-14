@@ -112,12 +112,17 @@
     "start": "node dist/main.js",
     "build": "vite build",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package . && pnpm run smoke:pack",
-    "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --local-dependency ../../libs/sdk --local-dependency ../../libs/os-keyring --local-dependency ../../libs/agent-runtime --local-dependency ../../libs/shell-command-analyzer --local-dependency ../../libs/pi-runtime --copy-file test-fixtures/runtime-adapter.mjs runtime-adapter.mjs --bin moltnet-agent --args --runtime ./runtime-adapter.mjs --help --expect \"long-running task worker for MoltNet\""
+    "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --local-dependency ../../libs/sdk --local-dependency ../../libs/os-keyring --local-dependency ../../libs/agent-runtime --local-dependency ../../libs/shell-command-analyzer --local-dependency ../../libs/pi-runtime --copy-file test-fixtures/runtime-adapter.mjs runtime-adapter.mjs --probe-file test-fixtures/keyring-pack-probe.mjs keyring-pack-probe.mjs --bin moltnet-agent --args --runtime ./runtime-adapter.mjs --help --expect \"long-running task worker for MoltNet\""
   },
   "dependencies": {
     "@earendil-works/gondolin": "catalog:",
     "@earendil-works/pi-ai": "catalog:",
     "@earendil-works/pi-coding-agent": "catalog:",
+    "@fastify/otel": "catalog:",
+    "@ipld/dag-cbor": "catalog:",
+    "@noble/curves": "catalog:",
+    "@noble/ed25519": "catalog:",
+    "@noble/hashes": "catalog:",
     "@opentelemetry/api": "catalog:",
     "@opentelemetry/exporter-metrics-otlp-proto": "catalog:",
     "@opentelemetry/exporter-trace-otlp-proto": "catalog:",
@@ -127,6 +132,7 @@
     "@opentelemetry/instrumentation-net": "catalog:",
     "@opentelemetry/instrumentation-pg": "catalog:",
     "@opentelemetry/instrumentation-pino": "catalog:",
+    "@opentelemetry/instrumentation-runtime-node": "catalog:",
     "@opentelemetry/instrumentation-undici": "catalog:",
     "@opentelemetry/resources": "catalog:",
     "@opentelemetry/sdk-metrics": "catalog:",
@@ -137,7 +143,10 @@
     "@themoltnet/os-keyring": "workspace:*",
     "@themoltnet/pi-runtime": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
+    "fastify-plugin": "catalog:",
+    "multiformats": "catalog:",
     "pino": "catalog:",
+    "pino-opentelemetry-transport": "catalog:",
     "pino-pretty": "catalog:",
     "typebox": "catalog:"
   },

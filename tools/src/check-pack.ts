@@ -4,8 +4,8 @@
  *
  * For each non-private workspace that has a "files" field, runs
  * `npm pack --dry-run --json` and checks that:
- *   1. dist/index.js is included
- *   2. dist/index.d.ts is included
+ *   1. every published entry point is included
+ *   2. every relative runtime import resolves inside the tarball
  *   3. no source files (src/) leak into the tarball
  *   4. no @moltnet/* workspace packages in published dependencies
  *   5. npm provenance repository metadata matches this GitHub monorepo
@@ -23,8 +23,10 @@
 import { execSync } from 'node:child_process';
 import type { Dirent } from 'node:fs';
 import { readdirSync, readFileSync } from 'node:fs';
-import { join, relative, resolve } from 'node:path';
+import { join, posix, relative, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
+
+import ts from 'typescript';
 
 const root = new URL('../..', import.meta.url).pathname.replace(/\/$/, '');
 
@@ -54,53 +56,61 @@ export function getTarballEntries(pkgDir: string): string[] {
 }
 
 /**
- * Assert `dist/index.js` + `dist/index.d.ts` ship, plus every subpath export
- * declared in publishConfig.exports/exports that targets `./dist/`. Returns an
- * array of error strings (empty = pass).
+ * Assert every path exposed by the packed manifest ships in the tarball.
+ * `publishConfig` overrides the development-time fields when pnpm publishes,
+ * so validate those effective values instead of assuming `dist/index.*`.
  */
-export function checkDistIndexEntry(
+export function checkPublishedEntryPoints(
   pkg: Record<string, unknown>,
   paths: string[],
 ): string[] {
-  const errors: string[] = [];
+  const publishConfig = (pkg.publishConfig ?? {}) as Record<string, unknown>;
+  const entries: Array<{ field: string; target: string }> = [];
 
-  // Binary-only packages (bin field, no src/) don't produce dist/ — skip.
-  const isBinaryOnly =
-    typeof pkg.bin !== 'undefined' && !paths.some((p) => p.startsWith('src/'));
-  if (isBinaryOnly) return errors;
-
-  if (!paths.includes('dist/index.js')) {
-    errors.push('dist/index.js missing from tarball');
-  }
-  if (!paths.includes('dist/index.d.ts')) {
-    errors.push('dist/index.d.ts missing from tarball');
-  }
-
-  // Validate all subpath exports declared in publishConfig.exports (or exports).
-  // publishConfig.exports is what pnpm writes into the published package.json,
-  // so those are the paths npm consumers will actually resolve.
-  const publishExports =
-    (pkg.publishConfig as Record<string, unknown> | undefined)?.exports ??
-    pkg.exports;
-  if (publishExports && typeof publishExports === 'object') {
-    for (const [subpath, conditions] of Object.entries(
-      publishExports as Record<string, Record<string, string>>,
-    )) {
-      if (subpath === '.') continue; // already checked above
-      if (!conditions || typeof conditions !== 'object') continue;
-      for (const [condition, target] of Object.entries(conditions)) {
-        if (typeof target !== 'string' || !target.startsWith('./dist/'))
-          continue;
-        const stripped = target.replace(/^\.\//, '');
-        if (!paths.includes(stripped)) {
-          errors.push(
-            `export "${subpath}" (${condition}) points to ${target} but ${stripped} is missing from tarball`,
-          );
-        }
+  const collectTargets = (field: string, value: unknown): void => {
+    if (typeof value === 'string') {
+      entries.push({ field, target: value });
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.forEach((entry, index) =>
+        collectTargets(`${field}[${index}]`, entry),
+      );
+      return;
+    }
+    if (value && typeof value === 'object') {
+      for (const [key, entry] of Object.entries(value)) {
+        const nestedField = key.startsWith('.')
+          ? `${field}[${JSON.stringify(key)}]`
+          : `${field}.${key}`;
+        collectTargets(nestedField, entry);
       }
     }
+  };
+
+  for (const field of ['main', 'module', 'types'] as const) {
+    collectTargets(field, publishConfig[field] ?? pkg[field]);
   }
-  return errors;
+  collectTargets('bin', publishConfig.bin ?? pkg.bin);
+  collectTargets('exports', publishConfig.exports ?? pkg.exports);
+
+  const errors: string[] = [];
+  for (const { field, target } of entries) {
+    if (
+      target.includes('*') ||
+      target.startsWith('#') ||
+      /^[a-z][a-z+.-]*:/i.test(target)
+    ) {
+      continue;
+    }
+    const packedPath = target.replace(/^\.\//, '');
+    if (!paths.includes(packedPath)) {
+      errors.push(
+        `${field} points to ${target} but ${packedPath} is missing from tarball`,
+      );
+    }
+  }
+  return [...new Set(errors)];
 }
 
 /** Assert no `src/` files leaked into the tarball. */
@@ -108,6 +118,85 @@ export function checkNoSrcLeak(paths: string[]): string[] {
   const leaked = paths.filter((p) => p.startsWith('src/'));
   return leaked.length > 0
     ? [`source files leaked into tarball: ${leaked.join(', ')}`]
+    : [];
+}
+
+/**
+ * Assert every relative JavaScript import emitted into the package resolves to
+ * another file in the tarball. This catches code-split chunks that exist in
+ * dist locally but are omitted by package.json#files.
+ */
+export function checkNoMissingRelativeJsImports(
+  pkgDir: string,
+  paths: string[],
+): string[] {
+  const packedPaths = new Set(paths);
+  const missing: string[] = [];
+
+  for (const jsPath of paths.filter((path) => /\.[cm]?js$/.test(path))) {
+    let content: string;
+    try {
+      content = readFileSync(join(pkgDir, jsPath), 'utf8');
+    } catch {
+      continue;
+    }
+
+    const sourceFile = ts.createSourceFile(
+      jsPath,
+      content,
+      ts.ScriptTarget.Latest,
+      false,
+      jsPath.endsWith('.cjs') ? ts.ScriptKind.JS : ts.ScriptKind.JS,
+    );
+    const specifiers = new Set<string>();
+    const visit = (node: ts.Node): void => {
+      if (
+        (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+        node.moduleSpecifier &&
+        ts.isStringLiteralLike(node.moduleSpecifier)
+      ) {
+        specifiers.add(node.moduleSpecifier.text);
+      } else if (
+        ts.isCallExpression(node) &&
+        node.arguments.length > 0 &&
+        ts.isStringLiteralLike(node.arguments[0]) &&
+        (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+          (ts.isIdentifier(node.expression) &&
+            node.expression.text === 'require'))
+      ) {
+        specifiers.add(node.arguments[0].text);
+      } else if (
+        ts.isNewExpression(node) &&
+        ts.isIdentifier(node.expression) &&
+        node.expression.text === 'URL' &&
+        node.arguments?.length === 2 &&
+        ts.isStringLiteralLike(node.arguments[0]) &&
+        node.arguments[1].getText(sourceFile) === 'import.meta.url'
+      ) {
+        specifiers.add(node.arguments[0].text);
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(sourceFile);
+
+    for (const rawSpecifier of specifiers) {
+      if (!rawSpecifier.startsWith('./') && !rawSpecifier.startsWith('../')) {
+        continue;
+      }
+      const specifier = rawSpecifier.split(/[?#]/, 1)[0];
+      const target = posix.normalize(
+        posix.join(posix.dirname(jsPath), specifier),
+      );
+      if (!packedPaths.has(target)) {
+        missing.push(`${jsPath} -> ${specifier} (${target})`);
+      }
+    }
+  }
+
+  return missing.length > 0
+    ? [
+        `relative JavaScript imports missing from tarball: ${missing.join(', ')}`,
+      ]
     : [];
 }
 
@@ -244,8 +333,9 @@ function checkPackage(pkgDir: string): boolean {
   }
 
   const errors = [
-    ...checkDistIndexEntry(pkg, paths),
+    ...checkPublishedEntryPoints(pkg, paths),
     ...checkNoSrcLeak(paths),
+    ...checkNoMissingRelativeJsImports(pkgDir, paths),
     ...checkNoWorkspaceDtsLeak(pkgDir, paths),
     ...checkNoPrivateWorkspaceDeps(pkg),
     ...checkRepositoryMetadata(

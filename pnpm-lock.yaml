@@ -563,6 +563,21 @@ importers:
       '@earendil-works/pi-coding-agent':
         specifier: 'catalog:'
         version: 0.79.4(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(ws@8.21.0)(zod@4.4.3)
+      '@fastify/otel':
+        specifier: 'catalog:'
+        version: 0.18.0(@opentelemetry/api@1.9.0)
+      '@ipld/dag-cbor':
+        specifier: 'catalog:'
+        version: 9.2.5
+      '@noble/curves':
+        specifier: 'catalog:'
+        version: 2.0.1
+      '@noble/ed25519':
+        specifier: 'catalog:'
+        version: 2.3.0
+      '@noble/hashes':
+        specifier: 'catalog:'
+        version: 1.8.0
       '@opentelemetry/api':
         specifier: 'catalog:'
         version: 1.9.0
@@ -590,6 +605,9 @@ importers:
       '@opentelemetry/instrumentation-pino':
         specifier: 'catalog:'
         version: 0.58.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/instrumentation-runtime-node':
+        specifier: 'catalog:'
+        version: 0.25.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/instrumentation-undici':
         specifier: 'catalog:'
         version: 0.22.0(@opentelemetry/api@1.9.0)
@@ -620,9 +638,18 @@ importers:
       '@themoltnet/sdk':
         specifier: workspace:*
         version: link:../../libs/sdk
+      fastify-plugin:
+        specifier: 'catalog:'
+        version: 5.1.0
+      multiformats:
+        specifier: 'catalog:'
+        version: 13.4.2
       pino:
         specifier: 'catalog:'
         version: 10.3.1
+      pino-opentelemetry-transport:
+        specifier: 'catalog:'
+        version: 3.0.0(@opentelemetry/api@1.9.0)(pino@10.3.1)
       pino-pretty:
         specifier: 'catalog:'
         version: 13.1.3
@@ -659,7 +686,7 @@ importers:
         version: 4.5.4(@types/node@25.1.0)(rollup@4.60.1)(typescript@5.9.3)(vite@8.0.3(@types/node@25.1.0)(esbuild@0.27.2)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4))
       vitest:
         specifier: 'catalog:'
-        version: 3.2.4(@types/debug@4.1.13)(@types/node@25.1.0)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@25.1.0)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@1.8.0))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
 
   apps/agent-daemon-e2e:
     dependencies:
@@ -819,6 +846,18 @@ importers:
 
   apps/issue-lifecycle:
     dependencies:
+      '@ipld/dag-cbor':
+        specifier: 'catalog:'
+        version: 9.2.5
+      '@noble/curves':
+        specifier: 'catalog:'
+        version: 2.0.1
+      '@noble/ed25519':
+        specifier: 'catalog:'
+        version: 2.3.0
+      '@noble/hashes':
+        specifier: 'catalog:'
+        version: 1.8.0
       '@themoltnet/github-agent':
         specifier: workspace:*
         version: link:../../packages/github-agent
@@ -828,9 +867,15 @@ importers:
       '@themoltnet/sdk':
         specifier: workspace:*
         version: link:../../libs/sdk
+      '@themoltnet/tasks-orchestrator':
+        specifier: workspace:*
+        version: link:../../libs/tasks-orchestrator
       absurd-sdk:
         specifier: 'catalog:'
         version: 0.4.0(pg@8.18.0)
+      multiformats:
+        specifier: 'catalog:'
+        version: 13.4.2
       pino:
         specifier: 'catalog:'
         version: 10.3.1
@@ -844,9 +889,6 @@ importers:
       '@moltnet/tasks':
         specifier: workspace:*
         version: link:../../libs/tasks
-      '@themoltnet/tasks-orchestrator':
-        specifier: workspace:*
-        version: link:../../libs/tasks-orchestrator
       '@types/node':
         specifier: 'catalog:'
         version: 22.19.19
@@ -861,7 +903,7 @@ importers:
         version: 8.0.3(@types/node@22.19.19)(esbuild@0.27.2)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
       vitest:
         specifier: 'catalog:'
-        version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@1.8.0))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
 
   apps/landing:
     dependencies:
@@ -1161,6 +1203,9 @@ importers:
       '@themoltnet/sdk':
         specifier: workspace:*
         version: link:../../libs/sdk
+      '@themoltnet/tasks-orchestrator':
+        specifier: workspace:*
+        version: link:../../libs/tasks-orchestrator
       absurd-sdk:
         specifier: 'catalog:'
         version: 0.4.0(pg@8.18.0)
@@ -1168,9 +1213,6 @@ importers:
         specifier: 'catalog:'
         version: 10.3.1
     devDependencies:
-      '@themoltnet/tasks-orchestrator':
-        specifier: workspace:*
-        version: link:../../libs/tasks-orchestrator
       '@types/node':
         specifier: 'catalog:'
         version: 22.19.19
@@ -1183,6 +1225,9 @@ importers:
       vite:
         specifier: 'catalog:'
         version: 8.0.3(@types/node@22.19.19)(esbuild@0.27.2)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+      vite-plugin-dts:
+        specifier: 'catalog:'
+        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(typescript@5.9.3)(vite@8.0.3(@types/node@22.19.19)(esbuild@0.27.2)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4))
       vitest:
         specifier: 'catalog:'
         version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
@@ -15626,7 +15671,7 @@ snapshots:
       sirv: 3.0.2
       tinyglobby: 0.2.16
       tinyrainbow: 2.0.0
-      vitest: 3.2.4(@types/debug@4.1.13)(@types/node@25.1.0)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+      vitest: 3.2.4(@types/debug@4.1.13)(@types/node@25.1.0)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@1.8.0))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
 
   '@vitest/utils@3.2.4':
     dependencies:

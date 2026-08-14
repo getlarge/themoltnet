@@ -1,17 +1,25 @@
 import { defineConfig } from 'vite';
 
+import { externalizeInstallableDependencies } from '../../vite.shared';
+
+const external = externalizeInstallableDependencies(
+  new URL('./package.json', import.meta.url),
+);
+
 export default defineConfig({
   build: {
     ssr: 'src/main.ts',
     outDir: 'dist',
-    rollupOptions: {
+    emptyOutDir: true,
+    rolldownOptions: {
+      external,
       output: {
         banner: '#!/usr/bin/env node',
       },
     },
   },
   ssr: {
-    external: ['@themoltnet/sdk', 'absurd-sdk', 'pino'],
+    noExternal: [/@moltnet\//],
   },
   test: {
     exclude: ['node_modules/**', 'dist/**'],
