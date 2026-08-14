@@ -25,12 +25,9 @@ export interface PackLineageProps {
  * diagram: every context pack in the chain carries its own pin control, so an
  * operator can act on the ancestors a pack replaced without visiting each one.
  *
- * Form follows the data — a vertical chain for linear lineage, escalating to a
- * graph when the DAG actually branches. Only the chain exists today; the
- * branching form lands with the graph component, and until then a branching
- * lineage renders as a flattened chain, which lists every pack but does not
- * show the fork. That is a known, temporary degradation, not the intended
- * rendering.
+ * Always a vertical chain: the provenance endpoint walks one `supersedesPackId`
+ * pointer upward per pack and never queries descendants, so lineage cannot
+ * branch. See `LineageForm` for why there is no graph form.
  */
 export function PackLineage({ packId, now, onOpen }: PackLineageProps) {
   const provenance = usePackProvenance(packId);

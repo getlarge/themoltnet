@@ -60,9 +60,16 @@ export interface SpineNode {
 /**
  * `none` — nothing to draw beyond the pack itself.
  * `linear` — a chain (and/or rendered outputs); renders as a vertical list.
- * `branching` — the DAG forks; escalates to the graph form.
+ *
+ * There is deliberately no branching form. `buildPackProvenanceGraph` follows
+ * the single `supersedesPackId` pointer strictly upward — one parent per pack —
+ * and never queries descendants, so the response is always a linear ancestor
+ * chain. Multiple outgoing `supersedes` edges are impossible (it is one
+ * column), and multiple incoming edges are unreachable from a single root
+ * walking up. A branching form would require expanding the server traversal
+ * and its contract first.
  */
-export type LineageForm = 'none' | 'linear' | 'branching';
+export type LineageForm = 'none' | 'linear';
 
 export interface Lineage {
   form: LineageForm;
@@ -127,7 +134,6 @@ export function buildLineage(graph: ProvenanceGraph): Lineage {
 
   const entryCounts = new Map<string, number>();
   const supersedesFrom = new Map<string, string[]>();
-  const supersededBy = new Map<string, number>();
   const renderedFrom = new Map<string, string[]>();
 
   for (const edge of graph.edges) {
@@ -140,7 +146,6 @@ export function buildLineage(graph: ProvenanceGraph): Lineage {
         ...(supersedesFrom.get(edge.from) ?? []),
         edge.to,
       ]);
-      supersededBy.set(edge.to, (supersededBy.get(edge.to) ?? 0) + 1);
       continue;
     }
     if (edge.kind === 'rendered_from') {
@@ -204,10 +209,6 @@ export function buildLineage(graph: ProvenanceGraph): Lineage {
     if (rendered.length > 0) renderedByPackId[spineNode.id] = rendered;
   }
 
-  const branches =
-    [...supersedesFrom.values()].some((targets) => targets.length > 1) ||
-    [...supersededBy.values()].some((count) => count > 1);
-
   const hasRendered = Object.keys(renderedByPackId).length > 0;
   const hasSupersession = spine.length > 1;
   // A pack whose only ancestor is hidden still *has* lineage. Reporting `none`
@@ -215,11 +216,8 @@ export function buildLineage(graph: ProvenanceGraph): Lineage {
   // the gap marker can say earlier packs exist but are not shown.
   const hasHiddenLineage = spine.some((node) => node.hasHiddenAncestor);
 
-  const form: LineageForm = branches
-    ? 'branching'
-    : hasSupersession || hasRendered || hasHiddenLineage
-      ? 'linear'
-      : 'none';
+  const form: LineageForm =
+    hasSupersession || hasRendered || hasHiddenLineage ? 'linear' : 'none';
 
   return { form, spine, renderedByPackId };
 }

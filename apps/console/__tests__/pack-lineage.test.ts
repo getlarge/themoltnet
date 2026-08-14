@@ -49,32 +49,6 @@ describe('buildLineage', () => {
 
       expect(buildLineage(graph).form).toBe('linear');
     });
-
-    it('reports "branching" when one pack supersedes two', () => {
-      const graph = graphFixture({
-        nodes: [packNode('p2'), packNode('p1'), packNode('p0')],
-        edges: [
-          edge(packNodeId('p2'), packNodeId('p1'), 'supersedes'),
-          edge(packNodeId('p2'), packNodeId('p0'), 'supersedes'),
-        ],
-        rootSeed: 'p2',
-      });
-
-      expect(buildLineage(graph).form).toBe('branching');
-    });
-
-    it('reports "branching" when two packs supersede the same ancestor', () => {
-      const graph = graphFixture({
-        nodes: [packNode('p2'), packNode('p1'), packNode('p0')],
-        edges: [
-          edge(packNodeId('p2'), packNodeId('p0'), 'supersedes'),
-          edge(packNodeId('p1'), packNodeId('p0'), 'supersedes'),
-        ],
-        rootSeed: 'p2',
-      });
-
-      expect(buildLineage(graph).form).toBe('branching');
-    });
   });
 
   describe('spine composition', () => {

@@ -108,27 +108,6 @@ describe('PackLineage', () => {
     expect(screen.getAllByRole('listitem')).toHaveLength(2);
   });
 
-  it('renders branching lineage rather than nothing while the graph form is pending', () => {
-    mocks.provenance = {
-      isLoading: false,
-      isError: false,
-      data: graphFixture({
-        nodes: [packNode('p2'), packNode('p1'), packNode('p0')],
-        edges: [
-          edge(packNodeId('p2'), packNodeId('p1'), 'supersedes'),
-          edge(packNodeId('p2'), packNodeId('p0'), 'supersedes'),
-        ],
-        rootSeed: 'p2',
-      }),
-    };
-
-    renderPanel();
-
-    // Flattened, but every pack is listed and actionable. The graph form
-    // replaces this rendering.
-    expect(screen.getAllByRole('listitem')).toHaveLength(3);
-  });
-
   it('marks a chain truncated by depth or permission instead of implying it is complete', () => {
     mocks.provenance = {
       isLoading: false,
