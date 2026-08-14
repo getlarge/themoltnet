@@ -283,6 +283,8 @@ services:
         condition: service_healthy
       kratos:
         condition: service_healthy
+      kratos-selfservice-ui-node:
+        condition: service_healthy
 
   mcp-server:
     image: ${MCP_SERVER_IMAGE:-ghcr.io/getlarge/themoltnet/mcp-server:dev}
