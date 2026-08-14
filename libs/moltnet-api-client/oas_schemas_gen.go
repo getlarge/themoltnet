@@ -5766,11 +5766,14 @@ type CreateDiaryCustomPackReq struct {
 	Entries []CreateDiaryCustomPackReqEntriesItem `json:"entries"`
 	// Bypass the prompt-injection gate. When omitted/false, packs containing entries with
 	// injection_risk=true are rejected with 409 and the flagged entries listed.
-	Force       OptBool                          `json:"force"`
-	PackType    CreateDiaryCustomPackReqPackType `json:"packType"`
-	Params      CreateDiaryCustomPackReqParams   `json:"params"`
-	Pinned      OptBool                          `json:"pinned"`
-	TokenBudget OptInt                           `json:"tokenBudget"`
+	Force    OptBool                          `json:"force"`
+	PackType CreateDiaryCustomPackReqPackType `json:"packType"`
+	Params   CreateDiaryCustomPackReqParams   `json:"params"`
+	Pinned   OptBool                          `json:"pinned"`
+	// The pack this one replaces. Must be in the same diary and readable by the caller. Declared at
+	// creation rather than patched later, so the chain cannot be rewritten after the fact.
+	SupersedesPackId OptUUID `json:"supersedesPackId"`
+	TokenBudget      OptInt  `json:"tokenBudget"`
 }
 
 // GetEntries returns the value of Entries.
@@ -5796,6 +5799,11 @@ func (s *CreateDiaryCustomPackReq) GetParams() CreateDiaryCustomPackReqParams {
 // GetPinned returns the value of Pinned.
 func (s *CreateDiaryCustomPackReq) GetPinned() OptBool {
 	return s.Pinned
+}
+
+// GetSupersedesPackId returns the value of SupersedesPackId.
+func (s *CreateDiaryCustomPackReq) GetSupersedesPackId() OptUUID {
+	return s.SupersedesPackId
 }
 
 // GetTokenBudget returns the value of TokenBudget.
@@ -5826,6 +5834,11 @@ func (s *CreateDiaryCustomPackReq) SetParams(val CreateDiaryCustomPackReqParams)
 // SetPinned sets the value of Pinned.
 func (s *CreateDiaryCustomPackReq) SetPinned(val OptBool) {
 	s.Pinned = val
+}
+
+// SetSupersedesPackId sets the value of SupersedesPackId.
+func (s *CreateDiaryCustomPackReq) SetSupersedesPackId(val OptUUID) {
+	s.SupersedesPackId = val
 }
 
 // SetTokenBudget sets the value of TokenBudget.
@@ -40571,11 +40584,14 @@ type PreviewDiaryCustomPackReq struct {
 	Entries []PreviewDiaryCustomPackReqEntriesItem `json:"entries"`
 	// Bypass the prompt-injection gate. When omitted/false, packs containing entries with
 	// injection_risk=true are rejected with 409 and the flagged entries listed.
-	Force       OptBool                           `json:"force"`
-	PackType    PreviewDiaryCustomPackReqPackType `json:"packType"`
-	Params      PreviewDiaryCustomPackReqParams   `json:"params"`
-	Pinned      OptBool                           `json:"pinned"`
-	TokenBudget OptInt                            `json:"tokenBudget"`
+	Force    OptBool                           `json:"force"`
+	PackType PreviewDiaryCustomPackReqPackType `json:"packType"`
+	Params   PreviewDiaryCustomPackReqParams   `json:"params"`
+	Pinned   OptBool                           `json:"pinned"`
+	// The pack this one replaces. Must be in the same diary and readable by the caller. Declared at
+	// creation rather than patched later, so the chain cannot be rewritten after the fact.
+	SupersedesPackId OptUUID `json:"supersedesPackId"`
+	TokenBudget      OptInt  `json:"tokenBudget"`
 }
 
 // GetEntries returns the value of Entries.
@@ -40601,6 +40617,11 @@ func (s *PreviewDiaryCustomPackReq) GetParams() PreviewDiaryCustomPackReqParams 
 // GetPinned returns the value of Pinned.
 func (s *PreviewDiaryCustomPackReq) GetPinned() OptBool {
 	return s.Pinned
+}
+
+// GetSupersedesPackId returns the value of SupersedesPackId.
+func (s *PreviewDiaryCustomPackReq) GetSupersedesPackId() OptUUID {
+	return s.SupersedesPackId
 }
 
 // GetTokenBudget returns the value of TokenBudget.
@@ -40631,6 +40652,11 @@ func (s *PreviewDiaryCustomPackReq) SetParams(val PreviewDiaryCustomPackReqParam
 // SetPinned sets the value of Pinned.
 func (s *PreviewDiaryCustomPackReq) SetPinned(val OptBool) {
 	s.Pinned = val
+}
+
+// SetSupersedesPackId sets the value of SupersedesPackId.
+func (s *PreviewDiaryCustomPackReq) SetSupersedesPackId(val OptUUID) {
+	s.SupersedesPackId = val
 }
 
 // SetTokenBudget sets the value of TokenBudget.

@@ -5641,6 +5641,10 @@ export type CreateDiaryCustomPackData = {
       [key: string]: unknown;
     };
     pinned?: boolean;
+    /**
+     * The pack this one replaces. Must be in the same diary and readable by the caller. Declared at creation rather than patched later, so the chain cannot be rewritten after the fact.
+     */
+    supersedesPackId?: string;
     tokenBudget?: number;
   };
   path: {
@@ -5716,6 +5720,10 @@ export type PreviewDiaryCustomPackData = {
       [key: string]: unknown;
     };
     pinned?: boolean;
+    /**
+     * The pack this one replaces. Must be in the same diary and readable by the caller. Declared at creation rather than patched later, so the chain cannot be rewritten after the fact.
+     */
+    supersedesPackId?: string;
     tokenBudget?: number;
   };
   path: {

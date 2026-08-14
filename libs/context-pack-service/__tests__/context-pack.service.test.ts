@@ -208,6 +208,110 @@ describe('ContextPackService', () => {
       expect(deps.grantPackParent).toHaveBeenCalledOnce();
     });
 
+    it('records the pack it supersedes', async () => {
+      const deps = makeDeps();
+      const service = new ContextPackService(deps);
+
+      await service.createCustomPack({
+        diaryId: 'diary-uuid',
+        entries: [{ entryId: 'entry-1', rank: 1 }],
+        params: { recipe: 'test' },
+        creator: { kind: 'agent' as const, id: 'identity-uuid' },
+        supersedesPackId: 'pack-uuid',
+        actor: { identityId: 'identity-uuid', subjectNs: 'Agent' as const },
+      });
+
+      expect(deps.contextPackRepository.createPack).toHaveBeenCalledWith(
+        expect.objectContaining({ supersedesPackId: 'pack-uuid' }),
+      );
+    });
+
+    it('rejects superseding a pack that does not exist', async () => {
+      const deps = makeDeps({
+        contextPackRepository: {
+          ...makeDeps().contextPackRepository,
+          findById: vi.fn().mockResolvedValue(null),
+        },
+      });
+      const service = new ContextPackService(deps);
+
+      await expect(
+        service.createCustomPack({
+          diaryId: 'diary-uuid',
+          entries: [{ entryId: 'entry-1', rank: 1 }],
+          params: { recipe: 'test' },
+          creator: { kind: 'agent' as const, id: 'identity-uuid' },
+          supersedesPackId: 'missing-pack',
+          actor: { identityId: 'identity-uuid', subjectNs: 'Agent' as const },
+        }),
+      ).rejects.toThrow(/not found/i);
+    });
+
+    it('rejects superseding a pack in a different diary', async () => {
+      // Mirrors the constraint diffPacks already enforces: pack-to-pack
+      // relationships stay inside one diary, because provenance and
+      // permissions are diary-scoped.
+      const deps = makeDeps({
+        contextPackRepository: {
+          ...makeDeps().contextPackRepository,
+          findById: vi
+            .fn()
+            .mockResolvedValue({ id: 'other', diaryId: 'other-diary' }),
+        },
+      });
+      const service = new ContextPackService(deps);
+
+      await expect(
+        service.createCustomPack({
+          diaryId: 'diary-uuid',
+          entries: [{ entryId: 'entry-1', rank: 1 }],
+          params: { recipe: 'test' },
+          creator: { kind: 'agent' as const, id: 'identity-uuid' },
+          supersedesPackId: 'other',
+          actor: { identityId: 'identity-uuid', subjectNs: 'Agent' as const },
+        }),
+      ).rejects.toThrow(/same diary/i);
+    });
+
+    it('rejects superseding a pack the actor cannot read', async () => {
+      // Without this, pointing at an unreadable pack would leak its existence
+      // through the provenance graph.
+      const deps = makeDeps({
+        permissionChecker: {
+          ...makeDeps().permissionChecker,
+          canReadPack: vi.fn().mockResolvedValue(false),
+        },
+      });
+      const service = new ContextPackService(deps);
+
+      await expect(
+        service.createCustomPack({
+          diaryId: 'diary-uuid',
+          entries: [{ entryId: 'entry-1', rank: 1 }],
+          params: { recipe: 'test' },
+          creator: { kind: 'agent' as const, id: 'identity-uuid' },
+          supersedesPackId: 'pack-uuid',
+          actor: { identityId: 'identity-uuid', subjectNs: 'Agent' as const },
+        }),
+      ).rejects.toThrow(/not authorized/i);
+    });
+
+    it('leaves supersedesPackId null when not superseding', async () => {
+      const deps = makeDeps();
+      const service = new ContextPackService(deps);
+
+      await service.createCustomPack({
+        diaryId: 'diary-uuid',
+        entries: [{ entryId: 'entry-1', rank: 1 }],
+        params: { recipe: 'test' },
+        creator: { kind: 'agent' as const, id: 'identity-uuid' },
+      });
+
+      expect(deps.contextPackRepository.createPack).toHaveBeenCalledWith(
+        expect.objectContaining({ supersedesPackId: null }),
+      );
+    });
+
     it('returns existing pack when CID already exists', async () => {
       const existingPack = {
         id: 'existing-pack',

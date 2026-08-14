@@ -13735,6 +13735,12 @@ func (s *CreateDiaryCustomPackReq) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.SupersedesPackId.Set {
+			e.FieldStart("supersedesPackId")
+			s.SupersedesPackId.Encode(e)
+		}
+	}
+	{
 		if s.TokenBudget.Set {
 			e.FieldStart("tokenBudget")
 			s.TokenBudget.Encode(e)
@@ -13742,13 +13748,14 @@ func (s *CreateDiaryCustomPackReq) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfCreateDiaryCustomPackReq = [6]string{
+var jsonFieldsNameOfCreateDiaryCustomPackReq = [7]string{
 	0: "entries",
 	1: "force",
 	2: "packType",
 	3: "params",
 	4: "pinned",
-	5: "tokenBudget",
+	5: "supersedesPackId",
+	6: "tokenBudget",
 }
 
 // Decode decodes CreateDiaryCustomPackReq from json.
@@ -13817,6 +13824,16 @@ func (s *CreateDiaryCustomPackReq) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"pinned\"")
+			}
+		case "supersedesPackId":
+			if err := func() error {
+				s.SupersedesPackId.Reset()
+				if err := s.SupersedesPackId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"supersedesPackId\"")
 			}
 		case "tokenBudget":
 			if err := func() error {
@@ -78000,6 +78017,12 @@ func (s *PreviewDiaryCustomPackReq) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.SupersedesPackId.Set {
+			e.FieldStart("supersedesPackId")
+			s.SupersedesPackId.Encode(e)
+		}
+	}
+	{
 		if s.TokenBudget.Set {
 			e.FieldStart("tokenBudget")
 			s.TokenBudget.Encode(e)
@@ -78007,13 +78030,14 @@ func (s *PreviewDiaryCustomPackReq) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfPreviewDiaryCustomPackReq = [6]string{
+var jsonFieldsNameOfPreviewDiaryCustomPackReq = [7]string{
 	0: "entries",
 	1: "force",
 	2: "packType",
 	3: "params",
 	4: "pinned",
-	5: "tokenBudget",
+	5: "supersedesPackId",
+	6: "tokenBudget",
 }
 
 // Decode decodes PreviewDiaryCustomPackReq from json.
@@ -78082,6 +78106,16 @@ func (s *PreviewDiaryCustomPackReq) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"pinned\"")
+			}
+		case "supersedesPackId":
+			if err := func() error {
+				s.SupersedesPackId.Reset()
+				if err := s.SupersedesPackId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"supersedesPackId\"")
 			}
 		case "tokenBudget":
 			if err := func() error {

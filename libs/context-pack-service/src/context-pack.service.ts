@@ -417,6 +417,48 @@ export class ContextPackService {
     return { items: visible, total: adjustedTotal, limit, offset };
   }
 
+  /**
+   * Validates a supersession target before the new pack is written.
+   *
+   * The same-diary rule and the read check on both packs mirror `diffPacks`:
+   * pack-to-pack relationships stay inside one diary because provenance and
+   * permissions are diary-scoped, and pointing at a pack the actor cannot read
+   * would leak its existence through the provenance graph.
+   *
+   * No cycle check is needed. Supersession is fixed at creation, and a pack
+   * that does not exist yet cannot already be an ancestor of anything.
+   */
+  async validateSupersession(input: {
+    diaryId: string;
+    supersedesPackId?: string;
+    actor?: PackActor;
+  }): Promise<void> {
+    if (!input.supersedesPackId) return;
+
+    if (!input.actor) {
+      throw new PackServiceError(
+        'actor is required when superseding a pack',
+        'validation',
+      );
+    }
+
+    const target = await this.deps.contextPackRepository.findById(
+      input.supersedesPackId,
+    );
+    if (!target) {
+      throw new PackServiceError('Superseded pack not found', 'not_found');
+    }
+
+    if (target.diaryId !== input.diaryId) {
+      throw new PackServiceError(
+        'A pack can only supersede a pack in the same diary',
+        'validation',
+      );
+    }
+
+    await this.assertCanReadPack(target.id, input.actor);
+  }
+
   private async assertCanReadPack(
     packId: string,
     actor: PackActor,
@@ -437,6 +479,8 @@ export class ContextPackService {
   async createCustomPack(
     input: CreateCustomPackInput,
   ): Promise<CustomPackResult> {
+    await this.validateSupersession(input);
+
     const selectedEntries = await loadSelectedEntries(
       this.deps.entryFetcher,
       input.diaryId,
@@ -499,6 +543,7 @@ export class ContextPackService {
           input.creator.kind === 'agent' ? input.creator.id : null,
         creatorHumanId:
           input.creator.kind === 'human' ? input.creator.id : null,
+        supersedesPackId: input.supersedesPackId ?? null,
         pinned,
         expiresAt,
         createdAt,

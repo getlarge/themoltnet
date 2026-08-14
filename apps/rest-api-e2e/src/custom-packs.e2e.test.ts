@@ -12,6 +12,7 @@ import {
   createDiaryCustomPack,
   createDiaryEntry,
   getContextPackById,
+  getContextPackProvenanceById,
   listDiaryEntries,
   listDiaryPacks,
   previewDiaryCustomPack,
@@ -330,7 +331,7 @@ describe('Custom packs', () => {
         limit: 1,
       },
     });
-    const foreignEntryId = foreignSearch!.results[0]!.id;
+    const foreignEntryId = foreignSearch!.results[0].id;
 
     const { error, response } = await createDiaryCustomPack({
       client,
@@ -348,6 +349,135 @@ describe('Custom packs', () => {
 
     expect(error).toBeDefined();
     expect(response.status).toBe(400);
+  });
+
+  describe('supersession', () => {
+    let olderPackId: string;
+    let olderPackCid: string;
+
+    async function makePack(recipe: string, supersedesPackId?: string) {
+      const { data: entries } = await listDiaryEntries({
+        client,
+        auth: () => agentA.accessToken,
+        path: { diaryId: agentA.moltnetDiaryId },
+        query: { tags: ['auth'], limit: 2 },
+      });
+
+      const { data, error, response } = await createDiaryCustomPack({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: agentA.moltnetDiaryId },
+        body: {
+          packType: 'custom',
+          params: { recipe },
+          entries: entries!.items.slice(0, 2).map((e, i) => ({
+            entryId: e.id,
+            rank: i + 1,
+          })),
+          ...(supersedesPackId ? { supersedesPackId } : {}),
+        },
+      });
+
+      return { data, error, response };
+    }
+
+    it('creates the pack that will be superseded', async () => {
+      const { data } = await makePack('supersede-base');
+      expect(data).toBeDefined();
+      olderPackCid = data!.packCid;
+
+      const { data: packs } = await listDiaryPacks({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: agentA.moltnetDiaryId },
+      });
+      olderPackId = packs!.items.find((p) => p.packCid === olderPackCid)!.id;
+      expect(olderPackId).toBeDefined();
+    }, 30_000);
+
+    it('records supersession on the replacement pack', async () => {
+      const { data, error } = await makePack('supersede-newer', olderPackId);
+      expect(error).toBeUndefined();
+
+      const { data: packs } = await listDiaryPacks({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: agentA.moltnetDiaryId },
+      });
+      const newer = packs!.items.find((p) => p.packCid === data!.packCid);
+      expect(newer!.supersedesPackId).toBe(olderPackId);
+    }, 30_000);
+
+    it('walks the chain in the provenance graph', async () => {
+      // Before supersession could be written, this endpoint could only ever
+      // return the root node: the BFS stops when supersedesPackId is null.
+      const { data: packs } = await listDiaryPacks({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: agentA.moltnetDiaryId },
+      });
+      const newer = packs!.items.find(
+        (p) => p.supersedesPackId === olderPackId,
+      );
+
+      const { data: graph, error } = await getContextPackProvenanceById({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: newer!.id },
+      });
+
+      expect(error).toBeUndefined();
+      const packNodes = graph!.nodes.filter((n) => n.kind === 'pack');
+      expect(packNodes.length).toBe(2);
+      expect(
+        graph!.edges.some(
+          (e) => e.kind === 'supersedes' && e.from === `pack:${newer!.id}`,
+        ),
+      ).toBe(true);
+    }, 30_000);
+
+    it('rejects superseding a pack in a different diary with 400, not 500', async () => {
+      const { data: entriesB } = await listDiaryEntries({
+        client,
+        auth: () => agentB.accessToken,
+        path: { diaryId: agentB.moltnetDiaryId },
+        query: { limit: 1 },
+      });
+
+      const { error, response } = await createDiaryCustomPack({
+        client,
+        auth: () => agentB.accessToken,
+        path: { id: agentB.moltnetDiaryId },
+        body: {
+          packType: 'custom',
+          params: { recipe: 'cross-diary' },
+          entries: (entriesB?.items ?? [])
+            .slice(0, 1)
+            .map((e, i) => ({ entryId: e.id, rank: i + 1 })),
+          supersedesPackId: olderPackId,
+        },
+      });
+
+      // Asserting only that `error` is set would pass on a 500: the generated
+      // client populates `error` for any non-2xx. The status is the assertion
+      // that catches an untranslated PackServiceError.
+      expect(error).toBeDefined();
+      expect(response.status).toBe(400);
+    }, 30_000);
+
+    // No e2e for the read-check on the supersession target: the same-diary rule
+    // is enforced first, and pack permissions are inherited from the diary, so
+    // an actor able to create a pack in a diary can read that diary's packs.
+    // The check is defence-in-depth rather than a reachable path — it is
+    // covered directly in the ContextPackService unit tests instead.
+    it('rejects a retry that changes supersession, rather than dropping it', async () => {
+      // Same content as the base pack, but now claiming to supersede it. The
+      // CID matches, so this hits the idempotent path; silently returning the
+      // original would discard the pointer.
+      const { response } = await makePack('supersede-base', olderPackId);
+
+      expect(response.status).toBe(409);
+    }, 30_000);
   });
 
   describe('PATCH /packs/:id (pin/unpin/expiry)', () => {
