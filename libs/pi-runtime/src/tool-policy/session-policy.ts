@@ -17,6 +17,10 @@ export interface SessionToolPolicy {
   enforcement: ToolEnforcement;
   allowedTools: ReadonlySet<string>;
   allowedShellCommands: readonly ShellCommandRule[];
+  /** Latest effective policy hash resolved for this Pi session. */
+  executionPolicySnapshotHash?: string;
+  /** Latest runtime profile revision resolved with the session policy. */
+  executionRuntimeProfileRevision?: number;
   /**
    * `true` when the allow-set is a **degraded fallback** — the allowed-tools
    * fetch failed or timed out and this policy is the fail-closed/fail-open
@@ -24,7 +28,7 @@ export interface SessionToolPolicy {
    * empty-but-resolved policy (e.g. a profile with no bound tools) has
    * `degraded: false`. Surfaced in every audit/block log so an operator can tell
    * "blocked because the policy is empty" from "blocked because we couldn't read
-   * the policy". `off` and successful resolutions are never degraded.
+   * the policy". Successful resolutions are never degraded.
    */
   degraded: boolean;
 }
@@ -55,6 +59,8 @@ export interface AllowedToolsClient {
       allowedTools: string[];
       allowedShellCommands: Array<{ argvPrefix: string[] }>;
       runtimeKind: string;
+      policySnapshotHash?: string;
+      runtimeProfileRevision?: number;
     }>;
   };
 }
@@ -84,8 +90,9 @@ export interface ResolveSessionToolPolicyInput {
 /**
  * Resolve the session's tool policy at start-up.
  *
- * `off` short-circuits without a network call. Otherwise the allowed-tool set
- * is fetched from the API. If that fetch fails, the mode decides the fallback:
+ * The latest allowed-tool set and enforcement mode are fetched from the API,
+ * including when the daemon's cached profile says `off`. If that fetch fails,
+ * the cached mode decides the fallback:
  * `enforce` **fails closed** (empty allow-set → every non-`off` tool is
  * blocked); `watch` fails open (empty allow-set → every tool is audited but
  * allowed).
@@ -98,15 +105,6 @@ export interface ResolveSessionToolPolicyInput {
 export async function resolveSessionToolPolicy(
   input: ResolveSessionToolPolicyInput,
 ): Promise<SessionToolPolicy> {
-  if (input.enforcement === 'off') {
-    return {
-      enforcement: 'off',
-      allowedTools: new Set(),
-      allowedShellCommands: [],
-      degraded: false,
-    };
-  }
-
   const timeoutMs = input.timeoutMs ?? DEFAULT_RESOLVE_TIMEOUT_MS;
   try {
     const resolved = await withTimeout(
@@ -137,6 +135,8 @@ export async function resolveSessionToolPolicy(
           argvPrefix: rule.argvPrefix as [string, string, ...string[]],
         };
       }),
+      executionPolicySnapshotHash: resolved.policySnapshotHash,
+      executionRuntimeProfileRevision: resolved.runtimeProfileRevision,
       degraded: false,
     };
   } catch (err) {
@@ -238,6 +238,23 @@ export interface ToolPolicyExtensionDeps {
   policy: SessionToolPolicy;
   analyzer: ShellCommandAnalyzer;
   logger: ToolPolicyLogger;
+  context?: ToolPolicyDecisionContext;
+}
+
+/** Correlation and claim evidence repeated on every tool-policy decision. */
+export interface ToolPolicyDecisionContext {
+  taskId: string;
+  attemptN: number;
+  teamId: string;
+  claimantAgentId?: string;
+  leaseId?: string;
+  proposerKind?: 'agent' | 'human';
+  proposerId?: string;
+  claimRuntimeProfileId?: string;
+  executionRuntimeProfileId?: string;
+  claimRuntimeProfileRevision?: number;
+  claimPolicySnapshotHash?: string;
+  claimedExecutorFingerprint?: string;
 }
 
 /**
@@ -246,6 +263,22 @@ export interface ToolPolicyExtensionDeps {
  * `off`. Register it in a session's `extensionFactories`.
  */
 export function createToolPolicyExtension(deps: ToolPolicyExtensionDeps) {
+  if (
+    deps.context?.claimPolicySnapshotHash &&
+    deps.policy.executionPolicySnapshotHash &&
+    deps.context.claimPolicySnapshotHash !==
+      deps.policy.executionPolicySnapshotHash
+  ) {
+    deps.logger.info(
+      {
+        ...decisionContext(deps),
+        decision: 'continue',
+        reason: 'claim_execution_policy_drift',
+      },
+      'tool_policy.snapshot_drift',
+    );
+  }
+
   return (pi: ExtensionAPI): void => {
     if (deps.policy.enforcement === 'off') return;
 
@@ -255,26 +288,36 @@ export function createToolPolicyExtension(deps: ToolPolicyExtensionDeps) {
       );
 
       if ('allow' in decision && decision.allow) {
-        if (decision.matchedShellCommands?.length) {
-          deps.logger.debug(
-            {
-              toolName: event.toolName,
-              toolCallId: event.toolCallId,
-              matchedShellCommands: decision.matchedShellCommands,
-            },
-            'tool_policy.shell_command_allowed',
-          );
-        }
+        deps.logger.info(
+          {
+            ...decisionContext(deps),
+            toolName: event.toolName,
+            toolCallId: event.toolCallId,
+            decision: 'allowed',
+            reason: decision.reasonCode,
+            ...(decision.matchedShellCommands?.length
+              ? { shellFingerprints: decision.matchedShellCommands }
+              : {}),
+          },
+          'tool_policy.allowed',
+        );
         return;
       }
 
       if ('audit' in decision) {
         deps.logger.info(
           {
+            ...decisionContext(deps),
             toolName: event.toolName,
             toolCallId: event.toolCallId,
-            degraded: deps.policy.degraded,
-            decision,
+            decision: 'audit',
+            reason: decision.reasonCode,
+            ...(decision.missing?.length
+              ? { missingExecutables: decision.missing }
+              : {}),
+            ...(decision.missingShellCommands?.length
+              ? { shellFingerprints: decision.missingShellCommands }
+              : {}),
           },
           'tool_policy.audit',
         );
@@ -283,18 +326,34 @@ export function createToolPolicyExtension(deps: ToolPolicyExtensionDeps) {
 
       deps.logger.warn(
         {
+          ...decisionContext(deps),
           toolName: event.toolName,
           toolCallId: event.toolCallId,
-          // Degraded → blocked because the policy could not be read, not because
-          // the operator's policy disallows this tool. Critical for triage.
-          degraded: deps.policy.degraded,
-          reason: decision.reason,
-          missingExecutables: decision.missing,
-          missingShellCommands: decision.missingShellCommands,
+          decision: 'blocked',
+          reason: decision.reasonCode,
+          ...(decision.missing?.length
+            ? { missingExecutables: decision.missing }
+            : {}),
+          ...(decision.missingShellCommands?.length
+            ? { shellFingerprints: decision.missingShellCommands }
+            : {}),
         },
         'tool_policy.blocked',
       );
       return { block: true, reason: decision.reason };
     });
+  };
+}
+
+function decisionContext(
+  deps: ToolPolicyExtensionDeps,
+): Record<string, unknown> {
+  return {
+    ...(deps.context ?? {}),
+    enforcement: deps.policy.enforcement,
+    degraded: deps.policy.degraded,
+    executionPolicySnapshotHash: deps.policy.executionPolicySnapshotHash,
+    executionRuntimeProfileRevision:
+      deps.policy.executionRuntimeProfileRevision,
   };
 }

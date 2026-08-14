@@ -11,6 +11,22 @@ export type CreateClaimAttestation = (input: {
   profileId?: string;
 }) => Promise<ExecutorAttestationFields>;
 
+/**
+ * Immutable authority evidence returned by an API-backed task claim.
+ *
+ * The field is optional on {@link ClaimedTask} so local files and older task
+ * sources remain valid. It records what the server accepted at claim time; it
+ * does not replace the runtime policy resolved for a later Pi session.
+ */
+export interface ClaimAuthority {
+  claimantAgentId?: string;
+  leaseId?: string;
+  runtimeProfileId?: string;
+  runtimeProfileRevision?: number;
+  policySnapshotHash?: string;
+  executorFingerprint?: string;
+}
+
 export interface ClaimedTask {
   /** The claimed task payload itself. */
   task: Task;
@@ -18,6 +34,8 @@ export interface ClaimedTask {
   attemptN: number;
   /** Runtime profile id selected by the source when claim routing is profile-scoped. */
   profileId?: string;
+  /** Claim-time authority and attestation evidence from API-backed sources. */
+  claimAuthority?: ClaimAuthority;
   /** W3C trace headers from the claim response for OTel context propagation. */
   traceHeaders: Record<string, string>;
 }

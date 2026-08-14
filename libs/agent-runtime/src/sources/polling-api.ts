@@ -11,6 +11,7 @@ import {
   recordCompletedRuntimePhase,
   traceRuntimePhase,
 } from '../telemetry.js';
+import { claimAuthorityFromAttempt } from './claim-authority.js';
 import type {
   ClaimedTask,
   CreateClaimAttestation,
@@ -620,10 +621,12 @@ export class PollingApiTaskSource implements TaskSource {
             'polling-api.claim_ok',
           );
         }
+        const claimAuthority = claimAuthorityFromAttempt(result.attempt);
         return {
           task: result.task,
           attemptN: result.attempt.attemptN,
           ...(profile.profileId ? { profileId: profile.profileId } : {}),
+          ...(claimAuthority ? { claimAuthority } : {}),
           traceHeaders: result.traceHeaders,
         };
       } catch (err) {

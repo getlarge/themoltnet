@@ -85,6 +85,7 @@ import type { ToolEnforcement } from '../tool-policy/gate.js';
 import {
   createToolPolicyExtension,
   resolveSessionToolPolicy,
+  type ToolPolicyDecisionContext,
   type ToolPolicyLogger,
 } from '../tool-policy/session-policy.js';
 import {
@@ -328,8 +329,8 @@ export interface ExecutePiTaskOptions {
   runtimeProfileContext?: readonly ContextRef[];
   /**
    * Runtime profile id, used to resolve the tool-policy allow-set at session
-   * start. Required together with a non-`off` `toolEnforcement` for the
-   * `tool_call` gate to run.
+   * start. Required with `toolEnforcement`; the resolved mode determines
+   * whether a `tool_call` gate is installed.
    */
   runtimeProfileId?: string;
   /** Tool-policy enforcement mode for the selected runtime profile. */
@@ -1082,8 +1083,9 @@ export async function executePiTask(
       const injectedSkills = injectedContext.skills;
 
       // Resolve the runtime profile's tool-policy allow-set and build the
-      // `tool_call` gate. Skipped in `off` mode; a resolve failure fails closed
-      // in `enforce` (empty allow-set blocks everything). Built BEFORE the
+      // `tool_call` gate. The latest mode is resolved even when the daemon's
+      // cached profile says `off`; a resolve failure uses that cached mode.
+      // Built BEFORE the
       // subagent tool so the same gate factory can be propagated into subagent
       // sessions — otherwise a subagent would run un-gated (bypass, #1348 B2).
       const toolPolicyExtensions: ReturnType<
@@ -1103,50 +1105,52 @@ export async function executePiTask(
         warn: (obj: Record<string, unknown>, msg: string) =>
           console.error(JSON.stringify({ level: 'warn', msg, ...obj })),
       };
-      if (
-        opts.runtimeProfileId &&
-        opts.toolEnforcement &&
-        opts.toolEnforcement !== 'off'
-      ) {
-        const [analyzer, policy] = await Promise.all([
-          ShellCommandAnalyzer.create(),
-          resolveSessionToolPolicy({
-            agent: moltnetAgent,
-            profileId: opts.runtimeProfileId,
-            teamId: taskTeamId,
-            runtimeKind: opts.runtimeDefinition?.runtimeKind ?? 'gondolin_pi',
-            enforcement: opts.toolEnforcement,
-            logger: toolPolicyLogger,
-          }),
-        ]);
-        const executableCapabilities = await discoverGuestExecutables(
-          managed.vm,
-          [
-            ...policy.allowedShellCommands.map(
-              ({ argvPrefix }) => argvPrefix[0],
-            ),
-            ...(policy.enforcement === 'watch'
-              ? (resolvedVmTemplate?.executables ?? [])
-              : []),
-          ],
-          { signal: reporter.cancelSignal },
-        );
-        verifiedGuestExecutables = executableCapabilities.available;
-        const availableExecutables = new Set(verifiedGuestExecutables);
-        const allowedShellCommands = policy.allowedShellCommands.filter(
-          ({ argvPrefix }) => availableExecutables.has(argvPrefix[0]),
-        );
-        unavailableRuntimeShellCommands = policy.allowedShellCommands.filter(
-          ({ argvPrefix }) => !availableExecutables.has(argvPrefix[0]),
-        );
-        resolvedToolPolicy = { ...policy, allowedShellCommands };
-        toolPolicyExtensions.push(
-          createToolPolicyExtension({
-            policy: resolvedToolPolicy,
-            analyzer,
-            logger: toolPolicyLogger,
-          }),
-        );
+      const toolPolicyDecisionContext = buildToolPolicyDecisionContext(
+        claimedTask,
+        opts.runtimeProfileId,
+      );
+      if (opts.runtimeProfileId && opts.toolEnforcement) {
+        const policy = await resolveSessionToolPolicy({
+          agent: moltnetAgent,
+          profileId: opts.runtimeProfileId,
+          teamId: taskTeamId,
+          runtimeKind: opts.runtimeDefinition?.runtimeKind ?? 'gondolin_pi',
+          enforcement: opts.toolEnforcement,
+          logger: toolPolicyLogger,
+        });
+        resolvedToolPolicy = policy;
+        if (policy.enforcement !== 'off') {
+          const analyzer = await ShellCommandAnalyzer.create();
+          const executableCapabilities = await discoverGuestExecutables(
+            managed.vm,
+            [
+              ...policy.allowedShellCommands.map(
+                ({ argvPrefix }) => argvPrefix[0],
+              ),
+              ...(policy.enforcement === 'watch'
+                ? (resolvedVmTemplate?.executables ?? [])
+                : []),
+            ],
+            { signal: reporter.cancelSignal },
+          );
+          verifiedGuestExecutables = executableCapabilities.available;
+          const availableExecutables = new Set(verifiedGuestExecutables);
+          const allowedShellCommands = policy.allowedShellCommands.filter(
+            ({ argvPrefix }) => availableExecutables.has(argvPrefix[0]),
+          );
+          unavailableRuntimeShellCommands = policy.allowedShellCommands.filter(
+            ({ argvPrefix }) => !availableExecutables.has(argvPrefix[0]),
+          );
+          resolvedToolPolicy = { ...policy, allowedShellCommands };
+          toolPolicyExtensions.push(
+            createToolPolicyExtension({
+              policy: resolvedToolPolicy,
+              analyzer,
+              logger: toolPolicyLogger,
+              context: toolPolicyDecisionContext,
+            }),
+          );
+        }
       }
 
       const runtimeToolContext = {
@@ -1660,6 +1664,43 @@ export async function executePiTask(
       attemptN,
     });
   }
+}
+
+export function buildToolPolicyDecisionContext(
+  claimedTask: ClaimedTask,
+  executionRuntimeProfileId?: string,
+): ToolPolicyDecisionContext {
+  const { task, attemptN, claimAuthority } = claimedTask;
+  const proposer = task.proposedByAgentId
+    ? { proposerKind: 'agent' as const, proposerId: task.proposedByAgentId }
+    : task.proposedByHumanId
+      ? { proposerKind: 'human' as const, proposerId: task.proposedByHumanId }
+      : {};
+  return {
+    taskId: task.id,
+    attemptN,
+    teamId: task.teamId,
+    ...proposer,
+    ...(claimAuthority?.claimantAgentId
+      ? { claimantAgentId: claimAuthority.claimantAgentId }
+      : {}),
+    ...(claimAuthority?.leaseId ? { leaseId: claimAuthority.leaseId } : {}),
+    ...(claimAuthority?.runtimeProfileId
+      ? { claimRuntimeProfileId: claimAuthority.runtimeProfileId }
+      : {}),
+    ...(executionRuntimeProfileId ? { executionRuntimeProfileId } : {}),
+    ...(typeof claimAuthority?.runtimeProfileRevision === 'number'
+      ? {
+          claimRuntimeProfileRevision: claimAuthority.runtimeProfileRevision,
+        }
+      : {}),
+    ...(claimAuthority?.policySnapshotHash
+      ? { claimPolicySnapshotHash: claimAuthority.policySnapshotHash }
+      : {}),
+    ...(claimAuthority?.executorFingerprint
+      ? { claimedExecutorFingerprint: claimAuthority.executorFingerprint }
+      : {}),
+  };
 }
 
 /** Event delivered to an `AgentSession` subscriber. */

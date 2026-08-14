@@ -1,5 +1,6 @@
 import type { Agent } from '@themoltnet/sdk';
 
+import { claimAuthorityFromAttempt } from './claim-authority.js';
 import type {
   ClaimedTask,
   CreateClaimAttestation,
@@ -46,11 +47,13 @@ export class ApiTaskSource implements TaskSource {
     });
 
     this.claimed = true;
+    const claimAuthority = claimAuthorityFromAttempt(result.attempt);
 
     return {
       task: result.task,
       attemptN: result.attempt.attemptN,
       ...(profileId ? { profileId } : {}),
+      ...(claimAuthority ? { claimAuthority } : {}),
       traceHeaders: result.traceHeaders,
     };
   }

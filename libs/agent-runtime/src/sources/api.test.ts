@@ -37,7 +37,7 @@ describe('ApiTaskSource', () => {
         usage: null,
         contentSignature: null,
         signedAt: null,
-        claimedExecutorFingerprint: null,
+        claimedExecutorFingerprint: 'bafkreiexecutor',
         claimedExecutorManifest: null,
         completedExecutorFingerprint: null,
         completedExecutorManifest: null,
@@ -55,6 +55,15 @@ describe('ApiTaskSource', () => {
     await expect(src.claim()).resolves.toEqual({
       task,
       attemptN: 3,
+      claimAuthority: {
+        claimantAgentId: '33333333-3333-4333-8333-333333333333',
+        leaseId: '44444444-4444-4444-8444-444444444444',
+        runtimeProfileId: '55555555-5555-4555-8555-555555555555',
+        runtimeProfileRevision: 1,
+        policySnapshotHash:
+          'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        executorFingerprint: 'bafkreiexecutor',
+      },
       traceHeaders: { traceparent: '00-abc-def-01' },
     });
     await expect(src.claim()).resolves.toBeNull();
@@ -73,6 +82,25 @@ describe('ApiTaskSource', () => {
     });
 
     await expect(src.claim()).rejects.toThrow(/409 Conflict/);
+  });
+
+  it('keeps legacy claim responses compatible when authority is absent', async () => {
+    const task = makeFulfillBriefTask({ status: 'dispatched' });
+    const claimMock = vi.fn<TasksNamespace['claim']>().mockResolvedValue({
+      task,
+      attempt: { taskId: task.id, attemptN: 1 } as never,
+      traceHeaders: {},
+    });
+    const src = new ApiTaskSource({
+      agent: makeAgent(claimMock),
+      taskId: task.id,
+    });
+
+    await expect(src.claim()).resolves.toEqual({
+      task,
+      attemptN: 1,
+      traceHeaders: {},
+    });
   });
 
   it('forwards profileId when claiming a specific task', async () => {
@@ -145,7 +173,7 @@ describe('ApiTaskSource', () => {
       createClaimAttestation,
     });
 
-    await src.claim();
+    const claimed = await src.claim();
 
     expect(createClaimAttestation).toHaveBeenCalledWith({
       taskId: task.id,
@@ -155,5 +183,6 @@ describe('ApiTaskSource', () => {
       profileId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
       ...attestation,
     });
+    expect(claimed?.claimAuthority).toBeUndefined();
   });
 });
