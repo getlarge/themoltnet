@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.5.0](https://github.com/getlarge/themoltnet/compare/console-v0.4.0...console-v0.5.0) (2026-08-14)
+
+
+### Features
+
+* **console:** add linear lineage chain ([93d181f](https://github.com/getlarge/themoltnet/commit/93d181ff699830d0755c214d9b229c12ddb0f18d))
+* **console:** add pack lineage panel with all states ([d1d4d6a](https://github.com/getlarge/themoltnet/commit/d1d4d6a8c9b82d5f2e405b2562113cdd4acec8dc))
+* **console:** pack lineage panel ([bbb2a15](https://github.com/getlarge/themoltnet/commit/bbb2a150b7a8f1975f9683740593af2264218884))
+* **console:** reduce provenance graph to its lineage spine ([7b2c2bb](https://github.com/getlarge/themoltnet/commit/7b2c2bb8afe97dc91b3b93ca58f09ac1bd40442c))
+* **console:** show lineage on the pack detail page ([09f7bac](https://github.com/getlarge/themoltnet/commit/09f7bac91ccd1d4e44d50c9602085e0d6195e5b9))
+
+
+### Bug Fixes
+
+* **console:** real hrefs and an honest root label in lineage ([e027d92](https://github.com/getlarge/themoltnet/commit/e027d926d154fe90b0c13fc73b8c7cd1ef8e24cc))
+
 ## [0.4.0](https://github.com/getlarge/themoltnet/compare/console-v0.3.1...console-v0.4.0) (2026-08-14)
 
 

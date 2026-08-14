@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.41.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.41.0...agent-daemon-v0.41.1) (2026-08-14)
+
+
+### Bug Fixes
+
+* **packages:** preserve installable runtime boundaries ([de1cb62](https://github.com/getlarge/themoltnet/commit/de1cb628a3bcdcc518c11380d1136ec24aa67f8a))
+* **publish:** enforce installable artifact boundaries ([36cd3c8](https://github.com/getlarge/themoltnet/commit/36cd3c8d3ed3e2f5e2953c9a240a7ed1ef5101d1))
+
 ## [0.41.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.40.0...agent-daemon-v0.41.0) (2026-08-14)
 
 
