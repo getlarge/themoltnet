@@ -152,6 +152,7 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+      - uses: astral-sh/setup-uv@v10
       - run: pnpm install --frozen-lockfile
 
       - name: Validate configured runtime prerequisites
