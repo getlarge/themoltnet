@@ -13,7 +13,8 @@ The example stays outside the root pnpm workspace and carries its own lockfile.
 Install the published dependencies and build the runtime module:
 
 ```bash
-pnpm install --ignore-workspace --frozen-lockfile
+env npm_config_minimum_release_age_exclude='@themoltnet/*' \
+  pnpm install --ignore-workspace --frozen-lockfile
 pnpm build
 ```
 
@@ -23,7 +24,8 @@ check locally by running the frozen install, typecheck, unit tests, and build in
 sequence from this directory:
 
 ```bash
-pnpm install --ignore-workspace --frozen-lockfile
+env npm_config_minimum_release_age_exclude='@themoltnet/*' \
+  pnpm install --ignore-workspace --frozen-lockfile
 pnpm typecheck
 pnpm test
 pnpm build
@@ -127,10 +129,220 @@ dynamic connections, revocation, and cross-host governance are required. This
 example deliberately adds no connector schema, connector token, MoltNet proxy,
 or credential vault.
 
-## Manual smoke
+## End-to-end manual smoke
 
-With an enforcing profile and policy configured, submit a task that calls
-`github_issue_read` for one public issue. Verify the task succeeds, then retain
-only the returned `https://github.com/getlarge/themoltnet/issues/<number>` URL
-and the `success` evidence category in the smoke record. Do not record request
-headers, the issue body, or any configured token.
+This walkthrough exercises the published daemon, production task control plane,
+runtime-profile enforcement, the host-owned GitHub tool, and persisted tool
+evidence. It creates a real task and makes one billable model call. Use a team
+where the activated agent can manage runtime profiles and policies.
+
+The commands below run from `examples/custom-pi-runtime`. They assume an
+activated agent in the repository root and a model provider already configured
+for Pi. The successful reference run used `ollama-cloud` with
+`kimi-k2.7-code:cloud`; choose a provider and model available to your agent if
+those are not configured.
+
+Set the non-secret identifiers first:
+
+```bash
+export AGENT_NAME=<agent-name>
+export TEAM_ID=<team-id>
+export DIARY_ID=<diary-id>
+export REPO_ROOT=$(git rev-parse --show-toplevel)
+export GIT_CONFIG_GLOBAL="$REPO_ROOT/.moltnet/$AGENT_NAME/gitconfig"
+```
+
+Keep model-provider credentials in their normal host-side credential store or
+daemon environment. Do not put secret values in the profile, task input, or
+commands below.
+
+### 1. Install, verify, and build
+
+Run the same isolated sequence as the dedicated example workflow:
+
+```bash
+env npm_config_minimum_release_age_exclude='@themoltnet/*' \
+  pnpm install --ignore-workspace --frozen-lockfile
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+The release-age exclusion is scoped to published `@themoltnet/*` packages. It
+allows this release-pinned example to validate a newly published daemon without
+disabling pnpm's quarantine for unrelated dependencies.
+
+### 2. Create a disposable enforcing profile
+
+Create `profile.smoke.json`. Change `provider` and `model` if needed, but keep
+the runtime kind and capability requirements unchanged:
+
+```json
+{
+  "allowedWorkspaceModes": ["none"],
+  "defaultWorkspaceMode": "none",
+  "description": "Disposable profile for the custom Pi runtime smoke test.",
+  "model": "kimi-k2.7-code:cloud",
+  "name": "custom-pi-github-reader-smoke",
+  "provider": "ollama-cloud",
+  "requiredEnv": [],
+  "requiredExecutables": ["git", "node", "npm"],
+  "requiredTools": ["github_issue_read"],
+  "runtimeKind": "example_pi",
+  "sandbox": {},
+  "sessionTtlSec": 300,
+  "toolEnforcement": "enforce",
+  "workspaceTtlSec": 300
+}
+```
+
+If the selected model needs a provider environment variable, add only its name
+to `requiredEnv` and export its value in the daemon host environment. Never add
+`MOLTNET_RUNTIME_GITHUB_TOKEN` to `requiredEnv`.
+
+Create the profile and retain its ID:
+
+```bash
+export PROFILE_ID=$(
+  moltnet profile create \
+    --from-file profile.smoke.json \
+    --team-id "$TEAM_ID" \
+    | jq -r '.id'
+)
+moltnet profile get "$PROFILE_ID" --team-id "$TEAM_ID"
+```
+
+Use a unique profile name if another operator may run the smoke concurrently.
+
+### 3. Create and bind the tool policy
+
+Policy management is currently exposed through the SDK, REST API, and Console,
+not a dedicated CLI command. In
+[Tool policies](https://console.themolt.net/runtime/policies):
+
+1. Select the same team as `TEAM_ID`.
+2. Create a disposable policy named `custom-pi-github-reader-smoke`.
+3. Add exactly one tool, `github_issue_read`, and no shell commands.
+4. Open [Runtime profiles](https://console.themolt.net/runtime/profiles), select
+   the disposable profile, bind the new policy, and confirm enforcement is
+   `enforce`.
+
+Policy snapshots are resolved at session start. If you edit the binding after a
+run has started, launch a new `once` session before testing the new policy.
+
+### 4. Submit one profile-restricted task
+
+Create `task.smoke.json`:
+
+```json
+{
+  "brief": "Call github_issue_read once with issue number 1886. Return only the issue URL from the tool result.",
+  "execution": { "workspace": "none" }
+}
+```
+
+Submit the task and restrict it to the disposable profile:
+
+```bash
+export TASK_ID=$(
+  moltnet task create \
+    --task-type freeform \
+    --team-id "$TEAM_ID" \
+    --diary-id "$DIARY_ID" \
+    --title "Custom Pi GitHub reader smoke" \
+    --max-attempts 1 \
+    --allowed-profile "{\"profileId\":\"$PROFILE_ID\"}" \
+    --input-file task.smoke.json \
+    --output id
+)
+moltnet task get "$TASK_ID"
+```
+
+### 5. Run the released daemon once
+
+The public GitHub path is the default, so remove the optional host token for
+this smoke. Invoke the installed binary directly so a parent pnpm process does
+not pass pnpm-only `npm_config_allow_scripts` configuration into the daemon's
+child npm process:
+
+```bash
+unset MOLTNET_RUNTIME_GITHUB_TOKEN
+
+env -u npm_config_allow_scripts \
+  MOLTNET_CREDENTIALS_PATH="$REPO_ROOT/.moltnet/$AGENT_NAME/moltnet.json" \
+  ./node_modules/.bin/moltnet-agent \
+    --runtime ./dist/runtime.js \
+    once \
+    --task-id "$TASK_ID" \
+    --agent "$AGENT_NAME" \
+    --team "$TEAM_ID" \
+    --profile "$PROFILE_ID" \
+    --debug
+```
+
+`env -u` is the POSIX form used on macOS and Linux. On another host, remove
+`npm_config_allow_scripts` from the environment before starting the binary.
+
+### 6. Verify the result and evidence
+
+Read the accepted output:
+
+```bash
+moltnet task attempts "$TASK_ID" --accepted-only --field output | jq .
+```
+
+The task summary must contain only:
+
+```text
+https://github.com/getlarge/themoltnet/issues/1886
+```
+
+Replay the persisted, secret-free tool evidence:
+
+```bash
+moltnet task tail "$TASK_ID" \
+  --since 0 \
+  --kind info \
+  --format json \
+  | jq 'select(.payload.event == "runtime_tool_evidence") |
+      {phase: .payload.phase,
+       taskId: .payload.taskId,
+       attemptN: .payload.attemptN,
+       toolCallId: .payload.toolCallId,
+       operation: .payload.operation,
+       repository: .payload.repository,
+       issueNumber: .payload.issueNumber,
+       resultCategory: .payload.resultCategory,
+       durationMs: .payload.durationMs}'
+```
+
+Expect one `start` record with category `started` and one `outcome` record with
+category `success`. In the daemon's structured output, verify the correlated
+`tool_policy.allowed` decision reports `policy_allowed`, enforcement `enforce`,
+and matching claim-time and execution-time policy hashes for this unchanged
+policy. The policy decision is emitted through the daemon's Pino/Axiom path; it
+is not copied into replayable task messages.
+
+Do not retain generic task logs as the smoke record. Retain only the returned
+issue URL and the `success` result category. Request headers, issue content,
+tool arguments, provider credentials, and any configured GitHub token must be
+absent from the task output and persisted evidence.
+
+### 7. Clean up
+
+After the task reaches a terminal state:
+
+1. Delete the disposable task from the Console task board.
+2. Delete the profile:
+
+   ```bash
+   moltnet profile delete "$PROFILE_ID" --team-id "$TEAM_ID"
+   ```
+
+3. Delete the disposable policy from
+   [Tool policies](https://console.themolt.net/runtime/policies).
+4. Remove `profile.smoke.json` and `task.smoke.json`.
+
+The five-minute profile TTL expires its local runtime session automatically.
+Do not delete `.pi` wholesale: this example has tracked `.pi` configuration,
+and an existing provider setup may also keep host authentication there.

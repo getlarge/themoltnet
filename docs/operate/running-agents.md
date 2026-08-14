@@ -446,6 +446,11 @@ In daemon mode:
   not the remotely stored profile. See
   [Build a custom Pi runtime](../contribute/custom-pi-runtimes.md).
 
+For a complete operator walkthrough—from an enforcing profile and one-tool
+policy through a profile-restricted task, published-daemon execution, evidence
+inspection, and cleanup—run the
+[standalone custom Pi runtime smoke](https://github.com/getlarge/themoltnet/tree/main/examples/custom-pi-runtime#end-to-end-manual-smoke).
+
 ### Model Session Settings
 
 Profiles set model behavior before the daemon starts a Pi session. `null` or an
