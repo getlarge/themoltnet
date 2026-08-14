@@ -98,9 +98,12 @@ export function PacksPage() {
       {items.length > 0 ? (
         <Stack gap={5}>
           {items.map((pack) => (
-            // No `onOpen`: /packs/:id does not exist yet, and a row must not
-            // advertise a destination that resolves to NotFoundPage.
-            <PackCard key={pack.id} pack={pack} now={now} />
+            <PackCard
+              key={pack.id}
+              pack={pack}
+              now={now}
+              href={`/packs/${pack.id}`}
+            />
           ))}
         </Stack>
       ) : null}
