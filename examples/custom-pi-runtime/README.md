@@ -17,12 +17,16 @@ pnpm install --ignore-workspace --frozen-lockfile
 pnpm build
 ```
 
-The root Nx graph discovers the package. Its explicit `test-ci` target performs
-that frozen standalone install, then typechecks, unit tests, and builds in
-sequence:
+The package is intentionally absent from the root Nx graph. A dedicated CI
+workflow runs only when this example or its workflow changes. Reproduce that
+check locally by running the frozen install, typecheck, unit tests, and build in
+sequence from this directory:
 
 ```bash
-pnpm exec nx run moltnet-custom-pi-runtime-example:test-ci
+pnpm install --ignore-workspace --frozen-lockfile
+pnpm typecheck
+pnpm test
+pnpm build
 ```
 
 ## Version lockstep

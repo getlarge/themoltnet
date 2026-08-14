@@ -1,0 +1,44 @@
+name: Custom Pi Runtime Example
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'examples/custom-pi-runtime/**'
+      - '.github/workflows/custom-pi-runtime-example.yml'
+  pull_request:
+    paths:
+      - 'examples/custom-pi-runtime/**'
+      - '.github/workflows/custom-pi-runtime-example.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: custom-pi-runtime-example-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate standalone package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: examples/custom-pi-runtime
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: examples/custom-pi-runtime/pnpm-lock.yaml
+      - name: Install standalone dependencies
+        env:
+          npm_config_minimum_release_age_exclude: '@themoltnet/*'
+        run: pnpm install --ignore-workspace --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build

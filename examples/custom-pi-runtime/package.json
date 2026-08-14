@@ -19,17 +19,5 @@
     "@types/node": "^24.0.0",
     "typescript": "^5.9.0",
     "vitest": "^3.2.4"
-  },
-  "nx": {
-    "name": "moltnet-custom-pi-runtime-example",
-    "targets": {
-      "test-ci": {
-        "executor": "nx:run-commands",
-        "options": {
-          "command": "npm_config_minimum_release_age_exclude='@themoltnet/*' pnpm install --ignore-workspace --frozen-lockfile && pnpm typecheck && pnpm test && pnpm build",
-          "cwd": "examples/custom-pi-runtime"
-        }
-      }
-    }
   }
 }
