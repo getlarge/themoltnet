@@ -306,46 +306,7 @@ describe('RelationshipWriter', () => {
     const CLAIMANT_ID = 'eeee0000-0000-0000-0000-000000000001';
 
     it('removes every Task tuple, including ownership and explicit grants', async () => {
-      mockRelationshipApi.patchRelationships.mockResolvedValue(undefined);
-      mockRelationshipApi.getRelationships
-        .mockResolvedValueOnce({
-          relation_tuples: [
-            {
-              namespace: 'Task',
-              object: TASK_ID_1,
-              relation: 'team',
-              subject_set: {
-                namespace: 'Team',
-                object: 'team-1',
-                relation: '',
-              },
-            },
-            {
-              namespace: 'Task',
-              object: TASK_ID_1,
-              relation: 'writers',
-              subject_set: {
-                namespace: 'Group',
-                object: 'group-1',
-                relation: 'members',
-              },
-            },
-          ],
-        })
-        .mockResolvedValueOnce({
-          relation_tuples: [
-            {
-              namespace: 'Task',
-              object: TASK_ID_2,
-              relation: 'parent',
-              subject_set: {
-                namespace: 'Diary',
-                object: TASK_DIARY_ID,
-                relation: '',
-              },
-            },
-          ],
-        });
+      mockRelationshipApi.deleteRelationships.mockResolvedValue(undefined);
 
       await writer.removeTaskRelationsBatch([
         {
@@ -356,64 +317,21 @@ describe('RelationshipWriter', () => {
         { id: TASK_ID_2, diaryId: TASK_DIARY_ID, claimAgentId: null },
       ]);
 
-      expect(mockRelationshipApi.patchRelationships).toHaveBeenCalledOnce();
-      expect(mockRelationshipApi.patchRelationships).toHaveBeenCalledWith({
-        relationshipPatch: [
-          {
-            action: 'delete',
-            relation_tuple: {
-              namespace: 'Task',
-              object: TASK_ID_1,
-              relation: 'team',
-              subject_set: {
-                namespace: 'Team',
-                object: 'team-1',
-                relation: '',
-              },
-            },
-          },
-          {
-            action: 'delete',
-            relation_tuple: {
-              namespace: 'Task',
-              object: TASK_ID_1,
-              relation: 'writers',
-              subject_set: {
-                namespace: 'Group',
-                object: 'group-1',
-                relation: 'members',
-              },
-            },
-          },
-          {
-            action: 'delete',
-            relation_tuple: {
-              namespace: 'Task',
-              object: TASK_ID_2,
-              relation: 'parent',
-              subject_set: {
-                namespace: 'Diary',
-                object: TASK_DIARY_ID,
-                relation: '',
-              },
-            },
-          },
-        ],
+      expect(mockRelationshipApi.deleteRelationships).toHaveBeenCalledTimes(2);
+      expect(mockRelationshipApi.deleteRelationships).toHaveBeenCalledWith({
+        namespace: 'Task',
+        object: TASK_ID_1,
+      });
+      expect(mockRelationshipApi.deleteRelationships).toHaveBeenCalledWith({
+        namespace: 'Task',
+        object: TASK_ID_2,
       });
     });
 
     it('is a no-op for empty array', async () => {
       await writer.removeTaskRelationsBatch([]);
 
-      expect(mockRelationshipApi.patchRelationships).not.toHaveBeenCalled();
-    });
-
-    it('is a no-op when Keto has no task relations to remove', async () => {
-      await writer.removeTaskRelationsBatch([
-        { id: TASK_ID_1, diaryId: null, claimAgentId: null },
-      ]);
-
-      expect(mockRelationshipApi.patchRelationships).not.toHaveBeenCalled();
+      expect(mockRelationshipApi.deleteRelationships).not.toHaveBeenCalled();
     });
   });
 

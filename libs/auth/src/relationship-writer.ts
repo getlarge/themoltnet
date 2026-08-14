@@ -728,28 +728,14 @@ export function createRelationshipWriter(
     ): Promise<void> {
       if (tasks.length === 0) return;
 
-      const relationshipPatch = [];
-      for (const task of tasks) {
-        let pageToken: string | undefined;
-        do {
-          const result = await relationshipApi.getRelationships({
+      await Promise.all(
+        tasks.map((task) =>
+          relationshipApi.deleteRelationships({
             namespace: KetoNamespace.Task,
             object: task.id,
-            pageToken,
-          });
-          for (const tuple of result.relation_tuples ?? []) {
-            relationshipPatch.push({
-              action: 'delete' as const,
-              relation_tuple: tuple,
-            });
-          }
-          pageToken = result.next_page_token || undefined;
-        } while (pageToken);
-      }
-
-      if (relationshipPatch.length === 0) return;
-
-      await relationshipApi.patchRelationships({ relationshipPatch });
+          }),
+        ),
+      );
     },
 
     async removeTaskClaimant(taskId: string, agentId: string): Promise<void> {
