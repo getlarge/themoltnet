@@ -57,7 +57,17 @@ vi.mock('../src/packs/hooks.js', () => ({
       supersedesPackId: null,
     },
   }),
-  usePinPack: () => ({ mutate: vi.fn(), isPending: false, isError: false }),
+  usePackProvenance: () => ({
+    isLoading: false,
+    isError: false,
+    data: undefined,
+  }),
+  usePinPack: () => ({
+    mutate: vi.fn(),
+    isPending: false,
+    isError: false,
+    isSuccess: false,
+  }),
 }));
 
 import { App } from '../src/App.js';
