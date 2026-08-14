@@ -84,6 +84,47 @@ describe('PollingApiTaskSource', () => {
     );
   });
 
+  it('preserves complete claim authority from polling API responses', async () => {
+    const task = makeFulfillBriefTask({ status: 'queued' });
+    const list = vi
+      .fn<TasksNamespace['list']>()
+      .mockResolvedValue({ items: [task], total: 1 });
+    const claim = vi.fn<TasksNamespace['claim']>().mockResolvedValue({
+      task,
+      attempt: {
+        taskId: task.id,
+        attemptN: 2,
+        claimedByAgentId: '33333333-3333-4333-8333-333333333333',
+        leaseId: '44444444-4444-4444-8444-444444444444',
+        runtimeProfileId: '55555555-5555-4555-8555-555555555555',
+        runtimeProfileRevision: 9,
+        policySnapshotHash:
+          'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        claimedExecutorFingerprint: 'bafkreiexecutor',
+      } as never,
+      traceHeaders: {},
+    });
+    const src = new PollingApiTaskSource({
+      agent: makeAgent(list, claim),
+      teamId: 'team-1',
+      leaseTtlSec: 60,
+      stopWhenEmpty: true,
+    });
+
+    await expect(src.claim()).resolves.toMatchObject({
+      attemptN: 2,
+      claimAuthority: {
+        claimantAgentId: '33333333-3333-4333-8333-333333333333',
+        leaseId: '44444444-4444-4444-8444-444444444444',
+        runtimeProfileId: '55555555-5555-4555-8555-555555555555',
+        runtimeProfileRevision: 9,
+        policySnapshotHash:
+          'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        executorFingerprint: 'bafkreiexecutor',
+      },
+    });
+  });
+
   it('suppresses empty list spans unless benchmark tracing is enabled', async () => {
     const list = vi
       .fn<TasksNamespace['list']>()

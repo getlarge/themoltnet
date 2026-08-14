@@ -11,6 +11,66 @@ export type CreateClaimAttestation = (input: {
   profileId?: string;
 }) => Promise<ExecutorAttestationFields>;
 
+/**
+ * Immutable authority evidence returned by an API-backed task claim.
+ *
+ * The field is optional on {@link ClaimedTask} so local files and older task
+ * sources remain valid. It records what the server accepted at claim time; it
+ * does not replace the runtime policy resolved for a later Pi session.
+ */
+export interface ClaimAuthority {
+  claimantAgentId?: string;
+  leaseId?: string;
+  runtimeProfileId?: string;
+  runtimeProfileRevision?: number;
+  policySnapshotHash?: string;
+  executorFingerprint?: string;
+}
+
+export interface ClaimAttemptAuthorityFields {
+  claimedByAgentId?: string | null;
+  leaseId?: string | null;
+  runtimeProfileId?: string | null;
+  runtimeProfileRevision?: number | null;
+  policySnapshotHash?: string | null;
+  claimedExecutorFingerprint?: string | null;
+}
+
+/** Preserve the claim response without manufacturing evidence for legacy APIs. */
+export function claimAuthorityFromAttempt(
+  attempt: ClaimAttemptAuthorityFields,
+  fallback?: {
+    runtimeProfileId?: string;
+    executorFingerprint?: string;
+  },
+): ClaimAuthority | undefined {
+  const authority: ClaimAuthority = {
+    ...(attempt.claimedByAgentId
+      ? { claimantAgentId: attempt.claimedByAgentId }
+      : {}),
+    ...(attempt.leaseId ? { leaseId: attempt.leaseId } : {}),
+    ...((attempt.runtimeProfileId ?? fallback?.runtimeProfileId)
+      ? {
+          runtimeProfileId:
+            attempt.runtimeProfileId ?? fallback?.runtimeProfileId,
+        }
+      : {}),
+    ...(typeof attempt.runtimeProfileRevision === 'number'
+      ? { runtimeProfileRevision: attempt.runtimeProfileRevision }
+      : {}),
+    ...(attempt.policySnapshotHash
+      ? { policySnapshotHash: attempt.policySnapshotHash }
+      : {}),
+    ...((attempt.claimedExecutorFingerprint ?? fallback?.executorFingerprint)
+      ? {
+          executorFingerprint:
+            attempt.claimedExecutorFingerprint ?? fallback?.executorFingerprint,
+        }
+      : {}),
+  };
+  return Object.keys(authority).length > 0 ? authority : undefined;
+}
+
 export interface ClaimedTask {
   /** The claimed task payload itself. */
   task: Task;
@@ -18,6 +78,8 @@ export interface ClaimedTask {
   attemptN: number;
   /** Runtime profile id selected by the source when claim routing is profile-scoped. */
   profileId?: string;
+  /** Claim-time authority and attestation evidence from API-backed sources. */
+  claimAuthority?: ClaimAuthority;
   /** W3C trace headers from the claim response for OTel context propagation. */
   traceHeaders: Record<string, string>;
 }

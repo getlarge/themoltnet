@@ -5,6 +5,7 @@ import type {
   CreateClaimAttestation,
   TaskSource,
 } from './types.js';
+import { claimAuthorityFromAttempt } from './types.js';
 
 export interface ApiTaskSourceOptions {
   agent: Agent;
@@ -46,11 +47,18 @@ export class ApiTaskSource implements TaskSource {
     });
 
     this.claimed = true;
+    const claimAuthority = claimAuthorityFromAttempt(result.attempt, {
+      ...(profileId ? { runtimeProfileId: profileId } : {}),
+      ...(attestation?.executorFingerprint
+        ? { executorFingerprint: attestation.executorFingerprint }
+        : {}),
+    });
 
     return {
       task: result.task,
       attemptN: result.attempt.attemptN,
       ...(profileId ? { profileId } : {}),
+      ...(claimAuthority ? { claimAuthority } : {}),
       traceHeaders: result.traceHeaders,
     };
   }

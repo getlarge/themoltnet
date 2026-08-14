@@ -16,6 +16,7 @@ import type {
   CreateClaimAttestation,
   TaskSource,
 } from './types.js';
+import { claimAuthorityFromAttempt } from './types.js';
 
 /**
  * Structural shape of the runtime slot store needed by the affinity filter.
@@ -620,10 +621,17 @@ export class PollingApiTaskSource implements TaskSource {
             'polling-api.claim_ok',
           );
         }
+        const claimAuthority = claimAuthorityFromAttempt(result.attempt, {
+          ...(profile.profileId ? { runtimeProfileId: profile.profileId } : {}),
+          ...(attestation?.executorFingerprint
+            ? { executorFingerprint: attestation.executorFingerprint }
+            : {}),
+        });
         return {
           task: result.task,
           attemptN: result.attempt.attemptN,
           ...(profile.profileId ? { profileId: profile.profileId } : {}),
+          ...(claimAuthority ? { claimAuthority } : {}),
           traceHeaders: result.traceHeaders,
         };
       } catch (err) {
