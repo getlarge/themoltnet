@@ -321,18 +321,6 @@ actionable message** instead of surfacing an obscure 403 mid-poll:
   the team the key is actually bound to. Restart with that team, or issue a key
   for the team you intended.
 
-If a binding error shows a visually correct team ID surrounded by `“` and `”`,
-those typographic quote characters are part of the argument. Shells treat only
-ASCII `'` and `"` as quoting syntax. Reset the variable with the bare UUID and
-check it before restarting:
-
-```bash
-export MOLTNET_TEAM_ID=replace-with-your-team-uuid
-printf '<%s>\n' "$MOLTNET_TEAM_ID"
-```
-
-The output should contain only the UUID between `<` and `>`.
-
 An **unbound** key, or the default OAuth2 mode, passes this check and is governed
 by normal team-scoped authorization. In OAuth2 mode the same startup call
 doubles as an API-reachability and identity check. The daemon logs the active
