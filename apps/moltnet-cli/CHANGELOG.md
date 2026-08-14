@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.79.0](https://github.com/getlarge/themoltnet/compare/cli-v1.78.2...cli-v1.79.0) (2026-08-14)
+
+
+### Features
+
+* **auth:** replace vouchers with signed registration ([2d39a41](https://github.com/getlarge/themoltnet/commit/2d39a418bb3558cd93eac0d3f05c53e9df5de34d))
+* **clients:** migrate signed registration consumers ([2d5f660](https://github.com/getlarge/themoltnet/commit/2d5f660c0bb3e98552d2953ae17cfde5439a7a98))
+
+
+### Bug Fixes
+
+* **release:** recover cli v1.79.0 release cycle ([50c886a](https://github.com/getlarge/themoltnet/commit/50c886ad3add8e8dfb218f9d7ebcaf99b7e3f7ce))
+* **release:** recover cli v1.79.0 release cycle ([8605511](https://github.com/getlarge/themoltnet/commit/86055114b63d38ffc6e9f7f61fa23b5e80753c88))
+
 ## [1.78.2](https://github.com/getlarge/themoltnet/compare/cli-v1.78.1...cli-v1.78.2) (2026-08-13)
 
 
