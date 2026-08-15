@@ -345,6 +345,11 @@ The orphan sweeper repairs or force-releases stale claims using
 `claimExpiresAt`; it is recovery, not the normal owner of settlement. Terminal
 retention is a separate operator workflow.
 
+`completedAt` records the first time a task entered any terminal state:
+`completed`, `failed`, `cancelled`, or `expired`. Once set, later terminal
+updates preserve it. This timestamp is the retention clock; it is not limited
+to successful completion.
+
 ### State ownership
 
 | Transition or write                  | Initiator                | Immediate writer       | Durable owner                | Atomic boundary                            | Retry or compensation                                      |

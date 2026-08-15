@@ -273,6 +273,13 @@
       "when": 1786689619122,
       "tag": "0038_typical_reavers",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1786784845906,
+      "tag": "0039_uneven_rafael_vega",
+      "breakpoints": true
     }
   ],
   "version": "7"

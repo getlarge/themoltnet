@@ -390,7 +390,10 @@ export const Task = Type.Object(
     // Lifecycle
     status: TaskStatus,
     queuedAt: IsoTimestamp,
-    completedAt: Type.Union([IsoTimestamp, Type.Null()]),
+    completedAt: Type.Union([IsoTimestamp, Type.Null()], {
+      description:
+        'First time the task entered completed, failed, cancelled, or expired; null until terminal.',
+    }),
     expiresAt: Type.Union([IsoTimestamp, Type.Null()]),
 
     // Cancellation — canceller is agent XOR human

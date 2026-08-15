@@ -24,6 +24,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDatabase, type Database } from '../src/db.js';
 import { runMigrations } from '../src/migrate.js';
+import { createDatabaseCapacityRepository } from '../src/repositories/database-capacity.repository.js';
 import { createRuntimeSessionRepository } from '../src/repositories/runtime-session.repository.js';
 import { createTaskRepository } from '../src/repositories/task.repository.js';
 import { createTaskArtifactRepository } from '../src/repositories/task-artifact.repository.js';
@@ -33,6 +34,7 @@ import {
   runtimeSessions,
   taskArtifacts,
   taskAttempts,
+  taskMessages,
   tasks,
   teams,
 } from '../src/schema.js';
@@ -42,6 +44,7 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
   let db: Database;
   let pool: Pool;
   let repo: ReturnType<typeof createTaskRepository>;
+  let capacityRepo: ReturnType<typeof createDatabaseCapacityRepository>;
   let artifactRepo: ReturnType<typeof createTaskArtifactRepository>;
   let runtimeSessionRepo: ReturnType<typeof createRuntimeSessionRepository>;
   let transactionRunner: ReturnType<typeof createDrizzleTransactionRunner>;
@@ -64,6 +67,7 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
     await runMigrations(databaseUrl);
     ({ db, pool } = createDatabase(databaseUrl));
     repo = createTaskRepository(db);
+    capacityRepo = createDatabaseCapacityRepository(db);
     artifactRepo = createTaskArtifactRepository(db);
     runtimeSessionRepo = createRuntimeSessionRepository(db);
     transactionRunner = createDrizzleTransactionRunner(db);
@@ -154,6 +158,17 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
     }
   }
 
+  async function databaseNow(): Promise<Date> {
+    const result = await pool.query<{ currentTime: Date }>(
+      'SELECT clock_timestamp() AS "currentTime"',
+    );
+    const currentTime = result.rows[0]?.currentTime;
+    if (!currentTime) {
+      throw new Error('PostgreSQL did not return its current time');
+    }
+    return currentTime;
+  }
+
   it('returns rows whose claim_expires_at is older than the cutoff', async () => {
     const NOW = new Date('2026-04-26T10:00:00Z');
     const STALE_TASK = '44444444-4444-4444-8444-444444444401';
@@ -208,6 +223,7 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
       id: STALE_COMPLETED,
       status: 'completed',
       claimExpiresAt: new Date(NOW.getTime() - 10 * 60 * 1000),
+      completedAt: new Date(NOW.getTime() - 10 * 60 * 1000),
       createAttempt: true,
       attemptStatus: 'completed',
     });
@@ -215,6 +231,7 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
       id: STALE_FAILED,
       status: 'failed',
       claimExpiresAt: new Date(NOW.getTime() - 10 * 60 * 1000),
+      completedAt: new Date(NOW.getTime() - 10 * 60 * 1000),
       createAttempt: true,
       attemptStatus: 'timed_out',
     });
@@ -258,6 +275,18 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
     const CUTOFF = new Date(NOW.getTime() - 5 * 60 * 1000);
     const result = await repo.listOrphanedTasks(CUTOFF, 100);
     expect(result).toHaveLength(0);
+  });
+
+  it('reports all tracked database capacity scopes', async () => {
+    const snapshots = await capacityRepo.getSizeSnapshots();
+
+    expect(snapshots.map((snapshot) => snapshot.scope).sort()).toEqual([
+      'dbos',
+      'diary_entries',
+      'task_messages',
+      'transaction_completion',
+    ]);
+    expect(snapshots.every((snapshot) => snapshot.sizeBytes >= 0)).toBe(true);
   });
 
   it('respects the limit parameter', async () => {
@@ -320,6 +349,7 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
       status: 'expired',
       claimExpiresAt: null,
       expiresAt: new Date(NOW.getTime() - 60_000),
+      completedAt: new Date(NOW.getTime() - 60_000),
     });
     await seedTask({
       id: BOUNDARY_WAITING,
@@ -420,6 +450,167 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
     });
 
     await db.delete(taskAttempts);
+    await db.delete(tasks);
+  });
+
+  it('records database time on the first terminal status update', async () => {
+    const TASK_ID = '99999999-9999-4999-8999-999999999906';
+    const before = await databaseNow();
+    await seedTask({
+      id: TASK_ID,
+      status: 'running',
+      claimExpiresAt: null,
+    });
+
+    const completed = await repo.updateStatus(TASK_ID, 'completed');
+    const after = await databaseNow();
+
+    expect(completed?.completedAt).toBeInstanceOf(Date);
+    expect(completed!.completedAt!.getTime()).toBeGreaterThanOrEqual(
+      before.getTime(),
+    );
+    expect(completed!.completedAt!.getTime()).toBeLessThanOrEqual(
+      after.getTime(),
+    );
+
+    await db.delete(tasks);
+  });
+
+  it('uses a supplied timestamp for first terminalization', async () => {
+    const TASK_ID = '99999999-9999-4999-8999-999999999907';
+    const supplied = new Date('2026-04-26T09:45:00Z');
+    await seedTask({
+      id: TASK_ID,
+      status: 'running',
+      claimExpiresAt: null,
+    });
+
+    const failed = await repo.updateStatus(TASK_ID, 'failed', {
+      completedAt: supplied,
+    });
+
+    expect(failed?.completedAt).toEqual(supplied);
+
+    await db.delete(tasks);
+  });
+
+  it('preserves the first terminal timestamp across later terminal updates', async () => {
+    const TASK_ID = '99999999-9999-4999-8999-999999999908';
+    const first = new Date('2026-04-26T09:45:00Z');
+    const later = new Date('2026-04-26T09:55:00Z');
+    await seedTask({
+      id: TASK_ID,
+      status: 'running',
+      claimExpiresAt: null,
+    });
+
+    await repo.updateStatus(TASK_ID, 'failed', { completedAt: first });
+    const cancelled = await repo.updateStatus(TASK_ID, 'cancelled', {
+      completedAt: later,
+      cancelledByAgentId: AGENT_ID,
+      cancelReason: 'test later terminal transition',
+    });
+
+    expect(cancelled?.completedAt).toEqual(first);
+
+    await db.delete(tasks);
+  });
+
+  it('treats an explicit null terminal timestamp as absent', async () => {
+    const TASK_ID = '99999999-9999-4999-8999-999999999909';
+    const before = await databaseNow();
+    await seedTask({
+      id: TASK_ID,
+      status: 'running',
+      claimExpiresAt: null,
+    });
+
+    const expired = await repo.updateStatus(TASK_ID, 'expired', {
+      completedAt: null,
+    });
+    const after = await databaseNow();
+
+    expect(expired?.completedAt).toBeInstanceOf(Date);
+    expect(expired!.completedAt!.getTime()).toBeGreaterThanOrEqual(
+      before.getTime(),
+    );
+    expect(expired!.completedAt!.getTime()).toBeLessThanOrEqual(
+      after.getTime(),
+    );
+
+    await db.delete(tasks);
+  });
+
+  it('keeps non-terminal status update behavior unchanged', async () => {
+    const TASK_ID = '99999999-9999-4999-8999-999999999910';
+    await seedTask({
+      id: TASK_ID,
+      status: 'queued',
+      claimExpiresAt: null,
+    });
+
+    const running = await repo.updateStatus(TASK_ID, 'running', {
+      claimAgentId: AGENT_ID,
+      claimExpiresAt: new Date('2026-04-26T10:05:00Z'),
+      completedAt: null,
+    });
+
+    expect(running).toMatchObject({
+      status: 'running',
+      claimAgentId: AGENT_ID,
+      completedAt: null,
+    });
+
+    await db.delete(tasks);
+  });
+
+  it('does not write a terminal timestamp after losing a conditional race', async () => {
+    const TASK_ID = '99999999-9999-4999-8999-999999999911';
+    const first = new Date('2026-04-26T09:45:00Z');
+    await seedTask({
+      id: TASK_ID,
+      status: 'cancelled',
+      claimExpiresAt: null,
+      completedAt: first,
+    });
+
+    const result = await repo.updateStatusIfNotIn(
+      TASK_ID,
+      'completed',
+      ['cancelled'],
+      { completedAt: new Date('2026-04-26T09:55:00Z') },
+    );
+    const persisted = await repo.findById(TASK_ID);
+
+    expect(result).toBeNull();
+    expect(persisted).toMatchObject({
+      status: 'cancelled',
+      completedAt: first,
+    });
+
+    await db.delete(tasks);
+  });
+
+  it('rolls terminal status and timestamp back with the transaction', async () => {
+    const TASK_ID = '99999999-9999-4999-8999-999999999912';
+    await seedTask({
+      id: TASK_ID,
+      status: 'running',
+      claimExpiresAt: null,
+    });
+
+    await expect(
+      transactionRunner.runInTransaction(async () => {
+        await repo.updateStatus(TASK_ID, 'failed');
+        throw new Error('force rollback');
+      }),
+    ).rejects.toThrow('force rollback');
+
+    await expect(repo.findById(TASK_ID)).resolves.toMatchObject({
+      status: 'running',
+      completedAt: null,
+    });
+
     await db.delete(tasks);
   });
 
@@ -643,6 +834,31 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
     await db.delete(runtimeSessions);
     await db.delete(taskAttempts);
     await db.delete(tasks);
+  });
+
+  it('deletes task messages through the task foreign-key cascade', async () => {
+    const TASK_ID = 'cccccccc-cccc-4ccc-8ccc-cccccccccc03';
+    await seedTask({
+      id: TASK_ID,
+      status: 'completed',
+      claimExpiresAt: null,
+      completedAt: new Date('2026-04-26T10:00:00Z'),
+      createAttempt: true,
+      attemptStatus: 'completed',
+    });
+    await db.insert(taskMessages).values({
+      taskId: TASK_ID,
+      attemptN: 1,
+      seq: 1,
+      timestamp: new Date('2026-04-26T10:00:00Z'),
+      kind: 'info',
+      payload: { state: 'completed' },
+    });
+
+    await expect(repo.deleteMany([TASK_ID])).resolves.toEqual([TASK_ID]);
+    await expect(
+      db.select().from(taskMessages).where(eq(taskMessages.taskId, TASK_ID)),
+    ).resolves.toHaveLength(0);
   });
 
   it('detaches child runtime sessions before deleting locked task rows', async () => {

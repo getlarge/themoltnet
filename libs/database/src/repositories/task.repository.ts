@@ -83,6 +83,43 @@ export interface TaskRetentionCutoffs {
   expiredBefore: Date;
 }
 
+type TaskStatusPatch = Partial<
+  Pick<
+    Task,
+    | 'completedAt'
+    | 'cancelReason'
+    | 'cancelledByAgentId'
+    | 'cancelledByHumanId'
+    | 'acceptedAttemptN'
+    | 'claimAgentId'
+    | 'claimExpiresAt'
+  >
+>;
+
+const TERMINAL_TASK_STATUSES: readonly Task['status'][] = [
+  'completed',
+  'failed',
+  'cancelled',
+  'expired',
+];
+
+function buildTaskStatusPatch(status: Task['status'], extra?: TaskStatusPatch) {
+  if (!TERMINAL_TASK_STATUSES.includes(status)) {
+    return { status, updatedAt: sql`now()`, ...extra };
+  }
+
+  const { completedAt, ...rest } = extra ?? {};
+  return {
+    status,
+    updatedAt: sql`now()`,
+    ...rest,
+    completedAt:
+      completedAt === null || completedAt === undefined
+        ? sql`coalesce(${tasks.completedAt}, now())`
+        : sql`coalesce(${tasks.completedAt}, ${completedAt})`,
+  };
+}
+
 export type TaskActivityGroupBy =
   | 'none'
   | 'day'
@@ -683,22 +720,11 @@ export function createTaskRepository(db: Database) {
     async updateStatus(
       id: string,
       status: Task['status'],
-      extra?: Partial<
-        Pick<
-          Task,
-          | 'completedAt'
-          | 'cancelReason'
-          | 'cancelledByAgentId'
-          | 'cancelledByHumanId'
-          | 'acceptedAttemptN'
-          | 'claimAgentId'
-          | 'claimExpiresAt'
-        >
-      >,
+      extra?: TaskStatusPatch,
     ): Promise<Task | null> {
       const [row] = await getExecutor(db)
         .update(tasks)
-        .set({ status, updatedAt: sql`now()`, ...extra })
+        .set(buildTaskStatusPatch(status, extra))
         .where(eq(tasks.id, id))
         .returning();
       return row ?? null;
@@ -717,22 +743,11 @@ export function createTaskRepository(db: Database) {
       id: string,
       status: Task['status'],
       excluded: Task['status'][],
-      extra?: Partial<
-        Pick<
-          Task,
-          | 'completedAt'
-          | 'cancelReason'
-          | 'cancelledByAgentId'
-          | 'cancelledByHumanId'
-          | 'acceptedAttemptN'
-          | 'claimAgentId'
-          | 'claimExpiresAt'
-        >
-      >,
+      extra?: TaskStatusPatch,
     ): Promise<Task | null> {
       const [row] = await getExecutor(db)
         .update(tasks)
-        .set({ status, updatedAt: sql`now()`, ...extra })
+        .set(buildTaskStatusPatch(status, extra))
         .where(and(eq(tasks.id, id), notInArray(tasks.status, excluded)))
         .returning();
       return row ?? null;

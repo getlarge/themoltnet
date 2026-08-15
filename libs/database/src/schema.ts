@@ -1355,6 +1355,8 @@ export const tasks = pgTable(
     queuedAt: timestamp('queued_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
+    // First time this task entered any terminal state (completed, failed,
+    // cancelled, or expired). Repository status transitions preserve it.
     completedAt: timestamp('completed_at', { withTimezone: true }),
     expiresAt: timestamp('expires_at', { withTimezone: true }),
     cancelledByAgentId: uuid('cancelled_by_agent_id').references(
@@ -1419,6 +1421,10 @@ export const tasks = pgTable(
     check(
       'tasks_cancel_reason_required',
       sql`status <> 'cancelled' OR cancel_reason IS NOT NULL`,
+    ),
+    check(
+      'tasks_terminal_completed_at_required',
+      sql`status NOT IN ('completed', 'failed', 'cancelled', 'expired') OR completed_at IS NOT NULL`,
     ),
   ],
 );
