@@ -74,6 +74,7 @@ async function main(): Promise<void> {
     const { data: claimed, error: claimError } = await claimTask({
       client: apiClient,
       auth: () => harness.agent.accessToken,
+      headers: { 'x-moltnet-team-id': harness.personalTeamId },
       path: { id: runningTask.id },
       body: { leaseTtlSec: 600 },
     });
@@ -84,6 +85,7 @@ async function main(): Promise<void> {
     const { error: appendError } = await appendTaskMessages({
       client: apiClient,
       auth: () => harness.agent.accessToken,
+      headers: { 'x-moltnet-team-id': harness.personalTeamId },
       path: { id: runningTask.id, n: claimed.attempt.attemptN },
       body: {
         messages: [

@@ -215,11 +215,13 @@ describe('Runtime Profiles API', () => {
       getTask({
         client,
         auth: () => owner.accessToken,
+        headers: { 'x-moltnet-team-id': owner.personalTeamId },
         path: { id: taskId },
       }),
       listTaskAttempts({
         client,
         auth: () => owner.accessToken,
+        headers: { 'x-moltnet-team-id': owner.personalTeamId },
         path: { id: taskId },
       }),
     ]);
@@ -528,6 +530,7 @@ describe('Runtime Profiles API', () => {
     const missingProfileClaim = await claimTask({
       client,
       auth: () => owner.accessToken,
+      headers: { 'x-moltnet-team-id': owner.personalTeamId },
       path: { id: task!.id },
       body: { leaseTtlSec: 30 },
     });
@@ -536,6 +539,7 @@ describe('Runtime Profiles API', () => {
     const wrongProfileClaim = await claimTask({
       client,
       auth: () => owner.accessToken,
+      headers: { 'x-moltnet-team-id': owner.personalTeamId },
       path: { id: task!.id },
       body: { leaseTtlSec: 30, profileId: otherProfile!.id },
     });
@@ -544,6 +548,7 @@ describe('Runtime Profiles API', () => {
     const missingExecutorClaim = await claimTask({
       client,
       auth: () => owner.accessToken,
+      headers: { 'x-moltnet-team-id': owner.personalTeamId },
       path: { id: task!.id },
       body: { leaseTtlSec: 30, profileId: allowedProfile!.id },
     });
@@ -555,6 +560,7 @@ describe('Runtime Profiles API', () => {
     const incompatibleRuntimeClaim = await claimTask({
       client,
       auth: () => owner.accessToken,
+      headers: { 'x-moltnet-team-id': owner.personalTeamId },
       path: { id: task!.id },
       body: {
         leaseTtlSec: 30,
@@ -575,6 +581,7 @@ describe('Runtime Profiles API', () => {
     const staleRevisionClaim = await claimTask({
       client,
       auth: () => owner.accessToken,
+      headers: { 'x-moltnet-team-id': owner.personalTeamId },
       path: { id: task!.id },
       body: {
         leaseTtlSec: 30,
@@ -596,6 +603,7 @@ describe('Runtime Profiles API', () => {
     const missingCapabilitiesClaim = await claimTask({
       client,
       auth: () => owner.accessToken,
+      headers: { 'x-moltnet-team-id': owner.personalTeamId },
       path: { id: task!.id },
       body: {
         leaseTtlSec: 30,
@@ -612,6 +620,7 @@ describe('Runtime Profiles API', () => {
     const allowedProfileClaim = await claimTask({
       client,
       auth: () => owner.accessToken,
+      headers: { 'x-moltnet-team-id': owner.personalTeamId },
       path: { id: task!.id },
       body: {
         leaseTtlSec: 30,
@@ -668,6 +677,7 @@ describe('Runtime Profiles API', () => {
     const { data: attempts, error: attemptsError } = await listTaskAttempts({
       client,
       auth: () => owner.accessToken,
+      headers: { 'x-moltnet-team-id': owner.personalTeamId },
       path: { id: task!.id },
     });
     expect(attemptsError).toBeUndefined();

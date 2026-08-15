@@ -29,7 +29,12 @@ import {
 } from '@moltnet/auth';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createAgent, type TestAgent } from './helpers.js';
+import {
+  createAgent,
+  grantAgentTaskWriter,
+  pollUntilStatus,
+  type TestAgent,
+} from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
 describe('Runtime sessions API', () => {
@@ -138,16 +143,31 @@ describe('Runtime sessions API', () => {
     });
     expect(error).toBeUndefined();
 
-    const { data: claimed, error: claimError } = await claimTask({
+    await grantAgentTaskWriter({
+      accessToken: owner.accessToken,
       client,
-      auth: () => teammate.accessToken,
-      path: { id: data!.id },
-      body: { leaseTtlSec: 60 },
+      subjectId: teammate.identityId,
+      taskId: data!.id,
+      teamId,
     });
+
+    const { data: claimed, error: claimError } = await pollUntilStatus(
+      () =>
+        claimTask({
+          client,
+          auth: () => teammate.accessToken,
+          headers: { 'x-moltnet-team-id': teamId },
+          path: { id: data!.id },
+          body: { leaseTtlSec: 60 },
+        }),
+      200,
+      { label: `claim task ${data!.id} as explicit writer` },
+    );
     expect(claimError).toBeUndefined();
     const { error: heartbeatError } = await taskHeartbeat({
       client,
       auth: () => teammate.accessToken,
+      headers: { 'x-moltnet-team-id': teamId },
       path: { id: data!.id, n: claimed!.attempt.attemptN },
       body: { leaseTtlSec: 60 },
     });
@@ -347,6 +367,7 @@ describe('Runtime sessions API', () => {
     const failed = await failTaskAttempt({
       client,
       auth: () => teammate.accessToken,
+      headers: { 'x-moltnet-team-id': teamId },
       path: { id: taskId, n: attemptN },
       body: {
         error: {
