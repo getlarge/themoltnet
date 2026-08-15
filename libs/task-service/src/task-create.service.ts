@@ -457,7 +457,7 @@ export function createTaskCreateService(
         }
         try {
           await taskRepository.updateStatus(row.id, 'cancelled', {
-            cancelReason: 'Keto grant failed during creation',
+            cancelReason: 'Keto grant failed',
             cancelledByAgentId: input.callerIsAgent
               ? (input.proposerId ?? input.callerId)
               : null,
