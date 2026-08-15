@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.44.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.43.0...rest-api-v0.44.0) (2026-08-15)
+
+
+### Features
+
+* **packs:** serve the team catalog from GET /packs ([efc75b1](https://github.com/getlarge/themoltnet/commit/efc75b13de0c1c0704702a02745eaf8066180889))
+* **packs:** serve the team catalog from GET /packs ([f3c328e](https://github.com/getlarge/themoltnet/commit/f3c328ed17738e39182a73820a1da083f0df5802))
+
+
+### Bug Fixes
+
+* **packs:** declare the team header and shape the catalog response ([a6b33d6](https://github.com/getlarge/themoltnet/commit/a6b33d62951daef822c8eeed6ec528ed59929dfe))
+* **packs:** wire the CLI no-selector path and tighten its test ([215ca52](https://github.com/getlarge/themoltnet/commit/215ca5218842cd03fe16d5b720a35a76048432ca))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @moltnet/database bumped to 0.4.0
+
 ## [0.43.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.42.0...rest-api-v0.43.0) (2026-08-14)
 
 
