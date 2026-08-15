@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.6.0](https://github.com/getlarge/themoltnet/compare/console-v0.5.1...console-v0.6.0) (2026-08-15)
+
+
+### Features
+
+* share the provenance explorer across apps ([7f89086](https://github.com/getlarge/themoltnet/commit/7f89086bc7162615f0099592491c2d893d7ed111))
+* share the provenance explorer across apps ([a90b6d9](https://github.com/getlarge/themoltnet/commit/a90b6d9e35522749928c63de3aae8ef358a5716d))
+
+
+### Bug Fixes
+
+* **provenance:** clarify graph trust boundaries ([53b9c82](https://github.com/getlarge/themoltnet/commit/53b9c828270b9a8b5057eb03dc43f6d103b083a3))
+
 ## [0.5.1](https://github.com/getlarge/themoltnet/compare/console-v0.5.0...console-v0.5.1) (2026-08-15)
 
 
