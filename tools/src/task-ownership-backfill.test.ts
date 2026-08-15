@@ -66,6 +66,42 @@ describe('task ownership backfill', () => {
     });
   });
 
+  it('paces apply writes in bounded chunks', async () => {
+    vi.useFakeTimers();
+    try {
+      const timeout = vi.spyOn(globalThis, 'setTimeout');
+      const tasks = Array.from({ length: 101 }, (_, index) => ({
+        id: `task-${index}`,
+        teamId: 'team-1',
+        diaryId: `diary-${index}`,
+      }));
+      const tuples: KetoTuple[] = [];
+      const api: TaskOwnershipBackfillAdapters & {
+        putTuple: ReturnType<typeof vi.fn>;
+      } = {
+        listTasks: vi.fn(async () => ({ items: tasks })),
+        listTuples: vi.fn(async ({ namespace, relation }) => ({
+          items: tuples.filter(
+            (tuple) =>
+              tuple.namespace === namespace && tuple.relation === relation,
+          ),
+        })),
+        putTuple: vi.fn(async (tuple: KetoTuple) => {
+          tuples.push(tuple);
+        }),
+      };
+
+      const resultPromise = backfillTaskOwnership(api, 'apply');
+      await vi.runAllTimersAsync();
+
+      await expect(resultPromise).resolves.toMatchObject({ inserted: 101 });
+      expect(api.putTuple).toHaveBeenCalledTimes(101);
+      expect(timeout).toHaveBeenCalledWith(expect.any(Function), 75);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('allows a transferred provenance diary because database team remains canonical', async () => {
     const api = adapters([
       {
@@ -91,7 +127,7 @@ describe('task ownership backfill', () => {
         subject_set: { namespace: 'Team', object: 'team-2', relation: '' },
       },
     ]);
-    await expect(backfillTaskOwnership(conflict, 'dry-run')).rejects.toThrow(
+    await expect(backfillTaskOwnership(conflict, 'verify')).rejects.toThrow(
       'Conflicting',
     );
     const nullable = adapters();

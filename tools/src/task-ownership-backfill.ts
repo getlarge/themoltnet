@@ -40,6 +40,9 @@ export interface TaskOwnershipBackfillResult {
   missing: KetoTuple[];
 }
 
+const CHUNK_SIZE = 100;
+const BATCH_DELAY_MS = 75;
+
 export async function backfillTaskOwnership(
   adapters: TaskOwnershipBackfillAdapters,
   mode: 'dry-run' | 'apply' | 'verify',
@@ -113,9 +116,15 @@ export async function backfillTaskOwnership(
 
   let inserted = 0;
   if (mode === 'apply') {
-    for (const tuple of missing) {
-      await adapters.putTuple(tuple);
-      inserted++;
+    for (let offset = 0; offset < missing.length; offset += CHUNK_SIZE) {
+      const chunk = missing.slice(offset, offset + CHUNK_SIZE);
+      for (const tuple of chunk) {
+        await adapters.putTuple(tuple);
+        inserted++;
+      }
+      if (offset + CHUNK_SIZE < missing.length) {
+        await delay(BATCH_DELAY_MS);
+      }
     }
     // Verification uses a fresh, fully paginated read so concurrent bridge
     // writes and idempotent retries cannot conceal an incomplete migration.
@@ -129,6 +138,12 @@ export async function backfillTaskOwnership(
     inserted,
     missing,
   };
+}
+
+function delay(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, milliseconds);
+  });
 }
 
 async function collectTuples(
