@@ -30,6 +30,7 @@ import {
   createContextPackRepository,
   createCorrelationSealRepository,
   createDatabase,
+  createDatabaseCapacityRepository,
   createDBOSTransactionRunner,
   createDiaryEntryRepository,
   createDiaryRepository,
@@ -347,6 +348,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     dbConnection.db,
   );
   const taskRepository = createTaskRepository(dbConnection.db);
+  const databaseCapacityRepository = createDatabaseCapacityRepository(
+    dbConnection.db,
+  );
   const entryRelationRepository = createEntryRelationRepository(
     dbConnection.db,
   );
@@ -490,7 +494,12 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       () => initHumanOnboardingWorkflow(),
       () => initLegreffierOnboardingWorkflow(),
       () => initDiaryWorkflows(),
-      () => initMaintenanceWorkflows(config.packGc, config.taskOrphanSweeper),
+      () =>
+        initMaintenanceWorkflows(
+          config.packGc,
+          config.taskOrphanSweeper,
+          config.dbosWorkflowRetention,
+        ),
       () => initTeamFoundingWorkflow(),
       () => initDiaryTransferWorkflow(),
     ],
@@ -560,6 +569,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           taskArtifactRepository,
           signingCredentialRepository,
           signingRequestRepository,
+          databaseCapacityRepository,
           runtimeSessionStorage,
           taskArtifactStorage,
           dataSource: getDataSource(),

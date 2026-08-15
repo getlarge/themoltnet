@@ -3,11 +3,13 @@ import { describe, expect, it } from 'vitest';
 import {
   loadConfig,
   loadDatabaseConfig,
+  loadDbosWorkflowRetentionConfig,
   loadObservabilityConfig,
   loadOryConfig,
   loadRecoveryConfig,
   loadSecurityConfig,
   loadServerConfig,
+  loadTaskOrphanSweeperConfig,
   loadWebhookConfig,
   resolveOryUrls,
   resolveRedisConfig,
@@ -91,6 +93,41 @@ describe('loadDatabaseConfig', () => {
 
   it('throws when DBOS_SYSTEM_DATABASE_URL is missing', () => {
     expect(() => loadDatabaseConfig({})).toThrow('Invalid Database config');
+  });
+});
+
+describe('maintenance retention config', () => {
+  it('applies the production containment defaults', () => {
+    expect(loadDbosWorkflowRetentionConfig({})).toEqual({
+      DBOS_WORKFLOW_RETENTION_ENABLED: true,
+      DBOS_WORKFLOW_RETENTION_DAYS: 30,
+      DBOS_WORKFLOW_RETENTION_BATCH_SIZE: 1000,
+      DBOS_WORKFLOW_RETENTION_CRON: '15 * * * *',
+    });
+  });
+
+  it('parses DBOS retention overrides', () => {
+    expect(
+      loadDbosWorkflowRetentionConfig({
+        DBOS_WORKFLOW_RETENTION_ENABLED: 'false',
+        DBOS_WORKFLOW_RETENTION_DAYS: '45',
+        DBOS_WORKFLOW_RETENTION_BATCH_SIZE: '250',
+        DBOS_WORKFLOW_RETENTION_CRON: '0 3 * * *',
+      }),
+    ).toEqual({
+      DBOS_WORKFLOW_RETENTION_ENABLED: false,
+      DBOS_WORKFLOW_RETENTION_DAYS: 45,
+      DBOS_WORKFLOW_RETENTION_BATCH_SIZE: 250,
+      DBOS_WORKFLOW_RETENTION_CRON: '0 3 * * *',
+    });
+  });
+
+  it('keeps orphan recovery frequent while task expiry is hourly', () => {
+    const config = loadTaskOrphanSweeperConfig({});
+
+    expect(config.TASK_ORPHAN_SWEEPER_CRON).toBe('*/2 * * * *');
+    expect(config.TASK_EXPIRY_SWEEPER_CRON).toBe('0 * * * *');
+    expect(config.TASK_EXPIRY_SWEEPER_BATCH_SIZE).toBe(50);
   });
 });
 

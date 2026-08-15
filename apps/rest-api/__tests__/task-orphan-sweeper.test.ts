@@ -49,6 +49,8 @@ const {
           fn(...args),
     ),
     resumeWorkflow: vi.fn(),
+    listWorkflows: vi.fn().mockResolvedValue([]),
+    deleteWorkflows: vi.fn().mockResolvedValue(undefined),
   };
 
   class WorkflowQueueMock {
@@ -205,6 +207,14 @@ function makeDeps(orphans: Array<{ task: Task; attempt: TaskAttempt }>): {
   const signingRequestRepository = {
     expireDelegated: vi.fn().mockResolvedValue(0),
   };
+  const databaseCapacityRepository = {
+    getSizeSnapshots: vi.fn().mockResolvedValue([
+      { scope: 'dbos', sizeBytes: 100 },
+      { scope: 'transaction_completion', sizeBytes: 200 },
+      { scope: 'diary_entries', sizeBytes: 300 },
+      { scope: 'task_messages', sizeBytes: 400 },
+    ]),
+  };
   const deps = {
     nonceRepository: {} as unknown,
     contextPackRepository: {} as unknown,
@@ -214,6 +224,7 @@ function makeDeps(orphans: Array<{ task: Task; attempt: TaskAttempt }>): {
     runtimeSessionRepository,
     signingCredentialRepository,
     signingRequestRepository,
+    databaseCapacityRepository,
     taskArtifactStorage,
     runtimeSessionStorage,
     dataSource,
@@ -322,6 +333,8 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
         TASK_ORPHAN_SWEEPER_CRON: '*/2 * * * *',
         TASK_ORPHAN_SWEEPER_GRACE_SEC: GRACE_PERIOD_SEC,
         TASK_ORPHAN_SWEEPER_BATCH_SIZE: BATCH_SIZE,
+        TASK_EXPIRY_SWEEPER_CRON: '0 * * * *',
+        TASK_EXPIRY_SWEEPER_BATCH_SIZE: BATCH_SIZE,
         TASK_DEFAULT_EXPIRES_IN_SEC: 90 * 24 * 60 * 60,
         TASK_MAX_EXPIRES_IN_SEC: 90 * 24 * 60 * 60,
         TASK_RETENTION_SWEEPER_CRON: '0 * * * *',
@@ -333,6 +346,12 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
         TASK_ARTIFACT_ORPHAN_SWEEPER_CRON: '0 * * * *',
         TASK_ARTIFACT_ORPHAN_GRACE_SEC: ARTIFACT_ORPHAN_GRACE_SEC,
         TASK_ARTIFACT_ORPHAN_SWEEPER_MAX_DELETES: ARTIFACT_ORPHAN_MAX_DELETES,
+      },
+      {
+        DBOS_WORKFLOW_RETENTION_ENABLED: true,
+        DBOS_WORKFLOW_RETENTION_DAYS: 30,
+        DBOS_WORKFLOW_RETENTION_BATCH_SIZE: 1000,
+        DBOS_WORKFLOW_RETENTION_CRON: '15 * * * *',
       },
     );
     return DBOS;
@@ -359,6 +378,94 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
     ).toHaveBeenCalledWith(actualTime, 500);
     expect(
       registeredScheduled['maintenance.signingExpiryCleanup'],
+    ).toBeDefined();
+  });
+
+  it('schedules orphan recovery every two minutes and task expiry hourly', async () => {
+    await init();
+
+    expect(DBOS.registerScheduled).toHaveBeenCalledWith(
+      registeredWorkflows['maintenance.taskOrphanSweeperScheduler'],
+      {
+        name: 'maintenance.taskOrphanSweeperScheduler',
+        crontab: '*/2 * * * *',
+      },
+    );
+    expect(DBOS.registerScheduled).toHaveBeenCalledWith(
+      registeredWorkflows['maintenance.taskExpirySweeperScheduler'],
+      {
+        name: 'maintenance.taskExpirySweeperScheduler',
+        crontab: '0 * * * *',
+      },
+    );
+  });
+
+  it('deletes only old terminal DBOS workflows, oldest first, without children', async () => {
+    await init();
+    const { deps, logger } = makeDeps([]);
+    const { setMaintenanceDeps: setDeps } =
+      await import('../src/workflows/maintenance.js');
+    setDeps(deps);
+    vi.mocked(DBOS.listWorkflows).mockResolvedValue([
+      { workflowID: 'oldest-workflow' },
+      { workflowID: 'newer-workflow' },
+    ] as never);
+    const actualTime = new Date('2026-08-15T12:00:00.000Z');
+    const workflow = registeredWorkflows['maintenance.dbosWorkflowRetention'];
+    if (!workflow) throw new Error('DBOS retention workflow not registered');
+
+    const result = await workflow(actualTime, actualTime);
+
+    expect(DBOS.listWorkflows).toHaveBeenCalledWith({
+      status: [
+        'SUCCESS',
+        'ERROR',
+        'MAX_RECOVERY_ATTEMPTS_EXCEEDED',
+        'CANCELLED',
+      ],
+      endTime: '2026-07-16T12:00:00.000Z',
+      limit: 1000,
+      sortDesc: false,
+      loadInput: false,
+      loadOutput: false,
+    });
+    expect(DBOS.deleteWorkflows).toHaveBeenCalledWith(
+      ['oldest-workflow', 'newer-workflow'],
+      false,
+    );
+    expect(result).toEqual({ examined: 2, deleted: 2, batchFull: false });
+    expect(logger.info).toHaveBeenCalledWith(
+      result,
+      'maintenance: DBOS workflow retention complete',
+    );
+  });
+
+  it('emits one daily database capacity snapshot per tracked scope', async () => {
+    await init();
+    const { deps, logger } = makeDeps([]);
+    const { setMaintenanceDeps: setDeps } =
+      await import('../src/workflows/maintenance.js');
+    setDeps(deps);
+    const workflow =
+      registeredWorkflows['maintenance.databaseCapacitySnapshot'];
+    if (!workflow) throw new Error('capacity workflow not registered');
+
+    await workflow(new Date(), new Date());
+
+    expect(deps.databaseCapacityRepository.getSizeSnapshots).toHaveBeenCalled();
+    for (const [capacityScope, sizeBytes] of [
+      ['dbos', 100],
+      ['transaction_completion', 200],
+      ['diary_entries', 300],
+      ['task_messages', 400],
+    ] as const) {
+      expect(logger.info).toHaveBeenCalledWith(
+        { capacityScope, sizeBytes },
+        'maintenance.database_capacity_snapshot',
+      );
+    }
+    expect(
+      registeredScheduled['maintenance.databaseCapacitySnapshot'],
     ).toBeDefined();
   });
 
@@ -554,7 +661,7 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
 
   it('task retention cleanup workflow builds a manifest, deletes objects, rows, and relations', async () => {
     await init();
-    const { deps } = makeDeps([]);
+    const { deps, logger } = makeDeps([]);
     const retained = [
       {
         id: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1',
@@ -659,6 +766,40 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
       skippedProtected: 1,
       batchFull: false,
     });
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        examined: 2,
+        deleted: 1,
+        protected: 1,
+        batchFull: false,
+      }),
+      'maintenance: task retention cleanup complete',
+    );
+  });
+
+  it('logs task retention no-op runs with all capacity counts', async () => {
+    await init();
+    const { deps, logger } = makeDeps([]);
+    const { setMaintenanceDeps: setDeps } =
+      await import('../src/workflows/maintenance.js');
+    setDeps(deps);
+    const workflow = registeredWorkflows['maintenance.taskRetentionCleanup'];
+    if (!workflow) throw new Error('task retention workflow not registered');
+
+    await workflow({
+      batchSize: BATCH_SIZE,
+      policyDays: {
+        completed: 180,
+        failed: 90,
+        cancelled: 90,
+        expired: 90,
+      },
+    });
+
+    expect(logger.info).toHaveBeenCalledWith(
+      { examined: 0, deleted: 0, protected: 0, batchFull: false },
+      'maintenance: task retention cleanup complete',
+    );
   });
 
   it('task retention cleanup only removes objects and relations for deleted task rows', async () => {

@@ -38,6 +38,12 @@ kill_timeout = 30        # seconds to wait for graceful shutdown before SIGKILL
   # One proxy hop (Fly edge) so request.ip is the real client for the
   # anonymous rate-limit fallback, not the Fly edge IP. See issue #1336.
   TRUST_PROXY = "1"
+  DBOS_WORKFLOW_RETENTION_ENABLED = "true"
+  DBOS_WORKFLOW_RETENTION_DAYS = "30"
+  DBOS_WORKFLOW_RETENTION_BATCH_SIZE = "1000"
+  DBOS_WORKFLOW_RETENTION_CRON = "15 * * * *"
+  TASK_EXPIRY_SWEEPER_CRON = "0 * * * *"
+  TASK_EXPIRY_SWEEPER_BATCH_SIZE = "50"
 
 [deploy]
   release_command = "node dist/migrate.js"

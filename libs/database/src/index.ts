@@ -73,6 +73,12 @@ export {
   createCorrelationSealRepository,
 } from './repositories/correlation-seal.repository.js';
 export {
+  createDatabaseCapacityRepository,
+  type DatabaseCapacityRepository,
+  type DatabaseCapacityScope,
+  type DatabaseCapacitySnapshot,
+} from './repositories/database-capacity.repository.js';
+export {
   createDiaryRepository,
   type DiaryRepository,
 } from './repositories/diary.repository.js';

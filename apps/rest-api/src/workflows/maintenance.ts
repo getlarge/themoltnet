@@ -12,6 +12,7 @@
 import type { RelationshipWriter } from '@moltnet/auth';
 import {
   type ContextPackRepository,
+  type DatabaseCapacityRepository,
   type DataSource,
   DBOS,
   DBOSErrors,
@@ -42,7 +43,11 @@ import {
 } from '@moltnet/task-workflows';
 import type { FastifyBaseLogger } from 'fastify';
 
-import type { PackGcConfig, TaskOrphanSweeperConfig } from '../config.js';
+import type {
+  DbosWorkflowRetentionConfig,
+  PackGcConfig,
+  TaskOrphanSweeperConfig,
+} from '../config.js';
 export {
   startTaskDeletionWorkflow,
   type TaskDeletionWorkflowInput,
@@ -60,6 +65,7 @@ export interface MaintenanceDeps {
   taskArtifactRepository: TaskArtifactRepository;
   signingCredentialRepository: SigningCredentialRepository;
   signingRequestRepository: SigningRequestRepository;
+  databaseCapacityRepository: DatabaseCapacityRepository;
   runtimeSessionStorage: RuntimeSessionStorage;
   taskArtifactStorage: TaskArtifactStorage;
   dataSource: DataSource;
@@ -94,6 +100,7 @@ let _initialized = false;
 export function initMaintenanceWorkflows(
   packGcConfig: PackGcConfig,
   orphanSweeperConfig: TaskOrphanSweeperConfig,
+  dbosRetentionConfig: DbosWorkflowRetentionConfig,
 ): void {
   if (_initialized) return;
   _initialized = true;
@@ -164,6 +171,101 @@ export function initMaintenanceWorkflows(
   DBOS.registerScheduled(signingExpiryWorkflow, {
     name: 'maintenance.signingExpiryCleanup',
     crontab: '*/5 * * * *',
+  });
+
+  // ── DBOS Workflow Retention ───────────────────────────────────
+  // transaction_completion is intentionally excluded: it is datasource
+  // bookkeeping, not workflow history, and is monitored separately.
+  const terminalWorkflowStatuses = [
+    'SUCCESS',
+    'ERROR',
+    'MAX_RECOVERY_ATTEMPTS_EXCEEDED',
+    'CANCELLED',
+  ] as const;
+  const listRetainedWorkflowsStep = DBOS.registerStep(
+    async (cutoffIso: string, batchSize: number) =>
+      DBOS.listWorkflows({
+        status: [...terminalWorkflowStatuses],
+        endTime: cutoffIso,
+        limit: batchSize,
+        sortDesc: false,
+        loadInput: false,
+        loadOutput: false,
+      }),
+    { name: 'maintenance.dbosWorkflowRetention.listTerminal' },
+  );
+  const deleteRetainedWorkflowsStep = DBOS.registerStep(
+    async (workflowIds: string[]): Promise<void> => {
+      if (workflowIds.length === 0) return;
+      await DBOS.deleteWorkflows(workflowIds, false);
+    },
+    {
+      name: 'maintenance.dbosWorkflowRetention.deleteTerminal',
+      retriesAllowed: true,
+      maxAttempts: 3,
+      intervalSeconds: 2,
+      backoffRate: 2,
+    },
+  );
+  const dbosWorkflowRetentionWorkflow = DBOS.registerWorkflow(
+    async (_scheduledTime: Date, actualTime: Date) => {
+      const { logger } = getDeps();
+      const cutoff = new Date(
+        actualTime.getTime() -
+          dbosRetentionConfig.DBOS_WORKFLOW_RETENTION_DAYS *
+            24 *
+            60 *
+            60 *
+            1000,
+      );
+      const workflows = await listRetainedWorkflowsStep(
+        cutoff.toISOString(),
+        dbosRetentionConfig.DBOS_WORKFLOW_RETENTION_BATCH_SIZE,
+      );
+      const workflowIds = workflows.map((workflow) => workflow.workflowID);
+      await deleteRetainedWorkflowsStep(workflowIds);
+      const result = {
+        examined: workflows.length,
+        deleted: workflowIds.length,
+        batchFull:
+          workflows.length >=
+          dbosRetentionConfig.DBOS_WORKFLOW_RETENTION_BATCH_SIZE,
+      };
+      logger.info(result, 'maintenance: DBOS workflow retention complete');
+      return result;
+    },
+    { name: 'maintenance.dbosWorkflowRetention' },
+  );
+
+  if (dbosRetentionConfig.DBOS_WORKFLOW_RETENTION_ENABLED) {
+    DBOS.registerScheduled(dbosWorkflowRetentionWorkflow, {
+      name: 'maintenance.dbosWorkflowRetention',
+      crontab: dbosRetentionConfig.DBOS_WORKFLOW_RETENTION_CRON,
+    });
+  }
+
+  // ── Database Capacity Snapshots ────────────────────────────────
+  // One structured log per scope keeps Axiom grouping and thresholds simple.
+  const databaseCapacitySnapshotWorkflow = DBOS.registerWorkflow(
+    async (_scheduledTime: Date, _actualTime: Date): Promise<void> => {
+      const { databaseCapacityRepository, logger } = getDeps();
+      const snapshots = await databaseCapacityRepository.getSizeSnapshots();
+      for (const snapshot of snapshots) {
+        logger.info(
+          {
+            capacityScope: snapshot.scope,
+            sizeBytes: snapshot.sizeBytes,
+          },
+          'maintenance.database_capacity_snapshot',
+        );
+      }
+    },
+    { name: 'maintenance.databaseCapacitySnapshot' },
+  );
+
+  DBOS.registerScheduled(databaseCapacitySnapshotWorkflow, {
+    name: 'maintenance.databaseCapacitySnapshot',
+    crontab: '30 2 * * *',
   });
 
   // ── Pack GC ──────────────────────────────────────────────────
@@ -306,8 +408,8 @@ export function initMaintenanceWorkflows(
   const orphanBatchSize = orphanSweeperConfig.TASK_ORPHAN_SWEEPER_BATCH_SIZE;
   const orphanCron = orphanSweeperConfig.TASK_ORPHAN_SWEEPER_CRON;
   const expiredTaskBatchSize =
-    orphanSweeperConfig.TASK_ORPHAN_SWEEPER_BATCH_SIZE;
-  const expiredTaskCron = orphanSweeperConfig.TASK_ORPHAN_SWEEPER_CRON;
+    orphanSweeperConfig.TASK_EXPIRY_SWEEPER_BATCH_SIZE;
+  const expiredTaskCron = orphanSweeperConfig.TASK_EXPIRY_SWEEPER_CRON;
   const retentionBatchSize =
     orphanSweeperConfig.TASK_RETENTION_SWEEPER_BATCH_SIZE;
   const retentionCron = orphanSweeperConfig.TASK_RETENTION_SWEEPER_CRON;
@@ -899,13 +1001,23 @@ export function initMaintenanceWorkflows(
       );
       const examined = manifest.tasks.length + manifest.skippedProtected;
       if (manifest.tasks.length === 0) {
-        return {
+        const result = {
           examined,
           deletedTaskCount: 0,
           deletedObjectCount: 0,
           skippedProtected: manifest.skippedProtected,
           batchFull: manifest.batchFull,
         };
+        logger.info(
+          {
+            examined,
+            deleted: 0,
+            protected: manifest.skippedProtected,
+            batchFull: manifest.batchFull,
+          },
+          'maintenance: task retention cleanup complete',
+        );
+        return result;
       }
 
       const deletedManifest = await deleteTaskRowsStep(manifest);
@@ -920,10 +1032,12 @@ export function initMaintenanceWorkflows(
       logger.info(
         {
           examined,
+          deleted: deletedTaskCount,
+          protected: manifest.skippedProtected,
+          batchFull: manifest.batchFull,
           deletedTaskCount,
           deletedObjectCount,
           skippedProtected: manifest.skippedProtected,
-          batchFull: manifest.batchFull,
         },
         'maintenance: task retention cleanup complete',
       );
