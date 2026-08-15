@@ -592,14 +592,14 @@ The Ory console UI (Branding > Theming > Customize UI) is the only way to **prev
 > **Tip — Keto OPL (permissions):** The Ory permission model lives in `infra/ory/permissions.ts`. It's deployed automatically by `deploy.mjs --apply`. Namespace class names in the OPL (e.g. `Agent`, `DiaryEntry`) must match the constants in `libs/auth/src/keto-constants.ts`.
 
 For authorization-only rollouts, use `--opl-only`; this deliberately skips
-`ory update project` and its temporary empty-permission window. The optional
-`--opl-file` is relative to `infra/ory/`, which keeps the task-ownership bridge
-available for rollback:
+`ory update project` and its temporary empty-permission window. During the task
+ownership rollout, the canonical `permissions.ts` intentionally retains the
+legacy diary fallback. The follow-up cutover contracts that file only after the
+ownership backfill and canaries succeed:
 
 ```bash
 npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
-  node infra/ory/deploy.mjs --apply --opl-only \
-  --opl-file permissions.bridge.ts
+  node infra/ory/deploy.mjs --apply --opl-only
 ```
 
 ## Ory Backup / Restore

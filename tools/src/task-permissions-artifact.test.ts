@@ -16,15 +16,10 @@ function taskBlock(file: string): string {
 }
 
 describe('task ownership OPL artifacts', () => {
-  it('keeps parent only as provenance in the final model', () => {
+  it('deploys the legacy parent fallback during the ownership rollout', () => {
     const block = taskBlock('permissions.ts');
     expect(block).toContain('parent: Diary[]');
-    expect(block).not.toContain('this.related.parent');
     expect(block).toContain("SubjectSet<Group, 'members'>");
-  });
-
-  it('keeps the legacy parent fallback in the rollback bridge', () => {
-    const block = taskBlock('permissions.bridge.ts');
     expect(block).toContain(
       'this.related.parent.traverse((d) => d.permits.read(ctx))',
     );
