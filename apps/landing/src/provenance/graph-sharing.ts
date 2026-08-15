@@ -8,6 +8,8 @@
  * (e.g. test environments like jsdom/happy-dom).
  */
 
+import { MAX_PROVENANCE_INPUT_BYTES } from './parse-graph';
+
 function hasStreamingCompression(): boolean {
   try {
     return (
@@ -37,7 +39,23 @@ async function inflate(compressed: Uint8Array): Promise<string> {
   const stream = new Blob([ab])
     .stream()
     .pipeThrough(new DecompressionStream('deflate-raw'));
-  return new Response(stream).text();
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  let decoded = '';
+  let totalBytes = 0;
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    totalBytes += value.byteLength;
+    if (totalBytes > MAX_PROVENANCE_INPUT_BYTES) {
+      await reader.cancel();
+      throw new Error('Shared provenance graph exceeds the 512 KB limit');
+    }
+    decoded += decoder.decode(value, { stream: true });
+  }
+
+  return decoded + decoder.decode();
 }
 
 function toBase64Url(bytes: Uint8Array): string {
@@ -81,6 +99,9 @@ export async function compressGraphToParam(
  * Decompress a graph parameter back to JSON string.
  */
 export async function decompressGraphFromParam(param: string): Promise<string> {
+  if (param.length > 8_000) {
+    throw new Error('Shared provenance link exceeds the supported size');
+  }
   const bytes = fromBase64Url(param);
   return inflate(bytes);
 }

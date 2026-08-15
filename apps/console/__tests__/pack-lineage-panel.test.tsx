@@ -90,6 +90,7 @@ describe('PackLineage', () => {
       screen.getByRole('button', { name: /pack node:/i }),
     ).toBeInTheDocument();
     expect(screen.getByText('Provenance graph')).toBeInTheDocument();
+    expect(screen.getByText('Authenticated source')).toBeInTheDocument();
   });
 
   it('renders supersession in the shared explorer', () => {

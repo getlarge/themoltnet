@@ -1,6 +1,12 @@
 import type { ProvenanceGraphNode } from '@moltnet/models';
 import { ProvenanceExplorer } from '@moltnet/provenance-ui';
-import { Button, InlineNotice, Stack, Text } from '@themoltnet/design-system';
+import {
+  Badge,
+  Button,
+  InlineNotice,
+  Stack,
+  Text,
+} from '@themoltnet/design-system';
 import { Link } from 'wouter';
 
 import { getApiErrorDetail } from '../../api-error.js';
@@ -77,11 +83,19 @@ export function PackLineage({ packId, now, hrefFor }: PackLineageProps) {
         ) : null}
 
         {provenance.data ? (
-          <ProvenanceExplorer
-            graph={provenance.data}
-            height="32rem"
-            renderNodeActions={renderNodeActions}
-          />
+          <Stack gap={3}>
+            <Stack direction="row" gap={2} align="center" wrap>
+              <Badge variant="success">Authenticated source</Badge>
+              <Text variant="caption" color="muted">
+                Loaded from MoltNet with your current team and diary access.
+              </Text>
+            </Stack>
+            <ProvenanceExplorer
+              graph={provenance.data}
+              height="32rem"
+              renderNodeActions={renderNodeActions}
+            />
+          </Stack>
         ) : null}
       </Stack>
     </section>

@@ -29,7 +29,54 @@ describe('provenance graph utilities', () => {
           edges: [],
         }),
       ),
-    ).toThrow('Invalid provenance graph payload');
+    ).toThrow('Invalid provenance graph');
+  });
+
+  it('rejects duplicate IDs and a mismatched root pack', () => {
+    const duplicateNodes = {
+      ...sampleProvenanceGraph,
+      nodes: [sampleProvenanceGraph.nodes[0], sampleProvenanceGraph.nodes[0]],
+      edges: [],
+    };
+    expect(() => parseProvenanceGraph(JSON.stringify(duplicateNodes))).toThrow(
+      'unique ID',
+    );
+
+    const mismatchedRoot = {
+      ...sampleProvenanceGraph,
+      metadata: {
+        ...sampleProvenanceGraph.metadata,
+        rootPackId: '99999999-9999-4999-8999-999999999999',
+      },
+    };
+    expect(() => parseProvenanceGraph(JSON.stringify(mismatchedRoot))).toThrow(
+      'declared root',
+    );
+  });
+
+  it('rejects creator metadata that does not match a principal kind', () => {
+    const malformedCreator = {
+      ...sampleProvenanceGraph,
+      nodes: sampleProvenanceGraph.nodes.map((node, index) =>
+        index === 0
+          ? {
+              ...node,
+              meta: {
+                ...node.meta,
+                creator: {
+                  identityId: '99999999-9999-4999-8999-999999999999',
+                  fingerprint: 'C212-DAFA-27C5-6C57',
+                  publicKey: 'ed25519:test',
+                },
+              },
+            }
+          : node,
+      ),
+    };
+
+    expect(() =>
+      parseProvenanceGraph(JSON.stringify(malformedCreator)),
+    ).toThrow('Invalid provenance graph');
   });
 
   it('builds a layered layout with the root pack on the left', () => {
@@ -75,6 +122,7 @@ describe('provenance viewer route', () => {
     });
     expect(screen.getByText('Provenance graph')).toBeInTheDocument();
     expect(screen.getByText('Fit view')).toBeInTheDocument();
+    expect(screen.getByText('Imported · unverified')).toBeInTheDocument();
     expect(screen.getByText('C212-DAFA-27C5-6C57')).toBeInTheDocument();
     expect(screen.getAllByText('compile pack v2').length).toBeGreaterThan(0);
   });
@@ -99,11 +147,13 @@ describe('provenance viewer route', () => {
       },
     });
     expect(screen.getByText('MCP server notes')).toBeInTheDocument();
-    fireEvent.click(screen.getAllByText('compile pack v2')[0]!);
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Hide 2 included entries' }),
+    );
 
     expect(screen.queryByText('MCP server notes')).not.toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Expand entries' }),
+      screen.getByRole('button', { name: 'Show 2 included entries' }),
     ).toBeInTheDocument();
   });
 
@@ -127,15 +177,41 @@ describe('provenance viewer route', () => {
       },
     });
 
-    const rootPack = screen.getByRole('button', {
-      name: /pack node: compile pack v2/i,
+    const entryNode = screen.getByRole('button', {
+      name: /entry node: identity bootstrap/i,
     });
 
-    fireEvent.keyDown(rootPack, { key: 'Enter' });
+    fireEvent.keyDown(entryNode, { key: 'Enter' });
 
-    expect(screen.queryByText('MCP server notes')).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Expand entries' }),
-    ).toBeInTheDocument();
+    expect(entryNode).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('heading', { name: 'Identity bootstrap' })).toBe(
+      screen.getByText('Identity bootstrap', { selector: 'h4' }),
+    );
+  });
+
+  it('associates invalid input with an announced error', () => {
+    const { hook } = memoryLocation({
+      path: '/labs/provenance',
+      record: true,
+    });
+
+    render(
+      <MoltThemeProvider mode="dark">
+        <Router hook={hook}>
+          <App />
+        </Router>
+      </MoltThemeProvider>,
+    );
+
+    const input = screen.getByRole('textbox', {
+      name: 'Provenance graph JSON',
+    });
+    fireEvent.change(input, { target: { value: '{not valid json' } });
+
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(input.getAttribute('aria-describedby')).toContain(
+      'provenance-json-error',
+    );
+    expect(screen.getByRole('alert')).toBeInTheDocument();
   });
 });
