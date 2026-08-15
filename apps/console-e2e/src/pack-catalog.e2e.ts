@@ -166,7 +166,7 @@ test.describe.serial('Pack catalog', () => {
     await expect(page.getByText(seeded.prompt).first()).toBeVisible();
   });
 
-  test('opens a pack from the catalog and shows its lineage', async ({
+  test('opens a pack from the catalog and shows its provenance', async ({
     page,
   }) => {
     await loginViaBrowser(page, user);
@@ -183,25 +183,34 @@ test.describe.serial('Pack catalog', () => {
 
     await expect(page).toHaveURL(new RegExp(`/packs/${seeded.newerPackId}`));
 
-    // Scope every assertion to the lineage panel. A bare `getByRole('listitem')`
-    // counts list items anywhere on the page — including the Kratos auth screen
-    // if the session lapsed — so it can pass while looking at the wrong page.
-    const lineage = page.locator('section, div').filter({
-      has: page.getByText('Lineage', { exact: true }),
-    });
-    await expect(page.getByText('Lineage', { exact: true })).toBeVisible();
+    // Scope every assertion to the named provenance region so an auth page or
+    // unrelated graph-like control cannot satisfy this regression guard.
+    const provenance = page.getByRole('region', { name: 'Provenance' });
+    await expect(
+      provenance.getByText('Provenance graph', { exact: true }),
+    ).toBeVisible();
+    await expect(
+      provenance.getByText('Authenticated source', { exact: true }),
+    ).toBeVisible();
 
-    // Two packs in the chain: the one being viewed, plus the one it superseded.
-    await expect(lineage.getByRole('listitem').first()).toBeVisible();
-    await expect(page.getByText('Viewing', { exact: true })).toBeVisible();
+    // Two packs in the graph: the one being viewed, plus the one it superseded.
+    await expect(
+      provenance.getByRole('button', { name: /pack node:/i }),
+    ).toHaveCount(2);
   });
 
-  test('navigates to the superseded pack from the chain', async ({ page }) => {
+  test('navigates to the superseded pack from the graph', async ({ page }) => {
     await loginViaBrowser(page, user);
     await page.goto(`${CONSOLE_URL}/packs/${seeded.newerPackId}`);
 
-    const ancestorLink = page.getByRole('link', {
-      name: new RegExp(seeded.olderPackId.slice(0, 8)),
+    const provenance = page.getByRole('region', { name: 'Provenance' });
+    const ancestorNode = provenance.getByRole('button', {
+      name: new RegExp(`pack node: .*${seeded.olderPackId.slice(0, 8)}`, 'i'),
+    });
+    await ancestorNode.click();
+
+    const ancestorLink = provenance.getByRole('link', {
+      name: 'Open this pack',
     });
     await expect(ancestorLink).toHaveAttribute(
       'href',

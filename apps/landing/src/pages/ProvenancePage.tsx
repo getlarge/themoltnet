@@ -171,6 +171,130 @@ export function ProvenancePage() {
     ? 'provenance-json-hint provenance-json-error'
     : 'provenance-json-hint';
 
+  const sourcePanel = (
+    <Card variant="outlined" padding="md">
+      <Stack gap={3}>
+        <Stack gap={1}>
+          <Text weight="semibold">Graph input</Text>
+          <Text id="provenance-json-hint" variant="caption" color="muted">
+            Export a real graph with `npx @themoltnet/cli pack provenance`, then
+            paste or upload the JSON here. Imports are limited to 512 KB.
+          </Text>
+        </Stack>
+        <div
+          style={{
+            display: 'flex',
+            gap: theme.spacing[2],
+            flexWrap: 'wrap',
+          }}
+        >
+          <label
+            htmlFor="provenance-json-upload"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: theme.radius.md,
+              border: `1px solid ${theme.color.border.DEFAULT}`,
+              padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
+              minHeight: 44,
+              boxSizing: 'border-box',
+              cursor: 'pointer',
+              color: theme.color.primary.DEFAULT,
+              boxShadow: uploadFocused
+                ? `0 0 0 2px ${theme.color.bg.void}, 0 0 0 4px ${theme.color.border.focus}`
+                : `inset 0 0 0 1px ${theme.color.border.DEFAULT}`,
+            }}
+          >
+            Upload JSON
+            <input
+              id="provenance-json-upload"
+              type="file"
+              aria-label="Upload provenance graph JSON"
+              accept="application/json,.json"
+              onChange={handleFileUpload}
+              onFocus={() => setUploadFocused(true)}
+              onBlur={() => setUploadFocused(false)}
+              style={{
+                position: 'absolute',
+                width: 1,
+                height: 1,
+                opacity: 0,
+                pointerEvents: 'none',
+              }}
+            />
+          </label>
+          {shareUrl ? (
+            <Button variant="secondary" onClick={handleCopyLink}>
+              {linkCopied ? 'Copied!' : 'Copy link'}
+            </Button>
+          ) : null}
+        </div>
+        {shareUrl ? (
+          <Stack gap={2}>
+            <Text variant="caption" color="muted">
+              Shared links contain the imported graph metadata. Anyone holding
+              the URL can inspect it.
+            </Text>
+            <div role="status" aria-live="polite">
+              <Text variant="caption" color={copyError ? 'error' : 'muted'}>
+                {copyError ??
+                  (linkCopied
+                    ? 'Share link copied.'
+                    : 'Review the graph before sharing its URL.')}
+              </Text>
+            </div>
+          </Stack>
+        ) : null}
+        <label
+          htmlFor="provenance-json-input"
+          style={{
+            color: theme.color.text.DEFAULT,
+            fontSize: theme.font.size.sm,
+            fontWeight: theme.font.weight.medium,
+          }}
+        >
+          Provenance graph JSON
+        </label>
+        <textarea
+          id="provenance-json-input"
+          aria-describedby={graphDescription}
+          aria-invalid={graphError ? true : undefined}
+          value={rawInput}
+          onChange={(event) => {
+            setImportError(null);
+            setCopyError(null);
+            setRawInput(event.target.value);
+          }}
+          spellCheck={false}
+          placeholder={`{\n  "metadata": { ... },\n  "nodes": [],\n  "edges": []\n}`}
+          style={{
+            minHeight: '18rem',
+            width: '100%',
+            resize: 'vertical',
+            borderRadius: theme.radius.lg,
+            border: `1px solid ${theme.color.border.DEFAULT}`,
+            background: theme.color.bg.void,
+            color: theme.color.text.DEFAULT,
+            padding: theme.spacing[4],
+            fontFamily: theme.font.family.mono,
+            fontSize: theme.font.size.xs,
+          }}
+        />
+        {graphError ? (
+          <div id="provenance-json-error" role="alert">
+            <Text
+              variant="caption"
+              style={{ color: theme.color.error.DEFAULT }}
+            >
+              {graphError}
+            </Text>
+          </div>
+        ) : null}
+      </Stack>
+    </Card>
+  );
+
   return (
     <div
       style={{
@@ -208,142 +332,13 @@ export function ProvenancePage() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns:
-                'repeat(auto-fit, minmax(min(100%, 32rem), 1fr))',
+              gridTemplateColumns: parsed.graph
+                ? 'minmax(0, 1fr)'
+                : 'repeat(auto-fit, minmax(min(100%, 32rem), 1fr))',
               gap: theme.spacing[5],
               alignItems: 'start',
             }}
           >
-            <Card variant="outlined" padding="md">
-              <Stack gap={3}>
-                <Stack gap={1}>
-                  <Text weight="semibold">Graph input</Text>
-                  <Text
-                    id="provenance-json-hint"
-                    variant="caption"
-                    color="muted"
-                  >
-                    Export a real graph with `npx @themoltnet/cli pack
-                    provenance`, then paste or upload the JSON here. Imports are
-                    limited to 512 KB.
-                  </Text>
-                </Stack>
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: theme.spacing[2],
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  <label
-                    htmlFor="provenance-json-upload"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: theme.radius.md,
-                      border: `1px solid ${theme.color.border.DEFAULT}`,
-                      padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-                      minHeight: 44,
-                      boxSizing: 'border-box',
-                      cursor: 'pointer',
-                      color: theme.color.primary.DEFAULT,
-                      boxShadow: uploadFocused
-                        ? `0 0 0 2px ${theme.color.bg.void}, 0 0 0 4px ${theme.color.border.focus}`
-                        : `inset 0 0 0 1px ${theme.color.border.DEFAULT}`,
-                    }}
-                  >
-                    Upload JSON
-                    <input
-                      id="provenance-json-upload"
-                      type="file"
-                      aria-label="Upload provenance graph JSON"
-                      accept="application/json,.json"
-                      onChange={handleFileUpload}
-                      onFocus={() => setUploadFocused(true)}
-                      onBlur={() => setUploadFocused(false)}
-                      style={{
-                        position: 'absolute',
-                        width: 1,
-                        height: 1,
-                        opacity: 0,
-                        pointerEvents: 'none',
-                      }}
-                    />
-                  </label>
-                  {shareUrl ? (
-                    <Button variant="secondary" onClick={handleCopyLink}>
-                      {linkCopied ? 'Copied!' : 'Copy link'}
-                    </Button>
-                  ) : null}
-                </div>
-                {shareUrl ? (
-                  <Stack gap={2}>
-                    <Text variant="caption" color="muted">
-                      Shared links contain the imported graph metadata. Anyone
-                      holding the URL can inspect it.
-                    </Text>
-                    <div role="status" aria-live="polite">
-                      <Text
-                        variant="caption"
-                        color={copyError ? 'error' : 'muted'}
-                      >
-                        {copyError ??
-                          (linkCopied
-                            ? 'Share link copied.'
-                            : 'Review the graph before sharing its URL.')}
-                      </Text>
-                    </div>
-                  </Stack>
-                ) : null}
-                <label
-                  htmlFor="provenance-json-input"
-                  style={{
-                    color: theme.color.text.DEFAULT,
-                    fontSize: theme.font.size.sm,
-                    fontWeight: theme.font.weight.medium,
-                  }}
-                >
-                  Provenance graph JSON
-                </label>
-                <textarea
-                  id="provenance-json-input"
-                  aria-describedby={graphDescription}
-                  aria-invalid={graphError ? true : undefined}
-                  value={rawInput}
-                  onChange={(event) => {
-                    setImportError(null);
-                    setCopyError(null);
-                    setRawInput(event.target.value);
-                  }}
-                  spellCheck={false}
-                  placeholder={`{\n  "metadata": { ... },\n  "nodes": [],\n  "edges": []\n}`}
-                  style={{
-                    minHeight: '18rem',
-                    width: '100%',
-                    resize: 'vertical',
-                    borderRadius: theme.radius.lg,
-                    border: `1px solid ${theme.color.border.DEFAULT}`,
-                    background: theme.color.bg.void,
-                    color: theme.color.text.DEFAULT,
-                    padding: theme.spacing[4],
-                    fontFamily: theme.font.family.mono,
-                    fontSize: theme.font.size.xs,
-                  }}
-                />
-                {graphError ? (
-                  <div id="provenance-json-error" role="alert">
-                    <Text
-                      variant="caption"
-                      style={{ color: theme.color.error.DEFAULT }}
-                    >
-                      {graphError}
-                    </Text>
-                  </div>
-                ) : null}
-              </Stack>
-            </Card>
-
             {parsed.graph ? (
               <Stack gap={3}>
                 <div
@@ -362,7 +357,31 @@ export function ProvenancePage() {
                 </div>
                 <ProvenanceExplorer graph={parsed.graph} height="42rem" />
               </Stack>
+            ) : null}
+
+            {parsed.graph ? (
+              <details>
+                <summary
+                  style={{
+                    minHeight: 44,
+                    display: 'flex',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    color: theme.color.text.secondary,
+                    fontWeight: theme.font.weight.medium,
+                  }}
+                >
+                  Imported JSON
+                </summary>
+                <div style={{ paddingTop: theme.spacing[3] }}>
+                  {sourcePanel}
+                </div>
+              </details>
             ) : (
+              sourcePanel
+            )}
+
+            {!parsed.graph ? (
               <div
                 style={{
                   minHeight: '18rem',
@@ -382,7 +401,7 @@ export function ProvenancePage() {
                   </Text>
                 </Stack>
               </div>
-            )}
+            ) : null}
           </div>
         </Stack>
       </Container>

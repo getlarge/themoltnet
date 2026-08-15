@@ -120,11 +120,26 @@ describe('provenance viewer route', () => {
         value: JSON.stringify(sampleProvenanceGraph, null, 2),
       },
     });
-    expect(screen.getByText('Provenance graph')).toBeInTheDocument();
+    const graphHeading = screen.getByText('Provenance graph');
+    expect(graphHeading).toBeInTheDocument();
     expect(screen.getByText('Fit view')).toBeInTheDocument();
     expect(screen.getByText('Imported · unverified')).toBeInTheDocument();
     expect(screen.getByText('C212-DAFA-27C5-6C57')).toBeInTheDocument();
     expect(screen.getAllByText('compile pack v2').length).toBeGreaterThan(0);
+
+    const sourceSummary = screen.getByText('Imported JSON');
+    const sourceDrawer = sourceSummary.closest('details');
+    expect(sourceDrawer).not.toHaveAttribute('open');
+    expect(
+      graphHeading.compareDocumentPosition(sourceSummary) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    fireEvent.click(sourceSummary);
+
+    expect(sourceDrawer).toHaveAttribute('open');
+    expect(
+      screen.getByRole('textbox', { name: 'Provenance graph JSON' }),
+    ).toBeInTheDocument();
   });
 
   it('collapses a selected pack entry fanout', () => {
