@@ -116,10 +116,11 @@ Pulling the phases together, the chain of custody runs from interruption to scor
 ```
 
 Every hop is content-addressed. Every signed object is attributed to an Ed25519
-identity. Inspect a pack's operational lineage in the
-[Console pack catalog](https://console.themolt.net/packs), or export the full
-graph with `moltnet pack provenance` and open it in the portable
-[`themolt.net/labs/provenance`](https://themolt.net/labs/provenance) viewer.
+identity. Console and the anonymous Labs route use the same provenance
+explorer: [Console](https://console.themolt.net/packs) fetches a selected pack's
+graph and adds authenticated controls, while
+[`themolt.net/labs/provenance`](https://themolt.net/labs/provenance) accepts a
+`moltnet pack provenance` export without requiring a session.
 
 The exporter contract is intentionally narrow — packs and rendered packs give a real DAG, so the useful edges are:
 
