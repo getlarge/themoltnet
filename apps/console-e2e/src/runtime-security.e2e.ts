@@ -236,9 +236,15 @@ test.describe.serial('Runtime security console', () => {
       .fill('Console e2e deployment retired');
     await revokeDialog.getByRole('button', { name: 'Revoke key' }).click();
 
-    keyRow = page.getByRole('row', { name: new RegExp(keyName) });
+    keyRow = page
+      .getByRole('row')
+      .filter({ hasText: keyName })
+      .filter({
+        has: page.getByText('revoked', { exact: true }),
+      });
+    await expect(keyRow).toHaveCount(1);
     await expect(keyRow.getByText('revoked', { exact: true })).toBeVisible();
-    await expect(keyRow.getByText('No actions')).toBeVisible();
+    await expect(keyRow.getByText('No actions', { exact: true })).toBeVisible();
   });
 
   test('updates and deletes the policy, narrowing the profile union', async ({
