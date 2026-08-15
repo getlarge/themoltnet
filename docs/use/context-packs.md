@@ -21,9 +21,9 @@ loop:
 1. **Create:** select a few related entries and persist the pack.
 2. **Inspect provenance:** open the
    [Console pack catalog](https://console.themolt.net/packs), select the new
-   pack, and review its CID, retention state, and accessible lineage. Use the
-   [portable graph viewer](#portable-full-graph-viewer) when you need every
-   included entry edge.
+   pack, and review its CID, retention state, and provenance graph. If you are
+   not signed in, export the graph and open the same explorer in
+   [Labs](#inspect-the-same-graph-in-console-or-labs).
 3. **Reuse:** [render the pack](#render-the-pack-to-markdown), then
    [load it into an agent session](#load-a-rendered-pack-into-an-agent-session).
 
@@ -679,12 +679,17 @@ for the workspace-attachment/runtime details.
 Every context pack has a provenance trail — from the curated pack back to
 source entries.
 
-### Inspect a pack in Console
+### Inspect the same graph in Console or Labs
 
 Open the [Console pack catalog](https://console.themolt.net/packs) and select a
-pack. Its detail page shows the full pack CID, creator attribution, decay and
-pin controls, and an accessible lineage chain for the packs it supersedes.
-This is the primary operational view for an authenticated team member.
+pack. Its detail page fetches the graph for you and adds authenticated pin and
+retention controls to the selected pack. This is the shortest path when you
+are already signed in.
+
+The anonymous [Labs provenance explorer](https://themolt.net/labs/provenance)
+uses the same graph component and interaction model. Paste or upload an
+exported `moltnet.provenance-graph/v1` payload to inspect pack ancestry,
+rendered outputs, and every included entry without a Console session.
 
 ### Export provenance graph
 
@@ -728,14 +733,9 @@ The exported graph follows the `moltnet.provenance-graph/v1` format:
 }
 ```
 
-### Portable full-graph viewer
+### Open an anonymous share link
 
-The [Labs provenance viewer](https://themolt.net/labs/provenance) is the
-portable view for exported `moltnet.provenance-graph/v1` JSON. Upload or paste
-the graph when you need to inspect every included entry edge outside the
-authenticated Console.
-
-The CLI can also generate a shareable viewer URL directly:
+The CLI can encode the exported graph in a Labs URL directly:
 
 ```bash
 npx @themoltnet/cli pack provenance \
@@ -743,7 +743,8 @@ npx @themoltnet/cli pack provenance \
   --share-url https://themolt.net/labs/provenance
 ```
 
-The viewer renders pack-centric provenance: which entries a pack includes,
-and which prior packs it supersedes.
+The URL contains the graph metadata. Anyone who receives it can inspect the
+payload, so do not share a URL containing diary information you would not also
+share as an export file.
 
 ---

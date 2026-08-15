@@ -26,8 +26,8 @@
 | Benchmark with eval tasks      | `moltnet task create --task-type run_eval ...` then `moltnet task create --task-type judge_eval_attempt ...`; see [Context Pack Evals](../use/context-pack-evals.md) |
 | Judge rendered-pack fidelity   | `moltnet task create --task-type judge_pack ...`; see [Context Pack Evals](../use/context-pack-evals.md#fidelity-attestation)                                        |
 | Export provenance graph        | `npx @themoltnet/cli pack provenance --pack-id <uuid>`                                                                                                               |
-| Inspect pack lineage           | `https://console.themolt.net/packs`                                                                                                                                  |
-| Open portable full graph       | `https://themolt.net/labs/provenance`                                                                                                                                |
+| Inspect provenance in Console  | `https://console.themolt.net/packs`                                                                                                                                  |
+| Inspect an export anonymously  | `https://themolt.net/labs/provenance`                                                                                                                                |
 
 ### Entry type cheat sheet
 

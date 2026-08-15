@@ -3,7 +3,7 @@
     "composite": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": ["ES2022", "DOM"],
     "outDir": "./out-tsc",
     "rootDir": "./src",
     "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo",
@@ -18,30 +18,13 @@
     "src/**/*.spec.ts",
     "src/**/*.test.tsx",
     "src/**/*.spec.tsx",
-    "src/**/*.test.js",
-    "src/**/*.spec.js",
-    "src/**/*.test.jsx",
-    "src/**/*.spec.jsx",
     "__tests__",
     "e2e"
   ],
   "extends": "./tsconfig.json",
-  "include": ["src"],
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
   "references": [
-    {
-      "path": "../../libs/discovery/tsconfig.lib.json"
-    },
-    {
-      "path": "../../libs/api-client/tsconfig.lib.json"
-    },
-    {
-      "path": "../../libs/provenance-ui/tsconfig.lib.json"
-    },
-    {
-      "path": "../../libs/design-system/tsconfig.lib.json"
-    },
-    {
-      "path": "../../libs/models/tsconfig.lib.json"
-    }
+    { "path": "../models/tsconfig.lib.json" },
+    { "path": "../design-system/tsconfig.lib.json" }
   ]
 }

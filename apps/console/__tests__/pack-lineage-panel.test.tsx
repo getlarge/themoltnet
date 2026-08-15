@@ -63,7 +63,7 @@ describe('PackLineage', () => {
     expect(screen.getByText('Forbidden for this team')).toBeInTheDocument();
   });
 
-  it('offers a retry when lineage fails to load', () => {
+  it('offers a retry when provenance fails to load', () => {
     mocks.provenance = {
       isLoading: false,
       isError: true,
@@ -77,7 +77,7 @@ describe('PackLineage', () => {
     expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
   });
 
-  it('explains the absence rather than drawing an empty chain', () => {
+  it('renders a one-node graph instead of a separate empty lineage surface', () => {
     mocks.provenance = {
       isLoading: false,
       isError: false,
@@ -87,12 +87,13 @@ describe('PackLineage', () => {
     renderPanel();
 
     expect(
-      screen.getByText(/Nothing has replaced this pack/),
+      screen.getByRole('button', { name: /pack node:/i }),
     ).toBeInTheDocument();
-    expect(screen.queryByRole('list')).not.toBeInTheDocument();
+    expect(screen.getByText('Provenance graph')).toBeInTheDocument();
+    expect(screen.getByText('Authenticated source')).toBeInTheDocument();
   });
 
-  it('renders the chain for linear lineage', () => {
+  it('renders supersession in the shared explorer', () => {
     mocks.provenance = {
       isLoading: false,
       isError: false,
@@ -105,7 +106,9 @@ describe('PackLineage', () => {
 
     renderPanel();
 
-    expect(screen.getAllByRole('listitem')).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: /pack node:/i })).toHaveLength(
+      2,
+    );
   });
 
   it('marks a chain truncated by depth or permission instead of implying it is complete', () => {
@@ -120,9 +123,8 @@ describe('PackLineage', () => {
 
     renderPanel();
 
-    expect(screen.getByText(/isn’t shown/)).toBeInTheDocument();
     expect(
-      screen.queryByText(/Nothing has replaced this pack/),
-    ).not.toBeInTheDocument();
+      screen.getByText(/earlier one that is not shown/),
+    ).toBeInTheDocument();
   });
 });
