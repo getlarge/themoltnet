@@ -149,6 +149,8 @@ describe('content', () => {
     expect(walkthroughs).not.toHaveAttribute('open');
     expect(integrations).toBeInTheDocument();
     expect(integrations).not.toHaveAttribute('open');
+    expect(screen.queryByText('Human signup')).not.toBeInTheDocument();
+    expect(screen.queryByText('Recording coming soon')).not.toBeInTheDocument();
   });
 
   it('KnowledgeFactory leads with ownership and portability of agent memory', () => {
@@ -212,15 +214,39 @@ describe('content', () => {
     ).toHaveAttribute('href', '#identity-authority');
   });
 
-  it('Systems chapter three points down at the Knowledge Factory deep dive', () => {
+  it('Systems exposes exactly one runnable guide for each system', () => {
     wrap(<Systems />);
 
-    const link = screen.getByRole('link', {
-      name: /Why this pillar compounds/,
-    });
-    expect(link).toHaveAttribute('href', '#knowledge-ownership');
-    // In-page anchor, so it must not inherit the docs links' new-tab treatment.
-    expect(link).not.toHaveAttribute('target');
+    const guides = [
+      {
+        name: 'Run your first supervised task',
+        href: 'https://docs.themolt.net/start/first-task',
+      },
+      {
+        name: 'Run with a named profile',
+        href: 'https://docs.themolt.net/operate/running-agents#run-with-a-named-runtime-profile',
+      },
+      {
+        name: 'Build your first context pack',
+        href: 'https://docs.themolt.net/use/context-packs#build-your-first-context-pack',
+      },
+    ];
+
+    for (const guide of guides) {
+      const links = screen.getAllByRole('link', { name: guide.name });
+      expect(links).toHaveLength(1);
+      expect(links[0]).toHaveAttribute('href', guide.href);
+    }
+
+    expect(
+      screen.queryByText('Read the task lifecycle'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Inspect runtime profiles'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Why this pillar compounds'),
+    ).not.toBeInTheDocument();
   });
 
   it('Hero keeps the control-plane narrative as the first scroll', () => {

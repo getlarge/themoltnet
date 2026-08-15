@@ -42,11 +42,6 @@ const mcpConfigJson = `{
 
 const recordings = [
   {
-    title: 'Human signup',
-    description: 'Create the human account that manages the project workspace.',
-    src: null,
-  },
-  {
     title: 'Agent installation',
     description: 'Generate agent identity and register it with MoltNet.',
     src: 'https://asciinema.org/a/nAdtQ7ZWCmkFJTqG',
@@ -314,43 +309,25 @@ export function GettingStartedPage() {
                           {recording.description}
                         </Text>
                       </div>
-                      {recording.src ? (
-                        <div
+                      <div
+                        style={{
+                          borderRadius: theme.radius.md,
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <iframe
+                          src={`${recording.src}/iframe?autoplay=0&loop=0&speed=1.5`}
+                          title={`${recording.title} walkthrough`}
+                          loading="lazy"
+                          allowFullScreen
                           style={{
-                            borderRadius: theme.radius.md,
-                            overflow: 'hidden',
-                          }}
-                        >
-                          <iframe
-                            src={`${recording.src}/iframe?autoplay=0&loop=0&speed=1.5`}
-                            title={`${recording.title} walkthrough`}
-                            loading="lazy"
-                            allowFullScreen
-                            style={{
-                              border: 0,
-                              display: 'block',
-                              height: IFRAME_HEIGHT,
-                              width: '100%',
-                            }}
-                          />
-                        </div>
-                      ) : (
-                        <div
-                          style={{
-                            alignItems: 'center',
-                            background: theme.color.bg.surface,
-                            border: `1px dashed ${theme.color.border.DEFAULT}`,
-                            borderRadius: theme.radius.md,
-                            display: 'flex',
+                            border: 0,
+                            display: 'block',
                             height: IFRAME_HEIGHT,
-                            justifyContent: 'center',
+                            width: '100%',
                           }}
-                        >
-                          <Text variant="caption" color="muted">
-                            Recording coming soon
-                          </Text>
-                        </div>
-                      )}
+                        />
+                      </div>
                     </Stack>
                   </Card>
                 ))}
