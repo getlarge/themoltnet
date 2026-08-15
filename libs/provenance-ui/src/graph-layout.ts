@@ -10,14 +10,22 @@ export interface GraphLayout {
   positions: Record<string, PositionedNode>;
   width: number;
   height: number;
+  orientation: 'horizontal' | 'vertical';
 }
+
+export const GRAPH_NODE_WIDTH = 280;
+export const GRAPH_NODE_HEIGHT = 116;
 
 const COLUMN_WIDTH = 392;
 const ROW_HEIGHT = 184;
-const PADDING_X = 96;
-const PADDING_Y = 96;
+const PADDING_X = 72;
+const PADDING_Y = 72;
+const VERTICAL_GAP = 64;
 
-export function buildGraphLayout(graph: ProvenanceGraph): GraphLayout {
+export function buildGraphLayout(
+  graph: ProvenanceGraph,
+  orientation: GraphLayout['orientation'] = 'horizontal',
+): GraphLayout {
   const rootId = graph.metadata.rootNodeId;
   const nodeMap = new Map(graph.nodes.map((node) => [node.id, node]));
   const levels = new Map<string, number>();
@@ -60,6 +68,40 @@ export function buildGraphLayout(graph: ProvenanceGraph): GraphLayout {
   const orderedLevels = [...groups.keys()].sort((a, b) => a - b);
   let maxRows = 0;
 
+  if (orientation === 'vertical') {
+    let row = 0;
+    for (const level of orderedLevels) {
+      const ids = groups.get(level);
+      if (!ids) continue;
+      ids.sort((left, right) => {
+        const leftNode = nodeMap.get(left);
+        const rightNode = nodeMap.get(right);
+        if (leftNode?.kind !== rightNode?.kind) {
+          return leftNode?.kind === 'pack' ? -1 : 1;
+        }
+        return left.localeCompare(right);
+      });
+      for (const id of ids) {
+        positions[id] = {
+          id,
+          x: 32,
+          y: 32 + row * (GRAPH_NODE_HEIGHT + VERTICAL_GAP),
+        };
+        row += 1;
+      }
+    }
+
+    return {
+      positions,
+      width: GRAPH_NODE_WIDTH + 64,
+      height:
+        row === 0
+          ? GRAPH_NODE_HEIGHT + 64
+          : 64 + row * GRAPH_NODE_HEIGHT + (row - 1) * VERTICAL_GAP,
+      orientation,
+    };
+  }
+
   for (const level of orderedLevels) {
     const ids = groups.get(level);
     if (!ids) continue;
@@ -85,7 +127,20 @@ export function buildGraphLayout(graph: ProvenanceGraph): GraphLayout {
 
   return {
     positions,
-    width: PADDING_X * 2 + Math.max(1, orderedLevels.length) * COLUMN_WIDTH,
-    height: PADDING_Y * 2 + Math.max(1, maxRows) * ROW_HEIGHT,
+    width:
+      Math.max(
+        ...Object.values(positions).map(
+          (position) => position.x + GRAPH_NODE_WIDTH,
+        ),
+        GRAPH_NODE_WIDTH,
+      ) + PADDING_X,
+    height:
+      Math.max(
+        ...Object.values(positions).map(
+          (position) => position.y + GRAPH_NODE_HEIGHT,
+        ),
+        GRAPH_NODE_HEIGHT,
+      ) + PADDING_Y,
+    orientation,
   };
 }

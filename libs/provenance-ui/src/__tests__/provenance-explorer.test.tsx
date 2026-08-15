@@ -1,10 +1,11 @@
 import type { ProvenanceGraph } from '@moltnet/models';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MoltThemeProvider } from '@themoltnet/design-system';
 import { describe, expect, it, vi } from 'vitest';
 
 import { buildGraphLayout } from '../graph-layout.js';
 import { filterCollapsedGraph } from '../graph-utils.js';
+import { computeFitViewport } from '../graph-viewport.js';
 import { ProvenanceExplorer } from '../ProvenanceExplorer.js';
 
 const graph: ProvenanceGraph = {
@@ -82,6 +83,19 @@ describe('ProvenanceExplorer', () => {
     );
   });
 
+  it('uses a readable vertical trace and true fit scale on narrow screens', () => {
+    const layout = buildGraphLayout(graph, 'vertical');
+    const viewport = computeFitViewport(300, 512, layout.width, layout.height);
+
+    expect(layout.positions['pack:current'].x).toBe(
+      layout.positions['entry:evidence'].x,
+    );
+    expect(layout.positions['pack:current'].y).toBeLessThan(
+      layout.positions['entry:evidence'].y,
+    );
+    expect(layout.width * viewport.scale).toBeLessThanOrEqual(300);
+  });
+
   it('removes a collapsed pack entry fanout without changing the source graph', () => {
     const filtered = filterCollapsedGraph(graph, new Set(['pack:current']));
 
@@ -90,7 +104,7 @@ describe('ProvenanceExplorer', () => {
     expect(graph.nodes).toHaveLength(2);
   });
 
-  it('shares keyboard selection, collapse, and an accessible outline', () => {
+  it('keeps keyboard selection separate from explicit graph collapse', () => {
     renderExplorer();
 
     const packNode = screen.getByRole('button', {
@@ -98,10 +112,20 @@ describe('ProvenanceExplorer', () => {
     });
     fireEvent.keyDown(packNode, { key: 'Enter' });
 
-    expect(screen.queryByText('Evidence entry')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Evidence entry').length).toBeGreaterThan(0);
+
+    const collapse = screen.getByRole('button', {
+      name: 'Hide 1 included entries',
+    });
+    expect(collapse).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(collapse);
+
     expect(
-      screen.getByRole('button', { name: 'Expand entries' }),
-    ).toBeInTheDocument();
+      screen.queryByRole('button', { name: /entry node: evidence entry/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Show 1 included entries' }),
+    ).toHaveAttribute('aria-expanded', 'false');
     expect(screen.getByText('Accessible graph outline')).toBeInTheDocument();
   });
 
@@ -118,5 +142,25 @@ describe('ProvenanceExplorer', () => {
     expect(action).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'pack:current' }),
     );
+  });
+
+  it('does not offer collapse when a pack has no included evidence', () => {
+    const leafGraph: ProvenanceGraph = {
+      ...graph,
+      nodes: graph.nodes.filter((node) => node.id === 'pack:current'),
+      edges: [],
+    };
+
+    const { container } = render(
+      <MoltThemeProvider mode="dark">
+        <ProvenanceExplorer graph={leafGraph} height="24rem" />
+      </MoltThemeProvider>,
+    );
+
+    expect(
+      within(container).queryByRole('button', {
+        name: /^(show|hide) \d+ included entries$/i,
+      }),
+    ).not.toBeInTheDocument();
   });
 });

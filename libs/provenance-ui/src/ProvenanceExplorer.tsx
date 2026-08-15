@@ -4,6 +4,7 @@ import {
   Badge,
   Button,
   Card,
+  DescriptionList,
   KeyFingerprint,
   Stack,
   Text,
@@ -11,9 +12,9 @@ import {
 } from '@themoltnet/design-system';
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import {
-  Fragment,
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -44,8 +45,8 @@ export interface ProvenanceExplorerProps {
 
 function badgeVariant(
   kind: ProvenanceGraphNode['kind'],
-): 'accent' | 'primary' | 'info' {
-  if (kind === 'pack') return 'accent';
+): 'default' | 'primary' | 'info' {
+  if (kind === 'pack') return 'default';
   if (kind === 'rendered_pack') return 'info';
   return 'primary';
 }
@@ -56,6 +57,7 @@ export function ProvenanceExplorer({
   renderNodeActions,
 }: ProvenanceExplorerProps) {
   const theme = useTheme();
+  const graphViewportId = useId();
   const graphViewportRef = useRef<HTMLDivElement | null>(null);
   const layoutRef = useRef<ReturnType<typeof buildGraphLayout> | null>(null);
   const dragStateRef = useRef<{
@@ -65,7 +67,7 @@ export function ProvenanceExplorer({
     offsetX: number;
     offsetY: number;
   } | null>(null);
-  const draggedRef = useRef(false);
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(
     graph.metadata.rootNodeId,
   );
@@ -78,6 +80,7 @@ export function ProvenanceExplorer({
     offsetX: 0,
     offsetY: 0,
   });
+  const isNarrow = containerSize.width > 0 && containerSize.width < 640;
 
   const visibleGraph = useMemo(
     () => filterCollapsedGraph(graph, collapsedPackIds),
@@ -90,7 +93,10 @@ export function ProvenanceExplorer({
     graph.nodes[0] ??
     null;
   const selectedCreator = extractCreator(selectedNode);
-  const layout = useMemo(() => buildGraphLayout(visibleGraph), [visibleGraph]);
+  const layout = useMemo(
+    () => buildGraphLayout(visibleGraph, isNarrow ? 'vertical' : 'horizontal'),
+    [isNarrow, visibleGraph],
+  );
   layoutRef.current = layout;
 
   useEffect(() => {
@@ -135,14 +141,34 @@ export function ProvenanceExplorer({
   ]);
 
   useEffect(() => {
-    window.addEventListener('resize', fitViewport);
-    return () => window.removeEventListener('resize', fitViewport);
-  }, [fitViewport]);
+    const element = graphViewportRef.current;
+    if (!element) return;
+
+    const updateSize = () => {
+      const bounds = element.getBoundingClientRect();
+      setContainerSize({ width: bounds.width, height: bounds.height });
+    };
+
+    updateSize();
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', updateSize);
+      return () => window.removeEventListener('resize', updateSize);
+    }
+
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (containerSize.width > 0 && containerSize.height > 0) fitViewport();
+  }, [containerSize.height, containerSize.width, fitViewport]);
 
   useEffect(() => {
     const element = graphViewportRef.current;
     if (!element) return;
     const handleWheel = (event: WheelEvent) => {
+      if (!event.ctrlKey && !event.metaKey) return;
       event.preventDefault();
       const bounds = element.getBoundingClientRect();
       const anchorX = event.clientX - bounds.left;
@@ -192,7 +218,6 @@ export function ProvenanceExplorer({
       offsetX: viewport.offsetX,
       offsetY: viewport.offsetY,
     };
-    draggedRef.current = false;
     setIsDragging(true);
     event.currentTarget.setPointerCapture(event.pointerId);
   }
@@ -202,7 +227,6 @@ export function ProvenanceExplorer({
     if (!dragState || dragState.pointerId !== event.pointerId) return;
     const deltaX = event.clientX - dragState.originX;
     const deltaY = event.clientY - dragState.originY;
-    if (Math.abs(deltaX) > 4 || Math.abs(deltaY) > 4) draggedRef.current = true;
     setViewport((previous) => ({
       scale: previous.scale,
       offsetX: dragState.offsetX + deltaX,
@@ -218,61 +242,71 @@ export function ProvenanceExplorer({
   }
 
   function handleNodeClick(node: ProvenanceGraphNode): void {
-    if (draggedRef.current) {
-      draggedRef.current = false;
-      return;
-    }
-    if (node.kind === 'pack' && selectedNodeId === node.id) {
-      setCollapsedPackIds((previous) => toggleCollapsedPack(node.id, previous));
-      return;
-    }
     setSelectedNodeId(node.id);
   }
+
+  const selectedMetadata = selectedNode
+    ? Object.entries(selectedNode.meta)
+        .filter(([key]) => key !== 'creator')
+        .map(([key, value]) => ({
+          label: key,
+          value: summarizeValue(value),
+          mono: typeof value === 'string' && value.length > 18,
+        }))
+    : [];
+
+  const selectedProof = selectedNode
+    ? [
+        {
+          label: 'Visible ID',
+          value: summarizeNodeId(selectedNode.id),
+          mono: true,
+        },
+        {
+          label: 'Content address',
+          value: selectedNode.cid ?? 'Not recorded',
+          mono: true,
+        },
+        {
+          label: 'Included evidence',
+          value: countEdges(graph, selectedNode.id, 'includes'),
+        },
+        {
+          label: 'Superseded packs',
+          value: countEdges(graph, selectedNode.id, 'supersedes'),
+        },
+      ]
+    : [];
+  const selectedIncludedEvidenceCount = selectedNode
+    ? countEdges(graph, selectedNode.id, 'includes')
+    : 0;
 
   return (
     <Stack gap={4}>
       <div
-        aria-label="Graph summary"
         style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 2fr) repeat(3, minmax(5rem, 1fr))',
-          gap: theme.spacing[3],
           paddingBottom: theme.spacing[3],
           borderBottom: `1px solid ${theme.color.border.DEFAULT}`,
         }}
       >
-        <Stack gap={1} style={{ minWidth: 0 }}>
-          <Text variant="caption" color="muted">
-            Root
-          </Text>
-          <Text
-            variant="caption"
-            style={{
-              fontFamily: theme.font.family.mono,
-              overflowWrap: 'anywhere',
-            }}
-          >
-            {graph.metadata.rootNodeId}
-          </Text>
-        </Stack>
-        <Stack gap={1}>
-          <Text variant="caption" color="muted">
-            Nodes
-          </Text>
-          <Text weight="semibold">{visibleGraph.nodes.length}</Text>
-        </Stack>
-        <Stack gap={1}>
-          <Text variant="caption" color="muted">
-            Edges
-          </Text>
-          <Text weight="semibold">{visibleGraph.edges.length}</Text>
-        </Stack>
-        <Stack gap={1}>
-          <Text variant="caption" color="muted">
-            Depth
-          </Text>
-          <Text weight="semibold">{graph.metadata.depth}</Text>
-        </Stack>
+        <DescriptionList
+          ariaLabel="Graph summary"
+          columns={4}
+          compact
+          items={[
+            { label: 'Root', value: graph.metadata.rootNodeId, mono: true },
+            { label: 'Visible nodes', value: visibleGraph.nodes.length },
+            { label: 'Relationships', value: visibleGraph.edges.length },
+            { label: 'Requested depth', value: graph.metadata.depth },
+          ]}
+        />
+      </div>
+
+      <div role="status" aria-live="polite" aria-atomic="true">
+        <Text variant="caption" color="muted">
+          Showing {visibleGraph.nodes.length} of {graph.nodes.length} nodes and{' '}
+          {visibleGraph.edges.length} relationships.
+        </Text>
       </div>
 
       <div
@@ -296,10 +330,10 @@ export function ProvenanceExplorer({
               }}
             >
               <Stack gap={1}>
-                <Text weight="semibold">Provenance graph</Text>
+                <Text variant="h3">Provenance graph</Text>
                 <Text variant="caption" color="muted">
-                  Drag to pan, use the wheel to zoom, and select a pack twice to
-                  collapse its entries.
+                  Select a node to inspect its proof. Drag empty space to pan;
+                  use Ctrl/⌘ + wheel or the controls to zoom.
                 </Text>
               </Stack>
               <div
@@ -330,6 +364,24 @@ export function ProvenanceExplorer({
             </div>
 
             <div
+              aria-label="Graph legend"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing[2],
+                flexWrap: 'wrap',
+              }}
+            >
+              <Badge variant="default">Pack</Badge>
+              <Badge variant="primary">Entry</Badge>
+              <Badge variant="info">Rendered pack</Badge>
+              <Text variant="caption" color="muted" mono>
+                → includes · ⇢ supersedes · ⋯ rendered from
+              </Text>
+            </div>
+
+            <div
+              id={graphViewportId}
               ref={graphViewportRef}
               data-testid="graph-viewport"
               onPointerDown={handlePointerDown}
@@ -338,12 +390,12 @@ export function ProvenanceExplorer({
               onPointerLeave={handlePointerUp}
               onPointerCancel={handlePointerUp}
               style={{
-                height,
-                minHeight: '24rem',
+                height: isNarrow ? '32rem' : height,
+                minHeight: isNarrow ? '28rem' : '24rem',
                 borderRadius: theme.radius.lg,
                 overflow: 'hidden',
                 border: `1px solid ${theme.color.border.DEFAULT}`,
-                touchAction: 'none',
+                touchAction: 'pan-y',
                 cursor: isDragging ? 'grabbing' : 'grab',
               }}
             >
@@ -365,7 +417,13 @@ export function ProvenanceExplorer({
 
             <details>
               <summary
-                style={{ cursor: 'pointer', color: theme.color.text.secondary }}
+                style={{
+                  cursor: 'pointer',
+                  color: theme.color.text.secondary,
+                  minHeight: 44,
+                  paddingBlock: theme.spacing[2],
+                  boxSizing: 'border-box',
+                }}
               >
                 Accessible graph outline
               </summary>
@@ -373,20 +431,18 @@ export function ProvenanceExplorer({
                 <ul style={{ margin: 0, paddingInlineStart: theme.spacing[5] }}>
                   {visibleGraph.nodes.map((node) => (
                     <li key={node.id}>
-                      <button
-                        type="button"
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => setSelectedNodeId(node.id)}
                         style={{
-                          border: 0,
-                          padding: `${theme.spacing[1]} 0`,
-                          background: 'transparent',
-                          color: theme.color.text.DEFAULT,
+                          width: '100%',
+                          justifyContent: 'flex-start',
                           textAlign: 'left',
-                          cursor: 'pointer',
                         }}
                       >
                         {node.label} ({node.kind})
-                      </button>
+                      </Button>
                     </li>
                   ))}
                 </ul>
@@ -404,12 +460,28 @@ export function ProvenanceExplorer({
           <Card variant="outlined" padding="md">
             <Stack gap={3}>
               <Stack direction="row" gap={2} align="center" wrap>
-                <Text weight="semibold">Selected node</Text>
+                <Text variant="h3">Evidence details</Text>
                 <Badge variant={badgeVariant(selectedNode.kind)}>
-                  {selectedNode.kind}
+                  {selectedNode.kind.replace('_', ' ')}
                 </Badge>
               </Stack>
-              <Text>{selectedNode.label}</Text>
+              <Text variant="h4">{selectedNode.label}</Text>
+              <span
+                aria-live="polite"
+                style={{
+                  position: 'absolute',
+                  width: 1,
+                  height: 1,
+                  padding: 0,
+                  margin: -1,
+                  overflow: 'hidden',
+                  clip: 'rect(0, 0, 0, 0)',
+                  whiteSpace: 'nowrap',
+                  border: 0,
+                }}
+              >
+                Selected {selectedNode.kind} {selectedNode.label}
+              </span>
               {selectedCreator?.kind === 'agent' ? (
                 <Stack direction="row" gap={3} align="center" wrap>
                   <AgentIdentityMark
@@ -423,78 +495,46 @@ export function ProvenanceExplorer({
                   />
                 </Stack>
               ) : null}
-              <Text
-                variant="caption"
-                color="muted"
-                style={{
-                  fontFamily: theme.font.family.mono,
-                  overflowWrap: 'anywhere',
-                }}
-              >
-                {selectedNode.id}
-              </Text>
+              <DescriptionList
+                ariaLabel="Selected evidence summary"
+                columns={2}
+                compact
+                items={selectedProof}
+              />
               {hasHiddenAncestor(graph, selectedNode) ? (
                 <Text variant="caption" color="muted">
                   This pack replaced an earlier one that is not shown, either
                   beyond the requested depth or outside your readable diaries.
                 </Text>
               ) : null}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'minmax(7rem, 9rem) minmax(0, 1fr)',
-                  gap: theme.spacing[2],
-                }}
-              >
-                <Text variant="caption" color="muted">
-                  visible id
-                </Text>
-                <Text
-                  variant="caption"
+              <details>
+                <summary
                   style={{
-                    fontFamily: theme.font.family.mono,
-                    overflowWrap: 'anywhere',
+                    cursor: 'pointer',
+                    color: theme.color.text.secondary,
+                    minHeight: 44,
+                    paddingBlock: theme.spacing[2],
+                    boxSizing: 'border-box',
                   }}
                 >
-                  {summarizeNodeId(selectedNode.id)}
-                </Text>
-                <Text variant="caption" color="muted">
-                  includes
-                </Text>
-                <Text variant="caption">
-                  {countEdges(graph, selectedNode.id, 'includes')}
-                </Text>
-                <Text variant="caption" color="muted">
-                  supersedes
-                </Text>
-                <Text variant="caption">
-                  {countEdges(graph, selectedNode.id, 'supersedes')}
-                </Text>
-                {Object.entries(selectedNode.meta).map(([key, value]) => (
-                  <Fragment key={key}>
-                    <Text variant="caption" color="muted">
-                      {key}
-                    </Text>
-                    <Text
-                      variant="caption"
-                      style={{
-                        fontFamily:
-                          typeof value === 'string' && value.length > 18
-                            ? theme.font.family.mono
-                            : theme.font.family.sans,
-                        whiteSpace: 'pre-wrap',
-                        overflowWrap: 'anywhere',
-                      }}
-                    >
-                      {summarizeValue(value)}
-                    </Text>
-                  </Fragment>
-                ))}
-              </div>
-              {selectedNode.kind === 'pack' ? (
+                  Technical metadata
+                </summary>
+                <div style={{ paddingTop: theme.spacing[3] }}>
+                  <DescriptionList
+                    ariaLabel="Technical metadata"
+                    columns={1}
+                    compact
+                    items={selectedMetadata}
+                  />
+                </div>
+              </details>
+              {selectedNode.kind === 'pack' &&
+              selectedIncludedEvidenceCount > 0 ? (
                 <Button
                   variant="secondary"
                   size="sm"
+                  aria-expanded={!collapsedPackIds.has(selectedNode.id)}
+                  aria-controls={graphViewportId}
                   onClick={() =>
                     setCollapsedPackIds((previous) =>
                       toggleCollapsedPack(selectedNode.id, previous),
@@ -502,8 +542,8 @@ export function ProvenanceExplorer({
                   }
                 >
                   {collapsedPackIds.has(selectedNode.id)
-                    ? 'Expand entries'
-                    : 'Collapse entries'}
+                    ? `Show ${selectedIncludedEvidenceCount} included entries`
+                    : `Hide ${selectedIncludedEvidenceCount} included entries`}
                 </Button>
               ) : null}
               {renderNodeActions?.(selectedNode)}
