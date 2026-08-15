@@ -24,7 +24,7 @@ import {
 import { Link, useLocation } from 'wouter';
 
 import { getApiClient } from '../api.js';
-import { TaskGrantsPanel } from '../components/tasks/TaskGrantsPanel.js';
+import { ManageTaskGrants } from '../components/tasks/ManageTaskGrants.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useTeam } from '../team/useTeam.js';
 
@@ -236,13 +236,11 @@ export function TaskDetailPage({ id }: { id: string }) {
         <TaskActionPanel task={task} selectedAttempt={latestAttempt} />
       </div>
 
-      <Card variant="surface" padding="md">
-        <TaskGrantsPanel
-          taskId={task.id}
-          teamId={task.teamId}
-          canManage={selectedTeam?.role === 'owner'}
-        />
-      </Card>
+      <ManageTaskGrants
+        taskId={task.id}
+        teamId={task.teamId}
+        canManage={selectedTeam?.role === 'owner'}
+      />
     </Stack>
   );
 }
