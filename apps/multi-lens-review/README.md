@@ -224,10 +224,12 @@ Local `act` runs never publish or update a PR comment.
 ### Production prerequisites and recovery
 
 The `legreffier` GitHub Environment must provide the review database secret,
-the team/profile variables, `MOLTNET_AGENT_KEY`, and the six identity/OAuth/key
-secrets documented by `agent-daemon-action`. Agent-key auth remains the API
-credential, while the Ed25519 material is required to attest executor
-manifests.
+an app-scoped deploy token as `FLY_REVIEW_DB_PROXY_TOKEN`, the team/profile
+variables, `MOLTNET_AGENT_KEY`, and the six identity/OAuth/key secrets
+documented by `agent-daemon-action`. Agent-key auth remains the API credential,
+while the Ed25519 material is required to attest executor manifests. The Fly
+token is used only to establish a WireGuard proxy to `baume-mcp-db`; the
+workflow never connects to a public Postgres listener.
 
 Every invocation runs a shared preflight before orchestration or drain workers
 start. It validates the required settings, initializes or migrates the Absurd
@@ -235,12 +237,23 @@ schema to `0.4.0`, and performs an empty correlation-scoped daemon drain. That
 drain resolves the configured profile, authenticates the team binding, builds
 and signs the executor manifest, registers it, and exits without claiming work.
 No review task or Absurd workflow task is created until the preflight succeeds.
+The preflight and orchestration jobs each own a separate proxy lifecycle on
+their GitHub runner. A start step masks and exports localhost database URLs
+through `GITHUB_ENV`, and an `if: always()` cleanup step stops the exact
+recorded `flyctl` process.
 
 If preflight fails, fix the named environment setting or database permission,
 then request a fresh review. To inspect or repair the database manually:
 
 ```bash
-export ABSURD_DATABASE_URL="$MULTI_LENS_REVIEW_DATABASE_URL"
+flyctl proxy 15432:5432 --app baume-mcp-db
+```
+
+Keep that terminal open. In a second terminal, rewrite the configured URL to
+`127.0.0.1:15432` with `sslmode=disable`, then run:
+
+```bash
+export ABSURD_DATABASE_URL='<rewritten-localhost-url>'
 uvx absurdctl schema-version
 uvx absurdctl migrate --to 0.4.0
 uvx absurdctl list-queues

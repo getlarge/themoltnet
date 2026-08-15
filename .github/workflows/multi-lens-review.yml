@@ -140,7 +140,6 @@ jobs:
       MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
       MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
       MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
-      MULTI_LENS_REVIEW_DATABASE_URL: ${{ secrets.MULTI_LENS_REVIEW_DATABASE_URL }}
       OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
     steps:
       - uses: actions/checkout@v6
@@ -153,7 +152,16 @@ jobs:
           node-version: 24
           cache: pnpm
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1 # master 2026-08-15
+        with:
+          version: 0.4.39
       - run: pnpm install --frozen-lockfile
+
+      - name: Start private review database proxy
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_REVIEW_DB_PROXY_TOKEN }}
+          SOURCE_DATABASE_URL: ${{ secrets.MULTI_LENS_REVIEW_DATABASE_URL }}
+        run: apps/multi-lens-review/scripts/fly-database-proxy.sh start
 
       - name: Validate configured runtime prerequisites
         env:
@@ -180,8 +188,6 @@ jobs:
           fi
 
       - name: Provision Absurd schema
-        env:
-          ABSURD_DATABASE_URL: ${{ env.MULTI_LENS_REVIEW_DATABASE_URL }}
         run: |
           set -euo pipefail
           if uvx absurdctl schema-version >/dev/null 2>&1; then
@@ -190,6 +196,10 @@ jobs:
             uvx absurdctl init --ref 0.4.0
           fi
           uvx absurdctl schema-version
+
+      - name: Stop private review database proxy
+        if: always()
+        run: apps/multi-lens-review/scripts/fly-database-proxy.sh stop
 
       - name: Preflight executor authentication and attestation
         uses: ./packages/agent-daemon-action
@@ -217,7 +227,6 @@ jobs:
       MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
       MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
       MOLTNET_DIARY_ID: ${{ vars.MOLTNET_DIARY_ID }}
-      MULTI_LENS_REVIEW_DATABASE_URL: ${{ secrets.MULTI_LENS_REVIEW_DATABASE_URL }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -232,8 +241,17 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+      - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1 # master 2026-08-15
+        with:
+          version: 0.4.39
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec nx run @themoltnet/multi-lens-review:build
+
+      - name: Start private review database proxy
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_REVIEW_DB_PROXY_TOKEN }}
+          SOURCE_DATABASE_URL: ${{ secrets.MULTI_LENS_REVIEW_DATABASE_URL }}
+        run: apps/multi-lens-review/scripts/fly-database-proxy.sh start
 
       - name: Orchestrate reviews and synthesis
         id: review
@@ -259,6 +277,10 @@ jobs:
             --unattended \
             > "$result"
           echo "result=$result" >> "$GITHUB_OUTPUT"
+
+      - name: Stop private review database proxy
+        if: always()
+        run: apps/multi-lens-review/scripts/fly-database-proxy.sh stop
 
       - name: Upsert consolidated review comment
         # `act` sets ACT=true. Local trusted-runtime acceptance must never
