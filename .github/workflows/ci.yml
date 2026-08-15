@@ -997,13 +997,25 @@ jobs:
         run: docker compose -f docker-compose.e2e.yaml logs --tail=50
 
   e2e-agent-daemon:
-    name: E2E Tests (Agent Daemon)
+    name: E2E Tests (Agent Daemon / ${{ matrix.lane.name }})
     runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
       contents: read
       packages: read
     needs: [affected, orchestrator]
+    strategy:
+      fail-fast: false
+      matrix:
+        lane:
+          - name: Core
+            configuration: core
+            cache_key: core
+            vm_integration: true
+          - name: Live Evals
+            configuration: live-evals
+            cache_key: live-evals
+            vm_integration: false
     env:
       # Per-image: ci-<sha> if affected this run, else the moving :ci-main
       # (resolved by the affected job). The e2e stack needs all five.
@@ -1026,7 +1038,7 @@ jobs:
     steps:
       - name: Skip if Agent Daemon E2E not affected
         if: needs.affected.outputs.e2e-agent-daemon != 'true'
-        run: echo "Agent Daemon E2E project not affected; E2E Tests (Agent Daemon) not required."
+        run: echo "Agent Daemon E2E project not affected; ${{ matrix.lane.name }} lane not required."
 
       - uses: actions/checkout@v6
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
@@ -1051,7 +1063,7 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ~/.cache/moltnet/apt/archives
-          key: ${{ steps.gondolin-apt-key.outputs.prefix }}${{ github.run_id }}-${{ github.run_attempt }}
+          key: ${{ steps.gondolin-apt-key.outputs.prefix }}${{ matrix.lane.cache_key }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: ${{ steps.gondolin-apt-key.outputs.prefix }}
       - name: Install Gondolin sandbox dependencies
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
@@ -1079,8 +1091,9 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/.cache/moltnet/gondolin
-          key: ${{ runner.os }}-${{ runner.arch }}-gondolin-snapshot-v2-agent-daemon-e2e-${{ hashFiles('sandbox.json', 'libs/pi-extension/src/snapshot.ts', 'pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-gondolin-snapshot-v2-agent-daemon-e2e-${{ matrix.lane.cache_key }}-${{ hashFiles('sandbox.json', 'libs/pi-extension/src/snapshot.ts', 'pnpm-lock.yaml') }}
           restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-gondolin-snapshot-v2-agent-daemon-e2e-${{ matrix.lane.cache_key }}-
             ${{ runner.os }}-${{ runner.arch }}-gondolin-snapshot-v2-agent-daemon-e2e-
       - name: Log in to GHCR
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
@@ -1095,13 +1108,13 @@ jobs:
           COMPOSE_DISABLE_ENV_FILE: true
         run: docker compose -f docker-compose.e2e.yaml up -d rest-api
       - name: Run pi-runtime VM integration tests
-        if: needs.affected.outputs.e2e-agent-daemon == 'true'
+        if: needs.affected.outputs.e2e-agent-daemon == 'true' && matrix.lane.vm_integration
         env:
           MOLTNET_PI_VM_INTEGRATION: '1'
         run: pnpm exec nx run @themoltnet/pi-runtime:test-ci--src/vm-manager.integration.test.ts
-      - name: Run agent-daemon E2E tests
+      - name: Run agent-daemon ${{ matrix.lane.name }} E2E tests
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
-        run: pnpm exec nx run @themoltnet/agent-daemon-e2e:e2e
+        run: pnpm exec nx run @themoltnet/agent-daemon-e2e:e2e --configuration=${{ matrix.lane.configuration }}
       - name: Docker Compose logs
         if: failure() && needs.affected.outputs.e2e-agent-daemon == 'true'
         run: docker compose -f docker-compose.e2e.yaml logs --tail=50
