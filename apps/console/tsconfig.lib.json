@@ -35,7 +35,7 @@
       "path": "../../libs/signer-api-client/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/models/tsconfig.lib.json"
+      "path": "../../libs/provenance-ui/tsconfig.lib.json"
     },
     {
       "path": "../../libs/diary-ui/tsconfig.lib.json"
@@ -53,10 +53,13 @@
       "path": "../../libs/bootstrap/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/design-system/tsconfig.lib.json"
+      "path": "../../libs/models/tsconfig.lib.json"
     },
     {
       "path": "../../libs/task-ui/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/design-system/tsconfig.lib.json"
     },
     {
       "path": "../../libs/api-client/tsconfig.lib.json"

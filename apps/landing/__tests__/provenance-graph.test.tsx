@@ -1,3 +1,4 @@
+import { buildGraphLayout } from '@moltnet/provenance-ui';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MoltThemeProvider } from '@themoltnet/design-system';
 import { describe, expect, it } from 'vitest';
@@ -5,7 +6,6 @@ import { Router } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
 
 import { App } from '../src/App';
-import { buildGraphLayout } from '../src/provenance/graph-layout';
 import { parseProvenanceGraph } from '../src/provenance/parse-graph';
 import { sampleProvenanceGraph } from './fixtures/sample-provenance-graph';
 
@@ -67,14 +67,14 @@ describe('provenance viewer route', () => {
       </MoltThemeProvider>,
     );
 
-    expect(screen.getByText('Provenance Graph Viewer')).toBeInTheDocument();
-    expect(screen.getByText('Graph Surface')).toBeInTheDocument();
-    expect(screen.getByText('Fit View')).toBeInTheDocument();
+    expect(screen.getByText('Provenance explorer')).toBeInTheDocument();
     fireEvent.change(screen.getByRole('textbox'), {
       target: {
         value: JSON.stringify(sampleProvenanceGraph, null, 2),
       },
     });
+    expect(screen.getByText('Provenance graph')).toBeInTheDocument();
+    expect(screen.getByText('Fit view')).toBeInTheDocument();
     expect(screen.getByText('C212-DAFA-27C5-6C57')).toBeInTheDocument();
     expect(screen.getAllByText('compile pack v2').length).toBeGreaterThan(0);
   });
@@ -103,7 +103,7 @@ describe('provenance viewer route', () => {
 
     expect(screen.queryByText('MCP server notes')).not.toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Expand Entries' }),
+      screen.getByRole('button', { name: 'Expand entries' }),
     ).toBeInTheDocument();
   });
 
@@ -135,7 +135,7 @@ describe('provenance viewer route', () => {
 
     expect(screen.queryByText('MCP server notes')).not.toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Expand Entries' }),
+      screen.getByRole('button', { name: 'Expand entries' }),
     ).toBeInTheDocument();
   });
 });

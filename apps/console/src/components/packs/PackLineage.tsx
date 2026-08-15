@@ -1,59 +1,63 @@
-import {
-  Button,
-  Card,
-  InlineNotice,
-  Stack,
-  Text,
-} from '@themoltnet/design-system';
+import type { ProvenanceGraphNode } from '@moltnet/models';
+import { ProvenanceExplorer } from '@moltnet/provenance-ui';
+import { Button, InlineNotice, Stack, Text } from '@themoltnet/design-system';
+import { Link } from 'wouter';
 
 import { getApiErrorDetail } from '../../api-error.js';
+import { describeDecay } from '../../packs/decay.js';
 import { usePackProvenance } from '../../packs/hooks.js';
-import { buildLineage } from '../../packs/lineage.js';
-import { LineageChain } from './LineageChain.js';
+import { PinControl } from './PinControl.js';
 
 export interface PackLineageProps {
   packId: string;
   now: Date;
-  /** Builds the destination for another pack in the chain. */
   hrefFor?: (packId: string) => string;
 }
 
-/**
- * Where a pack came from, and what replaced it.
- *
- * The panel exists to support a retention decision rather than to draw a
- * diagram: every context pack in the chain carries its own pin control, so an
- * operator can act on the ancestors a pack replaced without visiting each one.
- *
- * Always a vertical chain: the provenance endpoint walks one `supersedesPackId`
- * pointer upward per pack and never queries descendants, so lineage cannot
- * branch. See `LineageForm` for why there is no graph form.
- */
 export function PackLineage({ packId, now, hrefFor }: PackLineageProps) {
   const provenance = usePackProvenance(packId);
-  const lineage = provenance.data ? buildLineage(provenance.data) : null;
+
+  function renderNodeActions(node: ProvenanceGraphNode) {
+    if (node.kind !== 'pack') return null;
+    return (
+      <Stack direction="row" gap={3} align="center" wrap>
+        <PinControl
+          packId={node.meta.packId}
+          state={describeDecay(
+            { pinned: node.meta.pinned, expiresAt: node.meta.expiresAt },
+            now,
+          )}
+        />
+        {hrefFor && node.meta.packId !== packId ? (
+          <Link href={hrefFor(node.meta.packId)}>Open this pack</Link>
+        ) : null}
+      </Stack>
+    );
+  }
 
   return (
-    <Card variant="outlined" padding="md">
+    <section aria-labelledby={`pack-provenance-${packId}`}>
       <Stack gap={4}>
         <Stack gap={1}>
-          <Text weight="semibold">Lineage</Text>
+          <Text id={`pack-provenance-${packId}`} weight="semibold">
+            Provenance
+          </Text>
           <Text variant="caption" color="muted">
-            Packs are replaced rather than edited. This is the chain this pack
-            belongs to, and what each version costs to keep.
+            The same graph available in the public explorer, with authenticated
+            retention controls for packs you can manage.
           </Text>
         </Stack>
 
         {provenance.isLoading ? (
           <div role="status">
-            <Text color="muted">Loading lineage…</Text>
+            <Text color="muted">Loading provenance…</Text>
           </div>
         ) : null}
 
         {provenance.isError ? (
           <InlineNotice
             tone="error"
-            title="Could not load lineage"
+            title="Could not load provenance"
             action={
               <Button
                 variant="secondary"
@@ -72,17 +76,14 @@ export function PackLineage({ packId, now, hrefFor }: PackLineageProps) {
           </InlineNotice>
         ) : null}
 
-        {lineage && lineage.form === 'none' ? (
-          <Text color="muted">
-            Nothing has replaced this pack, and it replaced nothing. A new
-            version appears here when a `curate_pack` run supersedes it.
-          </Text>
-        ) : null}
-
-        {lineage && lineage.form !== 'none' ? (
-          <LineageChain lineage={lineage} now={now} hrefFor={hrefFor} />
+        {provenance.data ? (
+          <ProvenanceExplorer
+            graph={provenance.data}
+            height="32rem"
+            renderNodeActions={renderNodeActions}
+          />
         ) : null}
       </Stack>
-    </Card>
+    </section>
   );
 }

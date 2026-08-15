@@ -186,6 +186,9 @@
       "path": "libs/task-ui"
     },
     {
+      "path": "libs/provenance-ui"
+    },
+    {
       "path": "libs/task-workflows"
     },
     {

@@ -2,9 +2,9 @@ import type { ProvenanceGraph, ProvenanceGraphNode } from '@moltnet/models';
 import { AgentIdentityMark, useTheme } from '@themoltnet/design-system';
 import type { KeyboardEvent } from 'react';
 
-import type { GraphLayout } from './graph-layout';
-import type { GraphViewportState } from './graph-viewport';
-import { extractCreator, splitIntoLines } from './viewer-utils';
+import type { GraphLayout } from './graph-layout.js';
+import { extractCreator, splitIntoLines } from './graph-utils.js';
+import type { GraphViewportState } from './graph-viewport.js';
 
 const NODE_WIDTH = 280;
 const NODE_HEIGHT = 116;
@@ -18,22 +18,22 @@ type NodeKind = ProvenanceGraphNode['kind'];
 type EdgeKind = 'includes' | 'supersedes' | 'rendered_from';
 type ThemeColors = ReturnType<typeof useTheme>['color'];
 
-const nodeColorScale: Record<NodeKind, (c: ThemeColors) => string> = {
-  pack: (c) => c.accent.muted,
-  entry: (c) => c.primary.muted,
-  rendered_pack: (c) => c.info.muted,
+const nodeColorScale: Record<NodeKind, (colors: ThemeColors) => string> = {
+  pack: (colors) => colors.accent.muted,
+  entry: (colors) => colors.primary.muted,
+  rendered_pack: (colors) => colors.info.muted,
 };
 
-const nodeStrokeScale: Record<NodeKind, (c: ThemeColors) => string> = {
-  pack: (c) => c.accent.DEFAULT,
-  entry: (c) => c.primary.DEFAULT,
-  rendered_pack: (c) => c.info.DEFAULT,
+const nodeStrokeScale: Record<NodeKind, (colors: ThemeColors) => string> = {
+  pack: (colors) => colors.accent.DEFAULT,
+  entry: (colors) => colors.primary.DEFAULT,
+  rendered_pack: (colors) => colors.info.DEFAULT,
 };
 
-const edgeColorScale: Record<EdgeKind, (c: ThemeColors) => string> = {
-  includes: (c) => c.primary.DEFAULT,
-  supersedes: (c) => c.accent.DEFAULT,
-  rendered_from: (c) => c.info.DEFAULT,
+const edgeColorScale: Record<EdgeKind, (colors: ThemeColors) => string> = {
+  includes: (colors) => colors.primary.DEFAULT,
+  supersedes: (colors) => colors.accent.DEFAULT,
+  rendered_from: (colors) => colors.info.DEFAULT,
 };
 
 const edgeDash: Record<EdgeKind, string | undefined> = {
@@ -42,25 +42,7 @@ const edgeDash: Record<EdgeKind, string | undefined> = {
   rendered_from: '4 4',
 };
 
-function nodeFill(theme: ReturnType<typeof useTheme>, kind: NodeKind): string {
-  return nodeColorScale[kind](theme.color);
-}
-
-function nodeStroke(
-  theme: ReturnType<typeof useTheme>,
-  kind: NodeKind,
-): string {
-  return nodeStrokeScale[kind](theme.color);
-}
-
-function edgeStroke(
-  theme: ReturnType<typeof useTheme>,
-  kind: EdgeKind,
-): string {
-  return edgeColorScale[kind](theme.color);
-}
-
-interface ProvenanceGraphSurfaceProps {
+export interface ProvenanceGraphSurfaceProps {
   collapsedPackIds: Set<string>;
   containerHeight: number;
   containerWidth: number;
@@ -112,7 +94,6 @@ export function ProvenanceGraphSurface({
           const from = layout.positions[edge.from];
           const to = layout.positions[edge.to];
           if (!from || !to) return null;
-
           const x1 = from.x + NODE_WIDTH;
           const y1 = from.y + NODE_HEIGHT / 2;
           const x2 = to.x;
@@ -124,7 +105,7 @@ export function ProvenanceGraphSurface({
               <path
                 d={`M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`}
                 fill="none"
-                stroke={edgeStroke(theme, edge.kind)}
+                stroke={edgeColorScale[edge.kind](theme.color)}
                 strokeDasharray={edgeDash[edge.kind]}
                 strokeOpacity={0.8}
                 strokeWidth={2.5}
@@ -144,15 +125,16 @@ export function ProvenanceGraphSurface({
             </g>
           );
         })}
-        {graph.nodes.map((node) => {
-          const currentPosition = layout.positions[node.id];
-          if (!currentPosition) return null;
 
+        {graph.nodes.map((node) => {
+          const position = layout.positions[node.id];
+          if (!position) return null;
           const selected = node.id === selectedNodeId;
           const collapsed =
             node.kind === 'pack' && collapsedPackIds.has(node.id);
-          const labelLines = splitIntoLines(node.label, NODE_LABEL_MAX);
           const creator = extractCreator(node);
+          const labelLines = splitIntoLines(node.label, NODE_LABEL_MAX);
+          const clipId = `clip-${node.id.replace(/[^a-zA-Z0-9-]/g, '_')}`;
 
           return (
             <g
@@ -168,21 +150,21 @@ export function ProvenanceGraphSurface({
               style={{ cursor: 'pointer' }}
             >
               <rect
-                x={currentPosition.x}
-                y={currentPosition.y}
+                x={position.x}
+                y={position.y}
                 width={NODE_WIDTH}
                 height={NODE_HEIGHT}
-                rx={24}
-                fill={nodeFill(theme, node.kind)}
-                stroke={nodeStroke(theme, node.kind)}
+                rx={16}
+                fill={nodeColorScale[node.kind](theme.color)}
+                stroke={nodeStrokeScale[node.kind](theme.color)}
                 strokeOpacity={selected ? 1 : 0.7}
                 strokeWidth={selected ? 3 : 2}
               />
               {node.kind === 'pack' ? (
                 <>
                   <rect
-                    x={currentPosition.x + NODE_WIDTH - 44}
-                    y={currentPosition.y + 14}
+                    x={position.x + NODE_WIDTH - 44}
+                    y={position.y + 14}
                     width={28}
                     height={28}
                     rx={14}
@@ -190,8 +172,8 @@ export function ProvenanceGraphSurface({
                     stroke={theme.color.border.DEFAULT}
                   />
                   <text
-                    x={currentPosition.x + NODE_WIDTH - 30}
-                    y={currentPosition.y + 33}
+                    x={position.x + NODE_WIDTH - 30}
+                    y={position.y + 33}
                     fill={theme.color.text.DEFAULT}
                     fontFamily={theme.font.family.mono}
                     fontSize={18}
@@ -201,10 +183,10 @@ export function ProvenanceGraphSurface({
                   </text>
                 </>
               ) : null}
-              {creator && creator.kind === 'agent' ? (
+              {creator?.kind === 'agent' ? (
                 <foreignObject
-                  x={currentPosition.x + 16}
-                  y={currentPosition.y + 12}
+                  x={position.x + 16}
+                  y={position.y + 12}
                   width={32}
                   height={32}
                 >
@@ -216,14 +198,13 @@ export function ProvenanceGraphSurface({
                   </div>
                 </foreignObject>
               ) : null}
-              {/* Clip label text to prevent overflow */}
-              <clipPath id={`clip-${node.id.replace(/[^a-zA-Z0-9-]/g, '_')}`}>
+              <clipPath id={clipId}>
                 <rect
                   x={
-                    currentPosition.x +
+                    position.x +
                     (creator ? LABEL_X_WITH_AVATAR : LABEL_X_NO_AVATAR)
                   }
-                  y={currentPosition.y + 8}
+                  y={position.y + 8}
                   width={
                     creator
                       ? LABEL_MAX_WIDTH_WITH_AVATAR
@@ -232,17 +213,15 @@ export function ProvenanceGraphSurface({
                   height={52}
                 />
               </clipPath>
-              <g
-                clipPath={`url(#clip-${node.id.replace(/[^a-zA-Z0-9-]/g, '_')})`}
-              >
+              <g clipPath={`url(#${clipId})`}>
                 {labelLines.map((line, index) => (
                   <text
                     key={`${node.id}-${index}`}
                     x={
-                      currentPosition.x +
+                      position.x +
                       (creator ? LABEL_X_WITH_AVATAR : LABEL_X_NO_AVATAR)
                     }
-                    y={currentPosition.y + 32 + index * 20}
+                    y={position.y + 32 + index * 20}
                     fill={theme.color.text.DEFAULT}
                     fontFamily={theme.font.family.sans}
                     fontSize={15}
@@ -253,20 +232,18 @@ export function ProvenanceGraphSurface({
                 ))}
               </g>
               <text
-                x={currentPosition.x + 18}
-                y={currentPosition.y + 76}
+                x={position.x + 18}
+                y={position.y + 76}
                 fill={theme.color.text.secondary}
                 fontFamily={theme.font.family.mono}
                 fontSize={12}
               >
                 {node.kind}
-                {node.kind === 'pack' && 'packType' in node.meta
-                  ? ` · ${node.meta.packType}`
-                  : ''}
+                {node.kind === 'pack' ? ` · ${node.meta.packType}` : ''}
               </text>
               <text
-                x={currentPosition.x + 18}
-                y={currentPosition.y + 96}
+                x={position.x + 18}
+                y={position.y + 96}
                 fill={theme.color.text.muted}
                 fontFamily={theme.font.family.mono}
                 fontSize={11}

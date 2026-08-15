@@ -17,16 +17,12 @@ const ROW_HEIGHT = 184;
 const PADDING_X = 96;
 const PADDING_Y = 96;
 
-function compareIds(a: string, b: string): number {
-  return a.localeCompare(b);
-}
-
 export function buildGraphLayout(graph: ProvenanceGraph): GraphLayout {
   const rootId = graph.metadata.rootNodeId;
   const nodeMap = new Map(graph.nodes.map((node) => [node.id, node]));
   const levels = new Map<string, number>();
-
   const queue: string[] = [];
+
   if (nodeMap.has(rootId)) {
     queue.push(rootId);
     levels.set(rootId, 0);
@@ -39,11 +35,7 @@ export function buildGraphLayout(graph: ProvenanceGraph): GraphLayout {
 
     for (const edge of graph.edges) {
       if (edge.from !== current) continue;
-
-      // Sibling edges (supersedes, rendered_from) stay on the same tier;
-      // composition edges (includes) drop two tiers to separate visually.
-      const sametier = edge.kind !== 'includes';
-      const nextLevel = currentLevel + (sametier ? 1 : 2);
+      const nextLevel = currentLevel + (edge.kind === 'includes' ? 2 : 1);
       const previous = levels.get(edge.to);
       if (previous === undefined || nextLevel < previous) {
         levels.set(edge.to, nextLevel);
@@ -53,21 +45,15 @@ export function buildGraphLayout(graph: ProvenanceGraph): GraphLayout {
   }
 
   for (const node of graph.nodes) {
-    if (!levels.has(node.id)) {
-      const fallback =
-        node.kind === 'pack'
-          ? 0
-          : (levels.size > 0 ? Math.max(...levels.values()) : 0) + 1;
-      levels.set(node.id, fallback);
-    }
+    if (levels.has(node.id)) continue;
+    const lastLevel = levels.size > 0 ? Math.max(...levels.values()) : 0;
+    levels.set(node.id, node.kind === 'pack' ? 0 : lastLevel + 1);
   }
 
   const groups = new Map<number, string[]>();
   for (const node of graph.nodes) {
     const level = levels.get(node.id) ?? 0;
-    const current = groups.get(level) ?? [];
-    current.push(node.id);
-    groups.set(level, current);
+    groups.set(level, [...(groups.get(level) ?? []), node.id]);
   }
 
   const positions: Record<string, PositionedNode> = {};
@@ -81,17 +67,13 @@ export function buildGraphLayout(graph: ProvenanceGraph): GraphLayout {
     ids.sort((left, right) => {
       const leftNode = nodeMap.get(left);
       const rightNode = nodeMap.get(right);
-      if (!leftNode || !rightNode) {
-        return compareIds(left, right);
+      if (leftNode?.kind !== rightNode?.kind) {
+        return leftNode?.kind === 'pack' ? -1 : 1;
       }
-      if (leftNode.kind !== rightNode.kind) {
-        return leftNode.kind === 'pack' ? -1 : 1;
-      }
-      return compareIds(left, right);
+      return left.localeCompare(right);
     });
 
     maxRows = Math.max(maxRows, ids.length);
-
     ids.forEach((id, row) => {
       positions[id] = {
         id,

@@ -140,7 +140,7 @@ describe('PackDetailPage', () => {
     expect(screen.getByText('bafyreiexamplecid')).toBeInTheDocument();
   });
 
-  it('mounts the lineage panel for the pack being viewed', () => {
+  it('mounts the shared provenance explorer for the pack being viewed', () => {
     mocks.pack = { isLoading: false, isError: false, data: pack() };
     mocks.provenance = {
       isLoading: false,
@@ -149,16 +149,14 @@ describe('PackDetailPage', () => {
     };
     renderPage();
 
-    expect(screen.getByText('Lineage')).toBeInTheDocument();
-    expect(
-      screen.getByText(/Nothing has replaced this pack/),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Provenance')).toBeInTheDocument();
+    expect(screen.getByText('Provenance graph')).toBeInTheDocument();
   });
 
-  it('does not render lineage before the pack itself has loaded', () => {
+  it('does not render provenance before the pack itself has loaded', () => {
     mocks.pack = { isLoading: true, isError: false, data: undefined };
     renderPage();
 
-    expect(screen.queryByText('Lineage')).not.toBeInTheDocument();
+    expect(screen.queryByText('Provenance')).not.toBeInTheDocument();
   });
 });

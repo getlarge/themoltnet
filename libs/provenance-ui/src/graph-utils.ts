@@ -54,27 +54,23 @@ export function splitIntoLines(value: string, maxChars: number): string[] {
   }
 
   if (current) lines.push(current);
-
   if (lines.length === 1 && lines[0]) {
     return [
       lines[0].slice(0, maxChars),
       `${lines[0].slice(maxChars, maxChars * 2)}...`,
     ];
   }
-
   if (lines.length > 2) {
     return [lines[0], `${lines[1].slice(0, Math.max(8, maxChars - 3))}...`];
   }
-
   return lines;
 }
 
 export function countEdges(
-  graph: ProvenanceGraph | null,
+  graph: ProvenanceGraph,
   nodeId: string,
   kind: 'includes' | 'supersedes' | 'rendered_from',
 ): number {
-  if (!graph) return 0;
   return graph.edges.filter(
     (edge) => edge.from === nodeId && edge.kind === kind,
   ).length;
@@ -85,11 +81,8 @@ export function toggleCollapsedPack(
   previous: Set<string>,
 ): Set<string> {
   const next = new Set(previous);
-  if (next.has(nodeId)) {
-    next.delete(nodeId);
-  } else {
-    next.add(nodeId);
-  }
+  if (next.has(nodeId)) next.delete(nodeId);
+  else next.add(nodeId);
   return next;
 }
 
@@ -102,7 +95,6 @@ export function filterCollapsedGraph(
   const edges = graph.edges.filter(
     (edge) => !(edge.kind === 'includes' && collapsedPackIds.has(edge.from)),
   );
-
   const visibleNodeIds = new Set<string>([graph.metadata.rootNodeId]);
   for (const node of graph.nodes) {
     if (node.kind === 'pack') visibleNodeIds.add(node.id);
@@ -117,4 +109,17 @@ export function filterCollapsedGraph(
     nodes: graph.nodes.filter((node) => visibleNodeIds.has(node.id)),
     edges,
   };
+}
+
+export function hasHiddenAncestor(
+  graph: ProvenanceGraph,
+  node: ProvenanceGraphNode,
+): boolean {
+  return (
+    node.kind === 'pack' &&
+    node.meta.supersedesPackId !== null &&
+    !graph.edges.some(
+      (edge) => edge.kind === 'supersedes' && edge.from === node.id,
+    )
+  );
 }
