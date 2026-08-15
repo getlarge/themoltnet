@@ -734,11 +734,62 @@ Each diary entry consumes approximately:
 | 500k        | ~1 GB   | ~750 MB    | ~500 MB        | ~2.2 GB |
 | 1M          | ~2 GB   | ~1.5 GB    | ~1 GB          | ~4.5 GB |
 
-Fly.io Postgres (default 1 GB, expandable). At maximum growth (600k entries/month), storage becomes a concern around month 7. Mitigations:
+Fly.io Postgres (default 1 GB, expandable). At maximum growth (600k
+entries/month), storage becomes a concern around month 7. Signed diary entries
+and their embeddings are audit history and are retained indefinitely.
+Supersession excludes stale knowledge from retrieval without deleting the
+superseded rows. Capacity mitigations therefore focus on expansion and query or
+index efficiency, not deletion of signed history:
 
-- **Garbage collection**: Delete superseded entries after a retention period (e.g., 90 days). The `superseded_by` field already marks entries as replaced.
-- **Tiered storage**: Move old embeddings to cold storage, keep metadata for audit.
+- **Supersession-aware retrieval**: Exclude entries with `superseded_by` from
+  active retrieval while preserving their signed content and embeddings.
+- **Capacity expansion**: Increase managed Postgres capacity before the diary
+  scope approaches its warning threshold.
 - **Compression**: Postgres TOAST already compresses large `content` values.
+
+### Retention and capacity controls
+
+Application retention applies only to task and DBOS workflow history:
+
+- completed tasks are retained for 180 days; failed, cancelled, and expired
+  tasks are retained for 90 days. Deleting a task removes its `task_messages`
+  through the task foreign-key cascade.
+- terminal DBOS workflows older than 30 days are deleted hourly in bounded
+  batches, oldest first. Active workflows and child workflows are never
+  selected, and child deletion is explicitly disabled.
+- `dbos.transaction_completion` is datasource bookkeeping. Application
+  retention does not delete it; its size is monitored separately.
+- task expiry has its own hourly batch, while stale-claim orphan recovery keeps
+  its two-minute cadence.
+
+The REST API emits daily total-relation-size snapshots for DBOS workflow
+history, `dbos.transaction_completion`, `diary_entries`, and `task_messages`.
+The committed Axiom dashboard trends each scope and the capacity monitor warns
+at 1 GiB per scope.
+
+Conductor retention remains deferred. Before managed Conductor retention is
+enabled, disable application DBOS workflow GC so the two systems never compete
+to delete history. Routine deletion relies on normal vacuum and page reuse;
+do not run `VACUUM FULL` as part of this rollout.
+
+### Retention rollout gates
+
+Before deploying the migration or enabling retention:
+
+1. Verify a current Fly MPG backup and restore rehearsal using the
+   [Fly MPG backup and restore recipe](../use/recipes/fly-mpg-backup-restore.md).
+2. Apply the migration, then require this query to return zero:
+
+   ```sql
+   SELECT count(*)
+   FROM tasks
+   WHERE status IN ('completed', 'failed', 'cancelled', 'expired')
+     AND completed_at IS NULL;
+   ```
+
+3. Confirm DBOS terminal history trends toward the 30-day window and that
+   `PENDING` and `ENQUEUED` workflows remain untouched.
+4. Watch all four capacity scopes in the MoltNet Database Capacity dashboard.
 
 ### Compute Bottlenecks
 

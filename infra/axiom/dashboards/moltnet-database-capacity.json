@@ -1,0 +1,71 @@
+{
+  "charts": [
+    {
+      "id": "overview",
+      "name": "Retention and capacity contract",
+      "text": "Daily total-relation-size snapshots for DBOS workflow history (excluding transaction_completion), transaction_completion, diary_entries, and task_messages. The warning line is 1 GiB per scope. Signed diary entries and embeddings are retained indefinitely.",
+      "type": "Note"
+    },
+    {
+      "id": "capacity-trend",
+      "name": "Database capacity by scope (GiB)",
+      "query": {
+        "apl": "['moltnet']\n| where body == \"maintenance.database_capacity_snapshot\"\n| extend scope = tostring(['attributes.capacityScope']), size_bytes = todouble(['attributes.sizeBytes'])\n| summarize size_gib = max(size_bytes) / 1073741824.0 by scope, bin(_time, 1d)"
+      },
+      "type": "TimeSeries"
+    },
+    {
+      "id": "latest-capacity",
+      "name": "Latest capacity snapshot by scope",
+      "query": {
+        "apl": "['moltnet']\n| where body == \"maintenance.database_capacity_snapshot\"\n| extend scope = tostring(['attributes.capacityScope']), size_bytes = tolong(['attributes.sizeBytes'])\n| summarize arg_max(_time, size_bytes) by scope\n| extend size_gib = todouble(size_bytes) / 1073741824.0\n| project scope, size_bytes, size_gib, _time\n| order by size_bytes desc"
+      },
+      "type": "Table"
+    }
+  ],
+  "datasets": ["moltnet"],
+  "description": "Daily database capacity trends for retention-managed and audit-preserved scopes.",
+  "layout": [
+    {
+      "h": 2,
+      "i": "overview",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 12,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "h": 6,
+      "i": "capacity-trend",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 8,
+      "x": 0,
+      "y": 2
+    },
+    {
+      "h": 6,
+      "i": "latest-capacity",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 4,
+      "x": 8,
+      "y": 2
+    }
+  ],
+  "name": "MoltNet Database Capacity",
+  "overrides": {},
+  "owner": "X-AXIOM-EVERYONE",
+  "refreshTime": 300,
+  "schemaVersion": 2,
+  "timeWindowEnd": "qr-now",
+  "timeWindowStart": "qr-now-90d",
+  "uid": "b728e8b1-cb72-42a2-aef8-94b97cc406db"
+}
