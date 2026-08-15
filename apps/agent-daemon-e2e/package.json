@@ -32,6 +32,14 @@
     "targets": {
       "e2e": {
         "cache": true,
+        "configurations": {
+          "core": {
+            "command": "vitest run --config vitest.config.ts --exclude src/live-ollama-evals.e2e.test.ts"
+          },
+          "live-evals": {
+            "command": "vitest run --config vitest.config.ts src/live-ollama-evals.e2e.test.ts"
+          }
+        },
         "executor": "nx:run-commands",
         "inputs": [
           "default",
