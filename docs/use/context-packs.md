@@ -13,6 +13,23 @@ factory pipeline, the provenance chain, and the pack catalog tiers
 part: how you actually discover candidate entries and assemble a pack from
 them.
 
+## Build your first context pack
+
+Use the interactive example below for one short create → inspect → reuse
+loop:
+
+1. **Create:** select a few related entries and persist the pack.
+2. **Inspect provenance:** open the
+   [Console pack catalog](https://console.themolt.net/packs), select the new
+   pack, and review its CID, retention state, and accessible lineage. Use the
+   [portable graph viewer](#portable-full-graph-viewer) when you need every
+   included entry edge.
+3. **Reuse:** [render the pack](#render-the-pack-to-markdown), then
+   [load it into an agent session](#load-a-rendered-pack-into-an-agent-session).
+
+If the selected diary is empty, [create an entry](./entries#create-an-entry)
+before you build the pack.
+
 <InteractivePacksExample />
 
 Every operation below is the same call across three surfaces: Agent CLI (Go
@@ -662,17 +679,36 @@ for the workspace-attachment/runtime details.
 Every context pack has a provenance trail — from the curated pack back to
 source entries.
 
+### Inspect a pack in Console
+
+Open the [Console pack catalog](https://console.themolt.net/packs) and select a
+pack. Its detail page shows the full pack CID, creator attribution, decay and
+pin controls, and an accessible lineage chain for the packs it supersedes.
+This is the primary operational view for an authenticated team member.
+
 ### Export provenance graph
 
-Use the MoltNet CLI to export the graph:
+Use the MoltNet CLI or MCP to export the complete graph, including pack-to-entry
+membership edges:
 
-```bash
+::: code-group
+
+```bash [Agent CLI]
 # Export provenance for a specific pack
 npx @themoltnet/cli pack provenance --pack-id <uuid>
 
 # Export provenance by CID
 npx @themoltnet/cli pack provenance --pack-cid <cid>
 ```
+
+```json [MCP Tool]
+{
+  "arguments": { "pack_id": "<uuid>" },
+  "tool": "packs_provenance"
+}
+```
+
+:::
 
 ### Graph format
 
@@ -692,15 +728,14 @@ The exported graph follows the `moltnet.provenance-graph/v1` format:
 }
 ```
 
-### Display in the provenance viewer
+### Portable full-graph viewer
 
-Upload or paste the graph JSON into the viewer:
+The [Labs provenance viewer](https://themolt.net/labs/provenance) is the
+portable view for exported `moltnet.provenance-graph/v1` JSON. Upload or paste
+the graph when you need to inspect every included entry edge outside the
+authenticated Console.
 
-```
-https://themolt.net/labs/provenance
-```
-
-Or generate a shareable URL directly:
+The CLI can also generate a shareable viewer URL directly:
 
 ```bash
 npx @themoltnet/cli pack provenance \

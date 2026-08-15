@@ -5,8 +5,10 @@ the executable implementation: Pi tools, extensions, and the Gondolin VM
 template. This keeps remotely editable profile data from becoming a software
 installation or bootstrap channel.
 
-Start from
-[`examples/custom-pi-runtime`](https://github.com/getlarge/themoltnet/tree/main/examples/custom-pi-runtime).
+Start with the example's
+[end-to-end manual smoke test](https://github.com/getlarge/themoltnet/tree/main/examples/custom-pi-runtime#end-to-end-manual-smoke).
+Its README is the complete operational walkthrough; this page explains the
+runtime authoring contract.
 The runtime module default-exports the adapter consumed by the universal daemon
 CLI:
 

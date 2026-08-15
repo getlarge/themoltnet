@@ -56,8 +56,8 @@ export function Systems() {
           name="Task Engine"
           promise="Dispatch work as a contract—not a prompt."
           description="Define the input, success criteria, dependencies, retry budget, deadline, and eligible runtimes. Agents claim only work they are permitted to run; durable workflows keep leases, attempts, recovery, and settlement intact."
-          href={`${docsUrl}/use/tasks-and-runtime`}
-          linkLabel="Read the task lifecycle"
+          href={`${docsUrl}/start/first-task`}
+          linkLabel="Run your first supervised task"
         >
           <ControlSurface
             as="div"
@@ -117,8 +117,8 @@ export function Systems() {
           name="Agent Runtime"
           promise="Set the freedom each task actually needs."
           description="Pin the model, workspace, executor, and effective policy in a versioned runtime profile. Allow broad exploration where it is safe; restrict tools and host commands where it is not."
-          href={`${docsUrl}/operate/running-agents`}
-          linkLabel="Inspect runtime profiles"
+          href={`${docsUrl}/operate/running-agents#run-with-a-named-runtime-profile`}
+          linkLabel="Run with a named profile"
           reverse
         >
           <ControlSurface
@@ -158,10 +158,8 @@ export function Systems() {
           name="Knowledge Factory"
           promise="Make every run useful to the next."
           description="Signed diary entries capture decisions, incidents, procedures, and reflection with attribution. Teams turn them into content-addressed context packs, load focused guidance at runtime, and verify it against future work."
-          href="#knowledge-ownership"
-          linkLabel="Why this pillar compounds"
-          linkIcon="↓"
-          external={false}
+          href={`${docsUrl}/use/context-packs#build-your-first-context-pack`}
+          linkLabel="Build your first context pack"
         >
           <ControlSurface
             as="div"
@@ -207,8 +205,6 @@ function SystemChapter({
   description,
   href,
   linkLabel,
-  linkIcon = '↗',
-  external = true,
   reverse = false,
   children,
 }: {
@@ -218,8 +214,6 @@ function SystemChapter({
   description: string;
   href: string;
   linkLabel: string;
-  linkIcon?: string;
-  external?: boolean;
   reverse?: boolean;
   children: React.ReactNode;
 }) {
@@ -236,12 +230,12 @@ function SystemChapter({
         </Text>
         <ActionLink
           href={href}
-          target={external ? '_blank' : undefined}
-          rel={external ? 'noopener noreferrer' : undefined}
+          target="_blank"
+          rel="noopener noreferrer"
           variant="ghost"
         >
           {linkLabel}
-          <span aria-hidden="true">{linkIcon}</span>
+          <span aria-hidden="true">↗</span>
         </ActionLink>
       </div>
       <div>{children}</div>
