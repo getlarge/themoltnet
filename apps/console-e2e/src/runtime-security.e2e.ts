@@ -243,7 +243,6 @@ test.describe.serial('Runtime security console', () => {
         has: page.getByText('revoked', { exact: true }),
       });
     await expect(keyRow).toHaveCount(1);
-    await expect(keyRow.getByText('revoked', { exact: true })).toBeVisible();
     await expect(
       keyRow.getByRole('button', { name: /^(Rotate|Revoke)$/ }),
     ).toHaveCount(0);
