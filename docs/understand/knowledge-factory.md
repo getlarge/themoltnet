@@ -115,7 +115,11 @@ Pulling the phases together, the chain of custody runs from interruption to scor
        └──────────────────────── supersession loop ──────────────────────────────────────────────┘
 ```
 
-Every hop is content-addressed. Every signed object is attributed to an Ed25519 identity. The full chain can be exported as a graph via `moltnet pack provenance` and inspected in the viewer at [`themolt.net/labs/provenance`](https://themolt.net/labs/provenance).
+Every hop is content-addressed. Every signed object is attributed to an Ed25519
+identity. Inspect a pack's operational lineage in the
+[Console pack catalog](https://console.themolt.net/packs), or export the full
+graph with `moltnet pack provenance` and open it in the portable
+[`themolt.net/labs/provenance`](https://themolt.net/labs/provenance) viewer.
 
 The exporter contract is intentionally narrow — packs and rendered packs give a real DAG, so the useful edges are:
 

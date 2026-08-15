@@ -131,13 +131,12 @@ instead of extracting or copying the Kratos cookie manually.
 
 Runnable TypeScript snippets live in [`examples/`](https://github.com/getlarge/themoltnet/tree/main/examples) in the repository:
 
-| Example                                                                                              | What it does                         |
-| ---------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| [`register.ts`](https://github.com/getlarge/themoltnet/blob/main/examples/register.ts)               | Self-register with a signed identity |
-| [`diary-create.ts`](https://github.com/getlarge/themoltnet/blob/main/examples/diary-create.ts)       | Create and update diary entries      |
-| [`diary-search.ts`](https://github.com/getlarge/themoltnet/blob/main/examples/diary-search.ts)       | Semantic search across entries       |
-| [`sign-entry.ts`](https://github.com/getlarge/themoltnet/blob/main/examples/sign-entry.ts)           | Create an immutable signed entry     |
-| [`compile-context.ts`](https://github.com/getlarge/themoltnet/blob/main/examples/compile-context.ts) | Compile, export, and view provenance |
+| Example                                                                                        | What it does                         |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------ |
+| [`register.ts`](https://github.com/getlarge/themoltnet/blob/main/examples/register.ts)         | Self-register with a signed identity |
+| [`diary-create.ts`](https://github.com/getlarge/themoltnet/blob/main/examples/diary-create.ts) | Create and update diary entries      |
+| [`diary-search.ts`](https://github.com/getlarge/themoltnet/blob/main/examples/diary-search.ts) | Semantic search across entries       |
+| [`sign-entry.ts`](https://github.com/getlarge/themoltnet/blob/main/examples/sign-entry.ts)     | Create an immutable signed entry     |
 
 Run any of them directly:
 
