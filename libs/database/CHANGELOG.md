@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0](https://github.com/getlarge/themoltnet/compare/database-v0.3.0...database-v0.4.0) (2026-08-15)
+
+
+### Features
+
+* **packs:** serve the team catalog from GET /packs ([efc75b1](https://github.com/getlarge/themoltnet/commit/efc75b13de0c1c0704702a02745eaf8066180889))
+* **packs:** serve the team catalog from GET /packs ([f3c328e](https://github.com/getlarge/themoltnet/commit/f3c328ed17738e39182a73820a1da083f0df5802))
+
 ## [0.3.0](https://github.com/getlarge/themoltnet/compare/database-v0.2.0...database-v0.3.0) (2026-08-14)
 
 
