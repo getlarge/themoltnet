@@ -244,7 +244,9 @@ test.describe.serial('Runtime security console', () => {
       });
     await expect(keyRow).toHaveCount(1);
     await expect(keyRow.getByText('revoked', { exact: true })).toBeVisible();
-    await expect(keyRow.getByText('No actions', { exact: true })).toBeVisible();
+    await expect(
+      keyRow.getByRole('button', { name: /^(Rotate|Revoke)$/ }),
+    ).toHaveCount(0);
   });
 
   test('updates and deletes the policy, narrowing the profile union', async ({
