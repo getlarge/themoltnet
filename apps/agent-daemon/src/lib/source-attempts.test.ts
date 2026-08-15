@@ -14,18 +14,25 @@ describe('createApiSourceAttemptResolver', () => {
       status: 'completed',
     } as never);
     const agent = { tasks: { get, listAttempts } } as unknown as Agent;
-    return { agent, get };
+    return { agent, get, listAttempts };
   }
 
   it('returns the completed source attempt branch', async () => {
-    const { agent } = makeAgent([
+    const { agent, listAttempts } = makeAgent([
       { attemptN: 1, status: 'completed', output: { branch: 'feature/x' } },
     ]);
     const resolver = createApiSourceAttemptResolver({ agent });
 
     await expect(
-      resolver.findOutputBranch({ taskId: 'task-1', attemptN: 1 }),
+      resolver.findOutputBranch({
+        taskId: 'task-1',
+        attemptN: 1,
+        teamId: 'team-1',
+      }),
     ).resolves.toBe('feature/x');
+    expect(listAttempts).toHaveBeenCalledWith('task-1', {
+      teamId: 'team-1',
+    });
   });
 
   it('returns null when the source attempt is not completed', async () => {
@@ -35,7 +42,11 @@ describe('createApiSourceAttemptResolver', () => {
     const resolver = createApiSourceAttemptResolver({ agent });
 
     await expect(
-      resolver.findOutputBranch({ taskId: 'task-1', attemptN: 1 }),
+      resolver.findOutputBranch({
+        taskId: 'task-1',
+        attemptN: 1,
+        teamId: 'team-1',
+      }),
     ).resolves.toBeNull();
   });
 
@@ -46,7 +57,11 @@ describe('createApiSourceAttemptResolver', () => {
     const resolver = createApiSourceAttemptResolver({ agent });
 
     await expect(
-      resolver.findOutputBranch({ taskId: 'task-1', attemptN: 1 }),
+      resolver.findOutputBranch({
+        taskId: 'task-1',
+        attemptN: 1,
+        teamId: 'team-1',
+      }),
     ).resolves.toBeNull();
   });
 
@@ -61,8 +76,13 @@ describe('createApiSourceAttemptResolver', () => {
     const resolver = createApiSourceAttemptResolver({ agent });
 
     await expect(
-      resolver.findInputRevision({ taskId: 'task-1', attemptN: 2 }),
+      resolver.findInputRevision({
+        taskId: 'task-1',
+        attemptN: 2,
+        teamId: 'team-1',
+      }),
     ).resolves.toBe(revision.toLowerCase());
+    expect(get).toHaveBeenCalledWith('task-1', { teamId: 'team-1' });
   });
 
   it('does not return a revision from an unaccepted source attempt', async () => {
@@ -75,7 +95,11 @@ describe('createApiSourceAttemptResolver', () => {
     const resolver = createApiSourceAttemptResolver({ agent });
 
     await expect(
-      resolver.findInputRevision({ taskId: 'task-1', attemptN: 1 }),
+      resolver.findInputRevision({
+        taskId: 'task-1',
+        attemptN: 1,
+        teamId: 'team-1',
+      }),
     ).resolves.toBeNull();
   });
 });

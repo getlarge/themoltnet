@@ -91,10 +91,12 @@ export interface RuntimeSlotStore {
 
 export interface SourceAttemptResolver {
   findOutputBranch(input: {
+    teamId: string;
     taskId: string;
     attemptN: number;
   }): Promise<string | null>;
   findInputRevision(input: {
+    teamId: string;
     taskId: string;
     attemptN: number;
   }): Promise<string | null>;
@@ -361,12 +363,14 @@ async function maybeAttachWarmSlotContext(
       const recoveredBranch = await sourceAttemptResolver.findOutputBranch({
         attemptN: continueFrom.attemptN,
         taskId: continueFrom.taskId,
+        teamId: claimedTask.task.teamId,
       });
       const recoveredRevision = recoveredBranch
         ? null
         : await sourceAttemptResolver.findInputRevision({
             attemptN: continueFrom.attemptN,
             taskId: continueFrom.taskId,
+            teamId: claimedTask.task.teamId,
           });
       if (continueFrom.mode === 'fork') {
         if (recoveredBranch || recoveredRevision) {
@@ -420,6 +424,7 @@ async function maybeAttachWarmSlotContext(
       : await sourceAttemptResolver.findInputRevision({
           attemptN: continueFrom.attemptN,
           taskId: continueFrom.taskId,
+          teamId: claimedTask.task.teamId,
         });
 
     if (continueFrom.mode === 'fork') {

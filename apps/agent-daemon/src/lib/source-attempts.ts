@@ -10,7 +10,9 @@ export function createApiSourceAttemptResolver(args: {
 
   return {
     async findOutputBranch(input) {
-      const attempts = await agent.tasks.listAttempts(input.taskId);
+      const attempts = await agent.tasks.listAttempts(input.taskId, {
+        teamId: input.teamId,
+      });
       const attempt = attempts.find(
         (candidate) => candidate.attemptN === input.attemptN,
       );
@@ -18,7 +20,9 @@ export function createApiSourceAttemptResolver(args: {
       return resolveOutputBranch(attempt.output);
     },
     async findInputRevision(input) {
-      const task = await agent.tasks.get(input.taskId);
+      const task = await agent.tasks.get(input.taskId, {
+        teamId: input.teamId,
+      });
       if (
         task.status !== 'completed' ||
         task.acceptedAttemptN !== input.attemptN
