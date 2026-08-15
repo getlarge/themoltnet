@@ -118,6 +118,7 @@ func TestRunTaskContinue_HappyPath(t *testing.T) {
 	opts := taskContinueOpts{
 		fromTaskID:   srcID.String(),
 		fromAttemptN: 1,
+		teamID:       teamID.String(),
 		brief:        "Continue the work",
 		title:        "Round 2",
 		titleSet:     true,
@@ -133,6 +134,9 @@ func TestRunTaskContinue_HappyPath(t *testing.T) {
 	}
 	if h.getParams.ID != srcID {
 		t.Errorf("GetTask id = %s, want %s", h.getParams.ID, srcID)
+	}
+	if gotTeamID, ok := h.getParams.XMoltnetTeamID.Get(); !ok || gotTeamID != teamID {
+		t.Errorf("GetTask teamId = %v (set=%v), want %s", gotTeamID, ok, teamID)
 	}
 	if h.createCalls != 1 {
 		t.Errorf("CreateTask calls = %d, want 1", h.createCalls)

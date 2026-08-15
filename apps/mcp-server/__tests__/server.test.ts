@@ -698,7 +698,7 @@ describe('buildApp', () => {
           "name": "tasks_artifacts_upload",
         },
         {
-          "inputSchema": "8f3230eca1e8976a",
+          "inputSchema": "f64675cd81e5209c",
           "name": "tasks_attempts_list",
         },
         {
@@ -722,7 +722,7 @@ describe('buildApp', () => {
           "name": "tasks_list",
         },
         {
-          "inputSchema": "a6465451da69050e",
+          "inputSchema": "fe1cb7f8ca0fabf3",
           "name": "tasks_messages_list",
         },
         {

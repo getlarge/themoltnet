@@ -831,57 +831,75 @@ export interface TasksNamespace {
    * Resolve a completed task's accepted output into a typed reader.
    * Accepts a task id (fetched) or a `Task` already in hand.
    */
-  readResult(taskOrId: string | Task): Promise<TaskResultReader>;
+  readResult(
+    taskOrId: string | Task,
+    options?: TaskRequestOptions,
+  ): Promise<TaskResultReader>;
 
-  get(id: string): Promise<Task>;
+  get(id: string, options?: TaskRequestOptions): Promise<Task>;
 
   claim(
     id: string,
     body?: ClaimTaskData['body'],
+    options?: TaskRequestOptions,
   ): Promise<ClaimTaskResponse & { traceHeaders: Record<string, string> }>;
 
   heartbeat(
     id: string,
     n: number,
     body?: TaskHeartbeatData['body'],
+    options?: TaskRequestOptions,
   ): Promise<HeartbeatResponse>;
 
   complete(
     id: string,
     n: number,
     body: CompleteTaskData['body'],
+    options?: TaskRequestOptions,
   ): Promise<Task>;
 
   failAttempt(
     id: string,
     n: number,
     body: FailTaskAttemptData['body'],
+    options?: TaskRequestOptions,
   ): Promise<Task>;
 
   abortAttempt(
     id: string,
     n: number,
     body?: AbortTaskAttemptData['body'],
+    options?: TaskRequestOptions,
   ): Promise<Task>;
 
-  cancel(id: string, body: CancelTaskData['body']): Promise<Task>;
+  cancel(
+    id: string,
+    body: CancelTaskData['body'],
+    options?: TaskRequestOptions,
+  ): Promise<Task>;
 
   deleteMany(
     body: NonNullable<BatchDeleteTasksData['body']>,
+    options?: TaskRequestOptions,
   ): Promise<BatchDeleteTasksAcceptedResponse>;
 
-  listAttempts(id: string): Promise<TaskAttempt[]>;
+  listAttempts(
+    id: string,
+    options?: TaskRequestOptions,
+  ): Promise<TaskAttempt[]>;
 
   listMessages(
     id: string,
     n: number,
     query?: ListTaskMessagesData['query'],
+    options?: TaskRequestOptions,
   ): Promise<TaskMessage[]>;
 
   appendMessages(
     id: string,
     n: number,
     body: AppendTaskMessagesData['body'],
+    options?: TaskRequestOptions,
   ): Promise<{ count: number }>;
 }
 

@@ -412,13 +412,16 @@ describe('Task tools', () => {
       );
 
       const result = await handleTasksAttemptsList(
-        { task_id: TASK_ID },
+        { task_id: TASK_ID, team_id: TEAM_ID },
         deps,
         context,
       );
 
       expect(listTaskAttempts).toHaveBeenCalledWith(
-        expect.objectContaining({ path: { id: TASK_ID } }),
+        expect.objectContaining({
+          headers: { 'x-moltnet-team-id': TEAM_ID },
+          path: { id: TASK_ID },
+        }),
       );
       expect(parseResult<{ items: unknown[] }>(result).items).toHaveLength(1);
     });
@@ -441,6 +444,7 @@ describe('Task tools', () => {
         {
           task_id: TASK_ID,
           attempt_n: ATTEMPT_N,
+          team_id: TEAM_ID,
           after_seq: 2,
           limit: 50,
         },
@@ -450,6 +454,7 @@ describe('Task tools', () => {
 
       expect(listTaskMessages).toHaveBeenCalledWith(
         expect.objectContaining({
+          headers: { 'x-moltnet-team-id': TEAM_ID },
           path: { id: TASK_ID, n: ATTEMPT_N },
           query: { afterSeq: 2, limit: 50 },
         }),

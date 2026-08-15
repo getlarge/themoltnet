@@ -55,8 +55,28 @@ type TaskArtifactStageOptions = Parameters<typeof stageTaskArtifact>[0] & {
   duplex: 'half';
 };
 
+const MAX_REMEMBERED_TASK_TEAMS = 1000;
+
 export function createTasksNamespace(context: AgentContext): TasksNamespace {
   const { client, auth } = context;
+  const taskTeams = new Map<string, string>();
+
+  const rememberTask = <T extends Task>(task: T): T => {
+    taskTeams.delete(task.id);
+    taskTeams.set(task.id, task.teamId);
+    if (taskTeams.size > MAX_REMEMBERED_TASK_TEAMS) {
+      const oldestTaskId = taskTeams.keys().next().value;
+      if (oldestTaskId !== undefined) taskTeams.delete(oldestTaskId);
+    }
+    return task;
+  };
+  const headersForTask = (
+    taskId: string,
+    options?: TaskRequestOptions,
+  ): ReturnType<typeof requiredTeamHeaders> | undefined => {
+    const teamId = options?.teamId ?? taskTeams.get(taskId);
+    return teamId ? requiredTeamHeaders({ teamId }) : undefined;
+  };
 
   return {
     async schemas() {
@@ -176,7 +196,7 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
     },
 
     async list(query, options) {
-      return unwrapResult(
+      const response = unwrapResult(
         await listTasks({
           client,
           auth,
@@ -184,6 +204,8 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
           headers: requiredTeamHeaders(options),
         }),
       );
+      response.items.forEach(rememberTask);
+      return response;
     },
 
     async create(
@@ -199,13 +221,15 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
               teamId: options.teamId,
             }
           : (bodyOrBuilt as BuiltTask);
-      return unwrapResult(
-        await createTask({
-          client,
-          auth,
-          body,
-          headers: requiredTeamHeaders({ teamId }),
-        }),
+      return rememberTask(
+        unwrapResult(
+          await createTask({
+            client,
+            auth,
+            body,
+            headers: requiredTeamHeaders({ teamId }),
+          }),
+        ),
       );
     },
 
@@ -221,13 +245,20 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
     buildJudgeEvalAttemptForRunEval,
     buildPrReview,
 
-    async readResult(taskOrId: string | Task) {
+    async readResult(taskOrId: string | Task, options?: TaskRequestOptions) {
       const task =
         typeof taskOrId === 'string'
-          ? unwrapResult(
-              await getTask({ client, auth, path: { id: taskOrId } }),
+          ? rememberTask(
+              unwrapResult(
+                await getTask({
+                  client,
+                  auth,
+                  headers: headersForTask(taskOrId, options),
+                  path: { id: taskOrId },
+                }),
+              ),
             )
-          : taskOrId;
+          : rememberTask(taskOrId);
       if (
         task.acceptedAttemptN === null ||
         task.acceptedAttemptN === undefined
@@ -240,7 +271,12 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
         ]);
       }
       const attempts = unwrapResult(
-        await listTaskAttempts({ client, auth, path: { id: task.id } }),
+        await listTaskAttempts({
+          client,
+          auth,
+          headers: headersForTask(task.id, options),
+          path: { id: task.id },
+        }),
       );
       const accepted = attempts.find(
         (a) => a.attemptN === task.acceptedAttemptN,
@@ -256,13 +292,29 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
       return createResultReader(task, accepted);
     },
 
-    async get(id) {
-      return unwrapResult(await getTask({ client, auth, path: { id } }));
+    async get(id, options) {
+      return rememberTask(
+        unwrapResult(
+          await getTask({
+            client,
+            auth,
+            headers: headersForTask(id, options),
+            path: { id },
+          }),
+        ),
+      );
     },
 
-    async claim(id, body) {
-      const result = await claimTask({ client, auth, path: { id }, body });
+    async claim(id, body, options) {
+      const result = await claimTask({
+        client,
+        auth,
+        headers: headersForTask(id, options),
+        path: { id },
+        body,
+      });
       const data = unwrapResult(result);
+      rememberTask(data.task);
       const traceHeaders: Record<string, string> = {};
       const traceparent = result.response.headers.get('traceparent');
       if (traceparent) {
@@ -273,55 +325,117 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
       return { ...data, traceHeaders };
     },
 
-    async heartbeat(id, n, body) {
+    async heartbeat(id, n, body, options) {
       return unwrapResult(
-        await taskHeartbeat({ client, auth, path: { id, n }, body }),
+        await taskHeartbeat({
+          client,
+          auth,
+          headers: headersForTask(id, options),
+          path: { id, n },
+          body,
+        }),
       );
     },
 
-    async complete(id, n, body) {
-      return unwrapResult(
-        await completeTask({ client, auth, path: { id, n }, body }),
+    async complete(id, n, body, options) {
+      return rememberTask(
+        unwrapResult(
+          await completeTask({
+            client,
+            auth,
+            headers: headersForTask(id, options),
+            path: { id, n },
+            body,
+          }),
+        ),
       );
     },
 
-    async failAttempt(id, n, body) {
-      return unwrapResult(
-        await failTaskAttempt({ client, auth, path: { id, n }, body }),
+    async failAttempt(id, n, body, options) {
+      return rememberTask(
+        unwrapResult(
+          await failTaskAttempt({
+            client,
+            auth,
+            headers: headersForTask(id, options),
+            path: { id, n },
+            body,
+          }),
+        ),
       );
     },
 
-    async abortAttempt(id, n, body) {
-      return unwrapResult(
-        await abortTaskAttempt({ client, auth, path: { id, n }, body }),
+    async abortAttempt(id, n, body, options) {
+      return rememberTask(
+        unwrapResult(
+          await abortTaskAttempt({
+            client,
+            auth,
+            headers: headersForTask(id, options),
+            path: { id, n },
+            body,
+          }),
+        ),
       );
     },
 
-    async cancel(id, body) {
-      return unwrapResult(
-        await cancelTask({ client, auth, path: { id }, body }),
+    async cancel(id, body, options) {
+      return rememberTask(
+        unwrapResult(
+          await cancelTask({
+            client,
+            auth,
+            headers: headersForTask(id, options),
+            path: { id },
+            body,
+          }),
+        ),
       );
     },
 
-    async deleteMany(body) {
-      return unwrapResult(await batchDeleteTasks({ client, auth, body }));
-    },
-
-    async listAttempts(id) {
+    async deleteMany(body, options) {
       return unwrapResult(
-        await listTaskAttempts({ client, auth, path: { id } }),
+        await batchDeleteTasks({
+          client,
+          auth,
+          headers: options ? requiredTeamHeaders(options) : undefined,
+          body,
+        }),
       );
     },
 
-    async listMessages(id, n, query) {
+    async listAttempts(id, options) {
       return unwrapResult(
-        await listTaskMessages({ client, auth, path: { id, n }, query }),
+        await listTaskAttempts({
+          client,
+          auth,
+          headers: headersForTask(id, options),
+          path: { id },
+        }),
       );
     },
 
-    async appendMessages(id, n, body) {
+    async listMessages(id, n, query, options) {
       return unwrapResult(
-        await appendTaskMessages({ client, auth, path: { id, n }, body }),
+        await listTaskMessages({
+          client,
+          auth,
+          headers: headersForTask(id, options),
+          path: { id, n },
+          query,
+        }),
+      );
+    },
+
+    async appendMessages(id, n, body, options) {
+      return unwrapResult(
+        await appendTaskMessages({
+          client,
+          auth,
+          headers: headersForTask(id, options),
+          path: { id, n },
+          body,
+        }),
       );
     },
   };

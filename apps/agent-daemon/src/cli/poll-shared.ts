@@ -573,6 +573,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         const selected = runtimeForClaimedTask(runtimes, claimedTask);
         return new ApiTaskReporter({
           tasks: ctx.agent.tasks,
+          teamId: claimedTask.task.teamId,
           leaseTtlSec: selected.common.leaseTtlSec,
           heartbeatIntervalMs: selected.common.heartbeatIntervalMs,
           maxBatchSize: selected.common.maxBatchSize,

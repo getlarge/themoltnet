@@ -6,6 +6,8 @@ import type { TaskReporter } from './types.js';
 
 export interface ApiTaskReporterOptions {
   tasks: TasksNamespace;
+  /** Owning team context. Falls back to SDK task context when already known. */
+  teamId?: string;
   leaseTtlSec?: number;
   heartbeatIntervalMs?: number;
   /**
@@ -407,18 +409,14 @@ export class ApiTaskReporter implements TaskReporter {
     batch: BufferedMessage[],
   ): Promise<void> {
     if (this.firstAppendSucceeded) {
-      await this.opts.tasks.appendMessages(this.taskId, this.attemptN, {
-        messages: batch,
-      });
+      await this.appendMessages(batch);
       return;
     }
     const maxAttempts = 5;
     const baseDelayMs = 100;
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       try {
-        await this.opts.tasks.appendMessages(this.taskId, this.attemptN, {
-          messages: batch,
-        });
+        await this.appendMessages(batch);
         return;
       } catch (err) {
         if (attempt === maxAttempts || !isKetoConsistencyLag403(err)) throw err;
@@ -433,11 +431,11 @@ export class ApiTaskReporter implements TaskReporter {
     const body = this.opts.leaseTtlSec
       ? { leaseTtlSec: this.opts.leaseTtlSec }
       : {};
-    const response = await this.opts.tasks.heartbeat(
-      this.taskId,
-      this.attemptN,
-      body,
-    );
+    const response = this.opts.teamId
+      ? await this.opts.tasks.heartbeat(this.taskId, this.attemptN, body, {
+          teamId: this.opts.teamId,
+        })
+      : await this.opts.tasks.heartbeat(this.taskId, this.attemptN, body);
     // The server reports cancellation via a 200 response with
     // cancelled:true so the worker gets a clean abort signal instead
     // of having to interpret a 409 envelope (#938). Once observed, abort
@@ -447,6 +445,15 @@ export class ApiTaskReporter implements TaskReporter {
     if (response?.cancelled) {
       this.abortForCancel(response.cancelReason ?? null);
     }
+  }
+
+  private appendMessages(batch: BufferedMessage[]): Promise<{ count: number }> {
+    const body = { messages: batch };
+    return this.opts.teamId
+      ? this.opts.tasks.appendMessages(this.taskId, this.attemptN, body, {
+          teamId: this.opts.teamId,
+        })
+      : this.opts.tasks.appendMessages(this.taskId, this.attemptN, body);
   }
 
   private abortForCancel(reason: string | null): void {

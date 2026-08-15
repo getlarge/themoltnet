@@ -369,11 +369,13 @@ dedicated_worktree + the parent's worktreeBranch on continuations);
 there is no --execution-workspace override.`,
 		Example: `  # Continue attempt 1 of a completed freeform task
   moltnet task continue \
+    --team-id <uuid> \
     --from-task-id <uuid> --from-attempt-n 1 \
     --brief "Next step: render the rebased branch and run the harness"
 
   # Pre-populate a continuation with a tighter brief and constraints
   moltnet task continue \
+    --team-id <uuid> \
     --from-task-id <uuid> --from-attempt-n 1 \
     --brief "Reduce the test surface" \
     --title "Round 2" \
@@ -381,11 +383,13 @@ there is no --execution-workspace override.`,
 
   # Dry-run prints the CreateTaskReq without posting; useful in scripts
   moltnet task continue \
+    --team-id <uuid> \
     --from-task-id <uuid> --from-attempt-n 1 \
     --brief "Probe" --dry-run
 
   # Capture just the new task id
   TASK=$(moltnet task continue \
+    --team-id <uuid> \
     --from-task-id <uuid> --from-attempt-n 1 \
     --brief "Probe" --output id)`,
 		Args: cobra.NoArgs,
@@ -396,6 +400,7 @@ there is no --execution-workspace override.`,
 				credPath:       credPath,
 				fromTaskID:     flagString(cmd, "from-task-id"),
 				fromAttemptN:   flagInt(cmd, "from-attempt-n"),
+				teamID:         flagString(cmd, "team-id"),
 				brief:          flagString(cmd, "brief"),
 				title:          flagString(cmd, "title"),
 				titleSet:       cmd.Flags().Changed("title"),
@@ -417,6 +422,7 @@ there is no --execution-workspace override.`,
 	}
 	cmd.Flags().String("from-task-id", "", "Source task UUID (required)")
 	cmd.Flags().Int("from-attempt-n", 1, "Source attempt number (≥1, default 1)")
+	cmd.Flags().String("team-id", "", "Owning team UUID for the source task (required)")
 	cmd.Flags().String("brief", "", "Brief for the continuation (required)")
 	cmd.Flags().String("title", "", "Optional operator-facing title")
 	cmd.Flags().String("expected-output", "", "Optional expected-output prose")
@@ -426,6 +432,7 @@ there is no --execution-workspace override.`,
 	cmd.Flags().Bool("dry-run", false, "Print the canonical CreateTaskReq and exit; no POST")
 	cmd.Flags().String("output", "json", `Result rendering: "json" (full task) or "id" (UUID only)`)
 	_ = cmd.MarkFlagRequired("from-task-id")
+	_ = cmd.MarkFlagRequired("team-id")
 	_ = cmd.MarkFlagRequired("brief")
 	return cmd
 }
