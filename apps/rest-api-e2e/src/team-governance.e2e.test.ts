@@ -188,24 +188,17 @@ describe('Team Governance', () => {
       expect(data!.teamStatus).toBe('active');
     });
 
-    it('accepting twice returns 409', async () => {
-      // agentB already accepted above — poll until workflow has committed accepted status
-      const { response } = await pollUntilStatus(
-        () =>
-          acceptTeamFounding({
-            client,
-            auth: () => agentB.accessToken,
-            path: { id: foundingTeamId },
-            body: {},
-          }),
-        409,
-        {
-          label: 'repeated accept returns 409',
-          maxAttempts: 20,
-          intervalMs: 300,
-        },
-      );
-      expect(response.status).toBe(409);
+    it('accepting twice is idempotent and reports the active team', async () => {
+      const { data, error, response } = await acceptTeamFounding({
+        client,
+        auth: () => agentB.accessToken,
+        path: { id: foundingTeamId },
+        body: {},
+      });
+
+      expect(error).toBeUndefined();
+      expect(response.status).toBe(200);
+      expect(data).toMatchObject({ accepted: true, teamStatus: 'active' });
     });
 
     it('unauthenticated gets 401', async () => {

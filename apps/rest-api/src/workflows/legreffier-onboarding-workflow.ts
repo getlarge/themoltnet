@@ -15,11 +15,10 @@
  * ## Initialization Order
  *
  * Call `initLegreffierOnboardingWorkflow()` after configureDBOS(), before launchDBOS().
- * Call `setLegreffierOnboardingDeps()` in afterLaunch.
+ * Call `setLegreffierOnboardingDeps()` before DBOS launch/recovery.
  */
 
 import { DBOS } from '@moltnet/database';
-import type { IdentityApi } from '@ory/client-fetch';
 
 import type { Logger } from './logger.js';
 import {
@@ -56,7 +55,6 @@ export class OnboardingWorkflowError extends Error {
 // ── Types ──────────────────────────────────────────────────────
 
 export interface LegreffierOnboardingDeps {
-  identityApi: IdentityApi;
   logger: Logger;
 }
 
@@ -101,22 +99,6 @@ let _workflow: StartOnboardingFn | null = null;
 export function initLegreffierOnboardingWorkflow(): void {
   if (_workflow) return;
 
-  // ── Steps ────────────────────────────────────────────────────
-
-  const deleteKratosIdentityStep = DBOS.registerStep(
-    async (identityId: string): Promise<void> => {
-      const { identityApi } = getDeps();
-      await identityApi.deleteIdentity({ id: identityId });
-    },
-    {
-      name: 'legreffier.step.deleteKratosIdentity',
-      retriesAllowed: true,
-      maxAttempts: 3,
-      intervalSeconds: 2,
-      backoffRate: 2,
-    },
-  );
-
   // ── Workflow ─────────────────────────────────────────────────
 
   _workflow = DBOS.registerWorkflow(
@@ -153,10 +135,11 @@ export function initLegreffierOnboardingWorkflow(): void {
           'legreffier.github_callback_timeout',
         );
         try {
-          await registrationWorkflow.compensateSelfRegistration(
-            registration.identityId,
-          );
-          await deleteKratosIdentityStep(registration.identityId);
+          const handle = await DBOS.startWorkflow(
+            registrationWorkflow.compensateSelfRegistration,
+            { workflowID: `legreffier-compensation:${workflowId}` },
+          )(registration.identityId);
+          await handle.getResult();
         } catch (err) {
           logger.error(
             { err, identityId: registration.identityId },
@@ -189,10 +172,11 @@ export function initLegreffierOnboardingWorkflow(): void {
           'legreffier.installation_timeout',
         );
         try {
-          await registrationWorkflow.compensateSelfRegistration(
-            registration.identityId,
-          );
-          await deleteKratosIdentityStep(registration.identityId);
+          const handle = await DBOS.startWorkflow(
+            registrationWorkflow.compensateSelfRegistration,
+            { workflowID: `legreffier-compensation:${workflowId}` },
+          )(registration.identityId);
+          await handle.getResult();
         } catch (err) {
           logger.error(
             { err, identityId: registration.identityId },

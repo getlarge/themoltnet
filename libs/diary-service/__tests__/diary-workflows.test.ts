@@ -127,9 +127,9 @@ describe('Diary Workflows', () => {
       diaryEntryRepository: repo as unknown as DiaryEntryRepository,
       relationshipWriter: writer as unknown as RelationshipWriter,
       embeddingService: embeddings as unknown as EmbeddingService,
-      dataSource: {
-        runTransaction: mockRunTransaction,
-      } as never,
+      transactionRunner: {
+        runInTransaction: mockRunTransaction,
+      },
     });
 
     initDiaryWorkflows();

@@ -18,7 +18,11 @@
  */
 
 import { KetoNamespace, type RelationshipWriter } from '@moltnet/auth';
-import { DBOS, type TeamRepository } from '@moltnet/database';
+import {
+  DBOS,
+  type TeamRepository,
+  type TransactionRunner,
+} from '@moltnet/database';
 
 import type { Logger } from './logger.js';
 
@@ -46,6 +50,7 @@ export interface FoundingMember {
 
 export interface TeamFoundingDeps {
   teamRepository: TeamRepository;
+  transactionRunner: TransactionRunner;
   relationshipWriter: RelationshipWriter;
   logger: Logger;
 }
@@ -88,49 +93,27 @@ export function initTeamFoundingWorkflow(): void {
 
   // ── Steps ──────────────────────────────────────────────────
 
-  const grantFoundingMembersStep = DBOS.registerStep(
-    async (
-      teamId: string,
-      foundingMembers: FoundingMember[],
-    ): Promise<void> => {
-      const { relationshipWriter, teamRepository } = getDeps();
-      for (const member of foundingMembers) {
-        const ns =
-          member.subjectNs === 'Human'
-            ? KetoNamespace.Human
-            : KetoNamespace.Agent;
-        // Keto grant calls are idempotent: granting an already-existing tuple
-        // is a no-op in Keto. This makes the step safe to retry on DBOS failure.
-        if (member.role === 'owner') {
-          await relationshipWriter.grantTeamOwners(
-            teamId,
-            member.subjectId,
-            ns,
-          );
-        } else if (member.role === 'manager') {
-          await relationshipWriter.grantTeamManagers(
-            teamId,
-            member.subjectId,
-            ns,
-          );
-        } else {
-          await relationshipWriter.grantTeamMembers(
-            teamId,
-            member.subjectId,
-            ns,
-          );
-        }
-        // createFoundingAcceptance uses ON CONFLICT DO NOTHING — idempotent on retry.
-        await teamRepository.createFoundingAcceptance({
+  const grantFoundingMemberStep = DBOS.registerStep(
+    async (teamId: string, member: FoundingMember): Promise<void> => {
+      const { relationshipWriter } = getDeps();
+      const ns =
+        member.subjectNs === 'Human'
+          ? KetoNamespace.Human
+          : KetoNamespace.Agent;
+      if (member.role === 'owner') {
+        await relationshipWriter.grantTeamOwners(teamId, member.subjectId, ns);
+      } else if (member.role === 'manager') {
+        await relationshipWriter.grantTeamManagers(
           teamId,
-          subjectId: member.subjectId,
-          subjectNs: member.subjectNs,
-          role: member.role,
-        });
+          member.subjectId,
+          ns,
+        );
+      } else {
+        await relationshipWriter.grantTeamMembers(teamId, member.subjectId, ns);
       }
     },
     {
-      name: 'team.founding.step.grantMembers',
+      name: 'team.founding.step.grantMember',
       retriesAllowed: true,
       maxAttempts: 5,
       intervalSeconds: 2,
@@ -138,59 +121,20 @@ export function initTeamFoundingWorkflow(): void {
     },
   );
 
-  const activateTeamStep = DBOS.registerStep(
-    async (teamId: string): Promise<void> => {
-      const { teamRepository } = getDeps();
-      await teamRepository.updateStatus(teamId, 'active');
+  const removeFoundingMemberStep = DBOS.registerStep(
+    async (teamId: string, member: FoundingMember): Promise<void> => {
+      const ns =
+        member.subjectNs === 'Human'
+          ? KetoNamespace.Human
+          : KetoNamespace.Agent;
+      await getDeps().relationshipWriter.removeTeamMemberRelation(
+        teamId,
+        member.subjectId,
+        ns,
+      );
     },
     {
-      name: 'team.founding.step.activate',
-      retriesAllowed: true,
-      maxAttempts: 3,
-      intervalSeconds: 2,
-      backoffRate: 2,
-    },
-  );
-
-  const archiveTeamStep = DBOS.registerStep(
-    async (
-      teamId: string,
-      foundingMembers: FoundingMember[],
-    ): Promise<void> => {
-      const { teamRepository, relationshipWriter, logger } = getDeps();
-      const archived = await teamRepository.updateStatus(teamId, 'archived');
-      if (!archived) {
-        // State machine guard returned null — team was not in 'founding' status.
-        // Log at error so this surfaces in alerting; do not swallow silently.
-        logger.error(
-          { teamId },
-          'team.founding.archive_failed — team was not in founding status',
-        );
-      }
-      // Best-effort Keto cleanup — orphan tuples are safe because team IDs are
-      // UUIDs and the team no longer exists in DB after archiving.
-      for (const member of foundingMembers) {
-        const ns =
-          member.subjectNs === 'Human'
-            ? KetoNamespace.Human
-            : KetoNamespace.Agent;
-        try {
-          await relationshipWriter.removeTeamMemberRelation(
-            teamId,
-            member.subjectId,
-            ns,
-          );
-        } catch (err) {
-          // Logged at error so repeated failures surface in alerting
-          logger.error(
-            { teamId, subjectId: member.subjectId, err },
-            'team.founding.archive_keto_cleanup_failed',
-          );
-        }
-      }
-    },
-    {
-      name: 'team.founding.step.archive',
+      name: 'team.founding.step.removeMember',
       retriesAllowed: true,
       maxAttempts: 3,
       intervalSeconds: 2,
@@ -207,8 +151,38 @@ export function initTeamFoundingWorkflow(): void {
       _creatorNs: 'Agent' | 'Human',
       foundingMembers: FoundingMember[],
     ): Promise<TeamFoundingResult> => {
-      // Step 1: Grant Keto roles + seed acceptance rows
-      await grantFoundingMembersStep(teamId, foundingMembers);
+      // Seed acceptance rows atomically, separately from external Keto calls.
+      await getDeps().transactionRunner.runInTransaction(
+        async () => {
+          for (const member of foundingMembers) {
+            await getDeps().teamRepository.createFoundingAcceptance({
+              teamId,
+              subjectId: member.subjectId,
+              subjectNs: member.subjectNs,
+              role: member.role,
+            });
+          }
+        },
+        { name: 'team.founding.tx.seedAcceptances' },
+      );
+
+      const grants = await Promise.allSettled(
+        foundingMembers.map((member) =>
+          grantFoundingMemberStep(teamId, member),
+        ),
+      );
+      const grantFailures = grants
+        .filter(
+          (result): result is PromiseRejectedResult =>
+            result.status === 'rejected',
+        )
+        .map((result): unknown => result.reason);
+      if (grantFailures.length > 0) {
+        throw new AggregateError(
+          grantFailures,
+          'Failed to grant one or more founding team memberships',
+        );
+      }
 
       // Step 2: Wait for all owners to accept — 7-day timeout
       const accepted = await DBOS.recv<true>(
@@ -217,15 +191,76 @@ export function initTeamFoundingWorkflow(): void {
       );
 
       if (!accepted) {
-        // Timeout: archive team + clean up Keto
+        // A last acceptance may have committed while its completion signal was
+        // lost. Reconcile database truth before taking the destructive path.
+        const allOwnersAccepted =
+          await getDeps().transactionRunner.runInTransaction(
+            async () => {
+              const acceptances =
+                await getDeps().teamRepository.listFoundingAcceptances(teamId);
+              const owners = acceptances.filter(
+                (acceptance) => acceptance.role === 'owner',
+              );
+              return (
+                owners.length > 0 &&
+                owners.every((acceptance) => acceptance.status === 'accepted')
+              );
+            },
+            { name: 'team.founding.tx.recheckAcceptances' },
+          );
+        if (allOwnersAccepted) {
+          await getDeps().transactionRunner.runInTransaction(
+            async () => {
+              await getDeps().teamRepository.updateStatus(teamId, 'active');
+            },
+            { name: 'team.founding.tx.activateAfterRecheck' },
+          );
+          return { teamId, status: 'active' };
+        }
+        // Timeout: archive team, then durably reconcile Keto.
         const { logger } = getDeps();
         logger.warn({ teamId }, 'team.founding.timeout — archiving team');
-        await archiveTeamStep(teamId, foundingMembers);
+        await getDeps().transactionRunner.runInTransaction(
+          async () => {
+            const archived = await getDeps().teamRepository.updateStatus(
+              teamId,
+              'archived',
+            );
+            if (!archived) {
+              throw new Error(
+                `Team ${teamId} was no longer in founding status`,
+              );
+            }
+          },
+          { name: 'team.founding.tx.archive' },
+        );
+        const removals = await Promise.allSettled(
+          foundingMembers.map((member) =>
+            removeFoundingMemberStep(teamId, member),
+          ),
+        );
+        const removalFailures = removals
+          .filter(
+            (result): result is PromiseRejectedResult =>
+              result.status === 'rejected',
+          )
+          .map((result): unknown => result.reason);
+        if (removalFailures.length > 0) {
+          throw new AggregateError(
+            removalFailures,
+            'Failed to remove one or more founding team memberships',
+          );
+        }
         throw new TeamFoundingTimeoutError(teamId);
       }
 
       // All owners accepted: activate
-      await activateTeamStep(teamId);
+      await getDeps().transactionRunner.runInTransaction(
+        async () => {
+          await getDeps().teamRepository.updateStatus(teamId, 'active');
+        },
+        { name: 'team.founding.tx.activate' },
+      );
       return { teamId, status: 'active' };
     },
     { name: 'team.founding.foundTeam' },

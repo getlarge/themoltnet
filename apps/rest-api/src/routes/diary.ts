@@ -34,7 +34,7 @@ import { sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { Type } from 'typebox';
 
-import { createProblem } from '../problems/index.js';
+import { createProblem, isUniqueViolation } from '../problems/index.js';
 import {
   DiaryCatalogListSchema,
   DiaryCatalogSchema,
@@ -640,14 +640,26 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       const workflowId = `transfer-${randomUUID()}`;
 
       // Create transfer record
-      const transfer = await fastify.diaryTransferRepository.create({
-        diaryId: id,
-        sourceTeamId: diary.teamId,
-        destinationTeamId,
-        workflowId,
-        initiatedBy: identityId,
-        expiresAt,
-      });
+      let transfer: Awaited<
+        ReturnType<typeof fastify.diaryTransferRepository.create>
+      >;
+      try {
+        transfer = await fastify.diaryTransferRepository.create({
+          diaryId: id,
+          sourceTeamId: diary.teamId,
+          destinationTeamId,
+          workflowId,
+          initiatedBy: identityId,
+          expiresAt,
+        });
+      } catch (err) {
+        if (
+          isUniqueViolation(err, 'diary_transfers_one_pending_per_diary_idx')
+        ) {
+          throw createProblem('diary-transfer-pending');
+        }
+        throw err;
+      }
 
       // Start workflow (non-blocking).
       // On startup failure, expire the transfer so the caller can retry.
@@ -779,6 +791,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           transfer.workflowId,
           'accepted',
           TRANSFER_DECISION_EVENT,
+          `diary-transfer:${transferId}:decision`,
         );
       } catch (err) {
         request.log.error(
@@ -843,6 +856,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           transfer.workflowId,
           'rejected',
           TRANSFER_DECISION_EVENT,
+          `diary-transfer:${transferId}:decision`,
         );
       } catch (err) {
         request.log.error(

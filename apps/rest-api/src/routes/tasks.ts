@@ -22,7 +22,6 @@ import {
 import { TaskAnalyticsServiceError } from '@moltnet/task-analytics-service';
 import {
   BUILT_IN_TASK_TYPES,
-  normalizeTaskCreateRequest,
   Task,
   TASK_TYPE_SCHEMA_CIDS,
   TaskAttempt,
@@ -66,6 +65,18 @@ import { requireKetoSubject } from '../utils/require-keto-subject.js';
 import { startTaskDeletionWorkflow } from '../workflows/index.js';
 
 type BatchDeleteTasksBody = Static<typeof BatchDeleteTasksBodySchema>;
+
+const CreateTaskHeadersSchema = Type.Object({
+  ...TeamHeaderRequiredSchema.properties,
+  'idempotency-key': Type.Optional(
+    Type.String({
+      description:
+        'Retry key scoped to the active team and authenticated proposer.',
+      minLength: 1,
+      maxLength: 255,
+    }),
+  ),
+});
 
 function taskDeletionDeduplicationId(ids: string[], force: boolean): string {
   const payload = JSON.stringify({ force, ids: [...ids].sort() });
@@ -325,7 +336,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         tags: ['tasks'],
         description: 'Create and enqueue a new task.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
-        headers: TeamHeaderRequiredSchema,
+        headers: CreateTaskHeadersSchema,
         body: CreateTaskBodySchema,
         response: {
           201: Type.Ref(Task.$id),
@@ -346,7 +357,6 @@ export function taskRoutes(fastify: FastifyInstance) {
       } = requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'tasks');
       try {
-        const normalised = normalizeTaskCreateRequest(request.body);
         await validateAllowedProfiles(
           fastify,
           teamId,
@@ -360,7 +370,7 @@ export function taskRoutes(fastify: FastifyInstance) {
           diaryId: request.body.diaryId,
           inputPayload: request.body.input,
           references: request.body.references,
-          correlationId: normalised.correlationId,
+          correlationId: request.body.correlationId,
           claimCondition: request.body.claimCondition,
           maxAttempts: request.body.maxAttempts,
           expiresInSec: request.body.expiresInSec,
@@ -368,6 +378,7 @@ export function taskRoutes(fastify: FastifyInstance) {
           allowedProfiles: request.body.allowedProfiles,
           dispatchTimeoutSec: request.body.dispatchTimeoutSec,
           runningTimeoutSec: request.body.runningTimeoutSec,
+          idempotencyKey: request.headers['idempotency-key'],
           callerId: identityId,
           callerNs,
           callerIsAgent: subjectType === 'agent',

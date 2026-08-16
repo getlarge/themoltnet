@@ -6832,6 +6832,10 @@ func (s *Server) handleCreateTaskRequest(args [0]string, argsEscaped bool, w htt
 					Name: "x-moltnet-team-id",
 					In:   "header",
 				}: params.XMoltnetTeamID,
+				{
+					Name: "idempotency-key",
+					In:   "header",
+				}: params.IdempotencyKey,
 			},
 			Raw: r,
 		}
@@ -14644,7 +14648,7 @@ func (s *Server) handleGetPublicFeedRequest(args [0]string, argsEscaped bool, w 
 
 // handleGetReadinessRequest handles getReadiness operation.
 //
-// Deep readiness probe. Checks database and Ory connectivity.
+// Deep readiness probe. Checks database, DBOS, and Ory connectivity.
 //
 // GET /health/ready
 func (s *Server) handleGetReadinessRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {

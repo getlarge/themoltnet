@@ -1,11 +1,11 @@
-import { DBOS, WorkflowQueue } from '@dbos-inc/dbos-sdk';
+import { DBOS } from '@dbos-inc/dbos-sdk';
 import type {
-  DataSource,
   NewTaskAttempt,
   Task,
   TaskAttempt,
   TransactionalWorkflowEnqueueInput,
   TransactionalWorkflowEnqueueResult,
+  TransactionRunner,
 } from '@moltnet/database';
 
 /**
@@ -80,7 +80,7 @@ export type TransactionalWorkflowEnqueue = (
 ) => Promise<TransactionalWorkflowEnqueueResult>;
 
 export interface TaskWorkflowDeps {
-  dataSource: DataSource;
+  transactionRunner: TransactionRunner;
   createAttempt(input: NewTaskAttempt): Promise<TaskAttempt>;
   updateAttempt(
     taskId: string,
@@ -167,6 +167,12 @@ export const DEFAULT_DISPATCH_TIMEOUT_SECONDS = 300;
 export const DEFAULT_RUNNING_TIMEOUT_SECONDS = 7200;
 export const TASK_ATTEMPT_WORKFLOW_QUEUE = 'task-attempts';
 
+export async function registerTaskWorkflowQueues(): Promise<void> {
+  await DBOS.registerQueue(TASK_ATTEMPT_WORKFLOW_QUEUE, {
+    onConflict: 'update_if_latest_version',
+  });
+}
+
 export async function enqueueTaskAttemptWorkflow(
   enqueueWorkflowInCurrentTransaction: TransactionalWorkflowEnqueue,
   input: EnqueueTaskAttemptWorkflowInput,
@@ -240,52 +246,6 @@ export function setTaskWorkflowDeps(deps: TaskWorkflowDeps): void {
 export function initTaskWorkflows(): void {
   if (_workflows) return;
 
-  new WorkflowQueue(TASK_ATTEMPT_WORKFLOW_QUEUE, {});
-
-  // Single-write steps — no transaction needed, each is naturally idempotent.
-  const insertAttemptStep = DBOS.registerStep(
-    async (
-      taskId: string,
-      attemptN: number,
-      agentId: string,
-      workflowId: string,
-      claimedExecutorFingerprint?: string | null,
-      leaseId?: string | null,
-      runtimeProfileId?: string | null,
-      runtimeProfileRevision?: number | null,
-      policySnapshotHash?: string | null,
-    ): Promise<void> => {
-      await getDeps().createAttempt({
-        taskId,
-        attemptN,
-        claimedByAgentId: agentId,
-        workflowId,
-        status: 'claimed',
-        claimedExecutorFingerprint: claimedExecutorFingerprint ?? null,
-        leaseId: leaseId ?? null,
-        runtimeProfileId: runtimeProfileId ?? null,
-        runtimeProfileRevision: runtimeProfileRevision ?? null,
-        policySnapshotHash: policySnapshotHash ?? null,
-      });
-    },
-    { name: 'task.step.insertAttempt', ...stepConfig },
-  );
-
-  const dispatchTaskStep = DBOS.registerStep(
-    async (
-      taskId: string,
-      agentId: string,
-      leaseTtlSec: number,
-    ): Promise<void> => {
-      const leaseExpiresAt = new Date(Date.now() + leaseTtlSec * 1000);
-      await getDeps().updateTaskStatus(taskId, 'dispatched', {
-        claimAgentId: agentId,
-        claimExpiresAt: leaseExpiresAt,
-      });
-    },
-    { name: 'task.step.dispatchTask', ...stepConfig },
-  );
-
   const removeClaimantTupleStep = DBOS.registerStep(
     async (taskId: string, agentId: string): Promise<void> => {
       // Keto tuple removal — best-effort, orphaned tuples cleaned up by Phase 3.
@@ -307,16 +267,6 @@ export function initTaskWorkflows(): void {
     },
     { name: 'task.step.findTaskById', ...stepConfig },
   );
-
-  // Returns wall-clock now() as a recorded value. DBOS replays the
-  // workflow body on recovery; bare Date.now() reads recovery time, not
-  // original start time, which would silently extend the running budget
-  // by a full runningTimeoutSec on every restart. Wrapping it in a step
-  // pins the value to the first execution.
-  const nowMsStep = DBOS.registerStep(async (): Promise<number> => Date.now(), {
-    name: 'task.step.nowMs',
-    ...stepConfig,
-  });
 
   // Wraps countAttempts + getMaxAttempts in a step so results are recorded in
   // the DBOS event log and not re-fetched on workflow replay (determinism).
@@ -360,19 +310,28 @@ export function initTaskWorkflows(): void {
           dispatchTimeoutSecOverride ?? DEFAULT_DISPATCH_TIMEOUT_SECONDS;
         const runningTimeoutSec =
           runningTimeoutSecOverride ?? DEFAULT_RUNNING_TIMEOUT_SECONDS;
-        // Steps 1-2: insert attempt row, mark task dispatched (split for idempotency).
-        await insertAttemptStep(
-          taskId,
-          attemptN,
-          agentId,
-          workflowId,
-          claimedExecutorFingerprint,
-          leaseId,
-          runtimeProfileId,
-          runtimeProfileRevision,
-          policySnapshotHash,
+        const dispatchedAtMs = await DBOS.now();
+        await getDeps().transactionRunner.runInTransaction(
+          async () => {
+            await getDeps().createAttempt({
+              taskId,
+              attemptN,
+              claimedByAgentId: agentId,
+              workflowId,
+              status: 'claimed',
+              claimedExecutorFingerprint: claimedExecutorFingerprint ?? null,
+              leaseId: leaseId ?? null,
+              runtimeProfileId: runtimeProfileId ?? null,
+              runtimeProfileRevision: runtimeProfileRevision ?? null,
+              policySnapshotHash: policySnapshotHash ?? null,
+            });
+            await getDeps().updateTaskStatus(taskId, 'dispatched', {
+              claimAgentId: agentId,
+              claimExpiresAt: new Date(dispatchedAtMs + leaseTtlSec * 1000),
+            });
+          },
+          { name: 'task.tx.initializeAttempt' },
         );
-        await dispatchTaskStep(taskId, agentId, leaseTtlSec);
         await DBOS.setEvent<TaskAttemptClaimedEvent>('claimed', {
           taskId,
           attemptN,
@@ -408,7 +367,7 @@ export function initTaskWorkflows(): void {
           const { attemptCount, maxAttempts } = await getRetryInfoStep(taskId);
           const canRetry = !firstEvent && attemptCount < maxAttempts;
           const { taskNow, isTerminal } = await checkExternalTerminal();
-          await getDeps().dataSource.runTransaction(
+          await getDeps().transactionRunner.runInTransaction(
             async () => {
               await getDeps().updateAttempt(taskId, attemptN, {
                 status:
@@ -499,7 +458,7 @@ export function initTaskWorkflows(): void {
         // Pin startedAtMs through a step so it survives DBOS replay
         // (bare Date.now() in workflow body would re-evaluate on
         // recovery, silently re-granting the running budget).
-        const startedAtMs = await nowMsStep();
+        const startedAtMs = await DBOS.now();
         let currentLeaseTtlSec =
           firstEvent.kind === 'started' || firstEvent.kind === 'heartbeat'
             ? (firstEvent.leaseTtlSec ?? leaseTtlSec)
@@ -509,7 +468,7 @@ export function initTaskWorkflows(): void {
         const leaseExpiresAt = new Date(
           startedAtMs + currentLeaseTtlSec * 1000,
         );
-        await getDeps().dataSource.runTransaction(
+        await getDeps().transactionRunner.runInTransaction(
           async () => {
             await getDeps().updateAttempt(taskId, attemptN, {
               status: 'running',
@@ -557,7 +516,7 @@ export function initTaskWorkflows(): void {
             attemptCount < maxAttempts;
           const now = new Date();
           const { taskNow, isTerminal } = await checkExternalTerminal();
-          await getDeps().dataSource.runTransaction(
+          await getDeps().transactionRunner.runInTransaction(
             async () => {
               await getDeps().updateAttempt(taskId, attemptN, {
                 status: evt.kind,
@@ -655,7 +614,7 @@ export function initTaskWorkflows(): void {
           const { attemptCount, maxAttempts } = await getRetryInfoStep(taskId);
           const canRetry = attemptCount < maxAttempts;
           const { taskNow, isTerminal } = await checkExternalTerminal();
-          await getDeps().dataSource.runTransaction(
+          await getDeps().transactionRunner.runInTransaction(
             async () => {
               await getDeps().updateAttempt(taskId, attemptN, {
                 status: 'timed_out',
@@ -709,7 +668,7 @@ export function initTaskWorkflows(): void {
         }
 
         while (true) {
-          const remainingMs = totalDeadlineMs - Date.now();
+          const remainingMs = totalDeadlineMs - (await DBOS.now());
           if (remainingMs <= 0) {
             return persistTimeout('running_total_exceeded');
           }
@@ -732,7 +691,7 @@ export function initTaskWorkflows(): void {
             // Timed out the recv. Distinguish: if the total budget is
             // also gone, that's `running_total_exceeded`; otherwise
             // it's a missed-heartbeat `lease_expired`.
-            if (Date.now() >= totalDeadlineMs) {
+            if ((await DBOS.now()) >= totalDeadlineMs) {
               return persistTimeout('running_total_exceeded');
             }
             return persistTimeout('lease_expired');

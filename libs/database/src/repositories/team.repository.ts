@@ -101,7 +101,7 @@ export function createTeamRepository(db: Database): TeamRepository {
     },
 
     async findById(id) {
-      const [team] = await db
+      const [team] = await getExecutor(db)
         .select()
         .from(teams)
         .where(eq(teams.id, id))
@@ -111,7 +111,7 @@ export function createTeamRepository(db: Database): TeamRepository {
 
     async listByIds(ids) {
       if (ids.length === 0) return [];
-      return db.select().from(teams).where(inArray(teams.id, ids));
+      return getExecutor(db).select().from(teams).where(inArray(teams.id, ids));
     },
 
     async findPersonalByCreator(creator) {
@@ -119,7 +119,7 @@ export function createTeamRepository(db: Database): TeamRepository {
         creator.kind === 'agent'
           ? eq(teams.creatorAgentId, creator.id)
           : eq(teams.creatorHumanId, creator.id);
-      const [team] = await db
+      const [team] = await getExecutor(db)
         .select()
         .from(teams)
         .where(and(creatorMatch, eq(teams.personal, true)))
@@ -175,7 +175,7 @@ export function createTeamRepository(db: Database): TeamRepository {
     },
 
     async findInviteByCode(code) {
-      const [invite] = await db
+      const [invite] = await getExecutor(db)
         .select()
         .from(teamInvites)
         .where(eq(teamInvites.code, code))
@@ -218,7 +218,7 @@ export function createTeamRepository(db: Database): TeamRepository {
     },
 
     async listInvites(teamId) {
-      return db
+      return getExecutor(db)
         .select()
         .from(teamInvites)
         .where(eq(teamInvites.teamId, teamId));
@@ -257,7 +257,7 @@ export function createTeamRepository(db: Database): TeamRepository {
         .returning();
       // If the row already existed the insert is a no-op; fetch the existing row.
       if (!row) {
-        const [existing] = await db
+        const [existing] = await getExecutor(db)
           .select()
           .from(foundingAcceptances)
           .where(
@@ -273,7 +273,7 @@ export function createTeamRepository(db: Database): TeamRepository {
     },
 
     async listFoundingAcceptances(teamId) {
-      return db
+      return getExecutor(db)
         .select()
         .from(foundingAcceptances)
         .where(eq(foundingAcceptances.teamId, teamId));

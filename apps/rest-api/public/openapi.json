@@ -7206,6 +7206,37 @@
                 ],
                 "type": "object"
               },
+              "dbos": {
+                "properties": {
+                  "error": {
+                    "type": "string"
+                  },
+                  "latencyMs": {
+                    "type": "number"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "ok"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "error"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "status",
+                  "latencyMs"
+                ],
+                "type": "object"
+              },
               "ory": {
                 "properties": {
                   "error": {
@@ -7271,6 +7302,7 @@
             },
             "required": [
               "database",
+              "dbos",
               "ory"
             ],
             "type": "object"
@@ -22905,7 +22937,7 @@
     },
     "/health/ready": {
       "get": {
-        "description": "Deep readiness probe. Checks database and Ory connectivity.",
+        "description": "Deep readiness probe. Checks database, DBOS, and Ory connectivity.",
         "operationId": "getReadiness",
         "responses": {
           "200": {
@@ -40050,6 +40082,17 @@
             "required": true,
             "schema": {
               "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Retry key scoped to the active team and authenticated proposer.",
+            "in": "header",
+            "name": "idempotency-key",
+            "required": false,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
               "type": "string"
             }
           }

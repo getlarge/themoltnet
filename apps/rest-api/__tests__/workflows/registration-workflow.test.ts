@@ -1,13 +1,21 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { registerStep, registerWorkflow } = vi.hoisted(() => ({
+const { registerStep, registerWorkflow, startWorkflow } = vi.hoisted(() => ({
   registerStep: vi.fn((fn) => fn),
   registerWorkflow: vi.fn((fn) => fn),
+  startWorkflow: vi.fn((fn) => async (...args: unknown[]) => ({
+    getResult: async () => fn(...args),
+  })),
 }));
 
 vi.mock('@moltnet/database', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
-  DBOS: { registerStep, registerWorkflow },
+  DBOS: {
+    registerStep,
+    registerWorkflow,
+    startWorkflow,
+    workflowID: 'registration-test',
+  },
 }));
 
 import {
@@ -42,6 +50,7 @@ function createDeps() {
         },
       ]),
       createIdentity: vi.fn().mockResolvedValue({ id: IDENTITY_ID }),
+      listIdentities: vi.fn().mockResolvedValue([]),
       deleteIdentity: vi.fn(),
     },
     oauth2Api: {
@@ -94,8 +103,8 @@ function createDeps() {
       },
       secret: 'agent-secret',
     }),
-    dataSource: {
-      runTransaction: vi.fn(async (fn) => fn()),
+    transactionRunner: {
+      runInTransaction: vi.fn(async (fn) => fn()),
     },
     logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
   };
@@ -179,6 +188,38 @@ describe('registration workflow', () => {
     );
   });
 
+  it('reconciles a lost Kratos create response through the public-key identifier', async () => {
+    const deps = createDeps();
+    deps.identityApi.createIdentity.mockRejectedValueOnce({
+      response: { status: 409 },
+    });
+    deps.identityApi.listIdentities.mockResolvedValueOnce([
+      {
+        id: IDENTITY_ID,
+        schema_id: 'agent-v2',
+        traits: { public_key: PUBLIC_KEY },
+      },
+    ]);
+    setRegistrationDeps(deps as never);
+
+    const result = await registrationWorkflow.registerAgent({
+      publicKey: PUBLIC_KEY,
+      fingerprint: FINGERPRINT,
+      credentialType: 'oauth2',
+      idempotencyKey: 'nonce',
+      mode: { type: 'self' },
+    });
+
+    expect(result.identityId).toBe(IDENTITY_ID);
+    expect(deps.identityApi.listIdentities).toHaveBeenCalledWith({
+      consistency: 'strong',
+      credentialsIdentifier: PUBLIC_KEY,
+    });
+    expect(deps.agentRepository.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ identityId: IDENTITY_ID }),
+    );
+  });
+
   it('allows only one winner when redemption loses a concurrent race', async () => {
     const deps = createDeps();
     deps.agentEnrollmentRepository.redeem.mockResolvedValueOnce(null);
@@ -204,14 +245,12 @@ describe('registration workflow', () => {
     deps.oauth2Api.createOAuth2Client.mockRejectedValueOnce(
       new Error('Hydra unavailable'),
     );
-    deps.teamRepository.findPersonalByCreator
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({ id: TEAM_ID });
-    deps.diaryRepository.listByCreator
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([
-        { id: 'diary-id', name: 'Private', teamId: TEAM_ID },
-      ]);
+    deps.teamRepository.findPersonalByCreator.mockResolvedValue({
+      id: TEAM_ID,
+    });
+    deps.diaryRepository.listByCreator.mockResolvedValue([
+      { id: 'diary-id', name: 'Private', teamId: TEAM_ID },
+    ]);
     setRegistrationDeps(deps as never);
 
     await expect(

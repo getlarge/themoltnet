@@ -1174,6 +1174,9 @@ export const diaryTransfers = pgTable(
     index('diary_transfers_source_team_idx').on(table.sourceTeamId),
     index('diary_transfers_dest_team_idx').on(table.destinationTeamId),
     uniqueIndex('diary_transfers_workflow_idx').on(table.workflowId),
+    uniqueIndex('diary_transfers_one_pending_per_diary_idx')
+      .on(table.diaryId)
+      .where(sql`status = 'pending'`),
   ],
 );
 
@@ -1318,6 +1321,8 @@ export const tasks = pgTable(
     input: jsonb('input').notNull(),
     inputSchemaCid: varchar('input_schema_cid', { length: 100 }).notNull(),
     inputCid: varchar('input_cid', { length: 100 }).notNull(),
+    idempotencyKeyHash: varchar('idempotency_key_hash', { length: 64 }),
+    idempotencyRequestCid: varchar('idempotency_request_cid', { length: 100 }),
     // wire field is `references`; `references` is a SQL reserved word
     taskRefs: jsonb('task_refs')
       .notNull()
@@ -1396,6 +1401,20 @@ export const tasks = pgTable(
     index('tasks_claim_expires_idx')
       .on(table.claimExpiresAt)
       .where(sql`claim_expires_at IS NOT NULL`),
+    uniqueIndex('tasks_agent_idempotency_idx')
+      .on(table.teamId, table.proposedByAgentId, table.idempotencyKeyHash)
+      .where(
+        sql`idempotency_key_hash IS NOT NULL AND proposed_by_agent_id IS NOT NULL`,
+      ),
+    uniqueIndex('tasks_human_idempotency_idx')
+      .on(table.teamId, table.proposedByHumanId, table.idempotencyKeyHash)
+      .where(
+        sql`idempotency_key_hash IS NOT NULL AND proposed_by_human_id IS NOT NULL`,
+      ),
+    check(
+      'tasks_idempotency_columns_together',
+      sql`(idempotency_key_hash IS NULL) = (idempotency_request_cid IS NULL)`,
+    ),
     index('tasks_non_terminal_expires_idx')
       .on(table.expiresAt)
       .where(

@@ -4,7 +4,6 @@ import {
   type TaskArtifactRepository,
   type TaskRepository,
   type WorkflowHandle,
-  WorkflowQueue,
 } from '@moltnet/database';
 
 import {
@@ -47,7 +46,7 @@ interface TaskDeletionWorkflowDeps {
   };
 }
 
-type DeleteTaskRowsStep = (
+type DeleteTaskRowsTransaction = (
   manifest: TaskCleanupManifest,
   opts?: {
     deleteCorrelationSeals?: boolean;
@@ -56,6 +55,7 @@ type DeleteTaskRowsStep = (
 ) => Promise<TaskCleanupManifest>;
 
 type DeleteTaskObjectsStep = (manifest: TaskCleanupManifest) => Promise<number>;
+type DeleteTaskRelationsStep = (manifest: TaskCleanupManifest) => Promise<void>;
 
 let _taskDeletionWorkflow:
   | ((input: TaskDeletionWorkflowInput) => Promise<TaskDeletionWorkflowResult>)
@@ -69,26 +69,14 @@ export function _resetTaskDeletionWorkflowForTesting(): void {
   _taskDeletionQueueRegistered = false;
 }
 
-function ensureTaskDeletionQueue(): void {
+export async function registerTaskDeletionQueue(): Promise<void> {
   if (_taskDeletionQueueRegistered) {
     return;
   }
-
-  try {
-    new WorkflowQueue(TASK_DELETION_QUEUE_NAME, { concurrency: 2 });
-  } catch (err) {
-    if (
-      err instanceof Error &&
-      err.message.includes(
-        `Workflow Queue '${TASK_DELETION_QUEUE_NAME}' defined multiple times`,
-      )
-    ) {
-      _taskDeletionQueueRegistered = true;
-      return;
-    }
-    throw err;
-  }
-
+  await DBOS.registerQueue(TASK_DELETION_QUEUE_NAME, {
+    concurrency: 2,
+    onConflict: 'update_if_latest_version',
+  });
   _taskDeletionQueueRegistered = true;
 }
 
@@ -109,12 +97,11 @@ export async function startTaskDeletionWorkflow(
 
 export function registerTaskDeletionWorkflow(input: {
   getDeps: () => TaskDeletionWorkflowDeps;
-  deleteTaskRowsStep: DeleteTaskRowsStep;
+  deleteTaskRowsTransaction: DeleteTaskRowsTransaction;
+  deleteTaskRelationsStep: DeleteTaskRelationsStep;
   deleteTaskArtifactObjectsStep: DeleteTaskObjectsStep;
   deleteRuntimeSessionObjectsStep: DeleteTaskObjectsStep;
 }): void {
-  ensureTaskDeletionQueue();
-
   const buildTaskDeletionManifestStep = DBOS.registerStep(
     async (
       workflowInput: TaskDeletionWorkflowInput,
@@ -241,10 +228,13 @@ export function registerTaskDeletionWorkflow(input: {
           },
           'task.delete.rows_delete_started',
         );
-        const deletedManifest = await input.deleteTaskRowsStep(manifest, {
-          deleteCorrelationSeals: workflowInput.force,
-          onlyStatuses: DELETE_ELIGIBLE_TASK_STATUSES,
-        });
+        const deletedManifest = await input.deleteTaskRowsTransaction(
+          manifest,
+          {
+            deleteCorrelationSeals: workflowInput.force,
+            onlyStatuses: DELETE_ELIGIBLE_TASK_STATUSES,
+          },
+        );
         const deletedTaskIds = deletedManifest.tasks.map((task) => task.id);
         const deletedTaskIdSet = new Set(deletedTaskIds);
         const skippedAfterManifest = manifest.tasks
@@ -264,6 +254,7 @@ export function registerTaskDeletionWorkflow(input: {
           'task.delete.rows_deleted',
         );
 
+        await input.deleteTaskRelationsStep(deletedManifest);
         const deletedArtifactObjects =
           await input.deleteTaskArtifactObjectsStep(deletedManifest);
         const deletedRuntimeSessionObjects =

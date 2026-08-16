@@ -1,3 +1,5 @@
+import { createHash, randomUUID } from 'node:crypto';
+
 import type { ExecutorTrustLevel } from '@moltnet/crypto-service';
 import {
   computeJsonCid,
@@ -200,6 +202,56 @@ export function createTaskCreateService(
         );
       }
       const inputCid = await computeJsonCid(normalizedInput);
+      const normalizedTitle = normalizeTaskTitle(input.title);
+      const normalizedTags = normalizeTaskTags(input.tags);
+      const proposerId = input.proposerId ?? input.callerId;
+      const idempotencyKeyHash = input.idempotencyKey
+        ? createHash('sha256').update(input.idempotencyKey).digest('hex')
+        : null;
+      const idempotencyRequestCid = idempotencyKeyHash
+        ? await computeJsonCid({
+            allowedProfiles: input.allowedProfiles ?? [],
+            claimCondition: input.claimCondition ?? null,
+            correlationId: input.correlationId ?? null,
+            diaryId: input.diaryId,
+            dispatchTimeoutSec: input.dispatchTimeoutSec ?? null,
+            expiresInSec: input.expiresInSec ?? null,
+            input: normalizedInput,
+            maxAttempts: input.maxAttempts ?? 1,
+            references: input.references ?? [],
+            requiredExecutorTrustLevel:
+              input.requiredExecutorTrustLevel ?? 'selfDeclared',
+            runningTimeoutSec: input.runningTimeoutSec ?? null,
+            tags: normalizedTags,
+            taskType: input.taskType,
+            title: normalizedTitle,
+          })
+        : null;
+
+      if (idempotencyKeyHash && idempotencyRequestCid) {
+        const existing = await taskRepository.findByIdempotencyKey({
+          teamId: input.teamId,
+          proposer: {
+            kind: input.callerIsAgent ? 'agent' : 'human',
+            id: proposerId,
+          },
+          keyHash: idempotencyKeyHash,
+        });
+        if (existing) {
+          if (existing.idempotencyRequestCid !== idempotencyRequestCid) {
+            throw new TaskServiceError(
+              'conflict',
+              'Idempotency-Key was already used with a different task request',
+            );
+          }
+          return dbTaskToWire(existing);
+        }
+      }
+
+      // Generate an omitted correlation only after idempotency reconciliation.
+      // Otherwise a replay of the same HTTP request receives a fresh random
+      // correlation before comparison and is incorrectly treated as changed.
+      const correlationId = input.correlationId ?? randomUUID();
 
       if (
         input.expiresInSec !== undefined &&
@@ -247,18 +299,16 @@ export function createTaskCreateService(
         );
       }
 
-      if (input.correlationId) {
-        const existingSeal = await asyncCtx.findCorrelationSeal(
-          input.correlationId,
-        );
+      if (correlationId) {
+        const existingSeal = await asyncCtx.findCorrelationSeal(correlationId);
         if (existingSeal) {
           throw new TaskServiceError(
             'invalid',
-            `correlation_id ${input.correlationId} is sealed by ${existingSeal.sealedByTaskType}/${existingSeal.sealedByTaskId}; no further tasks may be added to this correlation group`,
+            `correlation_id ${correlationId} is sealed by ${existingSeal.sealedByTaskType}/${existingSeal.sealedByTaskId}; no further tasks may be added to this correlation group`,
             [
               {
                 field: 'correlationId',
-                message: `correlation_id ${input.correlationId} is sealed (sealed_by_task_id=${existingSeal.sealedByTaskId}, sealed_by_task_type=${existingSeal.sealedByTaskType}, sealed_at=${existingSeal.sealedAt}). Use a fresh correlation_id for new variants.`,
+                message: `correlation_id ${correlationId} is sealed (sealed_by_task_id=${existingSeal.sealedByTaskId}, sealed_by_task_type=${existingSeal.sealedByTaskType}, sealed_at=${existingSeal.sealedAt}). Use a fresh correlation_id for new variants.`,
               },
             ],
           );
@@ -273,22 +323,20 @@ export function createTaskCreateService(
 
       const newTask: NewTask = {
         taskType: input.taskType,
-        title: normalizeTaskTitle(input.title),
-        tags: normalizeTaskTags(input.tags),
+        title: normalizedTitle,
+        tags: normalizedTags,
         teamId: input.teamId,
         diaryId: input.diaryId,
         outputKind: taskTypeDef.outputKind,
         input: normalizedInput,
         inputSchemaCid,
         inputCid,
+        idempotencyKeyHash,
+        idempotencyRequestCid,
         taskRefs: (input.references ?? []) as NewTask['taskRefs'],
-        correlationId: input.correlationId ?? null,
-        proposedByAgentId: input.callerIsAgent
-          ? (input.proposerId ?? input.callerId)
-          : null,
-        proposedByHumanId: input.callerIsAgent
-          ? null
-          : (input.proposerId ?? input.callerId),
+        correlationId,
+        proposedByAgentId: input.callerIsAgent ? proposerId : null,
+        proposedByHumanId: input.callerIsAgent ? null : proposerId,
         claimCondition: input.claimCondition ?? null,
         status: conditionSatisfied ? 'queued' : 'waiting',
         requiredExecutorTrustLevel:
@@ -386,6 +434,29 @@ export function createTaskCreateService(
         );
       } catch (err) {
         if (err instanceof TaskServiceError) throw err;
+        if (
+          idempotencyKeyHash &&
+          idempotencyRequestCid &&
+          isUniqueViolation(err)
+        ) {
+          const existing = await taskRepository.findByIdempotencyKey({
+            teamId: input.teamId,
+            proposer: {
+              kind: input.callerIsAgent ? 'agent' : 'human',
+              id: proposerId,
+            },
+            keyHash: idempotencyKeyHash,
+          });
+          if (existing) {
+            if (existing.idempotencyRequestCid === idempotencyRequestCid) {
+              return dbTaskToWire(existing);
+            }
+            throw new TaskServiceError(
+              'conflict',
+              'Idempotency-Key was already used with a different task request',
+            );
+          }
+        }
         logger.error(
           { taskType: input.taskType, err },
           'task.create.tx_failed',

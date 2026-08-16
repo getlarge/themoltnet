@@ -742,6 +742,8 @@ export interface DiaryTransfersNamespace {
 export interface TaskRequestOptions {
   /** Active team. Sets `x-moltnet-team-id` for the request. */
   teamId: string;
+  /** Retry key for task creation, scoped by team and authenticated proposer. */
+  idempotencyKey?: string;
 }
 
 export interface TasksNamespace {

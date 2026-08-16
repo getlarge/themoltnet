@@ -346,6 +346,29 @@ export function createTaskRepository(db: Database) {
       return row ?? null;
     },
 
+    async findByIdempotencyKey(input: {
+      teamId: string;
+      proposer: { kind: 'agent' | 'human'; id: string };
+      keyHash: string;
+    }): Promise<Task | null> {
+      const proposerFilter =
+        input.proposer.kind === 'agent'
+          ? eq(tasks.proposedByAgentId, input.proposer.id)
+          : eq(tasks.proposedByHumanId, input.proposer.id);
+      const [row] = await getExecutor(db)
+        .select()
+        .from(tasks)
+        .where(
+          and(
+            eq(tasks.teamId, input.teamId),
+            proposerFilter,
+            eq(tasks.idempotencyKeyHash, input.keyHash),
+          ),
+        )
+        .limit(1);
+      return row ?? null;
+    },
+
     async findByIds(ids: string[]): Promise<Task[]> {
       if (ids.length === 0) return [];
       return getExecutor(db).select().from(tasks).where(inArray(tasks.id, ids));

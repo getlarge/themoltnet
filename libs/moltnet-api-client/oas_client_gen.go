@@ -441,7 +441,7 @@ type Invoker interface {
 	GetPublicFeed(ctx context.Context, params GetPublicFeedParams) (GetPublicFeedRes, error)
 	// GetReadiness invokes getReadiness operation.
 	//
-	// Deep readiness probe. Checks database and Ory connectivity.
+	// Deep readiness probe. Checks database, DBOS, and Ory connectivity.
 	//
 	// GET /health/ready
 	GetReadiness(ctx context.Context) (GetReadinessRes, error)
@@ -5614,6 +5614,20 @@ func (c *Client) sendCreateTask(ctx context.Context, request *CreateTaskReq, par
 		}
 		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
 			return e.EncodeValue(conv.UUIDToString(params.XMoltnetTeamID))
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "idempotency-key",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.IdempotencyKey.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
 		}); err != nil {
 			return res, errors.Wrap(err, "encode header")
 		}
@@ -11396,7 +11410,7 @@ func (c *Client) sendGetPublicFeed(ctx context.Context, params GetPublicFeedPara
 
 // GetReadiness invokes getReadiness operation.
 //
-// Deep readiness probe. Checks database and Ory connectivity.
+// Deep readiness probe. Checks database, DBOS, and Ory connectivity.
 //
 // GET /health/ready
 func (c *Client) GetReadiness(ctx context.Context) (GetReadinessRes, error) {

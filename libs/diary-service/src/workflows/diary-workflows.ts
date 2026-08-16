@@ -17,9 +17,9 @@
 
 import { type RelationshipWriter } from '@moltnet/auth';
 import {
-  type DataSource,
   DBOS,
   type DiaryEntryRepository,
+  type TransactionRunner,
 } from '@moltnet/database';
 import type { EmbeddingService } from '@moltnet/embedding-service';
 
@@ -56,7 +56,7 @@ export interface DiaryWorkflowDeps {
   diaryEntryRepository: DiaryEntryRepository;
   relationshipWriter: RelationshipWriter;
   embeddingService: EmbeddingService;
-  dataSource: DataSource;
+  transactionRunner: TransactionRunner;
 }
 
 // ── Dependency Injection ───────────────────────────────────────
@@ -162,7 +162,7 @@ export function initDiaryWorkflows(): void {
   _workflows = {
     createEntry: DBOS.registerWorkflow(
       async (input: WorkflowCreateEntryInput): Promise<DiaryEntry> => {
-        const { diaryEntryRepository, dataSource } = getDeps();
+        const { diaryEntryRepository, transactionRunner } = getDeps();
 
         const entryId = await generateIdStep();
         const resolvedEntryType = input.entryType ?? 'semantic';
@@ -175,7 +175,7 @@ export function initDiaryWorkflows(): void {
         const { injectionRisk, threats: injectionThreats } =
           await scanInjectionStep(input.content, input.title);
 
-        const entry = await dataSource.runTransaction(
+        const entry = await transactionRunner.runInTransaction(
           async () => {
             return diaryEntryRepository.create({
               id: entryId,
@@ -204,7 +204,7 @@ export function initDiaryWorkflows(): void {
           await grantEntryParentStep(entry.id, input.diaryId);
         } catch {
           // Compensation: delete the orphaned entry
-          await dataSource.runTransaction(
+          await transactionRunner.runInTransaction(
             () => diaryEntryRepository.delete(entry.id),
             { name: 'diary.create.compensate' },
           );
@@ -224,7 +224,7 @@ export function initDiaryWorkflows(): void {
         existingTitle?: string | null,
         existingTags?: string[] | null,
       ): Promise<DiaryEntry | null> => {
-        const { diaryEntryRepository, dataSource } = getDeps();
+        const { diaryEntryRepository, transactionRunner } = getDeps();
         const repoUpdates: Record<string, unknown> = { ...updates };
 
         if (updates.content !== undefined || updates.title !== undefined) {
@@ -253,7 +253,7 @@ export function initDiaryWorkflows(): void {
           if (embedding.length > 0) repoUpdates.embedding = embedding;
         }
 
-        return dataSource.runTransaction(
+        return transactionRunner.runInTransaction(
           () => diaryEntryRepository.update(id, repoUpdates),
           { name: 'diary.update.persist' },
         );
@@ -263,9 +263,9 @@ export function initDiaryWorkflows(): void {
 
     deleteEntry: DBOS.registerWorkflow(
       async (id: string): Promise<boolean> => {
-        const { diaryEntryRepository, dataSource } = getDeps();
+        const { diaryEntryRepository, transactionRunner } = getDeps();
 
-        const deleted = await dataSource.runTransaction(
+        const deleted = await transactionRunner.runInTransaction(
           () => diaryEntryRepository.delete(id),
           { name: 'diary.delete.persist' },
         );

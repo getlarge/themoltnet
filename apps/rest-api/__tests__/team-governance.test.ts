@@ -339,7 +339,7 @@ describe('POST /teams/:id/accept', () => {
     expect(res.statusCode).toBe(404);
   });
 
-  it('returns 409 founding-already-accepted when caller already accepted', async () => {
+  it('returns idempotent success and re-sends completion when already accepted', async () => {
     mocks.teamRepository.findById.mockResolvedValue(MOCK_FOUNDING_TEAM);
     mocks.teamRepository.listFoundingAcceptances.mockResolvedValue([
       {
@@ -359,7 +359,15 @@ describe('POST /teams/:id/accept', () => {
       payload: {},
     });
 
-    expect(res.statusCode).toBe(409);
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ accepted: true, teamStatus: 'active' });
+    expect(mocks.teamRepository.acceptFoundingMember).not.toHaveBeenCalled();
+    expect(DBOS.send).toHaveBeenCalledWith(
+      `founding-${TEAM_ID}`,
+      true,
+      'team.founding.accepted',
+      `team-founding:${TEAM_ID}:complete`,
+    );
   });
 
   it('accepts successfully, returns teamStatus founding when not all owners accepted', async () => {
@@ -443,6 +451,7 @@ describe('POST /teams/:id/accept', () => {
       `founding-${TEAM_ID}`,
       true,
       'team.founding.accepted',
+      `team-founding:${TEAM_ID}:complete`,
     );
   });
 
@@ -1001,6 +1010,7 @@ describe('POST /transfers/:transferId/accept', () => {
       MOCK_TRANSFER.workflowId,
       'accepted',
       'diary.transfer.decision',
+      `diary-transfer:${TRANSFER_ID}:decision`,
     );
     // Route no longer calls updateStatus — the workflow is sole owner of status transitions
     expect(mocks.diaryTransferRepository.updateStatus).not.toHaveBeenCalled();
@@ -1092,6 +1102,7 @@ describe('POST /transfers/:transferId/reject', () => {
       MOCK_TRANSFER.workflowId,
       'rejected',
       'diary.transfer.decision',
+      `diary-transfer:${TRANSFER_ID}:decision`,
     );
     // Route no longer calls updateStatus — the workflow is sole owner of status transitions
     expect(mocks.diaryTransferRepository.updateStatus).not.toHaveBeenCalled();

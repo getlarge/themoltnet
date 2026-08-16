@@ -31,6 +31,7 @@ export {
 export {
   initMaintenanceWorkflows,
   type MaintenanceDeps,
+  registerMaintenanceQueues,
   setMaintenanceDeps,
 } from './maintenance.js';
 export {

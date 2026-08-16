@@ -24,6 +24,7 @@ export {
 } from './task-deletion-policy.js';
 export {
   _resetTaskDeletionWorkflowForTesting,
+  registerTaskDeletionQueue,
   registerTaskDeletionWorkflow,
   startTaskDeletionWorkflow,
   type TaskDeletionWorkflowInput,
@@ -36,6 +37,7 @@ export {
   enqueueTaskAttemptWorkflow,
   type EnqueueTaskAttemptWorkflowInput,
   initTaskWorkflows,
+  registerTaskWorkflowQueues,
   setTaskWorkflowDeps,
   TASK_ATTEMPT_WORKFLOW_QUEUE,
   type TaskAttemptClaimedEvent,

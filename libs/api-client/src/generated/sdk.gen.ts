@@ -1950,7 +1950,7 @@ export const getHealth = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Deep readiness probe. Checks database and Ory connectivity.
+ * Deep readiness probe. Checks database, DBOS, and Ory connectivity.
  */
 export const getReadiness = <ThrowOnError extends boolean = false>(
   options?: Options<GetReadinessData, ThrowOnError>,

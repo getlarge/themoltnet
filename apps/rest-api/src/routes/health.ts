@@ -18,6 +18,7 @@ interface HealthPool {
 
 export interface HealthRouteOptions {
   pool?: HealthPool;
+  dbosReady?: () => boolean;
   oryProjectUrl?: string;
   talosApi?: Pick<ApiKeysApi, 'getJwks'>;
 }
@@ -146,7 +147,7 @@ export async function healthRoutes(
         operationId: 'getReadiness',
         tags: ['health'],
         description:
-          'Deep readiness probe. Checks database and Ory connectivity.',
+          'Deep readiness probe. Checks database, DBOS, and Ory connectivity.',
         response: {
           200: Type.Ref(ReadinessSchema.$id),
           503: Type.Ref(ReadinessSchema.$id),
@@ -154,7 +155,7 @@ export async function healthRoutes(
       },
     },
     async (request, reply) => {
-      const [database, ory, talos] = await Promise.all([
+      const [database, dbos, ory, talos] = await Promise.all([
         opts.pool
           ? probeDatabase(opts.pool, request.log)
           : {
@@ -162,6 +163,15 @@ export async function healthRoutes(
               latencyMs: 0,
               error: 'not_configured',
             },
+        Promise.resolve().then(() => {
+          const start = performance.now();
+          const ready = opts.dbosReady?.() ?? false;
+          return {
+            status: ready ? ('ok' as const) : ('error' as const),
+            latencyMs: Math.round(performance.now() - start),
+            ...(ready ? {} : { error: 'not_ready' }),
+          };
+        }),
         opts.oryProjectUrl
           ? probeOry(opts.oryProjectUrl, request.log)
           : {
@@ -174,12 +184,13 @@ export async function healthRoutes(
 
       const allOk =
         database.status === 'ok' &&
+        dbos.status === 'ok' &&
         ory.status === 'ok' &&
         (talos === undefined || talos.status === 'ok');
       const body = {
         status: allOk ? ('ok' as const) : ('degraded' as const),
         timestamp: new Date().toISOString(),
-        components: { database, ory, ...(talos ? { talos } : {}) },
+        components: { database, dbos, ory, ...(talos ? { talos } : {}) },
       };
 
       return reply.status(allOk ? 200 : 503).send(body);

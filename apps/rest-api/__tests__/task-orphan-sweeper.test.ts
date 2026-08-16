@@ -15,7 +15,7 @@ const {
   registeredSteps,
   registeredScheduled,
   dbosMock,
-  WorkflowQueueMock,
+  dbosErrorsMock,
 } = vi.hoisted(() => {
   const registeredWorkflows: Record<string, (...args: unknown[]) => unknown> =
     {};
@@ -52,27 +52,25 @@ const {
     listWorkflows: vi.fn().mockResolvedValue([]),
     deleteWorkflows: vi.fn().mockResolvedValue(undefined),
   };
-
-  class WorkflowQueueMock {
-    readonly name: string;
-
-    constructor(name: string) {
-      this.name = name;
-    }
-  }
+  const dbosErrorsMock = {
+    DBOSNonExistentWorkflowError: class extends Error {},
+    DBOSInvalidWorkflowTransitionError: class extends Error {},
+    DBOSWorkflowCancelledError: class extends Error {},
+    DBOSQueueDuplicatedError: class extends Error {},
+  };
 
   return {
     registeredWorkflows,
     registeredSteps,
     registeredScheduled,
     dbosMock,
-    WorkflowQueueMock,
+    dbosErrorsMock,
   };
 });
 
 vi.mock('@dbos-inc/dbos-sdk', () => ({
   DBOS: dbosMock,
-  WorkflowQueue: WorkflowQueueMock,
+  Error: dbosErrorsMock,
 }));
 
 vi.mock('@moltnet/database', async () => {
@@ -80,7 +78,6 @@ vi.mock('@moltnet/database', async () => {
   return {
     ...actual,
     DBOS: dbosMock,
-    WorkflowQueue: WorkflowQueueMock,
   };
 });
 

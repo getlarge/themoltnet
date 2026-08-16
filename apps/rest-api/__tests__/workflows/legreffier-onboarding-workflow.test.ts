@@ -43,9 +43,6 @@ import {
 
 function createMockDeps() {
   return {
-    identityApi: {
-      deleteIdentity: vi.fn(),
-    },
     logger: {
       info: vi.fn(),
       warn: vi.fn(),
@@ -61,13 +58,7 @@ describe('initLegreffierOnboardingWorkflow', () => {
     initLegreffierOnboardingWorkflow();
   });
 
-  it('registers steps and workflow with DBOS', () => {
-    expect(mockRegisterStep).toHaveBeenCalledWith(
-      expect.any(Function),
-      expect.objectContaining({
-        name: 'legreffier.step.deleteKratosIdentity',
-      }),
-    );
+  it('registers the workflow with DBOS', () => {
     expect(mockRegisterWorkflow).toHaveBeenCalledWith(
       expect.any(Function),
       expect.objectContaining({ name: 'legreffier.startOnboarding' }),

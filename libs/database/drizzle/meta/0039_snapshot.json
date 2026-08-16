@@ -1,5 +1,5 @@
 {
-  "id": "08f78fe3-eac8-4eee-87b9-52962e55efaa",
+  "id": "599f219b-132b-4b93-958a-a10fb09ba7f4",
   "prevId": "22226b23-9775-4ff1-82f6-ca60b0053f01",
   "version": "7",
   "dialect": "postgresql",
@@ -1406,6 +1406,22 @@
             }
           ],
           "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "diary_transfers_one_pending_per_diary_idx": {
+          "name": "diary_transfers_one_pending_per_diary_idx",
+          "columns": [
+            {
+              "expression": "diary_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "status = 'pending'",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -6065,6 +6081,18 @@
           "primaryKey": false,
           "notNull": true
         },
+        "idempotency_key_hash": {
+          "name": "idempotency_key_hash",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "idempotency_request_cid": {
+          "name": "idempotency_request_cid",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
         "task_refs": {
           "name": "task_refs",
           "type": "jsonb",
@@ -6314,6 +6342,62 @@
           "method": "btree",
           "with": {}
         },
+        "tasks_agent_idempotency_idx": {
+          "name": "tasks_agent_idempotency_idx",
+          "columns": [
+            {
+              "expression": "team_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "proposed_by_agent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "idempotency_key_hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "idempotency_key_hash IS NOT NULL AND proposed_by_agent_id IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "tasks_human_idempotency_idx": {
+          "name": "tasks_human_idempotency_idx",
+          "columns": [
+            {
+              "expression": "team_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "proposed_by_human_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "idempotency_key_hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "idempotency_key_hash IS NOT NULL AND proposed_by_human_id IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "tasks_non_terminal_expires_idx": {
           "name": "tasks_non_terminal_expires_idx",
           "columns": [
@@ -6459,6 +6543,10 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
+        "tasks_idempotency_columns_together": {
+          "name": "tasks_idempotency_columns_together",
+          "value": "(idempotency_key_hash IS NULL) = (idempotency_request_cid IS NULL)"
+        },
         "tasks_proposer_xor": {
           "name": "tasks_proposer_xor",
           "value": "(proposed_by_agent_id IS NOT NULL) <> (proposed_by_human_id IS NOT NULL)"

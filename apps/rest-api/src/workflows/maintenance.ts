@@ -6,14 +6,13 @@
  * ## Initialization Order
  *
  * 1. Call `initMaintenanceWorkflows()` in `registerWorkflows` (after configureDBOS).
- * 2. Call `setMaintenanceDeps()` in `afterLaunch` (once repositories are available).
+ * 2. Call `setMaintenanceDeps()` before launch so recovery has dependencies.
  */
 
 import type { RelationshipWriter } from '@moltnet/auth';
 import {
   type ContextPackRepository,
   type DatabaseCapacityRepository,
-  type DataSource,
   DBOS,
   DBOSErrors,
   type NonceRepository,
@@ -25,7 +24,6 @@ import {
   type TaskArtifactRepository,
   type TaskRepository,
   type TransactionRunner,
-  WorkflowQueue,
 } from '@moltnet/database';
 import type { RuntimeSessionStorage } from '@moltnet/runtime-session-service';
 import {
@@ -35,6 +33,7 @@ import {
 import {
   deleteObjectsWithLocalRetries,
   filterCleanupManifestByTaskIds,
+  registerTaskDeletionQueue,
   registerTaskDeletionWorkflow,
   selectOrphanCandidates,
   type TaskArtifactObjectRef,
@@ -68,7 +67,6 @@ export interface MaintenanceDeps {
   databaseCapacityRepository: DatabaseCapacityRepository;
   runtimeSessionStorage: RuntimeSessionStorage;
   taskArtifactStorage: TaskArtifactStorage;
-  dataSource: DataSource;
   transactionRunner: TransactionRunner;
   relationshipWriter: RelationshipWriter;
   logger: FastifyBaseLogger;
@@ -91,6 +89,15 @@ export function setMaintenanceDeps(deps: MaintenanceDeps): void {
 // ── Lazy Registration ──────────────────────────────────────────
 
 let _initialized = false;
+const TASK_RETENTION_CLEANUP_QUEUE = 'task-retention-cleanup';
+
+export async function registerMaintenanceQueues(): Promise<void> {
+  await DBOS.registerQueue(TASK_RETENTION_CLEANUP_QUEUE, {
+    concurrency: 1,
+    onConflict: 'update_if_latest_version',
+  });
+  await registerTaskDeletionQueue();
+}
 /**
  * Register all maintenance workflows with DBOS.
  *
@@ -144,10 +151,23 @@ export function initMaintenanceWorkflows(
       let expiredRequests: number;
       let deletedRegistrations: number;
       try {
-        [expiredRequests, deletedRegistrations] = await Promise.all([
+        const results = await Promise.allSettled([
           expireSigningRequestsStep(actualTime, signingExpiryBatchSize),
           cleanupSigningRegistrationsStep(actualTime, signingExpiryBatchSize),
         ]);
+        const failures = results.filter(
+          (result): result is PromiseRejectedResult =>
+            result.status === 'rejected',
+        );
+        if (failures.length > 0) {
+          throw new AggregateError(
+            failures.map((failure): unknown => failure.reason),
+            'Signing expiry cleanup failed',
+          );
+        }
+        [expiredRequests, deletedRegistrations] = results.map(
+          (result) => (result as PromiseFulfilledResult<number>).value,
+        );
       } catch (error) {
         logger.error(
           { err: error },
@@ -311,8 +331,8 @@ export function initMaintenanceWorkflows(
       }));
 
       // Atomic deletion — FK cascade removes context_pack_entries
-      const { dataSource, contextPackRepository } = getDeps();
-      const deleted = await dataSource.runTransaction(
+      const { transactionRunner, contextPackRepository } = getDeps();
+      const deleted = await transactionRunner.runInTransaction(
         async () => contextPackRepository.deleteMany(ids),
         { name: 'maintenance.packGc.tx.delete' },
       );
@@ -437,40 +457,37 @@ export function initMaintenanceWorkflows(
     { name: 'maintenance.taskOrphanSweeper.listOrphans' },
   );
 
-  const tryResumeWorkflowStep = DBOS.registerStep(
-    async (workflowId: string): Promise<{ resumed: boolean }> => {
-      const { logger } = getDeps();
-      try {
-        await DBOS.resumeWorkflow(workflowId);
-        return { resumed: true };
-      } catch (err) {
-        // Distinguish expected "not recoverable" outcomes (workflow
-        // handle missing, already terminal/cancelled, invalid state
-        // transition) from unexpected infrastructure failures (DB
-        // connectivity, SDK bugs). Expected → fall through to row-level
-        // force-release. Unexpected → re-throw so DBOS step retries
-        // kick in instead of silently force-releasing every orphan in
-        // the batch on a transient blip.
-        const expected =
-          err instanceof DBOSErrors.DBOSNonExistentWorkflowError ||
-          err instanceof DBOSErrors.DBOSInvalidWorkflowTransitionError ||
-          err instanceof DBOSErrors.DBOSWorkflowCancelledError;
-        if (!expected) {
-          logger.warn(
-            { workflowId, err },
-            'maintenance: task orphan — resume hit unexpected error, will retry',
-          );
-          throw err;
-        }
-        logger.debug(
+  const tryResumeWorkflow = async (
+    workflowId: string,
+  ): Promise<{ resumed: boolean }> => {
+    const { logger } = getDeps();
+    try {
+      await DBOS.resumeWorkflow(workflowId);
+      return { resumed: true };
+    } catch (err) {
+      // Distinguish expected "not recoverable" outcomes (workflow
+      // handle missing, already terminal/cancelled, invalid state
+      // transition) from unexpected infrastructure failures. Expected
+      // outcomes fall through to row-level force-release; unexpected ones
+      // fail the workflow so DBOS recovery retries from this operation.
+      const expected =
+        err instanceof DBOSErrors.DBOSNonExistentWorkflowError ||
+        err instanceof DBOSErrors.DBOSInvalidWorkflowTransitionError ||
+        err instanceof DBOSErrors.DBOSWorkflowCancelledError;
+      if (!expected) {
+        logger.warn(
           { workflowId, err },
-          'maintenance: task orphan — resume failed (workflow not recoverable), will force-release',
+          'maintenance: task orphan — resume hit unexpected error, will retry',
         );
-        return { resumed: false };
+        throw err;
       }
-    },
-    { name: 'maintenance.taskOrphanSweeper.tryResume' },
-  );
+      logger.debug(
+        { workflowId, err },
+        'maintenance: task orphan — resume failed (workflow not recoverable), will force-release',
+      );
+      return { resumed: false };
+    }
+  };
 
   const forceReleaseAttemptStep = DBOS.registerStep(
     async (input: {
@@ -598,7 +615,7 @@ export function initMaintenanceWorkflows(
             // First-pass: try to wake the original workflow. If DBOS still
             // has its event log, the recv loop will see the missed deadline
             // and transition naturally (lease_expired / running_total_exceeded).
-            const { resumed: didResume } = await tryResumeWorkflowStep(
+            const { resumed: didResume } = await tryResumeWorkflow(
               attempt.workflowId,
             );
             if (didResume) {
@@ -772,10 +789,6 @@ export function initMaintenanceWorkflows(
   // Applies operator-owned retention policy to terminal task rows.
   // This is deliberately separate from the non-terminal expiry sweeper:
   // expiry terminalizes idle work, retention deletes old terminal rows.
-  const taskRetentionCleanupQueue = new WorkflowQueue(
-    'task-retention-cleanup',
-    { concurrency: 1 },
-  );
   const buildRetentionCleanupManifestStep = DBOS.registerStep(
     async (
       now: Date,
@@ -912,22 +925,18 @@ export function initMaintenanceWorkflows(
     },
   );
 
-  const deleteTaskRowsStep = DBOS.registerStep(
-    async (
-      manifest: TaskCleanupManifest,
-      opts?: {
-        deleteCorrelationSeals?: boolean;
-        onlyStatuses?: readonly Task['status'][];
-      },
-    ): Promise<TaskCleanupManifest> => {
-      const {
-        relationshipWriter,
-        runtimeSessionRepository,
-        taskRepository,
-        transactionRunner,
-      } = getDeps();
-      const taskIds = manifest.tasks.map((task) => task.id);
-      const deletedIds = await transactionRunner.runInTransaction(async () => {
+  const deleteTaskRowsTransaction = async (
+    manifest: TaskCleanupManifest,
+    opts?: {
+      deleteCorrelationSeals?: boolean;
+      onlyStatuses?: readonly Task['status'][];
+    },
+  ): Promise<TaskCleanupManifest> => {
+    const { runtimeSessionRepository, taskRepository, transactionRunner } =
+      getDeps();
+    const taskIds = manifest.tasks.map((task) => task.id);
+    const deletedIds = await transactionRunner.runInTransaction(
+      async () => {
         const targetTaskIds = opts?.onlyStatuses
           ? await taskRepository.lockIdsIfStatusIn(taskIds, opts.onlyStatuses)
           : taskIds;
@@ -957,21 +966,23 @@ export function initMaintenanceWorkflows(
               opts.onlyStatuses,
             )
           : await taskRepository.deleteMany(finalTargetTaskIds);
-        const deletedTaskIdSet = new Set(deletedTaskIds);
-        const deletedTasks = manifest.tasks.filter((task) =>
-          deletedTaskIdSet.has(task.id),
-        );
-        await relationshipWriter.removeTaskRelationsBatch(
-          deletedTasks.map((task) => ({ id: task.id })),
-        );
         return deletedTaskIds;
-      });
-      return filterCleanupManifestByTaskIds(manifest, deletedIds);
+      },
+      { name: 'maintenance.tx.deleteTaskRows' },
+    );
+    return filterCleanupManifestByTaskIds(manifest, deletedIds);
+  };
+
+  const deleteTaskRelationsStep = DBOS.registerStep(
+    async (manifest: TaskCleanupManifest): Promise<void> => {
+      await getDeps().relationshipWriter.removeTaskRelationsBatch(
+        manifest.tasks.map((task) => ({ id: task.id })),
+      );
     },
     {
-      name: 'maintenance.taskRetentionCleanup.deleteTaskRows',
+      name: 'maintenance.taskRetentionCleanup.deleteTaskRelations',
       retriesAllowed: true,
-      maxAttempts: 3,
+      maxAttempts: 5,
       intervalSeconds: 2,
       backoffRate: 2,
     },
@@ -979,7 +990,8 @@ export function initMaintenanceWorkflows(
 
   registerTaskDeletionWorkflow({
     getDeps,
-    deleteTaskRowsStep,
+    deleteTaskRowsTransaction,
+    deleteTaskRelationsStep,
     deleteTaskArtifactObjectsStep,
     deleteRuntimeSessionObjectsStep,
   });
@@ -1022,7 +1034,8 @@ export function initMaintenanceWorkflows(
         return result;
       }
 
-      const deletedManifest = await deleteTaskRowsStep(manifest);
+      const deletedManifest = await deleteTaskRowsTransaction(manifest);
+      await deleteTaskRelationsStep(deletedManifest);
       const deletedArtifactObjects =
         await deleteTaskArtifactObjectsStep(deletedManifest);
       const deletedRuntimeSessionObjects =
@@ -1062,7 +1075,7 @@ export function initMaintenanceWorkflows(
       const { logger } = getDeps();
       try {
         await DBOS.startWorkflow(taskRetentionCleanupWorkflow, {
-          queueName: taskRetentionCleanupQueue.name,
+          queueName: TASK_RETENTION_CLEANUP_QUEUE,
           enqueueOptions: {
             deduplicationID: 'task-retention-cleanup',
           },

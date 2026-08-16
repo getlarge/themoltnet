@@ -87438,6 +87438,10 @@ func (s *ReadinessComponents) encodeFields(e *jx.Encoder) {
 		s.Database.Encode(e)
 	}
 	{
+		e.FieldStart("dbos")
+		s.Dbos.Encode(e)
+	}
+	{
 		e.FieldStart("ory")
 		s.Ory.Encode(e)
 	}
@@ -87449,10 +87453,11 @@ func (s *ReadinessComponents) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfReadinessComponents = [3]string{
+var jsonFieldsNameOfReadinessComponents = [4]string{
 	0: "database",
-	1: "ory",
-	2: "talos",
+	1: "dbos",
+	2: "ory",
+	3: "talos",
 }
 
 // Decode decodes ReadinessComponents from json.
@@ -87474,8 +87479,18 @@ func (s *ReadinessComponents) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"database\"")
 			}
-		case "ory":
+		case "dbos":
 			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				if err := s.Dbos.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"dbos\"")
+			}
+		case "ory":
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				if err := s.Ory.Decode(d); err != nil {
 					return err
@@ -87504,7 +87519,7 @@ func (s *ReadinessComponents) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000011,
+		0b00000111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -87714,6 +87729,174 @@ func (s ReadinessComponentsDatabaseStatus) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *ReadinessComponentsDatabaseStatus) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *ReadinessComponentsDbos) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *ReadinessComponentsDbos) encodeFields(e *jx.Encoder) {
+	{
+		if s.Error.Set {
+			e.FieldStart("error")
+			s.Error.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("latencyMs")
+		e.Float64(s.LatencyMs)
+	}
+	{
+		e.FieldStart("status")
+		s.Status.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfReadinessComponentsDbos = [3]string{
+	0: "error",
+	1: "latencyMs",
+	2: "status",
+}
+
+// Decode decodes ReadinessComponentsDbos from json.
+func (s *ReadinessComponentsDbos) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ReadinessComponentsDbos to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "error":
+			if err := func() error {
+				s.Error.Reset()
+				if err := s.Error.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"error\"")
+			}
+		case "latencyMs":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Float64()
+				s.LatencyMs = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"latencyMs\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.Status.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ReadinessComponentsDbos")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000110,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfReadinessComponentsDbos) {
+					name = jsonFieldsNameOfReadinessComponentsDbos[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ReadinessComponentsDbos) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ReadinessComponentsDbos) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ReadinessComponentsDbosStatus as json.
+func (s ReadinessComponentsDbosStatus) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes ReadinessComponentsDbosStatus from json.
+func (s *ReadinessComponentsDbosStatus) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ReadinessComponentsDbosStatus to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch ReadinessComponentsDbosStatus(v) {
+	case ReadinessComponentsDbosStatusOk:
+		*s = ReadinessComponentsDbosStatusOk
+	case ReadinessComponentsDbosStatusError:
+		*s = ReadinessComponentsDbosStatusError
+	default:
+		*s = ReadinessComponentsDbosStatus(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s ReadinessComponentsDbosStatus) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ReadinessComponentsDbosStatus) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

@@ -214,20 +214,24 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
     ) {
       // Accept either a raw (body, { teamId }) pair or a builder's
       // { body, teamId } result.
-      const { body, teamId } =
+      const { body, teamId, idempotencyKey } =
         options !== undefined
           ? {
               body: bodyOrBuilt as CreateTaskData['body'],
               teamId: options.teamId,
+              idempotencyKey: options.idempotencyKey,
             }
-          : (bodyOrBuilt as BuiltTask);
+          : { ...(bodyOrBuilt as BuiltTask), idempotencyKey: undefined };
       return rememberTask(
         unwrapResult(
           await createTask({
             client,
             auth,
             body,
-            headers: requiredTeamHeaders({ teamId }),
+            headers: {
+              ...requiredTeamHeaders({ teamId }),
+              ...(idempotencyKey ? { 'idempotency-key': idempotencyKey } : {}),
+            },
           }),
         ),
       );

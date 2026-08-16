@@ -430,6 +430,7 @@ export async function hookRoutes(fastify: FastifyInstance) {
       try {
         const handle = await DBOS.startWorkflow(
           humanOnboardingWorkflow.onboardHuman,
+          { workflowID: `human-onboarding:${humanId}:${identityId}` },
         )(humanId, identityId, username);
         await handle.getResult();
 

@@ -125,6 +125,13 @@ function makeJudgeTask(
 
 type TaskRepositoryMocks = {
   findById: Mock<(id: string) => Promise<DbTask | null>>;
+  findByIdempotencyKey: Mock<
+    (input: {
+      teamId: string;
+      proposer: { kind: 'agent' | 'human'; id: string };
+      keyHash: string;
+    }) => Promise<DbTask | null>
+  >;
   findByIds: Mock<(ids: string[]) => Promise<DbTask[]>>;
   findByCorrelationId: Mock<(correlationId: string) => Promise<DbTask[]>>;
   acquireTaskCreateGuardLock: Mock<(lockKey: string) => Promise<void>>;
@@ -347,6 +354,26 @@ function makeMocks(
       .fn<(id: string) => Promise<DbTask | null>>()
       .mockImplementation((id) =>
         Promise.resolve(opts.visibleTasks?.[id] ?? null),
+      ),
+    findByIdempotencyKey: vi
+      .fn<
+        (input: {
+          teamId: string;
+          proposer: { kind: 'agent' | 'human'; id: string };
+          keyHash: string;
+        }) => Promise<DbTask | null>
+      >()
+      .mockImplementation((input) =>
+        Promise.resolve(
+          insertedTasks.find(
+            (task) =>
+              task.teamId === input.teamId &&
+              task.idempotencyKeyHash === input.keyHash &&
+              (input.proposer.kind === 'agent'
+                ? task.proposedByAgentId === input.proposer.id
+                : task.proposedByHumanId === input.proposer.id),
+          ) ?? null,
+        ),
       ),
     findByIds: vi
       .fn<(ids: string[]) => Promise<DbTask[]>>()
@@ -1496,6 +1523,38 @@ describe('createTaskService.create — producer input normalization', () => {
       },
     });
     expect(newTask.inputCid).toBe(await computeJsonCid(newTask.input));
+  });
+
+  it('returns the existing task for the same idempotency key and body', async () => {
+    const input = {
+      ...fulfillCreateInput(),
+      idempotencyKey: 'absurd:execution-1:create-child',
+    };
+
+    const first = await service.create(input as never);
+    const replay = await service.create(input as never);
+
+    expect(replay.id).toBe(first.id);
+    expect(mocks.taskRepository.create).toHaveBeenCalledOnce();
+  });
+
+  it('rejects an idempotency key reused with a changed body', async () => {
+    const input = {
+      ...fulfillCreateInput(),
+      idempotencyKey: 'absurd:execution-1:create-child',
+    };
+    await service.create(input as never);
+
+    await expect(
+      service.create({
+        ...input,
+        inputPayload: { brief: 'A different task.' },
+      } as never),
+    ).rejects.toMatchObject({
+      code: 'conflict',
+      message: 'Idempotency-Key was already used with a different task request',
+    });
+    expect(mocks.taskRepository.create).toHaveBeenCalledOnce();
   });
 
   it('writes proposerId (humans.id) to proposedByHumanId for human callers', async () => {

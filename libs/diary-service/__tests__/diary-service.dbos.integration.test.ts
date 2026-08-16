@@ -26,6 +26,7 @@ import {
   createEntryRelationRepository,
   diaries,
   diaryEntries,
+  enqueueWorkflowInCurrentTransaction,
   getDataSource,
   initDBOS,
   launchDBOS,
@@ -34,7 +35,7 @@ import {
   teams,
 } from '@moltnet/database';
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import type { Pool } from 'pg';
 import {
   afterAll,
@@ -218,13 +219,13 @@ describe('DiaryService (DBOS integration)', () => {
 
     const embeddingService = createNoopEmbeddingService();
 
-    // Wire diary workflow deps (dataSource available now; deps are lazy)
+    // Wire diary workflow deps through the DBOS-backed transaction runner.
     setDiaryWorkflowDeps({
       diaryEntryRepository: dbSetup.repo,
       relationshipWriter:
         mockRelationshipWriter as unknown as RelationshipWriter,
       embeddingService,
-      dataSource: dbosSetup.dataSource,
+      transactionRunner: dbosSetup.transactionRunner,
     });
 
     service = createDiaryService({
@@ -292,6 +293,111 @@ describe('DiaryService (DBOS integration)', () => {
   // ── Atomicity Tests ────────────────────────────────────────────────────
 
   describe('atomicity', () => {
+    it('commits an app transaction and its DBOS enqueue together', async () => {
+      const workflowId = 'test-transactional-enqueue-commit';
+
+      const result = await transactionRunner.runInTransaction(
+        () =>
+          enqueueWorkflowInCurrentTransaction(db, {
+            workflowName: 'task.workflow.startAttempt',
+            queueName: 'unregistered-test-queue',
+            workflowId,
+            positionalArgs: ['task-id', 1],
+          }),
+        { name: 'test.transactional-enqueue-commit' },
+      );
+
+      expect(result).toEqual({ workflowId });
+      const status = await db.execute<{ workflow_uuid: string }>(sql`
+        SELECT workflow_uuid
+        FROM dbos.workflow_status
+        WHERE workflow_uuid = ${workflowId}
+      `);
+      expect(status.rows).toEqual([{ workflow_uuid: workflowId }]);
+    });
+
+    it('rolls back the DBOS enqueue with its app transaction', async () => {
+      const workflowId = 'test-transactional-enqueue-rollback';
+
+      await expect(
+        transactionRunner.runInTransaction(
+          async () => {
+            await enqueueWorkflowInCurrentTransaction(db, {
+              workflowName: 'task.workflow.startAttempt',
+              queueName: 'unregistered-test-queue',
+              workflowId,
+            });
+            throw new Error('rollback enqueue');
+          },
+          { name: 'test.transactional-enqueue-rollback' },
+        ),
+      ).rejects.toThrow('rollback enqueue');
+
+      const status = await db.execute<{ workflow_uuid: string }>(sql`
+        SELECT workflow_uuid
+        FROM dbos.workflow_status
+        WHERE workflow_uuid = ${workflowId}
+      `);
+      expect(status.rows).toEqual([]);
+    });
+
+    it('deduplicates repeated transactional enqueues by workflow id', async () => {
+      const workflowId = 'test-transactional-enqueue-deduplicated';
+
+      const results = await transactionRunner.runInTransaction(
+        async () =>
+          Promise.all([
+            enqueueWorkflowInCurrentTransaction(db, {
+              workflowName: 'task.workflow.startAttempt',
+              queueName: 'unregistered-test-queue',
+              workflowId,
+            }),
+            enqueueWorkflowInCurrentTransaction(db, {
+              workflowName: 'task.workflow.startAttempt',
+              queueName: 'unregistered-test-queue',
+              workflowId,
+            }),
+          ]),
+        { name: 'test.transactional-enqueue-deduplicated' },
+      );
+
+      expect(results).toEqual([{ workflowId }, { workflowId }]);
+      const status = await db.execute<{ count: string }>(sql`
+        SELECT count(*)::text AS count
+        FROM dbos.workflow_status
+        WHERE workflow_uuid = ${workflowId}
+      `);
+      expect(status.rows).toEqual([{ count: '1' }]);
+    });
+
+    it('rolls back repository writes in a DBOS-backed transaction', async () => {
+      const entryId = '00000000-0000-4000-b000-000000000099';
+      const repository = createDiaryEntryRepository(db);
+
+      await expect(
+        transactionRunner.runInTransaction(
+          async () => {
+            await repository.create({
+              id: entryId,
+              diaryId: DIARY_ID,
+              creatorAgentId: OWNER_ID,
+              content: 'Must be rolled back with the DBOS checkpoint',
+            });
+
+            throw new Error('rollback sentinel');
+          },
+          { name: 'test.repository-als-rollback' },
+        ),
+      ).rejects.toThrow('rollback sentinel');
+
+      const persisted = await db
+        .select({ id: tables.diaryEntries.id })
+        .from(tables.diaryEntries)
+        .where(eq(tables.diaryEntries.id, entryId));
+
+      expect(persisted).toEqual([]);
+    });
+
     it('creates entry and calls grantEntryParent', async () => {
       const entry = await service.createEntry(
         {

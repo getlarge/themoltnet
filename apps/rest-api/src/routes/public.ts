@@ -642,7 +642,12 @@ export async function publicRoutes(fastify: FastifyInstance) {
         throw createProblem('not-found', 'Onboarding session not found');
       }
 
-      await DBOS.send(workflowId, code, GITHUB_CODE_EVENT);
+      await DBOS.send(
+        workflowId,
+        code,
+        GITHUB_CODE_EVENT,
+        `legreffier:${workflowId}:github-code`,
+      );
       return { ok: true };
     },
   );
@@ -777,7 +782,12 @@ export async function publicRoutes(fastify: FastifyInstance) {
         throw createProblem('not-found', 'Onboarding session not found');
       }
 
-      await DBOS.send(workflowId, installation_id, INSTALLATION_ID_EVENT);
+      await DBOS.send(
+        workflowId,
+        installation_id,
+        INSTALLATION_ID_EVENT,
+        `legreffier:${workflowId}:installation`,
+      );
       return { ok: true };
     },
   );

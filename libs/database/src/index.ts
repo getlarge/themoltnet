@@ -20,14 +20,15 @@ export {
   type DBOSConfig,
   type DBOSDatabase,
   DBOSErrors,
+  type DBOSRuntimeInventory,
   type DrizzleDataSource,
   getDataSource,
+  getDBOSRuntimeInventory,
   initDBOS,
   isDBOSReady,
   launchDBOS,
   shutdownDBOS,
   type WorkflowHandle,
-  WorkflowQueue,
 } from './dbos.js';
 export {
   enqueueWorkflowInCurrentTransaction,

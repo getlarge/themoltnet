@@ -138,6 +138,7 @@ describe('createTaskService.failAttempt', () => {
         outputCid: body.outputCid,
       }),
       'progress',
+      `task:${TASK_ID}:attempt:1:terminal`,
     );
     expect(getEvent).toHaveBeenCalledWith(
       `task:${TASK_ID}:attempt:1`,
@@ -230,6 +231,7 @@ describe('createTaskService.failAttempt', () => {
       `task:${TASK_ID}:attempt:1`,
       { kind: 'failed', error },
       'progress',
+      `task:${TASK_ID}:attempt:1:terminal`,
     );
     expect(getEvent).toHaveBeenCalledWith(
       `task:${TASK_ID}:attempt:1`,

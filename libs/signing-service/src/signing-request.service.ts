@@ -612,6 +612,7 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
         row.workflowId,
         { signature: input.signature },
         'signature',
+        `signing-request:${input.requestId}:submission`,
       );
       try {
         return await waitForSigningResult(input.requestId, {

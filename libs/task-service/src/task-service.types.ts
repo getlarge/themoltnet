@@ -39,6 +39,7 @@ export interface CreateTaskInput {
   allowedProfiles?: { profileId: string }[];
   dispatchTimeoutSec?: number;
   runningTimeoutSec?: number;
+  idempotencyKey?: string;
   callerId: string;
   callerNs: KetoNamespace;
   callerIsAgent: boolean;

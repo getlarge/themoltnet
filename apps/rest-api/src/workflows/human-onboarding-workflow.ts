@@ -22,11 +22,11 @@
 
 import { KetoNamespace, type RelationshipWriter } from '@moltnet/auth';
 import {
-  type DataSource,
   DBOS,
   type DiaryRepository,
   type HumanRepository,
   type TeamRepository,
+  type TransactionRunner,
 } from '@moltnet/database';
 
 import type { Logger } from './logger.js';
@@ -46,8 +46,8 @@ export interface HumanOnboardingDeps {
   humanRepository: HumanRepository;
   diaryRepository: DiaryRepository;
   teamRepository: TeamRepository;
+  transactionRunner: TransactionRunner;
   relationshipWriter: RelationshipWriter;
-  dataSource: DataSource;
   logger: Logger;
 }
 
@@ -97,42 +97,6 @@ export function initHumanOnboardingWorkflow(): void {
 
   // ── Steps ──────────────────────────────────────────────────
 
-  const setIdentityIdStep = DBOS.registerStep(
-    async (humanId: string, identityId: string): Promise<void> => {
-      const { humanRepository } = getDeps();
-      const updated = await humanRepository.setIdentityId(humanId, identityId);
-      if (!updated) {
-        throw new HumanOnboardingError(`Human record ${humanId} not found`);
-      }
-    },
-    {
-      name: 'onboarding.step.setIdentityId',
-      retriesAllowed: true,
-      maxAttempts: 3,
-      intervalSeconds: 1,
-      backoffRate: 2,
-    },
-  );
-
-  // Compensation step — registered so DBOS replays it durably if the
-  // workflow process crashes between failure and compensation. Without
-  // this, a crash leaves the human partially onboarded with identityId
-  // still set; on replay, the original failed step retries and may
-  // succeed, leaving stale state.
-  const compensateClearIdentityIdStep = DBOS.registerStep(
-    async (humanId: string): Promise<void> => {
-      const { humanRepository } = getDeps();
-      await humanRepository.clearIdentityId(humanId);
-    },
-    {
-      name: 'onboarding.step.compensateClearIdentityId',
-      retriesAllowed: true,
-      maxAttempts: 5,
-      intervalSeconds: 2,
-      backoffRate: 2,
-    },
-  );
-
   const registerInKetoStep = DBOS.registerStep(
     async (identityId: string): Promise<void> => {
       const { relationshipWriter } = getDeps();
@@ -142,32 +106,6 @@ export function initHumanOnboardingWorkflow(): void {
       name: 'onboarding.step.registerInKeto',
       retriesAllowed: true,
       maxAttempts: 5,
-      intervalSeconds: 2,
-      backoffRate: 2,
-    },
-  );
-
-  const createPersonalTeamStep = DBOS.registerStep(
-    async (humanId: string, username: string): Promise<string> => {
-      const { teamRepository } = getDeps();
-      const existing = await teamRepository.findPersonalByCreator({
-        kind: 'human',
-        id: humanId,
-      });
-      if (existing) return existing.id;
-
-      const team = await teamRepository.create({
-        name: username,
-        personal: true,
-        creator: { kind: 'human', id: humanId },
-        status: 'active',
-      });
-      return team.id;
-    },
-    {
-      name: 'onboarding.step.createPersonalTeam',
-      retriesAllowed: true,
-      maxAttempts: 3,
       intervalSeconds: 2,
       backoffRate: 2,
     },
@@ -192,29 +130,17 @@ export function initHumanOnboardingWorkflow(): void {
     },
   );
 
-  const createPrivateDiaryStep = DBOS.registerStep(
-    async (humanId: string, personalTeamId: string): Promise<void> => {
-      const { diaryRepository, relationshipWriter } = getDeps();
-      const owned = await diaryRepository.listByCreator({
-        kind: 'human',
-        id: humanId,
-      });
-      const existing = owned.find((d) => d.name === 'Private');
-      const diary =
-        existing ??
-        (await diaryRepository.create({
-          creator: { kind: 'human', id: humanId },
-          name: 'Private',
-          visibility: 'private',
-          teamId: personalTeamId,
-        }));
-      // Keto PUT is idempotent — safe to re-grant on retry
-      await relationshipWriter.grantDiaryTeam(diary.id, personalTeamId);
+  const grantPrivateDiaryStep = DBOS.registerStep(
+    async (diaryId: string, personalTeamId: string): Promise<void> => {
+      await getDeps().relationshipWriter.grantDiaryTeam(
+        diaryId,
+        personalTeamId,
+      );
     },
     {
-      name: 'onboarding.step.createPrivateDiary',
+      name: 'onboarding.step.grantPrivateDiary',
       retriesAllowed: true,
-      maxAttempts: 3,
+      maxAttempts: 5,
       intervalSeconds: 2,
       backoffRate: 2,
     },
@@ -228,8 +154,30 @@ export function initHumanOnboardingWorkflow(): void {
       identityId: string,
       username: string,
     ): Promise<HumanOnboardingResult> => {
-      // Step 1: Link identity to human record
-      await setIdentityIdStep(humanId, identityId);
+      const {
+        diaryRepository,
+        humanRepository,
+        teamRepository,
+        transactionRunner,
+      } = getDeps();
+
+      await transactionRunner.runInTransaction(
+        async () => {
+          const updated = await humanRepository.bindIdentityId(
+            humanId,
+            identityId,
+          );
+          if (updated) return;
+          const human = await humanRepository.findById(humanId);
+          if (!human) {
+            throw new HumanOnboardingError(`Human record ${humanId} not found`);
+          }
+          throw new HumanOnboardingError(
+            `Human record ${humanId} is already bound to another identity`,
+          );
+        },
+        { name: 'onboarding.tx.bindIdentity' },
+      );
 
       // Steps 2-4 have compensation: clear identityId on failure
       try {
@@ -237,13 +185,48 @@ export function initHumanOnboardingWorkflow(): void {
         await registerInKetoStep(identityId);
 
         // Step 3: Create personal team (FK target for creator_human_id is humans.id)
-        const personalTeamId = await createPersonalTeamStep(humanId, username);
+        const personalTeamId = await transactionRunner.runInTransaction(
+          async () => {
+            const existing = await teamRepository.findPersonalByCreator({
+              kind: 'human',
+              id: humanId,
+            });
+            if (existing) return existing.id;
+            const team = await teamRepository.create({
+              name: username,
+              personal: true,
+              creator: { kind: 'human', id: humanId },
+              status: 'active',
+            });
+            return team.id;
+          },
+          { name: 'onboarding.tx.createPersonalTeam' },
+        );
 
         // Step 4: Grant team ownership (Keto uses identityId)
         await grantTeamOwnerStep(personalTeamId, identityId);
 
         // Step 5: Create private diary (FK target for creator_human_id is humans.id)
-        await createPrivateDiaryStep(humanId, personalTeamId);
+        const privateDiaryId = await transactionRunner.runInTransaction(
+          async () => {
+            const existing = (
+              await diaryRepository.listByCreator({
+                kind: 'human',
+                id: humanId,
+              })
+            ).find((diary) => diary.name === 'Private');
+            if (existing) return existing.id;
+            const diary = await diaryRepository.create({
+              creator: { kind: 'human', id: humanId },
+              name: 'Private',
+              visibility: 'private',
+              teamId: personalTeamId,
+            });
+            return diary.id;
+          },
+          { name: 'onboarding.tx.createPrivateDiary' },
+        );
+        await grantPrivateDiaryStep(privateDiaryId, personalTeamId);
 
         return { humanId, identityId, personalTeamId };
       } catch (error: unknown) {
@@ -258,7 +241,10 @@ export function initHumanOnboardingWorkflow(): void {
         );
 
         try {
-          await compensateClearIdentityIdStep(humanId);
+          await transactionRunner.runInTransaction(
+            () => humanRepository.clearIdentityIdIfMatches(humanId, identityId),
+            { name: 'onboarding.tx.compensateIdentityBinding' },
+          );
         } catch (compensationError: unknown) {
           logger.error(
             { err: compensationError, humanId },

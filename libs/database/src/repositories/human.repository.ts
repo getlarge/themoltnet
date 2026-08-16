@@ -1,4 +1,4 @@
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, isNull, or } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import { type Human, humans } from '../schema.js';
@@ -56,11 +56,45 @@ export function createHumanRepository(db: Database) {
       return updated ?? null;
     },
 
+    /**
+     * Bind a Kratos identity only while the human is unbound, or confirm an
+     * idempotent retry of the same binding. A competing identity never wins.
+     */
+    async bindIdentityId(
+      id: string,
+      identityId: string,
+    ): Promise<Human | null> {
+      const [updated] = await getExecutor(db)
+        .update(humans)
+        .set({ identityId, updatedAt: new Date() })
+        .where(
+          and(
+            eq(humans.id, id),
+            or(isNull(humans.identityId), eq(humans.identityId, identityId)),
+          ),
+        )
+        .returning();
+      return updated ?? null;
+    },
+
     async clearIdentityId(id: string): Promise<void> {
       await getExecutor(db)
         .update(humans)
         .set({ identityId: null, updatedAt: new Date() })
         .where(eq(humans.id, id));
+    },
+
+    /** Clear a failed onboarding binding without erasing a competing winner. */
+    async clearIdentityIdIfMatches(
+      id: string,
+      identityId: string,
+    ): Promise<boolean> {
+      const cleared = await getExecutor(db)
+        .update(humans)
+        .set({ identityId: null, updatedAt: new Date() })
+        .where(and(eq(humans.id, id), eq(humans.identityId, identityId)))
+        .returning({ id: humans.id });
+      return cleared.length > 0;
     },
   };
 }

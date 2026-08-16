@@ -1756,6 +1756,11 @@ export type Readiness = {
       latencyMs: number;
       status: 'ok' | 'error';
     };
+    dbos: {
+      error?: string;
+      latencyMs: number;
+      status: 'ok' | 'error';
+    };
     ory: {
       error?: string;
       latencyMs: number;
@@ -12852,6 +12857,10 @@ export type CreateTaskData = {
      * Team ID (UUID) that will own the resource. Required.
      */
     'x-moltnet-team-id': string;
+    /**
+     * Retry key scoped to the active team and authenticated proposer.
+     */
+    'idempotency-key'?: string;
   };
   path?: never;
   query?: never;

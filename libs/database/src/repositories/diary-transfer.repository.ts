@@ -54,7 +54,7 @@ export function createDiaryTransferRepository(
     },
 
     async findById(id) {
-      const [row] = await db
+      const [row] = await getExecutor(db)
         .select()
         .from(diaryTransfers)
         .where(eq(diaryTransfers.id, id))
@@ -63,7 +63,7 @@ export function createDiaryTransferRepository(
     },
 
     async findByWorkflowId(workflowId) {
-      const [row] = await db
+      const [row] = await getExecutor(db)
         .select()
         .from(diaryTransfers)
         .where(eq(diaryTransfers.workflowId, workflowId))
@@ -72,7 +72,7 @@ export function createDiaryTransferRepository(
     },
 
     async findPendingByDiary(diaryId) {
-      const [row] = await db
+      const [row] = await getExecutor(db)
         .select()
         .from(diaryTransfers)
         .where(
@@ -98,7 +98,7 @@ export function createDiaryTransferRepository(
     },
 
     async listPendingByDestinationTeam(destinationTeamId) {
-      return db
+      return getExecutor(db)
         .select()
         .from(diaryTransfers)
         .where(

@@ -24,6 +24,8 @@
     "download-model": "node ../../tools/download-embedding-model.mjs --cache-dir ./models"
   },
   "dependencies": {
+    "@dbos-inc/dbos-sdk": "catalog:",
+    "@dbos-inc/drizzle-datasource": "catalog:",
     "@fastify/cors": "catalog:",
     "@fastify/helmet": "catalog:",
     "@fastify/otel": "catalog:",

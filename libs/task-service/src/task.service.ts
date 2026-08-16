@@ -651,6 +651,7 @@ export function createTaskService(deps: TaskServiceDeps) {
           daemonState: body.daemonState ?? null,
         },
         'progress',
+        `task:${taskId}:attempt:${attemptN}:terminal`,
       );
 
       const { final, task: updated } = await waitForAttemptFinalTask(
@@ -741,7 +742,12 @@ export function createTaskService(deps: TaskServiceDeps) {
 
       const workflowId = taskWorkflowId(taskId, attemptN);
       // Multiplexed `progress` topic (#936).
-      await DBOS.send(workflowId, { kind: 'failed', error }, 'progress');
+      await DBOS.send(
+        workflowId,
+        { kind: 'failed', error },
+        'progress',
+        `task:${taskId}:attempt:${attemptN}:terminal`,
+      );
 
       const { final, task: updated } = await waitForAttemptFinalTask(
         workflowId,
@@ -848,7 +854,12 @@ export function createTaskService(deps: TaskServiceDeps) {
         message: reason ?? 'attempt aborted by claimant',
       };
       // Multiplexed `progress` topic (#936).
-      await DBOS.send(workflowId, { kind: 'aborted', error }, 'progress');
+      await DBOS.send(
+        workflowId,
+        { kind: 'aborted', error },
+        'progress',
+        `task:${taskId}:attempt:${attemptN}:terminal`,
+      );
 
       const { final, task: updated } = await waitForAttemptFinalTask(
         workflowId,
@@ -981,6 +992,7 @@ export function createTaskService(deps: TaskServiceDeps) {
             },
           },
           'progress',
+          `task:${taskId}:attempt:${active.attemptN}:terminal`,
         );
       }
 

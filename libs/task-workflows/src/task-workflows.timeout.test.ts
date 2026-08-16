@@ -5,6 +5,7 @@ import {
   _resetTaskWorkflowsForTesting,
   enqueueTaskAttemptWorkflow,
   initTaskWorkflows,
+  registerTaskWorkflowQueues,
   setTaskWorkflowDeps,
   type TaskAttemptFinalEvent,
   type TaskProgressEvent,
@@ -22,13 +23,14 @@ vi.mock('@dbos-inc/dbos-sdk', () => {
       registerWorkflow: vi.fn(
         (fn: (...args: unknown[]) => unknown, _config: { name: string }) => fn,
       ),
+      registerQueue: vi.fn(),
+      now: vi.fn(async () => Date.now()),
       setEvent: vi.fn(async (key: string, value: unknown) => {
         events[key] = value;
       }),
       recv: vi.fn(),
       _events: events,
     },
-    WorkflowQueue: vi.fn(),
   };
 });
 
@@ -42,9 +44,9 @@ const LEASE_TTL_SEC = 300;
 
 function makeDeps(overrides: Partial<TaskWorkflowDeps> = {}): TaskWorkflowDeps {
   // Minimal stub — the recv-loop test path only needs these to resolve.
-  const runTransaction = vi.fn(async (fn: () => Promise<unknown>) => fn());
+  const runTransaction = async <T>(fn: () => Promise<T>): Promise<T> => fn();
   return {
-    dataSource: { runTransaction } as unknown as TaskWorkflowDeps['dataSource'],
+    transactionRunner: { runInTransaction: runTransaction },
     createAttempt: vi.fn().mockResolvedValue({ taskId: TASK_ID, attemptN: 1 }),
     updateAttempt: vi.fn().mockResolvedValue(null),
     updateTaskStatus: vi.fn().mockResolvedValue(null),
@@ -138,7 +140,7 @@ describe('startAttemptWorkflow — timeout paths', () => {
       recvMock
         // Dispatch phase: 'started' arrives immediately at baseTime.
         // After this returns, the workflow records startedAtMs via
-        // nowMsStep — also baseTime.
+        // DBOS.now() — also baseTime.
         .mockResolvedValueOnce({
           kind: 'started',
           leaseTtlSec: LEASE_TTL_SEC,
@@ -183,6 +185,14 @@ describe('startAttemptWorkflow — timeout paths', () => {
 });
 
 describe('enqueueTaskAttemptWorkflow', () => {
+  it('persists the task queue with latest-version conflict handling', async () => {
+    await registerTaskWorkflowQueues();
+
+    expect(DBOS.registerQueue).toHaveBeenCalledWith('task-attempts', {
+      onConflict: 'update_if_latest_version',
+    });
+  });
+
   it('maps task attempt claims to the DBOS transactional enqueue payload', async () => {
     const enqueueWorkflowInCurrentTransaction = vi.fn().mockResolvedValue({
       workflowId: WORKFLOW_ID,
