@@ -7,18 +7,6 @@
       "skillPath": "skills/dbos-golang/SKILL.md",
       "computedHash": "e355fc966f2ec65506305dd47155a10f6c0dea658081e0a9b83b7fde35fe6533"
     },
-    "dbos-java": {
-      "source": "dbos-inc/agent-skills",
-      "sourceType": "github",
-      "skillPath": "skills/dbos-java/SKILL.md",
-      "computedHash": "f85df091065047611ab34f1e79fdac45eeb0afed997a555349e0b88276de939c"
-    },
-    "dbos-python": {
-      "source": "dbos-inc/agent-skills",
-      "sourceType": "github",
-      "skillPath": "skills/dbos-python/SKILL.md",
-      "computedHash": "7cba2bbc7c018fc448871b3d22d252e4d5f73d343e2fb8ad214d66f26461812d"
-    },
     "dbos-typescript": {
       "source": "dbos-inc/agent-skills",
       "sourceType": "github",
