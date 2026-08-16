@@ -7,6 +7,7 @@
  */
 
 import { Buffer } from 'node:buffer';
+import { randomUUID } from 'node:crypto';
 
 import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import {
@@ -182,6 +183,67 @@ describe('Task Tools E2E', () => {
     ).toBeUndefined();
     expect(link.parsed.id).toBe(taskId);
     expect(link.parsed.consoleUrl).toContain(`/tasks/${taskId}`);
+  });
+
+  it('creates, lists, and revokes explicit task grants through MCP', async () => {
+    requireSetup();
+    const taskId = await createCuratePackTask();
+    const subjectId = randomUUID();
+    const grantArgs = {
+      task_id: taskId,
+      team_id: harness.personalTeamId,
+      subject_id: subjectId,
+      subject_ns: 'Agent',
+      role: 'writer',
+    } as const;
+
+    const createResult = await client.callTool({
+      name: 'task_grants_create',
+      arguments: grantArgs,
+    });
+    const created = parseToolResult<{
+      subjectId: string;
+      subjectNs: string;
+      role: string;
+    }>(createResult);
+    expect(
+      createResult.isError,
+      `task_grants_create error: ${created.content[0].text}`,
+    ).toBeUndefined();
+    expect(created.parsed).toMatchObject({
+      subjectId,
+      subjectNs: 'Agent',
+      role: 'writer',
+    });
+
+    const listResult = await client.callTool({
+      name: 'task_grants_list',
+      arguments: {
+        task_id: taskId,
+        team_id: harness.personalTeamId,
+      },
+    });
+    const listed = parseToolResult<{
+      grants: Array<{ subjectId: string; role: string }>;
+    }>(listResult);
+    expect(
+      listResult.isError,
+      `task_grants_list error: ${listed.content[0].text}`,
+    ).toBeUndefined();
+    expect(listed.parsed.grants).toContainEqual(
+      expect.objectContaining({ subjectId, role: 'writer' }),
+    );
+
+    const revokeResult = await client.callTool({
+      name: 'task_grants_revoke',
+      arguments: grantArgs,
+    });
+    const revoked = parseToolResult<{ revoked: boolean }>(revokeResult);
+    expect(
+      revokeResult.isError,
+      `task_grants_revoke error: ${revoked.content[0].text}`,
+    ).toBeUndefined();
+    expect(revoked.parsed.revoked).toBe(true);
   });
 
   it('tasks_continue creates a freeform continuation with auto-injected claim condition', async () => {

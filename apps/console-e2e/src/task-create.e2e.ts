@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 
 import {
   createDiary,
@@ -24,7 +24,9 @@ test.describe.serial('Create task from console', () => {
   let teamId: string;
   let sessionToken: string;
   let runtimeProfileId: string;
+  let taskId: string;
   const runtimeProfileName = `task-create-profile-${nonce}`;
+  const grantSubjectId = randomUUID();
 
   /**
    * Log in (each serial test gets a fresh browser context, so the session from
@@ -91,6 +93,61 @@ test.describe.serial('Create task from console', () => {
       page.getByText('Pending', { exact: false }).first(),
     ).toBeVisible();
     await expect(page.getByText('Freeform').first()).toBeVisible();
+
+    const client = createTokenSessionApiClient(sessionToken);
+    await expect
+      .poll(async () => {
+        const task = (
+          await listTasks({
+            client,
+            headers: { 'x-moltnet-team-id': teamId },
+            query: {},
+          })
+        ).data?.items.find(
+          (candidate) =>
+            typeof candidate.input === 'object' &&
+            candidate.input !== null &&
+            (candidate.input as Record<string, unknown>).brief === brief,
+        );
+        taskId = task?.id ?? '';
+        return taskId;
+      })
+      .not.toBe('');
+  });
+
+  test('lazy-loads and manages explicit task grants', async ({ page }) => {
+    let grantRequests = 0;
+    page.on('request', (request) => {
+      if (new URL(request.url()).pathname === `/tasks/${taskId}/grants`) {
+        grantRequests += 1;
+      }
+    });
+
+    await loginViaBrowser(page, user);
+    await page.goto(`${CONSOLE_URL}/tasks/${taskId}`);
+    const manage = page.getByRole('button', { name: 'Manage grants' });
+    await expect(manage).toBeVisible();
+    expect(grantRequests).toBe(0);
+
+    await manage.click();
+    await expect(page.getByText(/no explicit task grants/i)).toBeVisible();
+    expect(grantRequests).toBeGreaterThanOrEqual(1);
+
+    await page.getByLabel('Subject UUID').fill(grantSubjectId);
+    await page.getByLabel('Subject type').selectOption('Agent');
+    await page.getByLabel('Task role').selectOption('writer');
+    await page.getByRole('button', { name: 'Grant task access' }).click();
+
+    await expect(page.getByText(grantSubjectId)).toBeVisible();
+    await expect(page.getByText('writer', { exact: true })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Revoke', exact: true }).click();
+    const confirmDialog = page.getByRole('dialog');
+    await expect(confirmDialog).toBeVisible();
+    await confirmDialog
+      .getByRole('button', { name: 'Revoke', exact: true })
+      .click();
+    await expect(page.getByText(grantSubjectId)).toBeHidden();
   });
 
   test('creates a task pinned to a runtime profile', async ({ page }) => {

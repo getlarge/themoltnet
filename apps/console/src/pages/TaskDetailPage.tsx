@@ -32,12 +32,17 @@ export function TaskDetailPage({ id }: { id: string }) {
   const theme = useTheme();
   const isMobile = useIsMobile();
   const [, navigate] = useLocation();
-  const { selectedTeam } = useTeam();
+  const { selectedTeam, isLoading: isTeamLoading } = useTeam();
+  const teamHeaders = selectedTeam
+    ? { 'x-moltnet-team-id': selectedTeam.id }
+    : undefined;
   const taskQuery = useQuery({
     ...getTaskOptions({
       client: getApiClient(),
+      headers: teamHeaders,
       path: { id },
     }),
+    enabled: Boolean(selectedTeam),
     refetchInterval: (query) =>
       query.state.data &&
       ['waiting', 'queued', 'dispatched', 'running'].includes(
@@ -49,8 +54,10 @@ export function TaskDetailPage({ id }: { id: string }) {
   const attemptsQuery = useQuery({
     ...listTaskAttemptsOptions({
       client: getApiClient(),
+      headers: teamHeaders,
       path: { id },
     }),
+    enabled: Boolean(selectedTeam),
     refetchInterval: (query) =>
       query.state.data?.some((attempt) =>
         ['claimed', 'running'].includes(attempt.status),
@@ -62,6 +69,7 @@ export function TaskDetailPage({ id }: { id: string }) {
   const knowledgeQuery = useQuery({
     ...listDiaryEntriesOptions({
       client: getApiClient(),
+      headers: teamHeaders,
       path: { diaryId: task?.diaryId ?? '' },
       query: {
         limit: 10,
@@ -69,10 +77,12 @@ export function TaskDetailPage({ id }: { id: string }) {
         tags: [`task:id:${id}`],
       },
     }),
-    enabled: Boolean(task?.diaryId),
+    enabled: Boolean(selectedTeam && task?.diaryId),
   });
 
-  if (taskQuery.isLoading) return <Text color="muted">Loading task…</Text>;
+  if (isTeamLoading || !selectedTeam || taskQuery.isLoading) {
+    return <Text color="muted">Loading task…</Text>;
+  }
 
   if (taskQuery.error || !task) {
     return (

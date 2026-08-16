@@ -31,6 +31,7 @@ import { getApiClient } from '../api.js';
 import { getConfig } from '../config.js';
 import { useDiarySummaries } from '../diaries/hooks.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
+import { useTeam } from '../team/useTeam.js';
 
 const SUCCESS_CRITERIA_DOCS_HREF = `${getConfig().docsUrl}/use/tasks-and-runtime#structured-output-and-self-verification`;
 
@@ -43,24 +44,34 @@ export function TaskAttemptPage({
 }) {
   const theme = useTheme();
   const isMobile = useIsMobile();
+  const { selectedTeam, isLoading: isTeamLoading } = useTeam();
+  const teamHeaders = selectedTeam
+    ? { 'x-moltnet-team-id': selectedTeam.id }
+    : undefined;
   const taskQuery = useQuery({
     ...getTaskOptions({
       client: getApiClient(),
+      headers: teamHeaders,
       path: { id },
     }),
+    enabled: Boolean(selectedTeam),
   });
   const attemptsQuery = useQuery({
     ...listTaskAttemptsOptions({
       client: getApiClient(),
+      headers: teamHeaders,
       path: { id },
     }),
+    enabled: Boolean(selectedTeam),
   });
   const messagesQuery = useQuery({
     ...listTaskMessagesOptions({
       client: getApiClient(),
+      headers: teamHeaders,
       path: { id, n: attemptN },
       query: { limit: 200 },
     }),
+    enabled: Boolean(selectedTeam),
     refetchInterval: (query) => {
       const attempt = attemptsQuery.data?.find(
         (item) => item.attemptN === attemptN,
@@ -98,7 +109,12 @@ export function TaskAttemptPage({
       ? canContinueAttempt(task, attempt)
       : { eligible: false, resumableUntil: null, expired: false };
 
-  if (taskQuery.isLoading || attemptsQuery.isLoading) {
+  if (
+    isTeamLoading ||
+    !selectedTeam ||
+    taskQuery.isLoading ||
+    attemptsQuery.isLoading
+  ) {
     return <Text color="muted">Loading attempt…</Text>;
   }
 
