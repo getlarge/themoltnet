@@ -552,7 +552,6 @@ export function createMockServices(): MockServices {
       revokeDiaryManager: vi.fn(),
       grantTaskOwnership: vi.fn(),
       grantTaskTeam: vi.fn(),
-      grantTaskParent: vi.fn(),
       grantTaskWriters: vi.fn(),
       grantTaskManagers: vi.fn(),
       revokeTaskWriter: vi.fn(),

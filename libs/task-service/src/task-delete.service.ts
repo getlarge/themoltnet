@@ -147,11 +147,7 @@ export function createTaskDeleteService(
 
           try {
             await relationshipWriter.removeTaskRelationsBatch(
-              deletedRows.map((row) => ({
-                id: row.id,
-                diaryId: row.diaryId,
-                claimAgentId: row.claimAgentId,
-              })),
+              deletedRows.map((row) => ({ id: row.id })),
             );
           } catch (err: unknown) {
             const error = err instanceof Error ? err : new Error(String(err));

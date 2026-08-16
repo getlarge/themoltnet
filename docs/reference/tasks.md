@@ -229,12 +229,14 @@ the deployed API with `task list` and `task attempts`; see the
 | GET    | `/tasks/:id/attempts/:n/artifacts/:cid/content` | Download the artifact bytes for one attempt and CID. Requires task read access.                                                                                                                                                                                                                                                                                                                                                                                           |
 | POST   | `/tasks/:id/attempts/:n/complete` / `/fail`     | Submit final output / give up. Returns 409 if `attempt.status === 'claimed'` (no heartbeat sent first) or already terminal (e.g. `aborted`). `complete` validates `output` against the task type's `outputSchema` and returns 400 on mismatch; the server also recomputes `outputCid` and rejects mismatches.                                                                                                                                                             |
 | POST   | `/tasks/:id/attempts/:n/abort`                  | Active claimant **abandons this attempt** (e.g. daemon shutdown) without cancelling the task. Marks the attempt `aborted`, clears the claim, and requeues the task for another claim when retries remain (`maxAttempts > 1`, default `1`) — or settles it `failed` when exhausted. Returns 409 if the attempt is not started or already terminal. Does **not** set `task.status = 'cancelled'` or write any `cancelledBy*` fields. Contrast with `/cancel` below. (#1382) |
-| POST   | `/tasks/:id/cancel`                             | Claimant or diary writer cancels. Sets `task.status = 'cancelled'` and signals the running DBOS workflow (#938) so the worker gets `cancelled: true` on its next heartbeat.                                                                                                                                                                                                                                                                                               |
+| POST   | `/tasks/:id/cancel`                             | Claimant, owning-team writer, or explicit task writer/manager cancels. Sets `task.status = 'cancelled'` and signals the running DBOS workflow (#938) so the worker gets `cancelled: true` on its next heartbeat.                                                                                                                                                                                                                                                          |
 
 Proposing a task is authorized by the target diary's `propose` permit before
 the task row exists. Once the task exists, the `Task` Keto namespace enforces
-`claim` through diary write, `report` by current claimant, and `cancel` by the
-claimant or any diary writer. `abort` is stricter than `cancel`: only the
+`view` through owning-team access or an explicit task grant, `claim` through
+owning-team write or an explicit task grant, `report` by the current claimant,
+and `cancel` through claim authority or the claimant. The provenance diary is
+not an authorization path. `abort` is stricter than `cancel`: only the
 **current claimant** may abort its own attempt (it is an attempt-level
 abandonment, not a task-level cancellation). Because abort clears the claimant
 tuple, a late `/complete` or `/fail` from the abandoned attempt is rejected
@@ -242,4 +244,9 @@ tuple, a late `/complete` or `/fail` from the abandoned attempt is rejected
 guard backstops it) — the requeued task cannot be revived by the worker that
 walked away.
 
-Note that **listing** tasks (`GET /tasks`) requires team-read (`canAccessTeam`); the diary-write permit gates which specific task you can claim **by id**, not which tasks appear in the list response. This means a daemon must be a member of every team whose queue it serves — diary grants alone are not sufficient for the polling source. For the canonical local-daemon scenario ("one agent, one team, one daemon, same agent proposes and claims") this is invisible; for multi-tenant daemons it's a hard constraint.
+Note that **listing** tasks (`GET /tasks`) remains database-scoped to the owning
+team. Explicit task grantees can use by-ID operations with that owning-team
+context, but task grants do not make the task appear in another team's queue.
+Diary grants never authorize task access. A daemon must therefore be a member
+of every team whose queue it polls, even when it also holds explicit grants on
+individual tasks.

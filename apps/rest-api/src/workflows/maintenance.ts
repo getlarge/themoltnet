@@ -858,11 +858,7 @@ export function initMaintenanceWorkflows(
           deletedTaskIdSet.has(task.id),
         );
         await relationshipWriter.removeTaskRelationsBatch(
-          deletedTasks.map((task) => ({
-            id: task.id,
-            diaryId: task.diaryId,
-            claimAgentId: task.claimAgentId,
-          })),
+          deletedTasks.map((task) => ({ id: task.id })),
         );
         return deletedTaskIds;
       });

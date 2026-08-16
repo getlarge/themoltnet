@@ -16,19 +16,16 @@ function taskBlock(file: string): string {
 }
 
 describe('task ownership OPL artifacts', () => {
-  it('deploys the legacy parent fallback during the ownership rollout', () => {
+  it('deploys final task authorization without diary-parent traversal', () => {
     const block = taskBlock('permissions.ts');
-    expect(block).toContain('parent: Diary[]');
+    expect(block).not.toContain('parent: Diary[]');
     expect(block).toContain("SubjectSet<Group, 'members'>");
     expect(block).toContain(
-      'this.related.parent.traverse((d) => d.permits.read(ctx))',
+      'this.related.team.traverse((t) => t.permits.access(ctx))',
     );
-    expect(block).toContain(
-      'this.related.parent.traverse((d) => d.permits.write(ctx))',
-    );
-    expect(block).toContain(
-      'this.related.parent.traverse((d) => d.permits.manage(ctx))',
-    );
-    expect(block.match(/this\.related\.parent/g)?.length).toBe(7);
+    expect(block).toContain('this.related.writers.includes(ctx.subject)');
+    expect(block).toContain('this.related.managers.includes(ctx.subject)');
+    expect(block).toContain('this.related.claimant.includes(ctx.subject)');
+    expect(block).not.toContain('this.related.parent');
   });
 });

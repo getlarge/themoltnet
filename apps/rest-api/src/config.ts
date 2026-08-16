@@ -173,13 +173,6 @@ export const TaskOrphanSweeperConfigSchema = Type.Object({
   TASK_ARTIFACT_ORPHAN_SWEEPER_MAX_DELETES: Type.Number({ default: 1000 }),
 });
 
-export const TaskOwnershipRolloutConfigSchema = Type.Object({
-  MOLTNET_TASK_OWNERSHIP_BRIDGE: Type.Union(
-    [Type.Literal('0'), Type.Literal('1')],
-    { default: '0' },
-  ),
-});
-
 export const RuntimeSessionStorageConfigSchema = Type.Object({
   RUNTIME_SESSION_STORAGE_ENDPOINT: Type.Optional(
     Type.String({ minLength: 1 }),
@@ -307,9 +300,6 @@ export type PackGcConfig = Static<typeof PackGcConfigSchema>;
 export type TaskOrphanSweeperConfig = Static<
   typeof TaskOrphanSweeperConfigSchema
 >;
-export type TaskOwnershipRolloutConfig = Static<
-  typeof TaskOwnershipRolloutConfigSchema
->;
 export type RuntimeSessionStorageConfig = Static<
   typeof RuntimeSessionStorageConfigSchema
 >;
@@ -330,7 +320,6 @@ export interface AppConfig {
   security: SecurityConfig;
   packGc: PackGcConfig;
   taskOrphanSweeper: TaskOrphanSweeperConfig;
-  taskOwnershipRollout: TaskOwnershipRolloutConfig;
   runtimeSessionStorage: RuntimeSessionStorageConfig;
   taskArtifactStorage: TaskArtifactStorageConfig;
 }
@@ -468,16 +457,6 @@ export function loadTaskOrphanSweeperConfig(
     'TaskOrphanSweeper',
     TaskOrphanSweeperConfigSchema,
     pickEnv(TaskOrphanSweeperConfigSchema, env),
-  );
-}
-
-export function loadTaskOwnershipRolloutConfig(
-  env: Record<string, string | undefined> = process.env,
-): TaskOwnershipRolloutConfig {
-  return validateSchema(
-    'TaskOwnershipRollout',
-    TaskOwnershipRolloutConfigSchema,
-    pickEnv(TaskOwnershipRolloutConfigSchema, env),
   );
 }
 
@@ -652,7 +631,6 @@ export function loadConfig(
     security,
     packGc: loadPackGcConfig(env),
     taskOrphanSweeper: loadTaskOrphanSweeperConfig(env),
-    taskOwnershipRollout: loadTaskOwnershipRolloutConfig(env),
     runtimeSessionStorage: loadRuntimeSessionStorageConfig(env),
     taskArtifactStorage: loadTaskArtifactStorageConfig(env),
   };

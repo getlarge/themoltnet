@@ -651,13 +651,7 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
     ]);
     expect(
       deps.relationshipWriter.removeTaskRelationsBatch,
-    ).toHaveBeenCalledWith([
-      {
-        id: retained[0].id,
-        diaryId: retained[0].diaryId,
-        claimAgentId: retained[0].claimAgentId,
-      },
-    ]);
+    ).toHaveBeenCalledWith([{ id: retained[0].id }]);
     expect(result).toEqual({
       examined: 2,
       deletedTaskCount: 1,
@@ -755,13 +749,7 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
     expect(deps.runtimeSessionStorage.deleteObject).not.toHaveBeenCalled();
     expect(
       deps.relationshipWriter.removeTaskRelationsBatch,
-    ).toHaveBeenCalledWith([
-      {
-        id: retained[0].id,
-        diaryId: retained[0].diaryId,
-        claimAgentId: retained[0].claimAgentId,
-      },
-    ]);
+    ).toHaveBeenCalledWith([{ id: retained[0].id }]);
     expect(result).toEqual({
       examined: 2,
       deletedTaskCount: 1,
@@ -858,13 +846,7 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
     expect(deps.runtimeSessionStorage.deleteObject).not.toHaveBeenCalled();
     expect(
       deps.relationshipWriter.removeTaskRelationsBatch,
-    ).toHaveBeenCalledWith([
-      {
-        id: deletedTask.id,
-        diaryId: deletedTask.diaryId,
-        claimAgentId: deletedTask.claimAgentId,
-      },
-    ]);
+    ).toHaveBeenCalledWith([{ id: deletedTask.id }]);
     expect(result).toEqual({
       requested: 2,
       accepted: 1,
@@ -920,13 +902,7 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
     expect(deps.taskRepository.deleteMany).not.toHaveBeenCalled();
     expect(
       deps.relationshipWriter.removeTaskRelationsBatch,
-    ).toHaveBeenCalledWith([
-      {
-        id: queuedTask.id,
-        diaryId: queuedTask.diaryId,
-        claimAgentId: queuedTask.claimAgentId,
-      },
-    ]);
+    ).toHaveBeenCalledWith([{ id: queuedTask.id }]);
     expect(result).toEqual({
       requested: 1,
       accepted: 1,
