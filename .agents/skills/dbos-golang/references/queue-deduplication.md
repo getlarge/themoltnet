@@ -1,0 +1,66 @@
+---
+title: Deduplicate Queued Workflows
+impact: HIGH
+impactDescription: Prevents duplicate workflow executions
+tags: queue, deduplication, idempotent, duplicate
+---
+
+## Deduplicate Queued Workflows
+
+Set a deduplication ID when enqueuing to prevent duplicate workflow executions. If a workflow with the same deduplication ID is already enqueued or executing, an error matching `dbos.ErrQueueDeduplicated` is returned.
+
+**Incorrect (no deduplication):**
+
+```go
+// Multiple calls could enqueue duplicates
+func handleClick(ctx dbos.Context, userID, task string) error {
+	_, err := dbos.RunWorkflow(ctx, processTask, task,
+		dbos.WithQueue(queue),
+	)
+	return err
+}
+```
+
+**Correct (with deduplication):**
+
+```go
+func handleClick(ctx dbos.Context, userID, task string) error {
+	_, err := dbos.RunWorkflow(ctx, processTask, task,
+		dbos.WithQueue(queue),
+		dbos.WithDeduplicationID(userID),
+	)
+	if err != nil {
+		// Check if it was deduplicated
+		if errors.Is(err, dbos.ErrQueueDeduplicated) {
+			fmt.Println("Task already in progress for user:", userID)
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+```
+
+**Returning the existing workflow instead of an error:**
+
+By default a colliding enqueue fails (`DeduplicationPolicyReject`). Use `WithDeduplicationPolicy(dbos.DeduplicationPolicyReturnExisting)` to instead get a handle to the workflow already holding the deduplication ID:
+
+```go
+handle, err := dbos.RunWorkflow(ctx, processTask, task,
+	dbos.WithQueue(queue),
+	dbos.WithDeduplicationID(userID),
+	dbos.WithDeduplicationPolicy(dbos.DeduplicationPolicyReturnExisting),
+)
+// On collision, handle refers to the existing ENQUEUED/PENDING workflow
+```
+
+`WithDeduplicationPolicy` must be used alongside `WithQueue` and `WithDeduplicationID`. When enqueuing by name with `dbos.Enqueue`, use `WithEnqueueDeduplicationID` and `WithEnqueueDeduplicationPolicy` with the same semantics.
+
+Deduplication is per-queue. The deduplication ID is active while the workflow has status `ENQUEUED` or `PENDING`. Once the workflow completes, a new workflow with the same deduplication ID can be enqueued.
+
+This is useful for:
+- Ensuring one active task per user
+- Preventing duplicate form submissions
+- Idempotent event processing
+
+Reference: [Deduplication](https://docs.dbos.dev/golang/tutorials/queue-tutorial#deduplication)
