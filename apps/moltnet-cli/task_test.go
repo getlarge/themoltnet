@@ -548,7 +548,8 @@ func TestRunTaskGet_PassesID(t *testing.T) {
 	_, _, client := newTestServer(t, h)
 
 	taskID := "11111111-1111-4111-8111-111111111111"
-	if err := runTaskGetWithClient(context.Background(), client, taskID); err != nil {
+	teamID := "22222222-2222-4222-8222-222222222222"
+	if err := runTaskGetWithClient(context.Background(), client, taskID, teamID); err != nil {
 		t.Fatalf("runTaskGetWithClient: %v", err)
 	}
 	if h.getCalls != 1 {
@@ -557,18 +558,35 @@ func TestRunTaskGet_PassesID(t *testing.T) {
 	if h.getParams.ID != uuid.MustParse(taskID) {
 		t.Errorf("ID = %s, want %s", h.getParams.ID, taskID)
 	}
+	if got, ok := h.getParams.XMoltnetTeamID.Get(); !ok || got != uuid.MustParse(teamID) {
+		t.Errorf("team ID = %s (set=%v), want %s", got, ok, teamID)
+	}
 }
 
 func TestRunTaskGet_InvalidID(t *testing.T) {
 	h := &stubTasksHandler{}
 	_, _, client := newTestServer(t, h)
 
-	err := runTaskGetWithClient(context.Background(), client, "not-a-uuid")
+	err := runTaskGetWithClient(context.Background(), client, "not-a-uuid", "22222222-2222-4222-8222-222222222222")
 	if err == nil {
 		t.Fatal("expected invalid ID error")
 	}
 	if h.getCalls != 0 {
 		t.Errorf("request should not be made on invalid ID, got %d calls", h.getCalls)
+	}
+}
+
+func TestTaskReadCommandsRequireTeamID(t *testing.T) {
+	t.Parallel()
+	for _, args := range [][]string{
+		{"task", "get", "11111111-1111-4111-8111-111111111111"},
+		{"task", "attempts", "11111111-1111-4111-8111-111111111111"},
+		{"task", "tail", "11111111-1111-4111-8111-111111111111"},
+	} {
+		_, _, err := executeCommand(NewRootCmd("test", ""), args...)
+		if err == nil || !strings.Contains(err.Error(), "team-id") {
+			t.Errorf("%v: expected missing team-id error, got %v", args, err)
+		}
 	}
 }
 
@@ -1180,6 +1198,7 @@ func TestRunTaskTailCmd_TerminatesOnTerminalStatus(t *testing.T) {
 	var buf bytes.Buffer
 	opts := taskTailOpts{
 		taskID:      "11111111-1111-4111-8111-111111111111",
+		teamID:      "22222222-2222-4222-8222-222222222222",
 		intervalSec: 1,
 		format:      "human",
 		out:         &buf,
@@ -1214,6 +1233,7 @@ func TestRunTaskTailCmd_SinceZeroIncludesSeqZero(t *testing.T) {
 	var buf bytes.Buffer
 	opts := taskTailOpts{
 		taskID:       "11111111-1111-4111-8111-111111111111",
+		teamID:       "22222222-2222-4222-8222-222222222222",
 		intervalSec:  1,
 		format:       "human",
 		out:          &buf,
@@ -1249,6 +1269,7 @@ func TestRunTaskTailCmd_SinceNIsInclusive(t *testing.T) {
 	var buf bytes.Buffer
 	opts := taskTailOpts{
 		taskID:       "11111111-1111-4111-8111-111111111111",
+		teamID:       "22222222-2222-4222-8222-222222222222",
 		intervalSec:  1,
 		format:       "human",
 		out:          &buf,
@@ -1287,6 +1308,7 @@ func TestRunTaskTailCmd_FilteredPageStillAdvancesCursor(t *testing.T) {
 	var buf bytes.Buffer
 	opts := taskTailOpts{
 		taskID:       "11111111-1111-4111-8111-111111111111",
+		teamID:       "22222222-2222-4222-8222-222222222222",
 		intervalSec:  1,
 		format:       "human",
 		out:          &buf,
@@ -1340,6 +1362,7 @@ func TestRunTaskTailCmd_LatestSeqWalksAllBacklogPages(t *testing.T) {
 	var buf bytes.Buffer
 	opts := taskTailOpts{
 		taskID:      "11111111-1111-4111-8111-111111111111",
+		teamID:      "22222222-2222-4222-8222-222222222222",
 		intervalSec: 1,
 		format:      "human",
 		out:         &buf,
@@ -1412,14 +1435,18 @@ type stubAttemptsHandler struct {
 	moltnetapi.UnimplementedHandler
 	attempts         []moltnetapi.TaskAttempt
 	acceptedAttemptN *int // nil → null on the wire
+	listParams       moltnetapi.ListTaskAttemptsParams
+	getParams        moltnetapi.GetTaskParams
 }
 
-func (h *stubAttemptsHandler) ListTaskAttempts(_ context.Context, _ moltnetapi.ListTaskAttemptsParams) (moltnetapi.ListTaskAttemptsRes, error) {
+func (h *stubAttemptsHandler) ListTaskAttempts(_ context.Context, params moltnetapi.ListTaskAttemptsParams) (moltnetapi.ListTaskAttemptsRes, error) {
+	h.listParams = params
 	resp := moltnetapi.ListTaskAttemptsOKApplicationJSON(h.attempts)
 	return &resp, nil
 }
 
 func (h *stubAttemptsHandler) GetTask(_ context.Context, params moltnetapi.GetTaskParams) (moltnetapi.GetTaskRes, error) {
+	h.getParams = params
 	t := newTaskFixture(params.ID, uuid.MustParse("22222222-2222-4222-8222-222222222222"))
 	if h.acceptedAttemptN != nil {
 		t.AcceptedAttemptN.SetTo(float64(*h.acceptedAttemptN))
@@ -1455,6 +1482,7 @@ func TestRunTaskAttempts_DefaultPrintsAll(t *testing.T) {
 	var buf bytes.Buffer
 	err := runTaskAttemptsWithClient(context.Background(), client, taskAttemptsOpts{
 		taskID: "11111111-1111-4111-8111-111111111111",
+		teamID: "22222222-2222-4222-8222-222222222222",
 		out:    &buf,
 	})
 	if err != nil {
@@ -1467,6 +1495,10 @@ func TestRunTaskAttempts_DefaultPrintsAll(t *testing.T) {
 	}
 	if len(got) != 2 {
 		t.Errorf("expected 2 attempts, got %d", len(got))
+	}
+	wantTeam := uuid.MustParse("22222222-2222-4222-8222-222222222222")
+	if team, ok := h.listParams.XMoltnetTeamID.Get(); !ok || team != wantTeam {
+		t.Errorf("attempts team ID = %s (set=%v), want %s", team, ok, wantTeam)
 	}
 }
 
@@ -1484,6 +1516,7 @@ func TestRunTaskAttempts_AcceptedOnlyReturnsSingleObject(t *testing.T) {
 	var buf bytes.Buffer
 	err := runTaskAttemptsWithClient(context.Background(), client, taskAttemptsOpts{
 		taskID:       "11111111-1111-4111-8111-111111111111",
+		teamID:       "22222222-2222-4222-8222-222222222222",
 		acceptedOnly: true,
 		out:          &buf,
 	})
@@ -1498,6 +1531,10 @@ func TestRunTaskAttempts_AcceptedOnlyReturnsSingleObject(t *testing.T) {
 	if got["attemptN"] != float64(2) {
 		t.Errorf("expected attemptN=2, got %v", got["attemptN"])
 	}
+	wantTeam := uuid.MustParse("22222222-2222-4222-8222-222222222222")
+	if team, ok := h.getParams.XMoltnetTeamID.Get(); !ok || team != wantTeam {
+		t.Errorf("task team ID = %s (set=%v), want %s", team, ok, wantTeam)
+	}
 }
 
 func TestRunTaskAttempts_AcceptedOnly_NoAcceptedAttempt(t *testing.T) {
@@ -1511,6 +1548,7 @@ func TestRunTaskAttempts_AcceptedOnly_NoAcceptedAttempt(t *testing.T) {
 
 	err := runTaskAttemptsWithClient(context.Background(), client, taskAttemptsOpts{
 		taskID:       "11111111-1111-4111-8111-111111111111",
+		teamID:       "22222222-2222-4222-8222-222222222222",
 		acceptedOnly: true,
 		out:          io.Discard,
 	})
@@ -1532,6 +1570,7 @@ func TestRunTaskAttempts_FieldOutput(t *testing.T) {
 	var buf bytes.Buffer
 	err := runTaskAttemptsWithClient(context.Background(), client, taskAttemptsOpts{
 		taskID:       "11111111-1111-4111-8111-111111111111",
+		teamID:       "22222222-2222-4222-8222-222222222222",
 		acceptedOnly: true,
 		field:        "output",
 		out:          &buf,
@@ -1557,6 +1596,7 @@ func TestRunTaskAttempts_FieldRequiresAcceptedOnly(t *testing.T) {
 
 	err := runTaskAttemptsWithClient(context.Background(), client, taskAttemptsOpts{
 		taskID: "11111111-1111-4111-8111-111111111111",
+		teamID: "22222222-2222-4222-8222-222222222222",
 		field:  "output",
 		out:    io.Discard,
 	})
@@ -1571,6 +1611,7 @@ func TestRunTaskAttempts_UnknownField(t *testing.T) {
 
 	err := runTaskAttemptsWithClient(context.Background(), client, taskAttemptsOpts{
 		taskID:       "11111111-1111-4111-8111-111111111111",
+		teamID:       "22222222-2222-4222-8222-222222222222",
 		acceptedOnly: true,
 		field:        "bogus",
 		out:          io.Discard,
@@ -1586,6 +1627,7 @@ func TestRunTaskAttempts_InvalidTaskID(t *testing.T) {
 
 	err := runTaskAttemptsWithClient(context.Background(), client, taskAttemptsOpts{
 		taskID: "not-a-uuid",
+		teamID: "22222222-2222-4222-8222-222222222222",
 		out:    io.Discard,
 	})
 	if err == nil || !strings.Contains(err.Error(), "invalid task ID") {

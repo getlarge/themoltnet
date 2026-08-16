@@ -618,14 +618,17 @@ without spinning up a one-off SDK script.`,
 				apiURL:       resolveAPIURL(cmd, credPath),
 				credPath:     credPath,
 				taskID:       args[0],
+				teamID:       flagString(cmd, "team-id"),
 				acceptedOnly: flagBool(cmd, "accepted-only"),
 				field:        flagString(cmd, "field"),
 				out:          cmd.OutOrStdout(),
 			})
 		},
 	}
+	cmd.Flags().String("team-id", "", "Owning team UUID (required)")
 	cmd.Flags().Bool("accepted-only", false, "Return only the accepted attempt (single object, not an array)")
 	cmd.Flags().String("field", "", "Print only one field of the selected attempt (one of: output, outputCid, error, status, attemptN). Requires --accepted-only when there are multiple attempts")
+	_ = cmd.MarkFlagRequired("team-id")
 	return cmd
 }
 
@@ -702,7 +705,7 @@ func newTaskGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "get <task-id>",
 		Short:   "Get a task by ID",
-		Example: `  moltnet task get <task-uuid>`,
+		Example: `  moltnet task get <task-uuid> --team-id <uuid>`,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			credPath := flagString(cmd, "credentials")
@@ -710,9 +713,12 @@ func newTaskGetCmd() *cobra.Command {
 				resolveAPIURL(cmd, credPath),
 				credPath,
 				args[0],
+				flagString(cmd, "team-id"),
 			)
 		},
 	}
+	cmd.Flags().String("team-id", "", "Owning team UUID (required)")
+	_ = cmd.MarkFlagRequired("team-id")
 	return cmd
 }
 
@@ -749,6 +755,7 @@ Suppresses text_delta by default to keep the output readable; pass
 				apiURL:       apiURL,
 				credPath:     credPath,
 				taskID:       args[0],
+				teamID:       flagString(cmd, "team-id"),
 				attempt:      attempt,
 				since:        since,
 				sinceChanged: sinceChanged,
@@ -760,12 +767,14 @@ Suppresses text_delta by default to keep the output readable; pass
 			})
 		},
 	}
+	cmd.Flags().String("team-id", "", "Owning team UUID (required)")
 	cmd.Flags().Int("attempt", 0, "Attempt number to tail (default: latest)")
 	cmd.Flags().Int("since", 0, "Inclusive seq cursor: print every message with seq >= this. --since 0 replays from the start (default: skip backlog, follow from now)")
 	cmd.Flags().String("kind", "", "Comma-separated subset of kinds to print (default: all). One of text_delta,tool_call_start,tool_call_end,turn_end,error,info")
 	cmd.Flags().Int("interval", 2, "Polling interval in seconds")
 	cmd.Flags().Bool("show-deltas", false, "Include text_delta messages (verbose)")
 	cmd.Flags().String("format", "human", "Output format: human | json")
+	_ = cmd.MarkFlagRequired("team-id")
 	return cmd
 }
 

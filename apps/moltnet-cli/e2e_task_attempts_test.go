@@ -17,6 +17,7 @@ import (
 // response decoding, command projection, and stdout encoding.
 func TestE2E_CLI_TaskAttempts_AcceptsAdditiveResponseFields(t *testing.T) {
 	taskID := "11111111-1111-4111-8111-111111111111"
+	teamID := "22222222-2222-4222-8222-222222222222"
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.URL.Path == "/oauth2/token":
@@ -25,6 +26,10 @@ func TestE2E_CLI_TaskAttempts_AcceptsAdditiveResponseFields(t *testing.T) {
 		case r.URL.Path == "/tasks/"+taskID+"/attempts":
 			if got := r.Header.Get("Authorization"); got != "Bearer e2e-token" {
 				http.Error(w, "missing bearer token", http.StatusUnauthorized)
+				return
+			}
+			if got := r.Header.Get("x-moltnet-team-id"); got != teamID {
+				http.Error(w, "missing team context", http.StatusBadRequest)
 				return
 			}
 			w.Header().Set("Content-Type", "application/json")
@@ -56,7 +61,7 @@ func TestE2E_CLI_TaskAttempts_AcceptsAdditiveResponseFields(t *testing.T) {
 		credsPath,
 		"",
 		server.URL,
-		"task", "attempts", taskID,
+		"task", "attempts", taskID, "--team-id", teamID,
 	)
 	if err != nil {
 		t.Fatalf("task attempts failed: %v\nstderr: %s", err, stderr)
