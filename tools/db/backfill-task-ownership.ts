@@ -5,11 +5,17 @@
  *   pnpm exec tsx tools/db/backfill-task-ownership.ts --dry-run
  *   pnpm exec tsx tools/db/backfill-task-ownership.ts --apply
  *   pnpm exec tsx tools/db/backfill-task-ownership.ts --verify
+ * Add --database-proxy-port 15432 when DATABASE_URL must be routed through a
+ * host-local Fly MPG proxy.
  */
 import { config } from '@dotenvx/dotenvx';
 import { createDatabase } from '@moltnet/database';
 import { sql } from 'drizzle-orm';
 
+import {
+  argumentValue,
+  databaseUrlForProxy,
+} from '../src/database-proxy-url.js';
 import {
   backfillTaskOwnership,
   type KetoTuple,
@@ -25,7 +31,10 @@ if (selected.length !== 1) {
   throw new Error('Specify exactly one of --dry-run, --apply, or --verify');
 }
 const mode = selected[0];
-const databaseUrl = requiredEnv('DATABASE_URL');
+const databaseUrl = databaseUrlForProxy(
+  requiredEnv('DATABASE_URL'),
+  argumentValue(process.argv.slice(2), '--database-proxy-port'),
+);
 const oryUrl = requiredEnv('ORY_PROJECT_URL').replace(/\/$/, '');
 const apiKey = process.env.ORY_PROJECT_API_KEY ?? process.env.ORY_API_KEY;
 if (!apiKey) throw new Error('ORY_PROJECT_API_KEY is required');
@@ -127,21 +136,29 @@ async function retryFetch(
 ): Promise<Response> {
   let lastError: unknown;
   for (let attempt = 1; attempt <= attempts; attempt++) {
+    let response: Response;
     try {
-      const response = await fetch(url, init);
-      if (response.ok) return response;
-      const detail = await response.text();
-      lastError = new Error(`Keto ${response.status}: ${detail}`);
-      if (response.status < 500 && response.status !== 429) throw lastError;
+      response = await fetch(url, init);
     } catch (error) {
       lastError = error;
       if (attempt === attempts) break;
+      await retryDelay(attempt);
+      continue;
     }
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, attempt * 250);
-    });
+
+    if (response.ok) return response;
+    const detail = await response.text();
+    lastError = new Error(`Keto ${response.status}: ${detail}`);
+    if (response.status < 500 && response.status !== 429) throw lastError;
+    if (attempt < attempts) await retryDelay(attempt);
   }
   throw lastError instanceof Error
     ? lastError
     : new Error('Keto request failed');
+}
+
+function retryDelay(attempt: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, attempt * 250);
+  });
 }
