@@ -24,6 +24,12 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const apply = process.argv.includes('--apply');
+const oplOnly = process.argv.includes('--opl-only');
+
+function argumentValue(name) {
+  const index = process.argv.indexOf(name);
+  return index === -1 ? undefined : process.argv[index + 1];
+}
 
 const CONSOLE_API = 'https://api.console.ory.sh';
 
@@ -69,6 +75,24 @@ function oryStdout(args) {
     cwd: '/tmp',
     env: oryEnv(),
   }).toString();
+}
+
+if (oplOnly) {
+  const projectId = env('ORY_PROJECT_ID');
+  const apiKey = env('ORY_WORKSPACE_API_KEY');
+  const requestedFile = argumentValue('--opl-file') ?? 'permissions.ts';
+  const oplFile = join(__dirname, requestedFile);
+  if (!projectId) fatal('ORY_PROJECT_ID must be set for --opl-only');
+  if (!apiKey) fatal('ORY_WORKSPACE_API_KEY must be set for --opl-only');
+  if (!existsSync(oplFile)) fatal(`OPL file not found at ${oplFile}`);
+  if (!apply) {
+    log(`Dry run — would apply only ${oplFile} to Ory project ${projectId}.`);
+    process.exit(0);
+  }
+  log(`Applying OPL only from ${oplFile} to Ory project ${projectId} ...`);
+  ory(['update', 'opl', '--project', projectId, '--file', oplFile]);
+  log('OPL permissions applied. Project configuration was not updated.');
+  process.exit(0);
 }
 
 // ---------------------------------------------------------------------------

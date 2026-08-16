@@ -42,10 +42,11 @@ interface FakeAgent {
   packs: unknown;
 }
 
-function makeFakeAgent(captured: CapturedCreate[]) {
+function makeFakeAgent(captured: CapturedCreate[], createError?: Error) {
   const agent: FakeAgent = {
     entries: {
       create: async (diaryId, body) => {
+        if (createError) throw createError;
         captured.push({ diaryId, body });
         return {
           id: 'entry-fake',
@@ -146,6 +147,32 @@ describe('moltnet_create_entry — task-context enforcement', () => {
     // Assert
     expect(captured).toHaveLength(1);
     expect(captured[0].diaryId).toBe('task-diary');
+  });
+
+  it('records a recoverable provenance denial when the diary no longer allows writes', async () => {
+    const events: unknown[] = [];
+    const config = configFor(
+      makeFakeAgent([], new Error('403 Forbidden')),
+      'task-diary',
+      taskCtx,
+    );
+    config.onTaskProvenanceEvent = (event, details) => {
+      events.push({ event, details });
+    };
+    const tool = findCreateEntryTool(config);
+
+    await expect(
+      callExecute(tool, { title: 'handoff', content: 'body' }),
+    ).rejects.toThrow(/task and runtime session remain active/i);
+    expect(events).toEqual([
+      {
+        event: 'task.provenance.entry_denied',
+        details: expect.objectContaining({
+          taskId: 'task-123',
+          diaryId: 'task-diary',
+        }),
+      },
+    ]);
   });
 
   it('passes explicit entryType through to the SDK create call', async () => {

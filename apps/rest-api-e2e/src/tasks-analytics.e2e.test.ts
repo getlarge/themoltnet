@@ -203,6 +203,7 @@ describe('Task Analytics API', () => {
     const { data: claimed, error: claimError } = await claimTask({
       client,
       auth: () => claimer.accessToken,
+      headers: { 'x-moltnet-team-id': input.teamId },
       path: { id: task!.id },
       body: { leaseTtlSec: 60 },
     });
@@ -212,6 +213,7 @@ describe('Task Analytics API', () => {
     const heartbeat = await taskHeartbeat({
       client,
       auth: () => claimer.accessToken,
+      headers: { 'x-moltnet-team-id': input.teamId },
       path: { id: task!.id, n: attemptN },
       body: { leaseTtlSec: 60 },
     });
@@ -236,6 +238,7 @@ describe('Task Analytics API', () => {
     const complete = await completeTask({
       client,
       auth: () => claimer.accessToken,
+      headers: { 'x-moltnet-team-id': input.teamId },
       path: { id: task!.id, n: attemptN },
       body: {
         output,
@@ -255,6 +258,7 @@ describe('Task Analytics API', () => {
         getTask({
           client,
           auth: () => proposer.accessToken,
+          headers: { 'x-moltnet-team-id': input.teamId },
           path: { id: task!.id },
         }).then((r) => r.data!),
       (current) => current.status === 'completed',
@@ -361,6 +365,7 @@ describe('Task Analytics API', () => {
       const { data: claimed, error: claimError } = await claimTask({
         client,
         auth: () => claimer.accessToken,
+        headers: { 'x-moltnet-team-id': teamId },
         path: { id: task!.id },
         body: {
           leaseTtlSec: 60,
@@ -397,6 +402,7 @@ describe('Task Analytics API', () => {
       const heartbeat = await taskHeartbeat({
         client,
         auth: () => claimer.accessToken,
+        headers: { 'x-moltnet-team-id': teamId },
         path: { id: task!.id, n: attemptN },
         body: { leaseTtlSec: 60 },
       });
@@ -405,6 +411,7 @@ describe('Task Analytics API', () => {
       const append = await appendTaskMessages({
         client,
         auth: () => claimer.accessToken,
+        headers: { 'x-moltnet-team-id': teamId },
         path: { id: task!.id, n: attemptN },
         body: {
           messages: [
@@ -444,6 +451,7 @@ describe('Task Analytics API', () => {
       const complete = await completeTask({
         client,
         auth: () => claimer.accessToken,
+        headers: { 'x-moltnet-team-id': teamId },
         path: { id: task!.id, n: attemptN },
         body: {
           executorFingerprint: executor.executorFingerprint,
@@ -465,6 +473,7 @@ describe('Task Analytics API', () => {
           getTask({
             client,
             auth: () => proposer.accessToken,
+            headers: { 'x-moltnet-team-id': teamId },
             path: { id: task!.id },
           }).then((r) => r.data!),
         (current) => current.status === 'completed',
@@ -636,6 +645,7 @@ describe('Task Analytics API', () => {
       const firstClaim = await claimTask({
         client,
         auth: () => claimer.accessToken,
+        headers: { 'x-moltnet-team-id': teamId },
         path: { id: task!.id },
         body: {
           leaseTtlSec: 60,
@@ -672,6 +682,7 @@ describe('Task Analytics API', () => {
       const firstHeartbeat = await taskHeartbeat({
         client,
         auth: () => claimer.accessToken,
+        headers: { 'x-moltnet-team-id': teamId },
         path: { id: task!.id, n: firstAttemptN },
         body: { leaseTtlSec: 60 },
       });
@@ -680,6 +691,7 @@ describe('Task Analytics API', () => {
       const firstAppend = await appendTaskMessages({
         client,
         auth: () => claimer.accessToken,
+        headers: { 'x-moltnet-team-id': teamId },
         path: { id: task!.id, n: firstAttemptN },
         body: {
           messages: [
@@ -700,6 +712,7 @@ describe('Task Analytics API', () => {
       const failed = await failTaskAttempt({
         client,
         auth: () => claimer.accessToken,
+        headers: { 'x-moltnet-team-id': teamId },
         path: { id: task!.id, n: firstAttemptN },
         body: {
           error: {
@@ -716,6 +729,7 @@ describe('Task Analytics API', () => {
           getTask({
             client,
             auth: () => proposer.accessToken,
+            headers: { 'x-moltnet-team-id': teamId },
             path: { id: task!.id },
           }).then((r) => r.data!),
         (current) => current.status === 'queued',
@@ -729,6 +743,7 @@ describe('Task Analytics API', () => {
       const secondClaim = await claimTask({
         client,
         auth: () => claimer.accessToken,
+        headers: { 'x-moltnet-team-id': teamId },
         path: { id: task!.id },
         body: {
           leaseTtlSec: 60,
@@ -766,6 +781,7 @@ describe('Task Analytics API', () => {
       const secondHeartbeat = await taskHeartbeat({
         client,
         auth: () => claimer.accessToken,
+        headers: { 'x-moltnet-team-id': teamId },
         path: { id: task!.id, n: secondAttemptN },
         body: { leaseTtlSec: 60 },
       });
@@ -774,6 +790,7 @@ describe('Task Analytics API', () => {
       const secondAppend = await appendTaskMessages({
         client,
         auth: () => claimer.accessToken,
+        headers: { 'x-moltnet-team-id': teamId },
         path: { id: task!.id, n: secondAttemptN },
         body: {
           messages: [
@@ -804,6 +821,7 @@ describe('Task Analytics API', () => {
       const complete = await completeTask({
         client,
         auth: () => claimer.accessToken,
+        headers: { 'x-moltnet-team-id': teamId },
         path: { id: task!.id, n: secondAttemptN },
         body: {
           executorFingerprint: acceptedExecutor.executorFingerprint,
@@ -825,6 +843,7 @@ describe('Task Analytics API', () => {
           getTask({
             client,
             auth: () => proposer.accessToken,
+            headers: { 'x-moltnet-team-id': teamId },
             path: { id: task!.id },
           }).then((r) => r.data!),
         (current) => current.status === 'completed',
@@ -955,6 +974,7 @@ describe('Task Analytics API', () => {
       const claimed = await claimTask({
         client,
         auth: () => claimer.accessToken,
+        headers: { 'x-moltnet-team-id': teamId },
         path: { id: task!.id },
         body: { leaseTtlSec: 60 },
       });
@@ -966,6 +986,7 @@ describe('Task Analytics API', () => {
           getTask({
             client,
             auth: () => proposer.accessToken,
+            headers: { 'x-moltnet-team-id': teamId },
             path: { id: task!.id },
           }).then((r) => r.data!),
         (current) => current.status === 'failed',
@@ -980,6 +1001,7 @@ describe('Task Analytics API', () => {
       const attempts = await listTaskAttempts({
         client,
         auth: () => proposer.accessToken,
+        headers: { 'x-moltnet-team-id': teamId },
         path: { id: task!.id },
       });
       expect(attempts.error).toBeUndefined();

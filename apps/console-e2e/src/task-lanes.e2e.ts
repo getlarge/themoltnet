@@ -35,11 +35,9 @@ test.describe.serial('Task lanes board', () => {
   let diaryId: string;
   let sessionToken: string;
 
-  // Human onboarding (which commits the `humans` row that tasks FK to) runs as
-  // an async DBOS workflow on login, so a createTask right after registration
-  // can briefly race the commit. Bounded retry tolerates that startup window;
-  // a persistent 409 would be a real bug (see diary: "human write-side id is
-  // humans.id, NOT identityId").
+  // Human onboarding and the fresh diary's Keto ownership projection can lag
+  // the immediately following task create. Bounded retry covers the humans-row
+  // 409 and the diary-tuple 403; persistent failures remain real bugs.
   async function seedTask(label: string) {
     const client = createTokenSessionApiClient(sessionToken);
     for (let attempt = 0; attempt < 10; attempt += 1) {
@@ -54,7 +52,7 @@ test.describe.serial('Task lanes board', () => {
         },
       });
       if (result.data) return result.data;
-      if (result.response.status !== 409) {
+      if (result.response.status !== 409 && result.response.status !== 403) {
         throw new Error(
           `createTask ${label} failed: ${result.response.status}`,
         );
@@ -64,7 +62,7 @@ test.describe.serial('Task lanes board', () => {
       });
     }
     throw new Error(
-      `createTask ${label} kept returning 409 — humans row never committed`,
+      `createTask ${label} never became authorized after onboarding`,
     );
   }
 
@@ -182,6 +180,7 @@ test.describe.serial('Task lanes board', () => {
 
     const cancelled = await cancelTask({
       client,
+      headers: { 'x-moltnet-team-id': teamId },
       path: { id: terminal.id },
       body: { reason: 'console cleanup e2e terminal fixture' },
     });

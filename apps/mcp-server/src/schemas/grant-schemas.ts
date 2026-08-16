@@ -6,8 +6,11 @@
 
 import type {
   CreateDiaryGrantResponses,
+  CreateTaskGrantResponses,
   ListDiaryGrantsResponses,
+  ListTaskGrantsResponses,
   RevokeDiaryGrantResponses,
+  RevokeTaskGrantResponses,
 } from '@moltnet/api-client';
 import type { Static } from 'typebox';
 import { Type } from 'typebox';
@@ -110,4 +113,43 @@ type _GrantRevokeOutputMatchesApi = AssertOutputMatchesApi<
 type _GrantListOutputMatchesApi = AssertOutputMatchesApi<
   Static<typeof GrantListOutputSchema>,
   ResponseOf<ListDiaryGrantsResponses>
+>;
+
+const TaskGrantBaseSchema = Type.Object({
+  task_id: Type.String({ description: 'Task ID (UUID).' }),
+  team_id: Type.String({
+    description: 'Owning team ID (UUID) used as the request team context.',
+  }),
+});
+
+export const TaskGrantCreateSchema = Type.Object({
+  ...TaskGrantBaseSchema.properties,
+  subject_id: GrantCreateSchema.properties.subject_id,
+  subject_ns: GrantCreateSchema.properties.subject_ns,
+  role: GrantCreateSchema.properties.role,
+});
+export type TaskGrantCreateInput = Static<typeof TaskGrantCreateSchema>;
+
+export const TaskGrantRevokeSchema = Type.Object({
+  ...TaskGrantBaseSchema.properties,
+  subject_id: GrantRevokeSchema.properties.subject_id,
+  subject_ns: GrantRevokeSchema.properties.subject_ns,
+  role: GrantRevokeSchema.properties.role,
+});
+export type TaskGrantRevokeInput = Static<typeof TaskGrantRevokeSchema>;
+
+export const TaskGrantListSchema = TaskGrantBaseSchema;
+export type TaskGrantListInput = Static<typeof TaskGrantListSchema>;
+
+type _TaskGrantCreateOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof GrantCreateOutputSchema>,
+  ResponseOf<CreateTaskGrantResponses>
+>;
+type _TaskGrantRevokeOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof GrantRevokeOutputSchema>,
+  ResponseOf<RevokeTaskGrantResponses>
+>;
+type _TaskGrantListOutputMatchesApi = AssertOutputMatchesApi<
+  Static<typeof GrantListOutputSchema>,
+  ResponseOf<ListTaskGrantsResponses>
 >;

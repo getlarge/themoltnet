@@ -537,6 +537,7 @@ export async function runOnce(
       source: new ApiTaskSource({
         agent: ctx.agent,
         taskId,
+        teamId: profile.teamId,
         leaseTtlSec: opts.leaseTtlSec,
         profileId: profile.id,
         executorFingerprint: preparedRuntime.attestor.fingerprint,
@@ -544,6 +545,7 @@ export async function runOnce(
       makeReporter: () =>
         new ApiTaskReporter({
           tasks: ctx.agent.tasks,
+          teamId: profile.teamId,
           leaseTtlSec: opts.leaseTtlSec,
           heartbeatIntervalMs: opts.heartbeatIntervalMs,
           maxBatchSize: opts.maxBatchSize,

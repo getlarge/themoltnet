@@ -162,29 +162,54 @@ class ContextPack implements Namespace {
 
 /**
  * Task namespace
- * Parented by Diary — inherits read/write from diary membership.
- * Claimant relation tracks which agent holds the active lease.
+ * Bridge model for issue #1656. Final Task authorization is ORed with the
+ * legacy Diary parent while ownership and grant tuples are backfilled. The
+ * follow-up rollout contracts permissions.ts after verification.
  */
 class Task implements Namespace {
   related: {
-    parent: Diary[];
     claimant: Agent[];
+    managers: (Agent | Human | SubjectSet<Group, 'members'>)[];
+    parent: Diary[];
+    team: Team[];
+    writers: (Agent | Human | SubjectSet<Group, 'members'>)[];
   };
 
   permits = {
     view: (ctx: Context) =>
-      this.related.parent.traverse((d) => d.permits.read(ctx)),
+      this.related.team.traverse((t) => t.permits.access(ctx)) ||
+      this.related.parent.traverse((d) => d.permits.read(ctx)) ||
+      this.related.writers.includes(ctx.subject) ||
+      this.related.managers.includes(ctx.subject),
     edit_metadata: (ctx: Context) =>
-      this.related.parent.traverse((d) => d.permits.write(ctx)),
+      this.related.team.traverse((t) => t.permits.write(ctx)) ||
+      this.related.parent.traverse((d) => d.permits.write(ctx)) ||
+      this.related.writers.includes(ctx.subject) ||
+      this.related.managers.includes(ctx.subject),
     cancel: (ctx: Context) =>
       this.related.claimant.includes(ctx.subject) ||
-      this.related.parent.traverse((d) => d.permits.write(ctx)),
+      this.related.team.traverse((t) => t.permits.write(ctx)) ||
+      this.related.parent.traverse((d) => d.permits.write(ctx)) ||
+      this.related.writers.includes(ctx.subject) ||
+      this.related.managers.includes(ctx.subject),
     delete: (ctx: Context) =>
-      this.related.parent.traverse((d) => d.permits.write(ctx)),
+      this.related.team.traverse((t) => t.permits.write(ctx)) ||
+      this.related.parent.traverse((d) => d.permits.write(ctx)) ||
+      this.related.writers.includes(ctx.subject) ||
+      this.related.managers.includes(ctx.subject),
     force_delete: (ctx: Context) =>
-      this.related.parent.traverse((d) => d.permits.manage(ctx)),
+      this.related.team.traverse((t) => t.permits.manage(ctx)) ||
+      this.related.parent.traverse((d) => d.permits.manage(ctx)) ||
+      this.related.managers.includes(ctx.subject),
     claim: (ctx: Context) =>
-      this.related.parent.traverse((d) => d.permits.write(ctx)),
+      this.related.team.traverse((t) => t.permits.write(ctx)) ||
+      this.related.parent.traverse((d) => d.permits.write(ctx)) ||
+      this.related.writers.includes(ctx.subject) ||
+      this.related.managers.includes(ctx.subject),
+    manage: (ctx: Context) =>
+      this.related.team.traverse((t) => t.permits.manage(ctx)) ||
+      this.related.parent.traverse((d) => d.permits.manage(ctx)) ||
+      this.related.managers.includes(ctx.subject),
     // Covers all claimant-only operations: heartbeat, complete, fail,
     // append messages, list messages. Only the agent holding the lease qualifies.
     report: (ctx: Context) => this.related.claimant.includes(ctx.subject),

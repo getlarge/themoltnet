@@ -115,6 +115,7 @@ describe('tasks_continue server-side validation matrix', () => {
     const { data, error } = await claimTask({
       client,
       auth: () => proposer.accessToken,
+      headers: { 'x-moltnet-team-id': proposer.personalTeamId },
       path: { id: taskId },
       body: { leaseTtlSec: 60 },
     });
@@ -124,6 +125,7 @@ describe('tasks_continue server-side validation matrix', () => {
     await taskHeartbeat({
       client,
       auth: () => proposer.accessToken,
+      headers: { 'x-moltnet-team-id': proposer.personalTeamId },
       path: { id: taskId, n: attemptN },
       body: { leaseTtlSec: 60 },
     });
@@ -147,6 +149,7 @@ describe('tasks_continue server-side validation matrix', () => {
     const { data: srcTask } = await getTask({
       client,
       auth: () => proposer.accessToken,
+      headers: { 'x-moltnet-team-id': proposer.personalTeamId },
       path: { id: opts.taskId },
     });
     const inputCid = (srcTask as { inputCid?: string }).inputCid ?? 'bafye2e';
@@ -181,6 +184,7 @@ describe('tasks_continue server-side validation matrix', () => {
     const { error } = await completeTask({
       client,
       auth: () => proposer.accessToken,
+      headers: { 'x-moltnet-team-id': proposer.personalTeamId },
       path: { id: opts.taskId, n: opts.attemptN },
       body,
     });
@@ -194,6 +198,7 @@ describe('tasks_continue server-side validation matrix', () => {
         const { data } = await getTask({
           client,
           auth: () => proposer.accessToken,
+          headers: { 'x-moltnet-team-id': proposer.personalTeamId },
           path: { id: opts.taskId },
         });
         return data!;
@@ -330,6 +335,7 @@ describe('tasks_continue server-side validation matrix', () => {
       await cancelTask({
         client,
         auth: () => proposer.accessToken,
+        headers: { 'x-moltnet-team-id': proposer.personalTeamId },
         path: { id: sourceId },
         body: { reason: 'scenario 3 cleanup' },
       }).catch(() => {});
@@ -355,6 +361,7 @@ describe('tasks_continue server-side validation matrix', () => {
       await cancelTask({
         client,
         auth: () => proposer.accessToken,
+        headers: { 'x-moltnet-team-id': proposer.personalTeamId },
         path: { id: sourceId },
         body: { reason: 'scenario 4 cleanup' },
       }).catch(() => {});

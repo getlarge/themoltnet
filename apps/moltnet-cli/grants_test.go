@@ -19,6 +19,24 @@ func TestDiaryGrantsHelp(t *testing.T) {
 	}
 }
 
+func TestTaskGrantsHelpAndRequiredTeam(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "task", "grants", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, sub := range []string{"list", "create", "revoke"} {
+		if !strings.Contains(stdout, sub) {
+			t.Errorf("expected task grants help to contain %q, got: %s", sub, stdout)
+		}
+	}
+	_, _, err = executeCommand(NewRootCmd("test", ""), "task", "grants", "list", "00000000-0000-0000-0000-000000000000")
+	if err == nil || !strings.Contains(err.Error(), "team-id") {
+		t.Fatalf("expected missing team-id error, got %v", err)
+	}
+}
+
 func TestDiaryGrantsListRequiresArg(t *testing.T) {
 	t.Parallel()
 	root := NewRootCmd("test", "")

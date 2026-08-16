@@ -85,7 +85,7 @@ test.describe.serial('Task analytics', () => {
           {
             subjectId: agentCtx.genesis.identityId,
             subjectNs: 'Agent',
-            role: 'member',
+            role: 'manager',
           },
         ],
       },

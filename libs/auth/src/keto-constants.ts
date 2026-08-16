@@ -159,8 +159,11 @@ export enum RuntimePolicyPermission {
  * Relations for the Task namespace
  */
 export enum TaskRelation {
-  Parent = 'parent',
   Claimant = 'claimant',
+  Managers = 'managers',
+  Parent = 'parent',
+  Team = 'team',
+  Writers = 'writers',
 }
 
 /**
@@ -172,6 +175,7 @@ export enum TaskPermission {
   Cancel = 'cancel',
   Delete = 'delete',
   ForceDelete = 'force_delete',
+  Manage = 'manage',
   Claim = 'claim',
   Report = 'report',
 }

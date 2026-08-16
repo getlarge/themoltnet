@@ -23,7 +23,13 @@ import {
 import { computeJsonCid } from '@moltnet/crypto-service';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createAgent, pollUntil, type TestAgent } from './helpers.js';
+import {
+  createAgent,
+  grantAgentTaskWriter,
+  pollUntil,
+  pollUntilStatus,
+  type TestAgent,
+} from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
 describe('judge_eval_attempt duplicate protection', () => {
@@ -98,6 +104,15 @@ describe('judge_eval_attempt duplicate protection', () => {
       },
     });
     expect(error).toBeUndefined();
+
+    await grantAgentTaskWriter({
+      accessToken: proposer.accessToken,
+      client,
+      subjectId: claimer.identityId,
+      taskId: data!.id,
+      teamId: proposer.personalTeamId,
+    });
+
     return { id: data!.id, inputCid: data!.inputCid };
   }
 
@@ -105,18 +120,25 @@ describe('judge_eval_attempt duplicate protection', () => {
     id: string;
     inputCid: string;
   }): Promise<void> {
-    const { data: claimed, error: claimErr } = await claimTask({
-      client,
-      auth: () => claimer.accessToken,
-      path: { id: task.id },
-      body: { leaseTtlSec: 60 },
-    });
+    const { data: claimed, error: claimErr } = await pollUntilStatus(
+      () =>
+        claimTask({
+          client,
+          auth: () => claimer.accessToken,
+          headers: { 'x-moltnet-team-id': proposer.personalTeamId },
+          path: { id: task.id },
+          body: { leaseTtlSec: 60 },
+        }),
+      200,
+      { label: `claim eval task ${task.id} as explicit writer` },
+    );
     expect(claimErr).toBeUndefined();
     const attemptN = claimed!.attempt.attemptN;
 
     await taskHeartbeat({
       client,
       auth: () => claimer.accessToken,
+      headers: { 'x-moltnet-team-id': proposer.personalTeamId },
       path: { id: task.id, n: attemptN },
       body: { leaseTtlSec: 60 },
     });
@@ -137,6 +159,7 @@ describe('judge_eval_attempt duplicate protection', () => {
     const { error: completeErr } = await completeTask({
       client,
       auth: () => claimer.accessToken,
+      headers: { 'x-moltnet-team-id': proposer.personalTeamId },
       path: { id: task.id, n: attemptN },
       body: {
         output,
@@ -151,6 +174,7 @@ describe('judge_eval_attempt duplicate protection', () => {
         const { data } = await getTask({
           client,
           auth: () => proposer.accessToken,
+          headers: { 'x-moltnet-team-id': proposer.personalTeamId },
           path: { id: task.id },
         });
         return data!;
@@ -212,18 +236,33 @@ describe('judge_eval_attempt duplicate protection', () => {
     expect(judgeError).toBeUndefined();
     expect(judge!.status).toBe('waiting');
 
-    const prematureClaim = await claimTask({
+    await grantAgentTaskWriter({
+      accessToken: proposer.accessToken,
       client,
-      auth: () => claimer.accessToken,
-      path: { id: judge!.id },
-      body: { leaseTtlSec: 60 },
+      subjectId: claimer.identityId,
+      taskId: judge!.id,
+      teamId: proposer.personalTeamId,
     });
+
+    const prematureClaim = await pollUntilStatus(
+      () =>
+        claimTask({
+          client,
+          auth: () => claimer.accessToken,
+          headers: { 'x-moltnet-team-id': proposer.personalTeamId },
+          path: { id: judge!.id },
+          body: { leaseTtlSec: 60 },
+        }),
+      409,
+      { label: `conditional judge ${judge!.id} denies premature claim` },
+    );
     expect(prematureClaim.response.status).toBe(409);
 
     await completeRunEval(firstRunTask);
     const halfReadyClaim = await claimTask({
       client,
       auth: () => claimer.accessToken,
+      headers: { 'x-moltnet-team-id': proposer.personalTeamId },
       path: { id: judge!.id },
       body: { leaseTtlSec: 60 },
     });
@@ -234,6 +273,7 @@ describe('judge_eval_attempt duplicate protection', () => {
         const { data } = await getTask({
           client,
           auth: () => proposer.accessToken,
+          headers: { 'x-moltnet-team-id': proposer.personalTeamId },
           path: { id: judge!.id },
         });
         return data!;
@@ -244,12 +284,18 @@ describe('judge_eval_attempt duplicate protection', () => {
     expect(stillWaiting.status).toBe('waiting');
 
     await completeRunEval(secondRunTask);
-    const claimed = await claimTask({
-      client,
-      auth: () => claimer.accessToken,
-      path: { id: judge!.id },
-      body: { leaseTtlSec: 60 },
-    });
+    const claimed = await pollUntilStatus(
+      () =>
+        claimTask({
+          client,
+          auth: () => claimer.accessToken,
+          headers: { 'x-moltnet-team-id': proposer.personalTeamId },
+          path: { id: judge!.id },
+          body: { leaseTtlSec: 60 },
+        }),
+      200,
+      { label: `conditional judge ${judge!.id} becomes claimable` },
+    );
     expect(claimed.error).toBeUndefined();
     expect(claimed.data!.task.status).toBe('dispatched');
   });

@@ -137,6 +137,11 @@ export interface PermissionChecker {
     subjectId: string,
     subjectNs: KetoNamespace,
   ): Promise<boolean>;
+  canManageTask(
+    taskId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<boolean>;
   canViewTasks(
     taskIds: string[],
     subjectId: string,
@@ -639,6 +644,22 @@ export function createPermissionChecker(
         KetoNamespace.Task,
         taskId,
         TaskPermission.EditMetadata,
+        subjectNs,
+        subjectId,
+        log,
+      );
+    },
+
+    canManageTask(
+      taskId: string,
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<boolean> {
+      return checkPermission(
+        permissionApi,
+        KetoNamespace.Task,
+        taskId,
+        TaskPermission.Manage,
         subjectNs,
         subjectId,
         log,

@@ -33,6 +33,7 @@ type taskContinueOpts struct {
 
 	fromTaskID   string
 	fromAttemptN int
+	teamID       string
 
 	brief string
 
@@ -89,8 +90,17 @@ func runTaskContinueWithClient(ctx context.Context, client *moltnetapi.Client, o
 	// worktreeBranch). The async validator rejects it explicitly when
 	// continueFrom is set.
 
-	// 1. Read source.
-	srcRes, err := client.GetTask(ctx, moltnetapi.GetTaskParams{ID: fromTaskID})
+	// 1. Read source in the caller's explicit team context. The server scopes
+	// every task-by-ID route by this header and returns 404 for mismatches.
+	getParams := moltnetapi.GetTaskParams{ID: fromTaskID}
+	if opts.teamID != "" {
+		teamID, parseErr := uuid.Parse(opts.teamID)
+		if parseErr != nil {
+			return fmt.Errorf("invalid --team-id %q: %w", opts.teamID, parseErr)
+		}
+		getParams.XMoltnetTeamID = moltnetapi.NewOptUUID(teamID)
+	}
+	srcRes, err := client.GetTask(ctx, getParams)
 	if err != nil {
 		return fmt.Errorf("get source task: %w", formatTransportError(err))
 	}

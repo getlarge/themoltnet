@@ -33,6 +33,8 @@ import type {
   CreateRuntimeProfileData,
   CreateSigningRequestData,
   CreateTaskData,
+  CreateTaskGrantData,
+  CreateTaskGrantResponse,
   CreateTeamData,
   CreateTeamInviteData,
   CreateTeamInviteResponse,
@@ -86,6 +88,7 @@ import type {
   ListSigningCredentialsData,
   ListSigningRequestsData,
   ListTaskArtifactsData,
+  ListTaskGrantsResponse,
   ListTaskMessagesData,
   ListTaskSchemasResponse,
   ListTasksData,
@@ -115,6 +118,8 @@ import type {
   RevokeAgentKeyData,
   RevokeDiaryGrantData,
   RevokeDiaryGrantResponse,
+  RevokeTaskGrantData,
+  RevokeTaskGrantResponse,
   RotateSecretResponse,
   RuntimePolicyList,
   RuntimePolicyWithTools,
@@ -189,6 +194,7 @@ import { createRuntimeSessionsNamespace } from './namespaces/runtime-sessions.js
 import { createRuntimeSlotsNamespace } from './namespaces/runtime-slots.js';
 import { createSigningCredentialsNamespace } from './namespaces/signing-credentials.js';
 import { createSigningRequestsNamespace } from './namespaces/signing-requests.js';
+import { createTaskGrantsNamespace } from './namespaces/task-grants.js';
 import { createTasksNamespace } from './namespaces/tasks.js';
 import type { RequiredTeamRequestOptions } from './namespaces/team-headers.js';
 import { createTeamsNamespace } from './namespaces/teams.js';
@@ -690,6 +696,25 @@ export interface DiaryGrantsNamespace {
   ): Promise<RevokeDiaryGrantResponse>;
 }
 
+export interface TaskGrantsNamespace {
+  create(
+    taskId: string,
+    body: CreateTaskGrantData['body'],
+    options: RequiredTeamRequestOptions,
+  ): Promise<CreateTaskGrantResponse>;
+
+  list(
+    taskId: string,
+    options: RequiredTeamRequestOptions,
+  ): Promise<ListTaskGrantsResponse>;
+
+  revoke(
+    taskId: string,
+    body: RevokeTaskGrantData['body'],
+    options: RequiredTeamRequestOptions,
+  ): Promise<RevokeTaskGrantResponse>;
+}
+
 /**
  * Two-phase diary transfer between teams. The source-team owner/manager
  * initiates a transfer; the destination-team owner accepts or rejects. The
@@ -806,57 +831,75 @@ export interface TasksNamespace {
    * Resolve a completed task's accepted output into a typed reader.
    * Accepts a task id (fetched) or a `Task` already in hand.
    */
-  readResult(taskOrId: string | Task): Promise<TaskResultReader>;
+  readResult(
+    taskOrId: string | Task,
+    options?: TaskRequestOptions,
+  ): Promise<TaskResultReader>;
 
-  get(id: string): Promise<Task>;
+  get(id: string, options?: TaskRequestOptions): Promise<Task>;
 
   claim(
     id: string,
     body?: ClaimTaskData['body'],
+    options?: TaskRequestOptions,
   ): Promise<ClaimTaskResponse & { traceHeaders: Record<string, string> }>;
 
   heartbeat(
     id: string,
     n: number,
     body?: TaskHeartbeatData['body'],
+    options?: TaskRequestOptions,
   ): Promise<HeartbeatResponse>;
 
   complete(
     id: string,
     n: number,
     body: CompleteTaskData['body'],
+    options?: TaskRequestOptions,
   ): Promise<Task>;
 
   failAttempt(
     id: string,
     n: number,
     body: FailTaskAttemptData['body'],
+    options?: TaskRequestOptions,
   ): Promise<Task>;
 
   abortAttempt(
     id: string,
     n: number,
     body?: AbortTaskAttemptData['body'],
+    options?: TaskRequestOptions,
   ): Promise<Task>;
 
-  cancel(id: string, body: CancelTaskData['body']): Promise<Task>;
+  cancel(
+    id: string,
+    body: CancelTaskData['body'],
+    options?: TaskRequestOptions,
+  ): Promise<Task>;
 
   deleteMany(
     body: NonNullable<BatchDeleteTasksData['body']>,
+    options?: TaskRequestOptions,
   ): Promise<BatchDeleteTasksAcceptedResponse>;
 
-  listAttempts(id: string): Promise<TaskAttempt[]>;
+  listAttempts(
+    id: string,
+    options?: TaskRequestOptions,
+  ): Promise<TaskAttempt[]>;
 
   listMessages(
     id: string,
     n: number,
     query?: ListTaskMessagesData['query'],
+    options?: TaskRequestOptions,
   ): Promise<TaskMessage[]>;
 
   appendMessages(
     id: string,
     n: number,
     body: AppendTaskMessagesData['body'],
+    options?: TaskRequestOptions,
   ): Promise<{ count: number }>;
 }
 
@@ -992,6 +1035,7 @@ export interface Agent {
   runtimeProfiles: RuntimeProfilesNamespace;
   runtimePolicies: RuntimePoliciesNamespace;
   tasks: TasksNamespace;
+  taskGrants: TaskGrantsNamespace;
   runtimeSlots: RuntimeSlotsNamespace;
   runtimeSessions: RuntimeSessionsNamespace;
 
@@ -1042,6 +1086,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
   const runtimeProfiles = createRuntimeProfilesNamespace(context);
   const runtimePolicies = createRuntimePoliciesNamespace(context);
   const tasks = createTasksNamespace(context);
+  const taskGrants = createTaskGrantsNamespace(context);
   const runtimeSlots = createRuntimeSlotsNamespace(context);
   const runtimeSessions = createRuntimeSessionsNamespace(context);
 
@@ -1064,6 +1109,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
     runtimeProfiles,
     runtimePolicies,
     tasks,
+    taskGrants,
     runtimeSlots,
     runtimeSessions,
     client,

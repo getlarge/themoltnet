@@ -5,10 +5,10 @@
  * create → list → get → claim → heartbeat → complete/fail/cancel
  * and the message append/list flow.
  *
- * Two agents are created: a proposer (creates tasks) and a claimer
- * (claims and executes them). Both share the proposer's diary via a
- * diary grant so the claimer has write access (required by canClaimTask
- * which checks Task/Claim traversing the diary Keto tuple).
+ * A proposer creates tasks, while a claimer exercises the lifecycle through a
+ * legacy diary grant during the ownership bridge. A separate task writer has no
+ * diary relationship, so explicit Task grant revocation can be tested in
+ * isolation. All access is evaluated in the task's owning team context.
  */
 
 import { randomUUID } from 'node:crypto';
@@ -25,15 +25,17 @@ import {
   createDiary,
   createDiaryGrant,
   createTask,
+  createTaskGrant,
   createTeam,
   createTeamInvite,
   failTaskAttempt,
   getTask,
   joinTeam,
   listTaskAttempts,
+  listTaskGrants,
   listTaskMessages,
   listTasks,
-  revokeDiaryGrant,
+  revokeTaskGrant,
   taskHeartbeat,
   updateTaskMetadata,
 } from '@moltnet/api-client';
@@ -67,18 +69,26 @@ function taskNoLongerVisible(result: { response: { status: number } }) {
 describe('Tasks API', () => {
   let harness: TestHarness;
   let client: Client;
+  let unscopedClient: Client;
   let relationshipWriter: RelationshipWriter;
   let proposer: TestAgent;
   let claimer: TestAgent;
+  let taskWriter: TestAgent;
 
   beforeAll(async () => {
     harness = await createTestHarness();
     client = createClient({ baseUrl: harness.baseUrl });
+    unscopedClient = createClient({ baseUrl: harness.baseUrl });
     relationshipWriter = createRelationshipWriter(
       harness.oryClients.relationship,
     );
 
-    [proposer, claimer] = await Promise.all([
+    [proposer, claimer, taskWriter] = await Promise.all([
+      createAgent({
+        baseUrl: harness.baseUrl,
+        db: harness.db,
+        bootstrapIdentityId: harness.bootstrapIdentityId,
+      }),
       createAgent({
         baseUrl: harness.baseUrl,
         db: harness.db,
@@ -91,8 +101,23 @@ describe('Tasks API', () => {
       }),
     ]);
 
-    // Grant claimer write access to proposer's private diary so it can claim
-    // tasks proposed against that diary (canClaimTask traverses diary write).
+    // Most of this lifecycle suite operates on tasks owned by the proposer's
+    // personal team. Add that request context at the generated-client layer so
+    // every by-ID call exercises the post-cutover team-scoped service query.
+    // Per-call headers still override it for cross-team cases below.
+    client.interceptors.request.use((request) => {
+      const path = new URL(request.url).pathname;
+      if (
+        (path === '/tasks' || path.startsWith('/tasks/')) &&
+        !request.headers.has('x-moltnet-team-id')
+      ) {
+        request.headers.set('x-moltnet-team-id', proposer.personalTeamId);
+      }
+      return request;
+    });
+
+    // Keep a diary grant in place to prove that the rollout bridge preserves
+    // legacy access until the follow-up OPL contraction.
     await createDiaryGrant({
       client,
       auth: () => proposer.accessToken,
@@ -111,8 +136,29 @@ describe('Tasks API', () => {
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
-  function propose(input: Record<string, unknown> = {}, overrides = {}) {
-    return createTask({
+  async function grantClaimerWriter(taskId: string) {
+    return grantTaskWriter(taskId, claimer);
+  }
+
+  async function grantTaskWriter(taskId: string, writer: TestAgent) {
+    const grant = await createTaskGrant({
+      client,
+      auth: () => proposer.accessToken,
+      headers: { 'x-moltnet-team-id': proposer.personalTeamId },
+      path: { id: taskId },
+      body: {
+        subjectId: writer.identityId,
+        subjectNs: 'Agent',
+        role: 'writer',
+      },
+    });
+    if (grant.error) {
+      throw new Error(`createTaskGrant failed: ${JSON.stringify(grant.error)}`);
+    }
+  }
+
+  async function propose(input: Record<string, unknown> = {}, overrides = {}) {
+    const result = await createTask({
       client,
       auth: () => proposer.accessToken,
       headers: { 'x-moltnet-team-id': proposer.personalTeamId },
@@ -127,12 +173,15 @@ describe('Tasks API', () => {
         ...overrides,
       },
     });
+    if (result.data) await grantClaimerWriter(result.data.id);
+    return result;
   }
 
   function claim(taskId: string, leaseTtlSec = 30) {
     return claimTask({
       client,
       auth: () => claimer.accessToken,
+      headers: { 'x-moltnet-team-id': proposer.personalTeamId },
       path: { id: taskId },
       body: { leaseTtlSec: leaseTtlSec },
     });
@@ -200,6 +249,7 @@ describe('Tasks API', () => {
       const { data: readable } = await getTask({
         client,
         auth: () => reader.accessToken,
+        headers: { 'x-moltnet-team-id': teamId },
         path: { id: task!.id },
       });
       expect(readable!.id).toBe(task!.id);
@@ -207,6 +257,7 @@ describe('Tasks API', () => {
       const { response } = await updateTaskMetadata({
         client,
         auth: () => reader.accessToken,
+        headers: { 'x-moltnet-team-id': teamId },
         path: { id: task!.id },
         body: { tags: ['should-not-stick'] },
       });
@@ -262,7 +313,7 @@ describe('Tasks API', () => {
 
     it('returns 400 when teamId is missing from list', async () => {
       const { response } = await listTasks({
-        client,
+        client: unscopedClient,
         auth: () => proposer.accessToken,
         // @ts-expect-error intentionally omitting the required x-moltnet-team-id header
         headers: {},
@@ -365,6 +416,117 @@ describe('Tasks API', () => {
       );
       expect(response.status).toBe(201);
       expect(data!.status).toBe('waiting');
+    });
+  });
+
+  // ── Ownership context / explicit grants ────────────────────────────────────
+
+  describe('task ownership context and grants', () => {
+    async function createTaskWithoutGrant(label: string) {
+      return createTask({
+        client,
+        auth: () => proposer.accessToken,
+        headers: { 'x-moltnet-team-id': proposer.personalTeamId },
+        body: {
+          taskType: 'curate_pack',
+          title: label,
+          diaryId: proposer.privateDiaryId,
+          input: {
+            diaryId: proposer.privateDiaryId,
+            taskPrompt: label,
+          },
+        },
+      });
+    }
+
+    it('keeps existing diary-grant access during the ownership bridge', async () => {
+      const created = await createTaskWithoutGrant('detached diary grant');
+      expect(created.error).toBeUndefined();
+
+      const readable = await getTask({
+        client,
+        auth: () => claimer.accessToken,
+        headers: { 'x-moltnet-team-id': proposer.personalTeamId },
+        path: { id: created.data!.id },
+      });
+
+      expect(readable.response.status).toBe(200);
+      expect(readable.data!.id).toBe(created.data!.id);
+    });
+
+    it('allows a non-team writer through the owning team context and revokes cleanly', async () => {
+      const created = await createTaskWithoutGrant('explicit task writer');
+      expect(created.error).toBeUndefined();
+      const taskId = created.data!.id;
+
+      await grantTaskWriter(taskId, taskWriter);
+
+      const readable = await pollUntil(
+        () =>
+          getTask({
+            client,
+            auth: () => taskWriter.accessToken,
+            headers: { 'x-moltnet-team-id': proposer.personalTeamId },
+            path: { id: taskId },
+          }),
+        (result) => result.response.status === 200,
+        { label: 'explicit task writer reads task' },
+      );
+      expect(readable.data!.id).toBe(taskId);
+
+      const writerCannotInspectGrants = await listTaskGrants({
+        client,
+        auth: () => taskWriter.accessToken,
+        headers: { 'x-moltnet-team-id': proposer.personalTeamId },
+        path: { id: taskId },
+      });
+      expect(writerCannotInspectGrants.response.status).toBe(403);
+
+      const grants = await listTaskGrants({
+        client,
+        auth: () => proposer.accessToken,
+        headers: { 'x-moltnet-team-id': proposer.personalTeamId },
+        path: { id: taskId },
+      });
+      expect(grants.error).toBeUndefined();
+      expect(grants.data!.grants).toContainEqual({
+        subjectId: taskWriter.identityId,
+        subjectNs: 'Agent',
+        role: 'writer',
+      });
+
+      const mismatched = await getTask({
+        client,
+        auth: () => taskWriter.accessToken,
+        headers: { 'x-moltnet-team-id': taskWriter.personalTeamId },
+        path: { id: taskId },
+      });
+      expect(mismatched.response.status).toBe(404);
+
+      const revoked = await revokeTaskGrant({
+        client,
+        auth: () => proposer.accessToken,
+        headers: { 'x-moltnet-team-id': proposer.personalTeamId },
+        path: { id: taskId },
+        body: {
+          subjectId: taskWriter.identityId,
+          subjectNs: 'Agent',
+          role: 'writer',
+        },
+      });
+      expect(revoked.error).toBeUndefined();
+
+      await pollUntil(
+        () =>
+          getTask({
+            client,
+            auth: () => taskWriter.accessToken,
+            headers: { 'x-moltnet-team-id': proposer.personalTeamId },
+            path: { id: taskId },
+          }),
+        (result) => result.response.status === 403,
+        { label: 'revoked task writer no longer reads task' },
+      );
     });
   });
 
@@ -513,6 +675,7 @@ describe('Tasks API', () => {
         },
       });
       expect(primaryTaskError).toBeUndefined();
+      await grantClaimerWriter(primaryTask!.id);
 
       const { data: otherDiaryTask, error: otherDiaryTaskError } =
         await createTask({
@@ -606,16 +769,13 @@ describe('Tasks API', () => {
       );
     });
 
-    it('returns 403 for non-existent task id', async () => {
-      // Task.view traverses Task→Diary→read; a non-existent task has no
-      // parent diary tuple, so Keto returns "not permitted" (403) rather
-      // than leaking existence via 404.
+    it('returns 404 for a non-existent task id in the selected team', async () => {
       const { response } = await getTask({
         client,
         auth: () => proposer.accessToken,
         path: { id: '00000000-0000-0000-0000-000000000000' },
       });
-      expect(response.status).toBe(403);
+      expect(response.status).toBe(404);
     });
   });
 
@@ -1216,6 +1376,7 @@ describe('Tasks API', () => {
       const { response } = await cancelTask({
         client,
         auth: () => proposer.accessToken,
+        headers: { 'x-moltnet-team-id': claimer.personalTeamId },
         path: { id: data!.id },
         body: { reason: 'unauthorized cancel attempt' },
       });
@@ -2293,10 +2454,11 @@ describe('Tasks API', () => {
       });
       expect(createError).toBeUndefined();
       const taskId = proposed!.id;
+      await grantTaskWriter(taskId, taskWriter);
 
       const { data: claimed, error: claimError } = await claimTask({
         client,
-        auth: () => claimer.accessToken,
+        auth: () => taskWriter.accessToken,
         path: { id: taskId },
         body: { leaseTtlSec: 30 },
       });
@@ -2304,26 +2466,27 @@ describe('Tasks API', () => {
 
       await taskHeartbeat({
         client,
-        auth: () => claimer.accessToken,
+        auth: () => taskWriter.accessToken,
         path: { id: taskId, n: claimed!.attempt.attemptN },
         body: { leaseTtlSec: 30 },
       });
 
       const cancel = await cancelTask({
         client,
-        auth: () => claimer.accessToken,
+        auth: () => taskWriter.accessToken,
         path: { id: taskId },
         body: { reason: 'claimant can cancel but not cleanup' },
       });
       expect(cancel.error).toBeUndefined();
       expect(cancel.data!.status).toBe('cancelled');
 
-      const revoked = await revokeDiaryGrant({
+      const revoked = await revokeTaskGrant({
         client,
         auth: () => proposer.accessToken,
-        path: { id: proposer.privateDiaryId },
+        headers: { 'x-moltnet-team-id': proposer.personalTeamId },
+        path: { id: taskId },
         body: {
-          subjectId: claimer.identityId,
+          subjectId: taskWriter.identityId,
           subjectNs: 'Agent',
           role: 'writer',
         },
@@ -2334,32 +2497,24 @@ describe('Tasks API', () => {
         () =>
           getTask({
             client,
-            auth: () => claimer.accessToken,
+            auth: () => taskWriter.accessToken,
             path: { id: taskId },
           }),
         (result) => result.response.status === 403,
-        { label: 'revoked writer grant no longer reads task' },
+        { label: 'revoked task writer no longer reads task' },
       );
 
       const claimantCleanup = await batchDeleteTasks({
         client,
-        auth: () => claimer.accessToken,
+        auth: () => taskWriter.accessToken,
         body: {
           ids: [taskId],
           force: true,
           reason: 'try to escalate cancel into delete',
         },
       });
-      expect(claimantCleanup.error).toBeUndefined();
-      expect(claimantCleanup.data).toMatchObject({
-        workflowId: null,
-        status: 'noop',
-        accepted: [],
-        skipped: [taskId],
-      });
-      expect(claimantCleanup.data?.operationId).toMatch(
-        /^task-delete:[a-f0-9]{64}$/,
-      );
+      expect(claimantCleanup.response.status).toBe(403);
+      expect(claimantCleanup.data).toBeUndefined();
 
       const stillVisible = await getTask({
         client,

@@ -429,6 +429,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     correlationSealRepository,
     permissionChecker,
     relationshipWriter,
+    relationshipReader,
+    bridgeDiaryTaskGrants:
+      config.taskOwnershipRollout.MOLTNET_TASK_OWNERSHIP_BRIDGE === '1',
     transactionRunner,
     enqueueWorkflowInCurrentTransaction: (input) =>
       enqueueDbosWorkflowInCurrentTransaction(dbConnection.db, input),

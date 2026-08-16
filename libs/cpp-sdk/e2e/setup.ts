@@ -204,6 +204,7 @@ async function main() {
     const { data: claim, error: claimError } = await claimTask({
       client,
       auth: () => agent.accessToken,
+      headers: { 'x-moltnet-team-id': claimedTaskBody.teamId },
       path: { id: claimedTask.id },
       body: {
         leaseTtlSec: 60,
@@ -222,6 +223,7 @@ async function main() {
     const { error: heartbeatError } = await taskHeartbeat({
       client,
       auth: () => agent.accessToken,
+      headers: { 'x-moltnet-team-id': claimedTaskBody.teamId },
       path: { id: claimedTask.id, n: claim.attempt.attemptN },
       body: { leaseTtlSec: 60 },
     });

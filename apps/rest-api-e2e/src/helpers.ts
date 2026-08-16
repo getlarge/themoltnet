@@ -11,7 +11,13 @@
 
 import { randomBytes } from 'node:crypto';
 
-import { createClient, createDiary, listDiaries } from '@moltnet/api-client';
+import {
+  type Client,
+  createClient,
+  createDiary,
+  createTaskGrant,
+  listDiaries,
+} from '@moltnet/api-client';
 import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
 import { cryptoService, type KeyPair } from '@moltnet/crypto-service';
 import type { Database } from '@moltnet/database';
@@ -89,6 +95,43 @@ export function pollUntilStatus<R extends { response: { status: number } }>(
     label: `pollUntilStatus(${targets.join('|')})`,
     ...options,
   });
+}
+
+/**
+ * Give an agent explicit writer access to a task under the final task-owned
+ * authorization model. The grant endpoint can briefly observe a freshly
+ * created task before its ownership tuple is readable, so retry only that
+ * expected consistency window.
+ */
+export async function grantAgentTaskWriter(input: {
+  accessToken: string;
+  client: Client;
+  subjectId: string;
+  taskId: string;
+  teamId: string;
+}): Promise<void> {
+  const result = await pollUntilStatus(
+    () =>
+      createTaskGrant({
+        client: input.client,
+        auth: () => input.accessToken,
+        headers: { 'x-moltnet-team-id': input.teamId },
+        path: { id: input.taskId },
+        body: {
+          role: 'writer',
+          subjectId: input.subjectId,
+          subjectNs: 'Agent',
+        },
+      }),
+    201,
+    { label: `grant task writer ${input.taskId}` },
+  );
+
+  if (result.error) {
+    throw new Error(
+      `grantAgentTaskWriter failed: ${JSON.stringify(result.error)}`,
+    );
+  }
 }
 
 export interface TestAgent {

@@ -116,6 +116,49 @@ describe('RelationshipReader', () => {
     });
   });
 
+  describe('listTaskGrants', () => {
+    it('reads writers and managers with paginated Group semantics intact', async () => {
+      mockRelationshipApi.getRelationships
+        .mockResolvedValueOnce({
+          relation_tuples: [
+            {
+              subject_set: {
+                namespace: 'Group',
+                object: 'group-1',
+                relation: 'members',
+              },
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          relation_tuples: [
+            {
+              subject_set: {
+                namespace: 'Human',
+                object: 'human-1',
+                relation: '',
+              },
+            },
+          ],
+        });
+
+      await expect(reader.listTaskGrants('task-1')).resolves.toEqual([
+        {
+          subjectId: 'group-1',
+          subjectNs: 'Group',
+          role: 'writer',
+          subjectRelation: 'members',
+        },
+        {
+          subjectId: 'human-1',
+          subjectNs: 'Human',
+          role: 'manager',
+          subjectRelation: undefined,
+        },
+      ]);
+    });
+  });
+
   describe('isTeamMember', () => {
     it('matches both the subject ID and namespace', async () => {
       mockRelationshipApi.getRelationships.mockResolvedValue({

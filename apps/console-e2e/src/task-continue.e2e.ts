@@ -35,7 +35,7 @@ import {
 //   3. attempt.daemonState.slotResumableUntil is set and in the future
 //
 // (3) is daemon-only state. The test bootstraps a fresh genesis agent
-// and a shared team (human as owner, agent as member — personal teams
+// and a shared team (human as owner, agent as manager — personal teams
 // reject membership changes), then drives a real claim → heartbeat →
 // complete cycle with a synthesized daemonState so the human's console
 // sees a warm-resumable attempt.
@@ -90,7 +90,7 @@ test.describe.serial('Continue task from console', () => {
 
     agentCtx = await provisionAgent('task-continue-e2e');
 
-    // Create a shared team with both human (owner) and agent (member)
+    // Create a shared team with both human (owner) and agent (manager)
     // as founding members. Personal teams reject invites
     // (TEAM_PERSONAL_IMMUTABLE), so we need a fresh non-personal team to
     // hold the cross-principal handshake.
@@ -103,7 +103,7 @@ test.describe.serial('Continue task from console', () => {
           {
             subjectId: agentCtx.genesis.identityId,
             subjectNs: 'Agent',
-            role: 'member',
+            role: 'manager',
           },
         ],
       },
@@ -142,7 +142,7 @@ test.describe.serial('Continue task from console', () => {
     allowedProfileDefinitionCid = profile.data.definitionCid;
 
     // Create a diary inside the shared team so both the human (owner)
-    // and the agent (member) can read tasks against it. The agent's
+    // and the agent (manager) can create and read tasks against it. The agent's
     // bootstrap-time private diary belongs to the agent's personal team
     // and isn't visible to the human — task auth checks diary access,
     // not team membership, so the seed must use a team-scoped diary.
@@ -220,6 +220,9 @@ test.describe.serial('Continue task from console', () => {
 
   async function openSourceAttempt(page: Page): Promise<void> {
     await loginViaBrowser(page, user);
+    await page.goto(CONSOLE_URL);
+    const teamSelect = page.locator('select[aria-label="Select team"]');
+    await teamSelect.selectOption(sharedTeamId);
     await page.goto(
       `${CONSOLE_URL}/tasks/${sourceTaskId}/attempts/${sourceAttemptN}`,
     );
@@ -280,7 +283,11 @@ test.describe.serial('Continue task from console', () => {
     if (!newTaskId) throw new Error('continuation task not found');
 
     const newTask = (
-      await getTask({ client: humanClient, path: { id: newTaskId } })
+      await getTask({
+        client: humanClient,
+        path: { id: newTaskId },
+        headers: { 'x-moltnet-team-id': sharedTeamId },
+      })
     ).data;
     expect(newTask?.taskType).toBe('freeform');
     const input = newTask?.input as {

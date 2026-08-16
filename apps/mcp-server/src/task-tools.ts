@@ -196,6 +196,7 @@ export async function handleTasksContinue(
   const { data: source, error: getErr } = await getTask({
     client: deps.client,
     auth: () => token,
+    headers: { 'x-moltnet-team-id': args.team_id },
     path: { id: args.fromTaskId },
   });
   if (getErr || !source) {
@@ -297,6 +298,7 @@ export async function handleTasksGet(
   const { data, error } = await getTask({
     client: deps.client,
     auth: () => token,
+    headers: { 'x-moltnet-team-id': args.team_id },
     path: { id: args.id },
   });
 
@@ -363,6 +365,7 @@ export async function handleTasksAttemptsList(
   const { data, error } = await listTaskAttempts({
     client: deps.client,
     auth: () => token,
+    headers: { 'x-moltnet-team-id': args.team_id },
     path: { id: args.task_id },
   });
 
@@ -391,6 +394,7 @@ export async function handleTasksMessagesList(
   const { data, error } = await listTaskMessages({
     client: deps.client,
     auth: () => token,
+    headers: { 'x-moltnet-team-id': args.team_id },
     path: { id: args.task_id, n: args.attempt_n },
     query: {
       afterSeq: args.after_seq,

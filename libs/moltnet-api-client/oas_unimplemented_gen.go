@@ -85,7 +85,7 @@ func (UnimplementedHandler) BatchDeleteDiaryEntries(ctx context.Context, req *Ba
 // delete protected terminal tasks.
 //
 // DELETE /tasks
-func (UnimplementedHandler) BatchDeleteTasks(ctx context.Context, req *BatchDeleteTasksReq) (r BatchDeleteTasksRes, _ error) {
+func (UnimplementedHandler) BatchDeleteTasks(ctx context.Context, req *BatchDeleteTasksReq, params BatchDeleteTasksParams) (r BatchDeleteTasksRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -273,6 +273,15 @@ func (UnimplementedHandler) CreateSigningRequest(ctx context.Context, req *Creat
 //
 // POST /tasks
 func (UnimplementedHandler) CreateTask(ctx context.Context, req *CreateTaskReq, params CreateTaskParams) (r CreateTaskRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// CreateTaskGrant implements createTaskGrant operation.
+//
+// Grant writer or manager access to a task for an agent, human, or group.
+//
+// POST /tasks/{id}/grants
+func (UnimplementedHandler) CreateTaskGrant(ctx context.Context, req *CreateTaskGrantReq, params CreateTaskGrantParams) (r CreateTaskGrantRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -954,6 +963,15 @@ func (UnimplementedHandler) ListTaskAttempts(ctx context.Context, params ListTas
 	return r, ht.ErrNotImplemented
 }
 
+// ListTaskGrants implements listTaskGrants operation.
+//
+// List explicit writer and manager grants for a task.
+//
+// GET /tasks/{id}/grants
+func (UnimplementedHandler) ListTaskGrants(ctx context.Context, params ListTaskGrantsParams) (r ListTaskGrantsRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListTaskMessages implements listTaskMessages operation.
 //
 // List messages for a task attempt.
@@ -1130,6 +1148,15 @@ func (UnimplementedHandler) RevokeDiaryGrant(ctx context.Context, req *RevokeDia
 //
 // POST /crypto/signing-credentials/{id}/revoke
 func (UnimplementedHandler) RevokeSigningCredential(ctx context.Context, req OptRevokeSigningCredentialReq, params RevokeSigningCredentialParams) (r RevokeSigningCredentialRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// RevokeTaskGrant implements revokeTaskGrant operation.
+//
+// Revoke an explicit writer or manager task grant.
+//
+// DELETE /tasks/{id}/grants
+func (UnimplementedHandler) RevokeTaskGrant(ctx context.Context, req *RevokeTaskGrantReq, params RevokeTaskGrantParams) (r RevokeTaskGrantRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

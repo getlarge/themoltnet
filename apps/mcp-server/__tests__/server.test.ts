@@ -666,6 +666,18 @@ describe('buildApp', () => {
           "name": "rendered_packs_update",
         },
         {
+          "inputSchema": "65efc4acfbf380bc",
+          "name": "task_grants_create",
+        },
+        {
+          "inputSchema": "0ff45122cae7567f",
+          "name": "task_grants_list",
+        },
+        {
+          "inputSchema": "4bc9d3ffeed2bad5",
+          "name": "task_grants_revoke",
+        },
+        {
           "inputSchema": "2a5a9330f4f278d3",
           "name": "tasks_app_open",
         },
@@ -686,7 +698,7 @@ describe('buildApp', () => {
           "name": "tasks_artifacts_upload",
         },
         {
-          "inputSchema": "8f3230eca1e8976a",
+          "inputSchema": "f64675cd81e5209c",
           "name": "tasks_attempts_list",
         },
         {
@@ -694,7 +706,7 @@ describe('buildApp', () => {
           "name": "tasks_console_link",
         },
         {
-          "inputSchema": "d3d824f22f8d7c92",
+          "inputSchema": "d89fc85634d37f40",
           "name": "tasks_continue",
         },
         {
@@ -702,7 +714,7 @@ describe('buildApp', () => {
           "name": "tasks_create",
         },
         {
-          "inputSchema": "1c9c9b04f93c865c",
+          "inputSchema": "060cf68166e7ec04",
           "name": "tasks_get",
         },
         {
@@ -710,7 +722,7 @@ describe('buildApp', () => {
           "name": "tasks_list",
         },
         {
-          "inputSchema": "a6465451da69050e",
+          "inputSchema": "fe1cb7f8ca0fabf3",
           "name": "tasks_messages_list",
         },
         {

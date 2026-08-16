@@ -106,6 +106,101 @@ func runDiaryGrantsRevokeCmd(apiURL, credPath, diaryID, subjectID, subjectNs, ro
 	return printJSON(ok)
 }
 
+func runTaskGrantsListCmd(apiURL, credPath, taskID, teamID string) error {
+	taskUUID, teamUUID, _, err := parseTaskGrantIDs(taskID, teamID, "")
+	if err != nil {
+		return err
+	}
+	client, err := newAuthenticatedClient(apiURL, credPath)
+	if err != nil {
+		return err
+	}
+	res, err := client.ListTaskGrants(context.Background(), moltnetapi.ListTaskGrantsParams{ID: taskUUID, XMoltnetTeamID: teamUUID})
+	if err != nil {
+		return fmt.Errorf("task grants list: %w", formatTransportError(err))
+	}
+	ok, valid := res.(*moltnetapi.ListTaskGrantsOK)
+	if !valid {
+		return formatAPIError(res)
+	}
+	return printJSON(ok)
+}
+
+func runTaskGrantsCreateCmd(apiURL, credPath, taskID, teamID, subjectID, subjectNs, role string) error {
+	taskUUID, teamUUID, subjectUUID, err := parseTaskGrantIDs(taskID, teamID, subjectID)
+	if err != nil {
+		return err
+	}
+	var parsedRole moltnetapi.CreateTaskGrantReqRole
+	if err := parsedRole.UnmarshalText([]byte(role)); err != nil {
+		return fmt.Errorf("invalid role %q: %w", role, err)
+	}
+	var parsedNs moltnetapi.CreateTaskGrantReqSubjectNs
+	if err := parsedNs.UnmarshalText([]byte(subjectNs)); err != nil {
+		return fmt.Errorf("invalid subject-ns %q: %w", subjectNs, err)
+	}
+	client, err := newAuthenticatedClient(apiURL, credPath)
+	if err != nil {
+		return err
+	}
+	res, err := client.CreateTaskGrant(context.Background(), &moltnetapi.CreateTaskGrantReq{Role: parsedRole, SubjectId: subjectUUID, SubjectNs: parsedNs}, moltnetapi.CreateTaskGrantParams{ID: taskUUID, XMoltnetTeamID: teamUUID})
+	if err != nil {
+		return fmt.Errorf("task grants create: %w", formatTransportError(err))
+	}
+	created, valid := res.(*moltnetapi.CreateTaskGrantCreated)
+	if !valid {
+		return formatAPIError(res)
+	}
+	return printJSON(created)
+}
+
+func runTaskGrantsRevokeCmd(apiURL, credPath, taskID, teamID, subjectID, subjectNs, role string) error {
+	taskUUID, teamUUID, subjectUUID, err := parseTaskGrantIDs(taskID, teamID, subjectID)
+	if err != nil {
+		return err
+	}
+	var parsedRole moltnetapi.RevokeTaskGrantReqRole
+	if err := parsedRole.UnmarshalText([]byte(role)); err != nil {
+		return fmt.Errorf("invalid role %q: %w", role, err)
+	}
+	var parsedNs moltnetapi.RevokeTaskGrantReqSubjectNs
+	if err := parsedNs.UnmarshalText([]byte(subjectNs)); err != nil {
+		return fmt.Errorf("invalid subject-ns %q: %w", subjectNs, err)
+	}
+	client, err := newAuthenticatedClient(apiURL, credPath)
+	if err != nil {
+		return err
+	}
+	res, err := client.RevokeTaskGrant(context.Background(), &moltnetapi.RevokeTaskGrantReq{Role: parsedRole, SubjectId: subjectUUID, SubjectNs: parsedNs}, moltnetapi.RevokeTaskGrantParams{ID: taskUUID, XMoltnetTeamID: teamUUID})
+	if err != nil {
+		return fmt.Errorf("task grants revoke: %w", formatTransportError(err))
+	}
+	ok, valid := res.(*moltnetapi.RevokeTaskGrantOK)
+	if !valid {
+		return formatAPIError(res)
+	}
+	return printJSON(ok)
+}
+
+func parseTaskGrantIDs(taskID, teamID, subjectID string) (uuid.UUID, uuid.UUID, uuid.UUID, error) {
+	taskUUID, err := uuid.Parse(taskID)
+	if err != nil {
+		return uuid.Nil, uuid.Nil, uuid.Nil, fmt.Errorf("invalid task ID %q: %w", taskID, err)
+	}
+	teamUUID, err := uuid.Parse(teamID)
+	if err != nil {
+		return uuid.Nil, uuid.Nil, uuid.Nil, fmt.Errorf("invalid team ID %q: %w", teamID, err)
+	}
+	if subjectID == "" {
+		return taskUUID, teamUUID, uuid.Nil, nil
+	}
+	subjectUUID, err := uuid.Parse(subjectID)
+	if err != nil {
+		return uuid.Nil, uuid.Nil, uuid.Nil, fmt.Errorf("invalid subject ID %q: %w", subjectID, err)
+	}
+	return taskUUID, teamUUID, subjectUUID, nil
+}
+
 // Delegates to ogen-generated UnmarshalText so the CLI stays in sync with the
 // API if new roles/namespaces are added. UnmarshalText is case-sensitive, which
 // is intentional — Keto namespaces are PascalCase.

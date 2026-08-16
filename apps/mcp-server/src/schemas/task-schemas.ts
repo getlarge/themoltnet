@@ -161,6 +161,10 @@ type _TaskCreateInputMatchesApi = AssertSchemaToApi<
  */
 export const TaskContinueSchema = Type.Object(
   {
+    team_id: Type.String({
+      format: 'uuid',
+      description: 'Owning team ID for the source task.',
+    }),
     fromTaskId: Type.String({
       format: 'uuid',
       description: 'ID of the source freeform task to continue from.',
@@ -201,9 +205,14 @@ export const TaskGetSchema = Type.Object({
     format: 'uuid',
     description: 'Task ID.',
   }),
+  team_id: Type.String({
+    format: 'uuid',
+    description: 'Owning team ID for the task.',
+  }),
 });
 export type TaskGetInput = {
   id: PathOf<GetTaskData>['id'];
+  team_id: TeamIdHeaderOf<GetTaskData>;
 };
 
 export const TaskListSchema = Type.Object({
@@ -303,9 +312,14 @@ export const TaskAttemptsListSchema = Type.Object({
     format: 'uuid',
     description: 'Task ID.',
   }),
+  team_id: Type.String({
+    format: 'uuid',
+    description: 'Team ID that owns the task.',
+  }),
 });
 export type TaskAttemptsListInput = {
   task_id: PathOf<ListTaskAttemptsData>['id'];
+  team_id: TeamIdHeaderOf<ListTaskAttemptsData>;
 };
 
 export const TaskMessagesListSchema = Type.Object({
@@ -316,6 +330,10 @@ export const TaskMessagesListSchema = Type.Object({
   attempt_n: Type.Integer({
     minimum: 1,
     description: 'Attempt number.',
+  }),
+  team_id: Type.String({
+    format: 'uuid',
+    description: 'Team ID that owns the task.',
   }),
   after_seq: Type.Optional(
     Type.Integer({
@@ -336,6 +354,7 @@ type ListMessagesQuery = QueryOf<ListTaskMessagesData>;
 export type TaskMessagesListInput = {
   task_id: ListMessagesPath['id'];
   attempt_n: ListMessagesPath['n'];
+  team_id: TeamIdHeaderOf<ListTaskMessagesData>;
   after_seq?: ListMessagesQuery['afterSeq'];
   limit?: ListMessagesQuery['limit'];
 };

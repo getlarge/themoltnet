@@ -159,7 +159,7 @@ describe('Task Tools E2E', () => {
 
     const getResult = await client.callTool({
       name: 'tasks_get',
-      arguments: { id: taskId },
+      arguments: { id: taskId, team_id: harness.personalTeamId },
     });
     const got = parseToolResult<{ id: string; consoleUrl?: string }>(getResult);
     expect(
@@ -217,6 +217,7 @@ describe('Task Tools E2E', () => {
     const { data: claimed, error: claimError } = await claimTask({
       client: apiClient,
       auth: () => harness.agent.accessToken,
+      headers: { 'x-moltnet-team-id': harness.personalTeamId },
       path: { id: sourceTaskId },
       body: { leaseTtlSec: 60 },
     });
@@ -229,6 +230,7 @@ describe('Task Tools E2E', () => {
     const { error: hbError } = await taskHeartbeat({
       client: apiClient,
       auth: () => harness.agent.accessToken,
+      headers: { 'x-moltnet-team-id': harness.personalTeamId },
       path: { id: sourceTaskId, n: attemptN },
       body: { leaseTtlSec: 60 },
     });
@@ -260,6 +262,7 @@ describe('Task Tools E2E', () => {
     const { error: completeError } = await completeTask({
       client: apiClient,
       auth: () => harness.agent.accessToken,
+      headers: { 'x-moltnet-team-id': harness.personalTeamId },
       path: { id: sourceTaskId, n: attemptN },
       body: {
         output,
@@ -282,6 +285,7 @@ describe('Task Tools E2E', () => {
       const { data } = await getTask({
         client: apiClient,
         auth: () => harness.agent.accessToken,
+        headers: { 'x-moltnet-team-id': harness.personalTeamId },
         path: { id: sourceTaskId },
       });
       if (data && (data.status === 'completed' || data.status === 'failed')) {
@@ -298,6 +302,7 @@ describe('Task Tools E2E', () => {
     const continueResult = await client.callTool({
       name: 'tasks_continue',
       arguments: {
+        team_id: harness.personalTeamId,
         fromTaskId: sourceTaskId,
         fromAttemptN: attemptN,
         brief: 'Pick up where the source attempt left off.',
@@ -349,6 +354,7 @@ describe('Task Tools E2E', () => {
     const { data: claimed, error: claimError } = await claimTask({
       client: apiClient,
       auth: () => harness.agent.accessToken,
+      headers: { 'x-moltnet-team-id': harness.personalTeamId },
       path: { id: taskId },
       body: { leaseTtlSec: 30 },
     });
@@ -361,6 +367,7 @@ describe('Task Tools E2E', () => {
     const { error: appendError } = await appendTaskMessages({
       client: apiClient,
       auth: () => harness.agent.accessToken,
+      headers: { 'x-moltnet-team-id': harness.personalTeamId },
       path: { id: taskId, n: claimed!.attempt.attemptN },
       body: {
         messages: [
@@ -378,7 +385,10 @@ describe('Task Tools E2E', () => {
 
     const attemptsResult = await client.callTool({
       name: 'tasks_attempts_list',
-      arguments: { task_id: taskId },
+      arguments: {
+        task_id: taskId,
+        team_id: harness.personalTeamId,
+      },
     });
     const attempts = parseToolResult<{
       items: Array<{ taskId: string; attemptN: number; status: string }>;
@@ -401,6 +411,7 @@ describe('Task Tools E2E', () => {
       arguments: {
         task_id: taskId,
         attempt_n: claimed!.attempt.attemptN,
+        team_id: harness.personalTeamId,
         limit: 20,
       },
     });
@@ -436,6 +447,7 @@ describe('Task Tools E2E', () => {
     const { data: claimed, error: claimError } = await claimTask({
       client: apiClient,
       auth: () => harness.agent.accessToken,
+      headers: { 'x-moltnet-team-id': harness.personalTeamId },
       path: { id: taskId },
       body: { leaseTtlSec: 30 },
     });
@@ -448,6 +460,7 @@ describe('Task Tools E2E', () => {
     const { error: heartbeatError } = await taskHeartbeat({
       client: apiClient,
       auth: () => harness.agent.accessToken,
+      headers: { 'x-moltnet-team-id': harness.personalTeamId },
       path: { id: taskId, n: attemptN },
       body: { leaseTtlSec: 30 },
     });

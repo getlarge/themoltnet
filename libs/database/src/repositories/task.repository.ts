@@ -300,9 +300,26 @@ export function createTaskRepository(db: Database) {
       return row ?? null;
     },
 
+    async findByIdInTeam(id: string, teamId: string): Promise<Task | null> {
+      const [row] = await getExecutor(db)
+        .select()
+        .from(tasks)
+        .where(and(eq(tasks.id, id), eq(tasks.teamId, teamId)))
+        .limit(1);
+      return row ?? null;
+    },
+
     async findByIds(ids: string[]): Promise<Task[]> {
       if (ids.length === 0) return [];
       return getExecutor(db).select().from(tasks).where(inArray(tasks.id, ids));
+    },
+
+    async findByIdsInTeam(ids: string[], teamId: string): Promise<Task[]> {
+      if (ids.length === 0) return [];
+      return getExecutor(db)
+        .select()
+        .from(tasks)
+        .where(and(inArray(tasks.id, ids), eq(tasks.teamId, teamId)));
     },
 
     async findSealedTaskIds(ids: string[]): Promise<string[]> {

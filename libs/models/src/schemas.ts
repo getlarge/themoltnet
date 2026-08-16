@@ -605,6 +605,41 @@ export type RevokeDiaryGrant = Static<typeof RevokeDiaryGrantSchema>;
 export type DiaryGrantResponse = Static<typeof DiaryGrantResponseSchema>;
 
 // ============================================================================
+// Task Grant Schemas
+// ============================================================================
+
+export const TaskGrantRoleSchema = Type.Union([
+  Type.Literal('writer'),
+  Type.Literal('manager'),
+]);
+
+export const CreateTaskGrantSchema = Type.Object({
+  subjectId: UuidSchema,
+  subjectNs: GrantSubjectNsSchema,
+  role: TaskGrantRoleSchema,
+});
+
+export const RevokeTaskGrantSchema = Type.Object({
+  subjectId: UuidSchema,
+  subjectNs: GrantSubjectNsSchema,
+  role: TaskGrantRoleSchema,
+});
+
+export const TaskGrantResponseSchema = Type.Object({
+  subjectId: UuidSchema,
+  subjectNs: GrantSubjectNsSchema,
+  role: TaskGrantRoleSchema,
+});
+
+export const TaskGrantListResponseSchema = Type.Object({
+  grants: Type.Array(TaskGrantResponseSchema),
+});
+
+export type CreateTaskGrant = Static<typeof CreateTaskGrantSchema>;
+export type RevokeTaskGrant = Static<typeof RevokeTaskGrantSchema>;
+export type TaskGrantResponse = Static<typeof TaskGrantResponseSchema>;
+
+// ============================================================================
 // Header Schemas
 // ============================================================================
 

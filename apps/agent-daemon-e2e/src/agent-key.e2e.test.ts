@@ -440,7 +440,7 @@ describe('Agent daemon agent-key auth (e2e)', () => {
       if (exitCode !== 0) {
         throw new Error(`configless fixture exited with code ${exitCode}`);
       }
-      const final = await keyAgent.tasks.get(task.id);
+      const final = await keyAgent.tasks.get(task.id, { teamId });
       if (final.status !== 'completed' || final.acceptedAttemptN === null) {
         throw new Error(
           `configless fixture did not complete: ${final.status} ` +
@@ -627,11 +627,16 @@ describe('Agent daemon agent-key auth (e2e)', () => {
     const executorWhoami = await executorOptions.moltnetAgent?.agents.whoami();
     expect(executorWhoami?.credentialBinding?.boundTeamId).toBe(teamId);
 
-    const final = await keyAgent.tasks.get(taskId);
+    const final = await keyAgent.tasks.get(taskId, { teamId });
     expect(final.status).toBe('completed');
     expect(final.acceptedAttemptN).toBe(1);
 
-    const messages = await keyAgent.tasks.listMessages(taskId, attemptN);
+    const messages = await keyAgent.tasks.listMessages(
+      taskId,
+      attemptN,
+      undefined,
+      { teamId },
+    );
     expect(JSON.stringify(messages)).toContain('configless_agent_key_e2e');
 
     const artifacts = await keyAgent.tasks.artifacts.list(taskId, { teamId });
@@ -684,7 +689,7 @@ describe('Agent daemon agent-key auth (e2e)', () => {
     ['task queue', () => keyAgent.tasks.list({ limit: 1 }, { teamId })],
     [
       'task record',
-      () => keyAgent.tasks.get(completedConfiglessFixture.taskId),
+      () => keyAgent.tasks.get(completedConfiglessFixture.taskId, { teamId }),
     ],
     [
       'task messages',
@@ -692,6 +697,8 @@ describe('Agent daemon agent-key auth (e2e)', () => {
         keyAgent.tasks.listMessages(
           completedConfiglessFixture.taskId,
           completedConfiglessFixture.attemptN,
+          undefined,
+          { teamId },
         ),
     ],
     [

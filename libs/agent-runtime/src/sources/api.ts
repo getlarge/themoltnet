@@ -10,6 +10,8 @@ import type {
 export interface ApiTaskSourceOptions {
   agent: Agent;
   taskId: string;
+  /** Owning team context. Falls back to SDK task context when already known. */
+  teamId?: string;
   leaseTtlSec?: number;
   profileId?: string;
   /** Fingerprint of a manifest registered once for this agent. */
@@ -33,6 +35,7 @@ export class ApiTaskSource implements TaskSource {
       profileId,
       executorFingerprint,
       createClaimAttestation,
+      teamId,
     } = this.opts;
     const attestation = executorFingerprint
       ? { executorFingerprint }
@@ -40,11 +43,14 @@ export class ApiTaskSource implements TaskSource {
           taskId,
           ...(profileId ? { profileId } : {}),
         });
-    const result = await agent.tasks.claim(taskId, {
+    const claimBody = {
       ...(leaseTtlSec ? { leaseTtlSec } : {}),
       ...(profileId ? { profileId } : {}),
       ...attestation,
-    });
+    };
+    const result = teamId
+      ? await agent.tasks.claim(taskId, claimBody, { teamId })
+      : await agent.tasks.claim(taskId, claimBody);
 
     this.claimed = true;
     const claimAuthority = claimAuthorityFromAttempt(result.attempt);

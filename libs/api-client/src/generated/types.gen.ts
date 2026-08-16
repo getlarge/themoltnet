@@ -12698,6 +12698,12 @@ export type BatchDeleteTasksData = {
     ids: Array<string>;
     reason?: string;
   };
+  headers?: {
+    /**
+     * Team ID (UUID) for scoping the request. Optional.
+     */
+    'x-moltnet-team-id'?: string;
+  };
   path?: never;
   query?: never;
   url: '/tasks';
@@ -12997,6 +13003,12 @@ export type ListTaskSchemasResponse2 =
 
 export type GetTaskData = {
   body?: never;
+  headers?: {
+    /**
+     * Team ID (UUID) for scoping the request. Optional.
+     */
+    'x-moltnet-team-id'?: string;
+  };
   path: {
     id: string;
   };
@@ -13042,6 +13054,12 @@ export type UpdateTaskMetadataData = {
   body?: {
     tags?: Array<string>;
     title?: string | null;
+  };
+  headers?: {
+    /**
+     * Team ID (UUID) for scoping the request. Optional.
+     */
+    'x-moltnet-team-id'?: string;
   };
   path: {
     id: string;
@@ -13092,6 +13110,12 @@ export type UpdateTaskMetadataResponse =
 
 export type ListTaskAttemptsData = {
   body?: never;
+  headers?: {
+    /**
+     * Team ID (UUID) for scoping the request. Optional.
+     */
+    'x-moltnet-team-id'?: string;
+  };
   path: {
     id: string;
   };
@@ -13138,6 +13162,12 @@ export type ListTaskAttemptsResponse =
 export type AbortTaskAttemptData = {
   body?: {
     reason?: string;
+  };
+  headers?: {
+    /**
+     * Team ID (UUID) for scoping the request. Optional.
+     */
+    'x-moltnet-team-id'?: string;
   };
   path: {
     id: string;
@@ -13206,6 +13236,12 @@ export type CompleteTaskData = {
     outputCid: string;
     usage: TaskUsage;
   };
+  headers?: {
+    /**
+     * Team ID (UUID) for scoping the request. Optional.
+     */
+    'x-moltnet-team-id'?: string;
+  };
   path: {
     id: string;
     n: number;
@@ -13260,6 +13296,12 @@ export type CompleteTaskResponse =
 export type FailTaskAttemptData = {
   body: {
     error: TaskError;
+  };
+  headers?: {
+    /**
+     * Team ID (UUID) for scoping the request. Optional.
+     */
+    'x-moltnet-team-id'?: string;
   };
   path: {
     id: string;
@@ -13317,6 +13359,12 @@ export type TaskHeartbeatData = {
   body?: {
     leaseTtlSec?: number;
   };
+  headers?: {
+    /**
+     * Team ID (UUID) for scoping the request. Optional.
+     */
+    'x-moltnet-team-id'?: string;
+  };
   path: {
     id: string;
     n: number;
@@ -13362,6 +13410,12 @@ export type TaskHeartbeatResponse =
 
 export type ListTaskMessagesData = {
   body?: never;
+  headers?: {
+    /**
+     * Team ID (UUID) for scoping the request. Optional.
+     */
+    'x-moltnet-team-id'?: string;
+  };
   path: {
     id: string;
     n: number;
@@ -13422,6 +13476,12 @@ export type AppendTaskMessagesData = {
       timestamp?: string;
     }>;
   };
+  headers?: {
+    /**
+     * Team ID (UUID) for scoping the request. Optional.
+     */
+    'x-moltnet-team-id'?: string;
+  };
   path: {
     id: string;
     n: number;
@@ -13473,6 +13533,12 @@ export type AppendTaskMessagesResponse =
 export type CancelTaskData = {
   body: {
     reason: string;
+  };
+  headers?: {
+    /**
+     * Team ID (UUID) for scoping the request. Optional.
+     */
+    'x-moltnet-team-id'?: string;
   };
   path: {
     id: string;
@@ -13533,6 +13599,12 @@ export type ClaimTaskData = {
     leaseTtlSec?: number;
     profileId?: string;
   };
+  headers?: {
+    /**
+     * Team ID (UUID) for scoping the request. Optional.
+     */
+    'x-moltnet-team-id'?: string;
+  };
   path: {
     id: string;
   };
@@ -13581,6 +13653,195 @@ export type ClaimTaskResponses = {
 };
 
 export type ClaimTaskResponse2 = ClaimTaskResponses[keyof ClaimTaskResponses];
+
+export type RevokeTaskGrantData = {
+  body: {
+    role: 'writer' | 'manager';
+    /**
+     * UUID v4 identifier
+     */
+    subjectId: string;
+    subjectNs: 'Agent' | 'Human' | 'Group';
+  };
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/tasks/{id}/grants';
+};
+
+export type RevokeTaskGrantErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type RevokeTaskGrantError =
+  RevokeTaskGrantErrors[keyof RevokeTaskGrantErrors];
+
+export type RevokeTaskGrantResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    revoked: boolean;
+  };
+};
+
+export type RevokeTaskGrantResponse =
+  RevokeTaskGrantResponses[keyof RevokeTaskGrantResponses];
+
+export type ListTaskGrantsData = {
+  body?: never;
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/tasks/{id}/grants';
+};
+
+export type ListTaskGrantsErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type ListTaskGrantsError =
+  ListTaskGrantsErrors[keyof ListTaskGrantsErrors];
+
+export type ListTaskGrantsResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    grants: Array<{
+      role: 'writer' | 'manager';
+      /**
+       * UUID v4 identifier
+       */
+      subjectId: string;
+      subjectNs: 'Agent' | 'Human' | 'Group';
+    }>;
+  };
+};
+
+export type ListTaskGrantsResponse =
+  ListTaskGrantsResponses[keyof ListTaskGrantsResponses];
+
+export type CreateTaskGrantData = {
+  body: {
+    role: 'writer' | 'manager';
+    /**
+     * UUID v4 identifier
+     */
+    subjectId: string;
+    subjectNs: 'Agent' | 'Human' | 'Group';
+  };
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/tasks/{id}/grants';
+};
+
+export type CreateTaskGrantErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type CreateTaskGrantError =
+  CreateTaskGrantErrors[keyof CreateTaskGrantErrors];
+
+export type CreateTaskGrantResponses = {
+  /**
+   * Default Response
+   */
+  201: {
+    role: 'writer' | 'manager';
+    /**
+     * UUID v4 identifier
+     */
+    subjectId: string;
+    subjectNs: 'Agent' | 'Human' | 'Group';
+  };
+};
+
+export type CreateTaskGrantResponse =
+  CreateTaskGrantResponses[keyof CreateTaskGrantResponses];
 
 export type ListTaskArtifactsData = {
   body?: never;

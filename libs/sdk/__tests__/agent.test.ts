@@ -34,6 +34,7 @@ import {
   getPublicFeed,
   getRuntimeProfile,
   getSigningRequest,
+  getTask,
   getTeam,
   getWhoami,
   initiateTransfer,
@@ -104,6 +105,7 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
     listSigningRequests: vi.fn(),
     createSigningRequest: vi.fn(),
     getSigningRequest: vi.fn(),
+    getTask: vi.fn(),
     submitSignature: vi.fn(),
     claimSigningRequest: vi.fn(),
     completeSigningRequest: vi.fn(),
@@ -563,6 +565,35 @@ describe('Agent facade', () => {
       );
     });
 
+    it('reuses a created task team for subsequent by-ID requests', async () => {
+      vi.mocked(createTask).mockResolvedValueOnce({
+        data: mockTask,
+        error: undefined,
+      } as any);
+      vi.mocked(getTask).mockResolvedValueOnce({
+        data: mockTask,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const created = await agent.tasks.create(
+        {
+          taskType: 'fulfill_brief',
+          diaryId: 'diary-1',
+          input: { brief: 'Hello' },
+        },
+        { teamId: 'team-1' },
+      );
+      await agent.tasks.get(created.id);
+
+      expect(getTask).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: { 'x-moltnet-team-id': 'team-1' },
+          path: { id: 'task-1' },
+        }),
+      );
+    });
+
     it('tasks.deleteMany calls batchDeleteTasks', async () => {
       const response = {
         workflowId: 'task-delete:1',
@@ -577,17 +608,21 @@ describe('Agent facade', () => {
       } as any);
 
       const agent = makeAgent();
-      const result = await agent.tasks.deleteMany({
-        ids: ['task-1', 'task-2'],
-        force: true,
-        reason: 'cleanup duplicate terminal tasks',
-      });
+      const result = await agent.tasks.deleteMany(
+        {
+          ids: ['task-1', 'task-2'],
+          force: true,
+          reason: 'cleanup duplicate terminal tasks',
+        },
+        { teamId: 'team-1' },
+      );
 
       expect(result).toEqual(response);
       expect(batchDeleteTasks).toHaveBeenCalledWith(
         expect.objectContaining({
           client: mockClient,
           auth: mockAuth,
+          headers: { 'x-moltnet-team-id': 'team-1' },
           body: {
             ids: ['task-1', 'task-2'],
             force: true,

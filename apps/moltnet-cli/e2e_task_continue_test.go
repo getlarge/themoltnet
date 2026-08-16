@@ -60,6 +60,7 @@ func TestE2E_CLI_TaskContinue_DryRunFromQueuedSource(t *testing.T) {
 	// 2. Dry-run a continuation with live schema validation enabled.
 	dryOut, _ := h.runWithStdin(t, "",
 		"task", "continue",
+		"--team-id", e2ePersonalTeamID.String(),
 		"--from-task-id", srcID,
 		"--from-attempt-n", "1",
 		"--brief", "Next step: assert the chain",
@@ -150,6 +151,7 @@ func TestE2E_CLI_TaskContinue_ForwardsForkMode(t *testing.T) {
 
 	dryOut, _ := h.runWithStdin(t, "",
 		"task", "continue",
+		"--team-id", e2ePersonalTeamID.String(),
 		"--from-task-id", srcID,
 		"--from-attempt-n", "1",
 		"--brief", "fork probe",
@@ -195,6 +197,7 @@ func TestE2E_CLI_TaskContinue_RejectsNonFreeformSource(t *testing.T) {
 
 	_, stderr := h.runExpectingFailure(t, "",
 		"task", "continue",
+		"--team-id", e2ePersonalTeamID.String(),
 		"--from-task-id", srcID,
 		"--from-attempt-n", "1",
 		"--brief", "Should reject",
