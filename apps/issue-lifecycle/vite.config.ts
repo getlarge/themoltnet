@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import dts from 'vite-plugin-dts';
 
 import { externalizeInstallableDependencies } from '../../vite.shared';
 
@@ -7,11 +8,22 @@ const external = externalizeInstallableDependencies(
 );
 
 export default defineConfig({
+  plugins: [
+    dts({
+      entryRoot: 'src',
+      rollupTypes: true,
+      tsconfigPath: './tsconfig.lib.json',
+    }),
+  ],
   build: {
-    ssr: 'src/main.ts',
+    ssr: true,
     outDir: 'dist',
     emptyOutDir: true,
     rolldownOptions: {
+      input: {
+        index: 'src/index.ts',
+        main: 'src/main.ts',
+      },
       external,
       output: {
         banner: '#!/usr/bin/env node',

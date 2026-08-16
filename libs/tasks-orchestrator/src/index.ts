@@ -19,6 +19,7 @@ export {
   MAX_JOIN_TASKS,
 } from './join.js';
 export {
+  type ParallelTaskCreateMetadata,
   parallelTasks,
   type ParallelTasksArgs,
   type ParallelTasksResult,
@@ -33,4 +34,6 @@ export type {
   TaskMessage,
   TaskOutcome,
   WorkflowContext,
+  WorkflowStepHandle,
 } from './types.js';
+export { taskCreateIdempotencyKey } from './types.js';

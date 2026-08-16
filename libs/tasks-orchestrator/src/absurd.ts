@@ -10,8 +10,15 @@ import type { WorkflowContext } from './types.js';
  */
 export function asWorkflowContext(ctx: TaskContext): WorkflowContext {
   return {
+    executionId: ctx.taskID,
     step(name, fn) {
       return ctx.step(name, fn);
+    },
+    beginStep(name) {
+      return ctx.beginStep(name);
+    },
+    completeStep(handle, value) {
+      return ctx.completeStep(handle, value);
     },
     sleepFor(name, seconds) {
       return ctx.sleepFor(name, seconds);

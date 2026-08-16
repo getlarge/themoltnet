@@ -1,4 +1,5 @@
 import type { SuccessCriteria } from '@moltnet/tasks';
+import { inlineContext } from '@themoltnet/tasks-orchestrator';
 import { describe, expect, it } from 'vitest';
 
 import type { FakeGithub } from './test-fakes.js';
@@ -362,7 +363,7 @@ describe('runGithubIssueLifecycle', () => {
     );
   });
 
-  it('uses event-aware waits when the workflow context supports them', async () => {
+  it('uses durable sleeps instead of reusing immutable event names', async () => {
     const { deps: d, github } = fakeDeps([
       { phase: 'classified', decision: 'plan', summary: 'classified' },
       {
@@ -395,10 +396,11 @@ describe('runGithubIssueLifecycle', () => {
           'https://github.com/getlarge/themoltnet/pull/42#issuecomment-1',
       },
     ]);
-    github.approvalResponses = [false, true];
+    github.approvalResponses = [false, false, true];
     const events: string[] = [];
     const sleeps: string[] = [];
     const ctx: WorkflowContext = {
+      ...inlineContext,
       step(_name, fn) {
         return fn();
       },
@@ -425,10 +427,8 @@ describe('runGithubIssueLifecycle', () => {
       ctx,
     );
 
-    expect(events).toContain(
-      'github.issue.label:getlarge/themoltnet:1327:moltnet:plan-approved',
-    );
-    expect(sleeps).toEqual([]);
+    expect(events).toEqual([]);
+    expect(sleeps).toContain('wait-plan-approval-label-addition');
   });
 
   it('stops when triage says the issue needs more triage', async () => {

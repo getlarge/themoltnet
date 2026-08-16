@@ -8,6 +8,7 @@ import {
   parallelTasks,
   type SdkTask,
   type TaskClient,
+  taskCreateIdempotencyKey,
   waitForAcceptedTask,
   type WorkflowContext,
 } from '@themoltnet/tasks-orchestrator';
@@ -1437,6 +1438,13 @@ export async function runMultiLensReview(
   ctx: WorkflowContext = inlineContext,
 ): Promise<MultiLensReviewOutput> {
   const input = normalizeMultiLensReviewInput(rawInput);
+  const createChildTask = (
+    stepName: string,
+    body: Parameters<TaskClient['createTask']>[0],
+  ) =>
+    deps.tasks.createTask(body, {
+      idempotencyKey: taskCreateIdempotencyKey(ctx, stepName),
+    });
   const cost = emptyCost(input.reviewManifest);
   const phaseOutputs = emptyPhaseOutputs();
   deps.logger?.info(
@@ -1492,7 +1500,10 @@ export async function runMultiLensReview(
       plannerTaskId = reusable.id;
     } else {
       plannerTaskId = await ctx.step('planner.create', async () => {
-        const task = await deps.tasks.createTask(buildPlannerTask(input));
+        const task = await createChildTask(
+          'planner.create',
+          buildPlannerTask(input),
+        );
         return task.id;
       });
     }
@@ -1515,7 +1526,7 @@ export async function runMultiLensReview(
       }
       return reusable.id;
     }
-    const task = await deps.tasks.createTask(expected);
+    const task = await createChildTask('preflight.create', expected);
     return task.id;
   });
   cost.tasks += 1;
@@ -1615,7 +1626,8 @@ export async function runMultiLensReview(
     async () => {
       const reusable = reusableReviews.get(topicReviewWorkKey(canaryWork));
       if (reusable) return reusable.id;
-      const task = await deps.tasks.createTask(
+      const task = await createChildTask(
+        'topic-review.canary.create',
         buildTopicReviewTask(input, canaryWork),
       );
       return task.id;
@@ -1670,11 +1682,12 @@ export async function runMultiLensReview(
           items: remainingReviewWork,
           createStepName: (work) =>
             `topic.${work.topic.id}.review.${work.lanes.join('+')}.create`,
-          create: async (work) => {
+          create: async (work, _index, metadata) => {
             const reusable = reusableReviews.get(topicReviewWorkKey(work));
             if (reusable) return reusable.id;
             const task = await deps.tasks.createTask(
               buildTopicReviewTask(input, work),
+              { idempotencyKey: metadata.idempotencyKey },
             );
             return task.id;
           },
@@ -1726,7 +1739,8 @@ export async function runMultiLensReview(
   const synthesisTaskId = await ctx.step(
     'global-synthesis.create',
     async () => {
-      const task = await deps.tasks.createTask(
+      const task = await createChildTask(
+        'global-synthesis.create',
         buildGlobalSynthesisTask(
           input,
           plan,

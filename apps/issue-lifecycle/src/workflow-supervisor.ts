@@ -1,3 +1,5 @@
+import { taskCreateIdempotencyKey } from '@themoltnet/tasks-orchestrator';
+
 import type { normalizeLifecycleInput } from './task-factory.js';
 import { buildSupervisorRecommendationTask } from './task-factory.js';
 import type {
@@ -272,7 +274,10 @@ async function requestSupervisorRecommendation(args: {
         snapshot,
         allowedActions,
       });
-      const task = await args.deps.tasks.createTask(body);
+      const stepName = `task.supervisor.${args.step}.create`;
+      const task = await args.deps.tasks.createTask(body, {
+        idempotencyKey: taskCreateIdempotencyKey(args.ctx, stepName),
+      });
       logCreatedTask(args.deps.logger, `supervisor.${args.step}`, task);
       return task;
     },

@@ -121,7 +121,11 @@ function recordingContext(overrides: Partial<WorkflowContext> = {}): {
   const sleeps: string[] = [];
   const events: string[] = [];
   const ctx: WorkflowContext = {
+    executionId: 'await-engine-test',
     step: (_name, fn) => fn(),
+    beginStep: (name) =>
+      Promise.resolve({ name, checkpointName: name, done: false }),
+    completeStep: (_handle, value) => Promise.resolve(value),
     sleepFor: (name) => {
       sleeps.push(name);
       return Promise.resolve();

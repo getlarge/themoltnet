@@ -1,7 +1,6 @@
 import {
   type TaskOutcome as OrchTaskOutcome,
   waitForAcceptedTask as waitForAcceptedTaskGeneric,
-  waitForSignalOrSleep,
   waitForTaskOutcome as waitForTaskOutcomeGeneric,
 } from '@themoltnet/tasks-orchestrator';
 
@@ -96,43 +95,56 @@ export async function waitForApprovalLabel(
   deps: IssueLifecycleDeps,
   ctx: WorkflowContext,
 ): Promise<void> {
-  let observedLabelAbsent = false;
   deps.logger?.info(
     `waiting for issue ${input.repo}#${input.issueNumber} approval label "${input.approvalLabel}"`,
   );
+
+  const armed = await ctx.beginStep<true>('approval.label.removal-observed');
+  if (!armed.done) {
+    for (;;) {
+      const approved = await deps.github.hasIssueLabel(
+        input.repo,
+        input.issueNumber,
+        input.approvalLabel,
+      );
+      if (!approved) {
+        await ctx.completeStep(armed, true);
+        break;
+      }
+      deps.logger?.warn(
+        `approval label "${input.approvalLabel}" was already present on ${input.repo}#${input.issueNumber}; remove it and add it again after reviewing the current approval prompt`,
+      );
+      await ctx.sleepFor(
+        'wait-plan-approval-label-removal',
+        input.pollIntervalSec,
+      );
+    }
+  }
+
+  const accepted = await ctx.beginStep<true>(
+    'approval.label.addition-observed',
+  );
+  if (accepted.done) return;
   for (;;) {
     const approved = await deps.github.hasIssueLabel(
       input.repo,
       input.issueNumber,
       input.approvalLabel,
     );
-    if (approved && observedLabelAbsent) {
+    if (approved) {
       deps.logger?.info(
         `approval label "${input.approvalLabel}" detected on ${input.repo}#${input.issueNumber}`,
       );
+      await ctx.completeStep(accepted, true);
       return;
     }
-    if (approved) {
-      deps.logger?.warn(
-        `approval label "${input.approvalLabel}" was already present on ${input.repo}#${input.issueNumber}; remove it and add it again after reviewing the current approval prompt`,
-      );
-      await ctx.sleepFor('wait-plan-approval-label', input.pollIntervalSec);
-      continue;
-    } else {
-      observedLabelAbsent = true;
-      deps.logger?.info(
-        `approval label "${input.approvalLabel}" not present on ${input.repo}#${input.issueNumber}; sleeping ${input.pollIntervalSec}s`,
-      );
-    }
-    await waitForSignalOrSleep({
-      ctx,
-      eventName: `github.issue.label:${input.repo}:${input.issueNumber}:${input.approvalLabel}`,
-      stepName: 'wait-plan-approval-label',
-      seconds: input.pollIntervalSec,
-      logger: deps.logger,
-      logPrefix: LOG_PREFIX,
-      description: 'plan approval label',
-    });
+    deps.logger?.info(
+      `approval label "${input.approvalLabel}" not present on ${input.repo}#${input.issueNumber}; sleeping ${input.pollIntervalSec}s`,
+    );
+    await ctx.sleepFor(
+      'wait-plan-approval-label-addition',
+      input.pollIntervalSec,
+    );
   }
 }
 
@@ -145,24 +157,26 @@ export async function updateLifecycleStatusComment(args: {
 }): Promise<void> {
   const marker = lifecycleStatusMarker(args.input.correlationId);
   const body = statusCommentBody(args);
-  const comments = await args.ctx.step('github.status_comment.list', async () =>
-    args.deps.github.listIssueComments(args.input.repo, args.input.issueNumber),
-  );
-  const existing = comments.find((comment) => comment.body.includes(marker));
-  if (!existing) {
-    await args.ctx.step('github.status_comment.create', async () =>
-      args.deps.github.createIssueComment(
+  await args.ctx.step('github.status_comment.reconcile', async () => {
+    const comments = await args.deps.github.listIssueComments(
+      args.input.repo,
+      args.input.issueNumber,
+    );
+    const existing = comments.find((comment) => comment.body.includes(marker));
+    if (!existing) {
+      await args.deps.github.createIssueComment(
         args.input.repo,
         args.input.issueNumber,
         body,
-      ),
-    );
-    return;
-  }
-  if (existing.body === body) return;
-  await args.ctx.step('github.status_comment.update', async () =>
-    args.deps.github.updateIssueComment(args.input.repo, existing.id, body),
-  );
+      );
+    } else if (existing.body !== body) {
+      await args.deps.github.updateIssueComment(
+        args.input.repo,
+        existing.id,
+        body,
+      );
+    }
+  });
 }
 
 export async function ensureApprovalPromptComment(
@@ -174,23 +188,18 @@ export async function ensureApprovalPromptComment(
   ctx: WorkflowContext,
 ): Promise<void> {
   const marker = approvalPromptMarker(input.correlationId);
-  const comments = await ctx.step('github.approval_prompt.list', async () =>
-    deps.github.listIssueComments(input.repo, input.issueNumber),
-  );
-  if (comments.some((comment) => comment.body.includes(marker))) {
-    deps.logger?.info(
-      `approval prompt already exists for ${input.repo}#${input.issueNumber} correlation ${input.correlationId}`,
+  await ctx.step('github.approval_prompt.reconcile', async () => {
+    const comments = await deps.github.listIssueComments(
+      input.repo,
+      input.issueNumber,
     );
-    return;
-  }
-
-  await ctx.step('github.approval_prompt.create', async () =>
-    deps.github.createIssueComment(
+    if (comments.some((comment) => comment.body.includes(marker))) return;
+    await deps.github.createIssueComment(
       input.repo,
       input.issueNumber,
       approvalPromptBody(input, issueNumber, latestPlan, review),
-    ),
-  );
+    );
+  });
   deps.logger?.info(
     `posted approval prompt on ${input.repo}#${input.issueNumber} for label "${input.approvalLabel}"`,
   );
@@ -205,20 +214,17 @@ export async function ensureReadyForReviewComment(
 ): Promise<void> {
   const marker = readyForReviewMarker(input.correlationId);
   const body = readyForReviewCommentBody(input, prNumber, reviewResults);
-  const comments = await ctx.step(
-    'github.ready_for_review_comment.list',
-    async () => deps.github.listIssueComments(input.repo, prNumber),
-  );
-  const existing = comments.find((comment) => comment.body.includes(marker));
-  if (existing) {
-    await ctx.step('github.ready_for_review_comment.update', async () =>
-      deps.github.updateIssueComment(input.repo, existing.id, body),
-    );
-    return;
-  }
-  await ctx.step('github.ready_for_review_comment.create', async () =>
-    deps.github.createIssueComment(input.repo, prNumber, body),
-  );
+  await ctx.step('github.ready_for_review_comment.reconcile', async () => {
+    const comments = await deps.github.listIssueComments(input.repo, prNumber);
+    const existing = comments.find((comment) => comment.body.includes(marker));
+    if (existing) {
+      if (existing.body !== body) {
+        await deps.github.updateIssueComment(input.repo, existing.id, body);
+      }
+      return;
+    }
+    await deps.github.createIssueComment(input.repo, prNumber, body);
+  });
 }
 
 export async function waitForGreenPrChecks(
@@ -228,7 +234,15 @@ export async function waitForGreenPrChecks(
   ctx: WorkflowContext,
   attempt: number,
 ): Promise<'green' | 'merged' | 'failure'> {
-  let pendingPolls = 0;
+  const deadline = await ctx.step(
+    `pr-gate.${prNumber}.${attempt}.deadline`,
+    async () =>
+      Date.now() + input.maxPrPendingPolls * input.pollIntervalSec * 1_000,
+  );
+  const terminal = await ctx.beginStep<'green' | 'merged' | 'failure'>(
+    `pr-gate.${prNumber}.${attempt}.terminal`,
+  );
+  if (terminal.done) return terminal.state;
   for (;;) {
     const pr = await deps.github.getPullRequest(input.repo, prNumber);
     deps.logger?.info(
@@ -237,29 +251,17 @@ export async function waitForGreenPrChecks(
         merged: pr.merged,
         checks: pr.checks,
         attempt,
-        pendingPolls,
-        maxPrPendingPolls: input.maxPrPendingPolls,
+        deadline,
       },
       'issue_lifecycle.pr.poll',
     );
-    if (pr.merged) return 'merged';
-    if (pr.checks === 'success') return 'green';
-    if (pr.checks === 'failure') return 'failure';
-    pendingPolls += 1;
-    if (pendingPolls >= input.maxPrPendingPolls) {
-      throw new Error(
-        `PR #${prNumber} checks stayed pending for ${pendingPolls} polls`,
-      );
+    if (pr.merged) return ctx.completeStep(terminal, 'merged');
+    if (pr.checks === 'success') return ctx.completeStep(terminal, 'green');
+    if (pr.checks === 'failure') return ctx.completeStep(terminal, 'failure');
+    if (Date.now() >= deadline) {
+      throw new Error(`PR #${prNumber} checks exceeded its durable deadline`);
     }
-    await waitForSignalOrSleep({
-      ctx,
-      eventName: `github.pr.updated:${input.repo}:${prNumber}`,
-      stepName: `wait-pr:${prNumber}`,
-      seconds: input.pollIntervalSec,
-      logger: deps.logger,
-      logPrefix: LOG_PREFIX,
-      description: `PR #${prNumber} checks`,
-    });
+    await ctx.sleepFor(`wait-pr:${prNumber}`, input.pollIntervalSec);
   }
 }
 
@@ -273,12 +275,23 @@ export async function waitForPrMergeOrFailure(args: {
   | { status: 'merged'; url: string }
   | { status: 'checks_failed'; url: string | undefined }
 > {
-  let pendingPolls = 0;
+  const deadline = await args.ctx.step(
+    `pr-merge.${args.prNumber}.${args.attempt}.deadline`,
+    async () =>
+      Date.now() +
+      args.input.maxPrPendingPolls * args.input.pollIntervalSec * 1_000,
+  );
+  type MergeTerminal =
+    | { status: 'merged'; url: string }
+    | { status: 'checks_failed'; url: string | undefined };
+  const terminal = await args.ctx.beginStep<MergeTerminal>(
+    `pr-merge.${args.prNumber}.${args.attempt}.terminal`,
+  );
+  if (terminal.done) return terminal.state;
   for (;;) {
-    const pr = await args.ctx.step(
-      `github.pr.human_review.${args.prNumber}.get`,
-      async () =>
-        args.deps.github.getPullRequest(args.input.repo, args.prNumber),
+    const pr = await args.deps.github.getPullRequest(
+      args.input.repo,
+      args.prNumber,
     );
     args.deps.logger?.info(
       {
@@ -286,8 +299,7 @@ export async function waitForPrMergeOrFailure(args: {
         merged: pr.merged,
         checks: pr.checks,
         attempt: args.attempt,
-        pendingPolls,
-        maxPrPendingPolls: args.input.maxPrPendingPolls,
+        deadline,
       },
       'issue_lifecycle.pr.human_review_poll',
     );
@@ -296,26 +308,26 @@ export async function waitForPrMergeOrFailure(args: {
         { prNumber: args.prNumber },
         'issue_lifecycle.pr.merged',
       );
-      return { status: 'merged', url: pr.url };
+      return args.ctx.completeStep(terminal, {
+        status: 'merged',
+        url: pr.url,
+      });
     }
     if (pr.checks === 'failure') {
-      return { status: 'checks_failed', url: pr.url };
+      return args.ctx.completeStep(terminal, {
+        status: 'checks_failed',
+        url: pr.url,
+      });
     }
-    pendingPolls += 1;
-    if (pendingPolls >= args.input.maxPrPendingPolls) {
+    if (Date.now() >= deadline) {
       throw new Error(
-        `PR #${args.prNumber} merge wait stayed pending for ${pendingPolls} polls`,
+        `PR #${args.prNumber} merge wait exceeded its durable deadline`,
       );
     }
-    await waitForSignalOrSleep({
-      ctx: args.ctx,
-      eventName: `github.pr.updated:${args.input.repo}:${args.prNumber}`,
-      stepName: `wait-pr-merge:${args.prNumber}`,
-      seconds: args.input.pollIntervalSec,
-      logger: args.deps.logger,
-      logPrefix: LOG_PREFIX,
-      description: `PR #${args.prNumber} merge`,
-    });
+    await args.ctx.sleepFor(
+      `wait-pr-merge:${args.prNumber}`,
+      args.input.pollIntervalSec,
+    );
   }
 }
 

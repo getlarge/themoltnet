@@ -9,9 +9,12 @@ import type { TaskClient } from './types.js';
  */
 export function createSdkTaskClient(agent: Agent): TaskClient {
   return {
-    createTask(body) {
+    createTask(body, options) {
       const { teamId, ...createBody } = body;
-      return agent.tasks.create(createBody, { teamId });
+      return agent.tasks.create(createBody, {
+        teamId,
+        idempotencyKey: options?.idempotencyKey,
+      });
     },
     getTask(id) {
       return agent.tasks.get(id);

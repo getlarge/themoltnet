@@ -4,6 +4,7 @@ import type {
   TaskClient,
   WorkflowContext,
 } from '@themoltnet/tasks-orchestrator';
+import { inlineContext } from '@themoltnet/tasks-orchestrator';
 import { FakeTasks } from '@themoltnet/tasks-orchestrator/testing';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -498,6 +499,7 @@ describe('runMultiLensReview', () => {
     ]);
     const checkpointed = new Map<string, unknown>();
     const ctx: WorkflowContext = {
+      ...inlineContext,
       step: async (name, fn) => {
         const value = await fn();
         checkpointed.set(name, value);
@@ -1136,6 +1138,7 @@ function controlledContext(): {
   let waiters: Array<() => void> = [];
   return {
     ctx: {
+      ...inlineContext,
       step: (_name, fn) => fn(),
       sleepFor: () =>
         new Promise<void>((resolve) => {

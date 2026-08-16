@@ -1,4 +1,8 @@
-import { inlineContext, parallelTasks } from '@themoltnet/tasks-orchestrator';
+import {
+  inlineContext,
+  parallelTasks,
+  taskCreateIdempotencyKey,
+} from '@themoltnet/tasks-orchestrator';
 
 import { isReviewPassed } from './artifact.js';
 import {
@@ -49,6 +53,13 @@ export async function runGithubIssueLifecycle(
   ctx: WorkflowContext = inlineContext,
 ): Promise<{ status: 'done'; correlationId: string; prNumber: number }> {
   const input = normalizeLifecycleInput(rawInput);
+  const createChildTask = (
+    stepName: string,
+    body: Parameters<IssueLifecycleDeps['tasks']['createTask']>[0],
+  ) =>
+    deps.tasks.createTask(body, {
+      idempotencyKey: taskCreateIdempotencyKey(ctx, stepName),
+    });
   deps.logger?.info(
     {
       repo: input.repo,
@@ -201,7 +212,7 @@ export async function runGithubIssueLifecycle(
 
   const triageTask = await ctx.step('task.triage.create', async () => {
     const body = await buildTriageTask(input, issue);
-    const task = await deps.tasks.createTask(body);
+    const task = await createChildTask('task.triage.create', body);
     logCreatedTask(deps.logger, 'triage', task);
     return task;
   });
@@ -271,7 +282,7 @@ export async function runGithubIssueLifecycle(
       successCriteria: lifecycleCriteria.plan(),
       step: 'plan',
     });
-    const task = await deps.tasks.createTask(body);
+    const task = await createChildTask('task.plan.create', body);
     logCreatedTask(deps.logger, 'plan', task);
     return task;
   });
@@ -320,7 +331,10 @@ export async function runGithubIssueLifecycle(
           successCriteria: lifecycleCriteria.review(),
           step: 'planReview',
         });
-        const task = await deps.tasks.createTask(body);
+        const task = await createChildTask(
+          `task.plan-review.${round}.create`,
+          body,
+        );
         logCreatedTask(deps.logger, `plan-review.${round}`, task);
         return task;
       },
@@ -396,7 +410,10 @@ export async function runGithubIssueLifecycle(
           successCriteria: lifecycleCriteria.revisePlan(),
           step: 'planRevision',
         });
-        const task = await deps.tasks.createTask(body);
+        const task = await createChildTask(
+          `task.plan-revision.${round}.create`,
+          body,
+        );
         logCreatedTask(deps.logger, `plan-revision.${round}`, task);
         return task;
       },
@@ -518,7 +535,10 @@ export async function runGithubIssueLifecycle(
                 step: 'implement',
                 maxAttempts: 1,
               });
-        const task = await deps.tasks.createTask(body);
+        const task = await createChildTask(
+          `task.implement.${attempt}.create`,
+          body,
+        );
         logCreatedTask(deps.logger, `implement.${attempt}`, task);
         return task;
       },
@@ -635,7 +655,7 @@ export async function runGithubIssueLifecycle(
       ctx,
       items: reviewKinds,
       createStepName: (kind) => `task.pr-review.${kind}.${attempt}.create`,
-      create: async (kind) => {
+      create: async (kind, _index, metadata) => {
         const body = await buildPrReviewTask({
           input,
           issue,
@@ -644,7 +664,9 @@ export async function runGithubIssueLifecycle(
           prNumber: linkedPrNumber,
           kind,
         });
-        const task = await deps.tasks.createTask(body);
+        const task = await deps.tasks.createTask(body, {
+          idempotencyKey: metadata.idempotencyKey,
+        });
         logCreatedTask(deps.logger, `pr-review.${kind}.${attempt}`, task);
         return { kind, task };
       },
@@ -705,7 +727,10 @@ export async function runGithubIssueLifecycle(
             decision: review.state.decision,
           })),
         });
-        const task = await deps.tasks.createTask(body);
+        const task = await createChildTask(
+          `task.pr-review-resolution.${attempt}.create`,
+          body,
+        );
         logCreatedTask(deps.logger, `pr-review-resolution.${attempt}`, task);
         return task;
       },
@@ -911,7 +936,7 @@ export async function runGithubIssueLifecycle(
       step: 'notify',
       maxAttempts: 1,
     });
-    const task = await deps.tasks.createTask(body);
+    const task = await createChildTask('task.notify.create', body);
     logCreatedTask(deps.logger, 'notify', task);
     return task;
   });

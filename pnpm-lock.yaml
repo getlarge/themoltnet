@@ -907,6 +907,9 @@ importers:
       vite:
         specifier: 'catalog:'
         version: 8.0.3(@types/node@22.19.19)(esbuild@0.27.2)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+      vite-plugin-dts:
+        specifier: 'catalog:'
+        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(typescript@5.9.3)(vite@8.0.3(@types/node@22.19.19)(esbuild@0.27.2)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4))
       vitest:
         specifier: 'catalog:'
         version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@1.8.0))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
@@ -1243,6 +1246,12 @@ importers:
 
   apps/orchestration-e2e:
     dependencies:
+      '@themoltnet/issue-lifecycle':
+        specifier: workspace:*
+        version: link:../issue-lifecycle
+      '@themoltnet/multi-lens-review':
+        specifier: workspace:*
+        version: link:../multi-lens-review
       '@themoltnet/tasks-orchestrator':
         specifier: workspace:*
         version: link:../../libs/tasks-orchestrator
@@ -1253,6 +1262,9 @@ importers:
       '@types/pg':
         specifier: 'catalog:'
         version: 8.16.0
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
       typescript:
         specifier: 'catalog:'
         version: 5.9.3

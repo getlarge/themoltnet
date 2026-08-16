@@ -1,4 +1,9 @@
-import type { WorkflowContext } from './types.js';
+import { taskCreateIdempotencyKey, type WorkflowContext } from './types.js';
+
+export interface ParallelTaskCreateMetadata {
+  stepName: string;
+  idempotencyKey: string;
+}
 
 export interface ParallelTasksArgs<TItem, TCreated, TResult> {
   ctx: WorkflowContext;
@@ -9,7 +14,11 @@ export interface ParallelTasksArgs<TItem, TCreated, TResult> {
    */
   createStepName: (item: TItem, index: number) => string;
   /** Create (and durably checkpoint) the MoltNet task for one item. */
-  create: (item: TItem, index: number) => Promise<TCreated>;
+  create: (
+    item: TItem,
+    index: number,
+    metadata: ParallelTaskCreateMetadata,
+  ) => Promise<TCreated>;
   /** Await the created task's result. */
   awaitResult: (
     created: TCreated,
@@ -78,10 +87,28 @@ export async function parallelTasks<TItem, TCreated, TResult>(
     onCreated,
     concurrency,
   } = args;
-  const created = await Promise.all(
-    items.map((item, index) =>
-      ctx.step(createStepName(item, index), () => create(item, index)),
-    ),
+  const createResults = await Promise.allSettled(
+    items.map((item, index) => {
+      const stepName = createStepName(item, index);
+      return ctx.step(stepName, () =>
+        create(item, index, {
+          stepName,
+          idempotencyKey: taskCreateIdempotencyKey(ctx, stepName),
+        }),
+      );
+    }),
+  );
+  const createFailures = createResults.filter(
+    (result): result is PromiseRejectedResult => result.status === 'rejected',
+  );
+  if (createFailures.length > 0) {
+    throw new AggregateError(
+      createFailures.map((result) => result.reason as unknown),
+      `${createFailures.length} parallel task creation branch(es) failed`,
+    );
+  }
+  const created = createResults.map(
+    (result) => (result as PromiseFulfilledResult<TCreated>).value,
   );
   await onCreated?.(created);
   const results = await mapWithConcurrency(

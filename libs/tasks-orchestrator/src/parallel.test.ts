@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { inlineContext } from './context.js';
 import { parallelTasks } from './parallel.js';
-import type { WorkflowContext } from './types.js';
+import type { WorkflowContext, WorkflowStepHandle } from './types.js';
 
 /**
  * A durable-like context that memoizes each `step` by name (like Absurd): a
@@ -13,6 +13,7 @@ function memoizingContext(): WorkflowContext {
   const cache = new Map<string, unknown>();
   const inflight = new Map<string, Promise<unknown>>();
   return {
+    executionId: 'parallel-test-execution',
     async step<T>(name: string, fn: () => Promise<T>): Promise<T> {
       if (cache.has(name)) return cache.get(name) as T;
       const existing = inflight.get(name);
@@ -22,6 +23,26 @@ function memoizingContext(): WorkflowContext {
       const value = await run;
       cache.set(name, value);
       return value;
+    },
+    beginStep<T>(name: string): Promise<WorkflowStepHandle<T>> {
+      if (cache.has(name)) {
+        const state = cache.get(name) as T;
+        return Promise.resolve({
+          name,
+          checkpointName: name,
+          done: true as const,
+          state,
+        });
+      }
+      return Promise.resolve({
+        name,
+        checkpointName: name,
+        done: false as const,
+      });
+    },
+    completeStep<T>(handle: { checkpointName: string }, value: T) {
+      cache.set(handle.checkpointName, value);
+      return Promise.resolve(value);
     },
     sleepFor: () => Promise.resolve(),
   };
@@ -126,6 +147,45 @@ describe('parallelTasks', () => {
     });
 
     expect(maxActive).toBe(5);
+  });
+
+  it('awaits every create branch before surfacing an aggregate failure', async () => {
+    const completed: number[] = [];
+
+    await expect(
+      parallelTasks({
+        ctx: inlineContext,
+        items: [0, 1, 2],
+        createStepName: (_item, index) => `create.${index}`,
+        create: async (item) => {
+          if (item === 0) throw new Error('first failed');
+          await tick();
+          completed.push(item);
+          if (item === 2) throw new Error('third failed');
+          return item;
+        },
+        awaitResult: (item) => Promise.resolve(item),
+      }),
+    ).rejects.toMatchObject({ name: 'AggregateError' });
+
+    expect(completed).toEqual([1, 2]);
+  });
+
+  it('passes a stable execution-scoped idempotency key to create', async () => {
+    const seen: string[] = [];
+    await parallelTasks({
+      ctx: { ...inlineContext, executionId: 'run-123' },
+      items: ['child'],
+      createStepName: () => 'task.child.create',
+      create: (_item, _index, metadata) => {
+        seen.push(metadata.idempotencyKey);
+        return Promise.resolve('created');
+      },
+      awaitResult: (item) => Promise.resolve(item),
+    });
+
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toMatch(/^absurd:[A-Za-z0-9_-]{43}$/);
   });
 });
 
