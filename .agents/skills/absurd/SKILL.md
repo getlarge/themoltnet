@@ -1,12 +1,17 @@
 ---
 name: absurd
-description: Debug and operate Absurd durable workflows with absurdctl. Use when working with Absurd queues, tasks, runs, events, retries, schema setup, or when a user wants to inspect, spawn, retry, cancel, or wake workflows.
+description: Author, test, debug, and operate Absurd durable workflows. Use for Absurd queues, tasks, runs, checkpoints, events, retries, idempotency, worker recovery, absurd-sdk, or absurdctl.
 license: Apache-2.0
 ---
 
 # Absurd
 
 Use this skill when the project uses **Absurd**, the Postgres-native durable workflow engine, or when the user mentions **`absurdctl`**, queues, durable tasks, runs, retries, sleeping tasks, or events.
+
+For code changes, read [authoring and recovery](references/authoring-and-recovery.md)
+before editing. It covers replay, decomposed checkpoints, immutable events,
+external idempotency, fan-out, and process-recovery tests. The operational
+playbook below remains the starting point for live task inspection.
 
 ## Tiny mental model
 

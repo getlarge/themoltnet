@@ -923,7 +923,8 @@ The REST plugin performs one ordered lifecycle:
 6. Persisted queues are registered with `DBOS.registerQueue` using
    `update_if_latest_version`.
 7. Startup logs inventory current/latest application versions and active
-   workflows by version before the server becomes ready.
+   workflows by version before readiness becomes healthy and the HTTP server
+   begins serving traffic.
 
 Dependency wiring must finish before launch: recovery can execute workflow code
 as soon as `DBOS.launch()` starts. Queue registration happens after launch
@@ -939,7 +940,7 @@ Workflow and HTTP route repositories use a `TransactionRunner`, not a raw
 datasource. `createDBOSTransactionRunner` still delegates to the DBOS datasource
 transaction; it additionally installs the repository AsyncLocalStorage
 executor. Repository writes and the DBOS transaction checkpoint therefore
-share one transaction where a checkpoint exists.
+commit or roll back in the same Postgres transaction where a checkpoint exists.
 
 External systems do not participate in that transaction. A transfer, grant, or
 cleanup commits guarded database state first, then durably reconciles Keto/Ory
@@ -983,7 +984,11 @@ automatic source-hash versioning remains the rollout policy.
   Deployment requires old-version workflows to drain unless a separately
   reviewed patch/drain strategy exists.
 
-### Key files
+### Operations and key files
+
+The [Durable Workflow Operations](../operate/durable-workflows.md) runbook
+contains read-only inventory queries, recovery diagnostics, version-drain
+guidance, and rollback procedures.
 
 | File                                              | Purpose                                                                |
 | ------------------------------------------------- | ---------------------------------------------------------------------- |
