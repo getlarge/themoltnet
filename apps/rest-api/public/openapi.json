@@ -11266,7 +11266,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "First time the task entered completed, failed, cancelled, or expired; null until terminal."
           },
           "correlationId": {
             "anyOf": [

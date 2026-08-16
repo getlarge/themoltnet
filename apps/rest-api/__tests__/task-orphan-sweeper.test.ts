@@ -440,7 +440,7 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
     );
   });
 
-  it('emits one daily database capacity snapshot per tracked scope', async () => {
+  it('emits a database capacity snapshot per tracked scope every six hours', async () => {
     await init();
     const { deps, logger } = makeDeps([]);
     const { setMaintenanceDeps: setDeps } =
@@ -467,6 +467,10 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
     expect(
       registeredScheduled['maintenance.databaseCapacitySnapshot'],
     ).toBeDefined();
+    expect(DBOS.registerScheduled).toHaveBeenCalledWith(workflow, {
+      name: 'maintenance.databaseCapacitySnapshot',
+      crontab: '30 */6 * * *',
+    });
   });
 
   it('within backstop window: tries resume, counts as resumed when DBOS returns OK', async () => {

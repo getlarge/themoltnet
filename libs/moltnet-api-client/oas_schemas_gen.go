@@ -53266,12 +53266,13 @@ func (*SuspendSigningCredentialUnauthorized) suspendSigningCredentialRes() {}
 
 // Ref: #/components/schemas/Task
 type Task struct {
-	AcceptedAttemptN           NilFloat64                     `json:"acceptedAttemptN"`
-	AllowedProfiles            []TaskAllowedProfilesItem      `json:"allowedProfiles"`
-	CancelReason               NilString                      `json:"cancelReason"`
-	CancelledByAgentId         NilUUID                        `json:"cancelledByAgentId"`
-	CancelledByHumanId         NilUUID                        `json:"cancelledByHumanId"`
-	ClaimCondition             NilClaimCondition              `json:"claimCondition"`
+	AcceptedAttemptN   NilFloat64                `json:"acceptedAttemptN"`
+	AllowedProfiles    []TaskAllowedProfilesItem `json:"allowedProfiles"`
+	CancelReason       NilString                 `json:"cancelReason"`
+	CancelledByAgentId NilUUID                   `json:"cancelledByAgentId"`
+	CancelledByHumanId NilUUID                   `json:"cancelledByHumanId"`
+	ClaimCondition     NilClaimCondition         `json:"claimCondition"`
+	// First time the task entered completed, failed, cancelled, or expired; null until terminal.
 	CompletedAt                NilDateTime                    `json:"completedAt"`
 	CorrelationId              NilUUID                        `json:"correlationId"`
 	DiaryId                    NilUUID                        `json:"diaryId"`

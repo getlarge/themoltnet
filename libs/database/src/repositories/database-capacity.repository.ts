@@ -17,6 +17,9 @@ export interface DatabaseCapacitySnapshot {
 export function createDatabaseCapacityRepository(db: Database) {
   return {
     async getSizeSnapshots(): Promise<DatabaseCapacitySnapshot[]> {
+      // Track every current and future DBOS relation by default. Only
+      // transaction_completion is split out so operators can monitor its
+      // datasource bookkeeping separately from workflow history.
       const result = await getExecutor(db).execute(sql`
         WITH dbos_tables AS (
           SELECT c.oid

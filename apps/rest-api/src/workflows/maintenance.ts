@@ -197,6 +197,8 @@ export function initMaintenanceWorkflows(
   const deleteRetainedWorkflowsStep = DBOS.registerStep(
     async (workflowIds: string[]): Promise<void> => {
       if (workflowIds.length === 0) return;
+      // The second argument controls recursive child deletion. Keep it false:
+      // retention removes only the terminal workflows selected above.
       await DBOS.deleteWorkflows(workflowIds, false);
     },
     {
@@ -265,7 +267,7 @@ export function initMaintenanceWorkflows(
 
   DBOS.registerScheduled(databaseCapacitySnapshotWorkflow, {
     name: 'maintenance.databaseCapacitySnapshot',
-    crontab: '30 2 * * *',
+    crontab: '30 */6 * * *',
   });
 
   // ── Pack GC ──────────────────────────────────────────────────

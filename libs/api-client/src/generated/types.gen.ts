@@ -2485,6 +2485,9 @@ export type Task = {
   cancelledByAgentId: string | null;
   cancelledByHumanId: string | null;
   claimCondition: ClaimCondition | null;
+  /**
+   * First time the task entered completed, failed, cancelled, or expired; null until terminal.
+   */
   completedAt: string | null;
   correlationId: string | null;
   diaryId: string | null;

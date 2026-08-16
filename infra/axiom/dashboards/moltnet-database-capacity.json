@@ -3,7 +3,7 @@
     {
       "id": "overview",
       "name": "Retention and capacity contract",
-      "text": "Daily total-relation-size snapshots for DBOS workflow history (excluding transaction_completion), transaction_completion, diary_entries, and task_messages. The warning line is 1 GiB per scope. Signed diary entries and embeddings are retained indefinitely.",
+      "text": "Six-hour total-relation-size snapshots for DBOS workflow history (excluding transaction_completion), transaction_completion, diary_entries, and task_messages. The warning line is 1 GiB per scope. Signed diary entries and embeddings are retained indefinitely.",
       "type": "Note"
     },
     {
@@ -24,7 +24,7 @@
     }
   ],
   "datasets": ["moltnet"],
-  "description": "Daily database capacity trends for retention-managed and audit-preserved scopes.",
+  "description": "Six-hour database capacity trends for retention-managed and audit-preserved scopes.",
   "layout": [
     {
       "h": 2,

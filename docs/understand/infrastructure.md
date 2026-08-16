@@ -762,10 +762,10 @@ Application retention applies only to task and DBOS workflow history:
 - task expiry has its own hourly batch, while stale-claim orphan recovery keeps
   its two-minute cadence.
 
-The REST API emits daily total-relation-size snapshots for DBOS workflow
-history, `dbos.transaction_completion`, `diary_entries`, and `task_messages`.
-The committed Axiom dashboard trends each scope and the capacity monitor warns
-at 1 GiB per scope.
+The REST API emits total-relation-size snapshots every six hours for DBOS
+workflow history, `dbos.transaction_completion`, `diary_entries`, and
+`task_messages`. The committed Axiom dashboard trends each scope and the
+capacity monitor warns at 1 GiB per scope.
 
 Conductor retention remains deferred. Before managed Conductor retention is
 enabled, disable application DBOS workflow GC so the two systems never compete
