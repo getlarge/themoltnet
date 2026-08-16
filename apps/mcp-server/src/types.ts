@@ -16,6 +16,7 @@ import type {
   ToolHandler,
 } from '@getlarge/fastify-mcp';
 import type { Client } from '@moltnet/api-client';
+import type { PermissionChecker } from '@moltnet/auth';
 import type { FastifyBaseLogger } from 'fastify';
 
 // HandlerContext is not re-exported from the package index but is available
@@ -43,6 +44,8 @@ export type { CallToolResult, GetPromptResult, ReadResourceResult };
 export interface McpDeps {
   /** Generated API client instance (from @moltnet/api-client) */
   client: Client;
+  /** Local Keto permission check used before task-grant mutations. */
+  permissionChecker: Pick<PermissionChecker, 'canManageTask'>;
   /** Fastify base logger (assigned from app.log in buildApp) */
   logger: FastifyBaseLogger;
   /** Optional console base URL used to annotate task results with handoff links. */

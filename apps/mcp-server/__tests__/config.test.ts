@@ -29,6 +29,18 @@ describe('MCP server config', () => {
     expect(config.AXIOM_METRICS_DATASET).toBe('metrics');
   });
 
+  it('parses a dedicated Keto read URL for local deployments', () => {
+    const config = loadConfig({
+      PORT: '8001',
+      NODE_ENV: 'test',
+      REST_API_URL: 'http://localhost:8080',
+      ORY_PROJECT_URL: 'http://hydra:4444',
+      ORY_KETO_PUBLIC_URL: 'http://keto:4466',
+    });
+
+    expect(config.ORY_KETO_PUBLIC_URL).toBe('http://keto:4466');
+  });
+
   it('resolves Redis host and port config', () => {
     const config = loadConfig({
       PORT: '8001',

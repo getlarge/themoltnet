@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@moltnet/api-client": "workspace:*",
+    "@moltnet/auth": "workspace:*",
     "@moltnet/observability": "workspace:*",
     "@moltnet/models": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",

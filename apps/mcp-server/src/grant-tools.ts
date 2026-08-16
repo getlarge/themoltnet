@@ -8,11 +8,13 @@
 import {
   createDiaryGrant,
   createTaskGrant,
+  getWhoami,
   listDiaryGrants,
   listTaskGrants,
   revokeDiaryGrant,
   revokeTaskGrant,
 } from '@moltnet/api-client';
+import { KetoNamespace } from '@moltnet/auth';
 import type { FastifyInstance } from 'fastify';
 
 import type {
@@ -43,6 +45,42 @@ import {
 } from './utils.js';
 
 // --- Handler functions ---
+
+async function requireTaskGrantManagement(
+  taskId: string,
+  token: string,
+  deps: McpDeps,
+): Promise<CallToolResult | undefined> {
+  const { data: caller, error } = await getWhoami({
+    client: deps.client,
+    auth: () => token,
+  });
+  if (error || !caller)
+    return errorResult('Forbidden: caller identity is unavailable');
+  const callerNs =
+    caller.subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+
+  try {
+    const allowed = await deps.permissionChecker.canManageTask(
+      taskId,
+      caller.identityId,
+      callerNs,
+    );
+    if (!allowed) {
+      return errorResult(
+        'Forbidden: task grant management requires task manage permission',
+      );
+    }
+  } catch (err) {
+    deps.logger.error(
+      { tool: 'task_grants_permission_check', taskId, err },
+      'tool.error',
+    );
+    return errorResult('Forbidden: task permission check failed');
+  }
+
+  return undefined;
+}
 
 export async function handleGrantCreate(
   args: GrantCreateInput,
@@ -139,6 +177,8 @@ export async function handleTaskGrantCreate(
 ): Promise<CallToolResult> {
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
+  const forbidden = await requireTaskGrantManagement(args.task_id, token, deps);
+  if (forbidden) return forbidden;
   const { data, error } = await createTaskGrant({
     client: deps.client,
     auth: () => token,
@@ -164,6 +204,8 @@ export async function handleTaskGrantRevoke(
 ): Promise<CallToolResult> {
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
+  const forbidden = await requireTaskGrantManagement(args.task_id, token, deps);
+  if (forbidden) return forbidden;
   const { data, error } = await revokeTaskGrant({
     client: deps.client,
     auth: () => token,

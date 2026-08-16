@@ -23,6 +23,9 @@ export const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
 export function createMockDeps(): McpDeps {
   return {
     client: {} as Client,
+    permissionChecker: {
+      canManageTask: vi.fn().mockResolvedValue(true),
+    },
     logger: {
       info: vi.fn(),
       warn: vi.fn(),

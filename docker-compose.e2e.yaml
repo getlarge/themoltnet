@@ -297,6 +297,7 @@ services:
       CONSOLE_BASE_URL: http://localhost:5174
       AUTH_ENABLED: 'true'
       ORY_PROJECT_URL: http://hydra:4444
+      ORY_KETO_PUBLIC_URL: http://keto:4466
       CLIENT_CREDENTIALS_PROXY: 'true'
       MCP_REDIS_HOST: redis
       MCP_REDIS_PORT: '6379'
@@ -306,6 +307,8 @@ services:
       rest-api:
         condition: service_healthy
       hydra:
+        condition: service_healthy
+      keto:
         condition: service_healthy
       redis:
         condition: service_healthy
