@@ -302,42 +302,86 @@ describe('RelationshipWriter', () => {
   describe('removeTaskRelationsBatch', () => {
     const TASK_ID_1 = 'cccc0000-0000-0000-0000-000000000001';
     const TASK_ID_2 = 'cccc0000-0000-0000-0000-000000000002';
-    const TASK_DIARY_ID = 'dddd0000-0000-0000-0000-000000000001';
-    const CLAIMANT_ID = 'eeee0000-0000-0000-0000-000000000001';
 
-    it('removes every Task tuple, including ownership and explicit grants', async () => {
-      mockRelationshipApi.deleteRelationships.mockResolvedValue(undefined);
-
-      await writer.removeTaskRelationsBatch([
-        {
-          id: TASK_ID_1,
-          diaryId: TASK_DIARY_ID,
-          claimAgentId: CLAIMANT_ID,
-        },
-        { id: TASK_ID_2, diaryId: TASK_DIARY_ID, claimAgentId: null },
-      ]);
-
-      expect(mockRelationshipApi.deleteRelationships).toHaveBeenCalledTimes(2);
-      expect(mockRelationshipApi.deleteRelationships).toHaveBeenCalledWith({
+    it('removes every Task tuple with bounded relationship patches', async () => {
+      const firstPage = Array.from({ length: 100 }, (_, index) => ({
+        namespace: 'Task',
+        object: index % 2 === 0 ? TASK_ID_1 : TASK_ID_2,
+        relation: `relation-${index}`,
+        subject_id: `subject-${index}`,
+      }));
+      const finalTuple = {
         namespace: 'Task',
         object: TASK_ID_1,
-      });
-      expect(mockRelationshipApi.deleteRelationships).toHaveBeenCalledWith({
+        relation: 'writers',
+        subject_id: 'final-subject',
+      };
+      mockRelationshipApi.getRelationships
+        .mockResolvedValueOnce({
+          relation_tuples: firstPage,
+          next_page_token: 'page-2',
+        })
+        .mockResolvedValueOnce({
+          relation_tuples: [
+            finalTuple,
+            {
+              namespace: 'Task',
+              object: 'unrelated-task',
+              relation: 'team',
+              subject_id: 'unrelated-team',
+            },
+          ],
+          next_page_token: '',
+        });
+
+      await writer.removeTaskRelationsBatch([
+        { id: TASK_ID_1 },
+        { id: TASK_ID_2 },
+      ]);
+
+      expect(mockRelationshipApi.getRelationships).toHaveBeenNthCalledWith(1, {
         namespace: 'Task',
-        object: TASK_ID_2,
+        pageSize: 100,
+        pageToken: undefined,
+      });
+      expect(mockRelationshipApi.getRelationships).toHaveBeenNthCalledWith(2, {
+        namespace: 'Task',
+        pageSize: 100,
+        pageToken: 'page-2',
+      });
+      expect(mockRelationshipApi.patchRelationships).toHaveBeenCalledTimes(2);
+      expect(
+        mockRelationshipApi.patchRelationships.mock.calls[0]?.[0]
+          .relationshipPatch,
+      ).toHaveLength(100);
+      expect(mockRelationshipApi.patchRelationships).toHaveBeenLastCalledWith({
+        relationshipPatch: [{ action: 'delete', relation_tuple: finalTuple }],
       });
     });
 
     it('is a no-op for empty array', async () => {
       await writer.removeTaskRelationsBatch([]);
 
-      expect(mockRelationshipApi.deleteRelationships).not.toHaveBeenCalled();
+      expect(mockRelationshipApi.getRelationships).not.toHaveBeenCalled();
+      expect(mockRelationshipApi.patchRelationships).not.toHaveBeenCalled();
+    });
+
+    it('is idempotent when no Task tuples remain', async () => {
+      mockRelationshipApi.getRelationships.mockResolvedValue({
+        relation_tuples: [],
+        next_page_token: '',
+      });
+
+      await writer.removeTaskRelationsBatch([{ id: TASK_ID_1 }]);
+
+      expect(mockRelationshipApi.getRelationships).toHaveBeenCalledOnce();
+      expect(mockRelationshipApi.patchRelationships).not.toHaveBeenCalled();
     });
   });
 
   describe('task ownership and grants', () => {
-    it('writes team and provenance parent in one atomic patch', async () => {
-      await writer.grantTaskOwnership('task-1', 'team-1', DIARY_ID);
+    it('writes only the owning team relation', async () => {
+      await writer.grantTaskOwnership('task-1', 'team-1');
 
       expect(mockRelationshipApi.patchRelationships).toHaveBeenCalledWith({
         relationshipPatch: [
@@ -347,14 +391,6 @@ describe('RelationshipWriter', () => {
               namespace: 'Task',
               object: 'task-1',
               relation: 'team',
-            }),
-          }),
-          expect.objectContaining({
-            action: 'insert',
-            relation_tuple: expect.objectContaining({
-              namespace: 'Task',
-              object: 'task-1',
-              relation: 'parent',
             }),
           }),
         ],

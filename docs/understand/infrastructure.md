@@ -592,14 +592,55 @@ The Ory console UI (Branding > Theming > Customize UI) is the only way to **prev
 > **Tip — Keto OPL (permissions):** The Ory permission model lives in `infra/ory/permissions.ts`. It's deployed automatically by `deploy.mjs --apply`. Namespace class names in the OPL (e.g. `Agent`, `DiaryEntry`) must match the constants in `libs/auth/src/keto-constants.ts`.
 
 For authorization-only rollouts, use `--opl-only`; this deliberately skips
-`ory update project` and its temporary empty-permission window. During the task
-ownership rollout, the canonical `permissions.ts` intentionally retains the
-legacy diary fallback. The follow-up cutover contracts that file only after the
-ownership backfill and canaries succeed:
+`ory update project` and its temporary empty-permission window. Task ownership
+is now fully Keto-backed by `Task#team` plus explicit task grants; the
+provenance diary is not part of Task authorization:
 
 ```bash
 npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
   node infra/ory/deploy.mjs --apply --opl-only
+```
+
+The pre-cutover bridge remains recoverable from merge commit `5a86e87d`. If
+post-contraction canaries detect an unexpected denial, restore only that OPL;
+do not roll back the ownership tuples or run `ory update project`:
+
+```bash
+git show 5a86e87d:infra/ory/permissions.ts > /tmp/moltnet-task-ownership-bridge.ts
+npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
+  node infra/ory/deploy.mjs --apply --opl-only \
+  --opl-file /tmp/moltnet-task-ownership-bridge.ts
+```
+
+The #1656 ownership backfill supports an explicit host-local Fly MPG proxy
+port. The option preserves the credentials and database name from
+`DATABASE_URL`, rewrites the host to `127.0.0.1`, and disables TLS for the
+local proxy hop:
+
+```bash
+flyctl mpg proxy <cluster-id> --local-port 15432
+npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
+  pnpm exec tsx tools/db/backfill-task-ownership.ts --dry-run \
+  --database-proxy-port 15432
+npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
+  pnpm exec tsx tools/db/backfill-task-ownership.ts --apply \
+  --database-proxy-port 15432
+npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
+  pnpm exec tsx tools/db/backfill-task-ownership.ts --verify \
+  --database-proxy-port 15432
+```
+
+Keep inert `Task#parent` tuples through the agreed rollback observation
+window. Once that window closes, preview, purge, and independently verify them
+with the bounded and idempotent cleanup tool:
+
+```bash
+npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
+  pnpm exec tsx tools/db/purge-task-parent-relations.ts --dry-run
+npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
+  pnpm exec tsx tools/db/purge-task-parent-relations.ts --apply
+npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
+  pnpm exec tsx tools/db/purge-task-parent-relations.ts --verify
 ```
 
 ## Ory Backup / Restore

@@ -62,8 +62,6 @@ export function createTaskCreateService(
     | 'correlationSealRepository'
     | 'permissionChecker'
     | 'relationshipWriter'
-    | 'relationshipReader'
-    | 'bridgeDiaryTaskGrants'
     | 'transactionRunner'
     | 'logger'
     | 'taskLifetime'
@@ -82,8 +80,6 @@ export function createTaskCreateService(
     correlationSealRepository,
     permissionChecker,
     relationshipWriter,
-    relationshipReader,
-    bridgeDiaryTaskGrants,
     transactionRunner,
     logger,
     taskLifetime,
@@ -401,39 +397,7 @@ export function createTaskCreateService(
       }
 
       try {
-        await relationshipWriter.grantTaskOwnership(
-          row.id,
-          input.teamId,
-          input.diaryId,
-        );
-        if (bridgeDiaryTaskGrants) {
-          if (!relationshipReader) {
-            throw new Error(
-              'Task ownership bridge requires relationshipReader',
-            );
-          }
-          const grants = await relationshipReader.listDiaryGrants(
-            input.diaryId,
-          );
-          for (const grant of grants) {
-            const namespace = grant.subjectNs as Parameters<
-              typeof relationshipWriter.grantTaskWriters
-            >[2];
-            if (grant.role === 'writer') {
-              await relationshipWriter.grantTaskWriters(
-                row.id,
-                grant.subjectId,
-                namespace,
-              );
-            } else {
-              await relationshipWriter.grantTaskManagers(
-                row.id,
-                grant.subjectId,
-                namespace,
-              );
-            }
-          }
-        }
+        await relationshipWriter.grantTaskOwnership(row.id, input.teamId);
       } catch (err) {
         logger.error(
           { taskId: row.id, diaryId: input.diaryId, err },

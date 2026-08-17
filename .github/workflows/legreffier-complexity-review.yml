@@ -75,6 +75,7 @@ jobs:
               'tools/src/tasks/compose-pr-review.ts',
               'tools/src/tasks/pr-complexity-review.ts',
               'tools/src/tasks/complexity-review-comment.ts',
+              'tools/src/tasks/read-task-output.ts',
               'packages/agent-daemon-action/',
             ];
             const matches = files
@@ -188,11 +189,10 @@ jobs:
         run: |
           set -euo pipefail
           result="$RUNNER_TEMP/complexity-review-result.json"
-          creds="$GITHUB_WORKSPACE/.moltnet/$MOLTNET_AGENT_NAME/moltnet.json"
-          npx -y @themoltnet/cli task attempts "$TASK_ID" \
-            --accepted-only \
-            --field output \
-            --credentials "$creds" \
+          node --import tsx tools/src/tasks/read-task-output.ts \
+            --task-id "$TASK_ID" \
+            --team-id "$MOLTNET_TEAM_ID" \
+            --agent-name "$MOLTNET_AGENT_NAME" \
             > "$result"
           echo "path=$result" >> "$GITHUB_OUTPUT"
 

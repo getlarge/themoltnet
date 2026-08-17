@@ -18,6 +18,7 @@ type taskTailOpts struct {
 	apiURL       string
 	credPath     string
 	taskID       string
+	teamID       string
 	attempt      int  // 0 = latest
 	since        int  // exclusive cursor
 	sinceChanged bool // distinguishes --since 0 (replay all) from default
@@ -204,21 +205,28 @@ func parseOptRFC3339Flag(name, value string) (moltnetapi.OptDateTime, error) {
 	return moltnetapi.NewOptDateTime(t), nil
 }
 
-func runTaskGetCmd(apiURL, credPath, taskID string) error {
+func runTaskGetCmd(apiURL, credPath, taskID, teamID string) error {
 	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
-	return runTaskGetWithClient(context.Background(), client, taskID)
+	return runTaskGetWithClient(context.Background(), client, taskID, teamID)
 }
 
-func runTaskGetWithClient(ctx context.Context, client *moltnetapi.Client, taskID string) error {
+func runTaskGetWithClient(ctx context.Context, client *moltnetapi.Client, taskID, teamID string) error {
 	taskUUID, err := uuid.Parse(taskID)
 	if err != nil {
 		return fmt.Errorf("invalid task ID %q: %w", taskID, err)
 	}
+	teamUUID, err := uuid.Parse(teamID)
+	if err != nil {
+		return fmt.Errorf("invalid --team-id %q: %w", teamID, err)
+	}
 
-	res, err := client.GetTask(ctx, moltnetapi.GetTaskParams{ID: taskUUID})
+	res, err := client.GetTask(ctx, moltnetapi.GetTaskParams{
+		ID:             taskUUID,
+		XMoltnetTeamID: moltnetapi.NewOptUUID(teamUUID),
+	})
 	if err != nil {
 		return fmt.Errorf("task get: %w", formatTransportError(err))
 	}
@@ -233,6 +241,7 @@ type taskAttemptsOpts struct {
 	apiURL       string
 	credPath     string
 	taskID       string
+	teamID       string
 	acceptedOnly bool
 	field        string
 	out          io.Writer
@@ -254,6 +263,11 @@ func runTaskAttemptsWithClient(ctx context.Context, client *moltnetapi.Client, o
 	if err != nil {
 		return fmt.Errorf("invalid task ID %q: %w", opts.taskID, err)
 	}
+	teamUUID, err := uuid.Parse(opts.teamID)
+	if err != nil {
+		return fmt.Errorf("invalid --team-id %q: %w", opts.teamID, err)
+	}
+	teamParam := moltnetapi.NewOptUUID(teamUUID)
 
 	// `--field` without `--accepted-only` is rejected when there are
 	// multiple attempts (ambiguous which one to project). We don't know
@@ -270,7 +284,10 @@ func runTaskAttemptsWithClient(ctx context.Context, client *moltnetapi.Client, o
 		}
 	}
 
-	res, err := client.ListTaskAttempts(ctx, moltnetapi.ListTaskAttemptsParams{ID: taskUUID})
+	res, err := client.ListTaskAttempts(ctx, moltnetapi.ListTaskAttemptsParams{
+		ID:             taskUUID,
+		XMoltnetTeamID: teamParam,
+	})
 	if err != nil {
 		return fmt.Errorf("task attempts: %w", formatTransportError(err))
 	}
@@ -287,7 +304,10 @@ func runTaskAttemptsWithClient(ctx context.Context, client *moltnetapi.Client, o
 	// `--accepted-only` requires looking up the task to discover which
 	// attempt was accepted. The attempts list itself doesn't carry that
 	// pointer — the task envelope owns `acceptedAttemptN`.
-	taskRes, err := client.GetTask(ctx, moltnetapi.GetTaskParams{ID: taskUUID})
+	taskRes, err := client.GetTask(ctx, moltnetapi.GetTaskParams{
+		ID:             taskUUID,
+		XMoltnetTeamID: teamParam,
+	})
 	if err != nil {
 		return fmt.Errorf("get task: %w", formatTransportError(err))
 	}
@@ -378,6 +398,11 @@ func runTaskTailWithClient(ctx context.Context, client *moltnetapi.Client, opts 
 	if err != nil {
 		return fmt.Errorf("invalid task ID %q: %w", opts.taskID, err)
 	}
+	teamUUID, err := uuid.Parse(opts.teamID)
+	if err != nil {
+		return fmt.Errorf("invalid --team-id %q: %w", opts.teamID, err)
+	}
+	teamParam := moltnetapi.NewOptUUID(teamUUID)
 
 	kindAllow, err := parseKindFilter(opts.kindFilter, opts.showDeltas)
 	if err != nil {
@@ -388,7 +413,7 @@ func runTaskTailWithClient(ctx context.Context, client *moltnetapi.Client, opts 
 	// list and pick the latest. We do this once at the start and reuse;
 	// re-claims would create a new attempt mid-tail but the operator
 	// asked to follow *this* attempt, not the chain.
-	attemptN, err := resolveAttempt(ctx, client, taskUUID, opts.attempt)
+	attemptN, err := resolveAttempt(ctx, client, taskUUID, teamParam, opts.attempt)
 	if err != nil {
 		return err
 	}
@@ -410,7 +435,7 @@ func runTaskTailWithClient(ctx context.Context, client *moltnetapi.Client, opts 
 		}
 		// since == 0 → afterSeq stays unset → server returns all msgs
 	} else {
-		latest, err := latestSeq(ctx, client, taskUUID, attemptN)
+		latest, err := latestSeq(ctx, client, taskUUID, teamParam, attemptN)
 		if err != nil {
 			return err
 		}
@@ -421,7 +446,7 @@ func runTaskTailWithClient(ctx context.Context, client *moltnetapi.Client, opts 
 
 	interval := time.Duration(opts.intervalSec) * time.Second
 	for {
-		messages, err := fetchMessages(ctx, client, taskUUID, attemptN, afterSeq)
+		messages, err := fetchMessages(ctx, client, taskUUID, teamParam, attemptN, afterSeq)
 		if err != nil {
 			return err
 		}
@@ -445,7 +470,7 @@ func runTaskTailWithClient(ctx context.Context, client *moltnetapi.Client, opts 
 
 		// Check terminal status. Done after printing so the final
 		// messages (turn_end, error) land before we exit.
-		terminal, err := taskIsTerminal(ctx, client, taskUUID)
+		terminal, err := taskIsTerminal(ctx, client, taskUUID, teamParam)
 		if err != nil {
 			return err
 		}
@@ -464,11 +489,14 @@ func runTaskTailWithClient(ctx context.Context, client *moltnetapi.Client, opts 
 // resolveAttempt picks the requested attempt or the latest one when 0.
 // Returns the attempt number as an int (the wire schema uses float64 for
 // historical reasons; we coerce on the boundary).
-func resolveAttempt(ctx context.Context, client *moltnetapi.Client, taskID uuid.UUID, requested int) (int, error) {
+func resolveAttempt(ctx context.Context, client *moltnetapi.Client, taskID uuid.UUID, teamID moltnetapi.OptUUID, requested int) (int, error) {
 	if requested > 0 {
 		return requested, nil
 	}
-	res, err := client.ListTaskAttempts(ctx, moltnetapi.ListTaskAttemptsParams{ID: taskID})
+	res, err := client.ListTaskAttempts(ctx, moltnetapi.ListTaskAttemptsParams{
+		ID:             taskID,
+		XMoltnetTeamID: teamID,
+	})
 	if err != nil {
 		return 0, fmt.Errorf("list attempts: %w", formatTransportError(err))
 	}
@@ -499,7 +527,7 @@ func resolveAttempt(ctx context.Context, client *moltnetapi.Client, taskID uuid.
 // would skip everything past page 1 — and then on first poll we'd
 // stream the rest of the backlog as if it were live. We page through
 // using afterSeq until the server returns an empty page.
-func latestSeq(ctx context.Context, client *moltnetapi.Client, taskID uuid.UUID, attemptN int) (int, error) {
+func latestSeq(ctx context.Context, client *moltnetapi.Client, taskID uuid.UUID, teamID moltnetapi.OptUUID, attemptN int) (int, error) {
 	max := -1
 	var afterSeq moltnetapi.OptInt
 	// Bound the loop so a buggy server can't keep us reading forever.
@@ -508,7 +536,7 @@ func latestSeq(ctx context.Context, client *moltnetapi.Client, taskID uuid.UUID,
 	// ~100 pages to be very safe.
 	const maxPages = 200
 	for page := 0; page < maxPages; page++ {
-		messages, err := fetchMessages(ctx, client, taskID, attemptN, afterSeq)
+		messages, err := fetchMessages(ctx, client, taskID, teamID, attemptN, afterSeq)
 		if err != nil {
 			return 0, err
 		}
@@ -525,11 +553,12 @@ func latestSeq(ctx context.Context, client *moltnetapi.Client, taskID uuid.UUID,
 	return max, nil
 }
 
-func fetchMessages(ctx context.Context, client *moltnetapi.Client, taskID uuid.UUID, attemptN int, afterSeq moltnetapi.OptInt) ([]moltnetapi.TaskMessage, error) {
+func fetchMessages(ctx context.Context, client *moltnetapi.Client, taskID uuid.UUID, teamID moltnetapi.OptUUID, attemptN int, afterSeq moltnetapi.OptInt) ([]moltnetapi.TaskMessage, error) {
 	params := moltnetapi.ListTaskMessagesParams{
-		ID:       taskID,
-		N:        attemptN,
-		AfterSeq: afterSeq,
+		ID:             taskID,
+		N:              attemptN,
+		AfterSeq:       afterSeq,
+		XMoltnetTeamID: teamID,
 	}
 	res, err := client.ListTaskMessages(ctx, params)
 	if err != nil {
@@ -549,8 +578,11 @@ func fetchMessages(ctx context.Context, client *moltnetapi.Client, taskID uuid.U
 	return out, nil
 }
 
-func taskIsTerminal(ctx context.Context, client *moltnetapi.Client, taskID uuid.UUID) (bool, error) {
-	res, err := client.GetTask(ctx, moltnetapi.GetTaskParams{ID: taskID})
+func taskIsTerminal(ctx context.Context, client *moltnetapi.Client, taskID uuid.UUID, teamID moltnetapi.OptUUID) (bool, error) {
+	res, err := client.GetTask(ctx, moltnetapi.GetTaskParams{
+		ID:             taskID,
+		XMoltnetTeamID: teamID,
+	})
 	if err != nil {
 		return false, fmt.Errorf("get task: %w", formatTransportError(err))
 	}

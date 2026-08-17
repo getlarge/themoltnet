@@ -5,10 +5,10 @@
  * create → list → get → claim → heartbeat → complete/fail/cancel
  * and the message append/list flow.
  *
- * A proposer creates tasks, while a claimer exercises the lifecycle through a
- * legacy diary grant during the ownership bridge. A separate task writer has no
- * diary relationship, so explicit Task grant revocation can be tested in
- * isolation. All access is evaluated in the task's owning team context.
+ * A proposer creates tasks, while a claimer exercises the lifecycle through
+ * explicit Task grants. A separate task writer has no diary relationship, so
+ * explicit Task grant revocation can be tested in isolation. All access is
+ * evaluated in the task's owning team context.
  */
 
 import { randomUUID } from 'node:crypto';
@@ -35,6 +35,7 @@ import {
   listTaskGrants,
   listTaskMessages,
   listTasks,
+  revokeDiaryGrant,
   revokeTaskGrant,
   taskHeartbeat,
   updateTaskMetadata,
@@ -51,6 +52,7 @@ import {
   signExecutorAttestation,
 } from '@moltnet/crypto-service';
 import { correlationSeals, tasks } from '@moltnet/database';
+import { connect } from '@themoltnet/sdk';
 import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -116,8 +118,8 @@ describe('Tasks API', () => {
       return request;
     });
 
-    // Keep a diary grant in place to prove that the rollout bridge preserves
-    // legacy access until the follow-up OPL contraction.
+    // Keep a diary grant in place to prove that diary authority no longer
+    // leaks into tasks after the ownership cutover.
     await createDiaryGrant({
       client,
       auth: () => proposer.accessToken,
@@ -439,7 +441,7 @@ describe('Tasks API', () => {
       });
     }
 
-    it('keeps existing diary-grant access during the ownership bridge', async () => {
+    it('does not derive task access from a provenance diary grant', async () => {
       const created = await createTaskWithoutGrant('detached diary grant');
       expect(created.error).toBeUndefined();
 
@@ -450,8 +452,39 @@ describe('Tasks API', () => {
         path: { id: created.data!.id },
       });
 
-      expect(readable.response.status).toBe(200);
-      expect(readable.data!.id).toBe(created.data!.id);
+      expect(readable.response.status).toBe(403);
+      expect(readable.data).toBeUndefined();
+
+      const revokedDiaryGrant = await revokeDiaryGrant({
+        client,
+        auth: () => proposer.accessToken,
+        path: { id: proposer.privateDiaryId },
+        body: {
+          subjectId: claimer.identityId,
+          subjectNs: 'Agent',
+          role: 'writer',
+        },
+      });
+      expect(revokedDiaryGrant.error).toBeUndefined();
+      const recreatedDiaryGrant = await createDiaryGrant({
+        client,
+        auth: () => proposer.accessToken,
+        path: { id: proposer.privateDiaryId },
+        body: {
+          subjectId: claimer.identityId,
+          subjectNs: 'Agent',
+          role: 'writer',
+        },
+      });
+      expect(recreatedDiaryGrant.error).toBeUndefined();
+
+      const stillDetached = await getTask({
+        client,
+        auth: () => claimer.accessToken,
+        headers: { 'x-moltnet-team-id': proposer.personalTeamId },
+        path: { id: created.data!.id },
+      });
+      expect(stillDetached.response.status).toBe(403);
     });
 
     it('allows a non-team writer through the owning team context and revokes cleanly', async () => {
@@ -527,6 +560,33 @@ describe('Tasks API', () => {
         (result) => result.response.status === 403,
         { label: 'revoked task writer no longer reads task' },
       );
+    });
+
+    it('manages final task grants through the public SDK', async () => {
+      const created = await createTaskWithoutGrant('SDK task grants');
+      expect(created.error).toBeUndefined();
+      const taskId = created.data!.id;
+      const sdk = await connect({
+        apiUrl: harness.baseUrl,
+        clientId: proposer.clientId,
+        clientSecret: proposer.clientSecret,
+        retry: false,
+      });
+      const body = {
+        subjectId: taskWriter.identityId,
+        subjectNs: 'Agent' as const,
+        role: 'writer' as const,
+      };
+      const options = { teamId: proposer.personalTeamId };
+
+      await expect(
+        sdk.taskGrants.create(taskId, body, options),
+      ).resolves.toMatchObject(body);
+      const listed = await sdk.taskGrants.list(taskId, options);
+      expect(listed.grants).toContainEqual(body);
+      await expect(
+        sdk.taskGrants.revoke(taskId, body, options),
+      ).resolves.toEqual({ revoked: true });
     });
   });
 

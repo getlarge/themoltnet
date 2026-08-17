@@ -10,17 +10,25 @@
 import * as path from 'node:path';
 import * as url from 'node:url';
 
-import { Configuration, RelationshipApi } from '@ory/client-fetch';
+import {
+  Configuration,
+  PermissionApi,
+  RelationshipApi,
+} from '@ory/client-fetch';
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { GenericContainer, Network, Wait } from 'testcontainers';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
+  DiaryRelation,
+  GroupRelation,
   KetoNamespace,
   RuntimePolicyRelation,
   RuntimeProfileRelation,
+  TaskRelation,
   TeamRelation,
 } from '../src/keto-constants.js';
+import { createPermissionChecker } from '../src/permission-checker.js';
 import {
   createRelationshipReader,
   type RelationshipReader,
@@ -84,6 +92,7 @@ const KETO_YAML_PATH = path.join(REPO_ROOT, 'infra/ory/keto/keto.yaml');
 
 describe('RelationshipReader (integration)', () => {
   let reader: RelationshipReader;
+  let permissionApi: PermissionApi;
   let writeApi: RelationshipApi;
   let stopContainers: () => Promise<void>;
 
@@ -152,6 +161,9 @@ describe('RelationshipReader (integration)', () => {
     const ketoWriteUrl = `http://${keto.getHost()}:${keto.getMappedPort(KETO_WRITE_PORT)}`;
 
     const readRelApi = new RelationshipApi(
+      new Configuration({ basePath: ketoReadUrl }),
+    );
+    permissionApi = new PermissionApi(
       new Configuration({ basePath: ketoReadUrl }),
     );
     writeApi = new RelationshipApi(
@@ -273,4 +285,102 @@ describe('RelationshipReader (integration)', () => {
     const tools = await reader.listRuntimePolicyTools(POLICY_ID_1);
     expect(tools.sort()).toEqual(['gh', 'git']);
   });
+
+  it('enforces final task authority without diary-parent fallback', async () => {
+    const taskId = '990e8400-e29b-41d4-a716-4466554400c0';
+    const teamId = '990e8400-e29b-41d4-a716-4466554400c1';
+    const diaryId = '990e8400-e29b-41d4-a716-4466554400c2';
+    const ownerId = '990e8400-e29b-41d4-a716-4466554400c3';
+    const memberId = '990e8400-e29b-41d4-a716-4466554400c4';
+    const writerId = '990e8400-e29b-41d4-a716-4466554400c5';
+    const managerId = '990e8400-e29b-41d4-a716-4466554400c6';
+    const claimantId = '990e8400-e29b-41d4-a716-4466554400c7';
+    const groupId = '990e8400-e29b-41d4-a716-4466554400c8';
+    const groupWriterId = '990e8400-e29b-41d4-a716-4466554400c9';
+    const diaryOnlyWriterId = '990e8400-e29b-41d4-a716-4466554400ca';
+
+    await writeApi.patchRelationships({
+      relationshipPatch: [
+        tuple('Team', teamId, TeamRelation.Owners, 'Agent', ownerId),
+        tuple('Team', teamId, TeamRelation.Members, 'Agent', memberId),
+        tuple(
+          'Diary',
+          diaryId,
+          DiaryRelation.Writers,
+          'Agent',
+          diaryOnlyWriterId,
+        ),
+        tuple('Task', taskId, TaskRelation.Team, 'Team', teamId),
+        tuple('Task', taskId, TaskRelation.Writers, 'Agent', writerId),
+        tuple('Task', taskId, TaskRelation.Managers, 'Human', managerId),
+        tuple('Task', taskId, TaskRelation.Claimant, 'Agent', claimantId),
+        tuple('Group', groupId, GroupRelation.Members, 'Agent', groupWriterId),
+        tuple(
+          'Task',
+          taskId,
+          TaskRelation.Writers,
+          'Group',
+          groupId,
+          GroupRelation.Members,
+        ),
+      ],
+    });
+
+    const checker = createPermissionChecker(permissionApi, {
+      child: () => ({ warn: () => undefined, debug: () => undefined }),
+      warn: () => undefined,
+      debug: () => undefined,
+    } as never);
+
+    await expect(
+      checker.canViewTask(taskId, ownerId, KetoNamespace.Agent),
+    ).resolves.toBe(true);
+    await expect(
+      checker.canManageTask(taskId, ownerId, KetoNamespace.Agent),
+    ).resolves.toBe(true);
+    await expect(
+      checker.canViewTask(taskId, memberId, KetoNamespace.Agent),
+    ).resolves.toBe(true);
+    await expect(
+      checker.canClaimTask(taskId, memberId, KetoNamespace.Agent),
+    ).resolves.toBe(false);
+    await expect(
+      checker.canClaimTask(taskId, writerId, KetoNamespace.Agent),
+    ).resolves.toBe(true);
+    await expect(
+      checker.canManageTask(taskId, managerId, KetoNamespace.Human),
+    ).resolves.toBe(true);
+    await expect(
+      checker.canClaimTask(taskId, groupWriterId, KetoNamespace.Agent),
+    ).resolves.toBe(true);
+    await expect(
+      checker.canReportTask(taskId, claimantId, KetoNamespace.Agent),
+    ).resolves.toBe(true);
+    await expect(
+      checker.canViewTask(taskId, diaryOnlyWriterId, KetoNamespace.Agent),
+    ).resolves.toBe(false);
+  });
 });
+
+function tuple(
+  namespace: string,
+  object: string,
+  relation: string,
+  subjectNamespace: string,
+  subjectObject: string,
+  subjectRelation = '',
+) {
+  return {
+    action: 'insert' as const,
+    relation_tuple: {
+      namespace,
+      object,
+      relation,
+      subject_set: {
+        namespace: subjectNamespace,
+        object: subjectObject,
+        relation: subjectRelation,
+      },
+    },
+  };
+}

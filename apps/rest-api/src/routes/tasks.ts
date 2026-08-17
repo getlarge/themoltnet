@@ -32,7 +32,6 @@ import { sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { type Static, Type } from 'typebox';
 
-import { loadTaskOwnershipRolloutConfig } from '../config.js';
 import { createProblem, createValidationProblem } from '../problems/index.js';
 import {
   AbortTaskBodySchema,
@@ -271,8 +270,6 @@ async function validateAllowedProfiles(
 
 export function taskRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
-  const bridgeTaskGrants =
-    loadTaskOwnershipRolloutConfig().MOLTNET_TASK_OWNERSHIP_BRIDGE === '1';
   server.addHook('preHandler', requireAuth);
 
   // GET /tasks/schemas
@@ -850,17 +847,10 @@ export function taskRoutes(fastify: FastifyInstance) {
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
           409: Type.Ref(ConflictProblemDetailsSchema.$id),
-          503: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
     async (request, reply) => {
-      if (bridgeTaskGrants) {
-        throw createProblem(
-          'service-unavailable',
-          'Explicit task grants are disabled while diary grants are being mirrored during the ownership cutover.',
-        );
-      }
       const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'tasks');
       try {
@@ -948,17 +938,10 @@ export function taskRoutes(fastify: FastifyInstance) {
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
-          503: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
     async (request) => {
-      if (bridgeTaskGrants) {
-        throw createProblem(
-          'service-unavailable',
-          'Explicit task grants are disabled while diary grants are being mirrored during the ownership cutover.',
-        );
-      }
       const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'tasks');
       try {

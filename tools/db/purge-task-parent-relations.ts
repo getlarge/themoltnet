@@ -1,26 +1,18 @@
 /* eslint-disable no-console */
 /**
- * Backfill issue #1656 Task ownership and explicit grants in Keto.
+ * Purge inert Task#parent provenance tuples after the #1656 rollback window.
  *
- *   pnpm exec tsx tools/db/backfill-task-ownership.ts --dry-run
- *   pnpm exec tsx tools/db/backfill-task-ownership.ts --apply
- *   pnpm exec tsx tools/db/backfill-task-ownership.ts --verify
- * Add --database-proxy-port 15432 when DATABASE_URL must be routed through a
- * host-local Fly MPG proxy.
+ *   pnpm exec tsx tools/db/purge-task-parent-relations.ts --dry-run
+ *   pnpm exec tsx tools/db/purge-task-parent-relations.ts --apply
+ *   pnpm exec tsx tools/db/purge-task-parent-relations.ts --verify
  */
 import { config } from '@dotenvx/dotenvx';
-import { createDatabase } from '@moltnet/database';
-import { sql } from 'drizzle-orm';
 
+import type { KetoTuple } from '../src/task-ownership-backfill.js';
 import {
-  argumentValue,
-  databaseUrlForProxy,
-} from '../src/database-proxy-url.js';
-import {
-  backfillTaskOwnership,
-  type KetoTuple,
-  type TaskOwnershipBackfillAdapters,
-} from '../src/task-ownership-backfill.js';
+  purgeTaskParentRelations,
+  type TaskParentPurgeAdapters,
+} from '../src/task-parent-purge.js';
 
 config({ path: ['env.public', '.env.infra.local'], override: false });
 
@@ -31,46 +23,16 @@ if (selected.length !== 1) {
   throw new Error('Specify exactly one of --dry-run, --apply, or --verify');
 }
 const mode = selected[0];
-const databaseUrl = databaseUrlForProxy(
-  requiredEnv('DATABASE_URL'),
-  argumentValue(process.argv.slice(2), '--database-proxy-port'),
-);
 const oryUrl = requiredEnv('ORY_PROJECT_URL').replace(/\/$/, '');
 const apiKey = process.env.ORY_PROJECT_API_KEY ?? process.env.ORY_API_KEY;
 if (!apiKey) throw new Error('ORY_PROJECT_API_KEY is required');
 
-const { db, pool } = createDatabase(databaseUrl);
 const headers = { Authorization: `Bearer ${apiKey}` };
-const pageSize = 250;
-
-const adapters: TaskOwnershipBackfillAdapters = {
-  async listTasks(cursor) {
-    const result = await db.execute<{
-      id: string;
-      team_id: string | null;
-      diary_id: string;
-    }>(sql`
-      SELECT id, team_id, diary_id
-      FROM tasks
-      WHERE (${cursor ?? null}::uuid IS NULL OR id > ${cursor ?? null}::uuid)
-      ORDER BY id
-      LIMIT ${pageSize}
-    `);
-    const rows = result.rows.map((row) => ({
-      id: row.id,
-      teamId: row.team_id,
-      diaryId: row.diary_id,
-    }));
-    return {
-      items: rows,
-      nextPageToken: rows.length === pageSize ? rows.at(-1)?.id : undefined,
-    };
-  },
-
-  async listTuples({ namespace, relation, pageToken }) {
+const adapters: TaskParentPurgeAdapters = {
+  async listParentTuples(pageToken) {
     const params = new URLSearchParams({
-      namespace,
-      relation,
+      namespace: 'Task',
+      relation: 'parent',
       page_size: '500',
     });
     if (pageToken) params.set('page_token', pageToken);
@@ -83,7 +45,7 @@ const adapters: TaskOwnershipBackfillAdapters = {
       next_page_token?: string;
     };
     if (!Array.isArray(body.relation_tuples)) {
-      throw new Error(`Unreadable Keto ${namespace}#${relation} page`);
+      throw new Error('Unreadable Keto Task#parent page');
     }
     return {
       items: body.relation_tuples,
@@ -91,35 +53,34 @@ const adapters: TaskOwnershipBackfillAdapters = {
     };
   },
 
-  async putTuple(tuple) {
+  async deleteTuples(tuples) {
     await retryFetch(`${oryUrl}/admin/relation-tuples`, {
-      method: 'PUT',
+      method: 'PATCH',
       headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify(tuple),
+      body: JSON.stringify(
+        tuples.map((tuple) => ({
+          action: 'delete',
+          relation_tuple: tuple,
+        })),
+      ),
     });
   },
 };
 
-try {
-  const result = await backfillTaskOwnership(adapters, mode);
-  console.log(
-    JSON.stringify(
-      {
-        mode,
-        tasks: result.tasks,
-        expectedTuples: result.expected,
-        existingTuples: result.existing,
-        insertedTuples: result.inserted,
-        missingTuples: result.missing.length,
-        ...(mode === 'dry-run' ? { missing: result.missing } : {}),
-      },
-      null,
-      2,
-    ),
-  );
-} finally {
-  await pool.end();
-}
+const result = await purgeTaskParentRelations(adapters, mode);
+console.log(
+  JSON.stringify(
+    {
+      mode,
+      foundTuples: result.found,
+      deletedTuples: result.deleted,
+      remainingTuples: result.remaining.length,
+      ...(mode === 'dry-run' ? { tuples: result.remaining } : {}),
+    },
+    null,
+    2,
+  ),
+);
 
 function requiredEnv(name: string): string {
   const value = process.env[name];

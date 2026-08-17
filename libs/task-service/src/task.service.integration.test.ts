@@ -21,7 +21,7 @@ beforeAll(async () => {
 function createIntegrationDeps() {
   const tasks = new Map<string, DbTask>();
   const grants = {
-    parent: vi.fn<(taskId: string, diaryId: string) => Promise<void>>(),
+    ownership: vi.fn<(taskId: string, teamId: string) => Promise<void>>(),
     removed: vi.fn<
       (
         rows: Array<{
@@ -173,8 +173,7 @@ function createIntegrationDeps() {
         canClaimTask: vi.fn(() => Promise.resolve(true)),
       },
       relationshipWriter: {
-        grantTaskOwnership: grants.parent.mockResolvedValue(undefined),
-        grantTaskParent: grants.parent.mockResolvedValue(undefined),
+        grantTaskOwnership: grants.ownership.mockResolvedValue(undefined),
         grantTaskClaimant: vi.fn(() => Promise.resolve(undefined)),
         removeTaskRelationsBatch: grants.removed.mockResolvedValue(undefined),
       },
@@ -220,7 +219,7 @@ describe('createTaskService composition integration', () => {
       tags: ['refactor', 'tests'],
       status: 'queued',
     });
-    expect(grants.parent).toHaveBeenCalledWith(TASK_ID, TEAM_ID, DIARY_ID);
+    expect(grants.ownership).toHaveBeenCalledWith(TASK_ID, TEAM_ID);
 
     await expect(
       service.get(TASK_ID, AGENT_ID, KetoNamespace.Agent),
@@ -261,9 +260,7 @@ describe('createTaskService composition integration', () => {
         callerNs: KetoNamespace.Agent,
       }),
     ).resolves.toEqual({ deleted: [TASK_ID], skipped: [] });
-    expect(grants.removed).toHaveBeenCalledWith([
-      { id: TASK_ID, diaryId: DIARY_ID, claimAgentId: undefined },
-    ]);
+    expect(grants.removed).toHaveBeenCalledWith([{ id: TASK_ID }]);
     expect(tasks.has(TASK_ID)).toBe(false);
   });
 });

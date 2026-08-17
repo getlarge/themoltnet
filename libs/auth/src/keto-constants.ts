@@ -161,7 +161,6 @@ export enum RuntimePolicyPermission {
 export enum TaskRelation {
   Claimant = 'claimant',
   Managers = 'managers',
-  Parent = 'parent',
   Team = 'team',
   Writers = 'writers',
 }

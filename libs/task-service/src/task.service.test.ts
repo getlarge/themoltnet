@@ -249,20 +249,11 @@ type PermissionCheckerMocks = {
 };
 
 type RelationshipWriterMocks = {
-  grantTaskOwnership: Mock<
-    (taskId: string, teamId: string, diaryId: string) => Promise<void>
-  >;
-  grantTaskParent: Mock<(taskId: string, diaryId: string) => Promise<void>>;
+  grantTaskOwnership: Mock<(taskId: string, teamId: string) => Promise<void>>;
   grantTaskClaimant: Mock<(taskId: string, agentId: string) => Promise<void>>;
   removeTaskRelations: Mock<(taskId: string) => Promise<void>>;
   removeTaskRelationsBatch: Mock<
-    (
-      tasks: Array<{
-        id: string;
-        diaryId: string | null;
-        claimAgentId?: string | null;
-      }>,
-    ) => Promise<void>
+    (tasks: Array<{ id: string }>) => Promise<void>
   >;
 };
 
@@ -766,16 +757,7 @@ function makeMocks(
     },
     relationshipWriter: {
       grantTaskOwnership: vi
-        .fn<
-          (taskId: string, teamId: string, diaryId: string) => Promise<void>
-        >()
-        .mockImplementation(() =>
-          opts.grantThrows
-            ? Promise.reject(new Error('keto down'))
-            : Promise.resolve(),
-        ),
-      grantTaskParent: vi
-        .fn<(taskId: string, diaryId: string) => Promise<void>>()
+        .fn<(taskId: string, teamId: string) => Promise<void>>()
         .mockImplementation(() =>
           opts.grantThrows
             ? Promise.reject(new Error('keto down'))
@@ -1348,7 +1330,6 @@ describe('createTaskService.create — judge_eval_attempt flow', () => {
     expect(mocks.relationshipWriter.grantTaskOwnership).toHaveBeenCalledWith(
       task.id,
       TEAM_ID,
-      DIARY_ID,
     );
   });
 
@@ -1383,7 +1364,6 @@ describe('createTaskService.create — judge_eval_attempt flow', () => {
     expect(mocks.relationshipWriter.grantTaskOwnership).toHaveBeenCalledWith(
       task.id,
       TEAM_ID,
-      DIARY_ID,
     );
   });
 
@@ -1467,43 +1447,6 @@ describe('createTaskService.create — judge_eval_attempt flow', () => {
     expect(mocks.relationshipWriter.removeTaskRelations).toHaveBeenCalledWith(
       expect.any(String),
     );
-    expect(mocks.taskRepository.updateStatus).toHaveBeenCalledWith(
-      expect.any(String),
-      'cancelled',
-      expect.objectContaining({ cancelReason: 'Keto grant failed' }),
-    );
-  });
-
-  it('purges ownership when a bridged diary grant fails after insert', async () => {
-    mocks = makeMocks({
-      visibleTasks: {
-        [RUN_TASK]: makeRunEvalTask(RUN_TASK),
-      },
-    });
-    const grantTaskWriters = vi.fn().mockRejectedValue(new Error('keto down'));
-    service = createTaskService({
-      ...mocks,
-      bridgeDiaryTaskGrants: true,
-      relationshipReader: {
-        listDiaryGrants: vi.fn().mockResolvedValue([
-          {
-            role: 'writer',
-            subjectId: AGENT_ID,
-            subjectNs: KetoNamespace.Agent,
-          },
-        ]),
-      },
-      relationshipWriter: {
-        ...mocks.relationshipWriter,
-        grantTaskWriters,
-      },
-    } as unknown as Parameters<typeof createTaskService>[0]);
-
-    await expect(
-      service.create(judgeCreateInput() as never),
-    ).rejects.toMatchObject({ code: 'conflict' });
-    expect(grantTaskWriters).toHaveBeenCalledOnce();
-    expect(mocks.relationshipWriter.removeTaskRelations).toHaveBeenCalledOnce();
     expect(mocks.taskRepository.updateStatus).toHaveBeenCalledWith(
       expect.any(String),
       'cancelled',
@@ -2419,9 +2362,7 @@ describe('createTaskService.deleteMany', () => {
     expect(result).toEqual({ deleted: [JUDGE_TASK], skipped: [] });
     expect(
       mocks.relationshipWriter.removeTaskRelationsBatch,
-    ).toHaveBeenCalledWith([
-      { id: JUDGE_TASK, diaryId: DIARY_ID, claimAgentId: AGENT_ID },
-    ]);
+    ).toHaveBeenCalledWith([{ id: JUDGE_TASK }]);
   });
 
   it('fails cleanup instead of reporting deletion when Keto relation cleanup fails', async () => {

@@ -19,7 +19,7 @@
 
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -81,7 +81,9 @@ if (oplOnly) {
   const projectId = env('ORY_PROJECT_ID');
   const apiKey = env('ORY_WORKSPACE_API_KEY');
   const requestedFile = argumentValue('--opl-file') ?? 'permissions.ts';
-  const oplFile = join(__dirname, requestedFile);
+  const oplFile = isAbsolute(requestedFile)
+    ? requestedFile
+    : join(__dirname, requestedFile);
   if (!projectId) fatal('ORY_PROJECT_ID must be set for --opl-only');
   if (!apiKey) fatal('ORY_WORKSPACE_API_KEY must be set for --opl-only');
   if (!existsSync(oplFile)) fatal(`OPL file not found at ${oplFile}`);
