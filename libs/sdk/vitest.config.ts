@@ -8,6 +8,7 @@ export default defineConfig({
     environment: 'node',
     root: resolve(import.meta.dirname),
     include: ['__tests__/**/*.test.ts'],
+    setupFiles: ['./vitest.setup.ts'],
     testTimeout: 10_000,
   },
 });

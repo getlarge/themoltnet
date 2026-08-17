@@ -162,6 +162,7 @@ export function createNxDependencyChecksConfig(options = {}) {
             '{projectRoot}/eslint.config.{js,cjs,mjs,ts,cts,mts}',
             '{projectRoot}/vite.config.{js,ts,mjs,mts}',
             '{projectRoot}/vitest.config.{js,ts,mjs,mts}',
+            '{projectRoot}/vitest.setup.{js,ts,mjs,mts}',
             '{projectRoot}/openapi-ts.config.{js,ts,mjs,mts}',
             '{projectRoot}/drizzle.config.{js,ts,mjs,mts}',
             '{projectRoot}/**/*.spec.{js,jsx,ts,tsx}',
