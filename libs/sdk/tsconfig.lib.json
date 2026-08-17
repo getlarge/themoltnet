@@ -23,10 +23,13 @@
   "include": ["src"],
   "references": [
     {
-      "path": "../os-keyring/tsconfig.lib.json"
+      "path": "../dts-entry-shims/tsconfig.lib.json"
     },
     {
       "path": "../agent-config/tsconfig.lib.json"
+    },
+    {
+      "path": "../os-keyring/tsconfig.lib.json"
     },
     {
       "path": "../tasks/tsconfig.lib.json"

@@ -17,10 +17,13 @@
   "include": ["src"],
   "references": [
     {
+      "path": "../sdk/tsconfig.lib.json"
+    },
+    {
       "path": "../tasks/tsconfig.lib.json"
     },
     {
-      "path": "../sdk/tsconfig.lib.json"
+      "path": "../dts-entry-shims/tsconfig.lib.json"
     }
   ]
 }

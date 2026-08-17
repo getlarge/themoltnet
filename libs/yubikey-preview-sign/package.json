@@ -66,6 +66,7 @@
     "@themoltnet/ctap": "workspace:*"
   },
   "devDependencies": {
+    "@moltnet/dts-entry-shims": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",

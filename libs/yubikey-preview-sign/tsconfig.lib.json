@@ -17,5 +17,12 @@
   ],
   "extends": "./tsconfig.json",
   "include": ["src"],
-  "references": [{ "path": "../ctap/tsconfig.lib.json" }]
+  "references": [
+    {
+      "path": "../ctap/tsconfig.lib.json"
+    },
+    {
+      "path": "../dts-entry-shims/tsconfig.lib.json"
+    }
+  ]
 }

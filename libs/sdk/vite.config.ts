@@ -1,3 +1,4 @@
+import { shareRolledUpEntries } from '@moltnet/dts-entry-shims';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 
@@ -19,6 +20,12 @@ export default defineConfig({
       // points to src/index.ts which would cause vite-plugin-dts to inline
       // full class implementations into the .d.ts output.
       rollupTypes: true,
+      // rollupTypes runs api-extractor once per entry, so human.d.ts and
+      // node.d.ts would each restate every declaration they reach. Two copies
+      // of one declaration are two types to TypeScript, which is fatal for
+      // TaskBuilder's `private taskType`. Collapse the secondary entries onto
+      // index.d.ts so shared types keep a single identity (issue #1928).
+      afterBuild: () => shareRolledUpEntries({ outDir: 'dist' }),
       tsconfigPath: './tsconfig.lib.json',
       include: ['src/**/*.ts'],
       compilerOptions: {

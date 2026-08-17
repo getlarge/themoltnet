@@ -223,6 +223,9 @@
     },
     {
       "path": "libs/oauth-token-cache"
+    },
+    {
+      "path": "libs/dts-entry-shims"
     }
   ]
 }
