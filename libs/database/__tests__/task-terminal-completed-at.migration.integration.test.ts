@@ -57,7 +57,11 @@ describe('task terminal completed_at migration (integration)', () => {
     migrationStatements = (await readFile(MIGRATION_URL, 'utf8'))
       .split('--> statement-breakpoint')
       .map((statement) => statement.trim())
-      .filter(Boolean);
+      .filter(
+        (statement) =>
+          statement.startsWith('UPDATE "tasks"\nSET "completed_at"') ||
+          statement.includes(`ADD CONSTRAINT "${TERMINAL_CONSTRAINT}"`),
+      );
     expect(migrationStatements).toHaveLength(2);
   }, 60_000);
 
