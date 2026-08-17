@@ -1,7 +1,6 @@
 import './instrumentation.js'; // ← MUST be first: patches http/dns/pino
 
 import { createClient, createRetryFetch } from '@moltnet/api-client';
-import { createOryClients, createPermissionChecker } from '@moltnet/auth';
 import {
   createAxiomOtlpConfig,
   createLogger,
@@ -49,28 +48,10 @@ async function main(): Promise<void> {
     fetch: createRetryFetch(),
   });
 
-  const logger = createLogger({ serviceName: 'moltnet-mcp-server' });
-  const ketoReadUrl = config.ORY_KETO_PUBLIC_URL ?? config.ORY_PROJECT_URL;
-  const permissionChecker = ketoReadUrl
-    ? createPermissionChecker(
-        createOryClients({
-          baseUrl: ketoReadUrl,
-          apiKey: config.ORY_PROJECT_API_KEY,
-          ketoReadUrl,
-        }).permission,
-        logger,
-      )
-    : {
-        // Grant mutations fail closed when a local development server has no
-        // Keto endpoint configured. The REST API remains the final authority.
-        canManageTask: () => Promise.resolve(false),
-      };
-
   // buildApp replaces deps.logger with app.log after Fastify is instantiated.
   const deps: McpDeps = {
     client,
-    logger,
-    permissionChecker,
+    logger: createLogger({ serviceName: 'moltnet-mcp-server' }),
   };
 
   const app = await buildApp({

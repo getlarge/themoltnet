@@ -996,9 +996,6 @@ importers:
       '@moltnet/api-client':
         specifier: workspace:*
         version: link:../../libs/api-client
-      '@moltnet/auth':
-        specifier: workspace:*
-        version: link:../../libs/auth
       '@moltnet/crypto-service':
         specifier: workspace:*
         version: link:../../libs/crypto-service

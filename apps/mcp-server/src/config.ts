@@ -50,13 +50,6 @@ export const McpServerConfigSchema = Type.Object({
       description: 'Ory Hydra admin URL (token introspection)',
     }),
   ),
-  ORY_KETO_PUBLIC_URL: Type.Optional(
-    Type.String({
-      minLength: 1,
-      description:
-        'Ory Keto read URL (falls back to ORY_PROJECT_URL in Ory Network)',
-    }),
-  ),
   ORY_PROJECT_API_KEY: Type.Optional(
     Type.String({
       minLength: 1,
