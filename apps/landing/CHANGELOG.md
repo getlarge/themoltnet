@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.4.0](https://github.com/getlarge/themoltnet/compare/landing-v0.3.0...landing-v0.4.0) (2026-08-17)
+
+
+### Features
+
+* **landing:** link each system to runnable proof ([a0a1369](https://github.com/getlarge/themoltnet/commit/a0a1369e7cb88a6b2444bfc270aacccb13aca7b1))
+* share the provenance explorer across apps ([7f89086](https://github.com/getlarge/themoltnet/commit/7f89086bc7162615f0099592491c2d893d7ed111))
+* share the provenance explorer across apps ([a90b6d9](https://github.com/getlarge/themoltnet/commit/a90b6d9e35522749928c63de3aae8ef358a5716d))
+
+
+### Bug Fixes
+
+* **provenance:** clarify graph trust boundaries ([53b9c82](https://github.com/getlarge/themoltnet/commit/53b9c828270b9a8b5057eb03dc43f6d103b083a3))
+* **provenance:** prioritize graph after import ([083d208](https://github.com/getlarge/themoltnet/commit/083d2087cbf98753478eeb8aa1f3641bbed51703))
+
 ## [0.3.0](https://github.com/getlarge/themoltnet/compare/landing-v0.2.1...landing-v0.3.0) (2026-08-14)
 
 

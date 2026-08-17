@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.134.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.133.0...sdk-v0.134.0) (2026-08-17)
+
+
+### Features
+
+* **clients:** expose explicit task grants ([424c65b](https://github.com/getlarge/themoltnet/commit/424c65bb978d5b45c32027bd6a5dc8c6feadcf02))
+* **tasks:** add Keto-backed task ownership ([5a86e87](https://github.com/getlarge/themoltnet/commit/5a86e87db9cac486316ab1e0eebac93425d248c1))
+
+
+### Bug Fixes
+
+* **tasks:** propagate owning-team lifecycle context ([ab4f5de](https://github.com/getlarge/themoltnet/commit/ab4f5deaf73e3b89335e1592716ee9a176efbbef))
+
 ## [0.133.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.132.0...sdk-v0.133.0) (2026-08-14)
 
 

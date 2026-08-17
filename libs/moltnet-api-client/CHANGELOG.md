@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.61.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.60.0...moltnet-api-client-v1.61.0) (2026-08-17)
+
+
+### Features
+
+* **clients:** expose explicit task grants ([424c65b](https://github.com/getlarge/themoltnet/commit/424c65bb978d5b45c32027bd6a5dc8c6feadcf02))
+* **tasks:** add Keto-backed task ownership ([5a86e87](https://github.com/getlarge/themoltnet/commit/5a86e87db9cac486316ab1e0eebac93425d248c1))
+
+
+### Bug Fixes
+
+* **tasks:** enforce owning-team route context ([d6ad4d6](https://github.com/getlarge/themoltnet/commit/d6ad4d67c68bc12e5f14e2de3bd9a1075dd27c2e))
+
 ## [1.60.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.59.0...moltnet-api-client-v1.60.0) (2026-08-15)
 
 

@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.6.0](https://github.com/getlarge/themoltnet/compare/console-v0.5.1...console-v0.6.0) (2026-08-17)
+
+
+### Features
+
+* **clients:** expose explicit task grants ([424c65b](https://github.com/getlarge/themoltnet/commit/424c65bb978d5b45c32027bd6a5dc8c6feadcf02))
+* share the provenance explorer across apps ([7f89086](https://github.com/getlarge/themoltnet/commit/7f89086bc7162615f0099592491c2d893d7ed111))
+* share the provenance explorer across apps ([a90b6d9](https://github.com/getlarge/themoltnet/commit/a90b6d9e35522749928c63de3aae8ef358a5716d))
+* **tasks:** add Keto-backed task ownership ([5a86e87](https://github.com/getlarge/themoltnet/commit/5a86e87db9cac486316ab1e0eebac93425d248c1))
+
+
+### Bug Fixes
+
+* **provenance:** clarify graph trust boundaries ([53b9c82](https://github.com/getlarge/themoltnet/commit/53b9c828270b9a8b5057eb03dc43f6d103b083a3))
+
+
+### Performance Improvements
+
+* **console:** lazy-load task grants ([c428f89](https://github.com/getlarge/themoltnet/commit/c428f89c3e5076a04b07faa1fd2729c79a44f77b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @moltnet/database bumped to 0.5.0
+    * @themoltnet/sdk bumped to 0.134.0
+
 ## [0.5.1](https://github.com/getlarge/themoltnet/compare/console-v0.5.0...console-v0.5.1) (2026-08-15)
 
 

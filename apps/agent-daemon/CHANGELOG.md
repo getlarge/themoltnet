@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.42.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.41.1...agent-daemon-v0.42.0) (2026-08-17)
+
+
+### Features
+
+* **tasks:** add Keto-backed task ownership ([5a86e87](https://github.com/getlarge/themoltnet/commit/5a86e87db9cac486316ab1e0eebac93425d248c1))
+
+
+### Bug Fixes
+
+* **agent-daemon:** preserve task team context ([cac07ad](https://github.com/getlarge/themoltnet/commit/cac07ad79cd3951454a67556053aa088c1e7bb3b))
+* **tasks:** propagate owning-team lifecycle context ([ab4f5de](https://github.com/getlarge/themoltnet/commit/ab4f5deaf73e3b89335e1592716ee9a176efbbef))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.43.0
+    * @themoltnet/pi-runtime bumped to 0.10.0
+    * @themoltnet/sdk bumped to 0.134.0
+
 ## [0.41.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.41.0...agent-daemon-v0.41.1) (2026-08-14)
 
 

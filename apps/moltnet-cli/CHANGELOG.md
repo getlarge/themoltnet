@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.82.0](https://github.com/getlarge/themoltnet/compare/cli-v1.81.0...cli-v1.82.0) (2026-08-17)
+
+
+### Features
+
+* **clients:** expose explicit task grants ([424c65b](https://github.com/getlarge/themoltnet/commit/424c65bb978d5b45c32027bd6a5dc8c6feadcf02))
+* **tasks:** add Keto-backed task ownership ([5a86e87](https://github.com/getlarge/themoltnet/commit/5a86e87db9cac486316ab1e0eebac93425d248c1))
+
+
+### Bug Fixes
+
+* **ci:** pass team context to task result reads ([d31bbdd](https://github.com/getlarge/themoltnet/commit/d31bbdd30f9cb56c745338ca8d6cdbc0862f73c2))
+* **tasks:** propagate owning-team lifecycle context ([ab4f5de](https://github.com/getlarge/themoltnet/commit/ab4f5deaf73e3b89335e1592716ee9a176efbbef))
+
 ## [1.81.0](https://github.com/getlarge/themoltnet/compare/cli-v1.80.0...cli-v1.81.0) (2026-08-15)
 
 

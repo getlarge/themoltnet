@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.43.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.42.0...agent-runtime-v0.43.0) (2026-08-17)
+
+
+### Features
+
+* **tasks:** add Keto-backed task ownership ([5a86e87](https://github.com/getlarge/themoltnet/commit/5a86e87db9cac486316ab1e0eebac93425d248c1))
+
+
+### Bug Fixes
+
+* **tasks:** propagate owning-team lifecycle context ([ab4f5de](https://github.com/getlarge/themoltnet/commit/ab4f5deaf73e3b89335e1592716ee9a176efbbef))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.134.0
+
 ## [0.42.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.41.3...agent-runtime-v0.42.0) (2026-08-14)
 
 
