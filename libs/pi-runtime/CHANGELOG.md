@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.10.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.9.0...pi-runtime-v0.10.0) (2026-08-17)
+
+
+### Features
+
+* **tasks:** add Keto-backed task ownership ([5a86e87](https://github.com/getlarge/themoltnet/commit/5a86e87db9cac486316ab1e0eebac93425d248c1))
+
+
+### Bug Fixes
+
+* **runtime:** keep provenance denial recoverable ([3f8520a](https://github.com/getlarge/themoltnet/commit/3f8520a432e1308de2be7c8edd58ef3780aff4f6))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.43.0
+    * @themoltnet/sdk bumped to 0.134.0
+
 ## [0.9.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.8.0...pi-runtime-v0.9.0) (2026-08-14)
 
 

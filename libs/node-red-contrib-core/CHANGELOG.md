@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.12.15](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.12.14...node-red-contrib-core-v0.12.15) (2026-08-17)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.134.0
+
 ## [0.12.14](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.12.13...node-red-contrib-core-v0.12.14) (2026-08-14)
 
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0](https://github.com/getlarge/themoltnet/compare/database-v0.4.0...database-v0.5.0) (2026-08-17)
+
+
+### Features
+
+* **tasks:** add Keto-backed task ownership ([5a86e87](https://github.com/getlarge/themoltnet/commit/5a86e87db9cac486316ab1e0eebac93425d248c1))
+* **tasks:** enforce Keto-backed ownership ([8928352](https://github.com/getlarge/themoltnet/commit/8928352a7b10ecdd474406aa776e5b64024381f2))
+
 ## [0.4.0](https://github.com/getlarge/themoltnet/compare/database-v0.3.0...database-v0.4.0) (2026-08-15)
 
 

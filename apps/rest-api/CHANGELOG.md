@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.45.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.44.0...rest-api-v0.45.0) (2026-08-17)
+
+
+### Features
+
+* **clients:** expose explicit task grants ([424c65b](https://github.com/getlarge/themoltnet/commit/424c65bb978d5b45c32027bd6a5dc8c6feadcf02))
+* **tasks:** add Keto-backed task ownership ([5a86e87](https://github.com/getlarge/themoltnet/commit/5a86e87db9cac486316ab1e0eebac93425d248c1))
+* **tasks:** enforce Keto-backed ownership ([8928352](https://github.com/getlarge/themoltnet/commit/8928352a7b10ecdd474406aa776e5b64024381f2))
+
+
+### Bug Fixes
+
+* **tasks:** enforce owning-team route context ([d6ad4d6](https://github.com/getlarge/themoltnet/commit/d6ad4d67c68bc12e5f14e2de3bd9a1075dd27c2e))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @moltnet/database bumped to 0.5.0
+
 ## [0.44.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.43.0...rest-api-v0.44.0) (2026-08-15)
 
 
