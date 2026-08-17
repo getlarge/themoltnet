@@ -242,10 +242,7 @@ describe('PollingApiTaskSource', () => {
     });
 
     const pending = src.claim();
-    // Let the initial mocked list response settle so the first idle timer is
-    // registered before advancing the fake clock.
-    await vi.advanceTimersByTimeAsync(0);
-    await vi.advanceTimersByTimeAsync(110);
+    await vi.runAllTimersAsync();
     await expect(pending).resolves.toBeNull();
     expect(info).toHaveBeenCalledWith(
       expect.objectContaining({
