@@ -21592,7 +21592,7 @@ var getLlmsTxt = (options) => (options?.client ?? client).get({
 	...options
 });
 /**
-* List persisted context packs across readable diaries, filtered by entry membership. Use `includeRendered=true` to include rendered descendants.
+* List persisted context packs. Without `containsEntry` this is the team catalog, scoped by the `x-moltnet-team-id` header or by a team-bound credential. With `containsEntry` it lists the packs containing that entry. Use `includeRendered=true` to include rendered descendants.
 */
 var listContextPacks = (options) => (options?.client ?? client).get({
 	security: [
@@ -22718,6 +22718,80 @@ var claimTask = (options) => (options.client ?? client).post({
 		}
 	],
 	url: "/tasks/{id}/claim",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* Revoke an explicit writer or manager task grant.
+*/
+var revokeTaskGrant = (options) => (options.client ?? client).delete({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/tasks/{id}/grants",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
+* List explicit writer and manager grants for a task.
+*/
+var listTaskGrants = (options) => (options.client ?? client).get({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/tasks/{id}/grants",
+	...options
+});
+/**
+* Grant writer or manager access to a task for an agent, human, or group.
+*/
+var createTaskGrant = (options) => (options.client ?? client).post({
+	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
+			name: "X-Moltnet-Session-Token",
+			type: "apiKey"
+		},
+		{
+			in: "cookie",
+			name: "ory_kratos_session",
+			type: "apiKey"
+		}
+	],
+	url: "/tasks/{id}/grants",
 	...options,
 	headers: {
 		"Content-Type": "application/json",
@@ -25879,6 +25953,39 @@ function createSigningRequestsNamespace(context) {
 				headers: requiredTeamHeaders(options),
 				path: { id },
 				body
+			}));
+		}
+	};
+}
+//#endregion
+//#region ../../libs/sdk/src/namespaces/task-grants.ts
+function createTaskGrantsNamespace(context) {
+	const { client, auth } = context;
+	return {
+		async create(taskId, body, options) {
+			return unwrapResult(await createTaskGrant({
+				client,
+				auth,
+				path: { id: taskId },
+				body,
+				headers: requiredTeamHeaders(options)
+			}));
+		},
+		async list(taskId, options) {
+			return unwrapResult(await listTaskGrants({
+				client,
+				auth,
+				path: { id: taskId },
+				headers: requiredTeamHeaders(options)
+			}));
+		},
+		async revoke(taskId, body, options) {
+			return unwrapResult(await revokeTaskGrant({
+				client,
+				auth,
+				path: { id: taskId },
+				body,
+				headers: requiredTeamHeaders(options)
 			}));
 		}
 	};
@@ -30065,6 +30172,22 @@ _Object_({ grants: _Array_(_Object_({
 	role: DiaryGrantRoleSchema
 })) });
 _Object_({ revoked: Boolean$1() });
+var TaskGrantRoleSchema = Union([Literal("writer"), Literal("manager")]);
+_Object_({
+	subjectId: UuidSchema,
+	subjectNs: GrantSubjectNsSchema,
+	role: TaskGrantRoleSchema
+});
+_Object_({
+	subjectId: UuidSchema,
+	subjectNs: GrantSubjectNsSchema,
+	role: TaskGrantRoleSchema
+});
+_Object_({ grants: _Array_(_Object_({
+	subjectId: UuidSchema,
+	subjectNs: GrantSubjectNsSchema,
+	role: TaskGrantRoleSchema
+})) });
 _Object_({ "x-moltnet-team-id": String$1({
 	format: "uuid",
 	description: "Team ID (UUID) that will own the resource. Required."
@@ -35734,7 +35857,7 @@ _Object_({
 	allowedProfiles: _Array_(RuntimeProfileRef, { maxItems: 16 }),
 	status: TaskStatus,
 	queuedAt: IsoTimestamp,
-	completedAt: Union([IsoTimestamp, Null()]),
+	completedAt: Union([IsoTimestamp, Null()], { description: "First time the task entered completed, failed, cancelled, or expired; null until terminal." }),
 	expiresAt: Union([IsoTimestamp, Null()]),
 	cancelledByAgentId: Union([Uuid, Null()]),
 	cancelledByHumanId: Union([Uuid, Null()]),
@@ -36636,8 +36759,23 @@ function createResultReader(task, attempt) {
 }
 //#endregion
 //#region ../../libs/sdk/src/namespaces/tasks.ts
+var MAX_REMEMBERED_TASK_TEAMS = 1e3;
 function createTasksNamespace(context) {
 	const { client, auth } = context;
+	const taskTeams = /* @__PURE__ */ new Map();
+	const rememberTask = (task) => {
+		taskTeams.delete(task.id);
+		taskTeams.set(task.id, task.teamId);
+		if (taskTeams.size > MAX_REMEMBERED_TASK_TEAMS) {
+			const oldestTaskId = taskTeams.keys().next().value;
+			if (oldestTaskId !== void 0) taskTeams.delete(oldestTaskId);
+		}
+		return task;
+	};
+	const headersForTask = (taskId, options) => {
+		const teamId = options?.teamId ?? taskTeams.get(taskId);
+		return teamId ? requiredTeamHeaders({ teamId }) : void 0;
+	};
 	return {
 		async schemas() {
 			return unwrapResult(await listTaskSchemas({
@@ -36733,24 +36871,26 @@ function createTasksNamespace(context) {
 			}
 		},
 		async list(query, options) {
-			return unwrapResult(await listTasks({
+			const response = unwrapResult(await listTasks({
 				client,
 				auth,
 				query,
 				headers: requiredTeamHeaders(options)
 			}));
+			response.items.forEach(rememberTask);
+			return response;
 		},
 		async create(bodyOrBuilt, options) {
 			const { body, teamId } = options !== void 0 ? {
 				body: bodyOrBuilt,
 				teamId: options.teamId
 			} : bodyOrBuilt;
-			return unwrapResult(await createTask$1({
+			return rememberTask(unwrapResult(await createTask$1({
 				client,
 				auth,
 				body,
 				headers: requiredTeamHeaders({ teamId })
-			}));
+			})));
 		},
 		buildTask,
 		buildFreeform,
@@ -36763,12 +36903,13 @@ function createTasksNamespace(context) {
 		buildJudgeEvalAttempt,
 		buildJudgeEvalAttemptForRunEval,
 		buildPrReview,
-		async readResult(taskOrId) {
-			const task = typeof taskOrId === "string" ? unwrapResult(await getTask({
+		async readResult(taskOrId, options) {
+			const task = typeof taskOrId === "string" ? rememberTask(unwrapResult(await getTask({
 				client,
 				auth,
+				headers: headersForTask(taskOrId, options),
 				path: { id: taskOrId }
-			})) : taskOrId;
+			}))) : rememberTask(taskOrId);
 			if (task.acceptedAttemptN === null || task.acceptedAttemptN === void 0) throw new TaskResultError([{
 				field: "acceptedAttemptN",
 				message: "task has no accepted attempt"
@@ -36776,6 +36917,7 @@ function createTasksNamespace(context) {
 			const accepted = unwrapResult(await listTaskAttempts({
 				client,
 				auth,
+				headers: headersForTask(task.id, options),
 				path: { id: task.id }
 			})).find((a) => a.attemptN === task.acceptedAttemptN);
 			if (!accepted) throw new TaskResultError([{
@@ -36784,21 +36926,24 @@ function createTasksNamespace(context) {
 			}]);
 			return createResultReader(task, accepted);
 		},
-		async get(id) {
-			return unwrapResult(await getTask({
+		async get(id, options) {
+			return rememberTask(unwrapResult(await getTask({
 				client,
 				auth,
+				headers: headersForTask(id, options),
 				path: { id }
-			}));
+			})));
 		},
-		async claim(id, body) {
+		async claim(id, body, options) {
 			const result = await claimTask({
 				client,
 				auth,
+				headers: headersForTask(id, options),
 				path: { id },
 				body
 			});
 			const data = unwrapResult(result);
+			rememberTask(data.task);
 			const traceHeaders = {};
 			const traceparent = result.response.headers.get("traceparent");
 			if (traceparent) {
@@ -36811,10 +36956,11 @@ function createTasksNamespace(context) {
 				traceHeaders
 			};
 		},
-		async heartbeat(id, n, body) {
+		async heartbeat(id, n, body, options) {
 			return unwrapResult(await taskHeartbeat({
 				client,
 				auth,
+				headers: headersForTask(id, options),
 				path: {
 					id,
 					n
@@ -36822,65 +36968,72 @@ function createTasksNamespace(context) {
 				body
 			}));
 		},
-		async complete(id, n, body) {
-			return unwrapResult(await completeTask({
+		async complete(id, n, body, options) {
+			return rememberTask(unwrapResult(await completeTask({
 				client,
 				auth,
+				headers: headersForTask(id, options),
 				path: {
 					id,
 					n
 				},
 				body
-			}));
+			})));
 		},
-		async failAttempt(id, n, body) {
-			return unwrapResult(await failTaskAttempt({
+		async failAttempt(id, n, body, options) {
+			return rememberTask(unwrapResult(await failTaskAttempt({
 				client,
 				auth,
+				headers: headersForTask(id, options),
 				path: {
 					id,
 					n
 				},
 				body
-			}));
+			})));
 		},
-		async abortAttempt(id, n, body) {
-			return unwrapResult(await abortTaskAttempt({
+		async abortAttempt(id, n, body, options) {
+			return rememberTask(unwrapResult(await abortTaskAttempt({
 				client,
 				auth,
+				headers: headersForTask(id, options),
 				path: {
 					id,
 					n
 				},
 				body
-			}));
+			})));
 		},
-		async cancel(id, body) {
-			return unwrapResult(await cancelTask({
+		async cancel(id, body, options) {
+			return rememberTask(unwrapResult(await cancelTask({
 				client,
 				auth,
+				headers: headersForTask(id, options),
 				path: { id },
 				body
-			}));
+			})));
 		},
-		async deleteMany(body) {
+		async deleteMany(body, options) {
 			return unwrapResult(await batchDeleteTasks({
 				client,
 				auth,
+				headers: options ? requiredTeamHeaders(options) : void 0,
 				body
 			}));
 		},
-		async listAttempts(id) {
+		async listAttempts(id, options) {
 			return unwrapResult(await listTaskAttempts({
 				client,
 				auth,
+				headers: headersForTask(id, options),
 				path: { id }
 			}));
 		},
-		async listMessages(id, n, query) {
+		async listMessages(id, n, query, options) {
 			return unwrapResult(await listTaskMessages({
 				client,
 				auth,
+				headers: headersForTask(id, options),
 				path: {
 					id,
 					n
@@ -36888,10 +37041,11 @@ function createTasksNamespace(context) {
 				query
 			}));
 		},
-		async appendMessages(id, n, body) {
+		async appendMessages(id, n, body, options) {
 			return unwrapResult(await appendTaskMessages({
 				client,
 				auth,
+				headers: headersForTask(id, options),
 				path: {
 					id,
 					n
@@ -37052,6 +37206,7 @@ function createAgent(options) {
 		runtimeProfiles: createRuntimeProfilesNamespace(context),
 		runtimePolicies: createRuntimePoliciesNamespace(context),
 		tasks: createTasksNamespace(context),
+		taskGrants: createTaskGrantsNamespace(context),
 		runtimeSlots: createRuntimeSlotsNamespace(context),
 		runtimeSessions: createRuntimeSessionsNamespace(context),
 		client,
@@ -39267,7 +39422,7 @@ async function cancelSupersededTasks(args) {
 	}, { teamId: args.teamId });
 	const cancelled = [];
 	for (const task of tasks.items) {
-		await args.agent.tasks.cancel(task.id, { reason: `Superseded by a newer ${args.taskType} task in correlation ${args.correlationId}` });
+		await args.agent.tasks.cancel(task.id, { reason: `Superseded by a newer ${args.taskType} task in correlation ${args.correlationId}` }, { teamId: args.teamId });
 		cancelled.push(task.id);
 	}
 	return cancelled;

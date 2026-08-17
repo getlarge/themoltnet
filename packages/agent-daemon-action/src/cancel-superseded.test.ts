@@ -33,6 +33,24 @@ describe('cancelSupersededTasks', () => {
       { teamId: 'team-id' },
     );
     expect(cancel).toHaveBeenCalledTimes(2);
+    expect(cancel).toHaveBeenNthCalledWith(
+      1,
+      'old-running',
+      {
+        reason:
+          'Superseded by a newer pr_review task in correlation correlation-id',
+      },
+      { teamId: 'team-id' },
+    );
+    expect(cancel).toHaveBeenNthCalledWith(
+      2,
+      'old-queued',
+      {
+        reason:
+          'Superseded by a newer pr_review task in correlation correlation-id',
+      },
+      { teamId: 'team-id' },
+    );
     expect(cancelled).toEqual(['old-running', 'old-queued']);
   });
 
