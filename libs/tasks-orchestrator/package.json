@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/tasks-orchestrator",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "type": "module",
   "description": "Durable lifecycle-orchestration engine for MoltNet tasks — WorkflowContext seam (inline or Absurd), task await engine, parallel fan-out, and claimCondition joins.",
   "license": "AGPL-3.0-only",

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.134.1](https://github.com/getlarge/themoltnet/compare/sdk-v0.134.0...sdk-v0.134.1) (2026-08-18)
+
+
+### Bug Fixes
+
+* **build:** share one rolled-up .d.ts across package entry points ([a1b157e](https://github.com/getlarge/themoltnet/commit/a1b157ea6de84b91bce5ad055789bdca1563b12c))
+* **build:** share one rolled-up .d.ts across package entry points ([9f8c166](https://github.com/getlarge/themoltnet/commit/9f8c1667b8a89ecdad4f22b06fc9c2856385a561)), closes [#1928](https://github.com/getlarge/themoltnet/issues/1928)
+
 ## [0.134.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.133.0...sdk-v0.134.0) (2026-08-17)
 
 

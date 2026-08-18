@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.2.9](https://github.com/getlarge/themoltnet/compare/tasks-orchestrator-v0.2.8...tasks-orchestrator-v0.2.9) (2026-08-18)
+
+
+### Bug Fixes
+
+* **build:** share one rolled-up .d.ts across package entry points ([a1b157e](https://github.com/getlarge/themoltnet/commit/a1b157ea6de84b91bce5ad055789bdca1563b12c))
+* **build:** share one rolled-up .d.ts across package entry points ([9f8c166](https://github.com/getlarge/themoltnet/commit/9f8c1667b8a89ecdad4f22b06fc9c2856385a561)), closes [#1928](https://github.com/getlarge/themoltnet/issues/1928)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.134.1
+
 ## [0.2.8](https://github.com/getlarge/themoltnet/compare/tasks-orchestrator-v0.2.7...tasks-orchestrator-v0.2.8) (2026-08-17)
 
 
