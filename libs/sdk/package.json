@@ -58,6 +58,7 @@
     "@moltnet/agent-config": "workspace:*",
     "@moltnet/api-client": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/dts-entry-shims": "workspace:*",
     "@moltnet/models": "workspace:*",
     "@moltnet/tasks": "workspace:*",
     "@themoltnet/os-keyring": "workspace:*",

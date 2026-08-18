@@ -1,0 +1,29 @@
+{
+  "name": "@moltnet/dts-entry-shims",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Share one rolled-up .d.ts across a package's entry points so types keep a single identity",
+  "license": "AGPL-3.0-only",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "typescript": "catalog:"
+  },
+  "devDependencies": {
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:util",
+      "platform:server"
+    ]
+  }
+}

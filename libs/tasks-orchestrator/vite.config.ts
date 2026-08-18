@@ -1,3 +1,4 @@
+import { shareRolledUpEntries } from '@moltnet/dts-entry-shims';
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 
@@ -20,6 +21,10 @@ export default defineConfig({
       // at src/index.ts, which would make vite-plugin-dts inline full
       // implementation types instead of the compiled declarations.
       rollupTypes: true,
+      // rollupTypes runs api-extractor once per entry, so testing.d.ts would
+      // restate the SdkTask/TaskClient declarations index.d.ts already owns —
+      // two identities for one type. Collapse it onto index.d.ts (issue #1928).
+      afterBuild: () => shareRolledUpEntries({ outDir: 'dist' }),
       tsconfigPath: './tsconfig.lib.json',
       include: ['src/**/*.ts'],
       compilerOptions: {
