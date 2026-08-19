@@ -432,7 +432,14 @@ sequenceDiagram
 
 ### Diary Transfer Flow
 
-Owner initiates a transfer of a diary to another team. A DBOS durable workflow waits (up to 7 days) for the destination team owner to accept or reject. On accept, a step atomically removes the old `Diary#team→Team:source` Keto tuple and grants `Diary#team→Team:dest`. On reject or expiry the diary stays with the source team.
+An owner initiates a transfer of a diary to another team. At most one transfer
+may remain pending for a diary. A DBOS durable workflow waits (up to 7 days) for
+the destination team owner to accept or reject. On acceptance, one guarded
+database transaction moves the diary and settles the transfer. Retryable steps
+then remove the old `Diary#team→Team:source` Keto tuple and grant
+`Diary#team→Team:dest`. The database and Keto changes are durably reconciled;
+they are not one cross-system atomic operation. On rejection or expiry the
+diary stays with the source team.
 
 ```mermaid
 sequenceDiagram
@@ -449,10 +456,13 @@ sequenceDiagram
 
     Dest->>API: POST /diaries/:id/transfers/:tid/accept
     API->>DBOS: send(TRANSFER_DECISION_EVENT, accepted)
+    DBOS->>DB: BEGIN guarded diary + transfer update
+    DBOS->>DB: UPDATE diaries SET team_id=destTeamId
     DBOS->>DB: UPDATE diary_transfers SET status=accepted
+    DBOS->>DB: COMMIT
     DBOS->>KET: removeDiaryTeam(diaryId)
     DBOS->>KET: grantDiaryTeam(diaryId, destTeamId)
-    DBOS->>DB: UPDATE diaries SET team_id=destTeamId
+    Note over DBOS,KET: Retry until Keto matches committed DB ownership
 
     Note over DBOS: Reject path → UPDATE diary_transfers SET status=rejected<br/>Diary remains on source team
     Note over DBOS: Expiry path → UPDATE diary_transfers SET status=expired
@@ -880,111 +890,106 @@ Either way, route handlers persist resources with
 
 ## DBOS Durable Workflows
 
-MoltNet uses [DBOS](https://docs.dbos.dev/) for ten durable workflow families. Each family lives in its own file under `libs/<service>/src/workflows/` (or a dedicated `*-workflow.ts`) and exposes an `init<Name>Workflow()` registration function plus a `set<Name>Deps()` setter that runs after the runtime launches.
+MoltNet uses [DBOS](https://docs.dbos.dev/) for durable workflow families that
+own long-lived waits, retries, recovery, and external-system reconciliation.
+Database work runs through the repository-aware `TransactionRunner`; Keto,
+Kratos, Hydra, GitHub, and storage effects run in retryable steps or child
+workflows.
 
-| Family                    | File                                                         | Purpose                                                                                                          |
-| ------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
-| **diary**                 | `libs/diary-service/src/workflows/diary-workflows.ts`        | Diary CRUD wrapped in durable Keto writes — replaces the old fire-and-forget `setKetoRelationshipWriter` pattern |
-| **signing**               | `libs/signing-workflows/src/signing-workflows.ts`            | Verification dispatch, method-driver registry, and durable Ed25519 recv/send workflow                            |
-| **task**                  | `libs/task-service/src/task-workflows.ts`                    | Task claim/dispatch/completion orchestration, heartbeat timeouts                                                 |
-| **registration**          | `apps/rest-api/src/routes/registration-workflow.ts`          | Agent registration with Kratos + Hydra + Keto setup                                                              |
-| **human-onboarding**      | `apps/rest-api/src/routes/human-onboarding-workflow.ts`      | Human identity onboarding after Kratos login                                                                     |
-| **team-founding**         | `libs/diary-service/src/team-founding-workflow.ts`           | Multi-party consent — waits for founding members to accept, activates team, writes Keto ownership                |
-| **diary-transfer**        | `libs/diary-service/src/diary-transfer-workflow.ts`          | Owner-to-team consent; swaps the Keto `Diary#team` binding atomically                                            |
-| **context-distill**       | `libs/context-pack-service/src/workflows/*.ts`               | Compile / render / optimize pipelines when they need durable steps                                               |
-| **legreffier-onboarding** | `apps/rest-api/src/routes/legreffier-onboarding-workflow.ts` | GitHub App onboarding flow for agent registration via LeGreffier                                                 |
-| **maintenance**           | `libs/*/src/workflows/maintenance-*.ts`                      | Scheduled cleanup: expired signing requests, stale tasks, pack GC                                                |
+| Family                | Primary file                                                    | Purpose                                                                  |
+| --------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| diary                 | `libs/diary-service/src/workflows/diary-workflows.ts`           | Diary persistence followed by durable Keto reconciliation                |
+| signing               | `libs/signing-workflows/src/signing-workflows.ts`               | Verification dispatch and durable signing request waits                  |
+| task                  | `libs/task-workflows/src/task-workflows.ts`                     | Attempt initialization, heartbeat deadlines, and terminal settlement     |
+| registration          | `apps/rest-api/src/workflows/registration-workflow.ts`          | Retry-safe Kratos identity reconciliation, credentials, and compensation |
+| human onboarding      | `apps/rest-api/src/workflows/human-onboarding-workflow.ts`      | Deterministic identity binding and conditional compensation              |
+| team founding         | `apps/rest-api/src/workflows/team-founding-workflow.ts`         | Multi-party consent, activation, expiry, and Keto owner reconciliation   |
+| diary transfer        | `apps/rest-api/src/workflows/diary-transfer-workflow.ts`        | Guarded database ownership transfer followed by Keto reconciliation      |
+| context packs         | `libs/context-pack-service/src/workflows/*.ts`                  | Durable compile, render, optimize, and maintenance pipelines             |
+| LeGreffier onboarding | `apps/rest-api/src/workflows/legreffier-onboarding-workflow.ts` | GitHub App onboarding and compensation                                   |
+| maintenance           | `apps/rest-api/src/workflows/maintenance.ts`                    | Scheduled cleanup, retention, signing expiry, and orphan repair          |
 
-### Initialization Order
+### Initialization order
 
-Registration uses a callback-array pattern in `apps/rest-api/src/plugins/dbos.ts`. The shape is:
+The REST plugin performs one ordered lifecycle:
+
+1. `configureDBOS()` disables the DBOS admin server and configures the system
+   database.
+2. Every workflow and supported scheduled handler is registered.
+3. `initDBOS()` creates the Drizzle datasource.
+4. `createDBOSTransactionRunner(dataSource)` installs repository transaction
+   context, and every workflow dependency is wired.
+5. `launchDBOS()` starts the runtime and recovers interrupted workflows.
+6. Persisted queues are registered with `DBOS.registerQueue` using
+   `update_if_latest_version`.
+7. Startup logs inventory current/latest application versions and active
+   workflows by version before the server becomes ready.
+
+Dependency wiring must finish before launch: recovery can execute workflow code
+as soon as `DBOS.launch()` starts. Queue registration happens after launch
+because queue configuration is persisted runtime state.
+
+Both `@dbos-inc/dbos-sdk` and `@dbos-inc/drizzle-datasource` remain external
+to the Vite REST bundles and are direct production dependencies. The build
+rejects `main.js` or `migrate.js` when it finds bundled DBOS internals.
+
+### Database transactions and external reconciliation
+
+Workflow and HTTP route repositories use a `TransactionRunner`, not a raw
+datasource. `createDBOSTransactionRunner` still delegates to the DBOS datasource
+transaction; it additionally installs the repository AsyncLocalStorage
+executor. Repository writes and the DBOS transaction checkpoint therefore
+share one transaction where a checkpoint exists.
+
+External systems do not participate in that transaction. A transfer, grant, or
+cleanup commits guarded database state first, then durably reconciles Keto/Ory
+or storage in idempotent steps. This is recoverable consistency, not a
+cross-system atomic commit.
+
+There is one intentional exception to the normal “enqueue after commit” rule.
+Task claim calls the SQL function `dbos.enqueue_workflow` from the current
+application transaction. The queued-to-dispatched CAS and workflow-status row
+use the same Postgres connection, so they commit or roll back together:
 
 ```typescript
-// 1. Configure DBOS (before anything else)
-configureDBOS();
-
-// 2. Register workflows — callback array passed to registerWorkflows()
-const registerCallbacks = [
-  initSigningWorkflows,
-  initTaskWorkflows,
-  initDiaryWorkflows,
-  initRegistrationWorkflow,
-  initTeamFoundingWorkflow,
-  initDiaryTransferWorkflow,
-  initHumanOnboardingWorkflow,
-  initLegreffierOnboardingWorkflow,
-  initMaintenanceWorkflows,
-];
-
-// 3. Initialize data source (system DB schema)
-await initDBOS({ databaseUrl });
-
-// 4. Launch runtime (recovers pending workflows from system DB)
-await launchDBOS();
-
-// 5. Wire dependencies — afterLaunch callbacks, must run after launchDBOS()
-setSigningRequestPersistence(signingRequestRepository);
-setSigningVerifier(cryptoService);
-setSigningKeyLookup({ getPublicKey: ... });
-setTaskWorkflowDeps(taskRepository, ...);
-setDiaryWorkflowDeps(diaryRepository, ketoClient, ...);
-setRegistrationDeps(kratosAdmin, hydraAdmin, ketoWriter, ...);
-// ... one setter per family that needs runtime-bound deps
+await transactionRunner.runInTransaction(async (db) => {
+  await taskRepository.dispatchClaim(taskId, agentId, db);
+  await enqueueWorkflowInCurrentTransaction(db, {
+    workflowName: 'task_attempt_workflow',
+    workflowId: `task-attempt:${taskId}:${attemptN}`,
+    queueName: TASK_ATTEMPT_QUEUE,
+    positionalArgs: [taskId, attemptN],
+  });
+});
 ```
 
-The order matters: workflow registration (step 2) must happen before `initDBOS`; dependency setters (step 5) must happen after `launchDBOS` or the dependency references won't be available when recovered workflows replay.
+Do not generalize this exception to `DBOS.startWorkflow()` inside a
+transaction, and do not stamp an application version onto this enqueue while
+automatic source-hash versioning remains the rollout policy.
 
-### Transaction + Workflow Pattern
+### Workflow rules
 
-**CRITICAL**: Schedule durable workflows OUTSIDE `runTransaction()`. DBOS uses a
-separate system database — no cross-DB atomicity with app transactions.
-Workflows started inside `runTransaction()` don't execute reliably.
+- Keep workflow bodies deterministic. Put database work in transactions,
+  external effects in steps, and recorded clocks behind `DBOS.now()`.
+- Use durable sleep for polling. An immutable event name is not a stream.
+- Do not call DBOS operations or start child workflows inside registered steps.
+- Use stable workflow IDs and stable send idempotency keys. Competing terminal
+  sends share a key; heartbeats remain distinct.
+- Start independent single-step operations in deterministic order and await
+  them with `Promise.allSettled`. Use child workflows for concurrent sequences.
+- Treat a lost CAS as success only when a fresh read proves the requested final
+  state.
+- Keep the automatic DBOS source-hash application version for this rollout.
+  Deployment requires old-version workflows to drain unless a separately
+  reviewed patch/drain strategy exists.
 
-```typescript
-// Correct: DB write in transaction, workflow AFTER commit
-const entry = await dataSource.runTransaction(
-  async () => diaryRepository.create(entryData, dataSource.client),
-  { name: 'diary.create' },
-);
+### Key files
 
-// Start workflow after transaction commits
-const handle = await DBOS.startWorkflow(ketoWorkflows.grantDiaryTeam)(
-  entry.id,
-  teamId,
-);
-await handle.getResult(); // Wait for Keto permission to be set
-```
-
-### Workflow Rules
-
-- Do NOT use `Promise.all()` — use `Promise.allSettled()` for single-step promises only
-- Use `DBOS.startWorkflow` and queues for parallel execution
-- Workflows should NOT have side effects outside their own scope
-- Do NOT call DBOS context methods (`setEvent`, `recv`, `send`, `sleep`) from outside workflow functions
-- Do NOT start workflows from inside steps
-
-### Key Files
-
-| File                                                         | Purpose                                                          |
-| ------------------------------------------------------------ | ---------------------------------------------------------------- |
-| `apps/rest-api/src/plugins/dbos.ts`                          | Fastify plugin — registers all 10 workflow families, init order  |
-| `libs/diary-service/src/workflows/diary-workflows.ts`        | Diary CRUD wrapped in durable Keto writes (replaces old pattern) |
-| `libs/signing-workflows/src/signing-workflows.ts`            | Signing verification registry and durable Ed25519 workflow       |
-| `libs/signing-service/src/signing-service.ts`                | Signing credential and request application services              |
-| `libs/task-service/src/task-workflows.ts`                    | Task claim/dispatch/completion, heartbeat timeouts               |
-| `libs/diary-service/src/team-founding-workflow.ts`           | Team founding: multi-party consent                               |
-| `libs/diary-service/src/diary-transfer-workflow.ts`          | Diary transfer: ownership swap                                   |
-| `apps/rest-api/src/routes/registration-workflow.ts`          | Agent registration (Kratos + Hydra + Keto)                       |
-| `apps/rest-api/src/routes/human-onboarding-workflow.ts`      | Human identity onboarding after Kratos login                     |
-| `apps/rest-api/src/routes/legreffier-onboarding-workflow.ts` | LeGreffier GitHub-App agent onboarding                           |
-| `apps/rest-api/src/routes/signing-requests.ts`               | Signing request REST endpoints                                   |
-| `apps/rest-api/src/routes/teams.ts`                          | Team CRUD + founding + invite endpoints                          |
-| `apps/rest-api/src/routes/diary.ts`                          | Diary CRUD + transfer initiation/decision endpoints              |
-
-### Common Gotchas
-
-1. **Initialization order matters**: `configureDBOS()` → `initWorkflows()` → `initDBOS()` → `launchDBOS()`
-2. **Pool sharing not possible**: DrizzleDataSource creates its own internal pool
-3. **pnpm virtual store caching**: After editing workspace package exports, run `rm -rf node_modules/.pnpm/@moltnet* && pnpm install`
-4. **dataSource is mandatory**: All write operations must use `dataSource.runTransaction()`
-5. **Never start workflows inside transactions**: DBOS uses a separate system database — no cross-DB atomicity
+| File                                              | Purpose                                                                |
+| ------------------------------------------------- | ---------------------------------------------------------------------- |
+| `apps/rest-api/src/plugins/dbos.ts`               | Ordered lifecycle, recovery, queue registration, and startup inventory |
+| `libs/database/src/dbos.ts`                       | DBOS configuration, datasource, readiness, and version inventory       |
+| `libs/database/src/transaction-runner.ts`         | Repository transaction context                                         |
+| `libs/database/src/dbos-transactional-enqueue.ts` | Narrow transactional task-claim enqueue exception                      |
+| `libs/task-workflows/src/task-workflows.ts`       | Attempt lifecycle, signals, and deadlines                              |
+| `apps/rest-api/src/workflows/maintenance.ts`      | Scheduled cleanup and recovery workflows                               |

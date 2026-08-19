@@ -114,6 +114,31 @@ async function probeTalos(
   }
 }
 
+function probeDBOS(
+  ready: () => boolean,
+  log: { warn: (obj: object, msg: string) => void },
+): ComponentResult {
+  const start = performance.now();
+  try {
+    if (ready()) {
+      return { status: 'ok', latencyMs: Math.round(performance.now() - start) };
+    }
+    log.warn({ probe: 'dbos' }, 'Readiness probe failed');
+    return {
+      status: 'error',
+      latencyMs: Math.round(performance.now() - start),
+      error: 'not_ready',
+    };
+  } catch (err) {
+    log.warn({ err, probe: 'dbos' }, 'Readiness probe failed');
+    return {
+      status: 'error',
+      latencyMs: Math.round(performance.now() - start),
+      error: classifyError(err),
+    };
+  }
+}
+
 // eslint-disable-next-line @typescript-eslint/require-await -- Fastify plugin convention
 export async function healthRoutes(
   fastify: FastifyInstance,
@@ -163,15 +188,15 @@ export async function healthRoutes(
               latencyMs: 0,
               error: 'not_configured',
             },
-        Promise.resolve().then(() => {
-          const start = performance.now();
-          const ready = opts.dbosReady?.() ?? false;
-          return {
-            status: ready ? ('ok' as const) : ('error' as const),
-            latencyMs: Math.round(performance.now() - start),
-            ...(ready ? {} : { error: 'not_ready' }),
-          };
-        }),
+        Promise.resolve(
+          opts.dbosReady
+            ? probeDBOS(opts.dbosReady, request.log)
+            : {
+                status: 'error' as const,
+                latencyMs: 0,
+                error: 'not_configured',
+              },
+        ),
         opts.oryProjectUrl
           ? probeOry(opts.oryProjectUrl, request.log)
           : {

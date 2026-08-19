@@ -69,6 +69,10 @@ describe('Health routes', () => {
         latencyMs: 0,
         error: 'not_configured',
       });
+      expect(body.components.dbos).toEqual({
+        status: 'ok',
+        latencyMs: expect.any(Number),
+      });
       expect(body.components.ory).toEqual({
         status: 'error',
         latencyMs: 0,
