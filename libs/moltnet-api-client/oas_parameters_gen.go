@@ -2366,7 +2366,8 @@ func decodeCreateRuntimeProfileParams(args [0]string, argsEscaped bool, r *http.
 type CreateTaskParams struct {
 	// Team ID (UUID) that will own the resource. Required.
 	XMoltnetTeamID uuid.UUID
-	// Retry key scoped to the active team and authenticated proposer.
+	// Retry key scoped to the active team and authenticated proposer. Reusing it with a different
+	// request returns 409.
 	IdempotencyKey OptString `json:",omitempty,omitzero"`
 }
 
@@ -2462,11 +2463,11 @@ func decodeCreateTaskParams(args [0]string, argsEscaped bool, r *http.Request) (
 						if err := (validate.String{
 							MinLength:     1,
 							MinLengthSet:  true,
-							MaxLength:     255,
+							MaxLength:     200,
 							MaxLengthSet:  true,
 							Email:         false,
 							Hostname:      false,
-							Regex:         nil,
+							Regex:         regexMap["\\S"],
 							MinNumeric:    0,
 							MinNumericSet: false,
 							MaxNumeric:    0,

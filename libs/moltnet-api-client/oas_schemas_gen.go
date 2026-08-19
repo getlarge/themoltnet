@@ -23243,8 +23243,10 @@ type GetLatestRenderedPackUnauthorized ProblemDetails
 func (*GetLatestRenderedPackUnauthorized) getLatestRenderedPackRes() {}
 
 type GetLegreffierOnboardingStatusOK struct {
-	ClientId       OptString                             `json:"clientId"`
-	ClientSecret   OptString                             `json:"clientSecret"`
+	ClientId OptString `json:"clientId"`
+	// OAuth2 client secret sealed to the onboarding agent public key.
+	ClientSecret OptString `json:"clientSecret"`
+	// GitHub manifest code sealed to the onboarding agent public key.
 	GithubCode     OptString                             `json:"githubCode"`
 	IdentityId     OptString                             `json:"identityId"`
 	InstallationId OptString                             `json:"installationId"`
