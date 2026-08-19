@@ -10,12 +10,14 @@ export default [
       // installable runtime dependencies.
       '@moltnet/crypto-service',
       '@moltnet/tasks',
-      // Runtime dependencies reached through public package/plugin boundaries;
-      // Nx's static project graph cannot see these indirect edges.
+      // Runtime dependencies reached through public package/plugin boundaries
+      // or bundled private workspace packages; Nx's static project graph
+      // cannot see these indirect edges.
       '@earendil-works/gondolin',
       '@earendil-works/pi-coding-agent',
       '@fastify/otel',
       '@ipld/dag-cbor',
+      '@noble/ciphers',
       '@noble/curves',
       '@noble/ed25519',
       '@noble/hashes',
