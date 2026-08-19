@@ -232,8 +232,9 @@ token is used only to establish a WireGuard proxy to `baume-mcp-db`; the
 workflow never connects to a public Postgres listener.
 
 Every invocation runs a shared preflight before orchestration or drain workers
-start. It validates the required settings, initializes or migrates the Absurd
-schema to `0.4.0`, and performs an empty correlation-scoped daemon drain. That
+start. It validates the required settings, initializes an `unknown` Absurd
+schema, migrates older schemas to `0.4.0`, leaves `0.4.0` unchanged, and
+verifies the final version before performing an empty correlation-scoped daemon drain. That
 drain resolves the configured profile, authenticates the team binding, builds
 and signs the executor manifest, registers it, and exits without claiming work.
 No review task or Absurd workflow task is created until the preflight succeeds.
@@ -243,26 +244,29 @@ through `GITHUB_ENV`, and an `if: always()` cleanup step stops the exact
 recorded `flyctl` process.
 
 If preflight fails, fix the named environment setting or database permission,
-then request a fresh review. To inspect or repair the database manually:
+then request a fresh review. GitHub does not expose an environment secret after
+it is saved, so manual recovery requires an independently stored source
+database URL with the same credentials. With that URL available, start the
+private proxy:
 
 ```bash
 flyctl proxy 15432:5432 --app baume-mcp-db
 ```
 
-Keep that terminal open. In a second terminal, rewrite the configured URL to
-`127.0.0.1:15432` with `sslmode=disable`, then run:
+Keep that terminal open. In a second terminal, rewrite the independently stored
+URL to `127.0.0.1:15432` with `sslmode=disable`, then run the pinned CLI:
 
 ```bash
 export ABSURD_DATABASE_URL='<rewritten-localhost-url>'
-uvx absurdctl schema-version
-uvx absurdctl migrate --to 0.4.0
-uvx absurdctl list-queues
+apps/multi-lens-review/scripts/provision-absurd-schema.sh
+uvx --from absurdctl==0.4.0 absurdctl list-queues
 ```
 
-Use `uvx absurdctl init --ref 0.4.0` only when `schema-version` confirms that
-the database is uninitialized. A pre-task orchestration failure leaves the
-correlation empty; drain workers time out successfully after the bounded
-startup grace instead of reporting a second executor-configuration error.
+The provisioner selects `init` only when `schema-version` prints `unknown`,
+selects `migrate` for a known older version, and verifies `0.4.0` afterward. A
+pre-task orchestration failure leaves the correlation empty; drain workers time
+out successfully after the bounded startup grace instead of reporting a second
+executor-configuration error.
 
 ## Provision the review runtime
 

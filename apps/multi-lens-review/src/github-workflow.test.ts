@@ -10,6 +10,10 @@ const proxyScript = readFileSync(
   new URL('../scripts/fly-database-proxy.sh', import.meta.url),
   'utf8',
 );
+const provisionScript = readFileSync(
+  new URL('../scripts/provision-absurd-schema.sh', import.meta.url),
+  'utf8',
+);
 
 function workflowJob(name: string, nextName: string): string {
   const jobStart = workflow.indexOf(`  ${name}:\n`);
@@ -40,6 +44,34 @@ function expectPrivateDatabaseProxy(job: string, consumerName: string): void {
   expect(job).toContain(
     'SOURCE_DATABASE_URL: ${{ secrets.MULTI_LENS_REVIEW_DATABASE_URL }}',
   );
+  expect(job).toContain(
+    'run: .trusted-workflow/apps/multi-lens-review/scripts/fly-database-proxy.sh start',
+  );
+  expect(job).toContain(
+    'run: .trusted-workflow/apps/multi-lens-review/scripts/fly-database-proxy.sh stop',
+  );
+}
+
+function expectTrustedWorkflowHelpers(job: string): void {
+  const reviewedBaseIndex = job.indexOf(
+    'ref: ${{ needs.prepare.outputs.base-sha }}',
+  );
+  const trustedCheckoutIndex = job.indexOf(
+    '- name: Checkout trusted workflow helpers',
+  );
+
+  expect(reviewedBaseIndex).toBeGreaterThanOrEqual(0);
+  expect(trustedCheckoutIndex).toBeGreaterThan(reviewedBaseIndex);
+  expect(job.slice(trustedCheckoutIndex)).toContain(
+    'repository: ${{ github.repository }}',
+  );
+  expect(job.slice(trustedCheckoutIndex)).toContain(
+    'ref: ${{ github.workflow_sha }}',
+  );
+  expect(job.slice(trustedCheckoutIndex)).toContain('path: .trusted-workflow');
+  expect(job.slice(trustedCheckoutIndex)).toContain(
+    'sparse-checkout: apps/multi-lens-review/scripts',
+  );
 }
 
 describe('multi-lens GitHub workflow', () => {
@@ -63,6 +95,8 @@ describe('multi-lens GitHub workflow', () => {
       orchestrateJob,
       'Orchestrate reviews and synthesis',
     );
+    expectTrustedWorkflowHelpers(preflightJob);
+    expectTrustedWorkflowHelpers(orchestrateJob);
     expect(preflightJob.split('steps:')[0]).not.toContain(
       'MULTI_LENS_REVIEW_DATABASE_URL',
     );
@@ -86,5 +120,22 @@ describe('multi-lens GitHub workflow', () => {
       `process_name="$(ps -p "$proxy_pid" -o comm= 2>/dev/null | tr -d '[:space:]')"`,
     );
     expect(proxyScript).not.toContain('wait "$proxy_pid"');
+  });
+
+  it('runs the pinned output-aware schema provisioner from trusted helpers', () => {
+    const job = workflowJob('runtime-preflight', 'orchestrate');
+
+    expect(job).toContain(
+      'run: .trusted-workflow/apps/multi-lens-review/scripts/provision-absurd-schema.sh',
+    );
+    expect(job).not.toContain('if uvx absurdctl schema-version');
+    expect(provisionScript).toContain(
+      'uvx --from "absurdctl==${target_version}" absurdctl "$@"',
+    );
+    expect(provisionScript).toContain('case "$current_version" in');
+    expect(provisionScript).toContain('unknown)');
+    expect(provisionScript).toContain(
+      'migrate --from "$current_version" --to "$target_version"',
+    );
   });
 });
