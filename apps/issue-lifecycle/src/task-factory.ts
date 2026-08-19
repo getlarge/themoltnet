@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { computeJsonCid } from '@moltnet/crypto-service';
+import { computeJsonCid } from '@moltnet/crypto-service/json-cid';
 import type { SuccessCriteria } from '@moltnet/tasks';
 
 import {

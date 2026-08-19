@@ -4,7 +4,7 @@ import type {
   ExtensionAPI,
   ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
-import { computeJsonCid } from '@moltnet/crypto-service';
+import { computeJsonCid } from '@moltnet/crypto-service/json-cid';
 import { RUNTIME_PROFILE_RUNTIME_KIND_REGEXP } from '@moltnet/tasks';
 import type { ClaimedTask, TaskReporter } from '@themoltnet/agent-runtime';
 import type { Agent } from '@themoltnet/sdk';
