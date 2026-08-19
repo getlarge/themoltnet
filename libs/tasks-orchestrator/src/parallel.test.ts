@@ -1,52 +1,10 @@
+import { SuspendTask } from 'absurd-sdk';
 import { describe, expect, it } from 'vitest';
 
 import { inlineContext } from './context.js';
 import { parallelTasks } from './parallel.js';
-import type { WorkflowContext, WorkflowStepHandle } from './types.js';
-
-/**
- * A durable-like context that memoizes each `step` by name (like Absurd): a
- * repeat call with the same name returns the cached result without re-running
- * the body, and concurrent calls with the same name share one in-flight run.
- */
-function memoizingContext(): WorkflowContext {
-  const cache = new Map<string, unknown>();
-  const inflight = new Map<string, Promise<unknown>>();
-  return {
-    executionId: 'parallel-test-execution',
-    async step<T>(name: string, fn: () => Promise<T>): Promise<T> {
-      if (cache.has(name)) return cache.get(name) as T;
-      const existing = inflight.get(name);
-      if (existing) return existing as Promise<T>;
-      const run = fn();
-      inflight.set(name, run);
-      const value = await run;
-      cache.set(name, value);
-      return value;
-    },
-    beginStep<T>(name: string): Promise<WorkflowStepHandle<T>> {
-      if (cache.has(name)) {
-        const state = cache.get(name) as T;
-        return Promise.resolve({
-          name,
-          checkpointName: name,
-          done: true as const,
-          state,
-        });
-      }
-      return Promise.resolve({
-        name,
-        checkpointName: name,
-        done: false as const,
-      });
-    },
-    completeStep<T>(handle: { checkpointName: string }, value: T) {
-      cache.set(handle.checkpointName, value);
-      return Promise.resolve(value);
-    },
-    sleepFor: () => Promise.resolve(),
-  };
-}
+import { replayContext } from './testing.js';
+import { taskCreateIdempotencyKey } from './types.js';
 
 const tick = () =>
   new Promise<void>((resolve) => {
@@ -151,9 +109,9 @@ describe('parallelTasks', () => {
 
   it('awaits every create branch before surfacing an aggregate failure', async () => {
     const completed: number[] = [];
-
-    await expect(
-      parallelTasks({
+    let caught: unknown;
+    try {
+      await parallelTasks({
         ctx: inlineContext,
         items: [0, 1, 2],
         createStepName: (_item, index) => `create.${index}`,
@@ -165,10 +123,49 @@ describe('parallelTasks', () => {
           return item;
         },
         awaitResult: (item) => Promise.resolve(item),
-      }),
-    ).rejects.toMatchObject({ name: 'AggregateError' });
+      });
+    } catch (error) {
+      caught = error;
+    }
 
     expect(completed).toEqual([1, 2]);
+    expect(caught).toBeInstanceOf(AggregateError);
+    const aggregate = caught as AggregateError & { stepNames?: string[] };
+    expect(aggregate.errors.map((error) => (error as Error).message)).toEqual([
+      'first failed',
+      'third failed',
+    ]);
+    expect(aggregate.stepNames).toEqual(['create.0', 'create.2']);
+    expect((aggregate.cause as Error).message).toBe('first failed');
+    expect(aggregate.message).toContain('create.0, create.2');
+  });
+
+  it('returns empty ordered arrays for an empty fan-out', async () => {
+    const result = await parallelTasks({
+      ctx: inlineContext,
+      items: [] as string[],
+      createStepName: (item) => item,
+      create: (item) => Promise.resolve(item),
+      awaitResult: (item) => Promise.resolve(item),
+    });
+
+    expect(result).toEqual({ created: [], results: [] });
+  });
+
+  it('propagates Absurd suspension instead of aggregating it', async () => {
+    const suspension = new SuspendTask();
+    await expect(
+      parallelTasks({
+        ctx: inlineContext,
+        items: ['suspend', 'complete'],
+        createStepName: (item) => `create.${item}`,
+        create: (item) =>
+          item === 'suspend'
+            ? Promise.reject(suspension)
+            : Promise.resolve(item),
+        awaitResult: (item) => Promise.resolve(item),
+      }),
+    ).rejects.toBe(suspension);
   });
 
   it('passes a stable execution-scoped idempotency key to create', async () => {
@@ -178,7 +175,7 @@ describe('parallelTasks', () => {
       items: ['child'],
       createStepName: () => 'task.child.create',
       create: (_item, _index, metadata) => {
-        seen.push(metadata.idempotencyKey);
+        seen.push(metadata.idempotencyKey as string);
         return Promise.resolve('created');
       },
       awaitResult: (item) => Promise.resolve(item),
@@ -187,11 +184,25 @@ describe('parallelTasks', () => {
     expect(seen).toHaveLength(1);
     expect(seen[0]).toMatch(/^absurd:[A-Za-z0-9_-]{43}$/);
   });
+
+  it('derives deterministic keys scoped by execution identity', () => {
+    const first = taskCreateIdempotencyKey(
+      { executionId: 'execution-a' },
+      'task.create',
+    );
+    expect(
+      taskCreateIdempotencyKey({ executionId: 'execution-a' }, 'task.create'),
+    ).toBe(first);
+    expect(
+      taskCreateIdempotencyKey({ executionId: 'execution-b' }, 'task.create'),
+    ).not.toBe(first);
+    expect(taskCreateIdempotencyKey({}, 'task.create')).toBeUndefined();
+  });
 });
 
 describe('parallelTasks durability (memoized/replayed ctx)', () => {
   it('does not re-create tasks on durable replay', async () => {
-    const ctx = memoizingContext();
+    const ctx = replayContext('parallel-test-execution');
     let creates = 0;
     const args = {
       ctx,
@@ -204,30 +215,35 @@ describe('parallelTasks durability (memoized/replayed ctx)', () => {
       awaitResult: (created: { id: string }) => Promise.resolve(created.id),
     };
     const first = await parallelTasks(args);
-    // Replaying with the SAME ctx must reuse the cached create checkpoints.
+    ctx.resetForReplay();
     const second = await parallelTasks(args);
     expect(creates).toBe(2); // created once each; not re-created on replay
     expect(first.created).toEqual(second.created);
     expect(first.results).toEqual(['id-a', 'id-b']);
   });
 
-  it('collides when createStepName is not unique (uniqueness is required)', async () => {
-    const ctx = memoizingContext();
+  it('uses concrete numbered checkpoints when logical names repeat', async () => {
+    const ctx = replayContext('parallel-test-execution');
     let creates = 0;
+    const metadata: Array<{ stepName: string; idempotencyKey?: string }> = [];
     const { created } = await parallelTasks({
       ctx,
       items: ['a', 'b', 'c'],
-      // BAD: a constant step name for every item.
       createStepName: () => 'create',
-      create: (item: string) => {
+      create: (item: string, _index, stepMetadata) => {
         creates += 1;
+        metadata.push(stepMetadata);
         return Promise.resolve({ id: `id-${item}` });
       },
       awaitResult: (created: { id: string }) => Promise.resolve(created.id),
     });
-    // The shared checkpoint name makes every item resolve to the first create —
-    // exactly why createStepName must be unique per item.
-    expect(creates).toBe(1);
-    expect(created).toEqual([{ id: 'id-a' }, { id: 'id-a' }, { id: 'id-a' }]);
+    expect(creates).toBe(3);
+    expect(created).toEqual([{ id: 'id-a' }, { id: 'id-b' }, { id: 'id-c' }]);
+    expect(metadata.map((item) => item.stepName)).toEqual([
+      'create',
+      'create#2',
+      'create#3',
+    ]);
+    expect(new Set(metadata.map((item) => item.idempotencyKey)).size).toBe(3);
   });
 });

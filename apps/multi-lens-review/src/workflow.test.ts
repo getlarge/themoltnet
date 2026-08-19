@@ -5,6 +5,7 @@ import type {
   WorkflowContext,
 } from '@themoltnet/tasks-orchestrator';
 import { inlineContext } from '@themoltnet/tasks-orchestrator';
+import { replayContext } from '@themoltnet/tasks-orchestrator/testing';
 import { FakeTasks } from '@themoltnet/tasks-orchestrator/testing';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -497,20 +498,11 @@ describe('runMultiLensReview', () => {
       topicReview(topic),
       globalVerdict(),
     ]);
-    const checkpointed = new Map<string, unknown>();
-    const ctx: WorkflowContext = {
-      ...inlineContext,
-      step: async (name, fn) => {
-        const value = await fn();
-        checkpointed.set(name, value);
-        return value;
-      },
-      sleepFor: () => Promise.resolve(),
-    };
+    const ctx = replayContext();
 
     await runMultiLensReview(input(), deps(tasks), ctx);
 
-    for (const [name, value] of checkpointed) {
+    for (const [name, value] of ctx.checkpointEntries) {
       if (name.endsWith('.create')) {
         expect(value, name).toEqual(expect.any(String));
       }

@@ -2,13 +2,13 @@ import { createHash } from 'node:crypto';
 
 import {
   type AcceptedTaskResult,
-  inlineContext,
+  createInlineContext,
+  createTaskStep,
   joinCondition,
   type Logger,
   parallelTasks,
   type SdkTask,
   type TaskClient,
-  taskCreateIdempotencyKey,
   waitForAcceptedTask,
   type WorkflowContext,
 } from '@themoltnet/tasks-orchestrator';
@@ -1435,16 +1435,9 @@ function earlyOutput(
 export async function runMultiLensReview(
   rawInput: MultiLensReviewInput,
   deps: MultiLensReviewDeps,
-  ctx: WorkflowContext = inlineContext,
+  ctx: WorkflowContext = createInlineContext(),
 ): Promise<MultiLensReviewOutput> {
   const input = normalizeMultiLensReviewInput(rawInput);
-  const createChildTask = (
-    stepName: string,
-    body: Parameters<TaskClient['createTask']>[0],
-  ) =>
-    deps.tasks.createTask(body, {
-      idempotencyKey: taskCreateIdempotencyKey(ctx, stepName),
-    });
   const cost = emptyCost(input.reviewManifest);
   const phaseOutputs = emptyPhaseOutputs();
   deps.logger?.info(
@@ -1452,6 +1445,7 @@ export async function runMultiLensReview(
       correlationId: input.correlationId,
       reviewableFiles: input.reviewManifest.reviewableFiles,
       requiresPlanning: input.reviewManifest.requiresPlanning,
+      executionId: ctx.executionId,
     },
     `${LOG_PREFIX}.start`,
   );
@@ -1499,36 +1493,48 @@ export async function runMultiLensReview(
       assertReusablePlannerTask(reusable, input);
       plannerTaskId = reusable.id;
     } else {
-      plannerTaskId = await ctx.step('planner.create', async () => {
-        const task = await createChildTask(
-          'planner.create',
-          buildPlannerTask(input),
-        );
-        return task.id;
-      });
+      plannerTaskId = await createTaskStep(
+        ctx,
+        'planner.create',
+        async (metadata) => {
+          const task = await deps.tasks.createTask(buildPlannerTask(input), {
+            idempotencyKey: metadata.idempotencyKey,
+          });
+          return task.id;
+        },
+      );
     }
     cost.tasks += 1;
   }
-  const preflightTaskId = await ctx.step('preflight.create', async () => {
-    const expected = buildPreflightTask(input, plannerTaskId);
-    if (input.preflightTaskId) {
-      const reusable = await deps.tasks.getTask(input.preflightTaskId);
-      assertReusablePhaseTask(reusable, expected, input, 'design preflight');
-      const reusableBrief = (reusable.input as { brief?: unknown }).brief;
-      if (
-        plannerTaskId &&
-        (typeof reusableBrief !== 'string' ||
-          !reusableBrief.includes(plannerTaskId))
-      ) {
-        throw new Error(
-          `reused design preflight task ${reusable.id} does not identify planner task ${plannerTaskId}`,
+  const expectedPreflight = buildPreflightTask(input, plannerTaskId);
+  const reusablePreflightTaskId = input.preflightTaskId;
+  const preflightTaskId = reusablePreflightTaskId
+    ? await ctx.step('preflight.reuse', async () => {
+        const reusable = await deps.tasks.getTask(reusablePreflightTaskId);
+        assertReusablePhaseTask(
+          reusable,
+          expectedPreflight,
+          input,
+          'design preflight',
         );
-      }
-      return reusable.id;
-    }
-    const task = await createChildTask('preflight.create', expected);
-    return task.id;
-  });
+        const reusableBrief = (reusable.input as { brief?: unknown }).brief;
+        if (
+          plannerTaskId &&
+          (typeof reusableBrief !== 'string' ||
+            !reusableBrief.includes(plannerTaskId))
+        ) {
+          throw new Error(
+            `reused design preflight task ${reusable.id} does not identify planner task ${plannerTaskId}`,
+          );
+        }
+        return reusable.id;
+      })
+    : await createTaskStep(ctx, 'preflight.create', async (metadata) => {
+        const task = await deps.tasks.createTask(expectedPreflight, {
+          idempotencyKey: metadata.idempotencyKey,
+        });
+        return task.id;
+      });
   cost.tasks += 1;
 
   if (plannerTaskId) {
@@ -1621,14 +1627,15 @@ export async function runMultiLensReview(
     throw new Error('review plan produced no topic review work');
   }
 
-  const canaryTaskId = await ctx.step(
+  const canaryTaskId = await createTaskStep(
+    ctx,
     'topic-review.canary.create',
-    async () => {
+    async (metadata) => {
       const reusable = reusableReviews.get(topicReviewWorkKey(canaryWork));
       if (reusable) return reusable.id;
-      const task = await createChildTask(
-        'topic-review.canary.create',
+      const task = await deps.tasks.createTask(
         buildTopicReviewTask(input, canaryWork),
+        { idempotencyKey: metadata.idempotencyKey },
       );
       return task.id;
     },
@@ -1700,6 +1707,7 @@ export async function runMultiLensReview(
               `topic.${work.topic.id}.review.${work.lanes.join('+')}`,
             ),
           concurrency: input.concurrency,
+          logger: deps.logger,
         });
 
   const remainingResults = remaining.results.flatMap((accepted, index) => {
@@ -1736,17 +1744,18 @@ export async function runMultiLensReview(
   cost.artifactBytes += verdictArtifact.sizeBytes;
 
   const topicReviewTaskIds = [canaryTaskId, ...remaining.created];
-  const synthesisTaskId = await ctx.step(
+  const synthesisTaskId = await createTaskStep(
+    ctx,
     'global-synthesis.create',
-    async () => {
-      const task = await createChildTask(
-        'global-synthesis.create',
+    async (metadata) => {
+      const task = await deps.tasks.createTask(
         buildGlobalSynthesisTask(
           input,
           plan,
           topicReviewTaskIds,
           verdictArtifact,
         ),
+        { idempotencyKey: metadata.idempotencyKey },
       );
       return task.id;
     },

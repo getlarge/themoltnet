@@ -1,4 +1,7 @@
-import { taskCreateIdempotencyKey } from '@themoltnet/tasks-orchestrator';
+import {
+  createTaskStep,
+  isWorkflowInterruption,
+} from '@themoltnet/tasks-orchestrator';
 
 import type { normalizeLifecycleInput } from './task-factory.js';
 import { buildSupervisorRecommendationTask } from './task-factory.js';
@@ -263,9 +266,10 @@ async function requestSupervisorRecommendation(args: {
         allowedActions,
       }),
   );
-  const supervisorTask = await args.ctx.step(
+  const supervisorTask = await createTaskStep(
+    args.ctx,
     `task.supervisor.${args.step}.create`,
-    async () => {
+    async (metadata) => {
       const body = await buildSupervisorRecommendationTask({
         input: args.input,
         issue: args.issue,
@@ -274,11 +278,15 @@ async function requestSupervisorRecommendation(args: {
         snapshot,
         allowedActions,
       });
-      const stepName = `task.supervisor.${args.step}.create`;
       const task = await args.deps.tasks.createTask(body, {
-        idempotencyKey: taskCreateIdempotencyKey(args.ctx, stepName),
+        idempotencyKey: metadata.idempotencyKey,
       });
-      logCreatedTask(args.deps.logger, `supervisor.${args.step}`, task);
+      logCreatedTask(
+        args.deps.logger,
+        `supervisor.${args.step}`,
+        task,
+        metadata,
+      );
       return task;
     },
   );
@@ -292,6 +300,7 @@ async function requestSupervisorRecommendation(args: {
       `supervisor.${args.step}`,
     );
   } catch (error) {
+    if (isWorkflowInterruption(error)) throw error;
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(
       `supervisor task for ${args.step} failed after original failure "${args.reason}": ${message}`,

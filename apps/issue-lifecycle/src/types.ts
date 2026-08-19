@@ -80,6 +80,7 @@ export interface PullRequestStatus {
 export interface GithubIssueComment {
   id: number;
   body: string;
+  author?: { login: string; type: string };
 }
 
 export interface GithubClient {

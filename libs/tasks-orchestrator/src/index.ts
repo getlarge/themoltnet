@@ -9,7 +9,9 @@ export {
   type WaitForTaskOptions,
   waitForTaskOutcome,
 } from './await-engine.js';
-export { inlineContext } from './context.js';
+export { beginWorkflowStep, completeWorkflowStep } from './checkpoint.js';
+export { createInlineContext, inlineContext } from './context.js';
+export { isWorkflowInterruption } from './interruption.js';
 export {
   joinCondition,
   type JoinConditionOptions,
@@ -25,6 +27,7 @@ export {
   type ParallelTasksResult,
 } from './parallel.js';
 export { createSdkTaskClient } from './sdk-task-client.js';
+export { createTaskStep, type TaskCreateStepMetadata } from './task-step.js';
 export type {
   AcceptedTaskResult,
   Logger,

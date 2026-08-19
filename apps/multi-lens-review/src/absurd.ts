@@ -36,6 +36,7 @@ export function createMultiLensReviewAbsurdApp(args: {
     databaseUrl: args.databaseUrl,
     queueName: args.queueName ?? 'multi-lens-review',
     taskName: MULTI_LENS_REVIEW_TASK,
+    logger: args.deps.logger,
     defaultMaxAttempts: 3,
     run: async (params, ctx) =>
       durableMultiLensReviewOutput(

@@ -26,6 +26,7 @@ interface GhPrJson {
 interface GhIssueCommentJson {
   id: number;
   body?: string;
+  user?: { login?: string; type?: string };
 }
 
 function runGh(
@@ -169,6 +170,10 @@ export class GhCliGithubClient implements GithubClient {
       comments.map((comment) => ({
         id: comment.id,
         body: comment.body ?? '',
+        author:
+          comment.user?.login && comment.user.type
+            ? { login: comment.user.login, type: comment.user.type }
+            : undefined,
       })),
     );
   }

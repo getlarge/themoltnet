@@ -1,4 +1,7 @@
 import {
+  beginWorkflowStep,
+  completeWorkflowStep,
+  type TaskCreateStepMetadata,
   type TaskOutcome as OrchTaskOutcome,
   waitForAcceptedTask as waitForAcceptedTaskGeneric,
   waitForTaskOutcome as waitForTaskOutcomeGeneric,
@@ -24,11 +27,16 @@ import type {
 } from './types.js';
 
 type NormalizedLifecycleInput = ReturnType<typeof normalizeLifecycleInput>;
+type CommentReconcileResult = 'created' | 'updated' | 'noop';
 
 /** Structured-log prefix preserved across the lib extraction (#1671). */
 const LOG_PREFIX = 'issue_lifecycle';
 
 export type TaskOutcome = OrchTaskOutcome<LifecycleStateArtifact>;
+
+function isBotComment(comment: { author?: { type: string } }): boolean {
+  return comment.author?.type === 'Bot';
+}
 
 /**
  * Lifecycle-specialized wrappers over the generic orchestration await engine:
@@ -77,6 +85,7 @@ export function logCreatedTask(
   logger: IssueLifecycleDeps['logger'],
   stage: string,
   task: Awaited<ReturnType<TaskClient['createTask']>>,
+  metadata?: TaskCreateStepMetadata,
 ): void {
   logger?.info(
     {
@@ -85,6 +94,8 @@ export function logCreatedTask(
       status: task.status,
       correlationId: task.correlationId,
       claimCondition: task.claimCondition,
+      stepName: metadata?.stepName,
+      idempotencyKey: metadata?.idempotencyKey,
     },
     'issue_lifecycle.task.created',
   );
@@ -99,7 +110,10 @@ export async function waitForApprovalLabel(
     `waiting for issue ${input.repo}#${input.issueNumber} approval label "${input.approvalLabel}"`,
   );
 
-  const armed = await ctx.beginStep<true>('approval.label.removal-observed');
+  const armed = await beginWorkflowStep<true>(
+    ctx,
+    'approval.label.removal-observed',
+  );
   if (!armed.done) {
     for (;;) {
       const approved = await deps.github.hasIssueLabel(
@@ -108,7 +122,7 @@ export async function waitForApprovalLabel(
         input.approvalLabel,
       );
       if (!approved) {
-        await ctx.completeStep(armed, true);
+        await completeWorkflowStep(ctx, armed, true);
         break;
       }
       deps.logger?.warn(
@@ -121,7 +135,8 @@ export async function waitForApprovalLabel(
     }
   }
 
-  const accepted = await ctx.beginStep<true>(
+  const accepted = await beginWorkflowStep<true>(
+    ctx,
     'approval.label.addition-observed',
   );
   if (accepted.done) return;
@@ -135,7 +150,7 @@ export async function waitForApprovalLabel(
       deps.logger?.info(
         `approval label "${input.approvalLabel}" detected on ${input.repo}#${input.issueNumber}`,
       );
-      await ctx.completeStep(accepted, true);
+      await completeWorkflowStep(ctx, accepted, true);
       return;
     }
     deps.logger?.info(
@@ -157,26 +172,38 @@ export async function updateLifecycleStatusComment(args: {
 }): Promise<void> {
   const marker = lifecycleStatusMarker(args.input.correlationId);
   const body = statusCommentBody(args);
-  await args.ctx.step('github.status_comment.reconcile', async () => {
-    const comments = await args.deps.github.listIssueComments(
-      args.input.repo,
-      args.input.issueNumber,
-    );
-    const existing = comments.find((comment) => comment.body.includes(marker));
-    if (!existing) {
-      await args.deps.github.createIssueComment(
+  const result = await args.ctx.step<CommentReconcileResult>(
+    'github.status_comment.reconcile',
+    async () => {
+      const comments = await args.deps.github.listIssueComments(
         args.input.repo,
         args.input.issueNumber,
-        body,
       );
-    } else if (existing.body !== body) {
-      await args.deps.github.updateIssueComment(
-        args.input.repo,
-        existing.id,
-        body,
+      const existing = comments.find(
+        (comment) => isBotComment(comment) && comment.body.includes(marker),
       );
-    }
-  });
+      if (!existing) {
+        await args.deps.github.createIssueComment(
+          args.input.repo,
+          args.input.issueNumber,
+          body,
+        );
+        return 'created';
+      } else if (existing.body !== body) {
+        await args.deps.github.updateIssueComment(
+          args.input.repo,
+          existing.id,
+          body,
+        );
+        return 'updated';
+      }
+      return 'noop';
+    },
+  );
+  args.deps.logger?.info(
+    { issueNumber: args.issueNumber, result },
+    'issue_lifecycle.status_comment.reconciled',
+  );
 }
 
 export async function ensureApprovalPromptComment(
@@ -188,20 +215,35 @@ export async function ensureApprovalPromptComment(
   ctx: WorkflowContext,
 ): Promise<void> {
   const marker = approvalPromptMarker(input.correlationId);
-  await ctx.step('github.approval_prompt.reconcile', async () => {
-    const comments = await deps.github.listIssueComments(
-      input.repo,
-      input.issueNumber,
-    );
-    if (comments.some((comment) => comment.body.includes(marker))) return;
-    await deps.github.createIssueComment(
-      input.repo,
-      input.issueNumber,
-      approvalPromptBody(input, issueNumber, latestPlan, review),
-    );
-  });
+  const result = await ctx.step<CommentReconcileResult>(
+    'github.approval_prompt.reconcile',
+    async () => {
+      const comments = await deps.github.listIssueComments(
+        input.repo,
+        input.issueNumber,
+      );
+      if (
+        comments.some(
+          (comment) => isBotComment(comment) && comment.body.includes(marker),
+        )
+      ) {
+        return 'noop';
+      }
+      await deps.github.createIssueComment(
+        input.repo,
+        input.issueNumber,
+        approvalPromptBody(input, issueNumber, latestPlan, review),
+      );
+      return 'created';
+    },
+  );
   deps.logger?.info(
-    `posted approval prompt on ${input.repo}#${input.issueNumber} for label "${input.approvalLabel}"`,
+    {
+      issueNumber: input.issueNumber,
+      approvalLabel: input.approvalLabel,
+      result,
+    },
+    'issue_lifecycle.approval_prompt.reconciled',
   );
 }
 
@@ -214,17 +256,31 @@ export async function ensureReadyForReviewComment(
 ): Promise<void> {
   const marker = readyForReviewMarker(input.correlationId);
   const body = readyForReviewCommentBody(input, prNumber, reviewResults);
-  await ctx.step('github.ready_for_review_comment.reconcile', async () => {
-    const comments = await deps.github.listIssueComments(input.repo, prNumber);
-    const existing = comments.find((comment) => comment.body.includes(marker));
-    if (existing) {
-      if (existing.body !== body) {
-        await deps.github.updateIssueComment(input.repo, existing.id, body);
+  const result = await ctx.step<CommentReconcileResult>(
+    'github.ready_for_review_comment.reconcile',
+    async () => {
+      const comments = await deps.github.listIssueComments(
+        input.repo,
+        prNumber,
+      );
+      const existing = comments.find(
+        (comment) => isBotComment(comment) && comment.body.includes(marker),
+      );
+      if (existing) {
+        if (existing.body !== body) {
+          await deps.github.updateIssueComment(input.repo, existing.id, body);
+          return 'updated';
+        }
+        return 'noop';
       }
-      return;
-    }
-    await deps.github.createIssueComment(input.repo, prNumber, body);
-  });
+      await deps.github.createIssueComment(input.repo, prNumber, body);
+      return 'created';
+    },
+  );
+  deps.logger?.info(
+    { prNumber, result },
+    'issue_lifecycle.ready_for_review_comment.reconciled',
+  );
 }
 
 export async function waitForGreenPrChecks(
@@ -236,10 +292,13 @@ export async function waitForGreenPrChecks(
 ): Promise<'green' | 'merged' | 'failure'> {
   const deadline = await ctx.step(
     `pr-gate.${prNumber}.${attempt}.deadline`,
-    async () =>
-      Date.now() + input.maxPrPendingPolls * input.pollIntervalSec * 1_000,
+    () =>
+      Promise.resolve(
+        Date.now() + input.maxPrPendingPolls * input.pollIntervalSec * 1_000,
+      ),
   );
-  const terminal = await ctx.beginStep<'green' | 'merged' | 'failure'>(
+  const terminal = await beginWorkflowStep<'green' | 'merged' | 'failure'>(
+    ctx,
     `pr-gate.${prNumber}.${attempt}.terminal`,
   );
   if (terminal.done) return terminal.state;
@@ -255,10 +314,24 @@ export async function waitForGreenPrChecks(
       },
       'issue_lifecycle.pr.poll',
     );
-    if (pr.merged) return ctx.completeStep(terminal, 'merged');
-    if (pr.checks === 'success') return ctx.completeStep(terminal, 'green');
-    if (pr.checks === 'failure') return ctx.completeStep(terminal, 'failure');
-    if (Date.now() >= deadline) {
+    if (pr.merged) return completeWorkflowStep(ctx, terminal, 'merged');
+    if (pr.checks === 'success')
+      return completeWorkflowStep(ctx, terminal, 'green');
+    if (pr.checks === 'failure')
+      return completeWorkflowStep(ctx, terminal, 'failure');
+    const now = Date.now();
+    if (now >= deadline) {
+      deps.logger?.warn(
+        {
+          prNumber,
+          attempt,
+          deadlineIso: new Date(deadline).toISOString(),
+          nowIso: new Date(now).toISOString(),
+          overdueSec: Math.floor((now - deadline) / 1_000),
+          pollIntervalSec: input.pollIntervalSec,
+        },
+        'issue_lifecycle.pr.deadline_exceeded',
+      );
       throw new Error(`PR #${prNumber} checks exceeded its durable deadline`);
     }
     await ctx.sleepFor(`wait-pr:${prNumber}`, input.pollIntervalSec);
@@ -277,14 +350,17 @@ export async function waitForPrMergeOrFailure(args: {
 > {
   const deadline = await args.ctx.step(
     `pr-merge.${args.prNumber}.${args.attempt}.deadline`,
-    async () =>
-      Date.now() +
-      args.input.maxPrPendingPolls * args.input.pollIntervalSec * 1_000,
+    () =>
+      Promise.resolve(
+        Date.now() +
+          args.input.maxPrPendingPolls * args.input.pollIntervalSec * 1_000,
+      ),
   );
   type MergeTerminal =
     | { status: 'merged'; url: string }
     | { status: 'checks_failed'; url: string | undefined };
-  const terminal = await args.ctx.beginStep<MergeTerminal>(
+  const terminal = await beginWorkflowStep<MergeTerminal>(
+    args.ctx,
     `pr-merge.${args.prNumber}.${args.attempt}.terminal`,
   );
   if (terminal.done) return terminal.state;
@@ -308,18 +384,30 @@ export async function waitForPrMergeOrFailure(args: {
         { prNumber: args.prNumber },
         'issue_lifecycle.pr.merged',
       );
-      return args.ctx.completeStep(terminal, {
+      return completeWorkflowStep(args.ctx, terminal, {
         status: 'merged',
         url: pr.url,
       });
     }
     if (pr.checks === 'failure') {
-      return args.ctx.completeStep(terminal, {
+      return completeWorkflowStep(args.ctx, terminal, {
         status: 'checks_failed',
         url: pr.url,
       });
     }
-    if (Date.now() >= deadline) {
+    const now = Date.now();
+    if (now >= deadline) {
+      args.deps.logger?.warn(
+        {
+          prNumber: args.prNumber,
+          attempt: args.attempt,
+          deadlineIso: new Date(deadline).toISOString(),
+          nowIso: new Date(now).toISOString(),
+          overdueSec: Math.floor((now - deadline) / 1_000),
+          pollIntervalSec: args.input.pollIntervalSec,
+        },
+        'issue_lifecycle.pr.deadline_exceeded',
+      );
       throw new Error(
         `PR #${args.prNumber} merge wait exceeded its durable deadline`,
       );

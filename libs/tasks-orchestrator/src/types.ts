@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import type { Agent, CreateTaskBody } from '@themoltnet/sdk';
+import type { JsonValue } from 'absurd-sdk';
 
 /**
  * Task and task-attempt shapes as returned by the MoltNet SDK. Derived from the
@@ -39,11 +40,13 @@ export interface TaskMessage {
  *   suspend on an event, absent inline (callers fall back to `sleepFor`).
  */
 export interface WorkflowContext {
-  /** Stable Absurd execution identity used to derive external idempotency keys. */
-  executionId: string;
+  /** Stable durable-execution identity used to derive external idempotency keys. */
+  executionId?: string;
   step<T>(name: string, fn: () => Promise<T>): Promise<T>;
-  beginStep<T>(name: string): Promise<WorkflowStepHandle<T>>;
-  completeStep<T>(handle: WorkflowStepHandle<T>, value: T): Promise<T>;
+  /** Optional decomposed-checkpoint capability; callers fall back to `step`. */
+  beginStep?<T = JsonValue>(name: string): Promise<WorkflowStepHandle<T>>;
+  /** Optional decomposed-checkpoint capability; callers fall back to `step`. */
+  completeStep?<T>(handle: WorkflowStepHandle<T>, value: T): Promise<T>;
   sleepFor(name: string, seconds: number): Promise<void>;
   awaitEvent?(
     eventName: string,
@@ -52,7 +55,7 @@ export interface WorkflowContext {
   emitEvent?(eventName: string, payload?: unknown): Promise<void>;
 }
 
-export type WorkflowStepHandle<T> = {
+export type WorkflowStepHandle<T = JsonValue> = {
   readonly name: string;
   readonly checkpointName: string;
 } & (
@@ -79,7 +82,8 @@ export interface TaskClient {
 export function taskCreateIdempotencyKey(
   ctx: Pick<WorkflowContext, 'executionId'>,
   createStepName: string,
-): string {
+): string | undefined {
+  if (!ctx.executionId) return undefined;
   const digest = createHash('sha256')
     .update(`${ctx.executionId}\0${createStepName}`)
     .digest('base64url');

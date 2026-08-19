@@ -1,4 +1,5 @@
 import { inlineContext } from '@themoltnet/tasks-orchestrator';
+import { replayContext } from '@themoltnet/tasks-orchestrator/testing';
 import { describe, expect, it, vi } from 'vitest';
 
 import { fakeDeps } from './test-fakes.js';
@@ -8,38 +9,6 @@ import {
   waitForApprovalLabel,
   waitForGreenPrChecks,
 } from './workflow-steps.js';
-
-function decomposedContext(): WorkflowContext {
-  const steps = new Map<string, unknown>();
-  return {
-    ...inlineContext,
-    async step(name, fn) {
-      if (steps.has(name)) return steps.get(name) as never;
-      const value = await fn();
-      steps.set(name, value);
-      return value;
-    },
-    beginStep(name) {
-      if (steps.has(name)) {
-        return Promise.resolve({
-          name,
-          checkpointName: name,
-          done: true as const,
-          state: steps.get(name) as never,
-        });
-      }
-      return Promise.resolve({
-        name,
-        checkpointName: name,
-        done: false as const,
-      });
-    },
-    completeStep(handle, value) {
-      steps.set(handle.checkpointName, value);
-      return Promise.resolve(value);
-    },
-  };
-}
 
 describe('waitForApprovalLabel', () => {
   it('does not consume label-added events while the approval label is stale', async () => {
@@ -83,7 +52,7 @@ describe('waitForApprovalLabel', () => {
   it('replays the armed removal checkpoint without requiring a second removal', async () => {
     const { deps, github } = fakeDeps([]);
     github.approvalResponses = [false, true];
-    const durable = decomposedContext();
+    const durable = replayContext();
     let crashBeforeAddition = true;
     const ctx: WorkflowContext = {
       ...durable,
@@ -112,6 +81,7 @@ describe('waitForApprovalLabel', () => {
       ),
     ).rejects.toThrow('simulated crash after approval arming');
 
+    durable.resetForReplay();
     await waitForApprovalLabel(
       {
         repo: 'getlarge/themoltnet',
@@ -128,6 +98,35 @@ describe('waitForApprovalLabel', () => {
 });
 
 describe('GitHub retry-safe workflow steps', () => {
+  it('does not trust or update a marker forged by a human commenter', async () => {
+    const { deps, github } = fakeDeps([]);
+    const marker =
+      '<!-- moltnet-issue-lifecycle:ready-for-review:forged-marker -->';
+    github.comments = [
+      {
+        id: 99,
+        body: `${marker}\nattacker-controlled text`,
+        author: { login: 'contributor', type: 'User' },
+      },
+    ];
+
+    await ensureReadyForReviewComment(
+      {
+        repo: 'getlarge/themoltnet',
+        issueNumber: 1213,
+        correlationId: 'forged-marker',
+      } as never,
+      42,
+      [],
+      deps,
+      inlineContext,
+    );
+
+    expect(github.comments).toHaveLength(2);
+    expect(github.comments[0].body).toContain('attacker-controlled text');
+    expect(github.comments[1].author?.type).toBe('Bot');
+  });
+
   it('reconciles a marker comment after a crash between GitHub and checkpoint persistence', async () => {
     const { deps, github } = fakeDeps([]);
     const input = {
@@ -180,7 +179,7 @@ describe('GitHub retry-safe workflow steps', () => {
         checks: 'pending',
       },
     ];
-    const durable = decomposedContext();
+    const durable = replayContext();
     let firstSleep = true;
     const ctx: WorkflowContext = {
       ...durable,
@@ -209,6 +208,7 @@ describe('GitHub retry-safe workflow steps', () => {
       ),
     ).rejects.toThrow('simulated worker crash');
 
+    durable.resetForReplay();
     now.mockReturnValue(4_000);
     await expect(
       waitForGreenPrChecks(

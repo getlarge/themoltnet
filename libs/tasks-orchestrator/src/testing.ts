@@ -1,9 +1,74 @@
+import type { JsonValue } from 'absurd-sdk';
+
 import type {
   SdkTask,
   SdkTaskAttempt,
   TaskClient,
   TaskMessage,
+  WorkflowContext,
+  WorkflowStepHandle,
 } from './types.js';
+
+export interface ReplayWorkflowContext extends WorkflowContext {
+  beginStep<T = JsonValue>(name: string): Promise<WorkflowStepHandle<T>>;
+  completeStep<T>(handle: WorkflowStepHandle<T>, value: T): Promise<T>;
+  /** Reset per-attempt name counters while retaining persisted checkpoints. */
+  resetForReplay(): void;
+  readonly checkpointNames: readonly string[];
+  readonly checkpointEntries: readonly (readonly [string, unknown])[];
+}
+
+/**
+ * In-memory Absurd checkpoint simulator shared by replay-focused tests. It
+ * models repeat-name suffixes and retains checkpoints across `resetForReplay`.
+ */
+export function replayContext(
+  executionId = 'test-execution',
+): ReplayWorkflowContext {
+  const checkpoints = new Map<string, unknown>();
+  let counters = new Map<string, number>();
+  const nextCheckpointName = (name: string) => {
+    const count = (counters.get(name) ?? 0) + 1;
+    counters.set(name, count);
+    return count === 1 ? name : `${name}#${count}`;
+  };
+  const ctx: ReplayWorkflowContext = {
+    executionId,
+    get checkpointNames() {
+      return [...checkpoints.keys()];
+    },
+    get checkpointEntries() {
+      return [...checkpoints.entries()];
+    },
+    resetForReplay() {
+      counters = new Map();
+    },
+    beginStep<T>(name: string): Promise<WorkflowStepHandle<T>> {
+      const checkpointName = nextCheckpointName(name);
+      if (checkpoints.has(checkpointName)) {
+        return Promise.resolve({
+          name,
+          checkpointName,
+          done: true,
+          state: checkpoints.get(checkpointName) as T,
+        });
+      }
+      return Promise.resolve({ name, checkpointName, done: false });
+    },
+    completeStep<T>(handle: WorkflowStepHandle<T>, value: T) {
+      checkpoints.set(handle.checkpointName, value);
+      return Promise.resolve(value);
+    },
+    async step<T>(name: string, fn: () => Promise<T>): Promise<T> {
+      const handle = await ctx.beginStep<T>(name);
+      if (handle.done) return handle.state;
+      const value = await fn();
+      return ctx.completeStep(handle, value);
+    },
+    sleepFor: () => Promise.resolve(),
+  };
+  return ctx;
+}
 
 /**
  * A scripted fake task output. A plain object is treated as a success body and

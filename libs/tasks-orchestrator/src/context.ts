@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import type { WorkflowContext } from './types.js';
 
 /**
@@ -7,7 +9,6 @@ import type { WorkflowContext } from './types.js';
  * undefined so callers fall back to `sleepFor`.
  */
 export const inlineContext: WorkflowContext = {
-  executionId: 'inline',
   step(_name, fn) {
     return fn();
   },
@@ -25,3 +26,23 @@ export const inlineContext: WorkflowContext = {
     return Promise.resolve();
   },
 };
+
+/** Create an isolated inline run with a unique task-idempotency namespace. */
+export function createInlineContext(
+  executionId: string = randomUUID(),
+): WorkflowContext {
+  const stepCounts = new Map<string, number>();
+  return {
+    ...inlineContext,
+    executionId,
+    beginStep(name) {
+      const count = (stepCounts.get(name) ?? 0) + 1;
+      stepCounts.set(name, count);
+      return Promise.resolve({
+        name,
+        checkpointName: count === 1 ? name : `${name}#${count}`,
+        done: false as const,
+      });
+    },
+  };
+}

@@ -94,6 +94,17 @@ describe('orchestration process recovery (real Absurd)', () => {
         calls integer NOT NULL
       )
     `);
+    await database.query(`
+      CREATE TABLE IF NOT EXISTS orchestration_recovery_children (
+        run_key text NOT NULL,
+        branch text NOT NULL,
+        calls integer NOT NULL,
+        execution_id text NOT NULL,
+        checkpoint_name text NOT NULL,
+        idempotency_key text NOT NULL,
+        PRIMARY KEY (run_key, branch)
+      )
+    `);
 
     const client = createOrchestrationAbsurdApp<{ runKey: string }>({
       databaseUrl: ABSURD_URL,
@@ -137,22 +148,70 @@ describe('orchestration process recovery (real Absurd)', () => {
 
       const result = JSON.parse(resultLine.slice('RESULT '.length)) as {
         state: string;
-        result?: { recovered?: boolean; runKey?: string };
+        result?: {
+          recovered?: boolean;
+          runKey?: string;
+          executionId?: string;
+          children?: Array<{
+            branch: string;
+            stepName: string;
+            idempotencyKey: string;
+          }>;
+        };
       };
-      expect(result).toEqual({
-        state: 'completed',
-        result: { recovered: true, runKey },
+      expect(result.state).toBe('completed');
+      expect(result.result).toMatchObject({
+        recovered: true,
+        runKey,
+        executionId: spawned.taskID,
       });
+      expect(result.result?.children?.map((child) => child.stepName)).toEqual([
+        'child.create',
+        'child.create#2',
+      ]);
+      expect(
+        new Set(
+          result.result?.children?.map((child) => child.idempotencyKey) ?? [],
+        ).size,
+      ).toBe(2);
       const effects = await database.query<{ calls: number }>(
         'SELECT calls FROM orchestration_recovery_effects WHERE run_key = $1',
         [runKey],
       );
       expect(effects.rows).toEqual([{ calls: 1 }]);
+      const children = await database.query<{
+        branch: string;
+        calls: number;
+        execution_id: string;
+        checkpoint_name: string;
+        idempotency_key: string;
+      }>(
+        `SELECT branch, calls, execution_id, checkpoint_name, idempotency_key
+         FROM orchestration_recovery_children
+         WHERE run_key = $1
+         ORDER BY branch`,
+        [runKey],
+      );
+      expect(children.rows).toHaveLength(2);
+      expect(children.rows.every((row) => row.calls === 1)).toBe(true);
+      expect(
+        children.rows.every((row) => row.execution_id === spawned.taskID),
+      ).toBe(true);
+      expect(new Set(children.rows.map((row) => row.checkpoint_name))).toEqual(
+        new Set(['child.create', 'child.create#2']),
+      );
+      expect(
+        new Set(children.rows.map((row) => row.idempotency_key)).size,
+      ).toBe(2);
     } finally {
       initialWorker?.kill('SIGKILL');
       recoveryWorker?.kill('SIGKILL');
       await database.query(
         'DELETE FROM orchestration_recovery_effects WHERE run_key = $1',
+        [runKey],
+      );
+      await database.query(
+        'DELETE FROM orchestration_recovery_children WHERE run_key = $1',
         [runKey],
       );
       await client.dropQueue(queueName).catch(() => undefined);

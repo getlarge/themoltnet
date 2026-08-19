@@ -1,6 +1,6 @@
 import { Absurd, type JsonValue, type TaskContext } from 'absurd-sdk';
 
-import type { WorkflowContext } from './types.js';
+import type { Logger, WorkflowContext } from './types.js';
 
 /**
  * Adapt an Absurd {@link TaskContext} onto the transport-neutral
@@ -39,6 +39,8 @@ export interface OrchestrationAbsurdAppArgs<TInput> {
   taskName: string;
   /** Absurd retry budget for the orchestration task itself. Default 3. */
   defaultMaxAttempts?: number;
+  /** Optional application logger for execution start/resume diagnostics. */
+  logger?: Logger;
   /**
    * The workflow body, written against the transport-neutral WorkflowContext.
    * Wrap domain dependencies in a closure at the call site.
@@ -58,8 +60,22 @@ export function createOrchestrationAbsurdApp<TInput>(
 
   app.registerTask<TInput, JsonValue>(
     { name: args.taskName, defaultMaxAttempts: args.defaultMaxAttempts ?? 3 },
-    async (params, ctx) =>
-      (await args.run(params, asWorkflowContext(ctx))) as JsonValue,
+    async (params, ctx) => {
+      const executionStart = await ctx.beginStep<true>(
+        'orchestration.execution.started',
+      );
+      const resumed = executionStart.done;
+      if (!executionStart.done) {
+        await ctx.completeStep(executionStart, true);
+      }
+      args.logger?.info(
+        { executionId: ctx.taskID, resumed },
+        resumed
+          ? 'orchestration.execution.resumed'
+          : 'orchestration.execution.started',
+      );
+      return (await args.run(params, asWorkflowContext(ctx))) as JsonValue;
+    },
   );
 
   return app;

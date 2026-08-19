@@ -1,9 +1,8 @@
-import { taskCreateIdempotencyKey, type WorkflowContext } from './types.js';
+import { isWorkflowInterruption } from './interruption.js';
+import { createTaskStep, type TaskCreateStepMetadata } from './task-step.js';
+import type { Logger, WorkflowContext } from './types.js';
 
-export interface ParallelTaskCreateMetadata {
-  stepName: string;
-  idempotencyKey: string;
-}
+export type ParallelTaskCreateMetadata = TaskCreateStepMetadata;
 
 export interface ParallelTasksArgs<TItem, TCreated, TResult> {
   ctx: WorkflowContext;
@@ -37,6 +36,8 @@ export interface ParallelTasksArgs<TItem, TCreated, TResult> {
    * the await/poll fan-out. Default: unbounded.
    */
   concurrency?: number;
+  /** Optional structured logger used to preserve each failed branch. */
+  logger?: Logger;
 }
 
 export interface ParallelTasksResult<TCreated, TResult> {
@@ -86,26 +87,43 @@ export async function parallelTasks<TItem, TCreated, TResult>(
     awaitResult,
     onCreated,
     concurrency,
+    logger,
   } = args;
+  const stepNames = items.map(createStepName);
+  const checkpointNames = [...stepNames];
   const createResults = await Promise.allSettled(
-    items.map((item, index) => {
-      const stepName = createStepName(item, index);
-      return ctx.step(stepName, () =>
-        create(item, index, {
-          stepName,
-          idempotencyKey: taskCreateIdempotencyKey(ctx, stepName),
-        }),
-      );
-    }),
+    items.map((item, index) =>
+      createTaskStep(ctx, stepNames[index], (metadata) => {
+        checkpointNames[index] = metadata.stepName;
+        return create(item, index, metadata);
+      }),
+    ),
   );
-  const createFailures = createResults.filter(
-    (result): result is PromiseRejectedResult => result.status === 'rejected',
+  const createFailures = createResults.flatMap((result, index) =>
+    result.status === 'rejected'
+      ? [{ stepName: checkpointNames[index], error: result.reason as unknown }]
+      : [],
   );
   if (createFailures.length > 0) {
-    throw new AggregateError(
-      createFailures.map((result) => result.reason as unknown),
-      `${createFailures.length} parallel task creation branch(es) failed`,
+    const interruption = createFailures.find(({ error }) =>
+      isWorkflowInterruption(error),
     );
+    if (interruption) throw interruption.error;
+    for (const failure of createFailures) {
+      logger?.error(
+        { stepName: failure.stepName, err: failure.error },
+        'orchestration.parallel_task.create_failed',
+      );
+    }
+    const error = new AggregateError(
+      createFailures.map((failure) => failure.error),
+      `${createFailures.length} parallel task creation branch(es) failed: ${createFailures.map((failure) => failure.stepName).join(', ')}`,
+      { cause: createFailures[0].error },
+    );
+    Object.assign(error, {
+      stepNames: createFailures.map((failure) => failure.stepName),
+    });
+    throw error;
   }
   const created = createResults.map(
     (result) => (result as PromiseFulfilledResult<TCreated>).value,

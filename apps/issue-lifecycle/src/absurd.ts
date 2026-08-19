@@ -15,6 +15,7 @@ export function createIssueLifecycleAbsurdApp(args: {
     databaseUrl: args.databaseUrl,
     queueName: args.queueName ?? 'issue-lifecycle',
     taskName: GITHUB_ISSUE_LIFECYCLE_TASK,
+    logger: args.deps.logger,
     defaultMaxAttempts: 3,
     run: (params, ctx) => runGithubIssueLifecycle(params, args.deps, ctx),
   });
