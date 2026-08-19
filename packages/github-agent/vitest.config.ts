@@ -17,6 +17,10 @@ export default defineConfig({
         import.meta.dirname,
         '../../libs/crypto-service/src/canonical-json.ts',
       ),
+      '@moltnet/crypto-service/json-cid': resolve(
+        import.meta.dirname,
+        '../../libs/crypto-service/src/json-cid.ts',
+      ),
       '@moltnet/crypto-service/ssh': resolve(
         import.meta.dirname,
         '../../libs/crypto-service/src/ssh.ts',

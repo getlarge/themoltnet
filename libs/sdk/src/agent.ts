@@ -744,6 +744,12 @@ export interface TaskRequestOptions {
   teamId: string;
 }
 
+/** Per-call context for task creation. */
+export interface TaskCreateOptions extends TaskRequestOptions {
+  /** Retry key for task creation, scoped by team and authenticated proposer. */
+  idempotencyKey?: string;
+}
+
 export interface TasksNamespace {
   schemas(): Promise<ListTaskSchemasResponse>;
 
@@ -760,7 +766,7 @@ export interface TasksNamespace {
 
   create(
     body: CreateTaskData['body'],
-    options: TaskRequestOptions,
+    options: TaskCreateOptions,
   ): Promise<Task>;
   /** Create from a {@link TaskBuilder.build} result (`{ body, teamId }`). */
   create(built: BuiltTask): Promise<Task>;

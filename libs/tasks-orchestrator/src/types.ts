@@ -1,4 +1,7 @@
+import { createHash } from 'node:crypto';
+
 import type { Agent, CreateTaskBody } from '@themoltnet/sdk';
+import type { JsonValue } from 'absurd-sdk';
 
 /**
  * Task and task-attempt shapes as returned by the MoltNet SDK. Derived from the
@@ -37,7 +40,13 @@ export interface TaskMessage {
  *   suspend on an event, absent inline (callers fall back to `sleepFor`).
  */
 export interface WorkflowContext {
+  /** Stable durable-execution identity used to derive external idempotency keys. */
+  executionId?: string;
   step<T>(name: string, fn: () => Promise<T>): Promise<T>;
+  /** Optional decomposed-checkpoint capability; callers fall back to `step`. */
+  beginStep?<T = JsonValue>(name: string): Promise<WorkflowStepHandle<T>>;
+  /** Optional decomposed-checkpoint capability; callers fall back to `step`. */
+  completeStep?<T>(handle: WorkflowStepHandle<T>, value: T): Promise<T>;
   sleepFor(name: string, seconds: number): Promise<void>;
   awaitEvent?(
     eventName: string,
@@ -46,16 +55,39 @@ export interface WorkflowContext {
   emitEvent?(eventName: string, payload?: unknown): Promise<void>;
 }
 
+export type WorkflowStepHandle<T = JsonValue> = {
+  readonly name: string;
+  readonly checkpointName: string;
+} & (
+  | { readonly done: false; readonly state?: never }
+  | { readonly done: true; readonly state: T }
+);
+
 /**
  * Minimal task I/O client the engine needs. `teamId` rides alongside the create
  * body and is split into the SDK's team-context option by the implementation
  * (see `createSdkTaskClient`).
  */
 export interface TaskClient {
-  createTask(body: CreateTaskBody & { teamId: string }): Promise<SdkTask>;
+  createTask(
+    body: CreateTaskBody & { teamId: string },
+    options?: { idempotencyKey?: string },
+  ): Promise<SdkTask>;
   getTask(id: string): Promise<SdkTask>;
   listAttempts(id: string): Promise<SdkTaskAttempt[]>;
   listMessages?(id: string, attemptN: number): Promise<TaskMessage[]>;
+}
+
+/** Stable retry key for a semantic child-task create checkpoint. */
+export function taskCreateIdempotencyKey(
+  ctx: Pick<WorkflowContext, 'executionId'>,
+  createStepName: string,
+): string | undefined {
+  if (!ctx.executionId) return undefined;
+  const digest = createHash('sha256')
+    .update(`${ctx.executionId}\0${createStepName}`)
+    .digest('base64url');
+  return `absurd:${digest}`;
 }
 
 /** An accepted task attempt plus its parsed, domain-specific state artifact. */

@@ -54,7 +54,7 @@ describe('PATCH /rendered-packs/:id', () => {
 
   beforeEach(() => {
     resetMockServices(mocks);
-    mocks.dataSource.runTransaction.mockImplementation(
+    mocks.transactionRunner.runInTransaction.mockImplementation(
       async (fn: () => Promise<unknown>) => fn(),
     );
   });
@@ -88,6 +88,8 @@ describe('PATCH /rendered-packs/:id', () => {
       OWNER_ID,
       expect.any(String),
     );
+    expect(mocks.transactionRunner.runInTransaction).toHaveBeenCalledOnce();
+    expect(mocks.dataSource.runTransaction).not.toHaveBeenCalled();
   });
 
   it('unpins with expiresAt', async () => {

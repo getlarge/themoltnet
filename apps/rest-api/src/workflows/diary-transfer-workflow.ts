@@ -15,6 +15,8 @@ import {
   DBOS,
   type DiaryRepository,
   type DiaryTransferRepository,
+  type TeamRepository,
+  type TransactionRunner,
 } from '@moltnet/database';
 
 import type { Logger } from './logger.js';
@@ -31,6 +33,8 @@ export type TransferDecision = 'accepted' | 'rejected';
 export interface DiaryTransferDeps {
   diaryRepository: DiaryRepository;
   diaryTransferRepository: DiaryTransferRepository;
+  teamRepository: TeamRepository;
+  transactionRunner: TransactionRunner;
   relationshipWriter: RelationshipWriter;
   logger: Logger;
 }
@@ -73,36 +77,12 @@ export function initDiaryTransferWorkflow(): void {
 
   // ── Steps ──────────────────────────────────────────────────
 
-  const swapDiaryTeamStep = DBOS.registerStep(
-    async (
-      diaryId: string,
-      sourceTeamId: string,
-      destinationTeamId: string,
-    ): Promise<void> => {
-      const { diaryRepository, relationshipWriter, logger } = getDeps();
-      // Update DB with a WHERE team_id = sourceTeamId guard so this step is
-      // idempotent on DBOS retries: if a prior attempt already swapped the
-      // team, the condition won't match and null is returned — safe to continue.
-      await diaryRepository.updateTeam(
-        diaryId,
-        destinationTeamId,
-        sourceTeamId,
-      );
-      // Remove old Keto tuple — idempotent: if already removed this is a no-op
-      try {
-        await relationshipWriter.removeDiaryTeam(diaryId);
-      } catch (err) {
-        // Log but continue — the tuple may already be gone on a retry
-        logger.warn(
-          { diaryId, sourceTeamId, err },
-          'diary.transfer.swap.remove_old_team_failed',
-        );
-      }
-      // Grant new Keto tuple — idempotent: granting an existing tuple is a no-op
-      await relationshipWriter.grantDiaryTeam(diaryId, destinationTeamId);
+  const removeDiaryTeamStep = DBOS.registerStep(
+    async (diaryId: string): Promise<void> => {
+      await getDeps().relationshipWriter.removeDiaryTeam(diaryId);
     },
     {
-      name: 'diary.transfer.step.swapTeam',
+      name: 'diary.transfer.step.removeOldTeam',
       retriesAllowed: true,
       maxAttempts: 5,
       intervalSeconds: 2,
@@ -110,18 +90,17 @@ export function initDiaryTransferWorkflow(): void {
     },
   );
 
-  const resolveTransferStep = DBOS.registerStep(
-    async (
-      transferId: string,
-      status: 'accepted' | 'rejected' | 'expired',
-    ): Promise<void> => {
-      const { diaryTransferRepository } = getDeps();
-      await diaryTransferRepository.updateStatus(transferId, status);
+  const grantDiaryTeamStep = DBOS.registerStep(
+    async (diaryId: string, destinationTeamId: string): Promise<void> => {
+      await getDeps().relationshipWriter.grantDiaryTeam(
+        diaryId,
+        destinationTeamId,
+      );
     },
     {
-      name: 'diary.transfer.step.resolve',
+      name: 'diary.transfer.step.grantNewTeam',
       retriesAllowed: true,
-      maxAttempts: 3,
+      maxAttempts: 5,
       intervalSeconds: 2,
       backoffRate: 2,
     },
@@ -149,18 +128,107 @@ export function initDiaryTransferWorkflow(): void {
           { transferId, diaryId },
           'diary.transfer.timeout — expiring transfer',
         );
-        await resolveTransferStep(transferId, 'expired');
+        await getDeps().transactionRunner.runInTransaction(
+          async () => {
+            await getDeps().diaryTransferRepository.updateStatus(
+              transferId,
+              'expired',
+            );
+          },
+          { name: 'diary.transfer.tx.expire' },
+        );
         return { transferId, status: 'expired' };
       }
 
       if (decision === 'rejected') {
-        await resolveTransferStep(transferId, 'rejected');
+        await getDeps().transactionRunner.runInTransaction(
+          async () => {
+            await getDeps().diaryTransferRepository.updateStatus(
+              transferId,
+              'rejected',
+            );
+          },
+          { name: 'diary.transfer.tx.reject' },
+        );
         return { transferId, status: 'rejected' };
       }
 
-      // Accepted: swap diary team + resolve
-      await swapDiaryTeamStep(diaryId, sourceTeamId, destinationTeamId);
-      await resolveTransferStep(transferId, 'accepted');
+      // Commit the diary CAS and transfer resolution together. A replayed CAS
+      // is accepted only when the diary is already at this destination.
+      await getDeps().transactionRunner.runInTransaction(
+        async () => {
+          const { diaryRepository, diaryTransferRepository } = getDeps();
+          const transfer = await diaryTransferRepository.findById(transferId);
+          if (
+            !transfer ||
+            transfer.diaryId !== diaryId ||
+            transfer.sourceTeamId !== sourceTeamId ||
+            transfer.destinationTeamId !== destinationTeamId ||
+            !['pending', 'accepted'].includes(transfer.status)
+          ) {
+            throw new Error(
+              `Diary transfer ${transferId} no longer matches the recorded request`,
+            );
+          }
+          const destinationTeam =
+            await getDeps().teamRepository.findById(destinationTeamId);
+          if (destinationTeam?.status !== 'active') {
+            throw new Error(
+              `Destination team ${destinationTeamId} is no longer active`,
+            );
+          }
+          const updatedDiary = await diaryRepository.updateTeam(
+            diaryId,
+            destinationTeamId,
+            sourceTeamId,
+          );
+          if (!updatedDiary) {
+            const currentDiary = await diaryRepository.findById(diaryId);
+            if (currentDiary?.teamId !== destinationTeamId) {
+              throw new Error(
+                `Diary ${diaryId} is no longer owned by source team ${sourceTeamId}`,
+              );
+            }
+          }
+
+          const resolved = await diaryTransferRepository.updateStatus(
+            transferId,
+            'accepted',
+          );
+          if (!resolved) {
+            const currentTransfer =
+              await diaryTransferRepository.findById(transferId);
+            if (currentTransfer?.status !== 'accepted') {
+              throw new Error(
+                `Diary transfer ${transferId} is no longer pending`,
+              );
+            }
+          }
+        },
+        { name: 'diary.transfer.tx.accept' },
+      );
+
+      // Keto is external to Postgres. Reconcile it durably and idempotently
+      // after the database state is committed.
+      try {
+        await removeDiaryTeamStep(diaryId);
+        await grantDiaryTeamStep(diaryId, destinationTeamId);
+      } catch (err) {
+        getDeps().logger.error(
+          {
+            err,
+            transferId,
+            diaryId,
+            sourceTeamId,
+            destinationTeamId,
+            workflowId: DBOS.workflowID,
+            repair:
+              'fork the failed DBOS workflow from its reconciliation step',
+          },
+          'diary.transfer.keto_reconciliation_exhausted',
+        );
+        throw err;
+      }
       return { transferId, status: 'accepted' };
     },
     { name: 'diary.transfer.transferDiary' },

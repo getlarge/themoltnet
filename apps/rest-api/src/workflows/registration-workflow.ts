@@ -12,10 +12,10 @@ import {
 import {
   type AgentEnrollmentRepository,
   type AgentRepository,
-  type DataSource,
   DBOS,
   type DiaryRepository,
   type TeamRepository,
+  type TransactionRunner,
 } from '@moltnet/database';
 import type { IdentityApi, OAuth2Api } from '@ory/client-fetch';
 
@@ -70,6 +70,16 @@ export interface RegistrationResult {
   credential: RegistrationCredential;
 }
 
+export interface RegistrationWorkflowResult {
+  identityId: string;
+  identityOwnedForCompensation: boolean;
+  fingerprint: string;
+  publicKey: string;
+  teamId: string;
+  credentialType: RegistrationCredentialType;
+  credentialIdempotencyKey: string;
+}
+
 export class EnrollmentValidationError extends Error {
   constructor(message: string) {
     super(message);
@@ -93,7 +103,7 @@ export interface RegistrationDeps {
   teamRepository: TeamRepository;
   relationshipWriter: RelationshipWriter;
   issueAgentKey: (input: IssueAgentKeyInput) => Promise<AgentKeyWithSecret>;
-  dataSource: DataSource;
+  transactionRunner: TransactionRunner;
   logger: Logger;
 }
 
@@ -114,8 +124,11 @@ function getDeps(): RegistrationDeps {
 
 type RegisterAgentFn = (
   input: RegistrationInput,
-) => Promise<RegistrationResult>;
-type CompensateSelfRegistrationFn = (identityId: string) => Promise<void>;
+) => Promise<RegistrationWorkflowResult>;
+type CompensateSelfRegistrationFn = (
+  identityId: string,
+  deleteIdentity: boolean,
+) => Promise<void>;
 
 let _workflow: RegisterAgentFn | null = null;
 let _compensateSelfRegistration: CompensateSelfRegistrationFn | null = null;
@@ -130,6 +143,84 @@ function isConflictError(error: unknown): boolean {
     'status' in error.response &&
     error.response.status === 409
   );
+}
+
+function getResponseStatus(error: unknown): number | undefined {
+  if (
+    typeof error !== 'object' ||
+    error === null ||
+    !('response' in error) ||
+    typeof error.response !== 'object' ||
+    error.response === null ||
+    !('status' in error.response) ||
+    typeof error.response.status !== 'number'
+  ) {
+    return undefined;
+  }
+  return error.response.status;
+}
+
+/**
+ * Issue the one-time bootstrap secret outside DBOS. Workflow inputs, step
+ * outputs, events, and results are durable; bearer credentials must never be
+ * stored in any of them. Repeating this call rotates/reissues the credential,
+ * which also closes the HTTP response-loss gap.
+ */
+export async function issueRegistrationCredential(
+  registration: RegistrationWorkflowResult,
+): Promise<RegistrationResult> {
+  let credential: RegistrationCredential;
+  if (registration.credentialType === 'oauth2') {
+    const { oauth2Api } = getDeps();
+    const clientId = `moltnet-agent-${registration.identityId}`;
+    const clientSecret = crypto.randomUUID();
+    const oAuth2Client = {
+      client_id: clientId,
+      client_secret: clientSecret,
+      client_name: `Agent: ${registration.fingerprint}`,
+      grant_types: ['client_credentials'],
+      response_types: [] as string[],
+      token_endpoint_auth_method: 'client_secret_post',
+      scope: AGENT_OAUTH_SCOPES.join(' '),
+      metadata: {
+        type: 'moltnet_agent',
+        identity_id: registration.identityId,
+        public_key: registration.publicKey,
+        fingerprint: registration.fingerprint,
+      },
+    };
+    try {
+      await oauth2Api.createOAuth2Client({ oAuth2Client });
+    } catch (error) {
+      if (!isConflictError(error)) throw error;
+      await oauth2Api.setOAuth2Client({ id: clientId, oAuth2Client });
+    }
+    credential = { type: 'oauth2', clientId, clientSecret };
+  } else {
+    const subject: AgentKeySubject = {
+      identityId: registration.identityId,
+      scopes: [...AGENT_OAUTH_SCOPES],
+      subjectNs: KetoNamespace.Agent,
+      subjectType: 'agent',
+    };
+    const result = await getDeps().issueAgentKey({
+      agentId: registration.identityId,
+      idempotencyKey: registration.credentialIdempotencyKey,
+      logger: getDeps().logger,
+      name: 'Bootstrap credential',
+      recoverReplayByRotation: true,
+      subject,
+      teamId: registration.teamId,
+    });
+    credential = { type: 'agent_key', ...result };
+  }
+
+  return {
+    identityId: registration.identityId,
+    fingerprint: registration.fingerprint,
+    publicKey: registration.publicKey,
+    credential,
+  };
 }
 
 export function initRegistrationWorkflow(): void {
@@ -152,7 +243,10 @@ export function initRegistrationWorkflow(): void {
   );
 
   const createKratosIdentityStep = DBOS.registerStep(
-    async (publicKey: string): Promise<string> => {
+    async (
+      publicKey: string,
+      registrationWorkflowId: string,
+    ): Promise<{ identityId: string; ownedForCompensation: boolean }> => {
       const { identityApi } = getDeps();
       const schemas = await identityApi.listIdentitySchemas();
       const agentSchema = schemas.find(
@@ -164,21 +258,56 @@ export function initRegistrationWorkflow(): void {
           `Agent identity schema not found: ${AGENT_IDENTITY_SCHEMA_ID}`,
         );
       }
-      const identity = await identityApi.createIdentity({
-        createIdentityBody: {
-          schema_id: agentSchema.id,
-          traits: { public_key: publicKey },
-          credentials: {
-            // Kratos requires its agent schema to have a password credential.
-            // Agents authenticate with OAuth2 or agent keys, so this random
-            // throwaway password is never disclosed or used for authentication.
-            password: {
-              config: { password: `moltnet-${crypto.randomUUID()}` },
+      try {
+        const identity = await identityApi.createIdentity({
+          createIdentityBody: {
+            schema_id: agentSchema.id,
+            traits: { public_key: publicKey },
+            credentials: {
+              // Kratos requires its agent schema to have a password credential.
+              // Agents authenticate with OAuth2 or agent keys, so this random
+              // throwaway password is never disclosed or used for authentication.
+              password: {
+                config: { password: `moltnet-${crypto.randomUUID()}` },
+              },
+            },
+            metadata_admin: {
+              moltnet_registration_workflow_id: registrationWorkflowId,
             },
           },
-        },
-      });
-      return identity.id;
+        });
+        return { identityId: identity.id, ownedForCompensation: true };
+      } catch (error) {
+        if (!isConflictError(error)) throw error;
+
+        // A create can commit in Kratos while its response is lost. The
+        // public key is the schema's unique password credential identifier,
+        // so reconcile the retry to that already-created identity.
+        const identities = await identityApi.listIdentities({
+          consistency: 'strong',
+          credentialsIdentifier: publicKey,
+        });
+        const matches = identities.filter(
+          (identity) =>
+            identity.schema_id === agentSchema.id &&
+            (identity.traits as { public_key?: unknown }).public_key ===
+              publicKey,
+        );
+        if (matches.length !== 1) {
+          throw new RegistrationWorkflowError(
+            `Unable to reconcile Kratos identity for public key: found ${matches.length}`,
+          );
+        }
+        const owner = (
+          matches[0].metadata_admin as
+            | { moltnet_registration_workflow_id?: unknown }
+            | undefined
+        )?.moltnet_registration_workflow_id;
+        return {
+          identityId: matches[0].id,
+          ownedForCompensation: owner === registrationWorkflowId,
+        };
+      }
     },
     {
       name: 'registration.step.createKratosIdentity',
@@ -197,31 +326,6 @@ export function initRegistrationWorkflow(): void {
       name: 'registration.step.registerInKeto',
       retriesAllowed: true,
       maxAttempts: 5,
-      intervalSeconds: 2,
-      backoffRate: 2,
-    },
-  );
-
-  const createPersonalTeamStep = DBOS.registerStep(
-    async (identityId: string, fingerprint: string): Promise<string> => {
-      const { teamRepository } = getDeps();
-      const existing = await teamRepository.findPersonalByCreator({
-        kind: 'agent',
-        id: identityId,
-      });
-      if (existing) return existing.id;
-      const created = await teamRepository.create({
-        name: fingerprint,
-        personal: true,
-        creator: { kind: 'agent', id: identityId },
-        status: 'active',
-      });
-      return created.id;
-    },
-    {
-      name: 'registration.step.createPersonalTeam',
-      retriesAllowed: true,
-      maxAttempts: 3,
       intervalSeconds: 2,
       backoffRate: 2,
     },
@@ -261,102 +365,14 @@ export function initRegistrationWorkflow(): void {
     },
   );
 
-  const createPrivateDiaryStep = DBOS.registerStep(
-    async (identityId: string, teamId: string): Promise<void> => {
-      const { diaryRepository, relationshipWriter } = getDeps();
-      const existing = (
-        await diaryRepository.listByCreator({
-          kind: 'agent',
-          id: identityId,
-        })
-      ).find((diary) => diary.name === 'Private');
-      const diary =
-        existing ??
-        (await diaryRepository.create({
-          creator: { kind: 'agent', id: identityId },
-          name: 'Private',
-          visibility: 'private',
-          teamId,
-        }));
-      await relationshipWriter.grantDiaryTeam(diary.id, teamId);
+  const grantPrivateDiaryStep = DBOS.registerStep(
+    async (diaryId: string, teamId: string): Promise<void> => {
+      await getDeps().relationshipWriter.grantDiaryTeam(diaryId, teamId);
     },
     {
-      name: 'registration.step.createPrivateDiary',
+      name: 'registration.step.grantPrivateDiary',
       retriesAllowed: true,
-      maxAttempts: 3,
-      intervalSeconds: 2,
-      backoffRate: 2,
-    },
-  );
-
-  const createOAuth2ClientStep = DBOS.registerStep(
-    async (
-      identityId: string,
-      publicKey: string,
-      fingerprint: string,
-    ): Promise<RegistrationCredential> => {
-      const { oauth2Api } = getDeps();
-      const clientId = `moltnet-agent-${identityId}`;
-      const clientSecret = crypto.randomUUID();
-      const oAuth2Client = {
-        client_id: clientId,
-        client_secret: clientSecret,
-        client_name: `Agent: ${fingerprint}`,
-        grant_types: ['client_credentials'],
-        response_types: [] as string[],
-        token_endpoint_auth_method: 'client_secret_post',
-        scope: AGENT_OAUTH_SCOPES.join(' '),
-        metadata: {
-          type: 'moltnet_agent',
-          identity_id: identityId,
-          public_key: publicKey,
-          fingerprint,
-        },
-      };
-      try {
-        await oauth2Api.createOAuth2Client({ oAuth2Client });
-      } catch (error) {
-        if (!isConflictError(error)) throw error;
-        await oauth2Api.setOAuth2Client({ id: clientId, oAuth2Client });
-      }
-      return { type: 'oauth2', clientId, clientSecret };
-    },
-    {
-      name: 'registration.step.createOAuth2Client',
-      retriesAllowed: true,
-      maxAttempts: 3,
-      intervalSeconds: 2,
-      backoffRate: 2,
-    },
-  );
-
-  const createAgentKeyStep = DBOS.registerStep(
-    async (
-      identityId: string,
-      teamId: string,
-      idempotencyKey: string,
-    ): Promise<RegistrationCredential> => {
-      const subject: AgentKeySubject = {
-        identityId,
-        scopes: [...AGENT_OAUTH_SCOPES],
-        subjectNs: KetoNamespace.Agent,
-        subjectType: 'agent',
-      };
-      const result = await getDeps().issueAgentKey({
-        agentId: identityId,
-        idempotencyKey,
-        logger: getDeps().logger,
-        name: 'Bootstrap credential',
-        recoverReplayByRotation: true,
-        subject,
-        teamId,
-      });
-      return { type: 'agent_key', ...result };
-    },
-    {
-      name: 'registration.step.createAgentKey',
-      retriesAllowed: true,
-      maxAttempts: 3,
+      maxAttempts: 5,
       intervalSeconds: 2,
       backoffRate: 2,
     },
@@ -364,7 +380,11 @@ export function initRegistrationWorkflow(): void {
 
   const deleteKratosIdentityStep = DBOS.registerStep(
     async (identityId: string): Promise<void> => {
-      await getDeps().identityApi.deleteIdentity({ id: identityId });
+      try {
+        await getDeps().identityApi.deleteIdentity({ id: identityId });
+      } catch (error) {
+        if (getResponseStatus(error) !== 404) throw error;
+      }
     },
     {
       name: 'registration.step.deleteKratosIdentity',
@@ -375,21 +395,89 @@ export function initRegistrationWorkflow(): void {
     },
   );
 
-  const compensateTeamEnrollmentStep = DBOS.registerStep(
-    async (tokenHash: string, teamId: string, identityId: string) => {
-      const {
-        agentEnrollmentRepository,
-        agentRepository,
-        dataSource,
-        relationshipWriter,
-      } = getDeps();
-      await relationshipWriter.removeTeamMemberRelation(
-        teamId,
-        identityId,
-        KetoNamespace.Agent,
+  const cleanupTeamEnrollmentStep = DBOS.registerStep(
+    async (teamId: string, identityId: string) => {
+      const { relationshipWriter } = getDeps();
+      const results = await Promise.allSettled([
+        relationshipWriter.removeTeamMemberRelation(
+          teamId,
+          identityId,
+          KetoNamespace.Agent,
+        ),
+        relationshipWriter.removeAgentRelations(identityId),
+      ]);
+      const failures = results.filter(
+        (result): result is PromiseRejectedResult =>
+          result.status === 'rejected',
       );
-      await relationshipWriter.removeAgentRelations(identityId);
-      await dataSource.runTransaction(
+      if (failures.length > 0) {
+        throw new AggregateError(
+          failures.map((failure): unknown => failure.reason),
+          'Team enrollment cleanup failed',
+        );
+      }
+    },
+    {
+      name: 'registration.step.cleanupTeamEnrollment',
+      retriesAllowed: true,
+      maxAttempts: 5,
+      intervalSeconds: 2,
+      backoffRate: 2,
+    },
+  );
+
+  const cleanupSelfRegistrationStep = DBOS.registerStep(
+    async (
+      identityId: string,
+      teamId: string | null,
+      diaryIds: string[],
+    ): Promise<void> => {
+      const { relationshipWriter } = getDeps();
+      const cleanup = diaryIds.map((diaryId) =>
+        relationshipWriter.removeDiaryRelations(diaryId),
+      );
+      if (teamId) {
+        cleanup.push(
+          relationshipWriter.removeTeamMemberRelation(
+            teamId,
+            identityId,
+            KetoNamespace.Agent,
+          ),
+        );
+      }
+      cleanup.push(relationshipWriter.removeAgentRelations(identityId));
+      const results = await Promise.allSettled(cleanup);
+      const failures = results.filter(
+        (result): result is PromiseRejectedResult =>
+          result.status === 'rejected',
+      );
+      if (failures.length > 0) {
+        throw new AggregateError(
+          failures.map((failure): unknown => failure.reason),
+          'Self-registration cleanup failed',
+        );
+      }
+    },
+    {
+      name: 'registration.step.cleanupSelfRegistration',
+      retriesAllowed: true,
+      maxAttempts: 5,
+      intervalSeconds: 2,
+      backoffRate: 2,
+    },
+  );
+
+  const compensateTeamRegistration = DBOS.registerWorkflow(
+    async (
+      tokenHash: string,
+      teamId: string,
+      identityId: string,
+      deleteIdentity: boolean,
+    ): Promise<void> => {
+      const { agentEnrollmentRepository, agentRepository, transactionRunner } =
+        getDeps();
+      await cleanupTeamEnrollmentStep(teamId, identityId);
+      await transactionRunner.runInTransaction(
         async () => {
           await agentEnrollmentRepository.releaseRedemption(
             tokenHash,
@@ -397,98 +485,87 @@ export function initRegistrationWorkflow(): void {
           );
           await agentRepository.delete(identityId);
         },
-        { name: 'registration.tx.compensateEnrollment' },
+        { name: 'registration.tx.compensateTeamRegistration' },
       );
+      if (deleteIdentity) {
+        await deleteKratosIdentityStep(identityId);
+      }
     },
-    {
-      name: 'registration.step.compensateTeamEnrollment',
-      retriesAllowed: true,
-      maxAttempts: 3,
-      intervalSeconds: 2,
-      backoffRate: 2,
-    },
+    { name: 'registration.compensateTeamRegistration' },
   );
 
-  _compensateSelfRegistration = DBOS.registerStep(
-    async (identityId: string): Promise<void> => {
+  _compensateSelfRegistration = DBOS.registerWorkflow(
+    async (identityId: string, deleteIdentity: boolean): Promise<void> => {
       const {
         agentRepository,
-        dataSource,
         diaryRepository,
-        oauth2Api,
-        relationshipWriter,
         teamRepository,
+        transactionRunner,
       } = getDeps();
-      const team = await teamRepository.findPersonalByCreator({
-        kind: 'agent',
-        id: identityId,
-      });
-      const diaries = (
-        await diaryRepository.listByCreator({
-          kind: 'agent',
-          id: identityId,
-        })
-      ).filter((diary) => !team || diary.teamId === team.id);
-      for (const diary of diaries) {
-        await relationshipWriter.removeDiaryRelations(diary.id);
-      }
-      if (team) {
-        await relationshipWriter.removeTeamMemberRelation(
-          team.id,
-          identityId,
-          KetoNamespace.Agent,
-        );
-      }
-      await relationshipWriter.removeAgentRelations(identityId);
-      try {
-        await oauth2Api.deleteOAuth2Client({
-          id: `moltnet-agent-${identityId}`,
-        });
-      } catch (error) {
-        const status =
-          typeof error === 'object' &&
-          error !== null &&
-          'response' in error &&
-          typeof error.response === 'object' &&
-          error.response !== null &&
-          'status' in error.response
-            ? error.response.status
-            : undefined;
-        if (status !== 404) throw error;
-      }
-      await dataSource.runTransaction(
+      const inventory = await transactionRunner.runInTransaction(
         async () => {
-          for (const diary of diaries) {
-            await diaryRepository.delete(diary.id);
+          const team = await teamRepository.findPersonalByCreator({
+            kind: 'agent',
+            id: identityId,
+          });
+          const diaryIds = (
+            await diaryRepository.listByCreator({
+              kind: 'agent',
+              id: identityId,
+            })
+          )
+            .filter((diary) => !team || diary.teamId === team.id)
+            .map((diary) => diary.id);
+          return { teamId: team?.id ?? null, diaryIds };
+        },
+        { name: 'registration.tx.inventorySelfRegistration' },
+      );
+
+      await cleanupSelfRegistrationStep(
+        identityId,
+        inventory.teamId,
+        inventory.diaryIds,
+      );
+      await transactionRunner.runInTransaction(
+        async () => {
+          for (const diaryId of inventory.diaryIds) {
+            await diaryRepository.delete(diaryId);
           }
-          if (team) await teamRepository.delete(team.id);
+          if (inventory.teamId) {
+            await teamRepository.delete(inventory.teamId);
+          }
           await agentRepository.delete(identityId);
         },
         { name: 'registration.tx.compensateSelfRegistration' },
       );
+      if (deleteIdentity) {
+        await deleteKratosIdentityStep(identityId);
+      }
     },
-    {
-      name: 'registration.step.compensateSelfRegistration',
-      retriesAllowed: true,
-      maxAttempts: 3,
-      intervalSeconds: 2,
-      backoffRate: 2,
-    },
+    { name: 'registration.compensateSelfRegistration' },
   );
-  const compensateSelfRegistrationStep = _compensateSelfRegistration;
+  const compensateSelfRegistrationWorkflow = _compensateSelfRegistration;
 
   _workflow = DBOS.registerWorkflow(
-    async (input: RegistrationInput): Promise<RegistrationResult> => {
+    async (input: RegistrationInput): Promise<RegistrationWorkflowResult> => {
       const enrollmentTeamId =
         input.mode.type === 'team'
           ? await validateEnrollmentStep(input.mode.enrollmentTokenHash)
           : null;
-      const identityId = await createKratosIdentityStep(input.publicKey);
-      let teamId: string | null = enrollmentTeamId;
+      const identity = await createKratosIdentityStep(
+        input.publicKey,
+        DBOS.workflowID ?? `registration-${input.idempotencyKey}`,
+      );
+      const { identityId } = identity;
       try {
-        const { agentEnrollmentRepository, agentRepository, dataSource } =
-          getDeps();
-        await dataSource.runTransaction(
+        const {
+          agentEnrollmentRepository,
+          agentRepository,
+          diaryRepository,
+          teamRepository,
+          transactionRunner,
+        } = getDeps();
+        const persisted = await transactionRunner.runInTransaction(
           async () => {
             await agentRepository.upsert({
               identityId,
@@ -505,45 +582,63 @@ export function initRegistrationWorkflow(): void {
                   'Enrollment was redeemed by another registration request',
                 );
               }
-              teamId = redeemed.teamId;
+              return { teamId: redeemed.teamId, privateDiaryId: null };
             }
+
+            const existingTeam = await teamRepository.findPersonalByCreator({
+              kind: 'agent',
+              id: identityId,
+            });
+            const team =
+              existingTeam ??
+              (await teamRepository.create({
+                name: input.fingerprint,
+                personal: true,
+                creator: { kind: 'agent', id: identityId },
+                status: 'active',
+              }));
+            const existingDiary = (
+              await diaryRepository.listByCreator({
+                kind: 'agent',
+                id: identityId,
+              })
+            ).find((diary) => diary.name === 'Private');
+            const diary =
+              existingDiary ??
+              (await diaryRepository.create({
+                creator: { kind: 'agent', id: identityId },
+                name: 'Private',
+                visibility: 'private',
+                teamId: team.id,
+              }));
+            return { teamId: team.id, privateDiaryId: diary.id };
           },
           { name: 'registration.tx.persist' },
         );
+        const teamId = persisted.teamId ?? enrollmentTeamId;
 
         await registerInKetoStep(identityId);
         if (input.mode.type === 'self') {
-          teamId = await createPersonalTeamStep(identityId, input.fingerprint);
           await grantPersonalTeamOwnerStep(teamId, identityId);
-          await createPrivateDiaryStep(identityId, teamId);
-        }
-        if (!teamId) {
-          throw new RegistrationWorkflowError(
-            'Registration team was not resolved',
-          );
+          if (!persisted.privateDiaryId) {
+            throw new RegistrationWorkflowError(
+              'Private diary was not resolved',
+            );
+          }
+          await grantPrivateDiaryStep(persisted.privateDiaryId, teamId);
         }
         if (input.mode.type === 'team') {
           await grantTeamMemberStep(teamId, identityId);
         }
 
-        const credential =
-          input.credentialType === 'oauth2'
-            ? await createOAuth2ClientStep(
-                identityId,
-                input.publicKey,
-                input.fingerprint,
-              )
-            : await createAgentKeyStep(
-                identityId,
-                teamId,
-                input.idempotencyKey,
-              );
-
         return {
           identityId,
+          identityOwnedForCompensation: identity.ownedForCompensation,
           fingerprint: input.fingerprint,
           publicKey: input.publicKey,
-          credential,
+          teamId,
+          credentialType: input.credentialType,
+          credentialIdempotencyKey: input.idempotencyKey,
         };
       } catch (error) {
         const { logger } = getDeps();
@@ -551,13 +646,19 @@ export function initRegistrationWorkflow(): void {
           { err: error, identityId },
           'registration.compensation_started',
         );
-        if (input.mode.type === 'team' && teamId) {
+        const parentWorkflowId = DBOS.workflowID ?? identityId;
+        if (input.mode.type === 'team' && enrollmentTeamId) {
           try {
-            await compensateTeamEnrollmentStep(
+            const handle = await DBOS.startWorkflow(
+              compensateTeamRegistration,
+              { workflowID: `registration-compensation:${parentWorkflowId}` },
+            )(
               input.mode.enrollmentTokenHash,
-              teamId,
+              enrollmentTeamId,
               identityId,
+              identity.ownedForCompensation,
             );
+            await handle.getResult();
           } catch (compensationError) {
             logger.error(
               { err: compensationError, identityId },
@@ -566,21 +667,17 @@ export function initRegistrationWorkflow(): void {
           }
         } else if (input.mode.type === 'self') {
           try {
-            await compensateSelfRegistrationStep(identityId);
+            const handle = await DBOS.startWorkflow(
+              compensateSelfRegistrationWorkflow,
+              { workflowID: `registration-compensation:${parentWorkflowId}` },
+            )(identityId, identity.ownedForCompensation);
+            await handle.getResult();
           } catch (compensationError) {
             logger.error(
               { err: compensationError, identityId },
               'registration.self_compensation_failed',
             );
           }
-        }
-        try {
-          await deleteKratosIdentityStep(identityId);
-        } catch (compensationError) {
-          logger.error(
-            { err: compensationError, identityId },
-            'registration.identity_compensation_failed',
-          );
         }
         throw error;
       }

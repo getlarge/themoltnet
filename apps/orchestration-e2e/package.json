@@ -4,11 +4,14 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@themoltnet/issue-lifecycle": "workspace:*",
+    "@themoltnet/multi-lens-review": "workspace:*",
     "@themoltnet/tasks-orchestrator": "workspace:*",
     "pg": "catalog:"
   },
   "devDependencies": {
     "@types/pg": "catalog:",
+    "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
@@ -20,11 +23,13 @@
       "platform:cli"
     ],
     "implicitDependencies": [
+      "@themoltnet/issue-lifecycle",
+      "@themoltnet/multi-lens-review",
       "@themoltnet/tasks-orchestrator"
     ],
     "targets": {
       "e2e": {
-        "cache": true,
+        "cache": false,
         "executor": "nx:run-commands",
         "inputs": [
           "default",

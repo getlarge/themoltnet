@@ -31,11 +31,13 @@ export {
 export {
   initMaintenanceWorkflows,
   type MaintenanceDeps,
+  registerMaintenanceQueues,
   setMaintenanceDeps,
 } from './maintenance.js';
 export {
   EnrollmentValidationError,
   initRegistrationWorkflow,
+  issueRegistrationCredential,
   type RegistrationCredential,
   type RegistrationCredentialType,
   type RegistrationDeps,
@@ -45,6 +47,7 @@ export {
   type RegistrationResult,
   registrationWorkflow,
   RegistrationWorkflowError,
+  type RegistrationWorkflowResult,
   setRegistrationDeps,
 } from './registration-workflow.js';
 export {

@@ -83,6 +83,43 @@ export interface TaskRetentionCutoffs {
   expiredBefore: Date;
 }
 
+type TaskStatusPatch = Partial<
+  Pick<
+    Task,
+    | 'completedAt'
+    | 'cancelReason'
+    | 'cancelledByAgentId'
+    | 'cancelledByHumanId'
+    | 'acceptedAttemptN'
+    | 'claimAgentId'
+    | 'claimExpiresAt'
+  >
+>;
+
+const TERMINAL_TASK_STATUSES: readonly Task['status'][] = [
+  'completed',
+  'failed',
+  'cancelled',
+  'expired',
+];
+
+function buildTaskStatusPatch(status: Task['status'], extra?: TaskStatusPatch) {
+  if (!TERMINAL_TASK_STATUSES.includes(status)) {
+    return { status, updatedAt: sql`now()`, ...extra };
+  }
+
+  const { completedAt, ...rest } = extra ?? {};
+  return {
+    status,
+    updatedAt: sql`now()`,
+    ...rest,
+    completedAt:
+      completedAt === null || completedAt === undefined
+        ? sql`coalesce(${tasks.completedAt}, now())`
+        : sql`coalesce(${tasks.completedAt}, ${completedAt})`,
+  };
+}
+
 export type TaskActivityGroupBy =
   | 'none'
   | 'day'
@@ -307,6 +344,40 @@ export function createTaskRepository(db: Database) {
         .where(and(eq(tasks.id, id), eq(tasks.teamId, teamId)))
         .limit(1);
       return row ?? null;
+    },
+
+    async findByIdempotencyKey(input: {
+      teamId: string;
+      proposer: { kind: 'agent' | 'human'; id: string };
+      keyHash: string;
+    }): Promise<Task | null> {
+      const proposerFilter =
+        input.proposer.kind === 'agent'
+          ? eq(tasks.proposedByAgentId, input.proposer.id)
+          : eq(tasks.proposedByHumanId, input.proposer.id);
+      const [row] = await getExecutor(db)
+        .select()
+        .from(tasks)
+        .where(
+          and(
+            eq(tasks.teamId, input.teamId),
+            proposerFilter,
+            eq(tasks.idempotencyKeyHash, input.keyHash),
+          ),
+        )
+        .limit(1);
+      return row ?? null;
+    },
+
+    async clearIdempotencyKey(id: string): Promise<void> {
+      await getExecutor(db)
+        .update(tasks)
+        .set({
+          idempotencyKeyHash: null,
+          idempotencyRequestCid: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(tasks.id, id));
     },
 
     async findByIds(ids: string[]): Promise<Task[]> {
@@ -683,22 +754,11 @@ export function createTaskRepository(db: Database) {
     async updateStatus(
       id: string,
       status: Task['status'],
-      extra?: Partial<
-        Pick<
-          Task,
-          | 'completedAt'
-          | 'cancelReason'
-          | 'cancelledByAgentId'
-          | 'cancelledByHumanId'
-          | 'acceptedAttemptN'
-          | 'claimAgentId'
-          | 'claimExpiresAt'
-        >
-      >,
+      extra?: TaskStatusPatch,
     ): Promise<Task | null> {
       const [row] = await getExecutor(db)
         .update(tasks)
-        .set({ status, updatedAt: sql`now()`, ...extra })
+        .set(buildTaskStatusPatch(status, extra))
         .where(eq(tasks.id, id))
         .returning();
       return row ?? null;
@@ -717,22 +777,11 @@ export function createTaskRepository(db: Database) {
       id: string,
       status: Task['status'],
       excluded: Task['status'][],
-      extra?: Partial<
-        Pick<
-          Task,
-          | 'completedAt'
-          | 'cancelReason'
-          | 'cancelledByAgentId'
-          | 'cancelledByHumanId'
-          | 'acceptedAttemptN'
-          | 'claimAgentId'
-          | 'claimExpiresAt'
-        >
-      >,
+      extra?: TaskStatusPatch,
     ): Promise<Task | null> {
       const [row] = await getExecutor(db)
         .update(tasks)
-        .set({ status, updatedAt: sql`now()`, ...extra })
+        .set(buildTaskStatusPatch(status, extra))
         .where(and(eq(tasks.id, id), notInArray(tasks.status, excluded)))
         .returning();
       return row ?? null;

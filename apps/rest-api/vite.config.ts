@@ -1,8 +1,30 @@
+import type { Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
 
 import { restApiOtelExternals } from '../../vite.shared';
 
+function rejectBundledDBOSInternals(): Plugin {
+  return {
+    name: 'reject-bundled-dbos-internals',
+    generateBundle(_options, bundle) {
+      for (const output of Object.values(bundle)) {
+        if (output.type !== 'chunk') continue;
+        const dbosModuleId = output.moduleIds.find((moduleId) =>
+          moduleId.replaceAll('\\', '/').includes('/@dbos-inc/'),
+        );
+        if (dbosModuleId) {
+          this.error(
+            `${output.fileName} contains bundled DBOS module ${dbosModuleId}. ` +
+              'Externalize @dbos-inc/dbos-sdk and @dbos-inc/drizzle-datasource.',
+          );
+        }
+      }
+    },
+  };
+}
+
 export default defineConfig({
+  plugins: [rejectBundledDBOSInternals()],
   build: {
     ssr: 'src/main.ts',
     outDir: 'dist',
@@ -28,6 +50,8 @@ export default defineConfig({
       'pino-opentelemetry-transport',
       'thread-stream',
       '@fastify/otel',
+      '@dbos-inc/dbos-sdk',
+      '@dbos-inc/drizzle-datasource',
       ...restApiOtelExternals,
       // onnxruntime-node uses native .node addons loaded via dynamic require().
       // Rollup cannot resolve these at bundle time; must stay external so Node

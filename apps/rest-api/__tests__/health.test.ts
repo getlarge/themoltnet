@@ -69,6 +69,10 @@ describe('Health routes', () => {
         latencyMs: 0,
         error: 'not_configured',
       });
+      expect(body.components.dbos).toEqual({
+        status: 'ok',
+        latencyMs: expect.any(Number),
+      });
       expect(body.components.ory).toEqual({
         status: 'error',
         latencyMs: 0,
@@ -180,6 +184,36 @@ describe('Health readiness probes', () => {
     expect(body.components.database.status).toBe('error');
     expect(body.components.database.error).toBe('unavailable');
     expect(body.components.ory.status).toBe('ok');
+  });
+
+  it('returns degraded while DBOS recovery is not ready', async () => {
+    const mockPool = {
+      query: vi.fn().mockResolvedValue({ rows: [{ '?column?': 1 }] }),
+    };
+    fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('{}', { status: 200 }));
+
+    app = await createTestApp(mocks, null, undefined, {
+      pool: mockPool,
+      dbosReady: () => false,
+      oryProjectUrl: 'https://mock-ory.example.com',
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/health/ready',
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toMatchObject({
+      status: 'degraded',
+      components: {
+        database: { status: 'ok' },
+        dbos: { status: 'error', error: 'not_ready' },
+        ory: { status: 'ok' },
+      },
+    });
   });
 
   it('returns degraded when Ory probe returns non-200', async () => {

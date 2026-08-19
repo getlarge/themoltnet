@@ -1,4 +1,5 @@
 import type { AuthContext } from '@moltnet/auth';
+import { DBOS } from '@moltnet/database';
 import { VERIFICATION_METHOD } from '@moltnet/models';
 import {
   _resetSigningWorkflowsForTesting,
@@ -237,6 +238,83 @@ describe('createSigningService', () => {
     expect(service.credentials).toBeDefined();
     expect(service.requests).toBeDefined();
     expect(service.challengeValidation).toBeDefined();
+  });
+
+  it('rejects an agent signature after the request was rejected', async () => {
+    const send = vi.spyOn(DBOS, 'send').mockResolvedValue(undefined);
+    const service = createSigningService(
+      createDeps({
+        signingRequestRepository: {
+          findById: vi.fn().mockResolvedValue({
+            ...pendingRequest(),
+            agentId: agent.identityId,
+            verificationMethod: VERIFICATION_METHOD.AgentEd25519,
+            status: 'rejected',
+            workflowId: `signing-${REQUEST_ID}`,
+          }),
+        } as never,
+      }),
+    );
+
+    await expect(
+      service.requests.submitAgentSignature({
+        actor: agent,
+        requestId: REQUEST_ID,
+        signature: 'rejected-signature',
+      }),
+    ).rejects.toMatchObject({ code: 'conflict' });
+    expect(send).not.toHaveBeenCalled();
+    send.mockRestore();
+  });
+
+  it('deduplicates identical agent signatures without conflating different payloads', async () => {
+    const send = vi.spyOn(DBOS, 'send').mockResolvedValue(undefined);
+    const pending = {
+      ...pendingRequest(),
+      agentId: agent.identityId,
+      verificationMethod: VERIFICATION_METHOD.AgentEd25519,
+      workflowId: `signing-${REQUEST_ID}`,
+    };
+    const completed = {
+      ...pending,
+      status: 'completed' as const,
+      completedAt: NOW(),
+    };
+    const findById = vi
+      .fn()
+      .mockResolvedValueOnce(pending)
+      .mockResolvedValueOnce(completed)
+      .mockResolvedValueOnce(pending)
+      .mockResolvedValueOnce(completed);
+    const service = createSigningService(
+      createDeps({
+        signingRequestRepository: { findById } as never,
+      }),
+    );
+
+    await service.requests.submitAgentSignature({
+      actor: agent,
+      requestId: REQUEST_ID,
+      signature: 'signature-a',
+    });
+    await service.requests.submitAgentSignature({
+      actor: agent,
+      requestId: REQUEST_ID,
+      signature: 'signature-b',
+    });
+
+    const firstKey = send.mock.calls[0]?.[3];
+    const secondKey = send.mock.calls[1]?.[3];
+    expect(firstKey).toMatch(
+      new RegExp(`^signing-request:${REQUEST_ID}:submission:[0-9a-f]{64}$`),
+    );
+    expect(secondKey).toMatch(
+      new RegExp(`^signing-request:${REQUEST_ID}:submission:[0-9a-f]{64}$`),
+    );
+    expect(firstKey).not.toBe(secondKey);
+    expect(firstKey).not.toContain('signature-a');
+    expect(secondKey).not.toContain('signature-b');
+    send.mockRestore();
   });
 
   it('validates an exact unconsumed registration challenge without an auth context', async () => {

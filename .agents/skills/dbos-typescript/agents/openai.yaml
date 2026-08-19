@@ -1,0 +1,4 @@
+interface:
+  display_name: 'DBOS TypeScript'
+  short_description: 'Author replay-safe MoltNet DBOS workflows'
+  default_prompt: 'Use $dbos-typescript to review this DBOS workflow for determinism, recovery, transactions, queues, and version safety.'

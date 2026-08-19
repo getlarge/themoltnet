@@ -1,4 +1,6 @@
 import type { SuccessCriteria } from '@moltnet/tasks';
+import { inlineContext } from '@themoltnet/tasks-orchestrator';
+import { replayContext } from '@themoltnet/tasks-orchestrator/testing';
 import { describe, expect, it } from 'vitest';
 
 import type { FakeGithub } from './test-fakes.js';
@@ -64,6 +66,39 @@ function prReviewOutputs() {
 }
 
 describe('runGithubIssueLifecycle', () => {
+  it('checkpoints a generated correlation id across workflow replay', async () => {
+    const { deps } = fakeDeps([]);
+    deps.github.getIssue = () => Promise.reject(new Error('stop after input'));
+    const ctx = replayContext('issue-lifecycle-execution');
+    const input = {
+      repo: 'getlarge/themoltnet',
+      issueNumber: 1327,
+      teamId: 'team',
+      diaryId: 'diary',
+    };
+
+    await expect(runGithubIssueLifecycle(input, deps, ctx)).rejects.toThrow(
+      'stop after input',
+    );
+    const first = ctx.checkpointEntries.find(
+      ([name]) => name === 'input.normalize',
+    )?.[1] as { correlationId: string };
+
+    ctx.resetForReplay();
+    await expect(runGithubIssueLifecycle(input, deps, ctx)).rejects.toThrow(
+      'stop after input',
+    );
+    const second = ctx.checkpointEntries.find(
+      ([name]) => name === 'input.normalize',
+    )?.[1] as { correlationId: string };
+
+    expect(first.correlationId).toMatch(/[0-9a-f-]{36}/);
+    expect(second.correlationId).toBe(first.correlationId);
+    expect(
+      ctx.checkpointNames.filter((name) => name === 'input.normalize'),
+    ).toHaveLength(1);
+  });
+
   it('creates a freeform continuation chain through notify', async () => {
     const {
       deps: d,
@@ -362,7 +397,7 @@ describe('runGithubIssueLifecycle', () => {
     );
   });
 
-  it('uses event-aware waits when the workflow context supports them', async () => {
+  it('uses durable sleeps instead of reusing immutable event names', async () => {
     const { deps: d, github } = fakeDeps([
       { phase: 'classified', decision: 'plan', summary: 'classified' },
       {
@@ -395,10 +430,11 @@ describe('runGithubIssueLifecycle', () => {
           'https://github.com/getlarge/themoltnet/pull/42#issuecomment-1',
       },
     ]);
-    github.approvalResponses = [false, true];
+    github.approvalResponses = [false, false, true];
     const events: string[] = [];
     const sleeps: string[] = [];
     const ctx: WorkflowContext = {
+      ...inlineContext,
       step(_name, fn) {
         return fn();
       },
@@ -425,10 +461,8 @@ describe('runGithubIssueLifecycle', () => {
       ctx,
     );
 
-    expect(events).toContain(
-      'github.issue.label:getlarge/themoltnet:1327:moltnet:plan-approved',
-    );
-    expect(sleeps).toEqual([]);
+    expect(events).toEqual([]);
+    expect(sleeps).toContain('wait-plan-approval-label-addition');
   });
 
   it('stops when triage says the issue needs more triage', async () => {
@@ -971,6 +1005,7 @@ describe('runGithubIssueLifecycle', () => {
       {
         id: 1,
         body: `<!-- moltnet-issue-lifecycle:plan-approval:${correlationId} -->`,
+        author: { login: 'moltnet-test[bot]', type: 'Bot' },
       },
     ];
 

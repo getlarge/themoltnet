@@ -6,6 +6,7 @@
 import { createHash } from 'node:crypto';
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
+import { sealForEd25519PublicKey } from '@moltnet/crypto-service';
 import { DBOS, type PublicFeedCursor } from '@moltnet/database';
 import {
   MOLTNET_NETWORK_INFO,
@@ -642,7 +643,27 @@ export async function publicRoutes(fastify: FastifyInstance) {
         throw createProblem('not-found', 'Onboarding session not found');
       }
 
-      await DBOS.send(workflowId, code, GITHUB_CODE_EVENT);
+      const [registrationInput] = await handle.getWorkflowInputs<
+        [
+          {
+            publicKey: string;
+          },
+          string,
+        ]
+      >();
+      if (!registrationInput?.publicKey) {
+        throw createProblem('not-found', 'Onboarding session not found');
+      }
+      const sealedCode = sealForEd25519PublicKey(
+        code,
+        registrationInput.publicKey,
+      );
+      await DBOS.send(
+        workflowId,
+        sealedCode,
+        GITHUB_CODE_EVENT,
+        `legreffier:${workflowId}:github-code`,
+      );
       return { ok: true };
     },
   );
@@ -689,12 +710,8 @@ export async function publicRoutes(fastify: FastifyInstance) {
           return {
             status: 'completed' as const,
             identityId: result.identityId,
-            ...(result.credential.type === 'oauth2'
-              ? {
-                  clientId: result.credential.clientId,
-                  clientSecret: result.credential.clientSecret,
-                }
-              : {}),
+            clientId: result.credential.clientId,
+            clientSecret: result.credential.sealedClientSecret,
             installationId: result.installationId,
           };
         } catch (err) {
@@ -719,25 +736,28 @@ export async function publicRoutes(fastify: FastifyInstance) {
         0,
       );
       if (awaitingInstallation) {
-        const githubCode = await DBOS.getEvent<string>(
+        const sealedGithubCode = await DBOS.getEvent<string>(
           workflowId,
           GITHUB_CODE_READY_EVENT,
           0,
         );
         return {
           status: 'awaiting_installation' as const,
-          githubCode: githubCode ?? undefined,
+          githubCode: sealedGithubCode ?? undefined,
         };
       }
 
       // Check if github_code_ready event has been set (non-blocking, timeout=0)
-      const githubCode = await DBOS.getEvent<string>(
+      const sealedGithubCode = await DBOS.getEvent<string>(
         workflowId,
         GITHUB_CODE_READY_EVENT,
         0,
       );
-      if (githubCode) {
-        return { status: 'github_code_ready' as const, githubCode };
+      if (sealedGithubCode) {
+        return {
+          status: 'github_code_ready' as const,
+          githubCode: sealedGithubCode,
+        };
       }
 
       return { status: 'awaiting_github' as const };
@@ -777,7 +797,12 @@ export async function publicRoutes(fastify: FastifyInstance) {
         throw createProblem('not-found', 'Onboarding session not found');
       }
 
-      await DBOS.send(workflowId, installation_id, INSTALLATION_ID_EVENT);
+      await DBOS.send(
+        workflowId,
+        installation_id,
+        INSTALLATION_ID_EVENT,
+        `legreffier:${workflowId}:installation`,
+      );
       return { ok: true };
     },
   );

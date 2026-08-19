@@ -8,6 +8,7 @@ export default defineConfig({
     environment: 'node',
     root: resolve(import.meta.dirname),
     include: ['src/**/*.e2e.test.ts'],
+    exclude: ['src/durable-workflow-recovery.e2e.test.ts'],
     globalSetup: ['./src/globalSetup.ts'],
     testTimeout: 30_000,
     hookTimeout: 120_000,

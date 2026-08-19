@@ -23243,8 +23243,10 @@ type GetLatestRenderedPackUnauthorized ProblemDetails
 func (*GetLatestRenderedPackUnauthorized) getLatestRenderedPackRes() {}
 
 type GetLegreffierOnboardingStatusOK struct {
-	ClientId       OptString                             `json:"clientId"`
-	ClientSecret   OptString                             `json:"clientSecret"`
+	ClientId OptString `json:"clientId"`
+	// OAuth2 client secret sealed to the onboarding agent public key.
+	ClientSecret OptString `json:"clientSecret"`
+	// GitHub manifest code sealed to the onboarding agent public key.
 	GithubCode     OptString                             `json:"githubCode"`
 	IdentityId     OptString                             `json:"identityId"`
 	InstallationId OptString                             `json:"installationId"`
@@ -44704,6 +44706,7 @@ func (s *Readiness) SetTimestamp(val time.Time) {
 
 type ReadinessComponents struct {
 	Database ReadinessComponentsDatabase `json:"database"`
+	Dbos     ReadinessComponentsDbos     `json:"dbos"`
 	Ory      ReadinessComponentsOry      `json:"ory"`
 	Talos    OptReadinessComponentsTalos `json:"talos"`
 }
@@ -44711,6 +44714,11 @@ type ReadinessComponents struct {
 // GetDatabase returns the value of Database.
 func (s *ReadinessComponents) GetDatabase() ReadinessComponentsDatabase {
 	return s.Database
+}
+
+// GetDbos returns the value of Dbos.
+func (s *ReadinessComponents) GetDbos() ReadinessComponentsDbos {
+	return s.Dbos
 }
 
 // GetOry returns the value of Ory.
@@ -44726,6 +44734,11 @@ func (s *ReadinessComponents) GetTalos() OptReadinessComponentsTalos {
 // SetDatabase sets the value of Database.
 func (s *ReadinessComponents) SetDatabase(val ReadinessComponentsDatabase) {
 	s.Database = val
+}
+
+// SetDbos sets the value of Dbos.
+func (s *ReadinessComponents) SetDbos(val ReadinessComponentsDbos) {
+	s.Dbos = val
 }
 
 // SetOry sets the value of Ory.
@@ -44809,6 +44822,83 @@ func (s *ReadinessComponentsDatabaseStatus) UnmarshalText(data []byte) error {
 		return nil
 	case ReadinessComponentsDatabaseStatusError:
 		*s = ReadinessComponentsDatabaseStatusError
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ReadinessComponentsDbos struct {
+	Error     OptString                     `json:"error"`
+	LatencyMs float64                       `json:"latencyMs"`
+	Status    ReadinessComponentsDbosStatus `json:"status"`
+}
+
+// GetError returns the value of Error.
+func (s *ReadinessComponentsDbos) GetError() OptString {
+	return s.Error
+}
+
+// GetLatencyMs returns the value of LatencyMs.
+func (s *ReadinessComponentsDbos) GetLatencyMs() float64 {
+	return s.LatencyMs
+}
+
+// GetStatus returns the value of Status.
+func (s *ReadinessComponentsDbos) GetStatus() ReadinessComponentsDbosStatus {
+	return s.Status
+}
+
+// SetError sets the value of Error.
+func (s *ReadinessComponentsDbos) SetError(val OptString) {
+	s.Error = val
+}
+
+// SetLatencyMs sets the value of LatencyMs.
+func (s *ReadinessComponentsDbos) SetLatencyMs(val float64) {
+	s.LatencyMs = val
+}
+
+// SetStatus sets the value of Status.
+func (s *ReadinessComponentsDbos) SetStatus(val ReadinessComponentsDbosStatus) {
+	s.Status = val
+}
+
+type ReadinessComponentsDbosStatus string
+
+const (
+	ReadinessComponentsDbosStatusOk    ReadinessComponentsDbosStatus = "ok"
+	ReadinessComponentsDbosStatusError ReadinessComponentsDbosStatus = "error"
+)
+
+// AllValues returns all ReadinessComponentsDbosStatus values.
+func (ReadinessComponentsDbosStatus) AllValues() []ReadinessComponentsDbosStatus {
+	return []ReadinessComponentsDbosStatus{
+		ReadinessComponentsDbosStatusOk,
+		ReadinessComponentsDbosStatusError,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ReadinessComponentsDbosStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case ReadinessComponentsDbosStatusOk:
+		return []byte(s), nil
+	case ReadinessComponentsDbosStatusError:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ReadinessComponentsDbosStatus) UnmarshalText(data []byte) error {
+	switch ReadinessComponentsDbosStatus(data) {
+	case ReadinessComponentsDbosStatusOk:
+		*s = ReadinessComponentsDbosStatusOk
+		return nil
+	case ReadinessComponentsDbosStatusError:
+		*s = ReadinessComponentsDbosStatusError
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -53266,12 +53356,13 @@ func (*SuspendSigningCredentialUnauthorized) suspendSigningCredentialRes() {}
 
 // Ref: #/components/schemas/Task
 type Task struct {
-	AcceptedAttemptN           NilFloat64                     `json:"acceptedAttemptN"`
-	AllowedProfiles            []TaskAllowedProfilesItem      `json:"allowedProfiles"`
-	CancelReason               NilString                      `json:"cancelReason"`
-	CancelledByAgentId         NilUUID                        `json:"cancelledByAgentId"`
-	CancelledByHumanId         NilUUID                        `json:"cancelledByHumanId"`
-	ClaimCondition             NilClaimCondition              `json:"claimCondition"`
+	AcceptedAttemptN   NilFloat64                `json:"acceptedAttemptN"`
+	AllowedProfiles    []TaskAllowedProfilesItem `json:"allowedProfiles"`
+	CancelReason       NilString                 `json:"cancelReason"`
+	CancelledByAgentId NilUUID                   `json:"cancelledByAgentId"`
+	CancelledByHumanId NilUUID                   `json:"cancelledByHumanId"`
+	ClaimCondition     NilClaimCondition         `json:"claimCondition"`
+	// First time the task entered completed, failed, cancelled, or expired; null until terminal.
 	CompletedAt                NilDateTime                    `json:"completedAt"`
 	CorrelationId              NilUUID                        `json:"correlationId"`
 	DiaryId                    NilUUID                        `json:"diaryId"`

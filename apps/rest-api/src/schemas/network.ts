@@ -24,6 +24,7 @@ export const ReadinessSchema = Type.Object(
     timestamp: DateTime,
     components: Type.Object({
       database: ComponentStatusSchema,
+      dbos: ComponentStatusSchema,
       ory: ComponentStatusSchema,
       talos: Type.Optional(ComponentStatusSchema),
     }),

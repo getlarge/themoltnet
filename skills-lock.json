@@ -1,0 +1,17 @@
+{
+  "skills": {
+    "dbos-golang": {
+      "computedHash": "e355fc966f2ec65506305dd47155a10f6c0dea658081e0a9b83b7fde35fe6533",
+      "skillPath": "skills/dbos-golang/SKILL.md",
+      "source": "dbos-inc/agent-skills",
+      "sourceType": "github"
+    },
+    "dbos-typescript": {
+      "computedHash": "ae5f6213b330174589ca9b92f97e5936ec1548118fa3057dde7db681747cff5c",
+      "skillPath": "skills/dbos-typescript/SKILL.md",
+      "source": "dbos-inc/agent-skills",
+      "sourceType": "github"
+    }
+  },
+  "version": 1
+}

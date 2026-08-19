@@ -776,6 +776,7 @@ export async function createTestApp(
   securityOverrides?: Partial<typeof TEST_SECURITY_OPTIONS>,
   healthOptions?: {
     pool?: { query(sql: string): Promise<unknown> };
+    dbosReady?: () => boolean;
     oryProjectUrl?: string;
     talosApi?: { getJwks(): Promise<unknown> };
   },
@@ -953,6 +954,7 @@ export async function createTestApp(
       PACK_GC_BATCH_SIZE: 100,
     },
     pool: healthOptions?.pool,
+    dbosReady: healthOptions?.dbosReady ?? (() => true),
     oryProjectUrl: healthOptions?.oryProjectUrl,
     ...(logger !== undefined ? { logger } : {}),
   });

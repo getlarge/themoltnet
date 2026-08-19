@@ -1071,15 +1071,18 @@ export function teamRoutes(fastify: FastifyInstance) {
       const myAcceptance = acceptances.find((a) => a.subjectId === identityId);
       if (!myAcceptance) throw createProblem('not-found');
 
-      // Already accepted (regardless of team status)
-      if (myAcceptance.status === 'accepted')
-        throw createProblem('founding-already-accepted');
-
-      // Team must still be in founding status
-      if (team.status !== 'founding') throw createProblem('team-not-founding');
-
-      // Record acceptance
-      await fastify.teamRepository.acceptFoundingMember(id, identityId);
+      const alreadyAccepted = myAcceptance.status === 'accepted';
+      if (team.status !== 'founding') {
+        if (alreadyAccepted && team.status === 'active') {
+          return reply
+            .status(200)
+            .send({ accepted: true, teamStatus: 'active' });
+        }
+        throw createProblem('team-not-founding');
+      }
+      if (!alreadyAccepted) {
+        await fastify.teamRepository.acceptFoundingMember(id, identityId);
+      }
 
       // Check if all owners have accepted — send event if so
       const updated = await fastify.teamRepository.listFoundingAcceptances(id);
@@ -1094,16 +1097,20 @@ export function teamRoutes(fastify: FastifyInstance) {
         // but both see all owners accepted on the subsequent list). DBOS handles
         // duplicate sends idempotently — the workflow's recv() consumes the first
         // event and ignores subsequent ones for the same workflowId.
-        // Guard against DBOS send failure: acceptFoundingMember is already
-        // committed, so log the error but still return 200 — the workflow
-        // will re-check on its next retry cycle.
+        // Propagate send failure so the caller retries this idempotent route.
         try {
-          await DBOS.send(`founding-${id}`, true, FOUNDING_ACCEPT_EVENT);
+          await DBOS.send(
+            `founding-${id}`,
+            true,
+            FOUNDING_ACCEPT_EVENT,
+            `team-founding:${id}:complete`,
+          );
         } catch (err) {
           request.log.error(
             { teamId: id, err },
-            'team.founding.send_accept_event_failed — team may not activate until timeout',
+            'team.founding.send_accept_event_failed',
           );
+          throw err;
         }
       }
 

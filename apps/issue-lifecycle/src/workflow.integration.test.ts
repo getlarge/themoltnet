@@ -1,3 +1,4 @@
+import { inlineContext } from '@themoltnet/tasks-orchestrator';
 import { describe, expect, it } from 'vitest';
 
 import { fakeDeps } from './test-fakes.js';
@@ -95,6 +96,7 @@ function successfulOutputs() {
 
 function recordingContext(sleeps: string[]): WorkflowContext {
   return {
+    ...inlineContext,
     step(_name, fn) {
       return fn();
     },
@@ -137,10 +139,7 @@ describe('GitHub issue lifecycle integration', () => {
     expect(github.labels).toEqual([
       { issueNumber: 42, label: 'moltnet:ready-for-review' },
     ]);
-    expect(sleeps).toEqual([
-      'wait-plan-approval-label',
-      'wait-plan-approval-label',
-    ]);
+    expect(sleeps).toEqual(['wait-plan-approval-label-addition']);
     expect(tasks.created.map((task) => task.title)).toEqual([
       'Triage issue #1327',
       'Plan issue #1327',

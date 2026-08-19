@@ -103,6 +103,19 @@ export const PackGcConfigSchema = Type.Object({
   PACK_GC_BATCH_SIZE: Type.Number({ default: 100 }),
 });
 
+export const DbosWorkflowRetentionConfigSchema = Type.Object({
+  DBOS_WORKFLOW_RETENTION_ENABLED: Type.Boolean({ default: true }),
+  DBOS_WORKFLOW_RETENTION_DAYS: Type.Number({ minimum: 1, default: 30 }),
+  DBOS_WORKFLOW_RETENTION_BATCH_SIZE: Type.Integer({
+    minimum: 1,
+    default: 1000,
+  }),
+  DBOS_WORKFLOW_RETENTION_CRON: Type.String({
+    default: '15 * * * *',
+    pattern: '^\\S+\\s+\\S+\\s+\\S+\\s+\\S+\\s+\\S+$',
+  }),
+});
+
 export const TaskOrphanSweeperConfigSchema = Type.Object({
   /**
    * How often the orphan sweeper runs. Default every 2 minutes — frequent
@@ -121,6 +134,10 @@ export const TaskOrphanSweeperConfigSchema = Type.Object({
   TASK_ORPHAN_SWEEPER_GRACE_SEC: Type.Number({ default: 300 }),
   /** Max tasks force-released per sweep run. */
   TASK_ORPHAN_SWEEPER_BATCH_SIZE: Type.Number({ default: 50 }),
+  /** Hourly cadence for terminalizing expired waiting/queued tasks. */
+  TASK_EXPIRY_SWEEPER_CRON: Type.String({ default: '0 * * * *' }),
+  /** Max waiting/queued tasks terminalized per expiry sweep. */
+  TASK_EXPIRY_SWEEPER_BATCH_SIZE: Type.Number({ default: 50 }),
   /**
    * Default task lifetime in seconds when callers omit expiresInSec.
    * Retention cleanup applies only after terminalization, so this bounds
@@ -297,6 +314,9 @@ export type OryConfig = Static<typeof OryConfigSchema>;
 export type ObservabilityEnvConfig = Static<typeof ObservabilityConfigSchema>;
 export type RecoveryConfig = Static<typeof RecoveryConfigSchema>;
 export type PackGcConfig = Static<typeof PackGcConfigSchema>;
+export type DbosWorkflowRetentionConfig = Static<
+  typeof DbosWorkflowRetentionConfigSchema
+>;
 export type TaskOrphanSweeperConfig = Static<
   typeof TaskOrphanSweeperConfigSchema
 >;
@@ -319,6 +339,7 @@ export interface AppConfig {
   embedding: EmbeddingConfig;
   security: SecurityConfig;
   packGc: PackGcConfig;
+  dbosWorkflowRetention: DbosWorkflowRetentionConfig;
   taskOrphanSweeper: TaskOrphanSweeperConfig;
   runtimeSessionStorage: RuntimeSessionStorageConfig;
   taskArtifactStorage: TaskArtifactStorageConfig;
@@ -447,6 +468,16 @@ export function loadPackGcConfig(
     'PackGc',
     PackGcConfigSchema,
     pickEnv(PackGcConfigSchema, env),
+  );
+}
+
+export function loadDbosWorkflowRetentionConfig(
+  env: Record<string, string | undefined> = process.env,
+): DbosWorkflowRetentionConfig {
+  return validateSchema(
+    'DbosWorkflowRetention',
+    DbosWorkflowRetentionConfigSchema,
+    pickEnv(DbosWorkflowRetentionConfigSchema, env),
   );
 }
 
@@ -630,6 +661,7 @@ export function loadConfig(
     embedding: loadEmbeddingConfig(env),
     security,
     packGc: loadPackGcConfig(env),
+    dbosWorkflowRetention: loadDbosWorkflowRetentionConfig(env),
     taskOrphanSweeper: loadTaskOrphanSweeperConfig(env),
     runtimeSessionStorage: loadRuntimeSessionStorageConfig(env),
     taskArtifactStorage: loadTaskArtifactStorageConfig(env),
@@ -650,6 +682,7 @@ const allSchemas: TObject[] = [
   EmbeddingConfigSchema,
   SecurityConfigSchema,
   PackGcConfigSchema,
+  DbosWorkflowRetentionConfigSchema,
   TaskOrphanSweeperConfigSchema,
   RuntimeSessionStorageConfigSchema,
   TaskArtifactStorageConfigSchema,

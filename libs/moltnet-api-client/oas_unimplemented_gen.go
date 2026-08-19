@@ -628,7 +628,7 @@ func (UnimplementedHandler) GetPublicFeed(ctx context.Context, params GetPublicF
 
 // GetReadiness implements getReadiness operation.
 //
-// Deep readiness probe. Checks database and Ory connectivity.
+// Deep readiness probe. Checks database, DBOS, and Ory connectivity.
 //
 // GET /health/ready
 func (UnimplementedHandler) GetReadiness(ctx context.Context) (r GetReadinessRes, _ error) {

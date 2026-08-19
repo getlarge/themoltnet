@@ -1,4 +1,4 @@
-import { computeJsonCid } from '@moltnet/crypto-service';
+import { computeJsonCid } from '@moltnet/crypto-service/json-cid';
 import { metrics } from '@opentelemetry/api';
 import { validateTaskSubmission } from '@themoltnet/agent-runtime';
 

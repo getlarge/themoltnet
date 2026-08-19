@@ -30,7 +30,7 @@ import {
   createReadToolDefinition,
   createWriteToolDefinition,
 } from '@earendil-works/pi-coding-agent';
-import { computeJsonCid } from '@moltnet/crypto-service';
+import { computeJsonCid } from '@moltnet/crypto-service/json-cid';
 import {
   type Context,
   context as otelContext,

@@ -212,6 +212,8 @@ export interface AppOptions {
   rateLimitRedis?: Redis;
   /** Database pool for readiness probe */
   pool?: HealthRouteOptions['pool'];
+  /** DBOS lifecycle readiness probe. */
+  dbosReady?: HealthRouteOptions['dbosReady'];
   /** Ory project URL for readiness probe */
   oryProjectUrl?: string;
   /** Application version exposed through OpenAPI metadata. */
@@ -490,6 +492,7 @@ export async function registerApiRoutes(
   await app.register(hookRoutes);
   await app.register(healthRoutes, {
     pool: options.pool,
+    dbosReady: options.dbosReady,
     oryProjectUrl: options.oryProjectUrl,
     talosApi: options.oryClients.apiKeys,
   });

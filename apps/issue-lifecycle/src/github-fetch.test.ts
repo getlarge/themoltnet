@@ -61,6 +61,32 @@ describe('FetchGithubClient', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it('preserves comment author identity for trusted-marker filtering', async () => {
+    const fetchMock = vi.fn<typeof fetch>(() =>
+      Promise.resolve(
+        jsonResponse([
+          {
+            id: 7,
+            body: '<!-- marker -->',
+            user: { login: 'moltnet[bot]', type: 'Bot' },
+          },
+        ]),
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const client = new FetchGithubClient({ token: 'ghs_static' });
+
+    await expect(
+      client.listIssueComments('getlarge/themoltnet', 1213),
+    ).resolves.toEqual([
+      {
+        id: 7,
+        body: '<!-- marker -->',
+        author: { login: 'moltnet[bot]', type: 'Bot' },
+      },
+    ]);
+  });
+
   it('refreshes MoltNet GitHub token once on 401', async () => {
     const tokenProvider = vi
       .fn<

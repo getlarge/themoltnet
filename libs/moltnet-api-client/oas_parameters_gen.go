@@ -2366,6 +2366,9 @@ func decodeCreateRuntimeProfileParams(args [0]string, argsEscaped bool, r *http.
 type CreateTaskParams struct {
 	// Team ID (UUID) that will own the resource. Required.
 	XMoltnetTeamID uuid.UUID
+	// Retry key scoped to the active team and authenticated proposer. Reusing it with a different
+	// request returns 409.
+	IdempotencyKey OptString `json:",omitempty,omitzero"`
 }
 
 func unpackCreateTaskParams(packed middleware.Parameters) (params CreateTaskParams) {
@@ -2375,6 +2378,15 @@ func unpackCreateTaskParams(packed middleware.Parameters) (params CreateTaskPara
 			In:   "header",
 		}
 		params.XMoltnetTeamID = packed[key].(uuid.UUID)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "idempotency-key",
+			In:   "header",
+		}
+		if v, ok := packed[key]; ok {
+			params.IdempotencyKey = v.(OptString)
+		}
 	}
 	return params
 }
@@ -2411,6 +2423,72 @@ func decodeCreateTaskParams(args [0]string, argsEscaped bool, r *http.Request) (
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "x-moltnet-team-id",
+			In:   "header",
+			Err:  err,
+		}
+	}
+	// Decode header: idempotency-key.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "idempotency-key",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotIdempotencyKeyVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotIdempotencyKeyVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.IdempotencyKey.SetTo(paramsDotIdempotencyKeyVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.IdempotencyKey.Get(); ok {
+					if err := func() error {
+						if err := (validate.String{
+							MinLength:     1,
+							MinLengthSet:  true,
+							MaxLength:     200,
+							MaxLengthSet:  true,
+							Email:         false,
+							Hostname:      false,
+							Regex:         regexMap["\\S"],
+							MinNumeric:    0,
+							MinNumericSet: false,
+							MaxNumeric:    0,
+							MaxNumericSet: false,
+						}).Validate(string(value)); err != nil {
+							return errors.Wrap(err, "string")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "idempotency-key",
 			In:   "header",
 			Err:  err,
 		}

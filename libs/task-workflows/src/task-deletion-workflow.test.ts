@@ -9,12 +9,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TaskCleanupManifest } from './task-cleanup-workflow-lib.js';
 import {
   _resetTaskDeletionWorkflowForTesting,
+  registerTaskDeletionQueue,
   registerTaskDeletionWorkflow,
   type TaskDeletionWorkflowInput,
   type TaskDeletionWorkflowResult,
 } from './task-deletion-workflow.js';
 
-const { dbosMock, WorkflowQueueMock } = vi.hoisted(() => ({
+const { dbosMock } = vi.hoisted(() => ({
   dbosMock: {
     workflowID: 'task-delete:test-workflow',
     registerStep: vi.fn(
@@ -24,14 +25,13 @@ const { dbosMock, WorkflowQueueMock } = vi.hoisted(() => ({
       (fn: (...args: unknown[]) => unknown, _config: { name: string }) => fn,
     ),
     startWorkflow: vi.fn(),
+    registerQueue: vi.fn(),
   },
-  WorkflowQueueMock: vi.fn(),
 }));
 
 vi.mock('@moltnet/database', () => {
   return {
     DBOS: dbosMock,
-    WorkflowQueue: WorkflowQueueMock,
   };
 });
 
@@ -66,6 +66,20 @@ describe('task deletion workflow', () => {
   beforeEach(() => {
     _resetTaskDeletionWorkflowForTesting();
     vi.clearAllMocks();
+  });
+
+  it('persists queue concurrency once with latest-version conflict handling', async () => {
+    await registerTaskDeletionQueue();
+    await registerTaskDeletionQueue();
+
+    expect(dbosMock.registerQueue).toHaveBeenCalledOnce();
+    expect(dbosMock.registerQueue).toHaveBeenCalledWith(
+      'task-deletion-cleanup',
+      {
+        concurrency: 2,
+        onConflict: 'update_if_latest_version',
+      },
+    );
   });
 
   it('builds its manifest in task-workflows and deletes waiting/queued tasks through the guarded row step', async () => {
@@ -106,9 +120,10 @@ describe('task deletion workflow', () => {
       warn: vi.fn(),
       error: vi.fn(),
     };
-    const deleteTaskRowsStep = vi.fn((manifest: TaskCleanupManifest) =>
+    const deleteTaskRowsTransaction = vi.fn((manifest: TaskCleanupManifest) =>
       Promise.resolve(manifest),
     );
+    const deleteTaskRelationsStep = vi.fn().mockResolvedValue(undefined);
     const deleteTaskArtifactObjectsStep = vi.fn().mockResolvedValue(1);
     const deleteRuntimeSessionObjectsStep = vi.fn().mockResolvedValue(1);
 
@@ -119,7 +134,8 @@ describe('task deletion workflow', () => {
         runtimeSessionRepository,
         logger,
       }),
-      deleteTaskRowsStep,
+      deleteTaskRowsTransaction,
+      deleteTaskRelationsStep,
       deleteTaskArtifactObjectsStep,
       deleteRuntimeSessionObjectsStep,
     });
@@ -144,7 +160,7 @@ describe('task deletion workflow', () => {
       waitingTask.id,
       queuedTask.id,
     ]);
-    expect(deleteTaskRowsStep).toHaveBeenCalledWith(
+    expect(deleteTaskRowsTransaction).toHaveBeenCalledWith(
       expect.objectContaining({
         tasks: [
           expect.objectContaining({ id: waitingTask.id }),
@@ -163,6 +179,7 @@ describe('task deletion workflow', () => {
         ],
       },
     );
+    expect(deleteTaskRelationsStep).toHaveBeenCalledOnce();
     expect(deleteTaskArtifactObjectsStep).toHaveBeenCalledOnce();
     expect(deleteRuntimeSessionObjectsStep).toHaveBeenCalledOnce();
     expect(result).toEqual({
@@ -202,7 +219,7 @@ describe('task deletion workflow', () => {
       warn: vi.fn(),
       error: vi.fn(),
     };
-    const deleteTaskRowsStep = vi.fn((manifest: TaskCleanupManifest) =>
+    const deleteTaskRowsTransaction = vi.fn((manifest: TaskCleanupManifest) =>
       Promise.resolve(manifest),
     );
 
@@ -213,7 +230,8 @@ describe('task deletion workflow', () => {
         runtimeSessionRepository,
         logger,
       }),
-      deleteTaskRowsStep,
+      deleteTaskRowsTransaction,
+      deleteTaskRelationsStep: vi.fn().mockResolvedValue(undefined),
       deleteTaskArtifactObjectsStep: vi.fn().mockResolvedValue(0),
       deleteRuntimeSessionObjectsStep: vi.fn().mockResolvedValue(0),
     });
@@ -226,7 +244,7 @@ describe('task deletion workflow', () => {
       requestedBy: { id: AGENT_ID, ns: 'agent' },
     });
 
-    expect(deleteTaskRowsStep).toHaveBeenCalledWith(
+    expect(deleteTaskRowsTransaction).toHaveBeenCalledWith(
       expect.objectContaining({
         forceDeleteSealedTaskIds: [sealedTerminalTask.id],
         tasks: [

@@ -50,7 +50,7 @@ describe('PATCH /packs/:id', () => {
 
   beforeEach(() => {
     resetMockServices(mocks);
-    mocks.dataSource.runTransaction.mockImplementation(
+    mocks.transactionRunner.runInTransaction.mockImplementation(
       async (fn: () => Promise<unknown>) => fn(),
     );
   });
@@ -84,6 +84,8 @@ describe('PATCH /packs/:id', () => {
     expect(body.pinned).toBe(true);
     expect(body.expiresAt).toBeNull();
     expect(mocks.contextPackRepository.pin).toHaveBeenCalledWith(PACK_ID);
+    expect(mocks.transactionRunner.runInTransaction).toHaveBeenCalledOnce();
+    expect(mocks.dataSource.runTransaction).not.toHaveBeenCalled();
   });
 
   it('unpins with expiresAt', async () => {

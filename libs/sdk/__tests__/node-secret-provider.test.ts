@@ -3,7 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const keyring = vi.hoisted(() => ({
   read: vi.fn(),
@@ -43,7 +43,14 @@ describe('Node secret providers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     keyring.read.mockResolvedValue(null);
+    vi.stubEnv('MOLTNET_AGENT_KEY', '');
+    vi.stubEnv('MOLTNET_API_URL', '');
+    vi.stubEnv('MOLTNET_CLIENT_ID', '');
+    vi.stubEnv('MOLTNET_CLIENT_SECRET', '');
+    vi.stubEnv('MOLTNET_CREDENTIALS_PATH', '');
   });
+
+  afterEach(() => vi.unstubAllEnvs());
 
   it('registers both env and a lazy OS-keyring provider for Node consumers', async () => {
     const registry = createNodeSecretProviderRegistry('linux');

@@ -15,17 +15,18 @@
  * ## Initialization Order
  *
  * Call `initLegreffierOnboardingWorkflow()` after configureDBOS(), before launchDBOS().
- * Call `setLegreffierOnboardingDeps()` in afterLaunch.
+ * Call `setLegreffierOnboardingDeps()` before DBOS launch/recovery.
  */
 
+import { sealForEd25519PublicKey } from '@moltnet/crypto-service';
 import { DBOS } from '@moltnet/database';
-import type { IdentityApi } from '@ory/client-fetch';
 
 import type { Logger } from './logger.js';
 import {
+  issueRegistrationCredential,
   type RegistrationInput,
-  type RegistrationResult,
   registrationWorkflow,
+  type RegistrationWorkflowResult,
 } from './registration-workflow.js';
 
 // ── Constants ──────────────────────────────────────────────────
@@ -56,13 +57,17 @@ export class OnboardingWorkflowError extends Error {
 // ── Types ──────────────────────────────────────────────────────
 
 export interface LegreffierOnboardingDeps {
-  identityApi: IdentityApi;
   logger: Logger;
 }
 
-export interface OnboardingResult extends RegistrationResult {
+export interface OnboardingResult extends RegistrationWorkflowResult {
   workflowId: string;
   installationId: string;
+  credential: {
+    type: 'oauth2';
+    clientId: string;
+    sealedClientSecret: string;
+  };
 }
 
 // ── Dependency Injection ───────────────────────────────────────
@@ -101,15 +106,25 @@ let _workflow: StartOnboardingFn | null = null;
 export function initLegreffierOnboardingWorkflow(): void {
   if (_workflow) return;
 
-  // ── Steps ────────────────────────────────────────────────────
-
-  const deleteKratosIdentityStep = DBOS.registerStep(
-    async (identityId: string): Promise<void> => {
-      const { identityApi } = getDeps();
-      await identityApi.deleteIdentity({ id: identityId });
+  const issueSealedCredentialStep = DBOS.registerStep(
+    async (registration: RegistrationWorkflowResult) => {
+      const result = await issueRegistrationCredential(registration);
+      if (result.credential.type !== 'oauth2') {
+        throw new OnboardingWorkflowError(
+          'LeGreffier onboarding requires an OAuth2 credential',
+        );
+      }
+      return {
+        type: 'oauth2' as const,
+        clientId: result.credential.clientId,
+        sealedClientSecret: sealForEd25519PublicKey(
+          result.credential.clientSecret,
+          registration.publicKey,
+        ),
+      };
     },
     {
-      name: 'legreffier.step.deleteKratosIdentity',
+      name: 'legreffier.step.issueSealedCredential',
       retriesAllowed: true,
       maxAttempts: 3,
       intervalSeconds: 2,
@@ -140,12 +155,12 @@ export function initLegreffierOnboardingWorkflow(): void {
       const registration = await registrationHandle.getResult();
 
       // Step 3: Wait for GitHub OAuth callback
-      const githubCode = await DBOS.recv<string>(
+      const sealedGithubCode = await DBOS.recv<string>(
         GITHUB_CODE_EVENT,
         GITHUB_CALLBACK_TIMEOUT_S,
       );
 
-      if (!githubCode) {
+      if (!sealedGithubCode) {
         // Compensation: remove all registration resources on timeout.
         const { logger } = getDeps();
         logger.error(
@@ -153,10 +168,11 @@ export function initLegreffierOnboardingWorkflow(): void {
           'legreffier.github_callback_timeout',
         );
         try {
-          await registrationWorkflow.compensateSelfRegistration(
-            registration.identityId,
-          );
-          await deleteKratosIdentityStep(registration.identityId);
+          const handle = await DBOS.startWorkflow(
+            registrationWorkflow.compensateSelfRegistration,
+            { workflowID: `legreffier-compensation:${workflowId}` },
+          )(registration.identityId, registration.identityOwnedForCompensation);
+          await handle.getResult();
         } catch (err) {
           logger.error(
             { err, identityId: registration.identityId },
@@ -169,7 +185,7 @@ export function initLegreffierOnboardingWorkflow(): void {
       }
 
       // Step 4: Signal github_code_ready for status polling
-      await DBOS.setEvent(GITHUB_CODE_READY_EVENT, githubCode);
+      await DBOS.setEvent(GITHUB_CODE_READY_EVENT, sealedGithubCode);
 
       // Step 5: Signal awaiting_installation so the status endpoint can
       // distinguish "waiting for code" from "waiting for installation"
@@ -189,10 +205,11 @@ export function initLegreffierOnboardingWorkflow(): void {
           'legreffier.installation_timeout',
         );
         try {
-          await registrationWorkflow.compensateSelfRegistration(
-            registration.identityId,
-          );
-          await deleteKratosIdentityStep(registration.identityId);
+          const handle = await DBOS.startWorkflow(
+            registrationWorkflow.compensateSelfRegistration,
+            { workflowID: `legreffier-compensation:${workflowId}` },
+          )(registration.identityId, registration.identityOwnedForCompensation);
+          await handle.getResult();
         } catch (err) {
           logger.error(
             { err, identityId: registration.identityId },
@@ -204,7 +221,8 @@ export function initLegreffierOnboardingWorkflow(): void {
         );
       }
 
-      return { ...registration, workflowId, installationId };
+      const credential = await issueSealedCredentialStep(registration);
+      return { ...registration, workflowId, installationId, credential };
     },
     { name: 'legreffier.startOnboarding' },
   );

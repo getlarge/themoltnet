@@ -1,0 +1,82 @@
+---
+title: List and Inspect Workflows
+impact: MEDIUM
+impactDescription: Enables monitoring and debugging of workflow executions
+tags: workflow, list, inspect, status, monitoring
+---
+
+## List and Inspect Workflows
+
+Use `dbos.ListWorkflows` to query workflow executions by status, name, time range, and other criteria.
+
+**Incorrect (no monitoring of workflow state):**
+
+```go
+// Start workflow with no way to check on it later
+dbos.RunWorkflow(ctx, processTask, "data")
+// If something goes wrong, no way to find or debug it
+```
+
+**Correct (listing and inspecting workflows):**
+
+```go
+// List workflows by status
+erroredWorkflows, err := dbos.ListWorkflows(ctx,
+	dbos.WithFilterStatus(dbos.WorkflowStatusError),
+)
+
+for _, wf := range erroredWorkflows {
+	fmt.Printf("Workflow %s: %s - %v\n", wf.ID, wf.Name, wf.Error)
+}
+```
+
+List workflows with multiple filters:
+
+```go
+workflows, err := dbos.ListWorkflows(ctx,
+	dbos.WithFilterName("processOrder"),
+	dbos.WithFilterStatus(dbos.WorkflowStatusSuccess),
+	dbos.WithFilterLimit(100),
+	dbos.WithFilterSortDesc(),
+	dbos.WithFilterLoadOutput(true),
+)
+```
+
+Other useful filters:
+
+- `WithFilterCreatedAfter` / `WithFilterCreatedBefore`: creation time range
+- `WithFilterCompletedAfter` / `WithFilterCompletedBefore`: when the workflow reached a terminal state (`SUCCESS`, `ERROR`, `CANCELLED`)
+- `WithFilterDequeuedAfter` / `WithFilterDequeuedBefore`: when the workflow started executing
+- `WithFilterQueueName` / `WithFilterQueuesOnly`: queued workflows
+- `WithFilterHasParent(bool)`: whether the workflow has a parent (child workflows)
+- `WithFilterWasForkedFrom(bool)`: whether the workflow has been forked from
+- `WithFilterWorkflowIDPrefix`, `WithFilterAppVersion`, `WithFilterExecutorIDs`, `WithFilterOffset`
+
+Each `WorkflowStatus` includes timing and lineage fields: `CreatedAt`, `StartedAt`, `CompletedAt`, `ParentWorkflowID`, `ForkedFrom`, and `WasForkedFrom`.
+
+List workflow steps:
+
+```go
+steps, err := dbos.GetWorkflowSteps(ctx, workflowID)
+for _, step := range steps {
+	fmt.Printf("Step %d: %s\n", step.StepID, step.StepName)
+	if step.Error != nil {
+		fmt.Printf("  Error: %v\n", step.Error)
+	}
+	if step.ChildWorkflowID != "" {
+		fmt.Printf("  Child: %s\n", step.ChildWorkflowID)
+	}
+}
+```
+
+Control whether step outputs are loaded with `dbos.WithStepsLoadOutput(bool)` — when unset, outputs are loaded only if the DBOS context has been launched:
+
+```go
+steps, err := dbos.GetWorkflowSteps(ctx, workflowID, dbos.WithStepsLoadOutput(false))
+```
+
+Workflow status values: `WorkflowStatusPending`, `WorkflowStatusEnqueued`, `WorkflowStatusSuccess`, `WorkflowStatusError`, `WorkflowStatusCancelled`, `WorkflowStatusMaxRecoveryAttemptsExceeded`
+
+To optimize performance, avoid loading inputs/outputs when you don't need them (they are not loaded by default).
+
+Reference: [Workflow Management](https://docs.dbos.dev/golang/tutorials/workflow-management#listing-workflows)

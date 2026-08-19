@@ -1,4 +1,4 @@
-import { readConfig } from '@themoltnet/sdk';
+import { decryptFromAgent, readConfig } from '@themoltnet/sdk';
 import open from 'open';
 
 import { pollUntil } from '../api.js';
@@ -39,12 +39,19 @@ export async function runInstallationPhase(opts: {
   const result = await pollUntil(apiUrl, workflowId, ['completed'], (status) =>
     dispatch({ type: 'serverStatus', status }),
   );
+  if (!result.clientSecret || !existingConfig?.keys.private_key) {
+    throw new Error('Sealed OAuth2 credential not available');
+  }
+  const clientSecret = decryptFromAgent(
+    result.clientSecret,
+    existingConfig.keys.private_key,
+  );
 
   dispatch({ type: 'step', key: 'installation', status: 'done' });
   return {
     installationId: result.installationId ?? '',
     identityId: result.identityId ?? '',
     clientId: result.clientId ?? '',
-    clientSecret: result.clientSecret ?? '',
+    clientSecret,
   };
 }

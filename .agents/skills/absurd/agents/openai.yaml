@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Absurd Workflows'
+  short_description: 'Author and operate replay-safe Absurd workflows'
+  default_prompt: 'Use $absurd to review this workflow for checkpoints, replay safety, idempotency, fan-out, events, and worker recovery.'

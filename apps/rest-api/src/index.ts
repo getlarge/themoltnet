@@ -6,6 +6,7 @@ export { type AppOptions, buildApp, registerApiRoutes } from './app.js';
 export type {
   AppConfig,
   DatabaseConfig,
+  DbosWorkflowRetentionConfig,
   ObservabilityEnvConfig,
   OryConfig,
   RecoveryConfig,
@@ -19,6 +20,7 @@ export {
   getRequiredSecrets,
   loadConfig,
   loadDatabaseConfig,
+  loadDbosWorkflowRetentionConfig,
   loadObservabilityConfig,
   loadOryConfig,
   loadRecoveryConfig,

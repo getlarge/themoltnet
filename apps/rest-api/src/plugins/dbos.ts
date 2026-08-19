@@ -5,24 +5,28 @@
  * Workflow registration is externalized via callback arrays:
  *
  * - `registerWorkflows` — called after configureDBOS(), before initDBOS()
- * - `afterLaunch` — called after launchDBOS(), receives the DBOS dataSource
+ * - `wireDependencies` — called after datasource init, before recovery
+ * - `registerQueues` — called after launch, as required by persisted queues
  *
  * ## Initialization Order
  *
  * 1. configureDBOS()              — set DBOS runtime config
  * 2. registerWorkflows callbacks  — register workflow definitions + pre-launch deps
  * 3. initDBOS()                   — create data source
- * 4. launchDBOS()                 — start runtime, recover pending workflows
- * 5. afterLaunch callbacks        — set post-launch deps (persistence, dataSource-dependent)
+ * 4. wireDependencies callbacks   — make recovery dependencies available
+ * 5. launchDBOS()                 — start runtime, recover pending workflows
+ * 6. registerQueues callbacks     — persist queue configuration
  */
 
 import {
   configureDBOS,
-  type DataSource,
+  createDBOSTransactionRunner,
   getDataSource,
+  getDBOSRuntimeInventory,
   initDBOS,
   launchDBOS,
   shutdownDBOS,
+  type TransactionRunner,
 } from '@moltnet/database';
 import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
@@ -39,11 +43,12 @@ export interface DBOSPluginOptions {
    * Each function should call DBOS.registerWorkflow() and set pre-launch deps.
    */
   registerWorkflows?: Array<() => void>;
-  /**
-   * Post-launch setup — called after launchDBOS().
-   * Receives the DBOS dataSource for deps that need it.
-   */
-  afterLaunch?: Array<(dataSource: DataSource) => void>;
+  /** Dependency wiring completed before launch/recovery begins. */
+  wireDependencies?: Array<
+    (transactionRunner: TransactionRunner) => void | Promise<void>
+  >;
+  /** Persist queue configuration after DBOS.launch(). */
+  registerQueues?: Array<() => void | Promise<void>>;
 }
 
 async function dbosPlugin(
@@ -63,25 +68,32 @@ async function dbosPlugin(
   // 3. Initialize DBOS data source
   await initDBOS({ databaseUrl, systemDatabaseUrl });
 
-  // 4. Launch DBOS (starts runtime, recovers interrupted workflows)
-  await launchDBOS();
-
-  // 5. Decorate Fastify with the dataSource for route handlers
+  // 4. Wire every dependency before recovery can execute workflow code.
   const dataSource = getDataSource();
-  fastify.decorate('dataSource', dataSource);
-
-  // 6. Post-launch setup
-  for (const setup of options.afterLaunch ?? []) {
-    setup(dataSource);
+  const transactionRunner = createDBOSTransactionRunner(dataSource);
+  for (const setup of options.wireDependencies ?? []) {
+    await setup(transactionRunner);
   }
 
-  // 7. Graceful shutdown
+  // 5. Launch DBOS (starts runtime, recovers interrupted workflows)
+  await launchDBOS();
+
+  // 6. Persist queue configuration only after launch.
+  for (const register of options.registerQueues ?? []) {
+    await register();
+  }
+
+  // 7. Decorate Fastify with the dataSource for route handlers
+  fastify.decorate('dataSource', dataSource);
+
+  // 8. Graceful shutdown
   fastify.addHook('onClose', async () => {
     fastify.log.info('Shutting down DBOS...');
     await shutdownDBOS();
   });
 
-  fastify.log.info('DBOS initialized');
+  const inventory = await getDBOSRuntimeInventory();
+  fastify.log.info(inventory, 'DBOS initialized');
 }
 
 export default fp(dbosPlugin, {

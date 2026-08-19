@@ -202,12 +202,12 @@ describe('DiaryService (integration)', () => {
     // Launch DBOS after workflow registration
     const dbosSetup = await setupDBOS(databaseUrl);
 
-    // Wire diary workflow deps (dataSource available now; deps are lazy)
+    // Wire diary workflow deps (transaction runner available now; deps are lazy)
     setDiaryWorkflowDeps({
       diaryEntryRepository: setup.repo,
       relationshipWriter: relationshipWriter as unknown as RelationshipWriter,
       embeddingService,
-      dataSource: dbosSetup.dataSource,
+      transactionRunner: dbosSetup.transactionRunner,
     });
 
     service = createDiaryService({

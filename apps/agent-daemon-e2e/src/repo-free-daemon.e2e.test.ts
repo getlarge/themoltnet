@@ -13,6 +13,7 @@ import {
   afterAll,
   afterEach,
   beforeAll,
+  beforeEach,
   describe,
   expect,
   it,
@@ -116,7 +117,16 @@ describe('Agent daemon repo-free execution (e2e)', () => {
     });
   }, 120_000);
 
+  beforeEach(() => {
+    vi.stubEnv('MOLTNET_AGENT_KEY', '');
+    vi.stubEnv('MOLTNET_API_URL', '');
+    vi.stubEnv('MOLTNET_CLIENT_ID', '');
+    vi.stubEnv('MOLTNET_CLIENT_SECRET', '');
+    vi.stubEnv('MOLTNET_CREDENTIALS_PATH', '');
+  });
+
   afterEach(() => {
+    vi.unstubAllEnvs();
     vi.clearAllMocks();
     for (const root of tempRoots.splice(0)) {
       rmSync(root, { recursive: true, force: true });

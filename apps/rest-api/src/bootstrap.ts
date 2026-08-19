@@ -6,7 +6,7 @@
  *
  * DBOS lifecycle is handled by the DBOS plugin.
  * Workflow registration and dependency wiring are passed as callbacks
- * via `registerWorkflows` (pre-launch) and `afterLaunch` (post-launch).
+ * via pre-launch registration/dependency wiring and post-launch queue setup.
  */
 
 import { resolve } from 'node:path';
@@ -30,6 +30,7 @@ import {
   createContextPackRepository,
   createCorrelationSealRepository,
   createDatabase,
+  createDatabaseCapacityRepository,
   createDBOSTransactionRunner,
   createDiaryEntryRepository,
   createDiaryRepository,
@@ -55,6 +56,7 @@ import {
   enqueueWorkflowInCurrentTransaction as enqueueDbosWorkflowInCurrentTransaction,
   getDatabase,
   getDataSource,
+  isDBOSReady,
   type NonceRepository,
 } from '@moltnet/database';
 import { createDiaryService } from '@moltnet/diary-service';
@@ -92,6 +94,7 @@ import {
 } from '@moltnet/task-artifact-service';
 import {
   initTaskWorkflows,
+  registerTaskWorkflowQueues,
   setTaskWorkflowDeps,
 } from '@moltnet/task-workflows';
 import { initTaskTypeRegistry } from '@moltnet/tasks';
@@ -115,6 +118,7 @@ import {
   initMaintenanceWorkflows,
   initRegistrationWorkflow,
   initTeamFoundingWorkflow,
+  registerMaintenanceQueues,
   setDiaryTransferDeps,
   setHumanOnboardingDeps,
   setLegreffierOnboardingDeps,
@@ -347,6 +351,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     dbConnection.db,
   );
   const taskRepository = createTaskRepository(dbConnection.db);
+  const databaseCapacityRepository = createDatabaseCapacityRepository(
+    dbConnection.db,
+  );
   const entryRelationRepository = createEntryRelationRepository(
     dbConnection.db,
   );
@@ -490,11 +497,16 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       () => initHumanOnboardingWorkflow(),
       () => initLegreffierOnboardingWorkflow(),
       () => initDiaryWorkflows(),
-      () => initMaintenanceWorkflows(config.packGc, config.taskOrphanSweeper),
+      () =>
+        initMaintenanceWorkflows(
+          config.packGc,
+          config.taskOrphanSweeper,
+          config.dbosWorkflowRetention,
+        ),
       () => initTeamFoundingWorkflow(),
       () => initDiaryTransferWorkflow(),
     ],
-    afterLaunch: [
+    wireDependencies: [
       () => {
         setSigningRequestPersistence({
           completeAgentRequest: async (input) => {
@@ -512,7 +524,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           },
         });
       },
-      (dataSource) => {
+      (workflowTransactionRunner) => {
         setRegistrationDeps({
           identityApi: oryClients.identity,
           oauth2Api: oryClients.oauth2,
@@ -522,35 +534,34 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           teamRepository,
           relationshipWriter,
           issueAgentKey: (input) => registrationAgentKeyService.issue(input),
-          dataSource,
+          transactionRunner: workflowTransactionRunner,
           logger: app.log,
         });
       },
-      (dataSource) => {
+      (workflowTransactionRunner) => {
         setHumanOnboardingDeps({
           humanRepository,
           diaryRepository,
           teamRepository,
+          transactionRunner: workflowTransactionRunner,
           relationshipWriter,
-          dataSource,
           logger: app.log,
         });
       },
       () => {
         setLegreffierOnboardingDeps({
-          identityApi: oryClients.identity,
           logger: app.log,
         });
       },
-      (dataSource) => {
+      (workflowTransactionRunner) => {
         setDiaryWorkflowDeps({
           diaryEntryRepository,
           relationshipWriter,
           embeddingService,
-          dataSource,
+          transactionRunner: workflowTransactionRunner,
         });
       },
-      () => {
+      (workflowTransactionRunner) => {
         setMaintenanceDeps({
           nonceRepository,
           contextPackRepository,
@@ -560,18 +571,18 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           taskArtifactRepository,
           signingCredentialRepository,
           signingRequestRepository,
+          databaseCapacityRepository,
           runtimeSessionStorage,
           taskArtifactStorage,
-          dataSource: getDataSource(),
-          transactionRunner: createDrizzleTransactionRunner(dbConnection.db),
+          transactionRunner: workflowTransactionRunner,
           relationshipWriter,
           logger: app.log,
           notifyTaskStatusChanged,
         });
       },
-      (dataSource) => {
+      (workflowTransactionRunner) => {
         setTaskWorkflowDeps({
-          dataSource,
+          transactionRunner: workflowTransactionRunner,
           createAttempt: (input) => taskRepository.createAttempt(input),
           recomputeAttemptActivityStats: async (taskId, attemptN) => {
             await taskAnalyticsService.recomputeAttemptActivityStats(
@@ -593,22 +604,26 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           notifyTaskStatusChanged,
         });
       },
-      () => {
+      (workflowTransactionRunner) => {
         setTeamFoundingDeps({
           teamRepository,
+          transactionRunner: workflowTransactionRunner,
           relationshipWriter,
           logger: app.log,
         });
       },
-      () => {
+      (workflowTransactionRunner) => {
         setDiaryTransferDeps({
           diaryRepository,
           diaryTransferRepository,
+          teamRepository,
+          transactionRunner: workflowTransactionRunner,
           relationshipWriter,
           logger: app.log,
         });
       },
     ],
+    registerQueues: [registerTaskWorkflowQueues, registerMaintenanceQueues],
   });
 
   const dataSource = getDataSource();
@@ -810,6 +825,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     },
     packGcConfig: config.packGc,
     pool: dbConnection.pool,
+    dbosReady: isDBOSReady,
     oryProjectUrl: config.ory.ORY_PROJECT_URL,
     ...(rateLimitRedis ? { rateLimitRedis } : {}),
   });

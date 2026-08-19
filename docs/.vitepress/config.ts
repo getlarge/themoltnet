@@ -66,6 +66,10 @@ const operateSidebar = [
       { text: 'Local Platform', link: '/operate/local-platform' },
       { text: 'Infrastructure', link: '/understand/infrastructure' },
       {
+        text: 'DBOS Workflows',
+        link: '/operate/durable-workflows',
+      },
+      {
         text: 'Fly MPG Backup and Restore',
         link: '/use/recipes/fly-mpg-backup-restore',
       },

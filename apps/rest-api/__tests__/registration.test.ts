@@ -18,11 +18,13 @@ import {
   VALID_AUTH_CONTEXT,
 } from './helpers.js';
 
-const { mockWorkflowResult, mockStartWorkflow } = vi.hoisted(() => {
-  const mockWorkflowResult = vi.fn();
-  const mockStartWorkflow = vi.fn();
-  return { mockWorkflowResult, mockStartWorkflow };
-});
+const { mockWorkflowResult, mockStartWorkflow, mockIssueCredential } =
+  vi.hoisted(() => {
+    const mockWorkflowResult = vi.fn();
+    const mockStartWorkflow = vi.fn();
+    const mockIssueCredential = vi.fn();
+    return { mockWorkflowResult, mockStartWorkflow, mockIssueCredential };
+  });
 
 vi.mock('@moltnet/database', async (importOriginal) => {
   const original = (await importOriginal()) as Record<string, unknown>;
@@ -36,6 +38,7 @@ vi.mock('../src/workflows/index.js', async (importOriginal) => {
   const original = (await importOriginal()) as Record<string, unknown>;
   return {
     ...original,
+    issueRegistrationCredential: mockIssueCredential,
     registrationWorkflow: { registerAgent: vi.fn() },
   };
 });
@@ -72,7 +75,16 @@ describe('registration routes', () => {
     mocks.cryptoService.parsePublicKey.mockReturnValue(new Uint8Array(32));
     mocks.cryptoService.generateFingerprint.mockReturnValue(FINGERPRINT);
     mocks.cryptoService.verify.mockResolvedValue(true);
-    mockWorkflowResult.mockResolvedValue(SUCCESS);
+    mockWorkflowResult.mockResolvedValue({
+      identityId: SUCCESS.identityId,
+      identityOwnedForCompensation: true,
+      fingerprint: SUCCESS.fingerprint,
+      publicKey: SUCCESS.publicKey,
+      teamId: '660e8400-e29b-41d4-a716-446655440000',
+      credentialType: 'oauth2',
+      credentialIdempotencyKey: IDEMPOTENCY_KEY,
+    });
+    mockIssueCredential.mockResolvedValue(SUCCESS);
     mockStartWorkflow.mockReturnValue(
       vi.fn().mockImplementation(async (input) => ({
         getResult: mockWorkflowResult,

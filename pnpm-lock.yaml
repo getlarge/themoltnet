@@ -13,11 +13,11 @@ catalogs:
       specifier: ^3.935.0
       version: 3.1075.0
     '@dbos-inc/dbos-sdk':
-      specifier: ^4.13.5
-      version: 4.13.5
+      specifier: 4.24.16
+      version: 4.24.16
     '@dbos-inc/drizzle-datasource':
-      specifier: ^4.13.5
-      version: 4.13.5
+      specifier: 4.24.16
+      version: 4.24.16
     '@dotenvx/dotenvx':
       specifier: ^1.59.1
       version: 1.59.1
@@ -569,6 +569,9 @@ importers:
       '@ipld/dag-cbor':
         specifier: 'catalog:'
         version: 9.2.5
+      '@noble/ciphers':
+        specifier: 'catalog:'
+        version: 1.3.0
       '@noble/curves':
         specifier: 'catalog:'
         version: 2.0.1
@@ -904,6 +907,9 @@ importers:
       vite:
         specifier: 'catalog:'
         version: 8.0.3(@types/node@22.19.19)(esbuild@0.27.2)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+      vite-plugin-dts:
+        specifier: 'catalog:'
+        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(typescript@5.9.3)(vite@8.0.3(@types/node@22.19.19)(esbuild@0.27.2)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4))
       vitest:
         specifier: 'catalog:'
         version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@1.8.0))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
@@ -1240,6 +1246,12 @@ importers:
 
   apps/orchestration-e2e:
     dependencies:
+      '@themoltnet/issue-lifecycle':
+        specifier: workspace:*
+        version: link:../issue-lifecycle
+      '@themoltnet/multi-lens-review':
+        specifier: workspace:*
+        version: link:../multi-lens-review
       '@themoltnet/tasks-orchestrator':
         specifier: workspace:*
         version: link:../../libs/tasks-orchestrator
@@ -1250,6 +1262,9 @@ importers:
       '@types/pg':
         specifier: 'catalog:'
         version: 8.16.0
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -1259,6 +1274,12 @@ importers:
 
   apps/rest-api:
     dependencies:
+      '@dbos-inc/dbos-sdk':
+        specifier: 'catalog:'
+        version: 4.24.16
+      '@dbos-inc/drizzle-datasource':
+        specifier: 'catalog:'
+        version: 4.24.16(@dbos-inc/dbos-sdk@4.24.16)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0))
       '@fastify/cors':
         specifier: 'catalog:'
         version: 11.2.0
@@ -1875,6 +1896,9 @@ importers:
       '@ipld/dag-cbor':
         specifier: 'catalog:'
         version: 9.2.5
+      '@noble/ciphers':
+        specifier: 'catalog:'
+        version: 1.3.0
       '@noble/curves':
         specifier: 'catalog:'
         version: 2.0.1
@@ -1921,10 +1945,10 @@ importers:
     dependencies:
       '@dbos-inc/dbos-sdk':
         specifier: 'catalog:'
-        version: 4.13.5
+        version: 4.24.16
       '@dbos-inc/drizzle-datasource':
         specifier: 'catalog:'
-        version: 4.13.5(@dbos-inc/dbos-sdk@4.13.5)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0))
+        version: 4.24.16(@dbos-inc/dbos-sdk@4.24.16)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0))
       '@moltnet/models':
         specifier: workspace:*
         version: link:../models
@@ -2683,7 +2707,7 @@ importers:
     dependencies:
       '@dbos-inc/dbos-sdk':
         specifier: 'catalog:'
-        version: 4.13.5
+        version: 4.24.16
       '@moltnet/crypto-service':
         specifier: workspace:*
         version: link:../crypto-service
@@ -2854,7 +2878,7 @@ importers:
     dependencies:
       '@dbos-inc/dbos-sdk':
         specifier: 'catalog:'
-        version: 4.13.5
+        version: 4.24.16
       '@moltnet/database':
         specifier: workspace:*
         version: link:../database
@@ -4117,13 +4141,13 @@ packages:
   '@dabh/diagnostics@2.0.8':
     resolution: {integrity: sha512-R4MSXTVnuMzGD7bzHdW2ZhhdPC/igELENcq5IjEverBvq5hn1SXCWcsi6eSsdWP0/Ur+SItRRjAktmdoX/8R/Q==}
 
-  '@dbos-inc/dbos-sdk@4.13.5':
-    resolution: {integrity: sha512-bD4yQdGqiuXEw4to2JlQVfDHxpssXSg3LJlPu/4VRQqIg1ZrjD2rwiQoUK6MboN9eDmIUf6GWwkF4dYOokJPAQ==}
+  '@dbos-inc/dbos-sdk@4.24.16':
+    resolution: {integrity: sha512-H6Kxd7QHluYR5sw0nVPsaOMW9/VlSgUZjfcpllmUY5D4O8tBuXXRqTFX3y41KrNjT3sTdETP9tyHwsZ8lqI54Q==}
     engines: {node: '>=20'}
     hasBin: true
 
-  '@dbos-inc/drizzle-datasource@4.13.5':
-    resolution: {integrity: sha512-GhyYtlshb8ljLtBSfW/5jbhqq6T8n8TguMFkvjNFp6zqUPvgjVzihpKLUu1OuzSmQyzfmsDxnhh4ZxovutWhow==}
+  '@dbos-inc/drizzle-datasource@4.24.16':
+    resolution: {integrity: sha512-GHTkqzJJa4taKyHDB3Dahc74SLvGwPJAprEcQY+LVIVk0hY8ASrj4y6AJcyomtLevBC1ZVviVuRG0PI6/nsXvg==}
     peerDependencies:
       '@dbos-inc/dbos-sdk': '*'
       drizzle-orm: '*'
@@ -7293,10 +7317,6 @@ packages:
   buffer-from@1.1.2:
     resolution: {integrity: sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ==}
 
-  buffer-writer@2.0.0:
-    resolution: {integrity: sha512-a7ZpuTZU1TRtnwyCNW3I5dc0wWNC3VR9S++Ewyk2HHZdrO3CQJqSpd+95Us590V6AL7JqUAH2IwZ/398PmNFgw==}
-    engines: {node: '>=4'}
-
   buffer@5.7.1:
     resolution: {integrity: sha512-EHcyIPBQ4BSGlvjB16k5KgAJ27CIsHY/2JBmCRReo48y9rQ3MaUzWX3KVlBa4U7MyX02HdVj0K7C3WaB3ju7FQ==}
 
@@ -9992,9 +10012,6 @@ packages:
   package-manager-detector@1.6.0:
     resolution: {integrity: sha512-61A5ThoTiDG/C8s8UMZwSorAGwMJ0ERVGj2OjoW5pAalsNOg15+iQiPzrLJ4jhZ1HJzmC2PIHT2oEiH3R5fzNA==}
 
-  packet-reader@1.0.0:
-    resolution: {integrity: sha512-HAKu/fG3HpHFO0AA8WE8q2g+gBJaZ9MG7fcKk+IJPLTGAD6Psw4443l+9DGRbOIh3/aXr7Phy0TjilYivJo5XQ==}
-
   parent-module@1.0.1:
     resolution: {integrity: sha512-GQ2EWRpQV8/o+Aw8YqtfZZPfNRWZYkbidE9k5rpl/hC3vtHHBfGm2Ifi6qWV+coDGkrUKZAxE3Lot5kcsRlh+g==}
     engines: {node: '>=6'}
@@ -10086,15 +10103,6 @@ packages:
   pg-types@2.2.0:
     resolution: {integrity: sha512-qTAAlrEsl8s4OiEQY69wDvcMIdQN6wdz5ojQiOy6YRMuynxenON0O5oCpJI6lshc6scgAY8qvJ2On/p+CXY0GA==}
     engines: {node: '>=4'}
-
-  pg@8.11.3:
-    resolution: {integrity: sha512-+9iuvG8QfaaUrrph+kpF24cXkH1YOOUeArRNYIxq1viYHZagBxrTno7cecY1Fa44tJeZvaoG+Djpkc3JwehN5g==}
-    engines: {node: '>= 8.0.0'}
-    peerDependencies:
-      pg-native: '>=3.0.1'
-    peerDependenciesMeta:
-      pg-native:
-        optional: true
 
   pg@8.18.0:
     resolution: {integrity: sha512-xqrUDL1b9MbkydY/s+VZ6v+xiMUmOUk7SS9d/1kpyQxoJ6U9AO1oIJyUWVZojbfe5Cc/oluutcgFG4L9RDP1iQ==}
@@ -12989,10 +12997,10 @@ snapshots:
       enabled: 2.0.0
       kuler: 2.0.0
 
-  '@dbos-inc/dbos-sdk@4.13.5':
+  '@dbos-inc/dbos-sdk@4.24.16':
     dependencies:
       commander: 12.0.0
-      pg: 8.11.3
+      pg: 8.18.0
       serialize-error: 8.1.0
       superjson: 1.13.3
       ws: 8.21.0
@@ -13002,9 +13010,9 @@ snapshots:
       - pg-native
       - utf-8-validate
 
-  '@dbos-inc/drizzle-datasource@4.13.5(@dbos-inc/dbos-sdk@4.13.5)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0))':
+  '@dbos-inc/drizzle-datasource@4.24.16(@dbos-inc/dbos-sdk@4.24.16)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0))':
     dependencies:
-      '@dbos-inc/dbos-sdk': 4.13.5
+      '@dbos-inc/dbos-sdk': 4.24.16
       drizzle-orm: 0.45.2(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
       pg: 8.18.0
       superjson: 1.13.3
@@ -16298,8 +16306,6 @@ snapshots:
 
   buffer-from@1.1.2: {}
 
-  buffer-writer@2.0.0: {}
-
   buffer@5.7.1:
     dependencies:
       base64-js: 1.5.1
@@ -19465,8 +19471,6 @@ snapshots:
 
   package-manager-detector@1.6.0: {}
 
-  packet-reader@1.0.0: {}
-
   parent-module@1.0.1:
     dependencies:
       callsites: 3.1.0
@@ -19532,10 +19536,6 @@ snapshots:
 
   pg-int8@1.0.1: {}
 
-  pg-pool@3.11.0(pg@8.11.3):
-    dependencies:
-      pg: 8.11.3
-
   pg-pool@3.11.0(pg@8.18.0):
     dependencies:
       pg: 8.18.0
@@ -19549,18 +19549,6 @@ snapshots:
       postgres-bytea: 1.0.1
       postgres-date: 1.0.7
       postgres-interval: 1.2.0
-
-  pg@8.11.3:
-    dependencies:
-      buffer-writer: 2.0.0
-      packet-reader: 1.0.0
-      pg-connection-string: 2.11.0
-      pg-pool: 3.11.0(pg@8.11.3)
-      pg-protocol: 1.11.0
-      pg-types: 2.2.0
-      pgpass: 1.0.5
-    optionalDependencies:
-      pg-cloudflare: 1.3.0
 
   pg@8.18.0:
     dependencies:

@@ -465,35 +465,39 @@ export async function packRoutes(fastify: FastifyInstance) {
       // flow. Keto is an external side effect and cannot be made atomic with
       // the Postgres transaction in this route handler.
       const packCreator = authContextToCreator(request);
-      const pack = await fastify.dataSource.runTransaction(async () => {
-        const createdPack = await fastify.contextPackRepository.createPack({
-          diaryId: diary.id,
-          packCid,
-          packType: 'custom',
-          params: request.body.params,
-          payload,
-          creatorAgentId: packCreator.kind === 'agent' ? packCreator.id : null,
-          creatorHumanId: packCreator.kind === 'human' ? packCreator.id : null,
-          supersedesPackId: request.body.supersedesPackId ?? null,
-          pinned,
-          expiresAt,
-          createdAt: createdAtDate,
-        });
+      const pack = await fastify.transactionRunner.runInTransaction(
+        async () => {
+          const createdPack = await fastify.contextPackRepository.createPack({
+            diaryId: diary.id,
+            packCid,
+            packType: 'custom',
+            params: request.body.params,
+            payload,
+            creatorAgentId:
+              packCreator.kind === 'agent' ? packCreator.id : null,
+            creatorHumanId:
+              packCreator.kind === 'human' ? packCreator.id : null,
+            supersedesPackId: request.body.supersedesPackId ?? null,
+            pinned,
+            expiresAt,
+            createdAt: createdAtDate,
+          });
 
-        await fastify.contextPackRepository.addEntries(
-          entries.map((entry) => ({
-            packId: createdPack.id,
-            entryId: entry.entryId,
-            entryCidSnapshot: entry.entryCidSnapshot,
-            compressionLevel: entry.compressionLevel,
-            originalTokens: entry.originalTokens,
-            packedTokens: entry.packedTokens,
-            rank: entry.rank,
-          })),
-        );
+          await fastify.contextPackRepository.addEntries(
+            entries.map((entry) => ({
+              packId: createdPack.id,
+              entryId: entry.entryId,
+              entryCidSnapshot: entry.entryCidSnapshot,
+              compressionLevel: entry.compressionLevel,
+              originalTokens: entry.originalTokens,
+              packedTokens: entry.packedTokens,
+              rank: entry.rank,
+            })),
+          );
 
-        return createdPack;
-      });
+          return createdPack;
+        },
+      );
 
       try {
         await fastify.relationshipWriter.grantPackParent(pack.id, diary.id);
@@ -1132,32 +1136,34 @@ export async function packRoutes(fastify: FastifyInstance) {
       }
 
       // Mutate + re-fetch atomically to avoid race with GC
-      const updated = await fastify.dataSource.runTransaction(async () => {
-        if (pinned === true) {
-          await fastify.contextPackRepository.pin(pack.id);
-        } else if (pinned === false) {
-          await fastify.contextPackRepository.unpin(
-            pack.id,
-            new Date(expiresAt!),
-          );
-        } else if (expiresAt !== undefined) {
-          // updateExpiry filters on `pinned = false`. A concurrent pin between
-          // the pre-check and this write produces a silent no-op — surface it
-          // as a conflict rather than returning stale state.
-          const result = await fastify.contextPackRepository.updateExpiry(
-            pack.id,
-            new Date(expiresAt),
-          );
-          if (!result) {
-            throw createProblem(
-              'conflict',
-              'Pack state changed concurrently — retry the request',
+      const updated = await fastify.transactionRunner.runInTransaction(
+        async () => {
+          if (pinned === true) {
+            await fastify.contextPackRepository.pin(pack.id);
+          } else if (pinned === false) {
+            await fastify.contextPackRepository.unpin(
+              pack.id,
+              new Date(expiresAt!),
             );
+          } else if (expiresAt !== undefined) {
+            // updateExpiry filters on `pinned = false`. A concurrent pin between
+            // the pre-check and this write produces a silent no-op — surface it
+            // as a conflict rather than returning stale state.
+            const result = await fastify.contextPackRepository.updateExpiry(
+              pack.id,
+              new Date(expiresAt),
+            );
+            if (!result) {
+              throw createProblem(
+                'conflict',
+                'Pack state changed concurrently — retry the request',
+              );
+            }
           }
-        }
 
-        return fastify.contextPackRepository.findById(pack.id);
-      });
+          return fastify.contextPackRepository.findById(pack.id);
+        },
+      );
 
       if (!updated) {
         throw createProblem('not-found', 'Context pack not found');

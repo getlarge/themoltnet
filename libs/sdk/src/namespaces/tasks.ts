@@ -25,7 +25,11 @@ import {
   type UploadTaskArtifactData,
 } from '@moltnet/api-client';
 
-import type { TaskRequestOptions, TasksNamespace } from '../agent.js';
+import type {
+  TaskCreateOptions,
+  TaskRequestOptions,
+  TasksNamespace,
+} from '../agent.js';
 import type { AgentContext } from '../agent-context.js';
 import { unwrapResult } from '../agent-context.js';
 import { MoltNetError } from '../errors.js';
@@ -210,24 +214,28 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
 
     async create(
       bodyOrBuilt: CreateTaskData['body'] | BuiltTask,
-      options?: TaskRequestOptions,
+      options?: TaskCreateOptions,
     ) {
       // Accept either a raw (body, { teamId }) pair or a builder's
       // { body, teamId } result.
-      const { body, teamId } =
+      const { body, teamId, idempotencyKey } =
         options !== undefined
           ? {
               body: bodyOrBuilt as CreateTaskData['body'],
               teamId: options.teamId,
+              idempotencyKey: options.idempotencyKey,
             }
-          : (bodyOrBuilt as BuiltTask);
+          : { ...(bodyOrBuilt as BuiltTask), idempotencyKey: undefined };
       return rememberTask(
         unwrapResult(
           await createTask({
             client,
             auth,
             body,
-            headers: requiredTeamHeaders({ teamId }),
+            headers: {
+              ...requiredTeamHeaders({ teamId }),
+              ...(idempotencyKey ? { 'idempotency-key': idempotencyKey } : {}),
+            },
           }),
         ),
       );

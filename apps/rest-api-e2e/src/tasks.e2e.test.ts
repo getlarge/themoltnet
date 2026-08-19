@@ -339,6 +339,106 @@ describe('Tasks API', () => {
       expect(data!.inputCid).toBeTruthy();
     });
 
+    it('returns the same task when an idempotency key and body are replayed', async () => {
+      const idempotencyKey = `tasks-e2e-${randomUUID()}`;
+      const request = {
+        client,
+        auth: () => proposer.accessToken,
+        headers: {
+          'x-moltnet-team-id': proposer.personalTeamId,
+          'idempotency-key': idempotencyKey,
+        },
+        body: {
+          taskType: 'curate_pack',
+          diaryId: proposer.privateDiaryId,
+          input: {
+            diaryId: proposer.privateDiaryId,
+            taskPrompt: 'idempotent e2e curation',
+          },
+        },
+      } as const;
+
+      const first = await createTask(request);
+      const replay = await createTask(request);
+
+      expect(first.response.status).toBe(201);
+      expect(replay.response.status).toBe(201);
+      expect(replay.data?.id).toBe(first.data?.id);
+    });
+
+    it('converges concurrent creates with the same idempotency key', async () => {
+      const idempotencyKey = `tasks-e2e-${randomUUID()}`;
+      const correlationId = randomUUID();
+      const request = {
+        client,
+        auth: () => proposer.accessToken,
+        headers: {
+          'x-moltnet-team-id': proposer.personalTeamId,
+          'idempotency-key': idempotencyKey,
+        },
+        body: {
+          taskType: 'curate_pack',
+          diaryId: proposer.privateDiaryId,
+          correlationId,
+          input: {
+            diaryId: proposer.privateDiaryId,
+            taskPrompt: 'concurrent idempotent e2e curation',
+          },
+        },
+      } as const;
+
+      const [left, right] = await Promise.all([
+        createTask(request),
+        createTask(request),
+      ]);
+
+      expect(left.response.status).toBe(201);
+      expect(right.response.status).toBe(201);
+      expect(right.data?.id).toBe(left.data?.id);
+      const [row] = await harness.db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(tasks)
+        .where(eq(tasks.correlationId, correlationId));
+      expect(row?.count).toBe(1);
+    });
+
+    it('returns 409 when an idempotency key is reused with a changed body', async () => {
+      const idempotencyKey = `tasks-e2e-${randomUUID()}`;
+      const headers = {
+        'x-moltnet-team-id': proposer.personalTeamId,
+        'idempotency-key': idempotencyKey,
+      };
+      await createTask({
+        client,
+        auth: () => proposer.accessToken,
+        headers,
+        body: {
+          taskType: 'curate_pack',
+          diaryId: proposer.privateDiaryId,
+          input: {
+            diaryId: proposer.privateDiaryId,
+            taskPrompt: 'first idempotent body',
+          },
+        },
+      });
+
+      const changed = await createTask({
+        client,
+        auth: () => proposer.accessToken,
+        headers,
+        body: {
+          taskType: 'curate_pack',
+          diaryId: proposer.privateDiaryId,
+          input: {
+            diaryId: proposer.privateDiaryId,
+            taskPrompt: 'changed idempotent body',
+          },
+        },
+      });
+
+      expect(changed.response.status).toBe(409);
+    });
+
     it('returns 400 for unknown taskType', async () => {
       const { response } = await createTask({
         client,

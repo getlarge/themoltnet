@@ -19,6 +19,10 @@
       "import": "./src/content-cid.ts",
       "types": "./src/content-cid.ts"
     },
+    "./json-cid": {
+      "import": "./src/json-cid.ts",
+      "types": "./src/json-cid.ts"
+    },
     "./ssh": {
       "import": "./src/ssh.ts",
       "types": "./src/ssh.ts"
@@ -30,6 +34,7 @@
   },
   "dependencies": {
     "@ipld/dag-cbor": "catalog:",
+    "@noble/ciphers": "catalog:",
     "@noble/curves": "catalog:",
     "@noble/ed25519": "catalog:",
     "@noble/hashes": "catalog:",

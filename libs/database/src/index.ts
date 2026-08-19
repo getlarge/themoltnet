@@ -20,14 +20,15 @@ export {
   type DBOSConfig,
   type DBOSDatabase,
   DBOSErrors,
+  type DBOSRuntimeInventory,
   type DrizzleDataSource,
   getDataSource,
+  getDBOSRuntimeInventory,
   initDBOS,
   isDBOSReady,
   launchDBOS,
   shutdownDBOS,
   type WorkflowHandle,
-  WorkflowQueue,
 } from './dbos.js';
 export {
   enqueueWorkflowInCurrentTransaction,
@@ -72,6 +73,12 @@ export {
   type CorrelationSealRepository,
   createCorrelationSealRepository,
 } from './repositories/correlation-seal.repository.js';
+export {
+  createDatabaseCapacityRepository,
+  type DatabaseCapacityRepository,
+  type DatabaseCapacityScope,
+  type DatabaseCapacitySnapshot,
+} from './repositories/database-capacity.repository.js';
 export {
   createDiaryRepository,
   type DiaryRepository,

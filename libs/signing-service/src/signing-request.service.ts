@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
 
 import { type AuthContext, teamRelationToRole } from '@moltnet/auth';
@@ -602,6 +603,12 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
           'A signature has already been submitted for this request',
         );
       }
+      if (row.status === 'rejected') {
+        throw new SigningServiceError(
+          'conflict',
+          'This signing request has been rejected',
+        );
+      }
       if (!row.workflowId) {
         throw new SigningServiceError(
           'not_found',
@@ -612,6 +619,9 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
         row.workflowId,
         { signature: input.signature },
         'signature',
+        `signing-request:${input.requestId}:submission:${createHash('sha256')
+          .update(input.signature)
+          .digest('hex')}`,
       );
       try {
         return await waitForSigningResult(input.requestId, {

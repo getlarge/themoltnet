@@ -10,7 +10,22 @@
     "directory": "apps/issue-lifecycle"
   },
   "homepage": "https://themolt.net",
-  "main": "./dist/main.js",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "import": "./dist/index.js",
+        "types": "./dist/index.d.ts"
+      }
+    }
+  },
   "bin": {
     "moltnet-issue-lifecycle": "./dist/main.js"
   },
@@ -50,6 +65,7 @@
     "tsx": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
+    "vite-plugin-dts": "catalog:",
     "vitest": "catalog:"
   },
   "nx": {

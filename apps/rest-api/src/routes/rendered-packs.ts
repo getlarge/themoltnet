@@ -516,31 +516,33 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
         );
       }
 
-      const updated = await fastify.dataSource.runTransaction(async () => {
-        if (pinned === true) {
-          return fastify.renderedPackRepository.pin(rendered.id);
-        } else if (pinned === false) {
-          return fastify.renderedPackRepository.unpin(
-            rendered.id,
-            new Date(expiresAt!),
-          );
-        } else {
-          // updateExpiry filters on `pinned = false`. A concurrent pin between
-          // the pre-check and this write produces a silent no-op — surface it
-          // as a conflict rather than returning stale state.
-          const result = await fastify.renderedPackRepository.updateExpiry(
-            rendered.id,
-            new Date(expiresAt!),
-          );
-          if (!result) {
-            throw createProblem(
-              'conflict',
-              'Rendered pack state changed concurrently — retry the request',
+      const updated = await fastify.transactionRunner.runInTransaction(
+        async () => {
+          if (pinned === true) {
+            return fastify.renderedPackRepository.pin(rendered.id);
+          } else if (pinned === false) {
+            return fastify.renderedPackRepository.unpin(
+              rendered.id,
+              new Date(expiresAt!),
             );
+          } else {
+            // updateExpiry filters on `pinned = false`. A concurrent pin between
+            // the pre-check and this write produces a silent no-op — surface it
+            // as a conflict rather than returning stale state.
+            const result = await fastify.renderedPackRepository.updateExpiry(
+              rendered.id,
+              new Date(expiresAt!),
+            );
+            if (!result) {
+              throw createProblem(
+                'conflict',
+                'Rendered pack state changed concurrently — retry the request',
+              );
+            }
+            return result;
           }
-          return result;
-        }
-      });
+        },
+      );
 
       if (!updated) {
         throw createProblem(

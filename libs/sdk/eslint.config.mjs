@@ -12,6 +12,8 @@ export default [
       // Runtime imports promoted from bundled private workspace packages.
       '@ipld/dag-cbor',
       '@napi-rs/keyring',
+      '@noble/ciphers',
+      '@noble/hashes',
       'multiformats',
       'typebox',
     ],

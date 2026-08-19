@@ -11,7 +11,9 @@
  * 1. `configureDBOS()` — sets DBOS config
  * 2. Call `init*Workflows()` functions — registers workflows via DBOS.registerWorkflow()
  * 3. `initDBOS()` — creates DrizzleDataSource with connection pool
- * 4. `launchDBOS()` — starts DBOS runtime, recovers pending workflows
+ * 4. Create `TransactionRunner` and wire every workflow dependency
+ * 5. `launchDBOS()` — starts DBOS runtime, recovers pending workflows
+ * 6. Register persisted queues
  *
  * @see https://docs.dbos.dev/typescript/tutorials/transaction-tutorial
  */
@@ -31,7 +33,7 @@ let launched = false;
 export interface DBOSConfig {
   /** Application database URL — used by DrizzleDataSource for app tables */
   databaseUrl: string;
-  /** DBOS system database URL — used for workflow state, step results, etc. */
+  /** DBOS system URL — same Postgres database, with workflow state in `dbos`. */
   systemDatabaseUrl: string;
   maxConnections?: number;
 }
@@ -58,6 +60,9 @@ export function configureDBOS(
     name: 'moltnet-api',
     systemDatabaseUrl,
     enableOTLP,
+    // The REST API owns its public HTTP surface. Do not expose DBOS's
+    // unauthenticated management server on a second port.
+    runAdminServer: false,
     ...(logLevel !== undefined ? { logLevel } : {}),
   });
   configured = true;
@@ -68,9 +73,9 @@ export function configureDBOS(
  *
  * Call this AFTER configureDBOS() and workflow registration.
  *
- * Note: DBOS creates its own connection pool internally. When DBOS is active,
- * prefer using dataSource.client for database operations rather than creating
- * a separate pool via createDatabase().
+ * DBOS creates its own connection pool internally. Workflow-facing repository
+ * code must use `createDBOSTransactionRunner(dataSource)` so repository ALS and
+ * the DBOS transaction checkpoint share one transaction.
  */
 export async function initDBOS(config: DBOSConfig): Promise<void> {
   if (launched) {
@@ -117,9 +122,9 @@ export async function launchDBOS(): Promise<void> {
 }
 
 /**
- * Get the DBOS DrizzleDataSource for running transactions.
- *
- * Use `dataSource.runTransaction()` for atomic DB + workflow operations.
+ * Get the DBOS DrizzleDataSource for lifecycle wiring and route decoration.
+ * Workflow modules receive a repository-aware `TransactionRunner`, not this
+ * raw datasource.
  */
 export function getDataSource(): DrizzleDataSource<DBOSDatabase> {
   if (!dataSource) {
@@ -133,6 +138,42 @@ export function getDataSource(): DrizzleDataSource<DBOSDatabase> {
  */
 export function isDBOSReady(): boolean {
   return launched;
+}
+
+export interface DBOSRuntimeInventory {
+  currentVersion: string;
+  latestVersion: string;
+  activeWorkflowsByVersion: Record<string, number>;
+}
+
+/** Read the version/recovery inventory used by startup logs and operations. */
+export async function getDBOSRuntimeInventory(): Promise<DBOSRuntimeInventory> {
+  if (!launched) {
+    throw new Error('DBOS is not launched');
+  }
+
+  const activeWorkflowsByVersion: Record<string, number> = {};
+  const pageSize = 1_000;
+  for (let offset = 0; ; offset += pageSize) {
+    const workflows = await DBOS.listWorkflows({
+      status: ['PENDING', 'ENQUEUED', 'DELAYED'],
+      limit: pageSize,
+      offset,
+    });
+    for (const workflow of workflows) {
+      const version = workflow.applicationVersion || 'unassigned';
+      activeWorkflowsByVersion[version] =
+        (activeWorkflowsByVersion[version] ?? 0) + 1;
+    }
+    if (workflows.length < pageSize) break;
+  }
+
+  const latest = await DBOS.getLatestApplicationVersion();
+  return {
+    currentVersion: DBOS.applicationVersion,
+    latestVersion: latest.versionName,
+    activeWorkflowsByVersion,
+  };
 }
 
 /**
@@ -149,11 +190,7 @@ export async function shutdownDBOS(): Promise<void> {
 }
 
 // Re-export DBOS for workflow/step registration
-export {
-  DBOS,
-  DBOSWorkflowConflictError,
-  WorkflowQueue,
-} from '@dbos-inc/dbos-sdk';
+export { DBOS, DBOSWorkflowConflictError } from '@dbos-inc/dbos-sdk';
 
 // Re-export types used by workflow runners
 export type { WorkflowHandle } from '@dbos-inc/dbos-sdk';

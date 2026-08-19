@@ -60,9 +60,13 @@ export async function cancelSupersededTasks(args: {
   );
   const cancelled: string[] = [];
   for (const task of tasks.items) {
-    await args.agent.tasks.cancel(task.id, {
-      reason: `Superseded by a newer ${args.taskType} task in correlation ${args.correlationId}`,
-    });
+    await args.agent.tasks.cancel(
+      task.id,
+      {
+        reason: `Superseded by a newer ${args.taskType} task in correlation ${args.correlationId}`,
+      },
+      { teamId: args.teamId },
+    );
     cancelled.push(task.id);
   }
   return cancelled;

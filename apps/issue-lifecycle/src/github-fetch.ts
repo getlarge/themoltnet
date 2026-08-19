@@ -26,6 +26,7 @@ interface GithubIssueJson {
 interface GithubIssueCommentJson {
   id: number;
   body?: string | null;
+  user?: { login?: string | null; type?: string | null } | null;
 }
 
 interface PullRequestGraphqlResponse {
@@ -154,6 +155,10 @@ export class FetchGithubClient implements GithubClient {
     return comments.map((comment) => ({
       id: comment.id,
       body: comment.body ?? '',
+      author:
+        comment.user?.login && comment.user.type
+          ? { login: comment.user.login, type: comment.user.type }
+          : undefined,
     }));
   }
 

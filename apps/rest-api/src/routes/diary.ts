@@ -34,7 +34,7 @@ import { sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { Type } from 'typebox';
 
-import { createProblem } from '../problems/index.js';
+import { createProblem, isUniqueViolation } from '../problems/index.js';
 import {
   DiaryCatalogListSchema,
   DiaryCatalogSchema,
@@ -48,6 +48,7 @@ import {
 } from '../utils/auth-principal.js';
 import { requireKetoSubject } from '../utils/require-keto-subject.js';
 import {
+  type DiaryTransferResult,
   diaryTransferWorkflow,
   TRANSFER_DECISION_EVENT,
 } from '../workflows/diary-transfer-workflow.js';
@@ -640,14 +641,26 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       const workflowId = `transfer-${randomUUID()}`;
 
       // Create transfer record
-      const transfer = await fastify.diaryTransferRepository.create({
-        diaryId: id,
-        sourceTeamId: diary.teamId,
-        destinationTeamId,
-        workflowId,
-        initiatedBy: identityId,
-        expiresAt,
-      });
+      let transfer: Awaited<
+        ReturnType<typeof fastify.diaryTransferRepository.create>
+      >;
+      try {
+        transfer = await fastify.diaryTransferRepository.create({
+          diaryId: id,
+          sourceTeamId: diary.teamId,
+          destinationTeamId,
+          workflowId,
+          initiatedBy: identityId,
+          expiresAt,
+        });
+      } catch (err) {
+        if (
+          isUniqueViolation(err, 'diary_transfers_one_pending_per_diary_idx')
+        ) {
+          throw createProblem('diary-transfer-pending');
+        }
+        throw err;
+      }
 
       // Start workflow (non-blocking).
       // On startup failure, expire the transfer so the caller can retry.
@@ -761,7 +774,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       const transfer =
         await fastify.diaryTransferRepository.findById(transferId);
       if (!transfer) throw createProblem('diary-transfer-not-found');
-      if (transfer.status !== 'pending')
+      if (transfer.status !== 'pending' && transfer.status !== 'accepted')
         throw createProblem('diary-transfer-already-resolved');
 
       // Must be owner of destination team
@@ -779,6 +792,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           transfer.workflowId,
           'accepted',
           TRANSFER_DECISION_EVENT,
+          `diary-transfer:${transferId}:decision:accepted`,
         );
       } catch (err) {
         request.log.error(
@@ -787,8 +801,15 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         );
         throw err;
       }
-      // Return synthetic status — the workflow owns the actual DB transition
-      // asynchronously. Callers should poll GET /diaries/:id to confirm teamId swap.
+      const outcome = await DBOS.retrieveWorkflow<DiaryTransferResult>(
+        transfer.workflowId,
+      ).getResult();
+      if (outcome.status !== 'accepted') {
+        throw createProblem(
+          'conflict',
+          `Diary transfer was already resolved as ${outcome.status}`,
+        );
+      }
       return reply
         .status(200)
         .send({ ...transfer, status: 'accepted' as const });
@@ -828,7 +849,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       const transfer =
         await fastify.diaryTransferRepository.findById(transferId);
       if (!transfer) throw createProblem('diary-transfer-not-found');
-      if (transfer.status !== 'pending')
+      if (transfer.status !== 'pending' && transfer.status !== 'rejected')
         throw createProblem('diary-transfer-already-resolved');
 
       const canManage = await fastify.permissionChecker.canManageTeam(
@@ -843,6 +864,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
           transfer.workflowId,
           'rejected',
           TRANSFER_DECISION_EVENT,
+          `diary-transfer:${transferId}:decision:rejected`,
         );
       } catch (err) {
         request.log.error(
@@ -851,8 +873,15 @@ export async function diaryRoutes(fastify: FastifyInstance) {
         );
         throw err;
       }
-      // Return synthetic status — the workflow owns the actual DB transition
-      // asynchronously. Diary stays on source team until workflow confirms.
+      const outcome = await DBOS.retrieveWorkflow<DiaryTransferResult>(
+        transfer.workflowId,
+      ).getResult();
+      if (outcome.status !== 'rejected') {
+        throw createProblem(
+          'conflict',
+          `Diary transfer was already resolved as ${outcome.status}`,
+        );
+      }
       return reply
         .status(200)
         .send({ ...transfer, status: 'rejected' as const });

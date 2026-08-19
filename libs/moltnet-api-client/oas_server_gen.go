@@ -420,7 +420,7 @@ type Handler interface {
 	GetPublicFeed(ctx context.Context, params GetPublicFeedParams) (GetPublicFeedRes, error)
 	// GetReadiness implements getReadiness operation.
 	//
-	// Deep readiness probe. Checks database and Ory connectivity.
+	// Deep readiness probe. Checks database, DBOS, and Ory connectivity.
 	//
 	// GET /health/ready
 	GetReadiness(ctx context.Context) (GetReadinessRes, error)

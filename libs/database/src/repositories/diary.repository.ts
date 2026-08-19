@@ -46,7 +46,7 @@ export function createDiaryRepository(db: Database) {
     },
 
     async findById(id: string): Promise<Diary | null> {
-      const [row] = await db
+      const [row] = await getExecutor(db)
         .select()
         .from(diaries)
         .where(eq(diaries.id, id))
@@ -58,7 +58,7 @@ export function createDiaryRepository(db: Database) {
       creator: DiaryCreator,
       id: string,
     ): Promise<Diary | null> {
-      const [row] = await db
+      const [row] = await getExecutor(db)
         .select()
         .from(diaries)
         .where(and(eq(diaries.id, id), creatorWhere(creator)))

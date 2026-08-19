@@ -95,6 +95,17 @@ test.describe.serial('Task analytics', () => {
     }
     sharedTeamId = created.data.id;
 
+    // Team creation returns while the founding workflow is still durably
+    // reconciling Keto membership. Wait on the read-only membership surface
+    // before issuing the non-idempotent diary create request.
+    await expect(async () => {
+      const teams = await listTeams({ client: humanClient });
+      expect(teams.response.status).toBe(200);
+      expect(teams.data?.items.some((team) => team.id === sharedTeamId)).toBe(
+        true,
+      );
+    }).toPass({ timeout: 20_000 });
+
     const diary = await createDiary({
       client: humanClient,
       headers: { 'x-moltnet-team-id': sharedTeamId },

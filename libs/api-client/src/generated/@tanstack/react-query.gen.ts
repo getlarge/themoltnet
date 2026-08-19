@@ -2654,7 +2654,7 @@ export const getReadinessQueryKey = (options?: Options<GetReadinessData>) =>
   createQueryKey('getReadiness', options);
 
 /**
- * Deep readiness probe. Checks database and Ory connectivity.
+ * Deep readiness probe. Checks database, DBOS, and Ory connectivity.
  */
 export const getReadinessOptions = (options?: Options<GetReadinessData>) =>
   queryOptions<

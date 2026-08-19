@@ -619,6 +619,8 @@ describe('Pack routes', () => {
       PACK_ID,
       DIARY_ID,
     );
+    expect(mocks.transactionRunner.runInTransaction).toHaveBeenCalledOnce();
+    expect(mocks.dataSource.runTransaction).not.toHaveBeenCalled();
   });
 
   it('cleans up a persisted custom pack if Keto parent grant fails', async () => {

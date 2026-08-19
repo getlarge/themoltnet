@@ -188,24 +188,17 @@ describe('Team Governance', () => {
       expect(data!.teamStatus).toBe('active');
     });
 
-    it('accepting twice returns 409', async () => {
-      // agentB already accepted above — poll until workflow has committed accepted status
-      const { response } = await pollUntilStatus(
-        () =>
-          acceptTeamFounding({
-            client,
-            auth: () => agentB.accessToken,
-            path: { id: foundingTeamId },
-            body: {},
-          }),
-        409,
-        {
-          label: 'repeated accept returns 409',
-          maxAttempts: 20,
-          intervalMs: 300,
-        },
-      );
-      expect(response.status).toBe(409);
+    it('accepting twice is idempotent and reports the active team', async () => {
+      const { data, error, response } = await acceptTeamFounding({
+        client,
+        auth: () => agentB.accessToken,
+        path: { id: foundingTeamId },
+        body: {},
+      });
+
+      expect(error).toBeUndefined();
+      expect(response.status).toBe(200);
+      expect(data).toMatchObject({ accepted: true, teamStatus: 'active' });
     });
 
     it('unauthenticated gets 401', async () => {
@@ -446,22 +439,15 @@ describe('Team Governance', () => {
         expect(data!.teamId).toBe(sourceTeamId);
       });
 
-      it('rejecting an already-resolved transfer returns 409', async () => {
-        const { response } = await pollUntilStatus(
-          () =>
-            rejectTransfer({
-              client,
-              auth: () => agentB.accessToken,
-              path: { transferId },
-            }),
-          409,
-          {
-            label: 'rejecting resolved transfer returns 409',
-            maxAttempts: 20,
-            intervalMs: 500,
-          },
-        );
-        expect(response.status).toBe(409);
+      it('repeating the same rejection is idempotent', async () => {
+        const { data, error, response } = await rejectTransfer({
+          client,
+          auth: () => agentB.accessToken,
+          path: { transferId },
+        });
+        expect(error).toBeUndefined();
+        expect(response.status).toBe(200);
+        expect(data?.status).toBe('rejected');
       });
     });
 
@@ -533,22 +519,15 @@ describe('Team Governance', () => {
         expect(data!.teamId).toBe(destTeamId);
       });
 
-      it('accepting already-accepted transfer returns 409', async () => {
-        const { response } = await pollUntilStatus(
-          () =>
-            acceptTransfer({
-              client,
-              auth: () => agentB.accessToken,
-              path: { transferId },
-            }),
-          409,
-          {
-            label: 'accepting accepted transfer returns 409',
-            maxAttempts: 20,
-            intervalMs: 500,
-          },
-        );
-        expect(response.status).toBe(409);
+      it('repeating the same acceptance is idempotent', async () => {
+        const { data, error, response } = await acceptTransfer({
+          client,
+          auth: () => agentB.accessToken,
+          path: { transferId },
+        });
+        expect(error).toBeUndefined();
+        expect(response.status).toBe(200);
+        expect(data?.status).toBe('accepted');
       });
     });
   });

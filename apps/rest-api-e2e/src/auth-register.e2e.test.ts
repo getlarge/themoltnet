@@ -121,7 +121,7 @@ describe('proof-based registration', () => {
     expect(tokenResponse.status).toBe(200);
   });
 
-  it('returns the original credential when the exact request is retried', async () => {
+  it('reissues a usable credential when the exact request is retried', async () => {
     const input = await signedSelfRegistration('oauth2');
     const request = () =>
       fetch(`${harness.baseUrl}/auth/register`, {
@@ -141,7 +141,43 @@ describe('proof-based registration', () => {
     const second = await request();
     expect(first.status).toBe(200);
     expect(second.status).toBe(200);
-    expect(await second.json()).toEqual(await first.json());
+    const firstResult = (await first.json()) as {
+      identityId: string;
+      fingerprint: string;
+      publicKey: string;
+      credential: {
+        type: 'oauth2';
+        clientId: string;
+        clientSecret: string;
+      };
+    };
+    const secondResult = (await second.json()) as typeof firstResult;
+    expect(secondResult).toMatchObject({
+      identityId: firstResult.identityId,
+      fingerprint: firstResult.fingerprint,
+      publicKey: firstResult.publicKey,
+      credential: {
+        type: 'oauth2',
+        clientId: firstResult.credential.clientId,
+      },
+    });
+    expect(secondResult.credential.clientSecret).not.toBe(
+      firstResult.credential.clientSecret,
+    );
+    await expect(
+      requestOAuthToken(
+        harness.baseUrl,
+        firstResult.credential.clientId,
+        firstResult.credential.clientSecret,
+      ),
+    ).resolves.toMatchObject({ status: 401 });
+    await expect(
+      requestOAuthToken(
+        harness.baseUrl,
+        secondResult.credential.clientId,
+        secondResult.credential.clientSecret,
+      ),
+    ).resolves.toMatchObject({ status: 200 });
   });
 
   it('creates exactly one agent-key credential when selected', async () => {

@@ -5,6 +5,7 @@ import {
 
 import type {
   GithubClient,
+  GithubIssueComment,
   IssueLifecycleDeps,
   PullRequestStatus,
 } from './types.js';
@@ -34,7 +35,7 @@ export class FakeGithub implements GithubClient {
   approval = true;
   skipNotify = false;
   approvalResponses: boolean[] = [];
-  comments: Array<{ id: number; body: string }> = [];
+  comments: GithubIssueComment[] = [];
   labels: Array<{ issueNumber: number; label: string }> = [];
   prResponses: PullRequestStatus[] = [];
   prPolls = 0;
@@ -59,7 +60,11 @@ export class FakeGithub implements GithubClient {
   }
 
   createIssueComment(_repo: string, _issueNumber: number, body: string) {
-    this.comments.push({ id: this.comments.length + 1, body });
+    this.comments.push({
+      id: this.comments.length + 1,
+      body,
+      author: { login: 'moltnet-test[bot]', type: 'Bot' },
+    });
     return Promise.resolve();
   }
 

@@ -452,7 +452,9 @@ describe('AuthGuard', () => {
       await waitFor(() => {
         expect(screen.getByTestId('protected')).toBeDefined();
       });
-      expect(window.sessionStorage.getItem(HOP_STORAGE_KEY)).toBeNull();
+      await waitFor(() => {
+        expect(window.sessionStorage.getItem(HOP_STORAGE_KEY)).toBeNull();
+      });
     });
   });
 });

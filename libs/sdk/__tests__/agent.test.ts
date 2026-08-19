@@ -515,7 +515,7 @@ describe('Agent facade', () => {
           diaryId: 'diary-1',
           input: { brief: 'Hello' },
         },
-        { teamId: 'team-1' },
+        { teamId: 'team-1', idempotencyKey: 'absurd:run-1:create-child' },
       );
 
       expect(result).toEqual(mockTask);
@@ -523,7 +523,10 @@ describe('Agent facade', () => {
         expect.objectContaining({
           client: mockClient,
           auth: mockAuth,
-          headers: { 'x-moltnet-team-id': 'team-1' },
+          headers: {
+            'x-moltnet-team-id': 'team-1',
+            'idempotency-key': 'absurd:run-1:create-child',
+          },
           body: {
             taskType: 'fulfill_brief',
             diaryId: 'diary-1',

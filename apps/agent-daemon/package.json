@@ -120,6 +120,7 @@
     "@earendil-works/pi-coding-agent": "catalog:",
     "@fastify/otel": "catalog:",
     "@ipld/dag-cbor": "catalog:",
+    "@noble/ciphers": "catalog:",
     "@noble/curves": "catalog:",
     "@noble/ed25519": "catalog:",
     "@noble/hashes": "catalog:",
