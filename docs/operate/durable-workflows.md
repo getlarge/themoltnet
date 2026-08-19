@@ -1,30 +1,37 @@
-# Durable Workflow Operations
+# DBOS Workflow Operations
 
-Use this runbook to inventory DBOS executions, diagnose recovery, decide
-whether a release may deploy, and roll back without abandoning workflows. All
-inventory SQL below is read-only.
+This runbook covers DBOS workflows owned by the REST API. For the conceptual
+model, lifecycle boundaries, and transaction semantics, read
+[Architecture: DBOS durable workflows](../understand/architecture.md#dbos-durable-workflows).
+Absurd-backed Issue Lifecycle and Multi-Lens Review workflows are outside this
+runbook.
 
-## Check service readiness
+Inventory queries are read-only unless a section is explicitly marked as a
+repair. Treat workflow errors and application identifiers as potentially
+sensitive production data.
 
-The REST API is ready only after DBOS launches, recovers interrupted work, and
-registers persisted queues.
+## Check readiness
+
+The REST API becomes ready only after DBOS launches, recovers interrupted work,
+and registers persisted queues:
 
 ```bash
 curl -fsS https://api.themolt.net/health/ready | jq .
 ```
 
-At startup, find the `DBOS initialized` log record. It contains:
+The `DBOS initialized` startup record contains `currentVersion`,
+`latestVersion`, and `activeWorkflowsByVersion`. A healthy HTTP process without
+DBOS readiness is not ready for traffic.
 
-- `currentVersion`: the source hash of the running application
-- `latestVersion`: the latest version known to DBOS
-- `activeWorkflowsByVersion`: active executions grouped by application version
+## Inventory active and failed workflows
 
-A healthy HTTP process without DBOS readiness is not ready for traffic.
+Production retention deletes terminal DBOS histories, including `ERROR` and
+`MAX_RECOVERY_ATTEMPTS_EXCEEDED`, after 30 days on an hourly schedule. Preserve
+needed evidence before that window closes. Retention does not remove pending
+work, so query aged active rows explicitly.
 
-## Read-only production inventory
-
-Connect to the DBOS system database through the approved production database
-access path. Keep the session read-only:
+Connect through the approved production database path and keep the inventory
+session read-only:
 
 ```sql
 BEGIN TRANSACTION READ ONLY;
@@ -58,10 +65,24 @@ WHERE status IN (
 ORDER BY updated_at DESC
 LIMIT 200;
 
+-- Adjust the threshold to the workflow family being investigated.
+SELECT
+  workflow_uuid,
+  name,
+  status,
+  application_version,
+  queue_name,
+  recovery_attempts,
+  to_timestamp(updated_at / 1000.0) AS updated_at
+FROM dbos.workflow_status
+WHERE status IN ('PENDING', 'ENQUEUED', 'DELAYED')
+  AND to_timestamp(updated_at / 1000.0) < now() - interval '1 hour'
+ORDER BY updated_at ASC;
+
 ROLLBACK;
 ```
 
-To inspect a known workflow without exposing serialized inputs or outputs:
+Inspect a known workflow without loading serialized inputs or outputs:
 
 ```sql
 SELECT
@@ -70,7 +91,6 @@ SELECT
   status,
   application_version,
   queue_name,
-  executor_id,
   recovery_attempts,
   workflow_deadline_epoch_ms,
   error
@@ -78,59 +98,140 @@ FROM dbos.workflow_status
 WHERE workflow_uuid = :'workflow_id';
 ```
 
-Treat `error` as potentially sensitive. Do not paste production values into an
-issue or chat without redaction.
+Do not paste production `error` values into an issue or chat without redaction.
 
 ## Diagnose recovery
 
-1. Confirm `/health/ready` and inspect the `DBOS initialized` inventory.
-2. Find the workflow by ID, family name, version, and queue.
-3. Check `recovery_attempts`, the last update time, and the application logs for
-   that workflow ID.
-4. Confirm an executor for the workflow's application version is running.
+1. Confirm `/health/ready` and read the latest `DBOS initialized` record.
+2. Find the workflow by ID, family, application version, and queue.
+3. Check `recovery_attempts`, last update time, and application logs for that
+   workflow ID.
+4. Compare its `application_version` with the running process's
+   `currentVersion`; `executor_id` is not useful in the current Fly setup.
 5. For queued work, confirm the persisted queue was registered with its expected
    concurrency.
 6. For a wait, distinguish a durable sleep/deadline from a missing signal. Do
-   not send an event or mutate DBOS tables merely because a workflow is idle.
-7. Inspect the application row and external system separately. Postgres and
-   Keto/Ory/storage are reconciled durably, not committed atomically.
+   not send a message merely because a workflow is idle.
+7. Inspect Postgres and the external system separately. Keto, Ory, GitHub, and
+   storage are durably reconciled with Postgres, not atomically committed with
+   it.
 
-Never repair workflow state by directly updating `dbos.workflow_status`,
-operation outputs, notifications, or queue tables. Use an application-level
-retry/reconciliation path reviewed for that workflow family.
+Never update DBOS workflow, operation-output, notification, or queue tables by
+hand. Prefer the application workflow's retry or reconciliation path.
 
-## Drain versus patch
+### Find a stranded diary transfer
 
-This release keeps DBOS automatic source-hash versioning. It does not set
-`applicationVersion`, enable workflow patching, or stamp transactional task
-enqueues with an application version.
+A pending diary transfer blocks every new transfer for the same diary. Check the
+application row and its DBOS workflow together:
 
-Before deployment, compare the candidate version with the active inventory:
+```sql
+SELECT
+  transfer.id AS transfer_id,
+  transfer.diary_id,
+  transfer.workflow_id,
+  transfer.expires_at,
+  workflow.status AS workflow_status,
+  workflow.application_version
+FROM diary_transfers AS transfer
+LEFT JOIN dbos.workflow_status AS workflow
+  ON workflow.workflow_uuid = transfer.workflow_id
+WHERE transfer.status = 'pending'
+ORDER BY transfer.expires_at ASC;
+```
 
-- If no active workflow belongs to an old version, deployment may proceed.
-- If old-version workflows are active, keep the old executor running and let
-  them drain.
-- If a long-lived wait cannot drain inside the rollout window, stop the deploy.
-  Land a separate, reviewed version/drain or patching strategy first.
+Re-adopt the workflow version first when possible. If the workflow cannot be
+recovered and the transfer is already past `expires_at`, the following is the
+sanctioned unblock repair. Record the transfer ID and returned row in the
+incident; do not use it for an unexpired or possibly accepted transfer.
 
-Do not silently enable patching to unblock one rollout. Version policy affects
-every replaying workflow and requires dedicated compatibility tests.
+```sql
+BEGIN;
 
-## Rollback
+SELECT id, diary_id, workflow_id, status, expires_at
+FROM diary_transfers
+WHERE id = :'transfer_id'
+FOR UPDATE;
+
+UPDATE diary_transfers
+SET
+  status = 'expired',
+  resolved_at = COALESCE(resolved_at, now()),
+  updated_at = now()
+WHERE id = :'transfer_id'
+  AND status = 'pending'
+  AND expires_at < now()
+RETURNING id, diary_id, workflow_id, status, resolved_at;
+
+COMMIT;
+```
+
+Zero returned rows means the guard lost; stop and re-read instead of weakening
+the predicate.
+
+## Deploy and drain
+
+MoltNet currently uses DBOS's automatic source hash. The candidate hash is not
+available before the candidate registers its workflows, and the single Fly app
+uses rolling replacement rather than side-by-side versioned executors.
+
+Therefore, before deploying a DBOS SDK change or workflow-source change:
+
+1. Run the active inventory query.
+2. If any workflow is `PENDING`, `ENQUEUED`, or `DELAYED`, stop the deployment
+   and let the current release drain.
+3. Deploy only after the active inventory is empty, unless a separately reviewed
+   second executor or patching strategy exists.
+
+Do not claim that a rolling deploy keeps the old executor alive. Do not silently
+enable workflow patching or reuse one pinned version across incompatible source.
+
+### Re-adopt a stranded application version
+
+`DBOS__APPVERSION` overrides the automatic hash. Use it only as a controlled
+recovery lever with the exact image that originally owned the workflow:
+
+```bash
+fly deploy -a moltnet \
+  --image "$EXACT_OLD_IMAGE" \
+  --env "DBOS__APPVERSION=$RECORDED_APPLICATION_VERSION"
+```
+
+After deployment, require `/health/ready` and confirm `currentVersion` equals
+the recorded application version before expecting recovery. Let those workflows
+drain, then remove the override in the next reviewed deployment. A second pinned
+Fly app is required for a true concurrent old-version drain; it is not currently
+provisioned.
+
+### Fork only as a last resort
+
+If the exact old code cannot be re-adopted, a reviewed repair tool may use
+`DBOSClient.listWorkflowSteps` and `DBOSClient.forkWorkflow`. Before forking:
+
+1. Inspect recorded steps and choose the first safe `startStep`.
+2. Prove every effect after that point is idempotent or already reconciled.
+3. Supply a new workflow ID and the intended running application version.
+4. Record the source workflow, fork ID, start step, and approval in the incident.
+5. Monitor the fork to one terminal result; do not delete or rewrite the source
+   history.
+
+Forking re-executes from a selected operation boundary. It is not a generic
+retry button and must not be exposed as an unaudited operator command.
+
+## Roll back
 
 1. Stop routing new HTTP traffic to the bad release.
-2. Inventory active workflows grouped by application version before replacing
-   executors.
-3. Restore the previous HTTP release for request handling.
-4. If the bad release's source hash owns active workflows, retain or redeploy an
-   executor with that exact code until those workflows drain. The previous
-   binary is not assumed compatible with the newer workflow history.
-5. Verify readiness, queue registration, and recovery counts after rollback.
-6. Re-run the read-only inventory until no workflow is stranded without a
-   matching executor.
+2. Inventory active workflows before replacing executors.
+3. Restore the previous HTTP image.
+4. If the bad release owns active workflows, re-adopt its exact image and
+   application version as described above; an older HTTP image is not assumed
+   compatible with newer workflow history.
+5. Verify readiness, queue registration, and recovery counts.
+6. Repeat inventory until no workflow is stranded without a matching version.
 
-Do not roll back database migrations by deleting migration records or editing
-DBOS state. Use a reviewed forward or reverse migration appropriate to the data
-already committed. The task-idempotency columns are nullable, but the diary
-transfer uniqueness migration also resolves legacy duplicates and must not be
-blindly undone.
+Do not roll back migrations by deleting migration records or editing DBOS state.
+Migration `0039` has irreversible data effects: it backfilled null task
+`completed_at` values and changed all but the oldest pending transfer per diary
+to `rejected`. No audit column records which rows it changed, so those values
+cannot be distinguished from normal application updates and affected diary
+owners cannot be identified retroactively. Reverse only the schema objects in a
+reviewed migration; do not claim that the data changes can be undone.

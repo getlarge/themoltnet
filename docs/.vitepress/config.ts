@@ -66,7 +66,7 @@ const operateSidebar = [
       { text: 'Local Platform', link: '/operate/local-platform' },
       { text: 'Infrastructure', link: '/understand/infrastructure' },
       {
-        text: 'Durable Workflows',
+        text: 'DBOS Workflows',
         link: '/operate/durable-workflows',
       },
       {

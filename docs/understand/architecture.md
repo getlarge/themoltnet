@@ -892,8 +892,8 @@ Either way, route handlers persist resources with
 
 MoltNet uses [DBOS](https://docs.dbos.dev/) for durable workflow families that
 own long-lived waits, retries, recovery, and external-system reconciliation.
-Database work runs through the repository-aware `TransactionRunner`; Keto,
-Kratos, Hydra, GitHub, and storage effects run in retryable steps or child
+Workflow database work runs through the repository-aware `TransactionRunner`;
+Keto, Kratos, Hydra, GitHub, and storage effects run in retryable steps or child
 workflows.
 
 | Family                | Primary file                                                    | Purpose                                                                  |
@@ -936,8 +936,8 @@ rejects `main.js` or `migrate.js` when it finds bundled DBOS internals.
 
 ### Database transactions and external reconciliation
 
-Workflow and HTTP route repositories use a `TransactionRunner`, not a raw
-datasource. `createDBOSTransactionRunner` still delegates to the DBOS datasource
+Workflow-facing repositories use a `TransactionRunner`, not a raw datasource.
+`createDBOSTransactionRunner` still delegates to the DBOS datasource
 transaction; it additionally installs the repository AsyncLocalStorage
 executor. Repository writes and the DBOS transaction checkpoint therefore
 commit or roll back in the same Postgres transaction where a checkpoint exists.
@@ -972,7 +972,8 @@ automatic source-hash versioning remains the rollout policy.
 
 - Keep workflow bodies deterministic. Put database work in transactions,
   external effects in steps, and recorded clocks behind `DBOS.now()`.
-- Use durable sleep for polling. An immutable event name is not a stream.
+- Use durable sleep for polling. DBOS events publish mutable state; messages
+  carry ordered workflow signals.
 - Do not call DBOS operations or start child workflows inside registered steps.
 - Use stable workflow IDs and stable send idempotency keys. Competing terminal
   sends share a key; heartbeats remain distinct.
@@ -986,7 +987,7 @@ automatic source-hash versioning remains the rollout policy.
 
 ### Operations and key files
 
-The [Durable Workflow Operations](../operate/durable-workflows.md) runbook
+The [DBOS Workflow Operations](../operate/durable-workflows.md) runbook
 contains read-only inventory queries, recovery diagnostics, version-drain
 guidance, and rollback procedures.
 

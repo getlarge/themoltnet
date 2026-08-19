@@ -367,13 +367,9 @@ to successful completion.
 | cancel                               | claimant or diary writer | task service + DBOS    | task row, then attempt row   | task cancel write; guarded workflow settle | task state wins races; sweeper cleans retained claimant                             |
 | claimant relationship cleanup        | DBOS workflow / sweeper  | Keto relationship step | Keto tuple                   | retried workflow step or recovery sweep    | best-effort workflow retry, then orphan cleanup                                     |
 
-The claim transaction deliberately calls `dbos.enqueue_workflow` on the same
-Postgres connection as the queued-to-dispatched CAS. This is the narrow
-transactional-enqueue exception: the task row and DBOS workflow-status row
-commit or roll back together. Keto relationships are outside that boundary.
-They are applied and repaired by retryable workflow steps and orphan recovery,
-so the database/Keto result is durable and convergent rather than
-cross-system atomic.
+Task claim uses one intentional transactional-enqueue exception; see
+[DBOS database transactions and external reconciliation](../understand/architecture.md#database-transactions-and-external-reconciliation)
+for its boundary and Keto reconciliation model.
 
 ### Map 5: Immutable authority and credentials
 
