@@ -205,8 +205,13 @@ export function createTaskCreateService(
       const normalizedTitle = normalizeTaskTitle(input.title);
       const normalizedTags = normalizeTaskTags(input.tags);
       const proposerId = input.proposerId ?? input.callerId;
+      const proposerKind = input.callerIsAgent ? 'agent' : 'human';
       const idempotencyKeyHash = input.idempotencyKey
-        ? createHash('sha256').update(input.idempotencyKey).digest('hex')
+        ? createHash('sha256')
+            .update(
+              `${input.teamId}|${proposerKind}|${proposerId}|${input.idempotencyKey}`,
+            )
+            .digest('hex')
         : null;
       const idempotencyRequestCid = idempotencyKeyHash
         ? await computeJsonCid({
@@ -244,6 +249,14 @@ export function createTaskCreateService(
               'Idempotency-Key was already used with a different task request',
             );
           }
+          logger.info(
+            {
+              taskId: existing.id,
+              teamId: input.teamId,
+              keyHashPrefix: idempotencyKeyHash.slice(0, 12),
+            },
+            'task.create.idempotent_replay',
+          );
           return dbTaskToWire(existing);
         }
       }
@@ -437,7 +450,12 @@ export function createTaskCreateService(
         if (
           idempotencyKeyHash &&
           idempotencyRequestCid &&
-          isUniqueViolation(err)
+          isUniqueViolation(
+            err,
+            input.callerIsAgent
+              ? 'tasks_agent_idempotency_idx'
+              : 'tasks_human_idempotency_idx',
+          )
         ) {
           const existing = await taskRepository.findByIdempotencyKey({
             teamId: input.teamId,
@@ -449,6 +467,14 @@ export function createTaskCreateService(
           });
           if (existing) {
             if (existing.idempotencyRequestCid === idempotencyRequestCid) {
+              logger.info(
+                {
+                  taskId: existing.id,
+                  teamId: input.teamId,
+                  keyHashPrefix: idempotencyKeyHash.slice(0, 12),
+                },
+                'task.create.idempotent_replay',
+              );
               return dbTaskToWire(existing);
             }
             throw new TaskServiceError(
@@ -491,15 +517,21 @@ export function createTaskCreateService(
           );
         }
         try {
-          await taskRepository.updateStatus(row.id, 'cancelled', {
-            cancelReason: 'Keto grant failed',
-            cancelledByAgentId: input.callerIsAgent
-              ? (input.proposerId ?? input.callerId)
-              : null,
-            cancelledByHumanId: input.callerIsAgent
-              ? null
-              : (input.proposerId ?? input.callerId),
-          });
+          await transactionRunner.runInTransaction(
+            async () => {
+              await taskRepository.updateStatus(row.id, 'cancelled', {
+                cancelReason: 'Keto grant failed',
+                cancelledByAgentId: input.callerIsAgent
+                  ? (input.proposerId ?? input.callerId)
+                  : null,
+                cancelledByHumanId: input.callerIsAgent
+                  ? null
+                  : (input.proposerId ?? input.callerId),
+              });
+              await taskRepository.clearIdempotencyKey(row.id);
+            },
+            { name: 'task.create.releaseIdempotencyAfterGrantFailure' },
+          );
         } catch (cancelErr) {
           logger.error(
             { taskId: row.id, err: cancelErr },

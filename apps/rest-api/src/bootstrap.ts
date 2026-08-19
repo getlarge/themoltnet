@@ -616,6 +616,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
         setDiaryTransferDeps({
           diaryRepository,
           diaryTransferRepository,
+          teamRepository,
           transactionRunner: workflowTransactionRunner,
           relationshipWriter,
           logger: app.log,

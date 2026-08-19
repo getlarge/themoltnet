@@ -26905,9 +26905,11 @@
                       "type": "string"
                     },
                     "clientSecret": {
+                      "description": "OAuth2 client secret sealed to the onboarding agent public key.",
                       "type": "string"
                     },
                     "githubCode": {
+                      "description": "GitHub manifest code sealed to the onboarding agent public key.",
                       "type": "string"
                     },
                     "identityId": {
@@ -40086,13 +40088,14 @@
             }
           },
           {
-            "description": "Retry key scoped to the active team and authenticated proposer.",
+            "description": "Retry key scoped to the active team and authenticated proposer. Reusing it with a different request returns 409.",
             "in": "header",
             "name": "idempotency-key",
             "required": false,
             "schema": {
-              "maxLength": 255,
+              "maxLength": 200,
               "minLength": 1,
+              "pattern": "\\S",
               "type": "string"
             }
           }

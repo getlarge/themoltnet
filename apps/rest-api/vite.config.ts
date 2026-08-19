@@ -3,24 +3,18 @@ import { defineConfig } from 'vitest/config';
 
 import { restApiOtelExternals } from '../../vite.shared';
 
-const DBOS_INTERNAL_MARKERS = [
-  'class DBOSExecutor',
-  'DBOSExecutor.globalInstance',
-  'class DrizzleDataSource',
-];
-
 function rejectBundledDBOSInternals(): Plugin {
   return {
     name: 'reject-bundled-dbos-internals',
     generateBundle(_options, bundle) {
       for (const output of Object.values(bundle)) {
         if (output.type !== 'chunk') continue;
-        const marker = DBOS_INTERNAL_MARKERS.find((candidate) =>
-          output.code.includes(candidate),
+        const dbosModuleId = output.moduleIds.find((moduleId) =>
+          moduleId.replaceAll('\\', '/').includes('/@dbos-inc/'),
         );
-        if (marker) {
+        if (dbosModuleId) {
           this.error(
-            `${output.fileName} contains bundled DBOS internals (${marker}). ` +
+            `${output.fileName} contains bundled DBOS module ${dbosModuleId}. ` +
               'Externalize @dbos-inc/dbos-sdk and @dbos-inc/drizzle-datasource.',
           );
         }

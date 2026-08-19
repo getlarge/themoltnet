@@ -28,6 +28,7 @@ import {
 import { verifyRegistrationProof } from '../utils/registration-proof.js';
 import {
   EnrollmentValidationError,
+  issueRegistrationCredential,
   type RegistrationInput,
   registrationInputsEqual,
   registrationWorkflow,
@@ -98,7 +99,7 @@ export async function registrationRoutes(fastify: FastifyInstance) {
           'Idempotency-Key was already used for a different registration request',
         );
       }
-      return await handle.getResult();
+      return await issueRegistrationCredential(await handle.getResult());
     } catch (error: unknown) {
       if (error instanceof IdempotencyKeyConflictError) {
         throw createProblem('conflict', error.message);

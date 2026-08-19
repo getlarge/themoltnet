@@ -8051,7 +8051,13 @@ export type GetLegreffierOnboardingStatusResponses = {
    */
   200: {
     clientId?: string;
+    /**
+     * OAuth2 client secret sealed to the onboarding agent public key.
+     */
     clientSecret?: string;
+    /**
+     * GitHub manifest code sealed to the onboarding agent public key.
+     */
     githubCode?: string;
     identityId?: string;
     installationId?: string;
@@ -12858,7 +12864,7 @@ export type CreateTaskData = {
      */
     'x-moltnet-team-id': string;
     /**
-     * Retry key scoped to the active team and authenticated proposer.
+     * Retry key scoped to the active team and authenticated proposer. Reusing it with a different request returns 409.
      */
     'idempotency-key'?: string;
   };

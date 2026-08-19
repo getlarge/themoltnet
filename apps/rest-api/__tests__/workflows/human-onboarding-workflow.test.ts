@@ -42,7 +42,9 @@ function createDeps() {
     },
     relationshipWriter: {
       registerHuman: vi.fn(),
+      removeHumanRelations: vi.fn(),
       grantTeamOwners: vi.fn(),
+      removeTeamMemberRelation: vi.fn(),
       grantDiaryTeam: vi.fn(),
     },
     transactionRunner: {
@@ -95,6 +97,9 @@ describe('human onboarding workflow', () => {
 
     expect(deps.humanRepository.clearIdentityIdIfMatches).toHaveBeenCalledWith(
       HUMAN_ID,
+      IDENTITY_ID,
+    );
+    expect(deps.relationshipWriter.removeHumanRelations).toHaveBeenCalledWith(
       IDENTITY_ID,
     );
   });

@@ -6558,10 +6558,6 @@
         "tasks_cancel_reason_required": {
           "name": "tasks_cancel_reason_required",
           "value": "status <> 'cancelled' OR cancel_reason IS NOT NULL"
-        },
-        "tasks_terminal_completed_at_required": {
-          "name": "tasks_terminal_completed_at_required",
-          "value": "status NOT IN ('completed', 'failed', 'cancelled', 'expired') OR completed_at IS NOT NULL"
         }
       },
       "isRLSEnabled": false

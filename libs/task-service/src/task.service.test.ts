@@ -132,6 +132,7 @@ type TaskRepositoryMocks = {
       keyHash: string;
     }) => Promise<DbTask | null>
   >;
+  clearIdempotencyKey: Mock<(id: string) => Promise<void>>;
   findByIds: Mock<(ids: string[]) => Promise<DbTask[]>>;
   findByCorrelationId: Mock<(correlationId: string) => Promise<DbTask[]>>;
   acquireTaskCreateGuardLock: Mock<(lockKey: string) => Promise<void>>;
@@ -375,6 +376,7 @@ function makeMocks(
           ) ?? null,
         ),
       ),
+    clearIdempotencyKey: vi.fn().mockResolvedValue(undefined),
     findByIds: vi
       .fn<(ids: string[]) => Promise<DbTask[]>>()
       .mockImplementation((ids) =>
@@ -1479,6 +1481,22 @@ describe('createTaskService.create — judge_eval_attempt flow', () => {
       'cancelled',
       expect.objectContaining({ cancelReason: 'Keto grant failed' }),
     );
+  });
+
+  it('releases the idempotency key when the ownership grant fails', async () => {
+    mocks = makeMocks({ grantThrows: true });
+    service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+
+    await expect(
+      service.create({
+        ...fulfillCreateInput(),
+        idempotencyKey: 'retry-after-keto-failure',
+      } as never),
+    ).rejects.toMatchObject({ code: 'conflict' });
+
+    expect(mocks.taskRepository.clearIdempotencyKey).toHaveBeenCalledOnce();
   });
 });
 

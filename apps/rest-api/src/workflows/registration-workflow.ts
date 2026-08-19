@@ -70,6 +70,16 @@ export interface RegistrationResult {
   credential: RegistrationCredential;
 }
 
+export interface RegistrationWorkflowResult {
+  identityId: string;
+  identityOwnedForCompensation: boolean;
+  fingerprint: string;
+  publicKey: string;
+  teamId: string;
+  credentialType: RegistrationCredentialType;
+  credentialIdempotencyKey: string;
+}
+
 export class EnrollmentValidationError extends Error {
   constructor(message: string) {
     super(message);
@@ -114,8 +124,11 @@ function getDeps(): RegistrationDeps {
 
 type RegisterAgentFn = (
   input: RegistrationInput,
-) => Promise<RegistrationResult>;
-type CompensateSelfRegistrationFn = (identityId: string) => Promise<void>;
+) => Promise<RegistrationWorkflowResult>;
+type CompensateSelfRegistrationFn = (
+  identityId: string,
+  deleteIdentity: boolean,
+) => Promise<void>;
 
 let _workflow: RegisterAgentFn | null = null;
 let _compensateSelfRegistration: CompensateSelfRegistrationFn | null = null;
@@ -147,6 +160,69 @@ function getResponseStatus(error: unknown): number | undefined {
   return error.response.status;
 }
 
+/**
+ * Issue the one-time bootstrap secret outside DBOS. Workflow inputs, step
+ * outputs, events, and results are durable; bearer credentials must never be
+ * stored in any of them. Repeating this call rotates/reissues the credential,
+ * which also closes the HTTP response-loss gap.
+ */
+export async function issueRegistrationCredential(
+  registration: RegistrationWorkflowResult,
+): Promise<RegistrationResult> {
+  let credential: RegistrationCredential;
+  if (registration.credentialType === 'oauth2') {
+    const { oauth2Api } = getDeps();
+    const clientId = `moltnet-agent-${registration.identityId}`;
+    const clientSecret = crypto.randomUUID();
+    const oAuth2Client = {
+      client_id: clientId,
+      client_secret: clientSecret,
+      client_name: `Agent: ${registration.fingerprint}`,
+      grant_types: ['client_credentials'],
+      response_types: [] as string[],
+      token_endpoint_auth_method: 'client_secret_post',
+      scope: AGENT_OAUTH_SCOPES.join(' '),
+      metadata: {
+        type: 'moltnet_agent',
+        identity_id: registration.identityId,
+        public_key: registration.publicKey,
+        fingerprint: registration.fingerprint,
+      },
+    };
+    try {
+      await oauth2Api.createOAuth2Client({ oAuth2Client });
+    } catch (error) {
+      if (!isConflictError(error)) throw error;
+      await oauth2Api.setOAuth2Client({ id: clientId, oAuth2Client });
+    }
+    credential = { type: 'oauth2', clientId, clientSecret };
+  } else {
+    const subject: AgentKeySubject = {
+      identityId: registration.identityId,
+      scopes: [...AGENT_OAUTH_SCOPES],
+      subjectNs: KetoNamespace.Agent,
+      subjectType: 'agent',
+    };
+    const result = await getDeps().issueAgentKey({
+      agentId: registration.identityId,
+      idempotencyKey: registration.credentialIdempotencyKey,
+      logger: getDeps().logger,
+      name: 'Bootstrap credential',
+      recoverReplayByRotation: true,
+      subject,
+      teamId: registration.teamId,
+    });
+    credential = { type: 'agent_key', ...result };
+  }
+
+  return {
+    identityId: registration.identityId,
+    fingerprint: registration.fingerprint,
+    publicKey: registration.publicKey,
+    credential,
+  };
+}
+
 export function initRegistrationWorkflow(): void {
   if (_workflow) return;
 
@@ -167,7 +243,10 @@ export function initRegistrationWorkflow(): void {
   );
 
   const createKratosIdentityStep = DBOS.registerStep(
-    async (publicKey: string): Promise<string> => {
+    async (
+      publicKey: string,
+      registrationWorkflowId: string,
+    ): Promise<{ identityId: string; ownedForCompensation: boolean }> => {
       const { identityApi } = getDeps();
       const schemas = await identityApi.listIdentitySchemas();
       const agentSchema = schemas.find(
@@ -192,9 +271,12 @@ export function initRegistrationWorkflow(): void {
                 config: { password: `moltnet-${crypto.randomUUID()}` },
               },
             },
+            metadata_admin: {
+              moltnet_registration_workflow_id: registrationWorkflowId,
+            },
           },
         });
-        return identity.id;
+        return { identityId: identity.id, ownedForCompensation: true };
       } catch (error) {
         if (!isConflictError(error)) throw error;
 
@@ -216,7 +298,15 @@ export function initRegistrationWorkflow(): void {
             `Unable to reconcile Kratos identity for public key: found ${matches.length}`,
           );
         }
-        return matches[0].id;
+        const owner = (
+          matches[0].metadata_admin as
+            | { moltnet_registration_workflow_id?: unknown }
+            | undefined
+        )?.moltnet_registration_workflow_id;
+        return {
+          identityId: matches[0].id,
+          ownedForCompensation: owner === registrationWorkflowId,
+        };
       }
     },
     {
@@ -288,79 +378,6 @@ export function initRegistrationWorkflow(): void {
     },
   );
 
-  const createOAuth2ClientStep = DBOS.registerStep(
-    async (
-      identityId: string,
-      publicKey: string,
-      fingerprint: string,
-    ): Promise<RegistrationCredential> => {
-      const { oauth2Api } = getDeps();
-      const clientId = `moltnet-agent-${identityId}`;
-      const clientSecret = crypto.randomUUID();
-      const oAuth2Client = {
-        client_id: clientId,
-        client_secret: clientSecret,
-        client_name: `Agent: ${fingerprint}`,
-        grant_types: ['client_credentials'],
-        response_types: [] as string[],
-        token_endpoint_auth_method: 'client_secret_post',
-        scope: AGENT_OAUTH_SCOPES.join(' '),
-        metadata: {
-          type: 'moltnet_agent',
-          identity_id: identityId,
-          public_key: publicKey,
-          fingerprint,
-        },
-      };
-      try {
-        await oauth2Api.createOAuth2Client({ oAuth2Client });
-      } catch (error) {
-        if (!isConflictError(error)) throw error;
-        await oauth2Api.setOAuth2Client({ id: clientId, oAuth2Client });
-      }
-      return { type: 'oauth2', clientId, clientSecret };
-    },
-    {
-      name: 'registration.step.createOAuth2Client',
-      retriesAllowed: true,
-      maxAttempts: 3,
-      intervalSeconds: 2,
-      backoffRate: 2,
-    },
-  );
-
-  const createAgentKeyStep = DBOS.registerStep(
-    async (
-      identityId: string,
-      teamId: string,
-      idempotencyKey: string,
-    ): Promise<RegistrationCredential> => {
-      const subject: AgentKeySubject = {
-        identityId,
-        scopes: [...AGENT_OAUTH_SCOPES],
-        subjectNs: KetoNamespace.Agent,
-        subjectType: 'agent',
-      };
-      const result = await getDeps().issueAgentKey({
-        agentId: identityId,
-        idempotencyKey,
-        logger: getDeps().logger,
-        name: 'Bootstrap credential',
-        recoverReplayByRotation: true,
-        subject,
-        teamId,
-      });
-      return { type: 'agent_key', ...result };
-    },
-    {
-      name: 'registration.step.createAgentKey',
-      retriesAllowed: true,
-      maxAttempts: 3,
-      intervalSeconds: 2,
-      backoffRate: 2,
-    },
-  );
-
   const deleteKratosIdentityStep = DBOS.registerStep(
     async (identityId: string): Promise<void> => {
       try {
@@ -415,7 +432,7 @@ export function initRegistrationWorkflow(): void {
       teamId: string | null,
       diaryIds: string[],
     ): Promise<void> => {
-      const { oauth2Api, relationshipWriter } = getDeps();
+      const { relationshipWriter } = getDeps();
       const cleanup = diaryIds.map((diaryId) =>
         relationshipWriter.removeDiaryRelations(diaryId),
       );
@@ -429,18 +446,6 @@ export function initRegistrationWorkflow(): void {
         );
       }
       cleanup.push(relationshipWriter.removeAgentRelations(identityId));
-      cleanup.push(
-        (async () => {
-          try {
-            await oauth2Api.deleteOAuth2Client({
-              id: `moltnet-agent-${identityId}`,
-            });
-          } catch (error: unknown) {
-            if (getResponseStatus(error) !== 404) throw error;
-          }
-        })(),
-      );
-
       const results = await Promise.allSettled(cleanup);
       const failures = results.filter(
         (result): result is PromiseRejectedResult =>
@@ -467,6 +472,7 @@ export function initRegistrationWorkflow(): void {
       tokenHash: string,
       teamId: string,
       identityId: string,
+      deleteIdentity: boolean,
     ): Promise<void> => {
       const { agentEnrollmentRepository, agentRepository, transactionRunner } =
         getDeps();
@@ -481,13 +487,15 @@ export function initRegistrationWorkflow(): void {
         },
         { name: 'registration.tx.compensateTeamRegistration' },
       );
-      await deleteKratosIdentityStep(identityId);
+      if (deleteIdentity) {
+        await deleteKratosIdentityStep(identityId);
+      }
     },
     { name: 'registration.compensateTeamRegistration' },
   );
 
   _compensateSelfRegistration = DBOS.registerWorkflow(
-    async (identityId: string): Promise<void> => {
+    async (identityId: string, deleteIdentity: boolean): Promise<void> => {
       const {
         agentRepository,
         diaryRepository,
@@ -530,19 +538,25 @@ export function initRegistrationWorkflow(): void {
         },
         { name: 'registration.tx.compensateSelfRegistration' },
       );
-      await deleteKratosIdentityStep(identityId);
+      if (deleteIdentity) {
+        await deleteKratosIdentityStep(identityId);
+      }
     },
     { name: 'registration.compensateSelfRegistration' },
   );
   const compensateSelfRegistrationWorkflow = _compensateSelfRegistration;
 
   _workflow = DBOS.registerWorkflow(
-    async (input: RegistrationInput): Promise<RegistrationResult> => {
+    async (input: RegistrationInput): Promise<RegistrationWorkflowResult> => {
       const enrollmentTeamId =
         input.mode.type === 'team'
           ? await validateEnrollmentStep(input.mode.enrollmentTokenHash)
           : null;
-      const identityId = await createKratosIdentityStep(input.publicKey);
+      const identity = await createKratosIdentityStep(
+        input.publicKey,
+        DBOS.workflowID ?? `registration-${input.idempotencyKey}`,
+      );
+      const { identityId } = identity;
       try {
         const {
           agentEnrollmentRepository,
@@ -617,24 +631,14 @@ export function initRegistrationWorkflow(): void {
           await grantTeamMemberStep(teamId, identityId);
         }
 
-        const credential =
-          input.credentialType === 'oauth2'
-            ? await createOAuth2ClientStep(
-                identityId,
-                input.publicKey,
-                input.fingerprint,
-              )
-            : await createAgentKeyStep(
-                identityId,
-                teamId,
-                input.idempotencyKey,
-              );
-
         return {
           identityId,
+          identityOwnedForCompensation: identity.ownedForCompensation,
           fingerprint: input.fingerprint,
           publicKey: input.publicKey,
-          credential,
+          teamId,
+          credentialType: input.credentialType,
+          credentialIdempotencyKey: input.idempotencyKey,
         };
       } catch (error) {
         const { logger } = getDeps();
@@ -648,7 +652,12 @@ export function initRegistrationWorkflow(): void {
             const handle = await DBOS.startWorkflow(
               compensateTeamRegistration,
               { workflowID: `registration-compensation:${parentWorkflowId}` },
-            )(input.mode.enrollmentTokenHash, enrollmentTeamId, identityId);
+            )(
+              input.mode.enrollmentTokenHash,
+              enrollmentTeamId,
+              identityId,
+              identity.ownedForCompensation,
+            );
             await handle.getResult();
           } catch (compensationError) {
             logger.error(
@@ -661,7 +670,7 @@ export function initRegistrationWorkflow(): void {
             const handle = await DBOS.startWorkflow(
               compensateSelfRegistrationWorkflow,
               { workflowID: `registration-compensation:${parentWorkflowId}` },
-            )(identityId);
+            )(identityId, identity.ownedForCompensation);
             await handle.getResult();
           } catch (compensationError) {
             logger.error(

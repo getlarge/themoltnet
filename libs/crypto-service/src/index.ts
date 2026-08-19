@@ -62,4 +62,9 @@ export {
   computeRenderedPackCid,
   type RenderedPackEnvelopeInput,
 } from './rendered-pack-cid.js';
+export {
+  openSealedEnvelope,
+  type SealedEnvelope,
+  sealForEd25519PublicKey,
+} from './sealed-envelope.js';
 export { toSSHPrivateKey, toSSHPublicKey } from './ssh.js';

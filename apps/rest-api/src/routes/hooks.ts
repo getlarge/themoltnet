@@ -430,7 +430,12 @@ export async function hookRoutes(fastify: FastifyInstance) {
       try {
         const handle = await DBOS.startWorkflow(
           humanOnboardingWorkflow.onboardHuman,
-          { workflowID: `human-onboarding:${humanId}:${identityId}` },
+          {
+            // Compensation advances updatedAt. A retry of the same DB row
+            // version is deduplicated, while a compensated failure gets a new
+            // deterministic execution on the next login.
+            workflowID: `human-onboarding:${humanId}:${identityId}:${human.updatedAt.getTime()}`,
+          },
         )(humanId, identityId, username);
         await handle.getResult();
 

@@ -50,10 +50,16 @@ export class TaskServiceError extends Error {
   }
 }
 
-export function isUniqueViolation(err: unknown): boolean {
+export function isUniqueViolation(err: unknown, constraint?: string): boolean {
   if (typeof err !== 'object' || err === null) return false;
-  const e = err as { code?: unknown; cause?: { code?: unknown } };
-  return e.code === '23505' || e.cause?.code === '23505';
+  const e = err as {
+    code?: unknown;
+    constraint?: unknown;
+    cause?: { code?: unknown; constraint?: unknown };
+  };
+  const candidate = e.code === '23505' ? e : e.cause;
+  if (candidate?.code !== '23505') return false;
+  return !constraint || candidate.constraint === constraint;
 }
 
 export function taskWorkflowId(taskId: string, attemptN: number): string {

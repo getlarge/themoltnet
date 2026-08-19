@@ -118,6 +118,7 @@ describe('DBOS process recovery', () => {
     const claimed = await claimTask({
       client,
       auth: () => agent.accessToken,
+      headers: { 'x-moltnet-team-id': agent.personalTeamId },
       path: { id: created.data!.id },
       body: { leaseTtlSec: 120 },
     });
@@ -129,6 +130,7 @@ describe('DBOS process recovery', () => {
         getTask({
           client,
           auth: () => agent.accessToken,
+          headers: { 'x-moltnet-team-id': agent.personalTeamId },
           path: { id: created.data!.id },
         }).then((result) => result.data!),
       (task) => task.status === 'dispatched',
@@ -151,6 +153,7 @@ describe('DBOS process recovery', () => {
     const heartbeat = await taskHeartbeat({
       client,
       auth: () => agent.accessToken,
+      headers: { 'x-moltnet-team-id': agent.personalTeamId },
       path: { id: created.data!.id, n: attemptN },
       body: { leaseTtlSec: 120 },
     });
@@ -167,6 +170,7 @@ describe('DBOS process recovery', () => {
     const completed = await completeTask({
       client,
       auth: () => agent.accessToken,
+      headers: { 'x-moltnet-team-id': agent.personalTeamId },
       path: { id: created.data!.id, n: attemptN },
       body: {
         output,
@@ -181,6 +185,7 @@ describe('DBOS process recovery', () => {
         getTask({
           client,
           auth: () => agent.accessToken,
+          headers: { 'x-moltnet-team-id': agent.personalTeamId },
           path: { id: created.data!.id },
         }).then((result) => result.data!),
       (task) => task.status === 'completed',
@@ -189,6 +194,7 @@ describe('DBOS process recovery', () => {
     const attempts = await listTaskAttempts({
       client,
       auth: () => agent.accessToken,
+      headers: { 'x-moltnet-team-id': agent.personalTeamId },
       path: { id: created.data!.id },
     });
     expect(attempts.data).toHaveLength(1);

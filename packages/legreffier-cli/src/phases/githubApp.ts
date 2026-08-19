@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 
-import { readConfig } from '@themoltnet/sdk';
+import { decryptFromAgent, readConfig } from '@themoltnet/sdk';
 import open from 'open';
 
 import { pollUntil } from '../api.js';
@@ -81,7 +81,8 @@ export async function runGithubAppPhase(opts: {
     throw new Error('GitHub code not available in onboarding status');
   }
 
-  const ghCreds = await exchangeManifestCode(codeResult.githubCode);
+  const githubCode = decryptFromAgent(codeResult.githubCode, privateKey);
+  const ghCreds = await exchangeManifestCode(githubCode);
   dispatch({ type: 'appSlug', appSlug: ghCreds.appSlug });
 
   const pemPath = await writePem(ghCreds.pem, ghCreds.appSlug, configDir);

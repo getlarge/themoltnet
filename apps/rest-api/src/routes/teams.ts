@@ -1072,9 +1072,15 @@ export function teamRoutes(fastify: FastifyInstance) {
       if (!myAcceptance) throw createProblem('not-found');
 
       const alreadyAccepted = myAcceptance.status === 'accepted';
+      if (team.status !== 'founding') {
+        if (alreadyAccepted && team.status === 'active') {
+          return reply
+            .status(200)
+            .send({ accepted: true, teamStatus: 'active' });
+        }
+        throw createProblem('team-not-founding');
+      }
       if (!alreadyAccepted) {
-        if (team.status !== 'founding')
-          throw createProblem('team-not-founding');
         await fastify.teamRepository.acceptFoundingMember(id, identityId);
       }
 
@@ -1112,8 +1118,7 @@ export function teamRoutes(fastify: FastifyInstance) {
       // so callers should poll GET /teams/:id until teamStatus === 'active'.
       return reply.status(200).send({
         accepted: true,
-        teamStatus:
-          team.status === 'active' || allOwnersAccepted ? 'active' : 'founding',
+        teamStatus: allOwnersAccepted ? 'active' : 'founding',
       });
     },
   );

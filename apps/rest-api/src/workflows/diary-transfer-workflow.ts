@@ -15,6 +15,7 @@ import {
   DBOS,
   type DiaryRepository,
   type DiaryTransferRepository,
+  type TeamRepository,
   type TransactionRunner,
 } from '@moltnet/database';
 
@@ -32,6 +33,7 @@ export type TransferDecision = 'accepted' | 'rejected';
 export interface DiaryTransferDeps {
   diaryRepository: DiaryRepository;
   diaryTransferRepository: DiaryTransferRepository;
+  teamRepository: TeamRepository;
   transactionRunner: TransactionRunner;
   relationshipWriter: RelationshipWriter;
   logger: Logger;
@@ -156,6 +158,25 @@ export function initDiaryTransferWorkflow(): void {
       await getDeps().transactionRunner.runInTransaction(
         async () => {
           const { diaryRepository, diaryTransferRepository } = getDeps();
+          const transfer = await diaryTransferRepository.findById(transferId);
+          if (
+            !transfer ||
+            transfer.diaryId !== diaryId ||
+            transfer.sourceTeamId !== sourceTeamId ||
+            transfer.destinationTeamId !== destinationTeamId ||
+            !['pending', 'accepted'].includes(transfer.status)
+          ) {
+            throw new Error(
+              `Diary transfer ${transferId} no longer matches the recorded request`,
+            );
+          }
+          const destinationTeam =
+            await getDeps().teamRepository.findById(destinationTeamId);
+          if (destinationTeam?.status !== 'active') {
+            throw new Error(
+              `Destination team ${destinationTeamId} is no longer active`,
+            );
+          }
           const updatedDiary = await diaryRepository.updateTeam(
             diaryId,
             destinationTeamId,
@@ -189,8 +210,25 @@ export function initDiaryTransferWorkflow(): void {
 
       // Keto is external to Postgres. Reconcile it durably and idempotently
       // after the database state is committed.
-      await removeDiaryTeamStep(diaryId);
-      await grantDiaryTeamStep(diaryId, destinationTeamId);
+      try {
+        await removeDiaryTeamStep(diaryId);
+        await grantDiaryTeamStep(diaryId, destinationTeamId);
+      } catch (err) {
+        getDeps().logger.error(
+          {
+            err,
+            transferId,
+            diaryId,
+            sourceTeamId,
+            destinationTeamId,
+            workflowId: DBOS.workflowID,
+            repair:
+              'fork the failed DBOS workflow from its reconciliation step',
+          },
+          'diary.transfer.keto_reconciliation_exhausted',
+        );
+        throw err;
+      }
       return { transferId, status: 'accepted' };
     },
     { name: 'diary.transfer.transferDiary' },

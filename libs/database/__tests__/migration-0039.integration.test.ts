@@ -126,8 +126,45 @@ describe('migration 0039 workflow invariants', () => {
           'pending',
           '10000000-0000-4000-a000-000000000001',
           now() + interval '1 day',
-          '2026-01-02T00:00:00Z'
+          '2026-01-01T00:00:00Z'
+        ),
+        (
+          '40000000-0000-4000-a000-000000000010',
+          '30000000-0000-4000-a000-000000000001',
+          '20000000-0000-4000-a000-000000000001',
+          '20000000-0000-4000-a000-000000000002',
+          'migration-accepted-history',
+          'accepted',
+          '10000000-0000-4000-a000-000000000001',
+          now() + interval '1 day',
+          '2025-12-01T00:00:00Z'
+        ),
+        (
+          '40000000-0000-4000-a000-000000000011',
+          '30000000-0000-4000-a000-000000000001',
+          '20000000-0000-4000-a000-000000000001',
+          '20000000-0000-4000-a000-000000000002',
+          'migration-rejected-history',
+          'rejected',
+          '10000000-0000-4000-a000-000000000001',
+          now() + interval '1 day',
+          '2025-12-02T00:00:00Z'
+        ),
+        (
+          '40000000-0000-4000-a000-000000000012',
+          '30000000-0000-4000-a000-000000000001',
+          '20000000-0000-4000-a000-000000000001',
+          '20000000-0000-4000-a000-000000000002',
+          'migration-expired-history',
+          'expired',
+          '10000000-0000-4000-a000-000000000001',
+          now() + interval '1 day',
+          '2025-12-03T00:00:00Z'
         );
+      UPDATE diary_transfers
+      SET resolved_at = '2026-01-10T00:00:00Z',
+          updated_at = '2026-01-11T00:00:00Z'
+      WHERE workflow_id LIKE 'migration-%-history';
     `);
 
     await migrate(drizzle(duplicatePool), {
@@ -179,6 +216,7 @@ describe('migration 0039 workflow invariants', () => {
     }>(`
       SELECT workflow_id, status, resolved_at
       FROM diary_transfers
+      WHERE workflow_id IN ('migration-oldest', 'migration-newer')
       ORDER BY created_at, id
     `);
 
@@ -194,6 +232,73 @@ describe('migration 0039 workflow invariants', () => {
         resolved_at: expect.any(Date),
       },
     ]);
+  });
+
+  it('leaves resolved transfer history untouched', async () => {
+    const transfers = await duplicatePool.query<{
+      workflow_id: string;
+      status: string;
+      resolved_at: Date | null;
+      updated_at: Date;
+    }>(`
+      SELECT workflow_id, status, resolved_at, updated_at
+      FROM diary_transfers
+      WHERE workflow_id LIKE 'migration-%-history'
+      ORDER BY workflow_id
+    `);
+
+    expect(transfers.rows).toEqual([
+      {
+        workflow_id: 'migration-accepted-history',
+        status: 'accepted',
+        resolved_at: new Date('2026-01-10T00:00:00Z'),
+        updated_at: new Date('2026-01-11T00:00:00Z'),
+      },
+      {
+        workflow_id: 'migration-expired-history',
+        status: 'expired',
+        resolved_at: new Date('2026-01-10T00:00:00Z'),
+        updated_at: new Date('2026-01-11T00:00:00Z'),
+      },
+      {
+        workflow_id: 'migration-rejected-history',
+        status: 'rejected',
+        resolved_at: new Date('2026-01-10T00:00:00Z'),
+        updated_at: new Date('2026-01-11T00:00:00Z'),
+      },
+    ]);
+  });
+
+  it('enforces paired task idempotency columns', async () => {
+    const insertTask = (keyHash: string | null, requestCid: string | null) =>
+      duplicatePool.query(
+        `INSERT INTO tasks (
+          task_type, team_id, diary_id, output_kind, input,
+          input_schema_cid, input_cid, proposed_by_agent_id,
+          idempotency_key_hash, idempotency_request_cid
+        ) VALUES ('curate_pack', $1, $2, 'artifact', '{}'::jsonb,
+          'cid-schema', 'cid-input', $3, $4, $5)`,
+        [
+          '20000000-0000-4000-a000-000000000001',
+          '30000000-0000-4000-a000-000000000001',
+          '10000000-0000-4000-a000-000000000001',
+          keyHash,
+          requestCid,
+        ],
+      );
+
+    await expect(insertTask(null, null)).resolves.toBeDefined();
+    await expect(
+      insertTask('a'.repeat(64), 'cid-request'),
+    ).resolves.toBeDefined();
+    await expect(insertTask('b'.repeat(64), null)).rejects.toMatchObject({
+      code: '23514',
+      constraint: 'tasks_idempotency_columns_together',
+    });
+    await expect(insertTask(null, 'cid-request')).rejects.toMatchObject({
+      code: '23514',
+      constraint: 'tasks_idempotency_columns_together',
+    });
   });
 
   it('rejects a second pending transfer after the migration', async () => {

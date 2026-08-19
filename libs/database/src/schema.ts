@@ -1441,10 +1441,6 @@ export const tasks = pgTable(
       'tasks_cancel_reason_required',
       sql`status <> 'cancelled' OR cancel_reason IS NOT NULL`,
     ),
-    check(
-      'tasks_terminal_completed_at_required',
-      sql`status NOT IN ('completed', 'failed', 'cancelled', 'expired') OR completed_at IS NOT NULL`,
-    ),
   ],
 );
 

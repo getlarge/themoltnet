@@ -49,6 +49,7 @@ const {
           fn(...args),
     ),
     resumeWorkflow: vi.fn(),
+    now: vi.fn(async () => Date.now()),
     listWorkflows: vi.fn().mockResolvedValue([]),
     deleteWorkflows: vi.fn().mockResolvedValue(undefined),
   };

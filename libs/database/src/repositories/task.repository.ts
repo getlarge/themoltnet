@@ -369,6 +369,17 @@ export function createTaskRepository(db: Database) {
       return row ?? null;
     },
 
+    async clearIdempotencyKey(id: string): Promise<void> {
+      await getExecutor(db)
+        .update(tasks)
+        .set({
+          idempotencyKeyHash: null,
+          idempotencyRequestCid: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(tasks.id, id));
+    },
+
     async findByIds(ids: string[]): Promise<Task[]> {
       if (ids.length === 0) return [];
       return getExecutor(db).select().from(tasks).where(inArray(tasks.id, ids));

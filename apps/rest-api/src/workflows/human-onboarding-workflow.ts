@@ -146,6 +146,47 @@ export function initHumanOnboardingWorkflow(): void {
     },
   );
 
+  const cleanupIdentityGrantsStep = DBOS.registerStep(
+    async (
+      identityId: string,
+      personalTeamId: string | null,
+    ): Promise<void> => {
+      const { relationshipWriter } = getDeps();
+      const cleanup: Promise<void>[] = [
+        relationshipWriter.removeHumanRelations(identityId),
+      ];
+      if (personalTeamId) {
+        cleanup.push(
+          relationshipWriter.removeTeamMemberRelation(
+            personalTeamId,
+            identityId,
+            KetoNamespace.Human,
+          ),
+        );
+      }
+      const results = await Promise.allSettled(cleanup);
+      const failures = results
+        .filter(
+          (result): result is PromiseRejectedResult =>
+            result.status === 'rejected',
+        )
+        .map((result): unknown => result.reason);
+      if (failures.length > 0) {
+        throw new AggregateError(
+          failures,
+          'Human onboarding Keto compensation failed',
+        );
+      }
+    },
+    {
+      name: 'onboarding.step.cleanupIdentityGrants',
+      retriesAllowed: true,
+      maxAttempts: 5,
+      intervalSeconds: 2,
+      backoffRate: 2,
+    },
+  );
+
   // ── Workflow ─────────────────────────────────────────────────
 
   _workflow = DBOS.registerWorkflow(
@@ -180,12 +221,13 @@ export function initHumanOnboardingWorkflow(): void {
       );
 
       // Steps 2-4 have compensation: clear identityId on failure
+      let personalTeamId: string | null = null;
       try {
         // Step 2: Register in Keto
         await registerInKetoStep(identityId);
 
         // Step 3: Create personal team (FK target for creator_human_id is humans.id)
-        const personalTeamId = await transactionRunner.runInTransaction(
+        const resolvedPersonalTeamId = await transactionRunner.runInTransaction(
           async () => {
             const existing = await teamRepository.findPersonalByCreator({
               kind: 'human',
@@ -202,9 +244,10 @@ export function initHumanOnboardingWorkflow(): void {
           },
           { name: 'onboarding.tx.createPersonalTeam' },
         );
+        personalTeamId = resolvedPersonalTeamId;
 
         // Step 4: Grant team ownership (Keto uses identityId)
-        await grantTeamOwnerStep(personalTeamId, identityId);
+        await grantTeamOwnerStep(resolvedPersonalTeamId, identityId);
 
         // Step 5: Create private diary (FK target for creator_human_id is humans.id)
         const privateDiaryId = await transactionRunner.runInTransaction(
@@ -220,15 +263,15 @@ export function initHumanOnboardingWorkflow(): void {
               creator: { kind: 'human', id: humanId },
               name: 'Private',
               visibility: 'private',
-              teamId: personalTeamId,
+              teamId: resolvedPersonalTeamId,
             });
             return diary.id;
           },
           { name: 'onboarding.tx.createPrivateDiary' },
         );
-        await grantPrivateDiaryStep(privateDiaryId, personalTeamId);
+        await grantPrivateDiaryStep(privateDiaryId, resolvedPersonalTeamId);
 
-        return { humanId, identityId, personalTeamId };
+        return { humanId, identityId, personalTeamId: resolvedPersonalTeamId };
       } catch (error: unknown) {
         // Compensation: clear identityId so onboarding retries on next login.
         // Wrapped in a registered DBOS step so a process crash mid-compensation
@@ -241,6 +284,7 @@ export function initHumanOnboardingWorkflow(): void {
         );
 
         try {
+          await cleanupIdentityGrantsStep(identityId, personalTeamId);
           await transactionRunner.runInTransaction(
             () => humanRepository.clearIdentityIdIfMatches(humanId, identityId),
             { name: 'onboarding.tx.compensateIdentityBinding' },

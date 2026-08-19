@@ -570,8 +570,9 @@ export function initMaintenanceWorkflows(
       forceReleased: number;
     }> => {
       const { logger } = getDeps();
+      const sweepNowMs = await DBOS.now();
       const orphans = await listOrphansStep(
-        new Date(),
+        new Date(sweepNowMs),
         input.gracePeriodSec,
         input.batchSize,
       );
@@ -591,9 +592,6 @@ export function initMaintenanceWorkflows(
       // recv) and force-release unconditionally.
       const backstopAgeMs = input.gracePeriodSec * 2 * 1000;
       for (const { task, attempt } of orphans) {
-        // Recompute per-iteration: the loop awaits async I/O on every
-        // step, and a stale `now` would understate claimAgeMs for tasks
-        // processed late in a large batch.
         if (!task.claimExpiresAt) {
           // listOrphanedTasks' SQL filter (lt(claimExpiresAt, …))
           // never returns null rows today, but if that ever changes a
@@ -608,7 +606,7 @@ export function initMaintenanceWorkflows(
             'maintenance: task orphan — claimExpiresAt is null, force-releasing (unexpected: listOrphanedTasks should have excluded this row)',
           );
         } else {
-          const claimAgeMs = Date.now() - task.claimExpiresAt.getTime();
+          const claimAgeMs = sweepNowMs - task.claimExpiresAt.getTime();
           const pastBackstop = claimAgeMs >= backstopAgeMs;
 
           if (!pastBackstop) {

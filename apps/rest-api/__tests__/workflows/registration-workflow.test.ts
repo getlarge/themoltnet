@@ -21,6 +21,7 @@ vi.mock('@moltnet/database', async (importOriginal) => ({
 import {
   EnrollmentValidationError,
   initRegistrationWorkflow,
+  issueRegistrationCredential,
   registrationWorkflow,
   setRegistrationDeps,
 } from '../../src/workflows/registration-workflow.js';
@@ -119,7 +120,7 @@ describe('registration workflow', () => {
     const deps = createDeps();
     setRegistrationDeps(deps as never);
 
-    const result = await registrationWorkflow.registerAgent({
+    const workflowResult = await registrationWorkflow.registerAgent({
       publicKey: PUBLIC_KEY,
       fingerprint: FINGERPRINT,
       credentialType: 'oauth2',
@@ -127,15 +128,21 @@ describe('registration workflow', () => {
       mode: { type: 'self' },
     });
 
-    expect(result).toEqual({
+    expect(workflowResult).toEqual({
       identityId: IDENTITY_ID,
+      identityOwnedForCompensation: true,
       publicKey: PUBLIC_KEY,
       fingerprint: FINGERPRINT,
-      credential: {
-        type: 'oauth2',
-        clientId: `moltnet-agent-${IDENTITY_ID}`,
-        clientSecret: expect.any(String),
-      },
+      teamId: TEAM_ID,
+      credentialType: 'oauth2',
+      credentialIdempotencyKey: 'nonce',
+    });
+    expect(deps.oauth2Api.createOAuth2Client).not.toHaveBeenCalled();
+    const result = await issueRegistrationCredential(workflowResult);
+    expect(result.credential).toEqual({
+      type: 'oauth2',
+      clientId: `moltnet-agent-${IDENTITY_ID}`,
+      clientSecret: expect.any(String),
     });
     expect(deps.teamRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({ personal: true }),
@@ -156,7 +163,7 @@ describe('registration workflow', () => {
     const deps = createDeps();
     setRegistrationDeps(deps as never);
 
-    const result = await registrationWorkflow.registerAgent({
+    const workflowResult = await registrationWorkflow.registerAgent({
       publicKey: PUBLIC_KEY,
       fingerprint: FINGERPRINT,
       credentialType: 'agent_key',
@@ -164,6 +171,8 @@ describe('registration workflow', () => {
       mode: { type: 'team', enrollmentTokenHash: TOKEN_HASH },
     });
 
+    expect(deps.issueAgentKey).not.toHaveBeenCalled();
+    const result = await issueRegistrationCredential(workflowResult);
     expect(result.credential).toEqual(
       expect.objectContaining({ type: 'agent_key', secret: 'agent-secret' }),
     );
@@ -220,6 +229,40 @@ describe('registration workflow', () => {
     );
   });
 
+  it('preserves a pre-existing Kratos identity while compensating owned resources', async () => {
+    const deps = createDeps();
+    deps.identityApi.createIdentity.mockRejectedValueOnce({
+      response: { status: 409 },
+    });
+    deps.identityApi.listIdentities.mockResolvedValueOnce([
+      {
+        id: IDENTITY_ID,
+        schema_id: 'agent-v2',
+        traits: { public_key: PUBLIC_KEY },
+        metadata_admin: {
+          moltnet_registration_workflow_id: 'another-registration',
+        },
+      },
+    ]);
+    deps.relationshipWriter.registerAgent.mockRejectedValueOnce(
+      new Error('Keto unavailable'),
+    );
+    setRegistrationDeps(deps as never);
+
+    await expect(
+      registrationWorkflow.registerAgent({
+        publicKey: PUBLIC_KEY,
+        fingerprint: FINGERPRINT,
+        credentialType: 'oauth2',
+        idempotencyKey: 'nonce',
+        mode: { type: 'self' },
+      }),
+    ).rejects.toThrow('Keto unavailable');
+
+    expect(deps.identityApi.deleteIdentity).not.toHaveBeenCalled();
+    expect(deps.agentRepository.delete).toHaveBeenCalledWith(IDENTITY_ID);
+  });
+
   it('allows only one winner when redemption loses a concurrent race', async () => {
     const deps = createDeps();
     deps.agentEnrollmentRepository.redeem.mockResolvedValueOnce(null);
@@ -240,7 +283,7 @@ describe('registration workflow', () => {
     });
   });
 
-  it('compensates self-registration resources when credential creation fails', async () => {
+  it('does not persist or compensate registration when HTTP credential issuance fails', async () => {
     const deps = createDeps();
     deps.oauth2Api.createOAuth2Client.mockRejectedValueOnce(
       new Error('Hydra unavailable'),
@@ -253,57 +296,40 @@ describe('registration workflow', () => {
     ]);
     setRegistrationDeps(deps as never);
 
-    await expect(
-      registrationWorkflow.registerAgent({
-        publicKey: PUBLIC_KEY,
-        fingerprint: FINGERPRINT,
-        credentialType: 'oauth2',
-        idempotencyKey: 'nonce',
-        mode: { type: 'self' },
-      }),
-    ).rejects.toThrow('Hydra unavailable');
-    expect(deps.relationshipWriter.removeDiaryRelations).toHaveBeenCalledWith(
-      'diary-id',
-    );
-    expect(deps.relationshipWriter.removeAgentRelations).toHaveBeenCalledWith(
-      IDENTITY_ID,
-    );
-    expect(deps.oauth2Api.deleteOAuth2Client).toHaveBeenCalledWith({
-      id: `moltnet-agent-${IDENTITY_ID}`,
+    const workflowResult = await registrationWorkflow.registerAgent({
+      publicKey: PUBLIC_KEY,
+      fingerprint: FINGERPRINT,
+      credentialType: 'oauth2',
+      idempotencyKey: 'nonce',
+      mode: { type: 'self' },
     });
-    expect(deps.teamRepository.delete).toHaveBeenCalledWith(TEAM_ID);
-    expect(deps.agentRepository.delete).toHaveBeenCalledWith(IDENTITY_ID);
-    expect(deps.identityApi.deleteIdentity).toHaveBeenCalledWith({
-      id: IDENTITY_ID,
-    });
+    await expect(issueRegistrationCredential(workflowResult)).rejects.toThrow(
+      'Hydra unavailable',
+    );
+    expect(deps.teamRepository.delete).not.toHaveBeenCalled();
+    expect(deps.agentRepository.delete).not.toHaveBeenCalled();
+    expect(deps.identityApi.deleteIdentity).not.toHaveBeenCalled();
   });
 
-  it('releases a redeemed enrollment when credential creation fails', async () => {
+  it('keeps a redeemed enrollment retryable when HTTP credential issuance fails', async () => {
     const deps = createDeps();
     deps.issueAgentKey.mockRejectedValueOnce(new Error('Talos unavailable'));
     setRegistrationDeps(deps as never);
 
-    await expect(
-      registrationWorkflow.registerAgent({
-        publicKey: PUBLIC_KEY,
-        fingerprint: FINGERPRINT,
-        credentialType: 'agent_key',
-        idempotencyKey: 'nonce',
-        mode: { type: 'team', enrollmentTokenHash: TOKEN_HASH },
-      }),
-    ).rejects.toThrow('Talos unavailable');
-    expect(
-      deps.relationshipWriter.removeTeamMemberRelation,
-    ).toHaveBeenCalledWith(TEAM_ID, IDENTITY_ID, 'Agent');
-    expect(deps.relationshipWriter.removeAgentRelations).toHaveBeenCalledWith(
-      IDENTITY_ID,
+    const workflowResult = await registrationWorkflow.registerAgent({
+      publicKey: PUBLIC_KEY,
+      fingerprint: FINGERPRINT,
+      credentialType: 'agent_key',
+      idempotencyKey: 'nonce',
+      mode: { type: 'team', enrollmentTokenHash: TOKEN_HASH },
+    });
+    await expect(issueRegistrationCredential(workflowResult)).rejects.toThrow(
+      'Talos unavailable',
     );
     expect(
       deps.agentEnrollmentRepository.releaseRedemption,
-    ).toHaveBeenCalledWith(TOKEN_HASH, IDENTITY_ID);
-    expect(deps.agentRepository.delete).toHaveBeenCalledWith(IDENTITY_ID);
-    expect(deps.identityApi.deleteIdentity).toHaveBeenCalledWith({
-      id: IDENTITY_ID,
-    });
+    ).not.toHaveBeenCalled();
+    expect(deps.agentRepository.delete).not.toHaveBeenCalled();
+    expect(deps.identityApi.deleteIdentity).not.toHaveBeenCalled();
   });
 });

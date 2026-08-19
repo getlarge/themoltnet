@@ -14,7 +14,6 @@ SET "completed_at" = COALESCE(
 )
 WHERE "tasks"."status" IN ('completed', 'failed', 'cancelled', 'expired')
 	AND "tasks"."completed_at" IS NULL;--> statement-breakpoint
-ALTER TABLE "tasks" ADD CONSTRAINT "tasks_terminal_completed_at_required" CHECK (status NOT IN ('completed', 'failed', 'cancelled', 'expired') OR completed_at IS NOT NULL);--> statement-breakpoint
 ALTER TABLE "tasks" ADD COLUMN "idempotency_key_hash" varchar(64);--> statement-breakpoint
 ALTER TABLE "tasks" ADD COLUMN "idempotency_request_cid" varchar(100);--> statement-breakpoint
 -- Preserve the oldest pending transfer for each diary and reject any newer

@@ -25,7 +25,11 @@ import {
   type UploadTaskArtifactData,
 } from '@moltnet/api-client';
 
-import type { TaskRequestOptions, TasksNamespace } from '../agent.js';
+import type {
+  TaskCreateOptions,
+  TaskRequestOptions,
+  TasksNamespace,
+} from '../agent.js';
 import type { AgentContext } from '../agent-context.js';
 import { unwrapResult } from '../agent-context.js';
 import { MoltNetError } from '../errors.js';
@@ -210,7 +214,7 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
 
     async create(
       bodyOrBuilt: CreateTaskData['body'] | BuiltTask,
-      options?: TaskRequestOptions,
+      options?: TaskCreateOptions,
     ) {
       // Accept either a raw (body, { teamId }) pair or a builder's
       // { body, teamId } result.

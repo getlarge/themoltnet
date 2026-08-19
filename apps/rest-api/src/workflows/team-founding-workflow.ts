@@ -220,20 +220,30 @@ export function initTeamFoundingWorkflow(): void {
         // Timeout: archive team, then durably reconcile Keto.
         const { logger } = getDeps();
         logger.warn({ teamId }, 'team.founding.timeout — archiving team');
-        await getDeps().transactionRunner.runInTransaction(
-          async () => {
-            const archived = await getDeps().teamRepository.updateStatus(
-              teamId,
-              'archived',
-            );
-            if (!archived) {
-              throw new Error(
-                `Team ${teamId} was no longer in founding status`,
+        const archiveOutcome =
+          await getDeps().transactionRunner.runInTransaction(
+            async () => {
+              const archived = await getDeps().teamRepository.updateStatus(
+                teamId,
+                'archived',
               );
-            }
-          },
-          { name: 'team.founding.tx.archive' },
-        );
+              if (archived) return 'archived' as const;
+              const current = await getDeps().teamRepository.findById(teamId);
+              if (current?.status === 'active') {
+                return 'active' as const;
+              }
+              if (current?.status === 'archived') return 'archived' as const;
+              throw new Error(`Team ${teamId} was not found during archival`);
+            },
+            { name: 'team.founding.tx.archive' },
+          );
+        if (archiveOutcome === 'active') {
+          logger.info(
+            { teamId },
+            'team.founding.timeout_raced_with_activation',
+          );
+          return { teamId, status: 'active' };
+        }
         const removals = await Promise.allSettled(
           foundingMembers.map((member) =>
             removeFoundingMemberStep(teamId, member),

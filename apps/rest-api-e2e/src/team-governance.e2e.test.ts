@@ -439,22 +439,15 @@ describe('Team Governance', () => {
         expect(data!.teamId).toBe(sourceTeamId);
       });
 
-      it('rejecting an already-resolved transfer returns 409', async () => {
-        const { response } = await pollUntilStatus(
-          () =>
-            rejectTransfer({
-              client,
-              auth: () => agentB.accessToken,
-              path: { transferId },
-            }),
-          409,
-          {
-            label: 'rejecting resolved transfer returns 409',
-            maxAttempts: 20,
-            intervalMs: 500,
-          },
-        );
-        expect(response.status).toBe(409);
+      it('repeating the same rejection is idempotent', async () => {
+        const { data, error, response } = await rejectTransfer({
+          client,
+          auth: () => agentB.accessToken,
+          path: { transferId },
+        });
+        expect(error).toBeUndefined();
+        expect(response.status).toBe(200);
+        expect(data?.status).toBe('rejected');
       });
     });
 
@@ -526,22 +519,15 @@ describe('Team Governance', () => {
         expect(data!.teamId).toBe(destTeamId);
       });
 
-      it('accepting already-accepted transfer returns 409', async () => {
-        const { response } = await pollUntilStatus(
-          () =>
-            acceptTransfer({
-              client,
-              auth: () => agentB.accessToken,
-              path: { transferId },
-            }),
-          409,
-          {
-            label: 'accepting accepted transfer returns 409',
-            maxAttempts: 20,
-            intervalMs: 500,
-          },
-        );
-        expect(response.status).toBe(409);
+      it('repeating the same acceptance is idempotent', async () => {
+        const { data, error, response } = await acceptTransfer({
+          client,
+          auth: () => agentB.accessToken,
+          path: { transferId },
+        });
+        expect(error).toBeUndefined();
+        expect(response.status).toBe(200);
+        expect(data?.status).toBe('accepted');
       });
     });
   });

@@ -366,6 +366,42 @@ describe('Tasks API', () => {
       expect(replay.data?.id).toBe(first.data?.id);
     });
 
+    it('converges concurrent creates with the same idempotency key', async () => {
+      const idempotencyKey = `tasks-e2e-${randomUUID()}`;
+      const correlationId = randomUUID();
+      const request = {
+        client,
+        auth: () => proposer.accessToken,
+        headers: {
+          'x-moltnet-team-id': proposer.personalTeamId,
+          'idempotency-key': idempotencyKey,
+        },
+        body: {
+          taskType: 'curate_pack',
+          diaryId: proposer.privateDiaryId,
+          correlationId,
+          input: {
+            diaryId: proposer.privateDiaryId,
+            taskPrompt: 'concurrent idempotent e2e curation',
+          },
+        },
+      } as const;
+
+      const [left, right] = await Promise.all([
+        createTask(request),
+        createTask(request),
+      ]);
+
+      expect(left.response.status).toBe(201);
+      expect(right.response.status).toBe(201);
+      expect(right.data?.id).toBe(left.data?.id);
+      const [row] = await harness.db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(tasks)
+        .where(eq(tasks.correlationId, correlationId));
+      expect(row?.count).toBe(1);
+    });
+
     it('returns 409 when an idempotency key is reused with a changed body', async () => {
       const idempotencyKey = `tasks-e2e-${randomUUID()}`;
       const headers = {

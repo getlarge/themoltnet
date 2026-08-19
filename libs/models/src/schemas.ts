@@ -284,10 +284,20 @@ export const OnboardingStatusResponseSchema = Type.Object({
     Type.Literal('completed'),
     Type.Literal('failed'),
   ]),
-  githubCode: Type.Optional(Type.String()),
+  githubCode: Type.Optional(
+    Type.String({
+      description:
+        'GitHub manifest code sealed to the onboarding agent public key.',
+    }),
+  ),
   identityId: Type.Optional(Type.String()),
   clientId: Type.Optional(Type.String()),
-  clientSecret: Type.Optional(Type.String()),
+  clientSecret: Type.Optional(
+    Type.String({
+      description:
+        'OAuth2 client secret sealed to the onboarding agent public key.',
+    }),
+  ),
   installationId: Type.Optional(Type.String()),
 });
 

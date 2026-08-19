@@ -38,6 +38,7 @@ vi.mock('@moltnet/database', async (importOriginal) => {
           vi.fn().mockResolvedValue({ workflowID: 'mock-workflow-id' }),
         ),
       send: vi.fn().mockResolvedValue(undefined),
+      retrieveWorkflow: vi.fn(),
     },
   };
 });
@@ -63,6 +64,7 @@ import { DBOS } from '@moltnet/database';
 beforeEach(() => {
   vi.mocked(DBOS.startWorkflow).mockClear();
   vi.mocked(DBOS.send).mockClear();
+  vi.mocked(DBOS.retrieveWorkflow).mockClear();
 });
 
 const authHeaders = { authorization: `Bearer ${TEST_BEARER_TOKEN}` };
@@ -368,6 +370,31 @@ describe('POST /teams/:id/accept', () => {
       'team.founding.accepted',
       `team-founding:${TEAM_ID}:complete`,
     );
+  });
+
+  it('returns idempotent success without signalling an already-active team', async () => {
+    mocks.teamRepository.findById.mockResolvedValue(MOCK_ACTIVE_TEAM);
+    mocks.teamRepository.listFoundingAcceptances.mockResolvedValue([
+      {
+        teamId: TEAM_ID,
+        subjectId: OWNER_ID,
+        role: 'owner',
+        status: 'accepted',
+        acceptedAt: new Date(),
+        createdAt: new Date(),
+      },
+    ]);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/teams/${TEAM_ID}/accept`,
+      headers: authHeaders,
+      payload: {},
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ accepted: true, teamStatus: 'active' });
+    expect(DBOS.send).not.toHaveBeenCalled();
   });
 
   it('accepts successfully, returns teamStatus founding when not all owners accepted', async () => {
@@ -957,6 +984,12 @@ describe('POST /transfers/:transferId/accept', () => {
       ...MOCK_TRANSFER,
       status: 'accepted' as const,
     });
+    vi.mocked(DBOS.retrieveWorkflow).mockReturnValue({
+      getResult: vi.fn().mockResolvedValue({
+        transferId: TRANSFER_ID,
+        status: 'accepted',
+      }),
+    } as never);
   });
 
   it('returns 404 when transfer not found', async () => {
@@ -971,7 +1004,7 @@ describe('POST /transfers/:transferId/accept', () => {
     expect(res.statusCode).toBe(404);
   });
 
-  it('returns 409 when transfer already resolved', async () => {
+  it('returns idempotent success when transfer is already accepted', async () => {
     mocks.diaryTransferRepository.findById.mockResolvedValue({
       ...MOCK_TRANSFER,
       status: 'accepted' as const,
@@ -983,7 +1016,7 @@ describe('POST /transfers/:transferId/accept', () => {
       headers: authHeaders,
     });
 
-    expect(res.statusCode).toBe(409);
+    expect(res.statusCode).toBe(200);
   });
 
   it('returns 403 when caller is not destination team owner', async () => {
@@ -1010,10 +1043,27 @@ describe('POST /transfers/:transferId/accept', () => {
       MOCK_TRANSFER.workflowId,
       'accepted',
       'diary.transfer.decision',
-      `diary-transfer:${TRANSFER_ID}:decision`,
+      `diary-transfer:${TRANSFER_ID}:decision:accepted`,
     );
     // Route no longer calls updateStatus — the workflow is sole owner of status transitions
     expect(mocks.diaryTransferRepository.updateStatus).not.toHaveBeenCalled();
+  });
+
+  it('returns 409 when a competing rejection wins', async () => {
+    vi.mocked(DBOS.retrieveWorkflow).mockReturnValue({
+      getResult: vi.fn().mockResolvedValue({
+        transferId: TRANSFER_ID,
+        status: 'rejected',
+      }),
+    } as never);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/transfers/${TRANSFER_ID}/accept`,
+      headers: authHeaders,
+    });
+
+    expect(res.statusCode).toBe(409);
   });
 
   it('returns 401 when unauthenticated', async () => {
@@ -1049,6 +1099,12 @@ describe('POST /transfers/:transferId/reject', () => {
       ...MOCK_TRANSFER,
       status: 'rejected' as const,
     });
+    vi.mocked(DBOS.retrieveWorkflow).mockReturnValue({
+      getResult: vi.fn().mockResolvedValue({
+        transferId: TRANSFER_ID,
+        status: 'rejected',
+      }),
+    } as never);
   });
 
   it('returns 404 when transfer not found', async () => {
@@ -1063,7 +1119,7 @@ describe('POST /transfers/:transferId/reject', () => {
     expect(res.statusCode).toBe(404);
   });
 
-  it('returns 409 when transfer already resolved', async () => {
+  it('returns idempotent success when transfer is already rejected', async () => {
     mocks.diaryTransferRepository.findById.mockResolvedValue({
       ...MOCK_TRANSFER,
       status: 'rejected' as const,
@@ -1075,7 +1131,7 @@ describe('POST /transfers/:transferId/reject', () => {
       headers: authHeaders,
     });
 
-    expect(res.statusCode).toBe(409);
+    expect(res.statusCode).toBe(200);
   });
 
   it('returns 403 when caller is not destination team owner', async () => {
@@ -1102,7 +1158,7 @@ describe('POST /transfers/:transferId/reject', () => {
       MOCK_TRANSFER.workflowId,
       'rejected',
       'diary.transfer.decision',
-      `diary-transfer:${TRANSFER_ID}:decision`,
+      `diary-transfer:${TRANSFER_ID}:decision:rejected`,
     );
     // Route no longer calls updateStatus — the workflow is sole owner of status transitions
     expect(mocks.diaryTransferRepository.updateStatus).not.toHaveBeenCalled();

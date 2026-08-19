@@ -47,15 +47,6 @@ export function createHumanRepository(db: Database) {
       return row ?? null;
     },
 
-    async setIdentityId(id: string, identityId: string): Promise<Human | null> {
-      const [updated] = await getExecutor(db)
-        .update(humans)
-        .set({ identityId, updatedAt: new Date() })
-        .where(eq(humans.id, id))
-        .returning();
-      return updated ?? null;
-    },
-
     /**
      * Bind a Kratos identity only while the human is unbound, or confirm an
      * idempotent retry of the same binding. A competing identity never wins.
@@ -64,24 +55,31 @@ export function createHumanRepository(db: Database) {
       id: string,
       identityId: string,
     ): Promise<Human | null> {
-      const [updated] = await getExecutor(db)
-        .update(humans)
-        .set({ identityId, updatedAt: new Date() })
-        .where(
-          and(
-            eq(humans.id, id),
-            or(isNull(humans.identityId), eq(humans.identityId, identityId)),
-          ),
-        )
-        .returning();
-      return updated ?? null;
-    },
-
-    async clearIdentityId(id: string): Promise<void> {
-      await getExecutor(db)
-        .update(humans)
-        .set({ identityId: null, updatedAt: new Date() })
-        .where(eq(humans.id, id));
+      try {
+        const [updated] = await getExecutor(db)
+          .update(humans)
+          .set({ identityId, updatedAt: new Date() })
+          .where(
+            and(
+              eq(humans.id, id),
+              or(isNull(humans.identityId), eq(humans.identityId, identityId)),
+            ),
+          )
+          .returning();
+        return updated ?? null;
+      } catch (error) {
+        const cause =
+          error instanceof Error && error.cause ? error.cause : error;
+        if (
+          typeof cause === 'object' &&
+          cause !== null &&
+          'code' in cause &&
+          cause.code === '23505'
+        ) {
+          return null;
+        }
+        throw error;
+      }
     },
 
     /** Clear a failed onboarding binding without erasing a competing winner. */

@@ -66,17 +66,20 @@ import { startTaskDeletionWorkflow } from '../workflows/index.js';
 
 type BatchDeleteTasksBody = Static<typeof BatchDeleteTasksBodySchema>;
 
-const CreateTaskHeadersSchema = Type.Object({
-  ...TeamHeaderRequiredSchema.properties,
-  'idempotency-key': Type.Optional(
-    Type.String({
-      description:
-        'Retry key scoped to the active team and authenticated proposer.',
-      minLength: 1,
-      maxLength: 255,
-    }),
-  ),
-});
+const CreateTaskHeadersSchema = Type.Intersect([
+  TeamHeaderRequiredSchema,
+  Type.Object({
+    'idempotency-key': Type.Optional(
+      Type.String({
+        description:
+          'Retry key scoped to the active team and authenticated proposer. Reusing it with a different request returns 409.',
+        minLength: 1,
+        maxLength: 200,
+        pattern: '\\S',
+      }),
+    ),
+  }),
+]);
 
 function taskDeletionDeduplicationId(ids: string[], force: boolean): string {
   const payload = JSON.stringify({ force, ids: [...ids].sort() });
