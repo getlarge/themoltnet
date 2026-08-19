@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.3.0](https://github.com/getlarge/themoltnet/compare/tasks-orchestrator-v0.2.8...tasks-orchestrator-v0.3.0) (2026-08-19)
+
+
+### Features
+
+* **absurd:** harden replay and child creation ([4b28445](https://github.com/getlarge/themoltnet/commit/4b284455671b9c2e3c10fbd9eea57f5204fc708a))
+
+
+### Bug Fixes
+
+* **absurd:** make child orchestration replay safe ([f99dc65](https://github.com/getlarge/themoltnet/commit/f99dc6588ef1c15ac3bfc4b221a40b7c434676dd))
+* **build:** share one rolled-up .d.ts across package entry points ([a1b157e](https://github.com/getlarge/themoltnet/commit/a1b157ea6de84b91bce5ad055789bdca1563b12c))
+* **build:** share one rolled-up .d.ts across package entry points ([9f8c166](https://github.com/getlarge/themoltnet/commit/9f8c1667b8a89ecdad4f22b06fc9c2856385a561)), closes [#1928](https://github.com/getlarge/themoltnet/issues/1928)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.135.0
+
 ## [0.2.8](https://github.com/getlarge/themoltnet/compare/tasks-orchestrator-v0.2.7...tasks-orchestrator-v0.2.8) (2026-08-17)
 
 

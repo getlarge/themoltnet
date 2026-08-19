@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.38.2](https://github.com/getlarge/themoltnet/compare/legreffier-v0.38.1...legreffier-v0.38.2) (2026-08-19)
+
+
+### Bug Fixes
+
+* **dbos:** address workflow hardening review ([e87a2bb](https://github.com/getlarge/themoltnet/commit/e87a2bb834dda5cef4d5c188af515d4bd5646a2d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @themoltnet/github-agent bumped to 0.26.1
+    * @themoltnet/sdk bumped to 0.135.0
+
 ## [0.38.1](https://github.com/getlarge/themoltnet/compare/legreffier-v0.38.0...legreffier-v0.38.1) (2026-08-17)
 
 

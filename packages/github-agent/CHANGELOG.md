@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.26.1](https://github.com/getlarge/themoltnet/compare/github-agent-v0.26.0...github-agent-v0.26.1) (2026-08-19)
+
+
+### Bug Fixes
+
+* **test:** cover JSON CID package alias ([277bccd](https://github.com/getlarge/themoltnet/commit/277bccdb5bb72eb18ee30fc16196d33c7421198f))
+
 ## [0.26.0](https://github.com/getlarge/themoltnet/compare/github-agent-v0.25.0...github-agent-v0.26.0) (2026-08-09)
 
 
