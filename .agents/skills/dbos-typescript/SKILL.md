@@ -21,16 +21,18 @@ Guide for building reliable, fault-tolerant TypeScript applications with DBOS du
 The upstream rules in this skill are the default. Within MoltNet, apply these
 repository-specific rules first:
 
-1. Read [lifecycle and queues](references/lifecycle-and-queues.md) before
+1. Read [workflow determinism](references/workflow-determinism.md) before
+   changing workflow bodies, clocks, effects, or concurrency.
+2. Read [lifecycle and queues](references/lifecycle-and-queues.md) before
    changing startup, recovery, bundling, schedules, or queue configuration.
-2. Read [transactions](references/transactions.md) before changing workflow
+3. Read [transactions](references/transactions.md) before changing workflow
    database writes. `TransactionRunner` wraps the DBOS datasource transaction
    with repository AsyncLocalStorage; it does not replace DBOS transactions.
-3. Read [MoltNet exceptions](references/moltnet-exceptions.md) before changing
+4. Read [MoltNet exceptions](references/moltnet-exceptions.md) before changing
    transactional enqueue or application-version behavior.
-4. Use [testing](references/testing.md) to select real-Postgres, crash-gap, and
+5. Use [testing](references/testing.md) to select real-Postgres, crash-gap, and
    process-recovery coverage.
-5. Follow [upgrade and versioning](references/upgrade-and-versioning.md) for
+6. Follow [upgrade and versioning](references/upgrade-and-versioning.md) for
    package upgrades and rollout decisions.
 
 Keep workflow bodies deterministic. Put repository writes in registered DBOS

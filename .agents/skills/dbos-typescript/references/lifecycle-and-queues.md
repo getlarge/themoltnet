@@ -14,9 +14,17 @@ Recovery begins during launch. A dependency setter that runs afterward is a
 race: recovered workflow code can execute before its repositories or external
 clients exist.
 
-Use `DBOS.registerQueue({ name, concurrency, workerConcurrency }, {
-onConflict: 'update_if_latest_version' })` for persisted queues. Do not construct
-the deprecated in-memory `WorkflowQueue`. Keep supported scheduled-workflow
+Register persisted queues after launch and await each call:
+
+```typescript
+await DBOS.registerQueue(TASK_DELETION_QUEUE_NAME, {
+  concurrency: 2,
+  onConflict: 'update_if_latest_version',
+});
+```
+
+The queue name is positional. Do not add `workerConcurrency` or construct the
+deprecated in-memory `WorkflowQueue`. Keep supported scheduled-workflow
 registration unchanged.
 
 DBOS maintains a process-global registry. Vite/Rollup/esbuild must externalize

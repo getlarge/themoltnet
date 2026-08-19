@@ -23,5 +23,7 @@ must say “durably reconciled,” not “atomically swapped,” across systems.
 
 This branch intentionally leaves `applicationVersion` unset so DBOS uses its
 automatic source hash. Do not enable workflow patching or stamp a version onto
-transactional enqueues. Deployment is gated on no active old-version workflows,
-unless a separate version/drain rollout strategy lands first.
+transactional enqueues. On the current single-app Fly topology, deployments
+that can change the hash require an empty active inventory unless a separate
+version/drain strategy lands first. `DBOS__APPVERSION` is reserved for controlled
+re-adoption with the exact owning image.

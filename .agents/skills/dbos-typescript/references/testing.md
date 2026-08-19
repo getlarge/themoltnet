@@ -9,7 +9,8 @@ Real-Postgres integration must cover:
 - workflow-ID deduplication;
 - repository AsyncLocalStorage rollback inside a DBOS transaction;
 - persisted queue registration;
-- removal of invalid nested transitions.
+- `buildTaskStatusPatch` rejects invalid terminal-state patches and preserves
+  the paired `completedAt` application invariant.
 
 Crash-gap tests simulate failure after an external effect but before checkpoint
 persistence. Retrying must reconcile the effect without duplication. Cover

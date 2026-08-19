@@ -16,20 +16,23 @@ change replay behavior.
 
 MoltNet workflows depend on the transport-neutral `WorkflowContext`:
 
-- `executionId` is the stable Absurd task ID.
+- `executionId` is the optional stable Absurd task ID.
 - `step(name, fn)` owns a normal effect checkpoint.
-- `beginStep(name)` / `completeStep(handle, value)` own decomposed checkpoints.
+- `beginStep` / `completeStep` are optional adapter capabilities.
 - `sleepFor(name, seconds)` is a durable timer.
 - events are optional and must be used only with safe generation semantics.
 
-Keep inline/test contexts and the Absurd adapter aligned when this interface
-changes.
+Author decomposed checkpoints through `beginWorkflowStep` and
+`completeWorkflowStep`; they preserve compatibility with contexts that expose
+only `step`. Use `createTaskStep` for child-task creation. Keep inline/test
+contexts and the Absurd adapter aligned when this interface changes.
 
 ## Decomposed checkpoints
 
-Use `beginStep` and `completeStep` when a logical gate spans multiple reads or
-waits. If the handle is already done, return its state without repeating the
-effect. Complete only a terminal decision, not intermediate snapshots.
+Use `beginWorkflowStep` and `completeWorkflowStep` when a logical gate spans
+multiple reads or waits. If the handle is already done, return its state without
+repeating the effect. Complete only a terminal decision, not intermediate
+snapshots.
 
 Approval arming uses two checkpoints: label removal observed, then label
 addition observed. They require distinct durable wait names so a stale approval
@@ -47,9 +50,11 @@ generation in the event name.
 
 ## External idempotency
 
-Derive child-task creation keys from `executionId` plus the stable semantic
-create-step name. MoltNet uses a SHA-256-derived `absurd:` key. The same key and
-canonical request returns the existing task; a changed request conflicts.
+Call `createTaskStep`; it derives a child-task creation key from `executionId`
+plus the concrete checkpoint name, including repeat suffixes such as `name#2`.
+MoltNet uses a SHA-256-derived `absurd:` key. Without a durable `executionId`,
+`taskCreateIdempotencyKey` returns `undefined`. The same key and canonical
+request returns the existing task; a changed request conflicts.
 
 A checkpoint alone cannot close the crash gap between an external mutation and
 checkpoint persistence. Also pass the stable key to the external API or combine
@@ -60,14 +65,17 @@ step.
 
 Each creation branch needs a unique stable step name and its derived idempotency
 key. Start all independent creates, wait with `Promise.allSettled`, then surface
-an `AggregateError` so a fast failure does not abandon siblings. Do not begin
-awaiting task results until all creates have settled.
+an `AggregateError` so a fast failure does not abandon siblings. Workflow
+interruptions (`SuspendTask`, `CancelledTask`, and `FailedTask`) must escape
+instead of being aggregated; use `parallelTasks`, which enforces both rules. Do
+not begin awaiting task results until all creates have settled.
 
 ## Recovery tests
 
-Unit tests should use a memoizing context and replay the workflow with the same
-context. Add crash-gap tests after external mutation but before checkpoint
-persistence.
+Unit tests should use `replayContext()`. Before rerunning the workflow with the
+same context, call `resetForReplay()` so checkpoint-name counters restart while
+completed results remain cached. Add crash-gap tests after external mutation
+but before checkpoint persistence.
 
 Real durability tests use Absurd Postgres. Process-recovery coverage must start
 a worker, observe a completed checkpoint, kill the OS process, wait for the

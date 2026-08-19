@@ -8,8 +8,13 @@ Automatic source-hash versioning is intentional for this rollout. Do not set
 `applicationVersion`, opt into patching, or add `app_version` to transactional
 enqueues in an unrelated change.
 
-Before deployment, query active workflows by application version. Proceed only
-when old versions are drained, or after a separately reviewed patch/drain
-strategy exists. Rollback must keep the code version needed to execute active
-workflows; deploying an older binary is not safe merely because HTTP rollback
-is safe.
+The current single Fly app cannot keep an old executor beside a rolling deploy,
+and a candidate source hash is unavailable before workflow registration. Before
+deploying workflow source or either DBOS package, require the active inventory
+to be empty or land a separately reviewed second-executor/patch strategy.
+
+`DBOS__APPVERSION` is an emergency re-adoption lever: pair a recorded version
+with the exact image that originally owned it. Do not reuse one pinned value
+across incompatible workflow source. See the
+[DBOS operations runbook](../../../../docs/operate/durable-workflows.md#deploy-and-drain)
+for deployment and recovery procedures.

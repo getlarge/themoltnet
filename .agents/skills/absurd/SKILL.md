@@ -1,12 +1,12 @@
 ---
 name: absurd
-description: Author, test, debug, and operate Absurd durable workflows. Use for Absurd queues, tasks, runs, checkpoints, events, retries, idempotency, worker recovery, absurd-sdk, or absurdctl.
+description: Author, test, debug, and operate Absurd durable workflows. Use when working with WorkflowContext, tasks-orchestrator, parallelTasks, issue-lifecycle, multi-lens-review, Absurd queues, checkpoints, events, retries, idempotency, worker recovery, absurd-sdk, or uvx absurdctl.
 license: Apache-2.0
 ---
 
 # Absurd
 
-Use this skill when the project uses **Absurd**, the Postgres-native durable workflow engine, or when the user mentions **`absurdctl`**, queues, durable tasks, runs, retries, sleeping tasks, or events.
+Use this skill when the project uses **Absurd**, the Postgres-native durable workflow engine, or when the user mentions **`uvx absurdctl`**, queues, durable tasks, runs, retries, sleeping tasks, or events.
 
 For code changes, read [authoring and recovery](references/authoring-and-recovery.md)
 before editing. It covers replay, decomposed checkpoints, immutable events,
@@ -27,13 +27,10 @@ Important distinction:
 - `task_id` = the whole workflow across all attempts
 - `run_id` = one specific execution attempt
 
-## First: make sure `absurdctl` works
+## First: use the repository command form
 
-If `absurdctl` is not on `PATH`, check whether you are inside a repo checkout and, if so, use:
-
-```bash
-export PATH="$PWD:$PATH"
-```
+Run the released CLI through `uvx absurdctl`; do not prepend the repository to
+`PATH` or invoke a checkout-local binary.
 
 Absurd connection precedence is:
 
@@ -45,22 +42,22 @@ For non-URI connections, `PGHOST`, `PGPORT`, `PGUSER`, and `PGPASSWORD` are also
 
 ## Default debugging workflow
 
-Prefer **`absurdctl` state inspection before source inspection**. Usually you do **not** need to read application code first.
+Prefer **`uvx absurdctl` state inspection before source inspection**. Usually you do **not** need to read application code first.
 
-If the user explicitly asks you to use **`absurdctl`** to inspect or fix a workflow, do that first instead of starting with `rg` / source browsing.
+If the user explicitly asks you to use **`uvx absurdctl`** to inspect or fix a workflow, do that first instead of starting with `rg` / source browsing.
 
 When the user wants to debug a task, start with these commands in order:
 
 ### 1) Discover queues
 
 ```bash
-absurdctl list-queues
+uvx absurdctl list-queues
 ```
 
 ### 2) Inspect recent activity in the likely queue
 
 ```bash
-absurdctl list-tasks --queue=default --limit=20
+uvx absurdctl list-tasks --queue=default --limit=20
 ```
 
 Notes:
@@ -71,15 +68,15 @@ Notes:
 ### 3) Focus on failures or sleepers
 
 ```bash
-absurdctl list-tasks --queue=default --status=failed --limit=20
-absurdctl list-tasks --queue=default --status=sleeping --limit=20
+uvx absurdctl list-tasks --queue=default --status=failed --limit=20
+uvx absurdctl list-tasks --queue=default --status=sleeping --limit=20
 ```
 
 ### 4) Inspect one workflow or one attempt in detail
 
 ```bash
-absurdctl dump-task --task-id=<task-id>
-absurdctl dump-task --run-id=<run-id>
+uvx absurdctl dump-task --task-id=<task-id>
+uvx absurdctl dump-task --run-id=<run-id>
 ```
 
 `dump-task` is the most important inspection command. It shows things like:
@@ -147,23 +144,23 @@ If the task is waiting for an event, also search for the event name.
 Use `-P key=value` for strings and `-P key:=json` for typed JSON values.
 
 ```bash
-absurdctl spawn-task my-task -q default -P foo=bar
-absurdctl spawn-task my-task -q default -P count:=42 -P enabled:=true
-absurdctl spawn-task my-task -q default -P user.name=Alice -P user.age:=30
+uvx absurdctl spawn-task my-task -q default -P foo=bar
+uvx absurdctl spawn-task my-task -q default -P count:=42 -P enabled:=true
+uvx absurdctl spawn-task my-task -q default -P user.name=Alice -P user.age:=30
 ```
 
 Use `--params` when the user already has a JSON object:
 
 ```bash
-absurdctl spawn-task my-task -q default --params '{"foo":"bar","count":42}'
+uvx absurdctl spawn-task my-task -q default --params '{"foo":"bar","count":42}'
 ```
 
 ### Retry failed work
 
 ```bash
-absurdctl retry-task <task-id>
-absurdctl retry-task <task-id> --max-attempts 5
-absurdctl retry-task -q default <task-id> --spawn-new
+uvx absurdctl retry-task <task-id>
+uvx absurdctl retry-task <task-id> --max-attempts 5
+uvx absurdctl retry-task -q default <task-id> --spawn-new
 ```
 
 Guidance:
@@ -175,21 +172,21 @@ Guidance:
 ### Cancel work
 
 ```bash
-absurdctl cancel-task <task-id>
-absurdctl cancel-task -q default <task-id>
+uvx absurdctl cancel-task <task-id>
+uvx absurdctl cancel-task -q default <task-id>
 ```
 
 ### Wake waiting tasks by emitting an event
 
 ```bash
-absurdctl emit-event order.completed -q default -P orderId=123
-absurdctl emit-event approval.granted:42 -q default -P approved:=true
+uvx absurdctl emit-event order.completed -q default -P orderId=123
+uvx absurdctl emit-event approval.granted:42 -q default -P approved:=true
 ```
 
 If the event payload should be structured JSON:
 
 ```bash
-absurdctl emit-event shipment.packed:42 -q default --payload '{"trackingNumber":"XYZ"}'
+uvx absurdctl emit-event shipment.packed:42 -q default --payload '{"trackingNumber":"XYZ"}'
 ```
 
 ### Schema setup / migrations
@@ -197,11 +194,14 @@ absurdctl emit-event shipment.packed:42 -q default --payload '{"trackingNumber":
 Use these on a blank or controlled database, or when the user explicitly asks:
 
 ```bash
-absurdctl init
-absurdctl schema-version
-absurdctl migrate
-absurdctl create-queue default
+uvx absurdctl init --ref 0.4.0
+uvx absurdctl schema-version
+uvx absurdctl migrate --to 0.4.0
+uvx absurdctl create-queue default
 ```
+
+The schema version is pinned by repository policy. Do not run unversioned
+`init` or `migrate` against a MoltNet database.
 
 ## Safe operating rules
 
@@ -224,41 +224,41 @@ If the environment is ambiguous, ask which database / queue is safe to operate o
 ### Debug the latest failures in `default`
 
 ```bash
-absurdctl list-queues
-absurdctl list-tasks --queue=default --status=failed --limit=20
-absurdctl dump-task --task-id=<task-id>
+uvx absurdctl list-queues
+uvx absurdctl list-tasks --queue=default --status=failed --limit=20
+uvx absurdctl dump-task --task-id=<task-id>
 ```
 
 ### Find sleepers and wake one
 
 ```bash
-absurdctl list-tasks --queue=default --status=sleeping --limit=20
-absurdctl dump-task --task-id=<task-id>
-absurdctl emit-event <event-name> -q default -P key=value
+uvx absurdctl list-tasks --queue=default --status=sleeping --limit=20
+uvx absurdctl dump-task --task-id=<task-id>
+uvx absurdctl emit-event <event-name> -q default -P key=value
 ```
 
 ### Reproduce by spawning a task, then inspect it
 
 ```bash
-absurdctl spawn-task my-task -q default -P foo=bar
-absurdctl list-tasks --queue=default --task-name=my-task --limit=5
-absurdctl dump-task --task-id=<task-id>
+uvx absurdctl spawn-task my-task -q default -P foo=bar
+uvx absurdctl list-tasks --queue=default --task-name=my-task --limit=5
+uvx absurdctl dump-task --task-id=<task-id>
 ```
 
 Fast path when the user says “spawn a task and debug it”:
 
 ```bash
-absurdctl spawn-task my-task -q default -P foo=bar
-absurdctl list-tasks --queue=default --task-name=my-task --limit=5
-absurdctl dump-task --task-id=<task-id>
+uvx absurdctl spawn-task my-task -q default -P foo=bar
+uvx absurdctl list-tasks --queue=default --task-name=my-task --limit=5
+uvx absurdctl dump-task --task-id=<task-id>
 # then either:
-absurdctl emit-event <event-name> -q default -P key=value
+uvx absurdctl emit-event <event-name> -q default -P key=value
 # or:
-absurdctl retry-task <task-id>
+uvx absurdctl retry-task <task-id>
 ```
 
 ## Extra reference
 
-- Use `absurdctl <command> --help` for full options.
+- Use `uvx absurdctl <command> --help` for full options.
 - `dump-task --task-id` is usually the best starting point once you know the task.
 - Checkpointed step results are durable JSON state; code outside steps may execute multiple times across retries.

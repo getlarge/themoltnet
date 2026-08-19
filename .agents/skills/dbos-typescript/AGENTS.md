@@ -19,8 +19,22 @@ dbos-typescript/
 ## Usage
 
 1. Read `SKILL.md` for the main skill instructions
-2. Browse `references/` for detailed documentation on specific topics
-3. Reference files are loaded on-demand - read only what you need
+2. Follow its **MoltNet overlay** links before changing MoltNet workflow code
+3. Browse the upstream `references/` by category for other DBOS topics
+4. Reference files are loaded on-demand - read only what you need
+
+## MoltNet Overlay
+
+- `references/workflow-determinism.md` — replay-safe bodies, clocks, effects,
+  signals, and concurrency
+- `references/lifecycle-and-queues.md` — REST startup, bundling, persisted queues,
+  readiness, and recovery
+- `references/transactions.md` — repository-aware DBOS transactions
+- `references/moltnet-exceptions.md` — transactional enqueue and external-system
+  reconciliation
+- `references/testing.md` — real-Postgres, crash-gap, and process-recovery tests
+- `references/upgrade-and-versioning.md` — paired SDK upgrades and rollout policy
+- `references/upstream.md` — source provenance
 
 ## Reference Categories
 
@@ -94,4 +108,5 @@ Reference files are named `{prefix}-{topic}.md` (e.g., `query-missing-indexes.md
 
 ---
 
-*34 reference files across 9 categories*
+*41 files: 34 upstream topic references, 6 MoltNet overlay/provenance
+references, and the category index.*
