@@ -27,6 +27,7 @@ import {
   type LocalCredentialBinding,
   type SandboxAgent,
   sanitizeCredentialEvidence,
+  sanitizeProbePathEvidence,
 } from './docker-sandbox-credential-adapter.js';
 
 interface CredentialScenario {
@@ -179,11 +180,7 @@ function safeText(input: {
   standIns: string[];
 }): string {
   let value = sanitizeCredentialEvidence(input.value, [input.credential]);
-  value = value.replaceAll(
-    input.probeRoot.replaceAll('/', '-'),
-    '$PROBE_ROOT_SLUG',
-  );
-  value = value.replaceAll(input.probeRoot, '$PROBE_ROOT');
+  value = sanitizeProbePathEvidence(value, input.probeRoot);
   value = value.replaceAll(homedir(), '$HOME');
   for (const port of input.ports)
     value = value.replaceAll(String(port), '$FIXTURE_PORT');

@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import { access } from 'node:fs/promises';
+import { basename } from 'node:path';
 
 export type SandboxAgent = 'claude' | 'codex' | 'shell';
 
@@ -235,6 +236,31 @@ export function sanitizeCredentialEvidence(
   for (const sensitive of sensitiveValues.filter(Boolean)) {
     sanitized = sanitized.split(sensitive).join('$REDACTED_CREDENTIAL');
   }
+  return sanitized;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+export function sanitizeProbePathEvidence(
+  value: string,
+  probeRoot: string,
+): string {
+  const runDirectory = basename(probeRoot);
+  let sanitized = value
+    .replaceAll(probeRoot.replaceAll('/', '-'), '$PROBE_ROOT_SLUG')
+    .replaceAll(probeRoot, '$PROBE_ROOT');
+  if (!runDirectory) return sanitized;
+
+  // Providers may canonicalize a mounted host path before encoding it as one
+  // project-directory token. Redact the whole token containing this run's
+  // unique directory rather than assuming an OS-specific canonical prefix.
+  const encodedPath = new RegExp(
+    `[^"'\\s]*${escapeRegExp(runDirectory)}[^"'\\s]*`,
+    'g',
+  );
+  sanitized = sanitized.replace(encodedPath, '$PROBE_PATH');
   return sanitized;
 }
 

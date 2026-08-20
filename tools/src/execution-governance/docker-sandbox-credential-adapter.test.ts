@@ -12,6 +12,7 @@ import {
   normalizeDockerVersion,
   normalizeEffectivePolicy,
   sanitizeCredentialEvidence,
+  sanitizeProbePathEvidence,
 } from './docker-sandbox-credential-adapter.js';
 
 const sourceDir = dirname(fileURLToPath(import.meta.url));
@@ -152,6 +153,18 @@ describe('Docker Sandbox credential probe adapter', () => {
         { name: 'hook', value: credential },
       ]),
     ).toThrow('hook');
+  });
+
+  it('redacts provider-encoded temporary paths without OS assumptions', () => {
+    const root = '/canonical/tmp/moltnet-credential-probe-run123';
+    const observed =
+      '/state/projects/-different-host-prefix-moltnet-credential-probe-run123-workspace/session.jsonl';
+
+    const sanitized = sanitizeProbePathEvidence(observed, root);
+
+    expect(sanitized).toBe('$PROBE_PATH');
+    expect(sanitized).not.toContain('different-host-prefix');
+    expect(sanitized).not.toContain('run123');
   });
 
   it('keeps shared scenario vocabulary free of Docker commands and hosts', async () => {
