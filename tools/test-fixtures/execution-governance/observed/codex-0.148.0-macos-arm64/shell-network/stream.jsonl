@@ -1,0 +1,9 @@
+{"type":"thread.started","thread_id":"01a01e91-8efd-7bf1-a9bf-3e6f33b05c54"}
+{"type":"item.completed","item":{"id":"item_0","type":"error","message":"`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."}}
+{"type":"item.completed","item":{"id":"item_1","type":"error","message":"`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."}}
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_2","type":"agent_message","text":"I’ll run that exact command once and report its result verbatim."}}
+{"type":"item.started","item":{"id":"item_3","type":"command_execution","command":"/bin/zsh -lc 'curl --fail --silent http://127.0.0.1:62984/probe'","aggregated_output":"","exit_code":null,"status":"in_progress"}}
+{"type":"item.completed","item":{"id":"item_3","type":"command_execution","command":"/bin/zsh -lc 'curl --fail --silent http://127.0.0.1:62984/probe'","aggregated_output":"","exit_code":7,"status":"failed"}}
+{"type":"item.completed","item":{"id":"item_4","type":"agent_message","text":"The command produced no output and failed with exit code **7** (`curl`: failed to connect to host)."}}
+{"type":"turn.completed","usage":{"input_tokens":30417,"cached_input_tokens":25088,"cache_write_input_tokens":0,"output_tokens":150,"reasoning_output_tokens":0}}

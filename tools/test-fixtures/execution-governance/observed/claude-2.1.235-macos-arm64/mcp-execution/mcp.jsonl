@@ -1,0 +1,7 @@
+{"jsonrpc":"2.0","id":"server-discover-probe-1","method":"server/discover","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"claude-code","title":"Claude Code","version":"2.1.235","description":"Anthropic's agentic coding tool","websiteUrl":"https://claude.com/claude-code"},"io.modelcontextprotocol/clientCapabilities":{"roots":{"listChanged":true},"elicitation":{}}}}}
+{"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{"roots":{"listChanged":true},"elicitation":{}},"clientInfo":{"name":"claude-code","title":"Claude Code","version":"2.1.235","description":"Anthropic's agentic coding tool","websiteUrl":"https://claude.com/claude-code"}},"jsonrpc":"2.0","id":0}
+{"jsonrpc":"2.0","method":"notifications/initialized"}
+{"method":"tools/list","jsonrpc":"2.0","id":1}
+{"method":"tools/call","params":{"name":"probe_echo","arguments":{"value":"coverage"},"_meta":{"claudecode/toolUseId":"toolu_01MpWv6mRh7us7DpgzWmai2E","progressToken":2}},"jsonrpc":"2.0","id":2}
+{"method":"tools/call","params":{"name":"probe_write_host","arguments":{},"_meta":{"claudecode/toolUseId":"toolu_01Fr4pSeJEVA24HYBvcMv6Ut","progressToken":3}},"jsonrpc":"2.0","id":3}
+{"method":"tools/call","params":{"name":"probe_network","arguments":{},"_meta":{"claudecode/toolUseId":"toolu_01X1x1peE8Wvw2uCJDC1BxJL","progressToken":4}},"jsonrpc":"2.0","id":4}

@@ -1,0 +1,9 @@
+{"type":"thread.started","thread_id":"01a01e91-bd90-75f0-8cae-dc31fa67638e"}
+{"type":"item.completed","item":{"id":"item_0","type":"error","message":"`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."}}
+{"type":"item.completed","item":{"id":"item_1","type":"error","message":"`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."}}
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_2","type":"agent_message","text":"I’ll run the exact command and check its exit status and resulting file."}}
+{"type":"item.started","item":{"id":"item_3","type":"command_execution","command":"/bin/zsh -lc \"printf 'MOLTNET_PROBE_HOOK_ERROR\\\\n' > hook-unavailable.txt\"","aggregated_output":"","exit_code":null,"status":"in_progress"}}
+{"type":"item.completed","item":{"id":"item_3","type":"command_execution","command":"/bin/zsh -lc \"printf 'MOLTNET_PROBE_HOOK_ERROR\\\\n' > hook-unavailable.txt\"","aggregated_output":"","exit_code":0,"status":"completed"}}
+{"type":"item.completed","item":{"id":"item_4","type":"agent_message","text":"The hook failure did not stop the action. The command completed successfully with exit code 0 and created `hook-unavailable.txt`."}}
+{"type":"turn.completed","usage":{"input_tokens":30393,"cached_input_tokens":22016,"cache_write_input_tokens":0,"output_tokens":154,"reasoning_output_tokens":0}}

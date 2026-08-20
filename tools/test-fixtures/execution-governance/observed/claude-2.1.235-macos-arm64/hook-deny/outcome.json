@@ -1,0 +1,21 @@
+{
+  "artifacts": {
+    "approvalAllowed": false,
+    "approvalDenied": false,
+    "hookAsk": false,
+    "hookDenied": false,
+    "hostMcpWrite": false,
+    "nativeEdit": false,
+    "sandboxEscape": false,
+    "shellChild": false,
+    "shellParent": false,
+    "unavailableHookAction": false
+  },
+  "durationMs": 6605,
+  "exitCode": 0,
+  "nativeExecutionId": "5860f659-f3e6-445c-82c7-686606c7efba",
+  "provider": "claude",
+  "purpose": "Test a synchronous pre-action hook denial independently of sandbox policy.",
+  "scenario": "hook-deny",
+  "signal": null
+}

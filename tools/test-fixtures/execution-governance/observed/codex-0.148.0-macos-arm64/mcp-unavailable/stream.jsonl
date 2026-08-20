@@ -1,0 +1,7 @@
+{"type":"thread.started","thread_id":"01a01e9b-ed07-7cb1-b6e7-feca25634126"}
+{"type":"item.completed","item":{"id":"item_0","type":"error","message":"`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."}}
+{"type":"item.completed","item":{"id":"item_1","type":"error","message":"`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."}}
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_2","type":"agent_message","text":"I’ll attempt to locate and call that exact MCP tool, and I won’t substitute anything else."}}
+{"type":"item.completed","item":{"id":"item_3","type":"agent_message","text":"Native failure: `MCP tool probe_echo is unavailable`."}}
+{"type":"turn.completed","usage":{"input_tokens":30288,"cached_input_tokens":22016,"cache_write_input_tokens":0,"output_tokens":258,"reasoning_output_tokens":56}}

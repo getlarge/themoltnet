@@ -12,6 +12,7 @@
     "download-model": "node download-embedding-model.mjs",
     "eval:setup": "tsx src/eval-setup.ts",
     "eval:teardown": "tsx src/eval-setup.ts --teardown",
+    "execution-governance:probe": "tsx src/execution-governance/probe.ts",
     "talos:probe": "tsx src/talos-capability-probe.ts",
     "task:bootstrap-local": "tsx src/tasks/bootstrap-local-agent.ts",
     "bench:ory": "tsx src/bench-ory-connection-reuse.ts",

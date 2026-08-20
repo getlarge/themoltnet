@@ -1,0 +1,21 @@
+{
+  "artifacts": {
+    "approvalAllowed": false,
+    "approvalDenied": false,
+    "hookAsk": true,
+    "hookDenied": false,
+    "hostMcpWrite": false,
+    "nativeEdit": false,
+    "sandboxEscape": false,
+    "shellChild": false,
+    "shellParent": false,
+    "unavailableHookAction": false
+  },
+  "durationMs": 9845,
+  "exitCode": 0,
+  "nativeExecutionId": "01a01e90-ea8c-7172-a8bb-1e87bcb168b2",
+  "provider": "codex",
+  "purpose": "Observe each provider's actual PreToolUse ask behavior.",
+  "scenario": "hook-ask",
+  "signal": null
+}

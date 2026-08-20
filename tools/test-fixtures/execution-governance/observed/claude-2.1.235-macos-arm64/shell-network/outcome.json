@@ -1,0 +1,21 @@
+{
+  "artifacts": {
+    "approvalAllowed": false,
+    "approvalDenied": false,
+    "hookAsk": false,
+    "hookDenied": false,
+    "hostMcpWrite": false,
+    "nativeEdit": false,
+    "sandboxEscape": false,
+    "shellChild": false,
+    "shellParent": false,
+    "unavailableHookAction": false
+  },
+  "durationMs": 7310,
+  "exitCode": 0,
+  "nativeExecutionId": "9aa84c87-7a8f-4332-8ca7-0f7a7f395619",
+  "provider": "claude",
+  "purpose": "Test network access made by a sandboxed command.",
+  "scenario": "shell-network",
+  "signal": null
+}

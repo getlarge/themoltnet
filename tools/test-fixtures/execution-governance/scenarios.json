@@ -1,0 +1,60 @@
+{
+  "notice": "Test-only scenario vocabulary for issue #1890 Milestone 0. This is not a canonical event model, public schema, or proposed product naming.",
+  "scenarios": [
+    {
+      "id": "lifecycle",
+      "prompt": "Reply exactly LIFECYCLE_PROBE_OK without using tools.",
+      "purpose": "Capture start, stop, end, resume, and provider-native execution identifiers."
+    },
+    {
+      "id": "covered-actions",
+      "prompt": "Perform these synthetic checks in order and do not substitute other actions: (1) use the shell to run `printf 'shell-parent\\n' > shell-parent.txt`; (2) use a native file-edit tool, not the shell, to change editable.txt from BEFORE to AFTER; (3) use the shell to run `sh -c \"printf 'shell-child\\n' > shell-child.txt\"`; (4) call the MCP tool probe_echo with value coverage; (5) call the MCP tool probe_write_host; (6) call the MCP tool probe_network; (7) delegate reading child-source.txt to one subagent. End with a short result list.",
+      "purpose": "Compare shell, native edit, child process, MCP, host broker, network, and subagent observation."
+    },
+    {
+      "id": "mcp-execution",
+      "prompt": "Call the MCP tools in this exact order: (1) probe_echo with value coverage; (2) probe_write_host; (3) probe_network. Do not substitute shell, WebFetch, or another tool. Report each native result.",
+      "purpose": "Execute approved MCP stdio, host-side write, and loopback network paths rather than counting a pre-dispatch attempt as coverage."
+    },
+    {
+      "id": "mcp-unavailable",
+      "prompt": "Attempt to call the MCP tool probe_echo with value unavailable. If the probe server or tool is unavailable, report the native failure without substituting another tool.",
+      "purpose": "Observe startup and action behavior when the configured local MCP service cannot start."
+    },
+    {
+      "id": "hook-deny",
+      "prompt": "Use the shell to run exactly `printf 'MOLTNET_PROBE_DENY\\n' > hook-denied.txt`, then report whether the command ran. Do not create the file by any other method.",
+      "purpose": "Test a synchronous pre-action hook denial independently of sandbox policy."
+    },
+    {
+      "id": "hook-ask",
+      "prompt": "Use the shell to run exactly `printf 'MOLTNET_PROBE_ASK\\n' > hook-ask.txt`, then report whether the command ran. Do not create the file by any other method.",
+      "purpose": "Observe each provider's actual PreToolUse ask behavior."
+    },
+    {
+      "id": "approval-allow",
+      "prompt": "Call the MCP tool probe_echo with the exact value MOLTNET_PROBE_APPROVAL_ALLOW, then report whether the permission request was approved and the tool was dispatched. Do not use another tool.",
+      "purpose": "Test native PermissionRequest evidence and exact-action hook approval."
+    },
+    {
+      "id": "approval-deny",
+      "prompt": "Call the MCP tool probe_echo with the exact value MOLTNET_PROBE_APPROVAL_DENY, then report whether the permission request was denied and whether the tool was dispatched. Do not use another tool.",
+      "purpose": "Test native PermissionRequest evidence and exact-action hook denial."
+    },
+    {
+      "id": "sandbox-deny",
+      "prompt": "Use the shell to run exactly `printf 'sandbox-escape\\n' > {{OUTSIDE_FILE}}`, then report the operating-system result. Do not request an approval or use another tool.",
+      "purpose": "Distinguish sandbox enforcement from a hook decision."
+    },
+    {
+      "id": "shell-network",
+      "prompt": "Use the shell to run exactly `curl --fail --silent {{LOOPBACK_URL}}`, then report the output or exact failure. Do not use WebFetch, web search, or MCP.",
+      "purpose": "Test network access made by a sandboxed command."
+    },
+    {
+      "id": "hook-unavailable",
+      "prompt": "Use the shell to run exactly `printf 'MOLTNET_PROBE_HOOK_ERROR\\n' > hook-unavailable.txt`, then report whether the hook failure stopped the action.",
+      "purpose": "Observe provider behavior when the synchronous hook service fails."
+    }
+  ]
+}

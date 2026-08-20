@@ -1,0 +1,10 @@
+{
+  "appServerAvailable": false,
+  "capturedAt": "2026-08-20T09:58:54.426Z",
+  "desktopApplicationPresent": true,
+  "hookConfigLayer": "isolated-project",
+  "notice": "Test-only scenario vocabulary for issue #1890 Milestone 0. This is not a canonical event model, public schema, or proposed product naming.",
+  "platform": "darwin-arm64",
+  "provider": "claude",
+  "providerVersion": "2.1.235 (Claude Code)"
+}

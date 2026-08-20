@@ -1,0 +1,7 @@
+{"type":"thread.started","thread_id":"01a01e90-c005-7d81-88a5-7917aa0957bb"}
+{"type":"item.completed","item":{"id":"item_0","type":"error","message":"`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."}}
+{"type":"item.completed","item":{"id":"item_1","type":"error","message":"`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."}}
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_2","type":"agent_message","text":"I’ll run that exact shell command and report its result."}}
+{"type":"item.completed","item":{"id":"item_3","type":"agent_message","text":"The command did not run. It was blocked by a pre-execution hook, so I did not create the file by another method."}}
+{"type":"turn.completed","usage":{"input_tokens":30408,"cached_input_tokens":25088,"cache_write_input_tokens":0,"output_tokens":151,"reasoning_output_tokens":0}}

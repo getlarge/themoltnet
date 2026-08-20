@@ -1,0 +1,10 @@
+{
+  "configuredThreadSandbox": "read-only",
+  "hookEventCount": 0,
+  "hostWrite": true,
+  "method": "thread/shellCommand",
+  "nativeExecutionId": "01a01e9b-eafe-7733-ad41-f43237271e64",
+  "provider": "codex",
+  "responseError": null,
+  "surface": "app-server"
+}

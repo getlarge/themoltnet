@@ -1,0 +1,23 @@
+{
+  "artifacts": {
+    "approvalAllowed": false,
+    "approvalDenied": false,
+    "hookAsk": false,
+    "hookDenied": false,
+    "hostMcpWrite": false,
+    "mcpServerInitialized": false,
+    "mcpToolDispatched": false,
+    "nativeEdit": false,
+    "sandboxEscape": false,
+    "shellChild": false,
+    "shellParent": false,
+    "unavailableHookAction": false
+  },
+  "durationMs": 13424,
+  "exitCode": 0,
+  "nativeExecutionId": "01a01e9b-ed07-7cb1-b6e7-feca25634126",
+  "provider": "codex",
+  "purpose": "Observe startup and action behavior when the configured local MCP service cannot start.",
+  "scenario": "mcp-unavailable",
+  "signal": null
+}

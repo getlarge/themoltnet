@@ -1,0 +1,21 @@
+{
+  "artifacts": {
+    "approvalAllowed": false,
+    "approvalDenied": false,
+    "hookAsk": false,
+    "hookDenied": false,
+    "hostMcpWrite": false,
+    "nativeEdit": false,
+    "sandboxEscape": false,
+    "shellChild": false,
+    "shellParent": false,
+    "unavailableHookAction": true
+  },
+  "durationMs": 10708,
+  "exitCode": 0,
+  "nativeExecutionId": "01a01e91-bd90-75f0-8cae-dc31fa67638e",
+  "provider": "codex",
+  "purpose": "Observe provider behavior when the synchronous hook service fails.",
+  "scenario": "hook-unavailable",
+  "signal": null
+}

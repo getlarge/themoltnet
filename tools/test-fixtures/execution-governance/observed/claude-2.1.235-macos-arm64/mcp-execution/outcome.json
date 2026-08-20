@@ -1,0 +1,21 @@
+{
+  "artifacts": {
+    "approvalAllowed": false,
+    "approvalDenied": false,
+    "hookAsk": false,
+    "hookDenied": false,
+    "hostMcpWrite": true,
+    "nativeEdit": false,
+    "sandboxEscape": false,
+    "shellChild": false,
+    "shellParent": false,
+    "unavailableHookAction": false
+  },
+  "durationMs": 13321,
+  "exitCode": 0,
+  "nativeExecutionId": "3340c1dd-57bc-45d4-beb7-41092a4b0830",
+  "provider": "claude",
+  "purpose": "Execute approved MCP stdio, host-side write, and loopback network paths rather than counting a pre-dispatch attempt as coverage.",
+  "scenario": "mcp-execution",
+  "signal": null
+}

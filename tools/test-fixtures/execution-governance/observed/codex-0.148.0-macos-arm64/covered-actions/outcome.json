@@ -1,0 +1,21 @@
+{
+  "artifacts": {
+    "approvalAllowed": false,
+    "approvalDenied": false,
+    "hookAsk": false,
+    "hookDenied": false,
+    "hostMcpWrite": false,
+    "nativeEdit": true,
+    "sandboxEscape": false,
+    "shellChild": true,
+    "shellParent": true,
+    "unavailableHookAction": false
+  },
+  "durationMs": 49539,
+  "exitCode": 0,
+  "nativeExecutionId": "01a01e8f-b9dd-7c40-a169-aaa07a74449f",
+  "provider": "codex",
+  "purpose": "Compare shell, native edit, child process, MCP, host broker, network, and subagent observation.",
+  "scenario": "covered-actions",
+  "signal": null
+}

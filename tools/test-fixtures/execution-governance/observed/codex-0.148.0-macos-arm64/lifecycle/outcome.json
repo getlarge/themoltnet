@@ -1,0 +1,26 @@
+{
+  "artifacts": {
+    "approvalAllowed": false,
+    "approvalDenied": false,
+    "hookAsk": false,
+    "hookDenied": false,
+    "hostMcpWrite": false,
+    "nativeEdit": false,
+    "sandboxEscape": false,
+    "shellChild": false,
+    "shellParent": false,
+    "unavailableHookAction": false
+  },
+  "durationMs": 6121,
+  "exitCode": 0,
+  "nativeExecutionId": "01a01e99-b235-7532-b93a-f4bb65d3dc8f",
+  "provider": "codex",
+  "purpose": "Capture start, stop, end, resume, and provider-native execution identifiers.",
+  "resume": {
+    "durationMs": 5004,
+    "exitCode": 0,
+    "signal": null
+  },
+  "scenario": "lifecycle",
+  "signal": null
+}

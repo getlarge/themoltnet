@@ -1,0 +1,21 @@
+{
+  "artifacts": {
+    "approvalAllowed": true,
+    "approvalDenied": false,
+    "hookAsk": false,
+    "hookDenied": false,
+    "hostMcpWrite": false,
+    "nativeEdit": false,
+    "sandboxEscape": false,
+    "shellChild": false,
+    "shellParent": false,
+    "unavailableHookAction": false
+  },
+  "durationMs": 16777,
+  "exitCode": 0,
+  "nativeExecutionId": "01a01e93-e720-7570-bbdf-d5d30acfa157",
+  "provider": "codex",
+  "purpose": "Test native PermissionRequest evidence and exact-action hook approval.",
+  "scenario": "approval-allow",
+  "signal": null
+}

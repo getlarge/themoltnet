@@ -1,0 +1,8 @@
+{"type":"thread.started","thread_id":"01a01e93-d692-7c50-bfb5-a939b3a6a476"}
+{"type":"item.completed","item":{"id":"item_0","type":"error","message":"`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."}}
+{"type":"item.completed","item":{"id":"item_1","type":"error","message":"`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."}}
+{"type":"turn.started"}
+{"type":"item.started","item":{"id":"item_2","type":"mcp_tool_call","server":"probe","tool":"probe_echo","arguments":{"value":"MOLTNET_PROBE_APPROVAL_DENY"},"result":null,"error":null,"status":"in_progress"}}
+{"type":"item.completed","item":{"id":"item_2","type":"mcp_tool_call","server":"probe","tool":"probe_echo","arguments":{"value":"MOLTNET_PROBE_APPROVAL_DENY"},"result":null,"error":{"message":"Denied by the Milestone 0 conformance probe."},"status":"failed"}}
+{"type":"item.completed","item":{"id":"item_3","type":"agent_message","text":"The permission request was denied, and the tool was dispatched. It returned: “Denied by the Milestone 0 conformance probe.”"}}
+{"type":"turn.completed","usage":{"input_tokens":29690,"cached_input_tokens":22016,"cache_write_input_tokens":0,"output_tokens":315,"reasoning_output_tokens":179}}

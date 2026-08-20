@@ -1,0 +1,21 @@
+{
+  "artifacts": {
+    "approvalAllowed": false,
+    "approvalDenied": false,
+    "hookAsk": false,
+    "hookDenied": false,
+    "hostMcpWrite": false,
+    "nativeEdit": false,
+    "sandboxEscape": false,
+    "shellChild": false,
+    "shellParent": false,
+    "unavailableHookAction": false
+  },
+  "durationMs": 12595,
+  "exitCode": 0,
+  "nativeExecutionId": "01a01e93-e717-7160-8080-f68e160de2b6",
+  "provider": "codex",
+  "purpose": "Distinguish sandbox enforcement from a hook decision.",
+  "scenario": "sandbox-deny",
+  "signal": null
+}

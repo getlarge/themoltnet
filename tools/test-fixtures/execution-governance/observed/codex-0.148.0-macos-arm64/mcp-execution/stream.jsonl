@@ -1,0 +1,13 @@
+{"type":"thread.started","thread_id":"01a01e93-f563-7370-9e87-cc6691bc2b46"}
+{"type":"item.completed","item":{"id":"item_0","type":"error","message":"`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."}}
+{"type":"item.completed","item":{"id":"item_1","type":"error","message":"`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."}}
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_2","type":"agent_message","text":"I’ll invoke the three native MCP probes in exactly the requested order and report their raw results."}}
+{"type":"item.started","item":{"id":"item_3","type":"mcp_tool_call","server":"probe","tool":"probe_echo","arguments":{"value":"coverage"},"result":null,"error":null,"status":"in_progress"}}
+{"type":"item.completed","item":{"id":"item_3","type":"mcp_tool_call","server":"probe","tool":"probe_echo","arguments":{"value":"coverage"},"result":{"content":[{"type":"text","text":"echo:coverage"}],"structured_content":null},"error":null,"status":"completed"}}
+{"type":"item.started","item":{"id":"item_4","type":"mcp_tool_call","server":"probe","tool":"probe_write_host","arguments":{},"result":null,"error":null,"status":"in_progress"}}
+{"type":"item.completed","item":{"id":"item_4","type":"mcp_tool_call","server":"probe","tool":"probe_write_host","arguments":{},"result":{"content":[{"type":"text","text":"host marker written"}],"structured_content":null},"error":null,"status":"completed"}}
+{"type":"item.started","item":{"id":"item_5","type":"mcp_tool_call","server":"probe","tool":"probe_network","arguments":{},"result":null,"error":null,"status":"in_progress"}}
+{"type":"item.completed","item":{"id":"item_5","type":"mcp_tool_call","server":"probe","tool":"probe_network","arguments":{},"result":{"content":[{"type":"text","text":"loopback-network-ok\n"}],"structured_content":null},"error":null,"status":"completed"}}
+{"type":"item.completed","item":{"id":"item_6","type":"agent_message","text":"1. `probe_echo`: `echo:coverage`\n2. `probe_write_host`: `host marker written`\n3. `probe_network`: `loopback-network-ok`"}}
+{"type":"turn.completed","usage":{"input_tokens":45031,"cached_input_tokens":36096,"cache_write_input_tokens":0,"output_tokens":295,"reasoning_output_tokens":76}}
