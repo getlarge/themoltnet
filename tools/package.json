@@ -13,6 +13,7 @@
     "eval:setup": "tsx src/eval-setup.ts",
     "eval:teardown": "tsx src/eval-setup.ts --teardown",
     "execution-governance:probe": "tsx src/execution-governance/probe.ts",
+    "execution-governance:credential-probe": "tsx src/execution-governance/credential-probe.ts",
     "talos:probe": "tsx src/talos-capability-probe.ts",
     "task:bootstrap-local": "tsx src/tasks/bootstrap-local-agent.ts",
     "bench:ory": "tsx src/bench-ory-connection-reuse.ts",
@@ -64,6 +65,16 @@
       "type:tool",
       "scope:tooling",
       "platform:cli"
-    ]
+    ],
+    "targets": {
+      "credential-probe": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "cwd": "tools",
+          "command": "pnpm run execution-governance:credential-probe"
+        }
+      }
+    }
   }
 }

@@ -1,4 +1,42 @@
 {
+  "credentialScenarios": [
+    {
+      "expected": "preflight-deny",
+      "id": "credential-missing-binding",
+      "purpose": "A required credential without a trusted local binding stops before any agent starts.",
+      "requirement": {
+        "acceptableDelivery": "brokered-http-request",
+        "consumer": "sandbox-http-client",
+        "destination": "fixture.allowed",
+        "id": "fixture.http.bearer",
+        "required": true
+      }
+    },
+    {
+      "expected": "brokered-success",
+      "id": "credential-allowed-destination",
+      "purpose": "The guest receives only a stand-in while the approved destination receives the resolved synthetic credential.",
+      "requirement": {
+        "acceptableDelivery": "brokered-http-request",
+        "consumer": "sandbox-http-client",
+        "destination": "fixture.allowed",
+        "id": "fixture.http.bearer",
+        "required": true
+      }
+    },
+    {
+      "expected": "destination-deny",
+      "id": "credential-wrong-destination",
+      "purpose": "A destination outside the declared resolution constraints cannot receive the credential.",
+      "requirement": {
+        "acceptableDelivery": "brokered-http-request",
+        "consumer": "sandbox-http-client",
+        "destination": "fixture.denied",
+        "id": "fixture.http.bearer",
+        "required": true
+      }
+    }
+  ],
   "notice": "Test-only scenario vocabulary for issue #1890 Milestone 0. This is not a canonical event model, public schema, or proposed product naming.",
   "scenarios": [
     {
