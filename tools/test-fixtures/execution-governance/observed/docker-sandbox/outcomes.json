@@ -1,0 +1,75 @@
+{
+  "cleanupComplete": true,
+  "destinations": {
+    "allowedRequests": [
+      {
+        "authorizationScheme": "bearer",
+        "credentialMatched": true,
+        "method": "GET",
+        "path": "/shell"
+      },
+      {
+        "authorizationScheme": "bearer",
+        "credentialMatched": true,
+        "method": "POST",
+        "path": "/codex/v1/responses"
+      },
+      {
+        "authorizationScheme": "x-api-key",
+        "credentialMatched": true,
+        "method": "POST",
+        "path": "/claude/v1/messages?beta=true"
+      }
+    ],
+    "wrongDestinationRequestCount": 0
+  },
+  "missingBinding": {
+    "agentLaunchAttempted": false,
+    "readiness": {
+      "adapter": "docker-sandbox",
+      "bindingReady": false,
+      "credentialStore": "adapter-managed-host-store",
+      "failures": [
+        {
+          "code": "required_binding_missing",
+          "instruction": "Configure a trusted local binding for required credential \"fixture.http.bearer\" with consumer \"sandbox-http-client\" and destination \"fixture.allowed\" before starting the agent."
+        }
+      ],
+      "policyReady": false,
+      "ready": false,
+      "virtualizationReady": false
+    }
+  },
+  "providers": [
+    {
+      "exitCode": 0,
+      "expectedOutputObserved": true,
+      "provider": "codex",
+      "providerStateFileCount": 130,
+      "signal": null,
+      "version": "codex-cli 0.146.0"
+    },
+    {
+      "exitCode": 0,
+      "expectedOutputObserved": true,
+      "provider": "claude",
+      "providerStateFileCount": 27,
+      "signal": null,
+      "version": "2.1.221 (Claude Code)"
+    }
+  ],
+  "shell": {
+    "allowedExitCode": 0,
+    "guestSawStandIn": true,
+    "policy": {
+      "activeNetworkRuleCount": 2,
+      "destination": "fixture.allowed",
+      "destinationDecision": "allow",
+      "preset": "unknown",
+      "source": "local",
+      "wrongDestination": "fixture.denied",
+      "wrongDestinationDecision": "deny"
+    },
+    "wrongDestinationExitCode": 22
+  }
+}

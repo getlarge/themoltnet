@@ -1,0 +1,35 @@
+{
+  "adapter": "docker-sandbox",
+  "adapterVersion": "sbx version: v0.39.0 def8cb0523a77e757bdd6ef52b459fe374f3783e",
+  "capturedAt": "2026-08-20T16:12:41.162Z",
+  "notice": "Test-only scenario vocabulary for issue #1890 Milestone 0. This is not a canonical event model, public schema, or proposed product naming.",
+  "platform": "darwin-arm64",
+  "requirements": {
+    "allowed": {
+      "acceptableDelivery": "brokered-http-request",
+      "consumer": "sandbox-http-client",
+      "destination": "fixture.allowed",
+      "id": "fixture.http.bearer",
+      "required": true
+    },
+    "missing": {
+      "acceptableDelivery": "brokered-http-request",
+      "consumer": "sandbox-http-client",
+      "destination": "fixture.allowed",
+      "id": "fixture.http.bearer",
+      "required": true
+    },
+    "wrong": {
+      "acceptableDelivery": "brokered-http-request",
+      "consumer": "sandbox-http-client",
+      "destination": "fixture.denied",
+      "id": "fixture.http.bearer",
+      "required": true
+    }
+  },
+  "syntheticCredential": {
+    "markerAbsentFromEvidence": true,
+    "source": "sandbox-scoped temporary host resolver",
+    "valueRecorded": false
+  }
+}

@@ -4,7 +4,8 @@
 
 **Observed:** 2026-08-20
 
-**Status:** Supervisor checkpoint; stop before any shared contract or adapter
+**Status:** Supervisor checkpoint; Docker Sandbox credential spike complete;
+stop before any shared contract, production adapter, or Gondolin adapter
 
 ## Checkpoint answer
 
@@ -24,13 +25,16 @@ product name.
 
 ## What was tested
 
-| Surface          | Installed version                | Test depth                                                                     |
-| ---------------- | -------------------------------- | ------------------------------------------------------------------------------ |
-| Codex CLI        | `codex-cli 0.148.0`, macOS arm64 | Live model turns, resume, hooks, OS sandbox, MCP, subagent, and failure cases  |
-| Codex App Server | Protocol shipped with `0.148.0`  | Direct JSON-RPC negotiation, read-only thread creation, and host shell command |
-| ChatGPT desktop  | `26.803.41515` installed         | App Server boundary tested directly; no automated composer interaction         |
-| Claude Code CLI  | `2.1.235`, macOS arm64           | Live model turns, resume, hooks, OS sandbox, MCP, subagent, and failure cases  |
-| Claude desktop   | `1.32885.1` installed            | Installation confirmed; no instrumented desktop session was available          |
+| Surface          | Installed version                | Test depth                                                                          |
+| ---------------- | -------------------------------- | ----------------------------------------------------------------------------------- |
+| Codex CLI        | `codex-cli 0.148.0`, macOS arm64 | Live model turns, resume, hooks, OS sandbox, MCP, subagent, and failure cases       |
+| Codex App Server | Protocol shipped with `0.148.0`  | Direct JSON-RPC negotiation, read-only thread creation, and host shell command      |
+| ChatGPT desktop  | `26.803.41515` installed         | App Server boundary tested directly; no automated composer interaction              |
+| Claude Code CLI  | `2.1.235`, macOS arm64           | Live model turns, resume, hooks, OS sandbox, MCP, subagent, and failure cases       |
+| Claude desktop   | `1.32885.1` installed            | Installation confirmed; no instrumented desktop session was available               |
+| Docker Sandboxes | `sbx v0.39.0`, macOS arm64       | Live synthetic credential preflight, brokered delivery, network denial, and cleanup |
+| Sandboxed Codex  | `codex-cli 0.146.0`              | One minimal Responses turn against a synthetic host fixture                         |
+| Sandboxed Claude | `2.1.221`                        | One minimal Messages turn against a synthetic host fixture                          |
 
 The executable harness creates a temporary Git repository, isolated hook
 configuration, a dependency-free stdio MCP server, and a loopback HTTP server.
@@ -55,6 +59,120 @@ pnpm exec nx run @moltnet/tools:execution-governance:probe -- \
 
 These commands make paid provider calls. Unit tests exercise the recorder and
 MCP protocol without a provider call.
+
+## M0.1 credential-boundary spike
+
+M0.1 asks a narrower pre-start question: can a local deployment prove that a
+required credential binding is ready, constrain delivery to its declared
+destination, and retain useful evidence without retaining the value? On Docker
+Sandboxes v0.39.0, the answer is yes, with two Docker-specific lifecycle details
+that must remain inside the probe adapter.
+
+The scenario vocabulary describes these four stages without naming Docker:
+
+1. A **credential requirement** identifies a required capability, its consumer,
+   a symbolic destination, and the acceptable brokered-delivery constraint. It
+   contains no secret coordinate or value.
+2. **Resolution constraints** limit use to the declared destination and require
+   brokered HTTP delivery. Missing access is a preflight failure, not an agent
+   runtime error.
+3. A trusted **local binding** selects a temporary host-side resolver for this
+   run. The fixture resolver reads a sandbox-scoped synthetic credential from a
+   mode-`0600` temporary file. No ambient environment, personal provider login,
+   auth file, or keychain entry is imported.
+4. **Resolved delivery** is provider-specific. Docker's host proxy replaces the
+   guest stand-in in a matching request. The fixture records only request path,
+   authentication scheme, and whether the supplied value matched; it never logs
+   headers or the value.
+
+Strong guarantees require a compatible sandbox. A hook can stop an observed
+provider action, but it cannot prove that a credential value was absent from the
+guest or constrain unobserved child and host paths. This spike therefore reports
+the adapter unavailable when `sbx` or virtualization is unavailable, and fails
+preflight when a required binding or explicit network policy is missing.
+
+### Executable scenarios
+
+Run the value-free Docker fixture with:
+
+```bash
+pnpm exec nx run @moltnet/tools:credential-probe
+```
+
+The target creates temporary Git workspaces, dynamic loopback ports, two local
+fixtures, and three disposable sandboxes. It registers one sandbox-scoped custom
+secret per sandbox from a host command, adds only the allowed dynamic
+`localhost:<port>` network rule, runs the scenario, scans provider state,
+transcripts, hooks, stdout, and stderr for the synthetic value, then removes the
+rule, secret, sandbox, fixtures, and temporary directories. It writes evidence
+only after every assertion passes.
+
+| Scenario            | Required result                                                         | Observed on `sbx v0.39.0`                                                                       |
+| ------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Missing binding     | Stop before provider launch and return actionable setup guidance        | Passed; preflight made no `sbx` call and `agentLaunchAttempted=false`                           |
+| Allowed destination | Guest sees only the stand-in; approved host receives the resolved value | Passed for shell, Codex, and Claude                                                             |
+| Wrong destination   | No substitution or authenticated delivery outside the constraint        | Passed; proxy returned HTTP 403, `curl` exited 22, and the wrong fixture received zero requests |
+
+The shell probe first asserted that the environment contained exactly the
+stand-in, then sent it in a Bearer header. Codex used a temporary custom model
+provider with the Responses wire protocol and sent a Bearer request. Claude used
+`ANTHROPIC_BASE_URL` and sent an `x-api-key` request to
+`/v1/messages?beta=true`. Each allowed request arrived with the synthetic value;
+the value was absent from guest environment output, provider streams, stderr,
+hooks, transcripts, provider state, and committed evidence.
+
+### Effective Docker policy and observed boundary
+
+The test machine initially had no Docker Sandbox network policy. The documented
+local preset was explicitly initialized to `deny-all` before the experiment.
+Each sandbox then received one dynamic allow rule for the approved host fixture;
+the adjacent dynamic port remained denied. This is a test-machine prerequisite,
+not a portable MoltNet default. The harness discovers and reports policy state
+and never initializes, resets, or broadens global policy itself.
+
+Docker documents that `host.docker.internal` is rewritten to `localhost` before
+forwarding to a host service. In v0.39.0, the network rule had to name the
+rewritten `localhost:<port>`. The custom-secret match also required both the
+guest-visible and rewritten host names; binding only `host.docker.internal`
+allowed the request but did not substitute the stand-in. Network policy still
+limited the effective boundary to the single port.
+
+Two installed-CLI details differed from, or were less explicit than, the
+documentation:
+
+- A sandbox-scoped custom secret registered after sandbox creation took effect
+  in the proxy immediately, but its declared environment variable did not appear
+  in the already-running guest. The adapter therefore passes only the stand-in
+  with `sbx exec --env`; the resolved value remains host-side. Docker's credential
+  page says a custom secret sets the guest variable and that sandbox-scoped
+  secrets take effect immediately, but does not describe this split behavior.
+- `sbx secret rm --help` uses `--placeholder` in an example while omitting it
+  from the displayed flag list. The documented example worked and removed each
+  custom secret successfully.
+
+The first Codex attempt also established a provider fact: `OPENAI_BASE_URL` did
+not override the built-in endpoint for this CLI invocation. The final probe uses
+the official Codex custom-provider keys (`model_provider`, `base_url`, `env_key`,
+and `wire_api`) as invocation-local overrides, with WebSockets disabled. The
+default endpoint remained denied throughout.
+
+### Evidence and portability boundary
+
+Committed evidence records the `sbx`, Codex, and Claude versions; platform;
+symbolic requirement and destinations; readiness result and setup instruction;
+effective allow/deny decisions; authentication scheme; provider-native session
+evidence; cleanup result; and boolean leak-scan result. Dynamic ports, temporary
+paths, stand-ins, headers, resolver output, and the credential value are not
+retained.
+
+The shared scenarios can map to Gondolin unchanged: missing requirement
+resolution, approved brokered destination, and denied destination. What remains
+provider-specific is how Gondolin discovers readiness, represents an egress
+rule, supplies a stand-in, resolves a trusted local binding, proves substitution,
+captures provider process evidence, and guarantees cleanup. Gondolin also needs
+an equivalent independent host oracle and a documented story for headless
+credential storage. Those are the next adapter questions; they are not reasons
+to introduce a shared contract now.
 
 ## Probe design
 
@@ -191,6 +309,22 @@ measure adoption and truthfulness, not whether we can install another hook.
    credential, MCP, network, filesystem, or production action through the
    boundary. The synthetic MCP host write proves the technical shape only; it
    does not establish buyer urgency or budget.
+9. **Pre-start readiness latency.** Measure time from a clean-machine invocation
+   to a value-free ready/not-ready verdict with one actionable next step. A
+   missing required binding must have a zero provider-launch count.
+10. **Credential exposure count.** Target zero matches across guest environment,
+    output, stderr, hooks, transcripts, provider state, and retained evidence.
+    Redaction does not convert a failed raw scan into a pass.
+11. **Destination isolation fidelity.** An allowed destination passes only when
+    its independent fixture confirms resolution. A denied destination passes
+    only when policy reports deny and the fixture receives zero requests.
+12. **Clean-machine mutation count.** Report required global prerequisites and
+    persistent host changes separately from sandbox-scoped setup. The product
+    target is zero automatic credential import and zero secret-bearing MoltNet
+    configuration.
+13. **Portable scenario replay.** Count how many provider-neutral scenarios can
+    run on a second sandbox without vocabulary changes. Docker-specific commands,
+    host rewrites, keyring behavior, and policy formats do not count as portable.
 
 This checkpoint does not satisfy Clairon's commercial falsifiers: it has not
 found two independent deployment owners with the same urgent problem, a paid
@@ -213,6 +347,19 @@ diary and linked to the prior execution-governance research:
 - `1c587f2e-db9f-4b2d-99b3-757a33f7b63b` records the Clairon-shaped adoption
   tests without treating technical probeability as buyer validation. It
   supports the assurance and layering findings and references this checkpoint.
+- `52bf4e67-b8be-40de-80f2-b8c9c8cb2b04` records the M0.1
+  requirement/constraint/binding/delivery separation and value-free Docker,
+  Codex, and Claude observations. It supports the earlier credential-separation
+  and provider-native-topology entries.
+- `10c9b4b3-a7e0-45d5-bb0d-1a6e557f100b` records the Docker v0.39.0 post-create
+  environment and host-rewrite quirks as adapter-local behavior. It supports
+  the M0.1 finding and earlier credential/topology entries and references the
+  degraded host-boundary finding.
+- `7d6197ca-51b3-46e2-8100-75bf3c62ea9a` records that Claude canonicalized and
+  encoded a temporary host path differently from the probe root. The retained
+  evidence sanitizer now removes the entire provider-generated token containing
+  the unique run directory, with a prefix-independent regression test. The
+  signed sanitizer-fix commit entry references this incident.
 
 All relations above have accepted status. These entries record observations
 and checkpoint decisions; they do not settle a shared representation.
