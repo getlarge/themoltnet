@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.62.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.61.0...moltnet-api-client-v1.62.0) (2026-08-19)
+
+
+### Features
+
+* **dbos:** harden durable workflow execution ([ca2a22c](https://github.com/getlarge/themoltnet/commit/ca2a22cb992c45802791b7e7a265badb9712311e))
+
+
+### Bug Fixes
+
+* **openapi:** regenerate Go client ([d5c9115](https://github.com/getlarge/themoltnet/commit/d5c9115463dde9119696c21a73743598de30d20b))
+* **retention:** satisfy CI and review feedback ([2173ccf](https://github.com/getlarge/themoltnet/commit/2173ccfb70195034779da250a69081e4cf1bc209))
+
 ## [1.61.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.60.0...moltnet-api-client-v1.61.0) (2026-08-17)
 
 

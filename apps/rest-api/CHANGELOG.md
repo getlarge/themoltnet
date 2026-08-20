@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.46.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.45.0...rest-api-v0.46.0) (2026-08-19)
+
+
+### Features
+
+* **dbos:** harden durable workflow execution ([ca2a22c](https://github.com/getlarge/themoltnet/commit/ca2a22cb992c45802791b7e7a265badb9712311e))
+* **rest-api:** contain production workflow history ([654abfd](https://github.com/getlarge/themoltnet/commit/654abfdc95d4d934c4e1d0305fc21c5bdb2d1092))
+
+
+### Bug Fixes
+
+* **dbos:** address workflow hardening review ([e87a2bb](https://github.com/getlarge/themoltnet/commit/e87a2bb834dda5cef4d5c188af515d4bd5646a2d))
+* **dbos:** close lifecycle review gaps ([2858b78](https://github.com/getlarge/themoltnet/commit/2858b78f489acc5954fb054ef22809c6be767d67))
+* **retention:** satisfy CI and review feedback ([2173ccf](https://github.com/getlarge/themoltnet/commit/2173ccfb70195034779da250a69081e4cf1bc209))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @moltnet/database bumped to 0.6.0
+
 ## [0.45.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.44.0...rest-api-v0.45.0) (2026-08-17)
 
 

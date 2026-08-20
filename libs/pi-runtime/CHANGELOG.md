@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.10.1](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.10.0...pi-runtime-v0.10.1) (2026-08-19)
+
+
+### Bug Fixes
+
+* **build:** isolate JSON CID bundle imports ([5814a33](https://github.com/getlarge/themoltnet/commit/5814a33430cf2b37ca348b0d4805a6551d40532f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.43.1
+    * @themoltnet/sdk bumped to 0.135.0
+
 ## [0.10.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.9.0...pi-runtime-v0.10.0) (2026-08-17)
 
 
