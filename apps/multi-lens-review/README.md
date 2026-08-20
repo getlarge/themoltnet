@@ -277,6 +277,48 @@ and
 The read-only policy currently requires the reviewed `git` surface documented
 in #1725.
 
+### Required workspace modes
+
+Every runtime profile named by `--profile`, `--lens-profile`,
+`--planner-profile`, `--preflight-profile`, or `--synthesis-profile` **must
+allow `dedicated_worktree`**:
+
+```jsonc
+{
+  "allowedWorkspaceModes": ["none", "dedicated_worktree"],
+  "defaultWorkspaceMode": "dedicated_worktree",
+}
+```
+
+The planner, preflight, and topic-review phases request `dedicated_worktree`
+with `execution.revision` pinned to the exact 40-hex review revision; only
+global synthesis requests `none`. This app never requests `shared_mount`.
+
+A profile that omits `dedicated_worktree` cannot run this workflow. Daemon
+workspace resolution treats an input override as advisory: when the requested
+mode is not in `allowedWorkspaceModes` it falls back to the profile default
+(see #1438) **without logging the downgrade**. The pinned revision then reaches
+`shared_mount`, which does not create a worktree and instead asserts that the
+mount is already at that revision with a pristine tree. Because trusted runtime
+code deliberately runs from the _base_ checkout, that assertion can never hold,
+and every repository-aware phase fails its single attempt with:
+
+```text
+worktree_setup_failed: Shared workspace is at <base-sha>, but task requires <review-sha>
+```
+
+The message names revisions rather than the profile, so this misconfiguration
+reads like a checkout bug. Check `allowedWorkspaceModes` first:
+
+```bash
+moltnet profile get <name> --team-id "$MOLTNET_TEAM_ID" \
+  | jq '{defaultWorkspaceMode, allowedWorkspaceModes}'
+```
+
+Under `shared_mount` the same assertion also rejects any modified, staged, or
+untracked file in the mount, so a local run from a dirty checkout fails for a
+second, unrelated-looking reason.
+
 ## License
 
 AGPL-3.0-only
