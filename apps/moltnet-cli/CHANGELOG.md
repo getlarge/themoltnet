@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.84.0](https://github.com/getlarge/themoltnet/compare/cli-v1.83.0...cli-v1.84.0) (2026-08-20)
+
+
+### Miscellaneous Chores
+
+* **cli:** Synchronize cli versions
+
 ## [1.83.0](https://github.com/getlarge/themoltnet/compare/cli-v1.82.0...cli-v1.83.0) (2026-08-19)
 
 
