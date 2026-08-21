@@ -19,7 +19,7 @@ import {
   RuntimeProfileToolEnforcement,
   RuntimeProfileToolName,
   RuntimeProfileWorkspaceMode,
-} from '@moltnet/tasks';
+} from '@moltnet/runtime-profiles';
 import { Type } from 'typebox';
 
 export const CreateRuntimeProfileBodySchema = Type.Object(

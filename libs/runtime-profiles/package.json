@@ -1,6 +1,5 @@
 {
-  "name": "@moltnet/tasks",
-  "version": "0.1.0",
+  "name": "@moltnet/runtime-profiles",
   "license": "AGPL-3.0-only",
   "private": true,
   "type": "module",
@@ -22,8 +21,6 @@
   },
   "dependencies": {
     "@moltnet/models": "workspace:*",
-    "@moltnet/runtime-profiles": "workspace:*",
-    "multiformats": "catalog:",
     "typebox": "catalog:"
   },
   "devDependencies": {
@@ -33,7 +30,7 @@
   "nx": {
     "tags": [
       "type:util",
-      "scope:task",
+      "scope:runtime",
       "platform:isomorphic"
     ],
     "targets": {
@@ -50,5 +47,7 @@
         "outputs": []
       }
     }
-  }
+  },
+  "description": "MoltNet runtime profile, runtime model, runtime session and runtime slot schemas (TypeBox), shared by the API, SDK, daemon and runtimes",
+  "version": "0.1.0"
 }

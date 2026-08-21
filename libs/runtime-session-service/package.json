@@ -15,6 +15,7 @@
     "@moltnet/blob-storage": "workspace:*",
     "@moltnet/database": "workspace:*",
     "@moltnet/models": "workspace:*",
+    "@moltnet/runtime-profiles": "workspace:*",
     "@moltnet/tasks": "workspace:*"
   },
   "devDependencies": {

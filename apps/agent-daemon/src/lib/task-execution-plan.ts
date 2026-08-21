@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-import type { RuntimeProfileWorkspaceMode } from '@moltnet/tasks';
+import type { RuntimeProfileWorkspaceMode } from '@moltnet/runtime-profiles';
 import type { ClaimedTask } from '@themoltnet/agent-runtime';
 
 import type { DaemonSlotIdentity } from './daemon-slot-identity.js';

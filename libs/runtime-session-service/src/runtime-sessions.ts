@@ -17,7 +17,7 @@ import type {
   TaskAttempt,
   TaskRepository,
 } from '@moltnet/database';
-import type { UploadRuntimeSessionQuery } from '@moltnet/tasks';
+import type { UploadRuntimeSessionQuery } from '@moltnet/runtime-profiles';
 
 import { createProblem, createValidationProblem } from './problems.js';
 import {

@@ -17,9 +17,8 @@
  *
  * See GH issue #852 for the full design snapshot.
  */
+import { RuntimeProfileRef } from '@moltnet/runtime-profiles';
 import { type Static, Type } from 'typebox';
-
-import { RuntimeProfileRef } from './runtime-profiles.js';
 
 // ---------------------------------------------------------------------------
 // Enums

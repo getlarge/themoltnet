@@ -116,6 +116,7 @@
     "@earendil-works/pi-coding-agent": "catalog:",
     "@fastify/otel": "catalog:",
     "@ipld/dag-cbor": "catalog:",
+    "@moltnet/runtime-profiles": "workspace:*",
     "@noble/ciphers": "catalog:",
     "@noble/curves": "catalog:",
     "@noble/ed25519": "catalog:",

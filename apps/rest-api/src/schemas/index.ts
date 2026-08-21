@@ -34,8 +34,8 @@ import {
 import {
   runtimeSessionSchemas,
   runtimeSlotSchemas,
-  taskArtifactSchemas,
-} from '@moltnet/tasks';
+} from '@moltnet/runtime-profiles';
+import { taskArtifactSchemas } from '@moltnet/tasks';
 
 import { agentKeySchemas } from './agent-keys.js';
 import {

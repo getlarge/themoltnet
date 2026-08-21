@@ -37,6 +37,7 @@
   "dependencies": {
     "@earendil-works/gondolin": "catalog:",
     "@ipld/dag-cbor": "catalog:",
+    "@moltnet/runtime-profiles": "workspace:*",
     "@noble/curves": "catalog:",
     "@noble/ed25519": "catalog:",
     "@noble/hashes": "catalog:",

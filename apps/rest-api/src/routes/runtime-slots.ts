@@ -14,7 +14,7 @@ import {
   ResolvedRuntimeSlot as ResolvedRuntimeSlotSchema,
   RuntimeSlot as RuntimeSlotSchema,
   RuntimeSlotListResponse as RuntimeSlotListResponseSchema,
-} from '@moltnet/tasks';
+} from '@moltnet/runtime-profiles';
 import type { FastifyInstance } from 'fastify';
 
 import { createProblem } from '../problems/index.js';

@@ -1,12 +1,12 @@
 import { resolve } from 'node:path';
 
-import type {
-  RuntimeProfileContext,
-  RuntimeProfileThinkingLevel,
-  RuntimeProfileToolEnforcement,
-  RuntimeProfileWorkspaceMode,
-} from '@moltnet/tasks';
-import { RuntimeProfileSandbox } from '@moltnet/tasks';
+import {
+  type RuntimeProfileContext,
+  RuntimeProfileSandbox,
+  type RuntimeProfileThinkingLevel,
+  type RuntimeProfileToolEnforcement,
+  type RuntimeProfileWorkspaceMode,
+} from '@moltnet/runtime-profiles';
 import type { Agent } from '@themoltnet/sdk';
 import { Value } from 'typebox/value';
 

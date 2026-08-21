@@ -24,10 +24,8 @@
 import { config } from '@dotenvx/dotenvx';
 import { computeJsonCid } from '@moltnet/crypto-service';
 import { createDatabase, runtimeProfiles } from '@moltnet/database';
-import {
-  resolveRuntimeProfileContextRecipe,
-  runtimeProfileDefinitionPayload,
-} from '@moltnet/tasks';
+import { runtimeProfileDefinitionPayload } from '@moltnet/runtime-profiles';
+import { resolveRuntimeProfileContextRecipe } from '@moltnet/tasks';
 import { sql } from 'drizzle-orm';
 
 const args = process.argv.slice(2);

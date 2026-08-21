@@ -30,6 +30,9 @@
       "path": "../../libs/signing-service/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/runtime-profiles/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/runtime-policy-service/tsconfig.lib.json"
     },
     {

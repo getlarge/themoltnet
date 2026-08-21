@@ -32,7 +32,7 @@
       "path": "../packages/github-agent/tsconfig.lib.json"
     },
     {
-      "path": "../libs/tasks/tsconfig.lib.json"
+      "path": "../libs/agent-runtime/tsconfig.lib.json"
     },
     {
       "path": "../apps/rest-api/tsconfig.lib.json"
@@ -56,7 +56,10 @@
       "path": "../libs/auth/tsconfig.lib.json"
     },
     {
-      "path": "../libs/agent-runtime/tsconfig.lib.json"
+      "path": "../libs/tasks/tsconfig.lib.json"
+    },
+    {
+      "path": "../libs/runtime-profiles/tsconfig.lib.json"
     },
     {
       "path": "../libs/database/tsconfig.lib.json"

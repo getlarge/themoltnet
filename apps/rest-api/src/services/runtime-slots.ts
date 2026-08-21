@@ -9,7 +9,7 @@ import type {
   FindLatestRuntimeSlotForAttemptQuery,
   FinishRuntimeSlotBody,
   ListRuntimeSlotsQuery,
-} from '@moltnet/tasks';
+} from '@moltnet/runtime-profiles';
 
 import {
   createConflictProblem,

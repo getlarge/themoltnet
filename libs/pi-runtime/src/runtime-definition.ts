@@ -5,7 +5,7 @@ import type {
   ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 import { computeJsonCid } from '@moltnet/crypto-service/json-cid';
-import { RUNTIME_PROFILE_RUNTIME_KIND_REGEXP } from '@moltnet/tasks';
+import { RUNTIME_PROFILE_RUNTIME_KIND_REGEXP } from '@moltnet/runtime-profiles';
 import type { ClaimedTask, TaskReporter } from '@themoltnet/agent-runtime';
 import {
   ensureSnapshot,

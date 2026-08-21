@@ -7,7 +7,7 @@ import {
   ProblemDetailsSchema,
   TeamHeaderOptionalSchema,
 } from '@moltnet/models';
-import { RuntimeModel as RuntimeModelSchema } from '@moltnet/tasks';
+import { RuntimeModel as RuntimeModelSchema } from '@moltnet/runtime-profiles';
 import type { FastifyInstance } from 'fastify';
 import { type Static, Type } from 'typebox';
 
