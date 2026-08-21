@@ -1,0 +1,126 @@
+{
+  "claude": [
+    {
+      "decision": "allow",
+      "decisionLocus": "offline-replay",
+      "enforcementObserved": false,
+      "hookResponse": {},
+      "intendedEnforcementLocus": "PreToolUse",
+      "nativeActionIdentifier": "toolu_01PuLA9Gs2bnJgZ74u8xM7TY",
+      "policySnapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "provider": "claude",
+      "reasonCode": "shell_command_prefix_allowed",
+      "runtimeProfileRevision": 1
+    },
+    {
+      "decision": "deny",
+      "decisionLocus": "offline-replay",
+      "enforcementObserved": false,
+      "hookResponse": {
+        "hookSpecificOutput": {
+          "hookEventName": "PreToolUse",
+          "permissionDecision": "deny",
+          "permissionDecisionReason": "tool_not_permitted"
+        }
+      },
+      "intendedEnforcementLocus": "PreToolUse",
+      "nativeActionIdentifier": "toolu_01PuLA9Gs2bnJgZ74u8xM7TY",
+      "policySnapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "provider": "claude",
+      "reasonCode": "tool_not_permitted",
+      "runtimeProfileRevision": 1
+    },
+    {
+      "decision": "allow",
+      "decisionLocus": "offline-replay",
+      "enforcementObserved": false,
+      "hookResponse": {},
+      "intendedEnforcementLocus": "PreToolUse",
+      "nativeActionIdentifier": "toolu_01MpWv6mRh7us7DpgzWmai2E",
+      "policySnapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "provider": "claude",
+      "reasonCode": "policy_allowed",
+      "runtimeProfileRevision": 1
+    },
+    {
+      "decision": "deny",
+      "decisionLocus": "offline-replay",
+      "enforcementObserved": false,
+      "hookResponse": {
+        "hookSpecificOutput": {
+          "hookEventName": "PreToolUse",
+          "permissionDecision": "deny",
+          "permissionDecisionReason": "tool_not_permitted"
+        }
+      },
+      "intendedEnforcementLocus": "PreToolUse",
+      "nativeActionIdentifier": "toolu_01MpWv6mRh7us7DpgzWmai2E",
+      "policySnapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "provider": "claude",
+      "reasonCode": "tool_not_permitted",
+      "runtimeProfileRevision": 1
+    }
+  ],
+  "codex": [
+    {
+      "decision": "allow",
+      "decisionLocus": "offline-replay",
+      "enforcementObserved": false,
+      "hookResponse": {},
+      "intendedEnforcementLocus": "PreToolUse",
+      "nativeActionIdentifier": "exec-801970aa-c693-4bd1-86cb-19f23244fde9",
+      "policySnapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "provider": "codex",
+      "reasonCode": "shell_command_prefix_allowed",
+      "runtimeProfileRevision": 1
+    },
+    {
+      "decision": "deny",
+      "decisionLocus": "offline-replay",
+      "enforcementObserved": false,
+      "hookResponse": {
+        "hookSpecificOutput": {
+          "hookEventName": "PreToolUse",
+          "permissionDecision": "deny",
+          "permissionDecisionReason": "tool_not_permitted"
+        }
+      },
+      "intendedEnforcementLocus": "PreToolUse",
+      "nativeActionIdentifier": "exec-801970aa-c693-4bd1-86cb-19f23244fde9",
+      "policySnapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "provider": "codex",
+      "reasonCode": "tool_not_permitted",
+      "runtimeProfileRevision": 1
+    },
+    {
+      "decision": "allow",
+      "decisionLocus": "offline-replay",
+      "enforcementObserved": false,
+      "hookResponse": {},
+      "intendedEnforcementLocus": "PreToolUse",
+      "nativeActionIdentifier": "exec-00eeada0-72ba-46c6-a38c-7be623362bd4",
+      "policySnapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "provider": "codex",
+      "reasonCode": "policy_allowed",
+      "runtimeProfileRevision": 1
+    },
+    {
+      "decision": "deny",
+      "decisionLocus": "offline-replay",
+      "enforcementObserved": false,
+      "hookResponse": {
+        "hookSpecificOutput": {
+          "hookEventName": "PreToolUse",
+          "permissionDecision": "deny",
+          "permissionDecisionReason": "tool_not_permitted"
+        }
+      },
+      "intendedEnforcementLocus": "PreToolUse",
+      "nativeActionIdentifier": "exec-00eeada0-72ba-46c6-a38c-7be623362bd4",
+      "policySnapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "provider": "codex",
+      "reasonCode": "tool_not_permitted",
+      "runtimeProfileRevision": 1
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "allowedToolsResponse": {
+    "allowedShellCommands": [["git", "status"]],
+    "allowedTools": ["mcp__probe__probe_echo"],
+    "enforcement": "enforce",
+    "policySnapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "runtimeKind": "gondolin_pi",
+    "runtimeProfileRevision": 1
+  },
+  "retainedPayloads": {
+    "claude": {
+      "mcp": "observed/claude-2.1.235-macos-arm64/mcp-execution/hooks.jsonl",
+      "shell": "observed/claude-2.1.235-macos-arm64/hook-deny/hooks.jsonl"
+    },
+    "codex": {
+      "mcp": "observed/codex-0.148.0-macos-arm64/mcp-execution/hooks.jsonl",
+      "shell": "observed/codex-0.148.0-macos-arm64/hook-deny/hooks.jsonl"
+    }
+  }
+}
