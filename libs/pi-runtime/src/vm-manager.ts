@@ -89,6 +89,22 @@ export interface VmConfig {
   onDiagnostic?: (diagnostic: VmDiagnostic) => void;
   /** Abort resume/setup work, closing any live VM owned by resumeVm. */
   signal?: AbortSignal;
+  /**
+   * Host-brokered secrets keyed by guest environment name. The guest only
+   * sees a placeholder; Gondolin's host-side HTTP proxy substitutes the
+   * value into requests bound for the listed host patterns and refuses it
+   * elsewhere. Values never enter the profile, the guest filesystem, or the
+   * evidence. Names must not collide with `sandboxConfig.env` or
+   * `forwardEnv`.
+   */
+  brokeredSecrets?: Readonly<Record<string, BrokeredSecret>>;
+}
+
+export interface BrokeredSecret {
+  /** Host patterns the secret may be sent to. */
+  hosts: readonly string[];
+  /** Secret value, resolved just in time by the caller. */
+  value: string;
 }
 
 export interface VmCredentials {
@@ -397,6 +413,10 @@ const BASE_ALLOWED_HOSTS = [
   'storage.googleapis.com',
   '*.googlesource.com',
 ];
+/** Platform hosts every Gondolin VM may reach regardless of profile policy. */
+export const GONDOLIN_BASE_ALLOWED_HOSTS: readonly string[] = Object.freeze([
+  ...BASE_ALLOWED_HOSTS,
+]);
 const DEFAULT_MOLTNET_API_URL = 'https://api.themolt.net';
 
 /**
@@ -540,6 +560,28 @@ function hostnamePatternsOverlap(left: string, right: string): boolean {
   return false;
 }
 
+export function assertBrokeredSecretNamesDoNotCollide(
+  brokeredSecrets: Readonly<Record<string, BrokeredSecret>> | undefined,
+  forwardEnv: readonly string[] | undefined,
+  sandboxEnv: Readonly<Record<string, string>> | undefined,
+): void {
+  if (!brokeredSecrets) return;
+  const taken = new Set([
+    ...(forwardEnv ?? []),
+    ...Object.keys(sandboxEnv ?? {}),
+  ]);
+  const collisions = Object.keys(brokeredSecrets)
+    .filter((name) => taken.has(name))
+    .sort();
+  if (collisions.length > 0) {
+    throw new Error(
+      'Brokered secret names collide with guest environment overrides: ' +
+        `${collisions.join(', ')}. A brokered secret must not also be ` +
+        'delivered as a raw environment value.',
+    );
+  }
+}
+
 function assertInternalHostsDoNotOverlapProtectedHosts(
   internalHosts: string[],
   protectedHosts: string[],
@@ -656,9 +698,22 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     ...new Set([...protectedExternalHosts, ...runtimeAllowedHosts]),
   ];
 
+  assertBrokeredSecretNamesDoNotCollide(
+    config.brokeredSecrets,
+    config.forwardEnv,
+    config.sandboxConfig?.env,
+  );
   const { httpHooks, env: secretEnv } = createHttpHooks({
     allowedHosts,
     allowedInternalHosts: runtimeAllowedInternalHosts,
+    ...(config.brokeredSecrets && {
+      secrets: Object.fromEntries(
+        Object.entries(config.brokeredSecrets).map(([name, secret]) => [
+          name,
+          { hosts: [...secret.hosts], value: secret.value },
+        ]),
+      ),
+    }),
   });
 
   // Build VM-side agent env vars from credentials.

@@ -122,6 +122,7 @@ export {
   type ToolPolicyExtensionDeps,
 } from './tool-policy/session-policy.js';
 export type {
+  BrokeredSecret,
   GuestCredentialMode,
   ManagedVm,
   VmConfig,
@@ -130,9 +131,11 @@ export type {
 } from './vm-manager.js';
 export {
   activateAgentEnv,
+  assertBrokeredSecretNamesDoNotCollide,
   assertGuestEnvironmentBoundary,
   assertHostAuthenticatedGuestEnvironment,
   findMainWorktree,
+  GONDOLIN_BASE_ALLOWED_HOSTS,
   loadCredentials,
   resumeVm,
 } from './vm-manager.js';

@@ -102,6 +102,12 @@
       "path": "libs/credential-broker"
     },
     {
+      "path": "libs/runtime-core"
+    },
+    {
+      "path": "libs/sandbox-gondolin"
+    },
+    {
       "path": "libs/credentials"
     },
     {
