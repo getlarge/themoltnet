@@ -3181,9 +3181,15 @@ importers:
       '@themoltnet/pi-extension':
         specifier: workspace:*
         version: link:../libs/pi-extension
+      '@themoltnet/pi-runtime':
+        specifier: workspace:*
+        version: link:../libs/pi-runtime
       '@themoltnet/sdk':
         specifier: workspace:*
         version: link:../libs/sdk
+      '@themoltnet/shell-command-analyzer':
+        specifier: workspace:*
+        version: link:../libs/shell-command-analyzer
       '@zip.js/zip.js':
         specifier: 'catalog:'
         version: 2.8.26
