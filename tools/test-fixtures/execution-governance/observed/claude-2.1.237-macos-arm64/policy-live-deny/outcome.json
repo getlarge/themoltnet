@@ -1,0 +1,35 @@
+{
+  "capturedAt": "2026-08-21T06:46:03.571Z",
+  "durationMs": 9148,
+  "evidence": {
+    "decision": "deny",
+    "decisionLocus": "provider-hook",
+    "enforcementObserved": true,
+    "hookResponse": {
+      "hookSpecificOutput": {
+        "hookEventName": "PreToolUse",
+        "permissionDecision": "deny",
+        "permissionDecisionReason": "tool_not_permitted"
+      }
+    },
+    "intendedEnforcementLocus": "PreToolUse",
+    "nativeActionIdentifier": "toolu_01Ez89VB1sy3286zPGzYKaiQ",
+    "policySnapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "provider": "claude",
+    "reasonCode": "tool_not_permitted",
+    "runtimeProfileRevision": 1
+  },
+  "exitCode": 0,
+  "markerCreated": false,
+  "nativeExecutionId": "54d76396-8095-4aea-91ed-d6a315653d22",
+  "platform": "darwin-arm64",
+  "policy": {
+    "policySnapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "runtimeProfileRevision": 1
+  },
+  "provider": "claude",
+  "providerDenied": true,
+  "providerVersion": "2.1.237",
+  "scenario": "policy-live-deny",
+  "signal": null
+}

@@ -1,0 +1,10 @@
+{
+  "authReady": true,
+  "hookConfigLayer": "project",
+  "inheritedCredentialEnvironment": false,
+  "platform": "darwin-arm64",
+  "provider": "claude",
+  "providerVersion": "2.1.237",
+  "settingSources": ["project"],
+  "userConfigIgnored": false
+}
