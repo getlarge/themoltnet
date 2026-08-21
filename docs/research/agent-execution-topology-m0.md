@@ -4,11 +4,10 @@
 
 **Observed:** 2026-08-20
 
-**Status:** Checkpoint C is partially observed: Claude consumed the shared
-MoltNet denial at `PreToolUse`; the corrected Codex invocation-local hook is
-ready for one supervisor-approved replacement run. No public contract,
-production adapter, runtime-profile migration, credential model, or Gondolin
-adapter is included.
+**Status:** Checkpoint C is observed: Claude and Codex both consumed the same
+existing MoltNet denial at `PreToolUse` and blocked the native action. No public
+contract, production adapter, runtime-profile migration, credential model, or
+Gondolin adapter is included.
 
 ## Checkpoint answer
 
@@ -167,22 +166,26 @@ successful run cost `$0.0146715`. Retained files contain no host username,
 provider auth path, API key, access token, bearer value, or inherited
 credential environment value.
 
-Codex `0.148.0` is not yet a Checkpoint C pass. The first invocation used a
-fresh project hook and produced no MoltNet denial evidence. This matches the M0
-observation that a fresh untrusted Codex project hook did not load even with
-the one-shot handler trust bypass, although current Codex documentation lists
-`<repo>/.codex/hooks.json` and says the bypass can run vetted hooks for one-off
-automation. Because the first harness version cleaned its temporary directory
-before persisting failure diagnostics, it cannot truthfully be counted as
-provider enforcement evidence.
+Codex `0.148.0` consumed the same policy through an invocation-local TOML `-c`
+hook override while running with `--ignore-user-config`. Its native stderr
+reported `Command blocked by PreToolUse hook: tool_not_permitted`, its event
+stream reported that the policy hook blocked the command, and it did not create
+the marker. The retained decision records execution identifier
+`01a02320-4ef4-79c0-9843-369c731bbeef`, action identifier
+`exec-33636299-508f-4136-a8d0-005e2a1b4d12`, runtime-profile revision `1`, the
+same policy-snapshot hash as Claude, decision `deny`, reason
+`tool_not_permitted`, `decisionLocus=provider-hook`, and
+`enforcementObserved=true`. Retained files contain no host username, provider
+auth path, API key, access token, bearer value, or inherited credential
+environment value.
 
-The corrected Codex adapter now passes the policy hook as an invocation-local
-TOML `-c` override, keeps `--ignore-user-config`, and preserves the normal login
-without copying or linking auth material. Codex Doctor accepted that override
-without a model call, and unit tests cover the generated launch arguments, but
-provider consumption remains unobserved until a replacement live run is
-approved. The harness now persists sanitized stdout and stderr before
-evaluating evidence, so another failure remains diagnosable.
+The invocation-local placement remains an adapter fact, not shared vocabulary.
+An earlier invocation using a fresh project hook produced no MoltNet evidence,
+even though current Codex documentation lists `<repo>/.codex/hooks.json` and
+says the one-shot trust bypass can run vetted hooks. The corrected invocation
+therefore verifies the policy boundary but also preserves a documentation-versus-
+observation gap for fresh project hook loading. It used the normal value-free
+login readiness path without reading, copying, or linking auth material.
 
 Claude also exposed one adapter-version detail before the successful run:
 `--mcp-config '{}'` is rejected locally by `2.1.237`; an explicit empty
@@ -518,6 +521,12 @@ diary and linked to the prior execution-governance research:
 - `49cc13d2-a74e-457b-8dba-f6e0015f30c4` records the partial Checkpoint C
   decision: Claude enforcement is observed, Codex remains pending, hook
   placement stays adapter-local, and no shared contract is inferred.
+- `b0a0ce8d-85a8-4453-bde9-32430289c9e8` records the completed Checkpoint C
+  observation: the same existing MoltNet policy denied live Claude and Codex
+  actions, both providers exposed native denial evidence, and neither created
+  the prohibited marker. Relation creation was temporarily unavailable because
+  the released CLI could not resolve its local `os-keyring` refresh reference;
+  the signed entry itself was created successfully.
 
 Earlier relations have accepted status; the three relations from the initial
 Checkpoint B entry are proposed as of 2026-08-21, while the correction's
@@ -542,17 +551,19 @@ Gondolin implementation is authorized by this checkpoint.
 
 ## Supervisor gate: Checkpoint C
 
-Claude now provides the first live adoption proof: one existing MoltNet policy
-decision was consumed by a current provider and blocked the native action. The
-remaining gate is narrow:
+Checkpoint C passes for the tested denial: one existing MoltNet policy decision
+was consumed by both current provider CLIs and blocked each native action. In
+both cases the MoltNet decision, provider-native denial, and absent marker agree.
+The next supervisor decision is whether the probe-local differences are clean
+enough to inform a later runtime-profile safe-launch adapter:
 
-1. approve or reject one replacement paid Codex run using the already-tested
-   invocation-local hook override;
-2. if approved, require MoltNet denial evidence, Codex-native block evidence,
-   and an absent marker before setting `enforcementObserved=true`; and
-3. only after both providers pass, decide whether the probe-local provider
-   differences are clean enough to inform a later runtime-profile launch
-   adapter.
+1. Claude uses isolated project hook settings, while Codex `0.148.0` required
+   an invocation-local override because fresh project hook loading was not
+   observed;
+2. the proof covers denial at `PreToolUse`, not every allow, audit, approval, or
+   host-side path live; and
+3. ambient user-hook coexistence, safe credential resolution, and Gondolin
+   replay remain separate portability work.
 
 Checkpoint C does not combine the Docker credential experiment with policy
 enforcement and does not authorize a shared contract, provider package
