@@ -50,10 +50,6 @@
       "import": "./src/lib/finalize.ts",
       "types": "./src/lib/finalize.ts"
     },
-    "./lib/runtime-profile.js": {
-      "import": "./src/lib/runtime-profile.ts",
-      "types": "./src/lib/runtime-profile.ts"
-    },
     "./lib/runtime-profile-retry-triage.js": {
       "import": "./src/lib/runtime-profile-retry-triage.ts",
       "types": "./src/lib/runtime-profile-retry-triage.ts"
@@ -148,8 +144,7 @@
     "multiformats": "catalog:",
     "pino": "catalog:",
     "pino-opentelemetry-transport": "catalog:",
-    "pino-pretty": "catalog:",
-    "typebox": "catalog:"
+    "pino-pretty": "catalog:"
   },
   "devDependencies": {
     "@moltnet/bootstrap": "workspace:*",

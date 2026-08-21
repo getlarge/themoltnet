@@ -39,11 +39,6 @@ import {
 import { finalizeTask } from '@themoltnet/agent-daemon/lib/finalize.js';
 // eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises daemon app internals.
 import {
-  resolveRuntimeProfile,
-  validateRuntimeProfilePrerequisites,
-} from '@themoltnet/agent-daemon/lib/runtime-profile.js';
-// eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises daemon app internals.
-import {
   createApiRuntimeSessionStore,
   resolveRuntimeSessionKind,
   type RuntimeSessionStore,
@@ -54,6 +49,10 @@ import { createApiRuntimeSlotStore } from '@themoltnet/agent-daemon/lib/runtime-
 import { resolveLatestPiSessionPath } from '@themoltnet/agent-daemon/lib/session-files.js';
 // eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises daemon app internals.
 import { ensureDaemonStateDirs } from '@themoltnet/agent-daemon/lib/state-dir.js';
+import {
+  resolveRuntimeProfile,
+  validateRuntimeProfilePrerequisites,
+} from '@themoltnet/agent-runtime';
 import {
   AgentRuntime,
   type AgentRuntimeLogger,

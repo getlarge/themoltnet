@@ -51,6 +51,16 @@ import {
   traceRuntimePhase,
   validateTaskOutput,
 } from '@themoltnet/agent-runtime';
+import {
+  ensureSnapshot,
+  type SandboxConfig,
+} from '@themoltnet/sandbox-gondolin';
+import {
+  activateAgentEnv,
+  type GuestCredentialMode,
+  resolveVfsShadowConfig,
+  type VmDiagnostic,
+} from '@themoltnet/sandbox-gondolin';
 import type { Agent } from '@themoltnet/sdk';
 import { connect } from '@themoltnet/sdk/node';
 import { ShellCommandAnalyzer } from '@themoltnet/shell-command-analyzer';
@@ -70,7 +80,6 @@ import {
   type PiRuntimeDefinition,
   type ResolvedGondolinTemplate,
 } from '../runtime-definition.js';
-import { ensureSnapshot, type SandboxConfig } from '../snapshot.js';
 import {
   createGondolinBashOps,
   createGondolinEditOps,
@@ -88,13 +97,7 @@ import {
   type ToolPolicyDecisionContext,
   type ToolPolicyLogger,
 } from '../tool-policy/session-policy.js';
-import {
-  activateAgentEnv,
-  type GuestCredentialMode,
-  resolveVfsShadowConfig,
-  resumeVm,
-  type VmDiagnostic,
-} from '../vm-manager.js';
+import { resumeVm } from '../vm.js';
 
 export const GONDOLIN_TOOL_NAMES = [
   'read',

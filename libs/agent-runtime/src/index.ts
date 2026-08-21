@@ -12,6 +12,7 @@ export * from './output-tools.js';
 export * from './prompts/index.js';
 export * from './reporters/index.js';
 export * from './runtime.js';
+export * from './runtime-profile.js';
 export * from './sources/index.js';
 export {
   createSubagentContractRegistry,

@@ -6,7 +6,6 @@ export {
   type TrackedError,
 } from './moltnet/tools.js';
 export { createPiOtelExtension, type PiOtelOptions } from './otel/index.js';
-export { isResolvedPathInsideRoot } from './path-containment.js';
 export { buildAgentSession } from './runtime/agent-session-factory.js';
 export {
   createGondolinToolDefinitions,
@@ -88,13 +87,6 @@ export {
   type PiToolScope,
   type ResolvedGondolinTemplate,
 } from './runtime-definition.js';
-export type {
-  EnsureSnapshotOptions,
-  ResumeCommand,
-  SandboxConfig,
-  SnapshotConfig,
-} from './snapshot.js';
-export { ensureSnapshot, GONDOLIN_BASE_EXECUTABLES } from './snapshot.js';
 export {
   createGondolinBashOps,
   createGondolinEditOps,
@@ -121,19 +113,31 @@ export {
   type ToolPolicyDecisionContext,
   type ToolPolicyExtensionDeps,
 } from './tool-policy/session-policy.js';
+export { PI_GUEST_AUTH_PATH, piProviderAuth, resumeVm } from './vm.js';
+export type {
+  EnsureSnapshotOptions,
+  ResumeCommand,
+  SandboxConfig,
+  SnapshotConfig,
+} from '@themoltnet/sandbox-gondolin';
 export type {
   GuestCredentialMode,
   ManagedVm,
+  ProviderAuthSource,
   VmConfig,
   VmCredentials,
   VmDiagnostic,
-} from './vm-manager.js';
+} from '@themoltnet/sandbox-gondolin';
+export { isResolvedPathInsideRoot } from '@themoltnet/sandbox-gondolin';
+export {
+  ensureSnapshot,
+  GONDOLIN_BASE_EXECUTABLES,
+} from '@themoltnet/sandbox-gondolin';
 export {
   activateAgentEnv,
   assertGuestEnvironmentBoundary,
   assertHostAuthenticatedGuestEnvironment,
   findMainWorktree,
+  GuestEnvironmentBoundaryError,
   loadCredentials,
-  resumeVm,
-} from './vm-manager.js';
-export { GuestEnvironmentBoundaryError } from './vm-manager.js';
+} from '@themoltnet/sandbox-gondolin';

@@ -156,6 +156,9 @@
       "path": "libs/pi-runtime"
     },
     {
+      "path": "libs/sandbox-gondolin"
+    },
+    {
       "path": "libs/runtime-session-service"
     },
     {

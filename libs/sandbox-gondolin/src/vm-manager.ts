@@ -15,7 +15,6 @@ import {
 } from '@earendil-works/gondolin';
 
 import { abortableResource, delay, throwIfAborted } from './abort-utils.js';
-import { resolvePiCodingAgentDir } from './config.js';
 import type { ResumeCommand, SandboxConfig } from './snapshot.js';
 
 /**
@@ -89,6 +88,20 @@ export interface VmConfig {
   onDiagnostic?: (diagnostic: VmDiagnostic) => void;
   /** Abort resume/setup work, closing any live VM owned by resumeVm. */
   signal?: AbortSignal;
+  /**
+   * Coding-agent provider authentication to place in the guest (for example
+   * Pi's `auth.json`). The sandbox knows nothing about the provider: the
+   * runtime above it supplies the loader and the guest path. When omitted,
+   * nothing is written and the guest relies on forwarded env providers.
+   */
+  providerAuth?: ProviderAuthSource;
+}
+
+export interface ProviderAuthSource {
+  /** Read the auth blob from the host, or return null when absent. */
+  load(): string | null;
+  /** Absolute guest path to write the blob to (mode 0600). */
+  guestPath: string;
 }
 
 export interface VmCredentials {
@@ -97,13 +110,12 @@ export interface VmCredentials {
   /** Empty in host-authenticated mode; retained as strings for API stability. */
   agentEnvRaw: string;
   /**
-   * Pi OAuth/API-key auth blob. Null when neither `~/.pi/agent/auth.json`
-   * (resolved via `PI_CODING_AGENT_DIR` when set) is present — in that
-   * case the daemon relies on Pi's env-var providers (`ANTHROPIC_API_KEY`,
-   * etc.) carried via `agentEnv` and the host environment instead. CI uses
-   * this path.
+   * Provider auth blob supplied by `VmConfig.providerAuth`, or null when the
+   * runtime supplied none or the host file is absent — the guest then relies
+   * on env-var providers (`ANTHROPIC_API_KEY`, etc.) carried via `agentEnv`
+   * and the forwarded host environment instead. CI uses this path.
    */
-  piAuthJson: string | null;
+  providerAuthJson: string | null;
   agentEnv: Record<string, string | undefined>;
   gitconfig: string | null;
   sshPrivateKey: string | null;
@@ -257,18 +269,14 @@ export function loadCredentials(
   agentDir: string,
   mode: GuestCredentialMode = 'guest-config',
   onDiagnostic?: (diagnostic: VmDiagnostic) => void,
+  providerAuth?: ProviderAuthSource,
 ): VmCredentials {
   const moltnetPath = path.join(agentDir, 'moltnet.json');
   const agentEnvPath = path.join(agentDir, 'env');
 
-  // Pi auth resolution: use the agent dir Pi already expects. CI writes
-  // `auth.json` under `PI_CODING_AGENT_DIR`; local runs fall back to the
-  // canonical `~/.pi/agent` dir when the override is unset.
-  const piAgentDir = resolvePiCodingAgentDir();
-  const piAuthPath = path.join(piAgentDir, 'auth.json');
-  const piAuthJson = existsSync(piAuthPath)
-    ? readFileSync(piAuthPath, 'utf8')
-    : null;
+  // Provider auth is the runtime's concern (Pi resolves its own agent dir);
+  // the sandbox only carries the blob across the boundary.
+  const providerAuthJson = providerAuth?.load() ?? null;
 
   // This is the credential boundary. Return before touching any path under
   // `.moltnet/<agent>` so a legacy config, signing key, or GitHub App PEM that
@@ -277,7 +285,7 @@ export function loadCredentials(
     return {
       moltnetJson: '',
       agentEnvRaw: '',
-      piAuthJson,
+      providerAuthJson,
       agentEnv: {},
       gitconfig: null,
       sshPrivateKey: null,
@@ -348,7 +356,7 @@ export function loadCredentials(
   return {
     moltnetJson,
     agentEnvRaw,
-    piAuthJson,
+    providerAuthJson,
     agentEnv: parseEnv(agentEnvRaw),
     gitconfig,
     sshPrivateKey,
@@ -629,6 +637,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     agentDir,
     guestCredentialMode,
     config.onDiagnostic,
+    config.providerAuth,
   );
   const configuredApiUrl = creds.moltnetJson
     ? (JSON.parse(creds.moltnetJson) as { endpoints: { api: string } })
@@ -874,20 +883,24 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     // the host. Guest-config mode injects the complete coherent tree.
     const vmSshDir = `${vmAgentDir}/ssh`;
     const hasAgentFiles = guestCredentialMode === 'guest-config';
-    await vm.exec(
-      hasAgentFiles
-        ? `mkdir -p ${vmAgentDir}/ssh /home/agent/.pi/agent`
-        : 'mkdir -p /home/agent/.pi/agent',
-      {
+    const providerAuthDir = config.providerAuth
+      ? path.posix.dirname(config.providerAuth.guestPath)
+      : null;
+    const guestDirs = [
+      ...(hasAgentFiles ? [`${vmAgentDir}/ssh`] : []),
+      ...(providerAuthDir ? [providerAuthDir] : []),
+    ];
+    if (guestDirs.length > 0) {
+      await vm.exec(`mkdir -p ${guestDirs.join(' ')}`, {
         signal: config.signal,
-      },
-    );
+      });
+    }
 
-    if (creds.piAuthJson !== null) {
+    if (creds.providerAuthJson !== null && config.providerAuth) {
       // See MoltNet diary entry 09336c5e-e45a-475f-b9cd-1e0ab635e093.
       await vm.fs.writeFile(
-        '/home/agent/.pi/agent/auth.json',
-        creds.piAuthJson,
+        config.providerAuth.guestPath,
+        creds.providerAuthJson,
         {
           mode: 0o600,
           signal: config.signal,

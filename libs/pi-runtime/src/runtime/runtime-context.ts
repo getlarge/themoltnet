@@ -19,9 +19,8 @@ import {
   resolveTaskContext,
   TaskContext,
 } from '@themoltnet/agent-runtime';
+import { GUEST_TASK_CONTEXT_MOUNT } from '@themoltnet/sandbox-gondolin';
 import { Value } from 'typebox/value';
-
-import { GUEST_TASK_CONTEXT_MOUNT } from '../vm-manager.js';
 
 /**
  * Subset of `@earendil-works/gondolin`'s `VmFs` we actually use. We

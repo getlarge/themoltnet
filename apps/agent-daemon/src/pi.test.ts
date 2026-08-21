@@ -1,7 +1,7 @@
+import { validateRuntimeProfilePrerequisites } from '@themoltnet/agent-runtime';
 import { GONDOLIN_BASE_EXECUTABLES } from '@themoltnet/pi-runtime';
 import { describe, expect, it } from 'vitest';
 
-import { validateRuntimeProfilePrerequisites } from './lib/runtime-profile.js';
 import { defaultPiRuntimeDefinition } from './pi.js';
 
 describe('default Pi daemon runtime', () => {

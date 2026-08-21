@@ -134,6 +134,11 @@
       "component": "pi-runtime",
       "release-type": "node"
     },
+    "libs/sandbox-gondolin": {
+      "bump-minor-pre-major": true,
+      "component": "sandbox-gondolin",
+      "release-type": "node"
+    },
     "libs/sdk": {
       "bump-minor-pre-major": true,
       "component": "sdk",
