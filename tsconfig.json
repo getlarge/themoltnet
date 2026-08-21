@@ -102,6 +102,9 @@
       "path": "libs/credential-broker"
     },
     {
+      "path": "libs/runtime-core"
+    },
+    {
       "path": "libs/credentials"
     },
     {

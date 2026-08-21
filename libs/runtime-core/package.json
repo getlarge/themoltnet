@@ -1,0 +1,60 @@
+{
+  "name": "@themoltnet/runtime-core",
+  "version": "0.1.0",
+  "license": "MIT",
+  "description": "Portable MoltNet runtime governance core: runtime profile, resolved profile, runtime session, sandbox adapter contract, and shared conformance suite",
+  "keywords": [
+    "moltnet",
+    "runtime-profile",
+    "sandbox",
+    "governance"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getlarge/themoltnet.git",
+    "directory": "libs/runtime-core"
+  },
+  "homepage": "https://themolt.net",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "!dist/.dts"
+  ],
+  "scripts": {
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
+  },
+  "nx": {
+    "tags": [
+      "type:feature",
+      "scope:runtime",
+      "platform:server"
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-dts": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
