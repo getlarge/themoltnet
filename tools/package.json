@@ -14,6 +14,7 @@
     "eval:teardown": "tsx src/eval-setup.ts --teardown",
     "execution-governance:probe": "tsx src/execution-governance/probe.ts",
     "execution-governance:credential-probe": "tsx src/execution-governance/credential-probe.ts",
+    "execution-governance:credential-safe-launch-poc": "tsx src/execution-governance/credential-safe-launch-poc.ts",
     "execution-governance:policy-hook": "tsx src/execution-governance/policy-replay-hook.ts",
     "execution-governance:policy-live-probe": "tsx src/execution-governance/policy-live-probe.ts",
     "talos:probe": "tsx src/talos-capability-probe.ts",
@@ -77,6 +78,14 @@
         "options": {
           "cwd": "tools",
           "command": "pnpm run execution-governance:credential-probe"
+        }
+      },
+      "credential-safe-launch-poc": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "cwd": "tools",
+          "command": "pnpm run execution-governance:credential-safe-launch-poc"
         }
       }
     }

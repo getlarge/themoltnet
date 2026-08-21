@@ -237,6 +237,57 @@ guest or constrain unobserved child and host paths. This spike therefore reports
 the adapter unavailable when `sbx` or virtualization is unavailable, and fails
 preflight when a required binding or explicit network policy is missing.
 
+### Safe-launch retrieval PoC
+
+The Clairon session brief already requires the underlying sequence: portable
+requirements and constraints, trusted local bindings, just-in-time host
+resolution, exact delivery, pre-launch failure, and value-free evidence. It does
+not define how the current CLI and SDK should expose those stages. The
+probe-local safe-launch PoC makes that implementation question executable
+without promoting its vocabulary to a runtime-profile or public SDK schema.
+
+Run it offline with:
+
+```bash
+pnpm exec nx run @moltnet/tools:credential-safe-launch-poc
+```
+
+The PoC reuses the SDK's existing `SecretReference` and
+`SecretProviderRegistry`. A synthetic trusted deployment binds one logical
+requirement to one provider reference. The gate checks the resolution locus and
+destination before reading the provider, scopes the resolved value to a
+host-side callback that cannot return it, and emits only readiness and decision
+evidence. A dynamic loopback fixture independently confirms that the allowed
+operation authenticated while the denied destination produced zero requests.
+
+| Case                    | Result                                                                           |
+| ----------------------- | -------------------------------------------------------------------------------- |
+| Missing local binding   | `required_binding_missing`; host operation not started                           |
+| Allowed host operation  | Provider read at `trusted-host`; fixture authenticated; value absent from output |
+| Wrong destination       | `destination_denied`; provider not read; zero fixture requests                   |
+| Guest-side resolution   | `resolution_locus_denied`; host provider not touched                             |
+| Binding has no value    | `binding_absent` with setup guidance                                             |
+| Host store cannot open  | `host_store_inaccessible`, distinct from an absent value                         |
+| Provider is unavailable | `provider_unavailable`, distinct from both cases above                           |
+
+This demonstrates the smallest behavioral change suggested for both clients:
+
+- keep the existing non-secret provider references and provider registries;
+- add a typed preflight result instead of collapsing every failure into a
+  generic credential error;
+- resolve only at an approved host locus after destination policy passes;
+- prefer a scoped `withCredential`-style operation over returning a string to a
+  launcher that can place it in the child environment; and
+- record the requirement, provider name, binding-reference digest, readiness,
+  destination decision, and locus, never the provider key or value.
+
+No production Go CLI or TypeScript SDK surface changes in this checkpoint. The
+Go registry can implement the same sequence around `SecretProvider.Get`, and
+the SDK can implement it around `SecretProvider.read`; the PoC exists to test
+that behavior before choosing names, error types, or a public contract. It also
+does not satisfy the brief's remaining two-sandbox gate: Docker has a real
+delivery proof, while the equivalent Gondolin adapter case remains outstanding.
+
 ### Executable scenarios
 
 Run the value-free Docker fixture with:
@@ -497,6 +548,11 @@ diary and linked to the prior execution-governance research:
   requirement/constraint/binding/delivery separation and value-free Docker,
   Codex, and Claude observations. It supports the earlier credential-separation
   and provider-native-topology entries.
+- `84a90039-7568-471d-98ab-2e2ea4bb3d74` records the offline safe-launch
+  retrieval PoC: existing SDK provider references wrapped with typed readiness,
+  host-locus and destination checks, scoped use, and value-free evidence. It
+  supports the earlier credential-requirement direction and elaborates the M0.1
+  Docker finding without proposing a production contract.
 - `10c9b4b3-a7e0-45d5-bb0d-1a6e557f100b` records the Docker v0.39.0 post-create
   environment and host-rewrite quirks as adapter-local behavior. It supports
   the M0.1 finding and earlier credential/topology entries and references the
