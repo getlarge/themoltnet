@@ -4,8 +4,10 @@
 
 **Observed:** 2026-08-20
 
-**Status:** Supervisor checkpoint; Docker Sandbox credential spike complete;
-stop before any shared contract, production adapter, or Gondolin adapter
+**Status:** Checkpoint B correctness pass passes offline; pending supervisor
+acceptance and stopped before live provider calls,
+persistent host changes, a public contract, a production adapter, or a Gondolin
+adapter
 
 ## Checkpoint answer
 
@@ -25,16 +27,16 @@ product name.
 
 ## What was tested
 
-| Surface          | Installed version                | Test depth                                                                          |
-| ---------------- | -------------------------------- | ----------------------------------------------------------------------------------- |
-| Codex CLI        | `codex-cli 0.148.0`, macOS arm64 | Live model turns, resume, hooks, OS sandbox, MCP, subagent, and failure cases       |
-| Codex App Server | Protocol shipped with `0.148.0`  | Direct JSON-RPC negotiation, read-only thread creation, and host shell command      |
-| ChatGPT desktop  | `26.803.41515` installed         | App Server boundary tested directly; no automated composer interaction              |
-| Claude Code CLI  | `2.1.235`, macOS arm64           | Live model turns, resume, hooks, OS sandbox, MCP, subagent, and failure cases       |
-| Claude desktop   | `1.32885.1` installed            | Installation confirmed; no instrumented desktop session was available               |
-| Docker Sandboxes | `sbx v0.39.0`, macOS arm64       | Live synthetic credential preflight, brokered delivery, network denial, and cleanup |
-| Sandboxed Codex  | `codex-cli 0.146.0`              | One minimal Responses turn against a synthetic host fixture                         |
-| Sandboxed Claude | `2.1.221`                        | One minimal Messages turn against a synthetic host fixture                          |
+| Surface          | Installed version                                         | Test depth                                                                          |
+| ---------------- | --------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Codex CLI        | `codex-cli 0.148.0`, macOS arm64                          | Live model turns, resume, hooks, OS sandbox, MCP, subagent, and failure cases       |
+| Codex App Server | Protocol shipped with `0.148.0`                           | Direct JSON-RPC negotiation, read-only thread creation, and host shell command      |
+| ChatGPT desktop  | `26.803.41515` installed                                  | App Server boundary tested directly; no automated composer interaction              |
+| Claude Code CLI  | `2.1.237` installed; evidence from `2.1.235`, macOS arm64 | Live model turns, resume, hooks, OS sandbox, MCP, subagent, and failure cases       |
+| Claude desktop   | `1.32885.1` installed                                     | Installation confirmed; no instrumented desktop session was available               |
+| Docker Sandboxes | `sbx v0.39.0`, macOS arm64                                | Live synthetic credential preflight, brokered delivery, network denial, and cleanup |
+| Sandboxed Codex  | `codex-cli 0.146.0`                                       | One minimal Responses turn against a synthetic host fixture                         |
+| Sandboxed Claude | `2.1.221`                                                 | One minimal Messages turn against a synthetic host fixture                          |
 
 The executable harness creates a temporary Git repository, isolated hook
 configuration, a dependency-free stdio MCP server, and a loopback HTTP server.
@@ -59,6 +61,90 @@ pnpm exec nx run @moltnet/tools:execution-governance:probe -- \
 
 These commands make paid provider calls. Unit tests exercise the recorder and
 MCP protocol without a provider call.
+
+## Checkpoint B: one MoltNet policy, two provider hooks
+
+Checkpoint B tests behavior rather than grouping the earlier scenarios. Its
+only policy fixture carries the required fields of the current MoltNet
+allowed-tools response: `enforcement=enforce`, the shell argv prefix
+`git status`, the structured tool `mcp__probe__probe_echo`, current
+`runtimeKind=gondolin_pi`, an integer runtime-profile revision, and a
+policy-snapshot hash. It contains no credential declaration or candidate
+profile vocabulary. There is no Checkpoint B scenario in `scenarios.json`;
+this slice uses the dedicated `policy-replay.json` fixture.
+
+The replay loads retained real Bash and MCP `PreToolUse` envelopes from the
+Claude `2.1.235` and Codex `0.148.0` evidence directories. It changes only the
+action under test, normalizes the provider payload into the existing
+`@themoltnet/pi-runtime` `decideToolCall()` gate, and translates denials to each
+provider's documented `hookSpecificOutput.permissionDecision="deny"` shape.
+Allow and audit decisions emit an empty response; the decision is retained in
+separate evidence. Only `tool_name="Bash"` is normalized to the MoltNet `bash`
+tool, because Codex `apply_patch` also has `tool_input.command`. No model call,
+provider launch, persistent configuration, or magic-marker decision is
+involved.
+
+| Shared policy case            | Claude         | Codex          | Gate reason                   | Observed locus  |
+| ----------------------------- | -------------- | -------------- | ----------------------------- | --------------- |
+| `git status`                  | allow          | allow          | shell prefix allowed          | offline replay  |
+| `git push`                    | deny           | deny           | tool not permitted            | offline replay  |
+| `mcp__probe__probe_echo`      | allow          | allow          | policy allowed                | offline replay  |
+| `mcp__probe__probe_sibling`   | deny           | deny           | tool not permitted            | offline replay  |
+| policy resolution unavailable | callback unrun | callback unrun | policy resolution unavailable | probe preflight |
+
+Every decision record contains the profile revision, policy snapshot hash,
+provider, retained native action identifier, decision, gate reason code,
+`decisionLocus=offline-replay`,
+`intendedEnforcementLocus=PreToolUse`, and `enforcementObserved=false`.
+`PermissionRequest` remains separate provider-specific approval evidence:
+Codex emitted it for the exact MCP action, while Claude print mode did not. It
+is not used as the shared policy gate.
+
+The policy fixture is
+`tools/test-fixtures/execution-governance/policy-replay.json`; its payload
+references point directly to committed observed JSONL. Derived value-free
+decision evidence is retained in `policy-replay.expected.json` and asserted
+byte-for-structure by `policy-replay.test.ts` against `policy-replay.ts`. The
+test also spawns the executable `policy-replay-hook.ts` command with retained
+Claude and Codex stdin, then checks its stdout against each provider's current
+documented contract. This proves executable translation and output syntax; it
+does not prove that either provider consumed the response or blocked a real
+tool call. Likewise, the missing-policy unit test proves only that a
+probe-local launch callback is not invoked. A real provider launch stop remains
+unobserved until an authorized live test.
+
+### Credential and profile research direction
+
+The Docker credential result remains a separate axis below. It still supports a
+future split between typed non-secret runtime inputs, portable credential
+requirements and constraints, trusted local bindings, and value-free resolved
+execution evidence. `requiredEnv` currently conflates readiness, raw guest
+delivery, and redaction, so it is a compatibility surface rather than the target
+design. The existing MoltNet OAuth2 provider-backed reference and launch-time
+resolution are useful implementation precedent, but no field names or public
+schema are proposed by this checkpoint.
+
+### Released CLI reuse
+
+| Stage                                 | Released capability                                   | Checkpoint B use                                                                                                                         |
+| ------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Identity and local provider readiness | `moltnet agents activation validate`                  | Reuse before resolution                                                                                                                  |
+| Existing local prerequisites          | `moltnet env check`                                   | Reuse while `requiredEnv` remains compatible                                                                                             |
+| Provider launch                       | `moltnet start <provider>`                            | Not used here: it currently injects MoltNet credentials and inherited host environment into the child; safe launch needs separate design |
+| Protected credential files            | `moltnet secrets guard`                               | Reuse as host-file protection, not delivery enforcement                                                                                  |
+| Accountable conclusion                | `moltnet entry create-signed` and `moltnet relations` | Reuse only after a new result is verified                                                                                                |
+
+No new CLI command is justified at this checkpoint.
+
+### Knowledge Factory in the adoption path
+
+Knowledge Factory is part of the profile offer, not an evidence appendix.
+MoltNet MCP gives Claude and Codex trusted project and team knowledge; the
+existing runtime-profile context selection provides a current profile-level
+attachment point. Execution evidence becomes a signed entry related to the
+profile decision and prior findings. Repeated evidence may later suggest an
+input, credential, policy, or context improvement, but the resulting profile
+change remains a proposal reviewed by a human or trusted process.
 
 ## M0.1 credential-boundary spike
 
@@ -360,23 +446,36 @@ diary and linked to the prior execution-governance research:
   evidence sanitizer now removes the entire provider-generated token containing
   the unique run directory, with a prefix-independent regression test. The
   signed sanitizer-fix commit entry references this incident.
+- `dc1a7806-f515-4ea7-b6fb-4d9e727ea10f` records the initial Checkpoint B
+  offline result. Its core same-policy replay result remains valid, but its
+  `PreToolUse` enforcement-locus and provider-launch wording exceeded what the
+  offline test observed.
+- `d6a5a03d-2a15-49d2-89fa-2abaa95c7ccf` is the signed correction. It records
+  the spawned executable-hook result, real MCP payload sources, contract-valid
+  deny/empty output split, offline decision locus, intended `PreToolUse`, and
+  `enforcementObserved=false`. Its signature verifies, and its accepted
+  `supersedes` relation replaces the overbroad claims in the initial entry.
 
-All relations above have accepted status. These entries record observations
-and checkpoint decisions; they do not settle a shared representation.
+Earlier relations have accepted status; the three relations from the initial
+Checkpoint B entry are proposed as of 2026-08-21, while the correction's
+`supersedes` relation is accepted. These entries record observations and
+checkpoint decisions; they do not settle a shared representation.
 
-## Supervisor gate
+## Supervisor gate: Checkpoint B
 
-Before any shared contract or enforcement adapter is implemented, review:
+Before live paid provider calls or persistent host changes, review:
 
-1. whether the executed/attempted/unsupported distinctions answer the
-   checkpoint question;
-2. whether Claude interactive/Desktop approval and Codex App Server hook
-   coverage must be added to Milestone 0;
-3. whether hosted tools and native out-of-workspace file edits belong in this
-   local checkpoint or the adversarial follow-up; and
-4. the denominator and targets for the adoption metrics above.
+1. whether replaying the existing MoltNet gate is the accepted minimum adoption
+   proof;
+2. whether one live `PreToolUse` run per provider is justified to prove the
+   offline translator at the native boundary;
+3. how to launch that test without `moltnet start` inheriting the host
+   environment or injecting MoltNet credentials; and
+4. whether the same policy cases should then be replayed inside Docker Sandbox
+   while keeping credential delivery as a separate result axis.
 
-No shared model should be designed until those boundaries are accepted.
+No production schema, runtime-profile migration, production adapter, or
+Gondolin implementation is authorized by this checkpoint.
 
 ## References
 
