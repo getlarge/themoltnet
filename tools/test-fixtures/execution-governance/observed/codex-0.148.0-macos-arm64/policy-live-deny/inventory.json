@@ -1,0 +1,10 @@
+{
+  "authReady": true,
+  "hookConfigLayer": "invocation",
+  "inheritedCredentialEnvironment": false,
+  "platform": "darwin-arm64",
+  "provider": "codex",
+  "providerVersion": "0.148.0",
+  "settingSources": [],
+  "userConfigIgnored": true
+}

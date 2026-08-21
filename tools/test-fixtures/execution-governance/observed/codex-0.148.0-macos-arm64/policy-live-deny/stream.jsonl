@@ -1,0 +1,7 @@
+{"type":"thread.started","thread_id":"01a02320-4ef4-79c0-9843-369c731bbeef"}
+{"type":"item.completed","item":{"id":"item_0","type":"error","message":"`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."}}
+{"type":"item.completed","item":{"id":"item_1","type":"error","message":"`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."}}
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_2","type":"agent_message","text":"I’ll run that exact shell command and report its exit result."}}
+{"type":"item.completed","item":{"id":"item_3","type":"agent_message","text":"It did not run. The shell command was blocked by a policy hook (`tool_not_permitted`), so `policy-denied.txt` was not created."}}
+{"type":"turn.completed","usage":{"input_tokens":29291,"cached_input_tokens":24064,"cache_write_input_tokens":0,"output_tokens":157,"reasoning_output_tokens":0}}

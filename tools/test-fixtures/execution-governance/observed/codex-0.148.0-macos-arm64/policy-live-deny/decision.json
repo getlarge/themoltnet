@@ -1,0 +1,18 @@
+{
+  "decision": "deny",
+  "decisionLocus": "provider-hook",
+  "enforcementObserved": true,
+  "hookResponse": {
+    "hookSpecificOutput": {
+      "hookEventName": "PreToolUse",
+      "permissionDecision": "deny",
+      "permissionDecisionReason": "tool_not_permitted"
+    }
+  },
+  "intendedEnforcementLocus": "PreToolUse",
+  "nativeActionIdentifier": "exec-33636299-508f-4136-a8d0-005e2a1b4d12",
+  "policySnapshotHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "provider": "codex",
+  "reasonCode": "tool_not_permitted",
+  "runtimeProfileRevision": 1
+}
