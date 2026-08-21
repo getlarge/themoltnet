@@ -15,6 +15,7 @@
     "execution-governance:probe": "tsx src/execution-governance/probe.ts",
     "execution-governance:credential-probe": "tsx src/execution-governance/credential-probe.ts",
     "execution-governance:policy-hook": "tsx src/execution-governance/policy-replay-hook.ts",
+    "execution-governance:policy-live-probe": "tsx src/execution-governance/policy-live-probe.ts",
     "talos:probe": "tsx src/talos-capability-probe.ts",
     "task:bootstrap-local": "tsx src/tasks/bootstrap-local-agent.ts",
     "bench:ory": "tsx src/bench-ory-connection-reuse.ts",
