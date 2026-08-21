@@ -179,13 +179,16 @@ same policy-snapshot hash as Claude, decision `deny`, reason
 auth path, API key, access token, bearer value, or inherited credential
 environment value.
 
-The invocation-local placement remains an adapter fact, not shared vocabulary.
-An earlier invocation using a fresh project hook produced no MoltNet evidence,
-even though current Codex documentation lists `<repo>/.codex/hooks.json` and
-says the one-shot trust bypass can run vetted hooks. The corrected invocation
-therefore verifies the policy boundary but also preserves a documentation-versus-
-observation gap for fresh project hook loading. It used the normal value-free
-login readiness path without reading, copying, or linking auth material.
+The invocation-local placement is a hermetic probe choice, not evidence that
+Codex requires that placement. This repository's trusted project hook in
+`.codex/hooks.json` works normally. An earlier fresh temporary-repository
+attempt produced no MoltNet evidence, but its workspace and diagnostics were
+discarded. That attempt is therefore inconclusive: it cannot distinguish trust
+state from probe configuration and does not establish a documentation
+discrepancy. The successful conformance run deliberately used an
+invocation-local override to isolate the tested policy from ambient project and
+user hooks. It used the normal value-free login readiness path without reading,
+copying, or linking auth material.
 
 Claude also exposed one adapter-version detail before the successful run:
 `--mcp-config '{}'` is rejected locally by `2.1.237`; an explicit empty
@@ -342,29 +345,29 @@ coverage attribution.
 
 ## Observed conformance matrix
 
-| Boundary                  | Codex `0.148.0`                                                                                             | Claude `2.1.235`                                                                                              |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Native execution identity | `thread_id`; hook `session_id` matches it. Turn and tool-use IDs are also exposed                           | `session_id`; prompt, tool-use, hook invocation, request, message, and subagent IDs are exposed               |
-| Resume                    | Reused the original thread ID; `SessionStart.source=resume`                                                 | Reused the original session ID; `SessionStart.source=resume`                                                  |
-| Lifecycle hooks           | Start, prompt, stop, end, and resume observed                                                               | Start, prompt, stop, end, and resume observed; stream also exposes hook start/response pairs                  |
-| `PreToolUse` deny         | Blocked Bash before dispatch                                                                                | Blocked Bash before dispatch                                                                                  |
-| `PreToolUse` ask          | Parsed as an unsupported decision and the Bash action continued                                             | Produced a native `permission_denied` event and did not dispatch Bash                                         |
-| `PermissionRequest` allow | Fired for MCP; hook approval dispatched the exact marked call                                               | In print mode, `manual` normalized to `default`; the call was denied without a `PermissionRequest` hook event |
-| `PermissionRequest` deny  | Fired for the same MCP action; server saw no `tools/call`                                                   | Same print-mode limitation; native denial occurred, but the configured `PermissionRequest` hook did not fire  |
-| Shell                     | `Bash` pre/post hooks and command stream; workspace marker written                                          | `Bash` pre/post hooks and tool result; workspace marker written                                               |
-| Native file edit          | `apply_patch` pre/post hooks and `file_change` stream item                                                  | `Read`, `ToolSearch`, and `Edit` pre/post hooks and tool events                                               |
-| Child process             | Child `sh -c` remained one covered Bash action                                                              | Child `sh -c` remained one covered Bash action                                                                |
-| Subagent                  | Spawn/wait hooks, `SubagentStart/Stop`, child `agent_id`, and child Bash IDs                                | `Agent` and `SubagentStart/Stop`, child `agent_id`, and child Read IDs                                        |
-| MCP attempt               | Pre-use and permission hooks fire before server dispatch                                                    | Pre-use fires; non-interactive native permission can deny before server dispatch                              |
-| MCP execution             | Hook-approved tools reached stdio server                                                                    | Explicit CLI allow-list was required for the unattended fixture; tools then reached stdio server              |
-| MCP host filesystem       | MCP process wrote outside the agent workspace                                                               | MCP process wrote outside the agent workspace                                                                 |
-| MCP host network          | MCP process reached the loopback HTTP server                                                                | MCP process reached the loopback HTTP server                                                                  |
-| Shell filesystem sandbox  | Write outside workspace failed with `EPERM`                                                                 | Write outside workspace failed with `EPERM`                                                                   |
-| Shell network sandbox     | Loopback `curl` failed with exit 7                                                                          | Loopback `curl` failed with exit 7                                                                            |
-| Hook process unavailable  | Hook exited 70; action continued. CLI JSON/stderr did not expose the hook failure                           | Hook exited 70; action continued. Stream exposed hook-response errors for prompt, pre-use, and post-use       |
-| MCP process unavailable   | Tool absent; no structured server-status event or stderr reason was emitted                                 | Init event explicitly reported MCP server `failed` and omitted its tools                                      |
-| Project hook discovery    | Fresh untrusted project hooks did not load even with one-shot handler trust bypass; isolated user hooks did | Isolated project settings loaded in non-interactive mode                                                      |
-| UI/host shell             | App Server read-only thread still executed `thread/shellCommand` outside its workspace and sandbox          | No equivalent desktop host protocol was probed                                                                |
+| Boundary                  | Codex `0.148.0`                                                                                                                  | Claude `2.1.235`                                                                                              |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Native execution identity | `thread_id`; hook `session_id` matches it. Turn and tool-use IDs are also exposed                                                | `session_id`; prompt, tool-use, hook invocation, request, message, and subagent IDs are exposed               |
+| Resume                    | Reused the original thread ID; `SessionStart.source=resume`                                                                      | Reused the original session ID; `SessionStart.source=resume`                                                  |
+| Lifecycle hooks           | Start, prompt, stop, end, and resume observed                                                                                    | Start, prompt, stop, end, and resume observed; stream also exposes hook start/response pairs                  |
+| `PreToolUse` deny         | Blocked Bash before dispatch                                                                                                     | Blocked Bash before dispatch                                                                                  |
+| `PreToolUse` ask          | Parsed as an unsupported decision and the Bash action continued                                                                  | Produced a native `permission_denied` event and did not dispatch Bash                                         |
+| `PermissionRequest` allow | Fired for MCP; hook approval dispatched the exact marked call                                                                    | In print mode, `manual` normalized to `default`; the call was denied without a `PermissionRequest` hook event |
+| `PermissionRequest` deny  | Fired for the same MCP action; server saw no `tools/call`                                                                        | Same print-mode limitation; native denial occurred, but the configured `PermissionRequest` hook did not fire  |
+| Shell                     | `Bash` pre/post hooks and command stream; workspace marker written                                                               | `Bash` pre/post hooks and tool result; workspace marker written                                               |
+| Native file edit          | `apply_patch` pre/post hooks and `file_change` stream item                                                                       | `Read`, `ToolSearch`, and `Edit` pre/post hooks and tool events                                               |
+| Child process             | Child `sh -c` remained one covered Bash action                                                                                   | Child `sh -c` remained one covered Bash action                                                                |
+| Subagent                  | Spawn/wait hooks, `SubagentStart/Stop`, child `agent_id`, and child Bash IDs                                                     | `Agent` and `SubagentStart/Stop`, child `agent_id`, and child Read IDs                                        |
+| MCP attempt               | Pre-use and permission hooks fire before server dispatch                                                                         | Pre-use fires; non-interactive native permission can deny before server dispatch                              |
+| MCP execution             | Hook-approved tools reached stdio server                                                                                         | Explicit CLI allow-list was required for the unattended fixture; tools then reached stdio server              |
+| MCP host filesystem       | MCP process wrote outside the agent workspace                                                                                    | MCP process wrote outside the agent workspace                                                                 |
+| MCP host network          | MCP process reached the loopback HTTP server                                                                                     | MCP process reached the loopback HTTP server                                                                  |
+| Shell filesystem sandbox  | Write outside workspace failed with `EPERM`                                                                                      | Write outside workspace failed with `EPERM`                                                                   |
+| Shell network sandbox     | Loopback `curl` failed with exit 7                                                                                               | Loopback `curl` failed with exit 7                                                                            |
+| Hook process unavailable  | Hook exited 70; action continued. CLI JSON/stderr did not expose the hook failure                                                | Hook exited 70; action continued. Stream exposed hook-response errors for prompt, pre-use, and post-use       |
+| MCP process unavailable   | Tool absent; no structured server-status event or stderr reason was emitted                                                      | Init event explicitly reported MCP server `failed` and omitted its tools                                      |
+| Project hook discovery    | Existing trusted repository hooks work; one discarded fresh-repository attempt was inconclusive; isolated user hooks also worked | Isolated project settings loaded in non-interactive mode                                                      |
+| UI/host shell             | App Server read-only thread still executed `thread/shellCommand` outside its workspace and sandbox                               | No equivalent desktop host protocol was probed                                                                |
 
 The App Server result matches the current protocol contract: OpenAI documents
 `thread/shellCommand` as a user-initiated host command that runs with full
@@ -524,9 +527,18 @@ diary and linked to the prior execution-governance research:
 - `b0a0ce8d-85a8-4453-bde9-32430289c9e8` records the completed Checkpoint C
   observation: the same existing MoltNet policy denied live Claude and Codex
   actions, both providers exposed native denial evidence, and neither created
-  the prohibited marker. Relation creation was temporarily unavailable because
-  the released CLI could not resolve its local `os-keyring` refresh reference;
-  the signed entry itself was created successfully.
+  the prohibited marker.
+- `9c2b437b-784f-4d57-9e80-494455f0877a` corrects that entry's hook-placement
+  conclusion: invocation-local configuration was a hermetic probe choice, the
+  trusted repository project hook works, and the discarded temporary-repository
+  attempt cannot establish a Codex documentation discrepancy. Its accepted
+  `supersedes` relation replaces the overbroad conclusion while preserving the
+  live same-policy result.
+- `c689ce86-3846-4c32-8d25-aaace5522b36` records that the `os-keyring` error
+  came from running `moltnet relations create` inside the restricted execution
+  sandbox. The same command succeeded at the approved host boundary; both
+  intended Checkpoint C relations are accepted. It supersedes the earlier
+  unconfirmed relations-authentication incident.
 
 Earlier relations have accepted status; the three relations from the initial
 Checkpoint B entry are proposed as of 2026-08-21, while the correction's
@@ -557,9 +569,9 @@ both cases the MoltNet decision, provider-native denial, and absent marker agree
 The next supervisor decision is whether the probe-local differences are clean
 enough to inform a later runtime-profile safe-launch adapter:
 
-1. Claude uses isolated project hook settings, while Codex `0.148.0` required
-   an invocation-local override because fresh project hook loading was not
-   observed;
+1. Claude uses isolated project hook settings, while the Codex conformance run
+   uses an invocation-local override to exclude ambient hooks; trusted Codex
+   project hooks also work in this repository;
 2. the proof covers denial at `PreToolUse`, not every allow, audit, approval, or
    host-side path live; and
 3. ambient user-hook coexistence, safe credential resolution, and Gondolin
