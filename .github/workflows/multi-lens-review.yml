@@ -146,6 +146,14 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.base-sha }}
           persist-credentials: false
+      - name: Checkout trusted workflow helpers
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.workflow_sha }}
+          path: .trusted-workflow
+          sparse-checkout: apps/multi-lens-review/scripts
+          persist-credentials: false
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with:
@@ -161,7 +169,7 @@ jobs:
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_REVIEW_DB_PROXY_TOKEN }}
           SOURCE_DATABASE_URL: ${{ secrets.MULTI_LENS_REVIEW_DATABASE_URL }}
-        run: apps/multi-lens-review/scripts/fly-database-proxy.sh start
+        run: .trusted-workflow/apps/multi-lens-review/scripts/fly-database-proxy.sh start
 
       - name: Validate configured runtime prerequisites
         env:
@@ -188,18 +196,11 @@ jobs:
           fi
 
       - name: Provision Absurd schema
-        run: |
-          set -euo pipefail
-          if uvx absurdctl schema-version >/dev/null 2>&1; then
-            uvx absurdctl migrate --to 0.4.0
-          else
-            uvx absurdctl init --ref 0.4.0
-          fi
-          uvx absurdctl schema-version
+        run: .trusted-workflow/apps/multi-lens-review/scripts/provision-absurd-schema.sh
 
       - name: Stop private review database proxy
         if: always()
-        run: apps/multi-lens-review/scripts/fly-database-proxy.sh stop
+        run: .trusted-workflow/apps/multi-lens-review/scripts/fly-database-proxy.sh stop
 
       - name: Preflight executor authentication and attestation
         uses: ./packages/agent-daemon-action
@@ -232,6 +233,14 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.base-sha }}
           persist-credentials: false
+      - name: Checkout trusted workflow helpers
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.workflow_sha }}
+          path: .trusted-workflow
+          sparse-checkout: apps/multi-lens-review/scripts
+          persist-credentials: false
       - uses: actions/download-artifact@v7
         with:
           name: multi-lens-review-input
@@ -251,7 +260,7 @@ jobs:
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_REVIEW_DB_PROXY_TOKEN }}
           SOURCE_DATABASE_URL: ${{ secrets.MULTI_LENS_REVIEW_DATABASE_URL }}
-        run: apps/multi-lens-review/scripts/fly-database-proxy.sh start
+        run: .trusted-workflow/apps/multi-lens-review/scripts/fly-database-proxy.sh start
 
       - name: Orchestrate reviews and synthesis
         id: review
@@ -280,7 +289,7 @@ jobs:
 
       - name: Stop private review database proxy
         if: always()
-        run: apps/multi-lens-review/scripts/fly-database-proxy.sh stop
+        run: .trusted-workflow/apps/multi-lens-review/scripts/fly-database-proxy.sh stop
 
       - name: Upsert consolidated review comment
         # `act` sets ACT=true. Local trusted-runtime acceptance must never
