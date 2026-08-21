@@ -186,7 +186,10 @@ jobs:
             echo "e2e-node=false" >> "$GITHUB_OUTPUT"
           fi
 
-          if contains "@themoltnet/agent-daemon-e2e"; then
+          # The agent-daemon lane also hosts the live Gondolin sandbox
+          # conformance suite (qemu + snapshot cache), so it must run when the
+          # sandbox adapter or the governance core changes.
+          if contains "@themoltnet/agent-daemon-e2e" || contains "@themoltnet/sandbox-gondolin"; then
             echo "e2e-agent-daemon=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-agent-daemon=false" >> "$GITHUB_OUTPUT"
@@ -1112,6 +1115,14 @@ jobs:
         env:
           MOLTNET_PI_VM_INTEGRATION: '1'
         run: pnpm exec nx run @themoltnet/pi-runtime:test-ci--src/vm-manager.integration.test.ts
+      - name: Run Gondolin sandbox conformance suite (live VM)
+        if: needs.affected.outputs.e2e-agent-daemon == 'true' && matrix.lane.vm_integration
+        env:
+          MOLTNET_PI_VM_INTEGRATION: '1'
+        # Marker-oracle suite from @themoltnet/runtime-core/conformance against
+        # real microVMs. Loopback fixtures are reached by public loopback names
+        # (*.lvh.me -> 127.0.0.1) because guest localhost never leaves the VM.
+        run: pnpm exec nx run @themoltnet/sandbox-gondolin:test-ci--src/gondolin-sandbox-adapter.conformance.test.ts
       - name: Run agent-daemon ${{ matrix.lane.name }} E2E tests
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
         run: pnpm exec nx run @themoltnet/agent-daemon-e2e:e2e --configuration=${{ matrix.lane.configuration }}

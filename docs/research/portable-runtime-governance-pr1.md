@@ -70,7 +70,9 @@ GovernanceIntent (intent + references)
 
 ## Gondolin conformance result
 
-Run with `MOLTNET_PI_VM_INTEGRATION=1` against the local checkpoint cache
+Runs in CI in the agent-daemon Core lane (qemu on `ubuntu-latest`, cached
+snapshot) whenever `sandbox-gondolin` or the daemon e2e project is affected;
+locally with `MOLTNET_PI_VM_INTEGRATION=1` against the checkpoint cache
 (`libs/pi-runtime/src/sandbox/gondolin-sandbox-adapter.conformance.test.ts`).
 
 | Case | Result | Observation                                                                     |
@@ -167,8 +169,6 @@ where Checkpoint C already stops launch on missing policy.
 - Daemon wiring of the adapter; the daemon still calls `createPiTaskExecutor`.
 - Publishing either package, the `release.yml` job, and the first manual
   publish: gated on the Docker adapter passing the same suite.
-- A provisioned CI lane for the live Gondolin suite (checkpoint cache and
-  deterministic loopback names); today it is a developer-machine result.
 
 ## PR2 plan: Docker Sandbox adapter against the same suite
 
