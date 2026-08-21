@@ -33,20 +33,7 @@
       "type:runtime",
       "scope:agent",
       "platform:extension"
-    ],
-    "targets": {
-      "conformance-live": {
-        "executor": "nx:run-commands",
-        "cache": false,
-        "options": {
-          "cwd": "libs/sandbox-gondolin",
-          "command": "vitest run src/gondolin-sandbox-adapter.conformance.test.ts"
-        },
-        "metadata": {
-          "description": "Live sandbox conformance suite against real microVMs; needs qemu, the Gondolin snapshot cache, and MOLTNET_PI_VM_INTEGRATION=1. Any sandbox adapter that defines this target is picked up by the CI lane automatically."
-        }
-      }
-    }
+    ]
   },
   "devDependencies": {
     "@types/node": "catalog:",

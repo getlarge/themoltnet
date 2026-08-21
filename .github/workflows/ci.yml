@@ -92,7 +92,6 @@ jobs:
       head: ${{ steps.shas-fallback.outputs.head }}
       e2e-node: ${{ steps.compute.outputs.e2e-node }}
       e2e-agent-daemon: ${{ steps.compute.outputs.e2e-agent-daemon }}
-      live-conformance-projects: ${{ steps.compute.outputs.live-conformance-projects }}
       e2e-browser: ${{ steps.compute.outputs.e2e-browser }}
       e2e-mcp: ${{ steps.compute.outputs.e2e-mcp }}
       e2e-go-cli: ${{ steps.compute.outputs.e2e-go-cli }}
@@ -187,13 +186,10 @@ jobs:
             echo "e2e-node=false" >> "$GITHUB_OUTPUT"
           fi
 
-          # The agent-daemon Core lane also hosts the live sandbox conformance
-          # suite (qemu + snapshot cache). Any affected project that defines a
-          # `conformance-live` target (sandbox adapters) needs that lane; no
-          # project names are hardcoded here.
-          LIVE_CONFORMANCE=$(pnpm exec nx show projects --affected --with-target conformance-live --json)
-          echo "live-conformance-projects=$(echo "$LIVE_CONFORMANCE" | tr -d '[]"' | tr ',' ' ')" >> "$GITHUB_OUTPUT"
-          if contains "@themoltnet/agent-daemon-e2e" || [ "$LIVE_CONFORMANCE" != "[]" ]; then
+          # The agent-daemon lane also hosts the live Gondolin sandbox
+          # conformance suite (qemu + snapshot cache), so it must run when the
+          # sandbox adapter or the governance core changes.
+          if contains "@themoltnet/agent-daemon-e2e" || contains "@themoltnet/sandbox-gondolin"; then
             echo "e2e-agent-daemon=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-agent-daemon=false" >> "$GITHUB_OUTPUT"
@@ -1119,17 +1115,14 @@ jobs:
         env:
           MOLTNET_PI_VM_INTEGRATION: '1'
         run: pnpm exec nx run @themoltnet/pi-runtime:test-ci--src/vm-manager.integration.test.ts
-      - name: Run affected live sandbox conformance suites
-        if: needs.affected.outputs.e2e-agent-daemon == 'true' && matrix.lane.vm_integration && needs.affected.outputs.live-conformance-projects != ''
+      - name: Run Gondolin sandbox conformance suite (live VM)
+        if: needs.affected.outputs.e2e-agent-daemon == 'true' && matrix.lane.vm_integration
         env:
           MOLTNET_PI_VM_INTEGRATION: '1'
-        # Every affected sandbox adapter that defines `conformance-live` runs
-        # the shared marker-oracle suite from @themoltnet/runtime-core against
-        # its real sandbox. The project list comes from the affected job (full
-        # git history); this checkout is shallow. Loopback fixtures use public
-        # loopback names (*.lvh.me -> 127.0.0.1) because guest localhost never
-        # leaves a VM.
-        run: pnpm exec nx run-many -t conformance-live --projects="${{ needs.affected.outputs.live-conformance-projects }}"
+        # Marker-oracle suite from @themoltnet/runtime-core/conformance against
+        # real microVMs. Loopback fixtures are reached by public loopback names
+        # (*.lvh.me -> 127.0.0.1) because guest localhost never leaves the VM.
+        run: pnpm exec nx run @themoltnet/sandbox-gondolin:test-ci--src/gondolin-sandbox-adapter.conformance.test.ts
       - name: Run agent-daemon ${{ matrix.lane.name }} E2E tests
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
         run: pnpm exec nx run @themoltnet/agent-daemon-e2e:e2e --configuration=${{ matrix.lane.configuration }}
