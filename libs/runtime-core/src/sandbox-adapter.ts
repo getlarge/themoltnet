@@ -44,6 +44,26 @@ export interface SandboxCapabilityReport {
  * the resolver function, never the value; adapters call it as late as possible
  * and deliver the value only to the declared destinations.
  */
+/**
+ * Value-free readiness of one trusted binding. The codes keep distinct
+ * failures distinct, as the #1890 safe-launch probe requires: an absent
+ * binding value, an unavailable provider, and an inaccessible host store are
+ * different setup problems with different instructions.
+ */
+export type CredentialReadinessCode =
+  | 'ready'
+  | 'binding_absent'
+  | 'provider_unavailable'
+  | 'host_store_inaccessible';
+
+export interface CredentialReadiness {
+  code: CredentialReadinessCode;
+  /** Non-secret provider name (e.g. `os-keyring`, `file`, `oauth`). */
+  provider?: string;
+  /** Actionable next step when not ready. Never contains a value or key. */
+  setupInstruction?: string;
+}
+
 export interface BrokeredCredentialBinding {
   requirementId: string;
   /** Environment name under which the guest sees a stand-in value. */
@@ -51,6 +71,13 @@ export interface BrokeredCredentialBinding {
   destinationHosts: readonly string[];
   /** Non-secret reference describing the trusted binding (for evidence). */
   bindingRef: string;
+  /**
+   * Value-free readiness check run at resolution, before any launch or
+   * secret read. Optional: a binding without it is assumed ready and any
+   * failure surfaces at launch as `failed`.
+   */
+  probe?(): Promise<CredentialReadiness>;
+  /** Host-side just-in-time read. Called only by the adapter at launch. */
   resolve(): Promise<string>;
 }
 

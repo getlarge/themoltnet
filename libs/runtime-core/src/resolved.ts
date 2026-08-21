@@ -10,6 +10,8 @@ import {
 } from './profile.js';
 import {
   type BrokeredCredentialBinding,
+  type CredentialReadiness,
+  type CredentialReadinessCode,
   type DeclaredCapability,
   declaredCapability,
   type SandboxAdapter,
@@ -62,6 +64,10 @@ export interface ResolvedCredentialBinding {
   destinationHosts: readonly string[];
   /** Non-secret binding reference. Never a value or a provider secret path. */
   bindingRef: string;
+  /** Non-secret provider name, when the binding reported one. */
+  provider?: string;
+  /** Readiness observed at resolution; `ready` or the typed reason. */
+  readiness: CredentialReadinessCode;
 }
 
 export interface ResolvedContextInput extends ContextReference {
@@ -95,6 +101,7 @@ export interface ResolutionFailure {
     | 'profile_not_portable'
     | 'capability_unsupported'
     | 'credential_binding_missing'
+    | 'credential_not_ready'
     | 'runtime_input_missing'
     | 'context_input_unpinned'
     | 'preflight_failed';
@@ -103,6 +110,9 @@ export interface ResolutionFailure {
   requirementId?: string;
   slug?: string;
   input?: string;
+  /** Typed readiness reason for `credential_not_ready`. */
+  readiness?: CredentialReadinessCode;
+  setupInstruction?: string;
 }
 
 export type ResolutionResult =
@@ -218,18 +228,39 @@ export async function resolveRuntimeProfile(
       continue;
     }
     const destinationHosts = requirement.destinationHosts;
-    credentialPlan.push({
-      requirementId: requirement.id,
-      envName: requirement.envName,
-      destinationHosts,
-      bindingRef: binding.bindingRef,
-      resolve: () => binding.resolve(),
-    });
+    // Value-free readiness before any launch; no secret is read here.
+    const readiness: CredentialReadiness = binding.probe
+      ? await binding.probe()
+      : { code: 'ready' };
+    if (readiness.code !== 'ready') {
+      const failure: ResolutionFailure = {
+        code: 'credential_not_ready',
+        requirementId: requirement.id,
+        readiness: readiness.code,
+        message: `credential requirement "${requirement.id}" is not ready: ${readiness.code}${readiness.setupInstruction ? ` (${readiness.setupInstruction})` : ''}`,
+        ...(readiness.setupInstruction
+          ? { setupInstruction: readiness.setupInstruction }
+          : {}),
+      };
+      (requirement.required ? failures : warnings).push(failure);
+      if (requirement.required) continue;
+    }
+    if (readiness.code === 'ready') {
+      credentialPlan.push({
+        requirementId: requirement.id,
+        envName: requirement.envName,
+        destinationHosts,
+        bindingRef: binding.bindingRef,
+        resolve: () => binding.resolve(),
+      });
+    }
     credentialEvidence.push({
       requirementId: requirement.id,
       envName: requirement.envName,
       destinationHosts,
       bindingRef: binding.bindingRef,
+      ...(readiness.provider ? { provider: readiness.provider } : {}),
+      readiness: readiness.code,
     });
   }
 

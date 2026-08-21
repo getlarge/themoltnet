@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { createReferenceSandboxAdapter } from './conformance/reference-adapter.js';
 import { sha256Digest } from './digest.js';
@@ -185,6 +185,7 @@ describe('resolveRuntimeProfile', () => {
         envName: 'API_TOKEN',
         destinationHosts: ['api.example.test'],
         bindingRef: 'keyring:team/api',
+        readiness: 'ready',
       },
     ]);
     expect(resolved.contextInputs).toEqual([
@@ -302,6 +303,120 @@ describe('resolveRuntimeProfile', () => {
       'credential_binding_missing',
       'runtime_input_missing',
     ]);
+  });
+
+  it('keeps absent binding, unavailable provider, and inaccessible store distinct and reads no value', async () => {
+    const adapter = createReferenceSandboxAdapter();
+    const resolve = vi.fn(async () => 'never');
+    const requirement = (id: string, required: boolean) => ({
+      id,
+      purpose: id,
+      consumer: 'guest-process' as const,
+      destinationHosts: ['api.example.test'],
+      delivery: 'brokered-http' as const,
+      envName: id.toUpperCase().replace(/-/g, '_'),
+      required,
+    });
+    const binding = (
+      id: string,
+      code:
+        | 'ready'
+        | 'binding_absent'
+        | 'provider_unavailable'
+        | 'host_store_inaccessible',
+    ) => ({
+      requirementId: id,
+      envName: id.toUpperCase().replace(/-/g, '_'),
+      destinationHosts: ['api.example.test'],
+      bindingRef: `keyring:${id}`,
+      probe: async () => ({
+        code,
+        provider: 'os-keyring',
+        ...(code === 'ready' ? {} : { setupInstruction: `fix ${id}` }),
+      }),
+      resolve,
+    });
+
+    const outcome = await resolveRuntimeProfile(
+      profile({
+        credentials: [
+          requirement('ok', true),
+          requirement('absent', true),
+          requirement('provider', true),
+          requirement('store', false),
+        ],
+      }),
+      bindings(adapter, {
+        credentials: {
+          ok: binding('ok', 'ready'),
+          absent: binding('absent', 'binding_absent'),
+          provider: binding('provider', 'provider_unavailable'),
+          store: binding('store', 'host_store_inaccessible'),
+        },
+      }),
+    );
+
+    expect(resolve).not.toHaveBeenCalled();
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(
+      outcome.failures.map((f) => [f.requirementId, f.code, f.readiness]),
+    ).toEqual([
+      ['absent', 'credential_not_ready', 'binding_absent'],
+      ['provider', 'credential_not_ready', 'provider_unavailable'],
+    ]);
+    expect(outcome.failures[0]?.setupInstruction).toBe('fix absent');
+    expect(JSON.stringify(outcome)).not.toContain('never');
+  });
+
+  it('records provider and readiness for a preferred binding that is not ready, without a resolver', async () => {
+    const adapter = createReferenceSandboxAdapter();
+    const outcome = await resolveRuntimeProfile(
+      profile({
+        credentials: [
+          {
+            id: 'opt',
+            purpose: 'optional',
+            consumer: 'guest-process',
+            destinationHosts: ['api.example.test'],
+            delivery: 'brokered-http',
+            envName: 'OPT',
+            required: false,
+          },
+        ],
+      }),
+      bindings(adapter, {
+        credentials: {
+          opt: {
+            requirementId: 'opt',
+            envName: 'OPT',
+            destinationHosts: ['api.example.test'],
+            bindingRef: 'file:opt',
+            probe: async () => ({
+              code: 'host_store_inaccessible',
+              provider: 'file',
+            }),
+            resolve: async () => 'x',
+          },
+        },
+      }),
+    );
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.resolved.credentialBindings).toEqual([
+      expect.objectContaining({
+        requirementId: 'opt',
+        provider: 'file',
+        readiness: 'host_store_inaccessible',
+      }),
+    ]);
+    expect(outcome.launchPlan.credentials).toEqual([]);
+    expect(outcome.warnings).toContainEqual(
+      expect.objectContaining({
+        code: 'credential_not_ready',
+        readiness: 'host_store_inaccessible',
+      }),
+    );
   });
 
   it('surfaces adapter preflight failures as resolution failures', async () => {

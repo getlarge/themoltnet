@@ -97,7 +97,14 @@ Run with `MOLTNET_PI_VM_INTEGRATION=1` against the local checkpoint cache
 - Persisting `RuntimeSession` to the MoltNet API or relating it to the stored
   transcript `runtime_sessions`.
 - A host broker implementation beyond the binding shape and Gondolin proxy
-  substitution exercised here.
+  substitution exercised here. The binding shape already matches the Lane A
+  safe-launch PoC: `BrokeredCredentialBinding.probe()` returns value-free
+  readiness typed as `ready`, `binding_absent`, `provider_unavailable`, or
+  `host_store_inaccessible` (plus provider name and setup instruction),
+  resolution runs it before adapter preflight and before any secret read, and
+  `resolve()` is only called by the adapter at the host locus. Wiring the SDK's
+  `SecretReference` / `SecretProviderRegistry` behind that interface is PR2
+  work shared by both adapters.
 - Knowledge Factory rendering; PR1 only carries context references and their
   provenance through resolution.
 - Daemon wiring of the adapter; the daemon still calls `createPiTaskExecutor`.

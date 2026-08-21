@@ -33,6 +33,8 @@ export {
 } from './resolved.js';
 export {
   type BrokeredCredentialBinding,
+  type CredentialReadiness,
+  type CredentialReadinessCode,
   type DeclaredCapability,
   declaredCapability,
   type EnforcementRecord,
