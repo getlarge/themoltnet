@@ -87,6 +87,32 @@ Run with `MOLTNET_PI_VM_INTEGRATION=1` against the local checkpoint cache
 5. **Read-only workspace mounts are not implemented**; preflight refuses the
    plan instead of silently mounting read-write.
 
+## Prior art consulted (pinned)
+
+- Rampart `4fd77b8dee9e84491abb2a176dee6726d20feb6e`: adopted the idea of a
+  per-adapter coverage/degraded/evidence matrix (`describe()` with a reason per
+  capability) and the `enforcement_requested` vs `enforced` pair (`intended`
+  vs `state` per control, plus `intendedEnforcementLocus` vs
+  `observedEnforcementLocus` per decision). Not adopted: it is a policy
+  engine with no sandbox or locus model, so its audit record cannot say where
+  an action ran; MoltNet keeps `decideToolCall()` and adds locus-bound
+  evidence instead of a second engine.
+- Microsoft Agent Governance Toolkit `b5705588883fac48b88cbe6fd0bd7d48c798453e`:
+  adopted policy-before-secret-read and opaque handles
+  (`BrokeredCredentialBinding.probe()` is value-free; `resolve()` runs only at
+  the adapter's host locus) and the split between "policy denied" and
+  "infrastructure failed". Not adopted: its sandbox providers downgrade
+  silently (missing hypervisor ring, missing hardened image, runtime
+  auto-select) and expose only a boolean availability probe; here a missing
+  control is a typed `unsupported`/`degraded`/`failed-open`/`failed` state
+  and a required one stops launch.
+
+Open follow-up from that review: action decisions carry the gate's
+`reasonCode`, but an infrastructure failure at decision time (policy
+resolution unavailable) is not yet a reserved reason namespace in
+`ActionDecisionRecord`; that belongs with the coding-agent adapters (PR3/PR4),
+where Checkpoint C already stops launch on missing policy.
+
 ## Explicit PR1 deferrals
 
 - Docker Sandbox adapter (PR2); Claude Code and Codex adapters (PR3/PR4).
