@@ -19,7 +19,7 @@
   "include": ["src"],
   "references": [
     {
-      "path": "../tasks/tsconfig.lib.json"
+      "path": "../runtime-core/tsconfig.lib.json"
     },
     {
       "path": "../shell-command-analyzer/tsconfig.lib.json"
@@ -32,6 +32,9 @@
     },
     {
       "path": "../agent-runtime/tsconfig.lib.json"
+    },
+    {
+      "path": "../tasks/tsconfig.lib.json"
     },
     {
       "path": "../models/tsconfig.lib.json"

@@ -88,6 +88,13 @@ export {
   type PiToolScope,
   type ResolvedGondolinTemplate,
 } from './runtime-definition.js';
+export {
+  createGondolinSandboxAdapter,
+  GONDOLIN_PLATFORM_EGRESS_NOTE,
+  GONDOLIN_SANDBOX_ADAPTER_ID,
+  GONDOLIN_SANDBOX_ADAPTER_VERSION,
+  type GondolinSandboxAdapterOptions,
+} from './sandbox/gondolin-sandbox-adapter.js';
 export type {
   EnsureSnapshotOptions,
   ResumeCommand,
@@ -122,6 +129,7 @@ export {
   type ToolPolicyExtensionDeps,
 } from './tool-policy/session-policy.js';
 export type {
+  BrokeredSecret,
   GuestCredentialMode,
   ManagedVm,
   VmConfig,
