@@ -5,11 +5,11 @@ import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
 
 export default defineConfig(() => ({
   root: import.meta.dirname,
-  cacheDir: '../../node_modules/.vite/libs/runtime-core',
+  cacheDir: '../../node_modules/.vite/libs/sandbox-gondolin',
   plugins: [
     nxCopyAssetsPlugin(['*.md']),
     dts({
-      rollupTypes: false,
+      rollupTypes: true,
       tsconfigPath: './tsconfig.lib.json',
       include: ['src/**/*.ts'],
       exclude: ['src/**/*.spec.ts'],
@@ -24,24 +24,24 @@ export default defineConfig(() => ({
     commonjsOptions: {
       transformMixedEsModules: true,
     },
-    ssr: true,
+    ssr: 'src/index.ts',
     rolldownOptions: {
-      input: {
-        index: 'src/index.ts',
-        'conformance/index': 'src/conformance/index.ts',
-      },
-      output: { entryFileNames: '[name].js' },
+      input: 'src/index.ts',
+      external: ['@themoltnet/pi-runtime', '@themoltnet/runtime-core'],
     },
   },
+  ssr: {
+    external: ['@themoltnet/pi-runtime', '@themoltnet/runtime-core'],
+  },
   test: {
-    name: 'runtime-core',
+    name: 'sandbox-gondolin',
     watch: false,
     globals: true,
     environment: 'node',
     include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     reporters: ['default'],
     coverage: {
-      reportsDirectory: '../../coverage/libs/runtime-core',
+      reportsDirectory: '../../coverage/libs/sandbox-gondolin',
       provider: 'v8' as const,
     },
   },

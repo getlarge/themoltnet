@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/runtime-core",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "license": "MIT",
   "description": "Portable MoltNet runtime governance core: runtime profile, resolved profile, runtime session, sandbox adapter contract, and shared conformance suite",
   "keywords": [
@@ -22,6 +22,10 @@
     ".": {
       "import": "./src/index.ts",
       "types": "./src/index.ts"
+    },
+    "./conformance": {
+      "import": "./src/conformance/index.ts",
+      "types": "./src/conformance/index.ts"
     }
   },
   "publishConfig": {
@@ -29,6 +33,10 @@
       ".": {
         "types": "./dist/index.d.ts",
         "import": "./dist/index.js"
+      },
+      "./conformance": {
+        "types": "./dist/conformance/index.d.ts",
+        "import": "./dist/conformance/index.js"
       }
     }
   },
@@ -56,5 +64,6 @@
   },
   "engines": {
     "node": ">=22"
-  }
+  },
+  "private": true
 }

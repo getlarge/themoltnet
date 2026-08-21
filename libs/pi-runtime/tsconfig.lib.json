@@ -19,9 +19,6 @@
   "include": ["src"],
   "references": [
     {
-      "path": "../runtime-core/tsconfig.lib.json"
-    },
-    {
       "path": "../shell-command-analyzer/tsconfig.lib.json"
     },
     {

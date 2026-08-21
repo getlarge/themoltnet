@@ -10,6 +10,15 @@ export type Recipe =
   | { op: 'write-file'; path: string; content: string }
   | { op: 'write-file-via-child'; path: string; content: string; depth: number }
   | {
+      /** Sleep, then write; used to prove a killed command never wrote. */
+      op: 'delayed-write';
+      path: string;
+      content: string;
+      delaySeconds: number;
+      /** Perform the delayed write from a nested child shell. */
+      viaChild: boolean;
+    }
+  | {
       op: 'http-get';
       url: string;
       bearerEnv?: string;
@@ -33,6 +42,11 @@ function body(recipe: Recipe): string {
       for (let i = 0; i < recipe.depth; i += 1) {
         inner = `sh -c ${shQuote(inner)}`;
       }
+      return `mkdir -p "$(dirname ${shQuote(recipe.path)})" && ${inner}`;
+    }
+    case 'delayed-write': {
+      const write = `sleep ${recipe.delaySeconds} && printf '%s' ${shQuote(recipe.content)} > ${shQuote(recipe.path)}`;
+      const inner = recipe.viaChild ? `sh -c ${shQuote(write)}` : write;
       return `mkdir -p "$(dirname ${shQuote(recipe.path)})" && ${inner}`;
     }
     case 'http-get': {

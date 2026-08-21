@@ -9,10 +9,10 @@ import { runSandboxConformance } from './runner.js';
 const loopback = {
   allowed: {
     guestHostname: '127.0.0.1',
-    allowedHosts: ['127.0.0.1'],
+    destination: { host: '127.0.0.1', port: 'fixture' as const },
     allowedInternalHosts: ['127.0.0.1'],
   },
-  denied: { guestHostname: 'localhost' },
+  denied: { guestHostname: '127.0.0.1' },
 };
 
 describe('conformance recipes', () => {
@@ -28,81 +28,125 @@ describe('conformance recipes', () => {
     expect(parseRecipe('echo plain')).toBeUndefined();
   });
 
-  it('nests child shells for containment cases', () => {
-    const rendered = renderRecipe({
-      op: 'write-file-via-child',
-      path: '/ws/protected/m',
-      content: 'c',
-      depth: 2,
+  it('nests child shells for containment and delayed writes', () => {
+    expect(
+      renderRecipe({
+        op: 'write-file-via-child',
+        path: '/ws/protected/m',
+        content: 'c',
+        depth: 2,
+      }).match(/sh -c/g),
+    ).toHaveLength(2);
+    const delayed = renderRecipe({
+      op: 'delayed-write',
+      path: '/ws/late',
+      content: 'l',
+      delaySeconds: 3,
+      viaChild: true,
     });
-    expect(rendered.match(/sh -c/g)).toHaveLength(2);
+    expect(delayed).toContain('sleep 3 &&');
+    expect(delayed).toContain('sh -c');
+  });
+
+  it('pins a hostname with curl --resolve when asked', () => {
+    expect(
+      renderRecipe({
+        op: 'http-get',
+        url: 'http://a.test:8080/x',
+        resolveTo: '10.0.0.1',
+      }),
+    ).toContain("--resolve 'a.test:8080:10.0.0.1'");
   });
 });
 
 describe('sandbox conformance suite against the reference adapter', () => {
-  it('passes every marker-oracle case when all capabilities are simulated', async () => {
-    // Arrange
+  it('passes every marker-oracle case when all capabilities are simulated at host-port fidelity', async () => {
     const harness = createNodeConformanceHarness({ loopback });
     const adapter = createReferenceSandboxAdapter();
 
-    // Act
     const summary = await runSandboxConformance({ adapter, harness });
 
-    // Assert
     expect(summary.results.map((r) => r.id)).toEqual(
       SANDBOX_CONFORMANCE_CASES.map((c) => c.id),
     );
     expect(summary.failed).toEqual([]);
     expect(summary.unsupported).toEqual([]);
-    expect(summary.passed).toHaveLength(15);
+    expect(summary.passed).toHaveLength(16);
+    expect(summary.cleanup).toEqual({ cleaned: true, residue: [] });
     const byId = Object.fromEntries(summary.results.map((r) => [r.id, r]));
     expect(byId['C01'].state).toBe('failed');
     expect(byId['C11'].state).toBe('failed');
     expect(byId['C14'].state).toBe('unsupported');
     expect(['failed', 'degraded']).toContain(byId['C15'].state);
+    expect(byId['C16'].state).toBe('enforced');
     expect(JSON.stringify(summary)).not.toContain(harness.syntheticCredential);
-  }, 30_000);
+  }, 60_000);
+
+  it('reports host-only fidelity honestly in C16 and still passes the rest', async () => {
+    const harness = createNodeConformanceHarness({
+      loopback: {
+        allowed: {
+          guestHostname: 'localhost',
+          destination: { host: 'localhost' },
+          allowedInternalHosts: ['localhost'],
+        },
+        denied: { guestHostname: '127.0.0.1' },
+      },
+    });
+    const adapter = createReferenceSandboxAdapter({ fidelity: 'host' });
+    const summary = await runSandboxConformance({ adapter, harness });
+    expect(summary.failed).toEqual([]);
+    const c16 = summary.results.find((r) => r.id === 'C16');
+    expect(c16).toMatchObject({ status: 'passed', state: 'degraded' });
+  }, 60_000);
 
   it('reports unsupported, not passed, when the adapter declares a capability unsupported', async () => {
-    // Arrange
     const harness = createNodeConformanceHarness({ loopback });
     const adapter = createReferenceSandboxAdapter({
       unsupported: ['brokered-credential', 'timeout-cancellation'],
     });
 
-    // Act
     const summary = await runSandboxConformance({ adapter, harness });
 
-    // Assert
     expect(summary.failed).toEqual([]);
     expect(summary.unsupported.sort()).toEqual(['C07', 'C08', 'C12', 'C13']);
-    expect(summary.passed).not.toContain('C12');
-    const c12 = summary.results.find((r) => r.id === 'C12');
-    expect(c12?.state).toBe('unsupported');
-  }, 30_000);
+    expect(summary.results.find((r) => r.id === 'C12')?.state).toBe(
+      'unsupported',
+    );
+  }, 60_000);
 
-  it('marks a case failed when the adapter misbehaves', async () => {
-    // Arrange: an adapter that lets denied writes through.
+  it('marks cases failed when the adapter misbehaves or leaves residue', async () => {
     const harness = createNodeConformanceHarness({ loopback });
     const base = createReferenceSandboxAdapter();
     const leaky = {
       ...base,
       async launch(plan: Parameters<typeof base.launch>[0]) {
-        return base.launch({
+        const handle = await base.launch({
           ...plan,
           filesystem: { ...plan.filesystem, denyPaths: [] },
         });
+        return {
+          ...handle,
+          exec: handle.exec.bind(handle),
+          observe: handle.observe.bind(handle),
+          close: async () => ({
+            cleaned: false,
+            residue: ['left a container running'],
+          }),
+        };
       },
     };
 
-    // Act
     const summary = await runSandboxConformance({
       adapter: leaky,
       harness,
       only: ['C03', 'C06'],
     });
 
-    // Assert
     expect(summary.failed.sort()).toEqual(['C03', 'C06']);
-  }, 30_000);
+    expect(summary.cleanup).toEqual({
+      cleaned: false,
+      residue: ['left a container running'],
+    });
+  }, 60_000);
 });

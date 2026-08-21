@@ -1,8 +1,9 @@
 import path from 'node:path';
 
-import type { RuntimeProfile } from '../profile.js';
+import type { DestinationConstraint, GovernanceIntent } from '../intent.js';
 import type {
   SandboxAdapter,
+  SandboxCleanupReport,
   SandboxHandle,
   SandboxLaunchPlan,
 } from '../sandbox-adapter.js';
@@ -14,7 +15,7 @@ import {
   type SharedLaunch,
   unsupportedResultFor,
 } from './cases.js';
-import type { ConformanceHarness } from './harness.js';
+import type { ConformanceHarness, LoopbackDestination } from './harness.js';
 
 export interface ConformanceRunOptions {
   adapter: SandboxAdapter;
@@ -34,23 +35,43 @@ export interface ConformanceSummary {
   failed: string[];
   unsupported: string[];
   skipped: string[];
+  /** Aggregated cleanup over every handle the runner launched. */
+  cleanup: SandboxCleanupReport;
 }
 
 export const CONFORMANCE_CREDENTIAL_ENV = 'CONFORMANCE_TOKEN';
 export const CONFORMANCE_DENY_PATH = 'protected';
 
-export function buildConformanceProfile(
+export function fixtureDestination(
+  destination: LoopbackDestination,
+  port: number,
+): DestinationConstraint {
+  const d = destination.destination;
+  return {
+    host: d.host,
+    ...(d.scheme ? { scheme: d.scheme } : {}),
+    ...(d.port === 'fixture'
+      ? { port }
+      : d.port !== undefined
+        ? { port: d.port }
+        : {}),
+  };
+}
+
+export function buildConformanceIntent(
   harness: ConformanceHarness,
   adapter: SandboxAdapter,
-): RuntimeProfile {
+  allowedPort: number,
+): GovernanceIntent {
+  const report = adapter.describe();
   const declared = new Set(
-    adapter
-      .describe()
-      .capabilities.filter((c) => c.state === 'enforced')
+    report.capabilities
+      .filter((c) => c.state === 'enforced')
       .map((c) => c.capability),
   );
   const prefer = (cap: Parameters<typeof declared.has>[0]) =>
     declared.has(cap) ? ('required' as const) : ('preferred' as const);
+  const allowed = fixtureDestination(harness.loopback.allowed, allowedPort);
   return {
     ref: { id: 'conformance-profile', revision: 1 },
     toolPolicy: {
@@ -65,10 +86,13 @@ export function buildConformanceProfile(
         denyMode: 'deny',
       },
       network: {
-        allowedHosts: [...harness.loopback.allowed.allowedHosts],
+        allowedDestinations: [allowed],
         allowedInternalHosts: [
           ...harness.loopback.allowed.allowedInternalHosts,
         ],
+        // The suite accepts whatever platform egress the adapter declares;
+        // the plan records it as effective policy rather than hiding it.
+        acceptPlatformEgress: true,
       },
     },
     capabilities: {
@@ -84,7 +108,7 @@ export function buildConformanceProfile(
         id: 'conformance-api',
         purpose: 'conformance loopback fixture',
         consumer: 'guest-process',
-        destinationHosts: [...harness.loopback.allowed.allowedHosts],
+        destinations: [allowed],
         delivery: 'brokered-http',
         envName: CONFORMANCE_CREDENTIAL_ENV,
         required: declared.has('brokered-credential'),
@@ -102,7 +126,6 @@ export async function runSandboxConformance(
   const { adapter, harness } = options;
   const guestPathFor = options.guestPathFor ?? ((p: string) => p);
   const report = adapter.describe();
-  const profile = buildConformanceProfile(harness, adapter);
   const cases = (options.cases ?? SANDBOX_CONFORMANCE_CASES).filter(
     (c) => !options.only || options.only.includes(c.id),
   );
@@ -114,24 +137,37 @@ export async function runSandboxConformance(
   const denied = await harness.startLoopbackFixture(
     harness.syntheticCredential,
   );
+  const intent = buildConformanceIntent(harness, adapter, allowed.port);
+  const allowedDestination = intent.credentials[0].destinations;
   const workspace = harness.createWorkspace();
   const handles: SandboxHandle[] = [];
 
   const basePlan = (): SandboxLaunchPlan => ({
     workspace: { hostPath: workspace.hostPath, mode: 'read-write' },
-    filesystem: profile.sandbox.filesystem,
-    network: profile.sandbox.network,
+    filesystem: intent.sandbox.filesystem,
+    network: {
+      requested: intent.sandbox.network,
+      effective: {
+        allowedDestinations: [
+          ...intent.sandbox.network.allowedDestinations,
+          ...report.network.mandatoryEgress,
+        ],
+        allowedInternalHosts: intent.sandbox.network.allowedInternalHosts,
+      },
+      fidelity: report.network.fidelity,
+    },
     env: { CONFORMANCE_MARKER: '1' },
     credentials: [
       {
         requirementId: 'conformance-api',
         envName: CONFORMANCE_CREDENTIAL_ENV,
-        destinationHosts: profile.credentials[0].destinationHosts,
+        destinations: allowedDestination,
         bindingRef: 'conformance:synthetic',
+        probe: async () => ({ code: 'ready', provider: 'synthetic' }),
         resolve: async () => harness.syntheticCredential,
       },
     ],
-    requirements: profile.capabilities,
+    requirements: intent.capabilities,
     label: 'conformance',
   });
 
@@ -140,7 +176,7 @@ export async function runSandboxConformance(
     adapter,
     harness,
     report,
-    profile,
+    intent,
     basePlan,
     fixtures: { allowed, denied },
     guestPath: (rel) => path.posix.join(guestPathFor(workspace.hostPath), rel),
@@ -163,6 +199,8 @@ export async function runSandboxConformance(
   };
 
   const results: CaseResult[] = [];
+  const residue: string[] = [];
+  let cleaned = true;
   try {
     for (const c of cases) {
       log(`conformance ${c.id}: ${c.title}`);
@@ -186,9 +224,16 @@ export async function runSandboxConformance(
   } finally {
     for (const handle of handles) {
       try {
-        await handle.close();
-      } catch {
-        // Already closed by a case; cleanup is idempotent for the suite.
+        const report = await handle.close();
+        if (!report.cleaned) {
+          cleaned = false;
+          residue.push(...report.residue);
+        }
+      } catch (error) {
+        cleaned = false;
+        residue.push(
+          `close threw: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
     }
     await allowed.close();
@@ -205,5 +250,6 @@ export async function runSandboxConformance(
       .filter((r) => r.status === 'unsupported')
       .map((r) => r.id),
     skipped: results.filter((r) => r.status === 'skipped').map((r) => r.id),
+    cleanup: { cleaned, residue },
   };
 }

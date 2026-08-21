@@ -1,12 +1,13 @@
-import type { RuntimeProfile, SandboxCapability } from '../profile.js';
-import { resolveRuntimeProfile } from '../resolved.js';
+import type { GovernanceIntent, SandboxCapability } from '../intent.js';
+import { resolveGovernanceIntent } from '../plan.js';
 import type {
+  EnforcementRecord,
   SandboxAdapter,
   SandboxCapabilityReport,
   SandboxHandle,
   SandboxLaunchPlan,
 } from '../sandbox-adapter.js';
-import { createRuntimeSession, findValueLeaks } from '../session.js';
+import { createGovernanceSession, findValueLeaks } from '../session.js';
 import type { EnforcementState } from '../states.js';
 import type { ConformanceHarness, LoopbackFixture } from './harness.js';
 import { renderRecipe } from './recipes.js';
@@ -28,8 +29,8 @@ export interface ConformanceContext {
   adapter: SandboxAdapter;
   harness: ConformanceHarness;
   report: SandboxCapabilityReport;
-  /** Portable profile the runner built for this adapter and harness. */
-  profile: RuntimeProfile;
+  /** Portable intent the runner built for this adapter and harness. */
+  intent: GovernanceIntent;
   /** Shared launched handle for read-mostly cases; the runner owns it. */
   shared(): Promise<SharedLaunch>;
   /** Dedicated launch for cases that close or relaunch. Caller closes. */
@@ -95,6 +96,18 @@ function declaredState(
   );
 }
 
+const sleep = (ms: number) =>
+  new Promise<void>((r) => {
+    setTimeout(r, ms);
+  });
+
+/** Latest record per control. */
+function latestRecords(handle: SandboxHandle): Map<string, EnforcementRecord> {
+  const latest = new Map<string, EnforcementRecord>();
+  for (const r of handle.observe()) latest.set(r.control, r);
+  return latest;
+}
+
 /** Wrap an adapter so launches are counted and one capability is unsupported. */
 function withUnsupported(
   adapter: SandboxAdapter,
@@ -141,14 +154,14 @@ const requiredCapabilityMissing: ConformanceCase = {
   requires: [],
   async run(ctx) {
     const spy = withUnsupported(ctx.adapter, 'resource-limits');
-    const profile: RuntimeProfile = {
-      ...ctx.profile,
+    const intent: GovernanceIntent = {
+      ...ctx.intent,
       capabilities: {
-        ...ctx.profile.capabilities,
+        ...ctx.intent.capabilities,
         'resource-limits': 'required',
       },
     };
-    const outcome = await resolveRuntimeProfile(profile, {
+    const outcome = await resolveGovernanceIntent(intent, {
       sandbox: spy,
       workspace: { hostPath: ctx.basePlan().workspace.hostPath },
       credentials: {},
@@ -176,9 +189,7 @@ const requiredCapabilityMissing: ConformanceCase = {
       this,
       'passed',
       ['resolution refused before preflight and launch'],
-      {
-        failures: outcome.failures,
-      },
+      { failures: outcome.failures },
       'failed',
     );
   },
@@ -210,7 +221,7 @@ const fsDeniedWrite: ConformanceCase = {
   requires: ['filesystem-scope'],
   async run(ctx) {
     const { handle, workspace } = await ctx.shared();
-    const rel = `${ctx.profile.sandbox.filesystem.denyPaths[0]}/marker.txt`;
+    const rel = `${ctx.intent.sandbox.filesystem.denyPaths[0]}/marker.txt`;
     const r = await handle.exec(
       renderRecipe({
         op: 'write-file',
@@ -220,8 +231,15 @@ const fsDeniedWrite: ConformanceCase = {
     );
     if (workspace.exists(rel))
       return fail(this, ['marker reached the host'], { exitCode: r.exitCode });
+    const applied = latestRecords(handle).get('filesystem-scope');
+    if (!applied || applied.basis === 'declared') {
+      return fail(this, [
+        'adapter did not record filesystem-scope as applied for this launch',
+      ]);
+    }
     return pass(this, [`host marker absent; guest exit ${r.exitCode}`], {
       exitCode: r.exitCode,
+      basis: applied.basis,
     });
   },
 };
@@ -274,9 +292,7 @@ const netDenied: ConformanceCase = {
     return pass(
       this,
       [`guest exit ${r.exitCode}; denied fixture received 0 requests`],
-      {
-        exitCode: r.exitCode,
-      },
+      { exitCode: r.exitCode, fidelity: ctx.report.network.fidelity },
     );
   },
 };
@@ -287,7 +303,7 @@ const childProcess: ConformanceCase = {
   requires: ['child-process-containment', 'filesystem-scope'],
   async run(ctx) {
     const { handle, workspace } = await ctx.shared();
-    const rel = `${ctx.profile.sandbox.filesystem.denyPaths[0]}/child-marker.txt`;
+    const rel = `${ctx.intent.sandbox.filesystem.denyPaths[0]}/child-marker.txt`;
     const r = await handle.exec(
       renderRecipe({
         op: 'write-file-via-child',
@@ -301,57 +317,92 @@ const childProcess: ConformanceCase = {
     return pass(
       this,
       [`host marker absent after nested sh -c; exit ${r.exitCode}`],
-      {
-        exitCode: r.exitCode,
-      },
+      { exitCode: r.exitCode },
     );
   },
 };
 
+/**
+ * Timeout and cancellation are proven by a delayed side effect: the command
+ * sleeps, then writes a marker from a child shell. If the guest process group
+ * was really terminated, the marker never appears on the host even after
+ * the delay has elapsed.
+ */
+async function proveTermination(
+  c: ConformanceCase,
+  ctx: ConformanceContext,
+  mode: 'timeout' | 'cancel',
+): Promise<CaseResult> {
+  const { handle, workspace } = await ctx.shared();
+  const rel = `late/${mode}.marker`;
+  const delaySeconds = 3;
+  const controller = new AbortController();
+  const started = Date.now();
+  const pending = handle.exec(
+    renderRecipe({
+      op: 'delayed-write',
+      path: ctx.guestPath(rel),
+      content: 'late',
+      delaySeconds,
+      viaChild: true,
+    }),
+    mode === 'timeout' ? { timeoutMs: 800 } : { signal: controller.signal },
+  );
+  if (mode === 'cancel') setTimeout(() => controller.abort(), 500);
+  const r = await pending;
+  const elapsed = Date.now() - started;
+  const flag = mode === 'timeout' ? r.timedOut : r.cancelled;
+  if (!flag) return fail(c, [`${mode} flag not set`], { elapsedMs: elapsed });
+  if (elapsed > 15_000)
+    return fail(c, [`took ${elapsed}ms to honor ${mode}`], {
+      elapsedMs: elapsed,
+    });
+  // Wait past the delay; a surviving process would write the marker now.
+  await sleep(delaySeconds * 1000 + 1_500);
+  if (workspace.exists(rel)) {
+    return fail(
+      c,
+      [
+        `${mode} returned after ${elapsed}ms but the guest process group kept running and wrote the marker`,
+      ],
+      { elapsedMs: elapsed, terminationConfirmed: r.terminationConfirmed },
+    );
+  }
+  if (r.terminationConfirmed !== true) {
+    return fail(c, [
+      'marker absent but the adapter did not confirm termination of the guest process group',
+    ]);
+  }
+  return pass(
+    c,
+    [
+      `${mode} after ${elapsed}ms; delayed marker absent after ${delaySeconds}s; termination confirmed`,
+    ],
+    { elapsedMs: elapsed },
+  );
+}
+
 const hardTimeout: ConformanceCase = {
   id: 'C07',
-  title: 'hard timeout terminates the command',
+  title: 'hard timeout terminates the guest process group',
   requires: ['timeout-cancellation'],
-  async run(ctx) {
-    const { handle } = await ctx.shared();
-    const started = Date.now();
-    const r = await handle.exec(renderRecipe({ op: 'sleep', seconds: 30 }), {
-      timeoutMs: 1_500,
-    });
-    const elapsed = Date.now() - started;
-    if (!r.timedOut)
-      return fail(this, ['timedOut=false'], { elapsedMs: elapsed });
-    if (elapsed > 15_000)
-      return fail(this, [`took ${elapsed}ms to honor a 1.5s timeout`]);
-    return pass(this, [`timed out after ${elapsed}ms`], { elapsedMs: elapsed });
+  run(ctx) {
+    return proveTermination(this, ctx, 'timeout');
   },
 };
 
 const cancellation: ConformanceCase = {
   id: 'C08',
-  title: 'cancellation aborts the command',
+  title: 'cancellation terminates the guest process group',
   requires: ['timeout-cancellation'],
-  async run(ctx) {
-    const { handle } = await ctx.shared();
-    const controller = new AbortController();
-    const started = Date.now();
-    const pending = handle.exec(renderRecipe({ op: 'sleep', seconds: 30 }), {
-      signal: controller.signal,
-    });
-    setTimeout(() => controller.abort(), 500);
-    const r = await pending;
-    const elapsed = Date.now() - started;
-    if (!r.cancelled)
-      return fail(this, ['cancelled=false'], { elapsedMs: elapsed });
-    if (elapsed > 15_000)
-      return fail(this, [`took ${elapsed}ms to honor cancellation`]);
-    return pass(this, [`cancelled after ${elapsed}ms`], { elapsedMs: elapsed });
+  run(ctx) {
+    return proveTermination(this, ctx, 'cancel');
   },
 };
 
 const cleanup: ConformanceCase = {
   id: 'C09',
-  title: 'cleanup leaves no guest-local mutation behind',
+  title: 'cleanup leaves no guest-local mutation behind and is idempotent',
   requires: [],
   async run(ctx) {
     const first = await ctx.launch();
@@ -371,6 +422,10 @@ const cleanup: ConformanceCase = {
       return fail(this, ['cleanup reported residue'], {
         residue: report.residue,
       });
+    const again = await first.close();
+    if (again.cleaned !== report.cleaned) {
+      return fail(this, ['second close() disagreed with the first']);
+    }
     const second = await ctx.launch();
     try {
       const r = await second.exec(
@@ -407,38 +462,70 @@ const noHostEnv: ConformanceCase = {
 
 const missingCredentialBinding: ConformanceCase = {
   id: 'C11',
-  title: 'missing credential binding stops launch',
+  title: 'missing or untrusted credential binding stops launch',
   requires: [],
   async run(ctx) {
     const spy = withUnsupported(ctx.adapter, 'resource-limits');
-    const profile: RuntimeProfile = {
-      ...ctx.profile,
-      credentials: [
-        {
-          id: 'conformance-api',
-          purpose: 'conformance fixture',
-          consumer: 'guest-process',
-          destinationHosts: [...ctx.harness.loopback.allowed.allowedHosts],
-          delivery: 'brokered-http',
-          envName: 'CONFORMANCE_TOKEN',
-          required: true,
-        },
-      ],
+    const requirement = ctx.intent.credentials[0];
+    const intent: GovernanceIntent = {
+      ...ctx.intent,
+      credentials: [{ ...requirement, required: true }],
     };
-    const outcome = await resolveRuntimeProfile(profile, {
+    const missing = await resolveGovernanceIntent(intent, {
       sandbox: spy,
       workspace: { hostPath: ctx.basePlan().workspace.hostPath },
       credentials: {},
     });
-    if (outcome.ok)
+    if (missing.ok)
       return fail(this, ['resolution succeeded without a credential binding']);
-    const hit = outcome.failures.find(
+    const hitMissing = missing.failures.find(
       (f) => f.code === 'credential_binding_missing',
     );
-    if (!hit)
+    if (!hitMissing)
       return fail(this, ['no credential_binding_missing failure'], {
-        failures: outcome.failures,
+        failures: missing.failures,
       });
+    // A binding exists but is narrower than the requirement: the trusted
+    // side wins and resolution refuses the broader request.
+    const broader = await resolveGovernanceIntent(
+      {
+        ...intent,
+        credentials: [
+          {
+            ...requirement,
+            required: true,
+            destinations: [
+              ...requirement.destinations,
+              { host: 'other.invalid' },
+            ],
+          },
+        ],
+      },
+      {
+        sandbox: spy,
+        workspace: { hostPath: ctx.basePlan().workspace.hostPath },
+        credentials: {
+          [requirement.id]: {
+            requirementId: requirement.id,
+            envName: requirement.envName,
+            destinations: requirement.destinations,
+            bindingRef: 'conformance:narrow',
+            probe: async () => ({ code: 'ready' }),
+            resolve: async () => 'never',
+          },
+        },
+      },
+    );
+    if (
+      broader.ok ||
+      !broader.failures.some(
+        (f) => f.code === 'credential_destination_not_trusted',
+      )
+    ) {
+      return fail(this, [
+        'a requirement broader than its trusted binding was not refused',
+      ]);
+    }
     if (spy.launches !== 0 || spy.preflights !== 0) {
       return fail(this, [
         `adapter reached: launches=${spy.launches} preflights=${spy.preflights}`,
@@ -447,10 +534,10 @@ const missingCredentialBinding: ConformanceCase = {
     return result(
       this,
       'passed',
-      ['resolution refused with a setup diagnostic'],
-      {
-        message: hit.message,
-      },
+      [
+        'missing binding refused with a setup diagnostic; broader-than-trusted destination refused',
+      ],
+      { message: hitMissing.message },
       'failed',
     );
   },
@@ -487,6 +574,7 @@ const credentialOneDestination: ConformanceCase = {
     const details = [
       `allowed: exit ${ok.exitCode}, hits ${allowedHits}, expected credential seen ${ctx.fixtures.allowed.sawExpectedCredential}`,
       `denied: exit ${bad.exitCode}, hits ${deniedHits}`,
+      `fidelity: ${ctx.report.network.fidelity}`,
     ];
     if (
       ok.exitCode !== 0 ||
@@ -501,7 +589,11 @@ const credentialOneDestination: ConformanceCase = {
     if (deniedHits !== 0 || bad.exitCode === 0) {
       return fail(this, ['adjacent destination was reached', ...details]);
     }
-    return pass(this, details, { allowedHits, deniedHits });
+    return pass(this, details, {
+      allowedHits,
+      deniedHits,
+      fidelity: ctx.report.network.fidelity,
+    });
   },
 };
 
@@ -514,34 +606,36 @@ const credentialAbsent: ConformanceCase = {
     const r = await handle.exec(
       renderRecipe({ op: 'print-env', name: 'CONFORMANCE_TOKEN' }),
     );
-    const session = createRuntimeSession(
-      {
-        profile: ctx.profile.ref,
-        policySnapshotHash: 'sha256:' + '0'.repeat(64),
-        sandboxAdapter: { id: ctx.adapter.id, version: ctx.adapter.version },
-        capabilities: [],
-        hostPowers: [],
-        credentialBindings: [],
-        contextInputs: [],
-        launchPlanDigest: 'sha256:' + '0'.repeat(64),
-        resolvedAt: new Date(0).toISOString(),
-      },
-      { id: 'conformance' },
-    );
+    const outcome = await resolveGovernanceIntent(ctx.intent, {
+      sandbox: ctx.adapter,
+      workspace: { hostPath: ctx.basePlan().workspace.hostPath },
+      credentials: Object.fromEntries(
+        ctx.basePlan().credentials.map((b) => [b.requirementId, b]),
+      ),
+    });
+    if (!outcome.ok) {
+      return fail(this, ['conformance intent did not resolve'], {
+        failures: outcome.failures,
+      });
+    }
+    const session = createGovernanceSession(outcome.plan, {
+      id: 'conformance',
+    });
     for (const record of handle.observe()) session.recordEnforcement(record);
     const finished = session.finish('completed');
     const leaks = findValueLeaks(ctx.harness.syntheticCredential, {
       stdout: r.stdout,
       stderr: r.stderr,
       observe: handle.observe(),
+      plan: outcome.plan,
       session: finished,
-      plan: {
-        ...ctx.basePlan(),
-        credentials: ctx.basePlan().credentials.map((binding) => ({
-          requirementId: binding.requirementId,
-          envName: binding.envName,
-          destinationHosts: binding.destinationHosts,
-          bindingRef: binding.bindingRef,
+      launchPlanWithoutResolvers: {
+        ...outcome.launchPlan,
+        credentials: outcome.launchPlan.credentials.map((b) => ({
+          requirementId: b.requirementId,
+          envName: b.envName,
+          destinations: b.destinations,
+          bindingRef: b.bindingRef,
         })),
       },
     });
@@ -551,7 +645,7 @@ const credentialAbsent: ConformanceCase = {
       return fail(this, ['guest saw no stand-in for the credential env']);
     }
     return pass(this, [
-      'guest saw a stand-in; value absent from output, observations, session, and plan evidence',
+      'guest saw a stand-in; value absent from output, observations, plan, session, and launch plan',
     ]);
   },
 };
@@ -615,14 +709,12 @@ const adapterDisappearance: ConformanceCase = {
     if (!threw && after && after.exitCode === 0 && !after.cancelled) {
       return fail(this, ['exec succeeded after close']);
     }
-    // Latest record per control wins; history is retained for evidence.
-    const latest = new Map<string, EnforcementState>();
-    for (const r of handle.observe()) latest.set(r.control, r.state);
-    const states = [...latest.values()];
+    const latest = latestRecords(handle);
+    const states = [...latest.values()].map((r) => r.state);
     const claimsEnforced = [...latest.entries()].some(
-      ([control, state]) =>
-        state === 'enforced' &&
-        ctx.profile.capabilities[control as SandboxCapability] !== undefined,
+      ([control, record]) =>
+        record.state === 'enforced' &&
+        ctx.intent.capabilities[control as SandboxCapability] !== undefined,
     );
     if (claimsEnforced) {
       return fail(
@@ -635,12 +727,100 @@ const adapterDisappearance: ConformanceCase = {
       this,
       'passed',
       ['post-close exec refused; no enforced claim survives close'],
-      {
-        states: [...new Set(states)],
-        threw,
-      },
+      { states: [...new Set(states)], threw },
       threw ? 'failed' : 'degraded',
     );
+  },
+};
+
+/**
+ * Same-host destination narrowing. An adapter with `host` fidelity must not
+ * resolve a port-scoped required destination as enforced; an adapter with
+ * finer fidelity must actually deny the adjacent port on the same host.
+ */
+const destinationFidelity: ConformanceCase = {
+  id: 'C16',
+  title: 'same-host port narrowing is enforced or honestly degraded',
+  requires: ['network-egress'],
+  async run(ctx) {
+    const fidelity = ctx.report.network.fidelity;
+    const allowed = ctx.intent.sandbox.network.allowedDestinations[0];
+    const portScoped: GovernanceIntent = {
+      ...ctx.intent,
+      capabilities: {
+        ...ctx.intent.capabilities,
+        'network-egress': 'required',
+      },
+      sandbox: {
+        ...ctx.intent.sandbox,
+        network: {
+          ...ctx.intent.sandbox.network,
+          allowedDestinations: [
+            { host: allowed.host, port: ctx.fixtures.allowed.port },
+          ],
+        },
+      },
+      credentials: [],
+    };
+    const outcome = await resolveGovernanceIntent(portScoped, {
+      sandbox: ctx.adapter,
+      workspace: { hostPath: ctx.basePlan().workspace.hostPath },
+      credentials: {},
+    });
+    if (fidelity === 'host') {
+      if (outcome.ok) {
+        return fail(this, [
+          'adapter with host fidelity resolved a required port-scoped destination as enforced',
+        ]);
+      }
+      const hit = outcome.failures.find(
+        (f) =>
+          f.code === 'capability_degraded' && f.capability === 'network-egress',
+      );
+      if (!hit) {
+        return fail(
+          this,
+          ['port-scoped destination was refused for the wrong reason'],
+          {
+            failures: outcome.failures,
+          },
+        );
+      }
+      return result(
+        this,
+        'passed',
+        [
+          'host-only fidelity: port-scoped required egress resolved as degraded and refused',
+        ],
+        { fidelity },
+        'degraded',
+      );
+    }
+    if (!outcome.ok) {
+      return fail(this, ['port-scoped destination did not resolve'], {
+        failures: outcome.failures,
+      });
+    }
+    // Same hostname as the allowed fixture, adjacent fixture port.
+    const { handle } = await ctx.shared();
+    const before = ctx.fixtures.denied.hits;
+    const url = `http://${ctx.harness.loopback.allowed.guestHostname}:${ctx.fixtures.denied.port}/port`;
+    const r = await handle.exec(
+      renderRecipe({
+        op: 'http-get',
+        url,
+        resolveTo: ctx.harness.loopback.allowed.resolveTo,
+      }),
+    );
+    const hits = ctx.fixtures.denied.hits - before;
+    if (hits !== 0 || r.exitCode === 0) {
+      return fail(this, [
+        `same-host adjacent port was reachable (exit ${r.exitCode}, hits ${hits})`,
+      ]);
+    }
+    return pass(this, [`same-host adjacent port denied (exit ${r.exitCode})`], {
+      fidelity,
+    });
   },
 };
 
@@ -661,6 +841,7 @@ export const SANDBOX_CONFORMANCE_CASES: readonly ConformanceCase[] =
     credentialAbsent,
     hostPowersOutside,
     adapterDisappearance,
+    destinationFidelity,
   ]);
 
 /** Short-circuit a case whose capability the adapter honestly declares unsupported. */

@@ -22,10 +22,11 @@ export {
   type ReferenceAdapterOptions,
 } from './reference-adapter.js';
 export {
-  buildConformanceProfile,
+  buildConformanceIntent,
   CONFORMANCE_CREDENTIAL_ENV,
   CONFORMANCE_DENY_PATH,
   type ConformanceRunOptions,
   type ConformanceSummary,
+  fixtureDestination,
   runSandboxConformance,
 } from './runner.js';

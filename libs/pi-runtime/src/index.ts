@@ -88,13 +88,6 @@ export {
   type PiToolScope,
   type ResolvedGondolinTemplate,
 } from './runtime-definition.js';
-export {
-  createGondolinSandboxAdapter,
-  GONDOLIN_PLATFORM_EGRESS_NOTE,
-  GONDOLIN_SANDBOX_ADAPTER_ID,
-  GONDOLIN_SANDBOX_ADAPTER_VERSION,
-  type GondolinSandboxAdapterOptions,
-} from './sandbox/gondolin-sandbox-adapter.js';
 export type {
   EnsureSnapshotOptions,
   ResumeCommand,
@@ -138,9 +131,11 @@ export type {
 } from './vm-manager.js';
 export {
   activateAgentEnv,
+  assertBrokeredSecretNamesDoNotCollide,
   assertGuestEnvironmentBoundary,
   assertHostAuthenticatedGuestEnvironment,
   findMainWorktree,
+  GONDOLIN_BASE_ALLOWED_HOSTS,
   loadCredentials,
   resumeVm,
 } from './vm-manager.js';

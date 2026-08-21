@@ -4,6 +4,8 @@ import { createServer, type Server } from 'node:http';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
+import type { DestinationConstraint } from '../intent.js';
+
 /**
  * Independent host-side oracle for one loopback destination. It records how
  * many requests arrived and whether the expected credential value arrived.
@@ -39,11 +41,16 @@ export interface LoopbackDestination {
   guestHostname: string;
   /**
    * Guest-visible address the hostname is pinned to when the guest cannot
-   * resolve it (e.g. the Gondolin gateway that maps to host loopback).
+   * resolve it (e.g. a gateway that maps to host loopback).
    */
   resolveTo?: string;
-  /** Host patterns the launch plan lists for this destination (allowedHosts). */
-  allowedHosts: readonly string[];
+  /**
+   * Destination constraint the intent lists for this fixture. The fixture
+   * port is only known at runtime, so `port: 'fixture'` is substituted.
+   */
+  destination: Omit<DestinationConstraint, 'port'> & {
+    port?: number | 'fixture';
+  };
   /** Host patterns allowed to resolve to internal ranges (allowedInternalHosts). */
   allowedInternalHosts: readonly string[];
 }

@@ -134,11 +134,6 @@
       "component": "pi-runtime",
       "release-type": "node"
     },
-    "libs/runtime-core": {
-      "bump-minor-pre-major": true,
-      "component": "runtime-core",
-      "release-type": "node"
-    },
     "libs/sdk": {
       "bump-minor-pre-major": true,
       "component": "sdk",

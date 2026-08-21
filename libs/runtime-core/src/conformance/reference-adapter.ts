@@ -1,8 +1,10 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
+import { type DestinationConstraint, destinationWithin } from '../intent.js';
 import type {
   EnforcementRecord,
+  NetworkFidelity,
   PreflightIssue,
   SandboxAdapter,
   SandboxCapabilityReport,
@@ -10,11 +12,16 @@ import type {
   SandboxHandle,
   SandboxLaunchPlan,
 } from '../sandbox-adapter.js';
+import { stateForUnavailableControl } from '../states.js';
 import { parseRecipe, type Recipe } from './recipes.js';
 
 export interface ReferenceAdapterOptions {
   /** Simulate an adapter that cannot provide these capabilities. */
   unsupported?: readonly SandboxCapabilityReport['capabilities'][number]['capability'][];
+  /** Simulated destination granularity. Default `host-port`. */
+  fidelity?: NetworkFidelity;
+  /** Simulated platform egress the adapter always permits. Default none. */
+  mandatoryEgress?: readonly DestinationConstraint[];
   /** Make `fetch` observable; defaults to global fetch. */
   fetch?: typeof fetch;
   /** Hostnames treated as loopback aliases the simulated guest can resolve. */
@@ -34,7 +41,8 @@ export function createReferenceSandboxAdapter(
   const loopback = new Set(
     options.loopbackHostnames ?? ['127.0.0.1', 'localhost'],
   );
-  const identity = { id: 'reference-in-memory', version: '0.1.0' };
+  const identity = { id: 'reference-in-memory', version: '0.2.0' };
+  const fidelity = options.fidelity ?? 'host-port';
 
   const describe = (): SandboxCapabilityReport => ({
     adapter: identity,
@@ -52,11 +60,14 @@ export function createReferenceSandboxAdapter(
       capability,
       state: unsupported.has(capability) ? 'unsupported' : 'enforced',
       locus:
-        capability === 'brokered-credential' ? 'host-broker' : 'guest-sandbox',
+        capability === 'brokered-credential' || capability === 'network-egress'
+          ? 'host-broker'
+          : 'guest-sandbox',
       reason: unsupported.has(capability)
         ? 'reference adapter configured without it'
         : 'simulated by the in-memory reference adapter; not a real sandbox',
     })),
+    network: { fidelity, mandatoryEgress: options.mandatoryEgress ?? [] },
     hostPowers: [
       { power: 'host-exec', locus: 'outside-containment' },
       { power: 'host-mcp', locus: 'outside-containment' },
@@ -78,25 +89,65 @@ export function createReferenceSandboxAdapter(
           });
         }
       }
+      const names = new Set<string>();
+      for (const binding of plan.credentials) {
+        if (names.has(binding.envName)) {
+          issues.push({
+            code: 'credential_binding_duplicate',
+            requirementId: binding.requirementId,
+            message: `duplicate brokered env name ${binding.envName}`,
+          });
+        }
+        names.add(binding.envName);
+      }
       return issues.length > 0
         ? { ok: false, issues }
         : { ok: true, warnings: [] };
     },
-    async launch(plan) {
+    async launch(plan, launchOptions) {
+      if (launchOptions?.signal?.aborted) {
+        throw new Error('launch aborted before start');
+      }
       return new ReferenceHandle(identity, plan, describe(), doFetch, loopback);
     },
   };
 }
 
+function matchesDestination(
+  url: URL,
+  destinations: readonly DestinationConstraint[],
+  fidelity: NetworkFidelity,
+): boolean {
+  const port = Number(url.port || (url.protocol === 'https:' ? 443 : 80));
+  const scheme = url.protocol === 'https:' ? 'https' : 'http';
+  return destinations.some((d) =>
+    destinationWithin(
+      {
+        host: url.hostname,
+        ...(fidelity !== 'host' ? { port } : {}),
+        ...(fidelity === 'origin' ? { scheme } : {}),
+      },
+      fidelity === 'host'
+        ? { host: d.host }
+        : fidelity === 'host-port'
+          ? { host: d.host, ...(d.port !== undefined ? { port: d.port } : {}) }
+          : d,
+    ),
+  );
+}
+
 class ReferenceHandle implements SandboxHandle {
   readonly guestWorkspace: string;
   private closed = false;
+  private closeReport: Promise<{ cleaned: boolean; residue: string[] }> | null =
+    null;
   private readonly guestTmp = new Map<string, string>();
   private readonly records: EnforcementRecord[] = [];
   private readonly standIns = new Map<
     string,
-    { placeholder: string; value?: string; hosts: readonly string[] }
+    { placeholder: string; hosts: readonly DestinationConstraint[] }
   >();
+  private readonly fidelity: NetworkFidelity;
 
   constructor(
     readonly adapter: { id: string; version: string },
@@ -106,21 +157,25 @@ class ReferenceHandle implements SandboxHandle {
     private readonly loopback: Set<string>,
   ) {
     this.guestWorkspace = plan.workspace.hostPath;
-    const now = new Date().toISOString();
+    this.fidelity = report.network.fidelity;
+    const recordedAt = new Date().toISOString();
     for (const c of report.capabilities) {
       this.records.push({
         control: c.capability,
         locus: c.locus,
         intended: plan.requirements[c.capability] ?? 'none',
         state: c.state,
+        // The reference adapter configures every simulated control at
+        // launch, so its records are `applied`, not merely declared.
+        basis: c.state === 'enforced' ? 'applied' : 'declared',
         reason: c.reason,
-        observedAt: now,
+        recordedAt,
       });
     }
     for (const binding of plan.credentials) {
       this.standIns.set(binding.envName, {
         placeholder: `standin-${binding.requirementId}`,
-        hosts: binding.destinationHosts,
+        hosts: binding.destinations,
       });
     }
   }
@@ -137,20 +192,18 @@ class ReferenceHandle implements SandboxHandle {
     );
   }
 
-  private isLoopbackAllowed(hostname: string): boolean {
-    const matches = (patterns: readonly string[]) =>
-      patterns.some(
-        (p) =>
-          p === hostname ||
-          (p.startsWith('*.') && hostname.endsWith(p.slice(1))),
-      );
-    if (this.loopback.has(hostname)) {
-      return (
-        matches(this.plan.network.allowedInternalHosts) &&
-        matches(this.plan.network.allowedHosts)
-      );
+  private egressAllowed(url: URL): boolean {
+    if (
+      this.loopback.has(url.hostname) &&
+      !this.plan.network.effective.allowedInternalHosts.includes(url.hostname)
+    ) {
+      return false;
     }
-    return matches(this.plan.network.allowedHosts);
+    return matchesDestination(
+      url,
+      this.plan.network.effective.allowedDestinations,
+      this.fidelity,
+    );
   }
 
   async exec(
@@ -169,6 +222,31 @@ class ReferenceHandle implements SandboxHandle {
       };
     }
     return this.runRecipe(recipe, options);
+  }
+
+  private writeGuest(target: string, content: string): SandboxExecResult {
+    if (target.startsWith(this.guestWorkspace)) {
+      if (this.denied(target)) {
+        return {
+          exitCode: 1,
+          stdout: '',
+          stderr: 'permission denied',
+          timedOut: false,
+          cancelled: false,
+        };
+      }
+      mkdirSync(path.dirname(target), { recursive: true });
+      writeFileSync(target, content, 'utf8');
+    } else {
+      this.guestTmp.set(target, content);
+    }
+    return {
+      exitCode: 0,
+      stdout: '',
+      stderr: '',
+      timedOut: false,
+      cancelled: false,
+    };
   }
 
   private async runRecipe(
@@ -191,16 +269,8 @@ class ReferenceHandle implements SandboxHandle {
     });
     switch (recipe.op) {
       case 'write-file':
-      case 'write-file-via-child': {
-        if (recipe.path.startsWith(this.guestWorkspace)) {
-          if (this.denied(recipe.path)) return err(1, 'permission denied');
-          mkdirSync(path.dirname(recipe.path), { recursive: true });
-          writeFileSync(recipe.path, recipe.content, 'utf8');
-          return ok();
-        }
-        this.guestTmp.set(recipe.path, recipe.content);
-        return ok();
-      }
+      case 'write-file-via-child':
+        return this.writeGuest(recipe.path, recipe.content);
       case 'read-file': {
         const content = this.guestTmp.get(recipe.path);
         return content === undefined ? err(1, 'no such file') : ok(content);
@@ -212,16 +282,24 @@ class ReferenceHandle implements SandboxHandle {
           this.plan.env[recipe.name] ?? options.env?.[recipe.name] ?? '',
         );
       }
-      case 'sleep': {
-        const ms = recipe.seconds * 1000;
+      case 'sleep':
+      case 'delayed-write': {
+        const ms =
+          (recipe.op === 'sleep' ? recipe.seconds : recipe.delaySeconds) * 1000;
         const timeout = options.timeoutMs;
         return new Promise<SandboxExecResult>((resolve) => {
           const timers: NodeJS.Timeout[] = [];
           const done = setTimeout(() => {
             timers.forEach(clearTimeout);
-            resolve(ok());
+            resolve(
+              recipe.op === 'delayed-write'
+                ? this.writeGuest(recipe.path, recipe.content)
+                : ok(),
+            );
           }, ms);
           timers.push(done);
+          // Termination is simulated by clearing the pending write: a
+          // killed process group never performs its side effect.
           if (timeout !== undefined && timeout < ms) {
             timers.push(
               setTimeout(() => {
@@ -232,6 +310,7 @@ class ReferenceHandle implements SandboxHandle {
                   stderr: 'timeout',
                   timedOut: true,
                   cancelled: false,
+                  terminationConfirmed: true,
                 });
               }, timeout),
             );
@@ -246,6 +325,7 @@ class ReferenceHandle implements SandboxHandle {
                 stderr: 'aborted',
                 timedOut: false,
                 cancelled: true,
+                terminationConfirmed: true,
               });
             },
             { once: true },
@@ -254,17 +334,14 @@ class ReferenceHandle implements SandboxHandle {
       }
       case 'http-get': {
         const url = new URL(recipe.url);
-        if (!this.isLoopbackAllowed(url.hostname))
-          return err(7, `blocked: ${url.hostname}`);
+        if (!this.egressAllowed(url)) return err(7, `blocked: ${url.hostname}`);
         const headers: Record<string, string> = {};
         if (recipe.bearerEnv) {
           const standIn = this.standIns.get(recipe.bearerEnv);
           if (standIn) {
-            const allowedForHost = standIn.hosts.some(
-              (h) => h === url.hostname,
-            );
-            if (!allowedForHost)
+            if (!matchesDestination(url, standIn.hosts, this.fidelity)) {
               return err(22, 'credential not permitted for destination');
+            }
             const binding = this.plan.credentials.find(
               (c) => c.envName === recipe.bearerEnv,
             );
@@ -286,25 +363,24 @@ class ReferenceHandle implements SandboxHandle {
     }
   }
 
-  async close() {
-    this.closed = true;
-    this.guestTmp.clear();
-    const now = new Date().toISOString();
-    for (const record of [...this.records]) {
-      if (record.state === 'enforced') {
-        this.records.push({
-          ...record,
-          state:
-            record.intended === 'required'
-              ? 'failed'
-              : record.intended === 'preferred'
-                ? 'degraded'
-                : 'failed-open',
-          reason: 'sandbox closed',
-          observedAt: now,
-        });
+  close() {
+    this.closeReport ??= (async () => {
+      this.closed = true;
+      this.guestTmp.clear();
+      const recordedAt = new Date().toISOString();
+      for (const record of [...this.records]) {
+        if (record.state === 'enforced') {
+          this.records.push({
+            ...record,
+            state: stateForUnavailableControl(record.intended, record.state),
+            basis: 'applied',
+            reason: 'sandbox closed',
+            recordedAt,
+          });
+        }
       }
-    }
-    return { cleaned: true, residue: [] };
+      return { cleaned: true, residue: [] as string[] };
+    })();
+    return this.closeReport;
   }
 }

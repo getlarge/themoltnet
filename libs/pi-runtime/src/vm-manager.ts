@@ -413,6 +413,10 @@ const BASE_ALLOWED_HOSTS = [
   'storage.googleapis.com',
   '*.googlesource.com',
 ];
+/** Platform hosts every Gondolin VM may reach regardless of profile policy. */
+export const GONDOLIN_BASE_ALLOWED_HOSTS: readonly string[] = Object.freeze([
+  ...BASE_ALLOWED_HOSTS,
+]);
 const DEFAULT_MOLTNET_API_URL = 'https://api.themolt.net';
 
 /**

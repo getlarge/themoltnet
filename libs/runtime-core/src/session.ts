@@ -1,7 +1,9 @@
-import type { RuntimeProfileRef } from './profile.js';
-import type { ResolvedRuntimeProfile } from './resolved.js';
+import { deepFreezeClone } from './digest.js';
+import type { GovernanceIntentRef } from './intent.js';
+import type { GovernancePlan } from './plan.js';
 import type {
   EnforcementRecord,
+  EvidenceBasis,
   SandboxAdapterIdentity,
   SandboxCleanupReport,
 } from './sandbox-adapter.js';
@@ -53,39 +55,47 @@ export function decisionFromGateVerdict(verdict: GateVerdictLike): {
   };
 }
 
-export type RuntimeSessionOutcome =
+export type GovernanceSessionOutcome =
   | 'completed'
   | 'failed'
   | 'cancelled'
   | 'launch-refused';
 
 /**
- * Runtime session: what was actually applied and observed for one launch of
- * a resolved profile. Distinct from MoltNet's stored `runtime_sessions`
- * transcript objects; this record carries enforcement evidence only.
+ * Governance session: enforcement evidence for one launch of a plan. Every
+ * record carries its basis (`declared`, `applied`, `verified`); a session
+ * that only contains declarations proves nothing and says so in its summary.
+ * Unrelated to the stored `runtime_sessions` transcript objects.
  */
-export interface RuntimeSession {
+export interface GovernanceSession {
   readonly id: string;
-  readonly profile: RuntimeProfileRef;
+  readonly profile: GovernanceIntentRef;
   readonly policySnapshotHash: string;
+  readonly planDigest: string;
   readonly sandboxAdapter: SandboxAdapterIdentity;
-  readonly launchPlanDigest: string;
   readonly startedAt: string;
   readonly endedAt: string;
-  readonly outcome: RuntimeSessionOutcome;
+  readonly outcome: GovernanceSessionOutcome;
   readonly enforcement: readonly EnforcementRecord[];
   readonly decisions: readonly ActionDecisionRecord[];
   readonly cleanup?: SandboxCleanupReport;
 }
 
 export interface EnforcementSummary {
+  /** Controls whose latest non-declared record is `enforced`. */
   enforced: string[];
   unsupported: string[];
   degraded: string[];
   failedOpen: string[];
   failed: string[];
+  /** Controls for which only a declaration exists: no evidence either way. */
+  declaredOnly: string[];
 }
 
+/**
+ * Latest record per control wins; a bare declaration is reported separately
+ * and never counted as enforced.
+ */
 export function summarizeEnforcement(
   records: readonly EnforcementRecord[],
 ): EnforcementSummary {
@@ -95,12 +105,16 @@ export function summarizeEnforcement(
     degraded: [],
     failedOpen: [],
     failed: [],
+    declaredOnly: [],
   };
-  // Latest record per control wins.
   const latest = new Map<string, EnforcementRecord>();
   for (const record of records) latest.set(record.control, record);
   for (const record of latest.values()) {
     const key = `${record.control}@${record.locus}`;
+    if (record.basis === 'declared' && record.state === 'enforced') {
+      summary.declaredOnly.push(key);
+      continue;
+    }
     switch (record.state) {
       case 'enforced':
         summary.enforced.push(key);
@@ -122,13 +136,14 @@ export function summarizeEnforcement(
   return summary;
 }
 
-export interface RuntimeSessionRecorder {
+export interface GovernanceSessionRecorder {
   readonly id: string;
-  recordEnforcement(record: Omit<EnforcementRecord, 'observedAt'>): void;
-  /** Record that a previously declared control disappeared mid-session. */
+  recordEnforcement(record: Omit<EnforcementRecord, 'recordedAt'>): void;
+  /** Record that a previously active control disappeared mid-session. */
   recordControlLost(
     control: EnforcementRecord['control'],
     reason: string,
+    basis?: Exclude<EvidenceBasis, 'declared'>,
   ): EnforcementState;
   recordDecision(
     decision: Omit<
@@ -137,87 +152,86 @@ export interface RuntimeSessionRecorder {
     >,
   ): ActionDecisionRecord;
   recordCleanup(report: SandboxCleanupReport): void;
-  finish(outcome: RuntimeSessionOutcome): RuntimeSession;
+  finish(outcome: GovernanceSessionOutcome): GovernanceSession;
 }
 
-export interface CreateRuntimeSessionOptions {
+export interface CreateGovernanceSessionOptions {
   id?: string;
   now?: () => Date;
 }
 
 /**
- * Seed the session from the resolved profile's capability verdicts: every
- * capability starts as the adapter declared it, so an `unsupported` or
- * `degraded` declaration is visible in the session even if the adapter never
- * reports again.
+ * Seed the session from the plan's capability verdicts with basis
+ * `declared`. Adapters and oracles add `applied`/`verified` records; until
+ * they do, the summary reports those controls as declared-only.
  */
-export function createRuntimeSession(
-  resolved: ResolvedRuntimeProfile,
-  options: CreateRuntimeSessionOptions = {},
-): RuntimeSessionRecorder {
+export function createGovernanceSession(
+  plan: GovernancePlan,
+  options: CreateGovernanceSessionOptions = {},
+): GovernanceSessionRecorder {
   const now = options.now ?? (() => new Date());
   const startedAt = now().toISOString();
-  const id = options.id ?? `rs_${startedAt}_${resolved.profile.revision}`;
-  const enforcement: EnforcementRecord[] = resolved.capabilities.map(
+  const id = options.id ?? `gs_${startedAt}_${plan.profile.revision}`;
+  const enforcement: EnforcementRecord[] = plan.capabilities.map(
     (capability) => ({
       control: capability.capability,
       locus: capability.locus,
       intended: capability.requested,
       state: capability.declared,
+      basis: 'declared',
       ...(capability.reason ? { reason: capability.reason } : {}),
-      observedAt: startedAt,
+      recordedAt: startedAt,
     }),
   );
-  for (const power of resolved.hostPowers) {
+  for (const power of plan.hostPowers) {
     enforcement.push({
       control: power.power,
       locus: power.locus,
       intended: 'none',
       state: power.locus === 'host-broker' ? 'enforced' : 'unsupported',
+      basis: 'declared',
       reason:
         power.locus === 'host-broker'
           ? 'mediated by host broker'
           : 'outside guest containment; no enforcement claimed',
-      observedAt: startedAt,
+      recordedAt: startedAt,
     });
   }
   const decisions: ActionDecisionRecord[] = [];
   let cleanup: SandboxCleanupReport | undefined;
-  let finished: RuntimeSession | undefined;
+  let finished: GovernanceSession | undefined;
 
   const intendedFor = (control: string): RequirementLevel | 'none' =>
-    resolved.capabilities.find((c) => c.capability === control)?.requested ??
+    plan.capabilities.find((c) => c.capability === control)?.requested ??
     'none';
-  const latestState = (control: string): EnforcementState =>
-    [...enforcement].reverse().find((r) => r.control === control)?.state ??
-    'unsupported';
+  const latestRecord = (control: string): EnforcementRecord | undefined =>
+    [...enforcement].reverse().find((r) => r.control === control);
 
   const assertOpen = () => {
-    if (finished) throw new Error(`runtime session ${id} already finished`);
+    if (finished) throw new Error(`governance session ${id} already finished`);
   };
 
   return {
     id,
     recordEnforcement(record) {
       assertOpen();
-      enforcement.push({ ...record, observedAt: now().toISOString() });
+      enforcement.push({ ...record, recordedAt: now().toISOString() });
     },
-    recordControlLost(control, reason) {
+    recordControlLost(control, reason, basis = 'applied') {
       assertOpen();
+      const previous = latestRecord(control);
       const state = stateForUnavailableControl(
         intendedFor(control),
-        latestState(control),
+        previous?.state ?? 'unsupported',
       );
-      const previous = [...enforcement]
-        .reverse()
-        .find((r) => r.control === control);
       enforcement.push({
         control,
         locus: previous?.locus ?? 'outside-containment',
         intended: intendedFor(control),
         state,
+        basis,
         reason,
-        observedAt: now().toISOString(),
+        recordedAt: now().toISOString(),
       });
       return state;
     },
@@ -225,8 +239,8 @@ export function createRuntimeSession(
       assertOpen();
       const record: ActionDecisionRecord = {
         ...decision,
-        runtimeProfileRevision: resolved.profile.revision,
-        policySnapshotHash: resolved.policySnapshotHash,
+        runtimeProfileRevision: plan.profile.revision,
+        policySnapshotHash: plan.policySnapshotHash,
         decidedAt: now().toISOString(),
       };
       decisions.push(record);
@@ -238,17 +252,17 @@ export function createRuntimeSession(
     },
     finish(outcome) {
       assertOpen();
-      finished = Object.freeze({
+      finished = deepFreezeClone({
         id,
-        profile: { ...resolved.profile },
-        policySnapshotHash: resolved.policySnapshotHash,
-        sandboxAdapter: { ...resolved.sandboxAdapter },
-        launchPlanDigest: resolved.launchPlanDigest,
+        profile: plan.profile,
+        policySnapshotHash: plan.policySnapshotHash,
+        planDigest: plan.planDigest,
+        sandboxAdapter: plan.sandboxAdapter,
         startedAt,
         endedAt: now().toISOString(),
         outcome,
-        enforcement: Object.freeze([...enforcement]),
-        decisions: Object.freeze([...decisions]),
+        enforcement,
+        decisions,
         ...(cleanup ? { cleanup } : {}),
       });
       return finished;
