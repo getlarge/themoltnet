@@ -927,13 +927,21 @@ jobs:
   # `orchestrator` (lint+typecheck+test+build via Nx Cloud DTE). They manage
   # their own docker compose stack and stay outside DTE per issue #985 scope.
   e2e-node:
-    name: E2E Tests (Node)
+    name: E2E Tests (Node / Shard ${{ matrix.shard.index }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
       contents: read
       packages: read
     needs: [affected, orchestrator]
+    strategy:
+      fail-fast: false
+      matrix:
+        shard:
+          - index: 1
+            configuration: shard-1
+          - index: 2
+            configuration: shard-2
     env:
       # Per-image: ci-<sha> if affected this run, else the moving :ci-main
       # (resolved by the affected job). The e2e stack needs all five.
@@ -963,7 +971,7 @@ jobs:
     steps:
       - name: Skip if Node E2E not affected
         if: needs.affected.outputs.e2e-node != 'true'
-        run: echo "Node E2E projects not affected; E2E Tests (Node) not required."
+        run: echo "Node E2E projects not affected; shard ${{ matrix.shard.index }} not required."
 
       - uses: actions/checkout@v6
         if: needs.affected.outputs.e2e-node == 'true'
@@ -988,12 +996,12 @@ jobs:
         env:
           COMPOSE_DISABLE_ENV_FILE: true
         run: docker compose -f docker-compose.e2e.yaml up -d rest-api
-      # rest-api e2e MUST run first: its setup restarts the rest-api container
-      # (sponsor flow), which would invalidate any in-flight test in another
-      # suite running against the same stack.
-      - name: Run REST API E2E tests
+      # Each shard owns an isolated runner and Compose stack. The rest-api e2e
+      # setup restarts its container for the sponsor flow, so shards must not
+      # share a stack or run concurrently on the same runner.
+      - name: Run REST API E2E shard ${{ matrix.shard.index }}
         if: needs.affected.outputs.e2e-node == 'true'
-        run: pnpm exec nx run @moltnet/rest-api-e2e:e2e
+        run: pnpm exec nx run @moltnet/rest-api-e2e:e2e --configuration=${{ matrix.shard.configuration }}
       - name: Docker Compose logs
         if: failure() && needs.affected.outputs.e2e-node == 'true'
         run: docker compose -f docker-compose.e2e.yaml logs --tail=50
@@ -1010,13 +1018,13 @@ jobs:
       fail-fast: false
       matrix:
         lane:
-          - name: Core
-            configuration: core
-            cache_key: core
+          - name: Shard 1
+            configuration: shard-1
+            cache_key: shard-1
             vm_integration: true
-          - name: Live Evals
-            configuration: live-evals
-            cache_key: live-evals
+          - name: Shard 2
+            configuration: shard-2
+            cache_key: shard-2
             vm_integration: false
     env:
       # Per-image: ci-<sha> if affected this run, else the moving :ci-main
