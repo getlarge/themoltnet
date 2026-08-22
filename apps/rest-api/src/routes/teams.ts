@@ -111,41 +111,33 @@ async function grantTeamRole(
   subjectNs: KetoNamespace,
   role: TeamInviteRole,
 ): Promise<void> {
-  if (role === TEAM_ROLE.Manager) {
-    await fastify.relationshipWriter.grantTeamManagers(
-      teamId,
-      subjectId,
-      subjectNs,
-    );
-    return;
+  switch (role) {
+    case TEAM_ROLE.Manager:
+      await fastify.relationshipWriter.grantTeamManagers(
+        teamId,
+        subjectId,
+        subjectNs,
+      );
+      return;
+    case TEAM_ROLE.Executor:
+      await fastify.relationshipWriter.grantTeamExecutors(
+        teamId,
+        subjectId,
+        subjectNs,
+      );
+      return;
+    case TEAM_ROLE.Member:
+      await fastify.relationshipWriter.grantTeamMembers(
+        teamId,
+        subjectId,
+        subjectNs,
+      );
+      return;
+    default: {
+      const unexpectedRole: never = role;
+      throw new Error(`Unsupported team role: ${String(unexpectedRole)}`);
+    }
   }
-
-  if (role === TEAM_ROLE.Executor) {
-    await fastify.relationshipWriter.grantTeamExecutors(
-      teamId,
-      subjectId,
-      subjectNs,
-    );
-    return;
-  }
-
-  await fastify.relationshipWriter.grantTeamMembers(
-    teamId,
-    subjectId,
-    subjectNs,
-  );
-}
-
-async function rewriteTeamRole(
-  fastify: FastifyInstance,
-  teamId: string,
-  subjectId: string,
-  subjectNs: KetoNamespace,
-  currentRole: TeamInviteRole,
-  role: TeamInviteRole,
-): Promise<void> {
-  if (currentRole === role) return;
-  await grantTeamRole(fastify, teamId, subjectId, subjectNs, role);
 }
 
 async function resolveMembers(
@@ -745,14 +737,21 @@ export function teamRoutes(fastify: FastifyInstance) {
         );
       }
       if (target.currentRole !== nextRole) {
-        await rewriteTeamRole(
-          fastify,
-          id,
-          subjectId,
-          target.subjectNs,
-          target.currentRole,
-          nextRole,
-        );
+        try {
+          await grantTeamRole(
+            fastify,
+            id,
+            subjectId,
+            target.subjectNs,
+            nextRole,
+          );
+        } catch (err) {
+          request.log.error(
+            { err, teamId: id, subjectId, role: nextRole },
+            'team.member_role_update_failed',
+          );
+          throw err;
+        }
       }
 
       return reply.status(200).send({ updated: true, role: nextRole });
@@ -999,12 +998,11 @@ export function teamRoutes(fastify: FastifyInstance) {
 
       try {
         if (existingMember) {
-          await rewriteTeamRole(
+          await grantTeamRole(
             fastify,
             invite.teamId,
             identityId,
             existingMember.subjectNs,
-            existingMember.currentRole,
             invite.role,
           );
         } else {

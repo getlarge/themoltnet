@@ -613,8 +613,10 @@ Roll executor claim authority without creating an authorization gap:
    managers and `members` to standalone executors. It never promotes plain
    members, including the two existing agent members of team
    `6743b4b1-6b93-46e2-a048-19490f04f91a`.
-4. Verify every agent owner/manager has an executor tuple and every standalone
-   executor has member access.
+4. Treat verification as a hard cutover gate: `--verify` must exit 0 and report
+   `missingTuples: 0`. Do not deploy the final OPL otherwise. This proves every
+   agent owner/manager has an executor tuple and every standalone executor has
+   member access.
 5. Deploy the final `infra/ory/permissions.ts`, where task claim traverses only
    `Team.execute_tasks` plus direct task writer/manager grants.
 6. Monitor claim latency, Keto errors, and authorization denials.
@@ -632,6 +634,16 @@ npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
 npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
   node infra/ory/deploy.mjs --apply --opl-only
 ```
+
+Rollback uses the same expand/contract boundary. If final-OPL canaries detect
+unexpected claim denials, immediately redeploy
+`permissions.executor-transition.ts`; its claim path continues to use
+`Team.write`. Keep the executor-aware API and tuples deployed, diagnose, and
+roll forward. Do not roll the application below the executor-aware release once
+executor tuples have been written: older readers do not understand that
+relation. PostgreSQL enum values are not safely removable, so migration
+`0040_soft_luke_cage.sql` is intentionally irreversible and remains in place.
+The additive enum and tuples are inert while the transition OPL is active.
 
 Run and attach the local comparison described in
 [Keto task-claim benchmark](../contribute/keto-claim-benchmark.md) before

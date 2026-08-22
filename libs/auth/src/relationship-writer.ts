@@ -90,12 +90,6 @@ export interface RelationshipWriter {
     subjectId: string,
     subjectNs: KetoNamespace,
   ): Promise<void>;
-  removeTeamRoleRelation(
-    teamId: string,
-    subjectId: string,
-    subjectNs: KetoNamespace,
-    relation: TeamRelation,
-  ): Promise<void>;
   // Group management (Keto is the sole membership store)
   grantGroupParent(groupId: string, teamId: string): Promise<void>;
   grantGroupMember(
@@ -190,6 +184,8 @@ export function createRelationshipWriter(
 
     const desired = new Set<TeamRelation>([role]);
     if (subjectNs === KetoNamespace.Agent) {
+      // Materialize claim authority for owners/managers and read access for
+      // standalone executors so both Keto checks remain single-relation paths.
       if (role === TeamRelation.Owners || role === TeamRelation.Managers) {
         desired.add(TeamRelation.Executors);
       } else if (role === TeamRelation.Executors) {
@@ -460,31 +456,6 @@ export function createRelationshipWriter(
             },
           },
         })),
-      });
-    },
-
-    async removeTeamRoleRelation(
-      teamId: string,
-      subjectId: string,
-      subjectNs: KetoNamespace,
-      relation: TeamRelation,
-    ): Promise<void> {
-      await relationshipApi.patchRelationships({
-        relationshipPatch: [
-          {
-            action: 'delete' as const,
-            relation_tuple: {
-              namespace: KetoNamespace.Team,
-              object: teamId,
-              relation,
-              subject_set: {
-                namespace: subjectNs,
-                object: subjectId,
-                relation: '',
-              },
-            },
-          },
-        ],
       });
     },
 

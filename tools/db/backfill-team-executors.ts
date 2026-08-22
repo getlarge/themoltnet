@@ -53,6 +53,12 @@ const adapters: TeamExecutorBackfillAdapters = {
       body: JSON.stringify(tuple),
     });
   },
+
+  onProgress({ completed, total }) {
+    if (completed === total || completed % 25 === 0) {
+      console.error(`Backfill progress: ${completed}/${total} tuples`);
+    }
+  },
 };
 
 const result = await backfillTeamExecutors(adapters, mode);
@@ -86,22 +92,43 @@ async function retryFetch(
 ): Promise<Response> {
   let lastError: unknown;
   for (let attempt = 1; attempt <= attempts; attempt++) {
+    let response: Response;
     try {
-      const response = await fetch(url, init);
-      if (response.ok) return response;
-      const detail = await response.text();
-      lastError = new Error(`Keto ${response.status}: ${detail}`);
-      if (response.status < 500 && response.status !== 429) throw lastError;
+      response = await fetch(url, {
+        ...init,
+        signal: AbortSignal.timeout(10_000),
+      });
     } catch (error) {
-      lastError = error;
+      const detail = error instanceof Error ? error.message : String(error);
+      lastError = new Error(
+        `Keto ${init.method ?? 'GET'} ${url} request failed: ${detail}`,
+        { cause: error },
+      );
+      if (attempt < attempts) {
+        await retryDelay(attempt);
+      }
+      continue;
+    }
+
+    if (response.ok) return response;
+    const detail = await response.text();
+    lastError = new Error(
+      `Keto ${init.method ?? 'GET'} ${url} returned ${response.status}: ${detail}`,
+    );
+    if (response.status < 500 && response.status !== 429) {
+      throw lastError;
     }
     if (attempt < attempts) {
-      await new Promise((resolve) => {
-        setTimeout(resolve, attempt * 250);
-      });
+      await retryDelay(attempt);
     }
   }
   throw lastError instanceof Error
     ? lastError
-    : new Error('Keto request failed');
+    : new Error(`Keto ${init.method ?? 'GET'} ${url} request failed`);
+}
+
+async function retryDelay(attempt: number): Promise<void> {
+  await new Promise((resolve) => {
+    setTimeout(resolve, attempt * 250);
+  });
 }

@@ -17,6 +17,7 @@ export interface TeamExecutorBackfillAdapters {
     pageToken?: string;
   }): Promise<{ items: TeamRoleTuple[]; nextPageToken?: string }>;
   putTuple(tuple: TeamRoleTuple): Promise<void>;
+  onProgress?(progress: { completed: number; total: number }): void;
 }
 
 export type BackfillMode = 'dry-run' | 'apply' | 'verify';
@@ -76,7 +77,10 @@ export async function backfillTeamExecutors(
     );
   }
   if (mode === 'apply') {
-    for (const tuple of missing) await adapters.putTuple(tuple);
+    for (const [index, tuple] of missing.entries()) {
+      await adapters.putTuple(tuple);
+      adapters.onProgress?.({ completed: index + 1, total: missing.length });
+    }
   }
 
   return {

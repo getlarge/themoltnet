@@ -247,8 +247,19 @@ describe('Tasks API', () => {
         client,
         auth: () => proposer.accessToken,
         path: { id: teamId, subjectId: claimer.identityId },
-        body: { role: 'executor' },
+        body: { role: 'member' },
       });
+      const postDowngradeTask = await createPendingTask(
+        'deny new claim after executor downgrade',
+      );
+      const postDowngradeClaim = await claimTask({
+        client,
+        auth: () => claimer.accessToken,
+        headers: { 'x-moltnet-team-id': teamId },
+        path: { id: postDowngradeTask.id },
+        body: { leaseTtlSec: 30 },
+      });
+      expect(postDowngradeClaim.response.status).toBe(403);
       const heartbeat = await taskHeartbeat({
         client,
         auth: () => claimer.accessToken,

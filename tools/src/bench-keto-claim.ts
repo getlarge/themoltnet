@@ -26,6 +26,11 @@ type Scenario =
   | 'task-manager'
   | 'denied';
 
+const OWNER_INDEX = 0;
+const MANAGER_INDEX = 1;
+const EXECUTOR_INDEX = 2;
+const FIRST_MEMBER_INDEX = 3;
+
 const args = new Map(
   process.argv.slice(2).map((arg) => {
     const [key, ...rest] = arg.split('=');
@@ -162,9 +167,17 @@ try {
   );
   if (!passed) process.exitCode = 1;
 } finally {
-  await Promise.allSettled(
+  const cleanupResults = await Promise.allSettled(
     targets.map((target) => patch(target, 'delete', tuples)),
   );
+  for (const [index, result] of cleanupResults.entries()) {
+    if (result.status === 'rejected') {
+      console.error(
+        `${targets[index].name} fixture cleanup failed:`,
+        result.reason,
+      );
+    }
+  }
 }
 
 function buildFixtures(
@@ -178,14 +191,18 @@ function buildFixtures(
     const teamId = `${prefixValue}-team-${team}`;
     const agent = (index: number) => `${prefixValue}-agent-${team}-${index}`;
     for (const relation of ['owners', 'executors'] as const)
-      fixtures.push(teamTuple(teamId, relation, agent(0)));
+      fixtures.push(teamTuple(teamId, relation, agent(OWNER_INDEX)));
     for (const relation of ['managers', 'executors'] as const)
-      fixtures.push(teamTuple(teamId, relation, agent(1)));
+      fixtures.push(teamTuple(teamId, relation, agent(MANAGER_INDEX)));
     fixtures.push(
-      teamTuple(teamId, 'executors', agent(2)),
-      teamTuple(teamId, 'members', agent(2)),
+      teamTuple(teamId, 'executors', agent(EXECUTOR_INDEX)),
+      teamTuple(teamId, 'members', agent(EXECUTOR_INDEX)),
     );
-    for (let identity = 3; identity < identityCount; identity++)
+    for (
+      let identity = FIRST_MEMBER_INDEX;
+      identity < identityCount;
+      identity++
+    )
       fixtures.push(teamTuple(teamId, 'members', agent(identity)));
     for (let task = 0; task < taskCount; task++) {
       const taskId = `${prefixValue}-task-${team}-${task}`;
@@ -271,15 +288,7 @@ async function runRound(
       if (sample >= count) return;
       const team = (sample + round * count) % teamCount;
       const task = (sample * 17 + round) % taskCount;
-      const index = {
-        owner: 0,
-        manager: 1,
-        executor: 2,
-        member: 3,
-        denied: identityCount - 3,
-        'task-writer': identityCount - 2,
-        'task-manager': identityCount - 1,
-      }[scenario];
+      const index = scenarioAgentIndex(scenario, identityCount);
       const params = new URLSearchParams({
         namespace: 'Task',
         object: `${prefixValue}-task-${team}-${task}`,
@@ -324,6 +333,25 @@ async function runRound(
     mean: distribution.mean,
     throughput: Math.round((count / elapsed) * 1_000 * 1_000) / 1_000,
   };
+}
+
+function scenarioAgentIndex(scenario: Scenario, identityCount: number): number {
+  switch (scenario) {
+    case 'owner':
+      return OWNER_INDEX;
+    case 'manager':
+      return MANAGER_INDEX;
+    case 'executor':
+      return EXECUTOR_INDEX;
+    case 'member':
+      return FIRST_MEMBER_INDEX;
+    case 'denied':
+      return identityCount - 3;
+    case 'task-writer':
+      return identityCount - 2;
+    case 'task-manager':
+      return identityCount - 1;
+  }
 }
 
 async function ketoVersion(readUrl: string): Promise<string> {
