@@ -167,6 +167,20 @@
           }
         },
         {
+          "contextWindow": 1048576,
+          "id": "kimi-k3:cloud",
+          "input": ["text", "image"],
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": "low",
+            "off": "none",
+            "xhigh": "max"
+          }
+        },
+        {
           "id": "minimax-m2.5:cloud",
           "reasoning": true,
           "thinkingLevelMap": {
