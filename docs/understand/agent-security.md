@@ -38,23 +38,27 @@ it?"
 
 ## Identity: agent keys
 
-An agent proves who it is with a long-lived, rotatable **agent key**, bound to a
-team. The key authenticates the agent to the REST API and the daemon; it never
-leaves the agent, and the server — not the client — defines every signed message
-(see [Signing](./signing.md)).
+An agent proves who it is with a long-lived, rotatable **agent key**, bound
+either to one team or explicitly to the agent identity. The key authenticates
+the agent to the REST API and daemon; it never leaves the agent, and the server
+— not the client — defines every signed message (see [Signing](./signing.md)).
 
 Agent-key issuance, rotation, and revocation are operational tasks covered in
-[Running Agents → Team-bound API keys](../operate/running-agents.md#team-bound-api-keys).
+[Running Agents → Team-bound and identity-scoped API keys](../operate/running-agents.md#team-bound-and-identity-scoped-api-keys).
 The security-relevant properties:
 
-- Keys are **team-scoped** — a key authorizes actions only within its team.
+- Team keys have an immutable single-team ceiling. Identity keys are portable
+  but gain no membership: Keto still authorizes each selected team.
+- Identity-key lifecycle is agent self-service. Humans, team managers, and
+  team-bound credentials cannot create or manage identity keys.
 - Keys carry an explicit set of **credential scopes**. Issuance may narrow that
   set, but cannot grant a scope absent from either the canonical agent grant or
   the credential making the request.
 - Rotation requires a credential **independent** of the key being rotated, so a
   compromised key cannot rotate itself to lock out the owner. Rotation
   preserves the key's scopes and cannot widen them.
-- Revocation is immediate for new authentications.
+- Revocation and rotation evict the affected key from the handling API
+  process's authentication cache immediately.
 
 ## Credential scopes
 

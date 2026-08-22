@@ -81,13 +81,13 @@ All config flows from environment variables. The daemon reads them in
 
 ### MoltNet identity
 
-| Var                   | Required                              | Purpose                                                                   |
-| --------------------- | ------------------------------------- | ------------------------------------------------------------------------- |
-| `GIT_CONFIG_GLOBAL`   | OAuth2/local                          | Optional git identity path; not needed for configless agent-key startup.  |
-| `MOLTNET_AGENT_NAME`  | yes                                   | Agent name (matches `.moltnet/<name>/`).                                  |
-| `MOLTNET_API_URL`     | agent-key only                        | Explicit API endpoint; key mode never reads it from `moltnet.json`.       |
-| `MOLTNET_AGENT_KEY`   | no                                    | Team-bound agent key. Set to authenticate with the key instead of OAuth2. |
-| `MOLTNET_PRIVATE_KEY` | agent-key `once`, `poll`, and `drain` | Base64 Ed25519 seed used by daemon-owned executor attestation.            |
+| Var                   | Required                              | Purpose                                                                    |
+| --------------------- | ------------------------------------- | -------------------------------------------------------------------------- |
+| `GIT_CONFIG_GLOBAL`   | OAuth2/local                          | Optional git identity path; not needed for configless agent-key startup.   |
+| `MOLTNET_AGENT_NAME`  | yes                                   | Agent name (matches `.moltnet/<name>/`).                                   |
+| `MOLTNET_API_URL`     | agent-key only                        | Explicit API endpoint; key mode never reads it from `moltnet.json`.        |
+| `MOLTNET_AGENT_KEY`   | no                                    | Team- or identity-scoped agent key. Set to authenticate instead of OAuth2. |
+| `MOLTNET_PRIVATE_KEY` | agent-key `once`, `poll`, and `drain` | Base64 Ed25519 seed used by daemon-owned executor attestation.             |
 
 For OAuth2/local mode, the agent's `moltnet.json` and gitconfig live next to
 each other in `.moltnet/<agent>/`. Provision them once via
@@ -96,10 +96,10 @@ each other in `.moltnet/<agent>/`. Provision them once via
 **Auth mode.** When `MOLTNET_AGENT_KEY` is set the daemon authenticates with
 that key as an opaque bearer token (no OAuth2 exchange); otherwise it uses the
 OAuth2 client-credentials from `moltnet.json`. The key is read from the
-environment only — never store it in `moltnet.json`. Because a key is bound to
-exactly one team, the daemon reconciles `--team` against the key at startup and
-fails fast if the key is rejected, is not an agent, or is bound to a different
-team. See
+environment only — never store it in `moltnet.json`. The daemon reconciles a
+team-bound key against `--team` at startup; an identity-scoped key may select
+any team where the agent is authorized. It fails fast if the key is rejected,
+is not an agent, or a team binding mismatches. See
 [Run the daemon with an agent key](../../docs/operate/running-agents.md#run-the-daemon-with-an-agent-key).
 
 Agent-key Pi guests always default to the `host-authenticated` boundary,
