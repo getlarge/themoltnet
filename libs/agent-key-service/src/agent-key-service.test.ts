@@ -107,7 +107,11 @@ describe('agent key service', () => {
     await service.issue(input);
 
     expect(first).toMatchObject({
-      key: { agentId: AGENT_ID, teamId: TEAM_ID },
+      key: {
+        agentId: AGENT_ID,
+        bindingScope: 'team',
+        teamId: TEAM_ID,
+      },
       secret: 'ory_ak_secret',
     });
     const firstRequest =
@@ -118,8 +122,9 @@ describe('agent key service', () => {
       scopes: [...AGENT_CREDENTIAL_SCOPES],
       visibility: KeyVisibility.KeyVisibilitySecret,
       metadata: {
-        schema_version: 1,
+        schema_version: 2,
         subject_type: 'agent',
+        binding_scope: 'team',
         team_id: TEAM_ID,
       },
     });
@@ -392,8 +397,9 @@ describe('agent key service', () => {
       adminRotateIssuedApiKeyBody: {
         visibility: KeyVisibility.KeyVisibilitySecret,
         metadata: {
-          schema_version: 1,
+          schema_version: 2,
           subject_type: 'agent',
+          binding_scope: 'team',
           team_id: TEAM_ID,
         },
         scopes: [...preservedScopes],
@@ -496,5 +502,198 @@ describe('agent key service', () => {
       },
       undefined,
     );
+  });
+
+  it('issues a canonical identity-scoped key as agent self-service', async () => {
+    talosApi.adminIssueApiKey.mockResolvedValue({
+      issued_api_key: issuedKey({
+        metadata: {
+          schema_version: 2,
+          subject_type: 'agent',
+          binding_scope: 'identity',
+        },
+      }),
+      secret: 'ory_ak_identity',
+    });
+
+    const result = await service.issue({
+      agentId: AGENT_ID,
+      bindingScope: 'identity',
+      idempotencyKey: 'identity-retry-key',
+      logger,
+      name: 'portable agent',
+      subject,
+    });
+
+    expect(result).toMatchObject({
+      key: { agentId: AGENT_ID, bindingScope: 'identity' },
+      secret: 'ory_ak_identity',
+    });
+    expect(result.key).not.toHaveProperty('teamId');
+    expect(
+      talosApi.adminIssueApiKey.mock.calls[0]?.[0].issueApiKeyRequest.metadata,
+    ).toEqual({
+      schema_version: 2,
+      subject_type: 'agent',
+      binding_scope: 'identity',
+    });
+    expect(relationshipReader.isTeamMember).not.toHaveBeenCalled();
+    expect(permissionChecker.canManageTeamCredentials).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      subject: {
+        ...subject,
+        subjectNs: KetoNamespace.Human,
+        subjectType: 'human' as const,
+      },
+    },
+    {
+      subject: {
+        ...subject,
+        credentialBindingScope: 'team' as const,
+        credentialKeyId: 'team-key',
+      },
+    },
+  ])(
+    'denies non-identity authorities from identity issuance',
+    async ({ subject }) => {
+      await expect(
+        service.issue({
+          agentId: AGENT_ID,
+          bindingScope: 'identity',
+          idempotencyKey: 'denied-identity-key',
+          logger,
+          name: 'denied',
+          subject,
+        }),
+      ).rejects.toMatchObject({ code: 'FORBIDDEN', statusCode: 403 });
+      expect(talosApi.adminIssueApiKey).not.toHaveBeenCalled();
+    },
+  );
+
+  it('lists only sibling identity keys and isolates cursors from team queries', async () => {
+    talosApi.adminListIssuedApiKeys.mockResolvedValue({
+      issued_api_keys: [
+        issuedKey(),
+        issuedKey({
+          key_id: 'identity-key',
+          metadata: {
+            schema_version: 2,
+            subject_type: 'agent',
+            binding_scope: 'identity',
+          },
+        }),
+      ],
+      next_page_token: 'next',
+    });
+
+    const identityPage = await service.list({
+      bindingScope: 'identity',
+      limit: 1,
+      logger,
+      subject,
+    });
+
+    expect(identityPage.items.map((key) => key.id)).toEqual(['identity-key']);
+    expect(talosApi.adminListIssuedApiKeys).toHaveBeenCalledWith(
+      expect.objectContaining({ filter: `actor_id="${AGENT_ID}"` }),
+      undefined,
+    );
+    await expect(
+      service.list({
+        cursor: identityPage.nextCursor!,
+        limit: 1,
+        logger,
+        subject,
+        teamId: TEAM_ID,
+      }),
+    ).rejects.toMatchObject({
+      code: 'VALIDATION_FAILED',
+      statusCode: 400,
+    });
+  });
+
+  it('rotates a sibling identity key but rejects self-rotation', async () => {
+    const identityMetadata = {
+      schema_version: 2,
+      subject_type: 'agent',
+      binding_scope: 'identity',
+    };
+    talosApi.adminGetIssuedApiKey.mockResolvedValue(
+      issuedKey({ metadata: identityMetadata }),
+    );
+    talosApi.adminRotateIssuedApiKey.mockResolvedValue({
+      issued_api_key: issuedKey({
+        key_id: ROTATED_KEY_ID,
+        metadata: identityMetadata,
+      }),
+      secret: 'ory_ak_rotated_identity',
+    });
+
+    const rotated = await service.rotate({
+      bindingScope: 'identity',
+      keyId: KEY_ID,
+      logger,
+      subject: {
+        ...subject,
+        credentialBindingScope: 'identity',
+        credentialKeyId: 'sibling-key',
+      },
+    });
+    expect(rotated.key).toMatchObject({ bindingScope: 'identity' });
+
+    await expect(
+      service.rotate({
+        bindingScope: 'identity',
+        keyId: KEY_ID,
+        logger,
+        subject: {
+          ...subject,
+          credentialBindingScope: 'identity',
+          credentialKeyId: KEY_ID,
+        },
+      }),
+    ).rejects.toMatchObject({ code: 'CONFLICT', statusCode: 409 });
+  });
+
+  it('requires key:manage for sibling identity revocation but preserves self-revoke', async () => {
+    talosApi.adminGetIssuedApiKey.mockResolvedValue(
+      issuedKey({
+        metadata: {
+          schema_version: 2,
+          subject_type: 'agent',
+          binding_scope: 'identity',
+        },
+      }),
+    );
+    talosApi.adminRevokeIssuedApiKey.mockResolvedValue(undefined);
+    const restrictedSubject = {
+      ...subject,
+      credentialBindingScope: 'identity' as const,
+      credentialKeyId: 'sibling-key',
+      scopes: ['task:read'],
+    };
+
+    await expect(
+      service.revoke({
+        bindingScope: 'identity',
+        keyId: KEY_ID,
+        logger,
+        reason: 'key_compromise',
+        subject: restrictedSubject,
+      }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND', statusCode: 404 });
+    expect(talosApi.adminRevokeIssuedApiKey).not.toHaveBeenCalled();
+
+    await service.revoke({
+      bindingScope: 'identity',
+      keyId: KEY_ID,
+      logger,
+      reason: 'key_compromise',
+      subject: { ...restrictedSubject, credentialKeyId: KEY_ID },
+    });
+    expect(talosApi.adminRevokeIssuedApiKey).toHaveBeenCalledOnce();
   });
 });

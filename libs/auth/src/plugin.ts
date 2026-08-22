@@ -288,6 +288,16 @@ function applyAuthContext(
     setRequestContextField('clientId', authContext.clientId);
   if (authContext.currentTeamId)
     setRequestContextField('currentTeamId', authContext.currentTeamId);
+  if (authContext.subjectType === 'agent' && authContext.credentialBinding) {
+    setRequestContextField(
+      'credentialBindingScope',
+      authContext.credentialBinding.bindingScope,
+    );
+    setRequestContextField(
+      'credentialKeyId',
+      authContext.credentialBinding.keyId,
+    );
+  }
 
   const bindings: Record<string, string> = {
     identityId: authContext.identityId,
@@ -296,6 +306,11 @@ function applyAuthContext(
   if (authContext.clientId) bindings.clientId = authContext.clientId;
   if (authContext.currentTeamId)
     bindings.currentTeamId = authContext.currentTeamId;
+  if (authContext.subjectType === 'agent' && authContext.credentialBinding) {
+    bindings.credentialBindingScope =
+      authContext.credentialBinding.bindingScope;
+    bindings.credentialKeyId = authContext.credentialBinding.keyId;
+  }
   request.log = request.log.child(bindings);
 }
 
@@ -322,8 +337,9 @@ async function resolveTeamContext(
   const requestedTeamId = rawRequestedTeamId?.trim();
 
   const constrainedTeamId =
-    authContext.subjectType === 'agent'
-      ? authContext.credentialBinding?.boundTeamId
+    authContext.subjectType === 'agent' &&
+    authContext.credentialBinding?.bindingScope === 'team'
+      ? authContext.credentialBinding.boundTeamId
       : undefined;
 
   const credentialScope =

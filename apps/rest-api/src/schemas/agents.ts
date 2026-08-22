@@ -25,10 +25,17 @@ export const WhoamiSchema = Type.Object(
     fingerprint: Type.Optional(Type.String()),
     clientId: Type.Optional(Type.String()),
     credentialBinding: Type.Optional(
-      Type.Object({
-        keyId: Type.String(),
-        boundTeamId: Type.Optional(Type.String({ format: 'uuid' })),
-      }),
+      Type.Union([
+        Type.Object({
+          bindingScope: Type.Literal('team'),
+          keyId: Type.String(),
+          boundTeamId: Type.String({ format: 'uuid' }),
+        }),
+        Type.Object({
+          bindingScope: Type.Literal('identity'),
+          keyId: Type.String(),
+        }),
+      ]),
     ),
   },
   { $id: 'Whoami' },

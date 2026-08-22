@@ -50,6 +50,19 @@ function issuedKey(
   };
 }
 
+function identityIssuedKey(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return issuedKey({
+    metadata: {
+      schema_version: 2,
+      subject_type: 'agent',
+      binding_scope: 'identity',
+    },
+    ...overrides,
+  });
+}
+
 describe('agent key routes', () => {
   let app: FastifyInstance;
   let mocks: ReturnType<typeof createMockServices>;
@@ -76,6 +89,7 @@ describe('agent key routes', () => {
           return {
             ...VALID_AUTH_CONTEXT,
             credentialBinding: {
+              bindingScope: 'team',
               keyId: KEY_ID,
               boundTeamId: TEAM_ID,
             },
@@ -86,8 +100,28 @@ describe('agent key routes', () => {
             ...VALID_AUTH_CONTEXT,
             scopes: ['task:execute'],
             credentialBinding: {
+              bindingScope: 'team',
               keyId: '01JKEY00000000000000000099',
               boundTeamId: TEAM_ID,
+            },
+          };
+        }
+        if (token === 'talos-identity-key') {
+          return {
+            ...VALID_AUTH_CONTEXT,
+            credentialBinding: {
+              bindingScope: 'identity',
+              keyId: '01JKEY00000000000000000098',
+            },
+          };
+        }
+        if (token === 'identity-task-only-key') {
+          return {
+            ...VALID_AUTH_CONTEXT,
+            scopes: ['task:execute'],
+            credentialBinding: {
+              bindingScope: 'identity',
+              keyId: '01JKEY00000000000000000099',
             },
           };
         }
@@ -131,6 +165,7 @@ describe('agent key routes', () => {
       key: {
         id: KEY_ID,
         agentId: OWNER_ID,
+        bindingScope: 'team',
         teamId: TEAM_ID,
         status: 'active',
       },
@@ -148,8 +183,9 @@ describe('agent key routes', () => {
           visibility: KeyVisibility.KeyVisibilitySecret,
           scopes: [...AGENT_CREDENTIAL_SCOPES],
           metadata: {
-            schema_version: 1,
+            schema_version: 2,
             subject_type: 'agent',
+            binding_scope: 'team',
             team_id: TEAM_ID,
           },
         }),
@@ -186,6 +222,122 @@ describe('agent key routes', () => {
     expect(
       talosApi.adminIssueApiKey.mock.calls[0]?.[0].issueApiKeyRequest.scopes,
     ).toEqual(scopes);
+  });
+
+  it('issues an identity-scoped key without a team header', async () => {
+    talosApi.adminIssueApiKey.mockResolvedValue({
+      issued_api_key: identityIssuedKey(),
+      secret: 'ory_ak_identity',
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/agent-keys',
+      headers: {
+        authorization: 'Bearer test-token',
+        'idempotency-key': 'identity-issue-request',
+      },
+      payload: {
+        agentId: OWNER_ID,
+        bindingScope: 'identity',
+        name: 'portable agent',
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toMatchObject({
+      key: {
+        id: KEY_ID,
+        agentId: OWNER_ID,
+        bindingScope: 'identity',
+      },
+      secret: 'ory_ak_identity',
+    });
+    expect(response.json().key).not.toHaveProperty('teamId');
+    expect(
+      talosApi.adminIssueApiKey.mock.calls[0]?.[0].issueApiKeyRequest.metadata,
+    ).toEqual({
+      schema_version: 2,
+      subject_type: 'agent',
+      binding_scope: 'identity',
+    });
+    expect(mocks.relationshipReader.isTeamMember).not.toHaveBeenCalled();
+  });
+
+  it('enforces conditional team headers for both binding scopes', async () => {
+    const identityWithTeam = await app.inject({
+      method: 'GET',
+      url: '/agent-keys?bindingScope=identity',
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+    });
+    const teamWithoutHeader = await app.inject({
+      method: 'GET',
+      url: '/agent-keys',
+      headers: {
+        authorization: 'Bearer test-token',
+      },
+    });
+
+    expect(identityWithTeam.statusCode).toBe(400);
+    expect(identityWithTeam.json().detail).toContain('not allowed');
+    expect(teamWithoutHeader.statusCode).toBe(400);
+    expect(teamWithoutHeader.json().detail).toContain('header is required');
+    expect(talosApi.adminIssueApiKey).not.toHaveBeenCalled();
+  });
+
+  it('denies a team-bound key from identity-scoped lifecycle operations', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/agent-keys?bindingScope=identity',
+      headers: { authorization: 'Bearer talos-current-key' },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(talosApi.adminListIssuedApiKeys).not.toHaveBeenCalled();
+  });
+
+  it('keeps idempotency request IDs isolated by binding scope', async () => {
+    talosApi.adminIssueApiKey
+      .mockResolvedValueOnce({
+        issued_api_key: issuedKey(),
+        secret: 'ory_ak_team',
+      })
+      .mockResolvedValueOnce({
+        issued_api_key: identityIssuedKey(),
+        secret: 'ory_ak_identity',
+      });
+
+    await app.inject({
+      method: 'POST',
+      url: '/agent-keys',
+      headers: {
+        authorization: 'Bearer test-token',
+        'idempotency-key': 'same-request-key',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+      payload: { agentId: OWNER_ID, name: 'team' },
+    });
+    await app.inject({
+      method: 'POST',
+      url: '/agent-keys',
+      headers: {
+        authorization: 'Bearer test-token',
+        'idempotency-key': 'same-request-key',
+      },
+      payload: {
+        agentId: OWNER_ID,
+        bindingScope: 'identity',
+        name: 'identity',
+      },
+    });
+
+    const requestIds = talosApi.adminIssueApiKey.mock.calls.map(
+      ([call]) => call.issueApiKeyRequest.request_id,
+    );
+    expect(requestIds[0]).not.toBe(requestIds[1]);
   });
 
   it('lets a credential manager issue a key for another agent', async () => {
@@ -368,6 +520,63 @@ describe('agent key routes', () => {
       { signal: expect.any(AbortSignal) },
     );
     expect(response.body).not.toContain('secret');
+  });
+
+  it('lists, rotates, and revokes sibling identity-scoped keys', async () => {
+    talosApi.adminListIssuedApiKeys.mockResolvedValue({
+      issued_api_keys: [identityIssuedKey()],
+    });
+    talosApi.adminGetIssuedApiKey.mockResolvedValue(identityIssuedKey());
+    talosApi.adminRotateIssuedApiKey.mockResolvedValue({
+      issued_api_key: identityIssuedKey({ key_id: ROTATED_KEY_ID }),
+      secret: 'ory_ak_rotated_identity',
+    });
+    talosApi.adminRevokeIssuedApiKey.mockResolvedValue(undefined);
+    const headers = { authorization: 'Bearer talos-identity-key' };
+
+    const listed = await app.inject({
+      method: 'GET',
+      url: '/agent-keys?bindingScope=identity',
+      headers,
+    });
+    const rotated = await app.inject({
+      method: 'POST',
+      url: `/agent-keys/${KEY_ID}/rotate?bindingScope=identity`,
+      headers,
+    });
+    const revoked = await app.inject({
+      method: 'POST',
+      url: `/agent-keys/${KEY_ID}/revoke?bindingScope=identity`,
+      headers,
+      payload: { reason: 'superseded' },
+    });
+
+    expect(listed.statusCode).toBe(200);
+    expect(listed.json().items[0]).toMatchObject({
+      id: KEY_ID,
+      bindingScope: 'identity',
+    });
+    expect(rotated.statusCode).toBe(200);
+    expect(rotated.json()).toMatchObject({
+      key: { id: ROTATED_KEY_ID, bindingScope: 'identity' },
+      secret: 'ory_ak_rotated_identity',
+    });
+    expect(revoked.statusCode).toBe(204);
+    expect(app.tokenValidator.evictTalosKey).toHaveBeenCalledWith(KEY_ID);
+  });
+
+  it('denies sibling identity revocation without key:manage', async () => {
+    talosApi.adminGetIssuedApiKey.mockResolvedValue(identityIssuedKey());
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/agent-keys/${KEY_ID}/revoke?bindingScope=identity`,
+      headers: { authorization: 'Bearer identity-task-only-key' },
+      payload: { reason: 'key_compromise' },
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(talosApi.adminRevokeIssuedApiKey).not.toHaveBeenCalled();
   });
 
   it('streams Talos cursors until the MoltNet page is full', async () => {
@@ -636,8 +845,9 @@ describe('agent key routes', () => {
         keyId: KEY_ID,
         adminRotateIssuedApiKeyBody: {
           metadata: {
-            schema_version: 1,
+            schema_version: 2,
             subject_type: 'agent',
+            binding_scope: 'team',
             team_id: TEAM_ID,
           },
           scopes: [...AGENT_CREDENTIAL_SCOPES],

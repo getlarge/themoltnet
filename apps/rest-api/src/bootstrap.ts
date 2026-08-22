@@ -711,10 +711,14 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       };
     },
     logger: app.log,
-    onValidationEvent: ({ credentialType, reason }) => {
+    onValidationEvent: ({ bindingScope, credentialType, keyId, reason }) => {
       tokenValidationCounter.add(1, {
         'auth.credential_type': credentialType,
         'auth.validation.reason': reason,
+        ...(bindingScope
+          ? { 'auth.credential_binding_scope': bindingScope }
+          : {}),
+        ...(keyId ? { 'auth.credential_key_id': keyId } : {}),
       });
     },
   });

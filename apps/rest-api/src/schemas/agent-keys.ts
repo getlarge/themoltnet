@@ -1,6 +1,6 @@
 import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
 import { UuidSchema } from '@moltnet/models';
-import { Type } from 'typebox';
+import { type Static, type TSchema,Type } from 'typebox';
 
 export const CredentialScopeSchema = Type.Union(
   AGENT_OAUTH_SCOPES.map((scope) => Type.Literal(scope)),
@@ -10,6 +10,11 @@ export const CredentialScopeSchema = Type.Union(
 export const AgentKeyStatusSchema = Type.Union(
   [Type.Literal('active'), Type.Literal('revoked'), Type.Literal('expired')],
   { $id: 'AgentKeyStatus' },
+);
+
+export const AgentKeyBindingScopeSchema = Type.Union(
+  [Type.Literal('team'), Type.Literal('identity')],
+  { $id: 'AgentKeyBindingScope' },
 );
 
 export const AgentKeyRevocationReasonSchema = Type.Union(
@@ -22,23 +27,56 @@ export const AgentKeyRevocationReasonSchema = Type.Union(
   { $id: 'AgentKeyRevocationReason' },
 );
 
-export const AgentKeySchema = Type.Object(
+const AgentKeyBaseSchema = Type.Object({
+  id: Type.String(),
+  agentId: UuidSchema,
+  name: Type.String(),
+  scopes: Type.Optional(Type.Array(Type.Ref(CredentialScopeSchema.$id))),
+  status: Type.Ref(AgentKeyStatusSchema.$id),
+  createdAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
+  expiresAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
+  lastUsedAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
+  updatedAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
+  revocationReason: Type.Union([
+    Type.Ref(AgentKeyRevocationReasonSchema.$id),
+    Type.Null(),
+  ]),
+  revocationDescription: Type.Union([Type.String(), Type.Null()]),
+});
+
+export const TeamAgentKeySchema = Type.Object(
   {
-    id: Type.String(),
-    agentId: UuidSchema,
+    ...AgentKeyBaseSchema.properties,
+    bindingScope: Type.Literal('team'),
     teamId: UuidSchema,
-    name: Type.String(),
-    scopes: Type.Optional(Type.Array(CredentialScopeSchema)),
-    status: AgentKeyStatusSchema,
-    createdAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
-    expiresAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
-    lastUsedAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
-    updatedAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
-    revocationReason: Type.Union([AgentKeyRevocationReasonSchema, Type.Null()]),
-    revocationDescription: Type.Union([Type.String(), Type.Null()]),
   },
-  { $id: 'AgentKey' },
+  { $id: 'TeamAgentKey' },
 );
+
+export const IdentityAgentKeySchema = Type.Object(
+  {
+    ...AgentKeyBaseSchema.properties,
+    bindingScope: Type.Literal('identity'),
+  },
+  { $id: 'IdentityAgentKey' },
+);
+
+export const AgentKeySchema = Type.Unsafe<
+  Static<typeof TeamAgentKeySchema> | Static<typeof IdentityAgentKeySchema>
+>({
+  $id: 'AgentKey',
+  oneOf: [
+    Type.Ref(TeamAgentKeySchema.$id),
+    Type.Ref(IdentityAgentKeySchema.$id),
+  ],
+  discriminator: {
+    propertyName: 'bindingScope',
+    mapping: {
+      team: `#/components/schemas/${TeamAgentKeySchema.$id}`,
+      identity: `#/components/schemas/${IdentityAgentKeySchema.$id}`,
+    },
+  },
+} as unknown as TSchema);
 
 export const AgentKeyWithSecretSchema = Type.Object(
   {
@@ -59,16 +97,26 @@ export const AgentKeyListSchema = Type.Object(
 export const CreateAgentKeyBodySchema = Type.Object(
   {
     agentId: UuidSchema,
+    bindingScope: Type.Optional(
+      Type.Unsafe<Static<typeof AgentKeyBindingScopeSchema>>(
+        Type.Ref(AgentKeyBindingScopeSchema.$id),
+      ),
+    ),
     name: Type.String({ minLength: 1, maxLength: 128, pattern: '\\S' }),
     ttlDays: Type.Optional(
       Type.Integer({ minimum: 1, maximum: 90, default: 30 }),
     ),
     scopes: Type.Optional(
-      Type.Array(CredentialScopeSchema, {
-        uniqueItems: true,
-        description:
-          'Requested credential scopes. Must be a subset of both the canonical agent grant and the requesting credential.',
-      }),
+      Type.Array(
+        Type.Unsafe<Static<typeof CredentialScopeSchema>>(
+          Type.Ref(CredentialScopeSchema.$id),
+        ),
+        {
+          uniqueItems: true,
+          description:
+            'Requested credential scopes. Must be a subset of both the canonical agent grant and the requesting credential.',
+        },
+      ),
     ),
   },
   { $id: 'CreateAgentKeyBody' },
@@ -98,14 +146,29 @@ export const AgentKeyParamsSchema = Type.Object(
   { $id: 'AgentKeyParams' },
 );
 
+export const AgentKeyBindingQuerySchema = Type.Object(
+  {
+    bindingScope: Type.Optional(
+      Type.Unsafe<Static<typeof AgentKeyBindingScopeSchema>>(
+        Type.Ref(AgentKeyBindingScopeSchema.$id),
+      ),
+    ),
+  },
+  { $id: 'AgentKeyBindingQuery' },
+);
+
 export const agentKeySchemas = [
   CredentialScopeSchema,
   AgentKeyStatusSchema,
+  AgentKeyBindingScopeSchema,
   AgentKeyRevocationReasonSchema,
+  TeamAgentKeySchema,
+  IdentityAgentKeySchema,
   AgentKeySchema,
   AgentKeyWithSecretSchema,
   AgentKeyListSchema,
   CreateAgentKeyBodySchema,
   RevokeAgentKeyBodySchema,
   AgentKeyParamsSchema,
+  AgentKeyBindingQuerySchema,
 ];

@@ -27,7 +27,11 @@ const context: AgentAuthContext = {
   clientId: 'key-1',
   scopes: ['entries:read'],
   currentTeamId: null,
-  credentialBinding: { keyId: 'key-1', boundTeamId: 'team-1' },
+  credentialBinding: {
+    bindingScope: 'team',
+    keyId: 'key-1',
+    boundTeamId: 'team-1',
+  },
 };
 
 function loader(

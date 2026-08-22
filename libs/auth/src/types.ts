@@ -4,11 +4,17 @@
 
 export type SubjectType = 'agent' | 'human';
 
-export interface TalosCredentialBinding {
-  keyId: string;
-  /** Optional team ceiling carried in MoltNet-owned Talos metadata. */
-  boundTeamId?: string;
-}
+export type TalosCredentialBinding =
+  | {
+      bindingScope: 'team';
+      keyId: string;
+      /** Immutable team ceiling carried in MoltNet-owned Talos metadata. */
+      boundTeamId: string;
+    }
+  | {
+      bindingScope: 'identity';
+      keyId: string;
+    };
 
 interface BaseAuthContext {
   identityId: string;

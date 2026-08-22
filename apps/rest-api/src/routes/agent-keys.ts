@@ -1,20 +1,22 @@
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import {
+  type AgentKeyOperationBinding,
   type AgentKeySubject,
   createAgentKeyService,
 } from '@moltnet/agent-key-service';
-import { requireAuth } from '@moltnet/auth';
+import { requireAuth, TEAM_HEADER } from '@moltnet/auth';
 import {
   ProblemDetailsSchema,
-  TeamHeaderRequiredSchema,
+  TeamHeaderOptionalSchema,
   ValidationProblemDetailsSchema,
 } from '@moltnet/models';
 import type { ApiKeysApi } from '@ory/client-fetch';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { Type } from 'typebox';
 
-import { createProblem } from '../problems/index.js';
+import { createProblem, createValidationProblem } from '../problems/index.js';
 import {
+  AgentKeyBindingQuerySchema,
   AgentKeyListSchema,
   AgentKeyParamsSchema,
   AgentKeyStatusSchema,
@@ -23,7 +25,6 @@ import {
   RevokeAgentKeyBodySchema,
 } from '../schemas.js';
 import { requestAbortSignal } from '../utils/request-abort-signal.js';
-import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
 import { requireKetoSubject } from '../utils/require-keto-subject.js';
 
 interface AgentKeyRoutesOptions {
@@ -44,13 +45,16 @@ function authSubject(request: FastifyRequest): AgentKeySubject {
     ...requireKetoSubject(request),
     scopes: auth.scopes,
     ...(auth.subjectType === 'agent' && auth.credentialBinding
-      ? { credentialKeyId: auth.credentialBinding.keyId }
+      ? {
+          credentialBindingScope: auth.credentialBinding.bindingScope,
+          credentialKeyId: auth.credentialBinding.keyId,
+        }
       : {}),
   };
 }
 
 const AgentKeyIssueHeadersSchema = Type.Intersect([
-  TeamHeaderRequiredSchema,
+  TeamHeaderOptionalSchema,
   Type.Object({
     'idempotency-key': Type.String({
       minLength: 1,
@@ -61,6 +65,42 @@ const AgentKeyIssueHeadersSchema = Type.Intersect([
     }),
   }),
 ]);
+
+function operationBinding(
+  request: FastifyRequest,
+  bindingScope: 'identity' | 'team' | undefined,
+): AgentKeyOperationBinding {
+  if (bindingScope === 'identity') {
+    if (request.headers[TEAM_HEADER] !== undefined) {
+      throw createValidationProblem(
+        [
+          {
+            field: TEAM_HEADER,
+            message: 'must be omitted for identity-scoped agent keys',
+          },
+        ],
+        `${TEAM_HEADER} header is not allowed for identity-scoped agent keys`,
+      );
+    }
+    return { bindingScope: 'identity' };
+  }
+  const teamId = request.authContext?.currentTeamId;
+  if (!teamId) {
+    throw createValidationProblem(
+      [
+        {
+          field: TEAM_HEADER,
+          message: 'is required for team-scoped agent keys',
+        },
+      ],
+      `${TEAM_HEADER} header is required: agent keys are team-scoped`,
+    );
+  }
+  return {
+    bindingScope: 'team',
+    teamId,
+  };
+}
 
 export async function agentKeyRoutes(
   fastify: FastifyInstance,
@@ -81,7 +121,7 @@ export async function agentKeyRoutes(
       onRequest: fastify.rateLimitHooks.agentKey,
       config: {
         auth: {
-          credentialBindingScope: 'team',
+          credentialBindingScope: 'identity',
           requiredScopes: ['key:manage'],
         },
         rateLimit: false,
@@ -91,7 +131,7 @@ export async function agentKeyRoutes(
         operationId: 'createAgentKey',
         tags: ['agent-keys'],
         description:
-          'Issue a secret API key bound to one agent and the active team.',
+          'Issue a secret API key bound to one agent identity or, by default, the active team.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         headers: AgentKeyIssueHeadersSchema,
         body: CreateAgentKeyBodySchema,
@@ -108,14 +148,15 @@ export async function agentKeyRoutes(
       },
     },
     async (request, reply) => {
-      const teamId = requireCurrentTeamId(request, 'agent keys');
+      const { bindingScope, ...body } = request.body;
+      const binding = operationBinding(request, bindingScope);
       const result = await agentKeys.issue({
-        ...request.body,
+        ...body,
+        ...binding,
         idempotencyKey: request.headers['idempotency-key'],
         logger: request.log,
         signal: requestAbortSignal(request, reply),
         subject: authSubject(request),
-        teamId,
       });
       return reply.status(201).send(result);
     },
@@ -126,7 +167,7 @@ export async function agentKeyRoutes(
     {
       config: {
         auth: {
-          credentialBindingScope: 'team',
+          credentialBindingScope: 'identity',
           requiredScopes: ['key:manage'],
         },
         rateLimit: fastify.rateLimitConfig.read,
@@ -135,17 +176,20 @@ export async function agentKeyRoutes(
         operationId: 'listAgentKeys',
         tags: ['agent-keys'],
         description:
-          'List agent API keys bound to the active team. Team credential managers may list every agent.',
+          'List agent API keys for the selected binding. Team scope is the default; identity scope is agent self-service.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
-        headers: TeamHeaderRequiredSchema,
-        querystring: Type.Object({
-          agentId: Type.Optional(Type.String({ format: 'uuid' })),
-          status: Type.Optional(AgentKeyStatusSchema),
-          limit: Type.Optional(
-            Type.Integer({ minimum: 1, maximum: 100, default: 20 }),
-          ),
-          cursor: Type.Optional(Type.String()),
-        }),
+        headers: TeamHeaderOptionalSchema,
+        querystring: Type.Intersect([
+          AgentKeyBindingQuerySchema,
+          Type.Object({
+            agentId: Type.Optional(Type.String({ format: 'uuid' })),
+            status: Type.Optional(AgentKeyStatusSchema),
+            limit: Type.Optional(
+              Type.Integer({ minimum: 1, maximum: 100, default: 20 }),
+            ),
+            cursor: Type.Optional(Type.String()),
+          }),
+        ]),
         response: {
           200: Type.Ref(AgentKeyListSchema.$id),
           400: Type.Ref(ValidationProblemDetailsSchema.$id),
@@ -157,13 +201,14 @@ export async function agentKeyRoutes(
       },
     },
     async (request, reply) => {
-      const teamId = requireCurrentTeamId(request, 'agent keys');
+      const { bindingScope, ...query } = request.query;
+      const binding = operationBinding(request, bindingScope);
       return agentKeys.list({
-        ...request.query,
+        ...query,
+        ...binding,
         logger: request.log,
         signal: requestAbortSignal(request, reply),
         subject: authSubject(request),
-        teamId,
       });
     },
   );
@@ -174,7 +219,7 @@ export async function agentKeyRoutes(
       onRequest: fastify.rateLimitHooks.agentKey,
       config: {
         auth: {
-          credentialBindingScope: 'team',
+          credentialBindingScope: 'identity',
           requiredScopes: ['key:manage'],
         },
         rateLimit: false,
@@ -186,8 +231,9 @@ export async function agentKeyRoutes(
         description:
           'Rotate an agent API key immediately. The previous secret is revoked and expiry is unchanged.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
-        headers: TeamHeaderRequiredSchema,
+        headers: TeamHeaderOptionalSchema,
         params: AgentKeyParamsSchema,
+        querystring: AgentKeyBindingQuerySchema,
         response: {
           200: Type.Ref(AgentKeyWithSecretSchema.$id),
           400: Type.Ref(ValidationProblemDetailsSchema.$id),
@@ -202,13 +248,13 @@ export async function agentKeyRoutes(
       },
     },
     async (request, reply) => {
-      const teamId = requireCurrentTeamId(request, 'agent keys');
+      const binding = operationBinding(request, request.query.bindingScope);
       const rotated = await agentKeys.rotate({
+        ...binding,
         keyId: request.params.keyId,
         logger: request.log,
         signal: requestAbortSignal(request, reply),
         subject: authSubject(request),
-        teamId,
       });
       fastify.tokenValidator.evictTalosKey(request.params.keyId);
       return rotated;
@@ -220,7 +266,7 @@ export async function agentKeyRoutes(
     {
       onRequest: fastify.rateLimitHooks.agentKey,
       config: {
-        auth: { credentialBindingScope: 'team', requiredScopes: [] },
+        auth: { credentialBindingScope: 'identity', requiredScopes: [] },
         rateLimit: false,
         rateLimitBucket: 'agent-key',
       },
@@ -229,8 +275,9 @@ export async function agentKeyRoutes(
         tags: ['agent-keys'],
         description: 'Permanently revoke an agent API key.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
-        headers: TeamHeaderRequiredSchema,
+        headers: TeamHeaderOptionalSchema,
         params: AgentKeyParamsSchema,
+        querystring: AgentKeyBindingQuerySchema,
         body: RevokeAgentKeyBodySchema,
         response: {
           204: Type.Null(),
@@ -245,14 +292,14 @@ export async function agentKeyRoutes(
       },
     },
     async (request, reply) => {
-      const teamId = requireCurrentTeamId(request, 'agent keys');
+      const binding = operationBinding(request, request.query.bindingScope);
       await agentKeys.revoke({
         ...request.body,
+        ...binding,
         keyId: request.params.keyId,
         logger: request.log,
         subject: authSubject(request),
         signal: requestAbortSignal(request, reply),
-        teamId,
       });
       fastify.tokenValidator.evictTalosKey(request.params.keyId);
       return reply.status(204).send(null);
