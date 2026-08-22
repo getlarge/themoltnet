@@ -1,6 +1,6 @@
 import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
 import { UuidSchema } from '@moltnet/models';
-import { type Static, type TSchema,Type } from 'typebox';
+import { type Static, type TSchema, Type } from 'typebox';
 
 export const CredentialScopeSchema = Type.Union(
   AGENT_OAUTH_SCOPES.map((scope) => Type.Literal(scope)),
