@@ -93,7 +93,7 @@ function operationBinding(
           message: 'is required for team-scoped agent keys',
         },
       ],
-      `${TEAM_HEADER} header is required: agent keys are team-scoped`,
+      `${TEAM_HEADER} header is required for team-scoped agent keys`,
     );
   }
   return {

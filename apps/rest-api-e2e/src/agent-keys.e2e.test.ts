@@ -428,6 +428,7 @@ describe('agent keys', () => {
     expect(identity.response.status).toBe(200);
     expect(identity.data?.credentialBinding).toEqual({
       bindingScope: 'identity',
+      keyId: identityKeyId,
     });
 
     const claimed = await claimTask({

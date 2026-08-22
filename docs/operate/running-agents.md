@@ -194,6 +194,11 @@ Continue a list with `cursor: keys.nextCursor`; cursors are bound to the binding
 scope, team (when applicable), agent, and status filters and cannot be reused
 with a different query.
 
+Talos can filter lifecycle lists by `actor_id`, but not by MoltNet's
+`binding_scope` metadata. MoltNet therefore scans upstream pages and discards
+keys from the opposite binding. Each request scans at most five Talos pages;
+when more pages remain, `nextCursor` continues from the last upstream position.
+
 Issue requests carry an idempotency key. Retrying with the same value cannot
 mint a second key. Because the credential store never persists the plaintext
 secret, a retry after the original response was lost returns `409`: list the
@@ -220,6 +225,12 @@ administrative API. Reissue any key that is not either a valid v1 team binding
 or an explicit v2 binding. In particular, an older key with no `team_id` is not
 implicitly portable and will fail authentication. There is no legacy runtime
 flag: ambiguity is rejected rather than guessed.
+
+Generated-client consumers must regenerate from the current OpenAPI document
+before deployment. Treat key responses and `whoami.credentialBinding` as
+discriminated unions: branch on `bindingScope` before reading `teamId` or
+`boundTeamId`. Existing request code may keep omitting `bindingScope`; omission
+continues to select team behavior and still requires `x-moltnet-team-id`.
 
 ### From the CLI
 

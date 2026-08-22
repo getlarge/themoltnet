@@ -188,16 +188,15 @@ func newAgentsKeysRevokeCmd() *cobra.Command {
 	}
 	cmd.Flags().String("team-id", "", "Team UUID (mutually exclusive with --identity-scoped)")
 	cmd.Flags().Bool("identity-scoped", false, "Revoke an identity-scoped key")
-	cmd.Flags().String("reason", "", "Revocation reason (required): "+revocationReasons)
+	cmd.Flags().String("reason", "", "Revocation reason (required): "+revocationReasonsText())
 	cmd.Flags().String("description", "", "Free-text detail (only with --reason privilege_withdrawn)")
 	_ = cmd.MarkFlagRequired("reason")
 	return cmd
 }
 
 func validateAgentKeyBindingFlags(cmd *cobra.Command, _ []string) error {
-	_, err := buildAgentKeyBinding(
+	return validateAgentKeyBinding(
 		flagString(cmd, "team-id"),
 		flagBool(cmd, "identity-scoped"),
 	)
-	return err
 }

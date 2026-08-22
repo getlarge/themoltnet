@@ -23,8 +23,10 @@ import { decodeOpaqueCursor, encodeOpaqueCursor } from './opaque-cursor.js';
 import { createProblem, createValidationProblem } from './problems.js';
 
 const DEFAULT_TTL_DAYS = 30;
+const DEFAULT_LIST_LIMIT = 20;
 const INVALID_KEY_CLEANUP_TIMEOUT_MS = 2_000;
 const MAX_TALOS_LIST_PAGES_PER_REQUEST = 5;
+const SECONDS_PER_DAY = 86_400;
 
 export type AgentKeyStatus = 'active' | 'revoked' | 'expired';
 export type AgentKeyRevocationReason =
@@ -157,6 +159,14 @@ function resolveBinding(
   return input.bindingScope === 'identity'
     ? { bindingScope: 'identity' }
     : { bindingScope: 'team', teamId: input.teamId };
+}
+
+function bindingLogFields(
+  binding: ResolvedAgentKeyBinding,
+): Record<string, unknown> {
+  return binding.bindingScope === 'team'
+    ? { bindingScope: 'team', teamId: binding.teamId }
+    : { bindingScope: 'identity' };
 }
 
 function readBinding(key: IssuedApiKey): StoredAgentKeyBinding | null {
@@ -487,10 +497,7 @@ async function getBoundKey(
         action: `${action}:read`,
         failureKind: talosFailureKind(error, signal),
         keyId,
-        bindingScope: expectedBinding.bindingScope,
-        ...(expectedBinding.bindingScope === 'team'
-          ? { teamId: expectedBinding.teamId }
-          : {}),
+        ...bindingLogFields(expectedBinding),
       },
       'agent_key.upstream_error',
     );
@@ -623,7 +630,7 @@ async function resolveListQuery(
     return {
       agentFilter: input.subject.identityId,
       cursorQuery,
-      limit: input.limit ?? 20,
+      limit: input.limit ?? DEFAULT_LIST_LIMIT,
       pageToken: decodeCursor(input.cursor, cursorQuery),
     };
   }
@@ -653,7 +660,7 @@ async function resolveListQuery(
   return {
     agentFilter,
     cursorQuery,
-    limit: input.limit ?? 20,
+    limit: input.limit ?? DEFAULT_LIST_LIMIT,
     pageToken: decodeCursor(input.cursor, cursorQuery),
   };
 }
@@ -671,16 +678,18 @@ async function scanAgentKeyPages(
   const seenTokens = new Set<string>();
   const items: AgentKey[] = [];
 
+  // Talos can narrow by actor_id but not by MoltNet's binding metadata. Scan
+  // opaque upstream pages and discard keys from the opposite binding, bounded
+  // by MAX_TALOS_LIST_PAGES_PER_REQUEST so sparse matches cannot monopolize a
+  // request.
+
   do {
     if (pageToken) {
       if (seenTokens.has(pageToken)) {
         input.logger.warn(
           {
             action: 'list',
-            bindingScope: expectedBinding.bindingScope,
-            ...(expectedBinding.bindingScope === 'team'
-              ? { teamId: expectedBinding.teamId }
-              : {}),
+            ...bindingLogFields(expectedBinding),
             pageTokenRepeated: true,
           },
           'agent_key.upstream_error',
@@ -709,11 +718,8 @@ async function scanAgentKeyPages(
           err: error,
           action: 'list',
           actorId: query.agentFilter,
-          bindingScope: expectedBinding.bindingScope,
           failureKind: talosFailureKind(error, input.signal),
-          ...(expectedBinding.bindingScope === 'team'
-            ? { teamId: expectedBinding.teamId }
-            : {}),
+          ...bindingLogFields(expectedBinding),
         },
         'agent_key.upstream_error',
       );
@@ -742,10 +748,7 @@ async function scanAgentKeyPages(
             action: 'list:map',
             keyId: issuedKey.key_id,
             actorId: issuedKey.actor_id,
-            bindingScope: expectedBinding.bindingScope,
-            ...(expectedBinding.bindingScope === 'team'
-              ? { teamId: expectedBinding.teamId }
-              : {}),
+            ...bindingLogFields(expectedBinding),
           },
           'agent_key.malformed_upstream_row',
         );
@@ -767,10 +770,7 @@ async function scanAgentKeyPages(
   input.logger.debug(
     {
       action: 'list',
-      bindingScope: expectedBinding.bindingScope,
-      ...(expectedBinding.bindingScope === 'team'
-        ? { teamId: expectedBinding.teamId }
-        : {}),
+      ...bindingLogFields(expectedBinding),
       actorId: input.subject.identityId,
       scannedCount,
       matchedCount: items.length,
@@ -826,7 +826,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
               actor_id: input.agentId,
               name,
               request_id: talosRequestId(input, binding),
-              ttl: `${ttlDays * 86_400}s`,
+              ttl: `${ttlDays * SECONDS_PER_DAY}s`,
               visibility: KeyVisibility.KeyVisibilitySecret,
               scopes,
               metadata: agentKeyMetadata(binding),
@@ -840,11 +840,8 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
             err: error,
             action: 'issue',
             agentId: input.agentId,
-            bindingScope: binding.bindingScope,
             failureKind: talosFailureKind(error, input.signal),
-            ...(binding.bindingScope === 'team'
-              ? { teamId: binding.teamId }
-              : {}),
+            ...bindingLogFields(binding),
           },
           'agent_key.upstream_error',
         );
@@ -872,10 +869,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
             action: 'issue:replay-recovered',
             keyId: replayedKey.id,
             agentId: input.agentId,
-            bindingScope: binding.bindingScope,
-            ...(binding.bindingScope === 'team'
-              ? { teamId: binding.teamId }
-              : {}),
+            ...bindingLogFields(binding),
           },
           'agent_key.idempotency_replay_rotated',
         );
@@ -886,10 +880,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
             action: 'issue:replay',
             keyId: result.issued_api_key.key_id,
             agentId: input.agentId,
-            bindingScope: binding.bindingScope,
-            ...(binding.bindingScope === 'team'
-              ? { teamId: binding.teamId }
-              : {}),
+            ...bindingLogFields(binding),
           },
           'agent_key.idempotency_replay',
         );
@@ -922,10 +913,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
             action: 'issue:validate',
             keyId: result.issued_api_key.key_id,
             agentId: input.agentId,
-            bindingScope: binding.bindingScope,
-            ...(binding.bindingScope === 'team'
-              ? { teamId: binding.teamId }
-              : {}),
+            ...bindingLogFields(binding),
           },
           'agent_key.malformed_upstream_row',
         );
@@ -946,10 +934,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
           action: 'issue',
           keyId: result.issued_api_key.key_id,
           agentId: input.agentId,
-          bindingScope: binding.bindingScope,
-          ...(binding.bindingScope === 'team'
-            ? { teamId: binding.teamId }
-            : {}),
+          ...bindingLogFields(binding),
           ttlDays,
         },
         'agent_key.lifecycle',
@@ -1024,10 +1009,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
             action: 'rotate',
             failureKind: talosFailureKind(error, input.signal),
             keyId: input.keyId,
-            bindingScope: requestedBinding.bindingScope,
-            ...(requestedBinding.bindingScope === 'team'
-              ? { teamId: requestedBinding.teamId }
-              : {}),
+            ...bindingLogFields(requestedBinding),
           },
           'agent_key.upstream_error',
         );
@@ -1057,10 +1039,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
             action: 'rotate:validate',
             keyId: result.issued_api_key.key_id,
             oldKeyId: input.keyId,
-            bindingScope: requestedBinding.bindingScope,
-            ...(requestedBinding.bindingScope === 'team'
-              ? { teamId: requestedBinding.teamId }
-              : {}),
+            ...bindingLogFields(requestedBinding),
           },
           'agent_key.malformed_upstream_row',
         );
@@ -1082,10 +1061,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
           oldKeyId: key.key_id,
           keyId: result.issued_api_key.key_id,
           agentId: binding.agentId,
-          bindingScope: requestedBinding.bindingScope,
-          ...(requestedBinding.bindingScope === 'team'
-            ? { teamId: requestedBinding.teamId }
-            : {}),
+          ...bindingLogFields(requestedBinding),
         },
         'agent_key.lifecycle',
       );
@@ -1146,10 +1122,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
             action: 'revoke',
             failureKind: talosFailureKind(error, input.signal),
             keyId: input.keyId,
-            bindingScope: requestedBinding.bindingScope,
-            ...(requestedBinding.bindingScope === 'team'
-              ? { teamId: requestedBinding.teamId }
-              : {}),
+            ...bindingLogFields(requestedBinding),
           },
           'agent_key.upstream_error',
         );
@@ -1161,10 +1134,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
           action: 'revoke',
           keyId: input.keyId,
           agentId: binding.agentId,
-          bindingScope: requestedBinding.bindingScope,
-          ...(requestedBinding.bindingScope === 'team'
-            ? { teamId: requestedBinding.teamId }
-            : {}),
+          ...bindingLogFields(requestedBinding),
           reason: input.reason,
         },
         'agent_key.lifecycle',

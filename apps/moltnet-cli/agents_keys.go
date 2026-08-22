@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 	"github.com/google/uuid"
@@ -18,7 +19,16 @@ const agentKeySecretNotice = "Store the returned secret now — it is shown exac
 
 // revocationReasons lists the revocation reasons accepted by --reason, matching
 // the API contract's discriminated request body. Used in help text and errors.
-const revocationReasons = "key_compromise, affiliation_changed, superseded, privilege_withdrawn"
+var revocationReasons = []string{
+	"key_compromise",
+	"affiliation_changed",
+	"superseded",
+	"privilege_withdrawn",
+}
+
+func revocationReasonsText() string {
+	return strings.Join(revocationReasons, ", ")
+}
 
 func agentKeyID(key moltnetapi.AgentKey) (string, bool) {
 	if teamKey, ok := key.GetTeamAgentKey(); ok {
@@ -72,11 +82,8 @@ type agentKeyBinding struct {
 // contract by omitting bindingScope; identity mode omits the team header and
 // sends the explicit identity discriminator.
 func buildAgentKeyBinding(teamIDValue string, identityScoped bool) (agentKeyBinding, error) {
-	if identityScoped && teamIDValue != "" {
-		return agentKeyBinding{}, fmt.Errorf("--identity-scoped and --team-id are mutually exclusive")
-	}
-	if !identityScoped && teamIDValue == "" {
-		return agentKeyBinding{}, fmt.Errorf("one of --team-id or --identity-scoped is required")
+	if err := validateAgentKeyBinding(teamIDValue, identityScoped); err != nil {
+		return agentKeyBinding{}, err
 	}
 	if identityScoped {
 		return agentKeyBinding{
@@ -88,6 +95,16 @@ func buildAgentKeyBinding(teamIDValue string, identityScoped bool) (agentKeyBind
 		return agentKeyBinding{}, err
 	}
 	return agentKeyBinding{teamID: moltnetapi.NewOptUUID(teamID)}, nil
+}
+
+func validateAgentKeyBinding(teamIDValue string, identityScoped bool) error {
+	if identityScoped && teamIDValue != "" {
+		return fmt.Errorf("--identity-scoped and --team-id are mutually exclusive")
+	}
+	if !identityScoped && teamIDValue == "" {
+		return fmt.Errorf("one of --team-id or --identity-scoped is required")
+	}
+	return nil
 }
 
 // ----- list -----
@@ -462,7 +479,7 @@ func buildRevokeAgentKey(opts agentsKeysRevokeOpts) (moltnetapi.OptRevokeAgentKe
 // the sole variant the contract lets carry one.
 func buildRevokeReason(reason, description string, descSet bool) (moltnetapi.OptRevokeAgentKeyReq, error) {
 	if reason == "" {
-		return moltnetapi.OptRevokeAgentKeyReq{}, fmt.Errorf("--reason is required: must be one of %s", revocationReasons)
+		return moltnetapi.OptRevokeAgentKeyReq{}, fmt.Errorf("--reason is required: must be one of %s", revocationReasonsText())
 	}
 	hasDescription := descSet && description != ""
 	if hasDescription && reason != string(moltnetapi.AgentKeyRevocationReasonPrivilegeWithdrawn) {
@@ -496,6 +513,6 @@ func buildRevokeReason(reason, description string, descSet bool) (moltnetapi.Opt
 		}
 		return moltnetapi.NewOptRevokeAgentKeyReq(moltnetapi.NewProvenanceGraphPrivilegeWithdrawnNodeRevokeAgentKeyReq(node)), nil
 	default:
-		return moltnetapi.OptRevokeAgentKeyReq{}, fmt.Errorf("invalid --reason %q: must be one of %s", reason, revocationReasons)
+		return moltnetapi.OptRevokeAgentKeyReq{}, fmt.Errorf("invalid --reason %q: must be one of %s", reason, revocationReasonsText())
 	}
 }
