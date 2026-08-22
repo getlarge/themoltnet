@@ -486,18 +486,6 @@ jobs:
           MOLTNET_SKIP_REGISTRY_SMOKE: '1'
         run: pnpm exec nx affected -t lint typecheck test-ci build check:pack docker:build --configuration=ci
 
-      # On main, refresh the moving :ci-main fallback for ALL e2e images (not
-      # just affected) so PR e2e runs always have a complete, up-to-date image
-      # set to fall back to for the services they didn't change. Runs only on
-      # main pushes (no PR is waiting), under the same DTE run. The per-sha
-      # images for affected projects were already built+pushed above; this
-      # re-runs docker:build for the unaffected ones to (re)publish :ci-main.
-      - name: Refresh :ci-main for all e2e images (main only)
-        if: needs.affected.outputs.has-agents == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
-          pnpm exec nx run-many -t docker:build --configuration=ci \
-            --projects=@moltnet/rest-api,@moltnet/mcp-server,@moltnet/console,@moltnet/mcp-host,@moltnet/database
-
       - name: Complete Nx Cloud CI run
         if: always() && needs.affected.outputs.has-agents == 'true'
         run: pnpm exec nx-cloud complete-ci-run

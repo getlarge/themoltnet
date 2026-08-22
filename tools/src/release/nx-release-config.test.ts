@@ -14,6 +14,10 @@ const workflow = readFileSync(
   new URL('../../../.github/workflows/release.yml', import.meta.url),
   'utf8',
 );
+const ciWorkflow = readFileSync(
+  new URL('../../../.github/workflows/ci.yml', import.meta.url),
+  'utf8',
+);
 const releasePleaseConfig = JSON.parse(
   readFileSync(
     new URL('../../../release-please-config.json', import.meta.url),
@@ -236,6 +240,37 @@ describe('Nx release configuration', () => {
     );
     expect(result.stdout).toContain('--platform linux/amd64,linux/arm64');
     expect(result.stdout).not.toContain('ci-main');
+  });
+
+  it('moves ci-main in the affected main build without a second refresh', () => {
+    const result = runNode(
+      'tools/docker-build.mjs',
+      [
+        '--project',
+        '@moltnet/rest-api',
+        '--push',
+        '--platform',
+        'linux/amd64',
+        '--tag',
+        'ci-0123456789abcdef',
+        '--no-cache-to',
+        '--dry-run',
+      ],
+      {
+        GITHUB_REF: 'refs/heads/main',
+        GITHUB_SHA: '0123456789abcdef',
+      },
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe('');
+    expect(result.stdout).toContain(
+      'clean tag  : ghcr.io/getlarge/themoltnet/rest-api:ci-0123456789abcdef',
+    );
+    expect(result.stdout).toContain(
+      'main tag   : ghcr.io/getlarge/themoltnet/rest-api:ci-main',
+    );
+    expect(ciWorkflow).not.toContain('Refresh :ci-main for all e2e images');
   });
 
   it('uses the Docker host architecture for local image loads', () => {
