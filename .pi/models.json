@@ -9,7 +9,7 @@
           "_launch": true,
           "contextWindow": 524288,
           "id": "minimax-m3:cloud",
-          "input": ["text"]
+          "input": ["text", "image"]
         },
         {
           "_launch": true,
@@ -49,6 +49,7 @@
       "baseUrl": "https://ollama.com/v1",
       "models": [
         {
+          "contextWindow": 1048576,
           "id": "deepseek-v4-flash:cloud",
           "reasoning": true,
           "thinkingLevelMap": {
@@ -61,6 +62,7 @@
           }
         },
         {
+          "contextWindow": 1048576,
           "id": "deepseek-v4-pro:cloud",
           "reasoning": true,
           "thinkingLevelMap": {
@@ -73,7 +75,9 @@
           }
         },
         {
+          "contextWindow": 262144,
           "id": "gemma4:cloud",
+          "input": ["text", "image"],
           "reasoning": true,
           "thinkingLevelMap": {
             "high": "high",
@@ -85,7 +89,9 @@
           }
         },
         {
+          "contextWindow": 262144,
           "id": "gemma4:31b-cloud",
+          "input": ["text", "image"],
           "reasoning": true,
           "thinkingLevelMap": {
             "high": "high",
@@ -97,6 +103,7 @@
           }
         },
         {
+          "contextWindow": 202752,
           "id": "glm-5.1:cloud",
           "reasoning": true,
           "thinkingLevelMap": {
@@ -109,6 +116,7 @@
           }
         },
         {
+          "contextWindow": 1000000,
           "id": "glm-5.2:cloud",
           "reasoning": true,
           "thinkingLevelMap": {
@@ -121,6 +129,7 @@
           }
         },
         {
+          "contextWindow": 131072,
           "id": "gpt-oss:20b-cloud",
           "reasoning": true,
           "thinkingLevelMap": {
@@ -132,6 +141,7 @@
           }
         },
         {
+          "contextWindow": 131072,
           "id": "gpt-oss:120b-cloud",
           "reasoning": true,
           "thinkingLevelMap": {
@@ -143,7 +153,9 @@
           }
         },
         {
+          "contextWindow": 262144,
           "id": "kimi-k2.6:cloud",
+          "input": ["text", "image"],
           "reasoning": true,
           "thinkingLevelMap": {
             "high": "high",
@@ -155,7 +167,9 @@
           }
         },
         {
+          "contextWindow": 262144,
           "id": "kimi-k2.7-code:cloud",
+          "input": ["text", "image"],
           "reasoning": true,
           "thinkingLevelMap": {
             "high": "high",
@@ -167,6 +181,21 @@
           }
         },
         {
+          "contextWindow": 1048576,
+          "id": "kimi-k3:cloud",
+          "input": ["text", "image"],
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": "low",
+            "off": "none",
+            "xhigh": "max"
+          }
+        },
+        {
+          "contextWindow": 202752,
           "id": "minimax-m2.5:cloud",
           "reasoning": true,
           "thinkingLevelMap": {
@@ -179,6 +208,7 @@
           }
         },
         {
+          "contextWindow": 204800,
           "id": "minimax-m2.7:cloud",
           "reasoning": true,
           "thinkingLevelMap": {
@@ -191,7 +221,9 @@
           }
         },
         {
+          "contextWindow": 524288,
           "id": "minimax-m3:cloud",
+          "input": ["text", "image"],
           "reasoning": true,
           "thinkingLevelMap": {
             "high": "high",
@@ -203,6 +235,7 @@
           }
         },
         {
+          "contextWindow": 262144,
           "id": "nemotron-3-super:cloud",
           "reasoning": true,
           "thinkingLevelMap": {
@@ -215,6 +248,7 @@
           }
         },
         {
+          "contextWindow": 262144,
           "id": "nemotron-3-ultra:cloud",
           "reasoning": true,
           "thinkingLevelMap": {
@@ -227,7 +261,9 @@
           }
         },
         {
+          "contextWindow": 262144,
           "id": "qwen3.5:cloud",
+          "input": ["text", "image"],
           "reasoning": true,
           "thinkingLevelMap": {
             "high": "high",
@@ -239,7 +275,9 @@
           }
         },
         {
+          "contextWindow": 262144,
           "id": "qwen3.5:397b-cloud",
+          "input": ["text", "image"],
           "reasoning": true,
           "thinkingLevelMap": {
             "high": "high",

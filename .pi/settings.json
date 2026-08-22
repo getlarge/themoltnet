@@ -13,6 +13,7 @@
     "ollama-cloud/gpt-oss:120b-cloud",
     "ollama-cloud/kimi-k2.6:cloud",
     "ollama-cloud/kimi-k2.7-code:cloud",
+    "ollama-cloud/kimi-k3:cloud",
     "ollama/gemma4:12b",
     "ollama-cloud/minimax-m2.5:cloud",
     "ollama-cloud/minimax-m2.7:cloud",
@@ -23,7 +24,7 @@
     "ollama-cloud/qwen3.5:397b-cloud"
   ],
   "lastChangelogVersion": "0.80.2",
-  "packages": ["npm:@ollama/pi-web-search", "npm:@themoltnet/pi-extension"],
+  "packages": ["npm:@ollama/pi-web-search"],
   "theme": "dark",
   "transport": "sse",
   "treeFilterMode": "default"
