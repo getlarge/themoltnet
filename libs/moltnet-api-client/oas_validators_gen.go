@@ -284,70 +284,32 @@ func (s *AddGroupMemberUnauthorized) Validate() error {
 	return nil
 }
 
-func (s *AgentKey) Validate() error {
-	if s == nil {
-		return validate.ErrNilPointer
-	}
-
-	var failures []validate.FieldError
-	if err := func() error {
-		if value, ok := s.RevocationReason.Get(); ok {
-			if err := func() error {
-				if err := value.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "revocationReason",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		var failures []validate.FieldError
-		for i, elem := range s.Scopes {
-			if err := func() error {
-				if err := elem.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				failures = append(failures, validate.FieldError{
-					Name:  fmt.Sprintf("[%d]", i),
-					Error: err,
-				})
-			}
-		}
-		if len(failures) > 0 {
-			return &validate.Error{Fields: failures}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "scopes",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := s.Status.Validate(); err != nil {
+func (s AgentKey) Validate() error {
+	switch s.Type {
+	case TeamAgentKeyAgentKey:
+		if err := s.TeamAgentKey.Validate(); err != nil {
 			return err
 		}
 		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "status",
-			Error: err,
-		})
+	case IdentityAgentKeyAgentKey:
+		if err := s.IdentityAgentKey.Validate(); err != nil {
+			return err
+		}
+		return nil
+	default:
+		return errors.Errorf("invalid type %q", s.Type)
 	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
+}
+
+func (s AgentKeyBindingScope) Validate() error {
+	switch s {
+	case "team":
+		return nil
+	case "identity":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
 	}
-	return nil
 }
 
 func (s *AgentKeyList) Validate() error {
@@ -442,47 +404,6 @@ func (s AgentKeyRevocationReason) Validate() error {
 	case "superseded":
 		return nil
 	case "privilege_withdrawn":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
-}
-
-func (s AgentKeyScopesItem) Validate() error {
-	switch s {
-	case "agent:profile":
-		return nil
-	case "connector:invoke":
-		return nil
-	case "crypto:sign":
-		return nil
-	case "diary:manage":
-		return nil
-	case "diary:read":
-		return nil
-	case "diary:write":
-		return nil
-	case "key:manage":
-		return nil
-	case "pack:read":
-		return nil
-	case "pack:write":
-		return nil
-	case "runtime:manage":
-		return nil
-	case "runtime:read":
-		return nil
-	case "task:claim":
-		return nil
-	case "task:execute":
-		return nil
-	case "task:manage":
-		return nil
-	case "task:read":
-		return nil
-	case "team:manage":
-		return nil
-	case "team:read":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
@@ -4223,6 +4144,24 @@ func (s *CreateAgentKeyReq) Validate() error {
 
 	var failures []validate.FieldError
 	if err := func() error {
+		if value, ok := s.BindingScope.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "bindingScope",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if err := (validate.String{
 			MinLength:     1,
 			MinLengthSet:  true,
@@ -4316,47 +4255,6 @@ func (s *CreateAgentKeyReq) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
-}
-
-func (s CreateAgentKeyReqScopesItem) Validate() error {
-	switch s {
-	case "agent:profile":
-		return nil
-	case "connector:invoke":
-		return nil
-	case "crypto:sign":
-		return nil
-	case "diary:manage":
-		return nil
-	case "diary:read":
-		return nil
-	case "diary:write":
-		return nil
-	case "key:manage":
-		return nil
-	case "pack:read":
-		return nil
-	case "pack:write":
-		return nil
-	case "runtime:manage":
-		return nil
-	case "runtime:read":
-		return nil
-	case "task:claim":
-		return nil
-	case "task:execute":
-		return nil
-	case "task:manage":
-		return nil
-	case "task:read":
-		return nil
-	case "team:manage":
-		return nil
-	case "team:read":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
 }
 
 func (s *CreateAgentKeyServiceUnavailable) Validate() error {
@@ -8163,6 +8061,47 @@ func (s *CreateTeamUnauthorized) Validate() error {
 		return err
 	}
 	return nil
+}
+
+func (s CredentialScope) Validate() error {
+	switch s {
+	case "agent:profile":
+		return nil
+	case "connector:invoke":
+		return nil
+	case "crypto:sign":
+		return nil
+	case "diary:manage":
+		return nil
+	case "diary:read":
+		return nil
+	case "diary:write":
+		return nil
+	case "key:manage":
+		return nil
+	case "pack:read":
+		return nil
+	case "pack:write":
+		return nil
+	case "runtime:manage":
+		return nil
+	case "runtime:read":
+		return nil
+	case "task:claim":
+		return nil
+	case "task:execute":
+		return nil
+	case "task:manage":
+		return nil
+	case "task:read":
+		return nil
+	case "team:manage":
+		return nil
+	case "team:read":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *CustomPackEntryResult) Validate() error {
@@ -17628,6 +17567,92 @@ func (s HumanPrincipalKind) Validate() error {
 	}
 }
 
+func (s *IdentityAgentKey) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.BindingScope.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "bindingScope",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.RevocationReason.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "revocationReason",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		var failures []validate.FieldError
+		for i, elem := range s.Scopes {
+			if err := func() error {
+				if err := elem.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				failures = append(failures, validate.FieldError{
+					Name:  fmt.Sprintf("[%d]", i),
+					Error: err,
+				})
+			}
+		}
+		if len(failures) > 0 {
+			return &validate.Error{Fields: failures}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "scopes",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := s.Status.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "status",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s IdentityAgentKeyBindingScope) Validate() error {
+	switch s {
+	case "identity":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *InitiateTransferBadRequest) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -23958,6 +23983,38 @@ func (s ProvenanceGraphHumanNodeType) Validate() error {
 	}
 }
 
+func (s *ProvenanceGraphIdentityNode) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.BindingScope.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "bindingScope",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s ProvenanceGraphIdentityNodeBindingScope) Validate() error {
+	switch s {
+	case "identity":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *ProvenanceGraphKeyCompromiseNode) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -24344,6 +24401,38 @@ func (s *ProvenanceGraphSupersededNode) Validate() error {
 func (s ProvenanceGraphSupersededNodeReason) Validate() error {
 	switch s {
 	case "superseded":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *ProvenanceGraphTeamNode) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.BindingScope.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "bindingScope",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s ProvenanceGraphTeamNodeBindingScope) Validate() error {
+	switch s {
+	case "team":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
@@ -34737,6 +34826,92 @@ func (s *TaskUsage) Validate() error {
 	return nil
 }
 
+func (s *TeamAgentKey) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.BindingScope.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "bindingScope",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.RevocationReason.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "revocationReason",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		var failures []validate.FieldError
+		for i, elem := range s.Scopes {
+			if err := func() error {
+				if err := elem.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				failures = append(failures, validate.FieldError{
+					Name:  fmt.Sprintf("[%d]", i),
+					Error: err,
+				})
+			}
+		}
+		if len(failures) > 0 {
+			return &validate.Error{Fields: failures}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "scopes",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := s.Status.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "status",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s TeamAgentKeyBindingScope) Validate() error {
+	switch s {
+	case "team":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s ToolEnforcement) Validate() error {
 	switch s {
 	case "off":
@@ -40002,6 +40177,24 @@ func (s *Whoami) Validate() error {
 
 	var failures []validate.FieldError
 	if err := func() error {
+		if value, ok := s.CredentialBinding.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "credentialBinding",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if err := s.SubjectType.Validate(); err != nil {
 			return err
 		}
@@ -40016,6 +40209,23 @@ func (s *Whoami) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
+}
+
+func (s WhoamiCredentialBinding) Validate() error {
+	switch s.Type {
+	case ProvenanceGraphTeamNodeWhoamiCredentialBinding:
+		if err := s.ProvenanceGraphTeamNode.Validate(); err != nil {
+			return err
+		}
+		return nil
+	case ProvenanceGraphIdentityNodeWhoamiCredentialBinding:
+		if err := s.ProvenanceGraphIdentityNode.Validate(); err != nil {
+			return err
+		}
+		return nil
+	default:
+		return errors.Errorf("invalid type %q", s.Type)
+	}
 }
 
 func (s WhoamiSubjectType) Validate() error {

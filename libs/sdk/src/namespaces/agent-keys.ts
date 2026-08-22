@@ -5,11 +5,31 @@ import {
   rotateAgentKey,
 } from '@moltnet/api-client';
 
-import type { AgentKeysNamespace } from '../agent.js';
+import type {
+  AgentKeyBindingRequestOptions,
+  AgentKeysNamespace,
+} from '../agent.js';
 import type { AgentContext } from '../agent-context.js';
 import { unwrapResult } from '../agent-context.js';
 import { stripUndefinedQuery } from './query.js';
 import { requiredTeamHeaders } from './team-headers.js';
+
+function bindingHeaders(options: AgentKeyBindingRequestOptions) {
+  return options.bindingScope === 'identity'
+    ? {}
+    : requiredTeamHeaders(options);
+}
+
+function bindingQuery<T extends Record<string, unknown> | undefined>(
+  query: T,
+  options: AgentKeyBindingRequestOptions,
+) {
+  return stripUndefinedQuery(
+    options.bindingScope === 'identity'
+      ? { ...query, bindingScope: 'identity' as const }
+      : query,
+  );
+}
 
 export function createAgentKeysNamespace(
   context: AgentContext,
@@ -25,8 +45,8 @@ export function createAgentKeysNamespace(
         await listAgentKeys({
           client,
           auth,
-          headers: requiredTeamHeaders(options),
-          query: stripUndefinedQuery(query),
+          headers: bindingHeaders(options),
+          query: bindingQuery(query, options),
         }),
       );
     },
@@ -37,10 +57,13 @@ export function createAgentKeysNamespace(
           client,
           auth,
           headers: {
-            ...requiredTeamHeaders(options),
+            ...bindingHeaders(options),
             'idempotency-key': options.idempotencyKey,
           },
-          body,
+          body:
+            options.bindingScope === 'identity'
+              ? { ...body, bindingScope: 'identity' }
+              : body,
         }),
       );
     },
@@ -50,8 +73,9 @@ export function createAgentKeysNamespace(
         await rotateAgentKey({
           client,
           auth,
-          headers: requiredTeamHeaders(options),
+          headers: bindingHeaders(options),
           path: { keyId },
+          query: bindingQuery(undefined, options),
         }),
       );
     },
@@ -60,8 +84,9 @@ export function createAgentKeysNamespace(
       const result = await revokeAgentKey({
         client,
         auth,
-        headers: requiredTeamHeaders(options),
+        headers: bindingHeaders(options),
         path: { keyId },
+        query: bindingQuery(undefined, options),
         body,
       });
       if (result.error) {

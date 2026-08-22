@@ -165,7 +165,7 @@ func (UnimplementedHandler) CreateAgentEnrollment(ctx context.Context, req OptCr
 
 // CreateAgentKey implements createAgentKey operation.
 //
-// Issue a secret API key bound to one agent and the active team.
+// Issue a secret API key bound to one agent identity or, by default, the active team.
 //
 // POST /agent-keys
 func (UnimplementedHandler) CreateAgentKey(ctx context.Context, req *CreateAgentKeyReq, params CreateAgentKeyParams) (r CreateAgentKeyRes, _ error) {
@@ -772,7 +772,8 @@ func (UnimplementedHandler) JoinTeam(ctx context.Context, req *JoinTeamReq) (r J
 
 // ListAgentKeys implements listAgentKeys operation.
 //
-// List agent API keys bound to the active team. Team credential managers may list every agent.
+// List agent API keys for the selected binding. Team scope is the default; identity scope is agent
+// self-service.
 //
 // GET /agent-keys
 func (UnimplementedHandler) ListAgentKeys(ctx context.Context, params ListAgentKeysParams) (r ListAgentKeysRes, _ error) {

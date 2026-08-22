@@ -104,6 +104,66 @@ describe('AgentKeysNamespace', () => {
     );
   });
 
+  it('uses explicit identity binding without a team header', async () => {
+    const issued = {
+      key: {
+        id: KEY_ID,
+        agentId: 'bbbbbbbb-0000-4000-8000-000000000002',
+        bindingScope: 'identity',
+      },
+      secret: 'ory_ak_identity',
+    };
+    get.mockResolvedValue({ data: { items: [issued.key], nextCursor: null } });
+    post.mockResolvedValue({ data: issued });
+    const binding = { bindingScope: 'identity' as const };
+
+    await namespace.list(undefined, binding);
+    await namespace.create(
+      {
+        agentId: 'bbbbbbbb-0000-4000-8000-000000000002',
+        name: 'portable',
+      },
+      { ...binding, idempotencyKey: 'identity-sdk-request' },
+    );
+    await namespace.rotate(KEY_ID, binding);
+    await namespace.revoke(KEY_ID, { reason: 'superseded' }, binding);
+
+    expect(get).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: { bindingScope: 'identity' },
+      }),
+    );
+    expect(post).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'idempotency-key': 'identity-sdk-request',
+        }),
+        body: expect.objectContaining({ bindingScope: 'identity' }),
+      }),
+    );
+    expect(post).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        query: { bindingScope: 'identity' },
+      }),
+    );
+    expect(post).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({
+        query: { bindingScope: 'identity' },
+      }),
+    );
+    for (const options of [
+      get.mock.calls[0]?.[0],
+      post.mock.calls[0]?.[0],
+      post.mock.calls[1]?.[0],
+      post.mock.calls[2]?.[0],
+    ]) {
+      expect(options?.headers).not.toHaveProperty('x-moltnet-team-id');
+    }
+  });
+
   it('strips undefined query filters before sending', async () => {
     get.mockResolvedValue({ data: { items: [], nextCursor: null } });
 

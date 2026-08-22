@@ -1677,8 +1677,8 @@ func decodeCreateAgentEnrollmentParams(args [0]string, argsEscaped bool, r *http
 
 // CreateAgentKeyParams is parameters of createAgentKey operation.
 type CreateAgentKeyParams struct {
-	// Team ID (UUID) that will own the resource. Required.
-	XMoltnetTeamID uuid.UUID
+	// Team ID (UUID) for scoping the request. Optional.
+	XMoltnetTeamID OptUUID `json:",omitempty,omitzero"`
 	// Caller-generated retry key. Reuse it only for the same issue request.
 	IdempotencyKey string
 }
@@ -1689,7 +1689,9 @@ func unpackCreateAgentKeyParams(packed middleware.Parameters) (params CreateAgen
 			Name: "x-moltnet-team-id",
 			In:   "header",
 		}
-		params.XMoltnetTeamID = packed[key].(uuid.UUID)
+		if v, ok := packed[key]; ok {
+			params.XMoltnetTeamID = v.(OptUUID)
+		}
 	}
 	{
 		key := middleware.ParameterKey{
@@ -1711,23 +1713,28 @@ func decodeCreateAgentKeyParams(args [0]string, argsEscaped bool, r *http.Reques
 		}
 		if err := h.HasParam(cfg); err == nil {
 			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
-				val, err := d.DecodeValue()
-				if err != nil {
+				var paramsDotXMoltnetTeamIDVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXMoltnetTeamIDVal = c
+					return nil
+				}(); err != nil {
 					return err
 				}
-
-				c, err := conv.ToUUID(val)
-				if err != nil {
-					return err
-				}
-
-				params.XMoltnetTeamID = c
+				params.XMoltnetTeamID.SetTo(paramsDotXMoltnetTeamIDVal)
 				return nil
 			}); err != nil {
 				return err
 			}
-		} else {
-			return err
 		}
 		return nil
 	}(); err != nil {
@@ -7962,15 +7969,25 @@ func decodeInitiateTransferParams(args [1]string, argsEscaped bool, r *http.Requ
 
 // ListAgentKeysParams is parameters of listAgentKeys operation.
 type ListAgentKeysParams struct {
-	AgentId OptUUID                `json:",omitempty,omitzero"`
-	Status  OptListAgentKeysStatus `json:",omitempty,omitzero"`
-	Limit   OptInt                 `json:",omitempty,omitzero"`
-	Cursor  OptString              `json:",omitempty,omitzero"`
-	// Team ID (UUID) that will own the resource. Required.
-	XMoltnetTeamID uuid.UUID
+	BindingScope OptAgentKeyBindingScope `json:",omitempty,omitzero"`
+	AgentId      OptUUID                 `json:",omitempty,omitzero"`
+	Status       OptListAgentKeysStatus  `json:",omitempty,omitzero"`
+	Limit        OptInt                  `json:",omitempty,omitzero"`
+	Cursor       OptString               `json:",omitempty,omitzero"`
+	// Team ID (UUID) for scoping the request. Optional.
+	XMoltnetTeamID OptUUID `json:",omitempty,omitzero"`
 }
 
 func unpackListAgentKeysParams(packed middleware.Parameters) (params ListAgentKeysParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "bindingScope",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.BindingScope = v.(OptAgentKeyBindingScope)
+		}
+	}
 	{
 		key := middleware.ParameterKey{
 			Name: "agentId",
@@ -8012,7 +8029,9 @@ func unpackListAgentKeysParams(packed middleware.Parameters) (params ListAgentKe
 			Name: "x-moltnet-team-id",
 			In:   "header",
 		}
-		params.XMoltnetTeamID = packed[key].(uuid.UUID)
+		if v, ok := packed[key]; ok {
+			params.XMoltnetTeamID = v.(OptUUID)
+		}
 	}
 	return params
 }
@@ -8020,6 +8039,62 @@ func unpackListAgentKeysParams(packed middleware.Parameters) (params ListAgentKe
 func decodeListAgentKeysParams(args [0]string, argsEscaped bool, r *http.Request) (params ListAgentKeysParams, _ error) {
 	q := uri.NewQueryDecoder(r.URL.Query())
 	h := uri.NewHeaderDecoder(r.Header)
+	// Decode query: bindingScope.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "bindingScope",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotBindingScopeVal AgentKeyBindingScope
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotBindingScopeVal = AgentKeyBindingScope(c)
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.BindingScope.SetTo(paramsDotBindingScopeVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.BindingScope.Get(); ok {
+					if err := func() error {
+						if err := value.Validate(); err != nil {
+							return err
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "bindingScope",
+			In:   "query",
+			Err:  err,
+		}
+	}
 	// Decode query: agentId.
 	if err := func() error {
 		cfg := uri.QueryParameterDecodingConfig{
@@ -8237,23 +8312,28 @@ func decodeListAgentKeysParams(args [0]string, argsEscaped bool, r *http.Request
 		}
 		if err := h.HasParam(cfg); err == nil {
 			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
-				val, err := d.DecodeValue()
-				if err != nil {
+				var paramsDotXMoltnetTeamIDVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXMoltnetTeamIDVal = c
+					return nil
+				}(); err != nil {
 					return err
 				}
-
-				c, err := conv.ToUUID(val)
-				if err != nil {
-					return err
-				}
-
-				params.XMoltnetTeamID = c
+				params.XMoltnetTeamID.SetTo(paramsDotXMoltnetTeamIDVal)
 				return nil
 			}); err != nil {
 				return err
 			}
-		} else {
-			return err
 		}
 		return nil
 	}(); err != nil {
@@ -15178,12 +15258,22 @@ func decodeRevokeAgentEnrollmentParams(args [1]string, argsEscaped bool, r *http
 
 // RevokeAgentKeyParams is parameters of revokeAgentKey operation.
 type RevokeAgentKeyParams struct {
-	KeyId string
-	// Team ID (UUID) that will own the resource. Required.
-	XMoltnetTeamID uuid.UUID
+	BindingScope OptAgentKeyBindingScope `json:",omitempty,omitzero"`
+	KeyId        string
+	// Team ID (UUID) for scoping the request. Optional.
+	XMoltnetTeamID OptUUID `json:",omitempty,omitzero"`
 }
 
 func unpackRevokeAgentKeyParams(packed middleware.Parameters) (params RevokeAgentKeyParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "bindingScope",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.BindingScope = v.(OptAgentKeyBindingScope)
+		}
+	}
 	{
 		key := middleware.ParameterKey{
 			Name: "keyId",
@@ -15196,13 +15286,72 @@ func unpackRevokeAgentKeyParams(packed middleware.Parameters) (params RevokeAgen
 			Name: "x-moltnet-team-id",
 			In:   "header",
 		}
-		params.XMoltnetTeamID = packed[key].(uuid.UUID)
+		if v, ok := packed[key]; ok {
+			params.XMoltnetTeamID = v.(OptUUID)
+		}
 	}
 	return params
 }
 
 func decodeRevokeAgentKeyParams(args [1]string, argsEscaped bool, r *http.Request) (params RevokeAgentKeyParams, _ error) {
+	q := uri.NewQueryDecoder(r.URL.Query())
 	h := uri.NewHeaderDecoder(r.Header)
+	// Decode query: bindingScope.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "bindingScope",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotBindingScopeVal AgentKeyBindingScope
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotBindingScopeVal = AgentKeyBindingScope(c)
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.BindingScope.SetTo(paramsDotBindingScopeVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.BindingScope.Get(); ok {
+					if err := func() error {
+						if err := value.Validate(); err != nil {
+							return err
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "bindingScope",
+			In:   "query",
+			Err:  err,
+		}
+	}
 	// Decode path: keyId.
 	if err := func() error {
 		param := args[0]
@@ -15276,23 +15425,28 @@ func decodeRevokeAgentKeyParams(args [1]string, argsEscaped bool, r *http.Reques
 		}
 		if err := h.HasParam(cfg); err == nil {
 			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
-				val, err := d.DecodeValue()
-				if err != nil {
+				var paramsDotXMoltnetTeamIDVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXMoltnetTeamIDVal = c
+					return nil
+				}(); err != nil {
 					return err
 				}
-
-				c, err := conv.ToUUID(val)
-				if err != nil {
-					return err
-				}
-
-				params.XMoltnetTeamID = c
+				params.XMoltnetTeamID.SetTo(paramsDotXMoltnetTeamIDVal)
 				return nil
 			}); err != nil {
 				return err
 			}
-		} else {
-			return err
 		}
 		return nil
 	}(); err != nil {
@@ -15591,12 +15745,22 @@ func decodeRevokeTaskGrantParams(args [1]string, argsEscaped bool, r *http.Reque
 
 // RotateAgentKeyParams is parameters of rotateAgentKey operation.
 type RotateAgentKeyParams struct {
-	KeyId string
-	// Team ID (UUID) that will own the resource. Required.
-	XMoltnetTeamID uuid.UUID
+	BindingScope OptAgentKeyBindingScope `json:",omitempty,omitzero"`
+	KeyId        string
+	// Team ID (UUID) for scoping the request. Optional.
+	XMoltnetTeamID OptUUID `json:",omitempty,omitzero"`
 }
 
 func unpackRotateAgentKeyParams(packed middleware.Parameters) (params RotateAgentKeyParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "bindingScope",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.BindingScope = v.(OptAgentKeyBindingScope)
+		}
+	}
 	{
 		key := middleware.ParameterKey{
 			Name: "keyId",
@@ -15609,13 +15773,72 @@ func unpackRotateAgentKeyParams(packed middleware.Parameters) (params RotateAgen
 			Name: "x-moltnet-team-id",
 			In:   "header",
 		}
-		params.XMoltnetTeamID = packed[key].(uuid.UUID)
+		if v, ok := packed[key]; ok {
+			params.XMoltnetTeamID = v.(OptUUID)
+		}
 	}
 	return params
 }
 
 func decodeRotateAgentKeyParams(args [1]string, argsEscaped bool, r *http.Request) (params RotateAgentKeyParams, _ error) {
+	q := uri.NewQueryDecoder(r.URL.Query())
 	h := uri.NewHeaderDecoder(r.Header)
+	// Decode query: bindingScope.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "bindingScope",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotBindingScopeVal AgentKeyBindingScope
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotBindingScopeVal = AgentKeyBindingScope(c)
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.BindingScope.SetTo(paramsDotBindingScopeVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.BindingScope.Get(); ok {
+					if err := func() error {
+						if err := value.Validate(); err != nil {
+							return err
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "bindingScope",
+			In:   "query",
+			Err:  err,
+		}
+	}
 	// Decode path: keyId.
 	if err := func() error {
 		param := args[0]
@@ -15689,23 +15912,28 @@ func decodeRotateAgentKeyParams(args [1]string, argsEscaped bool, r *http.Reques
 		}
 		if err := h.HasParam(cfg); err == nil {
 			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
-				val, err := d.DecodeValue()
-				if err != nil {
+				var paramsDotXMoltnetTeamIDVal uuid.UUID
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToUUID(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotXMoltnetTeamIDVal = c
+					return nil
+				}(); err != nil {
 					return err
 				}
-
-				c, err := conv.ToUUID(val)
-				if err != nil {
-					return err
-				}
-
-				params.XMoltnetTeamID = c
+				params.XMoltnetTeamID.SetTo(paramsDotXMoltnetTeamIDVal)
 				return nil
 			}); err != nil {
 				return err
 			}
-		} else {
-			return err
 		}
 		return nil
 	}(); err != nil {

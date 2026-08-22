@@ -541,12 +541,12 @@ export const revokeAgentEnrollment = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * List agent API keys bound to the active team. Team credential managers may list every agent.
+ * List agent API keys for the selected binding. Team scope is the default; identity scope is agent self-service.
  */
 export const listAgentKeys = <ThrowOnError extends boolean = false>(
-  options: Options<ListAgentKeysData, ThrowOnError>,
+  options?: Options<ListAgentKeysData, ThrowOnError>,
 ) =>
-  (options.client ?? client).get<
+  (options?.client ?? client).get<
     ListAgentKeysResponses,
     ListAgentKeysErrors,
     ThrowOnError
@@ -565,7 +565,7 @@ export const listAgentKeys = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Issue a secret API key bound to one agent and the active team.
+ * Issue a secret API key bound to one agent identity or, by default, the active team.
  */
 export const createAgentKey = <ThrowOnError extends boolean = false>(
   options: Options<CreateAgentKeyData, ThrowOnError>,

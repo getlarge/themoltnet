@@ -85,11 +85,11 @@ export type StartupBindingAssessment =
  *
  * Rules (see design entry edb848a1):
  * - The subject must be an `agent`; a human credential can never run the daemon.
- * - A team-bound agent key (`credentialBinding.boundTeamId` set) must match the
+ * - A team-bound agent key (`credentialBinding.bindingScope === 'team'`) must match the
  *   `--team` the daemon was started with. A key is an immutable team ceiling, so
  *   a mismatch would only surface as an obscure mid-poll 403 otherwise.
- * - An unbound key or an OAuth2 identity (no `boundTeamId`) is accepted; normal
- *   team-scoped authorization governs those requests.
+ * - An identity-scoped key or an OAuth2 identity is accepted; normal team-scoped
+ *   authorization governs those requests.
  */
 export function assessStartupBinding(
   whoami: Whoami,
@@ -104,7 +104,10 @@ export function assessStartupBinding(
         `(an agent key or the agent's client id/secret).`,
     };
   }
-  const boundTeamId = whoami.credentialBinding?.boundTeamId;
+  const boundTeamId =
+    whoami.credentialBinding?.bindingScope === 'team'
+      ? whoami.credentialBinding.boundTeamId
+      : undefined;
   if (teamId && boundTeamId && boundTeamId !== teamId) {
     return {
       ok: false,

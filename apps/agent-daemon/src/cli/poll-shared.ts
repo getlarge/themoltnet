@@ -439,7 +439,12 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     {
       authMode: cfg.authMode,
       subjectType: startupWhoami.subjectType,
-      boundTeamId: startupWhoami.credentialBinding?.boundTeamId ?? null,
+      bindingScope: startupWhoami.credentialBinding?.bindingScope ?? null,
+      credentialKeyId: startupWhoami.credentialBinding?.keyId ?? null,
+      boundTeamId:
+        startupWhoami.credentialBinding?.bindingScope === 'team'
+          ? startupWhoami.credentialBinding.boundTeamId
+          : null,
       guestCredentialMode: ctx.guestCredentialMode,
       taskTypes: taskTypes.length > 0 ? taskTypes : ['*'],
       correlationId: values['correlation-id'] ?? null,

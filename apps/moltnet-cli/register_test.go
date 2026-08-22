@@ -84,7 +84,8 @@ func TestDoRegisterRedeemsEnrollmentForAgentKey(t *testing.T) {
 				"type": "agent_key", "secret": "secret",
 				"key": map[string]any{
 					"id": "key-1", "agentId": "00000000-0000-0000-0000-000000000123",
-					"teamId": "00000000-0000-0000-0000-000000000456", "name": "Bootstrap credential",
+					"bindingScope": "team",
+					"teamId":       "00000000-0000-0000-0000-000000000456", "name": "Bootstrap credential",
 					"status": "active", "scopes": []string{}, "createdAt": nil, "expiresAt": nil,
 					"lastUsedAt": nil, "updatedAt": nil, "revocationReason": nil, "revocationDescription": nil,
 				},

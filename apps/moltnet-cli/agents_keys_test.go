@@ -16,14 +16,22 @@ import (
 // decoding a response: status is a valid enum, scopes is a required array, and
 // the nullable revocationReason is explicitly null rather than an empty string.
 func validAgentKey(id string) moltnetapi.AgentKey {
-	k := moltnetapi.AgentKey{
-		ID:     id,
-		Name:   id,
-		Scopes: []moltnetapi.AgentKeyScopesItem{},
-		Status: moltnetapi.AgentKeyStatusActive,
+	k := moltnetapi.TeamAgentKey{
+		ID:           id,
+		AgentId:      uuid.MustParse(testAgentID),
+		BindingScope: moltnetapi.TeamAgentKeyBindingScopeTeam,
+		Name:         id,
+		Scopes:       []moltnetapi.CredentialScope{},
+		Status:       moltnetapi.AgentKeyStatusActive,
+		TeamId:       uuid.MustParse(testTeamID),
 	}
+	k.CreatedAt.SetToNull()
+	k.ExpiresAt.SetToNull()
+	k.LastUsedAt.SetToNull()
+	k.UpdatedAt.SetToNull()
+	k.RevocationDescription.SetToNull()
 	k.RevocationReason.SetToNull()
-	return k
+	return moltnetapi.NewTeamAgentKeyAgentKey(k)
 }
 
 // problemType is a non-empty URL for ProblemDetails.Type; the client rejects an
@@ -59,8 +67,8 @@ func TestBuildListAgentKeysParams(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if params.XMoltnetTeamID.String() != testTeamID {
-			t.Errorf("team id = %s, want %s", params.XMoltnetTeamID, testTeamID)
+		if v, ok := params.XMoltnetTeamID.Get(); !ok || v.String() != testTeamID {
+			t.Errorf("team id = %s (set=%v), want %s", v, ok, testTeamID)
 		}
 		if v, ok := params.AgentId.Get(); !ok || v.String() != testAgentID {
 			t.Errorf("agent id = %v (set=%v), want %s", v, ok, testAgentID)
@@ -76,11 +84,41 @@ func TestBuildListAgentKeysParams(t *testing.T) {
 		}
 	})
 
+	t.Run("identity mode omits team and sets binding scope", func(t *testing.T) {
+		t.Parallel()
+		params, err := buildListAgentKeysParams(agentsKeysListOpts{identityScoped: true})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if params.XMoltnetTeamID.IsSet() {
+			t.Fatal("identity mode must omit the team header")
+		}
+		if v, ok := params.BindingScope.Get(); !ok || v != moltnetapi.AgentKeyBindingScopeIdentity {
+			t.Fatalf("bindingScope = %q (set=%v), want identity", v, ok)
+		}
+	})
+
 	t.Run("invalid team id", func(t *testing.T) {
 		t.Parallel()
 		_, err := buildListAgentKeysParams(agentsKeysListOpts{teamID: "not-a-uuid"})
 		if err == nil || !strings.Contains(err.Error(), "--team-id") {
 			t.Fatalf("expected --team-id error, got %v", err)
+		}
+	})
+
+	t.Run("identity mode sets the create discriminator", func(t *testing.T) {
+		t.Parallel()
+		req, params, _, err := buildCreateAgentKey(agentsKeysCreateOpts{
+			identityScoped: true, agentID: testAgentID, name: "portable",
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if params.XMoltnetTeamID.IsSet() {
+			t.Fatal("identity mode must omit the team header")
+		}
+		if v, ok := req.BindingScope.Get(); !ok || v != moltnetapi.AgentKeyBindingScopeIdentity {
+			t.Fatalf("bindingScope = %q (set=%v), want identity", v, ok)
 		}
 	})
 
@@ -257,8 +295,8 @@ func TestCollectAllAgentKeys(t *testing.T) {
 	t.Run("follows cursor across pages", func(t *testing.T) {
 		t.Parallel()
 		pages := map[string]*moltnetapi.AgentKeyList{
-			"": {Items: []moltnetapi.AgentKey{{ID: "k1"}}, NextCursor: moltnetapi.NewNilString("c2")},
-			"c2": {Items: []moltnetapi.AgentKey{{ID: "k2"}, {ID: "k3"}}, NextCursor: func() moltnetapi.NilString {
+			"": {Items: []moltnetapi.AgentKey{validAgentKey("k1")}, NextCursor: moltnetapi.NewNilString("c2")},
+			"c2": {Items: []moltnetapi.AgentKey{validAgentKey("k2"), validAgentKey("k3")}, NextCursor: func() moltnetapi.NilString {
 				n := moltnetapi.NilString{}
 				n.SetToNull()
 				return n
@@ -289,7 +327,7 @@ func TestCollectAllAgentKeys(t *testing.T) {
 		t.Parallel()
 		fetch := func(cursor moltnetapi.OptString) (*moltnetapi.AgentKeyList, error) {
 			return &moltnetapi.AgentKeyList{
-				Items:      []moltnetapi.AgentKey{{ID: "loop"}},
+				Items:      []moltnetapi.AgentKey{validAgentKey("loop")},
 				NextCursor: moltnetapi.NewNilString("same"),
 			}, nil
 		}
@@ -655,7 +693,7 @@ func TestAgentsKeysCreateHelpFlags(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	for _, want := range []string{"--team-id", "--agent-id", "--name", "--ttl-days", "--idempotency-key"} {
+	for _, want := range []string{"--team-id", "--identity-scoped", "--agent-id", "--name", "--ttl-days", "--idempotency-key"} {
 		if !strings.Contains(stdout, want) {
 			t.Errorf("create help should contain %q, got: %s", want, stdout)
 		}
@@ -682,6 +720,15 @@ func TestAgentsKeysListRequiresTeamID(t *testing.T) {
 	_, _, err := executeCommand(root, "agents", "keys", "list")
 	if err == nil || !strings.Contains(err.Error(), "team-id") {
 		t.Fatalf("expected required team-id error, got %v", err)
+	}
+}
+
+func TestAgentsKeysBindingFlagsConflictBeforeHTTP(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "agents", "keys", "list", "--team-id", testTeamID, "--identity-scoped")
+	if err == nil || !strings.Contains(err.Error(), "mutually exclusive") {
+		t.Fatalf("expected a flag conflict before HTTP, got %v", err)
 	}
 }
 

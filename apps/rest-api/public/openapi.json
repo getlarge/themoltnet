@@ -111,258 +111,45 @@
         "type": "object"
       },
       "AgentKey": {
+        "discriminator": {
+          "mapping": {
+            "identity": "#/components/schemas/IdentityAgentKey",
+            "team": "#/components/schemas/TeamAgentKey"
+          },
+          "propertyName": "bindingScope"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/TeamAgentKey"
+          },
+          {
+            "$ref": "#/components/schemas/IdentityAgentKey"
+          }
+        ]
+      },
+      "AgentKeyBindingQuery": {
         "properties": {
-          "agentId": {
-            "description": "UUID v4 identifier",
-            "format": "uuid",
-            "type": "string"
-          },
-          "createdAt": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "expiresAt": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "id": {
-            "type": "string"
-          },
-          "lastUsedAt": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "name": {
-            "type": "string"
-          },
-          "revocationDescription": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "revocationReason": {
-            "anyOf": [
-              {
-                "anyOf": [
-                  {
-                    "enum": [
-                      "key_compromise"
-                    ],
-                    "type": "string"
-                  },
-                  {
-                    "enum": [
-                      "affiliation_changed"
-                    ],
-                    "type": "string"
-                  },
-                  {
-                    "enum": [
-                      "superseded"
-                    ],
-                    "type": "string"
-                  },
-                  {
-                    "enum": [
-                      "privilege_withdrawn"
-                    ],
-                    "type": "string"
-                  }
-                ]
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "scopes": {
-            "items": {
-              "anyOf": [
-                {
-                  "enum": [
-                    "agent:profile"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "connector:invoke"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "crypto:sign"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "diary:manage"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "diary:read"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "diary:write"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "key:manage"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "pack:read"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "pack:write"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "runtime:manage"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "runtime:read"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "task:claim"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "task:execute"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "task:manage"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "task:read"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "team:manage"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "team:read"
-                  ],
-                  "type": "string"
-                }
-              ]
-            },
-            "type": "array"
-          },
-          "status": {
-            "anyOf": [
-              {
-                "enum": [
-                  "active"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "revoked"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "expired"
-                ],
-                "type": "string"
-              }
-            ]
-          },
-          "teamId": {
-            "description": "UUID v4 identifier",
-            "format": "uuid",
-            "type": "string"
-          },
-          "updatedAt": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+          "bindingScope": {
+            "$ref": "#/components/schemas/AgentKeyBindingScope"
           }
         },
-        "required": [
-          "id",
-          "agentId",
-          "teamId",
-          "name",
-          "status",
-          "createdAt",
-          "expiresAt",
-          "lastUsedAt",
-          "updatedAt",
-          "revocationReason",
-          "revocationDescription"
-        ],
         "type": "object"
+      },
+      "AgentKeyBindingScope": {
+        "anyOf": [
+          {
+            "enum": [
+              "team"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "identity"
+            ],
+            "type": "string"
+          }
+        ]
       },
       "AgentKeyList": {
         "properties": {
@@ -2011,6 +1798,9 @@
             "format": "uuid",
             "type": "string"
           },
+          "bindingScope": {
+            "$ref": "#/components/schemas/AgentKeyBindingScope"
+          },
           "name": {
             "maxLength": 128,
             "minLength": 1,
@@ -2020,110 +1810,7 @@
           "scopes": {
             "description": "Requested credential scopes. Must be a subset of both the canonical agent grant and the requesting credential.",
             "items": {
-              "anyOf": [
-                {
-                  "enum": [
-                    "agent:profile"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "connector:invoke"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "crypto:sign"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "diary:manage"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "diary:read"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "diary:write"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "key:manage"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "pack:read"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "pack:write"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "runtime:manage"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "runtime:read"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "task:claim"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "task:execute"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "task:manage"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "task:read"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "team:manage"
-                  ],
-                  "type": "string"
-                },
-                {
-                  "enum": [
-                    "team:read"
-                  ],
-                  "type": "string"
-                }
-              ]
+              "$ref": "#/components/schemas/CredentialScope"
             },
             "type": "array",
             "uniqueItems": true
@@ -4514,6 +4201,114 @@
           "kind",
           "humanId",
           "identityId"
+        ],
+        "type": "object"
+      },
+      "IdentityAgentKey": {
+        "properties": {
+          "agentId": {
+            "description": "UUID v4 identifier",
+            "format": "uuid",
+            "type": "string"
+          },
+          "bindingScope": {
+            "enum": [
+              "identity"
+            ],
+            "type": "string"
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expiresAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "revocationDescription": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revocationReason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentKeyRevocationReason"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scopes": {
+            "items": {
+              "$ref": "#/components/schemas/CredentialScope"
+            },
+            "type": "array"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AgentKeyStatus"
+          },
+          "updatedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "agentId",
+          "name",
+          "status",
+          "createdAt",
+          "expiresAt",
+          "lastUsedAt",
+          "updatedAt",
+          "revocationReason",
+          "revocationDescription",
+          "bindingScope"
         ],
         "type": "object"
       },
@@ -13630,6 +13425,120 @@
         ],
         "type": "object"
       },
+      "TeamAgentKey": {
+        "properties": {
+          "agentId": {
+            "description": "UUID v4 identifier",
+            "format": "uuid",
+            "type": "string"
+          },
+          "bindingScope": {
+            "enum": [
+              "team"
+            ],
+            "type": "string"
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expiresAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "revocationDescription": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revocationReason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentKeyRevocationReason"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scopes": {
+            "items": {
+              "$ref": "#/components/schemas/CredentialScope"
+            },
+            "type": "array"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AgentKeyStatus"
+          },
+          "teamId": {
+            "description": "UUID v4 identifier",
+            "format": "uuid",
+            "type": "string"
+          },
+          "updatedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "agentId",
+          "name",
+          "status",
+          "createdAt",
+          "expiresAt",
+          "lastUsedAt",
+          "updatedAt",
+          "revocationReason",
+          "revocationDescription",
+          "bindingScope",
+          "teamId"
+        ],
+        "type": "object"
+      },
       "ToolEnforcement": {
         "anyOf": [
           {
@@ -14620,19 +14529,49 @@
             "type": "string"
           },
           "credentialBinding": {
-            "properties": {
-              "boundTeamId": {
-                "format": "uuid",
-                "type": "string"
+            "anyOf": [
+              {
+                "properties": {
+                  "bindingScope": {
+                    "enum": [
+                      "team"
+                    ],
+                    "type": "string"
+                  },
+                  "boundTeamId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "keyId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "bindingScope",
+                  "keyId",
+                  "boundTeamId"
+                ],
+                "type": "object"
               },
-              "keyId": {
-                "type": "string"
+              {
+                "properties": {
+                  "bindingScope": {
+                    "enum": [
+                      "identity"
+                    ],
+                    "type": "string"
+                  },
+                  "keyId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "bindingScope",
+                  "keyId"
+                ],
+                "type": "object"
               }
-            },
-            "required": [
-              "keyId"
-            ],
-            "type": "object"
+            ]
           },
           "currentTeamId": {
             "anyOf": [
@@ -14963,9 +14902,16 @@
     },
     "/agent-keys": {
       "get": {
-        "description": "List agent API keys bound to the active team. Team credential managers may list every agent.",
+        "description": "List agent API keys for the selected binding. Team scope is the default; identity scope is agent self-service.",
         "operationId": "listAgentKeys",
         "parameters": [
+          {
+            "in": "query",
+            "name": "bindingScope",
+            "schema": {
+              "$ref": "#/components/schemas/AgentKeyBindingScope"
+            }
+          },
           {
             "in": "query",
             "name": "agentId",
@@ -15022,10 +14968,10 @@
             }
           },
           {
-            "description": "Team ID (UUID) that will own the resource. Required.",
+            "description": "Team ID (UUID) for scoping the request. Optional.",
             "in": "header",
             "name": "x-moltnet-team-id",
-            "required": true,
+            "required": false,
             "schema": {
               "format": "uuid",
               "type": "string"
@@ -15120,14 +15066,14 @@
         ]
       },
       "post": {
-        "description": "Issue a secret API key bound to one agent and the active team.",
+        "description": "Issue a secret API key bound to one agent identity or, by default, the active team.",
         "operationId": "createAgentKey",
         "parameters": [
           {
-            "description": "Team ID (UUID) that will own the resource. Required.",
+            "description": "Team ID (UUID) for scoping the request. Optional.",
             "in": "header",
             "name": "x-moltnet-team-id",
-            "required": true,
+            "required": false,
             "schema": {
               "format": "uuid",
               "type": "string"
@@ -15156,6 +15102,9 @@
                     "format": "uuid",
                     "type": "string"
                   },
+                  "bindingScope": {
+                    "$ref": "#/components/schemas/AgentKeyBindingScope"
+                  },
                   "name": {
                     "maxLength": 128,
                     "minLength": 1,
@@ -15165,110 +15114,7 @@
                   "scopes": {
                     "description": "Requested credential scopes. Must be a subset of both the canonical agent grant and the requesting credential.",
                     "items": {
-                      "anyOf": [
-                        {
-                          "enum": [
-                            "agent:profile"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "connector:invoke"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "crypto:sign"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "diary:manage"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "diary:read"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "diary:write"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "key:manage"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "pack:read"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "pack:write"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "runtime:manage"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "runtime:read"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "task:claim"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "task:execute"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "task:manage"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "task:read"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "team:manage"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "team:read"
-                          ],
-                          "type": "string"
-                        }
-                      ]
+                      "$ref": "#/components/schemas/CredentialScope"
                     },
                     "type": "array",
                     "uniqueItems": true
@@ -15394,6 +15240,13 @@
         "operationId": "revokeAgentKey",
         "parameters": [
           {
+            "in": "query",
+            "name": "bindingScope",
+            "schema": {
+              "$ref": "#/components/schemas/AgentKeyBindingScope"
+            }
+          },
+          {
             "in": "path",
             "name": "keyId",
             "required": true,
@@ -15403,10 +15256,10 @@
             }
           },
           {
-            "description": "Team ID (UUID) that will own the resource. Required.",
+            "description": "Team ID (UUID) for scoping the request. Optional.",
             "in": "header",
             "name": "x-moltnet-team-id",
-            "required": true,
+            "required": false,
             "schema": {
               "format": "uuid",
               "type": "string"
@@ -15581,6 +15434,13 @@
         "operationId": "rotateAgentKey",
         "parameters": [
           {
+            "in": "query",
+            "name": "bindingScope",
+            "schema": {
+              "$ref": "#/components/schemas/AgentKeyBindingScope"
+            }
+          },
+          {
             "in": "path",
             "name": "keyId",
             "required": true,
@@ -15590,10 +15450,10 @@
             }
           },
           {
-            "description": "Team ID (UUID) that will own the resource. Required.",
+            "description": "Team ID (UUID) for scoping the request. Optional.",
             "in": "header",
             "name": "x-moltnet-team-id",
-            "required": true,
+            "required": false,
             "schema": {
               "format": "uuid",
               "type": "string"

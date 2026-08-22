@@ -71,8 +71,12 @@ func flattenRegistrationResponse(response *moltnetapi.RegisterResponse) (*Regist
 			Type: credentialTypeOAuth2, ClientID: oauth.ClientId, ClientSecret: oauth.ClientSecret,
 		}
 	} else if key, ok := response.Credential.GetAgentKeyRegistrationCredential(); ok {
+		keyID, valid := agentKeyID(key.Key)
+		if !valid {
+			return nil, fmt.Errorf("registration response has an invalid agent key binding")
+		}
 		credential = RegistrationCredential{
-			Type: credentialTypeAgentKey, AgentKeyID: key.Key.ID, AgentKey: key.Secret,
+			Type: credentialTypeAgentKey, AgentKeyID: keyID, AgentKey: key.Secret,
 		}
 	} else {
 		return nil, fmt.Errorf("registration response has an unknown credential type")

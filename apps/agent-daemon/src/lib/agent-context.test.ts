@@ -238,14 +238,22 @@ describe('assessStartupBinding', () => {
 
   it('accepts an agent key bound to the daemon team', () => {
     const whoami = agentWhoami({
-      credentialBinding: { keyId: 'key-1', boundTeamId: TEAM_A },
+      credentialBinding: {
+        bindingScope: 'team',
+        keyId: 'key-1',
+        boundTeamId: TEAM_A,
+      },
     });
     expect(assessStartupBinding(whoami, TEAM_A)).toEqual({ ok: true });
   });
 
   it('rejects an agent key bound to a different team than --team', () => {
     const whoami = agentWhoami({
-      credentialBinding: { keyId: 'key-1', boundTeamId: TEAM_B },
+      credentialBinding: {
+        bindingScope: 'team',
+        keyId: 'key-1',
+        boundTeamId: TEAM_B,
+      },
     });
     const result = assessStartupBinding(whoami, TEAM_A);
     expect(result.ok).toBe(false);
@@ -255,9 +263,9 @@ describe('assessStartupBinding', () => {
     }
   });
 
-  it('accepts an unbound agent key (no boundTeamId)', () => {
+  it('accepts an identity-scoped agent key', () => {
     const whoami = agentWhoami({
-      credentialBinding: { keyId: 'key-1' },
+      credentialBinding: { bindingScope: 'identity', keyId: 'key-1' },
     });
     expect(assessStartupBinding(whoami, TEAM_A)).toEqual({ ok: true });
   });
@@ -289,7 +297,11 @@ describe('validateStartupBinding', () => {
       identityId: 'id-1',
       scopes: ['agent:profile'],
       subjectType: 'agent',
-      credentialBinding: { keyId: 'key-1', boundTeamId: TEAM_A },
+      credentialBinding: {
+        bindingScope: 'team',
+        keyId: 'key-1',
+        boundTeamId: TEAM_A,
+      },
     };
     const result = await validateStartupBinding({
       agent: stubAgent(() => Promise.resolve(whoami)),
@@ -314,7 +326,11 @@ describe('validateStartupBinding', () => {
       identityId: 'id-1',
       scopes: ['agent:profile'],
       subjectType: 'agent',
-      credentialBinding: { keyId: 'key-1', boundTeamId: TEAM_B },
+      credentialBinding: {
+        bindingScope: 'team',
+        keyId: 'key-1',
+        boundTeamId: TEAM_B,
+      },
     };
     await expect(
       validateStartupBinding({

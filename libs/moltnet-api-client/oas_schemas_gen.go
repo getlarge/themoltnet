@@ -345,141 +345,111 @@ type AddGroupMemberUnauthorized ProblemDetails
 func (*AddGroupMemberUnauthorized) addGroupMemberRes() {}
 
 // Ref: #/components/schemas/AgentKey
+// AgentKey represents sum type.
 type AgentKey struct {
-	// UUID v4 identifier.
-	AgentId               uuid.UUID                   `json:"agentId"`
-	CreatedAt             NilDateTime                 `json:"createdAt"`
-	ExpiresAt             NilDateTime                 `json:"expiresAt"`
-	ID                    string                      `json:"id"`
-	LastUsedAt            NilDateTime                 `json:"lastUsedAt"`
-	Name                  string                      `json:"name"`
-	RevocationDescription NilString                   `json:"revocationDescription"`
-	RevocationReason      NilAgentKeyRevocationReason `json:"revocationReason"`
-	Scopes                []AgentKeyScopesItem        `json:"scopes"`
-	Status                AgentKeyStatus              `json:"status"`
-	// UUID v4 identifier.
-	TeamId    uuid.UUID   `json:"teamId"`
-	UpdatedAt NilDateTime `json:"updatedAt"`
+	// Type selects the active sum variant, switch on this field.
+	Type             AgentKeyType
+	TeamAgentKey     TeamAgentKey
+	IdentityAgentKey IdentityAgentKey
 }
 
-// GetAgentId returns the value of AgentId.
-func (s *AgentKey) GetAgentId() uuid.UUID {
-	return s.AgentId
+// AgentKeyType is oneOf type of AgentKey.
+type AgentKeyType string
+
+// Possible values for AgentKeyType.
+const (
+	TeamAgentKeyAgentKey     AgentKeyType = "team"
+	IdentityAgentKeyAgentKey AgentKeyType = "identity"
+)
+
+// IsTeamAgentKey reports whether AgentKey is TeamAgentKey.
+func (s AgentKey) IsTeamAgentKey() bool { return s.Type == TeamAgentKeyAgentKey }
+
+// IsIdentityAgentKey reports whether AgentKey is IdentityAgentKey.
+func (s AgentKey) IsIdentityAgentKey() bool { return s.Type == IdentityAgentKeyAgentKey }
+
+// SetTeamAgentKey sets AgentKey to TeamAgentKey.
+func (s *AgentKey) SetTeamAgentKey(v TeamAgentKey) {
+	s.Type = TeamAgentKeyAgentKey
+	s.TeamAgentKey = v
 }
 
-// GetCreatedAt returns the value of CreatedAt.
-func (s *AgentKey) GetCreatedAt() NilDateTime {
-	return s.CreatedAt
+// GetTeamAgentKey returns TeamAgentKey and true boolean if AgentKey is TeamAgentKey.
+func (s AgentKey) GetTeamAgentKey() (v TeamAgentKey, ok bool) {
+	if !s.IsTeamAgentKey() {
+		return v, false
+	}
+	return s.TeamAgentKey, true
 }
 
-// GetExpiresAt returns the value of ExpiresAt.
-func (s *AgentKey) GetExpiresAt() NilDateTime {
-	return s.ExpiresAt
+// NewTeamAgentKeyAgentKey returns new AgentKey from TeamAgentKey.
+func NewTeamAgentKeyAgentKey(v TeamAgentKey) AgentKey {
+	var s AgentKey
+	s.SetTeamAgentKey(v)
+	return s
 }
 
-// GetID returns the value of ID.
-func (s *AgentKey) GetID() string {
-	return s.ID
+// SetIdentityAgentKey sets AgentKey to IdentityAgentKey.
+func (s *AgentKey) SetIdentityAgentKey(v IdentityAgentKey) {
+	s.Type = IdentityAgentKeyAgentKey
+	s.IdentityAgentKey = v
 }
 
-// GetLastUsedAt returns the value of LastUsedAt.
-func (s *AgentKey) GetLastUsedAt() NilDateTime {
-	return s.LastUsedAt
+// GetIdentityAgentKey returns IdentityAgentKey and true boolean if AgentKey is IdentityAgentKey.
+func (s AgentKey) GetIdentityAgentKey() (v IdentityAgentKey, ok bool) {
+	if !s.IsIdentityAgentKey() {
+		return v, false
+	}
+	return s.IdentityAgentKey, true
 }
 
-// GetName returns the value of Name.
-func (s *AgentKey) GetName() string {
-	return s.Name
+// NewIdentityAgentKeyAgentKey returns new AgentKey from IdentityAgentKey.
+func NewIdentityAgentKeyAgentKey(v IdentityAgentKey) AgentKey {
+	var s AgentKey
+	s.SetIdentityAgentKey(v)
+	return s
 }
 
-// GetRevocationDescription returns the value of RevocationDescription.
-func (s *AgentKey) GetRevocationDescription() NilString {
-	return s.RevocationDescription
+// Ref: #/components/schemas/AgentKeyBindingScope
+type AgentKeyBindingScope string
+
+const (
+	AgentKeyBindingScopeTeam     AgentKeyBindingScope = "team"
+	AgentKeyBindingScopeIdentity AgentKeyBindingScope = "identity"
+)
+
+// AllValues returns all AgentKeyBindingScope values.
+func (AgentKeyBindingScope) AllValues() []AgentKeyBindingScope {
+	return []AgentKeyBindingScope{
+		AgentKeyBindingScopeTeam,
+		AgentKeyBindingScopeIdentity,
+	}
 }
 
-// GetRevocationReason returns the value of RevocationReason.
-func (s *AgentKey) GetRevocationReason() NilAgentKeyRevocationReason {
-	return s.RevocationReason
+// MarshalText implements encoding.TextMarshaler.
+func (s AgentKeyBindingScope) MarshalText() ([]byte, error) {
+	switch s {
+	case AgentKeyBindingScopeTeam:
+		return []byte(s), nil
+	case AgentKeyBindingScopeIdentity:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
 }
 
-// GetScopes returns the value of Scopes.
-func (s *AgentKey) GetScopes() []AgentKeyScopesItem {
-	return s.Scopes
-}
-
-// GetStatus returns the value of Status.
-func (s *AgentKey) GetStatus() AgentKeyStatus {
-	return s.Status
-}
-
-// GetTeamId returns the value of TeamId.
-func (s *AgentKey) GetTeamId() uuid.UUID {
-	return s.TeamId
-}
-
-// GetUpdatedAt returns the value of UpdatedAt.
-func (s *AgentKey) GetUpdatedAt() NilDateTime {
-	return s.UpdatedAt
-}
-
-// SetAgentId sets the value of AgentId.
-func (s *AgentKey) SetAgentId(val uuid.UUID) {
-	s.AgentId = val
-}
-
-// SetCreatedAt sets the value of CreatedAt.
-func (s *AgentKey) SetCreatedAt(val NilDateTime) {
-	s.CreatedAt = val
-}
-
-// SetExpiresAt sets the value of ExpiresAt.
-func (s *AgentKey) SetExpiresAt(val NilDateTime) {
-	s.ExpiresAt = val
-}
-
-// SetID sets the value of ID.
-func (s *AgentKey) SetID(val string) {
-	s.ID = val
-}
-
-// SetLastUsedAt sets the value of LastUsedAt.
-func (s *AgentKey) SetLastUsedAt(val NilDateTime) {
-	s.LastUsedAt = val
-}
-
-// SetName sets the value of Name.
-func (s *AgentKey) SetName(val string) {
-	s.Name = val
-}
-
-// SetRevocationDescription sets the value of RevocationDescription.
-func (s *AgentKey) SetRevocationDescription(val NilString) {
-	s.RevocationDescription = val
-}
-
-// SetRevocationReason sets the value of RevocationReason.
-func (s *AgentKey) SetRevocationReason(val NilAgentKeyRevocationReason) {
-	s.RevocationReason = val
-}
-
-// SetScopes sets the value of Scopes.
-func (s *AgentKey) SetScopes(val []AgentKeyScopesItem) {
-	s.Scopes = val
-}
-
-// SetStatus sets the value of Status.
-func (s *AgentKey) SetStatus(val AgentKeyStatus) {
-	s.Status = val
-}
-
-// SetTeamId sets the value of TeamId.
-func (s *AgentKey) SetTeamId(val uuid.UUID) {
-	s.TeamId = val
-}
-
-// SetUpdatedAt sets the value of UpdatedAt.
-func (s *AgentKey) SetUpdatedAt(val NilDateTime) {
-	s.UpdatedAt = val
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *AgentKeyBindingScope) UnmarshalText(data []byte) error {
+	switch AgentKeyBindingScope(data) {
+	case AgentKeyBindingScopeTeam:
+		*s = AgentKeyBindingScopeTeam
+		return nil
+	case AgentKeyBindingScopeIdentity:
+		*s = AgentKeyBindingScopeIdentity
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 // Ref: #/components/schemas/AgentKeyList
@@ -581,6 +551,7 @@ func (s *AgentKeyRegistrationCredentialType) UnmarshalText(data []byte) error {
 	}
 }
 
+// Ref: #/components/schemas/AgentKeyRevocationReason
 type AgentKeyRevocationReason string
 
 const (
@@ -630,152 +601,6 @@ func (s *AgentKeyRevocationReason) UnmarshalText(data []byte) error {
 		return nil
 	case AgentKeyRevocationReasonPrivilegeWithdrawn:
 		*s = AgentKeyRevocationReasonPrivilegeWithdrawn
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type AgentKeyScopesItem string
-
-const (
-	AgentKeyScopesItemAgentProfile    AgentKeyScopesItem = "agent:profile"
-	AgentKeyScopesItemConnectorInvoke AgentKeyScopesItem = "connector:invoke"
-	AgentKeyScopesItemCryptoSign      AgentKeyScopesItem = "crypto:sign"
-	AgentKeyScopesItemDiaryManage     AgentKeyScopesItem = "diary:manage"
-	AgentKeyScopesItemDiaryRead       AgentKeyScopesItem = "diary:read"
-	AgentKeyScopesItemDiaryWrite      AgentKeyScopesItem = "diary:write"
-	AgentKeyScopesItemKeyManage       AgentKeyScopesItem = "key:manage"
-	AgentKeyScopesItemPackRead        AgentKeyScopesItem = "pack:read"
-	AgentKeyScopesItemPackWrite       AgentKeyScopesItem = "pack:write"
-	AgentKeyScopesItemRuntimeManage   AgentKeyScopesItem = "runtime:manage"
-	AgentKeyScopesItemRuntimeRead     AgentKeyScopesItem = "runtime:read"
-	AgentKeyScopesItemTaskClaim       AgentKeyScopesItem = "task:claim"
-	AgentKeyScopesItemTaskExecute     AgentKeyScopesItem = "task:execute"
-	AgentKeyScopesItemTaskManage      AgentKeyScopesItem = "task:manage"
-	AgentKeyScopesItemTaskRead        AgentKeyScopesItem = "task:read"
-	AgentKeyScopesItemTeamManage      AgentKeyScopesItem = "team:manage"
-	AgentKeyScopesItemTeamRead        AgentKeyScopesItem = "team:read"
-)
-
-// AllValues returns all AgentKeyScopesItem values.
-func (AgentKeyScopesItem) AllValues() []AgentKeyScopesItem {
-	return []AgentKeyScopesItem{
-		AgentKeyScopesItemAgentProfile,
-		AgentKeyScopesItemConnectorInvoke,
-		AgentKeyScopesItemCryptoSign,
-		AgentKeyScopesItemDiaryManage,
-		AgentKeyScopesItemDiaryRead,
-		AgentKeyScopesItemDiaryWrite,
-		AgentKeyScopesItemKeyManage,
-		AgentKeyScopesItemPackRead,
-		AgentKeyScopesItemPackWrite,
-		AgentKeyScopesItemRuntimeManage,
-		AgentKeyScopesItemRuntimeRead,
-		AgentKeyScopesItemTaskClaim,
-		AgentKeyScopesItemTaskExecute,
-		AgentKeyScopesItemTaskManage,
-		AgentKeyScopesItemTaskRead,
-		AgentKeyScopesItemTeamManage,
-		AgentKeyScopesItemTeamRead,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s AgentKeyScopesItem) MarshalText() ([]byte, error) {
-	switch s {
-	case AgentKeyScopesItemAgentProfile:
-		return []byte(s), nil
-	case AgentKeyScopesItemConnectorInvoke:
-		return []byte(s), nil
-	case AgentKeyScopesItemCryptoSign:
-		return []byte(s), nil
-	case AgentKeyScopesItemDiaryManage:
-		return []byte(s), nil
-	case AgentKeyScopesItemDiaryRead:
-		return []byte(s), nil
-	case AgentKeyScopesItemDiaryWrite:
-		return []byte(s), nil
-	case AgentKeyScopesItemKeyManage:
-		return []byte(s), nil
-	case AgentKeyScopesItemPackRead:
-		return []byte(s), nil
-	case AgentKeyScopesItemPackWrite:
-		return []byte(s), nil
-	case AgentKeyScopesItemRuntimeManage:
-		return []byte(s), nil
-	case AgentKeyScopesItemRuntimeRead:
-		return []byte(s), nil
-	case AgentKeyScopesItemTaskClaim:
-		return []byte(s), nil
-	case AgentKeyScopesItemTaskExecute:
-		return []byte(s), nil
-	case AgentKeyScopesItemTaskManage:
-		return []byte(s), nil
-	case AgentKeyScopesItemTaskRead:
-		return []byte(s), nil
-	case AgentKeyScopesItemTeamManage:
-		return []byte(s), nil
-	case AgentKeyScopesItemTeamRead:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *AgentKeyScopesItem) UnmarshalText(data []byte) error {
-	switch AgentKeyScopesItem(data) {
-	case AgentKeyScopesItemAgentProfile:
-		*s = AgentKeyScopesItemAgentProfile
-		return nil
-	case AgentKeyScopesItemConnectorInvoke:
-		*s = AgentKeyScopesItemConnectorInvoke
-		return nil
-	case AgentKeyScopesItemCryptoSign:
-		*s = AgentKeyScopesItemCryptoSign
-		return nil
-	case AgentKeyScopesItemDiaryManage:
-		*s = AgentKeyScopesItemDiaryManage
-		return nil
-	case AgentKeyScopesItemDiaryRead:
-		*s = AgentKeyScopesItemDiaryRead
-		return nil
-	case AgentKeyScopesItemDiaryWrite:
-		*s = AgentKeyScopesItemDiaryWrite
-		return nil
-	case AgentKeyScopesItemKeyManage:
-		*s = AgentKeyScopesItemKeyManage
-		return nil
-	case AgentKeyScopesItemPackRead:
-		*s = AgentKeyScopesItemPackRead
-		return nil
-	case AgentKeyScopesItemPackWrite:
-		*s = AgentKeyScopesItemPackWrite
-		return nil
-	case AgentKeyScopesItemRuntimeManage:
-		*s = AgentKeyScopesItemRuntimeManage
-		return nil
-	case AgentKeyScopesItemRuntimeRead:
-		*s = AgentKeyScopesItemRuntimeRead
-		return nil
-	case AgentKeyScopesItemTaskClaim:
-		*s = AgentKeyScopesItemTaskClaim
-		return nil
-	case AgentKeyScopesItemTaskExecute:
-		*s = AgentKeyScopesItemTaskExecute
-		return nil
-	case AgentKeyScopesItemTaskManage:
-		*s = AgentKeyScopesItemTaskManage
-		return nil
-	case AgentKeyScopesItemTaskRead:
-		*s = AgentKeyScopesItemTaskRead
-		return nil
-	case AgentKeyScopesItemTeamManage:
-		*s = AgentKeyScopesItemTeamManage
-		return nil
-	case AgentKeyScopesItemTeamRead:
-		*s = AgentKeyScopesItemTeamRead
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -5537,17 +5362,23 @@ func (*CreateAgentKeyForbidden) createAgentKeyRes() {}
 
 type CreateAgentKeyReq struct {
 	// UUID v4 identifier.
-	AgentId uuid.UUID `json:"agentId"`
-	Name    string    `json:"name"`
+	AgentId      uuid.UUID               `json:"agentId"`
+	BindingScope OptAgentKeyBindingScope `json:"bindingScope"`
+	Name         string                  `json:"name"`
 	// Requested credential scopes. Must be a subset of both the canonical agent grant and the requesting
 	// credential.
-	Scopes  []CreateAgentKeyReqScopesItem `json:"scopes"`
-	TtlDays OptInt                        `json:"ttlDays"`
+	Scopes  []CredentialScope `json:"scopes"`
+	TtlDays OptInt            `json:"ttlDays"`
 }
 
 // GetAgentId returns the value of AgentId.
 func (s *CreateAgentKeyReq) GetAgentId() uuid.UUID {
 	return s.AgentId
+}
+
+// GetBindingScope returns the value of BindingScope.
+func (s *CreateAgentKeyReq) GetBindingScope() OptAgentKeyBindingScope {
+	return s.BindingScope
 }
 
 // GetName returns the value of Name.
@@ -5556,7 +5387,7 @@ func (s *CreateAgentKeyReq) GetName() string {
 }
 
 // GetScopes returns the value of Scopes.
-func (s *CreateAgentKeyReq) GetScopes() []CreateAgentKeyReqScopesItem {
+func (s *CreateAgentKeyReq) GetScopes() []CredentialScope {
 	return s.Scopes
 }
 
@@ -5570,165 +5401,24 @@ func (s *CreateAgentKeyReq) SetAgentId(val uuid.UUID) {
 	s.AgentId = val
 }
 
+// SetBindingScope sets the value of BindingScope.
+func (s *CreateAgentKeyReq) SetBindingScope(val OptAgentKeyBindingScope) {
+	s.BindingScope = val
+}
+
 // SetName sets the value of Name.
 func (s *CreateAgentKeyReq) SetName(val string) {
 	s.Name = val
 }
 
 // SetScopes sets the value of Scopes.
-func (s *CreateAgentKeyReq) SetScopes(val []CreateAgentKeyReqScopesItem) {
+func (s *CreateAgentKeyReq) SetScopes(val []CredentialScope) {
 	s.Scopes = val
 }
 
 // SetTtlDays sets the value of TtlDays.
 func (s *CreateAgentKeyReq) SetTtlDays(val OptInt) {
 	s.TtlDays = val
-}
-
-type CreateAgentKeyReqScopesItem string
-
-const (
-	CreateAgentKeyReqScopesItemAgentProfile    CreateAgentKeyReqScopesItem = "agent:profile"
-	CreateAgentKeyReqScopesItemConnectorInvoke CreateAgentKeyReqScopesItem = "connector:invoke"
-	CreateAgentKeyReqScopesItemCryptoSign      CreateAgentKeyReqScopesItem = "crypto:sign"
-	CreateAgentKeyReqScopesItemDiaryManage     CreateAgentKeyReqScopesItem = "diary:manage"
-	CreateAgentKeyReqScopesItemDiaryRead       CreateAgentKeyReqScopesItem = "diary:read"
-	CreateAgentKeyReqScopesItemDiaryWrite      CreateAgentKeyReqScopesItem = "diary:write"
-	CreateAgentKeyReqScopesItemKeyManage       CreateAgentKeyReqScopesItem = "key:manage"
-	CreateAgentKeyReqScopesItemPackRead        CreateAgentKeyReqScopesItem = "pack:read"
-	CreateAgentKeyReqScopesItemPackWrite       CreateAgentKeyReqScopesItem = "pack:write"
-	CreateAgentKeyReqScopesItemRuntimeManage   CreateAgentKeyReqScopesItem = "runtime:manage"
-	CreateAgentKeyReqScopesItemRuntimeRead     CreateAgentKeyReqScopesItem = "runtime:read"
-	CreateAgentKeyReqScopesItemTaskClaim       CreateAgentKeyReqScopesItem = "task:claim"
-	CreateAgentKeyReqScopesItemTaskExecute     CreateAgentKeyReqScopesItem = "task:execute"
-	CreateAgentKeyReqScopesItemTaskManage      CreateAgentKeyReqScopesItem = "task:manage"
-	CreateAgentKeyReqScopesItemTaskRead        CreateAgentKeyReqScopesItem = "task:read"
-	CreateAgentKeyReqScopesItemTeamManage      CreateAgentKeyReqScopesItem = "team:manage"
-	CreateAgentKeyReqScopesItemTeamRead        CreateAgentKeyReqScopesItem = "team:read"
-)
-
-// AllValues returns all CreateAgentKeyReqScopesItem values.
-func (CreateAgentKeyReqScopesItem) AllValues() []CreateAgentKeyReqScopesItem {
-	return []CreateAgentKeyReqScopesItem{
-		CreateAgentKeyReqScopesItemAgentProfile,
-		CreateAgentKeyReqScopesItemConnectorInvoke,
-		CreateAgentKeyReqScopesItemCryptoSign,
-		CreateAgentKeyReqScopesItemDiaryManage,
-		CreateAgentKeyReqScopesItemDiaryRead,
-		CreateAgentKeyReqScopesItemDiaryWrite,
-		CreateAgentKeyReqScopesItemKeyManage,
-		CreateAgentKeyReqScopesItemPackRead,
-		CreateAgentKeyReqScopesItemPackWrite,
-		CreateAgentKeyReqScopesItemRuntimeManage,
-		CreateAgentKeyReqScopesItemRuntimeRead,
-		CreateAgentKeyReqScopesItemTaskClaim,
-		CreateAgentKeyReqScopesItemTaskExecute,
-		CreateAgentKeyReqScopesItemTaskManage,
-		CreateAgentKeyReqScopesItemTaskRead,
-		CreateAgentKeyReqScopesItemTeamManage,
-		CreateAgentKeyReqScopesItemTeamRead,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s CreateAgentKeyReqScopesItem) MarshalText() ([]byte, error) {
-	switch s {
-	case CreateAgentKeyReqScopesItemAgentProfile:
-		return []byte(s), nil
-	case CreateAgentKeyReqScopesItemConnectorInvoke:
-		return []byte(s), nil
-	case CreateAgentKeyReqScopesItemCryptoSign:
-		return []byte(s), nil
-	case CreateAgentKeyReqScopesItemDiaryManage:
-		return []byte(s), nil
-	case CreateAgentKeyReqScopesItemDiaryRead:
-		return []byte(s), nil
-	case CreateAgentKeyReqScopesItemDiaryWrite:
-		return []byte(s), nil
-	case CreateAgentKeyReqScopesItemKeyManage:
-		return []byte(s), nil
-	case CreateAgentKeyReqScopesItemPackRead:
-		return []byte(s), nil
-	case CreateAgentKeyReqScopesItemPackWrite:
-		return []byte(s), nil
-	case CreateAgentKeyReqScopesItemRuntimeManage:
-		return []byte(s), nil
-	case CreateAgentKeyReqScopesItemRuntimeRead:
-		return []byte(s), nil
-	case CreateAgentKeyReqScopesItemTaskClaim:
-		return []byte(s), nil
-	case CreateAgentKeyReqScopesItemTaskExecute:
-		return []byte(s), nil
-	case CreateAgentKeyReqScopesItemTaskManage:
-		return []byte(s), nil
-	case CreateAgentKeyReqScopesItemTaskRead:
-		return []byte(s), nil
-	case CreateAgentKeyReqScopesItemTeamManage:
-		return []byte(s), nil
-	case CreateAgentKeyReqScopesItemTeamRead:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *CreateAgentKeyReqScopesItem) UnmarshalText(data []byte) error {
-	switch CreateAgentKeyReqScopesItem(data) {
-	case CreateAgentKeyReqScopesItemAgentProfile:
-		*s = CreateAgentKeyReqScopesItemAgentProfile
-		return nil
-	case CreateAgentKeyReqScopesItemConnectorInvoke:
-		*s = CreateAgentKeyReqScopesItemConnectorInvoke
-		return nil
-	case CreateAgentKeyReqScopesItemCryptoSign:
-		*s = CreateAgentKeyReqScopesItemCryptoSign
-		return nil
-	case CreateAgentKeyReqScopesItemDiaryManage:
-		*s = CreateAgentKeyReqScopesItemDiaryManage
-		return nil
-	case CreateAgentKeyReqScopesItemDiaryRead:
-		*s = CreateAgentKeyReqScopesItemDiaryRead
-		return nil
-	case CreateAgentKeyReqScopesItemDiaryWrite:
-		*s = CreateAgentKeyReqScopesItemDiaryWrite
-		return nil
-	case CreateAgentKeyReqScopesItemKeyManage:
-		*s = CreateAgentKeyReqScopesItemKeyManage
-		return nil
-	case CreateAgentKeyReqScopesItemPackRead:
-		*s = CreateAgentKeyReqScopesItemPackRead
-		return nil
-	case CreateAgentKeyReqScopesItemPackWrite:
-		*s = CreateAgentKeyReqScopesItemPackWrite
-		return nil
-	case CreateAgentKeyReqScopesItemRuntimeManage:
-		*s = CreateAgentKeyReqScopesItemRuntimeManage
-		return nil
-	case CreateAgentKeyReqScopesItemRuntimeRead:
-		*s = CreateAgentKeyReqScopesItemRuntimeRead
-		return nil
-	case CreateAgentKeyReqScopesItemTaskClaim:
-		*s = CreateAgentKeyReqScopesItemTaskClaim
-		return nil
-	case CreateAgentKeyReqScopesItemTaskExecute:
-		*s = CreateAgentKeyReqScopesItemTaskExecute
-		return nil
-	case CreateAgentKeyReqScopesItemTaskManage:
-		*s = CreateAgentKeyReqScopesItemTaskManage
-		return nil
-	case CreateAgentKeyReqScopesItemTaskRead:
-		*s = CreateAgentKeyReqScopesItemTaskRead
-		return nil
-	case CreateAgentKeyReqScopesItemTeamManage:
-		*s = CreateAgentKeyReqScopesItemTeamManage
-		return nil
-	case CreateAgentKeyReqScopesItemTeamRead:
-		*s = CreateAgentKeyReqScopesItemTeamRead
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
 }
 
 type CreateAgentKeyServiceUnavailable ProblemDetails
@@ -9070,6 +8760,153 @@ func (s *CreatedAgentEnrollment) SetToken(val string) {
 }
 
 func (*CreatedAgentEnrollment) createAgentEnrollmentRes() {}
+
+// Ref: #/components/schemas/CredentialScope
+type CredentialScope string
+
+const (
+	CredentialScopeAgentProfile    CredentialScope = "agent:profile"
+	CredentialScopeConnectorInvoke CredentialScope = "connector:invoke"
+	CredentialScopeCryptoSign      CredentialScope = "crypto:sign"
+	CredentialScopeDiaryManage     CredentialScope = "diary:manage"
+	CredentialScopeDiaryRead       CredentialScope = "diary:read"
+	CredentialScopeDiaryWrite      CredentialScope = "diary:write"
+	CredentialScopeKeyManage       CredentialScope = "key:manage"
+	CredentialScopePackRead        CredentialScope = "pack:read"
+	CredentialScopePackWrite       CredentialScope = "pack:write"
+	CredentialScopeRuntimeManage   CredentialScope = "runtime:manage"
+	CredentialScopeRuntimeRead     CredentialScope = "runtime:read"
+	CredentialScopeTaskClaim       CredentialScope = "task:claim"
+	CredentialScopeTaskExecute     CredentialScope = "task:execute"
+	CredentialScopeTaskManage      CredentialScope = "task:manage"
+	CredentialScopeTaskRead        CredentialScope = "task:read"
+	CredentialScopeTeamManage      CredentialScope = "team:manage"
+	CredentialScopeTeamRead        CredentialScope = "team:read"
+)
+
+// AllValues returns all CredentialScope values.
+func (CredentialScope) AllValues() []CredentialScope {
+	return []CredentialScope{
+		CredentialScopeAgentProfile,
+		CredentialScopeConnectorInvoke,
+		CredentialScopeCryptoSign,
+		CredentialScopeDiaryManage,
+		CredentialScopeDiaryRead,
+		CredentialScopeDiaryWrite,
+		CredentialScopeKeyManage,
+		CredentialScopePackRead,
+		CredentialScopePackWrite,
+		CredentialScopeRuntimeManage,
+		CredentialScopeRuntimeRead,
+		CredentialScopeTaskClaim,
+		CredentialScopeTaskExecute,
+		CredentialScopeTaskManage,
+		CredentialScopeTaskRead,
+		CredentialScopeTeamManage,
+		CredentialScopeTeamRead,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CredentialScope) MarshalText() ([]byte, error) {
+	switch s {
+	case CredentialScopeAgentProfile:
+		return []byte(s), nil
+	case CredentialScopeConnectorInvoke:
+		return []byte(s), nil
+	case CredentialScopeCryptoSign:
+		return []byte(s), nil
+	case CredentialScopeDiaryManage:
+		return []byte(s), nil
+	case CredentialScopeDiaryRead:
+		return []byte(s), nil
+	case CredentialScopeDiaryWrite:
+		return []byte(s), nil
+	case CredentialScopeKeyManage:
+		return []byte(s), nil
+	case CredentialScopePackRead:
+		return []byte(s), nil
+	case CredentialScopePackWrite:
+		return []byte(s), nil
+	case CredentialScopeRuntimeManage:
+		return []byte(s), nil
+	case CredentialScopeRuntimeRead:
+		return []byte(s), nil
+	case CredentialScopeTaskClaim:
+		return []byte(s), nil
+	case CredentialScopeTaskExecute:
+		return []byte(s), nil
+	case CredentialScopeTaskManage:
+		return []byte(s), nil
+	case CredentialScopeTaskRead:
+		return []byte(s), nil
+	case CredentialScopeTeamManage:
+		return []byte(s), nil
+	case CredentialScopeTeamRead:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CredentialScope) UnmarshalText(data []byte) error {
+	switch CredentialScope(data) {
+	case CredentialScopeAgentProfile:
+		*s = CredentialScopeAgentProfile
+		return nil
+	case CredentialScopeConnectorInvoke:
+		*s = CredentialScopeConnectorInvoke
+		return nil
+	case CredentialScopeCryptoSign:
+		*s = CredentialScopeCryptoSign
+		return nil
+	case CredentialScopeDiaryManage:
+		*s = CredentialScopeDiaryManage
+		return nil
+	case CredentialScopeDiaryRead:
+		*s = CredentialScopeDiaryRead
+		return nil
+	case CredentialScopeDiaryWrite:
+		*s = CredentialScopeDiaryWrite
+		return nil
+	case CredentialScopeKeyManage:
+		*s = CredentialScopeKeyManage
+		return nil
+	case CredentialScopePackRead:
+		*s = CredentialScopePackRead
+		return nil
+	case CredentialScopePackWrite:
+		*s = CredentialScopePackWrite
+		return nil
+	case CredentialScopeRuntimeManage:
+		*s = CredentialScopeRuntimeManage
+		return nil
+	case CredentialScopeRuntimeRead:
+		*s = CredentialScopeRuntimeRead
+		return nil
+	case CredentialScopeTaskClaim:
+		*s = CredentialScopeTaskClaim
+		return nil
+	case CredentialScopeTaskExecute:
+		*s = CredentialScopeTaskExecute
+		return nil
+	case CredentialScopeTaskManage:
+		*s = CredentialScopeTaskManage
+		return nil
+	case CredentialScopeTaskRead:
+		*s = CredentialScopeTaskRead
+		return nil
+	case CredentialScopeTeamManage:
+		*s = CredentialScopeTeamManage
+		return nil
+	case CredentialScopeTeamRead:
+		*s = CredentialScopeTeamRead
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
 
 // Ref: #/components/schemas/CryptoIdentity
 type CryptoIdentity struct {
@@ -26563,6 +26400,177 @@ func (s *HumanPrincipalKind) UnmarshalText(data []byte) error {
 	}
 }
 
+// Ref: #/components/schemas/IdentityAgentKey
+type IdentityAgentKey struct {
+	// UUID v4 identifier.
+	AgentId               uuid.UUID                    `json:"agentId"`
+	BindingScope          IdentityAgentKeyBindingScope `json:"bindingScope"`
+	CreatedAt             NilDateTime                  `json:"createdAt"`
+	ExpiresAt             NilDateTime                  `json:"expiresAt"`
+	ID                    string                       `json:"id"`
+	LastUsedAt            NilDateTime                  `json:"lastUsedAt"`
+	Name                  string                       `json:"name"`
+	RevocationDescription NilString                    `json:"revocationDescription"`
+	RevocationReason      NilAgentKeyRevocationReason  `json:"revocationReason"`
+	Scopes                []CredentialScope            `json:"scopes"`
+	Status                AgentKeyStatus               `json:"status"`
+	UpdatedAt             NilDateTime                  `json:"updatedAt"`
+}
+
+// GetAgentId returns the value of AgentId.
+func (s *IdentityAgentKey) GetAgentId() uuid.UUID {
+	return s.AgentId
+}
+
+// GetBindingScope returns the value of BindingScope.
+func (s *IdentityAgentKey) GetBindingScope() IdentityAgentKeyBindingScope {
+	return s.BindingScope
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *IdentityAgentKey) GetCreatedAt() NilDateTime {
+	return s.CreatedAt
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *IdentityAgentKey) GetExpiresAt() NilDateTime {
+	return s.ExpiresAt
+}
+
+// GetID returns the value of ID.
+func (s *IdentityAgentKey) GetID() string {
+	return s.ID
+}
+
+// GetLastUsedAt returns the value of LastUsedAt.
+func (s *IdentityAgentKey) GetLastUsedAt() NilDateTime {
+	return s.LastUsedAt
+}
+
+// GetName returns the value of Name.
+func (s *IdentityAgentKey) GetName() string {
+	return s.Name
+}
+
+// GetRevocationDescription returns the value of RevocationDescription.
+func (s *IdentityAgentKey) GetRevocationDescription() NilString {
+	return s.RevocationDescription
+}
+
+// GetRevocationReason returns the value of RevocationReason.
+func (s *IdentityAgentKey) GetRevocationReason() NilAgentKeyRevocationReason {
+	return s.RevocationReason
+}
+
+// GetScopes returns the value of Scopes.
+func (s *IdentityAgentKey) GetScopes() []CredentialScope {
+	return s.Scopes
+}
+
+// GetStatus returns the value of Status.
+func (s *IdentityAgentKey) GetStatus() AgentKeyStatus {
+	return s.Status
+}
+
+// GetUpdatedAt returns the value of UpdatedAt.
+func (s *IdentityAgentKey) GetUpdatedAt() NilDateTime {
+	return s.UpdatedAt
+}
+
+// SetAgentId sets the value of AgentId.
+func (s *IdentityAgentKey) SetAgentId(val uuid.UUID) {
+	s.AgentId = val
+}
+
+// SetBindingScope sets the value of BindingScope.
+func (s *IdentityAgentKey) SetBindingScope(val IdentityAgentKeyBindingScope) {
+	s.BindingScope = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *IdentityAgentKey) SetCreatedAt(val NilDateTime) {
+	s.CreatedAt = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *IdentityAgentKey) SetExpiresAt(val NilDateTime) {
+	s.ExpiresAt = val
+}
+
+// SetID sets the value of ID.
+func (s *IdentityAgentKey) SetID(val string) {
+	s.ID = val
+}
+
+// SetLastUsedAt sets the value of LastUsedAt.
+func (s *IdentityAgentKey) SetLastUsedAt(val NilDateTime) {
+	s.LastUsedAt = val
+}
+
+// SetName sets the value of Name.
+func (s *IdentityAgentKey) SetName(val string) {
+	s.Name = val
+}
+
+// SetRevocationDescription sets the value of RevocationDescription.
+func (s *IdentityAgentKey) SetRevocationDescription(val NilString) {
+	s.RevocationDescription = val
+}
+
+// SetRevocationReason sets the value of RevocationReason.
+func (s *IdentityAgentKey) SetRevocationReason(val NilAgentKeyRevocationReason) {
+	s.RevocationReason = val
+}
+
+// SetScopes sets the value of Scopes.
+func (s *IdentityAgentKey) SetScopes(val []CredentialScope) {
+	s.Scopes = val
+}
+
+// SetStatus sets the value of Status.
+func (s *IdentityAgentKey) SetStatus(val AgentKeyStatus) {
+	s.Status = val
+}
+
+// SetUpdatedAt sets the value of UpdatedAt.
+func (s *IdentityAgentKey) SetUpdatedAt(val NilDateTime) {
+	s.UpdatedAt = val
+}
+
+type IdentityAgentKeyBindingScope string
+
+const (
+	IdentityAgentKeyBindingScopeIdentity IdentityAgentKeyBindingScope = "identity"
+)
+
+// AllValues returns all IdentityAgentKeyBindingScope values.
+func (IdentityAgentKeyBindingScope) AllValues() []IdentityAgentKeyBindingScope {
+	return []IdentityAgentKeyBindingScope{
+		IdentityAgentKeyBindingScopeIdentity,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s IdentityAgentKeyBindingScope) MarshalText() ([]byte, error) {
+	switch s {
+	case IdentityAgentKeyBindingScopeIdentity:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *IdentityAgentKeyBindingScope) UnmarshalText(data []byte) error {
+	switch IdentityAgentKeyBindingScope(data) {
+	case IdentityAgentKeyBindingScopeIdentity:
+		*s = IdentityAgentKeyBindingScopeIdentity
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 type InitiateTransferAccepted struct {
 	CreatedAt time.Time `json:"createdAt"`
 	// UUID v4 identifier.
@@ -34801,6 +34809,52 @@ func (o OptAddGroupMemberReqSubjectNs) Get() (v AddGroupMemberReqSubjectNs, ok b
 
 // Or returns value if set, or given parameter if does not.
 func (o OptAddGroupMemberReqSubjectNs) Or(d AddGroupMemberReqSubjectNs) AddGroupMemberReqSubjectNs {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptAgentKeyBindingScope returns new OptAgentKeyBindingScope with value set to v.
+func NewOptAgentKeyBindingScope(v AgentKeyBindingScope) OptAgentKeyBindingScope {
+	return OptAgentKeyBindingScope{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptAgentKeyBindingScope is optional AgentKeyBindingScope.
+type OptAgentKeyBindingScope struct {
+	Value AgentKeyBindingScope
+	Set   bool
+}
+
+// IsSet returns true if OptAgentKeyBindingScope was set.
+func (o OptAgentKeyBindingScope) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptAgentKeyBindingScope) Reset() {
+	var v AgentKeyBindingScope
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptAgentKeyBindingScope) SetTo(v AgentKeyBindingScope) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptAgentKeyBindingScope) Get() (v AgentKeyBindingScope, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptAgentKeyBindingScope) Or(d AgentKeyBindingScope) AgentKeyBindingScope {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -43419,6 +43473,66 @@ func (s *ProvenanceGraphHumanNodeType) UnmarshalText(data []byte) error {
 	}
 }
 
+// Ref: #/components/schemas/ProvenanceGraphIdentityNode
+type ProvenanceGraphIdentityNode struct {
+	BindingScope ProvenanceGraphIdentityNodeBindingScope `json:"bindingScope"`
+	KeyId        string                                  `json:"keyId"`
+}
+
+// GetBindingScope returns the value of BindingScope.
+func (s *ProvenanceGraphIdentityNode) GetBindingScope() ProvenanceGraphIdentityNodeBindingScope {
+	return s.BindingScope
+}
+
+// GetKeyId returns the value of KeyId.
+func (s *ProvenanceGraphIdentityNode) GetKeyId() string {
+	return s.KeyId
+}
+
+// SetBindingScope sets the value of BindingScope.
+func (s *ProvenanceGraphIdentityNode) SetBindingScope(val ProvenanceGraphIdentityNodeBindingScope) {
+	s.BindingScope = val
+}
+
+// SetKeyId sets the value of KeyId.
+func (s *ProvenanceGraphIdentityNode) SetKeyId(val string) {
+	s.KeyId = val
+}
+
+type ProvenanceGraphIdentityNodeBindingScope string
+
+const (
+	ProvenanceGraphIdentityNodeBindingScopeIdentity ProvenanceGraphIdentityNodeBindingScope = "identity"
+)
+
+// AllValues returns all ProvenanceGraphIdentityNodeBindingScope values.
+func (ProvenanceGraphIdentityNodeBindingScope) AllValues() []ProvenanceGraphIdentityNodeBindingScope {
+	return []ProvenanceGraphIdentityNodeBindingScope{
+		ProvenanceGraphIdentityNodeBindingScopeIdentity,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ProvenanceGraphIdentityNodeBindingScope) MarshalText() ([]byte, error) {
+	switch s {
+	case ProvenanceGraphIdentityNodeBindingScopeIdentity:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ProvenanceGraphIdentityNodeBindingScope) UnmarshalText(data []byte) error {
+	switch ProvenanceGraphIdentityNodeBindingScope(data) {
+	case ProvenanceGraphIdentityNodeBindingScopeIdentity:
+		*s = ProvenanceGraphIdentityNodeBindingScopeIdentity
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // Ref: #/components/schemas/ProvenanceGraphKey_compromiseNode
 type ProvenanceGraphKeyCompromiseNode struct {
 	Reason ProvenanceGraphKeyCompromiseNodeReason `json:"reason"`
@@ -44323,6 +44437,77 @@ func (s *ProvenanceGraphSupersededNodeReason) UnmarshalText(data []byte) error {
 	switch ProvenanceGraphSupersededNodeReason(data) {
 	case ProvenanceGraphSupersededNodeReasonSuperseded:
 		*s = ProvenanceGraphSupersededNodeReasonSuperseded
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/ProvenanceGraphTeamNode
+type ProvenanceGraphTeamNode struct {
+	BindingScope ProvenanceGraphTeamNodeBindingScope `json:"bindingScope"`
+	BoundTeamId  uuid.UUID                           `json:"boundTeamId"`
+	KeyId        string                              `json:"keyId"`
+}
+
+// GetBindingScope returns the value of BindingScope.
+func (s *ProvenanceGraphTeamNode) GetBindingScope() ProvenanceGraphTeamNodeBindingScope {
+	return s.BindingScope
+}
+
+// GetBoundTeamId returns the value of BoundTeamId.
+func (s *ProvenanceGraphTeamNode) GetBoundTeamId() uuid.UUID {
+	return s.BoundTeamId
+}
+
+// GetKeyId returns the value of KeyId.
+func (s *ProvenanceGraphTeamNode) GetKeyId() string {
+	return s.KeyId
+}
+
+// SetBindingScope sets the value of BindingScope.
+func (s *ProvenanceGraphTeamNode) SetBindingScope(val ProvenanceGraphTeamNodeBindingScope) {
+	s.BindingScope = val
+}
+
+// SetBoundTeamId sets the value of BoundTeamId.
+func (s *ProvenanceGraphTeamNode) SetBoundTeamId(val uuid.UUID) {
+	s.BoundTeamId = val
+}
+
+// SetKeyId sets the value of KeyId.
+func (s *ProvenanceGraphTeamNode) SetKeyId(val string) {
+	s.KeyId = val
+}
+
+type ProvenanceGraphTeamNodeBindingScope string
+
+const (
+	ProvenanceGraphTeamNodeBindingScopeTeam ProvenanceGraphTeamNodeBindingScope = "team"
+)
+
+// AllValues returns all ProvenanceGraphTeamNodeBindingScope values.
+func (ProvenanceGraphTeamNodeBindingScope) AllValues() []ProvenanceGraphTeamNodeBindingScope {
+	return []ProvenanceGraphTeamNodeBindingScope{
+		ProvenanceGraphTeamNodeBindingScopeTeam,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ProvenanceGraphTeamNodeBindingScope) MarshalText() ([]byte, error) {
+	switch s {
+	case ProvenanceGraphTeamNodeBindingScopeTeam:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ProvenanceGraphTeamNodeBindingScope) UnmarshalText(data []byte) error {
+	switch ProvenanceGraphTeamNodeBindingScope(data) {
+	case ProvenanceGraphTeamNodeBindingScopeTeam:
+		*s = ProvenanceGraphTeamNodeBindingScopeTeam
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -56526,6 +56711,189 @@ func (s *TaskUsage) SetToolCalls(val OptInt) {
 	s.ToolCalls = val
 }
 
+// Ref: #/components/schemas/TeamAgentKey
+type TeamAgentKey struct {
+	// UUID v4 identifier.
+	AgentId               uuid.UUID                   `json:"agentId"`
+	BindingScope          TeamAgentKeyBindingScope    `json:"bindingScope"`
+	CreatedAt             NilDateTime                 `json:"createdAt"`
+	ExpiresAt             NilDateTime                 `json:"expiresAt"`
+	ID                    string                      `json:"id"`
+	LastUsedAt            NilDateTime                 `json:"lastUsedAt"`
+	Name                  string                      `json:"name"`
+	RevocationDescription NilString                   `json:"revocationDescription"`
+	RevocationReason      NilAgentKeyRevocationReason `json:"revocationReason"`
+	Scopes                []CredentialScope           `json:"scopes"`
+	Status                AgentKeyStatus              `json:"status"`
+	// UUID v4 identifier.
+	TeamId    uuid.UUID   `json:"teamId"`
+	UpdatedAt NilDateTime `json:"updatedAt"`
+}
+
+// GetAgentId returns the value of AgentId.
+func (s *TeamAgentKey) GetAgentId() uuid.UUID {
+	return s.AgentId
+}
+
+// GetBindingScope returns the value of BindingScope.
+func (s *TeamAgentKey) GetBindingScope() TeamAgentKeyBindingScope {
+	return s.BindingScope
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *TeamAgentKey) GetCreatedAt() NilDateTime {
+	return s.CreatedAt
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *TeamAgentKey) GetExpiresAt() NilDateTime {
+	return s.ExpiresAt
+}
+
+// GetID returns the value of ID.
+func (s *TeamAgentKey) GetID() string {
+	return s.ID
+}
+
+// GetLastUsedAt returns the value of LastUsedAt.
+func (s *TeamAgentKey) GetLastUsedAt() NilDateTime {
+	return s.LastUsedAt
+}
+
+// GetName returns the value of Name.
+func (s *TeamAgentKey) GetName() string {
+	return s.Name
+}
+
+// GetRevocationDescription returns the value of RevocationDescription.
+func (s *TeamAgentKey) GetRevocationDescription() NilString {
+	return s.RevocationDescription
+}
+
+// GetRevocationReason returns the value of RevocationReason.
+func (s *TeamAgentKey) GetRevocationReason() NilAgentKeyRevocationReason {
+	return s.RevocationReason
+}
+
+// GetScopes returns the value of Scopes.
+func (s *TeamAgentKey) GetScopes() []CredentialScope {
+	return s.Scopes
+}
+
+// GetStatus returns the value of Status.
+func (s *TeamAgentKey) GetStatus() AgentKeyStatus {
+	return s.Status
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *TeamAgentKey) GetTeamId() uuid.UUID {
+	return s.TeamId
+}
+
+// GetUpdatedAt returns the value of UpdatedAt.
+func (s *TeamAgentKey) GetUpdatedAt() NilDateTime {
+	return s.UpdatedAt
+}
+
+// SetAgentId sets the value of AgentId.
+func (s *TeamAgentKey) SetAgentId(val uuid.UUID) {
+	s.AgentId = val
+}
+
+// SetBindingScope sets the value of BindingScope.
+func (s *TeamAgentKey) SetBindingScope(val TeamAgentKeyBindingScope) {
+	s.BindingScope = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *TeamAgentKey) SetCreatedAt(val NilDateTime) {
+	s.CreatedAt = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *TeamAgentKey) SetExpiresAt(val NilDateTime) {
+	s.ExpiresAt = val
+}
+
+// SetID sets the value of ID.
+func (s *TeamAgentKey) SetID(val string) {
+	s.ID = val
+}
+
+// SetLastUsedAt sets the value of LastUsedAt.
+func (s *TeamAgentKey) SetLastUsedAt(val NilDateTime) {
+	s.LastUsedAt = val
+}
+
+// SetName sets the value of Name.
+func (s *TeamAgentKey) SetName(val string) {
+	s.Name = val
+}
+
+// SetRevocationDescription sets the value of RevocationDescription.
+func (s *TeamAgentKey) SetRevocationDescription(val NilString) {
+	s.RevocationDescription = val
+}
+
+// SetRevocationReason sets the value of RevocationReason.
+func (s *TeamAgentKey) SetRevocationReason(val NilAgentKeyRevocationReason) {
+	s.RevocationReason = val
+}
+
+// SetScopes sets the value of Scopes.
+func (s *TeamAgentKey) SetScopes(val []CredentialScope) {
+	s.Scopes = val
+}
+
+// SetStatus sets the value of Status.
+func (s *TeamAgentKey) SetStatus(val AgentKeyStatus) {
+	s.Status = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *TeamAgentKey) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
+}
+
+// SetUpdatedAt sets the value of UpdatedAt.
+func (s *TeamAgentKey) SetUpdatedAt(val NilDateTime) {
+	s.UpdatedAt = val
+}
+
+type TeamAgentKeyBindingScope string
+
+const (
+	TeamAgentKeyBindingScopeTeam TeamAgentKeyBindingScope = "team"
+)
+
+// AllValues returns all TeamAgentKeyBindingScope values.
+func (TeamAgentKeyBindingScope) AllValues() []TeamAgentKeyBindingScope {
+	return []TeamAgentKeyBindingScope{
+		TeamAgentKeyBindingScopeTeam,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TeamAgentKeyBindingScope) MarshalText() ([]byte, error) {
+	switch s {
+	case TeamAgentKeyBindingScopeTeam:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TeamAgentKeyBindingScope) UnmarshalText(data []byte) error {
+	switch TeamAgentKeyBindingScope(data) {
+	case TeamAgentKeyBindingScopeTeam:
+		*s = TeamAgentKeyBindingScopeTeam
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed
 // tools, fail-closed).
 // Ref: #/components/schemas/ToolEnforcement
@@ -63291,29 +63659,73 @@ func (s *Whoami) SetSubjectType(val WhoamiSubjectType) {
 
 func (*Whoami) getWhoamiRes() {}
 
+// WhoamiCredentialBinding represents sum type.
 type WhoamiCredentialBinding struct {
-	BoundTeamId OptUUID `json:"boundTeamId"`
-	KeyId       string  `json:"keyId"`
+	// Type selects the active sum variant, switch on this field.
+	Type                        WhoamiCredentialBindingType
+	ProvenanceGraphTeamNode     ProvenanceGraphTeamNode
+	ProvenanceGraphIdentityNode ProvenanceGraphIdentityNode
 }
 
-// GetBoundTeamId returns the value of BoundTeamId.
-func (s *WhoamiCredentialBinding) GetBoundTeamId() OptUUID {
-	return s.BoundTeamId
+// WhoamiCredentialBindingType is oneOf type of WhoamiCredentialBinding.
+type WhoamiCredentialBindingType string
+
+// Possible values for WhoamiCredentialBindingType.
+const (
+	ProvenanceGraphTeamNodeWhoamiCredentialBinding     WhoamiCredentialBindingType = "team"
+	ProvenanceGraphIdentityNodeWhoamiCredentialBinding WhoamiCredentialBindingType = "identity"
+)
+
+// IsProvenanceGraphTeamNode reports whether WhoamiCredentialBinding is ProvenanceGraphTeamNode.
+func (s WhoamiCredentialBinding) IsProvenanceGraphTeamNode() bool {
+	return s.Type == ProvenanceGraphTeamNodeWhoamiCredentialBinding
 }
 
-// GetKeyId returns the value of KeyId.
-func (s *WhoamiCredentialBinding) GetKeyId() string {
-	return s.KeyId
+// IsProvenanceGraphIdentityNode reports whether WhoamiCredentialBinding is ProvenanceGraphIdentityNode.
+func (s WhoamiCredentialBinding) IsProvenanceGraphIdentityNode() bool {
+	return s.Type == ProvenanceGraphIdentityNodeWhoamiCredentialBinding
 }
 
-// SetBoundTeamId sets the value of BoundTeamId.
-func (s *WhoamiCredentialBinding) SetBoundTeamId(val OptUUID) {
-	s.BoundTeamId = val
+// SetProvenanceGraphTeamNode sets WhoamiCredentialBinding to ProvenanceGraphTeamNode.
+func (s *WhoamiCredentialBinding) SetProvenanceGraphTeamNode(v ProvenanceGraphTeamNode) {
+	s.Type = ProvenanceGraphTeamNodeWhoamiCredentialBinding
+	s.ProvenanceGraphTeamNode = v
 }
 
-// SetKeyId sets the value of KeyId.
-func (s *WhoamiCredentialBinding) SetKeyId(val string) {
-	s.KeyId = val
+// GetProvenanceGraphTeamNode returns ProvenanceGraphTeamNode and true boolean if WhoamiCredentialBinding is ProvenanceGraphTeamNode.
+func (s WhoamiCredentialBinding) GetProvenanceGraphTeamNode() (v ProvenanceGraphTeamNode, ok bool) {
+	if !s.IsProvenanceGraphTeamNode() {
+		return v, false
+	}
+	return s.ProvenanceGraphTeamNode, true
+}
+
+// NewProvenanceGraphTeamNodeWhoamiCredentialBinding returns new WhoamiCredentialBinding from ProvenanceGraphTeamNode.
+func NewProvenanceGraphTeamNodeWhoamiCredentialBinding(v ProvenanceGraphTeamNode) WhoamiCredentialBinding {
+	var s WhoamiCredentialBinding
+	s.SetProvenanceGraphTeamNode(v)
+	return s
+}
+
+// SetProvenanceGraphIdentityNode sets WhoamiCredentialBinding to ProvenanceGraphIdentityNode.
+func (s *WhoamiCredentialBinding) SetProvenanceGraphIdentityNode(v ProvenanceGraphIdentityNode) {
+	s.Type = ProvenanceGraphIdentityNodeWhoamiCredentialBinding
+	s.ProvenanceGraphIdentityNode = v
+}
+
+// GetProvenanceGraphIdentityNode returns ProvenanceGraphIdentityNode and true boolean if WhoamiCredentialBinding is ProvenanceGraphIdentityNode.
+func (s WhoamiCredentialBinding) GetProvenanceGraphIdentityNode() (v ProvenanceGraphIdentityNode, ok bool) {
+	if !s.IsProvenanceGraphIdentityNode() {
+		return v, false
+	}
+	return s.ProvenanceGraphIdentityNode, true
+}
+
+// NewProvenanceGraphIdentityNodeWhoamiCredentialBinding returns new WhoamiCredentialBinding from ProvenanceGraphIdentityNode.
+func NewProvenanceGraphIdentityNodeWhoamiCredentialBinding(v ProvenanceGraphIdentityNode) WhoamiCredentialBinding {
+	var s WhoamiCredentialBinding
+	s.SetProvenanceGraphIdentityNode(v)
+	return s
 }
 
 type WhoamiSubjectType string
