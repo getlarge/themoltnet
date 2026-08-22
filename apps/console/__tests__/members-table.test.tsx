@@ -26,27 +26,51 @@ const bob: MemberTableEntry = {
   email: 'bob@example.test',
   role: 'manager',
 };
+const charlie: MemberTableEntry = {
+  subjectId: 'c',
+  subjectType: 'agent',
+  displayName: 'Charlie Agent',
+  fingerprint: 'aaaa-bbbb-cccc-dddd',
+  role: 'executor',
+};
+const olivia: MemberTableEntry = {
+  subjectId: 'o',
+  subjectType: 'human',
+  displayName: 'Olivia Owner',
+  role: 'owner',
+};
+
+const roleOptions = (member: MemberTableEntry) => {
+  if (member.role === 'owner') return [];
+  return member.subjectType === 'agent'
+    ? [
+        { value: 'member', label: 'Member' },
+        { value: 'executor', label: 'Executor' },
+        { value: 'manager', label: 'Manager' },
+      ]
+    : [
+        { value: 'member', label: 'Member' },
+        { value: 'manager', label: 'Manager' },
+      ];
+};
 
 function setup(overrides: Partial<Parameters<typeof MembersTable>[0]> = {}) {
-  const onRoleAction = vi.fn();
+  const onRoleChange = vi.fn();
   const onRemove = vi.fn();
   render(
     <MembersTable
-      members={[alice, bob]}
-      // Alice can be promoted; Bob can be demoted.
-      roleActionLabel={(m) =>
-        m.subjectId === 'a' ? 'Promote to manager' : 'Demote to member'
-      }
+      members={[alice, bob, charlie, olivia]}
+      roleOptions={roleOptions}
       // Only Alice is removable — capability differs per member.
       canRemove={(m) => m.subjectId === 'a'}
       updatingMemberId={null}
-      onRoleAction={onRoleAction}
+      onRoleChange={onRoleChange}
       onRemove={onRemove}
       {...overrides}
     />,
     { wrapper: Wrapper },
   );
-  return { onRoleAction, onRemove };
+  return { onRoleChange, onRemove };
 }
 
 describe('MembersTable', () => {
@@ -54,17 +78,33 @@ describe('MembersTable', () => {
     setup();
     expect(screen.getByText('Alice')).toBeInTheDocument();
     expect(screen.getByText('Bob')).toBeInTheDocument();
+    expect(
+      screen.getByRole('combobox', { name: 'Role for Charlie Agent' }),
+    ).toBeInTheDocument();
   });
 
-  it('routes the role action to the exact member clicked', () => {
-    const { onRoleAction } = setup();
+  it('offers executor only to agents and routes the selected role', () => {
+    const { onRoleChange } = setup();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Promote to manager' }));
-    expect(onRoleAction).toHaveBeenCalledTimes(1);
-    expect(onRoleAction).toHaveBeenCalledWith(alice);
+    const humanRole = screen.getByRole('combobox', { name: 'Role for Alice' });
+    expect(humanRole).toHaveTextContent('Member');
+    expect(humanRole).toHaveTextContent('Manager');
+    expect(humanRole).not.toHaveTextContent('Executor');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Demote to member' }));
-    expect(onRoleAction).toHaveBeenLastCalledWith(bob);
+    const agentRole = screen.getByRole('combobox', {
+      name: 'Role for Charlie Agent',
+    });
+    expect(agentRole).toHaveTextContent('Executor');
+    fireEvent.change(agentRole, { target: { value: 'manager' } });
+    expect(onRoleChange).toHaveBeenCalledWith(charlie, 'manager');
+  });
+
+  it('keeps owners read-only', () => {
+    setup();
+    expect(
+      screen.queryByRole('combobox', { name: 'Role for Olivia Owner' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('owner')).toBeInTheDocument();
   });
 
   it('only offers Remove for members the caller can remove, and routes it to that member', () => {
@@ -82,28 +122,27 @@ describe('MembersTable', () => {
   it('shows the pending state only on the member being updated', () => {
     setup({ updatingMemberId: 'a' });
 
-    const updating = screen.getByRole('button', { name: 'Updating...' });
+    const updating = screen.getByRole('combobox', { name: 'Role for Alice' });
     expect(updating).toBeDisabled();
-    // Bob is unaffected — his action still reads normally and is enabled.
-    const bobAction = screen.getByRole('button', { name: 'Demote to member' });
+    const bobAction = screen.getByRole('combobox', { name: 'Role for Bob' });
     expect(bobAction).toBeEnabled();
   });
 
-  it('omits the role-action control when there is no label for a member', () => {
-    const onRoleAction = vi.fn();
+  it('omits the role selector when there are no allowed role options', () => {
+    const onRoleChange = vi.fn();
     render(
       <MembersTable
         members={[alice]}
-        roleActionLabel={() => undefined}
+        roleOptions={() => []}
         canRemove={() => false}
         updatingMemberId={null}
-        onRoleAction={onRoleAction}
+        onRoleChange={onRoleChange}
         onRemove={vi.fn()}
       />,
       { wrapper: Wrapper },
     );
     expect(
-      screen.queryByRole('button', { name: /promote|demote/i }),
+      screen.queryByRole('combobox', { name: /role for/i }),
     ).not.toBeInTheDocument();
   });
 });

@@ -15,6 +15,7 @@ import {
   listTeamInvites,
   listTeams,
   removeTeamMember,
+  updateTeamMemberRole,
 } from '@moltnet/api-client';
 import type { FastifyInstance } from 'fastify';
 
@@ -28,6 +29,7 @@ import type {
   TeamsJoinInput,
   TeamsListInput,
   TeamsMemberRemoveInput,
+  TeamsMemberUpdateRoleInput,
 } from './schemas/team-schemas.js';
 import {
   TeamMembersListOutputSchema,
@@ -48,6 +50,8 @@ import {
   TeamsListSchema,
   TeamsMemberRemoveOutputSchema,
   TeamsMemberRemoveSchema,
+  TeamsMemberUpdateRoleOutputSchema,
+  TeamsMemberUpdateRoleSchema,
 } from './schemas/team-schemas.js';
 import type { CallToolResult, HandlerContext, McpDeps } from './types.js';
 import {
@@ -118,7 +122,14 @@ export async function handleTeamsCreate(
   const { data, error } = await createTeam({
     client: deps.client,
     auth: () => token,
-    body: { name: args.name },
+    body: {
+      name: args.name,
+      foundingMembers: args.founding_members?.map((member) => ({
+        subjectId: member.subject_id,
+        subjectNs: member.subject_ns,
+        role: member.role,
+      })),
+    },
   });
 
   if (error) {
@@ -289,12 +300,52 @@ export async function handleTeamsMemberRemove(
   return structuredResult(data);
 }
 
+export async function handleTeamsMemberUpdateRole(
+  args: TeamsMemberUpdateRoleInput,
+  deps: McpDeps,
+  context: HandlerContext,
+): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'teams_member_update_role' }, 'tool.invoked');
+  const token = getTokenFromContext(context);
+  if (!token) return errorResult('Not authenticated');
+
+  const { data, error } = await updateTeamMemberRole({
+    client: deps.client,
+    auth: () => token,
+    path: { id: args.team_id, subjectId: args.subject_id },
+    body: { role: args.role },
+  });
+
+  if (error || !data) {
+    deps.logger.error(
+      { tool: 'teams_member_update_role', err: error },
+      'tool.error',
+    );
+    return errorResult(
+      extractApiErrorMessage(error, 'Failed to update team member role'),
+    );
+  }
+
+  return structuredResult(data);
+}
+
 // --- Tool registration ---
 
 export function registerTeamTools(
   fastify: FastifyInstance,
   deps: McpDeps,
 ): void {
+  fastify.mcpAddTool(
+    {
+      name: 'teams_member_update_role',
+      description:
+        'Set a team member role. Agents may be members, executors, or managers; humans may be members or managers.',
+      inputSchema: TeamsMemberUpdateRoleSchema,
+      outputSchema: TeamsMemberUpdateRoleOutputSchema,
+    },
+    async (args, ctx) => handleTeamsMemberUpdateRole(args, deps, ctx),
+  );
+
   fastify.mcpAddTool(
     {
       name: 'teams_list',
