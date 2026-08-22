@@ -23,12 +23,10 @@ RUN npm install -g pnpm@${PNPM_VERSION}
 FROM base AS build
 WORKDIR /repo
 
-COPY pnpm-lock.yaml ./
-RUN pnpm fetch --prod
-
 COPY . .
 
-RUN pnpm install --offline --frozen-lockfile --prod
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile --prod
 
 RUN pnpm --filter @moltnet/mcp-server deploy --legacy --prod /out
 

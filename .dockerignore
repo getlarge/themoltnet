@@ -1,11 +1,10 @@
 # Build context for every Docker image in this repo.
 #
 # Issue #1223 moved app/lib BUILDS to host-side Nx targets (cached by Nx
-# Cloud). Node packaging Dockerfiles fetch from the lockfile before copying the
-# workspace, then run an offline production install and `pnpm deploy` inside a
-# linux container so optional native deps (sharp, onnxruntime-node, esbuild,
-# etc.) resolve to linux binaries. The image then COPYs prebuilt artifacts from
-# `apps/<app>/dist/` into the runtime stage.
+# Cloud). Dockerfiles still run `pnpm install --frozen-lockfile --prod` and
+# `pnpm deploy` inside a linux container so optional native deps (sharp,
+# onnxruntime-node, esbuild, etc.) resolve to linux binaries. The image then
+# COPYs prebuilt artifacts from `apps/<app>/dist/` into the runtime stage.
 #
 # .dockerignore does NOT inherit .gitignore — every exclusion is explicit.
 
