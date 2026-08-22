@@ -40,6 +40,7 @@ import {
   assessStartupBinding,
   detectAuthMode,
   resolveAgentContext,
+  resolveDaemonGuestCredentialMode,
   validateStartupBinding,
 } from './agent-context.js';
 
@@ -70,7 +71,7 @@ describe('resolveAgentContext', () => {
       const agentDir = join(root, '.moltnet', 'legreffier');
       expect(ctx.agentDir).toBe(agentDir);
       expect(ctx.agentRootDir).toBe(root);
-      expect(ctx.guestCredentialMode).toBe('guest-config');
+      expect(ctx.guestCredentialMode).toBe('host-authenticated');
       expect(connectMock).toHaveBeenCalledWith(
         expect.objectContaining({
           configDir: agentDir,
@@ -98,7 +99,7 @@ describe('resolveAgentContext', () => {
       const agentDir = join(gitRoot, '.moltnet', 'legreffier');
       expect(ctx.agentDir).toBe(agentDir);
       expect(ctx.agentRootDir).toBe(gitRoot);
-      expect(ctx.guestCredentialMode).toBe('guest-config');
+      expect(ctx.guestCredentialMode).toBe('host-authenticated');
       expect(connectMock).toHaveBeenCalledWith(
         expect.objectContaining({ configDir: agentDir }),
       );
@@ -195,14 +196,99 @@ describe('resolveAgentContext', () => {
     }
   });
 
-  it('rejects host-authenticated guest mode with OAuth2', async () => {
-    await expect(
-      resolveAgentContext('legreffier', {
+  it('keeps the OAuth2 Agent host-resolved with an explicit host-authenticated guest', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'daemon-oauth2-host-auth-'));
+    execFileSyncMock.mockImplementation(() => {
+      throw new Error('not a git repo');
+    });
+
+    try {
+      const agentDir = join(root, '.moltnet', 'legreffier');
+      mkdirSync(agentDir, { recursive: true });
+      writeFileSync(join(agentDir, 'moltnet.json'), '{}\n', 'utf8');
+
+      const ctx = await resolveAgentContext('legreffier', {
+        agentRootDir: root,
         authMode: 'oauth2',
         guestCredentialMode: 'host-authenticated',
-      }),
-    ).rejects.toThrow('requires agent-key authentication');
-    expect(connectMock).not.toHaveBeenCalled();
+      });
+
+      expect(ctx.guestCredentialMode).toBe('host-authenticated');
+      expect(ctx.agentDir).toBe(agentDir);
+      expect(connectMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          configDir: agentDir,
+          secretProviders: { provider: 'registry' },
+        }),
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps OAuth2 guest-config available after explicit opt-in', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'daemon-oauth2-guest-config-'));
+    execFileSyncMock.mockImplementation(() => {
+      throw new Error('not a git repo');
+    });
+
+    try {
+      writeCredentials(root, 'legreffier');
+      const ctx = await resolveAgentContext('legreffier', {
+        agentRootDir: root,
+        authMode: 'oauth2',
+        guestCredentialMode: 'guest-config',
+      });
+
+      expect(ctx.guestCredentialMode).toBe('guest-config');
+      expect(connectMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          configDir: join(root, '.moltnet', 'legreffier'),
+        }),
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects OAuth2 guest-config when the local env file is missing', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'daemon-oauth2-partial-'));
+    execFileSyncMock.mockImplementation(() => {
+      throw new Error('not a git repo');
+    });
+
+    try {
+      const agentDir = join(root, '.moltnet', 'legreffier');
+      mkdirSync(agentDir, { recursive: true });
+      writeFileSync(join(agentDir, 'moltnet.json'), '{}\n', 'utf8');
+
+      await expect(
+        resolveAgentContext('legreffier', {
+          agentRootDir: root,
+          authMode: 'oauth2',
+          guestCredentialMode: 'guest-config',
+        }),
+      ).rejects.toThrow('moltnet.json and env must both exist');
+      expect(connectMock).not.toHaveBeenCalled();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('resolveDaemonGuestCredentialMode', () => {
+  it.each([
+    [undefined, 'host-authenticated'],
+    ['host-authenticated', 'host-authenticated'],
+    ['guest-config', 'guest-config'],
+  ] as const)('resolves %s to %s', (requested, expected) => {
+    expect(resolveDaemonGuestCredentialMode(requested)).toBe(expected);
+  });
+
+  it('rejects an unknown mode', () => {
+    expect(() => resolveDaemonGuestCredentialMode('vm-config')).toThrow(
+      'Invalid --guest-credential-mode "vm-config"',
+    );
   });
 });
 
