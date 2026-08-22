@@ -1270,7 +1270,6 @@ export async function executePiTask(
         attemptN,
         diaryId,
         agentName: opts.agentName,
-        guestCredentialMode: opts.guestCredentialMode ?? 'guest-config',
         guestWorkspace: managed.guestWorkspace,
         correlationId: task.correlationId ?? null,
         sandbox: {
