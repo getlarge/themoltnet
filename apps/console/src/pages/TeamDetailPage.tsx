@@ -34,7 +34,10 @@ import {
 } from '../components/teams/GrantDiaryAccessDialog.js';
 import { GroupCard } from '../components/teams/GroupCard.js';
 import { InviteCard } from '../components/teams/InviteCard.js';
-import { MembersTable } from '../components/teams/MembersTable.js';
+import {
+  editableTeamRoleOptions,
+  MembersTable,
+} from '../components/teams/MembersTable.js';
 import { PendingTransfersPanel } from '../components/teams/PendingTransfersPanel.js';
 import { TeamDiaryCard } from '../components/teams/TeamDiaryCard.js';
 import { canManageTeam } from '../team/permissions.js';
@@ -218,13 +221,14 @@ export function TeamDetailPage({ id }: { id: string }) {
     setConfirmDeleteGroup(null);
   };
 
-  const handleToggleMemberRole = async (member: TeamMember) => {
+  const handleMemberRoleChange = async (
+    member: TeamMember,
+    nextRole: 'member' | 'executor' | 'manager',
+  ) => {
     if (member.role === 'owner') return;
 
     setActionError(null);
     setUpdatingMemberId(member.subjectId);
-    const nextRole = member.role === 'manager' ? 'member' : 'manager';
-
     try {
       await updateTeamMemberRole({
         client: getApiClient(),
@@ -313,11 +317,8 @@ export function TeamDetailPage({ id }: { id: string }) {
     return true;
   };
 
-  const roleActionLabel = (member: TeamMember) => {
-    if (!canManage || member.role === 'owner') return null;
-    return member.role === 'manager'
-      ? 'Demote to member'
-      : 'Promote to manager';
+  const roleOptions = (member: TeamMember) => {
+    return canManage ? editableTeamRoleOptions(member) : [];
   };
 
   return (
@@ -411,10 +412,15 @@ export function TeamDetailPage({ id }: { id: string }) {
             ) : (
               <MembersTable
                 members={filteredMembers}
-                roleActionLabel={(m) => roleActionLabel(m) ?? undefined}
+                roleOptions={roleOptions}
                 canRemove={canRemoveMember}
                 updatingMemberId={updatingMemberId}
-                onRoleAction={(m) => void handleToggleMemberRole(m)}
+                onRoleChange={(member, role) =>
+                  void handleMemberRoleChange(
+                    member,
+                    role as 'member' | 'executor' | 'manager',
+                  )
+                }
                 onRemove={(m) => setConfirmRemove(m)}
               />
             )}

@@ -3,7 +3,7 @@
  *
  * Covers read-only: teams_list, team_members_list.
  * Covers mutations: teams_create/join/delete, teams_invite_create/list/delete,
- * teams_member_remove.
+ * teams_member_remove, teams_member_update_role.
  */
 
 import type {
@@ -15,6 +15,7 @@ import type {
   ListTeamInvitesResponses,
   ListTeamsResponses,
   RemoveTeamMemberResponses,
+  UpdateTeamMemberRoleResponses,
 } from '@moltnet/api-client';
 import type { Static } from 'typebox';
 import { Type } from 'typebox';
@@ -41,9 +42,32 @@ export const TeamsCreateSchema = Type.Object({
   name: Type.String({
     description: 'Name for the new team.',
   }),
+  founding_members: Type.Optional(
+    Type.Array(
+      Type.Object({
+        subject_id: Type.String(),
+        subject_ns: Type.Union([Type.Literal('Agent'), Type.Literal('Human')]),
+        role: Type.Union([
+          Type.Literal('owner'),
+          Type.Literal('manager'),
+          Type.Literal('executor'),
+          Type.Literal('member'),
+        ]),
+      }),
+      {
+        description:
+          'Initial members. Executor is agent-only; every member must accept before activation.',
+      },
+    ),
+  ),
 });
 export type TeamsCreateInput = {
   name: string;
+  founding_members?: Array<{
+    subject_id: string;
+    subject_ns: 'Agent' | 'Human';
+    role: 'owner' | 'manager' | 'executor' | 'member';
+  }>;
 };
 
 export const TeamsJoinSchema = Type.Object({
@@ -69,9 +93,16 @@ export const TeamsInviteCreateSchema = Type.Object({
     description: 'Team ID (UUID) to create an invite for.',
   }),
   role: Type.Optional(
-    Type.Union([Type.Literal('member'), Type.Literal('manager')], {
-      description: 'Role for invited members. Default: member.',
-    }),
+    Type.Union(
+      [
+        Type.Literal('member'),
+        Type.Literal('executor'),
+        Type.Literal('manager'),
+      ],
+      {
+        description: 'Role for invited members. Default: member.',
+      },
+    ),
   ),
   max_uses: Type.Optional(
     Type.Integer({
@@ -90,7 +121,7 @@ export const TeamsInviteCreateSchema = Type.Object({
 });
 export type TeamsInviteCreateInput = {
   team_id: string;
-  role?: 'member' | 'manager';
+  role?: 'member' | 'executor' | 'manager';
   max_uses?: number;
   expires_in_hours?: number;
 };
@@ -130,6 +161,25 @@ export type TeamsMemberRemoveInput = {
   subject_id: string;
 };
 
+export const TeamsMemberUpdateRoleSchema = Type.Object({
+  team_id: Type.String({
+    description: 'Team ID (UUID) whose member role should be changed.',
+  }),
+  subject_id: Type.String({
+    description: 'Subject ID (UUID) of the existing team member.',
+  }),
+  role: Type.Union(
+    [Type.Literal('member'), Type.Literal('executor'), Type.Literal('manager')],
+    {
+      description:
+        'New role. Executor is agent-only; humans may be member or manager.',
+    },
+  ),
+});
+export type TeamsMemberUpdateRoleInput = Static<
+  typeof TeamsMemberUpdateRoleSchema
+>;
+
 // --- Output schemas ---
 
 export const TeamsListOutputSchema = Type.Object({
@@ -142,6 +192,7 @@ export const TeamsListOutputSchema = Type.Object({
       role: Type.Union([
         Type.Literal('owner'),
         Type.Literal('manager'),
+        Type.Literal('executor'),
         Type.Literal('member'),
       ]),
     }),
@@ -154,6 +205,7 @@ const TeamMemberSchema = Type.Object({
   role: Type.Union([
     Type.Literal('owner'),
     Type.Literal('manager'),
+    Type.Literal('executor'),
     Type.Literal('member'),
   ]),
   displayName: Type.String(),
@@ -185,7 +237,11 @@ export const TeamsCreateOutputSchema = Type.Object({
 
 export const TeamsJoinOutputSchema = Type.Object({
   teamId: Type.String(),
-  role: Type.Union([Type.Literal('manager'), Type.Literal('member')]),
+  role: Type.Union([
+    Type.Literal('manager'),
+    Type.Literal('executor'),
+    Type.Literal('member'),
+  ]),
 });
 
 export const TeamsDeleteOutputSchema = Type.Object({
@@ -195,7 +251,11 @@ export const TeamsDeleteOutputSchema = Type.Object({
 const TeamInviteSchema = Type.Object({
   id: Type.String(),
   code: Type.String(),
-  role: Type.Union([Type.Literal('manager'), Type.Literal('member')]),
+  role: Type.Union([
+    Type.Literal('manager'),
+    Type.Literal('executor'),
+    Type.Literal('member'),
+  ]),
   maxUses: Type.Number(),
   useCount: Type.Number(),
   expiresAt: Type.String(),
@@ -214,6 +274,15 @@ export const TeamsInviteDeleteOutputSchema = Type.Object({
 
 export const TeamsMemberRemoveOutputSchema = Type.Object({
   removed: Type.Boolean(),
+});
+
+export const TeamsMemberUpdateRoleOutputSchema = Type.Object({
+  updated: Type.Boolean(),
+  role: Type.Union([
+    Type.Literal('member'),
+    Type.Literal('executor'),
+    Type.Literal('manager'),
+  ]),
 });
 
 // --- Compile-time drift checks ---
@@ -249,6 +318,10 @@ const _TeamsInviteDeleteOutputMatchesApi: AssertOutputMatchesApi<
 const _TeamsMemberRemoveOutputMatchesApi: AssertOutputMatchesApi<
   Static<typeof TeamsMemberRemoveOutputSchema>,
   ResponseOf<RemoveTeamMemberResponses>
+> = true;
+const _TeamsMemberUpdateRoleOutputMatchesApi: AssertOutputMatchesApi<
+  Static<typeof TeamsMemberUpdateRoleOutputSchema>,
+  ResponseOf<UpdateTeamMemberRoleResponses>
 > = true;
 
 // teams_create has 2 response codes (201 sync, 202 async workflow); the

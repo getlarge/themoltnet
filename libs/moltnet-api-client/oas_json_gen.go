@@ -21480,6 +21480,8 @@ func (s *CreateTeamInviteCreatedRole) Decode(d *jx.Decoder) error {
 	switch CreateTeamInviteCreatedRole(v) {
 	case CreateTeamInviteCreatedRoleManager:
 		*s = CreateTeamInviteCreatedRoleManager
+	case CreateTeamInviteCreatedRoleExecutor:
+		*s = CreateTeamInviteCreatedRoleExecutor
 	case CreateTeamInviteCreatedRoleMember:
 		*s = CreateTeamInviteCreatedRoleMember
 	default:
@@ -21694,6 +21696,8 @@ func (s *CreateTeamInviteReqRole) Decode(d *jx.Decoder) error {
 	switch CreateTeamInviteReqRole(v) {
 	case CreateTeamInviteReqRoleManager:
 		*s = CreateTeamInviteReqRoleManager
+	case CreateTeamInviteReqRoleExecutor:
+		*s = CreateTeamInviteReqRoleExecutor
 	case CreateTeamInviteReqRoleMember:
 		*s = CreateTeamInviteReqRoleMember
 	default:
@@ -22100,6 +22104,8 @@ func (s *CreateTeamReqFoundingMembersItemRole) Decode(d *jx.Decoder) error {
 		*s = CreateTeamReqFoundingMembersItemRoleOwner
 	case CreateTeamReqFoundingMembersItemRoleManager:
 		*s = CreateTeamReqFoundingMembersItemRoleManager
+	case CreateTeamReqFoundingMembersItemRoleExecutor:
+		*s = CreateTeamReqFoundingMembersItemRoleExecutor
 	case CreateTeamReqFoundingMembersItemRoleMember:
 		*s = CreateTeamReqFoundingMembersItemRoleMember
 	default:
@@ -54570,6 +54576,8 @@ func (s *GetTeamOKMembersItemRole) Decode(d *jx.Decoder) error {
 		*s = GetTeamOKMembersItemRoleOwner
 	case GetTeamOKMembersItemRoleManager:
 		*s = GetTeamOKMembersItemRoleManager
+	case GetTeamOKMembersItemRoleExecutor:
+		*s = GetTeamOKMembersItemRoleExecutor
 	case GetTeamOKMembersItemRoleMember:
 		*s = GetTeamOKMembersItemRoleMember
 	default:
@@ -57102,6 +57110,8 @@ func (s *JoinTeamOKRole) Decode(d *jx.Decoder) error {
 	switch JoinTeamOKRole(v) {
 	case JoinTeamOKRoleManager:
 		*s = JoinTeamOKRoleManager
+	case JoinTeamOKRoleExecutor:
+		*s = JoinTeamOKRoleExecutor
 	case JoinTeamOKRoleMember:
 		*s = JoinTeamOKRoleMember
 	default:
@@ -68203,6 +68213,8 @@ func (s *ListTeamInvitesOKItemsItemRole) Decode(d *jx.Decoder) error {
 	switch ListTeamInvitesOKItemsItemRole(v) {
 	case ListTeamInvitesOKItemsItemRoleManager:
 		*s = ListTeamInvitesOKItemsItemRoleManager
+	case ListTeamInvitesOKItemsItemRoleExecutor:
+		*s = ListTeamInvitesOKItemsItemRoleExecutor
 	case ListTeamInvitesOKItemsItemRoleMember:
 		*s = ListTeamInvitesOKItemsItemRoleMember
 	default:
@@ -68718,6 +68730,8 @@ func (s *ListTeamMembersOKItemsItemRole) Decode(d *jx.Decoder) error {
 		*s = ListTeamMembersOKItemsItemRoleOwner
 	case ListTeamMembersOKItemsItemRoleManager:
 		*s = ListTeamMembersOKItemsItemRoleManager
+	case ListTeamMembersOKItemsItemRoleExecutor:
+		*s = ListTeamMembersOKItemsItemRoleExecutor
 	case ListTeamMembersOKItemsItemRoleMember:
 		*s = ListTeamMembersOKItemsItemRoleMember
 	default:
@@ -69220,6 +69234,8 @@ func (s *ListTeamsOKItemsItemRole) Decode(d *jx.Decoder) error {
 		*s = ListTeamsOKItemsItemRoleOwner
 	case ListTeamsOKItemsItemRoleManager:
 		*s = ListTeamsOKItemsItemRoleManager
+	case ListTeamsOKItemsItemRoleExecutor:
+		*s = ListTeamsOKItemsItemRoleExecutor
 	case ListTeamsOKItemsItemRoleMember:
 		*s = ListTeamsOKItemsItemRoleMember
 	default:
@@ -87174,6 +87190,8 @@ func (s *ProvenanceGraphTeamRoleNodeID) Decode(d *jx.Decoder) error {
 		*s = ProvenanceGraphTeamRoleNodeIDOwner
 	case ProvenanceGraphTeamRoleNodeIDManager:
 		*s = ProvenanceGraphTeamRoleNodeIDManager
+	case ProvenanceGraphTeamRoleNodeIDExecutor:
+		*s = ProvenanceGraphTeamRoleNodeIDExecutor
 	case ProvenanceGraphTeamRoleNodeIDMember:
 		*s = ProvenanceGraphTeamRoleNodeIDMember
 	default:
@@ -119529,6 +119547,8 @@ func (s *UpdateTeamMemberRoleOKRole) Decode(d *jx.Decoder) error {
 	switch UpdateTeamMemberRoleOKRole(v) {
 	case UpdateTeamMemberRoleOKRoleManager:
 		*s = UpdateTeamMemberRoleOKRoleManager
+	case UpdateTeamMemberRoleOKRoleExecutor:
+		*s = UpdateTeamMemberRoleOKRoleExecutor
 	case UpdateTeamMemberRoleOKRoleMember:
 		*s = UpdateTeamMemberRoleOKRoleMember
 	default:
@@ -119663,6 +119683,8 @@ func (s *UpdateTeamMemberRoleReqRole) Decode(d *jx.Decoder) error {
 	switch UpdateTeamMemberRoleReqRole(v) {
 	case UpdateTeamMemberRoleReqRoleManager:
 		*s = UpdateTeamMemberRoleReqRoleManager
+	case UpdateTeamMemberRoleReqRoleExecutor:
+		*s = UpdateTeamMemberRoleReqRoleExecutor
 	case UpdateTeamMemberRoleReqRoleMember:
 		*s = UpdateTeamMemberRoleReqRoleMember
 	default:

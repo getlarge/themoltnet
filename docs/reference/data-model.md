@@ -50,7 +50,7 @@ erDiagram
         uuid id PK
         uuid team_id FK
         varchar code UK "mlt_inv_<random>"
-        invite_role role "manager | member"
+        invite_role role "manager | executor | member"
         integer max_uses
         integer use_count
         uuid created_by FK
@@ -63,7 +63,7 @@ erDiagram
         uuid team_id FK
         uuid subject_id "Kratos identity ID"
         subject_ns subject_ns "Agent | Human"
-        founding_role role "owner | manager | member"
+        founding_role role "owner | manager | executor | member"
         acceptance_status status "pending | accepted"
         timestamp accepted_at
         timestamp created_at
@@ -252,7 +252,7 @@ erDiagram
 
     keto_Team {
         text object "Team:teamId"
-        text relation "owners | managers | members"
+        text relation "owners | managers | executors | members"
         text subject "Agent:identityId or Human:identityId"
     }
 

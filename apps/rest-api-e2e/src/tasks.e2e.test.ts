@@ -39,6 +39,7 @@ import {
   revokeTaskGrant,
   taskHeartbeat,
   updateTaskMetadata,
+  updateTeamMemberRole,
 } from '@moltnet/api-client';
 import {
   createRelationshipWriter,
@@ -137,6 +138,138 @@ describe('Tasks API', () => {
   });
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
+
+  describe('executor role claim authority', () => {
+    it('allows team executors, preserves task grants, and keeps a downgraded claimant active', async () => {
+      const { data: team } = await createTeam({
+        client,
+        auth: () => proposer.accessToken,
+        body: { name: `executor-claim-${randomUUID()}` },
+      });
+      const teamId = team!.id;
+      const { data: executorInvite } = await createTeamInvite({
+        client,
+        auth: () => proposer.accessToken,
+        path: { id: teamId },
+        body: { role: 'executor' },
+      });
+      const { data: memberInvite } = await createTeamInvite({
+        client,
+        auth: () => proposer.accessToken,
+        path: { id: teamId },
+        body: { role: 'member' },
+      });
+      await joinTeam({
+        client,
+        auth: () => claimer.accessToken,
+        body: { code: executorInvite!.code },
+      });
+      await joinTeam({
+        client,
+        auth: () => taskWriter.accessToken,
+        body: { code: memberInvite!.code },
+      });
+      const { data: diary } = await createDiary({
+        client,
+        auth: () => proposer.accessToken,
+        headers: { 'x-moltnet-team-id': teamId },
+        body: { name: 'executor claim diary', visibility: 'moltnet' },
+      });
+      const createPendingTask = async (prompt: string) => {
+        const created = await createTask({
+          client,
+          auth: () => proposer.accessToken,
+          headers: { 'x-moltnet-team-id': teamId },
+          body: {
+            taskType: 'curate_pack',
+            diaryId: diary!.id,
+            input: { diaryId: diary!.id, taskPrompt: prompt },
+          },
+        });
+        return created.data!;
+      };
+
+      const executorTask = await createPendingTask('executor role claim');
+      const executorClaim = await claimTask({
+        client,
+        auth: () => claimer.accessToken,
+        headers: { 'x-moltnet-team-id': teamId },
+        path: { id: executorTask.id },
+        body: { leaseTtlSec: 30 },
+      });
+      expect(executorClaim.error).toBeUndefined();
+
+      const grantTask = await createPendingTask('exceptional task grant');
+      const denied = await claimTask({
+        client,
+        auth: () => taskWriter.accessToken,
+        headers: { 'x-moltnet-team-id': teamId },
+        path: { id: grantTask.id },
+        body: { leaseTtlSec: 30 },
+      });
+      expect(denied.response.status).toBe(403);
+      await createTaskGrant({
+        client,
+        auth: () => proposer.accessToken,
+        headers: { 'x-moltnet-team-id': teamId },
+        path: { id: grantTask.id },
+        body: {
+          subjectId: taskWriter.identityId,
+          subjectNs: 'Agent',
+          role: 'writer',
+        },
+      });
+      const granted = await claimTask({
+        client,
+        auth: () => taskWriter.accessToken,
+        headers: { 'x-moltnet-team-id': teamId },
+        path: { id: grantTask.id },
+        body: { leaseTtlSec: 30 },
+      });
+      expect(granted.error).toBeUndefined();
+
+      await updateTeamMemberRole({
+        client,
+        auth: () => proposer.accessToken,
+        path: { id: teamId, subjectId: claimer.identityId },
+        body: { role: 'manager' },
+      });
+      const continuityTask = await createPendingTask('claimant continuity');
+      const claimed = await claimTask({
+        client,
+        auth: () => claimer.accessToken,
+        headers: { 'x-moltnet-team-id': teamId },
+        path: { id: continuityTask.id },
+        body: { leaseTtlSec: 30 },
+      });
+      expect(claimed.error).toBeUndefined();
+      await updateTeamMemberRole({
+        client,
+        auth: () => proposer.accessToken,
+        path: { id: teamId, subjectId: claimer.identityId },
+        body: { role: 'member' },
+      });
+      const postDowngradeTask = await createPendingTask(
+        'deny new claim after executor downgrade',
+      );
+      const postDowngradeClaim = await claimTask({
+        client,
+        auth: () => claimer.accessToken,
+        headers: { 'x-moltnet-team-id': teamId },
+        path: { id: postDowngradeTask.id },
+        body: { leaseTtlSec: 30 },
+      });
+      expect(postDowngradeClaim.response.status).toBe(403);
+      const heartbeat = await taskHeartbeat({
+        client,
+        auth: () => claimer.accessToken,
+        headers: { 'x-moltnet-team-id': teamId },
+        path: { id: continuityTask.id, n: claimed.data!.attempt.attemptN },
+        body: { leaseTtlSec: 30 },
+      });
+      expect(heartbeat.error).toBeUndefined();
+    });
+  });
 
   async function grantClaimerWriter(taskId: string) {
     return grantTaskWriter(taskId, claimer);

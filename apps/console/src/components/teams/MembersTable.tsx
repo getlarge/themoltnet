@@ -3,6 +3,7 @@ import {
   Button,
   Card,
   KeyFingerprint,
+  Select,
   Text,
   useTheme,
 } from '@themoltnet/design-system';
@@ -20,11 +21,32 @@ export interface MemberTableEntry {
 
 interface MembersTableProps<T extends MemberTableEntry> {
   members: T[];
-  roleActionLabel: (m: T) => string | undefined;
+  roleOptions: (m: T) => readonly TeamRoleOption[];
   canRemove: (m: T) => boolean;
   updatingMemberId: string | null;
-  onRoleAction: (m: T) => void;
+  onRoleChange: (m: T, role: string) => void;
   onRemove: (m: T) => void;
+}
+
+export interface TeamRoleOption {
+  value: string;
+  label: string;
+}
+
+export function editableTeamRoleOptions(
+  member: Pick<MemberTableEntry, 'role' | 'subjectType'>,
+): readonly TeamRoleOption[] {
+  if (member.role === 'owner') return [];
+  return member.subjectType === 'agent'
+    ? [
+        { value: 'member', label: 'Member' },
+        { value: 'executor', label: 'Executor' },
+        { value: 'manager', label: 'Manager' },
+      ]
+    : [
+        { value: 'member', label: 'Member' },
+        { value: 'manager', label: 'Manager' },
+      ];
 }
 
 /**
@@ -34,10 +56,10 @@ interface MembersTableProps<T extends MemberTableEntry> {
  */
 export function MembersTable<T extends MemberTableEntry>({
   members,
-  roleActionLabel,
+  roleOptions,
   canRemove,
   updatingMemberId,
-  onRoleAction,
+  onRoleChange,
   onRemove,
 }: MembersTableProps<T>) {
   const theme = useTheme();
@@ -96,10 +118,10 @@ export function MembersTable<T extends MemberTableEntry>({
                 key={m.subjectId}
                 member={m}
                 cellPad={cellPad}
-                roleActionLabel={roleActionLabel(m)}
+                roleOptions={roleOptions(m)}
                 roleActionPending={updatingMemberId === m.subjectId}
                 canRemove={canRemove(m)}
-                onRoleAction={() => onRoleAction(m)}
+                onRoleChange={(role) => onRoleChange(m, role)}
                 onRemove={() => onRemove(m)}
               />
             ))}
@@ -113,18 +135,18 @@ export function MembersTable<T extends MemberTableEntry>({
 function MemberTableRow({
   member,
   cellPad,
-  roleActionLabel,
+  roleOptions,
   roleActionPending,
   canRemove,
-  onRoleAction,
+  onRoleChange,
   onRemove,
 }: {
   member: MemberTableEntry;
   cellPad: string;
-  roleActionLabel: string | undefined;
+  roleOptions: readonly TeamRoleOption[];
   roleActionPending: boolean;
   canRemove: boolean;
-  onRoleAction: () => void;
+  onRoleChange: (role: string) => void;
   onRemove: () => void;
 }) {
   const theme = useTheme();
@@ -154,18 +176,28 @@ function MemberTableRow({
       <td style={td}>
         <Badge variant="default">{member.subjectType}</Badge>
       </td>
-      <td style={td}>{member.role && <RoleBadge role={member.role} />}</td>
-      <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap' }}>
-        {roleActionLabel && (
-          <Button
-            variant="secondary"
+      <td style={td}>
+        {member.role && roleOptions.length > 0 ? (
+          <Select
+            aria-label={`Role for ${member.displayName}`}
+            aria-busy={roleActionPending || undefined}
             size="sm"
-            onClick={onRoleAction}
+            value={member.role}
             disabled={roleActionPending}
+            onChange={(event) => onRoleChange(event.target.value)}
+            style={{ minWidth: '8rem' }}
           >
-            {roleActionPending ? 'Updating...' : roleActionLabel}
-          </Button>
+            {roleOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+        ) : (
+          member.role && <RoleBadge role={member.role} />
         )}
+      </td>
+      <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap' }}>
         {canRemove && (
           <Button
             variant="ghost"
