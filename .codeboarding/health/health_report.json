@@ -1,0 +1,3719 @@
+{
+  "repository_name": ".codeboarding-target",
+  "timestamp": "2026-08-22T15:39:27.042889+00:00",
+  "overall_score": 0.9826302729528535,
+  "check_summaries": [
+    {
+      "check_name": "function_size",
+      "description": "Checks that functions/methods do not exceed line count thresholds",
+      "language": "go",
+      "check_type": "standard",
+      "total_entities_checked": 925,
+      "findings_count": 2,
+      "warning_count": 2,
+      "score": 0.9978378378378379,
+      "finding_groups": [
+        {
+          "severity": "warning",
+          "threshold": 150,
+          "description": "Functions exceeding 150.0 lines",
+          "entities": [
+            {
+              "entity_name": "apps.moltnet-cli.config_init_from_env.runConfigInitFromEnvCmdWithRegistry",
+              "file_path": "apps/moltnet-cli/config_init_from_env.go",
+              "line_start": 69,
+              "line_end": 246,
+              "metric_value": 177
+            },
+            {
+              "entity_name": "apps.moltnet-cli.eval_dspy.runDSPYEvalVariant",
+              "file_path": "apps/moltnet-cli/eval_dspy.go",
+              "line_start": 240,
+              "line_end": 390,
+              "metric_value": 150
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "check_name": "fan_out",
+      "description": "Checks efferent coupling: how many other functions each function calls",
+      "language": "go",
+      "check_type": "standard",
+      "total_entities_checked": 957,
+      "findings_count": 0,
+      "warning_count": 0,
+      "score": 1.0,
+      "finding_groups": []
+    },
+    {
+      "check_name": "fan_in",
+      "description": "Checks afferent coupling: how many other functions call each function",
+      "language": "go",
+      "check_type": "standard",
+      "total_entities_checked": 957,
+      "findings_count": 0,
+      "warning_count": 0,
+      "score": 1.0,
+      "finding_groups": []
+    },
+    {
+      "check_name": "god_class",
+      "description": "Detects classes with too many methods, too much code, or too many outgoing dependencies",
+      "language": "go",
+      "check_type": "standard",
+      "total_entities_checked": 0,
+      "findings_count": 0,
+      "warning_count": 0,
+      "score": 1.0,
+      "finding_groups": []
+    },
+    {
+      "check_name": "inheritance_depth",
+      "description": "Checks that class inheritance hierarchies do not exceed depth thresholds",
+      "language": "go",
+      "check_type": "standard",
+      "total_entities_checked": 173,
+      "findings_count": 0,
+      "warning_count": 0,
+      "score": 1.0,
+      "finding_groups": []
+    },
+    {
+      "check_name": "unused_code_diagnostics",
+      "description": "Detects unused imports, variables, functions, and dead code via LSP diagnostics",
+      "language": "go",
+      "check_type": "standard",
+      "total_entities_checked": 0,
+      "findings_count": 0,
+      "warning_count": 0,
+      "score": 1.0,
+      "finding_groups": []
+    },
+    {
+      "check_name": "function_size",
+      "description": "Checks that functions/methods do not exceed line count thresholds",
+      "language": "javascript",
+      "check_type": "standard",
+      "total_entities_checked": 107,
+      "findings_count": 1,
+      "warning_count": 1,
+      "score": 0.9906542056074766,
+      "finding_groups": [
+        {
+          "severity": "warning",
+          "threshold": 150,
+          "description": "Functions exceeding 150.0 lines",
+          "entities": [
+            {
+              "entity_name": "infra.ory.backup.main",
+              "file_path": "infra/ory/backup.mjs",
+              "line_start": 454,
+              "line_end": 652,
+              "metric_value": 198
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "check_name": "fan_out",
+      "description": "Checks efferent coupling: how many other functions each function calls",
+      "language": "javascript",
+      "check_type": "standard",
+      "total_entities_checked": 153,
+      "findings_count": 1,
+      "warning_count": 1,
+      "score": 0.9934640522875817,
+      "finding_groups": [
+        {
+          "severity": "warning",
+          "threshold": 10,
+          "description": "Functions calling more than 10.0 other functions",
+          "entities": [
+            {
+              "entity_name": "infra.ory.backup.main",
+              "file_path": "infra/ory/backup.mjs",
+              "line_start": 454,
+              "line_end": 652,
+              "metric_value": 13
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "check_name": "fan_in",
+      "description": "Checks afferent coupling: how many other functions call each function",
+      "language": "javascript",
+      "check_type": "standard",
+      "total_entities_checked": 153,
+      "findings_count": 0,
+      "warning_count": 0,
+      "score": 1.0,
+      "finding_groups": []
+    },
+    {
+      "check_name": "god_class",
+      "description": "Detects classes with too many methods, too much code, or too many outgoing dependencies",
+      "language": "javascript",
+      "check_type": "standard",
+      "total_entities_checked": 1,
+      "findings_count": 0,
+      "warning_count": 0,
+      "score": 1.0,
+      "finding_groups": []
+    },
+    {
+      "check_name": "inheritance_depth",
+      "description": "Checks that class inheritance hierarchies do not exceed depth thresholds",
+      "language": "javascript",
+      "check_type": "standard",
+      "total_entities_checked": 33,
+      "findings_count": 0,
+      "warning_count": 0,
+      "score": 1.0,
+      "finding_groups": []
+    },
+    {
+      "check_name": "unused_code_diagnostics",
+      "description": "Detects unused imports, variables, functions, and dead code via LSP diagnostics",
+      "language": "javascript",
+      "check_type": "standard",
+      "total_entities_checked": 0,
+      "findings_count": 0,
+      "warning_count": 0,
+      "score": 1.0,
+      "finding_groups": []
+    },
+    {
+      "check_name": "function_size",
+      "description": "Checks that functions/methods do not exceed line count thresholds",
+      "language": "typescript",
+      "check_type": "standard",
+      "total_entities_checked": 5971,
+      "findings_count": 128,
+      "warning_count": 128,
+      "score": 0.9785630547646961,
+      "finding_groups": [
+        {
+          "severity": "warning",
+          "threshold": 150,
+          "description": "Functions exceeding 150.0 lines",
+          "entities": [
+            {
+              "entity_name": "apps.rest-api.src.routes.tasks.taskRoutes",
+              "file_path": "apps/rest-api/src/routes/tasks.ts",
+              "line_start": 285,
+              "line_end": 1514,
+              "metric_value": 1229
+            },
+            {
+              "entity_name": "apps.rest-api.src.workflows.maintenance.initMaintenanceWorkflows",
+              "file_path": "apps/rest-api/src/workflows/maintenance.ts",
+              "line_start": 107,
+              "line_end": 1326,
+              "metric_value": 1219
+            },
+            {
+              "entity_name": "libs.pi-runtime.src.moltnet.tools.createMoltNetTools",
+              "file_path": "libs/pi-runtime/src/moltnet/tools.ts",
+              "line_start": 373,
+              "line_end": 1549,
+              "metric_value": 1176
+            },
+            {
+              "entity_name": "libs.pi-runtime.src.runtime.execute-pi-task.executePiTask",
+              "file_path": "libs/pi-runtime/src/runtime/execute-pi-task.ts",
+              "line_start": 603,
+              "line_end": 1746,
+              "metric_value": 1143
+            },
+            {
+              "entity_name": "libs.database.src.repositories.task.repository.createTaskRepository",
+              "file_path": "libs/database/src/repositories/task.repository.ts",
+              "line_start": 209,
+              "line_end": 1259,
+              "metric_value": 1050
+            },
+            {
+              "entity_name": "libs.task-service.src.task.service.createTaskService",
+              "file_path": "libs/task-service/src/task.service.ts",
+              "line_start": 51,
+              "line_end": 1098,
+              "metric_value": 1047
+            },
+            {
+              "entity_name": "apps.issue-lifecycle.src.workflow.runGithubIssueLifecycle",
+              "file_path": "apps/issue-lifecycle/src/workflow.ts",
+              "line_start": 51,
+              "line_end": 1010,
+              "metric_value": 959
+            },
+            {
+              "entity_name": "apps.rest-api.src.routes.teams.teamRoutes",
+              "file_path": "apps/rest-api/src/routes/teams.ts",
+              "line_start": 249,
+              "line_end": 1126,
+              "metric_value": 877
+            },
+            {
+              "entity_name": "apps.rest-api.src.routes.packs.packRoutes",
+              "file_path": "apps/rest-api/src/routes/packs.ts",
+              "line_start": 329,
+              "line_end": 1174,
+              "metric_value": 845
+            },
+            {
+              "entity_name": "apps.rest-api.src.routes.diary-entries.diaryEntryRoutes",
+              "file_path": "apps/rest-api/src/routes/diary-entries.ts",
+              "line_start": 93,
+              "line_end": 926,
+              "metric_value": 833
+            },
+            {
+              "entity_name": "apps.rest-api.src.routes.diary.diaryRoutes",
+              "file_path": "apps/rest-api/src/routes/diary.ts",
+              "line_start": 82,
+              "line_end": 890,
+              "metric_value": 808
+            },
+            {
+              "entity_name": "apps.agent-daemon.src.cli.poll-shared.runPolling",
+              "file_path": "apps/agent-daemon/src/cli/poll-shared.ts",
+              "line_start": 105,
+              "line_end": 896,
+              "metric_value": 791
+            },
+            {
+              "entity_name": "libs.database.src.repositories.diary-entry.repository.createDiaryEntryRepository",
+              "file_path": "libs/database/src/repositories/diary-entry.repository.ts",
+              "line_start": 238,
+              "line_end": 929,
+              "metric_value": 691
+            },
+            {
+              "entity_name": "apps.rest-api.src.bootstrap.bootstrap",
+              "file_path": "apps/rest-api/src/bootstrap.ts",
+              "line_start": 167,
+              "line_end": 846,
+              "metric_value": 679
+            },
+            {
+              "entity_name": "libs.auth.src.relationship-writer.createRelationshipWriter",
+              "file_path": "libs/auth/src/relationship-writer.ts",
+              "line_start": 164,
+              "line_end": 836,
+              "metric_value": 672
+            },
+            {
+              "entity_name": "apps.rest-api.src.routes.public.publicRoutes",
+              "file_path": "apps/rest-api/src/routes/public.ts",
+              "line_start": 169,
+              "line_end": 809,
+              "metric_value": 640
+            },
+            {
+              "entity_name": "libs.signing-service.src.signing-request.service.createSigningRequestService",
+              "file_path": "libs/signing-service/src/signing-request.service.ts",
+              "line_start": 71,
+              "line_end": 644,
+              "metric_value": 573
+            },
+            {
+              "entity_name": "libs.diary-service.src.diary-service.createDiaryService",
+              "file_path": "libs/diary-service/src/diary-service.ts",
+              "line_start": 145,
+              "line_end": 715,
+              "metric_value": 570
+            },
+            {
+              "entity_name": "apps.agent-daemon.src.cli.once.runOnce",
+              "file_path": "apps/agent-daemon/src/cli/once.ts",
+              "line_start": 75,
+              "line_end": 636,
+              "metric_value": 561
+            },
+            {
+              "entity_name": "libs.auth.src.permission-checker.createPermissionChecker",
+              "file_path": "libs/auth/src/permission-checker.ts",
+              "line_start": 289,
+              "line_end": 848,
+              "metric_value": 559
+            },
+            {
+              "entity_name": "apps.rest-api.src.routes.rendered-packs.renderedPackRoutes",
+              "file_path": "apps/rest-api/src/routes/rendered-packs.ts",
+              "line_start": 42,
+              "line_end": 556,
+              "metric_value": 514
+            },
+            {
+              "entity_name": "libs.auth.src.token-validator.createTokenValidator",
+              "file_path": "libs/auth/src/token-validator.ts",
+              "line_start": 442,
+              "line_end": 946,
+              "metric_value": 504
+            },
+            {
+              "entity_name": "libs.task-service.src.task-create.service.createTaskCreateService",
+              "file_path": "libs/task-service/src/task-create.service.ts",
+              "line_start": 57,
+              "line_end": 551,
+              "metric_value": 494
+            },
+            {
+              "entity_name": "libs.task-workflows.src.task-workflows.initTaskWorkflows",
+              "file_path": "libs/task-workflows/src/task-workflows.ts",
+              "line_start": 246,
+              "line_end": 721,
+              "metric_value": 475
+            },
+            {
+              "entity_name": "libs.sandbox-gondolin.src.vm-manager.resumeVm",
+              "file_path": "libs/sandbox-gondolin/src/vm-manager.ts",
+              "line_start": 954,
+              "line_end": 1417,
+              "metric_value": 463
+            },
+            {
+              "entity_name": "apps.rest-api.src.workflows.registration-workflow.initRegistrationWorkflow",
+              "file_path": "apps/rest-api/src/workflows/registration-workflow.ts",
+              "line_start": 226,
+              "line_end": 687,
+              "metric_value": 461
+            },
+            {
+              "entity_name": "apps.rest-api.src.routes.hooks.hookRoutes",
+              "file_path": "apps/rest-api/src/routes/hooks.ts",
+              "line_start": 130,
+              "line_end": 586,
+              "metric_value": 456
+            },
+            {
+              "entity_name": "libs.task-service.src.task-create.service.createTaskCreateService.create",
+              "file_path": "libs/task-service/src/task-create.service.ts",
+              "line_start": 95,
+              "line_end": 549,
+              "metric_value": 454
+            },
+            {
+              "entity_name": "libs.pi-extension.src.index.moltnetExtension",
+              "file_path": "libs/pi-extension/src/index.ts",
+              "line_start": 75,
+              "line_end": 505,
+              "metric_value": 430
+            },
+            {
+              "entity_name": "tools.src.talos-capability-probe.runTalosCapabilityProbe",
+              "file_path": "tools/src/talos-capability-probe.ts",
+              "line_start": 96,
+              "line_end": 525,
+              "metric_value": 429
+            },
+            {
+              "entity_name": "apps.rest-api.src.routes.groups.groupRoutes",
+              "file_path": "apps/rest-api/src/routes/groups.ts",
+              "line_start": 35,
+              "line_end": 462,
+              "metric_value": 427
+            },
+            {
+              "entity_name": "libs.task-workflows.src.task-workflows.initTaskWorkflows.startAttemptWorkflow.DBOS.registerWorkflow() callback",
+              "file_path": "libs/task-workflows/src/task-workflows.ts",
+              "line_start": 295,
+              "line_end": 717,
+              "metric_value": 422
+            },
+            {
+              "entity_name": "apps.rest-api.src.routes.signing-requests.signingRequestRoutes",
+              "file_path": "apps/rest-api/src/routes/signing-requests.ts",
+              "line_start": 72,
+              "line_end": 485,
+              "metric_value": 413
+            },
+            {
+              "entity_name": "libs.database.src.repositories.signing-request.repository.createSigningRequestRepository",
+              "file_path": "libs/database/src/repositories/signing-request.repository.ts",
+              "line_start": 35,
+              "line_end": 436,
+              "metric_value": 401
+            },
+            {
+              "entity_name": "libs.credential-broker.src.lib.broker.createCredentialBroker",
+              "file_path": "libs/credential-broker/src/lib/broker.ts",
+              "line_start": 369,
+              "line_end": 762,
+              "metric_value": 393
+            },
+            {
+              "entity_name": "apps.rest-api.src.routes.task-artifacts.taskArtifactRoutes",
+              "file_path": "apps/rest-api/src/routes/task-artifacts.ts",
+              "line_start": 76,
+              "line_end": 468,
+              "metric_value": 392
+            },
+            {
+              "entity_name": "libs.sdk.src.namespaces.tasks.createTasksNamespace",
+              "file_path": "libs/sdk/src/namespaces/tasks.ts",
+              "line_start": 64,
+              "line_end": 450,
+              "metric_value": 386
+            },
+            {
+              "entity_name": "libs.runtime-policy-service.src.runtime-policy-service.createRuntimePolicyService",
+              "file_path": "libs/runtime-policy-service/src/runtime-policy-service.ts",
+              "line_start": 224,
+              "line_end": 606,
+              "metric_value": 382
+            },
+            {
+              "entity_name": "apps.multi-lens-review.src.workflow.runMultiLensReview",
+              "file_path": "apps/multi-lens-review/src/workflow.ts",
+              "line_start": 1435,
+              "line_end": 1817,
+              "metric_value": 382
+            },
+            {
+              "entity_name": "apps.console-e2e.src.task-create.e2e.test.describe.serial('Create task from console') callback",
+              "file_path": "apps/console-e2e/src/task-create.e2e.ts",
+              "line_start": 21,
+              "line_end": 400,
+              "metric_value": 379
+            },
+            {
+              "entity_name": "libs.database.src.repositories.context-pack.repository.createContextPackRepository",
+              "file_path": "libs/database/src/repositories/context-pack.repository.ts",
+              "line_start": 181,
+              "line_end": 555,
+              "metric_value": 374
+            },
+            {
+              "entity_name": "libs.agent-key-service.src.agent-key-service.createAgentKeyService",
+              "file_path": "libs/agent-key-service/src/agent-key-service.ts",
+              "line_start": 791,
+              "line_end": 1144,
+              "metric_value": 353
+            },
+            {
+              "entity_name": "apps.rest-api.src.routes.runtime-profiles.runtimeProfileRoutes",
+              "file_path": "apps/rest-api/src/routes/runtime-profiles.ts",
+              "line_start": 233,
+              "line_end": 581,
+              "metric_value": 348
+            },
+            {
+              "entity_name": "apps.console.src.pages.TasksPage.TasksPage",
+              "file_path": "apps/console/src/pages/TasksPage.tsx",
+              "line_start": 62,
+              "line_end": 397,
+              "metric_value": 335
+            },
+            {
+              "entity_name": "apps.rest-api.src.routes.runtime-policies.runtimePolicyRoutes",
+              "file_path": "apps/rest-api/src/routes/runtime-policies.ts",
+              "line_start": 56,
+              "line_end": 386,
+              "metric_value": 330
+            },
+            {
+              "entity_name": "libs.database.src.repositories.entry-relation.repository.createEntryRelationRepository",
+              "file_path": "libs/database/src/repositories/entry-relation.repository.ts",
+              "line_start": 22,
+              "line_end": 349,
+              "metric_value": 327
+            },
+            {
+              "entity_name": "apps.moltnet-signer.src.approval-page.page",
+              "file_path": "apps/moltnet-signer/src/approval-page.ts",
+              "line_start": 119,
+              "line_end": 421,
+              "metric_value": 302
+            },
+            {
+              "entity_name": "apps.rest-api.src.routes.entry-relations.entryRelationRoutes",
+              "file_path": "apps/rest-api/src/routes/entry-relations.ts",
+              "line_start": 94,
+              "line_end": 394,
+              "metric_value": 300
+            },
+            {
+              "entity_name": "libs.signing-service.src.signing-credential.service.createSigningCredentialService",
+              "file_path": "libs/signing-service/src/signing-credential.service.ts",
+              "line_start": 26,
+              "line_end": 323,
+              "metric_value": 297
+            },
+            {
+              "entity_name": "apps.rest-api.src.app.registerApiRoutes",
+              "file_path": "apps/rest-api/src/app.ts",
+              "line_start": 235,
+              "line_end": 530,
+              "metric_value": 295
+            },
+            {
+              "entity_name": "apps.rest-api.src.routes.runtime-models.runtimeModelRoutes",
+              "file_path": "apps/rest-api/src/routes/runtime-models.ts",
+              "line_start": 55,
+              "line_end": 349,
+              "metric_value": 294
+            },
+            {
+              "entity_name": "apps.moltnet-signer.src.server.createSignerServer",
+              "file_path": "apps/moltnet-signer/src/server.ts",
+              "line_start": 49,
+              "line_end": 339,
+              "metric_value": 290
+            },
+            {
+              "entity_name": "apps.console.src.signing.useSigningController.useSigningController",
+              "file_path": "apps/console/src/signing/useSigningController.ts",
+              "line_start": 62,
+              "line_end": 346,
+              "metric_value": 284
+            },
+            {
+              "entity_name": "apps.console.src.pages.TeamDetailPage.TeamDetailPage",
+              "file_path": "apps/console/src/pages/TeamDetailPage.tsx",
+              "line_start": 50,
+              "line_end": 326,
+              "metric_value": 276
+            },
+            {
+              "entity_name": "libs.agent-eval.src.check-gates.checkGates",
+              "file_path": "libs/agent-eval/src/check-gates.ts",
+              "line_start": 193,
+              "line_end": 469,
+              "metric_value": 276
+            },
+            {
+              "entity_name": "libs.database.src.repositories.signing-credential.repository.createSigningCredentialRepository",
+              "file_path": "libs/database/src/repositories/signing-credential.repository.ts",
+              "line_start": 43,
+              "line_end": 317,
+              "metric_value": 274
+            },
+            {
+              "entity_name": "apps.console-e2e.src.runtime-security.e2e.test.describe.serial('Runtime security console') callback",
+              "file_path": "apps/console-e2e/src/runtime-security.e2e.ts",
+              "line_start": 19,
+              "line_end": 292,
+              "metric_value": 273
+            },
+            {
+              "entity_name": "apps.console-e2e.src.task-continue.e2e.test.describe.serial('Continue task from console') callback",
+              "file_path": "apps/console-e2e/src/task-continue.e2e.ts",
+              "line_start": 43,
+              "line_end": 312,
+              "metric_value": 269
+            },
+            {
+              "entity_name": "apps.console.src.pages.AgentKeysPage.AgentKeysPage",
+              "file_path": "apps/console/src/pages/AgentKeysPage.tsx",
+              "line_start": 89,
+              "line_end": 357,
+              "metric_value": 268
+            },
+            {
+              "entity_name": "libs.provenance-ui.src.ProvenanceExplorer.ProvenanceExplorer",
+              "file_path": "libs/provenance-ui/src/ProvenanceExplorer.tsx",
+              "line_start": 54,
+              "line_end": 319,
+              "metric_value": 265
+            },
+            {
+              "entity_name": "apps.rest-api.src.routes.signing-credentials.signingCredentialRoutes",
+              "file_path": "apps/rest-api/src/routes/signing-credentials.ts",
+              "line_start": 115,
+              "line_end": 376,
+              "metric_value": 261
+            },
+            {
+              "entity_name": "libs.auth.src.relationship-reader.createRelationshipReader",
+              "file_path": "libs/auth/src/relationship-reader.ts",
+              "line_start": 183,
+              "line_end": 438,
+              "metric_value": 255
+            },
+            {
+              "entity_name": "libs.task-service.src.task.service.createTaskService.claim",
+              "file_path": "libs/task-service/src/task.service.ts",
+              "line_start": 154,
+              "line_end": 405,
+              "metric_value": 251
+            },
+            {
+              "entity_name": "apps.console.src.overview.team-pilot.buildTeamPilotBriefing",
+              "file_path": "apps/console/src/overview/team-pilot.ts",
+              "line_start": 122,
+              "line_end": 370,
+              "metric_value": 248
+            },
+            {
+              "entity_name": "apps.agent-daemon.src.lib.execution-plan-cache.maybeAttachWarmSlotContext",
+              "file_path": "apps/agent-daemon/src/lib/execution-plan-cache.ts",
+              "line_start": 312,
+              "line_end": 558,
+              "metric_value": 246
+            },
+            {
+              "entity_name": "libs.pi-runtime.src.runtime.subagent-tool.createSubagentTool",
+              "file_path": "libs/pi-runtime/src/runtime/subagent-tool.ts",
+              "line_start": 217,
+              "line_end": 458,
+              "metric_value": 241
+            },
+            {
+              "entity_name": "libs.credential-broker.src.lib.broker.createCredentialBroker.issueConnectorCredential",
+              "file_path": "libs/credential-broker/src/lib/broker.ts",
+              "line_start": 521,
+              "line_end": 760,
+              "metric_value": 239
+            },
+            {
+              "entity_name": "libs.task-artifact-service.src.task-artifacts.createTaskArtifactService",
+              "file_path": "libs/task-artifact-service/src/task-artifacts.ts",
+              "line_start": 118,
+              "line_end": 353,
+              "metric_value": 235
+            },
+            {
+              "entity_name": "libs.task-workflows.src.task-deletion-workflow.registerTaskDeletionWorkflow",
+              "file_path": "libs/task-workflows/src/task-deletion-workflow.ts",
+              "line_start": 98,
+              "line_end": 326,
+              "metric_value": 228
+            },
+            {
+              "entity_name": "libs.pi-runtime.src.runtime.subagent-tool.createSubagentTool.tool.execute",
+              "file_path": "libs/pi-runtime/src/runtime/subagent-tool.ts",
+              "line_start": 229,
+              "line_end": 451,
+              "metric_value": 222
+            },
+            {
+              "entity_name": "apps.agent-daemon.src.cli.poll-shared.runPolling.executeTask",
+              "file_path": "apps/agent-daemon/src/cli/poll-shared.ts",
+              "line_start": 659,
+              "line_end": 881,
+              "metric_value": 222
+            },
+            {
+              "entity_name": "libs.task-service.src.task-authority-provider.createMoltNetTaskAuthorityProvider",
+              "file_path": "libs/task-service/src/task-authority-provider.ts",
+              "line_start": 50,
+              "line_end": 269,
+              "metric_value": 219
+            },
+            {
+              "entity_name": "libs.database.src.repositories.runtime-slot.repository.createRuntimeSlotRepository",
+              "file_path": "libs/database/src/repositories/runtime-slot.repository.ts",
+              "line_start": 60,
+              "line_end": 275,
+              "metric_value": 215
+            },
+            {
+              "entity_name": "libs.database.src.repositories.rendered-pack.repository.createRenderedPackRepository",
+              "file_path": "libs/database/src/repositories/rendered-pack.repository.ts",
+              "line_start": 78,
+              "line_end": 292,
+              "metric_value": 214
+            },
+            {
+              "entity_name": "packages.legreffier-cli.src.PortApp.PortApp",
+              "file_path": "packages/legreffier-cli/src/PortApp.tsx",
+              "line_start": 77,
+              "line_end": 291,
+              "metric_value": 214
+            },
+            {
+              "entity_name": "libs.database.src.repositories.team.repository.createTeamRepository",
+              "file_path": "libs/database/src/repositories/team.repository.ts",
+              "line_start": 85,
+              "line_end": 297,
+              "metric_value": 212
+            },
+            {
+              "entity_name": "apps.console.src.pages.ProfilesPage.ProfilesPage",
+              "file_path": "apps/console/src/pages/ProfilesPage.tsx",
+              "line_start": 183,
+              "line_end": 394,
+              "metric_value": 211
+            },
+            {
+              "entity_name": "apps.rest-api.src.workflows.human-onboarding-workflow.initHumanOnboardingWorkflow",
+              "file_path": "apps/rest-api/src/workflows/human-onboarding-workflow.ts",
+              "line_start": 95,
+              "line_end": 304,
+              "metric_value": 209
+            },
+            {
+              "entity_name": "apps.multi-lens-review.src.config.parseCliConfig",
+              "file_path": "apps/multi-lens-review/src/config.ts",
+              "line_start": 133,
+              "line_end": 341,
+              "metric_value": 208
+            },
+            {
+              "entity_name": "libs.task-service.src.executor-attestation.verifyExecutorForPhase",
+              "file_path": "libs/task-service/src/executor-attestation.ts",
+              "line_start": 232,
+              "line_end": 440,
+              "metric_value": 208
+            },
+            {
+              "entity_name": "libs.task-service.src.task-conditions.createTaskConditionHelpers",
+              "file_path": "libs/task-service/src/task-conditions.ts",
+              "line_start": 30,
+              "line_end": 237,
+              "metric_value": 207
+            },
+            {
+              "entity_name": "apps.mcp-server.src.app.buildApp",
+              "file_path": "apps/mcp-server/src/app.ts",
+              "line_start": 157,
+              "line_end": 361,
+              "metric_value": 204
+            },
+            {
+              "entity_name": "apps.rest-api.src.routes.agent-keys.agentKeyRoutes",
+              "file_path": "apps/rest-api/src/routes/agent-keys.ts",
+              "line_start": 105,
+              "line_end": 308,
+              "metric_value": 203
+            },
+            {
+              "entity_name": "apps.rest-api.src.routes.registration.registrationRoutes",
+              "file_path": "apps/rest-api/src/routes/registration.ts",
+              "line_start": 81,
+              "line_end": 283,
+              "metric_value": 202
+            },
+            {
+              "entity_name": "libs.database.src.repositories.task-artifact.repository.createTaskArtifactRepository",
+              "file_path": "libs/database/src/repositories/task-artifact.repository.ts",
+              "line_start": 72,
+              "line_end": 272,
+              "metric_value": 200
+            },
+            {
+              "entity_name": "apps.rest-api.src.routes.recovery.recoveryRoutes",
+              "file_path": "apps/rest-api/src/routes/recovery.ts",
+              "line_start": 40,
+              "line_end": 232,
+              "metric_value": 192
+            },
+            {
+              "entity_name": "libs.signing-workflows.src.preview-sign-driver.createPreviewSignSigningMethodDriver",
+              "file_path": "libs/signing-workflows/src/preview-sign-driver.ts",
+              "line_start": 533,
+              "line_end": 725,
+              "metric_value": 192
+            },
+            {
+              "entity_name": "libs.agent-runtime.src.prompts.curate-pack.buildCuratePackUserPrompt",
+              "file_path": "libs/agent-runtime/src/prompts/curate-pack.ts",
+              "line_start": 30,
+              "line_end": 221,
+              "metric_value": 191
+            },
+            {
+              "entity_name": "libs.auth.src.token-validator.createTokenValidator.resolveTalosApiKey",
+              "file_path": "libs/auth/src/token-validator.ts",
+              "line_start": 472,
+              "line_end": 661,
+              "metric_value": 189
+            },
+            {
+              "entity_name": "apps.rest-api.src.workflows.team-founding-workflow.initTeamFoundingWorkflow",
+              "file_path": "apps/rest-api/src/workflows/team-founding-workflow.ts",
+              "line_start": 91,
+              "line_end": 278,
+              "metric_value": 187
+            },
+            {
+              "entity_name": "libs.database.src.repositories.diary-entry.repository.createDiaryEntryRepository.search",
+              "file_path": "libs/database/src/repositories/diary-entry.repository.ts",
+              "line_start": 397,
+              "line_end": 582,
+              "metric_value": 185
+            },
+            {
+              "entity_name": "apps.rest-api.src.routes.runtime-slots.runtimeSlotRoutes",
+              "file_path": "apps/rest-api/src/routes/runtime-slots.ts",
+              "line_start": 29,
+              "line_end": 214,
+              "metric_value": 185
+            },
+            {
+              "entity_name": "apps.rest-api.src.routes.rendered-packs.renderedPackRoutes.server.patch('/rendered-packs/:id') callback",
+              "file_path": "apps/rest-api/src/routes/rendered-packs.ts",
+              "line_start": 369,
+              "line_end": 554,
+              "metric_value": 185
+            },
+            {
+              "entity_name": "apps.rest-api.src.routes.agents.agentRoutes",
+              "file_path": "apps/rest-api/src/routes/agents.ts",
+              "line_start": 20,
+              "line_end": 205,
+              "metric_value": 185
+            },
+            {
+              "entity_name": "tools.src.tasks.bootstrap-local-agent.main",
+              "file_path": "tools/src/tasks/bootstrap-local-agent.ts",
+              "line_start": 102,
+              "line_end": 286,
+              "metric_value": 184
+            },
+            {
+              "entity_name": "apps.console-e2e.src.task-analytics.e2e.test.describe.serial('Task analytics') callback",
+              "file_path": "apps/console-e2e/src/task-analytics.e2e.ts",
+              "line_start": 37,
+              "line_end": 221,
+              "metric_value": 184
+            },
+            {
+              "entity_name": "apps.console-e2e.src.task-lanes.e2e.test.describe.serial('Task lanes board') callback",
+              "file_path": "apps/console-e2e/src/task-lanes.e2e.ts",
+              "line_start": 30,
+              "line_end": 210,
+              "metric_value": 180
+            },
+            {
+              "entity_name": "libs.database.src.repositories.runtime-policy.repository.createRuntimePolicyRepository",
+              "file_path": "libs/database/src/repositories/runtime-policy.repository.ts",
+              "line_start": 40,
+              "line_end": 220,
+              "metric_value": 180
+            },
+            {
+              "entity_name": "apps.console.src.pages.RuntimePoliciesPage.RuntimePoliciesPage",
+              "file_path": "apps/console/src/pages/RuntimePoliciesPage.tsx",
+              "line_start": 53,
+              "line_end": 231,
+              "metric_value": 178
+            },
+            {
+              "entity_name": "libs.pi-runtime.src.tool-operations.executeGondolinGrep",
+              "file_path": "libs/pi-runtime/src/tool-operations.ts",
+              "line_start": 410,
+              "line_end": 583,
+              "metric_value": 173
+            },
+            {
+              "entity_name": "apps.rest-api.src.routes.runtime-sessions.runtimeSessionRoutes",
+              "file_path": "apps/rest-api/src/routes/runtime-sessions.ts",
+              "line_start": 24,
+              "line_end": 196,
+              "metric_value": 172
+            },
+            {
+              "entity_name": "libs.diary-service.src.workflows.diary-workflows.initDiaryWorkflows",
+              "file_path": "libs/diary-service/src/workflows/diary-workflows.ts",
+              "line_start": 113,
+              "line_end": 282,
+              "metric_value": 169
+            },
+            {
+              "entity_name": "libs.signing-service.src.signing-request.service.createSigningRequestService.complete",
+              "file_path": "libs/signing-service/src/signing-request.service.ts",
+              "line_start": 371,
+              "line_end": 539,
+              "metric_value": 168
+            },
+            {
+              "entity_name": "libs.task-workflows.src.task-deletion-workflow.registerTaskDeletionWorkflow.DBOS.registerWorkflow() callback",
+              "file_path": "libs/task-workflows/src/task-deletion-workflow.ts",
+              "line_start": 157,
+              "line_end": 323,
+              "metric_value": 166
+            },
+            {
+              "entity_name": "apps.rest-api.src.routes.oauth2.oauth2Routes",
+              "file_path": "apps/rest-api/src/routes/oauth2.ts",
+              "line_start": 247,
+              "line_end": 412,
+              "metric_value": 165
+            },
+            {
+              "entity_name": "libs.task-service.src.task-delete.service.createTaskDeleteService",
+              "file_path": "libs/task-service/src/task-delete.service.ts",
+              "line_start": 31,
+              "line_end": 194,
+              "metric_value": 163
+            },
+            {
+              "entity_name": "libs.task-ui.src.create-task-dialog.CreateTaskDialog",
+              "file_path": "libs/task-ui/src/create-task-dialog.tsx",
+              "line_start": 148,
+              "line_end": 311,
+              "metric_value": 163
+            },
+            {
+              "entity_name": "apps.landing.src.hooks.useFeed.useFeed",
+              "file_path": "apps/landing/src/hooks/useFeed.ts",
+              "line_start": 47,
+              "line_end": 209,
+              "metric_value": 162
+            },
+            {
+              "entity_name": "libs.sdk.src.namespaces.packs.createPacksNamespace",
+              "file_path": "libs/sdk/src/namespaces/packs.ts",
+              "line_start": 22,
+              "line_end": 184,
+              "metric_value": 162
+            },
+            {
+              "entity_name": "libs.task-service.src.task.service.createTaskService.complete",
+              "file_path": "libs/task-service/src/task.service.ts",
+              "line_start": 530,
+              "line_end": 692,
+              "metric_value": 162
+            },
+            {
+              "entity_name": "packages.legreffier-cli.src.phases.identity.runIdentityPhase",
+              "file_path": "packages/legreffier-cli/src/phases/identity.ts",
+              "line_start": 15,
+              "line_end": 177,
+              "metric_value": 162
+            },
+            {
+              "entity_name": "apps.rest-api.src.plugins.rate-limit.rateLimitPluginImpl",
+              "file_path": "apps/rest-api/src/plugins/rate-limit.ts",
+              "line_start": 159,
+              "line_end": 320,
+              "metric_value": 161
+            },
+            {
+              "entity_name": "libs.pi-runtime.src.otel.index.createPiOtelExtension",
+              "file_path": "libs/pi-runtime/src/otel/index.ts",
+              "line_start": 90,
+              "line_end": 251,
+              "metric_value": 161
+            },
+            {
+              "entity_name": "apps.rest-api.src.workflows.diary-transfer-workflow.initDiaryTransferWorkflow",
+              "file_path": "apps/rest-api/src/workflows/diary-transfer-workflow.ts",
+              "line_start": 75,
+              "line_end": 236,
+              "metric_value": 161
+            },
+            {
+              "entity_name": "libs.database.src.schema.runtime-profiles.defineRuntimeProfilesTable",
+              "file_path": "libs/database/src/schema/runtime-profiles.ts",
+              "line_start": 30,
+              "line_end": 190,
+              "metric_value": 160
+            },
+            {
+              "entity_name": "libs.pi-runtime.src.otel.index.createPiOtelExtension.piOtelExtension",
+              "file_path": "libs/pi-runtime/src/otel/index.ts",
+              "line_start": 91,
+              "line_end": 250,
+              "metric_value": 159
+            },
+            {
+              "entity_name": "libs.agent-runtime.src.sources.polling-api.PollingApiTaskSource.listCandidates",
+              "file_path": "libs/agent-runtime/src/sources/polling-api.ts",
+              "line_start": 424,
+              "line_end": 582,
+              "metric_value": 158
+            },
+            {
+              "entity_name": "apps.console-e2e.src.diary-browser.e2e.test.describe.serial('Diary browser') callback",
+              "file_path": "apps/console-e2e/src/diary-browser.e2e.ts",
+              "line_start": 122,
+              "line_end": 279,
+              "metric_value": 157
+            },
+            {
+              "entity_name": "apps.landing.src.pages.ProvenancePage.ProvenancePage",
+              "file_path": "apps/landing/src/pages/ProvenancePage.tsx",
+              "line_start": 32,
+              "line_end": 189,
+              "metric_value": 157
+            },
+            {
+              "entity_name": "libs.agent-runtime.src.runtime.AgentRuntime.start",
+              "file_path": "libs/agent-runtime/src/runtime.ts",
+              "line_start": 106,
+              "line_end": 263,
+              "metric_value": 157
+            },
+            {
+              "entity_name": "packages.legreffier-cli.src.PortApp.PortApp.useEffect() callback",
+              "file_path": "packages/legreffier-cli/src/PortApp.tsx",
+              "line_start": 91,
+              "line_end": 247,
+              "metric_value": 156
+            },
+            {
+              "entity_name": "libs.task-service.src.task-query.service.createTaskQueryService",
+              "file_path": "libs/task-service/src/task-query.service.ts",
+              "line_start": 80,
+              "line_end": 234,
+              "metric_value": 154
+            },
+            {
+              "entity_name": "packages.legreffier-cli.src.PortApp.PortApp.useEffect() callback.<function>",
+              "file_path": "packages/legreffier-cli/src/PortApp.tsx",
+              "line_start": 92,
+              "line_end": 246,
+              "metric_value": 154
+            },
+            {
+              "entity_name": "apps.console.src.components.ProfileToolAccess.ProfileToolAccess",
+              "file_path": "apps/console/src/components/ProfileToolAccess.tsx",
+              "line_start": 51,
+              "line_end": 204,
+              "metric_value": 153
+            },
+            {
+              "entity_name": "libs.bootstrap.src.bootstrap.createGenesisAgent",
+              "file_path": "libs/bootstrap/src/bootstrap.ts",
+              "line_start": 195,
+              "line_end": 348,
+              "metric_value": 153
+            },
+            {
+              "entity_name": "libs.agent-key-service.src.agent-key-service.createAgentKeyService.issue",
+              "file_path": "libs/agent-key-service/src/agent-key-service.ts",
+              "line_start": 793,
+              "line_end": 946,
+              "metric_value": 153
+            },
+            {
+              "entity_name": "apps.rest-api.src.plugins.error-handler.errorHandler",
+              "file_path": "apps/rest-api/src/plugins/error-handler.ts",
+              "line_start": 98,
+              "line_end": 250,
+              "metric_value": 152
+            },
+            {
+              "entity_name": "libs.runtime-session-service.src.runtime-sessions.createRuntimeSessionService",
+              "file_path": "libs/runtime-session-service/src/runtime-sessions.ts",
+              "line_start": 77,
+              "line_end": 228,
+              "metric_value": 151
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "check_name": "fan_out",
+      "description": "Checks efferent coupling: how many other functions each function calls",
+      "language": "typescript",
+      "check_type": "standard",
+      "total_entities_checked": 7610,
+      "findings_count": 59,
+      "warning_count": 59,
+      "score": 0.9922470433639947,
+      "finding_groups": [
+        {
+          "severity": "warning",
+          "threshold": 10,
+          "description": "Functions calling more than 10.0 other functions",
+          "entities": [
+            {
+              "entity_name": "libs.pi-runtime.src.runtime.execute-pi-task.executePiTask",
+              "file_path": "libs/pi-runtime/src/runtime/execute-pi-task.ts",
+              "line_start": 603,
+              "line_end": 1746,
+              "metric_value": 50
+            },
+            {
+              "entity_name": "apps.agent-daemon.src.cli.once.runOnce",
+              "file_path": "apps/agent-daemon/src/cli/once.ts",
+              "line_start": 75,
+              "line_end": 636,
+              "metric_value": 42
+            },
+            {
+              "entity_name": "apps.agent-daemon.src.cli.poll-shared.runPolling",
+              "file_path": "apps/agent-daemon/src/cli/poll-shared.ts",
+              "line_start": 105,
+              "line_end": 896,
+              "metric_value": 37
+            },
+            {
+              "entity_name": "apps.multi-lens-review.src.workflow.runMultiLensReview",
+              "file_path": "apps/multi-lens-review/src/workflow.ts",
+              "line_start": 1435,
+              "line_end": 1817,
+              "metric_value": 29
+            },
+            {
+              "entity_name": "apps.rest-api.src.app.registerApiRoutes",
+              "file_path": "apps/rest-api/src/app.ts",
+              "line_start": 235,
+              "line_end": 530,
+              "metric_value": 29
+            },
+            {
+              "entity_name": "packages.legreffier-cli.src.PortApp.PortApp.useEffect() callback.<function>",
+              "file_path": "packages/legreffier-cli/src/PortApp.tsx",
+              "line_start": 92,
+              "line_end": 246,
+              "metric_value": 28
+            },
+            {
+              "entity_name": "libs.sdk.src.namespaces.tasks.createTasksNamespace",
+              "file_path": "libs/sdk/src/namespaces/tasks.ts",
+              "line_start": 64,
+              "line_end": 450,
+              "metric_value": 23
+            },
+            {
+              "entity_name": "libs.sdk.src.agent.createAgent",
+              "file_path": "libs/sdk/src/agent.ts",
+              "line_start": 1070,
+              "line_end": 1135,
+              "metric_value": 23
+            },
+            {
+              "entity_name": "libs.runtime-session-service.src.runtime-sessions.createRuntimeSessionService.upload",
+              "file_path": "libs/runtime-session-service/src/runtime-sessions.ts",
+              "line_start": 94,
+              "line_end": 193,
+              "metric_value": 19
+            },
+            {
+              "entity_name": "libs.sdk.src.human.connectHuman",
+              "file_path": "libs/sdk/src/human.ts",
+              "line_start": 121,
+              "line_end": 158,
+              "metric_value": 18
+            },
+            {
+              "entity_name": "packages.legreffier-cli.src.phases.agentSetup.runAgentSetupPhase",
+              "file_path": "packages/legreffier-cli/src/phases/agentSetup.ts",
+              "line_start": 15,
+              "line_end": 140,
+              "metric_value": 18
+            },
+            {
+              "entity_name": "apps.rest-api.src.bootstrap.bootstrap",
+              "file_path": "apps/rest-api/src/bootstrap.ts",
+              "line_start": 167,
+              "line_end": 846,
+              "metric_value": 18
+            },
+            {
+              "entity_name": "libs.sandbox-gondolin.src.vm-manager.resumeVm",
+              "file_path": "libs/sandbox-gondolin/src/vm-manager.ts",
+              "line_start": 954,
+              "line_end": 1417,
+              "metric_value": 18
+            },
+            {
+              "entity_name": "libs.credential-broker.src.lib.broker.createCredentialBroker.issueConnectorCredential",
+              "file_path": "libs/credential-broker/src/lib/broker.ts",
+              "line_start": 521,
+              "line_end": 760,
+              "metric_value": 17
+            },
+            {
+              "entity_name": "apps.mcp-server.src.app.buildApp",
+              "file_path": "apps/mcp-server/src/app.ts",
+              "line_start": 157,
+              "line_end": 361,
+              "metric_value": 16
+            },
+            {
+              "entity_name": "libs.credential-broker.src.lib.broker.createCredentialBroker.issueTaskCredential",
+              "file_path": "libs/credential-broker/src/lib/broker.ts",
+              "line_start": 376,
+              "line_end": 519,
+              "metric_value": 16
+            },
+            {
+              "entity_name": "libs.task-ui.src.task-execution-record.TaskExecutionRecord",
+              "file_path": "libs/task-ui/src/task-execution-record.tsx",
+              "line_start": 21,
+              "line_end": 158,
+              "metric_value": 16
+            },
+            {
+              "entity_name": "libs.agent-key-service.src.agent-key-service.createAgentKeyService.issue",
+              "file_path": "libs/agent-key-service/src/agent-key-service.ts",
+              "line_start": 793,
+              "line_end": 946,
+              "metric_value": 16
+            },
+            {
+              "entity_name": "libs.agent-key-service.src.agent-key-service.createAgentKeyService.rotate",
+              "file_path": "libs/agent-key-service/src/agent-key-service.ts",
+              "line_start": 957,
+              "line_end": 1072,
+              "metric_value": 16
+            },
+            {
+              "entity_name": "libs.tasks-orchestrator.src.task-step.createTaskStep",
+              "file_path": "libs/tasks-orchestrator/src/task-step.ts",
+              "line_start": 16,
+              "line_end": 37,
+              "metric_value": 16
+            },
+            {
+              "entity_name": "apps.moltnet-signer.src.ceremony-service.SignerCeremonyService.confirmCeremony",
+              "file_path": "apps/moltnet-signer/src/ceremony-service.ts",
+              "line_start": 290,
+              "line_end": 430,
+              "metric_value": 15
+            },
+            {
+              "entity_name": "libs.task-artifact-service.src.task-artifacts.createTaskArtifactService.upload",
+              "file_path": "libs/task-artifact-service/src/task-artifacts.ts",
+              "line_start": 149,
+              "line_end": 268,
+              "metric_value": 15
+            },
+            {
+              "entity_name": "apps.agent-daemon.src.lib.runtime-session-sync.syncRuntimeSessions",
+              "file_path": "apps/agent-daemon/src/lib/runtime-session-sync.ts",
+              "line_start": 48,
+              "line_end": 138,
+              "metric_value": 14
+            },
+            {
+              "entity_name": "apps.agent-daemon.src.cli.poll-shared.runPolling.executeTask",
+              "file_path": "apps/agent-daemon/src/cli/poll-shared.ts",
+              "line_start": 659,
+              "line_end": 881,
+              "metric_value": 14
+            },
+            {
+              "entity_name": "apps.agent-daemon.src.cli.poll-shared.runPolling.onTaskFinished",
+              "file_path": "apps/agent-daemon/src/cli/poll-shared.ts",
+              "line_start": 593,
+              "line_end": 658,
+              "metric_value": 14
+            },
+            {
+              "entity_name": "apps.agent-daemon.src.lib.execution-plan-cache.maybeAttachWarmSlotContext",
+              "file_path": "apps/agent-daemon/src/lib/execution-plan-cache.ts",
+              "line_start": 312,
+              "line_end": 558,
+              "metric_value": 13
+            },
+            {
+              "entity_name": "libs.agent-runtime.src.runtime.AgentRuntime.start",
+              "file_path": "libs/agent-runtime/src/runtime.ts",
+              "line_start": 106,
+              "line_end": 263,
+              "metric_value": 13
+            },
+            {
+              "entity_name": "apps.rest-api.src.config.loadConfig",
+              "file_path": "apps/rest-api/src/config.ts",
+              "line_start": 603,
+              "line_end": 669,
+              "metric_value": 13
+            },
+            {
+              "entity_name": "libs.task-service.src.task-create.service.createTaskCreateService.create",
+              "file_path": "libs/task-service/src/task-create.service.ts",
+              "line_start": 95,
+              "line_end": 549,
+              "metric_value": 13
+            },
+            {
+              "entity_name": "libs.auth.src.token-validator.createTokenValidator.resolveTalosApiKey",
+              "file_path": "libs/auth/src/token-validator.ts",
+              "line_start": 472,
+              "line_end": 661,
+              "metric_value": 13
+            },
+            {
+              "entity_name": "apps.mcp-server.src.task-tools.registerTaskTools.fastify.mcpAddTool() callback",
+              "file_path": "apps/mcp-server/src/task-tools.ts",
+              "line_start": 727,
+              "line_end": 728,
+              "metric_value": 12
+            },
+            {
+              "entity_name": "libs.task-service.src.task-conditions.createTaskConditionHelpers",
+              "file_path": "libs/task-service/src/task-conditions.ts",
+              "line_start": 30,
+              "line_end": 237,
+              "metric_value": 12
+            },
+            {
+              "entity_name": "libs.agent-key-service.src.agent-key-service.createAgentKeyService.revoke",
+              "file_path": "libs/agent-key-service/src/agent-key-service.ts",
+              "line_start": 1074,
+              "line_end": 1142,
+              "metric_value": 12
+            },
+            {
+              "entity_name": "libs.task-service.src.task.service.createTaskService.claim",
+              "file_path": "libs/task-service/src/task.service.ts",
+              "line_start": 154,
+              "line_end": 405,
+              "metric_value": 12
+            },
+            {
+              "entity_name": "libs.task-service.src.task.service.createTaskService.complete",
+              "file_path": "libs/task-service/src/task.service.ts",
+              "line_start": 530,
+              "line_end": 692,
+              "metric_value": 12
+            },
+            {
+              "entity_name": "apps.issue-lifecycle.src.workflow-steps.ensureReadyForReviewComment.result.ctx.step('github.ready_for_review_comment.reconcile') callback",
+              "file_path": "apps/issue-lifecycle/src/workflow-steps.ts",
+              "line_start": 261,
+              "line_end": 278,
+              "metric_value": 12
+            },
+            {
+              "entity_name": "apps.issue-lifecycle.src.workflow-steps.updateLifecycleStatusComment.result.args.ctx.step('github.status_comment.reconcile') callback",
+              "file_path": "apps/issue-lifecycle/src/workflow-steps.ts",
+              "line_start": 177,
+              "line_end": 201,
+              "metric_value": 12
+            },
+            {
+              "entity_name": "apps.rest-api.src.workflows.registration-workflow.initRegistrationWorkflow.DBOS.registerWorkflow() callback",
+              "file_path": "apps/rest-api/src/workflows/registration-workflow.ts",
+              "line_start": 550,
+              "line_end": 684,
+              "metric_value": 12
+            },
+            {
+              "entity_name": "libs.task-workflows.src.task-workflows.initTaskWorkflows.startAttemptWorkflow.DBOS.registerWorkflow() callback",
+              "file_path": "libs/task-workflows/src/task-workflows.ts",
+              "line_start": 295,
+              "line_end": 717,
+              "metric_value": 12
+            },
+            {
+              "entity_name": "apps.agent-daemon.src.cli.sync-sessions.runSyncSessions",
+              "file_path": "apps/agent-daemon/src/cli/sync-sessions.ts",
+              "line_start": 19,
+              "line_end": 84,
+              "metric_value": 11
+            },
+            {
+              "entity_name": "libs.task-ui.src.analytics.metric-kpi-grid.buildPillars",
+              "file_path": "libs/task-ui/src/analytics/metric-kpi-grid.tsx",
+              "line_start": 45,
+              "line_end": 167,
+              "metric_value": 11
+            },
+            {
+              "entity_name": "libs.task-ui.src.task-detail-header.TaskDetailHeader",
+              "file_path": "libs/task-ui/src/task-detail-header.tsx",
+              "line_start": 22,
+              "line_end": 55,
+              "metric_value": 11
+            },
+            {
+              "entity_name": "tools.generators.split-tsconfigs.index.migrateProject",
+              "file_path": "tools/generators/split-tsconfigs/index.ts",
+              "line_start": 90,
+              "line_end": 193,
+              "metric_value": 11
+            },
+            {
+              "entity_name": "tools.src.release.go-artifact-publisher.runGoArtifactPublisher",
+              "file_path": "tools/src/release/go-artifact-publisher.ts",
+              "line_start": 554,
+              "line_end": 606,
+              "metric_value": 11
+            },
+            {
+              "entity_name": "libs.agent-key-service.src.agent-key-service.scanAgentKeyPages",
+              "file_path": "libs/agent-key-service/src/agent-key-service.ts",
+              "line_start": 668,
+              "line_end": 789,
+              "metric_value": 11
+            },
+            {
+              "entity_name": "libs.tasks-orchestrator.src.testing.replayContext.ctx.step",
+              "file_path": "libs/tasks-orchestrator/src/testing.ts",
+              "line_start": 62,
+              "line_end": 67,
+              "metric_value": 11
+            },
+            {
+              "entity_name": "apps.agent-daemon.src.cli.once.runOnce.onTaskFinished",
+              "file_path": "apps/agent-daemon/src/cli/once.ts",
+              "line_start": 558,
+              "line_end": 617,
+              "metric_value": 11
+            },
+            {
+              "entity_name": "apps.issue-lifecycle.src.workflow.runGithubIssueLifecycle",
+              "file_path": "apps/issue-lifecycle/src/workflow.ts",
+              "line_start": 51,
+              "line_end": 1010,
+              "metric_value": 11
+            },
+            {
+              "entity_name": "libs.auth.src.token-validator.createTokenValidator.resolveAuthContext",
+              "file_path": "libs/auth/src/token-validator.ts",
+              "line_start": 894,
+              "line_end": 944,
+              "metric_value": 11
+            },
+            {
+              "entity_name": "apps.console.src.pages.AgentKeysPage.AgentKeysPage.createKey",
+              "file_path": "apps/console/src/pages/AgentKeysPage.tsx",
+              "line_start": 225,
+              "line_end": 267,
+              "metric_value": 10
+            },
+            {
+              "entity_name": "apps.console.src.pages.AgentKeysPage.AgentKeysPage.rotateKey",
+              "file_path": "apps/console/src/pages/AgentKeysPage.tsx",
+              "line_start": 269,
+              "line_end": 302,
+              "metric_value": 10
+            },
+            {
+              "entity_name": "libs.ctap.src.ctap-hid.CtapHidTransport.open",
+              "file_path": "libs/ctap/src/ctap-hid.ts",
+              "line_start": 304,
+              "line_end": 346,
+              "metric_value": 10
+            },
+            {
+              "entity_name": "libs.ctap.src.ctap-hid.CtapHidTransport.transact",
+              "file_path": "libs/ctap/src/ctap-hid.ts",
+              "line_start": 422,
+              "line_end": 496,
+              "metric_value": 10
+            },
+            {
+              "entity_name": "libs.sdk.src.connect.resolveConnection",
+              "file_path": "libs/sdk/src/connect.ts",
+              "line_start": 45,
+              "line_end": 149,
+              "metric_value": 10
+            },
+            {
+              "entity_name": "libs.yubikey-preview-sign.src.preview-sign.PreviewSignCtapClient.generateKey",
+              "file_path": "libs/yubikey-preview-sign/src/preview-sign.ts",
+              "line_start": 212,
+              "line_end": 361,
+              "metric_value": 10
+            },
+            {
+              "entity_name": "packages.legreffier-cli.src.commands.port.portCommand.run.withCleanErrors() callback",
+              "file_path": "packages/legreffier-cli/src/commands/port.tsx",
+              "line_start": 60,
+              "line_end": 90,
+              "metric_value": 10
+            },
+            {
+              "entity_name": "libs.pi-runtime.src.runtime.task-workspace.prepareTaskWorkspace",
+              "file_path": "libs/pi-runtime/src/runtime/task-workspace.ts",
+              "line_start": 26,
+              "line_end": 152,
+              "metric_value": 10
+            },
+            {
+              "entity_name": "libs.agent-runtime.src.prompts.index.buildTaskUserPrompt",
+              "file_path": "libs/agent-runtime/src/prompts/index.ts",
+              "line_start": 104,
+              "line_end": 250,
+              "metric_value": 10
+            },
+            {
+              "entity_name": "apps.rest-api.src.routes.runtime-profiles.runtimeProfileRoutes.server.post('/runtime-profiles') callback",
+              "file_path": "apps/rest-api/src/routes/runtime-profiles.ts",
+              "line_start": 302,
+              "line_end": 372,
+              "metric_value": 10
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "check_name": "fan_in",
+      "description": "Checks afferent coupling: how many other functions call each function",
+      "language": "typescript",
+      "check_type": "standard",
+      "total_entities_checked": 7610,
+      "findings_count": 54,
+      "warning_count": 54,
+      "score": 0.992904073587385,
+      "finding_groups": [
+        {
+          "severity": "warning",
+          "threshold": 10,
+          "description": "Functions called by more than 10.0 other functions",
+          "entities": [
+            {
+              "entity_name": "libs.database.src.transaction-context.getExecutor",
+              "file_path": "libs/database/src/transaction-context.ts",
+              "line_start": 29,
+              "line_end": 31,
+              "metric_value": 220
+            },
+            {
+              "entity_name": "libs.sdk.src.agent-context.unwrapResult",
+              "file_path": "libs/sdk/src/agent-context.ts",
+              "line_start": 10,
+              "line_end": 63,
+              "metric_value": 123
+            },
+            {
+              "entity_name": "apps.rest-api.src.problems.helpers.createProblem",
+              "file_path": "apps/rest-api/src/problems/helpers.ts",
+              "line_start": 34,
+              "line_end": 55,
+              "metric_value": 104
+            },
+            {
+              "entity_name": "apps.rest-api.src.utils.require-keto-subject.requireKetoSubject",
+              "file_path": "apps/rest-api/src/utils/require-keto-subject.ts",
+              "line_start": 18,
+              "line_end": 30,
+              "metric_value": 99
+            },
+            {
+              "entity_name": "apps.mcp-server.src.utils.structuredResult",
+              "file_path": "apps/mcp-server/src/utils.ts",
+              "line_start": 24,
+              "line_end": 29,
+              "metric_value": 61
+            },
+            {
+              "entity_name": "apps.console.src.api.getApiClient",
+              "file_path": "apps/console/src/api.ts",
+              "line_start": 27,
+              "line_end": 39,
+              "metric_value": 60
+            },
+            {
+              "entity_name": "apps.mcp-server.src.utils.getTokenFromContext",
+              "file_path": "apps/mcp-server/src/utils.ts",
+              "line_start": 87,
+              "line_end": 96,
+              "metric_value": 60
+            },
+            {
+              "entity_name": "apps.mcp-server.src.utils.errorResult",
+              "file_path": "apps/mcp-server/src/utils.ts",
+              "line_start": 31,
+              "line_end": 36,
+              "metric_value": 57
+            },
+            {
+              "entity_name": "apps.mcp-server.src.utils.extractApiErrorMessage",
+              "file_path": "apps/mcp-server/src/utils.ts",
+              "line_start": 47,
+              "line_end": 73,
+              "metric_value": 57
+            },
+            {
+              "entity_name": "apps.rest-api.src.utils.require-current-team-id.requireCurrentTeamId",
+              "file_path": "apps/rest-api/src/utils/require-current-team-id.ts",
+              "line_start": 13,
+              "line_end": 25,
+              "metric_value": 51
+            },
+            {
+              "entity_name": "libs.sdk.src.namespaces.team-headers.requiredTeamHeaders",
+              "file_path": "libs/sdk/src/namespaces/team-headers.ts",
+              "line_start": 35,
+              "line_end": 39,
+              "metric_value": 41
+            },
+            {
+              "entity_name": "apps.console-e2e.src.helpers.kratos.loginViaBrowser",
+              "file_path": "apps/console-e2e/src/helpers/kratos.ts",
+              "line_start": 69,
+              "line_end": 96,
+              "metric_value": 32
+            },
+            {
+              "entity_name": "libs.design-system.src.hooks.useTheme",
+              "file_path": "libs/design-system/src/hooks.ts",
+              "line_start": 9,
+              "line_end": 15,
+              "metric_value": 29
+            },
+            {
+              "entity_name": "libs.task-service.src.task-service.shared.TaskServiceError.constructor",
+              "file_path": "libs/task-service/src/task-service.shared.ts",
+              "line_start": 35,
+              "line_end": 50,
+              "metric_value": 29
+            },
+            {
+              "entity_name": "apps.rest-api.src.workflows.maintenance.getDeps",
+              "file_path": "apps/rest-api/src/workflows/maintenance.ts",
+              "line_start": 80,
+              "line_end": 83,
+              "metric_value": 29
+            },
+            {
+              "entity_name": "apps.console.src.pages.TasksPage.Boolean",
+              "file_path": "apps/console/src/pages/TasksPage.tsx",
+              "line_start": 563,
+              "line_end": 563,
+              "metric_value": 26
+            },
+            {
+              "entity_name": "libs.auth.src.permission-checker.checkPermission",
+              "file_path": "libs/auth/src/permission-checker.ts",
+              "line_start": 192,
+              "line_end": 228,
+              "metric_value": 24
+            },
+            {
+              "entity_name": "apps.console-e2e.src.helpers.api-client.createTokenSessionApiClient",
+              "file_path": "apps/console-e2e/src/helpers/api-client.ts",
+              "line_start": 32,
+              "line_end": 42,
+              "metric_value": 23
+            },
+            {
+              "entity_name": "tools.src.talos-capability-probe.expectValue",
+              "file_path": "tools/src/talos-capability-probe.ts",
+              "line_start": 65,
+              "line_end": 67,
+              "metric_value": 23
+            },
+            {
+              "entity_name": "apps.moltnet-signer.src.ceremony-service.SignerCeremonyError.constructor",
+              "file_path": "apps/moltnet-signer/src/ceremony-service.ts",
+              "line_start": 124,
+              "line_end": 131,
+              "metric_value": 22
+            },
+            {
+              "entity_name": "apps.console.src.team.useTeam.useTeam",
+              "file_path": "apps/console/src/team/useTeam.ts",
+              "line_start": 5,
+              "line_end": 11,
+              "metric_value": 20
+            },
+            {
+              "entity_name": "apps.console-e2e.src.helpers.kratos.registerViaBrowser",
+              "file_path": "apps/console-e2e/src/helpers/kratos.ts",
+              "line_start": 20,
+              "line_end": 57,
+              "metric_value": 20
+            },
+            {
+              "entity_name": "apps.console-e2e.src.helpers.test-user.createTestUser",
+              "file_path": "apps/console-e2e/src/helpers/test-user.ts",
+              "line_start": 13,
+              "line_end": 23,
+              "metric_value": 20
+            },
+            {
+              "entity_name": "apps.console-e2e.src.helpers.console.expectConsoleOverview",
+              "file_path": "apps/console-e2e/src/helpers/console.ts",
+              "line_start": 3,
+              "line_end": 7,
+              "metric_value": 19
+            },
+            {
+              "entity_name": "apps.rest-api.src.routes.tasks.toTaskProblem",
+              "file_path": "apps/rest-api/src/routes/tasks.ts",
+              "line_start": 103,
+              "line_end": 127,
+              "metric_value": 18
+            },
+            {
+              "entity_name": "libs.node-red-contrib-core.src.nodes.agent.MoltnetAgentNode.getAgent",
+              "file_path": "libs/node-red-contrib-core/src/nodes/agent.ts",
+              "line_start": 31,
+              "line_end": 31,
+              "metric_value": 17
+            },
+            {
+              "entity_name": "libs.yubikey-preview-sign.src.errors.invariant",
+              "file_path": "libs/yubikey-preview-sign/src/errors.ts",
+              "line_start": 25,
+              "line_end": 32,
+              "metric_value": 17
+            },
+            {
+              "entity_name": "libs.pi-runtime.src.moltnet.tools.ensureConnected",
+              "file_path": "libs/pi-runtime/src/moltnet/tools.ts",
+              "line_start": 166,
+              "line_end": 171,
+              "metric_value": 17
+            },
+            {
+              "entity_name": "libs.ctap.src.errors.invariant",
+              "file_path": "libs/ctap/src/errors.ts",
+              "line_start": 27,
+              "line_end": 36,
+              "metric_value": 15
+            },
+            {
+              "entity_name": "libs.models.src.signer-protocol.schemaRef",
+              "file_path": "libs/models/src/signer-protocol.ts",
+              "line_start": 18,
+              "line_end": 21,
+              "metric_value": 15
+            },
+            {
+              "entity_name": "libs.signing-service.src.signing-service-error.SigningServiceError.constructor",
+              "file_path": "libs/signing-service/src/signing-service-error.ts",
+              "line_start": 17,
+              "line_end": 25,
+              "metric_value": 15
+            },
+            {
+              "entity_name": "apps.console-e2e.src.helpers.kratos.submitKratosForm",
+              "file_path": "apps/console-e2e/src/helpers/kratos.ts",
+              "line_start": 9,
+              "line_end": 11,
+              "metric_value": 14
+            },
+            {
+              "entity_name": "libs.context-pack-service.src.context-pack.service.PackServiceError.constructor",
+              "file_path": "libs/context-pack-service/src/context-pack.service.ts",
+              "line_start": 97,
+              "line_end": 108,
+              "metric_value": 14
+            },
+            {
+              "entity_name": "libs.design-system.src.components.record-trace.String",
+              "file_path": "libs/design-system/src/components/record-trace.tsx",
+              "line_start": 64,
+              "line_end": 64,
+              "metric_value": 14
+            },
+            {
+              "entity_name": "libs.sdk.src.errors.MoltNetError.constructor",
+              "file_path": "libs/sdk/src/errors.ts",
+              "line_start": 25,
+              "line_end": 40,
+              "metric_value": 14
+            },
+            {
+              "entity_name": "libs.task-artifact-service.src.task-artifacts.TaskArtifactServiceError.constructor",
+              "file_path": "libs/task-artifact-service/src/task-artifacts.ts",
+              "line_start": 101,
+              "line_end": 107,
+              "metric_value": 14
+            },
+            {
+              "entity_name": "libs.sdk.src.namespaces.tasks.createTasksNamespace",
+              "file_path": "libs/sdk/src/namespaces/tasks.ts",
+              "line_start": 64,
+              "line_end": 450,
+              "metric_value": 14
+            },
+            {
+              "entity_name": "apps.rest-api.src.utils.auth-principal.authContextToCreator",
+              "file_path": "apps/rest-api/src/utils/auth-principal.ts",
+              "line_start": 71,
+              "line_end": 86,
+              "metric_value": 13
+            },
+            {
+              "entity_name": "apps.rest-api.src.utils.signing-service-error.throwSigningServiceProblem",
+              "file_path": "apps/rest-api/src/utils/signing-service-error.ts",
+              "line_start": 5,
+              "line_end": 25,
+              "metric_value": 13
+            },
+            {
+              "entity_name": "libs.tasks.src.validation.getTaskTypeEntry",
+              "file_path": "libs/tasks/src/validation.ts",
+              "line_start": 63,
+              "line_end": 74,
+              "metric_value": 13
+            },
+            {
+              "entity_name": "libs.pi-runtime.src.tool-operations.toGuestPath",
+              "file_path": "libs/pi-runtime/src/tool-operations.ts",
+              "line_start": 89,
+              "line_end": 121,
+              "metric_value": 13
+            },
+            {
+              "entity_name": "apps.rest-api.src.config.pickEnv",
+              "file_path": "apps/rest-api/src/config.ts",
+              "line_start": 363,
+              "line_end": 374,
+              "metric_value": 13
+            },
+            {
+              "entity_name": "apps.rest-api.src.config.validateSchema",
+              "file_path": "apps/rest-api/src/config.ts",
+              "line_start": 376,
+              "line_end": 391,
+              "metric_value": 13
+            },
+            {
+              "entity_name": "apps.rest-api.src.workflows.registration-workflow.getDeps",
+              "file_path": "apps/rest-api/src/workflows/registration-workflow.ts",
+              "line_start": 116,
+              "line_end": 123,
+              "metric_value": 13
+            },
+            {
+              "entity_name": "libs.agent-key-service.src.problems.createProblem",
+              "file_path": "libs/agent-key-service/src/problems.ts",
+              "line_start": 49,
+              "line_end": 59,
+              "metric_value": 12
+            },
+            {
+              "entity_name": "tools.src.talos-capability-probe.runTalosCapabilityProbe.derive",
+              "file_path": "tools/src/talos-capability-probe.ts",
+              "line_start": 129,
+              "line_end": 148,
+              "metric_value": 12
+            },
+            {
+              "entity_name": "libs.task-workflows.src.task-workflows.getDeps",
+              "file_path": "libs/task-workflows/src/task-workflows.ts",
+              "line_start": 228,
+              "line_end": 235,
+              "metric_value": 12
+            },
+            {
+              "entity_name": "apps.console-e2e.src.helpers.api-client.createCookieSessionApiClient",
+              "file_path": "apps/console-e2e/src/helpers/api-client.ts",
+              "line_start": 16,
+              "line_end": 26,
+              "metric_value": 10
+            },
+            {
+              "entity_name": "apps.console-e2e.src.helpers.kratos.createNativeSessionToken",
+              "file_path": "apps/console-e2e/src/helpers/kratos.ts",
+              "line_start": 228,
+              "line_end": 249,
+              "metric_value": 10
+            },
+            {
+              "entity_name": "apps.rest-api.src.problems.helpers.createConflictProblem",
+              "file_path": "apps/rest-api/src/problems/helpers.ts",
+              "line_start": 57,
+              "line_end": 62,
+              "metric_value": 10
+            },
+            {
+              "entity_name": "apps.rest-api.src.problems.helpers.createValidationProblem",
+              "file_path": "apps/rest-api/src/problems/helpers.ts",
+              "line_start": 91,
+              "line_end": 102,
+              "metric_value": 10
+            },
+            {
+              "entity_name": "libs.signing-workflows.src.signing-workflows.SigningReceiptInvalidError.constructor",
+              "file_path": "libs/signing-workflows/src/signing-workflows.ts",
+              "line_start": 197,
+              "line_end": 204,
+              "metric_value": 10
+            },
+            {
+              "entity_name": "libs.task-service.src.wire-mappers.dbTaskToWire",
+              "file_path": "libs/task-service/src/wire-mappers.ts",
+              "line_start": 26,
+              "line_end": 58,
+              "metric_value": 10
+            },
+            {
+              "entity_name": "libs.sdk.src.tasks.builder.buildTask",
+              "file_path": "libs/sdk/src/tasks/builder.ts",
+              "line_start": 702,
+              "line_end": 707,
+              "metric_value": 10
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "check_name": "god_class",
+      "description": "Detects classes with too many methods, too much code, or too many outgoing dependencies",
+      "language": "typescript",
+      "check_type": "standard",
+      "total_entities_checked": 188,
+      "findings_count": 6,
+      "warning_count": 6,
+      "score": 0.9680851063829787,
+      "finding_groups": [
+        {
+          "severity": "warning",
+          "threshold": 25,
+          "description": "Classes exceeding god class criteria (methods, LOC, or fan-out)",
+          "entities": [
+            {
+              "entity_name": "apps.moltnet-signer.src.ceremony-service.SignerCeremonyService",
+              "metric_value": 55.0
+            },
+            {
+              "entity_name": "libs.context-pack-service.src.context-pack.service.ContextPackService",
+              "metric_value": 46.0
+            },
+            {
+              "entity_name": "libs.auth.src.relationship-writer.RelationshipWriter",
+              "metric_value": 39.0
+            },
+            {
+              "entity_name": "libs.ctap.src.ctap-hid.CtapHidTransport",
+              "metric_value": 32.0
+            },
+            {
+              "entity_name": "libs.auth.src.permission-checker.PermissionChecker",
+              "metric_value": 31.0
+            },
+            {
+              "entity_name": "libs.sdk.src.agent.TasksNamespace",
+              "metric_value": 27.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "check_name": "inheritance_depth",
+      "description": "Checks that class inheritance hierarchies do not exceed depth thresholds",
+      "language": "typescript",
+      "check_type": "standard",
+      "total_entities_checked": 2341,
+      "findings_count": 0,
+      "warning_count": 0,
+      "score": 1.0,
+      "finding_groups": []
+    },
+    {
+      "check_name": "unused_code_diagnostics",
+      "description": "Detects unused imports, variables, functions, and dead code via LSP diagnostics",
+      "language": "typescript",
+      "check_type": "standard",
+      "total_entities_checked": 225,
+      "findings_count": 225,
+      "warning_count": 0,
+      "score": 0.0,
+      "finding_groups": [
+        {
+          "severity": "info",
+          "threshold": 0,
+          "description": "Variables declared but never used",
+          "entities": [
+            {
+              "entity_name": "[unused_variable] 'AuthGuard' is declared but its value is never read.",
+              "file_path": "apps/console/src/App.tsx",
+              "line_start": 4,
+              "line_end": 4,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'DashboardLayout' is declared but its value is never read.",
+              "file_path": "apps/console/src/App.tsx",
+              "line_start": 5,
+              "line_end": 5,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'AgentKeysPage' is declared but its value is never read.",
+              "file_path": "apps/console/src/App.tsx",
+              "line_start": 6,
+              "line_end": 6,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'DiaryDetailPage' is declared but its value is never read.",
+              "file_path": "apps/console/src/App.tsx",
+              "line_start": 8,
+              "line_end": 8,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'DiaryExplorePage' is declared but its value is never read.",
+              "file_path": "apps/console/src/App.tsx",
+              "line_start": 9,
+              "line_end": 9,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'EntryDetailPage' is declared but its value is never read.",
+              "file_path": "apps/console/src/App.tsx",
+              "line_start": 10,
+              "line_end": 10,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'GroupDetailPage' is declared but its value is never read.",
+              "file_path": "apps/console/src/App.tsx",
+              "line_start": 11,
+              "line_end": 11,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'PackDetailPage' is declared but its value is never read.",
+              "file_path": "apps/console/src/App.tsx",
+              "line_start": 15,
+              "line_end": 15,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'ProfilesPage' is declared but its value is never read.",
+              "file_path": "apps/console/src/App.tsx",
+              "line_start": 17,
+              "line_end": 17,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'RuntimePage' is declared but its value is never read.",
+              "file_path": "apps/console/src/App.tsx",
+              "line_start": 18,
+              "line_end": 18,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'RuntimePoliciesPage' is declared but its value is never read.",
+              "file_path": "apps/console/src/App.tsx",
+              "line_start": 19,
+              "line_end": 19,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'TaskAttemptPage' is declared but its value is never read.",
+              "file_path": "apps/console/src/App.tsx",
+              "line_start": 22,
+              "line_end": 22,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'TaskDetailPage' is declared but its value is never read.",
+              "file_path": "apps/console/src/App.tsx",
+              "line_start": 23,
+              "line_end": 23,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'TeamDetailPage' is declared but its value is never read.",
+              "file_path": "apps/console/src/App.tsx",
+              "line_start": 25,
+              "line_end": 25,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'params' is declared but its value is never read.",
+              "file_path": "apps/console/src/App.tsx",
+              "line_start": 60,
+              "line_end": 60,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'Layout' is declared but its value is never read.",
+              "file_path": "apps/landing/src/App.tsx",
+              "line_start": 3,
+              "line_end": 3,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'EntryPage' is declared but its value is never read.",
+              "file_path": "apps/landing/src/App.tsx",
+              "line_start": 5,
+              "line_end": 5,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_DiariesListOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/diary-schemas.ts",
+              "line_start": 94,
+              "line_end": 94,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_DiariesCreateOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/diary-schemas.ts",
+              "line_start": 98,
+              "line_end": 98,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_DiariesGetOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/diary-schemas.ts",
+              "line_start": 102,
+              "line_end": 102,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_PackGetOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/pack-schemas.ts",
+              "line_start": 813,
+              "line_end": 813,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_PackListOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/pack-schemas.ts",
+              "line_start": 817,
+              "line_end": 817,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_PackUpdateOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/pack-schemas.ts",
+              "line_start": 821,
+              "line_end": 821,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_PackPreviewOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/pack-schemas.ts",
+              "line_start": 825,
+              "line_end": 825,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_PackCreateOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/pack-schemas.ts",
+              "line_start": 829,
+              "line_end": 829,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_PackRenderPreviewOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/pack-schemas.ts",
+              "line_start": 833,
+              "line_end": 833,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_PackRenderOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/pack-schemas.ts",
+              "line_start": 837,
+              "line_end": 837,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_RenderedPackUpdateOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/pack-schemas.ts",
+              "line_start": 841,
+              "line_end": 841,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_RenderedPackGetOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/pack-schemas.ts",
+              "line_start": 845,
+              "line_end": 845,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_RenderedPackListOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/pack-schemas.ts",
+              "line_start": 849,
+              "line_end": 849,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_PackProvenanceByIdOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/pack-schemas.ts",
+              "line_start": 853,
+              "line_end": 853,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_PackProvenanceByCidOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/pack-schemas.ts",
+              "line_start": 857,
+              "line_end": 857,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_PackDiffByIdOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/pack-schemas.ts",
+              "line_start": 861,
+              "line_end": 861,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_PackDiffByCidOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/pack-schemas.ts",
+              "line_start": 865,
+              "line_end": 865,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_TeamsListOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/team-schemas.ts",
+              "line_start": 221,
+              "line_end": 221,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_TeamMembersListOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/team-schemas.ts",
+              "line_start": 225,
+              "line_end": 225,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_TeamsJoinOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/team-schemas.ts",
+              "line_start": 229,
+              "line_end": 229,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_TeamsDeleteOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/team-schemas.ts",
+              "line_start": 233,
+              "line_end": 233,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_TeamsInviteCreateOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/team-schemas.ts",
+              "line_start": 237,
+              "line_end": 237,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_TeamsInviteListOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/team-schemas.ts",
+              "line_start": 241,
+              "line_end": 241,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_TeamsInviteDeleteOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/team-schemas.ts",
+              "line_start": 245,
+              "line_end": 245,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_TeamsMemberRemoveOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/team-schemas.ts",
+              "line_start": 249,
+              "line_end": 249,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 92,
+              "line_end": 92,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 93,
+              "line_end": 93,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 95,
+              "line_end": 95,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 96,
+              "line_end": 96,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 226,
+              "line_end": 226,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 227,
+              "line_end": 227,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 228,
+              "line_end": 228,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 317,
+              "line_end": 317,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 318,
+              "line_end": 318,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 410,
+              "line_end": 410,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 412,
+              "line_end": 412,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 439,
+              "line_end": 439,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 440,
+              "line_end": 440,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 442,
+              "line_end": 442,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 516,
+              "line_end": 529,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 560,
+              "line_end": 564,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 594,
+              "line_end": 594,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 595,
+              "line_end": 595,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 634,
+              "line_end": 634,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 635,
+              "line_end": 635,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 680,
+              "line_end": 680,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 681,
+              "line_end": 681,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 775,
+              "line_end": 775,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 777,
+              "line_end": 777,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 809,
+              "line_end": 809,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 836,
+              "line_end": 836,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 837,
+              "line_end": 837,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 838,
+              "line_end": 838,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 877,
+              "line_end": 877,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 878,
+              "line_end": 878,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 911,
+              "line_end": 911,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 913,
+              "line_end": 913,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Left side of comma operator is unused and has no side effects.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 937,
+              "line_end": 937,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'AgentIdentityFull' is declared but its value is never read.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 5,
+              "line_end": 5,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'AgentIdentityMark' is declared but its value is never read.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 6,
+              "line_end": 6,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'Container' is declared but its value is never read.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 12,
+              "line_end": 12,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'DescriptionList' is declared but its value is never read.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 15,
+              "line_end": 15,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'Input' is declared but its value is never read.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 19,
+              "line_end": 19,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'KeyFingerprint' is declared but its value is never read.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 20,
+              "line_end": 20,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'Logo' is declared but its value is never read.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 21,
+              "line_end": 21,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'LogoAnimated' is declared but its value is never read.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 22,
+              "line_end": 22,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'MoltThemeProvider' is declared but its value is never read.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 23,
+              "line_end": 23,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'PageHeader' is declared but its value is never read.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 24,
+              "line_end": 24,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'Select' is declared but its value is never read.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 26,
+              "line_end": 26,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'SideNavigation' is declared but its value is never read.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 27,
+              "line_end": 27,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] All destructured elements are unused.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 68,
+              "line_end": 71,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Unused label.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 78,
+              "line_end": 78,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] All destructured elements are unused.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 115,
+              "line_end": 115,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'inputVal' is declared but its value is never read.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 116,
+              "line_end": 116,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Unused label.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 155,
+              "line_end": 155,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Unused label.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 172,
+              "line_end": 172,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Unused label.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 186,
+              "line_end": 186,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Unused label.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 200,
+              "line_end": 200,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Unused label.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 218,
+              "line_end": 218,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Unused label.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 244,
+              "line_end": 244,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Unused label.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 260,
+              "line_end": 260,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Unused label.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 275,
+              "line_end": 275,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Unused label.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 290,
+              "line_end": 290,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Unused label.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 348,
+              "line_end": 348,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Unused label.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 366,
+              "line_end": 366,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Unused label.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 380,
+              "line_end": 380,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Unused label.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 569,
+              "line_end": 569,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Unused label.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 713,
+              "line_end": 713,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Unused label.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 732,
+              "line_end": 732,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Unused label.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 747,
+              "line_end": 747,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Unused label.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 784,
+              "line_end": 784,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Unused label.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 804,
+              "line_end": 804,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Unused label.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 823,
+              "line_end": 823,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'params' is declared but its value is never read.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 829,
+              "line_end": 829,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Unused label.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 871,
+              "line_end": 871,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Unused label.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 932,
+              "line_end": 932,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Unused label.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 962,
+              "line_end": 962,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Unused label.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 1042,
+              "line_end": 1042,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Unused label.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 1050,
+              "line_end": 1050,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'App' is declared but its value is never read.",
+              "file_path": "libs/design-system/demo/main.tsx",
+              "line_start": 3,
+              "line_end": 3,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] All destructured elements are unused.",
+              "file_path": "libs/task-ui/demo/App.tsx",
+              "line_start": 80,
+              "line_end": 80,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'status' is declared but its value is never read.",
+              "file_path": "libs/task-ui/demo/App.tsx",
+              "line_start": 81,
+              "line_end": 81,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'setStatsComplete' is declared but its value is never read.",
+              "file_path": "libs/task-ui/demo/App.tsx",
+              "line_start": 82,
+              "line_end": 82,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'setFilters' is declared but its value is never read.",
+              "file_path": "libs/task-ui/demo/App.tsx",
+              "line_start": 83,
+              "line_end": 83,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'response' is declared but its value is never read.",
+              "file_path": "libs/task-ui/demo/App.tsx",
+              "line_start": 89,
+              "line_end": 89,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'App' is declared but its value is never read.",
+              "file_path": "libs/task-ui/demo/main.tsx",
+              "line_start": 3,
+              "line_end": 3,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'onAccept' is declared but its value is never read.",
+              "file_path": "packages/legreffier-cli/src/InitApp.tsx",
+              "line_start": 50,
+              "line_end": 50,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'showInstallFallback' is declared but its value is never read.",
+              "file_path": "packages/legreffier-cli/src/InitApp.tsx",
+              "line_start": 126,
+              "line_end": 126,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'installationUrl' is declared but its value is never read.",
+              "file_path": "packages/legreffier-cli/src/InitApp.tsx",
+              "line_start": 139,
+              "line_end": 139,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'future' is declared but its value is never read.",
+              "file_path": "packages/legreffier-cli/src/InitApp.tsx",
+              "line_start": 143,
+              "line_end": 143,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'installationSpinnerLabel' is declared but its value is never read.",
+              "file_path": "packages/legreffier-cli/src/InitApp.tsx",
+              "line_start": 150,
+              "line_end": 150,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'setSelectedAgents' is declared but its value is never read.",
+              "file_path": "packages/legreffier-cli/src/InitApp.tsx",
+              "line_start": 275,
+              "line_end": 275,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'showManifestFallback' is declared but its value is never read.",
+              "file_path": "packages/legreffier-cli/src/InitApp.tsx",
+              "line_start": 280,
+              "line_end": 280,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'showInstallFallback' is declared but its value is never read.",
+              "file_path": "packages/legreffier-cli/src/InitApp.tsx",
+              "line_start": 281,
+              "line_end": 281,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'phase' is declared but its value is never read.",
+              "file_path": "packages/legreffier-cli/src/InitApp.tsx",
+              "line_start": 391,
+              "line_end": 391,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Unused label.",
+              "file_path": "packages/legreffier-cli/src/InitApp.tsx",
+              "line_start": 402,
+              "line_end": 402,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Unused label.",
+              "file_path": "packages/legreffier-cli/src/InitApp.tsx",
+              "line_start": 410,
+              "line_end": 410,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] Unused label.",
+              "file_path": "packages/legreffier-cli/src/InitApp.tsx",
+              "line_start": 411,
+              "line_end": 411,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'callerNs' is declared but its value is never read.",
+              "file_path": "libs/task-service/src/task.service.ts",
+              "line_start": 411,
+              "line_end": 411,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'callerNs' is declared but its value is never read.",
+              "file_path": "libs/task-service/src/task.service.ts",
+              "line_start": 534,
+              "line_end": 534,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'callerNs' is declared but its value is never read.",
+              "file_path": "libs/task-service/src/task.service.ts",
+              "line_start": 698,
+              "line_end": 698,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'callerNs' is declared but its value is never read.",
+              "file_path": "libs/task-service/src/task.service.ts",
+              "line_start": 805,
+              "line_end": 805,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] 'callerNs' is declared but its value is never read.",
+              "file_path": "libs/task-service/src/task.service.ts",
+              "line_start": 1016,
+              "line_end": 1016,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_TaskCreateOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/task-schemas.ts",
+              "line_start": 734,
+              "line_end": 734,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_TaskGetOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/task-schemas.ts",
+              "line_start": 738,
+              "line_end": 738,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_TaskListOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/task-schemas.ts",
+              "line_start": 742,
+              "line_end": 742,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_TaskAttemptsOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/task-schemas.ts",
+              "line_start": 748,
+              "line_end": 748,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_TaskMessagesOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/task-schemas.ts",
+              "line_start": 752,
+              "line_end": 752,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_TaskArtifactsListOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/task-schemas.ts",
+              "line_start": 756,
+              "line_end": 756,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_TaskArtifactUploadOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/task-schemas.ts",
+              "line_start": 760,
+              "line_end": 760,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_TaskArtifactStageOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/task-schemas.ts",
+              "line_start": 764,
+              "line_end": 764,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_TaskSchemasDownloadOutputShape' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/task-schemas.ts",
+              "line_start": 776,
+              "line_end": 776,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_variable] '_TaskSchemasOutputMatchesApi' is declared but its value is never read.",
+              "file_path": "apps/mcp-server/src/schemas/task-schemas.ts",
+              "line_start": 780,
+              "line_end": 780,
+              "metric_value": 0.0
+            }
+          ]
+        },
+        {
+          "severity": "info",
+          "threshold": 0,
+          "description": "Code that cannot be reached during execution",
+          "entities": [
+            {
+              "entity_name": "[unreachable_code] Unreachable code detected.",
+              "file_path": "apps/console/src/App.tsx",
+              "line_start": 34,
+              "line_end": 38,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unreachable_code] Unreachable code detected.",
+              "file_path": "apps/landing/src/App.tsx",
+              "line_start": 17,
+              "line_end": 25,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unreachable_code] Unreachable code detected.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 77,
+              "line_end": 77,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unreachable_code] Unreachable code detected.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 89,
+              "line_end": 106,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unreachable_code] Unreachable code detected.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 120,
+              "line_end": 120,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unreachable_code] Unreachable code detected.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 833,
+              "line_end": 840,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unreachable_code] Unreachable code detected.",
+              "file_path": "libs/design-system/demo/App.tsx",
+              "line_start": 885,
+              "line_end": 917,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unreachable_code] Unreachable code detected.",
+              "file_path": "libs/task-ui/demo/App.tsx",
+              "line_start": 96,
+              "line_end": 96,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unreachable_code] Unreachable code detected.",
+              "file_path": "packages/legreffier-cli/src/InitApp.tsx",
+              "line_start": 60,
+              "line_end": 67,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unreachable_code] Unreachable code detected.",
+              "file_path": "packages/legreffier-cli/src/InitApp.tsx",
+              "line_start": 76,
+              "line_end": 80,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unreachable_code] Unreachable code detected.",
+              "file_path": "packages/legreffier-cli/src/InitApp.tsx",
+              "line_start": 85,
+              "line_end": 102,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unreachable_code] Unreachable code detected.",
+              "file_path": "packages/legreffier-cli/src/InitApp.tsx",
+              "line_start": 107,
+              "line_end": 119,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unreachable_code] Unreachable code detected.",
+              "file_path": "packages/legreffier-cli/src/InitApp.tsx",
+              "line_start": 156,
+              "line_end": 203,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unreachable_code] Unreachable code detected.",
+              "file_path": "packages/legreffier-cli/src/InitApp.tsx",
+              "line_start": 421,
+              "line_end": 421,
+              "metric_value": 0.0
+            }
+          ]
+        },
+        {
+          "severity": "info",
+          "threshold": 0,
+          "description": "Unused import statements that should be removed",
+          "entities": [
+            {
+              "entity_name": "[unused_import] '_CryptoPrepareSignatureInputMatchesSchema' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/crypto-schemas.ts",
+              "line_start": 96,
+              "line_end": 96,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_CryptoSubmitSignatureInputMatchesSchema' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/crypto-schemas.ts",
+              "line_start": 100,
+              "line_end": 100,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_CryptoSigningStatusInputMatchesSchema' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/crypto-schemas.ts",
+              "line_start": 104,
+              "line_end": 104,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_CryptoVerifyInputMatchesSchema' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/crypto-schemas.ts",
+              "line_start": 108,
+              "line_end": 108,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_CryptoPrepareSignatureOutputMatchesApi' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/crypto-schemas.ts",
+              "line_start": 113,
+              "line_end": 113,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_CryptoSubmitSignatureOutputMatchesApi' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/crypto-schemas.ts",
+              "line_start": 117,
+              "line_end": 117,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_CryptoSigningStatusOutputMatchesApi' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/crypto-schemas.ts",
+              "line_start": 121,
+              "line_end": 121,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_CryptoVerifyOutputMatchesApi' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/crypto-schemas.ts",
+              "line_start": 125,
+              "line_end": 125,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_DiariesCreateInputMatchesSchema' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/diary-schemas.ts",
+              "line_start": 85,
+              "line_end": 85,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_DiariesGetInputMatchesSchema' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/diary-schemas.ts",
+              "line_start": 89,
+              "line_end": 89,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_EntryCreateInputMatchesSchema' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/entry-schemas.ts",
+              "line_start": 389,
+              "line_end": 389,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_EntryGetInputMatchesSchema' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/entry-schemas.ts",
+              "line_start": 393,
+              "line_end": 393,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_EntryListInputMatchesSchema' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/entry-schemas.ts",
+              "line_start": 397,
+              "line_end": 397,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_EntrySearchInputMatchesSchema' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/entry-schemas.ts",
+              "line_start": 401,
+              "line_end": 401,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_EntryUpdateInputMatchesSchema' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/entry-schemas.ts",
+              "line_start": 405,
+              "line_end": 405,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_EntryDeleteInputMatchesSchema' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/entry-schemas.ts",
+              "line_start": 409,
+              "line_end": 409,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_EntryCreateOutputMatchesApi' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/entry-schemas.ts",
+              "line_start": 413,
+              "line_end": 413,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_EntryGetOutputMatchesApi' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/entry-schemas.ts",
+              "line_start": 417,
+              "line_end": 417,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_EntryListOutputMatchesApi' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/entry-schemas.ts",
+              "line_start": 421,
+              "line_end": 421,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_EntryUpdateOutputMatchesApi' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/entry-schemas.ts",
+              "line_start": 425,
+              "line_end": 425,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_EntryDeleteOutputMatchesApi' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/entry-schemas.ts",
+              "line_start": 429,
+              "line_end": 429,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_EntrySearchOutputMatchesApi' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/entry-schemas.ts",
+              "line_start": 433,
+              "line_end": 433,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_DiaryTagsOutputMatchesApi' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/entry-schemas.ts",
+              "line_start": 437,
+              "line_end": 437,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_GrantCreateOutputMatchesApi' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/grant-schemas.ts",
+              "line_start": 105,
+              "line_end": 105,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_GrantRevokeOutputMatchesApi' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/grant-schemas.ts",
+              "line_start": 109,
+              "line_end": 109,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_GrantListOutputMatchesApi' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/grant-schemas.ts",
+              "line_start": 113,
+              "line_end": 113,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_TaskGrantCreateOutputMatchesApi' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/grant-schemas.ts",
+              "line_start": 144,
+              "line_end": 144,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_TaskGrantRevokeOutputMatchesApi' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/grant-schemas.ts",
+              "line_start": 148,
+              "line_end": 148,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_TaskGrantListOutputMatchesApi' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/grant-schemas.ts",
+              "line_start": 152,
+              "line_end": 152,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_WhoamiInputMatchesSchema' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/identity-schemas.ts",
+              "line_start": 63,
+              "line_end": 63,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_AgentLookupInputMatchesSchema' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/identity-schemas.ts",
+              "line_start": 67,
+              "line_end": 67,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_AgentLookupOutputMatchesApi' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/identity-schemas.ts",
+              "line_start": 72,
+              "line_end": 72,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_PackGetInputMatchesSchema' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/pack-schemas.ts",
+              "line_start": 772,
+              "line_end": 772,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_PackListInputMatchesSchema' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/pack-schemas.ts",
+              "line_start": 776,
+              "line_end": 776,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_PackPreviewInputMatchesSchema' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/pack-schemas.ts",
+              "line_start": 780,
+              "line_end": 780,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_PackCreateInputMatchesSchema' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/pack-schemas.ts",
+              "line_start": 784,
+              "line_end": 784,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_PackProvenanceInputMatchesSchema' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/pack-schemas.ts",
+              "line_start": 788,
+              "line_end": 788,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_PackUpdateInputMatchesSchema' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/pack-schemas.ts",
+              "line_start": 792,
+              "line_end": 792,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_PackRenderInputMatchesSchema' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/pack-schemas.ts",
+              "line_start": 796,
+              "line_end": 796,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_RenderedPackGetInputMatchesSchema' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/pack-schemas.ts",
+              "line_start": 800,
+              "line_end": 800,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_RenderedPackListInputMatchesSchema' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/pack-schemas.ts",
+              "line_start": 804,
+              "line_end": 804,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_PackRenderPreviewInputMatchesSchema' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/pack-schemas.ts",
+              "line_start": 808,
+              "line_end": 808,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_RelationCreateInputMatchesSchema' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/relation-schemas.ts",
+              "line_start": 181,
+              "line_end": 181,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_RelationListInputMatchesSchema' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/relation-schemas.ts",
+              "line_start": 185,
+              "line_end": 185,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_RelationUpdateInputMatchesSchema' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/relation-schemas.ts",
+              "line_start": 189,
+              "line_end": 189,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_RelationDeleteInputMatchesSchema' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/relation-schemas.ts",
+              "line_start": 193,
+              "line_end": 193,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_RelationCreateOutputMatchesApi' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/relation-schemas.ts",
+              "line_start": 198,
+              "line_end": 198,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_RelationListOutputMatchesApi' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/relation-schemas.ts",
+              "line_start": 202,
+              "line_end": 202,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_RelationUpdateOutputMatchesApi' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/relation-schemas.ts",
+              "line_start": 206,
+              "line_end": 206,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_TeamsCreateOutputCovers201' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/team-schemas.ts",
+              "line_start": 256,
+              "line_end": 256,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] 'DiaryEntry' is declared but never used.",
+              "file_path": "infra/ory/permissions.ts",
+              "line_start": 122,
+              "line_end": 122,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] 'ContextPack' is declared but never used.",
+              "file_path": "infra/ory/permissions.ts",
+              "line_start": 143,
+              "line_end": 143,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] 'Task' is declared but never used.",
+              "file_path": "infra/ory/permissions.ts",
+              "line_start": 168,
+              "line_end": 168,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] 'RuntimeProfile' is declared but never used.",
+              "file_path": "infra/ory/permissions.ts",
+              "line_start": 285,
+              "line_end": 285,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_TaskCreateInputMatchesApi' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/task-schemas.ts",
+              "line_start": 145,
+              "line_end": 145,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_TaskListInputMatchesApi' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/task-schemas.ts",
+              "line_start": 305,
+              "line_end": 305,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_TaskMessagesListInputMatchesApi' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/task-schemas.ts",
+              "line_start": 361,
+              "line_end": 361,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_TaskArtifactsListInputMatchesApi' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/task-schemas.ts",
+              "line_start": 398,
+              "line_end": 398,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_TaskArtifactDownloadInputMatchesApi' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/task-schemas.ts",
+              "line_start": 483,
+              "line_end": 483,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_TaskArtifactStageInputMatchesApi' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/task-schemas.ts",
+              "line_start": 517,
+              "line_end": 517,
+              "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unused_import] '_TaskArtifactDownloadOutputIncludesApi' is declared but never used.",
+              "file_path": "apps/mcp-server/src/schemas/task-schemas.ts",
+              "line_start": 774,
+              "line_end": 774,
+              "metric_value": 0.0
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "file_summaries": [
+    {
+      "file_path": "libs/agent-key-service/src/agent-key-service.ts",
+      "total_findings": 6,
+      "warning_findings": 6,
+      "composite_risk_score": 80.0
+    },
+    {
+      "file_path": "libs/task-service/src/task.service.ts",
+      "total_findings": 10,
+      "warning_findings": 5,
+      "composite_risk_score": 75.0
+    },
+    {
+      "file_path": "apps/agent-daemon/src/cli/poll-shared.ts",
+      "total_findings": 5,
+      "warning_findings": 5,
+      "composite_risk_score": 75.0
+    },
+    {
+      "file_path": "libs/auth/src/token-validator.ts",
+      "total_findings": 4,
+      "warning_findings": 4,
+      "composite_risk_score": 60.0
+    },
+    {
+      "file_path": "libs/task-workflows/src/task-workflows.ts",
+      "total_findings": 4,
+      "warning_findings": 4,
+      "composite_risk_score": 60.0
+    },
+    {
+      "file_path": "libs/credential-broker/src/lib/broker.ts",
+      "total_findings": 4,
+      "warning_findings": 4,
+      "composite_risk_score": 60.0
+    },
+    {
+      "file_path": "packages/legreffier-cli/src/PortApp.tsx",
+      "total_findings": 4,
+      "warning_findings": 4,
+      "composite_risk_score": 60.0
+    },
+    {
+      "file_path": "apps/mcp-server/src/utils.ts",
+      "total_findings": 4,
+      "warning_findings": 4,
+      "composite_risk_score": 60.0
+    },
+    {
+      "file_path": "apps/console-e2e/src/helpers/kratos.ts",
+      "total_findings": 4,
+      "warning_findings": 4,
+      "composite_risk_score": 60.0
+    },
+    {
+      "file_path": "apps/console/src/App.tsx",
+      "total_findings": 16,
+      "warning_findings": 0,
+      "composite_risk_score": 50.0
+    },
+    {
+      "file_path": "apps/mcp-server/src/schemas/diary-schemas.ts",
+      "total_findings": 5,
+      "warning_findings": 0,
+      "composite_risk_score": 50.0
+    },
+    {
+      "file_path": "apps/mcp-server/src/schemas/pack-schemas.ts",
+      "total_findings": 24,
+      "warning_findings": 0,
+      "composite_risk_score": 50.0
+    },
+    {
+      "file_path": "apps/mcp-server/src/schemas/team-schemas.ts",
+      "total_findings": 9,
+      "warning_findings": 0,
+      "composite_risk_score": 50.0
+    },
+    {
+      "file_path": "libs/design-system/demo/App.tsx",
+      "total_findings": 79,
+      "warning_findings": 0,
+      "composite_risk_score": 50.0
+    },
+    {
+      "file_path": "libs/task-ui/demo/App.tsx",
+      "total_findings": 6,
+      "warning_findings": 0,
+      "composite_risk_score": 50.0
+    },
+    {
+      "file_path": "packages/legreffier-cli/src/InitApp.tsx",
+      "total_findings": 18,
+      "warning_findings": 0,
+      "composite_risk_score": 50.0
+    },
+    {
+      "file_path": "apps/mcp-server/src/schemas/task-schemas.ts",
+      "total_findings": 17,
+      "warning_findings": 0,
+      "composite_risk_score": 50.0
+    },
+    {
+      "file_path": "apps/mcp-server/src/schemas/crypto-schemas.ts",
+      "total_findings": 8,
+      "warning_findings": 0,
+      "composite_risk_score": 50.0
+    },
+    {
+      "file_path": "apps/mcp-server/src/schemas/entry-schemas.ts",
+      "total_findings": 13,
+      "warning_findings": 0,
+      "composite_risk_score": 50.0
+    },
+    {
+      "file_path": "apps/mcp-server/src/schemas/grant-schemas.ts",
+      "total_findings": 6,
+      "warning_findings": 0,
+      "composite_risk_score": 50.0
+    }
+  ]
+}
