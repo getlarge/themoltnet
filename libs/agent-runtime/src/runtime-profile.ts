@@ -7,7 +7,6 @@ import type {
   RuntimeProfileWorkspaceMode,
 } from '@moltnet/tasks';
 import { RuntimeProfileSandbox } from '@moltnet/tasks';
-import type { SandboxConfig } from '@themoltnet/pi-runtime';
 import type { Agent } from '@themoltnet/sdk';
 import { Value } from 'typebox/value';
 
@@ -40,7 +39,12 @@ export interface ResolvedRuntimeProfile {
   requiredExecutables: string[];
   toolEnforcement: RuntimeProfileToolEnforcement;
   context: RuntimeProfileContext[];
-  sandboxConfig: SandboxConfig;
+  /**
+   * The stored profile's sandbox declaration, validated against the
+   * `RuntimeProfileSandbox` schema. Runtime-specific sandbox packages accept
+   * it as a subset of their own config; this lib knows no runtime.
+   */
+  sandboxConfig: RuntimeProfileSandbox;
   mountPath: string;
   source: string;
 }

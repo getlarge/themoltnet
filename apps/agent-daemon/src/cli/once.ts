@@ -8,6 +8,11 @@ import {
   type TaskExecutor,
 } from '@themoltnet/agent-runtime';
 import {
+  resolveProfileWarmSessionTtlSec,
+  resolveRuntimeProfile,
+  validateRuntimeProfilePrerequisites,
+} from '@themoltnet/agent-runtime';
+import {
   assertGuestEnvironmentBoundary,
   findMainWorktree,
 } from '@themoltnet/pi-runtime';
@@ -48,11 +53,6 @@ import {
 import { initWorkerOtel } from '../lib/otel.js';
 import { ensurePiAgentDir } from '../lib/pi-agent-dir.js';
 import { runWithDaemonRuntimeContext } from '../lib/runtime-context.js';
-import {
-  resolveProfileWarmSessionTtlSec,
-  resolveRuntimeProfile,
-  validateRuntimeProfilePrerequisites,
-} from '../lib/runtime-profile.js';
 import { createRuntimeProfileRetryTriage } from '../lib/runtime-profile-retry-triage.js';
 import { reapRuntimeSlotResources } from '../lib/runtime-resource-reaper.js';
 import {

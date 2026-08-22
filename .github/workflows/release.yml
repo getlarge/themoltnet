@@ -31,7 +31,7 @@ on:
       republish:
         description: >
           Comma-separated packages to re-publish from existing draft releases.
-          Valid values: sdk, os-keyring, tasks-orchestrator, credentials, credential-broker, ctap, yubikey-preview-sign, signer, github-agent, legreffier, cli, api-client, dspy-adapters, skill, design-system, pi-extension, pi-runtime, shell-command-analyzer, agent-runtime, node-red-theme, agent-daemon, console, database, landing, mcp-host, mcp-server, rest-api, otel-custom-collector
+          Valid values: sdk, os-keyring, tasks-orchestrator, credentials, credential-broker, ctap, yubikey-preview-sign, signer, github-agent, legreffier, cli, api-client, dspy-adapters, skill, design-system, pi-extension, sandbox-gondolin, pi-runtime, shell-command-analyzer, agent-runtime, node-red-theme, agent-daemon, console, database, landing, mcp-host, mcp-server, rest-api, otel-custom-collector
         required: false
         type: string
 
@@ -98,6 +98,8 @@ jobs:
       agent-runtime-tag-name: ${{ steps.release.outputs['libs/agent-runtime--tag_name'] }}
       pi-extension-release-created: ${{ steps.release.outputs['libs/pi-extension--release_created'] }}
       pi-extension-tag-name: ${{ steps.release.outputs['libs/pi-extension--tag_name'] }}
+      sandbox-gondolin-release-created: ${{ steps.release.outputs['libs/sandbox-gondolin--release_created'] }}
+      sandbox-gondolin-tag-name: ${{ steps.release.outputs['libs/sandbox-gondolin--tag_name'] }}
       pi-runtime-release-created: ${{ steps.release.outputs['libs/pi-runtime--release_created'] }}
       pi-runtime-tag-name: ${{ steps.release.outputs['libs/pi-runtime--tag_name'] }}
       shell-command-analyzer-release-created: ${{ steps.release.outputs['libs/shell-command-analyzer--release_created'] }}
@@ -252,6 +254,8 @@ jobs:
       agent-runtime-tag: ${{ steps.resolve.outputs.agent-runtime-tag }}
       pi-extension: ${{ steps.resolve.outputs.pi-extension }}
       pi-extension-tag: ${{ steps.resolve.outputs.pi-extension-tag }}
+      sandbox-gondolin: ${{ steps.resolve.outputs.sandbox-gondolin }}
+      sandbox-gondolin-tag: ${{ steps.resolve.outputs.sandbox-gondolin-tag }}
       pi-runtime: ${{ steps.resolve.outputs.pi-runtime }}
       pi-runtime-tag: ${{ steps.resolve.outputs.pi-runtime-tag }}
       shell-command-analyzer: ${{ steps.resolve.outputs.shell-command-analyzer }}
@@ -308,6 +312,8 @@ jobs:
           RP_AGENT_RUNTIME_TAG: ${{ needs.release-please.outputs.agent-runtime-tag-name }}
           RP_PI_EXTENSION_CREATED: ${{ needs.release-please.outputs.pi-extension-release-created }}
           RP_PI_EXTENSION_TAG: ${{ needs.release-please.outputs.pi-extension-tag-name }}
+          RP_SANDBOX_GONDOLIN_CREATED: ${{ needs.release-please.outputs.sandbox-gondolin-release-created }}
+          RP_SANDBOX_GONDOLIN_TAG: ${{ needs.release-please.outputs.sandbox-gondolin-tag-name }}
           RP_PI_RUNTIME_CREATED: ${{ needs.release-please.outputs.pi-runtime-release-created }}
           RP_PI_RUNTIME_TAG: ${{ needs.release-please.outputs.pi-runtime-tag-name }}
           RP_SHELL_ANALYZER_CREATED: ${{ needs.release-please.outputs.shell-command-analyzer-release-created }}
@@ -430,6 +436,7 @@ jobs:
           resolve "design-system" "$RP_DESIGN_SYSTEM_CREATED" "$RP_DESIGN_SYSTEM_TAG" "design-system"
           resolve "agent-runtime" "$RP_AGENT_RUNTIME_CREATED" "$RP_AGENT_RUNTIME_TAG" "agent-runtime"
           resolve "pi-extension" "$RP_PI_EXTENSION_CREATED" "$RP_PI_EXTENSION_TAG" "pi-extension"
+          resolve "sandbox-gondolin" "$RP_SANDBOX_GONDOLIN_CREATED" "$RP_SANDBOX_GONDOLIN_TAG" "sandbox-gondolin"
           resolve "pi-runtime" "$RP_PI_RUNTIME_CREATED" "$RP_PI_RUNTIME_TAG" "pi-runtime"
           resolve "shell-command-analyzer" "$RP_SHELL_ANALYZER_CREATED" "$RP_SHELL_ANALYZER_TAG" "shell-command-analyzer"
           resolve "node-red"     "$RP_NODE_RED_CREATED"  "$RP_NODE_RED_TAG"  "node-red-contrib-core"
@@ -1440,10 +1447,55 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  publish-sandbox-gondolin:
+    name: Publish Sandbox Gondolin to npm
+    needs: resolve-publish
+    if: ${{ always() && needs.resolve-publish.outputs.sandbox-gondolin == 'true' && !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm exec nx run @themoltnet/sandbox-gondolin:build
+
+      - run: pnpm exec nx run @themoltnet/sandbox-gondolin:test
+
+      - run: pnpm exec nx run @themoltnet/sandbox-gondolin:check:pack
+
+      - name: Publish @themoltnet/sandbox-gondolin
+        uses: nick-fields/retry@v4.0.0
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: pnpm --filter @themoltnet/sandbox-gondolin publish --no-git-checks --access public --provenance
+
+      - name: Publish Sandbox Gondolin release
+        run: gh release edit "${{ needs.resolve-publish.outputs.sandbox-gondolin-tag }}" --draft=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   publish-pi-runtime:
     name: Publish Pi Runtime to npm
     needs:
-      [resolve-publish, publish-agent-runtime, publish-shell-command-analyzer]
+      [
+        resolve-publish,
+        publish-agent-runtime,
+        publish-sandbox-gondolin,
+        publish-shell-command-analyzer,
+      ]
     if: ${{ always() && needs.resolve-publish.outputs.pi-runtime == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
@@ -1487,6 +1539,7 @@ jobs:
       [
         resolve-publish,
         publish-agent-runtime,
+        publish-sandbox-gondolin,
         publish-pi-runtime,
         publish-shell-command-analyzer,
       ]
@@ -1540,6 +1593,7 @@ jobs:
       [
         resolve-publish,
         publish-agent-runtime,
+        publish-sandbox-gondolin,
         publish-pi-runtime,
         publish-os-keyring,
       ]

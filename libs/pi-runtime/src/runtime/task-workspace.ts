@@ -10,8 +10,8 @@ import {
 import { join, relative, sep } from 'node:path';
 
 import type { ClaimedTask } from '@themoltnet/agent-runtime';
+import { findMainWorktree } from '@themoltnet/sandbox-gondolin';
 
-import { findMainWorktree } from '../vm-manager.js';
 import type { PiTaskExecutionPlan } from './execution-plan.js';
 
 export interface PreparedTaskWorkspace {

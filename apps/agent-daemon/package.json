@@ -50,10 +50,6 @@
       "import": "./src/lib/finalize.ts",
       "types": "./src/lib/finalize.ts"
     },
-    "./lib/runtime-profile.js": {
-      "import": "./src/lib/runtime-profile.ts",
-      "types": "./src/lib/runtime-profile.ts"
-    },
     "./lib/runtime-profile-retry-triage.js": {
       "import": "./src/lib/runtime-profile-retry-triage.ts",
       "types": "./src/lib/runtime-profile-retry-triage.ts"

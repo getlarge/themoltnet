@@ -15,9 +15,9 @@ import { pipeline } from 'node:stream/promises';
 import { Type } from '@earendil-works/pi-ai';
 import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import { defineTool } from '@earendil-works/pi-coding-agent';
+import { isResolvedPathInsideRoot } from '@themoltnet/sandbox-gondolin';
 import type { connect } from '@themoltnet/sdk';
 
-import { isResolvedPathInsideRoot } from '../path-containment.js';
 import { type ExpandedPack, renderPhase6Markdown } from './render-phase6.js';
 
 type MoltNetAgent = Awaited<ReturnType<typeof connect>>;

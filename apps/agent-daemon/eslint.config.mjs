@@ -32,6 +32,10 @@ export default [
       '@themoltnet/os-keyring',
       'fastify-plugin',
       'multiformats',
+      // Reached only through the bundled @moltnet/tasks schemas since the
+      // profile resolver moved to @themoltnet/agent-runtime; the published
+      // bundle guard still requires it in the manifest.
+      'typebox',
       'pino-opentelemetry-transport',
       // Loaded by name through pino's transport API rather than an ESM import,
       // so Nx cannot discover the runtime edge from the project graph.

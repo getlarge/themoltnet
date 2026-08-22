@@ -1,8 +1,8 @@
 import { type Api, getModel, type Model } from '@earendil-works/pi-ai';
+import type { ResolvedRuntimeProfile } from '@themoltnet/agent-runtime';
 import { createPiRetryTriage } from '@themoltnet/pi-runtime';
 
 import type { RetryTriage } from './retry-triage.js';
-import type { ResolvedRuntimeProfile } from './runtime-profile.js';
 
 export function createRuntimeProfileRetryTriage(options: {
   runtimeProfile: Pick<

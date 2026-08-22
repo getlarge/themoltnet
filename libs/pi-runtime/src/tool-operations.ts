@@ -24,8 +24,7 @@ import {
   truncateHead,
   truncateLine,
 } from '@earendil-works/pi-coding-agent';
-
-import { GUEST_TASK_CONTEXT_MOUNT } from './vm-manager.js';
+import { GUEST_TASK_CONTEXT_MOUNT } from '@themoltnet/sandbox-gondolin';
 
 export type {
   BashOperations,

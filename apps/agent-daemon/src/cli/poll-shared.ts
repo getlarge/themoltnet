@@ -10,6 +10,12 @@ import {
   PollingApiTaskSource,
 } from '@themoltnet/agent-runtime';
 import {
+  type ResolvedRuntimeProfile,
+  resolveProfileWarmSessionTtlSec,
+  resolveRuntimeProfiles,
+  validateRuntimeProfilePrerequisites,
+} from '@themoltnet/agent-runtime';
+import {
   assertGuestEnvironmentBoundary,
   findMainWorktree,
   GuestEnvironmentBoundaryError,
@@ -53,12 +59,6 @@ import {
 import { initWorkerOtel } from '../lib/otel.js';
 import { ensurePiAgentDir } from '../lib/pi-agent-dir.js';
 import { runWithDaemonRuntimeContext } from '../lib/runtime-context.js';
-import {
-  type ResolvedRuntimeProfile,
-  resolveProfileWarmSessionTtlSec,
-  resolveRuntimeProfiles,
-  validateRuntimeProfilePrerequisites,
-} from '../lib/runtime-profile.js';
 import { createRuntimeProfileRetryTriage } from '../lib/runtime-profile-retry-triage.js';
 import { reapRuntimeSlotResources } from '../lib/runtime-resource-reaper.js';
 import {

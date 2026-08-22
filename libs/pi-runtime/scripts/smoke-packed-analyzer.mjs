@@ -28,6 +28,7 @@ if (!existsSync(distPath)) {
 const bundle = readFileSync(distPath, 'utf8');
 const publishedRuntimeDependencies = [
   '@themoltnet/agent-runtime',
+  '@themoltnet/sandbox-gondolin',
   '@themoltnet/sdk',
   '@themoltnet/shell-command-analyzer',
 ];
@@ -91,17 +92,30 @@ function pack(relativePackageDir) {
 try {
   mkdirSync(packDir);
   mkdirSync(installDir);
-  writeFileSync(
-    join(installDir, 'package.json'),
-    JSON.stringify({ name: 'pack-smoke', version: '1.0.0', private: true }),
-  );
-
+  const sandboxGondolinTarball = pack('libs/sandbox-gondolin');
   const tarballs = [
     pack('libs/sdk'),
     pack('libs/agent-runtime'),
+    sandboxGondolinTarball,
     pack('libs/shell-command-analyzer'),
     pack('libs/pi-runtime'),
   ];
+  writeFileSync(
+    join(installDir, 'package.json'),
+    JSON.stringify({
+      name: 'pack-smoke',
+      version: '1.0.0',
+      private: true,
+      // pi-runtime's published manifest pins @themoltnet/sandbox-gondolin by
+      // version. Resolve it from the locally packed tarball so the smoke
+      // proves the packed closure even before that version reaches npm.
+      pnpm: {
+        overrides: {
+          '@themoltnet/sandbox-gondolin': `file:${sandboxGondolinTarball}`,
+        },
+      },
+    }),
+  );
 
   const install = spawnSync('pnpm', ['add', ...tarballs, '--ignore-scripts'], {
     cwd: installDir,

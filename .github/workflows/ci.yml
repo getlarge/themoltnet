@@ -186,7 +186,9 @@ jobs:
             echo "e2e-node=false" >> "$GITHUB_OUTPUT"
           fi
 
-          if contains "@themoltnet/agent-daemon-e2e"; then
+          # The agent-daemon Core lane also runs the live Gondolin VM tests,
+          # which now live in the sandbox package below Pi.
+          if contains "@themoltnet/agent-daemon-e2e" || contains "@themoltnet/sandbox-gondolin"; then
             echo "e2e-agent-daemon=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-agent-daemon=false" >> "$GITHUB_OUTPUT"
@@ -1107,11 +1109,11 @@ jobs:
         env:
           COMPOSE_DISABLE_ENV_FILE: true
         run: docker compose -f docker-compose.e2e.yaml up -d rest-api
-      - name: Run pi-runtime VM integration tests
+      - name: Run Gondolin sandbox VM integration tests
         if: needs.affected.outputs.e2e-agent-daemon == 'true' && matrix.lane.vm_integration
         env:
           MOLTNET_PI_VM_INTEGRATION: '1'
-        run: pnpm exec nx run @themoltnet/pi-runtime:test-ci--src/vm-manager.integration.test.ts
+        run: pnpm exec nx run @themoltnet/sandbox-gondolin:test-ci--src/vm-manager.integration.test.ts
       - name: Run agent-daemon ${{ matrix.lane.name }} E2E tests
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
         run: pnpm exec nx run @themoltnet/agent-daemon-e2e:e2e --configuration=${{ matrix.lane.configuration }}

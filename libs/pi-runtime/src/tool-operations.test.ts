@@ -1,3 +1,4 @@
+import { GUEST_TASK_CONTEXT_MOUNT } from '@themoltnet/sandbox-gondolin';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -7,7 +8,6 @@ import {
   executeGondolinGrep,
   toGuestPath,
 } from './tool-operations.js';
-import { GUEST_TASK_CONTEXT_MOUNT } from './vm-manager.js';
 
 describe('toGuestPath', () => {
   it('accepts normalized guest workspace paths', () => {

@@ -7,13 +7,13 @@ import type {
 import { computeJsonCid } from '@moltnet/crypto-service/json-cid';
 import { RUNTIME_PROFILE_RUNTIME_KIND_REGEXP } from '@moltnet/tasks';
 import type { ClaimedTask, TaskReporter } from '@themoltnet/agent-runtime';
-import type { Agent } from '@themoltnet/sdk';
-
 import {
   ensureSnapshot,
   type ResumeCommand,
   type SnapshotConfig,
-} from './snapshot.js';
+} from '@themoltnet/sandbox-gondolin';
+import type { Agent } from '@themoltnet/sdk';
+
 import type { ToolEnforcement } from './tool-policy/gate.js';
 
 export const PI_RUNTIME_DEFINITION_VERSION = 'moltnet:pi-runtime:v1';
