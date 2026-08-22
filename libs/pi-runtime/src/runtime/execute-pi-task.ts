@@ -52,13 +52,11 @@ import {
   validateTaskOutput,
 } from '@themoltnet/agent-runtime';
 import {
-  ensureSnapshot,
-  type SandboxConfig,
-} from '@themoltnet/sandbox-gondolin';
-import {
   activateAgentEnv,
+  ensureSnapshot,
   type GuestCredentialMode,
   resolveVfsShadowConfig,
+  type SandboxConfig,
   type VmDiagnostic,
 } from '@themoltnet/sandbox-gondolin';
 import type { Agent } from '@themoltnet/sdk';
