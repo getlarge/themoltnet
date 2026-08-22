@@ -20,7 +20,7 @@ implementation can be added beside it without going through Pi.
   (`assertGuestEnvironmentBoundary`).
 - `VmConfig.brokeredSecrets` — host-brokered secrets: the guest sees a
   placeholder, Gondolin's `SecretManager` substitutes the value only in
-  requests to the declared host patterns.
+  requests to the declared protocol, host patterns, and ports.
 - `ensureSnapshot` — build and cache the base checkpoint.
 - Small helpers: `findMainWorktree`, `isResolvedPathInsideRoot`,
   `abortableResource` / `throwIfAborted`.
@@ -36,7 +36,8 @@ implementation can be added beside it without going through Pi.
 
 ## Known boundary facts
 
-- Egress policy is hostname-granular: no scheme or port narrowing.
+- Network egress policy is hostname-granular. Brokered credentials add a
+  separately attested protocol and port boundary.
 - Guest `127.0.0.1` / `localhost` never leave the VM; names are resolved on
   the host side by the proxy.
 - Exec abort only drops the host session; a caller that needs the guest
@@ -78,7 +79,9 @@ curl -fsS \
   https://api.example.com/v1/items
 ```
 
-The host proxy substitutes the real value only for the declared hostname.
+The host proxy substitutes the real value only for the declared origin. HTTPS
+on port 443 is the default. Plain HTTP requires an explicit `protocol: 'http'`
+and should be limited to an exact port for a controlled local fixture.
 Preflight fails before VM resume when the binding is missing, an environment
 name collides with another guest source, or a credential host is outside the
 effective network policy. Values are not substituted in request bodies or URL
@@ -101,7 +104,8 @@ than bearer-secret substitution.
 The portable boundary is the sequence _requirement → trusted local binding →
 resolved delivery_. A Docker sandbox can implement the same sequence with its
 native secret broker; hostname rewriting, placeholder lifecycle, and other
-provider behavior remain adapter-specific.
+provider behavior remain adapter-specific, while the attested protocol, host,
+and port boundary must remain equivalent.
 
 Live tests (`vm-manager.integration.test.ts`) boot real VMs and run only with
 `MOLTNET_PI_VM_INTEGRATION=1`; CI runs them in the agent-daemon Core lane.

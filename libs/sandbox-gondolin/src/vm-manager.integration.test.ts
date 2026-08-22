@@ -54,7 +54,6 @@ describeVm('resumeVm real Gondolin VM integration', () => {
     const firstValue = 'synthetic-first-host-value';
     const rotatedValue = 'synthetic-rotated-host-value';
     const fixtureHost = '127-0-0-1.sslip.io';
-    const deniedFixtureHost = '127-0-0-2.sslip.io';
     let expectedValue = firstValue;
     const receivedHeaders: Array<string | undefined> = [];
     const deniedHeaders: Array<string | undefined> = [];
@@ -103,7 +102,7 @@ describeVm('resumeVm real Gondolin VM integration', () => {
         mountPath: workspace,
         sandboxConfig: {
           network: {
-            allowedInternalHosts: [fixtureHost, deniedFixtureHost],
+            allowedInternalHosts: [fixtureHost],
           },
         },
         brokeredSecrets: [
@@ -111,6 +110,9 @@ describeVm('resumeVm real Gondolin VM integration', () => {
             id: 'fixture-api',
             guestEnv: 'FIXTURE_API_TOKEN',
             hosts: [fixtureHost],
+            // Plain HTTP is permitted only for this controlled local fixture.
+            protocol: 'http',
+            ports: [port],
             value: firstValue,
           },
         ],
@@ -129,7 +131,7 @@ curl -fsS --max-time 20 \\
   http://${fixtureHost}:${port}/authorized
 if curl -fsS --max-time 10 \\
   -H "Authorization: Bearer $FIXTURE_API_TOKEN" \\
-  http://${deniedFixtureHost}:${deniedPort}/denied >/dev/null 2>&1; then
+  http://${fixtureHost}:${deniedPort}/denied >/dev/null 2>&1; then
   echo wrong-destination-accepted
   exit 1
 fi

@@ -61,6 +61,7 @@ export interface PiBrokeredHttpSecretResolveContext {
 }
 
 export const DEFAULT_BROKERED_HTTP_SECRET_RESOLUTION_TIMEOUT_MS = 30_000;
+const MAX_BROKERED_HTTP_SECRET_RESOLUTION_TIMEOUT_MS = 2_147_483_647;
 
 export class PiBrokeredHttpSecretResolutionError extends Error {
   constructor(
@@ -71,6 +72,12 @@ export class PiBrokeredHttpSecretResolutionError extends Error {
     super(message);
     this.name = 'PiBrokeredHttpSecretResolutionError';
   }
+}
+
+function brokeredHttpSecretAbortError(): Error {
+  const error = new Error('Brokered HTTP secret resolution aborted');
+  error.name = 'AbortError';
+  return error;
 }
 
 export interface PiBrokeredHttpSecretContribution {
@@ -364,6 +371,8 @@ export interface PiExecutorManifest {
     id: string;
     guestEnv: string;
     hosts: readonly string[];
+    protocol: 'https' | 'http';
+    ports: readonly number[];
     required: boolean;
   }[];
   tools: {
@@ -437,6 +446,12 @@ export async function buildPiExecutorManifest(input: {
           id: descriptor.id,
           guestEnv: descriptor.guestEnv,
           hosts: [...descriptor.hosts],
+          protocol: descriptor.protocol ?? 'https',
+          ports: [
+            ...(descriptor.ports ?? [
+              descriptor.protocol === 'http' ? 80 : 443,
+            ]),
+          ],
           required: descriptor.required !== false,
         }))
         .sort((left, right) => left.id.localeCompare(right.id)),
@@ -459,89 +474,194 @@ export async function materializePiBrokeredHttpSecrets(input: {
 }): Promise<BrokeredHttpSecretBinding[]> {
   const timeoutMs =
     input.timeoutMs ?? DEFAULT_BROKERED_HTTP_SECRET_RESOLUTION_TIMEOUT_MS;
-  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
-    throw new Error('Brokered HTTP secret resolution timeout must be positive');
+  if (
+    !Number.isInteger(timeoutMs) ||
+    timeoutMs <= 0 ||
+    timeoutMs > MAX_BROKERED_HTTP_SECRET_RESOLUTION_TIMEOUT_MS
+  ) {
+    throw new Error(
+      `Brokered HTTP secret resolution timeout must be an integer between 1 and ${MAX_BROKERED_HTTP_SECRET_RESOLUTION_TIMEOUT_MS}`,
+    );
   }
-  return Promise.all(
-    (input.runtime.brokeredHttpSecrets ?? []).map(
-      async ({ descriptor, resolve }) => {
-        const controller = new AbortController();
-        let timedOut = false;
-        const abortFromAttempt = () => controller.abort(input.signal?.reason);
-        if (input.signal?.aborted) {
-          abortFromAttempt();
-        } else {
-          input.signal?.addEventListener('abort', abortFromAttempt, {
-            once: true,
-          });
-        }
-        const timeout = setTimeout(() => {
-          timedOut = true;
-          controller.abort();
-        }, timeoutMs);
-        const abortPromise = new Promise<never>((_, reject) => {
-          const rejectAbort = () => {
-            const error = new Error('Brokered HTTP secret resolution aborted');
-            error.name = 'AbortError';
-            reject(error);
-          };
-          if (controller.signal.aborted) rejectAbort();
-          else
-            controller.signal.addEventListener('abort', rejectAbort, {
-              once: true,
-            });
-        });
+  if (input.signal?.aborted) throw brokeredHttpSecretAbortError();
 
-        try {
-          const value = await Promise.race([
-            Promise.resolve(
-              resolve({
-                ...input.context,
-                signal: controller.signal,
-              }),
-            ),
-            abortPromise,
-          ]);
-          if (
-            (value === undefined || value === '') &&
-            descriptor.required !== false
-          ) {
-            throw new PiBrokeredHttpSecretResolutionError(
-              descriptor.id,
-              `Required brokered HTTP secret "${descriptor.id}" is unavailable`,
-              false,
-            );
+  const contributions = input.runtime.brokeredHttpSecrets ?? [];
+  const batchController = new AbortController();
+  const abortBatchFromAttempt = () =>
+    batchController.abort(input.signal?.reason);
+  input.signal?.addEventListener('abort', abortBatchFromAttempt, {
+    once: true,
+  });
+
+  try {
+    const outcomes = await Promise.all(
+      contributions.map((contribution, index) =>
+        materializeSinglePiBrokeredHttpSecret({
+          contribution,
+          context: input.context,
+          batchSignal: batchController.signal,
+          timeoutMs,
+          index,
+        }).then((outcome) => {
+          if (outcome.kind === 'failure' && !batchController.signal.aborted) {
+            batchController.abort(outcome.error);
           }
-          return {
-            ...descriptor,
-            hosts: [...descriptor.hosts],
-            value,
-          };
-        } catch (error) {
-          if (input.signal?.aborted) {
-            const aborted = new Error(
-              'Brokered HTTP secret resolution aborted',
-            );
-            aborted.name = 'AbortError';
-            throw aborted;
-          }
-          if (error instanceof PiBrokeredHttpSecretResolutionError) throw error;
-          const reason = timedOut ? 'timed out' : 'failed';
-          // Resolver failures cross into task diagnostics. Keep the message
-          // stable and value-free even when trusted integration code throws an
-          // upstream error containing credential material.
-          throw new PiBrokeredHttpSecretResolutionError(
-            descriptor.id,
-            `Brokered HTTP secret "${descriptor.id}" resolution ${reason}`,
-            true,
-          );
-        } finally {
-          clearTimeout(timeout);
-          input.signal?.removeEventListener('abort', abortFromAttempt);
-        }
+          return outcome;
+        }),
+      ),
+    );
+
+    // Attempt cancellation always wins over provider/timeout failures. Among
+    // genuine provider failures, permanent failures win over transient ones,
+    // then declaration order breaks ties. Batch-aborted siblings are ignored.
+    if (input.signal?.aborted) throw brokeredHttpSecretAbortError();
+    const failures = outcomes
+      .filter(
+        (outcome): outcome is BrokeredHttpSecretFailureOutcome =>
+          outcome.kind === 'failure',
+      )
+      .sort(
+        (left, right) =>
+          Number(left.error.retryable) - Number(right.error.retryable) ||
+          left.index - right.index,
+      );
+    if (failures[0]) throw failures[0].error;
+
+    return outcomes
+      .filter(
+        (outcome): outcome is BrokeredHttpSecretSuccessOutcome =>
+          outcome.kind === 'success',
+      )
+      .sort((left, right) => left.index - right.index)
+      .map(({ binding }) => binding);
+  } finally {
+    input.signal?.removeEventListener('abort', abortBatchFromAttempt);
+  }
+}
+
+interface BrokeredHttpSecretSuccessOutcome {
+  kind: 'success';
+  index: number;
+  binding: BrokeredHttpSecretBinding;
+}
+
+interface BrokeredHttpSecretFailureOutcome {
+  kind: 'failure';
+  index: number;
+  error: PiBrokeredHttpSecretResolutionError;
+}
+
+interface BrokeredHttpSecretBatchAbortOutcome {
+  kind: 'batch-abort';
+  index: number;
+}
+
+type BrokeredHttpSecretResolutionOutcome =
+  | BrokeredHttpSecretSuccessOutcome
+  | BrokeredHttpSecretFailureOutcome
+  | BrokeredHttpSecretBatchAbortOutcome;
+
+/** One auditable resolver lifecycle; the batch coordinator owns precedence. */
+async function materializeSinglePiBrokeredHttpSecret(input: {
+  contribution: PiBrokeredHttpSecretContribution;
+  context: Omit<PiBrokeredHttpSecretResolveContext, 'signal'>;
+  batchSignal: AbortSignal;
+  timeoutMs: number;
+  index: number;
+}): Promise<BrokeredHttpSecretResolutionOutcome> {
+  const { descriptor, resolve } = input.contribution;
+  if (input.batchSignal.aborted) {
+    return { kind: 'batch-abort', index: input.index };
+  }
+
+  const controller = new AbortController();
+  let timedOut = false;
+  const abortFromBatch = () => controller.abort(input.batchSignal.reason);
+  input.batchSignal.addEventListener('abort', abortFromBatch, { once: true });
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, input.timeoutMs);
+  const abortOutcome = new Promise<{ kind: 'abort' }>((resolveAbort) => {
+    const resolveFromAbort = () => resolveAbort({ kind: 'abort' });
+    if (controller.signal.aborted) resolveFromAbort();
+    else
+      controller.signal.addEventListener('abort', resolveFromAbort, {
+        once: true,
+      });
+  });
+
+  try {
+    let resolverOutcome: Promise<
+      | { kind: 'value'; value: string | undefined }
+      | { kind: 'error'; error: unknown }
+    >;
+    try {
+      resolverOutcome = Promise.resolve(
+        resolve({ ...input.context, signal: controller.signal }),
+      ).then(
+        (value) => ({ kind: 'value' as const, value }),
+        (error: unknown) => ({ kind: 'error' as const, error }),
+      );
+    } catch (error) {
+      resolverOutcome = Promise.resolve({ kind: 'error' as const, error });
+    }
+
+    const outcome = await Promise.race([resolverOutcome, abortOutcome]);
+    if (outcome.kind === 'abort') {
+      if (!timedOut) return { kind: 'batch-abort', index: input.index };
+      return {
+        kind: 'failure',
+        index: input.index,
+        error: new PiBrokeredHttpSecretResolutionError(
+          descriptor.id,
+          `Brokered HTTP secret "${descriptor.id}" resolution timed out`,
+          true,
+        ),
+      };
+    }
+    if (outcome.kind === 'error') {
+      return {
+        kind: 'failure',
+        index: input.index,
+        error:
+          outcome.error instanceof PiBrokeredHttpSecretResolutionError
+            ? outcome.error
+            : new PiBrokeredHttpSecretResolutionError(
+                descriptor.id,
+                `Brokered HTTP secret "${descriptor.id}" resolution failed`,
+                true,
+              ),
+      };
+    }
+    if (
+      (outcome.value === undefined || outcome.value === '') &&
+      descriptor.required !== false
+    ) {
+      return {
+        kind: 'failure',
+        index: input.index,
+        error: new PiBrokeredHttpSecretResolutionError(
+          descriptor.id,
+          `Required brokered HTTP secret "${descriptor.id}" is unavailable`,
+          false,
+        ),
+      };
+    }
+    return {
+      kind: 'success',
+      index: input.index,
+      binding: {
+        ...descriptor,
+        hosts: [...descriptor.hosts],
+        ports: descriptor.ports ? [...descriptor.ports] : undefined,
+        value: outcome.value,
       },
-    ),
-  );
+    };
+  } finally {
+    clearTimeout(timeout);
+    input.batchSignal.removeEventListener('abort', abortFromBatch);
+  }
 }
 
 export async function materializePiTools(input: {

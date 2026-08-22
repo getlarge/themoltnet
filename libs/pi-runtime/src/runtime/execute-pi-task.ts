@@ -352,6 +352,8 @@ export interface ExecutePiTaskOptions {
   onSnapshotProgress?: (message: string) => void;
   /** Structured VM credential-boundary diagnostics. */
   onVmDiagnostic?: (diagnostic: VmDiagnostic) => void;
+  /** Internal VM-resume seam for executor integration tests. */
+  resumeVm?: typeof resumeVm;
   /**
    * Optional pre-resolved checkpoint path. If omitted, `ensureSnapshot` is
    * invoked. Useful for batch execution where the caller wants to cache
@@ -857,7 +859,7 @@ export async function executePiTask(
         'moltnet.execution.vm.resume',
         { 'moltnet.workspace.mode': preparedWorkspace.mode },
         () =>
-          resumeVm({
+          (opts.resumeVm ?? resumeVm)({
             checkpointPath,
             agentName: opts.agentName,
             agentRootDir,

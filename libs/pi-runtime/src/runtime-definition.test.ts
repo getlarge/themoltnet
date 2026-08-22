@@ -206,6 +206,8 @@ describe('Pi runtime definitions', () => {
         id: 'github-api',
         guestEnv: 'GH_TOKEN',
         hosts: ['api.github.com'],
+        protocol: 'https',
+        ports: [443],
         required: false,
       },
     ]);
@@ -225,6 +227,8 @@ describe('Pi runtime definitions', () => {
         id: 'github-api',
         guestEnv: 'GH_TOKEN',
         hosts: ['api.github.com'],
+        protocol: 'https',
+        ports: [443],
         required: false,
         value: sentinel,
       },
@@ -386,6 +390,213 @@ describe('Pi runtime definitions', () => {
     attemptController.abort();
     await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
   });
+
+  it('does not invoke providers for an already-cancelled attempt', async () => {
+    const resolve = vi.fn(() => 'must-not-be-minted');
+    const runtime = definePiRuntime({
+      id: 'credential-runtime',
+      version: '1',
+      vm: defineGondolinTemplate({
+        id: 'test-vm',
+        version: '1',
+        checkpointPath: '/tmp/checkpoint',
+      }),
+      brokeredHttpSecrets: [
+        definePiBrokeredHttpSecret({
+          id: 'example-api',
+          guestEnv: 'EXAMPLE_API_TOKEN',
+          hosts: ['api.example.com'],
+          resolve,
+        }),
+      ],
+    });
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(
+      materializePiBrokeredHttpSecrets({
+        runtime,
+        context: {
+          agentName: 'legreffier',
+          claimedTask: {} as never,
+          cwdPath: '/workspace',
+        },
+        signal: controller.signal,
+      }),
+    ).rejects.toMatchObject({ name: 'AbortError' });
+    expect(resolve).not.toHaveBeenCalled();
+  });
+
+  it('aborts and settles sibling providers after one binding fails', async () => {
+    let siblingSignal: AbortSignal | undefined;
+    let siblingSettled = false;
+    const runtime = definePiRuntime({
+      id: 'credential-runtime',
+      version: '1',
+      vm: defineGondolinTemplate({
+        id: 'test-vm',
+        version: '1',
+        checkpointPath: '/tmp/checkpoint',
+      }),
+      brokeredHttpSecrets: [
+        definePiBrokeredHttpSecret({
+          id: 'missing-api',
+          guestEnv: 'MISSING_API_TOKEN',
+          hosts: ['api.example.com'],
+          resolve: () => undefined,
+        }),
+        definePiBrokeredHttpSecret({
+          id: 'slow-api',
+          guestEnv: 'SLOW_API_TOKEN',
+          hosts: ['api.example.com'],
+          resolve: ({ signal }) => {
+            siblingSignal = signal;
+            return new Promise<string>((_resolve, reject) => {
+              signal.addEventListener(
+                'abort',
+                () => {
+                  siblingSettled = true;
+                  reject(new Error('sibling aborted'));
+                },
+                { once: true },
+              );
+            });
+          },
+        }),
+      ],
+    });
+
+    await expect(
+      materializePiBrokeredHttpSecrets({
+        runtime,
+        context: {
+          agentName: 'legreffier',
+          claimedTask: {} as never,
+          cwdPath: '/workspace',
+        },
+      }),
+    ).rejects.toMatchObject({
+      requirementId: 'missing-api',
+      retryable: false,
+    });
+    expect(siblingSignal?.aborted).toBe(true);
+    expect(siblingSettled).toBe(true);
+  });
+
+  it('prefers permanent failures over transient failures deterministically', async () => {
+    const runtime = definePiRuntime({
+      id: 'credential-runtime',
+      version: '1',
+      vm: defineGondolinTemplate({
+        id: 'test-vm',
+        version: '1',
+        checkpointPath: '/tmp/checkpoint',
+      }),
+      brokeredHttpSecrets: [
+        definePiBrokeredHttpSecret({
+          id: 'transient-api',
+          guestEnv: 'TRANSIENT_API_TOKEN',
+          hosts: ['api.example.com'],
+          resolve: () => {
+            throw new Error('temporary provider failure');
+          },
+        }),
+        definePiBrokeredHttpSecret({
+          id: 'missing-api',
+          guestEnv: 'MISSING_API_TOKEN',
+          hosts: ['api.example.com'],
+          resolve: () => undefined,
+        }),
+      ],
+    });
+
+    await expect(
+      materializePiBrokeredHttpSecrets({
+        runtime,
+        context: {
+          agentName: 'legreffier',
+          claimedTask: {} as never,
+          cwdPath: '/workspace',
+        },
+      }),
+    ).rejects.toMatchObject({
+      requirementId: 'missing-api',
+      retryable: false,
+    });
+  });
+
+  it('gives cancellation deterministic precedence over provider failure', async () => {
+    const attempt = new AbortController();
+    const runtime = definePiRuntime({
+      id: 'credential-runtime',
+      version: '1',
+      vm: defineGondolinTemplate({
+        id: 'test-vm',
+        version: '1',
+        checkpointPath: '/tmp/checkpoint',
+      }),
+      brokeredHttpSecrets: [
+        definePiBrokeredHttpSecret({
+          id: 'example-api',
+          guestEnv: 'EXAMPLE_API_TOKEN',
+          hosts: ['api.example.com'],
+          resolve: () => {
+            attempt.abort();
+            throw new Error('provider failed with secret-value');
+          },
+        }),
+      ],
+    });
+
+    await expect(
+      materializePiBrokeredHttpSecrets({
+        runtime,
+        context: {
+          agentName: 'legreffier',
+          claimedTask: {} as never,
+          cwdPath: '/workspace',
+        },
+        signal: attempt.signal,
+      }),
+    ).rejects.toMatchObject({ name: 'AbortError' });
+  });
+
+  it.each([0, 1.5, 2_147_483_648, Number.POSITIVE_INFINITY])(
+    'rejects unsupported timeout %s before invoking a resolver',
+    async (timeoutMs) => {
+      const resolve = vi.fn(() => 'must-not-be-minted');
+      const runtime = definePiRuntime({
+        id: 'credential-runtime',
+        version: '1',
+        vm: defineGondolinTemplate({
+          id: 'test-vm',
+          version: '1',
+          checkpointPath: '/tmp/checkpoint',
+        }),
+        brokeredHttpSecrets: [
+          definePiBrokeredHttpSecret({
+            id: 'example-api',
+            guestEnv: 'EXAMPLE_API_TOKEN',
+            hosts: ['api.example.com'],
+            resolve,
+          }),
+        ],
+      });
+
+      await expect(
+        materializePiBrokeredHttpSecrets({
+          runtime,
+          context: {
+            agentName: 'legreffier',
+            claimedTask: {} as never,
+            cwdPath: '/workspace',
+          },
+          timeoutMs,
+        }),
+      ).rejects.toThrow(/must be an integer between/);
+      expect(resolve).not.toHaveBeenCalled();
+    },
+  );
 
   it('keeps protocol tools while enforcing the model-visible allowlist', () => {
     const tools = [

@@ -55,6 +55,10 @@ export interface BrokeredHttpSecretDescriptor {
   guestEnv: string;
   /** Hostname patterns to which the proxy may send the resolved value. */
   hosts: readonly string[];
+  /** Attested upstream transport. Defaults to HTTPS. */
+  protocol?: 'https' | 'http';
+  /** Attested upstream ports. Defaults to 443 for HTTPS and 80 for HTTP. */
+  ports?: readonly number[];
   /** Missing values fail preflight unless explicitly optional. */
   required?: boolean;
 }
@@ -68,9 +72,9 @@ export interface BrokeredHttpSecretBinding extends BrokeredHttpSecretDescriptor 
 /** Host-only capabilities that cannot widen a validated destination grant. */
 export interface BrokeredHttpSecretManager {
   /** Rotate a configured secret value without changing its destination set. */
-  rotateSecret(name: string, value: string): void;
+  rotateSecret(guestEnv: string, value: string): void;
   /** Revoke a configured secret for the remainder of this VM lifetime. */
-  revokeSecret(name: string): void;
+  revokeSecret(guestEnv: string): void;
 }
 
 export interface VmDiagnostic {
@@ -555,6 +559,11 @@ export function canonicalizeBrokeredHttpSecretDescriptor(
   const id = descriptor.id.trim();
   const guestEnv = descriptor.guestEnv.trim();
   const hosts = [...new Set(descriptor.hosts.map(normalizeHostPattern))].sort();
+  const protocolInput: unknown = descriptor.protocol ?? 'https';
+  const protocol = protocolInput === 'http' ? 'http' : 'https';
+  const ports = [
+    ...new Set(descriptor.ports ?? [protocol === 'https' ? 443 : 80]),
+  ].sort((left, right) => left - right);
 
   if (!BROKERED_SECRET_ID_REGEXP.test(id)) {
     issues.push(`invalid requirement id "${id || '<empty>'}"`);
@@ -575,6 +584,19 @@ export function canonicalizeBrokeredHttpSecretDescriptor(
       issues.push(`requirement "${id}" has invalid host pattern "${host}"`);
     }
   }
+  if (protocolInput !== 'https' && protocolInput !== 'http') {
+    issues.push(
+      `requirement "${id}" has invalid protocol "${String(protocolInput)}"`,
+    );
+  }
+  if (ports.length === 0) {
+    issues.push(`requirement "${id}" has no destination ports`);
+  }
+  for (const port of ports) {
+    if (!Number.isInteger(port) || port < 1 || port > 65_535) {
+      issues.push(`requirement "${id}" has invalid port "${port}"`);
+    }
+  }
 
   if (issues.length > 0) {
     throw new BrokeredHttpSecretBoundaryError(issues);
@@ -583,6 +605,8 @@ export function canonicalizeBrokeredHttpSecretDescriptor(
     id,
     guestEnv,
     hosts: Object.freeze(hosts),
+    protocol,
+    ports: Object.freeze(ports),
     required: descriptor.required !== false,
   });
 }
@@ -685,6 +709,107 @@ export function prepareBrokeredHttpSecrets(options: {
     throw new BrokeredHttpSecretBoundaryError(issues);
   }
   return secrets;
+}
+
+interface BrokeredHttpSecretOriginPolicyEntry {
+  readonly guestEnv: string;
+  readonly hosts: readonly string[];
+  readonly protocol: 'https' | 'http';
+  readonly ports: readonly number[];
+  value: string;
+  deleted: boolean;
+}
+
+function decodeBasicAuthorization(value: string): string | undefined {
+  const match = /^Basic\s+([^\s]+)$/i.exec(value);
+  if (!match) return undefined;
+  try {
+    return Buffer.from(match[1], 'base64').toString('utf8');
+  } catch {
+    return undefined;
+  }
+}
+
+function headersContainSecretValue(headers: Headers, value: string): boolean {
+  if (value === '') return false;
+  for (const [name, headerValue] of headers.entries()) {
+    if (headerValue.includes(value)) return true;
+    if (
+      /^(authorization|proxy-authorization)$/i.test(name) &&
+      decodeBasicAuthorization(headerValue)?.includes(value)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function createBrokeredHttpSecretOriginPolicy(
+  bindings: readonly BrokeredHttpSecretBinding[],
+): {
+  isRequestAllowed: (request: Request) => boolean;
+  rotateSecret: (guestEnv: string, value: string) => void;
+  revokeSecret: (guestEnv: string) => void;
+} {
+  const entries = new Map<string, BrokeredHttpSecretOriginPolicyEntry>();
+  for (const binding of bindings) {
+    if (binding.value === undefined || binding.value === '') continue;
+    const descriptor = canonicalizeBrokeredHttpSecretDescriptor(binding);
+    entries.set(descriptor.guestEnv, {
+      guestEnv: descriptor.guestEnv,
+      hosts: descriptor.hosts,
+      protocol: descriptor.protocol,
+      ports: descriptor.ports,
+      value: binding.value,
+      deleted: false,
+    });
+  }
+
+  return {
+    isRequestAllowed(request) {
+      let url: URL;
+      try {
+        url = new URL(request.url);
+      } catch {
+        return false;
+      }
+      const protocol = url.protocol.slice(0, -1);
+      const port = url.port
+        ? Number(url.port)
+        : protocol === 'https'
+          ? 443
+          : 80;
+      for (const entry of entries.values()) {
+        if (
+          entry.deleted ||
+          !headersContainSecretValue(request.headers, entry.value)
+        ) {
+          continue;
+        }
+        if (
+          protocol !== entry.protocol ||
+          !entry.ports.includes(port) ||
+          !entry.hosts.some((host) => hostMatchesPattern(url.hostname, host))
+        ) {
+          return false;
+        }
+      }
+      return true;
+    },
+    rotateSecret(guestEnv, value) {
+      const entry = entries.get(guestEnv);
+      if (!entry) throw new Error(`unknown brokered secret: ${guestEnv}`);
+      if (entry.deleted) {
+        throw new Error(`brokered secret revoked: ${guestEnv}`);
+      }
+      entry.value = value;
+    },
+    revokeSecret(guestEnv) {
+      const entry = entries.get(guestEnv);
+      if (!entry) throw new Error(`unknown brokered secret: ${guestEnv}`);
+      entry.deleted = true;
+    },
+  };
 }
 
 export function assertGuestEnvironmentBoundary(options: {
@@ -898,6 +1023,9 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       ...Object.keys(config.sandboxConfig?.env ?? {}),
     ],
   });
+  const brokeredSecretOriginPolicy = createBrokeredHttpSecretOriginPolicy(
+    config.brokeredSecrets ?? [],
+  );
 
   const {
     httpHooks,
@@ -908,14 +1036,17 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     allowedInternalHosts: runtimeAllowedInternalHosts,
     ...(Object.keys(brokeredSecrets).length > 0 && {
       secrets: brokeredSecrets,
+      isRequestAllowed: brokeredSecretOriginPolicy.isRequestAllowed,
     }),
   });
   const secretManager: BrokeredHttpSecretManager = Object.freeze({
-    rotateSecret(name: string, value: string) {
-      gondolinSecretManager.updateSecret(name, { value });
+    rotateSecret(guestEnv: string, value: string) {
+      gondolinSecretManager.updateSecret(guestEnv, { value });
+      brokeredSecretOriginPolicy.rotateSecret(guestEnv, value);
     },
-    revokeSecret(name: string) {
-      gondolinSecretManager.deleteSecret(name);
+    revokeSecret(guestEnv: string) {
+      gondolinSecretManager.deleteSecret(guestEnv);
+      brokeredSecretOriginPolicy.revokeSecret(guestEnv);
     },
   });
   const brokeredSecretCount = Object.keys(brokeredSecrets).length;

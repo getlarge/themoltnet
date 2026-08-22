@@ -157,7 +157,8 @@ gh api repos/getlarge/themoltnet/issues/1953 --jq .title
 
 The VM sees only an opaque `GH_TOKEN` placeholder. Gondolin substitutes the
 real value in the outbound header to `api.github.com`; using the placeholder
-for another hostname fails closed. Do not add `GH_TOKEN` or
+over plaintext HTTP, another port, or another hostname fails closed. The
+omitted protocol and port default to HTTPS/443. Do not add `GH_TOKEN` or
 `MOLTNET_RUNTIME_GITHUB_TOKEN` to the profile `requiredEnv` array. The runtime
 policy must still authorize the exact `gh api` command family.
 

@@ -117,7 +117,8 @@ requires `guest-config`.
 
 Trusted custom runtimes can deliver destination-bound HTTP credentials without
 switching to `guest-config`: the guest receives an opaque placeholder and the
-Gondolin host proxy substitutes the value only for declared hosts. See
+Gondolin host proxy substitutes the value only for the attested protocol,
+hostname pattern, and port (HTTPS/443 by default). See
 [Host-brokered HTTP credentials](../../docs/operate/running-agents.md#host-brokered-http-credentials).
 This does not provide diary or Git commit signing; private-key operations remain
 host capabilities.

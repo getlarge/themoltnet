@@ -2,10 +2,61 @@ import { describe, expect, it } from 'vitest';
 
 import {
   BrokeredHttpSecretBoundaryError,
+  canonicalizeBrokeredHttpSecretDescriptor,
   prepareBrokeredHttpSecrets,
 } from './vm-manager.js';
 
 describe('brokered HTTP secret preflight', () => {
+  it('defaults the attested origin to HTTPS on port 443', () => {
+    expect(
+      canonicalizeBrokeredHttpSecretDescriptor({
+        id: 'example-api',
+        guestEnv: 'EXAMPLE_API_TOKEN',
+        hosts: ['api.example.com'],
+      }),
+    ).toEqual({
+      id: 'example-api',
+      guestEnv: 'EXAMPLE_API_TOKEN',
+      hosts: ['api.example.com'],
+      protocol: 'https',
+      ports: [443],
+      required: true,
+    });
+  });
+
+  it('accepts an explicit narrow HTTP fixture origin', () => {
+    expect(
+      canonicalizeBrokeredHttpSecretDescriptor({
+        id: 'fixture-api',
+        guestEnv: 'FIXTURE_API_TOKEN',
+        hosts: ['fixture.internal'],
+        protocol: 'http',
+        ports: [18_080],
+      }),
+    ).toEqual(expect.objectContaining({ protocol: 'http', ports: [18_080] }));
+  });
+
+  it.each([
+    { protocol: 'ftp', ports: [443], expected: /invalid protocol/ },
+    { protocol: 'https', ports: [], expected: /no destination ports/ },
+    { protocol: 'https', ports: [0], expected: /invalid port/ },
+    { protocol: 'https', ports: [65_536], expected: /invalid port/ },
+    { protocol: 'https', ports: [443.5], expected: /invalid port/ },
+  ])(
+    'rejects an invalid attested origin %#',
+    ({ protocol, ports, expected }) => {
+      expect(() =>
+        canonicalizeBrokeredHttpSecretDescriptor({
+          id: 'example-api',
+          guestEnv: 'EXAMPLE_API_TOKEN',
+          hosts: ['api.example.com'],
+          protocol: protocol as 'https',
+          ports,
+        }),
+      ).toThrow(expected);
+    },
+  );
+
   it('materializes an exact destination below a broader network wildcard', () => {
     const secrets = prepareBrokeredHttpSecrets({
       allowedHosts: ['*.example.com'],

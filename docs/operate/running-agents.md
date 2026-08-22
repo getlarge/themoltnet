@@ -1060,13 +1060,17 @@ Trusted runtime code can keep a bearer/API credential on the daemon host while
 a normal Bash or provider CLI command runs inside Gondolin. The runtime declares
 a value-free requirement and resolves its local binding per attempt. Gondolin
 places a random stand-in in the guest environment and substitutes the real value
-only in outbound HTTP headers to the declared hostname patterns.
+only in outbound HTTP headers to the attested origin: protocol, hostname
+pattern, and port. The safe default is HTTPS on port 443. Controlled local
+fixtures can opt into HTTP and an exact port explicitly; production credentials
+should not.
 
 This is narrower than `requiredEnv`: a forwarded environment value is visible
 to the guest process and can be sent to every reachable destination, while a
 brokered value is unavailable to guest code and carries its own destination
-allowlist. Broker destinations must also be covered by the effective sandbox
-network policy, so credential delivery cannot widen egress.
+allowlist. Redirected requests are checked against the same origin. Broker
+hostnames must also be covered by the effective sandbox network policy, so
+credential delivery cannot widen egress.
 
 Runtime profiles do not contain raw values or host secret-provider coordinates.
 The initial integration keeps bindings in trusted local runtime code. A future

@@ -410,6 +410,9 @@ export async function runOnce(
         const fields = {
           event: diagnostic.event,
           credentialMode: diagnostic.credentialMode,
+          ...(diagnostic.brokeredSecretCount !== undefined && {
+            brokeredSecretCount: diagnostic.brokeredSecretCount,
+          }),
         };
         if (diagnostic.level === 'warning') {
           rootLogger.warn(fields, diagnostic.message);

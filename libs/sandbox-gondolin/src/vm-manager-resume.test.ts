@@ -48,9 +48,10 @@ const gondolinMock = vi.hoisted(() => {
       (
         options: {
           secrets?: Record<string, { hosts: string[]; value: string }>;
+          isRequestAllowed?: (request: Request) => boolean;
         } = {},
       ) => ({
-        httpHooks: {},
+        httpHooks: { isRequestAllowed: options.isRequestAllowed },
         env: Object.fromEntries(
           Object.keys(options.secrets ?? {}).map((name) => [
             name,
@@ -234,6 +235,34 @@ describe('resumeVm task-context mount', () => {
         },
       }),
     );
+    const hookOptions = gondolinMock.createHttpHooks.mock.calls[0]?.[0] as {
+      isRequestAllowed: (request: Request) => boolean;
+    };
+    expect(
+      hookOptions.isRequestAllowed(
+        new Request('https://api.example.com/allowed', {
+          headers: { authorization: `Bearer ${sentinel}` },
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      hookOptions.isRequestAllowed(
+        new Request('http://api.example.com/downgrade', {
+          headers: { authorization: `Bearer ${sentinel}` },
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      hookOptions.isRequestAllowed(
+        new Request('https://api.example.com:8443/wrong-port', {
+          headers: {
+            authorization: `Basic ${Buffer.from(
+              `x-access-token:${sentinel}`,
+            ).toString('base64')}`,
+          },
+        }),
+      ),
+    ).toBe(false);
     const resumeOptions = gondolinMock.resumeCalls[0] as {
       env: Record<string, string>;
     };
@@ -256,6 +285,13 @@ describe('resumeVm task-context mount', () => {
       'EXAMPLE_API_TOKEN',
       { value: 'rotated' },
     );
+    expect(
+      hookOptions.isRequestAllowed(
+        new Request('http://api.example.com/downgrade', {
+          headers: { authorization: 'Bearer rotated' },
+        }),
+      ),
+    ).toBe(false);
     managed.secretManager.revokeSecret('EXAMPLE_API_TOKEN');
     expect(gondolinMock.secretManager.deleteSecret).toHaveBeenCalledWith(
       'EXAMPLE_API_TOKEN',
