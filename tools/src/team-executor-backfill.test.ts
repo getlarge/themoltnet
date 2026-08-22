@@ -75,6 +75,29 @@ describe('team executor backfill', () => {
     expect(putTuple).not.toHaveBeenCalled();
   });
 
+  it('reports missing projections without writing in dry-run mode', async () => {
+    const putTuple = vi.fn();
+
+    const result = await backfillTeamExecutors(
+      {
+        listTuples: async ({ relation }) => ({
+          items:
+            relation === 'owners'
+              ? [tuple('team-1', 'owners', 'owner-agent')]
+              : [],
+        }),
+        putTuple,
+      },
+      'dry-run',
+    );
+
+    expect(result.inserted).toBe(0);
+    expect(result.missing).toEqual([
+      tuple('team-1', 'executors', 'owner-agent'),
+    ]);
+    expect(putTuple).not.toHaveBeenCalled();
+  });
+
   it('rejects verify mode when a projection is missing', async () => {
     await expect(
       backfillTeamExecutors(

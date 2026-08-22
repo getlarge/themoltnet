@@ -1,5 +1,8 @@
 // MoltNet Ory Permission Language (OPL)
-// Defines the permission model for teams, diaries, entries, packs, and identities
+// TRANSITION ONLY: deploy before writing Team#executors projections.
+// The intentional difference from permissions.ts is that Task.claim still
+// traverses Team.write. Do not deploy the final model until the executor
+// backfill verifier exits successfully with zero missing tuples.
 
 import type { Context, Namespace } from '@ory/permission-namespace-types';
 
@@ -47,7 +50,8 @@ class Team implements Namespace {
     execute_tasks: (ctx: Context) =>
       this.related.executors.includes(ctx.subject),
 
-    // Read-only access to team resources (all roles)
+    // Executor agents inherit read access through their materialized members
+    // tuple, so access needs no additional union branch.
     access: (ctx: Context) =>
       this.related.owners.includes(ctx.subject) ||
       this.related.managers.includes(ctx.subject) ||
@@ -202,6 +206,7 @@ class Task implements Namespace {
       this.related.team.traverse((t) => t.permits.manage(ctx)) ||
       this.related.managers.includes(ctx.subject),
     claim: (ctx: Context) =>
+      // Transition bridge: final OPL traverses Team.execute_tasks instead.
       this.related.team.traverse((t) => t.permits.write(ctx)) ||
       this.related.writers.includes(ctx.subject) ||
       this.related.managers.includes(ctx.subject),

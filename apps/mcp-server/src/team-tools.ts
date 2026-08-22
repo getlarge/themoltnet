@@ -305,7 +305,15 @@ export async function handleTeamsMemberUpdateRole(
   deps: McpDeps,
   context: HandlerContext,
 ): Promise<CallToolResult> {
-  deps.logger.debug({ tool: 'teams_member_update_role' }, 'tool.invoked');
+  deps.logger.debug(
+    {
+      tool: 'teams_member_update_role',
+      teamId: args.team_id,
+      subjectId: args.subject_id,
+      role: args.role,
+    },
+    'tool.invoked',
+  );
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
@@ -318,7 +326,13 @@ export async function handleTeamsMemberUpdateRole(
 
   if (error || !data) {
     deps.logger.error(
-      { tool: 'teams_member_update_role', err: error },
+      {
+        tool: 'teams_member_update_role',
+        teamId: args.team_id,
+        subjectId: args.subject_id,
+        role: args.role,
+        err: error,
+      },
       'tool.error',
     );
     return errorResult(

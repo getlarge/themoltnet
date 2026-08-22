@@ -34,7 +34,10 @@ import {
 } from '../components/teams/GrantDiaryAccessDialog.js';
 import { GroupCard } from '../components/teams/GroupCard.js';
 import { InviteCard } from '../components/teams/InviteCard.js';
-import { MembersTable } from '../components/teams/MembersTable.js';
+import {
+  editableTeamRoleOptions,
+  MembersTable,
+} from '../components/teams/MembersTable.js';
 import { PendingTransfersPanel } from '../components/teams/PendingTransfersPanel.js';
 import { TeamDiaryCard } from '../components/teams/TeamDiaryCard.js';
 import { canManageTeam } from '../team/permissions.js';
@@ -315,17 +318,7 @@ export function TeamDetailPage({ id }: { id: string }) {
   };
 
   const roleOptions = (member: TeamMember) => {
-    if (!canManage || member.role === 'owner') return [];
-    return member.subjectType === 'agent'
-      ? [
-          { value: 'member', label: 'Member' },
-          { value: 'executor', label: 'Executor' },
-          { value: 'manager', label: 'Manager' },
-        ]
-      : [
-          { value: 'member', label: 'Member' },
-          { value: 'manager', label: 'Manager' },
-        ];
+    return canManage ? editableTeamRoleOptions(member) : [];
   };
 
   return (

@@ -109,9 +109,6 @@ export function initTeamFoundingWorkflow(): void {
           ns,
         );
       } else if (member.role === 'executor') {
-        if (ns !== KetoNamespace.Agent) {
-          throw new Error('The executor team role is agent-only');
-        }
         await relationshipWriter.grantTeamExecutors(
           teamId,
           member.subjectId,
@@ -160,6 +157,8 @@ export function initTeamFoundingWorkflow(): void {
       _creatorNs: 'Agent' | 'Human',
       foundingMembers: FoundingMember[],
     ): Promise<TeamFoundingResult> => {
+      // Validate the complete request before seeding acceptance rows or
+      // invoking any external Keto writes.
       if (
         foundingMembers.some(
           (member) =>

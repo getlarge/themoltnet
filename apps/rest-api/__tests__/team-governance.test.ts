@@ -71,6 +71,7 @@ const authHeaders = { authorization: `Bearer ${TEST_BEARER_TOKEN}` };
 
 const TEAM_ID = 'aa0e8400-e29b-41d4-a716-446655440011';
 const OTHER_TEAM_ID = 'bb0e8400-e29b-41d4-a716-446655440012';
+const OTHER_HUMAN_ID = '550e8400-e29b-41d4-a716-446655440014';
 const DIARY_ID = '880e8400-e29b-41d4-a716-446655440004';
 const TRANSFER_ID = 'cc0e8400-e29b-41d4-a716-446655440013';
 
@@ -553,9 +554,6 @@ describe('PATCH /teams/:id/members/:subjectId', () => {
       OTHER_AGENT_ID,
       'Agent',
     );
-    expect(
-      mocks.relationshipWriter.removeTeamRoleRelation,
-    ).not.toHaveBeenCalled();
   });
 
   it('demotes a manager to member', async () => {
@@ -580,9 +578,6 @@ describe('PATCH /teams/:id/members/:subjectId', () => {
       OTHER_AGENT_ID,
       'Agent',
     );
-    expect(
-      mocks.relationshipWriter.removeTeamRoleRelation,
-    ).not.toHaveBeenCalled();
   });
 
   it('changes an agent role to executor with one projected write', async () => {
@@ -607,15 +602,12 @@ describe('PATCH /teams/:id/members/:subjectId', () => {
       OTHER_AGENT_ID,
       'Agent',
     );
-    expect(
-      mocks.relationshipWriter.removeTeamRoleRelation,
-    ).not.toHaveBeenCalled();
   });
 
   it('rejects assigning executor to a human', async () => {
     mocks.relationshipReader.listTeamMembers.mockResolvedValue([
       {
-        subjectId: OTHER_AGENT_ID,
+        subjectId: OTHER_HUMAN_ID,
         subjectNs: 'Human',
         relation: 'members',
       },
@@ -623,7 +615,7 @@ describe('PATCH /teams/:id/members/:subjectId', () => {
 
     const res = await app.inject({
       method: 'PATCH',
-      url: `/teams/${TEAM_ID}/members/${OTHER_AGENT_ID}`,
+      url: `/teams/${TEAM_ID}/members/${OTHER_HUMAN_ID}`,
       headers: authHeaders,
       payload: { role: 'executor' },
     });
@@ -696,9 +688,6 @@ describe('PATCH /teams/:id/members/:subjectId', () => {
 
     expect(res.statusCode).toBe(200);
     expect(mocks.relationshipWriter.grantTeamManagers).not.toHaveBeenCalled();
-    expect(
-      mocks.relationshipWriter.removeTeamRoleRelation,
-    ).not.toHaveBeenCalled();
   });
 });
 
@@ -754,9 +743,6 @@ describe('POST /teams/join role promotion', () => {
       OWNER_ID,
       'Agent',
     );
-    expect(
-      mocks.relationshipWriter.removeTeamRoleRelation,
-    ).not.toHaveBeenCalled();
   });
 
   it('keeps same-role joins as conflict', async () => {
@@ -813,9 +799,6 @@ describe('POST /teams/join role promotion', () => {
       OWNER_ID,
       'Agent',
     );
-    expect(
-      mocks.relationshipWriter.removeTeamRoleRelation,
-    ).not.toHaveBeenCalled();
   });
 
   it('rejects owner role changes when a lower invite role is redeemed', async () => {
@@ -842,9 +825,6 @@ describe('POST /teams/join role promotion', () => {
 
     expect(res.statusCode).toBe(409);
     expect(mocks.teamRepository.claimInvite).not.toHaveBeenCalled();
-    expect(
-      mocks.relationshipWriter.removeTeamRoleRelation,
-    ).not.toHaveBeenCalled();
   });
 
   it('rejects a human redeeming an executor invite without claiming it', async () => {

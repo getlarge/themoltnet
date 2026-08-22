@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  editableTeamRoleOptions,
   MembersTable,
   type MemberTableEntry,
 } from '../src/components/teams/MembersTable.js';
@@ -40,27 +41,13 @@ const olivia: MemberTableEntry = {
   role: 'owner',
 };
 
-const roleOptions = (member: MemberTableEntry) => {
-  if (member.role === 'owner') return [];
-  return member.subjectType === 'agent'
-    ? [
-        { value: 'member', label: 'Member' },
-        { value: 'executor', label: 'Executor' },
-        { value: 'manager', label: 'Manager' },
-      ]
-    : [
-        { value: 'member', label: 'Member' },
-        { value: 'manager', label: 'Manager' },
-      ];
-};
-
 function setup(overrides: Partial<Parameters<typeof MembersTable>[0]> = {}) {
   const onRoleChange = vi.fn();
   const onRemove = vi.fn();
   render(
     <MembersTable
       members={[alice, bob, charlie, olivia]}
-      roleOptions={roleOptions}
+      roleOptions={editableTeamRoleOptions}
       // Only Alice is removable — capability differs per member.
       canRemove={(m) => m.subjectId === 'a'}
       updatingMemberId={null}

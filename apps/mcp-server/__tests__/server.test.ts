@@ -766,7 +766,7 @@ describe('buildApp', () => {
           "name": "teams_member_remove",
         },
         {
-          "inputSchema": "5a88fc0ddb381f34",
+          "inputSchema": "165164f260c99333",
           "name": "teams_member_update_role",
         },
       ]

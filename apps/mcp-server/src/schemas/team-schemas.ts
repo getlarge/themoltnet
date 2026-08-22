@@ -3,7 +3,7 @@
  *
  * Covers read-only: teams_list, team_members_list.
  * Covers mutations: teams_create/join/delete, teams_invite_create/list/delete,
- * teams_member_remove.
+ * teams_member_remove, teams_member_update_role.
  */
 
 import type {
@@ -162,13 +162,19 @@ export type TeamsMemberRemoveInput = {
 };
 
 export const TeamsMemberUpdateRoleSchema = Type.Object({
-  team_id: Type.String({ description: 'Team ID (UUID).' }),
-  subject_id: Type.String({ description: 'Member subject ID (UUID).' }),
-  role: Type.Union([
-    Type.Literal('member'),
-    Type.Literal('executor'),
-    Type.Literal('manager'),
-  ]),
+  team_id: Type.String({
+    description: 'Team ID (UUID) whose member role should be changed.',
+  }),
+  subject_id: Type.String({
+    description: 'Subject ID (UUID) of the existing team member.',
+  }),
+  role: Type.Union(
+    [Type.Literal('member'), Type.Literal('executor'), Type.Literal('manager')],
+    {
+      description:
+        'New role. Executor is agent-only; humans may be member or manager.',
+    },
+  ),
 });
 export type TeamsMemberUpdateRoleInput = Static<
   typeof TeamsMemberUpdateRoleSchema

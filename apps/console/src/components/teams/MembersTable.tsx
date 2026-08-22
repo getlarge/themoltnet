@@ -33,6 +33,22 @@ export interface TeamRoleOption {
   label: string;
 }
 
+export function editableTeamRoleOptions(
+  member: Pick<MemberTableEntry, 'role' | 'subjectType'>,
+): readonly TeamRoleOption[] {
+  if (member.role === 'owner') return [];
+  return member.subjectType === 'agent'
+    ? [
+        { value: 'member', label: 'Member' },
+        { value: 'executor', label: 'Executor' },
+        { value: 'manager', label: 'Manager' },
+      ]
+    : [
+        { value: 'member', label: 'Member' },
+        { value: 'manager', label: 'Manager' },
+      ];
+}
+
 /**
  * Team members as a scannable table rather than a stack of cards: aligned
  * columns let an operator read identity, kind, and role down a single axis on a
