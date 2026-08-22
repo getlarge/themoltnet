@@ -604,6 +604,42 @@ npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
   node infra/ory/deploy.mjs --apply --opl-only
 ```
 
+### Executor-role authorization rollout
+
+Roll executor claim authority without creating an authorization gap:
+
+1. Deploy `infra/ory/permissions.executor-transition.ts`. It recognizes
+   `Team#executors` while retaining the existing team-write claim path.
+2. Deploy the executor-aware API and atomic role projection writers.
+3. Run `tools/db/backfill-team-executors.ts --dry-run`, `--apply`, then
+   `--verify`. The backfill adds `executors` to existing agent owners and
+   managers and `members` to standalone executors. It never promotes plain
+   members, including the two existing agent members of team
+   `6743b4b1-6b93-46e2-a048-19490f04f91a`.
+4. Verify every agent owner/manager has an executor tuple and every standalone
+   executor has member access.
+5. Deploy the final `infra/ory/permissions.ts`, where task claim traverses only
+   `Team.execute_tasks` plus direct task writer/manager grants.
+6. Monitor claim latency, Keto errors, and authorization denials.
+
+```bash
+npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
+  node infra/ory/deploy.mjs --apply --opl-only \
+  --opl-file infra/ory/permissions.executor-transition.ts
+npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
+  pnpm exec tsx tools/db/backfill-team-executors.ts --dry-run
+npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
+  pnpm exec tsx tools/db/backfill-team-executors.ts --apply
+npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
+  pnpm exec tsx tools/db/backfill-team-executors.ts --verify
+npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
+  node infra/ory/deploy.mjs --apply --opl-only
+```
+
+Run and attach the local comparison described in
+[Keto task-claim benchmark](../contribute/keto-claim-benchmark.md) before
+merging. This is required review evidence, not a latency-sensitive CI job.
+
 The pre-cutover bridge remains recoverable from merge commit `5a86e87d`. If
 post-contraction canaries detect an unexpected denial, restore only that OPL;
 do not roll back the ownership tuples or run `ory update project`:

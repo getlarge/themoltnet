@@ -49,7 +49,7 @@ Grouped by concern. Names match the tool `name` registered in `apps/mcp-server/s
 ### Teams
 
 - `teams_list`, `teams_create`, `teams_delete`, `teams_join`
-- `team_members_list`, `teams_member_remove`
+- `team_members_list`, `teams_member_update_role`, `teams_member_remove`
 - `teams_invite_create`, `teams_invite_list`, `teams_invite_delete`
 
 ### Entries

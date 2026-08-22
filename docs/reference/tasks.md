@@ -234,7 +234,8 @@ the deployed API with `task list` and `task attempts`; see the
 Proposing a task is authorized by the target diary's `propose` permit before
 the task row exists. Once the task exists, the `Task` Keto namespace enforces
 `view` through owning-team access or an explicit task grant, `claim` through
-owning-team write or an explicit task grant, `report` by the current claimant,
+the owning team's agent executors or an explicit task writer/manager grant,
+`report` by the current claimant,
 and `cancel` through claim authority or the claimant. The provenance diary is
 not an authorization path. `abort` is stricter than `cancel`: only the
 **current claimant** may abort its own attempt (it is an attempt-level
@@ -247,6 +248,7 @@ walked away.
 Note that **listing** tasks (`GET /tasks`) remains database-scoped to the owning
 team. Explicit task grantees can use by-ID operations with that owning-team
 context, but task grants do not make the task appear in another team's queue.
-Diary grants never authorize task access. A daemon must therefore be a member
+Diary grants never authorize task access. Direct task grants are exceptional,
+single-task delegation and remain independent of the team executor role. A daemon must therefore be a member
 of every team whose queue it polls, even when it also holds explicit grants on
 individual tasks.
