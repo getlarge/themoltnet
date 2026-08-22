@@ -1,7 +1,7 @@
 import type { CreateTaskData } from '@moltnet/api-client';
+import type { ContextBinding } from '@moltnet/runtime-profiles';
 import {
   type AssessBriefInput,
-  type ContextBinding,
   type CuratePackInput,
   type FreeformInput,
   type FulfillBriefInput,

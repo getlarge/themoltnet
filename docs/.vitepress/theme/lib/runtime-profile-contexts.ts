@@ -12,4 +12,4 @@ export {
   type RuntimeProfileContextRecipe,
   runtimeProfileContextRecipeDescription,
   runtimeProfileContextRecipeIds,
-} from '@moltnet/tasks/context-recipes';
+} from '@moltnet/runtime-profiles/context-recipes';

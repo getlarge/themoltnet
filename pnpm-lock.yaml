@@ -751,6 +751,9 @@ importers:
       '@moltnet/provenance-ui':
         specifier: workspace:*
         version: link:../../libs/provenance-ui
+      '@moltnet/runtime-profiles':
+        specifier: workspace:*
+        version: link:../../libs/runtime-profiles
       '@moltnet/signer-api-client':
         specifier: workspace:*
         version: link:../../libs/signer-api-client
@@ -1537,6 +1540,9 @@ importers:
 
   docs:
     dependencies:
+      '@moltnet/runtime-profiles':
+        specifier: workspace:*
+        version: link:../libs/runtime-profiles
       '@moltnet/tasks':
         specifier: workspace:*
         version: link:../libs/tasks
@@ -1596,6 +1602,9 @@ importers:
 
   libs/agent-eval:
     dependencies:
+      '@moltnet/runtime-profiles':
+        specifier: workspace:*
+        version: link:../runtime-profiles
       '@moltnet/tasks':
         specifier: workspace:*
         version: link:../tasks
@@ -1656,6 +1665,9 @@ importers:
         specifier: 'catalog:'
         version: 1.2.8
     devDependencies:
+      '@moltnet/runtime-profiles':
+        specifier: workspace:*
+        version: link:../runtime-profiles
       '@moltnet/tasks':
         specifier: workspace:*
         version: link:../tasks
@@ -2425,9 +2437,6 @@ importers:
       '@ipld/dag-cbor':
         specifier: 'catalog:'
         version: 9.2.5
-      '@moltnet/runtime-profiles':
-        specifier: workspace:*
-        version: link:../runtime-profiles
       '@noble/curves':
         specifier: 'catalog:'
         version: 2.0.1
@@ -2474,6 +2483,9 @@ importers:
       '@moltnet/models':
         specifier: workspace:*
         version: link:../models
+      '@moltnet/runtime-profiles':
+        specifier: workspace:*
+        version: link:../runtime-profiles
       '@moltnet/tasks':
         specifier: workspace:*
         version: link:../tasks
@@ -2684,6 +2696,9 @@ importers:
       '@moltnet/models':
         specifier: workspace:*
         version: link:../models
+      '@moltnet/runtime-profiles':
+        specifier: workspace:*
+        version: link:../runtime-profiles
       '@moltnet/tasks':
         specifier: workspace:*
         version: link:../tasks

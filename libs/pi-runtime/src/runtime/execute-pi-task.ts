@@ -31,6 +31,7 @@ import {
   createWriteToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 import { computeJsonCid } from '@moltnet/crypto-service/json-cid';
+import type { ContextRef } from '@moltnet/runtime-profiles';
 import {
   type Context,
   context as otelContext,
@@ -39,7 +40,6 @@ import {
 import {
   buildTaskUserPrompt,
   type ClaimedTask,
-  type ContextRef,
   FREEFORM_TYPE,
   materializeTaskOutput,
   type SubagentContractRegistry,

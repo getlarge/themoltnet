@@ -1,4 +1,4 @@
-import type { ContextRef } from '@moltnet/tasks';
+import type { ContextRef } from '@moltnet/runtime-profiles';
 
 const PROMPT_SEPARATOR = '\n\n---\n\n';
 const MAX_MERGED_RUNTIME_CONTEXT_ENTRIES = 10;

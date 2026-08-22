@@ -25,6 +25,9 @@
   ],
   "references": [
     {
+      "path": "../libs/runtime-profiles/tsconfig.lib.json"
+    },
+    {
       "path": "../libs/design-system/tsconfig.lib.json"
     },
     {

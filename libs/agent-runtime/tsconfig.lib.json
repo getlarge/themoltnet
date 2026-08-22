@@ -25,6 +25,9 @@
     },
     {
       "path": "../tasks/tsconfig.lib.json"
+    },
+    {
+      "path": "../runtime-profiles/tsconfig.lib.json"
     }
   ]
 }

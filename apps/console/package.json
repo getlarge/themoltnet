@@ -10,6 +10,7 @@
     "@moltnet/diary-ui": "workspace:*",
     "@moltnet/models": "workspace:*",
     "@moltnet/provenance-ui": "workspace:*",
+    "@moltnet/runtime-profiles": "workspace:*",
     "@moltnet/signer-api-client": "workspace:*",
     "@moltnet/task-ui": "workspace:*",
     "@moltnet/tasks": "workspace:*",

@@ -13,6 +13,7 @@
   },
   "scripts": {},
   "dependencies": {
+    "@moltnet/runtime-profiles": "workspace:*",
     "@moltnet/tasks": "workspace:*",
     "typebox": "catalog:"
   },

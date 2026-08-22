@@ -1,4 +1,5 @@
-import type { ContextRef, RunEvalInput } from '@moltnet/tasks';
+import type { ContextRef } from '@moltnet/runtime-profiles';
+import type { RunEvalInput } from '@moltnet/tasks';
 
 import {
   type AssembledPrompt,

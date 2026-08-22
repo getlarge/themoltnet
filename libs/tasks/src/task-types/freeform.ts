@@ -1,10 +1,10 @@
+import { TaskContext } from '@moltnet/runtime-profiles';
 import { type Static, Type } from 'typebox';
 
 import type {
   AsyncTaskValidationContext,
   TaskValidationError,
 } from '../async-validation.js';
-import { TaskContext } from '../context.js';
 import { SuccessCriteria, VerificationRecord } from '../success-criteria.js';
 
 export const FREEFORM_TYPE = 'freeform' as const;

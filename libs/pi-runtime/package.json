@@ -37,7 +37,6 @@
   "dependencies": {
     "@earendil-works/gondolin": "catalog:",
     "@ipld/dag-cbor": "catalog:",
-    "@moltnet/runtime-profiles": "workspace:*",
     "@noble/curves": "catalog:",
     "@noble/ed25519": "catalog:",
     "@noble/hashes": "catalog:",
@@ -48,7 +47,8 @@
     "@themoltnet/sdk": "workspace:*",
     "@themoltnet/shell-command-analyzer": "workspace:*",
     "multiformats": "catalog:",
-    "typebox": "catalog:"
+    "typebox": "catalog:",
+    "@moltnet/runtime-profiles": "0.1.0"
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": "0.79.4",
@@ -59,6 +59,7 @@
     "@earendil-works/pi-coding-agent": "catalog:",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/models": "workspace:*",
+    "@moltnet/runtime-profiles": "workspace:*",
     "@moltnet/tasks": "workspace:*",
     "@opentelemetry/sdk-metrics": "catalog:",
     "@opentelemetry/sdk-trace-base": "catalog:",

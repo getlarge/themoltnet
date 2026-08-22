@@ -8,9 +8,9 @@
  *   on downstream `judge_eval_attempt` tasks)
  * references: not required (scenario lives entirely in input)
  */
+import { TaskContext } from '@moltnet/runtime-profiles';
 import { type Static, Type } from 'typebox';
 
-import { TaskContext } from '../context.js';
 import { SuccessCriteria, VerificationRecord } from '../success-criteria.js';
 
 export const RUN_EVAL_TYPE = 'run_eval' as const;

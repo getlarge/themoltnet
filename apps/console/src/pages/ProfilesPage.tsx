@@ -17,7 +17,7 @@ import {
   resolveRuntimeProfileContextRecipe,
   runtimeProfileContextRecipeDescription,
   runtimeProfileContextRecipeIds,
-} from '@moltnet/tasks/context-recipes';
+} from '@moltnet/runtime-profiles/context-recipes';
 import { useQuery } from '@tanstack/react-query';
 import {
   Badge,

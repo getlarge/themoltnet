@@ -35,6 +35,9 @@
       "path": "../../libs/signer-api-client/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/runtime-profiles/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/provenance-ui/tsconfig.lib.json"
     },
     {

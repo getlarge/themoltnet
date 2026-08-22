@@ -11,11 +11,11 @@
  * `buildJudgeInput`, exactly matching the hidden-key design in
  * `libs/tasks/src/task-types/run-eval.ts`.
  */
+import type { TaskContext } from '@moltnet/runtime-profiles';
 import type {
   JudgeEvalAttemptInput,
   RunEvalInput,
   SuccessCriteria,
-  TaskContext,
 } from '@moltnet/tasks';
 
 import type { Scenario } from './scenario.js';
