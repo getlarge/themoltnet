@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.7.0](https://github.com/getlarge/themoltnet/compare/console-v0.6.1...console-v0.7.0) (2026-08-22)
+
+
+### Features
+
+* add identity-scoped agent-key lifecycle ([babb76b](https://github.com/getlarge/themoltnet/commit/babb76b12800646e11340e354eaa12f284fb022e))
+* **agent-keys:** expose binding-aware clients ([4f71142](https://github.com/getlarge/themoltnet/commit/4f711427981a243fe8f002778d74bc8ba75fe1d0))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @themoltnet/sdk bumped to 0.136.0
+
 ## [0.6.1](https://github.com/getlarge/themoltnet/compare/console-v0.6.0...console-v0.6.1) (2026-08-19)
 
 

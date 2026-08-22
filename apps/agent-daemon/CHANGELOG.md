@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.43.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.42.1...agent-daemon-v0.43.0) (2026-08-22)
+
+
+### Features
+
+* add identity-scoped agent-key lifecycle ([babb76b](https://github.com/getlarge/themoltnet/commit/babb76b12800646e11340e354eaa12f284fb022e))
+* **agent-keys:** expose binding-aware clients ([4f71142](https://github.com/getlarge/themoltnet/commit/4f711427981a243fe8f002778d74bc8ba75fe1d0))
+* **sandbox-gondolin:** broker destination-bound HTTP secrets ([95d155f](https://github.com/getlarge/themoltnet/commit/95d155fc8f413377a8f48c63a323cb1bb4061c68))
+
+
+### Bug Fixes
+
+* **agent-daemon:** allow OAuth2 with a host-authenticated guest ([647d8e0](https://github.com/getlarge/themoltnet/commit/647d8e006c05351677ddbbf157271db9a1e1026d))
+* **agent-daemon:** allow OAuth2 with a host-authenticated guest ([3afd2ab](https://github.com/getlarge/themoltnet/commit/3afd2ab2fbde8daf66d8659f030419dda773db90)), closes [#1950](https://github.com/getlarge/themoltnet/issues/1950)
+* **agent-daemon:** keep typebox declared for the published bundle ([94444d9](https://github.com/getlarge/themoltnet/commit/94444d9c6e5cec059f54ad3f706b93494ad3d842)), closes [#1890](https://github.com/getlarge/themoltnet/issues/1890)
+* **build:** bundle @moltnet/runtime-profiles declarations into published packages ([871b21a](https://github.com/getlarge/themoltnet/commit/871b21ac59e5d7a99f2bf5de174985dcade05da6)), closes [#1890](https://github.com/getlarge/themoltnet/issues/1890)
+* **lint:** merge duplicate imports introduced by the sandbox extraction merge ([2c2c9ef](https://github.com/getlarge/themoltnet/commit/2c2c9ef9cbe458bd5cf18cc9e6cca8588e4a77e9)), closes [#1890](https://github.com/getlarge/themoltnet/issues/1890)
+* **runtime:** enforce brokered credential origin ([509a312](https://github.com/getlarge/themoltnet/commit/509a31240ef2da3eca11bbd8dcc63b7dccbaa21d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.43.2
+    * @themoltnet/pi-runtime bumped to 0.11.0
+    * @themoltnet/sdk bumped to 0.136.0
+
 ## [0.42.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.42.0...agent-daemon-v0.42.1) (2026-08-19)
 
 

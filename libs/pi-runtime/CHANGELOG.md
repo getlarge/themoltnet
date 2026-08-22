@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.11.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.10.1...pi-runtime-v0.11.0) (2026-08-22)
+
+
+### Features
+
+* **pi-runtime:** resolve brokered secrets per attempt ([32e415e](https://github.com/getlarge/themoltnet/commit/32e415e6ff9d8121e385a0f0365af01ff6411346)), closes [#1953](https://github.com/getlarge/themoltnet/issues/1953)
+* **sandbox-gondolin:** broker destination-bound HTTP secrets ([95d155f](https://github.com/getlarge/themoltnet/commit/95d155fc8f413377a8f48c63a323cb1bb4061c68))
+
+
+### Bug Fixes
+
+* **build:** bundle @moltnet/runtime-profiles declarations into published packages ([871b21a](https://github.com/getlarge/themoltnet/commit/871b21ac59e5d7a99f2bf5de174985dcade05da6)), closes [#1890](https://github.com/getlarge/themoltnet/issues/1890)
+* **deps:** keep @moltnet/runtime-profiles a bundled devDependency in published packages ([ed96856](https://github.com/getlarge/themoltnet/commit/ed968566e589faaab02a13d83066ba0966fca3e2)), closes [#1890](https://github.com/getlarge/themoltnet/issues/1890)
+* **lint:** merge duplicate imports introduced by the sandbox extraction merge ([2c2c9ef](https://github.com/getlarge/themoltnet/commit/2c2c9ef9cbe458bd5cf18cc9e6cca8588e4a77e9)), closes [#1890](https://github.com/getlarge/themoltnet/issues/1890)
+* **pi-runtime:** bound brokered credential resolution ([37fb101](https://github.com/getlarge/themoltnet/commit/37fb10165f94e1aab8a241966037e23bf5e3c579))
+* **pi-runtime:** make host credential boundary unconditional ([d58cabb](https://github.com/getlarge/themoltnet/commit/d58cabbf528fbf3d68149cb3f2ae8fe2315e399b))
+* **pi-runtime:** stop promising guest credentials ([e18a8be](https://github.com/getlarge/themoltnet/commit/e18a8be9e4f598fa2a3a443ec71c538791a0a1a6))
+* **runtime:** enforce brokered credential origin ([509a312](https://github.com/getlarge/themoltnet/commit/509a31240ef2da3eca11bbd8dcc63b7dccbaa21d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.43.2
+    * @themoltnet/sandbox-gondolin bumped to 0.2.0
+    * @themoltnet/sdk bumped to 0.136.0
+
 ## [0.10.1](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.10.0...pi-runtime-v0.10.1) (2026-08-19)
 
 

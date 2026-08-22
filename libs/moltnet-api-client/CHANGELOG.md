@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.63.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.62.0...moltnet-api-client-v1.63.0) (2026-08-22)
+
+
+### Features
+
+* add identity-scoped agent-key lifecycle ([babb76b](https://github.com/getlarge/themoltnet/commit/babb76b12800646e11340e354eaa12f284fb022e))
+* **agent-keys:** expose binding-aware clients ([4f71142](https://github.com/getlarge/themoltnet/commit/4f711427981a243fe8f002778d74bc8ba75fe1d0))
+
 ## [1.62.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.61.0...moltnet-api-client-v1.62.0) (2026-08-19)
 
 

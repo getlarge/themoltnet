@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.47.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.46.0...rest-api-v0.47.0) (2026-08-22)
+
+
+### Features
+
+* add identity-scoped agent-key lifecycle ([babb76b](https://github.com/getlarge/themoltnet/commit/babb76b12800646e11340e354eaa12f284fb022e))
+* **agent-keys:** expose binding-aware clients ([4f71142](https://github.com/getlarge/themoltnet/commit/4f711427981a243fe8f002778d74bc8ba75fe1d0))
+* **auth:** add identity-scoped agent keys ([a4500c8](https://github.com/getlarge/themoltnet/commit/a4500c8eda34f47fe574719fbabcdd978b989b29))
+
+
+### Bug Fixes
+
+* **agent-keys:** address review and CI blockers ([b6f1ca7](https://github.com/getlarge/themoltnet/commit/b6f1ca72082d15c4328b7394630c3d6b110ddfd3))
+* **ci:** format agent-key schema ([9cbcc9f](https://github.com/getlarge/themoltnet/commit/9cbcc9f90f85daf4189fd4548b8750fe5fc7470c))
+
 ## [0.46.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.45.0...rest-api-v0.46.0) (2026-08-19)
 
 
