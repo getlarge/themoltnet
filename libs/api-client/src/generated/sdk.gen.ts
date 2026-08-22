@@ -4083,7 +4083,7 @@ export const removeTeamMember = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Update a member role between member and manager. Requires manage_members permission.
+ * Update an agent role between member, executor, and manager, or a human role between member and manager. Requires manage_members permission.
  */
 export const updateTeamMemberRole = <ThrowOnError extends boolean = false>(
   options: Options<UpdateTeamMemberRoleData, ThrowOnError>,

@@ -10989,6 +10989,12 @@
                           },
                           {
                             "enum": [
+                              "executor"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
                               "member"
                             ],
                             "type": "string"
@@ -17523,6 +17529,12 @@
                               {
                                 "enum": [
                                   "manager"
+                                ],
+                                "type": "string"
+                              },
+                              {
+                                "enum": [
+                                  "executor"
                                 ],
                                 "type": "string"
                               },
@@ -47563,6 +47575,12 @@
                               },
                               {
                                 "enum": [
+                                  "executor"
+                                ],
+                                "type": "string"
+                              },
+                              {
+                                "enum": [
                                   "member"
                                 ],
                                 "type": "string"
@@ -47672,6 +47690,12 @@
                             {
                               "enum": [
                                 "manager"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "executor"
                               ],
                               "type": "string"
                             },
@@ -47887,6 +47911,12 @@
                         {
                           "enum": [
                             "manager"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "executor"
                           ],
                           "type": "string"
                         },
@@ -48165,6 +48195,12 @@
                               {
                                 "enum": [
                                   "manager"
+                                ],
+                                "type": "string"
+                              },
+                              {
+                                "enum": [
+                                  "executor"
                                 ],
                                 "type": "string"
                               },
@@ -48771,6 +48807,12 @@
                               },
                               {
                                 "enum": [
+                                  "executor"
+                                ],
+                                "type": "string"
+                              },
+                              {
+                                "enum": [
                                   "member"
                                 ],
                                 "type": "string"
@@ -48911,6 +48953,12 @@
                       },
                       {
                         "enum": [
+                          "executor"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
                           "member"
                         ],
                         "type": "string"
@@ -48953,6 +49001,12 @@
                         {
                           "enum": [
                             "manager"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "executor"
                           ],
                           "type": "string"
                         },
@@ -49232,6 +49286,12 @@
                               },
                               {
                                 "enum": [
+                                  "executor"
+                                ],
+                                "type": "string"
+                              },
+                              {
+                                "enum": [
                                   "member"
                                 ],
                                 "type": "string"
@@ -49459,7 +49519,7 @@
         ]
       },
       "patch": {
-        "description": "Update a member role between member and manager. Requires manage_members permission.",
+        "description": "Update an agent role between member, executor, and manager, or a human role between member and manager. Requires manage_members permission.",
         "operationId": "updateTeamMemberRole",
         "parameters": [
           {
@@ -49498,6 +49558,12 @@
                       },
                       {
                         "enum": [
+                          "executor"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
                           "member"
                         ],
                         "type": "string"
@@ -49525,6 +49591,12 @@
                         {
                           "enum": [
                             "manager"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "executor"
                           ],
                           "type": "string"
                         },

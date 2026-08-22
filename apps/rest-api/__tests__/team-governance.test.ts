@@ -292,6 +292,23 @@ describe('POST /teams — founding flow', () => {
 
     expect(res.statusCode).toBe(401);
   });
+
+  it('rejects a human executor founding member before creating the team', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/teams',
+      headers: authHeaders,
+      payload: {
+        name: 'Alpha',
+        foundingMembers: [
+          { subjectId: OWNER_ID, subjectNs: 'Human', role: 'executor' },
+        ],
+      },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(mocks.teamRepository.create).not.toHaveBeenCalled();
+  });
 });
 
 // ── Suite 2: POST /teams/:id/accept ──────────────────────────────
@@ -537,7 +554,7 @@ describe('PATCH /teams/:id/members/:subjectId', () => {
     );
     expect(
       mocks.relationshipWriter.removeTeamRoleRelation,
-    ).toHaveBeenCalledWith(TEAM_ID, OTHER_AGENT_ID, 'Agent', 'members');
+    ).not.toHaveBeenCalled();
   });
 
   it('demotes a manager to member', async () => {
@@ -564,7 +581,54 @@ describe('PATCH /teams/:id/members/:subjectId', () => {
     );
     expect(
       mocks.relationshipWriter.removeTeamRoleRelation,
-    ).toHaveBeenCalledWith(TEAM_ID, OTHER_AGENT_ID, 'Agent', 'managers');
+    ).not.toHaveBeenCalled();
+  });
+
+  it('changes an agent role to executor with one projected write', async () => {
+    mocks.relationshipReader.listTeamMembers.mockResolvedValue([
+      {
+        subjectId: OTHER_AGENT_ID,
+        subjectNs: 'Agent',
+        relation: 'members',
+      },
+    ]);
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/teams/${TEAM_ID}/members/${OTHER_AGENT_ID}`,
+      headers: authHeaders,
+      payload: { role: 'executor' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(mocks.relationshipWriter.grantTeamExecutors).toHaveBeenCalledWith(
+      TEAM_ID,
+      OTHER_AGENT_ID,
+      'Agent',
+    );
+    expect(
+      mocks.relationshipWriter.removeTeamRoleRelation,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('rejects assigning executor to a human', async () => {
+    mocks.relationshipReader.listTeamMembers.mockResolvedValue([
+      {
+        subjectId: OTHER_AGENT_ID,
+        subjectNs: 'Human',
+        relation: 'members',
+      },
+    ]);
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/teams/${TEAM_ID}/members/${OTHER_AGENT_ID}`,
+      headers: authHeaders,
+      payload: { role: 'executor' },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(mocks.relationshipWriter.grantTeamExecutors).not.toHaveBeenCalled();
   });
 
   it('rejects owner role changes', async () => {
@@ -691,7 +755,7 @@ describe('POST /teams/join role promotion', () => {
     );
     expect(
       mocks.relationshipWriter.removeTeamRoleRelation,
-    ).toHaveBeenCalledWith(TEAM_ID, OWNER_ID, 'Agent', 'members');
+    ).not.toHaveBeenCalled();
   });
 
   it('keeps same-role joins as conflict', async () => {
@@ -750,7 +814,7 @@ describe('POST /teams/join role promotion', () => {
     );
     expect(
       mocks.relationshipWriter.removeTeamRoleRelation,
-    ).toHaveBeenCalledWith(TEAM_ID, OWNER_ID, 'Agent', 'managers');
+    ).not.toHaveBeenCalled();
   });
 
   it('rejects owner role changes when a lower invite role is redeemed', async () => {
@@ -780,6 +844,35 @@ describe('POST /teams/join role promotion', () => {
     expect(
       mocks.relationshipWriter.removeTeamRoleRelation,
     ).not.toHaveBeenCalled();
+  });
+
+  it('rejects a human redeeming an executor invite without claiming it', async () => {
+    const humanMocks = createMockServices();
+    const humanApp = await createTestApp(humanMocks, HUMAN_AUTH_CONTEXT);
+    humanMocks.teamRepository.findInviteByCode.mockResolvedValue({
+      id: 'invite-executor',
+      teamId: TEAM_ID,
+      role: 'executor',
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    humanMocks.teamRepository.findById.mockResolvedValue(MOCK_ACTIVE_TEAM);
+
+    try {
+      const res = await humanApp.inject({
+        method: 'POST',
+        url: '/teams/join',
+        headers: authHeaders,
+        payload: { code: 'mlt_inv_executor' },
+      });
+
+      expect(res.statusCode).toBe(403);
+      expect(humanMocks.teamRepository.claimInvite).not.toHaveBeenCalled();
+      expect(
+        humanMocks.relationshipWriter.grantTeamExecutors,
+      ).not.toHaveBeenCalled();
+    } finally {
+      await humanApp.close();
+    }
   });
 });
 

@@ -5229,7 +5229,7 @@ export const removeTeamMemberMutation = (
 };
 
 /**
- * Update a member role between member and manager. Requires manage_members permission.
+ * Update an agent role between member, executor, and manager, or a human role between member and manager. Requires manage_members permission.
  */
 export const updateTeamMemberRoleMutation = (
   options?: Partial<Options<UpdateTeamMemberRoleData>>,

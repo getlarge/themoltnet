@@ -916,7 +916,8 @@ type Invoker interface {
 	UpdateTaskMetadata(ctx context.Context, request OptUpdateTaskMetadataReq, params UpdateTaskMetadataParams) (UpdateTaskMetadataRes, error)
 	// UpdateTeamMemberRole invokes updateTeamMemberRole operation.
 	//
-	// Update a member role between member and manager. Requires manage_members permission.
+	// Update an agent role between member, executor, and manager, or a human role between member and
+	// manager. Requires manage_members permission.
 	//
 	// PATCH /teams/{id}/members/{subjectId}
 	UpdateTeamMemberRole(ctx context.Context, request *UpdateTeamMemberRoleReq, params UpdateTeamMemberRoleParams) (UpdateTeamMemberRoleRes, error)
@@ -25014,7 +25015,8 @@ func (c *Client) sendUpdateTaskMetadata(ctx context.Context, request OptUpdateTa
 
 // UpdateTeamMemberRole invokes updateTeamMemberRole operation.
 //
-// Update a member role between member and manager. Requires manage_members permission.
+// Update an agent role between member, executor, and manager, or a human role between member and
+// manager. Requires manage_members permission.
 //
 // PATCH /teams/{id}/members/{subjectId}
 func (c *Client) UpdateTeamMemberRole(ctx context.Context, request *UpdateTeamMemberRoleReq, params UpdateTeamMemberRoleParams) (UpdateTeamMemberRoleRes, error) {

@@ -7868,6 +7868,8 @@ func (s CreateTeamInviteCreatedRole) Validate() error {
 	switch s {
 	case "manager":
 		return nil
+	case "executor":
+		return nil
 	case "member":
 		return nil
 	default:
@@ -7980,6 +7982,8 @@ func (s *CreateTeamInviteReq) Validate() error {
 func (s CreateTeamInviteReqRole) Validate() error {
 	switch s {
 	case "manager":
+		return nil
+	case "executor":
 		return nil
 	case "member":
 		return nil
@@ -8122,6 +8126,8 @@ func (s CreateTeamReqFoundingMembersItemRole) Validate() error {
 	case "owner":
 		return nil
 	case "manager":
+		return nil
+	case "executor":
 		return nil
 	case "member":
 		return nil
@@ -17514,6 +17520,8 @@ func (s GetTeamOKMembersItemRole) Validate() error {
 		return nil
 	case "manager":
 		return nil
+	case "executor":
+		return nil
 	case "member":
 		return nil
 	default:
@@ -17949,6 +17957,8 @@ func (s *JoinTeamOK) Validate() error {
 func (s JoinTeamOKRole) Validate() error {
 	switch s {
 	case "manager":
+		return nil
+	case "executor":
 		return nil
 	case "member":
 		return nil
@@ -21386,6 +21396,8 @@ func (s ListTeamInvitesOKItemsItemRole) Validate() error {
 	switch s {
 	case "manager":
 		return nil
+	case "executor":
+		return nil
 	case "member":
 		return nil
 	default:
@@ -21513,6 +21525,8 @@ func (s ListTeamMembersOKItemsItemRole) Validate() error {
 		return nil
 	case "manager":
 		return nil
+	case "executor":
+		return nil
 	case "member":
 		return nil
 	default:
@@ -21631,6 +21645,8 @@ func (s ListTeamsOKItemsItemRole) Validate() error {
 	case "owner":
 		return nil
 	case "manager":
+		return nil
+	case "executor":
 		return nil
 	case "member":
 		return nil
@@ -24389,6 +24405,8 @@ func (s ProvenanceGraphTeamRoleNodeID) Validate() error {
 	case "owner":
 		return nil
 	case "manager":
+		return nil
+	case "executor":
 		return nil
 	case "member":
 		return nil
@@ -37508,6 +37526,8 @@ func (s UpdateTeamMemberRoleOKRole) Validate() error {
 	switch s {
 	case "manager":
 		return nil
+	case "executor":
+		return nil
 	case "member":
 		return nil
 	default:
@@ -37541,6 +37561,8 @@ func (s *UpdateTeamMemberRoleReq) Validate() error {
 func (s UpdateTeamMemberRoleReqRole) Validate() error {
 	switch s {
 	case "manager":
+		return nil
+	case "executor":
 		return nil
 	case "member":
 		return nil

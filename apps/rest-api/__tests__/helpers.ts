@@ -535,6 +535,7 @@ export function createMockServices(): MockServices {
       registerHuman: vi.fn(),
       grantTeamOwners: vi.fn(),
       grantTeamManagers: vi.fn(),
+      grantTeamExecutors: vi.fn(),
       grantTeamMembers: vi.fn(),
       removeTeamMemberRelation: vi.fn(),
       removeTeamRoleRelation: vi.fn(),

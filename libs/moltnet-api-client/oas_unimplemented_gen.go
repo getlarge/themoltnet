@@ -1337,7 +1337,8 @@ func (UnimplementedHandler) UpdateTaskMetadata(ctx context.Context, req OptUpdat
 
 // UpdateTeamMemberRole implements updateTeamMemberRole operation.
 //
-// Update a member role between member and manager. Requires manage_members permission.
+// Update an agent role between member, executor, and manager, or a human role between member and
+// manager. Requires manage_members permission.
 //
 // PATCH /teams/{id}/members/{subjectId}
 func (UnimplementedHandler) UpdateTeamMemberRole(ctx context.Context, req *UpdateTeamMemberRoleReq, params UpdateTeamMemberRoleParams) (r UpdateTeamMemberRoleRes, _ error) {

@@ -8678,14 +8678,16 @@ func (*CreateTeamInviteCreated) createTeamInviteRes() {}
 type CreateTeamInviteCreatedRole string
 
 const (
-	CreateTeamInviteCreatedRoleManager CreateTeamInviteCreatedRole = "manager"
-	CreateTeamInviteCreatedRoleMember  CreateTeamInviteCreatedRole = "member"
+	CreateTeamInviteCreatedRoleManager  CreateTeamInviteCreatedRole = "manager"
+	CreateTeamInviteCreatedRoleExecutor CreateTeamInviteCreatedRole = "executor"
+	CreateTeamInviteCreatedRoleMember   CreateTeamInviteCreatedRole = "member"
 )
 
 // AllValues returns all CreateTeamInviteCreatedRole values.
 func (CreateTeamInviteCreatedRole) AllValues() []CreateTeamInviteCreatedRole {
 	return []CreateTeamInviteCreatedRole{
 		CreateTeamInviteCreatedRoleManager,
+		CreateTeamInviteCreatedRoleExecutor,
 		CreateTeamInviteCreatedRoleMember,
 	}
 }
@@ -8694,6 +8696,8 @@ func (CreateTeamInviteCreatedRole) AllValues() []CreateTeamInviteCreatedRole {
 func (s CreateTeamInviteCreatedRole) MarshalText() ([]byte, error) {
 	switch s {
 	case CreateTeamInviteCreatedRoleManager:
+		return []byte(s), nil
+	case CreateTeamInviteCreatedRoleExecutor:
 		return []byte(s), nil
 	case CreateTeamInviteCreatedRoleMember:
 		return []byte(s), nil
@@ -8707,6 +8711,9 @@ func (s *CreateTeamInviteCreatedRole) UnmarshalText(data []byte) error {
 	switch CreateTeamInviteCreatedRole(data) {
 	case CreateTeamInviteCreatedRoleManager:
 		*s = CreateTeamInviteCreatedRoleManager
+		return nil
+	case CreateTeamInviteCreatedRoleExecutor:
+		*s = CreateTeamInviteCreatedRoleExecutor
 		return nil
 	case CreateTeamInviteCreatedRoleMember:
 		*s = CreateTeamInviteCreatedRoleMember
@@ -8763,14 +8770,16 @@ func (s *CreateTeamInviteReq) SetRole(val OptCreateTeamInviteReqRole) {
 type CreateTeamInviteReqRole string
 
 const (
-	CreateTeamInviteReqRoleManager CreateTeamInviteReqRole = "manager"
-	CreateTeamInviteReqRoleMember  CreateTeamInviteReqRole = "member"
+	CreateTeamInviteReqRoleManager  CreateTeamInviteReqRole = "manager"
+	CreateTeamInviteReqRoleExecutor CreateTeamInviteReqRole = "executor"
+	CreateTeamInviteReqRoleMember   CreateTeamInviteReqRole = "member"
 )
 
 // AllValues returns all CreateTeamInviteReqRole values.
 func (CreateTeamInviteReqRole) AllValues() []CreateTeamInviteReqRole {
 	return []CreateTeamInviteReqRole{
 		CreateTeamInviteReqRoleManager,
+		CreateTeamInviteReqRoleExecutor,
 		CreateTeamInviteReqRoleMember,
 	}
 }
@@ -8779,6 +8788,8 @@ func (CreateTeamInviteReqRole) AllValues() []CreateTeamInviteReqRole {
 func (s CreateTeamInviteReqRole) MarshalText() ([]byte, error) {
 	switch s {
 	case CreateTeamInviteReqRoleManager:
+		return []byte(s), nil
+	case CreateTeamInviteReqRoleExecutor:
 		return []byte(s), nil
 	case CreateTeamInviteReqRoleMember:
 		return []byte(s), nil
@@ -8792,6 +8803,9 @@ func (s *CreateTeamInviteReqRole) UnmarshalText(data []byte) error {
 	switch CreateTeamInviteReqRole(data) {
 	case CreateTeamInviteReqRoleManager:
 		*s = CreateTeamInviteReqRoleManager
+		return nil
+	case CreateTeamInviteReqRoleExecutor:
+		*s = CreateTeamInviteReqRoleExecutor
 		return nil
 	case CreateTeamInviteReqRoleMember:
 		*s = CreateTeamInviteReqRoleMember
@@ -8878,9 +8892,10 @@ func (s *CreateTeamReqFoundingMembersItem) SetSubjectNs(val CreateTeamReqFoundin
 type CreateTeamReqFoundingMembersItemRole string
 
 const (
-	CreateTeamReqFoundingMembersItemRoleOwner   CreateTeamReqFoundingMembersItemRole = "owner"
-	CreateTeamReqFoundingMembersItemRoleManager CreateTeamReqFoundingMembersItemRole = "manager"
-	CreateTeamReqFoundingMembersItemRoleMember  CreateTeamReqFoundingMembersItemRole = "member"
+	CreateTeamReqFoundingMembersItemRoleOwner    CreateTeamReqFoundingMembersItemRole = "owner"
+	CreateTeamReqFoundingMembersItemRoleManager  CreateTeamReqFoundingMembersItemRole = "manager"
+	CreateTeamReqFoundingMembersItemRoleExecutor CreateTeamReqFoundingMembersItemRole = "executor"
+	CreateTeamReqFoundingMembersItemRoleMember   CreateTeamReqFoundingMembersItemRole = "member"
 )
 
 // AllValues returns all CreateTeamReqFoundingMembersItemRole values.
@@ -8888,6 +8903,7 @@ func (CreateTeamReqFoundingMembersItemRole) AllValues() []CreateTeamReqFoundingM
 	return []CreateTeamReqFoundingMembersItemRole{
 		CreateTeamReqFoundingMembersItemRoleOwner,
 		CreateTeamReqFoundingMembersItemRoleManager,
+		CreateTeamReqFoundingMembersItemRoleExecutor,
 		CreateTeamReqFoundingMembersItemRoleMember,
 	}
 }
@@ -8898,6 +8914,8 @@ func (s CreateTeamReqFoundingMembersItemRole) MarshalText() ([]byte, error) {
 	case CreateTeamReqFoundingMembersItemRoleOwner:
 		return []byte(s), nil
 	case CreateTeamReqFoundingMembersItemRoleManager:
+		return []byte(s), nil
+	case CreateTeamReqFoundingMembersItemRoleExecutor:
 		return []byte(s), nil
 	case CreateTeamReqFoundingMembersItemRoleMember:
 		return []byte(s), nil
@@ -8914,6 +8932,9 @@ func (s *CreateTeamReqFoundingMembersItemRole) UnmarshalText(data []byte) error 
 		return nil
 	case CreateTeamReqFoundingMembersItemRoleManager:
 		*s = CreateTeamReqFoundingMembersItemRoleManager
+		return nil
+	case CreateTeamReqFoundingMembersItemRoleExecutor:
+		*s = CreateTeamReqFoundingMembersItemRoleExecutor
 		return nil
 	case CreateTeamReqFoundingMembersItemRoleMember:
 		*s = CreateTeamReqFoundingMembersItemRoleMember
@@ -26307,9 +26328,10 @@ func (s *GetTeamOKMembersItem) SetSubjectType(val GetTeamOKMembersItemSubjectTyp
 type GetTeamOKMembersItemRole string
 
 const (
-	GetTeamOKMembersItemRoleOwner   GetTeamOKMembersItemRole = "owner"
-	GetTeamOKMembersItemRoleManager GetTeamOKMembersItemRole = "manager"
-	GetTeamOKMembersItemRoleMember  GetTeamOKMembersItemRole = "member"
+	GetTeamOKMembersItemRoleOwner    GetTeamOKMembersItemRole = "owner"
+	GetTeamOKMembersItemRoleManager  GetTeamOKMembersItemRole = "manager"
+	GetTeamOKMembersItemRoleExecutor GetTeamOKMembersItemRole = "executor"
+	GetTeamOKMembersItemRoleMember   GetTeamOKMembersItemRole = "member"
 )
 
 // AllValues returns all GetTeamOKMembersItemRole values.
@@ -26317,6 +26339,7 @@ func (GetTeamOKMembersItemRole) AllValues() []GetTeamOKMembersItemRole {
 	return []GetTeamOKMembersItemRole{
 		GetTeamOKMembersItemRoleOwner,
 		GetTeamOKMembersItemRoleManager,
+		GetTeamOKMembersItemRoleExecutor,
 		GetTeamOKMembersItemRoleMember,
 	}
 }
@@ -26327,6 +26350,8 @@ func (s GetTeamOKMembersItemRole) MarshalText() ([]byte, error) {
 	case GetTeamOKMembersItemRoleOwner:
 		return []byte(s), nil
 	case GetTeamOKMembersItemRoleManager:
+		return []byte(s), nil
+	case GetTeamOKMembersItemRoleExecutor:
 		return []byte(s), nil
 	case GetTeamOKMembersItemRoleMember:
 		return []byte(s), nil
@@ -26343,6 +26368,9 @@ func (s *GetTeamOKMembersItemRole) UnmarshalText(data []byte) error {
 		return nil
 	case GetTeamOKMembersItemRoleManager:
 		*s = GetTeamOKMembersItemRoleManager
+		return nil
+	case GetTeamOKMembersItemRoleExecutor:
+		*s = GetTeamOKMembersItemRoleExecutor
 		return nil
 	case GetTeamOKMembersItemRoleMember:
 		*s = GetTeamOKMembersItemRoleMember
@@ -27158,14 +27186,16 @@ func (*JoinTeamOK) joinTeamRes() {}
 type JoinTeamOKRole string
 
 const (
-	JoinTeamOKRoleManager JoinTeamOKRole = "manager"
-	JoinTeamOKRoleMember  JoinTeamOKRole = "member"
+	JoinTeamOKRoleManager  JoinTeamOKRole = "manager"
+	JoinTeamOKRoleExecutor JoinTeamOKRole = "executor"
+	JoinTeamOKRoleMember   JoinTeamOKRole = "member"
 )
 
 // AllValues returns all JoinTeamOKRole values.
 func (JoinTeamOKRole) AllValues() []JoinTeamOKRole {
 	return []JoinTeamOKRole{
 		JoinTeamOKRoleManager,
+		JoinTeamOKRoleExecutor,
 		JoinTeamOKRoleMember,
 	}
 }
@@ -27174,6 +27204,8 @@ func (JoinTeamOKRole) AllValues() []JoinTeamOKRole {
 func (s JoinTeamOKRole) MarshalText() ([]byte, error) {
 	switch s {
 	case JoinTeamOKRoleManager:
+		return []byte(s), nil
+	case JoinTeamOKRoleExecutor:
 		return []byte(s), nil
 	case JoinTeamOKRoleMember:
 		return []byte(s), nil
@@ -27187,6 +27219,9 @@ func (s *JoinTeamOKRole) UnmarshalText(data []byte) error {
 	switch JoinTeamOKRole(data) {
 	case JoinTeamOKRoleManager:
 		*s = JoinTeamOKRoleManager
+		return nil
+	case JoinTeamOKRoleExecutor:
+		*s = JoinTeamOKRoleExecutor
 		return nil
 	case JoinTeamOKRoleMember:
 		*s = JoinTeamOKRoleMember
@@ -32042,14 +32077,16 @@ func (s *ListTeamInvitesOKItemsItem) SetUseCount(val int) {
 type ListTeamInvitesOKItemsItemRole string
 
 const (
-	ListTeamInvitesOKItemsItemRoleManager ListTeamInvitesOKItemsItemRole = "manager"
-	ListTeamInvitesOKItemsItemRoleMember  ListTeamInvitesOKItemsItemRole = "member"
+	ListTeamInvitesOKItemsItemRoleManager  ListTeamInvitesOKItemsItemRole = "manager"
+	ListTeamInvitesOKItemsItemRoleExecutor ListTeamInvitesOKItemsItemRole = "executor"
+	ListTeamInvitesOKItemsItemRoleMember   ListTeamInvitesOKItemsItemRole = "member"
 )
 
 // AllValues returns all ListTeamInvitesOKItemsItemRole values.
 func (ListTeamInvitesOKItemsItemRole) AllValues() []ListTeamInvitesOKItemsItemRole {
 	return []ListTeamInvitesOKItemsItemRole{
 		ListTeamInvitesOKItemsItemRoleManager,
+		ListTeamInvitesOKItemsItemRoleExecutor,
 		ListTeamInvitesOKItemsItemRoleMember,
 	}
 }
@@ -32058,6 +32095,8 @@ func (ListTeamInvitesOKItemsItemRole) AllValues() []ListTeamInvitesOKItemsItemRo
 func (s ListTeamInvitesOKItemsItemRole) MarshalText() ([]byte, error) {
 	switch s {
 	case ListTeamInvitesOKItemsItemRoleManager:
+		return []byte(s), nil
+	case ListTeamInvitesOKItemsItemRoleExecutor:
 		return []byte(s), nil
 	case ListTeamInvitesOKItemsItemRoleMember:
 		return []byte(s), nil
@@ -32071,6 +32110,9 @@ func (s *ListTeamInvitesOKItemsItemRole) UnmarshalText(data []byte) error {
 	switch ListTeamInvitesOKItemsItemRole(data) {
 	case ListTeamInvitesOKItemsItemRoleManager:
 		*s = ListTeamInvitesOKItemsItemRoleManager
+		return nil
+	case ListTeamInvitesOKItemsItemRoleExecutor:
+		*s = ListTeamInvitesOKItemsItemRoleExecutor
 		return nil
 	case ListTeamInvitesOKItemsItemRoleMember:
 		*s = ListTeamInvitesOKItemsItemRoleMember
@@ -32189,9 +32231,10 @@ func (s *ListTeamMembersOKItemsItem) SetSubjectType(val ListTeamMembersOKItemsIt
 type ListTeamMembersOKItemsItemRole string
 
 const (
-	ListTeamMembersOKItemsItemRoleOwner   ListTeamMembersOKItemsItemRole = "owner"
-	ListTeamMembersOKItemsItemRoleManager ListTeamMembersOKItemsItemRole = "manager"
-	ListTeamMembersOKItemsItemRoleMember  ListTeamMembersOKItemsItemRole = "member"
+	ListTeamMembersOKItemsItemRoleOwner    ListTeamMembersOKItemsItemRole = "owner"
+	ListTeamMembersOKItemsItemRoleManager  ListTeamMembersOKItemsItemRole = "manager"
+	ListTeamMembersOKItemsItemRoleExecutor ListTeamMembersOKItemsItemRole = "executor"
+	ListTeamMembersOKItemsItemRoleMember   ListTeamMembersOKItemsItemRole = "member"
 )
 
 // AllValues returns all ListTeamMembersOKItemsItemRole values.
@@ -32199,6 +32242,7 @@ func (ListTeamMembersOKItemsItemRole) AllValues() []ListTeamMembersOKItemsItemRo
 	return []ListTeamMembersOKItemsItemRole{
 		ListTeamMembersOKItemsItemRoleOwner,
 		ListTeamMembersOKItemsItemRoleManager,
+		ListTeamMembersOKItemsItemRoleExecutor,
 		ListTeamMembersOKItemsItemRoleMember,
 	}
 }
@@ -32209,6 +32253,8 @@ func (s ListTeamMembersOKItemsItemRole) MarshalText() ([]byte, error) {
 	case ListTeamMembersOKItemsItemRoleOwner:
 		return []byte(s), nil
 	case ListTeamMembersOKItemsItemRoleManager:
+		return []byte(s), nil
+	case ListTeamMembersOKItemsItemRoleExecutor:
 		return []byte(s), nil
 	case ListTeamMembersOKItemsItemRoleMember:
 		return []byte(s), nil
@@ -32225,6 +32271,9 @@ func (s *ListTeamMembersOKItemsItemRole) UnmarshalText(data []byte) error {
 		return nil
 	case ListTeamMembersOKItemsItemRoleManager:
 		*s = ListTeamMembersOKItemsItemRoleManager
+		return nil
+	case ListTeamMembersOKItemsItemRoleExecutor:
+		*s = ListTeamMembersOKItemsItemRoleExecutor
 		return nil
 	case ListTeamMembersOKItemsItemRoleMember:
 		*s = ListTeamMembersOKItemsItemRoleMember
@@ -32369,9 +32418,10 @@ func (s *ListTeamsOKItemsItem) SetStatus(val string) {
 type ListTeamsOKItemsItemRole string
 
 const (
-	ListTeamsOKItemsItemRoleOwner   ListTeamsOKItemsItemRole = "owner"
-	ListTeamsOKItemsItemRoleManager ListTeamsOKItemsItemRole = "manager"
-	ListTeamsOKItemsItemRoleMember  ListTeamsOKItemsItemRole = "member"
+	ListTeamsOKItemsItemRoleOwner    ListTeamsOKItemsItemRole = "owner"
+	ListTeamsOKItemsItemRoleManager  ListTeamsOKItemsItemRole = "manager"
+	ListTeamsOKItemsItemRoleExecutor ListTeamsOKItemsItemRole = "executor"
+	ListTeamsOKItemsItemRoleMember   ListTeamsOKItemsItemRole = "member"
 )
 
 // AllValues returns all ListTeamsOKItemsItemRole values.
@@ -32379,6 +32429,7 @@ func (ListTeamsOKItemsItemRole) AllValues() []ListTeamsOKItemsItemRole {
 	return []ListTeamsOKItemsItemRole{
 		ListTeamsOKItemsItemRoleOwner,
 		ListTeamsOKItemsItemRoleManager,
+		ListTeamsOKItemsItemRoleExecutor,
 		ListTeamsOKItemsItemRoleMember,
 	}
 }
@@ -32389,6 +32440,8 @@ func (s ListTeamsOKItemsItemRole) MarshalText() ([]byte, error) {
 	case ListTeamsOKItemsItemRoleOwner:
 		return []byte(s), nil
 	case ListTeamsOKItemsItemRoleManager:
+		return []byte(s), nil
+	case ListTeamsOKItemsItemRoleExecutor:
 		return []byte(s), nil
 	case ListTeamsOKItemsItemRoleMember:
 		return []byte(s), nil
@@ -32405,6 +32458,9 @@ func (s *ListTeamsOKItemsItemRole) UnmarshalText(data []byte) error {
 		return nil
 	case ListTeamsOKItemsItemRoleManager:
 		*s = ListTeamsOKItemsItemRoleManager
+		return nil
+	case ListTeamsOKItemsItemRoleExecutor:
+		*s = ListTeamsOKItemsItemRoleExecutor
 		return nil
 	case ListTeamsOKItemsItemRoleMember:
 		*s = ListTeamsOKItemsItemRoleMember
@@ -44358,9 +44414,10 @@ func (s *ProvenanceGraphTeamRoleNode) SetType(val ProvenanceGraphTeamRoleNodeTyp
 type ProvenanceGraphTeamRoleNodeID string
 
 const (
-	ProvenanceGraphTeamRoleNodeIDOwner   ProvenanceGraphTeamRoleNodeID = "owner"
-	ProvenanceGraphTeamRoleNodeIDManager ProvenanceGraphTeamRoleNodeID = "manager"
-	ProvenanceGraphTeamRoleNodeIDMember  ProvenanceGraphTeamRoleNodeID = "member"
+	ProvenanceGraphTeamRoleNodeIDOwner    ProvenanceGraphTeamRoleNodeID = "owner"
+	ProvenanceGraphTeamRoleNodeIDManager  ProvenanceGraphTeamRoleNodeID = "manager"
+	ProvenanceGraphTeamRoleNodeIDExecutor ProvenanceGraphTeamRoleNodeID = "executor"
+	ProvenanceGraphTeamRoleNodeIDMember   ProvenanceGraphTeamRoleNodeID = "member"
 )
 
 // AllValues returns all ProvenanceGraphTeamRoleNodeID values.
@@ -44368,6 +44425,7 @@ func (ProvenanceGraphTeamRoleNodeID) AllValues() []ProvenanceGraphTeamRoleNodeID
 	return []ProvenanceGraphTeamRoleNodeID{
 		ProvenanceGraphTeamRoleNodeIDOwner,
 		ProvenanceGraphTeamRoleNodeIDManager,
+		ProvenanceGraphTeamRoleNodeIDExecutor,
 		ProvenanceGraphTeamRoleNodeIDMember,
 	}
 }
@@ -44378,6 +44436,8 @@ func (s ProvenanceGraphTeamRoleNodeID) MarshalText() ([]byte, error) {
 	case ProvenanceGraphTeamRoleNodeIDOwner:
 		return []byte(s), nil
 	case ProvenanceGraphTeamRoleNodeIDManager:
+		return []byte(s), nil
+	case ProvenanceGraphTeamRoleNodeIDExecutor:
 		return []byte(s), nil
 	case ProvenanceGraphTeamRoleNodeIDMember:
 		return []byte(s), nil
@@ -44394,6 +44454,9 @@ func (s *ProvenanceGraphTeamRoleNodeID) UnmarshalText(data []byte) error {
 		return nil
 	case ProvenanceGraphTeamRoleNodeIDManager:
 		*s = ProvenanceGraphTeamRoleNodeIDManager
+		return nil
+	case ProvenanceGraphTeamRoleNodeIDExecutor:
+		*s = ProvenanceGraphTeamRoleNodeIDExecutor
 		return nil
 	case ProvenanceGraphTeamRoleNodeIDMember:
 		*s = ProvenanceGraphTeamRoleNodeIDMember
@@ -58289,14 +58352,16 @@ func (*UpdateTeamMemberRoleOK) updateTeamMemberRoleRes() {}
 type UpdateTeamMemberRoleOKRole string
 
 const (
-	UpdateTeamMemberRoleOKRoleManager UpdateTeamMemberRoleOKRole = "manager"
-	UpdateTeamMemberRoleOKRoleMember  UpdateTeamMemberRoleOKRole = "member"
+	UpdateTeamMemberRoleOKRoleManager  UpdateTeamMemberRoleOKRole = "manager"
+	UpdateTeamMemberRoleOKRoleExecutor UpdateTeamMemberRoleOKRole = "executor"
+	UpdateTeamMemberRoleOKRoleMember   UpdateTeamMemberRoleOKRole = "member"
 )
 
 // AllValues returns all UpdateTeamMemberRoleOKRole values.
 func (UpdateTeamMemberRoleOKRole) AllValues() []UpdateTeamMemberRoleOKRole {
 	return []UpdateTeamMemberRoleOKRole{
 		UpdateTeamMemberRoleOKRoleManager,
+		UpdateTeamMemberRoleOKRoleExecutor,
 		UpdateTeamMemberRoleOKRoleMember,
 	}
 }
@@ -58305,6 +58370,8 @@ func (UpdateTeamMemberRoleOKRole) AllValues() []UpdateTeamMemberRoleOKRole {
 func (s UpdateTeamMemberRoleOKRole) MarshalText() ([]byte, error) {
 	switch s {
 	case UpdateTeamMemberRoleOKRoleManager:
+		return []byte(s), nil
+	case UpdateTeamMemberRoleOKRoleExecutor:
 		return []byte(s), nil
 	case UpdateTeamMemberRoleOKRoleMember:
 		return []byte(s), nil
@@ -58318,6 +58385,9 @@ func (s *UpdateTeamMemberRoleOKRole) UnmarshalText(data []byte) error {
 	switch UpdateTeamMemberRoleOKRole(data) {
 	case UpdateTeamMemberRoleOKRoleManager:
 		*s = UpdateTeamMemberRoleOKRoleManager
+		return nil
+	case UpdateTeamMemberRoleOKRoleExecutor:
+		*s = UpdateTeamMemberRoleOKRoleExecutor
 		return nil
 	case UpdateTeamMemberRoleOKRoleMember:
 		*s = UpdateTeamMemberRoleOKRoleMember
@@ -58344,14 +58414,16 @@ func (s *UpdateTeamMemberRoleReq) SetRole(val UpdateTeamMemberRoleReqRole) {
 type UpdateTeamMemberRoleReqRole string
 
 const (
-	UpdateTeamMemberRoleReqRoleManager UpdateTeamMemberRoleReqRole = "manager"
-	UpdateTeamMemberRoleReqRoleMember  UpdateTeamMemberRoleReqRole = "member"
+	UpdateTeamMemberRoleReqRoleManager  UpdateTeamMemberRoleReqRole = "manager"
+	UpdateTeamMemberRoleReqRoleExecutor UpdateTeamMemberRoleReqRole = "executor"
+	UpdateTeamMemberRoleReqRoleMember   UpdateTeamMemberRoleReqRole = "member"
 )
 
 // AllValues returns all UpdateTeamMemberRoleReqRole values.
 func (UpdateTeamMemberRoleReqRole) AllValues() []UpdateTeamMemberRoleReqRole {
 	return []UpdateTeamMemberRoleReqRole{
 		UpdateTeamMemberRoleReqRoleManager,
+		UpdateTeamMemberRoleReqRoleExecutor,
 		UpdateTeamMemberRoleReqRoleMember,
 	}
 }
@@ -58360,6 +58432,8 @@ func (UpdateTeamMemberRoleReqRole) AllValues() []UpdateTeamMemberRoleReqRole {
 func (s UpdateTeamMemberRoleReqRole) MarshalText() ([]byte, error) {
 	switch s {
 	case UpdateTeamMemberRoleReqRoleManager:
+		return []byte(s), nil
+	case UpdateTeamMemberRoleReqRoleExecutor:
 		return []byte(s), nil
 	case UpdateTeamMemberRoleReqRoleMember:
 		return []byte(s), nil
@@ -58373,6 +58447,9 @@ func (s *UpdateTeamMemberRoleReqRole) UnmarshalText(data []byte) error {
 	switch UpdateTeamMemberRoleReqRole(data) {
 	case UpdateTeamMemberRoleReqRoleManager:
 		*s = UpdateTeamMemberRoleReqRoleManager
+		return nil
+	case UpdateTeamMemberRoleReqRoleExecutor:
+		*s = UpdateTeamMemberRoleReqRoleExecutor
 		return nil
 	case UpdateTeamMemberRoleReqRoleMember:
 		*s = UpdateTeamMemberRoleReqRoleMember

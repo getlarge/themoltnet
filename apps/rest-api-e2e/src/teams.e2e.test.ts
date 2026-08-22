@@ -23,7 +23,12 @@ import {
 } from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createAgent, type TestAgent } from './helpers.js';
+import {
+  createAgent,
+  createHuman,
+  type TestAgent,
+  type TestHuman,
+} from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
 describe('Teams', () => {
@@ -31,6 +36,7 @@ describe('Teams', () => {
   let client: Client;
   let agentA: TestAgent;
   let agentB: TestAgent;
+  let human: TestHuman;
 
   beforeAll(async () => {
     harness = await createTestHarness();
@@ -47,11 +53,24 @@ describe('Teams', () => {
       db: harness.db,
       bootstrapIdentityId: harness.bootstrapIdentityId,
     });
+
+    human = await createHuman({
+      kratosPublicFrontend: harness.kratosPublicFrontend,
+    });
   });
 
   afterAll(async () => {
     await harness?.teardown();
   });
+
+  function createHumanClient() {
+    const humanClient = createClient({ baseUrl: harness.baseUrl });
+    humanClient.interceptors.request.use((request) => {
+      request.headers.set('X-Moltnet-Session-Token', human.sessionToken);
+      return request;
+    });
+    return humanClient;
+  }
 
   // ── Team CRUD ──────────────────────────────────────────────────
 
@@ -324,6 +343,44 @@ describe('Teams', () => {
       expect(memberB!.role).toBe('member');
     });
 
+    it('persists executor invites and assigns the agent executor role', async () => {
+      const { data: invite, error: inviteError } = await createTeamInvite({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: teamId },
+        body: { role: 'executor' },
+      });
+      expect(inviteError).toBeUndefined();
+      expect(invite!.role).toBe('executor');
+
+      const { data: invites } = await listTeamInvites({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: teamId },
+      });
+      expect(invites!.items).toContainEqual(
+        expect.objectContaining({ id: invite!.id, role: 'executor' }),
+      );
+
+      const { data, error } = await updateTeamMemberRole({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: teamId, subjectId: agentB.identityId },
+        body: { role: 'executor' },
+      });
+      expect(error).toBeUndefined();
+      expect(data!.role).toBe('executor');
+      const { data: members } = await listTeamMembers({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: teamId },
+      });
+      expect(
+        members!.items.find((member) => member.subjectId === agentB.identityId)
+          ?.role,
+      ).toBe('executor');
+    });
+
     it('downgrades an existing manager when joining with a member invite', async () => {
       const { data: managerInvite } = await createTeamInvite({
         client,
@@ -378,6 +435,72 @@ describe('Teams', () => {
       });
 
       expect(response.status).toBe(409);
+    });
+  });
+
+  describe('agent-only executor role', () => {
+    it('rejects human assignment and founding without consuming an executor invite', async () => {
+      const { data: team } = await createTeam({
+        client,
+        auth: () => agentA.accessToken,
+        body: { name: `human-executor-rejection-${Date.now()}` },
+      });
+      const teamId = team!.id;
+      const humanClient = createHumanClient();
+      const { data: memberInvite } = await createTeamInvite({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: teamId },
+        body: { role: 'member' },
+      });
+      const humanJoin = await joinTeam({
+        client: humanClient,
+        body: { code: memberInvite!.code },
+      });
+      expect(humanJoin.response.status).toBe(200);
+
+      const assignment = await updateTeamMemberRole({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: teamId, subjectId: human.identityId },
+        body: { role: 'executor' },
+      });
+      expect(assignment.response.status).toBe(400);
+
+      const { data: executorInvite } = await createTeamInvite({
+        client,
+        auth: () => agentA.accessToken,
+        path: { id: teamId },
+        body: { role: 'executor', maxUses: 1 },
+      });
+      const humanRedemption = await joinTeam({
+        client: humanClient,
+        body: { code: executorInvite!.code },
+      });
+      expect(humanRedemption.response.status).toBe(403);
+      const agentRedemption = await joinTeam({
+        client,
+        auth: () => agentB.accessToken,
+        body: { code: executorInvite!.code },
+      });
+      expect(agentRedemption.response.status).toBe(200);
+      expect(agentRedemption.data!.role).toBe('executor');
+
+      const founding = await createTeam({
+        client,
+        auth: () => agentA.accessToken,
+        body: {
+          name: `human-executor-founding-${Date.now()}`,
+          foundingMembers: [
+            {
+              subjectId: human.identityId,
+              subjectNs: 'Human',
+              role: 'executor',
+            },
+          ],
+        },
+      });
+      expect(founding.response.status).toBe(400);
     });
   });
 

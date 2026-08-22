@@ -32220,7 +32220,8 @@ func (s *Server) handleUpdateTaskMetadataRequest(args [1]string, argsEscaped boo
 
 // handleUpdateTeamMemberRoleRequest handles updateTeamMemberRole operation.
 //
-// Update a member role between member and manager. Requires manage_members permission.
+// Update an agent role between member, executor, and manager, or a human role between member and
+// manager. Requires manage_members permission.
 //
 // PATCH /teams/{id}/members/{subjectId}
 func (s *Server) handleUpdateTeamMemberRoleRequest(args [2]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
