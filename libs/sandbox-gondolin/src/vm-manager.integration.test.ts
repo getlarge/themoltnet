@@ -59,7 +59,13 @@ describeVm('resumeVm real Gondolin VM integration', () => {
     const server = createServer((request, response) => {
       const authorization = request.headers.authorization;
       receivedHeaders.push(authorization);
-      if (authorization === `Bearer ${expectedValue}`) {
+      const basicAuthorization = `Basic ${Buffer.from(
+        `x-access-token:${expectedValue}`,
+      ).toString('base64')}`;
+      if (
+        authorization === `Bearer ${expectedValue}` ||
+        authorization === basicAuthorization
+      ) {
         response.writeHead(200, { 'content-type': 'text/plain' });
         response.end('accepted');
         return;
@@ -121,6 +127,16 @@ fi
       expect(firstOutput).toContain('accepted');
       expect(firstOutput).not.toContain(firstValue);
       expect(receivedHeaders).toEqual([`Bearer ${firstValue}`]);
+
+      const basicOutput = await execGuest(
+        managed.vm,
+        `curl -fsS --max-time 20 -u "x-access-token:$FIXTURE_API_TOKEN" http://${fixtureHost}:${port}/basic-auth`,
+      );
+      expect(basicOutput).toContain('accepted');
+      expect(basicOutput).not.toContain(firstValue);
+      expect(receivedHeaders.at(-1)).toBe(
+        `Basic ${Buffer.from(`x-access-token:${firstValue}`).toString('base64')}`,
+      );
 
       expectedValue = rotatedValue;
       managed.secretManager.updateSecret('FIXTURE_API_TOKEN', {

@@ -82,7 +82,9 @@ The host proxy substitutes the real value only for the declared hostname.
 Preflight fails before VM resume when the binding is missing, an environment
 name collides with another guest source, or a credential host is outside the
 effective network policy. Values are not substituted in request bodies or URL
-queries.
+queries. Gondolin also decodes, substitutes, and re-encodes HTTP Basic
+authorization, covering the password encoding used by HTTPS Git credential
+helpers; OAuth client secrets sent in form bodies remain host-only.
 
 Rotation and revocation do not require exposing or changing the guest
 placeholder:

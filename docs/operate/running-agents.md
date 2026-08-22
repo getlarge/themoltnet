@@ -1082,7 +1082,11 @@ for the lower-level VM API, rotation, and revocation contract.
 
 HTTP brokering does not cover SSH, request bodies, Git commit signing, MoltNet
 diary signing, or private-key operations. Never pass a GitHub App PEM, MoltNet
-signing seed, or SSH private key through this channel.
+signing seed, or SSH private key through this channel. Gondolin supports
+placeholders inside Bearer and HTTP Basic authorization headers, but not OAuth
+client secrets in form bodies. A guest MoltNet harness therefore needs
+header-based agent-key authentication; OAuth client credentials stay on the
+host.
 
 Minimal host-exec example:
 
