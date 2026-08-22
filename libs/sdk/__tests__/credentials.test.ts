@@ -1,6 +1,12 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { mkdtemp, rm, stat } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from 'node:fs/promises';
+import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -17,8 +23,6 @@ vi.mock('node:os', async (importOriginal) => {
     homedir: vi.fn(() => original.homedir()),
   };
 });
-
-import { homedir } from 'node:os';
 
 const mockedHomedir = vi.mocked(homedir);
 

@@ -1,8 +1,7 @@
 import { createReadStream } from 'node:fs';
 import { createGunzip, createGzip } from 'node:zlib';
 
-import type { KetoNamespace } from '@moltnet/auth';
-import type { PermissionChecker } from '@moltnet/auth';
+import type { KetoNamespace, PermissionChecker } from '@moltnet/auth';
 import {
   BlobBodyNotReadableError,
   BlobTooLargeError,

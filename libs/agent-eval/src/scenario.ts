@@ -22,8 +22,7 @@
  * `run_eval` / `judge_eval_attempt` producer/judge separation in
  * `libs/tasks/src/task-types/`.
  */
-import type { Rubric } from '@moltnet/tasks';
-import type { RunEvalExecution } from '@moltnet/tasks';
+import type { Rubric, RunEvalExecution } from '@moltnet/tasks';
 import { type Static, Type } from 'typebox';
 
 /**

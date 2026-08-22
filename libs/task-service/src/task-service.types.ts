@@ -1,5 +1,8 @@
-import type { PermissionChecker, RelationshipWriter } from '@moltnet/auth';
-import type { KetoNamespace } from '@moltnet/auth';
+import type {
+  KetoNamespace,
+  PermissionChecker,
+  RelationshipWriter,
+} from '@moltnet/auth';
 import type { ExecutorTrustLevel } from '@moltnet/crypto-service';
 import type {
   AgentRepository,

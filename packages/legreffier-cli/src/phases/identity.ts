@@ -10,8 +10,7 @@ import {
 import { checkWorkflowLive, startOnboarding } from '../api.js';
 import { checkAppNameAvailable, suggestAppNames } from '../github.js';
 import { clearState, readState, writeState } from '../state.js';
-import type { UIAction } from '../ui/types.js';
-import type { IdentityResult } from '../ui/types.js';
+import type { IdentityResult, UIAction } from '../ui/types.js';
 
 export async function runIdentityPhase(opts: {
   apiUrl: string;

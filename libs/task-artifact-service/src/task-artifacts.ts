@@ -8,13 +8,13 @@ import {
 } from '@moltnet/blob-storage';
 import { computeBytesCidFromSha256 } from '@moltnet/crypto-service';
 import type {
+  decodeTaskArtifactCursor,
   Task,
   TaskArtifact,
+  TaskArtifactConflictError,
   TaskArtifactRepository,
   TaskRepository,
 } from '@moltnet/database';
-import { TaskArtifactConflictError } from '@moltnet/database';
-import { decodeTaskArtifactCursor } from '@moltnet/database';
 
 import {
   MissingTaskArtifactObjectError,
