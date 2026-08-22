@@ -48,7 +48,7 @@ export interface DiaryGrantTuple {
 export type TaskGrantTuple = DiaryGrantTuple;
 
 export interface RelationshipReader {
-  /** Returns all team IDs where the subject has any relationship (owner, manager, member). */
+  /** Returns all team IDs where the subject has any role relationship. */
   listTeamIdsBySubject(subjectId: string): Promise<string[]>;
   /** Returns all team IDs with the subject's role in each team. */
   listTeamIdsAndRolesBySubject(subjectId: string): Promise<TeamIdWithRole[]>;

@@ -356,7 +356,11 @@ export const CreateTeamSchema = Type.Object({
 
 export const CreateTeamInviteSchema = Type.Object({
   role: Type.Optional(
-    Type.Union([Type.Literal('manager'), Type.Literal('member')]),
+    Type.Union([
+      Type.Literal('manager'),
+      Type.Literal('executor'),
+      Type.Literal('member'),
+    ]),
   ),
   maxUses: Type.Optional(Type.Integer({ minimum: 1, default: 1 })),
   expiresInHours: Type.Optional(
@@ -369,12 +373,17 @@ export const JoinTeamSchema = Type.Object({
 });
 
 export const UpdateTeamMemberRoleSchema = Type.Object({
-  role: Type.Union([Type.Literal('manager'), Type.Literal('member')]),
+  role: Type.Union([
+    Type.Literal('manager'),
+    Type.Literal('executor'),
+    Type.Literal('member'),
+  ]),
 });
 
 export const TeamRoleSchema = Type.Union([
   Type.Literal('owner'),
   Type.Literal('manager'),
+  Type.Literal('executor'),
   Type.Literal('member'),
 ]);
 
@@ -390,7 +399,11 @@ const DateTimeUnsafe = Type.Unsafe<Date | string>(
 export const TeamInviteResponseSchema = Type.Object({
   id: UuidSchema,
   code: Type.String(),
-  role: Type.Union([Type.Literal('manager'), Type.Literal('member')]),
+  role: Type.Union([
+    Type.Literal('manager'),
+    Type.Literal('executor'),
+    Type.Literal('member'),
+  ]),
   maxUses: Type.Integer(),
   useCount: Type.Integer(),
   expiresAt: DateTimeUnsafe,
@@ -429,12 +442,20 @@ export const TeamDetailSchema = Type.Object({
 
 export const JoinTeamResponseSchema = Type.Object({
   teamId: UuidSchema,
-  role: Type.Union([Type.Literal('manager'), Type.Literal('member')]),
+  role: Type.Union([
+    Type.Literal('manager'),
+    Type.Literal('executor'),
+    Type.Literal('member'),
+  ]),
 });
 
 export const UpdateTeamMemberRoleResponseSchema = Type.Object({
   updated: Type.Boolean(),
-  role: Type.Union([Type.Literal('manager'), Type.Literal('member')]),
+  role: Type.Union([
+    Type.Literal('manager'),
+    Type.Literal('executor'),
+    Type.Literal('member'),
+  ]),
 });
 
 export const DeletedResponseSchema = Type.Object({
@@ -463,6 +484,7 @@ export const FoundingMemberSchema = Type.Object({
   role: Type.Union([
     Type.Literal('owner'),
     Type.Literal('manager'),
+    Type.Literal('executor'),
     Type.Literal('member'),
   ]),
 });

@@ -37,7 +37,7 @@ export interface CreateTeamInput {
 
 export interface CreateInviteInput {
   teamId: string;
-  role: 'manager' | 'member';
+  role: 'manager' | 'executor' | 'member';
   maxUses: number;
   expiresAt: Date;
   creator: TeamCreator;
@@ -47,7 +47,7 @@ export interface CreateFoundingAcceptanceInput {
   teamId: string;
   subjectId: string;
   subjectNs: 'Agent' | 'Human';
-  role: 'owner' | 'manager' | 'member';
+  role: 'owner' | 'manager' | 'executor' | 'member';
 }
 
 export interface TeamRepository {

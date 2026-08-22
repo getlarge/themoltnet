@@ -67,6 +67,11 @@ describe('RelationshipReader', () => {
             },
             {
               object: TEAM_ID_1,
+              relation: 'executors',
+              subject_set: { object: AGENT_ID, namespace: 'Agent' },
+            },
+            {
+              object: TEAM_ID_1,
               relation: 'managers',
               subject_set: { object: AGENT_ID, namespace: 'Agent' },
             },
@@ -77,6 +82,29 @@ describe('RelationshipReader', () => {
       const roles = await reader.listTeamIdsAndRolesBySubject(AGENT_ID);
 
       expect(roles).toEqual([{ teamId: TEAM_ID_1, relation: 'managers' }]);
+    });
+
+    it('returns executor when it is the highest projected role', async () => {
+      mockRelationshipApi.getRelationships
+        .mockResolvedValueOnce({
+          relation_tuples: [
+            {
+              object: TEAM_ID_1,
+              relation: 'members',
+              subject_set: { object: AGENT_ID, namespace: 'Agent' },
+            },
+            {
+              object: TEAM_ID_1,
+              relation: 'executors',
+              subject_set: { object: AGENT_ID, namespace: 'Agent' },
+            },
+          ],
+        })
+        .mockResolvedValueOnce({ relation_tuples: [] });
+
+      await expect(
+        reader.listTeamIdsAndRolesBySubject(AGENT_ID),
+      ).resolves.toEqual([{ teamId: TEAM_ID_1, relation: 'executors' }]);
     });
   });
 

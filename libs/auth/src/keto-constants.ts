@@ -41,6 +41,7 @@ export enum HumanRelation {
 export enum TeamRelation {
   Owners = 'owners',
   Managers = 'managers',
+  Executors = 'executors',
   Members = 'members',
 }
 
@@ -48,6 +49,7 @@ export enum TeamRelation {
  * Permissions for the Team namespace
  */
 export enum TeamPermission {
+  ExecuteTasks = 'execute_tasks',
   Manage = 'manage',
   ManageCredentials = 'manage_credentials',
   ManageMembers = 'manage_members',

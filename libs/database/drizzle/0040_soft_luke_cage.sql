@@ -1,0 +1,1 @@
+ALTER TYPE "public"."team_invite_role" ADD VALUE 'executor' BEFORE 'member';
