@@ -115,6 +115,13 @@ runners, and remote deployments, prefer agent-key authentication with the
 default `host-authenticated` guest boundary. OAuth2 currently defaults to and
 requires `guest-config`.
 
+Trusted custom runtimes can deliver destination-bound HTTP credentials without
+switching to `guest-config`: the guest receives an opaque placeholder and the
+Gondolin host proxy substitutes the value only for declared hosts. See
+[Host-brokered HTTP credentials](../../docs/operate/running-agents.md#host-brokered-http-credentials).
+This does not provide diary or Git commit signing; private-key operations remain
+host capabilities.
+
 `sync-sessions` does not prepare or attest executors, so it remains independent
 of `MOLTNET_PRIVATE_KEY`.
 
