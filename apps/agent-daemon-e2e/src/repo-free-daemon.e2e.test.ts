@@ -1,5 +1,11 @@
 import { randomUUID } from 'node:crypto';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -137,7 +143,22 @@ describe('Agent daemon repo-free execution (e2e)', () => {
     await harness?.teardown();
   });
 
-  it('runs a workspace:none freeform task from a sandbox root that is not a git repository', async () => {
+  async function runRepoFreeTask(options: {
+    guestCredentialMode?: 'guest-config' | 'host-authenticated';
+  }): Promise<{
+    taskId: string;
+    executorOptions: {
+      guestCredentialMode: 'guest-config' | 'host-authenticated';
+      agentName: string;
+      agentRootDir: string;
+      mountPath: string;
+      moltnetAgent: Agent;
+      provider: string;
+      model: string;
+    };
+    sandboxRoot: string;
+    agentRoot: string;
+  }> {
     const sandboxRoot = mkdtempSync(join(tmpdir(), 'daemon-repo-free-e2e-'));
     const agentRoot = mkdtempSync(join(tmpdir(), 'daemon-agent-root-e2e-'));
     tempRoots.push(sandboxRoot);
@@ -191,6 +212,9 @@ describe('Agent daemon repo-free execution (e2e)', () => {
         profile.id,
         '--agent-root',
         agentRoot,
+        ...(options.guestCredentialMode
+          ? ['--guest-credential-mode', options.guestCredentialMode]
+          : []),
       ]);
       expect(exitCode).toBe(0);
     } finally {
@@ -199,19 +223,13 @@ describe('Agent daemon repo-free execution (e2e)', () => {
     }
 
     expect(createPiTaskExecutorMock).toHaveBeenCalledTimes(1);
-    const executorOptions = createPiTaskExecutorMock.mock.calls[0]?.[0] as {
-      guestCredentialMode: 'guest-config' | 'host-authenticated';
-      agentName: string;
-      agentRootDir: string;
-      mountPath: string;
-      moltnetAgent: Agent;
-      provider: string;
-      model: string;
-    };
+    const executorOptions = createPiTaskExecutorMock.mock
+      .calls[0]?.[0] as Awaited<
+      ReturnType<typeof runRepoFreeTask>
+    >['executorOptions'];
     expect(executorOptions).toMatchObject({
       agentName,
       agentRootDir: agentRoot,
-      guestCredentialMode: 'guest-config',
       mountPath: agentRoot,
       provider: 'anthropic',
       model: 'claude-sonnet-4-5',
@@ -223,6 +241,34 @@ describe('Agent daemon repo-free execution (e2e)', () => {
     const final = await agent.tasks.get(created.id);
     expect(final.status).toBe('completed');
     expect(final.acceptedAttemptN).toBe(1);
+    return { taskId: created.id, executorOptions, sandboxRoot, agentRoot };
+  }
+
+  it('runs a workspace:none freeform task from a sandbox root that is not a git repository', async () => {
+    // OAuth2 defaults to the host-authenticated guest: the host still resolves
+    // the Agent from the local moltnet.json, but the guest receives no
+    // credential tree.
+    const { taskId, executorOptions, agentRoot } = await runRepoFreeTask({});
+
+    expect(executorOptions.guestCredentialMode).toBe('host-authenticated');
+    expect(
+      existsSync(join(agentRoot, '.moltnet', agentName, 'moltnet.json')),
+    ).toBe(true);
+    // The host-side OAuth2 Agent handed to the executor can run parent-scope
+    // reads on the executor's behalf.
+    const viaExecutor = await executorOptions.moltnetAgent.tasks.get(taskId, {
+      teamId,
+    });
+    expect(viaExecutor.id).toBe(taskId);
+    expect(viaExecutor.status).toBe('completed');
+  }, 60_000);
+
+  it('keeps OAuth2 guest-config available as an explicit opt-in', async () => {
+    const { executorOptions } = await runRepoFreeTask({
+      guestCredentialMode: 'guest-config',
+    });
+
+    expect(executorOptions.guestCredentialMode).toBe('guest-config');
   }, 60_000);
 });
 
