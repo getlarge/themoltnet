@@ -92,6 +92,18 @@ createPiTaskExecutorMock.mockImplementation(
     },
 );
 
+/**
+ * The executor options the daemon hands to `createPiTaskExecutor`, narrowed to
+ * the fields these assertions rely on being present.
+ */
+type CapturedExecutorOptions = ExecutePiTaskOptions &
+  Required<
+    Pick<
+      ExecutePiTaskOptions,
+      'guestCredentialMode' | 'moltnetAgent' | 'agentRootDir' | 'mountPath'
+    >
+  >;
+
 describe('Agent daemon repo-free execution (e2e)', () => {
   let harness: DaemonTestHarness;
   let agent: Agent;
@@ -144,18 +156,10 @@ describe('Agent daemon repo-free execution (e2e)', () => {
   });
 
   async function runRepoFreeTask(options: {
-    guestCredentialMode?: 'guest-config' | 'host-authenticated';
+    guestCredentialMode?: ExecutePiTaskOptions['guestCredentialMode'];
   }): Promise<{
     taskId: string;
-    executorOptions: {
-      guestCredentialMode: 'guest-config' | 'host-authenticated';
-      agentName: string;
-      agentRootDir: string;
-      mountPath: string;
-      moltnetAgent: Agent;
-      provider: string;
-      model: string;
-    };
+    executorOptions: CapturedExecutorOptions;
     sandboxRoot: string;
     agentRoot: string;
   }> {
@@ -224,9 +228,7 @@ describe('Agent daemon repo-free execution (e2e)', () => {
 
     expect(createPiTaskExecutorMock).toHaveBeenCalledTimes(1);
     const executorOptions = createPiTaskExecutorMock.mock
-      .calls[0]?.[0] as Awaited<
-      ReturnType<typeof runRepoFreeTask>
-    >['executorOptions'];
+      .calls[0]?.[0] as CapturedExecutorOptions;
     expect(executorOptions).toMatchObject({
       agentName,
       agentRootDir: agentRoot,
