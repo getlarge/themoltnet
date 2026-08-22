@@ -251,7 +251,18 @@ describe('resumeVm task-context mount', () => {
         }),
       ]),
     );
-    expect(managed.secretManager).toBe(gondolinMock.secretManager);
+    managed.secretManager.rotateSecret('EXAMPLE_API_TOKEN', 'rotated');
+    expect(gondolinMock.secretManager.updateSecret).toHaveBeenCalledWith(
+      'EXAMPLE_API_TOKEN',
+      { value: 'rotated' },
+    );
+    managed.secretManager.revokeSecret('EXAMPLE_API_TOKEN');
+    expect(gondolinMock.secretManager.deleteSecret).toHaveBeenCalledWith(
+      'EXAMPLE_API_TOKEN',
+    );
+    expect(managed.secretManager).not.toHaveProperty('listSecrets');
+    expect(managed.secretManager).not.toHaveProperty('updateSecret');
+    expect(managed.secretManager).not.toHaveProperty('deleteSecret');
   });
 
   it('rejects a secret destination outside network policy before VM resume', async () => {

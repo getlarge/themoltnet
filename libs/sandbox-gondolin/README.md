@@ -90,8 +90,8 @@ Rotation and revocation do not require exposing or changing the guest
 placeholder:
 
 ```ts
-managed.secretManager.updateSecret('EXAMPLE_API_TOKEN', { value: rotated });
-managed.secretManager.deleteSecret('EXAMPLE_API_TOKEN');
+managed.secretManager.rotateSecret('EXAMPLE_API_TOKEN', rotated);
+managed.secretManager.revokeSecret('EXAMPLE_API_TOKEN');
 ```
 
 Keep signing keys, GitHub App private keys, SSH keys, and other non-HTTP

@@ -54,8 +54,10 @@ describeVm('resumeVm real Gondolin VM integration', () => {
     const firstValue = 'synthetic-first-host-value';
     const rotatedValue = 'synthetic-rotated-host-value';
     const fixtureHost = '127-0-0-1.sslip.io';
+    const deniedFixtureHost = '127-0-0-2.sslip.io';
     let expectedValue = firstValue;
     const receivedHeaders: Array<string | undefined> = [];
+    const deniedHeaders: Array<string | undefined> = [];
     const server = createServer((request, response) => {
       const authorization = request.headers.authorization;
       receivedHeaders.push(authorization);
@@ -73,14 +75,24 @@ describeVm('resumeVm real Gondolin VM integration', () => {
       response.writeHead(401, { 'content-type': 'text/plain' });
       response.end('rejected');
     });
+    const deniedServer = createServer((request, response) => {
+      deniedHeaders.push(request.headers.authorization);
+      response.writeHead(200, { 'content-type': 'text/plain' });
+      response.end('unexpected');
+    });
     let managed: Awaited<ReturnType<typeof resumeVm>> | undefined;
 
     try {
       await new Promise<void>((resolve, reject) => {
         server.once('error', reject);
-        server.listen(0, '127.0.0.1', resolve);
+        server.listen(0, '0.0.0.0', resolve);
+      });
+      await new Promise<void>((resolve, reject) => {
+        deniedServer.once('error', reject);
+        deniedServer.listen(0, '0.0.0.0', resolve);
       });
       const port = (server.address() as AddressInfo).port;
+      const deniedPort = (deniedServer.address() as AddressInfo).port;
 
       const checkpointPath = await ensureSnapshot();
       managed = await resumeVm({
@@ -91,8 +103,7 @@ describeVm('resumeVm real Gondolin VM integration', () => {
         mountPath: workspace,
         sandboxConfig: {
           network: {
-            allowedHosts: ['example.com'],
-            allowedInternalHosts: [fixtureHost],
+            allowedInternalHosts: [fixtureHost, deniedFixtureHost],
           },
         },
         brokeredSecrets: [
@@ -118,7 +129,7 @@ curl -fsS --max-time 20 \\
   http://${fixtureHost}:${port}/authorized
 if curl -fsS --max-time 10 \\
   -H "Authorization: Bearer $FIXTURE_API_TOKEN" \\
-  https://example.com >/dev/null 2>&1; then
+  http://${deniedFixtureHost}:${deniedPort}/denied >/dev/null 2>&1; then
   echo wrong-destination-accepted
   exit 1
 fi
@@ -127,6 +138,7 @@ fi
       expect(firstOutput).toContain('accepted');
       expect(firstOutput).not.toContain(firstValue);
       expect(receivedHeaders).toEqual([`Bearer ${firstValue}`]);
+      expect(deniedHeaders).not.toContain(`Bearer ${firstValue}`);
 
       const basicOutput = await execGuest(
         managed.vm,
@@ -139,9 +151,7 @@ fi
       );
 
       expectedValue = rotatedValue;
-      managed.secretManager.updateSecret('FIXTURE_API_TOKEN', {
-        value: rotatedValue,
-      });
+      managed.secretManager.rotateSecret('FIXTURE_API_TOKEN', rotatedValue);
       const rotatedOutput = await execGuest(
         managed.vm,
         `curl -fsS --max-time 20 -H "Authorization: Bearer $FIXTURE_API_TOKEN" http://${fixtureHost}:${port}/rotated`,
@@ -150,7 +160,7 @@ fi
       expect(rotatedOutput).not.toContain(rotatedValue);
       expect(receivedHeaders.at(-1)).toBe(`Bearer ${rotatedValue}`);
 
-      managed.secretManager.deleteSecret('FIXTURE_API_TOKEN');
+      managed.secretManager.revokeSecret('FIXTURE_API_TOKEN');
       const revokedOutput = await execGuest(
         managed.vm,
         `
@@ -167,6 +177,11 @@ echo revoked
       if (server.listening) {
         await new Promise<void>((resolve, reject) => {
           server.close((error) => (error ? reject(error) : resolve()));
+        });
+      }
+      if (deniedServer.listening) {
+        await new Promise<void>((resolve, reject) => {
+          deniedServer.close((error) => (error ? reject(error) : resolve()));
         });
       }
       rmSync(root, { recursive: true, force: true });

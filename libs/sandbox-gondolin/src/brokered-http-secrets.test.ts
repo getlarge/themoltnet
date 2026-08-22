@@ -25,6 +25,84 @@ describe('brokered HTTP secret preflight', () => {
         value: 'host-only-value',
       },
     });
+    expect(Object.getPrototypeOf(secrets)).toBeNull();
+  });
+
+  it('canonicalizes the attested and enforced destination set', () => {
+    const secrets = prepareBrokeredHttpSecrets({
+      allowedHosts: ['*.example.com'],
+      bindings: [
+        {
+          id: 'example-api',
+          guestEnv: 'EXAMPLE_API_TOKEN',
+          hosts: [' API.EXAMPLE.COM ', 'api.example.com'],
+          value: 'host-only-value',
+        },
+      ],
+    });
+
+    expect(secrets.EXAMPLE_API_TOKEN?.hosts).toEqual(['api.example.com']);
+  });
+
+  it.each([
+    {
+      label: 'an exact destination',
+      allowedHosts: ['api.example.com'],
+      secretHost: 'api.example.com',
+    },
+    {
+      label: 'an exact wildcard grant',
+      allowedHosts: ['*.example.com'],
+      secretHost: '*.example.com',
+    },
+    {
+      label: 'an exact destination below a broader wildcard',
+      allowedHosts: ['*.example.com'],
+      secretHost: 'api.example.com',
+    },
+    {
+      label: 'an explicit global grant',
+      allowedHosts: ['*'],
+      secretHost: '*',
+    },
+  ])('accepts $label', ({ allowedHosts, secretHost }) => {
+    expect(() =>
+      prepareBrokeredHttpSecrets({
+        allowedHosts,
+        bindings: [
+          {
+            id: 'example-api',
+            guestEnv: 'EXAMPLE_API_TOKEN',
+            hosts: [secretHost],
+            value: 'host-only-value',
+          },
+        ],
+      }),
+    ).not.toThrow();
+  });
+
+  it.each<[string, string[], string]>([
+    ['a broader credential wildcard', ['api.example.com'], '*.example.com'],
+    ['an ambiguous wildcard', ['api.*'], '*.example.com'],
+    ['an implicit global credential grant', ['*.example.com'], '*'],
+    ['a URL', ['api.example.com'], 'https://api.example.com'],
+    ['a port', ['api.example.com'], 'api.example.com:443'],
+    ['a path', ['api.example.com'], 'api.example.com/path'],
+    ['internal whitespace', ['api.example.com'], 'api .example.com'],
+  ])('rejects %s', (_label, allowedHosts, secretHost) => {
+    expect(() =>
+      prepareBrokeredHttpSecrets({
+        allowedHosts,
+        bindings: [
+          {
+            id: 'example-api',
+            guestEnv: 'EXAMPLE_API_TOKEN',
+            hosts: [secretHost],
+            value: 'host-only-value',
+          },
+        ],
+      }),
+    ).toThrow();
   });
 
   it('fails closed when a credential destination exceeds network policy', () => {
@@ -134,6 +212,18 @@ describe('brokered HTTP secret preflight', () => {
         {
           id: 'moltnet-api',
           guestEnv: 'MOLTNET_PRIVATE_KEY',
+          hosts: ['api.example.com'],
+          value: 'one',
+        },
+      ],
+      expected: /reserved guest env/,
+    },
+    {
+      label: 'object meta-property environment names',
+      bindings: [
+        {
+          id: 'prototype-api',
+          guestEnv: '__proto__',
           hosts: ['api.example.com'],
           value: 'one',
         },

@@ -3,11 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { parseEnv } from 'node:util';
 
-import type {
-  SecretDefinition,
-  SecretManager,
-  VM,
-} from '@earendil-works/gondolin';
+import type { SecretDefinition, VM } from '@earendil-works/gondolin';
 import {
   createHttpHooks,
   createShadowPathPredicate,
@@ -67,6 +63,14 @@ export interface BrokeredHttpSecretDescriptor {
 export interface BrokeredHttpSecretBinding extends BrokeredHttpSecretDescriptor {
   /** Resolved only by trusted host code immediately before VM resume. */
   value?: string;
+}
+
+/** Host-only capabilities that cannot widen a validated destination grant. */
+export interface BrokeredHttpSecretManager {
+  /** Rotate a configured secret value without changing its destination set. */
+  rotateSecret(name: string, value: string): void;
+  /** Revoke a configured secret for the remainder of this VM lifetime. */
+  revokeSecret(name: string): void;
 }
 
 export interface VmDiagnostic {
@@ -167,8 +171,8 @@ export interface VmCredentials {
 export interface ManagedVm {
   vm: VM;
   credentials: VmCredentials;
-  /** Host-only rotation and revocation handle. It never returns secret values. */
-  secretManager: SecretManager;
+  /** Host-only rotation and revocation handle. It cannot widen destinations. */
+  secretManager: BrokeredHttpSecretManager;
   mountPath: string;
   guestWorkspace: string;
   agentDir: string;
@@ -519,6 +523,11 @@ export class BrokeredHttpSecretBoundaryError extends Error {
 
 const BROKERED_SECRET_ID_REGEXP = /^[a-z][a-z0-9._-]{0,63}$/;
 const GUEST_ENV_NAME_REGEXP = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const OBJECT_META_PROPERTY_NAMES = new Set([
+  '__proto__',
+  'constructor',
+  'prototype',
+]);
 
 function normalizeHostPattern(pattern: string): string {
   return pattern.trim().toLowerCase();
@@ -534,7 +543,54 @@ function isValidHostPattern(pattern: string): boolean {
   );
 }
 
+/**
+ * Canonicalize and validate the value-free portion of a brokered binding.
+ * Runtime attestation and Gondolin enforcement both consume this function so
+ * the evidenced destination set cannot drift from the enforced one.
+ */
+export function canonicalizeBrokeredHttpSecretDescriptor(
+  descriptor: BrokeredHttpSecretDescriptor,
+): Required<BrokeredHttpSecretDescriptor> {
+  const issues: string[] = [];
+  const id = descriptor.id.trim();
+  const guestEnv = descriptor.guestEnv.trim();
+  const hosts = [...new Set(descriptor.hosts.map(normalizeHostPattern))].sort();
+
+  if (!BROKERED_SECRET_ID_REGEXP.test(id)) {
+    issues.push(`invalid requirement id "${id || '<empty>'}"`);
+  }
+  if (!GUEST_ENV_NAME_REGEXP.test(guestEnv)) {
+    issues.push(`requirement "${id}" has invalid guest env "${guestEnv}"`);
+  } else if (
+    isReservedGuestEnvironmentName(guestEnv) ||
+    OBJECT_META_PROPERTY_NAMES.has(guestEnv)
+  ) {
+    issues.push(`requirement "${id}" uses reserved guest env "${guestEnv}"`);
+  }
+  if (hosts.length === 0) {
+    issues.push(`requirement "${id}" has no destination hosts`);
+  }
+  for (const host of hosts) {
+    if (!isValidHostPattern(host)) {
+      issues.push(`requirement "${id}" has invalid host pattern "${host}"`);
+    }
+  }
+
+  if (issues.length > 0) {
+    throw new BrokeredHttpSecretBoundaryError(issues);
+  }
+  return Object.freeze({
+    id,
+    guestEnv,
+    hosts: Object.freeze(hosts),
+    required: descriptor.required !== false,
+  });
+}
+
 function hostMatchesPattern(hostname: string, pattern: string): boolean {
+  // Gondolin 0.9.x does not export its hostname matcher. Keep this compatibility
+  // shim private to the adapter boundary and pin its conservative use below;
+  // replace it with the upstream matcher if Gondolin exposes one.
   const expression = pattern
     .split('*')
     .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
@@ -573,25 +629,27 @@ export function prepareBrokeredHttpSecrets(options: {
   const allowedHosts = [
     ...new Set(options.allowedHosts.map(normalizeHostPattern)),
   ];
-  const secrets: Record<string, SecretDefinition> = {};
+  const secrets = Object.create(null) as Record<string, SecretDefinition>;
 
   for (const binding of options.bindings ?? []) {
-    const id = binding.id.trim();
-    const guestEnv = binding.guestEnv.trim();
-    const hosts = [...new Set(binding.hosts.map(normalizeHostPattern))];
+    let descriptor: Required<BrokeredHttpSecretDescriptor>;
+    try {
+      descriptor = canonicalizeBrokeredHttpSecretDescriptor(binding);
+    } catch (error) {
+      if (error instanceof BrokeredHttpSecretBoundaryError) {
+        issues.push(...error.issues);
+        continue;
+      }
+      throw error;
+    }
+    const { id, guestEnv, hosts } = descriptor;
 
-    if (!BROKERED_SECRET_ID_REGEXP.test(id)) {
-      issues.push(`invalid requirement id "${id || '<empty>'}"`);
-    } else if (ids.has(id)) {
+    if (ids.has(id)) {
       issues.push(`duplicate requirement id "${id}"`);
     }
     ids.add(id);
 
-    if (!GUEST_ENV_NAME_REGEXP.test(guestEnv)) {
-      issues.push(`requirement "${id}" has invalid guest env "${guestEnv}"`);
-    } else if (isReservedGuestEnvironmentName(guestEnv)) {
-      issues.push(`requirement "${id}" uses reserved guest env "${guestEnv}"`);
-    } else if (guestEnvNames.has(guestEnv)) {
+    if (guestEnvNames.has(guestEnv)) {
       issues.push(`duplicate guest env "${guestEnv}"`);
     } else if (occupiedGuestEnvNames.has(guestEnv)) {
       issues.push(
@@ -600,14 +658,7 @@ export function prepareBrokeredHttpSecrets(options: {
     }
     guestEnvNames.add(guestEnv);
 
-    if (hosts.length === 0) {
-      issues.push(`requirement "${id}" has no destination hosts`);
-    }
     for (const host of hosts) {
-      if (!isValidHostPattern(host)) {
-        issues.push(`requirement "${id}" has invalid host pattern "${host}"`);
-        continue;
-      }
       if (
         !allowedHosts.some((allowedHost) =>
           networkPatternCoversSecretPattern(allowedHost, host),
@@ -621,15 +672,13 @@ export function prepareBrokeredHttpSecrets(options: {
 
     const value = binding.value;
     if (value === undefined || value === '') {
-      if (binding.required !== false) {
+      if (descriptor.required) {
         issues.push(`required binding "${id}" has no resolved value`);
       }
       continue;
     }
 
-    if (GUEST_ENV_NAME_REGEXP.test(guestEnv) && hosts.length > 0) {
-      secrets[guestEnv] = { hosts, value };
-    }
+    secrets[guestEnv] = { hosts: [...hosts], value };
   }
 
   if (issues.length > 0) {
@@ -853,13 +902,21 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   const {
     httpHooks,
     env: secretEnv,
-    secretManager,
+    secretManager: gondolinSecretManager,
   } = createHttpHooks({
     allowedHosts,
     allowedInternalHosts: runtimeAllowedInternalHosts,
     ...(Object.keys(brokeredSecrets).length > 0 && {
       secrets: brokeredSecrets,
     }),
+  });
+  const secretManager: BrokeredHttpSecretManager = Object.freeze({
+    rotateSecret(name: string, value: string) {
+      gondolinSecretManager.updateSecret(name, { value });
+    },
+    revokeSecret(name: string) {
+      gondolinSecretManager.deleteSecret(name);
+    },
   });
   const brokeredSecretCount = Object.keys(brokeredSecrets).length;
   if (brokeredSecretCount > 0) {
