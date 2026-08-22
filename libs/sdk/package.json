@@ -52,8 +52,7 @@
     "@noble/ed25519": "catalog:",
     "@noble/hashes": "catalog:",
     "multiformats": "catalog:",
-    "typebox": "catalog:",
-    "@moltnet/runtime-profiles": "0.1.0"
+    "typebox": "catalog:"
   },
   "devDependencies": {
     "@moltnet/agent-config": "workspace:*",

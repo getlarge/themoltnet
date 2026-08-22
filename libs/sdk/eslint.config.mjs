@@ -8,6 +8,7 @@ export default [
     ignoredDependencies: [
       '@moltnet/api-client',
       '@moltnet/crypto-service',
+      '@moltnet/runtime-profiles',
       '@moltnet/tasks',
       // Runtime imports promoted from bundled private workspace packages.
       '@ipld/dag-cbor',

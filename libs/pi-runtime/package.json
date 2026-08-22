@@ -47,8 +47,7 @@
     "@themoltnet/sdk": "workspace:*",
     "@themoltnet/shell-command-analyzer": "workspace:*",
     "multiformats": "catalog:",
-    "typebox": "catalog:",
-    "@moltnet/runtime-profiles": "0.1.0"
+    "typebox": "catalog:"
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": "0.79.4",

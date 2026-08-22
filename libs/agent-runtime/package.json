@@ -43,8 +43,7 @@
     "@themoltnet/sdk": "workspace:*",
     "multiformats": "catalog:",
     "pino": "catalog:",
-    "typebox": "catalog:",
-    "@moltnet/runtime-profiles": "0.1.0"
+    "typebox": "catalog:"
   },
   "devDependencies": {
     "@moltnet/runtime-profiles": "workspace:*",
