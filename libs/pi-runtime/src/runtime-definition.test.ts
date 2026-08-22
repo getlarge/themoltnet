@@ -1,13 +1,15 @@
 import { Type } from 'typebox';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   buildPiExecutorManifest,
   defineGondolinTemplate,
+  definePiBrokeredHttpSecret,
   definePiExtension,
   definePiRuntime,
   definePiTool,
   filterModelVisibleTools,
+  materializePiBrokeredHttpSecrets,
   materializePiExtensions,
 } from './runtime-definition.js';
 
@@ -143,6 +145,113 @@ describe('Pi runtime definitions', () => {
       'review',
     ]);
     expect(manifest.executables).toEqual(['git']);
+  });
+
+  it('attests broker descriptors without resolving or evidencing values', async () => {
+    const sentinel = 'host-only-value';
+    const resolve = vi.fn(() => sentinel);
+    const runtime = definePiRuntime({
+      id: 'credential-runtime',
+      version: '1',
+      vm: defineGondolinTemplate({
+        id: 'test-vm',
+        version: '1',
+        checkpointPath: '/tmp/checkpoint',
+      }),
+      brokeredHttpSecrets: [
+        definePiBrokeredHttpSecret({
+          id: 'github-api',
+          guestEnv: 'GH_TOKEN',
+          hosts: ['api.github.com'],
+          required: false,
+          resolve,
+        }),
+      ],
+    });
+
+    const manifest = await buildPiExecutorManifest({
+      runtime,
+      profile: { id: 'profile-id', definitionCid: 'bafkreiprofile' },
+      template: {
+        id: 'test-vm',
+        version: '1',
+        checkpointPath: '/tmp/checkpoint',
+        fingerprint: 'bafkreitemplate',
+        guestAssetBuildId: 'guest-build',
+        executables: ['gh'],
+        resumeCommands: [],
+      },
+    });
+
+    expect(resolve).not.toHaveBeenCalled();
+    expect(manifest.brokeredHttpSecrets).toEqual([
+      {
+        id: 'github-api',
+        guestEnv: 'GH_TOKEN',
+        hosts: ['api.github.com'],
+        required: false,
+      },
+    ]);
+    expect(JSON.stringify(manifest)).not.toContain(sentinel);
+
+    await expect(
+      materializePiBrokeredHttpSecrets({
+        runtime,
+        context: {
+          agentName: 'legreffier',
+          claimedTask: {} as never,
+          cwdPath: '/workspace',
+        },
+      }),
+    ).resolves.toEqual([
+      {
+        id: 'github-api',
+        guestEnv: 'GH_TOKEN',
+        hosts: ['api.github.com'],
+        required: false,
+        value: sentinel,
+      },
+    ]);
+  });
+
+  it('redacts broker resolver failures', async () => {
+    const runtime = definePiRuntime({
+      id: 'credential-runtime',
+      version: '1',
+      vm: defineGondolinTemplate({
+        id: 'test-vm',
+        version: '1',
+        checkpointPath: '/tmp/checkpoint',
+      }),
+      brokeredHttpSecrets: [
+        definePiBrokeredHttpSecret({
+          id: 'example-api',
+          guestEnv: 'EXAMPLE_API_TOKEN',
+          hosts: ['api.example.com'],
+          resolve: () => {
+            throw new Error('upstream included secret-value');
+          },
+        }),
+      ],
+    });
+
+    let error: unknown;
+    try {
+      await materializePiBrokeredHttpSecrets({
+        runtime,
+        context: {
+          agentName: 'legreffier',
+          claimedTask: {} as never,
+          cwdPath: '/workspace',
+        },
+      });
+    } catch (caught) {
+      error = caught;
+    }
+    expect(String(error)).toContain(
+      'Brokered HTTP secret "example-api" resolution failed',
+    );
+    expect(String(error)).not.toContain('secret-value');
   });
 
   it('keeps protocol tools while enforcing the model-visible allowlist', () => {

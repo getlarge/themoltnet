@@ -8,6 +8,8 @@ import { computeJsonCid } from '@moltnet/crypto-service/json-cid';
 import { RUNTIME_PROFILE_RUNTIME_KIND_REGEXP } from '@moltnet/runtime-profiles';
 import type { ClaimedTask, TaskReporter } from '@themoltnet/agent-runtime';
 import {
+  type BrokeredHttpSecretBinding,
+  type BrokeredHttpSecretDescriptor,
   ensureSnapshot,
   type ResumeCommand,
   type SnapshotConfig,
@@ -47,6 +49,58 @@ export interface PiToolFactoryOptions {
   descriptor: PiToolDescriptor;
   scope?: PiToolScope;
   create: (context: PiToolContext) => ToolDefinition | Promise<ToolDefinition>;
+}
+
+export interface PiBrokeredHttpSecretResolveContext {
+  agentName: string;
+  claimedTask: ClaimedTask;
+  cwdPath: string;
+}
+
+export interface PiBrokeredHttpSecretContribution {
+  readonly kind: 'brokered_http_secret';
+  readonly descriptor: BrokeredHttpSecretDescriptor;
+  readonly resolve: (
+    context: PiBrokeredHttpSecretResolveContext,
+  ) => string | undefined | Promise<string | undefined>;
+}
+
+export interface DefinePiBrokeredHttpSecretOptions extends BrokeredHttpSecretDescriptor {
+  resolve: (
+    context: PiBrokeredHttpSecretResolveContext,
+  ) => string | undefined | Promise<string | undefined>;
+}
+
+/**
+ * Declare a value-free HTTP credential requirement in trusted runtime code.
+ * The resolver runs per attempt on the daemon host; its return value is never
+ * added to the runtime definition or executor manifest.
+ */
+export function definePiBrokeredHttpSecret(
+  options: DefinePiBrokeredHttpSecretOptions,
+): PiBrokeredHttpSecretContribution {
+  if (!/^[a-z][a-z0-9._-]{0,63}$/.test(options.id)) {
+    throw new Error(`Invalid brokered HTTP secret id "${options.id}"`);
+  }
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(options.guestEnv)) {
+    throw new Error(
+      `Invalid brokered HTTP secret guest env "${options.guestEnv}"`,
+    );
+  }
+  if (options.hosts.length === 0) {
+    throw new Error(`Brokered HTTP secret "${options.id}" requires a host`);
+  }
+  const descriptor = Object.freeze({
+    id: options.id,
+    guestEnv: options.guestEnv,
+    hosts: Object.freeze([...new Set(options.hosts)].sort()),
+    required: options.required ?? true,
+  });
+  return Object.freeze({
+    kind: 'brokered_http_secret',
+    descriptor,
+    resolve: options.resolve,
+  });
 }
 
 export function definePiTool(
@@ -228,6 +282,7 @@ export interface PiRuntimeDefinition {
   readonly version: string;
   readonly runtimeKind: string;
   readonly vm: GondolinTemplateDefinition;
+  readonly brokeredHttpSecrets: readonly PiBrokeredHttpSecretContribution[];
   readonly tools: readonly PiToolContribution[];
   readonly extensions: readonly PiExtensionContribution[];
 }
@@ -237,6 +292,7 @@ export interface DefinePiRuntimeOptions {
   version: string;
   runtimeKind?: string;
   vm: GondolinTemplateDefinition;
+  brokeredHttpSecrets?: readonly PiBrokeredHttpSecretContribution[];
   tools?: readonly PiToolContribution[];
   extensions?: readonly PiExtensionContribution[];
 }
@@ -258,12 +314,29 @@ export function definePiRuntime(
     }
   }
 
+  const secretIds = new Set<string>();
+  const secretEnvNames = new Set<string>();
+  for (const secret of options.brokeredHttpSecrets ?? []) {
+    const { id, guestEnv } = secret.descriptor;
+    if (secretIds.has(id)) {
+      throw new Error(`Duplicate brokered HTTP secret id "${id}"`);
+    }
+    if (secretEnvNames.has(guestEnv)) {
+      throw new Error(`Duplicate brokered HTTP secret guest env "${guestEnv}"`);
+    }
+    secretIds.add(id);
+    secretEnvNames.add(guestEnv);
+  }
+
   return Object.freeze({
     schemaVersion: PI_RUNTIME_DEFINITION_VERSION,
     id: options.id,
     version: options.version,
     runtimeKind: options.runtimeKind ?? 'gondolin_pi',
     vm: options.vm,
+    brokeredHttpSecrets: Object.freeze([
+      ...(options.brokeredHttpSecrets ?? []),
+    ]),
     tools: Object.freeze([...(options.tools ?? [])]),
     extensions: Object.freeze([...(options.extensions ?? [])]),
   });
@@ -285,6 +358,12 @@ export interface PiExecutorManifest {
     templateFingerprint: string;
     guestAssetBuildId: string;
   };
+  brokeredHttpSecrets: {
+    id: string;
+    guestEnv: string;
+    hosts: readonly string[];
+    required: boolean;
+  }[];
   tools: {
     name: string;
     descriptorCid: string | null;
@@ -349,6 +428,14 @@ export async function buildPiExecutorManifest(input: {
       templateFingerprint: input.template.fingerprint,
       guestAssetBuildId: input.template.guestAssetBuildId,
     },
+    brokeredHttpSecrets: input.runtime.brokeredHttpSecrets
+      .map(({ descriptor }) => ({
+        id: descriptor.id,
+        guestEnv: descriptor.guestEnv,
+        hosts: [...descriptor.hosts],
+        required: descriptor.required !== false,
+      }))
+      .sort((left, right) => left.id.localeCompare(right.id)),
     tools,
     extensions: input.runtime.extensions.map((extension) => ({
       id: extension.id,
@@ -357,6 +444,30 @@ export async function buildPiExecutorManifest(input: {
     })),
     executables: input.template.executables,
   };
+}
+
+export async function materializePiBrokeredHttpSecrets(input: {
+  runtime: PiRuntimeDefinition;
+  context: PiBrokeredHttpSecretResolveContext;
+}): Promise<BrokeredHttpSecretBinding[]> {
+  return Promise.all(
+    input.runtime.brokeredHttpSecrets.map(async ({ descriptor, resolve }) => {
+      try {
+        return {
+          ...descriptor,
+          hosts: [...descriptor.hosts],
+          value: await resolve(input.context),
+        };
+      } catch {
+        // Resolver failures cross into task diagnostics. Keep the message
+        // stable and value-free even when trusted integration code throws an
+        // upstream error containing credential material.
+        throw new Error(
+          `Brokered HTTP secret "${descriptor.id}" resolution failed`,
+        );
+      }
+    }),
+  );
 }
 
 export async function materializePiTools(input: {

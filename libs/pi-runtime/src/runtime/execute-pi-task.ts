@@ -72,6 +72,7 @@ import {
 import {
   enabledPiToolNames,
   filterModelVisibleTools,
+  materializePiBrokeredHttpSecrets,
   materializePiExtensions,
   materializePiTools,
   modelVisiblePiToolNames,
@@ -706,6 +707,7 @@ export async function executePiTask(
     let checkpointPath: string;
     let resolvedVmTemplate = opts.resolvedVmTemplate;
     let effectiveSandboxConfig: SandboxConfig | undefined;
+    let brokeredSecretEnvNames: string[] = [];
     try {
       if (!resolvedVmTemplate && opts.runtimeDefinition) {
         resolvedVmTemplate = opts.resolveVmTemplate
@@ -781,6 +783,29 @@ export async function executePiTask(
           : opts.sandboxConfig,
         executionPlan,
       );
+      const runtimeDefinition = opts.runtimeDefinition;
+      const brokeredSecrets = runtimeDefinition
+        ? await traceRuntimePhase(
+            'moltnet.execution.credentials.resolve',
+            {
+              'moltnet.credentials.requirement_count':
+                runtimeDefinition.brokeredHttpSecrets.length,
+            },
+            () =>
+              materializePiBrokeredHttpSecrets({
+                runtime: runtimeDefinition,
+                context: {
+                  agentName: opts.agentName,
+                  claimedTask,
+                  cwdPath,
+                },
+              }),
+          )
+        : undefined;
+      brokeredSecretEnvNames = (brokeredSecrets ?? [])
+        .filter(({ value }) => value !== undefined && value !== '')
+        .map(({ guestEnv }) => guestEnv)
+        .sort();
       managed = await traceRuntimePhase(
         'moltnet.execution.vm.resume',
         { 'moltnet.workspace.mode': preparedWorkspace.mode },
@@ -795,6 +820,7 @@ export async function executePiTask(
             extraAllowedHosts: opts.extraAllowedHosts,
             sandboxConfig: effectiveSandboxConfig,
             forwardEnv: opts.forwardEnv,
+            brokeredSecrets,
             onDiagnostic: opts.onVmDiagnostic,
             signal: reporter.cancelSignal,
           }),
@@ -1244,6 +1270,7 @@ export async function executePiTask(
         attemptN,
         diaryId,
         agentName: opts.agentName,
+        guestCredentialMode: opts.guestCredentialMode ?? 'guest-config',
         guestWorkspace: managed.guestWorkspace,
         correlationId: task.correlationId ?? null,
         sandbox: {
@@ -1259,6 +1286,7 @@ export async function executePiTask(
           ],
           allowedInternalHosts:
             effectiveSandboxConfig?.network?.allowedInternalHosts ?? [],
+          brokeredSecretEnvNames,
         },
         toolPolicy: capabilityProjection.instructorPolicy,
       });
