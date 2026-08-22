@@ -8,6 +8,9 @@ import { computeJsonCid } from '@moltnet/crypto-service/json-cid';
 import { RUNTIME_PROFILE_RUNTIME_KIND_REGEXP } from '@moltnet/runtime-profiles';
 import type { ClaimedTask, TaskReporter } from '@themoltnet/agent-runtime';
 import {
+  type BrokeredHttpSecretBinding,
+  type BrokeredHttpSecretDescriptor,
+  canonicalizeBrokeredHttpSecretDescriptor,
   ensureSnapshot,
   type ResumeCommand,
   type SnapshotConfig,
@@ -47,6 +50,64 @@ export interface PiToolFactoryOptions {
   descriptor: PiToolDescriptor;
   scope?: PiToolScope;
   create: (context: PiToolContext) => ToolDefinition | Promise<ToolDefinition>;
+}
+
+export interface PiBrokeredHttpSecretResolveContext {
+  agentName: string;
+  claimedTask: ClaimedTask;
+  cwdPath: string;
+  /** Cancelled when the attempt stops or the resolver exceeds its deadline. */
+  signal: AbortSignal;
+}
+
+export const DEFAULT_BROKERED_HTTP_SECRET_RESOLUTION_TIMEOUT_MS = 30_000;
+const MAX_BROKERED_HTTP_SECRET_RESOLUTION_TIMEOUT_MS = 2_147_483_647;
+
+export class PiBrokeredHttpSecretResolutionError extends Error {
+  constructor(
+    public readonly requirementId: string,
+    message: string,
+    public readonly retryable: boolean,
+  ) {
+    super(message);
+    this.name = 'PiBrokeredHttpSecretResolutionError';
+  }
+}
+
+function brokeredHttpSecretAbortError(): Error {
+  const error = new Error('Brokered HTTP secret resolution aborted');
+  error.name = 'AbortError';
+  return error;
+}
+
+export interface PiBrokeredHttpSecretContribution {
+  readonly kind: 'brokered_http_secret';
+  readonly descriptor: BrokeredHttpSecretDescriptor;
+  readonly resolve: (
+    context: PiBrokeredHttpSecretResolveContext,
+  ) => string | undefined | Promise<string | undefined>;
+}
+
+export interface DefinePiBrokeredHttpSecretOptions extends BrokeredHttpSecretDescriptor {
+  resolve: (
+    context: PiBrokeredHttpSecretResolveContext,
+  ) => string | undefined | Promise<string | undefined>;
+}
+
+/**
+ * Declare a value-free HTTP credential requirement in trusted runtime code.
+ * The resolver runs per attempt on the daemon host; its return value is never
+ * added to the runtime definition or executor manifest.
+ */
+export function definePiBrokeredHttpSecret(
+  options: DefinePiBrokeredHttpSecretOptions,
+): PiBrokeredHttpSecretContribution {
+  const descriptor = canonicalizeBrokeredHttpSecretDescriptor(options);
+  return Object.freeze({
+    kind: 'brokered_http_secret',
+    descriptor,
+    resolve: options.resolve,
+  });
 }
 
 export function definePiTool(
@@ -228,6 +289,8 @@ export interface PiRuntimeDefinition {
   readonly version: string;
   readonly runtimeKind: string;
   readonly vm: GondolinTemplateDefinition;
+  /** Optional v1 extension; absent on independently packaged legacy runtimes. */
+  readonly brokeredHttpSecrets?: readonly PiBrokeredHttpSecretContribution[];
   readonly tools: readonly PiToolContribution[];
   readonly extensions: readonly PiExtensionContribution[];
 }
@@ -237,6 +300,7 @@ export interface DefinePiRuntimeOptions {
   version: string;
   runtimeKind?: string;
   vm: GondolinTemplateDefinition;
+  brokeredHttpSecrets?: readonly PiBrokeredHttpSecretContribution[];
   tools?: readonly PiToolContribution[];
   extensions?: readonly PiExtensionContribution[];
 }
@@ -258,12 +322,29 @@ export function definePiRuntime(
     }
   }
 
+  const secretIds = new Set<string>();
+  const secretEnvNames = new Set<string>();
+  for (const secret of options.brokeredHttpSecrets ?? []) {
+    const { id, guestEnv } = secret.descriptor;
+    if (secretIds.has(id)) {
+      throw new Error(`Duplicate brokered HTTP secret id "${id}"`);
+    }
+    if (secretEnvNames.has(guestEnv)) {
+      throw new Error(`Duplicate brokered HTTP secret guest env "${guestEnv}"`);
+    }
+    secretIds.add(id);
+    secretEnvNames.add(guestEnv);
+  }
+
   return Object.freeze({
     schemaVersion: PI_RUNTIME_DEFINITION_VERSION,
     id: options.id,
     version: options.version,
     runtimeKind: options.runtimeKind ?? 'gondolin_pi',
     vm: options.vm,
+    brokeredHttpSecrets: Object.freeze([
+      ...(options.brokeredHttpSecrets ?? []),
+    ]),
     tools: Object.freeze([...(options.tools ?? [])]),
     extensions: Object.freeze([...(options.extensions ?? [])]),
   });
@@ -285,6 +366,15 @@ export interface PiExecutorManifest {
     templateFingerprint: string;
     guestAssetBuildId: string;
   };
+  /** Optional v1 extension, emitted only when requirements are declared. */
+  brokeredHttpSecrets?: {
+    id: string;
+    guestEnv: string;
+    hosts: readonly string[];
+    protocol: 'https' | 'http';
+    ports: readonly number[];
+    required: boolean;
+  }[];
   tools: {
     name: string;
     descriptorCid: string | null;
@@ -305,6 +395,7 @@ export async function buildPiExecutorManifest(input: {
   builtInTools?: readonly PiToolDescriptor[];
   builtInToolNames?: readonly string[];
 }): Promise<PiExecutorManifest> {
+  const brokeredHttpSecrets = input.runtime.brokeredHttpSecrets ?? [];
   const descriptors = [
     ...(input.builtInTools ?? []).map((descriptor) => ({
       descriptor,
@@ -349,6 +440,22 @@ export async function buildPiExecutorManifest(input: {
       templateFingerprint: input.template.fingerprint,
       guestAssetBuildId: input.template.guestAssetBuildId,
     },
+    ...(brokeredHttpSecrets.length > 0 && {
+      brokeredHttpSecrets: brokeredHttpSecrets
+        .map(({ descriptor }) => ({
+          id: descriptor.id,
+          guestEnv: descriptor.guestEnv,
+          hosts: [...descriptor.hosts],
+          protocol: descriptor.protocol ?? 'https',
+          ports: [
+            ...(descriptor.ports ?? [
+              descriptor.protocol === 'http' ? 80 : 443,
+            ]),
+          ],
+          required: descriptor.required !== false,
+        }))
+        .sort((left, right) => left.id.localeCompare(right.id)),
+    }),
     tools,
     extensions: input.runtime.extensions.map((extension) => ({
       id: extension.id,
@@ -357,6 +464,204 @@ export async function buildPiExecutorManifest(input: {
     })),
     executables: input.template.executables,
   };
+}
+
+export async function materializePiBrokeredHttpSecrets(input: {
+  runtime: PiRuntimeDefinition;
+  context: Omit<PiBrokeredHttpSecretResolveContext, 'signal'>;
+  signal?: AbortSignal;
+  timeoutMs?: number;
+}): Promise<BrokeredHttpSecretBinding[]> {
+  const timeoutMs =
+    input.timeoutMs ?? DEFAULT_BROKERED_HTTP_SECRET_RESOLUTION_TIMEOUT_MS;
+  if (
+    !Number.isInteger(timeoutMs) ||
+    timeoutMs <= 0 ||
+    timeoutMs > MAX_BROKERED_HTTP_SECRET_RESOLUTION_TIMEOUT_MS
+  ) {
+    throw new Error(
+      `Brokered HTTP secret resolution timeout must be an integer between 1 and ${MAX_BROKERED_HTTP_SECRET_RESOLUTION_TIMEOUT_MS}`,
+    );
+  }
+  if (input.signal?.aborted) throw brokeredHttpSecretAbortError();
+
+  const contributions = input.runtime.brokeredHttpSecrets ?? [];
+  const batchController = new AbortController();
+  const abortBatchFromAttempt = () =>
+    batchController.abort(input.signal?.reason);
+  input.signal?.addEventListener('abort', abortBatchFromAttempt, {
+    once: true,
+  });
+
+  try {
+    const outcomes = await Promise.all(
+      contributions.map((contribution, index) =>
+        materializeSinglePiBrokeredHttpSecret({
+          contribution,
+          context: input.context,
+          batchSignal: batchController.signal,
+          timeoutMs,
+          index,
+        }).then((outcome) => {
+          if (outcome.kind === 'failure' && !batchController.signal.aborted) {
+            batchController.abort(outcome.error);
+          }
+          return outcome;
+        }),
+      ),
+    );
+
+    // Attempt cancellation always wins over provider/timeout failures. Among
+    // genuine provider failures, permanent failures win over transient ones,
+    // then declaration order breaks ties. Batch-aborted siblings are ignored.
+    if (input.signal?.aborted) throw brokeredHttpSecretAbortError();
+    const failures = outcomes
+      .filter(
+        (outcome): outcome is BrokeredHttpSecretFailureOutcome =>
+          outcome.kind === 'failure',
+      )
+      .sort(
+        (left, right) =>
+          Number(left.error.retryable) - Number(right.error.retryable) ||
+          left.index - right.index,
+      );
+    if (failures[0]) throw failures[0].error;
+
+    return outcomes
+      .filter(
+        (outcome): outcome is BrokeredHttpSecretSuccessOutcome =>
+          outcome.kind === 'success',
+      )
+      .sort((left, right) => left.index - right.index)
+      .map(({ binding }) => binding);
+  } finally {
+    input.signal?.removeEventListener('abort', abortBatchFromAttempt);
+  }
+}
+
+interface BrokeredHttpSecretSuccessOutcome {
+  kind: 'success';
+  index: number;
+  binding: BrokeredHttpSecretBinding;
+}
+
+interface BrokeredHttpSecretFailureOutcome {
+  kind: 'failure';
+  index: number;
+  error: PiBrokeredHttpSecretResolutionError;
+}
+
+interface BrokeredHttpSecretBatchAbortOutcome {
+  kind: 'batch-abort';
+  index: number;
+}
+
+type BrokeredHttpSecretResolutionOutcome =
+  | BrokeredHttpSecretSuccessOutcome
+  | BrokeredHttpSecretFailureOutcome
+  | BrokeredHttpSecretBatchAbortOutcome;
+
+/** One auditable resolver lifecycle; the batch coordinator owns precedence. */
+async function materializeSinglePiBrokeredHttpSecret(input: {
+  contribution: PiBrokeredHttpSecretContribution;
+  context: Omit<PiBrokeredHttpSecretResolveContext, 'signal'>;
+  batchSignal: AbortSignal;
+  timeoutMs: number;
+  index: number;
+}): Promise<BrokeredHttpSecretResolutionOutcome> {
+  const { descriptor, resolve } = input.contribution;
+  if (input.batchSignal.aborted) {
+    return { kind: 'batch-abort', index: input.index };
+  }
+
+  const controller = new AbortController();
+  let timedOut = false;
+  const abortFromBatch = () => controller.abort(input.batchSignal.reason);
+  input.batchSignal.addEventListener('abort', abortFromBatch, { once: true });
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, input.timeoutMs);
+  const abortOutcome = new Promise<{ kind: 'abort' }>((resolveAbort) => {
+    const resolveFromAbort = () => resolveAbort({ kind: 'abort' });
+    if (controller.signal.aborted) resolveFromAbort();
+    else
+      controller.signal.addEventListener('abort', resolveFromAbort, {
+        once: true,
+      });
+  });
+
+  try {
+    let resolverOutcome: Promise<
+      | { kind: 'value'; value: string | undefined }
+      | { kind: 'error'; error: unknown }
+    >;
+    try {
+      resolverOutcome = Promise.resolve(
+        resolve({ ...input.context, signal: controller.signal }),
+      ).then(
+        (value) => ({ kind: 'value' as const, value }),
+        (error: unknown) => ({ kind: 'error' as const, error }),
+      );
+    } catch (error) {
+      resolverOutcome = Promise.resolve({ kind: 'error' as const, error });
+    }
+
+    const outcome = await Promise.race([resolverOutcome, abortOutcome]);
+    if (outcome.kind === 'abort') {
+      if (!timedOut) return { kind: 'batch-abort', index: input.index };
+      return {
+        kind: 'failure',
+        index: input.index,
+        error: new PiBrokeredHttpSecretResolutionError(
+          descriptor.id,
+          `Brokered HTTP secret "${descriptor.id}" resolution timed out`,
+          true,
+        ),
+      };
+    }
+    if (outcome.kind === 'error') {
+      return {
+        kind: 'failure',
+        index: input.index,
+        error:
+          outcome.error instanceof PiBrokeredHttpSecretResolutionError
+            ? outcome.error
+            : new PiBrokeredHttpSecretResolutionError(
+                descriptor.id,
+                `Brokered HTTP secret "${descriptor.id}" resolution failed`,
+                true,
+              ),
+      };
+    }
+    if (
+      (outcome.value === undefined || outcome.value === '') &&
+      descriptor.required !== false
+    ) {
+      return {
+        kind: 'failure',
+        index: input.index,
+        error: new PiBrokeredHttpSecretResolutionError(
+          descriptor.id,
+          `Required brokered HTTP secret "${descriptor.id}" is unavailable`,
+          false,
+        ),
+      };
+    }
+    return {
+      kind: 'success',
+      index: input.index,
+      binding: {
+        ...descriptor,
+        hosts: [...descriptor.hosts],
+        ports: descriptor.ports ? [...descriptor.ports] : undefined,
+        value: outcome.value,
+      },
+    };
+  } finally {
+    clearTimeout(timeout);
+    input.batchSignal.removeEventListener('abort', abortFromBatch);
+  }
 }
 
 export async function materializePiTools(input: {

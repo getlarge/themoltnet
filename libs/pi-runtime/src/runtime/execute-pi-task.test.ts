@@ -4,13 +4,10 @@
  * the provider/submit-retry helpers, …) and the parsing/cancellation
  * utilities.
  *
- * KNOWN GAP: `executePiTask` itself — the orchestration shell that *wires*
- * these helpers together — needs a booted Gondolin VM and is not unit-tested
- * here. The helpers are pinned in isolation, so a mis-wire (passing a helper
- * the wrong dep, or running output capture outside the cancel/cap guard)
- * would NOT fail these tests; it is caught by the daemon e2e / live smoke
- * runs instead. Treat that integration seam accordingly when changing the
- * shell.
+ * Most of `executePiTask` still needs a booted Gondolin VM and is covered by
+ * daemon e2e/live smoke runs. Security-sensitive pre-resume credential wiring
+ * is exercised here through the real orchestration shell and an injected VM
+ * resume seam; the remaining phase helpers are pinned in isolation.
  */
 import { Readable } from 'node:stream';
 
@@ -22,9 +19,14 @@ import {
   MeterProvider,
   MetricReader,
 } from '@opentelemetry/sdk-metrics';
-import type { ClaimedTask } from '@themoltnet/agent-runtime';
+import type { ClaimedTask, TaskReporter } from '@themoltnet/agent-runtime';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  defineGondolinTemplate,
+  definePiBrokeredHttpSecret,
+  definePiRuntime,
+} from '../runtime-definition.js';
 import {
   buildAttemptResult,
   buildSubmitMissingPrompt,
@@ -38,6 +40,7 @@ import {
   createSessionTurnState,
   DEFAULT_PROVIDER_ERROR_RETRIES,
   describeToolErrorMessage,
+  executePiTask,
   formatProviderErrorRetryNotification,
   formatProviderErrorRetryStatus,
   isBashTimeoutResult,
@@ -47,6 +50,7 @@ import {
   openVmWorkspaceFileForRead,
   promptUntilSubmitted,
   promptWithProviderErrorRetries,
+  resolveAttemptBrokeredHttpSecrets,
   resolveHostExecBaseEnv,
   resolveSubmitMissingConfig,
   sanitizeProviderErrorRetryReason,
@@ -56,6 +60,228 @@ import {
   submitRepromptStopped,
   wireSessionAbort,
 } from './execute-pi-task.js';
+
+function executorTestClaimedTask(): ClaimedTask {
+  return {
+    task: {
+      id: 'task-1',
+      taskType: 'freeform',
+      teamId: null,
+      diaryId: null,
+      correlationId: null,
+      input: { brief: 'exercise credential wiring' },
+      inputCid: 'bafkreitest',
+    },
+    attemptN: 1,
+    traceHeaders: {},
+  } as unknown as ClaimedTask;
+}
+
+function executorTestReporter() {
+  const controller = new AbortController();
+  const records: unknown[] = [];
+  let cancelReason: string | null = null;
+  const reporter: TaskReporter = {
+    open: vi.fn(async () => undefined),
+    record: vi.fn(async (record) => {
+      records.push(record);
+    }),
+    finalize: vi.fn(async () => undefined),
+    close: vi.fn(async () => undefined),
+    cancelSignal: controller.signal,
+    get cancelReason() {
+      return cancelReason;
+    },
+    requestCancel(reason) {
+      cancelReason = reason;
+      controller.abort(reason);
+    },
+  };
+  return { reporter, records };
+}
+
+describe('resolveAttemptBrokeredHttpSecrets', () => {
+  it('keeps legacy runtimes compatible and binds attempt context', async () => {
+    const signal = new AbortController().signal;
+    await expect(
+      resolveAttemptBrokeredHttpSecrets({
+        agentName: 'legreffier',
+        claimedTask: {} as ClaimedTask,
+        cwdPath: '/workspace',
+        signal,
+      }),
+    ).resolves.toBeUndefined();
+
+    let resolverSignal: AbortSignal | undefined;
+    const resolve = vi.fn(({ signal }: { signal: AbortSignal }) => {
+      resolverSignal = signal;
+      return 'host-only-value';
+    });
+    const runtimeDefinition = definePiRuntime({
+      id: 'credential-runtime',
+      version: '1',
+      vm: defineGondolinTemplate({
+        id: 'test-vm',
+        version: '1',
+        checkpointPath: '/tmp/checkpoint',
+      }),
+      brokeredHttpSecrets: [
+        definePiBrokeredHttpSecret({
+          id: 'example-api',
+          guestEnv: 'EXAMPLE_API_TOKEN',
+          hosts: ['api.example.com'],
+          resolve,
+        }),
+      ],
+    });
+
+    await expect(
+      resolveAttemptBrokeredHttpSecrets({
+        runtimeDefinition,
+        agentName: 'legreffier',
+        claimedTask: {} as ClaimedTask,
+        cwdPath: '/workspace',
+        signal,
+      }),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        guestEnv: 'EXAMPLE_API_TOKEN',
+        value: 'host-only-value',
+      }),
+    ]);
+    expect(resolve).toHaveBeenCalledOnce();
+    expect(resolverSignal?.aborted).toBe(false);
+  });
+});
+
+describe('executePiTask brokered credential wiring', () => {
+  function runtimeWithResolver(
+    resolve: Parameters<typeof definePiBrokeredHttpSecret>[0]['resolve'],
+  ) {
+    return definePiRuntime({
+      id: 'credential-runtime',
+      version: '1',
+      vm: defineGondolinTemplate({
+        id: 'test-vm',
+        version: '1',
+        checkpointPath: '/tmp/checkpoint',
+      }),
+      brokeredHttpSecrets: [
+        definePiBrokeredHttpSecret({
+          id: 'example-api',
+          guestEnv: 'EXAMPLE_API_TOKEN',
+          hosts: ['api.example.com'],
+          resolve,
+        }),
+      ],
+    });
+  }
+
+  function executorOptions(
+    runtimeDefinition: ReturnType<typeof runtimeWithResolver>,
+    resume: ReturnType<typeof vi.fn>,
+  ) {
+    return {
+      agentName: 'legreffier',
+      provider: 'test-provider',
+      model: 'test-model',
+      mountPath: process.cwd(),
+      checkpointPath: '/tmp/checkpoint',
+      runtimeDefinition,
+      resolvedVmTemplate: {
+        id: 'test-vm',
+        version: '1',
+        checkpointPath: '/tmp/checkpoint',
+        fingerprint: 'bafkreitemplate',
+        guestAssetBuildId: 'guest-build',
+        executables: [],
+        resumeCommands: [],
+      },
+      resumeVm: resume,
+    };
+  }
+
+  it('resolves credentials before the production path resumes the VM', async () => {
+    const sentinel = 'host-only-success-sentinel';
+    const { reporter, records } = executorTestReporter();
+    const resume = vi.fn(async () => {
+      throw new Error('stop after resume');
+    });
+
+    const output = await executePiTask(
+      executorTestClaimedTask(),
+      reporter,
+      executorOptions(
+        runtimeWithResolver(() => sentinel),
+        resume,
+      ),
+    );
+
+    expect(resume).toHaveBeenCalledOnce();
+    expect(resume).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brokeredSecrets: [
+          expect.objectContaining({
+            guestEnv: 'EXAMPLE_API_TOKEN',
+            value: sentinel,
+          }),
+        ],
+      }),
+    );
+    expect(output.error?.code).toBe('vm_resume_failed');
+    expect(JSON.stringify({ output, records })).not.toContain(sentinel);
+  });
+
+  it('prevents VM resume and redacts evidence when resolution fails', async () => {
+    const sentinel = 'host-only-failure-sentinel';
+    const { reporter, records } = executorTestReporter();
+    const resume = vi.fn();
+
+    const output = await executePiTask(
+      executorTestClaimedTask(),
+      reporter,
+      executorOptions(
+        runtimeWithResolver(() => {
+          throw new Error(`provider leaked ${sentinel}`);
+        }),
+        resume,
+      ),
+    );
+
+    expect(resume).not.toHaveBeenCalled();
+    expect(output).toMatchObject({
+      status: 'failed',
+      error: { code: 'credential_resolution_failed', retryable: true },
+    });
+    expect(JSON.stringify({ output, records })).not.toContain(sentinel);
+  });
+
+  it('keeps cancellation terminal and never resumes the VM', async () => {
+    const { reporter, records } = executorTestReporter();
+    const resume = vi.fn();
+
+    const output = await executePiTask(
+      executorTestClaimedTask(),
+      reporter,
+      executorOptions(
+        runtimeWithResolver(() => {
+          reporter.requestCancel?.('cancelled during credential minting');
+          return 'host-only-cancelled-sentinel';
+        }),
+        resume,
+      ),
+    );
+
+    expect(resume).not.toHaveBeenCalled();
+    expect(output).toMatchObject({
+      status: 'cancelled',
+      error: { code: 'task_cancelled', retryable: false },
+    });
+    expect(JSON.stringify({ output, records })).not.toContain(
+      'host-only-cancelled-sentinel',
+    );
+  });
+});
 
 describe('buildToolPolicyDecisionContext', () => {
   it('keeps claim and execution profile provenance distinct', () => {

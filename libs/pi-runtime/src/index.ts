@@ -58,8 +58,11 @@ export type {
 } from './runtime/task-event-emitter.js';
 export {
   buildPiExecutorManifest,
+  DEFAULT_BROKERED_HTTP_SECRET_RESOLUTION_TIMEOUT_MS,
   defineGondolinTemplate,
   type DefineGondolinTemplateOptions,
+  definePiBrokeredHttpSecret,
+  type DefinePiBrokeredHttpSecretOptions,
   definePiExtension,
   definePiRuntime,
   type DefinePiRuntimeOptions,
@@ -70,11 +73,15 @@ export {
   type GondolinTemplateResolveContext,
   isKernelTool,
   isToolVisible,
+  materializePiBrokeredHttpSecrets,
   materializePiExtensions,
   materializePiTools,
   type ModelVisibleToolPolicy,
   PI_EXECUTOR_MANIFEST_VERSION,
   PI_RUNTIME_DEFINITION_VERSION,
+  type PiBrokeredHttpSecretContribution,
+  PiBrokeredHttpSecretResolutionError,
+  type PiBrokeredHttpSecretResolveContext,
   type PiExecutorManifest,
   type PiExtensionContribution,
   type PiExtensionFactory,
@@ -121,6 +128,8 @@ export type {
   SnapshotConfig,
 } from '@themoltnet/sandbox-gondolin';
 export type {
+  BrokeredHttpSecretBinding,
+  BrokeredHttpSecretDescriptor,
   GuestCredentialMode,
   ManagedVm,
   ProviderAuthSource,
@@ -137,7 +146,9 @@ export {
   activateAgentEnv,
   assertGuestEnvironmentBoundary,
   assertHostAuthenticatedGuestEnvironment,
+  BrokeredHttpSecretBoundaryError,
   findMainWorktree,
   GuestEnvironmentBoundaryError,
   loadCredentials,
+  prepareBrokeredHttpSecrets,
 } from '@themoltnet/sandbox-gondolin';

@@ -115,6 +115,58 @@ active task reporter. Evidence contains the task and attempt, tool-call ID,
 `issue.read`, the fixed repository, issue number, result category, and duration;
 it contains no generic tool arguments or provider data.
 
+## Guest-side HTTP credentials
+
+Use a brokered HTTP secret when a normal Bash or provider CLI command should
+run inside the VM but its bearer credential must remain on the daemon host.
+Declare the value-free requirement in trusted runtime code:
+
+```ts
+import {
+  definePiBrokeredHttpSecret,
+  definePiRuntime,
+} from '@themoltnet/pi-runtime';
+
+const githubCliCredential = definePiBrokeredHttpSecret({
+  id: 'github-api-read',
+  guestEnv: 'GH_TOKEN',
+  hosts: ['api.github.com'],
+  required: false,
+  resolve: () => process.env.MOLTNET_RUNTIME_GITHUB_TOKEN,
+});
+
+export const runtime = definePiRuntime({
+  // id, version, runtimeKind, vm, and tools omitted here
+  brokeredHttpSecrets: [githubCliCredential],
+});
+```
+
+The descriptor is included in executor-manifest evidence; the resolver is not
+called while the manifest is built. It runs on the trusted host for each task
+attempt immediately before VM resume. The resolver context includes an
+`AbortSignal`; resolution is bounded to 30 seconds by default and is cancelled
+with the attempt. Resolver failures produce a stable, value-free diagnostic and
+are classified separately from VM-resume failures.
+
+When `MOLTNET_RUNTIME_GITHUB_TOKEN` is set on the daemon host, an authorized
+guest command can use the ordinary CLI form:
+
+```bash
+gh api repos/getlarge/themoltnet/issues/1953 --jq .title
+```
+
+The VM sees only an opaque `GH_TOKEN` placeholder. Gondolin substitutes the
+real value in the outbound header to `api.github.com`; using the placeholder
+over plaintext HTTP, another port, or another hostname fails closed. The
+omitted protocol and port default to HTTPS/443. Do not add `GH_TOKEN` or
+`MOLTNET_RUNTIME_GITHUB_TOKEN` to the profile `requiredEnv` array. The runtime
+policy must still authorize the exact `gh api` command family.
+
+For production, resolve a short-lived, least-privilege installation token
+rather than a human PAT or the GitHub App private key. HTTP brokering does not
+provide Git commit signing or MoltNet diary signing; those operations require
+separate host-side signing capabilities.
+
 ## Trust boundary
 
 The daemon host and installed runtime package are trusted. The model, task

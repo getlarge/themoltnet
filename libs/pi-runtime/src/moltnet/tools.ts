@@ -1431,13 +1431,16 @@ export function createMoltNetTools(
       'and in headless task runs there is no one to approve — so do NOT call ' +
       'this tool speculatively. Routine git and gh work — pushing branches, ' +
       'opening pull requests, etc. — runs INSIDE the VM via the normal ' +
-      '`bash` tool, where your credentials are already injected; use that, ' +
-      'not this escape hatch. Reserve this tool for the rare case that ' +
+      '`bash` tool; use that, not this escape hatch. Credentials are not ' +
+      'generally injected into the guest. A runtime may expose an opaque ' +
+      'HTTP placeholder that the host proxy can use only for declared ' +
+      'destinations; otherwise authenticated operations are unavailable. ' +
+      'Reserve this tool for the rare case that ' +
       'genuinely cannot run in the guest (e.g. reaching a host-only resource ' +
       'the VM has no path to).\n\n' +
       'Allowed executables: git, gh, moltnet. ' +
       'Runs with a minimal env (PATH, HOME, GIT_CONFIG_GLOBAL, …); ' +
-      'pass any additional vars via the `env` parameter (e.g. GH_TOKEN). ' +
+      'pass only non-secret additional vars via the `env` parameter. ' +
       'Every invocation is logged as an auditable host execution.',
     parameters: Type.Object({
       executable: Type.String({
@@ -1449,8 +1452,8 @@ export function createMoltNetTools(
       env: Type.Optional(
         Type.Record(Type.String(), Type.String(), {
           description:
-            'Additional environment variables for this invocation ' +
-            '(e.g. { "GH_TOKEN": "..." }). Merged on top of the minimal base env.',
+            'Additional non-secret environment variables for this invocation. ' +
+            'Merged on top of the minimal base env.',
         }),
       ),
     }),

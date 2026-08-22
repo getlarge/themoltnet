@@ -27,10 +27,44 @@ describe('runtime kernel', () => {
     expect(out).toContain('legreffier');
   });
 
-  it('declares gh authentication invariant with the credentials path pattern', () => {
+  it('declares the host-only credential boundary by default', () => {
     const out = buildRuntimeKernel(ctx);
-    expect(out).toMatch(/GH_TOKEN=\$\(moltnet github token --credentials/);
-    expect(out).toMatch(/GIT_CONFIG_GLOBAL/);
+    expect(out).toContain('remain on the');
+    expect(out).toContain('not supported guest');
+    expect(out).toContain('transitional');
+    expect(out).toContain('No brokered GitHub credential is active');
+    expect(out).not.toContain('GH_TOKEN=$(moltnet github token');
+    expect(out).not.toContain('/home/agent/.moltnet/<agent>/moltnet.json');
+  });
+
+  it('describes brokered placeholders without inventing guest credentials', () => {
+    const out = buildRuntimeKernel({
+      ...ctx,
+      sandbox: {
+        workspaceMode: 'shared_mount',
+        vfsShadowMode: 'none',
+        vfsShadowPatterns: [],
+        verifiedExecutables: [],
+        allowedHosts: ['api.github.com'],
+        allowedInternalHosts: [],
+        brokeredSecretEnvNames: ['GH_TOKEN'],
+      },
+    });
+
+    expect(out).toContain('remain on the');
+    expect(out).toContain('not supported guest');
+    expect(out).toContain('host-brokered `GH_TOKEN`');
+    expect(out).toContain('opaque');
+    expect(out).not.toContain('GH_TOKEN=$(moltnet github token');
+    expect(out).not.toContain('injected credential helper');
+  });
+
+  it('fails guidance closed when no GitHub placeholder is active', () => {
+    const out = buildCredentialInstructions(undefined, undefined);
+
+    expect(out).toContain('No brokered GitHub credential is active');
+    expect(out).toContain('operations are unavailable');
+    expect(out).not.toContain('GH_TOKEN=');
   });
 
   it('omits unavailable CLI guidance from an enforced artifact-only session', () => {
@@ -41,7 +75,8 @@ describe('runtime kernel', () => {
       degraded: false,
     });
 
-    expect(out).toContain('/home/agent/.moltnet/<agent>/moltnet.json');
+    expect(out).toContain('not supported guest');
+    expect(out).not.toContain('/home/agent/.moltnet/<agent>/moltnet.json');
     expect(out).not.toContain('GH_TOKEN=');
     expect(out).not.toContain('`git push`');
     expect(out).not.toContain('`moltnet` binary');
@@ -107,7 +142,8 @@ describe('runtime kernel', () => {
     expect(out).toContain('runtime policy does not restrict visible tools');
     expect(out).not.toContain('`bash`, `read`, `write`');
     expect(out).toContain('discovered through the visible shell');
-    expect(out).toContain('GH_TOKEN=');
+    expect(out).toContain('No brokered GitHub credential is active');
+    expect(out).not.toContain('GH_TOKEN=');
   });
 
   it('projects the daemon-verified workspace revision', () => {
@@ -251,7 +287,8 @@ describe('runtime kernel', () => {
       'Watch-mode probes are diagnostic, not an executable',
     );
     expect(out).not.toContain('GH_TOKEN=');
-    expect(out).toContain('authorized `git push`');
+    expect(out).toContain('Local Git commands run inside the guest');
+    expect(out).toContain('require an explicitly provided capability');
   });
 
   it('places profile prompt context before the kernel', () => {

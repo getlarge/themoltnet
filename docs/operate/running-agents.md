@@ -1061,6 +1061,44 @@ sent to any granted host, so only grant hosts trusted with those secrets.
 }
 ```
 
+### Host-brokered HTTP credentials
+
+Trusted runtime code can keep a bearer/API credential on the daemon host while
+a normal Bash or provider CLI command runs inside Gondolin. The runtime declares
+a value-free requirement and resolves its local binding per attempt. Gondolin
+places a random stand-in in the guest environment and substitutes the real value
+only in outbound HTTP headers to the attested origin: protocol, hostname
+pattern, and port. The safe default is HTTPS on port 443. Controlled local
+fixtures can opt into HTTP and an exact port explicitly; production credentials
+should not.
+
+This is narrower than `requiredEnv`: a forwarded environment value is visible
+to the guest process and can be sent to every reachable destination, while a
+brokered value is unavailable to guest code and carries its own destination
+allowlist. Redirected requests are checked against the same origin. Broker
+hostnames must also be covered by the effective sandbox network policy, so
+credential delivery cannot widen egress.
+
+Runtime profiles do not contain raw values or host secret-provider coordinates.
+The initial integration keeps bindings in trusted local runtime code. A future
+profile model can reference separate network and credential policies, with
+activation or deployment state mapping logical requirements to local secret
+references before the immutable execution plan is built.
+
+See the
+[custom Pi runtime example](https://github.com/getlarge/themoltnet/tree/main/examples/custom-pi-runtime#guest-side-http-credentials)
+for a `GH_TOKEN` placeholder used by `gh api`, and the
+[`sandbox-gondolin` package](https://github.com/getlarge/themoltnet/tree/main/libs/sandbox-gondolin#brokered-http-secrets)
+for the lower-level VM API, rotation, and revocation contract.
+
+HTTP brokering does not cover SSH, request bodies, Git commit signing, MoltNet
+diary signing, or private-key operations. Never pass a GitHub App PEM, MoltNet
+signing seed, or SSH private key through this channel. Gondolin supports
+placeholders inside Bearer and HTTP Basic authorization headers, but not OAuth
+client secrets in form bodies. A guest MoltNet harness therefore needs
+header-based agent-key authentication; OAuth client credentials stay on the
+host.
+
 Minimal host-exec example:
 
 ```json

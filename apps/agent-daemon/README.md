@@ -120,6 +120,14 @@ MoltNet CLI, Git signing, or GitHub authentication. OAuth2 daemons that relied
 on the previous `guest-config` default for such tasks must now pass the flag
 explicitly.
 
+Trusted custom runtimes can deliver destination-bound HTTP credentials without
+switching to `guest-config`: the guest receives an opaque placeholder and the
+Gondolin host proxy substitutes the value only for the attested protocol,
+hostname pattern, and port (HTTPS/443 by default). See
+[Host-brokered HTTP credentials](../../docs/operate/running-agents.md#host-brokered-http-credentials).
+This does not provide diary or Git commit signing; private-key operations remain
+host capabilities.
+
 `sync-sessions` does not prepare or attest executors, so it remains independent
 of `MOLTNET_PRIVATE_KEY`.
 

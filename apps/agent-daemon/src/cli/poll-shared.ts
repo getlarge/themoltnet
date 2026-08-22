@@ -820,6 +820,9 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
             const fields = {
               event: diagnostic.event,
               credentialMode: diagnostic.credentialMode,
+              ...(diagnostic.brokeredSecretCount !== undefined && {
+                brokeredSecretCount: diagnostic.brokeredSecretCount,
+              }),
             };
             if (diagnostic.level === 'warning') {
               taskLogger.warn(fields, diagnostic.message);

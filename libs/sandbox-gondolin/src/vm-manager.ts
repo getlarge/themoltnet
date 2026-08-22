@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { parseEnv } from 'node:util';
 
-import type { VM } from '@earendil-works/gondolin';
+import type { SecretDefinition, VM } from '@earendil-works/gondolin';
 import {
   createHttpHooks,
   createShadowPathPredicate,
@@ -43,11 +43,50 @@ export const GUEST_TASK_SKILLS_MOUNT = GUEST_TASK_CONTEXT_MOUNT;
 
 export type GuestCredentialMode = 'guest-config' | 'host-authenticated';
 
+/**
+ * Value-free declaration of one HTTP credential delivered by the Gondolin
+ * host proxy. This is an adapter contract, not a persisted runtime-profile
+ * schema: trusted host code resolves the matching value for each attempt.
+ */
+export interface BrokeredHttpSecretDescriptor {
+  /** Stable, evidence-safe logical requirement id. */
+  id: string;
+  /** Guest variable that receives an opaque Gondolin placeholder. */
+  guestEnv: string;
+  /** Hostname patterns to which the proxy may send the resolved value. */
+  hosts: readonly string[];
+  /** Attested upstream transport. Defaults to HTTPS. */
+  protocol?: 'https' | 'http';
+  /** Attested upstream ports. Defaults to 443 for HTTPS and 80 for HTTP. */
+  ports?: readonly number[];
+  /** Missing values fail preflight unless explicitly optional. */
+  required?: boolean;
+}
+
+/** Per-attempt host binding. The value must never be persisted or evidenced. */
+export interface BrokeredHttpSecretBinding extends BrokeredHttpSecretDescriptor {
+  /** Resolved only by trusted host code immediately before VM resume. */
+  value?: string;
+}
+
+/** Host-only capabilities that cannot widen a validated destination grant. */
+export interface BrokeredHttpSecretManager {
+  /** Rotate a configured secret value without changing its destination set. */
+  rotateSecret(guestEnv: string, value: string): void;
+  /** Revoke a configured secret for the remainder of this VM lifetime. */
+  revokeSecret(guestEnv: string): void;
+}
+
 export interface VmDiagnostic {
-  event: 'vm.credentials.mode' | 'vm.credentials.github_key_missing';
+  event:
+    | 'vm.credentials.mode'
+    | 'vm.credentials.github_key_missing'
+    | 'vm.http_secrets.bound';
   level: 'info' | 'warning';
   message: string;
   credentialMode: GuestCredentialMode;
+  /** Present only for the value-free broker summary event. */
+  brokeredSecretCount?: number;
 }
 
 export interface VmConfig {
@@ -84,6 +123,12 @@ export interface VmConfig {
    * into the guest without storing secret values in the profile.
    */
   forwardEnv?: string[];
+  /**
+   * Trusted-host, per-attempt HTTP secret bindings. These are deliberately
+   * outside SandboxConfig so remotely stored runtime profiles cannot carry
+   * raw values or select host secret-provider coordinates.
+   */
+  brokeredSecrets?: readonly BrokeredHttpSecretBinding[];
   /** Structured credential-boundary diagnostics for daemon loggers. */
   onDiagnostic?: (diagnostic: VmDiagnostic) => void;
   /** Abort resume/setup work, closing any live VM owned by resumeVm. */
@@ -130,6 +175,8 @@ export interface VmCredentials {
 export interface ManagedVm {
   vm: VM;
   credentials: VmCredentials;
+  /** Host-only rotation and revocation handle. It cannot widen destinations. */
+  secretManager: BrokeredHttpSecretManager;
   mountPath: string;
   guestWorkspace: string;
   agentDir: string;
@@ -468,6 +515,303 @@ export class GuestEnvironmentBoundaryError extends Error {
   }
 }
 
+export class BrokeredHttpSecretBoundaryError extends Error {
+  constructor(public readonly issues: readonly string[]) {
+    super(
+      'Brokered HTTP secret boundary refused the resolved bindings: ' +
+        issues.join('; '),
+    );
+    this.name = 'BrokeredHttpSecretBoundaryError';
+  }
+}
+
+const BROKERED_SECRET_ID_REGEXP = /^[a-z][a-z0-9._-]{0,63}$/;
+const GUEST_ENV_NAME_REGEXP = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const OBJECT_META_PROPERTY_NAMES = new Set([
+  '__proto__',
+  'constructor',
+  'prototype',
+]);
+
+function normalizeHostPattern(pattern: string): string {
+  return pattern.trim().toLowerCase();
+}
+
+function isValidHostPattern(pattern: string): boolean {
+  return (
+    pattern !== '' &&
+    !pattern.includes('://') &&
+    !pattern.includes('/') &&
+    !pattern.includes(':') &&
+    !/\s/.test(pattern)
+  );
+}
+
+/**
+ * Canonicalize and validate the value-free portion of a brokered binding.
+ * Runtime attestation and Gondolin enforcement both consume this function so
+ * the evidenced destination set cannot drift from the enforced one.
+ */
+export function canonicalizeBrokeredHttpSecretDescriptor(
+  descriptor: BrokeredHttpSecretDescriptor,
+): Required<BrokeredHttpSecretDescriptor> {
+  const issues: string[] = [];
+  const id = descriptor.id.trim();
+  const guestEnv = descriptor.guestEnv.trim();
+  const hosts = [...new Set(descriptor.hosts.map(normalizeHostPattern))].sort();
+  const protocolInput: unknown = descriptor.protocol ?? 'https';
+  const protocol = protocolInput === 'http' ? 'http' : 'https';
+  const ports = [
+    ...new Set(descriptor.ports ?? [protocol === 'https' ? 443 : 80]),
+  ].sort((left, right) => left - right);
+
+  if (!BROKERED_SECRET_ID_REGEXP.test(id)) {
+    issues.push(`invalid requirement id "${id || '<empty>'}"`);
+  }
+  if (!GUEST_ENV_NAME_REGEXP.test(guestEnv)) {
+    issues.push(`requirement "${id}" has invalid guest env "${guestEnv}"`);
+  } else if (
+    isReservedGuestEnvironmentName(guestEnv) ||
+    OBJECT_META_PROPERTY_NAMES.has(guestEnv)
+  ) {
+    issues.push(`requirement "${id}" uses reserved guest env "${guestEnv}"`);
+  }
+  if (hosts.length === 0) {
+    issues.push(`requirement "${id}" has no destination hosts`);
+  }
+  for (const host of hosts) {
+    if (!isValidHostPattern(host)) {
+      issues.push(`requirement "${id}" has invalid host pattern "${host}"`);
+    }
+  }
+  if (protocolInput !== 'https' && protocolInput !== 'http') {
+    issues.push(
+      `requirement "${id}" has invalid protocol "${String(protocolInput)}"`,
+    );
+  }
+  if (ports.length === 0) {
+    issues.push(`requirement "${id}" has no destination ports`);
+  }
+  for (const port of ports) {
+    if (!Number.isInteger(port) || port < 1 || port > 65_535) {
+      issues.push(`requirement "${id}" has invalid port "${port}"`);
+    }
+  }
+
+  if (issues.length > 0) {
+    throw new BrokeredHttpSecretBoundaryError(issues);
+  }
+  return Object.freeze({
+    id,
+    guestEnv,
+    hosts: Object.freeze(hosts),
+    protocol,
+    ports: Object.freeze(ports),
+    required: descriptor.required !== false,
+  });
+}
+
+function hostMatchesPattern(hostname: string, pattern: string): boolean {
+  // Gondolin 0.9.x does not export its hostname matcher. Keep this compatibility
+  // shim private to the adapter boundary and pin its conservative use below;
+  // replace it with the upstream matcher if Gondolin exposes one.
+  const expression = pattern
+    .split('*')
+    .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('.*');
+  return new RegExp(`^${expression}$`, 'i').test(hostname);
+}
+
+/**
+ * Conservative subset check for Gondolin hostname globs. Exact secret hosts
+ * may sit below a broader network wildcard. A wildcard secret destination must
+ * be repeated exactly (or covered by `*`) so a credential grant cannot widen
+ * through an ambiguous glob comparison.
+ */
+function networkPatternCoversSecretPattern(
+  networkPattern: string,
+  secretPattern: string,
+): boolean {
+  if (networkPattern === '*') return true;
+  if (secretPattern.includes('*')) return networkPattern === secretPattern;
+  return hostMatchesPattern(secretPattern, networkPattern);
+}
+
+/**
+ * Validate value-free descriptors, host-local bindings, environment
+ * collisions, and destination coverage before Gondolin creates any VM.
+ */
+export function prepareBrokeredHttpSecrets(options: {
+  bindings?: readonly BrokeredHttpSecretBinding[];
+  allowedHosts: readonly string[];
+  occupiedGuestEnvNames?: readonly string[];
+}): Record<string, SecretDefinition> {
+  const issues: string[] = [];
+  const ids = new Set<string>();
+  const guestEnvNames = new Set<string>();
+  const occupiedGuestEnvNames = new Set(options.occupiedGuestEnvNames ?? []);
+  const allowedHosts = [
+    ...new Set(options.allowedHosts.map(normalizeHostPattern)),
+  ];
+  const secrets = Object.create(null) as Record<string, SecretDefinition>;
+
+  for (const binding of options.bindings ?? []) {
+    let descriptor: Required<BrokeredHttpSecretDescriptor>;
+    try {
+      descriptor = canonicalizeBrokeredHttpSecretDescriptor(binding);
+    } catch (error) {
+      if (error instanceof BrokeredHttpSecretBoundaryError) {
+        issues.push(...error.issues);
+        continue;
+      }
+      throw error;
+    }
+    const { id, guestEnv, hosts } = descriptor;
+
+    if (ids.has(id)) {
+      issues.push(`duplicate requirement id "${id}"`);
+    }
+    ids.add(id);
+
+    if (guestEnvNames.has(guestEnv)) {
+      issues.push(`duplicate guest env "${guestEnv}"`);
+    } else if (occupiedGuestEnvNames.has(guestEnv)) {
+      issues.push(
+        `guest env "${guestEnv}" is already supplied by another source`,
+      );
+    }
+    guestEnvNames.add(guestEnv);
+
+    for (const host of hosts) {
+      if (
+        !allowedHosts.some((allowedHost) =>
+          networkPatternCoversSecretPattern(allowedHost, host),
+        )
+      ) {
+        issues.push(
+          `requirement "${id}" host "${host}" is outside the effective network policy`,
+        );
+      }
+    }
+
+    const value = binding.value;
+    if (value === undefined || value === '') {
+      if (descriptor.required) {
+        issues.push(`required binding "${id}" has no resolved value`);
+      }
+      continue;
+    }
+
+    secrets[guestEnv] = { hosts: [...hosts], value };
+  }
+
+  if (issues.length > 0) {
+    throw new BrokeredHttpSecretBoundaryError(issues);
+  }
+  return secrets;
+}
+
+interface BrokeredHttpSecretOriginPolicyEntry {
+  readonly guestEnv: string;
+  readonly hosts: readonly string[];
+  readonly protocol: 'https' | 'http';
+  readonly ports: readonly number[];
+  value: string;
+  deleted: boolean;
+}
+
+function decodeBasicAuthorization(value: string): string | undefined {
+  const match = /^Basic\s+([^\s]+)$/i.exec(value);
+  if (!match) return undefined;
+  try {
+    return Buffer.from(match[1], 'base64').toString('utf8');
+  } catch {
+    return undefined;
+  }
+}
+
+function headersContainSecretValue(headers: Headers, value: string): boolean {
+  if (value === '') return false;
+  for (const [name, headerValue] of headers.entries()) {
+    if (headerValue.includes(value)) return true;
+    if (
+      /^(authorization|proxy-authorization)$/i.test(name) &&
+      decodeBasicAuthorization(headerValue)?.includes(value)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function createBrokeredHttpSecretOriginPolicy(
+  bindings: readonly BrokeredHttpSecretBinding[],
+): {
+  isRequestAllowed: (request: Request) => boolean;
+  rotateSecret: (guestEnv: string, value: string) => void;
+  revokeSecret: (guestEnv: string) => void;
+} {
+  const entries = new Map<string, BrokeredHttpSecretOriginPolicyEntry>();
+  for (const binding of bindings) {
+    if (binding.value === undefined || binding.value === '') continue;
+    const descriptor = canonicalizeBrokeredHttpSecretDescriptor(binding);
+    entries.set(descriptor.guestEnv, {
+      guestEnv: descriptor.guestEnv,
+      hosts: descriptor.hosts,
+      protocol: descriptor.protocol,
+      ports: descriptor.ports,
+      value: binding.value,
+      deleted: false,
+    });
+  }
+
+  return {
+    isRequestAllowed(request) {
+      let url: URL;
+      try {
+        url = new URL(request.url);
+      } catch {
+        return false;
+      }
+      const protocol = url.protocol.slice(0, -1);
+      const port = url.port
+        ? Number(url.port)
+        : protocol === 'https'
+          ? 443
+          : 80;
+      for (const entry of entries.values()) {
+        if (
+          entry.deleted ||
+          !headersContainSecretValue(request.headers, entry.value)
+        ) {
+          continue;
+        }
+        if (
+          protocol !== entry.protocol ||
+          !entry.ports.includes(port) ||
+          !entry.hosts.some((host) => hostMatchesPattern(url.hostname, host))
+        ) {
+          return false;
+        }
+      }
+      return true;
+    },
+    rotateSecret(guestEnv, value) {
+      const entry = entries.get(guestEnv);
+      if (!entry) throw new Error(`unknown brokered secret: ${guestEnv}`);
+      if (entry.deleted) {
+        throw new Error(`brokered secret revoked: ${guestEnv}`);
+      }
+      entry.value = value;
+    },
+    revokeSecret(guestEnv) {
+      const entry = entries.get(guestEnv);
+      if (!entry) throw new Error(`unknown brokered secret: ${guestEnv}`);
+      entry.deleted = true;
+    },
+  };
+}
+
 export function assertGuestEnvironmentBoundary(options: {
   guestCredentialMode: GuestCredentialMode;
   forwardEnv?: readonly string[];
@@ -665,10 +1009,58 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     ...new Set([...protectedExternalHosts, ...runtimeAllowedHosts]),
   ];
 
-  const { httpHooks, env: secretEnv } = createHttpHooks({
+  const brokeredSecrets = prepareBrokeredHttpSecrets({
+    bindings: config.brokeredSecrets,
+    allowedHosts: [...allowedHosts, ...runtimeAllowedInternalHosts],
+    occupiedGuestEnvNames: [
+      'PATH',
+      'HOME',
+      'NODE_NO_WARNINGS',
+      'NODE_EXTRA_CA_CERTS',
+      'MOLTNET_GUEST_WORKSPACE',
+      ...(config.forwardEnv ?? []),
+      ...Object.keys(creds.agentEnv),
+      ...Object.keys(config.sandboxConfig?.env ?? {}),
+    ],
+  });
+  const brokeredSecretOriginPolicy = createBrokeredHttpSecretOriginPolicy(
+    config.brokeredSecrets ?? [],
+  );
+
+  const {
+    httpHooks,
+    env: secretEnv,
+    secretManager: gondolinSecretManager,
+  } = createHttpHooks({
     allowedHosts,
     allowedInternalHosts: runtimeAllowedInternalHosts,
+    ...(Object.keys(brokeredSecrets).length > 0 && {
+      secrets: brokeredSecrets,
+      isRequestAllowed: brokeredSecretOriginPolicy.isRequestAllowed,
+    }),
   });
+  const secretManager: BrokeredHttpSecretManager = Object.freeze({
+    rotateSecret(guestEnv: string, value: string) {
+      gondolinSecretManager.updateSecret(guestEnv, { value });
+      brokeredSecretOriginPolicy.rotateSecret(guestEnv, value);
+    },
+    revokeSecret(guestEnv: string) {
+      gondolinSecretManager.deleteSecret(guestEnv);
+      brokeredSecretOriginPolicy.revokeSecret(guestEnv);
+    },
+  });
+  const brokeredSecretCount = Object.keys(brokeredSecrets).length;
+  if (brokeredSecretCount > 0) {
+    config.onDiagnostic?.({
+      event: 'vm.http_secrets.bound',
+      level: 'info',
+      credentialMode: guestCredentialMode,
+      brokeredSecretCount,
+      message:
+        `Bound ${brokeredSecretCount} HTTP secret placeholder` +
+        `${brokeredSecretCount === 1 ? '' : 's'} to the host proxy`,
+    });
+  }
 
   // Build VM-side agent env vars from credentials.
   // GIT_CONFIG_GLOBAL must point to the VM-side path, not host-side.
@@ -735,10 +1127,11 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     forwardedEnv[name] = value;
   }
 
-  // Merge env: defaults < forwarded host env < sandbox config overrides
+  // Merge env: defaults < forwarded host env < sandbox config overrides <
+  // broker placeholders. Collision validation above ensures a placeholder can
+  // never silently replace another guest environment source.
   const envOverrides = config.sandboxConfig?.env ?? {};
   const vmEnv = {
-    ...secretEnv,
     ...vmAgentEnv,
     ...forwardedEnv,
     PATH: '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/go/bin',
@@ -747,6 +1140,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     NODE_EXTRA_CA_CERTS: '/etc/ssl/certs/ca-certificates.crt',
     ...envOverrides,
     MOLTNET_GUEST_WORKSPACE: guestWorkspace,
+    ...secretEnv,
   };
 
   const resources = config.sandboxConfig?.resources;
@@ -1001,6 +1395,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     return {
       vm,
       credentials: creds,
+      secretManager,
       mountPath: config.mountPath,
       guestWorkspace,
       agentDir,
