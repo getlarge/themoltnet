@@ -173,10 +173,13 @@ zero until distributed invalidation is available.
 
 MoltNet's agent-key API uses Talos as its only credential store. The default
 lifetime is 30 days and the hard maximum is 90 days. Issue and rotation accept
-only the agent, team, name, and lifetime fields exposed by MoltNet; scopes,
-secret visibility, and binding metadata are written by the server. Although a
-Talos administrator can edit `metadata.team_id` directly, MoltNet never exposes
-that mutation and always reconstructs canonical metadata during rotation.
+only the agent, binding selection, name, lifetime, and narrowed scopes exposed
+by MoltNet; secret visibility and binding metadata are written by the server.
+Canonical schema v2 metadata includes `binding_scope`; team bindings also
+include `team_id`, while identity bindings forbid it. MoltNet never exposes
+Talos metadata mutation and reconstructs canonical metadata during rotation.
+See the [pre-deployment compatibility check](../operate/running-agents.md#deployment-compatibility-check)
+before rolling this contract out over existing keys.
 
 ### Talos operations
 

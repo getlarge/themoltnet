@@ -3,8 +3,11 @@
  */
 
 import {
+  claimTask,
   createAgentKey,
   createClient,
+  createDiary,
+  createTask,
   createTeam,
   getWhoami,
   listAgentKeys,
@@ -27,6 +30,7 @@ describe('agent keys', () => {
   let activeKeyId: string | null = null;
   let diaryReadKeyId: string | null = null;
   let diaryReadSecret: string;
+  let identityKeyId: string | null = null;
   const paginationKeyIds: string[] = [];
 
   beforeAll(async () => {
@@ -185,6 +189,14 @@ describe('agent keys', () => {
         },
       });
     }
+    if (identityKeyId) {
+      await harness.oryClients.apiKeys?.adminRevokeIssuedApiKey({
+        keyId: identityKeyId,
+        adminRevokeIssuedApiKeyBody: {
+          reason: 'REVOCATION_REASON_KEY_COMPROMISE',
+        },
+      });
+    }
     await harness?.teardown();
   });
 
@@ -327,5 +339,165 @@ describe('agent keys', () => {
     expect(revokedCredential.response.status).toBe(401);
     expect(revokedCredential.data).toBeUndefined();
     expect(revokedCredential.error).toMatchObject({ code: 'UNAUTHORIZED' });
+  });
+
+  it('uses one identity-scoped key across authorized teams and invalidates it immediately', async () => {
+    const client = createClient({ baseUrl: harness.baseUrl });
+    const outsider = await createAgent({
+      baseUrl: harness.baseUrl,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
+    });
+
+    const [teamAResult, teamBResult, outsiderTeamResult] = await Promise.all([
+      createTeam({
+        client,
+        auth: () => agent.accessToken,
+        body: { name: `identity-key-a-${Date.now()}` },
+      }),
+      createTeam({
+        client,
+        auth: () => agent.accessToken,
+        body: { name: `identity-key-b-${Date.now()}` },
+      }),
+      createTeam({
+        client,
+        auth: () => outsider.accessToken,
+        body: { name: `identity-key-outsider-${Date.now()}` },
+      }),
+    ]);
+    expect(teamAResult.error).toBeUndefined();
+    expect(teamBResult.error).toBeUndefined();
+    expect(outsiderTeamResult.error).toBeUndefined();
+    const teamAId = teamAResult.data!.id;
+    const teamBId = teamBResult.data!.id;
+    const outsiderTeamId = outsiderTeamResult.data!.id;
+
+    const [diaryAResult, diaryBResult] = await Promise.all([
+      createDiary({
+        client,
+        auth: () => agent.accessToken,
+        headers: { 'x-moltnet-team-id': teamAId },
+        body: { name: 'identity-key-team-a', visibility: 'moltnet' },
+      }),
+      createDiary({
+        client,
+        auth: () => agent.accessToken,
+        headers: { 'x-moltnet-team-id': teamBId },
+        body: { name: 'identity-key-team-b', visibility: 'moltnet' },
+      }),
+    ]);
+    expect(diaryAResult.error).toBeUndefined();
+    expect(diaryBResult.error).toBeUndefined();
+
+    const task = await createTask({
+      client,
+      auth: () => agent.accessToken,
+      headers: { 'x-moltnet-team-id': teamAId },
+      body: {
+        taskType: 'freeform',
+        title: 'Identity-scoped key cross-team claim',
+        diaryId: diaryAResult.data!.id,
+        input: { brief: 'prove the credential follows its agent identity' },
+      },
+    });
+    expect(task.error).toBeUndefined();
+
+    const issued = await createAgentKey({
+      client,
+      auth: () => agent.accessToken,
+      headers: { 'idempotency-key': 'rest-api-e2e-identity-agent-key' },
+      body: {
+        agentId: agent.identityId,
+        bindingScope: 'identity',
+        name: 'rest-api-e2e-identity',
+        scopes: [...AGENT_OAUTH_SCOPES],
+        ttlDays: 1,
+      },
+    });
+    expect(issued.response.status).toBe(201);
+    expect(issued.error).toBeUndefined();
+    expect(issued.data?.key).toMatchObject({ bindingScope: 'identity' });
+    identityKeyId = issued.data!.key.id;
+    let identitySecret = issued.data!.secret;
+
+    const identity = await getWhoami({
+      client,
+      auth: () => identitySecret,
+    });
+    expect(identity.response.status).toBe(200);
+    expect(identity.data?.credentialBinding).toEqual({
+      bindingScope: 'identity',
+      keyId: identityKeyId,
+    });
+
+    const claimed = await claimTask({
+      client,
+      auth: () => identitySecret,
+      headers: { 'x-moltnet-team-id': teamAId },
+      path: { id: task.data!.id },
+      body: { leaseTtlSec: 60 },
+    });
+    expect(claimed.response.status).toBe(200);
+    expect(claimed.error).toBeUndefined();
+
+    const teamBRead = await listDiaries({
+      client,
+      auth: () => identitySecret,
+      headers: { 'x-moltnet-team-id': teamBId },
+    });
+    expect(teamBRead.response.status).toBe(200);
+    expect(teamBRead.data?.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: diaryBResult.data!.id }),
+      ]),
+    );
+
+    const outsiderRead = await listDiaries({
+      client,
+      auth: () => identitySecret,
+      headers: { 'x-moltnet-team-id': outsiderTeamId },
+    });
+    expect(outsiderRead.response.status).toBe(403);
+
+    const rotated = await rotateAgentKey({
+      client,
+      auth: () => agent.accessToken,
+      path: { keyId: identityKeyId },
+      query: { bindingScope: 'identity' },
+    });
+    expect(rotated.response.status).toBe(200);
+    expect(rotated.error).toBeUndefined();
+
+    const staleAfterRotation = await getWhoami({
+      client,
+      auth: () => identitySecret,
+    });
+    expect(staleAfterRotation.response.status).toBe(401);
+
+    identityKeyId = rotated.data!.key.id;
+    identitySecret = rotated.data!.secret;
+    const activeAfterRotation = await listDiaries({
+      client,
+      auth: () => identitySecret,
+      headers: { 'x-moltnet-team-id': teamBId },
+    });
+    expect(activeAfterRotation.response.status).toBe(200);
+
+    const revoked = await revokeAgentKey({
+      client,
+      auth: () => agent.accessToken,
+      path: { keyId: identityKeyId },
+      query: { bindingScope: 'identity' },
+      body: { reason: 'key_compromise' },
+    });
+    expect(revoked.response.status).toBe(204);
+    identityKeyId = null;
+
+    const staleAfterRevocation = await getWhoami({
+      client,
+      auth: () => identitySecret,
+    });
+    expect(staleAfterRevocation.response.status).toBe(401);
   });
 });

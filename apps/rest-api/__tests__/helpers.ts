@@ -92,7 +92,11 @@ export const VALID_AUTH_CONTEXT: AuthContext = {
 /** Agent authenticated via a team-bound agent key (carries a credential binding). */
 export const KEY_AUTH_CONTEXT: AuthContext = {
   ...VALID_AUTH_CONTEXT,
-  credentialBinding: { keyId: 'key-123', boundTeamId: OWNER_ID },
+  credentialBinding: {
+    bindingScope: 'team',
+    keyId: 'key-123',
+    boundTeamId: OWNER_ID,
+  },
 };
 
 /** Human principal (e.g. Kratos session / OAuth2 auth-code). */

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 	"github.com/google/uuid"
@@ -18,7 +19,26 @@ const agentKeySecretNotice = "Store the returned secret now — it is shown exac
 
 // revocationReasons lists the revocation reasons accepted by --reason, matching
 // the API contract's discriminated request body. Used in help text and errors.
-const revocationReasons = "key_compromise, affiliation_changed, superseded, privilege_withdrawn"
+var revocationReasons = []string{
+	"key_compromise",
+	"affiliation_changed",
+	"superseded",
+	"privilege_withdrawn",
+}
+
+func revocationReasonsText() string {
+	return strings.Join(revocationReasons, ", ")
+}
+
+func agentKeyID(key moltnetapi.AgentKey) (string, bool) {
+	if teamKey, ok := key.GetTeamAgentKey(); ok {
+		return teamKey.ID, true
+	}
+	if identityKey, ok := key.GetIdentityAgentKey(); ok {
+		return identityKey.ID, true
+	}
+	return "", false
+}
 
 // writeSecretNotice prints the one-time-secret reminder to w (stderr in normal
 // use). It falls back to os.Stderr when no writer is provided so the notice is
@@ -42,8 +62,8 @@ func writeIdempotencyRetryHint(w io.Writer, key string) {
 		"retry with --idempotency-key %s to avoid issuing a duplicate key.\n", key, key)
 }
 
-// parseTeamID parses the required --team-id flag into a UUID with a consistent
-// error message shared by every agent-keys command.
+// parseTeamID parses --team-id into a UUID with a consistent error message
+// shared by every agent-keys command.
 func parseTeamID(v string) (uuid.UUID, error) {
 	id, err := uuid.Parse(v)
 	if err != nil {
@@ -52,22 +72,58 @@ func parseTeamID(v string) (uuid.UUID, error) {
 	return id, nil
 }
 
+type agentKeyBinding struct {
+	teamID       moltnetapi.OptUUID
+	bindingScope moltnetapi.OptAgentKeyBindingScope
+}
+
+// buildAgentKeyBinding enforces the CLI's two explicit, mutually exclusive
+// modes before a request is sent. Team mode preserves the pre-existing wire
+// contract by omitting bindingScope; identity mode omits the team header and
+// sends the explicit identity discriminator.
+func buildAgentKeyBinding(teamIDValue string, identityScoped bool) (agentKeyBinding, error) {
+	if err := validateAgentKeyBinding(teamIDValue, identityScoped); err != nil {
+		return agentKeyBinding{}, err
+	}
+	if identityScoped {
+		return agentKeyBinding{
+			bindingScope: moltnetapi.NewOptAgentKeyBindingScope(moltnetapi.AgentKeyBindingScopeIdentity),
+		}, nil
+	}
+	teamID, err := parseTeamID(teamIDValue)
+	if err != nil {
+		return agentKeyBinding{}, err
+	}
+	return agentKeyBinding{teamID: moltnetapi.NewOptUUID(teamID)}, nil
+}
+
+func validateAgentKeyBinding(teamIDValue string, identityScoped bool) error {
+	if identityScoped && teamIDValue != "" {
+		return fmt.Errorf("--identity-scoped and --team-id are mutually exclusive")
+	}
+	if !identityScoped && teamIDValue == "" {
+		return fmt.Errorf("one of --team-id or --identity-scoped is required")
+	}
+	return nil
+}
+
 // ----- list -----
 
 type agentsKeysListOpts struct {
-	apiURL    string
-	credPath  string
-	teamID    string
-	agentID   string
-	agentSet  bool
-	status    string
-	statusSet bool
-	limit     int
-	limitSet  bool
-	cursor    string
-	cursorSet bool
-	all       bool
-	out       io.Writer
+	apiURL         string
+	credPath       string
+	teamID         string
+	identityScoped bool
+	agentID        string
+	agentSet       bool
+	status         string
+	statusSet      bool
+	limit          int
+	limitSet       bool
+	cursor         string
+	cursorSet      bool
+	all            bool
+	out            io.Writer
 }
 
 func runAgentsKeysListCmd(opts agentsKeysListOpts) error {
@@ -145,11 +201,14 @@ func collectAllAgentKeys(
 }
 
 func buildListAgentKeysParams(opts agentsKeysListOpts) (moltnetapi.ListAgentKeysParams, error) {
-	teamID, err := parseTeamID(opts.teamID)
+	binding, err := buildAgentKeyBinding(opts.teamID, opts.identityScoped)
 	if err != nil {
 		return moltnetapi.ListAgentKeysParams{}, err
 	}
-	params := moltnetapi.ListAgentKeysParams{XMoltnetTeamID: teamID}
+	params := moltnetapi.ListAgentKeysParams{
+		BindingScope:   binding.bindingScope,
+		XMoltnetTeamID: binding.teamID,
+	}
 	if opts.agentSet {
 		agentID, err := uuid.Parse(opts.agentID)
 		if err != nil {
@@ -193,6 +252,7 @@ type agentsKeysCreateOpts struct {
 	apiURL         string
 	credPath       string
 	teamID         string
+	identityScoped bool
 	agentID        string
 	name           string
 	ttlDays        int
@@ -259,7 +319,7 @@ func runAgentsKeysCreateWithClient(ctx context.Context, client *moltnetapi.Clien
 // and generating one keeps single invocations ergonomic while still letting a
 // caller pin an explicit value to make a retry idempotent.
 func buildCreateAgentKey(opts agentsKeysCreateOpts) (*moltnetapi.CreateAgentKeyReq, moltnetapi.CreateAgentKeyParams, string, error) {
-	teamID, err := parseTeamID(opts.teamID)
+	binding, err := buildAgentKeyBinding(opts.teamID, opts.identityScoped)
 	if err != nil {
 		return nil, moltnetapi.CreateAgentKeyParams{}, "", err
 	}
@@ -271,8 +331,9 @@ func buildCreateAgentKey(opts agentsKeysCreateOpts) (*moltnetapi.CreateAgentKeyR
 		return nil, moltnetapi.CreateAgentKeyParams{}, "", fmt.Errorf("--name is required")
 	}
 	req := &moltnetapi.CreateAgentKeyReq{
-		AgentId: agentID,
-		Name:    opts.name,
+		AgentId:      agentID,
+		Name:         opts.name,
+		BindingScope: binding.bindingScope,
 	}
 	if opts.ttlSet {
 		if opts.ttlDays <= 0 {
@@ -285,7 +346,7 @@ func buildCreateAgentKey(opts agentsKeysCreateOpts) (*moltnetapi.CreateAgentKeyR
 		idempotencyKey = uuid.NewString()
 	}
 	params := moltnetapi.CreateAgentKeyParams{
-		XMoltnetTeamID: teamID,
+		XMoltnetTeamID: binding.teamID,
 		IdempotencyKey: idempotencyKey,
 	}
 	return req, params, idempotencyKey, nil
@@ -294,12 +355,13 @@ func buildCreateAgentKey(opts agentsKeysCreateOpts) (*moltnetapi.CreateAgentKeyR
 // ----- rotate -----
 
 type agentsKeysRotateOpts struct {
-	apiURL   string
-	credPath string
-	teamID   string
-	keyID    string
-	out      io.Writer
-	errOut   io.Writer
+	apiURL         string
+	credPath       string
+	teamID         string
+	identityScoped bool
+	keyID          string
+	out            io.Writer
+	errOut         io.Writer
 }
 
 func runAgentsKeysRotateCmd(opts agentsKeysRotateOpts) error {
@@ -328,27 +390,32 @@ func runAgentsKeysRotateWithClient(ctx context.Context, client *moltnetapi.Clien
 }
 
 func buildRotateAgentKeyParams(opts agentsKeysRotateOpts) (moltnetapi.RotateAgentKeyParams, error) {
-	teamID, err := parseTeamID(opts.teamID)
+	binding, err := buildAgentKeyBinding(opts.teamID, opts.identityScoped)
 	if err != nil {
 		return moltnetapi.RotateAgentKeyParams{}, err
 	}
 	if opts.keyID == "" {
 		return moltnetapi.RotateAgentKeyParams{}, fmt.Errorf("key ID is required")
 	}
-	return moltnetapi.RotateAgentKeyParams{KeyId: opts.keyID, XMoltnetTeamID: teamID}, nil
+	return moltnetapi.RotateAgentKeyParams{
+		BindingScope:   binding.bindingScope,
+		KeyId:          opts.keyID,
+		XMoltnetTeamID: binding.teamID,
+	}, nil
 }
 
 // ----- revoke -----
 
 type agentsKeysRevokeOpts struct {
-	apiURL      string
-	credPath    string
-	teamID      string
-	keyID       string
-	reason      string
-	description string
-	descSet     bool
-	out         io.Writer
+	apiURL         string
+	credPath       string
+	teamID         string
+	identityScoped bool
+	keyID          string
+	reason         string
+	description    string
+	descSet        bool
+	out            io.Writer
 }
 
 // revokeAgentKeyOutput is the stable machine-readable confirmation printed after
@@ -388,7 +455,7 @@ func runAgentsKeysRevokeWithClient(ctx context.Context, client *moltnetapi.Clien
 }
 
 func buildRevokeAgentKey(opts agentsKeysRevokeOpts) (moltnetapi.OptRevokeAgentKeyReq, moltnetapi.RevokeAgentKeyParams, error) {
-	teamID, err := parseTeamID(opts.teamID)
+	binding, err := buildAgentKeyBinding(opts.teamID, opts.identityScoped)
 	if err != nil {
 		return moltnetapi.OptRevokeAgentKeyReq{}, moltnetapi.RevokeAgentKeyParams{}, err
 	}
@@ -399,7 +466,11 @@ func buildRevokeAgentKey(opts agentsKeysRevokeOpts) (moltnetapi.OptRevokeAgentKe
 	if err != nil {
 		return moltnetapi.OptRevokeAgentKeyReq{}, moltnetapi.RevokeAgentKeyParams{}, err
 	}
-	return body, moltnetapi.RevokeAgentKeyParams{KeyId: opts.keyID, XMoltnetTeamID: teamID}, nil
+	return body, moltnetapi.RevokeAgentKeyParams{
+		BindingScope:   binding.bindingScope,
+		KeyId:          opts.keyID,
+		XMoltnetTeamID: binding.teamID,
+	}, nil
 }
 
 // buildRevokeReason maps the --reason value onto the API's discriminated
@@ -408,7 +479,7 @@ func buildRevokeAgentKey(opts agentsKeysRevokeOpts) (moltnetapi.OptRevokeAgentKe
 // the sole variant the contract lets carry one.
 func buildRevokeReason(reason, description string, descSet bool) (moltnetapi.OptRevokeAgentKeyReq, error) {
 	if reason == "" {
-		return moltnetapi.OptRevokeAgentKeyReq{}, fmt.Errorf("--reason is required: must be one of %s", revocationReasons)
+		return moltnetapi.OptRevokeAgentKeyReq{}, fmt.Errorf("--reason is required: must be one of %s", revocationReasonsText())
 	}
 	hasDescription := descSet && description != ""
 	if hasDescription && reason != string(moltnetapi.AgentKeyRevocationReasonPrivilegeWithdrawn) {
@@ -442,6 +513,6 @@ func buildRevokeReason(reason, description string, descSet bool) (moltnetapi.Opt
 		}
 		return moltnetapi.NewOptRevokeAgentKeyReq(moltnetapi.NewProvenanceGraphPrivilegeWithdrawnNodeRevokeAgentKeyReq(node)), nil
 	default:
-		return moltnetapi.OptRevokeAgentKeyReq{}, fmt.Errorf("invalid --reason %q: must be one of %s", reason, revocationReasons)
+		return moltnetapi.OptRevokeAgentKeyReq{}, fmt.Errorf("invalid --reason %q: must be one of %s", reason, revocationReasonsText())
 	}
 }

@@ -128,7 +128,7 @@ type Invoker interface {
 	CreateAgentEnrollment(ctx context.Context, request OptCreateAgentEnrollmentReq, params CreateAgentEnrollmentParams) (CreateAgentEnrollmentRes, error)
 	// CreateAgentKey invokes createAgentKey operation.
 	//
-	// Issue a secret API key bound to one agent and the active team.
+	// Issue a secret API key bound to one agent identity or, by default, the active team.
 	//
 	// POST /agent-keys
 	CreateAgentKey(ctx context.Context, request *CreateAgentKeyReq, params CreateAgentKeyParams) (CreateAgentKeyRes, error)
@@ -537,7 +537,8 @@ type Invoker interface {
 	JoinTeam(ctx context.Context, request *JoinTeamReq) (JoinTeamRes, error)
 	// ListAgentKeys invokes listAgentKeys operation.
 	//
-	// List agent API keys bound to the active team. Team credential managers may list every agent.
+	// List agent API keys for the selected binding. Team scope is the default; identity scope is agent
+	// self-service.
 	//
 	// GET /agent-keys
 	ListAgentKeys(ctx context.Context, params ListAgentKeysParams) (ListAgentKeysRes, error)
@@ -3820,7 +3821,7 @@ func (c *Client) sendCreateAgentEnrollment(ctx context.Context, request OptCreat
 
 // CreateAgentKey invokes createAgentKey operation.
 //
-// Issue a secret API key bound to one agent and the active team.
+// Issue a secret API key bound to one agent identity or, by default, the active team.
 //
 // POST /agent-keys
 func (c *Client) CreateAgentKey(ctx context.Context, request *CreateAgentKeyReq, params CreateAgentKeyParams) (CreateAgentKeyRes, error) {
@@ -3886,7 +3887,10 @@ func (c *Client) sendCreateAgentKey(ctx context.Context, request *CreateAgentKey
 			Explode: false,
 		}
 		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
-			return e.EncodeValue(conv.UUIDToString(params.XMoltnetTeamID))
+			if val, ok := params.XMoltnetTeamID.Get(); ok {
+				return e.EncodeValue(conv.UUIDToString(val))
+			}
+			return nil
 		}); err != nil {
 			return res, errors.Wrap(err, "encode header")
 		}
@@ -14075,7 +14079,8 @@ func (c *Client) sendJoinTeam(ctx context.Context, request *JoinTeamReq) (res Jo
 
 // ListAgentKeys invokes listAgentKeys operation.
 //
-// List agent API keys bound to the active team. Team credential managers may list every agent.
+// List agent API keys for the selected binding. Team scope is the default; identity scope is agent
+// self-service.
 //
 // GET /agent-keys
 func (c *Client) ListAgentKeys(ctx context.Context, params ListAgentKeysParams) (ListAgentKeysRes, error) {
@@ -14126,6 +14131,23 @@ func (c *Client) sendListAgentKeys(ctx context.Context, params ListAgentKeysPara
 
 	stage = "EncodeQueryParams"
 	q := uri.NewQueryEncoder()
+	{
+		// Encode "bindingScope" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "bindingScope",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.BindingScope.Get(); ok {
+				return e.EncodeValue(conv.StringToString(string(val)))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
 	{
 		// Encode "agentId" parameter.
 		cfg := uri.QueryParameterEncodingConfig{
@@ -14210,7 +14232,10 @@ func (c *Client) sendListAgentKeys(ctx context.Context, params ListAgentKeysPara
 			Explode: false,
 		}
 		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
-			return e.EncodeValue(conv.UUIDToString(params.XMoltnetTeamID))
+			if val, ok := params.XMoltnetTeamID.Get(); ok {
+				return e.EncodeValue(conv.UUIDToString(val))
+			}
+			return nil
 		}); err != nil {
 			return res, errors.Wrap(err, "encode header")
 		}
@@ -21304,6 +21329,27 @@ func (c *Client) sendRevokeAgentKey(ctx context.Context, request OptRevokeAgentK
 	pathParts[2] = "/revoke"
 	uri.AddPathParts(u, pathParts[:]...)
 
+	stage = "EncodeQueryParams"
+	q := uri.NewQueryEncoder()
+	{
+		// Encode "bindingScope" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "bindingScope",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.BindingScope.Get(); ok {
+				return e.EncodeValue(conv.StringToString(string(val)))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	u.RawQuery = q.Values().Encode()
+
 	stage = "EncodeRequest"
 	r, err := ht.NewRequest(ctx, "POST", u)
 	if err != nil {
@@ -21321,7 +21367,10 @@ func (c *Client) sendRevokeAgentKey(ctx context.Context, request OptRevokeAgentK
 			Explode: false,
 		}
 		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
-			return e.EncodeValue(conv.UUIDToString(params.XMoltnetTeamID))
+			if val, ok := params.XMoltnetTeamID.Get(); ok {
+				return e.EncodeValue(conv.UUIDToString(val))
+			}
+			return nil
 		}); err != nil {
 			return res, errors.Wrap(err, "encode header")
 		}
@@ -21980,6 +22029,27 @@ func (c *Client) sendRotateAgentKey(ctx context.Context, params RotateAgentKeyPa
 	pathParts[2] = "/rotate"
 	uri.AddPathParts(u, pathParts[:]...)
 
+	stage = "EncodeQueryParams"
+	q := uri.NewQueryEncoder()
+	{
+		// Encode "bindingScope" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "bindingScope",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.BindingScope.Get(); ok {
+				return e.EncodeValue(conv.StringToString(string(val)))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	u.RawQuery = q.Values().Encode()
+
 	stage = "EncodeRequest"
 	r, err := ht.NewRequest(ctx, "POST", u)
 	if err != nil {
@@ -21994,7 +22064,10 @@ func (c *Client) sendRotateAgentKey(ctx context.Context, params RotateAgentKeyPa
 			Explode: false,
 		}
 		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
-			return e.EncodeValue(conv.UUIDToString(params.XMoltnetTeamID))
+			if val, ok := params.XMoltnetTeamID.Get(); ok {
+				return e.EncodeValue(conv.UUIDToString(val))
+			}
+			return nil
 		}); err != nil {
 			return res, errors.Wrap(err, "encode header")
 		}

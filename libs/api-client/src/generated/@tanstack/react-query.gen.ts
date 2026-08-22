@@ -740,13 +740,13 @@ export const revokeAgentEnrollmentMutation = (
   return mutationOptions;
 };
 
-export const listAgentKeysQueryKey = (options: Options<ListAgentKeysData>) =>
+export const listAgentKeysQueryKey = (options?: Options<ListAgentKeysData>) =>
   createQueryKey('listAgentKeys', options);
 
 /**
- * List agent API keys bound to the active team. Team credential managers may list every agent.
+ * List agent API keys for the selected binding. Team scope is the default; identity scope is agent self-service.
  */
-export const listAgentKeysOptions = (options: Options<ListAgentKeysData>) =>
+export const listAgentKeysOptions = (options?: Options<ListAgentKeysData>) =>
   queryOptions<
     ListAgentKeysResponse,
     ListAgentKeysError,
@@ -800,15 +800,15 @@ const createInfiniteParams = <
 };
 
 export const listAgentKeysInfiniteQueryKey = (
-  options: Options<ListAgentKeysData>,
+  options?: Options<ListAgentKeysData>,
 ): QueryKey<Options<ListAgentKeysData>> =>
   createQueryKey('listAgentKeys', options, true);
 
 /**
- * List agent API keys bound to the active team. Team credential managers may list every agent.
+ * List agent API keys for the selected binding. Team scope is the default; identity scope is agent self-service.
  */
 export const listAgentKeysInfiniteOptions = (
-  options: Options<ListAgentKeysData>,
+  options?: Options<ListAgentKeysData>,
 ) =>
   infiniteQueryOptions<
     ListAgentKeysResponse,
@@ -850,7 +850,7 @@ export const listAgentKeysInfiniteOptions = (
   );
 
 /**
- * Issue a secret API key bound to one agent and the active team.
+ * Issue a secret API key bound to one agent identity or, by default, the active team.
  */
 export const createAgentKeyMutation = (
   options?: Partial<Options<CreateAgentKeyData>>,

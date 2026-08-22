@@ -15,7 +15,11 @@ describe('whoami', () => {
       identityId: 'id-1',
       subjectType: 'agent',
       currentTeamId: 'team-1',
-      credentialBinding: { keyId: 'k1', boundTeamId: 'team-1' },
+      credentialBinding: {
+        bindingScope: 'team',
+        keyId: 'k1',
+        boundTeamId: 'team-1',
+      },
     };
     get.mockResolvedValue({ data: expected });
 

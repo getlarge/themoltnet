@@ -203,8 +203,35 @@ describe('Agent routes', () => {
 
       expect(response.statusCode).toBe(200);
       expect(response.json().credentialBinding).toEqual({
+        bindingScope: 'team',
         keyId: 'key-123',
         boundTeamId: OWNER_ID,
+      });
+      await keyApp.close();
+    });
+
+    it('returns the identity discriminator without a boundTeamId', async () => {
+      const keyApp = await createTestApp(mocks, {
+        ...KEY_AUTH_CONTEXT,
+        credentialBinding: {
+          bindingScope: 'identity',
+          keyId: 'identity-key-123',
+        },
+      });
+      mocks.agentRepository.findByIdentityId.mockResolvedValue(
+        createMockAgent(),
+      );
+
+      const response = await keyApp.inject({
+        method: 'GET',
+        url: '/agents/whoami',
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().credentialBinding).toEqual({
+        bindingScope: 'identity',
+        keyId: 'identity-key-123',
       });
       await keyApp.close();
     });

@@ -4024,7 +4024,7 @@ func (s *Server) handleCreateAgentEnrollmentRequest(args [0]string, argsEscaped 
 
 // handleCreateAgentKeyRequest handles createAgentKey operation.
 //
-// Issue a secret API key bound to one agent and the active team.
+// Issue a secret API key bound to one agent identity or, by default, the active team.
 //
 // POST /agent-keys
 func (s *Server) handleCreateAgentKeyRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
@@ -18177,7 +18177,8 @@ func (s *Server) handleJoinTeamRequest(args [0]string, argsEscaped bool, w http.
 
 // handleListAgentKeysRequest handles listAgentKeys operation.
 //
-// List agent API keys bound to the active team. Team credential managers may list every agent.
+// List agent API keys for the selected binding. Team scope is the default; identity scope is agent
+// self-service.
 //
 // GET /agent-keys
 func (s *Server) handleListAgentKeysRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
@@ -18354,6 +18355,10 @@ func (s *Server) handleListAgentKeysRequest(args [0]string, argsEscaped bool, w 
 			Body:             nil,
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
+				{
+					Name: "bindingScope",
+					In:   "query",
+				}: params.BindingScope,
 				{
 					Name: "agentId",
 					In:   "query",
@@ -27100,6 +27105,10 @@ func (s *Server) handleRevokeAgentKeyRequest(args [1]string, argsEscaped bool, w
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
 				{
+					Name: "bindingScope",
+					In:   "query",
+				}: params.BindingScope,
+				{
 					Name: "keyId",
 					In:   "path",
 				}: params.KeyId,
@@ -28046,6 +28055,10 @@ func (s *Server) handleRotateAgentKeyRequest(args [1]string, argsEscaped bool, w
 			Body:             nil,
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
+				{
+					Name: "bindingScope",
+					In:   "query",
+				}: params.BindingScope,
 				{
 					Name: "keyId",
 					In:   "path",

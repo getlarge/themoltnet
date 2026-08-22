@@ -3,9 +3,11 @@ import { createHash } from 'node:crypto';
 import {
   AGENT_CREDENTIAL_SCOPES,
   AGENT_OAUTH_SCOPES,
+  agentKeyMetadata,
   credentialScopeSetsEqual,
   KetoNamespace,
   type PermissionChecker,
+  readAgentKeyMetadataBinding,
   type RelationshipReader,
 } from '@moltnet/auth';
 import type { AgentRepository } from '@moltnet/database';
@@ -21,8 +23,10 @@ import { decodeOpaqueCursor, encodeOpaqueCursor } from './opaque-cursor.js';
 import { createProblem, createValidationProblem } from './problems.js';
 
 const DEFAULT_TTL_DAYS = 30;
+const DEFAULT_LIST_LIMIT = 20;
 const INVALID_KEY_CLEANUP_TIMEOUT_MS = 2_000;
 const MAX_TALOS_LIST_PAGES_PER_REQUEST = 5;
+const SECONDS_PER_DAY = 86_400;
 
 export type AgentKeyStatus = 'active' | 'revoked' | 'expired';
 export type AgentKeyRevocationReason =
@@ -31,10 +35,9 @@ export type AgentKeyRevocationReason =
   | 'superseded'
   | 'privilege_withdrawn';
 
-export interface AgentKey {
+interface AgentKeyBase {
   id: string;
   agentId: string;
-  teamId: string;
   name: string;
   scopes: string[];
   status: AgentKeyStatus;
@@ -46,6 +49,9 @@ export interface AgentKey {
   revocationDescription: string | null;
 }
 
+export type AgentKey = AgentKeyBase &
+  ({ bindingScope: 'team'; teamId: string } | { bindingScope: 'identity' });
+
 export interface AgentKeyWithSecret {
   key: AgentKey;
   secret: string;
@@ -54,16 +60,23 @@ export interface AgentKeyWithSecret {
 export interface AgentKeySubject {
   /** Bound API key used for this request, when available. */
   credentialKeyId?: string;
+  /** Binding of the Talos credential authorizing this request; absent for OAuth. */
+  credentialBindingScope?: 'identity' | 'team';
   identityId: string;
   scopes: string[];
   subjectNs: KetoNamespace;
   subjectType: 'agent' | 'human';
 }
 
-interface AgentKeyBinding {
-  agentId: string;
-  teamId: string;
-}
+export type AgentKeyOperationBinding =
+  | { bindingScope?: 'team'; teamId: string }
+  | { bindingScope: 'identity'; teamId?: never };
+
+type ResolvedAgentKeyBinding =
+  | { bindingScope: 'team'; teamId: string }
+  | { bindingScope: 'identity' };
+
+type StoredAgentKeyBinding = ResolvedAgentKeyBinding & { agentId: string };
 
 interface Logger {
   debug: (obj: Record<string, unknown>, msg: string) => void;
@@ -87,7 +100,7 @@ export interface AgentKeyServiceDeps {
   talosApi?: TalosApi;
 }
 
-export interface IssueAgentKeyInput {
+export type IssueAgentKeyInput = AgentKeyOperationBinding & {
   agentId: string;
   idempotencyKey: string;
   logger: Logger;
@@ -101,11 +114,10 @@ export interface IssueAgentKeyInput {
   scopes?: string[];
   signal?: AbortSignal;
   subject: AgentKeySubject;
-  teamId: string;
   ttlDays?: number;
-}
+};
 
-export interface ListAgentKeysInput {
+export type ListAgentKeysInput = AgentKeyOperationBinding & {
   agentId?: string;
   cursor?: string;
   limit?: number;
@@ -113,26 +125,23 @@ export interface ListAgentKeysInput {
   signal?: AbortSignal;
   status?: AgentKeyStatus;
   subject: AgentKeySubject;
-  teamId: string;
-}
+};
 
-export interface RotateAgentKeyInput {
+export type RotateAgentKeyInput = AgentKeyOperationBinding & {
   keyId: string;
   logger: Logger;
   signal?: AbortSignal;
   subject: AgentKeySubject;
-  teamId: string;
-}
+};
 
-export interface RevokeAgentKeyInput {
+export type RevokeAgentKeyInput = AgentKeyOperationBinding & {
   description?: string;
   keyId: string;
   logger: Logger;
   reason: AgentKeyRevocationReason;
   signal?: AbortSignal;
   subject: AgentKeySubject;
-  teamId: string;
-}
+};
 
 function getTalosApi(deps: AgentKeyServiceDeps): TalosApi {
   if (!deps.talosApi) {
@@ -144,21 +153,37 @@ function getTalosApi(deps: AgentKeyServiceDeps): TalosApi {
   return deps.talosApi;
 }
 
-function asRecord(value: object | undefined): Record<string, unknown> | null {
-  if (!value || Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
+function resolveBinding(
+  input: AgentKeyOperationBinding,
+): ResolvedAgentKeyBinding {
+  return input.bindingScope === 'identity'
+    ? { bindingScope: 'identity' }
+    : { bindingScope: 'team', teamId: input.teamId };
 }
 
-function readBinding(key: IssuedApiKey): AgentKeyBinding | null {
-  const metadata = asRecord(key.metadata);
-  if (
-    metadata?.subject_type !== 'agent' ||
-    typeof metadata.team_id !== 'string' ||
-    typeof key.actor_id !== 'string'
-  ) {
-    return null;
-  }
-  return { agentId: key.actor_id, teamId: metadata.team_id };
+function bindingLogFields(
+  binding: ResolvedAgentKeyBinding,
+): Record<string, unknown> {
+  return binding.bindingScope === 'team'
+    ? { bindingScope: 'team', teamId: binding.teamId }
+    : { bindingScope: 'identity' };
+}
+
+function readBinding(key: IssuedApiKey): StoredAgentKeyBinding | null {
+  const binding = readAgentKeyMetadataBinding(key.metadata);
+  if (!binding || typeof key.actor_id !== 'string') return null;
+  return { agentId: key.actor_id, ...binding };
+}
+
+function bindingsEqual(
+  left: ResolvedAgentKeyBinding,
+  right: ResolvedAgentKeyBinding,
+): boolean {
+  return (
+    left.bindingScope === right.bindingScope &&
+    (left.bindingScope === 'identity' ||
+      (right.bindingScope === 'team' && left.teamId === right.teamId))
+  );
 }
 
 function toStatus(status: IssuedApiKey['status']): AgentKeyStatus {
@@ -229,10 +254,9 @@ function toAgentKey(key: IssuedApiKey): AgentKey {
     );
   }
 
-  return {
+  const base: AgentKeyBase = {
     id: key.key_id,
     agentId: binding.agentId,
-    teamId: binding.teamId,
     name: key.name ?? key.key_id,
     scopes: key.scopes ?? [],
     status: effectiveStatus(key),
@@ -243,14 +267,18 @@ function toAgentKey(key: IssuedApiKey): AgentKey {
     revocationReason: fromRevocationReason(key.revocation_reason),
     revocationDescription: key.revocation_description ?? null,
   };
+  return binding.bindingScope === 'team'
+    ? { ...base, bindingScope: 'team', teamId: binding.teamId }
+    : { ...base, bindingScope: 'identity' };
 }
 
 interface AgentKeyCursor {
   actorId: string | null;
+  bindingScope: 'identity' | 'team';
   pageToken: string;
   status: AgentKeyStatus | null;
-  teamId: string;
-  version: 1;
+  teamId: string | null;
+  version: 2;
 }
 
 function isAgentKeyStatus(value: unknown): value is AgentKeyStatus {
@@ -262,12 +290,16 @@ function isAgentKeyCursor(value: unknown): value is AgentKeyCursor {
     typeof value === 'object' &&
     value !== null &&
     'version' in value &&
-    value.version === 1 &&
+    value.version === 2 &&
     'pageToken' in value &&
     typeof value.pageToken === 'string' &&
     value.pageToken.length > 0 &&
+    'bindingScope' in value &&
+    (value.bindingScope === 'identity' || value.bindingScope === 'team') &&
     'teamId' in value &&
-    typeof value.teamId === 'string' &&
+    (value.teamId === null || typeof value.teamId === 'string') &&
+    ((value.bindingScope === 'identity' && value.teamId === null) ||
+      (value.bindingScope === 'team' && typeof value.teamId === 'string')) &&
     'actorId' in value &&
     (value.actorId === null || typeof value.actorId === 'string') &&
     'status' in value &&
@@ -283,6 +315,7 @@ function decodeCursor(
   const decoded = decodeOpaqueCursor(cursor, isAgentKeyCursor);
   if (
     decoded &&
+    decoded.bindingScope === expected.bindingScope &&
     decoded.teamId === expected.teamId &&
     decoded.actorId === expected.actorId &&
     decoded.status === expected.status
@@ -299,13 +332,22 @@ function encodeCursor(
   pageToken: string,
   query: Omit<AgentKeyCursor, 'pageToken' | 'version'>,
 ): string {
-  return encodeOpaqueCursor({ ...query, pageToken, version: 1 });
+  return encodeOpaqueCursor({ ...query, pageToken, version: 2 });
 }
 
-function talosRequestId(input: IssueAgentKeyInput): string {
-  const hex = createHash('sha256')
-    .update('moltnet:agent-key:v1\0')
-    .update(input.teamId)
+function talosRequestId(
+  input: IssueAgentKeyInput,
+  binding: ResolvedAgentKeyBinding,
+): string {
+  const hash = createHash('sha256');
+  if (binding.bindingScope === 'team') {
+    // Preserve the v1 request-id transcript so an in-flight team-scoped retry
+    // remains idempotent across this deployment.
+    hash.update('moltnet:agent-key:v1\0').update(binding.teamId);
+  } else {
+    hash.update('moltnet:agent-key:v2\0identity');
+  }
+  const hex = hash
     .update('\0')
     .update(input.agentId)
     .update('\0')
@@ -365,7 +407,7 @@ function talosInit(signal: AbortSignal | undefined): RequestInit | undefined {
 async function revokeInvalidIssuedKey(
   api: TalosApi,
   key: IssuedApiKey,
-  expectedBinding: AgentKeyBinding,
+  expectedBinding: StoredAgentKeyBinding,
   logger: Logger,
   action: 'issue' | 'rotate',
 ): Promise<void> {
@@ -373,14 +415,17 @@ async function revokeInvalidIssuedKey(
   const binding = readBinding(key);
   if (
     binding?.agentId !== expectedBinding.agentId ||
-    binding.teamId !== expectedBinding.teamId
+    !bindingsEqual(binding, expectedBinding)
   ) {
     logger.warn(
       {
         action: `${action}:cleanup`,
         keyId: key.key_id,
         expectedAgentId: expectedBinding.agentId,
-        expectedTeamId: expectedBinding.teamId,
+        bindingScope: expectedBinding.bindingScope,
+        ...(expectedBinding.bindingScope === 'team'
+          ? { expectedTeamId: expectedBinding.teamId }
+          : {}),
       },
       'agent_key.cleanup_skipped_untrusted_binding',
     );
@@ -433,14 +478,14 @@ function talosFailureKind(
   return 'upstream';
 }
 
-async function getTeamKey(
+async function getBoundKey(
   api: TalosApi,
   keyId: string,
-  teamId: string,
+  expectedBinding: ResolvedAgentKeyBinding,
   logger: Logger,
   action: 'rotate' | 'revoke',
   signal: AbortSignal | undefined,
-): Promise<{ key: IssuedApiKey; binding: AgentKeyBinding }> {
+): Promise<{ key: IssuedApiKey; binding: StoredAgentKeyBinding }> {
   let key: IssuedApiKey;
   try {
     key = await api.adminGetIssuedApiKey({ keyId }, talosInit(signal));
@@ -452,14 +497,14 @@ async function getTeamKey(
         action: `${action}:read`,
         failureKind: talosFailureKind(error, signal),
         keyId,
-        teamId,
+        ...bindingLogFields(expectedBinding),
       },
       'agent_key.upstream_error',
     );
     throw createProblem('upstream-error', 'Failed to read agent key');
   }
   const binding = readBinding(key);
-  if (!binding || binding.teamId !== teamId) {
+  if (!binding || !bindingsEqual(binding, expectedBinding)) {
     throw createProblem('not-found');
   }
   return { key, binding };
@@ -480,22 +525,48 @@ async function canManageAllTeamKeys(
 async function assertCanManageAgentKey(
   deps: AgentKeyServiceDeps,
   subject: AgentKeySubject,
-  teamId: string,
+  binding: ResolvedAgentKeyBinding,
   agentId: string,
 ): Promise<void> {
+  if (binding.bindingScope === 'identity') {
+    if (
+      subject.subjectType === 'agent' &&
+      subject.identityId === agentId &&
+      subject.credentialBindingScope !== 'team'
+    ) {
+      return;
+    }
+    throw createProblem('forbidden');
+  }
   if (subject.subjectType === 'agent' && subject.identityId === agentId) return;
-  if (await canManageAllTeamKeys(deps, subject, teamId)) return;
+  if (await canManageAllTeamKeys(deps, subject, binding.teamId)) return;
   throw createProblem('forbidden');
 }
 
 async function assertCanManageExistingAgentKey(
   deps: AgentKeyServiceDeps,
   subject: AgentKeySubject,
-  teamId: string,
+  binding: ResolvedAgentKeyBinding,
   agentId: string,
+  keyId: string,
 ): Promise<void> {
+  if (binding.bindingScope === 'identity') {
+    const isAuthorizingCredential = subject.credentialKeyId === keyId;
+    const canManageSiblings =
+      subject.credentialBindingScope === undefined ||
+      subject.scopes.includes('key:manage');
+    if (
+      subject.subjectType === 'agent' &&
+      subject.identityId === agentId &&
+      subject.credentialBindingScope !== 'team' &&
+      (isAuthorizingCredential || canManageSiblings)
+    ) {
+      return;
+    }
+    throw createProblem('not-found');
+  }
   if (subject.subjectType === 'agent' && subject.identityId === agentId) return;
-  if (await canManageAllTeamKeys(deps, subject, teamId)) return;
+  if (await canManageAllTeamKeys(deps, subject, binding.teamId)) return;
   throw createProblem('not-found');
 }
 
@@ -539,10 +610,34 @@ async function resolveListQuery(
   deps: AgentKeyServiceDeps,
   input: ListAgentKeysInput,
 ): Promise<ResolvedListQuery> {
+  const binding = resolveBinding(input);
+  if (binding.bindingScope === 'identity') {
+    if (
+      input.subject.subjectType !== 'agent' ||
+      input.subject.credentialBindingScope === 'team'
+    ) {
+      throw createProblem('forbidden');
+    }
+    if (input.agentId && input.agentId !== input.subject.identityId) {
+      throw createProblem('forbidden');
+    }
+    const cursorQuery = {
+      actorId: input.subject.identityId,
+      bindingScope: 'identity' as const,
+      status: input.status ?? null,
+      teamId: null,
+    };
+    return {
+      agentFilter: input.subject.identityId,
+      cursorQuery,
+      limit: input.limit ?? DEFAULT_LIST_LIMIT,
+      pageToken: decodeCursor(input.cursor, cursorQuery),
+    };
+  }
   const canManageAll = await canManageAllTeamKeys(
     deps,
     input.subject,
-    input.teamId,
+    binding.teamId,
   );
   if (!canManageAll && input.subject.subjectType !== 'agent') {
     throw createProblem('forbidden');
@@ -558,13 +653,14 @@ async function resolveListQuery(
   const agentFilter = canManageAll ? input.agentId : input.subject.identityId;
   const cursorQuery = {
     actorId: agentFilter ?? null,
+    bindingScope: 'team' as const,
     status: input.status ?? null,
-    teamId: input.teamId,
+    teamId: binding.teamId,
   };
   return {
     agentFilter,
     cursorQuery,
-    limit: input.limit ?? 20,
+    limit: input.limit ?? DEFAULT_LIST_LIMIT,
     pageToken: decodeCursor(input.cursor, cursorQuery),
   };
 }
@@ -574,6 +670,7 @@ async function scanAgentKeyPages(
   input: ListAgentKeysInput,
   query: ResolvedListQuery,
 ): Promise<{ items: AgentKey[]; nextCursor: string | null }> {
+  const expectedBinding = resolveBinding(input);
   let pageToken = query.pageToken;
   let nextPageToken: string | undefined;
   let scannedCount = 0;
@@ -581,13 +678,18 @@ async function scanAgentKeyPages(
   const seenTokens = new Set<string>();
   const items: AgentKey[] = [];
 
+  // Talos can narrow by actor_id but not by MoltNet's binding metadata. Scan
+  // opaque upstream pages and discard keys from the opposite binding, bounded
+  // by MAX_TALOS_LIST_PAGES_PER_REQUEST so sparse matches cannot monopolize a
+  // request.
+
   do {
     if (pageToken) {
       if (seenTokens.has(pageToken)) {
         input.logger.warn(
           {
             action: 'list',
-            teamId: input.teamId,
+            ...bindingLogFields(expectedBinding),
             pageTokenRepeated: true,
           },
           'agent_key.upstream_error',
@@ -617,7 +719,7 @@ async function scanAgentKeyPages(
           action: 'list',
           actorId: query.agentFilter,
           failureKind: talosFailureKind(error, input.signal),
-          teamId: input.teamId,
+          ...bindingLogFields(expectedBinding),
         },
         'agent_key.upstream_error',
       );
@@ -630,7 +732,8 @@ async function scanAgentKeyPages(
     for (const issuedKey of issuedKeys) {
       const binding = readBinding(issuedKey);
       if (
-        binding?.teamId !== input.teamId ||
+        !binding ||
+        !bindingsEqual(binding, expectedBinding) ||
         (query.agentFilter && binding.agentId !== query.agentFilter)
       ) {
         continue;
@@ -645,7 +748,7 @@ async function scanAgentKeyPages(
             action: 'list:map',
             keyId: issuedKey.key_id,
             actorId: issuedKey.actor_id,
-            teamId: input.teamId,
+            ...bindingLogFields(expectedBinding),
           },
           'agent_key.malformed_upstream_row',
         );
@@ -667,7 +770,7 @@ async function scanAgentKeyPages(
   input.logger.debug(
     {
       action: 'list',
-      teamId: input.teamId,
+      ...bindingLogFields(expectedBinding),
       actorId: input.subject.identityId,
       scannedCount,
       matchedCount: items.length,
@@ -689,16 +792,19 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
   return {
     async issue(input: IssueAgentKeyInput): Promise<AgentKeyWithSecret> {
       const api = getTalosApi(deps);
+      const binding = resolveBinding(input);
       const ttlDays = input.ttlDays ?? DEFAULT_TTL_DAYS;
       const scopes = input.scopes ?? [...AGENT_CREDENTIAL_SCOPES];
       assertDelegableScopes(scopes, input.subject);
       await assertCanManageAgentKey(
         deps,
         input.subject,
-        input.teamId,
+        binding,
         input.agentId,
       );
-      await assertCurrentAgentMember(deps, input.teamId, input.agentId);
+      if (binding.bindingScope === 'team') {
+        await assertCurrentAgentMember(deps, binding.teamId, input.agentId);
+      }
       const name = input.name.trim();
       if (!name) {
         throw createValidationProblem(
@@ -719,15 +825,11 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
             issueApiKeyRequest: {
               actor_id: input.agentId,
               name,
-              request_id: talosRequestId(input),
-              ttl: `${ttlDays * 86_400}s`,
+              request_id: talosRequestId(input, binding),
+              ttl: `${ttlDays * SECONDS_PER_DAY}s`,
               visibility: KeyVisibility.KeyVisibilitySecret,
               scopes,
-              metadata: {
-                schema_version: 1,
-                subject_type: 'agent',
-                team_id: input.teamId,
-              },
+              metadata: agentKeyMetadata(binding),
             },
           },
           talosInit(input.signal),
@@ -739,7 +841,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
             action: 'issue',
             agentId: input.agentId,
             failureKind: talosFailureKind(error, input.signal),
-            teamId: input.teamId,
+            ...bindingLogFields(binding),
           },
           'agent_key.upstream_error',
         );
@@ -755,11 +857,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
           {
             keyId: replayedKey.id,
             adminRotateIssuedApiKeyBody: {
-              metadata: {
-                schema_version: 1,
-                subject_type: 'agent',
-                team_id: input.teamId,
-              },
+              metadata: agentKeyMetadata(binding),
               scopes,
               visibility: KeyVisibility.KeyVisibilitySecret,
             },
@@ -771,7 +869,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
             action: 'issue:replay-recovered',
             keyId: replayedKey.id,
             agentId: input.agentId,
-            teamId: input.teamId,
+            ...bindingLogFields(binding),
           },
           'agent_key.idempotency_replay_rotated',
         );
@@ -782,7 +880,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
             action: 'issue:replay',
             keyId: result.issued_api_key.key_id,
             agentId: input.agentId,
-            teamId: input.teamId,
+            ...bindingLogFields(binding),
           },
           'agent_key.idempotency_replay',
         );
@@ -803,7 +901,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
         key = toAgentKey(result.issued_api_key);
         if (
           key.agentId !== input.agentId ||
-          key.teamId !== input.teamId ||
+          !bindingsEqual(key, binding) ||
           !credentialScopeSetsEqual(key.scopes, scopes)
         ) {
           throw new Error('Issued key binding or scopes changed');
@@ -815,14 +913,14 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
             action: 'issue:validate',
             keyId: result.issued_api_key.key_id,
             agentId: input.agentId,
-            teamId: input.teamId,
+            ...bindingLogFields(binding),
           },
           'agent_key.malformed_upstream_row',
         );
         await revokeInvalidIssuedKey(
           api,
           result.issued_api_key,
-          { agentId: input.agentId, teamId: input.teamId },
+          { agentId: input.agentId, ...binding },
           input.logger,
           'issue',
         );
@@ -836,7 +934,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
           action: 'issue',
           keyId: result.issued_api_key.key_id,
           agentId: input.agentId,
-          teamId: input.teamId,
+          ...bindingLogFields(binding),
           ttlDays,
         },
         'agent_key.lifecycle',
@@ -858,10 +956,11 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
 
     async rotate(input: RotateAgentKeyInput): Promise<AgentKeyWithSecret> {
       const api = getTalosApi(deps);
-      const { key, binding } = await getTeamKey(
+      const requestedBinding = resolveBinding(input);
+      const { key, binding } = await getBoundKey(
         api,
         input.keyId,
-        input.teamId,
+        requestedBinding,
         input.logger,
         'rotate',
         input.signal,
@@ -869,8 +968,9 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
       await assertCanManageExistingAgentKey(
         deps,
         input.subject,
-        input.teamId,
+        requestedBinding,
         binding.agentId,
+        input.keyId,
       );
       if (input.subject.credentialKeyId === input.keyId) {
         throw createProblem(
@@ -878,7 +978,13 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
           'The credential being rotated cannot authorize its own rotation. Use OAuth, a different active key, or a team credential manager so a lost response remains recoverable.',
         );
       }
-      await assertCurrentAgentMember(deps, input.teamId, binding.agentId);
+      if (requestedBinding.bindingScope === 'team') {
+        await assertCurrentAgentMember(
+          deps,
+          requestedBinding.teamId,
+          binding.agentId,
+        );
+      }
       const scopes = key.scopes ?? [];
       assertDelegableScopes(scopes, input.subject);
 
@@ -888,11 +994,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
           {
             keyId: input.keyId,
             adminRotateIssuedApiKeyBody: {
-              metadata: {
-                schema_version: 1,
-                subject_type: 'agent',
-                team_id: input.teamId,
-              },
+              metadata: agentKeyMetadata(requestedBinding),
               scopes,
               visibility: KeyVisibility.KeyVisibilitySecret,
             },
@@ -907,7 +1009,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
             action: 'rotate',
             failureKind: talosFailureKind(error, input.signal),
             keyId: input.keyId,
-            teamId: input.teamId,
+            ...bindingLogFields(requestedBinding),
           },
           'agent_key.upstream_error',
         );
@@ -925,7 +1027,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
         rotatedKey = toAgentKey(result.issued_api_key);
         if (
           rotatedKey.agentId !== binding.agentId ||
-          rotatedKey.teamId !== input.teamId ||
+          !bindingsEqual(rotatedKey, requestedBinding) ||
           !credentialScopeSetsEqual(rotatedKey.scopes, scopes)
         ) {
           throw new Error('Rotated key binding or scopes changed');
@@ -937,14 +1039,14 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
             action: 'rotate:validate',
             keyId: result.issued_api_key.key_id,
             oldKeyId: input.keyId,
-            teamId: input.teamId,
+            ...bindingLogFields(requestedBinding),
           },
           'agent_key.malformed_upstream_row',
         );
         await revokeInvalidIssuedKey(
           api,
           result.issued_api_key,
-          { agentId: binding.agentId, teamId: input.teamId },
+          { agentId: binding.agentId, ...requestedBinding },
           input.logger,
           'rotate',
         );
@@ -959,7 +1061,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
           oldKeyId: key.key_id,
           keyId: result.issued_api_key.key_id,
           agentId: binding.agentId,
-          teamId: input.teamId,
+          ...bindingLogFields(requestedBinding),
         },
         'agent_key.lifecycle',
       );
@@ -971,10 +1073,11 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
 
     async revoke(input: RevokeAgentKeyInput): Promise<void> {
       const api = getTalosApi(deps);
-      const { binding } = await getTeamKey(
+      const requestedBinding = resolveBinding(input);
+      const { binding } = await getBoundKey(
         api,
         input.keyId,
-        input.teamId,
+        requestedBinding,
         input.logger,
         'revoke',
         input.signal,
@@ -982,8 +1085,9 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
       await assertCanManageExistingAgentKey(
         deps,
         input.subject,
-        input.teamId,
+        requestedBinding,
         binding.agentId,
+        input.keyId,
       );
 
       if (input.description && input.reason !== 'privilege_withdrawn') {
@@ -1018,7 +1122,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
             action: 'revoke',
             failureKind: talosFailureKind(error, input.signal),
             keyId: input.keyId,
-            teamId: input.teamId,
+            ...bindingLogFields(requestedBinding),
           },
           'agent_key.upstream_error',
         );
@@ -1030,7 +1134,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
           action: 'revoke',
           keyId: input.keyId,
           agentId: binding.agentId,
-          teamId: input.teamId,
+          ...bindingLogFields(requestedBinding),
           reason: input.reason,
         },
         'agent_key.lifecycle',

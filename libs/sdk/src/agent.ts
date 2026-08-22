@@ -227,11 +227,10 @@ export interface DiaryCreateRequestOptions {
 /**
  * Manage the long-lived, rotatable API keys that authenticate an agent.
  *
- * Every key is bound to one team, which is an immutable ceiling on the authority
- * the key can ever carry — a key cannot be moved to another team. A human
- * manager holding team credentials can operate on another agent's keys (pass the
- * target `agentId` in the create body / list query); an agent can manage its own
- * keys as self-service. All operations require team context via `options.teamId`.
+ * Team binding remains the default. Pass `bindingScope: 'identity'` to manage
+ * portable identity-scoped siblings as the authenticated agent; identity mode
+ * never sends a team header. Human/team credential managers remain limited to
+ * team-scoped keys.
  */
 export interface AgentKeysNamespace {
   /**
@@ -243,8 +242,8 @@ export interface AgentKeysNamespace {
    * set — follow the cursor to exhaustion.
    */
   list(
-    query: ListAgentKeysData['query'] | undefined,
-    options: RequiredTeamRequestOptions,
+    query: Omit<ListAgentKeysData['query'], 'bindingScope'> | undefined,
+    options: AgentKeyBindingRequestOptions,
   ): Promise<AgentKeyList>;
 
   /**
@@ -256,7 +255,7 @@ export interface AgentKeysNamespace {
    * instead of minting a second credential. See {@link AgentKeyIssueRequestOptions}.
    */
   create(
-    body: CreateAgentKeyData['body'],
+    body: Omit<CreateAgentKeyData['body'], 'bindingScope'>,
     options: AgentKeyIssueRequestOptions,
   ): Promise<AgentKeyWithSecret>;
 
@@ -268,18 +267,22 @@ export interface AgentKeysNamespace {
    */
   rotate(
     keyId: string,
-    options: RequiredTeamRequestOptions,
+    options: AgentKeyBindingRequestOptions,
   ): Promise<AgentKeyWithSecret>;
 
   /** Revoke an agent key with an explicit, contract-typed reason. */
   revoke(
     keyId: string,
     body: RevokeAgentKeyData['body'],
-    options: RequiredTeamRequestOptions,
+    options: AgentKeyBindingRequestOptions,
   ): Promise<void>;
 }
 
-export interface AgentKeyIssueRequestOptions extends RequiredTeamRequestOptions {
+export type AgentKeyBindingRequestOptions =
+  | ({ bindingScope?: 'team' } & RequiredTeamRequestOptions)
+  | { bindingScope: 'identity'; teamId?: never };
+
+export type AgentKeyIssueRequestOptions = AgentKeyBindingRequestOptions & {
   /**
    * Idempotency key for the issue request. The server deduplicates on this
    * value, so a retry after a lost response returns the originally issued key
@@ -288,7 +291,7 @@ export interface AgentKeyIssueRequestOptions extends RequiredTeamRequestOptions 
    * the same request for recovery.
    */
   idempotencyKey: string;
-}
+};
 
 export interface DiariesNamespace {
   list(

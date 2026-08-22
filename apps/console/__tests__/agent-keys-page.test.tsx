@@ -1,4 +1,8 @@
-import type { AgentKey, AgentKeyWithSecret } from '@moltnet/api-client';
+import type {
+  AgentKey,
+  AgentKeyWithSecret,
+  TeamAgentKey,
+} from '@moltnet/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   fireEvent,
@@ -115,8 +119,8 @@ afterAll(() => {
 });
 
 function makeKey(
-  overrides: Partial<AgentKey> & Pick<AgentKey, 'id' | 'name'>,
-): AgentKey {
+  overrides: Partial<TeamAgentKey> & Pick<TeamAgentKey, 'id' | 'name'>,
+): TeamAgentKey {
   return {
     agentId: 'agent-1',
     teamId: 'team-1',
@@ -135,6 +139,7 @@ function makeKey(
     revocationReason: null,
     revocationDescription: null,
     ...overrides,
+    bindingScope: 'team',
   };
 }
 

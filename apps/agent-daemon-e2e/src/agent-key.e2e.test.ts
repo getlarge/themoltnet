@@ -250,7 +250,10 @@ describe('Agent daemon agent-key auth (e2e)', () => {
     expect(whoami.subjectType).toBe('agent');
     expect(whoami.identityId).toBe(identityId);
     expect(whoami.scopes).toEqual(DAEMON_CREDENTIAL_SCOPES);
-    expect(whoami.credentialBinding?.boundTeamId).toBe(teamId);
+    expect(whoami.credentialBinding).toMatchObject({
+      bindingScope: 'team',
+      boundTeamId: teamId,
+    });
   });
 
   it('startup validation fails fast when the key is bound to a different team', async () => {
@@ -486,7 +489,10 @@ describe('Agent daemon agent-key auth (e2e)', () => {
         authMode: 'agent-key',
       });
       const whoami = await ctx.agent.agents.whoami();
-      expect(whoami.credentialBinding?.boundTeamId).toBe(teamId);
+      expect(whoami.credentialBinding).toMatchObject({
+        bindingScope: 'team',
+        boundTeamId: teamId,
+      });
       expect(ctx.agentDir).toBe(join(root, '.moltnet', AGENT_NAME));
     } finally {
       restoreEnv();
@@ -625,7 +631,10 @@ describe('Agent daemon agent-key auth (e2e)', () => {
       guestCredentialMode: 'host-authenticated',
     });
     const executorWhoami = await executorOptions.moltnetAgent?.agents.whoami();
-    expect(executorWhoami?.credentialBinding?.boundTeamId).toBe(teamId);
+    expect(executorWhoami?.credentialBinding).toMatchObject({
+      bindingScope: 'team',
+      boundTeamId: teamId,
+    });
 
     const final = await keyAgent.tasks.get(taskId, { teamId });
     expect(final.status).toBe('completed');

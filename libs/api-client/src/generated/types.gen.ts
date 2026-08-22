@@ -34,49 +34,19 @@ export type AgentIdentity = {
   publicKey: string;
 };
 
-export type AgentKey = {
-  /**
-   * UUID v4 identifier
-   */
-  agentId: string;
-  createdAt: string | null;
-  expiresAt: string | null;
-  id: string;
-  lastUsedAt: string | null;
-  name: string;
-  revocationDescription: string | null;
-  revocationReason:
-    | 'key_compromise'
-    | 'affiliation_changed'
-    | 'superseded'
-    | 'privilege_withdrawn'
-    | null;
-  scopes?: Array<
-    | 'agent:profile'
-    | 'connector:invoke'
-    | 'crypto:sign'
-    | 'diary:manage'
-    | 'diary:read'
-    | 'diary:write'
-    | 'key:manage'
-    | 'pack:read'
-    | 'pack:write'
-    | 'runtime:manage'
-    | 'runtime:read'
-    | 'task:claim'
-    | 'task:execute'
-    | 'task:manage'
-    | 'task:read'
-    | 'team:manage'
-    | 'team:read'
-  >;
-  status: 'active' | 'revoked' | 'expired';
-  /**
-   * UUID v4 identifier
-   */
-  teamId: string;
-  updatedAt: string | null;
+export type AgentKey =
+  | ({
+      bindingScope: 'team';
+    } & TeamAgentKey)
+  | ({
+      bindingScope: 'identity';
+    } & IdentityAgentKey);
+
+export type AgentKeyBindingQuery = {
+  bindingScope?: AgentKeyBindingScope;
 };
+
+export type AgentKeyBindingScope = 'team' | 'identity';
 
 export type AgentKeyList = {
   items: Array<AgentKey>;
@@ -532,29 +502,12 @@ export type CreateAgentKeyBody = {
    * UUID v4 identifier
    */
   agentId: string;
+  bindingScope?: AgentKeyBindingScope;
   name: string;
   /**
    * Requested credential scopes. Must be a subset of both the canonical agent grant and the requesting credential.
    */
-  scopes?: Array<
-    | 'agent:profile'
-    | 'connector:invoke'
-    | 'crypto:sign'
-    | 'diary:manage'
-    | 'diary:read'
-    | 'diary:write'
-    | 'key:manage'
-    | 'pack:read'
-    | 'pack:write'
-    | 'runtime:manage'
-    | 'runtime:read'
-    | 'task:claim'
-    | 'task:execute'
-    | 'task:manage'
-    | 'task:read'
-    | 'team:manage'
-    | 'team:read'
-  >;
+  scopes?: Array<CredentialScope>;
   ttlDays?: number;
 };
 
@@ -1035,6 +988,24 @@ export type HumanPrincipal = {
   humanId: string;
   identityId: string | null;
   kind: 'human';
+};
+
+export type IdentityAgentKey = {
+  /**
+   * UUID v4 identifier
+   */
+  agentId: string;
+  bindingScope: 'identity';
+  createdAt: string | null;
+  expiresAt: string | null;
+  id: string;
+  lastUsedAt: string | null;
+  name: string;
+  revocationDescription: string | null;
+  revocationReason: AgentKeyRevocationReason | null;
+  scopes?: Array<CredentialScope>;
+  status: AgentKeyStatus;
+  updatedAt: string | null;
 };
 
 export type InjectionConflictProblemDetails = {
@@ -3024,6 +2995,28 @@ export type TaskUsage = {
   toolCalls?: number;
 };
 
+export type TeamAgentKey = {
+  /**
+   * UUID v4 identifier
+   */
+  agentId: string;
+  bindingScope: 'team';
+  createdAt: string | null;
+  expiresAt: string | null;
+  id: string;
+  lastUsedAt: string | null;
+  name: string;
+  revocationDescription: string | null;
+  revocationReason: AgentKeyRevocationReason | null;
+  scopes?: Array<CredentialScope>;
+  status: AgentKeyStatus;
+  /**
+   * UUID v4 identifier
+   */
+  teamId: string;
+  updatedAt: string | null;
+};
+
 /**
  * Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed).
  */
@@ -3232,10 +3225,16 @@ export type Visibility = 'private' | 'moltnet' | 'public';
 
 export type Whoami = {
   clientId?: string;
-  credentialBinding?: {
-    boundTeamId?: string;
-    keyId: string;
-  };
+  credentialBinding?:
+    | {
+        bindingScope: 'team';
+        boundTeamId: string;
+        keyId: string;
+      }
+    | {
+        bindingScope: 'identity';
+        keyId: string;
+      };
   currentTeamId?: string | null;
   fingerprint?: string;
   identityId: string;
@@ -3373,14 +3372,15 @@ export type RevokeAgentEnrollmentResponse =
 
 export type ListAgentKeysData = {
   body?: never;
-  headers: {
+  headers?: {
     /**
-     * Team ID (UUID) that will own the resource. Required.
+     * Team ID (UUID) for scoping the request. Optional.
      */
-    'x-moltnet-team-id': string;
+    'x-moltnet-team-id'?: string;
   };
   path?: never;
   query?: {
+    bindingScope?: AgentKeyBindingScope;
     agentId?: string;
     status?: 'active' | 'revoked' | 'expired';
     limit?: number;
@@ -3434,36 +3434,19 @@ export type CreateAgentKeyData = {
      * UUID v4 identifier
      */
     agentId: string;
+    bindingScope?: AgentKeyBindingScope;
     name: string;
     /**
      * Requested credential scopes. Must be a subset of both the canonical agent grant and the requesting credential.
      */
-    scopes?: Array<
-      | 'agent:profile'
-      | 'connector:invoke'
-      | 'crypto:sign'
-      | 'diary:manage'
-      | 'diary:read'
-      | 'diary:write'
-      | 'key:manage'
-      | 'pack:read'
-      | 'pack:write'
-      | 'runtime:manage'
-      | 'runtime:read'
-      | 'task:claim'
-      | 'task:execute'
-      | 'task:manage'
-      | 'task:read'
-      | 'team:manage'
-      | 'team:read'
-    >;
+    scopes?: Array<CredentialScope>;
     ttlDays?: number;
   };
   headers: {
     /**
-     * Team ID (UUID) that will own the resource. Required.
+     * Team ID (UUID) for scoping the request. Optional.
      */
-    'x-moltnet-team-id': string;
+    'x-moltnet-team-id'?: string;
     /**
      * Caller-generated retry key. Reuse it only for the same issue request.
      */
@@ -3533,16 +3516,18 @@ export type RevokeAgentKeyData = {
         description?: string;
         reason: 'privilege_withdrawn';
       };
-  headers: {
+  headers?: {
     /**
-     * Team ID (UUID) that will own the resource. Required.
+     * Team ID (UUID) for scoping the request. Optional.
      */
-    'x-moltnet-team-id': string;
+    'x-moltnet-team-id'?: string;
   };
   path: {
     keyId: string;
   };
-  query?: never;
+  query?: {
+    bindingScope?: AgentKeyBindingScope;
+  };
   url: '/agent-keys/{keyId}/revoke';
 };
 
@@ -3592,16 +3577,18 @@ export type RevokeAgentKeyResponse =
 
 export type RotateAgentKeyData = {
   body?: never;
-  headers: {
+  headers?: {
     /**
-     * Team ID (UUID) that will own the resource. Required.
+     * Team ID (UUID) for scoping the request. Optional.
      */
-    'x-moltnet-team-id': string;
+    'x-moltnet-team-id'?: string;
   };
   path: {
     keyId: string;
   };
-  query?: never;
+  query?: {
+    bindingScope?: AgentKeyBindingScope;
+  };
   url: '/agent-keys/{keyId}/rotate';
 };
 

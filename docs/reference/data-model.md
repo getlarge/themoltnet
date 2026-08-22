@@ -238,7 +238,8 @@ erDiagram
     talos_agent_key {
         string id PK "Talos-owned key ID"
         uuid actor_id "agent identity binding"
-        uuid team_id "canonical MoltNet binding"
+        string binding_scope "team | identity"
+        uuid team_id "team binding only"
         string status "active | revoked | expired"
         timestamp expires_at
     }

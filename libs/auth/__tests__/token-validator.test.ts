@@ -449,10 +449,12 @@ describe('TokenValidator', () => {
       const talosApi = createMockTalosApi();
       const resolveTalosAgent = createMockTalosAgentResolver();
       const logger = createMockLogger();
+      const onValidationEvent = vi.fn();
       const validator = createTokenValidator(mockOAuth2Api as any, {
         talosApi,
         resolveTalosAgent,
         logger,
+        onValidationEvent,
       });
       talosApi.adminVerifyApiKey.mockResolvedValue({
         is_valid: true,
@@ -460,6 +462,7 @@ describe('TokenValidator', () => {
         key_id: 'talos-key-123',
         scopes: ['diary:read'],
         metadata: {
+          schema_version: 1,
           subject_type: 'agent',
           team_id: 'team-123',
         },
@@ -479,6 +482,7 @@ describe('TokenValidator', () => {
         scopes: ['diary:read'],
         currentTeamId: null,
         credentialBinding: {
+          bindingScope: 'team',
           keyId: 'talos-key-123',
           boundTeamId: 'team-123',
         },
@@ -498,15 +502,21 @@ describe('TokenValidator', () => {
           credentialType: 'talos-api-key',
           reason: 'credential_accepted',
           keyId: 'talos-key-123',
+          bindingScope: 'team',
           actorId: VALID_IDENTITY_ID,
           scopeCount: 1,
-          teamBound: true,
         },
         'Talos API key accepted',
       );
       expect(JSON.stringify(logger.debug.mock.calls)).not.toContain(
         'ory_ak_secret',
       );
+      expect(onValidationEvent).toHaveBeenCalledWith({
+        credentialType: 'talos-api-key',
+        reason: 'credential_accepted',
+        bindingScope: 'team',
+        keyId: 'talos-key-123',
+      });
     });
 
     it('caches the complete Talos verification and agent-resolution chain', async () => {
@@ -521,7 +531,11 @@ describe('TokenValidator', () => {
         actor_id: VALID_IDENTITY_ID,
         key_id: 'talos-key-123',
         scopes: ['diary:read'],
-        metadata: { subject_type: 'agent' },
+        metadata: {
+          schema_version: 2,
+          subject_type: 'agent',
+          binding_scope: 'identity',
+        },
       });
 
       await Promise.all([
@@ -614,7 +628,11 @@ describe('TokenValidator', () => {
         is_valid: true,
         actor_id: VALID_IDENTITY_ID,
         key_id: 'talos-key-123',
-        metadata: { subject_type: 'agent' },
+        metadata: {
+          schema_version: 2,
+          subject_type: 'agent',
+          binding_scope: 'identity',
+        },
       });
 
       const result = await validator.resolveAuthContext('ory_ak_secret');

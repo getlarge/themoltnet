@@ -177,6 +177,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
           subjectType: 'agent',
           hasCredentialBinding: Boolean(authContext.credentialBinding),
           keyId: authContext.credentialBinding?.keyId,
+          bindingScope: authContext.credentialBinding?.bindingScope,
         },
         'whoami resolved',
       );
@@ -192,7 +193,8 @@ export async function agentRoutes(fastify: FastifyInstance) {
         ...(authContext.credentialBinding && {
           credentialBinding: {
             keyId: authContext.credentialBinding.keyId,
-            ...(authContext.credentialBinding.boundTeamId && {
+            bindingScope: authContext.credentialBinding.bindingScope,
+            ...(authContext.credentialBinding.bindingScope === 'team' && {
               boundTeamId: authContext.credentialBinding.boundTeamId,
             }),
           },

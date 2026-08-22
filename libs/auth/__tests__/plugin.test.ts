@@ -309,6 +309,7 @@ describe('requireAuth preHandler', () => {
     mockTokenValidator.resolveAuthContext.mockResolvedValue({
       ...VALID_AUTH_CONTEXT,
       credentialBinding: {
+        bindingScope: 'team',
         keyId: 'talos-key-123',
         boundTeamId: 'team-123',
       },
@@ -336,6 +337,7 @@ describe('requireAuth preHandler', () => {
     mockTokenValidator.resolveAuthContext.mockResolvedValue({
       ...VALID_AUTH_CONTEXT,
       credentialBinding: {
+        bindingScope: 'team',
         keyId: 'talos-key-123',
         boundTeamId: 'team-123',
       },
@@ -365,6 +367,7 @@ describe('requireAuth preHandler', () => {
     mockTokenValidator.resolveAuthContext.mockResolvedValue({
       ...VALID_AUTH_CONTEXT,
       credentialBinding: {
+        bindingScope: 'team',
         keyId: 'talos-key-123',
         boundTeamId: 'team-123',
       },
@@ -400,6 +403,7 @@ describe('requireAuth preHandler', () => {
     mockTokenValidator.resolveAuthContext.mockResolvedValue({
       ...VALID_AUTH_CONTEXT,
       credentialBinding: {
+        bindingScope: 'team',
         keyId: 'talos-key-123',
         boundTeamId: 'team-123',
       },
@@ -438,6 +442,7 @@ describe('requireAuth preHandler', () => {
     mockTokenValidator.resolveAuthContext.mockResolvedValue({
       ...VALID_AUTH_CONTEXT,
       credentialBinding: {
+        bindingScope: 'team',
         keyId: 'talos-key-123',
         boundTeamId: 'team-123',
       },
@@ -475,6 +480,7 @@ describe('requireAuth preHandler', () => {
     mockTokenValidator.resolveAuthContext.mockResolvedValue({
       ...VALID_AUTH_CONTEXT,
       credentialBinding: {
+        bindingScope: 'team',
         keyId: 'talos-key-123',
         boundTeamId: 'team-123',
       },
@@ -547,7 +553,14 @@ describe('requireAuth preHandler', () => {
     // global request-context plugin's preHandler ran before the route-
     // scoped requireAuth, so authContext was still null when it tried
     // to enrich. The fix moves enrichment into requireAuth itself.
-    mockTokenValidator.resolveAuthContext.mockResolvedValue(VALID_AUTH_CONTEXT);
+    const authContext: AuthContext = {
+      ...VALID_AUTH_CONTEXT,
+      credentialBinding: {
+        bindingScope: 'identity',
+        keyId: 'talos-key-audit-123',
+      },
+    };
+    mockTokenValidator.resolveAuthContext.mockResolvedValue(authContext);
 
     // Replace the bare app with one that has a real pino instance so
     // request.log child bindings produce inspectable log records.
@@ -593,6 +606,8 @@ describe('requireAuth preHandler', () => {
       identityId: VALID_AUTH_CONTEXT.identityId,
       subjectType: 'agent',
       clientId: VALID_AUTH_CONTEXT.clientId,
+      credentialBindingScope: 'identity',
+      credentialKeyId: 'talos-key-audit-123',
     });
 
     // The most direct proof: the actual log line emitted from the
@@ -602,6 +617,8 @@ describe('requireAuth preHandler', () => {
     expect(handlerLog!.identityId).toBe(VALID_AUTH_CONTEXT.identityId);
     expect(handlerLog!.subjectType).toBe('agent');
     expect(handlerLog!.clientId).toBe(VALID_AUTH_CONTEXT.clientId);
+    expect(handlerLog!.credentialBindingScope).toBe('identity');
+    expect(handlerLog!.credentialKeyId).toBe('talos-key-audit-123');
   });
 
   it('returns 401 when no authorization header', async () => {

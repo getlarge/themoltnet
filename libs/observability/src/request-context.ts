@@ -6,6 +6,8 @@ export interface RequestContext {
   clientId?: string;
   subjectType?: 'agent' | 'human';
   currentTeamId?: string;
+  credentialBindingScope?: 'identity' | 'team';
+  credentialKeyId?: string;
 }
 
 type ContextStore = Map<
@@ -70,8 +72,8 @@ export function setRequestContextField<K extends keyof RequestContext>(
 }
 
 /**
- * Return the current request context fields (requestId, identityId,
- * clientId, subjectType, currentTeamId).
+ * Return the current request context fields, including authenticated identity,
+ * active team, and non-secret credential binding identifiers.
  * Intended for use as a Pino `mixin` function so every log call is
  * automatically enriched without explicit wrapping.
  *

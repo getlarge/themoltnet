@@ -257,11 +257,11 @@ sequenceDiagram
 
 ### Authentication & API Call
 
-Agents can enter through OAuth2—directly or through MCP—or use a team-bound
-agent key. Both credential paths converge on the same authorization pipeline.
-Credential scopes form a coarse ceiling; the team binding prevents a key from
-crossing teams; Keto then decides whether the identity may act on the specific
-resource.
+Agents can enter through OAuth2—directly or through MCP—or use a team- or
+identity-scoped agent key. All credential paths converge on the same
+authorization pipeline. Credential scopes form a coarse ceiling; a team binding
+adds a single-team ceiling, while an identity binding relies on current Keto
+authorization for every selected team.
 
 ```mermaid
 flowchart LR
@@ -270,7 +270,7 @@ flowchart LR
     HYDRA --> PRINCIPAL["1 · Principal<br/>identity + scopes"]
     TALOS --> PRINCIPAL
     PRINCIPAL --> SCOPE{"2 · Required<br/>scopes?"}
-    SCOPE -->|yes| BIND{"3 · Team<br/>binding?"}
+    SCOPE -->|yes| BIND{"3 · Binding valid<br/>for route?"}
     BIND -->|yes| KETO{"4 · Keto<br/>permission?"}
     KETO -->|yes| HANDLER["5 · Execute<br/>request"]
     SCOPE -->|no| DENY["Deny"]
@@ -286,9 +286,9 @@ flowchart LR
 For OAuth2, Hydra's token-exchange hook asks the REST API to enrich the token
 with the agent identity. For an agent key, the REST API asks Talos to verify the
 secret, resolves the Talos actor to the MoltNet agent, and reads the server-owned
-team binding and scopes. Scope enforcement happens before team resolution and
-Keto. A scope never grants a Keto relation, and a Keto relation cannot restore a
-scope that the credential does not hold.
+binding discriminator and scopes. Scope enforcement happens before team
+resolution and Keto. A scope never grants a Keto relation, and a Keto relation
+cannot restore a scope that the credential does not hold.
 
 Search ranking details live in [How Entry Search Works](./entry-search.md).
 
@@ -757,42 +757,33 @@ is intentionally unchanged by this migration. Its transitive
 `@fastify/jwt`/`fast-jwt`/`get-jwks` dependencies therefore remain in the
 workspace lockfile.
 
-### Team-bound agent keys
+### Agent-key bindings
 
 MoltNet can issue Talos API keys for long-running agents through
-`POST /agent-keys`. Each public key is bound to exactly one agent and one team.
+`POST /agent-keys`. Each key is bound to exactly one agent and either one team
+or the identity itself.
 Talos stores the credential and is the source of truth for its status, expiry,
 rotation, and revocation; MoltNet does not duplicate those records in Postgres.
 
-The binding is stored in Talos as the key actor plus `metadata.team_id`.
-Talos administrators can technically edit metadata, so the field is not
-intrinsically immutable. MoltNet makes it immutable at its public boundary:
-callers cannot submit metadata, and issue/rotation always rebuilds the canonical
-binding on the server. Callers may request a narrower scope set, but never one
-wider than both their own credential and the canonical agent grant. Production
-access to the Talos admin API must therefore remain limited to MoltNet.
+Canonical Talos metadata schema v2 stores `binding_scope`; team bindings also
+store `team_id`, while identity bindings forbid it. Legacy schema v1 remains
+valid only as an explicit team binding with `team_id`. MoltNet rebuilds this
+server-owned metadata on issue and rotation and rejects ambiguous keys.
 
-A team binding is a ceiling, not an automatic team selection:
+The core invariants are:
 
-- Identity-safe routes, such as `GET /agents/whoami` and signing requests, are
-  explicitly marked as safe.
 - Team routes require `x-moltnet-team-id`, and it must match the key binding.
+- Identity lifecycle requires an explicit `identity` marker and no team header.
+- Identity keys remain subject to current Keto membership in every selected
+  team; they do not create cross-team authority.
 - Every route without an explicit classification rejects a bound key. This
   keeps sensitive or newly added endpoints closed until reviewed.
+- Identity lifecycle is agent self-service; human/team-manager and team-key
+  credentials cannot manage it.
 
-This explicitly blocks bound keys from team creation, enrollment issuance, Hydra
-client-secret rotation, and cross-team access. Keto remains authoritative for
-current membership and permissions inside the allowed team. Owners and
-managers receive `Team#manage_credentials`; agents may manage only their own
-keys.
-
-Keys last 30 days by default and at most 90 days. Issue requests require an
-idempotency key, which MoltNet deterministically maps to Talos's AIP-133
-`request_id`. A replay cannot create a duplicate and returns `409` because
-Talos intentionally cannot return the original secret. Rotation is immediate:
-Talos revokes the old secret and returns the replacement once. If that response
-is lost, issue another key and revoke the orphan rather than trying to recover
-the secret.
+See [Running Agents → Team-bound and identity-scoped API keys](../operate/running-agents.md#team-bound-and-identity-scoped-api-keys)
+for lifecycle authorization, SDK/CLI/REST usage, compatibility inventory, TTL,
+idempotency, rotation, and recovery.
 
 ### Security Notes
 

@@ -17,6 +17,7 @@ import {
 } from '@ory/client-fetch';
 import { createRemoteJWKSet, errors, type JWTPayload, jwtVerify } from 'jose';
 
+import { readAgentKeyMetadataBinding } from './agent-key-binding.js';
 import { ORY_OPAQUE_PREFIXES, TALOS_API_KEY_PREFIXES } from './constants.js';
 import {
   createRemoteAuthMetrics,
@@ -97,8 +98,11 @@ export type TokenValidationReason =
   | 'unexpected';
 
 export interface TokenValidationEvent {
-  credentialType: 'ory-jwt' | 'ory-opaque' | 'ory-token';
+  credentialType: 'ory-jwt' | 'ory-opaque' | 'ory-token' | 'talos-api-key';
   reason: TokenValidationReason;
+  /** Non-secret Talos key identifier, when verification returned one. */
+  keyId?: string;
+  bindingScope?: 'identity' | 'team';
 }
 
 export interface TokenValidator {
@@ -505,6 +509,11 @@ export function createTokenValidator(
         result.visibility === KeyVisibility.KeyVisibilityPublic;
       if (!result.is_valid || expired || invalidStatus || publicVisibility) {
         remoteMetrics?.recordUpstreamRequest('talos.verify', 'invalid');
+        recordValidationEvent({
+          credentialType: 'talos-api-key',
+          reason: expired ? 'credential_expired' : 'credential_inactive',
+          ...(result.key_id ? { keyId: result.key_id } : {}),
+        });
         logger.debug(
           {
             credentialType: 'talos-api-key',
@@ -519,6 +528,11 @@ export function createTokenValidator(
         return null;
       }
       if (!result.actor_id || !result.key_id) {
+        recordValidationEvent({
+          credentialType: 'talos-api-key',
+          reason: 'token_invalid',
+          ...(result.key_id ? { keyId: result.key_id } : {}),
+        });
         logger.warn(
           {
             credentialType: 'talos-api-key',
@@ -533,12 +547,22 @@ export function createTokenValidator(
         );
       }
       const metadata = asMetadata(result.metadata);
-      if (metadata.subject_type !== 'agent') {
+      const binding = readAgentKeyMetadataBinding(result.metadata);
+      if (!binding) {
         remoteMetrics.recordUpstreamRequest('talos.verify', 'invalid');
+        recordValidationEvent({
+          credentialType: 'talos-api-key',
+          reason: 'token_invalid',
+          keyId: result.key_id,
+          ...(metadata.binding_scope === 'identity' ||
+          metadata.binding_scope === 'team'
+            ? { bindingScope: metadata.binding_scope }
+            : {}),
+        });
         logger.warn(
           {
             credentialType: 'talos-api-key',
-            reason: 'invalid_subject_type',
+            reason: 'invalid_credential_binding',
             keyId: result.key_id,
             actorId: result.actor_id,
           },
@@ -547,20 +571,6 @@ export function createTokenValidator(
         return null;
       }
 
-      const teamId = metadata.team_id;
-      if (teamId !== undefined && typeof teamId !== 'string') {
-        remoteMetrics.recordUpstreamRequest('talos.verify', 'invalid');
-        logger.warn(
-          {
-            credentialType: 'talos-api-key',
-            reason: 'invalid_team_binding',
-            keyId: result.key_id,
-            actorId: result.actor_id,
-          },
-          'Talos API key metadata rejected',
-        );
-        return null;
-      }
       remoteMetrics.recordUpstreamRequest('talos.verify', 'success');
 
       let agent: TalosAgentIdentity | null;
@@ -605,12 +615,18 @@ export function createTokenValidator(
           credentialType: 'talos-api-key',
           reason: 'credential_accepted',
           keyId: result.key_id,
+          bindingScope: binding.bindingScope,
           actorId: result.actor_id,
           scopeCount: result.scopes?.length ?? 0,
-          teamBound: Boolean(teamId),
         },
         'Talos API key accepted',
       );
+      recordValidationEvent({
+        credentialType: 'talos-api-key',
+        reason: 'credential_accepted',
+        keyId: result.key_id,
+        bindingScope: binding.bindingScope,
+      });
 
       return {
         context: {
@@ -621,10 +637,14 @@ export function createTokenValidator(
           clientId: result.key_id,
           scopes: normalizeScopes(result.scopes),
           currentTeamId: null,
-          credentialBinding: {
-            keyId: result.key_id,
-            ...(teamId ? { boundTeamId: teamId } : {}),
-          },
+          credentialBinding:
+            binding.bindingScope === 'team'
+              ? {
+                  bindingScope: 'team',
+                  keyId: result.key_id,
+                  boundTeamId: binding.teamId,
+                }
+              : { bindingScope: 'identity', keyId: result.key_id },
         } satisfies AgentAuthContext,
         expiresAtMs: result.expire_time?.getTime(),
         invalidationTag: `talos-key:${result.key_id}`,

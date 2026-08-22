@@ -6,6 +6,12 @@
  */
 
 export {
+  type AgentKeyBindingScope,
+  agentKeyMetadata,
+  type AgentKeyMetadataBinding,
+  readAgentKeyMetadataBinding,
+} from './agent-key-binding.js';
+export {
   AGENT_IDENTITY_SCHEMA_ID,
   KRATOS_COOKIE_NAME_REGEX,
   ORY_OPAQUE_PREFIXES,
