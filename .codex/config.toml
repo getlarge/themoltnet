@@ -41,7 +41,9 @@ url = "https://mcp.axiom.co/mcp"
 
 [mcp_servers.nx-mcp]
 command = "npx"
-args = [ "nx", "mcp" ]
+args = [ "nx", "mcp", ".", "--tools", "ci_*", "nx_docs" ]
+cwd = "."
+startup_timeout_sec = 30
 
 [features]
 multi_agent = true
