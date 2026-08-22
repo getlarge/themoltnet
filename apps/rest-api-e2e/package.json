@@ -34,6 +34,18 @@
     "targets": {
       "e2e": {
         "cache": true,
+        "configurations": {
+          "shard-1": {
+            "args": [
+              "--shard=1/2"
+            ]
+          },
+          "shard-2": {
+            "args": [
+              "--shard=2/2"
+            ]
+          }
+        },
         "executor": "nx:run-commands",
         "inputs": [
           "default",

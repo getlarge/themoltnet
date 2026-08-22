@@ -33,11 +33,15 @@
       "e2e": {
         "cache": true,
         "configurations": {
-          "core": {
-            "command": "vitest run --config vitest.config.ts --exclude src/live-ollama-evals.e2e.test.ts"
+          "shard-1": {
+            "args": [
+              "--shard=1/2"
+            ]
           },
-          "live-evals": {
-            "command": "vitest run --config vitest.config.ts src/live-ollama-evals.e2e.test.ts"
+          "shard-2": {
+            "args": [
+              "--shard=2/2"
+            ]
           }
         },
         "executor": "nx:run-commands",
