@@ -353,7 +353,7 @@ sequenceDiagram
         Agent->>API: POST /diaries/{diaryId}/entries<br/>{ content, tags }
         API->>API: requireAuth → extract identity_id
         API->>KET: canWriteDiary(diaryId, identity_id)?
-        KET-->>API: allowed (team write, writer grant, or manager grant)
+        KET-->>API: allowed (team executor, writer grant, or manager grant)
         API->>E5: Generate embedding(content)<br/>384-dim vector
         E5-->>API: float[384]
         API->>DS: createEntry(diaryId, content, embedding, ...)
@@ -380,7 +380,7 @@ sequenceDiagram
         Note over Agent,KET: Delete Entry
         Agent->>API: DELETE /entries/{entryId}
         API->>KET: canDeleteEntry(entryId, identity_id)?
-        KET-->>API: allowed (team write, writer grant, or manager grant)
+        KET-->>API: allowed (team executor, writer grant, or manager grant)
         API->>DS: deleteEntry(entryId, identity_id)
         DS->>DB: DELETE FROM diary_entries WHERE id = {id}
         DS->>KET: removeEntryRelations(entryId)
@@ -533,43 +533,43 @@ sequenceDiagram
 
 ### Namespace & Relationship Structure
 
-| Namespace          | Relations                                                    | Permission Rules                                                                                                                                                                                                                      |
-| ------------------ | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Team**           | `owners`, `managers`, `members`                              | `access` = any role<br>`write`, `manage_members`, `manage_runtime`, `manage_credentials` = owners OR managers<br>`manage` = owners                                                                                                    |
-| **Group**          | `parent` (→ Team), `members`                                 | `access` = members<br>`manage` = parent.manage_members                                                                                                                                                                                |
-| **Diary**          | `team` (→ Team), `writers`, `managers`                       | `read` = team.access OR writers OR managers<br>`write`, `propose` = team.write OR writers OR managers<br>`manage` = team.manage OR managers<br>`verify_claim` = team.access                                                           |
-| **DiaryEntry**     | `parent` (→ Diary)                                           | `view` = parent.read<br>`edit` = parent.write<br>`delete` = parent.write                                                                                                                                                              |
-| **ContextPack**    | `parent` (→ Diary)                                           | `read` = parent.read<br>`write` = parent.write<br>`manage` = parent.manage<br>`verify_claim` = parent.verify_claim                                                                                                                    |
-| **Task**           | `team` (→ Team), `writers`, `managers`, `claimant` (→ Agent) | `view` = team.access OR writers/managers<br>`edit_metadata`, `delete`, `claim` = team.write OR writers/managers<br>`force_delete`, `manage` = team.manage OR managers<br>`cancel` = edit authority OR claimant<br>`report` = claimant |
-| **Agent**          | `self`                                                       | `act_as` = self                                                                                                                                                                                                                       |
-| **Human**          | `self`                                                       | `act_as` = self                                                                                                                                                                                                                       |
-| **RuntimePolicy**  | `team` (→ Team), `tool` (→ Tool), `command` (→ ShellCommand) | `manage` = team.manage_runtime                                                                                                                                                                                                        |
-| **RuntimeProfile** | `policies` (→ RuntimePolicy)                                 | No direct permission; relations expand the effective runtime allow-set                                                                                                                                                                |
-| **Tool**           | —                                                            | Pure object namespace for broad tool grants                                                                                                                                                                                           |
-| **ShellCommand**   | —                                                            | Pure object namespace for exact, versioned command-prefix grants                                                                                                                                                                      |
+| Namespace          | Relations                                                    | Permission Rules                                                                                                                                                                                                                                                                 |
+| ------------------ | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Team**           | `owners`, `managers`, `executors` (Agent only), `members`    | `access` = owners/managers/members<br>`execute_tasks` = executors<br>`write`, `manage_members`, `manage_runtime`, `manage_credentials` = owners OR managers<br>`manage` = owners                                                                                                 |
+| **Group**          | `parent` (→ Team), `members`                                 | `access` = members<br>`manage` = parent.manage_members                                                                                                                                                                                                                           |
+| **Diary**          | `team` (→ Team), `writers`, `managers`                       | `read` = team.access OR writers OR managers<br>`write`, `propose` = team.write OR writers OR managers<br>`manage` = team.manage OR managers<br>`verify_claim` = team.access                                                                                                      |
+| **DiaryEntry**     | `parent` (→ Diary)                                           | `view` = parent.read<br>`edit` = parent.write<br>`delete` = parent.write                                                                                                                                                                                                         |
+| **ContextPack**    | `parent` (→ Diary)                                           | `read` = parent.read<br>`write` = parent.write<br>`manage` = parent.manage<br>`verify_claim` = parent.verify_claim                                                                                                                                                               |
+| **Task**           | `team` (→ Team), `writers`, `managers`, `claimant` (→ Agent) | `view` = team.access OR writers/managers<br>`claim` = team.execute_tasks OR writers/managers<br>`edit_metadata`, `delete` = team.write OR writers/managers<br>`force_delete`, `manage` = team.manage OR managers<br>`cancel` = edit authority OR claimant<br>`report` = claimant |
+| **Agent**          | `self`                                                       | `act_as` = self                                                                                                                                                                                                                                                                  |
+| **Human**          | `self`                                                       | `act_as` = self                                                                                                                                                                                                                                                                  |
+| **RuntimePolicy**  | `team` (→ Team), `tool` (→ Tool), `command` (→ ShellCommand) | `manage` = team.manage_runtime                                                                                                                                                                                                                                                   |
+| **RuntimeProfile** | `policies` (→ RuntimePolicy)                                 | No direct permission; relations expand the effective runtime allow-set                                                                                                                                                                                                           |
+| **Tool**           | —                                                            | Pure object namespace for broad tool grants                                                                                                                                                                                                                                      |
+| **ShellCommand**   | —                                                            | Pure object namespace for exact, versioned command-prefix grants                                                                                                                                                                                                                 |
 
 Relation tuples written by the service layer:
 
-| Event                     | Tuple written                                               |
-| ------------------------- | ----------------------------------------------------------- |
-| Team role granted         | `Team:teamId#owners/managers/members@Agent/Human:subjectId` |
-| Diary created             | `Diary:diaryId#team@Team:teamId`                            |
-| Grant writer              | `Diary:diaryId#writers@Agent/Human/Group`                   |
-| Grant manager             | `Diary:diaryId#managers@Agent/Human/Group`                  |
-| Group created             | `Group:groupId#parent@Team:teamId`                          |
-| Group member added        | `Group:groupId#members@Agent/Human:subjectId`               |
-| Entry created             | `DiaryEntry:entryId#parent@Diary:diaryId`                   |
-| Agent registered          | `Agent:agentId#self@Agent:agentId`                          |
-| Human registered          | `Human:humanId#self@Human:humanId`                          |
-| Pack materialized         | `ContextPack:packId#parent@Diary:diaryId`                   |
-| Task proposed             | `Task:taskId#team@Team:teamId`                              |
-| Task writer granted       | `Task:taskId#writers@Agent/Human/Group`                     |
-| Task manager granted      | `Task:taskId#managers@Agent/Human/Group`                    |
-| Task claimed              | `Task:taskId#claimant@Agent:agentId`                        |
-| Runtime policy created    | `RuntimePolicy:policyId#team@Team:teamId`                   |
-| Tool granted to policy    | `RuntimePolicy:policyId#tool@Tool:toolName`                 |
-| Command granted to policy | `RuntimePolicy:policyId#command@ShellCommand:encodedPrefix` |
-| Policy bound to profile   | `RuntimeProfile:profileId#policies@RuntimePolicy:policyId`  |
+| Event                     | Tuple written                                                                                     |
+| ------------------------- | ------------------------------------------------------------------------------------------------- |
+| Team role granted         | `Team:teamId#owners/managers/executors/members@Agent/Human:subjectId` (`executors` is Agent-only) |
+| Diary created             | `Diary:diaryId#team@Team:teamId`                                                                  |
+| Grant writer              | `Diary:diaryId#writers@Agent/Human/Group`                                                         |
+| Grant manager             | `Diary:diaryId#managers@Agent/Human/Group`                                                        |
+| Group created             | `Group:groupId#parent@Team:teamId`                                                                |
+| Group member added        | `Group:groupId#members@Agent/Human:subjectId`                                                     |
+| Entry created             | `DiaryEntry:entryId#parent@Diary:diaryId`                                                         |
+| Agent registered          | `Agent:agentId#self@Agent:agentId`                                                                |
+| Human registered          | `Human:humanId#self@Human:humanId`                                                                |
+| Pack materialized         | `ContextPack:packId#parent@Diary:diaryId`                                                         |
+| Task proposed             | `Task:taskId#team@Team:teamId`                                                                    |
+| Task writer granted       | `Task:taskId#writers@Agent/Human/Group`                                                           |
+| Task manager granted      | `Task:taskId#managers@Agent/Human/Group`                                                          |
+| Task claimed              | `Task:taskId#claimant@Agent:agentId`                                                              |
+| Runtime policy created    | `RuntimePolicy:policyId#team@Team:teamId`                                                         |
+| Tool granted to policy    | `RuntimePolicy:policyId#tool@Tool:toolName`                                                       |
+| Command granted to policy | `RuntimePolicy:policyId#command@ShellCommand:encodedPrefix`                                       |
+| Policy bound to profile   | `RuntimeProfile:profileId#policies@RuntimePolicy:policyId`                                        |
 
 Agent-key status, expiry, scopes, and the server-controlled agent/team binding
 live in Talos rather than Keto. After authentication and credential-scope
