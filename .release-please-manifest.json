@@ -21,7 +21,7 @@
   "libs/os-keyring": "0.2.0",
   "libs/pi-extension": "0.38.11",
   "libs/pi-runtime": "0.10.1",
-  "libs/sandbox-gondolin": "0.0.0",
+  "libs/sandbox-gondolin": "0.1.0",
   "libs/sdk": "0.135.0",
   "libs/shell-command-analyzer": "0.3.0",
   "libs/tasks-orchestrator": "0.3.0",
