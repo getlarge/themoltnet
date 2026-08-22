@@ -2,7 +2,8 @@
  * E2E: Team Tools — full team lifecycle
  *
  * Tests teams_list, teams_create, teams_invite_create, teams_invite_list,
- * teams_join, team_members_list, teams_member_remove, teams_invite_delete,
+ * teams_join, team_members_list, teams_member_update_role,
+ * teams_member_remove, teams_invite_delete,
  * teams_delete, and permission enforcement (non-manager cannot invite).
  *
  * Uses two MCP clients: agentA (owner) and agentB (joiner).
@@ -239,6 +240,26 @@ describe('Team Tools E2E', () => {
 
   // ── 7. teams_member_remove removes agentB ──
 
+  it('teams_member_update_role assigns executor to agentB', async () => {
+    requireSetup();
+    const result = await clientA.callTool({
+      name: 'teams_member_update_role',
+      arguments: {
+        team_id: createdTeamId,
+        subject_id: agentBIdentityId,
+        role: 'executor',
+      },
+    });
+
+    expect(result.isError).toBeUndefined();
+    expect(parseResult(result)).toMatchObject({
+      updated: true,
+      role: 'executor',
+    });
+  });
+
+  // ── 8. teams_member_remove removes agentB ──
+
   it('teams_member_remove removes agentB', async () => {
     requireSetup();
     const result = await clientA.callTool({
@@ -259,7 +280,7 @@ describe('Team Tools E2E', () => {
     expect(parsed.removed).toBe(true);
   });
 
-  // ── 8. teams_invite_delete removes an invite ──
+  // ── 9. teams_invite_delete removes an invite ──
   // The original invite was consumed by agentB's join, so create a fresh one first.
 
   it('teams_invite_delete removes the invite', async () => {
@@ -299,7 +320,7 @@ describe('Team Tools E2E', () => {
     expect(parsed.deleted).toBe(true);
   });
 
-  // ── 9. teams_delete removes the team ──
+  // ── 10. teams_delete removes the team ──
 
   it('teams_delete removes the team', async () => {
     requireSetup();
@@ -318,7 +339,7 @@ describe('Team Tools E2E', () => {
     expect(parsed.deleted).toBe(true);
   });
 
-  // ── 10. non-manager cannot create invites ──
+  // ── 11. non-manager cannot create invites ──
 
   it('non-manager cannot create invites', async () => {
     requireSetup();
