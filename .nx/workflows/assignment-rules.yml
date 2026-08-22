@@ -11,15 +11,17 @@ assignment-rules:
       - agent: linux-medium
         parallelism: 3
 
-  # rest-api's atomized route suites are still expensive per file, and
-  # multiple co-scheduled vitest tasks can starve the parent RPC loop on
-  # 4-vCPU agents. Keep only this project's test-ci shards at 2-way
-  # parallelism while preserving the denser default for the rest.
+  # rest-api's atomized route suites are still expensive per file (each
+  # boots Fastify against Postgres/Ory), and rules cap per rule, not per
+  # agent: a runner can still host a docker:build and lint work alongside
+  # these shards. At 2-way parallelism broad PRs saw single route tests go
+  # from ~6s locally to >30s and hit testTimeout. Keep this project's shards
+  # at 1 per agent; the fleet still runs them fully in parallel.
   - projects: ['@moltnet/rest-api']
     targets: ['test-ci--*']
     run-on:
       - agent: linux-medium
-        parallelism: 2
+        parallelism: 1
 
   # Atomized per-file vitest tasks (test-ci--<file>). Each is a single
   # vitest invocation on one file with bounded RPC pressure, so we can
