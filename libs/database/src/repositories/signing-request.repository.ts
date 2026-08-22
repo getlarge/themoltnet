@@ -143,7 +143,7 @@ export function createSigningRequestRepository(db: Database) {
     async listSignable(options: {
       teamRoles: Array<{
         teamId: string;
-        role: 'owner' | 'manager' | 'member';
+        role: 'owner' | 'manager' | 'executor' | 'member';
       }>;
       humanIds: string[];
       groups: Array<{ groupId: string; teamId: string }>;

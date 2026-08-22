@@ -298,10 +298,17 @@ describe('RelationshipReader (integration)', () => {
     const groupId = '990e8400-e29b-41d4-a716-4466554400c8';
     const groupWriterId = '990e8400-e29b-41d4-a716-4466554400c9';
     const diaryOnlyWriterId = '990e8400-e29b-41d4-a716-4466554400ca';
+    const executorId = '990e8400-e29b-41d4-a716-4466554400cb';
+    const teamManagerId = '990e8400-e29b-41d4-a716-4466554400cc';
 
     await writeApi.patchRelationships({
       relationshipPatch: [
         tuple('Team', teamId, TeamRelation.Owners, 'Agent', ownerId),
+        tuple('Team', teamId, TeamRelation.Executors, 'Agent', ownerId),
+        tuple('Team', teamId, TeamRelation.Managers, 'Agent', teamManagerId),
+        tuple('Team', teamId, TeamRelation.Executors, 'Agent', teamManagerId),
+        tuple('Team', teamId, TeamRelation.Executors, 'Agent', executorId),
+        tuple('Team', teamId, TeamRelation.Members, 'Agent', executorId),
         tuple('Team', teamId, TeamRelation.Members, 'Agent', memberId),
         tuple(
           'Diary',
@@ -337,6 +344,18 @@ describe('RelationshipReader (integration)', () => {
     ).resolves.toBe(true);
     await expect(
       checker.canManageTask(taskId, ownerId, KetoNamespace.Agent),
+    ).resolves.toBe(true);
+    await expect(
+      checker.canClaimTask(taskId, ownerId, KetoNamespace.Agent),
+    ).resolves.toBe(true);
+    await expect(
+      checker.canClaimTask(taskId, teamManagerId, KetoNamespace.Agent),
+    ).resolves.toBe(true);
+    await expect(
+      checker.canClaimTask(taskId, executorId, KetoNamespace.Agent),
+    ).resolves.toBe(true);
+    await expect(
+      checker.canViewTask(taskId, executorId, KetoNamespace.Agent),
     ).resolves.toBe(true);
     await expect(
       checker.canViewTask(taskId, memberId, KetoNamespace.Agent),
