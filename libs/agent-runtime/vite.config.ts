@@ -11,12 +11,20 @@ export default defineConfig({
   plugins: [
     dts({
       rollupTypes: true,
-      bundledPackages: ['@moltnet/models', '@moltnet/tasks'],
+      bundledPackages: [
+        '@moltnet/models',
+        '@moltnet/runtime-profiles',
+        '@moltnet/tasks',
+      ],
       tsconfigPath: './tsconfig.lib.json',
       include: ['src/**/*.ts'],
       exclude: ['src/**/*.test.ts'],
       compilerOptions: {
         paths: {
+          '@moltnet/runtime-profiles': ['../runtime-profiles/dist/index.d.ts'],
+          '@moltnet/runtime-profiles/context-recipes': [
+            '../runtime-profiles/dist/runtime-profile-context-recipes.d.ts',
+          ],
           '@moltnet/tasks': ['../tasks/dist/index.d.ts'],
         },
       },

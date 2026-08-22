@@ -569,9 +569,6 @@ importers:
       '@ipld/dag-cbor':
         specifier: 'catalog:'
         version: 9.2.5
-      '@moltnet/runtime-profiles':
-        specifier: workspace:*
-        version: link:../../libs/runtime-profiles
       '@noble/ciphers':
         specifier: 'catalog:'
         version: 1.3.0
@@ -675,6 +672,9 @@ importers:
       '@moltnet/observability':
         specifier: workspace:*
         version: link:../../libs/observability
+      '@moltnet/runtime-profiles':
+        specifier: workspace:*
+        version: link:../../libs/runtime-profiles
       '@moltnet/tasks':
         specifier: workspace:*
         version: link:../../libs/tasks
