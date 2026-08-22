@@ -31,13 +31,35 @@ const gondolinMock = vi.hoisted(() => {
     ) {}
   }
 
+  const secretManager = {
+    listSecrets: vi.fn(() => []),
+    updateSecret: vi.fn(() => undefined),
+    deleteSecret: vi.fn(() => undefined),
+  };
+
   return {
     resumeCalls,
     vm,
     MemoryProvider,
     RealFSProvider,
     ShadowProvider,
-    createHttpHooks: vi.fn(() => ({ httpHooks: {}, env: {} })),
+    secretManager,
+    createHttpHooks: vi.fn(
+      (
+        options: {
+          secrets?: Record<string, { hosts: string[]; value: string }>;
+        } = {},
+      ) => ({
+        httpHooks: {},
+        env: Object.fromEntries(
+          Object.keys(options.secrets ?? {}).map((name) => [
+            name,
+            `GONDOLIN_SECRET_PLACEHOLDER_${name}`,
+          ]),
+        ),
+        secretManager,
+      }),
+    ),
     createShadowPathPredicate: vi.fn(() => () => false),
     VmCheckpoint: {
       load: vi.fn(() => ({
@@ -80,6 +102,9 @@ describe('resumeVm task-context mount', () => {
     gondolinMock.vm.fs.writeFile.mockClear();
     gondolinMock.vm.close.mockClear();
     gondolinMock.createHttpHooks.mockClear();
+    gondolinMock.secretManager.listSecrets.mockClear();
+    gondolinMock.secretManager.updateSecret.mockClear();
+    gondolinMock.secretManager.deleteSecret.mockClear();
     delete process.env.TEST_FORWARD_ME;
     delete process.env.TEST_DO_NOT_FORWARD;
     for (const name of HOST_ONLY_ENV_NAMES) delete process.env[name];
@@ -167,6 +192,96 @@ describe('resumeVm task-context mount', () => {
     expect(resumeOptions.env.TEST_FORWARD_ME).toBe('forwarded');
     expect(resumeOptions.env.TEST_DO_NOT_FORWARD).toBeUndefined();
     expect(resumeOptions.env.NODE_OPTIONS).toBe('--dns-result-order=ipv4first');
+  });
+
+  it('delivers only a destination-bound placeholder to the guest', async () => {
+    const root = mkdtempSync(
+      path.join(tmpdir(), 'moltnet-vm-brokered-secret-'),
+    );
+    tempRoots.push(root);
+    const workspace = path.join(root, 'workspace');
+    mkdirSync(workspace, { recursive: true });
+    const sentinel = 'host-only-synthetic-value';
+    const diagnostics: unknown[] = [];
+
+    const managed = await resumeVm({
+      checkpointPath: path.join(root, 'checkpoint.qcow2'),
+      agentName: 'configless',
+      agentRootDir: root,
+      guestCredentialMode: 'host-authenticated',
+      mountPath: workspace,
+      sandboxConfig: {
+        network: { allowedHosts: ['api.example.com'] },
+      },
+      brokeredSecrets: [
+        {
+          id: 'example-api',
+          guestEnv: 'EXAMPLE_API_TOKEN',
+          hosts: ['api.example.com'],
+          value: sentinel,
+        },
+      ],
+      onDiagnostic: (diagnostic) => diagnostics.push(diagnostic),
+    });
+
+    expect(gondolinMock.createHttpHooks).toHaveBeenCalledWith(
+      expect.objectContaining({
+        secrets: {
+          EXAMPLE_API_TOKEN: {
+            hosts: ['api.example.com'],
+            value: sentinel,
+          },
+        },
+      }),
+    );
+    const resumeOptions = gondolinMock.resumeCalls[0] as {
+      env: Record<string, string>;
+    };
+    expect(resumeOptions.env.EXAMPLE_API_TOKEN).toBe(
+      'GONDOLIN_SECRET_PLACEHOLDER_EXAMPLE_API_TOKEN',
+    );
+    expect(resumeOptions.env.EXAMPLE_API_TOKEN).not.toBe(sentinel);
+    expect(JSON.stringify(resumeOptions)).not.toContain(sentinel);
+    expect(JSON.stringify(diagnostics)).not.toContain(sentinel);
+    expect(diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event: 'vm.http_secrets.bound',
+          brokeredSecretCount: 1,
+        }),
+      ]),
+    );
+    expect(managed.secretManager).toBe(gondolinMock.secretManager);
+  });
+
+  it('rejects a secret destination outside network policy before VM resume', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-secret-denied-'));
+    tempRoots.push(root);
+    const workspace = path.join(root, 'workspace');
+    mkdirSync(workspace, { recursive: true });
+
+    await expect(
+      resumeVm({
+        checkpointPath: path.join(root, 'checkpoint.qcow2'),
+        agentName: 'configless',
+        agentRootDir: root,
+        guestCredentialMode: 'host-authenticated',
+        mountPath: workspace,
+        sandboxConfig: {
+          network: { allowedHosts: ['api.example.com'] },
+        },
+        brokeredSecrets: [
+          {
+            id: 'other-api',
+            guestEnv: 'OTHER_API_TOKEN',
+            hosts: ['other.example.com'],
+            value: 'host-only-synthetic-value',
+          },
+        ],
+      }),
+    ).rejects.toThrow(/outside the effective network policy/);
+    expect(gondolinMock.createHttpHooks).not.toHaveBeenCalled();
+    expect(gondolinMock.resumeCalls).toHaveLength(0);
   });
 
   it.each(HOST_ONLY_ENV_NAMES)(

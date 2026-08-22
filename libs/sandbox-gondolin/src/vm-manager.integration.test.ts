@@ -5,6 +5,8 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -45,6 +47,116 @@ async function execGuest(
 }
 
 describeVm('resumeVm real Gondolin VM integration', () => {
+  it('brokers, rotates, and revokes a destination-bound HTTP secret', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-http-secret-'));
+    const workspace = path.join(root, 'workspace');
+    mkdirSync(workspace, { recursive: true });
+    const firstValue = 'synthetic-first-host-value';
+    const rotatedValue = 'synthetic-rotated-host-value';
+    const fixtureHost = '127-0-0-1.sslip.io';
+    let expectedValue = firstValue;
+    const receivedHeaders: Array<string | undefined> = [];
+    const server = createServer((request, response) => {
+      const authorization = request.headers.authorization;
+      receivedHeaders.push(authorization);
+      if (authorization === `Bearer ${expectedValue}`) {
+        response.writeHead(200, { 'content-type': 'text/plain' });
+        response.end('accepted');
+        return;
+      }
+      response.writeHead(401, { 'content-type': 'text/plain' });
+      response.end('rejected');
+    });
+    let managed: Awaited<ReturnType<typeof resumeVm>> | undefined;
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        server.once('error', reject);
+        server.listen(0, '127.0.0.1', resolve);
+      });
+      const port = (server.address() as AddressInfo).port;
+
+      const checkpointPath = await ensureSnapshot();
+      managed = await resumeVm({
+        checkpointPath,
+        agentName: 'configless',
+        agentRootDir: root,
+        guestCredentialMode: 'host-authenticated',
+        mountPath: workspace,
+        sandboxConfig: {
+          network: {
+            allowedHosts: ['example.com'],
+            allowedInternalHosts: [fixtureHost],
+          },
+        },
+        brokeredSecrets: [
+          {
+            id: 'fixture-api',
+            guestEnv: 'FIXTURE_API_TOKEN',
+            hosts: [fixtureHost],
+            value: firstValue,
+          },
+        ],
+      });
+
+      const firstOutput = await execGuest(
+        managed.vm,
+        `
+set -eu
+case "$FIXTURE_API_TOKEN" in
+  GONDOLIN_SECRET_*) ;;
+  *) echo invalid-placeholder; exit 1 ;;
+esac
+curl -fsS --max-time 20 \\
+  -H "Authorization: Bearer $FIXTURE_API_TOKEN" \\
+  http://${fixtureHost}:${port}/authorized
+if curl -fsS --max-time 10 \\
+  -H "Authorization: Bearer $FIXTURE_API_TOKEN" \\
+  https://example.com >/dev/null 2>&1; then
+  echo wrong-destination-accepted
+  exit 1
+fi
+`,
+      );
+      expect(firstOutput).toContain('accepted');
+      expect(firstOutput).not.toContain(firstValue);
+      expect(receivedHeaders).toEqual([`Bearer ${firstValue}`]);
+
+      expectedValue = rotatedValue;
+      managed.secretManager.updateSecret('FIXTURE_API_TOKEN', {
+        value: rotatedValue,
+      });
+      const rotatedOutput = await execGuest(
+        managed.vm,
+        `curl -fsS --max-time 20 -H "Authorization: Bearer $FIXTURE_API_TOKEN" http://${fixtureHost}:${port}/rotated`,
+      );
+      expect(rotatedOutput).toContain('accepted');
+      expect(rotatedOutput).not.toContain(rotatedValue);
+      expect(receivedHeaders.at(-1)).toBe(`Bearer ${rotatedValue}`);
+
+      managed.secretManager.deleteSecret('FIXTURE_API_TOKEN');
+      const revokedOutput = await execGuest(
+        managed.vm,
+        `
+if curl -fsS --max-time 10 -H "Authorization: Bearer $FIXTURE_API_TOKEN" http://${fixtureHost}:${port}/revoked >/dev/null 2>&1; then
+  echo revoked-secret-accepted
+  exit 1
+fi
+echo revoked
+`,
+      );
+      expect(revokedOutput).toContain('revoked');
+    } finally {
+      await managed?.vm.close();
+      if (server.listening) {
+        await new Promise<void>((resolve, reject) => {
+          server.close((error) => (error ? reject(error) : resolve()));
+        });
+      }
+      rmSync(root, { recursive: true, force: true });
+    }
+  }, 120_000);
+
   it('allows configured runtime hosts and blocks unlisted hosts', async () => {
     // Arrange
     const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-egress-'));
