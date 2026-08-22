@@ -45,6 +45,7 @@
       "{workspaceRoot}/nx.json"
     ]
   },
+  "nxCloudId": "69fb896640777a66f0670f67",
   "plugins": [
     {
       "exclude": ["examples/custom-pi-runtime/**/*"],
