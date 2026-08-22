@@ -896,7 +896,8 @@ type Handler interface {
 	UpdateTaskMetadata(ctx context.Context, req OptUpdateTaskMetadataReq, params UpdateTaskMetadataParams) (UpdateTaskMetadataRes, error)
 	// UpdateTeamMemberRole implements updateTeamMemberRole operation.
 	//
-	// Update a member role between member and manager. Requires manage_members permission.
+	// Update an agent role between member, executor, and manager, or a human role between member and
+	// manager. Requires manage_members permission.
 	//
 	// PATCH /teams/{id}/members/{subjectId}
 	UpdateTeamMemberRole(ctx context.Context, req *UpdateTeamMemberRoleReq, params UpdateTeamMemberRoleParams) (UpdateTeamMemberRoleRes, error)

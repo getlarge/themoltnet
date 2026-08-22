@@ -16,7 +16,6 @@ import {
   teamRelationToRole,
   type TeamRole,
   teamRoleRank,
-  teamRoleToRelation,
 } from '@moltnet/auth';
 import { DBOS } from '@moltnet/database';
 import {
@@ -121,6 +120,15 @@ async function grantTeamRole(
     return;
   }
 
+  if (role === TEAM_ROLE.Executor) {
+    await fastify.relationshipWriter.grantTeamExecutors(
+      teamId,
+      subjectId,
+      subjectNs,
+    );
+    return;
+  }
+
   await fastify.relationshipWriter.grantTeamMembers(
     teamId,
     subjectId,
@@ -136,35 +144,8 @@ async function rewriteTeamRole(
   currentRole: TeamInviteRole,
   role: TeamInviteRole,
 ): Promise<void> {
-  const currentRelation = teamRoleToRelation(currentRole);
-  const nextRelation = teamRoleToRelation(role);
-  if (currentRelation === nextRelation) return;
-
+  if (currentRole === role) return;
   await grantTeamRole(fastify, teamId, subjectId, subjectNs, role);
-
-  try {
-    await fastify.relationshipWriter.removeTeamRoleRelation(
-      teamId,
-      subjectId,
-      subjectNs,
-      currentRelation,
-    );
-  } catch (err) {
-    try {
-      await fastify.relationshipWriter.removeTeamRoleRelation(
-        teamId,
-        subjectId,
-        subjectNs,
-        nextRelation,
-      );
-    } catch (rollbackErr) {
-      fastify.log.error(
-        { teamId, subjectId, subjectNs, rollbackErr },
-        'team.role_rewrite_rollback_failed',
-      );
-    }
-    throw err;
-  }
 }
 
 async function resolveMembers(
@@ -279,6 +260,18 @@ export function teamRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const { identityId, subjectNs } = requireKetoSubject(request);
       const { name, foundingMembers } = request.body;
+
+      if (
+        foundingMembers?.some(
+          (member) =>
+            member.subjectNs === 'Human' && member.role === TEAM_ROLE.Executor,
+        )
+      ) {
+        throw createProblem(
+          'validation-failed',
+          'The executor team role can only be assigned to agents',
+        );
+      }
 
       const creator = authContextToCreator(request);
 
@@ -705,7 +698,7 @@ export function teamRoutes(fastify: FastifyInstance) {
         operationId: 'updateTeamMemberRole',
         tags: ['teams'],
         description:
-          'Update a member role between member and manager. Requires manage_members permission.',
+          'Update an agent role between member, executor, and manager, or a human role between member and manager. Requires manage_members permission.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         params: TeamMemberParamsSchema,
         body: UpdateTeamMemberRoleSchema,
@@ -743,6 +736,15 @@ export function teamRoutes(fastify: FastifyInstance) {
       }
 
       const nextRole = request.body.role;
+      if (
+        nextRole === TEAM_ROLE.Executor &&
+        target.subjectNs !== KetoNamespace.Agent
+      ) {
+        throw createProblem(
+          'validation-failed',
+          'The executor team role can only be assigned to agents',
+        );
+      }
       if (target.currentRole !== nextRole) {
         await rewriteTeamRole(
           fastify,
@@ -968,6 +970,13 @@ export function teamRoutes(fastify: FastifyInstance) {
 
       if (team.status !== 'active') {
         throw createProblem('team-not-active');
+      }
+
+      if (invite.role === TEAM_ROLE.Executor && ns === KetoNamespace.Human) {
+        throw createProblem(
+          'forbidden',
+          'The executor team role can only be redeemed by agents',
+        );
       }
 
       // Check if already a member

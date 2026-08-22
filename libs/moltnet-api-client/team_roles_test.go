@@ -21,6 +21,11 @@ func TestListTeamMembersRoleConstantsAreSingular(t *testing.T) {
 			want: "manager",
 		},
 		{
+			name: "executor",
+			role: ListTeamMembersOKItemsItemRoleExecutor,
+			want: "executor",
+		},
+		{
 			name: "member",
 			role: ListTeamMembersOKItemsItemRoleMember,
 			want: "member",
@@ -43,7 +48,7 @@ func TestListTeamMembersRoleConstantsAreSingular(t *testing.T) {
 func TestListTeamMembersRoleRejectsPluralRelations(t *testing.T) {
 	t.Parallel()
 
-	for _, value := range []string{"owners", "managers", "members"} {
+	for _, value := range []string{"owners", "managers", "executors", "members"} {
 		t.Run(value, func(t *testing.T) {
 			var role ListTeamMembersOKItemsItemRole
 			if err := role.UnmarshalText([]byte(value)); err == nil {

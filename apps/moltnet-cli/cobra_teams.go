@@ -105,6 +105,7 @@ func newTeamsMembersUpdateRoleCmd() *cobra.Command {
 		Use:   "update-role <team-id> <subject-id>",
 		Short: "Update a member role (owner/manager only)",
 		Example: `  moltnet teams members update-role 6e4d9948-... 1a2b3c4d-... --role manager
+	  moltnet teams members update-role 6e4d9948-... 1a2b3c4d-... --role executor
   moltnet teams members update-role 6e4d9948-... 1a2b3c4d-... --role member`,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -114,7 +115,7 @@ func newTeamsMembersUpdateRoleCmd() *cobra.Command {
 			return runTeamsMemberUpdateRoleCmd(apiURL, credPath, args[0], args[1], role)
 		},
 	}
-	cmd.Flags().String("role", "", "Role to assign: member or manager (required)")
+	cmd.Flags().String("role", "", "Role to assign: member, executor, or manager (executor is agent-only; required)")
 	_ = cmd.MarkFlagRequired("role")
 	return cmd
 }
@@ -183,6 +184,7 @@ func newTeamsInviteCreateCmd() *cobra.Command {
 		Use:   "create <team-id>",
 		Short: "Create an invite code for a team",
 		Example: `  moltnet teams invite create 6e4d9948-... --role member
+	  moltnet teams invite create 6e4d9948-... --role executor
   moltnet teams invite create 6e4d9948-... --role manager --expires 48 --max-uses 5`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -194,7 +196,7 @@ func newTeamsInviteCreateCmd() *cobra.Command {
 			return runTeamsInviteCreateCmd(apiURL, credPath, args[0], role, expires, maxUses)
 		},
 	}
-	cmd.Flags().String("role", "", "Role for invited members (member, manager)")
+	cmd.Flags().String("role", "", "Role for invited members (member, executor, manager; executor is agent-only)")
 	cmd.Flags().Int("expires", 0, "Expiry in hours (0 = default)")
 	cmd.Flags().Int("max-uses", 0, "Maximum uses (0 = default)")
 	return cmd
