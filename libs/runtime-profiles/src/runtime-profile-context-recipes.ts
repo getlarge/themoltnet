@@ -49,13 +49,13 @@ export const RUNTIME_PROFILE_CONTEXT_CATALOGUE: RuntimeProfileContextCatalogue =
       'accountable-delivery-v1': {
         binding: 'prompt_prefix',
         content:
-          '# Accountable delivery\n\n- Pair every commit made during this task with a signed diary entry created by the `moltnet_create_entry` custom tool. Put the returned id in a `MoltNet-Diary: <id>` commit trailer.\n- Keep commit signing enabled; do not bypass the agent git configuration.\n- Push a branch and open or update a pull request only when the task asks for it. For GitHub mutations, use the credential-bound `GH_TOKEN` command form required by the runtime kernel.\n- Keep changes, commits, and any requested pull request coherent enough to review independently.',
+          '# Accountable delivery\n\n- Pair every commit made during this task with a task-provenance diary entry created by the `moltnet_create_entry` custom tool. Put the returned id in a `MoltNet-Diary: <id>` commit trailer. The tool does not currently promise a content signature; never describe an entry as signed unless the active runtime exposes and verifies a signing capability.\n- Do not disable commit signing when the active runtime provides it. A host-authenticated guest has no injected signing key, so do not recover one from host configuration or claim an unsigned commit is signed.\n- Push a branch and open or update a pull request only when the task asks for it. Use a host-brokered GitHub placeholder only when the runtime kernel declares one; if no GitHub credential is active, the authenticated operation is unavailable.\n- Keep changes, commits, and any requested pull request coherent enough to review independently.',
         slug: 'accountable-delivery-v1',
       },
       'judgment-diary-v1': {
         binding: 'prompt_prefix',
         content:
-          '# Judgment diary discipline\n\n- For an `assess_brief`, `judge_pack`, or `pr_review` task, create a signed diary entry with the `moltnet_create_entry` custom tool before submitting the structured judgment. Capture the rationale and evidence that support the verdict.\n- Add the `judgment` tag and the active task type tag (`assess_brief`, `judge_pack`, or `pr_review`). For `judge_pack`, also add `rubric:<rubricId>` from the task facts.\n- Do not use a shell `moltnet entry` command: task provenance is injected only by the custom tool.',
+          '# Judgment diary discipline\n\n- For an `assess_brief`, `judge_pack`, or `pr_review` task, create a diary entry with the `moltnet_create_entry` custom tool before submitting the structured judgment. Capture the rationale and evidence that support the verdict. Do not claim a content signature unless the active runtime exposes and verifies a signing capability.\n- Add the `judgment` tag and the active task type tag (`assess_brief`, `judge_pack`, or `pr_review`). For `judge_pack`, also add `rubric:<rubricId>` from the task facts.\n- Do not use a shell `moltnet entry` command: task provenance is injected only by the custom tool.',
         slug: 'judgment-diary-v1',
       },
       'proactive-memory-v1': {

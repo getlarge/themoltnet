@@ -33,6 +33,41 @@ describe('runtime kernel', () => {
     expect(out).toMatch(/GIT_CONFIG_GLOBAL/);
   });
 
+  it('describes host-authenticated guests without inventing guest credentials', () => {
+    const out = buildRuntimeKernel({
+      ...ctx,
+      guestCredentialMode: 'host-authenticated',
+      sandbox: {
+        workspaceMode: 'shared_mount',
+        vfsShadowMode: 'none',
+        vfsShadowPatterns: [],
+        verifiedExecutables: [],
+        allowedHosts: ['api.github.com'],
+        allowedInternalHosts: [],
+        brokeredSecretEnvNames: ['GH_TOKEN'],
+      },
+    });
+
+    expect(out).toContain('remain on the');
+    expect(out).toContain('No authenticated `.moltnet` tree');
+    expect(out).toContain('host-brokered `GH_TOKEN`');
+    expect(out).toContain('opaque');
+    expect(out).not.toContain('GH_TOKEN=$(moltnet github token');
+    expect(out).not.toContain('injected credential helper');
+  });
+
+  it('fails guidance closed when no GitHub placeholder is active', () => {
+    const out = buildCredentialInstructions(
+      undefined,
+      undefined,
+      'host-authenticated',
+    );
+
+    expect(out).toContain('No brokered GitHub credential is active');
+    expect(out).toContain('operations are unavailable');
+    expect(out).not.toContain('GH_TOKEN=');
+  });
+
   it('omits unavailable CLI guidance from an enforced artifact-only session', () => {
     const out = buildCredentialInstructions({
       enforcement: 'enforce',

@@ -4,6 +4,7 @@ export interface RuntimeInstructorContext {
   attemptN: number;
   diaryId: string;
   agentName: string;
+  guestCredentialMode?: 'guest-config' | 'host-authenticated';
   guestWorkspace: string;
   /** Optional correlation id grouping this task with others. */
   correlationId: string | null;
@@ -34,6 +35,8 @@ export interface RuntimeInstructorSandbox {
   verifiedExecutables: readonly string[];
   allowedHosts: readonly string[];
   allowedInternalHosts: readonly string[];
+  /** Guest names containing host-brokered opaque HTTP placeholders. */
+  brokeredSecretEnvNames?: readonly string[];
 }
 
 export function buildWorkspaceMountInstructions(
@@ -167,6 +170,9 @@ export function buildSandboxCapabilityInstructions(
   ];
   const externalHosts = [...sandbox.allowedHosts].sort();
   const internalHosts = [...sandbox.allowedInternalHosts].sort();
+  const brokeredSecretEnvNames = [
+    ...(sandbox.brokeredSecretEnvNames ?? []),
+  ].sort();
   lines.push(
     ...(externalHosts.length > 0
       ? [
@@ -176,6 +182,15 @@ export function buildSandboxCapabilityInstructions(
     ...(internalHosts.length > 0
       ? [
           `- Additional internal egress hosts: ${internalHosts.map((host) => `\`${host}\``).join(', ')}.`,
+        ]
+      : []),
+    ...(brokeredSecretEnvNames.length > 0
+      ? [
+          '- Host-brokered HTTP credentials are available only as opaque',
+          `  placeholders in: ${brokeredSecretEnvNames
+            .map((name) => `\`${name}\``)
+            .join(', ')}. The host proxy may substitute them only for their`,
+          '  declared destination hosts. Do not print, persist, or move them.',
         ]
       : []),
     '- Runtime service endpoints required for task execution may be available',
@@ -206,14 +221,26 @@ function shellExecutableIsAvailable(
 export function buildCredentialInstructions(
   policy: RuntimeInstructorToolPolicy | undefined,
   sandbox?: RuntimeInstructorSandbox,
+  guestCredentialMode: 'guest-config' | 'host-authenticated' = 'guest-config',
 ): string {
-  const lines = [
-    '## Identity & credentials',
-    '',
-    '- Your credentials live at `/home/agent/.moltnet/<agent>/moltnet.json`',
-    '  with the gitconfig and SSH key alongside. Do not move, copy, or expose',
-    '  these files outside the VM.',
-  ];
+  const hostAuthenticated = guestCredentialMode === 'host-authenticated';
+  const lines = hostAuthenticated
+    ? [
+        '## Identity & credentials',
+        '',
+        '- Long-lived MoltNet identity and signing credentials remain on the',
+        '  trusted daemon host. No authenticated `.moltnet` tree, SSH signing',
+        '  key, GitHub App private key, or credential helper is injected here.',
+        '- Use structured `moltnet_*` tools for authenticated MoltNet operations.',
+        '  Do not try to recover host configuration through shell commands.',
+      ]
+    : [
+        '## Identity & credentials',
+        '',
+        '- Your credentials live at `/home/agent/.moltnet/<agent>/moltnet.json`',
+        '  with the gitconfig and SSH key alongside. Do not move, copy, or expose',
+        '  these files outside the VM.',
+      ];
   const moltnetAvailable = shellExecutableIsAvailable(
     policy,
     sandbox,
@@ -224,34 +251,67 @@ export function buildCredentialInstructions(
 
   if (moltnetAvailable) {
     lines.push(
-      '- When authorized by the effective shell policy, use the installed',
-      '  `moltnet` binary on `PATH`; never invoke a cached or `npx` copy.',
+      ...(hostAuthenticated
+        ? [
+            '- The installed `moltnet` binary has no guest identity credentials;',
+            '  do not use it for authenticated operations.',
+          ]
+        : [
+            '- When authorized by the effective shell policy, use the installed',
+            '  `moltnet` binary on `PATH`; never invoke a cached or `npx` copy.',
+          ]),
     );
   }
   if (ghAvailable) {
-    lines.push(
-      '- This headless VM has no human GitHub token fallback. Every authorized',
-      '  `gh` write must use an inline App token.',
-    );
-    if (moltnetAvailable) {
+    if (hostAuthenticated) {
+      const githubPlaceholder = (sandbox?.brokeredSecretEnvNames ?? []).find(
+        (name) => name === 'GH_TOKEN' || name === 'GITHUB_TOKEN',
+      );
       lines.push(
-        '',
-        '  ```bash',
-        '  CREDS="$(cd "$(dirname "$GIT_CONFIG_GLOBAL")" && pwd)/moltnet.json"',
-        '  GH_TOKEN=$(moltnet github token --credentials "$CREDS") gh <command>',
-        '  ```',
+        ...(githubPlaceholder
+          ? [
+              `- GitHub CLI authentication uses the host-brokered \`${githubPlaceholder}\``,
+              '  placeholder. Use it normally for policy-authorized HTTPS',
+              '  requests; it is not a reusable or inspectable token.',
+            ]
+          : [
+              '- No brokered GitHub credential is active. Authenticated `gh`',
+              '  operations are unavailable; do not mint or recover a host token.',
+            ]),
       );
     } else {
       lines.push(
-        '- The effective policy does not authorize the `moltnet` token-minting',
-        '  command, so do not attempt a GitHub write.',
+        '- This headless VM has no human GitHub token fallback. Every authorized',
+        '  `gh` write must use an inline App token.',
       );
+      if (moltnetAvailable) {
+        lines.push(
+          '',
+          '  ```bash',
+          '  CREDS="$(cd "$(dirname "$GIT_CONFIG_GLOBAL")" && pwd)/moltnet.json"',
+          '  GH_TOKEN=$(moltnet github token --credentials "$CREDS") gh <command>',
+          '  ```',
+        );
+      } else {
+        lines.push(
+          '- The effective policy does not authorize the `moltnet` token-minting',
+          '  command, so do not attempt a GitHub write.',
+        );
+      }
     }
   }
   if (gitAvailable) {
     lines.push(
-      '- An authorized `git push` uses the injected credential helper and does',
-      '  not need `GH_TOKEN`.',
+      ...(hostAuthenticated
+        ? [
+            '- Local Git commands run inside the guest. No signing key or Git',
+            '  credential helper is injected; signing and authenticated push',
+            '  require an explicitly provided capability.',
+          ]
+        : [
+            '- An authorized `git push` uses the injected credential helper and does',
+            '  not need `GH_TOKEN`.',
+          ]),
     );
   }
   return lines.join('\n');
@@ -279,7 +339,11 @@ export function buildRuntimeKernel(ctx: RuntimeInstructorContext): string {
     `- Diary id (for this task): \`${ctx.diaryId}\``,
     `- Agent name: \`${ctx.agentName}\``,
     '',
-    buildCredentialInstructions(ctx.toolPolicy, ctx.sandbox),
+    buildCredentialInstructions(
+      ctx.toolPolicy,
+      ctx.sandbox,
+      ctx.guestCredentialMode,
+    ),
     '',
     '## Skill packs',
     '',

@@ -71,6 +71,25 @@ describe('runtime-profile context recipe catalogue', () => {
     expect(verification?.content).not.toContain('Upload large files');
   });
 
+  it('does not invent guest signing or GitHub credentials', () => {
+    const entries = resolveRuntimeProfileContextRecipe(
+      'standard-engineering@v1',
+    );
+    const accountable = entries.find(
+      (entry) => entry.slug === 'accountable-delivery-v1',
+    );
+    const judgment = entries.find(
+      (entry) => entry.slug === 'judgment-diary-v1',
+    );
+
+    expect(accountable?.content).toContain('does not currently promise');
+    expect(accountable?.content).toContain('host-brokered GitHub placeholder');
+    expect(accountable?.content).not.toContain(
+      'signed diary entry created by the `moltnet_create_entry`',
+    );
+    expect(judgment?.content).toContain('Do not claim a content signature');
+  });
+
   it('resolves every recipe to a valid, applyable context array', () => {
     for (const recipeId of runtimeProfileContextRecipeIds) {
       const entries = resolveRuntimeProfileContextRecipe(recipeId);

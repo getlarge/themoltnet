@@ -363,5 +363,8 @@ describe('moltnet_host_exec description (issue #1248 regression pin)', () => {
     const tool = getHostExecTool(makeConfig());
     const description = tool.description ?? '';
     expect(description).toMatch(/INSIDE the VM|in the VM|in the guest/i);
+    expect(description).not.toMatch(/credentials are already injected/i);
+    expect(description).toMatch(/opaque HTTP placeholder/i);
+    expect(description).not.toMatch(/GH_TOKEN.*env parameter/i);
   });
 });
