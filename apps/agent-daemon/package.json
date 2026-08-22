@@ -144,7 +144,8 @@
     "multiformats": "catalog:",
     "pino": "catalog:",
     "pino-opentelemetry-transport": "catalog:",
-    "pino-pretty": "catalog:"
+    "pino-pretty": "catalog:",
+    "typebox": "catalog:"
   },
   "devDependencies": {
     "@moltnet/bootstrap": "workspace:*",
