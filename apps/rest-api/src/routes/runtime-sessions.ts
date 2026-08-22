@@ -6,15 +6,15 @@ import {
   ValidationProblemDetailsSchema,
 } from '@moltnet/models';
 import {
-  createRuntimeSessionService,
-  serializeRuntimeSession,
-} from '@moltnet/runtime-session-service';
-import {
   RuntimeSession as RuntimeSessionSchema,
   RuntimeSessionAttemptParams as RuntimeSessionAttemptParamsSchema,
   RuntimeSessionContent as RuntimeSessionContentSchema,
   UploadRuntimeSessionQuery as UploadRuntimeSessionQuerySchema,
-} from '@moltnet/tasks';
+} from '@moltnet/runtime-profiles';
+import {
+  createRuntimeSessionService,
+  serializeRuntimeSession,
+} from '@moltnet/runtime-session-service';
 import type { FastifyInstance } from 'fastify';
 
 import { createProblem } from '../problems/index.js';

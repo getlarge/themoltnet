@@ -1,7 +1,7 @@
+import type { ContextRef } from '@moltnet/runtime-profiles';
 import {
   ASSESS_BRIEF_TYPE,
   AssessBriefInput,
-  type ContextRef,
   CURATE_PACK_TYPE,
   CuratePackInput,
   FREEFORM_TYPE,

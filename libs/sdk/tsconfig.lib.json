@@ -23,6 +23,9 @@
   "include": ["src"],
   "references": [
     {
+      "path": "../runtime-profiles/tsconfig.lib.json"
+    },
+    {
       "path": "../dts-entry-shims/tsconfig.lib.json"
     },
     {

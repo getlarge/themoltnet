@@ -27,7 +27,7 @@ import { createDatabase, runtimeProfiles } from '@moltnet/database';
 import {
   resolveRuntimeProfileContextRecipe,
   runtimeProfileDefinitionPayload,
-} from '@moltnet/tasks';
+} from '@moltnet/runtime-profiles';
 import { sql } from 'drizzle-orm';
 
 const args = process.argv.slice(2);

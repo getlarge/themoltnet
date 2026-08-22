@@ -30,16 +30,22 @@
       "path": "../../libs/task-mcp-app/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/runtime-profiles/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/observability/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/mcp-auth-proxy/tsconfig.lib.json"
     },
     {
       "path": "../../libs/entry-explore-mcp-app/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/models/tsconfig.lib.json"
+      "path": "../../libs/crypto-service/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/observability/tsconfig.lib.json"
+      "path": "../../libs/mcp-test-harness/tsconfig.lib.json"
     },
     {
       "path": "../../libs/database/tsconfig.lib.json"
@@ -48,10 +54,7 @@
       "path": "../../libs/bootstrap/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/mcp-test-harness/tsconfig.lib.json"
-    },
-    {
-      "path": "../../libs/crypto-service/tsconfig.lib.json"
+      "path": "../../libs/models/tsconfig.lib.json"
     },
     {
       "path": "../../libs/api-client/tsconfig.lib.json"

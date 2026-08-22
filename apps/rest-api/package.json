@@ -46,6 +46,7 @@
     "@moltnet/oauth-token-cache": "workspace:*",
     "@moltnet/observability": "workspace:*",
     "@moltnet/runtime-policy-service": "workspace:*",
+    "@moltnet/runtime-profiles": "workspace:*",
     "@moltnet/runtime-session-service": "workspace:*",
     "@moltnet/signing-service": "workspace:*",
     "@moltnet/signing-workflows": "workspace:*",

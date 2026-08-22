@@ -1,5 +1,8 @@
-import type { LifecyclePhase, LifecycleStateArtifact } from './types.js';
-import type { SupervisorAction } from './types.js';
+import type {
+  LifecyclePhase,
+  LifecycleStateArtifact,
+  SupervisorAction,
+} from './types.js';
 
 const PHASES = new Set<LifecyclePhase>([
   'triaging',

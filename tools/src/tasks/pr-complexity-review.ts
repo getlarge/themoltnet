@@ -1,5 +1,4 @@
-import type { Rubric as RubricType } from '@moltnet/tasks';
-import type { PrReviewInput } from '@moltnet/tasks';
+import type { PrReviewInput, Rubric as RubricType } from '@moltnet/tasks';
 
 export interface PullRequestInfo {
   title: string;

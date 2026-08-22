@@ -16,6 +16,7 @@
     "@moltnet/database": "workspace:*",
     "@moltnet/models": "workspace:*",
     "@moltnet/runtime-policy-service": "workspace:*",
+    "@moltnet/runtime-profiles": "workspace:*",
     "@moltnet/task-workflows": "workspace:*",
     "@moltnet/tasks": "workspace:*",
     "@themoltnet/credential-broker": "workspace:*"

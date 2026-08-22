@@ -19,6 +19,7 @@ import {
   bigint,
   boolean,
   check,
+  customType,
   foreignKey,
   index,
   integer,
@@ -33,10 +34,9 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
+
 // Custom vector type for pgvector (384 dimensions for e5-small-v2)
 // Drizzle doesn't have native vector support, so we use customType
-import { customType } from 'drizzle-orm/pg-core';
-
 import { defineRuntimeModelsTable } from './schema/runtime-models.js';
 import { defineRuntimePoliciesTable } from './schema/runtime-policies.js';
 import {

@@ -50,15 +50,13 @@ import { resolveLatestPiSessionPath } from '@themoltnet/agent-daemon/lib/session
 // eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises daemon app internals.
 import { ensureDaemonStateDirs } from '@themoltnet/agent-daemon/lib/state-dir.js';
 import {
-  resolveRuntimeProfile,
-  validateRuntimeProfilePrerequisites,
-} from '@themoltnet/agent-runtime';
-import {
   AgentRuntime,
   type AgentRuntimeLogger,
   ApiTaskReporter,
   ApiTaskSource,
   PollingApiTaskSource,
+  resolveRuntimeProfile,
+  validateRuntimeProfilePrerequisites,
 } from '@themoltnet/agent-runtime';
 import { resolveTaskWorktreePath } from '@themoltnet/pi-runtime';
 import { type Agent, connect, MoltNetError } from '@themoltnet/sdk';

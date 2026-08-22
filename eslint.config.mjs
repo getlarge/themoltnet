@@ -285,6 +285,8 @@ export default tseslint.config(
       ],
       'simple-import-sort/imports': 'error',
       'simple-import-sort/exports': 'error',
+      // One import statement per module; a separate `import type` is allowed.
+      'no-duplicate-imports': ['error', { allowSeparateTypeImports: true }],
       eqeqeq: ['error', 'always'],
       'prefer-const': 'error',
       'no-console': 'warn',

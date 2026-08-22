@@ -188,7 +188,7 @@ export {
   CONTEXT_REF_MAX_CONTENT_LENGTH,
   type ContextBinding,
   type ContextRef,
-} from '@moltnet/tasks';
+} from '@moltnet/runtime-profiles';
 
 import { connect } from './connect.js';
 import { connectHuman } from './human.js';

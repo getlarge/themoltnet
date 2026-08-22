@@ -31,6 +31,7 @@ import {
   createWriteToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 import { computeJsonCid } from '@moltnet/crypto-service/json-cid';
+import type { ContextRef } from '@moltnet/runtime-profiles';
 import {
   type Context,
   context as otelContext,
@@ -39,7 +40,6 @@ import {
 import {
   buildTaskUserPrompt,
   type ClaimedTask,
-  type ContextRef,
   FREEFORM_TYPE,
   materializeTaskOutput,
   type SubagentContractRegistry,
@@ -52,13 +52,11 @@ import {
   validateTaskOutput,
 } from '@themoltnet/agent-runtime';
 import {
-  ensureSnapshot,
-  type SandboxConfig,
-} from '@themoltnet/sandbox-gondolin';
-import {
   activateAgentEnv,
+  ensureSnapshot,
   type GuestCredentialMode,
   resolveVfsShadowConfig,
+  type SandboxConfig,
   type VmDiagnostic,
 } from '@themoltnet/sandbox-gondolin';
 import type { Agent } from '@themoltnet/sdk';

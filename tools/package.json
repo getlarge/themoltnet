@@ -34,6 +34,7 @@
     "@moltnet/mcp-server": "workspace:*",
     "@moltnet/models": "workspace:*",
     "@moltnet/rest-api": "workspace:*",
+    "@moltnet/runtime-profiles": "workspace:*",
     "@moltnet/tasks": "workspace:*",
     "@ory/client-fetch": "catalog:",
     "@themoltnet/agent-runtime": "workspace:*",

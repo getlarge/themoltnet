@@ -25,10 +25,10 @@ import type {
   UploadTaskArtifactData,
   UploadTaskArtifactResponses,
 } from '@moltnet/api-client';
+import { RuntimeProfileRef } from '@moltnet/runtime-profiles';
 import {
   ClaimConditionDefinition,
   ExecutorTrustLevel,
-  RuntimeProfileRef,
   SuccessCriteria,
   Task,
   TaskAttempt,

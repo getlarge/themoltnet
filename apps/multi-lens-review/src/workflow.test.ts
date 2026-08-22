@@ -5,8 +5,10 @@ import type {
   WorkflowContext,
 } from '@themoltnet/tasks-orchestrator';
 import { inlineContext } from '@themoltnet/tasks-orchestrator';
-import { replayContext } from '@themoltnet/tasks-orchestrator/testing';
-import { FakeTasks } from '@themoltnet/tasks-orchestrator/testing';
+import {
+  FakeTasks,
+  replayContext,
+} from '@themoltnet/tasks-orchestrator/testing';
 import { describe, expect, it, vi } from 'vitest';
 
 import { durableMultiLensReviewOutput } from './absurd.js';

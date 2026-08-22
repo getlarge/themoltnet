@@ -3,7 +3,7 @@ import {
   RuntimeModelCapabilities,
   RuntimeModelName,
   RuntimeModelProvider,
-} from '@moltnet/tasks';
+} from '@moltnet/runtime-profiles';
 import { Type } from 'typebox';
 
 export const CreateRuntimeModelBodySchema = Type.Object(

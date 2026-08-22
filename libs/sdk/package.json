@@ -60,6 +60,7 @@
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/dts-entry-shims": "workspace:*",
     "@moltnet/models": "workspace:*",
+    "@moltnet/runtime-profiles": "workspace:*",
     "@moltnet/tasks": "workspace:*",
     "@themoltnet/os-keyring": "workspace:*",
     "@types/node": "catalog:",

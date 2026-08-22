@@ -3,7 +3,7 @@ import {
   ToolEnforcementSchema as CanonicalToolEnforcementSchema,
   UuidSchema,
 } from '@moltnet/models';
-import { RuntimeProfileRuntimeKind } from '@moltnet/tasks';
+import { RuntimeProfileRuntimeKind } from '@moltnet/runtime-profiles';
 import { Type } from 'typebox';
 
 const TOOL_NAME_PATTERN = '^(?!.*[\\r\\n])[a-zA-Z0-9_.:-]{1,128}$';

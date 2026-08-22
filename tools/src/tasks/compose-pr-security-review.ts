@@ -27,7 +27,8 @@ import { readFileSync, statSync } from 'node:fs';
 import { isAbsolute, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import type { ContextRef, Rubric as RubricType } from '@moltnet/tasks';
+import type { ContextRef } from '@moltnet/runtime-profiles';
+import type { Rubric as RubricType } from '@moltnet/tasks';
 import { PR_REVIEW_TYPE, PrReviewInput, Rubric } from '@moltnet/tasks';
 import { Value } from 'typebox/value';
 

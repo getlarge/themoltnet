@@ -1,8 +1,7 @@
 import { createReadStream } from 'node:fs';
 import { createGunzip, createGzip } from 'node:zlib';
 
-import type { KetoNamespace } from '@moltnet/auth';
-import type { PermissionChecker } from '@moltnet/auth';
+import type { KetoNamespace, PermissionChecker } from '@moltnet/auth';
 import {
   BlobBodyNotReadableError,
   BlobTooLargeError,
@@ -17,7 +16,7 @@ import type {
   TaskAttempt,
   TaskRepository,
 } from '@moltnet/database';
-import type { UploadRuntimeSessionQuery } from '@moltnet/tasks';
+import type { UploadRuntimeSessionQuery } from '@moltnet/runtime-profiles';
 
 import { createProblem, createValidationProblem } from './problems.js';
 import {

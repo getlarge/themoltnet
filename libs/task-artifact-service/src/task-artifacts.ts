@@ -7,14 +7,14 @@ import {
   stageReadableToTempFile,
 } from '@moltnet/blob-storage';
 import { computeBytesCidFromSha256 } from '@moltnet/crypto-service';
-import type {
-  Task,
-  TaskArtifact,
-  TaskArtifactRepository,
-  TaskRepository,
+import {
+  decodeTaskArtifactCursor,
+  type Task,
+  type TaskArtifact,
+  TaskArtifactConflictError,
+  type TaskArtifactRepository,
+  type TaskRepository,
 } from '@moltnet/database';
-import { TaskArtifactConflictError } from '@moltnet/database';
-import { decodeTaskArtifactCursor } from '@moltnet/database';
 
 import {
   MissingTaskArtifactObjectError,

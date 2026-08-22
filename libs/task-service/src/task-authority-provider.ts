@@ -10,7 +10,7 @@ import {
   EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION,
   hashEffectivePolicySnapshot,
 } from '@moltnet/runtime-policy-service';
-import { RUNTIME_PROFILE_RUNTIME_KIND_REGEXP } from '@moltnet/tasks';
+import { RUNTIME_PROFILE_RUNTIME_KIND_REGEXP } from '@moltnet/runtime-profiles';
 import type {
   TaskAuthorityDecision,
   TaskAuthorityProvider,

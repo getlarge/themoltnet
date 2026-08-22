@@ -8,13 +8,13 @@ import {
   ProblemDetailsSchema,
   TeamHeaderOptionalSchema,
 } from '@moltnet/models';
-import type { RuntimeProfileWorkspaceMode } from '@moltnet/tasks';
 import {
   RuntimeProfile as RuntimeProfileSchema,
   runtimeProfileDefinitionPayload,
   type RuntimeProfileThinkingLevel,
   type RuntimeProfileToolEnforcement,
-} from '@moltnet/tasks';
+  type RuntimeProfileWorkspaceMode,
+} from '@moltnet/runtime-profiles';
 import type { FastifyInstance } from 'fastify';
 import { type Static, Type } from 'typebox';
 

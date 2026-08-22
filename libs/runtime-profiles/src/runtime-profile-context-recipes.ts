@@ -8,7 +8,7 @@
  * so the saved profile is indistinguishable from one an operator typed by hand.
  *
  * This is the single source of truth shared by the console and the docs, both of
- * which consume it from the browser-safe `@moltnet/tasks/context-recipes` subpath.
+ * which consume it from the browser-safe `@moltnet/runtime-profiles/context-recipes` subpath.
  * Fragment `content` is validated against the same {@link ContextRef} schema
  * profiles use — see runtime-profile-context-recipes.test.ts.
  */

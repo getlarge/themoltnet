@@ -30,6 +30,7 @@
     "projectType": "application"
   },
   "dependencies": {
+    "@moltnet/runtime-profiles": "workspace:*",
     "@moltnet/tasks": "workspace:*"
   }
 }

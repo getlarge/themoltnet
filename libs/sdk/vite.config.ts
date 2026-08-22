@@ -35,6 +35,10 @@ export default defineConfig({
           '@moltnet/crypto-service': ['../crypto-service/dist/index.d.ts'],
           '@moltnet/models': ['../models/out-tsc/index.d.ts'],
           '@themoltnet/os-keyring': ['../os-keyring/dist/index.d.ts'],
+          '@moltnet/runtime-profiles': ['../runtime-profiles/dist/index.d.ts'],
+          '@moltnet/runtime-profiles/context-recipes': [
+            '../runtime-profiles/dist/runtime-profile-context-recipes.d.ts',
+          ],
           '@moltnet/tasks': ['../tasks/dist/index.d.ts'],
         },
       },

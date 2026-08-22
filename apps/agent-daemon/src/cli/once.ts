@@ -5,11 +5,9 @@ import {
   AgentRuntime,
   ApiTaskReporter,
   ApiTaskSource,
-  type TaskExecutor,
-} from '@themoltnet/agent-runtime';
-import {
   resolveProfileWarmSessionTtlSec,
   resolveRuntimeProfile,
+  type TaskExecutor,
   validateRuntimeProfilePrerequisites,
 } from '@themoltnet/agent-runtime';
 import {

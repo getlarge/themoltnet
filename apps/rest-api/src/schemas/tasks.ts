@@ -1,4 +1,8 @@
 import {
+  RuntimeProfileRef,
+  type RuntimeProfileRef as RuntimeProfileRefType,
+} from '@moltnet/runtime-profiles';
+import {
   ClaimCondition,
   type ClaimCondition as ClaimConditionType,
   ClaimConditionDefinition,
@@ -6,8 +10,6 @@ import {
   type DaemonState as DaemonStateType,
   ExecutorTrustLevel,
   type ExecutorTrustLevel as ExecutorTrustLevelType,
-  RuntimeProfileRef,
-  type RuntimeProfileRef as RuntimeProfileRefType,
   Task,
   TaskAttempt,
   TaskError,

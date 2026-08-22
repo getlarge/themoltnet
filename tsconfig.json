@@ -198,6 +198,9 @@
       "path": "libs/tasks"
     },
     {
+      "path": "libs/runtime-profiles"
+    },
+    {
       "path": "libs/yubikey-preview-sign"
     },
     {

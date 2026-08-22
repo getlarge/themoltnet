@@ -9,6 +9,7 @@ export default [
       '@earendil-works/pi-ai',
       '@moltnet/crypto-service',
       // Private workspace package bundled into the published Vite output.
+      '@moltnet/runtime-profiles',
       '@moltnet/tasks',
       // Runtime imports promoted from bundled private workspace packages.
       '@ipld/dag-cbor',

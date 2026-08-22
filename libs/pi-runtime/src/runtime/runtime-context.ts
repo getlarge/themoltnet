@@ -13,11 +13,10 @@ import {
   type Skill,
   type SkillFrontmatter,
 } from '@earendil-works/pi-coding-agent';
+import { type ContextRef, TaskContext } from '@moltnet/runtime-profiles';
 import {
-  type ContextRef,
   mergeRuntimeProfileContext,
   resolveTaskContext,
-  TaskContext,
 } from '@themoltnet/agent-runtime';
 import { GUEST_TASK_CONTEXT_MOUNT } from '@themoltnet/sandbox-gondolin';
 import { Value } from 'typebox/value';

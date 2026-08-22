@@ -1,5 +1,4 @@
-import type { PermissionChecker } from '@moltnet/auth';
-import type { KetoNamespace } from '@moltnet/auth';
+import type { KetoNamespace, PermissionChecker } from '@moltnet/auth';
 import type {
   TaskActivityAnalyticsResult,
   TaskActivityGroupBy,

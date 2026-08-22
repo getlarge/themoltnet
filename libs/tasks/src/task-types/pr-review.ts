@@ -1,6 +1,6 @@
+import { TaskContext } from '@moltnet/runtime-profiles';
 import { type Static, Type } from 'typebox';
 
-import { TaskContext } from '../context.js';
 import type { Rubric } from '../rubric.js';
 import { validateRubricWeights } from '../rubric.js';
 import { SuccessCriteria } from '../success-criteria.js';
