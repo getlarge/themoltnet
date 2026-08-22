@@ -225,8 +225,10 @@ export function buildCredentialInstructions(
     '## Identity & credentials',
     '',
     '- Long-lived MoltNet identity and signing credentials remain on the',
-    '  trusted daemon host. No authenticated `.moltnet` tree, SSH signing',
-    '  key, GitHub App private key, or credential helper is injected here.',
+    '  trusted daemon host. Guest credential files, SSH signing keys, GitHub',
+    '  App private keys, and credential helpers are not supported guest',
+    '  capabilities. Do not inspect or use them even if transitional',
+    '  compatibility plumbing makes one visible.',
     '- Use structured `moltnet_*` tools for authenticated MoltNet operations.',
     '  Do not try to recover host configuration through shell commands.',
   ];

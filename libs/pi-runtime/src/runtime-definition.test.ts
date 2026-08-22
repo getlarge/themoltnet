@@ -11,6 +11,8 @@ import {
   filterModelVisibleTools,
   materializePiBrokeredHttpSecrets,
   materializePiExtensions,
+  PiBrokeredHttpSecretResolutionError,
+  type PiRuntimeDefinition,
 } from './runtime-definition.js';
 
 function tool(name: string) {
@@ -145,6 +147,21 @@ describe('Pi runtime definitions', () => {
       'review',
     ]);
     expect(manifest.executables).toEqual(['git']);
+    expect(manifest).not.toHaveProperty('brokeredHttpSecrets');
+
+    const { brokeredHttpSecrets: _brokeredHttpSecrets, ...legacyFields } =
+      runtime;
+    const legacyRuntime = legacyFields as PiRuntimeDefinition;
+    await expect(
+      materializePiBrokeredHttpSecrets({
+        runtime: legacyRuntime,
+        context: {
+          agentName: 'legreffier',
+          claimedTask: {} as never,
+          cwdPath: '/workspace',
+        },
+      }),
+    ).resolves.toEqual([]);
   });
 
   it('attests broker descriptors without resolving or evidencing values', async () => {
@@ -162,7 +179,7 @@ describe('Pi runtime definitions', () => {
         definePiBrokeredHttpSecret({
           id: 'github-api',
           guestEnv: 'GH_TOKEN',
-          hosts: ['api.github.com'],
+          hosts: [' API.GITHUB.COM ', 'api.github.com'],
           required: false,
           resolve,
         }),
@@ -252,6 +269,122 @@ describe('Pi runtime definitions', () => {
       'Brokered HTTP secret "example-api" resolution failed',
     );
     expect(String(error)).not.toContain('secret-value');
+    expect(error).toBeInstanceOf(PiBrokeredHttpSecretResolutionError);
+    expect((error as PiBrokeredHttpSecretResolutionError).retryable).toBe(true);
+  });
+
+  it('classifies missing required values as permanent and omits optional values', async () => {
+    const runtime = definePiRuntime({
+      id: 'credential-runtime',
+      version: '1',
+      vm: defineGondolinTemplate({
+        id: 'test-vm',
+        version: '1',
+        checkpointPath: '/tmp/checkpoint',
+      }),
+      brokeredHttpSecrets: [
+        definePiBrokeredHttpSecret({
+          id: 'required-api',
+          guestEnv: 'REQUIRED_API_TOKEN',
+          hosts: ['api.example.com'],
+          resolve: () => undefined,
+        }),
+      ],
+    });
+
+    await expect(
+      materializePiBrokeredHttpSecrets({
+        runtime,
+        context: {
+          agentName: 'legreffier',
+          claimedTask: {} as never,
+          cwdPath: '/workspace',
+        },
+      }),
+    ).rejects.toMatchObject({
+      name: 'PiBrokeredHttpSecretResolutionError',
+      retryable: false,
+    });
+
+    const optionalRuntime = definePiRuntime({
+      id: 'optional-runtime',
+      version: '1',
+      vm: runtime.vm,
+      brokeredHttpSecrets: [
+        definePiBrokeredHttpSecret({
+          id: 'optional-api',
+          guestEnv: 'OPTIONAL_API_TOKEN',
+          hosts: ['api.example.com'],
+          required: false,
+          resolve: () => undefined,
+        }),
+      ],
+    });
+    await expect(
+      materializePiBrokeredHttpSecrets({
+        runtime: optionalRuntime,
+        context: {
+          agentName: 'legreffier',
+          claimedTask: {} as never,
+          cwdPath: '/workspace',
+        },
+      }),
+    ).resolves.toEqual([
+      expect.objectContaining({ id: 'optional-api', value: undefined }),
+    ]);
+  });
+
+  it('bounds resolution and passes an abort signal to the provider', async () => {
+    let resolverSignal: AbortSignal | undefined;
+    const runtime = definePiRuntime({
+      id: 'credential-runtime',
+      version: '1',
+      vm: defineGondolinTemplate({
+        id: 'test-vm',
+        version: '1',
+        checkpointPath: '/tmp/checkpoint',
+      }),
+      brokeredHttpSecrets: [
+        definePiBrokeredHttpSecret({
+          id: 'slow-api',
+          guestEnv: 'SLOW_API_TOKEN',
+          hosts: ['api.example.com'],
+          resolve: ({ signal }) => {
+            resolverSignal = signal;
+            return new Promise<string>(() => {});
+          },
+        }),
+      ],
+    });
+
+    await expect(
+      materializePiBrokeredHttpSecrets({
+        runtime,
+        context: {
+          agentName: 'legreffier',
+          claimedTask: {} as never,
+          cwdPath: '/workspace',
+        },
+        timeoutMs: 5,
+      }),
+    ).rejects.toMatchObject({
+      name: 'PiBrokeredHttpSecretResolutionError',
+      retryable: true,
+    });
+    expect(resolverSignal?.aborted).toBe(true);
+
+    const attemptController = new AbortController();
+    const pending = materializePiBrokeredHttpSecrets({
+      runtime,
+      context: {
+        agentName: 'legreffier',
+        claimedTask: {} as never,
+        cwdPath: '/workspace',
+      },
+      signal: attemptController.signal,
+    });
+    attemptController.abort();
+    await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
   });
 
   it('keeps protocol tools while enforcing the model-visible allowlist', () => {

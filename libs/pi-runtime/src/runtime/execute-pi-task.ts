@@ -53,6 +53,7 @@ import {
 } from '@themoltnet/agent-runtime';
 import {
   activateAgentEnv,
+  type BrokeredHttpSecretBinding,
   ensureSnapshot,
   type GuestCredentialMode,
   resolveVfsShadowConfig,
@@ -76,6 +77,7 @@ import {
   materializePiExtensions,
   materializePiTools,
   modelVisiblePiToolNames,
+  PiBrokeredHttpSecretResolutionError,
   type PiRuntimeDefinition,
   type ResolvedGondolinTemplate,
 } from '../runtime-definition.js';
@@ -484,6 +486,28 @@ export interface ExecutePiTaskOptions {
 
 export const DEFAULT_PROVIDER_ERROR_RETRIES = 4;
 
+/** Resolve one attempt's host-only HTTP credentials before VM resume. */
+export async function resolveAttemptBrokeredHttpSecrets(input: {
+  runtimeDefinition?: PiRuntimeDefinition;
+  agentName: string;
+  claimedTask: ClaimedTask;
+  cwdPath: string;
+  signal: AbortSignal;
+  timeoutMs?: number;
+}): Promise<BrokeredHttpSecretBinding[] | undefined> {
+  if (!input.runtimeDefinition) return undefined;
+  return materializePiBrokeredHttpSecrets({
+    runtime: input.runtimeDefinition,
+    context: {
+      agentName: input.agentName,
+      claimedTask: input.claimedTask,
+      cwdPath: input.cwdPath,
+    },
+    signal: input.signal,
+    timeoutMs: input.timeoutMs,
+  });
+}
+
 export function createMoltNetAgentResolver(input: {
   moltnetAgent?: Agent;
   configDir: string;
@@ -706,7 +730,6 @@ export async function executePiTask(
     // failures can surface as task messages instead of only daemon logs.
     let checkpointPath: string;
     let resolvedVmTemplate = opts.resolvedVmTemplate;
-    let effectiveSandboxConfig: SandboxConfig | undefined;
     let brokeredSecretEnvNames: string[] = [];
     try {
       if (!resolvedVmTemplate && opts.runtimeDefinition) {
@@ -772,36 +795,60 @@ export async function executePiTask(
     }
     const preparedWorkspace = workspace;
 
+    const effectiveSandboxConfig = applyExecutionPlanSandboxOverrides(
+      resolvedVmTemplate
+        ? {
+            ...opts.sandboxConfig,
+            snapshot: undefined,
+            resumeCommands: [...resolvedVmTemplate.resumeCommands],
+          }
+        : opts.sandboxConfig,
+      executionPlan,
+    );
+    let brokeredSecrets: BrokeredHttpSecretBinding[] | undefined;
     try {
-      effectiveSandboxConfig = applyExecutionPlanSandboxOverrides(
-        resolvedVmTemplate
-          ? {
-              ...opts.sandboxConfig,
-              snapshot: undefined,
-              resumeCommands: [...resolvedVmTemplate.resumeCommands],
-            }
-          : opts.sandboxConfig,
-        executionPlan,
-      );
       const runtimeDefinition = opts.runtimeDefinition;
-      const brokeredSecrets = runtimeDefinition
+      brokeredSecrets = runtimeDefinition
         ? await traceRuntimePhase(
             'moltnet.execution.credentials.resolve',
             {
               'moltnet.credentials.requirement_count':
-                runtimeDefinition.brokeredHttpSecrets.length,
+                runtimeDefinition.brokeredHttpSecrets?.length ?? 0,
             },
             () =>
-              materializePiBrokeredHttpSecrets({
-                runtime: runtimeDefinition,
-                context: {
-                  agentName: opts.agentName,
-                  claimedTask,
-                  cwdPath,
-                },
+              resolveAttemptBrokeredHttpSecrets({
+                runtimeDefinition,
+                agentName: opts.agentName,
+                claimedTask,
+                cwdPath,
+                signal: reporter.cancelSignal,
               }),
           )
         : undefined;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (
+        reporter.cancelSignal.aborted ||
+        (err as Error)?.name === 'AbortError'
+      ) {
+        await emitError('credential_resolution', message, { cancelled: true });
+        return makeCancelledOutput(
+          reporter.cancelReason ??
+            'Task cancelled during credential resolution.',
+        );
+      }
+      await emitError('credential_resolution', message);
+      return makeFailedOutput(
+        'credential_resolution_failed',
+        message,
+        finalUsage,
+        err instanceof PiBrokeredHttpSecretResolutionError
+          ? err.retryable
+          : false,
+      );
+    }
+
+    try {
       brokeredSecretEnvNames = (brokeredSecrets ?? [])
         .filter(({ value }) => value !== undefined && value !== '')
         .map(({ guestEnv }) => guestEnv)

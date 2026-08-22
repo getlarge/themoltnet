@@ -58,6 +58,7 @@ export type {
 } from './runtime/task-event-emitter.js';
 export {
   buildPiExecutorManifest,
+  DEFAULT_BROKERED_HTTP_SECRET_RESOLUTION_TIMEOUT_MS,
   defineGondolinTemplate,
   type DefineGondolinTemplateOptions,
   definePiBrokeredHttpSecret,
@@ -79,6 +80,7 @@ export {
   PI_EXECUTOR_MANIFEST_VERSION,
   PI_RUNTIME_DEFINITION_VERSION,
   type PiBrokeredHttpSecretContribution,
+  PiBrokeredHttpSecretResolutionError,
   type PiBrokeredHttpSecretResolveContext,
   type PiExecutorManifest,
   type PiExtensionContribution,

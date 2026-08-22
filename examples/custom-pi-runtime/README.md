@@ -143,8 +143,10 @@ export const runtime = definePiRuntime({
 
 The descriptor is included in executor-manifest evidence; the resolver is not
 called while the manifest is built. It runs on the trusted host for each task
-attempt immediately before VM resume. Resolver failures produce a stable,
-value-free diagnostic.
+attempt immediately before VM resume. The resolver context includes an
+`AbortSignal`; resolution is bounded to 30 seconds by default and is cancelled
+with the attempt. Resolver failures produce a stable, value-free diagnostic and
+are classified separately from VM-resume failures.
 
 When `MOLTNET_RUNTIME_GITHUB_TOKEN` is set on the daemon host, an authorized
 guest command can use the ordinary CLI form:

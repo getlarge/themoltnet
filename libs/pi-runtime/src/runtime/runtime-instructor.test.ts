@@ -30,7 +30,8 @@ describe('runtime kernel', () => {
   it('declares the host-only credential boundary by default', () => {
     const out = buildRuntimeKernel(ctx);
     expect(out).toContain('remain on the');
-    expect(out).toContain('No authenticated `.moltnet` tree');
+    expect(out).toContain('not supported guest');
+    expect(out).toContain('transitional');
     expect(out).toContain('No brokered GitHub credential is active');
     expect(out).not.toContain('GH_TOKEN=$(moltnet github token');
     expect(out).not.toContain('/home/agent/.moltnet/<agent>/moltnet.json');
@@ -51,7 +52,7 @@ describe('runtime kernel', () => {
     });
 
     expect(out).toContain('remain on the');
-    expect(out).toContain('No authenticated `.moltnet` tree');
+    expect(out).toContain('not supported guest');
     expect(out).toContain('host-brokered `GH_TOKEN`');
     expect(out).toContain('opaque');
     expect(out).not.toContain('GH_TOKEN=$(moltnet github token');
@@ -74,7 +75,7 @@ describe('runtime kernel', () => {
       degraded: false,
     });
 
-    expect(out).toContain('No authenticated `.moltnet` tree');
+    expect(out).toContain('not supported guest');
     expect(out).not.toContain('/home/agent/.moltnet/<agent>/moltnet.json');
     expect(out).not.toContain('GH_TOKEN=');
     expect(out).not.toContain('`git push`');

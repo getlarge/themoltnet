@@ -26,6 +26,11 @@ import type { ClaimedTask } from '@themoltnet/agent-runtime';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  defineGondolinTemplate,
+  definePiBrokeredHttpSecret,
+  definePiRuntime,
+} from '../runtime-definition.js';
+import {
   buildAttemptResult,
   buildSubmitMissingPrompt,
   buildSubmitValidationPrompt,
@@ -47,6 +52,7 @@ import {
   openVmWorkspaceFileForRead,
   promptUntilSubmitted,
   promptWithProviderErrorRetries,
+  resolveAttemptBrokeredHttpSecrets,
   resolveHostExecBaseEnv,
   resolveSubmitMissingConfig,
   sanitizeProviderErrorRetryReason,
@@ -56,6 +62,60 @@ import {
   submitRepromptStopped,
   wireSessionAbort,
 } from './execute-pi-task.js';
+
+describe('resolveAttemptBrokeredHttpSecrets', () => {
+  it('keeps legacy runtimes compatible and binds attempt context', async () => {
+    const signal = new AbortController().signal;
+    await expect(
+      resolveAttemptBrokeredHttpSecrets({
+        agentName: 'legreffier',
+        claimedTask: {} as ClaimedTask,
+        cwdPath: '/workspace',
+        signal,
+      }),
+    ).resolves.toBeUndefined();
+
+    let resolverSignal: AbortSignal | undefined;
+    const resolve = vi.fn(({ signal }: { signal: AbortSignal }) => {
+      resolverSignal = signal;
+      return 'host-only-value';
+    });
+    const runtimeDefinition = definePiRuntime({
+      id: 'credential-runtime',
+      version: '1',
+      vm: defineGondolinTemplate({
+        id: 'test-vm',
+        version: '1',
+        checkpointPath: '/tmp/checkpoint',
+      }),
+      brokeredHttpSecrets: [
+        definePiBrokeredHttpSecret({
+          id: 'example-api',
+          guestEnv: 'EXAMPLE_API_TOKEN',
+          hosts: ['api.example.com'],
+          resolve,
+        }),
+      ],
+    });
+
+    await expect(
+      resolveAttemptBrokeredHttpSecrets({
+        runtimeDefinition,
+        agentName: 'legreffier',
+        claimedTask: {} as ClaimedTask,
+        cwdPath: '/workspace',
+        signal,
+      }),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        guestEnv: 'EXAMPLE_API_TOKEN',
+        value: 'host-only-value',
+      }),
+    ]);
+    expect(resolve).toHaveBeenCalledOnce();
+    expect(resolverSignal?.aborted).toBe(false);
+  });
+});
 
 describe('buildToolPolicyDecisionContext', () => {
   it('keeps claim and execution profile provenance distinct', () => {

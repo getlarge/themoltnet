@@ -10,6 +10,7 @@ import type { ClaimedTask, TaskReporter } from '@themoltnet/agent-runtime';
 import {
   type BrokeredHttpSecretBinding,
   type BrokeredHttpSecretDescriptor,
+  canonicalizeBrokeredHttpSecretDescriptor,
   ensureSnapshot,
   type ResumeCommand,
   type SnapshotConfig,
@@ -55,6 +56,21 @@ export interface PiBrokeredHttpSecretResolveContext {
   agentName: string;
   claimedTask: ClaimedTask;
   cwdPath: string;
+  /** Cancelled when the attempt stops or the resolver exceeds its deadline. */
+  signal: AbortSignal;
+}
+
+export const DEFAULT_BROKERED_HTTP_SECRET_RESOLUTION_TIMEOUT_MS = 30_000;
+
+export class PiBrokeredHttpSecretResolutionError extends Error {
+  constructor(
+    public readonly requirementId: string,
+    message: string,
+    public readonly retryable: boolean,
+  ) {
+    super(message);
+    this.name = 'PiBrokeredHttpSecretResolutionError';
+  }
 }
 
 export interface PiBrokeredHttpSecretContribution {
@@ -79,23 +95,7 @@ export interface DefinePiBrokeredHttpSecretOptions extends BrokeredHttpSecretDes
 export function definePiBrokeredHttpSecret(
   options: DefinePiBrokeredHttpSecretOptions,
 ): PiBrokeredHttpSecretContribution {
-  if (!/^[a-z][a-z0-9._-]{0,63}$/.test(options.id)) {
-    throw new Error(`Invalid brokered HTTP secret id "${options.id}"`);
-  }
-  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(options.guestEnv)) {
-    throw new Error(
-      `Invalid brokered HTTP secret guest env "${options.guestEnv}"`,
-    );
-  }
-  if (options.hosts.length === 0) {
-    throw new Error(`Brokered HTTP secret "${options.id}" requires a host`);
-  }
-  const descriptor = Object.freeze({
-    id: options.id,
-    guestEnv: options.guestEnv,
-    hosts: Object.freeze([...new Set(options.hosts)].sort()),
-    required: options.required ?? true,
-  });
+  const descriptor = canonicalizeBrokeredHttpSecretDescriptor(options);
   return Object.freeze({
     kind: 'brokered_http_secret',
     descriptor,
@@ -282,7 +282,8 @@ export interface PiRuntimeDefinition {
   readonly version: string;
   readonly runtimeKind: string;
   readonly vm: GondolinTemplateDefinition;
-  readonly brokeredHttpSecrets: readonly PiBrokeredHttpSecretContribution[];
+  /** Optional v1 extension; absent on independently packaged legacy runtimes. */
+  readonly brokeredHttpSecrets?: readonly PiBrokeredHttpSecretContribution[];
   readonly tools: readonly PiToolContribution[];
   readonly extensions: readonly PiExtensionContribution[];
 }
@@ -358,7 +359,8 @@ export interface PiExecutorManifest {
     templateFingerprint: string;
     guestAssetBuildId: string;
   };
-  brokeredHttpSecrets: {
+  /** Optional v1 extension, emitted only when requirements are declared. */
+  brokeredHttpSecrets?: {
     id: string;
     guestEnv: string;
     hosts: readonly string[];
@@ -384,6 +386,7 @@ export async function buildPiExecutorManifest(input: {
   builtInTools?: readonly PiToolDescriptor[];
   builtInToolNames?: readonly string[];
 }): Promise<PiExecutorManifest> {
+  const brokeredHttpSecrets = input.runtime.brokeredHttpSecrets ?? [];
   const descriptors = [
     ...(input.builtInTools ?? []).map((descriptor) => ({
       descriptor,
@@ -428,14 +431,16 @@ export async function buildPiExecutorManifest(input: {
       templateFingerprint: input.template.fingerprint,
       guestAssetBuildId: input.template.guestAssetBuildId,
     },
-    brokeredHttpSecrets: input.runtime.brokeredHttpSecrets
-      .map(({ descriptor }) => ({
-        id: descriptor.id,
-        guestEnv: descriptor.guestEnv,
-        hosts: [...descriptor.hosts],
-        required: descriptor.required !== false,
-      }))
-      .sort((left, right) => left.id.localeCompare(right.id)),
+    ...(brokeredHttpSecrets.length > 0 && {
+      brokeredHttpSecrets: brokeredHttpSecrets
+        .map(({ descriptor }) => ({
+          id: descriptor.id,
+          guestEnv: descriptor.guestEnv,
+          hosts: [...descriptor.hosts],
+          required: descriptor.required !== false,
+        }))
+        .sort((left, right) => left.id.localeCompare(right.id)),
+    }),
     tools,
     extensions: input.runtime.extensions.map((extension) => ({
       id: extension.id,
@@ -448,25 +453,94 @@ export async function buildPiExecutorManifest(input: {
 
 export async function materializePiBrokeredHttpSecrets(input: {
   runtime: PiRuntimeDefinition;
-  context: PiBrokeredHttpSecretResolveContext;
+  context: Omit<PiBrokeredHttpSecretResolveContext, 'signal'>;
+  signal?: AbortSignal;
+  timeoutMs?: number;
 }): Promise<BrokeredHttpSecretBinding[]> {
+  const timeoutMs =
+    input.timeoutMs ?? DEFAULT_BROKERED_HTTP_SECRET_RESOLUTION_TIMEOUT_MS;
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    throw new Error('Brokered HTTP secret resolution timeout must be positive');
+  }
   return Promise.all(
-    input.runtime.brokeredHttpSecrets.map(async ({ descriptor, resolve }) => {
-      try {
-        return {
-          ...descriptor,
-          hosts: [...descriptor.hosts],
-          value: await resolve(input.context),
-        };
-      } catch {
-        // Resolver failures cross into task diagnostics. Keep the message
-        // stable and value-free even when trusted integration code throws an
-        // upstream error containing credential material.
-        throw new Error(
-          `Brokered HTTP secret "${descriptor.id}" resolution failed`,
-        );
-      }
-    }),
+    (input.runtime.brokeredHttpSecrets ?? []).map(
+      async ({ descriptor, resolve }) => {
+        const controller = new AbortController();
+        let timedOut = false;
+        const abortFromAttempt = () => controller.abort(input.signal?.reason);
+        if (input.signal?.aborted) {
+          abortFromAttempt();
+        } else {
+          input.signal?.addEventListener('abort', abortFromAttempt, {
+            once: true,
+          });
+        }
+        const timeout = setTimeout(() => {
+          timedOut = true;
+          controller.abort();
+        }, timeoutMs);
+        const abortPromise = new Promise<never>((_, reject) => {
+          const rejectAbort = () => {
+            const error = new Error('Brokered HTTP secret resolution aborted');
+            error.name = 'AbortError';
+            reject(error);
+          };
+          if (controller.signal.aborted) rejectAbort();
+          else
+            controller.signal.addEventListener('abort', rejectAbort, {
+              once: true,
+            });
+        });
+
+        try {
+          const value = await Promise.race([
+            Promise.resolve(
+              resolve({
+                ...input.context,
+                signal: controller.signal,
+              }),
+            ),
+            abortPromise,
+          ]);
+          if (
+            (value === undefined || value === '') &&
+            descriptor.required !== false
+          ) {
+            throw new PiBrokeredHttpSecretResolutionError(
+              descriptor.id,
+              `Required brokered HTTP secret "${descriptor.id}" is unavailable`,
+              false,
+            );
+          }
+          return {
+            ...descriptor,
+            hosts: [...descriptor.hosts],
+            value,
+          };
+        } catch (error) {
+          if (input.signal?.aborted) {
+            const aborted = new Error(
+              'Brokered HTTP secret resolution aborted',
+            );
+            aborted.name = 'AbortError';
+            throw aborted;
+          }
+          if (error instanceof PiBrokeredHttpSecretResolutionError) throw error;
+          const reason = timedOut ? 'timed out' : 'failed';
+          // Resolver failures cross into task diagnostics. Keep the message
+          // stable and value-free even when trusted integration code throws an
+          // upstream error containing credential material.
+          throw new PiBrokeredHttpSecretResolutionError(
+            descriptor.id,
+            `Brokered HTTP secret "${descriptor.id}" resolution ${reason}`,
+            true,
+          );
+        } finally {
+          clearTimeout(timeout);
+          input.signal?.removeEventListener('abort', abortFromAttempt);
+        }
+      },
+    ),
   );
 }
 
