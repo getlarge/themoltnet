@@ -1,6 +1,6 @@
 {
   "name": "@moltnet/rest-api",
-  "version": "0.46.0",
+  "version": "0.47.0",
   "license": "AGPL-3.0-only",
   "private": true,
   "type": "module",

@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.84.0](https://github.com/getlarge/themoltnet/compare/cli-v1.83.0...cli-v1.84.0) (2026-08-22)
+
+
+### Features
+
+* add identity-scoped agent-key lifecycle ([babb76b](https://github.com/getlarge/themoltnet/commit/babb76b12800646e11340e354eaa12f284fb022e))
+* **agent-keys:** expose binding-aware clients ([4f71142](https://github.com/getlarge/themoltnet/commit/4f711427981a243fe8f002778d74bc8ba75fe1d0))
+
+
+### Bug Fixes
+
+* **agent-keys:** address review and CI blockers ([b6f1ca7](https://github.com/getlarge/themoltnet/commit/b6f1ca72082d15c4328b7394630c3d6b110ddfd3))
+
 ## [1.83.0](https://github.com/getlarge/themoltnet/compare/cli-v1.82.0...cli-v1.83.0) (2026-08-19)
 
 

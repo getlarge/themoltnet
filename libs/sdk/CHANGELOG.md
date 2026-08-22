@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.136.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.135.0...sdk-v0.136.0) (2026-08-22)
+
+
+### Features
+
+* add identity-scoped agent-key lifecycle ([babb76b](https://github.com/getlarge/themoltnet/commit/babb76b12800646e11340e354eaa12f284fb022e))
+* **agent-keys:** expose binding-aware clients ([4f71142](https://github.com/getlarge/themoltnet/commit/4f711427981a243fe8f002778d74bc8ba75fe1d0))
+
+
+### Bug Fixes
+
+* **build:** bundle @moltnet/runtime-profiles declarations into published packages ([871b21a](https://github.com/getlarge/themoltnet/commit/871b21ac59e5d7a99f2bf5de174985dcade05da6)), closes [#1890](https://github.com/getlarge/themoltnet/issues/1890)
+* **deps:** keep @moltnet/runtime-profiles a bundled devDependency in published packages ([ed96856](https://github.com/getlarge/themoltnet/commit/ed968566e589faaab02a13d83066ba0966fca3e2)), closes [#1890](https://github.com/getlarge/themoltnet/issues/1890)
+
 ## [0.135.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.134.0...sdk-v0.135.0) (2026-08-19)
 
 

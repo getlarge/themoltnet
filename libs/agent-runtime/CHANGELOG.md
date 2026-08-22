@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.43.2](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.43.1...agent-runtime-v0.43.2) (2026-08-22)
+
+
+### Bug Fixes
+
+* **build:** bundle @moltnet/runtime-profiles declarations into published packages ([871b21a](https://github.com/getlarge/themoltnet/commit/871b21ac59e5d7a99f2bf5de174985dcade05da6)), closes [#1890](https://github.com/getlarge/themoltnet/issues/1890)
+* **deps:** keep @moltnet/runtime-profiles a bundled devDependency in published packages ([ed96856](https://github.com/getlarge/themoltnet/commit/ed968566e589faaab02a13d83066ba0966fca3e2)), closes [#1890](https://github.com/getlarge/themoltnet/issues/1890)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.136.0
+
 ## [0.43.1](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.43.0...agent-runtime-v0.43.1) (2026-08-19)
 
 
