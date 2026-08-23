@@ -324,7 +324,7 @@ All Dockerfiles in this repo are **packaging-only**. Build, typecheck, vendor-tr
 The shape:
 
 - **Host targets (cached):** `build`, `build:migrate`, `download-model`, … produce `apps/<app>/dist/` (or `libs/<lib>/dist/`).
-- **Docker `build` stage:** runs `pnpm install --frozen-lockfile --prod` and `pnpm --filter <pkg> deploy --legacy --prod /out` inside a linux container so optional native deps (sharp, onnxruntime-node, esbuild, …) resolve to the right linux binaries. No `nx`, `vite`, or `tsc` runs in here.
+- **Docker `build` stage:** runs `pnpm fetch --prod` in a lockfile-only layer, then `pnpm install --offline --frozen-lockfile --prod` and `pnpm --filter <pkg> deploy --legacy --prod /out` inside a linux container so optional native deps (sharp, onnxruntime-node, esbuild, …) resolve to the right linux binaries. The fetched store is a normal layer exported by CI's registry cache, so source and host-artifact changes do not force dependency downloads. No `nx`, `vite`, or `tsc` runs in here.
 - **Docker `production` stage:** `COPY --from=build /out ./` plus any sibling assets (e.g. `libs/database/drizzle/`). For nginx-only SPAs (landing, console), the whole image is a single `FROM nginx:alpine` + `COPY dist`.
 
 `docker:build` is the **single** image-build mechanism — local, CI, Release Please, and `nx release` all go through it (issue #1498). The six docker-images projects (`@moltnet/rest-api`, `@moltnet/mcp-server`, `@moltnet/console`, `@moltnet/mcp-host`, `@moltnet/landing`, `@moltnet/database`) each define `docker:build` as an `nx:run-commands` target that invokes `tools/docker-build.mjs` (overriding the `@nx/docker` plugin's inferred target — the plugin's `{projectName}` resolves to the scoped, non-tag-safe `@moltnet/x`). The script:

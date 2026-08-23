@@ -9,8 +9,9 @@
 #     → produces apps/rest-api/{dist/{main.js,migrate.js,openapi.json},models/}
 #     The model directory is a sibling of dist/ (not under it) so the
 #     33 MB blob doesn't bust the build target's input cache; see #1309.
-#   * Docker build stage: runs `pnpm install --frozen-lockfile --prod` and
-#     `pnpm deploy` inside a linux container so optional native deps
+#   * Docker build stage: fetches production dependencies from the lockfile,
+#     then runs an offline `pnpm install` and `pnpm deploy` inside a linux
+#     container so optional native deps
 #     (onnxruntime-node, sharp, …) resolve to the right linux binaries.
 #   * Production stage: COPYs the deploy tree from build + the host-built
 #     dist artifacts. No `nx`, no `vite`, no `tsc` ever runs in here.
@@ -34,13 +35,16 @@ RUN npm install -g pnpm@${PNPM_VERSION}
 FROM base AS build
 WORKDIR /repo
 
-# Repo is COPYed wholesale; .dockerignore prunes everything not needed for
-# `pnpm install` + `pnpm deploy`. Per-app prebuilt dist/ trees come along so
-# the deployed tree picks them up via the package's own files glob.
+# Keep downloaded packages in a normal image layer so CI's registry cache can
+# restore them on ephemeral builders when source or host-built artifacts change.
+COPY pnpm-lock.yaml ./
+RUN pnpm fetch --prod
+
+# .dockerignore prunes everything not needed for install + deploy. Per-app
+# prebuilt dist/ trees come along so deploy picks them up via the files glob.
 COPY . .
 
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --frozen-lockfile --prod
+RUN pnpm install --offline --frozen-lockfile --prod
 
 RUN pnpm --filter @moltnet/rest-api deploy --legacy --prod /out
 
