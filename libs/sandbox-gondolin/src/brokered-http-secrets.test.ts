@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   BrokeredHttpSecretBoundaryError,
   canonicalizeBrokeredHttpSecretDescriptor,
+  createBrokeredHttpNetworkOriginPolicy,
   prepareBrokeredHttpSecrets,
 } from './vm-manager.js';
 
@@ -305,5 +306,53 @@ describe('brokered HTTP secret preflight', () => {
         ],
       }),
     ).toThrow(/already supplied by another source/);
+  });
+});
+
+describe('brokered HTTP network origin policy', () => {
+  const policy = createBrokeredHttpNetworkOriginPolicy([
+    {
+      id: 'fixture-api',
+      guestEnv: 'FIXTURE_API_TOKEN',
+      hosts: ['fixture.internal'],
+      protocol: 'http',
+      ports: [18_080],
+    },
+  ]);
+
+  it('allows the attested protocol, hostname, and port', () => {
+    expect(
+      policy.isRequestAllowed(
+        new Request('http://fixture.internal:18080/resource'),
+      ),
+    ).toBe(true);
+    expect(
+      policy.isIpAllowed({
+        hostname: 'fixture.internal',
+        ip: '127.0.0.1',
+        family: 4,
+        protocol: 'http',
+        port: 18_080,
+      }),
+    ).toBe(true);
+  });
+
+  it('denies adjacent ports and protocol changes for a protected host', () => {
+    expect(
+      policy.isRequestAllowed(
+        new Request('http://fixture.internal:18081/resource'),
+      ),
+    ).toBe(false);
+    expect(
+      policy.isRequestAllowed(
+        new Request('https://fixture.internal:18080/resource'),
+      ),
+    ).toBe(false);
+  });
+
+  it('leaves unrelated hosts to the outer Gondolin hostname policy', () => {
+    expect(
+      policy.isRequestAllowed(new Request('https://api.example.com/resource')),
+    ).toBe(true);
   });
 });

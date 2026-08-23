@@ -1,4 +1,9 @@
 export { abortableResource, delay, throwIfAborted } from './abort-utils.js';
+export {
+  execManagedCommand,
+  type ManagedExecOptions,
+  type ManagedExecResult,
+} from './managed-exec.js';
 export { isResolvedPathInsideRoot } from './path-containment.js';
 export {
   ensureSnapshot,

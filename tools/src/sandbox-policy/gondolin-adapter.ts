@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import {
   ensureSnapshot,
+  execManagedCommand,
   type ManagedVm,
   resumeVm,
 } from '@themoltnet/sandbox-gondolin';
@@ -93,7 +94,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
       this.#checkpointPath = await ensureSnapshot();
       this.#inventory = {
         id: BACKEND_ID,
-        version: '0.9.1-workspace',
+        version: '0.12.0-workspace',
         runtime: 'Gondolin microVM',
         os: os.platform(),
         architecture: os.arch(),
@@ -706,21 +707,21 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
           rm(started, { force: true }),
         ]);
         const controller = new AbortController();
-        const process = current.vm.exec(
-          [
-            '/bin/sh',
-            '-lc',
-            `printf started > "$MOLTNET_GUEST_WORKSPACE/${startedName}"; sleep 5; printf escaped > "$MOLTNET_GUEST_WORKSPACE/${markerName}"`,
-          ],
-          { signal: controller.signal, stdout: 'pipe', stderr: 'pipe' },
+        const process = execManagedCommand(
+          current.vm,
+          `printf started > "$MOLTNET_GUEST_WORKSPACE/${startedName}"; sleep 5; printf escaped > "$MOLTNET_GUEST_WORKSPACE/${markerName}"`,
+          scenario.id === 'lifecycle.timeout'
+            ? { timeoutMs: 1_000 }
+            : { signal: controller.signal },
         );
-        void Promise.resolve(process).catch(() => undefined);
         for (let attempt = 0; attempt < 40; attempt += 1) {
           const acknowledged = await readFile(started, 'utf8').catch(() => '');
           if (acknowledged === 'started') break;
           await sleep(100);
         }
-        controller.abort();
+        if (scenario.id === 'lifecycle.cancel') controller.abort();
+        const termination = await process;
+        if (termination.terminationMode === 'vm-close') this.#managed = null;
         await sleep(6_000);
         const escaped = await readFile(marker, 'utf8').catch(() => '');
         return this.#evidence(
@@ -730,11 +731,14 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
             kind: 'delayed-marker-absence',
             expected: 'absent',
             observed: escaped === '' ? 'absent' : 'present',
-            passed: escaped === '',
+            passed: escaped === '' && termination.terminationConfirmed === true,
           },
-          { termination: 'exec-abort', guestKill: 'not-issued' },
-          'exec_abort_process_lifetime_observed',
-          ['Gondolin host exec session'],
+          {
+            termination: termination.terminationMode,
+            confirmed: termination.terminationConfirmed,
+          },
+          'managed_process_group_termination_observed',
+          ['MoltNet managed exec', 'Gondolin guest process group'],
         );
       }
       case 'lifecycle.partial-launch': {

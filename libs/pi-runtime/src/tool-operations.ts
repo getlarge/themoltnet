@@ -24,7 +24,10 @@ import {
   truncateHead,
   truncateLine,
 } from '@earendil-works/pi-coding-agent';
-import { GUEST_TASK_CONTEXT_MOUNT } from '@themoltnet/sandbox-gondolin';
+import {
+  execManagedCommand,
+  GUEST_TASK_CONTEXT_MOUNT,
+} from '@themoltnet/sandbox-gondolin';
 
 export type {
   BashOperations,
@@ -590,49 +593,29 @@ export function createGondolinBashOps(
   return {
     exec: async (command, cwd, { onData, signal, timeout, env }) => {
       const guestCwd = toGuestPath(localCwd, cwd, guestWorkspace);
-      const ac = new AbortController();
-      const onAbort = () => ac.abort();
-      signal?.addEventListener('abort', onAbort, { once: true });
+      // Do not forward host env to guest — the VM has its own env set at
+      // resume time. Forwarding leaks host-specific paths (GOROOT, PATH, etc).
+      void env;
 
-      let timedOut = false;
-      const timer =
-        timeout && timeout > 0
-          ? setTimeout(() => {
-              timedOut = true;
-              ac.abort();
-            }, timeout * 1000)
-          : undefined;
-
-      try {
-        // Do not forward host env to guest — the VM has its own env set at
-        // resume time. Forwarding leaks host-specific paths (GOROOT, PATH, etc).
-        void env;
-
-        const proc = vm.exec(['/bin/sh', '-lc', command], {
-          cwd: guestCwd,
-          signal: ac.signal,
-          stdout: 'pipe',
-          stderr: 'pipe',
-        });
-
-        for await (const chunk of proc.output()) {
-          const buf =
-            typeof chunk.data === 'string'
-              ? Buffer.from(chunk.data, 'utf8')
-              : chunk.data;
-          onData(buf);
+      const result = await execManagedCommand(vm, command, {
+        cwd: guestCwd,
+        signal,
+        timeoutMs: timeout && timeout > 0 ? timeout * 1000 : undefined,
+        onData,
+      });
+      if (result.timedOut) {
+        if (!result.terminationConfirmed) {
+          throw new Error(`timeout:${timeout}:termination-unconfirmed`);
         }
-
-        const r = await proc;
-        return { exitCode: r.exitCode };
-      } catch (err) {
-        if (signal?.aborted) throw new Error('aborted');
-        if (timedOut) throw new Error(`timeout:${timeout}`);
-        throw err;
-      } finally {
-        if (timer) clearTimeout(timer);
-        signal?.removeEventListener('abort', onAbort);
+        throw new Error(`timeout:${timeout}`);
       }
+      if (result.cancelled) {
+        if (!result.terminationConfirmed) {
+          throw new Error('aborted:termination-unconfirmed');
+        }
+        throw new Error('aborted');
+      }
+      return { exitCode: result.exitCode };
     },
   };
 }

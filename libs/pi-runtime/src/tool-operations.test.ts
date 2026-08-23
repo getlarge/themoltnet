@@ -1,7 +1,8 @@
 import { GUEST_TASK_CONTEXT_MOUNT } from '@themoltnet/sandbox-gondolin';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
+  createGondolinBashOps,
   createGondolinFindOps,
   createGondolinLsOps,
   createGondolinReadOps,
@@ -290,5 +291,39 @@ describe('Gondolin read-only tool operations', () => {
     expect(result.content[0]?.text).toContain('src/one.ts-1- alpha');
     expect(result.content[0]?.text).toContain('src/one.ts:2: needle');
     expect(result.content[0]?.text).toContain('src/one.ts-3- omega');
+  });
+});
+
+describe('Gondolin bash operations', () => {
+  it('routes production bash commands through the managed process-group runner', async () => {
+    const exec = vi.fn((_command: unknown, _options?: unknown) =>
+      Object.assign(Promise.resolve({ exitCode: 0 }), {
+        output: async function* () {
+          await Promise.resolve();
+          yield { data: 'ok', stream: 'stdout' };
+        },
+      }),
+    );
+    const onData = vi.fn();
+    const operations = createGondolinBashOps(
+      { exec } as never,
+      '/Users/ed/project',
+      '/workspace',
+    );
+
+    await expect(
+      operations.exec('printf ok', '/Users/ed/project', {
+        onData,
+        timeout: 0,
+      } as never),
+    ).resolves.toEqual({ exitCode: 0 });
+    expect(exec.mock.calls[0]?.[0]).toEqual(
+      expect.arrayContaining([
+        '/bin/sh',
+        '-c',
+        expect.stringContaining('setsid /bin/sh'),
+      ]),
+    );
+    expect(onData).toHaveBeenCalledWith(Buffer.from('ok'));
   });
 });
