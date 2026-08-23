@@ -14,7 +14,8 @@
     "docker": [
       "{projectRoot}/Dockerfile",
       "{projectRoot}/Dockerfile.*",
-      "{projectRoot}/.dockerignore",
+      "{workspaceRoot}/.dockerignore",
+      "{workspaceRoot}/tools/docker-build.mjs",
       {
         "dependentTasksOutputFiles": "**/dist/**/*",
         "transitive": true
@@ -25,6 +26,11 @@
       {
         "externalDependencies": ["@nx/docker"]
       }
+    ],
+    "dockerNodePackaging": [
+      "docker",
+      "{workspaceRoot}/tools/postinstall.mjs",
+      "{workspaceRoot}/tools/prepare.mjs"
     ],
     "production": [
       "default",

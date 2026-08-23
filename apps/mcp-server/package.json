@@ -91,6 +91,9 @@
       "docker:build": {
         "executor": "nx:run-commands",
         "cache": false,
+        "inputs": [
+          "dockerNodePackaging"
+        ],
         "dependsOn": [
           "build"
         ],
