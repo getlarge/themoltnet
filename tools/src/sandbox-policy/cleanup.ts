@@ -1,3 +1,4 @@
+import { sanitizeDiagnostic } from './sanitize.js';
 import type { PersistentMutationEvidence } from './types.js';
 
 interface CleanupItem {
@@ -7,14 +8,16 @@ interface CleanupItem {
 
 export class CleanupManifest {
   readonly #items: CleanupItem[] = [];
-  #closed = false;
+  #closePromise: Promise<PersistentMutationEvidence[]> | null = null;
 
   add(
     kind: string,
     resource: string,
     cleanup: () => Promise<void>,
   ): PersistentMutationEvidence {
-    if (this.#closed) throw new Error('cleanup manifest is already closed');
+    if (this.#closePromise) {
+      throw new Error('cleanup manifest is already closed');
+    }
     const evidence: PersistentMutationEvidence = {
       kind,
       resource,
@@ -29,19 +32,23 @@ export class CleanupManifest {
   }
 
   async close(): Promise<PersistentMutationEvidence[]> {
-    if (this.#closed) return this.snapshot();
-    this.#closed = true;
-    for (const item of [...this.#items].reverse()) {
-      try {
-        await item.cleanup();
-        item.evidence.cleanup = 'cleaned';
-        delete item.evidence.reason;
-      } catch (error) {
-        item.evidence.cleanup = 'residue';
-        item.evidence.reason =
-          error instanceof Error ? error.message : String(error);
-      }
+    if (!this.#closePromise) {
+      this.#closePromise = (async () => {
+        for (const item of [...this.#items].reverse()) {
+          try {
+            await item.cleanup();
+            item.evidence.cleanup = 'cleaned';
+            delete item.evidence.reason;
+          } catch (error) {
+            item.evidence.cleanup = 'residue';
+            item.evidence.reason = sanitizeDiagnostic(
+              error instanceof Error ? error.message : String(error),
+            );
+          }
+        }
+        return this.snapshot();
+      })();
     }
-    return this.snapshot();
+    return this.#closePromise;
   }
 }

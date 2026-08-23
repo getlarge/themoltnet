@@ -1,38 +1,59 @@
+import { canonicalJson } from '@moltnet/crypto-service';
+
 import type {
   ControlEvidence,
   EnforcementState,
   EvidenceBasis,
+  ProbeViolation,
   SandboxProbeRun,
 } from './types.js';
+import { ENFORCEMENT_LOCI, isReasonCodeForDomain } from './types.js';
 
 function assertStateBasis(
   state: EnforcementState,
   basis: EvidenceBasis,
   evidence: ControlEvidence,
 ): void {
-  if (state === 'enforced') {
-    if (basis !== 'verified') {
-      throw new Error(
-        `${evidence.scenarioId}: enforced requires verified evidence`,
-      );
-    }
-    if (!evidence.oracle?.passed) {
-      throw new Error(
-        `${evidence.scenarioId}: enforced requires a passing oracle`,
-      );
-    }
-  }
-  if (state === 'failed-open') {
-    if (basis !== 'verified' || evidence.oracle?.passed !== false) {
-      throw new Error(
-        `${evidence.scenarioId}: failed-open requires a failing verified oracle`,
-      );
-    }
-  }
-  if (basis === 'declared' && state === 'enforced') {
-    throw new Error(
-      `${evidence.scenarioId}: a declaration cannot prove enforcement`,
-    );
+  switch (state) {
+    case 'enforced':
+      if (basis !== 'verified' || evidence.oracle?.passed !== true) {
+        throw new Error(
+          `${evidence.scenarioId}: enforced requires a passing verified oracle`,
+        );
+      }
+      return;
+    case 'failed-open':
+      if (basis !== 'verified' || evidence.oracle?.passed !== false) {
+        throw new Error(
+          `${evidence.scenarioId}: failed-open requires a failing verified oracle`,
+        );
+      }
+      return;
+    case 'degraded':
+      // Degraded means a weaker protective behavior was verified, while the
+      // oracle for the requested control did not pass.
+      if (basis !== 'verified' || evidence.oracle?.passed !== false) {
+        throw new Error(
+          `${evidence.scenarioId}: degraded requires a failing verified oracle`,
+        );
+      }
+      return;
+    case 'unsupported':
+      if (
+        (basis !== 'declared' && basis !== 'applied') ||
+        evidence.oracle !== null
+      ) {
+        throw new Error(
+          `${evidence.scenarioId}: unsupported requires declared or applied evidence without an oracle`,
+        );
+      }
+      return;
+    case 'failed':
+      if (basis !== 'harness-observed' || evidence.oracle !== null) {
+        throw new Error(
+          `${evidence.scenarioId}: failed requires a harness-observed failure without an oracle`,
+        );
+      }
   }
 }
 
@@ -46,46 +67,110 @@ export function assertControlEvidence(evidence: ControlEvidence): void {
   ) {
     throw new Error(`${evidence.scenarioId}: adapter resolution id drifted`);
   }
-  if (evidence.reasonCode.trim() === '') {
-    throw new Error(`${evidence.scenarioId}: reasonCode is required`);
+  if (
+    !isReasonCodeForDomain(evidence.requestedIntent.domain, evidence.reasonCode)
+  ) {
+    throw new Error(
+      `${evidence.scenarioId}: reasonCode ${evidence.reasonCode} is not registered for ${evidence.requestedIntent.domain}`,
+    );
   }
   if (evidence.enforcementLocus.length === 0) {
     throw new Error(`${evidence.scenarioId}: enforcement locus is required`);
+  }
+  for (const locus of evidence.enforcementLocus) {
+    if (!(ENFORCEMENT_LOCI as readonly string[]).includes(locus)) {
+      throw new Error(
+        `${evidence.scenarioId}: enforcement locus ${locus} is not registered`,
+      );
+    }
   }
   assertStateBasis(evidence.state, evidence.basis, evidence);
 }
 
 export function assertProbeRun(run: SandboxProbeRun): void {
-  if (run.schemaVersion !== 1) throw new Error('probe schemaVersion must be 1');
+  const violations = collectProbeViolations(run);
+  if (violations.length > 0) {
+    throw new Error(violations.map(({ message }) => message).join('; '));
+  }
+}
+
+function collectProbeViolations(run: SandboxProbeRun): ProbeViolation[] {
+  const violations: ProbeViolation[] = [];
+  if (run.schemaVersion !== 1) {
+    violations.push({
+      code: 'evidence_validation_error',
+      message: 'probe schemaVersion must be 1',
+    });
+  }
   const ids = new Set<string>();
   for (const control of run.controls) {
-    assertControlEvidence(control);
+    try {
+      assertControlEvidence(control);
+    } catch (error) {
+      violations.push({
+        code: 'evidence_validation_error',
+        scenarioId: control.scenarioId,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
     if (ids.has(control.scenarioId)) {
-      throw new Error(`duplicate control evidence: ${control.scenarioId}`);
+      violations.push({
+        code: 'evidence_validation_error',
+        scenarioId: control.scenarioId,
+        message: `duplicate control evidence: ${control.scenarioId}`,
+      });
     }
     ids.add(control.scenarioId);
     if (control.backend.id !== run.backend.id) {
-      throw new Error(`${control.scenarioId}: backend id drifted`);
+      violations.push({
+        code: 'evidence_validation_error',
+        scenarioId: control.scenarioId,
+        message: `${control.scenarioId}: backend id drifted`,
+      });
     }
     if (control.backend.version !== run.backend.version) {
-      throw new Error(`${control.scenarioId}: backend version drifted`);
+      violations.push({
+        code: 'evidence_validation_error',
+        scenarioId: control.scenarioId,
+        message: `${control.scenarioId}: backend version drifted`,
+      });
     }
   }
+  return violations;
+}
+
+export function validateProbeRun(run: SandboxProbeRun): ProbeViolation[] {
+  return collectProbeViolations(run);
 }
 
 export function stableJson(value: unknown): string {
-  return `${JSON.stringify(sortValue(value), null, 2)}\n`;
+  assertPlainJsonValue(value);
+  return `${JSON.stringify(JSON.parse(canonicalJson(value)), null, 2)}\n`;
 }
 
-function sortValue(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(sortValue);
-  if (value && typeof value === 'object') {
-    const record = value as Record<string, unknown>;
-    return Object.fromEntries(
-      Object.keys(record)
-        .sort((left, right) => Buffer.from(left).compare(Buffer.from(right)))
-        .map((key) => [key, sortValue(record[key])]),
-    );
+function assertPlainJsonValue(value: unknown): void {
+  if (
+    value === null ||
+    typeof value === 'string' ||
+    typeof value === 'boolean' ||
+    typeof value === 'number' ||
+    value === undefined
+  ) {
+    return;
   }
-  return value;
+  if (Array.isArray(value)) {
+    for (const item of value) assertPlainJsonValue(item);
+    return;
+  }
+  if (typeof value === 'object') {
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) {
+      throw new Error('stable JSON supports only plain objects');
+    }
+    for (const child of Object.values(value as Record<string, unknown>)) {
+      assertPlainJsonValue(child);
+    }
+    return;
+  }
+  throw new Error(`stable JSON does not support ${typeof value}`);
 }
