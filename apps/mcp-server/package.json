@@ -103,11 +103,25 @@
         },
         "configurations": {
           "ci": {
-            "command": "node tools/docker-build.mjs --project {projectName} --push --platform linux/amd64 --tag \"${NX_DOCKER_CI_TAG:?NX_DOCKER_CI_TAG must be set}\""
+            "command": "node tools/docker-build.mjs --project {projectName} --push --platform linux/amd64 --no-cache-to --tag \"${NX_DOCKER_CI_TAG:?NX_DOCKER_CI_TAG must be set}\""
           },
           "release": {
             "command": "node tools/docker-build.mjs --project {projectName} --push --platform linux/amd64,linux/arm64 --tag \"${NX_DOCKER_RELEASE_TAG:?NX_DOCKER_RELEASE_TAG must be set}\""
           }
+        }
+      },
+      "docker:cache": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "inputs": [
+          "dockerNodePackaging"
+        ],
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "cwd": "{workspaceRoot}",
+          "command": "node tools/docker-build.mjs --project {projectName} --cache-only --platform linux/amd64"
         }
       }
     }

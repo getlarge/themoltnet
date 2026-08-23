@@ -1,0 +1,80 @@
+name: Docker cache refresh
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: docker-cache-refresh-main
+  cancel-in-progress: true
+
+env:
+  NX_LOAD_DOT_ENV_FILES: 'false'
+  MOLTNET_SKIP_NX_SYNC: '1'
+
+jobs:
+  refresh:
+    name: Refresh Node image caches
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Cache publication is maintenance in an independent workflow, not a
+    # release or e2e prerequisite. Export errors are ignored by Buildx, while a
+    # real build failure stays visible and keeps nx-set-shas on the prior base.
+    permissions:
+      actions: read
+      contents: read
+      packages: write
+    env:
+      NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          filter: tree:0
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - id: shas
+        uses: nrwl/nx-set-shas@v5
+        with:
+          main-branch-name: main
+      - name: Resolve affected range
+        env:
+          INITIAL_BASE: ${{ steps.shas.outputs.base }}
+          INITIAL_HEAD: ${{ steps.shas.outputs.head }}
+        run: |
+          BASE="$INITIAL_BASE"
+          HEAD="$INITIAL_HEAD"
+          if [ -z "$BASE" ]; then
+            BASE=$(git rev-parse HEAD~1)
+            echo "::notice::No successful cache-refresh base; falling back to $BASE"
+          fi
+          if [ -z "$HEAD" ]; then
+            HEAD="${{ github.sha }}"
+          fi
+          echo "NX_BASE=$BASE" >> "$GITHUB_ENV"
+          echo "NX_HEAD=$HEAD" >> "$GITHUB_ENV"
+      - name: Find affected cache targets
+        id: cache-projects
+        run: |
+          PROJECTS=$(pnpm exec nx show projects --affected --with-target=docker:cache --json)
+          echo "Cache projects: $PROJECTS"
+          if echo "$PROJECTS" | jq -e 'length > 0' > /dev/null; then
+            echo "any=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "any=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: docker/setup-buildx-action@v4
+        if: steps.cache-projects.outputs.any == 'true'
+      - uses: docker/login-action@v4
+        if: steps.cache-projects.outputs.any == 'true'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Refresh affected Node packaging caches
+        if: steps.cache-projects.outputs.any == 'true'
+        run: pnpm exec nx affected -t docker:cache --parallel=1
