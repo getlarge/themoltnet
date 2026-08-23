@@ -113,6 +113,7 @@ export const REASON_CODES_BY_DOMAIN = {
     'repeated_adapter_close_left_residue',
     'repeated_adapter_close_observed',
     'restart_surfaces_observed',
+    'sandbox_removal_killed_detached_child',
     'verified_by_manifest_unit_test_and_final_teardown',
     'verified_during_runner_final_teardown',
   ],

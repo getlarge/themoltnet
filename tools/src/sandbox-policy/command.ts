@@ -12,7 +12,7 @@ export interface CommandResult {
 export type CommandExecutor = (
   command: string,
   args: string[],
-  options?: { timeoutMs?: number },
+  options?: { signal?: AbortSignal; timeoutMs?: number },
 ) => Promise<CommandResult>;
 
 export const executeCommand: CommandExecutor = async (
@@ -24,6 +24,7 @@ export const executeCommand: CommandExecutor = async (
     const result = await execFileAsync(command, args, {
       encoding: 'utf8',
       maxBuffer: 1024 * 1024,
+      signal: options.signal,
       timeout: options.timeoutMs ?? 30_000,
     });
     return { exitCode: 0, stdout: result.stdout, stderr: result.stderr };

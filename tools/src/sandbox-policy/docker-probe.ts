@@ -13,12 +13,7 @@ if (revision.exitCode !== 0) throw new Error(revision.stderr);
 
 const probeRoot = await mkdtemp(path.join(os.tmpdir(), 'moltnet-sbx-1972-'));
 const runId = `${Date.now()}-${process.pid}`;
-const credential = `probe-${crypto.randomUUID()}`;
-const rotatedCredential = `probe-rotated-${crypto.randomUUID()}`;
-const adapter = new DockerSandboxAdapter({
-  fixtureCredential: credential,
-  rotatedCredential,
-});
+const adapter = new DockerSandboxAdapter();
 const catalog = await loadScenarioCatalog();
 const run = await runAdapterProbe({
   adapter,
@@ -36,7 +31,7 @@ const platform = `${run.backend.version}-${run.backend.os}-${run.backend.archite
 const outputPath = path.join(outputDirectory, `${platform}.json`);
 const persisted = sanitizeForPersistence(run, {
   machinePaths: [probeRoot],
-  sensitiveValues: [credential, rotatedCredential],
+  sensitiveValues: adapter.sensitiveValues(),
   replacements: { [runId]: '<run-id>' },
 });
 await writeFile(outputPath, persisted);
