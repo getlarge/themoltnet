@@ -6,7 +6,8 @@ production Docker adapter.
 ## Decision
 
 The remediated research checkpoint passes: both retained current runs have no
-failed-open controls. This approves the portable vocabulary for a dedicated
+failed-open controls, no failed controls, no evidence-validation violations,
+and complete cleanup. This approves the portable vocabulary for a dedicated
 design follow-up. It does not create a public API, authorize persistence, or
 claim that a production Docker adapter exists.
 
@@ -32,7 +33,10 @@ replace backend facilities:
 ## Reproduction
 
 The probes use the same 31-scenario catalog and deterministic shell/HTTP
-fixtures. They use only random synthetic sentinels.
+fixtures. The fixture owns random synthetic credentials, gives every run an
+unguessable URL prefix, and records only value-free match results and relative
+paths. The persisted artifacts identify the exact signed source revision they
+replayed.
 
 ```bash
 pnpm exec nx run @moltnet/tools:sandbox-policy-docker
@@ -53,10 +57,10 @@ and its [HTTP hook API](https://github.com/earendil-works/gondolin/blob/v0.12.0/
 
 Observed hosts:
 
-| Backend        | Exact adapter version   | Host         | Result counts                             | Cleanup  |
-| -------------- | ----------------------- | ------------ | ----------------------------------------- | -------- |
-| Docker Sandbox | v0.39.0                 | Darwin arm64 | 29 enforced, 0 failed-open, 2 unsupported | complete |
-| Gondolin       | 0.12.0 workspace source | Darwin arm64 | 29 enforced, 0 failed-open, 2 unsupported | complete |
+| Backend        | Exact adapter version   | Host         | Result counts                             | Validation   | Cleanup  |
+| -------------- | ----------------------- | ------------ | ----------------------------------------- | ------------ | -------- |
+| Docker Sandbox | v0.39.0                 | Darwin arm64 | 29 enforced, 0 failed-open, 2 unsupported | 0 violations | complete |
+| Gondolin       | 0.12.0 workspace source | Darwin arm64 | 29 enforced, 0 failed-open, 2 unsupported | 0 violations | complete |
 
 Counts are inventory only, not a coverage score. Every individual state and
 oracle remains authoritative.

@@ -12,6 +12,23 @@
     "version": "0.12.0-workspace"
   },
   "catalogVersion": "issue-1972-v1",
+  "cleanup": [
+    {
+      "cleanup": "cleaned",
+      "kind": "fixture-server",
+      "resource": "<loopback-fixture>"
+    },
+    {
+      "cleanup": "cleaned",
+      "kind": "probe-directory",
+      "resource": "<probe-root>"
+    },
+    {
+      "cleanup": "cleaned",
+      "kind": "microvm",
+      "resource": "<gondolin-vm>"
+    }
+  ],
   "cleanupComplete": true,
   "controls": [
     {
@@ -20,7 +37,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["Gondolin microVM", "Gondolin host VFS/HTTP hooks"],
+      "enforcementLocus": ["gondolin-microvm", "gondolin-host-hooks"],
       "oracle": {
         "expected": "ok",
         "kind": "host-visible-write",
@@ -30,13 +47,13 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -45,7 +62,7 @@
         }
       ],
       "reasonCode": "workspace_vfs_write_observed",
-      "recordedAt": "2026-08-23T18:37:33.488Z",
+      "recordedAt": "2026-08-23T19:36:25.501Z",
       "requestedIntent": {
         "control": "workspace-read-write",
         "domain": "filesystem",
@@ -75,7 +92,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["Gondolin microVM", "Gondolin host VFS/HTTP hooks"],
+      "enforcementLocus": ["gondolin-microvm", "gondolin-host-hooks"],
       "oracle": {
         "expected": "absent",
         "kind": "outside-marker-absence",
@@ -85,13 +102,13 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -100,7 +117,7 @@
         }
       ],
       "reasonCode": "microvm_host_boundary_observed",
-      "recordedAt": "2026-08-23T18:37:33.493Z",
+      "recordedAt": "2026-08-23T19:36:25.604Z",
       "requestedIntent": {
         "control": "outside-write-denied",
         "domain": "filesystem",
@@ -129,18 +146,18 @@
         "version": "0.12.0-workspace"
       },
       "basis": "applied",
-      "enforcementLocus": ["Gondolin adapter"],
+      "enforcementLocus": ["gondolin-adapter"],
       "oracle": null,
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -149,7 +166,7 @@
         }
       ],
       "reasonCode": "resumeVm_has_no_readonly_secondary_mount_contract",
-      "recordedAt": "2026-08-23T18:37:33.493Z",
+      "recordedAt": "2026-08-23T19:36:25.604Z",
       "requestedIntent": {
         "control": "read-only-mount",
         "domain": "filesystem",
@@ -178,7 +195,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["Gondolin microVM", "Gondolin host VFS/HTTP hooks"],
+      "enforcementLocus": ["gondolin-microvm", "gondolin-host-hooks"],
       "oracle": {
         "expected": "unreadable",
         "kind": "credential-file-visibility",
@@ -188,13 +205,13 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -203,7 +220,7 @@
         }
       ],
       "reasonCode": "host_credential_path_absent",
-      "recordedAt": "2026-08-23T18:37:33.495Z",
+      "recordedAt": "2026-08-23T19:36:25.606Z",
       "requestedIntent": {
         "control": "credential-path-absent",
         "domain": "filesystem",
@@ -233,7 +250,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["Gondolin host VFS provider"],
+      "enforcementLocus": ["gondolin-host-hooks"],
       "oracle": {
         "expected": "absent",
         "kind": "outside-marker-absence",
@@ -243,13 +260,13 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -258,7 +275,7 @@
         }
       ],
       "reasonCode": "vfs_symlink_boundary_observed",
-      "recordedAt": "2026-08-23T18:37:33.502Z",
+      "recordedAt": "2026-08-23T19:36:25.610Z",
       "requestedIntent": {
         "control": "symlink-and-traversal-denied",
         "domain": "filesystem",
@@ -287,7 +304,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["Gondolin microVM", "Gondolin host VFS/HTTP hooks"],
+      "enforcementLocus": ["gondolin-microvm", "gondolin-host-hooks"],
       "oracle": {
         "expected": "absent",
         "kind": "idempotent-scoped-cleanup",
@@ -297,13 +314,13 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -312,7 +329,7 @@
         }
       ],
       "reasonCode": "scoped_cleanup_idempotence_observed",
-      "recordedAt": "2026-08-23T18:37:33.503Z",
+      "recordedAt": "2026-08-23T19:36:25.611Z",
       "requestedIntent": {
         "control": "workspace-cleanup",
         "domain": "filesystem",
@@ -342,7 +359,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["Gondolin host HTTP hooks"],
+      "enforcementLocus": ["gondolin-host-hooks"],
       "oracle": {
         "expected": 0,
         "kind": "unlisted-request-count",
@@ -352,13 +369,13 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -367,7 +384,7 @@
         }
       ],
       "reasonCode": "unlisted_hostname_blocked",
-      "recordedAt": "2026-08-23T18:37:33.528Z",
+      "recordedAt": "2026-08-23T19:36:25.725Z",
       "requestedIntent": {
         "control": "default-deny-egress",
         "domain": "network",
@@ -397,7 +414,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["Gondolin host HTTP hooks"],
+      "enforcementLocus": ["gondolin-host-hooks"],
       "oracle": {
         "expected": 1,
         "kind": "allowed-request-count",
@@ -407,13 +424,13 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -422,7 +439,7 @@
         }
       ],
       "reasonCode": "allowed_hostname_observed",
-      "recordedAt": "2026-08-23T18:37:33.639Z",
+      "recordedAt": "2026-08-23T19:36:25.896Z",
       "requestedIntent": {
         "control": "exact-destination-allow",
         "domain": "network",
@@ -452,7 +469,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["Gondolin host HTTP hooks"],
+      "enforcementLocus": ["gondolin-host-hooks"],
       "oracle": {
         "expected": 0,
         "kind": "unlisted-request-count",
@@ -462,13 +479,13 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -477,7 +494,7 @@
         }
       ],
       "reasonCode": "unlisted_hostname_blocked",
-      "recordedAt": "2026-08-23T18:37:33.751Z",
+      "recordedAt": "2026-08-23T19:36:25.902Z",
       "requestedIntent": {
         "control": "wrong-host-denied",
         "domain": "network",
@@ -507,7 +524,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["Gondolin host HTTP hooks"],
+      "enforcementLocus": ["gondolin-host-hooks"],
       "oracle": {
         "expected": 0,
         "kind": "adjacent-port-request-count",
@@ -517,13 +534,13 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -532,7 +549,7 @@
         }
       ],
       "reasonCode": "network_port_fidelity_observed",
-      "recordedAt": "2026-08-23T18:37:33.869Z",
+      "recordedAt": "2026-08-23T19:36:25.908Z",
       "requestedIntent": {
         "control": "wrong-port-denied",
         "domain": "network",
@@ -562,7 +579,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["Gondolin brokered-secret HTTP hooks"],
+      "enforcementLocus": ["gondolin-host-hooks"],
       "oracle": {
         "expected": "http",
         "kind": "broker-protocol-binding",
@@ -572,13 +589,13 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -587,7 +604,7 @@
         }
       ],
       "reasonCode": "credential_protocol_binding_recorded",
-      "recordedAt": "2026-08-23T18:37:33.869Z",
+      "recordedAt": "2026-08-23T19:36:25.908Z",
       "requestedIntent": {
         "control": "protocol-fidelity",
         "domain": "network",
@@ -618,7 +635,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["Gondolin host HTTP hooks"],
+      "enforcementLocus": ["gondolin-host-hooks"],
       "oracle": {
         "expected": 0,
         "kind": "redirect-adjacent-request-count",
@@ -628,13 +645,13 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -643,7 +660,7 @@
         }
       ],
       "reasonCode": "redirect_target_blocked",
-      "recordedAt": "2026-08-23T18:37:33.912Z",
+      "recordedAt": "2026-08-23T19:36:25.920Z",
       "requestedIntent": {
         "control": "redirect-revalidation",
         "domain": "network",
@@ -672,7 +689,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["Gondolin host HTTP hooks"],
+      "enforcementLocus": ["gondolin-host-hooks"],
       "oracle": {
         "expected": "explicit-internal-host",
         "kind": "requested-effective-binding",
@@ -682,13 +699,13 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -697,7 +714,7 @@
         }
       ],
       "reasonCode": "internal_hostname_binding_recorded",
-      "recordedAt": "2026-08-23T18:37:33.912Z",
+      "recordedAt": "2026-08-23T19:36:25.921Z",
       "requestedIntent": {
         "control": "internal-target-policy",
         "domain": "network",
@@ -728,18 +745,18 @@
         "version": "0.12.0-workspace"
       },
       "basis": "applied",
-      "enforcementLocus": ["Gondolin adapter"],
+      "enforcementLocus": ["gondolin-adapter"],
       "oracle": null,
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -748,7 +765,7 @@
         }
       ],
       "reasonCode": "no_controlled_dns_rebinding_fixture",
-      "recordedAt": "2026-08-23T18:37:33.912Z",
+      "recordedAt": "2026-08-23T19:36:25.921Z",
       "requestedIntent": {
         "control": "dns-rebinding",
         "domain": "network",
@@ -777,7 +794,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["Gondolin host HTTP hooks"],
+      "enforcementLocus": ["gondolin-host-hooks"],
       "oracle": {
         "expected": "explicit-internal-host",
         "kind": "requested-effective-binding",
@@ -787,13 +804,13 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -802,7 +819,7 @@
         }
       ],
       "reasonCode": "internal_hostname_binding_recorded",
-      "recordedAt": "2026-08-23T18:37:33.912Z",
+      "recordedAt": "2026-08-23T19:36:25.921Z",
       "requestedIntent": {
         "control": "requested-versus-effective",
         "domain": "network",
@@ -833,7 +850,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["Gondolin resumeVm preflight"],
+      "enforcementLocus": ["gondolin-adapter", "gondolin-host-hooks"],
       "oracle": {
         "expected": "rejected",
         "kind": "required-binding-preflight",
@@ -843,13 +860,13 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -858,7 +875,7 @@
         }
       ],
       "reasonCode": "required_binding_preflight_observed",
-      "recordedAt": "2026-08-23T18:37:33.913Z",
+      "recordedAt": "2026-08-23T19:36:25.921Z",
       "requestedIntent": {
         "control": "required-binding-preflight",
         "domain": "credential",
@@ -888,7 +905,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["Gondolin brokered-secret HTTP hooks"],
+      "enforcementLocus": ["gondolin-host-hooks"],
       "oracle": {
         "expected": 1,
         "kind": "credential-proxy-match",
@@ -898,13 +915,13 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -913,7 +930,7 @@
         }
       ],
       "reasonCode": "allowed_origin_substitution_observed",
-      "recordedAt": "2026-08-23T18:37:33.948Z",
+      "recordedAt": "2026-08-23T19:36:25.933Z",
       "requestedIntent": {
         "control": "brokered-allowed-origin",
         "domain": "credential",
@@ -943,7 +960,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["Gondolin brokered-secret HTTP hooks"],
+      "enforcementLocus": ["gondolin-host-hooks"],
       "oracle": {
         "expected": 0,
         "kind": "adjacent-origin-credential-match",
@@ -953,13 +970,13 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -968,7 +985,7 @@
         }
       ],
       "reasonCode": "adjacent_origin_secret_not_substituted",
-      "recordedAt": "2026-08-23T18:37:34.082Z",
+      "recordedAt": "2026-08-23T19:36:26.040Z",
       "requestedIntent": {
         "control": "adjacent-origin-zero-delivery",
         "domain": "credential",
@@ -998,7 +1015,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["Gondolin brokered-secret manager"],
+      "enforcementLocus": ["gondolin-host-hooks"],
       "oracle": {
         "expected": 1,
         "kind": "rotated-credential-match",
@@ -1008,13 +1025,13 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -1023,7 +1040,7 @@
         }
       ],
       "reasonCode": "rotation_observed",
-      "recordedAt": "2026-08-23T18:37:34.205Z",
+      "recordedAt": "2026-08-23T19:36:26.154Z",
       "requestedIntent": {
         "control": "rotation",
         "domain": "credential",
@@ -1053,7 +1070,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["Gondolin brokered-secret manager"],
+      "enforcementLocus": ["gondolin-host-hooks"],
       "oracle": {
         "expected": 0,
         "kind": "revoked-credential-match",
@@ -1063,13 +1080,13 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -1078,7 +1095,7 @@
         }
       ],
       "reasonCode": "revocation_observed",
-      "recordedAt": "2026-08-23T18:37:34.225Z",
+      "recordedAt": "2026-08-23T19:36:26.166Z",
       "requestedIntent": {
         "control": "revocation",
         "domain": "credential",
@@ -1107,10 +1124,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": [
-        "Gondolin resumeVm",
-        "Gondolin brokered-secret HTTP hooks"
-      ],
+      "enforcementLocus": ["gondolin-adapter", "gondolin-host-hooks"],
       "oracle": {
         "expected": 1,
         "kind": "resumed-credential-match",
@@ -1120,13 +1134,13 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -1135,7 +1149,7 @@
         }
       ],
       "reasonCode": "resume_rebinding_observed",
-      "recordedAt": "2026-08-23T18:37:35.219Z",
+      "recordedAt": "2026-08-23T19:36:27.006Z",
       "requestedIntent": {
         "control": "resume-rebind",
         "domain": "credential",
@@ -1165,7 +1179,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["research harness sanitizer"],
+      "enforcementLocus": ["research-harness"],
       "oracle": {
         "expected": 0,
         "kind": "persisted-sensitive-value-count",
@@ -1175,13 +1189,13 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -1190,7 +1204,7 @@
         }
       ],
       "reasonCode": "value_free_evidence_only",
-      "recordedAt": "2026-08-23T18:37:35.219Z",
+      "recordedAt": "2026-08-23T19:36:27.006Z",
       "requestedIntent": {
         "control": "value-free-evidence",
         "domain": "credential",
@@ -1220,10 +1234,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": [
-        "MoltNet managed exec",
-        "Gondolin guest process group"
-      ],
+      "enforcementLocus": ["gondolin-host-hooks", "gondolin-microvm"],
       "oracle": {
         "expected": "absent",
         "kind": "delayed-marker-absence",
@@ -1233,13 +1244,13 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -1248,10 +1259,14 @@
         }
       ],
       "reasonCode": "managed_process_group_termination_observed",
-      "recordedAt": "2026-08-23T18:37:42.428Z",
+      "recordedAt": "2026-08-23T19:36:34.213Z",
       "requestedIntent": {
         "control": "timeout-containment",
         "domain": "lifecycle",
+        "parameters": {
+          "delayedMarkerMs": 5000,
+          "observationWindowMs": 6000
+        },
         "required": true,
         "scenarioId": "lifecycle.timeout"
       },
@@ -1259,12 +1274,18 @@
         "backendId": "gondolin",
         "effective": {
           "confirmed": true,
+          "delayedMarkerMs": 5000,
+          "observationWindowMs": 6000,
           "termination": "process-group"
         },
         "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "timeout-containment",
           "domain": "lifecycle",
+          "parameters": {
+            "delayedMarkerMs": 5000,
+            "observationWindowMs": 6000
+          },
           "required": true,
           "scenarioId": "lifecycle.timeout"
         }
@@ -1278,10 +1299,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": [
-        "MoltNet managed exec",
-        "Gondolin guest process group"
-      ],
+      "enforcementLocus": ["gondolin-host-hooks", "gondolin-microvm"],
       "oracle": {
         "expected": "absent",
         "kind": "delayed-marker-absence",
@@ -1291,13 +1309,13 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -1306,10 +1324,14 @@
         }
       ],
       "reasonCode": "managed_process_group_termination_observed",
-      "recordedAt": "2026-08-23T18:37:48.736Z",
+      "recordedAt": "2026-08-23T19:36:40.522Z",
       "requestedIntent": {
         "control": "cancel-containment",
         "domain": "lifecycle",
+        "parameters": {
+          "delayedMarkerMs": 5000,
+          "observationWindowMs": 6000
+        },
         "required": true,
         "scenarioId": "lifecycle.cancel"
       },
@@ -1317,12 +1339,18 @@
         "backendId": "gondolin",
         "effective": {
           "confirmed": true,
+          "delayedMarkerMs": 5000,
+          "observationWindowMs": 6000,
           "termination": "process-group"
         },
         "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "cancel-containment",
           "domain": "lifecycle",
+          "parameters": {
+            "delayedMarkerMs": 5000,
+            "observationWindowMs": 6000
+          },
           "required": true,
           "scenarioId": "lifecycle.cancel"
         }
@@ -1336,7 +1364,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["Gondolin resumeVm preflight"],
+      "enforcementLocus": ["gondolin-adapter", "gondolin-host-hooks"],
       "oracle": {
         "expected": "rejected",
         "kind": "required-binding-preflight",
@@ -1346,13 +1374,13 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -1360,8 +1388,8 @@
           "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "required_binding_preflight_observed",
-      "recordedAt": "2026-08-23T18:37:48.736Z",
+      "reasonCode": "adapter_preflight_rejected_unavailable_broker",
+      "recordedAt": "2026-08-23T19:36:40.522Z",
       "requestedIntent": {
         "control": "broker-unavailable-fail-closed",
         "domain": "lifecycle",
@@ -1391,7 +1419,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["Gondolin resumeVm preflight"],
+      "enforcementLocus": ["gondolin-adapter", "gondolin-host-hooks"],
       "oracle": {
         "expected": false,
         "kind": "partial-vm-residue",
@@ -1401,13 +1429,13 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -1416,7 +1444,7 @@
         }
       ],
       "reasonCode": "preflight_failure_left_no_live_vm",
-      "recordedAt": "2026-08-23T18:37:48.736Z",
+      "recordedAt": "2026-08-23T19:36:40.522Z",
       "requestedIntent": {
         "control": "partial-launch-cleanup",
         "domain": "lifecycle",
@@ -1445,7 +1473,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["Gondolin adapter"],
+      "enforcementLocus": ["gondolin-adapter"],
       "oracle": {
         "expected": "cleaned-without-additional-mutation",
         "kind": "repeated-adapter-close",
@@ -1455,13 +1483,13 @@
       "persistentMutations": [
         {
           "cleanup": "cleaned",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "cleaned",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "cleaned",
@@ -1470,7 +1498,7 @@
         }
       ],
       "reasonCode": "repeated_adapter_close_observed",
-      "recordedAt": "2026-08-23T18:37:48.736Z",
+      "recordedAt": "2026-08-23T19:36:40.522Z",
       "requestedIntent": {
         "control": "idempotent-close",
         "domain": "lifecycle",
@@ -1499,7 +1527,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["Gondolin microVM", "Gondolin host VFS/HTTP hooks"],
+      "enforcementLocus": ["gondolin-microvm", "gondolin-host-hooks"],
       "oracle": {
         "expected": {
           "tmp": "resets",
@@ -1515,13 +1543,13 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -1529,8 +1557,8 @@
           "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "checkpoint_storage_surfaces_observed",
-      "recordedAt": "2026-08-23T18:37:49.521Z",
+      "reasonCode": "restart_surfaces_observed",
+      "recordedAt": "2026-08-23T19:36:41.338Z",
       "requestedIntent": {
         "control": "restart-and-checkpoint",
         "domain": "lifecycle",
@@ -1561,7 +1589,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["Gondolin QEMU resource configuration"],
+      "enforcementLocus": ["gondolin-microvm"],
       "oracle": {
         "expected": 1,
         "kind": "online-cpu-count",
@@ -1571,13 +1599,13 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -1586,10 +1614,13 @@
         }
       ],
       "reasonCode": "guest_cpu_limit_observed",
-      "recordedAt": "2026-08-23T18:37:49.623Z",
+      "recordedAt": "2026-08-23T19:36:41.340Z",
       "requestedIntent": {
         "control": "cpu-limit",
         "domain": "resource",
+        "parameters": {
+          "cpuCount": 1
+        },
         "required": false,
         "scenarioId": "resource.cpu"
       },
@@ -1602,6 +1633,9 @@
         "requested": {
           "control": "cpu-limit",
           "domain": "resource",
+          "parameters": {
+            "cpuCount": 1
+          },
           "required": false,
           "scenarioId": "resource.cpu"
         }
@@ -1615,7 +1649,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["Gondolin QEMU resource configuration"],
+      "enforcementLocus": ["gondolin-microvm"],
       "oracle": {
         "expected": {
           "target": 1048576,
@@ -1628,13 +1662,13 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -1643,22 +1677,30 @@
         }
       ],
       "reasonCode": "guest_memory_limit_observed",
-      "recordedAt": "2026-08-23T18:37:49.626Z",
+      "recordedAt": "2026-08-23T19:36:41.342Z",
       "requestedIntent": {
         "control": "memory-limit",
         "domain": "resource",
+        "parameters": {
+          "memoryKiB": 1048576,
+          "tolerancePercent": 15
+        },
         "required": false,
         "scenarioId": "resource.memory"
       },
       "resolvedAdapterConfig": {
         "backendId": "gondolin",
         "effective": {
-          "requestedMemory": "1G"
+          "requestedMemoryKiB": 1048576
         },
         "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "memory-limit",
           "domain": "resource",
+          "parameters": {
+            "memoryKiB": 1048576,
+            "tolerancePercent": 15
+          },
           "required": false,
           "scenarioId": "resource.memory"
         }
@@ -1672,7 +1714,7 @@
         "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["research harness topology declaration"],
+      "enforcementLocus": ["research-harness"],
       "oracle": {
         "expected": "host-capabilities-outside-guest",
         "kind": "capability-topology-recorded",
@@ -1682,13 +1724,13 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
         },
         {
           "cleanup": "pending",
-          "kind": "fixture-server",
-          "resource": "<loopback-fixture>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
@@ -1697,7 +1739,7 @@
         }
       ],
       "reasonCode": "capability_boundary_recorded",
-      "recordedAt": "2026-08-23T18:37:49.626Z",
+      "recordedAt": "2026-08-23T19:36:41.342Z",
       "requestedIntent": {
         "control": "host-capability-separation",
         "domain": "topology",
@@ -1738,8 +1780,9 @@
       "relationship": "mediates-containment"
     }
   ],
-  "recordedAt": "2026-08-23T18:37:49.633Z",
+  "recordedAt": "2026-08-23T19:36:41.348Z",
   "runId": "<run-id>",
   "schemaVersion": 1,
-  "sourceRevision": "3eb50f2d311b39ecb99888b1b59edd4562139bed"
+  "sourceRevision": "8e346bfc622907ff69835640e8f9ec1efa8f3dc2",
+  "violations": []
 }

@@ -11,9 +11,9 @@ stored as a first-class `sandbox_policies` resource instead of remaining
 embedded in runtime profiles?
 
 The answer is provisionally yes. The current Docker v0.39.0 and Gondolin 0.12.0
-runs have no failed-open controls, but storage must still preserve the
-separation between portable intent, trusted adapter binding, and observed
-evidence.
+runs have no failed-open or failed controls, no evidence-validation violations,
+and complete cleanup. Storage must still preserve the separation between
+portable intent, trusted adapter binding, and observed evidence.
 
 ## Candidate resource
 
@@ -93,7 +93,8 @@ into guest storage:
 3. bind the real value at the host proxy/hook to exact approved origins;
 4. rotate by replacing the host binding while keeping the placeholder stable;
 5. revoke by removing the host binding and verifying zero delivery;
-6. restore after restart/resume only through an explicit rebind operation.
+6. restore a previously resolved credential after restart/resume only through
+   an explicit host-side rebind operation.
 
 The policy stores the binding ID and allowed origins, never the value, resolver
 command, keyring coordinate, or machine path.
