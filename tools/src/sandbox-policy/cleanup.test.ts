@@ -13,8 +13,10 @@ describe('sandbox policy cleanup manifest', () => {
       order.push('two');
     });
 
-    const first = await manifest.close();
-    const second = await manifest.close();
+    const [first, second] = await Promise.all([
+      manifest.close(),
+      manifest.close(),
+    ]);
 
     expect(order).toEqual(['two', 'one']);
     expect(first).toEqual(second);
@@ -22,17 +24,44 @@ describe('sandbox policy cleanup manifest', () => {
   });
 
   it('retains residue instead of hiding cleanup failure', async () => {
-    const cleanup = vi.fn(async () => {
-      throw new Error('still exists');
-    });
+    const order: string[] = [];
     const manifest = new CleanupManifest();
-    manifest.add('sandbox', 'moltnet-1972-run', cleanup);
+    manifest.add('file', 'first', async () => {
+      order.push('first');
+    });
+    manifest.add(
+      'sandbox',
+      'middle',
+      vi.fn(async () => {
+        order.push('middle');
+        throw new Error('/Users/alice/still exists');
+      }),
+    );
+    manifest.add('file', 'last', async () => {
+      order.push('last');
+    });
 
     await expect(manifest.close()).resolves.toEqual([
+      expect.objectContaining({ cleanup: 'cleaned', resource: 'first' }),
       expect.objectContaining({
         cleanup: 'residue',
-        reason: 'still exists',
+        reason: '<redacted sensitive diagnostic>',
+        resource: 'middle',
       }),
+      expect.objectContaining({ cleanup: 'cleaned', resource: 'last' }),
     ]);
+    expect(order).toEqual(['last', 'middle', 'first']);
+  });
+
+  it('rejects additions after close starts', async () => {
+    const manifest = new CleanupManifest();
+    manifest.add('file', 'first', async () => undefined);
+
+    const closing = manifest.close();
+
+    expect(() => manifest.add('file', 'late', async () => undefined)).toThrow(
+      'already closed',
+    );
+    await closing;
   });
 });

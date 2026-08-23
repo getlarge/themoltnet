@@ -26,11 +26,49 @@ describe('sandbox policy evidence sanitization', () => {
     expect(() =>
       sanitizeForPersistence({ output: `ghp_${'a'.repeat(30)}` }),
     ).toThrow('token-like material');
+    expect(() =>
+      sanitizeForPersistence({ output: `ory_pat_${'a'.repeat(30)}` }),
+    ).toThrow('token-like material');
   });
 
-  it('refuses unknown home-directory paths', () => {
+  it('checks raw, escaped, base64, and percent-encoded sentinel forms', () => {
+    const sentinel = 'sec"ret\\value';
+    const options = { sensitiveValues: [sentinel] };
+    const forms = [
+      sentinel,
+      JSON.stringify(sentinel).slice(1, -1),
+      Buffer.from(sentinel).toString('base64'),
+      encodeURIComponent(sentinel),
+    ];
+
+    for (const form of forms) {
+      expect(() =>
+        sanitizeForPersistence(
+          { nested: [{ output: `prefix:${form}:suffix` }] },
+          options,
+        ),
+      ).toThrow('synthetic credential sentinel');
+    }
+    expect(() =>
+      sanitizeForPersistence({ output: 'safe' }, { sensitiveValues: [] }),
+    ).not.toThrow();
+  });
+
+  it('refuses bare and nested unknown home-directory paths', () => {
     expect(() =>
       sanitizeForPersistence({ output: '/Users/someone/private/file' }),
     ).toThrow('absolute host path');
+    expect(() => sanitizeForPersistence({ output: '/home/runner' })).toThrow(
+      'absolute host path',
+    );
+    expect(() =>
+      sanitizeForPersistence({ output: String.raw`C:\Users\someone` }),
+    ).toThrow('absolute host path');
+  });
+
+  it('refuses non-plain objects before canonical persistence', () => {
+    expect(() => sanitizeForPersistence({ when: new Date() })).toThrow(
+      'non-plain object',
+    );
   });
 });
