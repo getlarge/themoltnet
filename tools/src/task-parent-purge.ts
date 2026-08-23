@@ -1,4 +1,20 @@
-import type { KetoTuple, Page } from './task-ownership-backfill.js';
+export interface KetoSubjectSet {
+  namespace: string;
+  object: string;
+  relation: string;
+}
+
+export interface KetoTuple {
+  namespace: string;
+  object: string;
+  relation: string;
+  subject_set: KetoSubjectSet;
+}
+
+export interface Page<T> {
+  items: T[];
+  nextPageToken?: string;
+}
 
 export interface TaskParentPurgeAdapters {
   listParentTuples(pageToken?: string): Promise<Page<KetoTuple>>;

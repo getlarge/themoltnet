@@ -604,53 +604,33 @@ npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
   node infra/ory/deploy.mjs --apply --opl-only
 ```
 
-### Executor-role authorization rollout
+### Executor-role authorization
 
-Roll executor claim authority without creating an authorization gap:
+Executor claim authority is live in the final `infra/ory/permissions.ts` model.
+Agent owners and managers have materialized `Team#executors` projections, while
+standalone executors retain `Team#members` access. New role writers reconcile
+the complete projection atomically.
 
-1. Deploy `infra/ory/permissions.executor-transition.ts`. It recognizes
-   `Team#executors` while retaining the existing team-write claim path.
-2. Deploy the executor-aware API and atomic role projection writers.
-3. Run `tools/db/backfill-team-executors.ts --dry-run`, `--apply`, then
-   `--verify`. The backfill adds `executors` to existing agent owners and
-   managers and `members` to standalone executors. It never promotes plain
-   members, including the two existing agent members of team
-   `6743b4b1-6b93-46e2-a048-19490f04f91a`.
-4. Treat verification as a hard cutover gate: `--verify` must exit 0 and report
-   `missingTuples: 0`. Do not deploy the final OPL otherwise. This proves every
-   agent owner/manager has an executor tuple and every standalone executor has
-   member access.
-5. Deploy the final `infra/ory/permissions.ts`, where task claim traverses only
-   `Team.execute_tasks` plus direct task writer/manager grants.
-6. Monitor claim latency, Keto errors, and authorization denials.
+`tools/db/backfill-team-executors.ts` remains as the production-proven reference
+for bounded Keto repair tools: it separates dry-run, apply, and verify modes,
+paginates reads, retries bounded writes, and exposes its pure projection logic
+through direct tests. It may also verify or repair executor projection drift.
+
+The transition OPL and one-time backfill are preserved in merge commit
+`e02be38d3`. If a final-OPL canary detects an unexpected claim denial, restore
+only that OPL, keep the executor-aware application deployed, and roll forward:
 
 ```bash
+git show e02be38d3:infra/ory/permissions.executor-transition.ts \
+  > /tmp/moltnet-executor-transition.ts
 npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
   node infra/ory/deploy.mjs --apply --opl-only \
-  --opl-file infra/ory/permissions.executor-transition.ts
-npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
-  pnpm exec tsx tools/db/backfill-team-executors.ts --dry-run
-npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
-  pnpm exec tsx tools/db/backfill-team-executors.ts --apply
-npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
-  pnpm exec tsx tools/db/backfill-team-executors.ts --verify
-npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
-  node infra/ory/deploy.mjs --apply --opl-only
+  --opl-file /tmp/moltnet-executor-transition.ts
 ```
 
-Rollback uses the same expand/contract boundary. If final-OPL canaries detect
-unexpected claim denials, immediately redeploy
-`permissions.executor-transition.ts`; its claim path continues to use
-`Team.write`. Keep the executor-aware API and tuples deployed, diagnose, and
-roll forward. Do not roll the application below the executor-aware release once
-executor tuples have been written: older readers do not understand that
-relation. PostgreSQL enum values are not safely removable, so migration
-`0040_soft_luke_cage.sql` is intentionally irreversible and remains in place.
-The additive enum and tuples are inert while the transition OPL is active.
-
-Run and attach the local comparison described in
-[Keto task-claim benchmark](../contribute/keto-claim-benchmark.md) before
-merging. This is required review evidence, not a latency-sensitive CI job.
+Do not roll the application below the executor-aware release. PostgreSQL enum
+values are not safely removable, so migration `0040_soft_luke_cage.sql` is
+intentionally irreversible and remains in place.
 
 The pre-cutover bridge remains recoverable from merge commit `5a86e87d`. If
 post-contraction canaries detect an unexpected denial, restore only that OPL;
@@ -661,24 +641,6 @@ git show 5a86e87d:infra/ory/permissions.ts > /tmp/moltnet-task-ownership-bridge.
 npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
   node infra/ory/deploy.mjs --apply --opl-only \
   --opl-file /tmp/moltnet-task-ownership-bridge.ts
-```
-
-The #1656 ownership backfill supports an explicit host-local Fly MPG proxy
-port. The option preserves the credentials and database name from
-`DATABASE_URL`, rewrites the host to `127.0.0.1`, and disables TLS for the
-local proxy hop:
-
-```bash
-flyctl mpg proxy <cluster-id> --local-port 15432
-npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
-  pnpm exec tsx tools/db/backfill-task-ownership.ts --dry-run \
-  --database-proxy-port 15432
-npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
-  pnpm exec tsx tools/db/backfill-task-ownership.ts --apply \
-  --database-proxy-port 15432
-npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
-  pnpm exec tsx tools/db/backfill-task-ownership.ts --verify \
-  --database-proxy-port 15432
 ```
 
 Keep inert `Task#parent` tuples through the agreed rollback observation

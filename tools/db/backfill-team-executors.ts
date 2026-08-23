@@ -1,4 +1,10 @@
 /* eslint-disable no-console */
+/**
+ * Reference implementation for bounded Keto projection repair tooling.
+ *
+ * This production-proven command is intentionally retained after the executor
+ * rollout as the canonical dry-run/apply/verify pattern for future backfills.
+ */
 import { config } from '@dotenvx/dotenvx';
 
 import {

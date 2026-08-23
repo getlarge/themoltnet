@@ -27,7 +27,14 @@
     "vue": "catalog:"
   },
   "nx": {
-    "projectType": "application"
+    "projectType": "application",
+    "targets": {
+      "build": {
+        "outputs": [
+          "{projectRoot}/.vitepress/dist"
+        ]
+      }
+    }
   },
   "dependencies": {
     "@moltnet/runtime-profiles": "workspace:*",

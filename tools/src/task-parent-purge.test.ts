@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { KetoTuple } from './task-ownership-backfill.js';
 import {
+  type KetoTuple,
   purgeTaskParentRelations,
   type TaskParentPurgeAdapters,
 } from './task-parent-purge.js';
