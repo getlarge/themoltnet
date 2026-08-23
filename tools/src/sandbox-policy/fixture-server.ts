@@ -18,6 +18,7 @@ export interface PolicyFixture {
   requests: FixtureRequestEvidence[];
   path(pathname: string): string;
   rotate(): string;
+  restore(credential: string): void;
   sensitiveValues(): string[];
   close(): Promise<void>;
 }
@@ -79,7 +80,7 @@ export async function startPolicyFixture(
       requests.push({
         destination,
         method: request.method ?? 'UNKNOWN',
-        path: pathname,
+        path: pathname.slice(pathPrefix.length) || '/',
         credentialMatch: match,
       });
     }
@@ -137,6 +138,12 @@ export async function startPolicyFixture(
       expectedCredential = syntheticCredential();
       credentials.push(expectedCredential);
       return expectedCredential;
+    },
+    restore(credential) {
+      if (!credentials.includes(credential)) {
+        throw new Error('Cannot restore a credential not minted by this fixture');
+      }
+      expectedCredential = credential;
     },
     sensitiveValues() {
       return [...credentials];

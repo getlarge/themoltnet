@@ -58,14 +58,21 @@ describe('sandbox policy loopback fixture', () => {
     expect(
       await get(fixture.allowedPort, fixture.path('/allowed'), rotated),
     ).toMatchObject({ status: 200 });
+    fixture.restore(initial);
+    expect(
+      await get(fixture.allowedPort, fixture.path('/allowed'), initial),
+    ).toMatchObject({ status: 200 });
 
     expect(
       fixture.requests.map(({ credentialMatch }) => credentialMatch),
-    ).toEqual(['expected', 'unexpected', 'expected']);
+    ).toEqual(['expected', 'unexpected', 'expected', 'expected']);
     const evidence = JSON.stringify(fixture.requests);
     expect(evidence).not.toContain(initial);
     expect(evidence).not.toContain(rotated);
     expect(fixture.sensitiveValues()).toEqual([initial, rotated]);
+    expect(() => fixture.restore('unknown-token')).toThrow(
+      'not minted by this fixture',
+    );
   });
 
   it('records pathname only and exercises the redirect target', async () => {
@@ -84,12 +91,12 @@ describe('sandbox policy loopback fixture', () => {
     expect(fixture.requests).toEqual([
       expect.objectContaining({
         destination: 'allowed',
-        path: fixture.path('/redirect'),
+        path: '/redirect',
       }),
       expect.objectContaining({
         destination: 'adjacent',
         credentialMatch: 'absent',
-        path: fixture.path('/redirect-target'),
+        path: '/redirect-target',
       }),
     ]);
     expect(JSON.stringify(fixture.requests)).not.toContain('must-not-persist');
