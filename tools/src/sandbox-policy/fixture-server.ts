@@ -141,7 +141,9 @@ export async function startPolicyFixture(
     },
     restore(credential) {
       if (!credentials.includes(credential)) {
-        throw new Error('Cannot restore a credential not minted by this fixture');
+        throw new Error(
+          'Cannot restore a credential not minted by this fixture',
+        );
       }
       expectedCredential = credential;
     },
