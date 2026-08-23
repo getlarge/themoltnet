@@ -586,7 +586,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           [
             'sh',
             '-lc',
-            `curl -fsS --max-time 2 -H 'Authorization: Bearer ${PLACEHOLDER}' 'http://${CREDENTIAL_HOST}:${fixture.adjacentPort}/adjacent'`,
+            `curl -fsS --max-time 2 -H 'Authorization: Bearer ${PLACEHOLDER}' 'http://${CREDENTIAL_HOST}:${fixture.adjacentPort}${fixture.path('/adjacent')}'`,
           ],
           5_000,
         );
@@ -606,8 +606,8 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
             allowed: `${CREDENTIAL_HOST}:<allowed-port>`,
             attempted: '<adjacent-port>',
           },
-          'adjacent_origin_blocked',
-          ['docker-sandbox network and credential proxy'],
+          'adjacent_origin_secret_not_substituted',
+          ['docker-sandbox-control-plane'],
         );
       }
       case 'network.redirect': {
@@ -802,7 +802,6 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
       }
       case 'credential.resume': {
         const fixture = await this.#ensureFixture();
-        fixture.rotate(this.#credential);
         const rebound = await this.#ensureSecret();
         const stopped = await this.#execute('sbx', ['stop', this.#sandboxName]);
         const before = fixture.requests.length;

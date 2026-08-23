@@ -15,12 +15,7 @@ const probeRoot = await mkdtemp(
   path.join(os.tmpdir(), 'moltnet-gondolin-1972-'),
 );
 const runId = `${Date.now()}-${process.pid}`;
-const credential = `probe-${crypto.randomUUID()}`;
-const rotatedCredential = `probe-rotated-${crypto.randomUUID()}`;
-const adapter = new GondolinAdapter({
-  fixtureCredential: credential,
-  rotatedCredential,
-});
+const adapter = new GondolinAdapter();
 const catalog = await loadScenarioCatalog();
 const run = await runAdapterProbe({
   adapter,
@@ -40,7 +35,7 @@ await writeFile(
   outputPath,
   sanitizeForPersistence(run, {
     machinePaths: [probeRoot],
-    sensitiveValues: [credential, rotatedCredential],
+    sensitiveValues: adapter.sensitiveValues(),
     replacements: { [runId]: '<run-id>' },
   }),
 );
