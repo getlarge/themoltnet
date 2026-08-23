@@ -64,6 +64,16 @@
       "type:tool",
       "scope:tooling",
       "platform:cli"
-    ]
+    ],
+    "targets": {
+      "sandbox-policy-docker": {
+        "cache": false,
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "node --import tsx tools/src/sandbox-policy/docker-probe.ts",
+          "cwd": "{workspaceRoot}"
+        }
+      }
+    }
   }
 }

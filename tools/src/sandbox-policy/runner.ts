@@ -228,13 +228,34 @@ export async function runAdapterProbe(
   } finally {
     try {
       cleanup = await options.adapter.close();
+      const repeatedCleanup = await options.adapter.close();
       cleanupComplete =
         cleanup.every((mutation) => mutation.cleanup === 'cleaned') &&
+        repeatedCleanup.every((mutation) => mutation.cleanup === 'cleaned') &&
         controls.every((control) =>
           control.persistentMutations.every(
             (mutation) => mutation.cleanup !== 'residue',
           ),
         );
+      const repeatedClose = controls.find(
+        (control) => control.scenarioId === 'lifecycle.repeated-close',
+      );
+      if (repeatedClose) {
+        repeatedClose.state = cleanupComplete ? 'enforced' : 'failed-open';
+        repeatedClose.basis = 'verified';
+        repeatedClose.oracle = {
+          kind: 'repeated-adapter-close',
+          expected: 'cleaned-without-additional-mutation',
+          observed: cleanupComplete
+            ? 'cleaned-without-additional-mutation'
+            : 'cleanup-residue',
+          passed: cleanupComplete,
+        };
+        repeatedClose.reasonCode = cleanupComplete
+          ? 'repeated_adapter_close_observed'
+          : 'repeated_adapter_close_left_residue';
+        repeatedClose.persistentMutations = repeatedCleanup;
+      }
     } catch (error) {
       violations.push({
         code: 'adapter_cleanup_error',
