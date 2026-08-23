@@ -1,7 +1,8 @@
 # Sandbox policy storage follow-up
 
-Status: design proposal only. The issue #1972 supervisor checkpoint is rejected,
-so this document authorizes no schema, migration, API, or SDK change.
+Status: design proposal only. The remediated issue #1972 research checkpoint
+approves a portable vocabulary for design work, but this document authorizes no
+schema, migration, API, or SDK change.
 
 ## Question
 
@@ -9,8 +10,10 @@ After enforcement parity is good enough, should reusable containment intent be
 stored as a first-class `sandbox_policies` resource instead of remaining
 embedded in runtime profiles?
 
-The answer is provisionally yes only if storage preserves the separation
-between portable intent, trusted adapter binding, and observed evidence.
+The answer is provisionally yes. The current Docker v0.39.0 and Gondolin 0.12.0
+runs have no failed-open controls, but storage must still preserve the
+separation between portable intent, trusted adapter binding, and observed
+evidence.
 
 ## Candidate resource
 
@@ -79,6 +82,27 @@ always contextual to a backend version and run.
 
 Each step needs its own issue and migration review. No part of this outline is
 implemented by issue #1972.
+
+## Credential and cancellation contract
+
+The replay established a backend-neutral lifecycle without copying credentials
+into guest storage:
+
+1. resolve a value-free binding ID in trusted host configuration;
+2. put only a non-secret placeholder in the guest environment;
+3. bind the real value at the host proxy/hook to exact approved origins;
+4. rotate by replacing the host binding while keeping the placeholder stable;
+5. revoke by removing the host binding and verifying zero delivery;
+6. restore after restart/resume only through an explicit rebind operation.
+
+The policy stores the binding ID and allowed origins, never the value, resolver
+command, keyring coordinate, or machine path.
+
+Every guest command also runs in a fresh process group. Timeout or cancellation
+sends TERM, escalates to KILL, and confirms that the group no longer exists.
+Backend destruction is the stronger fallback when that confirmation cannot be
+obtained. For Docker detached launchers, stdin/stdout/stderr must be closed so
+the launcher actually returns before the termination control exec begins.
 
 ## Open decisions
 

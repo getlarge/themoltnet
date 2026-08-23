@@ -17,10 +17,10 @@ async function loadFixture(relativePath: string): Promise<SandboxProbeRun> {
 }
 
 describe('retained sandbox parity evidence', () => {
-  it('replays the same catalog and keeps adverse results explicit', async () => {
+  it('replays the same catalog with no failed-open controls', async () => {
     const [docker, gondolin] = await Promise.all([
       loadFixture('docker-sandbox/v0.39.0-darwin-arm64.json'),
-      loadFixture('gondolin/0.9.1-workspace-darwin-arm64.json'),
+      loadFixture('gondolin/0.12.0-workspace-darwin-arm64.json'),
     ]);
 
     expect(docker.controls.map(({ scenarioId }) => scenarioId)).toEqual(
@@ -41,9 +41,15 @@ describe('retained sandbox parity evidence', () => {
     ).toBe(0);
     expect(
       docker.controls.filter(({ state }) => state === 'failed-open').length,
-    ).toBeGreaterThan(0);
+    ).toBe(0);
     expect(
       gondolin.controls.filter(({ state }) => state === 'failed-open').length,
-    ).toBeGreaterThan(0);
+    ).toBe(0);
+    expect(
+      docker.controls.filter(({ state }) => state === 'unsupported').length,
+    ).toBe(2);
+    expect(
+      gondolin.controls.filter(({ state }) => state === 'unsupported').length,
+    ).toBe(2);
   });
 });

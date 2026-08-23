@@ -1,29 +1,26 @@
 {
   "backend": {
     "architecture": "arm64",
-    "id": "docker-sandbox",
+    "id": "gondolin",
     "os": "darwin",
-    "runtime": "Docker Desktop Sandbox",
+    "runtime": "Gondolin microVM",
     "topology": [
-      "host research harness",
-      "sbx control plane and credential proxy",
-      "sandbox container guest"
+      "host research harness and HTTP hooks",
+      "Gondolin microVM guest",
+      "host-mounted VFS workspace"
     ],
-    "version": "v0.39.0"
+    "version": "0.12.0-workspace"
   },
   "catalogVersion": "issue-1972-v1",
   "cleanupComplete": true,
   "controls": [
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": [
-        "docker-sandbox guest",
-        "docker-sandbox control plane"
-      ],
+      "enforcementLocus": ["Gondolin microVM", "Gondolin host VFS/HTTP hooks"],
       "oracle": {
         "expected": "ok",
         "kind": "host-visible-write",
@@ -33,17 +30,22 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "workspace_write_observed",
-      "recordedAt": "2026-08-23T18:36:33.873Z",
+      "reasonCode": "workspace_vfs_write_observed",
+      "recordedAt": "2026-08-23T18:37:33.488Z",
       "requestedIntent": {
         "control": "workspace-read-write",
         "domain": "filesystem",
@@ -51,16 +53,12 @@
         "scenarioId": "filesystem.workspace-rw"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "mounts": [
-            {
-              "mode": "rw",
-              "path": "<workspace>"
-            }
-          ]
+          "mode": "rw",
+          "workspace": "host VFS mount"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "workspace-read-write",
           "domain": "filesystem",
@@ -73,14 +71,11 @@
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": [
-        "docker-sandbox guest",
-        "docker-sandbox control plane"
-      ],
+      "enforcementLocus": ["Gondolin microVM", "Gondolin host VFS/HTTP hooks"],
       "oracle": {
         "expected": "absent",
         "kind": "outside-marker-absence",
@@ -90,17 +85,22 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "outside_mount_boundary_observed",
-      "recordedAt": "2026-08-23T18:36:34.176Z",
+      "reasonCode": "microvm_host_boundary_observed",
+      "recordedAt": "2026-08-23T18:37:33.493Z",
       "requestedIntent": {
         "control": "outside-write-denied",
         "domain": "filesystem",
@@ -108,12 +108,11 @@
         "scenarioId": "filesystem.outside-write"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "guestExitCode": 2,
-          "mounts": ["<workspace>", "<readonly-fixture>"]
+          "mount": "<workspace-only>"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "outside-write-denied",
           "domain": "filesystem",
@@ -126,37 +125,31 @@
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
-      "basis": "verified",
-      "enforcementLocus": [
-        "docker-sandbox guest",
-        "docker-sandbox control plane"
-      ],
-      "oracle": {
-        "expected": "immutable\n",
-        "kind": "read-only-mutation",
-        "observed": {
-          "guestExitCode": 2,
-          "hostContents": "immutable\n"
-        },
-        "passed": true
-      },
+      "basis": "applied",
+      "enforcementLocus": ["Gondolin adapter"],
+      "oracle": null,
       "persistentMutations": [
-        {
-          "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
-        },
         {
           "cleanup": "pending",
           "kind": "probe-directory",
           "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "readonly_mount_observed",
-      "recordedAt": "2026-08-23T18:36:34.488Z",
+      "reasonCode": "resumeVm_has_no_readonly_secondary_mount_contract",
+      "recordedAt": "2026-08-23T18:37:33.493Z",
       "requestedIntent": {
         "control": "read-only-mount",
         "domain": "filesystem",
@@ -164,16 +157,11 @@
         "scenarioId": "filesystem.read-only"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "mounts": [
-            {
-              "mode": "ro",
-              "path": "<readonly-fixture>"
-            }
-          ]
+          "support": "unsupported-by-production-path"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "read-only-mount",
           "domain": "filesystem",
@@ -182,18 +170,15 @@
         }
       },
       "scenarioId": "filesystem.read-only",
-      "state": "enforced"
+      "state": "unsupported"
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": [
-        "docker-sandbox guest",
-        "docker-sandbox control plane"
-      ],
+      "enforcementLocus": ["Gondolin microVM", "Gondolin host VFS/HTTP hooks"],
       "oracle": {
         "expected": "unreadable",
         "kind": "credential-file-visibility",
@@ -203,17 +188,22 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
       "reasonCode": "host_credential_path_absent",
-      "recordedAt": "2026-08-23T18:36:34.765Z",
+      "recordedAt": "2026-08-23T18:37:33.495Z",
       "requestedIntent": {
         "control": "credential-path-absent",
         "domain": "filesystem",
@@ -221,11 +211,12 @@
         "scenarioId": "filesystem.credential-path"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "secretPathMounted": false
+          "guestCredentialMode": "host-authenticated",
+          "hostPathMounted": false
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "credential-path-absent",
           "domain": "filesystem",
@@ -238,14 +229,11 @@
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": [
-        "docker-sandbox guest",
-        "docker-sandbox control plane"
-      ],
+      "enforcementLocus": ["Gondolin host VFS provider"],
       "oracle": {
         "expected": "absent",
         "kind": "outside-marker-absence",
@@ -255,17 +243,22 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "outside_mount_boundary_observed",
-      "recordedAt": "2026-08-23T18:36:35.066Z",
+      "reasonCode": "vfs_symlink_boundary_observed",
+      "recordedAt": "2026-08-23T18:37:33.502Z",
       "requestedIntent": {
         "control": "symlink-and-traversal-denied",
         "domain": "filesystem",
@@ -273,12 +266,11 @@
         "scenarioId": "filesystem.symlink-traversal"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "guestExitCode": 2,
-          "mounts": ["<workspace>", "<readonly-fixture>"]
+          "hostSymlinkTarget": "<outside-mount>"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "symlink-and-traversal-denied",
           "domain": "filesystem",
@@ -291,14 +283,11 @@
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": [
-        "research harness cleanup manifest",
-        "host filesystem"
-      ],
+      "enforcementLocus": ["Gondolin microVM", "Gondolin host VFS/HTTP hooks"],
       "oracle": {
         "expected": "absent",
         "kind": "idempotent-scoped-cleanup",
@@ -308,17 +297,22 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
       "reasonCode": "scoped_cleanup_idempotence_observed",
-      "recordedAt": "2026-08-23T18:36:35.068Z",
+      "recordedAt": "2026-08-23T18:37:33.503Z",
       "requestedIntent": {
         "control": "workspace-cleanup",
         "domain": "filesystem",
@@ -326,12 +320,12 @@
         "scenarioId": "filesystem.cleanup"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
           "attempts": 2,
-          "scope": "<probe-workspace>"
+          "scope": "<workspace>"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "workspace-cleanup",
           "domain": "filesystem",
@@ -344,11 +338,11 @@
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["docker-sandbox network proxy"],
+      "enforcementLocus": ["Gondolin host HTTP hooks"],
       "oracle": {
         "expected": 0,
         "kind": "unlisted-request-count",
@@ -358,11 +352,6 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
-        },
-        {
-          "cleanup": "pending",
           "kind": "probe-directory",
           "resource": "<probe-root>"
         },
@@ -370,10 +359,15 @@
           "cleanup": "pending",
           "kind": "fixture-server",
           "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "unlisted_destination_blocked",
-      "recordedAt": "2026-08-23T18:36:35.433Z",
+      "reasonCode": "unlisted_hostname_blocked",
+      "recordedAt": "2026-08-23T18:37:33.528Z",
       "requestedIntent": {
         "control": "default-deny-egress",
         "domain": "network",
@@ -381,12 +375,12 @@
         "scenarioId": "network.deny-all"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "defaultNetwork": "deny",
-          "guestExitCode": 22
+          "allowedInternalHosts": ["127-0-0-1.sslip.io"],
+          "attempted": "<unlisted-host>"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "default-deny-egress",
           "domain": "network",
@@ -399,11 +393,11 @@
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["docker-sandbox network proxy"],
+      "enforcementLocus": ["Gondolin host HTTP hooks"],
       "oracle": {
         "expected": 1,
         "kind": "allowed-request-count",
@@ -411,11 +405,6 @@
         "passed": true
       },
       "persistentMutations": [
-        {
-          "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
-        },
         {
           "cleanup": "pending",
           "kind": "probe-directory",
@@ -428,12 +417,12 @@
         },
         {
           "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<scoped-network-rule>"
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "exact_destination_allow_observed",
-      "recordedAt": "2026-08-23T18:36:35.975Z",
+      "reasonCode": "allowed_hostname_observed",
+      "recordedAt": "2026-08-23T18:37:33.639Z",
       "requestedIntent": {
         "control": "exact-destination-allow",
         "domain": "network",
@@ -441,14 +430,12 @@
         "scenarioId": "network.exact-allow"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "policy": {
-            "exitCode": 0
-          },
-          "requested": ["host.docker.internal:<allowed-port>"]
+          "effectiveNetwork": ["127-0-0-1.sslip.io"],
+          "requested": ["127-0-0-1.sslip.io:<allowed-port>"]
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "exact-destination-allow",
           "domain": "network",
@@ -461,23 +448,18 @@
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["docker-sandbox network and credential proxy"],
+      "enforcementLocus": ["Gondolin host HTTP hooks"],
       "oracle": {
         "expected": 0,
-        "kind": "adjacent-origin-credential-match",
+        "kind": "unlisted-request-count",
         "observed": 0,
         "passed": true
       },
       "persistentMutations": [
-        {
-          "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
-        },
         {
           "cleanup": "pending",
           "kind": "probe-directory",
@@ -490,12 +472,12 @@
         },
         {
           "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<scoped-network-rule>"
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "adjacent_origin_blocked",
-      "recordedAt": "2026-08-23T18:36:36.278Z",
+      "reasonCode": "unlisted_hostname_blocked",
+      "recordedAt": "2026-08-23T18:37:33.751Z",
       "requestedIntent": {
         "control": "wrong-host-denied",
         "domain": "network",
@@ -503,12 +485,12 @@
         "scenarioId": "network.wrong-host"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "allowed": "host.docker.internal:<allowed-port>",
-          "attempted": "<adjacent-origin>"
+          "allowedInternalHosts": ["127-0-0-1.sslip.io"],
+          "attempted": "<unlisted-host>"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "wrong-host-denied",
           "domain": "network",
@@ -521,23 +503,18 @@
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["docker-sandbox network and credential proxy"],
+      "enforcementLocus": ["Gondolin host HTTP hooks"],
       "oracle": {
         "expected": 0,
-        "kind": "adjacent-origin-credential-match",
+        "kind": "adjacent-port-request-count",
         "observed": 0,
         "passed": true
       },
       "persistentMutations": [
-        {
-          "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
-        },
         {
           "cleanup": "pending",
           "kind": "probe-directory",
@@ -550,12 +527,12 @@
         },
         {
           "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<scoped-network-rule>"
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "adjacent_origin_blocked",
-      "recordedAt": "2026-08-23T18:36:36.538Z",
+      "reasonCode": "network_port_fidelity_observed",
+      "recordedAt": "2026-08-23T18:37:33.869Z",
       "requestedIntent": {
         "control": "wrong-port-denied",
         "domain": "network",
@@ -563,12 +540,12 @@
         "scenarioId": "network.wrong-port"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "allowed": "host.docker.internal:<allowed-port>",
-          "attempted": "<adjacent-origin>"
+          "effectiveNetwork": "<hostname-granular>",
+          "requested": "<exact-host-port>"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "wrong-port-denied",
           "domain": "network",
@@ -581,18 +558,18 @@
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
-      "basis": "applied",
-      "enforcementLocus": ["docker-sandbox adapter"],
-      "oracle": null,
+      "basis": "verified",
+      "enforcementLocus": ["Gondolin brokered-secret HTTP hooks"],
+      "oracle": {
+        "expected": "http",
+        "kind": "broker-protocol-binding",
+        "observed": "http",
+        "passed": true
+      },
       "persistentMutations": [
-        {
-          "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
-        },
         {
           "cleanup": "pending",
           "kind": "probe-directory",
@@ -605,12 +582,12 @@
         },
         {
           "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<scoped-network-rule>"
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "fixture_does_not_claim_protocol_or_dns_control",
-      "recordedAt": "2026-08-23T18:36:36.538Z",
+      "reasonCode": "credential_protocol_binding_recorded",
+      "recordedAt": "2026-08-23T18:37:33.869Z",
       "requestedIntent": {
         "control": "protocol-fidelity",
         "domain": "network",
@@ -618,11 +595,13 @@
         "scenarioId": "network.protocol"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "support": "unsupported-by-safe-probe"
+          "credentialPorts": ["<allowed-port>"],
+          "credentialProtocol": "http",
+          "network": "hostname-granular"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "protocol-fidelity",
           "domain": "network",
@@ -631,27 +610,22 @@
         }
       },
       "scenarioId": "network.protocol",
-      "state": "unsupported"
+      "state": "enforced"
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["docker-sandbox network and credential proxy"],
+      "enforcementLocus": ["Gondolin host HTTP hooks"],
       "oracle": {
         "expected": 0,
-        "kind": "redirect-adjacent-delivery",
+        "kind": "redirect-adjacent-request-count",
         "observed": 0,
         "passed": true
       },
       "persistentMutations": [
-        {
-          "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
-        },
         {
           "cleanup": "pending",
           "kind": "probe-directory",
@@ -664,12 +638,12 @@
         },
         {
           "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<scoped-network-rule>"
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "redirect_origin_not_allowed",
-      "recordedAt": "2026-08-23T18:36:36.870Z",
+      "reasonCode": "redirect_target_blocked",
+      "recordedAt": "2026-08-23T18:37:33.912Z",
       "requestedIntent": {
         "control": "redirect-revalidation",
         "domain": "network",
@@ -677,12 +651,11 @@
         "scenarioId": "network.redirect"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "followRedirects": true,
-          "guestExitCode": 7
+          "redirectTarget": "<unlisted-internal-host>"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "redirect-revalidation",
           "domain": "network",
@@ -695,23 +668,18 @@
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["docker-sandbox network proxy"],
+      "enforcementLocus": ["Gondolin host HTTP hooks"],
       "oracle": {
-        "expected": "exact-host-port",
+        "expected": "explicit-internal-host",
         "kind": "requested-effective-binding",
-        "observed": "exact-host-port",
+        "observed": "explicit-internal-host",
         "passed": true
       },
       "persistentMutations": [
-        {
-          "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
-        },
         {
           "cleanup": "pending",
           "kind": "probe-directory",
@@ -724,12 +692,12 @@
         },
         {
           "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<scoped-network-rule>"
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "host_gateway_binding_recorded",
-      "recordedAt": "2026-08-23T18:36:36.870Z",
+      "reasonCode": "internal_hostname_binding_recorded",
+      "recordedAt": "2026-08-23T18:37:33.912Z",
       "requestedIntent": {
         "control": "internal-target-policy",
         "domain": "network",
@@ -737,13 +705,13 @@
         "scenarioId": "network.internal"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "binding": "host-gateway-mediated",
-          "effective": ["host.docker.internal:<allowed-port>"],
+          "credentialPorts": ["<allowed-port>"],
+          "effectiveNetwork": ["127-0-0-1.sslip.io"],
           "requested": ["127.0.0.1:<allowed-port>"]
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "internal-target-policy",
           "domain": "network",
@@ -756,18 +724,13 @@
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "applied",
-      "enforcementLocus": ["docker-sandbox adapter"],
+      "enforcementLocus": ["Gondolin adapter"],
       "oracle": null,
       "persistentMutations": [
-        {
-          "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
-        },
         {
           "cleanup": "pending",
           "kind": "probe-directory",
@@ -780,12 +743,12 @@
         },
         {
           "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<scoped-network-rule>"
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "fixture_does_not_claim_protocol_or_dns_control",
-      "recordedAt": "2026-08-23T18:36:36.870Z",
+      "reasonCode": "no_controlled_dns_rebinding_fixture",
+      "recordedAt": "2026-08-23T18:37:33.912Z",
       "requestedIntent": {
         "control": "dns-rebinding",
         "domain": "network",
@@ -793,11 +756,11 @@
         "scenarioId": "network.dns-rebinding"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "support": "unsupported-by-safe-probe"
+          "support": "unsupported-by-production-path"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "dns-rebinding",
           "domain": "network",
@@ -810,23 +773,18 @@
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["docker-sandbox network proxy"],
+      "enforcementLocus": ["Gondolin host HTTP hooks"],
       "oracle": {
-        "expected": "exact-host-port",
+        "expected": "explicit-internal-host",
         "kind": "requested-effective-binding",
-        "observed": "exact-host-port",
+        "observed": "explicit-internal-host",
         "passed": true
       },
       "persistentMutations": [
-        {
-          "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
-        },
         {
           "cleanup": "pending",
           "kind": "probe-directory",
@@ -839,12 +797,12 @@
         },
         {
           "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<scoped-network-rule>"
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "host_gateway_binding_recorded",
-      "recordedAt": "2026-08-23T18:36:36.870Z",
+      "reasonCode": "internal_hostname_binding_recorded",
+      "recordedAt": "2026-08-23T18:37:33.912Z",
       "requestedIntent": {
         "control": "requested-versus-effective",
         "domain": "network",
@@ -852,13 +810,13 @@
         "scenarioId": "network.requested-effective"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "binding": "host-gateway-mediated",
-          "effective": ["host.docker.internal:<allowed-port>"],
+          "credentialPorts": ["<allowed-port>"],
+          "effectiveNetwork": ["127-0-0-1.sslip.io"],
           "requested": ["127.0.0.1:<allowed-port>"]
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "requested-versus-effective",
           "domain": "network",
@@ -871,23 +829,18 @@
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["research harness adapter"],
+      "enforcementLocus": ["Gondolin resumeVm preflight"],
       "oracle": {
-        "expected": 0,
-        "kind": "launch-attempt-count",
-        "observed": 0,
+        "expected": "rejected",
+        "kind": "required-binding-preflight",
+        "observed": "rejected",
         "passed": true
       },
       "persistentMutations": [
-        {
-          "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
-        },
         {
           "cleanup": "pending",
           "kind": "probe-directory",
@@ -900,12 +853,12 @@
         },
         {
           "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<scoped-network-rule>"
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "adapter_preflight_rejected_missing_binding",
-      "recordedAt": "2026-08-23T18:36:36.870Z",
+      "reasonCode": "required_binding_preflight_observed",
+      "recordedAt": "2026-08-23T18:37:33.913Z",
       "requestedIntent": {
         "control": "required-binding-preflight",
         "domain": "credential",
@@ -913,12 +866,12 @@
         "scenarioId": "credential.missing-binding"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "adapterPreflight": "rejected",
-          "binding": "required"
+          "boundValue": false,
+          "required": true
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "required-binding-preflight",
           "domain": "credential",
@@ -931,11 +884,11 @@
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["docker-sandbox credential proxy"],
+      "enforcementLocus": ["Gondolin brokered-secret HTTP hooks"],
       "oracle": {
         "expected": 1,
         "kind": "credential-proxy-match",
@@ -943,11 +896,6 @@
         "passed": true
       },
       "persistentMutations": [
-        {
-          "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
-        },
         {
           "cleanup": "pending",
           "kind": "probe-directory",
@@ -960,22 +908,12 @@
         },
         {
           "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<scoped-network-rule>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<credential-origin>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "allowed_origin_secret_substitution_observed",
-      "recordedAt": "2026-08-23T18:36:38.022Z",
+      "reasonCode": "allowed_origin_substitution_observed",
+      "recordedAt": "2026-08-23T18:37:33.948Z",
       "requestedIntent": {
         "control": "brokered-allowed-origin",
         "domain": "credential",
@@ -983,13 +921,12 @@
         "scenarioId": "credential.allowed-origin"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "binding": "127.0.0.1.nip.io:<allowed-port>",
           "guestValue": "<stand-in>",
-          "secretCommandExitCode": 0
+          "origin": "127-0-0-1.sslip.io:<allowed-port>"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "brokered-allowed-origin",
           "domain": "credential",
@@ -1002,11 +939,11 @@
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["docker-sandbox network and credential proxy"],
+      "enforcementLocus": ["Gondolin brokered-secret HTTP hooks"],
       "oracle": {
         "expected": 0,
         "kind": "adjacent-origin-credential-match",
@@ -1014,11 +951,6 @@
         "passed": true
       },
       "persistentMutations": [
-        {
-          "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
-        },
         {
           "cleanup": "pending",
           "kind": "probe-directory",
@@ -1031,22 +963,12 @@
         },
         {
           "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<scoped-network-rule>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<credential-origin>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "adjacent_origin_blocked",
-      "recordedAt": "2026-08-23T18:36:38.315Z",
+      "reasonCode": "adjacent_origin_secret_not_substituted",
+      "recordedAt": "2026-08-23T18:37:34.082Z",
       "requestedIntent": {
         "control": "adjacent-origin-zero-delivery",
         "domain": "credential",
@@ -1054,12 +976,12 @@
         "scenarioId": "credential.adjacent-origin"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "allowed": "127.0.0.1.nip.io:<allowed-port>",
-          "attempted": "<adjacent-port>"
+          "credentialFidelity": "protocol-host-port",
+          "networkFidelity": "hostname"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "adjacent-origin-zero-delivery",
           "domain": "credential",
@@ -1072,11 +994,11 @@
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["docker-sandbox credential proxy"],
+      "enforcementLocus": ["Gondolin brokered-secret manager"],
       "oracle": {
         "expected": 1,
         "kind": "rotated-credential-match",
@@ -1084,11 +1006,6 @@
         "passed": true
       },
       "persistentMutations": [
-        {
-          "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
-        },
         {
           "cleanup": "pending",
           "kind": "probe-directory",
@@ -1101,22 +1018,12 @@
         },
         {
           "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<scoped-network-rule>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<credential-origin>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "rotated_binding_observed",
-      "recordedAt": "2026-08-23T18:36:38.941Z",
+      "reasonCode": "rotation_observed",
+      "recordedAt": "2026-08-23T18:37:34.205Z",
       "requestedIntent": {
         "control": "rotation",
         "domain": "credential",
@@ -1124,12 +1031,12 @@
         "scenarioId": "credential.rotation"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "guestValue": "<stand-in>",
-          "transition": "replace-scoped-binding"
+          "guestValue": "<same-stand-in>",
+          "transition": "host-manager-rotation"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "rotation",
           "domain": "credential",
@@ -1142,11 +1049,11 @@
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["docker-sandbox credential proxy"],
+      "enforcementLocus": ["Gondolin brokered-secret manager"],
       "oracle": {
         "expected": 0,
         "kind": "revoked-credential-match",
@@ -1154,11 +1061,6 @@
         "passed": true
       },
       "persistentMutations": [
-        {
-          "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
-        },
         {
           "cleanup": "pending",
           "kind": "probe-directory",
@@ -1171,22 +1073,12 @@
         },
         {
           "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<scoped-network-rule>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<credential-origin>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "revoked_binding_not_delivered",
-      "recordedAt": "2026-08-23T18:36:39.428Z",
+      "reasonCode": "revocation_observed",
+      "recordedAt": "2026-08-23T18:37:34.225Z",
       "requestedIntent": {
         "control": "revocation",
         "domain": "credential",
@@ -1194,11 +1086,11 @@
         "scenarioId": "credential.revocation"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "transition": "remove-scoped-binding"
+          "transition": "host-manager-revocation"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "revocation",
           "domain": "credential",
@@ -1211,13 +1103,13 @@
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "verified",
       "enforcementLocus": [
-        "docker-sandbox credential proxy",
-        "docker daemon lifecycle"
+        "Gondolin resumeVm",
+        "Gondolin brokered-secret HTTP hooks"
       ],
       "oracle": {
         "expected": 1,
@@ -1226,11 +1118,6 @@
         "passed": true
       },
       "persistentMutations": [
-        {
-          "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
-        },
         {
           "cleanup": "pending",
           "kind": "probe-directory",
@@ -1243,27 +1130,12 @@
         },
         {
           "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<scoped-network-rule>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<credential-origin>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "explicit_rebinding_after_restart_observed",
-      "recordedAt": "2026-08-23T18:36:45.957Z",
+      "reasonCode": "resume_rebinding_observed",
+      "recordedAt": "2026-08-23T18:37:35.219Z",
       "requestedIntent": {
         "control": "resume-rebind",
         "domain": "credential",
@@ -1271,12 +1143,12 @@
         "scenarioId": "credential.resume"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "rebinding": "explicit",
-          "restart": "stop-and-auto-start"
+          "rebinding": "required-and-explicit",
+          "restart": "checkpoint-resume"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "resume-rebind",
           "domain": "credential",
@@ -1289,8 +1161,8 @@
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "verified",
       "enforcementLocus": ["research harness sanitizer"],
@@ -1303,11 +1175,6 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
-        },
-        {
-          "cleanup": "pending",
           "kind": "probe-directory",
           "resource": "<probe-root>"
         },
@@ -1318,27 +1185,12 @@
         },
         {
           "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<scoped-network-rule>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<credential-origin>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
       "reasonCode": "value_free_evidence_only",
-      "recordedAt": "2026-08-23T18:36:45.957Z",
+      "recordedAt": "2026-08-23T18:37:35.219Z",
       "requestedIntent": {
         "control": "value-free-evidence",
         "domain": "credential",
@@ -1346,12 +1198,12 @@
         "scenarioId": "credential.evidence-leak"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
           "persistedCredentialValues": false,
           "persistedHostPaths": false
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "value-free-evidence",
           "domain": "credential",
@@ -1364,13 +1216,13 @@
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "verified",
       "enforcementLocus": [
-        "research harness process supervisor",
-        "docker-sandbox guest"
+        "MoltNet managed exec",
+        "Gondolin guest process group"
       ],
       "oracle": {
         "expected": "absent",
@@ -1379,11 +1231,6 @@
         "passed": true
       },
       "persistentMutations": [
-        {
-          "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
-        },
         {
           "cleanup": "pending",
           "kind": "probe-directory",
@@ -1396,27 +1243,12 @@
         },
         {
           "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<scoped-network-rule>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<credential-origin>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "guest_process_group_termination_observed",
-      "recordedAt": "2026-08-23T18:37:02.133Z",
+      "reasonCode": "managed_process_group_termination_observed",
+      "recordedAt": "2026-08-23T18:37:42.428Z",
       "requestedIntent": {
         "control": "timeout-containment",
         "domain": "lifecycle",
@@ -1424,18 +1256,12 @@
         "scenarioId": "lifecycle.timeout"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "acknowledged": true,
-          "detachedExitCode": 0,
-          "termination": "guest-process-group-then-scoped-sandbox-remove",
-          "terminationResult": {
-            "exitCode": 0,
-            "stderr": "",
-            "stdout": ""
-          }
+          "confirmed": true,
+          "termination": "process-group"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "timeout-containment",
           "domain": "lifecycle",
@@ -1448,13 +1274,13 @@
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "verified",
       "enforcementLocus": [
-        "research harness process supervisor",
-        "docker-sandbox guest"
+        "MoltNet managed exec",
+        "Gondolin guest process group"
       ],
       "oracle": {
         "expected": "absent",
@@ -1463,11 +1289,6 @@
         "passed": true
       },
       "persistentMutations": [
-        {
-          "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
-        },
         {
           "cleanup": "pending",
           "kind": "probe-directory",
@@ -1480,27 +1301,12 @@
         },
         {
           "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<scoped-network-rule>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<credential-origin>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "guest_process_group_termination_observed",
-      "recordedAt": "2026-08-23T18:37:18.972Z",
+      "reasonCode": "managed_process_group_termination_observed",
+      "recordedAt": "2026-08-23T18:37:48.736Z",
       "requestedIntent": {
         "control": "cancel-containment",
         "domain": "lifecycle",
@@ -1508,18 +1314,12 @@
         "scenarioId": "lifecycle.cancel"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "acknowledged": true,
-          "detachedExitCode": 0,
-          "termination": "guest-process-group-then-scoped-sandbox-remove",
-          "terminationResult": {
-            "exitCode": 0,
-            "stderr": "",
-            "stdout": ""
-          }
+          "confirmed": true,
+          "termination": "process-group"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "cancel-containment",
           "domain": "lifecycle",
@@ -1532,23 +1332,18 @@
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["research harness adapter"],
+      "enforcementLocus": ["Gondolin resumeVm preflight"],
       "oracle": {
-        "expected": 0,
-        "kind": "preflight-launch-attempt-count",
-        "observed": 0,
+        "expected": "rejected",
+        "kind": "required-binding-preflight",
+        "observed": "rejected",
         "passed": true
       },
       "persistentMutations": [
-        {
-          "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
-        },
         {
           "cleanup": "pending",
           "kind": "probe-directory",
@@ -1561,27 +1356,12 @@
         },
         {
           "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<scoped-network-rule>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<credential-origin>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "adapter_preflight_rejected_unavailable_broker",
-      "recordedAt": "2026-08-23T18:37:18.972Z",
+      "reasonCode": "required_binding_preflight_observed",
+      "recordedAt": "2026-08-23T18:37:48.736Z",
       "requestedIntent": {
         "control": "broker-unavailable-fail-closed",
         "domain": "lifecycle",
@@ -1589,13 +1369,12 @@
         "scenarioId": "lifecycle.broker-unavailable"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "availability": "unavailable",
-          "broker": "required",
-          "preflight": "rejected"
+          "boundValue": false,
+          "required": true
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "broker-unavailable-fail-closed",
           "domain": "lifecycle",
@@ -1608,23 +1387,18 @@
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["research harness adapter"],
+      "enforcementLocus": ["Gondolin resumeVm preflight"],
       "oracle": {
         "expected": false,
-        "kind": "partial-sandbox-residue",
+        "kind": "partial-vm-residue",
         "observed": false,
         "passed": true
       },
       "persistentMutations": [
-        {
-          "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
-        },
         {
           "cleanup": "pending",
           "kind": "probe-directory",
@@ -1637,27 +1411,12 @@
         },
         {
           "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<scoped-network-rule>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<credential-origin>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "preflight_failure_left_no_backend_resource",
-      "recordedAt": "2026-08-23T18:37:19.262Z",
+      "reasonCode": "preflight_failure_left_no_live_vm",
+      "recordedAt": "2026-08-23T18:37:48.736Z",
       "requestedIntent": {
         "control": "partial-launch-cleanup",
         "domain": "lifecycle",
@@ -1665,11 +1424,11 @@
         "scenarioId": "lifecycle.partial-launch"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "launchRejectedBeforeCreate": true
+          "failurePhase": "resumeVm-preflight-before-checkpoint-resume"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "partial-launch-cleanup",
           "domain": "lifecycle",
@@ -1682,11 +1441,11 @@
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["docker-sandbox adapter"],
+      "enforcementLocus": ["Gondolin adapter"],
       "oracle": {
         "expected": "cleaned-without-additional-mutation",
         "kind": "repeated-adapter-close",
@@ -1694,11 +1453,6 @@
         "passed": true
       },
       "persistentMutations": [
-        {
-          "cleanup": "cleaned",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
-        },
         {
           "cleanup": "cleaned",
           "kind": "probe-directory",
@@ -1711,27 +1465,12 @@
         },
         {
           "cleanup": "cleaned",
-          "kind": "network-policy",
-          "resource": "<scoped-network-rule>"
-        },
-        {
-          "cleanup": "cleaned",
-          "kind": "network-policy",
-          "resource": "<credential-origin>"
-        },
-        {
-          "cleanup": "cleaned",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
-        },
-        {
-          "cleanup": "cleaned",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
       "reasonCode": "repeated_adapter_close_observed",
-      "recordedAt": "2026-08-23T18:37:19.262Z",
+      "recordedAt": "2026-08-23T18:37:48.736Z",
       "requestedIntent": {
         "control": "idempotent-close",
         "domain": "lifecycle",
@@ -1739,11 +1478,11 @@
         "scenarioId": "lifecycle.repeated-close"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "support": "unsupported-by-safe-probe"
+          "support": "unsupported-by-production-path"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "idempotent-close",
           "domain": "lifecycle",
@@ -1756,32 +1495,24 @@
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": [
-        "docker daemon container lifecycle",
-        "host bind mount"
-      ],
+      "enforcementLocus": ["Gondolin microVM", "Gondolin host VFS/HTTP hooks"],
       "oracle": {
         "expected": {
-          "process": "terminates",
+          "tmp": "resets",
           "workspace": "persists"
         },
         "kind": "restart-storage-observation",
         "observed": {
-          "process": "terminated-by-stop",
+          "tmp": "resets",
           "workspace": "persists"
         },
         "passed": true
       },
       "persistentMutations": [
-        {
-          "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
-        },
         {
           "cleanup": "pending",
           "kind": "probe-directory",
@@ -1794,27 +1525,12 @@
         },
         {
           "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<scoped-network-rule>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<credential-origin>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "restart_surfaces_observed",
-      "recordedAt": "2026-08-23T18:37:22.756Z",
+      "reasonCode": "checkpoint_storage_surfaces_observed",
+      "recordedAt": "2026-08-23T18:37:49.521Z",
       "requestedIntent": {
         "control": "restart-and-checkpoint",
         "domain": "lifecycle",
@@ -1822,13 +1538,13 @@
         "scenarioId": "lifecycle.restart-checkpoint"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "bindings": "control-plane",
-          "process": "container-lifecycle",
-          "workspace": "bind-mount"
+          "binding": "explicitly rebound",
+          "tmp": "microVM volatile",
+          "workspace": "host VFS"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "restart-and-checkpoint",
           "domain": "lifecycle",
@@ -1841,11 +1557,11 @@
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["docker daemon cgroup"],
+      "enforcementLocus": ["Gondolin QEMU resource configuration"],
       "oracle": {
         "expected": 1,
         "kind": "online-cpu-count",
@@ -1853,11 +1569,6 @@
         "passed": true
       },
       "persistentMutations": [
-        {
-          "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
-        },
         {
           "cleanup": "pending",
           "kind": "probe-directory",
@@ -1870,27 +1581,12 @@
         },
         {
           "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<scoped-network-rule>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<credential-origin>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
       "reasonCode": "guest_cpu_limit_observed",
-      "recordedAt": "2026-08-23T18:37:23.214Z",
+      "recordedAt": "2026-08-23T18:37:49.623Z",
       "requestedIntent": {
         "control": "cpu-limit",
         "domain": "resource",
@@ -1898,11 +1594,11 @@
         "scenarioId": "resource.cpu"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "requestedCpuCount": 1
+          "requestedCpus": 1
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "cpu-limit",
           "domain": "resource",
@@ -1915,26 +1611,21 @@
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "verified",
-      "enforcementLocus": ["docker daemon cgroup"],
+      "enforcementLocus": ["Gondolin QEMU resource configuration"],
       "oracle": {
         "expected": {
           "target": 1048576,
           "tolerancePercent": 15
         },
         "kind": "guest-memory-kibibytes",
-        "observed": 1025232,
+        "observed": 990876,
         "passed": true
       },
       "persistentMutations": [
-        {
-          "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
-        },
         {
           "cleanup": "pending",
           "kind": "probe-directory",
@@ -1947,27 +1638,12 @@
         },
         {
           "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<scoped-network-rule>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<credential-origin>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
       "reasonCode": "guest_memory_limit_observed",
-      "recordedAt": "2026-08-23T18:37:23.671Z",
+      "recordedAt": "2026-08-23T18:37:49.626Z",
       "requestedIntent": {
         "control": "memory-limit",
         "domain": "resource",
@@ -1975,11 +1651,11 @@
         "scenarioId": "resource.memory"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "requestedMemory": "1GiB"
+          "requestedMemory": "1G"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "memory-limit",
           "domain": "resource",
@@ -1992,8 +1668,8 @@
     },
     {
       "backend": {
-        "id": "docker-sandbox",
-        "version": "v0.39.0"
+        "id": "gondolin",
+        "version": "0.12.0-workspace"
       },
       "basis": "verified",
       "enforcementLocus": ["research harness topology declaration"],
@@ -2006,11 +1682,6 @@
       "persistentMutations": [
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
-        },
-        {
-          "cleanup": "pending",
           "kind": "probe-directory",
           "resource": "<probe-root>"
         },
@@ -2021,27 +1692,12 @@
         },
         {
           "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<scoped-network-rule>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "network-policy",
-          "resource": "<credential-origin>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
       "reasonCode": "capability_boundary_recorded",
-      "recordedAt": "2026-08-23T18:37:23.671Z",
+      "recordedAt": "2026-08-23T18:37:49.626Z",
       "requestedIntent": {
         "control": "host-capability-separation",
         "domain": "topology",
@@ -2049,12 +1705,12 @@
         "scenarioId": "topology.host-capabilities"
       },
       "resolvedAdapterConfig": {
-        "backendId": "docker-sandbox",
+        "backendId": "gondolin",
         "effective": {
-          "guest": ["shell", "workspace"],
+          "guest": ["shell", "workspace VFS"],
           "host": ["MCP", "signing", "credential broker", "model traffic"]
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "production-resumeVm-path",
         "requested": {
           "control": "host-capability-separation",
           "domain": "topology",
@@ -2069,20 +1725,20 @@
   "hostCapabilities": [
     {
       "basis": "declared",
-      "description": "MCP calls and host commands are orchestrator capabilities, not guest capabilities.",
-      "id": "mcp-and-host-exec",
+      "description": "MCP, signing, and model traffic remain orchestrator capabilities.",
+      "id": "mcp-signing-model",
       "locus": "host",
       "relationship": "outside-containment"
     },
     {
       "basis": "verified",
-      "description": "Docker Sandbox replaces a guest stand-in at a bound outbound origin.",
-      "id": "credential-proxy",
+      "description": "Host VFS and HTTP hooks mediate guest workspace and egress.",
+      "id": "vfs-and-http-hooks",
       "locus": "control-plane",
       "relationship": "mediates-containment"
     }
   ],
-  "recordedAt": "2026-08-23T18:37:25.831Z",
+  "recordedAt": "2026-08-23T18:37:49.633Z",
   "runId": "<run-id>",
   "schemaVersion": 1,
   "sourceRevision": "3eb50f2d311b39ecb99888b1b59edd4562139bed"
