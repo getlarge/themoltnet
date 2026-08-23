@@ -4,7 +4,16 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { type PolicyFixture, startPolicyFixture } from './fixture-server.js';
 
-function get(port: number, path: string, token?: string): Promise<number> {
+interface ResponseSummary {
+  location?: string;
+  status: number;
+}
+
+function get(
+  port: number,
+  path: string,
+  token?: string,
+): Promise<ResponseSummary> {
   return new Promise((resolve, reject) => {
     const req = request(
       {
@@ -15,7 +24,14 @@ function get(port: number, path: string, token?: string): Promise<number> {
       },
       (response) => {
         response.resume();
-        response.once('end', () => resolve(response.statusCode ?? 0));
+        response.once('end', () =>
+          resolve({
+            status: response.statusCode ?? 0,
+            ...(response.headers.location
+              ? { location: response.headers.location }
+              : {}),
+          }),
+        );
       },
     );
     req.once('error', reject);
@@ -28,33 +44,66 @@ describe('sandbox policy loopback fixture', () => {
 
   afterEach(async () => fixture?.close());
 
-  it('records only value-free credential match evidence', async () => {
-    fixture = await startPolicyFixture('synthetic-one');
+  it('mints credentials and records only value-free match evidence', async () => {
+    fixture = await startPolicyFixture();
+    const initial = fixture.credential;
 
-    expect(await get(fixture.allowedPort, '/allowed', 'synthetic-one')).toBe(
-      200,
-    );
-    expect(await get(fixture.adjacentPort, '/adjacent')).toBe(200);
-    fixture.rotate('synthetic-two');
-    expect(await get(fixture.allowedPort, '/allowed', 'synthetic-two')).toBe(
-      200,
-    );
+    expect(
+      await get(fixture.allowedPort, fixture.path('/allowed'), initial),
+    ).toMatchObject({ status: 200 });
+    expect(
+      await get(fixture.allowedPort, fixture.path('/wrong'), 'wrong-token'),
+    ).toMatchObject({ status: 401 });
+    const rotated = fixture.rotate();
+    expect(
+      await get(fixture.allowedPort, fixture.path('/allowed'), rotated),
+    ).toMatchObject({ status: 200 });
 
+    expect(
+      fixture.requests.map(({ credentialMatch }) => credentialMatch),
+    ).toEqual(['expected', 'unexpected', 'expected']);
+    const evidence = JSON.stringify(fixture.requests);
+    expect(evidence).not.toContain(initial);
+    expect(evidence).not.toContain(rotated);
+    expect(fixture.sensitiveValues()).toEqual([initial, rotated]);
+  });
+
+  it('records pathname only and exercises the redirect target', async () => {
+    fixture = await startPolicyFixture();
+    const redirect = await get(
+      fixture.allowedPort,
+      `${fixture.path('/redirect')}?credential=must-not-persist`,
+      fixture.credential,
+    );
+    const location = new URL(redirect.location ?? '');
+
+    expect(redirect.status).toBe(302);
+    expect(await get(fixture.adjacentPort, location.pathname)).toMatchObject({
+      status: 200,
+    });
     expect(fixture.requests).toEqual([
       expect.objectContaining({
         destination: 'allowed',
-        credentialMatch: 'expected',
+        path: fixture.path('/redirect'),
       }),
       expect.objectContaining({
         destination: 'adjacent',
         credentialMatch: 'absent',
-      }),
-      expect.objectContaining({
-        destination: 'allowed',
-        credentialMatch: 'expected',
+        path: fixture.path('/redirect-target'),
       }),
     ]);
-    expect(JSON.stringify(fixture.requests)).not.toContain('synthetic-one');
-    expect(JSON.stringify(fixture.requests)).not.toContain('synthetic-two');
+    expect(JSON.stringify(fixture.requests)).not.toContain('must-not-persist');
+  });
+
+  it('ignores requests without the per-run path nonce and closes twice', async () => {
+    fixture = await startPolicyFixture();
+
+    expect(await get(fixture.allowedPort, '/allowed')).toMatchObject({
+      status: 404,
+    });
+    expect(fixture.requests).toEqual([]);
+    await expect(
+      Promise.all([fixture.close(), fixture.close()]),
+    ).resolves.toEqual([undefined, undefined]);
   });
 });

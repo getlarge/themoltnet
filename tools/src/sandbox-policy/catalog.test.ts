@@ -21,6 +21,9 @@ describe('sandbox policy scenario catalog', () => {
         'topology',
       ]),
     );
+    expect(
+      catalog.scenarios.find(({ id }) => id === 'resource.memory')?.parameters,
+    ).toEqual({ memoryKiB: 1_048_576, tolerancePercent: 15 });
   });
 
   it('rejects duplicate scenario ids', () => {
@@ -49,5 +52,31 @@ describe('sandbox policy scenario catalog', () => {
         ],
       }),
     ).toThrow('duplicate scenario id');
+  });
+
+  it('rejects domain drift and unknown fields', () => {
+    const scenario = {
+      id: 'filesystem.cleanup',
+      domain: 'network',
+      control: 'cleanup',
+      purpose: 'cleanup',
+      required: true,
+      oracle: 'cleanup',
+    };
+    const base = {
+      schemaVersion: 1,
+      catalogVersion: 'test',
+      notice: 'private test',
+    };
+
+    expect(() =>
+      parseScenarioCatalog({ ...base, scenarios: [scenario] }),
+    ).toThrow('scenario id prefix must match domain');
+    expect(() =>
+      parseScenarioCatalog({
+        ...base,
+        scenarios: [{ ...scenario, domain: 'filesystem', extra: true }],
+      }),
+    ).toThrow('schema validation');
   });
 });
