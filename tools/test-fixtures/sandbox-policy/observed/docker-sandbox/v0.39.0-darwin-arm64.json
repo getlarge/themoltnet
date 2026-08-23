@@ -85,7 +85,7 @@
         }
       ],
       "reasonCode": "workspace_write_observed",
-      "recordedAt": "2026-08-23T19:35:34.522Z",
+      "recordedAt": "2026-08-23T19:41:13.918Z",
       "requestedIntent": {
         "control": "workspace-read-write",
         "domain": "filesystem",
@@ -147,7 +147,7 @@
         }
       ],
       "reasonCode": "outside_mount_boundary_observed",
-      "recordedAt": "2026-08-23T19:35:34.791Z",
+      "recordedAt": "2026-08-23T19:41:14.172Z",
       "requestedIntent": {
         "control": "outside-write-denied",
         "domain": "filesystem",
@@ -208,7 +208,7 @@
         }
       ],
       "reasonCode": "readonly_mount_observed",
-      "recordedAt": "2026-08-23T19:35:35.061Z",
+      "recordedAt": "2026-08-23T19:41:14.432Z",
       "requestedIntent": {
         "control": "read-only-mount",
         "domain": "filesystem",
@@ -270,7 +270,7 @@
         }
       ],
       "reasonCode": "host_credential_path_absent",
-      "recordedAt": "2026-08-23T19:35:35.394Z",
+      "recordedAt": "2026-08-23T19:41:14.710Z",
       "requestedIntent": {
         "control": "credential-path-absent",
         "domain": "filesystem",
@@ -327,7 +327,7 @@
         }
       ],
       "reasonCode": "outside_mount_boundary_observed",
-      "recordedAt": "2026-08-23T19:35:35.685Z",
+      "recordedAt": "2026-08-23T19:41:14.988Z",
       "requestedIntent": {
         "control": "symlink-and-traversal-denied",
         "domain": "filesystem",
@@ -382,7 +382,7 @@
         }
       ],
       "reasonCode": "scoped_cleanup_idempotence_observed",
-      "recordedAt": "2026-08-23T19:35:35.686Z",
+      "recordedAt": "2026-08-23T19:41:14.988Z",
       "requestedIntent": {
         "control": "workspace-cleanup",
         "domain": "filesystem",
@@ -437,7 +437,7 @@
         }
       ],
       "reasonCode": "unlisted_destination_blocked",
-      "recordedAt": "2026-08-23T19:35:35.963Z",
+      "recordedAt": "2026-08-23T19:41:15.239Z",
       "requestedIntent": {
         "control": "default-deny-egress",
         "domain": "network",
@@ -497,7 +497,7 @@
         }
       ],
       "reasonCode": "exact_destination_allow_observed",
-      "recordedAt": "2026-08-23T19:35:36.664Z",
+      "recordedAt": "2026-08-23T19:41:15.720Z",
       "requestedIntent": {
         "control": "exact-destination-allow",
         "domain": "network",
@@ -559,7 +559,7 @@
         }
       ],
       "reasonCode": "adjacent_origin_blocked",
-      "recordedAt": "2026-08-23T19:35:36.923Z",
+      "recordedAt": "2026-08-23T19:41:15.973Z",
       "requestedIntent": {
         "control": "wrong-host-denied",
         "domain": "network",
@@ -619,7 +619,7 @@
         }
       ],
       "reasonCode": "adjacent_origin_blocked",
-      "recordedAt": "2026-08-23T19:35:37.209Z",
+      "recordedAt": "2026-08-23T19:41:16.230Z",
       "requestedIntent": {
         "control": "wrong-port-denied",
         "domain": "network",
@@ -674,7 +674,7 @@
         }
       ],
       "reasonCode": "fixture_does_not_claim_protocol_or_dns_control",
-      "recordedAt": "2026-08-23T19:35:37.210Z",
+      "recordedAt": "2026-08-23T19:41:16.230Z",
       "requestedIntent": {
         "control": "protocol-fidelity",
         "domain": "network",
@@ -733,7 +733,7 @@
         }
       ],
       "reasonCode": "redirect_origin_not_allowed",
-      "recordedAt": "2026-08-23T19:35:37.490Z",
+      "recordedAt": "2026-08-23T19:41:16.513Z",
       "requestedIntent": {
         "control": "redirect-revalidation",
         "domain": "network",
@@ -793,7 +793,7 @@
         }
       ],
       "reasonCode": "host_gateway_binding_recorded",
-      "recordedAt": "2026-08-23T19:35:37.490Z",
+      "recordedAt": "2026-08-23T19:41:16.513Z",
       "requestedIntent": {
         "control": "internal-target-policy",
         "domain": "network",
@@ -849,7 +849,7 @@
         }
       ],
       "reasonCode": "fixture_does_not_claim_protocol_or_dns_control",
-      "recordedAt": "2026-08-23T19:35:37.490Z",
+      "recordedAt": "2026-08-23T19:41:16.513Z",
       "requestedIntent": {
         "control": "dns-rebinding",
         "domain": "network",
@@ -908,7 +908,7 @@
         }
       ],
       "reasonCode": "host_gateway_binding_recorded",
-      "recordedAt": "2026-08-23T19:35:37.490Z",
+      "recordedAt": "2026-08-23T19:41:16.513Z",
       "requestedIntent": {
         "control": "requested-versus-effective",
         "domain": "network",
@@ -969,7 +969,7 @@
         }
       ],
       "reasonCode": "adapter_preflight_rejected_missing_binding",
-      "recordedAt": "2026-08-23T19:35:37.490Z",
+      "recordedAt": "2026-08-23T19:41:16.513Z",
       "requestedIntent": {
         "control": "required-binding-preflight",
         "domain": "credential",
@@ -1039,7 +1039,7 @@
         }
       ],
       "reasonCode": "allowed_origin_secret_substitution_observed",
-      "recordedAt": "2026-08-23T19:35:38.387Z",
+      "recordedAt": "2026-08-23T19:41:17.647Z",
       "requestedIntent": {
         "control": "brokered-allowed-origin",
         "domain": "credential",
@@ -1110,7 +1110,7 @@
         }
       ],
       "reasonCode": "adjacent_origin_secret_not_substituted",
-      "recordedAt": "2026-08-23T19:35:38.859Z",
+      "recordedAt": "2026-08-23T19:41:17.918Z",
       "requestedIntent": {
         "control": "adjacent-origin-zero-delivery",
         "domain": "credential",
@@ -1180,7 +1180,7 @@
         }
       ],
       "reasonCode": "rotated_binding_observed",
-      "recordedAt": "2026-08-23T19:35:39.479Z",
+      "recordedAt": "2026-08-23T19:41:18.613Z",
       "requestedIntent": {
         "control": "rotation",
         "domain": "credential",
@@ -1250,7 +1250,7 @@
         }
       ],
       "reasonCode": "revoked_binding_not_delivered",
-      "recordedAt": "2026-08-23T19:35:40.084Z",
+      "recordedAt": "2026-08-23T19:41:19.196Z",
       "requestedIntent": {
         "control": "revocation",
         "domain": "credential",
@@ -1324,7 +1324,7 @@
         }
       ],
       "reasonCode": "explicit_rebinding_after_restart_observed",
-      "recordedAt": "2026-08-23T19:35:46.746Z",
+      "recordedAt": "2026-08-23T19:41:25.683Z",
       "requestedIntent": {
         "control": "resume-rebind",
         "domain": "credential",
@@ -1399,7 +1399,7 @@
         }
       ],
       "reasonCode": "value_free_evidence_only",
-      "recordedAt": "2026-08-23T19:35:46.746Z",
+      "recordedAt": "2026-08-23T19:41:25.683Z",
       "requestedIntent": {
         "control": "value-free-evidence",
         "domain": "credential",
@@ -1474,7 +1474,7 @@
         }
       ],
       "reasonCode": "guest_process_group_termination_observed",
-      "recordedAt": "2026-08-23T19:35:57.341Z",
+      "recordedAt": "2026-08-23T19:41:36.095Z",
       "requestedIntent": {
         "control": "timeout-containment",
         "domain": "lifecycle",
@@ -1565,7 +1565,7 @@
         }
       ],
       "reasonCode": "guest_process_group_termination_observed",
-      "recordedAt": "2026-08-23T19:36:07.737Z",
+      "recordedAt": "2026-08-23T19:41:46.533Z",
       "requestedIntent": {
         "control": "cancel-containment",
         "domain": "lifecycle",
@@ -1656,7 +1656,7 @@
         }
       ],
       "reasonCode": "adapter_preflight_rejected_unavailable_broker",
-      "recordedAt": "2026-08-23T19:36:07.738Z",
+      "recordedAt": "2026-08-23T19:41:46.533Z",
       "requestedIntent": {
         "control": "broker-unavailable-fail-closed",
         "domain": "lifecycle",
@@ -1732,7 +1732,7 @@
         }
       ],
       "reasonCode": "preflight_failure_left_no_backend_resource",
-      "recordedAt": "2026-08-23T19:36:08.067Z",
+      "recordedAt": "2026-08-23T19:41:46.777Z",
       "requestedIntent": {
         "control": "partial-launch-cleanup",
         "domain": "lifecycle",
@@ -1806,7 +1806,7 @@
         }
       ],
       "reasonCode": "repeated_adapter_close_observed",
-      "recordedAt": "2026-08-23T19:36:08.067Z",
+      "recordedAt": "2026-08-23T19:41:46.777Z",
       "requestedIntent": {
         "control": "idempotent-close",
         "domain": "lifecycle",
@@ -1886,7 +1886,7 @@
         }
       ],
       "reasonCode": "restart_surfaces_observed",
-      "recordedAt": "2026-08-23T19:36:14.365Z",
+      "recordedAt": "2026-08-23T19:41:52.919Z",
       "requestedIntent": {
         "control": "restart-and-checkpoint",
         "domain": "lifecycle",
@@ -1962,7 +1962,7 @@
         }
       ],
       "reasonCode": "guest_cpu_limit_observed",
-      "recordedAt": "2026-08-23T19:36:14.662Z",
+      "recordedAt": "2026-08-23T19:41:53.214Z",
       "requestedIntent": {
         "control": "cpu-limit",
         "domain": "resource",
@@ -2045,7 +2045,7 @@
         }
       ],
       "reasonCode": "guest_memory_limit_observed",
-      "recordedAt": "2026-08-23T19:36:14.964Z",
+      "recordedAt": "2026-08-23T19:41:53.457Z",
       "requestedIntent": {
         "control": "memory-limit",
         "domain": "resource",
@@ -2127,7 +2127,7 @@
         }
       ],
       "reasonCode": "capability_boundary_recorded",
-      "recordedAt": "2026-08-23T19:36:14.964Z",
+      "recordedAt": "2026-08-23T19:41:53.458Z",
       "requestedIntent": {
         "control": "host-capability-separation",
         "domain": "topology",
@@ -2168,9 +2168,9 @@
       "relationship": "mediates-containment"
     }
   ],
-  "recordedAt": "2026-08-23T19:36:16.327Z",
+  "recordedAt": "2026-08-23T19:41:54.694Z",
   "runId": "<run-id>",
   "schemaVersion": 1,
-  "sourceRevision": "8e346bfc622907ff69835640e8f9ec1efa8f3dc2",
+  "sourceRevision": "f6816d9e444895943c6f29b6af30ba04ec50fe72",
   "violations": []
 }
