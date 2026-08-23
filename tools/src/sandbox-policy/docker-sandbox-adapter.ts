@@ -66,6 +66,8 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
   #networkAllowApplied = false;
   #secretApplied = false;
   #scenarioSignal: AbortSignal | undefined;
+  #credentialDeliveryVerified = false;
+  #rotatedDeliveryVerified = false;
 
   constructor(options: DockerSandboxAdapterOptions = {}) {
     this.#execute = options.execute ?? executeCommand;
@@ -518,6 +520,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
         const matched = requests.some(
           (request) => request.credentialMatch === 'expected',
         );
+        this.#credentialDeliveryVerified = matched;
         return this.#evidence(
           scenario,
           context,
@@ -667,6 +670,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
         const matched = fixture.requests
           .slice(before)
           .some((item) => item.credentialMatch === 'expected');
+        this.#rotatedDeliveryVerified = matched;
         return this.#evidence(
           scenario,
           context,
@@ -702,6 +706,11 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
         const matched = fixture.requests
           .slice(before)
           .some((item) => item.credentialMatch === 'expected');
+        const passed =
+          this.#credentialDeliveryVerified &&
+          this.#rotatedDeliveryVerified &&
+          removed.exitCode === 0 &&
+          !matched;
         return this.#evidence(
           scenario,
           context,
@@ -709,10 +718,12 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
             kind: 'revoked-credential-match',
             expected: 0,
             observed: matched ? 1 : 0,
-            passed: removed.exitCode === 0 && !matched,
+            passed,
           },
           { transition: 'remove-scoped-binding' },
-          'revoked_binding_not_delivered',
+          passed
+            ? 'revoked_binding_not_delivered'
+            : 'revocation_unverified_without_prior_delivery',
           ['docker-sandbox-control-plane'],
         );
       }
