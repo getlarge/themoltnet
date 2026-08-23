@@ -185,7 +185,11 @@
       "control": "timeout-containment",
       "domain": "lifecycle",
       "id": "lifecycle.timeout",
-      "oracle": "A detached child delayed marker remains absent three seconds after containment termination.",
+      "oracle": "A detached child delayed marker remains absent through the configured observation window after containment termination.",
+      "parameters": {
+        "delayedMarkerMs": 5000,
+        "observationWindowMs": 6000
+      },
       "purpose": "Prove timeout kills the workload rather than only rejecting the host call.",
       "required": true
     },
@@ -194,6 +198,10 @@
       "domain": "lifecycle",
       "id": "lifecycle.cancel",
       "oracle": "An explicitly cancelled detached child leaves no delayed marker.",
+      "parameters": {
+        "delayedMarkerMs": 5000,
+        "observationWindowMs": 6000
+      },
       "purpose": "Prove cancellation reaches the containment boundary.",
       "required": true
     },
@@ -235,6 +243,9 @@
       "domain": "resource",
       "id": "resource.cpu",
       "oracle": "The guest reports one online CPU when one CPU is requested.",
+      "parameters": {
+        "cpuCount": 1
+      },
       "purpose": "Measure whether CPU requests are independently observable.",
       "required": false
     },
@@ -243,6 +254,10 @@
       "domain": "resource",
       "id": "resource.memory",
       "oracle": "Guest memory is within fifteen percent of the requested 1 GiB.",
+      "parameters": {
+        "memoryKiB": 1048576,
+        "tolerancePercent": 15
+      },
       "purpose": "Measure whether memory requests are independently observable.",
       "required": false
     },
