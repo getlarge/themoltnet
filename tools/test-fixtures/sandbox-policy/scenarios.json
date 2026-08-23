@@ -1,0 +1,259 @@
+{
+  "catalogVersion": "issue-1972-v1",
+  "notice": "Private research vocabulary for issue #1972. This is not a persisted schema or public SDK contract.",
+  "scenarios": [
+    {
+      "control": "workspace-read-write",
+      "domain": "filesystem",
+      "id": "filesystem.workspace-rw",
+      "oracle": "A guest write is visible in the mounted host workspace.",
+      "purpose": "Prove the intended writable workspace boundary.",
+      "required": true
+    },
+    {
+      "control": "outside-write-denied",
+      "domain": "filesystem",
+      "id": "filesystem.outside-write",
+      "oracle": "A host marker outside every mount remains absent.",
+      "purpose": "Prove that guest writes cannot escape the declared workspace.",
+      "required": true
+    },
+    {
+      "control": "read-only-mount",
+      "domain": "filesystem",
+      "id": "filesystem.read-only",
+      "oracle": "Reads succeed and a mutation leaves the host fixture unchanged.",
+      "purpose": "Measure read-only mount support without assuming parity.",
+      "required": false
+    },
+    {
+      "control": "credential-path-absent",
+      "domain": "filesystem",
+      "id": "filesystem.credential-path",
+      "oracle": "Synthetic host credential material cannot be read by the guest.",
+      "purpose": "Keep host credential storage outside the guest filesystem.",
+      "required": true
+    },
+    {
+      "control": "symlink-and-traversal-denied",
+      "domain": "filesystem",
+      "id": "filesystem.symlink-traversal",
+      "oracle": "Symlink and parent traversal attempts leave the outside marker absent.",
+      "purpose": "Exercise common path-confusion escape techniques.",
+      "required": true
+    },
+    {
+      "control": "workspace-cleanup",
+      "domain": "filesystem",
+      "id": "filesystem.cleanup",
+      "oracle": "Scoped temporary artifacts are removed and teardown is idempotent.",
+      "purpose": "Prove probe cleanup rather than assuming process exit is sufficient.",
+      "required": true
+    },
+
+    {
+      "control": "default-deny-egress",
+      "domain": "network",
+      "id": "network.deny-all",
+      "oracle": "An unlisted TCP destination receives no connection.",
+      "purpose": "Establish the backend default-deny baseline.",
+      "required": true
+    },
+    {
+      "control": "exact-destination-allow",
+      "domain": "network",
+      "id": "network.exact-allow",
+      "oracle": "Only the adapter-bound allowed fixture receives the request.",
+      "purpose": "Prove the narrow positive egress path.",
+      "required": true
+    },
+    {
+      "control": "wrong-host-denied",
+      "domain": "network",
+      "id": "network.wrong-host",
+      "oracle": "The adjacent hostname receives no request.",
+      "purpose": "Measure hostname fidelity.",
+      "required": true
+    },
+    {
+      "control": "wrong-port-denied",
+      "domain": "network",
+      "id": "network.wrong-port",
+      "oracle": "The adjacent port receives no request.",
+      "purpose": "Measure port fidelity independently from hostname fidelity.",
+      "required": true
+    },
+    {
+      "control": "protocol-fidelity",
+      "domain": "network",
+      "id": "network.protocol",
+      "oracle": "A protocol outside the requested origin cannot reach a credentialed fixture.",
+      "purpose": "Distinguish TCP, host-port, and HTTP-origin enforcement.",
+      "required": false
+    },
+    {
+      "control": "redirect-revalidation",
+      "domain": "network",
+      "id": "network.redirect",
+      "oracle": "A redirect to the adjacent origin receives no credential and no successful request.",
+      "purpose": "Check whether policy is re-evaluated after redirects.",
+      "required": true
+    },
+    {
+      "control": "internal-target-policy",
+      "domain": "network",
+      "id": "network.internal",
+      "oracle": "Loopback/private destinations require an explicit adapter binding.",
+      "purpose": "Keep internal address access visible in effective policy.",
+      "required": true
+    },
+    {
+      "control": "dns-rebinding",
+      "domain": "network",
+      "id": "network.dns-rebinding",
+      "oracle": "A controlled hostname resolution change is either blocked or explicitly unsupported.",
+      "purpose": "Record rebinding assurance without using a public rebinding service.",
+      "required": false
+    },
+    {
+      "control": "requested-versus-effective",
+      "domain": "network",
+      "id": "network.requested-effective",
+      "oracle": "Evidence contains both requested destinations and the full effective backend policy.",
+      "purpose": "Expose mandatory platform egress and fidelity reductions.",
+      "required": true
+    },
+
+    {
+      "control": "required-binding-preflight",
+      "domain": "credential",
+      "id": "credential.missing-binding",
+      "oracle": "Launch is not attempted when a required trusted binding is missing.",
+      "purpose": "Fail before guest startup when credential requirements cannot be satisfied.",
+      "required": true
+    },
+    {
+      "control": "brokered-allowed-origin",
+      "domain": "credential",
+      "id": "credential.allowed-origin",
+      "oracle": "The guest sees a stand-in and the allowed origin sees the synthetic value.",
+      "purpose": "Prove host-side credential substitution.",
+      "required": true
+    },
+    {
+      "control": "adjacent-origin-zero-delivery",
+      "domain": "credential",
+      "id": "credential.adjacent-origin",
+      "oracle": "Wrong host and wrong port record zero synthetic credential matches.",
+      "purpose": "Prove that an allowed network path does not imply credential authority.",
+      "required": true
+    },
+    {
+      "control": "rotation",
+      "domain": "credential",
+      "id": "credential.rotation",
+      "oracle": "Only the rotated synthetic value is accepted after rotation.",
+      "purpose": "Measure live credential rotation semantics.",
+      "required": true
+    },
+    {
+      "control": "revocation",
+      "domain": "credential",
+      "id": "credential.revocation",
+      "oracle": "No synthetic value is delivered after revocation.",
+      "purpose": "Measure live revocation semantics.",
+      "required": true
+    },
+    {
+      "control": "resume-rebind",
+      "domain": "credential",
+      "id": "credential.resume",
+      "oracle": "Restart semantics explicitly show whether trusted bindings persist or must be rebound.",
+      "purpose": "Separate durable guest state from host credential authority.",
+      "required": true
+    },
+    {
+      "control": "value-free-evidence",
+      "domain": "credential",
+      "id": "credential.evidence-leak",
+      "oracle": "The persistence sanitizer rejects every synthetic value and host path.",
+      "purpose": "Prevent probe evidence from becoming an exfiltration channel.",
+      "required": true
+    },
+
+    {
+      "control": "timeout-containment",
+      "domain": "lifecycle",
+      "id": "lifecycle.timeout",
+      "oracle": "A detached child delayed marker remains absent three seconds after containment termination.",
+      "purpose": "Prove timeout kills the workload rather than only rejecting the host call.",
+      "required": true
+    },
+    {
+      "control": "cancel-containment",
+      "domain": "lifecycle",
+      "id": "lifecycle.cancel",
+      "oracle": "An explicitly cancelled detached child leaves no delayed marker.",
+      "purpose": "Prove cancellation reaches the containment boundary.",
+      "required": true
+    },
+    {
+      "control": "broker-unavailable-fail-closed",
+      "domain": "lifecycle",
+      "id": "lifecycle.broker-unavailable",
+      "oracle": "An unavailable required broker prevents launch or request delivery.",
+      "purpose": "Record failed-open versus failed-closed behavior.",
+      "required": true
+    },
+    {
+      "control": "partial-launch-cleanup",
+      "domain": "lifecycle",
+      "id": "lifecycle.partial-launch",
+      "oracle": "A launch failure after resource creation leaves no backend residue.",
+      "purpose": "Exercise cleanup between allocation and usable handle return.",
+      "required": true
+    },
+    {
+      "control": "idempotent-close",
+      "domain": "lifecycle",
+      "id": "lifecycle.repeated-close",
+      "oracle": "Calling close twice succeeds and leaves no additional mutation.",
+      "purpose": "Make teardown safe for nested failure paths.",
+      "required": true
+    },
+    {
+      "control": "restart-and-checkpoint",
+      "domain": "lifecycle",
+      "id": "lifecycle.restart-checkpoint",
+      "oracle": "Evidence distinguishes disk, process, tmpfs, VFS, and binding persistence.",
+      "purpose": "Characterize backend lifecycle semantics without normalizing them.",
+      "required": false
+    },
+
+    {
+      "control": "cpu-limit",
+      "domain": "resource",
+      "id": "resource.cpu",
+      "oracle": "The guest reports one online CPU when one CPU is requested.",
+      "purpose": "Measure whether CPU requests are independently observable.",
+      "required": false
+    },
+    {
+      "control": "memory-limit",
+      "domain": "resource",
+      "id": "resource.memory",
+      "oracle": "Guest memory is within fifteen percent of the requested 1 GiB.",
+      "purpose": "Measure whether memory requests are independently observable.",
+      "required": false
+    },
+    {
+      "control": "host-capability-separation",
+      "domain": "topology",
+      "id": "topology.host-capabilities",
+      "oracle": "MCP, host exec, signing, credential brokering, and model traffic are recorded outside guest containment.",
+      "purpose": "Prevent host capabilities from being misreported as sandbox controls.",
+      "required": true
+    }
+  ],
+  "schemaVersion": 1
+}
