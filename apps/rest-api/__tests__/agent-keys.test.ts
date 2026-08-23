@@ -26,7 +26,7 @@ const OTHER_TEAM_ID = 'bbbbbbbb-0000-4000-8000-000000000002';
 const KEY_ID = '01JKEY00000000000000000001';
 const ROTATED_KEY_ID = '01JKEY00000000000000000002';
 const CREATED_AT = new Date('2026-07-24T08:00:00.000Z');
-const EXPIRES_AT = new Date('2026-08-23T08:00:00.000Z');
+const EXPIRES_AT = new Date('2099-08-23T08:00:00.000Z');
 const IDEMPOTENCY_KEY = 'agent-key-test-request';
 
 function issuedKey(
