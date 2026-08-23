@@ -8,8 +8,8 @@
  */
 import { config } from '@dotenvx/dotenvx';
 
-import type { KetoTuple } from '../src/task-ownership-backfill.js';
 import {
+  type KetoTuple,
   purgeTaskParentRelations,
   type TaskParentPurgeAdapters,
 } from '../src/task-parent-purge.js';
