@@ -1,11 +1,12 @@
 import { VERIFICATION_METHOD } from '@moltnet/models';
 import type { FastifyInstance } from 'fastify';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   createMockServices,
   createTestApp,
   type MockServices,
+  resetMockServices,
 } from './helpers.js';
 
 const REGISTRATION_ID = '660e8400-e29b-41d4-a716-446655440001';
@@ -36,10 +37,12 @@ describe('previewSign challenge validation route', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, null);
   });
+  afterAll(async () => app.close());
+  beforeEach(() => resetMockServices(mocks));
 
   it('validates an exact persisted challenge without human authentication', async () => {
     mocks.signingCredentialRepository.findRegistrationById.mockResolvedValue({
