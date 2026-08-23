@@ -75,6 +75,11 @@ export interface RelationshipWriter {
     subjectId: string,
     subjectNs: KetoNamespace,
   ): Promise<void>;
+  grantTeamExecutors(
+    teamId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<void>;
   grantTeamMembers(
     teamId: string,
     subjectId: string,
@@ -84,12 +89,6 @@ export interface RelationshipWriter {
     teamId: string,
     subjectId: string,
     subjectNs: KetoNamespace,
-  ): Promise<void>;
-  removeTeamRoleRelation(
-    teamId: string,
-    subjectId: string,
-    subjectNs: KetoNamespace,
-    relation: TeamRelation,
   ): Promise<void>;
   // Group management (Keto is the sole membership store)
   grantGroupParent(groupId: string, teamId: string): Promise<void>;
@@ -166,6 +165,69 @@ export function createRelationshipWriter(
   relationshipReadApi: RelationshipApi = relationshipApi,
 ): RelationshipWriter {
   const taskPatchBatchSize = 100;
+  const teamRoleRelations = [
+    TeamRelation.Owners,
+    TeamRelation.Managers,
+    TeamRelation.Executors,
+    TeamRelation.Members,
+  ] as const;
+
+  async function writeTeamRoleProjection(
+    teamId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
+    role: TeamRelation,
+  ): Promise<void> {
+    if (role === TeamRelation.Executors && subjectNs !== KetoNamespace.Agent) {
+      throw new Error('The executor team role is agent-only');
+    }
+
+    const desired = new Set<TeamRelation>([role]);
+    if (subjectNs === KetoNamespace.Agent) {
+      // Materialize claim authority for owners/managers and read access for
+      // standalone executors so both Keto checks remain single-relation paths.
+      if (role === TeamRelation.Owners || role === TeamRelation.Managers) {
+        desired.add(TeamRelation.Executors);
+      } else if (role === TeamRelation.Executors) {
+        desired.add(TeamRelation.Members);
+      }
+    }
+
+    const subject_set = {
+      namespace: subjectNs,
+      object: subjectId,
+      relation: '',
+    };
+    await relationshipApi.patchRelationships({
+      relationshipPatch: [
+        // Keto resolves a delete and insert for the same tuple as a delete,
+        // regardless of their array order. Delete only tuples outside the
+        // desired projection, then idempotently insert every desired tuple.
+        ...teamRoleRelations
+          .filter((relation) => !desired.has(relation))
+          .map((relation) => ({
+            action: 'delete' as const,
+            relation_tuple: {
+              namespace: KetoNamespace.Team,
+              object: teamId,
+              relation,
+              subject_set,
+            },
+          })),
+        ...teamRoleRelations
+          .filter((relation) => desired.has(relation))
+          .map((relation) => ({
+            action: 'insert' as const,
+            relation_tuple: {
+              namespace: KetoNamespace.Team,
+              object: teamId,
+              relation,
+              subject_set,
+            },
+          })),
+      ],
+    });
+  }
 
   async function listTaskRelations(
     taskIds: ReadonlySet<string>,
@@ -328,18 +390,12 @@ export function createRelationshipWriter(
       subjectId: string,
       subjectNs: KetoNamespace,
     ): Promise<void> {
-      await relationshipApi.createRelationship({
-        createRelationshipBody: {
-          namespace: KetoNamespace.Team,
-          object: teamId,
-          relation: TeamRelation.Owners,
-          subject_set: {
-            namespace: subjectNs,
-            object: subjectId,
-            relation: '',
-          },
-        },
-      });
+      await writeTeamRoleProjection(
+        teamId,
+        subjectId,
+        subjectNs,
+        TeamRelation.Owners,
+      );
     },
 
     async grantTeamManagers(
@@ -347,18 +403,25 @@ export function createRelationshipWriter(
       subjectId: string,
       subjectNs: KetoNamespace,
     ): Promise<void> {
-      await relationshipApi.createRelationship({
-        createRelationshipBody: {
-          namespace: KetoNamespace.Team,
-          object: teamId,
-          relation: TeamRelation.Managers,
-          subject_set: {
-            namespace: subjectNs,
-            object: subjectId,
-            relation: '',
-          },
-        },
-      });
+      await writeTeamRoleProjection(
+        teamId,
+        subjectId,
+        subjectNs,
+        TeamRelation.Managers,
+      );
+    },
+
+    async grantTeamExecutors(
+      teamId: string,
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<void> {
+      await writeTeamRoleProjection(
+        teamId,
+        subjectId,
+        subjectNs,
+        TeamRelation.Executors,
+      );
     },
 
     async grantTeamMembers(
@@ -366,18 +429,12 @@ export function createRelationshipWriter(
       subjectId: string,
       subjectNs: KetoNamespace,
     ): Promise<void> {
-      await relationshipApi.createRelationship({
-        createRelationshipBody: {
-          namespace: KetoNamespace.Team,
-          object: teamId,
-          relation: TeamRelation.Members,
-          subject_set: {
-            namespace: subjectNs,
-            object: subjectId,
-            relation: '',
-          },
-        },
-      });
+      await writeTeamRoleProjection(
+        teamId,
+        subjectId,
+        subjectNs,
+        TeamRelation.Members,
+      );
     },
 
     async removeTeamMemberRelation(
@@ -386,11 +443,7 @@ export function createRelationshipWriter(
       subjectNs: KetoNamespace,
     ): Promise<void> {
       await relationshipApi.patchRelationships({
-        relationshipPatch: [
-          TeamRelation.Owners,
-          TeamRelation.Managers,
-          TeamRelation.Members,
-        ].map((relation) => ({
+        relationshipPatch: teamRoleRelations.map((relation) => ({
           action: 'delete' as const,
           relation_tuple: {
             namespace: KetoNamespace.Team,
@@ -403,31 +456,6 @@ export function createRelationshipWriter(
             },
           },
         })),
-      });
-    },
-
-    async removeTeamRoleRelation(
-      teamId: string,
-      subjectId: string,
-      subjectNs: KetoNamespace,
-      relation: TeamRelation,
-    ): Promise<void> {
-      await relationshipApi.patchRelationships({
-        relationshipPatch: [
-          {
-            action: 'delete' as const,
-            relation_tuple: {
-              namespace: KetoNamespace.Team,
-              object: teamId,
-              relation,
-              subject_set: {
-                namespace: subjectNs,
-                object: subjectId,
-                relation: '',
-              },
-            },
-          },
-        ],
       });
     },
 

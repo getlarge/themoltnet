@@ -118,8 +118,8 @@ func TestTeamsMembersUpdateRoleHelp(t *testing.T) {
 	if !strings.Contains(stdout, "--role") {
 		t.Errorf("expected update-role help to contain --role, got: %s", stdout)
 	}
-	if !strings.Contains(stdout, "manager") || !strings.Contains(stdout, "member") {
-		t.Errorf("expected update-role help to mention member and manager roles, got: %s", stdout)
+	if !strings.Contains(stdout, "manager") || !strings.Contains(stdout, "executor") || !strings.Contains(stdout, "member") {
+		t.Errorf("expected update-role help to mention member, executor, and manager roles, got: %s", stdout)
 	}
 }
 

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { KetoNamespace } from '../src/keto-constants.js';
 import {
   createRelationshipWriter,
   type RelationshipWriter,
@@ -32,6 +33,118 @@ describe('RelationshipWriter', () => {
   beforeEach(() => {
     mockRelationshipApi = createMockRelationshipApi();
     writer = createRelationshipWriter(mockRelationshipApi as any);
+  });
+
+  describe('team role projections', () => {
+    const TEAM_ID = '00000000-0000-4000-b000-000000000001';
+    const allRelations = ['owners', 'managers', 'executors', 'members'];
+
+    it.each([
+      ['owner', ['owners', 'executors']],
+      ['manager', ['managers', 'executors']],
+      ['executor', ['executors', 'members']],
+      ['member', ['members']],
+    ] as const)(
+      'atomically projects an agent %s role',
+      async (role, expectedRelations) => {
+        mockRelationshipApi.patchRelationships.mockResolvedValue(undefined);
+
+        const grant = {
+          owner: writer.grantTeamOwners,
+          manager: writer.grantTeamManagers,
+          executor: writer.grantTeamExecutors,
+          member: writer.grantTeamMembers,
+        }[role];
+        await grant(TEAM_ID, AGENT_ID, KetoNamespace.Agent);
+
+        expect(mockRelationshipApi.patchRelationships).toHaveBeenCalledOnce();
+        const patches = mockRelationshipApi.patchRelationships.mock.calls[0]![0]
+          .relationshipPatch as Array<{
+          action: string;
+          relation_tuple: { relation: string };
+        }>;
+        expect(
+          patches
+            .filter((patch) => patch.action === 'delete')
+            .map((patch) => patch.relation_tuple.relation),
+        ).toEqual(
+          allRelations.filter(
+            (relation) => !new Set<string>(expectedRelations).has(relation),
+          ),
+        );
+        expect(
+          patches
+            .filter((patch) => patch.action === 'insert')
+            .map((patch) => patch.relation_tuple.relation),
+        ).toEqual(expectedRelations);
+      },
+    );
+
+    it.each([
+      ['owner', ['owners']],
+      ['manager', ['managers']],
+      ['member', ['members']],
+    ] as const)(
+      'keeps a human %s projection singular',
+      async (role, expected) => {
+        mockRelationshipApi.patchRelationships.mockResolvedValue(undefined);
+        const grant = {
+          owner: writer.grantTeamOwners,
+          manager: writer.grantTeamManagers,
+          member: writer.grantTeamMembers,
+        }[role];
+
+        await grant(TEAM_ID, AGENT_ID, KetoNamespace.Human);
+
+        const patches = mockRelationshipApi.patchRelationships.mock.calls[0]![0]
+          .relationshipPatch as Array<{
+          action: string;
+          relation_tuple: { relation: string };
+        }>;
+        expect(
+          patches
+            .filter((patch) => patch.action === 'insert')
+            .map((patch) => patch.relation_tuple.relation),
+        ).toEqual(expected);
+        expect(
+          patches
+            .filter((patch) => patch.action === 'delete')
+            .map((patch) => patch.relation_tuple.relation),
+        ).toEqual(
+          allRelations.filter(
+            (relation) => !new Set<string>(expected).has(relation),
+          ),
+        );
+      },
+    );
+
+    it('rejects an executor projection for a human before writing', async () => {
+      await expect(
+        writer.grantTeamExecutors(TEAM_ID, AGENT_ID, KetoNamespace.Human),
+      ).rejects.toThrow('agent-only');
+      expect(mockRelationshipApi.patchRelationships).not.toHaveBeenCalled();
+    });
+
+    it('deletes every role tuple when removing a member', async () => {
+      mockRelationshipApi.patchRelationships.mockResolvedValue(undefined);
+
+      await writer.removeTeamMemberRelation(
+        TEAM_ID,
+        AGENT_ID,
+        KetoNamespace.Agent,
+      );
+
+      const patches = mockRelationshipApi.patchRelationships.mock.calls[0]![0]
+        .relationshipPatch as Array<{
+        action: string;
+        relation_tuple: { relation: string };
+      }>;
+      expect(patches).toHaveLength(4);
+      expect(patches.map((patch) => patch.relation_tuple.relation)).toEqual(
+        allRelations,
+      );
+      expect(patches.every((patch) => patch.action === 'delete')).toBe(true);
+    });
   });
 
   it('writes exact ShellCommand relationships for runtime policies', async () => {

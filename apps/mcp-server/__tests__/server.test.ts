@@ -734,7 +734,7 @@ describe('buildApp', () => {
           "name": "team_members_list",
         },
         {
-          "inputSchema": "4f16b4d67ae7e928",
+          "inputSchema": "c67e648bbb6c763d",
           "name": "teams_create",
         },
         {
@@ -742,7 +742,7 @@ describe('buildApp', () => {
           "name": "teams_delete",
         },
         {
-          "inputSchema": "1d9126b2200a8c9a",
+          "inputSchema": "f7475c12da368732",
           "name": "teams_invite_create",
         },
         {
@@ -764,6 +764,10 @@ describe('buildApp', () => {
         {
           "inputSchema": "ef8493794e9a3d9a",
           "name": "teams_member_remove",
+        },
+        {
+          "inputSchema": "165164f260c99333",
+          "name": "teams_member_update_role",
         },
       ]
     `);

@@ -2408,7 +2408,7 @@ export type SigningRequest = {
         type: 'human';
       }
     | {
-        id: 'owner' | 'manager' | 'member';
+        id: 'owner' | 'manager' | 'executor' | 'member';
         type: 'team-role';
       }
     | {
@@ -4453,7 +4453,7 @@ export type CreateSigningRequestData = {
           type: 'human';
         }
       | {
-          id: 'owner' | 'manager' | 'member';
+          id: 'owner' | 'manager' | 'executor' | 'member';
           type: 'team-role';
         }
       | {
@@ -15559,7 +15559,7 @@ export type ListTeamsResponses = {
       id: string;
       name: string;
       personal: boolean;
-      role: 'owner' | 'manager' | 'member';
+      role: 'owner' | 'manager' | 'executor' | 'member';
       status: string;
     }>;
   };
@@ -15570,7 +15570,7 @@ export type ListTeamsResponse = ListTeamsResponses[keyof ListTeamsResponses];
 export type CreateTeamData = {
   body: {
     foundingMembers?: Array<{
-      role: 'owner' | 'manager' | 'member';
+      role: 'owner' | 'manager' | 'executor' | 'member';
       /**
        * UUID v4 identifier
        */
@@ -15683,7 +15683,7 @@ export type JoinTeamResponses = {
    * Default Response
    */
   200: {
-    role: 'manager' | 'member';
+    role: 'manager' | 'executor' | 'member';
     /**
      * UUID v4 identifier
      */
@@ -15796,7 +15796,7 @@ export type GetTeamResponses = {
       displayName: string;
       email?: string;
       fingerprint?: string;
-      role: 'owner' | 'manager' | 'member';
+      role: 'owner' | 'manager' | 'executor' | 'member';
       /**
        * UUID v4 identifier
        */
@@ -16050,7 +16050,7 @@ export type ListTeamInvitesResponses = {
        */
       id: string;
       maxUses: number;
-      role: 'manager' | 'member';
+      role: 'manager' | 'executor' | 'member';
       useCount: number;
     }>;
   };
@@ -16063,7 +16063,7 @@ export type CreateTeamInviteData = {
   body?: {
     expiresInHours?: number;
     maxUses?: number;
-    role?: 'manager' | 'member';
+    role?: 'manager' | 'executor' | 'member';
   };
   path: {
     /**
@@ -16118,7 +16118,7 @@ export type CreateTeamInviteResponses = {
      */
     id: string;
     maxUses: number;
-    role: 'manager' | 'member';
+    role: 'manager' | 'executor' | 'member';
     useCount: number;
   };
 };
@@ -16231,7 +16231,7 @@ export type ListTeamMembersResponses = {
       displayName: string;
       email?: string;
       fingerprint?: string;
-      role: 'owner' | 'manager' | 'member';
+      role: 'owner' | 'manager' | 'executor' | 'member';
       /**
        * UUID v4 identifier
        */
@@ -16300,7 +16300,7 @@ export type RemoveTeamMemberResponse =
 
 export type UpdateTeamMemberRoleData = {
   body: {
-    role: 'manager' | 'member';
+    role: 'manager' | 'executor' | 'member';
   };
   path: {
     /**
@@ -16355,7 +16355,7 @@ export type UpdateTeamMemberRoleResponses = {
    * Default Response
    */
   200: {
-    role: 'manager' | 'member';
+    role: 'manager' | 'executor' | 'member';
     updated: boolean;
   };
 };

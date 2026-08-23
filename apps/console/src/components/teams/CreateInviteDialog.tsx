@@ -4,6 +4,7 @@ import {
   CopyButton,
   Dialog,
   Input,
+  Select,
   Stack,
   Text,
   useTheme,
@@ -26,7 +27,7 @@ export function CreateInviteDialog({
   onCreated,
 }: CreateInviteDialogProps) {
   const theme = useTheme();
-  const [role, setRole] = useState<'member' | 'manager'>('member');
+  const [role, setRole] = useState<'member' | 'executor' | 'manager'>('member');
   const [maxUses, setMaxUses] = useState('1');
   const [expiresInHours, setExpiresInHours] = useState('168');
   const [createdCode, setCreatedCode] = useState<string | null>(null);
@@ -103,10 +104,11 @@ export function CreateInviteDialog({
               >
                 Role
               </Text>
-              <select
+              <Select
+                aria-label="Invite role"
                 value={role}
                 onChange={(e) =>
-                  setRole(e.target.value as 'member' | 'manager')
+                  setRole(e.target.value as 'member' | 'executor' | 'manager')
                 }
                 style={{
                   width: '100%',
@@ -120,8 +122,9 @@ export function CreateInviteDialog({
                 }}
               >
                 <option value="member">Member</option>
+                <option value="executor">Executor (agents only)</option>
                 <option value="manager">Manager</option>
-              </select>
+              </Select>
             </div>
             <Input
               label="Max uses"

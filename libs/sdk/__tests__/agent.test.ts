@@ -1767,7 +1767,7 @@ describe('Agent facade', () => {
     });
 
     it('teams.updateMemberRole sends path params and role body', async () => {
-      const updated = { updated: true, role: 'manager' };
+      const updated = { updated: true, role: 'executor' };
       vi.mocked(updateTeamMemberRole).mockResolvedValueOnce({
         data: updated,
         error: undefined,
@@ -1777,14 +1777,14 @@ describe('Agent facade', () => {
       const result = await agent.teams.updateMemberRole(
         'team-1',
         'subject-1',
-        'manager',
+        'executor',
       );
 
       expect(result).toEqual(updated);
       expect(updateTeamMemberRole).toHaveBeenCalledWith(
         expect.objectContaining({
           path: { id: 'team-1', subjectId: 'subject-1' },
-          body: { role: 'manager' },
+          body: { role: 'executor' },
         }),
       );
     });

@@ -6,13 +6,18 @@ The model is enforced by [Ory Keto](https://www.ory.sh/docs/keto/), which means 
 
 ## Teams
 
-A team is a container for shared resources. Agents and humans can belong to a team in one of three roles:
+A team is a container for shared resources. Roles use the precedence `owner > manager > executor > member`:
 
-| Role      | Can do                                                             |
-| --------- | ------------------------------------------------------------------ |
-| `owner`   | Everything in the team — write, manage, delete, transfer ownership |
-| `manager` | Write access + add/remove members (but not owners)                 |
-| `member`  | Read-only access to team resources                                 |
+| Role       | Can do                                                             |
+| ---------- | ------------------------------------------------------------------ |
+| `owner`    | Everything in the team — write, manage, delete, transfer ownership |
+| `manager`  | Write access + add/remove members (but not owners)                 |
+| `executor` | Agent-only role: read team resources and claim the team's tasks    |
+| `member`   | Read-only access to team resources                                 |
+
+Agent owners and managers also carry the executor capability. Executor agents
+also carry member access. Humans can be owners, managers, or members, but can
+never be assigned the executor role.
 
 Every agent gets a **personal team** at registration — a team of one, used for diaries that aren't meant to be shared. Project teams are created explicitly via `teams_create` (or `POST /teams`), and by default the creator becomes the sole owner.
 
@@ -28,7 +33,7 @@ This is mostly a safeguard against one-sided team creation: nobody ends up "owni
 
 Beyond founding members, new people join a team via invite codes. The flow is:
 
-1. An owner or manager calls `teams_invite_create` with a role (`manager` or `member`) and an optional expiry or max-uses limit. The server returns a code.
+1. An owner or manager calls `teams_invite_create` with a role (`manager`, agent-only `executor`, or `member`) and an optional expiry or max-uses limit. The server returns a code.
 2. The invitee calls `teams_join` with that code.
 3. The server grants them the corresponding Keto role tuple.
 
@@ -36,7 +41,11 @@ Invites can be listed (`teams_invite_list`) and revoked (`teams_invite_delete`) 
 
 ### Managing members
 
-Owners and managers can update a member's role between `member` and `manager` with `updateTeamMemberRole` / `teams members update-role`, and remove members with `teams_member_remove`. Owners can't be removed by anyone except themselves — ownership transfer is an explicit, symmetrical operation, not a demotion.
+Owners and managers can update an agent between `member`, `executor`, and
+`manager`, or a human between `member` and `manager`, with
+`updateTeamMemberRole` / `teams members update-role`. Owners remain read-only
+in the role editor. Removing a member deletes all owner, manager, executor, and
+member projections for that identity.
 
 ## Groups
 
@@ -71,11 +80,11 @@ Grants are managed via the MCP tools (`diary_grants_create`, `diary_grants_list`
 
 Every resource that belongs to a diary inherits its permissions transitively — you grant access once, at the diary level, and the rest follows:
 
-| Resource      | Read path                                         | Write path                        |
-| ------------- | ------------------------------------------------- | --------------------------------- |
-| `DiaryEntry`  | parent diary's `read`                             | parent diary's `write`            |
-| `ContextPack` | parent diary's `read` (+ stricter `verify_claim`) | parent diary's `manage`           |
-| `Task`        | parent diary's `read`                             | parent diary's `write` (to claim) |
+| Resource      | Read path                                         | Write path                                                |
+| ------------- | ------------------------------------------------- | --------------------------------------------------------- |
+| `DiaryEntry`  | parent diary's `read`                             | parent diary's `write`                                    |
+| `ContextPack` | parent diary's `read` (+ stricter `verify_claim`) | parent diary's `manage`                                   |
+| `Task`        | owning team's access or a direct task grant       | owning team's executors or a direct task grant (to claim) |
 
 This is why the other docs keep saying "ACLs are always diary-scoped" — there's no separate set of entry-level or pack-level grants to track. Grant someone access to the diary; they see the entries, the packs, the tasks that belong to it.
 
@@ -219,7 +228,9 @@ A typical project setup:
 2. Tech lead creates a project team with themselves as sole owner (or founds it with other co-owners).
 3. Tech lead creates the project diary inside that team — all team members automatically get read/write.
 4. A security reviewer needs read access to audit decisions but shouldn't be a team member. Grant them `writer` on the specific diary they need to see.
-5. A group of QA agents needs to claim tasks from the project diary. Create a `qa-agents` group, add them, grant `writer` to the group on the diary. Adding new QA agents later is just a group membership change — no new grants to issue.
+5. QA agents that routinely claim team tasks receive the `executor` role. For
+   exceptional delegation of one task, grant `writer` or `manager` directly on
+   that task; this does not broaden their authority to other team tasks.
 
 ## Related docs
 

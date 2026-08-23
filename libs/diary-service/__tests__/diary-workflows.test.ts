@@ -84,6 +84,7 @@ function createMockRelationshipWriter(): {
     removePackRelationsBatch: vi.fn().mockResolvedValue(undefined),
     grantTeamOwners: vi.fn().mockResolvedValue(undefined),
     grantTeamManagers: vi.fn().mockResolvedValue(undefined),
+    grantTeamExecutors: vi.fn().mockResolvedValue(undefined),
     grantTeamMembers: vi.fn().mockResolvedValue(undefined),
     removeTeamMemberRelation: vi.fn().mockResolvedValue(undefined),
     grantGroupParent: vi.fn().mockResolvedValue(undefined),

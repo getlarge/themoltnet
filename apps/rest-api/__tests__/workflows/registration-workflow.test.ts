@@ -82,6 +82,7 @@ function createDeps() {
       registerAgent: vi.fn(),
       removeAgentRelations: vi.fn(),
       grantTeamOwners: vi.fn(),
+      grantTeamExecutors: vi.fn(),
       grantTeamMembers: vi.fn(),
       removeTeamMemberRelation: vi.fn(),
       grantDiaryTeam: vi.fn(),

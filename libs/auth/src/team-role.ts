@@ -3,6 +3,7 @@ import { TeamRelation } from './keto-constants.js';
 export const TEAM_ROLE = {
   Owner: 'owner',
   Manager: 'manager',
+  Executor: 'executor',
   Member: 'member',
 } as const;
 
@@ -10,8 +11,9 @@ export type TeamRole = (typeof TEAM_ROLE)[keyof typeof TEAM_ROLE];
 export type TeamInviteRole = Exclude<TeamRole, 'owner'>;
 
 const TEAM_ROLE_RANK: Record<TeamRole, number> = {
-  [TEAM_ROLE.Owner]: 3,
-  [TEAM_ROLE.Manager]: 2,
+  [TEAM_ROLE.Owner]: 4,
+  [TEAM_ROLE.Manager]: 3,
+  [TEAM_ROLE.Executor]: 2,
   [TEAM_ROLE.Member]: 1,
 };
 
@@ -25,6 +27,8 @@ export function teamRelationToRole(relation: TeamRelation): TeamRole {
       return TEAM_ROLE.Owner;
     case TeamRelation.Managers:
       return TEAM_ROLE.Manager;
+    case TeamRelation.Executors:
+      return TEAM_ROLE.Executor;
     case TeamRelation.Members:
       return TEAM_ROLE.Member;
   }
@@ -36,6 +40,8 @@ export function teamRoleToRelation(role: TeamRole): TeamRelation {
       return TeamRelation.Owners;
     case TEAM_ROLE.Manager:
       return TeamRelation.Managers;
+    case TEAM_ROLE.Executor:
+      return TeamRelation.Executors;
     case TEAM_ROLE.Member:
       return TeamRelation.Members;
   }
@@ -47,6 +53,8 @@ export function normalizeTeamRelation(relation: string): TeamRelation | null {
       return TeamRelation.Owners;
     case 'managers':
       return TeamRelation.Managers;
+    case 'executors':
+      return TeamRelation.Executors;
     case 'members':
       return TeamRelation.Members;
     default:

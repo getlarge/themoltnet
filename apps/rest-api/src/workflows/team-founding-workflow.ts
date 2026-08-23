@@ -8,7 +8,7 @@
  *
  * Steps:
  * 1. Create team in DB in 'founding' status
- * 2. Grant Keto roles to all founding members (owners, managers)
+ * 2. Grant complete Keto role projections to all founding members
  * 3. Seed foundingAcceptances rows for all founding members
  * 4. Wait for all-accepted event (DBOS.recv) — 7-day timeout
  * 5a. On timeout: archive team + remove Keto tuples
@@ -45,7 +45,7 @@ export class TeamFoundingTimeoutError extends Error {
 export interface FoundingMember {
   subjectId: string;
   subjectNs: 'Agent' | 'Human';
-  role: 'owner' | 'manager' | 'member';
+  role: 'owner' | 'manager' | 'executor' | 'member';
 }
 
 export interface TeamFoundingDeps {
@@ -108,6 +108,12 @@ export function initTeamFoundingWorkflow(): void {
           member.subjectId,
           ns,
         );
+      } else if (member.role === 'executor') {
+        await relationshipWriter.grantTeamExecutors(
+          teamId,
+          member.subjectId,
+          ns,
+        );
       } else {
         await relationshipWriter.grantTeamMembers(teamId, member.subjectId, ns);
       }
@@ -151,6 +157,17 @@ export function initTeamFoundingWorkflow(): void {
       _creatorNs: 'Agent' | 'Human',
       foundingMembers: FoundingMember[],
     ): Promise<TeamFoundingResult> => {
+      // Validate the complete request before seeding acceptance rows or
+      // invoking any external Keto writes.
+      if (
+        foundingMembers.some(
+          (member) =>
+            member.subjectNs === 'Human' && member.role === 'executor',
+        )
+      ) {
+        throw new Error('The executor team role is agent-only');
+      }
+
       // Seed acceptance rows atomically, separately from external Keto calls.
       await getDeps().transactionRunner.runInTransaction(
         async () => {

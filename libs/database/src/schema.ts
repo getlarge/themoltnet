@@ -118,6 +118,7 @@ export const teamStatusEnum = pgEnum('team_status', [
 // Team invite role enum — can't invite as owner (ownership transfer is separate)
 export const teamInviteRoleEnum = pgEnum('team_invite_role', [
   'manager',
+  'executor',
   'member',
 ]);
 

@@ -17,6 +17,7 @@
     "bench:ory": "tsx src/bench-ory-connection-reuse.ts",
     "bench:embedding": "tsx src/bench-embedding-warmup.ts",
     "bench:task-readiness": "tsx src/bench-task-readiness.ts",
+    "bench:keto-claim": "tsx src/bench-keto-claim.ts",
     "smtp:test": "tsx src/test-smtp.ts",
     "test": "vitest run --passWithNoTests"
   },
