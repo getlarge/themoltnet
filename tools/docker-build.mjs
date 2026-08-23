@@ -24,6 +24,7 @@
 //   --project <name>   workspace package name (required), e.g. @moltnet/rest-api
 //   --tag <suffix>     clean-ref tag suffix (default "dev"), e.g. ci-<sha>
 //   --push             push to the registry (buildx --push); default is --load
+//   --cache-only       refresh the registry cache without exporting an image
 //   --platform <list>  target platform(s); push defaults to amd64+arm64, while
 //                      local --load defaults to the Docker host platform
 //   --no-cache-to      skip writing the registry build cache (e.g. on PRs from
@@ -32,6 +33,7 @@
 //
 // Local dev (load into daemon, :dev):   node tools/docker-build.mjs --project @moltnet/rest-api
 // CI (push, :ci-<sha>, amd64 only):      node tools/docker-build.mjs --project @moltnet/rest-api --push --platform linux/amd64 --tag ci-$GITHUB_SHA
+// Cache refresh (amd64, no image):       node tools/docker-build.mjs --project @moltnet/rest-api --cache-only --platform linux/amd64
 // Release (multi-platform, semver):      node tools/docker-build.mjs --project @moltnet/rest-api --push --tag 1.2.3
 
 import { execFileSync } from 'node:child_process';
@@ -52,6 +54,7 @@ function parseArgs(argv) {
       project: { type: 'string' },
       tag: { type: 'string', default: 'dev' },
       push: { type: 'boolean', default: false },
+      'cache-only': { type: 'boolean', default: false },
       platform: { type: 'string' },
       'no-cache-to': { type: 'boolean', default: false },
       'dry-run': { type: 'boolean', default: false },
@@ -59,6 +62,12 @@ function parseArgs(argv) {
     strict: true,
   });
   if (!values.project) throw new Error('--project <package-name> is required');
+  if (values.push && values['cache-only']) {
+    throw new Error('--push and --cache-only are mutually exclusive');
+  }
+  if (values['cache-only'] && values['no-cache-to']) {
+    throw new Error('--cache-only cannot be combined with --no-cache-to');
+  }
   const platform =
     values.platform ?? (values.push ? 'linux/amd64,linux/arm64' : undefined);
   if (
@@ -76,6 +85,7 @@ function parseArgs(argv) {
     project: values.project,
     tag: values.tag,
     push: values.push,
+    cacheOnly: values['cache-only'],
     platform,
     cacheTo: !values['no-cache-to'],
     dryRun: values['dry-run'],
@@ -139,11 +149,12 @@ async function main() {
     'build',
     '-f',
     dockerfile,
-    '--tag',
-    cleanRef,
     '--label',
     'org.opencontainers.image.created=' + new Date().toISOString(),
   ];
+  if (!opts.cacheOnly) {
+    args.push('--tag', cleanRef);
+  }
   if (opts.platform) {
     args.push('--platform', opts.platform);
   }
@@ -151,7 +162,7 @@ async function main() {
   // resolve it to docker.io/library/apps-rest-api and fail with a 401. It is
   // only needed in --load mode, where `nx release` later retags from it in the
   // local daemon. Never tag it when pushing.
-  if (!opts.push) {
+  if (!opts.push && !opts.cacheOnly) {
     args.push('--tag', sourceRef);
   }
   if (isMainBuild) {
@@ -162,30 +173,44 @@ async function main() {
   }
   // Registry build cache requires a buildx `docker-container` builder, which
   // CI sets up (docker/setup-buildx-action) and local typically does not (the
-  // default `docker` driver rejects `--cache-to type=registry`). Gate cache on
-  // --push: CI pushes and has the container driver; local --load builds rely on
-  // the daemon's own layer cache. Override the gate with --no-cache-to if ever
-  // pushing from a plain-driver environment.
-  if (opts.push) {
+  // default `docker` driver rejects `--cache-to type=registry`). Pushes always
+  // read it, but gated CI pushes pass --no-cache-to so a slow registry export
+  // cannot hold the Nx DTE wave open after the runnable image is already
+  // published. A separate main-only --cache-only workflow is the sole CI cache
+  // writer; ignore-error keeps that best-effort maintenance from failing on a
+  // transient registry export error. Local --load builds rely on the daemon's
+  // own layer cache.
+  if (opts.push || opts.cacheOnly) {
     args.push('--cache-from', `type=registry,ref=${cacheRef}`);
-    if (opts.cacheTo) {
+    if (opts.cacheOnly) {
+      args.push(
+        '--cache-to',
+        `type=registry,ref=${cacheRef},mode=max,ignore-error=true`,
+      );
+    } else if (opts.cacheTo) {
       args.push('--cache-to', `type=registry,ref=${cacheRef},mode=max`);
     }
   }
   // buildx requires exactly one output mode. --push uploads to the registry;
   // --load materializes the image in the local daemon (single-platform only),
   // which both the e2e Compose stack and `nx release`'s `docker tag` need.
-  args.push(opts.push ? '--push' : '--load');
+  if (opts.cacheOnly) {
+    args.push('--output', 'type=cacheonly');
+  } else {
+    args.push(opts.push ? '--push' : '--load');
+  }
   args.push('.'); // build context = repo root (Dockerfiles COPY . .)
 
   process.stdout.write(
     `[docker-build] ${opts.project}\n` +
-      (opts.push ? '' : `  source tag : ${sourceRef} (load only)\n`) +
-      `  clean tag  : ${cleanRef}\n` +
+      (!opts.push && !opts.cacheOnly
+        ? `  source tag : ${sourceRef} (load only)\n`
+        : '') +
+      (opts.cacheOnly ? '' : `  clean tag  : ${cleanRef}\n`) +
       (isMainBuild ? `  main tag   : ${mainRef}\n` : '') +
       `  cache ref  : ${cacheRef}\n` +
       `  platform   : ${opts.platform ?? 'docker-host'}\n` +
-      `  mode       : ${opts.push ? 'push' : 'load'}\n`,
+      `  mode       : ${opts.cacheOnly ? 'cache-refresh' : opts.push ? 'push' : 'load'}\n`,
   );
 
   if (opts.dryRun) {

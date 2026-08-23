@@ -356,8 +356,9 @@ jobs:
       - name: Add golangci-lint to PATH
         run: echo "$PWD/.cache/golangci-lint/v2.5.0/bin" >> "$GITHUB_PATH"
       # Distributed docker:build (configuration=ci) builds+pushes via buildx
-      # with registry cache, so agents that pick up a docker:build task need a
-      # docker-container builder + GHCR auth. Agents that don't are unaffected.
+      # and reads the registry cache, so agents that pick up a docker:build task
+      # need a docker-container builder + GHCR auth. Cache writes happen in the
+      # independent main-only Docker cache refresh workflow.
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
       - name: Log in to GHCR
@@ -465,8 +466,10 @@ jobs:
       # so Docker image builds run CONCURRENTLY with the rest across the agent
       # pool instead of waiting for the lint/test graph to drain first. Each
       # docker:build (configuration=ci) builds + pushes the AFFECTED app images
-      # to ghcr.io/.../<svc>:ci-<sha> (and :ci-main on main) via buildx with
-      # registry cache (replaces the standalone build-and-push matrix job).
+      # to ghcr.io/.../<svc>:ci-<sha> (and :ci-main on main) via buildx while
+      # reading, but not exporting, the registry cache. Main refreshes the heavy
+      # Node image caches in a separate non-gating workflow so cache export
+      # latency cannot hold this DTE wave or the e2e jobs open.
       #
       # Only AFFECTED images build here. The e2e Compose stack needs all five
       # app images, so the e2e jobs resolve each *_IMAGE to ci-<sha> when the

@@ -18,6 +18,13 @@ const ciWorkflow = readFileSync(
   new URL('../../../.github/workflows/ci.yml', import.meta.url),
   'utf8',
 );
+const dockerCacheWorkflow = readFileSync(
+  new URL(
+    '../../../.github/workflows/docker-cache-refresh.yml',
+    import.meta.url,
+  ),
+  'utf8',
+);
 const releasePleaseConfig = JSON.parse(
   readFileSync(
     new URL('../../../release-please-config.json', import.meta.url),
@@ -151,6 +158,7 @@ describe('Nx release configuration', () => {
       );
       expect(configurations.ci.command).toContain('--project {projectName}');
       expect(configurations.ci.command).toContain('--platform linux/amd64');
+      expect(configurations.ci.command).toContain('--no-cache-to');
       expect(configurations.release.command).toContain(
         '--project {projectName}',
       );
@@ -306,6 +314,70 @@ describe('Nx release configuration', () => {
       'main tag   : ghcr.io/getlarge/themoltnet/rest-api:ci-main',
     );
     expect(ciWorkflow).not.toContain('Refresh :ci-main for all e2e images');
+  });
+
+  it('refreshes only the heavy Node image caches outside gated CI', () => {
+    const cacheProjects = dockerProjects.filter(({ root }) => {
+      const packageConfig = JSON.parse(
+        readFileSync(
+          new URL(`../../../${root}/package.json`, import.meta.url),
+          'utf8',
+        ),
+      );
+      return packageConfig.nx.targets['docker:cache'];
+    });
+
+    expect(cacheProjects.map(({ name }) => name).sort()).toEqual(
+      ['@moltnet/database', '@moltnet/mcp-server', '@moltnet/rest-api'].sort(),
+    );
+    for (const { root } of cacheProjects) {
+      const packageConfig = JSON.parse(
+        readFileSync(
+          new URL(`../../../${root}/package.json`, import.meta.url),
+          'utf8',
+        ),
+      );
+      expect(packageConfig.nx.targets['docker:cache']).toMatchObject({
+        cache: false,
+        inputs: ['dockerNodePackaging'],
+        options: {
+          command: expect.stringContaining(
+            '--cache-only --platform linux/amd64',
+          ),
+        },
+      });
+    }
+
+    expect(ciWorkflow).not.toContain('docker:cache');
+    expect(dockerCacheWorkflow).toContain('branches: [main]');
+    expect(dockerCacheWorkflow).not.toContain('continue-on-error: true');
+    expect(dockerCacheWorkflow).toContain(
+      'pnpm exec nx affected -t docker:cache --parallel=1',
+    );
+  });
+
+  it('exports a best-effort max-mode cache without exporting an image', () => {
+    const result = runNode('tools/docker-build.mjs', [
+      '--project',
+      '@moltnet/rest-api',
+      '--cache-only',
+      '--platform',
+      'linux/amd64',
+      '--dry-run',
+    ]);
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe('');
+    expect(result.stdout).toContain('mode       : cache-refresh');
+    expect(result.stdout).toContain(
+      '--cache-from type=registry,ref=ghcr.io/getlarge/themoltnet/rest-api:buildcache',
+    );
+    expect(result.stdout).toContain(
+      '--cache-to type=registry,ref=ghcr.io/getlarge/themoltnet/rest-api:buildcache,mode=max,ignore-error=true',
+    );
+    expect(result.stdout).toContain('--output type=cacheonly');
+    expect(result.stdout).not.toContain('--push');
+    expect(result.stdout).not.toContain('--load');
   });
 
   it('maps shared Docker inputs to every image they can change', () => {
