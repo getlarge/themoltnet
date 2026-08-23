@@ -1,0 +1,1996 @@
+{
+  "backend": {
+    "architecture": "arm64",
+    "id": "docker-sandbox",
+    "os": "darwin",
+    "runtime": "Docker Desktop Sandbox",
+    "topology": [
+      "host research harness",
+      "sbx control plane and credential proxy",
+      "sandbox container guest"
+    ],
+    "version": "v0.39.0"
+  },
+  "catalogVersion": "issue-1972-v1",
+  "cleanupComplete": true,
+  "controls": [
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": [
+        "docker-sandbox guest",
+        "docker-sandbox control plane"
+      ],
+      "oracle": {
+        "expected": "ok",
+        "kind": "host-visible-write",
+        "observed": "ok",
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        }
+      ],
+      "reasonCode": "workspace_write_observed",
+      "recordedAt": "2026-08-23T16:32:31.598Z",
+      "requestedIntent": {
+        "control": "workspace-read-write",
+        "domain": "filesystem",
+        "required": true,
+        "scenarioId": "filesystem.workspace-rw"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "mounts": [
+            {
+              "mode": "rw",
+              "path": "<workspace>"
+            }
+          ]
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "workspace-read-write",
+          "domain": "filesystem",
+          "required": true,
+          "scenarioId": "filesystem.workspace-rw"
+        }
+      },
+      "scenarioId": "filesystem.workspace-rw",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": [
+        "docker-sandbox guest",
+        "docker-sandbox control plane"
+      ],
+      "oracle": {
+        "expected": "absent",
+        "kind": "outside-marker-absence",
+        "observed": "absent",
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        }
+      ],
+      "reasonCode": "outside_mount_boundary_observed",
+      "recordedAt": "2026-08-23T16:32:31.935Z",
+      "requestedIntent": {
+        "control": "outside-write-denied",
+        "domain": "filesystem",
+        "required": true,
+        "scenarioId": "filesystem.outside-write"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "guestExitCode": 2,
+          "mounts": ["<workspace>", "<readonly-fixture>"]
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "outside-write-denied",
+          "domain": "filesystem",
+          "required": true,
+          "scenarioId": "filesystem.outside-write"
+        }
+      },
+      "scenarioId": "filesystem.outside-write",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": [
+        "docker-sandbox guest",
+        "docker-sandbox control plane"
+      ],
+      "oracle": {
+        "expected": "immutable\n",
+        "kind": "read-only-mutation",
+        "observed": {
+          "guestExitCode": 2,
+          "hostContents": "immutable\n"
+        },
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        }
+      ],
+      "reasonCode": "readonly_mount_observed",
+      "recordedAt": "2026-08-23T16:32:32.318Z",
+      "requestedIntent": {
+        "control": "read-only-mount",
+        "domain": "filesystem",
+        "required": false,
+        "scenarioId": "filesystem.read-only"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "mounts": [
+            {
+              "mode": "ro",
+              "path": "<readonly-fixture>"
+            }
+          ]
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "read-only-mount",
+          "domain": "filesystem",
+          "required": false,
+          "scenarioId": "filesystem.read-only"
+        }
+      },
+      "scenarioId": "filesystem.read-only",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": [
+        "docker-sandbox guest",
+        "docker-sandbox control plane"
+      ],
+      "oracle": {
+        "expected": "unreadable",
+        "kind": "credential-file-visibility",
+        "observed": "unreadable",
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        }
+      ],
+      "reasonCode": "host_credential_path_absent",
+      "recordedAt": "2026-08-23T16:32:32.750Z",
+      "requestedIntent": {
+        "control": "credential-path-absent",
+        "domain": "filesystem",
+        "required": true,
+        "scenarioId": "filesystem.credential-path"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "secretPathMounted": false
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "credential-path-absent",
+          "domain": "filesystem",
+          "required": true,
+          "scenarioId": "filesystem.credential-path"
+        }
+      },
+      "scenarioId": "filesystem.credential-path",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": [
+        "docker-sandbox guest",
+        "docker-sandbox control plane"
+      ],
+      "oracle": {
+        "expected": "absent",
+        "kind": "outside-marker-absence",
+        "observed": "absent",
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        }
+      ],
+      "reasonCode": "outside_mount_boundary_observed",
+      "recordedAt": "2026-08-23T16:32:33.143Z",
+      "requestedIntent": {
+        "control": "symlink-and-traversal-denied",
+        "domain": "filesystem",
+        "required": true,
+        "scenarioId": "filesystem.symlink-traversal"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "guestExitCode": 2,
+          "mounts": ["<workspace>", "<readonly-fixture>"]
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "symlink-and-traversal-denied",
+          "domain": "filesystem",
+          "required": true,
+          "scenarioId": "filesystem.symlink-traversal"
+        }
+      },
+      "scenarioId": "filesystem.symlink-traversal",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": [
+        "research harness cleanup manifest",
+        "host filesystem"
+      ],
+      "oracle": {
+        "expected": "absent",
+        "kind": "idempotent-scoped-cleanup",
+        "observed": "absent",
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        }
+      ],
+      "reasonCode": "scoped_cleanup_idempotence_observed",
+      "recordedAt": "2026-08-23T16:32:33.144Z",
+      "requestedIntent": {
+        "control": "workspace-cleanup",
+        "domain": "filesystem",
+        "required": true,
+        "scenarioId": "filesystem.cleanup"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "attempts": 2,
+          "scope": "<probe-workspace>"
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "workspace-cleanup",
+          "domain": "filesystem",
+          "required": true,
+          "scenarioId": "filesystem.cleanup"
+        }
+      },
+      "scenarioId": "filesystem.cleanup",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["docker-sandbox network proxy"],
+      "oracle": {
+        "expected": 0,
+        "kind": "unlisted-request-count",
+        "observed": 0,
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        }
+      ],
+      "reasonCode": "unlisted_destination_blocked",
+      "recordedAt": "2026-08-23T16:32:33.440Z",
+      "requestedIntent": {
+        "control": "default-deny-egress",
+        "domain": "network",
+        "required": true,
+        "scenarioId": "network.deny-all"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "defaultNetwork": "deny",
+          "guestExitCode": 22
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "default-deny-egress",
+          "domain": "network",
+          "required": true,
+          "scenarioId": "network.deny-all"
+        }
+      },
+      "scenarioId": "network.deny-all",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["docker-sandbox network proxy"],
+      "oracle": {
+        "expected": 1,
+        "kind": "allowed-request-count",
+        "observed": 1,
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "network-policy",
+          "resource": "<scoped-network-rule>"
+        }
+      ],
+      "reasonCode": "exact_destination_allow_observed",
+      "recordedAt": "2026-08-23T16:32:34.209Z",
+      "requestedIntent": {
+        "control": "exact-destination-allow",
+        "domain": "network",
+        "required": true,
+        "scenarioId": "network.exact-allow"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "policy": {
+            "exitCode": 0
+          },
+          "requested": ["host.docker.internal:<allowed-port>"]
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "exact-destination-allow",
+          "domain": "network",
+          "required": true,
+          "scenarioId": "network.exact-allow"
+        }
+      },
+      "scenarioId": "network.exact-allow",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["docker-sandbox network and credential proxy"],
+      "oracle": {
+        "expected": 0,
+        "kind": "adjacent-origin-credential-match",
+        "observed": 0,
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "network-policy",
+          "resource": "<scoped-network-rule>"
+        }
+      ],
+      "reasonCode": "adjacent_origin_blocked",
+      "recordedAt": "2026-08-23T16:32:34.519Z",
+      "requestedIntent": {
+        "control": "wrong-host-denied",
+        "domain": "network",
+        "required": true,
+        "scenarioId": "network.wrong-host"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "allowed": "host.docker.internal:<allowed-port>",
+          "attempted": "<adjacent-origin>"
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "wrong-host-denied",
+          "domain": "network",
+          "required": true,
+          "scenarioId": "network.wrong-host"
+        }
+      },
+      "scenarioId": "network.wrong-host",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["docker-sandbox network and credential proxy"],
+      "oracle": {
+        "expected": 0,
+        "kind": "adjacent-origin-credential-match",
+        "observed": 0,
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "network-policy",
+          "resource": "<scoped-network-rule>"
+        }
+      ],
+      "reasonCode": "adjacent_origin_blocked",
+      "recordedAt": "2026-08-23T16:32:34.892Z",
+      "requestedIntent": {
+        "control": "wrong-port-denied",
+        "domain": "network",
+        "required": true,
+        "scenarioId": "network.wrong-port"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "allowed": "host.docker.internal:<allowed-port>",
+          "attempted": "<adjacent-origin>"
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "wrong-port-denied",
+          "domain": "network",
+          "required": true,
+          "scenarioId": "network.wrong-port"
+        }
+      },
+      "scenarioId": "network.wrong-port",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "applied",
+      "enforcementLocus": ["docker-sandbox adapter"],
+      "oracle": null,
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "network-policy",
+          "resource": "<scoped-network-rule>"
+        }
+      ],
+      "reasonCode": "fixture_does_not_claim_protocol_or_dns_control",
+      "recordedAt": "2026-08-23T16:32:34.892Z",
+      "requestedIntent": {
+        "control": "protocol-fidelity",
+        "domain": "network",
+        "required": false,
+        "scenarioId": "network.protocol"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "support": "unsupported-by-safe-probe"
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "protocol-fidelity",
+          "domain": "network",
+          "required": false,
+          "scenarioId": "network.protocol"
+        }
+      },
+      "scenarioId": "network.protocol",
+      "state": "unsupported"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["docker-sandbox network and credential proxy"],
+      "oracle": {
+        "expected": 0,
+        "kind": "redirect-adjacent-delivery",
+        "observed": 0,
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "network-policy",
+          "resource": "<scoped-network-rule>"
+        }
+      ],
+      "reasonCode": "redirect_origin_not_allowed",
+      "recordedAt": "2026-08-23T16:32:35.331Z",
+      "requestedIntent": {
+        "control": "redirect-revalidation",
+        "domain": "network",
+        "required": true,
+        "scenarioId": "network.redirect"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "followRedirects": true,
+          "guestExitCode": 7
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "redirect-revalidation",
+          "domain": "network",
+          "required": true,
+          "scenarioId": "network.redirect"
+        }
+      },
+      "scenarioId": "network.redirect",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["docker-sandbox network proxy"],
+      "oracle": {
+        "expected": "exact-host-port",
+        "kind": "requested-effective-binding",
+        "observed": "exact-host-port",
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "network-policy",
+          "resource": "<scoped-network-rule>"
+        }
+      ],
+      "reasonCode": "host_gateway_binding_recorded",
+      "recordedAt": "2026-08-23T16:32:35.331Z",
+      "requestedIntent": {
+        "control": "internal-target-policy",
+        "domain": "network",
+        "required": true,
+        "scenarioId": "network.internal"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "binding": "host-gateway-mediated",
+          "effective": ["host.docker.internal:<allowed-port>"],
+          "requested": ["127.0.0.1:<allowed-port>"]
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "internal-target-policy",
+          "domain": "network",
+          "required": true,
+          "scenarioId": "network.internal"
+        }
+      },
+      "scenarioId": "network.internal",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "applied",
+      "enforcementLocus": ["docker-sandbox adapter"],
+      "oracle": null,
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "network-policy",
+          "resource": "<scoped-network-rule>"
+        }
+      ],
+      "reasonCode": "fixture_does_not_claim_protocol_or_dns_control",
+      "recordedAt": "2026-08-23T16:32:35.331Z",
+      "requestedIntent": {
+        "control": "dns-rebinding",
+        "domain": "network",
+        "required": false,
+        "scenarioId": "network.dns-rebinding"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "support": "unsupported-by-safe-probe"
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "dns-rebinding",
+          "domain": "network",
+          "required": false,
+          "scenarioId": "network.dns-rebinding"
+        }
+      },
+      "scenarioId": "network.dns-rebinding",
+      "state": "unsupported"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["docker-sandbox network proxy"],
+      "oracle": {
+        "expected": "exact-host-port",
+        "kind": "requested-effective-binding",
+        "observed": "exact-host-port",
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "network-policy",
+          "resource": "<scoped-network-rule>"
+        }
+      ],
+      "reasonCode": "host_gateway_binding_recorded",
+      "recordedAt": "2026-08-23T16:32:35.331Z",
+      "requestedIntent": {
+        "control": "requested-versus-effective",
+        "domain": "network",
+        "required": true,
+        "scenarioId": "network.requested-effective"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "binding": "host-gateway-mediated",
+          "effective": ["host.docker.internal:<allowed-port>"],
+          "requested": ["127.0.0.1:<allowed-port>"]
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "requested-versus-effective",
+          "domain": "network",
+          "required": true,
+          "scenarioId": "network.requested-effective"
+        }
+      },
+      "scenarioId": "network.requested-effective",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["research harness adapter"],
+      "oracle": {
+        "expected": 0,
+        "kind": "launch-attempt-count",
+        "observed": 0,
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "network-policy",
+          "resource": "<scoped-network-rule>"
+        }
+      ],
+      "reasonCode": "adapter_preflight_rejected_missing_binding",
+      "recordedAt": "2026-08-23T16:32:35.331Z",
+      "requestedIntent": {
+        "control": "required-binding-preflight",
+        "domain": "credential",
+        "required": true,
+        "scenarioId": "credential.missing-binding"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "adapterPreflight": "rejected",
+          "binding": "required"
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "required-binding-preflight",
+          "domain": "credential",
+          "required": true,
+          "scenarioId": "credential.missing-binding"
+        }
+      },
+      "scenarioId": "credential.missing-binding",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["docker-sandbox credential proxy"],
+      "oracle": {
+        "expected": 1,
+        "kind": "credential-proxy-match",
+        "observed": 0,
+        "passed": false
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "network-policy",
+          "resource": "<scoped-network-rule>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "credential-binding",
+          "resource": "<scoped-placeholder>"
+        }
+      ],
+      "reasonCode": "allowed_origin_secret_substitution_observed",
+      "recordedAt": "2026-08-23T16:32:36.101Z",
+      "requestedIntent": {
+        "control": "brokered-allowed-origin",
+        "domain": "credential",
+        "required": true,
+        "scenarioId": "credential.allowed-origin"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "binding": "host.docker.internal:<allowed-port>",
+          "guestValue": "<stand-in>",
+          "secretCommandExitCode": 0
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "brokered-allowed-origin",
+          "domain": "credential",
+          "required": true,
+          "scenarioId": "credential.allowed-origin"
+        }
+      },
+      "scenarioId": "credential.allowed-origin",
+      "state": "failed-open"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["docker-sandbox network and credential proxy"],
+      "oracle": {
+        "expected": 0,
+        "kind": "adjacent-origin-credential-match",
+        "observed": 0,
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "network-policy",
+          "resource": "<scoped-network-rule>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "credential-binding",
+          "resource": "<scoped-placeholder>"
+        }
+      ],
+      "reasonCode": "adjacent_origin_blocked",
+      "recordedAt": "2026-08-23T16:32:36.466Z",
+      "requestedIntent": {
+        "control": "adjacent-origin-zero-delivery",
+        "domain": "credential",
+        "required": true,
+        "scenarioId": "credential.adjacent-origin"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "allowed": "host.docker.internal:<allowed-port>",
+          "attempted": "<adjacent-origin>"
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "adjacent-origin-zero-delivery",
+          "domain": "credential",
+          "required": true,
+          "scenarioId": "credential.adjacent-origin"
+        }
+      },
+      "scenarioId": "credential.adjacent-origin",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["docker-sandbox credential proxy"],
+      "oracle": {
+        "expected": 1,
+        "kind": "rotated-credential-match",
+        "observed": 0,
+        "passed": false
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "network-policy",
+          "resource": "<scoped-network-rule>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "credential-binding",
+          "resource": "<scoped-placeholder>"
+        }
+      ],
+      "reasonCode": "rotated_binding_observed",
+      "recordedAt": "2026-08-23T16:32:37.183Z",
+      "requestedIntent": {
+        "control": "rotation",
+        "domain": "credential",
+        "required": true,
+        "scenarioId": "credential.rotation"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "guestValue": "<stand-in>",
+          "transition": "replace-scoped-binding"
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "rotation",
+          "domain": "credential",
+          "required": true,
+          "scenarioId": "credential.rotation"
+        }
+      },
+      "scenarioId": "credential.rotation",
+      "state": "failed-open"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["docker-sandbox credential proxy"],
+      "oracle": {
+        "expected": 0,
+        "kind": "revoked-credential-match",
+        "observed": 0,
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "network-policy",
+          "resource": "<scoped-network-rule>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "credential-binding",
+          "resource": "<scoped-placeholder>"
+        }
+      ],
+      "reasonCode": "revoked_binding_not_delivered",
+      "recordedAt": "2026-08-23T16:32:37.872Z",
+      "requestedIntent": {
+        "control": "revocation",
+        "domain": "credential",
+        "required": true,
+        "scenarioId": "credential.revocation"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "transition": "remove-scoped-binding"
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "revocation",
+          "domain": "credential",
+          "required": true,
+          "scenarioId": "credential.revocation"
+        }
+      },
+      "scenarioId": "credential.revocation",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": [
+        "docker-sandbox credential proxy",
+        "docker daemon lifecycle"
+      ],
+      "oracle": {
+        "expected": 1,
+        "kind": "resumed-credential-match",
+        "observed": 0,
+        "passed": false
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "network-policy",
+          "resource": "<scoped-network-rule>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "credential-binding",
+          "resource": "<scoped-placeholder>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "credential-binding",
+          "resource": "<scoped-placeholder>"
+        }
+      ],
+      "reasonCode": "explicit_rebinding_after_restart_observed",
+      "recordedAt": "2026-08-23T16:32:47.021Z",
+      "requestedIntent": {
+        "control": "resume-rebind",
+        "domain": "credential",
+        "required": true,
+        "scenarioId": "credential.resume"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "rebinding": "explicit",
+          "restart": "stop-and-auto-start"
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "resume-rebind",
+          "domain": "credential",
+          "required": true,
+          "scenarioId": "credential.resume"
+        }
+      },
+      "scenarioId": "credential.resume",
+      "state": "failed-open"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["research harness sanitizer"],
+      "oracle": {
+        "expected": 0,
+        "kind": "persisted-sensitive-value-count",
+        "observed": 0,
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "network-policy",
+          "resource": "<scoped-network-rule>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "credential-binding",
+          "resource": "<scoped-placeholder>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "credential-binding",
+          "resource": "<scoped-placeholder>"
+        }
+      ],
+      "reasonCode": "value_free_evidence_only",
+      "recordedAt": "2026-08-23T16:32:47.021Z",
+      "requestedIntent": {
+        "control": "value-free-evidence",
+        "domain": "credential",
+        "required": true,
+        "scenarioId": "credential.evidence-leak"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "persistedCredentialValues": false,
+          "persistedHostPaths": false
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "value-free-evidence",
+          "domain": "credential",
+          "required": true,
+          "scenarioId": "credential.evidence-leak"
+        }
+      },
+      "scenarioId": "credential.evidence-leak",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["docker daemon container lifecycle"],
+      "oracle": {
+        "expected": "absent",
+        "kind": "delayed-marker-absence",
+        "observed": "present",
+        "passed": false
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "network-policy",
+          "resource": "<scoped-network-rule>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "credential-binding",
+          "resource": "<scoped-placeholder>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "credential-binding",
+          "resource": "<scoped-placeholder>"
+        }
+      ],
+      "reasonCode": "sandbox_removal_killed_detached_child",
+      "recordedAt": "2026-08-23T16:33:18.583Z",
+      "requestedIntent": {
+        "control": "timeout-containment",
+        "domain": "lifecycle",
+        "required": true,
+        "scenarioId": "lifecycle.timeout"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "detachedExitCode": 0,
+          "termination": "scoped-sandbox-remove"
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "timeout-containment",
+          "domain": "lifecycle",
+          "required": true,
+          "scenarioId": "lifecycle.timeout"
+        }
+      },
+      "scenarioId": "lifecycle.timeout",
+      "state": "failed-open"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["docker daemon container lifecycle"],
+      "oracle": {
+        "expected": "absent",
+        "kind": "delayed-marker-absence",
+        "observed": "present",
+        "passed": false
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "network-policy",
+          "resource": "<scoped-network-rule>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "credential-binding",
+          "resource": "<scoped-placeholder>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "credential-binding",
+          "resource": "<scoped-placeholder>"
+        }
+      ],
+      "reasonCode": "sandbox_removal_killed_detached_child",
+      "recordedAt": "2026-08-23T16:33:51.925Z",
+      "requestedIntent": {
+        "control": "cancel-containment",
+        "domain": "lifecycle",
+        "required": true,
+        "scenarioId": "lifecycle.cancel"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "detachedExitCode": 0,
+          "termination": "scoped-sandbox-remove"
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "cancel-containment",
+          "domain": "lifecycle",
+          "required": true,
+          "scenarioId": "lifecycle.cancel"
+        }
+      },
+      "scenarioId": "lifecycle.cancel",
+      "state": "failed-open"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["research harness adapter"],
+      "oracle": {
+        "expected": 0,
+        "kind": "preflight-launch-attempt-count",
+        "observed": 0,
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "network-policy",
+          "resource": "<scoped-network-rule>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "credential-binding",
+          "resource": "<scoped-placeholder>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "credential-binding",
+          "resource": "<scoped-placeholder>"
+        }
+      ],
+      "reasonCode": "adapter_preflight_rejected_unavailable_broker",
+      "recordedAt": "2026-08-23T16:33:51.926Z",
+      "requestedIntent": {
+        "control": "broker-unavailable-fail-closed",
+        "domain": "lifecycle",
+        "required": true,
+        "scenarioId": "lifecycle.broker-unavailable"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "availability": "unavailable",
+          "broker": "required",
+          "preflight": "rejected"
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "broker-unavailable-fail-closed",
+          "domain": "lifecycle",
+          "required": true,
+          "scenarioId": "lifecycle.broker-unavailable"
+        }
+      },
+      "scenarioId": "lifecycle.broker-unavailable",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["research harness adapter"],
+      "oracle": {
+        "expected": false,
+        "kind": "partial-sandbox-residue",
+        "observed": false,
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "network-policy",
+          "resource": "<scoped-network-rule>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "credential-binding",
+          "resource": "<scoped-placeholder>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "credential-binding",
+          "resource": "<scoped-placeholder>"
+        }
+      ],
+      "reasonCode": "preflight_failure_left_no_backend_resource",
+      "recordedAt": "2026-08-23T16:33:52.502Z",
+      "requestedIntent": {
+        "control": "partial-launch-cleanup",
+        "domain": "lifecycle",
+        "required": true,
+        "scenarioId": "lifecycle.partial-launch"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "launchRejectedBeforeCreate": true
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "partial-launch-cleanup",
+          "domain": "lifecycle",
+          "required": true,
+          "scenarioId": "lifecycle.partial-launch"
+        }
+      },
+      "scenarioId": "lifecycle.partial-launch",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["docker-sandbox adapter"],
+      "oracle": {
+        "expected": "cleaned-without-additional-mutation",
+        "kind": "repeated-adapter-close",
+        "observed": "cleaned-without-additional-mutation",
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "cleaned",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "cleaned",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "cleaned",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "cleaned",
+          "kind": "network-policy",
+          "resource": "<scoped-network-rule>"
+        },
+        {
+          "cleanup": "cleaned",
+          "kind": "credential-binding",
+          "resource": "<scoped-placeholder>"
+        },
+        {
+          "cleanup": "cleaned",
+          "kind": "credential-binding",
+          "resource": "<scoped-placeholder>"
+        }
+      ],
+      "reasonCode": "repeated_adapter_close_observed",
+      "recordedAt": "2026-08-23T16:33:52.502Z",
+      "requestedIntent": {
+        "control": "idempotent-close",
+        "domain": "lifecycle",
+        "required": true,
+        "scenarioId": "lifecycle.repeated-close"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "support": "unsupported-by-safe-probe"
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "idempotent-close",
+          "domain": "lifecycle",
+          "required": true,
+          "scenarioId": "lifecycle.repeated-close"
+        }
+      },
+      "scenarioId": "lifecycle.repeated-close",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": [
+        "docker daemon container lifecycle",
+        "host bind mount"
+      ],
+      "oracle": {
+        "expected": {
+          "process": "terminates",
+          "workspace": "persists"
+        },
+        "kind": "restart-storage-observation",
+        "observed": {
+          "process": "terminated-by-stop",
+          "workspace": "persists"
+        },
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "network-policy",
+          "resource": "<scoped-network-rule>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "credential-binding",
+          "resource": "<scoped-placeholder>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "credential-binding",
+          "resource": "<scoped-placeholder>"
+        }
+      ],
+      "reasonCode": "restart_surfaces_observed",
+      "recordedAt": "2026-08-23T16:34:00.101Z",
+      "requestedIntent": {
+        "control": "restart-and-checkpoint",
+        "domain": "lifecycle",
+        "required": false,
+        "scenarioId": "lifecycle.restart-checkpoint"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "bindings": "control-plane",
+          "process": "container-lifecycle",
+          "workspace": "bind-mount"
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "restart-and-checkpoint",
+          "domain": "lifecycle",
+          "required": false,
+          "scenarioId": "lifecycle.restart-checkpoint"
+        }
+      },
+      "scenarioId": "lifecycle.restart-checkpoint",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["docker daemon cgroup"],
+      "oracle": {
+        "expected": 1,
+        "kind": "online-cpu-count",
+        "observed": 1,
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "network-policy",
+          "resource": "<scoped-network-rule>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "credential-binding",
+          "resource": "<scoped-placeholder>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "credential-binding",
+          "resource": "<scoped-placeholder>"
+        }
+      ],
+      "reasonCode": "guest_cpu_limit_observed",
+      "recordedAt": "2026-08-23T16:34:02.758Z",
+      "requestedIntent": {
+        "control": "cpu-limit",
+        "domain": "resource",
+        "required": false,
+        "scenarioId": "resource.cpu"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "requestedCpuCount": 1
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "cpu-limit",
+          "domain": "resource",
+          "required": false,
+          "scenarioId": "resource.cpu"
+        }
+      },
+      "scenarioId": "resource.cpu",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["docker daemon cgroup"],
+      "oracle": {
+        "expected": {
+          "target": 1048576,
+          "tolerancePercent": 15
+        },
+        "kind": "guest-memory-kibibytes",
+        "observed": 1025232,
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "network-policy",
+          "resource": "<scoped-network-rule>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "credential-binding",
+          "resource": "<scoped-placeholder>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "credential-binding",
+          "resource": "<scoped-placeholder>"
+        }
+      ],
+      "reasonCode": "guest_memory_limit_observed",
+      "recordedAt": "2026-08-23T16:34:03.363Z",
+      "requestedIntent": {
+        "control": "memory-limit",
+        "domain": "resource",
+        "required": false,
+        "scenarioId": "resource.memory"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "requestedMemory": "1GiB"
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "memory-limit",
+          "domain": "resource",
+          "required": false,
+          "scenarioId": "resource.memory"
+        }
+      },
+      "scenarioId": "resource.memory",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "docker-sandbox",
+        "version": "v0.39.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["research harness topology declaration"],
+      "oracle": {
+        "expected": "host-capabilities-outside-guest",
+        "kind": "capability-topology-recorded",
+        "observed": "host-capabilities-outside-guest",
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "network-policy",
+          "resource": "<scoped-network-rule>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "credential-binding",
+          "resource": "<scoped-placeholder>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "credential-binding",
+          "resource": "<scoped-placeholder>"
+        }
+      ],
+      "reasonCode": "capability_boundary_recorded",
+      "recordedAt": "2026-08-23T16:34:03.363Z",
+      "requestedIntent": {
+        "control": "host-capability-separation",
+        "domain": "topology",
+        "required": true,
+        "scenarioId": "topology.host-capabilities"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "docker-sandbox",
+        "effective": {
+          "guest": ["shell", "workspace"],
+          "host": ["MCP", "signing", "credential broker", "model traffic"]
+        },
+        "fidelity": "docker-sandbox-v0.39",
+        "requested": {
+          "control": "host-capability-separation",
+          "domain": "topology",
+          "required": true,
+          "scenarioId": "topology.host-capabilities"
+        }
+      },
+      "scenarioId": "topology.host-capabilities",
+      "state": "enforced"
+    }
+  ],
+  "hostCapabilities": [
+    {
+      "basis": "declared",
+      "description": "MCP calls and host commands are orchestrator capabilities, not guest capabilities.",
+      "id": "mcp-and-host-exec",
+      "locus": "host",
+      "relationship": "outside-containment"
+    },
+    {
+      "basis": "verified",
+      "description": "Docker Sandbox replaces a guest stand-in at a bound outbound origin.",
+      "id": "credential-proxy",
+      "locus": "control-plane",
+      "relationship": "mediates-containment"
+    }
+  ],
+  "recordedAt": "2026-08-23T16:34:05.780Z",
+  "runId": "<run-id>",
+  "schemaVersion": 1,
+  "sourceRevision": "1339880ece2384c38f5acffeb269eb71398f3432"
+}
