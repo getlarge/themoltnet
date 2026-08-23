@@ -70,7 +70,8 @@ describe('sandbox policy loopback fixture', () => {
     expect(evidence).not.toContain(initial);
     expect(evidence).not.toContain(rotated);
     expect(fixture.sensitiveValues()).toEqual([initial, rotated]);
-    expect(() => fixture.restore('unknown-token')).toThrow(
+    const activeFixture = fixture;
+    expect(() => activeFixture.restore('unknown-token')).toThrow(
       'not minted by this fixture',
     );
   });
