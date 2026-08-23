@@ -1,4 +1,9 @@
 {
   "name": "otel-custom-collector",
-  "projectType": "application"
+  "projectType": "application",
+  "targets": {
+    "docker:build": {
+      "inputs": ["docker"]
+    }
+  }
 }

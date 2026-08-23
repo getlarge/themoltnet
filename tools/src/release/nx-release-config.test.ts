@@ -49,6 +49,41 @@ function runNode(script: string, args: string[], env: NodeJS.ProcessEnv = {}) {
   });
 }
 
+function affectedDockerProjects(file: string): string[] {
+  const childEnv: NodeJS.ProcessEnv = {
+    ...process.env,
+    NX_DAEMON: 'false',
+  };
+  delete childEnv.FORCE_COLOR;
+  delete childEnv.NO_COLOR;
+
+  const result = spawnSync(
+    join(
+      workspaceRoot,
+      'node_modules',
+      '.bin',
+      process.platform === 'win32' ? 'nx.cmd' : 'nx',
+    ),
+    [
+      'show',
+      'projects',
+      '--affected',
+      `--files=${file}`,
+      '--with-target=docker:build',
+      '--json',
+    ],
+    {
+      cwd: workspaceRoot,
+      encoding: 'utf8',
+      env: childEnv,
+      timeout: 60_000,
+    },
+  );
+
+  expect(result.status, result.stderr).toBe(0);
+  return JSON.parse(result.stdout) as string[];
+}
+
 describe('Nx release configuration', () => {
   it('keeps breaking pre-1.0 SDK changes on minor releases', () => {
     expect(releasePleaseConfig.packages['libs/sdk']).toMatchObject({
@@ -271,6 +306,28 @@ describe('Nx release configuration', () => {
       'main tag   : ghcr.io/getlarge/themoltnet/rest-api:ci-main',
     );
     expect(ciWorkflow).not.toContain('Refresh :ci-main for all e2e images');
+  });
+
+  it('maps shared Docker inputs to every image they can change', () => {
+    const sharedBuilderProjects = dockerProjects.map(({ name }) => name).sort();
+
+    for (const file of ['.dockerignore', 'tools/docker-build.mjs']) {
+      expect(affectedDockerProjects(file).sort()).toEqual(
+        sharedBuilderProjects,
+      );
+    }
+
+    const nodePackagingProjects = [
+      '@moltnet/console',
+      '@moltnet/database',
+      '@moltnet/mcp-server',
+      '@moltnet/rest-api',
+    ].sort();
+    for (const file of ['tools/postinstall.mjs', 'tools/prepare.mjs']) {
+      expect(affectedDockerProjects(file).sort()).toEqual(
+        nodePackagingProjects,
+      );
+    }
   });
 
   it('uses the Docker host architecture for local image loads', () => {

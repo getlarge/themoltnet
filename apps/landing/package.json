@@ -42,6 +42,9 @@
       "docker:build": {
         "executor": "nx:run-commands",
         "cache": false,
+        "inputs": [
+          "docker"
+        ],
         "dependsOn": [
           "build"
         ],
