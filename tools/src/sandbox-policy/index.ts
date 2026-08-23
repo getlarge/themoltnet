@@ -1,5 +1,7 @@
 export * from './catalog.js';
 export * from './cleanup.js';
+export * from './command.js';
+export * from './docker-sandbox-adapter.js';
 export * from './evidence.js';
 export * from './runner.js';
 export * from './sanitize.js';
