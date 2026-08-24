@@ -181,7 +181,7 @@ describe('sandbox policy adapter runner', () => {
     expect(run.cleanupComplete).toBe(false);
   });
 
-  it('aborts and records a bounded scenario timeout', async () => {
+  it('aborts and waits for scenario settlement before recording a timeout', async () => {
     const adapter = new FixtureAdapter();
     let aborted = false;
     let firstSettled = false;

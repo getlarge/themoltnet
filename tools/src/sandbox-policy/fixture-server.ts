@@ -17,6 +17,7 @@ export interface PolicyFixture {
   credential: string;
   requests: FixtureRequestEvidence[];
   capture(startIndex: number): FixtureRequestEvidence[];
+  connectionCount(destination: FixtureRequestEvidence['destination']): number;
   path(pathname: string): string;
   rotate(): string;
   restore(credential: string): void;
@@ -60,6 +61,8 @@ export async function startPolicyFixture(
   const pathPrefix = `/moltnet-probe-${randomUUID()}`;
   let adjacentPort = 0;
   const requests: FixtureRequestEvidence[] = [];
+  let allowedConnections = 0;
+  let adjacentConnections = 0;
 
   const fixturePath = (pathname: string): string =>
     `${pathPrefix}${pathname.startsWith('/') ? pathname : `/${pathname}`}`;
@@ -121,6 +124,12 @@ export async function startPolicyFixture(
     response.writeHead(200, { 'content-type': 'application/json' });
     response.end(JSON.stringify({ credentialReceived: match === 'expected' }));
   });
+  allowedServer.on('connection', () => {
+    allowedConnections += 1;
+  });
+  adjacentServer.on('connection', () => {
+    adjacentConnections += 1;
+  });
 
   const allowedPort = await listen(allowedServer, bindAddress);
   try {
@@ -144,6 +153,11 @@ export async function startPolicyFixture(
         );
       }
       return requests.slice(startIndex);
+    },
+    connectionCount(destination) {
+      return destination === 'allowed'
+        ? allowedConnections
+        : adjacentConnections;
     },
     path: fixturePath,
     rotate() {

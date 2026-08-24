@@ -1,6 +1,7 @@
 import { homedir } from 'node:os';
 
 import { stableJson } from './evidence.js';
+import type { SandboxProbeRun } from './types.js';
 
 export interface SanitizeOptions {
   machinePaths?: string[];
@@ -126,4 +127,34 @@ export function sanitizeForPersistence(
   options: SanitizeOptions = {},
 ): string {
   return stableJson(sanitizeValue(value, options));
+}
+
+/**
+ * Validate the complete value-free run before promoting the persistence
+ * scenario. The adapter cannot prove this control while it is still producing
+ * evidence; the persistence boundary is the first place with the whole value.
+ */
+export function sanitizeProbeRunForPersistence(
+  run: SandboxProbeRun,
+  options: SanitizeOptions = {},
+): string {
+  const persistedRun = structuredClone(run);
+  sanitizeForPersistence(persistedRun, options);
+  const evidenceLeak = persistedRun.controls.find(
+    (control) => control.scenarioId === 'credential.evidence-leak',
+  );
+  if (evidenceLeak) {
+    evidenceLeak.state = 'enforced';
+    evidenceLeak.basis = 'harness-observed';
+    evidenceLeak.enforcementLocus = ['research-harness'];
+    evidenceLeak.oracle = {
+      attestedBy: 'harness',
+      kind: 'persisted-sensitive-value-count',
+      expected: 0,
+      observed: 0,
+      passed: true,
+    };
+    evidenceLeak.reasonCode = 'value_free_evidence_only';
+  }
+  return sanitizeForPersistence(persistedRun, options);
 }

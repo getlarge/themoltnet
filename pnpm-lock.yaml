@@ -3282,6 +3282,9 @@ importers:
       '@themoltnet/pi-extension':
         specifier: workspace:*
         version: link:../libs/pi-extension
+      '@themoltnet/sandbox-gondolin':
+        specifier: workspace:*
+        version: link:../libs/sandbox-gondolin
       '@themoltnet/sdk':
         specifier: workspace:*
         version: link:../libs/sdk
