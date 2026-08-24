@@ -49,9 +49,14 @@ const gondolinMock = vi.hoisted(() => {
         options: {
           secrets?: Record<string, { hosts: string[]; value: string }>;
           isRequestAllowed?: (request: Request) => boolean;
+          onRequest?: (request: Request) => Promise<Response | void>;
+          allowedInternalHosts?: string[];
         } = {},
       ) => ({
-        httpHooks: { isRequestAllowed: options.isRequestAllowed },
+        httpHooks: {
+          isRequestAllowed: options.isRequestAllowed,
+          onRequest: options.onRequest,
+        },
         env: Object.fromEntries(
           Object.keys(options.secrets ?? {}).map((name) => [
             name,
@@ -79,6 +84,7 @@ import {
   GUEST_TASK_CONTEXT_MOUNT,
   loadCredentials,
   resumeVm,
+  type VmDiagnostic,
 } from './vm-manager.js';
 
 const HOST_ONLY_ENV_NAMES = [
@@ -805,5 +811,314 @@ describe('resumeVm task-context mount', () => {
       (outerProvider.provider as { options: { writeMode: string } }).options
         .writeMode,
     ).toBe('tmpfs');
+  });
+  it('wires host origins into the proxy hook and the internal allowlist', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-host-origins-'));
+    tempRoots.push(root);
+    const workspace = path.join(root, 'workspace');
+    mkdirSync(workspace, { recursive: true });
+    const handler = vi.fn(() =>
+      Promise.resolve(new Response('{}', { status: 200 })),
+    );
+    const diagnostics: VmDiagnostic[] = [];
+
+    const managed = await resumeVm({
+      checkpointPath: path.join(root, 'checkpoint.qcow2'),
+      agentName: 'configless',
+      agentRootDir: root,
+      guestCredentialMode: 'host-authenticated',
+      mountPath: workspace,
+      hostOrigins: { 'https://agent-signing.moltnet.internal': handler },
+      onDiagnostic: (diagnostic) => diagnostics.push(diagnostic),
+    });
+
+    const hooksCall = gondolinMock.createHttpHooks.mock.calls[0][0] as {
+      allowedInternalHosts: string[];
+      onRequest: (request: Request) => Promise<Response | void>;
+    };
+    expect(hooksCall.allowedInternalHosts).toContain(
+      'agent-signing.moltnet.internal',
+    );
+    await expect(
+      hooksCall.onRequest(
+        new Request('https://agent-signing.moltnet.internal/identity'),
+      ),
+    ).resolves.toBeInstanceOf(Response);
+    expect(diagnostics).toContainEqual(
+      expect.objectContaining({
+        event: 'vm.host_origins.bound',
+        hostOriginCount: 1,
+      }),
+    );
+    await managed.services.stop();
+  });
+
+  it('rejects a host origin that overlaps a protected external host', async () => {
+    const root = mkdtempSync(
+      path.join(tmpdir(), 'moltnet-vm-host-origins-bad-'),
+    );
+    tempRoots.push(root);
+    const workspace = path.join(root, 'workspace');
+    mkdirSync(workspace, { recursive: true });
+
+    await expect(
+      resumeVm({
+        checkpointPath: path.join(root, 'checkpoint.qcow2'),
+        agentName: 'configless',
+        agentRootDir: root,
+        guestCredentialMode: 'host-authenticated',
+        mountPath: workspace,
+        hostOrigins: {
+          'https://api.themolt.net': () =>
+            Promise.resolve(new Response('', { status: 200 })),
+        },
+      }),
+    ).rejects.toThrow(/overlaps external-only host pattern/);
+    expect(gondolinMock.createHttpHooks).not.toHaveBeenCalled();
+  });
+
+  const readinessMock = (async (command: unknown) =>
+    Array.isArray(command) &&
+    command[0] === 'sh' &&
+    command[3] === 'moltnet-readiness'
+      ? { exitCode: 1, stdout: '', stderr: '' }
+      : { exitCode: 0, stdout: '', stderr: '' }) as never;
+
+  it('fails the session when a required service never becomes ready', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-readiness-'));
+    tempRoots.push(root);
+    const workspace = path.join(root, 'workspace');
+    mkdirSync(workspace, { recursive: true });
+    gondolinMock.vm.exec.mockImplementation(readinessMock);
+    await expect(
+      resumeVm({
+        checkpointPath: path.join(root, 'checkpoint.qcow2'),
+        agentName: 'configless',
+        agentRootDir: root,
+        guestCredentialMode: 'host-authenticated',
+        mountPath: workspace,
+        guestProjection: {
+          services: [
+            {
+              id: 'critical',
+              command: ['true'],
+              readiness: {
+                path: '/run/x.sock',
+                timeoutMs: 300,
+                required: true,
+              },
+            },
+          ],
+        },
+      }),
+    ).rejects.toThrow(/did not become ready/);
+    expect(gondolinMock.vm.close).toHaveBeenCalled();
+  });
+
+  it('degrades but does not fail when a best-effort service never becomes ready', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-readiness-soft-'));
+    tempRoots.push(root);
+    const workspace = path.join(root, 'workspace');
+    mkdirSync(workspace, { recursive: true });
+    const diagnostics: VmDiagnostic[] = [];
+    gondolinMock.vm.exec.mockImplementation(readinessMock);
+    const managed = await resumeVm({
+      checkpointPath: path.join(root, 'checkpoint.qcow2'),
+      agentName: 'configless',
+      agentRootDir: root,
+      guestCredentialMode: 'host-authenticated',
+      mountPath: workspace,
+      onDiagnostic: (diagnostic) => diagnostics.push(diagnostic),
+      guestProjection: {
+        services: [
+          {
+            id: 'signer-agent',
+            command: ['true'],
+            readiness: { path: '/run/x.sock', timeoutMs: 300 },
+          },
+        ],
+      },
+    });
+    expect(diagnostics).toContainEqual(
+      expect.objectContaining({ event: 'vm.guest_service.not_ready' }),
+    );
+    expect(gondolinMock.vm.close).not.toHaveBeenCalled();
+    await managed.services.stop();
+  });
+
+  it('rejects a path-unsafe service id before launching anything', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-bad-service-'));
+    tempRoots.push(root);
+    const workspace = path.join(root, 'workspace');
+    mkdirSync(workspace, { recursive: true });
+    await expect(
+      resumeVm({
+        checkpointPath: path.join(root, 'checkpoint.qcow2'),
+        agentName: 'configless',
+        agentRootDir: root,
+        guestCredentialMode: 'host-authenticated',
+        mountPath: workspace,
+        guestProjection: {
+          services: [{ id: '../escape', command: ['true'] }],
+        },
+      }),
+    ).rejects.toThrow(/Invalid guest service id/);
+  });
+
+  it('rejects a projected env name that collides with a brokered secret', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-env-collision-'));
+    tempRoots.push(root);
+    const workspace = path.join(root, 'workspace');
+    mkdirSync(workspace, { recursive: true });
+    await expect(
+      resumeVm({
+        checkpointPath: path.join(root, 'checkpoint.qcow2'),
+        agentName: 'configless',
+        agentRootDir: root,
+        guestCredentialMode: 'host-authenticated',
+        mountPath: workspace,
+        sandboxConfig: { network: { allowedHosts: ['api.example.com'] } },
+        brokeredSecrets: [
+          {
+            id: 'api',
+            guestEnv: 'MOLTNET_SIGNER_URL',
+            hosts: ['api.example.com'],
+            value: 'v',
+          },
+        ],
+        guestProjection: { env: { MOLTNET_SIGNER_URL: 'https://x' } },
+      }),
+    ).rejects.toThrow(/MOLTNET_SIGNER_URL/);
+    expect(gondolinMock.createHttpHooks).not.toHaveBeenCalled();
+  });
+
+  it('never lets a host-only value reach resume options, diagnostics or the guest projection', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-leak-guard-'));
+    tempRoots.push(root);
+    const workspace = path.join(root, 'workspace');
+    mkdirSync(workspace, { recursive: true });
+    const seedSentinel = 'SEED_SENTINEL_never_in_guest';
+    const diagnostics: VmDiagnostic[] = [];
+    const managed = await resumeVm({
+      checkpointPath: path.join(root, 'checkpoint.qcow2'),
+      agentName: 'configless',
+      agentRootDir: root,
+      guestCredentialMode: 'host-authenticated',
+      mountPath: workspace,
+      onDiagnostic: (diagnostic) => diagnostics.push(diagnostic),
+      hostOrigins: {
+        'https://agent-signing.moltnet.internal': () =>
+          Promise.resolve(new Response(seedSentinel, { status: 200 })),
+      },
+      guestProjection: {
+        env: { MOLTNET_SIGNER_URL: 'https://agent-signing.moltnet.internal' },
+        files: [
+          {
+            path: '/home/agent/.config/moltnet/gitconfig',
+            content:
+              '[user]\n\tname = A\n\tsigningKey = key::ssh-ed25519 AAAA\n',
+          },
+        ],
+      },
+    });
+    const serialized = JSON.stringify({
+      resumeOptions: gondolinMock.resumeCalls[0],
+      diagnostics,
+      files: gondolinMock.vm.fs.writeFile.mock.calls,
+    });
+    expect(serialized).not.toContain(seedSentinel);
+    expect(serialized).not.toMatch(
+      /id_ed25519|credential-helper|PRIVATE KEY|moltnet\.json/,
+    );
+    await managed.services.stop();
+  });
+
+  it('projects trusted guest env, files and services and reports value-free diagnostics', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-projection-'));
+    tempRoots.push(root);
+    const workspace = path.join(root, 'workspace');
+    mkdirSync(workspace, { recursive: true });
+    const diagnostics: VmDiagnostic[] = [];
+
+    const managed = await resumeVm({
+      checkpointPath: path.join(root, 'checkpoint.qcow2'),
+      agentName: 'configless',
+      agentRootDir: root,
+      guestCredentialMode: 'host-authenticated',
+      mountPath: workspace,
+      onDiagnostic: (diagnostic) => diagnostics.push(diagnostic),
+      guestProjection: {
+        env: {
+          MOLTNET_SIGNER_URL: 'https://agent-signing.moltnet.internal',
+          SSH_AUTH_SOCK: '/run/moltnet/signer.sock',
+        },
+        files: [
+          {
+            path: '/home/agent/.config/moltnet/gitconfig',
+            content: '[user]\n\tname = A\n',
+            mode: 0o644,
+          },
+        ],
+        services: [
+          {
+            id: 'signer-agent',
+            command: ['moltnet', 'capability', 'serve', 'agent-signing'],
+          },
+        ],
+      },
+    });
+
+    const resumeOptions = gondolinMock.resumeCalls[0] as {
+      env: Record<string, string>;
+    };
+    expect(resumeOptions.env.MOLTNET_SIGNER_URL).toBe(
+      'https://agent-signing.moltnet.internal',
+    );
+    expect(resumeOptions.env.SSH_AUTH_SOCK).toBe('/run/moltnet/signer.sock');
+    expect(gondolinMock.vm.fs.writeFile).toHaveBeenCalledWith(
+      '/home/agent/.config/moltnet/gitconfig',
+      '[user]\n\tname = A\n',
+      expect.objectContaining({ mode: 0o644 }),
+    );
+    expect(gondolinMock.vm.exec).toHaveBeenCalledWith(
+      expect.stringContaining('mkdir -p /home/agent/.config/moltnet'),
+      expect.anything(),
+    );
+    expect(gondolinMock.vm.exec).toHaveBeenCalledWith(
+      ['chmod', '644', '/home/agent/.config/moltnet/gitconfig'],
+      expect.anything(),
+    );
+    expect(gondolinMock.vm.exec).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        'setsid',
+        'sh',
+        '-c',
+        expect.stringContaining('/run/moltnet/services/signer-agent.pid'),
+        'moltnet',
+        'capability',
+        'serve',
+        'agent-signing',
+      ]),
+      expect.objectContaining({ stdout: 'ignore', stderr: 'ignore' }),
+    );
+    expect(diagnostics).toContainEqual(
+      expect.objectContaining({
+        event: 'vm.guest_projection.applied',
+        projectedFileCount: 1,
+        projectedServiceCount: 1,
+      }),
+    );
+    expect(JSON.stringify(diagnostics)).not.toContain('[user]');
+    expect(managed.services).toBeDefined();
+    await managed.services.stop();
+    const execCommands = (gondolinMock.vm.exec.mock.calls as unknown[][]).map(
+      ([command]) => JSON.stringify(command),
+    );
+    expect(
+      execCommands.some(
+        (command) =>
+          command.includes('signer-agent.pid') && command.includes('kill'),
+      ),
+    ).toBe(true);
   });
 });
