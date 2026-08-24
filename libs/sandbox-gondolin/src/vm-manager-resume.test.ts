@@ -1080,14 +1080,27 @@ describe('resumeVm task-context mount', () => {
       '[user]\n\tname = A\n',
       expect.objectContaining({ mode: 0o644 }),
     );
-    expect(gondolinMock.vm.exec).toHaveBeenCalledWith(
-      expect.stringContaining('mkdir -p /home/agent/.config/moltnet'),
-      expect.anything(),
-    );
-    expect(gondolinMock.vm.exec).toHaveBeenCalledWith(
-      ['chmod', '644', '/home/agent/.config/moltnet/gitconfig'],
-      expect.anything(),
-    );
+    // mkdir/chmod/chown run through the exit-checking vmRun helper as
+    // `['sh','-c', script]`; assert the script content.
+    const execScripts = (gondolinMock.vm.exec.mock.calls as unknown[][])
+      .map(([command]) => command)
+      .filter((command): command is string[] => Array.isArray(command))
+      .filter((command) => command[0] === 'sh' && command[1] === '-c')
+      .map((command) => command[2] as string);
+    expect(
+      execScripts.some(
+        (script) =>
+          script.includes('mkdir -p') &&
+          script.includes('/home/agent/.config/moltnet'),
+      ),
+    ).toBe(true);
+    expect(
+      execScripts.some(
+        (script) =>
+          script.includes('chmod 644') &&
+          script.includes('/home/agent/.config/moltnet/gitconfig'),
+      ),
+    ).toBe(true);
     expect(gondolinMock.vm.exec).toHaveBeenCalledWith(
       expect.arrayContaining([
         'setsid',

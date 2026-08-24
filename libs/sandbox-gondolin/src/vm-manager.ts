@@ -974,6 +974,11 @@ function assertInternalHostsDoNotOverlapProtectedHosts(
  * surface immediately rather than fall through to cryptic agent
  * errors later.
  */
+/** Single-quote a POSIX shell argument (paths/ids are pre-validated). */
+function shellQuote(value: string): string {
+  return `'${value.replaceAll("'", `'\\''`)}'`;
+}
+
 async function vmRun(
   vm: VM,
   label: string,
@@ -1408,9 +1413,12 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       ...projectedDirs,
     ];
     if (guestDirs.length > 0) {
-      await vm.exec(`mkdir -p ${guestDirs.join(' ')}`, {
-        signal: config.signal,
-      });
+      await vmRun(
+        vm,
+        'create guest directories',
+        `mkdir -p ${guestDirs.map(shellQuote).join(' ')}`,
+        config.signal,
+      );
     }
 
     if (creds.providerAuthJson !== null && config.providerAuth) {
@@ -1506,31 +1514,40 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       // The VFS write does not reliably apply `mode` (an executable projected
       // as 0o755 landed as 0o644); set it explicitly so services can start.
       if (file.mode !== undefined) {
-        await vm.exec(['chmod', file.mode.toString(8), file.path], {
-          signal: config.signal,
-        });
+        await vmRun(
+          vm,
+          `chmod projected file ${file.path}`,
+          `chmod ${file.mode.toString(8)} ${shellQuote(file.path)}`,
+          config.signal,
+        );
       }
     }
 
+    // Chown the actual projected directories under the agent home (not a fixed
+    // `.config`) so e.g. `/home/agent/bin/...` is owned by the agent.
     const chownTargets = [
       '/home/agent/.pi',
       ...(hasAgentFiles ? ['/home/agent/.moltnet'] : []),
-      ...(projectedDirs.some((dir) => dir.startsWith('/home/agent/'))
-        ? ['/home/agent/.config']
-        : []),
+      ...projectedDirs.filter((dir) => dir.startsWith('/home/agent/')),
     ];
-    await vm.exec(`chown -R agent:agent ${chownTargets.join(' ')}`, {
-      signal: config.signal,
-    });
+    await vmRun(
+      vm,
+      'chown guest directories',
+      `chown -R agent:agent ${chownTargets.map(shellQuote).join(' ')}`,
+      config.signal,
+    );
 
     // Projected services run for the session; they are never awaited here.
     // Each one records its guest PID so `services.stop()` can terminate the
     // process: aborting the exec handle only detaches the host side.
     const projectedServices = config.guestProjection?.services ?? [];
     if (projectedServices.length > 0) {
-      await vm.exec(`mkdir -p ${GUEST_SERVICE_PID_DIR}`, {
-        signal: config.signal,
-      });
+      await vmRun(
+        vm,
+        'create service pid directory',
+        `mkdir -p ${GUEST_SERVICE_PID_DIR}`,
+        config.signal,
+      );
     }
     for (const service of projectedServices) {
       assertGuestServiceId(service.id);
@@ -1555,10 +1572,14 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       serviceHandles.push(Promise.resolve(handle).catch(() => undefined));
       serviceIds.push(service.id);
     }
-    // Readiness: a service with a declared readiness path is part of the
-    // session contract; if it never comes up the session must not start.
-    for (const service of projectedServices) {
-      if (!service.readiness) continue;
+    // Readiness: probe every service that declares a path concurrently under
+    // its own deadline. A missing best-effort service degrades with a
+    // diagnostic; a `required` one fails the session.
+    async function awaitServiceReady(service: {
+      id: string;
+      readiness?: { path: string; timeoutMs?: number; required?: boolean };
+    }): Promise<void> {
+      if (!service.readiness) return;
       const deadline = Date.now() + (service.readiness.timeoutMs ?? 10_000);
       let ready = false;
       while (Date.now() < deadline) {
@@ -1600,6 +1621,9 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
         });
       }
     }
+    await Promise.all(
+      projectedServices.map((service) => awaitServiceReady(service)),
+    );
     if (projectedFiles.length > 0 || projectedServices.length > 0) {
       config.onDiagnostic?.({
         event: 'vm.guest_projection.applied',

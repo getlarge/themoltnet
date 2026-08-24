@@ -21,15 +21,20 @@ describe('createHostOriginsOnRequest', () => {
     expect(handler).toHaveBeenCalledOnce();
   });
 
-  it('ignores other origins, including the same host over http', async () => {
+  it('ignores unrelated origins but fails closed for a virtual hostname over the wrong scheme/port', async () => {
     expect(
       await onRequest(new Request('https://api.github.com/x')),
     ).toBeUndefined();
-    expect(
-      await onRequest(
-        new Request('http://agent-signing.moltnet.internal/identity'),
-      ),
-    ).toBeUndefined();
+    // Same virtual hostname, wrong scheme or port -> blocked, never forwarded.
+    const wrongScheme = await onRequest(
+      new Request('http://agent-signing.moltnet.internal/identity'),
+    );
+    expect(wrongScheme).toBeInstanceOf(Response);
+    expect((wrongScheme as Response).status).toBe(421);
+    const wrongPort = await onRequest(
+      new Request('https://agent-signing.moltnet.internal:8443/identity'),
+    );
+    expect((wrongPort as Response).status).toBe(421);
   });
 
   it('lists hostnames for the internal allowlist', () => {
