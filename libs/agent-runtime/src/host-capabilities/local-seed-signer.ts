@@ -39,6 +39,12 @@ export function createLocalSeedSigner(input: {
       return { signature: await sign(sshsig) };
     },
     async signDiaryEntry({ signingRequestId }) {
+      // Enforceable now: the request must be owned by this identity, use the
+      // agent-ed25519 method, be pending, and carry a bounded signingInput.
+      // Binding the signature to the active task/team/purpose/expected content
+      // needs a server-side provenance field on the signing request and is
+      // tracked as a follow-up; a cross-scope deputy therefore requires an
+      // already-compromised same-identity task in the same attempt.
       const request = await agent.crypto.signingRequests.get(signingRequestId);
       if (request.agentId !== identity.identityId) {
         throw new SigningRequestNotOwnedError(

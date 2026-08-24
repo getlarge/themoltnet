@@ -20,6 +20,11 @@ describe('defineHostCapability', () => {
     expect(c.origin).toBe('https://agent-signing.moltnet.internal');
     expect(capabilityOrigin('x-y')).toBe('https://x-y.moltnet.internal');
     expect(Object.isFrozen(c)).toBe(true);
+    expect(Object.isFrozen(c.operations)).toBe(true);
+    expect(Object.isFrozen(c.operations['sign-git-commit'])).toBe(true);
+    expect(Object.isFrozen(c.operations['sign-git-commit']!.request)).toBe(
+      true,
+    );
   });
 
   it.each(['Agent', 'a', '-bad', 'with/slash', 'x'.repeat(64)])(

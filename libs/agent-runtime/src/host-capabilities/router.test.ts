@@ -216,6 +216,49 @@ describe('createHostCapabilityRouter', () => {
     );
   });
 
+  it('emits a denial evidence record for a schema-invalid request', async () => {
+    const { r, logger } = router();
+    r.setPolicy({ enforcement: 'off', allowedTools: new Set() });
+    expect(
+      await r.invoke('echo', 'say', { text: 'way too long' }),
+    ).toMatchObject({ ok: false, code: 'invalid_request' });
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: 'invalid_request', decision: 'deny' }),
+      'host_capability.denied',
+    );
+  });
+
+  it('rejects immediately when the parent signal is already aborted', async () => {
+    const logger = { info: vi.fn(), warn: vi.fn() };
+    const controller = new AbortController();
+    controller.abort();
+    const r = createHostCapabilityRouter({
+      capabilities: [echo],
+      context: {
+        taskId: 't',
+        attemptN: 1,
+        teamId: 'team',
+        agent: {} as never,
+        identity,
+      },
+      injected: {},
+      paths: { mountPath: '/work' },
+      logger,
+      signal: controller.signal,
+    });
+    r.setPolicy({ enforcement: 'off', allowedTools: new Set() });
+    const res = await r.invoke('echo', 'say', { text: 'hi' });
+    expect(res).toMatchObject({
+      ok: false,
+      code: 'operation_cancelled',
+      status: 503,
+    });
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ error: 'cancelled' }),
+      'host_capability.cancelled',
+    );
+  });
+
   it('bounds concurrent in-flight calls and enforces a deadline', async () => {
     let release!: () => void;
     const gate = new Promise<void>((resolve) => {
@@ -269,7 +312,7 @@ describe('createHostCapabilityRouter', () => {
       code: 'operation_timeout',
     });
     expect(logger.warn).toHaveBeenCalledWith(
-      expect.objectContaining({ error: 'Timeout' }),
+      expect.objectContaining({ error: 'deadline' }),
       'host_capability.timeout',
     );
     release();

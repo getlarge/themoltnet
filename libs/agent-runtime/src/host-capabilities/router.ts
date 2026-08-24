@@ -261,6 +261,10 @@ export function createHostCapabilityRouter(input: {
     }
 
     if (!Value.Check(spec.request, body)) {
+      input.logger.warn(
+        { ...evidenceBase, decision: 'deny', reason: 'invalid_request' },
+        'host_capability.denied',
+      );
       return {
         ok: false,
         status: 400,
@@ -271,34 +275,51 @@ export function createHostCapabilityRouter(input: {
     const evidence = { ...evidenceBase, ...spec.evidence(body as never) };
 
     const timeoutMs = spec.timeoutMs ?? DEFAULT_HOST_CAPABILITY_TIMEOUT_MS;
+    // Separate the two abort reasons so evidence distinguishes a deadline from
+    // parent (task) cancellation.
     const controller = new AbortController();
+    let deadlineExpired = false;
     const onParentAbort = () => controller.abort(input.signal?.reason);
     if (input.signal?.aborted) onParentAbort();
     else input.signal?.addEventListener('abort', onParentAbort, { once: true });
-    const timer = setTimeout(
-      () => controller.abort(new Error('timeout')),
-      timeoutMs,
-    );
+    const timer = setTimeout(() => {
+      deadlineExpired = true;
+      controller.abort(new Error('timeout'));
+    }, timeoutMs);
+
+    // The slot stays charged until the handler promise actually settles, even
+    // when a deadline returns a response first: a handler that ignores its
+    // signal must not free capacity while it keeps running.
     inFlight.set(capabilityName, (inFlight.get(capabilityName) ?? 0) + 1);
-    try {
-      const context: HostCapabilityContext<never> = {
-        ...input.context,
-        signal: controller.signal,
-        injected: input.injected as never,
+    const context: HostCapabilityContext<never> = {
+      ...input.context,
+      signal: controller.signal,
+      injected: input.injected as never,
+    };
+    const handlerPromise = Promise.resolve().then(() =>
+      spec.handle(body as never, context),
+    );
+    handlerPromise
+      .catch(() => undefined)
+      .finally(() => {
+        clearTimeout(timer);
+        input.signal?.removeEventListener('abort', onParentAbort);
+        inFlight.set(capabilityName, (inFlight.get(capabilityName) ?? 1) - 1);
+      });
+
+    // Reject as soon as the signal aborts — including when it is already
+    // aborted before this listener would run.
+    const abortPromise = new Promise<never>((_, reject) => {
+      const fail = () => {
+        const reason: unknown = controller.signal.reason;
+        reject(reason instanceof Error ? reason : new Error('aborted'));
       };
-      const output = await Promise.race([
-        spec.handle(body as never, context),
-        new Promise<never>((_, reject) => {
-          controller.signal.addEventListener(
-            'abort',
-            () => {
-              const reason: unknown = controller.signal.reason;
-              reject(reason instanceof Error ? reason : new Error('aborted'));
-            },
-            { once: true },
-          );
-        }),
-      ]);
+      if (controller.signal.aborted) fail();
+      else controller.signal.addEventListener('abort', fail, { once: true });
+    });
+
+    try {
+      const output = await Promise.race([handlerPromise, abortPromise]);
       if (!Value.Check(spec.response, output)) {
         const mismatch = new Error('response does not match schema');
         mismatch.name = 'ResponseSchemaMismatch';
@@ -317,31 +338,49 @@ export function createHostCapabilityRouter(input: {
       }
       return { ok: true, output: output as O };
     } catch (error) {
-      const timedOut = controller.signal.aborted;
-      // Only the error class name leaves the handler: messages may carry
-      // values (provider responses, paths) that must not reach the guest
-      // or the evidence stream.
-      const name = timedOut
-        ? 'Timeout'
-        : error instanceof Error
-          ? error.name
-          : 'Error';
-      input.logger.warn(
-        { ...evidence, decision: 'error', error: name },
-        timedOut ? 'host_capability.timeout' : 'host_capability.failed',
-      );
-      return timedOut
-        ? {
-            ok: false,
-            status: 504,
-            code: 'operation_timeout',
-            message: 'operation timed out',
-          }
-        : { ok: false, status: 500, code: 'operation_failed', message: name };
-    } finally {
-      clearTimeout(timer);
-      input.signal?.removeEventListener('abort', onParentAbort);
-      inFlight.set(capabilityName, (inFlight.get(capabilityName) ?? 1) - 1);
+      const outcome = deadlineExpired
+        ? 'deadline'
+        : controller.signal.aborted
+          ? 'cancelled'
+          : 'error';
+      // Only an allow-listed outcome (or the error class name) leaves the
+      // handler: messages may carry values that must not reach the guest or
+      // the evidence stream.
+      const name =
+        outcome === 'error'
+          ? error instanceof Error
+            ? error.name
+            : 'Error'
+          : outcome;
+      const event =
+        outcome === 'deadline'
+          ? 'host_capability.timeout'
+          : outcome === 'cancelled'
+            ? 'host_capability.cancelled'
+            : 'host_capability.failed';
+      input.logger.warn({ ...evidence, decision: 'error', error: name }, event);
+      if (outcome === 'deadline') {
+        return {
+          ok: false,
+          status: 504,
+          code: 'operation_timeout',
+          message: 'operation timed out',
+        };
+      }
+      if (outcome === 'cancelled') {
+        return {
+          ok: false,
+          status: 503,
+          code: 'operation_cancelled',
+          message: 'operation cancelled',
+        };
+      }
+      return {
+        ok: false,
+        status: 500,
+        code: 'operation_failed',
+        message: name,
+      };
     }
   }
 

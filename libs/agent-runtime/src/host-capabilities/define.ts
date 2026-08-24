@@ -78,6 +78,21 @@ export function hostCapabilityDescriptor(
  * Declare a host capability in trusted runtime code. Core validates the
  * shape once here; routing, policy, evidence and projection are generic.
  */
+/**
+ * Recursively freeze a value so the attested descriptor cannot drift after its
+ * CID is computed. TypeBox schemas are plain objects, so this covers operation
+ * request/response schemas, limits and the guest projection.
+ */
+function deepFreeze<T>(value: T, seen = new WeakSet<object>()): T {
+  if (value === null || typeof value !== 'object') return value;
+  if (seen.has(value)) return value;
+  seen.add(value);
+  for (const key of Object.keys(value)) {
+    deepFreeze((value as Record<string, unknown>)[key], seen);
+  }
+  return Object.freeze(value);
+}
+
 export function defineHostCapability<
   TInjected extends object = Record<string, unknown>,
 >(
@@ -141,11 +156,11 @@ export function defineHostCapability<
       ),
     ),
   );
-  return Object.freeze({
+  return deepFreeze({
     kind: 'host_capability',
     origin: capabilityOrigin(def.name),
     descriptorCid,
     ...def,
-    operations: Object.freeze({ ...def.operations }),
+    operations: { ...def.operations },
   });
 }
