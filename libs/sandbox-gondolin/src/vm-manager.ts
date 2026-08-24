@@ -3,7 +3,11 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { parseEnv } from 'node:util';
 
-import type { SecretDefinition, VM } from '@earendil-works/gondolin';
+import type {
+  HttpIpAllowInfo,
+  SecretDefinition,
+  VM,
+} from '@earendil-works/gondolin';
 import {
   createHttpHooks,
   createShadowPathPredicate,
@@ -869,6 +873,55 @@ function createBrokeredHttpSecretOriginPolicy(
   };
 }
 
+/**
+ * Refine Gondolin's hostname allowlist for hosts carrying brokered
+ * credentials. The built-in allowlist is hostname-granular; these callbacks
+ * enforce the descriptor protocol and port before request or IP dispatch.
+ */
+export function createBrokeredHttpNetworkOriginPolicy(
+  bindings: readonly BrokeredHttpSecretDescriptor[],
+): {
+  isRequestAllowed: (request: Request) => boolean;
+  isIpAllowed: (info: HttpIpAllowInfo) => boolean;
+} {
+  const origins = bindings.map(canonicalizeBrokeredHttpSecretDescriptor);
+  const isAllowed = (input: {
+    hostname: string;
+    protocol: string;
+    port: number;
+  }): boolean => {
+    const hostname = input.hostname.toLowerCase();
+    const matching = origins.filter((origin) =>
+      origin.hosts.some((host) => hostMatchesPattern(hostname, host)),
+    );
+    if (matching.length === 0) return true;
+    return matching.some(
+      (origin) =>
+        origin.protocol === input.protocol && origin.ports.includes(input.port),
+    );
+  };
+
+  return {
+    isRequestAllowed(request) {
+      try {
+        const url = new URL(request.url);
+        const protocol = url.protocol.slice(0, -1);
+        const port = url.port
+          ? Number(url.port)
+          : protocol === 'https'
+            ? 443
+            : 80;
+        return isAllowed({ hostname: url.hostname, protocol, port });
+      } catch {
+        return false;
+      }
+    },
+    isIpAllowed(info) {
+      return isAllowed(info);
+    },
+  };
+}
+
 export function assertGuestEnvironmentBoundary(options: {
   guestCredentialMode: GuestCredentialMode;
   forwardEnv?: readonly string[];
@@ -1099,6 +1152,9 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   const brokeredSecretOriginPolicy = createBrokeredHttpSecretOriginPolicy(
     config.brokeredSecrets ?? [],
   );
+  const brokeredNetworkOriginPolicy = createBrokeredHttpNetworkOriginPolicy(
+    config.brokeredSecrets ?? [],
+  );
 
   const {
     httpHooks,
@@ -1109,7 +1165,10 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     allowedInternalHosts,
     ...(Object.keys(brokeredSecrets).length > 0 && {
       secrets: brokeredSecrets,
-      isRequestAllowed: brokeredSecretOriginPolicy.isRequestAllowed,
+      isRequestAllowed: (request: Request) =>
+        brokeredNetworkOriginPolicy.isRequestAllowed(request) &&
+        brokeredSecretOriginPolicy.isRequestAllowed(request),
+      isIpAllowed: brokeredNetworkOriginPolicy.isIpAllowed,
     }),
     ...(hostOriginHosts.length > 0 && {
       onRequest: createHostOriginsOnRequest(hostOrigins),

@@ -22,8 +22,8 @@ catalogs:
       specifier: ^1.59.1
       version: 1.59.1
     '@earendil-works/gondolin':
-      specifier: ^0.9.1
-      version: 0.9.1
+      specifier: ^0.12.0
+      version: 0.12.0
     '@earendil-works/pi-ai':
       specifier: 0.79.4
       version: 0.79.4
@@ -556,7 +556,7 @@ importers:
     dependencies:
       '@earendil-works/gondolin':
         specifier: 'catalog:'
-        version: 0.9.1
+        version: 0.12.0
       '@earendil-works/pi-ai':
         specifier: 'catalog:'
         version: 0.79.4(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(ws@8.21.0)(zod@4.4.3)
@@ -2414,7 +2414,7 @@ importers:
     dependencies:
       '@earendil-works/gondolin':
         specifier: 'catalog:'
-        version: 0.9.1
+        version: 0.12.0
       '@themoltnet/os-keyring':
         specifier: workspace:*
         version: link:../os-keyring
@@ -2451,7 +2451,7 @@ importers:
     dependencies:
       '@earendil-works/gondolin':
         specifier: 'catalog:'
-        version: 0.9.1
+        version: 0.12.0
       '@ipld/dag-cbor':
         specifier: 'catalog:'
         version: 9.2.5
@@ -2654,7 +2654,7 @@ importers:
     dependencies:
       '@earendil-works/gondolin':
         specifier: 'catalog:'
-        version: 0.9.1
+        version: 0.12.0
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -4239,6 +4239,10 @@ packages:
     resolution: {integrity: sha512-QxULHAm7cNu72w97JUNCBFODFaXpbDg+dP8b/oWFAZ2MTRppA3U00Y2L1HqaS4J6yBqxwa/Y3nMBaxVKbB/NsA==}
     engines: {node: '>=20.19.0'}
 
+  '@cto.af/wtf8@0.0.5':
+    resolution: {integrity: sha512-LfUFi+Vv4eDzj+XAtR89e3wwjXA/NZjUSwU5NhwbBrLecxPaBYFy3exCuc1j+D4UZeOVdqlsl8G7LmOt18V0tg==}
+    engines: {node: '>=20'}
+
   '@dabh/diagnostics@2.0.8':
     resolution: {integrity: sha512-R4MSXTVnuMzGD7bzHdW2ZhhdPC/igELENcq5IjEverBvq5hn1SXCWcsi6eSsdWP0/Ur+SItRRjAktmdoX/8R/Q==}
 
@@ -4283,20 +4287,20 @@ packages:
   '@drizzle-team/brocli@0.10.2':
     resolution: {integrity: sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w==}
 
-  '@earendil-works/gondolin-krun-runner-darwin-arm64@0.9.1':
-    resolution: {integrity: sha512-gmQrgV2nWfa6rtKmfTDmDdoRH4or7AAG+dQjAVBMwTCrXBh0yuAWSSDzgI88AuN9xv/E4JifDnN2pg+zvDHTiw==}
+  '@earendil-works/gondolin-krun-runner-darwin-arm64@0.12.0':
+    resolution: {integrity: sha512-ftDlusht4PcT7Y3TuPrZIKrCXy3isiBTVMvlXYK0pcud2uXY6uwFTGeunYgP+8ND/60ddb+MImqbfmkcK8B84A==}
     cpu: [arm64]
     os: [darwin]
     hasBin: true
 
-  '@earendil-works/gondolin-krun-runner-linux-x64@0.9.1':
-    resolution: {integrity: sha512-AvPPZkI1DNt8wRM5mOA2RHxwlvPbpeTLbD6RgOKCeTpxrYWEt0CYNvFkay2mCdO/6VN/4uJfR5Opcgwb3GnAEQ==}
+  '@earendil-works/gondolin-krun-runner-linux-x64@0.12.0':
+    resolution: {integrity: sha512-RRYsgwe2r5ApKmFNy469QgwnyjAHpAs9XANdWpTd9ol4iUYOY3sX7e0xIooAKxd+ktxGI4N/xRWicwGen3D/Ow==}
     cpu: [x64]
     os: [linux]
     hasBin: true
 
-  '@earendil-works/gondolin@0.9.1':
-    resolution: {integrity: sha512-yg7AkbpmRWUyf+oBO4koFNVP1pC9p7hTFDIwuqomo5Iih685Q/7rfw7vVGA8mkTtHL82M+6Vy+dsnAT0FAfFvQ==}
+  '@earendil-works/gondolin@0.12.0':
+    resolution: {integrity: sha512-BXbvzQKb5QmxY5NtthRDONJTu7+IDKbzqWGrJyyNXMP7N681Tx0Q9TK8pK1ba8nUvYQTipNJyGZOsJfYiZll1A==}
     engines: {node: '>=23.6.0'}
     hasBin: true
 
@@ -7470,6 +7474,10 @@ packages:
 
   caniuse-lite@1.0.30001766:
     resolution: {integrity: sha512-4C0lfJ0/YPjJQHagaE9x2Elb69CIqEPZeG0anQt9SIvIoOH4a4uaRl73IavyO+0qZh6MDLH//DrXThEYKHkmYA==}
+
+  cbor2@2.3.0:
+    resolution: {integrity: sha512-76WB3hq8BoaGkMkBVJ27fW5LJU+qqDLEpgRNCG/SYKhODWXpVPOTD4UcUto3IEzYLA52nsvbhb0wabhHDn3qXg==}
+    engines: {node: '>=20'}
 
   cbor@10.0.12:
     resolution: {integrity: sha512-exQDevYd7ZQLP4moMQcZkKCVZsXLAtUSflObr3xTh4xzFIv/xBCdvCd6L259kQOUP2kcTC0jvC6PpZIf/WmRXA==}
@@ -13092,6 +13100,8 @@ snapshots:
   '@csstools/css-tokenizer@4.0.0':
     optional: true
 
+  '@cto.af/wtf8@0.0.5': {}
+
   '@dabh/diagnostics@2.0.8':
     dependencies:
       '@so-ric/colorspace': 1.1.6
@@ -13158,21 +13168,21 @@ snapshots:
 
   '@drizzle-team/brocli@0.10.2': {}
 
-  '@earendil-works/gondolin-krun-runner-darwin-arm64@0.9.1':
+  '@earendil-works/gondolin-krun-runner-darwin-arm64@0.12.0':
     optional: true
 
-  '@earendil-works/gondolin-krun-runner-linux-x64@0.9.1':
+  '@earendil-works/gondolin-krun-runner-linux-x64@0.12.0':
     optional: true
 
-  '@earendil-works/gondolin@0.9.1':
+  '@earendil-works/gondolin@0.12.0':
     dependencies:
-      cbor: 10.0.12
+      cbor2: 2.3.0
       node-forge: 1.4.0
       ssh2: 1.17.0
       undici: 6.28.0
     optionalDependencies:
-      '@earendil-works/gondolin-krun-runner-darwin-arm64': 0.9.1
-      '@earendil-works/gondolin-krun-runner-linux-x64': 0.9.1
+      '@earendil-works/gondolin-krun-runner-darwin-arm64': 0.12.0
+      '@earendil-works/gondolin-krun-runner-linux-x64': 0.12.0
 
   '@earendil-works/pi-agent-core@0.79.4(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(ws@8.21.0)(zod@4.4.3)':
     dependencies:
@@ -16467,6 +16477,10 @@ snapshots:
   callsites@3.1.0: {}
 
   caniuse-lite@1.0.30001766: {}
+
+  cbor2@2.3.0:
+    dependencies:
+      '@cto.af/wtf8': 0.0.5
 
   cbor@10.0.12:
     dependencies:
