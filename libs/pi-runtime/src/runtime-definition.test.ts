@@ -1,6 +1,7 @@
 import { Type } from 'typebox';
 import { describe, expect, it, vi } from 'vitest';
 
+import { agentSigningCapability } from './host-capabilities/agent-signing.js';
 import {
   buildPiExecutorManifest,
   defineGondolinTemplate,
@@ -162,6 +163,54 @@ describe('Pi runtime definitions', () => {
         },
       }),
     ).resolves.toEqual([]);
+  });
+
+  it('attests host capabilities by name, origin and operation and rejects duplicates', async () => {
+    const runtime = definePiRuntime({
+      id: 'capability-runtime',
+      version: '1',
+      vm: defineGondolinTemplate({
+        id: 'test-vm',
+        version: '1',
+        checkpointPath: '/tmp/checkpoint',
+      }),
+      hostCapabilities: [agentSigningCapability],
+    });
+    const manifest = await buildPiExecutorManifest({
+      runtime,
+      profile: { id: 'profile', definitionCid: 'bafkreiprofile' },
+      template: {
+        id: 'test-vm',
+        version: '1',
+        checkpointPath: '/tmp/checkpoint',
+        fingerprint: 'bafkreitemplate',
+        guestAssetBuildId: 'guest-build',
+        executables: [],
+        resumeCommands: [],
+      },
+    });
+    expect(manifest.hostCapabilities).toEqual([
+      {
+        name: 'agent-signing',
+        origin: 'https://agent-signing.moltnet.internal',
+        operations: ['sign-diary-entry', 'sign-git-commit'],
+        descriptorCid: agentSigningCapability.descriptorCid,
+      },
+    ]);
+    expect(JSON.stringify(manifest)).not.toContain('handle');
+
+    expect(() =>
+      definePiRuntime({
+        id: 'dup',
+        version: '1',
+        vm: defineGondolinTemplate({
+          id: 'test-vm',
+          version: '1',
+          checkpointPath: '/tmp/checkpoint',
+        }),
+        hostCapabilities: [agentSigningCapability, agentSigningCapability],
+      }),
+    ).toThrow('Duplicate host capability name "agent-signing"');
   });
 
   it('attests broker descriptors without resolving or evidencing values', async () => {

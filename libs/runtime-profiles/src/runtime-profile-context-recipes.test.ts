@@ -90,6 +90,25 @@ describe('runtime-profile context recipe catalogue', () => {
     expect(judgment?.content).toContain('Do not claim a content signature');
   });
 
+  it('points signed commits and entries at the host-brokered capability', () => {
+    const accountable = resolveRuntimeProfileContextRecipe(
+      'standard-engineering@v1',
+    ).find((entry) => entry.slug === 'accountable-delivery-v1');
+    const judgment = resolveRuntimeProfileContextRecipe(
+      'standard-engineering@v1',
+    ).find((entry) => entry.slug === 'judgment-diary-v1');
+    const discipline = resolveRuntimeProfileContextRecipe(
+      'standard-engineering@v1',
+    ).find((entry) => entry.slug === 'task-diary-discipline-v1');
+
+    expect(accountable?.content).toContain('`agent-signing`');
+    expect(accountable?.content).toContain('`git commit -S`');
+    expect(accountable?.content).toContain('`signed: true`');
+    expect(judgment?.content).toContain('`signed: true`');
+    expect(discipline?.content).toContain('`signed: true`');
+    expect(accountable?.content).not.toContain('recover one from host');
+  });
+
   it('resolves every recipe to a valid, applyable context array', () => {
     for (const recipeId of runtimeProfileContextRecipeIds) {
       const entries = resolveRuntimeProfileContextRecipe(recipeId);

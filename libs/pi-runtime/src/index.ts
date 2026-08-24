@@ -1,4 +1,10 @@
 export {
+  agentSigningCapability,
+  GUEST_ALLOWED_SIGNERS_PATH,
+  GUEST_GITCONFIG_PATH,
+  GUEST_SIGNER_SOCKET,
+} from './host-capabilities/agent-signing.js';
+export {
   createMoltNetTools,
   HOST_EXEC_DEFAULT_BASE_ENV,
   MOLTNET_TOOL_NAMES,

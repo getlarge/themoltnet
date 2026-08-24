@@ -6,7 +6,12 @@ import type {
 } from '@earendil-works/pi-coding-agent';
 import { computeJsonCid } from '@moltnet/crypto-service/json-cid';
 import { RUNTIME_PROFILE_RUNTIME_KIND_REGEXP } from '@moltnet/runtime-profiles';
-import type { ClaimedTask, TaskReporter } from '@themoltnet/agent-runtime';
+import type {
+  ClaimedTask,
+  HostCapabilityContribution,
+  HostCapabilityManifestEntry,
+  TaskReporter,
+} from '@themoltnet/agent-runtime';
 import {
   type BrokeredHttpSecretBinding,
   type BrokeredHttpSecretDescriptor,
@@ -291,6 +296,8 @@ export interface PiRuntimeDefinition {
   readonly vm: GondolinTemplateDefinition;
   /** Optional v1 extension; absent on independently packaged legacy runtimes. */
   readonly brokeredHttpSecrets?: readonly PiBrokeredHttpSecretContribution[];
+  /** Optional v1 extension: host capabilities served to the guest. */
+  readonly hostCapabilities?: readonly HostCapabilityContribution<never>[];
   readonly tools: readonly PiToolContribution[];
   readonly extensions: readonly PiExtensionContribution[];
 }
@@ -301,6 +308,7 @@ export interface DefinePiRuntimeOptions {
   runtimeKind?: string;
   vm: GondolinTemplateDefinition;
   brokeredHttpSecrets?: readonly PiBrokeredHttpSecretContribution[];
+  hostCapabilities?: readonly HostCapabilityContribution<never>[];
   tools?: readonly PiToolContribution[];
   extensions?: readonly PiExtensionContribution[];
 }
@@ -335,6 +343,13 @@ export function definePiRuntime(
     secretIds.add(id);
     secretEnvNames.add(guestEnv);
   }
+  const capabilityNames = new Set<string>();
+  for (const capability of options.hostCapabilities ?? []) {
+    if (capabilityNames.has(capability.name)) {
+      throw new Error(`Duplicate host capability name "${capability.name}"`);
+    }
+    capabilityNames.add(capability.name);
+  }
 
   return Object.freeze({
     schemaVersion: PI_RUNTIME_DEFINITION_VERSION,
@@ -345,6 +360,7 @@ export function definePiRuntime(
     brokeredHttpSecrets: Object.freeze([
       ...(options.brokeredHttpSecrets ?? []),
     ]),
+    hostCapabilities: Object.freeze([...(options.hostCapabilities ?? [])]),
     tools: Object.freeze([...(options.tools ?? [])]),
     extensions: Object.freeze([...(options.extensions ?? [])]),
   });
@@ -375,6 +391,8 @@ export interface PiExecutorManifest {
     ports: readonly number[];
     required: boolean;
   }[];
+  /** Optional v1 extension, emitted only when capabilities are declared. */
+  hostCapabilities?: HostCapabilityManifestEntry[];
   tools: {
     name: string;
     descriptorCid: string | null;
@@ -396,6 +414,7 @@ export async function buildPiExecutorManifest(input: {
   builtInToolNames?: readonly string[];
 }): Promise<PiExecutorManifest> {
   const brokeredHttpSecrets = input.runtime.brokeredHttpSecrets ?? [];
+  const hostCapabilities = input.runtime.hostCapabilities ?? [];
   const descriptors = [
     ...(input.builtInTools ?? []).map((descriptor) => ({
       descriptor,
@@ -455,6 +474,16 @@ export async function buildPiExecutorManifest(input: {
           required: descriptor.required !== false,
         }))
         .sort((left, right) => left.id.localeCompare(right.id)),
+    }),
+    ...(hostCapabilities.length > 0 && {
+      hostCapabilities: hostCapabilities
+        .map((capability) => ({
+          name: capability.name,
+          origin: capability.origin,
+          operations: Object.keys(capability.operations).sort(),
+          descriptorCid: capability.descriptorCid,
+        }))
+        .sort((left, right) => left.name.localeCompare(right.name)),
     }),
     tools,
     extensions: input.runtime.extensions.map((extension) => ({

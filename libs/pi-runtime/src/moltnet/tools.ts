@@ -15,6 +15,8 @@ import { pipeline } from 'node:stream/promises';
 import { Type } from '@earendil-works/pi-ai';
 import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import { defineTool } from '@earendil-works/pi-coding-agent';
+import type { AgentSigningCapability } from '@moltnet/crypto-service/agent-signing';
+import { computeContentCid } from '@moltnet/crypto-service/content-cid';
 import { isResolvedPathInsideRoot } from '@themoltnet/sandbox-gondolin';
 import type { connect } from '@themoltnet/sdk';
 
@@ -135,6 +137,11 @@ export interface MoltNetToolsConfig {
    * entry creation behaves as before (env-derived diary, no auto-tags).
    */
   getTaskContext?(): MoltNetTaskContext | null;
+  /**
+   * Host-side signing capability, when the daemon injected one. Enables
+   * `signed: true` on `moltnet_create_entry`; the guest never sees the key.
+   */
+  getSigner?(): AgentSigningCapability | null;
   /** Records recoverable task-provenance failures without ending the task. */
   onTaskProvenanceEvent?(
     event: 'task.provenance.entry_denied',
@@ -942,9 +949,21 @@ export function createMoltNetTools(
             'Explicit diary id. During an active task, must match the task diary or the call is rejected. Outside a task, overrides the env-derived diary.',
         }),
       ),
+      signed: Type.Optional(
+        Type.Boolean({
+          description:
+            'Create a content-signed (immutable) entry. The signature is produced on the trusted host through the agent-signing capability; fails when the runtime does not expose it.',
+        }),
+      ),
     }),
     async execute(_id, params) {
       const { agent, diaryId: envDiaryId } = ensureConnected(config);
+      const signer = params.signed ? (config.getSigner?.() ?? null) : null;
+      if (params.signed && !signer) {
+        throw new Error(
+          'entries_create: signed entries require the agent-signing capability; create an unsigned entry or run under a runtime that declares it.',
+        );
+      }
       const taskCtx = config.getTaskContext?.() ?? null;
 
       let targetDiaryId: string;
@@ -983,12 +1002,29 @@ export function createMoltNetTools(
 
       let entry: Awaited<ReturnType<typeof agent.entries.create>>;
       try {
+        let signingRequestId: string | undefined;
+        if (signer) {
+          // Same canonical payload the server recomputes: tags after merge.
+          const contentCid = computeContentCid(
+            params.entryType ?? 'semantic',
+            params.title,
+            params.content,
+            mergedTags,
+          );
+          const request = await agent.crypto.signingRequests.create({
+            message: contentCid,
+            verificationMethod: 'agent-ed25519',
+          });
+          await signer.signDiaryEntry({ signingRequestId: request.id });
+          signingRequestId = request.id;
+        }
         entry = await agent.entries.create(targetDiaryId, {
           title: params.title,
           content: params.content,
           tags: mergedTags,
           importance: params.importance ?? 5,
           ...(params.entryType ? { entryType: params.entryType } : {}),
+          ...(signingRequestId ? { signingRequestId } : {}),
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -1017,6 +1053,7 @@ export function createMoltNetTools(
           entryType: entry.entryType,
           importance: entry.importance,
           tags: mergedTags,
+          signed: signer !== null,
         },
         null,
         2,
@@ -1434,7 +1471,9 @@ export function createMoltNetTools(
       '`bash` tool; use that, not this escape hatch. Credentials are not ' +
       'generally injected into the guest. A runtime may expose an opaque ' +
       'HTTP placeholder that the host proxy can use only for declared ' +
-      'destinations; otherwise authenticated operations are unavailable. ' +
+      'destinations, and commit signing is brokered through the ' +
+      '`agent-signing` host capability when declared; otherwise ' +
+      'authenticated operations are unavailable. ' +
       'Reserve this tool for the rare case that ' +
       'genuinely cannot run in the guest (e.g. reaching a host-only resource ' +
       'the VM has no path to).\n\n' +

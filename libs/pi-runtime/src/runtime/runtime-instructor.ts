@@ -36,6 +36,12 @@ export interface RuntimeInstructorSandbox {
   allowedInternalHosts: readonly string[];
   /** Guest names containing host-brokered opaque HTTP placeholders. */
   brokeredSecretEnvNames?: readonly string[];
+  /** Host capabilities served to the guest (attested in the manifest). */
+  hostCapabilities?: readonly {
+    name: string;
+    origin: string;
+    operations: readonly string[];
+  }[];
 }
 
 export function buildWorkspaceMountInstructions(
@@ -195,6 +201,23 @@ export function buildSandboxCapabilityInstructions(
     '- Runtime service endpoints required for task execution may be available',
     '  in addition to the operator-configured hosts above.',
   );
+  const hostCapabilities = [...(sandbox.hostCapabilities ?? [])].sort(
+    (left, right) => left.name.localeCompare(right.name),
+  );
+  if (hostCapabilities.length > 0) {
+    lines.push(
+      '- Host capabilities served by the trusted daemon (attested in the',
+      '  executor manifest; every call is policy-checked and evidenced):',
+      ...hostCapabilities.map(
+        (capability) =>
+          `  - \`${capability.name}\` at ${capability.origin} (${[
+            ...capability.operations,
+          ]
+            .sort()
+            .join(', ')}).`,
+      ),
+    );
+  }
   return lines.join('\n');
 }
 
@@ -264,10 +287,22 @@ export function buildCredentialInstructions(
     );
   }
   if (gitAvailable) {
+    const signing = (sandbox?.hostCapabilities ?? []).find(
+      (capability) => capability.name === 'agent-signing',
+    );
     lines.push(
-      '- Local Git commands run inside the guest. No signing key or Git',
-      '  credential helper is injected; signing and authenticated push',
-      '  require an explicitly provided capability.',
+      ...(signing
+        ? [
+            '- Commit signing is brokered: `git commit -S` works normally through',
+            '  `SSH_AUTH_SOCK`, and `moltnet entry create-signed` through',
+            '  `MOLTNET_SIGNER_URL`; the signing key stays on the host. Do not',
+            '  look for, export, or recreate a private key in the guest.',
+          ]
+        : [
+            '- Local Git commands run inside the guest. No signing key or Git',
+            '  credential helper is injected; signing and authenticated push',
+            '  require an explicitly provided capability.',
+          ]),
     );
   }
   return lines.join('\n');

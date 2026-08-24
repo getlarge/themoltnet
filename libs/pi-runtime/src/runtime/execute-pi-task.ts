@@ -30,6 +30,10 @@ import {
   createReadToolDefinition,
   createWriteToolDefinition,
 } from '@earendil-works/pi-coding-agent';
+import type {
+  AgentIdentity,
+  AgentSigningCapability,
+} from '@moltnet/crypto-service/agent-signing';
 import { computeJsonCid } from '@moltnet/crypto-service/json-cid';
 import type { ContextRef } from '@moltnet/runtime-profiles';
 import {
@@ -40,7 +44,10 @@ import {
 import {
   buildTaskUserPrompt,
   type ClaimedTask,
+  createHostCapabilityRouter,
   FREEFORM_TYPE,
+  type HostCapabilityEvidenceLogger,
+  type HostCapabilityRouter,
   materializeTaskOutput,
   type SubagentContractRegistry,
   type TaskOutput,
@@ -115,6 +122,43 @@ const HOST_AUTHENTICATED_HOST_EXEC_REFUSED_ENV = new Set([
   'MOLTNET_CREDENTIALS_PATH',
   'SSH_AUTH_SOCK',
 ]);
+
+/** `capability:<name>[:<operation>]` entries in the tool allow-set. */
+export function isHostCapabilityGrant(name: string): boolean {
+  return name.startsWith('capability:');
+}
+
+/**
+ * A signer whose every operation goes through the capability router, so a
+ * tool cannot obtain a host signature the session policy would deny.
+ */
+export function createPolicyCheckedSigner(
+  router: HostCapabilityRouter,
+  identity: AgentIdentity,
+): AgentSigningCapability {
+  async function call<O>(operation: string, input: unknown): Promise<O> {
+    const result = await router.invoke<O>('agent-signing', operation, input);
+    if (!result.ok) {
+      throw new Error(
+        `agent-signing/${operation} ${result.code}: ${result.message}`,
+      );
+    }
+    return result.output;
+  }
+  return {
+    identity,
+    async signDiaryEntry(input) {
+      return call<{ signingRequestId: string }>('sign-diary-entry', input);
+    },
+    async signGitCommit(input) {
+      const { signature } = await call<{ signature: string }>(
+        'sign-git-commit',
+        { sshsig: Buffer.from(input.sshsig).toString('base64') },
+      );
+      return { signature: new Uint8Array(Buffer.from(signature, 'base64')) };
+    },
+  };
+}
 
 export function resolveHostExecBaseEnv(
   guestCredentialMode: GuestCredentialMode,
@@ -478,6 +522,15 @@ export interface ExecutePiTaskOptions {
   /** Trusted, statically imported operator runtime contributions. */
   runtimeDefinition?: PiRuntimeDefinition;
   /**
+   * Host-side signing capability injected by the daemon for host capabilities
+   * (never built from key material inside the runtime).
+   */
+  hostCapabilitySigner?: AgentSigningCapability;
+  /** Non-secret agent identity projected to the guest by host capabilities. */
+  agentIdentity?: AgentIdentity;
+  /** Evidence logger for host capability decisions (defaults to the tool-policy logger). */
+  hostCapabilityLogger?: HostCapabilityEvidenceLogger;
+  /**
    * Pre-resolved local VM template. Daemons resolve this before polling so
    * profile requirements and executor attestation can be checked before claim.
    */
@@ -808,6 +861,7 @@ export async function executePiTask(
       executionPlan,
     );
     let brokeredSecrets: BrokeredHttpSecretBinding[] | undefined;
+    let capabilityRouter: HostCapabilityRouter | undefined;
     try {
       const runtimeDefinition = opts.runtimeDefinition;
       brokeredSecrets = runtimeDefinition
@@ -850,11 +904,60 @@ export async function executePiTask(
       );
     }
 
+    // A runtime that attests host capabilities must be able to serve them:
+    // refuse to start a VM whose manifest would advertise a capability this
+    // execution cannot instantiate.
+    if (
+      (opts.runtimeDefinition?.hostCapabilities?.length ?? 0) > 0 &&
+      (!opts.agentIdentity || !opts.moltnetAgent)
+    ) {
+      const message =
+        'runtime declares host capabilities but no agent identity and ' +
+        'authenticated host Agent were injected';
+      await emitError('host_capabilities', message);
+      return makeFailedOutput(
+        'host_capability_context_missing',
+        message,
+        finalUsage,
+        false,
+      );
+    }
+
     try {
       brokeredSecretEnvNames = (brokeredSecrets ?? [])
         .filter(({ value }) => value !== undefined && value !== '')
         .map(({ guestEnv }) => guestEnv)
         .sort();
+      // Host capabilities are compiled before resume so their origins exist
+      // from the first guest request; policy is late-bound below (requests
+      // fail closed with policy_not_ready until then).
+      const hostCapabilities = opts.runtimeDefinition?.hostCapabilities ?? [];
+      if (hostCapabilities.length > 0) {
+        capabilityRouter = createHostCapabilityRouter({
+          capabilities: hostCapabilities,
+          context: {
+            taskId: task.id,
+            attemptN: claimedTask.attemptN,
+            teamId: task.teamId ?? '',
+            agent: opts.moltnetAgent as NonNullable<typeof opts.moltnetAgent>,
+            identity: opts.agentIdentity as NonNullable<
+              typeof opts.agentIdentity
+            >,
+          },
+          injected: {
+            ...(opts.hostCapabilitySigner && {
+              signer: opts.hostCapabilitySigner,
+            }),
+          },
+          paths: { mountPath },
+          logger: opts.hostCapabilityLogger ??
+            opts.toolPolicyLogger ?? {
+              info: () => {},
+              warn: () => {},
+            },
+          signal: reporter.cancelSignal,
+        });
+      }
       managed = await traceRuntimePhase(
         'moltnet.execution.vm.resume',
         { 'moltnet.workspace.mode': preparedWorkspace.mode },
@@ -870,6 +973,10 @@ export async function executePiTask(
             sandboxConfig: effectiveSandboxConfig,
             forwardEnv: opts.forwardEnv,
             brokeredSecrets,
+            ...(capabilityRouter && {
+              hostOrigins: capabilityRouter.origins,
+              guestProjection: capabilityRouter.guestProjection,
+            }),
             onDiagnostic: opts.onVmDiagnostic,
             signal: reporter.cancelSignal,
           }),
@@ -1096,6 +1203,10 @@ export async function executePiTask(
       );
       const moltnetTools = createMoltNetTools({
         getAgent: () => moltnetAgent,
+        getSigner: () =>
+          capabilityRouter && opts.agentIdentity
+            ? createPolicyCheckedSigner(capabilityRouter, opts.agentIdentity)
+            : null,
         getDiaryId: () => diaryId,
         getTeamId: () => taskTeamId,
         getSessionErrors: () => [],
@@ -1231,6 +1342,18 @@ export async function executePiTask(
         }
       }
 
+      // Late-bind the session policy to host capabilities. Without a
+      // profile-backed policy the tool gate is off, and so is the capability
+      // gate; otherwise capability grants come from the same allow-set.
+      capabilityRouter?.setPolicy(
+        resolvedToolPolicy
+          ? {
+              enforcement: resolvedToolPolicy.enforcement,
+              allowedTools: resolvedToolPolicy.allowedTools,
+            }
+          : { enforcement: 'off', allowedTools: new Set() },
+      );
+
       const runtimeToolContext = {
         agent: moltnetAgent,
         claimedTask,
@@ -1288,7 +1411,16 @@ export async function executePiTask(
         policy: resolvedToolPolicy,
       });
       const capabilityProjection = projectRuntimeCapabilities({
-        policy: resolvedToolPolicy,
+        policy: resolvedToolPolicy && {
+          ...resolvedToolPolicy,
+          // capability:* grants authorize host capabilities, not tools; they
+          // must not surface as "unavailable tools".
+          allowedTools: new Set(
+            [...resolvedToolPolicy.allowedTools].filter(
+              (name) => !isHostCapabilityGrant(name),
+            ),
+          ),
+        },
         visibleToolNames: visibleParentToolNames,
         unavailableShellCommands: unavailableRuntimeShellCommands,
       });
@@ -1335,6 +1467,9 @@ export async function executePiTask(
           allowedInternalHosts:
             effectiveSandboxConfig?.network?.allowedInternalHosts ?? [],
           brokeredSecretEnvNames,
+          ...(capabilityRouter && {
+            hostCapabilities: capabilityRouter.manifest,
+          }),
         },
         toolPolicy: capabilityProjection.instructorPolicy,
       });
@@ -2293,7 +2428,10 @@ export interface CleanupAttemptDeps {
   // `managed`/`workspace` are the inferred returns of resumeVm /
   // prepareTaskWorkspace, which carry more than teardown needs and have no
   // named alias to `Pick` from — so an inline subset is used for them.
-  managed: { vm: { close: () => Promise<void> } } | null;
+  managed: {
+    vm: { close: () => Promise<void> };
+    services?: { stop: () => Promise<void> };
+  } | null;
   workspace: { cleanup: () => void } | null;
   taskId: string;
   attemptN: number;
@@ -2356,6 +2494,8 @@ export async function cleanupAttempt(deps: CleanupAttemptDeps): Promise<void> {
     }
   }
   if (deps.managed) {
+    // Projected guest services first: they hold exec handles on the VM.
+    await deps.managed.services?.stop().catch(() => undefined);
     await deps.managed.vm.close();
   }
   if (deps.workspace) {

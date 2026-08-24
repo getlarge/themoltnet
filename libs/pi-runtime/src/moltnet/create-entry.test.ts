@@ -7,7 +7,8 @@
  * tags. Outside a task, behaviour is unchanged.
  */
 
-import { describe, expect, it } from 'vitest';
+import { computeContentCid } from '@moltnet/crypto-service';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   createMoltNetTools,
@@ -394,5 +395,145 @@ describe('moltnet_create_entry — interactive (no task context)', () => {
 
     // Assert
     expect(captured[0].body.tags).toEqual(['user-tag']);
+  });
+});
+
+describe('moltnet_create_entry — signed entries through the injected signer', () => {
+  const taskCtx: MoltNetTaskContext = {
+    taskId: 'task-123',
+    taskType: 'fulfill_brief',
+    attemptN: 2,
+    diaryId: 'task-diary',
+    correlationId: null,
+  };
+
+  function makeSigningAgent(captured: CapturedCreate[]) {
+    const signingRequests = {
+      create: vi.fn((body: { message: string; verificationMethod: string }) =>
+        Promise.resolve({ id: 'req-1', message: body.message }),
+      ),
+    };
+    const created: Array<CapturedCreate & { signingRequestId?: string }> = [];
+    const agent = {
+      entries: {
+        create: (
+          diaryId: string,
+          body: CapturedCreate['body'] & { signingRequestId?: string },
+        ) => {
+          captured.push({ diaryId, body });
+          created.push({
+            diaryId,
+            body,
+            signingRequestId: body.signingRequestId,
+          });
+          return Promise.resolve({
+            id: 'entry-signed',
+            title: body.title,
+            createdAt: '2026-04-29T00:00:00Z',
+            entryType: body.entryType ?? 'semantic',
+            importance: body.importance,
+          });
+        },
+      },
+      crypto: { signingRequests },
+      packs: {},
+    };
+    return { agent, signingRequests, created };
+  }
+
+  it('creates a signing request for the content CID, signs it on the host, and links the entry', async () => {
+    const captured: CapturedCreate[] = [];
+    const { agent, signingRequests, created } = makeSigningAgent(captured);
+    const signer = {
+      identity: {} as never,
+      signDiaryEntry: vi.fn((input: { signingRequestId: string }) =>
+        Promise.resolve(input),
+      ),
+      signGitCommit: vi.fn(),
+    };
+    const config = {
+      ...configFor(agent as unknown as FakeAgent, 'env-diary', taskCtx),
+      getSigner: () => signer,
+    };
+    const tool = findCreateEntryTool(config);
+
+    const result = await callExecute(tool, {
+      title: 'hello',
+      content: 'body',
+      tags: ['decision'],
+      signed: true,
+    });
+
+    expect(signingRequests.create).toHaveBeenCalledWith({
+      message: computeContentCid('semantic', 'hello', 'body', [
+        'task:id:task-123',
+        'task:type:fulfill_brief',
+        'task:attempt:2',
+        'decision',
+      ]),
+      verificationMethod: 'agent-ed25519',
+    });
+    expect(signer.signDiaryEntry).toHaveBeenCalledWith({
+      signingRequestId: 'req-1',
+    });
+    expect(created[0]?.signingRequestId).toBe('req-1');
+    expect(
+      JSON.parse((result.content[0] as { text: string }).text),
+    ).toMatchObject({
+      id: 'entry-signed',
+      signed: true,
+    });
+  });
+
+  it('fails without a signer and creates nothing', async () => {
+    const captured: CapturedCreate[] = [];
+    const { agent, signingRequests } = makeSigningAgent(captured);
+    const config = configFor(
+      agent as unknown as FakeAgent,
+      'env-diary',
+      taskCtx,
+    );
+    const tool = findCreateEntryTool(config);
+
+    await expect(
+      callExecute(tool, { title: 'hello', content: 'body', signed: true }),
+    ).rejects.toThrow(/require the agent-signing capability/);
+    expect(signingRequests.create).not.toHaveBeenCalled();
+    expect(captured).toHaveLength(0);
+  });
+
+  it('creates no entry when the host signer refuses', async () => {
+    const captured: CapturedCreate[] = [];
+    const { agent, signingRequests } = makeSigningAgent(captured);
+    const signer = {
+      identity: {} as never,
+      signDiaryEntry: vi.fn(() =>
+        Promise.reject(new Error('host_capability_denied')),
+      ),
+      signGitCommit: vi.fn(),
+    };
+    const tool = findCreateEntryTool({
+      ...configFor(agent as unknown as FakeAgent, 'env-diary', taskCtx),
+      getSigner: () => signer,
+    });
+
+    await expect(
+      callExecute(tool, { title: 'hello', content: 'body', signed: true }),
+    ).rejects.toThrow(/host_capability_denied/);
+    expect(signingRequests.create).toHaveBeenCalledOnce();
+    expect(captured).toHaveLength(0);
+  });
+
+  it('leaves unsigned creation untouched', async () => {
+    const captured: CapturedCreate[] = [];
+    const { agent, signingRequests, created } = makeSigningAgent(captured);
+    const tool = findCreateEntryTool(
+      configFor(agent as unknown as FakeAgent, 'env-diary', taskCtx),
+    );
+
+    await callExecute(tool, { title: 'hello', content: 'body' });
+
+    expect(signingRequests.create).not.toHaveBeenCalled();
+    expect(created[0]?.signingRequestId).toBeUndefined();
   });
 });

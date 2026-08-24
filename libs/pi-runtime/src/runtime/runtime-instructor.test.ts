@@ -59,6 +59,55 @@ describe('runtime kernel', () => {
     expect(out).not.toContain('injected credential helper');
   });
 
+  it('describes declared host capabilities and brokered commit signing', () => {
+    const out = buildRuntimeKernel({
+      ...ctx,
+      sandbox: {
+        workspaceMode: 'shared_mount',
+        vfsShadowMode: 'none',
+        vfsShadowPatterns: [],
+        verifiedExecutables: ['git', 'moltnet'],
+        allowedHosts: [],
+        allowedInternalHosts: [],
+        hostCapabilities: [
+          {
+            name: 'agent-signing',
+            origin: 'https://agent-signing.moltnet.internal',
+            operations: ['sign-diary-entry', 'sign-git-commit'],
+          },
+        ],
+      },
+    });
+
+    expect(out).toContain('Host capabilities');
+    expect(out).toContain('`agent-signing`');
+    expect(out).toContain('https://agent-signing.moltnet.internal');
+    expect(out).toContain('sign-git-commit');
+    expect(out).toContain('`git commit -S`');
+    expect(out).toContain('`SSH_AUTH_SOCK`');
+    expect(out).toContain('`MOLTNET_SIGNER_URL`');
+    expect(out).toContain('signing key stays on the host');
+    expect(out).not.toContain('No signing key or Git');
+    expect(out).not.toContain('id_ed25519');
+  });
+
+  it('keeps git unsigned when no signing capability is declared', () => {
+    const out = buildRuntimeKernel({
+      ...ctx,
+      sandbox: {
+        workspaceMode: 'shared_mount',
+        vfsShadowMode: 'none',
+        vfsShadowPatterns: [],
+        verifiedExecutables: ['git'],
+        allowedHosts: [],
+        allowedInternalHosts: [],
+      },
+    });
+
+    expect(out).toContain('No signing key or Git');
+    expect(out).not.toContain('Host capabilities');
+  });
+
   it('fails guidance closed when no GitHub placeholder is active', () => {
     const out = buildCredentialInstructions(undefined, undefined);
 

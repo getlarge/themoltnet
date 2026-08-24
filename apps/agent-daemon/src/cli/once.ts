@@ -5,6 +5,7 @@ import {
   AgentRuntime,
   ApiTaskReporter,
   ApiTaskSource,
+  createLocalSeedSigner,
   resolveProfileWarmSessionTtlSec,
   resolveRuntimeProfile,
   type TaskExecutor,
@@ -21,6 +22,7 @@ import {
   resolveAgentContext,
   validateStartupBinding,
 } from '../lib/agent-context.js';
+import { resolveDaemonAgentIdentity } from '../lib/agent-identity.js';
 import {
   createGhCliClient,
   makePrBodyAnchorWriter,
@@ -128,47 +130,66 @@ export async function runOnce(
     process.cwd(),
     values['agent-root'] ?? process.cwd(),
   );
-  const { ctx, signingPrivateKey } = await (async () => {
-    let gate = 'resolve_agent_context';
-    try {
-      const resolvedContext = await resolveAgentContext(initialOpts.agent, {
-        agentRootDir,
-        authMode: cfg.authMode,
-        guestCredentialMode: values['guest-credential-mode'],
-      });
-      // Authenticate and validate team binding before resolving signing
-      // material, consistently with poll/drain.
-      gate = 'authenticate_and_bind';
-      const whoami = await validateStartupBinding({
-        agent: resolvedContext.agent,
-        teamId: values.team,
-      });
-      gate = 'resolve_signing_material';
-      const privateKey = await resolveExecutorSigningPrivateKey({
-        authMode: cfg.authMode,
-        agentDir: resolvedContext.agentDir,
-        configuredPrivateKey: cfg.signingPrivateKey,
-      });
-      gate = 'validate_scopes';
-      validateDaemonScopes(whoami);
-      gate = 'validate_signing_identity';
-      await validateExecutorSigningIdentity({
-        whoami,
-        signingPrivateKey: privateKey,
-      });
-      return { ctx: resolvedContext, signingPrivateKey: privateKey };
-    } catch (error) {
-      await logDaemonStartupFailure({
-        serviceName: 'agent-daemon.once',
-        level: cfg.logLevel || (initialOpts.debug ? 'debug' : 'info'),
-        gate,
-        agent: initialOpts.agent,
-        authMode: cfg.authMode,
-        error,
-      });
-      throw error;
-    }
-  })();
+  const { ctx, signingPrivateKey, agentIdentity, hostCapabilitySigner } =
+    await (async () => {
+      let gate = 'resolve_agent_context';
+      try {
+        const resolvedContext = await resolveAgentContext(initialOpts.agent, {
+          agentRootDir,
+          authMode: cfg.authMode,
+          guestCredentialMode: values['guest-credential-mode'],
+        });
+        // Authenticate and validate team binding before resolving signing
+        // material, consistently with poll/drain.
+        gate = 'authenticate_and_bind';
+        const whoami = await validateStartupBinding({
+          agent: resolvedContext.agent,
+          teamId: values.team,
+        });
+        gate = 'resolve_signing_material';
+        const privateKey = await resolveExecutorSigningPrivateKey({
+          authMode: cfg.authMode,
+          agentDir: resolvedContext.agentDir,
+          configuredPrivateKey: cfg.signingPrivateKey,
+        });
+        gate = 'validate_scopes';
+        validateDaemonScopes(whoami);
+        gate = 'validate_signing_identity';
+        await validateExecutorSigningIdentity({
+          whoami,
+          signingPrivateKey: privateKey,
+        });
+        gate = 'resolve_agent_identity';
+        const agentIdentity = await resolveDaemonAgentIdentity({
+          agentName: initialOpts.agent,
+          whoami,
+          authMode: cfg.authMode,
+          agentDir: resolvedContext.agentDir,
+          gitAuthor: values['git-author'] ?? (cfg.gitAuthor || undefined),
+        });
+        const hostCapabilitySigner = createLocalSeedSigner({
+          privateKeySeed: privateKey,
+          agent: resolvedContext.agent,
+          identity: agentIdentity,
+        });
+        return {
+          ctx: resolvedContext,
+          signingPrivateKey: privateKey,
+          agentIdentity,
+          hostCapabilitySigner,
+        };
+      } catch (error) {
+        await logDaemonStartupFailure({
+          serviceName: 'agent-daemon.once',
+          level: cfg.logLevel || (initialOpts.debug ? 'debug' : 'info'),
+          gate,
+          agent: initialOpts.agent,
+          authMode: cfg.authMode,
+          error,
+        });
+        throw error;
+      }
+    })();
   const profile = await resolveRuntimeProfile({
     agent: ctx.agent,
     profile: values.profile,
@@ -394,6 +415,9 @@ export async function runOnce(
     const rawExecuteTask = preparedRuntime.createTaskExecutor({
       agentName: opts.agent,
       moltnetAgent: ctx.agent,
+      agentIdentity,
+      hostCapabilitySigner,
+      hostCapabilityLogger: rootLogger,
       guestCredentialMode: ctx.guestCredentialMode,
       agentRootDir: ctx.agentRootDir,
       mountPath: sandbox.rootDir,

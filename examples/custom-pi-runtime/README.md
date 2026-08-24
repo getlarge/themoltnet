@@ -167,6 +167,55 @@ rather than a human PAT or the GitHub App private key. HTTP brokering does not
 provide Git commit signing or MoltNet diary signing; those operations require
 separate host-side signing capabilities.
 
+## Host capabilities
+
+A runtime can serve operations from the trusted host without any MoltNet
+change. Core handles transport (`https://<name>.moltnet.internal` answered by
+the sandbox proxy in-process), schema validation, policy (`capability:<name>`
+grants), evidence, manifest attestation and guest projection; the contribution
+supplies the operations and what the guest needs. A GPG signer backed by a host
+key, for example:
+
+```ts
+import { defineHostCapability } from '@themoltnet/agent-runtime';
+import { Type } from 'typebox';
+
+export const gpgSigning = defineHostCapability({
+  name: 'gpg-signing',
+  operations: {
+    'sign-detached': {
+      request: Type.Object(
+        {
+          data: Type.String({ maxLength: 65536 }),
+          hashAlgo: Type.Literal('sha256'),
+        },
+        { additionalProperties: false },
+      ),
+      response: Type.Object({ signature: Type.String() }),
+      handle: async (input) => ({ signature: await hostGpgSign(input.data) }),
+      evidence: (input) => ({ length: input.data.length }),
+    },
+  },
+  guest: {
+    files: () => [
+      {
+        path: '/home/agent/.config/moltnet/gpg.gitconfig',
+        content: '[gpg]\n\tprogram = moltnet-gpg-shim\n',
+      },
+    ],
+    services: [{ id: 'gpg-shim', command: ['moltnet-gpg-shim', 'serve'] }],
+  },
+});
+
+// definePiRuntime({ ..., hostCapabilities: [gpgSigning] })
+```
+
+`hostGpgSign` runs on the host with whatever key source the runtime chooses.
+The guest shim translates `gpg --detach-sign` into
+`moltnet capability call gpg-signing sign-detached`. Requires a
+`@themoltnet/pi-runtime` release with `hostCapabilities` support (see the
+version lockstep note above).
+
 ## Trust boundary
 
 The daemon host and installed runtime package are trusted. The model, task
