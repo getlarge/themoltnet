@@ -43,7 +43,7 @@ describe('agent signing projection helpers', () => {
     expect(cfg).toContain(
       'allowedSignersFile = /home/agent/.config/moltnet/allowed_signers',
     );
-    expect(cfg).toContain('[commit]\n\tgpgsign = true');
+    expect(cfg).not.toContain('gpgsign');
     expect(cfg).toContain(
       '[url "https://github.com/"]\n\tinsteadOf = git@github.com:',
     );

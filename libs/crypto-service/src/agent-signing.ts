@@ -28,7 +28,11 @@ export interface AgentSigningCapability {
   signDiaryEntry(input: {
     signingRequestId: string;
   }): Promise<{ signingRequestId: string }>;
-  /** Sign a validated SSHSIG envelope in the `git` namespace. */
+  /**
+   * Sign a validated SSHSIG envelope in the `git` namespace. The enforceable
+   * boundary is the namespace, which covers every git object signature
+   * (commits and tags); it is not commit-only.
+   */
   signGitCommit(input: { sshsig: Uint8Array }): Promise<{
     /** Raw 64-byte Ed25519 signature over the envelope. */
     signature: Uint8Array;
@@ -62,10 +66,9 @@ export function nonSecretGitconfig(
     '\tformat = ssh',
     '[gpg "ssh"]',
     `\tallowedSignersFile = ${paths.allowedSignersFile}`,
-    '[commit]',
-    '\tgpgsign = true',
-    '[tag]',
-    '\tgpgsign = true',
+    // No `commit.gpgsign = true`: signing is opt-in via `git commit -S`, so a
+    // profile that allows git without the agent-signing capability is not
+    // forced to route every commit through a policy-denied signer.
     '[url "https://github.com/"]',
     '\tinsteadOf = git@github.com:',
     '[safe]',
