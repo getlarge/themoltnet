@@ -26,6 +26,14 @@
     "./ssh": {
       "import": "./src/ssh.ts",
       "types": "./src/ssh.ts"
+    },
+    "./sshsig": {
+      "import": "./src/sshsig.ts",
+      "types": "./src/sshsig.ts"
+    },
+    "./agent-signing": {
+      "import": "./src/agent-signing.ts",
+      "types": "./src/agent-signing.ts"
     }
   },
   "scripts": {

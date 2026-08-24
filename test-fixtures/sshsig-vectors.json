@@ -1,0 +1,72 @@
+{
+  "gitRejected": [
+    {
+      "envelopeBase64": "U1NIU0lHAAAABGZpbGUAAAAAAAAABnNoYTUxMgAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "error": "SSHSIG namespace \"file\" is not \"git\"",
+      "name": "file namespace"
+    },
+    {
+      "envelopeBase64": "U1NIU0lHAAAAA2dpdAAAAAAAAAAGc2hhMjU2AAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "error": "SSHSIG git signatures must use sha512",
+      "name": "sha256 hash"
+    },
+    {
+      "envelopeBase64": "U1NIU0lHAAAAA2dpdAAAAAJ4eAAAAAZzaGE1MTIAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+      "error": "SSHSIG reserved field must be empty",
+      "name": "non-empty reserved"
+    }
+  ],
+  "invalid": [
+    {
+      "envelopeBase64": "U1NIU0lYAAAAA2dpdAAAAAAAAAAGc2hhNTEyAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "error": "SSHSIG magic missing",
+      "name": "bad magic"
+    },
+    {
+      "envelopeBase64": "U1NIU0lHAAAAA2dpdAAAAAAAAAA=",
+      "error": "SSHSIG envelope truncated",
+      "name": "truncated"
+    },
+    {
+      "envelopeBase64": "U1NIU0lHAAAAA2dpdAAAAAAAAAAGc2hhNTEyAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "error": "SSHSIG envelope has trailing bytes",
+      "name": "trailing bytes"
+    },
+    {
+      "envelopeBase64": "U1NIU0lHAAAAA2dpdAAAAAAAAAAGc2hhMjU2AAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "error": "SSHSIG digest length 64 does not match sha256",
+      "name": "sha256 digest length mismatch"
+    },
+    {
+      "envelopeBase64": "U1NIU0lHAAAAA2dpdAAAAAAAAAADbWQ1AAAAEAAAAAAAAAAAAAAAAAAAAAA=",
+      "error": "SSHSIG hash algorithm \"md5\" unsupported",
+      "name": "unsupported hash"
+    }
+  ],
+  "valid": [
+    {
+      "envelopeBase64": "U1NIU0lHAAAAA2dpdAAAAAAAAAAGc2hhNTEyAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "hashAlgorithm": "sha512",
+      "name": "git sha512",
+      "namespace": "git"
+    },
+    {
+      "envelopeBase64": "U1NIU0lHAAAABGZpbGUAAAAAAAAABnNoYTUxMgAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "hashAlgorithm": "sha512",
+      "name": "file sha512",
+      "namespace": "file"
+    },
+    {
+      "envelopeBase64": "U1NIU0lHAAAAA2dpdAAAAAAAAAAGc2hhMjU2AAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "hashAlgorithm": "sha256",
+      "name": "git sha256 (valid envelope, not a git signature)",
+      "namespace": "git"
+    },
+    {
+      "envelopeBase64": "U1NIU0lHAAAAA2dpdAAAAAJ4eAAAAAZzaGE1MTIAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+      "hashAlgorithm": "sha512",
+      "name": "git with reserved bytes (valid envelope, not a git signature)",
+      "namespace": "git"
+    }
+  ]
+}

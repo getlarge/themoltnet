@@ -25,6 +25,14 @@ export default defineConfig({
         import.meta.dirname,
         '../../libs/crypto-service/src/ssh.ts',
       ),
+      '@moltnet/crypto-service/sshsig': resolve(
+        import.meta.dirname,
+        '../../libs/crypto-service/src/sshsig.ts',
+      ),
+      '@moltnet/crypto-service/agent-signing': resolve(
+        import.meta.dirname,
+        '../../libs/crypto-service/src/agent-signing.ts',
+      ),
       '@moltnet/crypto-service': resolve(
         import.meta.dirname,
         '../../libs/crypto-service/src/index.ts',
