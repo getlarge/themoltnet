@@ -950,10 +950,16 @@ export async function executePiTask(
             }),
           },
           paths: { mountPath },
+          // Never drop capability evidence: when no logger is injected, fall
+          // back to the same structured stderr sink the tool-policy path uses,
+          // not silent no-ops — authorization, rate-limit, timeout and signing
+          // decisions must remain auditable for direct/embedding consumers.
           logger: opts.hostCapabilityLogger ??
             opts.toolPolicyLogger ?? {
-              info: () => {},
-              warn: () => {},
+              info: (obj: Record<string, unknown>, msg: string) =>
+                console.error(JSON.stringify({ level: 'info', msg, ...obj })),
+              warn: (obj: Record<string, unknown>, msg: string) =>
+                console.error(JSON.stringify({ level: 'warn', msg, ...obj })),
             },
           signal: reporter.cancelSignal,
         });
@@ -1467,6 +1473,7 @@ export async function executePiTask(
           allowedInternalHosts:
             effectiveSandboxConfig?.network?.allowedInternalHosts ?? [],
           brokeredSecretEnvNames,
+          guestCredentialMode: opts.guestCredentialMode ?? 'guest-config',
           ...(capabilityRouter && {
             hostCapabilities: capabilityRouter.manifest,
           }),

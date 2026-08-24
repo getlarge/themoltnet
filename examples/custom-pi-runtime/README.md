@@ -197,10 +197,13 @@ export const gpgSigning = defineHostCapability({
     },
   },
   guest: {
-    files: () => [
+    // `files` is an ARRAY; each entry's `content` is a renderer
+    // `(identity, paths) => string`. (`env` values are plain strings, with
+    // `${origin}` expanded at compile time.)
+    files: [
       {
         path: '/home/agent/.config/moltnet/gpg.gitconfig',
-        content: '[gpg]\n\tprogram = moltnet-gpg-shim\n',
+        content: () => '[gpg]\n\tprogram = moltnet-gpg-shim\n',
       },
     ],
     services: [{ id: 'gpg-shim', command: ['moltnet-gpg-shim', 'serve'] }],

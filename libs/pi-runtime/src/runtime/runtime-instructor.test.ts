@@ -91,6 +91,64 @@ describe('runtime kernel', () => {
     expect(out).not.toContain('id_ed25519');
   });
 
+  it('routes diary signing to the host tool in host-authenticated mode', () => {
+    const out = buildRuntimeKernel({
+      ...ctx,
+      sandbox: {
+        workspaceMode: 'shared_mount',
+        vfsShadowMode: 'none',
+        vfsShadowPatterns: [],
+        verifiedExecutables: ['git', 'moltnet'],
+        allowedHosts: [],
+        allowedInternalHosts: [],
+        guestCredentialMode: 'host-authenticated',
+        hostCapabilities: [
+          {
+            name: 'agent-signing',
+            origin: 'https://agent-signing.moltnet.internal',
+            operations: ['sign-diary-entry', 'sign-git-commit'],
+          },
+        ],
+      },
+    });
+    expect(out).toContain('`git commit -S`');
+    expect(out).toContain('`moltnet_create_entry`');
+    expect(out).toContain('no guest identity');
+    // The host-authenticated branch names the credential-free CLI only to warn
+    // against it — never as the recommended path (no "brokered through").
+    expect(out).not.toContain('brokered through `MOLTNET_SIGNER_URL`');
+  });
+
+  it('marks signing unavailable when the capability is declared but not granted', () => {
+    const out = buildRuntimeKernel({
+      ...ctx,
+      sandbox: {
+        workspaceMode: 'shared_mount',
+        vfsShadowMode: 'none',
+        vfsShadowPatterns: [],
+        verifiedExecutables: ['git', 'moltnet'],
+        allowedHosts: [],
+        allowedInternalHosts: [],
+        hostCapabilities: [
+          {
+            name: 'agent-signing',
+            origin: 'https://agent-signing.moltnet.internal',
+            operations: ['sign-diary-entry', 'sign-git-commit'],
+          },
+        ],
+      },
+      toolPolicy: {
+        enforcement: 'enforce',
+        allowedTools: ['read'],
+        allowedShellCommands: [{ argvPrefix: ['git', 'commit'] }],
+        degraded: false,
+      },
+    });
+    expect(out).toContain('the active policy does');
+    expect(out).toContain('not grant it');
+    expect(out).not.toContain('works normally through');
+  });
+
   it('keeps git unsigned when no signing capability is declared', () => {
     const out = buildRuntimeKernel({
       ...ctx,
