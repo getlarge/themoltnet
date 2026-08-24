@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
-import type { AddressInfo } from 'node:net';
+import { type AddressInfo, isIP } from 'node:net';
 
 const MAX_REQUEST_EVIDENCE = 1_000;
 
@@ -16,6 +16,7 @@ export interface PolicyFixture {
   adjacentPort: number;
   credential: string;
   requests: FixtureRequestEvidence[];
+  capture(startIndex: number): FixtureRequestEvidence[];
   path(pathname: string): string;
   rotate(): string;
   restore(credential: string): void;
@@ -52,6 +53,7 @@ async function closeServer(server: Server): Promise<void> {
 
 export async function startPolicyFixture(
   bindAddress = '127.0.0.1',
+  redirectHost = bindAddress,
 ): Promise<PolicyFixture> {
   let expectedCredential = syntheticCredential();
   const credentials = [expectedCredential];
@@ -97,8 +99,10 @@ export async function startPolicyFixture(
       new URL(request.url ?? '/', 'http://fixture.invalid').pathname ===
       fixturePath('/redirect')
     ) {
+      const redirectHostname =
+        isIP(redirectHost) === 6 ? `[${redirectHost}]` : redirectHost;
       response.writeHead(302, {
-        location: `http://127.0.0.1:${adjacentPort}${fixturePath('/redirect-target')}`,
+        location: `http://${redirectHostname}:${adjacentPort}${fixturePath('/redirect-target')}`,
       });
       response.end();
       return;
@@ -133,6 +137,14 @@ export async function startPolicyFixture(
       return expectedCredential;
     },
     requests,
+    capture(startIndex) {
+      if (!Number.isInteger(startIndex) || startIndex < 0) {
+        throw new Error(
+          'Fixture capture start index must be a non-negative integer',
+        );
+      }
+      return requests.slice(startIndex);
+    },
     path: fixturePath,
     rotate() {
       expectedCredential = syntheticCredential();

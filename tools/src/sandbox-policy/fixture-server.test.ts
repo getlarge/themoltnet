@@ -77,7 +77,8 @@ describe('sandbox policy loopback fixture', () => {
   });
 
   it('records pathname only and exercises the redirect target', async () => {
-    fixture = await startPolicyFixture();
+    fixture = await startPolicyFixture('127.0.0.1', 'fixture.internal');
+    const captureStart = fixture.requests.length;
     const redirect = await get(
       fixture.allowedPort,
       `${fixture.path('/redirect')}?credential=must-not-persist`,
@@ -86,10 +87,11 @@ describe('sandbox policy loopback fixture', () => {
     const location = new URL(redirect.location ?? '');
 
     expect(redirect.status).toBe(302);
+    expect(location.hostname).toBe('fixture.internal');
     expect(await get(fixture.adjacentPort, location.pathname)).toMatchObject({
       status: 200,
     });
-    expect(fixture.requests).toEqual([
+    expect(fixture.capture(captureStart)).toEqual([
       expect.objectContaining({
         destination: 'allowed',
         path: '/redirect',
@@ -101,6 +103,7 @@ describe('sandbox policy loopback fixture', () => {
       }),
     ]);
     expect(JSON.stringify(fixture.requests)).not.toContain('must-not-persist');
+    expect(() => fixture?.capture(-1)).toThrow('non-negative integer');
   });
 
   it('ignores requests without the per-run path nonce and closes twice', async () => {

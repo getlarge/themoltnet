@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { runAdapterProbe } from './runner.js';
+import { requestedIntent, runAdapterProbe } from './runner.js';
 import type {
   ControlEvidence,
   ProbeContext,
@@ -106,6 +106,21 @@ class FixtureAdapter implements ResearchSandboxAdapter {
 }
 
 describe('sandbox policy adapter runner', () => {
+  it('projects the canonical requested intent including parameters', () => {
+    expect(
+      requestedIntent({
+        ...catalog.scenarios[0],
+        parameters: { cpuCount: 2, tolerancePercent: 5 },
+      }),
+    ).toEqual({
+      scenarioId: 'network.first',
+      domain: 'network',
+      control: 'first',
+      required: true,
+      parameters: { cpuCount: 2, tolerancePercent: 5 },
+    });
+  });
+
   it('retains scenario failures, captures capabilities, and always closes', async () => {
     const adapter = new FixtureAdapter();
     const run = await runAdapterProbe(options(adapter));

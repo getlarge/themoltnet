@@ -2,6 +2,7 @@ import { validateProbeRun } from './evidence.js';
 import { sanitizeDiagnostic } from './sanitize.js';
 import type {
   BackendInventory,
+  ContainmentIntent,
   ControlEvidence,
   HostCapabilityEvidence,
   PersistentMutationEvidence,
@@ -49,7 +50,7 @@ function unavailableBackend(): BackendInventory {
   };
 }
 
-function requestedIntent(scenario: SandboxScenario) {
+export function requestedIntent(scenario: SandboxScenario): ContainmentIntent {
   return {
     scenarioId: scenario.id,
     domain: scenario.domain,
