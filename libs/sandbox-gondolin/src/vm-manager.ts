@@ -1524,7 +1524,10 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     }
 
     // Chown the actual projected directories under the agent home (not a fixed
-    // `.config`) so e.g. `/home/agent/bin/...` is owned by the agent.
+    // `.config`) so e.g. `/home/agent/bin/...` is owned by the agent. `.pi` is
+    // optional: host-authenticated and env-only sessions never create it, so
+    // each target is existence-guarded — a missing optional dir is skipped
+    // while a real chown failure on a present dir still aborts (set -e).
     const chownTargets = [
       '/home/agent/.pi',
       ...(hasAgentFiles ? ['/home/agent/.moltnet'] : []),
@@ -1533,7 +1536,11 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     await vmRun(
       vm,
       'chown guest directories',
-      `chown -R agent:agent ${chownTargets.map(shellQuote).join(' ')}`,
+      `set -e; for d in ${chownTargets
+        .map(shellQuote)
+        .join(
+          ' ',
+        )}; do if [ -e "$d" ]; then chown -R agent:agent "$d"; fi; done`,
       config.signal,
     );
 
@@ -1581,16 +1588,22 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     }): Promise<void> {
       if (!service.readiness) return;
       const deadline = Date.now() + (service.readiness.timeoutMs ?? 10_000);
+      const pidFile = `${GUEST_SERVICE_PID_DIR}/${service.id}.pid`;
       let ready = false;
       while (Date.now() < deadline) {
         throwIfAborted(config.signal, `service "${service.id}" readiness`);
+        // Readiness requires BOTH the declared path AND the recorded process
+        // still running: a bare path check accepts a stale socket left by a
+        // prior crashed service, and misses a service that created its socket
+        // then exited. `kill -0 <pid>` closes both gaps.
         const probe = await vm.exec(
           [
             'sh',
             '-c',
-            `[ -e "$1" ]`,
+            '[ -e "$1" ] && [ -r "$2" ] && kill -0 "$(cat "$2" 2>/dev/null)" 2>/dev/null',
             'moltnet-readiness',
             service.readiness.path,
+            pidFile,
           ],
           { stdout: 'ignore', stderr: 'ignore', signal: config.signal },
         );
@@ -1605,7 +1618,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       if (!ready) {
         if (service.readiness.required) {
           throw new Error(
-            `Projected guest service "${service.id}" did not become ready: ${service.readiness.path} absent`,
+            `Projected guest service "${service.id}" did not become ready: ${service.readiness.path} absent or its process exited`,
           );
         }
         // Best-effort service (e.g. a signing socket whose guest CLI may
@@ -1617,7 +1630,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
           credentialMode: guestCredentialMode,
           message:
             `Projected guest service "${service.id}" did not become ready ` +
-            `(${service.readiness.path} absent); continuing without it`,
+            `(${service.readiness.path} absent or its process exited); continuing without it`,
         });
       }
     }

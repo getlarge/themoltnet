@@ -1101,6 +1101,18 @@ describe('resumeVm task-context mount', () => {
           script.includes('/home/agent/.config/moltnet/gitconfig'),
       ),
     ).toBe(true);
+    // Regression (#1976): this host-authenticated session never creates
+    // `/home/agent/.pi`. The chown must existence-guard each target so an
+    // absent optional dir is skipped instead of aborting VM resume, while a
+    // real chown failure on a present dir still surfaces via `set -e`.
+    const chownScript = execScripts.find((script) =>
+      script.includes('chown -R agent:agent'),
+    );
+    expect(chownScript).toBeDefined();
+    expect(chownScript).toContain('set -e');
+    expect(chownScript).toContain('if [ -e "$d" ]');
+    expect(chownScript).toContain('/home/agent/.pi');
+    expect(chownScript).not.toMatch(/chown -R agent:agent [^;]*\|\| true/);
     expect(gondolinMock.vm.exec).toHaveBeenCalledWith(
       expect.arrayContaining([
         'setsid',
