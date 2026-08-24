@@ -118,8 +118,7 @@ describe('Docker sandbox research adapter', () => {
       proxy.commands.find(
         (args) =>
           args[0] === 'policy' &&
-          args.at(-1)?.includes(':') &&
-          args.at(-1)?.includes('127.0.0.1.nip.io'),
+          /^127\.0\.0\.1\.nip\.io:[0-9]+$/.test(args.at(-1) ?? ''),
       ),
     ).toBeDefined();
   });
