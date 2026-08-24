@@ -244,7 +244,11 @@ func (s *remoteSigner) SignDiaryEntry(ctx context.Context, client *moltnetapi.Cl
 		map[string]string{"signingRequestId": rid.String()}, &out); err != nil {
 		return "", err
 	}
-	// The host submitted the signature; read it back for callers that print it.
+	if out.SigningRequestID != rid.String() {
+		return "", fmt.Errorf("remote signer echoed request ID %q, expected %q", out.SigningRequestID, rid.String())
+	}
+	// The host submitted the signature; read it back and require a completed
+	// request with a non-null signature before reporting success.
 	res, err := client.GetSigningRequest(ctx, moltnetapi.GetSigningRequestParams{ID: rid})
 	if err != nil {
 		return "", fmt.Errorf("fetch signed request: %w", formatTransportError(err))
@@ -253,8 +257,8 @@ func (s *remoteSigner) SignDiaryEntry(ctx context.Context, client *moltnetapi.Cl
 	if !ok {
 		return "", formatAPIError(res)
 	}
-	if req.Signature.Null {
-		return "", nil
+	if req.Status != moltnetapi.SigningRequestStatusCompleted || req.Signature.Null || req.Signature.Value == "" {
+		return "", fmt.Errorf("remote signer did not complete signing request %s", rid)
 	}
 	return req.Signature.Value, nil
 }

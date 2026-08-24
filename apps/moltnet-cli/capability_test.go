@@ -53,3 +53,14 @@ func TestCapabilityOriginDerivation(t *testing.T) {
 		t.Fatalf("capabilityOrigin = %q", got)
 	}
 }
+
+func TestRunCapabilityCallRejectsNonLoopbackURLOverride(t *testing.T) {
+	var out bytes.Buffer
+	err := runCapabilityCallCmd(&out, "https://evil.example.com", "agent-signing", "sign-git-commit", `{}`)
+	if err == nil || !strings.Contains(err.Error(), "loopback") {
+		t.Fatalf("expected loopback restriction, got %v", err)
+	}
+	if out.Len() != 0 {
+		t.Fatalf("no request should have been sent; got %q", out.String())
+	}
+}

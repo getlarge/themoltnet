@@ -331,3 +331,27 @@ func TestSignNonceModeIsRefusedUnderRemoteSigner(t *testing.T) {
 		t.Fatalf("expected nonce mode refusal, got %v", err)
 	}
 }
+
+func TestRemoteSignerRejectsMismatchedEchoedRequestID(t *testing.T) {
+	kp, _ := GenerateKeyPair()
+	seed, _ := base64.StdEncoding.DecodeString(kp.PrivateKey)
+	_ = seed
+	mux := http.NewServeMux()
+	mux.HandleFunc("/identity", func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(SignerIdentity{AgentName: "a", IdentityID: "id", PublicKey: kp.PublicKey, Fingerprint: kp.Fingerprint, GitName: "A", GitEmail: "a@x"})
+	})
+	mux.HandleFunc("/sign-diary-entry", func(w http.ResponseWriter, _ *http.Request) {
+		// Echo a different id than requested.
+		_ = json.NewEncoder(w).Encode(map[string]string{"signingRequestId": "00000000-0000-4000-8000-000000000000"})
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	signer, err := newRemoteSigner(srv.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = signer.SignDiaryEntry(context.Background(), nil, "11111111-2222-4333-8444-555555555555")
+	if err == nil || !strings.Contains(err.Error(), "echoed request ID") {
+		t.Fatalf("expected echoed-id mismatch, got %v", err)
+	}
+}

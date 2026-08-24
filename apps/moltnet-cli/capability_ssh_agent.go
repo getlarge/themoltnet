@@ -5,6 +5,7 @@ import (
 	"crypto/ed25519"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -98,8 +99,15 @@ func serveSSHAgentAdapter(ctx context.Context, signer Signer, socket string, onR
 	if err != nil {
 		return fmt.Errorf("listen on %s: %w", socket, err)
 	}
-	if err := os.Chmod(socket, 0o600); err != nil {
+	// Unconditional cleanup: whatever ends this function (ctx cancel, an
+	// unexpected Accept error, or a chmod failure) removes the socket so a
+	// crashed service never leaves a stale inode that path-only readiness
+	// would treat as healthy.
+	defer func() {
 		listener.Close()
+		_ = os.Remove(socket)
+	}()
+	if err := os.Chmod(socket, 0o600); err != nil {
 		return err
 	}
 	go func() {
@@ -117,7 +125,6 @@ func serveSSHAgentAdapter(ctx context.Context, signer Signer, socket string, onR
 		conn, err := listener.Accept()
 		if err != nil {
 			if ctx.Err() != nil {
-				_ = os.Remove(socket)
 				return nil
 			}
 			return err
@@ -125,6 +132,7 @@ func serveSSHAgentAdapter(ctx context.Context, signer Signer, socket string, onR
 		select {
 		case slots <- struct{}{}:
 		default:
+			fmt.Fprintf(os.Stderr, "moltnet signing adapter: refused connection over concurrency cap %d\n", sshAgentMaxClients)
 			_ = conn.Close()
 			continue
 		}
@@ -132,7 +140,9 @@ func serveSSHAgentAdapter(ctx context.Context, signer Signer, socket string, onR
 			defer func() { <-slots }()
 			defer conn.Close()
 			_ = conn.SetDeadline(time.Now().Add(sshAgentConnDeadline))
-			_ = agent.ServeAgent(adapter, conn)
+			if err := agent.ServeAgent(adapter, conn); err != nil && !errors.Is(err, io.EOF) {
+				fmt.Fprintf(os.Stderr, "moltnet signing adapter: client session ended: %v\n", err)
+			}
 		}()
 	}
 }

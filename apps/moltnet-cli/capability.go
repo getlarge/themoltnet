@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"strings"
@@ -22,6 +23,22 @@ const capabilityOriginSuffix = ".moltnet.internal"
 
 func capabilityOrigin(name string) string {
 	return "https://" + name + capabilityOriginSuffix
+}
+
+// validateCapabilityOverrideURL restricts the --url override to loopback so an
+// argv-authorized `capability call` cannot be turned into a generic POST client
+// to an arbitrary network-permitted origin. Production uses the derived
+// https://<name>.moltnet.internal origin and needs no override.
+func validateCapabilityOverrideURL(raw string) error {
+	parsed, err := url.Parse(raw)
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return fmt.Errorf("--url must be an absolute URL, got %q", raw)
+	}
+	host := parsed.Hostname()
+	if host == "127.0.0.1" || host == "localhost" || host == "::1" {
+		return nil
+	}
+	return fmt.Errorf("--url override is restricted to loopback (got %q); production uses the derived capability origin", host)
 }
 
 // runCapabilityCallCmd POSTs a JSON body to one operation and prints the JSON
@@ -41,6 +58,8 @@ func runCapabilityCallCmd(w io.Writer, baseURL, name, operation, jsonBody string
 	origin := strings.TrimRight(baseURL, "/")
 	if origin == "" {
 		origin = capabilityOrigin(name)
+	} else if err := validateCapabilityOverrideURL(origin); err != nil {
+		return err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
