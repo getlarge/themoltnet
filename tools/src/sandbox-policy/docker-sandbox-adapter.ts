@@ -16,12 +16,14 @@ import {
   executeCommand,
 } from './command.js';
 import { type PolicyFixture, startPolicyFixture } from './fixture-server.js';
+import { requestedIntent } from './runner.js';
 import type {
   AdapterResolution,
   BackendInventory,
   ControlEvidence,
   ControlOracle,
   EnforcementLocus,
+  EvidenceBasis,
   HostCapabilityEvidence,
   PersistentMutationEvidence,
   ProbeContext,
@@ -33,6 +35,9 @@ import type {
 const BACKEND_ID = 'docker-sandbox';
 const PLACEHOLDER = 'moltnet-probe-placeholder';
 const HOST_ALIAS = 'host.docker.internal';
+// Docker's credential proxy does not inject into its internal host gateway.
+// This DNS name resolves to host loopback while traversing the normal proxy.
+const CREDENTIAL_HOST = '127.0.0.1.nip.io';
 
 interface DockerSandboxAdapterOptions {
   execute?: CommandExecutor;
@@ -64,8 +69,12 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
   #secretFile = '';
   #created = false;
   #networkAllowApplied = false;
+  #credentialNetworkAllowApplied = false;
+  #adjacentCredentialNetworkAllowApplied = false;
   #secretApplied = false;
   #scenarioSignal: AbortSignal | undefined;
+  #credentialDeliveryVerified = false;
+  #rotatedDeliveryVerified = false;
 
   constructor(options: DockerSandboxAdapterOptions = {}) {
     this.#execute = options.execute ?? executeCommand;
@@ -127,6 +136,8 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
       '1',
       '--memory',
       '1g',
+      '--env',
+      `MOLTNET_PROBE_TOKEN=${PLACEHOLDER}`,
       this.#guestRoot,
       `${this.#readonlyRoot}:ro`,
     ]);
@@ -162,13 +173,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
   ): AdapterResolution {
     return {
       backendId: BACKEND_ID,
-      requested: {
-        scenarioId: scenario.id,
-        domain: scenario.domain,
-        control: scenario.control,
-        required: scenario.required,
-        ...(scenario.parameters ? { parameters: scenario.parameters } : {}),
-      },
+      requested: requestedIntent(scenario),
       effective,
       fidelity: 'docker-sandbox-v0.39',
     };
@@ -188,13 +193,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
     const inventory = await this.inspect();
     return {
       scenarioId: scenario.id,
-      requestedIntent: {
-        scenarioId: scenario.id,
-        domain: scenario.domain,
-        control: scenario.control,
-        required: scenario.required,
-        ...(scenario.parameters ? { parameters: scenario.parameters } : {}),
-      },
+      requestedIntent: requestedIntent(scenario),
       resolvedAdapterConfig: this.#resolution(scenario, effective),
       backend: { id: inventory.id, version: inventory.version },
       enforcementLocus: locus,
@@ -211,24 +210,24 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
     scenario: SandboxScenario,
     context: ProbeContext,
     reasonCode: ReasonCode,
+    options: {
+      basis?: EvidenceBasis;
+      effective?: Record<string, unknown>;
+      locus?: EnforcementLocus[];
+    } = {},
   ): Promise<ControlEvidence> {
     const inventory = await this.inspect();
     return {
       scenarioId: scenario.id,
-      requestedIntent: {
-        scenarioId: scenario.id,
-        domain: scenario.domain,
-        control: scenario.control,
-        required: scenario.required,
-        ...(scenario.parameters ? { parameters: scenario.parameters } : {}),
-      },
-      resolvedAdapterConfig: this.#resolution(scenario, {
-        support: 'unsupported-by-safe-probe',
-      }),
+      requestedIntent: requestedIntent(scenario),
+      resolvedAdapterConfig: this.#resolution(
+        scenario,
+        options.effective ?? { support: 'unsupported-by-safe-probe' },
+      ),
       backend: { id: inventory.id, version: inventory.version },
-      enforcementLocus: ['docker-sandbox-adapter'],
+      enforcementLocus: options.locus ?? ['docker-sandbox-adapter'],
       state: 'unsupported',
-      basis: 'applied',
+      basis: options.basis ?? 'applied',
       oracle: null,
       reasonCode,
       recordedAt: context.recordedAt(),
@@ -238,7 +237,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
 
   async #ensureFixture(): Promise<PolicyFixture> {
     if (!this.#fixture) {
-      this.#fixture = await startPolicyFixture();
+      this.#fixture = await startPolicyFixture('127.0.0.1', HOST_ALIAS);
       this.#cleanup.add('fixture-server', '<loopback-fixture>', async () => {
         await this.#fixture?.close();
       });
@@ -278,6 +277,69 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
     return result;
   }
 
+  async #ensureCredentialNetworkAllow(
+    fixture: PolicyFixture,
+  ): Promise<CommandResult> {
+    if (this.#credentialNetworkAllowApplied) {
+      return { exitCode: 0, stdout: 'already applied', stderr: '' };
+    }
+    const resource = `${CREDENTIAL_HOST}:${fixture.allowedPort}`;
+    const result = await this.#allowNetworkResource(
+      resource,
+      '<credential-origin>',
+    );
+    if (result.exitCode === 0) this.#credentialNetworkAllowApplied = true;
+    return result;
+  }
+
+  async #ensureAdjacentCredentialNetworkAllow(
+    fixture: PolicyFixture,
+  ): Promise<CommandResult> {
+    if (this.#adjacentCredentialNetworkAllowApplied) {
+      return { exitCode: 0, stdout: 'already applied', stderr: '' };
+    }
+    const resource = `${CREDENTIAL_HOST}:${fixture.adjacentPort}`;
+    const result = await this.#allowNetworkResource(
+      resource,
+      '<adjacent-credential-origin>',
+    );
+    if (result.exitCode === 0) {
+      this.#adjacentCredentialNetworkAllowApplied = true;
+    }
+    return result;
+  }
+
+  async #allowNetworkResource(
+    resource: string,
+    cleanupResource: string,
+  ): Promise<CommandResult> {
+    const result = await this.#execute('sbx', [
+      'policy',
+      'allow',
+      'network',
+      '--sandbox',
+      this.#sandboxName,
+      resource,
+    ]);
+    if (result.exitCode === 0) {
+      this.#cleanup.add('network-policy', cleanupResource, async () => {
+        const removed = await this.#execute('sbx', [
+          'policy',
+          'rm',
+          'network',
+          '--sandbox',
+          this.#sandboxName,
+          '--resource',
+          resource,
+        ]);
+        if (removed.exitCode !== 0 && !/not found/i.test(removed.stderr)) {
+          throw new Error(removed.stderr);
+        }
+      });
+    }
+    return result;
+  }
+
   async #ensureSecret(): Promise<CommandResult> {
     if (this.#secretApplied) {
       return { exitCode: 0, stdout: 'already applied', stderr: '' };
@@ -289,7 +351,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
       '--sandbox',
       this.#sandboxName,
       '--host',
-      HOST_ALIAS,
+      CREDENTIAL_HOST,
       '--env',
       'MOLTNET_PROBE_TOKEN',
       '--placeholder',
@@ -494,42 +556,74 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
               policy.exitCode === 0 && result.exitCode === 0 && delivered === 1,
           },
           {
-            requested: [`${HOST_ALIAS}:<allowed-port>`],
-            policy: { exitCode: policy.exitCode },
+            requested: ['localhost:<allowed-port>'],
+            effective: [`${HOST_ALIAS}:<allowed-port>`],
+            policy: {
+              resource: 'localhost:<allowed-port>',
+              exitCode: policy.exitCode,
+            },
           },
           'exact_destination_allow_observed',
           ['docker-sandbox-control-plane'],
         );
       }
-      case 'network.wrong-host':
-      case 'network.wrong-port':
-      case 'credential.adjacent-origin': {
+      case 'network.wrong-host': {
         const fixture = await this.#ensureFixture();
+        const policy = await this.#ensureNetworkAllow(fixture);
         const before = fixture.requests.length;
         const result = await this.#exec(
           [
             'sh',
             '-lc',
-            `curl -fsS --max-time 2 -H 'Authorization: Bearer ${PLACEHOLDER}' 'http://${HOST_ALIAS}:${fixture.adjacentPort}${fixture.path('/adjacent')}'`,
+            `curl -fsS --max-time 2 'http://${CREDENTIAL_HOST}:${fixture.allowedPort}${fixture.path('/wrong-host')}'`,
           ],
           5_000,
         );
-        const requests = fixture.requests.slice(before);
-        const matched = requests.some(
-          (request) => request.credentialMatch === 'expected',
-        );
+        const delivered = fixture.capture(before).length;
         return this.#evidence(
           scenario,
           context,
           {
-            kind: 'adjacent-origin-credential-match',
+            kind: 'wrong-host-request-count',
             expected: 0,
-            observed: matched ? 1 : 0,
-            passed: result.exitCode !== 0 && !matched,
+            observed: delivered,
+            passed:
+              policy.exitCode === 0 && result.exitCode !== 0 && delivered === 0,
           },
           {
             allowed: `${HOST_ALIAS}:<allowed-port>`,
-            attempted: '<adjacent-origin>',
+            attempted: `${CREDENTIAL_HOST}:<allowed-port>`,
+          },
+          'unlisted_hostname_blocked',
+          ['docker-sandbox-control-plane'],
+        );
+      }
+      case 'network.wrong-port': {
+        const fixture = await this.#ensureFixture();
+        const policy = await this.#ensureNetworkAllow(fixture);
+        const before = fixture.requests.length;
+        const result = await this.#exec(
+          [
+            'sh',
+            '-lc',
+            `curl -fsS --max-time 2 'http://${HOST_ALIAS}:${fixture.adjacentPort}${fixture.path('/wrong-port')}'`,
+          ],
+          5_000,
+        );
+        const delivered = fixture.capture(before).length;
+        return this.#evidence(
+          scenario,
+          context,
+          {
+            kind: 'wrong-port-request-count',
+            expected: 0,
+            observed: delivered,
+            passed:
+              policy.exitCode === 0 && result.exitCode !== 0 && delivered === 0,
+          },
+          {
+            allowed: `${HOST_ALIAS}:<allowed-port>`,
+            attempted: `${HOST_ALIAS}:<adjacent-port>`,
           },
           'adjacent_origin_blocked',
           ['docker-sandbox-control-plane'],
@@ -537,23 +631,40 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
       }
       case 'network.redirect': {
         const fixture = await this.#ensureFixture();
+        const policy = await this.#ensureNetworkAllow(fixture);
         const before = fixture.requests.length;
         const result = await this.#exec([
           'sh',
           '-lc',
-          `curl -sS -L --max-time 3 -H 'Authorization: Bearer ${PLACEHOLDER}' 'http://${HOST_ALIAS}:${fixture.allowedPort}${fixture.path('/redirect')}'`,
+          `curl -fsS -L --max-time 3 -H 'Authorization: Bearer ${PLACEHOLDER}' 'http://${HOST_ALIAS}:${fixture.allowedPort}${fixture.path('/redirect')}'`,
         ]);
-        const adjacent = fixture.requests
-          .slice(before)
-          .filter((request) => request.destination === 'adjacent');
+        const requests = fixture.capture(before);
+        const allowed = requests.filter(
+          (request) => request.destination === 'allowed',
+        );
+        const adjacent = requests.filter(
+          (request) => request.destination === 'adjacent',
+        );
         return this.#evidence(
           scenario,
           context,
           {
             kind: 'redirect-adjacent-delivery',
-            expected: 0,
-            observed: adjacent.length,
-            passed: adjacent.length === 0,
+            expected: {
+              allowedRequests: 1,
+              adjacentRequests: 0,
+              guestExitCode: 'non-zero',
+            },
+            observed: {
+              allowedRequests: allowed.length,
+              adjacentRequests: adjacent.length,
+              guestExitCode: result.exitCode,
+            },
+            passed:
+              policy.exitCode === 0 &&
+              allowed.length === 1 &&
+              adjacent.length === 0 &&
+              result.exitCode !== 0,
           },
           { followRedirects: true, guestExitCode: result.exitCode },
           'redirect_origin_not_allowed',
@@ -563,22 +674,19 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
       case 'network.internal':
       case 'network.requested-effective': {
         await this.#ensureFixture();
-        return this.#evidence(
+        return this.#unsupported(
           scenario,
           context,
-          {
-            kind: 'requested-effective-binding',
-            expected: 'exact-host-port',
-            observed: 'exact-host-port',
-            passed: true,
-          },
-          {
-            requested: [`127.0.0.1:<allowed-port>`],
-            effective: [`${HOST_ALIAS}:<allowed-port>`],
-            binding: 'host-gateway-mediated',
-          },
           'host_gateway_binding_recorded',
-          ['docker-sandbox-control-plane'],
+          {
+            basis: 'declared',
+            effective: {
+              requested: [`127.0.0.1:<allowed-port>`],
+              effective: [`${HOST_ALIAS}:<allowed-port>`],
+              binding: 'host-gateway-mediated',
+            },
+            locus: ['docker-sandbox-adapter'],
+          },
         );
       }
       case 'network.protocol':
@@ -589,33 +697,38 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           'fixture_does_not_claim_protocol_or_dns_control',
         );
       case 'credential.missing-binding':
-        return this.#evidence(
+        return this.#unsupported(
           scenario,
           context,
+          'required_binding_preflight_unverified',
           {
-            kind: 'launch-attempt-count',
-            expected: 0,
-            observed: 0,
-            passed: true,
+            basis: 'declared',
+            effective: {
+              binding: 'required',
+              probe: 'no independent launch-attempt oracle',
+            },
+            locus: ['research-harness'],
           },
-          { binding: 'required', adapterPreflight: 'rejected' },
-          'adapter_preflight_rejected_missing_binding',
-          ['research-harness'],
         );
       case 'credential.allowed-origin': {
         const fixture = await this.#ensureFixture();
-        const policy = await this.#ensureNetworkAllow(fixture);
+        const policy = await this.#ensureCredentialNetworkAllow(fixture);
         const secret = await this.#ensureSecret();
         const before = fixture.requests.length;
         const result = await this.#exec([
           'sh',
           '-lc',
-          `curl -sS --max-time 3 -H "Authorization: Bearer $MOLTNET_PROBE_TOKEN" 'http://${HOST_ALIAS}:${fixture.allowedPort}${fixture.path('/credential')}'`,
+          `curl -sS --max-time 3 -H "Authorization: Bearer $MOLTNET_PROBE_TOKEN" 'http://${CREDENTIAL_HOST}:${fixture.allowedPort}${fixture.path('/credential')}'`,
         ]);
-        const requests = fixture.requests.slice(before);
+        const requests = fixture.capture(before);
         const matched = requests.some(
           (request) => request.credentialMatch === 'expected',
         );
+        this.#credentialDeliveryVerified =
+          policy.exitCode === 0 &&
+          secret.exitCode === 0 &&
+          result.exitCode === 0 &&
+          matched;
         return this.#evidence(
           scenario,
           context,
@@ -623,18 +736,56 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
             kind: 'credential-proxy-match',
             expected: 1,
             observed: matched ? 1 : 0,
-            passed:
-              policy.exitCode === 0 &&
-              secret.exitCode === 0 &&
-              result.exitCode === 0 &&
-              matched,
+            passed: this.#credentialDeliveryVerified,
           },
           {
             guestValue: '<stand-in>',
-            binding: `${HOST_ALIAS}:<allowed-port>`,
+            binding: `${CREDENTIAL_HOST}:<allowed-port>`,
             secretCommandExitCode: secret.exitCode,
           },
           'allowed_origin_secret_substitution_observed',
+          ['docker-sandbox-control-plane'],
+        );
+      }
+      case 'credential.adjacent-origin': {
+        const fixture = await this.#ensureFixture();
+        const allowedPolicy = await this.#ensureCredentialNetworkAllow(fixture);
+        const adjacentPolicy =
+          await this.#ensureAdjacentCredentialNetworkAllow(fixture);
+        const secret = await this.#ensureSecret();
+        const before = fixture.requests.length;
+        const result = await this.#exec([
+          'sh',
+          '-lc',
+          `curl -sS --max-time 3 -H "Authorization: Bearer $MOLTNET_PROBE_TOKEN" 'http://${CREDENTIAL_HOST}:${fixture.adjacentPort}${fixture.path('/adjacent-credential')}'`,
+        ]);
+        const requests = fixture.capture(before);
+        const adjacentRequests = requests.filter(
+          (request) => request.destination === 'adjacent',
+        );
+        const matched = adjacentRequests.some(
+          (request) => request.credentialMatch === 'expected',
+        );
+        return this.#evidence(
+          scenario,
+          context,
+          {
+            kind: 'adjacent-origin-credential-match',
+            expected: 0,
+            observed: matched ? 1 : 0,
+            passed:
+              allowedPolicy.exitCode === 0 &&
+              adjacentPolicy.exitCode === 0 &&
+              secret.exitCode === 0 &&
+              result.exitCode === 0 &&
+              adjacentRequests.length === 1 &&
+              !matched,
+          },
+          {
+            credentialBinding: `${CREDENTIAL_HOST}:<any-port>`,
+            networkAllowed: `${CREDENTIAL_HOST}:<adjacent-port>`,
+          },
+          'adjacent_origin_secret_delivery_observed',
           ['docker-sandbox-control-plane'],
         );
       }
@@ -650,7 +801,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           '--sandbox',
           this.#sandboxName,
           '--host',
-          HOST_ALIAS,
+          CREDENTIAL_HOST,
           '--env',
           'MOLTNET_PROBE_TOKEN',
           '--placeholder',
@@ -662,11 +813,13 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
         const request = await this.#exec([
           'sh',
           '-lc',
-          `curl -sS --max-time 3 -H "Authorization: Bearer $MOLTNET_PROBE_TOKEN" 'http://${HOST_ALIAS}:${fixture.allowedPort}${fixture.path('/rotated')}'`,
+          `curl -sS --max-time 3 -H "Authorization: Bearer $MOLTNET_PROBE_TOKEN" 'http://${CREDENTIAL_HOST}:${fixture.allowedPort}${fixture.path('/rotated')}'`,
         ]);
-        const matched = fixture.requests
-          .slice(before)
+        const matched = fixture
+          .capture(before)
           .some((item) => item.credentialMatch === 'expected');
+        this.#rotatedDeliveryVerified =
+          update.exitCode === 0 && request.exitCode === 0 && matched;
         return this.#evidence(
           scenario,
           context,
@@ -674,7 +827,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
             kind: 'rotated-credential-match',
             expected: 1,
             observed: matched ? 1 : 0,
-            passed: update.exitCode === 0 && request.exitCode === 0 && matched,
+            passed: this.#rotatedDeliveryVerified,
           },
           { transition: 'replace-scoped-binding', guestValue: '<stand-in>' },
           'rotated_binding_observed',
@@ -697,11 +850,18 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
         await this.#exec([
           'sh',
           '-lc',
-          `curl -sS --max-time 3 -H 'Authorization: Bearer ${PLACEHOLDER}' 'http://${HOST_ALIAS}:${fixture.allowedPort}${fixture.path('/revoked')}'`,
+          `curl -sS --max-time 3 -H 'Authorization: Bearer ${PLACEHOLDER}' 'http://${CREDENTIAL_HOST}:${fixture.allowedPort}${fixture.path('/revoked')}'`,
         ]);
-        const matched = fixture.requests
-          .slice(before)
-          .some((item) => item.credentialMatch === 'expected');
+        const requests = fixture.capture(before);
+        const matched = requests.some(
+          (item) => item.credentialMatch === 'expected',
+        );
+        const passed =
+          this.#credentialDeliveryVerified &&
+          this.#rotatedDeliveryVerified &&
+          removed.exitCode === 0 &&
+          requests.length === 1 &&
+          !matched;
         return this.#evidence(
           scenario,
           context,
@@ -709,10 +869,12 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
             kind: 'revoked-credential-match',
             expected: 0,
             observed: matched ? 1 : 0,
-            passed: removed.exitCode === 0 && !matched,
+            passed,
           },
           { transition: 'remove-scoped-binding' },
-          'revoked_binding_not_delivered',
+          passed
+            ? 'revoked_binding_not_delivered'
+            : 'revocation_unverified_without_prior_delivery',
           ['docker-sandbox-control-plane'],
         );
       }
@@ -724,10 +886,10 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
         const request = await this.#exec([
           'sh',
           '-lc',
-          `curl -sS --max-time 3 -H "Authorization: Bearer $MOLTNET_PROBE_TOKEN" 'http://${HOST_ALIAS}:${fixture.allowedPort}${fixture.path('/resumed')}'`,
+          `curl -sS --max-time 3 -H "Authorization: Bearer $MOLTNET_PROBE_TOKEN" 'http://${CREDENTIAL_HOST}:${fixture.allowedPort}${fixture.path('/resumed')}'`,
         ]);
-        const matched = fixture.requests
-          .slice(before)
+        const matched = fixture
+          .capture(before)
           .some((item) => item.credentialMatch === 'expected');
         return this.#evidence(
           scenario,
@@ -748,18 +910,17 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
         );
       }
       case 'credential.evidence-leak':
-        return this.#evidence(
+        return this.#unsupported(
           scenario,
           context,
+          'evidence_persistence_validation_deferred',
           {
-            kind: 'persisted-sensitive-value-count',
-            expected: 0,
-            observed: 0,
-            passed: true,
+            basis: 'declared',
+            effective: {
+              persistenceValidation: 'performed after adapter completion',
+            },
+            locus: ['research-harness'],
           },
-          { persistedCredentialValues: false, persistedHostPaths: false },
-          'value_free_evidence_only',
-          ['research-harness'],
         );
       case 'lifecycle.timeout':
       case 'lifecycle.cancel': {
@@ -818,51 +979,42 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
             delayedMarkerMs,
             observationWindowMs,
           },
-          'sandbox_removal_killed_detached_child',
-          ['docker-sandbox-control-plane'],
+          'sandbox_removal_detached_child_observed',
+          ['research-harness', 'docker-sandbox-control-plane'],
         );
       }
       case 'lifecycle.broker-unavailable':
-        return this.#evidence(
+        return this.#unsupported(
           scenario,
           context,
+          'broker_preflight_unverified',
           {
-            kind: 'preflight-launch-attempt-count',
-            expected: 0,
-            observed: 0,
-            passed: true,
+            basis: 'declared',
+            effective: {
+              broker: 'required',
+              probe: 'no independent launch-attempt oracle',
+            },
+            locus: ['research-harness'],
           },
-          {
-            broker: 'required',
-            availability: 'unavailable',
-            preflight: 'rejected',
-          },
-          'adapter_preflight_rejected_unavailable_broker',
-          ['research-harness'],
         );
-      case 'lifecycle.partial-launch': {
-        const listing = await this.#execute('sbx', ['ls', '--quiet']);
-        const partialName = `${this.#sandboxName}-partial`;
-        const residue = listing.stdout.split(/\s+/).includes(partialName);
-        return this.#evidence(
+      case 'lifecycle.partial-launch':
+        return this.#unsupported(
           scenario,
           context,
+          'partial_launch_cleanup_unverified',
           {
-            kind: 'partial-sandbox-residue',
-            expected: false,
-            observed: residue,
-            passed: !residue,
+            basis: 'declared',
+            effective: {
+              probe: 'no deliberately interrupted create operation',
+            },
+            locus: ['research-harness'],
           },
-          { launchRejectedBeforeCreate: true },
-          'preflight_failure_left_no_backend_resource',
-          ['research-harness'],
         );
-      }
       case 'lifecycle.repeated-close':
         return this.#unsupported(
           scenario,
           context,
-          'verified_by_manifest_unit_test_and_final_teardown',
+          'repeated_adapter_close_unverified',
         );
       case 'lifecycle.restart-checkpoint': {
         const marker = path.join(this.#guestRoot, 'restart-persistent.txt');
@@ -938,21 +1090,18 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
         );
       }
       case 'topology.host-capabilities':
-        return this.#evidence(
+        return this.#unsupported(
           scenario,
           context,
-          {
-            kind: 'capability-topology-recorded',
-            expected: 'host-capabilities-outside-guest',
-            observed: 'host-capabilities-outside-guest',
-            passed: true,
-          },
-          {
-            guest: ['shell', 'workspace'],
-            host: ['MCP', 'signing', 'credential broker', 'model traffic'],
-          },
           'capability_boundary_recorded',
-          ['research-harness'],
+          {
+            basis: 'declared',
+            effective: {
+              guest: ['shell', 'workspace'],
+              host: ['MCP', 'signing', 'credential broker', 'model traffic'],
+            },
+            locus: ['research-harness'],
+          },
         );
       default:
         return this.#unsupported(
@@ -977,7 +1126,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
         id: 'credential-proxy',
         locus: 'control-plane',
         relationship: 'mediates-containment',
-        basis: 'verified',
+        basis: this.#credentialDeliveryVerified ? 'verified' : 'declared',
         description:
           'Docker Sandbox replaces a guest stand-in at a bound outbound origin.',
       },
