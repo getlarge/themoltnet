@@ -126,6 +126,12 @@ describe('execManagedCommand', () => {
         '42',
       ]),
     );
+    const terminationCommand = exec.mock.calls[1]?.[0];
+    const terminationScript = Array.isArray(terminationCommand)
+      ? terminationCommand[2]
+      : undefined;
+    expect(terminationScript).toContain('/proc/[0-9]*/stat');
+    expect(terminationScript).toContain('[ "$state" != Z ]');
     expect(close).not.toHaveBeenCalled();
   });
 
