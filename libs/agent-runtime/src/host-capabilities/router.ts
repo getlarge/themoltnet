@@ -274,6 +274,26 @@ export function createHostCapabilityRouter(input: {
     }
     const evidence = { ...evidenceBase, ...spec.evidence(body as never) };
 
+    // Short-circuit an already-cancelled parent BEFORE charging a slot or
+    // scheduling the handler. Racing the handler against an abort promise only
+    // changes the caller-visible result — `spec.handle` would still be queued
+    // on a microtask and run to completion (the stock signing handlers ignore
+    // the signal), so a privileged signature could be submitted after the
+    // router reports cancellation. Returning here guarantees the handler is
+    // never invoked once the parent is aborted.
+    if (input.signal?.aborted) {
+      input.logger.warn(
+        { ...evidence, decision: 'cancel', reason: 'parent_aborted' },
+        'host_capability.cancelled',
+      );
+      return {
+        ok: false,
+        status: 503,
+        code: 'operation_cancelled',
+        message: 'operation cancelled before dispatch',
+      };
+    }
+
     const timeoutMs = spec.timeoutMs ?? DEFAULT_HOST_CAPABILITY_TIMEOUT_MS;
     // Separate the two abort reasons so evidence distinguishes a deadline from
     // parent (task) cancellation.
@@ -395,6 +415,20 @@ export function createHostCapabilityRouter(input: {
       const operation = url.pathname.replace(/^\/+/, '');
       const spec = capability.operations[operation];
       if (!spec || request.method !== 'POST') {
+        // Transport-level denial: evidence every rejected decision (unknown
+        // operation or wrong method), value-free, per the router audit
+        // contract — probing guest traffic must not be invisible.
+        input.logger.warn(
+          {
+            ...base,
+            capability: capability.name,
+            operation,
+            method: request.method,
+            decision: 'deny',
+            reason: !spec ? 'unknown_operation' : 'method_not_allowed',
+          },
+          'host_capability.denied',
+        );
         return json(404, {
           code: 'unknown_operation',
           message: `unknown operation "${operation}"`,
@@ -421,6 +455,16 @@ export function createHostCapabilityRouter(input: {
           );
           return json(413, { code: 'body_too_large', message: error.message });
         }
+        input.logger.warn(
+          {
+            ...base,
+            capability: capability.name,
+            operation,
+            decision: 'deny',
+            reason: 'invalid_request',
+          },
+          'host_capability.denied',
+        );
         return json(400, {
           code: 'invalid_request',
           message: 'body must be JSON',

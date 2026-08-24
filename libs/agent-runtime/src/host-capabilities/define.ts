@@ -157,10 +157,15 @@ export function defineHostCapability<
     ),
   );
   return deepFreeze({
+    ...def,
+    // Derived, non-overridable fields come AFTER the spread: origin is always
+    // `capabilityOrigin(name)`, so it can never be shadowed by a stray field on
+    // `def`. Since names are unique (rejected on collision by the router), the
+    // derived origins are unique too — no separate origin-collision check is
+    // needed.
     kind: 'host_capability',
     origin: capabilityOrigin(def.name),
     descriptorCid,
-    ...def,
     operations: { ...def.operations },
   });
 }

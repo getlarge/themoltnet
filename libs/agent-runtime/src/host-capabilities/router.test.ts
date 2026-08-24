@@ -228,12 +228,29 @@ describe('createHostCapabilityRouter', () => {
     );
   });
 
-  it('rejects immediately when the parent signal is already aborted', async () => {
+  it('rejects an already-aborted parent before the handler can run', async () => {
     const logger = { info: vi.fn(), warn: vi.fn() };
+    const handle = vi.fn(() => Promise.resolve({ text: 'HI' }));
+    const spy = defineHostCapability({
+      name: 'echo',
+      operations: {
+        say: {
+          request: Type.Object(
+            { text: Type.String({ maxLength: 8 }) },
+            { additionalProperties: false },
+          ),
+          response: Type.Object({ text: Type.String() }),
+          handle,
+          evidence: (input: { text: string }) => ({
+            length: input.text.length,
+          }),
+        },
+      },
+    });
     const controller = new AbortController();
     controller.abort();
     const r = createHostCapabilityRouter({
-      capabilities: [echo],
+      capabilities: [spy],
       context: {
         taskId: 't',
         attemptN: 1,
@@ -253,8 +270,12 @@ describe('createHostCapabilityRouter', () => {
       code: 'operation_cancelled',
       status: 503,
     });
+    // The security-critical guarantee: the handler is never scheduled, so no
+    // signature/API submission can complete after cancellation is reported.
+    await Promise.resolve();
+    expect(handle).not.toHaveBeenCalled();
     expect(logger.warn).toHaveBeenCalledWith(
-      expect.objectContaining({ error: 'cancelled' }),
+      expect.objectContaining({ decision: 'cancel', reason: 'parent_aborted' }),
       'host_capability.cancelled',
     );
   });
@@ -391,6 +412,46 @@ describe('createHostCapabilityRouter', () => {
     expect(() => make([a, c])).toThrow(/Guest file "\/home\/agent\/x"/);
     expect(() => make([a, d])).toThrow(/Guest service "svc"/);
     expect(() => make([a, a])).toThrow(/Duplicate host capability/);
+  });
+
+  it('emits denial evidence for unknown operation, wrong method and malformed JSON', async () => {
+    const { r, logger } = router();
+    r.setPolicy({ enforcement: 'off', allowedTools: new Set() });
+
+    // Unknown operation (POST to a path with no spec).
+    await post(r, '/nope', {});
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        decision: 'deny',
+        reason: 'unknown_operation',
+      }),
+      'host_capability.denied',
+    );
+
+    // Wrong method (GET on a real operation).
+    logger.warn.mockClear();
+    await r.origins[ORIGIN](new Request(`${ORIGIN}/say`, { method: 'GET' }));
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        decision: 'deny',
+        reason: 'method_not_allowed',
+      }),
+      'host_capability.denied',
+    );
+
+    // Malformed JSON body.
+    logger.warn.mockClear();
+    await r.origins[ORIGIN](
+      new Request(`${ORIGIN}/say`, {
+        method: 'POST',
+        body: 'not json{',
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ decision: 'deny', reason: 'invalid_request' }),
+      'host_capability.denied',
+    );
   });
 
   it('redacts handler failures', async () => {
