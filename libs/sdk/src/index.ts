@@ -75,6 +75,7 @@ export {
   type HumanClient,
 } from './human.js';
 export { info, type InfoOptions } from './info.js';
+export { SignedEntryCreateError } from './namespaces/entries.js';
 export type {
   RequiredTeamRequestOptions,
   TeamRequestOptions,

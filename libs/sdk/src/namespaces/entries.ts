@@ -17,6 +17,26 @@ import type { EntriesNamespace } from '../agent.js';
 import type { AgentContext } from '../agent-context.js';
 import { unwrapResult } from '../agent-context.js';
 
+/**
+ * Thrown when a signed entry's signing request completed but the final entry
+ * creation failed. Carries `signingRequestId` so the caller can reconcile the
+ * partial completion — the request is already signed; retry the create with
+ * this id rather than starting a new sign cycle.
+ */
+export class SignedEntryCreateError extends Error {
+  readonly signingRequestId: string;
+  constructor(signingRequestId: string, cause: unknown) {
+    super(
+      `signed entry creation failed after the signing request completed ` +
+        `(signingRequestId=${signingRequestId}); retry the create with this ` +
+        `id to avoid duplicating the request or entry`,
+      { cause },
+    );
+    this.name = 'SignedEntryCreateError';
+    this.signingRequestId = signingRequestId;
+  }
+}
+
 export function createEntriesNamespace(
   context: AgentContext,
 ): EntriesNamespace {
@@ -41,14 +61,23 @@ export function createEntriesNamespace(
       }),
     );
     await sign(signingRequest);
-    return unwrapResult(
-      await createDiaryEntry({
-        client,
-        auth,
-        path: { diaryId },
-        body: { ...body, signingRequestId: signingRequest.id },
-      }),
-    );
+    // The signing request is now completed. If the final create fails or its
+    // response is lost, surface the completed request id so a caller can
+    // reconcile — retrying with the SAME signingRequestId instead of starting
+    // a fresh three-step operation that would orphan this request or duplicate
+    // the entry.
+    try {
+      return unwrapResult(
+        await createDiaryEntry({
+          client,
+          auth,
+          path: { diaryId },
+          body: { ...body, signingRequestId: signingRequest.id },
+        }),
+      );
+    } catch (error) {
+      throw new SignedEntryCreateError(signingRequest.id, error);
+    }
   }
 
   return {

@@ -79,6 +79,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { createAgent } from '../src/agent.js';
 import { MoltNetError } from '../src/errors.js';
+import { SignedEntryCreateError } from '../src/namespaces/entries.js';
 import type { TokenManager } from '../src/token.js';
 
 vi.mock('@moltnet/api-client', async (importOriginal) => {
@@ -500,6 +501,39 @@ describe('Agent facade', () => {
         expect.objectContaining({
           body: expect.objectContaining({ signingRequestId: 'sr-2' }),
         }),
+      );
+    });
+
+    it('diary.createSignedWith surfaces the request id when the final create fails', async () => {
+      vi.mocked(submitSignature).mockClear();
+      vi.mocked(createSigningRequest).mockClear();
+      vi.mocked(createDiaryEntry).mockClear();
+      vi.mocked(createSigningRequest).mockResolvedValueOnce({
+        data: {
+          id: 'sr-orphan',
+          signingInput: Buffer.from('framed signing bytes').toString('base64'),
+        },
+        error: undefined,
+      } as any);
+      // Signing succeeds, but the final entry creation fails.
+      vi.mocked(createDiaryEntry).mockResolvedValueOnce({
+        data: undefined,
+        error: { message: 'boom' },
+      } as any);
+      const signer = {
+        identity: {} as never,
+        signDiaryEntry: vi.fn((input: { signingRequestId: string }) =>
+          Promise.resolve(input),
+        ),
+        signGitCommit: vi.fn(),
+      };
+      const agent = makeAgent();
+      const err = await agent.entries
+        .createSignedWith('my-diary', { content: 'x' }, signer)
+        .catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(SignedEntryCreateError);
+      expect((err as SignedEntryCreateError).signingRequestId).toBe(
+        'sr-orphan',
       );
     });
   });

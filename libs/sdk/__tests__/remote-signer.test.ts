@@ -193,4 +193,15 @@ describe('createRemoteSigner', () => {
       createRemoteSigner({ url: 'http://signer.example.com', fetch: vi.fn() }),
     ).rejects.toThrow(/https/);
   });
+
+  it('accepts an http IPv6 loopback fixture (bracketed hostname)', async () => {
+    const { fetchImpl } = fakeFetch({
+      '/identity': () => ({ status: 200, body: identity }),
+    });
+    const signer = await createRemoteSigner({
+      url: 'http://[::1]:8791',
+      fetch: fetchImpl,
+    });
+    expect(signer.identity).toEqual(identity);
+  });
 });

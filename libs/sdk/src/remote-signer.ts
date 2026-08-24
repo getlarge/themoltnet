@@ -22,10 +22,12 @@ const UUID_RE =
 
 function assertSignerUrl(url: string): URL {
   const parsed = new URL(url);
+  // URL.hostname keeps IPv6 brackets ("[::1]"), so strip them before the
+  // loopback comparison — otherwise a legitimate http://[::1] fixture is
+  // rejected.
+  const host = parsed.hostname.replace(/^\[|\]$/g, '');
   const loopback =
-    parsed.hostname === '127.0.0.1' ||
-    parsed.hostname === 'localhost' ||
-    parsed.hostname === '::1';
+    host === '127.0.0.1' || host === 'localhost' || host === '::1';
   if (
     parsed.protocol !== 'https:' &&
     !(parsed.protocol === 'http:' && loopback)
