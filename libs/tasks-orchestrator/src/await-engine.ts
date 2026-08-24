@@ -1,8 +1,8 @@
 import type {
   AcceptedTaskResult,
   Logger,
-  TaskClient,
   TaskOutcome,
+  WaitForTaskOptions,
   WorkflowContext,
 } from './types.js';
 
@@ -62,21 +62,6 @@ export async function waitForSignalOrSleep(args: {
     }
     throw error;
   }
-}
-
-export interface WaitForTaskOptions<TState> {
-  tasks: TaskClient;
-  ctx: WorkflowContext;
-  pollIntervalSec: number;
-  /**
-   * Parse an accepted attempt's raw output into the domain state artifact.
-   * Throwing here yields an `invalid_output` outcome (never an accepted one).
-   */
-  parse: (output: unknown) => TState;
-  logger?: Logger;
-  description?: string;
-  /** Prefix for structured log event names. Default `orchestration`. */
-  logPrefix?: string;
 }
 
 /**

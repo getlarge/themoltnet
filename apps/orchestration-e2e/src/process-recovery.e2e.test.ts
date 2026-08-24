@@ -17,6 +17,7 @@ function startWorkerProcess(args: {
   taskId: string;
   runKey: string;
   mode: 'initial' | 'recovery';
+  scenario: 'checkpoint' | 'validated-repair';
 }): ChildProcessWithoutNullStreams {
   return spawn(process.execPath, ['--import', 'tsx', WORKER_FIXTURE], {
     cwd: resolve(import.meta.dirname, '..'),
@@ -27,6 +28,7 @@ function startWorkerProcess(args: {
       ORCHESTRATION_RECOVERY_TASK_ID: args.taskId,
       ORCHESTRATION_RECOVERY_RUN_KEY: args.runKey,
       ORCHESTRATION_RECOVERY_MODE: args.mode,
+      ORCHESTRATION_RECOVERY_SCENARIO: args.scenario,
     },
     stdio: ['pipe', 'pipe', 'pipe'],
   });
@@ -131,6 +133,7 @@ describe('orchestration process recovery (real Absurd)', () => {
         taskId: spawned.taskID,
         runKey,
         mode: 'initial',
+        scenario: 'checkpoint',
       });
       await waitForOutput(initialWorker, 'CHECKPOINTED');
 
@@ -142,6 +145,7 @@ describe('orchestration process recovery (real Absurd)', () => {
         taskId: spawned.taskID,
         runKey,
         mode: 'recovery',
+        scenario: 'checkpoint',
       });
       const resultLine = await waitForOutput(recoveryWorker, 'RESULT ');
       await waitForExit(recoveryWorker);
@@ -212,6 +216,129 @@ describe('orchestration process recovery (real Absurd)', () => {
       );
       await database.query(
         'DELETE FROM orchestration_recovery_children WHERE run_key = $1',
+        [runKey],
+      );
+      await client.dropQueue(queueName).catch(() => undefined);
+      await client.close();
+      await database.end();
+    }
+  }, 60_000);
+
+  it('reconciles idempotent repair creation across the pre-checkpoint crash gap', async () => {
+    const suffix = `${process.pid}-${Date.now()}`;
+    const queueName = `validated-repair-recovery-${suffix}`;
+    const runKey = randomUUID();
+    const database = new Client({ connectionString: ABSURD_URL });
+    await database.connect();
+    await database.query(`
+      CREATE TABLE IF NOT EXISTS orchestration_recovery_repairs (
+        run_key text NOT NULL,
+        idempotency_key text NOT NULL,
+        task_id text NOT NULL,
+        create_requests integer NOT NULL,
+        PRIMARY KEY (run_key, idempotency_key)
+      )
+    `);
+
+    const client = createOrchestrationAbsurdApp<{ runKey: string }>({
+      databaseUrl: ABSURD_URL,
+      queueName,
+      taskName: 'process_recovery',
+      run: () => Promise.resolve({ clientOnly: true }),
+    });
+    let initialWorker: ChildProcessWithoutNullStreams | null = null;
+    let recoveryWorker: ChildProcessWithoutNullStreams | null = null;
+
+    try {
+      await client.createQueue(queueName);
+      const spawned = await client.spawn(
+        'process_recovery',
+        { runKey },
+        {
+          queue: queueName,
+          idempotencyKey: `validated-repair-recovery:${runKey}`,
+        },
+      );
+
+      initialWorker = startWorkerProcess({
+        queueName,
+        taskId: spawned.taskID,
+        runKey,
+        mode: 'initial',
+        scenario: 'validated-repair',
+      });
+      const createdLine = await waitForOutput(initialWorker, 'REPAIR_CREATED ');
+      const [, repairTaskId, idempotencyKey] = createdLine.split(' ');
+      expect(repairTaskId).toBeTruthy();
+      expect(idempotencyKey).toMatch(/^absurd:/);
+
+      initialWorker.kill('SIGKILL');
+      await waitForExit(initialWorker);
+
+      recoveryWorker = startWorkerProcess({
+        queueName,
+        taskId: spawned.taskID,
+        runKey,
+        mode: 'recovery',
+        scenario: 'validated-repair',
+      });
+      const resultLine = await waitForOutput(recoveryWorker, 'RESULT ');
+      await waitForExit(recoveryWorker);
+
+      const result = JSON.parse(resultLine.slice('RESULT '.length)) as {
+        state: string;
+        result?: {
+          kind?: string;
+          result?: { task?: { id?: string }; state?: { phase?: string } };
+          chain?: Array<{ repairN?: number }>;
+          cumulativeUsage?: {
+            inputTokens?: number;
+            outputTokens?: number;
+            cacheReadTokens?: number;
+            cacheWriteTokens?: number;
+            toolCalls?: number;
+          };
+        };
+      };
+      expect(result.state).toBe('completed');
+      expect(result.result).toMatchObject({
+        kind: 'accepted',
+        result: {
+          task: { id: repairTaskId },
+          state: { phase: 'repaired' },
+        },
+        chain: [{ repairN: 0 }, { repairN: 1 }],
+        cumulativeUsage: {
+          inputTokens: 10,
+          outputTokens: 3,
+          cacheReadTokens: 2,
+          cacheWriteTokens: 3,
+          toolCalls: 1,
+        },
+      });
+
+      const repairs = await database.query<{
+        task_id: string;
+        idempotency_key: string;
+        create_requests: number;
+      }>(
+        `SELECT task_id, idempotency_key, create_requests
+         FROM orchestration_recovery_repairs
+         WHERE run_key = $1`,
+        [runKey],
+      );
+      expect(repairs.rows).toEqual([
+        {
+          task_id: repairTaskId,
+          idempotency_key: idempotencyKey,
+          create_requests: 2,
+        },
+      ]);
+    } finally {
+      initialWorker?.kill('SIGKILL');
+      recoveryWorker?.kill('SIGKILL');
+      await database.query(
+        'DELETE FROM orchestration_recovery_repairs WHERE run_key = $1',
         [runKey],
       );
       await client.dropQueue(queueName).catch(() => undefined);

@@ -97,6 +97,21 @@ export interface AcceptedTaskResult<TState = unknown> {
   state: TState;
 }
 
+export interface WaitForTaskOptions<TState> {
+  tasks: TaskClient;
+  ctx: WorkflowContext;
+  pollIntervalSec: number;
+  /**
+   * Parse an accepted attempt's raw output into the domain state artifact.
+   * Throwing here yields an `invalid_output` outcome (never an accepted one).
+   */
+  parse: (output: unknown) => TState;
+  logger?: Logger;
+  description?: string;
+  /** Prefix for structured log event names. Default `orchestration`. */
+  logPrefix?: string;
+}
+
 /** The three terminal outcomes of awaiting a task. */
 export type TaskOutcome<TState = unknown> =
   | { kind: 'accepted'; result: AcceptedTaskResult<TState> }
@@ -111,4 +126,67 @@ export type TaskOutcome<TState = unknown> =
       task: SdkTask;
       attempt: SdkTaskAttempt;
       reason: string;
+    };
+
+/** Numeric usage accumulated across every attempt in a validation chain. */
+export interface CumulativeTaskUsage {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  toolCalls: number;
+}
+
+/** One original or semantic-repair task and its unmodified await outcome. */
+export interface ValidatedTaskChainElement<TState = unknown> {
+  /** Zero for the original task; one-based for caller-created repairs. */
+  repairN: number;
+  outcome: TaskOutcome<TState>;
+}
+
+export interface CreateRepairTaskArgs {
+  /** The immediately preceding completed task whose output was invalid. */
+  task: SdkTask;
+  /** The immediately preceding accepted attempt whose output was invalid. */
+  attempt: SdkTaskAttempt;
+  /** The parser reason exactly as reported by `waitForTaskOutcome`. */
+  reason: string;
+  /** One-based semantic repair number. */
+  repairN: number;
+  /** Forward this to the external task-create request when present. */
+  idempotencyKey?: string;
+}
+
+export interface WaitForValidatedTaskOptions<
+  TState,
+> extends WaitForTaskOptions<TState> {
+  /** Explicit semantic-repair budget. Must be a non-negative safe integer. */
+  maxRepairs: number;
+  /** Construct and create the next repair task. The caller owns its full body. */
+  createRepairTask: (args: CreateRepairTaskArgs) => Promise<SdkTask>;
+}
+
+/** Terminal result of a bounded task-validation and repair chain. */
+export type ValidatedTaskOutcome<TState = unknown> =
+  | {
+      kind: 'accepted';
+      result: AcceptedTaskResult<TState>;
+      chain: ValidatedTaskChainElement<TState>[];
+      cumulativeUsage: CumulativeTaskUsage;
+    }
+  | {
+      kind: 'failed';
+      task: SdkTask;
+      attempts: SdkTaskAttempt[];
+      reason: string;
+      chain: ValidatedTaskChainElement<TState>[];
+      cumulativeUsage: CumulativeTaskUsage;
+    }
+  | {
+      kind: 'exhausted';
+      task: SdkTask;
+      attempt: SdkTaskAttempt;
+      reason: string;
+      chain: ValidatedTaskChainElement<TState>[];
+      cumulativeUsage: CumulativeTaskUsage;
     };
