@@ -33,6 +33,18 @@ export default defineConfig({
           '@moltnet/agent-config': ['../agent-config/out-tsc/index.d.ts'],
           '@moltnet/api-client': ['../api-client/dist/index.d.ts'],
           '@moltnet/crypto-service': ['../crypto-service/dist/index.d.ts'],
+          '@moltnet/crypto-service/agent-signing': [
+            '../crypto-service/dist/agent-signing.d.ts',
+          ],
+          '@moltnet/crypto-service/content-cid': [
+            '../crypto-service/dist/content-cid.d.ts',
+          ],
+          '@moltnet/crypto-service/json-cid': [
+            '../crypto-service/dist/json-cid.d.ts',
+          ],
+          '@moltnet/crypto-service/canonical-json': [
+            '../crypto-service/dist/canonical-json.d.ts',
+          ],
           '@moltnet/models': ['../models/out-tsc/index.d.ts'],
           '@themoltnet/os-keyring': ['../os-keyring/dist/index.d.ts'],
           '@moltnet/runtime-profiles': ['../runtime-profiles/dist/index.d.ts'],

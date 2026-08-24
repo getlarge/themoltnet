@@ -22,6 +22,35 @@ export function createEntriesNamespace(
 ): EntriesNamespace {
   const { client, auth } = context;
 
+  async function createSignedEntry(
+    diaryId: string,
+    body: Parameters<EntriesNamespace['createSignedWith']>[1],
+    sign: (request: { id: string; signingInput: string }) => Promise<void>,
+  ) {
+    const contentCid = computeContentCid(
+      body.entryType ?? 'semantic',
+      body.title ?? null,
+      body.content,
+      body.tags ?? null,
+    );
+    const signingRequest = unwrapResult(
+      await createSigningRequest({
+        client,
+        auth,
+        body: { message: contentCid, verificationMethod: 'agent-ed25519' },
+      }),
+    );
+    await sign(signingRequest);
+    return unwrapResult(
+      await createDiaryEntry({
+        client,
+        auth,
+        path: { diaryId },
+        body: { ...body, signingRequestId: signingRequest.id },
+      }),
+    );
+  }
+
   return {
     async create(diaryId, body) {
       return unwrapResult(
@@ -101,51 +130,27 @@ export function createEntriesNamespace(
     },
 
     async createSigned(diaryId, body, privateKey) {
-      const contentCid = computeContentCid(
-        body.entryType ?? 'semantic',
-        body.title ?? null,
-        body.content,
-        body.tags ?? null,
-      );
-
-      const signingRequest = unwrapResult(
-        await createSigningRequest({
-          client,
-          auth,
-          body: {
-            message: contentCid,
-            verificationMethod: 'agent-ed25519',
-          },
-        }),
-      );
-
       const privateKeyBytes = new Uint8Array(Buffer.from(privateKey, 'base64'));
-      const rawBytes = new Uint8Array(
-        Buffer.from(signingRequest.signingInput, 'base64'),
-      );
-      const signature = await ed.signAsync(rawBytes, privateKeyBytes);
-      const signatureB64 = Buffer.from(signature).toString('base64');
+      return createSignedEntry(diaryId, body, async (signingRequest) => {
+        const rawBytes = new Uint8Array(
+          Buffer.from(signingRequest.signingInput, 'base64'),
+        );
+        const signature = await ed.signAsync(rawBytes, privateKeyBytes);
+        unwrapResult(
+          await submitSignature({
+            client,
+            auth,
+            path: { id: signingRequest.id },
+            body: { signature: Buffer.from(signature).toString('base64') },
+          }),
+        );
+      });
+    },
 
-      unwrapResult(
-        await submitSignature({
-          client,
-          auth,
-          path: { id: signingRequest.id },
-          body: { signature: signatureB64 },
-        }),
-      );
-
-      return unwrapResult(
-        await createDiaryEntry({
-          client,
-          auth,
-          path: { diaryId },
-          body: {
-            ...body,
-            signingRequestId: signingRequest.id,
-          },
-        }),
-      );
+    async createSignedWith(diaryId, body, signer) {
+      return createSignedEntry(diaryId, body, async ({ id }) => {
+        await signer.signDiaryEntry({ signingRequestId: id });
+      });
     },
   };
 }

@@ -74,6 +74,7 @@ import {
   verifyDiaryEntryById,
   verifyRecoveryChallenge,
 } from '@moltnet/api-client';
+import { computeContentCid } from '@moltnet/crypto-service';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createAgent } from '../src/agent.js';
@@ -431,6 +432,73 @@ describe('Agent facade', () => {
           body: expect.objectContaining({
             verificationMethod: 'agent-ed25519',
           }),
+        }),
+      );
+    });
+    it('diary.createSignedWith creates no entry when the signer fails', async () => {
+      vi.mocked(createDiaryEntry).mockClear();
+      vi.mocked(createSigningRequest).mockResolvedValueOnce({
+        data: { id: 'sr-3', signingInput: 'AA==' },
+        error: undefined,
+      } as any);
+      const signer = {
+        identity: {} as never,
+        signDiaryEntry: vi.fn(() => Promise.reject(new Error('denied'))),
+        signGitCommit: vi.fn(),
+      };
+
+      const agent = makeAgent();
+      await expect(
+        agent.entries.createSignedWith('my-diary', { content: 'x' }, signer),
+      ).rejects.toThrow('denied');
+      expect(createDiaryEntry).not.toHaveBeenCalled();
+    });
+
+    it('diary.createSignedWith delegates the signature to a signing capability', async () => {
+      vi.mocked(submitSignature).mockClear();
+      vi.mocked(createSigningRequest).mockClear();
+      vi.mocked(createDiaryEntry).mockClear();
+      vi.mocked(createSigningRequest).mockResolvedValueOnce({
+        data: {
+          id: 'sr-2',
+          signingInput: Buffer.from('framed signing bytes').toString('base64'),
+        },
+        error: undefined,
+      } as any);
+      vi.mocked(createDiaryEntry).mockResolvedValueOnce({
+        data: mockEntry,
+        error: undefined,
+      } as any);
+      const signer = {
+        identity: {} as never,
+        signDiaryEntry: vi.fn((input: { signingRequestId: string }) =>
+          Promise.resolve(input),
+        ),
+        signGitCommit: vi.fn(),
+      };
+
+      const agent = makeAgent();
+      await agent.entries.createSignedWith(
+        'my-diary',
+        { content: 'Signed content', entryType: 'semantic', title: 'T' },
+        signer,
+      );
+
+      expect(createSigningRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: {
+            message: computeContentCid('semantic', 'T', 'Signed content', null),
+            verificationMethod: 'agent-ed25519',
+          },
+        }),
+      );
+      expect(signer.signDiaryEntry).toHaveBeenCalledWith({
+        signingRequestId: 'sr-2',
+      });
+      expect(submitSignature).not.toHaveBeenCalled();
+      expect(createDiaryEntry).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({ signingRequestId: 'sr-2' }),
         }),
       );
     });

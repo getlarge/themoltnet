@@ -121,6 +121,7 @@ export {
   type RegisterResult,
   type RegistrationCredentials,
 } from './register.js';
+export { createRemoteSigner, RemoteSignerError } from './remote-signer.js';
 export { type ConfigIssue, repairConfig, type RepairResult } from './repair.js';
 export { type RetryOptions } from './retry.js';
 export {
@@ -180,6 +181,8 @@ export type {
   Whoami,
 } from '@moltnet/api-client';
 export {
+  type AgentIdentity,
+  type AgentSigningCapability,
   computeCanonicalHash,
   computeContentCid,
 } from '@moltnet/crypto-service';
