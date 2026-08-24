@@ -63,6 +63,7 @@ import {
   type BrokeredHttpSecretBinding,
   ensureSnapshot,
   type GuestCredentialMode,
+  type ManagedVm,
   resolveVfsShadowConfig,
   type SandboxConfig,
   type VmDiagnostic,
@@ -85,6 +86,7 @@ import {
   materializePiTools,
   modelVisiblePiToolNames,
   PiBrokeredHttpSecretResolutionError,
+  type PiExtensionFactory,
   type PiRuntimeDefinition,
   type ResolvedGondolinTemplate,
 } from '../runtime-definition.js';
@@ -94,8 +96,12 @@ import {
   createGondolinFindOps,
   createGondolinLsOps,
   createGondolinReadOps,
+  createGondolinToolLifecycle,
   createGondolinWriteOps,
   executeGondolinGrep,
+  type GondolinToolLifecycle,
+  type GondolinVmRetirement,
+  guardGondolinToolDefinitions,
   toGuestPath,
 } from '../tool-operations.js';
 import type { ToolEnforcement } from '../tool-policy/gate.js';
@@ -296,38 +302,138 @@ export function createGondolinToolDefinitions(config: {
   vm: VM;
   cwdPath: string;
   guestWorkspace: string;
+  lifecycle: GondolinToolLifecycle;
+  retireVm: (retirement: GondolinVmRetirement) => Promise<void>;
 }): ToolDefinition[] {
-  const { vm, cwdPath, guestWorkspace } = config;
+  const { vm, cwdPath, guestWorkspace, lifecycle, retireVm } = config;
   const grepTool = createGrepToolDefinition(cwdPath);
-  return [
-    createReadToolDefinition(cwdPath, {
-      operations: createGondolinReadOps(vm, cwdPath, guestWorkspace),
-    }),
-    createWriteToolDefinition(cwdPath, {
-      operations: createGondolinWriteOps(vm, cwdPath, guestWorkspace),
-    }),
-    createEditToolDefinition(cwdPath, {
-      operations: createGondolinEditOps(vm, cwdPath, guestWorkspace),
-    }),
-    createBashToolDefinition(cwdPath, {
-      operations: createGondolinBashOps(vm, cwdPath, guestWorkspace),
-    }),
-    createLsToolDefinition(cwdPath, {
-      operations: createGondolinLsOps(vm, cwdPath, guestWorkspace),
-    }),
-    createFindToolDefinition(cwdPath, {
-      operations: createGondolinFindOps(vm, cwdPath, guestWorkspace),
-    }),
-    {
-      ...grepTool,
-      async execute(
-        ...args: Parameters<typeof grepTool.execute>
-      ): ReturnType<typeof grepTool.execute> {
-        const [_id, params, signal] = args;
-        return executeGondolinGrep(vm, cwdPath, guestWorkspace, params, signal);
+  return guardGondolinToolDefinitions(
+    [
+      createReadToolDefinition(cwdPath, {
+        operations: createGondolinReadOps(vm, cwdPath, guestWorkspace),
+      }),
+      createWriteToolDefinition(cwdPath, {
+        operations: createGondolinWriteOps(vm, cwdPath, guestWorkspace),
+      }),
+      createEditToolDefinition(cwdPath, {
+        operations: createGondolinEditOps(vm, cwdPath, guestWorkspace),
+      }),
+      createBashToolDefinition(cwdPath, {
+        operations: createGondolinBashOps(vm, cwdPath, guestWorkspace, {
+          lifecycle,
+          retireVm,
+        }),
+      }),
+      createLsToolDefinition(cwdPath, {
+        operations: createGondolinLsOps(vm, cwdPath, guestWorkspace),
+      }),
+      createFindToolDefinition(cwdPath, {
+        operations: createGondolinFindOps(vm, cwdPath, guestWorkspace),
+      }),
+      {
+        ...grepTool,
+        async execute(
+          ...args: Parameters<typeof grepTool.execute>
+        ): ReturnType<typeof grepTool.execute> {
+          const [_id, params, signal] = args;
+          return executeGondolinGrep(
+            vm,
+            cwdPath,
+            guestWorkspace,
+            params,
+            signal,
+          );
+        },
       },
+    ] as unknown as ToolDefinition[],
+    lifecycle,
+  );
+}
+
+export async function retireManagedGondolinVm(config: {
+  managed: Pick<ManagedVm, 'vm' | 'secretManager'>;
+  retirement: GondolinVmRetirement;
+  secretEnvNames: readonly string[];
+  release: () => void;
+}): Promise<void> {
+  const { managed, retirement, secretEnvNames, release } = config;
+  const recoveryErrors: unknown[] = [];
+
+  for (const guestEnv of secretEnvNames) {
+    try {
+      managed.secretManager.revokeSecret(guestEnv);
+    } catch (error) {
+      recoveryErrors.push(error);
+    }
+  }
+
+  try {
+    if (!retirement.backendRetired) await managed.vm.close();
+  } catch (error) {
+    recoveryErrors.push(error);
+  } finally {
+    release();
+  }
+
+  if (recoveryErrors.length > 0) {
+    throw new AggregateError(
+      recoveryErrors,
+      'Sandbox VM retirement recovery failed',
+    );
+  }
+}
+
+export function createGondolinRetirementCoordinator(
+  config: {
+    onRetired?: (retirement: GondolinVmRetirement) => void;
+  } = {},
+): {
+  lifecycle: GondolinToolLifecycle;
+  bindAbortHandler(handler: (retirement: GondolinVmRetirement) => void): void;
+  getRetirement(): GondolinVmRetirement | null;
+} {
+  let retirement: GondolinVmRetirement | null = null;
+  let abortHandler: ((retirement: GondolinVmRetirement) => void) | null = null;
+  const lifecycle = createGondolinToolLifecycle({
+    onRetired(next) {
+      retirement = next;
+      config.onRetired?.(next);
+      abortHandler?.(next);
     },
-  ] as unknown as ToolDefinition[];
+  });
+
+  return {
+    lifecycle,
+    bindAbortHandler(handler) {
+      abortHandler = handler;
+      if (retirement) handler(retirement);
+    },
+    getRetirement: () => retirement,
+  };
+}
+
+function guardGondolinExtensionFactories(
+  factories: readonly PiExtensionFactory[],
+  lifecycle: GondolinToolLifecycle,
+): PiExtensionFactory[] {
+  return factories.map((factory) => (pi) => {
+    const guardedPi = new Proxy(pi, {
+      get(target, property, receiver) {
+        if (property === 'registerTool') {
+          return (tool: ToolDefinition) => {
+            const [guardedTool] = guardGondolinToolDefinitions(
+              [tool],
+              lifecycle,
+            );
+            if (guardedTool) target.registerTool(guardedTool);
+          };
+        }
+        const value = Reflect.get(target, property, receiver) as unknown;
+        return typeof value === 'function' ? value.bind(target) : value;
+      },
+    });
+    factory(guardedPi);
+  });
 }
 
 export interface ExecutePiTaskOptions {
@@ -1004,6 +1110,34 @@ export async function executePiTask(
     activateAgentEnv(managed.credentials.agentEnv, agentRootDir);
     const activeWorkspace = preparedWorkspace;
     const activeManaged = managed;
+    const sandboxRetirementEvents: Promise<void>[] = [];
+    const sandboxRetirementCoordinator = createGondolinRetirementCoordinator({
+      onRetired(retirement) {
+        const details = {
+          event: 'sandbox_vm_retired',
+          taskId: task.id,
+          attemptN,
+          vmId: activeManaged.vm.id,
+          outcome: retirement.backendRetired ? 'retired' : 'retirement_failed',
+          ...retirement,
+        };
+        process.stderr.write(`${JSON.stringify(details)}\n`);
+        sandboxRetirementEvents.push(
+          emitError(
+            'sandbox_retirement',
+            `Sandbox VM retired after ${retirement.trigger}`,
+            details,
+          ).catch((error: unknown) => {
+            const message =
+              error instanceof Error ? error.message : String(error);
+            process.stderr.write(
+              `[sandbox] failed to emit retirement event: ${message}\n`,
+            );
+          }),
+        );
+      },
+    });
+    const gondolinLifecycle = sandboxRetirementCoordinator.lifecycle;
     const getMoltNetAgent = createMoltNetAgentResolver({
       moltnetAgent: opts.moltnetAgent,
       configDir: managed.agentDir,
@@ -1170,6 +1304,19 @@ export async function executePiTask(
       vm: managed.vm,
       cwdPath,
       guestWorkspace: managed.guestWorkspace,
+      lifecycle: gondolinLifecycle,
+      retireVm: async (retirement) => {
+        const recoveringManaged = managed;
+        if (!recoveringManaged) return;
+        await retireManagedGondolinVm({
+          managed: recoveringManaged,
+          retirement,
+          secretEnvNames: brokeredSecretEnvNames,
+          release: () => {
+            if (managed === recoveringManaged) managed = null;
+          },
+        });
+      },
     });
 
     // Per-task-type submit-output tool. Captured payload (when the
@@ -1220,13 +1367,15 @@ export async function executePiTask(
           /* no-op in headless mode */
         },
         getHostCwd: () => cwdPath,
-        openWorkspaceFileForRead: (filePath) =>
-          openVmWorkspaceFileForRead({
+        openWorkspaceFileForRead: (filePath) => {
+          gondolinLifecycle.assertActive();
+          return openVmWorkspaceFileForRead({
             vm: activeManaged.vm,
             cwdPath,
             guestWorkspace: activeManaged.guestWorkspace,
             filePath,
-          }),
+          });
+        },
         hostExecBaseEnv,
         hostExecAutoApprove:
           opts.hostExecAutoApprove ??
@@ -1369,36 +1518,48 @@ export async function executePiTask(
         guestWorkspace: managed.guestWorkspace,
       };
       const runtimeParentTools = opts.runtimeDefinition
-        ? await materializePiTools({
-            runtime: opts.runtimeDefinition,
-            context: runtimeToolContext,
-            target: 'parent',
-            policy: resolvedToolPolicy,
-          })
+        ? guardGondolinToolDefinitions(
+            await materializePiTools({
+              runtime: opts.runtimeDefinition,
+              context: runtimeToolContext,
+              target: 'parent',
+              policy: resolvedToolPolicy,
+            }),
+            gondolinLifecycle,
+          )
         : [];
       const runtimeSubagentTools = opts.runtimeDefinition
-        ? await materializePiTools({
-            runtime: opts.runtimeDefinition,
-            context: runtimeToolContext,
-            target: 'subagent',
-            policy: resolvedToolPolicy,
-          })
+        ? guardGondolinToolDefinitions(
+            await materializePiTools({
+              runtime: opts.runtimeDefinition,
+              context: runtimeToolContext,
+              target: 'subagent',
+              policy: resolvedToolPolicy,
+            }),
+            gondolinLifecycle,
+          )
         : [];
       const runtimeParentExtensions = opts.runtimeDefinition
-        ? await materializePiExtensions({
-            runtime: opts.runtimeDefinition,
-            context: runtimeToolContext,
-            target: 'parent',
-            policy: resolvedToolPolicy,
-          })
+        ? guardGondolinExtensionFactories(
+            await materializePiExtensions({
+              runtime: opts.runtimeDefinition,
+              context: runtimeToolContext,
+              target: 'parent',
+              policy: resolvedToolPolicy,
+            }),
+            gondolinLifecycle,
+          )
         : [];
       const runtimeSubagentExtensions = opts.runtimeDefinition
-        ? await materializePiExtensions({
-            runtime: opts.runtimeDefinition,
-            context: runtimeToolContext,
-            target: 'subagent',
-            policy: resolvedToolPolicy,
-          })
+        ? guardGondolinExtensionFactories(
+            await materializePiExtensions({
+              runtime: opts.runtimeDefinition,
+              context: runtimeToolContext,
+              target: 'subagent',
+              policy: resolvedToolPolicy,
+            }),
+            gondolinLifecycle,
+          )
         : [];
       const visibleBaseTools = filterModelVisibleTools(
         [...gondolinCustomTools, ...moltnetTools],
@@ -1534,12 +1695,15 @@ export async function executePiTask(
         parentSubagentTools.push(subagentHandle.tool);
       }
 
-      const parentTools = [
-        ...visibleBaseTools,
-        ...runtimeParentTools,
-        ...submitTools,
-        ...parentSubagentTools,
-      ];
+      const parentTools = guardGondolinToolDefinitions(
+        [
+          ...visibleBaseTools,
+          ...runtimeParentTools,
+          ...submitTools,
+          ...parentSubagentTools,
+        ],
+        gondolinLifecycle,
+      );
       session = await traceRuntimePhase(
         'moltnet.execution.session.create',
         {
@@ -1667,6 +1831,12 @@ export async function executePiTask(
       });
       track(emit('info', { event: 'cap_abort', code, message }));
     };
+    sandboxRetirementCoordinator.bindAbortHandler((retirement) => {
+      triggerCapAbort(
+        'sandbox_retired',
+        `Sandbox VM retired after ${retirement.trigger}: ${retirement.reason}.`,
+      );
+    });
 
     session.subscribe(
       makeSessionEventHandler({
@@ -1762,7 +1932,7 @@ export async function executePiTask(
       });
     }
 
-    await Promise.all(recordingPromise);
+    await Promise.all([...recordingPromise, ...sandboxRetirementEvents]);
 
     // Cancellation takes precedence over runError / parseError.
     // pi maps `session.abort()` to a `turn_end` with `stopReason: 'aborted'`;

@@ -30,6 +30,7 @@ import {
   definePiBrokeredHttpSecret,
   definePiRuntime,
 } from '../runtime-definition.js';
+import { createGondolinToolLifecycle } from '../tool-operations.js';
 import {
   buildAttemptResult,
   buildSubmitMissingPrompt,
@@ -38,6 +39,7 @@ import {
   captureAttemptOutput,
   cleanupAttempt,
   computeProviderErrorRetryDelay,
+  createGondolinRetirementCoordinator,
   createGondolinToolDefinitions,
   createMoltNetAgentResolver,
   createSessionTurnState,
@@ -56,6 +58,7 @@ import {
   resolveAttemptBrokeredHttpSecrets,
   resolveHostExecBaseEnv,
   resolveSubmitMissingConfig,
+  retireManagedGondolinVm,
   sanitizeProviderErrorRetryReason,
   type SessionSubscribeEvent,
   shouldEmitToolCallError,
@@ -667,6 +670,8 @@ describe('createGondolinToolDefinitions', () => {
       vm: {} as never,
       cwdPath: '/Users/ed/project',
       guestWorkspace: '/workspace',
+      lifecycle: createGondolinToolLifecycle(),
+      retireVm: vi.fn(),
     });
 
     expect(tools.map((tool) => tool.name)).toEqual([
@@ -678,6 +683,122 @@ describe('createGondolinToolDefinitions', () => {
       'find',
       'grep',
     ]);
+  });
+
+  it('rejects every later tool before a retired VM is touched', () => {
+    const readFile = vi.fn();
+    const lifecycle = createGondolinToolLifecycle();
+    const tools = createGondolinToolDefinitions({
+      vm: { fs: { readFile } } as never,
+      cwdPath: '/Users/ed/project',
+      guestWorkspace: '/workspace',
+      lifecycle,
+      retireVm: vi.fn(),
+    });
+    lifecycle.markRetired({
+      backendRetired: true,
+      reason: 'backend-retired',
+      trigger: 'cancellation',
+    });
+    const readTool = tools.find((tool) => tool.name === 'read');
+    if (!readTool) throw new Error('read tool not registered');
+
+    expect(() =>
+      readTool.execute(
+        'call-id',
+        { path: 'README.md' },
+        new AbortController().signal,
+        () => {},
+        null as never,
+      ),
+    ).toThrow(expect.objectContaining({ code: 'sandbox_retired' }));
+    expect(readFile).not.toHaveBeenCalled();
+  });
+});
+
+describe('retireManagedGondolinVm', () => {
+  it('revokes brokered secrets and releases ownership even when close fails', async () => {
+    const revokeSecret = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        throw new Error('revoke failed');
+      })
+      .mockImplementationOnce(() => undefined);
+    const close = vi.fn().mockRejectedValue(new Error('close failed'));
+    const release = vi.fn();
+
+    await expect(
+      retireManagedGondolinVm({
+        managed: { vm: { close }, secretManager: { revokeSecret } } as never,
+        retirement: {
+          backendRetired: false,
+          reason: 'backend-retirement-failed',
+          trigger: 'cancellation',
+        },
+        secretEnvNames: ['TOKEN_A', 'TOKEN_B'],
+        release,
+      }),
+    ).rejects.toThrow('Sandbox VM retirement recovery failed');
+
+    expect(revokeSecret).toHaveBeenCalledTimes(2);
+    expect(close).toHaveBeenCalledOnce();
+    expect(release).toHaveBeenCalledOnce();
+  });
+
+  it('does not close a VM already retired by the backend', async () => {
+    const revokeSecret = vi.fn();
+    const close = vi.fn();
+    const release = vi.fn();
+
+    await retireManagedGondolinVm({
+      managed: { vm: { close }, secretManager: { revokeSecret } } as never,
+      retirement: {
+        backendRetired: true,
+        reason: 'backend-retired',
+        trigger: 'timeout',
+      },
+      secretEnvNames: ['TOKEN'],
+      release,
+    });
+
+    expect(revokeSecret).toHaveBeenCalledWith('TOKEN');
+    expect(close).not.toHaveBeenCalled();
+    expect(release).toHaveBeenCalledOnce();
+  });
+});
+
+describe('createGondolinRetirementCoordinator', () => {
+  it('turns retirement into a task abort even when it precedes session setup', () => {
+    const onRetired = vi.fn();
+    const abort = vi.fn();
+    const coordinator = createGondolinRetirementCoordinator({ onRetired });
+    const retirement = {
+      backendRetired: true,
+      reason: 'backend-retired' as const,
+      trigger: 'cancellation' as const,
+    };
+
+    coordinator.lifecycle.markRetired(retirement);
+    coordinator.bindAbortHandler(abort);
+
+    expect(onRetired).toHaveBeenCalledWith(retirement);
+    expect(abort).toHaveBeenCalledOnce();
+    expect(abort).toHaveBeenCalledWith(retirement);
+    expect(coordinator.getRetirement()).toEqual(retirement);
+  });
+
+  it('aborts immediately when retirement follows session setup', () => {
+    const abort = vi.fn();
+    const coordinator = createGondolinRetirementCoordinator();
+    coordinator.bindAbortHandler(abort);
+
+    coordinator.lifecycle.markRetired({
+      backendRetired: true,
+      reason: 'backend-retired',
+      trigger: 'timeout',
+    });
+
+    expect(abort).toHaveBeenCalledOnce();
   });
 });
 

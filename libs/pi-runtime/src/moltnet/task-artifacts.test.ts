@@ -17,6 +17,7 @@ import {
   createGondolinToolDefinitions,
   resolveTaskWorktreePath,
 } from '../runtime/execute-pi-task.js';
+import { createGondolinToolLifecycle } from '../tool-operations.js';
 import {
   createMoltNetTools,
   type MoltNetTaskContext,
@@ -452,6 +453,8 @@ describe('moltnet_download_task_artifact', () => {
           vm: vm as never,
           cwdPath,
           guestWorkspace: mountPath,
+          lifecycle: createGondolinToolLifecycle(),
+          retireVm: vi.fn(),
         };
         const readTool = createGondolinToolDefinitions(toolConfig).find(
           (tool) => tool.name === 'read',
