@@ -99,7 +99,12 @@ func runCapabilityCallCmd(w io.Writer, baseURL, name, operation, jsonBody string
 
 // runCapabilityServeCmd runs a protocol adapter for one capability until the
 // process is signalled. Adapters translate a standard protocol (ssh-agent)
-// into capability operations; they never hold key material.
+// into capability operations. The adapter itself holds no key material: it
+// delegates to the resolved Signer. Whether a key is in the process depends on
+// that signer — broker-backed (MOLTNET_SIGNER_URL set) keeps the seed on the
+// host, while the local-seed fallback loads the private seed from credentials.
+// The guest projection always runs this in broker mode, so the seed never
+// enters the guest.
 func runCapabilityServeCmd(ctx context.Context, name, adapter, socket string) error {
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
