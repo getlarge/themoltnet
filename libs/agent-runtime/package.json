@@ -39,6 +39,11 @@
     "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
   },
   "dependencies": {
+    "@ipld/dag-cbor": "catalog:",
+    "@noble/ciphers": "catalog:",
+    "@noble/curves": "catalog:",
+    "@noble/ed25519": "catalog:",
+    "@noble/hashes": "catalog:",
     "@opentelemetry/api": "catalog:",
     "@themoltnet/sdk": "workspace:*",
     "multiformats": "catalog:",
@@ -46,6 +51,7 @@
     "typebox": "catalog:"
   },
   "devDependencies": {
+    "@moltnet/crypto-service": "workspace:*",
     "@moltnet/runtime-profiles": "workspace:*",
     "@moltnet/tasks": "workspace:*",
     "@types/node": "catalog:",
