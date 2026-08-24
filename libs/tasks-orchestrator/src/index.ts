@@ -6,7 +6,6 @@ export {
 export {
   waitForAcceptedTask,
   waitForSignalOrSleep,
-  type WaitForTaskOptions,
   waitForTaskOutcome,
 } from './await-engine.js';
 export { beginWorkflowStep, completeWorkflowStep } from './checkpoint.js';
@@ -30,13 +29,20 @@ export { createSdkTaskClient } from './sdk-task-client.js';
 export { createTaskStep, type TaskCreateStepMetadata } from './task-step.js';
 export type {
   AcceptedTaskResult,
+  CreateRepairTaskArgs,
+  CumulativeTaskUsage,
   Logger,
   SdkTask,
   SdkTaskAttempt,
   TaskClient,
   TaskMessage,
   TaskOutcome,
+  ValidatedTaskChainElement,
+  ValidatedTaskOutcome,
+  WaitForTaskOptions,
+  WaitForValidatedTaskOptions,
   WorkflowContext,
   WorkflowStepHandle,
 } from './types.js';
 export { taskCreateIdempotencyKey } from './types.js';
+export { waitForValidatedTask } from './validated-task.js';

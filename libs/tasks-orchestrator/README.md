@@ -118,6 +118,57 @@ const claimCondition = joinCondition(reviewTaskIds); // op: 'all', status: 'comp
 MoltNet task to a terminal (or accepted) state, sleeping durably between polls.
 Per-poll logs go to `logger.debug`; lifecycle transitions to `logger.info`.
 
+Task **attempt retries** and post-acceptance **domain repair** solve different
+problems. A task's attempt budget handles execution failures before the server
+accepts an attempt. `waitForValidatedTask` leaves that completed status intact,
+parses the accepted output, and—only when parsing rejects it—can create a bounded
+chain of caller-owned repair tasks. It returns the full chain and cumulative
+usage, so parser evidence and the cost of every attempt remain inspectable.
+
+The repair budget is always explicit. This freeform example resumes the
+immediately preceding invalid attempt with `mode: 'extend'`, embeds the exact
+parser feedback in the new brief and constraints, and forwards the supplied
+idempotency key to task creation:
+
+```ts
+import { waitForValidatedTask } from '@themoltnet/tasks-orchestrator';
+
+const outcome = await waitForValidatedTask(initialTask, {
+  tasks,
+  ctx,
+  pollIntervalSec: 5,
+  maxRepairs: 2,
+  parse: parseDomainState,
+  createRepairTask: ({ task, attempt, reason, repairN, idempotencyKey }) =>
+    tasks.createTask(
+      {
+        taskType: 'freeform',
+        teamId: task.teamId,
+        diaryId: task.diaryId,
+        title: `Repair domain output (${repairN})`,
+        input: {
+          brief: [
+            'Repair the prior result so it satisfies the domain contract.',
+            `Parser feedback: ${reason}`,
+          ].join('\n'),
+          constraints: [`Resolve this exact parser error: ${reason}`],
+          continueFrom: {
+            taskId: task.id,
+            attemptN: attempt.attemptN,
+            mode: 'extend',
+          },
+        },
+      },
+      // Mandatory for durable callers: this closes the external-create crash gap.
+      { idempotencyKey },
+    ),
+});
+```
+
+`createRepairTask` owns the entire repair request; the orchestrator injects no
+freeform schema or prompt policy. Callback and transport failures propagate,
+and failed or cancelled tasks return `failed` without consuming repair budget.
+
 ### SDK task client
 
 `createSdkTaskClient(agent)` adapts a `@themoltnet/sdk` `Agent` into the
