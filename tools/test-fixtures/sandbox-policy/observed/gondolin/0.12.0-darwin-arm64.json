@@ -1,0 +1,1818 @@
+{
+  "backend": {
+    "architecture": "arm64",
+    "id": "gondolin",
+    "os": "darwin",
+    "runtime": "Gondolin microVM",
+    "topology": [
+      "host research harness and HTTP hooks",
+      "Gondolin microVM guest",
+      "host-mounted VFS workspace"
+    ],
+    "version": "0.12.0"
+  },
+  "catalogVersion": "issue-1972-v1",
+  "cleanup": [
+    {
+      "cleanup": "cleaned",
+      "kind": "fixture-server",
+      "resource": "<loopback-fixture>"
+    },
+    {
+      "cleanup": "cleaned",
+      "kind": "probe-directory",
+      "resource": "<probe-root>"
+    },
+    {
+      "cleanup": "cleaned",
+      "kind": "microvm",
+      "resource": "<gondolin-vm>"
+    }
+  ],
+  "cleanupComplete": true,
+  "controls": [
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-microvm", "gondolin-host-hooks"],
+      "oracle": {
+        "expected": "ok",
+        "kind": "host-visible-write",
+        "observed": "ok",
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "workspace_vfs_write_observed",
+      "recordedAt": "2026-08-24T17:07:56.667Z",
+      "requestedIntent": {
+        "control": "workspace-read-write",
+        "domain": "filesystem",
+        "required": true,
+        "scenarioId": "filesystem.workspace-rw"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "mode": "rw",
+          "workspace": "host VFS mount"
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "workspace-read-write",
+          "domain": "filesystem",
+          "required": true,
+          "scenarioId": "filesystem.workspace-rw"
+        }
+      },
+      "scenarioId": "filesystem.workspace-rw",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-microvm", "gondolin-host-hooks"],
+      "oracle": {
+        "expected": "absent",
+        "kind": "outside-marker-absence",
+        "observed": "absent",
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "microvm_host_boundary_observed",
+      "recordedAt": "2026-08-24T17:07:56.681Z",
+      "requestedIntent": {
+        "control": "outside-write-denied",
+        "domain": "filesystem",
+        "required": true,
+        "scenarioId": "filesystem.outside-write"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "mount": "<workspace-only>"
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "outside-write-denied",
+          "domain": "filesystem",
+          "required": true,
+          "scenarioId": "filesystem.outside-write"
+        }
+      },
+      "scenarioId": "filesystem.outside-write",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "applied",
+      "enforcementLocus": ["gondolin-adapter"],
+      "oracle": null,
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "resumeVm_has_no_readonly_secondary_mount_contract",
+      "recordedAt": "2026-08-24T17:07:56.681Z",
+      "requestedIntent": {
+        "control": "read-only-mount",
+        "domain": "filesystem",
+        "required": false,
+        "scenarioId": "filesystem.read-only"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "support": "unsupported-by-production-path"
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "read-only-mount",
+          "domain": "filesystem",
+          "required": false,
+          "scenarioId": "filesystem.read-only"
+        }
+      },
+      "scenarioId": "filesystem.read-only",
+      "state": "unsupported"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-microvm", "gondolin-host-hooks"],
+      "oracle": {
+        "expected": "unreadable",
+        "kind": "credential-file-visibility",
+        "observed": "unreadable",
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "host_credential_path_absent",
+      "recordedAt": "2026-08-24T17:07:56.683Z",
+      "requestedIntent": {
+        "control": "credential-path-absent",
+        "domain": "filesystem",
+        "required": true,
+        "scenarioId": "filesystem.credential-path"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "guestCredentialMode": "host-authenticated",
+          "hostPathMounted": false
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "credential-path-absent",
+          "domain": "filesystem",
+          "required": true,
+          "scenarioId": "filesystem.credential-path"
+        }
+      },
+      "scenarioId": "filesystem.credential-path",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-host-hooks"],
+      "oracle": {
+        "expected": "absent",
+        "kind": "outside-marker-absence",
+        "observed": "absent",
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "vfs_symlink_boundary_observed",
+      "recordedAt": "2026-08-24T17:07:56.699Z",
+      "requestedIntent": {
+        "control": "symlink-and-traversal-denied",
+        "domain": "filesystem",
+        "required": true,
+        "scenarioId": "filesystem.symlink-traversal"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "hostSymlinkTarget": "<outside-mount>"
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "symlink-and-traversal-denied",
+          "domain": "filesystem",
+          "required": true,
+          "scenarioId": "filesystem.symlink-traversal"
+        }
+      },
+      "scenarioId": "filesystem.symlink-traversal",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["research-harness"],
+      "oracle": {
+        "expected": "absent",
+        "kind": "idempotent-scoped-cleanup",
+        "observed": "absent",
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "scoped_cleanup_idempotence_observed",
+      "recordedAt": "2026-08-24T17:07:56.700Z",
+      "requestedIntent": {
+        "control": "workspace-cleanup",
+        "domain": "filesystem",
+        "required": true,
+        "scenarioId": "filesystem.cleanup"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "attempts": 2,
+          "scope": "<workspace>"
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "workspace-cleanup",
+          "domain": "filesystem",
+          "required": true,
+          "scenarioId": "filesystem.cleanup"
+        }
+      },
+      "scenarioId": "filesystem.cleanup",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-host-hooks"],
+      "oracle": {
+        "expected": 0,
+        "kind": "unlisted-request-count",
+        "observed": {
+          "connections": 0,
+          "requests": 0
+        },
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "unlisted_hostname_probe_observed",
+      "recordedAt": "2026-08-24T17:07:56.776Z",
+      "requestedIntent": {
+        "control": "default-deny-egress",
+        "domain": "network",
+        "required": true,
+        "scenarioId": "network.deny-all"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "allowedInternalHosts": ["127-0-0-1.sslip.io", "127.0.0.1.sslip.io"],
+          "attempted": "127-0-0-1.nip.io:<allowed-port>",
+          "guestExitCode": 22
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "default-deny-egress",
+          "domain": "network",
+          "required": true,
+          "scenarioId": "network.deny-all"
+        }
+      },
+      "scenarioId": "network.deny-all",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-host-hooks"],
+      "oracle": {
+        "expected": 1,
+        "kind": "allowed-request-count",
+        "observed": 1,
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "allowed_hostname_observed",
+      "recordedAt": "2026-08-24T17:07:56.864Z",
+      "requestedIntent": {
+        "control": "exact-destination-allow",
+        "domain": "network",
+        "required": true,
+        "scenarioId": "network.exact-allow"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "effectiveNetwork": ["127-0-0-1.sslip.io", "127.0.0.1.sslip.io"],
+          "requested": ["127-0-0-1.sslip.io:<allowed-port>"]
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "exact-destination-allow",
+          "domain": "network",
+          "required": true,
+          "scenarioId": "network.exact-allow"
+        }
+      },
+      "scenarioId": "network.exact-allow",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-host-hooks"],
+      "oracle": {
+        "expected": 0,
+        "kind": "unlisted-request-count",
+        "observed": {
+          "connections": 0,
+          "requests": 0
+        },
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "unlisted_hostname_probe_observed",
+      "recordedAt": "2026-08-24T17:07:56.986Z",
+      "requestedIntent": {
+        "control": "wrong-host-denied",
+        "domain": "network",
+        "required": true,
+        "scenarioId": "network.wrong-host"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "allowedInternalHosts": ["127-0-0-1.sslip.io", "127.0.0.1.sslip.io"],
+          "attempted": "127-0-0-1.nip.io:<allowed-port>",
+          "guestExitCode": 22
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "wrong-host-denied",
+          "domain": "network",
+          "required": true,
+          "scenarioId": "network.wrong-host"
+        }
+      },
+      "scenarioId": "network.wrong-host",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-host-hooks"],
+      "oracle": {
+        "expected": 0,
+        "kind": "adjacent-port-request-count",
+        "observed": {
+          "connections": 0,
+          "requests": 0
+        },
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "exact_port_probe_observed",
+      "recordedAt": "2026-08-24T17:07:57.006Z",
+      "requestedIntent": {
+        "control": "wrong-port-denied",
+        "domain": "network",
+        "required": true,
+        "scenarioId": "network.wrong-port"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "effectiveNetwork": "<protocol-host-port>",
+          "guestExitCode": 22,
+          "requested": "<exact-host-port>"
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "wrong-port-denied",
+          "domain": "network",
+          "required": true,
+          "scenarioId": "network.wrong-port"
+        }
+      },
+      "scenarioId": "network.wrong-port",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-host-hooks"],
+      "oracle": {
+        "expected": {
+          "connections": 0,
+          "requests": 0
+        },
+        "kind": "wrong-protocol-delivery",
+        "observed": {
+          "connections": 0,
+          "requests": 0
+        },
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "protocol_origin_probe_observed",
+      "recordedAt": "2026-08-24T17:07:57.043Z",
+      "requestedIntent": {
+        "control": "protocol-fidelity",
+        "domain": "network",
+        "required": false,
+        "scenarioId": "network.protocol"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "attemptedProtocol": "https",
+          "credentialPorts": ["<allowed-port>"],
+          "credentialProtocol": "http",
+          "guestExitCode": 22,
+          "network": "protocol-host-port"
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "protocol-fidelity",
+          "domain": "network",
+          "required": false,
+          "scenarioId": "network.protocol"
+        }
+      },
+      "scenarioId": "network.protocol",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-host-hooks"],
+      "oracle": {
+        "expected": {
+          "adjacentConnections": 0,
+          "adjacentRequests": 0,
+          "allowedRequests": 1,
+          "guestExitCode": "non-zero"
+        },
+        "kind": "redirect-revalidation",
+        "observed": {
+          "adjacentConnections": 0,
+          "adjacentRequests": 0,
+          "allowedRequests": 1,
+          "guestExitCode": 22
+        },
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "redirect_revalidation_probe_observed",
+      "recordedAt": "2026-08-24T17:07:57.071Z",
+      "requestedIntent": {
+        "control": "redirect-revalidation",
+        "domain": "network",
+        "required": true,
+        "scenarioId": "network.redirect"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "redirectTarget": "127-0-0-1.sslip.io:<adjacent-port>"
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "redirect-revalidation",
+          "domain": "network",
+          "required": true,
+          "scenarioId": "network.redirect"
+        }
+      },
+      "scenarioId": "network.redirect",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "applied",
+      "enforcementLocus": ["gondolin-adapter", "gondolin-host-hooks"],
+      "oracle": null,
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "internal_hostname_binding_recorded",
+      "recordedAt": "2026-08-24T17:07:57.071Z",
+      "requestedIntent": {
+        "control": "internal-target-policy",
+        "domain": "network",
+        "required": true,
+        "scenarioId": "network.internal"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "credentialPorts": ["<allowed-port>"],
+          "effectiveNetwork": ["127-0-0-1.sslip.io", "127.0.0.1.sslip.io"],
+          "probe": "configuration-recorded-without-independent-oracle",
+          "requested": ["127.0.0.1:<allowed-port>"]
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "internal-target-policy",
+          "domain": "network",
+          "required": true,
+          "scenarioId": "network.internal"
+        }
+      },
+      "scenarioId": "network.internal",
+      "state": "unsupported"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "applied",
+      "enforcementLocus": ["gondolin-adapter"],
+      "oracle": null,
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "no_controlled_dns_rebinding_fixture",
+      "recordedAt": "2026-08-24T17:07:57.071Z",
+      "requestedIntent": {
+        "control": "dns-rebinding",
+        "domain": "network",
+        "required": false,
+        "scenarioId": "network.dns-rebinding"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "support": "unsupported-by-production-path"
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "dns-rebinding",
+          "domain": "network",
+          "required": false,
+          "scenarioId": "network.dns-rebinding"
+        }
+      },
+      "scenarioId": "network.dns-rebinding",
+      "state": "unsupported"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "applied",
+      "enforcementLocus": ["gondolin-adapter", "gondolin-host-hooks"],
+      "oracle": null,
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "internal_hostname_binding_recorded",
+      "recordedAt": "2026-08-24T17:07:57.071Z",
+      "requestedIntent": {
+        "control": "requested-versus-effective",
+        "domain": "network",
+        "required": true,
+        "scenarioId": "network.requested-effective"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "credentialPorts": ["<allowed-port>"],
+          "effectiveNetwork": ["127-0-0-1.sslip.io", "127.0.0.1.sslip.io"],
+          "probe": "configuration-recorded-without-independent-oracle",
+          "requested": ["127.0.0.1:<allowed-port>"]
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "requested-versus-effective",
+          "domain": "network",
+          "required": true,
+          "scenarioId": "network.requested-effective"
+        }
+      },
+      "scenarioId": "network.requested-effective",
+      "state": "unsupported"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-adapter", "gondolin-host-hooks"],
+      "oracle": {
+        "expected": "rejected",
+        "kind": "required-binding-preflight",
+        "observed": "rejected",
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "required_binding_preflight_observed",
+      "recordedAt": "2026-08-24T17:07:57.072Z",
+      "requestedIntent": {
+        "control": "required-binding-preflight",
+        "domain": "credential",
+        "required": true,
+        "scenarioId": "credential.missing-binding"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "boundValue": false,
+          "required": true
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "required-binding-preflight",
+          "domain": "credential",
+          "required": true,
+          "scenarioId": "credential.missing-binding"
+        }
+      },
+      "scenarioId": "credential.missing-binding",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-host-hooks"],
+      "oracle": {
+        "expected": 1,
+        "kind": "credential-proxy-match",
+        "observed": 1,
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "allowed_origin_substitution_observed",
+      "recordedAt": "2026-08-24T17:07:57.098Z",
+      "requestedIntent": {
+        "control": "brokered-allowed-origin",
+        "domain": "credential",
+        "required": true,
+        "scenarioId": "credential.allowed-origin"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "guestValue": "<stand-in>",
+          "origin": "127-0-0-1.sslip.io:<allowed-port>"
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "brokered-allowed-origin",
+          "domain": "credential",
+          "required": true,
+          "scenarioId": "credential.allowed-origin"
+        }
+      },
+      "scenarioId": "credential.allowed-origin",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-host-hooks"],
+      "oracle": {
+        "expected": 0,
+        "kind": "adjacent-origin-credential-match",
+        "observed": {
+          "credentialAttemptRequests": 0,
+          "credentialMatches": 0,
+          "networkBaselineRequests": 1
+        },
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "adjacent_origin_secret_probe_observed",
+      "recordedAt": "2026-08-24T17:07:57.977Z",
+      "requestedIntent": {
+        "control": "adjacent-origin-zero-delivery",
+        "domain": "credential",
+        "required": true,
+        "scenarioId": "credential.adjacent-origin"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "credentialFidelity": "protocol-host-port",
+          "networkAllowed": "127.0.0.1.sslip.io:<adjacent-port>"
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "adjacent-origin-zero-delivery",
+          "domain": "credential",
+          "required": true,
+          "scenarioId": "credential.adjacent-origin"
+        }
+      },
+      "scenarioId": "credential.adjacent-origin",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-host-hooks"],
+      "oracle": {
+        "expected": 1,
+        "kind": "rotated-credential-match",
+        "observed": 1,
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "rotation_observed",
+      "recordedAt": "2026-08-24T17:07:58.001Z",
+      "requestedIntent": {
+        "control": "rotation",
+        "domain": "credential",
+        "required": true,
+        "scenarioId": "credential.rotation"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "guestValue": "<same-stand-in>",
+          "transition": "host-manager-rotation"
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "rotation",
+          "domain": "credential",
+          "required": true,
+          "scenarioId": "credential.rotation"
+        }
+      },
+      "scenarioId": "credential.rotation",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-host-hooks"],
+      "oracle": {
+        "expected": 0,
+        "kind": "revoked-credential-match",
+        "observed": 0,
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "revocation_observed",
+      "recordedAt": "2026-08-24T17:07:58.022Z",
+      "requestedIntent": {
+        "control": "revocation",
+        "domain": "credential",
+        "required": true,
+        "scenarioId": "credential.revocation"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "transition": "host-manager-revocation"
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "revocation",
+          "domain": "credential",
+          "required": true,
+          "scenarioId": "credential.revocation"
+        }
+      },
+      "scenarioId": "credential.revocation",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-adapter", "gondolin-host-hooks"],
+      "oracle": {
+        "expected": 1,
+        "kind": "resumed-credential-match",
+        "observed": 1,
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "resume_rebinding_observed",
+      "recordedAt": "2026-08-24T17:07:58.962Z",
+      "requestedIntent": {
+        "control": "resume-rebind",
+        "domain": "credential",
+        "required": true,
+        "scenarioId": "credential.resume"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "rebinding": "required-and-explicit",
+          "restart": "checkpoint-resume"
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "resume-rebind",
+          "domain": "credential",
+          "required": true,
+          "scenarioId": "credential.resume"
+        }
+      },
+      "scenarioId": "credential.resume",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["research-harness"],
+      "oracle": {
+        "expected": 0,
+        "kind": "persisted-sensitive-value-count",
+        "observed": 0,
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "value_free_evidence_only",
+      "recordedAt": "2026-08-24T17:07:58.962Z",
+      "requestedIntent": {
+        "control": "value-free-evidence",
+        "domain": "credential",
+        "required": true,
+        "scenarioId": "credential.evidence-leak"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "persistenceValidation": "performed-after-adapter-completion"
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "value-free-evidence",
+          "domain": "credential",
+          "required": true,
+          "scenarioId": "credential.evidence-leak"
+        }
+      },
+      "scenarioId": "credential.evidence-leak",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": [
+        "research-harness",
+        "gondolin-host-hooks",
+        "gondolin-microvm"
+      ],
+      "oracle": {
+        "expected": "absent",
+        "kind": "delayed-marker-absence",
+        "observed": "absent",
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "managed_process_group_termination_probe_observed",
+      "recordedAt": "2026-08-24T17:08:06.019Z",
+      "requestedIntent": {
+        "control": "timeout-containment",
+        "domain": "lifecycle",
+        "parameters": {
+          "delayedMarkerMs": 5000,
+          "observationWindowMs": 6000
+        },
+        "required": true,
+        "scenarioId": "lifecycle.timeout"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "confirmed": true,
+          "delayedMarkerMs": 5000,
+          "observationWindowMs": 6000,
+          "termination": {
+            "mode": "process-group",
+            "status": "confirmed"
+          }
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "timeout-containment",
+          "domain": "lifecycle",
+          "parameters": {
+            "delayedMarkerMs": 5000,
+            "observationWindowMs": 6000
+          },
+          "required": true,
+          "scenarioId": "lifecycle.timeout"
+        }
+      },
+      "scenarioId": "lifecycle.timeout",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": [
+        "research-harness",
+        "gondolin-host-hooks",
+        "gondolin-microvm"
+      ],
+      "oracle": {
+        "expected": "absent",
+        "kind": "delayed-marker-absence",
+        "observed": "absent",
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "managed_process_group_termination_probe_observed",
+      "recordedAt": "2026-08-24T17:08:12.176Z",
+      "requestedIntent": {
+        "control": "cancel-containment",
+        "domain": "lifecycle",
+        "parameters": {
+          "delayedMarkerMs": 5000,
+          "observationWindowMs": 6000
+        },
+        "required": true,
+        "scenarioId": "lifecycle.cancel"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "confirmed": true,
+          "delayedMarkerMs": 5000,
+          "observationWindowMs": 6000,
+          "termination": {
+            "mode": "process-group",
+            "status": "confirmed"
+          }
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "cancel-containment",
+          "domain": "lifecycle",
+          "parameters": {
+            "delayedMarkerMs": 5000,
+            "observationWindowMs": 6000
+          },
+          "required": true,
+          "scenarioId": "lifecycle.cancel"
+        }
+      },
+      "scenarioId": "lifecycle.cancel",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-adapter", "gondolin-host-hooks"],
+      "oracle": {
+        "expected": "rejected",
+        "kind": "required-binding-preflight",
+        "observed": "rejected",
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "adapter_preflight_rejected_unavailable_broker",
+      "recordedAt": "2026-08-24T17:08:12.176Z",
+      "requestedIntent": {
+        "control": "broker-unavailable-fail-closed",
+        "domain": "lifecycle",
+        "required": true,
+        "scenarioId": "lifecycle.broker-unavailable"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "boundValue": false,
+          "required": true
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "broker-unavailable-fail-closed",
+          "domain": "lifecycle",
+          "required": true,
+          "scenarioId": "lifecycle.broker-unavailable"
+        }
+      },
+      "scenarioId": "lifecycle.broker-unavailable",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "applied",
+      "enforcementLocus": ["gondolin-adapter", "research-harness"],
+      "oracle": null,
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "partial_launch_cleanup_unverified",
+      "recordedAt": "2026-08-24T17:08:12.176Z",
+      "requestedIntent": {
+        "control": "partial-launch-cleanup",
+        "domain": "lifecycle",
+        "required": true,
+        "scenarioId": "lifecycle.partial-launch"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "missingProbe": "failure-after-resource-allocation",
+          "preflightRejected": true
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "partial-launch-cleanup",
+          "domain": "lifecycle",
+          "required": true,
+          "scenarioId": "lifecycle.partial-launch"
+        }
+      },
+      "scenarioId": "lifecycle.partial-launch",
+      "state": "unsupported"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-adapter"],
+      "oracle": {
+        "expected": "cleaned-without-additional-mutation",
+        "kind": "repeated-adapter-close",
+        "observed": "cleaned-without-additional-mutation",
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "cleaned",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "cleaned",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "cleaned",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "repeated_adapter_close_observed",
+      "recordedAt": "2026-08-24T17:08:12.176Z",
+      "requestedIntent": {
+        "control": "idempotent-close",
+        "domain": "lifecycle",
+        "required": true,
+        "scenarioId": "lifecycle.repeated-close"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "support": "unsupported-by-production-path"
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "idempotent-close",
+          "domain": "lifecycle",
+          "required": true,
+          "scenarioId": "lifecycle.repeated-close"
+        }
+      },
+      "scenarioId": "lifecycle.repeated-close",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-microvm", "gondolin-host-hooks"],
+      "oracle": {
+        "expected": {
+          "tmp": "resets",
+          "workspace": "persists"
+        },
+        "kind": "restart-storage-observation",
+        "observed": {
+          "tmp": "resets",
+          "workspace": "persists"
+        },
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "restart_surfaces_observed",
+      "recordedAt": "2026-08-24T17:08:12.996Z",
+      "requestedIntent": {
+        "control": "restart-and-checkpoint",
+        "domain": "lifecycle",
+        "required": false,
+        "scenarioId": "lifecycle.restart-checkpoint"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "binding": "explicitly rebound",
+          "tmp": "microVM volatile",
+          "workspace": "host VFS"
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "restart-and-checkpoint",
+          "domain": "lifecycle",
+          "required": false,
+          "scenarioId": "lifecycle.restart-checkpoint"
+        }
+      },
+      "scenarioId": "lifecycle.restart-checkpoint",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-microvm"],
+      "oracle": {
+        "expected": 1,
+        "kind": "online-cpu-count",
+        "observed": 1,
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "guest_cpu_limit_observed",
+      "recordedAt": "2026-08-24T17:08:13.013Z",
+      "requestedIntent": {
+        "control": "cpu-limit",
+        "domain": "resource",
+        "parameters": {
+          "cpuCount": 1
+        },
+        "required": false,
+        "scenarioId": "resource.cpu"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "requestedCpus": 1
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "cpu-limit",
+          "domain": "resource",
+          "parameters": {
+            "cpuCount": 1
+          },
+          "required": false,
+          "scenarioId": "resource.cpu"
+        }
+      },
+      "scenarioId": "resource.cpu",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-microvm"],
+      "oracle": {
+        "expected": {
+          "target": 1048576,
+          "tolerancePercent": 15
+        },
+        "kind": "guest-memory-kibibytes",
+        "observed": 990876,
+        "passed": true
+      },
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "guest_memory_limit_observed",
+      "recordedAt": "2026-08-24T17:08:13.027Z",
+      "requestedIntent": {
+        "control": "memory-limit",
+        "domain": "resource",
+        "parameters": {
+          "memoryKiB": 1048576,
+          "tolerancePercent": 15
+        },
+        "required": false,
+        "scenarioId": "resource.memory"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "requestedMemoryKiB": 1048576
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "memory-limit",
+          "domain": "resource",
+          "parameters": {
+            "memoryKiB": 1048576,
+            "tolerancePercent": 15
+          },
+          "required": false,
+          "scenarioId": "resource.memory"
+        }
+      },
+      "scenarioId": "resource.memory",
+      "state": "enforced"
+    },
+    {
+      "backend": {
+        "id": "gondolin",
+        "version": "0.12.0"
+      },
+      "basis": "declared",
+      "enforcementLocus": ["research-harness"],
+      "oracle": null,
+      "persistentMutations": [
+        {
+          "cleanup": "pending",
+          "kind": "fixture-server",
+          "resource": "<loopback-fixture>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        }
+      ],
+      "reasonCode": "capability_boundary_recorded",
+      "recordedAt": "2026-08-24T17:08:13.028Z",
+      "requestedIntent": {
+        "control": "host-capability-separation",
+        "domain": "topology",
+        "required": true,
+        "scenarioId": "topology.host-capabilities"
+      },
+      "resolvedAdapterConfig": {
+        "backendId": "gondolin",
+        "effective": {
+          "guest": ["shell", "workspace VFS"],
+          "host": ["MCP", "signing", "credential broker", "model traffic"]
+        },
+        "fidelity": "production-resumeVm-path",
+        "requested": {
+          "control": "host-capability-separation",
+          "domain": "topology",
+          "required": true,
+          "scenarioId": "topology.host-capabilities"
+        }
+      },
+      "scenarioId": "topology.host-capabilities",
+      "state": "unsupported"
+    }
+  ],
+  "hostCapabilities": [
+    {
+      "basis": "declared",
+      "description": "MCP, signing, and model traffic remain orchestrator capabilities.",
+      "id": "mcp-signing-model",
+      "locus": "host",
+      "relationship": "outside-containment"
+    },
+    {
+      "basis": "applied",
+      "description": "Host VFS and HTTP hooks mediate guest workspace and egress.",
+      "id": "vfs-and-http-hooks",
+      "locus": "control-plane",
+      "relationship": "mediates-containment"
+    }
+  ],
+  "recordedAt": "2026-08-24T17:08:13.036Z",
+  "runId": "<run-id>",
+  "schemaVersion": 1,
+  "sourceRevision": "9afc80ba140a5baf9e3e7fd07d4717729f924cc8",
+  "violations": []
+}
