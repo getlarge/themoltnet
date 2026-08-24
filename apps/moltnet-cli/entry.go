@@ -80,12 +80,9 @@ func runEntryCreateSignedCmd(apiURL, credPath, diaryID, content, title, entryTyp
 	}
 	fmt.Fprintf(os.Stderr, "Computed CID: %s\n", cid)
 
-	// Step 2: Load credentials and create client
-	creds, err := loadCredentials(credPath)
+	// Step 2: Resolve the signer (local seed or host broker) and client
+	signer, err := resolveSigner(credPath)
 	if err != nil {
-		return err
-	}
-	if err := validateSigningCredentials(creds); err != nil {
 		return err
 	}
 	client, err := newAuthenticatedClient(apiURL, credPath)
@@ -108,7 +105,7 @@ func runEntryCreateSignedCmd(apiURL, credPath, diaryID, content, title, entryTyp
 	fmt.Fprintf(os.Stderr, "Signing request created: %s\n", sigReq.ID)
 
 	// Step 4: Sign and submit
-	_, err = signWithRequestID(client, sigReq.ID.String(), creds.Keys.PrivateKey)
+	_, err = signWithRequestID(context.Background(), client, signer, sigReq.ID.String())
 	if err != nil {
 		return fmt.Errorf("sign and submit: %w", formatTransportError(err))
 	}

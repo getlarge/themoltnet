@@ -9,15 +9,11 @@ import (
 	"os"
 
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
-	"github.com/google/uuid"
 )
 
 func runSignCmd(w io.Writer, credPath, apiURL, nonce, requestID string, args []string) error {
-	creds, err := loadCredentials(credPath)
+	signer, err := resolveSigner(credPath)
 	if err != nil {
-		return err
-	}
-	if err := validateSigningCredentials(creds); err != nil {
 		return err
 	}
 
@@ -27,7 +23,7 @@ func runSignCmd(w io.Writer, credPath, apiURL, nonce, requestID string, args []s
 		if err != nil {
 			return err
 		}
-		sig, err := signWithRequestID(client, requestID, creds.Keys.PrivateKey)
+		sig, err := signer.SignDiaryEntry(context.Background(), client, requestID)
 		if err != nil {
 			return err
 		}
@@ -47,7 +43,12 @@ func runSignCmd(w io.Writer, credPath, apiURL, nonce, requestID string, args []s
 		return err
 	}
 
-	sig, err := SignForRequest(payload, nonce, creds.Keys.PrivateKey)
+	// Manual nonce mode frames the payload locally; it needs the seed.
+	local, ok := signer.(*localSeedSigner)
+	if !ok {
+		return fmt.Errorf("manual --nonce signing is not available through %s; use --request-id", signerURLEnv)
+	}
+	sig, err := SignForRequest(payload, nonce, local.creds.Keys.PrivateKey)
 	if err != nil {
 		return fmt.Errorf("sign: %w", err)
 	}
@@ -134,51 +135,8 @@ func newAgentSigningRequest(message string) *moltnetapi.CreateSigningRequestReq 
 	}
 }
 
-// signWithRequestID fetches a signing request by ID, signs the payload, and submits the signature.
-// Returns the base64-encoded signature on success.
-func signWithRequestID(client *moltnetapi.Client, requestID, privateKey string) (string, error) {
-	rid, err := uuid.Parse(requestID)
-	if err != nil {
-		return "", fmt.Errorf("invalid request ID %q: %w", requestID, err)
-	}
-
-	// Fetch the signing request
-	res, err := client.GetSigningRequest(context.Background(), moltnetapi.GetSigningRequestParams{ID: rid})
-	if err != nil {
-		return "", fmt.Errorf("fetch signing request: %w", formatTransportError(err))
-	}
-	req, ok := res.(*moltnetapi.SigningRequest)
-	if !ok {
-		return "", formatAPIError(res)
-	}
-	if req.VerificationMethod != moltnetapi.SigningRequestVerificationMethodAgentEd25519 {
-		return "", fmt.Errorf(
-			"signing request %s uses unsupported verification method %q (CLI supports only agent-ed25519)",
-			requestID,
-			req.VerificationMethod,
-		)
-	}
-	if req.Status != moltnetapi.SigningRequestStatusPending {
-		return "", fmt.Errorf("signing request %s is not pending (status: %s)", requestID, req.Status)
-	}
-
-	// Decode server-provided signing_input and sign the raw bytes directly.
-	rawBytes, err := base64.StdEncoding.DecodeString(req.SigningInput)
-	if err != nil {
-		return "", fmt.Errorf("decode signing_input: %w", formatTransportError(err))
-	}
-	sig, err := signRawBytes(rawBytes, privateKey)
-	if err != nil {
-		return "", fmt.Errorf("sign: %w", formatTransportError(err))
-	}
-
-	// Submit
-	_, err = client.SubmitSignature(context.Background(),
-		&moltnetapi.SubmitSignatureReq{Signature: sig},
-		moltnetapi.SubmitSignatureParams{ID: rid},
-	)
-	if err != nil {
-		return "", fmt.Errorf("submit signature: %w", formatTransportError(err))
-	}
-	return sig, nil
+// signWithRequestID signs a pending request through the resolved Signer and
+// returns the base64 signature.
+func signWithRequestID(ctx context.Context, client *moltnetapi.Client, signer Signer, requestID string) (string, error) {
+	return signer.SignDiaryEntry(ctx, client, requestID)
 }
