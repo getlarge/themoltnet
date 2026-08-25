@@ -18,10 +18,10 @@ required policy.
 - **Docker Sandbox's native custom-secret mechanism works.** Delivery,
   rotation, revocation, and restart rebinding all passed without copying the
   synthetic value into guest storage.
-- **Docker still has three material failed-open behaviors.** A custom secret
-  scoped to a host was delivered on an independently allowed adjacent port,
-  and removing a sandbox did not stop detached work after either timeout or
-  cancellation.
+- **Docker still has two material failed-open behaviors across three
+  scenarios.** A custom secret scoped to a host was delivered on an
+  independently allowed adjacent port. Separately, removing a sandbox did not
+  stop detached work after either timeout or cancellation.
 - Both runs completed cleanup, retained no secret value or machine path, and
   produced no evidence-validation violation.
 
@@ -34,6 +34,11 @@ adapter.
 
 Both probes replay the same 31-scenario catalog with deterministic filesystem,
 HTTP, credential, and delayed-side-effect oracles.
+
+The retained replay requires a Darwin arm64 host, Docker Sandboxes with `sbx`
+v0.39.0 on `PATH`, and the workspace-pinned Gondolin 0.12.0 dependency with its
+snapshot available. The final fixtures use literal loopback and do not depend
+on public wildcard DNS.
 
 ```bash
 pnpm exec nx run @moltnet/tools:sandbox-policy-docker
@@ -120,7 +125,7 @@ Basic containment worked on both backends:
 - host credential files were absent;
 - symlink traversal did not escape the workspace boundary;
 - Docker denied unlisted hosts and allowed its explicit destination;
-- CPU and memory limits were independently observed;
+- configured CPU and memory ceilings were reported from inside each guest;
 - final cleanup completed without residue.
 
 Repeated close remains explicitly unsupported in both retained runs. The
@@ -139,31 +144,40 @@ acceptable substitutes.
 DNS rebinding remains unsupported on both. Gondolin's production `resumeVm`
 path still has no read-only secondary-mount contract.
 
+The Docker `network.deny-all` catalog row probes an unlisted destination under
+the active sandbox policy; it does not launch a separate no-egress sandbox.
+Gondolin records that row as unsupported. The retained suite therefore does
+not establish a backend-wide no-egress mode.
+
 ## Capability matrix
 
-| Control                                      | Docker Sandbox v0.39.0 | Gondolin 0.12.0     |
-| -------------------------------------------- | ---------------------- | ------------------- |
-| Workspace read/write and outside boundary    | enforced               | enforced            |
-| Read-only secondary path                     | enforced               | unsupported         |
-| Exact host-port network rule                 | enforced               | **failed open**     |
-| General protocol fidelity                    | unsupported            | unsupported         |
-| Redirect revalidation                        | enforced               | unsupported         |
-| DNS rebinding                                | unsupported            | unsupported         |
-| Required binding preflight                   | unsupported            | enforced            |
-| Allowed-origin secret delivery               | enforced               | **failed open**     |
-| Adjacent-origin secret isolation             | **failed open**        | unsupported         |
-| Rotation, revocation, explicit resume rebind | enforced               | unsupported         |
-| Timeout and cancellation containment         | **failed open**        | enforced            |
-| Broker unavailable preflight                 | unsupported            | unsupported         |
-| Partial launch after resource allocation     | unsupported            | unsupported         |
-| Repeated close                               | unsupported            | unsupported         |
-| Final cleanup                                | complete               | complete            |
-| CPU and memory limits                        | enforced               | enforced            |
-| Host MCP, signing, model traffic             | outside containment    | outside containment |
+| Control                                      | Docker Sandbox v0.39.0  | Gondolin 0.12.0         |
+| -------------------------------------------- | ----------------------- | ----------------------- |
+| Workspace read/write and outside boundary    | enforced                | enforced                |
+| Read-only secondary path                     | enforced                | unsupported             |
+| Exact host-port network rule                 | enforced                | **failed open**         |
+| General protocol fidelity                    | unsupported             | unsupported             |
+| Redirect revalidation                        | enforced                | unsupported             |
+| DNS rebinding                                | unsupported             | unsupported             |
+| Required binding preflight                   | unsupported             | enforced                |
+| Allowed-origin secret delivery               | enforced                | **failed open**         |
+| Adjacent-origin secret isolation             | **failed open**         | unsupported             |
+| Rotation, revocation, explicit resume rebind | enforced                | unsupported             |
+| Timeout and cancellation containment         | **failed open**         | enforced                |
+| Broker unavailable preflight                 | unsupported             | unsupported             |
+| Partial launch after resource allocation     | unsupported             | unsupported             |
+| Repeated close                               | unsupported             | unsupported             |
+| Final cleanup                                | complete                | complete                |
+| CPU and memory limits                        | enforced (guest report) | enforced (guest report) |
+| Host MCP, signing, model traffic             | outside containment     | outside containment     |
 
 Configuration-only topology and requested/effective-policy rows are retained as
 `declared` or `applied` with state `unsupported`; they are not promoted to
 enforced without an independent oracle.
+
+This matrix groups related scenarios for readability; it is not a one-to-one
+rendering of the 31 catalog rows. The retained JSON controls, keyed by
+`scenarioId`, are the canonical mapping.
 
 ## Implications for the public model
 

@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import { loadScenarioCatalog } from './catalog.js';
 import { validateProbeRun } from './evidence.js';
+import { sanitizeText } from './sanitize.js';
 import type { SandboxProbeRun } from './types.js';
 
 const fixtureRoot = path.resolve(
@@ -59,8 +60,8 @@ describe('retained sandbox research evidence', () => {
           }
         ).registeredSensitiveValues,
       ).toBeGreaterThan(0);
+      expect(() => sanitizeText(raw)).not.toThrow();
       expect(raw).not.toMatch(/moltnet-synthetic-probe-/);
-      expect(raw).not.toMatch(/\/(?:Users|home)\/[^/$]/);
       expect(raw).not.toContain('.tmp-');
     },
   );

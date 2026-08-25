@@ -2,22 +2,22 @@
 
 Status: design handoff from issue #1972. The canonical design work is tracked
 in [#1980](https://github.com/getlarge/themoltnet/issues/1980). This page
-records the persistence convention established from the research; it does not
-authorize a schema or migration.
+records non-binding design inputs supported by the research; names, tables,
+references, and migration sequencing remain decisions for #1980.
 
-## Convention
+## Candidate convention
 
 Runtime profiles, runtime/tool policies, and sandbox policies are mutable
 authoring resources. They intentionally affect future executions.
 
-Do not add separate `runtime_policy_revisions` or
-`sandbox_policy_revisions` tables merely to preserve every edit. Do not put a
-`sandbox_policy_hash` on a runtime profile. A profile points to the current
-sandbox-policy authoring resource.
+The research suggests avoiding separate `runtime_policy_revisions` or
+`sandbox_policy_revisions` tables merely to preserve every edit, and avoiding
+a `sandbox_policy_hash` on a runtime profile. In the candidate model, a profile
+points to the current sandbox-policy authoring resource.
 
-Immutability belongs at one boundary: the resolved governed execution. One
-content-addressed execution snapshot freezes the complete non-secret result of
-resolving:
+The candidate keeps immutability at one boundary: the resolved governed
+execution. One content-addressed execution snapshot freezes the complete
+non-secret result of resolving:
 
 - the runtime profile identity, revision, and definition;
 - effective runtime/tool authority;
@@ -30,7 +30,7 @@ active or resumed execution because that execution uses its pinned snapshot.
 
 ## Tables and references
 
-The intended model is:
+One candidate model for #1980 is:
 
 ```text
 runtime_profiles ──> sandbox_policies
@@ -46,13 +46,14 @@ resolved execution snapshot <── runtime_executions
                          task attempt  interactive  CI/provider
 ```
 
-Add one mutable `sandbox_policies` authoring table and reference it from
-`runtime_profiles.sandbox_policy_id`.
+Under this proposal, one mutable `sandbox_policies` authoring table is
+referenced from `runtime_profiles.sandbox_policy_id`.
 
-Introduce a task-independent governed execution record, tentatively
-`runtime_executions`, which references one immutable snapshot. A task attempt
-should eventually reference `runtime_execution_id`; it should not permanently
-duplicate independent runtime-profile and sandbox-policy identities.
+The proposal also introduces a task-independent governed execution record,
+tentatively named `runtime_executions`, which references one immutable
+snapshot. A task attempt would eventually reference `runtime_execution_id`
+rather than permanently duplicate independent runtime-profile and
+sandbox-policy identities.
 
 Existing attempt columns may remain during migration with consistency checks.
 `runtime_sessions` attach provider checkpoints and transcripts to the
@@ -65,9 +66,10 @@ to invent a task.
 
 ## When to create the table
 
-Do not land `sandbox_policies` as a standalone normalization change. The best
-time is after the public policy and snapshot contracts are accepted and the
-shared resolver exists, then as one vertical migration that:
+A candidate sequence avoids landing `sandbox_policies` as a standalone
+normalization change. After the public policy and snapshot contracts are
+accepted and the shared resolver exists, #1980 could use one vertical migration
+that:
 
 1. adds `sandbox_policies`;
 2. adds `runtime_profiles.sandbox_policy_id`;
@@ -79,12 +81,13 @@ shared resolver exists, then as one vertical migration that:
 7. backfills embedded sandbox declarations with an explicit deduplication
    rule.
 
-That order proves the new table is consumed and immutable execution behavior is
-preserved from its first production use.
+That sequence would prove the new table is consumed and immutable execution
+behavior is preserved from its first production use. It is an input to #1980,
+not an approved migration plan.
 
 ## Resolution flow
 
-A task-independent resolver should:
+Under the candidate model, a task-independent resolver would:
 
 1. load the current runtime profile and referenced sandbox policy;
 2. resolve current runtime/tool authorization;
