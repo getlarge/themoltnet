@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.4.0](https://github.com/getlarge/themoltnet/compare/tasks-orchestrator-v0.3.1...tasks-orchestrator-v0.4.0) (2026-08-25)
+
+
+### Features
+
+* **tasks-orchestrator:** add durable domain-output repair ([7f4a7a5](https://github.com/getlarge/themoltnet/commit/7f4a7a5c4ea62499e41ef166da3e87aad7618f2b))
+* **tasks-orchestrator:** add validated task repair ([4b681d2](https://github.com/getlarge/themoltnet/commit/4b681d29ba25ed3926411f6297a8e79ea1ff8868))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.137.0
+
 ## [0.3.1](https://github.com/getlarge/themoltnet/compare/tasks-orchestrator-v0.3.0...tasks-orchestrator-v0.3.1) (2026-08-22)
 
 

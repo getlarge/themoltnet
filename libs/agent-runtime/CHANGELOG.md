@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.44.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.43.2...agent-runtime-v0.44.0) (2026-08-25)
+
+
+### Features
+
+* **agent-runtime:** host capabilities with brokered agent signing ([268a56e](https://github.com/getlarge/themoltnet/commit/268a56e24c0b919cd2010be999b543ae20c975e1))
+* **agent-runtime:** host-capability core (defineHostCapability, router, signer, identity) ([6c57457](https://github.com/getlarge/themoltnet/commit/6c57457ade3365a60b27fd09620eaafec9886f76))
+
+
+### Bug Fixes
+
+* **agent-runtime:** deep-freeze descriptor; abort/slot/evidence correctness in the router ([384e193](https://github.com/getlarge/themoltnet/commit/384e19341905bb623c18b00a62f9cb79201cb0b0))
+* **agent-runtime:** short-circuit already-aborted before dispatch, evidence transport denials, harden derived origin ([dd70496](https://github.com/getlarge/themoltnet/commit/dd70496c14409d07971089d166be35eab897b4b3))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.137.0
+
 ## [0.43.2](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.43.1...agent-runtime-v0.43.2) (2026-08-22)
 
 

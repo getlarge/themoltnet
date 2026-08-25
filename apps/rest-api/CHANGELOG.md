@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.48.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.47.0...rest-api-v0.48.0) (2026-08-25)
+
+
+### Features
+
+* add executor team role ([e02be38](https://github.com/getlarge/themoltnet/commit/e02be38d318236d468af2c2ab3e3b677939b349f))
+* **api:** expose executor team roles ([e2c9cb0](https://github.com/getlarge/themoltnet/commit/e2c9cb0f6eccad6aec3e1d41d52045dfc364d269))
+
+
+### Bug Fixes
+
+* **teams:** address executor rollout review ([23e12bf](https://github.com/getlarge/themoltnet/commit/23e12bf1071a8b247f30797a3a5013e29ea60ae3))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @moltnet/database bumped to 0.7.0
+
 ## [0.47.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.46.0...rest-api-v0.47.0) (2026-08-22)
 
 

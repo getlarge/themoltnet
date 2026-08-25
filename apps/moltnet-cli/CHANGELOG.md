@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.85.0](https://github.com/getlarge/themoltnet/compare/cli-v1.84.0...cli-v1.85.0) (2026-08-25)
+
+
+### Features
+
+* add executor team role ([e02be38](https://github.com/getlarge/themoltnet/commit/e02be38d318236d468af2c2ab3e3b677939b349f))
+* **agent-runtime:** host capabilities with brokered agent signing ([268a56e](https://github.com/getlarge/themoltnet/commit/268a56e24c0b919cd2010be999b543ae20c975e1))
+* **api:** expose executor team roles ([e2c9cb0](https://github.com/getlarge/themoltnet/commit/e2c9cb0f6eccad6aec3e1d41d52045dfc364d269))
+* **cli:** Signer seam and generic capability verbs with ssh-agent adapter ([ede7531](https://github.com/getlarge/themoltnet/commit/ede7531e9ba809d2365ef84d0dada793c5ddbcea))
+
+
+### Bug Fixes
+
+* **cli:** gate capability --url to loopback, strict remote diary signing, unconditional socket cleanup ([d823383](https://github.com/getlarge/themoltnet/commit/d8233839d0a00300d6d9fda0481b8e95c3156700))
+
 ## [1.84.0](https://github.com/getlarge/themoltnet/compare/cli-v1.83.0...cli-v1.84.0) (2026-08-22)
 
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.0](https://github.com/getlarge/themoltnet/compare/database-v0.6.0...database-v0.7.0) (2026-08-25)
+
+
+### Features
+
+* add executor team role ([e02be38](https://github.com/getlarge/themoltnet/commit/e02be38d318236d468af2c2ab3e3b677939b349f))
+* **auth:** add executor role projections ([cc6507d](https://github.com/getlarge/themoltnet/commit/cc6507d4dff80645af35494a79ee69828ab2797b))
+
 ## [0.6.0](https://github.com/getlarge/themoltnet/compare/database-v0.5.0...database-v0.6.0) (2026-08-19)
 
 
