@@ -568,8 +568,8 @@ describe('buildToolPolicyDecisionContext', () => {
 });
 
 describe('resolveHostExecBaseEnv', () => {
-  it('withholds credential paths from trusted host exec in configless mode', () => {
-    const env = resolveHostExecBaseEnv('host-authenticated', {
+  it('withholds credential paths from trusted host exec', () => {
+    const env = resolveHostExecBaseEnv({
       MOLTNET_AGENT_KEY: 'secret',
       GIT_CONFIG_GLOBAL: '/credentials/gitconfig',
       SSH_AUTH_SOCK: '/tmp/agent.sock',
@@ -582,17 +582,6 @@ describe('resolveHostExecBaseEnv', () => {
     expect(env).not.toContain('SSH_AUTH_SOCK');
     expect(env).toContain('OPENAI_BASE_URL');
     expect(env).toContain('GIT_AUTHOR_NAME');
-  });
-
-  it('retains the legacy credential-bearing host exec env in guest-config mode', () => {
-    const env = resolveHostExecBaseEnv('guest-config', {
-      MOLTNET_AGENT_KEY: 'secret',
-    });
-
-    expect(env).toContain('MOLTNET_AGENT_KEY');
-    expect(env).toContain('MOLTNET_CREDENTIALS_PATH');
-    expect(env).toContain('GIT_CONFIG_GLOBAL');
-    expect(env).toContain('SSH_AUTH_SOCK');
   });
 });
 import {

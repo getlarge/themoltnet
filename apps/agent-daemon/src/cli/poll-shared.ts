@@ -225,7 +225,6 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       const resolvedContext = await resolveAgentContext(baseCommon.agent, {
         agentRootDir,
         authMode: cfg.authMode,
-        guestCredentialMode: values['guest-credential-mode'],
       });
       // Fail fast, before polling, on a rejected or wrong-team credential.
       gate = 'authenticate_and_bind';
@@ -303,7 +302,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         executables: prepared.executables,
       });
       assertGuestEnvironmentBoundary({
-        guestCredentialMode: ctx.guestCredentialMode,
+        guestCredentialMode: 'host-authenticated',
         forwardEnv: profile.requiredEnv,
         sandboxEnv: profile.sandboxConfig.env,
       });
@@ -468,7 +467,6 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         startupWhoami.credentialBinding?.bindingScope === 'team'
           ? startupWhoami.credentialBinding.boundTeamId
           : null,
-      guestCredentialMode: ctx.guestCredentialMode,
       taskTypes: taskTypes.length > 0 ? taskTypes : ['*'],
       correlationId: values['correlation-id'] ?? null,
       diaryIds: diaryIds.length > 0 ? diaryIds : ['*'],
@@ -830,7 +828,6 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           agentIdentity,
           hostCapabilitySigner,
           hostCapabilityLogger: taskLogger,
-          guestCredentialMode: ctx.guestCredentialMode,
           agentRootDir: ctx.agentRootDir,
           mountPath: sandbox.rootDir,
           provider: profile.provider,

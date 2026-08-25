@@ -19,12 +19,6 @@ export const COMMON_OPTIONAL_FLAGS = `\
                               host git config (OAuth2) or
                               <identityId>+<agent>[bot]@users.noreply.github.com.
                               Env: MOLTNET_GIT_AUTHOR.
-  --guest-credential-mode <mode>
-                              Guest trust boundary: host-authenticated or
-                              guest-config. Defaults to host-authenticated for
-                              both agent-key and OAuth2 authentication.
-                              Explicit guest-config exposes the complete local
-                              agent credential tree to the VM.
   --lease-ttl-sec <n>         Sliding liveness window. Silence longer than
                               this ends the attempt with lease_expired.
                               Default: 300.

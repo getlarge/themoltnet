@@ -137,7 +137,6 @@ export async function runOnce(
         const resolvedContext = await resolveAgentContext(initialOpts.agent, {
           agentRootDir,
           authMode: cfg.authMode,
-          guestCredentialMode: values['guest-credential-mode'],
         });
         // Authenticate and validate team binding before resolving signing
         // material, consistently with poll/drain.
@@ -206,7 +205,7 @@ export async function runOnce(
     executables: preparedRuntime.executables,
   });
   assertGuestEnvironmentBoundary({
-    guestCredentialMode: ctx.guestCredentialMode,
+    guestCredentialMode: 'host-authenticated',
     forwardEnv: profile.requiredEnv,
     sandboxEnv: profile.sandboxConfig.env,
   });
@@ -317,7 +316,6 @@ export async function runOnce(
       profileId: profile.id,
       profileSessionTtlSec: profile.sessionTtlSec,
       profileWorkspaceTtlSec: profile.workspaceTtlSec,
-      guestCredentialMode: ctx.guestCredentialMode,
       piAgentDir: piAgentDir.path,
       piAgentDirSource: piAgentDir.source,
     },
@@ -418,7 +416,6 @@ export async function runOnce(
       agentIdentity,
       hostCapabilitySigner,
       hostCapabilityLogger: rootLogger,
-      guestCredentialMode: ctx.guestCredentialMode,
       agentRootDir: ctx.agentRootDir,
       mountPath: sandbox.rootDir,
       provider: profile.provider,

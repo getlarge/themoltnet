@@ -14,10 +14,9 @@ implementation can be added beside it without going through Pi.
   with VFS shadowing (`deny` / `tmpfs`), egress allowlist through Gondolin's
   host-side HTTP hooks, explicit guest environment, resource limits, resume
   commands, and abort-safe cleanup.
-- The guest credential boundary: `guest-config` injects the complete
-  `.moltnet/<agent>` tree; `host-authenticated` withholds it and refuses
-  `MOLTNET_*` names in runtime-controlled guest environment
-  (`assertGuestEnvironmentBoundary`).
+- The guest credential boundary: the guest never receives the
+  `.moltnet/<agent>` tree, and `MOLTNET_*` names are refused in
+  runtime-controlled guest environment (`assertGuestEnvironmentBoundary`).
 - `VmConfig.brokeredSecrets` — host-brokered secrets: the guest sees a
   placeholder, Gondolin's `SecretManager` substitutes the value only in
   requests to the declared protocol, host patterns, and ports.

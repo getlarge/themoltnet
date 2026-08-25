@@ -29,7 +29,7 @@ describe('parseCommonOptions', () => {
 
     expect(defs).not.toHaveProperty('provider');
     expect(defs).not.toHaveProperty('model');
-    expect(defs).toHaveProperty('guest-credential-mode');
+    expect(defs).not.toHaveProperty('guest-credential-mode');
   });
 
   it('rejects --agent with traversal-unsafe characters', () => {

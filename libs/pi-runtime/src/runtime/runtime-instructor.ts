@@ -42,12 +42,6 @@ export interface RuntimeInstructorSandbox {
     origin: string;
     operations: readonly string[];
   }[];
-  /**
-   * Guest credential mode. In `host-authenticated` the guest CLI carries no
-   * identity credentials, so REST-backed CLI paths (e.g. `moltnet entry
-   * create-signed`) cannot authenticate; host-side SDK tools must be used.
-   */
-  guestCredentialMode?: 'guest-config' | 'host-authenticated';
 }
 
 export function buildWorkspaceMountInstructions(
@@ -308,31 +302,20 @@ export function buildCredentialInstructions(
             name === 'capability:agent-signing' ||
             name.startsWith('capability:agent-signing:'),
         ));
-    const hostAuthenticated =
-      sandbox?.guestCredentialMode === 'host-authenticated';
     if (signingGranted) {
       lines.push(
         '- Commit signing is brokered: `git commit -S` works normally through',
         '  `SSH_AUTH_SOCK`; the signing key stays on the host. Do not look for,',
         '  export, or recreate a private key in the guest.',
       );
-      // Diary signing: the guest CLI `moltnet entry create-signed` makes
-      // authenticated REST calls. In host-authenticated mode the guest CLI has
-      // no identity credentials, so route diary signing through the host-side
-      // `moltnet_create_entry` tool instead.
+      // The guest CLI carries no identity credentials, so route diary signing
+      // through the host-side `moltnet_create_entry` tool, not the guest
+      // `moltnet entry create-signed` CLI (its REST calls would fail).
       lines.push(
-        ...(hostAuthenticated
-          ? [
-              '- For a signed diary entry use the `moltnet_create_entry` tool with',
-              '  `signed: true` (it signs on the trusted host). Do not use the',
-              '  guest `moltnet entry create-signed` CLI: it has no guest identity',
-              '  credentials and its REST calls will fail.',
-            ]
-          : [
-              '- For a signed diary entry use `moltnet_create_entry` with',
-              '  `signed: true`, or the guest `moltnet entry create-signed` CLI',
-              '  (brokered through `MOLTNET_SIGNER_URL`).',
-            ]),
+        '- For a signed diary entry use the `moltnet_create_entry` tool with',
+        '  `signed: true` (it signs on the trusted host). Do not use the',
+        '  guest `moltnet entry create-signed` CLI: it has no guest identity',
+        '  credentials and its REST calls will fail.',
       );
     } else if (signing) {
       lines.push(

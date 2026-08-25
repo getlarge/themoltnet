@@ -85,7 +85,7 @@ describe('runtime kernel', () => {
     expect(out).toContain('sign-git-commit');
     expect(out).toContain('`git commit -S`');
     expect(out).toContain('`SSH_AUTH_SOCK`');
-    expect(out).toContain('`MOLTNET_SIGNER_URL`');
+    expect(out).toContain('`moltnet_create_entry`');
     expect(out).toContain('signing key stays on the host');
     expect(out).not.toContain('No signing key or Git');
     expect(out).not.toContain('id_ed25519');
@@ -101,7 +101,6 @@ describe('runtime kernel', () => {
         verifiedExecutables: ['git', 'moltnet'],
         allowedHosts: [],
         allowedInternalHosts: [],
-        guestCredentialMode: 'host-authenticated',
         hostCapabilities: [
           {
             name: 'agent-signing',
