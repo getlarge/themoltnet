@@ -51,7 +51,7 @@ failure, and sanitize the complete run before promoting the value-free evidence
 control.
 
 The retained Darwin arm64 artifacts replay signed source revision
-`9195b2f2e257fdd43218e9da5b920faad4efe48e`.
+`6c8d7e6bb07399558986ee1b6eba271c9aab3a59`.
 
 | Backend        | Version | Enforced | Failed open | Unsupported | Violations | Cleanup  |
 | -------------- | ------: | -------: | ----------: | ----------: | ---------: | -------- |
