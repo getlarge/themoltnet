@@ -27,6 +27,26 @@
       "cleanup": "cleaned",
       "kind": "microvm",
       "resource": "<gondolin-vm>"
+    },
+    {
+      "cleanup": "cleaned",
+      "kind": "probe-directory",
+      "resource": "<probe-root>"
+    },
+    {
+      "cleanup": "cleaned",
+      "kind": "microvm",
+      "resource": "<gondolin-vm>"
+    },
+    {
+      "cleanup": "cleaned",
+      "kind": "probe-directory",
+      "resource": "<probe-root>"
+    },
+    {
+      "cleanup": "cleaned",
+      "kind": "microvm",
+      "resource": "<gondolin-vm>"
     }
   ],
   "cleanupComplete": true,
@@ -39,6 +59,7 @@
       "basis": "verified",
       "enforcementLocus": ["gondolin-microvm", "gondolin-host-hooks"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": "ok",
         "kind": "host-visible-write",
         "observed": "ok",
@@ -62,7 +83,7 @@
         }
       ],
       "reasonCode": "workspace_vfs_write_observed",
-      "recordedAt": "2026-08-24T18:38:22.663Z",
+      "recordedAt": "2026-08-25T09:18:24.478Z",
       "requestedIntent": {
         "control": "workspace-read-write",
         "domain": "filesystem",
@@ -94,6 +115,7 @@
       "basis": "verified",
       "enforcementLocus": ["gondolin-microvm", "gondolin-host-hooks"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": "absent",
         "kind": "outside-marker-absence",
         "observed": "absent",
@@ -117,7 +139,7 @@
         }
       ],
       "reasonCode": "microvm_host_boundary_observed",
-      "recordedAt": "2026-08-24T18:38:22.668Z",
+      "recordedAt": "2026-08-25T09:18:24.482Z",
       "requestedIntent": {
         "control": "outside-write-denied",
         "domain": "filesystem",
@@ -166,7 +188,7 @@
         }
       ],
       "reasonCode": "resumeVm_has_no_readonly_secondary_mount_contract",
-      "recordedAt": "2026-08-24T18:38:22.669Z",
+      "recordedAt": "2026-08-25T09:18:24.482Z",
       "requestedIntent": {
         "control": "read-only-mount",
         "domain": "filesystem",
@@ -197,6 +219,7 @@
       "basis": "verified",
       "enforcementLocus": ["gondolin-microvm", "gondolin-host-hooks"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": "unreadable",
         "kind": "credential-file-visibility",
         "observed": "unreadable",
@@ -220,7 +243,7 @@
         }
       ],
       "reasonCode": "host_credential_path_absent",
-      "recordedAt": "2026-08-24T18:38:22.684Z",
+      "recordedAt": "2026-08-25T09:18:24.585Z",
       "requestedIntent": {
         "control": "credential-path-absent",
         "domain": "filesystem",
@@ -252,6 +275,7 @@
       "basis": "verified",
       "enforcementLocus": ["gondolin-host-hooks"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": "absent",
         "kind": "outside-marker-absence",
         "observed": "absent",
@@ -275,7 +299,7 @@
         }
       ],
       "reasonCode": "vfs_symlink_boundary_observed",
-      "recordedAt": "2026-08-24T18:38:22.706Z",
+      "recordedAt": "2026-08-25T09:18:24.590Z",
       "requestedIntent": {
         "control": "symlink-and-traversal-denied",
         "domain": "filesystem",
@@ -306,6 +330,7 @@
       "basis": "verified",
       "enforcementLocus": ["research-harness"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": "absent",
         "kind": "idempotent-scoped-cleanup",
         "observed": "absent",
@@ -329,7 +354,7 @@
         }
       ],
       "reasonCode": "scoped_cleanup_idempotence_observed",
-      "recordedAt": "2026-08-24T18:38:22.710Z",
+      "recordedAt": "2026-08-25T09:18:24.592Z",
       "requestedIntent": {
         "control": "workspace-cleanup",
         "domain": "filesystem",
@@ -361,6 +386,7 @@
       "basis": "verified",
       "enforcementLocus": ["gondolin-host-hooks"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": 0,
         "kind": "unlisted-request-count",
         "observed": {
@@ -387,7 +413,7 @@
         }
       ],
       "reasonCode": "unlisted_hostname_probe_observed",
-      "recordedAt": "2026-08-24T18:38:22.785Z",
+      "recordedAt": "2026-08-25T09:18:24.616Z",
       "requestedIntent": {
         "control": "default-deny-egress",
         "domain": "network",
@@ -420,6 +446,7 @@
       "basis": "verified",
       "enforcementLocus": ["gondolin-host-hooks"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": 1,
         "kind": "allowed-request-count",
         "observed": 1,
@@ -443,7 +470,7 @@
         }
       ],
       "reasonCode": "allowed_hostname_observed",
-      "recordedAt": "2026-08-24T18:38:22.821Z",
+      "recordedAt": "2026-08-25T09:18:24.642Z",
       "requestedIntent": {
         "control": "exact-destination-allow",
         "domain": "network",
@@ -475,6 +502,7 @@
       "basis": "verified",
       "enforcementLocus": ["gondolin-host-hooks"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": 0,
         "kind": "unlisted-request-count",
         "observed": {
@@ -501,7 +529,7 @@
         }
       ],
       "reasonCode": "unlisted_hostname_probe_observed",
-      "recordedAt": "2026-08-24T18:38:22.844Z",
+      "recordedAt": "2026-08-25T09:18:24.652Z",
       "requestedIntent": {
         "control": "wrong-host-denied",
         "domain": "network",
@@ -534,6 +562,7 @@
       "basis": "verified",
       "enforcementLocus": ["gondolin-host-hooks"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": 0,
         "kind": "adjacent-port-request-count",
         "observed": {
@@ -560,7 +589,7 @@
         }
       ],
       "reasonCode": "exact_port_probe_observed",
-      "recordedAt": "2026-08-24T18:38:22.866Z",
+      "recordedAt": "2026-08-25T09:18:24.658Z",
       "requestedIntent": {
         "control": "wrong-port-denied",
         "domain": "network",
@@ -593,6 +622,7 @@
       "basis": "verified",
       "enforcementLocus": ["gondolin-host-hooks"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": {
           "connections": 0,
           "requests": 0
@@ -622,7 +652,7 @@
         }
       ],
       "reasonCode": "protocol_origin_probe_observed",
-      "recordedAt": "2026-08-24T18:38:22.902Z",
+      "recordedAt": "2026-08-25T09:18:24.684Z",
       "requestedIntent": {
         "control": "protocol-fidelity",
         "domain": "network",
@@ -657,6 +687,7 @@
       "basis": "verified",
       "enforcementLocus": ["gondolin-host-hooks"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": {
           "adjacentConnections": 0,
           "adjacentRequests": 0,
@@ -690,7 +721,7 @@
         }
       ],
       "reasonCode": "redirect_revalidation_probe_observed",
-      "recordedAt": "2026-08-24T18:38:22.929Z",
+      "recordedAt": "2026-08-25T09:18:24.698Z",
       "requestedIntent": {
         "control": "redirect-revalidation",
         "domain": "network",
@@ -739,7 +770,7 @@
         }
       ],
       "reasonCode": "internal_hostname_binding_recorded",
-      "recordedAt": "2026-08-24T18:38:22.929Z",
+      "recordedAt": "2026-08-25T09:18:24.698Z",
       "requestedIntent": {
         "control": "internal-target-policy",
         "domain": "network",
@@ -791,7 +822,7 @@
         }
       ],
       "reasonCode": "no_controlled_dns_rebinding_fixture",
-      "recordedAt": "2026-08-24T18:38:22.929Z",
+      "recordedAt": "2026-08-25T09:18:24.698Z",
       "requestedIntent": {
         "control": "dns-rebinding",
         "domain": "network",
@@ -840,7 +871,7 @@
         }
       ],
       "reasonCode": "internal_hostname_binding_recorded",
-      "recordedAt": "2026-08-24T18:38:22.929Z",
+      "recordedAt": "2026-08-25T09:18:24.698Z",
       "requestedIntent": {
         "control": "requested-versus-effective",
         "domain": "network",
@@ -874,6 +905,7 @@
       "basis": "verified",
       "enforcementLocus": ["gondolin-adapter", "gondolin-host-hooks"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": "rejected",
         "kind": "required-binding-preflight",
         "observed": "rejected",
@@ -897,7 +929,7 @@
         }
       ],
       "reasonCode": "required_binding_preflight_observed",
-      "recordedAt": "2026-08-24T18:38:22.929Z",
+      "recordedAt": "2026-08-25T09:18:24.698Z",
       "requestedIntent": {
         "control": "required-binding-preflight",
         "domain": "credential",
@@ -929,6 +961,7 @@
       "basis": "verified",
       "enforcementLocus": ["gondolin-host-hooks"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": 1,
         "kind": "credential-proxy-match",
         "observed": 1,
@@ -952,7 +985,7 @@
         }
       ],
       "reasonCode": "allowed_origin_substitution_observed",
-      "recordedAt": "2026-08-24T18:38:22.956Z",
+      "recordedAt": "2026-08-25T09:18:24.710Z",
       "requestedIntent": {
         "control": "brokered-allowed-origin",
         "domain": "credential",
@@ -984,6 +1017,7 @@
       "basis": "verified",
       "enforcementLocus": ["gondolin-host-hooks"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": 0,
         "kind": "adjacent-origin-credential-match",
         "observed": {
@@ -1011,7 +1045,7 @@
         }
       ],
       "reasonCode": "adjacent_origin_secret_probe_observed",
-      "recordedAt": "2026-08-24T18:38:23.430Z",
+      "recordedAt": "2026-08-25T09:18:24.732Z",
       "requestedIntent": {
         "control": "adjacent-origin-zero-delivery",
         "domain": "credential",
@@ -1043,6 +1077,7 @@
       "basis": "verified",
       "enforcementLocus": ["gondolin-host-hooks"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": 1,
         "kind": "rotated-credential-match",
         "observed": 1,
@@ -1066,7 +1101,7 @@
         }
       ],
       "reasonCode": "rotation_observed",
-      "recordedAt": "2026-08-24T18:38:23.456Z",
+      "recordedAt": "2026-08-25T09:18:24.746Z",
       "requestedIntent": {
         "control": "rotation",
         "domain": "credential",
@@ -1098,6 +1133,7 @@
       "basis": "verified",
       "enforcementLocus": ["gondolin-host-hooks"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": 0,
         "kind": "revoked-credential-match",
         "observed": 0,
@@ -1121,7 +1157,7 @@
         }
       ],
       "reasonCode": "revocation_observed",
-      "recordedAt": "2026-08-24T18:38:23.471Z",
+      "recordedAt": "2026-08-25T09:18:24.757Z",
       "requestedIntent": {
         "control": "revocation",
         "domain": "credential",
@@ -1152,6 +1188,7 @@
       "basis": "verified",
       "enforcementLocus": ["gondolin-adapter", "gondolin-host-hooks"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": 1,
         "kind": "resumed-credential-match",
         "observed": 1,
@@ -1175,7 +1212,7 @@
         }
       ],
       "reasonCode": "resume_rebinding_observed",
-      "recordedAt": "2026-08-24T18:38:24.666Z",
+      "recordedAt": "2026-08-25T09:18:26.145Z",
       "requestedIntent": {
         "control": "resume-rebind",
         "domain": "credential",
@@ -1207,6 +1244,7 @@
       "basis": "verified",
       "enforcementLocus": ["research-harness"],
       "oracle": {
+        "attestedBy": "harness",
         "expected": 0,
         "kind": "persisted-sensitive-value-count",
         "observed": 0,
@@ -1230,7 +1268,7 @@
         }
       ],
       "reasonCode": "value_free_evidence_only",
-      "recordedAt": "2026-08-24T18:38:24.666Z",
+      "recordedAt": "2026-08-25T09:18:26.146Z",
       "requestedIntent": {
         "control": "value-free-evidence",
         "domain": "credential",
@@ -1265,6 +1303,7 @@
         "gondolin-microvm"
       ],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": "absent",
         "kind": "delayed-marker-absence",
         "observed": "absent",
@@ -1287,8 +1326,8 @@
           "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "managed_process_group_termination_probe_observed",
-      "recordedAt": "2026-08-24T18:38:31.810Z",
+      "reasonCode": "backend_retirement_observed",
+      "recordedAt": "2026-08-25T09:18:33.163Z",
       "requestedIntent": {
         "control": "timeout-containment",
         "domain": "lifecycle",
@@ -1302,12 +1341,12 @@
       "resolvedAdapterConfig": {
         "backendId": "gondolin",
         "effective": {
-          "confirmed": true,
+          "backendRetired": true,
           "delayedMarkerMs": 5000,
           "observationWindowMs": 6000,
           "termination": {
-            "mode": "process-group",
-            "status": "confirmed"
+            "mode": "vm-close",
+            "status": "backend-retired"
           }
         },
         "fidelity": "production-resumeVm-path",
@@ -1337,6 +1376,7 @@
         "gondolin-microvm"
       ],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": "absent",
         "kind": "delayed-marker-absence",
         "observed": "absent",
@@ -1357,10 +1397,20 @@
           "cleanup": "pending",
           "kind": "microvm",
           "resource": "<gondolin-vm>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "managed_process_group_termination_probe_observed",
-      "recordedAt": "2026-08-24T18:38:37.941Z",
+      "reasonCode": "backend_retirement_observed",
+      "recordedAt": "2026-08-25T09:18:40.197Z",
       "requestedIntent": {
         "control": "cancel-containment",
         "domain": "lifecycle",
@@ -1374,12 +1424,12 @@
       "resolvedAdapterConfig": {
         "backendId": "gondolin",
         "effective": {
-          "confirmed": true,
+          "backendRetired": true,
           "delayedMarkerMs": 5000,
           "observationWindowMs": 6000,
           "termination": {
-            "mode": "process-group",
-            "status": "confirmed"
+            "mode": "vm-close",
+            "status": "backend-retired"
           }
         },
         "fidelity": "production-resumeVm-path",
@@ -1405,6 +1455,7 @@
       "basis": "verified",
       "enforcementLocus": ["gondolin-adapter", "gondolin-host-hooks"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": "rejected",
         "kind": "required-binding-preflight",
         "observed": "rejected",
@@ -1425,10 +1476,30 @@
           "cleanup": "pending",
           "kind": "microvm",
           "resource": "<gondolin-vm>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
       "reasonCode": "adapter_preflight_rejected_unavailable_broker",
-      "recordedAt": "2026-08-24T18:38:37.941Z",
+      "recordedAt": "2026-08-25T09:18:41.063Z",
       "requestedIntent": {
         "control": "broker-unavailable-fail-closed",
         "domain": "lifecycle",
@@ -1475,10 +1546,30 @@
           "cleanup": "pending",
           "kind": "microvm",
           "resource": "<gondolin-vm>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
       "reasonCode": "partial_launch_cleanup_unverified",
-      "recordedAt": "2026-08-24T18:38:37.941Z",
+      "recordedAt": "2026-08-25T09:18:41.063Z",
       "requestedIntent": {
         "control": "partial-launch-cleanup",
         "domain": "lifecycle",
@@ -1507,33 +1598,48 @@
         "id": "gondolin",
         "version": "0.12.0"
       },
-      "basis": "verified",
+      "basis": "applied",
       "enforcementLocus": ["gondolin-adapter"],
-      "oracle": {
-        "expected": "cleaned-without-additional-mutation",
-        "kind": "repeated-adapter-close",
-        "observed": "cleaned-without-additional-mutation",
-        "passed": true
-      },
+      "oracle": null,
       "persistentMutations": [
         {
-          "cleanup": "cleaned",
+          "cleanup": "pending",
           "kind": "fixture-server",
           "resource": "<loopback-fixture>"
         },
         {
-          "cleanup": "cleaned",
+          "cleanup": "pending",
           "kind": "probe-directory",
           "resource": "<probe-root>"
         },
         {
-          "cleanup": "cleaned",
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
           "kind": "microvm",
           "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "repeated_adapter_close_observed",
-      "recordedAt": "2026-08-24T18:38:37.941Z",
+      "reasonCode": "verified_during_runner_final_teardown",
+      "recordedAt": "2026-08-25T09:18:41.063Z",
       "requestedIntent": {
         "control": "idempotent-close",
         "domain": "lifecycle",
@@ -1554,7 +1660,7 @@
         }
       },
       "scenarioId": "lifecycle.repeated-close",
-      "state": "enforced"
+      "state": "unsupported"
     },
     {
       "backend": {
@@ -1564,6 +1670,7 @@
       "basis": "verified",
       "enforcementLocus": ["gondolin-microvm", "gondolin-host-hooks"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": {
           "tmp": "resets",
           "workspace": "persists"
@@ -1590,10 +1697,30 @@
           "cleanup": "pending",
           "kind": "microvm",
           "resource": "<gondolin-vm>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
       "reasonCode": "restart_surfaces_observed",
-      "recordedAt": "2026-08-24T18:38:38.821Z",
+      "recordedAt": "2026-08-25T09:18:42.250Z",
       "requestedIntent": {
         "control": "restart-and-checkpoint",
         "domain": "lifecycle",
@@ -1626,6 +1753,7 @@
       "basis": "verified",
       "enforcementLocus": ["gondolin-microvm"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": 1,
         "kind": "online-cpu-count",
         "observed": 1,
@@ -1646,10 +1774,30 @@
           "cleanup": "pending",
           "kind": "microvm",
           "resource": "<gondolin-vm>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
       "reasonCode": "guest_cpu_limit_observed",
-      "recordedAt": "2026-08-24T18:38:38.835Z",
+      "recordedAt": "2026-08-25T09:18:42.353Z",
       "requestedIntent": {
         "control": "cpu-limit",
         "domain": "resource",
@@ -1686,6 +1834,7 @@
       "basis": "verified",
       "enforcementLocus": ["gondolin-microvm"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": {
           "target": 1048576,
           "tolerancePercent": 15
@@ -1709,10 +1858,30 @@
           "cleanup": "pending",
           "kind": "microvm",
           "resource": "<gondolin-vm>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
       "reasonCode": "guest_memory_limit_observed",
-      "recordedAt": "2026-08-24T18:38:38.839Z",
+      "recordedAt": "2026-08-25T09:18:42.456Z",
       "requestedIntent": {
         "control": "memory-limit",
         "domain": "resource",
@@ -1766,10 +1935,30 @@
           "cleanup": "pending",
           "kind": "microvm",
           "resource": "<gondolin-vm>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "microvm",
+          "resource": "<gondolin-vm>"
         }
       ],
       "reasonCode": "capability_boundary_recorded",
-      "recordedAt": "2026-08-24T18:38:38.839Z",
+      "recordedAt": "2026-08-25T09:18:42.456Z",
       "requestedIntent": {
         "control": "host-capability-separation",
         "domain": "topology",
@@ -1810,9 +1999,9 @@
       "relationship": "mediates-containment"
     }
   ],
-  "recordedAt": "2026-08-24T18:38:38.850Z",
+  "recordedAt": "2026-08-25T09:18:42.465Z",
   "runId": "<run-id>",
   "schemaVersion": 1,
-  "sourceRevision": "efc46b952b65284351159f48028a006bfffe6277",
+  "sourceRevision": "f0d4b3490bb840bd27257b07781edb58db666c34",
   "violations": []
 }

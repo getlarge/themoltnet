@@ -20,13 +20,13 @@
     },
     {
       "cleanup": "cleaned",
-      "kind": "sandbox",
-      "resource": "<scoped-sandbox>"
+      "kind": "probe-directory",
+      "resource": "<probe-root>"
     },
     {
       "cleanup": "cleaned",
-      "kind": "probe-directory",
-      "resource": "<probe-root>"
+      "kind": "sandbox",
+      "resource": "<scoped-sandbox>"
     },
     {
       "cleanup": "cleaned",
@@ -50,8 +50,13 @@
     },
     {
       "cleanup": "cleaned",
-      "kind": "credential-binding",
-      "resource": "<scoped-placeholder>"
+      "kind": "sandbox",
+      "resource": "<scoped-lifecycle-sandbox>"
+    },
+    {
+      "cleanup": "cleaned",
+      "kind": "sandbox",
+      "resource": "<scoped-lifecycle-sandbox>"
     }
   ],
   "cleanupComplete": true,
@@ -67,6 +72,7 @@
         "docker-sandbox-control-plane"
       ],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": "ok",
         "kind": "host-visible-write",
         "observed": "ok",
@@ -80,17 +86,17 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         }
       ],
       "reasonCode": "workspace_write_observed",
-      "recordedAt": "2026-08-24T18:38:54.282Z",
+      "recordedAt": "2026-08-25T09:18:27.239Z",
       "requestedIntent": {
         "control": "workspace-read-write",
         "domain": "filesystem",
@@ -107,7 +113,7 @@
             }
           ]
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "workspace-read-write",
           "domain": "filesystem",
@@ -129,6 +135,7 @@
         "docker-sandbox-control-plane"
       ],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": "absent",
         "kind": "outside-marker-absence",
         "observed": "absent",
@@ -142,17 +149,17 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         }
       ],
       "reasonCode": "outside_mount_boundary_observed",
-      "recordedAt": "2026-08-24T18:38:54.677Z",
+      "recordedAt": "2026-08-25T09:18:27.689Z",
       "requestedIntent": {
         "control": "outside-write-denied",
         "domain": "filesystem",
@@ -165,7 +172,7 @@
           "guestExitCode": 2,
           "mounts": ["<workspace>", "<readonly-fixture>"]
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "outside-write-denied",
           "domain": "filesystem",
@@ -187,6 +194,7 @@
         "docker-sandbox-control-plane"
       ],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": "immutable\n",
         "kind": "read-only-mutation",
         "observed": {
@@ -203,17 +211,17 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         }
       ],
       "reasonCode": "readonly_mount_observed",
-      "recordedAt": "2026-08-24T18:38:55.009Z",
+      "recordedAt": "2026-08-25T09:18:28.159Z",
       "requestedIntent": {
         "control": "read-only-mount",
         "domain": "filesystem",
@@ -230,7 +238,7 @@
             }
           ]
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "read-only-mount",
           "domain": "filesystem",
@@ -252,6 +260,7 @@
         "docker-sandbox-control-plane"
       ],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": "unreadable",
         "kind": "credential-file-visibility",
         "observed": "unreadable",
@@ -265,17 +274,17 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         }
       ],
       "reasonCode": "host_credential_path_absent",
-      "recordedAt": "2026-08-24T18:38:55.397Z",
+      "recordedAt": "2026-08-25T09:18:28.598Z",
       "requestedIntent": {
         "control": "credential-path-absent",
         "domain": "filesystem",
@@ -285,9 +294,10 @@
       "resolvedAdapterConfig": {
         "backendId": "docker-sandbox",
         "effective": {
-          "secretPathMounted": false
+          "secretPathMounted": false,
+          "symlinkPathTested": true
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "credential-path-absent",
           "domain": "filesystem",
@@ -309,6 +319,7 @@
         "docker-sandbox-control-plane"
       ],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": "absent",
         "kind": "outside-marker-absence",
         "observed": "absent",
@@ -322,17 +333,17 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         }
       ],
       "reasonCode": "outside_mount_boundary_observed",
-      "recordedAt": "2026-08-24T18:38:55.794Z",
+      "recordedAt": "2026-08-25T09:18:28.934Z",
       "requestedIntent": {
         "control": "symlink-and-traversal-denied",
         "domain": "filesystem",
@@ -345,7 +356,7 @@
           "guestExitCode": 2,
           "mounts": ["<workspace>", "<readonly-fixture>"]
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "symlink-and-traversal-denied",
           "domain": "filesystem",
@@ -364,6 +375,7 @@
       "basis": "verified",
       "enforcementLocus": ["research-harness"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": "absent",
         "kind": "idempotent-scoped-cleanup",
         "observed": "absent",
@@ -377,17 +389,17 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         }
       ],
       "reasonCode": "scoped_cleanup_idempotence_observed",
-      "recordedAt": "2026-08-24T18:38:55.795Z",
+      "recordedAt": "2026-08-25T09:18:28.940Z",
       "requestedIntent": {
         "control": "workspace-cleanup",
         "domain": "filesystem",
@@ -400,7 +412,7 @@
           "attempts": 2,
           "scope": "<probe-workspace>"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "workspace-cleanup",
           "domain": "filesystem",
@@ -419,6 +431,7 @@
       "basis": "verified",
       "enforcementLocus": ["docker-sandbox-control-plane"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": 0,
         "kind": "unlisted-request-count",
         "observed": 0,
@@ -432,17 +445,17 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         }
       ],
       "reasonCode": "unlisted_destination_blocked",
-      "recordedAt": "2026-08-24T18:38:56.157Z",
+      "recordedAt": "2026-08-25T09:18:29.324Z",
       "requestedIntent": {
         "control": "default-deny-egress",
         "domain": "network",
@@ -455,7 +468,7 @@
           "defaultNetwork": "deny",
           "guestExitCode": 22
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "default-deny-egress",
           "domain": "network",
@@ -474,6 +487,7 @@
       "basis": "verified",
       "enforcementLocus": ["docker-sandbox-control-plane"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": 1,
         "kind": "allowed-request-count",
         "observed": 1,
@@ -487,13 +501,13 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         },
         {
           "cleanup": "pending",
@@ -502,7 +516,7 @@
         }
       ],
       "reasonCode": "exact_destination_allow_observed",
-      "recordedAt": "2026-08-24T18:38:56.789Z",
+      "recordedAt": "2026-08-25T09:18:30.018Z",
       "requestedIntent": {
         "control": "exact-destination-allow",
         "domain": "network",
@@ -519,7 +533,7 @@
           },
           "requested": ["localhost:<allowed-port>"]
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "exact-destination-allow",
           "domain": "network",
@@ -538,6 +552,7 @@
       "basis": "verified",
       "enforcementLocus": ["docker-sandbox-control-plane"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": 0,
         "kind": "wrong-host-request-count",
         "observed": 0,
@@ -551,13 +566,13 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         },
         {
           "cleanup": "pending",
@@ -566,7 +581,7 @@
         }
       ],
       "reasonCode": "unlisted_hostname_blocked",
-      "recordedAt": "2026-08-24T18:38:57.149Z",
+      "recordedAt": "2026-08-25T09:18:30.399Z",
       "requestedIntent": {
         "control": "wrong-host-denied",
         "domain": "network",
@@ -577,9 +592,9 @@
         "backendId": "docker-sandbox",
         "effective": {
           "allowed": "host.docker.internal:<allowed-port>",
-          "attempted": "127.0.0.1.nip.io:<allowed-port>"
+          "attempted": "127.0.0.1:<allowed-port>"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "wrong-host-denied",
           "domain": "network",
@@ -598,6 +613,7 @@
       "basis": "verified",
       "enforcementLocus": ["docker-sandbox-control-plane"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": 0,
         "kind": "wrong-port-request-count",
         "observed": 0,
@@ -611,13 +627,13 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         },
         {
           "cleanup": "pending",
@@ -626,7 +642,7 @@
         }
       ],
       "reasonCode": "adjacent_origin_blocked",
-      "recordedAt": "2026-08-24T18:38:57.477Z",
+      "recordedAt": "2026-08-25T09:18:30.776Z",
       "requestedIntent": {
         "control": "wrong-port-denied",
         "domain": "network",
@@ -639,7 +655,7 @@
           "allowed": "host.docker.internal:<allowed-port>",
           "attempted": "host.docker.internal:<adjacent-port>"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "wrong-port-denied",
           "domain": "network",
@@ -666,13 +682,13 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         },
         {
           "cleanup": "pending",
@@ -681,7 +697,7 @@
         }
       ],
       "reasonCode": "fixture_does_not_claim_protocol_or_dns_control",
-      "recordedAt": "2026-08-24T18:38:57.477Z",
+      "recordedAt": "2026-08-25T09:18:30.777Z",
       "requestedIntent": {
         "control": "protocol-fidelity",
         "domain": "network",
@@ -693,7 +709,7 @@
         "effective": {
           "support": "unsupported-by-safe-probe"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "protocol-fidelity",
           "domain": "network",
@@ -712,6 +728,7 @@
       "basis": "verified",
       "enforcementLocus": ["docker-sandbox-control-plane"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": {
           "adjacentRequests": 0,
           "allowedRequests": 1,
@@ -733,13 +750,13 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         },
         {
           "cleanup": "pending",
@@ -748,7 +765,7 @@
         }
       ],
       "reasonCode": "redirect_origin_not_allowed",
-      "recordedAt": "2026-08-24T18:38:57.795Z",
+      "recordedAt": "2026-08-25T09:18:31.065Z",
       "requestedIntent": {
         "control": "redirect-revalidation",
         "domain": "network",
@@ -761,7 +778,7 @@
           "followRedirects": true,
           "guestExitCode": 22
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "redirect-revalidation",
           "domain": "network",
@@ -788,13 +805,13 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         },
         {
           "cleanup": "pending",
@@ -803,7 +820,7 @@
         }
       ],
       "reasonCode": "host_gateway_binding_recorded",
-      "recordedAt": "2026-08-24T18:38:57.795Z",
+      "recordedAt": "2026-08-25T09:18:31.065Z",
       "requestedIntent": {
         "control": "internal-target-policy",
         "domain": "network",
@@ -817,7 +834,7 @@
           "effective": ["host.docker.internal:<allowed-port>"],
           "requested": ["127.0.0.1:<allowed-port>"]
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "internal-target-policy",
           "domain": "network",
@@ -844,13 +861,13 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         },
         {
           "cleanup": "pending",
@@ -859,7 +876,7 @@
         }
       ],
       "reasonCode": "fixture_does_not_claim_protocol_or_dns_control",
-      "recordedAt": "2026-08-24T18:38:57.795Z",
+      "recordedAt": "2026-08-25T09:18:31.065Z",
       "requestedIntent": {
         "control": "dns-rebinding",
         "domain": "network",
@@ -871,7 +888,7 @@
         "effective": {
           "support": "unsupported-by-safe-probe"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "dns-rebinding",
           "domain": "network",
@@ -898,13 +915,13 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         },
         {
           "cleanup": "pending",
@@ -913,7 +930,7 @@
         }
       ],
       "reasonCode": "host_gateway_binding_recorded",
-      "recordedAt": "2026-08-24T18:38:57.796Z",
+      "recordedAt": "2026-08-25T09:18:31.065Z",
       "requestedIntent": {
         "control": "requested-versus-effective",
         "domain": "network",
@@ -927,7 +944,7 @@
           "effective": ["host.docker.internal:<allowed-port>"],
           "requested": ["127.0.0.1:<allowed-port>"]
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "requested-versus-effective",
           "domain": "network",
@@ -954,13 +971,13 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         },
         {
           "cleanup": "pending",
@@ -969,7 +986,7 @@
         }
       ],
       "reasonCode": "required_binding_preflight_unverified",
-      "recordedAt": "2026-08-24T18:38:57.796Z",
+      "recordedAt": "2026-08-25T09:18:31.065Z",
       "requestedIntent": {
         "control": "required-binding-preflight",
         "domain": "credential",
@@ -982,7 +999,7 @@
           "binding": "required",
           "probe": "no independent launch-attempt oracle"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "required-binding-preflight",
           "domain": "credential",
@@ -1001,6 +1018,7 @@
       "basis": "verified",
       "enforcementLocus": ["docker-sandbox-control-plane"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": 1,
         "kind": "credential-proxy-match",
         "observed": 1,
@@ -1014,13 +1032,13 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         },
         {
           "cleanup": "pending",
@@ -1039,7 +1057,7 @@
         }
       ],
       "reasonCode": "allowed_origin_secret_substitution_observed",
-      "recordedAt": "2026-08-24T18:38:59.462Z",
+      "recordedAt": "2026-08-25T09:18:32.378Z",
       "requestedIntent": {
         "control": "brokered-allowed-origin",
         "domain": "credential",
@@ -1049,11 +1067,12 @@
       "resolvedAdapterConfig": {
         "backendId": "docker-sandbox",
         "effective": {
-          "binding": "127.0.0.1.nip.io:<allowed-port>",
+          "binding": "127.0.0.1:<allowed-port>",
           "guestValue": "<stand-in>",
-          "secretCommandExitCode": 0
+          "secretCommandExitCode": 0,
+          "secretSource": "host-command"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "brokered-allowed-origin",
           "domain": "credential",
@@ -1072,6 +1091,7 @@
       "basis": "verified",
       "enforcementLocus": ["docker-sandbox-control-plane"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": 0,
         "kind": "adjacent-origin-credential-match",
         "observed": 1,
@@ -1085,13 +1105,13 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         },
         {
           "cleanup": "pending",
@@ -1115,7 +1135,7 @@
         }
       ],
       "reasonCode": "adjacent_origin_secret_delivery_observed",
-      "recordedAt": "2026-08-24T18:39:00.235Z",
+      "recordedAt": "2026-08-25T09:18:33.172Z",
       "requestedIntent": {
         "control": "adjacent-origin-zero-delivery",
         "domain": "credential",
@@ -1125,10 +1145,10 @@
       "resolvedAdapterConfig": {
         "backendId": "docker-sandbox",
         "effective": {
-          "credentialBinding": "127.0.0.1.nip.io:<any-port>",
-          "networkAllowed": "127.0.0.1.nip.io:<adjacent-port>"
+          "credentialBinding": "127.0.0.1:<any-port>",
+          "networkAllowed": "127.0.0.1:<adjacent-port>"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "adjacent-origin-zero-delivery",
           "domain": "credential",
@@ -1147,6 +1167,7 @@
       "basis": "verified",
       "enforcementLocus": ["docker-sandbox-control-plane"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": 1,
         "kind": "rotated-credential-match",
         "observed": 1,
@@ -1160,13 +1181,13 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         },
         {
           "cleanup": "pending",
@@ -1190,7 +1211,7 @@
         }
       ],
       "reasonCode": "rotated_binding_observed",
-      "recordedAt": "2026-08-24T18:39:00.985Z",
+      "recordedAt": "2026-08-25T09:18:33.984Z",
       "requestedIntent": {
         "control": "rotation",
         "domain": "credential",
@@ -1203,7 +1224,7 @@
           "guestValue": "<stand-in>",
           "transition": "replace-scoped-binding"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "rotation",
           "domain": "credential",
@@ -1222,6 +1243,7 @@
       "basis": "verified",
       "enforcementLocus": ["docker-sandbox-control-plane"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": 0,
         "kind": "revoked-credential-match",
         "observed": 0,
@@ -1235,13 +1257,13 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         },
         {
           "cleanup": "pending",
@@ -1265,7 +1287,7 @@
         }
       ],
       "reasonCode": "revoked_binding_not_delivered",
-      "recordedAt": "2026-08-24T18:39:01.645Z",
+      "recordedAt": "2026-08-25T09:18:34.606Z",
       "requestedIntent": {
         "control": "revocation",
         "domain": "credential",
@@ -1277,7 +1299,7 @@
         "effective": {
           "transition": "remove-scoped-binding"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "revocation",
           "domain": "credential",
@@ -1296,6 +1318,7 @@
       "basis": "verified",
       "enforcementLocus": ["docker-sandbox-control-plane"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": 1,
         "kind": "resumed-credential-match",
         "observed": 1,
@@ -1309,13 +1332,13 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         },
         {
           "cleanup": "pending",
@@ -1336,15 +1359,10 @@
           "cleanup": "pending",
           "kind": "network-policy",
           "resource": "<adjacent-credential-origin>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
         }
       ],
       "reasonCode": "explicit_rebinding_after_restart_observed",
-      "recordedAt": "2026-08-24T18:39:11.474Z",
+      "recordedAt": "2026-08-25T09:18:41.650Z",
       "requestedIntent": {
         "control": "resume-rebind",
         "domain": "credential",
@@ -1357,7 +1375,7 @@
           "rebinding": "explicit",
           "restart": "stop-and-auto-start"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "resume-rebind",
           "domain": "credential",
@@ -1376,6 +1394,7 @@
       "basis": "verified",
       "enforcementLocus": ["research-harness"],
       "oracle": {
+        "attestedBy": "harness",
         "expected": 0,
         "kind": "persisted-sensitive-value-count",
         "observed": 0,
@@ -1389,13 +1408,13 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         },
         {
           "cleanup": "pending",
@@ -1416,15 +1435,10 @@
           "cleanup": "pending",
           "kind": "network-policy",
           "resource": "<adjacent-credential-origin>"
-        },
-        {
-          "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
         }
       ],
       "reasonCode": "value_free_evidence_only",
-      "recordedAt": "2026-08-24T18:39:11.474Z",
+      "recordedAt": "2026-08-25T09:18:41.650Z",
       "requestedIntent": {
         "control": "value-free-evidence",
         "domain": "credential",
@@ -1436,7 +1450,7 @@
         "effective": {
           "persistenceValidation": "performed after adapter completion"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "value-free-evidence",
           "domain": "credential",
@@ -1455,6 +1469,7 @@
       "basis": "verified",
       "enforcementLocus": ["research-harness", "docker-sandbox-control-plane"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": "absent",
         "kind": "delayed-marker-absence",
         "observed": "present",
@@ -1468,13 +1483,13 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         },
         {
           "cleanup": "pending",
@@ -1498,12 +1513,12 @@
         },
         {
           "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
+          "kind": "sandbox",
+          "resource": "<scoped-lifecycle-sandbox>"
         }
       ],
       "reasonCode": "sandbox_removal_detached_child_observed",
-      "recordedAt": "2026-08-24T18:39:32.306Z",
+      "recordedAt": "2026-08-25T09:18:58.036Z",
       "requestedIntent": {
         "control": "timeout-containment",
         "domain": "lifecycle",
@@ -1520,9 +1535,10 @@
           "delayedMarkerMs": 5000,
           "detachedExitCode": 0,
           "observationWindowMs": 6000,
-          "termination": "scoped-sandbox-remove"
+          "termination": "scoped-sandbox-remove",
+          "trigger": "execution-deadline"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "timeout-containment",
           "domain": "lifecycle",
@@ -1545,6 +1561,7 @@
       "basis": "verified",
       "enforcementLocus": ["research-harness", "docker-sandbox-control-plane"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": "absent",
         "kind": "delayed-marker-absence",
         "observed": "present",
@@ -1558,13 +1575,13 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         },
         {
           "cleanup": "pending",
@@ -1588,12 +1605,17 @@
         },
         {
           "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
+          "kind": "sandbox",
+          "resource": "<scoped-lifecycle-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-lifecycle-sandbox>"
         }
       ],
       "reasonCode": "sandbox_removal_detached_child_observed",
-      "recordedAt": "2026-08-24T18:39:50.358Z",
+      "recordedAt": "2026-08-25T09:19:13.993Z",
       "requestedIntent": {
         "control": "cancel-containment",
         "domain": "lifecycle",
@@ -1610,9 +1632,10 @@
           "delayedMarkerMs": 5000,
           "detachedExitCode": 0,
           "observationWindowMs": 6000,
-          "termination": "scoped-sandbox-remove"
+          "termination": "scoped-sandbox-remove",
+          "trigger": "explicit-cancellation"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "cancel-containment",
           "domain": "lifecycle",
@@ -1643,13 +1666,13 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         },
         {
           "cleanup": "pending",
@@ -1673,12 +1696,17 @@
         },
         {
           "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
+          "kind": "sandbox",
+          "resource": "<scoped-lifecycle-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-lifecycle-sandbox>"
         }
       ],
       "reasonCode": "broker_preflight_unverified",
-      "recordedAt": "2026-08-24T18:39:50.359Z",
+      "recordedAt": "2026-08-25T09:19:13.993Z",
       "requestedIntent": {
         "control": "broker-unavailable-fail-closed",
         "domain": "lifecycle",
@@ -1691,7 +1719,7 @@
           "broker": "required",
           "probe": "no independent launch-attempt oracle"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "broker-unavailable-fail-closed",
           "domain": "lifecycle",
@@ -1718,13 +1746,13 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         },
         {
           "cleanup": "pending",
@@ -1748,12 +1776,17 @@
         },
         {
           "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
+          "kind": "sandbox",
+          "resource": "<scoped-lifecycle-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-lifecycle-sandbox>"
         }
       ],
       "reasonCode": "partial_launch_cleanup_unverified",
-      "recordedAt": "2026-08-24T18:39:50.359Z",
+      "recordedAt": "2026-08-25T09:19:13.993Z",
       "requestedIntent": {
         "control": "partial-launch-cleanup",
         "domain": "lifecycle",
@@ -1765,7 +1798,7 @@
         "effective": {
           "probe": "no deliberately interrupted create operation"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "partial-launch-cleanup",
           "domain": "lifecycle",
@@ -1781,58 +1814,58 @@
         "id": "docker-sandbox",
         "version": "v0.39.0"
       },
-      "basis": "verified",
+      "basis": "applied",
       "enforcementLocus": ["docker-sandbox-adapter"],
-      "oracle": {
-        "expected": "cleaned-without-additional-mutation",
-        "kind": "repeated-adapter-close",
-        "observed": "cleaned-without-additional-mutation",
-        "passed": true
-      },
+      "oracle": null,
       "persistentMutations": [
         {
-          "cleanup": "cleaned",
+          "cleanup": "pending",
           "kind": "fixture-server",
           "resource": "<loopback-fixture>"
         },
         {
-          "cleanup": "cleaned",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
-        },
-        {
-          "cleanup": "cleaned",
+          "cleanup": "pending",
           "kind": "probe-directory",
           "resource": "<probe-root>"
         },
         {
-          "cleanup": "cleaned",
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
+        },
+        {
+          "cleanup": "pending",
           "kind": "network-policy",
           "resource": "<scoped-network-rule>"
         },
         {
-          "cleanup": "cleaned",
+          "cleanup": "pending",
           "kind": "network-policy",
           "resource": "<credential-origin>"
         },
         {
-          "cleanup": "cleaned",
+          "cleanup": "pending",
           "kind": "credential-binding",
           "resource": "<scoped-placeholder>"
         },
         {
-          "cleanup": "cleaned",
+          "cleanup": "pending",
           "kind": "network-policy",
           "resource": "<adjacent-credential-origin>"
         },
         {
-          "cleanup": "cleaned",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-lifecycle-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-lifecycle-sandbox>"
         }
       ],
-      "reasonCode": "repeated_adapter_close_observed",
-      "recordedAt": "2026-08-24T18:39:50.359Z",
+      "reasonCode": "repeated_adapter_close_unverified",
+      "recordedAt": "2026-08-25T09:19:13.993Z",
       "requestedIntent": {
         "control": "idempotent-close",
         "domain": "lifecycle",
@@ -1844,7 +1877,7 @@
         "effective": {
           "support": "unsupported-by-safe-probe"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "idempotent-close",
           "domain": "lifecycle",
@@ -1853,7 +1886,7 @@
         }
       },
       "scenarioId": "lifecycle.repeated-close",
-      "state": "enforced"
+      "state": "unsupported"
     },
     {
       "backend": {
@@ -1863,6 +1896,7 @@
       "basis": "verified",
       "enforcementLocus": ["docker-sandbox-control-plane"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": {
           "process": "terminates",
           "workspace": "persists"
@@ -1882,13 +1916,13 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         },
         {
           "cleanup": "pending",
@@ -1912,12 +1946,17 @@
         },
         {
           "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
+          "kind": "sandbox",
+          "resource": "<scoped-lifecycle-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-lifecycle-sandbox>"
         }
       ],
       "reasonCode": "restart_surfaces_observed",
-      "recordedAt": "2026-08-24T18:39:51.653Z",
+      "recordedAt": "2026-08-25T09:19:17.697Z",
       "requestedIntent": {
         "control": "restart-and-checkpoint",
         "domain": "lifecycle",
@@ -1931,7 +1970,7 @@
           "process": "container-lifecycle",
           "workspace": "bind-mount"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "restart-and-checkpoint",
           "domain": "lifecycle",
@@ -1950,6 +1989,7 @@
       "basis": "verified",
       "enforcementLocus": ["docker-sandbox-control-plane"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": 1,
         "kind": "online-cpu-count",
         "observed": 1,
@@ -1963,13 +2003,13 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         },
         {
           "cleanup": "pending",
@@ -1993,12 +2033,17 @@
         },
         {
           "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
+          "kind": "sandbox",
+          "resource": "<scoped-lifecycle-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-lifecycle-sandbox>"
         }
       ],
       "reasonCode": "guest_cpu_limit_observed",
-      "recordedAt": "2026-08-24T18:39:52.124Z",
+      "recordedAt": "2026-08-25T09:19:18.020Z",
       "requestedIntent": {
         "control": "cpu-limit",
         "domain": "resource",
@@ -2013,7 +2058,7 @@
         "effective": {
           "requestedCpuCount": 1
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "cpu-limit",
           "domain": "resource",
@@ -2035,6 +2080,7 @@
       "basis": "verified",
       "enforcementLocus": ["docker-sandbox-control-plane"],
       "oracle": {
+        "attestedBy": "adapter",
         "expected": {
           "target": 1048576,
           "tolerancePercent": 15
@@ -2051,13 +2097,13 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         },
         {
           "cleanup": "pending",
@@ -2081,12 +2127,17 @@
         },
         {
           "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
+          "kind": "sandbox",
+          "resource": "<scoped-lifecycle-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-lifecycle-sandbox>"
         }
       ],
       "reasonCode": "guest_memory_limit_observed",
-      "recordedAt": "2026-08-24T18:39:52.496Z",
+      "recordedAt": "2026-08-25T09:19:18.428Z",
       "requestedIntent": {
         "control": "memory-limit",
         "domain": "resource",
@@ -2102,7 +2153,7 @@
         "effective": {
           "requestedMemory": "1GiB"
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "memory-limit",
           "domain": "resource",
@@ -2133,13 +2184,13 @@
         },
         {
           "cleanup": "pending",
-          "kind": "sandbox",
-          "resource": "<scoped-sandbox>"
+          "kind": "probe-directory",
+          "resource": "<probe-root>"
         },
         {
           "cleanup": "pending",
-          "kind": "probe-directory",
-          "resource": "<probe-root>"
+          "kind": "sandbox",
+          "resource": "<scoped-sandbox>"
         },
         {
           "cleanup": "pending",
@@ -2163,12 +2214,17 @@
         },
         {
           "cleanup": "pending",
-          "kind": "credential-binding",
-          "resource": "<scoped-placeholder>"
+          "kind": "sandbox",
+          "resource": "<scoped-lifecycle-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<scoped-lifecycle-sandbox>"
         }
       ],
       "reasonCode": "capability_boundary_recorded",
-      "recordedAt": "2026-08-24T18:39:52.496Z",
+      "recordedAt": "2026-08-25T09:19:18.428Z",
       "requestedIntent": {
         "control": "host-capability-separation",
         "domain": "topology",
@@ -2181,7 +2237,7 @@
           "guest": ["shell", "workspace"],
           "host": ["MCP", "signing", "credential broker", "model traffic"]
         },
-        "fidelity": "docker-sandbox-v0.39",
+        "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
           "control": "host-capability-separation",
           "domain": "topology",
@@ -2209,9 +2265,9 @@
       "relationship": "mediates-containment"
     }
   ],
-  "recordedAt": "2026-08-24T18:39:54.528Z",
+  "recordedAt": "2026-08-25T09:19:20.776Z",
   "runId": "<run-id>",
   "schemaVersion": 1,
-  "sourceRevision": "efc46b952b65284351159f48028a006bfffe6277",
+  "sourceRevision": "f0d4b3490bb840bd27257b07781edb58db666c34",
   "violations": []
 }

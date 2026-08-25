@@ -117,9 +117,11 @@ protocol/host/port policy. Resolution must reject that adapter or select a
 verified compensating implementation.
 
 Cancellation is a supervisor invariant, not a mutable policy field. The
-executor runs commands in managed process groups, confirms TERM/KILL
-termination, and retires the backend when confirmation fails. Docker sandbox
-removal is not, by itself, proof that detached work stopped.
+executor must use a host-authoritative cancellation boundary and must not trust
+guest process IDs or guest binaries as proof. Gondolin retires the whole
+microVM through its host API for every interrupted command. Docker sandbox
+removal is not, by itself, proof that detached work stopped, so a production
+Docker adapter still needs an independently verified compensating mechanism.
 
 ## Evidence relationship
 

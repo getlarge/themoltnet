@@ -9,8 +9,9 @@ The research is no longer a blanket failure, but the backends are not at
 parity.
 
 - **Gondolin 0.12.0 is viable for the current production path.** MoltNet's
-  hooks enforce exact protocol, host, and port for protected origins. Managed
-  process-group execution confirms timeout and cancellation before returning.
+  hooks enforce exact protocol, host, and port for protected origins. Timeout
+  and cancellation retire the whole microVM through Gondolin's host API before
+  returning, so guest processes cannot escape the cancellation boundary.
 - **Docker Sandbox's native custom-secret mechanism works.** Delivery,
   rotation, revocation, and restart rebinding all passed without copying the
   synthetic value into guest storage.
@@ -42,12 +43,12 @@ failure, and sanitize the complete run before promoting the value-free evidence
 control.
 
 The retained Darwin arm64 artifacts replay signed source revision
-`efc46b952b65284351159f48028a006bfffe6277`.
+`f0d4b3490bb840bd27257b07781edb58db666c34`.
 
 | Backend        | Version | Enforced | Failed open | Unsupported | Violations | Cleanup  |
 | -------------- | ------: | -------: | ----------: | ----------: | ---------: | -------- |
-| Docker Sandbox | v0.39.0 |       20 |           3 |           8 |          0 | complete |
-| Gondolin       |  0.12.0 |       25 |           0 |           6 |          0 | complete |
+| Docker Sandbox | v0.39.0 |       19 |           3 |           9 |          0 | complete |
+| Gondolin       |  0.12.0 |       24 |           0 |           7 |          0 | complete |
 
 Counts are inventory, not scores. The state, oracle, and enforcement locus of
 each control remain authoritative.
@@ -88,14 +89,19 @@ mistaking network denial for credential isolation.
 
 ### Cancellation and timeout
 
-Every Gondolin command now starts as a new session and process-group leader. It
-stops before untrusted code runs, the host validates its `/proc` state, and a
-nonce-bound first line transfers the trusted process-group ID. Cancellation
-sends TERM, escalates to KILL, and confirms group absence. If confirmation is
-impossible, the Pi caller retires the VM and surfaces a recovery failure.
+Successful Gondolin commands may reuse their microVM. An interrupted command
+does not try to prove containment using guest process IDs, `/proc`, `setsid`, or
+`kill`: those are all under the guest's control. Instead, timeout or explicit
+cancellation immediately calls Gondolin's host-side `vm.close()` and returns
+only after that retirement succeeds or fails. A successful retirement
+invalidates the runtime's VM reference; a failed retirement poisons it and
+surfaces an explicit recovery failure.
 
-Both the timeout and explicit-cancel scenarios confirmed process-group
-termination and observed no delayed marker after the full six-second window.
+Both lifecycle probes launched delayed work in a separate `setsid` session,
+then triggered timeout or explicit cancellation. Host-side VM retirement
+completed and no delayed marker appeared during the full six-second observation
+window. This directly covers the escape that invalidated the earlier
+process-group result.
 
 Docker's native lifecycle oracle deliberately remains native: it launches
 detached work, removes the scoped sandbox, and observes the mounted workspace.
@@ -117,7 +123,12 @@ Basic containment worked on both backends:
 - symlink traversal did not escape the workspace boundary;
 - unlisted hosts were denied and an explicitly allowed destination worked;
 - CPU and memory limits were independently observed;
-- repeated close and final cleanup were idempotent.
+- final cleanup completed without residue.
+
+Repeated close remains explicitly unsupported in both retained runs. The
+runner owns final teardown and no longer manufactures a passing oracle by
+calling `close()` a second time; adapters need a backend-native, independently
+observable repeated-close probe before that control can be promoted.
 
 Docker enforced its host-port network rule but did not prove general protocol
 policy. Gondolin enforced protocol and adjacent-port denial through MoltNet's
@@ -145,7 +156,8 @@ path still has no read-only secondary-mount contract.
 | Timeout and cancellation containment         | **failed open**        | enforced                                    |
 | Broker unavailable preflight                 | unsupported            | enforced                                    |
 | Partial launch after resource allocation     | unsupported            | unsupported                                 |
-| Repeated close and cleanup                   | enforced               | enforced                                    |
+| Repeated close                               | unsupported            | unsupported                                 |
+| Final cleanup                                | complete               | complete                                    |
 | CPU and memory limits                        | enforced               | enforced                                    |
 | Host MCP, signing, model traffic             | outside containment    | outside containment                         |
 
@@ -179,8 +191,8 @@ The persistence and task-independent execution convention is owned by
 
 ## Decision and next work
 
-1. Use the Gondolin implementation and managed supervisor as the current
-   production reference.
+1. Use the Gondolin implementation and host-authoritative VM retirement as the
+   current production reference.
 2. Keep the Docker adapter research-only until exact credential scoping and
    cancellation have a verified compensating implementation.
 3. Define `SandboxPolicy`, the single resolved execution snapshot, and the
