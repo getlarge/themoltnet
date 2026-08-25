@@ -48,7 +48,7 @@ async function execGuest(
 }
 
 describeVm('resumeVm real Gondolin VM integration', () => {
-  it('terminates a managed process group before delayed work escapes', async () => {
+  it('retires the VM before daemonized delayed work escapes', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-managed-exec-'));
     const workspace = path.join(root, 'workspace');
     const marker = path.join(workspace, 'escaped.txt');
@@ -66,7 +66,7 @@ describeVm('resumeVm real Gondolin VM integration', () => {
       const controller = new AbortController();
       const pending = execManagedCommand(
         managed.vm,
-        `sleep 2; printf escaped > '${marker}'`,
+        `setsid sh -c "sleep 2; printf escaped > '${marker}'" & wait`,
         {
           signal: controller.signal,
           onStarted: () => controller.abort(),
@@ -76,7 +76,7 @@ describeVm('resumeVm real Gondolin VM integration', () => {
       const result = await pending;
       expect(result).toMatchObject({
         cancelled: true,
-        termination: { status: 'confirmed' },
+        termination: { status: 'backend-retired', mode: 'vm-close' },
       });
       await new Promise((resolve) => {
         setTimeout(resolve, 2_200);

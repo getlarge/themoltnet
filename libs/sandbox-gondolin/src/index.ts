@@ -1,6 +1,7 @@
 export { abortableResource, delay, throwIfAborted } from './abort-utils.js';
 export {
   execManagedCommand,
+  type ManagedExecDiagnostic,
   type ManagedExecOptions,
   type ManagedExecResult,
   type ManagedExecTermination,

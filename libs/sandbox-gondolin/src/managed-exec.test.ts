@@ -2,13 +2,6 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { execManagedCommand } from './managed-exec.js';
 
-function tokenFrom(command: unknown): string {
-  if (!Array.isArray(command)) throw new Error('expected argv command');
-  const token = command.at(-2);
-  if (typeof token !== 'string') throw new Error('missing handshake token');
-  return token;
-}
-
 function completedProcess(
   exitCode = 0,
   chunks: Array<{ data: Buffer | string; stream: 'stdout' | 'stderr' }> = [],
@@ -21,47 +14,33 @@ function completedProcess(
   });
 }
 
-function abortingProcess(
-  command: unknown,
-  signal: AbortSignal,
-  onHandshake: () => void,
-) {
-  const token = tokenFrom(command);
-  const result = new Promise<never>((_resolve, reject) => {
-    signal.addEventListener('abort', () => reject(new Error('exec aborted')), {
-      once: true,
-    });
+function pendingProcess() {
+  const pending = new Promise<never>(() => {
+    // Deliberately unsettled: VM retirement must not wait on guest behavior.
   });
-  return Object.assign(result, {
+  return Object.assign(pending, {
     output: async function* () {
-      onHandshake();
-      yield {
-        data: Buffer.from(`MOLTNET_EXEC_PGID:${token}:42\n`),
-        stream: 'stdout' as const,
-      };
-      await result;
+      await pending;
+      yield { data: Buffer.alloc(0), stream: 'stdout' as const };
     },
   });
 }
 
 describe('execManagedCommand', () => {
-  it('uses a protected handshake and preserves Buffer chunks', async () => {
-    const output = Buffer.from('ok');
+  it('preserves login-shell behavior and distinguishes output streams', async () => {
+    const stdout = Buffer.from('ok');
     const onData = vi.fn();
     const onStarted = vi.fn();
-    const exec = vi.fn((command: unknown) => {
-      const token = tokenFrom(command);
-      return completedProcess(0, [
-        {
-          data: `MOLTNET_EXEC_PGID:${token}:42\n`,
-          stream: 'stdout',
-        },
-        { data: output, stream: 'stdout' },
-      ]);
-    });
+    const exec = vi.fn(() =>
+      completedProcess(0, [
+        { data: stdout, stream: 'stdout' },
+        { data: 'warning', stream: 'stderr' },
+      ]),
+    );
 
     const result = await execManagedCommand({ exec } as never, 'printf ok', {
       cwd: '/workspace',
+      env: { EXAMPLE: 'value' },
       onData,
       onStarted,
     });
@@ -72,145 +51,84 @@ describe('execManagedCommand', () => {
       cancelled: false,
       termination: { status: 'not-required' },
     });
-    expect(exec).toHaveBeenCalledWith(
-      expect.arrayContaining([
-        '/bin/sh',
-        '-c',
-        expect.stringContaining('kill -STOP'),
-      ]),
-      expect.objectContaining({ cwd: '/workspace', signal: expect.anything() }),
-    );
-    const launchCommand: unknown = exec.mock.calls[0]?.[0];
-    const launchScript = Array.isArray(launchCommand)
-      ? launchCommand[2]
-      : undefined;
-    expect(launchScript).toContain('/proc/$pgid/stat');
-    expect(launchScript).not.toContain('.pid');
-    expect(onData).toHaveBeenCalledWith(output);
-    expect(onData.mock.calls[0]?.[0]).toBe(output);
+    expect(exec).toHaveBeenCalledWith(['/bin/sh', '-lc', 'printf ok'], {
+      cwd: '/workspace',
+      env: { EXAMPLE: 'value' },
+      signal: expect.any(AbortSignal),
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
+    expect(onData).toHaveBeenNthCalledWith(1, stdout, 'stdout');
+    expect(onData).toHaveBeenNthCalledWith(2, Buffer.from('warning'), 'stderr');
     expect(onStarted).toHaveBeenCalledOnce();
   });
 
-  it('kills and confirms the guest process group on cancellation', async () => {
+  it('retires the VM on cancellation even when guest execution never settles', async () => {
     const controller = new AbortController();
-    let handshakeEmitted = false;
-    const close = vi.fn();
-    const exec = vi
-      .fn()
-      .mockImplementationOnce(
-        (command: unknown, options: { signal: AbortSignal }) =>
-          abortingProcess(command, options.signal, () => {
-            handshakeEmitted = true;
-          }),
-      )
-      .mockImplementationOnce(() => completedProcess(0));
-    const pending = execManagedCommand({ exec, close } as never, 'sleep 10', {
-      signal: controller.signal,
-    });
+    const close = vi.fn().mockResolvedValue(undefined);
+    const onDiagnostic = vi.fn();
+    const exec = vi.fn(() => pendingProcess());
+    const pending = execManagedCommand(
+      { exec, close } as never,
+      'setsid sh -c "sleep 300" & wait',
+      {
+        signal: controller.signal,
+        onDiagnostic,
+      },
+    );
 
-    await vi.waitFor(() => expect(handshakeEmitted).toBe(true));
+    await vi.waitFor(() => expect(exec).toHaveBeenCalledOnce());
     controller.abort();
 
-    await expect(pending).resolves.toMatchObject({
+    await expect(pending).resolves.toEqual({
       exitCode: 130,
+      timedOut: false,
       cancelled: true,
-      termination: { status: 'confirmed', mode: 'process-group' },
+      termination: { status: 'backend-retired', mode: 'vm-close' },
     });
-    expect(exec).toHaveBeenCalledTimes(2);
-    expect(exec.mock.calls[1]?.[0]).toEqual(
-      expect.arrayContaining([
-        '/bin/sh',
-        '-c',
-        expect.stringContaining('kill -KILL'),
-        'moltnet-kill',
-        '42',
-      ]),
+    expect(exec).toHaveBeenCalledOnce();
+    expect(close).toHaveBeenCalledOnce();
+    expect(onDiagnostic).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        event: 'managed_exec.backend_retirement',
+        trigger: 'cancellation',
+        outcome: 'started',
+      }),
     );
-    const terminationCommand = exec.mock.calls[1]?.[0];
-    const terminationScript = Array.isArray(terminationCommand)
-      ? terminationCommand[2]
-      : undefined;
-    expect(terminationScript).toContain('/proc/[0-9]*/stat');
-    expect(terminationScript).toContain('[ "$state" != Z ]');
-    expect(close).not.toHaveBeenCalled();
-  });
-
-  it('classifies an already exited group without destroying the VM', async () => {
-    const controller = new AbortController();
-    let handshakeEmitted = false;
-    const close = vi.fn();
-    const exec = vi
-      .fn()
-      .mockImplementationOnce(
-        (command: unknown, options: { signal: AbortSignal }) =>
-          abortingProcess(command, options.signal, () => {
-            handshakeEmitted = true;
-          }),
-      )
-      .mockImplementationOnce(() => completedProcess(10));
-    const pending = execManagedCommand({ exec, close } as never, 'true', {
-      signal: controller.signal,
-    });
-
-    await vi.waitFor(() => expect(handshakeEmitted).toBe(true));
-    controller.abort();
-
-    await expect(pending).resolves.toMatchObject({
-      termination: { status: 'confirmed', mode: 'already-terminated' },
-    });
-    expect(close).not.toHaveBeenCalled();
-  });
-
-  it('returns recovery-required when the group survives SIGKILL', async () => {
-    const controller = new AbortController();
-    let handshakeEmitted = false;
-    const close = vi.fn();
-    const exec = vi
-      .fn()
-      .mockImplementationOnce(
-        (command: unknown, options: { signal: AbortSignal }) =>
-          abortingProcess(command, options.signal, () => {
-            handshakeEmitted = true;
-          }),
-      )
-      .mockImplementationOnce(() => completedProcess(22));
-    const pending = execManagedCommand({ exec, close } as never, 'sleep 10', {
-      signal: controller.signal,
-    });
-
-    await vi.waitFor(() => expect(handshakeEmitted).toBe(true));
-    controller.abort();
-
-    await expect(pending).resolves.toMatchObject({
-      termination: {
-        status: 'recovery-required',
-        reason: 'process-group-survived',
-      },
-    });
-    expect(close).not.toHaveBeenCalled();
-  });
-
-  it('requires caller recovery when cancellation wins before the handshake', async () => {
-    const controller = new AbortController();
-    const exec = vi.fn(
-      (_command: unknown, options: { signal: AbortSignal }) => {
-        const result = new Promise<never>((_resolve, reject) => {
-          options.signal.addEventListener(
-            'abort',
-            () => reject(new Error('exec aborted')),
-            { once: true },
-          );
-        });
-        return Object.assign(result, {
-          output: async function* () {
-            await result;
-            yield { data: Buffer.alloc(0), stream: 'stdout' as const };
-          },
-        });
-      },
+    expect(onDiagnostic).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ outcome: 'succeeded' }),
     );
-    const pending = execManagedCommand({ exec } as never, 'sleep 10', {
+  });
+
+  it('drives the internal timeout path and retires the VM', async () => {
+    const close = vi.fn().mockResolvedValue(undefined);
+    const exec = vi.fn(() => pendingProcess());
+
+    await expect(
+      execManagedCommand({ exec, close } as never, 'sleep 300', {
+        timeoutMs: 5,
+      }),
+    ).resolves.toEqual({
+      exitCode: 124,
+      timedOut: true,
+      cancelled: false,
+      termination: { status: 'backend-retired', mode: 'vm-close' },
+    });
+    expect(close).toHaveBeenCalledOnce();
+  });
+
+  it('fails closed when host-side VM retirement fails', async () => {
+    const controller = new AbortController();
+    const close = vi
+      .fn()
+      .mockRejectedValue(new Error('hypervisor unavailable'));
+    const onDiagnostic = vi.fn();
+    const exec = vi.fn(() => pendingProcess());
+    const pending = execManagedCommand({ exec, close } as never, 'sleep 300', {
       signal: controller.signal,
+      onDiagnostic,
     });
 
     await vi.waitFor(() => expect(exec).toHaveBeenCalledOnce());
@@ -219,24 +137,34 @@ describe('execManagedCommand', () => {
     await expect(pending).resolves.toMatchObject({
       termination: {
         status: 'recovery-required',
-        reason: 'missing-process-group-handshake',
+        reason: 'backend-retirement-failed',
       },
     });
+    expect(onDiagnostic).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        outcome: 'failed',
+        message: expect.stringContaining('hypervisor unavailable'),
+      }),
+    );
   });
 
-  it('does not start work for a pre-aborted signal', async () => {
+  it('does not start or retire a VM for a pre-aborted signal', async () => {
     const controller = new AbortController();
     controller.abort();
     const exec = vi.fn();
+    const close = vi.fn();
 
     await expect(
-      execManagedCommand({ exec } as never, 'echo unsafe', {
+      execManagedCommand({ exec, close } as never, 'echo unsafe', {
         signal: controller.signal,
       }),
-    ).resolves.toMatchObject({
+    ).resolves.toEqual({
+      exitCode: 130,
+      timedOut: false,
       cancelled: true,
       termination: { status: 'not-started' },
     });
     expect(exec).not.toHaveBeenCalled();
+    expect(close).not.toHaveBeenCalled();
   });
 });
