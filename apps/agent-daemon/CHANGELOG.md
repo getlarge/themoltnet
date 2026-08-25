@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.44.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.43.0...agent-daemon-v0.44.0) (2026-08-25)
+
+
+### Features
+
+* **agent-runtime:** host capabilities with brokered agent signing ([268a56e](https://github.com/getlarge/themoltnet/commit/268a56e24c0b919cd2010be999b543ae20c975e1))
+* **pi-runtime:** host-capability integration, daemon injection, docs ([b759cb4](https://github.com/getlarge/themoltnet/commit/b759cb43ac49805b5638074ab32992d908cc1156))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.44.0
+    * @themoltnet/pi-runtime bumped to 0.12.0
+    * @themoltnet/sdk bumped to 0.137.0
+
 ## [0.43.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.42.1...agent-daemon-v0.43.0) (2026-08-22)
 
 

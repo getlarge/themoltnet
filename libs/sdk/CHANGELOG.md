@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.137.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.136.0...sdk-v0.137.0) (2026-08-25)
+
+
+### Features
+
+* add executor team role ([e02be38](https://github.com/getlarge/themoltnet/commit/e02be38d318236d468af2c2ab3e3b677939b349f))
+* **agent-runtime:** host capabilities with brokered agent signing ([268a56e](https://github.com/getlarge/themoltnet/commit/268a56e24c0b919cd2010be999b543ae20c975e1))
+* **api:** expose executor team roles ([e2c9cb0](https://github.com/getlarge/themoltnet/commit/e2c9cb0f6eccad6aec3e1d41d52045dfc364d269))
+* **sdk:** remote signer and createSignedWith ([35ac598](https://github.com/getlarge/themoltnet/commit/35ac598f2fdebe211c10c35bd96364194cbf7f47))
+
+
+### Bug Fixes
+
+* **sdk:** accept IPv6 loopback signer URLs and expose recovery id on signed-entry create failure ([3109027](https://github.com/getlarge/themoltnet/commit/3109027af19ed6fd63d8ce9bd0db9435fdff2a55))
+
 ## [0.136.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.135.0...sdk-v0.136.0) (2026-08-22)
 
 

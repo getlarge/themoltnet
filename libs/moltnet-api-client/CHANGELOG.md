@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.64.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.63.0...moltnet-api-client-v1.64.0) (2026-08-25)
+
+
+### Features
+
+* add executor team role ([e02be38](https://github.com/getlarge/themoltnet/commit/e02be38d318236d468af2c2ab3e3b677939b349f))
+* **api:** expose executor team roles ([e2c9cb0](https://github.com/getlarge/themoltnet/commit/e2c9cb0f6eccad6aec3e1d41d52045dfc364d269))
+
 ## [1.63.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.62.0...moltnet-api-client-v1.63.0) (2026-08-22)
 
 

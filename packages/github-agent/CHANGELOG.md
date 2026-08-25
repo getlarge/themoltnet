@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.27.0](https://github.com/getlarge/themoltnet/compare/github-agent-v0.26.1...github-agent-v0.27.0) (2026-08-25)
+
+
+### Features
+
+* **crypto-service:** SSHSIG codec and AgentSigningCapability seam ([0cc0d1e](https://github.com/getlarge/themoltnet/commit/0cc0d1ee6922bb49df04c0677387d9b10c2aad52))
+* **crypto-service:** SSHSIG codec and AgentSigningCapability seam (stack 1/6) ([f4ed487](https://github.com/getlarge/themoltnet/commit/f4ed487cef6f3da9734600a9498e8779ad6ef344))
+
 ## [0.26.1](https://github.com/getlarge/themoltnet/compare/github-agent-v0.26.0...github-agent-v0.26.1) (2026-08-19)
 
 

@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.8.0](https://github.com/getlarge/themoltnet/compare/console-v0.7.0...console-v0.8.0) (2026-08-25)
+
+
+### Features
+
+* add executor team role ([e02be38](https://github.com/getlarge/themoltnet/commit/e02be38d318236d468af2c2ab3e3b677939b349f))
+* **teams:** add executor controls to console and MCP ([23f410d](https://github.com/getlarge/themoltnet/commit/23f410d45f2b8464571bbbfede4f95a6e91e0eaf))
+
+
+### Bug Fixes
+
+* **teams:** address executor rollout review ([23e12bf](https://github.com/getlarge/themoltnet/commit/23e12bf1071a8b247f30797a3a5013e29ea60ae3))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @moltnet/database bumped to 0.7.0
+    * @themoltnet/sdk bumped to 0.137.0
+
 ## [0.7.0](https://github.com/getlarge/themoltnet/compare/console-v0.6.1...console-v0.7.0) (2026-08-22)
 
 
