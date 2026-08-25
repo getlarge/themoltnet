@@ -46,12 +46,12 @@ failure, and sanitize the complete run before promoting the value-free evidence
 control.
 
 The retained Darwin arm64 artifacts replay signed source revision
-`ae990d137549d63abdfe73d6e1d1ceb11e519977`.
+`9195b2f2e257fdd43218e9da5b920faad4efe48e`.
 
 | Backend        | Version | Enforced | Failed open | Unsupported | Violations | Cleanup  |
 | -------------- | ------: | -------: | ----------: | ----------: | ---------: | -------- |
 | Docker Sandbox | v0.39.0 |       19 |           3 |           9 |          0 | complete |
-| Gondolin       |  0.12.0 |       13 |           2 |          16 |          0 | complete |
+| Gondolin       |  0.12.0 |       12 |           2 |          17 |          0 | complete |
 
 Counts are inventory, not scores. The state, oracle, and enforcement locus of
 each control remain authoritative.
@@ -154,7 +154,7 @@ path still has no read-only secondary-mount contract.
 | Adjacent-origin secret isolation             | **failed open**        | unsupported         |
 | Rotation, revocation, explicit resume rebind | enforced               | unsupported         |
 | Timeout and cancellation containment         | **failed open**        | enforced            |
-| Broker unavailable preflight                 | unsupported            | enforced            |
+| Broker unavailable preflight                 | unsupported            | unsupported         |
 | Partial launch after resource allocation     | unsupported            | unsupported         |
 | Repeated close                               | unsupported            | unsupported         |
 | Final cleanup                                | complete               | complete            |
