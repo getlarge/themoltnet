@@ -721,8 +721,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
           'no_controlled_dns_rebinding_fixture',
           'fixture-limitation',
         );
-      case 'credential.missing-binding':
-      case 'lifecycle.broker-unavailable': {
+      case 'credential.missing-binding': {
         const rejected = await this.#verifyMissingBinding();
         return this.#evidence(
           scenario,
@@ -734,9 +733,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
             passed: rejected,
           },
           { required: true, boundValue: false },
-          scenario.domain === 'credential'
-            ? 'required_binding_preflight_observed'
-            : 'adapter_preflight_rejected_unavailable_broker',
+          'required_binding_preflight_observed',
           HARNESS_PROVENANCE,
           ['gondolin-adapter', 'gondolin-host-hooks'],
         );
@@ -1075,6 +1072,18 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
           ['research-harness', 'gondolin-host-hooks', 'gondolin-microvm'],
         );
       }
+      case 'lifecycle.broker-unavailable':
+        return this.#unsupported(
+          scenario,
+          context,
+          'broker_preflight_unverified',
+          'not-measured',
+          {
+            effective: {
+              missingProbe: 'controlled-broker-unavailability',
+            },
+          },
+        );
       case 'lifecycle.partial-launch': {
         const rejected = await this.#verifyMissingBinding();
         return this.#unsupported(

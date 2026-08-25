@@ -91,6 +91,17 @@ describe('Gondolin research adapter evidence', () => {
     );
 
     expect(evidence).toMatchObject({ state: 'enforced' });
+    await expect(
+      adapter.runScenario(
+        await scenario('lifecycle.broker-unavailable'),
+        context,
+      ),
+    ).resolves.toMatchObject({
+      state: 'unsupported',
+      unsupportedKind: 'not-measured',
+      reasonCode: 'broker_preflight_unverified',
+    });
+    expect(resumeVm).toHaveBeenCalledTimes(2);
     expect(resumeVm.mock.calls[1]?.[0]).toMatchObject({
       workspaceMode: 'scratch_mount',
       sandboxConfig: {

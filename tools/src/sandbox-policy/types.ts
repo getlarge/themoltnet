@@ -123,7 +123,6 @@ export const REASON_CODES_BY_DOMAIN = {
     'value_free_evidence_only',
   ],
   lifecycle: [
-    'adapter_preflight_rejected_unavailable_broker',
     'backend_retirement_observed',
     'broker_preflight_unverified',
     'preflight_failure_left_no_backend_resource',
