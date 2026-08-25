@@ -142,7 +142,6 @@ export type {
 export type {
   BrokeredHttpSecretBinding,
   BrokeredHttpSecretDescriptor,
-  GuestCredentialMode,
   ManagedVm,
   VmConfig,
   VmCredentials,

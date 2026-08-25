@@ -226,7 +226,6 @@ describe('resumeVm task-context mount', () => {
         agentName: 'legreffier',
         agentRootDir: root,
         mountPath: workspace,
-        guestCredentialMode: 'guest-config',
         forwardEnv: ['TOTALLY_ARBITRARY'],
       }),
     ).rejects.toThrow(/TOTALLY_ARBITRARY/);
@@ -248,7 +247,6 @@ describe('resumeVm task-context mount', () => {
       checkpointPath: path.join(root, 'checkpoint.qcow2'),
       agentName: 'configless',
       agentRootDir: root,
-      guestCredentialMode: 'host-authenticated',
       mountPath: workspace,
       sandboxConfig: {
         network: { allowedHosts: ['api.example.com'] },
@@ -367,7 +365,6 @@ describe('resumeVm task-context mount', () => {
         checkpointPath: path.join(root, 'checkpoint.qcow2'),
         agentName: 'configless',
         agentRootDir: root,
-        guestCredentialMode: 'host-authenticated',
         mountPath: workspace,
         sandboxConfig: {
           network: { allowedHosts: ['api.example.com'] },
@@ -400,7 +397,6 @@ describe('resumeVm task-context mount', () => {
           checkpointPath: path.join(root, 'checkpoint.qcow2'),
           agentName: 'configless',
           agentRootDir: root,
-          guestCredentialMode: 'host-authenticated',
           mountPath: workspace,
           forwardEnv: [name],
         }),
@@ -420,7 +416,6 @@ describe('resumeVm task-context mount', () => {
         checkpointPath: path.join(root, 'checkpoint.qcow2'),
         agentName: 'configless',
         agentRootDir: root,
-        guestCredentialMode: 'host-authenticated',
         mountPath: workspace,
         sandboxConfig: {
           env: { MOLTNET_FUTURE_SECRET: 'must-not-enter-guest' },
@@ -491,7 +486,6 @@ describe('resumeVm task-context mount', () => {
       checkpointPath: path.join(root, 'checkpoint.qcow2'),
       agentName: 'legacy',
       agentRootDir: root,
-      guestCredentialMode: 'host-authenticated',
       mountPath: workspace,
       forwardEnv: ['OLLAMA_API_KEY'],
     });
@@ -600,7 +594,6 @@ describe('resumeVm task-context mount', () => {
         checkpointPath: path.join(root, 'checkpoint.qcow2'),
         agentName: 'configless',
         agentRootDir: root,
-        guestCredentialMode: 'host-authenticated',
         mountPath: workspace,
         sandboxConfig: {
           network: { allowedInternalHosts: ['*.local.example'] },
@@ -795,7 +788,6 @@ describe('resumeVm task-context mount', () => {
       checkpointPath: path.join(root, 'checkpoint.qcow2'),
       agentName: 'configless',
       agentRootDir: root,
-      guestCredentialMode: 'host-authenticated',
       mountPath: workspace,
       hostOrigins: { 'https://agent-signing.moltnet.internal': handler },
       onDiagnostic: (diagnostic) => diagnostics.push(diagnostic),
@@ -835,7 +827,6 @@ describe('resumeVm task-context mount', () => {
         checkpointPath: path.join(root, 'checkpoint.qcow2'),
         agentName: 'configless',
         agentRootDir: root,
-        guestCredentialMode: 'host-authenticated',
         mountPath: workspace,
         hostOrigins: {
           'https://api.themolt.net': () =>
@@ -864,7 +855,6 @@ describe('resumeVm task-context mount', () => {
         checkpointPath: path.join(root, 'checkpoint.qcow2'),
         agentName: 'configless',
         agentRootDir: root,
-        guestCredentialMode: 'host-authenticated',
         mountPath: workspace,
         guestProjection: {
           services: [
@@ -895,7 +885,6 @@ describe('resumeVm task-context mount', () => {
       checkpointPath: path.join(root, 'checkpoint.qcow2'),
       agentName: 'configless',
       agentRootDir: root,
-      guestCredentialMode: 'host-authenticated',
       mountPath: workspace,
       onDiagnostic: (diagnostic) => diagnostics.push(diagnostic),
       guestProjection: {
@@ -925,7 +914,6 @@ describe('resumeVm task-context mount', () => {
         checkpointPath: path.join(root, 'checkpoint.qcow2'),
         agentName: 'configless',
         agentRootDir: root,
-        guestCredentialMode: 'host-authenticated',
         mountPath: workspace,
         guestProjection: {
           services: [{ id: '../escape', command: ['true'] }],
@@ -944,7 +932,6 @@ describe('resumeVm task-context mount', () => {
         checkpointPath: path.join(root, 'checkpoint.qcow2'),
         agentName: 'configless',
         agentRootDir: root,
-        guestCredentialMode: 'host-authenticated',
         mountPath: workspace,
         sandboxConfig: { network: { allowedHosts: ['api.example.com'] } },
         brokeredSecrets: [
@@ -972,7 +959,6 @@ describe('resumeVm task-context mount', () => {
       checkpointPath: path.join(root, 'checkpoint.qcow2'),
       agentName: 'configless',
       agentRootDir: root,
-      guestCredentialMode: 'host-authenticated',
       mountPath: workspace,
       onDiagnostic: (diagnostic) => diagnostics.push(diagnostic),
       hostOrigins: {
@@ -1013,7 +999,6 @@ describe('resumeVm task-context mount', () => {
       checkpointPath: path.join(root, 'checkpoint.qcow2'),
       agentName: 'configless',
       agentRootDir: root,
-      guestCredentialMode: 'host-authenticated',
       mountPath: workspace,
       onDiagnostic: (diagnostic) => diagnostics.push(diagnostic),
       guestProjection: {

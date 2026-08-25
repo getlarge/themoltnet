@@ -53,7 +53,6 @@ contain a value or choose a host secret-provider coordinate.
 const managed = await resumeVm({
   checkpointPath,
   agentName: 'worker',
-  guestCredentialMode: 'host-authenticated',
   mountPath: workspace,
   sandboxConfig: {
     network: { allowedHosts: ['api.example.com'] },

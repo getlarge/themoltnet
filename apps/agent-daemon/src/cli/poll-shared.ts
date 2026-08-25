@@ -302,7 +302,6 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         executables: prepared.executables,
       });
       assertGuestEnvironmentBoundary({
-        guestCredentialMode: 'host-authenticated',
         forwardEnv: profile.requiredEnv,
         sandboxEnv: profile.sandboxConfig.env,
       });
@@ -842,7 +841,6 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           onVmDiagnostic: (diagnostic) => {
             const fields = {
               event: diagnostic.event,
-              credentialMode: diagnostic.credentialMode,
               ...(diagnostic.brokeredSecretCount !== undefined && {
                 brokeredSecretCount: diagnostic.brokeredSecretCount,
               }),

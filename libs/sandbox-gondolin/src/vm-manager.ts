@@ -60,8 +60,6 @@ function assertGuestServiceId(id: string): void {
 /** @deprecated Use GUEST_TASK_CONTEXT_MOUNT. */
 export const GUEST_TASK_SKILLS_MOUNT = GUEST_TASK_CONTEXT_MOUNT;
 
-export type GuestCredentialMode = 'guest-config' | 'host-authenticated';
-
 /**
  * Value-free declaration of one HTTP credential delivered by the Gondolin
  * host proxy. This is an adapter contract, not a persisted runtime-profile
@@ -99,7 +97,6 @@ export interface BrokeredHttpSecretManager {
 export interface VmDiagnostic {
   event:
     | 'vm.credentials.mode'
-    | 'vm.credentials.github_key_missing'
     | 'vm.http_secrets.bound'
     | 'vm.host_origins.bound'
     | 'vm.guest_projection.applied'
@@ -107,7 +104,6 @@ export interface VmDiagnostic {
     | 'vm.network.origin_denied';
   level: 'info' | 'warning';
   message: string;
-  credentialMode: GuestCredentialMode;
   /** Present only for the value-free broker summary event. */
   brokeredSecretCount?: number;
   /** Present only for the host-origins summary event. */
@@ -147,12 +143,6 @@ export interface VmConfig {
   checkpointPath: string;
   /** MoltNet agent name (used to resolve credentials). */
   agentName: string;
-  /**
-   * Trust boundary for guest credentials. `guest-config` injects the complete
-   * legacy agent directory. `host-authenticated` never reads or injects it and
-   * relies exclusively on the supplied host-side Agent for MoltNet operations.
-   */
-  guestCredentialMode?: GuestCredentialMode;
   /**
    * Host root that owns `.moltnet/<agentName>/`.
    *
@@ -202,19 +192,12 @@ export interface VmConfig {
 }
 
 export interface VmCredentials {
-  /** Empty in host-authenticated mode; retained as strings for API stability. */
-  moltnetJson: string;
-  /** Empty in host-authenticated mode; retained as strings for API stability. */
-  agentEnvRaw: string;
+  /**
+   * Guest env carried across the boundary. Always empty: the guest receives no
+   * MoltNet credential material. Retained for API stability and because
+   * consumers read (empty) provider/diary/team hints from it.
+   */
   agentEnv: Record<string, string | undefined>;
-  gitconfig: string | null;
-  sshPrivateKey: string | null;
-  sshPublicKey: string | null;
-  allowedSigners: string | null;
-  /** Raw PEM content of the GitHub App private key, or null if not configured. */
-  githubAppPem: string | null;
-  /** VM-local filename for the GitHub App PEM (basename of host path), or null. */
-  githubAppPemFilename: string | null;
 }
 
 export interface ManagedVm {
@@ -363,18 +346,8 @@ export function loadCredentials(): VmCredentials {
   // Host-authenticated is the only credential boundary. The guest receives no
   // MoltNet credential files: diary/commit signing goes through the
   // `agent-signing` host capability (#1957) and HTTP credentials are brokered
-  // (#1959). Fields are retained (empty/null) for API stability.
-  return {
-    moltnetJson: '',
-    agentEnvRaw: '',
-    agentEnv: {},
-    gitconfig: null,
-    sshPrivateKey: null,
-    sshPublicKey: null,
-    allowedSigners: null,
-    githubAppPem: null,
-    githubAppPemFilename: null,
-  };
+  // (#1959).
+  return { agentEnv: {} };
 }
 /**
  * Apply agent env vars to the host process, mirroring `moltnet start`.
@@ -849,13 +822,11 @@ export function createBrokeredHttpNetworkOriginPolicy(
 }
 
 export function assertGuestEnvironmentBoundary(options: {
-  guestCredentialMode: GuestCredentialMode;
   forwardEnv?: readonly string[];
   sandboxEnv?: Readonly<Record<string, string>>;
 }): void {
-  // The host-authenticated boundary is the only behaviour: refuse any
-  // forwarded name outside the allowlist regardless of the (vestigial) mode, so
-  // even a caller still passing `guest-config` cannot forward arbitrary env.
+  // Host-authenticated is the only boundary: refuse any forwarded name outside
+  // the provider allowlist so a profile cannot forward arbitrary host env.
   const refusedForwardEnv = (options.forwardEnv ?? []).filter(
     (name) =>
       isReservedGuestEnvironmentName(name) ||
@@ -872,15 +843,12 @@ export function assertGuestEnvironmentBoundary(options: {
   }
 }
 
-/** @deprecated Prefer assertGuestEnvironmentBoundary for mode-aware checks. */
+/** @deprecated Alias of assertGuestEnvironmentBoundary (a single boundary). */
 export function assertHostAuthenticatedGuestEnvironment(options: {
   forwardEnv?: readonly string[];
   sandboxEnv?: Readonly<Record<string, string>>;
 }): void {
-  assertGuestEnvironmentBoundary({
-    guestCredentialMode: 'host-authenticated',
-    ...options,
-  });
+  assertGuestEnvironmentBoundary(options);
 }
 
 /**
@@ -999,17 +967,13 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   const agentDir = resolveVmAgentDir(config);
   const guestWorkspace = path.resolve(config.mountPath);
 
-  const guestCredentialMode =
-    config.guestCredentialMode ?? 'host-authenticated';
   assertGuestEnvironmentBoundary({
-    guestCredentialMode,
     forwardEnv: config.forwardEnv,
     sandboxEnv: config.sandboxConfig?.env,
   });
   config.onDiagnostic?.({
     event: 'vm.credentials.mode',
     level: 'info',
-    credentialMode: guestCredentialMode,
     message:
       'MoltNet agent files and non-allowlisted host environment variables are withheld from the guest',
   });
@@ -1073,7 +1037,6 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
           event: 'vm.network.origin_denied',
           level: 'warning',
           message: 'denied request outside a brokered credential origin',
-          credentialMode: guestCredentialMode,
           origin,
         });
       },
@@ -1113,7 +1076,6 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     config.onDiagnostic?.({
       event: 'vm.http_secrets.bound',
       level: 'info',
-      credentialMode: guestCredentialMode,
       brokeredSecretCount,
       message:
         `Bound ${brokeredSecretCount} HTTP secret placeholder` +
@@ -1124,7 +1086,6 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     config.onDiagnostic?.({
       event: 'vm.host_origins.bound',
       level: 'info',
-      credentialMode: guestCredentialMode,
       hostOriginCount: hostOriginHosts.length,
       message:
         `Bound ${hostOriginHosts.length} host origin` +
@@ -1488,7 +1449,6 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
         config.onDiagnostic?.({
           event: 'vm.guest_service.not_ready',
           level: 'warning',
-          credentialMode: guestCredentialMode,
           message:
             `Projected guest service "${service.id}" did not become ready ` +
             `(${service.readiness.path} absent or its process exited); continuing without it`,
@@ -1502,7 +1462,6 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       config.onDiagnostic?.({
         event: 'vm.guest_projection.applied',
         level: 'info',
-        credentialMode: guestCredentialMode,
         projectedFileCount: projectedFiles.length,
         projectedServiceCount: projectedServices.length,
         message:

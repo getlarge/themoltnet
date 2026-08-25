@@ -184,16 +184,6 @@ describe('node_modules VM-local shadowing', () => {
 
 describe('loadCredentials', () => {
   it('returns no MoltNet guest credentials (host-authenticated is the only boundary)', () => {
-    expect(loadCredentials()).toEqual({
-      moltnetJson: '',
-      agentEnvRaw: '',
-      agentEnv: {},
-      gitconfig: null,
-      sshPrivateKey: null,
-      sshPublicKey: null,
-      allowedSigners: null,
-      githubAppPem: null,
-      githubAppPemFilename: null,
-    });
+    expect(loadCredentials()).toEqual({ agentEnv: {} });
   });
 });
