@@ -132,7 +132,7 @@ export {
   type ToolPolicyDecisionContext,
   type ToolPolicyExtensionDeps,
 } from './tool-policy/session-policy.js';
-export { PI_GUEST_AUTH_PATH, piProviderAuth, resumeVm } from './vm.js';
+export { resumeVm } from './vm.js';
 export type {
   EnsureSnapshotOptions,
   ResumeCommand,
@@ -144,7 +144,6 @@ export type {
   BrokeredHttpSecretDescriptor,
   GuestCredentialMode,
   ManagedVm,
-  ProviderAuthSource,
   VmConfig,
   VmCredentials,
   VmDiagnostic,

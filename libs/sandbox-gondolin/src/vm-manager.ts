@@ -201,20 +201,6 @@ export interface VmConfig {
   onDiagnostic?: (diagnostic: VmDiagnostic) => void;
   /** Abort resume/setup work, closing any live VM owned by resumeVm. */
   signal?: AbortSignal;
-  /**
-   * Coding-agent provider authentication to place in the guest (for example
-   * Pi's `auth.json`). The sandbox knows nothing about the provider: the
-   * runtime above it supplies the loader and the guest path. When omitted,
-   * nothing is written and the guest relies on forwarded env providers.
-   */
-  providerAuth?: ProviderAuthSource;
-}
-
-export interface ProviderAuthSource {
-  /** Read the auth blob from the host, or return null when absent. */
-  load(): string | null;
-  /** Absolute guest path to write the blob to (mode 0600). */
-  guestPath: string;
 }
 
 export interface VmCredentials {
@@ -222,13 +208,6 @@ export interface VmCredentials {
   moltnetJson: string;
   /** Empty in host-authenticated mode; retained as strings for API stability. */
   agentEnvRaw: string;
-  /**
-   * Provider auth blob supplied by `VmConfig.providerAuth`, or null when the
-   * runtime supplied none or the host file is absent — the guest then relies
-   * on env-var providers (`ANTHROPIC_API_KEY`, etc.) carried via `agentEnv`
-   * and the forwarded host environment instead. CI uses this path.
-   */
-  providerAuthJson: string | null;
   agentEnv: Record<string, string | undefined>;
   gitconfig: string | null;
   sshPrivateKey: string | null;
@@ -386,14 +365,9 @@ export function loadCredentials(
   agentDir: string,
   mode: GuestCredentialMode = 'guest-config',
   onDiagnostic?: (diagnostic: VmDiagnostic) => void,
-  providerAuth?: ProviderAuthSource,
 ): VmCredentials {
   const moltnetPath = path.join(agentDir, 'moltnet.json');
   const agentEnvPath = path.join(agentDir, 'env');
-
-  // Provider auth is the runtime's concern (Pi resolves its own agent dir);
-  // the sandbox only carries the blob across the boundary.
-  const providerAuthJson = providerAuth?.load() ?? null;
 
   // This is the credential boundary. Return before touching any path under
   // `.moltnet/<agent>` so a legacy config, signing key, or GitHub App PEM that
@@ -402,7 +376,6 @@ export function loadCredentials(
     return {
       moltnetJson: '',
       agentEnvRaw: '',
-      providerAuthJson,
       agentEnv: {},
       gitconfig: null,
       sshPrivateKey: null,
@@ -473,7 +446,6 @@ export function loadCredentials(
   return {
     moltnetJson,
     agentEnvRaw,
-    providerAuthJson,
     agentEnv: parseEnv(agentEnvRaw),
     gitconfig,
     sshPrivateKey,
@@ -1130,7 +1102,6 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     agentDir,
     guestCredentialMode,
     config.onDiagnostic,
-    config.providerAuth,
   );
   const configuredApiUrl = creds.moltnetJson
     ? (JSON.parse(creds.moltnetJson) as { endpoints: { api: string } })
@@ -1504,16 +1475,12 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     // the host. Guest-config mode injects the complete coherent tree.
     const vmSshDir = `${vmAgentDir}/ssh`;
     const hasAgentFiles = guestCredentialMode === 'guest-config';
-    const providerAuthDir = config.providerAuth
-      ? path.posix.dirname(config.providerAuth.guestPath)
-      : null;
     const projectedFiles = config.guestProjection?.files ?? [];
     const projectedDirs = [
       ...new Set(projectedFiles.map((file) => path.posix.dirname(file.path))),
     ];
     const guestDirs = [
       ...(hasAgentFiles ? [`${vmAgentDir}/ssh`] : []),
-      ...(providerAuthDir ? [providerAuthDir] : []),
       ...projectedDirs,
     ];
     if (guestDirs.length > 0) {
@@ -1524,20 +1491,6 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
         config.signal,
       );
     }
-
-    if (creds.providerAuthJson !== null && config.providerAuth) {
-      // See MoltNet diary entry 09336c5e-e45a-475f-b9cd-1e0ab635e093.
-      await vm.fs.writeFile(
-        config.providerAuth.guestPath,
-        creds.providerAuthJson,
-        {
-          mode: 0o600,
-          signal: config.signal,
-        },
-      );
-    }
-    // else: rely on env-var provider auth (ANTHROPIC_API_KEY, …) carried via
-    // agentEnv and the host environment.
 
     if (hasAgentFiles) {
       // Rewrite host-absolute credential paths to VM-local paths before the
@@ -1633,7 +1586,6 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     // each target is existence-guarded — a missing optional dir is skipped
     // while a real chown failure on a present dir still aborts (set -e).
     const chownTargets = [
-      '/home/agent/.pi',
       ...(hasAgentFiles ? ['/home/agent/.moltnet'] : []),
       ...projectedDirs.filter((dir) => dir.startsWith('/home/agent/')),
     ];

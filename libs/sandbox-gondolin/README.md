@@ -27,10 +27,10 @@ implementation can be added beside it without going through Pi.
 
 ## What it deliberately does not own
 
-- **Provider authentication.** A runtime supplies `VmConfig.providerAuth`
-  (`{ load(): string | null; guestPath }`); the sandbox only carries the blob
-  across the boundary. Pi's `~/.pi/agent/auth.json` handling lives in
-  `@themoltnet/pi-runtime` (`piProviderAuth`, and its `resumeVm` wrapper).
+- **Provider authentication.** The coding-agent session and its model calls run
+  host-side (Pi's `createAgentSession` reads the host `~/.pi/agent` auth), so no
+  provider auth is projected into the guest — the guest only executes tools via
+  `vm.exec`.
 - Tool definitions, tool policy, task execution, workspace preparation —
   all Pi-runtime concerns.
 
