@@ -1,8 +1,6 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
 import { isIP } from 'node:net';
 import path from 'node:path';
-import { parseEnv } from 'node:util';
 
 import type {
   HttpIpAllowInfo,
@@ -361,101 +359,23 @@ export function resolveVmAgentDir(config: {
   return path.join(rootDir, '.moltnet', config.agentName);
 }
 
-export function loadCredentials(
-  agentDir: string,
-  mode: GuestCredentialMode = 'guest-config',
-  onDiagnostic?: (diagnostic: VmDiagnostic) => void,
-): VmCredentials {
-  const moltnetPath = path.join(agentDir, 'moltnet.json');
-  const agentEnvPath = path.join(agentDir, 'env');
-
-  // This is the credential boundary. Return before touching any path under
-  // `.moltnet/<agent>` so a legacy config, signing key, or GitHub App PEM that
-  // happens to exist on the host can never cross into a host-authenticated VM.
-  if (mode === 'host-authenticated') {
-    return {
-      moltnetJson: '',
-      agentEnvRaw: '',
-      agentEnv: {},
-      gitconfig: null,
-      sshPrivateKey: null,
-      sshPublicKey: null,
-      allowedSigners: null,
-      githubAppPem: null,
-      githubAppPemFilename: null,
-    };
-  }
-
-  const hasMoltnetJson = existsSync(moltnetPath);
-  const hasAgentEnv = existsSync(agentEnvPath);
-  if (!hasMoltnetJson || !hasAgentEnv) {
-    throw new Error(
-      `Guest credential mode requires both ${moltnetPath} and ${agentEnvPath}`,
-    );
-  }
-  const moltnetJson = readFileSync(moltnetPath, 'utf8');
-  const agentEnvRaw = readFileSync(agentEnvPath, 'utf8');
-  if (moltnetJson.trim() === '') {
-    throw new Error(`Agent configuration is empty: ${moltnetPath}`);
-  }
-
-  // Read gitconfig + SSH keys for VM-side git signing
-  const gitconfigPath = path.join(agentDir, 'gitconfig');
-  const gitconfig = existsSync(gitconfigPath)
-    ? readFileSync(gitconfigPath, 'utf8')
-    : null;
-
-  const sshDir = path.join(agentDir, 'ssh');
-  const sshPrivateKey = existsSync(path.join(sshDir, 'id_ed25519'))
-    ? readFileSync(path.join(sshDir, 'id_ed25519'), 'utf8')
-    : null;
-  const sshPublicKey = existsSync(path.join(sshDir, 'id_ed25519.pub'))
-    ? readFileSync(path.join(sshDir, 'id_ed25519.pub'), 'utf8')
-    : null;
-  const allowedSigners = existsSync(path.join(sshDir, 'allowed_signers'))
-    ? readFileSync(path.join(sshDir, 'allowed_signers'), 'utf8')
-    : null;
-
-  // Read GitHub App PEM if configured in moltnet.json.
-  // The path is host-absolute and must be rewritten to a VM-local path before
-  // injecting the JSON into the guest — done in resumeVm.
-  let githubAppPem: string | null = null;
-  let githubAppPemFilename: string | null = null;
-  const moltnetConfigParsed = moltnetJson
-    ? (JSON.parse(moltnetJson) as {
-        github?: { private_key_path?: string };
-      })
-    : null;
-  const pemPath = moltnetConfigParsed?.github?.private_key_path;
-  if (pemPath) {
-    if (!existsSync(pemPath)) {
-      onDiagnostic?.({
-        event: 'vm.credentials.github_key_missing',
-        level: 'warning',
-        credentialMode: mode,
-        message:
-          `github.private_key_path not found at ${pemPath}; ` +
-          'moltnet github token will fail inside the guest',
-      });
-    } else {
-      githubAppPem = readFileSync(pemPath, 'utf8');
-      githubAppPemFilename = path.basename(pemPath);
-    }
-  }
-
+export function loadCredentials(): VmCredentials {
+  // Host-authenticated is the only credential boundary. The guest receives no
+  // MoltNet credential files: diary/commit signing goes through the
+  // `agent-signing` host capability (#1957) and HTTP credentials are brokered
+  // (#1959). Fields are retained (empty/null) for API stability.
   return {
-    moltnetJson,
-    agentEnvRaw,
-    agentEnv: parseEnv(agentEnvRaw),
-    gitconfig,
-    sshPrivateKey,
-    sshPublicKey,
-    allowedSigners,
-    githubAppPem,
-    githubAppPemFilename,
+    moltnetJson: '',
+    agentEnvRaw: '',
+    agentEnv: {},
+    gitconfig: null,
+    sshPrivateKey: null,
+    sshPublicKey: null,
+    allowedSigners: null,
+    githubAppPem: null,
+    githubAppPemFilename: null,
   };
 }
-
 /**
  * Apply agent env vars to the host process, mirroring `moltnet start`.
  * Resolves relative paths (e.g. GIT_CONFIG_GLOBAL) against the repo root.
@@ -933,11 +853,13 @@ export function assertGuestEnvironmentBoundary(options: {
   forwardEnv?: readonly string[];
   sandboxEnv?: Readonly<Record<string, string>>;
 }): void {
+  // The host-authenticated boundary is the only behaviour: refuse any
+  // forwarded name outside the allowlist regardless of the (vestigial) mode, so
+  // even a caller still passing `guest-config` cannot forward arbitrary env.
   const refusedForwardEnv = (options.forwardEnv ?? []).filter(
     (name) =>
       isReservedGuestEnvironmentName(name) ||
-      (options.guestCredentialMode === 'host-authenticated' &&
-        !HOST_AUTHENTICATED_GUEST_ENV_ALLOWLIST.has(name)),
+      !HOST_AUTHENTICATED_GUEST_ENV_ALLOWLIST.has(name),
   );
   const refusedSandboxEnv = Object.keys(options.sandboxEnv ?? {}).filter(
     isReservedGuestEnvironmentName,
@@ -1077,12 +999,8 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   const agentDir = resolveVmAgentDir(config);
   const guestWorkspace = path.resolve(config.mountPath);
 
-  const guestCredentialMode = config.guestCredentialMode ?? 'guest-config';
-  if (guestCredentialMode === 'guest-config' && !existsSync(agentDir)) {
-    throw new Error(
-      `Agent directory not found: ${agentDir}. Run: moltnet register --name ${config.agentName}`,
-    );
-  }
+  const guestCredentialMode =
+    config.guestCredentialMode ?? 'host-authenticated';
   assertGuestEnvironmentBoundary({
     guestCredentialMode,
     forwardEnv: config.forwardEnv,
@@ -1093,22 +1011,12 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     level: 'info',
     credentialMode: guestCredentialMode,
     message:
-      guestCredentialMode === 'host-authenticated'
-        ? 'MoltNet agent files and non-allowlisted host environment variables are withheld from the guest'
-        : 'The complete MoltNet agent configuration is available to the guest',
+      'MoltNet agent files and non-allowlisted host environment variables are withheld from the guest',
   });
 
-  const creds = loadCredentials(
-    agentDir,
-    guestCredentialMode,
-    config.onDiagnostic,
-  );
-  const configuredApiUrl = creds.moltnetJson
-    ? (JSON.parse(creds.moltnetJson) as { endpoints: { api: string } })
-        .endpoints.api
-    : undefined;
+  const creds = loadCredentials();
   const apiHost = new URL(
-    configuredApiUrl ?? process.env.MOLTNET_API_URL ?? DEFAULT_MOLTNET_API_URL,
+    process.env.MOLTNET_API_URL ?? DEFAULT_MOLTNET_API_URL,
   ).hostname;
 
   const runtimeAllowedHosts = config.sandboxConfig?.network?.allowedHosts ?? [];
@@ -1224,30 +1132,6 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     });
   }
 
-  // Build VM-side agent env vars from credentials.
-  // GIT_CONFIG_GLOBAL must point to the VM-side path, not host-side.
-  const vmAgentDir = `/home/agent/.moltnet/${config.agentName}`;
-  const vmAgentEnv: Record<string, string> = {};
-  for (const [k, v] of Object.entries(creds.agentEnv)) {
-    if (v === undefined || v === '') continue;
-    if (k === 'GIT_CONFIG_GLOBAL') {
-      // Remap to VM-side credentials path
-      vmAgentEnv[k] = `${vmAgentDir}/gitconfig`;
-    } else if (k.endsWith('_PRIVATE_KEY_PATH')) {
-      // Remap key paths to VM-side
-      vmAgentEnv[k] = `${vmAgentDir}/${path.basename(v)}`;
-    } else {
-      vmAgentEnv[k] = v;
-    }
-  }
-  // Pin MOLTNET_CREDENTIALS_PATH to the VM-side moltnet.json so that
-  // `moltnet github token` (and other subcommands) find the right agent
-  // without auto-discovery ambiguity (workspace mount exposes multiple
-  // .moltnet/<agent>/ dirs that confuse auto-discovery).
-  if (creds.moltnetJson) {
-    vmAgentEnv.MOLTNET_CREDENTIALS_PATH = `${vmAgentDir}/moltnet.json`;
-  }
-
   // Build workspace VFS provider.
   //
   // `node_modules` is always shadowed into guest-local memory because host
@@ -1273,14 +1157,15 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       writeMode: vfsConfig.mode,
     });
   }
-  if (guestCredentialMode === 'host-authenticated') {
-    workspaceProvider = new ShadowProvider(workspaceProvider, {
-      shouldShadow: ({ path: shadowPath }) =>
-        shadowPath.split('/').includes('.moltnet'),
-      denySymlinkBypass: true,
-      writeMode: 'deny',
-    });
-  }
+  // The mounted workspace may expose `.moltnet/<agent>` trees; deny the guest
+  // any read of them unconditionally (there is no guest-config mode that would
+  // legitimately inject them).
+  workspaceProvider = new ShadowProvider(workspaceProvider, {
+    shouldShadow: ({ path: shadowPath }) =>
+      shadowPath.split('/').includes('.moltnet'),
+    denySymlinkBypass: true,
+    writeMode: 'deny',
+  });
 
   const forwardedEnv: Record<string, string> = {};
   for (const name of config.forwardEnv ?? []) {
@@ -1294,7 +1179,6 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   // never silently replace another guest environment source.
   const envOverrides = config.sandboxConfig?.env ?? {};
   const vmEnv = {
-    ...vmAgentEnv,
     ...forwardedEnv,
     PATH: '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/go/bin',
     HOME: '/home/agent',
@@ -1470,19 +1354,12 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       }
     }
 
-    // Single credential-file boundary: host-authenticated guests never create
-    // `/home/agent/.moltnet`, even when a populated legacy directory exists on
-    // the host. Guest-config mode injects the complete coherent tree.
-    const vmSshDir = `${vmAgentDir}/ssh`;
-    const hasAgentFiles = guestCredentialMode === 'guest-config';
+    // Host-authenticated guests never receive a `/home/agent/.moltnet` tree.
     const projectedFiles = config.guestProjection?.files ?? [];
     const projectedDirs = [
       ...new Set(projectedFiles.map((file) => path.posix.dirname(file.path))),
     ];
-    const guestDirs = [
-      ...(hasAgentFiles ? [`${vmAgentDir}/ssh`] : []),
-      ...projectedDirs,
-    ];
+    const guestDirs = [...projectedDirs];
     if (guestDirs.length > 0) {
       await vmRun(
         vm,
@@ -1490,77 +1367,6 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
         `mkdir -p ${guestDirs.map(shellQuote).join(' ')}`,
         config.signal,
       );
-    }
-
-    if (hasAgentFiles) {
-      // Rewrite host-absolute credential paths to VM-local paths before the
-      // complete agent tree is injected.
-      const vmMoltnetJson = rewriteMoltnetJsonPaths(
-        creds.moltnetJson,
-        vmAgentDir,
-        vmSshDir,
-        creds.githubAppPemFilename,
-      );
-      await vm.fs.writeFile(`${vmAgentDir}/moltnet.json`, vmMoltnetJson, {
-        mode: 0o600,
-        signal: config.signal,
-      });
-      await vm.fs.writeFile(`${vmAgentDir}/env`, creds.agentEnvRaw, {
-        mode: 0o600,
-        signal: config.signal,
-      });
-
-      // Inject gitconfig with VM-side signing key path. The workspace is
-      // mounted at the same absolute path in the VM as on the host.
-      if (creds.gitconfig) {
-        const vmGitconfig = rewriteGitconfigPaths(
-          creds.gitconfig,
-          vmSshDir,
-          vmAgentDir,
-        );
-        await vm.fs.writeFile(`${vmAgentDir}/gitconfig`, vmGitconfig, {
-          mode: 0o644,
-          signal: config.signal,
-        });
-      }
-
-      if (creds.sshPrivateKey) {
-        await vm.fs.writeFile(`${vmSshDir}/id_ed25519`, creds.sshPrivateKey, {
-          mode: 0o600,
-          signal: config.signal,
-        });
-      }
-      if (creds.sshPublicKey) {
-        await vm.fs.writeFile(
-          `${vmSshDir}/id_ed25519.pub`,
-          creds.sshPublicKey,
-          {
-            mode: 0o644,
-            signal: config.signal,
-          },
-        );
-      }
-      if (creds.allowedSigners) {
-        await vm.fs.writeFile(
-          `${vmSshDir}/allowed_signers`,
-          creds.allowedSigners,
-          {
-            mode: 0o644,
-            signal: config.signal,
-          },
-        );
-      }
-
-      if (creds.githubAppPem && creds.githubAppPemFilename) {
-        await vm.fs.writeFile(
-          `${vmAgentDir}/${creds.githubAppPemFilename}`,
-          creds.githubAppPem,
-          {
-            mode: 0o600,
-            signal: config.signal,
-          },
-        );
-      }
     }
 
     for (const file of projectedFiles) {
@@ -1585,10 +1391,9 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     // optional: host-authenticated and env-only sessions never create it, so
     // each target is existence-guarded — a missing optional dir is skipped
     // while a real chown failure on a present dir still aborts (set -e).
-    const chownTargets = [
-      ...(hasAgentFiles ? ['/home/agent/.moltnet'] : []),
-      ...projectedDirs.filter((dir) => dir.startsWith('/home/agent/')),
-    ];
+    const chownTargets = projectedDirs.filter((dir) =>
+      dir.startsWith('/home/agent/'),
+    );
     await vmRun(
       vm,
       'chown guest directories',
@@ -1707,7 +1512,8 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     }
 
     // Git push/pull auth over HTTPS comes entirely from the injected gitconfig
-    // (rewriteGitconfigPaths above): the tokenless `moltnet github
+    // the non-secret gitconfig projected by the agent-signing capability:
+    // the tokenless `moltnet github
     // credential-helper` plus the `insteadOf` SSH→HTTPS rewrite that
     // `moltnet github setup` writes into the agent gitconfig. No hand-rolled
     // credential script and no imperative `git config --global` here — that
@@ -1740,95 +1546,4 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     }
     throw err;
   }
-}
-
-/**
- * Rewrite host-absolute paths inside an agent gitconfig to VM-local
- * equivalents before injecting it into the guest.
- *
- * Two rewrites:
- *   - `signingKey = <host path>`  → `<vmSshDir>/id_ed25519`
- *   - `... credential-helper --credentials <host moltnet.json>`
- *                                 → `<vmAgentDir>/moltnet.json`
- *
- * The credential-helper line is generated host-side by `moltnet github setup`
- * with a host-absolute `--credentials` path; inside the guest that path is
- * invalid, so it must point at the VM-side moltnet.json. The `insteadOf`
- * rewrite rule and every other line are workspace-independent and pass through
- * unchanged. A gitconfig without a credential helper is rewritten only for
- * `signingKey`.
- *
- * This is the single source of truth for git push auth in the guest: the
- * injected gitconfig carries the tokenless mint-on-demand helper, so the VM
- * no longer hand-rolls a credential-helper script or runs an imperative
- * `git config --global ... insteadOf` against the guest $HOME.
- */
-export function rewriteGitconfigPaths(
-  gitconfig: string,
-  vmSshDir: string,
-  vmAgentDir: string,
-): string {
-  return gitconfig
-    .replace(/signingKey\s*=\s*.+/g, `signingKey = ${vmSshDir}/id_ed25519`)
-    .replace(
-      /(moltnet github credential-helper --credentials )\S+/g,
-      `$1${vmAgentDir}/moltnet.json`,
-    );
-}
-
-/**
- * Rewrite host-absolute paths inside moltnet.json to VM-local equivalents.
- *
- * Fields rewritten:
- *   ssh.private_key_path  → <vmSshDir>/<basename of original>
- *   ssh.public_key_path   → <vmSshDir>/<basename of original>
- *   git.config_path       → <vmAgentDir>/gitconfig
- *   github.private_key_path → <vmAgentDir>/<pemFilename>  (if present)
- *
- * All other fields are passed through unchanged.
- * Throws if moltnetJson is not valid JSON — callers must not inject a broken
- * moltnet.json into the guest.
- */
-export function rewriteMoltnetJsonPaths(
-  moltnetJson: string,
-  vmAgentDir: string,
-  vmSshDir: string,
-  githubAppPemFilename: string | null,
-): string {
-  const config = JSON.parse(moltnetJson) as Record<string, unknown>;
-
-  if (config.ssh && typeof config.ssh === 'object') {
-    const ssh = config.ssh as Record<string, unknown>;
-    const origPrivate =
-      typeof ssh.private_key_path === 'string' ? ssh.private_key_path : null;
-    const origPublic =
-      typeof ssh.public_key_path === 'string' ? ssh.public_key_path : null;
-    config.ssh = {
-      ...ssh,
-      ...(origPrivate !== null && {
-        private_key_path: `${vmSshDir}/${path.basename(origPrivate)}`,
-      }),
-      ...(origPublic !== null && {
-        public_key_path: `${vmSshDir}/${path.basename(origPublic)}`,
-      }),
-    };
-  }
-
-  if (config.git && typeof config.git === 'object') {
-    const git = { ...(config.git as Record<string, unknown>) };
-    git.config_path = `${vmAgentDir}/gitconfig`;
-    config.git = git;
-  }
-
-  if (
-    githubAppPemFilename &&
-    config.github &&
-    typeof config.github === 'object'
-  ) {
-    const github = { ...(config.github as Record<string, unknown>) };
-    github.private_key_path = `${vmAgentDir}/${githubAppPemFilename}`;
-    config.github = github;
-  }
-
-  return JSON.stringify(config);
 }
