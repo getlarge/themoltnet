@@ -109,8 +109,8 @@ func runGitHubGuard(
 }
 
 func currentGitHubGuardContext() (githubGuardContext, bool) {
-	gitConfigPath, ok := currentMoltnetGitConfigPath()
-	if !ok {
+	gitConfigPath, active, err := currentMoltnetGitConfigPath()
+	if !active || err != nil {
 		return githubGuardContext{}, false
 	}
 
@@ -131,20 +131,28 @@ func currentGitHubGuardContext() (githubGuardContext, bool) {
 	}, true
 }
 
-// currentMoltnetGitConfigPath returns the active agent gitconfig selected by
+// currentMoltnetGitConfigPath resolves the active agent gitconfig selected by
 // this process. Repository-level hooks are shared with ordinary contributors,
-// so the path shape is the runtime activation boundary for every guard.
-func currentMoltnetGitConfigPath() (string, bool) {
+// so the configured path shape is the runtime activation boundary for every
+// guard. A true active result is preserved when resolution fails so security
+// callers can fail closed instead of treating a broken activated session as an
+// ordinary contributor session.
+func currentMoltnetGitConfigPath() (path string, active bool, err error) {
 	configured := strings.TrimSpace(os.Getenv("GIT_CONFIG_GLOBAL"))
 	if !isMoltnetGitConfig(configured) {
-		return "", false
+		return "", false, nil
 	}
 
 	gitConfigPath, err := resolveGitConfigGlobalPath(configured)
-	if err != nil || !isMoltnetGitConfig(gitConfigPath) {
-		return "", false
+	if err != nil {
+		return "", true, fmt.Errorf("resolve activated GIT_CONFIG_GLOBAL: %w", err)
 	}
-	return gitConfigPath, true
+	if !isMoltnetGitConfig(gitConfigPath) {
+		return "", true, fmt.Errorf(
+			"resolved activated GIT_CONFIG_GLOBAL has an invalid path shape",
+		)
+	}
+	return gitConfigPath, true, nil
 }
 
 func resolveGitConfigGlobalPath(configured string) (string, error) {
