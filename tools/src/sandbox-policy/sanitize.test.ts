@@ -95,11 +95,14 @@ describe('sandbox policy evidence sanitization', () => {
     expect(parsed.controls[0]).toMatchObject({
       state: 'enforced',
       basis: 'harness-observed',
-      oracle: { observed: 0, passed: true },
+      oracle: {
+        observed: { registeredSensitiveValues: 1, leakHits: 0 },
+        passed: true,
+      },
     });
     expect(run.controls[0]?.state).toBe('unsupported');
 
-    expect(() =>
+    const failed = JSON.parse(
       sanitizeProbeRunForPersistence(
         {
           ...run,
@@ -107,7 +110,30 @@ describe('sandbox policy evidence sanitization', () => {
         },
         { sensitiveValues: ['leaked'] },
       ),
-    ).toThrow('synthetic credential sentinel');
+    ) as SandboxProbeRun;
+    expect(failed.controls[0]).toMatchObject({
+      state: 'failed-open',
+      reasonCode: 'evidence_persistence_validation_failed',
+      oracle: {
+        observed: { registeredSensitiveValues: 1, leakHits: 1 },
+        passed: false,
+      },
+    });
+    expect(JSON.stringify(failed)).not.toContain('leaked');
+  });
+
+  it('does not pass evidence-leak without a registered sensitive value', () => {
+    const parsed = JSON.parse(
+      sanitizeProbeRunForPersistence(probeRun(), { sensitiveValues: [] }),
+    ) as SandboxProbeRun;
+
+    expect(parsed.controls[0]).toMatchObject({
+      state: 'failed-open',
+      oracle: {
+        observed: { registeredSensitiveValues: 0, leakHits: 0 },
+        passed: false,
+      },
+    });
   });
 });
 
@@ -138,6 +164,7 @@ function probeRun(): SandboxProbeRun {
         backend: { id: 'fixture', version: '1' },
         enforcementLocus: ['research-harness'],
         state: 'unsupported',
+        unsupportedKind: 'not-measured',
         basis: 'declared',
         oracle: null,
         reasonCode: 'value_free_evidence_only',
@@ -148,6 +175,7 @@ function probeRun(): SandboxProbeRun {
     hostCapabilities: [],
     cleanup: [],
     cleanupComplete: true,
+    sensitiveDiagnosticRedactions: 0,
     violations: [],
   };
 }

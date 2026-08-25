@@ -49,11 +49,18 @@ class FixtureAdapter implements ResearchSandboxAdapter {
   closed = false;
   closeCalls = 0;
   failInspect = false;
+  failWithSensitiveDiagnostic = false;
   failClose = false;
   leaveResidue = false;
 
   inspect() {
-    if (this.failInspect) throw new Error('/Users/alice/inspect failed');
+    if (this.failInspect) {
+      throw new Error(
+        this.failWithSensitiveDiagnostic
+          ? 'diagnostic-secret'
+          : '/Users/alice/inspect failed',
+      );
+    }
     return Promise.resolve({
       id: 'fixture',
       version: '1.0.0',
@@ -82,6 +89,7 @@ class FixtureAdapter implements ResearchSandboxAdapter {
       backend: { id: 'fixture', version: '1.0.0' },
       enforcementLocus: ['fixture'],
       state: 'unsupported',
+      unsupportedKind: 'backend-capability',
       basis: 'declared',
       oracle: null,
       reasonCode: 'fixture_unsupported',
@@ -95,6 +103,10 @@ class FixtureAdapter implements ResearchSandboxAdapter {
   hostCapabilities() {
     if (this.closed) throw new Error('capabilities requested after close');
     return Promise.resolve([]);
+  }
+
+  sensitiveValues() {
+    return ['diagnostic-secret'];
   }
 
   close() {
@@ -139,6 +151,7 @@ describe('sandbox policy adapter runner', () => {
       reasonCode: 'adapter_scenario_error',
       notes: ['<redacted sensitive diagnostic>'],
     });
+    expect(run.sensitiveDiagnosticRedactions).toBe(0);
   });
 
   it('closes and returns evidence when inspection fails', async () => {
@@ -156,6 +169,17 @@ describe('sandbox policy adapter runner', () => {
     expect(run.violations).toContainEqual(
       expect.objectContaining({ code: 'adapter_inspect_error' }),
     );
+  });
+
+  it('counts sensitive values redacted from diagnostics', async () => {
+    const adapter = new FixtureAdapter();
+    adapter.failInspect = true;
+    adapter.failWithSensitiveDiagnostic = true;
+
+    const run = await runAdapterProbe(options(adapter));
+
+    expect(run.sensitiveDiagnosticRedactions).toBe(1);
+    expect(run.violations[0]?.message).toBe('<redacted sensitive diagnostic>');
   });
 
   it('preserves controls when close throws', async () => {
