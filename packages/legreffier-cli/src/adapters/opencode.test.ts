@@ -173,4 +173,20 @@ describe('OpencodeAdapter.writeSettings', () => {
       'tool_input: output.args',
     );
   });
+
+  it('checks process activation before inspecting arguments or spawning the guard', () => {
+    const activationCheck = OPENCODE_SECRET_GUARD_PLUGIN.indexOf(
+      'if (!hasActiveMoltnetGitConfig()) return;',
+    );
+    expect(activationCheck).toBeGreaterThan(-1);
+    expect(activationCheck).toBeLessThan(
+      OPENCODE_SECRET_GUARD_PLUGIN.indexOf('normalizeGuardArgs(output.args)'),
+    );
+    expect(activationCheck).toBeLessThan(
+      OPENCODE_SECRET_GUARD_PLUGIN.indexOf('Bun.spawnSync'),
+    );
+    expect(OPENCODE_SECRET_GUARD_PLUGIN).toContain(
+      "parts[n - 3] === '.moltnet'",
+    );
+  });
 });
