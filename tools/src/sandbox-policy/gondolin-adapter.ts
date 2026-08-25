@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import {
+  BrokeredHttpSecretBoundaryError,
   ensureSnapshot,
   execManagedCommand,
   type ManagedExecTermination,
@@ -20,19 +21,20 @@ import type {
   ControlEvidence,
   ControlOracle,
   EnforcementLocus,
+  EvidenceBasis,
   HostCapabilityEvidence,
   PersistentMutationEvidence,
   ProbeContext,
   ReasonCode,
   ResearchSandboxAdapter,
   SandboxScenario,
+  UnsupportedKind,
 } from './types.js';
 
 const BACKEND_ID = 'gondolin';
-const FIXTURE_HOST = '127-0-0-1.sslip.io';
-const ADJACENT_CREDENTIAL_HOST = '127.0.0.1.sslip.io';
-const UNLISTED_FIXTURE_HOST = '127-0-0-1.nip.io';
-const EFFECTIVE_FIXTURE_HOSTS = [FIXTURE_HOST, ADJACENT_CREDENTIAL_HOST];
+const FIXTURE_HOST = '127.0.0.1';
+const FIXTURE_BIND_ADDRESS = FIXTURE_HOST;
+const EFFECTIVE_FIXTURE_HOSTS = [FIXTURE_HOST];
 const SECRET_ENV = 'FIXTURE_API_TOKEN';
 const gondolinPackage = createRequire(import.meta.url)(
   '@earendil-works/gondolin/package.json',
@@ -48,6 +50,27 @@ interface GuestResult {
   termination: ManagedExecTermination;
 }
 
+interface EvidenceProvenance {
+  basis: Exclude<EvidenceBasis, 'declared'>;
+  attestedBy: ControlOracle['attestedBy'];
+}
+
+interface GondolinAdapterOptions {
+  ensureSnapshot?: typeof ensureSnapshot;
+  execManagedCommand?: typeof execManagedCommand;
+  resumeVm?: typeof resumeVm;
+  startPolicyFixture?: typeof startPolicyFixture;
+}
+
+const ADAPTER_PROVENANCE: EvidenceProvenance = {
+  basis: 'applied',
+  attestedBy: 'adapter',
+};
+const HARNESS_PROVENANCE: EvidenceProvenance = {
+  basis: 'verified',
+  attestedBy: 'harness',
+};
+
 function sleep(milliseconds: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, milliseconds);
@@ -58,9 +81,10 @@ export async function execGondolinGuest(
   managed: ManagedVm,
   command: string,
   signal?: AbortSignal,
+  execute: typeof execManagedCommand = execManagedCommand,
 ): Promise<GuestResult> {
   let output = '';
-  const result = await execManagedCommand(managed.vm, command, {
+  const result = await execute(managed.vm, command, {
     signal,
     onData(data) {
       output += data.toString('utf8');
@@ -74,6 +98,10 @@ export async function execGondolinGuest(
 }
 
 export class GondolinAdapter implements ResearchSandboxAdapter {
+  readonly #ensureSnapshot: typeof ensureSnapshot;
+  readonly #execManagedCommand: typeof execManagedCommand;
+  readonly #resumeVm: typeof resumeVm;
+  readonly #startPolicyFixture: typeof startPolicyFixture;
   readonly #cleanup = new CleanupManifest();
   #inventory: BackendInventory | null = null;
   #checkpointPath = '';
@@ -86,11 +114,19 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
   #missingBindingVerified: boolean | null = null;
   #scenarioSignal: AbortSignal | undefined;
   #credentialDeliveryVerified = false;
+  #networkDeliveryVerified = false;
   #rotatedDeliveryVerified = false;
+
+  constructor(options: GondolinAdapterOptions = {}) {
+    this.#ensureSnapshot = options.ensureSnapshot ?? ensureSnapshot;
+    this.#execManagedCommand = options.execManagedCommand ?? execManagedCommand;
+    this.#resumeVm = options.resumeVm ?? resumeVm;
+    this.#startPolicyFixture = options.startPolicyFixture ?? startPolicyFixture;
+  }
 
   async inspect(): Promise<BackendInventory> {
     if (!this.#inventory) {
-      this.#checkpointPath = await ensureSnapshot();
+      this.#checkpointPath = await this.#ensureSnapshot();
       this.#inventory = {
         id: BACKEND_ID,
         version: GONDOLIN_VERSION,
@@ -109,7 +145,10 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
 
   async #ensureFixture(): Promise<PolicyFixture> {
     if (!this.#fixture) {
-      const fixture = await startPolicyFixture('0.0.0.0', FIXTURE_HOST);
+      const fixture = await this.#startPolicyFixture(
+        FIXTURE_BIND_ADDRESS,
+        FIXTURE_HOST,
+      );
       this.#fixture = fixture;
       this.#initialCredential = fixture.credential;
       this.#cleanup.add('fixture-server', '<loopback-fixture>', async () => {
@@ -121,7 +160,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
 
   async #resume(): Promise<ManagedVm> {
     const fixture = await this.#ensureFixture();
-    const managed = await resumeVm({
+    const managed = await this.#resumeVm({
       checkpointPath: this.#checkpointPath,
       agentName: 'sandbox-policy-probe',
       agentRootDir: this.#probeRoot,
@@ -183,6 +222,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
       managed,
       command,
       this.#scenarioSignal,
+      this.#execManagedCommand,
     );
     if (result.termination.status === 'backend-retired') {
       if (this.#managed === managed) this.#managed = null;
@@ -218,6 +258,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
     oracle: Omit<ControlOracle, 'attestedBy'>,
     effective: Record<string, unknown>,
     reasonCode: ReasonCode,
+    provenance: EvidenceProvenance,
     locus: EnforcementLocus[] = ['gondolin-microvm', 'gondolin-host-hooks'],
   ): Promise<ControlEvidence> {
     const inventory = await this.inspect();
@@ -228,8 +269,8 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
       backend: { id: inventory.id, version: inventory.version },
       enforcementLocus: locus,
       state: oracle.passed ? 'enforced' : 'failed-open',
-      basis: 'verified',
-      oracle: { ...oracle, attestedBy: 'adapter' },
+      basis: provenance.basis,
+      oracle: { ...oracle, attestedBy: provenance.attestedBy },
       reasonCode,
       recordedAt: context.recordedAt(),
       persistentMutations: this.#cleanup.snapshot(),
@@ -240,6 +281,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
     scenario: SandboxScenario,
     context: ProbeContext,
     reasonCode: ReasonCode,
+    unsupportedKind: UnsupportedKind,
     options: {
       basis?: 'declared' | 'applied';
       effective?: Record<string, unknown>;
@@ -259,6 +301,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
       backend: { id: inventory.id, version: inventory.version },
       enforcementLocus: options.locus ?? ['gondolin-adapter'],
       state: 'unsupported',
+      unsupportedKind,
       basis: options.basis ?? 'applied',
       oracle: null,
       reasonCode,
@@ -272,15 +315,18 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
       return this.#missingBindingVerified;
     }
     const fixture = await this.#ensureFixture();
+    let unexpected: ManagedVm | undefined;
     try {
-      const unexpected = await resumeVm({
+      unexpected = await this.#resumeVm({
         checkpointPath: this.#checkpointPath,
         agentName: 'sandbox-policy-missing-binding',
         agentRootDir: this.#probeRoot,
         guestCredentialMode: 'host-authenticated',
         mountPath: this.#workspace,
+        workspaceMode: 'scratch_mount',
         sandboxConfig: {
           network: { allowedInternalHosts: [FIXTURE_HOST] },
+          resources: { cpus: 1, memory: '1G' },
         },
         brokeredSecrets: [
           {
@@ -293,10 +339,18 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
           },
         ],
       });
-      await unexpected.vm.close();
       this.#missingBindingVerified = false;
-    } catch {
-      this.#missingBindingVerified = true;
+    } catch (error) {
+      this.#missingBindingVerified =
+        error instanceof BrokeredHttpSecretBoundaryError &&
+        error.issues.some((issue) =>
+          issue.includes(
+            'required binding "missing-fixture" has no resolved value',
+          ),
+        );
+      if (!this.#missingBindingVerified) throw error;
+    } finally {
+      await unexpected?.vm.close();
     }
     return this.#missingBindingVerified;
   }
@@ -326,12 +380,16 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
             passed: result.exitCode === 0 && observed === 'ok',
           },
           { workspace: 'host VFS mount', mode: 'rw' },
-          'workspace_vfs_write_observed',
+          'workspace_write_observed',
+          HARNESS_PROVENANCE,
         );
       }
       case 'filesystem.outside-write': {
         const marker = path.join(this.#outside, 'outside-write.txt');
-        await this.#execGuest(managed, `printf escaped > '${marker}'`);
+        const result = await this.#execGuest(
+          managed,
+          `printf escaped > '${marker}'`,
+        );
         const escaped = await readFile(marker, 'utf8').catch(() => '');
         return this.#evidence(
           scenario,
@@ -340,17 +398,19 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
             kind: 'outside-marker-absence',
             expected: 'absent',
             observed: escaped === '' ? 'absent' : 'present',
-            passed: escaped === '',
+            passed: result.exitCode !== 0 && escaped === '',
           },
-          { mount: '<workspace-only>' },
-          'microvm_host_boundary_observed',
+          { mount: '<workspace-only>', guestExitCode: result.exitCode },
+          'outside_mount_boundary_observed',
+          HARNESS_PROVENANCE,
         );
       }
       case 'filesystem.read-only':
         return this.#unsupported(
           scenario,
           context,
-          'resumeVm_has_no_readonly_secondary_mount_contract',
+          'readonly_secondary_mount_unsupported',
+          'backend-capability',
         );
       case 'filesystem.credential-path': {
         const credentialPath = path.join(this.#outside, 'credential.txt');
@@ -369,6 +429,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
           },
           { guestCredentialMode: 'host-authenticated', hostPathMounted: false },
           'host_credential_path_absent',
+          ADAPTER_PROVENANCE,
         );
       }
       case 'filesystem.symlink-traversal': {
@@ -376,24 +437,32 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
         const marker = path.join(this.#outside, 'symlink-write.txt');
         await rm(link, { force: true });
         await symlink(this.#outside, link);
-        await this.#execGuest(
-          managed,
-          'printf escaped > "$MOLTNET_GUEST_WORKSPACE/outside-link/symlink-write.txt"',
-        );
-        const escaped = await readFile(marker, 'utf8').catch(() => '');
-        return this.#evidence(
-          scenario,
-          context,
-          {
-            kind: 'outside-marker-absence',
-            expected: 'absent',
-            observed: escaped === '' ? 'absent' : 'present',
-            passed: escaped === '',
-          },
-          { hostSymlinkTarget: '<outside-mount>' },
-          'vfs_symlink_boundary_observed',
-          ['gondolin-host-hooks'],
-        );
+        try {
+          const result = await this.#execGuest(
+            managed,
+            'printf escaped > "$MOLTNET_GUEST_WORKSPACE/outside-link/symlink-write.txt"',
+          );
+          const escaped = await readFile(marker, 'utf8').catch(() => '');
+          return this.#evidence(
+            scenario,
+            context,
+            {
+              kind: 'outside-marker-absence',
+              expected: 'absent',
+              observed: escaped === '' ? 'absent' : 'present',
+              passed: result.exitCode !== 0 && escaped === '',
+            },
+            {
+              hostSymlinkTarget: '<outside-mount>',
+              guestExitCode: result.exitCode,
+            },
+            'vfs_symlink_boundary_observed',
+            HARNESS_PROVENANCE,
+            ['gondolin-host-hooks'],
+          );
+        } finally {
+          await rm(link, { force: true });
+        }
       }
       case 'filesystem.cleanup': {
         const directory = path.join(this.#workspace, 'cleanup-probe');
@@ -416,39 +485,36 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
           },
           { attempts: 2, scope: '<workspace>' },
           'scoped_cleanup_idempotence_observed',
+          HARNESS_PROVENANCE,
           ['research-harness'],
         );
       }
       case 'network.deny-all':
-      case 'network.wrong-host': {
-        const requestStart = fixture.requests.length;
-        const connectionStart = fixture.connectionCount('allowed');
-        const result = await this.#execGuest(
-          managed,
-          `curl -fsS --max-time 3 'http://${UNLISTED_FIXTURE_HOST}:${fixture.allowedPort}${fixture.path(`/${scenario.id}`)}'`,
-        );
-        const delivered = fixture.capture(requestStart).length;
-        const connections =
-          fixture.connectionCount('allowed') - connectionStart;
-        return this.#evidence(
+        return this.#unsupported(
           scenario,
           context,
+          'fixture_does_not_claim_protocol_or_dns_control',
+          'fixture-limitation',
           {
-            kind: 'unlisted-request-count',
-            expected: 0,
-            observed: { requests: delivered, connections },
-            passed:
-              result.exitCode !== 0 && delivered === 0 && connections === 0,
+            effective: {
+              allowedInternalHosts: EFFECTIVE_FIXTURE_HOSTS,
+              probe: 'active VM is not configured with an empty allowlist',
+            },
           },
-          {
-            allowedInternalHosts: EFFECTIVE_FIXTURE_HOSTS,
-            attempted: `${UNLISTED_FIXTURE_HOST}:<allowed-port>`,
-            guestExitCode: result.exitCode,
-          },
-          'unlisted_hostname_probe_observed',
-          ['gondolin-host-hooks'],
         );
-      }
+      case 'network.wrong-host':
+        return this.#unsupported(
+          scenario,
+          context,
+          'fixture_does_not_claim_protocol_or_dns_control',
+          'fixture-limitation',
+          {
+            effective: {
+              allowedInternalHosts: EFFECTIVE_FIXTURE_HOSTS,
+              probe: 'no second controlled local hostname',
+            },
+          },
+        );
       case 'network.exact-allow': {
         const before = fixture.requests.length;
         const result = await this.#execGuest(
@@ -456,6 +522,8 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
           `curl -sS --max-time 10 'http://${FIXTURE_HOST}:${fixture.allowedPort}${fixture.path('/allowed')}'`,
         );
         const delivered = fixture.requests.length - before;
+        this.#networkDeliveryVerified =
+          result.exitCode === 0 && delivered === 1;
         return this.#evidence(
           scenario,
           context,
@@ -463,17 +531,34 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
             kind: 'allowed-request-count',
             expected: 1,
             observed: delivered,
-            passed: result.exitCode === 0 && delivered === 1,
+            passed: this.#networkDeliveryVerified,
           },
           {
             requested: [`${FIXTURE_HOST}:<allowed-port>`],
             effectiveNetwork: EFFECTIVE_FIXTURE_HOSTS,
           },
-          'allowed_hostname_observed',
+          'exact_destination_allow_observed',
+          HARNESS_PROVENANCE,
           ['gondolin-host-hooks'],
         );
       }
       case 'network.wrong-port': {
+        if (!this.#networkDeliveryVerified) {
+          return this.#unsupported(
+            scenario,
+            context,
+            'positive_fixture_transport_unavailable',
+            'fixture-limitation',
+            {
+              effective: {
+                fixtureHost: FIXTURE_HOST,
+                probe:
+                  'literal loopback remains guest-local instead of traversing host HTTP hooks',
+              },
+              locus: ['research-harness'],
+            },
+          );
+        }
         const requestStart = fixture.requests.length;
         const connectionStart = fixture.connectionCount('adjacent');
         const result = await this.#execGuest(
@@ -499,10 +584,27 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
             guestExitCode: result.exitCode,
           },
           'exact_port_probe_observed',
+          HARNESS_PROVENANCE,
           ['gondolin-host-hooks'],
         );
       }
       case 'network.protocol': {
+        if (!this.#networkDeliveryVerified) {
+          return this.#unsupported(
+            scenario,
+            context,
+            'positive_fixture_transport_unavailable',
+            'fixture-limitation',
+            {
+              effective: {
+                fixtureHost: FIXTURE_HOST,
+                probe:
+                  'literal loopback remains guest-local instead of traversing host HTTP hooks',
+              },
+              locus: ['research-harness'],
+            },
+          );
+        }
         const requestStart = fixture.requests.length;
         const connectionStart = fixture.connectionCount('allowed');
         const result = await this.#execGuest(
@@ -530,10 +632,26 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
             guestExitCode: result.exitCode,
           },
           'protocol_origin_probe_observed',
+          HARNESS_PROVENANCE,
           ['gondolin-host-hooks'],
         );
       }
       case 'network.redirect': {
+        if (!this.#networkDeliveryVerified) {
+          return this.#unsupported(
+            scenario,
+            context,
+            'positive_fixture_transport_unavailable',
+            'fixture-limitation',
+            {
+              effective: {
+                fixtureHost: FIXTURE_HOST,
+                probe: 'redirect baseline did not reach the host fixture',
+              },
+              locus: ['research-harness'],
+            },
+          );
+        }
         const requestStart = fixture.requests.length;
         const adjacentConnectionStart = fixture.connectionCount('adjacent');
         const result = await this.#execGuest(
@@ -574,6 +692,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
           },
           { redirectTarget: `${FIXTURE_HOST}:<adjacent-port>` },
           'redirect_revalidation_probe_observed',
+          HARNESS_PROVENANCE,
           ['gondolin-host-hooks'],
         );
       }
@@ -583,6 +702,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
           scenario,
           context,
           'internal_hostname_binding_recorded',
+          'not-measured',
           {
             basis: 'applied',
             effective: {
@@ -599,6 +719,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
           scenario,
           context,
           'no_controlled_dns_rebinding_fixture',
+          'fixture-limitation',
         );
       case 'credential.missing-binding':
       case 'lifecycle.broker-unavailable': {
@@ -616,6 +737,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
           scenario.domain === 'credential'
             ? 'required_binding_preflight_observed'
             : 'adapter_preflight_rejected_unavailable_broker',
+          HARNESS_PROVENANCE,
           ['gondolin-adapter', 'gondolin-host-hooks'],
         );
       }
@@ -644,15 +766,32 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
             guestValue: '<stand-in>',
             origin: `${FIXTURE_HOST}:<allowed-port>`,
           },
-          'allowed_origin_substitution_observed',
+          'allowed_origin_secret_substitution_observed',
+          HARNESS_PROVENANCE,
           ['gondolin-host-hooks'],
         );
       }
       case 'credential.adjacent-origin': {
+        if (!this.#networkDeliveryVerified) {
+          return this.#unsupported(
+            scenario,
+            context,
+            'positive_fixture_transport_unavailable',
+            'fixture-limitation',
+            {
+              effective: {
+                fixtureHost: FIXTURE_HOST,
+                probe:
+                  'adjacent-origin baseline did not reach the host fixture',
+              },
+              locus: ['research-harness'],
+            },
+          );
+        }
         const baselineStart = fixture.requests.length;
         const baseline = await this.#execGuest(
           managed,
-          `curl -sS --max-time 10 'http://${ADJACENT_CREDENTIAL_HOST}:${fixture.adjacentPort}${fixture.path('/adjacent-network')}'`,
+          `curl -sS --max-time 10 'http://${FIXTURE_HOST}:${fixture.adjacentPort}${fixture.path('/adjacent-network')}'`,
         );
         const baselineRequests = fixture
           .capture(baselineStart)
@@ -660,7 +799,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
         const credentialStart = fixture.requests.length;
         const credentialAttempt = await this.#execGuest(
           managed,
-          `curl -fsS --max-time 10 -H "Authorization: Bearer $${SECRET_ENV}" 'http://${ADJACENT_CREDENTIAL_HOST}:${fixture.adjacentPort}${fixture.path('/adjacent-credential')}'`,
+          `curl -fsS --max-time 10 -H "Authorization: Bearer $${SECRET_ENV}" 'http://${FIXTURE_HOST}:${fixture.adjacentPort}${fixture.path('/adjacent-credential')}'`,
         );
         const credentialRequests = fixture
           .capture(credentialStart)
@@ -687,14 +826,30 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
               !matched,
           },
           {
-            networkAllowed: `${ADJACENT_CREDENTIAL_HOST}:<adjacent-port>`,
+            networkAllowed: `${FIXTURE_HOST}:<adjacent-port>`,
             credentialFidelity: 'protocol-host-port',
           },
-          'adjacent_origin_secret_probe_observed',
+          'adjacent_origin_secret_not_substituted',
+          HARNESS_PROVENANCE,
           ['gondolin-host-hooks'],
         );
       }
       case 'credential.rotation': {
+        if (!this.#credentialDeliveryVerified) {
+          return this.#unsupported(
+            scenario,
+            context,
+            'positive_fixture_transport_unavailable',
+            'fixture-limitation',
+            {
+              effective: {
+                fixtureHost: FIXTURE_HOST,
+                probe: 'initial credential delivery was not established',
+              },
+              locus: ['research-harness'],
+            },
+          );
+        }
         const rotatedCredential = fixture.rotate();
         managed.secretManager.rotateSecret(SECRET_ENV, rotatedCredential);
         const before = fixture.requests.length;
@@ -721,11 +876,30 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
             transition: 'host-manager-rotation',
             guestValue: '<same-stand-in>',
           },
-          'rotation_observed',
+          'rotated_binding_observed',
+          HARNESS_PROVENANCE,
           ['gondolin-host-hooks'],
         );
       }
       case 'credential.revocation': {
+        if (
+          !this.#credentialDeliveryVerified ||
+          !this.#rotatedDeliveryVerified
+        ) {
+          return this.#unsupported(
+            scenario,
+            context,
+            'revocation_unverified_without_prior_delivery',
+            'not-measured',
+            {
+              effective: {
+                prerequisite:
+                  'initial and rotated credential delivery must both pass',
+              },
+              locus: ['research-harness'],
+            },
+          );
+        }
         managed.secretManager.revokeSecret(SECRET_ENV);
         const before = fixture.requests.length;
         const result = await this.#execGuest(
@@ -753,12 +927,28 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
           },
           { transition: 'host-manager-revocation' },
           passed
-            ? 'revocation_observed'
+            ? 'revoked_binding_not_delivered'
             : 'revocation_unverified_without_prior_delivery',
+          HARNESS_PROVENANCE,
           ['gondolin-host-hooks'],
         );
       }
       case 'credential.resume': {
+        if (!this.#credentialDeliveryVerified) {
+          return this.#unsupported(
+            scenario,
+            context,
+            'positive_fixture_transport_unavailable',
+            'fixture-limitation',
+            {
+              effective: {
+                fixtureHost: FIXTURE_HOST,
+                probe: 'initial credential delivery was not established',
+              },
+              locus: ['research-harness'],
+            },
+          );
+        }
         await managed.vm.close();
         this.#managed = null;
         fixture.restore(this.#initialCredential);
@@ -781,7 +971,8 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
             passed: result.exitCode === 0 && matched,
           },
           { restart: 'checkpoint-resume', rebinding: 'required-and-explicit' },
-          'resume_rebinding_observed',
+          'explicit_rebinding_after_restart_observed',
+          HARNESS_PROVENANCE,
           ['gondolin-adapter', 'gondolin-host-hooks'],
         );
       }
@@ -790,6 +981,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
           scenario,
           context,
           'value_free_evidence_only',
+          'not-measured',
           {
             basis: 'declared',
             effective: {
@@ -819,17 +1011,24 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
           context.signal.addEventListener('abort', abortFromRunner, {
             once: true,
           });
-        const process = execManagedCommand(
+        const process = this.#execManagedCommand(
           current.vm,
           `printf started > "$MOLTNET_GUEST_WORKSPACE/${startedName}"; setsid sh -c 'sleep ${delayedMarkerMs / 1_000}; printf escaped > "$MOLTNET_GUEST_WORKSPACE/${markerName}"' & wait`,
           scenario.id === 'lifecycle.timeout'
             ? { signal: controller.signal, timeoutMs: 1_000 }
             : { signal: controller.signal },
         );
+        let acknowledged = '';
         for (let attempt = 0; attempt < 40; attempt += 1) {
-          const acknowledged = await readFile(started, 'utf8').catch(() => '');
+          acknowledged = await readFile(started, 'utf8').catch(() => '');
           if (acknowledged === 'started') break;
           await sleep(100);
+        }
+        if (acknowledged !== 'started') {
+          controller.abort(new Error('guest work did not acknowledge startup'));
+          await process.catch(() => undefined);
+          context.signal.removeEventListener('abort', abortFromRunner);
+          throw new Error('guest work did not acknowledge startup');
         }
         if (scenario.id === 'lifecycle.cancel') controller.abort();
         let termination: Awaited<ReturnType<typeof execManagedCommand>>;
@@ -859,15 +1058,20 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
             kind: 'delayed-marker-absence',
             expected: 'absent',
             observed: escaped === '' ? 'absent' : 'present',
-            passed: escaped === '' && retirementObserved,
+            passed:
+              acknowledged === 'started' &&
+              escaped === '' &&
+              retirementObserved,
           },
           {
             termination: termination.termination,
             backendRetired: retirementObserved,
+            startupAcknowledged: acknowledged === 'started',
             delayedMarkerMs,
             observationWindowMs,
           },
           'backend_retirement_observed',
+          HARNESS_PROVENANCE,
           ['research-harness', 'gondolin-host-hooks', 'gondolin-microvm'],
         );
       }
@@ -877,6 +1081,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
           scenario,
           context,
           'partial_launch_cleanup_unverified',
+          'not-measured',
           {
             basis: 'applied',
             effective: {
@@ -891,7 +1096,8 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
         return this.#unsupported(
           scenario,
           context,
-          'verified_during_runner_final_teardown',
+          'repeated_adapter_close_unverified',
+          'not-measured',
         );
       case 'lifecycle.restart-checkpoint': {
         const current = this.#managed ?? managed;
@@ -924,6 +1130,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
             binding: 'explicitly rebound',
           },
           'restart_surfaces_observed',
+          HARNESS_PROVENANCE,
         );
       }
       case 'resource.cpu': {
@@ -945,6 +1152,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
           },
           { requestedCpus: expectedCpuCount },
           'guest_cpu_limit_observed',
+          ADAPTER_PROVENANCE,
           ['gondolin-microvm'],
         );
       }
@@ -975,6 +1183,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
           },
           { requestedMemoryKiB: targetKiB },
           'guest_memory_limit_observed',
+          ADAPTER_PROVENANCE,
           ['gondolin-microvm'],
         );
       }
@@ -983,6 +1192,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
           scenario,
           context,
           'capability_boundary_recorded',
+          'not-measured',
           {
             basis: 'declared',
             effective: {
@@ -997,6 +1207,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
           scenario,
           context,
           'scenario_not_implemented_by_adapter',
+          'backend-capability',
         );
     }
   }

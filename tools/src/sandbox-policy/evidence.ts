@@ -14,19 +14,37 @@ function assertStateBasis(
   basis: EvidenceBasis,
   evidence: ControlEvidence,
 ): void {
-  const observed = basis === 'verified' || basis === 'harness-observed';
+  const observed = basis !== 'declared';
+  const provenanceMatches =
+    (basis === 'applied' && evidence.oracle?.attestedBy === 'adapter') ||
+    ((basis === 'verified' || basis === 'harness-observed') &&
+      evidence.oracle?.attestedBy === 'harness');
   switch (state) {
     case 'enforced':
-      if (!observed || evidence.oracle?.passed !== true) {
+      if (!observed || !provenanceMatches || evidence.oracle?.passed !== true) {
         throw new Error(
-          `${evidence.scenarioId}: enforced requires a passing observed oracle`,
+          `${evidence.scenarioId}: enforced requires a passing oracle with matching provenance`,
+        );
+      }
+      if (evidence.unsupportedKind !== undefined) {
+        throw new Error(
+          `${evidence.scenarioId}: enforced cannot declare unsupportedKind`,
         );
       }
       return;
     case 'failed-open':
-      if (!observed || evidence.oracle?.passed !== false) {
+      if (
+        !observed ||
+        !provenanceMatches ||
+        evidence.oracle?.passed !== false
+      ) {
         throw new Error(
-          `${evidence.scenarioId}: failed-open requires a failing observed oracle`,
+          `${evidence.scenarioId}: failed-open requires a failing oracle with matching provenance`,
+        );
+      }
+      if (evidence.unsupportedKind !== undefined) {
+        throw new Error(
+          `${evidence.scenarioId}: failed-open cannot declare unsupportedKind`,
         );
       }
       return;
@@ -35,8 +53,10 @@ function assertStateBasis(
       // oracle for the requested control did not pass.
       if (
         !observed ||
+        !provenanceMatches ||
         evidence.oracle?.passed !== false ||
-        evidence.oracle.weakerControl?.passed !== true
+        evidence.oracle.weakerControl?.passed !== true ||
+        evidence.unsupportedKind !== undefined
       ) {
         throw new Error(
           `${evidence.scenarioId}: degraded requires a failing requested-control oracle and a passing weaker-control oracle`,
@@ -46,15 +66,20 @@ function assertStateBasis(
     case 'unsupported':
       if (
         (basis !== 'declared' && basis !== 'applied') ||
-        evidence.oracle !== null
+        evidence.oracle !== null ||
+        evidence.unsupportedKind === undefined
       ) {
         throw new Error(
-          `${evidence.scenarioId}: unsupported requires declared or applied evidence without an oracle`,
+          `${evidence.scenarioId}: unsupported requires declared or applied evidence, an unsupportedKind, and no oracle`,
         );
       }
       return;
     case 'failed':
-      if (basis !== 'harness-observed' || evidence.oracle !== null) {
+      if (
+        basis !== 'harness-observed' ||
+        evidence.oracle !== null ||
+        evidence.unsupportedKind !== undefined
+      ) {
         throw new Error(
           `${evidence.scenarioId}: failed requires a harness-observed failure without an oracle`,
         );

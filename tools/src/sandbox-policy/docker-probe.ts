@@ -8,6 +8,7 @@ import { executeCommand } from './command.js';
 import { DockerSandboxAdapter } from './docker-sandbox-adapter.js';
 import { runAdapterProbe } from './runner.js';
 import { sanitizeProbeRunForPersistence } from './sanitize.js';
+import type { SandboxProbeRun } from './types.js';
 
 const revision = await executeCommand('git', ['rev-parse', 'HEAD']);
 if (revision.exitCode !== 0) throw new Error(revision.stderr);
@@ -17,10 +18,11 @@ const runId = `${Date.now()}-${process.pid}`;
 const adapter = new DockerSandboxAdapter();
 const catalog = await loadScenarioCatalog();
 let interruptedBy: NodeJS.Signals | undefined;
+let interruptCleanup: ReturnType<DockerSandboxAdapter['close']> | undefined;
 const interrupt = (signal: NodeJS.Signals): void => {
   interruptedBy = signal;
   process.exitCode = signal === 'SIGINT' ? 130 : 143;
-  void adapter.close();
+  interruptCleanup ??= adapter.close();
 };
 const onSigint = (): void => interrupt('SIGINT');
 const onSigterm = (): void => interrupt('SIGTERM');
@@ -54,15 +56,25 @@ try {
       sensitiveValues: adapter.sensitiveValues(),
       replacements: { [runId]: '<run-id>' },
     });
+    const persistedRun = JSON.parse(persisted) as SandboxProbeRun;
     await writeFile(temporaryOutputPath, persisted);
     await rename(temporaryOutputPath, outputPath);
     temporaryOutputPath = undefined;
     process.stdout.write(`${outputPath}\n`);
     process.exitCode =
-      run.violations.length > 0 || !run.cleanupComplete ? 1 : 0;
+      persistedRun.violations.length > 0 ||
+      !persistedRun.cleanupComplete ||
+      persistedRun.controls.some(
+        (control) =>
+          control.requestedIntent.required &&
+          (control.state === 'failed' || control.state === 'failed-open'),
+      )
+        ? 1
+        : 0;
   }
 } finally {
   process.removeListener('SIGINT', onSigint);
   process.removeListener('SIGTERM', onSigterm);
   if (temporaryOutputPath) await rm(temporaryOutputPath, { force: true });
+  await interruptCleanup;
 }
