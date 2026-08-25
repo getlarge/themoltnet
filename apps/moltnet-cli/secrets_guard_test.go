@@ -293,6 +293,30 @@ func TestSecretsGuardActivatedContextStillFailsClosed(t *testing.T) {
 	}
 }
 
+func TestSecretsGuardActivatedRelativeConfigResolutionFailureFailsClosed(t *testing.T) {
+	previousDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("get working directory: %v", err)
+	}
+	if err := os.Chdir(t.TempDir()); err != nil {
+		t.Fatalf("change directory: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(previousDir); err != nil {
+			t.Errorf("restore working directory: %v", err)
+		}
+	})
+	t.Setenv("GIT_CONFIG_GLOBAL", ".moltnet/agent/gitconfig")
+
+	var output bytes.Buffer
+	if err := runSecretsGuardCmd(strings.NewReader("{"), &output); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output.String(), `"permissionDecision":"deny"`) {
+		t.Fatalf("expected active resolution failure denial, got %s", output.String())
+	}
+}
+
 func TestSecretsGuardOversizedInputHasActionableDenial(t *testing.T) {
 	t.Parallel()
 	payload := `{"tool_name":"Write","tool_input":{"file_path":"docs/large.md","content":"` + strings.Repeat("x", maxSecretHookPayloadBytes) + `"}}`
