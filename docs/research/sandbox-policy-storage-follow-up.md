@@ -110,11 +110,14 @@ Trusted adapters resolve the value and use backend-native facilities:
 
 - Docker native custom secrets for delivery, rotation, revocation, and
   explicit restart rebinding;
-- Gondolin's secret manager and HTTP hooks for exact-origin projection.
+- Gondolin's secret manager and HTTP hooks for exact-origin projection, once a
+  safe host-routing primitive that still traverses those hooks is verified.
 
 Docker's current host-only secret scope is not sufficient for a required exact
-protocol/host/port policy. Resolution must reject that adapter or select a
-verified compensating implementation.
+protocol/host/port policy. Gondolin 0.12.0 also lacks a verified safe transport
+from the guest to the host HTTP-hook fixture. Resolution must reject either
+adapter for that required control or select a verified compensating
+implementation.
 
 Cancellation is a supervisor invariant, not a mutable policy field. The
 executor must use a host-authoritative cancellation boundary and must not trust

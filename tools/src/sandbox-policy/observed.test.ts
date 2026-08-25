@@ -41,15 +41,24 @@ describe('retained sandbox research evidence', () => {
         true,
       );
       expect(run.violations).toEqual([]);
-      expect(
-        run.controls.find(
-          ({ scenarioId }) => scenarioId === 'credential.evidence-leak',
-        ),
-      ).toMatchObject({
+      const evidenceLeak = run.controls.find(
+        ({ scenarioId }) => scenarioId === 'credential.evidence-leak',
+      );
+      expect(evidenceLeak).toMatchObject({
         state: 'enforced',
-        basis: 'verified',
-        oracle: { observed: 0, passed: true },
+        basis: 'harness-observed',
+        oracle: {
+          observed: { leakHits: 0 },
+          passed: true,
+        },
       });
+      expect(
+        (
+          evidenceLeak?.oracle?.observed as {
+            registeredSensitiveValues: number;
+          }
+        ).registeredSensitiveValues,
+      ).toBeGreaterThan(0);
       expect(raw).not.toMatch(/moltnet-synthetic-probe-/);
       expect(raw).not.toMatch(/\/(?:Users|home)\/[^/$]/);
       expect(raw).not.toContain('.tmp-');
