@@ -48,8 +48,17 @@ function normalizeGuardArgs(args: unknown): Record<string, unknown> {
   return normalized;
 }
 
+function hasActiveMoltnetGitConfig(configured = Bun.env.GIT_CONFIG_GLOBAL): boolean {
+  const normalized = (configured ?? '').trim().replaceAll('\\\\', '/');
+  const path = normalized.endsWith('/') ? normalized.slice(0, -1) : normalized;
+  const parts = path.split('/');
+  const n = parts.length;
+  return n >= 3 && parts[n - 3] === '.moltnet' && parts[n - 2] !== '' && parts[n - 1] === 'gitconfig';
+}
+
 export const MoltNetSecretGuard: Plugin = async () => ({
   'tool.execute.before': async (input, output) => {
+    if (!hasActiveMoltnetGitConfig()) return;
     const payload = JSON.stringify({
       tool_name: input.tool,
       tool_input: normalizeGuardArgs(output.args),

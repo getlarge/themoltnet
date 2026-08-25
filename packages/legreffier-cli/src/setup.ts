@@ -132,6 +132,14 @@ export const CANONICAL_SKILL_DIR = '.agents/skills';
 
 const GITHUB_GUARD_CLI_COMMAND = 'moltnet github guard';
 const SECRET_GUARD_CLI_COMMAND = 'moltnet secrets guard';
+const SECRET_GUARD_DENIAL =
+  '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"MoltNet secret guard is unavailable; protected credential access is blocked."}}';
+const SECRET_GUARD_ACTIVATION_CHECK = `config=$(printf '%s' "\${GIT_CONFIG_GLOBAL:-}" | tr '\\\\' '/')
+config=\${config%/}
+agent_dir=\${config%/gitconfig}
+agent=\${agent_dir##*/}
+parent=\${agent_dir%/*}
+[ "$agent_dir" != "$config" ] && [ -n "$agent" ] && [ "\${parent##*/}" = ".moltnet" ] || exit 0`;
 
 export const GITHUB_GUARD_HOOK_COMMAND = `command -v moltnet >/dev/null 2>&1 && ${GITHUB_GUARD_CLI_COMMAND} 2>/dev/null || true`;
 
@@ -143,11 +151,15 @@ command -v moltnet >/dev/null 2>&1 || exit 0
 ${GITHUB_GUARD_CLI_COMMAND} 2>/dev/null || true
 `;
 
-export const SECRET_GUARD_HOOK_COMMAND = SECRET_GUARD_CLI_COMMAND;
+export const SECRET_GUARD_HOOK_COMMAND = `${SECRET_GUARD_ACTIVATION_CHECK}
+deny='${SECRET_GUARD_DENIAL}'
+command -v moltnet >/dev/null 2>&1 || { printf '%s\\n' "$deny"; exit 0; }
+${SECRET_GUARD_CLI_COMMAND} 2>/dev/null || printf '%s\\n' "$deny"`;
 export const CLAUDE_SECRET_GUARD_HOOK_COMMAND =
   '"$CLAUDE_PROJECT_DIR"/.claude/hooks/moltnet-secret-guard.sh';
 export const CLAUDE_SECRET_GUARD_HOOK_SCRIPT = `#!/bin/sh
-deny='{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"MoltNet secret guard is unavailable; protected credential access is blocked."}}'
+${SECRET_GUARD_ACTIVATION_CHECK}
+deny='${SECRET_GUARD_DENIAL}'
 command -v moltnet >/dev/null 2>&1 || { printf '%s\\n' "$deny"; exit 0; }
 ${SECRET_GUARD_CLI_COMMAND} 2>/dev/null || printf '%s\\n' "$deny"
 `;
@@ -264,6 +276,7 @@ function isGitHubGuardHook(hook: unknown): boolean {
 function isSecretGuardHook(hook: unknown): boolean {
   const command = hookCommand(hook);
   return (
+    command === SECRET_GUARD_CLI_COMMAND ||
     command === SECRET_GUARD_HOOK_COMMAND ||
     command === CLAUDE_SECRET_GUARD_HOOK_COMMAND
   );

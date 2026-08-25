@@ -109,16 +109,8 @@ func runGitHubGuard(
 }
 
 func currentGitHubGuardContext() (githubGuardContext, bool) {
-	configured := strings.TrimSpace(os.Getenv("GIT_CONFIG_GLOBAL"))
-	if !isMoltnetGitConfig(configured) {
-		return githubGuardContext{}, false
-	}
-
-	gitConfigPath, err := resolveGitConfigGlobalPath(configured)
-	if err != nil {
-		return githubGuardContext{}, false
-	}
-	if !isMoltnetGitConfig(gitConfigPath) {
+	gitConfigPath, ok := currentMoltnetGitConfigPath()
+	if !ok {
 		return githubGuardContext{}, false
 	}
 
@@ -137,6 +129,22 @@ func currentGitHubGuardContext() (githubGuardContext, bool) {
 		AuthorshipMode:  authorshipMode,
 		Strict:          envEnabled("MOLTNET_GITHUB_GUARD_STRICT"),
 	}, true
+}
+
+// currentMoltnetGitConfigPath returns the active agent gitconfig selected by
+// this process. Repository-level hooks are shared with ordinary contributors,
+// so the path shape is the runtime activation boundary for every guard.
+func currentMoltnetGitConfigPath() (string, bool) {
+	configured := strings.TrimSpace(os.Getenv("GIT_CONFIG_GLOBAL"))
+	if !isMoltnetGitConfig(configured) {
+		return "", false
+	}
+
+	gitConfigPath, err := resolveGitConfigGlobalPath(configured)
+	if err != nil || !isMoltnetGitConfig(gitConfigPath) {
+		return "", false
+	}
+	return gitConfigPath, true
 }
 
 func resolveGitConfigGlobalPath(configured string) (string, error) {
