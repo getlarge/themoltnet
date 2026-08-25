@@ -14,27 +14,32 @@ function assertStateBasis(
   basis: EvidenceBasis,
   evidence: ControlEvidence,
 ): void {
+  const observed = basis === 'verified' || basis === 'harness-observed';
   switch (state) {
     case 'enforced':
-      if (basis !== 'verified' || evidence.oracle?.passed !== true) {
+      if (!observed || evidence.oracle?.passed !== true) {
         throw new Error(
-          `${evidence.scenarioId}: enforced requires a passing verified oracle`,
+          `${evidence.scenarioId}: enforced requires a passing observed oracle`,
         );
       }
       return;
     case 'failed-open':
-      if (basis !== 'verified' || evidence.oracle?.passed !== false) {
+      if (!observed || evidence.oracle?.passed !== false) {
         throw new Error(
-          `${evidence.scenarioId}: failed-open requires a failing verified oracle`,
+          `${evidence.scenarioId}: failed-open requires a failing observed oracle`,
         );
       }
       return;
     case 'degraded':
       // Degraded means a weaker protective behavior was verified, while the
       // oracle for the requested control did not pass.
-      if (basis !== 'verified' || evidence.oracle?.passed !== false) {
+      if (
+        !observed ||
+        evidence.oracle?.passed !== false ||
+        evidence.oracle.weakerControl?.passed !== true
+      ) {
         throw new Error(
-          `${evidence.scenarioId}: degraded requires a failing verified oracle`,
+          `${evidence.scenarioId}: degraded requires a failing requested-control oracle and a passing weaker-control oracle`,
         );
       }
       return;

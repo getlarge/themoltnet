@@ -95,7 +95,7 @@ function sanitizeValue(value: unknown, options: SanitizeOptions): unknown {
     }
     return Object.fromEntries(
       Object.entries(value as Record<string, unknown>).map(([key, child]) => [
-        key,
+        sanitizeString(key, options),
         sanitizeValue(child, options),
       ]),
     );

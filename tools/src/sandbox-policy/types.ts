@@ -215,10 +215,19 @@ export interface BackendInventory {
 }
 
 export interface ControlOracle {
+  attestedBy: 'adapter' | 'harness';
   kind: string;
   expected: unknown;
   observed: unknown;
   passed: boolean;
+  /** Required when a degraded state claims that a weaker control held. */
+  weakerControl?: {
+    attestedBy: 'adapter' | 'harness';
+    kind: string;
+    expected: unknown;
+    observed: unknown;
+    passed: true;
+  };
 }
 
 export interface PersistentMutationEvidence {
@@ -290,5 +299,7 @@ export interface ResearchSandboxAdapter {
     context: ProbeContext,
   ): Promise<ControlEvidence>;
   hostCapabilities(): Promise<HostCapabilityEvidence[]>;
+  /** Synthetic values that must be redacted from harness diagnostics. */
+  sensitiveValues?(): string[];
   close(): Promise<PersistentMutationEvidence[]>;
 }

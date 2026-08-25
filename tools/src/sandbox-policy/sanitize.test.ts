@@ -54,6 +54,15 @@ describe('sandbox policy evidence sanitization', () => {
     ).not.toThrow();
   });
 
+  it('sanitizes object keys as well as values', () => {
+    expect(() =>
+      sanitizeForPersistence(
+        { 'host-only-sentinel': 'safe' },
+        { sensitiveValues: ['host-only-sentinel'] },
+      ),
+    ).toThrow('synthetic credential sentinel');
+  });
+
   it('refuses bare and nested unknown home-directory paths', () => {
     expect(() =>
       sanitizeForPersistence({ output: '/Users/someone/private/file' }),

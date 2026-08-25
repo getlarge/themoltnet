@@ -35,12 +35,18 @@ import type {
 const BACKEND_ID = 'docker-sandbox';
 const PLACEHOLDER = 'moltnet-probe-placeholder';
 const HOST_ALIAS = 'host.docker.internal';
-// Docker's credential proxy does not inject into its internal host gateway.
-// This DNS name resolves to host loopback while traversing the normal proxy.
-const CREDENTIAL_HOST = '127.0.0.1.nip.io';
+// Force loopback requests through Docker's outbound proxy. Direct loopback is
+// guest-local, while the proxy resolves this exact IP on the trusted host.
+const CREDENTIAL_HOST = '127.0.0.1';
+const FORCE_PROXY = "--noproxy ''";
 
 interface DockerSandboxAdapterOptions {
   execute?: CommandExecutor;
+}
+
+interface SecretApplication {
+  changed: boolean;
+  result: CommandResult;
 }
 
 function resultSummary(result: CommandResult): Record<string, unknown> {
@@ -51,9 +57,21 @@ function resultSummary(result: CommandResult): Record<string, unknown> {
   };
 }
 
-function sleep(milliseconds: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, milliseconds);
+function sleep(milliseconds: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(signal.reason);
+      return;
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, milliseconds);
+    const onAbort = (): void => {
+      clearTimeout(timer);
+      reject(signal?.reason);
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
   });
 }
 
@@ -72,6 +90,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
   #credentialNetworkAllowApplied = false;
   #adjacentCredentialNetworkAllowApplied = false;
   #secretApplied = false;
+  #secretCleanupRegistered = false;
   #scenarioSignal: AbortSignal | undefined;
   #credentialDeliveryVerified = false;
   #rotatedDeliveryVerified = false;
@@ -113,6 +132,9 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
     this.#readonlyRoot = path.join(context.probeRoot, 'readonly');
     this.#outsideRoot = path.join(context.probeRoot, 'outside');
     this.#secretFile = path.join(this.#outsideRoot, 'credential.txt');
+    this.#cleanup.add('probe-directory', '<probe-root>', async () => {
+      await rm(context.probeRoot, { recursive: true, force: true });
+    });
     await Promise.all([
       mkdir(this.#guestRoot, { recursive: true }),
       mkdir(this.#readonlyRoot, { recursive: true }),
@@ -126,7 +148,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
       mode: 0o600,
     });
     await chmod(this.#secretFile, 0o600);
-    const create = await this.#execute('sbx', [
+    const create = await this.#executeScenario([
       'create',
       'shell',
       '--quiet',
@@ -155,16 +177,23 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
         throw new Error(removed.stderr);
       }
     });
-    this.#cleanup.add('probe-directory', '<probe-root>', async () => {
-      await rm(context.probeRoot, { recursive: true, force: true });
+  }
+
+  async #executeScenario(
+    args: string[],
+    timeoutMs = 30_000,
+  ): Promise<CommandResult> {
+    return this.#execute('sbx', args, {
+      signal: this.#scenarioSignal,
+      timeoutMs,
     });
   }
 
   async #exec(args: string[], timeoutMs = 30_000): Promise<CommandResult> {
-    return this.#execute('sbx', ['exec', this.#sandboxName, ...args], {
-      signal: this.#scenarioSignal,
+    return this.#executeScenario(
+      ['exec', this.#sandboxName, ...args],
       timeoutMs,
-    });
+    );
   }
 
   #resolution(
@@ -175,14 +204,14 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
       backendId: BACKEND_ID,
       requested: requestedIntent(scenario),
       effective,
-      fidelity: 'docker-sandbox-v0.39',
+      fidelity: `docker-sandbox-${this.#inventory?.version ?? 'unknown'}`,
     };
   }
 
   async #evidence(
     scenario: SandboxScenario,
     context: ProbeContext,
-    oracle: ControlOracle | null,
+    oracle: Omit<ControlOracle, 'attestedBy'>,
     effective: Record<string, unknown>,
     reasonCode: ReasonCode,
     locus: EnforcementLocus[] = [
@@ -199,7 +228,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
       enforcementLocus: locus,
       state: oracle?.passed ? 'enforced' : 'failed-open',
       basis: 'verified',
-      oracle,
+      oracle: { ...oracle, attestedBy: 'adapter' },
       reasonCode,
       recordedAt: context.recordedAt(),
       persistentMutations: this.#cleanup.snapshot(),
@@ -249,7 +278,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
     if (this.#networkAllowApplied) {
       return { exitCode: 0, stdout: 'already applied', stderr: '' };
     }
-    const result = await this.#execute('sbx', [
+    const result = await this.#executeScenario([
       'policy',
       'allow',
       'network',
@@ -313,7 +342,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
     resource: string,
     cleanupResource: string,
   ): Promise<CommandResult> {
-    const result = await this.#execute('sbx', [
+    const result = await this.#executeScenario([
       'policy',
       'allow',
       'network',
@@ -340,12 +369,20 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
     return result;
   }
 
-  async #ensureSecret(): Promise<CommandResult> {
+  async #ensureSecret(): Promise<SecretApplication> {
     if (this.#secretApplied) {
-      return { exitCode: 0, stdout: 'already applied', stderr: '' };
+      return {
+        changed: false,
+        result: { exitCode: 0, stdout: 'already applied', stderr: '' },
+      };
     }
     const fixture = await this.#ensureFixture();
-    const result = await this.#execute('sbx', [
+    return this.#applySecret(fixture.credential);
+  }
+
+  async #applySecret(value: string): Promise<SecretApplication> {
+    await writeFile(this.#secretFile, `${value}\n`, { mode: 0o600 });
+    const result = await this.#executeScenario([
       'secret',
       'set-custom',
       '--sandbox',
@@ -356,31 +393,34 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
       'MOLTNET_PROBE_TOKEN',
       '--placeholder',
       PLACEHOLDER,
-      '--value',
-      fixture.credential,
+      '--command',
+      `cat '${this.#secretFile}'`,
     ]);
     if (result.exitCode === 0) {
       this.#secretApplied = true;
-      this.#cleanup.add(
-        'credential-binding',
-        '<scoped-placeholder>',
-        async () => {
-          const removed = await this.#execute('sbx', [
-            'secret',
-            'rm',
-            '--sandbox',
-            this.#sandboxName,
-            '--placeholder',
-            PLACEHOLDER,
-            '--force',
-          ]);
-          if (removed.exitCode !== 0 && !/not found/i.test(removed.stderr)) {
-            throw new Error(removed.stderr);
-          }
-        },
-      );
+      if (!this.#secretCleanupRegistered) {
+        this.#secretCleanupRegistered = true;
+        this.#cleanup.add(
+          'credential-binding',
+          '<scoped-placeholder>',
+          async () => {
+            const removed = await this.#execute('sbx', [
+              'secret',
+              'rm',
+              '--sandbox',
+              this.#sandboxName,
+              '--placeholder',
+              PLACEHOLDER,
+              '--force',
+            ]);
+            if (removed.exitCode !== 0 && !/not found/i.test(removed.stderr)) {
+              throw new Error(removed.stderr);
+            }
+          },
+        );
+      }
     }
-    return result;
+    return { changed: result.exitCode === 0, result };
   }
 
   async runScenario(
@@ -444,46 +484,57 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
         const link = path.join(this.#guestRoot, 'outside-link');
         await rm(link, { force: true });
         await symlink(this.#outsideRoot, link);
-        const result = await this.#exec([
-          'sh',
-          '-lc',
-          `printf escaped > '${path.join(link, path.basename(outsideMarker))}'`,
-        ]);
-        const escaped = await readFile(outsideMarker, 'utf8').catch(() => '');
-        return this.#evidence(
-          scenario,
-          context,
-          {
-            kind: 'outside-marker-absence',
-            expected: 'absent',
-            observed: escaped === '' ? 'absent' : 'present',
-            passed: escaped === '',
-          },
-          {
-            mounts: ['<workspace>', '<readonly-fixture>'],
-            guestExitCode: result.exitCode,
-          },
-          'outside_mount_boundary_observed',
-        );
+        try {
+          const result = await this.#exec([
+            'sh',
+            '-lc',
+            `printf escaped > '${path.join(link, path.basename(outsideMarker))}'`,
+          ]);
+          const escaped = await readFile(outsideMarker, 'utf8').catch(() => '');
+          return this.#evidence(
+            scenario,
+            context,
+            {
+              kind: 'outside-marker-absence',
+              expected: 'absent',
+              observed: escaped === '' ? 'absent' : 'present',
+              passed: escaped === '',
+            },
+            {
+              mounts: ['<workspace>', '<readonly-fixture>'],
+              guestExitCode: result.exitCode,
+            },
+            'outside_mount_boundary_observed',
+          );
+        } finally {
+          await rm(link, { force: true });
+        }
       }
       case 'filesystem.credential-path': {
-        const result = await this.#exec([
-          'sh',
-          '-lc',
-          `test -r '${this.#secretFile}'`,
-        ]);
-        return this.#evidence(
-          scenario,
-          context,
-          {
-            kind: 'credential-file-visibility',
-            expected: 'unreadable',
-            observed: result.exitCode === 0 ? 'readable' : 'unreadable',
-            passed: result.exitCode !== 0,
-          },
-          { secretPathMounted: false },
-          'host_credential_path_absent',
-        );
+        const link = path.join(this.#guestRoot, 'outside-link');
+        await rm(link, { force: true });
+        await symlink(this.#outsideRoot, link);
+        try {
+          const result = await this.#exec([
+            'sh',
+            '-lc',
+            `test -r '${this.#secretFile}' || test -r '${path.join(link, 'credential.txt')}'`,
+          ]);
+          return this.#evidence(
+            scenario,
+            context,
+            {
+              kind: 'credential-file-visibility',
+              expected: 'unreadable',
+              observed: result.exitCode === 0 ? 'readable' : 'unreadable',
+              passed: result.exitCode !== 0,
+            },
+            { secretPathMounted: false, symlinkPathTested: true },
+            'host_credential_path_absent',
+          );
+        } finally {
+          await rm(link, { force: true });
+        }
       }
       case 'filesystem.cleanup': {
         const cleanupRoot = path.join(this.#guestRoot, 'cleanup-probe');
@@ -520,7 +571,9 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           ],
           5_000,
         );
-        const delivered = fixture.requests.length - before;
+        const delivered = fixture
+          .capture(before)
+          .filter((request) => request.destination === 'adjacent').length;
         return this.#evidence(
           scenario,
           context,
@@ -575,7 +628,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           [
             'sh',
             '-lc',
-            `curl -fsS --max-time 2 'http://${CREDENTIAL_HOST}:${fixture.allowedPort}${fixture.path('/wrong-host')}'`,
+            `curl ${FORCE_PROXY} -fsS --max-time 2 'http://${CREDENTIAL_HOST}:${fixture.allowedPort}${fixture.path('/wrong-host')}'`,
           ],
           5_000,
         );
@@ -718,7 +771,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
         const result = await this.#exec([
           'sh',
           '-lc',
-          `curl -sS --max-time 3 -H "Authorization: Bearer $MOLTNET_PROBE_TOKEN" 'http://${CREDENTIAL_HOST}:${fixture.allowedPort}${fixture.path('/credential')}'`,
+          `curl ${FORCE_PROXY} -sS --max-time 3 -H "Authorization: Bearer $MOLTNET_PROBE_TOKEN" 'http://${CREDENTIAL_HOST}:${fixture.allowedPort}${fixture.path('/credential')}'`,
         ]);
         const requests = fixture.capture(before);
         const matched = requests.some(
@@ -726,7 +779,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
         );
         this.#credentialDeliveryVerified =
           policy.exitCode === 0 &&
-          secret.exitCode === 0 &&
+          secret.result.exitCode === 0 &&
           result.exitCode === 0 &&
           matched;
         return this.#evidence(
@@ -741,7 +794,8 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           {
             guestValue: '<stand-in>',
             binding: `${CREDENTIAL_HOST}:<allowed-port>`,
-            secretCommandExitCode: secret.exitCode,
+            secretCommandExitCode: secret.result.exitCode,
+            secretSource: 'host-command',
           },
           'allowed_origin_secret_substitution_observed',
           ['docker-sandbox-control-plane'],
@@ -757,7 +811,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
         const result = await this.#exec([
           'sh',
           '-lc',
-          `curl -sS --max-time 3 -H "Authorization: Bearer $MOLTNET_PROBE_TOKEN" 'http://${CREDENTIAL_HOST}:${fixture.adjacentPort}${fixture.path('/adjacent-credential')}'`,
+          `curl ${FORCE_PROXY} -sS --max-time 3 -H "Authorization: Bearer $MOLTNET_PROBE_TOKEN" 'http://${CREDENTIAL_HOST}:${fixture.adjacentPort}${fixture.path('/adjacent-credential')}'`,
         ]);
         const requests = fixture.capture(before);
         const adjacentRequests = requests.filter(
@@ -776,7 +830,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
             passed:
               allowedPolicy.exitCode === 0 &&
               adjacentPolicy.exitCode === 0 &&
-              secret.exitCode === 0 &&
+              secret.result.exitCode === 0 &&
               result.exitCode === 0 &&
               adjacentRequests.length === 1 &&
               !matched,
@@ -792,34 +846,21 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
       case 'credential.rotation': {
         const fixture = await this.#ensureFixture();
         const rotatedCredential = fixture.rotate();
-        await writeFile(this.#secretFile, `${rotatedCredential}\n`, {
-          mode: 0o600,
-        });
-        const update = await this.#execute('sbx', [
-          'secret',
-          'set-custom',
-          '--sandbox',
-          this.#sandboxName,
-          '--host',
-          CREDENTIAL_HOST,
-          '--env',
-          'MOLTNET_PROBE_TOKEN',
-          '--placeholder',
-          PLACEHOLDER,
-          '--value',
-          rotatedCredential,
-        ]);
+        const update = await this.#applySecret(rotatedCredential);
         const before = fixture.requests.length;
         const request = await this.#exec([
           'sh',
           '-lc',
-          `curl -sS --max-time 3 -H "Authorization: Bearer $MOLTNET_PROBE_TOKEN" 'http://${CREDENTIAL_HOST}:${fixture.allowedPort}${fixture.path('/rotated')}'`,
+          `curl ${FORCE_PROXY} -sS --max-time 3 -H "Authorization: Bearer $MOLTNET_PROBE_TOKEN" 'http://${CREDENTIAL_HOST}:${fixture.allowedPort}${fixture.path('/rotated')}'`,
         ]);
         const matched = fixture
           .capture(before)
           .some((item) => item.credentialMatch === 'expected');
         this.#rotatedDeliveryVerified =
-          update.exitCode === 0 && request.exitCode === 0 && matched;
+          update.changed &&
+          update.result.exitCode === 0 &&
+          request.exitCode === 0 &&
+          matched;
         return this.#evidence(
           scenario,
           context,
@@ -836,7 +877,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
       }
       case 'credential.revocation': {
         const fixture = await this.#ensureFixture();
-        const removed = await this.#execute('sbx', [
+        const removed = await this.#executeScenario([
           'secret',
           'rm',
           '--sandbox',
@@ -850,7 +891,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
         await this.#exec([
           'sh',
           '-lc',
-          `curl -sS --max-time 3 -H 'Authorization: Bearer ${PLACEHOLDER}' 'http://${CREDENTIAL_HOST}:${fixture.allowedPort}${fixture.path('/revoked')}'`,
+          `curl ${FORCE_PROXY} -sS --max-time 3 -H 'Authorization: Bearer ${PLACEHOLDER}' 'http://${CREDENTIAL_HOST}:${fixture.allowedPort}${fixture.path('/revoked')}'`,
         ]);
         const requests = fixture.capture(before);
         const matched = requests.some(
@@ -881,12 +922,15 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
       case 'credential.resume': {
         const fixture = await this.#ensureFixture();
         const rebound = await this.#ensureSecret();
-        const stopped = await this.#execute('sbx', ['stop', this.#sandboxName]);
+        const stopped = await this.#executeScenario([
+          'stop',
+          this.#sandboxName,
+        ]);
         const before = fixture.requests.length;
         const request = await this.#exec([
           'sh',
           '-lc',
-          `curl -sS --max-time 3 -H "Authorization: Bearer $MOLTNET_PROBE_TOKEN" 'http://${CREDENTIAL_HOST}:${fixture.allowedPort}${fixture.path('/resumed')}'`,
+          `curl ${FORCE_PROXY} -sS --max-time 3 -H "Authorization: Bearer $MOLTNET_PROBE_TOKEN" 'http://${CREDENTIAL_HOST}:${fixture.allowedPort}${fixture.path('/resumed')}'`,
         ]);
         const matched = fixture
           .capture(before)
@@ -899,7 +943,8 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
             expected: 1,
             observed: matched ? 1 : 0,
             passed:
-              rebound.exitCode === 0 &&
+              rebound.changed &&
+              rebound.result.exitCode === 0 &&
               stopped.exitCode === 0 &&
               request.exitCode === 0 &&
               matched,
@@ -932,7 +977,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
         const started = path.join(this.#guestRoot, `${scenario.id}.started`);
         await rm(marker, { force: true });
         await rm(started, { force: true });
-        const created = await this.#execute('sbx', [
+        const created = await this.#executeScenario([
           'create',
           'shell',
           '--quiet',
@@ -940,7 +985,20 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           childName,
           this.#guestRoot,
         ]);
-        const detached = await this.#execute('sbx', [
+        if (created.exitCode !== 0) {
+          throw new Error(`child sandbox create failed: ${created.stderr}`);
+        }
+        this.#cleanup.add('sandbox', '<scoped-lifecycle-sandbox>', async () => {
+          const cleanup = await this.#execute('sbx', [
+            'rm',
+            '--force',
+            childName,
+          ]);
+          if (cleanup.exitCode !== 0 && !/not found/i.test(cleanup.stderr)) {
+            throw new Error(cleanup.stderr);
+          }
+        });
+        const detached = await this.#executeScenario([
           'exec',
           '--detach',
           childName,
@@ -948,17 +1006,24 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           '-lc',
           `printf started > '${started}'; sleep ${delayedMarkerMs / 1_000}; printf escaped > '${marker}'`,
         ]);
-        for (let attempt = 0; attempt < 20; attempt += 1) {
-          const acknowledged = await readFile(started, 'utf8').catch(() => '');
-          if (acknowledged === 'started') break;
-          await sleep(100);
+        if (detached.exitCode !== 0) {
+          throw new Error(`detached child launch failed: ${detached.stderr}`);
         }
-        const removed = await this.#execute('sbx', [
+        let acknowledged = '';
+        for (let attempt = 0; attempt < 20; attempt += 1) {
+          acknowledged = await readFile(started, 'utf8').catch(() => '');
+          if (acknowledged === 'started') break;
+          await sleep(100, this.#scenarioSignal);
+        }
+        if (acknowledged !== 'started') {
+          throw new Error('detached child did not acknowledge startup');
+        }
+        const removed = await this.#executeScenario([
           'rm',
           '--force',
           childName,
         ]);
-        await sleep(observationWindowMs);
+        await sleep(observationWindowMs, this.#scenarioSignal);
         const observed = await readFile(marker, 'utf8').catch(() => '');
         return this.#evidence(
           scenario,
@@ -970,11 +1035,16 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
             passed:
               created.exitCode === 0 &&
               detached.exitCode === 0 &&
+              acknowledged === 'started' &&
               removed.exitCode === 0 &&
               observed === '',
           },
           {
             termination: 'scoped-sandbox-remove',
+            trigger:
+              scenario.id === 'lifecycle.timeout'
+                ? 'execution-deadline'
+                : 'explicit-cancellation',
             detachedExitCode: detached.exitCode,
             delayedMarkerMs,
             observationWindowMs,
@@ -1019,7 +1089,10 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
       case 'lifecycle.restart-checkpoint': {
         const marker = path.join(this.#guestRoot, 'restart-persistent.txt');
         await writeFile(marker, 'persisted');
-        const stopped = await this.#execute('sbx', ['stop', this.#sandboxName]);
+        const stopped = await this.#executeScenario([
+          'stop',
+          this.#sandboxName,
+        ]);
         const resumed = await this.#exec(['sh', '-lc', `test -f '${marker}'`]);
         return this.#evidence(
           scenario,

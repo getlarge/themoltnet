@@ -95,28 +95,37 @@ async function runWithDeadline(
 ): Promise<ControlEvidence> {
   const controller = new AbortController();
   const deadline = new Date(Date.now() + timeoutMs).toISOString();
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => {
-      controller.abort(new ScenarioTimeoutError(timeoutMs));
-      reject(new ScenarioTimeoutError(timeoutMs));
-    }, timeoutMs);
-  });
-  timer?.unref();
+  const timer = setTimeout(() => {
+    controller.abort(new ScenarioTimeoutError(timeoutMs));
+  }, timeoutMs);
+  timer.unref();
   try {
-    return await Promise.race([
-      adapter.runScenario(scenario, {
-        runId: options.runId,
-        recordedAt: now,
-        probeRoot: options.probeRoot,
-        deadline,
-        signal: controller.signal,
-      }),
-      timeout,
-    ]);
+    const evidence = await adapter.runScenario(scenario, {
+      runId: options.runId,
+      recordedAt: now,
+      probeRoot: options.probeRoot,
+      deadline,
+      signal: controller.signal,
+    });
+    if (controller.signal.reason instanceof ScenarioTimeoutError) {
+      throw controller.signal.reason;
+    }
+    return evidence;
+  } catch (error) {
+    if (controller.signal.reason instanceof ScenarioTimeoutError) {
+      throw controller.signal.reason;
+    }
+    throw error;
   } finally {
-    if (timer) clearTimeout(timer);
+    clearTimeout(timer);
   }
+}
+
+function diagnosticOptions(options: RunAdapterProbeOptions) {
+  return {
+    machinePaths: [options.probeRoot],
+    sensitiveValues: options.adapter.sensitiveValues?.() ?? [],
+  };
 }
 
 export async function runAdapterProbe(
@@ -147,7 +156,7 @@ export async function runAdapterProbe(
     } catch (error) {
       const message = sanitizeDiagnostic(
         error instanceof Error ? error.message : String(error),
-        { machinePaths: [options.probeRoot] },
+        diagnosticOptions(options),
       );
       violations.push({ code: 'adapter_inspect_error', message });
       controls.push(
@@ -193,7 +202,7 @@ export async function runAdapterProbe(
           const timedOut = error instanceof ScenarioTimeoutError;
           const message = sanitizeDiagnostic(
             error instanceof Error ? error.message : String(error),
-            { machinePaths: [options.probeRoot] },
+            diagnosticOptions(options),
           );
           controls.push(
             failedEvidence(
@@ -221,7 +230,7 @@ export async function runAdapterProbe(
           code: 'adapter_host_capabilities_error',
           message: sanitizeDiagnostic(
             error instanceof Error ? error.message : String(error),
-            { machinePaths: [options.probeRoot] },
+            diagnosticOptions(options),
           ),
         });
       }
@@ -229,40 +238,19 @@ export async function runAdapterProbe(
   } finally {
     try {
       cleanup = await options.adapter.close();
-      const repeatedCleanup = await options.adapter.close();
       cleanupComplete =
         cleanup.every((mutation) => mutation.cleanup === 'cleaned') &&
-        repeatedCleanup.every((mutation) => mutation.cleanup === 'cleaned') &&
         controls.every((control) =>
           control.persistentMutations.every(
             (mutation) => mutation.cleanup !== 'residue',
           ),
         );
-      const repeatedClose = controls.find(
-        (control) => control.scenarioId === 'lifecycle.repeated-close',
-      );
-      if (repeatedClose) {
-        repeatedClose.state = cleanupComplete ? 'enforced' : 'failed-open';
-        repeatedClose.basis = 'verified';
-        repeatedClose.oracle = {
-          kind: 'repeated-adapter-close',
-          expected: 'cleaned-without-additional-mutation',
-          observed: cleanupComplete
-            ? 'cleaned-without-additional-mutation'
-            : 'cleanup-residue',
-          passed: cleanupComplete,
-        };
-        repeatedClose.reasonCode = cleanupComplete
-          ? 'repeated_adapter_close_observed'
-          : 'repeated_adapter_close_left_residue';
-        repeatedClose.persistentMutations = repeatedCleanup;
-      }
     } catch (error) {
       violations.push({
         code: 'adapter_cleanup_error',
         message: sanitizeDiagnostic(
           error instanceof Error ? error.message : String(error),
-          { machinePaths: [options.probeRoot] },
+          diagnosticOptions(options),
         ),
       });
       cleanupComplete = false;

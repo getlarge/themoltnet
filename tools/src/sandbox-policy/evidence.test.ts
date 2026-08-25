@@ -23,6 +23,7 @@ function evidence(overrides: Partial<ControlEvidence> = {}): ControlEvidence {
     state: 'enforced',
     basis: 'verified',
     oracle: {
+      attestedBy: 'adapter',
       kind: 'request-log',
       expected: 0,
       observed: 0,
@@ -39,10 +40,10 @@ describe('sandbox policy evidence', () => {
   it('requires an independent verified oracle for enforced controls', () => {
     expect(() => assertControlEvidence(evidence())).not.toThrow();
     expect(() => assertControlEvidence(evidence({ basis: 'applied' }))).toThrow(
-      'enforced requires a passing verified oracle',
+      'enforced requires a passing observed oracle',
     );
     expect(() => assertControlEvidence(evidence({ oracle: null }))).toThrow(
-      'enforced requires a passing verified oracle',
+      'enforced requires a passing observed oracle',
     );
   });
 
@@ -56,7 +57,20 @@ describe('sandbox policy evidence', () => {
       assertControlEvidence(
         evidence({
           state: 'degraded',
-          oracle: { kind: 'partial', expected: 2, observed: 1, passed: false },
+          oracle: {
+            attestedBy: 'adapter',
+            kind: 'partial',
+            expected: 2,
+            observed: 1,
+            passed: false,
+            weakerControl: {
+              attestedBy: 'adapter',
+              kind: 'host-only',
+              expected: 'blocked-host',
+              observed: 'blocked-host',
+              passed: true,
+            },
+          },
         }),
       ),
     ).not.toThrow();
@@ -121,6 +135,7 @@ describe('sandbox policy evidence', () => {
           state: 'failed-open',
           oracle: {
             kind: 'marker',
+            attestedBy: 'adapter',
             expected: 'absent',
             observed: 'present',
             passed: false,
@@ -130,7 +145,7 @@ describe('sandbox policy evidence', () => {
     ).not.toThrow();
     expect(() =>
       assertControlEvidence(evidence({ state: 'failed-open' })),
-    ).toThrow('failed-open requires a failing verified oracle');
+    ).toThrow('failed-open requires a failing observed oracle');
   });
 
   it('serializes records with UTF-8 byte-sorted keys', () => {

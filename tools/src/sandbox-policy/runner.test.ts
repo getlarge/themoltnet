@@ -47,6 +47,7 @@ function options(adapter: ResearchSandboxAdapter) {
 
 class FixtureAdapter implements ResearchSandboxAdapter {
   closed = false;
+  closeCalls = 0;
   failInspect = false;
   failClose = false;
   leaveResidue = false;
@@ -97,6 +98,7 @@ class FixtureAdapter implements ResearchSandboxAdapter {
   }
 
   close() {
+    this.closeCalls += 1;
     this.closed = true;
     if (this.failClose) throw new Error('/Users/alice/close failed');
     return Promise.resolve([
@@ -182,7 +184,14 @@ describe('sandbox policy adapter runner', () => {
   it('aborts and records a bounded scenario timeout', async () => {
     const adapter = new FixtureAdapter();
     let aborted = false;
-    adapter.runScenario = async (_scenario, context) => {
+    let firstSettled = false;
+    let secondObservedSettlement = false;
+    const runScenario = adapter.runScenario.bind(adapter);
+    adapter.runScenario = async (scenario, context) => {
+      if (scenario.id !== 'network.first') {
+        secondObservedSettlement = firstSettled;
+        return runScenario(scenario, context);
+      }
       await new Promise<void>((resolve) => {
         context.signal.addEventListener(
           'abort',
@@ -193,19 +202,47 @@ describe('sandbox policy adapter runner', () => {
           { once: true },
         );
       });
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 10);
+      });
+      firstSettled = true;
       throw context.signal.reason;
     };
 
     const run = await runAdapterProbe({
       ...options(adapter),
-      catalog: { ...catalog, scenarios: [catalog.scenarios[0]] },
       scenarioTimeoutMs: 5,
     });
 
     expect(aborted).toBe(true);
+    expect(secondObservedSettlement).toBe(true);
     expect(run.controls[0]).toMatchObject({
       state: 'failed',
       reasonCode: 'adapter_scenario_timeout',
+    });
+  });
+
+  it('does not silently promote repeated-close evidence or close twice', async () => {
+    const adapter = new FixtureAdapter();
+    const repeatedClose: SandboxScenario = {
+      id: 'lifecycle.repeated-close',
+      domain: 'lifecycle',
+      control: 'idempotent-close',
+      purpose: 'test adapter close ownership',
+      required: true,
+      oracle: 'adapter evidence remains authoritative',
+    };
+
+    const run = await runAdapterProbe({
+      ...options(adapter),
+      catalog: { ...catalog, scenarios: [repeatedClose] },
+    });
+
+    expect(adapter.closeCalls).toBe(1);
+    expect(run.controls[0]).toMatchObject({
+      state: 'unsupported',
+      basis: 'declared',
+      reasonCode: 'fixture_unsupported',
     });
   });
 });

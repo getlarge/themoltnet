@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, rename, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
+import { resolveRepoRoot } from '../repo.js';
 import { loadScenarioCatalog } from './catalog.js';
 import { executeCommand } from './command.js';
 import { DockerSandboxAdapter } from './docker-sandbox-adapter.js';
@@ -36,25 +37,30 @@ try {
     probeRoot,
   });
   if (interruptedBy) {
-    throw new Error(`Docker sandbox probe interrupted by ${interruptedBy}`);
+    process.stderr.write(
+      `[sandbox-policy] interrupted by ${interruptedBy}; evidence was not persisted\n`,
+    );
+  } else {
+    const outputDirectory = path.join(
+      await resolveRepoRoot(),
+      'tools/test-fixtures/sandbox-policy/observed/docker-sandbox',
+    );
+    await mkdir(outputDirectory, { recursive: true });
+    const platform = `${run.backend.version}-${run.backend.os}-${run.backend.architecture}`;
+    const outputPath = path.join(outputDirectory, `${platform}.json`);
+    temporaryOutputPath = `${outputPath}.tmp-${process.pid}`;
+    const persisted = sanitizeForPersistence(run, {
+      machinePaths: [probeRoot],
+      sensitiveValues: adapter.sensitiveValues(),
+      replacements: { [runId]: '<run-id>' },
+    });
+    await writeFile(temporaryOutputPath, persisted);
+    await rename(temporaryOutputPath, outputPath);
+    temporaryOutputPath = undefined;
+    process.stdout.write(`${outputPath}\n`);
+    process.exitCode =
+      run.violations.length > 0 || !run.cleanupComplete ? 1 : 0;
   }
-
-  const outputDirectory = path.resolve(
-    'tools/test-fixtures/sandbox-policy/observed/docker-sandbox',
-  );
-  await mkdir(outputDirectory, { recursive: true });
-  const platform = `${run.backend.version}-${run.backend.os}-${run.backend.architecture}`;
-  const outputPath = path.join(outputDirectory, `${platform}.json`);
-  temporaryOutputPath = `${outputPath}.tmp-${process.pid}`;
-  const persisted = sanitizeForPersistence(run, {
-    machinePaths: [probeRoot],
-    sensitiveValues: adapter.sensitiveValues(),
-    replacements: { [runId]: '<run-id>' },
-  });
-  await writeFile(temporaryOutputPath, persisted);
-  await rename(temporaryOutputPath, outputPath);
-  temporaryOutputPath = undefined;
-  process.stdout.write(`${outputPath}\n`);
 } finally {
   process.removeListener('SIGINT', onSigint);
   process.removeListener('SIGTERM', onSigterm);
