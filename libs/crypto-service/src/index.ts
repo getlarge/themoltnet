@@ -5,6 +5,13 @@
  */
 
 export {
+  type AgentIdentity,
+  type AgentSigningCapability,
+  allowedSignersLine,
+  nonSecretGitconfig,
+  sshPublicKeyLiteral,
+} from './agent-signing.js';
+export {
   computeBytesCid,
   computeBytesCidFromSha256,
   decodeBytesCidToSha256,
@@ -68,3 +75,12 @@ export {
   sealForEd25519PublicKey,
 } from './sealed-envelope.js';
 export { toSSHPrivateKey, toSSHPublicKey } from './ssh.js';
+export {
+  assertGitSshsigEnvelope,
+  encodeSshEd25519Signature,
+  encodeSshString,
+  parseSshsigEnvelope,
+  readSshString,
+  type SshsigEnvelope,
+  SshsigError,
+} from './sshsig.js';
