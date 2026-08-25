@@ -24,6 +24,9 @@
       "path": "../sdk/tsconfig.lib.json"
     },
     {
+      "path": "../crypto-service/tsconfig.lib.json"
+    },
+    {
       "path": "../tasks/tsconfig.lib.json"
     },
     {

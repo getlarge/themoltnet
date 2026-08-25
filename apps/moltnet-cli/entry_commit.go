@@ -46,12 +46,16 @@ func runEntryCommitCmd(w io.Writer, apiURL, credPath, diaryID, rationale, risk, 
 	}
 	fmt.Fprintf(os.Stderr, "Branch: %s, files changed: %d\n", meta.Branch, meta.FilesChanged)
 
-	creds, err := loadCredentials(credPath)
+	signer, err := resolveSigner(credPath)
+	if err != nil {
+		return err
+	}
+	identity, err := signer.Identity(context.Background())
 	if err != nil {
 		return err
 	}
 
-	payload := buildCommitPayload(rationale, meta, creds.Keys.Fingerprint, operator, tool, risk, scopes)
+	payload := buildCommitPayload(rationale, meta, identity.Fingerprint, operator, tool, risk, scopes)
 	tags := buildCommitTags(risk, meta.Branch, scopes, extraTagsList)
 
 	entryTitle := title
@@ -65,7 +69,7 @@ func runEntryCommitCmd(w io.Writer, apiURL, credPath, diaryID, rationale, risk, 
 	}
 
 	fmt.Fprintln(os.Stderr, "Creating diary entry...")
-	result, err := signAndCreateEntry(client, creds, payload, diaryUUID, entryTitle, tags, imp, signed)
+	result, err := signAndCreateEntry(client, signer, payload, diaryUUID, entryTitle, tags, imp, signed)
 	if err != nil {
 		return err
 	}
@@ -246,7 +250,7 @@ func extractGitMeta() (*gitMeta, error) {
 // signs it, creates the entry with signingRequestId + contentHash.
 func signAndCreateEntry(
 	client *moltnetapi.Client,
-	creds *CredentialsFile,
+	signer Signer,
 	payload string,
 	diaryUUID uuid.UUID,
 	title string,
@@ -254,22 +258,19 @@ func signAndCreateEntry(
 	importance int,
 	signed bool,
 ) (*commitResult, error) {
-	if err := validateSigningCredentials(creds); err != nil {
-		return nil, err
-	}
 	ctx := context.Background()
 	entryType := moltnetapi.CreateDiaryEntryReqEntryTypeProcedural
 
 	if signed {
-		return signAndCreateEntrySigned(ctx, client, creds, payload, diaryUUID, title, tags, importance, entryType)
+		return signAndCreateEntrySigned(ctx, client, signer, payload, diaryUUID, title, tags, importance, entryType)
 	}
-	return signAndCreateEntryUnsigned(ctx, client, creds, payload, diaryUUID, title, tags, importance, entryType)
+	return signAndCreateEntryUnsigned(ctx, client, signer, payload, diaryUUID, title, tags, importance, entryType)
 }
 
 func signAndCreateEntrySigned(
 	ctx context.Context,
 	client *moltnetapi.Client,
-	creds *CredentialsFile,
+	signer Signer,
 	payload string,
 	diaryUUID uuid.UUID,
 	title string,
@@ -293,7 +294,7 @@ func signAndCreateEntrySigned(
 	}
 	fmt.Fprintf(os.Stderr, "Signing request created: %s\n", sigReq.ID)
 
-	sig, err := signWithRequestID(client, sigReq.ID.String(), creds.Keys.PrivateKey)
+	sig, err := signWithRequestID(ctx, client, signer, sigReq.ID.String())
 	if err != nil {
 		return nil, fmt.Errorf("sign and submit: %w", formatTransportError(err))
 	}
@@ -324,7 +325,7 @@ func signAndCreateEntrySigned(
 func signAndCreateEntryUnsigned(
 	ctx context.Context,
 	client *moltnetapi.Client,
-	creds *CredentialsFile,
+	signer Signer,
 	payload string,
 	diaryUUID uuid.UUID,
 	title string,
@@ -345,7 +346,7 @@ func signAndCreateEntryUnsigned(
 	}
 	fmt.Fprintf(os.Stderr, "Signing request created: %s\n", sigReq.ID)
 
-	sig, err := signWithRequestID(client, sigReq.ID.String(), creds.Keys.PrivateKey)
+	sig, err := signWithRequestID(ctx, client, signer, sigReq.ID.String())
 	if err != nil {
 		return nil, fmt.Errorf("sign and submit: %w", formatTransportError(err))
 	}

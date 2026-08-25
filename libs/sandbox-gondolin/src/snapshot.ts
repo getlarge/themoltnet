@@ -142,6 +142,9 @@ const BASE_ALPINE_PACKAGE_EXECUTABLES = {
   file: 'file',
   git: 'git',
   jq: 'jq',
+  // `ssh-keygen -Y sign` is how git produces SSH signatures; the agent-signing
+  // host capability relies on it (the key itself stays on the host).
+  'openssh-keygen': 'ssh-keygen',
   ripgrep: 'rg',
   tar: 'tar',
   xz: 'xz',

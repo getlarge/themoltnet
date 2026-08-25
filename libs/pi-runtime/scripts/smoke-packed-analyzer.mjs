@@ -93,9 +93,11 @@ try {
   mkdirSync(packDir);
   mkdirSync(installDir);
   const sandboxGondolinTarball = pack('libs/sandbox-gondolin');
+  const sdkTarball = pack('libs/sdk');
+  const agentRuntimeTarball = pack('libs/agent-runtime');
   const tarballs = [
-    pack('libs/sdk'),
-    pack('libs/agent-runtime'),
+    sdkTarball,
+    agentRuntimeTarball,
     sandboxGondolinTarball,
     pack('libs/shell-command-analyzer'),
     pack('libs/pi-runtime'),
@@ -106,12 +108,16 @@ try {
       name: 'pack-smoke',
       version: '1.0.0',
       private: true,
-      // pi-runtime's published manifest pins @themoltnet/sandbox-gondolin by
-      // version. Resolve it from the locally packed tarball so the smoke
-      // proves the packed closure even before that version reaches npm.
+      // pi-runtime's published manifest pins its @themoltnet/* dependencies by
+      // version. When a change extends one of their APIs before the version is
+      // bumped, pnpm would otherwise dedupe to the same-version npm copy that
+      // lacks the new export. Force every locally packed dependency so the
+      // smoke proves the packed closure even before those versions reach npm.
       pnpm: {
         overrides: {
+          '@themoltnet/agent-runtime': `file:${agentRuntimeTarball}`,
           '@themoltnet/sandbox-gondolin': `file:${sandboxGondolinTarball}`,
+          '@themoltnet/sdk': `file:${sdkTarball}`,
         },
       },
     }),

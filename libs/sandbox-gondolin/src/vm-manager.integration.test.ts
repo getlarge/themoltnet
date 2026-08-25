@@ -190,6 +190,103 @@ echo revoked
     }
   }, 120_000);
 
+  it('serves host origins in-process and applies the trusted guest projection', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-host-origins-'));
+    const workspace = path.join(root, 'workspace');
+    mkdirSync(workspace, { recursive: true });
+    // A legacy tree on the host must never reach the guest.
+    const legacyDir = path.join(root, '.moltnet', 'legacy');
+    mkdirSync(legacyDir, { recursive: true });
+    writeFileSync(
+      path.join(legacyDir, 'moltnet.json'),
+      JSON.stringify({ keys: { private_key: 'host-only-seed-sentinel' } }),
+    );
+    const checkpointPath = await ensureSnapshot();
+    const identity = {
+      agentName: 'legacy',
+      identityId: 'id-1',
+      publicKey: 'ed25519:wBkbENwyQSOnY+OZIsVX1F3b35JvQ42juWDXyqTapN4=',
+      fingerprint: '1671-B080-99BF-4270',
+      gitName: 'LeGreffier',
+      gitEmail: 'l@x',
+    };
+    const seen: string[] = [];
+    let managed: Awaited<ReturnType<typeof resumeVm>> | undefined;
+    try {
+      managed = await resumeVm({
+        checkpointPath,
+        agentName: 'legacy',
+        agentRootDir: root,
+        guestCredentialMode: 'host-authenticated',
+        mountPath: workspace,
+        hostOrigins: {
+          'https://echo.moltnet.internal': async (request) => {
+            const url = new URL(request.url);
+            seen.push(`${request.method} ${url.pathname}`);
+            if (url.pathname === '/identity') {
+              return new Response(JSON.stringify(identity), {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+              });
+            }
+            return new Response(JSON.stringify({ code: 'unknown_operation' }), {
+              status: 404,
+              headers: { 'content-type': 'application/json' },
+            });
+          },
+        },
+        guestProjection: {
+          env: { ECHO_URL: 'https://echo.moltnet.internal' },
+          files: [
+            {
+              path: '/home/agent/.config/moltnet/gitconfig',
+              content: '[user]\n\tname = LeGreffier\n',
+              mode: 0o644,
+            },
+          ],
+          services: [{ id: 'sleeper', command: ['sleep', '600'] }],
+        },
+      });
+
+      const output = await execGuest(
+        managed.vm,
+        `
+set -eu
+curl -fsS --max-time 20 "$ECHO_URL/identity"
+echo
+if curl -fsS --max-time 10 "$ECHO_URL/nope" >/dev/null 2>&1; then echo unknown-accepted; exit 1; fi
+stat -c '%a' /home/agent/.config/moltnet/gitconfig
+cat /home/agent/.config/moltnet/gitconfig
+pid=$(cat /run/moltnet/services/sleeper.pid)
+kill -0 "$pid" && echo "service-running pid=$pid"
+echo "moltnet-files=$(find /home/agent/.moltnet -type f 2>/dev/null | wc -l | tr -d ' ')"
+echo "seed-env=$(env | grep -c host-only-seed-sentinel || true)"
+`,
+      );
+      expect(output).toContain('"fingerprint":"1671-B080-99BF-4270"');
+      expect(output).toContain('644');
+      expect(output).toContain('name = LeGreffier');
+      expect(output).toContain('service-running');
+      expect(output).toContain('moltnet-files=0');
+      expect(output).toContain('seed-env=0');
+      expect(output).not.toContain('host-only-seed-sentinel');
+      expect(seen).toEqual(['GET /identity', 'GET /nope']);
+
+      const pid = /service-running pid=(\d+)/.exec(output)?.[1];
+      expect(pid).toBeDefined();
+      await managed.services.stop();
+      const afterStop = await execGuest(
+        managed.vm,
+        `kill -0 ${pid} 2>/dev/null && echo still-running || echo stopped; [ -f /run/moltnet/services/sleeper.pid ] && echo pidfile-present || echo pidfile-removed`,
+      );
+      expect(afterStop).toContain('stopped');
+      expect(afterStop).toContain('pidfile-removed');
+    } finally {
+      await managed?.vm.close();
+      rmSync(root, { recursive: true, force: true });
+    }
+  }, 600_000);
+
   it('allows configured runtime hosts and blocks unlisted hosts', async () => {
     // Arrange
     const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-egress-'));

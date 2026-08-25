@@ -36,6 +36,18 @@ export interface RuntimeInstructorSandbox {
   allowedInternalHosts: readonly string[];
   /** Guest names containing host-brokered opaque HTTP placeholders. */
   brokeredSecretEnvNames?: readonly string[];
+  /** Host capabilities served to the guest (attested in the manifest). */
+  hostCapabilities?: readonly {
+    name: string;
+    origin: string;
+    operations: readonly string[];
+  }[];
+  /**
+   * Guest credential mode. In `host-authenticated` the guest CLI carries no
+   * identity credentials, so REST-backed CLI paths (e.g. `moltnet entry
+   * create-signed`) cannot authenticate; host-side SDK tools must be used.
+   */
+  guestCredentialMode?: 'guest-config' | 'host-authenticated';
 }
 
 export function buildWorkspaceMountInstructions(
@@ -195,6 +207,23 @@ export function buildSandboxCapabilityInstructions(
     '- Runtime service endpoints required for task execution may be available',
     '  in addition to the operator-configured hosts above.',
   );
+  const hostCapabilities = [...(sandbox.hostCapabilities ?? [])].sort(
+    (left, right) => left.name.localeCompare(right.name),
+  );
+  if (hostCapabilities.length > 0) {
+    lines.push(
+      '- Host capabilities served by the trusted daemon (attested in the',
+      '  executor manifest; every call is policy-checked and evidenced):',
+      ...hostCapabilities.map(
+        (capability) =>
+          `  - \`${capability.name}\` at ${capability.origin} (${[
+            ...capability.operations,
+          ]
+            .sort()
+            .join(', ')}).`,
+      ),
+    );
+  }
   return lines.join('\n');
 }
 
@@ -264,11 +293,60 @@ export function buildCredentialInstructions(
     );
   }
   if (gitAvailable) {
-    lines.push(
-      '- Local Git commands run inside the guest. No signing key or Git',
-      '  credential helper is injected; signing and authenticated push',
-      '  require an explicitly provided capability.',
+    const signing = (sandbox?.hostCapabilities ?? []).find(
+      (capability) => capability.name === 'agent-signing',
     );
+    // Declared is not the same as authorized. Under enforcement the router
+    // still requires a `capability:agent-signing` (or per-operation) grant, so
+    // only promise signing works when policy actually permits it.
+    const signingGranted =
+      !!signing &&
+      (!policy ||
+        policy.enforcement === 'off' ||
+        policy.allowedTools.some(
+          (name) =>
+            name === 'capability:agent-signing' ||
+            name.startsWith('capability:agent-signing:'),
+        ));
+    const hostAuthenticated =
+      sandbox?.guestCredentialMode === 'host-authenticated';
+    if (signingGranted) {
+      lines.push(
+        '- Commit signing is brokered: `git commit -S` works normally through',
+        '  `SSH_AUTH_SOCK`; the signing key stays on the host. Do not look for,',
+        '  export, or recreate a private key in the guest.',
+      );
+      // Diary signing: the guest CLI `moltnet entry create-signed` makes
+      // authenticated REST calls. In host-authenticated mode the guest CLI has
+      // no identity credentials, so route diary signing through the host-side
+      // `moltnet_create_entry` tool instead.
+      lines.push(
+        ...(hostAuthenticated
+          ? [
+              '- For a signed diary entry use the `moltnet_create_entry` tool with',
+              '  `signed: true` (it signs on the trusted host). Do not use the',
+              '  guest `moltnet entry create-signed` CLI: it has no guest identity',
+              '  credentials and its REST calls will fail.',
+            ]
+          : [
+              '- For a signed diary entry use `moltnet_create_entry` with',
+              '  `signed: true`, or the guest `moltnet entry create-signed` CLI',
+              '  (brokered through `MOLTNET_SIGNER_URL`).',
+            ]),
+      );
+    } else if (signing) {
+      lines.push(
+        '- An `agent-signing` capability is declared but the active policy does',
+        '  not grant it. `git commit -S` and signed diary entries will be denied;',
+        '  create unsigned commits/entries unless the capability is granted.',
+      );
+    } else {
+      lines.push(
+        '- Local Git commands run inside the guest. No signing key or Git',
+        '  credential helper is injected; signing and authenticated push',
+        '  require an explicitly provided capability.',
+      );
+    }
   }
   return lines.join('\n');
 }

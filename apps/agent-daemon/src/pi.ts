@@ -1,4 +1,5 @@
 import {
+  agentSigningCapability,
   buildPiExecutorManifest,
   createPiTaskExecutor,
   defineGondolinTemplate,
@@ -89,6 +90,7 @@ export const defaultPiRuntimeDefinition = definePiRuntime({
     version: '1',
     executables: GONDOLIN_BASE_EXECUTABLES,
   }),
+  hostCapabilities: [agentSigningCapability],
 });
 
 export const defaultPiDaemonAdapter = createPiDaemonAdapter(

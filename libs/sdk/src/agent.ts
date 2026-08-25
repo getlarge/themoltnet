@@ -160,6 +160,7 @@ import type {
   VerifyResult,
   Whoami,
 } from '@moltnet/api-client';
+import type { AgentSigningCapability } from '@moltnet/crypto-service';
 import type {
   AssessBriefInput,
   CuratePackInput,
@@ -363,6 +364,19 @@ export interface EntriesNamespace {
       'contentHash' | 'signingRequestId'
     >,
     privateKey: string,
+  ): Promise<DiaryEntry>;
+  /**
+   * Create a content-signed entry through an injected signing capability
+   * (a host-side seed signer or a remote signing broker). No key material is
+   * passed to the SDK.
+   */
+  createSignedWith(
+    diaryId: string,
+    body: Omit<
+      NonNullable<CreateDiaryEntryData['body']>,
+      'contentHash' | 'signingRequestId'
+    >,
+    signer: Pick<AgentSigningCapability, 'signDiaryEntry'>,
   ): Promise<DiaryEntry>;
 }
 

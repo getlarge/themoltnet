@@ -1122,6 +1122,44 @@ bootstrap steps in the local `defineGondolinTemplate` definition.
 Use `scratch_mount` to skip repo-specific bootstrap when a task runs without a
 repo checkout.
 
+### Host capabilities
+
+A host capability is an operation the trusted daemon performs for the guest.
+Runtime code declares it with `defineHostCapability` (from
+`@themoltnet/agent-runtime`); the sandbox proxy answers
+`https://<name>.moltnet.internal` in-process, so nothing listens on a port and
+nothing is forwarded. Core validates every request against the operation's
+closed schema, checks tool policy, rate-limits, and records value-free evidence
+(`host_capability.allowed|audit|denied`). The executor manifest attests
+`hostCapabilities` (name, origin, operations), so enabling one changes the
+attested executor identity.
+
+Policy grants reuse the tool vocabulary: `capability:<name>` permits every
+operation and `capability:<name>:<operation>` one operation. With enforcement
+`enforce`, a request without a grant is refused with `host_capability_denied`;
+`watch` audits and allows; requests made before the session policy is
+installed fail closed with `policy_not_ready`.
+
+The stock runtime declares `agent-signing`, which keeps the agent's Ed25519
+seed on the host while the guest uses normal tooling:
+
+- `sign-git-commit` signs a validated `git`-namespace SSHSIG envelope. The
+  guest runs `moltnet capability serve agent-signing --adapter ssh-agent` as a
+  projected service on `SSH_AUTH_SOCK`, and the projected `GIT_CONFIG_GLOBAL`
+  sets `user.signingKey = key::ssh-ed25519 …`, so `git commit -S` and
+  `git verify-commit` work without a key file.
+- `sign-diary-entry` signs a pending signing request owned by the identity;
+  `moltnet entry create-signed` uses it through `MOLTNET_SIGNER_URL`, and the
+  `moltnet_create_entry` tool accepts `signed: true`.
+- `GET /identity` returns the non-secret identity. The git author comes from
+  `--git-author "Name <email>"` / `MOLTNET_GIT_AUTHOR`, else the host git
+  config on OAuth2 hosts, else `<identityId>+<agent>[bot]@users.noreply.github.com`.
+
+No seed, SSH private key, GitHub App PEM, or `.moltnet` tree is projected.
+`guest-config` remains only as a deprecated compatibility mode pending its
+removal (#1969). Additional capabilities — for example a GPG signer backed by a
+host key — are runtime contributions and need no MoltNet change.
+
 ## Execution And Shutdown
 
 The daemon uses the task type's execution policy to plan local state:

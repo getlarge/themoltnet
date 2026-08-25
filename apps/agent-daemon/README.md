@@ -128,6 +128,16 @@ hostname pattern, and port (HTTPS/443 by default). See
 This does not provide diary or Git commit signing; private-key operations remain
 host capabilities.
 
+Host capabilities replace the last reason for `guest-config`: the stock runtime
+declares `agent-signing`, so `git commit -S` and `moltnet entry create-signed`
+work inside the guest while the seed stays on the host (the daemon injects a
+signer bound to the authenticated identity and projects a non-secret gitconfig,
+an `SSH_AUTH_SOCK` service, and `MOLTNET_SIGNER_URL`). Grant
+`capability:agent-signing` (or per-operation `capability:agent-signing:<op>`)
+in the tool policy. `--git-author "Name <email>"` / `MOLTNET_GIT_AUTHOR`
+overrides the projected git identity. See
+[Host capabilities](../../docs/operate/running-agents.md#host-capabilities).
+
 `sync-sessions` does not prepare or attest executors, so it remains independent
 of `MOLTNET_PRIVATE_KEY`.
 

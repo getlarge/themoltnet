@@ -263,6 +263,23 @@ describe('Agent daemon repo-free execution (e2e)', () => {
     });
     expect(viaExecutor.id).toBe(taskId);
     expect(viaExecutor.status).toBe('completed');
+
+    // Host capabilities: the daemon injects a signer bound to the authenticated
+    // identity and the stock runtime declares agent-signing for attestation.
+    const whoami = await executorOptions.moltnetAgent.agents.whoami();
+    expect(executorOptions.hostCapabilitySigner?.identity.fingerprint).toBe(
+      whoami.fingerprint,
+    );
+    expect(executorOptions.agentIdentity?.publicKey).toBe(whoami.publicKey);
+    expect(executorOptions.agentIdentity?.gitEmail).toMatch(/@/);
+    expect(
+      executorOptions.runtimeDefinition?.hostCapabilities?.map(
+        (capability) => capability.name,
+      ),
+    ).toEqual(['agent-signing']);
+    expect(JSON.stringify(executorOptions.hostCapabilitySigner)).not.toContain(
+      privateKey,
+    );
   }, 60_000);
 
   it('keeps OAuth2 guest-config available as an explicit opt-in', async () => {

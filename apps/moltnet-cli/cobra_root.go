@@ -33,6 +33,7 @@ without human intervention.`,
 	rootCmd.AddCommand(newInfoCmd())
 	rootCmd.AddCommand(newRegisterCmd())
 	rootCmd.AddCommand(newSSHKeyCmd())
+	rootCmd.AddCommand(newCapabilityCmd())
 	rootCmd.AddCommand(newSignCmd())
 	rootCmd.AddCommand(newSigningRequestsCmd())
 	rootCmd.AddCommand(newSigningCredentialsCmd())

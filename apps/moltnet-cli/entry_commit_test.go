@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/base64"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -364,7 +365,7 @@ func TestSignAndCreateEntry_Unsigned(t *testing.T) {
 	}
 
 	// Act
-	result, err := signAndCreateEntry(client, creds, "test payload", testDiaryID, "Test Title", []string{"tag1"}, 5, false)
+	result, err := signAndCreateEntry(client, newLocalSeedSigner(creds), "test payload", testDiaryID, "Test Title", []string{"tag1"}, 5, false)
 
 	// Assert
 	if err != nil {
@@ -395,17 +396,13 @@ func TestSignAndCreateEntry_Unsigned(t *testing.T) {
 	}
 }
 
-func TestSignAndCreateEntryRejectsMissingKeyBeforeAPISideEffects(t *testing.T) {
-	_, err := signAndCreateEntry(
-		nil,
-		&CredentialsFile{},
-		"test payload",
-		testDiaryID,
-		"Test Title",
-		[]string{"tag1"},
-		5,
-		true,
-	)
+func TestResolveSignerRejectsMissingKeyBeforeAPISideEffects(t *testing.T) {
+	t.Setenv(signerURLEnv, "")
+	credPath := filepath.Join(t.TempDir(), "moltnet.json")
+	if _, err := WriteConfigTo(&CredentialsFile{IdentityID: "x"}, credPath); err != nil {
+		t.Fatal(err)
+	}
+	_, err := resolveSigner(credPath)
 	if err == nil {
 		t.Fatal("expected missing signing key error")
 	}
@@ -435,7 +432,7 @@ func TestSignAndCreateEntry_Signed(t *testing.T) {
 	}
 
 	// Act
-	result, err := signAndCreateEntry(client, creds, "test payload", testDiaryID, "Test Title", []string{"tag1"}, 5, true)
+	result, err := signAndCreateEntry(client, newLocalSeedSigner(creds), "test payload", testDiaryID, "Test Title", []string{"tag1"}, 5, true)
 
 	// Assert
 	if err != nil {

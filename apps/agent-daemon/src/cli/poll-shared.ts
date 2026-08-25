@@ -7,6 +7,7 @@ import {
   AgentRuntime,
   ApiTaskReporter,
   type ClaimedTask,
+  createLocalSeedSigner,
   PollingApiTaskSource,
   type ResolvedRuntimeProfile,
   resolveProfileWarmSessionTtlSec,
@@ -25,6 +26,7 @@ import {
   resolveAgentContext,
   validateStartupBinding,
 } from '../lib/agent-context.js';
+import { resolveDaemonAgentIdentity } from '../lib/agent-identity.js';
 import {
   createGhCliClient,
   makePrBodyAnchorWriter,
@@ -211,7 +213,13 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     process.cwd(),
     values['agent-root'] ?? process.cwd(),
   );
-  const { ctx, signingPrivateKey, startupWhoami } = await (async () => {
+  const {
+    ctx,
+    signingPrivateKey,
+    startupWhoami,
+    agentIdentity,
+    hostCapabilitySigner,
+  } = await (async () => {
     let gate = 'resolve_agent_context';
     try {
       const resolvedContext = await resolveAgentContext(baseCommon.agent, {
@@ -238,10 +246,25 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         whoami,
         signingPrivateKey: privateKey,
       });
+      gate = 'resolve_agent_identity';
+      const agentIdentity = await resolveDaemonAgentIdentity({
+        agentName: baseCommon.agent,
+        whoami,
+        authMode: cfg.authMode,
+        agentDir: resolvedContext.agentDir,
+        gitAuthor: values['git-author'] ?? (cfg.gitAuthor || undefined),
+      });
+      const hostCapabilitySigner = createLocalSeedSigner({
+        privateKeySeed: privateKey,
+        agent: resolvedContext.agent,
+        identity: agentIdentity,
+      });
       return {
         ctx: resolvedContext,
         signingPrivateKey: privateKey,
         startupWhoami: whoami,
+        agentIdentity,
+        hostCapabilitySigner,
       };
     } catch (error) {
       await logDaemonStartupFailure({
@@ -804,6 +827,9 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         const rawExecuteTask = selected.preparedRuntime.createTaskExecutor({
           agentName: common.agent,
           moltnetAgent: ctx.agent,
+          agentIdentity,
+          hostCapabilitySigner,
+          hostCapabilityLogger: taskLogger,
           guestCredentialMode: ctx.guestCredentialMode,
           agentRootDir: ctx.agentRootDir,
           mountPath: sandbox.rootDir,

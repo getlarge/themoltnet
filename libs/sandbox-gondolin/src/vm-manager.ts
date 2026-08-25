@@ -15,6 +15,11 @@ import {
 } from '@earendil-works/gondolin';
 
 import { abortableResource, delay, throwIfAborted } from './abort-utils.js';
+import {
+  createHostOriginsOnRequest,
+  type HostOriginHandler,
+  hostOriginHostnames,
+} from './host-origins.js';
 import type { ResumeCommand, SandboxConfig } from './snapshot.js';
 
 /**
@@ -38,6 +43,17 @@ import type { ResumeCommand, SandboxConfig } from './snapshot.js';
  *     investigation and the alternatives we rejected.
  */
 export const GUEST_TASK_CONTEXT_MOUNT = '/moltnet-task-context';
+/** Guest directory holding one PID file per projected service. */
+export const GUEST_SERVICE_PID_DIR = '/run/moltnet/services';
+const GUEST_SERVICE_ID_RE = /^[a-z][a-z0-9-]{0,62}$/;
+
+function assertGuestServiceId(id: string): void {
+  if (!GUEST_SERVICE_ID_RE.test(id)) {
+    throw new Error(
+      `Invalid guest service id "${id}": expected ${GUEST_SERVICE_ID_RE}`,
+    );
+  }
+}
 /** @deprecated Use GUEST_TASK_CONTEXT_MOUNT. */
 export const GUEST_TASK_SKILLS_MOUNT = GUEST_TASK_CONTEXT_MOUNT;
 
@@ -81,12 +97,38 @@ export interface VmDiagnostic {
   event:
     | 'vm.credentials.mode'
     | 'vm.credentials.github_key_missing'
-    | 'vm.http_secrets.bound';
+    | 'vm.http_secrets.bound'
+    | 'vm.host_origins.bound'
+    | 'vm.guest_projection.applied'
+    | 'vm.guest_service.not_ready';
   level: 'info' | 'warning';
   message: string;
   credentialMode: GuestCredentialMode;
   /** Present only for the value-free broker summary event. */
   brokeredSecretCount?: number;
+  /** Present only for the host-origins summary event. */
+  hostOriginCount?: number;
+  /** Present only for the guest-projection summary event. */
+  projectedFileCount?: number;
+  projectedServiceCount?: number;
+}
+
+/** Declarative, trusted-host guest projection (env, files, services). */
+export interface GuestProjectionInput {
+  env?: Record<string, string>;
+  files?: { path: string; content: string | Uint8Array; mode?: number }[];
+  services?: {
+    id: string;
+    command: readonly string[];
+    env?: Record<string, string>;
+    /** Guest path to wait for before the session starts. */
+    readiness?: { path: string; timeoutMs?: number; required?: boolean };
+  }[];
+}
+
+/** Lifecycle handle for projected guest services. */
+export interface GuestServices {
+  stop(): Promise<void>;
 }
 
 export interface VmConfig {
@@ -129,6 +171,19 @@ export interface VmConfig {
    * raw values or select host secret-provider coordinates.
    */
   brokeredSecrets?: readonly BrokeredHttpSecretBinding[];
+  /**
+   * Trusted-host origins answered in-process by the proxy. Keys are full
+   * origins (`https://name.moltnet.internal`). Like brokered secrets these are
+   * outside SandboxConfig: a remotely stored profile cannot register one.
+   */
+  hostOrigins?: Record<string, HostOriginHandler>;
+  /**
+   * Trusted-host guest projection: env merged last (after broker
+   * placeholders), files written before the session starts, services run in
+   * the guest for the session's lifetime. Not subject to the profile env
+   * reserved-name guard — the runtime, not the profile, declares it.
+   */
+  guestProjection?: GuestProjectionInput;
   /** Structured credential-boundary diagnostics for daemon loggers. */
   onDiagnostic?: (diagnostic: VmDiagnostic) => void;
   /** Abort resume/setup work, closing any live VM owned by resumeVm. */
@@ -177,6 +232,8 @@ export interface ManagedVm {
   credentials: VmCredentials;
   /** Host-only rotation and revocation handle. It cannot widen destinations. */
   secretManager: BrokeredHttpSecretManager;
+  /** Projected guest services; `stop()` before closing the VM. Always present. */
+  services: GuestServices;
   mountPath: string;
   guestWorkspace: string;
   agentDir: string;
@@ -917,6 +974,11 @@ function assertInternalHostsDoNotOverlapProtectedHosts(
  * surface immediately rather than fall through to cryptic agent
  * errors later.
  */
+/** Single-quote a POSIX shell argument (paths/ids are pre-validated). */
+function shellQuote(value: string): string {
+  return `'${value.replaceAll("'", `'\\''`)}'`;
+}
+
 async function vmRun(
   vm: VM,
   label: string,
@@ -1008,10 +1070,20 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   const allowedHosts = [
     ...new Set([...protectedExternalHosts, ...runtimeAllowedHosts]),
   ];
+  const hostOrigins = config.hostOrigins ?? {};
+  const hostOriginHosts = hostOriginHostnames(hostOrigins);
+  assertInternalHostsDoNotOverlapProtectedHosts(
+    hostOriginHosts,
+    protectedExternalHosts,
+  );
+  const allowedInternalHosts = [
+    ...new Set([...runtimeAllowedInternalHosts, ...hostOriginHosts]),
+  ];
+  const projectedEnv = config.guestProjection?.env ?? {};
 
   const brokeredSecrets = prepareBrokeredHttpSecrets({
     bindings: config.brokeredSecrets,
-    allowedHosts: [...allowedHosts, ...runtimeAllowedInternalHosts],
+    allowedHosts: [...allowedHosts, ...allowedInternalHosts],
     occupiedGuestEnvNames: [
       'PATH',
       'HOME',
@@ -1021,6 +1093,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       ...(config.forwardEnv ?? []),
       ...Object.keys(creds.agentEnv),
       ...Object.keys(config.sandboxConfig?.env ?? {}),
+      ...Object.keys(projectedEnv),
     ],
   });
   const brokeredSecretOriginPolicy = createBrokeredHttpSecretOriginPolicy(
@@ -1033,10 +1106,13 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     secretManager: gondolinSecretManager,
   } = createHttpHooks({
     allowedHosts,
-    allowedInternalHosts: runtimeAllowedInternalHosts,
+    allowedInternalHosts,
     ...(Object.keys(brokeredSecrets).length > 0 && {
       secrets: brokeredSecrets,
       isRequestAllowed: brokeredSecretOriginPolicy.isRequestAllowed,
+    }),
+    ...(hostOriginHosts.length > 0 && {
+      onRequest: createHostOriginsOnRequest(hostOrigins),
     }),
   });
   const secretManager: BrokeredHttpSecretManager = Object.freeze({
@@ -1059,6 +1135,17 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       message:
         `Bound ${brokeredSecretCount} HTTP secret placeholder` +
         `${brokeredSecretCount === 1 ? '' : 's'} to the host proxy`,
+    });
+  }
+  if (hostOriginHosts.length > 0) {
+    config.onDiagnostic?.({
+      event: 'vm.host_origins.bound',
+      level: 'info',
+      credentialMode: guestCredentialMode,
+      hostOriginCount: hostOriginHosts.length,
+      message:
+        `Bound ${hostOriginHosts.length} host origin` +
+        `${hostOriginHosts.length === 1 ? '' : 's'} to the host proxy`,
     });
   }
 
@@ -1141,6 +1228,8 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     ...envOverrides,
     MOLTNET_GUEST_WORKSPACE: guestWorkspace,
     ...secretEnv,
+    // Trusted runtime projection: declared by host code, never by a profile.
+    ...projectedEnv,
   };
 
   const resources = config.sandboxConfig?.resources;
@@ -1179,6 +1268,40 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   // Node event loop alive, and `executePiTask`'s own finally block
   // never runs because it depends on the resolved `managed` handle
   // we're about to return.
+  // Projected guest services are tracked so they can be stopped before the VM
+  // closes (setup failure or normal teardown). Declared before `try` so the
+  // catch path can abort them as well.
+  const servicesAbort = new AbortController();
+  const serviceHandles: Promise<unknown>[] = [];
+  const serviceIds: string[] = [];
+  const services: GuestServices = {
+    async stop() {
+      if (serviceIds.length > 0) {
+        const pidFiles = serviceIds
+          .map((id) => `${GUEST_SERVICE_PID_DIR}/${id}.pid`)
+          .join(' ');
+        try {
+          await vm.exec(
+            [
+              'sh',
+              '-c',
+              `for f in ${pidFiles}; do [ -f "$f" ] || continue; pid=$(cat "$f"); ` +
+                'kill -TERM -- "-$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null || true; done; sleep 0.2; ' +
+                `for f in ${pidFiles}; do [ -f "$f" ] || continue; pid=$(cat "$f"); ` +
+                'kill -KILL -- "-$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null || true; rm -f "$f"; done',
+            ],
+            { stdout: 'ignore', stderr: 'ignore' },
+          );
+        } catch {
+          // The VM may already be gone; aborting the handles below is enough.
+        }
+        serviceIds.length = 0;
+      }
+      servicesAbort.abort();
+      await Promise.allSettled(serviceHandles);
+    },
+  };
+
   try {
     // Fix TLS: append Gondolin MITM CA to system trust store.
     // Unofficial-builds Node ships its own OpenSSL which can't load
@@ -1280,14 +1403,22 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     const providerAuthDir = config.providerAuth
       ? path.posix.dirname(config.providerAuth.guestPath)
       : null;
+    const projectedFiles = config.guestProjection?.files ?? [];
+    const projectedDirs = [
+      ...new Set(projectedFiles.map((file) => path.posix.dirname(file.path))),
+    ];
     const guestDirs = [
       ...(hasAgentFiles ? [`${vmAgentDir}/ssh`] : []),
       ...(providerAuthDir ? [providerAuthDir] : []),
+      ...projectedDirs,
     ];
     if (guestDirs.length > 0) {
-      await vm.exec(`mkdir -p ${guestDirs.join(' ')}`, {
-        signal: config.signal,
-      });
+      await vmRun(
+        vm,
+        'create guest directories',
+        `mkdir -p ${guestDirs.map(shellQuote).join(' ')}`,
+        config.signal,
+      );
     }
 
     if (creds.providerAuthJson !== null && config.providerAuth) {
@@ -1375,12 +1506,149 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       }
     }
 
-    await vm.exec(
-      hasAgentFiles
-        ? 'chown -R agent:agent /home/agent/.pi /home/agent/.moltnet'
-        : 'chown -R agent:agent /home/agent/.pi',
-      { signal: config.signal },
+    for (const file of projectedFiles) {
+      await vm.fs.writeFile(file.path, file.content, {
+        mode: file.mode ?? 0o644,
+        signal: config.signal,
+      });
+      // The VFS write does not reliably apply `mode` (an executable projected
+      // as 0o755 landed as 0o644); set it explicitly so services can start.
+      if (file.mode !== undefined) {
+        await vmRun(
+          vm,
+          `chmod projected file ${file.path}`,
+          `chmod ${file.mode.toString(8)} ${shellQuote(file.path)}`,
+          config.signal,
+        );
+      }
+    }
+
+    // Chown the actual projected directories under the agent home (not a fixed
+    // `.config`) so e.g. `/home/agent/bin/...` is owned by the agent. `.pi` is
+    // optional: host-authenticated and env-only sessions never create it, so
+    // each target is existence-guarded — a missing optional dir is skipped
+    // while a real chown failure on a present dir still aborts (set -e).
+    const chownTargets = [
+      '/home/agent/.pi',
+      ...(hasAgentFiles ? ['/home/agent/.moltnet'] : []),
+      ...projectedDirs.filter((dir) => dir.startsWith('/home/agent/')),
+    ];
+    await vmRun(
+      vm,
+      'chown guest directories',
+      `set -e; for d in ${chownTargets
+        .map(shellQuote)
+        .join(
+          ' ',
+        )}; do if [ -e "$d" ]; then chown -R agent:agent "$d"; fi; done`,
+      config.signal,
     );
+
+    // Projected services run for the session; they are never awaited here.
+    // Each one records its guest PID so `services.stop()` can terminate the
+    // process: aborting the exec handle only detaches the host side.
+    const projectedServices = config.guestProjection?.services ?? [];
+    if (projectedServices.length > 0) {
+      await vmRun(
+        vm,
+        'create service pid directory',
+        `mkdir -p ${GUEST_SERVICE_PID_DIR}`,
+        config.signal,
+      );
+    }
+    for (const service of projectedServices) {
+      assertGuestServiceId(service.id);
+      // setsid makes the wrapper a session/process-group leader (pgid == pid)
+      // so stop() can kill the whole tree, not just the leader.
+      const handle = vm.exec(
+        [
+          'setsid',
+          'sh',
+          '-c',
+          `echo $$ > ${GUEST_SERVICE_PID_DIR}/${service.id}.pid && exec "$@"`,
+          'moltnet-service',
+          ...service.command,
+        ],
+        {
+          stdout: 'ignore',
+          stderr: 'ignore',
+          ...(service.env && { env: service.env }),
+          signal: servicesAbort.signal,
+        },
+      );
+      serviceHandles.push(Promise.resolve(handle).catch(() => undefined));
+      serviceIds.push(service.id);
+    }
+    // Readiness: probe every service that declares a path concurrently under
+    // its own deadline. A missing best-effort service degrades with a
+    // diagnostic; a `required` one fails the session.
+    async function awaitServiceReady(service: {
+      id: string;
+      readiness?: { path: string; timeoutMs?: number; required?: boolean };
+    }): Promise<void> {
+      if (!service.readiness) return;
+      const deadline = Date.now() + (service.readiness.timeoutMs ?? 10_000);
+      const pidFile = `${GUEST_SERVICE_PID_DIR}/${service.id}.pid`;
+      let ready = false;
+      while (Date.now() < deadline) {
+        throwIfAborted(config.signal, `service "${service.id}" readiness`);
+        // Readiness requires BOTH the declared path AND the recorded process
+        // still running: a bare path check accepts a stale socket left by a
+        // prior crashed service, and misses a service that created its socket
+        // then exited. `kill -0 <pid>` closes both gaps.
+        const probe = await vm.exec(
+          [
+            'sh',
+            '-c',
+            '[ -e "$1" ] && [ -r "$2" ] && kill -0 "$(cat "$2" 2>/dev/null)" 2>/dev/null',
+            'moltnet-readiness',
+            service.readiness.path,
+            pidFile,
+          ],
+          { stdout: 'ignore', stderr: 'ignore', signal: config.signal },
+        );
+        if (probe.exitCode === 0) {
+          ready = true;
+          break;
+        }
+        await new Promise((resolve) => {
+          setTimeout(resolve, 200);
+        });
+      }
+      if (!ready) {
+        if (service.readiness.required) {
+          throw new Error(
+            `Projected guest service "${service.id}" did not become ready: ${service.readiness.path} absent or its process exited`,
+          );
+        }
+        // Best-effort service (e.g. a signing socket whose guest CLI may
+        // predate the subcommand): degrade rather than fail the task. The
+        // capability's own operations surface a clear error if used.
+        config.onDiagnostic?.({
+          event: 'vm.guest_service.not_ready',
+          level: 'warning',
+          credentialMode: guestCredentialMode,
+          message:
+            `Projected guest service "${service.id}" did not become ready ` +
+            `(${service.readiness.path} absent or its process exited); continuing without it`,
+        });
+      }
+    }
+    await Promise.all(
+      projectedServices.map((service) => awaitServiceReady(service)),
+    );
+    if (projectedFiles.length > 0 || projectedServices.length > 0) {
+      config.onDiagnostic?.({
+        event: 'vm.guest_projection.applied',
+        level: 'info',
+        credentialMode: guestCredentialMode,
+        projectedFileCount: projectedFiles.length,
+        projectedServiceCount: projectedServices.length,
+        message:
+          `Applied guest projection: ${projectedFiles.length} file(s), ` +
+          `${projectedServices.length} service(s)`,
+      });
+    }
 
     // Git push/pull auth over HTTPS comes entirely from the injected gitconfig
     // (rewriteGitconfigPaths above): the tokenless `moltnet github
@@ -1396,11 +1664,13 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       vm,
       credentials: creds,
       secretManager,
+      services,
       mountPath: config.mountPath,
       guestWorkspace,
       agentDir,
     };
   } catch (err) {
+    servicesAbort.abort();
     // Anything after cp.resume() owns the live VM. If setup throws
     // (TLS, DNS, safe.directory, tmpfs mounts, resumeCommands, …),
     // close the qemu process before rethrowing — otherwise the

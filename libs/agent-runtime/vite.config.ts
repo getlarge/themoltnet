@@ -12,6 +12,7 @@ export default defineConfig({
     dts({
       rollupTypes: true,
       bundledPackages: [
+        '@moltnet/crypto-service',
         '@moltnet/models',
         '@moltnet/runtime-profiles',
         '@moltnet/tasks',
@@ -21,6 +22,19 @@ export default defineConfig({
       exclude: ['src/**/*.test.ts'],
       compilerOptions: {
         paths: {
+          '@moltnet/crypto-service': ['../crypto-service/dist/index.d.ts'],
+          '@moltnet/crypto-service/agent-signing': [
+            '../crypto-service/dist/agent-signing.d.ts',
+          ],
+          '@moltnet/crypto-service/content-cid': [
+            '../crypto-service/dist/content-cid.d.ts',
+          ],
+          '@moltnet/crypto-service/json-cid': [
+            '../crypto-service/dist/json-cid.d.ts',
+          ],
+          '@moltnet/crypto-service/canonical-json': [
+            '../crypto-service/dist/canonical-json.d.ts',
+          ],
           '@moltnet/runtime-profiles': ['../runtime-profiles/dist/index.d.ts'],
           '@moltnet/runtime-profiles/context-recipes': [
             '../runtime-profiles/dist/runtime-profile-context-recipes.d.ts',

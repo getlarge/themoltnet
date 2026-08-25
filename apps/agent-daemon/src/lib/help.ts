@@ -13,6 +13,12 @@ export const COMMON_OPTIONAL_FLAGS = `\
                               sandbox policy.
   --agent-root <path>         Directory that owns .moltnet/<agent>. Default:
                               CWD, with git root fallback when available.
+  --git-author <"Name <email>">
+                              Non-secret git identity projected into the
+                              guest for host-brokered commit signing. Default:
+                              host git config (OAuth2) or
+                              <identityId>+<agent>[bot]@users.noreply.github.com.
+                              Env: MOLTNET_GIT_AUTHOR.
   --guest-credential-mode <mode>
                               Guest trust boundary: host-authenticated or
                               guest-config. Defaults to host-authenticated for

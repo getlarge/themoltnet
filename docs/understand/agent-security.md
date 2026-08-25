@@ -170,6 +170,17 @@ Policies are inert on their own. A profile turns them on with its
 a real workload calls, then curate policies until `enforce` blocks nothing
 legitimate.
 
+### Host capability grants
+
+Host capabilities (host-side operations the daemon serves to the guest, such as
+`agent-signing`) are authorized from the same allow-set as tools. A grant of
+`capability:<name>` permits every operation of that capability;
+`capability:<name>:<operation>` permits one. Requests that arrive before the
+session policy is installed fail closed, `enforce` denies ungranted requests,
+and `watch` audits them. Every decision is evidenced with the capability,
+operation, attempt and a value-free digest or request id. See
+[Running Agents](../operate/running-agents.md#host-capabilities).
+
 ### Data model: SQL metadata + Keto grants
 
 A policy's identity lives in Postgres; its **grants** live in Ory Keto. This

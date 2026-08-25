@@ -79,24 +79,26 @@ func runSSHKeyExportCmd(credPath, outDir string) error {
 		return fmt.Errorf("convert public key: %w", err)
 	}
 
-	privPEM, err := ToSSHPrivateKey(creds.Keys.PrivateKey)
-	if err != nil {
-		return fmt.Errorf("convert private key: %w", err)
-	}
-
-	// Write files
-	privPath := filepath.Join(dir, "id_ed25519")
-	if err := os.WriteFile(privPath, []byte(privPEM), 0o600); err != nil {
-		return fmt.Errorf("write private key: %w", err)
-	}
-
 	pubPath := filepath.Join(dir, "id_ed25519.pub")
 	if err := os.WriteFile(pubPath, []byte(pubSSH+"\n"), 0o644); err != nil {
 		return fmt.Errorf("write public key: %w", err)
 	}
-
-	fmt.Fprintf(os.Stderr, "SSH private key written to %s\n", privPath)
 	fmt.Fprintf(os.Stderr, "SSH public key written to %s\n", pubPath)
+
+	// Under a host signing broker the private key never exists locally:
+	// export the public half only and let git sign through SSH_AUTH_SOCK.
+	privPath := ""
+	if strings.TrimSpace(os.Getenv(signerURLEnv)) == "" {
+		privPEM, err := ToSSHPrivateKey(creds.Keys.PrivateKey)
+		if err != nil {
+			return fmt.Errorf("convert private key: %w", err)
+		}
+		privPath = filepath.Join(dir, "id_ed25519")
+		if err := os.WriteFile(privPath, []byte(privPEM), 0o600); err != nil {
+			return fmt.Errorf("write private key: %w", err)
+		}
+		fmt.Fprintf(os.Stderr, "SSH private key written to %s\n", privPath)
+	}
 
 	// Update the ssh section in the config file
 	creds.SSH = &SSHSection{

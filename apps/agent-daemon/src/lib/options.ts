@@ -34,6 +34,7 @@ export interface CommonRawArgs {
   agent?: string;
   'agent-root'?: string;
   'guest-credential-mode'?: string;
+  'git-author'?: string;
   'lease-ttl-sec'?: string;
   'heartbeat-interval-ms'?: string;
   'max-batch-size'?: string;
@@ -180,6 +181,7 @@ export function commonOptionDefs() {
     agent: { type: 'string', short: 'a' },
     'agent-root': { type: 'string' },
     'guest-credential-mode': { type: 'string' },
+    'git-author': { type: 'string' },
     'lease-ttl-sec': { type: 'string' },
     'heartbeat-interval-ms': { type: 'string' },
     'max-batch-size': { type: 'string' },

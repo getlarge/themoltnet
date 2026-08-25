@@ -11,7 +11,7 @@
  */
 import { Readable } from 'node:stream';
 
-import { computeJsonCid } from '@moltnet/crypto-service';
+import { computeJsonCid, cryptoService } from '@moltnet/crypto-service';
 import { type Context, metrics, ROOT_CONTEXT, trace } from '@opentelemetry/api';
 import {
   AggregationTemporality,
@@ -20,9 +20,12 @@ import {
   MetricReader,
 } from '@opentelemetry/sdk-metrics';
 import type { ClaimedTask, TaskReporter } from '@themoltnet/agent-runtime';
+import { createLocalSeedSigner } from '@themoltnet/agent-runtime';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { agentSigningCapability } from '../host-capabilities/agent-signing.js';
 import {
+  buildPiExecutorManifest,
   defineGondolinTemplate,
   definePiBrokeredHttpSecret,
   definePiRuntime,
@@ -151,6 +154,220 @@ describe('resolveAttemptBrokeredHttpSecrets', () => {
     ]);
     expect(resolve).toHaveBeenCalledOnce();
     expect(resolverSignal?.aborted).toBe(false);
+  });
+});
+
+describe('executePiTask host capability wiring', () => {
+  const identity = {
+    agentName: 'legreffier',
+    identityId: 'id',
+    publicKey: 'ed25519:wBkbENwyQSOnY+OZIsVX1F3b35JvQ42juWDXyqTapN4=',
+    fingerprint: 'F',
+    gitName: 'LeGreffier',
+    gitEmail: 'l@x',
+  };
+  const signer = {
+    identity,
+    signGitCommit: vi.fn(() =>
+      Promise.resolve({ signature: new Uint8Array(64) }),
+    ),
+    signDiaryEntry: vi.fn((input: { signingRequestId: string }) =>
+      Promise.resolve(input),
+    ),
+  };
+  const template = {
+    id: 'test-vm',
+    version: '1',
+    checkpointPath: '/tmp/checkpoint',
+    fingerprint: 'bafkreitemplate',
+    guestAssetBuildId: 'guest-build',
+    executables: [],
+    resumeCommands: [],
+  };
+  function options(
+    runtimeDefinition: ReturnType<typeof definePiRuntime>,
+    resume: ReturnType<typeof vi.fn>,
+  ) {
+    return {
+      agentName: 'legreffier',
+      provider: 'test-provider',
+      model: 'test-model',
+      mountPath: process.cwd(),
+      checkpointPath: '/tmp/checkpoint',
+      runtimeDefinition,
+      resolvedVmTemplate: template,
+      resumeVm: resume,
+      moltnetAgent: {} as never,
+      agentIdentity: identity,
+      hostCapabilitySigner: signer,
+    };
+  }
+
+  it('registers host origins and the guest projection on resume, failing closed until the policy is installed', async () => {
+    const { reporter } = executorTestReporter();
+    const resume = vi.fn(async () => {
+      throw new Error('stop after resume');
+    });
+    const runtime = definePiRuntime({
+      id: 'capability-runtime',
+      version: '1',
+      vm: defineGondolinTemplate({
+        id: 'test-vm',
+        version: '1',
+        checkpointPath: '/tmp/checkpoint',
+      }),
+      hostCapabilities: [agentSigningCapability],
+    });
+
+    await executePiTask(
+      executorTestClaimedTask(),
+      reporter,
+      options(runtime, resume),
+    );
+
+    expect(resume).toHaveBeenCalledOnce();
+    const config = (resume.mock.calls as unknown[][])[0][0] as {
+      hostOrigins?: Record<string, (request: Request) => Promise<Response>>;
+      guestProjection?: {
+        env: Record<string, string>;
+        files: { path: string }[];
+      };
+    };
+    expect(Object.keys(config.hostOrigins ?? {})).toEqual([
+      'https://agent-signing.moltnet.internal',
+    ]);
+    expect(config.guestProjection?.env).toMatchObject({
+      MOLTNET_SIGNER_URL: 'https://agent-signing.moltnet.internal',
+      SSH_AUTH_SOCK: '/run/moltnet/signer.sock',
+    });
+    expect(config.guestProjection?.files.map((file) => file.path)).toEqual([
+      '/home/agent/.config/moltnet/gitconfig',
+      '/home/agent/.config/moltnet/allowed_signers',
+    ]);
+    const res = await config.hostOrigins![
+      'https://agent-signing.moltnet.internal'
+    ](
+      new Request('https://agent-signing.moltnet.internal/sign-diary-entry', {
+        method: 'POST',
+        body: JSON.stringify({
+          signingRequestId: '2f1c0b9e-1111-4222-8333-444455556666',
+        }),
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
+    expect(res.status).toBe(503);
+    expect(signer.signDiaryEntry).not.toHaveBeenCalled();
+  });
+
+  it('keeps the seed out of resume options, evidence and the attested manifest', async () => {
+    const { reporter, records } = executorTestReporter();
+    const resume = vi.fn(async () => {
+      throw new Error('stop after resume');
+    });
+    const keyPair = await cryptoService.generateKeyPair();
+    const seed = keyPair.privateKey;
+    const logger = { info: vi.fn(), warn: vi.fn() };
+    const runtime = definePiRuntime({
+      id: 'capability-runtime',
+      version: '1',
+      vm: defineGondolinTemplate({
+        id: 'test-vm',
+        version: '1',
+        checkpointPath: '/tmp/checkpoint',
+      }),
+      hostCapabilities: [agentSigningCapability],
+    });
+    const realSigner = createLocalSeedSigner({
+      privateKeySeed: seed,
+      agent: {} as never,
+      identity: {
+        ...identity,
+        publicKey: keyPair.publicKey,
+        fingerprint: keyPair.fingerprint,
+      },
+    });
+
+    const output = await executePiTask(executorTestClaimedTask(), reporter, {
+      ...options(runtime, resume),
+      hostCapabilitySigner: realSigner,
+      hostCapabilityLogger: logger,
+    });
+
+    const manifest = await buildPiExecutorManifest({
+      runtime,
+      profile: { id: 'profile', definitionCid: 'bafkreiprofile' },
+      template,
+    });
+    const serialized = JSON.stringify({
+      resumeConfig: (resume.mock.calls as unknown[][])[0]?.[0],
+      output,
+      records,
+      logger: [logger.info.mock.calls, logger.warn.mock.calls],
+      manifest,
+    });
+    expect(serialized).not.toContain(seed);
+    expect(serialized).not.toMatch(/id_ed25519|PRIVATE KEY/);
+  });
+
+  it('fails closed when a runtime declares capabilities but no identity or agent was injected', async () => {
+    const { reporter, records } = executorTestReporter();
+    const resume = vi.fn();
+    const runtime = definePiRuntime({
+      id: 'capability-runtime',
+      version: '1',
+      vm: defineGondolinTemplate({
+        id: 'test-vm',
+        version: '1',
+        checkpointPath: '/tmp/checkpoint',
+      }),
+      hostCapabilities: [agentSigningCapability],
+    });
+    const { agentIdentity: _identity, ...withoutIdentity } = options(
+      runtime,
+      resume,
+    );
+
+    const output = await executePiTask(
+      executorTestClaimedTask(),
+      reporter,
+      withoutIdentity,
+    );
+
+    expect(resume).not.toHaveBeenCalled();
+    expect(output).toMatchObject({
+      status: 'failed',
+      error: { code: 'host_capability_context_missing', retryable: false },
+    });
+    expect(JSON.stringify(records)).toContain('host_capabilities');
+  });
+
+  it('omits host origins and projection when the runtime declares no capabilities', async () => {
+    const { reporter } = executorTestReporter();
+    const resume = vi.fn(async () => {
+      throw new Error('stop after resume');
+    });
+    const runtime = definePiRuntime({
+      id: 'plain-runtime',
+      version: '1',
+      vm: defineGondolinTemplate({
+        id: 'test-vm',
+        version: '1',
+        checkpointPath: '/tmp/checkpoint',
+      }),
+    });
+
+    await executePiTask(
+      executorTestClaimedTask(),
+      reporter,
+      options(runtime, resume),
+    );
+
+    const config = (resume.mock.calls as unknown[][])[0][0] as Record<
+      string,
+      unknown
+    >;
+    expect(config.hostOrigins).toBeUndefined();
+    expect(config.guestProjection).toBeUndefined();
   });
 });
 
