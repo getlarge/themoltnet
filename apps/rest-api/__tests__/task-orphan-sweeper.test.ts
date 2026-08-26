@@ -438,6 +438,27 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
     );
   });
 
+  it('checkpoints only workflow IDs for DBOS retention batches', async () => {
+    await init();
+    vi.mocked(DBOS.listWorkflows).mockResolvedValue([
+      {
+        workflowID: 'oldest-workflow',
+        output: 'large durable workflow output',
+      },
+      {
+        workflowID: 'newer-workflow',
+        output: 'another large durable workflow output',
+      },
+    ] as never);
+    const listStep =
+      registeredSteps['maintenance.dbosWorkflowRetention.listTerminal'];
+    if (!listStep) throw new Error('DBOS retention list step not registered');
+
+    const checkpointed = await listStep('2026-07-16T12:00:00.000Z', 1000);
+
+    expect(checkpointed).toEqual(['oldest-workflow', 'newer-workflow']);
+  });
+
   it('emits a database capacity snapshot per tracked scope every six hours', async () => {
     await init();
     const { deps, logger } = makeDeps([]);
