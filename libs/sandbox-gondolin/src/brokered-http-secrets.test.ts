@@ -366,8 +366,8 @@ describe('brokered HTTP network origin policy', () => {
     ).toBe(false);
   });
 
-  it('reports value-free exact-origin denials', () => {
-    const onDenied = vi.fn();
+  it('reports value-free exact-origin decisions', () => {
+    const onDecision = vi.fn();
     const observedPolicy = createBrokeredHttpNetworkOriginPolicy(
       [
         {
@@ -378,7 +378,7 @@ describe('brokered HTTP network origin policy', () => {
           ports: [18_080],
         },
       ],
-      { onDenied },
+      { onDecision },
     );
 
     expect(
@@ -386,11 +386,12 @@ describe('brokered HTTP network origin policy', () => {
         new Request('https://fixture.internal:18080/resource'),
       ),
     ).toBe(false);
-    expect(onDenied).toHaveBeenCalledWith({
+    expect(onDecision).toHaveBeenCalledWith({
       hostname: 'fixture.internal',
       protocol: 'https',
       port: 18_080,
       phase: 'request',
+      allowed: false,
     });
   });
 

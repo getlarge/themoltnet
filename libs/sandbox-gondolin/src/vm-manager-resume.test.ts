@@ -155,7 +155,15 @@ describe('resumeVm task-context mount', () => {
     expect(gondolinMock.resumeCalls).toHaveLength(1);
     const resumeOptions = gondolinMock.resumeCalls[0] as {
       vfs: { mounts: Record<string, unknown> };
+      fetch?: unknown;
     };
+    expect(resumeOptions).not.toHaveProperty('fetch');
+    expect(gondolinMock.createHttpHooks).toHaveBeenCalledWith(
+      expect.not.objectContaining({
+        isRequestAllowed: expect.any(Function),
+        isIpAllowed: expect.any(Function),
+      }),
+    );
     expect(Object.keys(resumeOptions.vfs.mounts).sort()).toEqual(
       [workspace, GUEST_TASK_CONTEXT_MOUNT].sort(),
     );
@@ -170,25 +178,150 @@ describe('resumeVm task-context mount', () => {
     );
   });
 
-  it('passes a trusted host fetch directly to Gondolin resume', async () => {
+  it('installs an exact fail-closed TEST-NET fixture transport', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-fetch-'));
     tempRoots.push(root);
     const workspace = path.join(root, 'workspace');
     mkdirSync(workspace, { recursive: true });
-    const trustedHttpFetch = vi.fn();
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('ok'));
 
     await resumeVm({
       checkpointPath: path.join(root, 'checkpoint.qcow2'),
       agentName: 'configless',
       agentRootDir: root,
       mountPath: workspace,
-      trustedHttpFetch: trustedHttpFetch as never,
+      testOnlyHttpRoutes: [
+        {
+          fromOrigin: 'http://192.0.2.10:30001',
+          toLoopbackOrigin: 'http://127.0.0.1:41001',
+        },
+      ],
     });
 
-    expect(gondolinMock.resumeCalls[0]).toMatchObject({
-      fetch: trustedHttpFetch,
-    });
+    const resumeOptions = gondolinMock.resumeCalls[0] as {
+      fetch: (input: string) => Promise<Response>;
+    };
+    await expect(
+      resumeOptions.fetch('http://192.0.2.10:30001/path?q=1'),
+    ).resolves.toBeInstanceOf(Response);
+    expect(fetchSpy).toHaveBeenCalledWith(
+      new URL('http://127.0.0.1:41001/path?q=1'),
+      expect.objectContaining({ redirect: 'manual' }),
+    );
+    await expect(
+      resumeOptions.fetch('http://203.0.113.10:30001/unmapped'),
+    ).rejects.toThrow('unmapped test fixture origin');
+    fetchSpy.mockRestore();
   });
+
+  it.each([
+    ['empty routes', [], 'test-only HTTP routes must not be empty'],
+    [
+      'hostname source',
+      [
+        {
+          fromOrigin: 'http://fixture.example:30001',
+          toLoopbackOrigin: 'http://127.0.0.1:41001',
+        },
+      ],
+      'fixture source must use an RFC 5737 IPv4 address',
+    ],
+    [
+      'public IP source',
+      [
+        {
+          fromOrigin: 'http://8.8.8.8:30001',
+          toLoopbackOrigin: 'http://127.0.0.1:41001',
+        },
+      ],
+      'fixture source must use an RFC 5737 IPv4 address',
+    ],
+    [
+      'source path',
+      [
+        {
+          fromOrigin: 'http://192.0.2.10:30001/path',
+          toLoopbackOrigin: 'http://127.0.0.1:41001',
+        },
+      ],
+      'fixture source must be a bare HTTP origin',
+    ],
+    [
+      'source without explicit port',
+      [
+        {
+          fromOrigin: 'http://192.0.2.10',
+          toLoopbackOrigin: 'http://127.0.0.1:41001',
+        },
+      ],
+      'fixture source must include an explicit port',
+    ],
+    [
+      'public target',
+      [
+        {
+          fromOrigin: 'http://192.0.2.10:30001',
+          toLoopbackOrigin: 'http://192.0.2.20:41001',
+        },
+      ],
+      'fixture target must use a literal 127.0.0.1 HTTP origin',
+    ],
+    [
+      'HTTPS loopback target',
+      [
+        {
+          fromOrigin: 'http://192.0.2.10:30001',
+          toLoopbackOrigin: 'https://127.0.0.1:41001',
+        },
+      ],
+      'fixture target must use a literal 127.0.0.1 HTTP origin',
+    ],
+    [
+      'loopback target without explicit port',
+      [
+        {
+          fromOrigin: 'http://192.0.2.10:30001',
+          toLoopbackOrigin: 'http://127.0.0.1',
+        },
+      ],
+      'fixture target must include an explicit port',
+    ],
+    [
+      'duplicate source',
+      [
+        {
+          fromOrigin: 'http://192.0.2.10:30001',
+          toLoopbackOrigin: 'http://127.0.0.1:41001',
+        },
+        {
+          fromOrigin: 'http://192.0.2.10:30001',
+          toLoopbackOrigin: 'http://127.0.0.1:41002',
+        },
+      ],
+      'duplicate fixture source origin',
+    ],
+  ] as const)(
+    'rejects invalid %s before VM resume',
+    async (_name, routes, error) => {
+      const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-routes-'));
+      tempRoots.push(root);
+      const workspace = path.join(root, 'workspace');
+      mkdirSync(workspace, { recursive: true });
+
+      await expect(
+        resumeVm({
+          checkpointPath: path.join(root, 'checkpoint.qcow2'),
+          agentName: 'configless',
+          agentRootDir: root,
+          mountPath: workspace,
+          testOnlyHttpRoutes: routes,
+        }),
+      ).rejects.toThrow(error);
+      expect(gondolinMock.resumeCalls).toHaveLength(0);
+    },
+  );
 
   it('forwards only explicitly allowlisted host env vars into the VM', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-env-'));
@@ -277,6 +410,12 @@ describe('resumeVm task-context mount', () => {
           guestEnv: 'EXAMPLE_API_TOKEN',
           hosts: ['api.example.com'],
           value: sentinel,
+        },
+      ],
+      testOnlyHttpRoutes: [
+        {
+          fromOrigin: 'http://192.0.2.10:30001',
+          toLoopbackOrigin: 'http://127.0.0.1:41001',
         },
       ],
       onDiagnostic: (diagnostic) => diagnostics.push(diagnostic),
@@ -637,10 +776,11 @@ describe('resumeVm task-context mount', () => {
           'legacy-api.example.com',
         ]),
         allowedInternalHosts: ['onboard-api.internal'],
-        isRequestAllowed: expect.any(Function),
-        isIpAllowed: expect.any(Function),
       }),
     );
+    const hookOptions = gondolinMock.createHttpHooks.mock.calls[0]?.[0];
+    expect(hookOptions).not.toHaveProperty('isRequestAllowed');
+    expect(hookOptions).not.toHaveProperty('isIpAllowed');
   });
 
   it('protects the env-configured MoltNet API host without guest config', async () => {
