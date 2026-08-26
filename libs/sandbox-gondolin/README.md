@@ -20,6 +20,9 @@ implementation can be added beside it without going through Pi.
 - `VmConfig.brokeredSecrets` — host-brokered secrets: the guest sees a
   placeholder, Gondolin's `SecretManager` substitutes the value only in
   requests to the declared protocol, host patterns, and ports.
+- `VmConfig.trustedHttpFetch` — an optional trusted-host transport passed to
+  Gondolin after its request/IP checks and secret substitution. It is outside
+  `SandboxConfig`, runtime profiles, and guest control.
 - `ensureSnapshot` — build and cache the base checkpoint.
 - Small helpers: `findMainWorktree`, `isResolvedPathInsideRoot`,
   `abortableResource` / `throwIfAborted`.
@@ -86,6 +89,10 @@ effective network policy. Values are not substituted in request bodies or URL
 queries. Gondolin also decodes, substitutes, and re-encodes HTTP Basic
 authorization, covering the password encoding used by HTTPS Git credential
 helpers; OAuth client secrets sent in form bodies remain host-only.
+
+`vm.network.policy_bound` reports the complete effective hostname policy, and
+`vm.network.origin_checked` reports canonical protocol/hostname/port decisions
+at request and IP phases. Both diagnostics are value-free.
 
 Rotation and revocation do not require exposing or changing the guest
 placeholder:

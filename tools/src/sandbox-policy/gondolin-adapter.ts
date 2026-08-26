@@ -10,6 +10,7 @@ import {
   type ManagedExecTermination,
   type ManagedVm,
   resumeVm,
+  type VmDiagnostic,
 } from '@themoltnet/sandbox-gondolin';
 
 import { CleanupManifest } from './cleanup.js';
@@ -32,9 +33,12 @@ import type {
 } from './types.js';
 
 const BACKEND_ID = 'gondolin';
-const FIXTURE_HOST = '127.0.0.1';
-const FIXTURE_BIND_ADDRESS = FIXTURE_HOST;
-const EFFECTIVE_FIXTURE_HOSTS = [FIXTURE_HOST];
+const FIXTURE_BIND_ADDRESS = '127.0.0.1';
+const PROTECTED_FIXTURE_HOST = '192.0.2.10';
+const WRONG_FIXTURE_HOST = '192.0.2.11';
+const ADJACENT_FIXTURE_HOST = '198.51.100.10';
+const DIRECT_LOOPBACK_HOST = '127.0.0.1';
+const EFFECTIVE_FIXTURE_HOSTS = [PROTECTED_FIXTURE_HOST, ADJACENT_FIXTURE_HOST];
 const SECRET_ENV = 'FIXTURE_API_TOKEN';
 const gondolinPackage = createRequire(import.meta.url)(
   '@earendil-works/gondolin/package.json',
@@ -58,8 +62,57 @@ interface EvidenceProvenance {
 interface GondolinAdapterOptions {
   ensureSnapshot?: typeof ensureSnapshot;
   execManagedCommand?: typeof execManagedCommand;
+  fixtureFetchImpl?: TrustedHttpFetch;
   resumeVm?: typeof resumeVm;
   startPolicyFixture?: typeof startPolicyFixture;
+}
+
+type TrustedHttpFetch = NonNullable<
+  Parameters<typeof resumeVm>[0]['trustedHttpFetch']
+>;
+
+function requestUrl(input: Parameters<TrustedHttpFetch>[0]): URL {
+  if (typeof input === 'string') return new URL(input);
+  return new URL('href' in input ? input.href : input.url);
+}
+
+const nativeFixtureFetch = (async (
+  input: Parameters<TrustedHttpFetch>[0],
+  init?: Parameters<TrustedHttpFetch>[1],
+) =>
+  globalThis.fetch(
+    requestUrl(input),
+    init as unknown as RequestInit,
+  )) as unknown as TrustedHttpFetch;
+
+/**
+ * Translate only explicitly mapped test origins to loopback. Gondolin invokes
+ * this transport after request/IP checks and secret substitution; the mapping
+ * is transport-only and fails closed for every origin not listed here.
+ */
+export function createFailClosedFixtureFetch(
+  routes: ReadonlyMap<string, string>,
+  fetchImpl: TrustedHttpFetch = nativeFixtureFetch,
+): TrustedHttpFetch {
+  return (async (input, init) => {
+    const requested = requestUrl(input);
+    const targetOrigin = routes.get(requested.origin);
+    if (!targetOrigin) {
+      throw new Error(`unmapped trusted fixture origin: ${requested.origin}`);
+    }
+    const target = new URL(targetOrigin);
+    target.pathname = requested.pathname;
+    target.search = requested.search;
+    return fetchImpl(target, init);
+  }) as TrustedHttpFetch;
+}
+
+function fixtureOrigin(
+  hostname: string,
+  port: number,
+  protocol: 'http' | 'https' = 'http',
+): string {
+  return `${protocol}://${hostname}:${port}`;
 }
 
 const ADAPTER_PROVENANCE: EvidenceProvenance = {
@@ -100,6 +153,7 @@ export async function execGondolinGuest(
 export class GondolinAdapter implements ResearchSandboxAdapter {
   readonly #ensureSnapshot: typeof ensureSnapshot;
   readonly #execManagedCommand: typeof execManagedCommand;
+  readonly #fixtureFetchImpl: TrustedHttpFetch;
   readonly #resumeVm: typeof resumeVm;
   readonly #startPolicyFixture: typeof startPolicyFixture;
   readonly #cleanup = new CleanupManifest();
@@ -116,10 +170,12 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
   #credentialDeliveryVerified = false;
   #networkDeliveryVerified = false;
   #rotatedDeliveryVerified = false;
+  readonly #diagnostics: VmDiagnostic[] = [];
 
   constructor(options: GondolinAdapterOptions = {}) {
     this.#ensureSnapshot = options.ensureSnapshot ?? ensureSnapshot;
     this.#execManagedCommand = options.execManagedCommand ?? execManagedCommand;
+    this.#fixtureFetchImpl = options.fixtureFetchImpl ?? nativeFixtureFetch;
     this.#resumeVm = options.resumeVm ?? resumeVm;
     this.#startPolicyFixture = options.startPolicyFixture ?? startPolicyFixture;
   }
@@ -147,7 +203,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
     if (!this.#fixture) {
       const fixture = await this.#startPolicyFixture(
         FIXTURE_BIND_ADDRESS,
-        FIXTURE_HOST,
+        WRONG_FIXTURE_HOST,
       );
       this.#fixture = fixture;
       this.#initialCredential = fixture.credential;
@@ -160,6 +216,47 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
 
   async #resume(): Promise<ManagedVm> {
     const fixture = await this.#ensureFixture();
+    const loopbackAllowedOrigin = fixtureOrigin(
+      FIXTURE_BIND_ADDRESS,
+      fixture.allowedPort,
+    );
+    const loopbackAdjacentOrigin = fixtureOrigin(
+      FIXTURE_BIND_ADDRESS,
+      fixture.adjacentPort,
+    );
+    const trustedHttpFetch = createFailClosedFixtureFetch(
+      new Map([
+        [
+          fixtureOrigin(PROTECTED_FIXTURE_HOST, fixture.allowedPort),
+          loopbackAllowedOrigin,
+        ],
+        [
+          fixtureOrigin(PROTECTED_FIXTURE_HOST, fixture.adjacentPort),
+          loopbackAdjacentOrigin,
+        ],
+        [
+          fixtureOrigin(PROTECTED_FIXTURE_HOST, fixture.allowedPort, 'https'),
+          loopbackAllowedOrigin,
+        ],
+        [
+          fixtureOrigin(WRONG_FIXTURE_HOST, fixture.allowedPort),
+          loopbackAllowedOrigin,
+        ],
+        [
+          fixtureOrigin(WRONG_FIXTURE_HOST, fixture.adjacentPort),
+          loopbackAdjacentOrigin,
+        ],
+        [
+          fixtureOrigin(ADJACENT_FIXTURE_HOST, fixture.adjacentPort),
+          loopbackAdjacentOrigin,
+        ],
+        [
+          fixtureOrigin(DIRECT_LOOPBACK_HOST, fixture.allowedPort),
+          loopbackAllowedOrigin,
+        ],
+      ]),
+      this.#fixtureFetchImpl,
+    );
     const managed = await this.#resumeVm({
       checkpointPath: this.#checkpointPath,
       agentName: 'sandbox-policy-probe',
@@ -172,16 +269,18 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
         },
         resources: { cpus: 1, memory: '1G' },
       },
+      trustedHttpFetch,
       brokeredSecrets: [
         {
           id: 'sandbox-policy-fixture',
           guestEnv: SECRET_ENV,
-          hosts: [FIXTURE_HOST],
+          hosts: [PROTECTED_FIXTURE_HOST],
           protocol: 'http',
           ports: [fixture.allowedPort],
           value: fixture.credential,
         },
       ],
+      onDiagnostic: (diagnostic) => this.#diagnostics.push(diagnostic),
     });
     this.#managed = managed;
     return managed;
@@ -323,14 +422,14 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
         mountPath: this.#workspace,
         workspaceMode: 'scratch_mount',
         sandboxConfig: {
-          network: { allowedInternalHosts: [FIXTURE_HOST] },
+          network: { allowedInternalHosts: EFFECTIVE_FIXTURE_HOSTS },
           resources: { cpus: 1, memory: '1G' },
         },
         brokeredSecrets: [
           {
             id: 'missing-fixture',
             guestEnv: 'MISSING_FIXTURE_TOKEN',
-            hosts: [FIXTURE_HOST],
+            hosts: [PROTECTED_FIXTURE_HOST],
             protocol: 'http',
             ports: [fixture.allowedPort],
             required: true,
@@ -500,24 +599,52 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
             },
           },
         );
-      case 'network.wrong-host':
-        return this.#unsupported(
+      case 'network.wrong-host': {
+        if (!this.#networkDeliveryVerified) {
+          return this.#unsupported(
+            scenario,
+            context,
+            'positive_fixture_transport_unavailable',
+            'fixture-limitation',
+          );
+        }
+        const requestStart = fixture.requests.length;
+        const connectionStart = fixture.connectionCount('allowed');
+        const result = await this.#execGuest(
+          managed,
+          `curl -fsS --max-time 3 'http://${WRONG_FIXTURE_HOST}:${fixture.allowedPort}${fixture.path('/wrong-host')}'`,
+        );
+        const delivered = fixture.capture(requestStart).length;
+        const connections =
+          fixture.connectionCount('allowed') - connectionStart;
+        return this.#evidence(
           scenario,
           context,
-          'fixture_does_not_claim_protocol_or_dns_control',
-          'fixture-limitation',
           {
-            effective: {
-              allowedInternalHosts: EFFECTIVE_FIXTURE_HOSTS,
-              probe: 'no second controlled local hostname',
-            },
+            kind: 'wrong-host-request-count',
+            expected: { requests: 0, connections: 0 },
+            observed: { requests: delivered, connections },
+            passed:
+              result.exitCode !== 0 && delivered === 0 && connections === 0,
           },
+          {
+            requested: fixtureOrigin(
+              PROTECTED_FIXTURE_HOST,
+              fixture.allowedPort,
+            ),
+            attempted: fixtureOrigin(WRONG_FIXTURE_HOST, fixture.allowedPort),
+            routeMapped: true,
+          },
+          'unlisted_hostname_probe_observed',
+          HARNESS_PROVENANCE,
+          ['gondolin-host-hooks'],
         );
+      }
       case 'network.exact-allow': {
         const before = fixture.requests.length;
         const result = await this.#execGuest(
           managed,
-          `curl -sS --max-time 10 'http://${FIXTURE_HOST}:${fixture.allowedPort}${fixture.path('/allowed')}'`,
+          `curl -sS --max-time 10 'http://${PROTECTED_FIXTURE_HOST}:${fixture.allowedPort}${fixture.path('/allowed')}'`,
         );
         const delivered = fixture.requests.length - before;
         this.#networkDeliveryVerified =
@@ -532,7 +659,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
             passed: this.#networkDeliveryVerified,
           },
           {
-            requested: [`${FIXTURE_HOST}:<allowed-port>`],
+            requested: [`${PROTECTED_FIXTURE_HOST}:<allowed-port>`],
             effectiveNetwork: EFFECTIVE_FIXTURE_HOSTS,
           },
           'exact_destination_allow_observed',
@@ -549,9 +676,8 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
             'fixture-limitation',
             {
               effective: {
-                fixtureHost: FIXTURE_HOST,
-                probe:
-                  'literal loopback remains guest-local instead of traversing host HTTP hooks',
+                fixtureHost: PROTECTED_FIXTURE_HOST,
+                probe: 'pinned TEST-NET transport baseline did not pass',
               },
               locus: ['research-harness'],
             },
@@ -561,7 +687,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
         const connectionStart = fixture.connectionCount('adjacent');
         const result = await this.#execGuest(
           managed,
-          `curl -fsS --max-time 3 'http://${FIXTURE_HOST}:${fixture.adjacentPort}${fixture.path('/wrong-port')}'`,
+          `curl -fsS --max-time 3 'http://${PROTECTED_FIXTURE_HOST}:${fixture.adjacentPort}${fixture.path('/wrong-port')}'`,
         );
         const delivered = fixture.capture(requestStart).length;
         const connections =
@@ -595,9 +721,8 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
             'fixture-limitation',
             {
               effective: {
-                fixtureHost: FIXTURE_HOST,
-                probe:
-                  'literal loopback remains guest-local instead of traversing host HTTP hooks',
+                fixtureHost: PROTECTED_FIXTURE_HOST,
+                probe: 'pinned TEST-NET transport baseline did not pass',
               },
               locus: ['research-harness'],
             },
@@ -607,7 +732,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
         const connectionStart = fixture.connectionCount('allowed');
         const result = await this.#execGuest(
           managed,
-          `curl -kfsS --max-time 3 'https://${FIXTURE_HOST}:${fixture.allowedPort}${fixture.path('/wrong-protocol')}'`,
+          `curl -kfsS --max-time 3 'https://${PROTECTED_FIXTURE_HOST}:${fixture.allowedPort}${fixture.path('/wrong-protocol')}'`,
         );
         const delivered = fixture.capture(requestStart).length;
         const connections =
@@ -643,7 +768,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
             'fixture-limitation',
             {
               effective: {
-                fixtureHost: FIXTURE_HOST,
+                fixtureHost: PROTECTED_FIXTURE_HOST,
                 probe: 'redirect baseline did not reach the host fixture',
               },
               locus: ['research-harness'],
@@ -654,7 +779,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
         const adjacentConnectionStart = fixture.connectionCount('adjacent');
         const result = await this.#execGuest(
           managed,
-          `curl -fsS -L --max-time 3 -H "Authorization: Bearer $${SECRET_ENV}" 'http://${FIXTURE_HOST}:${fixture.allowedPort}${fixture.path('/redirect')}'`,
+          `curl -fsS -L --max-time 3 -H "Authorization: Bearer $${SECRET_ENV}" 'http://${PROTECTED_FIXTURE_HOST}:${fixture.allowedPort}${fixture.path('/redirect')}'`,
         );
         const requests = fixture.capture(requestStart);
         const allowed = requests.filter(
@@ -688,30 +813,89 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
               adjacentConnections === 0 &&
               result.exitCode !== 0,
           },
-          { redirectTarget: `${FIXTURE_HOST}:<adjacent-port>` },
+          {
+            redirectTarget: `${WRONG_FIXTURE_HOST}:<adjacent-port>`,
+            routeMapped: true,
+          },
           'redirect_revalidation_probe_observed',
           HARNESS_PROVENANCE,
           ['gondolin-host-hooks'],
         );
       }
-      case 'network.internal':
-      case 'network.requested-effective':
-        return this.#unsupported(
+      case 'network.internal': {
+        if (!this.#networkDeliveryVerified) {
+          return this.#unsupported(
+            scenario,
+            context,
+            'positive_fixture_transport_unavailable',
+            'fixture-limitation',
+          );
+        }
+        const requestStart = fixture.requests.length;
+        const connectionStart = fixture.connectionCount('allowed');
+        const result = await this.#execGuest(
+          managed,
+          `curl -fsS --max-time 3 'http://${DIRECT_LOOPBACK_HOST}:${fixture.allowedPort}${fixture.path('/direct-loopback')}'`,
+        );
+        const delivered = fixture.capture(requestStart).length;
+        const connections =
+          fixture.connectionCount('allowed') - connectionStart;
+        return this.#evidence(
           scenario,
           context,
-          'internal_hostname_binding_recorded',
-          'not-measured',
           {
-            basis: 'applied',
-            effective: {
-              requested: ['127.0.0.1:<allowed-port>'],
-              effectiveNetwork: EFFECTIVE_FIXTURE_HOSTS,
-              credentialPorts: ['<allowed-port>'],
-              probe: 'configuration-recorded-without-independent-oracle',
-            },
-            locus: ['gondolin-adapter', 'gondolin-host-hooks'],
+            kind: 'direct-loopback-bypass',
+            expected: { requests: 0, connections: 0 },
+            observed: { requests: delivered, connections },
+            passed:
+              result.exitCode !== 0 && delivered === 0 && connections === 0,
           },
+          {
+            attempted: `${DIRECT_LOOPBACK_HOST}:<allowed-port>`,
+            routeMapped: true,
+            effectiveNetwork: EFFECTIVE_FIXTURE_HOSTS,
+          },
+          'internal_hostname_binding_recorded',
+          HARNESS_PROVENANCE,
+          ['gondolin-host-hooks'],
         );
+      }
+      case 'network.requested-effective': {
+        const policy = [...this.#diagnostics]
+          .reverse()
+          .find(
+            (diagnostic) => diagnostic.event === 'vm.network.policy_bound',
+          )?.hostnamePolicy;
+        const internalHosts = policy?.allowedInternalHosts ?? [];
+        const complete =
+          policy !== undefined &&
+          EFFECTIVE_FIXTURE_HOSTS.every((host) =>
+            internalHosts.includes(host),
+          ) &&
+          !internalHosts.includes(WRONG_FIXTURE_HOST) &&
+          !internalHosts.includes(DIRECT_LOOPBACK_HOST);
+        return this.#evidence(
+          scenario,
+          context,
+          {
+            kind: 'effective-hostname-policy-diagnostic',
+            expected: 'complete',
+            observed: complete ? 'complete' : 'missing-or-widened',
+            passed: complete,
+          },
+          {
+            requested: [
+              fixtureOrigin(PROTECTED_FIXTURE_HOST, fixture.allowedPort),
+            ],
+            effectiveHostnamePolicy: policy ?? null,
+            credentialProtocol: 'http',
+            credentialPorts: ['<allowed-port>'],
+          },
+          'allowed_hostname_observed',
+          HARNESS_PROVENANCE,
+          ['gondolin-adapter', 'gondolin-host-hooks'],
+        );
+      }
       case 'network.dns-rebinding':
         return this.#unsupported(
           scenario,
@@ -740,7 +924,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
         const before = fixture.requests.length;
         const result = await this.#execGuest(
           managed,
-          `case "$${SECRET_ENV}" in GONDOLIN_SECRET_*) ;; *) exit 9;; esac; curl -sS --max-time 10 -H "Authorization: Bearer $${SECRET_ENV}" 'http://${FIXTURE_HOST}:${fixture.allowedPort}${fixture.path('/credential')}'`,
+          `case "$${SECRET_ENV}" in GONDOLIN_SECRET_*) ;; *) exit 9;; esac; curl -sS --max-time 10 -H "Authorization: Bearer $${SECRET_ENV}" 'http://${PROTECTED_FIXTURE_HOST}:${fixture.allowedPort}${fixture.path('/credential')}'`,
         );
         const requests = fixture.capture(before);
         const matched = requests.some(
@@ -759,7 +943,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
           },
           {
             guestValue: '<stand-in>',
-            origin: `${FIXTURE_HOST}:<allowed-port>`,
+            origin: `${PROTECTED_FIXTURE_HOST}:<allowed-port>`,
           },
           'allowed_origin_secret_substitution_observed',
           HARNESS_PROVENANCE,
@@ -775,7 +959,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
             'fixture-limitation',
             {
               effective: {
-                fixtureHost: FIXTURE_HOST,
+                fixtureHost: PROTECTED_FIXTURE_HOST,
                 probe:
                   'adjacent-origin baseline did not reach the host fixture',
               },
@@ -786,7 +970,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
         const baselineStart = fixture.requests.length;
         const baseline = await this.#execGuest(
           managed,
-          `curl -sS --max-time 10 'http://${FIXTURE_HOST}:${fixture.adjacentPort}${fixture.path('/adjacent-network')}'`,
+          `curl -sS --max-time 10 'http://${ADJACENT_FIXTURE_HOST}:${fixture.adjacentPort}${fixture.path('/adjacent-network')}'`,
         );
         const baselineRequests = fixture
           .capture(baselineStart)
@@ -794,7 +978,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
         const credentialStart = fixture.requests.length;
         const credentialAttempt = await this.#execGuest(
           managed,
-          `curl -fsS --max-time 10 -H "Authorization: Bearer $${SECRET_ENV}" 'http://${FIXTURE_HOST}:${fixture.adjacentPort}${fixture.path('/adjacent-credential')}'`,
+          `curl -fsS --max-time 10 -H "Authorization: Bearer $${SECRET_ENV}" 'http://${ADJACENT_FIXTURE_HOST}:${fixture.adjacentPort}${fixture.path('/adjacent-credential')}'`,
         );
         const credentialRequests = fixture
           .capture(credentialStart)
@@ -821,7 +1005,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
               !matched,
           },
           {
-            networkAllowed: `${FIXTURE_HOST}:<adjacent-port>`,
+            networkAllowed: `${ADJACENT_FIXTURE_HOST}:<adjacent-port>`,
             credentialFidelity: 'protocol-host-port',
           },
           'adjacent_origin_secret_not_substituted',
@@ -838,7 +1022,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
             'fixture-limitation',
             {
               effective: {
-                fixtureHost: FIXTURE_HOST,
+                fixtureHost: PROTECTED_FIXTURE_HOST,
                 probe: 'initial credential delivery was not established',
               },
               locus: ['research-harness'],
@@ -850,7 +1034,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
         const before = fixture.requests.length;
         const result = await this.#execGuest(
           managed,
-          `curl -sS --max-time 10 -H "Authorization: Bearer $${SECRET_ENV}" 'http://${FIXTURE_HOST}:${fixture.allowedPort}${fixture.path('/rotated')}'`,
+          `curl -sS --max-time 10 -H "Authorization: Bearer $${SECRET_ENV}" 'http://${PROTECTED_FIXTURE_HOST}:${fixture.allowedPort}${fixture.path('/rotated')}'`,
         );
         const requests = fixture.capture(before);
         const matched = requests.some(
@@ -899,7 +1083,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
         const before = fixture.requests.length;
         const result = await this.#execGuest(
           managed,
-          `curl -fsS --max-time 10 -H "Authorization: Bearer $${SECRET_ENV}" 'http://${FIXTURE_HOST}:${fixture.allowedPort}${fixture.path('/revoked')}'`,
+          `curl -fsS --max-time 10 -H "Authorization: Bearer $${SECRET_ENV}" 'http://${PROTECTED_FIXTURE_HOST}:${fixture.allowedPort}${fixture.path('/revoked')}'`,
         );
         const requests = fixture.capture(before);
         const matched = requests.some(
@@ -937,7 +1121,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
             'fixture-limitation',
             {
               effective: {
-                fixtureHost: FIXTURE_HOST,
+                fixtureHost: PROTECTED_FIXTURE_HOST,
                 probe: 'initial credential delivery was not established',
               },
               locus: ['research-harness'],
@@ -951,7 +1135,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
         const before = fixture.requests.length;
         const result = await this.#execGuest(
           resumed,
-          `curl -sS --max-time 10 -H "Authorization: Bearer $${SECRET_ENV}" 'http://${FIXTURE_HOST}:${fixture.allowedPort}${fixture.path('/resumed')}'`,
+          `curl -sS --max-time 10 -H "Authorization: Bearer $${SECRET_ENV}" 'http://${PROTECTED_FIXTURE_HOST}:${fixture.allowedPort}${fixture.path('/resumed')}'`,
         );
         const matched = fixture.requests
           .slice(before)

@@ -1,20 +1,19 @@
 # Sandbox policy parity: Docker Sandboxes and Gondolin
 
-Status: completed research for issue #1972. This is retained evidence, not a
-public API or a production Docker adapter.
+Status: completed research for issues #1972 and #2004. This is retained
+evidence, not a public API or a production Docker adapter.
 
 ## Conclusion
 
 The backends are not at parity, and neither retained run satisfies the complete
 required policy.
 
-- **Gondolin 0.12.0 fixes the lifecycle failure, but exact-destination and
-  credential delivery are not proven.** Timeout and cancellation retire the
-  whole microVM through Gondolin's host API before returning. However, a safe
-  literal-loopback fixture stays inside the guest and never reaches the host
-  HTTP hooks. Gondolin's native host mapping enables raw TCP, which bypasses
-  those same hooks. The positive network and credential controls therefore
-  fail open, and dependent negatives remain unsupported.
+- **Gondolin 0.12.0 proves exact-origin credential delivery and lifecycle
+  containment.** A trusted-host custom fetch maps exact RFC 5737 TEST-NET
+  origins to loopback only after Gondolin's request/IP checks and secret
+  substitution. Exact allow, wrong host/port/protocol, redirect revalidation,
+  direct-loopback bypass denial, credential isolation, rotation, revocation,
+  restart rebinding, timeout, and cancellation all passed.
 - **Docker Sandbox's native custom-secret mechanism works.** Delivery,
   rotation, revocation, and restart rebinding all passed without copying the
   synthetic value into guest storage.
@@ -37,8 +36,9 @@ HTTP, credential, and delayed-side-effect oracles.
 
 The retained replay requires a Darwin arm64 host, Docker Sandboxes with `sbx`
 v0.39.0 on `PATH`, and the workspace-pinned Gondolin 0.12.0 dependency with its
-snapshot available. The final fixtures use literal loopback and do not depend
-on public wildcard DNS.
+snapshot available. Gondolin requests use exact TEST-NET origins whose
+trusted-host transport is pinned to loopback; the fixture does not depend on
+public wildcard DNS.
 
 ```bash
 pnpm exec nx run @moltnet/tools:sandbox-policy-docker
@@ -50,13 +50,15 @@ The targets are intentionally non-cacheable. They write atomically to
 failure, and sanitize the complete run before promoting the value-free evidence
 control.
 
-The retained Darwin arm64 artifacts replay signed source revision
-`6c8d7e6bb07399558986ee1b6eba271c9aab3a59`.
+The retained Docker artifact replays signed source revision
+`6c8d7e6bb07399558986ee1b6eba271c9aab3a59`. The Gondolin artifact replays the
+signed implementation revision
+`b143846ec11f8817df4395bdf60a214b43a2f149`.
 
 | Backend        | Version | Enforced | Failed open | Unsupported | Violations | Cleanup  |
 | -------------- | ------: | -------: | ----------: | ----------: | ---------: | -------- |
 | Docker Sandbox | v0.39.0 |       19 |           3 |           9 |          0 | complete |
-| Gondolin       |  0.12.0 |       12 |           2 |          17 |          0 | complete |
+| Gondolin       |  0.12.0 |       24 |           0 |           7 |          0 | complete |
 
 Counts are inventory, not scores. The state, oracle, and enforcement locus of
 each control remain authoritative.
@@ -82,13 +84,21 @@ an adjacent port was independently allowed, the adjacent fixture received the
 synthetic secret. MoltNet must not describe that as protocol/host/port
 credential isolation.
 
-Gondolin did not establish the corresponding flow. The safe fixture binds only
-to host loopback, but literal `127.0.0.1` in the guest is guest-local and
-produced zero host requests. Native TCP host mapping is not a substitute: it
-sets raw-TCP access and bypasses the HTTP hooks that perform exact-origin
-checks and secret substitution. Because the allowed-origin positive baseline
-failed, rotation, revocation, resume, and adjacent-origin isolation are not
-claimed. This avoids turning network unreachability into credential proof.
+Gondolin established the corresponding flow through its native custom-fetch
+path. A trusted-host-only `VmConfig.trustedHttpFetch` maps an exact allowlist of
+RFC 5737 fixture origins to loopback after Gondolin performs request and IP
+checks and secret substitution. Every unmapped origin fails closed. Negative
+host, port, protocol, redirect, and direct-loopback origins are mapped
+deliberately, so a policy failure could have reached the fixture and remains
+falsifiable.
+
+The protected origin received the substituted credential. An adjacent origin
+was independently proven network-reachable without credentials; attempting to
+send the protected placeholder there was rejected before fixture delivery.
+Rotation, revocation, and explicit rebinding after checkpoint resume also
+passed. The proof does not credit `hostOrigins`, public wildcard DNS, or native
+raw-TCP host mapping because each bypasses or weakens the HTTP-hook boundary
+being measured.
 
 ### Cancellation and timeout
 
@@ -134,12 +144,11 @@ calling `close()` a second time; adapters need a backend-native, independently
 observable repeated-close probe before that control can be promoted.
 
 Docker enforced its host-port network rule but did not prove general protocol
-policy. Gondolin's safe positive fixture did not reach MoltNet's hooks, so the
-suite cannot claim exact allow, protocol, adjacent-port, or redirect behavior.
-Those dependent controls are unsupported rather than passing from zero
-traffic. A future fixture needs pinned host resolution that still traverses the
-HTTP hooks; public wildcard DNS and broad trusted-host rerouting are not
-acceptable substitutes.
+policy. Gondolin's pinned TEST-NET transport proved its positive path before
+promoting wrong-host, wrong-port, wrong-protocol, redirect, and direct-loopback
+negative controls. The complete effective hostname policy and canonical
+protocol/hostname/port decisions at request and IP phases are retained as
+value-free diagnostics; the requested/effective row is therefore enforced.
 
 DNS rebinding remains unsupported on both. Gondolin's production `resumeVm`
 path still has no read-only secondary-mount contract.
@@ -155,14 +164,14 @@ not establish a backend-wide no-egress mode.
 | -------------------------------------------- | ----------------------- | ----------------------- |
 | Workspace read/write and outside boundary    | enforced                | enforced                |
 | Read-only secondary path                     | enforced                | unsupported             |
-| Exact host-port network rule                 | enforced                | **failed open**         |
-| General protocol fidelity                    | unsupported             | unsupported             |
-| Redirect revalidation                        | enforced                | unsupported             |
+| Exact host-port network rule                 | enforced                | enforced                |
+| Protocol mismatch denial                     | unsupported             | enforced                |
+| Redirect revalidation                        | enforced                | enforced                |
 | DNS rebinding                                | unsupported             | unsupported             |
 | Required binding preflight                   | unsupported             | enforced                |
-| Allowed-origin secret delivery               | enforced                | **failed open**         |
-| Adjacent-origin secret isolation             | **failed open**         | unsupported             |
-| Rotation, revocation, explicit resume rebind | enforced                | unsupported             |
+| Allowed-origin secret delivery               | enforced                | enforced                |
+| Adjacent-origin secret isolation             | **failed open**         | enforced                |
+| Rotation, revocation, explicit resume rebind | enforced                | enforced                |
 | Timeout and cancellation containment         | **failed open**         | enforced                |
 | Broker unavailable preflight                 | unsupported             | unsupported             |
 | Partial launch after resource allocation     | unsupported             | unsupported             |
@@ -171,9 +180,10 @@ not establish a backend-wide no-egress mode.
 | CPU and memory limits                        | enforced (guest report) | enforced (guest report) |
 | Host MCP, signing, model traffic             | outside containment     | outside containment     |
 
-Configuration-only topology and requested/effective-policy rows are retained as
-`declared` or `applied` with state `unsupported`; they are not promoted to
-enforced without an independent oracle.
+Configuration-only topology remains unsupported. Gondolin's
+requested/effective-policy row is promoted because the runtime emits the
+complete effective hostname policy and the harness independently verifies that
+the intended TEST-NET hosts are present while denied controls are absent.
 
 This matrix groups related scenarios for readability; it is not a one-to-one
 rendering of the 31 catalog rows. The retained JSON controls, keyed by
@@ -205,9 +215,9 @@ The persistence and task-independent execution convention is owned by
 
 ## Decision and next work
 
-1. Use Gondolin's host-authoritative VM retirement as the lifecycle reference,
-   but do not claim exact-origin or credential parity until a safe fixture and
-   routing primitive traverse its HTTP hooks.
+1. Use Gondolin's HTTP-hook exact-origin checks, credential substitution, and
+   host-authoritative VM retirement as the reference implementation for the
+   controls proven by the retained artifact.
 2. Keep the Docker adapter research-only until exact credential scoping and
    cancellation have a verified compensating implementation.
 3. Define `SandboxPolicy`, the single resolved execution snapshot, and the
@@ -222,9 +232,11 @@ The persistence and task-independent execution convention is owned by
 - The retained runs cover one Darwin arm64 host, Docker Sandbox v0.39.0, and
   Gondolin v0.12.0.
 - DNS rebinding is not measured.
-- Gondolin 0.12.0 exposes no demonstrated pinned host-resolution mechanism that
-  both reaches a host fixture and preserves HTTP-hook enforcement. Its native
-  TCP host mapping bypasses those hooks.
+- The trusted Gondolin transport is a host integration primitive, not a runtime
+  profile field or guest capability. Its route map must remain exact and
+  fail-closed.
+- Gondolin deny-all egress, DNS rebinding, and read-only secondary mounts remain
+  unsupported by this retained run.
 - No paid model call is part of the suite. Deterministic containment oracles
   provide stronger and reproducible evidence.
 - Retained artifacts contain match results, not credential material.

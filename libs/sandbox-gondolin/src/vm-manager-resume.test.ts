@@ -170,6 +170,26 @@ describe('resumeVm task-context mount', () => {
     );
   });
 
+  it('passes a trusted host fetch directly to Gondolin resume', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-fetch-'));
+    tempRoots.push(root);
+    const workspace = path.join(root, 'workspace');
+    mkdirSync(workspace, { recursive: true });
+    const trustedHttpFetch = vi.fn();
+
+    await resumeVm({
+      checkpointPath: path.join(root, 'checkpoint.qcow2'),
+      agentName: 'configless',
+      agentRootDir: root,
+      mountPath: workspace,
+      trustedHttpFetch: trustedHttpFetch as never,
+    });
+
+    expect(gondolinMock.resumeCalls[0]).toMatchObject({
+      fetch: trustedHttpFetch,
+    });
+  });
+
   it('forwards only explicitly allowlisted host env vars into the VM', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-env-'));
     tempRoots.push(root);
@@ -327,6 +347,43 @@ describe('resumeVm task-context mount', () => {
     expect(JSON.stringify(diagnostics)).not.toContain(sentinel);
     expect(diagnostics).toEqual(
       expect.arrayContaining([
+        expect.objectContaining({
+          event: 'vm.network.policy_bound',
+          hostnamePolicy: expect.objectContaining({
+            allowedHosts: expect.arrayContaining(['api.example.com']),
+            allowedInternalHosts: [],
+          }),
+        }),
+        expect.objectContaining({
+          event: 'vm.network.origin_checked',
+          origin: {
+            hostname: 'api.example.com',
+            protocol: 'https',
+            port: 443,
+            phase: 'request',
+            allowed: true,
+          },
+        }),
+        expect.objectContaining({
+          event: 'vm.network.origin_checked',
+          origin: {
+            hostname: 'api.example.com',
+            protocol: 'http',
+            port: 80,
+            phase: 'request',
+            allowed: false,
+          },
+        }),
+        expect.objectContaining({
+          event: 'vm.network.origin_checked',
+          origin: {
+            hostname: 'api.example.com',
+            protocol: 'https',
+            port: 8443,
+            phase: 'ip',
+            allowed: false,
+          },
+        }),
         expect.objectContaining({
           event: 'vm.http_secrets.bound',
           brokeredSecretCount: 1,
@@ -571,15 +628,19 @@ describe('resumeVm task-context mount', () => {
     });
 
     // Assert
-    expect(gondolinMock.createHttpHooks).toHaveBeenCalledWith({
-      allowedHosts: expect.arrayContaining([
-        'api.themolt.net',
-        'api.example.com',
-        '*.example.com',
-        'legacy-api.example.com',
-      ]),
-      allowedInternalHosts: ['onboard-api.internal'],
-    });
+    expect(gondolinMock.createHttpHooks).toHaveBeenCalledWith(
+      expect.objectContaining({
+        allowedHosts: expect.arrayContaining([
+          'api.themolt.net',
+          'api.example.com',
+          '*.example.com',
+          'legacy-api.example.com',
+        ]),
+        allowedInternalHosts: ['onboard-api.internal'],
+        isRequestAllowed: expect.any(Function),
+        isIpAllowed: expect.any(Function),
+      }),
+    );
   });
 
   it('protects the env-configured MoltNet API host without guest config', async () => {
@@ -1040,7 +1101,7 @@ describe('resumeVm task-context mount', () => {
       .map(([command]) => command)
       .filter((command): command is string[] => Array.isArray(command))
       .filter((command) => command[0] === 'sh' && command[1] === '-c')
-      .map((command) => command[2] as string);
+      .map((command) => command[2]);
     expect(
       execScripts.some(
         (script) =>
