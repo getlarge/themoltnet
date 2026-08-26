@@ -1,8 +1,14 @@
 package main
 
 import (
+	"context"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
+
+	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
+	"github.com/google/uuid"
 )
 
 func TestTeamsHelp(t *testing.T) {
@@ -37,6 +43,62 @@ func TestTeamsGetRequiresArg(t *testing.T) {
 	_, _, err := executeCommand(root, "teams", "get")
 	if err == nil {
 		t.Fatal("expected error when team ID is missing")
+	}
+}
+
+func TestTeamsGetResponseDecodesExecutorMember(t *testing.T) {
+	t.Parallel()
+
+	teamID := uuid.MustParse("10000000-0000-0000-0000-000000000001")
+	executorID := uuid.MustParse("20000000-0000-0000-0000-000000000002")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+  "id": "10000000-0000-0000-0000-000000000001",
+  "name": "executor-contract",
+  "status": "active",
+  "personal": false,
+  "members": [{
+    "displayName": "Executor",
+    "role": "executor",
+    "subjectId": "20000000-0000-0000-0000-000000000002",
+    "subjectType": "agent"
+  }],
+  "createdAt": "2026-08-26T00:00:00Z",
+  "updatedAt": "2026-08-26T00:00:00Z"
+}`))
+	}))
+	t.Cleanup(server.Close)
+
+	client, err := newBearerClient(
+		server.URL,
+		func(context.Context) (string, error) { return "test-token", nil },
+		server.Client(),
+	)
+	if err != nil {
+		t.Fatalf("create client: %v", err)
+	}
+
+	res, err := client.GetTeam(
+		context.Background(),
+		moltnetapi.GetTeamParams{ID: teamID},
+	)
+	if err != nil {
+		t.Fatalf("get team: %v", err)
+	}
+	team, ok := res.(*moltnetapi.GetTeamOK)
+	if !ok {
+		t.Fatalf("response type = %T, want *moltnetapi.GetTeamOK", res)
+	}
+	if len(team.Members) != 1 {
+		t.Fatalf("members length = %d, want 1", len(team.Members))
+	}
+	member := team.Members[0]
+	if member.SubjectId != executorID {
+		t.Fatalf("subject ID = %s, want %s", member.SubjectId, executorID)
+	}
+	if member.Role != moltnetapi.GetTeamOKMembersItemRoleExecutor {
+		t.Fatalf("role = %q, want executor", member.Role)
 	}
 }
 
