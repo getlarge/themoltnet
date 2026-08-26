@@ -83,7 +83,7 @@
         }
       ],
       "reasonCode": "workspace_write_observed",
-      "recordedAt": "2026-08-25T14:20:59.084Z",
+      "recordedAt": "2026-08-26T12:49:09.409Z",
       "requestedIntent": {
         "control": "workspace-read-write",
         "domain": "filesystem",
@@ -139,7 +139,7 @@
         }
       ],
       "reasonCode": "outside_mount_boundary_observed",
-      "recordedAt": "2026-08-25T14:20:59.087Z",
+      "recordedAt": "2026-08-26T12:49:09.411Z",
       "requestedIntent": {
         "control": "outside-write-denied",
         "domain": "filesystem",
@@ -189,7 +189,7 @@
         }
       ],
       "reasonCode": "readonly_secondary_mount_unsupported",
-      "recordedAt": "2026-08-25T14:20:59.087Z",
+      "recordedAt": "2026-08-26T12:49:09.411Z",
       "requestedIntent": {
         "control": "read-only-mount",
         "domain": "filesystem",
@@ -245,7 +245,7 @@
         }
       ],
       "reasonCode": "host_credential_path_absent",
-      "recordedAt": "2026-08-25T14:20:59.089Z",
+      "recordedAt": "2026-08-26T12:49:09.413Z",
       "requestedIntent": {
         "control": "credential-path-absent",
         "domain": "filesystem",
@@ -301,7 +301,7 @@
         }
       ],
       "reasonCode": "vfs_symlink_boundary_observed",
-      "recordedAt": "2026-08-25T14:20:59.095Z",
+      "recordedAt": "2026-08-26T12:49:09.416Z",
       "requestedIntent": {
         "control": "symlink-and-traversal-denied",
         "domain": "filesystem",
@@ -357,7 +357,7 @@
         }
       ],
       "reasonCode": "scoped_cleanup_idempotence_observed",
-      "recordedAt": "2026-08-25T14:20:59.098Z",
+      "recordedAt": "2026-08-26T12:49:09.417Z",
       "requestedIntent": {
         "control": "workspace-cleanup",
         "domain": "filesystem",
@@ -407,7 +407,7 @@
         }
       ],
       "reasonCode": "fixture_does_not_claim_protocol_or_dns_control",
-      "recordedAt": "2026-08-25T14:20:59.098Z",
+      "recordedAt": "2026-08-26T12:49:09.417Z",
       "requestedIntent": {
         "control": "default-deny-egress",
         "domain": "network",
@@ -417,7 +417,7 @@
       "resolvedAdapterConfig": {
         "backendId": "gondolin",
         "effective": {
-          "allowedInternalHosts": ["127.0.0.1"],
+          "allowedInternalHosts": ["192.0.2.10", "198.51.100.10"],
           "probe": "active VM is not configured with an empty allowlist"
         },
         "fidelity": "production-resumeVm-path",
@@ -443,8 +443,8 @@
         "attestedBy": "harness",
         "expected": 1,
         "kind": "allowed-request-count",
-        "observed": 0,
-        "passed": false
+        "observed": 1,
+        "passed": true
       },
       "persistentMutations": [
         {
@@ -464,7 +464,7 @@
         }
       ],
       "reasonCode": "exact_destination_allow_observed",
-      "recordedAt": "2026-08-25T14:20:59.213Z",
+      "recordedAt": "2026-08-26T12:49:09.451Z",
       "requestedIntent": {
         "control": "exact-destination-allow",
         "domain": "network",
@@ -474,8 +474,8 @@
       "resolvedAdapterConfig": {
         "backendId": "gondolin",
         "effective": {
-          "effectiveNetwork": ["127.0.0.1"],
-          "requested": ["127.0.0.1:<allowed-port>"]
+          "effectiveNetwork": ["192.0.2.10", "198.51.100.10"],
+          "requested": ["192.0.2.10:<allowed-port>"]
         },
         "fidelity": "production-resumeVm-path",
         "requested": {
@@ -486,16 +486,28 @@
         }
       },
       "scenarioId": "network.exact-allow",
-      "state": "failed-open"
+      "state": "enforced"
     },
     {
       "backend": {
         "id": "gondolin",
         "version": "0.12.0"
       },
-      "basis": "applied",
-      "enforcementLocus": ["gondolin-adapter"],
-      "oracle": null,
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-host-hooks"],
+      "oracle": {
+        "attestedBy": "harness",
+        "expected": {
+          "connections": 0,
+          "requests": 0
+        },
+        "kind": "wrong-host-request-count",
+        "observed": {
+          "connections": 0,
+          "requests": 0
+        },
+        "passed": true
+      },
       "persistentMutations": [
         {
           "cleanup": "pending",
@@ -513,8 +525,8 @@
           "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "fixture_does_not_claim_protocol_or_dns_control",
-      "recordedAt": "2026-08-25T14:20:59.213Z",
+      "reasonCode": "unlisted_hostname_probe_observed",
+      "recordedAt": "2026-08-26T12:49:09.458Z",
       "requestedIntent": {
         "control": "wrong-host-denied",
         "domain": "network",
@@ -524,8 +536,9 @@
       "resolvedAdapterConfig": {
         "backendId": "gondolin",
         "effective": {
-          "allowedInternalHosts": ["127.0.0.1"],
-          "probe": "no second controlled local hostname"
+          "attempted": "http://192.0.2.11:63949",
+          "requested": "http://192.0.2.10:63949",
+          "routeMapped": true
         },
         "fidelity": "production-resumeVm-path",
         "requested": {
@@ -536,17 +549,25 @@
         }
       },
       "scenarioId": "network.wrong-host",
-      "state": "unsupported",
-      "unsupportedKind": "fixture-limitation"
+      "state": "enforced"
     },
     {
       "backend": {
         "id": "gondolin",
         "version": "0.12.0"
       },
-      "basis": "applied",
-      "enforcementLocus": ["research-harness"],
-      "oracle": null,
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-host-hooks"],
+      "oracle": {
+        "attestedBy": "harness",
+        "expected": 0,
+        "kind": "adjacent-port-request-count",
+        "observed": {
+          "connections": 0,
+          "requests": 0
+        },
+        "passed": true
+      },
       "persistentMutations": [
         {
           "cleanup": "pending",
@@ -564,8 +585,8 @@
           "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "positive_fixture_transport_unavailable",
-      "recordedAt": "2026-08-25T14:20:59.213Z",
+      "reasonCode": "exact_port_probe_observed",
+      "recordedAt": "2026-08-26T12:49:09.464Z",
       "requestedIntent": {
         "control": "wrong-port-denied",
         "domain": "network",
@@ -575,8 +596,9 @@
       "resolvedAdapterConfig": {
         "backendId": "gondolin",
         "effective": {
-          "fixtureHost": "127.0.0.1",
-          "probe": "literal loopback remains guest-local instead of traversing host HTTP hooks"
+          "effectiveNetwork": "<protocol-host-port>",
+          "guestExitCode": 22,
+          "requested": "<exact-host-port>"
         },
         "fidelity": "production-resumeVm-path",
         "requested": {
@@ -587,17 +609,28 @@
         }
       },
       "scenarioId": "network.wrong-port",
-      "state": "unsupported",
-      "unsupportedKind": "fixture-limitation"
+      "state": "enforced"
     },
     {
       "backend": {
         "id": "gondolin",
         "version": "0.12.0"
       },
-      "basis": "applied",
-      "enforcementLocus": ["research-harness"],
-      "oracle": null,
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-host-hooks"],
+      "oracle": {
+        "attestedBy": "harness",
+        "expected": {
+          "connections": 0,
+          "requests": 0
+        },
+        "kind": "wrong-protocol-delivery",
+        "observed": {
+          "connections": 0,
+          "requests": 0
+        },
+        "passed": true
+      },
       "persistentMutations": [
         {
           "cleanup": "pending",
@@ -615,8 +648,8 @@
           "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "positive_fixture_transport_unavailable",
-      "recordedAt": "2026-08-25T14:20:59.213Z",
+      "reasonCode": "protocol_origin_probe_observed",
+      "recordedAt": "2026-08-26T12:49:09.475Z",
       "requestedIntent": {
         "control": "protocol-fidelity",
         "domain": "network",
@@ -626,8 +659,11 @@
       "resolvedAdapterConfig": {
         "backendId": "gondolin",
         "effective": {
-          "fixtureHost": "127.0.0.1",
-          "probe": "literal loopback remains guest-local instead of traversing host HTTP hooks"
+          "attemptedProtocol": "https",
+          "credentialPorts": ["<allowed-port>"],
+          "credentialProtocol": "http",
+          "guestExitCode": 35,
+          "network": "protocol-host-port"
         },
         "fidelity": "production-resumeVm-path",
         "requested": {
@@ -638,17 +674,32 @@
         }
       },
       "scenarioId": "network.protocol",
-      "state": "unsupported",
-      "unsupportedKind": "fixture-limitation"
+      "state": "enforced"
     },
     {
       "backend": {
         "id": "gondolin",
         "version": "0.12.0"
       },
-      "basis": "applied",
-      "enforcementLocus": ["research-harness"],
-      "oracle": null,
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-host-hooks"],
+      "oracle": {
+        "attestedBy": "harness",
+        "expected": {
+          "adjacentConnections": 0,
+          "adjacentRequests": 0,
+          "allowedRequests": 1,
+          "guestExitCode": "non-zero"
+        },
+        "kind": "redirect-revalidation",
+        "observed": {
+          "adjacentConnections": 0,
+          "adjacentRequests": 0,
+          "allowedRequests": 1,
+          "guestExitCode": 22
+        },
+        "passed": true
+      },
       "persistentMutations": [
         {
           "cleanup": "pending",
@@ -666,8 +717,8 @@
           "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "positive_fixture_transport_unavailable",
-      "recordedAt": "2026-08-25T14:20:59.213Z",
+      "reasonCode": "redirect_revalidation_probe_observed",
+      "recordedAt": "2026-08-26T12:49:09.483Z",
       "requestedIntent": {
         "control": "redirect-revalidation",
         "domain": "network",
@@ -677,8 +728,8 @@
       "resolvedAdapterConfig": {
         "backendId": "gondolin",
         "effective": {
-          "fixtureHost": "127.0.0.1",
-          "probe": "redirect baseline did not reach the host fixture"
+          "redirectTarget": "192.0.2.11:<adjacent-port>",
+          "routeMapped": true
         },
         "fidelity": "production-resumeVm-path",
         "requested": {
@@ -689,17 +740,28 @@
         }
       },
       "scenarioId": "network.redirect",
-      "state": "unsupported",
-      "unsupportedKind": "fixture-limitation"
+      "state": "enforced"
     },
     {
       "backend": {
         "id": "gondolin",
         "version": "0.12.0"
       },
-      "basis": "applied",
-      "enforcementLocus": ["gondolin-adapter", "gondolin-host-hooks"],
-      "oracle": null,
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-host-hooks"],
+      "oracle": {
+        "attestedBy": "harness",
+        "expected": {
+          "connections": 0,
+          "requests": 0
+        },
+        "kind": "direct-loopback-bypass",
+        "observed": {
+          "connections": 0,
+          "requests": 0
+        },
+        "passed": true
+      },
       "persistentMutations": [
         {
           "cleanup": "pending",
@@ -718,7 +780,7 @@
         }
       ],
       "reasonCode": "internal_hostname_binding_recorded",
-      "recordedAt": "2026-08-25T14:20:59.213Z",
+      "recordedAt": "2026-08-26T12:49:09.589Z",
       "requestedIntent": {
         "control": "internal-target-policy",
         "domain": "network",
@@ -728,10 +790,9 @@
       "resolvedAdapterConfig": {
         "backendId": "gondolin",
         "effective": {
-          "credentialPorts": ["<allowed-port>"],
-          "effectiveNetwork": ["127.0.0.1"],
-          "probe": "configuration-recorded-without-independent-oracle",
-          "requested": ["127.0.0.1:<allowed-port>"]
+          "attempted": "127.0.0.1:<allowed-port>",
+          "effectiveNetwork": ["192.0.2.10", "198.51.100.10"],
+          "routeMapped": true
         },
         "fidelity": "production-resumeVm-path",
         "requested": {
@@ -742,8 +803,7 @@
         }
       },
       "scenarioId": "network.internal",
-      "state": "unsupported",
-      "unsupportedKind": "not-measured"
+      "state": "enforced"
     },
     {
       "backend": {
@@ -771,7 +831,7 @@
         }
       ],
       "reasonCode": "no_controlled_dns_rebinding_fixture",
-      "recordedAt": "2026-08-25T14:20:59.213Z",
+      "recordedAt": "2026-08-26T12:49:09.589Z",
       "requestedIntent": {
         "control": "dns-rebinding",
         "domain": "network",
@@ -800,9 +860,15 @@
         "id": "gondolin",
         "version": "0.12.0"
       },
-      "basis": "applied",
+      "basis": "verified",
       "enforcementLocus": ["gondolin-adapter", "gondolin-host-hooks"],
-      "oracle": null,
+      "oracle": {
+        "attestedBy": "harness",
+        "expected": "complete",
+        "kind": "effective-hostname-policy-diagnostic",
+        "observed": "complete",
+        "passed": true
+      },
       "persistentMutations": [
         {
           "cleanup": "pending",
@@ -820,8 +886,8 @@
           "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "internal_hostname_binding_recorded",
-      "recordedAt": "2026-08-25T14:20:59.213Z",
+      "reasonCode": "allowed_hostname_observed",
+      "recordedAt": "2026-08-26T12:49:09.589Z",
       "requestedIntent": {
         "control": "requested-versus-effective",
         "domain": "network",
@@ -832,9 +898,28 @@
         "backendId": "gondolin",
         "effective": {
           "credentialPorts": ["<allowed-port>"],
-          "effectiveNetwork": ["127.0.0.1"],
-          "probe": "configuration-recorded-without-independent-oracle",
-          "requested": ["127.0.0.1:<allowed-port>"]
+          "credentialProtocol": "http",
+          "effectiveHostnamePolicy": {
+            "allowedHosts": [
+              "*.chatgpt.com",
+              "*.github.com",
+              "*.githubusercontent.com",
+              "*.googlesource.com",
+              "*.openai.com",
+              "api.openai.com",
+              "api.themolt.net",
+              "chat.openai.com",
+              "chatgpt.com",
+              "github.com",
+              "golang.org",
+              "proxy.golang.org",
+              "registry.npmjs.org",
+              "storage.googleapis.com",
+              "sum.golang.org"
+            ],
+            "allowedInternalHosts": ["192.0.2.10", "198.51.100.10"]
+          },
+          "requested": ["http://192.0.2.10:63949"]
         },
         "fidelity": "production-resumeVm-path",
         "requested": {
@@ -845,8 +930,7 @@
         }
       },
       "scenarioId": "network.requested-effective",
-      "state": "unsupported",
-      "unsupportedKind": "not-measured"
+      "state": "enforced"
     },
     {
       "backend": {
@@ -880,7 +964,7 @@
         }
       ],
       "reasonCode": "required_binding_preflight_observed",
-      "recordedAt": "2026-08-25T14:20:59.213Z",
+      "recordedAt": "2026-08-26T12:49:09.590Z",
       "requestedIntent": {
         "control": "required-binding-preflight",
         "domain": "credential",
@@ -915,8 +999,8 @@
         "attestedBy": "harness",
         "expected": 1,
         "kind": "credential-proxy-match",
-        "observed": 0,
-        "passed": false
+        "observed": 1,
+        "passed": true
       },
       "persistentMutations": [
         {
@@ -936,7 +1020,7 @@
         }
       ],
       "reasonCode": "allowed_origin_secret_substitution_observed",
-      "recordedAt": "2026-08-25T14:20:59.320Z",
+      "recordedAt": "2026-08-26T12:49:09.597Z",
       "requestedIntent": {
         "control": "brokered-allowed-origin",
         "domain": "credential",
@@ -947,7 +1031,7 @@
         "backendId": "gondolin",
         "effective": {
           "guestValue": "<stand-in>",
-          "origin": "127.0.0.1:<allowed-port>"
+          "origin": "192.0.2.10:<allowed-port>"
         },
         "fidelity": "production-resumeVm-path",
         "requested": {
@@ -958,16 +1042,26 @@
         }
       },
       "scenarioId": "credential.allowed-origin",
-      "state": "failed-open"
+      "state": "enforced"
     },
     {
       "backend": {
         "id": "gondolin",
         "version": "0.12.0"
       },
-      "basis": "applied",
-      "enforcementLocus": ["research-harness"],
-      "oracle": null,
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-host-hooks"],
+      "oracle": {
+        "attestedBy": "harness",
+        "expected": 0,
+        "kind": "adjacent-origin-credential-match",
+        "observed": {
+          "credentialAttemptRequests": 0,
+          "credentialMatches": 0,
+          "networkBaselineRequests": 1
+        },
+        "passed": true
+      },
       "persistentMutations": [
         {
           "cleanup": "pending",
@@ -985,8 +1079,8 @@
           "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "positive_fixture_transport_unavailable",
-      "recordedAt": "2026-08-25T14:20:59.320Z",
+      "reasonCode": "adjacent_origin_secret_not_substituted",
+      "recordedAt": "2026-08-26T12:49:09.609Z",
       "requestedIntent": {
         "control": "adjacent-origin-zero-delivery",
         "domain": "credential",
@@ -996,8 +1090,8 @@
       "resolvedAdapterConfig": {
         "backendId": "gondolin",
         "effective": {
-          "fixtureHost": "127.0.0.1",
-          "probe": "adjacent-origin baseline did not reach the host fixture"
+          "credentialFidelity": "protocol-host-port",
+          "networkAllowed": "198.51.100.10:<adjacent-port>"
         },
         "fidelity": "production-resumeVm-path",
         "requested": {
@@ -1008,17 +1102,22 @@
         }
       },
       "scenarioId": "credential.adjacent-origin",
-      "state": "unsupported",
-      "unsupportedKind": "fixture-limitation"
+      "state": "enforced"
     },
     {
       "backend": {
         "id": "gondolin",
         "version": "0.12.0"
       },
-      "basis": "applied",
-      "enforcementLocus": ["research-harness"],
-      "oracle": null,
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-host-hooks"],
+      "oracle": {
+        "attestedBy": "harness",
+        "expected": 1,
+        "kind": "rotated-credential-match",
+        "observed": 1,
+        "passed": true
+      },
       "persistentMutations": [
         {
           "cleanup": "pending",
@@ -1036,8 +1135,8 @@
           "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "positive_fixture_transport_unavailable",
-      "recordedAt": "2026-08-25T14:20:59.320Z",
+      "reasonCode": "rotated_binding_observed",
+      "recordedAt": "2026-08-26T12:49:09.615Z",
       "requestedIntent": {
         "control": "rotation",
         "domain": "credential",
@@ -1047,8 +1146,8 @@
       "resolvedAdapterConfig": {
         "backendId": "gondolin",
         "effective": {
-          "fixtureHost": "127.0.0.1",
-          "probe": "initial credential delivery was not established"
+          "guestValue": "<same-stand-in>",
+          "transition": "host-manager-rotation"
         },
         "fidelity": "production-resumeVm-path",
         "requested": {
@@ -1059,17 +1158,22 @@
         }
       },
       "scenarioId": "credential.rotation",
-      "state": "unsupported",
-      "unsupportedKind": "fixture-limitation"
+      "state": "enforced"
     },
     {
       "backend": {
         "id": "gondolin",
         "version": "0.12.0"
       },
-      "basis": "applied",
-      "enforcementLocus": ["research-harness"],
-      "oracle": null,
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-host-hooks"],
+      "oracle": {
+        "attestedBy": "harness",
+        "expected": 0,
+        "kind": "revoked-credential-match",
+        "observed": 0,
+        "passed": true
+      },
       "persistentMutations": [
         {
           "cleanup": "pending",
@@ -1087,8 +1191,8 @@
           "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "revocation_unverified_without_prior_delivery",
-      "recordedAt": "2026-08-25T14:20:59.320Z",
+      "reasonCode": "revoked_binding_not_delivered",
+      "recordedAt": "2026-08-26T12:49:09.622Z",
       "requestedIntent": {
         "control": "revocation",
         "domain": "credential",
@@ -1098,7 +1202,7 @@
       "resolvedAdapterConfig": {
         "backendId": "gondolin",
         "effective": {
-          "prerequisite": "initial and rotated credential delivery must both pass"
+          "transition": "host-manager-revocation"
         },
         "fidelity": "production-resumeVm-path",
         "requested": {
@@ -1109,17 +1213,22 @@
         }
       },
       "scenarioId": "credential.revocation",
-      "state": "unsupported",
-      "unsupportedKind": "not-measured"
+      "state": "enforced"
     },
     {
       "backend": {
         "id": "gondolin",
         "version": "0.12.0"
       },
-      "basis": "applied",
-      "enforcementLocus": ["research-harness"],
-      "oracle": null,
+      "basis": "verified",
+      "enforcementLocus": ["gondolin-adapter", "gondolin-host-hooks"],
+      "oracle": {
+        "attestedBy": "harness",
+        "expected": 1,
+        "kind": "resumed-credential-match",
+        "observed": 1,
+        "passed": true
+      },
       "persistentMutations": [
         {
           "cleanup": "pending",
@@ -1137,8 +1246,8 @@
           "resource": "<gondolin-vm>"
         }
       ],
-      "reasonCode": "positive_fixture_transport_unavailable",
-      "recordedAt": "2026-08-25T14:20:59.320Z",
+      "reasonCode": "explicit_rebinding_after_restart_observed",
+      "recordedAt": "2026-08-26T12:49:10.441Z",
       "requestedIntent": {
         "control": "resume-rebind",
         "domain": "credential",
@@ -1148,8 +1257,8 @@
       "resolvedAdapterConfig": {
         "backendId": "gondolin",
         "effective": {
-          "fixtureHost": "127.0.0.1",
-          "probe": "initial credential delivery was not established"
+          "rebinding": "required-and-explicit",
+          "restart": "checkpoint-resume"
         },
         "fidelity": "production-resumeVm-path",
         "requested": {
@@ -1160,8 +1269,7 @@
         }
       },
       "scenarioId": "credential.resume",
-      "state": "unsupported",
-      "unsupportedKind": "fixture-limitation"
+      "state": "enforced"
     },
     {
       "backend": {
@@ -1179,7 +1287,7 @@
         "kind": "persisted-sensitive-value-count",
         "observed": {
           "leakHits": 0,
-          "registeredSensitiveValues": 1
+          "registeredSensitiveValues": 2
         },
         "passed": true
       },
@@ -1201,7 +1309,7 @@
         }
       ],
       "reasonCode": "value_free_evidence_only",
-      "recordedAt": "2026-08-25T14:20:59.320Z",
+      "recordedAt": "2026-08-26T12:49:10.441Z",
       "requestedIntent": {
         "control": "value-free-evidence",
         "domain": "credential",
@@ -1260,7 +1368,7 @@
         }
       ],
       "reasonCode": "backend_retirement_observed",
-      "recordedAt": "2026-08-25T14:21:06.327Z",
+      "recordedAt": "2026-08-26T12:49:17.449Z",
       "requestedIntent": {
         "control": "timeout-containment",
         "domain": "lifecycle",
@@ -1344,7 +1452,7 @@
         }
       ],
       "reasonCode": "backend_retirement_observed",
-      "recordedAt": "2026-08-25T14:21:13.227Z",
+      "recordedAt": "2026-08-26T12:49:24.194Z",
       "requestedIntent": {
         "control": "cancel-containment",
         "domain": "lifecycle",
@@ -1428,7 +1536,7 @@
         }
       ],
       "reasonCode": "broker_preflight_unverified",
-      "recordedAt": "2026-08-25T14:21:13.921Z",
+      "recordedAt": "2026-08-26T12:49:24.876Z",
       "requestedIntent": {
         "control": "broker-unavailable-fail-closed",
         "domain": "lifecycle",
@@ -1498,7 +1606,7 @@
         }
       ],
       "reasonCode": "partial_launch_cleanup_unverified",
-      "recordedAt": "2026-08-25T14:21:13.921Z",
+      "recordedAt": "2026-08-26T12:49:24.876Z",
       "requestedIntent": {
         "control": "partial-launch-cleanup",
         "domain": "lifecycle",
@@ -1569,7 +1677,7 @@
         }
       ],
       "reasonCode": "repeated_adapter_close_unverified",
-      "recordedAt": "2026-08-25T14:21:13.921Z",
+      "recordedAt": "2026-08-26T12:49:24.876Z",
       "requestedIntent": {
         "control": "idempotent-close",
         "domain": "lifecycle",
@@ -1651,7 +1759,7 @@
         }
       ],
       "reasonCode": "restart_surfaces_observed",
-      "recordedAt": "2026-08-25T14:21:14.523Z",
+      "recordedAt": "2026-08-26T12:49:25.589Z",
       "requestedIntent": {
         "control": "restart-and-checkpoint",
         "domain": "lifecycle",
@@ -1728,7 +1836,7 @@
         }
       ],
       "reasonCode": "guest_cpu_limit_observed",
-      "recordedAt": "2026-08-25T14:21:14.525Z",
+      "recordedAt": "2026-08-26T12:49:25.591Z",
       "requestedIntent": {
         "control": "cpu-limit",
         "domain": "resource",
@@ -1812,7 +1920,7 @@
         }
       ],
       "reasonCode": "guest_memory_limit_observed",
-      "recordedAt": "2026-08-25T14:21:14.526Z",
+      "recordedAt": "2026-08-26T12:49:25.593Z",
       "requestedIntent": {
         "control": "memory-limit",
         "domain": "resource",
@@ -1889,7 +1997,7 @@
         }
       ],
       "reasonCode": "capability_boundary_recorded",
-      "recordedAt": "2026-08-25T14:21:14.526Z",
+      "recordedAt": "2026-08-26T12:49:25.593Z",
       "requestedIntent": {
         "control": "host-capability-separation",
         "domain": "topology",
@@ -1931,10 +2039,10 @@
       "relationship": "mediates-containment"
     }
   ],
-  "recordedAt": "2026-08-25T14:21:14.531Z",
+  "recordedAt": "2026-08-26T12:49:25.599Z",
   "runId": "<run-id>",
   "schemaVersion": 1,
   "sensitiveDiagnosticRedactions": 0,
-  "sourceRevision": "6c8d7e6bb07399558986ee1b6eba271c9aab3a59",
+  "sourceRevision": "b143846ec11f8817df4395bdf60a214b43a2f149",
   "violations": []
 }

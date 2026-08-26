@@ -1000,8 +1000,8 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
             passed:
               baseline.exitCode === 0 &&
               baselineRequests.length === 1 &&
-              credentialAttempt.exitCode === 0 &&
-              credentialRequests.length === 1 &&
+              credentialAttempt.exitCode !== 0 &&
+              credentialRequests.length === 0 &&
               !matched,
           },
           {

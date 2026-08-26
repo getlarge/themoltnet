@@ -475,15 +475,16 @@ function fakeAdapter(
       return managedResult(0);
     }
     if (command.includes('/adjacent-credential')) {
-      requests.push({
-        destination: 'adjacent',
-        method: 'GET',
-        path: '/adjacent-credential',
-        credentialMatch: fails('credential.adjacent-origin')
-          ? 'expected'
-          : 'unexpected',
-      });
-      return managedResult(0);
+      if (fails('credential.adjacent-origin')) {
+        requests.push({
+          destination: 'adjacent',
+          method: 'GET',
+          path: '/adjacent-credential',
+          credentialMatch: 'expected',
+        });
+        return managedResult(0);
+      }
+      return managedResult(1);
     }
     if (command.includes('/credential')) {
       requests.push({

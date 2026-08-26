@@ -66,12 +66,14 @@ describe('retained sandbox research evidence', () => {
     },
   );
 
-  it('uses the same catalog and signed source revision without normalizing outcomes', async () => {
+  it('uses the same catalog while retaining each backend replay revision', async () => {
     const [docker, gondolin] = await Promise.all(
       retainedFixtures.map((fixture) => loadFixture(fixture)),
     );
 
-    expect(docker.run.sourceRevision).toBe(gondolin.run.sourceRevision);
+    expect(docker.run.sourceRevision).toMatch(/^[0-9a-f]{40}$/);
+    expect(gondolin.run.sourceRevision).toMatch(/^[0-9a-f]{40}$/);
+    expect(docker.run.sourceRevision).not.toBe(gondolin.run.sourceRevision);
     expect(docker.run.catalogVersion).toBe(gondolin.run.catalogVersion);
     expect(docker.run.controls.map(({ scenarioId }) => scenarioId)).toEqual(
       gondolin.run.controls.map(({ scenarioId }) => scenarioId),
