@@ -1,7 +1,9 @@
 import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { runInNewContext } from 'node:vm';
 
+import { ModuleKind, ScriptTarget, transpileModule } from 'typescript';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { assertSecretGuardCapabilityMock } = vi.hoisted(() => ({
@@ -14,6 +16,47 @@ vi.mock('../secret-guard-capability.js', () => ({
 
 import { OPENCODE_SECRET_GUARD_PLUGIN, OpencodeAdapter } from './opencode.js';
 import type { AgentAdapterOptions } from './types.js';
+
+interface GeneratedSecretGuardHook {
+  'tool.execute.before': (
+    input: { tool: string },
+    output: { args: unknown },
+  ) => Promise<void>;
+}
+
+type GeneratedSecretGuardPlugin = () => Promise<GeneratedSecretGuardHook>;
+
+interface GeneratedSpawnResult {
+  exitCode: number;
+  stdout: { toString(): string };
+}
+
+type GeneratedSpawnSync = (
+  command: string[],
+  options: { stdin: string },
+) => GeneratedSpawnResult;
+
+function executeGeneratedSecretGuardPlugin(
+  env: Record<string, string | undefined>,
+  spawnSync: GeneratedSpawnSync,
+): GeneratedSecretGuardPlugin {
+  const javascript = transpileModule(OPENCODE_SECRET_GUARD_PLUGIN, {
+    compilerOptions: {
+      module: ModuleKind.CommonJS,
+      target: ScriptTarget.ES2022,
+    },
+  }).outputText;
+  const generatedModule: { exports: Record<string, unknown> } = {
+    exports: {},
+  };
+  runInNewContext(javascript, {
+    Bun: { env, spawnSync },
+    exports: generatedModule.exports,
+    module: generatedModule,
+  });
+  return generatedModule.exports
+    .MoltNetSecretGuard as GeneratedSecretGuardPlugin;
+}
 
 const tmpRepo = join(
   tmpdir(),
@@ -163,14 +206,55 @@ describe('OpencodeAdapter.writeSettings', () => {
     ).rejects.toThrow();
   });
 
-  it('normalizes native file-tool arguments without forwarding file contents', () => {
-    expect(OPENCODE_SECRET_GUARD_PLUGIN).toContain("'filePath'");
-    expect(OPENCODE_SECRET_GUARD_PLUGIN).toContain("'patchText'");
-    expect(OPENCODE_SECRET_GUARD_PLUGIN).toContain(
-      'normalizeGuardArgs(output.args)',
+  it('returns before inspecting arguments or spawning in inactive sessions', async () => {
+    const spawnSync = vi.fn<GeneratedSpawnSync>();
+    const plugin = executeGeneratedSecretGuardPlugin({}, spawnSync);
+    const hooks = await plugin();
+    const output = Object.defineProperty({}, 'args', {
+      get: () => {
+        throw new Error('inactive plugin inspected tool arguments');
+      },
+    });
+
+    await hooks['tool.execute.before'](
+      { tool: 'write' },
+      output as { args: unknown },
     );
-    expect(OPENCODE_SECRET_GUARD_PLUGIN).not.toContain(
-      'tool_input: output.args',
+
+    expect(spawnSync).not.toHaveBeenCalled();
+  });
+
+  it('executes the guard with normalized arguments in active sessions', async () => {
+    const spawnSync = vi.fn<GeneratedSpawnSync>(() => ({
+      exitCode: 0,
+      stdout: { toString: () => '' },
+    }));
+    const plugin = executeGeneratedSecretGuardPlugin(
+      { GIT_CONFIG_GLOBAL: '.moltnet/my-agent/gitconfig' },
+      spawnSync,
     );
+    const hooks = await plugin();
+
+    await hooks['tool.execute.before'](
+      { tool: 'write' },
+      {
+        args: {
+          filePath: '.moltnet/my-agent/moltnet.json',
+          patchText: 'redacted patch',
+          content: 'must not be forwarded',
+        },
+      },
+    );
+
+    expect(spawnSync).toHaveBeenCalledOnce();
+    const [command, options] = spawnSync.mock.calls[0];
+    expect(command).toEqual(['moltnet', 'secrets', 'guard']);
+    expect(JSON.parse(options.stdin)).toEqual({
+      tool_name: 'write',
+      tool_input: {
+        filePath: '.moltnet/my-agent/moltnet.json',
+        patchText: 'redacted patch',
+      },
+    });
   });
 });

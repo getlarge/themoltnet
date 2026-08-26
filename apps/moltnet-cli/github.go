@@ -496,12 +496,12 @@ func runGitHubExecCmd(credPath string, args []string, stdin io.Reader, stdout, s
 		path = os.Getenv("MOLTNET_CREDENTIALS_PATH")
 	}
 	if path == "" {
-		configured := strings.TrimSpace(os.Getenv("GIT_CONFIG_GLOBAL"))
-		if isMoltnetGitConfig(configured) {
-			gitConfigPath, err := resolveGitConfigGlobalPath(configured)
-			if err == nil && isMoltnetGitConfig(gitConfigPath) {
-				path = filepath.Join(filepath.Dir(gitConfigPath), "moltnet.json")
-			}
+		gitConfigPath, active, err := currentMoltnetGitConfigPath()
+		if err != nil {
+			return fmt.Errorf("moltnet github exec: %w", err)
+		}
+		if active {
+			path = filepath.Join(filepath.Dir(gitConfigPath), "moltnet.json")
 		}
 	}
 

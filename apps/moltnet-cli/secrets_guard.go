@@ -69,6 +69,17 @@ func newSecretGuardPathContext(cwd, currentRoot, mainRoot string) secretGuardPat
 }
 
 func runSecretsGuardCmd(in io.Reader, out io.Writer) error {
+	_, active, err := currentMoltnetGitConfigPath()
+	if !active {
+		return nil
+	}
+	if err != nil {
+		return writeSecretGuardDenial(out, secretGuardFailure)
+	}
+	return runActiveSecretsGuardCmd(in, out)
+}
+
+func runActiveSecretsGuardCmd(in io.Reader, out io.Writer) error {
 	payload, err := io.ReadAll(io.LimitReader(in, maxSecretHookPayloadBytes+1))
 	if err != nil {
 		return writeSecretGuardDenial(out, secretGuardFailure)

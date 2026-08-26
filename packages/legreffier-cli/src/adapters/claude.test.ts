@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -113,6 +114,43 @@ describe('ClaudeAdapter.writeSettings', () => {
     await expect(
       stat(join(tmpRepo, '.claude', 'settings.json')),
     ).rejects.toThrow();
+  });
+
+  it('runs the secret guard only in an activated agent process', async () => {
+    await new ClaudeAdapter().writeSettings(baseOpts);
+    const hookPath = join(
+      tmpRepo,
+      '.claude',
+      'hooks',
+      'moltnet-secret-guard.sh',
+    );
+
+    for (const configured of [
+      '',
+      '/tmp/unrelated/gitconfig',
+      '/tmp/.moltnet/team/my-agent/gitconfig',
+    ]) {
+      const inactive = spawnSync(hookPath, {
+        encoding: 'utf-8',
+        env: { GIT_CONFIG_GLOBAL: configured, PATH: '/usr/bin:/bin' },
+        input: '{',
+      });
+      expect(inactive.status).toBe(0);
+      expect(inactive.stdout).toBe('');
+    }
+
+    for (const configured of [
+      '.moltnet/my-agent/gitconfig',
+      String.raw`C:\repo\.moltnet\my-agent\gitconfig`,
+    ]) {
+      const active = spawnSync(hookPath, {
+        encoding: 'utf-8',
+        env: { GIT_CONFIG_GLOBAL: configured, PATH: '/usr/bin:/bin' },
+        input: '{',
+      });
+      expect(active.status).toBe(0);
+      expect(active.stdout).toContain('"permissionDecision":"deny"');
+    }
   });
 
   it('preserves existing shared hooks and remains idempotent', async () => {

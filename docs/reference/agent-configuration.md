@@ -195,6 +195,20 @@ GH_TOKEN=$(moltnet github token --credentials "$CREDS") gh <command>
 Do not export the token across a shell command chain: authorization for one
 `gh` process must never authorize a later one.
 
+## Secret guard activation boundary
+
+LeGreffier installs the secret guard in shared Claude, Codex, and OpenCode
+project configuration, but the hook is active only when the current process has
+selected a `.moltnet/<agent>/gitconfig` through `GIT_CONFIG_GLOBAL`. Ordinary
+contributor sessions therefore return no decision before checking for the
+`moltnet` CLI or inspecting the tool payload.
+
+Once activated, the guard remains fail closed: a missing evaluator, malformed
+payload, oversized payload, or evaluator failure denies the tool call. The CLI
+resolves relative gitconfig paths from the repository root and revalidates the
+same path shape used by the GitHub authorship guard, so linked worktrees and
+absolute activation paths share one runtime boundary.
+
 ## Session launcher commands
 
 Use the CLI session launcher commands instead of manual shell wrappers:

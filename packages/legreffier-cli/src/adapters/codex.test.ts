@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -151,6 +152,7 @@ describe('CodexAdapter.writeSettings', () => {
               matcher: 'Bash',
               hooks: [
                 { type: 'command', command: 'custom secret guard audit' },
+                { type: 'command', command: 'moltnet secrets guard' },
                 { type: 'command', command: 'moltnet github guard' },
               ],
             },
@@ -172,6 +174,35 @@ describe('CodexAdapter.writeSettings', () => {
       { type: 'command', command: 'custom secret guard audit' },
       { type: 'command', command: GITHUB_GUARD_HOOK_COMMAND },
     ]);
+  });
+
+  it('runs the secret guard only in an activated agent process', () => {
+    for (const configured of [
+      '',
+      '/tmp/unrelated/gitconfig',
+      '/tmp/.moltnet/team/my-agent/gitconfig',
+    ]) {
+      const inactive = spawnSync('/bin/sh', ['-c', SECRET_GUARD_HOOK_COMMAND], {
+        encoding: 'utf-8',
+        env: { GIT_CONFIG_GLOBAL: configured, PATH: '/usr/bin:/bin' },
+        input: '{',
+      });
+      expect(inactive.status).toBe(0);
+      expect(inactive.stdout).toBe('');
+    }
+
+    for (const configured of [
+      '.moltnet/my-agent/gitconfig',
+      String.raw`C:\repo\.moltnet\my-agent\gitconfig`,
+    ]) {
+      const active = spawnSync('/bin/sh', ['-c', SECRET_GUARD_HOOK_COMMAND], {
+        encoding: 'utf-8',
+        env: { GIT_CONFIG_GLOBAL: configured, PATH: '/usr/bin:/bin' },
+        input: '{',
+      });
+      expect(active.status).toBe(0);
+      expect(active.stdout).toContain('"permissionDecision":"deny"');
+    }
   });
 
   it('does not write hooks when the released CLI lacks the guard', async () => {

@@ -82,7 +82,7 @@ func TestSecretsGuardDeniesNativeOpenCodeFilePayloads(t *testing.T) {
 			t.Fatal(err)
 		}
 		var output bytes.Buffer
-		if err := runSecretsGuardCmd(bytes.NewReader(encoded), &output); err != nil {
+		if err := runActiveSecretsGuardCmd(bytes.NewReader(encoded), &output); err != nil {
 			t.Fatal(err)
 		}
 		if !strings.Contains(output.String(), `"permissionDecision":"deny"`) {
@@ -107,7 +107,7 @@ func TestSecretsGuardDeniesAdversarialShellPayloadsEndToEnd(t *testing.T) {
 			t.Fatal(err)
 		}
 		var output bytes.Buffer
-		if err := runSecretsGuardCmd(bytes.NewReader(payload), &output); err != nil {
+		if err := runActiveSecretsGuardCmd(bytes.NewReader(payload), &output); err != nil {
 			t.Fatal(err)
 		}
 		if !strings.Contains(output.String(), `"permissionDecision":"deny"`) {
@@ -129,7 +129,7 @@ func TestSecretsGuardAllowsPatchWhoseContentOnlyMentionsSecretPath(t *testing.T)
 		t.Fatal(err)
 	}
 	var output bytes.Buffer
-	if err := runSecretsGuardCmd(bytes.NewReader(payload), &output); err != nil {
+	if err := runActiveSecretsGuardCmd(bytes.NewReader(payload), &output); err != nil {
 		t.Fatal(err)
 	}
 	if output.Len() != 0 {
@@ -169,7 +169,7 @@ func TestSecretsGuardDirectFileTools(t *testing.T) {
 	}
 	payload, _ := json.Marshal(input)
 	var output bytes.Buffer
-	if err := runSecretsGuardCmd(bytes.NewReader(payload), &output); err != nil {
+	if err := runActiveSecretsGuardCmd(bytes.NewReader(payload), &output); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(output.String(), `"permissionDecision":"deny"`) {
@@ -193,7 +193,7 @@ func TestSecretsGuardProtectsManagedHookConfiguration(t *testing.T) {
 			t.Fatal(err)
 		}
 		var output bytes.Buffer
-		if err := runSecretsGuardCmd(bytes.NewReader(payload), &output); err != nil {
+		if err := runActiveSecretsGuardCmd(bytes.NewReader(payload), &output); err != nil {
 			t.Fatal(err)
 		}
 		if !strings.Contains(output.String(), `"permissionDecision":"deny"`) {
@@ -254,7 +254,7 @@ func TestSecretsGuardResolvesGlobsAndSymlinks(t *testing.T) {
 func TestSecretsGuardMalformedInputFailsClosed(t *testing.T) {
 	t.Parallel()
 	var output bytes.Buffer
-	if err := runSecretsGuardCmd(strings.NewReader("{"), &output); err != nil {
+	if err := runActiveSecretsGuardCmd(strings.NewReader("{"), &output); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(output.String(), `"permissionDecision":"deny"`) {
@@ -262,11 +262,66 @@ func TestSecretsGuardMalformedInputFailsClosed(t *testing.T) {
 	}
 }
 
+func TestSecretsGuardInactiveContextNoOpsBeforeParsing(t *testing.T) {
+	for _, configured := range []string{
+		"",
+		"/tmp/unrelated/gitconfig",
+		"/tmp/.moltnet/team/agent/gitconfig",
+	} {
+		t.Run(configured, func(t *testing.T) {
+			t.Setenv("GIT_CONFIG_GLOBAL", configured)
+			var output bytes.Buffer
+			if err := runSecretsGuardCmd(strings.NewReader("{"), &output); err != nil {
+				t.Fatal(err)
+			}
+			if output.Len() != 0 {
+				t.Fatalf("inactive guard emitted output: %s", output.String())
+			}
+		})
+	}
+}
+
+func TestSecretsGuardActivatedContextStillFailsClosed(t *testing.T) {
+	agentDir := filepath.Join(t.TempDir(), ".moltnet", "agent")
+	t.Setenv("GIT_CONFIG_GLOBAL", filepath.Join(agentDir, "gitconfig"))
+	var output bytes.Buffer
+	if err := runSecretsGuardCmd(strings.NewReader("{"), &output); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output.String(), `"permissionDecision":"deny"`) {
+		t.Fatalf("expected active guard denial, got %s", output.String())
+	}
+}
+
+func TestSecretsGuardActivatedRelativeConfigResolutionFailureFailsClosed(t *testing.T) {
+	previousDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("get working directory: %v", err)
+	}
+	if err := os.Chdir(t.TempDir()); err != nil {
+		t.Fatalf("change directory: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(previousDir); err != nil {
+			t.Errorf("restore working directory: %v", err)
+		}
+	})
+	t.Setenv("GIT_CONFIG_GLOBAL", ".moltnet/agent/gitconfig")
+
+	var output bytes.Buffer
+	if err := runSecretsGuardCmd(strings.NewReader("{"), &output); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(output.String(), `"permissionDecision":"deny"`) {
+		t.Fatalf("expected active resolution failure denial, got %s", output.String())
+	}
+}
+
 func TestSecretsGuardOversizedInputHasActionableDenial(t *testing.T) {
 	t.Parallel()
 	payload := `{"tool_name":"Write","tool_input":{"file_path":"docs/large.md","content":"` + strings.Repeat("x", maxSecretHookPayloadBytes) + `"}}`
 	var output bytes.Buffer
-	if err := runSecretsGuardCmd(strings.NewReader(payload), &output); err != nil {
+	if err := runActiveSecretsGuardCmd(strings.NewReader(payload), &output); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(output.String(), "oversized tool payload") {
@@ -282,7 +337,7 @@ func TestSecretsGuardProtectsActivationCache(t *testing.T) {
 		t.Fatal(err)
 	}
 	var output bytes.Buffer
-	if err := runSecretsGuardCmd(bytes.NewReader(payload), &output); err != nil {
+	if err := runActiveSecretsGuardCmd(bytes.NewReader(payload), &output); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(output.String(), `"permissionDecision":"deny"`) {
@@ -345,7 +400,7 @@ func TestSecretsGuardAllowsNativeReadOfManagedConfigFiles(t *testing.T) {
 	for _, payload := range payloads {
 		encoded, _ := json.Marshal(payload)
 		var output bytes.Buffer
-		if err := runSecretsGuardCmd(bytes.NewReader(encoded), &output); err != nil {
+		if err := runActiveSecretsGuardCmd(bytes.NewReader(encoded), &output); err != nil {
 			t.Fatal(err)
 		}
 		if output.Len() != 0 {
@@ -364,7 +419,7 @@ func TestSecretsGuardDeniesNativeWriteOfManagedConfigFiles(t *testing.T) {
 	for _, payload := range payloads {
 		encoded, _ := json.Marshal(payload)
 		var output bytes.Buffer
-		if err := runSecretsGuardCmd(bytes.NewReader(encoded), &output); err != nil {
+		if err := runActiveSecretsGuardCmd(bytes.NewReader(encoded), &output); err != nil {
 			t.Fatal(err)
 		}
 		if !strings.Contains(output.String(), `"permissionDecision":"deny"`) {
