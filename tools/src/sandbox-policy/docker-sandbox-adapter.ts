@@ -55,6 +55,11 @@ interface EvidenceProvenance {
   attestedBy: ControlOracle['attestedBy'];
 }
 
+interface SandboxStatus {
+  name: string;
+  status: string;
+}
+
 const ADAPTER_PROVENANCE: EvidenceProvenance = {
   basis: 'applied',
   attestedBy: 'adapter',
@@ -209,6 +214,29 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
       ['exec', this.#sandboxName, ...args],
       timeoutMs,
     );
+  }
+
+  async #sandboxStatus(name: string): Promise<{
+    result: CommandResult;
+    parsed: boolean;
+    status: string | null;
+  }> {
+    const result = await this.#executeScenario(['ls', '--json']);
+    if (result.exitCode !== 0) return { result, parsed: false, status: null };
+    try {
+      const parsed = JSON.parse(result.stdout) as {
+        sandboxes?: SandboxStatus[];
+      };
+      if (!Array.isArray(parsed.sandboxes)) {
+        return { result, parsed: false, status: null };
+      }
+      const sandbox = parsed.sandboxes?.find(
+        (candidate) => candidate.name === name,
+      );
+      return { result, parsed: true, status: sandbox?.status ?? null };
+    } catch {
+      return { result, parsed: false, status: null };
+    }
   }
 
   #resolution(
@@ -1055,11 +1083,8 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
         if (acknowledged !== 'started') {
           throw new Error('detached child did not acknowledge startup');
         }
-        const removed = await this.#executeScenario([
-          'rm',
-          '--force',
-          childName,
-        ]);
+        const stopped = await this.#executeScenario(['stop', childName]);
+        const confirmed = await this.#sandboxStatus(childName);
         await sleep(observationWindowMs, this.#scenarioSignal);
         const observed = await readFile(marker, 'utf8').catch(() => '');
         return this.#evidence(
@@ -1073,11 +1098,16 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
               created.exitCode === 0 &&
               detached.exitCode === 0 &&
               acknowledged === 'started' &&
-              removed.exitCode === 0 &&
+              stopped.exitCode === 0 &&
+              confirmed.result.exitCode === 0 &&
+              confirmed.parsed &&
+              confirmed.status === 'stopped' &&
               observed === '',
           },
           {
-            termination: 'scoped-sandbox-remove',
+            termination: 'managed-sandbox-stop',
+            confirmedState: confirmed.status,
+            removal: 'deferred-to-scoped-cleanup',
             trigger:
               scenario.id === 'lifecycle.timeout'
                 ? 'execution-deadline'
@@ -1086,7 +1116,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
             delayedMarkerMs,
             observationWindowMs,
           },
-          'sandbox_removal_detached_child_observed',
+          'managed_sandbox_stop_observed',
           HARNESS_PROVENANCE,
           ['research-harness', 'docker-sandbox-control-plane'],
         );
@@ -1106,27 +1136,142 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
             locus: ['research-harness'],
           },
         );
-      case 'lifecycle.partial-launch':
-        return this.#unsupported(
+      case 'lifecycle.partial-launch': {
+        const childName = `${this.#sandboxName}-partial-launch`;
+        const created = await this.#executeScenario([
+          'create',
+          'shell',
+          '--quiet',
+          '--name',
+          childName,
+          this.#guestRoot,
+        ]);
+        if (created.exitCode !== 0) {
+          throw new Error(
+            `partial-launch sandbox create failed: ${created.stderr}`,
+          );
+        }
+        this.#cleanup.add('sandbox', '<partial-launch-sandbox>', async () => {
+          const cleanup = await this.#execute('sbx', [
+            'rm',
+            '--force',
+            childName,
+          ]);
+          if (cleanup.exitCode !== 0 && !/not found/i.test(cleanup.stderr)) {
+            throw new Error(cleanup.stderr);
+          }
+        });
+        const failedLaunch = await this.#executeScenario([
+          'exec',
+          childName,
+          '/moltnet-deliberately-missing-executable',
+        ]);
+        const stopped = await this.#executeScenario(['stop', childName]);
+        const stoppedStatus = await this.#sandboxStatus(childName);
+        const removed = await this.#executeScenario([
+          'rm',
+          '--force',
+          childName,
+        ]);
+        const removedStatus = await this.#sandboxStatus(childName);
+        return this.#evidence(
           scenario,
           context,
-          'partial_launch_cleanup_unverified',
-          'not-measured',
           {
-            basis: 'declared',
-            effective: {
-              probe: 'no deliberately interrupted create operation',
-            },
-            locus: ['research-harness'],
+            kind: 'partial-launch-backend-absence',
+            expected: 'absent',
+            observed:
+              removedStatus.parsed && removedStatus.status === null
+                ? 'absent'
+                : 'present-or-unconfirmed',
+            passed:
+              failedLaunch.exitCode !== 0 &&
+              stopped.exitCode === 0 &&
+              stoppedStatus.parsed &&
+              stoppedStatus.status === 'stopped' &&
+              removed.exitCode === 0 &&
+              removedStatus.parsed &&
+              removedStatus.status === null,
           },
+          {
+            allocation: 'scoped-sandbox',
+            launch: 'deliberately-rejected-before-handle',
+            confirmedStoppedState: stoppedStatus.status,
+            confirmedFinalState: removedStatus.status ?? 'absent',
+          },
+          'preflight_failure_left_no_backend_resource',
+          HARNESS_PROVENANCE,
+          ['research-harness', 'docker-sandbox-control-plane'],
         );
-      case 'lifecycle.repeated-close':
-        return this.#unsupported(
+      }
+      case 'lifecycle.repeated-close': {
+        const childName = `${this.#sandboxName}-repeated-close`;
+        const created = await this.#executeScenario([
+          'create',
+          'shell',
+          '--quiet',
+          '--name',
+          childName,
+          this.#guestRoot,
+        ]);
+        if (created.exitCode !== 0) {
+          throw new Error(
+            `repeated-close sandbox create failed: ${created.stderr}`,
+          );
+        }
+        this.#cleanup.add('sandbox', '<repeated-close-sandbox>', async () => {
+          const cleanup = await this.#execute('sbx', [
+            'rm',
+            '--force',
+            childName,
+          ]);
+          if (cleanup.exitCode !== 0 && !/not found/i.test(cleanup.stderr)) {
+            throw new Error(cleanup.stderr);
+          }
+        });
+        const first = await this.#executeScenario(['rm', '--force', childName]);
+        const afterFirst = await this.#sandboxStatus(childName);
+        const second = await this.#executeScenario([
+          'rm',
+          '--force',
+          childName,
+        ]);
+        const afterSecond = await this.#sandboxStatus(childName);
+        const secondIdempotent =
+          second.exitCode === 0 || /not found/i.test(second.stderr);
+        return this.#evidence(
           scenario,
           context,
-          'repeated_adapter_close_unverified',
-          'not-measured',
+          {
+            kind: 'repeated-close-backend-absence',
+            expected: { first: 'absent', second: 'absent' },
+            observed: {
+              first:
+                afterFirst.parsed && afterFirst.status === null
+                  ? 'absent'
+                  : 'present-or-unconfirmed',
+              second:
+                afterSecond.parsed && afterSecond.status === null
+                  ? 'absent'
+                  : 'present-or-unconfirmed',
+            },
+            passed:
+              first.exitCode === 0 &&
+              afterFirst.parsed &&
+              afterFirst.status === null &&
+              secondIdempotent &&
+              afterSecond.parsed &&
+              afterSecond.status === null,
+          },
+          {
+            close: 'scoped-sandbox-remove',
+            repeatedClose: secondIdempotent ? 'idempotent' : 'failed',
+          },
+          'repeated_adapter_close_observed',
+          HARNESS_PROVENANCE,
+          ['research-harness', 'docker-sandbox-control-plane'],
         );
+      }
       case 'lifecycle.restart-checkpoint': {
         const marker = path.join(this.#guestRoot, 'restart-persistent.txt');
         await writeFile(marker, 'persisted');

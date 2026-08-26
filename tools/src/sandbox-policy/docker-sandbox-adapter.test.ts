@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { request } from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
@@ -14,6 +14,10 @@ class HostScopedCredentialProxy {
   readonly commands: string[][] = [];
   credential: string | undefined;
   failSecretRemoval = false;
+  acknowledgeDetached = false;
+  stoppedSandbox: string | undefined;
+  readonly sandboxNames = new Set<string>();
+  reportStoppedSandboxAsRunning = false;
 
   readonly execute: CommandExecutor = async (_command, args) => {
     this.commands.push(args);
@@ -37,8 +41,50 @@ class HostScopedCredentialProxy {
       this.credential = undefined;
       return success();
     }
+    if (args[0] === 'create') {
+      const nameIndex = args.indexOf('--name');
+      const name = nameIndex >= 0 ? args[nameIndex + 1] : undefined;
+      if (name) this.sandboxNames.add(name);
+      return success();
+    }
+    if (args[0] === 'stop') {
+      this.stoppedSandbox = args[1];
+      return success();
+    }
+    if (args[0] === 'rm') {
+      const name = args.at(-1);
+      if (!name || !this.sandboxNames.delete(name)) {
+        return { exitCode: 1, stdout: '', stderr: 'sandbox not found' };
+      }
+      if (this.stoppedSandbox === name) this.stoppedSandbox = undefined;
+      return success();
+    }
+    if (args[0] === 'ls' && args[1] === '--json') {
+      return {
+        exitCode: 0,
+        stdout: JSON.stringify({
+          sandboxes: [...this.sandboxNames].map((name) => ({
+            name,
+            status:
+              name === this.stoppedSandbox &&
+              !this.reportStoppedSandboxAsRunning
+                ? 'stopped'
+                : 'running',
+          })),
+        }),
+        stderr: '',
+      };
+    }
     if (args[0] === 'exec') {
+      if (args.at(-1) === '/moltnet-deliberately-missing-executable') {
+        return { exitCode: 127, stdout: '', stderr: 'executable not found' };
+      }
       const shellCommand = args.at(-1) ?? '';
+      if (args.includes('--detach') && this.acknowledgeDetached) {
+        const started = /printf started > '([^']+)'/.exec(shellCommand)?.[1];
+        if (started) await writeFile(started, 'started');
+        return success();
+      }
       const target = /http:\/\/[^'" ]+/.exec(shellCommand)?.[0];
       if (target) return requestFixture(target, this.credential);
     }
@@ -202,6 +248,97 @@ describe('Docker sandbox research adapter', () => {
           args.some((arg) => arg.endsWith('-cancel')),
       ),
     ).toBe(true);
+  });
+
+  it('confirms a stopped sandbox before crediting cancellation containment', async () => {
+    const proxy = new HostScopedCredentialProxy();
+    proxy.acknowledgeDetached = true;
+    const adapter = new DockerSandboxAdapter({ execute: proxy.execute });
+    adapters.push(adapter);
+    const lifecycleScenario = await scenario('lifecycle.cancel');
+
+    const evidence = await adapter.runScenario(
+      {
+        ...lifecycleScenario,
+        parameters: { delayedMarkerMs: 1, observationWindowMs: 1 },
+      },
+      await probeContext(probeRoots),
+    );
+
+    expect(evidence).toMatchObject({
+      state: 'enforced',
+      reasonCode: 'managed_sandbox_stop_observed',
+      oracle: { kind: 'delayed-marker-absence', passed: true },
+      resolvedAdapterConfig: {
+        effective: {
+          termination: 'managed-sandbox-stop',
+          confirmedState: 'stopped',
+        },
+      },
+    });
+    expect(
+      proxy.commands.some(
+        (args) =>
+          args[0] === 'stop' && args.some((arg) => arg.endsWith('-cancel')),
+      ),
+    ).toBe(true);
+    expect(
+      proxy.commands.some((args) => args[0] === 'ls' && args[1] === '--json'),
+    ).toBe(true);
+  });
+
+  it('does not credit cancellation while the control plane reports running', async () => {
+    const proxy = new HostScopedCredentialProxy();
+    proxy.acknowledgeDetached = true;
+    proxy.reportStoppedSandboxAsRunning = true;
+    const adapter = new DockerSandboxAdapter({ execute: proxy.execute });
+    adapters.push(adapter);
+
+    const evidence = await adapter.runScenario(
+      {
+        ...(await scenario('lifecycle.cancel')),
+        parameters: { delayedMarkerMs: 1, observationWindowMs: 1 },
+      },
+      await probeContext(probeRoots),
+    );
+
+    expect(evidence).toMatchObject({
+      state: 'failed-open',
+      oracle: { passed: false },
+      resolvedAdapterConfig: {
+        effective: { confirmedState: 'running' },
+      },
+    });
+  });
+
+  it('proves partial-launch cleanup and repeated close with backend state', async () => {
+    const proxy = new HostScopedCredentialProxy();
+    const adapter = new DockerSandboxAdapter({ execute: proxy.execute });
+    adapters.push(adapter);
+    const context = await probeContext(probeRoots);
+
+    const partialLaunch = await adapter.runScenario(
+      await scenario('lifecycle.partial-launch'),
+      context,
+    );
+    const repeatedClose = await adapter.runScenario(
+      await scenario('lifecycle.repeated-close'),
+      context,
+    );
+
+    expect(partialLaunch).toMatchObject({
+      state: 'enforced',
+      reasonCode: 'preflight_failure_left_no_backend_resource',
+      oracle: { passed: true, observed: 'absent' },
+    });
+    expect(repeatedClose).toMatchObject({
+      state: 'enforced',
+      reasonCode: 'repeated_adapter_close_observed',
+      oracle: {
+        passed: true,
+        observed: { first: 'absent', second: 'absent' },
+      },
+    });
   });
 
   it('does not count an already-present secret as an explicit resume rebind', async () => {
