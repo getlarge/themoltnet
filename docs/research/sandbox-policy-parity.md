@@ -9,11 +9,10 @@ The backends are not at parity, and neither retained run satisfies the complete
 required policy.
 
 - **Gondolin 0.12.0 proves exact-origin credential delivery and lifecycle
-  containment.** A trusted-host custom fetch maps exact RFC 5737 TEST-NET
-  origins to loopback only after Gondolin's request/IP checks and secret
-  substitution. Exact allow, wrong host/port/protocol, redirect revalidation,
-  direct-loopback bypass denial, credential isolation, rotation, revocation,
-  restart rebinding, timeout, and cancellation all passed.
+  containment.** A test-only, fail-closed transport maps exact RFC 5737
+  TEST-NET origins to literal loopback fixtures. Exact allow, wrong
+  host/port/protocol, redirect revalidation, credential isolation, rotation,
+  revocation, restart rebinding, timeout, and cancellation all passed.
 - **Docker Sandbox's native custom-secret mechanism works.** Delivery,
   rotation, revocation, and restart rebinding all passed without copying the
   synthetic value into guest storage.
@@ -58,7 +57,7 @@ signed implementation revision
 | Backend        | Version | Enforced | Failed open | Unsupported | Violations | Cleanup  |
 | -------------- | ------: | -------: | ----------: | ----------: | ---------: | -------- |
 | Docker Sandbox | v0.39.0 |       19 |           3 |           9 |          0 | complete |
-| Gondolin       |  0.12.0 |       24 |           0 |           7 |          0 | complete |
+| Gondolin       |  0.12.0 |       22 |           0 |           9 |          0 | complete |
 
 Counts are inventory, not scores. The state, oracle, and enforcement locus of
 each control remain authoritative.
@@ -84,13 +83,18 @@ an adjacent port was independently allowed, the adjacent fixture received the
 synthetic secret. MoltNet must not describe that as protocol/host/port
 credential isolation.
 
-Gondolin established the corresponding flow through its native custom-fetch
-path. A trusted-host-only `VmConfig.trustedHttpFetch` maps an exact allowlist of
-RFC 5737 fixture origins to loopback after Gondolin performs request and IP
-checks and secret substitution. Every unmapped origin fails closed. Negative
-host, port, protocol, redirect, and direct-loopback origins are mapped
+Gondolin established the corresponding flow through a narrow research-only
+route seam. `VmConfig.testOnlyHttpRoutes` accepts only exact RFC 5737 source
+origins and literal `http://127.0.0.1:<port>` targets; every unmapped origin
+fails closed. Negative host, port, protocol, and redirect origins are mapped
 deliberately, so a policy failure could have reached the fixture and remains
 falsifiable.
+
+This is intentionally not a general custom-fetch capability. Gondolin 0.12's
+default fetch pins the actual connection to the IP accepted by its policy;
+supplying a custom fetch performs the preliminary IP check but disables that
+connect-time dispatcher. The static fixture routes avoid DNS entirely, while
+ordinary production resumes leave Gondolin's default fetch untouched.
 
 The protected origin received the substituted credential. An adjacent origin
 was independently proven network-reachable without credentials; attempting to
@@ -145,10 +149,13 @@ observable repeated-close probe before that control can be promoted.
 
 Docker enforced its host-port network rule but did not prove general protocol
 policy. Gondolin's pinned TEST-NET transport proved its positive path before
-promoting wrong-host, wrong-port, wrong-protocol, redirect, and direct-loopback
-negative controls. The complete effective hostname policy and canonical
-protocol/hostname/port decisions at request and IP phases are retained as
-value-free diagnostics; the requested/effective row is therefore enforced.
+promoting wrong-host, wrong-port, wrong-protocol, and redirect negative
+controls. Canonical brokered-origin decisions remain value-free diagnostics in
+the controlled fixture run. The hostname-policy diagnostic records inputs
+passed to Gondolin, not independently resolved state, so the
+requested/effective row remains unsupported. Guest `127.0.0.1` isolation also
+does not prove host-hook denial, so the internal-target row is no longer
+promoted.
 
 DNS rebinding remains unsupported on both. Gondolin's production `resumeVm`
 path still has no read-only secondary-mount contract.
