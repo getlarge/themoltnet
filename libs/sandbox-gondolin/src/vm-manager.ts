@@ -3,6 +3,7 @@ import { isIP } from 'node:net';
 import path from 'node:path';
 
 import type {
+  HttpFetch,
   HttpIpAllowInfo,
   SecretDefinition,
   VM,
@@ -101,6 +102,8 @@ export interface VmDiagnostic {
     | 'vm.host_origins.bound'
     | 'vm.guest_projection.applied'
     | 'vm.guest_service.not_ready'
+    | 'vm.network.policy_bound'
+    | 'vm.network.origin_checked'
     | 'vm.network.origin_denied';
   level: 'info' | 'warning';
   message: string;
@@ -111,12 +114,18 @@ export interface VmDiagnostic {
   /** Present only for the guest-projection summary event. */
   projectedFileCount?: number;
   projectedServiceCount?: number;
-  /** Present only for an exact-origin denial event. */
+  /** Complete value-free hostname policy passed to Gondolin. */
+  hostnamePolicy?: {
+    allowedHosts: readonly string[];
+    allowedInternalHosts: readonly string[];
+  };
+  /** Canonical, value-free decision for an origin check or denial. */
   origin?: {
     hostname: string;
     protocol: string;
     port: number;
     phase: 'request' | 'ip';
+    allowed?: boolean;
   };
 }
 
@@ -178,6 +187,12 @@ export interface VmConfig {
    * outside SandboxConfig: a remotely stored profile cannot register one.
    */
   hostOrigins?: Record<string, HostOriginHandler>;
+  /**
+   * Trusted-host HTTP transport passed directly to Gondolin after its request
+   * and IP policies and secret substitution. It is intentionally outside
+   * SandboxConfig so runtime profiles and guests cannot select the transport.
+   */
+  trustedHttpFetch?: HttpFetch;
   /**
    * Trusted-host guest projection: env merged last (after broker
    * placeholders), files written before the session starts, services run in
@@ -1009,6 +1024,16 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   const allowedInternalHosts = [
     ...new Set([...runtimeAllowedInternalHosts, ...hostOriginHosts]),
   ];
+  const effectiveHostnamePolicy = Object.freeze({
+    allowedHosts: Object.freeze([...allowedHosts].sort()),
+    allowedInternalHosts: Object.freeze([...allowedInternalHosts].sort()),
+  });
+  config.onDiagnostic?.({
+    event: 'vm.network.policy_bound',
+    level: 'info',
+    message: 'Bound the complete effective hostname policy to Gondolin',
+    hostnamePolicy: effectiveHostnamePolicy,
+  });
   const projectedEnv = config.guestProjection?.env ?? {};
 
   const brokeredSecrets = prepareBrokeredHttpSecrets({
@@ -1031,17 +1056,28 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   );
   const brokeredNetworkOriginPolicy = createBrokeredHttpNetworkOriginPolicy(
     config.brokeredSecrets ?? [],
-    {
-      onDenied(origin) {
-        config.onDiagnostic?.({
-          event: 'vm.network.origin_denied',
-          level: 'warning',
-          message: 'denied request outside a brokered credential origin',
-          origin,
-        });
-      },
-    },
   );
+  const effectiveHostPatterns = [...allowedHosts, ...allowedInternalHosts];
+  const emitOriginDecision = (
+    origin: RequestOrigin & { phase: 'request' | 'ip' },
+    allowed: boolean,
+  ): void => {
+    const decision = { ...origin, allowed };
+    config.onDiagnostic?.({
+      event: 'vm.network.origin_checked',
+      level: 'info',
+      message: 'Checked a canonical HTTP origin against the effective policy',
+      origin: decision,
+    });
+    if (!allowed) {
+      config.onDiagnostic?.({
+        event: 'vm.network.origin_denied',
+        level: 'warning',
+        message: 'Denied an HTTP request outside the effective origin policy',
+        origin: decision,
+      });
+    }
+  };
 
   const {
     httpHooks,
@@ -1052,11 +1088,30 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     allowedInternalHosts,
     ...(Object.keys(brokeredSecrets).length > 0 && {
       secrets: brokeredSecrets,
-      isRequestAllowed: (request: Request) =>
-        brokeredNetworkOriginPolicy.isRequestAllowed(request) &&
-        brokeredSecretOriginPolicy.isRequestAllowed(request),
-      isIpAllowed: brokeredNetworkOriginPolicy.isIpAllowed,
     }),
+    isRequestAllowed: (request: Request) => {
+      const origin = parseRequestOrigin(request.url);
+      if (!origin) return false;
+      const allowed =
+        effectiveHostPatterns.some((pattern) =>
+          hostMatchesPattern(origin.hostname, pattern),
+        ) &&
+        brokeredNetworkOriginPolicy.isRequestAllowed(request) &&
+        brokeredSecretOriginPolicy.isRequestAllowed(request);
+      emitOriginDecision({ ...origin, phase: 'request' }, allowed);
+      return allowed;
+    },
+    isIpAllowed: (info: HttpIpAllowInfo) => {
+      const origin = {
+        hostname: normalizeHostPattern(info.hostname),
+        protocol: info.protocol,
+        port: info.port,
+        phase: 'ip' as const,
+      };
+      const allowed = brokeredNetworkOriginPolicy.isIpAllowed(info);
+      emitOriginDecision(origin, allowed);
+      return allowed;
+    },
     ...(hostOriginHosts.length > 0 && {
       onRequest: createHostOriginsOnRequest(hostOrigins),
     }),
@@ -1158,6 +1213,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   const vm = await abortableResource({
     promise: cp.resume({
       httpHooks,
+      ...(config.trustedHttpFetch && { fetch: config.trustedHttpFetch }),
       env: vmEnv,
       ...(resources?.memory && { memory: resources.memory }),
       ...(resources?.cpus && { cpus: resources.cpus }),

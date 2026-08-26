@@ -9,7 +9,11 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { loadScenarioCatalog } from './catalog.js';
-import { execGondolinGuest, GondolinAdapter } from './gondolin-adapter.js';
+import {
+  createFailClosedFixtureFetch,
+  execGondolinGuest,
+  GondolinAdapter,
+} from './gondolin-adapter.js';
 import type {
   ControlEvidence,
   ProbeContext,
@@ -29,6 +33,30 @@ function completedExec(exitCode = 0, output = '') {
 }
 
 describe('Gondolin research adapter guest transport', () => {
+  it('routes only exact mapped origins and preserves path and query', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(new Response('ok'));
+    const trustedFetch = createFailClosedFixtureFetch(
+      new Map([['http://192.0.2.10:30001', 'http://127.0.0.1:41001']]),
+      fetchImpl as never,
+    );
+
+    await trustedFetch('http://192.0.2.10:30001/path?q=1');
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      new URL('http://127.0.0.1:41001/path?q=1'),
+      undefined,
+    );
+    await expect(trustedFetch('https://192.0.2.10:30001/path')).rejects.toThrow(
+      'unmapped trusted fixture origin',
+    );
+    await expect(trustedFetch('http://192.0.2.10:30002/path')).rejects.toThrow(
+      'unmapped trusted fixture origin',
+    );
+    await expect(trustedFetch('http://192.0.2.11:30001/path')).rejects.toThrow(
+      'unmapped trusted fixture origin',
+    );
+  });
+
   it('preserves a successful managed result and guest output', async () => {
     const exec = vi.fn(() => completedExec(0, 'ok'));
 
@@ -70,6 +98,34 @@ describe('Gondolin research adapter evidence', () => {
     );
   });
 
+  it('deliberately maps every negative TEST-NET origin and fails closed otherwise', async () => {
+    const context = await probeContext(probeRoots);
+    const managed = fakeManaged();
+    const resumeVm = vi.fn().mockResolvedValue(managed);
+    const fixtureFetchImpl = vi.fn().mockResolvedValue(new Response('ok'));
+    const adapter = fakeAdapter(context, { resumeVm, fixtureFetchImpl });
+    adapters.push(adapter);
+    await adapter.runScenario(await scenario('network.exact-allow'), context);
+    const trustedFetch = resumeVm.mock.calls[0]?.[0]
+      .trustedHttpFetch as typeof fixtureFetchImpl;
+
+    for (const origin of [
+      'http://192.0.2.11:30001',
+      'http://192.0.2.10:30002',
+      'https://192.0.2.10:30001',
+      'http://198.51.100.10:30002',
+      'http://127.0.0.1:30001',
+    ]) {
+      await expect(trustedFetch(`${origin}/negative`)).resolves.toBeInstanceOf(
+        Response,
+      );
+    }
+    await expect(
+      trustedFetch('http://203.0.113.10:30001/unmapped'),
+    ).rejects.toThrow('unmapped trusted fixture origin');
+    expect(fixtureFetchImpl).toHaveBeenCalledTimes(5);
+  });
+
   it('accepts only the expected missing-binding boundary error and closes an unexpected VM', async () => {
     const context = await probeContext(probeRoots);
     const managed = fakeManaged();
@@ -105,7 +161,9 @@ describe('Gondolin research adapter evidence', () => {
     expect(resumeVm.mock.calls[1]?.[0]).toMatchObject({
       workspaceMode: 'scratch_mount',
       sandboxConfig: {
-        network: { allowedInternalHosts: ['127.0.0.1'] },
+        network: {
+          allowedInternalHosts: ['192.0.2.10', '198.51.100.10'],
+        },
         resources: { cpus: 1, memory: '1G' },
       },
     });
@@ -188,7 +246,63 @@ describe('Gondolin research adapter evidence', () => {
       });
     },
   );
+
+  it.each([
+    'network.wrong-host',
+    'network.wrong-port',
+    'network.protocol',
+    'network.redirect',
+    'network.internal',
+    'network.requested-effective',
+    'credential.adjacent-origin',
+    'credential.rotation',
+    'credential.revocation',
+    'credential.resume',
+  ] as const)('keeps the updated %s oracle falsifiable', async (scenarioId) => {
+    for (const outcome of ['pass', 'fail'] as const) {
+      const context = await probeContext(probeRoots);
+      const adapter = fakeAdapter(context, {
+        outcome,
+        failScenario: outcome === 'fail' ? scenarioId : undefined,
+      });
+      adapters.push(adapter);
+      await primeScenario(adapter, scenarioId, context);
+
+      const evidence = await adapter.runScenario(
+        await scenario(scenarioId),
+        context,
+      );
+
+      expect(probeResult(evidence)).toEqual({
+        state: outcome === 'pass' ? 'enforced' : 'failed-open',
+        passed: outcome === 'pass',
+      });
+    }
+  });
 });
+
+async function primeScenario(
+  adapter: GondolinAdapter,
+  scenarioId: string,
+  context: ProbeContext,
+): Promise<void> {
+  if (
+    scenarioId.startsWith('network.') &&
+    scenarioId !== 'network.requested-effective'
+  ) {
+    await adapter.runScenario(await scenario('network.exact-allow'), context);
+  }
+  if (scenarioId.startsWith('credential.')) {
+    await adapter.runScenario(await scenario('network.exact-allow'), context);
+    await adapter.runScenario(
+      await scenario('credential.allowed-origin'),
+      context,
+    );
+  }
+  if (scenarioId === 'credential.revocation') {
+    await adapter.runScenario(await scenario('credential.rotation'), context);
+  }
+}
 
 function probeResult(evidence: ControlEvidence) {
   return { state: evidence.state, passed: evidence.oracle?.passed };
@@ -248,10 +362,15 @@ function fakeAdapter(
   context: ProbeContext,
   options: {
     outcome?: 'pass' | 'fail';
+    failScenario?: string;
+    fixtureFetchImpl?: ReturnType<typeof vi.fn>;
     resumeVm?: ReturnType<typeof vi.fn>;
   } = {},
 ): GondolinAdapter {
   const outcome = options.outcome ?? 'pass';
+  const fails = (scenarioId: string): boolean =>
+    outcome === 'fail' &&
+    (options.failScenario === undefined || options.failScenario === scenarioId);
   const managed = fakeManaged();
   const requests: Array<{
     destination: 'allowed' | 'adjacent';
@@ -259,6 +378,7 @@ function fakeAdapter(
     path: string;
     credentialMatch: 'expected' | 'absent' | 'unexpected';
   }> = [];
+  let allowedConnections = 0;
   let adjacentConnections = 0;
   const fixture = {
     allowedPort: 30_001,
@@ -267,7 +387,7 @@ function fakeAdapter(
     requests,
     capture: (start: number) => requests.slice(start),
     connectionCount: (destination: 'allowed' | 'adjacent') =>
-      destination === 'adjacent' ? adjacentConnections : 0,
+      destination === 'adjacent' ? adjacentConnections : allowedConnections,
     path: (pathname: string) => `/fixture${pathname}`,
     rotate: () => 'synthetic-test-credential-rotated',
     restore: vi.fn(),
@@ -282,12 +402,57 @@ function fakeAdapter(
       const marker = /printf escaped > '([^']+)'/.exec(command)?.[1];
       if (marker) await writeFile(marker, 'escaped');
     }
-    if (command.includes('/wrong-port') && outcome === 'fail') {
+    if (command.includes('/wrong-port') && fails('network.wrong-port')) {
       adjacentConnections += 1;
       requests.push({
         destination: 'adjacent',
         method: 'GET',
         path: '/wrong-port',
+        credentialMatch: 'absent',
+      });
+    }
+    if (command.includes('/wrong-host') && fails('network.wrong-host')) {
+      allowedConnections += 1;
+      requests.push({
+        destination: 'allowed',
+        method: 'GET',
+        path: '/wrong-host',
+        credentialMatch: 'absent',
+      });
+    }
+    if (command.includes('/wrong-protocol') && fails('network.protocol')) {
+      allowedConnections += 1;
+      requests.push({
+        destination: 'allowed',
+        method: 'GET',
+        path: '/wrong-protocol',
+        credentialMatch: 'absent',
+      });
+    }
+    if (command.includes('/redirect')) {
+      requests.push({
+        destination: 'allowed',
+        method: 'GET',
+        path: '/redirect',
+        credentialMatch: 'expected',
+      });
+      if (fails('network.redirect')) {
+        adjacentConnections += 1;
+        requests.push({
+          destination: 'adjacent',
+          method: 'GET',
+          path: '/redirect-target',
+          credentialMatch: 'expected',
+        });
+      }
+      return managedResult(fails('network.redirect') ? 0 : 1);
+    }
+    if (command.includes('/direct-loopback') && fails('network.internal')) {
+      allowedConnections += 1;
+      requests.push({
+        destination: 'allowed',
+        method: 'GET',
+        path: '/direct-loopback',
         credentialMatch: 'absent',
       });
     }
@@ -298,26 +463,64 @@ function fakeAdapter(
         path: '/allowed',
         credentialMatch: 'absent',
       });
-      return {
-        exitCode: 0,
-        timedOut: false,
-        cancelled: false,
-        termination: { status: 'not-required' },
-      };
+      return managedResult(0);
+    }
+    if (command.includes('/adjacent-network')) {
+      requests.push({
+        destination: 'adjacent',
+        method: 'GET',
+        path: '/adjacent-network',
+        credentialMatch: 'absent',
+      });
+      return managedResult(0);
+    }
+    if (command.includes('/adjacent-credential')) {
+      requests.push({
+        destination: 'adjacent',
+        method: 'GET',
+        path: '/adjacent-credential',
+        credentialMatch: fails('credential.adjacent-origin')
+          ? 'expected'
+          : 'unexpected',
+      });
+      return managedResult(0);
     }
     if (command.includes('/credential')) {
       requests.push({
         destination: 'allowed',
         method: 'GET',
         path: '/credential',
-        credentialMatch: outcome === 'pass' ? 'expected' : 'unexpected',
+        credentialMatch: fails('credential.allowed-origin')
+          ? 'unexpected'
+          : 'expected',
       });
-      return {
-        exitCode: 0,
-        timedOut: false,
-        cancelled: false,
-        termination: { status: 'not-required' },
-      };
+      return managedResult(0);
+    }
+    if (command.includes('/rotated') || command.includes('/resumed')) {
+      requests.push({
+        destination: 'allowed',
+        method: 'GET',
+        path: command.includes('/rotated') ? '/rotated' : '/resumed',
+        credentialMatch: fails(
+          command.includes('/rotated')
+            ? 'credential.rotation'
+            : 'credential.resume',
+        )
+          ? 'unexpected'
+          : 'expected',
+      });
+      return managedResult(0);
+    }
+    if (command.includes('/revoked')) {
+      requests.push({
+        destination: 'allowed',
+        method: 'GET',
+        path: '/revoked',
+        credentialMatch: fails('credential.revocation')
+          ? 'expected'
+          : 'unexpected',
+      });
+      return managedResult(fails('credential.revocation') ? 0 : 1);
     }
     if (command.includes('lifecycle.cancel.started')) {
       await writeFile(
@@ -338,18 +541,38 @@ function fakeAdapter(
       };
     }
     const passed = outcome === 'pass';
-    return {
-      exitCode: passed ? 1 : 0,
-      timedOut: false,
-      cancelled: false,
-      termination: { status: 'not-required' },
-    };
+    return managedResult(passed ? 1 : 0);
+  });
+
+  const defaultResume = vi.fn(async (resumeOptions) => {
+    resumeOptions.onDiagnostic?.({
+      event: 'vm.network.policy_bound',
+      level: 'info',
+      message: 'policy',
+      hostnamePolicy: {
+        allowedHosts: ['api.themolt.net'],
+        allowedInternalHosts: !fails('network.requested-effective')
+          ? ['192.0.2.10', '198.51.100.10']
+          : ['192.0.2.10', '198.51.100.10', '192.0.2.11'],
+      },
+    });
+    return managed;
   });
 
   return new GondolinAdapter({
     ensureSnapshot: vi.fn().mockResolvedValue('/checkpoint') as never,
     execManagedCommand: execute as never,
-    resumeVm: (options.resumeVm ?? vi.fn().mockResolvedValue(managed)) as never,
+    fixtureFetchImpl: (options.fixtureFetchImpl ?? vi.fn()) as never,
+    resumeVm: (options.resumeVm ?? defaultResume) as never,
     startPolicyFixture: vi.fn().mockResolvedValue(fixture) as never,
   });
+}
+
+function managedResult(exitCode: number) {
+  return {
+    exitCode,
+    timedOut: false,
+    cancelled: false,
+    termination: { status: 'not-required' as const },
+  };
 }

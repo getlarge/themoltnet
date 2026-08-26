@@ -10,6 +10,7 @@ import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
+import type { HttpFetch } from '@earendil-works/gondolin';
 import { describe, expect, it } from 'vitest';
 
 import { execManagedCommand } from './managed-exec.js';
@@ -18,6 +19,29 @@ import { resumeVm } from './vm-manager.js';
 
 const describeVm =
   process.env.MOLTNET_PI_VM_INTEGRATION === '1' ? describe : describe.skip;
+
+function pinnedFixtureFetch(routes: ReadonlyMap<string, string>): HttpFetch {
+  return (async (
+    input: Parameters<HttpFetch>[0],
+    init?: Parameters<HttpFetch>[1],
+  ) => {
+    const requested = new URL(
+      typeof input === 'string'
+        ? input
+        : input instanceof URL
+          ? input.href
+          : input.url,
+    );
+    const targetOrigin = routes.get(requested.origin);
+    if (!targetOrigin) {
+      throw new Error(`unmapped trusted fixture origin: ${requested.origin}`);
+    }
+    const target = new URL(targetOrigin);
+    target.pathname = requested.pathname;
+    target.search = requested.search;
+    return fetch(target, init as unknown as RequestInit);
+  }) as unknown as HttpFetch;
+}
 
 async function execGuest(
   vm: Awaited<ReturnType<typeof resumeVm>>['vm'],
@@ -93,7 +117,7 @@ describeVm('resumeVm real Gondolin VM integration', () => {
     mkdirSync(workspace, { recursive: true });
     const firstValue = 'synthetic-first-host-value';
     const rotatedValue = 'synthetic-rotated-host-value';
-    const fixtureHost = '127-0-0-1.sslip.io';
+    const fixtureHost = '192.0.2.10';
     let expectedValue = firstValue;
     const receivedHeaders: Array<string | undefined> = [];
     const deniedHeaders: Array<string | undefined> = [];
@@ -132,6 +156,15 @@ describeVm('resumeVm real Gondolin VM integration', () => {
       });
       const port = (server.address() as AddressInfo).port;
       const deniedPort = (deniedServer.address() as AddressInfo).port;
+      const trustedHttpFetch = pinnedFixtureFetch(
+        new Map([
+          [`http://${fixtureHost}:${port}`, `http://127.0.0.1:${port}`],
+          [
+            `http://${fixtureHost}:${deniedPort}`,
+            `http://127.0.0.1:${deniedPort}`,
+          ],
+        ]),
+      );
 
       const checkpointPath = await ensureSnapshot();
       managed = await resumeVm({
@@ -139,6 +172,7 @@ describeVm('resumeVm real Gondolin VM integration', () => {
         agentName: 'configless',
         agentRootDir: root,
         mountPath: workspace,
+        trustedHttpFetch,
         sandboxConfig: {
           network: {
             allowedInternalHosts: [fixtureHost],
