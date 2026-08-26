@@ -1,9 +1,14 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
+import { isIP } from 'node:net';
 import path from 'node:path';
 import { parseEnv } from 'node:util';
 
-import type { SecretDefinition, VM } from '@earendil-works/gondolin';
+import type {
+  HttpIpAllowInfo,
+  SecretDefinition,
+  VM,
+} from '@earendil-works/gondolin';
 import {
   createHttpHooks,
   createShadowPathPredicate,
@@ -100,7 +105,8 @@ export interface VmDiagnostic {
     | 'vm.http_secrets.bound'
     | 'vm.host_origins.bound'
     | 'vm.guest_projection.applied'
-    | 'vm.guest_service.not_ready';
+    | 'vm.guest_service.not_ready'
+    | 'vm.network.origin_denied';
   level: 'info' | 'warning';
   message: string;
   credentialMode: GuestCredentialMode;
@@ -111,6 +117,13 @@ export interface VmDiagnostic {
   /** Present only for the guest-projection summary event. */
   projectedFileCount?: number;
   projectedServiceCount?: number;
+  /** Present only for an exact-origin denial event. */
+  origin?: {
+    hostname: string;
+    protocol: string;
+    port: number;
+    phase: 'request' | 'ip';
+  };
 }
 
 /** Declarative, trusted-host guest projection (env, files, services). */
@@ -591,10 +604,16 @@ const OBJECT_META_PROPERTY_NAMES = new Set([
 ]);
 
 function normalizeHostPattern(pattern: string): string {
-  return pattern.trim().toLowerCase();
+  let normalized = pattern.trim().toLowerCase();
+  if (normalized.startsWith('[') && normalized.endsWith(']')) {
+    normalized = normalized.slice(1, -1);
+  }
+  if (normalized.endsWith('.')) normalized = normalized.slice(0, -1);
+  return normalized;
 }
 
 function isValidHostPattern(pattern: string): boolean {
+  if (isIP(pattern) !== 0) return true;
   return (
     pattern !== '' &&
     !pattern.includes('://') &&
@@ -672,11 +691,13 @@ function hostMatchesPattern(hostname: string, pattern: string): boolean {
   // Gondolin 0.9.x does not export its hostname matcher. Keep this compatibility
   // shim private to the adapter boundary and pin its conservative use below;
   // replace it with the upstream matcher if Gondolin exposes one.
-  const expression = pattern
+  const expression = normalizeHostPattern(pattern)
     .split('*')
     .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
     .join('.*');
-  return new RegExp(`^${expression}$`, 'i').test(hostname);
+  return new RegExp(`^${expression}$`, 'i').test(
+    normalizeHostPattern(hostname),
+  );
 }
 
 /**
@@ -801,6 +822,26 @@ function headersContainSecretValue(headers: Headers, value: string): boolean {
   return false;
 }
 
+interface RequestOrigin {
+  hostname: string;
+  protocol: string;
+  port: number;
+}
+
+function parseRequestOrigin(url: string): RequestOrigin | null {
+  try {
+    const parsed = new URL(url);
+    const protocol = parsed.protocol.slice(0, -1);
+    return {
+      hostname: normalizeHostPattern(parsed.hostname),
+      protocol,
+      port: parsed.port ? Number(parsed.port) : protocol === 'https' ? 443 : 80,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function createBrokeredHttpSecretOriginPolicy(
   bindings: readonly BrokeredHttpSecretBinding[],
 ): {
@@ -824,18 +865,8 @@ function createBrokeredHttpSecretOriginPolicy(
 
   return {
     isRequestAllowed(request) {
-      let url: URL;
-      try {
-        url = new URL(request.url);
-      } catch {
-        return false;
-      }
-      const protocol = url.protocol.slice(0, -1);
-      const port = url.port
-        ? Number(url.port)
-        : protocol === 'https'
-          ? 443
-          : 80;
+      const requestOrigin = parseRequestOrigin(request.url);
+      if (!requestOrigin) return false;
       for (const entry of entries.values()) {
         if (
           entry.deleted ||
@@ -844,9 +875,11 @@ function createBrokeredHttpSecretOriginPolicy(
           continue;
         }
         if (
-          protocol !== entry.protocol ||
-          !entry.ports.includes(port) ||
-          !entry.hosts.some((host) => hostMatchesPattern(url.hostname, host))
+          requestOrigin.protocol !== entry.protocol ||
+          !entry.ports.includes(requestOrigin.port) ||
+          !entry.hosts.some((host) =>
+            hostMatchesPattern(requestOrigin.hostname, host),
+          )
         ) {
           return false;
         }
@@ -865,6 +898,60 @@ function createBrokeredHttpSecretOriginPolicy(
       const entry = entries.get(guestEnv);
       if (!entry) throw new Error(`unknown brokered secret: ${guestEnv}`);
       entry.deleted = true;
+    },
+  };
+}
+
+/**
+ * Refine Gondolin's hostname allowlist for hosts carrying brokered
+ * credentials. The built-in allowlist is hostname-granular; these callbacks
+ * enforce the descriptor protocol and port before request or IP dispatch.
+ */
+export function createBrokeredHttpNetworkOriginPolicy(
+  bindings: readonly BrokeredHttpSecretDescriptor[],
+  options: {
+    onDenied?: (denial: RequestOrigin & { phase: 'request' | 'ip' }) => void;
+  } = {},
+): {
+  isRequestAllowed: (request: Request) => boolean;
+  isIpAllowed: (info: HttpIpAllowInfo) => boolean;
+} {
+  const origins = bindings.map(canonicalizeBrokeredHttpSecretDescriptor);
+  const isAllowed = (input: {
+    hostname: string;
+    protocol: string;
+    port: number;
+    phase: 'request' | 'ip';
+  }): boolean => {
+    const hostname = normalizeHostPattern(input.hostname);
+    const matching = origins.filter((origin) =>
+      origin.hosts.some((host) => hostMatchesPattern(hostname, host)),
+    );
+    if (matching.length === 0) return true;
+    const allowed = matching.some(
+      (origin) =>
+        origin.protocol === input.protocol && origin.ports.includes(input.port),
+    );
+    if (!allowed) {
+      options.onDenied?.({
+        hostname,
+        protocol: input.protocol,
+        port: input.port,
+        phase: input.phase,
+      });
+    }
+    return allowed;
+  };
+
+  return {
+    isRequestAllowed(request) {
+      const requestOrigin = parseRequestOrigin(request.url);
+      return requestOrigin
+        ? isAllowed({ ...requestOrigin, phase: 'request' })
+        : false;
+    },
+    isIpAllowed(info) {
+      return isAllowed({ ...info, phase: 'ip' });
     },
   };
 }
@@ -1099,6 +1186,20 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   const brokeredSecretOriginPolicy = createBrokeredHttpSecretOriginPolicy(
     config.brokeredSecrets ?? [],
   );
+  const brokeredNetworkOriginPolicy = createBrokeredHttpNetworkOriginPolicy(
+    config.brokeredSecrets ?? [],
+    {
+      onDenied(origin) {
+        config.onDiagnostic?.({
+          event: 'vm.network.origin_denied',
+          level: 'warning',
+          message: 'denied request outside a brokered credential origin',
+          credentialMode: guestCredentialMode,
+          origin,
+        });
+      },
+    },
+  );
 
   const {
     httpHooks,
@@ -1109,7 +1210,10 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     allowedInternalHosts,
     ...(Object.keys(brokeredSecrets).length > 0 && {
       secrets: brokeredSecrets,
-      isRequestAllowed: brokeredSecretOriginPolicy.isRequestAllowed,
+      isRequestAllowed: (request: Request) =>
+        brokeredNetworkOriginPolicy.isRequestAllowed(request) &&
+        brokeredSecretOriginPolicy.isRequestAllowed(request),
+      isIpAllowed: brokeredNetworkOriginPolicy.isIpAllowed,
     }),
     ...(hostOriginHosts.length > 0 && {
       onRequest: createHostOriginsOnRequest(hostOrigins),

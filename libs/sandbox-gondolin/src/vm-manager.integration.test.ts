@@ -12,6 +12,7 @@ import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { execManagedCommand } from './managed-exec.js';
 import { ensureSnapshot } from './snapshot.js';
 import { resumeVm } from './vm-manager.js';
 
@@ -32,7 +33,7 @@ async function execGuest(
       output +=
         typeof chunk.data === 'string'
           ? chunk.data
-          : Buffer.from(chunk.data).toString('utf8');
+          : chunk.data.toString('utf8');
     }
   }
   const result = await proc;
@@ -47,6 +48,46 @@ async function execGuest(
 }
 
 describeVm('resumeVm real Gondolin VM integration', () => {
+  it('retires the VM before daemonized delayed work escapes', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-managed-exec-'));
+    const workspace = path.join(root, 'workspace');
+    const marker = path.join(workspace, 'escaped.txt');
+    mkdirSync(workspace, { recursive: true });
+    const checkpointPath = await ensureSnapshot();
+    const managed = await resumeVm({
+      checkpointPath,
+      agentName: 'configless',
+      agentRootDir: root,
+      guestCredentialMode: 'host-authenticated',
+      mountPath: workspace,
+    });
+
+    try {
+      const controller = new AbortController();
+      const pending = execManagedCommand(
+        managed.vm,
+        `setsid sh -c "sleep 2; printf escaped > '${marker}'" & wait`,
+        {
+          signal: controller.signal,
+          onStarted: () => controller.abort(),
+        },
+      );
+
+      const result = await pending;
+      expect(result).toMatchObject({
+        cancelled: true,
+        termination: { status: 'backend-retired', mode: 'vm-close' },
+      });
+      await new Promise((resolve) => {
+        setTimeout(resolve, 2_200);
+      });
+      expect(existsSync(marker)).toBe(false);
+    } finally {
+      await managed.vm.close();
+      rmSync(root, { recursive: true, force: true });
+    }
+  }, 120_000);
+
   it('brokers, rotates, and revokes a destination-bound HTTP secret', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-http-secret-'));
     const workspace = path.join(root, 'workspace');

@@ -33,11 +33,13 @@ import {
   createGondolinFindOps,
   createGondolinLsOps,
   createGondolinReadOps,
+  createGondolinToolLifecycle,
   createGondolinWriteOps,
   createMoltNetTools,
   ensureSnapshot,
   executeGondolinGrep,
   findMainWorktree,
+  type GondolinVmRetirement,
   HOST_EXEC_DEFAULT_BASE_ENV,
   type ProviderErrorRetryUi,
   resumeVm,
@@ -70,6 +72,18 @@ export function createPiProviderErrorRetryUi(
       ctx.ui.notify?.(message, level);
     },
   };
+}
+
+export async function retirePiExtensionVm(config: {
+  activeVm: Pick<VM, 'close'>;
+  retirement: GondolinVmRetirement;
+  release: () => void;
+}): Promise<void> {
+  try {
+    if (!config.retirement.backendRetired) await config.activeVm.close();
+  } finally {
+    config.release();
+  }
 }
 
 export default function moltnetExtension(pi: ExtensionAPI) {
@@ -231,6 +245,43 @@ export default function moltnetExtension(pi: ExtensionAPI) {
     return vmStarting;
   }
 
+  async function releaseRetiredVm(
+    activeVm: VM,
+    retirement: GondolinVmRetirement,
+    ctx?: ExtensionContext,
+  ): Promise<void> {
+    try {
+      await retirePiExtensionVm({
+        activeVm,
+        retirement,
+        release: () => {
+          if (vm === activeVm) {
+            vm = null;
+            vmStarting = null;
+            guestWorkspace = initialGuestWorkspace;
+          }
+        },
+      });
+    } finally {
+      ctx?.ui.setStatus(
+        'sandbox',
+        ctx.ui.theme.fg('warning', 'Sandbox: retired; restart pending'),
+      );
+      ctx?.ui.notify(
+        `Sandbox retired after ${retirement.trigger}; the next tool call will start a fresh VM.`,
+        'warning',
+      );
+    }
+  }
+
+  function createSandboxBashOperations(activeVm: VM, ctx?: ExtensionContext) {
+    const lifecycle = createGondolinToolLifecycle();
+    return createGondolinBashOps(activeVm, localCwd, guestWorkspace, {
+      lifecycle,
+      retireVm: (retirement) => releaseRetiredVm(activeVm, retirement, ctx),
+    });
+  }
+
   // -- Lifecycle hooks --------------------------------------------------------
 
   pi.on('session_start', async (_event, ctx) => {
@@ -305,7 +356,7 @@ export default function moltnetExtension(pi: ExtensionAPI) {
     async execute(id, params, signal, onUpdate, ctx) {
       const activeVm = await ensureVm(ctx);
       const tool = createBashTool(localCwd, {
-        operations: createGondolinBashOps(activeVm, localCwd, guestWorkspace),
+        operations: createSandboxBashOperations(activeVm, ctx),
       });
       return tool.execute(id, params, signal, onUpdate);
     },
@@ -347,9 +398,9 @@ export default function moltnetExtension(pi: ExtensionAPI) {
     },
   });
 
-  pi.on('user_bash', (_event, _ctx) => {
-    if (!vm) return;
-    return { operations: createGondolinBashOps(vm, localCwd, guestWorkspace) };
+  pi.on('user_bash', async (_event, ctx) => {
+    const activeVm = await ensureVm(ctx);
+    return { operations: createSandboxBashOperations(activeVm, ctx) };
   });
 
   // -- MoltNet custom tools (run on host, not in VM) -------------------------

@@ -16,6 +16,7 @@ import type {
   GrepToolInput,
   LsOperations,
   ReadOperations,
+  ToolDefinition,
   WriteOperations,
 } from '@earendil-works/pi-coding-agent';
 import {
@@ -24,7 +25,10 @@ import {
   truncateHead,
   truncateLine,
 } from '@earendil-works/pi-coding-agent';
-import { GUEST_TASK_CONTEXT_MOUNT } from '@themoltnet/sandbox-gondolin';
+import {
+  execManagedCommand,
+  GUEST_TASK_CONTEXT_MOUNT,
+} from '@themoltnet/sandbox-gondolin';
 
 export type {
   BashOperations,
@@ -37,6 +41,67 @@ export type {
 
 const DEFAULT_GREP_LIMIT = 100;
 const GREP_MAX_FILE_SIZE = '2M';
+
+export type GondolinVmRetirementTrigger = 'cancellation' | 'timeout';
+
+export interface GondolinVmRetirement {
+  backendRetired: boolean;
+  reason: 'backend-retired' | 'backend-retirement-failed';
+  trigger: GondolinVmRetirementTrigger;
+}
+
+export class GondolinVmRetiredError extends Error {
+  readonly code = 'sandbox_retired';
+
+  constructor(
+    public readonly retirement: GondolinVmRetirement,
+    options?: ErrorOptions,
+  ) {
+    super(
+      `Sandbox VM retired after ${retirement.trigger}: ${retirement.reason}`,
+      options,
+    );
+    this.name = 'GondolinVmRetiredError';
+  }
+}
+
+export interface GondolinToolLifecycle {
+  assertActive(): void;
+  getRetirement(): GondolinVmRetirement | null;
+  markRetired(retirement: GondolinVmRetirement): void;
+}
+
+export function createGondolinToolLifecycle(
+  config: {
+    onRetired?: (retirement: GondolinVmRetirement) => void;
+  } = {},
+): GondolinToolLifecycle {
+  let retirement: GondolinVmRetirement | null = null;
+  return {
+    assertActive() {
+      if (retirement) throw new GondolinVmRetiredError(retirement);
+    },
+    getRetirement: () => retirement,
+    markRetired(next) {
+      if (retirement) return;
+      retirement = next;
+      config.onRetired?.(next);
+    },
+  };
+}
+
+export function guardGondolinToolDefinitions(
+  tools: readonly ToolDefinition[],
+  lifecycle: GondolinToolLifecycle,
+): ToolDefinition[] {
+  return tools.map((tool) => ({
+    ...tool,
+    execute(...args: Parameters<ToolDefinition['execute']>) {
+      lifecycle.assertActive();
+      return tool.execute(...args);
+    },
+  })) as ToolDefinition[];
+}
 
 type PosixPathWithGlob = typeof path.posix & {
   matchesGlob(path: string, pattern: string): boolean;
@@ -586,53 +651,64 @@ export function createGondolinBashOps(
   vm: VM,
   localCwd: string,
   guestWorkspace: string,
+  config: {
+    lifecycle: GondolinToolLifecycle;
+    retireVm: (retirement: GondolinVmRetirement) => Promise<void>;
+  },
 ): BashOperations {
   return {
     exec: async (command, cwd, { onData, signal, timeout, env }) => {
+      config.lifecycle.assertActive();
       const guestCwd = toGuestPath(localCwd, cwd, guestWorkspace);
-      const ac = new AbortController();
-      const onAbort = () => ac.abort();
-      signal?.addEventListener('abort', onAbort, { once: true });
+      // Do not forward host env to guest — the VM has its own env set at
+      // resume time. Forwarding leaks host-specific paths (GOROOT, PATH, etc).
+      void env;
 
-      let timedOut = false;
-      const timer =
-        timeout && timeout > 0
-          ? setTimeout(() => {
-              timedOut = true;
-              ac.abort();
-            }, timeout * 1000)
-          : undefined;
-
-      try {
-        // Do not forward host env to guest — the VM has its own env set at
-        // resume time. Forwarding leaks host-specific paths (GOROOT, PATH, etc).
-        void env;
-
-        const proc = vm.exec(['/bin/sh', '-lc', command], {
-          cwd: guestCwd,
-          signal: ac.signal,
-          stdout: 'pipe',
-          stderr: 'pipe',
-        });
-
-        for await (const chunk of proc.output()) {
-          const buf =
-            typeof chunk.data === 'string'
-              ? Buffer.from(chunk.data, 'utf8')
-              : chunk.data;
-          onData(buf);
+      const result = await execManagedCommand(vm, command, {
+        cwd: guestCwd,
+        signal,
+        timeoutMs: timeout && timeout > 0 ? timeout * 1000 : undefined,
+        onData,
+      });
+      if (result.termination.status === 'backend-retired') {
+        const retirement: GondolinVmRetirement = {
+          backendRetired: true,
+          reason: 'backend-retired',
+          trigger: result.timedOut ? 'timeout' : 'cancellation',
+        };
+        config.lifecycle.markRetired(retirement);
+        try {
+          // The primitive already closed the VM through Gondolin's host API.
+          // Let the owner invalidate every reference before any later tool
+          // call can attempt to reuse the retired backend.
+          await config.retireVm(retirement);
+        } catch (error) {
+          throw new GondolinVmRetiredError(retirement, {
+            cause: error,
+          });
         }
-
-        const r = await proc;
-        return { exitCode: r.exitCode };
-      } catch (err) {
-        if (signal?.aborted) throw new Error('aborted');
-        if (timedOut) throw new Error(`timeout:${timeout}`);
-        throw err;
-      } finally {
-        if (timer) clearTimeout(timer);
-        signal?.removeEventListener('abort', onAbort);
       }
+      if (result.termination.status === 'recovery-required') {
+        const retirement: GondolinVmRetirement = {
+          backendRetired: false,
+          reason: result.termination.reason,
+          trigger: result.timedOut ? 'timeout' : 'cancellation',
+        };
+        // Poison the entire tool set before attempting recovery. Even when
+        // the retry below fails, no captured tool closure may touch this VM.
+        config.lifecycle.markRetired(retirement);
+        try {
+          await config.retireVm(retirement);
+        } catch (error) {
+          throw new GondolinVmRetiredError(retirement, {
+            cause: error,
+          });
+        }
+        throw new GondolinVmRetiredError(retirement);
+      }
+      if (result.timedOut) throw new Error(`timeout:${timeout}`);
+      if (result.cancelled) throw new Error('aborted');
+      return { exitCode: result.exitCode };
     },
   };
 }

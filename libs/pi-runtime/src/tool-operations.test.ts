@@ -1,13 +1,40 @@
 import { GUEST_TASK_CONTEXT_MOUNT } from '@themoltnet/sandbox-gondolin';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
+  createGondolinBashOps,
   createGondolinFindOps,
   createGondolinLsOps,
   createGondolinReadOps,
+  createGondolinToolLifecycle,
   executeGondolinGrep,
+  GondolinVmRetiredError,
   toGuestPath,
 } from './tool-operations.js';
+
+function completedExec(
+  exitCode: number,
+  chunks: Array<{ data: Buffer | string; stream: 'stdout' | 'stderr' }> = [],
+) {
+  return Object.assign(Promise.resolve({ exitCode }), {
+    output: async function* () {
+      await Promise.resolve();
+      yield* chunks;
+    },
+  });
+}
+
+function pendingExec() {
+  const pending = new Promise<never>(() => {
+    // VM retirement must complete without trusting guest process settlement.
+  });
+  return Object.assign(pending, {
+    output: async function* () {
+      await pending;
+      yield { data: Buffer.alloc(0), stream: 'stdout' as const };
+    },
+  });
+}
 
 describe('toGuestPath', () => {
   it('accepts normalized guest workspace paths', () => {
@@ -290,5 +317,144 @@ describe('Gondolin read-only tool operations', () => {
     expect(result.content[0]?.text).toContain('src/one.ts-1- alpha');
     expect(result.content[0]?.text).toContain('src/one.ts:2: needle');
     expect(result.content[0]?.text).toContain('src/one.ts-3- omega');
+  });
+});
+
+describe('Gondolin bash operations', () => {
+  it('routes output through the managed login-shell runner', async () => {
+    const output = Buffer.from('ok');
+    const exec = vi.fn((_command: unknown) =>
+      completedExec(0, [{ data: output, stream: 'stdout' }]),
+    );
+    const close = vi.fn();
+    const onData = vi.fn();
+    const retireVm = vi.fn();
+    const operations = createGondolinBashOps(
+      { exec, close } as never,
+      '/Users/ed/project',
+      '/workspace',
+      { lifecycle: createGondolinToolLifecycle(), retireVm },
+    );
+
+    await expect(
+      operations.exec('printf ok', '/Users/ed/project', {
+        onData,
+        timeout: 0,
+      } as never),
+    ).resolves.toEqual({ exitCode: 0 });
+    expect(exec.mock.calls[0]?.[0]).toEqual(['/bin/sh', '-lc', 'printf ok']);
+    expect(onData).toHaveBeenCalledWith(output, 'stdout');
+    expect(close).not.toHaveBeenCalled();
+    expect(retireVm).not.toHaveBeenCalled();
+  });
+
+  it('invalidates runtime state after cancellation retires the VM', async () => {
+    const controller = new AbortController();
+    const exec = vi.fn(() => pendingExec());
+    const close = vi.fn().mockResolvedValue(undefined);
+    const retireVm = vi.fn().mockResolvedValue(undefined);
+    const lifecycle = createGondolinToolLifecycle();
+    const operations = createGondolinBashOps(
+      { exec, close } as never,
+      '/Users/ed/project',
+      '/workspace',
+      { lifecycle, retireVm },
+    );
+    const pending = operations.exec('sleep 10', '/Users/ed/project', {
+      onData: vi.fn(),
+      signal: controller.signal,
+      timeout: 0,
+    } as never);
+
+    await vi.waitFor(() => expect(exec).toHaveBeenCalledOnce());
+    controller.abort();
+
+    await expect(pending).rejects.toThrow('aborted');
+    expect(retireVm).toHaveBeenCalledWith({
+      backendRetired: true,
+      reason: 'backend-retired',
+      trigger: 'cancellation',
+    });
+    expect(lifecycle.getRetirement()).toEqual({
+      backendRetired: true,
+      reason: 'backend-retired',
+      trigger: 'cancellation',
+    });
+    expect(close).toHaveBeenCalledOnce();
+
+    await expect(
+      operations.exec('printf stale', '/Users/ed/project', {
+        onData: vi.fn(),
+        timeout: 0,
+      } as never),
+    ).rejects.toBeInstanceOf(GondolinVmRetiredError);
+    expect(exec).toHaveBeenCalledOnce();
+  });
+
+  it('surfaces host-side VM retirement failures', async () => {
+    const controller = new AbortController();
+    const exec = vi.fn(() => pendingExec());
+    const close = vi.fn().mockRejectedValue(new Error('close failed'));
+    const lifecycle = createGondolinToolLifecycle();
+    const operations = createGondolinBashOps(
+      { exec, close } as never,
+      '/Users/ed/project',
+      '/workspace',
+      {
+        lifecycle,
+        retireVm: async ({ backendRetired }) => {
+          if (!backendRetired) await close();
+        },
+      },
+    );
+    const pending = operations.exec('sleep 10', '/Users/ed/project', {
+      onData: vi.fn(),
+      signal: controller.signal,
+      timeout: 0,
+    } as never);
+
+    await vi.waitFor(() => expect(exec).toHaveBeenCalledOnce());
+    controller.abort();
+
+    const failure = await pending.catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(GondolinVmRetiredError);
+    expect(failure).toMatchObject({
+      code: 'sandbox_retired',
+      retirement: {
+        backendRetired: false,
+        reason: 'backend-retirement-failed',
+        trigger: 'cancellation',
+      },
+    });
+    expect(lifecycle.getRetirement()).toEqual(
+      expect.objectContaining({ reason: 'backend-retirement-failed' }),
+    );
+    expect(close).toHaveBeenCalledTimes(2);
+  });
+
+  it('preserves timeout classification while poisoning the retired VM', async () => {
+    const exec = vi.fn(() => pendingExec());
+    const close = vi.fn().mockResolvedValue(undefined);
+    const lifecycle = createGondolinToolLifecycle();
+    const operations = createGondolinBashOps(
+      { exec, close } as never,
+      '/Users/ed/project',
+      '/workspace',
+      {
+        lifecycle,
+        retireVm: vi.fn().mockResolvedValue(undefined),
+      },
+    );
+
+    await expect(
+      operations.exec('sleep 10', '/Users/ed/project', {
+        onData: vi.fn(),
+        timeout: 0.001,
+      } as never),
+    ).rejects.toThrow('timeout:0.001');
+    expect(lifecycle.getRetirement()).toMatchObject({
+      backendRetired: true,
+      trigger: 'timeout',
+    });
   });
 });
