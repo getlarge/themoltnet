@@ -48,8 +48,8 @@ A pass establishes that:
 - `git commit -S` in the guest is signed by the operation-scoped host signer,
   while an ungranted diary-signing operation is denied;
 - a host-only sentinel is absent from the guest environment;
-- no signing key, private-key file, or `.moltnet` credential directory is
-  projected into the guest;
+- no signing key, private-key file, or file beneath the guest's intentionally
+  empty `.moltnet` directory is projected into the guest;
 - no credential-shaped environment names appear in the guest;
 - closing the VM prevents a detached delayed write; and
 - the relay created exactly one guest exec-server for its WebSocket.

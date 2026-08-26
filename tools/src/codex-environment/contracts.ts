@@ -116,7 +116,7 @@ export interface CodexGondolinEvidence {
     credentialShapedEnvironmentNames: string[];
     hostSigningKeyProjected: boolean;
     guestPrivateKeyFiles: number;
-    guestCredentialDirectories: number;
+    guestCredentialFiles: number;
     delayedMarkerAfterVmClose: boolean;
   };
   cleanupComplete: boolean;
@@ -175,7 +175,7 @@ export function compatibilityProbePassed(
     evidence.isolation.credentialShapedEnvironmentNames.length === 0 &&
     !evidence.isolation.hostSigningKeyProjected &&
     evidence.isolation.guestPrivateKeyFiles === 0 &&
-    evidence.isolation.guestCredentialDirectories === 0 &&
+    evidence.isolation.guestCredentialFiles === 0 &&
     !evidence.isolation.delayedMarkerAfterVmClose &&
     evidence.cleanupComplete
   );

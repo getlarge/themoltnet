@@ -411,8 +411,8 @@ try {
     `printf 'authenticated-host-call=true\\nagent-subject=true\\nidentity-matched=true\\ngit-signature-verified=true\\ndenied-operation=true\\n' > ${shellQuote(capabilityProofPath)}`,
     `printf 'private-key-files=' >> ${shellQuote(capabilityProofPath)}`,
     `find /home/agent -name id_ed25519 -type f 2>/dev/null | wc -l | tr -d ' ' >> ${shellQuote(capabilityProofPath)}`,
-    `printf '\\ncredential-directories=' >> ${shellQuote(capabilityProofPath)}`,
-    `find /home/agent -name .moltnet -type d 2>/dev/null | wc -l | tr -d ' ' >> ${shellQuote(capabilityProofPath)}`,
+    `printf '\\ncredential-files=' >> ${shellQuote(capabilityProofPath)}`,
+    `find /home/agent/.moltnet -type f 2>/dev/null | wc -l | tr -d ' ' >> ${shellQuote(capabilityProofPath)}`,
     `printf '\\n' >> ${shellQuote(capabilityProofPath)}`,
     `setsid sh -c ${shellQuote(delayedCommand)} >/dev/null 2>&1 &`,
   ].join('; ');
@@ -567,9 +567,7 @@ const evidence: CodexGondolinEvidence = {
     ),
     hostSigningKeyProjected,
     guestPrivateKeyFiles: Number(capabilityProof['private-key-files']),
-    guestCredentialDirectories: Number(
-      capabilityProof['credential-directories'],
-    ),
+    guestCredentialFiles: Number(capabilityProof['credential-files']),
     delayedMarkerAfterVmClose,
   },
   cleanupComplete,

@@ -65,7 +65,7 @@ const evidence: CodexGondolinEvidence = {
     credentialShapedEnvironmentNames: [],
     hostSigningKeyProjected: false,
     guestPrivateKeyFiles: 0,
-    guestCredentialDirectories: 0,
+    guestCredentialFiles: 0,
     delayedMarkerAfterVmClose: false,
   },
   cleanupComplete: true,
