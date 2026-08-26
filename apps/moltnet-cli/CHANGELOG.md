@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.85.2](https://github.com/getlarge/themoltnet/compare/cli-v1.85.1...cli-v1.85.2) (2026-08-26)
+
+
+### Bug Fixes
+
+* **cli:** decode executor team members ([e4e6026](https://github.com/getlarge/themoltnet/commit/e4e6026ed85583152979f73cd16f0d85b01c2430))
+* **cli:** decode executor team members ([4de7f5a](https://github.com/getlarge/themoltnet/commit/4de7f5a87b3d74b0f9c0d5dee10599b675c2e8a2))
+
 ## [1.85.1](https://github.com/getlarge/themoltnet/compare/cli-v1.85.0...cli-v1.85.1) (2026-08-26)
 
 

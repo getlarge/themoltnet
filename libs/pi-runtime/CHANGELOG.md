@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.12.1](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.12.0...pi-runtime-v0.12.1) (2026-08-26)
+
+
+### Bug Fixes
+
+* **pi-runtime:** fail closed after Gondolin retirement ([7a379a1](https://github.com/getlarge/themoltnet/commit/7a379a16cdc3a199e7232761ee26c80ae3f3b7c1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sandbox-gondolin bumped to 0.4.0
+
 ## [0.12.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.11.0...pi-runtime-v0.12.0) (2026-08-25)
 
 
