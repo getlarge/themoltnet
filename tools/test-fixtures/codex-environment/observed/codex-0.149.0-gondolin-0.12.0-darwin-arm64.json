@@ -23,21 +23,36 @@
     "codexVersion": "0.149.0",
     "os": "darwin"
   },
+  "hostCredentialCapability": {
+    "allowedOperations": [
+      "agent-signing/sign-git-commit",
+      "host-auth-check/whoami"
+    ],
+    "authenticatedAgentSubject": true,
+    "authenticatedHostCall": true,
+    "authenticatedIdentityMatched": true,
+    "credentialPreflight": "ready",
+    "deniedOperations": ["agent-signing/sign-diary-entry"],
+    "gitCommitSignatureVerified": true
+  },
   "isolation": {
     "credentialShapedEnvironmentNames": [],
     "delayedMarkerAfterVmClose": false,
-    "hostOnlySentinelProjected": false
+    "guestCredentialFiles": 0,
+    "guestPrivateKeyFiles": 0,
+    "hostOnlySentinelProjected": false,
+    "hostSigningKeyProjected": false
   },
   "limitations": [
-    "Does not prove MoltNet host-capability signing through Codex.",
+    "Host credential access is capability-mediated; the guest receives no raw credential.",
     "Does not prove exact-origin HTTP credential delivery.",
     "Does not establish Docker compatibility.",
     "Uses experimental Codex remote-environment interfaces."
   ],
   "model": "gpt-5.6-luna",
   "probe": "codex-gondolin-compatibility",
-  "schemaVersion": 1,
-  "sourceRevision": "eeaa2c697de3c2736f00282da65b9af9cd375f23",
+  "schemaVersion": 2,
+  "sourceRevision": "f20e3198ceb8347f21e2503db94f5ce2dfa7914c",
   "transport": {
     "environmentStatusAfterConnect": "ready",
     "environmentStatusBeforeConnect": "pending",
