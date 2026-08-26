@@ -183,4 +183,27 @@ describe.runIf(nativeKeyringEnabled)('native OS keyring', () => {
       await runGoKeyringHelper({ operation: 'delete', key });
     }
   }, 60_000);
+  it('lets moltnet read a Node-written secret and delete it', async () => {
+    const provider = new OSKeyringSecretProvider();
+    const key = `oauth2/native-test/${randomUUID()}`;
+    const value = 'node→go\n秘密';
+
+    try {
+      await provisionMacOSCredential(key);
+      await provider.write(key, value);
+      await expect(provider.read(key)).resolves.toBe(value);
+
+      const fromGo = await runGoKeyringHelper({ operation: 'read', key });
+      expect(fromGo.found).toBe(true);
+      expect(Buffer.from(fromGo.value ?? '', 'base64').toString('utf8')).toBe(
+        value,
+      );
+
+      await runGoKeyringHelper({ operation: 'delete', key });
+      await expect(provider.read(key)).resolves.toBeNull();
+    } finally {
+      await provider.delete(key).catch(() => undefined);
+      await runGoKeyringHelper({ operation: 'delete', key });
+    }
+  }, 60_000);
 });

@@ -22,17 +22,21 @@ func findLinuxItem(svc *ss.SecretService, service, key string) (dbus.ObjectPath,
 	if err := svc.Unlock(collection.Path()); err != nil {
 		return "", err
 	}
-	items, err := svc.SearchItems(collection, map[string]string{
-		"service":  service,
-		"username": key,
-	})
-	if err != nil {
-		return "", err
+	// Items written by this package and by zalando/go-keyring carry
+	// `username`; items written by keytar (Node) carry only `account`.
+	for _, attrs := range []map[string]string{
+		{"service": service, "username": key},
+		{"service": service, "account": key},
+	} {
+		items, err := svc.SearchItems(collection, attrs)
+		if err != nil {
+			return "", err
+		}
+		if len(items) > 0 {
+			return items[0], nil
+		}
 	}
-	if len(items) == 0 {
-		return "", ErrNotFound
-	}
-	return items[0], nil
+	return "", ErrNotFound
 }
 
 func Get(service, key string) (string, error) {
