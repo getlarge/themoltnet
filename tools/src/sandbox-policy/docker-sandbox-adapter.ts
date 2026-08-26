@@ -1126,7 +1126,9 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
             delayedMarkerMs,
             observationWindowMs,
           },
-          'managed_sandbox_stop_observed',
+          observed === ''
+            ? 'managed_sandbox_retirement_observed'
+            : 'sandbox_removal_detached_child_observed',
           HARNESS_PROVENANCE,
           ['research-harness', 'docker-sandbox-control-plane'],
         );

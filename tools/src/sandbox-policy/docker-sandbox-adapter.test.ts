@@ -267,7 +267,7 @@ describe('Docker sandbox research adapter', () => {
 
     expect(evidence).toMatchObject({
       state: 'enforced',
-      reasonCode: 'managed_sandbox_stop_observed',
+      reasonCode: 'managed_sandbox_retirement_observed',
       oracle: { kind: 'delayed-marker-absence', passed: true },
       resolvedAdapterConfig: {
         effective: {
