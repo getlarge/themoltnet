@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.85.1](https://github.com/getlarge/themoltnet/compare/cli-v1.85.0...cli-v1.85.1) (2026-08-26)
+
+
+### Bug Fixes
+
+* **legreffier:** fail closed on activation resolution errors ([85c2c54](https://github.com/getlarge/themoltnet/commit/85c2c54e7ea23094b4efc867b0ebd6c93d127f33))
+* **legreffier:** gate secret guard on agent activation ([afe6cc9](https://github.com/getlarge/themoltnet/commit/afe6cc9cd3419c8bc9a4c3d56a27979a0f94c549))
+* **legreffier:** gate secret guard on agent activation ([08f0584](https://github.com/getlarge/themoltnet/commit/08f05843588d433e461f99a63d95d3c815ac17c3))
+
 ## [1.85.0](https://github.com/getlarge/themoltnet/compare/cli-v1.84.0...cli-v1.85.0) (2026-08-25)
 
 
