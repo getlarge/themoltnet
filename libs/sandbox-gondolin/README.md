@@ -14,10 +14,9 @@ implementation can be added beside it without going through Pi.
   with VFS shadowing (`deny` / `tmpfs`), egress allowlist through Gondolin's
   host-side HTTP hooks, explicit guest environment, resource limits, resume
   commands, and abort-safe cleanup.
-- The guest credential boundary: `guest-config` injects the complete
-  `.moltnet/<agent>` tree; `host-authenticated` withholds it and refuses
-  `MOLTNET_*` names in runtime-controlled guest environment
-  (`assertGuestEnvironmentBoundary`).
+- The guest credential boundary: the guest never receives the
+  `.moltnet/<agent>` tree, and `MOLTNET_*` names are refused in
+  runtime-controlled guest environment (`assertGuestEnvironmentBoundary`).
 - `VmConfig.brokeredSecrets` — host-brokered secrets: the guest sees a
   placeholder, Gondolin's `SecretManager` substitutes the value only in
   requests to the declared protocol, host patterns, and ports.
@@ -27,10 +26,10 @@ implementation can be added beside it without going through Pi.
 
 ## What it deliberately does not own
 
-- **Provider authentication.** A runtime supplies `VmConfig.providerAuth`
-  (`{ load(): string | null; guestPath }`); the sandbox only carries the blob
-  across the boundary. Pi's `~/.pi/agent/auth.json` handling lives in
-  `@themoltnet/pi-runtime` (`piProviderAuth`, and its `resumeVm` wrapper).
+- **Provider authentication.** The coding-agent session and its model calls run
+  host-side (Pi's `createAgentSession` reads the host `~/.pi/agent` auth), so no
+  provider auth is projected into the guest — the guest only executes tools via
+  `vm.exec`.
 - Tool definitions, tool policy, task execution, workspace preparation —
   all Pi-runtime concerns.
 
@@ -54,7 +53,6 @@ contain a value or choose a host secret-provider coordinate.
 const managed = await resumeVm({
   checkpointPath,
   agentName: 'worker',
-  guestCredentialMode: 'host-authenticated',
   mountPath: workspace,
   sandboxConfig: {
     network: { allowedHosts: ['api.example.com'] },

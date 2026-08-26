@@ -58,7 +58,6 @@ describeVm('resumeVm real Gondolin VM integration', () => {
       checkpointPath,
       agentName: 'configless',
       agentRootDir: root,
-      guestCredentialMode: 'host-authenticated',
       mountPath: workspace,
     });
 
@@ -139,7 +138,6 @@ describeVm('resumeVm real Gondolin VM integration', () => {
         checkpointPath,
         agentName: 'configless',
         agentRootDir: root,
-        guestCredentialMode: 'host-authenticated',
         mountPath: workspace,
         sandboxConfig: {
           network: {
@@ -258,7 +256,6 @@ echo revoked
         checkpointPath,
         agentName: 'legacy',
         agentRootDir: root,
-        guestCredentialMode: 'host-authenticated',
         mountPath: workspace,
         hostOrigins: {
           'https://echo.moltnet.internal': async (request) => {

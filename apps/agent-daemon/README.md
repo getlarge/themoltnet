@@ -102,33 +102,24 @@ any team where the agent is authorized. It fails fast if the key is rejected,
 is not an agent, or a team binding mismatches. See
 [Run the daemon with an agent key](../../docs/operate/running-agents.md#run-the-daemon-with-an-agent-key).
 
-Daemon authentication and guest credential projection are two separate
-boundaries. How the daemon authenticates (an agent key, or OAuth2 resolved
-from `.moltnet/<agent>/moltnet.json` through the host secret provider) decides
-how the host-side SDK `Agent` is built. `--guest-credential-mode` decides
-whether the local agent credential tree is copied into Gondolin. Pi guests
-default to the `host-authenticated` boundary in **both** auth modes, regardless
-of local files: no `.moltnet` file, gitconfig, SSH signing key, GitHub App PEM,
-or MoltNet environment credential is injected into Gondolin, and mounted
-`.moltnet` paths are hidden. Structured MoltNet tools execute through the
-host-side `Agent`. Operators may explicitly opt into the legacy
-credential-bearing boundary with `--guest-credential-mode guest-config`; that
-mode requires a complete local `moltnet.json` + `env` pair and copies the
-complete agent configuration and signing credentials into the guest. Reserve it
-for local or otherwise operator-trusted tasks that genuinely need guest-shell
-MoltNet CLI, Git signing, or GitHub authentication. OAuth2 daemons that relied
-on the previous `guest-config` default for such tasks must now pass the flag
-explicitly.
+Daemon authentication and the guest boundary are two separate concerns. How the
+daemon authenticates (an agent key, or OAuth2 resolved from
+`.moltnet/<agent>/moltnet.json` through the host secret provider) decides how the
+host-side SDK `Agent` is built. The guest boundary is fixed: **the guest never
+receives MoltNet credential material.** No `.moltnet` file, gitconfig, SSH
+signing key, GitHub App PEM, or MoltNet environment credential is injected into
+Gondolin, and mounted `.moltnet` paths are hidden. Structured MoltNet tools
+execute through the host-side `Agent`.
 
-Trusted custom runtimes can deliver destination-bound HTTP credentials without
-switching to `guest-config`: the guest receives an opaque placeholder and the
-Gondolin host proxy substitutes the value only for the attested protocol,
-hostname pattern, and port (HTTPS/443 by default). See
+Trusted custom runtimes can deliver destination-bound HTTP credentials to the
+guest: it receives an opaque placeholder and the Gondolin host proxy substitutes
+the value only for the attested protocol, hostname pattern, and port (HTTPS/443
+by default). See
 [Host-brokered HTTP credentials](../../docs/operate/running-agents.md#host-brokered-http-credentials).
 This does not provide diary or Git commit signing; private-key operations remain
 host capabilities.
 
-Host capabilities replace the last reason for `guest-config`: the stock runtime
+Host capabilities carry in-guest signing: the stock runtime
 declares `agent-signing`, so `git commit -S` and `moltnet entry create-signed`
 work inside the guest while the seed stays on the host (the daemon injects a
 signer bound to the authenticated identity and projects a non-secret gitconfig,

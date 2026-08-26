@@ -62,7 +62,6 @@ import {
   activateAgentEnv,
   type BrokeredHttpSecretBinding,
   ensureSnapshot,
-  type GuestCredentialMode,
   type ManagedVm,
   resolveVfsShadowConfig,
   type SandboxConfig,
@@ -167,20 +166,19 @@ export function createPolicyCheckedSigner(
 }
 
 export function resolveHostExecBaseEnv(
-  guestCredentialMode: GuestCredentialMode,
   agentEnv: Readonly<Record<string, string | undefined>>,
 ): Set<string> {
+  // Host-authenticated is the only boundary: MoltNet credential-bearing env
+  // never enters guest host-exec.
   const names = new Set([
     ...HOST_EXEC_DEFAULT_BASE_ENV,
     ...Object.keys(agentEnv),
   ]);
-  if (guestCredentialMode === 'host-authenticated') {
-    for (const name of HOST_AUTHENTICATED_HOST_EXEC_REFUSED_ENV) {
-      names.delete(name);
-    }
-    for (const name of names) {
-      if (name.startsWith('MOLTNET_')) names.delete(name);
-    }
+  for (const name of HOST_AUTHENTICATED_HOST_EXEC_REFUSED_ENV) {
+    names.delete(name);
+  }
+  for (const name of names) {
+    if (name.startsWith('MOLTNET_')) names.delete(name);
   }
   return names;
 }
@@ -441,8 +439,6 @@ export interface ExecutePiTaskOptions {
   agentName: string;
   /** Already-authenticated host-side Agent. Daemon callers always supply it. */
   moltnetAgent?: Agent;
-  /** Explicit trust boundary for MoltNet credentials inside the guest. */
-  guestCredentialMode?: GuestCredentialMode;
   /**
    * Host root that owns `.moltnet/<agentName>/`.
    *
@@ -1078,7 +1074,6 @@ export async function executePiTask(
             checkpointPath,
             agentName: opts.agentName,
             agentRootDir,
-            guestCredentialMode: opts.guestCredentialMode,
             mountPath,
             workspaceMode: preparedWorkspace.mode,
             extraAllowedHosts: opts.extraAllowedHosts,
@@ -1351,7 +1346,6 @@ export async function executePiTask(
       // Build the host-exec env allowlist: default keys + all agent env keys
       // (MOLTNET_*, GIT_CONFIG_GLOBAL, etc. set by activateAgentEnv).
       const hostExecBaseEnv = resolveHostExecBaseEnv(
-        opts.guestCredentialMode ?? 'guest-config',
         managed.credentials.agentEnv,
       );
       const moltnetTools = createMoltNetTools({
@@ -1634,7 +1628,6 @@ export async function executePiTask(
           allowedInternalHosts:
             effectiveSandboxConfig?.network?.allowedInternalHosts ?? [],
           brokeredSecretEnvNames,
-          guestCredentialMode: opts.guestCredentialMode ?? 'guest-config',
           ...(capabilityRouter && {
             hostCapabilities: capabilityRouter.manifest,
           }),

@@ -164,7 +164,6 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
       checkpointPath: this.#checkpointPath,
       agentName: 'sandbox-policy-probe',
       agentRootDir: this.#probeRoot,
-      guestCredentialMode: 'host-authenticated',
       mountPath: this.#workspace,
       workspaceMode: 'scratch_mount',
       sandboxConfig: {
@@ -321,7 +320,6 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
         checkpointPath: this.#checkpointPath,
         agentName: 'sandbox-policy-missing-binding',
         agentRootDir: this.#probeRoot,
-        guestCredentialMode: 'host-authenticated',
         mountPath: this.#workspace,
         workspaceMode: 'scratch_mount',
         sandboxConfig: {

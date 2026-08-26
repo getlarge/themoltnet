@@ -98,10 +98,7 @@ createPiTaskExecutorMock.mockImplementation(
  */
 type CapturedExecutorOptions = ExecutePiTaskOptions &
   Required<
-    Pick<
-      ExecutePiTaskOptions,
-      'guestCredentialMode' | 'moltnetAgent' | 'agentRootDir' | 'mountPath'
-    >
+    Pick<ExecutePiTaskOptions, 'moltnetAgent' | 'agentRootDir' | 'mountPath'>
   >;
 
 describe('Agent daemon repo-free execution (e2e)', () => {
@@ -155,9 +152,11 @@ describe('Agent daemon repo-free execution (e2e)', () => {
     await harness?.teardown();
   });
 
-  async function runRepoFreeTask(options: {
-    guestCredentialMode?: ExecutePiTaskOptions['guestCredentialMode'];
-  }): Promise<{
+  async function runRepoFreeTask(
+    _options: {
+      // reserved for future per-task options
+    } = {},
+  ): Promise<{
     taskId: string;
     executorOptions: CapturedExecutorOptions;
     sandboxRoot: string;
@@ -216,9 +215,6 @@ describe('Agent daemon repo-free execution (e2e)', () => {
         profile.id,
         '--agent-root',
         agentRoot,
-        ...(options.guestCredentialMode
-          ? ['--guest-credential-mode', options.guestCredentialMode]
-          : []),
       ]);
       expect(exitCode).toBe(0);
     } finally {
@@ -252,7 +248,6 @@ describe('Agent daemon repo-free execution (e2e)', () => {
     // credential tree.
     const { taskId, executorOptions, agentRoot } = await runRepoFreeTask({});
 
-    expect(executorOptions.guestCredentialMode).toBe('host-authenticated');
     expect(
       existsSync(join(agentRoot, '.moltnet', agentName, 'moltnet.json')),
     ).toBe(true);
@@ -280,14 +275,6 @@ describe('Agent daemon repo-free execution (e2e)', () => {
     expect(JSON.stringify(executorOptions.hostCapabilitySigner)).not.toContain(
       privateKey,
     );
-  }, 60_000);
-
-  it('keeps OAuth2 guest-config available as an explicit opt-in', async () => {
-    const { executorOptions } = await runRepoFreeTask({
-      guestCredentialMode: 'guest-config',
-    });
-
-    expect(executorOptions.guestCredentialMode).toBe('guest-config');
   }, 60_000);
 });
 

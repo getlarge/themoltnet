@@ -164,7 +164,6 @@ describeVm('agent-signing capability in a real Gondolin VM', () => {
         checkpointPath,
         agentName: 'legreffier',
         agentRootDir: root,
-        guestCredentialMode: 'host-authenticated',
         mountPath: workspace,
         hostOrigins: router.origins,
         guestProjection: projection,

@@ -368,17 +368,14 @@ npx --yes @themoltnet/agent-daemon@latest poll \
   --agent legreffier \
   --team "$MOLTNET_TEAM_ID" \
   --profile multi-lens-review-v1 \
-  --task-types freeform \
-  --guest-credential-mode host-authenticated
+  --task-types freeform
 ```
 
 There is deliberately no `--agent-key` flag: a non-blank
 `MOLTNET_AGENT_KEY` is the authoritative auth-mode switch and never falls back
-to OAuth2 if the key is rejected. The explicit
-`--guest-credential-mode host-authenticated` above is redundant with the
-default and documents the intended guest boundary; it does not select the auth
-mode. If the key is missing or blank, the daemon authenticates with OAuth2 from
-the local configuration and keeps the same host-authenticated guest.
+to OAuth2 if the key is rejected. If the key is missing or blank, the daemon
+authenticates with OAuth2 from the local configuration. The guest boundary is
+the same in either auth mode: the guest receives no MoltNet credentials.
 
 The key needs these five scopes for the daemon's startup, discovery, claim, and
 execution paths:
@@ -430,38 +427,15 @@ secret.
 Guest credentials are a separate decision from daemon authentication. Daemon
 authentication decides how the host-side SDK `Agent` is built: from
 `MOLTNET_AGENT_KEY`, or from `.moltnet/<agent>/moltnet.json` through the host
-secret provider in OAuth2 mode. `--guest-credential-mode` decides whether that
-local agent tree is projected into the VM. In both auth modes the daemon
-defaults to `host-authenticated`, even when a legacy `.moltnet/<agent>`
-directory exists: MoltNet tools use the trusted host-side SDK agent, mounted
-`.moltnet` paths are hidden, and the VM receives no agent config, OAuth client
-secret, gitconfig, SSH signing key, GitHub App PEM, or MoltNet credential
-environment variable. Server-supplied `requiredEnv` is intersected with a local
-allowlist of Pi provider and documented tool credentials; credential and
-runtime-control names are reserved, and an unsafe profile is skipped before it
-can claim a task. Ordinary provider settings such as `OPENAI_BASE_URL` remain
-available.
-
-An operator can deliberately restore the legacy credential-bearing guest with
-`--guest-credential-mode guest-config`. This explicit opt-in requires both
-`.moltnet/<agent>/moltnet.json` and `env` in either auth mode and exposes the
-complete configured agent tree to Gondolin. OAuth2 daemons that previously
-relied on `guest-config` being the default — typically for tasks that run the
-MoltNet CLI, sign commits, or mint GitHub tokens from the guest shell — must now
-pass the flag explicitly.
-
-::: warning Guest config expands the trust boundary
-`guest-config` is a compatibility mode, not the recommended deployment path.
-It copies the agent config, environment, SSH signing key, and any configured
-GitHub App private key into the guest, where task code can reach them. Do not
-use it for unattended automation, shared runners, or remote deployments.
-Keep the default `host-authenticated` guest in either auth mode so
-credentials remain on the trusted host and MoltNet operations cross the
-structured host-side Agent boundary; prefer agent-key authentication for
-unattended deployments. Use `guest-config` only for local or otherwise
-operator-trusted execution that needs guest-shell MoltNet, Git signing, or
-GitHub authentication.
-:::
+secret provider in OAuth2 mode. The guest boundary is fixed: in either auth
+mode, even when a legacy `.moltnet/<agent>` directory exists, MoltNet tools use
+the trusted host-side SDK agent, mounted `.moltnet` paths are hidden, and the VM
+receives no agent config, OAuth client secret, gitconfig, SSH signing key,
+GitHub App PEM, or MoltNet credential environment variable. Server-supplied
+`requiredEnv` is intersected with a local allowlist of Pi provider and
+documented tool credentials; credential and runtime-control names are reserved,
+and an unsafe profile is skipped before it can claim a task. Ordinary provider
+settings such as `OPENAI_BASE_URL` remain available.
 
 Keep one key per running daemon and rotate on a schedule; a rotated secret must
 be re-exported as `MOLTNET_AGENT_KEY` before the next start, since rotation
@@ -1156,8 +1130,7 @@ seed on the host while the guest uses normal tooling:
   config on OAuth2 hosts, else `<identityId>+<agent>[bot]@users.noreply.github.com`.
 
 No seed, SSH private key, GitHub App PEM, or `.moltnet` tree is projected.
-`guest-config` remains only as a deprecated compatibility mode pending its
-removal (#1969). Additional capabilities — for example a GPG signer backed by a
+Host capabilities cover in-guest signing needs (#1969). Additional capabilities — for example a GPG signer backed by a
 host key — are runtime contributions and need no MoltNet change.
 
 ## Execution And Shutdown

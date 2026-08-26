@@ -14,7 +14,6 @@ export interface DaemonAgentContext {
   agentDir: string;
   agentRootDir: string;
   agent: Agent;
-  guestCredentialMode: DaemonGuestCredentialMode;
 }
 
 /**
@@ -25,34 +24,6 @@ export interface DaemonAgentContext {
  *   `moltnet.json` client id/secret.
  */
 export type DaemonAuthMode = 'agent-key' | 'oauth2';
-export type DaemonGuestCredentialMode = 'guest-config' | 'host-authenticated';
-
-/**
- * Guest credentials are an explicit trust decision, never an incidental
- * consequence of files found on disk. The guest boundary is independent of
- * how the daemon itself authenticates: both agent-key and OAuth2 default to
- * the host-authenticated boundary, where structured MoltNet operations reuse
- * the trusted host-side Agent and the guest receives no credential material.
- * OAuth2 still resolves that Agent from the local config and secret provider
- * on the host — reading `moltnet.json` on the host does not imply projecting
- * it into the guest. `guest-config` remains an explicit compatibility opt-in
- * for tasks that need credential-bearing guest-shell operations.
- */
-export function resolveDaemonGuestCredentialMode(
-  requested?: string,
-): DaemonGuestCredentialMode {
-  if (
-    requested !== undefined &&
-    requested !== 'guest-config' &&
-    requested !== 'host-authenticated'
-  ) {
-    throw new Error(
-      `Invalid --guest-credential-mode "${requested}": expected ` +
-        'guest-config or host-authenticated.',
-    );
-  }
-  return requested ?? 'host-authenticated';
-}
 
 /**
  * Report which auth mode `connect()` will use, without ever reading the secret
@@ -167,7 +138,6 @@ export async function resolveAgentContext(
   options: {
     agentRootDir?: string;
     authMode?: DaemonAuthMode;
-    guestCredentialMode?: string;
   } = {},
 ): Promise<DaemonAgentContext> {
   if (!/^[a-zA-Z0-9_-]+$/.test(agentName)) {
@@ -176,34 +146,17 @@ export async function resolveAgentContext(
     );
   }
   const roots = resolveCredentialRoots(options.agentRootDir);
-  const guestCredentialMode = resolveDaemonGuestCredentialMode(
-    options.guestCredentialMode,
-  );
   if (options.authMode === 'agent-key') {
-    const { rootDir, agentDir } =
-      guestCredentialMode === 'guest-config'
-        ? resolveCompleteGuestCredentials(roots, agentName)
-        : {
-            rootDir: roots[0] ?? process.cwd(),
-            agentDir: join(roots[0] ?? process.cwd(), '.moltnet', agentName),
-          };
+    const rootDir = roots[0] ?? process.cwd();
+    const agentDir = join(rootDir, '.moltnet', agentName);
     const agent = await connect();
-    return {
-      agentDir,
-      agentRootDir: rootDir,
-      agent,
-      guestCredentialMode,
-    };
+    return { agentDir, agentRootDir: rootDir, agent };
   }
 
-  // OAuth2: the host needs `moltnet.json` to build its own Agent regardless
-  // of the guest boundary. Only explicit guest-config additionally demands the
-  // complete `moltnet.json` + `env` pair, because that pair is what gets
-  // projected into the VM.
-  const located =
-    guestCredentialMode === 'guest-config'
-      ? resolveCompleteGuestCredentials(roots, agentName)
-      : locateAgentConfig(roots, agentName);
+  // OAuth2: the host needs `moltnet.json` to build its own Agent. Reading it on
+  // the host never implies projecting it into the guest — the guest receives no
+  // MoltNet credential material.
+  const located = locateAgentConfig(roots, agentName);
   if (located) {
     const agent = await connect({
       configDir: located.agentDir,
@@ -213,7 +166,6 @@ export async function resolveAgentContext(
       agentDir: located.agentDir,
       agentRootDir: located.rootDir,
       agent,
-      guestCredentialMode,
     };
   }
 
@@ -244,31 +196,6 @@ function locateAgentConfig(
       return { rootDir, agentDir };
   }
   return undefined;
-}
-
-function resolveCompleteGuestCredentials(
-  roots: readonly string[],
-  agentName: string,
-): { rootDir: string; agentDir: string } {
-  const partial: string[] = [];
-  for (const rootDir of roots) {
-    const agentDir = join(rootDir, '.moltnet', agentName);
-    const hasConfig = existsSync(join(agentDir, 'moltnet.json'));
-    const hasEnv = existsSync(join(agentDir, 'env'));
-    if (hasConfig && hasEnv) return { rootDir, agentDir };
-    if (hasConfig || hasEnv) partial.push(agentDir);
-  }
-  if (partial.length > 0) {
-    throw new Error(
-      `Incomplete guest credentials in ${partial.join(', ')}: moltnet.json ` +
-        'and env must both exist for --guest-credential-mode guest-config.',
-    );
-  }
-  const tried = roots.map((root) => join(root, '.moltnet', agentName));
-  throw new Error(
-    '--guest-credential-mode guest-config requires an explicitly provisioned ' +
-      `moltnet.json and env. Checked ${tried.join(', ')}.`,
-  );
 }
 
 function resolveCredentialRoots(agentRootDir?: string): string[] {
