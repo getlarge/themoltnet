@@ -118,6 +118,37 @@
           "cwd": "apps/agent-daemon-e2e"
         },
         "outputs": []
+      },
+      "e2e:eval-matrix": {
+        "cache": false,
+        "executor": "nx:run-commands",
+        "inputs": [
+          "default",
+          "^production",
+          "{workspaceRoot}/evals-v2/**/*",
+          {
+            "env": "MOLTNET_EVAL_MATRIX"
+          },
+          {
+            "env": "MODELS"
+          },
+          {
+            "env": "MOLTNET_EVAL_JUDGE_MODEL"
+          },
+          {
+            "env": "EVAL_MATRIX_OUT"
+          },
+          {
+            "externalDependencies": [
+              "vitest"
+            ]
+          }
+        ],
+        "options": {
+          "command": "vitest run --config vitest.config.ts src/eval-matrix.e2e.test.ts",
+          "cwd": "apps/agent-daemon-e2e"
+        },
+        "outputs": []
       }
     }
   }

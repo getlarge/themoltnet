@@ -134,9 +134,9 @@ jobs:
         env:
           MOLTNET_EVAL_MATRIX: '1'
         # Vitest e2e (not tsx) so the workspace's source-direct exports resolve
-        # the same way the rest of the suite does. Live stochastic evidence must
-        # never be replayed from Nx cache, and the target has no restorable output.
-        run: pnpm exec nx run @themoltnet/agent-daemon-e2e:e2e --skipNxCache -- eval-matrix
+        # the same way the rest of the suite does. This dedicated target is
+        # non-cacheable because every scheduled run must collect fresh evidence.
+        run: pnpm exec nx run @themoltnet/agent-daemon-e2e:e2e:eval-matrix
       - name: Upload score matrix
         if: always()
         uses: actions/upload-artifact@v7
