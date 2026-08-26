@@ -692,11 +692,6 @@ For scheduled exports, use `.github/workflows/ory-backup-export.yml`.
 
 ## Observability
 
-Hosted Axiom uses three separate datasets: `moltnet-logs`,
-`moltnet-traces`, and `moltnet-metrics`. `AXIOM_DATASET=moltnet` is only the
-legacy SDK fallback; the deployed apps set all three signal-specific variables,
-and operational APL must query the signal-specific datasets.
-
 The `@moltnet/observability` library (`libs/observability/`) provides:
 
 - **Pino** structured logging with service bindings
