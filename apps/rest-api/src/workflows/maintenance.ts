@@ -202,16 +202,20 @@ export function initMaintenanceWorkflows(
     'MAX_RECOVERY_ATTEMPTS_EXCEEDED',
     'CANCELLED',
   ] as const;
-  const listRetainedWorkflowsStep = DBOS.registerStep(
-    async (cutoffIso: string, batchSize: number) =>
-      DBOS.listWorkflows({
+  const listRetainedWorkflowIdsStep = DBOS.registerStep(
+    async (cutoffIso: string, batchSize: number) => {
+      const workflows = await DBOS.listWorkflows({
         status: [...terminalWorkflowStatuses],
         endTime: cutoffIso,
         limit: batchSize,
         sortDesc: false,
         loadInput: false,
         loadOutput: false,
-      }),
+      });
+      // DBOS checkpoints step return values in operation_outputs. Retain only
+      // the IDs needed by the delete step, not the full workflow records.
+      return workflows.map((workflow) => workflow.workflowID);
+    },
     { name: 'maintenance.dbosWorkflowRetention.listTerminal' },
   );
   const deleteRetainedWorkflowsStep = DBOS.registerStep(
@@ -240,17 +244,16 @@ export function initMaintenanceWorkflows(
             60 *
             1000,
       );
-      const workflows = await listRetainedWorkflowsStep(
+      const workflowIds = await listRetainedWorkflowIdsStep(
         cutoff.toISOString(),
         dbosRetentionConfig.DBOS_WORKFLOW_RETENTION_BATCH_SIZE,
       );
-      const workflowIds = workflows.map((workflow) => workflow.workflowID);
       await deleteRetainedWorkflowsStep(workflowIds);
       const result = {
-        examined: workflows.length,
+        examined: workflowIds.length,
         deleted: workflowIds.length,
         batchFull:
-          workflows.length >=
+          workflowIds.length >=
           dbosRetentionConfig.DBOS_WORKFLOW_RETENTION_BATCH_SIZE,
       };
       logger.info(result, 'maintenance: DBOS workflow retention complete');
