@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.38.14](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.38.13...pi-extension-v0.38.14) (2026-08-26)
+
+
+### Bug Fixes
+
+* **pi-runtime:** fail closed after Gondolin retirement ([7a379a1](https://github.com/getlarge/themoltnet/commit/7a379a16cdc3a199e7232761ee26c80ae3f3b7c1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/pi-runtime bumped to 0.12.1
+
 ## [0.38.13](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.38.12...pi-extension-v0.38.13) (2026-08-25)
 
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.48.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.48.0...rest-api-v0.48.1) (2026-08-26)
+
+
+### Bug Fixes
+
+* **dbos:** shrink retention checkpoints ([af2d0a0](https://github.com/getlarge/themoltnet/commit/af2d0a040e133955f1e8092e8f483fbd277881f8))
+* **dbos:** shrink retention checkpoints ([aced937](https://github.com/getlarge/themoltnet/commit/aced9374c34be10aee5562844621c6a7c65c507b))
+
 ## [0.48.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.47.0...rest-api-v0.48.0) (2026-08-25)
 
 

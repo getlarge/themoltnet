@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/getlarge/themoltnet/compare/sandbox-gondolin-v0.3.0...sandbox-gondolin-v0.4.0) (2026-08-26)
+
+
+### Features
+
+* **sandbox-gondolin:** enforce exact origins and managed exec ([f641178](https://github.com/getlarge/themoltnet/commit/f64117858d7a74689a7353e8b6a86604bc2e2b29))
+
+
+### Bug Fixes
+
+* **sandbox-gondolin:** ignore zombie-only process groups ([e2103ab](https://github.com/getlarge/themoltnet/commit/e2103ab02bc1ab92a9ec18213f8d8b221d9008f8))
+* **sandbox-gondolin:** retire interrupted VMs ([5d4e2fa](https://github.com/getlarge/themoltnet/commit/5d4e2fac2c97abf463f37b9f241a3248f16e8ea1))
+
 ## [0.3.0](https://github.com/getlarge/themoltnet/compare/sandbox-gondolin-v0.2.0...sandbox-gondolin-v0.3.0) (2026-08-25)
 
 
