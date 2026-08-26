@@ -1,0 +1,61 @@
+{
+  "cleanupComplete": true,
+  "codexPackage": {
+    "integrity": "sha512-fAXPpvIob+11RNZJS9CVVTsKb+V4Hw3woGFPj42D7fU2wBJUKI2jfAc4fLJNtrpwRecLeW601mtkMHOSIbWuuA==",
+    "specifier": "@openai/codex@0.149.0-linux-arm64"
+  },
+  "execution": {
+    "commandCompleted": true,
+    "commandExitCode": 0,
+    "commandStarted": true,
+    "guestExecutorMarker": "guest-exec-server",
+    "guestOsMarker": "Linux",
+    "turnCompleted": true
+  },
+  "gondolinVersion": "0.12.0",
+  "guest": {
+    "architecture": "arm64",
+    "codexVersion": "0.149.0",
+    "os": "linux"
+  },
+  "host": {
+    "architecture": "arm64",
+    "codexVersion": "0.149.0",
+    "os": "darwin"
+  },
+  "hostCredentialCapability": {
+    "allowedOperations": [
+      "agent-signing/sign-git-commit",
+      "host-auth-check/whoami"
+    ],
+    "authenticatedAgentSubject": true,
+    "authenticatedHostCall": true,
+    "authenticatedIdentityMatched": true,
+    "credentialPreflight": "ready",
+    "deniedOperations": ["agent-signing/sign-diary-entry"],
+    "gitCommitSignatureVerified": true
+  },
+  "isolation": {
+    "credentialShapedEnvironmentNames": [],
+    "delayedMarkerAfterVmClose": false,
+    "guestCredentialFiles": 0,
+    "guestPrivateKeyFiles": 0,
+    "hostOnlySentinelProjected": false,
+    "hostSigningKeyProjected": false
+  },
+  "limitations": [
+    "Host credential access is capability-mediated; the guest receives no raw credential.",
+    "Does not prove exact-origin HTTP credential delivery.",
+    "Does not establish Docker compatibility.",
+    "Uses experimental Codex remote-environment interfaces."
+  ],
+  "model": "gpt-5.6-luna",
+  "probe": "codex-gondolin-compatibility",
+  "schemaVersion": 2,
+  "sourceRevision": "f20e3198ceb8347f21e2503db94f5ce2dfa7914c",
+  "transport": {
+    "environmentStatusAfterConnect": "ready",
+    "environmentStatusBeforeConnect": "pending",
+    "relayConnectionCount": 1
+  }
+}

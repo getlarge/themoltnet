@@ -23,10 +23,13 @@
   "include": ["src", "generators/**/*.ts"],
   "references": [
     {
+      "path": "../libs/sdk/tsconfig.lib.json"
+    },
+    {
       "path": "../libs/sandbox-gondolin/tsconfig.lib.json"
     },
     {
-      "path": "../libs/sdk/tsconfig.lib.json"
+      "path": "../libs/pi-runtime/tsconfig.lib.json"
     },
     {
       "path": "../libs/pi-extension/tsconfig.lib.json"
