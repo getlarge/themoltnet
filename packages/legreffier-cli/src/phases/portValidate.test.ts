@@ -2,7 +2,10 @@ import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { SecretProviderRegistry } from '@themoltnet/sdk';
+import {
+  READ_ONLY_CAPABILITIES,
+  SecretProviderRegistry,
+} from '@themoltnet/sdk';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { runPortValidatePhase } from './portValidate.js';
@@ -54,6 +57,7 @@ function baseConfig(dir: string): Record<string, unknown> {
 function testSecretProviders(value: string | null = 'resolved-secret') {
   return new SecretProviderRegistry().register({
     name: 'os-keyring',
+    capabilities: READ_ONLY_CAPABILITIES,
     read: async () => value,
   });
 }
