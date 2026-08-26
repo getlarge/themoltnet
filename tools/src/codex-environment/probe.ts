@@ -13,11 +13,22 @@ import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
+import type { AgentIdentity } from '@moltnet/crypto-service';
+import {
+  createHostCapabilityRouter,
+  createLocalSeedSigner,
+} from '@themoltnet/agent-runtime';
+import { agentSigningCapability } from '@themoltnet/pi-runtime';
 import {
   ensureSnapshot,
   type ManagedVm,
   resumeVm,
 } from '@themoltnet/sandbox-gondolin';
+import { readConfig } from '@themoltnet/sdk';
+import {
+  connect,
+  createNodeSecretProviderRegistry,
+} from '@themoltnet/sdk/node';
 
 import { resolveRepoRoot } from '../repo.js';
 import {
@@ -25,6 +36,10 @@ import {
   compatibilityProbePassed,
   serializeCompatibilityEvidence,
 } from './contracts.js';
+import {
+  hostAuthenticationCapability,
+  preflightHostCredential,
+} from './host-credentials.js';
 import {
   type JsonRpcResponse,
   spawnCodexAppServer,
@@ -36,6 +51,7 @@ const execFileAsync = promisify(execFile);
 const CODEX_VERSION = '0.149.0';
 const CODEX_PACKAGE = `@openai/codex@${CODEX_VERSION}-linux-arm64`;
 const MODEL = 'gpt-5.6-luna';
+const GUEST_CLI = '/home/agent/bin/moltnet';
 const CREDENTIAL_NAME_PATTERN = /SECRET|TOKEN|PRIVATE_KEY/i;
 const gondolinPackage = createRequire(import.meta.url)(
   '@earendil-works/gondolin/package.json',
@@ -81,6 +97,35 @@ function resolveAgentName(): string {
   throw new Error(
     'set MOLTNET_AGENT_NAME or GIT_CONFIG_GLOBAL before running the probe',
   );
+}
+
+function resolveAgentDirectory(repoRoot: string, agentName: string): string {
+  const activatedPath = process.env.MOLTNET_CREDENTIALS_PATH;
+  return activatedPath
+    ? path.dirname(activatedPath)
+    : path.join(repoRoot, '.moltnet', agentName);
+}
+
+async function stageGuestCli(): Promise<Uint8Array> {
+  const outputDirectory = await mkdtemp(
+    path.join(os.tmpdir(), 'moltnet-codex-guest-cli-'),
+  );
+  const outputPath = path.join(outputDirectory, 'moltnet');
+  try {
+    await execFileAsync('go', ['build', '-o', outputPath, '.'], {
+      cwd: path.join(await resolveRepoRoot(), 'apps/moltnet-cli'),
+      env: {
+        ...process.env,
+        CGO_ENABLED: '0',
+        GOOS: 'linux',
+        GOARCH: 'arm64',
+      },
+      maxBuffer: 10 * 1024 * 1024,
+    });
+    return await readFile(outputPath);
+  } finally {
+    await rm(outputDirectory, { recursive: true, force: true });
+  }
 }
 
 function notificationItem(message: JsonRpcResponse): Record<string, unknown> {
@@ -135,6 +180,39 @@ if (process.platform !== 'darwin' || process.arch !== 'arm64') {
 }
 
 const repoRoot = await resolveRepoRoot();
+const agentName = resolveAgentName();
+const agentDirectory = resolveAgentDirectory(repoRoot, agentName);
+const agentConfig = await readConfig(agentDirectory);
+if (!agentConfig) {
+  throw new Error(`credential preflight failed: required_binding_missing`);
+}
+const secretProviders = createNodeSecretProviderRegistry();
+const credentialPreflight = await preflightHostCredential(
+  agentConfig,
+  secretProviders,
+);
+if (credentialPreflight !== 'ready') {
+  throw new Error(`credential preflight failed: ${credentialPreflight}`);
+}
+const hostAgent = await connect({
+  configDir: agentDirectory,
+  secretProviders,
+});
+const agentIdentity: AgentIdentity = {
+  agentName,
+  identityId: agentConfig.identity_id,
+  publicKey: agentConfig.keys.public_key,
+  fingerprint: agentConfig.keys.fingerprint,
+  gitName: agentConfig.git?.name ?? agentName,
+  gitEmail:
+    agentConfig.git?.email ??
+    `${agentConfig.identity_id}+${agentName}[bot]@users.noreply.github.com`,
+};
+const hostSigner = createLocalSeedSigner({
+  privateKeySeed: agentConfig.keys.private_key,
+  agent: hostAgent,
+  identity: agentIdentity,
+});
 const revision = (
   await execFileAsync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot })
 ).stdout.trim();
@@ -153,6 +231,7 @@ const probeRoot = await mkdtemp(
 );
 const proofPath = path.join(probeRoot, 'guest-proof.txt');
 const envNamesPath = path.join(probeRoot, 'guest-env-names.txt');
+const capabilityProofPath = path.join(probeRoot, 'capability-proof.txt');
 const delayedMarkerPath = path.join(probeRoot, 'delayed-marker.txt');
 const hostOnlySentinel = `moltnet-host-only-${randomUUID()}`;
 
@@ -169,20 +248,72 @@ let commandStarted = false;
 let commandCompleted = false;
 let commandExitCode: number | null = null;
 let turnCompleted = false;
+let hostSigningKeyProjected = false;
+const capabilityEvents: Array<[Record<string, unknown>, string]> = [];
 
 try {
   const stagedCodex = await stageGuestCodex(probeRoot);
+  const guestCli = await stageGuestCli();
   packageIntegrity = stagedCodex.integrity;
   const checkpointPath = await ensureSnapshot({
     onProgress: (message) => process.stderr.write(`${message}\n`),
   });
+  const capabilityRouter = createHostCapabilityRouter({
+    capabilities: [agentSigningCapability, hostAuthenticationCapability],
+    context: {
+      taskId: 'codex-gondolin-compatibility',
+      attemptN: 1,
+      teamId: 'probe',
+      agent: hostAgent,
+      identity: agentIdentity,
+    },
+    injected: { signer: hostSigner },
+    paths: { mountPath: probeRoot },
+    logger: {
+      info: (fields, message) => capabilityEvents.push([fields, message]),
+      warn: (fields, message) => capabilityEvents.push([fields, message]),
+    },
+  });
+  capabilityRouter.setPolicy({
+    enforcement: 'enforce',
+    allowedTools: new Set([
+      'capability:agent-signing:sign-git-commit',
+      'capability:host-auth-check:whoami',
+    ]),
+  });
+  const guestProjection = {
+    env: capabilityRouter.guestProjection.env,
+    files: [
+      ...capabilityRouter.guestProjection.files,
+      { path: GUEST_CLI, content: guestCli, mode: 0o755 },
+    ],
+    services: capabilityRouter.guestProjection.services.map((service) => ({
+      ...service,
+      command: [GUEST_CLI, ...service.command.slice(1)],
+    })),
+  };
+  const projectedText = [
+    ...Object.values(guestProjection.env),
+    ...guestProjection.files.flatMap((file) =>
+      typeof file.content === 'string' ? [file.content] : [],
+    ),
+    ...guestProjection.services.flatMap((service) => [
+      ...service.command,
+      ...Object.values(service.env ?? {}),
+    ]),
+  ].join('\n');
+  hostSigningKeyProjected = projectedText.includes(
+    agentConfig.keys.private_key,
+  );
   managed = await resumeVm({
     checkpointPath,
-    agentName: resolveAgentName(),
+    agentName,
     agentRootDir: repoRoot,
     mountPath: probeRoot,
     workspaceMode: 'scratch_mount',
     sandboxConfig: { resources: { memory: '2G', cpus: 2 } },
+    hostOrigins: capabilityRouter.origins,
+    guestProjection,
   });
   const guestVersionResult = await managed.vm.exec([
     stagedCodex.binary,
@@ -259,6 +390,23 @@ try {
     `uname -s > ${shellQuote(proofPath)}`,
     `printf 'guest-exec-server\\n' >> ${shellQuote(proofPath)}`,
     `env | cut -d= -f1 | sort > ${shellQuote(envNamesPath)}`,
+    `cd ${shellQuote(probeRoot)}`,
+    `${GUEST_CLI} capability call host-auth-check whoami --json '{}' > host-auth.json`,
+    `grep -q '"authenticated": true' host-auth.json`,
+    `grep -q '"agentSubject": true' host-auth.json`,
+    `grep -q '"identityMatched": true' host-auth.json`,
+    `git init -q signed-repo`,
+    `cd signed-repo`,
+    `git commit -q -S --allow-empty -m 'signed through host capability'`,
+    `git verify-commit HEAD`,
+    `cd ..`,
+    `if ${GUEST_CLI} capability call agent-signing sign-diary-entry --json '{"signingRequestId":"11111111-2222-4333-8444-555555555555"}' >/dev/null 2>&1; then exit 23; fi`,
+    `printf 'authenticated-host-call=true\\nagent-subject=true\\nidentity-matched=true\\ngit-signature-verified=true\\ndenied-operation=true\\n' > ${shellQuote(capabilityProofPath)}`,
+    `printf 'private-key-files=' >> ${shellQuote(capabilityProofPath)}`,
+    `find /home/agent -name id_ed25519 -type f 2>/dev/null | wc -l | tr -d ' ' >> ${shellQuote(capabilityProofPath)}`,
+    `printf '\\ncredential-directories=' >> ${shellQuote(capabilityProofPath)}`,
+    `find /home/agent -name .moltnet -type d 2>/dev/null | wc -l | tr -d ' ' >> ${shellQuote(capabilityProofPath)}`,
+    `printf '\\n' >> ${shellQuote(capabilityProofPath)}`,
     `setsid sh -c ${shellQuote(delayedCommand)} >/dev/null 2>&1 &`,
   ].join('; ');
   await client.request('turn/start', {
@@ -337,11 +485,17 @@ const delayedMarkerAfterVmClose = await readFile(delayedMarkerPath)
   .then(() => true)
   .catch(() => false);
 const proof = (await readFile(proofPath, 'utf8')).trim().split('\n');
+const capabilityProof = Object.fromEntries(
+  (await readFile(capabilityProofPath, 'utf8'))
+    .trim()
+    .split('\n')
+    .map((line) => line.split('=', 2)),
+);
 const environmentNames = (await readFile(envNamesPath, 'utf8'))
   .split('\n')
   .filter(Boolean);
 const evidence: CodexGondolinEvidence = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   probe: 'codex-gondolin-compatibility',
   sourceRevision: revision,
   host: {
@@ -373,6 +527,30 @@ const evidence: CodexGondolinEvidence = {
     guestOsMarker: proof[0] ?? '<missing>',
     guestExecutorMarker: proof[1] ?? '<missing>',
   },
+  hostCredentialCapability: {
+    credentialPreflight,
+    authenticatedHostCall:
+      capabilityProof['authenticated-host-call'] === 'true',
+    authenticatedAgentSubject: capabilityProof['agent-subject'] === 'true',
+    authenticatedIdentityMatched:
+      capabilityProof['identity-matched'] === 'true',
+    gitCommitSignatureVerified:
+      capabilityProof['git-signature-verified'] === 'true',
+    allowedOperations: capabilityEvents
+      .filter(([, message]) => message === 'host_capability.allowed')
+      .map(
+        ([fields]) =>
+          `${String(fields.capability)}/${String(fields.operation)}`,
+      )
+      .sort(),
+    deniedOperations: capabilityEvents
+      .filter(([, message]) => message === 'host_capability.denied')
+      .map(
+        ([fields]) =>
+          `${String(fields.capability)}/${String(fields.operation)}`,
+      )
+      .sort(),
+  },
   isolation: {
     hostOnlySentinelProjected: environmentNames.includes(
       'MOLTNET_HOST_ONLY_SENTINEL',
@@ -380,11 +558,16 @@ const evidence: CodexGondolinEvidence = {
     credentialShapedEnvironmentNames: environmentNames.filter((name) =>
       CREDENTIAL_NAME_PATTERN.test(name),
     ),
+    hostSigningKeyProjected,
+    guestPrivateKeyFiles: Number(capabilityProof['private-key-files']),
+    guestCredentialDirectories: Number(
+      capabilityProof['credential-directories'],
+    ),
     delayedMarkerAfterVmClose,
   },
   cleanupComplete,
   limitations: [
-    'Does not prove MoltNet host-capability signing through Codex.',
+    'Host credential access is capability-mediated; the guest receives no raw credential.',
     'Does not prove exact-origin HTTP credential delivery.',
     'Does not establish Docker compatibility.',
     'Uses experimental Codex remote-environment interfaces.',

@@ -40,6 +40,7 @@
     "@themoltnet/agent-runtime": "workspace:*",
     "@themoltnet/github-agent": "workspace:*",
     "@themoltnet/pi-extension": "workspace:*",
+    "@themoltnet/pi-runtime": "workspace:*",
     "@themoltnet/sandbox-gondolin": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
     "@zip.js/zip.js": "catalog:",

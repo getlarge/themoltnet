@@ -24,7 +24,7 @@ const ready: CredentialPreflightState = {
 };
 
 const evidence: CodexGondolinEvidence = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   probe: 'codex-gondolin-compatibility',
   sourceRevision: '0123456789012345678901234567890123456789',
   host: { os: 'darwin', architecture: 'arm64', codexVersion: '0.149.0' },
@@ -48,9 +48,24 @@ const evidence: CodexGondolinEvidence = {
     guestOsMarker: 'Linux',
     guestExecutorMarker: 'guest-exec-server',
   },
+  hostCredentialCapability: {
+    credentialPreflight: 'ready',
+    authenticatedHostCall: true,
+    authenticatedAgentSubject: true,
+    authenticatedIdentityMatched: true,
+    gitCommitSignatureVerified: true,
+    allowedOperations: [
+      'agent-signing/sign-git-commit',
+      'host-auth-check/whoami',
+    ],
+    deniedOperations: ['agent-signing/sign-diary-entry'],
+  },
   isolation: {
     hostOnlySentinelProjected: false,
     credentialShapedEnvironmentNames: [],
+    hostSigningKeyProjected: false,
+    guestPrivateKeyFiles: 0,
+    guestCredentialDirectories: 0,
     delayedMarkerAfterVmClose: false,
   },
   cleanupComplete: true,
@@ -115,7 +130,21 @@ describe('compatibility evidence', () => {
         isolation: {
           ...evidence.isolation,
           hostOnlySentinelProjected: true,
+          hostSigningKeyProjected: true,
           delayedMarkerAfterVmClose: true,
+        },
+      }),
+    ).toBe(false);
+  });
+
+  it('fails when the host capability is unavailable or over-granted', () => {
+    expect(
+      compatibilityProbePassed({
+        ...evidence,
+        hostCredentialCapability: {
+          ...evidence.hostCredentialCapability,
+          credentialPreflight: 'host_store_inaccessible',
+          deniedOperations: [],
         },
       }),
     ).toBe(false);

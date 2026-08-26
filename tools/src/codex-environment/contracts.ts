@@ -70,7 +70,7 @@ export function classifyCredentialPreflight(
 }
 
 export interface CodexGondolinEvidence {
-  schemaVersion: 1;
+  schemaVersion: 2;
   probe: 'codex-gondolin-compatibility';
   sourceRevision: string;
   host: {
@@ -102,9 +102,21 @@ export interface CodexGondolinEvidence {
     guestOsMarker: string;
     guestExecutorMarker: string;
   };
+  hostCredentialCapability: {
+    credentialPreflight: CredentialPreflightReason;
+    authenticatedHostCall: boolean;
+    authenticatedAgentSubject: boolean;
+    authenticatedIdentityMatched: boolean;
+    gitCommitSignatureVerified: boolean;
+    allowedOperations: string[];
+    deniedOperations: string[];
+  };
   isolation: {
     hostOnlySentinelProjected: boolean;
     credentialShapedEnvironmentNames: string[];
+    hostSigningKeyProjected: boolean;
+    guestPrivateKeyFiles: number;
+    guestCredentialDirectories: number;
     delayedMarkerAfterVmClose: boolean;
   };
   cleanupComplete: boolean;
@@ -145,8 +157,25 @@ export function compatibilityProbePassed(
     evidence.execution.turnCompleted &&
     evidence.execution.guestOsMarker === 'Linux' &&
     evidence.execution.guestExecutorMarker === 'guest-exec-server' &&
+    evidence.hostCredentialCapability.credentialPreflight === 'ready' &&
+    evidence.hostCredentialCapability.authenticatedHostCall &&
+    evidence.hostCredentialCapability.authenticatedAgentSubject &&
+    evidence.hostCredentialCapability.authenticatedIdentityMatched &&
+    evidence.hostCredentialCapability.gitCommitSignatureVerified &&
+    evidence.hostCredentialCapability.allowedOperations.includes(
+      'host-auth-check/whoami',
+    ) &&
+    evidence.hostCredentialCapability.allowedOperations.includes(
+      'agent-signing/sign-git-commit',
+    ) &&
+    evidence.hostCredentialCapability.deniedOperations.includes(
+      'agent-signing/sign-diary-entry',
+    ) &&
     !evidence.isolation.hostOnlySentinelProjected &&
     evidence.isolation.credentialShapedEnvironmentNames.length === 0 &&
+    !evidence.isolation.hostSigningKeyProjected &&
+    evidence.isolation.guestPrivateKeyFiles === 0 &&
+    evidence.isolation.guestCredentialDirectories === 0 &&
     !evidence.isolation.delayedMarkerAfterVmClose &&
     evidence.cleanupComplete
   );
