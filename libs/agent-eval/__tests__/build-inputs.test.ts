@@ -6,7 +6,11 @@ import {
 import { Value } from 'typebox/value';
 import { describe, expect, it } from 'vitest';
 
-import { buildJudgeInput, buildRunEvalInput } from '../src/build-inputs.js';
+import {
+  buildJudgeInput,
+  buildRunEvalInput,
+  buildScenarioRunEvalInput,
+} from '../src/build-inputs.js';
 import type { Scenario } from '../src/scenario.js';
 
 const scenario: Scenario = {
@@ -61,6 +65,31 @@ describe('buildRunEvalInput', () => {
     // Assert
     expect(Value.Check(RunEvalInput, input)).toBe(true);
     expect(input.context).toHaveLength(1);
+  });
+
+  it('resolves a scenario-declared context recipe for the producer', () => {
+    const input = buildScenarioRunEvalInput({
+      ...scenario,
+      contextRecipe: 'standard-engineering@v1',
+    });
+
+    expect(Value.Check(RunEvalInput, input)).toBe(true);
+    expect(input.variantLabel).toContain('standard-engineering@v1');
+    expect(input.context).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ slug: 'verification-and-artifacts-v1' }),
+      ]),
+    );
+  });
+
+  it('preserves an explicit empty-context baseline', () => {
+    const input = buildScenarioRunEvalInput(
+      { ...scenario, contextRecipe: 'standard-engineering@v1' },
+      { contextPolicy: 'baseline' },
+    );
+
+    expect(input.variantLabel).toContain('baseline');
+    expect(input.context).toEqual([]);
   });
 
   it('keeps variantLabel within the 64-char bound', () => {

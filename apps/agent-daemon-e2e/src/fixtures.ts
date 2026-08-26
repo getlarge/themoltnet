@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
 
 import {
-  buildRunEvalInput,
+  buildScenarioRunEvalInput,
+  type BuildScenarioRunEvalOptions,
   type Scenario,
   seedScenarioWorkspace,
   stageScenarioInputArtifacts,
@@ -45,8 +46,17 @@ export async function createScenarioProducerTask(args: {
   teamId: string;
   diaryId: string;
   title: string;
+  contextPolicy?: BuildScenarioRunEvalOptions['contextPolicy'];
 }) {
-  const { agent, scenario, sandboxRoot, teamId, diaryId, title } = args;
+  const {
+    agent,
+    scenario,
+    sandboxRoot,
+    teamId,
+    diaryId,
+    title,
+    contextPolicy,
+  } = args;
   seedScenarioWorkspace(scenario, sandboxRoot);
   const inputArtifacts = await stageScenarioInputArtifacts(
     agent.tasks.artifacts,
@@ -66,7 +76,7 @@ export async function createScenarioProducerTask(args: {
           .maxAttempts(1)
           .team(teamId)
       : agent.tasks
-          .buildRunEval(buildRunEvalInput(scenario, { variant: 'baseline' }))
+          .buildRunEval(buildScenarioRunEvalInput(scenario, { contextPolicy }))
           .title(title)
           .diary(diaryId)
           .correlationId(randomUUID())

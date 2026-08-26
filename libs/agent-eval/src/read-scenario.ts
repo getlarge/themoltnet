@@ -13,6 +13,7 @@ import {
 } from 'node:fs';
 import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path';
 
+import { runtimeProfileContextRecipeIds } from '@moltnet/runtime-profiles';
 import {
   Rubric,
   RunEvalExecution,
@@ -261,6 +262,7 @@ export function readScenario(dir: string): Scenario {
   }
   const {
     taskType: rawTaskType,
+    contextRecipe: rawContextRecipe,
     fixtures: rawFixtures,
     ...execution
   } = evalJson as Record<string, unknown>;
@@ -269,6 +271,22 @@ export function readScenario(dir: string): Scenario {
     throw new ScenarioError(
       slug,
       `eval.json taskType "${String(rawTaskType)}" is not supported (expected one of: ${SCENARIO_TASK_TYPES.join(', ')})`,
+    );
+  }
+  if (
+    rawContextRecipe !== undefined &&
+    (typeof rawContextRecipe !== 'string' ||
+      !runtimeProfileContextRecipeIds.includes(rawContextRecipe))
+  ) {
+    throw new ScenarioError(
+      slug,
+      `eval.json contextRecipe ${JSON.stringify(rawContextRecipe)} is not supported (expected one of: ${runtimeProfileContextRecipeIds.join(', ')})`,
+    );
+  }
+  if (rawContextRecipe !== undefined && taskType === 'freeform') {
+    throw new ScenarioError(
+      slug,
+      'eval.json contextRecipe is only supported for run_eval scenarios',
     );
   }
   assertSchema(slug, 'eval.json', RunEvalExecution, execution);
@@ -300,6 +318,7 @@ export function readScenario(dir: string): Scenario {
   return {
     slug,
     taskType: taskType as Scenario['taskType'],
+    contextRecipe: rawContextRecipe,
     prompt,
     execution: execution as Scenario['execution'],
     fixtures,

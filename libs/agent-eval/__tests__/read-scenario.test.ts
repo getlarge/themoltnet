@@ -107,6 +107,65 @@ describe('readScenario', () => {
     expect(scenario.execution).toEqual({ mode: 'vitro', workspace: 'none' });
   });
 
+  it('parses a supported context recipe without leaking it into execution', () => {
+    const dir = writeScenario({
+      prompt: '# Deploy\nCreate a sanitized deployment report.\n',
+      evalJson: {
+        ...VALID_EVAL,
+        contextRecipe: 'standard-engineering@v1',
+      },
+      rubric: VALID_RUBRIC,
+      gates: VALID_GATES,
+    });
+
+    const scenario = readScenario(dir);
+
+    expect(scenario.contextRecipe).toBe('standard-engineering@v1');
+    expect(scenario.execution).toEqual({ mode: 'vitro', workspace: 'none' });
+  });
+
+  it('rejects an unknown context recipe', () => {
+    const dir = writeScenario({
+      prompt: '# Deploy\n',
+      evalJson: { ...VALID_EVAL, contextRecipe: 'unknown@v1' },
+      rubric: VALID_RUBRIC,
+      gates: VALID_GATES,
+    });
+
+    expect(() => readScenario(dir)).toThrow(/contextRecipe "unknown@v1"/);
+  });
+
+  it('rejects a non-string context recipe', () => {
+    const dir = writeScenario({
+      prompt: '# Deploy\n',
+      evalJson: {
+        ...VALID_EVAL,
+        contextRecipe: ['standard-engineering@v1'],
+      },
+      rubric: VALID_RUBRIC,
+      gates: VALID_GATES,
+    });
+
+    expect(() => readScenario(dir)).toThrow(/contextRecipe/);
+  });
+
+  it('rejects context recipes for freeform scenarios', () => {
+    const dir = writeScenario({
+      prompt: '# Review\n',
+      evalJson: {
+        ...VALID_EVAL,
+        taskType: 'freeform',
+        contextRecipe: 'standard-engineering@v1',
+      },
+      rubric: VALID_RUBRIC,
+      gates: VALID_GATES,
+    });
+
+    expect(() => readScenario(dir)).toThrow(
+      /contextRecipe is only supported for run_eval/,
+    );
+  });
+
   it('throws when eval.json declares an unsupported taskType', () => {
     // Arrange
     const dir = writeScenario({

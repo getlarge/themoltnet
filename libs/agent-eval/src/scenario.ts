@@ -5,9 +5,10 @@
  *
  * - `prompt.md`   — the scenario prompt (free-form Markdown). Becomes
  *                   `RunEvalInput.scenario.prompt`.
- * - `eval.json`   — `{ mode, workspace, fixtures? }`. Fixtures may seed a
- *                   shared workspace and/or bind scenario-local files as
- *                   staged task input artifacts.
+ * - `eval.json`   — `{ mode, workspace, contextRecipe?, fixtures? }`. A
+ *                   context recipe injects versioned producer guidance;
+ *                   fixtures may seed a shared workspace and/or bind
+ *                   scenario-local files as staged task input artifacts.
  * - `rubric.json` — a `Rubric` (see `@moltnet/tasks`): the HIDDEN judge key.
  *                   Never handed to the producer; only the `judge_eval_attempt`
  *                   task sees it. Weights must sum to 1.
@@ -187,6 +188,12 @@ export interface Scenario {
    * rather than the `RunEvalInput.scenario.prompt`.
    */
   taskType: ScenarioTaskType;
+  /**
+   * Optional versioned runtime-profile context recipe injected into a
+   * `run_eval` producer. Declared in `eval.json`; unsupported for freeform
+   * scenarios because their input schema has no context field.
+   */
+  contextRecipe?: string;
   /** Contents of `prompt.md` — the producer prompt (run_eval) or brief (freeform). */
   prompt: string;
   /** Parsed `eval.json` execution shape — `{ mode, workspace }`. */
