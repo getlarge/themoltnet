@@ -15,6 +15,7 @@
 // empty in the definitions — wire them per environment via NOTIFIER_IDS (a
 // comma-separated list) or edit the committed JSON once notifiers exist.
 import { run } from '../lib/axiom-apply.mjs';
+import { validateResources } from '../lib/validate.mjs';
 
 const notifierIds = (process.env.NOTIFIER_IDS || '')
   .split(',')
@@ -26,43 +27,57 @@ run(
     label: 'monitor',
     scope: 'monitor read+write scope',
     nameOf: ({ def }) => def.name,
+    validate: (defs) => validateResources('monitor', defs),
     async plan({ defs, api }) {
       // Monitors are matched by name (no client-supplied uid), so list once up
       // front. A failure here (bad token, 5xx) throws and aborts before any write.
       const existing = await api.getJson('/v2/monitors');
       const idByName = new Map(existing.map((m) => [m.name, m.id]));
 
-      return defs.map(({ def, file }) => {
+      return defs.flatMap(({ def, file }) => {
         const name = def.name;
         if (!name) throw new Error(`${file} is missing a "name" field.`);
+        if (def.enabled === false) {
+          console.log(
+            `Skipping disabled monitor '${name}': ${
+              def.disabledReason || 'no reason recorded'
+            }`,
+          );
+          return [];
+        }
         const previousNames = Array.isArray(def.previousNames)
           ? def.previousNames
           : [];
         const body = { ...def };
         delete body.previousNames;
+        delete body.enabled;
+        delete body.disabledReason;
 
         // Optional per-env notifier injection; leave untouched when none supplied.
         if (notifierIds.length) body.notifierIds = notifierIds;
+        else delete body.notifierIds;
         const id = [name, ...previousNames]
           .map((candidate) => idByName.get(candidate))
           .find(Boolean);
 
-        return id
-          ? {
-              action: 'update',
-              name,
-              id,
-              method: 'PUT',
-              path: `/v2/monitors/${id}`,
-              body,
-            }
-          : {
-              action: 'create',
-              name,
-              method: 'POST',
-              path: '/v2/monitors',
-              body,
-            };
+        return [
+          id
+            ? {
+                action: 'update',
+                name,
+                id,
+                method: 'PUT',
+                path: `/v2/monitors/${id}`,
+                body,
+              }
+            : {
+                action: 'create',
+                name,
+                method: 'POST',
+                path: '/v2/monitors',
+                body,
+              },
+        ];
       });
     },
   },

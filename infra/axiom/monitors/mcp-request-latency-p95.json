@@ -1,0 +1,16 @@
+{
+  "alertOnNoData": false,
+  "description": "MCP request/response latency for POST requests only. Long-lived GET /mcp SSE connections are excluded because their completion duration reflects connection lifetime and rolling restarts, not handler latency. Inspect moltnet-traces by route and correlate the time window with moltnet-logs.",
+  "intervalMinutes": 5,
+  "mplQuery": "`moltnet-metrics`:`http.server.request.duration`\n| where `service.name` == \"moltnet-mcp-server\" and `http.method` == \"POST\"\n| bucket by `http.route` to 5m using interpolate_cumulative_histogram(rate, 0.95)",
+  "name": "MoltNet MCP POST request latency p95 by route",
+  "notifierIds": [],
+  "notifyByGroup": true,
+  "operator": "AboveOrEqual",
+  "rangeMinutes": 10,
+  "resolvable": true,
+  "threshold": 3000,
+  "triggerAfterNPositiveResults": 2,
+  "triggerFromNRuns": 3,
+  "type": "Threshold"
+}

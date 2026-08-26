@@ -5,8 +5,16 @@ Committed Axiom dashboards and monitors for the hosted MoltNet Axiom org.
 This follows the source-of-truth pattern from the on-board Axiom refresh work,
 adapted for MoltNet's hosted Axiom datasets:
 
-- `moltnet` — logs and traces (`otel.traces`)
-- `moltnet-metrics` — metrics (`otel:metrics:v1`)
+- `moltnet-logs` — structured logs
+- `moltnet-traces` — OpenTelemetry traces
+- `moltnet-metrics` — OpenTelemetry metrics
+
+The legacy `moltnet` fallback name is not a hosted dataset and must not appear
+in APL. Validate the committed contract before opening a PR or applying it:
+
+```bash
+pnpm run check:axiom
+```
 
 There is no self-hosted customer/container layer here, so the config avoids
 on-board-specific dimensions such as `customer.name`, `container.name`,
@@ -31,9 +39,13 @@ AXIOM_API_TOKEN=xaat-... NOTIFIER_IDS=id1,id2 \
   node infra/axiom/monitors/apply.mjs
 ```
 
-The token needs monitor read/create/update scope and query access to
-`moltnet` and `moltnet-metrics`. `NOTIFIER_IDS` is optional; without it the
-monitors evaluate in Axiom but do not push notifications.
+The token needs monitor read/create/update scope and query access to the three
+datasets above. `NOTIFIER_IDS` is optional. Without it, newly created monitors
+have no notification destination and updates preserve their existing notifiers.
+
+Monitor definitions with `"enabled": false` document a future signal but are
+skipped by the apply command. Every disabled monitor must include a
+`disabledReason`. Enable one only after its source metric is present in Axiom.
 
 ## Node-RED webhook notifier
 

@@ -1,6 +1,8 @@
 {
   "alertOnNoData": false,
   "description": "Collector log export failures from isolated internal or public queues. Inspect component groups and queue capacity on the MoltNet Metrics dashboard; confirm Axiom availability and credentials.",
+  "disabledReason": "The custom public-OTLP Collector is not deployed by this repository and Collector self-telemetry is absent from Axiom.",
+  "enabled": false,
   "intervalMinutes": 5,
   "mplQuery": "`moltnet-metrics`:`otelcol_exporter_send_failed_log_records`\n| align to 1m using prom::rate\n| group by `otelcol.component.id` using sum",
   "name": "MoltNet OTLP Collector log export failures",

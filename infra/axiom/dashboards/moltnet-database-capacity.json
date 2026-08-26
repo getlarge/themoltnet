@@ -3,14 +3,14 @@
     {
       "id": "overview",
       "name": "Retention and capacity contract",
-      "text": "Six-hour total-relation-size snapshots for DBOS workflow history (excluding transaction_completion), transaction_completion, diary_entries, and task_messages. The warning line is 1 GiB per scope. Signed diary entries and embeddings are retained indefinitely.",
+      "text": "Six-hour total-relation-size snapshots for DBOS workflow history (excluding transaction_completion), transaction_completion, diary_entries, and task_messages. DBOS terminal workflows older than 30 days are deleted hourly in bounded batches; a full batch means the sweeper still has backlog. PostgreSQL may reuse freed pages without reducing relation size. The warning line is 1 GiB per scope.",
       "type": "Note"
     },
     {
       "id": "capacity-trend",
       "name": "Database capacity by scope (GiB)",
       "query": {
-        "apl": "['moltnet']\n| where body == \"maintenance.database_capacity_snapshot\"\n| extend scope = tostring(['attributes.capacityScope']), size_bytes = todouble(['attributes.sizeBytes'])\n| summarize size_gib = max(size_bytes) / 1073741824.0 by scope, bin(_time, 1d)"
+        "apl": "['moltnet-logs']\n| where body == \"maintenance.database_capacity_snapshot\"\n| extend scope = tostring(['attributes.capacityScope']), size_bytes = todouble(['attributes.sizeBytes'])\n| summarize size_gib = max(size_bytes) / 1073741824.0 by scope, bin(_time, 6h)"
       },
       "type": "TimeSeries"
     },
@@ -18,12 +18,36 @@
       "id": "latest-capacity",
       "name": "Latest capacity snapshot by scope",
       "query": {
-        "apl": "['moltnet']\n| where body == \"maintenance.database_capacity_snapshot\"\n| extend scope = tostring(['attributes.capacityScope']), size_bytes = tolong(['attributes.sizeBytes'])\n| summarize arg_max(_time, size_bytes) by scope\n| extend size_gib = todouble(size_bytes) / 1073741824.0\n| project scope, size_bytes, size_gib, _time\n| order by size_bytes desc"
+        "apl": "['moltnet-logs']\n| where body == \"maintenance.database_capacity_snapshot\"\n| extend scope = tostring(['attributes.capacityScope']), size_bytes = tolong(['attributes.sizeBytes'])\n| summarize size_bytes = max(size_bytes) by scope\n| extend size_gib = todouble(size_bytes) / 1073741824.0\n| project scope, size_bytes, size_gib\n| order by size_bytes desc"
+      },
+      "type": "Table"
+    },
+    {
+      "id": "retention-throughput",
+      "name": "DBOS retention examined / deleted",
+      "query": {
+        "apl": "['moltnet-logs']\n| where body == \"maintenance: DBOS workflow retention complete\"\n| extend examined = tolong(['attributes.examined']), deleted = tolong(['attributes.deleted'])\n| summarize examined = sum(examined), deleted = sum(deleted) by bin(_time, 1h)"
+      },
+      "type": "TimeSeries"
+    },
+    {
+      "id": "retention-status",
+      "name": "Latest DBOS retention runs",
+      "query": {
+        "apl": "['moltnet-logs']\n| where body == \"maintenance: DBOS workflow retention complete\"\n| project _time, examined = ['attributes.examined'], deleted = ['attributes.deleted'], batch_full = ['attributes.batchFull']\n| order by _time desc\n| take 24"
+      },
+      "type": "Table"
+    },
+    {
+      "id": "dbos-headroom",
+      "name": "DBOS growth and estimated 1 GiB headroom",
+      "query": {
+        "apl": "['moltnet-logs']\n| where body == \"maintenance.database_capacity_snapshot\"\n| where ['attributes.capacityScope'] == \"dbos\"\n| extend size_bytes = todouble(['attributes.sizeBytes'])\n| summarize first_seen = min(_time), last_seen = max(_time), first_bytes = min(size_bytes), current_bytes = max(size_bytes)\n| extend elapsed_days = (last_seen - first_seen) / 86400000000000.0\n| extend avg_daily_growth_bytes = (current_bytes - first_bytes) / elapsed_days\n| extend headroom_bytes = 1073741824.0 - current_bytes, estimated_days_to_1_gib = headroom_bytes / avg_daily_growth_bytes\n| project current_bytes, avg_daily_growth_bytes, headroom_bytes, estimated_days_to_1_gib"
       },
       "type": "Table"
     }
   ],
-  "datasets": ["moltnet"],
+  "datasets": ["moltnet-logs"],
   "description": "Six-hour database capacity trends for retention-managed and audit-preserved scopes.",
   "layout": [
     {
@@ -58,6 +82,39 @@
       "w": 4,
       "x": 8,
       "y": 2
+    },
+    {
+      "h": 5,
+      "i": "retention-throughput",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 8,
+      "x": 0,
+      "y": 8
+    },
+    {
+      "h": 5,
+      "i": "retention-status",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 4,
+      "x": 8,
+      "y": 8
+    },
+    {
+      "h": 4,
+      "i": "dbos-headroom",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 12,
+      "x": 0,
+      "y": 13
     }
   ],
   "name": "MoltNet Database Capacity",

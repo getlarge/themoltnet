@@ -1,8 +1,10 @@
 {
   "alertOnNoData": false,
   "description": "Public OTLP authentication provider throttling or outages. Inspect the MoltNet Metrics dashboard, separate 429 from unavailable outcomes, and verify Hydra/Talos/Kratos health before changing rate limits.",
+  "disabledReason": "The custom public-OTLP Collector is not deployed by this repository and moltnet.auth.provider.requests is absent from Axiom.",
+  "enabled": false,
   "intervalMinutes": 5,
-  "mplQuery": "`moltnet-metrics`:`moltnet.auth.provider.requests`\n| filter `outcome` in (\"rate_limited\", \"unavailable\")\n| align to 1m using prom::rate\n| group by `operation`, `outcome` using sum",
+  "mplQuery": "`moltnet-metrics`:`moltnet.auth.provider.requests`\n| where `outcome` == \"rate_limited\" or `outcome` == \"unavailable\"\n| align to 1m using prom::rate\n| group by `operation`, `outcome` using sum",
   "name": "MoltNet public OTLP auth provider failures",
   "notifierIds": [],
   "notifyByGroup": true,

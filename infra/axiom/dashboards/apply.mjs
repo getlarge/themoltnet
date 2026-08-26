@@ -6,7 +6,9 @@
 // server-managed id/version/timestamps) plus a stable top-level "uid". The
 // script is idempotent: the Axiom dashboards API (`POST /v2/dashboards` with
 // `overwrite: true`) creates the dashboard when its uid is new and overwrites
-// the existing one otherwise — there is no item-level PUT/GET endpoint.
+// the existing one otherwise. Keep repo-managed UIDs distinct from private UI
+// dashboards: API tokens cannot see or overwrite private dashboards owned by a
+// user, and Axiom reports that collision as `dashboard_not_found`.
 //
 // IMPORTANT — traces charts use APL under `query.apl`; metrics charts use MPL
 // under `query.mpl` and must NOT keep the older API-authored metric metadata
@@ -23,6 +25,7 @@
 //
 // The token needs dashboard read+write scope. Do NOT commit it.
 import { run } from '../lib/axiom-apply.mjs';
+import { validateResources } from '../lib/validate.mjs';
 
 function assertNoApiUnsupportedMetricFilters({ defs }) {
   const unsupported = [];
@@ -59,12 +62,13 @@ run(
     label: 'dashboard',
     scope: 'dashboard read+write scope',
     nameOf: ({ def }) => def.name,
+    validate: (defs) => validateResources('dashboard', defs),
     async plan({ defs, api }) {
       assertNoApiUnsupportedMetricFilters({ defs });
 
-      // The v2 dashboards API is collection-only (GET list + POST upsert); there
-      // is no GET-by-uid. List once so we can label create vs update in the
-      // output. A failed list (bad token, 5xx) throws and aborts before any write.
+      // List once so we can label create vs update in the output. Managed
+      // dashboards are shared with X-AXIOM-EVERYONE and therefore visible to
+      // the deployment token. A failed list aborts before any write.
       const existing = await api.getJson('/v2/dashboards');
       const uidsInOrg = new Set(
         existing.map((d) => d?.dashboard?.uid).filter(Boolean),

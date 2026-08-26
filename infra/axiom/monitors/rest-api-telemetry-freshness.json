@@ -1,0 +1,16 @@
+{
+  "alertOnNoData": true,
+  "aplQuery": "['moltnet-logs']\n| where ['service.name'] == \"moltnet-rest-api\"\n| summarize events = count()",
+  "description": "No REST API logs reached Axiom during the evaluation window. Verify service health and the OTLP export path before trusting otherwise quiet monitors.",
+  "intervalMinutes": 5,
+  "name": "MoltNet REST API telemetry freshness",
+  "notifierIds": [],
+  "notifyByGroup": false,
+  "operator": "Below",
+  "rangeMinutes": 10,
+  "resolvable": true,
+  "threshold": 1,
+  "triggerAfterNPositiveResults": 2,
+  "triggerFromNRuns": 3,
+  "type": "Threshold"
+}

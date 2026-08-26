@@ -17,6 +17,16 @@ Monitor policy:
 - Use `triggerAfterNPositiveResults` / `triggerFromNRuns` for noisy signals.
 - Keep `notifierIds` empty in committed JSON; inject them through
   `NOTIFIER_IDS`.
+- Alert separately on REST route latency and MCP POST latency. Never aggregate
+  long-lived MCP GET/SSE completion durations into request latency.
+- Alert on telemetry freshness so an empty error query cannot masquerade as a
+  healthy service.
+- Treat a continuously full DBOS retention batch as backlog even while the
+  sweeper is successfully deleting rows.
 
 The `previousNames` field is local metadata consumed by `apply.mjs` to update
 old monitors by name. It is stripped before sending to Axiom.
+
+`enabled: false` and `disabledReason` are also local metadata. They keep
+Collector-only monitors reviewable without deploying guaranteed no-data alerts
+before the custom public-OTLP Collector and its self-telemetry are deployed.

@@ -1,6 +1,6 @@
 {
   "alertOnNoData": false,
-  "aplQuery": "['moltnet']\n| where body == \"maintenance.database_capacity_snapshot\"\n| extend scope = tostring(['attributes.capacityScope']), size_bytes = tolong(['attributes.sizeBytes'])\n| summarize size_bytes = max(size_bytes) by bin(_time, 1d), scope",
+  "aplQuery": "['moltnet-logs']\n| where body == \"maintenance.database_capacity_snapshot\"\n| extend scope = tostring(['attributes.capacityScope']), size_bytes = tolong(['attributes.sizeBytes'])\n| summarize size_bytes = max(size_bytes) by bin(_time, 1d), scope",
   "description": "Warn when any tracked database scope reaches 1 GiB. Inspect the MoltNet Database Capacity dashboard. DBOS workflow history may drain under its 30-day terminal-only policy; transaction_completion is monitored separately and must not be deleted by application retention; signed diary_entries and embeddings are preserved indefinitely; task_messages drain only through task FK cascade.",
   "intervalMinutes": 60,
   "name": "MoltNet database capacity at or above 1 GiB",

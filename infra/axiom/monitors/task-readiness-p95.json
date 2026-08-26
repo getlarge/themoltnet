@@ -1,0 +1,16 @@
+{
+  "alertOnNoData": false,
+  "aplQuery": "['moltnet-logs']\n| where body == \"task.readiness.useful_event_received\"\n| extend task_id = tostring(['attributes.taskId']), latency_ms = todouble(['attributes.queuedToUsefulMs'])\n| summarize latency_ms = min(latency_ms) by task_id\n| summarize p95_ms = percentile(latency_ms, 95)",
+  "description": "Task queue-to-first-useful-output p95 is at least 30 minutes. This is a workload readiness/backlog signal, not HTTP handler latency. Inspect the MoltNet Task Readiness dashboard and daemon capacity before changing request-latency thresholds.",
+  "intervalMinutes": 30,
+  "name": "MoltNet task readiness p95",
+  "notifierIds": [],
+  "notifyByGroup": false,
+  "operator": "AboveOrEqual",
+  "rangeMinutes": 60,
+  "resolvable": true,
+  "threshold": 1800000,
+  "triggerAfterNPositiveResults": 2,
+  "triggerFromNRuns": 3,
+  "type": "Threshold"
+}
