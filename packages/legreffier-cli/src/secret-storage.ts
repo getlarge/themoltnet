@@ -1,53 +1,36 @@
-import { execFile } from 'node:child_process';
-import { join } from 'node:path';
-import { promisify } from 'node:util';
-
 import {
   type MoltNetConfig,
+  oauth2SecretKey,
   OS_KEYRING_SECRET_PROVIDER,
-  readConfig,
+  type SecretProviderRegistry,
+  type SecretReference,
   writeConfig,
 } from '@themoltnet/sdk';
 import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
 
-const execFileAsync = promisify(execFile);
-
-export type ConfigMigrationRunner = (credentialsPath: string) => Promise<void>;
-
-async function runConfigMigration(credentialsPath: string): Promise<void> {
-  await execFileAsync(
-    'moltnet',
-    ['config', 'migrate', '--credentials', credentialsPath],
-    { timeout: 30_000 },
-  );
-}
-
 /**
  * Persist a newly issued or legacy plaintext OAuth2 secret in the OS keyring
- * before replacing config with a stable reference. Existing references pass
- * through unchanged.
+ * and replace it in config with a stable reference. Existing references are
+ * verified and passed through unchanged. The plaintext never touches disk.
  */
 export async function ensureKeyringSecretReference(
   configDir: string,
   config: MoltNetConfig,
   issuedSecret = '',
-  migrate: ConfigMigrationRunner = runConfigMigration,
+  registry: SecretProviderRegistry = createNodeSecretProviderRegistry(),
 ): Promise<MoltNetConfig> {
-  if ('client_secret_ref' in config.oauth2 && config.oauth2.client_secret_ref) {
+  const existingReference =
+    'client_secret_ref' in config.oauth2
+      ? config.oauth2.client_secret_ref
+      : undefined;
+  if (existingReference) {
     if (
-      config.oauth2.client_secret_ref.provider === OS_KEYRING_SECRET_PROVIDER
+      existingReference.provider === OS_KEYRING_SECRET_PROVIDER &&
+      (await registry.probe(existingReference)) !== 'present'
     ) {
-      const provider = createNodeSecretProviderRegistry().get(
-        OS_KEYRING_SECRET_PROVIDER,
+      throw new Error(
+        'The OAuth2 secret referenced by config is missing from the OS keyring.',
       );
-      if (
-        !provider ||
-        !(await provider.read(config.oauth2.client_secret_ref.key))
-      ) {
-        throw new Error(
-          'The OAuth2 secret referenced by config is missing from the OS keyring.',
-        );
-      }
     }
     return config;
   }
@@ -61,36 +44,28 @@ export async function ensureKeyringSecretReference(
     );
   }
 
-  const credentialsPath = join(configDir, 'moltnet.json');
-  await writeConfig(
-    {
-      ...config,
-      oauth2: {
-        client_id: config.oauth2.client_id,
-        client_secret: plaintext,
-      },
+  const reference: SecretReference = {
+    provider: OS_KEYRING_SECRET_PROVIDER,
+    key: oauth2SecretKey(config.identity_id, config.oauth2.client_id),
+  };
+  const { changed } = await registry.ensure(reference, plaintext);
+
+  const secured: MoltNetConfig = {
+    ...config,
+    oauth2: {
+      client_id: config.oauth2.client_id,
+      client_secret_ref: reference,
     },
-    configDir,
-  );
-
+  };
   try {
-    await migrate(credentialsPath);
+    await writeConfig(secured, configDir);
   } catch (cause) {
-    throw new Error(
-      'Could not migrate the OAuth2 secret with `moltnet config migrate`.',
-      { cause },
-    );
+    if (changed) {
+      await registry.delete(reference).catch(() => undefined);
+    }
+    throw new Error('Could not write the OAuth2 secret reference to config.', {
+      cause,
+    });
   }
-
-  const migrated = await readConfig(configDir);
-  if (
-    !migrated ||
-    !('client_secret_ref' in migrated.oauth2) ||
-    migrated.oauth2.client_secret_ref?.provider !== OS_KEYRING_SECRET_PROVIDER
-  ) {
-    throw new Error(
-      'The MoltNet CLI did not produce an OS-keyring OAuth2 secret reference.',
-    );
-  }
-  return migrated;
+  return secured;
 }
