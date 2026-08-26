@@ -271,8 +271,9 @@ describe('Docker sandbox research adapter', () => {
       oracle: { kind: 'delayed-marker-absence', passed: true },
       resolvedAdapterConfig: {
         effective: {
-          termination: 'managed-sandbox-stop',
-          confirmedState: 'stopped',
+          termination: 'managed-sandbox-stop-and-remove',
+          confirmedStoppedState: 'stopped',
+          confirmedFinalState: 'absent',
         },
       },
     });
@@ -306,7 +307,7 @@ describe('Docker sandbox research adapter', () => {
       state: 'failed-open',
       oracle: { passed: false },
       resolvedAdapterConfig: {
-        effective: { confirmedState: 'running' },
+        effective: { confirmedStoppedState: 'running' },
       },
     });
   });

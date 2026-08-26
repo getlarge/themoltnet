@@ -1084,7 +1084,13 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           throw new Error('detached child did not acknowledge startup');
         }
         const stopped = await this.#executeScenario(['stop', childName]);
-        const confirmed = await this.#sandboxStatus(childName);
+        const stoppedStatus = await this.#sandboxStatus(childName);
+        const removed = await this.#executeScenario([
+          'rm',
+          '--force',
+          childName,
+        ]);
+        const removedStatus = await this.#sandboxStatus(childName);
         await sleep(observationWindowMs, this.#scenarioSignal);
         const observed = await readFile(marker, 'utf8').catch(() => '');
         return this.#evidence(
@@ -1099,15 +1105,19 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
               detached.exitCode === 0 &&
               acknowledged === 'started' &&
               stopped.exitCode === 0 &&
-              confirmed.result.exitCode === 0 &&
-              confirmed.parsed &&
-              confirmed.status === 'stopped' &&
+              stoppedStatus.result.exitCode === 0 &&
+              stoppedStatus.parsed &&
+              stoppedStatus.status === 'stopped' &&
+              removed.exitCode === 0 &&
+              removedStatus.result.exitCode === 0 &&
+              removedStatus.parsed &&
+              removedStatus.status === null &&
               observed === '',
           },
           {
-            termination: 'managed-sandbox-stop',
-            confirmedState: confirmed.status,
-            removal: 'deferred-to-scoped-cleanup',
+            termination: 'managed-sandbox-stop-and-remove',
+            confirmedStoppedState: stoppedStatus.status,
+            confirmedFinalState: removedStatus.status ?? 'absent',
             trigger:
               scenario.id === 'lifecycle.timeout'
                 ? 'execution-deadline'
