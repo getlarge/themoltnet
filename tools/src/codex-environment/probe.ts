@@ -24,11 +24,7 @@ import {
   type ManagedVm,
   resumeVm,
 } from '@themoltnet/sandbox-gondolin';
-import { readConfig } from '@themoltnet/sdk';
-import {
-  connect,
-  createNodeSecretProviderRegistry,
-} from '@themoltnet/sdk/node';
+import { connect, readConfig } from '@themoltnet/sdk';
 
 import { resolveRepoRoot } from '../repo.js';
 import {
@@ -38,7 +34,8 @@ import {
 } from './contracts.js';
 import {
   hostAuthenticationCapability,
-  preflightHostCredential,
+  preflightBrokeredHostCredential,
+  withoutBrokeredMoltNetSecrets,
 } from './host-credentials.js';
 import {
   type JsonRpcResponse,
@@ -186,17 +183,24 @@ const agentConfig = await readConfig(agentDirectory);
 if (!agentConfig) {
   throw new Error(`credential preflight failed: required_binding_missing`);
 }
-const secretProviders = createNodeSecretProviderRegistry();
-const credentialPreflight = await preflightHostCredential(
+const credentialPreflight = preflightBrokeredHostCredential(
   agentConfig,
-  secretProviders,
+  process.env,
 );
 if (credentialPreflight !== 'ready') {
-  throw new Error(`credential preflight failed: ${credentialPreflight}`);
+  throw new Error(
+    `credential preflight failed: ${credentialPreflight}; run the probe through the released moltnet start broker`,
+  );
+}
+const brokeredClientId = process.env.MOLTNET_CLIENT_ID;
+const brokeredClientSecret = process.env.MOLTNET_CLIENT_SECRET;
+if (!brokeredClientId || !brokeredClientSecret) {
+  throw new Error('moltnet start did not deliver the configured OAuth binding');
 }
 const hostAgent = await connect({
-  configDir: agentDirectory,
-  secretProviders,
+  clientId: brokeredClientId,
+  clientSecret: brokeredClientSecret,
+  apiUrl: agentConfig.endpoints.api,
 });
 const agentIdentity: AgentIdentity = {
   agentName,
@@ -345,10 +349,13 @@ try {
   app = spawnCodexAppServer({
     codexBinary: hostCodexBinary,
     cwd: repoRoot,
-    env: {
-      ...process.env,
-      MOLTNET_HOST_ONLY_SENTINEL: hostOnlySentinel,
-    },
+    env: withoutBrokeredMoltNetSecrets(
+      {
+        ...process.env,
+        MOLTNET_HOST_ONLY_SENTINEL: hostOnlySentinel,
+      },
+      brokeredClientSecret,
+    ),
   });
   const client = app.client;
   await client.request('initialize', {

@@ -1,10 +1,11 @@
 import { createHostCapabilityRouter } from '@themoltnet/agent-runtime';
-import { type MoltNetConfig, SecretProviderRegistry } from '@themoltnet/sdk';
+import type { MoltNetConfig } from '@themoltnet/sdk';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
   hostAuthenticationCapability,
-  preflightHostCredential,
+  preflightBrokeredHostCredential,
+  withoutBrokeredMoltNetSecrets,
 } from './host-credentials.js';
 
 const identity = {
@@ -108,38 +109,57 @@ describe('hostAuthenticationCapability', () => {
   });
 });
 
-describe('preflightHostCredential', () => {
-  it.each([
-    ['value', 'ready'],
-    [null, 'binding_absent'],
-  ] as const)(
-    'classifies a successful provider read of %j',
-    async (value, reason) => {
-      const providers = new SecretProviderRegistry().register({
-        name: 'fixture',
-        read: vi.fn(() => Promise.resolve(value)),
-      });
-
-      await expect(preflightHostCredential(config, providers)).resolves.toBe(
-        reason,
-      );
-    },
-  );
-
-  it('classifies a provider read error as host_store_inaccessible', async () => {
-    const providers = new SecretProviderRegistry().register({
-      name: 'fixture',
-      read: vi.fn(() => Promise.reject(new Error('denied by host sandbox'))),
-    });
-
-    await expect(preflightHostCredential(config, providers)).resolves.toBe(
-      'host_store_inaccessible',
-    );
+describe('preflightBrokeredHostCredential', () => {
+  it('accepts the binding delivered by moltnet start', () => {
+    expect(
+      preflightBrokeredHostCredential(config, {
+        MOLTNET_CLIENT_ID: config.oauth2.client_id,
+        MOLTNET_CLIENT_SECRET: 'launch-only-secret',
+      }),
+    ).toBe('ready');
   });
 
-  it('classifies an unregistered provider separately', async () => {
-    await expect(
-      preflightHostCredential(config, new SecretProviderRegistry()),
-    ).resolves.toBe('provider_unavailable');
+  it('classifies an absent broker delivery separately from a missing binding', () => {
+    expect(preflightBrokeredHostCredential(config, {})).toBe('delivery_failed');
+  });
+
+  it('rejects credentials delivered for a different client', () => {
+    expect(
+      preflightBrokeredHostCredential(config, {
+        MOLTNET_CLIENT_ID: 'another-client',
+        MOLTNET_CLIENT_SECRET: 'launch-only-secret',
+      }),
+    ).toBe('binding_requirement_mismatch');
+  });
+
+  it('reports a config with no logical secret binding', () => {
+    const unbound = structuredClone(config);
+    delete (unbound.oauth2 as Partial<typeof unbound.oauth2>).client_secret_ref;
+
+    expect(preflightBrokeredHostCredential(unbound, {})).toBe(
+      'required_binding_missing',
+    );
+  });
+});
+
+describe('withoutBrokeredMoltNetSecrets', () => {
+  it('removes launch-only MoltNet secrets without stripping unrelated auth', () => {
+    expect(
+      withoutBrokeredMoltNetSecrets(
+        {
+          MOLTNET_CLIENT_ID: 'client-1',
+          MOLTNET_CLIENT_SECRET: 'launch-only-secret',
+          PROBE_AGENT_CLIENT_SECRET: 'launch-only-secret',
+          MOLTNET_AGENT_KEY: 'agent-key',
+          MOLTNET_CREDENTIALS_PATH: '/host/moltnet.json',
+          OPENAI_API_KEY: 'unrelated-host-auth',
+        },
+        'launch-only-secret',
+      ),
+    ).toEqual({
+      MOLTNET_CLIENT_ID: 'client-1',
+      MOLTNET_CREDENTIALS_PATH: '/host/moltnet.json',
+      OPENAI_API_KEY: 'unrelated-host-auth',
+    });
   });
 });

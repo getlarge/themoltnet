@@ -2,7 +2,7 @@ import {
   defineHostCapability,
   type HostCapabilityContext,
 } from '@themoltnet/agent-runtime';
-import type { MoltNetConfig, SecretProviderRegistry } from '@themoltnet/sdk';
+import type { MoltNetConfig } from '@themoltnet/sdk';
 import { Type } from 'typebox';
 
 import {
@@ -10,57 +10,51 @@ import {
   type CredentialPreflightReason,
 } from './contracts.js';
 
-/** Resolve only enough host-store state to classify the credential boundary. */
-export async function preflightHostCredential(
+/** Verify that the released CLI brokered the configured binding into the host. */
+export function preflightBrokeredHostCredential(
   config: MoltNetConfig,
-  providers: SecretProviderRegistry,
-): Promise<CredentialPreflightReason> {
-  if ('client_secret' in config.oauth2 && config.oauth2.client_secret) {
-    return classifyCredentialPreflight({
-      binding: 'present',
-      requirementMatches: true,
-      resolutionBoundary: 'trusted-host',
-      destinationAllowed: true,
-      providerAvailable: true,
-      providerRead: 'succeeded',
-      valueFound: true,
-      delivery: 'succeeded',
-    });
+  environment: NodeJS.ProcessEnv,
+): CredentialPreflightReason {
+  const hasBinding =
+    ('client_secret' in config.oauth2 &&
+      Boolean(config.oauth2.client_secret)) ||
+    Boolean(config.oauth2.client_secret_ref);
+  if (!hasBinding) return 'required_binding_missing';
+
+  const deliveredClientId = environment.MOLTNET_CLIENT_ID?.trim();
+  if (
+    deliveredClientId &&
+    deliveredClientId !== config.oauth2.client_id.trim()
+  ) {
+    return 'binding_requirement_mismatch';
   }
-  const reference = config.oauth2.client_secret_ref;
-  if (!reference) return 'required_binding_missing';
-  const provider = providers.get(reference.provider);
-  if (!provider) {
-    return classifyCredentialPreflight({
-      binding: 'present',
-      requirementMatches: true,
-      resolutionBoundary: 'trusted-host',
-      destinationAllowed: true,
-      providerAvailable: false,
-    });
-  }
-  try {
-    const value = await provider.read(reference.key);
-    return classifyCredentialPreflight({
-      binding: 'present',
-      requirementMatches: true,
-      resolutionBoundary: 'trusted-host',
-      destinationAllowed: true,
-      providerAvailable: true,
-      providerRead: 'succeeded',
-      valueFound: value !== null && value !== '',
-      ...(value !== null && value !== '' && { delivery: 'succeeded' }),
-    });
-  } catch {
-    return classifyCredentialPreflight({
-      binding: 'present',
-      requirementMatches: true,
-      resolutionBoundary: 'trusted-host',
-      destinationAllowed: true,
-      providerAvailable: true,
-      providerRead: 'failed',
-    });
-  }
+  const deliveredSecret = environment.MOLTNET_CLIENT_SECRET?.trim();
+  if (!deliveredClientId || !deliveredSecret) return 'delivery_failed';
+
+  return classifyCredentialPreflight({
+    binding: 'present',
+    requirementMatches: true,
+    resolutionBoundary: 'trusted-host',
+    destinationAllowed: true,
+    providerAvailable: true,
+    providerRead: 'succeeded',
+    valueFound: true,
+    delivery: 'succeeded',
+  });
+}
+
+/** Keep launch-only MoltNet credentials out of the host Codex subprocess. */
+export function withoutBrokeredMoltNetSecrets(
+  environment: NodeJS.ProcessEnv,
+  brokeredClientSecret: string,
+): NodeJS.ProcessEnv {
+  return Object.fromEntries(
+    Object.entries(environment).filter(
+      ([name, value]) =>
+        name !== 'MOLTNET_AGENT_KEY' &&
+        !(name.endsWith('_CLIENT_SECRET') && value === brokeredClientSecret),
+    ),
+  );
 }
 
 /**

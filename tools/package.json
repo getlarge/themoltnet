@@ -90,7 +90,7 @@
         "cache": false,
         "executor": "nx:run-commands",
         "options": {
-          "command": "node --import tsx tools/src/codex-environment/probe.ts",
+          "command": "moltnet start node -- --import tsx tools/src/codex-environment/probe.ts",
           "cwd": "{workspaceRoot}"
         }
       }

@@ -2,7 +2,10 @@
 
 This private compatibility spike tests whether Codex can keep its App Server,
 authentication, model traffic, and host tools on the trusted host while running
-model-requested shell commands through an exec-server inside Gondolin.
+model-requested shell commands through an exec-server inside Gondolin. The
+probe also exercises purpose-bound host credential use: the guest can request a
+host-authenticated MoltNet identity check and Git signature without receiving
+the OAuth client secret or signing key.
 
 It does not introduce a public runtime contract. Codex's remote-environment API
 and `externalSandbox` policy remain experimental, so the retained result is
@@ -12,9 +15,13 @@ evidence for issue #1980 rather than a production compatibility promise.
 
 The probe currently pins Codex 0.149.0, Gondolin 0.12.0, a macOS ARM64 host,
 and a Linux ARM64 guest. The released host `codex` binary must match the pin.
-The probe downloads `@openai/codex@0.149.0-linux-arm64` into a temporary
-directory, verifies both binaries, performs one low-effort model turn, and
-deletes the binary and temporary workspace after the VM closes.
+The probe downloads `@openai/codex@0.149.0-linux-arm64`, cross-compiles the
+workspace CLI for the guest, verifies both Codex binaries, performs one
+low-effort model turn, and deletes the binaries and temporary workspace after
+the VM closes. The Nx target launches the Node probe through the released
+`moltnet start` command. The CLI—not Node—resolves the activated OAuth binding
+from the host secret provider before launch. Run the target from a host shell
+that permits the released CLI to access that provider.
 
 ```bash
 pnpm exec nx run @moltnet/tools:codex-environment-gondolin
@@ -36,7 +43,13 @@ A pass establishes that:
 
 - the Codex environment changes from pending to ready;
 - the model's command runs through the Linux guest exec-server;
+- the model's guest command invokes a boolean-only, host-authenticated
+  `whoami` capability after verifying the binding delivered by `moltnet start`;
+- `git commit -S` in the guest is signed by the operation-scoped host signer,
+  while an ungranted diary-signing operation is denied;
 - a host-only sentinel is absent from the guest environment;
+- no signing key, private-key file, or `.moltnet` credential directory is
+  projected into the guest;
 - no credential-shaped environment names appear in the guest;
 - closing the VM prevents a detached delayed write; and
 - the relay created exactly one guest exec-server for its WebSocket.
@@ -45,8 +58,10 @@ A pass establishes that:
 host-local operation. Only the model tool path exercises the selected remote
 environment.
 
-This result does not prove MoltNet signing, exact-origin HTTP credential
-delivery, or Docker cancellation. Those remain separately gated.
+This proves Codex compatibility with MoltNet's existing host-capability signing
+and host-authentication boundary. It does not prove generic exact-origin HTTP
+credential delivery, Docker cancellation, a public Codex adapter, or that guest
+code may read raw host secrets. Those remain separately gated.
 
 ## Credential preflight reasons
 
@@ -64,6 +79,7 @@ Credential failures must describe the boundary that actually failed:
 | `delivery_failed`              | Brokered delivery began and failed.                       |
 | `ready`                        | Preflight completed successfully.                         |
 
-The recurring Codex Seatbelt/macOS Keychain case is
-`host_store_inaccessible`. Calling it `binding_absent` or “secret missing”
-claims a successful Keychain lookup that never happened.
+The recurring Codex Seatbelt/macOS Keychain case is reported by `moltnet start`
+before Node launches. The Node probe never opens the Keychain. Calling a denied
+CLI lookup `binding_absent` or “secret missing” would claim a successful
+Keychain lookup that never happened.
