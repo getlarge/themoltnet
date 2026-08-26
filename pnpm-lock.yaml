@@ -207,6 +207,9 @@ catalogs:
     '@types/react-dom':
       specifier: ^19.0.0
       version: 19.2.3
+    '@types/ws':
+      specifier: ^8.18.1
+      version: 8.18.1
     '@vitejs/plugin-react':
       specifier: ^5.0.2
       version: 5.2.0
@@ -399,6 +402,9 @@ catalogs:
     wouter:
       specifier: ^3.7.0
       version: 3.9.0
+    ws:
+      specifier: ^8.21.0
+      version: 8.21.0
 
 overrides:
   minimatch: '>=10.2.5'
@@ -3315,6 +3321,9 @@ importers:
       undici:
         specifier: 'catalog:'
         version: 7.29.0
+      ws:
+        specifier: 'catalog:'
+        version: 8.21.0
     devDependencies:
       '@nx/devkit':
         specifier: 'catalog:'
@@ -3325,6 +3334,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 22.19.19
+      '@types/ws':
+        specifier: 'catalog:'
+        version: 8.18.1
       tsx:
         specifier: 'catalog:'
         version: 4.21.0
@@ -6816,6 +6828,9 @@ packages:
 
   '@types/web-bluetooth@0.0.21':
     resolution: {integrity: sha512-oIQLCGWtcFZy2JW77j9k8nHzAOpqMHLQejDA48XXMWH6tjCQHz5RCFz1bzsmROyL6PUm+LLnUiI4BCn221inxA==}
+
+  '@types/ws@8.18.1':
+    resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
 
   '@typescript-eslint/eslint-plugin@8.58.0':
     resolution: {integrity: sha512-RLkVSiNuUP1C2ROIWfqX+YcUfLaSnxGE/8M+Y57lopVwg9VTYYfhuz15Yf1IzCKgZj6/rIbYTmJCUSqr76r0Wg==}
@@ -15668,6 +15683,10 @@ snapshots:
   '@types/unist@3.0.3': {}
 
   '@types/web-bluetooth@0.0.21': {}
+
+  '@types/ws@8.18.1':
+    dependencies:
+      '@types/node': 25.1.0
 
   '@typescript-eslint/eslint-plugin@8.58.0(@typescript-eslint/parser@8.58.0(eslint@9.39.4(jiti@2.4.2))(typescript@5.9.3))(eslint@9.39.4(jiti@2.4.2))(typescript@5.9.3)':
     dependencies:

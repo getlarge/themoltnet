@@ -50,12 +50,14 @@
     "smol-toml": "catalog:",
     "tar": "catalog:",
     "typebox": "catalog:",
-    "undici": "catalog:"
+    "undici": "catalog:",
+    "ws": "catalog:"
   },
   "devDependencies": {
     "@nx/devkit": "catalog:",
     "@types/figlet": "^1.7.0",
     "@types/node": "catalog:",
+    "@types/ws": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
@@ -80,6 +82,14 @@
         "executor": "nx:run-commands",
         "options": {
           "command": "node --import tsx tools/src/sandbox-policy/gondolin-probe.ts",
+          "cwd": "{workspaceRoot}"
+        }
+      },
+      "codex-environment-gondolin": {
+        "cache": false,
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "node --import tsx tools/src/codex-environment/probe.ts",
           "cwd": "{workspaceRoot}"
         }
       }
