@@ -377,6 +377,28 @@ describe('createExecutionPlanCache', () => {
     expect(plan.slotKey).toBeNull();
     expect(plan.workspaceId).toBeNull();
 
+    rmSync(producerWorkspace, { recursive: true, force: true });
+    const ephemeralPlan = await cache.getOrCreate({
+      attemptN: 1,
+      task: {
+        id: '44444444-4444-4444-8444-444444444444',
+        teamId: TEAM_ID,
+        taskType: 'judge_eval_attempt',
+        correlationId: '55555555-5555-4555-8555-555555555555',
+        input: {
+          targetTaskId: '11111111-1111-4111-8111-111111111111',
+          targetAttemptN: 1,
+          successCriteria: { version: 1, rubric: null },
+        },
+      } as unknown as Task,
+    });
+
+    expect(ephemeralPlan.workspaceMode).toBe('scratch_mount');
+    expect(ephemeralPlan.workspaceSeed).toBeNull();
+    expect(ephemeralPlan.sessionPersistence?.forkFromSessionPath).toBe(
+      producerSessionPath,
+    );
+
     await slotStore.close();
   });
 

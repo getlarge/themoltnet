@@ -538,18 +538,22 @@ async function maybeAttachWarmSlotContext(
     );
   }
 
+  const producerWorkspaceCopySource = resolveProducerWorkspaceCopySource(
+    resolution.producerSlot,
+    stateDirs,
+  );
+
   return {
     ...basePlan,
     workspaceMode: 'scratch_mount',
     worktreeBranch: null,
     workspaceKind: 'scratch',
-    workspaceSeed: {
-      copyFromPath: resolveProducerWorkspaceCopySource(
-        resolution.producerSlot,
-        stateDirs,
-      ),
-      source: 'producer',
-    },
+    workspaceSeed: producerWorkspaceCopySource
+      ? {
+          copyFromPath: producerWorkspaceCopySource,
+          source: 'producer',
+        }
+      : null,
     sessionPersistence: {
       sessionDir: `${stateDirs.piSessionsDir}/judge-${claimedTask.task.id}-attempt-${claimedTask.attemptN}`,
       forkFromSessionPath: resolution.sessionPath,
@@ -629,7 +633,7 @@ function resolveProducerSessionPath(
 function resolveProducerWorkspaceCopySource(
   producer: ResolvedRuntimeSlotContext,
   stateDirs: DaemonStateDirs,
-): string {
+): string | null {
   const workspacePath = producer.workspace?.worktreePath ?? null;
   if (workspacePath) {
     if (existsSync(workspacePath)) {
@@ -637,6 +641,7 @@ function resolveProducerWorkspaceCopySource(
     }
     const recoveredPath = recoverScratchWorkspacePath(producer, stateDirs);
     if (recoveredPath) return recoveredPath;
+    if (isDisposableScratchWorkspace(producer, stateDirs)) return null;
     throw new ProducerContextResolutionError(
       `Producer workspace path is missing on disk: ${workspacePath}`,
     );
@@ -649,6 +654,18 @@ function resolveProducerWorkspaceCopySource(
     );
   }
   return sharedMountRoot;
+}
+
+function isDisposableScratchWorkspace(
+  producer: ResolvedRuntimeSlotContext,
+  stateDirs: DaemonStateDirs,
+): boolean {
+  if (producer.workspace?.kind === 'scratch') return true;
+  if (!producer.workspace?.workspaceId) return false;
+  return (
+    producer.workspace.worktreePath ===
+    join(stateDirs.rootDir, 'task-workspaces', producer.workspace.workspaceId)
+  );
 }
 
 function recoverScratchWorkspacePath(

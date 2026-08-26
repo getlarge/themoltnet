@@ -39,7 +39,7 @@ export function buildJudgeEvalAttemptUserPrompt(
   const header = [
     '# Judge Eval Attempt',
     '',
-    'You are grading one accepted `run_eval` producer attempt against a hidden',
+    'You are grading one accepted producer attempt against a hidden',
     'judge rubric. Do not delegate to subagents. Grade in this session only.',
     '',
     `Task id: \`${ctx.taskId}\``,

@@ -307,7 +307,7 @@ Do the thing"
 exports[`prompt snapshots (assembler refactor pin) > judge_eval_attempt — attached scratch_mount 1`] = `
 "# Judge Eval Attempt
 
-You are grading one accepted \`run_eval\` producer attempt against a hidden
+You are grading one accepted producer attempt against a hidden
 judge rubric. Do not delegate to subagents. Grade in this session only.
 
 Task id: \`t-1\`

@@ -1,6 +1,6 @@
 /**
- * `judge_eval_attempt` — score one completed `run_eval` attempt against a
- * hidden judge rubric.
+ * `judge_eval_attempt` — score one completed artifact-producing attempt
+ * against a hidden judge rubric.
  *
  * output_kind: judgment
  * criteria: required (`successCriteria.rubric`)
@@ -33,8 +33,8 @@ export const JudgeEvalAttemptInput = Type.Object(
     targetTaskId: Type.String({ format: 'uuid' }),
     targetAttemptN: Type.Integer({ minimum: 1 }),
     /**
-     * Hidden judge rubric. Producer `run_eval` tasks may carry their own
-     * rubric-free `successCriteria`, but only the judge sees this scoring key.
+     * Hidden judge rubric. Producer tasks may carry their own rubric-free
+     * `successCriteria`, but only the judge sees this scoring key.
      */
     successCriteria: SuccessCriteriaSchema,
   },
@@ -172,10 +172,12 @@ export async function validateJudgeEvalAttemptInputAsync(
     ];
   }
 
-  if (target.taskType !== 'run_eval') {
+  if (target.outputKind !== 'artifact') {
     errors.push({
       field: 'targetTaskId',
-      message: `targetTaskId=${inp.targetTaskId} is a ${target.taskType}, not a run_eval`,
+      message:
+        `targetTaskId=${inp.targetTaskId} has outputKind=${target.outputKind}; ` +
+        'only artifact-producing tasks can be judged',
     });
   }
 
@@ -205,7 +207,7 @@ export async function validateJudgeEvalAttemptInputAsync(
     errors.push({
       field: 'targetTaskId',
       message:
-        'target run_eval has no correlation_id; cannot enforce duplicate-judge protection',
+        'target producer has no correlation_id; cannot enforce duplicate-judge protection',
     });
   }
 

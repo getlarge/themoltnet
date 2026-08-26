@@ -335,6 +335,7 @@ describe('buildDaemonTaskExecutionPlan', () => {
     );
 
     expect(out.workspaceMode).toBe('scratch_mount');
+    expect(out.workspaceKind).toBe('scratch');
     expect(out.worktreeBranch).toBeNull();
     expect(out.workspaceScope).toBe('attempt');
     expect(out.workspaceId).toBe(
