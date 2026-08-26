@@ -3,8 +3,8 @@
  *
  * Sweeps the committed `evals-v2/` corpus across the producer models in `MODELS`
  * (comma-separated; default a single model), applies the stage-1 deterministic
- * gates, then scores gate-passing run_eval attempts with a single PINNED judge
- * model. Emits `score-matrix.json`.
+ * gates, then scores every gate-passing producer attempt with a single PINNED
+ * judge model. Emits `score-matrix.json`.
  *
  * NOT a per-PR gate — it is gated behind `MOLTNET_EVAL_MATRIX=1` and driven by
  * the scheduled `eval-matrix.yml` workflow, which fans out one runner per model
@@ -12,11 +12,9 @@
  * `tsx` script) so it resolves the workspace's source-direct exports the same
  * way the rest of the suite does.
  *
- * Judge caveat: `judge_eval_attempt` only accepts `run_eval` targets, so freeform
- * scenarios are GATE-scored (composite = 1 when gates pass, judge skipped) until
- * a freeform-capable judge exists. WARM-SLOT: the judge resolves the producer's
- * runtime slot from the DB, so it survives across the two `runOnce` calls as long
- * as the producer slot has not expired (long `--warm-session-ttl-sec`).
+ * WARM-SLOT: the judge resolves the producer's runtime slot from the DB, so it
+ * survives across the two `runOnce` calls as long as the producer slot has not
+ * expired (long `--warm-session-ttl-sec`).
  */
 import { randomUUID } from 'node:crypto';
 import { mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -256,11 +254,6 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
           taskType: scenario.taskType,
         }),
       runJudge: async (scenario, producer) => {
-        // judge_eval_attempt only accepts run_eval targets. For freeform,
-        // gate-pass is the score (composite 1); a freeform judge is future work.
-        if (scenario.taskType !== 'run_eval') {
-          return { composite: 1 };
-        }
         const judgeTask = await agent.tasks.create(
           agent.tasks
             .buildJudgeEvalAttempt(
@@ -274,6 +267,9 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
             .maxAttempts(1)
             .team(teamId)
             .build(),
+        );
+        console.log(
+          `[eval-matrix] judge task=${judgeTask.id} scenario=${scenario.slug}`,
         );
         await runTaskOnce({
           agentName,

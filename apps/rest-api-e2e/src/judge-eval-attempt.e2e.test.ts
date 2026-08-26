@@ -1,12 +1,14 @@
 /**
- * E2E: judge_eval_attempt duplicate protection
+ * E2E: judge_eval_attempt producer validation and duplicate protection
  *
  * Verifies the production behavior of the per-attempt eval-judge
  * uniqueness guard end-to-end against the Docker stack:
  *
- * 1. Two concurrent `judge_eval_attempt` creates against the same
+ * 1. A completed freeform artifact producer can be judged.
+ * 2. A judgment-producing task cannot itself be judged.
+ * 3. Two concurrent `judge_eval_attempt` creates against the same
  *    producer attempt + rubric identity -> exactly one wins.
- * 2. A subsequent sequential create against the same producer attempt
+ * 4. A subsequent sequential create against the same producer attempt
  *    -> rejected by the preflight duplicate validator.
  */
 
@@ -185,6 +187,99 @@ describe('judge_eval_attempt duplicate protection', () => {
     );
   }
 
+  async function proposeFreeform(
+    correlationId: string,
+  ): Promise<{ id: string; inputCid: string }> {
+    const { data, error } = await createTask({
+      client,
+      auth: () => proposer.accessToken,
+      headers: { 'x-moltnet-team-id': proposer.personalTeamId },
+      body: {
+        taskType: 'freeform',
+        diaryId: proposer.privateDiaryId,
+        correlationId,
+        input: { brief: 'Produce a faithful summary and merge verdict.' },
+      },
+    });
+    expect(error).toBeUndefined();
+
+    await grantAgentTaskWriter({
+      accessToken: proposer.accessToken,
+      client,
+      subjectId: claimer.identityId,
+      taskId: data!.id,
+      teamId: proposer.personalTeamId,
+    });
+
+    return { id: data!.id, inputCid: data!.inputCid };
+  }
+
+  async function completeFreeform(task: {
+    id: string;
+    inputCid: string;
+  }): Promise<void> {
+    const { data: claimed, error: claimErr } = await pollUntilStatus(
+      () =>
+        claimTask({
+          client,
+          auth: () => claimer.accessToken,
+          headers: { 'x-moltnet-team-id': proposer.personalTeamId },
+          path: { id: task.id },
+          body: { leaseTtlSec: 60 },
+        }),
+      200,
+      { label: `claim freeform task ${task.id} as explicit writer` },
+    );
+    expect(claimErr).toBeUndefined();
+    const attemptN = claimed!.attempt.attemptN;
+
+    await taskHeartbeat({
+      client,
+      auth: () => claimer.accessToken,
+      headers: { 'x-moltnet-team-id': proposer.personalTeamId },
+      path: { id: task.id, n: attemptN },
+      body: { leaseTtlSec: 60 },
+    });
+
+    const output = {
+      summary: 'The producer completed the requested freeform evaluation.',
+      verification: {
+        inputCid: task.inputCid,
+        results: [],
+        passed: true,
+      },
+    };
+    const outputCid = await computeJsonCid(output);
+    const { error: completeErr } = await completeTask({
+      client,
+      auth: () => claimer.accessToken,
+      headers: { 'x-moltnet-team-id': proposer.personalTeamId },
+      path: { id: task.id, n: attemptN },
+      body: {
+        output,
+        outputCid,
+        usage: { model: 'test-model', inputTokens: 5, outputTokens: 5 },
+      },
+    });
+    expect(completeErr).toBeUndefined();
+
+    await pollUntil(
+      async () => {
+        const { data } = await getTask({
+          client,
+          auth: () => proposer.accessToken,
+          headers: { 'x-moltnet-team-id': proposer.personalTeamId },
+          path: { id: task.id },
+        });
+        return data!;
+      },
+      (producer) =>
+        producer.status === 'completed' &&
+        producer.acceptedAttemptN === attemptN,
+      { label: `freeform.accepted[${task.id.slice(0, 8)}]`, maxAttempts: 30 },
+    );
+  }
+
   async function setupCompletedProducer(): Promise<{
     correlationId: string;
     runTaskId: string;
@@ -195,18 +290,60 @@ describe('judge_eval_attempt duplicate protection', () => {
     return { correlationId, runTaskId: runTask.id };
   }
 
-  function judgeBody(correlationId: string, runTaskId: string) {
+  function judgeBody(correlationId: string, producerTaskId: string) {
     return {
       taskType: 'judge_eval_attempt',
       diaryId: proposer.privateDiaryId,
       correlationId,
       input: {
-        targetTaskId: runTaskId,
+        targetTaskId: producerTaskId,
         targetAttemptN: 1,
         successCriteria: judgeSuccessCriteria,
       },
     };
   }
+
+  it('creates a judge for a completed freeform artifact producer', async () => {
+    const correlationId = crypto.randomUUID();
+    const producer = await proposeFreeform(correlationId);
+    await completeFreeform(producer);
+
+    const judge = await createTask({
+      client,
+      auth: () => proposer.accessToken,
+      headers: { 'x-moltnet-team-id': proposer.personalTeamId },
+      body: judgeBody(correlationId, producer.id),
+    });
+
+    expect(judge.error).toBeUndefined();
+    expect(judge.response.status).toBe(201);
+    expect(judge.data!.taskType).toBe('judge_eval_attempt');
+  });
+
+  it('rejects a judgment-producing task as the judge target', async () => {
+    const correlationId = crypto.randomUUID();
+    const producer = await proposeFreeform(correlationId);
+    await completeFreeform(producer);
+    const firstJudge = await createTask({
+      client,
+      auth: () => proposer.accessToken,
+      headers: { 'x-moltnet-team-id': proposer.personalTeamId },
+      body: judgeBody(correlationId, producer.id),
+    });
+    expect(firstJudge.response.status).toBe(201);
+
+    const nestedJudge = await createTask({
+      client,
+      auth: () => proposer.accessToken,
+      headers: { 'x-moltnet-team-id': proposer.personalTeamId },
+      body: judgeBody(correlationId, firstJudge.data!.id),
+    });
+
+    expect(nestedJudge.response.status).toBe(400);
+    expect(JSON.stringify(nestedJudge.error)).toMatch(
+      /only artifact-producing tasks can be judged/,
+    );
+  });
 
   it('keeps a conditional judge task waiting until all promised run evals are accepted', async () => {
     const firstCorrelationId = crypto.randomUUID();

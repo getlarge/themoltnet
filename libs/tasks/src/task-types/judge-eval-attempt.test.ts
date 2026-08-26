@@ -151,16 +151,42 @@ describe('validateJudgeEvalAttemptInput', () => {
 });
 
 describe('validateJudgeEvalAttemptInputAsync', () => {
-  it('passes when target resolves and no duplicate exists', async () => {
+  it.each([
+    ['run_eval', 'run_eval'],
+    ['freeform', 'freeform'],
+  ] as const)(
+    'passes for a completed %s artifact target when no duplicate exists',
+    async (_label, taskType) => {
+      const target = targetTask({ taskType, outputKind: 'artifact' });
+      const errors = await validateJudgeEvalAttemptInputAsync(
+        {
+          targetTaskId: TARGET_TASK,
+          targetAttemptN: 1,
+          successCriteria: rubric(),
+        },
+        makeCtx({ target, siblings: [target] }),
+      );
+      expect(errors).toEqual([]);
+    },
+  );
+
+  it('rejects judgment-producing targets', async () => {
     const errors = await validateJudgeEvalAttemptInputAsync(
       {
         targetTaskId: TARGET_TASK,
         targetAttemptN: 1,
         successCriteria: rubric(),
       },
-      makeCtx({ siblings: [targetTask()] }),
+      makeCtx({
+        target: targetTask({
+          taskType: 'judge_eval_attempt',
+          outputKind: 'judgment',
+        }),
+      }),
     );
-    expect(errors).toEqual([]);
+    expect(
+      errors.some((e) => /only artifact-producing tasks/.test(e.message)),
+    ).toBe(true);
   });
 
   it('rejects when target attempt does not match accepted attempt', async () => {
@@ -173,6 +199,38 @@ describe('validateJudgeEvalAttemptInputAsync', () => {
       makeCtx(),
     );
     expect(errors.some((e) => /acceptedAttemptN=1/.test(e.message))).toBe(true);
+  });
+
+  it('rejects an incomplete producer', async () => {
+    const errors = await validateJudgeEvalAttemptInputAsync(
+      {
+        targetTaskId: TARGET_TASK,
+        targetAttemptN: 1,
+        successCriteria: rubric(),
+      },
+      makeCtx({
+        target: targetTask({ status: 'running', acceptedAttemptN: null }),
+      }),
+    );
+    expect(
+      errors.some((e) => /not completed with an accepted/.test(e.message)),
+    ).toBe(true);
+  });
+
+  it('rejects a producer without correlation', async () => {
+    const errors = await validateJudgeEvalAttemptInputAsync(
+      {
+        targetTaskId: TARGET_TASK,
+        targetAttemptN: 1,
+        successCriteria: rubric(),
+      },
+      makeCtx({ target: targetTask({ correlationId: null }) }),
+    );
+    expect(
+      errors.some((e) =>
+        /target producer has no correlation_id/.test(e.message),
+      ),
+    ).toBe(true);
   });
 
   it('rejects duplicate judges for the same target attempt and rubric identity', async () => {

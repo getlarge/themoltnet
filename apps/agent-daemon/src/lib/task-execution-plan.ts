@@ -93,6 +93,7 @@ export function buildDaemonTaskExecutionPlan(
   return {
     descriptor,
     workspaceMode,
+    workspaceKind: workspaceMode === 'scratch_mount' ? 'scratch' : undefined,
     sessionKey: slotId,
     slotKey,
     slotId,
