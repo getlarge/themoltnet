@@ -1,0 +1,46 @@
+{
+  "cleanupComplete": true,
+  "codexPackage": {
+    "integrity": "sha512-fAXPpvIob+11RNZJS9CVVTsKb+V4Hw3woGFPj42D7fU2wBJUKI2jfAc4fLJNtrpwRecLeW601mtkMHOSIbWuuA==",
+    "specifier": "@openai/codex@0.149.0-linux-arm64"
+  },
+  "execution": {
+    "commandCompleted": true,
+    "commandExitCode": 0,
+    "commandStarted": true,
+    "guestExecutorMarker": "guest-exec-server",
+    "guestOsMarker": "Linux",
+    "turnCompleted": true
+  },
+  "gondolinVersion": "0.12.0",
+  "guest": {
+    "architecture": "arm64",
+    "codexVersion": "0.149.0",
+    "os": "linux"
+  },
+  "host": {
+    "architecture": "arm64",
+    "codexVersion": "0.149.0",
+    "os": "darwin"
+  },
+  "isolation": {
+    "credentialShapedEnvironmentNames": [],
+    "delayedMarkerAfterVmClose": false,
+    "hostOnlySentinelProjected": false
+  },
+  "limitations": [
+    "Does not prove MoltNet host-capability signing through Codex.",
+    "Does not prove exact-origin HTTP credential delivery.",
+    "Does not establish Docker compatibility.",
+    "Uses experimental Codex remote-environment interfaces."
+  ],
+  "model": "gpt-5.6-luna",
+  "probe": "codex-gondolin-compatibility",
+  "schemaVersion": 1,
+  "sourceRevision": "eeaa2c697de3c2736f00282da65b9af9cd375f23",
+  "transport": {
+    "environmentStatusAfterConnect": "ready",
+    "environmentStatusBeforeConnect": "pending",
+    "relayConnectionCount": 1
+  }
+}
