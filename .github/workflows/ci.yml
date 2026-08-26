@@ -439,6 +439,8 @@ jobs:
         run: pnpm run check:quickstart
       - name: Check Vite package aliases
         run: pnpm run check:vite-aliases
+      - name: Check Axiom configuration
+        run: pnpm run check:axiom
       - name: Check formatting
         run: pnpm exec nx format:check
 

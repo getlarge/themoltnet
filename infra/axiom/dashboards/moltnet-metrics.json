@@ -3,7 +3,7 @@
     {
       "id": "overview",
       "name": "How to use this dashboard",
-      "text": "Use this dashboard for request rate, latency, event loop pressure, and heap pressure. Logs and traces live in the MoltNet Traces and Logs dashboard.",
+      "text": "Use this dashboard for request volume, runtime pressure, and remote authentication health. The custom public-OTLP Collector is not deployed by this repository, so Collector-only moltnet.auth.*, moltnet.attribution.*, and otelcol_* panels stay out until those metrics exist in Axiom. Logs and traces live in the MoltNet Traces and Logs dashboard.",
       "type": "Note"
     },
     {
@@ -95,90 +95,26 @@
       "type": "TimeSeries"
     },
     {
-      "id": "otlp-auth-provider-outcomes",
-      "name": "Public OTLP auth provider outcomes",
+      "id": "auth-upstream-outcomes",
+      "name": "Remote auth upstream outcomes",
       "query": {
-        "mpl": "`moltnet-metrics`:`moltnet.auth.provider.requests`\n| align to 1m using prom::rate\n| group by `operation`, `outcome` using sum"
+        "mpl": "`moltnet-metrics`:`auth.remote.upstream.requests`\n| align to 1m using prom::rate\n| group by `operation`, `outcome`, `service.name` using sum"
       },
       "type": "TimeSeries"
     },
     {
-      "id": "otlp-auth-provider-latency",
-      "name": "Public OTLP auth provider latency",
+      "id": "auth-cache-accesses",
+      "name": "Remote auth cache accesses",
       "query": {
-        "mpl": "`moltnet-metrics`:`moltnet.auth.provider.duration`\n| bucket by `operation`, `outcome` to 5m using interpolate_cumulative_histogram(rate, 0.50, 0.95, 0.99)"
+        "mpl": "`moltnet-metrics`:`auth.remote.cache.accesses`\n| align to 1m using prom::rate\n| group by `result`, `service.name` using sum"
       },
       "type": "TimeSeries"
     },
     {
-      "id": "otlp-auth-cache",
-      "name": "Public OTLP auth cache accesses",
+      "id": "auth-cache-entries",
+      "name": "Remote auth cache entries",
       "query": {
-        "mpl": "`moltnet-metrics`:`moltnet.auth.cache.accesses`\n| align to 1m using prom::rate\n| group by `credential_type`, `result` using sum"
-      },
-      "type": "TimeSeries"
-    },
-    {
-      "id": "otlp-auth-cache-evictions",
-      "name": "Public OTLP auth cache evictions",
-      "query": {
-        "mpl": "`moltnet-metrics`:`moltnet.auth.cache.evictions`\n| align to 1m using prom::rate\n| group by `reason` using sum"
-      },
-      "type": "TimeSeries"
-    },
-    {
-      "id": "otlp-throttle-attribution",
-      "name": "Public OTLP throttling",
-      "query": {
-        "mpl": "`moltnet-metrics`:`moltnet.auth.throttled.requests`\n| align to 1m using prom::rate\n| group by `stage` using sum"
-      },
-      "type": "TimeSeries"
-    },
-    {
-      "id": "otlp-attribution-conflicts",
-      "name": "Public OTLP attribution conflicts",
-      "query": {
-        "mpl": "`moltnet-metrics`:`moltnet.attribution.conflicts`\n| align to 1m using prom::rate\n| group by `signal` using sum"
-      },
-      "type": "TimeSeries"
-    },
-    {
-      "id": "otlp-auth-rejections",
-      "name": "Public OTLP authentication rejections",
-      "query": {
-        "mpl": "`moltnet-metrics`:`moltnet.auth.rejected.requests`\n| align to 1m using prom::rate\n| group by `reason` using sum"
-      },
-      "type": "TimeSeries"
-    },
-    {
-      "id": "otlp-attribution-rejections",
-      "name": "Public OTLP attribution rejections",
-      "query": {
-        "mpl": "`moltnet-metrics`:`moltnet.attribution.rejected`\n| align to 1m using prom::rate\n| group by `signal` using sum"
-      },
-      "type": "TimeSeries"
-    },
-    {
-      "id": "otlp-span-export-failures",
-      "name": "Collector span export failures",
-      "query": {
-        "mpl": "`moltnet-metrics`:`otelcol_exporter_send_failed_spans`\n| align to 1m using prom::rate\n| group by `otelcol.component.id` using sum"
-      },
-      "type": "TimeSeries"
-    },
-    {
-      "id": "otlp-log-export-failures",
-      "name": "Collector log export failures",
-      "query": {
-        "mpl": "`moltnet-metrics`:`otelcol_exporter_send_failed_log_records`\n| align to 1m using prom::rate\n| group by `otelcol.component.id` using sum"
-      },
-      "type": "TimeSeries"
-    },
-    {
-      "id": "otlp-metric-export-failures",
-      "name": "Collector metric export failures",
-      "query": {
-        "mpl": "`moltnet-metrics`:`otelcol_exporter_send_failed_metric_points`\n| align to 1m using prom::rate\n| group by `otelcol.component.id` using sum"
+        "mpl": "`moltnet-metrics`:`auth.remote.cache.entries`\n| align to 1m using last\n| group by `service.name` using sum"
       },
       "type": "TimeSeries"
     }
@@ -309,7 +245,7 @@
     },
     {
       "h": 5,
-      "i": "otlp-auth-provider-outcomes",
+      "i": "auth-upstream-outcomes",
       "minH": 1,
       "minW": 1,
       "moved": false,
@@ -320,7 +256,7 @@
     },
     {
       "h": 5,
-      "i": "otlp-auth-provider-latency",
+      "i": "auth-cache-accesses",
       "minH": 1,
       "minW": 1,
       "moved": false,
@@ -331,102 +267,14 @@
     },
     {
       "h": 5,
-      "i": "otlp-auth-cache",
+      "i": "auth-cache-entries",
       "minH": 1,
       "minW": 1,
       "moved": false,
       "static": false,
-      "w": 6,
+      "w": 12,
       "x": 0,
       "y": 25
-    },
-    {
-      "h": 5,
-      "i": "otlp-throttle-attribution",
-      "minH": 1,
-      "minW": 1,
-      "moved": false,
-      "static": false,
-      "w": 6,
-      "x": 6,
-      "y": 25
-    },
-    {
-      "h": 5,
-      "i": "otlp-span-export-failures",
-      "minH": 1,
-      "minW": 1,
-      "moved": false,
-      "static": false,
-      "w": 6,
-      "x": 0,
-      "y": 30
-    },
-    {
-      "h": 5,
-      "i": "otlp-attribution-conflicts",
-      "minH": 1,
-      "minW": 1,
-      "moved": false,
-      "static": false,
-      "w": 6,
-      "x": 6,
-      "y": 30
-    },
-    {
-      "h": 5,
-      "i": "otlp-log-export-failures",
-      "minH": 1,
-      "minW": 1,
-      "moved": false,
-      "static": false,
-      "w": 6,
-      "x": 0,
-      "y": 35
-    },
-    {
-      "h": 5,
-      "i": "otlp-metric-export-failures",
-      "minH": 1,
-      "minW": 1,
-      "moved": false,
-      "static": false,
-      "w": 6,
-      "x": 6,
-      "y": 35
-    },
-    {
-      "h": 5,
-      "i": "otlp-auth-cache-evictions",
-      "minH": 1,
-      "minW": 1,
-      "moved": false,
-      "static": false,
-      "w": 6,
-      "x": 0,
-      "y": 40
-    },
-    {
-      "h": 5,
-      "i": "otlp-auth-rejections",
-      "minH": 1,
-      "minW": 1,
-      "moved": false,
-      "static": false,
-      "w": 6,
-      "x": 6,
-      "y": 40
-    },
-    {
-      "h": 5,
-      "i": "otlp-attribution-rejections",
-      "minH": 1,
-      "minW": 1,
-      "moved": false,
-      "static": false,
-      "w": 6,
-      "x": 0,
-      "y": 45
     }
   ],
   "name": "MoltNet Metrics",

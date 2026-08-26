@@ -1,0 +1,16 @@
+{
+  "alertOnNoData": true,
+  "aplQuery": "['moltnet-logs']\n| where ['service.name'] == \"moltnet-mcp-server\"\n| summarize events = count()",
+  "description": "No MCP server logs reached Axiom during the evaluation window. Verify service health and the OTLP export path before trusting otherwise quiet monitors.",
+  "intervalMinutes": 5,
+  "name": "MoltNet MCP server telemetry freshness",
+  "notifierIds": [],
+  "notifyByGroup": false,
+  "operator": "Below",
+  "rangeMinutes": 10,
+  "resolvable": true,
+  "threshold": 1,
+  "triggerAfterNPositiveResults": 2,
+  "triggerFromNRuns": 3,
+  "type": "Threshold"
+}

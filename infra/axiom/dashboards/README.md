@@ -13,7 +13,11 @@ AXIOM_API_TOKEN=xaat-... node infra/axiom/dashboards/apply.mjs
 Dashboard notes:
 
 - Logs/traces charts use APL under `query.apl`.
+- APL selects `moltnet-logs` or `moltnet-traces` explicitly; there is no
+  combined `moltnet` dataset.
 - Metrics charts use MPL under `query.mpl`.
+- Only chart metrics that are currently ingested. Collector-only metrics remain
+  out of dashboards until the custom Collector is deployed.
 - Do not add legacy metric chart fields such as `metricsDataset`,
   `metricsMetric`, `queryOptions`, chart `datasetId`, or chart `numSeries`.
   UI exports may include them, but the public API write path is cleaner and more

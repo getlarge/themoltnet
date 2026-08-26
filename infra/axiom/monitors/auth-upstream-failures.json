@@ -1,0 +1,16 @@
+{
+  "alertOnNoData": false,
+  "description": "Remote authentication upstream calls are being rate-limited or are unavailable. Inspect the grouped operation/outcome and verify Hydra, Talos, and Kratos health before changing cache or retry policy.",
+  "intervalMinutes": 5,
+  "mplQuery": "`moltnet-metrics`:`auth.remote.upstream.requests`\n| where `outcome` == \"rate_limited\" or `outcome` == \"unavailable\"\n| align to 1m using prom::rate\n| group by `operation`, `outcome`, `service.name` using sum",
+  "name": "MoltNet remote auth upstream failures",
+  "notifierIds": [],
+  "notifyByGroup": true,
+  "operator": "Above",
+  "rangeMinutes": 10,
+  "resolvable": true,
+  "threshold": 0,
+  "triggerAfterNPositiveResults": 2,
+  "triggerFromNRuns": 3,
+  "type": "Threshold"
+}

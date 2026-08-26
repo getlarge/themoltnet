@@ -21,6 +21,7 @@ import { dirname, join } from 'node:path';
  * @property {string} label                       Plural noun for messages, e.g. "dashboard".
  * @property {string} scope                        Token scope hint for the missing-token error.
  * @property {(args: {def: object, file: string}) => string} nameOf  Extract the display name.
+ * @property {(defs: {def: object, file: string}[]) => void} [validate]
  * @property {(args: {defs: {def: object, file: string}[], api: ApiClient}) => Promise<ResourcePlan[]>} plan
  *           Build the per-resource apply plan (existence probing happens here so each
  *           resource type can use its own strategy — GET-by-uid vs list-and-match).
@@ -118,6 +119,14 @@ export async function run(
 
   if (defs.length === 0) {
     console.log(`No ${config.label} definitions found in ${scriptDir}.`);
+    return;
+  }
+
+  try {
+    config.validate?.(defs);
+  } catch (err) {
+    console.error(`FATAL: ${err.message}`);
+    process.exitCode = 1;
     return;
   }
 

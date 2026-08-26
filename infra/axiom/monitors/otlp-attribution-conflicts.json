@@ -1,6 +1,8 @@
 {
   "alertOnNoData": false,
   "description": "Public OTLP clients attempted to supply an agent identity different from the authenticated principal. The Collector overwrites it; inspect by signal without adding identity values to telemetry.",
+  "disabledReason": "The custom public-OTLP Collector is not deployed by this repository and moltnet.attribution.conflicts is absent from Axiom.",
+  "enabled": false,
   "intervalMinutes": 10,
   "mplQuery": "`moltnet-metrics`:`moltnet.attribution.conflicts`\n| align to 5m using prom::increase\n| group by `signal` using sum",
   "name": "MoltNet public OTLP attribution conflicts",

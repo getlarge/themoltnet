@@ -1,0 +1,16 @@
+{
+  "alertOnNoData": true,
+  "aplQuery": "['moltnet-logs']\n| where body == \"maintenance: DBOS workflow retention complete\"\n| where ['attributes.batchFull'] == true\n| summarize saturated_runs = count()",
+  "description": "The DBOS terminal-workflow retention sweeper filled its 1,000-workflow batch for at least six runs in the last six hours. The sweeper may be healthy but behind. Inspect deleted/examined throughput and database capacity before changing TTL or batch size.",
+  "intervalMinutes": 60,
+  "name": "MoltNet DBOS retention backlog",
+  "notifierIds": [],
+  "notifyByGroup": false,
+  "operator": "AboveOrEqual",
+  "rangeMinutes": 370,
+  "resolvable": true,
+  "threshold": 6,
+  "triggerAfterNPositiveResults": 1,
+  "triggerFromNRuns": 1,
+  "type": "Threshold"
+}

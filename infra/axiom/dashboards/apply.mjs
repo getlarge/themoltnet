@@ -23,6 +23,7 @@
 //
 // The token needs dashboard read+write scope. Do NOT commit it.
 import { run } from '../lib/axiom-apply.mjs';
+import { validateResources } from '../lib/validate.mjs';
 
 function assertNoApiUnsupportedMetricFilters({ defs }) {
   const unsupported = [];
@@ -59,6 +60,7 @@ run(
     label: 'dashboard',
     scope: 'dashboard read+write scope',
     nameOf: ({ def }) => def.name,
+    validate: (defs) => validateResources('dashboard', defs),
     async plan({ defs, api }) {
       assertNoApiUnsupportedMetricFilters({ defs });
 
