@@ -1,6 +1,7 @@
 import { homedir } from 'node:os';
 
-import { stableJson } from './evidence.js';
+import { stableJson, validateProbeRun } from './evidence.js';
+import type { SandboxProbeRun } from './types.js';
 
 export interface SanitizeOptions {
   machinePaths?: string[];
@@ -25,6 +26,18 @@ const POSIX_HOME_PATTERN =
 const WINDOWS_HOME_PATTERN =
   /[A-Za-z]:\\Users\\[^\\\s"']+(?:\\|(?=$|[\s"',)}\]]))/i;
 const REDACTED_DIAGNOSTIC = '<redacted sensitive diagnostic>';
+const REDACTED_SENTINEL = '<redacted synthetic credential>';
+
+interface SanitizationReport {
+  sensitiveValueHits: number;
+}
+
+class SensitiveValueLeakError extends Error {
+  constructor() {
+    super('refusing to persist a synthetic credential sentinel');
+    this.name = 'SensitiveValueLeakError';
+  }
+}
 
 function replaceAllLiteral(value: string, from: string, to: string): string {
   return from === '' ? value : value.split(from).join(to);
@@ -46,7 +59,11 @@ function sensitiveRepresentations(value: string): string[] {
   ];
 }
 
-function sanitizeString(input: string, options: SanitizeOptions): string {
+function sanitizeString(
+  input: string,
+  options: SanitizeOptions,
+  report?: SanitizationReport,
+): string {
   let output = input;
   const machinePaths = new Set([homedir(), ...(options.machinePaths ?? [])]);
   for (const machinePath of [...machinePaths].sort(
@@ -58,10 +75,12 @@ function sanitizeString(input: string, options: SanitizeOptions): string {
     output = replaceAllLiteral(output, from, to);
   }
   for (const sensitive of options.sensitiveValues ?? []) {
-    if (
-      sensitiveRepresentations(sensitive).some((form) => output.includes(form))
-    ) {
-      throw new Error('refusing to persist a synthetic credential sentinel');
+    for (const form of sensitiveRepresentations(sensitive)) {
+      if (!output.includes(form)) continue;
+      if (!report) throw new SensitiveValueLeakError();
+      const hits = output.split(form).length - 1;
+      report.sensitiveValueHits += hits;
+      output = replaceAllLiteral(output, form, REDACTED_SENTINEL);
     }
   }
   if (PRIVATE_KEY_PATTERN.test(output)) {
@@ -76,8 +95,12 @@ function sanitizeString(input: string, options: SanitizeOptions): string {
   return output;
 }
 
-function sanitizeValue(value: unknown, options: SanitizeOptions): unknown {
-  if (typeof value === 'string') return sanitizeString(value, options);
+function sanitizeValue(
+  value: unknown,
+  options: SanitizeOptions,
+  report?: SanitizationReport,
+): unknown {
+  if (typeof value === 'string') return sanitizeString(value, options, report);
   if (
     value === null ||
     typeof value === 'boolean' ||
@@ -86,7 +109,7 @@ function sanitizeValue(value: unknown, options: SanitizeOptions): unknown {
     return value;
   }
   if (Array.isArray(value)) {
-    return value.map((item) => sanitizeValue(item, options));
+    return value.map((item) => sanitizeValue(item, options, report));
   }
   if (typeof value === 'object') {
     const prototype = Object.getPrototypeOf(value);
@@ -95,8 +118,8 @@ function sanitizeValue(value: unknown, options: SanitizeOptions): unknown {
     }
     return Object.fromEntries(
       Object.entries(value as Record<string, unknown>).map(([key, child]) => [
-        sanitizeString(key, options),
-        sanitizeValue(child, options),
+        sanitizeString(key, options, report),
+        sanitizeValue(child, options, report),
       ]),
     );
   }
@@ -113,10 +136,12 @@ export function sanitizeText(
 export function sanitizeDiagnostic(
   input: string,
   options: SanitizeOptions = {},
+  onSensitiveValue?: () => void,
 ): string {
   try {
     return sanitizeString(input, options);
-  } catch {
+  } catch (error) {
+    if (error instanceof SensitiveValueLeakError) onSensitiveValue?.();
     return REDACTED_DIAGNOSTIC;
   }
 }
@@ -126,4 +151,58 @@ export function sanitizeForPersistence(
   options: SanitizeOptions = {},
 ): string {
   return stableJson(sanitizeValue(value, options));
+}
+
+/**
+ * Validate the complete value-free run before promoting the persistence
+ * scenario. The adapter cannot prove this control while it is still producing
+ * evidence; the persistence boundary is the first place with the whole value.
+ */
+export function sanitizeProbeRunForPersistence(
+  run: SandboxProbeRun,
+  options: SanitizeOptions = {},
+): string {
+  const report: SanitizationReport = { sensitiveValueHits: 0 };
+  const persistedRun = sanitizeValue(
+    structuredClone(run),
+    options,
+    report,
+  ) as SandboxProbeRun;
+  const evidenceLeak = persistedRun.controls.find(
+    (control) => control.scenarioId === 'credential.evidence-leak',
+  );
+  if (evidenceLeak) {
+    const registeredSensitiveValues = options.sensitiveValues?.length ?? 0;
+    const observedLeaks =
+      report.sensitiveValueHits + persistedRun.sensitiveDiagnosticRedactions;
+    const passed = registeredSensitiveValues > 0 && observedLeaks === 0;
+    evidenceLeak.state = passed ? 'enforced' : 'failed-open';
+    delete evidenceLeak.unsupportedKind;
+    evidenceLeak.basis = 'harness-observed';
+    evidenceLeak.enforcementLocus = ['research-harness'];
+    evidenceLeak.oracle = {
+      attestedBy: 'harness',
+      kind: 'persisted-sensitive-value-count',
+      expected: { registeredSensitiveValues: 'at-least-one', leakHits: 0 },
+      observed: { registeredSensitiveValues, leakHits: observedLeaks },
+      passed,
+    };
+    evidenceLeak.reasonCode = passed
+      ? 'value_free_evidence_only'
+      : 'evidence_persistence_validation_failed';
+  }
+  const validationViolations = validateProbeRun(persistedRun);
+  for (const violation of validationViolations) {
+    if (
+      !persistedRun.violations.some(
+        (existing) =>
+          existing.code === violation.code &&
+          existing.scenarioId === violation.scenarioId &&
+          existing.message === violation.message,
+      )
+    ) {
+      persistedRun.violations.push(violation);
+    }
+  }
+  return stableJson(persistedRun);
 }

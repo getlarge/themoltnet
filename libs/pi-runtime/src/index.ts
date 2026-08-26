@@ -106,8 +106,14 @@ export {
   createGondolinFindOps,
   createGondolinLsOps,
   createGondolinReadOps,
+  createGondolinToolLifecycle,
   createGondolinWriteOps,
   executeGondolinGrep,
+  type GondolinToolLifecycle,
+  GondolinVmRetiredError,
+  type GondolinVmRetirement,
+  type GondolinVmRetirementTrigger,
+  guardGondolinToolDefinitions,
   toGuestPath,
 } from './tool-operations.js';
 export {

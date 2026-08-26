@@ -51,11 +51,19 @@ const gondolinMock = vi.hoisted(() => {
           isRequestAllowed?: (request: Request) => boolean;
           onRequest?: (request: Request) => Promise<Response | void>;
           allowedInternalHosts?: string[];
+          isIpAllowed?: (info: {
+            hostname: string;
+            ip: string;
+            family: 4 | 6;
+            port: number;
+            protocol: 'http' | 'https';
+          }) => boolean;
         } = {},
       ) => ({
         httpHooks: {
           isRequestAllowed: options.isRequestAllowed,
           onRequest: options.onRequest,
+          isIpAllowed: options.isIpAllowed,
         },
         env: Object.fromEntries(
           Object.keys(options.secrets ?? {}).map((name) => [
@@ -243,6 +251,13 @@ describe('resumeVm task-context mount', () => {
     );
     const hookOptions = gondolinMock.createHttpHooks.mock.calls[0]?.[0] as {
       isRequestAllowed: (request: Request) => boolean;
+      isIpAllowed: (info: {
+        hostname: string;
+        ip: string;
+        family: 4 | 6;
+        port: number;
+        protocol: 'http' | 'https';
+      }) => boolean;
     };
     expect(
       hookOptions.isRequestAllowed(
@@ -257,6 +272,15 @@ describe('resumeVm task-context mount', () => {
           headers: { authorization: `Bearer ${sentinel}` },
         }),
       ),
+    ).toBe(false);
+    expect(
+      hookOptions.isIpAllowed({
+        hostname: 'api.example.com',
+        ip: '203.0.113.7',
+        family: 4,
+        protocol: 'https',
+        port: 8443,
+      }),
     ).toBe(false);
     expect(
       hookOptions.isRequestAllowed(

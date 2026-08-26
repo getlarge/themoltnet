@@ -47,6 +47,7 @@ describe('sandbox policy loopback fixture', () => {
   it('mints credentials and records only value-free match evidence', async () => {
     fixture = await startPolicyFixture();
     const initial = fixture.credential;
+    const connectionsBefore = fixture.connectionCount('allowed');
 
     expect(
       await get(fixture.allowedPort, fixture.path('/allowed'), initial),
@@ -70,6 +71,9 @@ describe('sandbox policy loopback fixture', () => {
     expect(evidence).not.toContain(initial);
     expect(evidence).not.toContain(rotated);
     expect(fixture.sensitiveValues()).toEqual([initial, rotated]);
+    expect(
+      fixture.connectionCount('allowed') - connectionsBefore,
+    ).toBeGreaterThan(0);
     const activeFixture = fixture;
     expect(() => activeFixture.restore('unknown-token')).toThrow(
       'not minted by this fixture',

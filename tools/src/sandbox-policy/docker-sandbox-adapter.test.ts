@@ -111,11 +111,11 @@ describe('Docker sandbox research adapter', () => {
 
     expect(allowed).toMatchObject({
       state: 'enforced',
-      oracle: { attestedBy: 'adapter', observed: 1, passed: true },
+      oracle: { attestedBy: 'harness', observed: 1, passed: true },
     });
     expect(adjacent).toMatchObject({
       state: 'failed-open',
-      reasonCode: 'adjacent_origin_secret_delivery_observed',
+      reasonCode: 'adjacent_origin_secret_not_substituted',
       oracle: { observed: 1, passed: false },
     });
     expect(

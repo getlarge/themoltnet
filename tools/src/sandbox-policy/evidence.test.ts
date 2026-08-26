@@ -23,7 +23,7 @@ function evidence(overrides: Partial<ControlEvidence> = {}): ControlEvidence {
     state: 'enforced',
     basis: 'verified',
     oracle: {
-      attestedBy: 'adapter',
+      attestedBy: 'harness',
       kind: 'request-log',
       expected: 0,
       observed: 0,
@@ -37,20 +37,39 @@ function evidence(overrides: Partial<ControlEvidence> = {}): ControlEvidence {
 }
 
 describe('sandbox policy evidence', () => {
-  it('requires an independent verified oracle for enforced controls', () => {
+  it('requires evidence basis and attestor provenance to agree', () => {
     expect(() => assertControlEvidence(evidence())).not.toThrow();
+    expect(() =>
+      assertControlEvidence(
+        evidence({
+          basis: 'applied',
+          oracle: {
+            attestedBy: 'adapter',
+            kind: 'guest-exit',
+            expected: 0,
+            observed: 0,
+            passed: true,
+          },
+        }),
+      ),
+    ).not.toThrow();
     expect(() => assertControlEvidence(evidence({ basis: 'applied' }))).toThrow(
-      'enforced requires a passing observed oracle',
+      'matching provenance',
     );
     expect(() => assertControlEvidence(evidence({ oracle: null }))).toThrow(
-      'enforced requires a passing observed oracle',
+      'matching provenance',
     );
   });
 
   it('defines the remaining state, basis, and oracle combinations', () => {
     expect(() =>
       assertControlEvidence(
-        evidence({ state: 'unsupported', basis: 'applied', oracle: null }),
+        evidence({
+          state: 'unsupported',
+          basis: 'applied',
+          oracle: null,
+          unsupportedKind: 'backend-capability',
+        }),
       ),
     ).not.toThrow();
     expect(() =>
@@ -58,13 +77,13 @@ describe('sandbox policy evidence', () => {
         evidence({
           state: 'degraded',
           oracle: {
-            attestedBy: 'adapter',
+            attestedBy: 'harness',
             kind: 'partial',
             expected: 2,
             observed: 1,
             passed: false,
             weakerControl: {
-              attestedBy: 'adapter',
+              attestedBy: 'harness',
               kind: 'host-only',
               expected: 'blocked-host',
               observed: 'blocked-host',
@@ -87,7 +106,12 @@ describe('sandbox policy evidence', () => {
     ).not.toThrow();
     expect(() =>
       assertControlEvidence(
-        evidence({ state: 'unsupported', basis: 'verified', oracle: null }),
+        evidence({
+          state: 'unsupported',
+          basis: 'verified',
+          oracle: null,
+          unsupportedKind: 'not-measured',
+        }),
       ),
     ).toThrow('unsupported requires declared or applied evidence');
   });
@@ -114,6 +138,7 @@ describe('sandbox policy evidence', () => {
       hostCapabilities: [],
       cleanup: [],
       cleanupComplete: true,
+      sensitiveDiagnosticRedactions: 0,
       violations: [],
     };
 
@@ -135,7 +160,7 @@ describe('sandbox policy evidence', () => {
           state: 'failed-open',
           oracle: {
             kind: 'marker',
-            attestedBy: 'adapter',
+            attestedBy: 'harness',
             expected: 'absent',
             observed: 'present',
             passed: false,
@@ -145,7 +170,7 @@ describe('sandbox policy evidence', () => {
     ).not.toThrow();
     expect(() =>
       assertControlEvidence(evidence({ state: 'failed-open' })),
-    ).toThrow('failed-open requires a failing observed oracle');
+    ).toThrow('failed-open requires a failing oracle with matching provenance');
   });
 
   it('serializes records with UTF-8 byte-sorted keys', () => {

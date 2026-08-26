@@ -1,8 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   BrokeredHttpSecretBoundaryError,
   canonicalizeBrokeredHttpSecretDescriptor,
+  createBrokeredHttpNetworkOriginPolicy,
   prepareBrokeredHttpSecrets,
 } from './vm-manager.js';
 
@@ -34,6 +35,16 @@ describe('brokered HTTP secret preflight', () => {
         ports: [18_080],
       }),
     ).toEqual(expect.objectContaining({ protocol: 'http', ports: [18_080] }));
+  });
+
+  it('canonicalizes DNS root dots and IPv6 literal brackets', () => {
+    expect(
+      canonicalizeBrokeredHttpSecretDescriptor({
+        id: 'example-api',
+        guestEnv: 'EXAMPLE_API_TOKEN',
+        hosts: ['API.EXAMPLE.COM.', '[::1]'],
+      }).hosts,
+    ).toEqual(['::1', 'api.example.com']);
   });
 
   it.each([
@@ -305,5 +316,139 @@ describe('brokered HTTP secret preflight', () => {
         ],
       }),
     ).toThrow(/already supplied by another source/);
+  });
+});
+
+describe('brokered HTTP network origin policy', () => {
+  const policy = createBrokeredHttpNetworkOriginPolicy([
+    {
+      id: 'fixture-api',
+      guestEnv: 'FIXTURE_API_TOKEN',
+      hosts: ['fixture.internal'],
+      protocol: 'http',
+      ports: [18_080],
+    },
+    {
+      id: 'loopback-api',
+      guestEnv: 'LOOPBACK_API_TOKEN',
+      hosts: ['127.0.0.1'],
+      protocol: 'https',
+    },
+  ]);
+
+  it('allows the attested protocol, hostname, and port', () => {
+    expect(
+      policy.isRequestAllowed(
+        new Request('http://fixture.internal:18080/resource'),
+      ),
+    ).toBe(true);
+    expect(
+      policy.isIpAllowed({
+        hostname: 'fixture.internal',
+        ip: '127.0.0.1',
+        family: 4,
+        protocol: 'http',
+        port: 18_080,
+      }),
+    ).toBe(true);
+  });
+
+  it('denies adjacent ports and protocol changes for a protected host', () => {
+    expect(
+      policy.isRequestAllowed(
+        new Request('http://fixture.internal:18081/resource'),
+      ),
+    ).toBe(false);
+    expect(
+      policy.isRequestAllowed(
+        new Request('https://fixture.internal:18080/resource'),
+      ),
+    ).toBe(false);
+  });
+
+  it('reports value-free exact-origin denials', () => {
+    const onDenied = vi.fn();
+    const observedPolicy = createBrokeredHttpNetworkOriginPolicy(
+      [
+        {
+          id: 'fixture-api',
+          guestEnv: 'FIXTURE_API_TOKEN',
+          hosts: ['fixture.internal'],
+          protocol: 'http',
+          ports: [18_080],
+        },
+      ],
+      { onDenied },
+    );
+
+    expect(
+      observedPolicy.isRequestAllowed(
+        new Request('https://fixture.internal:18080/resource'),
+      ),
+    ).toBe(false);
+    expect(onDenied).toHaveBeenCalledWith({
+      hostname: 'fixture.internal',
+      protocol: 'https',
+      port: 18_080,
+      phase: 'request',
+    });
+  });
+
+  it('normalizes default ports and enforces direct IP literals', () => {
+    expect(
+      policy.isRequestAllowed(new Request('https://127.0.0.1/resource')),
+    ).toBe(true);
+    expect(
+      policy.isRequestAllowed(new Request('http://127.0.0.1/resource')),
+    ).toBe(false);
+    expect(
+      policy.isIpAllowed({
+        hostname: '127.0.0.1',
+        ip: '127.0.0.1',
+        family: 4,
+        protocol: 'https',
+        port: 443,
+      }),
+    ).toBe(true);
+  });
+
+  it('normalizes equivalent DNS and IPv6 hostname forms before matching', () => {
+    expect(
+      policy.isRequestAllowed(
+        new Request('http://fixture.internal.:18080/resource'),
+      ),
+    ).toBe(true);
+    expect(
+      policy.isRequestAllowed(
+        new Request('http://fixture.internal.:18081/resource'),
+      ),
+    ).toBe(false);
+
+    const ipv6Policy = createBrokeredHttpNetworkOriginPolicy([
+      {
+        id: 'ipv6-api',
+        guestEnv: 'IPV6_API_TOKEN',
+        hosts: ['::1'],
+        protocol: 'https',
+      },
+    ]);
+    expect(
+      ipv6Policy.isRequestAllowed(new Request('https://[::1]/resource')),
+    ).toBe(true);
+    expect(
+      ipv6Policy.isIpAllowed({
+        hostname: '[::1]',
+        ip: '::1',
+        family: 6,
+        protocol: 'http',
+        port: 80,
+      }),
+    ).toBe(false);
+  });
+
+  it('leaves unrelated hosts to the outer Gondolin hostname policy', () => {
+    expect(
+      policy.isRequestAllowed(new Request('https://api.example.com/resource')),
+    ).toBe(true);
   });
 });

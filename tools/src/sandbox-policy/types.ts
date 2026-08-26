@@ -19,6 +19,14 @@ export const EVIDENCE_BASES = [
 
 export type EvidenceBasis = (typeof EVIDENCE_BASES)[number];
 
+export const UNSUPPORTED_KINDS = [
+  'backend-capability',
+  'fixture-limitation',
+  'not-measured',
+] as const;
+
+export type UnsupportedKind = (typeof UNSUPPORTED_KINDS)[number];
+
 export const CONTROL_DOMAINS = [
   'filesystem',
   'network',
@@ -66,18 +74,18 @@ const COMMON_REASON_CODES = [
 export const REASON_CODES_BY_DOMAIN = {
   filesystem: [
     'host_credential_path_absent',
-    'microvm_host_boundary_observed',
     'outside_mount_boundary_observed',
     'readonly_mount_observed',
+    'readonly_secondary_mount_unsupported',
     'scoped_cleanup_idempotence_observed',
     'vfs_symlink_boundary_observed',
-    'workspace_vfs_write_observed',
     'workspace_write_observed',
   ],
   network: [
     'adjacent_origin_blocked',
     'allowed_hostname_observed',
     'credential_protocol_binding_recorded',
+    'exact_port_probe_observed',
     'exact_destination_allow_observed',
     'fixture_does_not_claim_protocol_or_dns_control',
     'host_gateway_binding_recorded',
@@ -85,20 +93,27 @@ export const REASON_CODES_BY_DOMAIN = {
     'network_port_fidelity_observed',
     'no_controlled_dns_rebinding_fixture',
     'redirect_origin_not_allowed',
+    'redirect_revalidation_probe_observed',
     'redirect_target_blocked',
     'unlisted_destination_blocked',
     'unlisted_hostname_blocked',
+    'unlisted_hostname_probe_observed',
+    'protocol_origin_probe_observed',
+    'positive_fixture_transport_unavailable',
   ],
   credential: [
     'adapter_preflight_rejected_missing_binding',
     'adjacent_origin_secret_not_substituted',
+    'adjacent_origin_secret_probe_observed',
     'adjacent_origin_secret_delivery_observed',
     'allowed_origin_secret_substitution_observed',
     'allowed_origin_substitution_observed',
     'explicit_rebinding_after_restart_observed',
+    'evidence_persistence_validation_failed',
     'evidence_persistence_validation_deferred',
     'required_binding_preflight_observed',
     'required_binding_preflight_unverified',
+    'positive_fixture_transport_unavailable',
     'resume_rebinding_observed',
     'revocation_observed',
     'revocation_unverified_without_prior_delivery',
@@ -108,10 +123,8 @@ export const REASON_CODES_BY_DOMAIN = {
     'value_free_evidence_only',
   ],
   lifecycle: [
-    'adapter_preflight_rejected_unavailable_broker',
+    'backend_retirement_observed',
     'broker_preflight_unverified',
-    'guest_process_group_termination_observed',
-    'managed_process_group_termination_observed',
     'preflight_failure_left_no_backend_resource',
     'preflight_failure_left_no_live_vm',
     'partial_launch_cleanup_unverified',
@@ -120,8 +133,6 @@ export const REASON_CODES_BY_DOMAIN = {
     'repeated_adapter_close_unverified',
     'restart_surfaces_observed',
     'sandbox_removal_detached_child_observed',
-    'verified_by_manifest_unit_test_and_final_teardown',
-    'verified_during_runner_final_teardown',
   ],
   resource: ['guest_cpu_limit_observed', 'guest_memory_limit_observed'],
   topology: ['capability_boundary_recorded'],
@@ -244,6 +255,8 @@ export interface ControlEvidence {
   backend: Pick<BackendInventory, 'id' | 'version'>;
   enforcementLocus: EnforcementLocus[];
   state: EnforcementState;
+  /** Required only when state is unsupported. */
+  unsupportedKind?: UnsupportedKind;
   basis: EvidenceBasis;
   oracle: ControlOracle | null;
   reasonCode: ReasonCode;
@@ -281,6 +294,8 @@ export interface SandboxProbeRun {
   hostCapabilities: HostCapabilityEvidence[];
   cleanup: PersistentMutationEvidence[];
   cleanupComplete: boolean;
+  /** Sensitive diagnostics are redacted before they enter the run. */
+  sensitiveDiagnosticRedactions: number;
   violations: ProbeViolation[];
 }
 

@@ -148,16 +148,22 @@ export async function runAdapterProbe(
   let cleanupComplete = false;
   let hostCapabilities: HostCapabilityEvidence[] = [];
   let inspected = false;
+  let sensitiveDiagnosticRedactions = 0;
+  const sanitizeError = (error: unknown): string =>
+    sanitizeDiagnostic(
+      error instanceof Error ? error.message : String(error),
+      diagnosticOptions(options),
+      () => {
+        sensitiveDiagnosticRedactions += 1;
+      },
+    );
 
   try {
     try {
       backend = await options.adapter.inspect();
       inspected = true;
     } catch (error) {
-      const message = sanitizeDiagnostic(
-        error instanceof Error ? error.message : String(error),
-        diagnosticOptions(options),
-      );
+      const message = sanitizeError(error);
       violations.push({ code: 'adapter_inspect_error', message });
       controls.push(
         ...options.catalog.scenarios.map((scenario) =>
@@ -200,10 +206,7 @@ export async function runAdapterProbe(
           });
         } catch (error) {
           const timedOut = error instanceof ScenarioTimeoutError;
-          const message = sanitizeDiagnostic(
-            error instanceof Error ? error.message : String(error),
-            diagnosticOptions(options),
-          );
+          const message = sanitizeError(error);
           controls.push(
             failedEvidence(
               scenario,
@@ -228,10 +231,7 @@ export async function runAdapterProbe(
       } catch (error) {
         violations.push({
           code: 'adapter_host_capabilities_error',
-          message: sanitizeDiagnostic(
-            error instanceof Error ? error.message : String(error),
-            diagnosticOptions(options),
-          ),
+          message: sanitizeError(error),
         });
       }
     }
@@ -248,10 +248,7 @@ export async function runAdapterProbe(
     } catch (error) {
       violations.push({
         code: 'adapter_cleanup_error',
-        message: sanitizeDiagnostic(
-          error instanceof Error ? error.message : String(error),
-          diagnosticOptions(options),
-        ),
+        message: sanitizeError(error),
       });
       cleanupComplete = false;
     }
@@ -268,6 +265,7 @@ export async function runAdapterProbe(
     hostCapabilities,
     cleanup,
     cleanupComplete,
+    sensitiveDiagnosticRedactions,
     violations,
   };
   run.violations.push(...validateProbeRun(run));

@@ -30,6 +30,7 @@ import type {
   ReasonCode,
   ResearchSandboxAdapter,
   SandboxScenario,
+  UnsupportedKind,
 } from './types.js';
 
 const BACKEND_ID = 'docker-sandbox';
@@ -48,6 +49,20 @@ interface SecretApplication {
   changed: boolean;
   result: CommandResult;
 }
+
+interface EvidenceProvenance {
+  basis: Exclude<EvidenceBasis, 'declared'>;
+  attestedBy: ControlOracle['attestedBy'];
+}
+
+const ADAPTER_PROVENANCE: EvidenceProvenance = {
+  basis: 'applied',
+  attestedBy: 'adapter',
+};
+const HARNESS_PROVENANCE: EvidenceProvenance = {
+  basis: 'verified',
+  attestedBy: 'harness',
+};
 
 function resultSummary(result: CommandResult): Record<string, unknown> {
   return {
@@ -214,6 +229,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
     oracle: Omit<ControlOracle, 'attestedBy'>,
     effective: Record<string, unknown>,
     reasonCode: ReasonCode,
+    provenance: EvidenceProvenance,
     locus: EnforcementLocus[] = [
       'docker-sandbox-guest',
       'docker-sandbox-control-plane',
@@ -227,8 +243,8 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
       backend: { id: inventory.id, version: inventory.version },
       enforcementLocus: locus,
       state: oracle?.passed ? 'enforced' : 'failed-open',
-      basis: 'verified',
-      oracle: { ...oracle, attestedBy: 'adapter' },
+      basis: provenance.basis,
+      oracle: { ...oracle, attestedBy: provenance.attestedBy },
       reasonCode,
       recordedAt: context.recordedAt(),
       persistentMutations: this.#cleanup.snapshot(),
@@ -239,6 +255,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
     scenario: SandboxScenario,
     context: ProbeContext,
     reasonCode: ReasonCode,
+    unsupportedKind: UnsupportedKind,
     options: {
       basis?: EvidenceBasis;
       effective?: Record<string, unknown>;
@@ -256,6 +273,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
       backend: { id: inventory.id, version: inventory.version },
       enforcementLocus: options.locus ?? ['docker-sandbox-adapter'],
       state: 'unsupported',
+      unsupportedKind,
       basis: options.basis ?? 'applied',
       oracle: null,
       reasonCode,
@@ -449,6 +467,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           },
           { mounts: [{ mode: 'rw', path: '<workspace>' }] },
           'workspace_write_observed',
+          HARNESS_PROVENANCE,
         );
       }
       case 'filesystem.read-only': {
@@ -473,6 +492,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           },
           { mounts: [{ mode: 'ro', path: '<readonly-fixture>' }] },
           'readonly_mount_observed',
+          HARNESS_PROVENANCE,
         );
       }
       case 'filesystem.outside-write':
@@ -505,6 +525,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
               guestExitCode: result.exitCode,
             },
             'outside_mount_boundary_observed',
+            HARNESS_PROVENANCE,
           );
         } finally {
           await rm(link, { force: true });
@@ -531,6 +552,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
             },
             { secretPathMounted: false, symlinkPathTested: true },
             'host_credential_path_absent',
+            ADAPTER_PROVENANCE,
           );
         } finally {
           await rm(link, { force: true });
@@ -557,6 +579,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           },
           { scope: '<probe-workspace>', attempts: 2 },
           'scoped_cleanup_idempotence_observed',
+          HARNESS_PROVENANCE,
           ['research-harness'],
         );
       }
@@ -585,6 +608,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           },
           { defaultNetwork: 'deny', guestExitCode: result.exitCode },
           'unlisted_destination_blocked',
+          HARNESS_PROVENANCE,
           ['docker-sandbox-control-plane'],
         );
       }
@@ -617,6 +641,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
             },
           },
           'exact_destination_allow_observed',
+          HARNESS_PROVENANCE,
           ['docker-sandbox-control-plane'],
         );
       }
@@ -648,6 +673,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
             attempted: `${CREDENTIAL_HOST}:<allowed-port>`,
           },
           'unlisted_hostname_blocked',
+          HARNESS_PROVENANCE,
           ['docker-sandbox-control-plane'],
         );
       }
@@ -678,7 +704,8 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
             allowed: `${HOST_ALIAS}:<allowed-port>`,
             attempted: `${HOST_ALIAS}:<adjacent-port>`,
           },
-          'adjacent_origin_blocked',
+          'exact_port_probe_observed',
+          HARNESS_PROVENANCE,
           ['docker-sandbox-control-plane'],
         );
       }
@@ -720,7 +747,8 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
               result.exitCode !== 0,
           },
           { followRedirects: true, guestExitCode: result.exitCode },
-          'redirect_origin_not_allowed',
+          'redirect_revalidation_probe_observed',
+          HARNESS_PROVENANCE,
           ['docker-sandbox-control-plane'],
         );
       }
@@ -731,6 +759,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           scenario,
           context,
           'host_gateway_binding_recorded',
+          'not-measured',
           {
             basis: 'declared',
             effective: {
@@ -748,12 +777,14 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           scenario,
           context,
           'fixture_does_not_claim_protocol_or_dns_control',
+          'fixture-limitation',
         );
       case 'credential.missing-binding':
         return this.#unsupported(
           scenario,
           context,
           'required_binding_preflight_unverified',
+          'not-measured',
           {
             basis: 'declared',
             effective: {
@@ -798,6 +829,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
             secretSource: 'host-command',
           },
           'allowed_origin_secret_substitution_observed',
+          HARNESS_PROVENANCE,
           ['docker-sandbox-control-plane'],
         );
       }
@@ -839,7 +871,8 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
             credentialBinding: `${CREDENTIAL_HOST}:<any-port>`,
             networkAllowed: `${CREDENTIAL_HOST}:<adjacent-port>`,
           },
-          'adjacent_origin_secret_delivery_observed',
+          'adjacent_origin_secret_not_substituted',
+          HARNESS_PROVENANCE,
           ['docker-sandbox-control-plane'],
         );
       }
@@ -872,6 +905,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           },
           { transition: 'replace-scoped-binding', guestValue: '<stand-in>' },
           'rotated_binding_observed',
+          HARNESS_PROVENANCE,
           ['docker-sandbox-control-plane'],
         );
       }
@@ -916,6 +950,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           passed
             ? 'revoked_binding_not_delivered'
             : 'revocation_unverified_without_prior_delivery',
+          HARNESS_PROVENANCE,
           ['docker-sandbox-control-plane'],
         );
       }
@@ -951,6 +986,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           },
           { restart: 'stop-and-auto-start', rebinding: 'explicit' },
           'explicit_rebinding_after_restart_observed',
+          HARNESS_PROVENANCE,
           ['docker-sandbox-control-plane'],
         );
       }
@@ -959,6 +995,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           scenario,
           context,
           'evidence_persistence_validation_deferred',
+          'not-measured',
           {
             basis: 'declared',
             effective: {
@@ -1050,6 +1087,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
             observationWindowMs,
           },
           'sandbox_removal_detached_child_observed',
+          HARNESS_PROVENANCE,
           ['research-harness', 'docker-sandbox-control-plane'],
         );
       }
@@ -1058,6 +1096,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           scenario,
           context,
           'broker_preflight_unverified',
+          'not-measured',
           {
             basis: 'declared',
             effective: {
@@ -1072,6 +1111,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           scenario,
           context,
           'partial_launch_cleanup_unverified',
+          'not-measured',
           {
             basis: 'declared',
             effective: {
@@ -1085,6 +1125,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           scenario,
           context,
           'repeated_adapter_close_unverified',
+          'not-measured',
         );
       case 'lifecycle.restart-checkpoint': {
         const marker = path.join(this.#guestRoot, 'restart-persistent.txt');
@@ -1112,6 +1153,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
             bindings: 'control-plane',
           },
           'restart_surfaces_observed',
+          HARNESS_PROVENANCE,
           ['docker-sandbox-control-plane'],
         );
       }
@@ -1130,6 +1172,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           },
           { requestedCpuCount: expectedCpuCount },
           'guest_cpu_limit_observed',
+          ADAPTER_PROVENANCE,
           ['docker-sandbox-control-plane'],
         );
       }
@@ -1159,6 +1202,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           },
           { requestedMemory: '1GiB' },
           'guest_memory_limit_observed',
+          ADAPTER_PROVENANCE,
           ['docker-sandbox-control-plane'],
         );
       }
@@ -1167,6 +1211,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           scenario,
           context,
           'capability_boundary_recorded',
+          'not-measured',
           {
             basis: 'declared',
             effective: {
@@ -1181,6 +1226,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           scenario,
           context,
           'scenario_not_implemented_by_adapter',
+          'backend-capability',
         );
     }
   }
