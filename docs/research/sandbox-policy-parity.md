@@ -1,7 +1,8 @@
 # Sandbox policy parity: Docker Sandboxes and Gondolin
 
-Status: completed research for issues #1972 and #2004. This is retained
-evidence, not a public API or a production Docker adapter.
+Status: completed research for issues #1972 and #2004, with Docker follow-up
+results for #2005 and #2006. This is retained evidence, not a public API or a
+production Docker adapter.
 
 ## Conclusion
 
@@ -18,8 +19,9 @@ required policy.
   synthetic value into guest storage.
 - **Docker still has two material failed-open behaviors across three
   scenarios.** A custom secret scoped to a host was delivered on an
-  independently allowed adjacent port. Separately, removing a sandbox did not
-  stop detached work after either timeout or cancellation.
+  independently allowed adjacent port. Separately, even stopping the sandbox,
+  observing `stopped`, removing it, and observing backend absence did not stop
+  detached work after either timeout or cancellation.
 - Both runs completed cleanup, retained no secret value or machine path, and
   produced no evidence-validation violation.
 
@@ -50,13 +52,12 @@ failure, and sanitize the complete run before promoting the value-free evidence
 control.
 
 The retained Docker artifact replays signed source revision
-`6c8d7e6bb07399558986ee1b6eba271c9aab3a59`. The Gondolin artifact replays the
-signed implementation revision
-`b143846ec11f8817df4395bdf60a214b43a2f149`.
+`c96d42a22cfd45ae656ca2a7a1103ea083f8c848`. The Gondolin artifact replays
+the signed implementation revision `b143846ec11f8817df4395bdf60a214b43a2f149`.
 
 | Backend        | Version | Enforced | Failed open | Unsupported | Violations | Cleanup  |
 | -------------- | ------: | -------: | ----------: | ----------: | ---------: | -------- |
-| Docker Sandbox | v0.39.0 |       19 |           3 |           9 |          0 | complete |
+| Docker Sandbox | v0.39.0 |       21 |           3 |           7 |          0 | complete |
 | Gondolin       |  0.12.0 |       22 |           0 |           9 |          0 | complete |
 
 Counts are inventory, not scores. The state, oracle, and enforcement locus of
@@ -82,6 +83,18 @@ host-scoped, not exact-origin scoped. After network access to the same host on
 an adjacent port was independently allowed, the adjacent fixture received the
 synthetic secret. MoltNet must not describe that as protocol/host/port
 credential isolation.
+
+The #2005 follow-up found no supported native surface that closes this gap.
+`sbx secret set-custom` accepts a host, not a canonical protocol/host/port
+origin. Exact host-port network rules can prevent some adjacent requests, but
+they do not narrow the credential binding itself or distinguish protocols; a
+portable policy may also legitimately allow another port without granting it
+the credential. Experimental v2 kits accept a domain-shaped injection field,
+but accepting port-qualified syntax is not an enforcement oracle, and the
+controlled local route could not establish a positive substitution baseline.
+No kit result is therefore promoted. Docker remains non-conforming for required
+exact-origin credentials until Docker supplies stronger semantics or a trusted
+broker passes the same independent origin and lifecycle controls.
 
 Gondolin established the corresponding flow through a narrow research-only
 route seam. `VmConfig.testOnlyHttpRoutes` accepts only exact RFC 5737 source
@@ -120,12 +133,21 @@ completed and no delayed marker appeared during the full six-second observation
 window. This directly covers the escape that invalidated the earlier
 process-group result.
 
-Docker's native lifecycle oracle deliberately remains native: it launches
-detached work, removes the scoped sandbox, and observes the mounted workspace.
-In both timeout and cancellation scenarios, `sbx rm --force` returned
-successfully but the detached process later wrote its marker. A future
-production Docker adapter therefore needs an independently verified managed
-execution layer; sandbox removal alone is not a cancellation guarantee.
+The Docker follow-up exercised the strongest composition available through its
+supported CLI: launch detached work, call `sbx stop`, independently parse
+`sbx ls --json` for the exact `stopped` state, call `sbx rm --force`, parse the
+inventory again for absence, and observe the mounted workspace through the
+full delay window. In both timeout and cancellation scenarios every control
+plane operation succeeded, yet the detached process later wrote its marker.
+Neither `stopped` nor backend absence is therefore a containment receipt. A
+future production Docker adapter needs a stronger independently verified
+termination primitive; composing the current supported commands is not enough.
+
+The same replay did independently promote two narrower lifecycle controls. A
+deliberately failed launch after sandbox allocation was stopped, removed, and
+proven absent. Removing a disposable sandbox twice was idempotent at the adapter
+boundary and left it absent after both calls. These results improve cleanup
+behavior without weakening the failed-open cancellation conclusion.
 
 The generic runner now waits for an aborted scenario to settle before starting
 teardown or the next scenario. A timeout can no longer leave adapter work
@@ -142,10 +164,10 @@ Basic containment worked on both backends:
 - configured CPU and memory ceilings were reported from inside each guest;
 - final cleanup completed without residue.
 
-Repeated close remains explicitly unsupported in both retained runs. The
-runner owns final teardown and no longer manufactures a passing oracle by
-calling `close()` a second time; adapters need a backend-native, independently
-observable repeated-close probe before that control can be promoted.
+Repeated close remains unsupported in the Gondolin retained run. Docker now
+uses a backend-native disposable sandbox and independently observes absence
+after both removal calls; it no longer infers idempotence from the cleanup
+manifest.
 
 Docker enforced its host-port network rule but did not prove general protocol
 policy. Gondolin's pinned TEST-NET transport proved its positive path before
@@ -181,8 +203,8 @@ not establish a backend-wide no-egress mode.
 | Rotation, revocation, explicit resume rebind | enforced                | enforced                |
 | Timeout and cancellation containment         | **failed open**         | enforced                |
 | Broker unavailable preflight                 | unsupported             | unsupported             |
-| Partial launch after resource allocation     | unsupported             | unsupported             |
-| Repeated close                               | unsupported             | unsupported             |
+| Partial launch after resource allocation     | enforced                | unsupported             |
+| Repeated close                               | enforced                | unsupported             |
 | Final cleanup                                | complete                | complete                |
 | CPU and memory limits                        | enforced (guest report) | enforced (guest report) |
 | Host MCP, signing, model traffic             | outside containment     | outside containment     |
@@ -226,7 +248,9 @@ The persistence and task-independent execution convention is owned by
    host-authoritative VM retirement as the reference implementation for the
    controls proven by the retained artifact.
 2. Keep the Docker adapter research-only until exact credential scoping and
-   cancellation have a verified compensating implementation.
+   cancellation have a verified compensating implementation. Docker Sandbox
+   v0.39.0 exposes no documented TypeScript SDK or termination receipt beyond
+   the CLI states falsified by this replay.
 3. Define `SandboxPolicy`, the single resolved execution snapshot, and the
    task-independent governed execution in #1980.
 4. Land persistence only as a vertical slice that resolves and pins a complete

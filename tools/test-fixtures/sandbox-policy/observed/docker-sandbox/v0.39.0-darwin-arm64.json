@@ -57,6 +57,16 @@
       "cleanup": "cleaned",
       "kind": "sandbox",
       "resource": "<scoped-lifecycle-sandbox>"
+    },
+    {
+      "cleanup": "cleaned",
+      "kind": "sandbox",
+      "resource": "<partial-launch-sandbox>"
+    },
+    {
+      "cleanup": "cleaned",
+      "kind": "sandbox",
+      "resource": "<repeated-close-sandbox>"
     }
   ],
   "cleanupComplete": true,
@@ -96,7 +106,7 @@
         }
       ],
       "reasonCode": "workspace_write_observed",
-      "recordedAt": "2026-08-25T21:16:10.028Z",
+      "recordedAt": "2026-08-26T19:40:16.092Z",
       "requestedIntent": {
         "control": "workspace-read-write",
         "domain": "filesystem",
@@ -159,7 +169,7 @@
         }
       ],
       "reasonCode": "outside_mount_boundary_observed",
-      "recordedAt": "2026-08-25T21:16:10.279Z",
+      "recordedAt": "2026-08-26T19:40:16.389Z",
       "requestedIntent": {
         "control": "outside-write-denied",
         "domain": "filesystem",
@@ -221,7 +231,7 @@
         }
       ],
       "reasonCode": "readonly_mount_observed",
-      "recordedAt": "2026-08-25T21:16:10.541Z",
+      "recordedAt": "2026-08-26T19:40:16.653Z",
       "requestedIntent": {
         "control": "read-only-mount",
         "domain": "filesystem",
@@ -284,7 +294,7 @@
         }
       ],
       "reasonCode": "host_credential_path_absent",
-      "recordedAt": "2026-08-25T21:16:10.786Z",
+      "recordedAt": "2026-08-26T19:40:16.992Z",
       "requestedIntent": {
         "control": "credential-path-absent",
         "domain": "filesystem",
@@ -343,7 +353,7 @@
         }
       ],
       "reasonCode": "outside_mount_boundary_observed",
-      "recordedAt": "2026-08-25T21:16:11.009Z",
+      "recordedAt": "2026-08-26T19:40:17.288Z",
       "requestedIntent": {
         "control": "symlink-and-traversal-denied",
         "domain": "filesystem",
@@ -399,7 +409,7 @@
         }
       ],
       "reasonCode": "scoped_cleanup_idempotence_observed",
-      "recordedAt": "2026-08-25T21:16:11.010Z",
+      "recordedAt": "2026-08-26T19:40:17.289Z",
       "requestedIntent": {
         "control": "workspace-cleanup",
         "domain": "filesystem",
@@ -455,7 +465,7 @@
         }
       ],
       "reasonCode": "unlisted_destination_blocked",
-      "recordedAt": "2026-08-25T21:16:11.289Z",
+      "recordedAt": "2026-08-26T19:40:17.574Z",
       "requestedIntent": {
         "control": "default-deny-egress",
         "domain": "network",
@@ -516,7 +526,7 @@
         }
       ],
       "reasonCode": "exact_destination_allow_observed",
-      "recordedAt": "2026-08-25T21:16:11.748Z",
+      "recordedAt": "2026-08-26T19:40:18.146Z",
       "requestedIntent": {
         "control": "exact-destination-allow",
         "domain": "network",
@@ -581,7 +591,7 @@
         }
       ],
       "reasonCode": "unlisted_hostname_blocked",
-      "recordedAt": "2026-08-25T21:16:12.015Z",
+      "recordedAt": "2026-08-26T19:40:18.435Z",
       "requestedIntent": {
         "control": "wrong-host-denied",
         "domain": "network",
@@ -642,7 +652,7 @@
         }
       ],
       "reasonCode": "exact_port_probe_observed",
-      "recordedAt": "2026-08-25T21:16:12.312Z",
+      "recordedAt": "2026-08-26T19:40:18.726Z",
       "requestedIntent": {
         "control": "wrong-port-denied",
         "domain": "network",
@@ -697,7 +707,7 @@
         }
       ],
       "reasonCode": "fixture_does_not_claim_protocol_or_dns_control",
-      "recordedAt": "2026-08-25T21:16:12.312Z",
+      "recordedAt": "2026-08-26T19:40:18.726Z",
       "requestedIntent": {
         "control": "protocol-fidelity",
         "domain": "network",
@@ -766,7 +776,7 @@
         }
       ],
       "reasonCode": "redirect_revalidation_probe_observed",
-      "recordedAt": "2026-08-25T21:16:12.554Z",
+      "recordedAt": "2026-08-26T19:40:19.058Z",
       "requestedIntent": {
         "control": "redirect-revalidation",
         "domain": "network",
@@ -821,7 +831,7 @@
         }
       ],
       "reasonCode": "host_gateway_binding_recorded",
-      "recordedAt": "2026-08-25T21:16:12.554Z",
+      "recordedAt": "2026-08-26T19:40:19.058Z",
       "requestedIntent": {
         "control": "internal-target-policy",
         "domain": "network",
@@ -878,7 +888,7 @@
         }
       ],
       "reasonCode": "fixture_does_not_claim_protocol_or_dns_control",
-      "recordedAt": "2026-08-25T21:16:12.554Z",
+      "recordedAt": "2026-08-26T19:40:19.058Z",
       "requestedIntent": {
         "control": "dns-rebinding",
         "domain": "network",
@@ -933,7 +943,7 @@
         }
       ],
       "reasonCode": "host_gateway_binding_recorded",
-      "recordedAt": "2026-08-25T21:16:12.554Z",
+      "recordedAt": "2026-08-26T19:40:19.058Z",
       "requestedIntent": {
         "control": "requested-versus-effective",
         "domain": "network",
@@ -990,7 +1000,7 @@
         }
       ],
       "reasonCode": "required_binding_preflight_unverified",
-      "recordedAt": "2026-08-25T21:16:12.554Z",
+      "recordedAt": "2026-08-26T19:40:19.058Z",
       "requestedIntent": {
         "control": "required-binding-preflight",
         "domain": "credential",
@@ -1062,7 +1072,7 @@
         }
       ],
       "reasonCode": "allowed_origin_secret_substitution_observed",
-      "recordedAt": "2026-08-25T21:16:13.362Z",
+      "recordedAt": "2026-08-26T19:40:20.110Z",
       "requestedIntent": {
         "control": "brokered-allowed-origin",
         "domain": "credential",
@@ -1140,7 +1150,7 @@
         }
       ],
       "reasonCode": "adjacent_origin_secret_not_substituted",
-      "recordedAt": "2026-08-25T21:16:13.891Z",
+      "recordedAt": "2026-08-26T19:40:20.661Z",
       "requestedIntent": {
         "control": "adjacent-origin-zero-delivery",
         "domain": "credential",
@@ -1216,7 +1226,7 @@
         }
       ],
       "reasonCode": "rotated_binding_observed",
-      "recordedAt": "2026-08-25T21:16:14.546Z",
+      "recordedAt": "2026-08-26T19:40:21.263Z",
       "requestedIntent": {
         "control": "rotation",
         "domain": "credential",
@@ -1292,7 +1302,7 @@
         }
       ],
       "reasonCode": "revoked_binding_not_delivered",
-      "recordedAt": "2026-08-25T21:16:14.985Z",
+      "recordedAt": "2026-08-26T19:40:21.834Z",
       "requestedIntent": {
         "control": "revocation",
         "domain": "credential",
@@ -1367,7 +1377,7 @@
         }
       ],
       "reasonCode": "explicit_rebinding_after_restart_observed",
-      "recordedAt": "2026-08-25T21:16:21.422Z",
+      "recordedAt": "2026-08-26T19:40:28.398Z",
       "requestedIntent": {
         "control": "resume-rebind",
         "domain": "credential",
@@ -1449,7 +1459,7 @@
         }
       ],
       "reasonCode": "value_free_evidence_only",
-      "recordedAt": "2026-08-25T21:16:21.422Z",
+      "recordedAt": "2026-08-26T19:40:28.398Z",
       "requestedIntent": {
         "control": "value-free-evidence",
         "domain": "credential",
@@ -1529,7 +1539,7 @@
         }
       ],
       "reasonCode": "sandbox_removal_detached_child_observed",
-      "recordedAt": "2026-08-25T21:16:36.540Z",
+      "recordedAt": "2026-08-26T19:40:49.121Z",
       "requestedIntent": {
         "control": "timeout-containment",
         "domain": "lifecycle",
@@ -1543,10 +1553,12 @@
       "resolvedAdapterConfig": {
         "backendId": "docker-sandbox",
         "effective": {
+          "confirmedFinalState": "absent",
+          "confirmedStoppedState": "stopped",
           "delayedMarkerMs": 5000,
           "detachedExitCode": 0,
           "observationWindowMs": 6000,
-          "termination": "scoped-sandbox-remove",
+          "termination": "managed-sandbox-stop-and-remove",
           "trigger": "execution-deadline"
         },
         "fidelity": "docker-sandbox-v0.39.0",
@@ -1626,7 +1638,7 @@
         }
       ],
       "reasonCode": "sandbox_removal_detached_child_observed",
-      "recordedAt": "2026-08-25T21:17:35.187Z",
+      "recordedAt": "2026-08-26T19:41:09.816Z",
       "requestedIntent": {
         "control": "cancel-containment",
         "domain": "lifecycle",
@@ -1640,10 +1652,12 @@
       "resolvedAdapterConfig": {
         "backendId": "docker-sandbox",
         "effective": {
+          "confirmedFinalState": "absent",
+          "confirmedStoppedState": "stopped",
           "delayedMarkerMs": 5000,
           "detachedExitCode": 0,
           "observationWindowMs": 6000,
-          "termination": "scoped-sandbox-remove",
+          "termination": "managed-sandbox-stop-and-remove",
           "trigger": "explicit-cancellation"
         },
         "fidelity": "docker-sandbox-v0.39.0",
@@ -1717,7 +1731,7 @@
         }
       ],
       "reasonCode": "broker_preflight_unverified",
-      "recordedAt": "2026-08-25T21:17:35.187Z",
+      "recordedAt": "2026-08-26T19:41:09.816Z",
       "requestedIntent": {
         "control": "broker-unavailable-fail-closed",
         "domain": "lifecycle",
@@ -1747,9 +1761,15 @@
         "id": "docker-sandbox",
         "version": "v0.39.0"
       },
-      "basis": "declared",
-      "enforcementLocus": ["research-harness"],
-      "oracle": null,
+      "basis": "verified",
+      "enforcementLocus": ["research-harness", "docker-sandbox-control-plane"],
+      "oracle": {
+        "attestedBy": "harness",
+        "expected": "absent",
+        "kind": "partial-launch-backend-absence",
+        "observed": "absent",
+        "passed": true
+      },
       "persistentMutations": [
         {
           "cleanup": "pending",
@@ -1795,10 +1815,15 @@
           "cleanup": "pending",
           "kind": "sandbox",
           "resource": "<scoped-lifecycle-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<partial-launch-sandbox>"
         }
       ],
-      "reasonCode": "partial_launch_cleanup_unverified",
-      "recordedAt": "2026-08-25T21:17:35.187Z",
+      "reasonCode": "preflight_failure_left_no_backend_resource",
+      "recordedAt": "2026-08-26T19:41:19.462Z",
       "requestedIntent": {
         "control": "partial-launch-cleanup",
         "domain": "lifecycle",
@@ -1808,7 +1833,10 @@
       "resolvedAdapterConfig": {
         "backendId": "docker-sandbox",
         "effective": {
-          "probe": "no deliberately interrupted create operation"
+          "allocation": "scoped-sandbox",
+          "confirmedFinalState": "absent",
+          "confirmedStoppedState": "stopped",
+          "launch": "deliberately-rejected-before-handle"
         },
         "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
@@ -1819,17 +1847,28 @@
         }
       },
       "scenarioId": "lifecycle.partial-launch",
-      "state": "unsupported",
-      "unsupportedKind": "not-measured"
+      "state": "enforced"
     },
     {
       "backend": {
         "id": "docker-sandbox",
         "version": "v0.39.0"
       },
-      "basis": "applied",
-      "enforcementLocus": ["docker-sandbox-adapter"],
-      "oracle": null,
+      "basis": "verified",
+      "enforcementLocus": ["research-harness", "docker-sandbox-control-plane"],
+      "oracle": {
+        "attestedBy": "harness",
+        "expected": {
+          "first": "absent",
+          "second": "absent"
+        },
+        "kind": "repeated-close-backend-absence",
+        "observed": {
+          "first": "absent",
+          "second": "absent"
+        },
+        "passed": true
+      },
       "persistentMutations": [
         {
           "cleanup": "pending",
@@ -1875,10 +1914,20 @@
           "cleanup": "pending",
           "kind": "sandbox",
           "resource": "<scoped-lifecycle-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<partial-launch-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<repeated-close-sandbox>"
         }
       ],
-      "reasonCode": "repeated_adapter_close_unverified",
-      "recordedAt": "2026-08-25T21:17:35.187Z",
+      "reasonCode": "repeated_adapter_close_observed",
+      "recordedAt": "2026-08-26T19:41:23.847Z",
       "requestedIntent": {
         "control": "idempotent-close",
         "domain": "lifecycle",
@@ -1888,7 +1937,8 @@
       "resolvedAdapterConfig": {
         "backendId": "docker-sandbox",
         "effective": {
-          "support": "unsupported-by-safe-probe"
+          "close": "scoped-sandbox-remove",
+          "repeatedClose": "idempotent"
         },
         "fidelity": "docker-sandbox-v0.39.0",
         "requested": {
@@ -1899,8 +1949,7 @@
         }
       },
       "scenarioId": "lifecycle.repeated-close",
-      "state": "unsupported",
-      "unsupportedKind": "not-measured"
+      "state": "enforced"
     },
     {
       "backend": {
@@ -1967,10 +2016,20 @@
           "cleanup": "pending",
           "kind": "sandbox",
           "resource": "<scoped-lifecycle-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<partial-launch-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<repeated-close-sandbox>"
         }
       ],
       "reasonCode": "restart_surfaces_observed",
-      "recordedAt": "2026-08-25T21:17:40.449Z",
+      "recordedAt": "2026-08-26T19:41:24.995Z",
       "requestedIntent": {
         "control": "restart-and-checkpoint",
         "domain": "lifecycle",
@@ -2054,10 +2113,20 @@
           "cleanup": "pending",
           "kind": "sandbox",
           "resource": "<scoped-lifecycle-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<partial-launch-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<repeated-close-sandbox>"
         }
       ],
       "reasonCode": "guest_cpu_limit_observed",
-      "recordedAt": "2026-08-25T21:17:40.737Z",
+      "recordedAt": "2026-08-26T19:41:25.231Z",
       "requestedIntent": {
         "control": "cpu-limit",
         "domain": "resource",
@@ -2148,10 +2217,20 @@
           "cleanup": "pending",
           "kind": "sandbox",
           "resource": "<scoped-lifecycle-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<partial-launch-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<repeated-close-sandbox>"
         }
       ],
       "reasonCode": "guest_memory_limit_observed",
-      "recordedAt": "2026-08-25T21:17:40.995Z",
+      "recordedAt": "2026-08-26T19:41:25.477Z",
       "requestedIntent": {
         "control": "memory-limit",
         "domain": "resource",
@@ -2235,10 +2314,20 @@
           "cleanup": "pending",
           "kind": "sandbox",
           "resource": "<scoped-lifecycle-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<partial-launch-sandbox>"
+        },
+        {
+          "cleanup": "pending",
+          "kind": "sandbox",
+          "resource": "<repeated-close-sandbox>"
         }
       ],
       "reasonCode": "capability_boundary_recorded",
-      "recordedAt": "2026-08-25T21:17:40.995Z",
+      "recordedAt": "2026-08-26T19:41:25.477Z",
       "requestedIntent": {
         "control": "host-capability-separation",
         "domain": "topology",
@@ -2280,10 +2369,10 @@
       "relationship": "mediates-containment"
     }
   ],
-  "recordedAt": "2026-08-25T21:17:42.638Z",
+  "recordedAt": "2026-08-26T19:41:27.637Z",
   "runId": "<run-id>",
   "schemaVersion": 1,
   "sensitiveDiagnosticRedactions": 0,
-  "sourceRevision": "6c8d7e6bb07399558986ee1b6eba271c9aab3a59",
+  "sourceRevision": "c96d42a22cfd45ae656ca2a7a1103ea083f8c848",
   "violations": []
 }
