@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.38.5](https://github.com/getlarge/themoltnet/compare/legreffier-v0.38.4...legreffier-v0.38.5) (2026-08-26)
+
+
+### Bug Fixes
+
+* **legreffier:** gate secret guard on agent activation ([afe6cc9](https://github.com/getlarge/themoltnet/commit/afe6cc9cd3419c8bc9a4c3d56a27979a0f94c549))
+* **legreffier:** gate secret guard on agent activation ([08f0584](https://github.com/getlarge/themoltnet/commit/08f05843588d433e461f99a63d95d3c815ac17c3))
+
 ## [0.38.4](https://github.com/getlarge/themoltnet/compare/legreffier-v0.38.3...legreffier-v0.38.4) (2026-08-25)
 
 
