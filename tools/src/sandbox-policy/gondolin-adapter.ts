@@ -62,49 +62,8 @@ interface EvidenceProvenance {
 interface GondolinAdapterOptions {
   ensureSnapshot?: typeof ensureSnapshot;
   execManagedCommand?: typeof execManagedCommand;
-  fixtureFetchImpl?: TrustedHttpFetch;
   resumeVm?: typeof resumeVm;
   startPolicyFixture?: typeof startPolicyFixture;
-}
-
-type TrustedHttpFetch = NonNullable<
-  Parameters<typeof resumeVm>[0]['trustedHttpFetch']
->;
-
-function requestUrl(input: Parameters<TrustedHttpFetch>[0]): URL {
-  if (typeof input === 'string') return new URL(input);
-  return new URL('href' in input ? input.href : input.url);
-}
-
-const nativeFixtureFetch = (async (
-  input: Parameters<TrustedHttpFetch>[0],
-  init?: Parameters<TrustedHttpFetch>[1],
-) =>
-  globalThis.fetch(
-    requestUrl(input),
-    init as unknown as RequestInit,
-  )) as unknown as TrustedHttpFetch;
-
-/**
- * Translate only explicitly mapped test origins to loopback. Gondolin invokes
- * this transport after request/IP checks and secret substitution; the mapping
- * is transport-only and fails closed for every origin not listed here.
- */
-export function createFailClosedFixtureFetch(
-  routes: ReadonlyMap<string, string>,
-  fetchImpl: TrustedHttpFetch = nativeFixtureFetch,
-): TrustedHttpFetch {
-  return (async (input, init) => {
-    const requested = requestUrl(input);
-    const targetOrigin = routes.get(requested.origin);
-    if (!targetOrigin) {
-      throw new Error(`unmapped trusted fixture origin: ${requested.origin}`);
-    }
-    const target = new URL(targetOrigin);
-    target.pathname = requested.pathname;
-    target.search = requested.search;
-    return fetchImpl(target, init);
-  }) as TrustedHttpFetch;
 }
 
 function fixtureOrigin(
@@ -153,7 +112,6 @@ export async function execGondolinGuest(
 export class GondolinAdapter implements ResearchSandboxAdapter {
   readonly #ensureSnapshot: typeof ensureSnapshot;
   readonly #execManagedCommand: typeof execManagedCommand;
-  readonly #fixtureFetchImpl: TrustedHttpFetch;
   readonly #resumeVm: typeof resumeVm;
   readonly #startPolicyFixture: typeof startPolicyFixture;
   readonly #cleanup = new CleanupManifest();
@@ -175,7 +133,6 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
   constructor(options: GondolinAdapterOptions = {}) {
     this.#ensureSnapshot = options.ensureSnapshot ?? ensureSnapshot;
     this.#execManagedCommand = options.execManagedCommand ?? execManagedCommand;
-    this.#fixtureFetchImpl = options.fixtureFetchImpl ?? nativeFixtureFetch;
     this.#resumeVm = options.resumeVm ?? resumeVm;
     this.#startPolicyFixture = options.startPolicyFixture ?? startPolicyFixture;
   }
@@ -224,39 +181,36 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
       FIXTURE_BIND_ADDRESS,
       fixture.adjacentPort,
     );
-    const trustedHttpFetch = createFailClosedFixtureFetch(
-      new Map([
-        [
-          fixtureOrigin(PROTECTED_FIXTURE_HOST, fixture.allowedPort),
-          loopbackAllowedOrigin,
-        ],
-        [
-          fixtureOrigin(PROTECTED_FIXTURE_HOST, fixture.adjacentPort),
-          loopbackAdjacentOrigin,
-        ],
-        [
-          fixtureOrigin(PROTECTED_FIXTURE_HOST, fixture.allowedPort, 'https'),
-          loopbackAllowedOrigin,
-        ],
-        [
-          fixtureOrigin(WRONG_FIXTURE_HOST, fixture.allowedPort),
-          loopbackAllowedOrigin,
-        ],
-        [
-          fixtureOrigin(WRONG_FIXTURE_HOST, fixture.adjacentPort),
-          loopbackAdjacentOrigin,
-        ],
-        [
-          fixtureOrigin(ADJACENT_FIXTURE_HOST, fixture.adjacentPort),
-          loopbackAdjacentOrigin,
-        ],
-        [
-          fixtureOrigin(DIRECT_LOOPBACK_HOST, fixture.allowedPort),
-          loopbackAllowedOrigin,
-        ],
-      ]),
-      this.#fixtureFetchImpl,
-    );
+    const testOnlyHttpRoutes = [
+      {
+        fromOrigin: fixtureOrigin(PROTECTED_FIXTURE_HOST, fixture.allowedPort),
+        toLoopbackOrigin: loopbackAllowedOrigin,
+      },
+      {
+        fromOrigin: fixtureOrigin(PROTECTED_FIXTURE_HOST, fixture.adjacentPort),
+        toLoopbackOrigin: loopbackAdjacentOrigin,
+      },
+      {
+        fromOrigin: fixtureOrigin(
+          PROTECTED_FIXTURE_HOST,
+          fixture.allowedPort,
+          'https',
+        ),
+        toLoopbackOrigin: loopbackAllowedOrigin,
+      },
+      {
+        fromOrigin: fixtureOrigin(WRONG_FIXTURE_HOST, fixture.allowedPort),
+        toLoopbackOrigin: loopbackAllowedOrigin,
+      },
+      {
+        fromOrigin: fixtureOrigin(WRONG_FIXTURE_HOST, fixture.adjacentPort),
+        toLoopbackOrigin: loopbackAdjacentOrigin,
+      },
+      {
+        fromOrigin: fixtureOrigin(ADJACENT_FIXTURE_HOST, fixture.adjacentPort),
+        toLoopbackOrigin: loopbackAdjacentOrigin,
+      },
+    ];
     const managed = await this.#resumeVm({
       checkpointPath: this.#checkpointPath,
       agentName: 'sandbox-policy-probe',
@@ -269,7 +223,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
         },
         resources: { cpus: 1, memory: '1G' },
       },
-      trustedHttpFetch,
+      testOnlyHttpRoutes,
       brokeredSecrets: [
         {
           id: 'sandbox-policy-fixture',
@@ -621,7 +575,7 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
           scenario,
           context,
           {
-            kind: 'wrong-host-request-count',
+            kind: 'wrong-host-request-and-connection-count',
             expected: { requests: 0, connections: 0 },
             observed: { requests: delivered, connections },
             passed:
@@ -823,41 +777,21 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
         );
       }
       case 'network.internal': {
-        if (!this.#networkDeliveryVerified) {
-          return this.#unsupported(
-            scenario,
-            context,
-            'positive_fixture_transport_unavailable',
-            'fixture-limitation',
-          );
-        }
-        const requestStart = fixture.requests.length;
-        const connectionStart = fixture.connectionCount('allowed');
-        const result = await this.#execGuest(
-          managed,
-          `curl -fsS --max-time 3 'http://${DIRECT_LOOPBACK_HOST}:${fixture.allowedPort}${fixture.path('/direct-loopback')}'`,
-        );
-        const delivered = fixture.capture(requestStart).length;
-        const connections =
-          fixture.connectionCount('allowed') - connectionStart;
-        return this.#evidence(
+        return this.#unsupported(
           scenario,
           context,
+          'internal_network_enforcement_unverified',
+          'not-measured',
           {
-            kind: 'direct-loopback-bypass',
-            expected: { requests: 0, connections: 0 },
-            observed: { requests: delivered, connections },
-            passed:
-              result.exitCode !== 0 && delivered === 0 && connections === 0,
+            basis: 'declared',
+            effective: {
+              requested: [`${DIRECT_LOOPBACK_HOST}:<allowed-port>`],
+              effectiveNetwork: EFFECTIVE_FIXTURE_HOSTS,
+              limitation:
+                'guest loopback isolation does not prove host-hook denial',
+            },
+            locus: ['gondolin-adapter'],
           },
-          {
-            attempted: `${DIRECT_LOOPBACK_HOST}:<allowed-port>`,
-            routeMapped: true,
-            effectiveNetwork: EFFECTIVE_FIXTURE_HOSTS,
-          },
-          'internal_hostname_binding_recorded',
-          HARNESS_PROVENANCE,
-          ['gondolin-host-hooks'],
         );
       }
       case 'network.requested-effective': {
@@ -866,34 +800,25 @@ export class GondolinAdapter implements ResearchSandboxAdapter {
           .find(
             (diagnostic) => diagnostic.event === 'vm.network.policy_bound',
           )?.hostnamePolicy;
-        const internalHosts = policy?.allowedInternalHosts ?? [];
-        const complete =
-          policy !== undefined &&
-          EFFECTIVE_FIXTURE_HOSTS.every((host) =>
-            internalHosts.includes(host),
-          ) &&
-          !internalHosts.includes(WRONG_FIXTURE_HOST) &&
-          !internalHosts.includes(DIRECT_LOOPBACK_HOST);
-        return this.#evidence(
+        return this.#unsupported(
           scenario,
           context,
+          'effective_hostname_policy_unverified',
+          'not-measured',
           {
-            kind: 'effective-hostname-policy-diagnostic',
-            expected: 'complete',
-            observed: complete ? 'complete' : 'missing-or-widened',
-            passed: complete,
+            basis: 'applied',
+            effective: {
+              requested: [
+                fixtureOrigin(PROTECTED_FIXTURE_HOST, fixture.allowedPort),
+              ],
+              requestedHostnamePolicy: policy ?? null,
+              credentialProtocol: 'http',
+              credentialPorts: ['<allowed-port>'],
+              limitation:
+                'adapter inputs do not independently prove Gondolin resolved state',
+            },
+            locus: ['gondolin-adapter'],
           },
-          {
-            requested: [
-              fixtureOrigin(PROTECTED_FIXTURE_HOST, fixture.allowedPort),
-            ],
-            effectiveHostnamePolicy: policy ?? null,
-            credentialProtocol: 'http',
-            credentialPorts: ['<allowed-port>'],
-          },
-          'allowed_hostname_observed',
-          HARNESS_PROVENANCE,
-          ['gondolin-adapter', 'gondolin-host-hooks'],
         );
       }
       case 'network.dns-rebinding':
