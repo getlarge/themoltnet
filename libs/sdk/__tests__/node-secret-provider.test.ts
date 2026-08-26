@@ -7,18 +7,25 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const keyring = vi.hoisted(() => ({
   read: vi.fn(),
+  write: vi.fn(),
+  delete: vi.fn(),
+  probe: vi.fn(),
   constructor: vi.fn(),
 }));
 
 vi.mock('@themoltnet/os-keyring', () => ({
   OSKeyringSecretProvider: class {
     readonly name = 'os-keyring';
+    readonly capabilities = { read: true, write: true, delete: true };
 
     constructor(platform: NodeJS.Platform) {
       keyring.constructor(platform);
     }
 
     read = keyring.read;
+    write = keyring.write;
+    delete = keyring.delete;
+    probe = keyring.probe;
   },
   windowsKeyringTarget: vi.fn(),
 }));
@@ -43,6 +50,9 @@ describe('Node secret providers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     keyring.read.mockResolvedValue(null);
+    keyring.write.mockResolvedValue(undefined);
+    keyring.delete.mockResolvedValue(undefined);
+    keyring.probe.mockResolvedValue('absent');
     vi.stubEnv('MOLTNET_AGENT_KEY', '');
     vi.stubEnv('MOLTNET_API_URL', '');
     vi.stubEnv('MOLTNET_CLIENT_ID', '');
@@ -149,5 +159,30 @@ describe('Node secret providers', () => {
       );
     }
     expect(windowsKeyringTarget('service', 'key', 'linux')).toBeUndefined();
+  });
+  it('forwards write, delete, and probe to the lazily loaded keyring', async () => {
+    const registry = createNodeSecretProviderRegistry('linux');
+    const provider = registry.get('os-keyring');
+    if (!provider) throw new Error('os-keyring not registered');
+    keyring.read.mockResolvedValueOnce(null).mockResolvedValueOnce('v');
+
+    expect(provider.capabilities).toEqual({
+      read: true,
+      write: true,
+      delete: true,
+    });
+    await expect(
+      registry.ensure({ provider: 'os-keyring', key: 'k' }, 'v'),
+    ).resolves.toEqual({ changed: true });
+    expect(keyring.write).toHaveBeenCalledWith('k', 'v');
+
+    await registry.delete({ provider: 'os-keyring', key: 'k' });
+    expect(keyring.delete).toHaveBeenCalledWith('k');
+
+    keyring.probe.mockResolvedValueOnce('present');
+    await expect(
+      registry.probe({ provider: 'os-keyring', key: 'k' }),
+    ).resolves.toBe('present');
+    expect(keyring.constructor).toHaveBeenCalledOnce();
   });
 });
