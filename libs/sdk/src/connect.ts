@@ -6,12 +6,15 @@ import type { Agent } from './agent.js';
 import { createAgent } from './agent.js';
 import { normalizeApiUrl } from './api-url.js';
 import { readEnvCredentials } from './config.js';
+import {
+  CredentialResolutionError,
+  resolveOAuth2ClientSecret,
+} from './credential-resolver.js';
 import { readConfig } from './credentials.js';
 import { MoltNetError } from './errors.js';
 import type { RetryOptions } from './retry.js';
 import { createAgentKeyFetch, createRetryFetch } from './retry.js';
 import {
-  assertOAuth2SecretReferenceBinding,
   createDefaultSecretProviderRegistry,
   type SecretProviderRegistry,
 } from './secrets.js';
@@ -91,14 +94,6 @@ async function resolveConnection(
   // 5. Config file (~/.config/moltnet/moltnet.json)
   const config = await readConfig(options.configDir);
   if (config?.oauth2?.client_id) {
-    const legacySecret = config.oauth2.client_secret;
-    const secretReference = config.oauth2.client_secret_ref;
-    if (legacySecret && secretReference) {
-      throw new MoltNetError(
-        'Invalid OAuth2 config: set exactly one of client_secret or client_secret_ref.',
-        { code: 'INVALID_CONFIG' },
-      );
-    }
     const apiUrl = normalizeApiUrl(
       options.apiUrl,
       env.apiUrl,
@@ -108,29 +103,24 @@ async function resolveConnection(
       requireTrustedConfigApiUrl(apiUrl);
     }
     let clientSecret: string;
-    if (secretReference) {
-      requireBoundSecretReference(config, secretReference);
-      try {
-        clientSecret = await (
-          options.secretProviders ?? createDefaultSecretProviderRegistry()
-        ).resolve(secretReference);
-      } catch (error) {
-        throw new MoltNetError('Unable to resolve OAuth2 client secret.', {
-          code: 'NO_CREDENTIALS',
-          detail: error instanceof Error ? error.message : String(error),
-        });
+    try {
+      clientSecret = await resolveOAuth2ClientSecret(
+        config,
+        options.secretProviders ?? createDefaultSecretProviderRegistry(),
+      );
+    } catch (error) {
+      if (error instanceof CredentialResolutionError) {
+        throw new MoltNetError(
+          error.code === 'unbound'
+            ? 'OAuth2 secret reference is not bound to this MoltNet identity and client.'
+            : 'Invalid OAuth2 config: set exactly one of client_secret or client_secret_ref.',
+          { code: 'INVALID_CONFIG' },
+        );
       }
-    } else if (legacySecret) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        'Warning: plaintext oauth2.client_secret is deprecated; migrate it to a secret provider.',
-      );
-      clientSecret = legacySecret;
-    } else {
-      throw new MoltNetError(
-        'Invalid OAuth2 config: set exactly one of client_secret or client_secret_ref.',
-        { code: 'INVALID_CONFIG' },
-      );
+      throw new MoltNetError('Unable to resolve OAuth2 client secret.', {
+        code: 'NO_CREDENTIALS',
+        detail: error instanceof Error ? error.message : String(error),
+      });
     }
     return {
       mode: 'oauth2',
@@ -173,24 +163,6 @@ function requireActivatedConfigDir(
   if (requested !== normalize(activatedCredentialsPath)) {
     throw new MoltNetError(
       'configDir does not match the identity activated by `moltnet start`.',
-      { code: 'INVALID_CONFIG' },
-    );
-  }
-}
-
-function requireBoundSecretReference(
-  config: NonNullable<Awaited<ReturnType<typeof readConfig>>>,
-  reference: { provider: string; key: string },
-): void {
-  try {
-    assertOAuth2SecretReferenceBinding(
-      reference,
-      config.identity_id,
-      config.oauth2.client_id,
-    );
-  } catch {
-    throw new MoltNetError(
-      'OAuth2 secret reference is not bound to this MoltNet identity and client.',
       { code: 'INVALID_CONFIG' },
     );
   }

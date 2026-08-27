@@ -37,6 +37,14 @@ export { createAgent } from './agent.js';
 export { writeMcpConfig } from './config.js';
 export { connect, type ConnectOptions } from './connect.js';
 export {
+  type CredentialResolutionCode,
+  CredentialResolutionError,
+  resetLegacyCredentialWarnings,
+  resolveIdentitySeed,
+  resolveOAuth2ClientSecret,
+  warnLegacyCredentialOnce,
+} from './credential-resolver.js';
+export {
   deriveMcpUrl,
   getConfigDir,
   getConfigPath,
@@ -128,9 +136,15 @@ export { createRemoteSigner, RemoteSignerError } from './remote-signer.js';
 export { type ConfigIssue, repairConfig, type RepairResult } from './repair.js';
 export { type RetryOptions } from './retry.js';
 export {
+  assertSecretReferenceBinding,
   createDefaultSecretProviderRegistry,
+  CREDENTIAL_ENV_KEYS,
+  type CredentialBindingIds,
+  type CredentialKind,
   ENVIRONMENT_SECRET_PROVIDER,
   EnvironmentSecretProvider,
+  expectedSecretKey,
+  identitySeedKey,
   MOLTNET_SECRET_SERVICE,
   oauth2SecretKey,
   OS_KEYRING_SECRET_PROVIDER,

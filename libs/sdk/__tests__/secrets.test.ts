@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  assertSecretReferenceBinding,
   EnvironmentSecretProvider,
+  expectedSecretKey,
+  identitySeedKey,
   oauth2SecretKey,
   READ_ONLY_CAPABILITIES,
   READ_WRITE_CAPABILITIES,
@@ -301,5 +304,54 @@ it('exposes read-only capabilities on the environment provider', () => {
     read: true,
     write: false,
     delete: false,
+  });
+});
+
+describe('credential binding table', () => {
+  it('derives stable keys per kind', () => {
+    expect(
+      expectedSecretKey('oauth2-client-secret', {
+        identityId: 'id',
+        clientId: 'c',
+      }),
+    ).toBe('oauth2/id/c');
+    expect(
+      expectedSecretKey('identity-seed', { fingerprint: '21FE-31DF' }),
+    ).toBe('identity/21FE-31DF/seed');
+    expect(identitySeedKey('fp')).toBe('identity/fp/seed');
+  });
+
+  it('accepts canonical keys, env variable names, and flattened file keys', () => {
+    const ids = { fingerprint: 'fp' };
+    for (const reference of [
+      { provider: 'os-keyring', key: 'identity/fp/seed' },
+      { provider: 'env', key: 'MOLTNET_PRIVATE_KEY' },
+      { provider: 'file', key: 'identity/fp/seed' },
+      { provider: 'file', key: 'identity.fp.seed' },
+    ]) {
+      expect(() =>
+        assertSecretReferenceBinding('identity-seed', reference, ids),
+      ).not.toThrow();
+    }
+  });
+
+  it('rejects keys bound to another identity, wrong env names, and flattened keys outside file', () => {
+    const ids = { fingerprint: 'fp' };
+    for (const reference of [
+      { provider: 'os-keyring', key: 'identity/other/seed' },
+      { provider: 'env', key: 'MOLTNET_CLIENT_SECRET' },
+      { provider: 'os-keyring', key: 'identity.fp.seed' },
+    ]) {
+      expect(() =>
+        assertSecretReferenceBinding('identity-seed', reference, ids),
+      ).toThrow(/not bound/);
+    }
+    expect(() =>
+      assertSecretReferenceBinding(
+        'identity-seed',
+        { provider: 'os-keyring', key: 'identity/fp/seed' },
+        {},
+      ),
+    ).toThrow(/fingerprint/);
   });
 });

@@ -1,6 +1,7 @@
 import type { Agent } from './agent.js';
 import { readEnvironmentVariable } from './config.js';
 import { connect as connectBase, type ConnectOptions } from './connect.js';
+import { resolveOAuth2ClientSecret } from './credential-resolver.js';
 import type { MoltNetConfig } from './credentials.js';
 import {
   type EnvironmentLookup,
@@ -8,7 +9,6 @@ import {
   fileSecretProviderOptionsFromEnv,
 } from './file-secret-provider.js';
 import {
-  assertOAuth2SecretReferenceBinding,
   createDefaultSecretProviderRegistry,
   MOLTNET_SECRET_SERVICE,
   OS_KEYRING_SECRET_PROVIDER,
@@ -105,27 +105,7 @@ export async function resolveNodeOAuth2ClientSecret(
   config: MoltNetConfig,
   secretProviders = createNodeSecretProviderRegistry(),
 ): Promise<string> {
-  const legacySecret = config.oauth2.client_secret;
-  const secretReference = config.oauth2.client_secret_ref;
-  if (legacySecret && secretReference) {
-    throw new Error(
-      'OAuth2 config must set exactly one of client_secret or client_secret_ref',
-    );
-  }
-  if (secretReference) {
-    assertOAuth2SecretReferenceBinding(
-      secretReference,
-      config.identity_id,
-      config.oauth2.client_id,
-    );
-    return secretProviders.resolve(secretReference);
-  }
-  if (legacySecret) {
-    return legacySecret;
-  }
-  throw new Error(
-    'OAuth2 config must set exactly one of client_secret or client_secret_ref',
-  );
+  return resolveOAuth2ClientSecret(config, secretProviders);
 }
 
 /** Node entry point: includes the lazy OS keyring unless callers supply a registry. */

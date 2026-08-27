@@ -16,6 +16,7 @@ vi.mock('@moltnet/api-client', () => ({
 }));
 
 vi.mock('../src/config.js', () => ({
+  readEnvironmentVariable: vi.fn(() => undefined),
   readEnvCredentials: vi.fn(() => ({
     clientId: undefined,
     clientSecret: undefined,

@@ -1,0 +1,224 @@
+import { cryptoService } from '@moltnet/crypto-service';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import {
+  CredentialResolutionError,
+  resetLegacyCredentialWarnings,
+  resolveIdentitySeed,
+  resolveOAuth2ClientSecret,
+} from '../src/credential-resolver.js';
+import {
+  READ_ONLY_CAPABILITIES,
+  type SecretProvider,
+  SecretProviderRegistry,
+} from '../src/secrets.js';
+
+const SEED = 'nWGxne/9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A=';
+const PUBLIC = 'ed25519:11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=';
+const FP = '21FE-31DF-A154-A261';
+
+function registryWith(values: Record<string, string>) {
+  const provider: SecretProvider = {
+    name: 'memory',
+    capabilities: READ_ONLY_CAPABILITIES,
+    read: async (key) => values[key] ?? null,
+    probe: async (key) => (key in values ? 'present' : 'absent'),
+  };
+  return new SecretProviderRegistry().register(provider);
+}
+
+async function failure(promise: Promise<unknown>) {
+  const error = await promise.then(
+    () => null,
+    (e: unknown) => e,
+  );
+  expect(error).toBeInstanceOf(CredentialResolutionError);
+  return error as CredentialResolutionError;
+}
+
+describe('resolveIdentitySeed', () => {
+  beforeEach(() => {
+    resetLegacyCredentialWarnings();
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it('resolves a bound reference and checks it derives the configured public key', async () => {
+    const registry = registryWith({ [`identity/${FP}/seed`]: SEED });
+
+    await expect(
+      resolveIdentitySeed(
+        {
+          keys: {
+            public_key: PUBLIC,
+            fingerprint: FP,
+            private_key_ref: { provider: 'memory', key: `identity/${FP}/seed` },
+          },
+        },
+        registry,
+      ),
+    ).resolves.toBe(SEED);
+    expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it('returns legacy plaintext and warns exactly once per process', async () => {
+    const registry = registryWith({});
+    const config = {
+      keys: { public_key: PUBLIC, fingerprint: FP, private_key: SEED },
+    };
+
+    await expect(resolveIdentitySeed(config, registry)).resolves.toBe(SEED);
+    await expect(resolveIdentitySeed(config, registry)).resolves.toBe(SEED);
+    expect(console.warn).toHaveBeenCalledTimes(1);
+    const message = String(vi.mocked(console.warn).mock.calls[0][0]);
+    expect(message).toMatch(/keys\.private_key.*moltnet config migrate/);
+    expect(message).not.toContain(SEED);
+  });
+
+  it('rejects ambiguous, missing, unbound, and mismatching values with typed codes', async () => {
+    const registry = registryWith({
+      [`identity/${FP}/seed`]: 'AAAA',
+      'identity/other/seed': SEED,
+    });
+    const base = { public_key: PUBLIC, fingerprint: FP };
+
+    expect(
+      (
+        await failure(
+          resolveIdentitySeed(
+            {
+              keys: {
+                ...base,
+                private_key: SEED,
+                private_key_ref: {
+                  provider: 'memory',
+                  key: `identity/${FP}/seed`,
+                },
+              } as never,
+            },
+            registry,
+          ),
+        )
+      ).code,
+    ).toBe('ambiguous');
+    expect(
+      (await failure(resolveIdentitySeed({ keys: base as never }, registry)))
+        .code,
+    ).toBe('missing');
+    expect(
+      (
+        await failure(
+          resolveIdentitySeed(
+            {
+              keys: {
+                ...base,
+                private_key_ref: {
+                  provider: 'memory',
+                  key: 'identity/other/seed',
+                },
+              },
+            },
+            registry,
+          ),
+        )
+      ).code,
+    ).toBe('unbound');
+    const invalid = await failure(
+      resolveIdentitySeed(
+        {
+          keys: {
+            ...base,
+            private_key_ref: { provider: 'memory', key: `identity/${FP}/seed` },
+          },
+        },
+        registry,
+      ),
+    );
+    expect(invalid.code).toBe('invalid_value');
+    expect(String(invalid)).not.toContain('AAAA');
+  });
+
+  it('rejects a well-formed seed that does not derive the configured public key', async () => {
+    const other = await cryptoService.generateKeyPair();
+    const registry = registryWith({
+      [`identity/${FP}/seed`]: other.privateKey,
+    });
+
+    const error = await failure(
+      resolveIdentitySeed(
+        {
+          keys: {
+            public_key: PUBLIC,
+            fingerprint: FP,
+            private_key_ref: { provider: 'memory', key: `identity/${FP}/seed` },
+          },
+        },
+        registry,
+      ),
+    );
+    expect(error.code).toBe('invalid_value');
+    expect(String(error)).not.toContain(other.privateKey);
+  });
+});
+
+describe('resolveOAuth2ClientSecret', () => {
+  beforeEach(() => {
+    resetLegacyCredentialWarnings();
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it('resolves a bound reference and warns once for plaintext', async () => {
+    const registry = registryWith({ 'oauth2/id/c': 'secret' });
+
+    await expect(
+      resolveOAuth2ClientSecret(
+        {
+          identity_id: 'id',
+          oauth2: {
+            client_id: 'c',
+            client_secret_ref: { provider: 'memory', key: 'oauth2/id/c' },
+          },
+        },
+        registry,
+      ),
+    ).resolves.toBe('secret');
+    await expect(
+      resolveOAuth2ClientSecret(
+        {
+          identity_id: 'id',
+          oauth2: { client_id: 'c', client_secret: 'plain' },
+        },
+        registry,
+      ),
+    ).resolves.toBe('plain');
+    await expect(
+      resolveOAuth2ClientSecret(
+        {
+          identity_id: 'id',
+          oauth2: { client_id: 'c', client_secret: 'plain' },
+        },
+        registry,
+      ),
+    ).resolves.toBe('plain');
+    expect(console.warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects an unbound reference with a typed code', async () => {
+    const registry = registryWith({ 'oauth2/other/c': 'secret' });
+
+    const error = await failure(
+      resolveOAuth2ClientSecret(
+        {
+          identity_id: 'id',
+          oauth2: {
+            client_id: 'c',
+            client_secret_ref: { provider: 'memory', key: 'oauth2/other/c' },
+          },
+        },
+        registry,
+      ),
+    );
+    expect(error.code).toBe('unbound');
+  });
+});
