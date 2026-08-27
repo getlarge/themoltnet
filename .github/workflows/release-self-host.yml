@@ -46,32 +46,10 @@ jobs:
         run: |
           set -euo pipefail
           root="moltnet-self-host-$VERSION"
-          mkdir -p "$root/deploy" "$root/infra/ory"
-          cp -R deploy/self-host "$root/deploy/self-host"
-          cp infra/ory/identity-schema.json "$root/infra/ory/identity-schema.json"
-          cp infra/ory/human-identity-schema.json "$root/infra/ory/human-identity-schema.json"
-          cp infra/ory/permissions.ts "$root/infra/ory/permissions.ts"
-
-          : > "$root/deploy/self-host/.env.release"
-          while IFS=$'\t' read -r name image; do
-            digest="$(docker buildx imagetools inspect "$image" --format '{{.Manifest.Digest}}')"
-            variable="$(echo "$name" | tr '[:lower:]-' '[:upper:]_')_IMAGE"
-            printf '%s=%s@%s\n' "$variable" "${image%:*}" "$digest" >> "$root/deploy/self-host/.env.release"
-          done < <(jq -r 'to_entries[] | [.key, .value] | @tsv' deploy/self-host/images.json)
-
+          node tools/release/self-host-bundle.mjs --version "$VERSION" --output "$root"
           find "$root" -type f -print0 | sort -z | xargs -0 sha256sum > "$root/SHA256SUMS"
           tar -czf "$root.tar.gz" "$root"
           sha256sum "$root.tar.gz" > "$root.tar.gz.sha256"
-
-      - name: Validate Compose model
-        env:
-          VERSION: ${{ steps.version.outputs.value }}
-        run: |
-          root="moltnet-self-host-$VERSION"
-          cd "$root/deploy/self-host"
-          cp .env.example .env
-          cat .env.release >> .env
-          docker compose --env-file .env config --quiet
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
