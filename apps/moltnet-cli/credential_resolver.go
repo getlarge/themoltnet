@@ -54,6 +54,8 @@ func legacyField(kind credentialKind) string {
 		return "oauth2.client_secret"
 	case credentialIdentitySeed:
 		return "keys.private_key"
+	case credentialGitHubAppPrivateKey:
+		return "github.private_key_path"
 	}
 	return string(kind)
 }
@@ -152,4 +154,45 @@ func resolveIdentitySeed(creds *CredentialsFile, registry *SecretProviderRegistr
 		return "", err
 	}
 	return seed, nil
+}
+
+// resolveGitHubAppPrivateKey returns the GitHub App PEM from
+// github.private_key_path (legacy file, warned once) or
+// github.private_key_ref, verifying the reference is bound to this App and
+// the value parses as an RSA private key.
+func resolveGitHubAppPrivateKey(creds *CredentialsFile, registry *SecretProviderRegistry) ([]byte, error) {
+	kind := credentialGitHubAppPrivateKey
+	if creds == nil || creds.GitHub == nil {
+		return nil, &CredentialResolutionError{Kind: kind, Code: "missing", Detail: "GitHub App not configured — add 'github' section to moltnet.json"}
+	}
+	path := strings.TrimSpace(creds.GitHub.PrivateKeyPath)
+	ref := creds.GitHub.PrivateKeyRef
+	if path != "" && ref != nil {
+		return nil, &CredentialResolutionError{Kind: kind, Code: "ambiguous", Detail: "config must set exactly one of github.private_key_path or github.private_key_ref"}
+	}
+	var pemData []byte
+	switch {
+	case ref != nil:
+		if err := validateSecretReferenceBinding(kind, *ref, credentialBindingIDs{AppID: creds.GitHub.AppID}); err != nil {
+			return nil, &CredentialResolutionError{Kind: kind, Code: "unbound", Detail: err.Error()}
+		}
+		value, err := registry.Resolve(*ref)
+		if err != nil {
+			return nil, err
+		}
+		pemData = []byte(value)
+	case path != "":
+		warnLegacyCredentialOnce(kind)
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return nil, fmt.Errorf("read GitHub App private key: %w", err)
+		}
+		pemData = data
+	default:
+		return nil, &CredentialResolutionError{Kind: kind, Code: "missing", Detail: "config must set exactly one of github.private_key_path or github.private_key_ref"}
+	}
+	if _, err := parseRSAPrivateKey(pemData); err != nil {
+		return nil, &CredentialResolutionError{Kind: kind, Code: "invalid_value", Detail: "value is not an RSA private key PEM"}
+	}
+	return pemData, nil
 }

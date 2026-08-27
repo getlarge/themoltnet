@@ -50,11 +50,12 @@ type GitSection struct {
 }
 
 type GitHubSection struct {
-	AppID          string `json:"app_id"`
-	AppSlug        string `json:"app_slug,omitempty"`
-	InstallationID string `json:"installation_id"`
-	PrivateKeyPath string `json:"private_key_path"`
-	Org            string `json:"org,omitempty"`
+	AppID          string           `json:"app_id"`
+	AppSlug        string           `json:"app_slug,omitempty"`
+	InstallationID string           `json:"installation_id"`
+	PrivateKeyPath string           `json:"private_key_path,omitempty"`
+	PrivateKeyRef  *SecretReference `json:"private_key_ref,omitempty"`
+	Org            string           `json:"org,omitempty"`
 }
 
 // GetConfigDir returns ~/.config/moltnet.

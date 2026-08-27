@@ -617,3 +617,50 @@ func TestGetCachedInstallationToken_CacheMissing(t *testing.T) {
 		t.Errorf("expected PEM decode error, got: %v", err)
 	}
 }
+
+func TestRunGitHubTokenMintsFromPrivateKeyReference(t *testing.T) {
+	pemData := testRSAPrivateKeyPEM(t)
+	t.Setenv(githubAppPrivateKeyEnvKey, string(pemData))
+	dir := t.TempDir()
+	credPath := filepath.Join(dir, "moltnet.json")
+	creds := &CredentialsFile{GitHub: &GitHubSection{AppID: "12345", InstallationID: "67890",
+		PrivateKeyRef: &SecretReference{Provider: environmentProviderName, Key: githubAppPrivateKeyEnvKey}}}
+	if _, err := WriteConfigTo(creds, credPath); err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasPrefix(r.Header.Get("Authorization"), "Bearer ") {
+			t.Errorf("missing app JWT")
+		}
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"token":"ghs_from_ref","expires_at":"2099-01-01T00:00:00Z","permissions":{"contents":"write"}}`))
+	}))
+	defer server.Close()
+	old := githubAPIBaseURL
+	githubAPIBaseURL = server.URL
+	defer func() { githubAPIBaseURL = old }()
+
+	token, err := mintGitHubAppToken(creds, credPath)
+	if err != nil || token != "ghs_from_ref" {
+		t.Fatalf("mintGitHubAppToken = %q, %v", token, err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "gh-token-cache.json")); err != nil {
+		t.Fatalf("token cache not written next to moltnet.json: %v", err)
+	}
+}
+
+func TestGitHubKeySourceFromCredentialsKeepsLegacyCacheLocation(t *testing.T) {
+	pemDir := t.TempDir()
+	pemPath := filepath.Join(pemDir, "app.pem")
+	if err := os.WriteFile(pemPath, testRSAPrivateKeyPEM(t), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	creds := &CredentialsFile{GitHub: &GitHubSection{AppID: "1", InstallationID: "2", PrivateKeyPath: pemPath}}
+	source, err := githubKeySourceFromCredentials(creds, filepath.Join(t.TempDir(), "moltnet.json"), NewSecretProviderRegistry())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if source.cacheDir != pemDir {
+		t.Fatalf("cacheDir = %q, want the PEM directory %q", source.cacheDir, pemDir)
+	}
+}

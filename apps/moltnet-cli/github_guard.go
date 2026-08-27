@@ -205,11 +205,15 @@ func loadGitHubGuardPermissions(ctx context.Context, credentialsPath string) (ma
 		return nil, fmt.Errorf("GitHub App not configured")
 	}
 
-	details, err := getCachedInstallationTokenDetailsWithFailureTTL(
+	source, err := githubKeySourceFromCredentials(creds, credentialsPath, NewSecretProviderRegistry())
+	if err != nil {
+		return nil, err
+	}
+	details, err := getCachedTokenDetailsFromSource(
 		ctx,
 		&http.Client{Timeout: githubGuardPermissionTimeout},
 		creds.GitHub.AppID,
-		creds.GitHub.PrivateKeyPath,
+		source,
 		creds.GitHub.InstallationID,
 		githubGuardNegativeCacheTTL,
 	)

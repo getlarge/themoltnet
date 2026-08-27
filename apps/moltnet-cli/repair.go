@@ -195,8 +195,11 @@ func loadAndValidate(credPath string) (string, *CredentialsFile, []ConfigIssue, 
 	if creds.Git != nil {
 		checkFilePath(&issues, "git.config_path", creds.Git.ConfigPath)
 	}
-	if creds.GitHub != nil {
+	if creds.GitHub != nil && creds.GitHub.PrivateKeyPath != "" {
 		checkFilePath(&issues, "github.private_key_path", creds.GitHub.PrivateKeyPath)
+	}
+	if creds.GitHub != nil && creds.GitHub.PrivateKeyPath == "" && creds.GitHub.PrivateKeyRef == nil {
+		issues = append(issues, ConfigIssue{Field: "github.private_key_path", Problem: "missing", Action: "warning"})
 	}
 
 	// Validate sibling env file authorship vars

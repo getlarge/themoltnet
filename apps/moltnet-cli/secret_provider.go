@@ -20,26 +20,37 @@ const (
 
 var environmentSecretKeyPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
-const identitySeedEnvKey = "MOLTNET_PRIVATE_KEY"
+const (
+	identitySeedEnvKey        = "MOLTNET_PRIVATE_KEY"
+	githubAppPrivateKeyEnvKey = "MOLTNET_GITHUB_APP_PRIVATE_KEY"
+)
 
 // credentialKind names a credential whose provider key shape is fixed by the
 // binding table below; the same table exists in the Node SDK.
 type credentialKind string
 
 const (
-	credentialOAuth2ClientSecret credentialKind = "oauth2-client-secret"
-	credentialIdentitySeed       credentialKind = "identity-seed"
+	credentialOAuth2ClientSecret  credentialKind = "oauth2-client-secret"
+	credentialIdentitySeed        credentialKind = "identity-seed"
+	credentialGitHubAppPrivateKey credentialKind = "github-app-private-key"
 )
 
 type credentialBindingIDs struct {
 	IdentityID  string
 	ClientID    string
 	Fingerprint string
+	AppID       string
 }
 
 // IdentitySeedKey returns the stable provider key for an agent's Ed25519 seed.
 func IdentitySeedKey(fingerprint string) string {
 	return "identity/" + fingerprint + "/seed"
+}
+
+// GitHubAppPrivateKeyKey returns the stable provider key for a GitHub App's
+// RSA private key.
+func GitHubAppPrivateKeyKey(appID string) string {
+	return "github-app/" + appID + "/private-key"
 }
 
 func credentialEnvKey(kind credentialKind) string {
@@ -48,6 +59,8 @@ func credentialEnvKey(kind credentialKind) string {
 		return environmentSecretKey
 	case credentialIdentitySeed:
 		return identitySeedEnvKey
+	case credentialGitHubAppPrivateKey:
+		return githubAppPrivateKeyEnvKey
 	}
 	return ""
 }
@@ -64,6 +77,11 @@ func expectedSecretKey(kind credentialKind, ids credentialBindingIDs) (string, e
 			return "", fmt.Errorf("credential binding requires keys.fingerprint")
 		}
 		return IdentitySeedKey(ids.Fingerprint), nil
+	case credentialGitHubAppPrivateKey:
+		if strings.TrimSpace(ids.AppID) == "" {
+			return "", fmt.Errorf("credential binding requires github.app_id")
+		}
+		return GitHubAppPrivateKeyKey(ids.AppID), nil
 	}
 	return "", fmt.Errorf("unknown credential kind %q", kind)
 }

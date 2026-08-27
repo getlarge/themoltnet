@@ -100,10 +100,10 @@ func runConfigExportEnvCmdWithRegistry(
 			lines = append(lines, fmt.Sprintf("MOLTNET_GITHUB_APP_SLUG=%s", creds.GitHub.AppSlug))
 		}
 		lines = append(lines, fmt.Sprintf("MOLTNET_GITHUB_APP_INSTALLATION_ID=%s", creds.GitHub.InstallationID))
-		if includeGitHubPEM && creds.GitHub.PrivateKeyPath != "" {
-			pem, err := os.ReadFile(creds.GitHub.PrivateKeyPath)
+		if includeGitHubPEM && (creds.GitHub.PrivateKeyPath != "" || creds.GitHub.PrivateKeyRef != nil) {
+			pem, err := resolveGitHubAppPrivateKey(creds, secretProviders)
 			if err != nil {
-				return fmt.Errorf("read GitHub App PEM %q: %w", creds.GitHub.PrivateKeyPath, err)
+				return fmt.Errorf("resolve GitHub App PEM: %w", err)
 			}
 			// Dotenv multi-line: wrap in double quotes with literal newlines
 			lines = append(lines, fmt.Sprintf("MOLTNET_GITHUB_APP_PRIVATE_KEY=%q", strings.TrimSpace(string(pem))))
