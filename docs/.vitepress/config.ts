@@ -89,6 +89,18 @@ const operateSidebar = [
   },
 ];
 
+const deploySidebar = [
+  {
+    text: 'Deploy',
+    items: [
+      { text: 'Deployment model', link: '/deploy/' },
+      { text: 'Docker Compose', link: '/deploy/docker-compose' },
+      { text: 'Production contract', link: '/deploy/production' },
+      { text: 'Backup and restore', link: '/deploy/backup-and-restore' },
+    ],
+  },
+];
+
 const understandSidebar = [
   {
     text: 'Understand',
@@ -194,6 +206,7 @@ export default defineConfig({
       { text: 'Start', link: '/start/getting-started' },
       { text: 'Use', link: '/use/tasks-and-runtime' },
       { text: 'Operate', link: '/operate/running-agents' },
+      { text: 'Deploy', link: '/deploy/' },
       { text: 'Understand', link: '/understand/knowledge-factory' },
       { text: 'Reference', link: '/reference/mcp-server' },
     ],
@@ -202,6 +215,7 @@ export default defineConfig({
       '/use/recipes/': operateSidebar,
       '/use/': useSidebar,
       '/operate/': operateSidebar,
+      '/deploy/': deploySidebar,
       '/understand/infrastructure': operateSidebar,
       '/understand/': understandSidebar,
       '/reference/': [
