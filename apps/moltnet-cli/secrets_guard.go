@@ -314,6 +314,9 @@ func callMentionsProtectedPath(call *syntax.CallExpr, pathContext secretGuardPat
 }
 
 func shellWordMentionsProtectedPath(word *syntax.Word, pathContext secretGuardPathContext) bool {
+	if wordExpandsSecretRoot(word) {
+		return true
+	}
 	mentions := false
 	var literals strings.Builder
 	syntax.Walk(word, func(node syntax.Node) bool {
@@ -479,15 +482,18 @@ func classifyPathLexical(value string) pathClass {
 }
 
 // classifySecretRootPath treats the headless secret root (MOLTNET_SECRET_ROOT)
-// and everything beneath it as credential material, like .moltnet/. Relative
-// paths are anchored to cwd; with an empty cwd only absolute paths can match.
+// and everything beneath it as credential material, like .moltnet/. Only an
+// absolute root is honoured — the providers reject relative roots for the
+// same reason. Both sides are canonicalized so a symlink alias into the root
+// receives the same class as the root path itself. Relative candidates are
+// anchored to cwd; with an empty cwd only absolute candidates can match.
 func classifySecretRootPath(value, cwd string, lookup func(string) (string, bool)) pathClass {
 	root, ok := lookup(secretRootEnv)
 	root = strings.TrimSpace(root)
 	if !ok || root == "" || !filepath.IsAbs(root) {
 		return pathNone
 	}
-	root = filepath.Clean(root)
+	rootReal := canonicalizeExistingPath(filepath.Clean(root))
 	candidate := strings.TrimSpace(value)
 	if candidate == "" {
 		return pathNone
@@ -498,15 +504,56 @@ func classifySecretRootPath(value, cwd string, lookup func(string) (string, bool
 		}
 		candidate = filepath.Join(cwd, candidate)
 	}
-	candidate = filepath.Clean(candidate)
-	if candidate == root {
+	candidateReal := canonicalizeExistingPath(filepath.Clean(candidate))
+	if candidateReal == rootReal {
 		return pathCredential
 	}
-	rel, err := filepath.Rel(root, candidate)
+	rel, err := filepath.Rel(rootReal, candidateReal)
 	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
 		return pathNone
 	}
 	return pathCredential
+}
+
+// canonicalizeExistingPath resolves symlinks for the longest existing prefix
+// of p and re-attaches the remaining components lexically, so paths that do
+// not exist yet still compare against a canonical root.
+func canonicalizeExistingPath(p string) string {
+	existing := p
+	var rest []string
+	for {
+		if resolved, err := filepath.EvalSymlinks(existing); err == nil {
+			for i := len(rest) - 1; i >= 0; i-- {
+				resolved = filepath.Join(resolved, rest[i])
+			}
+			return resolved
+		}
+		parent := filepath.Dir(existing)
+		if parent == existing {
+			return p
+		}
+		rest = append(rest, filepath.Base(existing))
+		existing = parent
+	}
+}
+
+// wordExpandsSecretRoot reports whether a shell word references the headless
+// secret root through parameter expansion ($MOLTNET_SECRET_ROOT or
+// ${MOLTNET_SECRET_ROOT...}). The expansion is opaque to the static analyser,
+// so any such reference fails closed as credential material.
+func wordExpandsSecretRoot(word *syntax.Word) bool {
+	found := false
+	syntax.Walk(word, func(node syntax.Node) bool {
+		if found {
+			return false
+		}
+		if param, ok := node.(*syntax.ParamExp); ok && param.Param != nil && param.Param.Value == secretRootEnv {
+			found = true
+			return false
+		}
+		return true
+	})
+	return found
 }
 
 // classifyCredentialPath checks whether a path is inside .moltnet/ credential
