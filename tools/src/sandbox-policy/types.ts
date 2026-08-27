@@ -127,6 +127,8 @@ export const REASON_CODES_BY_DOMAIN = {
   lifecycle: [
     'backend_retirement_observed',
     'broker_preflight_unverified',
+    'managed_engine_retirement_observed',
+    'managed_engine_retirement_unconfirmed',
     'managed_sandbox_retirement_observed',
     'preflight_failure_left_no_backend_resource',
     'preflight_failure_left_no_live_vm',
