@@ -54,6 +54,8 @@ const HOP_BY_HOP_HEADERS = [
   'upgrade',
 ] as const;
 
+export const TUNNEL_INSPECTION_TIMEOUT_MS = 3_000;
+
 function canonicalPort(url: URL): number {
   if (url.port) return Number(url.port);
   return url.protocol === 'https:' ? 443 : 80;
@@ -325,8 +327,21 @@ export async function startExactOriginProxy(
       tunnelServer.emit('connection', clientSocket);
       socket.resume();
     };
-    if (head.length > 0) inspectTunnel(head);
-    else socket.once('data', inspectTunnel);
+    const inspectionTimer = setTimeout(() => {
+      decisions.push({
+        action: 'deny',
+        credential: 'absent',
+        protocol: 'unknown',
+        route: 'unmapped',
+      });
+      socket.destroy();
+    }, TUNNEL_INSPECTION_TIMEOUT_MS);
+    const inspectAndClear = (bytes: Buffer): void => {
+      clearTimeout(inspectionTimer);
+      inspectTunnel(bytes);
+    };
+    if (head.length > 0) inspectAndClear(head);
+    else socket.once('data', inspectAndClear);
   });
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject);
