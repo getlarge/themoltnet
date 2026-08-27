@@ -19,6 +19,7 @@ export interface PolicyFixture {
   capture(startIndex: number): FixtureRequestEvidence[];
   connectionCount(destination: FixtureRequestEvidence['destination']): number;
   path(pathname: string): string;
+  redirectTo(hostname: string): void;
   rotate(): string;
   restore(credential: string): void;
   sensitiveValues(): string[];
@@ -54,8 +55,9 @@ async function closeServer(server: Server): Promise<void> {
 
 export async function startPolicyFixture(
   bindAddress = '127.0.0.1',
-  redirectHost = bindAddress,
+  initialRedirectHost = bindAddress,
 ): Promise<PolicyFixture> {
+  let redirectHost = initialRedirectHost;
   let expectedCredential = syntheticCredential();
   const credentials = [expectedCredential];
   const pathPrefix = `/moltnet-probe-${randomUUID()}`;
@@ -160,6 +162,9 @@ export async function startPolicyFixture(
         : adjacentConnections;
     },
     path: fixturePath,
+    redirectTo(hostname) {
+      redirectHost = hostname;
+    },
     rotate() {
       expectedCredential = syntheticCredential();
       credentials.push(expectedCredential);

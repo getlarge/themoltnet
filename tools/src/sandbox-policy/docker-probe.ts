@@ -15,7 +15,13 @@ if (revision.exitCode !== 0) throw new Error(revision.stderr);
 
 const probeRoot = await mkdtemp(path.join(os.tmpdir(), 'moltnet-sbx-1972-'));
 const runId = `${Date.now()}-${process.pid}`;
-const adapter = new DockerSandboxAdapter();
+const appName = process.env.MOLTNET_DOCKER_SANDBOX_APP_NAME;
+if (!appName) {
+  throw new Error(
+    'MOLTNET_DOCKER_SANDBOX_APP_NAME is required for an isolated Docker Sandbox daemon',
+  );
+}
+const adapter = new DockerSandboxAdapter({ appName });
 const catalog = await loadScenarioCatalog();
 let interruptedBy: NodeJS.Signals | undefined;
 let interruptCleanup: ReturnType<DockerSandboxAdapter['close']> | undefined;

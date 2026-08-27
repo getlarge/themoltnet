@@ -43,7 +43,11 @@ export class CommandExecutionError extends Error {
 export type CommandExecutor = (
   command: string,
   args: string[],
-  options?: { signal?: AbortSignal; timeoutMs?: number },
+  options?: {
+    env?: NodeJS.ProcessEnv;
+    signal?: AbortSignal;
+    timeoutMs?: number;
+  },
 ) => Promise<CommandResult>;
 
 export const executeCommand: CommandExecutor = async (
@@ -54,6 +58,7 @@ export const executeCommand: CommandExecutor = async (
   try {
     const result = await execFileAsync(command, args, {
       encoding: 'utf8',
+      env: options.env,
       maxBuffer: 1024 * 1024,
       signal: options.signal,
       timeout: options.timeoutMs ?? 30_000,

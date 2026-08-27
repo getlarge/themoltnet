@@ -60,6 +60,8 @@ export const ENFORCEMENT_LOCI = [
 
 export type EnforcementLocus = (typeof ENFORCEMENT_LOCI)[number];
 
+export type EnforcementMode = 'native' | 'compensated';
+
 const COMMON_REASON_CODES = [
   'adapter_cleanup_error',
   'adapter_host_capabilities_error',
@@ -127,6 +129,9 @@ export const REASON_CODES_BY_DOMAIN = {
   lifecycle: [
     'backend_retirement_observed',
     'broker_preflight_unverified',
+    'managed_engine_retirement_observed',
+    'managed_engine_retirement_unconfirmed',
+    'managed_sandbox_retirement_observed',
     'preflight_failure_left_no_backend_resource',
     'preflight_failure_left_no_live_vm',
     'partial_launch_cleanup_unverified',
@@ -256,6 +261,8 @@ export interface ControlEvidence {
   resolvedAdapterConfig: AdapterResolution | null;
   backend: Pick<BackendInventory, 'id' | 'version'>;
   enforcementLocus: EnforcementLocus[];
+  /** Whether the adapter relies on a trusted compensating layer. */
+  enforcementMode?: EnforcementMode;
   state: EnforcementState;
   /** Required only when state is unsupported. */
   unsupportedKind?: UnsupportedKind;

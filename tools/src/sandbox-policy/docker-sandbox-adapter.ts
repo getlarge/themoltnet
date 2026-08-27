@@ -15,6 +15,16 @@ import {
   type CommandResult,
   executeCommand,
 } from './command.js';
+import {
+  type DockerEngineControl,
+  dockerEngineControl,
+} from './docker-engine-control.js';
+import {
+  ADJACENT_FIXTURE_HOST,
+  type ExactOriginProxy,
+  PROTECTED_FIXTURE_HOST,
+  startExactOriginProxy,
+} from './exact-origin-proxy.js';
 import { type PolicyFixture, startPolicyFixture } from './fixture-server.js';
 import { requestedIntent } from './runner.js';
 import type {
@@ -36,12 +46,15 @@ import type {
 const BACKEND_ID = 'docker-sandbox';
 const PLACEHOLDER = 'moltnet-probe-placeholder';
 const HOST_ALIAS = 'host.docker.internal';
-// Force loopback requests through Docker's outbound proxy. Direct loopback is
-// guest-local, while the proxy resolves this exact IP on the trusted host.
-const CREDENTIAL_HOST = '127.0.0.1';
+const SUPPORTED_DOCKER_SANDBOX_VERSION = 'v0.39.0';
+// Force controlled TEST-NET requests through Docker's credential proxy and
+// then the adapter-owned exact-origin upstream proxy.
+const CREDENTIAL_HOST = PROTECTED_FIXTURE_HOST;
 const FORCE_PROXY = "--noproxy ''";
 
-interface DockerSandboxAdapterOptions {
+export interface DockerSandboxAdapterOptions {
+  appName: string;
+  engineControl?: DockerEngineControl;
   execute?: CommandExecutor;
 }
 
@@ -53,6 +66,18 @@ interface SecretApplication {
 interface EvidenceProvenance {
   basis: Exclude<EvidenceBasis, 'declared'>;
   attestedBy: ControlOracle['attestedBy'];
+}
+
+interface SandboxStatus {
+  name: string;
+  status: string;
+}
+
+export class DockerContainmentRecoveryError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'DockerContainmentRecoveryError';
+  }
 }
 
 const ADAPTER_PROVENANCE: EvidenceProvenance = {
@@ -92,9 +117,13 @@ function sleep(milliseconds: number, signal?: AbortSignal): Promise<void> {
 
 export class DockerSandboxAdapter implements ResearchSandboxAdapter {
   readonly #execute: CommandExecutor;
+  readonly #engineControl: DockerEngineControl;
+  readonly #appName: string;
   readonly #cleanup = new CleanupManifest();
   #inventory: BackendInventory | null = null;
   #fixture: PolicyFixture | null = null;
+  #originProxy: ExactOriginProxy | null = null;
+  #originProxyConfigured = false;
   #sandboxName = '';
   #guestRoot = '';
   #readonlyRoot = '';
@@ -109,9 +138,27 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
   #scenarioSignal: AbortSignal | undefined;
   #credentialDeliveryVerified = false;
   #rotatedDeliveryVerified = false;
+  #daemonStopped = false;
+  #poisoned = false;
 
-  constructor(options: DockerSandboxAdapterOptions = {}) {
-    this.#execute = options.execute ?? executeCommand;
+  constructor(options: DockerSandboxAdapterOptions) {
+    const execute = options.execute ?? executeCommand;
+    this.#appName = options.appName;
+    if (!/^[a-z0-9-]{1,20}$/.test(this.#appName)) {
+      throw new Error(
+        'Docker Sandbox app name must contain 1-20 lowercase letters, digits, or hyphens',
+      );
+    }
+    this.#engineControl = options.engineControl ?? dockerEngineControl;
+    this.#execute = (command, args, commandOptions = {}) =>
+      execute(command, args, {
+        ...commandOptions,
+        env: {
+          ...process.env,
+          ...commandOptions.env,
+          DOCKER_SANDBOXES_APP_NAME: this.#appName,
+        },
+      });
   }
 
   async inspect(): Promise<BackendInventory> {
@@ -121,6 +168,11 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
       throw new Error(`Docker Sandbox unavailable: ${version.stderr}`);
     }
     const match = /v\d+\.\d+\.\d+/.exec(version.stdout);
+    if (match?.[0] !== SUPPORTED_DOCKER_SANDBOX_VERSION) {
+      throw new Error(
+        `Docker Sandbox version ${SUPPORTED_DOCKER_SANDBOX_VERSION} is required; found ${match?.[0] ?? 'unknown'}`,
+      );
+    }
     this.#inventory = {
       id: BACKEND_ID,
       version: match?.[0] ?? 'unknown',
@@ -138,7 +190,11 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
 
   async #ensureCreated(context: ProbeContext): Promise<void> {
     if (this.#created) return;
+    if (!/^[A-Za-z0-9._/-]+$/.test(context.probeRoot)) {
+      throw new Error('probe root contains unsupported shell characters');
+    }
     const fixture = await this.#ensureFixture();
+    await this.#ensureOriginProxy(fixture);
     this.#sandboxName = `moltnet-1972-${context.runId}`
       .toLowerCase()
       .replace(/[^a-z0-9.-]/g, '-')
@@ -211,6 +267,81 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
     );
   }
 
+  async #sandboxStatus(name: string): Promise<{
+    result: CommandResult;
+    parsed: boolean;
+    status: string | null;
+  }> {
+    const result = await this.#executeScenario(['ls', '--json']);
+    if (result.exitCode !== 0) return { result, parsed: false, status: null };
+    try {
+      const parsed = JSON.parse(result.stdout) as {
+        sandboxes?: SandboxStatus[];
+      };
+      if (!Array.isArray(parsed.sandboxes)) {
+        return { result, parsed: false, status: null };
+      }
+      const sandbox = parsed.sandboxes?.find(
+        (candidate) => candidate.name === name,
+      );
+      return { result, parsed: true, status: sandbox?.status ?? null };
+    } catch {
+      return { result, parsed: false, status: null };
+    }
+  }
+
+  async #startDaemon(): Promise<CommandResult> {
+    const result = await this.#execute('sbx', ['daemon', 'start', '--detach'], {
+      timeoutMs: 30_000,
+    });
+    if (result.exitCode === 0) this.#daemonStopped = false;
+    return result;
+  }
+
+  async #retireDedicatedDaemon(): Promise<{
+    status: CommandResult;
+    stop: CommandResult;
+    stopped: boolean;
+  }> {
+    const stop = await this.#execute('sbx', ['daemon', 'stop'], {
+      timeoutMs: 30_000,
+    });
+    if (stop.exitCode === 0) this.#daemonStopped = true;
+    const status = await this.#execute('sbx', ['daemon', 'status'], {
+      timeoutMs: 10_000,
+    });
+    const stopped =
+      stop.exitCode === 0 &&
+      status.exitCode === 0 &&
+      /^Status:\s*stopped\s*$/m.test(status.stdout) &&
+      /not connected/i.test(status.stdout);
+    if (!stopped) this.#poisoned = true;
+    return { stop, status, stopped };
+  }
+
+  async #engineSocketPath(): Promise<string | null> {
+    const status = await this.#execute('sbx', ['daemon', 'status'], {
+      timeoutMs: 10_000,
+    });
+    if (
+      status.exitCode !== 0 ||
+      !/^Status:\s*running\s*$/m.test(status.stdout)
+    ) {
+      return null;
+    }
+    const socketMatch = /^Socket:\s*(\S+)\s*$/m.exec(status.stdout);
+    if (!socketMatch?.[1]) return null;
+    const daemonSocket = path.resolve(socketMatch[1]);
+    const namespaceDirectory = path.dirname(daemonSocket);
+    if (
+      path.basename(daemonSocket) !== 'sandboxd.sock' ||
+      path.basename(namespaceDirectory) !== `d_${this.#appName}`
+    ) {
+      return null;
+    }
+    return path.join(namespaceDirectory, 'docker.sock');
+  }
+
   #resolution(
     scenario: SandboxScenario,
     effective: Record<string, unknown>,
@@ -242,6 +373,9 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
       resolvedAdapterConfig: this.#resolution(scenario, effective),
       backend: { id: inventory.id, version: inventory.version },
       enforcementLocus: locus,
+      enforcementMode: locus.includes('docker-sandbox-adapter')
+        ? 'compensated'
+        : 'native',
       state: oracle?.passed ? 'enforced' : 'failed-open',
       basis: provenance.basis,
       oracle: { ...oracle, attestedBy: provenance.attestedBy },
@@ -290,6 +424,93 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
       });
     }
     return this.#fixture;
+  }
+
+  async #ensureOriginProxy(fixture: PolicyFixture): Promise<ExactOriginProxy> {
+    if (!this.#originProxy) {
+      this.#originProxy = await startExactOriginProxy(fixture);
+      this.#cleanup.add(
+        'origin-proxy',
+        '<trusted-loopback-proxy>',
+        async () => {
+          await this.#originProxy?.close();
+        },
+      );
+    }
+    if (!this.#originProxyConfigured) {
+      const current = await this.#execute('sbx', [
+        'settings',
+        'get',
+        'proxy.sandbox',
+      ]);
+      const noProxy = await this.#execute('sbx', [
+        'settings',
+        'get',
+        'no_proxy.sandbox',
+      ]);
+      if (
+        current.exitCode !== 0 ||
+        current.stdout.trim() !== '' ||
+        noProxy.exitCode !== 0 ||
+        noProxy.stdout.trim() !== ''
+      ) {
+        this.#poisoned = true;
+        throw new Error(
+          `dedicated Docker Sandbox daemon has an existing proxy override; recover with DOCKER_SANDBOXES_APP_NAME=${this.#appName} sbx settings unset proxy.sandbox`,
+        );
+      }
+      this.#cleanup.add(
+        'daemon',
+        '<scoped-docker-sandbox-daemon>',
+        async () => {
+          if (this.#daemonStopped) {
+            const started = await this.#startDaemon();
+            if (started.exitCode !== 0) throw new Error(started.stderr);
+          }
+        },
+      );
+      const configured = await this.#execute('sbx', [
+        'settings',
+        'set',
+        'proxy.sandbox',
+        this.#originProxy.url,
+      ]);
+      if (configured.exitCode !== 0) {
+        throw new Error(`upstream proxy setup failed: ${configured.stderr}`);
+      }
+      this.#cleanup.add(
+        'daemon-setting',
+        '<scoped-upstream-proxy>',
+        async () => {
+          const unset = await this.#execute('sbx', [
+            'settings',
+            'unset',
+            'proxy.sandbox',
+          ]);
+          if (unset.exitCode !== 0) throw new Error(unset.stderr);
+        },
+      );
+      const retired = await this.#retireDedicatedDaemon();
+      const restarted = retired.stopped
+        ? await this.#startDaemon()
+        : { exitCode: 1, stdout: '', stderr: 'daemon retirement failed' };
+      const applied = await this.#execute('sbx', [
+        'settings',
+        'get',
+        'proxy.sandbox',
+      ]);
+      if (
+        !retired.stopped ||
+        restarted.exitCode !== 0 ||
+        applied.exitCode !== 0 ||
+        applied.stdout.trim() !== this.#originProxy.url
+      ) {
+        this.#poisoned = true;
+        throw new Error('upstream proxy activation could not be confirmed');
+      }
+      this.#originProxyConfigured = true;
+    }
+    return this.#originProxy;
   }
 
   async #ensureNetworkAllow(fixture: PolicyFixture): Promise<CommandResult> {
@@ -345,12 +566,27 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
     if (this.#adjacentCredentialNetworkAllowApplied) {
       return { exitCode: 0, stdout: 'already applied', stderr: '' };
     }
-    const resource = `${CREDENTIAL_HOST}:${fixture.adjacentPort}`;
-    const result = await this.#allowNetworkResource(
-      resource,
-      '<adjacent-credential-origin>',
-    );
-    if (result.exitCode === 0) {
+    const resources = [
+      `${ADJACENT_FIXTURE_HOST}:${fixture.adjacentPort}`,
+      `${ADJACENT_FIXTURE_HOST}:${fixture.allowedPort}`,
+      `${CREDENTIAL_HOST}:${fixture.adjacentPort}`,
+    ];
+    const results: CommandResult[] = [];
+    for (const resource of resources) {
+      results.push(
+        await this.#allowNetworkResource(
+          resource,
+          '<negative-credential-origin>',
+        ),
+      );
+    }
+    const failed = results.find((result) => result.exitCode !== 0);
+    const result = failed ?? {
+      exitCode: 0,
+      stdout: 'all negative origins allowed',
+      stderr: '',
+    };
+    if (!failed) {
       this.#adjacentCredentialNetworkAllowApplied = true;
     }
     return result;
@@ -445,8 +681,14 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
     scenario: SandboxScenario,
     context: ProbeContext,
   ): Promise<ControlEvidence> {
+    if (this.#poisoned) {
+      throw new DockerContainmentRecoveryError(
+        'Docker Sandbox adapter is poisoned after unconfirmed containment',
+      );
+    }
     this.#scenarioSignal = context.signal;
     await this.#ensureCreated(context);
+    this.#fixture?.redirectTo(HOST_ALIAS);
     switch (scenario.id) {
       case 'filesystem.workspace-rw': {
         const marker = path.join(this.#guestRoot, 'guest-write.txt');
@@ -609,7 +851,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           { defaultNetwork: 'deny', guestExitCode: result.exitCode },
           'unlisted_destination_blocked',
           HARNESS_PROVENANCE,
-          ['docker-sandbox-control-plane'],
+          ['docker-sandbox-control-plane', 'docker-sandbox-adapter'],
         );
       }
       case 'network.exact-allow': {
@@ -642,7 +884,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           },
           'exact_destination_allow_observed',
           HARNESS_PROVENANCE,
-          ['docker-sandbox-control-plane'],
+          ['docker-sandbox-control-plane', 'docker-sandbox-adapter'],
         );
       }
       case 'network.wrong-host': {
@@ -835,45 +1077,113 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
       }
       case 'credential.adjacent-origin': {
         const fixture = await this.#ensureFixture();
+        const proxy = await this.#ensureOriginProxy(fixture);
+        fixture.redirectTo(ADJACENT_FIXTURE_HOST);
         const allowedPolicy = await this.#ensureCredentialNetworkAllow(fixture);
         const adjacentPolicy =
           await this.#ensureAdjacentCredentialNetworkAllow(fixture);
         const secret = await this.#ensureSecret();
-        const before = fixture.requests.length;
-        const result = await this.#exec([
+        const beforeRequests = fixture.requests.length;
+        const beforeDecisions = proxy.decisions.length;
+        const wrongHost = await this.#exec([
           'sh',
           '-lc',
-          `curl ${FORCE_PROXY} -sS --max-time 3 -H "Authorization: Bearer $MOLTNET_PROBE_TOKEN" 'http://${CREDENTIAL_HOST}:${fixture.adjacentPort}${fixture.path('/adjacent-credential')}'`,
+          `curl ${FORCE_PROXY} -sS --max-time 3 -H "Authorization: Bearer $MOLTNET_PROBE_TOKEN" 'http://${ADJACENT_FIXTURE_HOST}:${fixture.allowedPort}${fixture.path('/wrong-host-credential')}'`,
         ]);
-        const requests = fixture.capture(before);
-        const adjacentRequests = requests.filter(
-          (request) => request.destination === 'adjacent',
+        const wrongPort = await this.#exec([
+          'sh',
+          '-lc',
+          `curl ${FORCE_PROXY} -sS --max-time 3 -H "Authorization: Bearer $MOLTNET_PROBE_TOKEN" 'http://${CREDENTIAL_HOST}:${fixture.adjacentPort}${fixture.path('/wrong-port-credential')}'`,
+        ]);
+        const wrongProtocol = await this.#exec([
+          'sh',
+          '-lc',
+          `curl ${FORCE_PROXY} -kfsS --max-time 3 -H "Authorization: Bearer $MOLTNET_PROBE_TOKEN" 'https://${CREDENTIAL_HOST}:${fixture.allowedPort}${fixture.path('/wrong-protocol-credential')}'`,
+        ]);
+        const redirect = await this.#exec([
+          'sh',
+          '-lc',
+          `curl ${FORCE_PROXY} -sS -L --max-time 3 -H "Authorization: Bearer $MOLTNET_PROBE_TOKEN" 'http://${CREDENTIAL_HOST}:${fixture.allowedPort}${fixture.path('/redirect')}'`,
+        ]);
+        const directLoopback = await this.#exec([
+          'sh',
+          '-lc',
+          `curl -fsS --max-time 2 -H "Authorization: Bearer $MOLTNET_PROBE_TOKEN" 'http://127.0.0.1:${fixture.allowedPort}${fixture.path('/direct-loopback')}'`,
+        ]);
+        const adjacent = await this.#exec([
+          'sh',
+          '-lc',
+          `curl ${FORCE_PROXY} -sS --max-time 3 -H "Authorization: Bearer $MOLTNET_PROBE_TOKEN" 'http://${ADJACENT_FIXTURE_HOST}:${fixture.adjacentPort}${fixture.path('/adjacent-credential')}'`,
+        ]);
+        const requests = fixture.capture(beforeRequests);
+        const decisions = proxy.decisions.slice(beforeDecisions);
+        const negativeRequests = requests.filter(
+          (request) => request.path !== '/redirect',
         );
-        const matched = adjacentRequests.some(
-          (request) => request.credentialMatch === 'expected',
+        const protectedRedirect = requests.filter(
+          (request) => request.path === '/redirect',
         );
+        const routes = new Map(
+          decisions.map((decision) => [decision.route, decision]),
+        );
+        const passed =
+          allowedPolicy.exitCode === 0 &&
+          adjacentPolicy.exitCode === 0 &&
+          secret.result.exitCode === 0 &&
+          wrongHost.exitCode === 0 &&
+          wrongPort.exitCode === 0 &&
+          wrongProtocol.exitCode !== 0 &&
+          redirect.exitCode === 0 &&
+          directLoopback.exitCode !== 0 &&
+          adjacent.exitCode === 0 &&
+          protectedRedirect.length === 1 &&
+          protectedRedirect[0]?.credentialMatch === 'expected' &&
+          negativeRequests.length === 0 &&
+          routes.get('wrong-host')?.action === 'deny' &&
+          routes.get('wrong-port')?.action === 'deny' &&
+          routes.get('wrong-host')?.credential === 'leaked' &&
+          routes.get('wrong-port')?.credential === 'leaked' &&
+          routes.get('wrong-protocol')?.action === 'deny' &&
+          routes.get('wrong-protocol')?.credential === 'leaked' &&
+          routes.get('adjacent')?.action === 'deny' &&
+          routes.get('adjacent')?.credential === 'leaked' &&
+          decisions.length === 6;
         return this.#evidence(
           scenario,
           context,
           {
-            kind: 'adjacent-origin-credential-match',
-            expected: 0,
-            observed: matched ? 1 : 0,
-            passed:
-              allowedPolicy.exitCode === 0 &&
-              adjacentPolicy.exitCode === 0 &&
-              secret.result.exitCode === 0 &&
-              result.exitCode === 0 &&
-              adjacentRequests.length === 1 &&
-              !matched,
+            kind: 'exact-origin-negative-controls',
+            expected: {
+              negativeCredentialMatches: 0,
+              negativeProxyCredentialLeaks: 3,
+              negativeFixtureRequests: 0,
+              protectedRedirectMatches: 1,
+              proxyDecisions: 6,
+            },
+            observed: {
+              negativeCredentialMatches: negativeRequests.filter(
+                (request) => request.credentialMatch === 'expected',
+              ).length,
+              negativeProxyCredentialLeaks: decisions.filter(
+                (decision) =>
+                  decision.route !== 'protected' &&
+                  decision.credential === 'leaked',
+              ).length,
+              negativeFixtureRequests: negativeRequests.length,
+              protectedRedirectMatches: protectedRedirect.filter(
+                (request) => request.credentialMatch === 'expected',
+              ).length,
+              proxyDecisions: decisions.length,
+            },
+            passed,
           },
           {
-            credentialBinding: `${CREDENTIAL_HOST}:<any-port>`,
-            networkAllowed: `${CREDENTIAL_HOST}:<adjacent-port>`,
+            credentialBinding: `http://${CREDENTIAL_HOST}:<allowed-port>`,
+            networkAllowed: `http://${ADJACENT_FIXTURE_HOST}:<adjacent-port>`,
           },
           'adjacent_origin_secret_not_substituted',
           HARNESS_PROVENANCE,
-          ['docker-sandbox-control-plane'],
+          ['docker-sandbox-control-plane', 'docker-sandbox-adapter'],
         );
       }
       case 'credential.rotation': {
@@ -1037,11 +1347,10 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
         });
         const detached = await this.#executeScenario([
           'exec',
-          '--detach',
           childName,
           'sh',
           '-lc',
-          `printf started > '${started}'; sleep ${delayedMarkerMs / 1_000}; printf escaped > '${marker}'`,
+          `setsid sh -c "printf started > '${started}'; sleep ${delayedMarkerMs / 1_000}; printf escaped > '${marker}'" >/dev/null 2>&1 </dev/null &`,
         ]);
         if (detached.exitCode !== 0) {
           throw new Error(`detached child launch failed: ${detached.stderr}`);
@@ -1055,13 +1364,62 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
         if (acknowledged !== 'started') {
           throw new Error('detached child did not acknowledge startup');
         }
-        const removed = await this.#executeScenario([
-          'rm',
-          '--force',
-          childName,
-        ]);
+        const engineSocketPath = await this.#engineSocketPath();
+        const retirement = engineSocketPath
+          ? await this.#engineControl
+              .retireSandbox({
+                sandboxName: childName,
+                socketPath: engineSocketPath,
+                workspacePath: this.#guestRoot,
+                signal: this.#scenarioSignal,
+              })
+              .catch(() => ({
+                confirmed: false,
+                exitCode: null,
+                identityConfirmed: false,
+                killStatus: null,
+              }))
+          : {
+              confirmed: false,
+              exitCode: null,
+              identityConfirmed: false,
+              killStatus: null,
+            };
+        if (!retirement.confirmed) {
+          this.#poisoned = true;
+          await this.#retireDedicatedDaemon();
+        }
         await sleep(observationWindowMs, this.#scenarioSignal);
         const observed = await readFile(marker, 'utf8').catch(() => '');
+        const restarted = this.#daemonStopped
+          ? await this.#startDaemon()
+          : { exitCode: 0, stdout: '', stderr: '' };
+        const childStatus =
+          restarted.exitCode === 0
+            ? await this.#sandboxStatus(childName)
+            : { result: restarted, parsed: false, status: null };
+        const removed =
+          restarted.exitCode === 0
+            ? await this.#execute('sbx', ['rm', '--force', childName])
+            : restarted;
+        const removedStatus =
+          removed.exitCode === 0
+            ? await this.#sandboxStatus(childName)
+            : { result: removed, parsed: false, status: null };
+        const passed =
+          created.exitCode === 0 &&
+          detached.exitCode === 0 &&
+          acknowledged === 'started' &&
+          retirement.confirmed &&
+          retirement.identityConfirmed &&
+          observed === '' &&
+          restarted.exitCode === 0 &&
+          childStatus.parsed &&
+          childStatus.status === 'stopped' &&
+          removed.exitCode === 0 &&
+          removedStatus.parsed &&
+          removedStatus.status === null;
+        if (!passed) this.#poisoned = true;
         return this.#evidence(
           scenario,
           context,
@@ -1069,15 +1427,20 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
             kind: 'delayed-marker-absence',
             expected: 'absent',
             observed: observed === '' ? 'absent' : 'present',
-            passed:
-              created.exitCode === 0 &&
-              detached.exitCode === 0 &&
-              acknowledged === 'started' &&
-              removed.exitCode === 0 &&
-              observed === '',
+            passed,
           },
           {
-            termination: 'scoped-sandbox-remove',
+            termination: 'identity-verified-engine-kill',
+            confirmedIdentity: retirement.identityConfirmed,
+            confirmedEngineState: retirement.confirmed
+              ? 'stopped'
+              : 'unconfirmed',
+            terminationExitCode: retirement.exitCode,
+            terminationStatus: retirement.killStatus,
+            confirmedStoppedState: childStatus.status,
+            confirmedFinalState: removedStatus.parsed
+              ? removedStatus.status
+              : 'unconfirmed',
             trigger:
               scenario.id === 'lifecycle.timeout'
                 ? 'execution-deadline'
@@ -1086,9 +1449,15 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
             delayedMarkerMs,
             observationWindowMs,
           },
-          'sandbox_removal_detached_child_observed',
+          passed
+            ? 'managed_engine_retirement_observed'
+            : 'managed_engine_retirement_unconfirmed',
           HARNESS_PROVENANCE,
-          ['research-harness', 'docker-sandbox-control-plane'],
+          [
+            'research-harness',
+            'docker-sandbox-control-plane',
+            'docker-sandbox-adapter',
+          ],
         );
       }
       case 'lifecycle.broker-unavailable':
@@ -1106,27 +1475,144 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
             locus: ['research-harness'],
           },
         );
-      case 'lifecycle.partial-launch':
-        return this.#unsupported(
+      case 'lifecycle.partial-launch': {
+        const childName = `${this.#sandboxName}-partial-launch`;
+        const created = await this.#executeScenario([
+          'create',
+          'shell',
+          '--quiet',
+          '--name',
+          childName,
+          this.#guestRoot,
+        ]);
+        if (created.exitCode !== 0) {
+          throw new Error(
+            `partial-launch sandbox create failed: ${created.stderr}`,
+          );
+        }
+        this.#cleanup.add('sandbox', '<partial-launch-sandbox>', async () => {
+          const cleanup = await this.#execute('sbx', [
+            'rm',
+            '--force',
+            childName,
+          ]);
+          if (cleanup.exitCode !== 0 && !/not found/i.test(cleanup.stderr)) {
+            throw new Error(cleanup.stderr);
+          }
+        });
+        const failedLaunch = await this.#executeScenario([
+          'exec',
+          childName,
+          '/moltnet-deliberately-missing-executable',
+        ]);
+        const stopped = await this.#executeScenario(['stop', childName]);
+        const stoppedStatus = await this.#sandboxStatus(childName);
+        const removed = await this.#executeScenario([
+          'rm',
+          '--force',
+          childName,
+        ]);
+        const removedStatus = await this.#sandboxStatus(childName);
+        return this.#evidence(
           scenario,
           context,
-          'partial_launch_cleanup_unverified',
-          'not-measured',
           {
-            basis: 'declared',
-            effective: {
-              probe: 'no deliberately interrupted create operation',
-            },
-            locus: ['research-harness'],
+            kind: 'partial-launch-backend-absence',
+            expected: 'absent',
+            observed:
+              removedStatus.parsed && removedStatus.status === null
+                ? 'absent'
+                : 'present-or-unconfirmed',
+            passed:
+              failedLaunch.exitCode !== 0 &&
+              stopped.exitCode === 0 &&
+              stoppedStatus.parsed &&
+              stoppedStatus.status === 'stopped' &&
+              removed.exitCode === 0 &&
+              removedStatus.parsed &&
+              removedStatus.status === null,
           },
+          {
+            allocation: 'scoped-sandbox',
+            launch: 'deliberately-rejected-before-handle',
+            confirmedStoppedState: stoppedStatus.status,
+            confirmedFinalState: removedStatus.parsed
+              ? removedStatus.status
+              : 'unconfirmed',
+          },
+          'preflight_failure_left_no_backend_resource',
+          HARNESS_PROVENANCE,
+          ['research-harness', 'docker-sandbox-control-plane'],
         );
-      case 'lifecycle.repeated-close':
-        return this.#unsupported(
+      }
+      case 'lifecycle.repeated-close': {
+        const childName = `${this.#sandboxName}-repeated-close`;
+        const created = await this.#executeScenario([
+          'create',
+          'shell',
+          '--quiet',
+          '--name',
+          childName,
+          this.#guestRoot,
+        ]);
+        if (created.exitCode !== 0) {
+          throw new Error(
+            `repeated-close sandbox create failed: ${created.stderr}`,
+          );
+        }
+        this.#cleanup.add('sandbox', '<repeated-close-sandbox>', async () => {
+          const cleanup = await this.#execute('sbx', [
+            'rm',
+            '--force',
+            childName,
+          ]);
+          if (cleanup.exitCode !== 0 && !/not found/i.test(cleanup.stderr)) {
+            throw new Error(cleanup.stderr);
+          }
+        });
+        const first = await this.#executeScenario(['rm', '--force', childName]);
+        const afterFirst = await this.#sandboxStatus(childName);
+        const second = await this.#executeScenario([
+          'rm',
+          '--force',
+          childName,
+        ]);
+        const afterSecond = await this.#sandboxStatus(childName);
+        const secondIdempotent =
+          second.exitCode === 0 || /not found/i.test(second.stderr);
+        return this.#evidence(
           scenario,
           context,
-          'repeated_adapter_close_unverified',
-          'not-measured',
+          {
+            kind: 'repeated-close-backend-absence',
+            expected: { first: 'absent', second: 'absent' },
+            observed: {
+              first:
+                afterFirst.parsed && afterFirst.status === null
+                  ? 'absent'
+                  : 'present-or-unconfirmed',
+              second:
+                afterSecond.parsed && afterSecond.status === null
+                  ? 'absent'
+                  : 'present-or-unconfirmed',
+            },
+            passed:
+              first.exitCode === 0 &&
+              afterFirst.parsed &&
+              afterFirst.status === null &&
+              secondIdempotent &&
+              afterSecond.parsed &&
+              afterSecond.status === null,
+          },
+          {
+            close: 'scoped-sandbox-remove',
+            repeatedClose: secondIdempotent ? 'idempotent' : 'failed',
+          },
+          'repeated_adapter_close_observed',
+          HARNESS_PROVENANCE,
+          ['research-harness', 'docker-sandbox-control-plane'],
         );
+      }
       case 'lifecycle.restart-checkpoint': {
         const marker = path.join(this.#guestRoot, 'restart-persistent.txt');
         await writeFile(marker, 'persisted');
