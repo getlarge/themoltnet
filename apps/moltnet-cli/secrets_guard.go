@@ -356,6 +356,9 @@ func classifyProtectedPathWithContext(value string, pathContext secretGuardPathC
 	if value == "" {
 		return pathNone
 	}
+	if class := classifySecretRootPath(value, pathContext.cwd, os.LookupEnv); class != pathNone {
+		return class
+	}
 	if strings.ContainsAny(value, "*?[") {
 		pattern := value
 		if !filepath.IsAbs(pattern) {
@@ -454,6 +457,9 @@ func classifyPathLexical(value string) pathClass {
 	// Treat policy paths case-insensitively. This intentionally errs on the
 	// side of blocking case variants on case-sensitive hosts so the same hook
 	// cannot be bypassed when a repository moves to macOS or Windows.
+	if class := classifySecretRootPath(value, "", os.LookupEnv); class != pathNone {
+		return class
+	}
 	value = normalizePolicyPath(value)
 	if value == "." || value == "" {
 		return pathNone
@@ -470,6 +476,37 @@ func classifyPathLexical(value string) pathClass {
 	}
 
 	return pathNone
+}
+
+// classifySecretRootPath treats the headless secret root (MOLTNET_SECRET_ROOT)
+// and everything beneath it as credential material, like .moltnet/. Relative
+// paths are anchored to cwd; with an empty cwd only absolute paths can match.
+func classifySecretRootPath(value, cwd string, lookup func(string) (string, bool)) pathClass {
+	root, ok := lookup(secretRootEnv)
+	root = strings.TrimSpace(root)
+	if !ok || root == "" || !filepath.IsAbs(root) {
+		return pathNone
+	}
+	root = filepath.Clean(root)
+	candidate := strings.TrimSpace(value)
+	if candidate == "" {
+		return pathNone
+	}
+	if !filepath.IsAbs(candidate) {
+		if cwd == "" {
+			return pathNone
+		}
+		candidate = filepath.Join(cwd, candidate)
+	}
+	candidate = filepath.Clean(candidate)
+	if candidate == root {
+		return pathCredential
+	}
+	rel, err := filepath.Rel(root, candidate)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return pathNone
+	}
+	return pathCredential
 }
 
 // classifyCredentialPath checks whether a path is inside .moltnet/ credential
