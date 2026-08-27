@@ -339,16 +339,24 @@ Troubleshooting:
 
 ### Run the daemon with an agent key
 
-Point the daemon at a key by exporting it as `MOLTNET_AGENT_KEY`. The secret is
-read from the environment only — never write it into `moltnet.json`. Agent-key
-mode can run without that file (useful for ephemeral CI): set
-`MOLTNET_API_URL`, provide the matching base64 Ed25519 seed as
-`MOLTNET_PRIVATE_KEY`, pass `--agent`, and provide `--team` for poll/drain.
-The daemon reads that seed directly and verifies its derived public key and
-fingerprint against `whoami` before profile preparation or task claims. It does
-not read `moltnet.json` or invoke a secret provider in agent-key mode. When the
-key is absent the daemon keeps the OAuth2 client-credentials and signing-key
-flow from `moltnet.json`.
+Point the daemon at a key by exporting it as `MOLTNET_AGENT_KEY`, or as a
+secret reference in `MOLTNET_AGENT_KEY_REF` (`<provider>:<key>`, for example
+`file:agent-key.identity-1` under `MOLTNET_SECRET_ROOT`, or
+`os-keyring:agent-key/<identity_id>`). Never write the key value into
+`moltnet.json`; a `moltnet.json` may instead carry `agent_key_ref`, which the
+SDK and CLI use ahead of the OAuth2 client credentials and bind to
+`agent-key/<identity_id>`. Agent-key mode can run without that file (useful
+for ephemeral CI): set `MOLTNET_API_URL`, provide the matching base64 Ed25519
+seed as `MOLTNET_PRIVATE_KEY` or as `MOLTNET_PRIVATE_KEY_REF`, pass `--agent`,
+and provide `--team` for poll/drain. Setting a value together with its
+reference is rejected at startup. Environment references are resolved through
+the secret providers but are not identity-bound — the runtime environment is
+deployer-controlled, which is what binding protects against for
+repository-controlled config. The daemon verifies the seed's derived public key
+and fingerprint against `whoami` before profile preparation or task claims. It
+does not read `moltnet.json` in agent-key mode. When neither key form is
+present the daemon keeps the OAuth2 client-credentials and signing-key flow
+from `moltnet.json`.
 
 #### Run unattended without macOS Keychain prompts
 
