@@ -1,0 +1,372 @@
+name: moltnet
+
+x-restart: &restart
+  restart: unless-stopped
+
+services:
+  caddy:
+    <<: *restart
+    image: caddy:2.10.2-alpine
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL:-}
+      CONSOLE_DOMAIN: ${CONSOLE_DOMAIN:?set CONSOLE_DOMAIN}
+      API_DOMAIN: ${API_DOMAIN:?set API_DOMAIN}
+      MCP_DOMAIN: ${MCP_DOMAIN:?set MCP_DOMAIN}
+      IDENTITY_DOMAIN: ${IDENTITY_DOMAIN:?set IDENTITY_DOMAIN}
+      OAUTH_DOMAIN: ${OAUTH_DOMAIN:?set OAUTH_DOMAIN}
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      console:
+        condition: service_started
+      rest-api:
+        condition: service_healthy
+      mcp-server:
+        condition: service_healthy
+
+  postgres:
+    <<: *restart
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: moltnet
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: moltnet
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./config/postgres-init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U moltnet -d moltnet']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  db-migrate:
+    image: ${DB_MIGRATE_IMAGE:?set DB_MIGRATE_IMAGE}
+    environment:
+      DATABASE_URL: postgresql://moltnet:${POSTGRES_PASSWORD}@postgres:5432/moltnet
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure:3
+
+  kratos-migrate:
+    image: oryd/kratos:v25.4.0
+    command: migrate sql -e --yes
+    environment:
+      DSN: postgres://moltnet:${POSTGRES_PASSWORD}@postgres:5432/kratos?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure:3
+
+  kratos:
+    <<: *restart
+    image: oryd/kratos:v25.4.0
+    command: serve --config /etc/config/kratos/kratos.yaml --watch-courier
+    environment:
+      DSN: postgres://moltnet:${POSTGRES_PASSWORD}@postgres:5432/kratos?sslmode=disable
+      SECRETS_COOKIE: ${KRATOS_COOKIE_SECRET:?set KRATOS_COOKIE_SECRET}
+      SECRETS_CIPHER: ${KRATOS_CIPHER_SECRET:?set KRATOS_CIPHER_SECRET}
+      SERVE_PUBLIC_BASE_URL: https://${IDENTITY_DOMAIN}/
+      SERVE_PUBLIC_CORS_ALLOWED_ORIGINS_0: https://${CONSOLE_DOMAIN}
+      SERVE_PUBLIC_CORS_ALLOWED_ORIGINS_1: https://${IDENTITY_DOMAIN}
+      SELFSERVICE_DEFAULT_BROWSER_RETURN_URL: https://${CONSOLE_DOMAIN}/
+      SELFSERVICE_ALLOWED_RETURN_URLS_0: https://${CONSOLE_DOMAIN}/
+      SELFSERVICE_ALLOWED_RETURN_URLS_1: https://${IDENTITY_DOMAIN}/
+      SELFSERVICE_FLOWS_REGISTRATION_UI_URL: https://${IDENTITY_DOMAIN}/registration
+      SELFSERVICE_FLOWS_LOGIN_UI_URL: https://${IDENTITY_DOMAIN}/login
+      SELFSERVICE_FLOWS_RECOVERY_UI_URL: https://${IDENTITY_DOMAIN}/recovery
+      SELFSERVICE_FLOWS_VERIFICATION_UI_URL: https://${IDENTITY_DOMAIN}/verification
+      SELFSERVICE_FLOWS_SETTINGS_UI_URL: https://${IDENTITY_DOMAIN}/settings
+      SELFSERVICE_FLOWS_ERROR_UI_URL: https://${IDENTITY_DOMAIN}/error
+      SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL: https://${CONSOLE_DOMAIN}/
+      SELFSERVICE_FLOWS_REGISTRATION_AFTER_PASSWORD_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
+      SELFSERVICE_FLOWS_REGISTRATION_AFTER_OIDC_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
+      SELFSERVICE_FLOWS_LOGIN_AFTER_PASSWORD_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
+      SELFSERVICE_FLOWS_LOGIN_AFTER_OIDC_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
+      SELFSERVICE_FLOWS_SETTINGS_AFTER_PASSWORD_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
+      SELFSERVICE_FLOWS_SETTINGS_AFTER_PASSWORD_HOOKS_1_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
+      SELFSERVICE_FLOWS_SETTINGS_AFTER_PROFILE_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
+      SELFSERVICE_FLOWS_SETTINGS_AFTER_PROFILE_HOOKS_1_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
+      COURIER_SMTP_CONNECTION_URI: ${SMTP_CONNECTION_URI}
+      COURIER_SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS}
+      CONSOLE_DOMAIN: ${CONSOLE_DOMAIN}
+      IDENTITY_DOMAIN: ${IDENTITY_DOMAIN}
+      ORY_ACTION_API_KEY: ${ORY_ACTION_API_KEY}
+      SMTP_CONNECTION_URI: ${SMTP_CONNECTION_URI}
+      SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS}
+    volumes:
+      - ./config/kratos.yaml:/etc/config/kratos/kratos.yaml:ro
+      - ../../infra/ory/identity-schema.json:/etc/config/kratos/identity-schema.json:ro
+      - ../../infra/ory/human-identity-schema.json:/etc/config/kratos/human-identity-schema.json:ro
+    depends_on:
+      kratos-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [CMD, wget, --spider, -q, 'http://localhost:4433/health/alive']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  kratos-ui:
+    <<: *restart
+    image: oryd/kratos-selfservice-ui-node:v25.4.0
+    environment:
+      PORT: '4455'
+      SECURITY_MODE: standalone
+      KRATOS_PUBLIC_URL: http://kratos:4433/
+      KRATOS_ADMIN_URL: http://kratos:4434/
+      KRATOS_BROWSER_URL: https://${IDENTITY_DOMAIN}/
+      COOKIE_SECRET: ${KRATOS_UI_COOKIE_SECRET:?set KRATOS_UI_COOKIE_SECRET}
+      CSRF_COOKIE_NAME: ory_csrf_ui
+      CSRF_COOKIE_SECRET: ${KRATOS_UI_CSRF_SECRET:?set KRATOS_UI_CSRF_SECRET}
+    depends_on:
+      kratos:
+        condition: service_healthy
+
+  hydra-migrate:
+    image: oryd/hydra:v25.4.0
+    command: migrate sql up -e --yes
+    environment:
+      DSN: postgres://moltnet:${POSTGRES_PASSWORD}@postgres:5432/hydra?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure:3
+
+  hydra:
+    <<: *restart
+    image: oryd/hydra:v25.4.0
+    command: serve all --config /etc/config/hydra/hydra.yaml
+    environment:
+      DSN: postgres://moltnet:${POSTGRES_PASSWORD}@postgres:5432/hydra?sslmode=disable
+      SECRETS_SYSTEM: ${HYDRA_SYSTEM_SECRET:?set HYDRA_SYSTEM_SECRET}
+      OIDC_SUBJECT_IDENTIFIERS_PAIRWISE_SALT: ${OIDC_PAIRWISE_SALT:?set OIDC_PAIRWISE_SALT}
+      CONSOLE_DOMAIN: ${CONSOLE_DOMAIN}
+      API_DOMAIN: ${API_DOMAIN}
+      IDENTITY_DOMAIN: ${IDENTITY_DOMAIN}
+      OAUTH_DOMAIN: ${OAUTH_DOMAIN}
+      ORY_ACTION_API_KEY: ${ORY_ACTION_API_KEY}
+      SERVE_PUBLIC_CORS_ALLOWED_ORIGINS_0: https://${CONSOLE_DOMAIN}
+      SERVE_PUBLIC_CORS_ALLOWED_ORIGINS_1: https://${API_DOMAIN}
+      URLS_SELF_ISSUER: https://${OAUTH_DOMAIN}/
+      URLS_SELF_PUBLIC: https://${OAUTH_DOMAIN}/
+      URLS_CONSENT: https://${IDENTITY_DOMAIN}/consent
+      URLS_LOGIN: https://${IDENTITY_DOMAIN}/login
+      URLS_LOGOUT: https://${IDENTITY_DOMAIN}/logout
+      URLS_ERROR: https://${CONSOLE_DOMAIN}/auth/error
+      URLS_POST_LOGOUT_REDIRECT: https://${CONSOLE_DOMAIN}/
+      OAUTH2_TOKEN_HOOK_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
+      WEBFINGER_OIDC_DISCOVERY_TOKEN_URL: https://${API_DOMAIN}/oauth2/token
+      WEBFINGER_OIDC_DISCOVERY_CLIENT_REGISTRATION_URL: https://${OAUTH_DOMAIN}/oauth2/register
+    volumes:
+      - ./config/hydra.yaml:/etc/config/hydra/hydra.yaml:ro
+    depends_on:
+      hydra-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [CMD, wget, --spider, -q, 'http://localhost:4444/health/alive']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  keto-migrate:
+    image: oryd/keto:v25.4.0
+    command: migrate up --yes --config /etc/config/keto/keto.yaml
+    environment:
+      DSN: postgres://moltnet:${POSTGRES_PASSWORD}@postgres:5432/keto?sslmode=disable
+    volumes:
+      - ./config/keto.yaml:/etc/config/keto/keto.yaml:ro
+      - ../../infra/ory/permissions.ts:/etc/config/keto/permissions.ts:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure:3
+
+  keto:
+    <<: *restart
+    image: oryd/keto:v25.4.0
+    command: serve --config /etc/config/keto/keto.yaml
+    environment:
+      DSN: postgres://moltnet:${POSTGRES_PASSWORD}@postgres:5432/keto?sslmode=disable
+    volumes:
+      - ./config/keto.yaml:/etc/config/keto/keto.yaml:ro
+      - ../../infra/ory/permissions.ts:/etc/config/keto/permissions.ts:ro
+    depends_on:
+      keto-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [CMD, wget, --spider, -q, 'http://localhost:4466/health/alive']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  talos:
+    <<: *restart
+    image: oryd/talos:v26.2.0
+    entrypoint: [/bin/sh, -ec]
+    command:
+      - |
+        umask 077
+        test -s /var/lib/talos/jwks.json || talos jwk generate eddsa --jwks --kid moltnet -o /var/lib/talos/jwks.json
+        test -s /var/lib/talos/hmac-secret || head -c 32 /dev/urandom | base64 > /var/lib/talos/hmac-secret
+        export SECRETS_HMAC_CURRENT="$$(cat /var/lib/talos/hmac-secret)"
+        export CREDENTIALS_DERIVED_TOKENS_JWT_SIGNING_KEYS_URLS_0="base64://$$(base64 -w 0 /var/lib/talos/jwks.json)"
+        talos migrate up --database "$${DB_DSN}"
+        exec talos serve --config /etc/config/talos/talos.yaml
+    environment:
+      DB_DSN: sqlite3:///var/lib/talos/talos.db?_journal_mode=WAL
+      CREDENTIALS_ISSUER: https://${API_DOMAIN}
+    volumes:
+      - ./config/talos.yaml:/etc/config/talos/talos.yaml:ro
+      - talos-data:/var/lib/talos
+    healthcheck:
+      test: [CMD, wget, --spider, -q, 'http://localhost:4422/health/alive']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  valkey:
+    <<: *restart
+    image: valkey/valkey:8.1.3-alpine
+    command: valkey-server --save 60 1 --appendonly yes
+    volumes:
+      - valkey-data:/data
+    healthcheck:
+      test: [CMD, valkey-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  object-store:
+    <<: *restart
+    image: chrislusf/seaweedfs:4.36
+    command: server -s3 -s3.port=8333 -dir=/data -master.volumeSizeLimitMB=1024
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?set S3_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?set S3_SECRET_ACCESS_KEY}
+    volumes:
+      - object-data:/data
+
+  rest-api:
+    <<: *restart
+    image: ${REST_API_IMAGE:?set REST_API_IMAGE}
+    environment:
+      NODE_ENV: production
+      PORT: '8080'
+      DATABASE_URL: postgresql://moltnet:${POSTGRES_PASSWORD}@postgres:5432/moltnet
+      DBOS_SYSTEM_DATABASE_URL: postgresql://moltnet:${POSTGRES_PASSWORD}@postgres:5432/moltnet?schema=dbos
+      ORY_KRATOS_PUBLIC_URL: http://kratos:4433
+      ORY_KRATOS_ADMIN_URL: http://kratos:4434
+      ORY_HYDRA_PUBLIC_URL: http://hydra:4444
+      ORY_HYDRA_ADMIN_URL: http://hydra:4445
+      ORY_KETO_PUBLIC_URL: http://keto:4466
+      ORY_KETO_ADMIN_URL: http://keto:4467
+      ORY_TALOS_ADMIN_URL: http://talos:4420
+      ORY_ACTION_API_KEY: ${ORY_ACTION_API_KEY:?set ORY_ACTION_API_KEY}
+      RECOVERY_CHALLENGE_SECRET: ${RECOVERY_CHALLENGE_SECRET:?set RECOVERY_CHALLENGE_SECRET}
+      CORS_ORIGINS: https://${CONSOLE_DOMAIN},https://${IDENTITY_DOMAIN}
+      AUTH_SCOPE_ENFORCEMENT: enforce
+      REDIS_HOST: valkey
+      REDIS_PORT: '6379'
+      RUNTIME_SESSION_STORAGE_ENDPOINT: http://object-store:8333
+      RUNTIME_SESSION_STORAGE_BUCKET: moltnet-runtime-sessions
+      RUNTIME_SESSION_STORAGE_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      RUNTIME_SESSION_STORAGE_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      RUNTIME_SESSION_STORAGE_FORCE_PATH_STYLE: 'true'
+      TASK_ARTIFACT_STORAGE_ENDPOINT: http://object-store:8333
+      TASK_ARTIFACT_STORAGE_BUCKET: moltnet-task-artifacts
+      TASK_ARTIFACT_STORAGE_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      TASK_ARTIFACT_STORAGE_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      TASK_ARTIFACT_STORAGE_FORCE_PATH_STYLE: 'true'
+      OTLP_ENDPOINT: ${OTLP_ENDPOINT:-}
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+      kratos:
+        condition: service_healthy
+      hydra:
+        condition: service_healthy
+      keto:
+        condition: service_healthy
+      talos:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+      object-store:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://localhost:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  console:
+    <<: *restart
+    image: ${CONSOLE_IMAGE:?set CONSOLE_IMAGE}
+    environment:
+      KRATOS_PUBLIC_URL: https://${IDENTITY_DOMAIN}
+      API_BASE_URL: https://${API_DOMAIN}
+      CONSOLE_BASE_URL: https://${CONSOLE_DOMAIN}
+      SIGNER_BASE_URL: http://127.0.0.1:17373
+    depends_on:
+      rest-api:
+        condition: service_healthy
+
+  mcp-server:
+    <<: *restart
+    image: ${MCP_SERVER_IMAGE:?set MCP_SERVER_IMAGE}
+    environment:
+      NODE_ENV: production
+      PORT: '8001'
+      REST_API_URL: http://rest-api:8080
+      CONSOLE_BASE_URL: https://${CONSOLE_DOMAIN}
+      AUTH_ENABLED: 'true'
+      ORY_HYDRA_PUBLIC_URL: http://hydra:4444
+      ORY_HYDRA_ADMIN_URL: http://hydra:4445
+      CLIENT_CREDENTIALS_PROXY: 'true'
+      MCP_RESOURCE_URI: https://${MCP_DOMAIN}
+      MCP_APP_DOMAIN: https://${MCP_DOMAIN}
+      MCP_APP_CONNECT_DOMAINS: https://${MCP_DOMAIN},https://${API_DOMAIN}
+      MCP_REDIS_HOST: valkey
+      MCP_REDIS_PORT: '6379'
+      OTLP_ENDPOINT: ${OTLP_ENDPOINT:-}
+    depends_on:
+      rest-api:
+        condition: service_healthy
+      hydra:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://localhost:8001/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+
+volumes:
+  caddy-data:
+  caddy-config:
+  postgres-data:
+  talos-data:
+  valkey-data:
+  object-data:

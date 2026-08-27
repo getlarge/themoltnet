@@ -1,0 +1,36 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$CONSOLE_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy console:80
+}
+
+{$API_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy rest-api:8080
+}
+
+{$MCP_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy mcp-server:8001
+}
+
+{$IDENTITY_DOMAIN} {
+	encode zstd gzip
+
+	@kratos path /self-service/* /sessions/* /schemas/* /.well-known/* /health/*
+	handle @kratos {
+		reverse_proxy kratos:4433
+	}
+
+	handle {
+		reverse_proxy kratos-ui:4455
+	}
+}
+
+{$OAUTH_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy hydra:4444
+}
