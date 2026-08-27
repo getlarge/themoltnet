@@ -250,12 +250,16 @@ export function createDefaultSecretProviderRegistry(): SecretProviderRegistry {
   return new SecretProviderRegistry().register(new EnvironmentSecretProvider());
 }
 
-export type CredentialKind = 'oauth2-client-secret' | 'identity-seed';
+export type CredentialKind =
+  | 'oauth2-client-secret'
+  | 'identity-seed'
+  | 'github-app-private-key';
 
 export interface CredentialBindingIds {
   identityId?: string;
   clientId?: string;
   fingerprint?: string;
+  appId?: string;
 }
 
 /** Environment variable each kind may be read from through the `env` provider. */
@@ -263,6 +267,7 @@ export const CREDENTIAL_ENV_KEYS: Readonly<Record<CredentialKind, string>> =
   Object.freeze({
     'oauth2-client-secret': 'MOLTNET_CLIENT_SECRET',
     'identity-seed': 'MOLTNET_PRIVATE_KEY',
+    'github-app-private-key': 'MOLTNET_GITHUB_APP_PRIVATE_KEY',
   });
 
 const BINDING_MESSAGES: Readonly<Record<CredentialKind, string>> =
@@ -271,6 +276,8 @@ const BINDING_MESSAGES: Readonly<Record<CredentialKind, string>> =
       'OAuth2 secret reference is not bound to this MoltNet identity and client',
     'identity-seed':
       'Identity seed reference is not bound to this MoltNet identity',
+    'github-app-private-key':
+      'GitHub App private key reference is not bound to this GitHub App',
   });
 
 export function oauth2SecretKey(identityId: string, clientId: string): string {
@@ -279,6 +286,10 @@ export function oauth2SecretKey(identityId: string, clientId: string): string {
 
 export function identitySeedKey(fingerprint: string): string {
   return `identity/${fingerprint}/seed`;
+}
+
+export function githubAppPrivateKeyKey(appId: string): string {
+  return `github-app/${appId}/private-key`;
 }
 
 function requireId(value: string | undefined, name: string): string {
@@ -302,6 +313,8 @@ export function expectedSecretKey(
       );
     case 'identity-seed':
       return identitySeedKey(requireId(ids.fingerprint, 'fingerprint'));
+    case 'github-app-private-key':
+      return githubAppPrivateKeyKey(requireId(ids.appId, 'appId'));
   }
 }
 

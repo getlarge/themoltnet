@@ -5,9 +5,11 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import {
+  type GitHubConfig,
   type KeysConfig,
   type MoltNetConfig,
   updateConfigSection,
+  updateGitHubConfig,
   updateKeysConfig,
   updateOAuth2Config,
   writeConfig,
@@ -162,5 +164,65 @@ describe('keys config updates', () => {
       provider: 'env',
       key: 'MOLTNET_PRIVATE_KEY',
     });
+  });
+});
+
+describe('github config updates', () => {
+  const base = { app_id: '123', installation_id: '456' };
+
+  it('replaces the PEM path with a reference without retaining both forms', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
+    await writeConfig(
+      { ...config(), github: { ...base, private_key_path: '/tmp/app.pem' } },
+      dir,
+    );
+
+    await updateGitHubConfig(
+      {
+        ...base,
+        private_key_ref: {
+          provider: 'os-keyring',
+          key: 'github-app/123/private-key',
+        },
+      },
+      dir,
+    );
+
+    const raw = await readFile(join(dir, 'moltnet.json'), 'utf8');
+    expect(raw).not.toContain('private_key_path');
+    expect(JSON.parse(raw).github).toEqual({
+      ...base,
+      private_key_ref: {
+        provider: 'os-keyring',
+        key: 'github-app/123/private-key',
+      },
+    });
+  });
+
+  it('rejects github settings that set both or neither PEM form', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
+    await writeConfig(config(), dir);
+    const both = {
+      ...base,
+      private_key_path: '/tmp/app.pem',
+      private_key_ref: { provider: 'os-keyring', key: 'k' },
+    } as unknown as GitHubConfig;
+    const neither = { ...base } as unknown as GitHubConfig;
+
+    await expect(updateGitHubConfig(both, dir)).rejects.toThrow(
+      /exactly one of private_key_path or private_key_ref/,
+    );
+    await expect(updateGitHubConfig(neither, dir)).rejects.toThrow(
+      /exactly one of private_key_path or private_key_ref/,
+    );
+  });
+
+  it('rejects shallow github updates through the generic helper', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
+    await writeConfig(config(), dir);
+
+    await expect(
+      updateConfigSection('github', { app_id: '1' }, dir),
+    ).rejects.toThrow(/updateGitHubConfig/);
   });
 });

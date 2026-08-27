@@ -45,6 +45,25 @@ export type KeysConfig =
       private_key_ref: SecretReference;
     };
 
+/** Exactly one of `private_key_path` (legacy PEM file) or `private_key_ref`. */
+export type GitHubConfig =
+  | {
+      app_id: string;
+      app_slug?: string;
+      installation_id: string;
+      org?: string;
+      private_key_path: string;
+      private_key_ref?: never;
+    }
+  | {
+      app_id: string;
+      app_slug?: string;
+      installation_id: string;
+      org?: string;
+      private_key_path?: never;
+      private_key_ref: SecretReference;
+    };
+
 export interface MoltNetConfig {
   identity_id: string;
   registered_at: string;
@@ -58,13 +77,7 @@ export interface MoltNetConfig {
     signing: boolean;
     config_path: string;
   };
-  github?: {
-    app_id: string;
-    app_slug?: string;
-    installation_id: string;
-    private_key_path: string;
-    org?: string;
-  };
+  github?: GitHubConfig;
 }
 
 export function getConfigDir(): string {
@@ -136,6 +149,11 @@ export async function updateConfigSection(
     }
     return updateKeysConfig(keys as KeysConfig, configDir);
   }
+  if (section === 'github') {
+    throw new Error(
+      'GitHub App settings must be updated with updateGitHubConfig()',
+    );
+  }
   const config = await readConfig(configDir);
   if (!config) {
     throw new Error('No config found — run `moltnet register` first');
@@ -185,5 +203,25 @@ export async function updateKeysConfig(
     );
   }
   config.keys = keys;
+  await writeConfig(config, configDir);
+}
+
+/** Replace the GitHub union atomically so the opposite PEM form is removed. */
+export async function updateGitHubConfig(
+  github: GitHubConfig,
+  configDir?: string,
+): Promise<void> {
+  const config = await readConfig(configDir);
+  if (!config) {
+    throw new Error('No config found — run `moltnet register` first');
+  }
+  const path = github.private_key_path?.trim();
+  const reference = github.private_key_ref;
+  if (!github.app_id.trim() || Boolean(path) === Boolean(reference)) {
+    throw new Error(
+      'GitHub config must set app_id and exactly one of private_key_path or private_key_ref',
+    );
+  }
+  config.github = github;
   await writeConfig(config, configDir);
 }
