@@ -441,9 +441,79 @@ Keep one key per running daemon and rotate on a schedule; a rotated secret must
 be re-exported as `MOLTNET_AGENT_KEY` before the next start, since rotation
 invalidates the old secret immediately.
 
-File-backed key references, custom secret providers, and guest credential
-provisioning are intentionally separate from this configless host path and are
-tracked in [issue #1833](https://github.com/getlarge/themoltnet/issues/1833).
+### Headless secret files
+
+Headless deployments can source credentials from files that the orchestrator
+projects into one trusted directory. Set `MOLTNET_SECRET_ROOT` to that
+directory in the daemon's runtime environment (never in `moltnet.json`) and
+reference secrets as `{ "provider": "file", "key": "<logical/key>" }`. The
+key is a relative path beneath the root: no `..`, no absolute paths, segments
+limited to `[A-Za-z0-9._-]`. The resolved file must stay inside the root after
+symlinks are followed, must be a regular file without group/other write
+permission, and must not exceed `MOLTNET_SECRET_MAX_BYTES` (default 65536).
+One trailing newline is stripped. The provider is read-only; rotation is owned
+by the orchestrator, and a rotated file (including a Kubernetes projected
+volume's `..data` swap) is picked up on the next read. Set
+`MOLTNET_SECRET_ROOT_WRITABLE=1` only on hosts where MoltNet itself provisions
+the files. In activated editor sessions the secrets guard denies agent reads
+under the root, as it does for `.moltnet/`.
+
+Docker secrets:
+
+```yaml
+services:
+  agent-daemon:
+    image: ghcr.io/getlarge/themoltnet/agent-daemon:latest
+    environment:
+      MOLTNET_SECRET_ROOT: /run/secrets
+    secrets:
+      - source: agent_key
+        target: agent-key/identity-1
+        mode: 0400
+secrets:
+  agent_key:
+    file: ./agent-key
+```
+
+Kubernetes projected secret:
+
+```yaml
+volumes:
+  - name: moltnet-secrets
+    projected:
+      defaultMode: 0400
+      sources:
+        - secret:
+            name: moltnet-agent
+            items:
+              - key: agent-key
+                path: agent-key/identity-1
+containers:
+  - name: agent-daemon
+    env:
+      - name: MOLTNET_SECRET_ROOT
+        value: /var/run/moltnet
+    volumeMounts:
+      - name: moltnet-secrets
+        mountPath: /var/run/moltnet
+        readOnly: true
+```
+
+systemd credentials (`%d` expands to `$CREDENTIALS_DIRECTORY`; credential IDs
+cannot contain `/`, so use a flat key such as `agent-key.identity-1`):
+
+```ini
+[Service]
+LoadCredential=agent-key.identity-1:/etc/moltnet/agent-key
+Environment=MOLTNET_SECRET_ROOT=%d
+```
+
+Environment references remain the minimal CI fallback:
+`{ "provider": "env", "key": "MOLTNET_CLIENT_SECRET" }`.
+
+Today the OAuth2 client secret can be referenced this way; agent keys, GitHub
+App PEMs, and the MoltNet seed follow in
+[issue #1833](https://github.com/getlarge/themoltnet/issues/1833).
 
 ## Runtime Profiles
 

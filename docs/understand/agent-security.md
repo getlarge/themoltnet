@@ -117,6 +117,18 @@ pack:read pack:write task:execute task:manage task:read team:manage team:read
 The authenticated `whoami` response returns the effective `scopes` claim so a
 client can verify its credential before starting work.
 
+### Headless secret root
+
+Headless daemons resolve credential references through a `file` provider
+rooted at `MOLTNET_SECRET_ROOT`. The root is deployer-controlled runtime
+configuration, so a repository cannot point an agent at arbitrary host files:
+keys are relative, traversal-free, and must resolve inside the root after
+following symlinks. Targets must be regular, non-group/other-writable files
+under a size bound. Errors name the logical key and a failure class, never
+contents. The secrets guard classifies the root like `.moltnet/`, so agent
+file tools and shell readers are denied in activated sessions. Writes are off
+unless `MOLTNET_SECRET_ROOT_WRITABLE=1`; orchestrators own rotation.
+
 ### Enforcement rollout
 
 `AUTH_SCOPE_ENFORCEMENT` controls the migration without changing route

@@ -39,7 +39,7 @@ import {
 
 const keyringConformance = JSON.parse(
   readFileSync(
-    new URL('../../../testdata/keyring-conformance.json', import.meta.url),
+    new URL('../../../test-fixtures/keyring-conformance.json', import.meta.url),
     'utf8',
   ),
 ) as {
@@ -66,6 +66,13 @@ describe('Node secret providers', () => {
     const registry = createNodeSecretProviderRegistry('linux');
 
     expect(registry.get('env')).toBeDefined();
+    const file = registry.get('file');
+    expect(file?.name).toBe('file');
+    expect(file?.capabilities).toEqual({
+      read: true,
+      write: false,
+      delete: false,
+    });
     expect(keyring.constructor).not.toHaveBeenCalled();
 
     keyring.read.mockResolvedValue('resolved-secret');
@@ -184,5 +191,20 @@ describe('Node secret providers', () => {
       registry.probe({ provider: 'os-keyring', key: 'k' }),
     ).resolves.toBe('present');
     expect(keyring.constructor).toHaveBeenCalledOnce();
+  });
+  it('configures the file provider from the supplied environment', async () => {
+    const env: Record<string, string> = {
+      MOLTNET_SECRET_ROOT: '/nonexistent/root',
+      MOLTNET_SECRET_ROOT_WRITABLE: '1',
+    };
+    const registry = createNodeSecretProviderRegistry(
+      'linux',
+      (name) => env[name],
+    );
+
+    expect(registry.get('file')?.capabilities.write).toBe(true);
+    await expect(registry.probe({ provider: 'file', key: 'k' })).resolves.toBe(
+      'inaccessible',
+    );
   });
 });

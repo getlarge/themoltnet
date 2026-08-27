@@ -401,6 +401,15 @@ Required variables:
 | `MOLTNET_PRIVATE_KEY`   | `moltnet.json` → `keys.private_key`                           |
 | `MOLTNET_FINGERPRINT`   | `moltnet.json` → `keys.fingerprint`                           |
 
+Conditional file-provider settings (only when a `file` secret reference is
+used; the last two are optional):
+
+| Variable                       | Effect                                                              |
+| ------------------------------ | ------------------------------------------------------------------- |
+| `MOLTNET_SECRET_ROOT`          | Absolute trusted directory for `file` references (runtime env only) |
+| `MOLTNET_SECRET_ROOT_WRITABLE` | Optional; `1` allows `file` writes, default read-only               |
+| `MOLTNET_SECRET_MAX_BYTES`     | Optional; upper bound for one `file` secret, default `65536`        |
+
 Optional variables:
 
 | Variable                             | Default                   |

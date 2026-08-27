@@ -1,0 +1,224 @@
+{
+  "file": {
+    "keys": [
+      {
+        "key": "github-app/123/private-key",
+        "valid": true
+      },
+      {
+        "key": "agent-key/identity-1",
+        "valid": true
+      },
+      {
+        "key": "a.b_c-d/E",
+        "valid": true
+      },
+      {
+        "key": "",
+        "reason": "invalid_key",
+        "valid": false
+      },
+      {
+        "key": "/etc/passwd",
+        "reason": "invalid_key",
+        "valid": false
+      },
+      {
+        "key": "C:\\secrets\\k",
+        "reason": "invalid_key",
+        "valid": false
+      },
+      {
+        "key": "../escape",
+        "reason": "invalid_key",
+        "valid": false
+      },
+      {
+        "key": "a/../b",
+        "reason": "invalid_key",
+        "valid": false
+      },
+      {
+        "key": "a//b",
+        "reason": "invalid_key",
+        "valid": false
+      },
+      {
+        "key": "a/./b",
+        "reason": "invalid_key",
+        "valid": false
+      },
+      {
+        "key": "trailing/",
+        "reason": "invalid_key",
+        "valid": false
+      },
+      {
+        "key": "nul\u0000byte",
+        "reason": "invalid_key",
+        "valid": false
+      },
+      {
+        "key": "space in/key",
+        "reason": "invalid_key",
+        "valid": false
+      },
+      {
+        "key": "unicode/秘密",
+        "reason": "invalid_key",
+        "valid": false
+      }
+    ],
+    "layouts": [
+      {
+        "expect": {
+          "value": "value-1"
+        },
+        "files": {
+          "agent-key/identity-1": {
+            "content": "value-1\n",
+            "mode": "0400"
+          }
+        },
+        "key": "agent-key/identity-1",
+        "name": "plain regular file"
+      },
+      {
+        "expect": {
+          "value": "v"
+        },
+        "files": {
+          "k": {
+            "content": "v\r\n",
+            "mode": "0600"
+          }
+        },
+        "key": "k",
+        "name": "crlf newline stripped once"
+      },
+      {
+        "expect": {
+          "value": "v\n"
+        },
+        "files": {
+          "k": {
+            "content": "v\n\n",
+            "mode": "0440"
+          }
+        },
+        "key": "k",
+        "name": "only one trailing newline stripped"
+      },
+      {
+        "expect": {
+          "value": "pem"
+        },
+        "files": {
+          "..2026_08_27/github-app/1/private-key": {
+            "content": "pem",
+            "mode": "0444"
+          }
+        },
+        "key": "github-app/1/private-key",
+        "name": "kubernetes projected volume symlink chain",
+        "symlinks": {
+          "..data": "..2026_08_27",
+          "github-app": "..data/github-app"
+        }
+      },
+      {
+        "expect": {
+          "error": "symlink_escape"
+        },
+        "key": "k",
+        "name": "symlink escaping the root",
+        "outside": {
+          "victim": "outside-secret"
+        },
+        "symlinks": {
+          "k": "<outside>/victim"
+        }
+      },
+      {
+        "expect": {
+          "error": "symlink_escape"
+        },
+        "key": "d/k",
+        "name": "directory symlink escaping the root",
+        "outside": {
+          "dir/k": "outside-secret"
+        },
+        "symlinks": {
+          "d": "<outside>/dir"
+        }
+      },
+      {
+        "expect": {
+          "error": "not_found"
+        },
+        "files": {},
+        "key": "absent/key",
+        "name": "missing key"
+      },
+      {
+        "dirs": ["k"],
+        "expect": {
+          "error": "unsafe_target"
+        },
+        "key": "k",
+        "name": "directory instead of file"
+      },
+      {
+        "expect": {
+          "error": "unsafe_target"
+        },
+        "files": {
+          "k": {
+            "content": "v",
+            "mode": "0620"
+          }
+        },
+        "key": "k",
+        "name": "group writable",
+        "skipOn": ["win32"]
+      },
+      {
+        "expect": {
+          "error": "unsafe_target"
+        },
+        "files": {
+          "k": {
+            "content": "v",
+            "mode": "0666"
+          }
+        },
+        "key": "k",
+        "name": "world writable",
+        "skipOn": ["win32"]
+      },
+      {
+        "expect": {
+          "error": "oversized"
+        },
+        "files": {
+          "k": {
+            "contentRepeat": {
+              "char": "x",
+              "count": 65537
+            },
+            "mode": "0600"
+          }
+        },
+        "key": "k",
+        "name": "oversized"
+      }
+    ]
+  },
+  "windows": [
+    {
+      "key": "oauth2/identity-123/client-456",
+      "service": "themolt.net",
+      "target": "themolt.net/oauth2/identity-123/client-456"
+    }
+  ]
+}

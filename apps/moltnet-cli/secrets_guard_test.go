@@ -666,3 +666,113 @@ func TestCanonicalGuidanceUsesAtomicEnvConfiguration(t *testing.T) {
 		}
 	}
 }
+
+func TestSecretsGuardDeniesReadsUnderSecretRoot(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv(secretRootEnv, root)
+	pathContext := testSecretGuardPathContext(t)
+	for _, command := range []string{
+		"cat " + filepath.Join(root, "agent-key", "identity-1"),
+		"head " + root + "/github-app/1/private-key",
+		"ls " + root,
+	} {
+		if reason := evaluateSecretsShellWithContext(command, pathContext); reason == "" {
+			t.Fatalf("expected denial for %q", command)
+		}
+	}
+	if reason := evaluateSecretsShellWithContext("cat "+filepath.Join(t.TempDir(), "unrelated"), pathContext); reason != "" {
+		t.Fatalf("unexpected denial outside the secret root: %s", reason)
+	}
+}
+
+func TestClassifySecretRootPath(t *testing.T) {
+	t.Parallel()
+	lookup := func(name string) (string, bool) {
+		if name == secretRootEnv {
+			return "/run/secrets", true
+		}
+		return "", false
+	}
+	cases := map[string]pathClass{
+		"/run/secrets":              pathCredential,
+		"/run/secrets/agent-key/id": pathCredential,
+		"/run/secrets-other/x":      pathNone,
+		"/etc/passwd":               pathNone,
+		"relative/inside":           pathNone,
+	}
+	for value, want := range cases {
+		if got := classifySecretRootPath(value, "/work", lookup); got != want {
+			t.Errorf("classifySecretRootPath(%q) = %v, want %v", value, got, want)
+		}
+	}
+	if got := classifySecretRootPath("secrets/k", "/run", lookup); got != pathCredential {
+		t.Errorf("relative path under cwd inside root = %v, want pathCredential", got)
+	}
+	if got := classifySecretRootPath("/run/secrets/x", "/work", func(string) (string, bool) { return "", false }); got != pathNone {
+		t.Errorf("unset root = %v, want pathNone", got)
+	}
+	if got := classifySecretRootPath("/run/secrets/x", "", lookup); got != pathCredential {
+		t.Errorf("absolute path with empty cwd = %v, want pathCredential", got)
+	}
+}
+
+func TestSecretsGuardDeniesSecretRootAliasesAndExpansions(t *testing.T) {
+	base := t.TempDir()
+	root := filepath.Join(base, "secrets")
+	if err := os.MkdirAll(filepath.Join(root, "agent-key"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "agent-key", "identity-1"), []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	alias := filepath.Join(base, "alias")
+	if err := os.Symlink(root, alias); err != nil {
+		t.Fatal(err)
+	}
+	fileAlias := filepath.Join(base, "file-alias")
+	if err := os.Symlink(filepath.Join(root, "agent-key", "identity-1"), fileAlias); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv(secretRootEnv, root)
+	pathContext := testSecretGuardPathContext(t)
+	for _, command := range []string{
+		"cat " + filepath.Join(alias, "agent-key", "identity-1"),
+		"cat " + fileAlias,
+		"ls " + alias,
+		"cat \"$MOLTNET_SECRET_ROOT/agent-key/identity-1\"",
+		"cat ${MOLTNET_SECRET_ROOT}/agent-key/identity-1",
+		"head \"${MOLTNET_SECRET_ROOT:-/tmp}/x\"",
+	} {
+		if reason := evaluateSecretsShellWithContext(command, pathContext); reason == "" {
+			t.Fatalf("expected denial for %q", command)
+		}
+	}
+}
+
+func TestSecretsGuardIgnoresRelativeSecretRootLikeTheProviders(t *testing.T) {
+	t.Setenv(secretRootEnv, "relative/secrets")
+	pathContext := testSecretGuardPathContext(t)
+	if reason := evaluateSecretsShellWithContext("cat relative/secrets/k", pathContext); reason != "" {
+		t.Fatalf("relative roots are rejected by the providers and must not classify: %s", reason)
+	}
+}
+
+func TestClassifySecretRootPathCanonicalizesAliases(t *testing.T) {
+	base := t.TempDir()
+	root := filepath.Join(base, "secrets")
+	if err := os.Mkdir(root, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	alias := filepath.Join(base, "alias")
+	if err := os.Symlink(root, alias); err != nil {
+		t.Fatal(err)
+	}
+	lookup := func(name string) (string, bool) { return root, name == secretRootEnv }
+	if got := classifySecretRootPath(filepath.Join(alias, "not-yet-created", "k"), "", lookup); got != pathCredential {
+		t.Fatalf("alias to a not-yet-created key = %v, want pathCredential", got)
+	}
+	aliasLookup := func(name string) (string, bool) { return alias, name == secretRootEnv }
+	if got := classifySecretRootPath(filepath.Join(root, "k"), "", aliasLookup); got != pathCredential {
+		t.Fatalf("root configured through an alias = %v, want pathCredential", got)
+	}
+}
