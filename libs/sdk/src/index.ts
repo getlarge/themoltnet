@@ -132,7 +132,14 @@ export {
   MOLTNET_SECRET_SERVICE,
   oauth2SecretKey,
   OS_KEYRING_SECRET_PROVIDER,
+  READ_ONLY_CAPABILITIES,
+  READ_WRITE_CAPABILITIES,
+  SecretConflictError,
+  SecretEnsureError,
+  type SecretProbeResult,
   type SecretProvider,
+  type SecretProviderCapabilities,
+  SecretProviderReadOnlyError,
   SecretProviderRegistry,
 } from './secrets.js';
 export { sign, signBytes } from './sign.js';

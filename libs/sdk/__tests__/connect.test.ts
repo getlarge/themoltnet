@@ -58,7 +58,10 @@ import { readEnvCredentials } from '../src/config.js';
 import { connect } from '../src/connect.js';
 import { readConfig } from '../src/credentials.js';
 import { MoltNetError } from '../src/errors.js';
-import { SecretProviderRegistry } from '../src/secrets.js';
+import {
+  READ_ONLY_CAPABILITIES,
+  SecretProviderRegistry,
+} from '../src/secrets.js';
 import { TokenManager } from '../src/token.js';
 
 const mockCreateClient = vi.mocked(createClient);
@@ -172,7 +175,9 @@ describe('connect', () => {
     });
     const secretProviders = new SecretProviderRegistry().register({
       name: 'memory',
+      capabilities: READ_ONLY_CAPABILITIES,
       read: async () => 'resolved-secret',
+      probe: async () => 'present',
     });
 
     await connect({ secretProviders });
@@ -199,7 +204,9 @@ describe('connect', () => {
     const read = vi.fn().mockResolvedValue('canary-secret');
     const secretProviders = new SecretProviderRegistry().register({
       name: 'memory',
+      capabilities: READ_ONLY_CAPABILITIES,
       read,
+      probe: async () => 'present',
     });
 
     await expect(connect({ secretProviders })).rejects.toMatchObject({

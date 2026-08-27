@@ -20,7 +20,9 @@ short-lived bearer token before forwarding requests to the MCP server.
 Claude Code uses environment variable placeholders in `.mcp.json`; Codex uses
 `.codex/config.toml` with `env_http_headers`. The OAuth2 secret remains in the
 OS keyring. `moltnet start` resolves its opaque `client_secret_ref` and injects
-the value only into the launched editor process.
+the value only into the launched editor process. LeGreffier setup and port
+write that keyring entry directly through the SDK's secret-provider registry;
+the plaintext value is never written to `moltnet.json`.
 
 Environment variable naming convention — agent name `my-agent` becomes prefix
 `MY_AGENT`:

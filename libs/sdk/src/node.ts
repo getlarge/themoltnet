@@ -6,22 +6,31 @@ import {
   createDefaultSecretProviderRegistry,
   MOLTNET_SECRET_SERVICE,
   OS_KEYRING_SECRET_PROVIDER,
+  READ_WRITE_CAPABILITIES,
+  type SecretProbeResult,
   type SecretProvider,
   type SecretProviderRegistry,
 } from './secrets.js';
 
+type LoadedKeyringProvider = Required<
+  Pick<SecretProvider, 'read' | 'write' | 'delete' | 'probe'>
+>;
+
 type OSKeyringModule = {
-  OSKeyringSecretProvider: new (platform?: NodeJS.Platform) => SecretProvider;
+  OSKeyringSecretProvider: new (
+    platform?: NodeJS.Platform,
+  ) => LoadedKeyringProvider;
 };
 
 /**
  * Lazy Node adapter. Browser SDK installs never pull in native keyring
  * packages, and Node consumers only load the adapter when an os-keyring
- * reference is actually resolved.
+ * reference is actually used.
  */
 export class OSKeyringSecretProvider implements SecretProvider {
   readonly name = OS_KEYRING_SECRET_PROVIDER;
-  private providerPromise: Promise<SecretProvider> | undefined;
+  readonly capabilities = READ_WRITE_CAPABILITIES;
+  private providerPromise: Promise<LoadedKeyringProvider> | undefined;
 
   constructor(private readonly platform: NodeJS.Platform = process.platform) {}
 
@@ -29,7 +38,23 @@ export class OSKeyringSecretProvider implements SecretProvider {
     return (await this.provider()).read(key);
   }
 
-  private provider(): Promise<SecretProvider> {
+  async write(key: string, value: string): Promise<void> {
+    await (await this.provider()).write(key, value);
+  }
+
+  async delete(key: string): Promise<void> {
+    await (await this.provider()).delete(key);
+  }
+
+  async probe(key: string): Promise<SecretProbeResult> {
+    try {
+      return await (await this.provider()).probe(key);
+    } catch {
+      return 'inaccessible';
+    }
+  }
+
+  private provider(): Promise<LoadedKeyringProvider> {
     // The package remains isomorphic; this explicit /node entry is the only
     // surface allowed to load the optional Node-only adapter.
     // eslint-disable-next-line @nx/enforce-module-boundaries
