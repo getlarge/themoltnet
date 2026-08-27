@@ -24,7 +24,8 @@ import {
   type ManagedVm,
   resumeVm,
 } from '@themoltnet/sandbox-gondolin';
-import { connect, readConfig } from '@themoltnet/sdk';
+import { connect, readConfig, resolveIdentitySeed } from '@themoltnet/sdk';
+import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
 
 import { resolveRepoRoot } from '../repo.js';
 import {
@@ -212,8 +213,13 @@ const agentIdentity: AgentIdentity = {
     agentConfig.git?.email ??
     `${agentConfig.identity_id}+${agentName}[bot]@users.noreply.github.com`,
 };
+// Resolve once: keys.private_key_ref may point at a keyring or file secret.
+const hostPrivateKeySeed = await resolveIdentitySeed(
+  agentConfig,
+  createNodeSecretProviderRegistry(),
+);
 const hostSigner = createLocalSeedSigner({
-  privateKeySeed: agentConfig.keys.private_key,
+  privateKeySeed: hostPrivateKeySeed,
   agent: hostAgent,
   identity: agentIdentity,
 });
@@ -306,9 +312,7 @@ try {
       ...Object.values(service.env ?? {}),
     ]),
   ].join('\n');
-  hostSigningKeyProjected = projectedText.includes(
-    agentConfig.keys.private_key,
-  );
+  hostSigningKeyProjected = projectedText.includes(hostPrivateKeySeed);
   managed = await resumeVm({
     checkpointPath,
     agentName,
