@@ -59,6 +59,7 @@ function testSecretProviders(value: string | null = 'resolved-secret') {
     name: 'os-keyring',
     capabilities: READ_ONLY_CAPABILITIES,
     read: async () => value,
+    probe: async () => (value ? 'present' : 'absent'),
   });
 }
 

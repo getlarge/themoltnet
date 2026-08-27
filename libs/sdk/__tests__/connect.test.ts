@@ -177,6 +177,7 @@ describe('connect', () => {
       name: 'memory',
       capabilities: READ_ONLY_CAPABILITIES,
       read: async () => 'resolved-secret',
+      probe: async () => 'present',
     });
 
     await connect({ secretProviders });
@@ -205,6 +206,7 @@ describe('connect', () => {
       name: 'memory',
       capabilities: READ_ONLY_CAPABILITIES,
       read,
+      probe: async () => 'present',
     });
 
     await expect(connect({ secretProviders })).rejects.toMatchObject({

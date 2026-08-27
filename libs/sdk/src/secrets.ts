@@ -29,8 +29,8 @@ export interface SecretProvider {
   write?(key: string, value: string): Promise<void>;
   /** Present only when `capabilities.delete` is true. Missing keys are not errors. */
   delete?(key: string): Promise<void>;
-  /** Optional cheaper presence check; the registry falls back to `read`. */
-  probe?(key: string): Promise<SecretProbeResult>;
+  /** Value-free presence check; must not throw and must not return the value. */
+  probe(key: string): Promise<SecretProbeResult>;
 }
 
 export class SecretConflictError extends Error {
@@ -40,6 +40,23 @@ export class SecretConflictError extends Error {
       `Secret provider ${JSON.stringify(providerName)} already contains a different secret for this key`,
     );
     this.name = 'SecretConflictError';
+  }
+}
+
+/**
+ * `ensure` failed after the destination may have been mutated. `changed` is
+ * true when the write succeeded but read-back verification did not, so the
+ * caller can roll the destination back.
+ */
+export class SecretEnsureError extends Error {
+  readonly code = 'SECRET_ENSURE_FAILED';
+  constructor(
+    providerName: string,
+    readonly changed: boolean,
+    detail: string,
+  ) {
+    super(`Secret provider ${JSON.stringify(providerName)}: ${detail}`);
+    this.name = 'SecretEnsureError';
   }
 }
 
@@ -61,6 +78,7 @@ interface LocatedProvider {
 
 export class SecretProviderRegistry {
   readonly #providers = new Map<string, SecretProvider>();
+  readonly #locks = new Map<string, Promise<unknown>>();
 
   register(provider: SecretProvider): this {
     const name = provider.name.trim();
@@ -102,43 +120,86 @@ export class SecretProviderRegistry {
   }
 
   /**
-   * Store `value` only when the destination is absent or already equal, then
-   * read it back. Mirrors the Go registry's `Ensure`.
+   * Serialize mutations per provider/key within this process. The Go CLI
+   * holds an advisory `flock` for the same operation; Node has no portable
+   * `flock`, so cross-process exclusion against `moltnet` is not provided.
    */
-  async ensure(
+  #serialized<T>(providerName: string, key: string, work: () => Promise<T>) {
+    const scope = `${providerName}\0${key}`;
+    const previous = this.#locks.get(scope) ?? Promise.resolve();
+    const run = previous.then(work, work);
+    const settled = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    this.#locks.set(scope, settled);
+    void settled.then(() => {
+      if (this.#locks.get(scope) === settled) this.#locks.delete(scope);
+    });
+    return run;
+  }
+
+  /**
+   * Store `value` only when the destination is absent or already equal, then
+   * read it back. Mirrors the Go registry's `Ensure`: a verification failure
+   * after a successful write surfaces as `SecretEnsureError` with
+   * `changed === true` so the caller can roll back.
+   */
+  ensure(
     reference: SecretReference,
     value: string,
   ): Promise<{ changed: boolean }> {
     if (!value) {
-      throw new Error('Secret value is required');
+      return Promise.reject(new Error('Secret value is required'));
     }
     const { providerName, key, provider } = this.#require(reference);
     if (!provider.capabilities.write || !provider.write) {
-      throw new SecretProviderReadOnlyError(providerName, 'write');
-    }
-    const existing = await provider.read(key);
-    if (existing === value) {
-      return { changed: false };
-    }
-    if (existing) {
-      throw new SecretConflictError(providerName);
-    }
-    await provider.write(key, value);
-    const verified = await provider.read(key);
-    if (verified !== value) {
-      throw new Error(
-        `Secret provider ${JSON.stringify(providerName)}: stored value does not match`,
+      return Promise.reject(
+        new SecretProviderReadOnlyError(providerName, 'write'),
       );
     }
-    return { changed: true };
+    const write = provider.write.bind(provider);
+    return this.#serialized(providerName, key, async () => {
+      const existing = await provider.read(key);
+      if (existing === value) {
+        return { changed: false };
+      }
+      if (existing) {
+        throw new SecretConflictError(providerName);
+      }
+      await write(key, value);
+      let verified: string | null;
+      try {
+        verified = await provider.read(key);
+      } catch (cause) {
+        const error = new SecretEnsureError(
+          providerName,
+          true,
+          'could not verify the stored value',
+        );
+        error.cause = cause;
+        throw error;
+      }
+      if (verified !== value) {
+        throw new SecretEnsureError(
+          providerName,
+          true,
+          'stored value does not match',
+        );
+      }
+      return { changed: true };
+    });
   }
 
-  async delete(reference: SecretReference): Promise<void> {
+  delete(reference: SecretReference): Promise<void> {
     const { providerName, key, provider } = this.#require(reference);
     if (!provider.capabilities.delete || !provider.delete) {
-      throw new SecretProviderReadOnlyError(providerName, 'delete');
+      return Promise.reject(
+        new SecretProviderReadOnlyError(providerName, 'delete'),
+      );
     }
-    await provider.delete(key);
+    const remove = provider.delete.bind(provider);
+    return this.#serialized(providerName, key, () => remove(key));
   }
 
   /** Never throws and never returns the value. */
@@ -149,10 +210,8 @@ export class SecretProviderRegistry {
     } catch {
       return 'inaccessible';
     }
-    const { key, provider } = located;
     try {
-      if (provider.probe) return await provider.probe(key);
-      return (await provider.read(key)) ? 'present' : 'absent';
+      return await located.provider.probe(located.key);
     } catch {
       return 'inaccessible';
     }
@@ -176,6 +235,14 @@ export class EnvironmentSecretProvider implements SecretProvider {
       );
     }
     return Promise.resolve(this.readValue(key) || null);
+  }
+
+  async probe(key: string): Promise<SecretProbeResult> {
+    try {
+      return (await this.read(key)) ? 'present' : 'absent';
+    } catch {
+      return 'inaccessible';
+    }
   }
 }
 

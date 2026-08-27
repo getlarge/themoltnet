@@ -135,6 +135,7 @@ export {
   READ_ONLY_CAPABILITIES,
   READ_WRITE_CAPABILITIES,
   SecretConflictError,
+  SecretEnsureError,
   type SecretProbeResult,
   type SecretProvider,
   type SecretProviderCapabilities,

@@ -6,6 +6,7 @@ import {
   READ_ONLY_CAPABILITIES,
   READ_WRITE_CAPABILITIES,
   SecretConflictError,
+  SecretEnsureError,
   type SecretProvider,
   SecretProviderReadOnlyError,
   SecretProviderRegistry,
@@ -17,6 +18,7 @@ describe('secret providers', () => {
       name: 'memory',
       capabilities: READ_ONLY_CAPABILITIES,
       read: async (key) => (key === 'oauth' ? 'canary-secret' : null),
+      probe: async (key) => (key === 'oauth' ? 'present' : 'absent'),
     };
     const registry = new SecretProviderRegistry().register(provider);
 
@@ -50,6 +52,7 @@ function memoryProvider(initial: Record<string, string> = {}) {
     name: 'memory',
     capabilities: READ_WRITE_CAPABILITIES,
     read: async (key) => store.get(key) ?? null,
+    probe: async (key) => (store.has(key) ? 'present' : 'absent'),
     write: async (key, value) => {
       store.set(key, value);
     },
@@ -100,7 +103,7 @@ describe('SecretProviderRegistry.ensure', () => {
 
     await expect(
       registry.ensure({ provider: 'memory', key: 'k' }, 'v1'),
-    ).rejects.toThrow(/stored value does not match/);
+    ).rejects.toBeInstanceOf(SecretEnsureError);
   });
 
   it('rejects empty values and read-only providers with typed errors', async () => {
@@ -140,6 +143,9 @@ describe('SecretProviderRegistry.delete and probe', () => {
       read: async () => {
         throw new Error('locked');
       },
+      probe: async () => {
+        throw new Error('locked');
+      },
     };
     const registry = new SecretProviderRegistry()
       .register(provider)
@@ -159,7 +165,7 @@ describe('SecretProviderRegistry.delete and probe', () => {
     ).resolves.toBe('inaccessible');
   });
 
-  it('prefers a provider-supplied probe over reading the value', async () => {
+  it('uses the provider probe rather than reading the value', async () => {
     const read = vi.fn();
     const provider: SecretProvider = {
       name: 'probing',
@@ -173,6 +179,120 @@ describe('SecretProviderRegistry.delete and probe', () => {
       registry.probe({ provider: 'probing', key: 'k' }),
     ).resolves.toBe('present');
     expect(read).not.toHaveBeenCalled();
+  });
+});
+
+describe('SecretProviderRegistry.ensure concurrency and failure state', () => {
+  const tick = () =>
+    new Promise<void>((resolve) => {
+      setTimeout(resolve, 5);
+    });
+
+  function slowProvider() {
+    const store = new Map<string, string>();
+    let writes = 0;
+    const provider: SecretProvider = {
+      name: 'slow',
+      capabilities: READ_WRITE_CAPABILITIES,
+      read: async (key) => {
+        await tick();
+        return store.get(key) ?? null;
+      },
+      write: async (key, value) => {
+        writes += 1;
+        await tick();
+        store.set(key, value);
+      },
+      delete: async (key) => {
+        store.delete(key);
+      },
+      probe: async (key) => (store.has(key) ? 'present' : 'absent'),
+    };
+    return { provider, store, writes: () => writes };
+  }
+
+  it('serializes same-value writers so only one write happens', async () => {
+    const { provider, store, writes } = slowProvider();
+    const registry = new SecretProviderRegistry().register(provider);
+    const ref = { provider: 'slow', key: 'k' };
+
+    const results = await Promise.all([
+      registry.ensure(ref, 'v'),
+      registry.ensure(ref, 'v'),
+      registry.ensure(ref, 'v'),
+    ]);
+
+    expect(results).toEqual([
+      { changed: true },
+      { changed: false },
+      { changed: false },
+    ]);
+    expect(writes()).toBe(1);
+    expect(store.get('k')).toBe('v');
+  });
+
+  it('serializes different-value writers so the second conflicts instead of overwriting', async () => {
+    const { provider, store } = slowProvider();
+    const registry = new SecretProviderRegistry().register(provider);
+    const ref = { provider: 'slow', key: 'k' };
+
+    const [first, second] = await Promise.allSettled([
+      registry.ensure(ref, 'first'),
+      registry.ensure(ref, 'second'),
+    ]);
+
+    expect(first).toEqual({ status: 'fulfilled', value: { changed: true } });
+    expect(second.status).toBe('rejected');
+    expect((second as PromiseRejectedResult).reason).toBeInstanceOf(
+      SecretConflictError,
+    );
+    expect(store.get('k')).toBe('first');
+  });
+
+  it('keeps independent keys concurrent', async () => {
+    const { provider, writes } = slowProvider();
+    const registry = new SecretProviderRegistry().register(provider);
+
+    await Promise.all([
+      registry.ensure({ provider: 'slow', key: 'a' }, 'v'),
+      registry.ensure({ provider: 'slow', key: 'b' }, 'v'),
+    ]);
+
+    expect(writes()).toBe(2);
+  });
+
+  it('reports changed=true when the provider persisted the wrong value', async () => {
+    const { provider, store } = slowProvider();
+    provider.write = async (key) => {
+      store.set(key, 'corrupted');
+    };
+    const registry = new SecretProviderRegistry().register(provider);
+
+    const failure = await registry
+      .ensure({ provider: 'slow', key: 'k' }, 'v')
+      .catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(SecretEnsureError);
+    expect((failure as SecretEnsureError).changed).toBe(true);
+    expect(String(failure)).not.toContain('corrupted');
+  });
+
+  it('reports changed=true when read-back itself fails after the write', async () => {
+    const { provider } = slowProvider();
+    let reads = 0;
+    provider.read = async () => {
+      reads += 1;
+      if (reads === 1) return null;
+      throw new Error('keyring locked');
+    };
+    const registry = new SecretProviderRegistry().register(provider);
+
+    const failure = await registry
+      .ensure({ provider: 'slow', key: 'k' }, 'v')
+      .catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(SecretEnsureError);
+    expect((failure as SecretEnsureError).changed).toBe(true);
   });
 });
 
