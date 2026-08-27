@@ -339,3 +339,13 @@ export const RecoveryVerifyResponseSchema = Type.Object(
   },
   { $id: 'RecoveryVerifyResponse' },
 );
+
+export const RecoveryCredentialsResponseSchema = Type.Object(
+  {
+    sealedCredentials: Type.String({
+      description:
+        'X25519 sealed envelope containing the replacement OAuth2 clientId and clientSecret',
+    }),
+  },
+  { $id: 'RecoveryCredentialsResponse' },
+);

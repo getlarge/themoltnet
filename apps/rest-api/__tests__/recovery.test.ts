@@ -6,7 +6,9 @@
  */
 
 import {
+  cryptoService,
   generateRecoveryChallenge,
+  openSealedEnvelope,
   signChallenge,
 } from '@moltnet/crypto-service';
 import type { FastifyInstance } from 'fastify';
@@ -20,6 +22,7 @@ import {
   vi,
 } from 'vitest';
 
+import { buildApp } from '../src/app.js';
 import {
   createMockAgent,
   createMockServices,
@@ -138,7 +141,6 @@ describe('Recovery routes', () => {
         }),
       };
       // Re-build app with mocked identity client
-      const { buildApp } = await import('../src/app.js');
       const testApp = await buildApp({
         diaryService: mocks.diaryService as any,
         diaryRepository: mocks.diaryRepository as any,
@@ -274,7 +276,6 @@ describe('Recovery routes', () => {
       mocks.cryptoService.verify.mockResolvedValue(true);
 
       // Build app with a failing identity client
-      const { buildApp } = await import('../src/app.js');
       const testApp = await buildApp({
         diaryService: mocks.diaryService as any,
         diaryRepository: mocks.diaryRepository as any,
@@ -363,6 +364,112 @@ describe('Recovery routes', () => {
       });
 
       expect(response.statusCode).toBe(400);
+    });
+  });
+
+  describe('POST /recovery/credentials', () => {
+    it('rotates and seals replacement OAuth2 credentials to the proven key', async () => {
+      const keyPair = await cryptoService.generateKeyPair();
+      const agent = createMockAgent({
+        publicKey: keyPair.publicKey,
+        fingerprint: keyPair.fingerprint,
+      });
+      const challenge = generateRecoveryChallenge(agent.publicKey);
+      const hmac = signChallenge(challenge, TEST_RECOVERY_SECRET);
+      const signature = await cryptoService.sign(challenge, keyPair.privateKey);
+      mocks.agentRepository.findByPublicKey.mockResolvedValue(agent);
+      mocks.cryptoService.verify.mockImplementation((...args) =>
+        cryptoService.verify(...args),
+      );
+
+      const getOAuth2Client = vi.fn().mockResolvedValue({
+        client_id: `moltnet-agent-${OWNER_ID}`,
+        client_name: `Agent: ${agent.fingerprint}`,
+        grant_types: ['client_credentials'],
+        response_types: [],
+        token_endpoint_auth_method: 'client_secret_post',
+        scope: 'openid',
+        metadata: { identity_id: OWNER_ID },
+      });
+      const setOAuth2Client = vi.fn().mockResolvedValue(undefined);
+      const evictOAuthClient = vi.fn();
+      const testApp = await buildApp({
+        diaryService: mocks.diaryService as any,
+        diaryRepository: mocks.diaryRepository as any,
+        agentRepository: mocks.agentRepository as any,
+        cryptoService: mocks.cryptoService as any,
+        agentEnrollmentRepository: mocks.agentEnrollmentRepository as any,
+        signingRequestRepository: mocks.signingRequestRepository as any,
+        nonceRepository: mocks.nonceRepository as any,
+        dataSource: mocks.dataSource as any,
+        transactionRunner: mocks.transactionRunner as any,
+        embeddingService: mocks.embeddingService as any,
+        permissionChecker: mocks.permissionChecker as any,
+        tokenValidator: {
+          introspect: vi.fn().mockResolvedValue({ active: false }),
+          resolveAuthContext: vi.fn().mockResolvedValue(null),
+          evictOAuthClient,
+        } as any,
+        webhookApiKey: 'test-key',
+        recoverySecret: TEST_RECOVERY_SECRET,
+        oryClients: {
+          frontend: {} as any,
+          identity: {} as any,
+          oauth2: { getOAuth2Client, setOAuth2Client } as any,
+          permission: {} as any,
+          relationship: {} as any,
+        },
+        security: TEST_SECURITY_OPTIONS,
+      });
+
+      try {
+        const response = await testApp.inject({
+          method: 'POST',
+          url: '/recovery/credentials',
+          payload: { challenge, hmac, signature, publicKey: agent.publicKey },
+        });
+
+        expect(response.statusCode).toBe(200);
+        const plaintext = openSealedEnvelope(
+          response.json().sealedCredentials,
+          keyPair.privateKey,
+        );
+        const recovered = JSON.parse(plaintext);
+        expect(recovered.clientId).toBe(`moltnet-agent-${OWNER_ID}`);
+        expect(recovered.clientSecret).toEqual(expect.any(String));
+        expect(recovered.clientSecret).not.toHaveLength(0);
+        expect(setOAuth2Client).toHaveBeenCalledWith({
+          id: recovered.clientId,
+          oAuth2Client: expect.objectContaining({
+            client_secret: recovered.clientSecret,
+            metadata: { identity_id: OWNER_ID },
+          }),
+        });
+        expect(evictOAuthClient).toHaveBeenCalledWith(recovered.clientId);
+      } finally {
+        await testApp.close();
+      }
+    });
+
+    it('rejects a replay before attempting another credential rotation', async () => {
+      const payload = {
+        challenge: generateRecoveryChallenge('ed25519:AAAA+/bbbb=='),
+        hmac: '',
+        signature: 'some-sig',
+        publicKey: 'ed25519:AAAA+/bbbb==',
+      };
+      payload.hmac = signChallenge(payload.challenge, TEST_RECOVERY_SECRET);
+      mocks.nonceRepository.consume.mockResolvedValue(false);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/recovery/credentials',
+        payload,
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json().code).toBe('INVALID_CHALLENGE');
+      expect(mocks.agentRepository.findByPublicKey).not.toHaveBeenCalled();
     });
   });
 });
