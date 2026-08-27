@@ -26,9 +26,10 @@ type CredentialsOAuth2 struct {
 }
 
 type CredentialsKeys struct {
-	PublicKey   string `json:"public_key"`
-	PrivateKey  string `json:"private_key"`
-	Fingerprint string `json:"fingerprint"`
+	PublicKey     string           `json:"public_key"`
+	PrivateKey    string           `json:"private_key,omitempty"`
+	PrivateKeyRef *SecretReference `json:"private_key_ref,omitempty"`
+	Fingerprint   string           `json:"fingerprint"`
 }
 
 type CredentialsEndpoints struct {
