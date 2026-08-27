@@ -44,6 +44,31 @@ another secure secret store must be updated manually. Use
 	rotateCmd.Flags().Bool("show-secret", false, "Include the new client secret in stdout")
 	rotateCmd.Flags().Bool("no-update", false, "Do not update the credentials file (requires --show-secret)")
 
-	credentialsCmd.AddCommand(rotateCmd)
+	recoverCmd := &cobra.Command{
+		Use:   "recover",
+		Short: "Recover this agent's OAuth2 credentials with its identity key",
+		Long: `Replace an unavailable OAuth2 client secret by proving possession of
+the Ed25519 identity key in the resolved credentials file.
+
+The server returns the replacement credentials only in a sealed envelope for
+that key. The CLI decrypts the envelope locally and atomically updates the
+configured credentials file or secret provider. The previous client secret is
+invalidated immediately.`,
+		Example: `  moltnet agents credentials recover --yes`,
+		Args:    cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runAgentsCredentialsRecoverCmd(agentsCredentialsRecoverOpts{
+				apiURL:         flagString(cmd, "api-url"),
+				apiURLExplicit: cmd.Flag("api-url").Changed,
+				credPath:       flagString(cmd, "credentials"),
+				yes:            flagBool(cmd, "yes"),
+				out:            cmd.OutOrStdout(),
+				errOut:         cmd.ErrOrStderr(),
+			})
+		},
+	}
+	recoverCmd.Flags().Bool("yes", false, "Confirm the irreversible credential replacement")
+
+	credentialsCmd.AddCommand(rotateCmd, recoverCmd)
 	return credentialsCmd
 }

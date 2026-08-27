@@ -38,6 +38,140 @@ func TestAgentsCredentialsRotateRequiresConfirmation(t *testing.T) {
 	}
 }
 
+func TestAgentsCredentialsRecoverRequiresConfirmation(t *testing.T) {
+	t.Parallel()
+
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(
+		root,
+		"--credentials",
+		filepath.Join(t.TempDir(), "missing.json"),
+		"agents",
+		"credentials",
+		"recover",
+	)
+	if err == nil || !strings.Contains(err.Error(), "--yes") {
+		t.Fatalf("error = %v, want --yes confirmation error", err)
+	}
+}
+
+func TestAgentsCredentialsRecoverPersistsSealedReplacement(t *testing.T) {
+	keyPair, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("generate key pair: %v", err)
+	}
+	var challengeCalls atomic.Int32
+	var recoveryCalls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(
+		w http.ResponseWriter,
+		r *http.Request,
+	) {
+		switch r.URL.Path {
+		case "/recovery/challenge":
+			challengeCalls.Add(1)
+			var request struct {
+				PublicKey string `json:"publicKey"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+				http.Error(w, "bad request", http.StatusBadRequest)
+				return
+			}
+			if request.PublicKey != keyPair.PublicKey {
+				http.Error(w, "wrong public key", http.StatusBadRequest)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprintf(
+				w,
+				`{"challenge":%q,"hmac":%q}`,
+				"moltnet:recovery:test-challenge",
+				strings.Repeat("a", 64),
+			)
+		case "/recovery/credentials":
+			recoveryCalls.Add(1)
+			var request struct {
+				Challenge string `json:"challenge"`
+				PublicKey string `json:"publicKey"`
+				Signature string `json:"signature"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+				http.Error(w, "bad request", http.StatusBadRequest)
+				return
+			}
+			if request.Challenge != "moltnet:recovery:test-challenge" ||
+				request.PublicKey != keyPair.PublicKey ||
+				request.Signature == "" {
+				http.Error(w, "invalid proof", http.StatusBadRequest)
+				return
+			}
+			sealed, err := EncryptForAgent(
+				`{"clientId":"recovered-client-id","clientSecret":"recovered-client-secret"}`,
+				keyPair.PublicKey,
+			)
+			if err != nil {
+				http.Error(w, "seal failed", http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprintf(w, `{"sealedCredentials":%q}`, sealed)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	credentialsPath := filepath.Join(t.TempDir(), "moltnet.json")
+	credentials := &CredentialsFile{
+		IdentityID: "identity-id",
+		OAuth2: CredentialsOAuth2{
+			ClientID: "stale-client-id",
+		},
+		Keys: CredentialsKeys{
+			PublicKey:   keyPair.PublicKey,
+			PrivateKey:  keyPair.PrivateKey,
+			Fingerprint: keyPair.Fingerprint,
+		},
+		Endpoints: CredentialsEndpoints{API: server.URL},
+	}
+	if _, err := WriteConfigTo(credentials, credentialsPath); err != nil {
+		t.Fatalf("write credentials: %v", err)
+	}
+
+	root := NewRootCmd("test", "")
+	stdout, stderr, err := executeCommand(
+		root,
+		"--credentials",
+		credentialsPath,
+		"agents",
+		"credentials",
+		"recover",
+		"--yes",
+	)
+	if err != nil {
+		t.Fatalf("recover: %v\nstderr: %s", err, stderr)
+	}
+	if challengeCalls.Load() != 1 || recoveryCalls.Load() != 1 {
+		t.Fatalf(
+			"challenge calls = %d, recovery calls = %d, want 1 each",
+			challengeCalls.Load(),
+			recoveryCalls.Load(),
+		)
+	}
+	if strings.Contains(stdout, "recovered-client-secret") ||
+		strings.Contains(stderr, "recovered-client-secret") {
+		t.Fatal("recovered client secret leaked outside the credentials file")
+	}
+
+	updated, err := ReadConfigFrom(credentialsPath)
+	if err != nil {
+		t.Fatalf("read recovered credentials: %v", err)
+	}
+	if updated.OAuth2.ClientID != "recovered-client-id" ||
+		updated.OAuth2.ClientSecret != "recovered-client-secret" {
+		t.Fatalf("unexpected recovered credentials: %#v", updated.OAuth2)
+	}
+}
+
 func TestAgentsCredentialsRotateNoUpdateRequiresSecretOutput(t *testing.T) {
 	t.Parallel()
 
