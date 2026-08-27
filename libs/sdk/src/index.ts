@@ -39,6 +39,8 @@ export { connect, type ConnectOptions } from './connect.js';
 export {
   type CredentialResolutionCode,
   CredentialResolutionError,
+  resolveAgentKey,
+  resolveEnvSecretReference,
   resolveGitHubAppPrivateKey,
   resolveIdentitySeed,
   resolveOAuth2ClientSecret,
@@ -137,6 +139,7 @@ export { createRemoteSigner, RemoteSignerError } from './remote-signer.js';
 export { type ConfigIssue, repairConfig, type RepairResult } from './repair.js';
 export { type RetryOptions } from './retry.js';
 export {
+  agentKeyKey,
   assertSecretReferenceBinding,
   createDefaultSecretProviderRegistry,
   CREDENTIAL_ENV_KEYS,
@@ -150,6 +153,7 @@ export {
   MOLTNET_SECRET_SERVICE,
   oauth2SecretKey,
   OS_KEYRING_SECRET_PROVIDER,
+  parseSecretReferenceString,
   READ_ONLY_CAPABILITIES,
   READ_WRITE_CAPABILITIES,
   SecretConflictError,

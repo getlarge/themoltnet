@@ -9,6 +9,10 @@ export interface EnvCredentials {
   clientSecret?: string;
   apiUrl?: string;
   agentKey?: string;
+  /** `<provider>:<key>` reference to the agent key (MOLTNET_AGENT_KEY_REF). */
+  agentKeyRef?: string;
+  /** `<provider>:<key>` reference to the Ed25519 seed (MOLTNET_PRIVATE_KEY_REF). */
+  privateKeyRef?: string;
   credentialsPath?: string;
 }
 
@@ -23,8 +27,8 @@ export function readEnvironmentVariable(name: string): string | undefined {
 
 /**
  * Read MoltNet credentials from environment variables.
- * Reads MOLTNET_CLIENT_ID, MOLTNET_CLIENT_SECRET, MOLTNET_API_URL, and
- * MOLTNET_AGENT_KEY.
+ * Reads MOLTNET_CLIENT_ID, MOLTNET_CLIENT_SECRET, MOLTNET_API_URL,
+ * MOLTNET_AGENT_KEY, MOLTNET_AGENT_KEY_REF, and MOLTNET_PRIVATE_KEY_REF.
  */
 export function readEnvCredentials(): EnvCredentials {
   return {
@@ -32,6 +36,8 @@ export function readEnvCredentials(): EnvCredentials {
     clientSecret: readEnvironmentVariable('MOLTNET_CLIENT_SECRET'),
     apiUrl: readEnvironmentVariable('MOLTNET_API_URL'),
     agentKey: readEnvironmentVariable('MOLTNET_AGENT_KEY'),
+    agentKeyRef: readEnvironmentVariable('MOLTNET_AGENT_KEY_REF'),
+    privateKeyRef: readEnvironmentVariable('MOLTNET_PRIVATE_KEY_REF'),
     credentialsPath: readEnvironmentVariable('MOLTNET_CREDENTIALS_PATH'),
   };
 }

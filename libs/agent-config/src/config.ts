@@ -67,6 +67,11 @@ export type GitHubConfig =
 export interface MoltNetConfig {
   identity_id: string;
   registered_at: string;
+  /**
+   * Team-bound agent key reference. When present it is used instead of the
+   * OAuth2 client credentials; the key value itself is never stored here.
+   */
+  agent_key_ref?: SecretReference;
   oauth2: OAuth2Config;
   keys: KeysConfig;
   endpoints: { api: string; mcp: string };

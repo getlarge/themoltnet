@@ -9,6 +9,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   CredentialResolutionError,
   resetLegacyCredentialWarnings,
+  resolveAgentKey,
+  resolveEnvSecretReference,
   resolveGitHubAppPrivateKey,
   resolveIdentitySeed,
   resolveOAuth2ClientSecret,
@@ -421,5 +423,71 @@ describe('resolveGitHubAppPrivateKey', () => {
         )
       ).code,
     ).toBe('unbound');
+  });
+});
+
+describe('resolveAgentKey and resolveEnvSecretReference', () => {
+  it('returns null without a reference and the key with a bound one', async () => {
+    const registry = registryWith({ 'agent-key/id-1': ' ak_secret ' });
+
+    await expect(
+      resolveAgentKey({ identity_id: 'id-1' }, registry),
+    ).resolves.toBeNull();
+    await expect(
+      resolveAgentKey(
+        {
+          identity_id: 'id-1',
+          agent_key_ref: { provider: 'memory', key: 'agent-key/id-1' },
+        },
+        registry,
+      ),
+    ).resolves.toBe('ak_secret');
+  });
+
+  it('rejects unbound and empty agent keys with typed codes', async () => {
+    const registry = registryWith({
+      'agent-key/other': 'x',
+      'agent-key/id-1': '   ',
+    });
+    expect(
+      (
+        await failure(
+          resolveAgentKey(
+            {
+              identity_id: 'id-1',
+              agent_key_ref: { provider: 'memory', key: 'agent-key/other' },
+            },
+            registry,
+          ),
+        )
+      ).code,
+    ).toBe('unbound');
+    expect(
+      (
+        await failure(
+          resolveAgentKey(
+            {
+              identity_id: 'id-1',
+              agent_key_ref: { provider: 'memory', key: 'agent-key/id-1' },
+            },
+            registry,
+          ),
+        )
+      ).code,
+    ).toBe('invalid_value');
+  });
+
+  it('resolves environment references by shape only', async () => {
+    const registry = registryWith({ 'anything/goes': 'value' });
+
+    await expect(
+      resolveEnvSecretReference('memory:anything/goes', registry),
+    ).resolves.toBe('value');
+    await expect(
+      resolveEnvSecretReference('memory:missing', registry),
+    ).rejects.toThrow(/no value/);
+    await expect(
+      resolveEnvSecretReference('not-a-ref', registry),
+    ).rejects.toThrow(/<provider>:<key>/);
   });
 });

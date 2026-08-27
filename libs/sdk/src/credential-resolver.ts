@@ -7,6 +7,7 @@ import type { MoltNetConfig } from './credentials.js';
 import {
   assertSecretReferenceBinding,
   type CredentialKind,
+  parseSecretReferenceString,
   type SecretProviderRegistry,
 } from './secrets.js';
 
@@ -33,6 +34,7 @@ const LEGACY_FIELDS: Readonly<Record<CredentialKind, string>> = Object.freeze({
   'oauth2-client-secret': 'oauth2.client_secret',
   'identity-seed': 'keys.private_key',
   'github-app-private-key': 'github.private_key_path',
+  'agent-key': 'agent_key',
 });
 const warned = new Set<CredentialKind>();
 
@@ -263,4 +265,56 @@ export async function resolveGitHubAppPrivateKey(
   }
   assertRsaPrivateKeyPem(pem);
   return pem;
+}
+
+/**
+ * Resolve a team-bound agent key from `agent_key_ref`. Returns `null` when
+ * the config has no reference (callers then fall back to OAuth2).
+ */
+export async function resolveAgentKey(
+  config: Pick<MoltNetConfig, 'identity_id' | 'agent_key_ref'>,
+  registry: SecretProviderRegistry,
+): Promise<string | null> {
+  const kind: CredentialKind = 'agent-key';
+  const reference = config.agent_key_ref;
+  if (!reference) return null;
+  try {
+    assertSecretReferenceBinding(kind, reference, {
+      identityId: config.identity_id,
+    });
+  } catch (cause) {
+    throw new CredentialResolutionError(
+      kind,
+      'unbound',
+      (cause as Error).message,
+    );
+  }
+  const value = (await registry.resolve(reference)).trim();
+  if (!value) {
+    throw new CredentialResolutionError(
+      kind,
+      'invalid_value',
+      'agent key is empty',
+    );
+  }
+  return value;
+}
+
+/**
+ * Resolve an environment-supplied `<provider>:<key>` reference. The runtime
+ * environment is deployer-controlled, so — unlike references in
+ * `moltnet.json` — no identity binding is enforced; only the shape is.
+ */
+export async function resolveEnvSecretReference(
+  raw: string,
+  registry: SecretProviderRegistry,
+): Promise<string> {
+  const reference = parseSecretReferenceString(raw);
+  const value = (await registry.resolve(reference)).trim();
+  if (!value) {
+    throw new Error(
+      `Secret reference ${reference.provider}:${reference.key} resolved to an empty value`,
+    );
+  }
+  return value;
 }
