@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -265,5 +266,83 @@ func TestNewSecretProviderRegistryIncludesFileProvider(t *testing.T) {
 	registry := NewSecretProviderRegistry()
 	if _, ok := registry.providers[fileProviderName]; !ok {
 		t.Fatal("file provider not registered")
+	}
+}
+
+func TestFileSecretProviderRequiresAbsoluteRoot(t *testing.T) {
+	t.Parallel()
+	_, err := FileSecretProvider{Root: "relative/root", MaxBytes: defaultSecretMaxBytes}.Get("k")
+	if got := fileErrorCode(t, err); got != fileSecretProviderUnavailable {
+		t.Fatalf("code = %s, want provider_unavailable", got)
+	}
+}
+
+func TestFileSecretProviderDeleteRefusesIntermediateSymlinkEscape(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	outside := t.TempDir()
+	writeFixtureFile(t, filepath.Join(outside, "k"), "keep", 0o600)
+	if err := os.Symlink(outside, filepath.Join(root, "d")); err != nil {
+		t.Fatal(err)
+	}
+	provider := FileSecretProvider{Root: root, Writable: true, MaxBytes: defaultSecretMaxBytes}
+	if got := fileErrorCode(t, provider.Delete("d/k")); got != fileSecretSymlinkEscape {
+		t.Fatalf("Delete code = %s, want symlink_escape", got)
+	}
+	if _, err := os.Stat(filepath.Join(outside, "k")); err != nil {
+		t.Fatalf("outside file was deleted: %v", err)
+	}
+	if got := fileErrorCode(t, provider.Set("d/k", "x")); got != fileSecretSymlinkEscape {
+		t.Fatalf("Set code = %s, want symlink_escape", got)
+	}
+	data, _ := os.ReadFile(filepath.Join(outside, "k"))
+	if string(data) != "keep" {
+		t.Fatal("outside file was overwritten")
+	}
+}
+
+func TestFileSecretProviderConcurrentWritersLeaveOneDurableValue(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	provider := FileSecretProvider{Root: root, Writable: true, MaxBytes: defaultSecretMaxBytes}
+	const writers = 16
+	errs := make(chan error, writers)
+	for i := 0; i < writers; i++ {
+		go func(i int) { errs <- provider.Set("shared/k", fmt.Sprintf("value-%d", i)) }(i)
+	}
+	for i := 0; i < writers; i++ {
+		if err := <-errs; err != nil {
+			t.Fatalf("Set: %v", err)
+		}
+	}
+	value, err := provider.Get("shared/k")
+	if err != nil || !strings.HasPrefix(value, "value-") {
+		t.Fatalf("Get = %q, %v", value, err)
+	}
+	entries, err := os.ReadDir(filepath.Join(root, "shared"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 || entries[0].Name() != "k" {
+		t.Fatalf("expected only the secret file after concurrent writes, got %d entries", len(entries))
+	}
+}
+
+func TestFileSecretProviderSetCleansTempFileWhenRenameFails(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	if err := os.Mkdir(filepath.Join(root, "k"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	provider := FileSecretProvider{Root: root, Writable: true, MaxBytes: defaultSecretMaxBytes}
+	if err := provider.Set("k", "v"); err == nil {
+		t.Fatal("expected rename onto a directory to fail")
+	}
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 || entries[0].Name() != "k" {
+		t.Fatalf("temp file leaked: %v", entries)
 	}
 }
