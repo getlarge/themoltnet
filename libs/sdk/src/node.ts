@@ -1,6 +1,12 @@
 import type { Agent } from './agent.js';
+import { readEnvironmentVariable } from './config.js';
 import { connect as connectBase, type ConnectOptions } from './connect.js';
 import type { MoltNetConfig } from './credentials.js';
+import {
+  type EnvironmentLookup,
+  FileSecretProvider,
+  fileSecretProviderOptionsFromEnv,
+} from './file-secret-provider.js';
 import {
   assertOAuth2SecretReferenceBinding,
   createDefaultSecretProviderRegistry,
@@ -83,10 +89,15 @@ export function windowsKeyringTarget(
 
 export function createNodeSecretProviderRegistry(
   platform: NodeJS.Platform = process.platform,
+  readEnv: EnvironmentLookup = readEnvironmentVariable,
 ): SecretProviderRegistry {
-  return createDefaultSecretProviderRegistry().register(
-    new OSKeyringSecretProvider(platform),
-  );
+  return createDefaultSecretProviderRegistry()
+    .register(new OSKeyringSecretProvider(platform))
+    .register(
+      new FileSecretProvider(
+        fileSecretProviderOptionsFromEnv(readEnv, platform),
+      ),
+    );
 }
 
 /** Resolve either a legacy plaintext secret or an opaque reference in Node. */
@@ -126,5 +137,19 @@ export function connect(options: ConnectOptions = {}): Promise<Agent> {
   });
 }
 
+export {
+  DEFAULT_SECRET_MAX_BYTES,
+  type EnvironmentLookup,
+  FILE_SECRET_PROVIDER,
+  type FileSecretErrorCode,
+  FileSecretProvider,
+  FileSecretProviderError,
+  type FileSecretProviderOptions,
+  fileSecretProviderOptionsFromEnv,
+  MOLTNET_SECRET_MAX_BYTES_ENV,
+  MOLTNET_SECRET_ROOT_ENV,
+  MOLTNET_SECRET_ROOT_WRITABLE_ENV,
+  validateFileSecretKey,
+} from './file-secret-provider.js';
 export { MOLTNET_SECRET_SERVICE };
 export type { ConnectOptions };
