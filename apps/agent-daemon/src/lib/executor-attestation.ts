@@ -4,8 +4,10 @@ import {
   createExecutorAttestor,
   type ExecutorAttestor,
   readConfig,
+  resolveIdentitySeed,
   type Whoami,
 } from '@themoltnet/sdk';
+import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
 
 import type { PreparedDaemonRuntime } from '../runtime.js';
 import type { DaemonAuthMode } from './agent-context.js';
@@ -32,13 +34,22 @@ export async function resolveExecutorSigningPrivateKey(input: {
   }
 
   const config = await readConfig(input.agentDir);
-  const privateKey = config?.keys?.private_key?.trim();
-  if (!privateKey) {
+  if (!config) {
     throw new Error(
-      `OAuth2 daemon startup requires keys.private_key in ${input.agentDir}/moltnet.json.`,
+      `OAuth2 daemon startup requires ${input.agentDir}/moltnet.json.`,
     );
   }
-  return privateKey;
+  try {
+    return await resolveIdentitySeed(
+      config,
+      createNodeSecretProviderRegistry(),
+    );
+  } catch (cause) {
+    throw new Error(
+      `OAuth2 daemon startup could not resolve the signing seed from ${input.agentDir}/moltnet.json (keys.private_key or keys.private_key_ref): ${(cause as Error).message}`,
+      { cause },
+    );
+  }
 }
 
 export function validateDaemonScopes(whoami: Whoami): void {

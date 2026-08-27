@@ -2,14 +2,25 @@ import { cryptoService } from '@moltnet/crypto-service';
 import type { Whoami } from '@themoltnet/sdk';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { createExecutorAttestorMock, readConfigMock } = vi.hoisted(() => ({
+const {
+  createExecutorAttestorMock,
+  readConfigMock,
+  resolveIdentitySeedMock,
+  registryMock,
+} = vi.hoisted(() => ({
   createExecutorAttestorMock: vi.fn(),
   readConfigMock: vi.fn(),
+  resolveIdentitySeedMock: vi.fn(),
+  registryMock: { name: 'node-registry' },
 }));
 
 vi.mock('@themoltnet/sdk', () => ({
   createExecutorAttestor: createExecutorAttestorMock,
   readConfig: readConfigMock,
+  resolveIdentitySeed: resolveIdentitySeedMock,
+}));
+vi.mock('@themoltnet/sdk/node', () => ({
+  createNodeSecretProviderRegistry: () => registryMock,
 }));
 
 import {
@@ -56,10 +67,17 @@ describe('resolveExecutorSigningPrivateKey', () => {
     expect(readConfigMock).not.toHaveBeenCalled();
   });
 
-  it('preserves OAuth2 config-backed private-key resolution', async () => {
-    readConfigMock.mockResolvedValue({
-      keys: { private_key: 'oauth-seed' },
-    });
+  it('resolves the OAuth2 config seed through the Node secret-provider registry', async () => {
+    const config = {
+      keys: {
+        public_key: 'pk',
+        fingerprint: 'fp',
+        private_key_ref: { provider: 'file', key: 'identity/fp/seed' },
+      },
+    };
+    readConfigMock.mockResolvedValue(config);
+    resolveIdentitySeedMock.mockResolvedValue('oauth-seed');
+
     await expect(
       resolveExecutorSigningPrivateKey({
         authMode: 'oauth2',
@@ -68,6 +86,32 @@ describe('resolveExecutorSigningPrivateKey', () => {
       }),
     ).resolves.toBe('oauth-seed');
     expect(readConfigMock).toHaveBeenCalledWith('/repo/.moltnet/agent');
+    expect(resolveIdentitySeedMock).toHaveBeenCalledWith(config, registryMock);
+  });
+
+  it('fails OAuth2 mode without a config and wraps resolver failures without the value', async () => {
+    readConfigMock.mockResolvedValueOnce(null);
+    await expect(
+      resolveExecutorSigningPrivateKey({
+        authMode: 'oauth2',
+        agentDir: '/repo/.moltnet/agent',
+        configuredPrivateKey: '',
+      }),
+    ).rejects.toThrow('/repo/.moltnet/agent/moltnet.json');
+
+    readConfigMock.mockResolvedValueOnce({ keys: { public_key: 'pk' } });
+    resolveIdentitySeedMock.mockRejectedValueOnce(
+      new Error(
+        'identity-seed: config must set exactly one of private_key or private_key_ref',
+      ),
+    );
+    await expect(
+      resolveExecutorSigningPrivateKey({
+        authMode: 'oauth2',
+        agentDir: '/repo/.moltnet/agent',
+        configuredPrivateKey: '',
+      }),
+    ).rejects.toThrow(/keys\.private_key_ref.*exactly one/);
   });
 });
 
