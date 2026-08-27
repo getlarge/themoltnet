@@ -52,8 +52,8 @@ export function createPiDaemonAdapter(
         template: resolvedTemplate,
         builtInToolNames: PI_KERNEL_TOOL_NAMES,
       });
-      const extensionTools = runtime.extensions.flatMap(
-        (extension) => extension.declaredTools,
+      const extensionTools = runtime.extensions.flatMap((extension) =>
+        extension.declaredTools.map(({ name }) => name),
       );
       return {
         runtimeKind: runtime.runtimeKind,

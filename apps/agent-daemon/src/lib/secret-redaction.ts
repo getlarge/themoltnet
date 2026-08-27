@@ -1,5 +1,7 @@
-const REDACTED = '[REDACTED]';
-const MIN_SECRET_LENGTH = 8;
+import {
+  MIN_LITERAL_SECRET_LENGTH,
+  redactLiteralSecrets,
+} from '@themoltnet/pi-runtime';
 
 /**
  * Redact required runtime-profile environment values before task output leaves
@@ -18,7 +20,8 @@ export function redactRequiredEnvValues<T>(
         .map((name) => env[name])
         .filter(
           (secret): secret is string =>
-            typeof secret === 'string' && secret.length >= MIN_SECRET_LENGTH,
+            typeof secret === 'string' &&
+            secret.length >= MIN_LITERAL_SECRET_LENGTH,
         ),
     ),
   ];
@@ -26,10 +29,7 @@ export function redactRequiredEnvValues<T>(
 
   const redact = (candidate: unknown): unknown => {
     if (typeof candidate === 'string') {
-      return secrets.reduce(
-        (text, secret) => text.replaceAll(secret, REDACTED),
-        candidate,
-      );
+      return redactLiteralSecrets(candidate, secrets);
     }
     if (Array.isArray(candidate)) return candidate.map(redact);
     if (candidate && typeof candidate === 'object') {

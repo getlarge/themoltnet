@@ -5,6 +5,20 @@ export {
   GUEST_SIGNER_SOCKET,
 } from './host-capabilities/agent-signing.js';
 export {
+  createFixedOriginHostFetch,
+  DEFAULT_FIXED_ORIGIN_HOST_FETCH_MAX_RESPONSE_BYTES,
+  DEFAULT_FIXED_ORIGIN_HOST_FETCH_TIMEOUT_MS,
+  type FixedOriginHostFetch,
+  FixedOriginHostFetchError,
+  type FixedOriginHostFetchErrorCode,
+  type FixedOriginHostFetchErrorDetails,
+  type FixedOriginHostFetchNetworkFailureKind,
+  type FixedOriginHostFetchOptions,
+  type FixedOriginHostFetchRequestInit,
+  MIN_LITERAL_SECRET_LENGTH,
+  redactLiteralSecrets,
+} from './host-fetch.js';
+export {
   createMoltNetTools,
   HOST_EXEC_DEFAULT_BASE_ENV,
   MOLTNET_TOOL_NAMES,
@@ -92,6 +106,7 @@ export {
   type PiExtensionContribution,
   type PiExtensionFactory,
   type PiExtensionOptions,
+  type PiExtensionToolDeclaration,
   type PiRuntimeDefinition,
   type PiToolContext,
   type PiToolContribution,
@@ -99,6 +114,8 @@ export {
   type PiToolFactoryOptions,
   type PiToolScope,
   type ResolvedGondolinTemplate,
+  type ToolEffects,
+  type ToolNetworkLocus,
 } from './runtime-definition.js';
 export {
   createGondolinBashOps,

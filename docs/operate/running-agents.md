@@ -23,6 +23,13 @@ npm i -g @themoltnet/agent-daemon
 npx @themoltnet/agent-daemon --help
 ```
 
+When upgrading `@themoltnet/pi-runtime`, custom runtimes must declare
+`effects` for every `definePiTool` contribution and every extension-registered
+tool. Rebuild the runtime and re-register its executor manifest: effect
+declarations are signed direct-effect evidence, and changing them changes the
+manifest fingerprint. An omitted historical manifest field means unknown; it
+must not be treated as `effects: {}`.
+
 In this repository, use Nx targets for local development:
 
 ```bash
@@ -993,11 +1000,14 @@ named by `.pi/models.json`, for example `OLLAMA_API_KEY`.
 
 ## Sandbox Policy
 
-Profile sandbox policy controls runtime egress, VFS shadowing, guest env, VM
+Profile sandbox policy controls guest egress, VFS shadowing, guest env, VM
 resources, and host command auto-approval. The local runtime package controls
-snapshot setup and resume bootstrap.
+snapshot setup and resume bootstrap. Host-side network calls made by trusted
+runtime tools are outside `sandbox.network`; their direct effects are declared
+in the signed executor manifest. See
+[Build a custom Pi runtime](../contribute/custom-pi-runtimes.md#choose-the-network-locus-deliberately).
 
-Runtime HTTP(S) egress is denied unless a hostname matches the base MoltNet
+Guest HTTP(S) egress is denied unless a hostname matches the base MoltNet
 allowlist, the configured MoltNet API host, `sandbox.network.allowedHosts`, or
 `sandbox.network.allowedInternalHosts`. Entries are hostnames rather than URLs:
 use an exact hostname such as `api.example.com` or a leading wildcard such as
