@@ -76,9 +76,13 @@ services:
       SERVE_PUBLIC_BASE_URL: https://${IDENTITY_DOMAIN}/
       SERVE_PUBLIC_CORS_ALLOWED_ORIGINS_0: https://${CONSOLE_DOMAIN}
       SERVE_PUBLIC_CORS_ALLOWED_ORIGINS_1: https://${IDENTITY_DOMAIN}
+      SERVE_PUBLIC_CORS_ALLOWED_ORIGINS_2: https://${CONSOLE_DOMAIN}
+      SERVE_PUBLIC_CORS_ALLOWED_ORIGINS_3: https://${IDENTITY_DOMAIN}
       SELFSERVICE_DEFAULT_BROWSER_RETURN_URL: https://${CONSOLE_DOMAIN}/
       SELFSERVICE_ALLOWED_RETURN_URLS_0: https://${CONSOLE_DOMAIN}/
       SELFSERVICE_ALLOWED_RETURN_URLS_1: https://${IDENTITY_DOMAIN}/
+      SELFSERVICE_ALLOWED_RETURN_URLS_2: https://${CONSOLE_DOMAIN}/
+      SELFSERVICE_ALLOWED_RETURN_URLS_3: https://${IDENTITY_DOMAIN}/
       SELFSERVICE_FLOWS_REGISTRATION_UI_URL: https://${IDENTITY_DOMAIN}/registration
       SELFSERVICE_FLOWS_LOGIN_UI_URL: https://${IDENTITY_DOMAIN}/login
       SELFSERVICE_FLOWS_RECOVERY_UI_URL: https://${IDENTITY_DOMAIN}/recovery
@@ -88,12 +92,23 @@ services:
       SELFSERVICE_FLOWS_LOGOUT_AFTER_DEFAULT_BROWSER_RETURN_URL: https://${CONSOLE_DOMAIN}/
       SELFSERVICE_FLOWS_REGISTRATION_AFTER_PASSWORD_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
       SELFSERVICE_FLOWS_REGISTRATION_AFTER_OIDC_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
+      SELFSERVICE_FLOWS_REGISTRATION_AFTER_PASSWORD_HOOKS_0_CONFIG_URL: http://rest-api:8080/hooks/kratos/after-registration
+      SELFSERVICE_FLOWS_REGISTRATION_AFTER_OIDC_HOOKS_0_CONFIG_URL: http://rest-api:8080/hooks/kratos/after-registration
       SELFSERVICE_FLOWS_LOGIN_AFTER_PASSWORD_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
       SELFSERVICE_FLOWS_LOGIN_AFTER_OIDC_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
+      SELFSERVICE_FLOWS_LOGIN_AFTER_PASSWORD_HOOKS_0_CONFIG_URL: http://rest-api:8080/hooks/kratos/after-login
+      SELFSERVICE_FLOWS_LOGIN_AFTER_OIDC_HOOKS_0_CONFIG_URL: http://rest-api:8080/hooks/kratos/after-login
       SELFSERVICE_FLOWS_SETTINGS_AFTER_PASSWORD_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
       SELFSERVICE_FLOWS_SETTINGS_AFTER_PASSWORD_HOOKS_1_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
       SELFSERVICE_FLOWS_SETTINGS_AFTER_PROFILE_HOOKS_0_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
       SELFSERVICE_FLOWS_SETTINGS_AFTER_PROFILE_HOOKS_1_CONFIG_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
+      SELFSERVICE_FLOWS_SETTINGS_AFTER_PASSWORD_HOOKS_0_CONFIG_URL: http://rest-api:8080/hooks/kratos/validate-settings
+      SELFSERVICE_FLOWS_SETTINGS_AFTER_PASSWORD_HOOKS_1_CONFIG_URL: http://rest-api:8080/hooks/kratos/after-settings
+      SELFSERVICE_FLOWS_SETTINGS_AFTER_PROFILE_HOOKS_0_CONFIG_URL: http://rest-api:8080/hooks/kratos/validate-settings
+      SELFSERVICE_FLOWS_SETTINGS_AFTER_PROFILE_HOOKS_1_CONFIG_URL: http://rest-api:8080/hooks/kratos/after-settings
+      SELFSERVICE_METHODS_PASSWORD_CONFIG_HAVEIBEENPWNED_ENABLED: 'true'
+      SELFSERVICE_FLOWS_VERIFICATION_ENABLED: 'true'
+      SELFSERVICE_FLOWS_VERIFICATION_USE: code
       COURIER_SMTP_CONNECTION_URI: ${SMTP_CONNECTION_URI}
       COURIER_SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS}
       CONSOLE_DOMAIN: ${CONSOLE_DOMAIN}
@@ -102,7 +117,7 @@ services:
       SMTP_CONNECTION_URI: ${SMTP_CONNECTION_URI}
       SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS}
     volumes:
-      - ./config/kratos.yaml:/etc/config/kratos/kratos.yaml:ro
+      - ../../infra/ory/kratos/kratos.yaml:/etc/config/kratos/kratos.yaml:ro
       - ../../infra/ory/identity-schema.json:/etc/config/kratos/identity-schema.json:ro
       - ../../infra/ory/human-identity-schema.json:/etc/config/kratos/human-identity-schema.json:ro
     depends_on:
@@ -163,10 +178,11 @@ services:
       URLS_ERROR: https://${CONSOLE_DOMAIN}/auth/error
       URLS_POST_LOGOUT_REDIRECT: https://${CONSOLE_DOMAIN}/
       OAUTH2_TOKEN_HOOK_AUTH_CONFIG_VALUE: ${ORY_ACTION_API_KEY}
+      OAUTH2_EXPOSE_INTERNAL_ERRORS: 'false'
       WEBFINGER_OIDC_DISCOVERY_TOKEN_URL: https://${API_DOMAIN}/oauth2/token
       WEBFINGER_OIDC_DISCOVERY_CLIENT_REGISTRATION_URL: https://${OAUTH_DOMAIN}/oauth2/register
     volumes:
-      - ./config/hydra.yaml:/etc/config/hydra/hydra.yaml:ro
+      - ../../infra/ory/hydra/hydra.yaml:/etc/config/hydra/hydra.yaml:ro
     depends_on:
       hydra-migrate:
         condition: service_completed_successfully
@@ -182,7 +198,7 @@ services:
     environment:
       DSN: postgres://moltnet:${POSTGRES_PASSWORD}@postgres:5432/keto?sslmode=disable
     volumes:
-      - ./config/keto.yaml:/etc/config/keto/keto.yaml:ro
+      - ../../infra/ory/keto/keto.yaml:/etc/config/keto/keto.yaml:ro
       - ../../infra/ory/permissions.ts:/etc/config/keto/permissions.ts:ro
     depends_on:
       postgres:
@@ -196,7 +212,7 @@ services:
     environment:
       DSN: postgres://moltnet:${POSTGRES_PASSWORD}@postgres:5432/keto?sslmode=disable
     volumes:
-      - ./config/keto.yaml:/etc/config/keto/keto.yaml:ro
+      - ../../infra/ory/keto/keto.yaml:/etc/config/keto/keto.yaml:ro
       - ../../infra/ory/permissions.ts:/etc/config/keto/permissions.ts:ro
     depends_on:
       keto-migrate:
@@ -224,7 +240,7 @@ services:
       DB_DSN: sqlite3:///var/lib/talos/talos.db?_journal_mode=WAL
       CREDENTIALS_ISSUER: https://${API_DOMAIN}
     volumes:
-      - ./config/talos.yaml:/etc/config/talos/talos.yaml:ro
+      - ../../infra/ory/talos/talos.yaml:/etc/config/talos/talos.yaml:ro
       - talos-data:/var/lib/talos
     healthcheck:
       test: [CMD, wget, --spider, -q, 'http://localhost:4422/health/alive']
