@@ -46,6 +46,7 @@ import type {
 const BACKEND_ID = 'docker-sandbox';
 const PLACEHOLDER = 'moltnet-probe-placeholder';
 const HOST_ALIAS = 'host.docker.internal';
+const SUPPORTED_DOCKER_SANDBOX_VERSION = 'v0.39.0';
 // Force controlled TEST-NET requests through Docker's credential proxy and
 // then the adapter-owned exact-origin upstream proxy.
 const CREDENTIAL_HOST = PROTECTED_FIXTURE_HOST;
@@ -167,6 +168,11 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
       throw new Error(`Docker Sandbox unavailable: ${version.stderr}`);
     }
     const match = /v\d+\.\d+\.\d+/.exec(version.stdout);
+    if (match?.[0] !== SUPPORTED_DOCKER_SANDBOX_VERSION) {
+      throw new Error(
+        `Docker Sandbox version ${SUPPORTED_DOCKER_SANDBOX_VERSION} is required; found ${match?.[0] ?? 'unknown'}`,
+      );
+    }
     this.#inventory = {
       id: BACKEND_ID,
       version: match?.[0] ?? 'unknown',
@@ -184,6 +190,9 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
 
   async #ensureCreated(context: ProbeContext): Promise<void> {
     if (this.#created) return;
+    if (!/^[A-Za-z0-9._/-]+$/.test(context.probeRoot)) {
+      throw new Error('probe root contains unsupported shell characters');
+    }
     const fixture = await this.#ensureFixture();
     await this.#ensureOriginProxy(fixture);
     this.#sandboxName = `moltnet-1972-${context.runId}`
@@ -364,6 +373,9 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
       resolvedAdapterConfig: this.#resolution(scenario, effective),
       backend: { id: inventory.id, version: inventory.version },
       enforcementLocus: locus,
+      enforcementMode: locus.includes('docker-sandbox-adapter')
+        ? 'compensated'
+        : 'native',
       state: oracle?.passed ? 'enforced' : 'failed-open',
       basis: provenance.basis,
       oracle: { ...oracle, attestedBy: provenance.attestedBy },
@@ -442,10 +454,21 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
         noProxy.exitCode !== 0 ||
         noProxy.stdout.trim() !== ''
       ) {
+        this.#poisoned = true;
         throw new Error(
-          'dedicated Docker Sandbox daemon must start without proxy overrides',
+          `dedicated Docker Sandbox daemon has an existing proxy override; recover with DOCKER_SANDBOXES_APP_NAME=${this.#appName} sbx settings unset proxy.sandbox`,
         );
       }
+      this.#cleanup.add(
+        'daemon',
+        '<scoped-docker-sandbox-daemon>',
+        async () => {
+          if (this.#daemonStopped) {
+            const started = await this.#startDaemon();
+            if (started.exitCode !== 0) throw new Error(started.stderr);
+          }
+        },
+      );
       const configured = await this.#execute('sbx', [
         'settings',
         'set',
@@ -665,6 +688,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
     }
     this.#scenarioSignal = context.signal;
     await this.#ensureCreated(context);
+    this.#fixture?.redirectTo(HOST_ALIAS);
     switch (scenario.id) {
       case 'filesystem.workspace-rw': {
         const marker = path.join(this.#guestRoot, 'guest-write.txt');
@@ -827,7 +851,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           { defaultNetwork: 'deny', guestExitCode: result.exitCode },
           'unlisted_destination_blocked',
           HARNESS_PROVENANCE,
-          ['docker-sandbox-control-plane'],
+          ['docker-sandbox-control-plane', 'docker-sandbox-adapter'],
         );
       }
       case 'network.exact-allow': {
@@ -860,7 +884,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           },
           'exact_destination_allow_observed',
           HARNESS_PROVENANCE,
-          ['docker-sandbox-control-plane'],
+          ['docker-sandbox-control-plane', 'docker-sandbox-adapter'],
         );
       }
       case 'network.wrong-host': {
@@ -1114,14 +1138,16 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           adjacent.exitCode === 0 &&
           protectedRedirect.length === 1 &&
           protectedRedirect[0]?.credentialMatch === 'expected' &&
-          negativeRequests.length === 4 &&
-          negativeRequests.every(
-            (request) => request.credentialMatch === 'absent',
-          ) &&
-          routes.get('wrong-host')?.credential === 'removed' &&
-          routes.get('wrong-port')?.credential === 'removed' &&
+          negativeRequests.length === 0 &&
+          routes.get('wrong-host')?.action === 'deny' &&
+          routes.get('wrong-port')?.action === 'deny' &&
+          routes.get('wrong-host')?.credential === 'leaked' &&
+          routes.get('wrong-port')?.credential === 'leaked' &&
           routes.get('wrong-protocol')?.action === 'deny' &&
-          routes.get('adjacent')?.action === 'forward';
+          routes.get('wrong-protocol')?.credential === 'leaked' &&
+          routes.get('adjacent')?.action === 'deny' &&
+          routes.get('adjacent')?.credential === 'leaked' &&
+          decisions.length === 6;
         return this.#evidence(
           scenario,
           context,
@@ -1129,13 +1155,19 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
             kind: 'exact-origin-negative-controls',
             expected: {
               negativeCredentialMatches: 0,
-              negativeFixtureRequests: 4,
+              negativeProxyCredentialLeaks: 3,
+              negativeFixtureRequests: 0,
               protectedRedirectMatches: 1,
               proxyDecisions: 6,
             },
             observed: {
               negativeCredentialMatches: negativeRequests.filter(
                 (request) => request.credentialMatch === 'expected',
+              ).length,
+              negativeProxyCredentialLeaks: decisions.filter(
+                (decision) =>
+                  decision.route !== 'protected' &&
+                  decision.credential === 'leaked',
               ).length,
               negativeFixtureRequests: negativeRequests.length,
               protectedRedirectMatches: protectedRedirect.filter(
@@ -1151,7 +1183,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           },
           'adjacent_origin_secret_not_substituted',
           HARNESS_PROVENANCE,
-          ['docker-sandbox-control-plane'],
+          ['docker-sandbox-control-plane', 'docker-sandbox-adapter'],
         );
       }
       case 'credential.rotation': {
@@ -1339,6 +1371,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
                 sandboxName: childName,
                 socketPath: engineSocketPath,
                 workspacePath: this.#guestRoot,
+                signal: this.#scenarioSignal,
               })
               .catch(() => ({
                 confirmed: false,
@@ -1356,7 +1389,7 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
           this.#poisoned = true;
           await this.#retireDedicatedDaemon();
         }
-        await sleep(observationWindowMs);
+        await sleep(observationWindowMs, this.#scenarioSignal);
         const observed = await readFile(marker, 'utf8').catch(() => '');
         const restarted = this.#daemonStopped
           ? await this.#startDaemon()
@@ -1405,7 +1438,9 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
             terminationExitCode: retirement.exitCode,
             terminationStatus: retirement.killStatus,
             confirmedStoppedState: childStatus.status,
-            confirmedFinalState: removedStatus.status ?? 'absent',
+            confirmedFinalState: removedStatus.parsed
+              ? removedStatus.status
+              : 'unconfirmed',
             trigger:
               scenario.id === 'lifecycle.timeout'
                 ? 'execution-deadline'
@@ -1418,7 +1453,11 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
             ? 'managed_engine_retirement_observed'
             : 'managed_engine_retirement_unconfirmed',
           HARNESS_PROVENANCE,
-          ['research-harness', 'docker-sandbox-control-plane'],
+          [
+            'research-harness',
+            'docker-sandbox-control-plane',
+            'docker-sandbox-adapter',
+          ],
         );
       }
       case 'lifecycle.broker-unavailable':
@@ -1497,7 +1536,9 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
             allocation: 'scoped-sandbox',
             launch: 'deliberately-rejected-before-handle',
             confirmedStoppedState: stoppedStatus.status,
-            confirmedFinalState: removedStatus.status ?? 'absent',
+            confirmedFinalState: removedStatus.parsed
+              ? removedStatus.status
+              : 'unconfirmed',
           },
           'preflight_failure_left_no_backend_resource',
           HARNESS_PROVENANCE,
@@ -1702,7 +1743,6 @@ export class DockerSandboxAdapter implements ResearchSandboxAdapter {
   }
 
   async close(): Promise<PersistentMutationEvidence[]> {
-    if (this.#daemonStopped) await this.#startDaemon();
     return this.#cleanup.close();
   }
 }

@@ -60,6 +60,8 @@ export const ENFORCEMENT_LOCI = [
 
 export type EnforcementLocus = (typeof ENFORCEMENT_LOCI)[number];
 
+export type EnforcementMode = 'native' | 'compensated';
+
 const COMMON_REASON_CODES = [
   'adapter_cleanup_error',
   'adapter_host_capabilities_error',
@@ -259,6 +261,8 @@ export interface ControlEvidence {
   resolvedAdapterConfig: AdapterResolution | null;
   backend: Pick<BackendInventory, 'id' | 'version'>;
   enforcementLocus: EnforcementLocus[];
+  /** Whether the adapter relies on a trusted compensating layer. */
+  enforcementMode?: EnforcementMode;
   state: EnforcementState;
   /** Required only when state is unsupported. */
   unsupportedKind?: UnsupportedKind;

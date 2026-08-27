@@ -16,6 +16,16 @@ describe('sandbox policy command execution', () => {
     ).resolves.toEqual({ exitCode: 7, stdout: '', stderr: 'denied' });
   });
 
+  it('forwards an explicit environment to the child process', async () => {
+    await expect(
+      executeCommand(
+        process.execPath,
+        ['-e', "process.stdout.write(process.env.MOLTNET_TEST_ENV ?? '')"],
+        { env: { ...process.env, MOLTNET_TEST_ENV: 'isolated' } },
+      ),
+    ).resolves.toMatchObject({ exitCode: 0, stdout: 'isolated' });
+  });
+
   it('rejects timeout, abort, spawn, and output-overflow failures distinctly', async () => {
     await expect(
       executeCommand(

@@ -52,12 +52,9 @@ describe('exact-origin upstream proxy', () => {
       wrongHostStatus,
       wrongPortStatus,
       adjacentStatus,
-    ]).toEqual([200, 401, 200, 200]);
+    ]).toEqual([200, 403, 403, 403]);
     expect(fixture.requests).toMatchObject([
       { credentialMatch: 'expected', destination: 'allowed' },
-      { credentialMatch: 'absent', destination: 'allowed' },
-      { credentialMatch: 'absent', destination: 'adjacent' },
-      { credentialMatch: 'absent', destination: 'adjacent' },
     ]);
     expect(proxy.decisions).toEqual([
       {
@@ -67,20 +64,20 @@ describe('exact-origin upstream proxy', () => {
         route: 'protected',
       },
       {
-        action: 'forward',
-        credential: 'removed',
+        action: 'deny',
+        credential: 'leaked',
         protocol: 'http',
         route: 'wrong-host',
       },
       {
-        action: 'forward',
-        credential: 'removed',
+        action: 'deny',
+        credential: 'leaked',
         protocol: 'http',
         route: 'wrong-port',
       },
       {
-        action: 'forward',
-        credential: 'removed',
+        action: 'deny',
+        credential: 'leaked',
         protocol: 'http',
         route: 'adjacent',
       },
@@ -106,8 +103,8 @@ describe('exact-origin upstream proxy', () => {
     expect([protocolStatus, unmappedStatus]).toEqual([403, 403]);
     expect(fixture.requests).toHaveLength(0);
     expect(proxy.decisions).toMatchObject([
-      { action: 'deny', credential: 'removed', route: 'wrong-protocol' },
-      { action: 'deny', credential: 'removed', route: 'unmapped' },
+      { action: 'deny', credential: 'leaked', route: 'wrong-protocol' },
+      { action: 'deny', credential: 'leaked', route: 'unmapped' },
     ]);
   });
 
@@ -125,20 +122,17 @@ describe('exact-origin upstream proxy', () => {
       ),
     );
 
-    expect(statuses).toEqual([401, 401]);
-    expect(fixture.requests).toMatchObject([
-      { credentialMatch: 'absent', destination: 'allowed' },
-      { credentialMatch: 'absent', destination: 'allowed' },
-    ]);
+    expect(statuses).toEqual([403, 403]);
+    expect(fixture.requests).toMatchObject([]);
     expect(proxy.decisions).toMatchObject([
       {
-        action: 'forward',
-        credential: 'removed',
+        action: 'deny',
+        credential: 'leaked',
         route: 'network-allowed',
       },
       {
-        action: 'forward',
-        credential: 'removed',
+        action: 'deny',
+        credential: 'leaked',
         route: 'network-allowed',
       },
     ]);
@@ -153,17 +147,25 @@ describe('exact-origin upstream proxy', () => {
       `http://${PROTECTED_FIXTURE_HOST}:${fixture.allowedPort}${fixture.path('/tunneled')}`,
       `Bearer ${fixture.credential}`,
     );
+    const mismatchedOrigin = await tunneledHttpRequest(
+      proxy,
+      `http://${PROTECTED_FIXTURE_HOST}:${fixture.allowedPort}${fixture.path('/mismatch')}`,
+      `Bearer ${fixture.credential}`,
+      `${ADJACENT_FIXTURE_HOST}:${fixture.allowedPort}`,
+    );
     await sendTlsPrefix(
       proxy,
       `${PROTECTED_FIXTURE_HOST}:${fixture.allowedPort}`,
     );
 
     expect(status).toBe(200);
+    expect(mismatchedOrigin).toBe(403);
     expect(fixture.requests).toMatchObject([
       { credentialMatch: 'expected', destination: 'allowed' },
     ]);
     expect(proxy.decisions).toMatchObject([
       { action: 'forward', protocol: 'http', route: 'protected' },
+      { action: 'deny', protocol: 'http', route: 'unmapped' },
       { action: 'deny', protocol: 'https', route: 'wrong-protocol' },
     ]);
   });
@@ -217,6 +219,7 @@ function tunneledHttpRequest(
   proxy: ExactOriginProxy,
   destination: string,
   authorization: string,
+  innerHost?: string,
 ): Promise<number> {
   const proxyUrl = new URL(proxy.url);
   const destinationUrl = new URL(destination);
@@ -247,7 +250,7 @@ function tunneledHttpRequest(
         tunnelEstablished = true;
         buffer = Buffer.alloc(0);
         socket.write(
-          `GET ${destinationUrl.pathname}${destinationUrl.search} HTTP/1.1\r\nHost: ${destinationUrl.host}\r\nAuthorization: ${authorization}\r\nConnection: close\r\n\r\n`,
+          `GET ${destinationUrl.pathname}${destinationUrl.search} HTTP/1.1\r\nHost: ${innerHost ?? destinationUrl.host}\r\nAuthorization: ${authorization}\r\nConnection: close\r\n\r\n`,
         );
         return;
       }

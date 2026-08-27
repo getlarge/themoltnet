@@ -1,5 +1,11 @@
-import { createServer, type IncomingHttpHeaders, request } from 'node:http';
-import { type AddressInfo } from 'node:net';
+import {
+  createServer,
+  type IncomingHttpHeaders,
+  type IncomingMessage,
+  request,
+  type ServerResponse,
+} from 'node:http';
+import { type AddressInfo, type Socket } from 'node:net';
 import { type Duplex } from 'node:stream';
 
 import type { PolicyFixture } from './fixture-server.js';
@@ -19,7 +25,7 @@ export type ExactOriginRoute =
 
 export interface ExactOriginDecision {
   action: 'forward' | 'deny';
-  credential: 'preserved' | 'removed' | 'absent';
+  credential: 'preserved' | 'removed' | 'absent' | 'leaked';
   protocol: 'http' | 'https' | 'unknown';
   route: ExactOriginRoute;
 }
@@ -67,12 +73,36 @@ function forwardedHeaders(
   return forwarded;
 }
 
+function credentialStatus(
+  headers: IncomingHttpHeaders,
+  sensitiveValues: string[],
+  preserveCredential: boolean,
+): ExactOriginDecision['credential'] {
+  const values = Object.values(headers).flatMap((value) =>
+    Array.isArray(value) ? value : value === undefined ? [] : [value],
+  );
+  if (
+    !preserveCredential &&
+    sensitiveValues.some((secret) =>
+      values.some((value) => value.includes(secret)),
+    )
+  ) {
+    return 'leaked';
+  }
+  return headers.authorization
+    ? preserveCredential
+      ? 'preserved'
+      : 'removed'
+    : 'absent';
+}
+
 export async function startExactOriginProxy(
   fixture: PolicyFixture,
   bindAddress = '127.0.0.1',
   networkFixtureHosts = ['localhost', 'host.docker.internal'],
 ): Promise<ExactOriginProxy> {
   const decisions: ExactOriginDecision[] = [];
+  const sensitiveValues = fixture.sensitiveValues();
   const routes = new Map<string, RouteTarget>([
     [
       routeKey(PROTECTED_FIXTURE_HOST, fixture.allowedPort),
@@ -120,7 +150,15 @@ export async function startExactOriginProxy(
     });
   }
   const tunneledSockets = new Set<Duplex>();
-  const handleHttp = createServer((incoming, response) => {
+  const tunnelTargets = new WeakMap<
+    Socket,
+    { authority: URL; target: RouteTarget }
+  >();
+  const handleHttp = (
+    incoming: IncomingMessage,
+    response: ServerResponse,
+    pinned?: { authority: URL; target: RouteTarget },
+  ): void => {
     let destination: URL;
     try {
       const requestTarget = incoming.url ?? '';
@@ -130,7 +168,7 @@ export async function startExactOriginProxy(
     } catch {
       decisions.push({
         action: 'deny',
-        credential: incoming.headers.authorization ? 'removed' : 'absent',
+        credential: credentialStatus(incoming.headers, sensitiveValues, false),
         protocol: 'unknown',
         route: 'unmapped',
       });
@@ -140,9 +178,24 @@ export async function startExactOriginProxy(
     if (destination.protocol !== 'http:') {
       decisions.push({
         action: 'deny',
-        credential: incoming.headers.authorization ? 'removed' : 'absent',
+        credential: credentialStatus(incoming.headers, sensitiveValues, false),
         protocol: destination.protocol === 'https:' ? 'https' : 'unknown',
         route: 'wrong-protocol',
+      });
+      response.writeHead(403).end();
+      return;
+    }
+    if (
+      pinned &&
+      (destination.hostname.toLowerCase() !==
+        pinned.authority.hostname.toLowerCase() ||
+        canonicalPort(destination) !== canonicalPort(pinned.authority))
+    ) {
+      decisions.push({
+        action: 'deny',
+        credential: credentialStatus(incoming.headers, sensitiveValues, false),
+        protocol: 'http',
+        route: 'unmapped',
       });
       response.writeHead(403).end();
       return;
@@ -153,7 +206,7 @@ export async function startExactOriginProxy(
     if (!target) {
       decisions.push({
         action: 'deny',
-        credential: incoming.headers.authorization ? 'removed' : 'absent',
+        credential: credentialStatus(incoming.headers, sensitiveValues, false),
         protocol: 'http',
         route: 'unmapped',
       });
@@ -161,13 +214,31 @@ export async function startExactOriginProxy(
       return;
     }
     const preserveCredential = target.preserveCredential;
+    const credential = credentialStatus(
+      incoming.headers,
+      sensitiveValues,
+      preserveCredential,
+    );
+    const credentialNegativeRoute =
+      target.route === 'wrong-host' ||
+      target.route === 'wrong-port' ||
+      target.route === 'adjacent';
+    if (
+      credentialNegativeRoute ||
+      (!preserveCredential && credential !== 'absent')
+    ) {
+      decisions.push({
+        action: 'deny',
+        credential,
+        protocol: 'http',
+        route: target.route,
+      });
+      response.writeHead(403).end();
+      return;
+    }
     decisions.push({
       action: 'forward',
-      credential: incoming.headers.authorization
-        ? preserveCredential
-          ? 'preserved'
-          : 'removed'
-        : 'absent',
+      credential,
       protocol: 'http',
       route: target.route,
     });
@@ -187,12 +258,15 @@ export async function startExactOriginProxy(
         upstreamResponse.pipe(response);
       },
     );
-    upstream.once('error', () => response.writeHead(502).end());
+    upstream.once('error', () => {
+      if (!response.headersSent) response.writeHead(502).end();
+    });
     incoming.pipe(upstream);
+  };
+  const tunnelServer = createServer((incoming, response) => {
+    handleHttp(incoming, response, tunnelTargets.get(incoming.socket));
   });
-  const server = createServer((incoming, response) => {
-    handleHttp.emit('request', incoming, response);
-  });
+  const server = createServer(handleHttp);
   server.on('connect', (incoming, socket, head) => {
     let authority: URL;
     try {
@@ -244,8 +318,12 @@ export async function startExactOriginProxy(
         socket.destroy();
         return;
       }
+      socket.pause();
       socket.unshift(firstBytes);
-      handleHttp.emit('connection', socket);
+      const clientSocket = socket as Socket;
+      tunnelTargets.set(clientSocket, { authority, target });
+      tunnelServer.emit('connection', clientSocket);
+      socket.resume();
     };
     if (head.length > 0) inspectTunnel(head);
     else socket.once('data', inspectTunnel);

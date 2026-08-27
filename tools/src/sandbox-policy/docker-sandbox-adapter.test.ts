@@ -260,7 +260,7 @@ describe('Docker sandbox research adapter', () => {
       oracle: {
         observed: {
           negativeCredentialMatches: 0,
-          negativeFixtureRequests: 4,
+          negativeFixtureRequests: 0,
           protectedRedirectMatches: 1,
           proxyDecisions: 6,
         },
@@ -378,7 +378,7 @@ describe('Docker sandbox research adapter', () => {
           confirmedIdentity: true,
           confirmedEngineState: 'stopped',
           confirmedStoppedState: 'stopped',
-          confirmedFinalState: 'absent',
+          confirmedFinalState: null,
         },
       },
     });

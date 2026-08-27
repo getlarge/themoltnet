@@ -25,6 +25,7 @@ export interface DockerEngineControl {
     sandboxName: string;
     socketPath: string;
     workspacePath: string;
+    signal?: AbortSignal;
   }): Promise<DockerEngineRetirement>;
 }
 
@@ -33,14 +34,26 @@ interface EngineResponse {
   statusCode: number;
 }
 
+export const DOCKER_ENGINE_API = '/v1.55';
+export const DOCKER_ENGINE_REQUEST_TIMEOUT_MS = 5_000;
+export const DOCKER_RETIREMENT_POLL_ATTEMPTS = 50;
+export const DOCKER_RETIREMENT_POLL_DELAY_MS = 100;
+
 function engineRequest(
   socketPath: string,
   method: string,
   requestPath: string,
+  signal?: AbortSignal,
 ): Promise<EngineResponse> {
   return new Promise((resolve, reject) => {
     const clientRequest = request(
-      { method, path: requestPath, socketPath },
+      {
+        method,
+        path: requestPath,
+        socketPath,
+        signal,
+        timeout: DOCKER_ENGINE_REQUEST_TIMEOUT_MS,
+      },
       (response) => {
         const chunks: Buffer[] = [];
         response.on('data', (chunk: Buffer) => chunks.push(chunk));
@@ -52,14 +65,37 @@ function engineRequest(
         );
       },
     );
-    clientRequest.once('error', reject);
+    clientRequest.once('error', (error) =>
+      reject(
+        new Error(
+          `Docker Engine ${method} ${requestPath} via ${socketPath} failed: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      ),
+    );
+    clientRequest.once('timeout', () =>
+      clientRequest.destroy(
+        new Error(`Docker Engine ${method} ${requestPath} timed out`),
+      ),
+    );
     clientRequest.end();
   });
 }
 
-function delay(milliseconds: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, milliseconds);
+function delay(milliseconds: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(signal.reason ?? new Error('operation aborted'));
+      return;
+    }
+    const timer = setTimeout(resolve, milliseconds);
+    signal?.addEventListener(
+      'abort',
+      () => {
+        clearTimeout(timer);
+        reject(signal.reason ?? new Error('operation aborted'));
+      },
+      { once: true },
+    );
   });
 }
 
@@ -104,28 +140,41 @@ function failedRetirement(
 }
 
 export const dockerEngineControl: DockerEngineControl = {
-  async retireSandbox({ sandboxName, socketPath, workspacePath }) {
+  async retireSandbox({ sandboxName, socketPath, workspacePath, signal }) {
     const listed = await engineRequest(
       socketPath,
       'GET',
-      '/v1.55/containers/json?all=1',
+      `${DOCKER_ENGINE_API}/containers/json?all=1`,
+      signal,
     );
     if (listed.statusCode !== 200) {
-      return failedRetirement({ killStatus: listed.statusCode });
+      return failedRetirement();
     }
-    const matches = (JSON.parse(listed.body) as ContainerSummary[]).filter(
-      (container) => hasExpectedIdentity(container, sandboxName, workspacePath),
-    );
+    let matches: ContainerSummary[];
+    try {
+      matches = (JSON.parse(listed.body) as ContainerSummary[]).filter(
+        (container) =>
+          hasExpectedIdentity(container, sandboxName, workspacePath),
+      );
+    } catch {
+      return failedRetirement();
+    }
     if (matches.length !== 1 || !matches[0]?.Id) return failedRetirement();
 
     const containerId = matches[0].Id;
     const before = await engineRequest(
       socketPath,
       'GET',
-      `/v1.55/containers/${encodeURIComponent(containerId)}/json`,
+      `${DOCKER_ENGINE_API}/containers/${encodeURIComponent(containerId)}/json`,
+      signal,
     );
     if (before.statusCode !== 200) return failedRetirement();
-    const inspectedBefore = JSON.parse(before.body) as ContainerInspect;
+    let inspectedBefore: ContainerInspect;
+    try {
+      inspectedBefore = JSON.parse(before.body) as ContainerInspect;
+    } catch {
+      return failedRetirement();
+    }
     const identityConfirmed =
       inspectedBefore.Id === containerId &&
       inspectedBefore.State?.Running === true &&
@@ -137,7 +186,8 @@ export const dockerEngineControl: DockerEngineControl = {
     const killed = await engineRequest(
       socketPath,
       'POST',
-      `/v1.55/containers/${encodeURIComponent(containerId)}/kill?signal=KILL`,
+      `${DOCKER_ENGINE_API}/containers/${encodeURIComponent(containerId)}/kill?signal=KILL`,
+      signal,
     );
     if (killed.statusCode !== 204) {
       return failedRetirement({
@@ -145,24 +195,36 @@ export const dockerEngineControl: DockerEngineControl = {
         killStatus: killed.statusCode,
       });
     }
-    for (let attempt = 0; attempt < 50; attempt += 1) {
+    for (
+      let attempt = 0;
+      attempt < DOCKER_RETIREMENT_POLL_ATTEMPTS;
+      attempt += 1
+    ) {
       const inspected = await engineRequest(
         socketPath,
         'GET',
-        `/v1.55/containers/${encodeURIComponent(containerId)}/json`,
+        `${DOCKER_ENGINE_API}/containers/${encodeURIComponent(containerId)}/json`,
+        signal,
       );
       if (inspected.statusCode === 200) {
-        const state = (JSON.parse(inspected.body) as ContainerInspect).State;
-        if (state?.Running === false) {
-          return {
-            confirmed: true,
-            exitCode: state.ExitCode ?? null,
+        try {
+          const state = (JSON.parse(inspected.body) as ContainerInspect).State;
+          if (state?.Running === false) {
+            return {
+              confirmed: true,
+              exitCode: state.ExitCode ?? null,
+              identityConfirmed: true,
+              killStatus: killed.statusCode,
+            };
+          }
+        } catch {
+          return failedRetirement({
             identityConfirmed: true,
             killStatus: killed.statusCode,
-          };
+          });
         }
       }
-      await delay(100);
+      await delay(DOCKER_RETIREMENT_POLL_DELAY_MS, signal);
     }
     return failedRetirement({
       identityConfirmed: true,
