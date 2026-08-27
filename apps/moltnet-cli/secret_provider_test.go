@@ -204,7 +204,7 @@ func TestOAuth2SecretKeyIsStable(t *testing.T) {
 }
 
 func TestWindowsKeyringTargetMatchesCrossRuntimeConformance(t *testing.T) {
-	data, err := os.ReadFile(filepath.Join("..", "..", "testdata", "keyring-conformance.json"))
+	data, err := os.ReadFile(filepath.Join("..", "..", "test-fixtures", "keyring-conformance.json"))
 	if err != nil {
 		t.Fatalf("read conformance fixture: %v", err)
 	}

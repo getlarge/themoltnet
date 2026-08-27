@@ -242,7 +242,7 @@ type Layout = {
 };
 const fixture = JSON.parse(
   readFileSync(
-    new URL('../../../testdata/keyring-conformance.json', import.meta.url),
+    new URL('../../../test-fixtures/keyring-conformance.json', import.meta.url),
     'utf8',
   ),
 ) as {

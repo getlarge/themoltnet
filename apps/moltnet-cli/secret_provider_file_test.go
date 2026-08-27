@@ -45,7 +45,7 @@ type fileLayout struct {
 
 func loadFileConformance(t *testing.T) fileConformanceFixture {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join("..", "..", "testdata", "keyring-conformance.json"))
+	data, err := os.ReadFile(filepath.Join("..", "..", "test-fixtures", "keyring-conformance.json"))
 	if err != nil {
 		t.Fatalf("read conformance fixture: %v", err)
 	}
