@@ -392,14 +392,17 @@ keyring because the file is not loaded by later processes.
 
 Required variables:
 
-| Variable                | Source                                                        |
-| ----------------------- | ------------------------------------------------------------- |
-| `MOLTNET_IDENTITY_ID`   | `moltnet.json` → `identity_id`                                |
-| `MOLTNET_CLIENT_ID`     | `moltnet.json` → `oauth2.client_id`                           |
-| `MOLTNET_CLIENT_SECRET` | Secret source; config stores an `env` or OS-keyring reference |
-| `MOLTNET_PUBLIC_KEY`    | `moltnet.json` → `keys.public_key`                            |
-| `MOLTNET_PRIVATE_KEY`   | `moltnet.json` → `keys.private_key`                           |
-| `MOLTNET_FINGERPRINT`   | `moltnet.json` → `keys.fingerprint`                           |
+| Variable                       | Source                                                            |
+| ------------------------------ | ----------------------------------------------------------------- |
+| `MOLTNET_IDENTITY_ID`          | `moltnet.json` → `identity_id`                                    |
+| `MOLTNET_CLIENT_ID`            | `moltnet.json` → `oauth2.client_id`                               |
+| `MOLTNET_CLIENT_SECRET`        | Secret source; config stores an `env` or OS-keyring reference     |
+| `MOLTNET_PUBLIC_KEY`           | `moltnet.json` → `keys.public_key`                                |
+| `MOLTNET_PRIVATE_KEY`          | `moltnet.json` → `keys.private_key`                               |
+| `MOLTNET_FINGERPRINT`          | `moltnet.json` → `keys.fingerprint`                               |
+| `MOLTNET_SECRET_ROOT`          | Trusted directory for `file` secret references (runtime env only) |
+| `MOLTNET_SECRET_ROOT_WRITABLE` | `1` allows `file` writes; default read-only                       |
+| `MOLTNET_SECRET_MAX_BYTES`     | Upper bound for one `file` secret; default `65536`                |
 
 Optional variables:
 
