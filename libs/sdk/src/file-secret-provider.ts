@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { constants as fsConstants } from 'node:fs';
 import {
   lstat,
@@ -8,7 +9,6 @@ import {
   rm,
   stat,
   unlink,
-  writeFile,
 } from 'node:fs/promises';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 
@@ -36,7 +36,6 @@ export type FileSecretErrorCode =
   | 'symlink_escape'
   | 'unsafe_target'
   | 'oversized'
-  | 'not_found'
   | 'read_only';
 
 /** Carries the logical key and a failure class; never file contents. */
@@ -96,20 +95,30 @@ export function fileSecretProviderOptionsFromEnv(
 /**
  * Read-only-by-default provider over one trusted directory that an
  * orchestrator projects secrets into (Docker secrets, Kubernetes projected
- * volumes, systemd `LoadCredential`). The root comes from runtime
- * configuration, never from `moltnet.json`. Values are resolved on every
- * read, so orchestrator rotation needs no restart.
+ * volumes, systemd `LoadCredential`). The root is absolute, comes from
+ * runtime configuration, never from `moltnet.json`, and values are resolved
+ * on every read so orchestrator rotation needs no restart.
+ *
+ * Trust assumption: the root and its ancestors are owned by the deployer.
+ * Containment is verified by resolving symlinks immediately before each
+ * operation; Node has no rooted (`openat`-style) filesystem API, so an
+ * adversary who can rewrite links under the root between that check and the
+ * access is outside this provider's threat model. The Go CLI enforces the
+ * same boundary with `os.Root`.
  */
 export class FileSecretProvider implements SecretProvider {
   readonly name = FILE_SECRET_PROVIDER;
   readonly capabilities: SecretProviderCapabilities;
   readonly #root: string | undefined;
+  readonly #rootRejected: boolean;
   readonly #writable: boolean;
   readonly #maxBytes: number;
   readonly #platform: NodeJS.Platform;
 
   constructor(options: FileSecretProviderOptions = {}) {
-    this.#root = options.root?.trim() || undefined;
+    const root = options.root?.trim();
+    this.#root = root && isAbsolute(root) ? root : undefined;
+    this.#rootRejected = Boolean(root) && !isAbsolute(root ?? '');
     this.#writable = options.writable === true;
     this.#maxBytes = options.maxBytes ?? DEFAULT_SECRET_MAX_BYTES;
     this.#platform = options.platform ?? process.platform;
@@ -160,7 +169,7 @@ export class FileSecretProvider implements SecretProvider {
     const root = this.#requireWritable(key);
     validateFileSecretKey(key);
     const target = join(root, key);
-    const existing = await lstat(target).catch(() => null);
+    const existing = await lstatOrNull(target, key);
     if (existing?.isSymbolicLink()) {
       throw new FileSecretProviderError(
         'unsafe_target',
@@ -168,19 +177,26 @@ export class FileSecretProvider implements SecretProvider {
         'refusing to write through a symlink',
       );
     }
-    const ancestor = await firstExistingAncestor(dirname(target));
-    const ancestorReal = await realpath(ancestor).catch(() => {
+    const ancestorReal = await realpath(
+      await firstExistingAncestor(dirname(target)),
+    ).catch(() => {
       throw new FileSecretProviderError(
         'unsafe_target',
         key,
         'cannot resolve parent directory',
       );
     });
-    assertInsideRoot(await resolveRoot(root, key), ancestorReal, key, true);
+    assertInsideOrAtRoot(await resolveRoot(root, key), ancestorReal, key);
     await mkdir(dirname(target), { recursive: true, mode: 0o700 });
-    const temp = `${target}.${process.pid}.${Date.now()}.tmp`;
+    const temp = `${target}.${randomBytes(8).toString('hex')}.tmp`;
     try {
-      await writeFile(temp, value, { mode: 0o600, flag: 'wx' });
+      const handle = await open(temp, 'wx', 0o600);
+      try {
+        await handle.writeFile(value);
+        await handle.sync();
+      } finally {
+        await handle.close();
+      }
       await rename(temp, target);
     } catch (error) {
       await rm(temp, { force: true }).catch(() => undefined);
@@ -192,7 +208,7 @@ export class FileSecretProvider implements SecretProvider {
     const root = this.#requireWritable(key);
     validateFileSecretKey(key);
     const target = join(root, key);
-    const existing = await lstat(target).catch(() => null);
+    const existing = await lstatOrNull(target, key);
     if (!existing) return;
     if (!existing.isFile()) {
       throw new FileSecretProviderError(
@@ -201,6 +217,16 @@ export class FileSecretProvider implements SecretProvider {
         'refusing to delete a non-regular file',
       );
     }
+    // The parent may itself be reached through a symlink; re-verify that it
+    // resolves inside the root immediately before unlinking.
+    const parentReal = await realpath(dirname(target)).catch(() => {
+      throw new FileSecretProviderError(
+        'unsafe_target',
+        key,
+        'cannot resolve parent directory',
+      );
+    });
+    assertInsideOrAtRoot(await resolveRoot(root, key), parentReal, key);
     await unlink(target);
   }
 
@@ -212,14 +238,21 @@ export class FileSecretProvider implements SecretProvider {
     }
   }
 
-  #requireWritable(key: string): string {
+  #requireRoot(key: string): string {
     if (!this.#root) {
       throw new FileSecretProviderError(
         'provider_unavailable',
         key,
-        `${MOLTNET_SECRET_ROOT_ENV} is not set`,
+        this.#rootRejected
+          ? `${MOLTNET_SECRET_ROOT_ENV} must be an absolute path`
+          : `${MOLTNET_SECRET_ROOT_ENV} is not set`,
       );
     }
+    return this.#root;
+  }
+
+  #requireWritable(key: string): string {
+    this.#requireRoot(key);
     if (!this.#writable) {
       throw new FileSecretProviderError(
         'read_only',
@@ -227,21 +260,15 @@ export class FileSecretProvider implements SecretProvider {
         `set ${MOLTNET_SECRET_ROOT_WRITABLE_ENV}=1 to allow writes`,
       );
     }
-    return this.#root;
+    return this.#root as string;
   }
 
   /** Real path of an existing, contained, safe regular file; null when absent. */
   async #resolveExisting(key: string): Promise<string | null> {
-    if (!this.#root) {
-      throw new FileSecretProviderError(
-        'provider_unavailable',
-        key,
-        `${MOLTNET_SECRET_ROOT_ENV} is not set`,
-      );
-    }
+    const root = this.#requireRoot(key);
     validateFileSecretKey(key);
-    const rootReal = await resolveRoot(this.#root, key);
-    const candidate = join(this.#root, key);
+    const rootReal = await resolveRoot(root, key);
+    const candidate = join(root, key);
     let real: string;
     try {
       real = await realpath(candidate);
@@ -253,7 +280,7 @@ export class FileSecretProvider implements SecretProvider {
         'cannot resolve path',
       );
     }
-    assertInsideRoot(rootReal, real, key, false);
+    assertStrictlyInsideRoot(rootReal, real, key);
     const info = await stat(real);
     if (!info.isFile()) {
       throw new FileSecretProviderError(
@@ -285,26 +312,62 @@ async function resolveRoot(root: string, key: string): Promise<string> {
   }
 }
 
-function assertInsideRoot(
+function relativeToRoot(rootReal: string, candidateReal: string): string {
+  return relative(rootReal, resolve(candidateReal));
+}
+
+function escapesRoot(rel: string): boolean {
+  return rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel);
+}
+
+/** A secret target must be a descendant of the root, never the root itself. */
+function assertStrictlyInsideRoot(
   rootReal: string,
   candidateReal: string,
   key: string,
-  allowRoot: boolean,
 ): void {
-  const rel = relative(rootReal, resolve(candidateReal));
+  const rel = relativeToRoot(rootReal, candidateReal);
   if (rel === '') {
-    if (allowRoot) return;
     throw new FileSecretProviderError(
       'symlink_escape',
       key,
       'resolves to the secret root itself',
     );
   }
-  if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
+  if (escapesRoot(rel)) {
     throw new FileSecretProviderError(
       'symlink_escape',
       key,
       'resolves outside the secret root',
+    );
+  }
+}
+
+/** A parent directory may be the root itself or any descendant of it. */
+function assertInsideOrAtRoot(
+  rootReal: string,
+  candidateReal: string,
+  key: string,
+): void {
+  if (escapesRoot(relativeToRoot(rootReal, candidateReal))) {
+    throw new FileSecretProviderError(
+      'symlink_escape',
+      key,
+      'resolves outside the secret root',
+    );
+  }
+}
+
+/** `lstat` that treats only ENOENT as "absent"; other failures surface. */
+async function lstatOrNull(target: string, key: string) {
+  try {
+    return await lstat(target);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+    throw new FileSecretProviderError(
+      'unsafe_target',
+      key,
+      'cannot inspect target',
     );
   }
 }

@@ -3,6 +3,8 @@ import {
   chmod,
   mkdir,
   mkdtemp,
+  readdir,
+  readFile,
   rm,
   stat,
   symlink,
@@ -367,5 +369,83 @@ describe('FileSecretProvider writes', () => {
     await provider.delete('k');
     await expect(provider.read('k')).resolves.toBeNull();
     await expect(provider.delete('k')).resolves.toBeUndefined();
+  });
+
+  it('rejects a relative root as unavailable', async () => {
+    const provider = new FileSecretProvider({
+      root: 'relative/root',
+      platform: 'linux',
+    });
+
+    const error = await failure(provider.read('k'));
+    expect(error.code).toBe('provider_unavailable');
+    expect(error.message).toMatch(/absolute/);
+  });
+
+  it('refuses to delete or write through an intermediate directory symlink', async () => {
+    const root = await tempRoot();
+    const outside = await tempRoot();
+    await putFile(outside, 'k', 'keep', 0o600);
+    await symlink(outside, join(root, 'd'));
+    const provider = new FileSecretProvider({
+      root,
+      writable: true,
+      platform: 'linux',
+    });
+
+    expect((await failure(provider.delete('d/k'))).code).toBe('symlink_escape');
+    expect((await failure(provider.write('d/k', 'x'))).code).toBe(
+      'symlink_escape',
+    );
+    expect(await readFile(join(outside, 'k'), 'utf8')).toBe('keep');
+  });
+
+  it('surfaces inspection failures on delete instead of reporting success', async () => {
+    const root = await tempRoot();
+    const provider = new FileSecretProvider({
+      root,
+      writable: true,
+      platform: 'linux',
+    });
+    await mkdir(join(root, 'locked'), { mode: 0o700 });
+    await provider.write('locked/k', 'v');
+    await chmod(join(root, 'locked'), 0o000);
+    try {
+      expect((await failure(provider.delete('locked/k'))).code).toBe(
+        'unsafe_target',
+      );
+    } finally {
+      await chmod(join(root, 'locked'), 0o700);
+    }
+    await expect(provider.read('locked/k')).resolves.toBe('v');
+  });
+
+  it('serialises nothing but leaves exactly one durable value under concurrent writers', async () => {
+    const root = await tempRoot();
+    const provider = new FileSecretProvider({
+      root,
+      writable: true,
+      platform: 'linux',
+    });
+
+    await Promise.all(
+      Array.from({ length: 16 }, (_, i) => provider.write('shared/k', `v${i}`)),
+    );
+
+    await expect(provider.read('shared/k')).resolves.toMatch(/^v\d+$/);
+    expect(await readdir(join(root, 'shared'))).toEqual(['k']);
+  });
+
+  it('removes the temp file when the final rename fails', async () => {
+    const root = await tempRoot();
+    await mkdir(join(root, 'k'), { mode: 0o700 });
+    const provider = new FileSecretProvider({
+      root,
+      writable: true,
+      platform: 'linux',
+    });
+
+    await expect(provider.write('k', 'v')).rejects.toThrow();
+    expect(await readdir(root)).toEqual(['k']);
   });
 });
