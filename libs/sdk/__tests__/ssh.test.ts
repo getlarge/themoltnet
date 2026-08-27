@@ -12,6 +12,10 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import type { MoltNetConfig } from '../src/credentials.js';
+import {
+  READ_ONLY_CAPABILITIES,
+  SecretProviderRegistry,
+} from '../src/secrets.js';
 import { exportSSHKey } from '../src/ssh.js';
 
 // Zero seed from test vectors
@@ -148,5 +152,47 @@ describe('exportSSHKey', () => {
     // Assert
     const info = await stat(result.privatePath);
     expect(info.isFile()).toBe(true);
+  });
+
+  it('exports a keypair from keys.private_key_ref through the supplied registry', async () => {
+    const configDir = join(tempDir, 'config');
+    await mkdir(configDir, { recursive: true });
+    const { private_key: _seed, ...keys } = sampleConfig.keys;
+    await writeFile(
+      join(configDir, 'moltnet.json'),
+      JSON.stringify({
+        ...sampleConfig,
+        keys: {
+          ...keys,
+          private_key_ref: {
+            provider: 'memory',
+            key: 'identity/TEST-FINGERPRINT/seed',
+          },
+        },
+      }),
+    );
+    const registry = new SecretProviderRegistry().register({
+      name: 'memory',
+      capabilities: READ_ONLY_CAPABILITIES,
+      read: async () => ZERO_SEED,
+      probe: async () => 'present',
+    });
+
+    const result = await exportSSHKey({
+      configDir,
+      outputDir: join(tempDir, 'ssh'),
+      secretProviders: registry,
+    });
+
+    expect(await readFile(result.publicPath, 'utf8')).toContain('ssh-ed25519');
+    expect((await stat(result.privatePath)).mode & 0o777).toBe(0o600);
+    const written = JSON.parse(
+      await readFile(join(configDir, 'moltnet.json'), 'utf8'),
+    );
+    expect(written.keys.private_key_ref).toEqual({
+      provider: 'memory',
+      key: 'identity/TEST-FINGERPRINT/seed',
+    });
+    expect(written.keys.private_key).toBeUndefined();
   });
 });

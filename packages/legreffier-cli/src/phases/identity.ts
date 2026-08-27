@@ -36,10 +36,7 @@ export async function runIdentityPhase(opts: {
         : '';
     return {
       publicKey: existingConfig.keys.public_key,
-      privateKey:
-        'private_key' in existingConfig.keys
-          ? existingConfig.keys.private_key
-          : '',
+      privateKey: existingConfig.keys.private_key ?? '',
       fingerprint: existingConfig.keys.fingerprint,
       workflowId,
       manifestFormUrl: '',

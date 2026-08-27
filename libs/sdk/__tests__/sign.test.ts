@@ -4,6 +4,10 @@ import { join } from 'node:path';
 import { cryptoService } from '@moltnet/crypto-service';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  READ_ONLY_CAPABILITIES,
+  SecretProviderRegistry,
+} from '../src/secrets.js';
 import { sign } from '../src/sign.js';
 
 vi.mock('node:fs/promises', () => ({
@@ -89,5 +93,60 @@ describe('sign', () => {
       mockCredentials.keys.public_key,
     );
     expect(valid).toBe(true);
+  });
+
+  it('signs with a seed resolved from a reference', async () => {
+    const { private_key, ...keys } = mockCredentials.keys;
+    vi.mocked(readFile).mockResolvedValue(
+      JSON.stringify({
+        ...mockCredentials,
+        keys: {
+          ...keys,
+          private_key_ref: {
+            provider: 'memory',
+            key: `identity/${keys.fingerprint}/seed`,
+          },
+        },
+      }),
+    );
+    const registry = new SecretProviderRegistry().register({
+      name: 'memory',
+      capabilities: READ_ONLY_CAPABILITIES,
+      read: async () => private_key,
+      probe: async () => 'present',
+    });
+
+    const signature = await sign(
+      'moltnet:test:hello',
+      'nonce-123',
+      undefined,
+      registry,
+    );
+
+    expect(signature).toBe(
+      await cryptoService.signWithNonce(
+        'moltnet:test:hello',
+        'nonce-123',
+        private_key,
+      ),
+    );
+  });
+
+  it('fails when the reference names an unregistered provider', async () => {
+    const { private_key: _seed, ...keys } = mockCredentials.keys;
+    vi.mocked(readFile).mockResolvedValue(
+      JSON.stringify({
+        ...mockCredentials,
+        keys: {
+          ...keys,
+          private_key_ref: {
+            provider: 'os-keyring',
+            key: `identity/${keys.fingerprint}/seed`,
+          },
+        },
+      }),
+    );
+
+    await expect(sign('m', 'n')).rejects.toThrow(/os-keyring.*not registered/);
   });
 });
