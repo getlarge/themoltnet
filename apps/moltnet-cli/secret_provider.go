@@ -57,6 +57,7 @@ func NewSecretProviderRegistry() *SecretProviderRegistry {
 	registry := &SecretProviderRegistry{providers: make(map[string]SecretProvider)}
 	registry.Register(environmentProviderName, EnvironmentSecretProvider{})
 	registry.Register(osKeyringProviderName, OSKeyringSecretProvider{})
+	registry.Register(fileProviderName, newFileSecretProviderFromEnv(os.LookupEnv))
 	return registry
 }
 
