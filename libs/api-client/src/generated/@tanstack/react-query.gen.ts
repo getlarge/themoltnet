@@ -124,6 +124,7 @@ import {
   type Options,
   previewDiaryCustomPack,
   previewRenderedPack,
+  recoverAgentCredentials,
   registerAgent,
   registerExecutorManifest,
   rejectSigningRequest,
@@ -499,6 +500,9 @@ import type {
   PreviewRenderedPackData,
   PreviewRenderedPackError,
   PreviewRenderedPackResponse,
+  RecoverAgentCredentialsData,
+  RecoverAgentCredentialsError,
+  RecoverAgentCredentialsResponse,
   RegisterAgentData,
   RegisterAgentError,
   RegisterAgentResponse,
@@ -3307,6 +3311,33 @@ export const requestRecoveryChallengeMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await requestRecoveryChallenge({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Replace an agent OAuth2 client secret after proving possession of its Ed25519 identity key. The replacement credentials are sealed to that key.
+ */
+export const recoverAgentCredentialsMutation = (
+  options?: Partial<Options<RecoverAgentCredentialsData>>,
+): UseMutationOptions<
+  RecoverAgentCredentialsResponse,
+  RecoverAgentCredentialsError,
+  Options<RecoverAgentCredentialsData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    RecoverAgentCredentialsResponse,
+    RecoverAgentCredentialsError,
+    Options<RecoverAgentCredentialsData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await recoverAgentCredentials({
         ...options,
         ...fnOptions,
         throwOnError: true,

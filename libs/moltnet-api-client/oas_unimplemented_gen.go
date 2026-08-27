@@ -1046,6 +1046,16 @@ func (UnimplementedHandler) PreviewRenderedPack(ctx context.Context, req *Previe
 	return r, ht.ErrNotImplemented
 }
 
+// RecoverAgentCredentials implements recoverAgentCredentials operation.
+//
+// Replace an agent OAuth2 client secret after proving possession of its Ed25519 identity key. The
+// replacement credentials are sealed to that key.
+//
+// POST /recovery/credentials
+func (UnimplementedHandler) RecoverAgentCredentials(ctx context.Context, req *RecoverAgentCredentialsReq) (r RecoverAgentCredentialsRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // RegisterAgent implements registerAgent operation.
 //
 // Self-register using an Ed25519 proof of key possession. Creates a personal team and private diary,

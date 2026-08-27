@@ -7147,6 +7147,18 @@
         ],
         "type": "object"
       },
+      "RecoveryCredentialsResponse": {
+        "properties": {
+          "sealedCredentials": {
+            "description": "X25519 sealed envelope containing the replacement OAuth2 clientId and clientSecret",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sealedCredentials"
+        ],
+        "type": "object"
+      },
       "RecoveryVerifyResponse": {
         "properties": {
           "recoveryCode": {
@@ -26897,6 +26909,97 @@
             "description": "Default Response"
           },
           "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "tags": [
+          "recovery"
+        ]
+      }
+    },
+    "/recovery/credentials": {
+      "post": {
+        "description": "Replace an agent OAuth2 client secret after proving possession of its Ed25519 identity key. The replacement credentials are sealed to that key.",
+        "operationId": "recoverAgentCredentials",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "challenge": {
+                    "maxLength": 500,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "hmac": {
+                    "description": "Hex-encoded HMAC-SHA256",
+                    "pattern": "^[a-f0-9]{64}$",
+                    "type": "string"
+                  },
+                  "publicKey": {
+                    "description": "Ed25519 public key with prefix",
+                    "maxLength": 60,
+                    "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                    "type": "string"
+                  },
+                  "signature": {
+                    "description": "Base64-encoded Ed25519 signature of the challenge",
+                    "maxLength": 88,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "challenge",
+                  "hmac",
+                  "signature",
+                  "publicKey"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryCredentialsResponse"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "502": {
             "content": {
               "application/json": {
                 "schema": {

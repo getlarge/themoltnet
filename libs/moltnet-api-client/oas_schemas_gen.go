@@ -45348,6 +45348,68 @@ func (s *ReadinessStatus) UnmarshalText(data []byte) error {
 	}
 }
 
+type RecoverAgentCredentialsBadGateway ProblemDetails
+
+func (*RecoverAgentCredentialsBadGateway) recoverAgentCredentialsRes() {}
+
+type RecoverAgentCredentialsBadRequest ProblemDetails
+
+func (*RecoverAgentCredentialsBadRequest) recoverAgentCredentialsRes() {}
+
+type RecoverAgentCredentialsInternalServerError ProblemDetails
+
+func (*RecoverAgentCredentialsInternalServerError) recoverAgentCredentialsRes() {}
+
+type RecoverAgentCredentialsReq struct {
+	Challenge string `json:"challenge"`
+	// Hex-encoded HMAC-SHA256.
+	Hmac string `json:"hmac"`
+	// Ed25519 public key with prefix.
+	PublicKey string `json:"publicKey"`
+	// Base64-encoded Ed25519 signature of the challenge.
+	Signature string `json:"signature"`
+}
+
+// GetChallenge returns the value of Challenge.
+func (s *RecoverAgentCredentialsReq) GetChallenge() string {
+	return s.Challenge
+}
+
+// GetHmac returns the value of Hmac.
+func (s *RecoverAgentCredentialsReq) GetHmac() string {
+	return s.Hmac
+}
+
+// GetPublicKey returns the value of PublicKey.
+func (s *RecoverAgentCredentialsReq) GetPublicKey() string {
+	return s.PublicKey
+}
+
+// GetSignature returns the value of Signature.
+func (s *RecoverAgentCredentialsReq) GetSignature() string {
+	return s.Signature
+}
+
+// SetChallenge sets the value of Challenge.
+func (s *RecoverAgentCredentialsReq) SetChallenge(val string) {
+	s.Challenge = val
+}
+
+// SetHmac sets the value of Hmac.
+func (s *RecoverAgentCredentialsReq) SetHmac(val string) {
+	s.Hmac = val
+}
+
+// SetPublicKey sets the value of PublicKey.
+func (s *RecoverAgentCredentialsReq) SetPublicKey(val string) {
+	s.PublicKey = val
+}
+
+// SetSignature sets the value of Signature.
+func (s *RecoverAgentCredentialsReq) SetSignature(val string) {
+	s.Signature = val
+}
+
 // Ref: #/components/schemas/RecoveryChallengeResponse
 type RecoveryChallengeResponse struct {
 	// HMAC-signed recovery challenge string.
@@ -45377,6 +45439,24 @@ func (s *RecoveryChallengeResponse) SetHmac(val string) {
 }
 
 func (*RecoveryChallengeResponse) requestRecoveryChallengeRes() {}
+
+// Ref: #/components/schemas/RecoveryCredentialsResponse
+type RecoveryCredentialsResponse struct {
+	// X25519 sealed envelope containing the replacement OAuth2 clientId and clientSecret.
+	SealedCredentials string `json:"sealedCredentials"`
+}
+
+// GetSealedCredentials returns the value of SealedCredentials.
+func (s *RecoveryCredentialsResponse) GetSealedCredentials() string {
+	return s.SealedCredentials
+}
+
+// SetSealedCredentials sets the value of SealedCredentials.
+func (s *RecoveryCredentialsResponse) SetSealedCredentials(val string) {
+	s.SealedCredentials = val
+}
+
+func (*RecoveryCredentialsResponse) recoverAgentCredentialsRes() {}
 
 // Ref: #/components/schemas/RecoveryVerifyResponse
 type RecoveryVerifyResponse struct {

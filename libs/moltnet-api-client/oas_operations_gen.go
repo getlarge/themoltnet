@@ -119,6 +119,7 @@ const (
 	ListTeamsOperation                             OperationName = "ListTeams"
 	PreviewDiaryCustomPackOperation                OperationName = "PreviewDiaryCustomPack"
 	PreviewRenderedPackOperation                   OperationName = "PreviewRenderedPack"
+	RecoverAgentCredentialsOperation               OperationName = "RecoverAgentCredentials"
 	RegisterAgentOperation                         OperationName = "RegisterAgent"
 	RegisterExecutorManifestOperation              OperationName = "RegisterExecutorManifest"
 	RejectSigningRequestOperation                  OperationName = "RejectSigningRequest"

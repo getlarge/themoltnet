@@ -1758,6 +1758,13 @@ export type RecoveryChallengeResponse = {
   hmac: string;
 };
 
+export type RecoveryCredentialsResponse = {
+  /**
+   * X25519 sealed envelope containing the replacement OAuth2 clientId and clientSecret
+   */
+  sealedCredentials: string;
+};
+
 export type RecoveryVerifyResponse = {
   /**
    * One-time Kratos recovery code
@@ -8095,6 +8102,55 @@ export type RequestRecoveryChallengeResponses = {
 
 export type RequestRecoveryChallengeResponse =
   RequestRecoveryChallengeResponses[keyof RequestRecoveryChallengeResponses];
+
+export type RecoverAgentCredentialsData = {
+  body: {
+    challenge: string;
+    /**
+     * Hex-encoded HMAC-SHA256
+     */
+    hmac: string;
+    /**
+     * Ed25519 public key with prefix
+     */
+    publicKey: string;
+    /**
+     * Base64-encoded Ed25519 signature of the challenge
+     */
+    signature: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/recovery/credentials';
+};
+
+export type RecoverAgentCredentialsErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  502: ProblemDetails;
+};
+
+export type RecoverAgentCredentialsError =
+  RecoverAgentCredentialsErrors[keyof RecoverAgentCredentialsErrors];
+
+export type RecoverAgentCredentialsResponses = {
+  /**
+   * Default Response
+   */
+  200: RecoveryCredentialsResponse;
+};
+
+export type RecoverAgentCredentialsResponse =
+  RecoverAgentCredentialsResponses[keyof RecoverAgentCredentialsResponses];
 
 export type VerifyRecoveryChallengeData = {
   body: {
