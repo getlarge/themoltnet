@@ -69,7 +69,15 @@ func runConfigExportEnvCmdWithRegistry(
 	lines = append(lines, fmt.Sprintf("MOLTNET_PUBLIC_KEY=%s", creds.Keys.PublicKey))
 	// A host signing broker owns the seed; never export it from a guest.
 	if includeSecrets && strings.TrimSpace(os.Getenv(signerURLEnv)) == "" {
-		lines = append(lines, fmt.Sprintf("MOLTNET_PRIVATE_KEY=%s", creds.Keys.PrivateKey))
+		seed := creds.Keys.PrivateKey
+		if creds.Keys.PrivateKeyRef != nil || seed != "" {
+			resolved, err := resolveIdentitySeed(creds, secretProviders)
+			if err != nil {
+				return fmt.Errorf("resolve private key: %w", err)
+			}
+			seed = resolved
+		}
+		lines = append(lines, fmt.Sprintf("MOLTNET_PRIVATE_KEY=%s", seed))
 	}
 	lines = append(lines, fmt.Sprintf("MOLTNET_FINGERPRINT=%s", creds.Keys.Fingerprint))
 	lines = append(lines, fmt.Sprintf("MOLTNET_API_URL=%s", creds.Endpoints.API))

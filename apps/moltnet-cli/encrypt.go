@@ -317,7 +317,11 @@ func runDecryptCmd(w io.Writer, credPath string, args []string) error {
 		return err
 	}
 
-	plaintext, err := DecryptFromAgent(sealedJSON, creds.Keys.PrivateKey)
+	seed, err := resolveIdentitySeed(creds, NewSecretProviderRegistry())
+	if err != nil {
+		return fmt.Errorf("resolve private key: %w", err)
+	}
+	plaintext, err := DecryptFromAgent(sealedJSON, seed)
 	if err != nil {
 		return fmt.Errorf("decrypt: %w", err)
 	}

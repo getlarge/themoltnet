@@ -89,7 +89,11 @@ func runSSHKeyExportCmd(credPath, outDir string) error {
 	// export the public half only and let git sign through SSH_AUTH_SOCK.
 	privPath := ""
 	if strings.TrimSpace(os.Getenv(signerURLEnv)) == "" {
-		privPEM, err := ToSSHPrivateKey(creds.Keys.PrivateKey)
+		seed, err := resolveIdentitySeed(creds, NewSecretProviderRegistry())
+		if err != nil {
+			return fmt.Errorf("resolve private key: %w", err)
+		}
+		privPEM, err := ToSSHPrivateKey(seed)
 		if err != nil {
 			return fmt.Errorf("convert private key: %w", err)
 		}

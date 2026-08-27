@@ -48,7 +48,7 @@ func runSignCmd(w io.Writer, credPath, apiURL, nonce, requestID string, args []s
 	if !ok {
 		return fmt.Errorf("manual --nonce signing is not available through %s; use --request-id", signerURLEnv)
 	}
-	sig, err := SignForRequest(payload, nonce, local.creds.Keys.PrivateKey)
+	sig, err := SignForRequest(payload, nonce, local.seed)
 	if err != nil {
 		return fmt.Errorf("sign: %w", err)
 	}
@@ -97,13 +97,8 @@ func loadCredentials(path string) (*CredentialsFile, error) {
 	return creds, nil
 }
 
-func validateSigningCredentials(creds *CredentialsFile) error {
-	if creds == nil {
-		return fmt.Errorf(
-			"credentials missing Ed25519 private key — run 'moltnet register'",
-		)
-	}
-	if _, err := decodeEd25519Seed(creds.Keys.PrivateKey); err != nil {
+func validateSigningSeed(seed string) error {
+	if _, err := decodeEd25519Seed(seed); err != nil {
 		return fmt.Errorf(
 			"credentials contain an invalid Ed25519 private key: %w — run 'moltnet register' or 'moltnet config repair'",
 			err,

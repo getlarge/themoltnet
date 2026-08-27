@@ -163,7 +163,7 @@ func loadAndValidate(credPath string) (string, *CredentialsFile, []ConfigIssue, 
 	if creds.Keys.PublicKey == "" {
 		issues = append(issues, ConfigIssue{Field: "keys.public_key", Problem: "missing", Action: "warning"})
 	}
-	if creds.Keys.PrivateKey == "" {
+	if creds.Keys.PrivateKey == "" && creds.Keys.PrivateKeyRef == nil {
 		issues = append(issues, ConfigIssue{Field: "keys.private_key", Problem: "missing", Action: "warning"})
 	}
 

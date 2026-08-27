@@ -11,10 +11,10 @@ import (
 
 // Valid 32-byte base64-encoded Ed25519 test keys.
 const (
-	testPublicKey  = "ed25519:dGVzdC1wdWItLWZvci1tb2x0bmV0LWNsaS10ZXN0cyE="
-	testPrivateKey = "dGVzdC1zZWVkLWZvci1tb2x0bmV0LWNsaS10ZXN0cyE="
-	altPublicKey   = "ed25519:ZmlsZS1wdWItLWZvci1tb2x0bmV0LWNsaS10ZXN0cyE="
-	altPrivateKey  = "ZmlsZS1zZWVkLWZvci1tb2x0bmV0LWNsaS10ZXN0cyE="
+	testPublicKey  = "ed25519:11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo="
+	testPrivateKey = "nWGxne/9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A="
+	altPublicKey   = "ed25519:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik="
+	altPrivateKey  = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 )
 
 // clearMoltnetEnv uses t.Setenv to blank every MOLTNET_* variable that might

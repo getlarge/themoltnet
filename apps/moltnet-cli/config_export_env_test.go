@@ -70,8 +70,8 @@ func TestConfigExportEnvToStdout(t *testing.T) {
 			ClientSecret: "export-client-secret",
 		},
 		Keys: CredentialsKeys{
-			PublicKey:   "ed25519:dGVzdC1wdWItLWZvci1tb2x0bmV0LWNsaS10ZXN0cyE=",
-			PrivateKey:  "dGVzdC1zZWVkLWZvci1tb2x0bmV0LWNsaS10ZXN0cyE=",
+			PublicKey:   "ed25519:11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=",
+			PrivateKey:  "nWGxne/9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A=",
 			Fingerprint: "SHA256:exportfingerprint",
 		},
 		Endpoints: CredentialsEndpoints{
@@ -153,8 +153,8 @@ func TestConfigExportEnvToFile(t *testing.T) {
 			ClientSecret: "file-client-secret",
 		},
 		Keys: CredentialsKeys{
-			PublicKey:   "ed25519:dGVzdC1wdWItLWZvci1tb2x0bmV0LWNsaS10ZXN0cyE=",
-			PrivateKey:  "dGVzdC1zZWVkLWZvci1tb2x0bmV0LWNsaS10ZXN0cyE=",
+			PublicKey:   "ed25519:11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=",
+			PrivateKey:  "nWGxne/9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A=",
 			Fingerprint: "SHA256:fingerprint",
 		},
 		Endpoints: CredentialsEndpoints{
@@ -221,8 +221,8 @@ func TestConfigExportEnvWithGitHub(t *testing.T) {
 			ClientSecret: "gh-secret",
 		},
 		Keys: CredentialsKeys{
-			PublicKey:   "ed25519:dGVzdC1wdWItLWZvci1tb2x0bmV0LWNsaS10ZXN0cyE=",
-			PrivateKey:  "dGVzdC1zZWVkLWZvci1tb2x0bmV0LWNsaS10ZXN0cyE=",
+			PublicKey:   "ed25519:11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=",
+			PrivateKey:  "nWGxne/9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A=",
 			Fingerprint: "SHA256:fp",
 		},
 		Endpoints: CredentialsEndpoints{
@@ -393,5 +393,32 @@ func TestConfigExportEnvRoundTrip(t *testing.T) {
 	}
 	if reconstructed.Endpoints.API != "https://api.rt.example.com" {
 		t.Errorf("API URL mismatch: got %q", reconstructed.Endpoints.API)
+	}
+}
+
+func TestConfigExportEnvResolvesPrivateKeyReference(t *testing.T) {
+	seed, pub := testSeedAndPublicKey(t)
+	t.Setenv(signerURLEnv, "")
+	t.Setenv(identitySeedEnvKey, seed)
+	config := &CredentialsFile{
+		IdentityID: "export-id",
+		OAuth2:     CredentialsOAuth2{ClientID: "export-client", ClientSecret: "plain"},
+		Keys: CredentialsKeys{PublicKey: pub, Fingerprint: "fp",
+			PrivateKeyRef: &SecretReference{Provider: environmentProviderName, Key: identitySeedEnvKey}},
+	}
+	credPath := filepath.Join(t.TempDir(), "moltnet.json")
+	if _, err := WriteConfigTo(config, credPath); err != nil {
+		t.Fatal(err)
+	}
+	var output bytes.Buffer
+
+	if err := runConfigExportEnvCmdWithRegistry(&output, credPath, "", false, true, NewSecretProviderRegistry()); err != nil {
+		t.Fatalf("export referenced seed: %v", err)
+	}
+	if got := strings.Count(output.String(), "MOLTNET_PRIVATE_KEY="+seed); got != 1 {
+		t.Fatalf("expected the resolved seed once, got %d:\n%s", got, output.String())
+	}
+	if strings.Contains(output.String(), "private_key_ref") {
+		t.Fatalf("export leaked the reference document:\n%s", output.String())
 	}
 }
