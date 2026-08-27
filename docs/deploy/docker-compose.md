@@ -17,8 +17,16 @@ and follow the included `deploy/self-host/README.md`. The release's
 `.env.release` pins MoltNet images by digest; do not replace those pins with
 floating tags in a production installation.
 
-The source-tree bundle is useful for review and local evaluation, but its image
-tags are examples rather than a reproducible release manifest.
+To reproduce the archive from a source checkout without resolving registry
+digests, run:
+
+```bash
+node tools/release/self-host-bundle.mjs --version dev --skip-digests
+```
+
+The generated directory uses the component versions in
+`deploy/self-host/images.json`. Published archives replace those tags with
+registry digests.
 
 ## Upgrade
 
