@@ -1,5 +1,11 @@
+import { tmpdir } from 'node:os';
+
 import { getInstallationToken } from '@themoltnet/github-agent';
-import type { MoltNetConfig } from '@themoltnet/sdk';
+import {
+  type MoltNetConfig,
+  resolveGitHubAppPrivateKey,
+} from '@themoltnet/sdk';
+import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
 
 export type VerifyInstallationStatus = 'ok' | 'repo-not-in-scope' | 'warning';
 
@@ -35,6 +41,8 @@ export async function runPortVerifyInstallationPhase(opts: {
   /** owner/repo of the current target repo. If absent, the phase is skipped. */
   currentRepo?: string;
   apiBaseUrl?: string;
+  /** Token cache location when the PEM is a secret reference. */
+  configDir?: string;
 }): Promise<PortVerifyInstallationResult> {
   const { config, currentRepo, apiBaseUrl = 'https://api.github.com' } = opts;
 
@@ -48,22 +56,33 @@ export async function runPortVerifyInstallationPhase(opts: {
   if (
     !config.github?.app_id ||
     !config.github?.installation_id ||
-    !config.github?.private_key_path
+    (!config.github?.private_key_path && !config.github?.private_key_ref)
   ) {
     return {
       status: 'warning',
-      message: 'github.app_id / installation_id / private_key_path missing',
+      message:
+        'github.app_id / installation_id / private_key_path (or private_key_ref) missing',
       currentRepo,
     };
   }
 
   let token: string;
   try {
-    const result = await getInstallationToken({
-      appId: config.github.app_id,
-      privateKeyPath: config.github.private_key_path,
-      installationId: config.github.installation_id,
-    });
+    const result = config.github.private_key_ref
+      ? await getInstallationToken({
+          appId: config.github.app_id,
+          installationId: config.github.installation_id,
+          privateKeyPem: await resolveGitHubAppPrivateKey(
+            config,
+            createNodeSecretProviderRegistry(),
+          ),
+          cacheDir: opts.configDir ?? tmpdir(),
+        })
+      : await getInstallationToken({
+          appId: config.github.app_id,
+          privateKeyPath: config.github.private_key_path,
+          installationId: config.github.installation_id,
+        });
     token = result.token;
   } catch (err) {
     return {

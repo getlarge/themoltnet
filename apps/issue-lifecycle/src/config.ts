@@ -5,7 +5,11 @@ import { join } from 'node:path';
 import { parseArgs, parseEnv } from 'node:util';
 
 import { getInstallationToken } from '@themoltnet/github-agent';
-import type { MoltNetConfig } from '@themoltnet/sdk';
+import {
+  type MoltNetConfig,
+  resolveGitHubAppPrivateKey,
+} from '@themoltnet/sdk';
+import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
 
 import type { GithubTokenProvider } from './github-fetch.js';
 import { loadLifecycleConfig } from './lifecycle-config.js';
@@ -69,16 +73,26 @@ function createGithubTokenProvider(agentDir: string): GithubTokenProvider {
   const raw = readFileSync(join(agentDir, 'moltnet.json'), 'utf8');
   const config = JSON.parse(raw) as MoltNetConfig;
   const github = config.github;
-  if (!github?.app_id || !github.installation_id || !github.private_key_path) {
+  if (
+    !github?.app_id ||
+    !github.installation_id ||
+    (!github.private_key_path && !github.private_key_ref)
+  ) {
     throw new Error(
-      'MoltNet GitHub auth requires github.app_id, github.installation_id, and github.private_key_path in .moltnet/<agent>/moltnet.json',
+      'MoltNet GitHub auth requires github.app_id, github.installation_id, and github.private_key_path or github.private_key_ref in .moltnet/<agent>/moltnet.json',
     );
   }
   return async (options) => {
+    // Resolve per call so a rotated keyring/file secret is picked up.
+    const privateKeyPem = await resolveGitHubAppPrivateKey(
+      config,
+      createNodeSecretProviderRegistry(),
+    );
     const token = await getInstallationToken({
       appId: github.app_id,
       installationId: github.installation_id,
-      privateKeyPath: github.private_key_path,
+      privateKeyPem,
+      cacheDir: agentDir,
       forceRefresh: options?.forceRefresh,
     });
     return token.token;
