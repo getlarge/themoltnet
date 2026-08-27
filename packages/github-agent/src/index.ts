@@ -6,4 +6,8 @@ export {
   type SetupGitHubAgentOptions,
   type SetupGitHubAgentResult,
 } from './setup.js';
-export { findInstallationForOwner, getInstallationToken } from './token.js';
+export {
+  findInstallationForOwner,
+  getInstallationToken,
+  type GitHubAppKeySource,
+} from './token.js';

@@ -250,4 +250,36 @@ describe('getInstallationToken', () => {
     expect(cached.token).toBe('ghs_new');
     expect(cached.expires_at).toBe(freshExpiry);
   });
+
+  it('accepts resolved PEM text and caches in the supplied directory', async () => {
+    const privateKeyPath = createTempRsaKeyFile();
+    const privateKeyPem = fs.readFileSync(privateKeyPath, 'utf8');
+    const cacheDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'github-agent-cache-'),
+    );
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        status: 201,
+        json: async () => ({
+          token: 'ghs_from_pem',
+          expires_at: '2099-01-01T00:00:00Z',
+        }),
+      })),
+    );
+
+    const result = await getInstallationToken({
+      appId: '12345',
+      installationId: '67890',
+      privateKeyPem,
+      cacheDir,
+    });
+
+    expect(result.token).toBe('ghs_from_pem');
+    expect(fs.existsSync(path.join(cacheDir, 'gh-token-cache.json'))).toBe(
+      true,
+    );
+    expect(fs.existsSync(cachePath(privateKeyPath))).toBe(false);
+  });
 });

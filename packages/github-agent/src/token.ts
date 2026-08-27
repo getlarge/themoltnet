@@ -65,8 +65,8 @@ async function writeTokenCache(
 
 /**
  * Exchange a GitHub App JWT for an installation access token.
- * Uses a file-based cache next to the private key to avoid
- * hitting the GitHub API on every call.
+ * Uses a file-based cache (in `cacheDir`, or next to the legacy private key
+ * file) to avoid hitting the GitHub API on every call.
  */
 interface AppInstallation {
   id: number;
@@ -81,12 +81,37 @@ interface AppInstallation {
  * Uses the App JWT (not an installation token), so it works even when
  * `installation_id` is missing or stale.
  */
-export async function findInstallationForOwner(opts: {
-  appId: string;
-  privateKeyPath: string;
-  owner: string;
-}): Promise<{ installationId: string } | null> {
-  const privateKeyPem = await readFile(opts.privateKeyPath, 'utf-8');
+/**
+ * Where the App's RSA private key comes from. `privateKeyPem` is the
+ * resolved PEM text (for example from `github.private_key_ref`); the legacy
+ * `privateKeyPath` form reads the file and caches next to it unless a
+ * `cacheDir` is supplied.
+ */
+export type GitHubAppKeySource =
+  | { privateKeyPem: string; privateKeyPath?: never; cacheDir: string }
+  | { privateKeyPath: string; privateKeyPem?: never; cacheDir?: string };
+
+async function loadPrivateKeyPem(source: GitHubAppKeySource): Promise<string> {
+  if (source.privateKeyPem !== undefined) return source.privateKeyPem;
+  return readFile(source.privateKeyPath, 'utf-8');
+}
+
+function tokenCachePath(source: GitHubAppKeySource): string {
+  const dir =
+    source.cacheDir ??
+    (source.privateKeyPath !== undefined
+      ? dirname(source.privateKeyPath)
+      : undefined);
+  if (!dir) {
+    throw new Error('GitHub App token cache requires a cacheDir');
+  }
+  return join(dir, 'gh-token-cache.json');
+}
+
+export async function findInstallationForOwner(
+  opts: { appId: string; owner: string } & Omit<GitHubAppKeySource, 'cacheDir'>,
+): Promise<{ installationId: string } | null> {
+  const privateKeyPem = await loadPrivateKeyPem(opts as GitHubAppKeySource);
   const jwt = createAppJWT(opts.appId, privateKeyPem);
   const ownerLower = opts.owner.toLowerCase();
 
@@ -137,13 +162,14 @@ function parseNextLinkHeader(header: string): string | null {
   return null;
 }
 
-export async function getInstallationToken(opts: {
-  appId: string;
-  privateKeyPath: string;
-  installationId: string;
-  forceRefresh?: boolean;
-}): Promise<{ token: string; expiresAt: string }> {
-  const cachePath = join(dirname(opts.privateKeyPath), 'gh-token-cache.json');
+export async function getInstallationToken(
+  opts: {
+    appId: string;
+    installationId: string;
+    forceRefresh?: boolean;
+  } & GitHubAppKeySource,
+): Promise<{ token: string; expiresAt: string }> {
+  const cachePath = tokenCachePath(opts);
 
   // Try cache first
   if (!opts.forceRefresh) {
@@ -152,7 +178,7 @@ export async function getInstallationToken(opts: {
   }
 
   // Cache miss — fetch from GitHub API
-  const privateKeyPem = await readFile(opts.privateKeyPath, 'utf-8');
+  const privateKeyPem = await loadPrivateKeyPem(opts);
   const jwt = createAppJWT(opts.appId, privateKeyPem);
 
   const response = await fetch(
