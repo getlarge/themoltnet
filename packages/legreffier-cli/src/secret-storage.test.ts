@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -6,6 +6,7 @@ import {
   type MoltNetConfig,
   READ_WRITE_CAPABILITIES,
   readConfig,
+  type SecretProbeResult,
   type SecretProvider,
   SecretProviderRegistry,
   writeConfig,
@@ -18,21 +19,29 @@ const tempDirs: string[] = [];
 
 function fakeKeyring(initial: Record<string, string> = {}) {
   const store = new Map(Object.entries(initial));
+  const read = vi.fn(async (key: string) => store.get(key) ?? null);
+  const write = vi.fn(async (key: string, value: string) => {
+    store.set(key, value);
+  });
+  const remove = vi.fn(async (key: string) => {
+    store.delete(key);
+  });
+  const probe = vi.fn(
+    async (key: string): Promise<SecretProbeResult> =>
+      store.has(key) ? 'present' : 'absent',
+  );
   const provider: SecretProvider = {
     name: 'os-keyring',
     capabilities: READ_WRITE_CAPABILITIES,
-    read: vi.fn(async (key: string) => store.get(key) ?? null),
-    write: vi.fn(async (key: string, value: string) => {
-      store.set(key, value);
-    }),
-    delete: vi.fn(async (key: string) => {
-      store.delete(key);
-    }),
+    read,
+    write,
+    delete: remove,
+    probe,
   };
   return {
     registry: new SecretProviderRegistry().register(provider),
     store,
-    provider,
+    provider: { read, write, delete: remove, probe },
   };
 }
 
@@ -196,5 +205,98 @@ describe('ensureKeyringSecretReference', () => {
         registry,
       ),
     ).rejects.toThrow(/identity, client ID, or issued secret is missing/);
+  });
+
+  it('reports an inaccessible keyring differently from a missing secret', async () => {
+    const configDir = await tempConfigDir();
+    const { registry, provider } = fakeKeyring();
+    provider.probe.mockResolvedValue('inaccessible');
+    const config = baseConfig({
+      client_id: 'client-456',
+      client_secret_ref: {
+        provider: 'os-keyring',
+        key: 'oauth2/identity-123/client-456',
+      },
+    });
+
+    await expect(
+      ensureKeyringSecretReference(configDir, config, '', registry),
+    ).rejects.toThrow(/could not be accessed/);
+  });
+
+  it('rolls back a write whose verification failed and never leaks the value', async () => {
+    const configDir = await tempConfigDir();
+    const { registry, store, provider } = fakeKeyring();
+    provider.write.mockImplementation(async (key) => {
+      store.set(key, 'corrupted-canary');
+    });
+    const config = baseConfig({
+      client_id: 'client-456',
+      client_secret: 'plaintext-canary',
+    });
+
+    const failure = await ensureKeyringSecretReference(
+      configDir,
+      config,
+      '',
+      registry,
+    ).then(
+      () => null,
+      (error: unknown) => error,
+    );
+
+    expect(failure).toBeInstanceOf(Error);
+    expect((failure as Error).message).not.toMatch(/canary/);
+    expect(provider.delete).toHaveBeenCalledWith(
+      'oauth2/identity-123/client-456',
+    );
+    expect(store.has('oauth2/identity-123/client-456')).toBe(false);
+    await expect(readConfig(configDir)).resolves.toBeNull();
+  });
+
+  it('surfaces a rollback failure instead of hiding an orphaned credential', async () => {
+    const configDir = await tempConfigDir();
+    const { registry, provider } = fakeKeyring();
+    provider.delete.mockRejectedValue(new Error('keyring locked'));
+    const config = baseConfig({
+      client_id: 'client-456',
+      client_secret: 'canary',
+    });
+    await writeConfig(config, configDir);
+    await rm(join(configDir, 'moltnet.json'));
+    await mkdir(join(configDir, 'moltnet.json'));
+
+    await expect(
+      ensureKeyringSecretReference(configDir, config, '', registry),
+    ).rejects.toThrow(/remove it manually/);
+  });
+
+  it('keeps the keyring entry when a persisted config already references it', async () => {
+    const configDir = await tempConfigDir();
+    const { registry, store } = fakeKeyring();
+    const reference = {
+      provider: 'os-keyring',
+      key: 'oauth2/identity-123/client-456',
+    };
+    await writeConfig(
+      baseConfig({ client_id: 'client-456', client_secret_ref: reference }),
+      configDir,
+    );
+    // A read-only directory fails the temp-file write while the persisted
+    // config that references the key stays readable.
+    await chmod(configDir, 0o500);
+    try {
+      await expect(
+        ensureKeyringSecretReference(
+          configDir,
+          baseConfig({ client_id: 'client-456', client_secret: 'canary' }),
+          '',
+          registry,
+        ),
+      ).rejects.toThrow(/Could not write/);
+      expect(store.get(reference.key)).toBe('canary');
+    } finally {
+      await chmod(configDir, 0o700);
+    }
   });
 });
