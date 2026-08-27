@@ -1,0 +1,11 @@
+dbs:
+  - path: /var/lib/talos/talos.db
+    replicas:
+      - type: s3
+        bucket: ${BACKUP_S3_BUCKET}
+        path: talos
+        endpoint: ${BACKUP_S3_ENDPOINT}
+        region: ${BACKUP_S3_REGION}
+        access-key-id: ${BACKUP_S3_ACCESS_KEY_ID}
+        secret-access-key: ${BACKUP_S3_SECRET_ACCESS_KEY}
+        sync-interval: 1m

@@ -1,0 +1,6 @@
+{
+  "console": "ghcr.io/getlarge/themoltnet/console:0.8.0",
+  "db-migrate": "ghcr.io/getlarge/themoltnet/db-migrate:0.7.0",
+  "mcp-server": "ghcr.io/getlarge/themoltnet/mcp-server:0.20.0",
+  "rest-api": "ghcr.io/getlarge/themoltnet/rest-api:0.48.1"
+}
