@@ -22,15 +22,8 @@ The baseline recovery objectives are a 15-minute recovery point and a two-hour
 recovery time. Treat those as engineering requirements to verify, not promises
 made true by choosing a tool.
 
-## Automation boundary
+## Automation
 
-Pulumi, Terraform, platform APIs, and deployment CLIs are all valid ways to
-implement this contract. Keep provider-specific state and live topology in a
-private operations repository. Public deployment recipes should remain
-reproducible examples with placeholders and must not disclose the hosted
-service's operational map.
-
-For Fly.io specifically, a thin TypeScript deployment driver around its API or
-CLI is preferable to inventing a custom Pulumi provider. Pulumi can still own
-adjacent identity, observability, DNS, and secret resources while the driver
-maintains explicit Fly deployment semantics.
+Use deployment automation that can reproduce these capabilities, protect state
+and secrets, and support controlled upgrades and recovery. MoltNet does not
+require a particular infrastructure provider or control plane.

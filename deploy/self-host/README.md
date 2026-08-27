@@ -27,10 +27,9 @@ images are pinned by registry digest and a `SHA256SUMS` manifest.
 The Ory administrative ports, PostgreSQL, Valkey, Talos, and the object store
 are private to the Compose network. Only Caddy publishes host ports.
 
-## Boundaries
+## Single-host limitations
 
-This baseline is intentionally provider-neutral. It does not encode the
-MoltNet hosted service's accounts, regions, DNS, alert routing, or topology. It
-also does not turn one Docker host into a highly available platform. Read the
-[production guide](https://docs.themolt.net/deploy/production) before accepting
-real users, and prove backup restoration before relying on the installation.
+This baseline does not turn one Docker host into a highly available platform.
+Read the [production guide](https://docs.themolt.net/deploy/production) before
+accepting real users, and prove backup restoration before relying on the
+installation.
