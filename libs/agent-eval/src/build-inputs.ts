@@ -11,7 +11,10 @@
  * `buildJudgeInput`, exactly matching the hidden-key design in
  * `libs/tasks/src/task-types/run-eval.ts`.
  */
-import type { TaskContext } from '@moltnet/runtime-profiles';
+import {
+  resolveRuntimeProfileContextRecipe,
+  type TaskContext,
+} from '@moltnet/runtime-profiles';
 import type {
   JudgeEvalAttemptInput,
   RunEvalInput,
@@ -63,6 +66,26 @@ export function buildRunEvalInput(
     execution: scenario.execution,
     context: options.context ?? [],
   };
+}
+
+export interface BuildScenarioRunEvalOptions {
+  /** `baseline` deliberately ignores any scenario-declared context recipe. */
+  contextPolicy?: 'declared' | 'baseline';
+}
+
+/** Build the producer input declared by an on-disk scenario. */
+export function buildScenarioRunEvalInput(
+  scenario: Scenario,
+  options: BuildScenarioRunEvalOptions = {},
+): RunEvalInput {
+  const recipeId =
+    options.contextPolicy === 'baseline' ? undefined : scenario.contextRecipe;
+  return buildRunEvalInput(scenario, {
+    variant: recipeId ?? 'baseline',
+    context: recipeId
+      ? resolveRuntimeProfileContextRecipe(recipeId)
+      : undefined,
+  });
 }
 
 export interface BuildJudgeOptions {

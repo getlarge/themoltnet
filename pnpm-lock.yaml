@@ -714,6 +714,9 @@ importers:
       '@moltnet/observability':
         specifier: workspace:*
         version: link:../../libs/observability
+      '@moltnet/runtime-profiles':
+        specifier: workspace:*
+        version: link:../../libs/runtime-profiles
       '@moltnet/tasks':
         specifier: workspace:*
         version: link:../../libs/tasks

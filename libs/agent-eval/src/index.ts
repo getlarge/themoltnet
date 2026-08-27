@@ -15,6 +15,8 @@ export {
   type BuildJudgeOptions,
   buildRunEvalInput,
   type BuildRunEvalOptions,
+  buildScenarioRunEvalInput,
+  type BuildScenarioRunEvalOptions,
 } from './build-inputs.js';
 export {
   checkGates,

@@ -152,6 +152,7 @@ describeBaseline('Producer baseline (live Ollama, e2e)', () => {
             teamId,
             diaryId,
             title: `baseline ${scenario.slug}`,
+            contextPolicy: 'baseline',
           });
 
           const oldPiDir = process.env.PI_CODING_AGENT_DIR;
