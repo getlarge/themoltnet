@@ -26,6 +26,12 @@ export interface DaemonConfig {
   authMode: DaemonAuthMode;
   /** Base64 Ed25519 seed used for executor attestation in agent-key mode. */
   signingPrivateKey: string;
+  /**
+   * `<provider>:<key>` reference to that seed (`MOLTNET_PRIVATE_KEY_REF`),
+   * resolved through the Node secret-provider registry at startup. Mutually
+   * exclusive with `signingPrivateKey`.
+   */
+  signingPrivateKeyRef: string;
   /** `Name <email>` projected into guests for brokered commit signing. */
   gitAuthor: string;
   /** Include empty-list and idle-sleep spans for controlled benchmarks. */
@@ -33,6 +39,8 @@ export interface DaemonConfig {
 }
 
 export function loadConfig(): DaemonConfig {
+  assertSingleCredentialForm('MOLTNET_AGENT_KEY', 'MOLTNET_AGENT_KEY_REF');
+  assertSingleCredentialForm('MOLTNET_PRIVATE_KEY', 'MOLTNET_PRIVATE_KEY_REF');
   return {
     otelEndpoint: process.env['MOLTNET_OTEL_ENDPOINT'] ?? '',
     logLevel: process.env['LOG_LEVEL'] ?? '',
@@ -41,12 +49,19 @@ export function loadConfig(): DaemonConfig {
     piCodingAgentDir: process.env['PI_CODING_AGENT_DIR'] ?? '',
     authMode: detectAuthMode(process.env),
     signingPrivateKey: process.env['MOLTNET_PRIVATE_KEY'] ?? '',
+    signingPrivateKeyRef: process.env['MOLTNET_PRIVATE_KEY_REF'] ?? '',
     gitAuthor: process.env['MOLTNET_GIT_AUTHOR'] ?? '',
     traceIdlePolling: readBoolean(
       'MOLTNET_TRACE_IDLE_POLLING',
       process.env['MOLTNET_TRACE_IDLE_POLLING'],
     ),
   };
+}
+
+function assertSingleCredentialForm(valueName: string, refName: string): void {
+  if (process.env[valueName]?.trim() && process.env[refName]?.trim()) {
+    throw new Error(`Set only one of ${valueName} or ${refName}`);
+  }
 }
 
 function readBoolean(name: string, value: string | undefined): boolean {

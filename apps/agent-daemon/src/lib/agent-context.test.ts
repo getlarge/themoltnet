@@ -106,7 +106,7 @@ describe('resolveAgentContext', () => {
     }
   });
 
-  it('connects without config or secret providers in agent-key mode', async () => {
+  it('connects without a config dir in agent-key mode', async () => {
     const root = mkdtempSync(join(tmpdir(), 'daemon-agent-key-root-'));
     execFileSyncMock.mockImplementation(() => {
       throw new Error('not a git repo');
@@ -120,8 +120,11 @@ describe('resolveAgentContext', () => {
 
       const agentDir = join(root, '.moltnet', 'legreffier');
       expect(ctx.agentDir).toBe(agentDir);
-      expect(connectMock).toHaveBeenCalledWith();
-      expect(createNodeSecretProviderRegistryMock).not.toHaveBeenCalled();
+      // No configDir: the key (or its reference) comes from the environment;
+      // the Node registry is supplied so keyring/file references resolve.
+      expect(connectMock).toHaveBeenCalledTimes(1);
+      expect(connectMock.mock.calls[0][0]).not.toHaveProperty('configDir');
+      expect(createNodeSecretProviderRegistryMock).toHaveBeenCalledTimes(1);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -140,8 +143,11 @@ describe('resolveAgentContext', () => {
         authMode: 'agent-key',
       });
 
-      expect(connectMock).toHaveBeenCalledWith();
-      expect(createNodeSecretProviderRegistryMock).not.toHaveBeenCalled();
+      // No configDir: the key (or its reference) comes from the environment;
+      // the Node registry is supplied so keyring/file references resolve.
+      expect(connectMock).toHaveBeenCalledTimes(1);
+      expect(connectMock.mock.calls[0][0]).not.toHaveProperty('configDir');
+      expect(createNodeSecretProviderRegistryMock).toHaveBeenCalledTimes(1);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -186,6 +192,13 @@ describe('detectAuthMode', () => {
   it('treats a blank / whitespace-only key as not set', () => {
     expect(detectAuthMode({ MOLTNET_AGENT_KEY: '   ' })).toBe('oauth2');
     expect(detectAuthMode({ MOLTNET_AGENT_KEY: '' })).toBe('oauth2');
+  });
+
+  it('reports agent-key mode for MOLTNET_AGENT_KEY_REF', () => {
+    expect(detectAuthMode({ MOLTNET_AGENT_KEY_REF: 'file:agent-key.id' })).toBe(
+      'agent-key',
+    );
+    expect(detectAuthMode({ MOLTNET_AGENT_KEY_REF: ' ' })).toBe('oauth2');
   });
 
   it('defaults to oauth2 when the key is absent', () => {

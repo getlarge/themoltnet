@@ -150,6 +150,7 @@ export async function runOnce(
           authMode: cfg.authMode,
           agentDir: resolvedContext.agentDir,
           configuredPrivateKey: cfg.signingPrivateKey,
+          configuredPrivateKeyRef: cfg.signingPrivateKeyRef,
         });
         gate = 'validate_scopes';
         validateDaemonScopes(whoami);

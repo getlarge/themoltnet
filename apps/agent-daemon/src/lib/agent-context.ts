@@ -28,7 +28,8 @@ export type DaemonAuthMode = 'agent-key' | 'oauth2';
 /**
  * Report which auth mode `connect()` will use, without ever reading the secret
  * value into anything logged. Agent-key mode is selected when
- * `MOLTNET_AGENT_KEY` holds a non-blank value — mirroring the SDK precedence
+ * `MOLTNET_AGENT_KEY` or `MOLTNET_AGENT_KEY_REF` holds a non-blank value —
+ * mirroring the SDK precedence
  * where an environment key opts into key mode ahead of the config-file OAuth2
  * credentials. The daemon never passes explicit in-code credentials to
  * `connect()`, so this env-only check matches what `connect()` actually does.
@@ -36,7 +37,9 @@ export type DaemonAuthMode = 'agent-key' | 'oauth2';
  * Pure: `env` is passed in (the config module owns the `process.env` read).
  */
 export function detectAuthMode(env: NodeJS.ProcessEnv): DaemonAuthMode {
-  return env.MOLTNET_AGENT_KEY?.trim() ? 'agent-key' : 'oauth2';
+  return env.MOLTNET_AGENT_KEY?.trim() || env.MOLTNET_AGENT_KEY_REF?.trim()
+    ? 'agent-key'
+    : 'oauth2';
 }
 
 /** Result of the pure startup-binding assessment. */
@@ -149,7 +152,12 @@ export async function resolveAgentContext(
   if (options.authMode === 'agent-key') {
     const rootDir = roots[0] ?? process.cwd();
     const agentDir = join(rootDir, '.moltnet', agentName);
-    const agent = await connect();
+    // No config dir: the key (or its MOLTNET_AGENT_KEY_REF) comes from the
+    // environment. The Node registry is still needed so a keyring or file
+    // reference can be resolved.
+    const agent = await connect({
+      secretProviders: createNodeSecretProviderRegistry(),
+    });
     return { agentDir, agentRootDir: rootDir, agent };
   }
 

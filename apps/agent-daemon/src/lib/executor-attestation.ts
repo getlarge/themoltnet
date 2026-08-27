@@ -4,6 +4,7 @@ import {
   createExecutorAttestor,
   type ExecutorAttestor,
   readConfig,
+  resolveEnvSecretReference,
   resolveIdentitySeed,
   type Whoami,
 } from '@themoltnet/sdk';
@@ -22,15 +23,36 @@ export async function resolveExecutorSigningPrivateKey(input: {
   authMode: DaemonAuthMode;
   agentDir: string;
   configuredPrivateKey: string;
+  /** `<provider>:<key>` from MOLTNET_PRIVATE_KEY_REF; empty when unset. */
+  configuredPrivateKeyRef?: string;
 }): Promise<string> {
   if (input.authMode === 'agent-key') {
     const privateKey = input.configuredPrivateKey.trim();
-    if (!privateKey) {
+    if (privateKey) return privateKey;
+    const reference = input.configuredPrivateKeyRef?.trim();
+    if (!reference) {
       throw new Error(
-        'Agent-key daemon startup requires MOLTNET_PRIVATE_KEY containing the base64-encoded Ed25519 private key seed.',
+        'Agent-key daemon startup requires MOLTNET_PRIVATE_KEY (or MOLTNET_PRIVATE_KEY_REF) containing the base64-encoded Ed25519 private key seed.',
       );
     }
-    return privateKey;
+    let resolved: string;
+    try {
+      resolved = await resolveEnvSecretReference(
+        reference,
+        createNodeSecretProviderRegistry(),
+      );
+    } catch (cause) {
+      throw new Error(
+        `Agent-key daemon startup could not resolve MOLTNET_PRIVATE_KEY_REF: ${(cause as Error).message}`,
+        { cause },
+      );
+    }
+    if (Buffer.from(resolved, 'base64').length !== 32) {
+      throw new Error(
+        'MOLTNET_PRIVATE_KEY_REF must resolve to a base64-encoded 32-byte Ed25519 seed.',
+      );
+    }
+    return resolved;
   }
 
   const config = await readConfig(input.agentDir);
