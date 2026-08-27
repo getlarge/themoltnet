@@ -1,4 +1,11 @@
-import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
+import {
+  chmod,
+  mkdir,
+  readFile,
+  rename,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
@@ -72,10 +79,19 @@ export async function writeConfig(
   const dir = configDir ?? getConfigDir();
   await mkdir(dir, { recursive: true });
   const filePath = join(dir, 'moltnet.json');
-  await writeFile(filePath, JSON.stringify(config, null, 2) + '\n', {
-    mode: 0o600,
-  });
-  await chmod(filePath, 0o600);
+  // Write to a sibling temp file and rename so the config is either fully
+  // committed or untouched; callers rely on this when rolling back secrets.
+  const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  try {
+    await writeFile(tempPath, JSON.stringify(config, null, 2) + '\n', {
+      mode: 0o600,
+    });
+    await chmod(tempPath, 0o600);
+    await rename(tempPath, filePath);
+  } catch (error) {
+    await rm(tempPath, { force: true }).catch(() => undefined);
+    throw error;
+  }
   return filePath;
 }
 

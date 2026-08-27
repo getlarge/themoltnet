@@ -1,4 +1,4 @@
-import { mkdtemp, readFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -59,5 +59,30 @@ describe('OAuth2 config updates', () => {
         client_secret_ref: { provider: 'os-keyring', key: 'key' },
       }),
     ).rejects.toThrow(/updateOAuth2Config/);
+  });
+
+  it('writes config atomically with private permissions and no leftover temp files', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
+
+    const path = await writeConfig(config(), dir);
+
+    expect((await stat(path)).mode & 0o777).toBe(0o600);
+    expect(await readdir(dir)).toEqual(['moltnet.json']);
+  });
+
+  it('leaves an existing config untouched when the write cannot be committed', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
+    await writeConfig(config(), dir);
+    const before = await readFile(join(dir, 'moltnet.json'), 'utf8');
+    // A directory at the target path makes the final rename fail.
+    await mkdir(join(dir, 'blocker'));
+    const blocked = join(dir, 'blocker');
+    await mkdir(join(blocked, 'moltnet.json'));
+
+    await expect(
+      writeConfig({ ...config(), identity_id: 'other' }, blocked),
+    ).rejects.toThrow();
+    expect(await readFile(join(dir, 'moltnet.json'), 'utf8')).toBe(before);
+    expect(await readdir(blocked)).toEqual(['moltnet.json']);
   });
 });
