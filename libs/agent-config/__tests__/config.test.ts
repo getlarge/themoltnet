@@ -5,8 +5,10 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import {
+  type KeysConfig,
   type MoltNetConfig,
   updateConfigSection,
+  updateKeysConfig,
   updateOAuth2Config,
   writeConfig,
 } from '../src/config.js';
@@ -84,5 +86,65 @@ describe('OAuth2 config updates', () => {
     ).rejects.toThrow();
     expect(await readFile(join(dir, 'moltnet.json'), 'utf8')).toBe(before);
     expect(await readdir(blocked)).toEqual(['moltnet.json']);
+  });
+});
+
+describe('keys config updates', () => {
+  it('replaces the plaintext seed with a reference without retaining both forms', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
+    await writeConfig(config(), dir);
+
+    await updateKeysConfig(
+      {
+        public_key: 'pub',
+        fingerprint: 'fp',
+        private_key_ref: { provider: 'os-keyring', key: 'identity/fp/seed' },
+      },
+      dir,
+    );
+
+    const raw = await readFile(join(dir, 'moltnet.json'), 'utf8');
+    expect(raw).not.toContain('"private_key"');
+    expect(raw).toContain('"private_key_ref"');
+    expect(JSON.parse(raw).keys).toEqual({
+      public_key: 'pub',
+      fingerprint: 'fp',
+      private_key_ref: { provider: 'os-keyring', key: 'identity/fp/seed' },
+    });
+  });
+
+  it('rejects keys that set both or neither secret form', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
+    await writeConfig(config(), dir);
+    const both = {
+      public_key: 'pub',
+      fingerprint: 'fp',
+      private_key: 'priv',
+      private_key_ref: { provider: 'os-keyring', key: 'k' },
+    } as unknown as KeysConfig;
+    const neither = {
+      public_key: 'pub',
+      fingerprint: 'fp',
+    } as unknown as KeysConfig;
+
+    await expect(updateKeysConfig(both, dir)).rejects.toThrow(
+      /exactly one of private_key or private_key_ref/,
+    );
+    await expect(updateKeysConfig(neither, dir)).rejects.toThrow(
+      /exactly one of private_key or private_key_ref/,
+    );
+  });
+
+  it('rejects shallow keys updates through the generic helper', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
+    await writeConfig(config(), dir);
+
+    await expect(
+      updateConfigSection(
+        'keys',
+        { private_key_ref: { provider: 'env', key: 'MOLTNET_PRIVATE_KEY' } },
+        dir,
+      ),
+    ).rejects.toThrow(/updateKeysConfig/);
   });
 });

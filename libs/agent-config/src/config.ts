@@ -30,11 +30,26 @@ export type OAuth2Config =
       client_secret_ref: SecretReference;
     };
 
+/** Exactly one of `private_key` (legacy plaintext seed) or `private_key_ref`. */
+export type KeysConfig =
+  | {
+      public_key: string;
+      fingerprint: string;
+      private_key: string;
+      private_key_ref?: never;
+    }
+  | {
+      public_key: string;
+      fingerprint: string;
+      private_key?: never;
+      private_key_ref: SecretReference;
+    };
+
 export interface MoltNetConfig {
   identity_id: string;
   registered_at: string;
   oauth2: OAuth2Config;
-  keys: { public_key: string; private_key: string; fingerprint: string };
+  keys: KeysConfig;
   endpoints: { api: string; mcp: string };
   ssh?: { private_key_path: string; public_key_path: string };
   git?: {
@@ -105,6 +120,9 @@ export async function updateConfigSection(
       'OAuth2 credentials must be updated with updateOAuth2Config()',
     );
   }
+  if (section === 'keys') {
+    throw new Error('Signing keys must be updated with updateKeysConfig()');
+  }
   const config = await readConfig(configDir);
   if (!config) {
     throw new Error('No config found — run `moltnet register` first');
@@ -134,5 +152,25 @@ export async function updateOAuth2Config(
     );
   }
   config.oauth2 = oauth2;
+  await writeConfig(config, configDir);
+}
+
+/** Replace the keys union atomically so the opposite seed form is removed. */
+export async function updateKeysConfig(
+  keys: KeysConfig,
+  configDir?: string,
+): Promise<void> {
+  const config = await readConfig(configDir);
+  if (!config) {
+    throw new Error('No config found — run `moltnet register` first');
+  }
+  const plaintext = keys.private_key?.trim();
+  const reference = keys.private_key_ref;
+  if (!keys.public_key.trim() || Boolean(plaintext) === Boolean(reference)) {
+    throw new Error(
+      'Keys config must set public_key and exactly one of private_key or private_key_ref',
+    );
+  }
+  config.keys = keys;
   await writeConfig(config, configDir);
 }
