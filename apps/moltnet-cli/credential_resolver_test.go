@@ -220,3 +220,35 @@ func TestResolveGitHubAppPrivateKeyRejectsInvalidUnboundAndMissing(t *testing.T)
 		}
 	}
 }
+
+func TestResolveAgentKeyAndEnvReferences(t *testing.T) {
+	registry, provider := newMemorySecretProviderRegistry()
+	provider.values["agent-key/id-1"] = " ak_secret "
+	provider.values["agent-key/other"] = "x"
+	provider.values["agent-key/empty"] = "  "
+
+	if _, configured, err := resolveAgentKey(&CredentialsFile{IdentityID: "id-1"}, registry); configured || err != nil {
+		t.Fatalf("no reference: configured=%v err=%v", configured, err)
+	}
+	ref := func(key string) *SecretReference { return &SecretReference{Provider: osKeyringProviderName, Key: key} }
+	key, configured, err := resolveAgentKey(&CredentialsFile{IdentityID: "id-1", AgentKeyRef: ref("agent-key/id-1")}, registry)
+	if !configured || err != nil || key != "ak_secret" {
+		t.Fatalf("bound reference = %q, %v, %v", key, configured, err)
+	}
+	var resolutionErr *CredentialResolutionError
+	if _, _, err := resolveAgentKey(&CredentialsFile{IdentityID: "id-1", AgentKeyRef: ref("agent-key/other")}, registry); !errors.As(err, &resolutionErr) || resolutionErr.Code != "unbound" {
+		t.Fatalf("unbound error = %v", err)
+	}
+	if _, _, err := resolveAgentKey(&CredentialsFile{IdentityID: "empty", AgentKeyRef: ref("agent-key/empty")}, registry); !errors.As(err, &resolutionErr) || resolutionErr.Code != "invalid_value" {
+		t.Fatalf("empty value error = %v", err)
+	}
+
+	if got, err := resolveEnvSecretReference("os-keyring:agent-key/other", registry); err != nil || got != "x" {
+		t.Fatalf("env reference = %q, %v", got, err)
+	}
+	for _, raw := range []string{"", "nocolon", ":k", "env:", "Env:K"} {
+		if _, err := parseSecretReferenceString(raw); err == nil {
+			t.Errorf("parseSecretReferenceString(%q) accepted a malformed reference", raw)
+		}
+	}
+}

@@ -76,12 +76,26 @@ func newBearerClient(
 // newAuthenticatedClient resolves the CLI authentication mode and returns a
 // fully authenticated generated client.
 //
-// A non-blank MOLTNET_AGENT_KEY is authoritative: it is sent directly as a
-// static bearer credential and OAuth2 is never attempted as a fallback. This
-// lets API-only commands run without moltnet.json. When the variable is absent
-// or blank, the existing OAuth2 client_credentials flow is used.
+// A non-blank MOLTNET_AGENT_KEY (or a MOLTNET_AGENT_KEY_REF resolved through
+// the secret providers) is authoritative: it is sent directly as a static
+// bearer credential and OAuth2 is never attempted as a fallback. This lets
+// API-only commands run without moltnet.json. Otherwise a configured
+// agent_key_ref in moltnet.json is used, and only then the OAuth2
+// client_credentials flow.
 func newAuthenticatedClient(apiURL, credPath string) (*moltnetapi.Client, error) {
-	if agentKey := strings.TrimSpace(os.Getenv(agentKeyEnv)); agentKey != "" {
+	agentKey := strings.TrimSpace(os.Getenv(agentKeyEnv))
+	agentKeyRef := strings.TrimSpace(os.Getenv(agentKeyRefEnv))
+	if agentKey != "" && agentKeyRef != "" {
+		return nil, fmt.Errorf("set only one of %s or %s", agentKeyEnv, agentKeyRefEnv)
+	}
+	if agentKeyRef != "" {
+		resolved, err := resolveEnvSecretReference(agentKeyRef, NewSecretProviderRegistry())
+		if err != nil {
+			return nil, fmt.Errorf("resolve %s: %w", agentKeyRefEnv, err)
+		}
+		agentKey = resolved
+	}
+	if agentKey != "" {
 		if err := validateAgentKeyAPIURL(apiURL); err != nil {
 			return nil, err
 		}
@@ -100,6 +114,23 @@ func newAuthenticatedClient(apiURL, credPath string) (*moltnetapi.Client, error)
 			"OAuth2 credentials unavailable: %w; set %s for agent-key authentication",
 			err,
 			agentKeyEnv,
+		)
+	}
+	// A configured agent_key_ref is a config-mode credential and precedes
+	// the OAuth2 client credentials.
+	if configKey, configured, err := resolveAgentKey(creds, NewSecretProviderRegistry()); configured {
+		if err != nil {
+			return nil, fmt.Errorf("resolve agent_key_ref: %w", err)
+		}
+		if err := validateAgentKeyAPIURL(apiURL); err != nil {
+			return nil, err
+		}
+		return newBearerClient(
+			apiURL,
+			func(_ context.Context) (string, error) {
+				return configKey, nil
+			},
+			newAPIHTTPClient(),
 		)
 	}
 	if creds.OAuth2.ClientID == "" {

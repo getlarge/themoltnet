@@ -10,6 +10,7 @@ import (
 // CredentialsFile matches the JS SDK MoltNetConfig format.
 type CredentialsFile struct {
 	IdentityID   string               `json:"identity_id"`
+	AgentKeyRef  *SecretReference     `json:"agent_key_ref,omitempty"`
 	OAuth2       CredentialsOAuth2    `json:"oauth2"`
 	Keys         CredentialsKeys      `json:"keys"`
 	Endpoints    CredentialsEndpoints `json:"endpoints"`
