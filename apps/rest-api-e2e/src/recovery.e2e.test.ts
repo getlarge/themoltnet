@@ -14,10 +14,12 @@
 import {
   type Client,
   createClient,
+  recoverAgentCredentials,
   requestRecoveryChallenge,
   verifyRecoveryChallenge,
 } from '@moltnet/api-client';
-import { cryptoService } from '@moltnet/crypto-service';
+import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
+import { cryptoService, openSealedEnvelope } from '@moltnet/crypto-service';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, type TestAgent } from './helpers.js';
@@ -26,6 +28,23 @@ import {
   KRATOS_PUBLIC_URL,
   type TestHarness,
 } from './setup.js';
+
+function requestOAuthToken(
+  baseUrl: string,
+  clientId: string,
+  clientSecret: string,
+) {
+  return fetch(`${baseUrl}/oauth2/token`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: clientId,
+      client_secret: clientSecret,
+      scope: AGENT_OAUTH_SCOPES.join(' '),
+    }),
+  });
+}
 
 describe('Recovery Flow', () => {
   let harness: TestHarness;
@@ -292,6 +311,53 @@ describe('Recovery Flow', () => {
 
       const problem = error as Record<string, unknown>;
       expect(problem.code).toBe('INVALID_CHALLENGE');
+    });
+  });
+
+  describe('POST /recovery/credentials', () => {
+    it('replaces and seals a lost OAuth2 credential', async () => {
+      const previousSecret = agent.clientSecret;
+      const { data: challengeData, error: challengeError } =
+        await requestRecoveryChallenge({
+          client,
+          body: { publicKey: agent.keyPair.publicKey },
+        });
+      expect(challengeError).toBeUndefined();
+      expect(challengeData).toBeDefined();
+
+      const signature = await cryptoService.sign(
+        challengeData!.challenge,
+        agent.keyPair.privateKey,
+      );
+      const { data, error, response } = await recoverAgentCredentials({
+        client,
+        body: {
+          challenge: challengeData!.challenge,
+          hmac: challengeData!.hmac,
+          signature,
+          publicKey: agent.keyPair.publicKey,
+        },
+      });
+
+      expect(error).toBeUndefined();
+      expect(response.status).toBe(200);
+      expect(data).toBeDefined();
+      const replacement = JSON.parse(
+        openSealedEnvelope(data!.sealedCredentials, agent.keyPair.privateKey),
+      ) as { clientId: string; clientSecret: string };
+      expect(replacement.clientId).toBe(agent.clientId);
+      expect(replacement.clientSecret).not.toBe(previousSecret);
+
+      await expect(
+        requestOAuthToken(
+          harness.baseUrl,
+          replacement.clientId,
+          replacement.clientSecret,
+        ),
+      ).resolves.toMatchObject({ status: 200 });
+      await expect(
+        requestOAuthToken(harness.baseUrl, agent.clientId, previousSecret),
+      ).resolves.toMatchObject({ status: 401 });
     });
   });
 });
