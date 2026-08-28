@@ -5,21 +5,25 @@ import { join } from 'node:path';
 import type { Whoami } from '@themoltnet/sdk';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { connectMock, execFileSyncMock, AuthenticationErrorMock } = vi.hoisted(
-  () => {
-    class AuthenticationErrorMock extends Error {
-      constructor(message: string) {
-        super(message);
-        this.name = 'AuthenticationError';
-      }
+const {
+  connectMock,
+  execFileSyncMock,
+  readConfigMock,
+  AuthenticationErrorMock,
+} = vi.hoisted(() => {
+  class AuthenticationErrorMock extends Error {
+    constructor(message: string) {
+      super(message);
+      this.name = 'AuthenticationError';
     }
-    return {
-      connectMock: vi.fn(),
-      execFileSyncMock: vi.fn(),
-      AuthenticationErrorMock,
-    };
-  },
-);
+  }
+  return {
+    connectMock: vi.fn(),
+    execFileSyncMock: vi.fn(),
+    readConfigMock: vi.fn(),
+    AuthenticationErrorMock,
+  };
+});
 
 vi.mock('node:child_process', () => ({
   execFileSync: execFileSyncMock,
@@ -27,6 +31,7 @@ vi.mock('node:child_process', () => ({
 
 vi.mock('@themoltnet/sdk', () => ({
   connect: connectMock,
+  readConfig: readConfigMock,
   AuthenticationError: AuthenticationErrorMock,
 }));
 
@@ -46,6 +51,8 @@ import {
 describe('resolveAgentContext', () => {
   beforeEach(() => {
     connectMock.mockReset();
+    readConfigMock.mockReset();
+    readConfigMock.mockResolvedValue(null);
     connectMock.mockResolvedValue({ agent: 'connected' });
     execFileSyncMock.mockReset();
     createNodeSecretProviderRegistryMock.mockReset();
@@ -358,3 +365,39 @@ function writeCredentials(root: string, agentName: string): void {
   writeFileSync(join(agentDir, 'moltnet.json'), '{}\n', 'utf8');
   writeFileSync(join(agentDir, 'env'), '', 'utf8');
 }
+
+describe('credential source vs auth mechanism', () => {
+  it('reports oauth2 for a plain config, agent-key for a config with agent_key_ref, and environment source in key mode', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'daemon-mechanism-root-'));
+    execFileSyncMock.mockImplementation(() => {
+      throw new Error('not a git repo');
+    });
+    try {
+      writeCredentials(root, 'legreffier');
+
+      const oauth = await resolveAgentContext('legreffier', {
+        agentRootDir: root,
+      });
+      expect(oauth.credentialSource).toBe('config');
+      expect(oauth.authMechanism).toBe('oauth2');
+
+      readConfigMock.mockResolvedValueOnce({
+        agent_key_ref: { provider: 'file', key: 'agent-key.id-1' },
+      });
+      const keyed = await resolveAgentContext('legreffier', {
+        agentRootDir: root,
+      });
+      expect(keyed.credentialSource).toBe('config');
+      expect(keyed.authMechanism).toBe('agent-key');
+
+      const env = await resolveAgentContext('legreffier', {
+        agentRootDir: root,
+        authMode: 'agent-key',
+      });
+      expect(env.credentialSource).toBe('environment');
+      expect(env.authMechanism).toBe('agent-key');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});

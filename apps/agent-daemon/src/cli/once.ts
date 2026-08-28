@@ -262,7 +262,7 @@ export async function runOnce(
     resourceAttributes: {
       'moltnet.task.id': taskId,
       'moltnet.agent.name': opts.agent,
-      'moltnet.auth.mode': cfg.authMode,
+      'moltnet.auth.mode': ctx.authMechanism,
       'moltnet.llm.provider': profile.provider,
       'moltnet.llm.model': profile.model,
       ...(profile.thinkingLevel

@@ -6,22 +6,39 @@ import {
   type Agent,
   AuthenticationError,
   connect,
+  readConfig,
   type Whoami,
 } from '@themoltnet/sdk';
 import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
+
+/** The mechanism `connect()` actually authenticated with. */
+export type DaemonAuthMechanism = 'agent-key' | 'oauth2';
 
 export interface DaemonAgentContext {
   agentDir: string;
   agentRootDir: string;
   agent: Agent;
+  /**
+   * Where credentials came from: the configless environment
+   * (`MOLTNET_AGENT_KEY` / `MOLTNET_AGENT_KEY_REF`) or `moltnet.json`.
+   */
+  credentialSource: 'environment' | 'config';
+  /**
+   * The authentication mechanism in use. Differs from `credentialSource`
+   * when `moltnet.json` carries an `agent_key_ref`: the source is `config`
+   * but the mechanism is `agent-key`.
+   */
+  authMechanism: DaemonAuthMechanism;
 }
 
 /**
- * How the daemon authenticates to MoltNet.
+ * Where the daemon's credentials come from — this is the *credential source*,
+ * not necessarily the authentication mechanism (see `DaemonAgentContext`).
  *
- * - `agent-key`: a static, team-bound bearer secret from `MOLTNET_AGENT_KEY`.
- * - `oauth2`: the default client-credentials flow using the agent's
- *   `moltnet.json` client id/secret.
+ * - `agent-key`: configless — a static, team-bound bearer secret from
+ *   `MOLTNET_AGENT_KEY` (or `MOLTNET_AGENT_KEY_REF`); no agent files are read.
+ * - `oauth2`: `moltnet.json` supplies the credentials; the mechanism is the
+ *   OAuth2 client-credentials flow unless the file carries `agent_key_ref`.
  */
 export type DaemonAuthMode = 'agent-key' | 'oauth2';
 
@@ -158,7 +175,13 @@ export async function resolveAgentContext(
     const agent = await connect({
       secretProviders: createNodeSecretProviderRegistry(),
     });
-    return { agentDir, agentRootDir: rootDir, agent };
+    return {
+      agentDir,
+      agentRootDir: rootDir,
+      agent,
+      credentialSource: 'environment',
+      authMechanism: 'agent-key',
+    };
   }
 
   // OAuth2: the host needs `moltnet.json` to build its own Agent. Reading it on
@@ -170,10 +193,15 @@ export async function resolveAgentContext(
       configDir: located.agentDir,
       secretProviders: createNodeSecretProviderRegistry(),
     });
+    // connect() prefers a configured agent_key_ref over OAuth2; report the
+    // mechanism it actually used so diagnostics and telemetry agree.
+    const config = await readConfig(located.agentDir);
     return {
       agentDir: located.agentDir,
       agentRootDir: located.rootDir,
       agent,
+      credentialSource: 'config',
+      authMechanism: config?.agent_key_ref ? 'agent-key' : 'oauth2',
     };
   }
 
