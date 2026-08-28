@@ -1,6 +1,10 @@
 import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 
-import { getInstallationToken } from '@themoltnet/github-agent';
+import {
+  getInstallationToken,
+  githubAppKeySourceFromConfig,
+} from '@themoltnet/github-agent';
 import {
   type MoltNetConfig,
   resolveGitHubAppPrivateKey,
@@ -66,23 +70,25 @@ export async function runPortVerifyInstallationPhase(opts: {
     };
   }
 
+  // One validated key source for both PEM forms: the shared resolver applies
+  // provider policy and the RSA check, lazily, on a cache miss only.
+  const github = config.github;
+  const keySource = githubAppKeySourceFromConfig({
+    resolvePem: () =>
+      resolveGitHubAppPrivateKey(config, createNodeSecretProviderRegistry()),
+    cacheDir:
+      opts.configDir ??
+      (github.private_key_path
+        ? dirname(github.private_key_path)
+        : join(tmpdir(), `moltnet-port-verify-${github.app_id}`)),
+  });
   let token: string;
   try {
-    const result = config.github.private_key_ref
-      ? await getInstallationToken({
-          appId: config.github.app_id,
-          installationId: config.github.installation_id,
-          privateKeyPem: await resolveGitHubAppPrivateKey(
-            config,
-            createNodeSecretProviderRegistry(),
-          ),
-          cacheDir: opts.configDir ?? tmpdir(),
-        })
-      : await getInstallationToken({
-          appId: config.github.app_id,
-          privateKeyPath: config.github.private_key_path,
-          installationId: config.github.installation_id,
-        });
+    const result = await getInstallationToken({
+      appId: github.app_id,
+      installationId: github.installation_id,
+      ...keySource,
+    });
     token = result.token;
   } catch (err) {
     return {

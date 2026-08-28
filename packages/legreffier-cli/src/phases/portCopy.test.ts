@@ -125,4 +125,41 @@ describe('runPortCopyPhase', () => {
     );
     expect(allowed).toContain('legreffier ssh-ed25519');
   });
+
+  it('skips the PEM copy for a provider-backed github.private_key_ref', async () => {
+    const source = join(tmpRoot, 'source-ref');
+    await mkdir(source, { recursive: true });
+    const config = await seedSource(source);
+    const { private_key_path: _path, ...github } = config.github as {
+      private_key_path: string;
+      app_id: string;
+      app_slug?: string;
+      installation_id: string;
+    };
+    const refConfig: MoltNetConfig = {
+      ...config,
+      github: {
+        ...github,
+        private_key_ref: {
+          provider: 'file',
+          key: 'github-app.2878569.private-key',
+        },
+      },
+    };
+    await writeFile(join(source, 'moltnet.json'), JSON.stringify(refConfig));
+    const target = join(tmpRoot, 'target-ref');
+
+    const result = await runPortCopyPhase({
+      sourceDir: source,
+      targetDir: target,
+      config: refConfig,
+    });
+
+    expect(result.copied.some((f) => f.endsWith('.pem'))).toBe(false);
+    expect(result.warnings.join(' ')).toMatch(/private_key_ref/);
+    await expect(stat(join(target, 'legreffier.pem'))).rejects.toThrow();
+    await expect(
+      stat(join(target, 'ssh', 'id_ed25519')),
+    ).resolves.toBeDefined();
+  });
 });

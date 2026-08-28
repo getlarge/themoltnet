@@ -6,9 +6,13 @@ import {
   type MoltNetConfig,
   readConfig,
   repairConfig,
+  resolveGitHubAppPrivateKey,
   type SecretProviderRegistry,
 } from '@themoltnet/sdk';
-import { resolveNodeOAuth2ClientSecret } from '@themoltnet/sdk/node';
+import {
+  createNodeSecretProviderRegistry,
+  resolveNodeOAuth2ClientSecret,
+} from '@themoltnet/sdk/node';
 
 export interface PortValidateResult {
   config: MoltNetConfig;
@@ -129,6 +133,22 @@ export async function runPortValidatePhase(opts: {
         'missing — required for port (or github.private_key_ref for a secret provider)',
       action: 'warning',
     });
+  } else if (config.github?.private_key_ref) {
+    // Resolve the referenced PEM now, before any target files are written,
+    // so an unresolvable reference blocks the port instead of surfacing
+    // after copy/rewrite.
+    try {
+      await resolveGitHubAppPrivateKey(
+        config,
+        secretProviders ?? createNodeSecretProviderRegistry(),
+      );
+    } catch (error) {
+      issues.push({
+        field: 'github.private_key_ref',
+        problem: `cannot be resolved — ${error instanceof Error ? error.message : String(error)}`,
+        action: 'warning',
+      });
+    }
   }
 
   if (!config.ssh?.private_key_path) {

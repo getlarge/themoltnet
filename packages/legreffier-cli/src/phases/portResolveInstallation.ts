@@ -1,5 +1,6 @@
 import { findInstallationForOwner } from '@themoltnet/github-agent';
 import {
+  CredentialResolutionError,
   type MoltNetConfig,
   resolveGitHubAppPrivateKey,
   updateGitHubConfig,
@@ -62,23 +63,21 @@ export async function runPortResolveInstallationPhase(opts: {
 
   const targetOwner = currentRepo.split('/')[0];
 
+  // Lazy key source through the shared resolver (both PEM forms). A
+  // credential that cannot be resolved is a port failure (rethrown below),
+  // not a skipped step — the target must not be left with an unusable
+  // identity; only GitHub API failures degrade to `skipped`.
+  const github = config.github;
   let result: { installationId: string } | null;
   try {
-    result = config.github.private_key_ref
-      ? await findInstallationForOwner({
-          appId: config.github.app_id,
-          privateKeyPem: await resolveGitHubAppPrivateKey(
-            config,
-            createNodeSecretProviderRegistry(),
-          ),
-          owner: targetOwner,
-        })
-      : await findInstallationForOwner({
-          appId: config.github.app_id,
-          privateKeyPath: config.github.private_key_path,
-          owner: targetOwner,
-        });
+    result = await findInstallationForOwner({
+      appId: github.app_id,
+      loadPrivateKeyPem: () =>
+        resolveGitHubAppPrivateKey(config, createNodeSecretProviderRegistry()),
+      owner: targetOwner,
+    });
   } catch (err) {
+    if (err instanceof CredentialResolutionError) throw err;
     return {
       status: 'skipped',
       message: `could not list app installations: ${(err as Error).message}`,

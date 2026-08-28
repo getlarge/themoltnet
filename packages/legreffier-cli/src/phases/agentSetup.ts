@@ -74,8 +74,11 @@ export async function runAgentSetupPhase(opts: {
           app_id: appId,
           app_slug: appSlug,
           installation_id: installationId,
-          private_key_path: pemPath,
           ...(org ? { org } : {}),
+          // A provider-backed PEM already in config wins over a path.
+          ...(existingConfig?.github?.private_key_ref
+            ? { private_key_ref: existingConfig.github.private_key_ref }
+            : { private_key_path: pemPath }),
         },
       },
       clientSecret,

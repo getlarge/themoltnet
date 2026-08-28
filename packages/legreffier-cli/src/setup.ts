@@ -731,7 +731,10 @@ export async function writeSettingsLocal({
     env: {
       ...existingEnv,
       [`${prefix}_GITHUB_APP_ID`]: appId,
-      [`${prefix}_GITHUB_APP_PRIVATE_KEY_PATH`]: pemPath,
+      // Omitted for provider-backed PEMs (github.private_key_ref).
+      ...(pemPath
+        ? { [`${prefix}_GITHUB_APP_PRIVATE_KEY_PATH`]: pemPath }
+        : {}),
       [`${prefix}_GITHUB_APP_INSTALLATION_ID`]: installationId,
       [`${prefix}_CLIENT_ID`]: clientId,
       GIT_CONFIG_GLOBAL: `.moltnet/${agentName}/gitconfig`,

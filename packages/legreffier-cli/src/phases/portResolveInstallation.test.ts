@@ -86,7 +86,7 @@ describe('runPortResolveInstallationPhase', () => {
     expect(result.message).toContain('innovation-system');
     expect(vi.mocked(findInstallationForOwner)).toHaveBeenCalledWith({
       appId: '2878569',
-      privateKeyPath: '/tmp/legreffier.pem',
+      loadPrivateKeyPem: expect.any(Function),
       owner: 'innovation-system',
     });
   });

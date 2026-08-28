@@ -193,10 +193,9 @@ export function PortApp({
           clientId: securedConfig.oauth2.client_id,
           appSlug: securedConfig.github?.app_slug ?? '',
           appId: securedConfig.github?.app_id ?? '',
-          pemPath: join(
-            targetDir,
-            basename(securedConfig.github?.private_key_path ?? ''),
-          ),
+          pemPath: securedConfig.github?.private_key_path
+            ? join(targetDir, basename(securedConfig.github.private_key_path))
+            : '',
           installationId: resolveResult.installationId,
         };
         for (const agentType of agents) {
