@@ -39,10 +39,8 @@ export { connect, type ConnectOptions } from './connect.js';
 export {
   type CredentialResolutionCode,
   CredentialResolutionError,
-  resetLegacyCredentialWarnings,
   resolveIdentitySeed,
   resolveOAuth2ClientSecret,
-  warnLegacyCredentialOnce,
 } from './credential-resolver.js';
 export {
   deriveMcpUrl,

@@ -3,9 +3,12 @@ import { randomBytes } from 'node:crypto';
 import { cryptoService } from '@moltnet/crypto-service';
 import {
   buildSelfRegistrationMessage,
+  type MoltNetConfig,
   readConfig,
+  resolveIdentitySeed,
   writeConfig,
 } from '@themoltnet/sdk';
+import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
 
 import { checkWorkflowLive, startOnboarding } from '../api.js';
 import { checkAppNameAvailable, suggestAppNames } from '../github.js';
@@ -36,7 +39,7 @@ export async function runIdentityPhase(opts: {
         : '';
     return {
       publicKey: existingConfig.keys.public_key,
-      privateKey: existingConfig.keys.private_key ?? '',
+      privateKey: await existingSeed(existingConfig),
       fingerprint: existingConfig.keys.fingerprint,
       workflowId,
       manifestFormUrl: '',
@@ -62,8 +65,9 @@ export async function runIdentityPhase(opts: {
       dispatch({ type: 'step', key: 'keypair', status: 'skipped' });
       dispatch({ type: 'step', key: 'register', status: 'skipped' });
       dispatch({ type: 'fingerprint', fingerprint: resumeFingerprint });
-      const resumePrivateKey =
-        existingConfig?.keys?.private_key ?? existingState.privateKey;
+      const resumePrivateKey = existingConfig?.keys?.public_key
+        ? await existingSeed(existingConfig)
+        : existingState.privateKey;
       // Write config now if it's missing (crash before early write completed)
       if (!existingConfig?.keys?.public_key) {
         await writeConfig(
@@ -174,4 +178,15 @@ export async function runIdentityPhase(opts: {
     clientSecret: '',
     skipped: false,
   };
+}
+
+/**
+ * The seed of an already-registered agent: the legacy plaintext value as-is,
+ * or `keys.private_key_ref` resolved through the Node secret providers.
+ */
+export async function existingSeed(config: MoltNetConfig): Promise<string> {
+  if ('private_key' in config.keys && config.keys.private_key) {
+    return config.keys.private_key;
+  }
+  return resolveIdentitySeed(config, createNodeSecretProviderRegistry());
 }

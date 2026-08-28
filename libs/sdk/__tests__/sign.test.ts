@@ -147,6 +147,8 @@ describe('sign', () => {
       }),
     );
 
-    await expect(sign('m', 'n')).rejects.toThrow(/os-keyring.*not registered/);
+    await expect(sign('m', 'n')).rejects.toThrow(
+      /os-keyring.*could not resolve/,
+    );
   });
 });

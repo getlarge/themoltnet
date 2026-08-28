@@ -109,7 +109,10 @@ async function resolveConnection(
         options.secretProviders ?? createDefaultSecretProviderRegistry(),
       );
     } catch (error) {
-      if (error instanceof CredentialResolutionError) {
+      if (
+        error instanceof CredentialResolutionError &&
+        error.code !== 'provider_failure'
+      ) {
         throw new MoltNetError(
           error.code === 'unbound'
             ? 'OAuth2 secret reference is not bound to this MoltNet identity and client.'

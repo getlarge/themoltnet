@@ -3,6 +3,7 @@ import open from 'open';
 
 import { pollUntil } from '../api.js';
 import type { InstallationResult, UIAction } from '../ui/types.js';
+import { existingSeed } from './identity.js';
 
 export async function runInstallationPhase(opts: {
   apiUrl: string;
@@ -39,12 +40,16 @@ export async function runInstallationPhase(opts: {
   const result = await pollUntil(apiUrl, workflowId, ['completed'], (status) =>
     dispatch({ type: 'serverStatus', status }),
   );
-  if (!result.clientSecret || !existingConfig?.keys.private_key) {
+  if (
+    !result.clientSecret ||
+    !existingConfig?.keys ||
+    (!existingConfig.keys.private_key && !existingConfig.keys.private_key_ref)
+  ) {
     throw new Error('Sealed OAuth2 credential not available');
   }
   const clientSecret = decryptFromAgent(
     result.clientSecret,
-    existingConfig.keys.private_key,
+    await existingSeed(existingConfig),
   );
 
   dispatch({ type: 'step', key: 'installation', status: 'done' });

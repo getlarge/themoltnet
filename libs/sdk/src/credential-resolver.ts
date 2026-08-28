@@ -11,7 +11,8 @@ export type CredentialResolutionCode =
   | 'ambiguous'
   | 'missing'
   | 'unbound'
-  | 'invalid_value';
+  | 'invalid_value'
+  | 'provider_failure';
 
 /** Classifies a failed credential lookup without carrying the value. */
 export class CredentialResolutionError extends Error {
@@ -37,13 +38,36 @@ export function warnLegacyCredentialOnce(kind: CredentialKind): void {
   warned.add(kind);
   // eslint-disable-next-line no-console
   console.warn(
-    `Warning: plaintext ${LEGACY_FIELDS[kind]} in moltnet.json is deprecated; move it to a secret provider with \`moltnet config migrate\`.`,
+    `Warning: plaintext ${LEGACY_FIELDS[kind]} in moltnet.json is deprecated; move it to a secret provider reference (see docs/reference/agent-configuration.md).`,
   );
 }
 
-/** Test hook. */
+/** Test hook — module-internal, not part of the published SDK surface. */
 export function resetLegacyCredentialWarnings(): void {
   warned.clear();
+}
+
+/**
+ * Resolve through the registry, normalizing any provider failure into a
+ * value-free `provider_failure` error. Provider messages are retained only
+ * as `cause` so callers decide whether to surface them.
+ */
+async function resolveThroughRegistry(
+  kind: CredentialKind,
+  registry: SecretProviderRegistry,
+  reference: Parameters<SecretProviderRegistry['resolve']>[0],
+): Promise<string> {
+  try {
+    return await registry.resolve(reference);
+  } catch (cause) {
+    const error = new CredentialResolutionError(
+      kind,
+      'provider_failure',
+      `secret provider ${JSON.stringify(reference.provider)} could not resolve the reference`,
+    );
+    error.cause = cause;
+    throw error;
+  }
 }
 
 export async function resolveOAuth2ClientSecret(
@@ -51,9 +75,11 @@ export async function resolveOAuth2ClientSecret(
   registry: SecretProviderRegistry,
 ): Promise<string> {
   const kind: CredentialKind = 'oauth2-client-secret';
-  const legacy = config.oauth2.client_secret?.trim();
+  // Client secrets are opaque: trim only to decide presence, never the value.
+  const legacy = config.oauth2.client_secret;
+  const hasLegacy = Boolean(legacy?.trim());
   const reference = config.oauth2.client_secret_ref;
-  if (legacy && reference) {
+  if (hasLegacy && reference) {
     throw new CredentialResolutionError(
       kind,
       'ambiguous',
@@ -73,9 +99,9 @@ export async function resolveOAuth2ClientSecret(
         (cause as Error).message,
       );
     }
-    return registry.resolve(reference);
+    return resolveThroughRegistry(kind, registry, reference);
   }
-  if (legacy) {
+  if (hasLegacy && legacy) {
     warnLegacyCredentialOnce(kind);
     return legacy;
   }
@@ -147,7 +173,7 @@ export async function resolveIdentitySeed(
         (cause as Error).message,
       );
     }
-    seed = (await registry.resolve(reference)).trim();
+    seed = (await resolveThroughRegistry(kind, registry, reference)).trim();
   } else if (legacy) {
     warnLegacyCredentialOnce(kind);
     seed = legacy;

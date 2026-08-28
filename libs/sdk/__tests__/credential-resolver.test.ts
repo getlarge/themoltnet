@@ -71,7 +71,7 @@ describe('resolveIdentitySeed', () => {
     await expect(resolveIdentitySeed(config, registry)).resolves.toBe(SEED);
     expect(console.warn).toHaveBeenCalledTimes(1);
     const message = String(vi.mocked(console.warn).mock.calls[0][0]);
-    expect(message).toMatch(/keys\.private_key.*moltnet config migrate/);
+    expect(message).toMatch(/keys\.private_key.*secret provider reference/);
     expect(message).not.toContain(SEED);
   });
 
@@ -167,6 +167,47 @@ describe('resolveOAuth2ClientSecret', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
   });
   afterEach(() => vi.restoreAllMocks());
+
+  it('returns a legacy client secret verbatim, including surrounding whitespace', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    await expect(
+      resolveOAuth2ClientSecret(
+        {
+          identity_id: 'id',
+          oauth2: { client_id: 'c', client_secret: '  spaced secret \n' },
+        },
+        registryWith({}),
+      ),
+    ).resolves.toBe('  spaced secret \n');
+  });
+
+  it('normalizes provider failures into value-free provider_failure errors', async () => {
+    const provider: SecretProvider = {
+      name: 'memory',
+      capabilities: READ_ONLY_CAPABILITIES,
+      read: async () => {
+        throw new Error('backend said: leaked-canary');
+      },
+      probe: async () => 'inaccessible',
+    };
+    const registry = new SecretProviderRegistry().register(provider);
+
+    const error = await failure(
+      resolveOAuth2ClientSecret(
+        {
+          identity_id: 'id',
+          oauth2: {
+            client_id: 'c',
+            client_secret_ref: { provider: 'memory', key: 'oauth2/id/c' },
+          },
+        },
+        registry,
+      ),
+    );
+    expect(error.code).toBe('provider_failure');
+    expect(error.message).not.toContain('leaked-canary');
+    expect((error.cause as Error).message).toContain('leaked-canary');
+  });
 
   it('resolves a bound reference and warns once for plaintext', async () => {
     const registry = registryWith({ 'oauth2/id/c': 'secret' });

@@ -121,7 +121,20 @@ export async function updateConfigSection(
     );
   }
   if (section === 'keys') {
-    throw new Error('Signing keys must be updated with updateKeysConfig()');
+    // Compatibility: a complete keys object (exactly one seed form) is still
+    // accepted and routed through the validating updater; a partial merge
+    // could leave both forms behind, so it is rejected.
+    const keys = data as Partial<KeysConfig>;
+    const complete =
+      typeof keys.public_key === 'string' &&
+      typeof keys.fingerprint === 'string' &&
+      Boolean(keys.private_key) !== Boolean(keys.private_key_ref);
+    if (!complete) {
+      throw new Error(
+        'Signing keys must be replaced as a whole with updateKeysConfig()',
+      );
+    }
+    return updateKeysConfig(keys as KeysConfig, configDir);
   }
   const config = await readConfig(configDir);
   if (!config) {

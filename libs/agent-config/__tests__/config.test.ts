@@ -135,7 +135,7 @@ describe('keys config updates', () => {
     );
   });
 
-  it('rejects shallow keys updates through the generic helper', async () => {
+  it('rejects partial keys updates through the generic helper but accepts a complete replacement', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
     await writeConfig(config(), dir);
 
@@ -146,5 +146,21 @@ describe('keys config updates', () => {
         dir,
       ),
     ).rejects.toThrow(/updateKeysConfig/);
+
+    await updateConfigSection(
+      'keys',
+      {
+        public_key: 'pub',
+        fingerprint: 'fp',
+        private_key_ref: { provider: 'env', key: 'MOLTNET_PRIVATE_KEY' },
+      },
+      dir,
+    );
+    const raw = await readFile(join(dir, 'moltnet.json'), 'utf8');
+    expect(raw).not.toContain('"private_key"');
+    expect(JSON.parse(raw).keys.private_key_ref).toEqual({
+      provider: 'env',
+      key: 'MOLTNET_PRIVATE_KEY',
+    });
   });
 });
