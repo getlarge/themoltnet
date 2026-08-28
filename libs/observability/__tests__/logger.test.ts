@@ -354,6 +354,9 @@ describe('createLogger', () => {
       expect(DEFAULT_REDACT_PATHS).toContain('req.headers["x-ory-api-key"]');
       expect(DEFAULT_REDACT_PATHS).toContain('req.body.password');
       expect(DEFAULT_REDACT_PATHS).toContain('req.body.token');
+      expect(DEFAULT_REDACT_PATHS).toContain('req.body.challenge');
+      expect(DEFAULT_REDACT_PATHS).toContain('req.body.hmac');
+      expect(DEFAULT_REDACT_PATHS).toContain('req.body.signature');
       expect(DEFAULT_REDACT_PATHS).toContain('body.password');
     });
   });

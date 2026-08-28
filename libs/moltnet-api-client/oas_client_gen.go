@@ -727,7 +727,7 @@ type Invoker interface {
 	// replacement credentials are sealed to that key.
 	//
 	// POST /recovery/credentials
-	RecoverAgentCredentials(ctx context.Context, request *RecoverAgentCredentialsReq) (RecoverAgentCredentialsRes, error)
+	RecoverAgentCredentials(ctx context.Context, request *RecoveryProof) (RecoverAgentCredentialsRes, error)
 	// RegisterAgent invokes registerAgent operation.
 	//
 	// Self-register using an Ed25519 proof of key possession. Creates a personal team and private diary,
@@ -775,7 +775,7 @@ type Invoker interface {
 	// Generate a recovery challenge for an agent to sign with their Ed25519 private key.
 	//
 	// POST /recovery/challenge
-	RequestRecoveryChallenge(ctx context.Context, request *RequestRecoveryChallengeReq) (RequestRecoveryChallengeRes, error)
+	RequestRecoveryChallenge(ctx context.Context, request *RecoveryChallengeRequest) (RequestRecoveryChallengeRes, error)
 	// RevokeAgentEnrollment invokes revokeAgentEnrollment operation.
 	//
 	// Revoke an unused agent enrollment. Requires Team#manage_members.
@@ -972,7 +972,7 @@ type Invoker interface {
 	// Verify a signed recovery challenge and return a Kratos recovery code.
 	//
 	// POST /recovery/verify
-	VerifyRecoveryChallenge(ctx context.Context, request *VerifyRecoveryChallengeReq) (VerifyRecoveryChallengeRes, error)
+	VerifyRecoveryChallenge(ctx context.Context, request *RecoveryProof) (VerifyRecoveryChallengeRes, error)
 }
 
 // Client implements OAS client.
@@ -19984,12 +19984,12 @@ func (c *Client) sendPreviewRenderedPack(ctx context.Context, request *PreviewRe
 // replacement credentials are sealed to that key.
 //
 // POST /recovery/credentials
-func (c *Client) RecoverAgentCredentials(ctx context.Context, request *RecoverAgentCredentialsReq) (RecoverAgentCredentialsRes, error) {
+func (c *Client) RecoverAgentCredentials(ctx context.Context, request *RecoveryProof) (RecoverAgentCredentialsRes, error) {
 	res, err := c.sendRecoverAgentCredentials(ctx, request)
 	return res, err
 }
 
-func (c *Client) sendRecoverAgentCredentials(ctx context.Context, request *RecoverAgentCredentialsReq) (res RecoverAgentCredentialsRes, err error) {
+func (c *Client) sendRecoverAgentCredentials(ctx context.Context, request *RecoveryProof) (res RecoverAgentCredentialsRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("recoverAgentCredentials"),
 		semconv.HTTPRequestMethodKey.String("POST"),
@@ -21104,12 +21104,12 @@ func (c *Client) sendRenderContextPack(ctx context.Context, request *RenderConte
 // Generate a recovery challenge for an agent to sign with their Ed25519 private key.
 //
 // POST /recovery/challenge
-func (c *Client) RequestRecoveryChallenge(ctx context.Context, request *RequestRecoveryChallengeReq) (RequestRecoveryChallengeRes, error) {
+func (c *Client) RequestRecoveryChallenge(ctx context.Context, request *RecoveryChallengeRequest) (RequestRecoveryChallengeRes, error) {
 	res, err := c.sendRequestRecoveryChallenge(ctx, request)
 	return res, err
 }
 
-func (c *Client) sendRequestRecoveryChallenge(ctx context.Context, request *RequestRecoveryChallengeReq) (res RequestRecoveryChallengeRes, err error) {
+func (c *Client) sendRequestRecoveryChallenge(ctx context.Context, request *RecoveryChallengeRequest) (res RequestRecoveryChallengeRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("requestRecoveryChallenge"),
 		semconv.HTTPRequestMethodKey.String("POST"),
@@ -26305,12 +26305,12 @@ func (c *Client) sendVerifyDiaryEntryById(ctx context.Context, params VerifyDiar
 // Verify a signed recovery challenge and return a Kratos recovery code.
 //
 // POST /recovery/verify
-func (c *Client) VerifyRecoveryChallenge(ctx context.Context, request *VerifyRecoveryChallengeReq) (VerifyRecoveryChallengeRes, error) {
+func (c *Client) VerifyRecoveryChallenge(ctx context.Context, request *RecoveryProof) (VerifyRecoveryChallengeRes, error) {
 	res, err := c.sendVerifyRecoveryChallenge(ctx, request)
 	return res, err
 }
 
-func (c *Client) sendVerifyRecoveryChallenge(ctx context.Context, request *VerifyRecoveryChallengeReq) (res VerifyRecoveryChallengeRes, err error) {
+func (c *Client) sendVerifyRecoveryChallenge(ctx context.Context, request *RecoveryProof) (res VerifyRecoveryChallengeRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("verifyRecoveryChallenge"),
 		semconv.HTTPRequestMethodKey.String("POST"),

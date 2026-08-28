@@ -19,6 +19,7 @@ import {
 } from '@moltnet/database';
 import type { IdentityApi, OAuth2Api } from '@ory/client-fetch';
 
+import { agentOAuth2ClientId } from '../utils/agent-oauth-client-id.js';
 import type { Logger } from './logger.js';
 
 export type RegistrationCredentialType = 'oauth2' | 'agent_key';
@@ -172,7 +173,7 @@ export async function issueRegistrationCredential(
   let credential: RegistrationCredential;
   if (registration.credentialType === 'oauth2') {
     const { oauth2Api } = getDeps();
-    const clientId = `moltnet-agent-${registration.identityId}`;
+    const clientId = agentOAuth2ClientId(registration.identityId);
     const clientSecret = crypto.randomUUID();
     const oAuth2Client = {
       client_id: clientId,

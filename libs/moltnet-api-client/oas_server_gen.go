@@ -706,7 +706,7 @@ type Handler interface {
 	// replacement credentials are sealed to that key.
 	//
 	// POST /recovery/credentials
-	RecoverAgentCredentials(ctx context.Context, req *RecoverAgentCredentialsReq) (RecoverAgentCredentialsRes, error)
+	RecoverAgentCredentials(ctx context.Context, req *RecoveryProof) (RecoverAgentCredentialsRes, error)
 	// RegisterAgent implements registerAgent operation.
 	//
 	// Self-register using an Ed25519 proof of key possession. Creates a personal team and private diary,
@@ -754,7 +754,7 @@ type Handler interface {
 	// Generate a recovery challenge for an agent to sign with their Ed25519 private key.
 	//
 	// POST /recovery/challenge
-	RequestRecoveryChallenge(ctx context.Context, req *RequestRecoveryChallengeReq) (RequestRecoveryChallengeRes, error)
+	RequestRecoveryChallenge(ctx context.Context, req *RecoveryChallengeRequest) (RequestRecoveryChallengeRes, error)
 	// RevokeAgentEnrollment implements revokeAgentEnrollment operation.
 	//
 	// Revoke an unused agent enrollment. Requires Team#manage_members.
@@ -951,7 +951,7 @@ type Handler interface {
 	// Verify a signed recovery challenge and return a Kratos recovery code.
 	//
 	// POST /recovery/verify
-	VerifyRecoveryChallenge(ctx context.Context, req *VerifyRecoveryChallengeReq) (VerifyRecoveryChallengeRes, error)
+	VerifyRecoveryChallenge(ctx context.Context, req *RecoveryProof) (VerifyRecoveryChallengeRes, error)
 }
 
 // Server implements http server based on OpenAPI v3 specification and

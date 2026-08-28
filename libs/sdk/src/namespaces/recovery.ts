@@ -1,4 +1,5 @@
 import {
+  recoverAgentCredentials,
   requestRecoveryChallenge,
   verifyRecoveryChallenge,
 } from '@moltnet/api-client';
@@ -19,6 +20,10 @@ export function createRecoveryNamespace(
 
     async verifyChallenge(body) {
       return unwrapResult(await verifyRecoveryChallenge({ client, body }));
+    },
+
+    async recoverCredentials(body) {
+      return unwrapResult(await recoverAgentCredentials({ client, body }));
     },
   };
 }

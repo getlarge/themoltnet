@@ -45360,54 +45360,35 @@ type RecoverAgentCredentialsInternalServerError ProblemDetails
 
 func (*RecoverAgentCredentialsInternalServerError) recoverAgentCredentialsRes() {}
 
-type RecoverAgentCredentialsReq struct {
-	Challenge string `json:"challenge"`
-	// Hex-encoded HMAC-SHA256.
-	Hmac string `json:"hmac"`
+type RecoverAgentCredentialsNotFound ProblemDetails
+
+func (*RecoverAgentCredentialsNotFound) recoverAgentCredentialsRes() {}
+
+// Ref: #/components/schemas/RecoveryChallengeRequest
+type RecoveryChallengeRequest struct {
 	// Ed25519 public key with prefix.
-	PublicKey string `json:"publicKey"`
-	// Base64-encoded Ed25519 signature of the challenge.
-	Signature string `json:"signature"`
-}
-
-// GetChallenge returns the value of Challenge.
-func (s *RecoverAgentCredentialsReq) GetChallenge() string {
-	return s.Challenge
-}
-
-// GetHmac returns the value of Hmac.
-func (s *RecoverAgentCredentialsReq) GetHmac() string {
-	return s.Hmac
+	PublicKey string          `json:"publicKey"`
+	Purpose   RecoveryPurpose `json:"purpose"`
 }
 
 // GetPublicKey returns the value of PublicKey.
-func (s *RecoverAgentCredentialsReq) GetPublicKey() string {
+func (s *RecoveryChallengeRequest) GetPublicKey() string {
 	return s.PublicKey
 }
 
-// GetSignature returns the value of Signature.
-func (s *RecoverAgentCredentialsReq) GetSignature() string {
-	return s.Signature
-}
-
-// SetChallenge sets the value of Challenge.
-func (s *RecoverAgentCredentialsReq) SetChallenge(val string) {
-	s.Challenge = val
-}
-
-// SetHmac sets the value of Hmac.
-func (s *RecoverAgentCredentialsReq) SetHmac(val string) {
-	s.Hmac = val
+// GetPurpose returns the value of Purpose.
+func (s *RecoveryChallengeRequest) GetPurpose() RecoveryPurpose {
+	return s.Purpose
 }
 
 // SetPublicKey sets the value of PublicKey.
-func (s *RecoverAgentCredentialsReq) SetPublicKey(val string) {
+func (s *RecoveryChallengeRequest) SetPublicKey(val string) {
 	s.PublicKey = val
 }
 
-// SetSignature sets the value of Signature.
-func (s *RecoverAgentCredentialsReq) SetSignature(val string) {
-	s.Signature = val
+// SetPurpose sets the value of Purpose.
+func (s *RecoveryChallengeRequest) SetPurpose(val RecoveryPurpose) {
+	s.Purpose = val
 }
 
 // Ref: #/components/schemas/RecoveryChallengeResponse
@@ -45442,21 +45423,126 @@ func (*RecoveryChallengeResponse) requestRecoveryChallengeRes() {}
 
 // Ref: #/components/schemas/RecoveryCredentialsResponse
 type RecoveryCredentialsResponse struct {
-	// X25519 sealed envelope containing the replacement OAuth2 clientId and clientSecret.
-	SealedCredentials string `json:"sealedCredentials"`
+	// OAuth2 client identifier whose secret was replaced.
+	ClientId string `json:"clientId"`
+	// X25519 sealed envelope containing the replacement OAuth2 client secret.
+	SealedClientSecret string `json:"sealedClientSecret"`
 }
 
-// GetSealedCredentials returns the value of SealedCredentials.
-func (s *RecoveryCredentialsResponse) GetSealedCredentials() string {
-	return s.SealedCredentials
+// GetClientId returns the value of ClientId.
+func (s *RecoveryCredentialsResponse) GetClientId() string {
+	return s.ClientId
 }
 
-// SetSealedCredentials sets the value of SealedCredentials.
-func (s *RecoveryCredentialsResponse) SetSealedCredentials(val string) {
-	s.SealedCredentials = val
+// GetSealedClientSecret returns the value of SealedClientSecret.
+func (s *RecoveryCredentialsResponse) GetSealedClientSecret() string {
+	return s.SealedClientSecret
+}
+
+// SetClientId sets the value of ClientId.
+func (s *RecoveryCredentialsResponse) SetClientId(val string) {
+	s.ClientId = val
+}
+
+// SetSealedClientSecret sets the value of SealedClientSecret.
+func (s *RecoveryCredentialsResponse) SetSealedClientSecret(val string) {
+	s.SealedClientSecret = val
 }
 
 func (*RecoveryCredentialsResponse) recoverAgentCredentialsRes() {}
+
+// Ref: #/components/schemas/RecoveryProof
+type RecoveryProof struct {
+	Challenge string `json:"challenge"`
+	// Hex-encoded HMAC-SHA256.
+	Hmac string `json:"hmac"`
+	// Ed25519 public key with prefix.
+	PublicKey string `json:"publicKey"`
+	// Base64-encoded Ed25519 signature of the challenge.
+	Signature string `json:"signature"`
+}
+
+// GetChallenge returns the value of Challenge.
+func (s *RecoveryProof) GetChallenge() string {
+	return s.Challenge
+}
+
+// GetHmac returns the value of Hmac.
+func (s *RecoveryProof) GetHmac() string {
+	return s.Hmac
+}
+
+// GetPublicKey returns the value of PublicKey.
+func (s *RecoveryProof) GetPublicKey() string {
+	return s.PublicKey
+}
+
+// GetSignature returns the value of Signature.
+func (s *RecoveryProof) GetSignature() string {
+	return s.Signature
+}
+
+// SetChallenge sets the value of Challenge.
+func (s *RecoveryProof) SetChallenge(val string) {
+	s.Challenge = val
+}
+
+// SetHmac sets the value of Hmac.
+func (s *RecoveryProof) SetHmac(val string) {
+	s.Hmac = val
+}
+
+// SetPublicKey sets the value of PublicKey.
+func (s *RecoveryProof) SetPublicKey(val string) {
+	s.PublicKey = val
+}
+
+// SetSignature sets the value of Signature.
+func (s *RecoveryProof) SetSignature(val string) {
+	s.Signature = val
+}
+
+// Ref: #/components/schemas/RecoveryPurpose
+type RecoveryPurpose string
+
+const (
+	RecoveryPurposeCredentials RecoveryPurpose = "credentials"
+	RecoveryPurposeIdentity    RecoveryPurpose = "identity"
+)
+
+// AllValues returns all RecoveryPurpose values.
+func (RecoveryPurpose) AllValues() []RecoveryPurpose {
+	return []RecoveryPurpose{
+		RecoveryPurposeCredentials,
+		RecoveryPurposeIdentity,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RecoveryPurpose) MarshalText() ([]byte, error) {
+	switch s {
+	case RecoveryPurposeCredentials:
+		return []byte(s), nil
+	case RecoveryPurposeIdentity:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RecoveryPurpose) UnmarshalText(data []byte) error {
+	switch RecoveryPurpose(data) {
+	case RecoveryPurposeCredentials:
+		*s = RecoveryPurposeCredentials
+		return nil
+	case RecoveryPurposeIdentity:
+		*s = RecoveryPurposeIdentity
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
 
 // Ref: #/components/schemas/RecoveryVerifyResponse
 type RecoveryVerifyResponse struct {
@@ -46954,21 +47040,6 @@ func (*RequestRecoveryChallengeBadRequest) requestRecoveryChallengeRes() {}
 type RequestRecoveryChallengeInternalServerError ProblemDetails
 
 func (*RequestRecoveryChallengeInternalServerError) requestRecoveryChallengeRes() {}
-
-type RequestRecoveryChallengeReq struct {
-	// Ed25519 public key with prefix.
-	PublicKey string `json:"publicKey"`
-}
-
-// GetPublicKey returns the value of PublicKey.
-func (s *RequestRecoveryChallengeReq) GetPublicKey() string {
-	return s.PublicKey
-}
-
-// SetPublicKey sets the value of PublicKey.
-func (s *RequestRecoveryChallengeReq) SetPublicKey(val string) {
-	s.PublicKey = val
-}
 
 type RevokeAgentEnrollmentBadRequest ProblemDetails
 
@@ -63629,56 +63700,6 @@ func (*VerifyRecoveryChallengeBadRequest) verifyRecoveryChallengeRes() {}
 type VerifyRecoveryChallengeInternalServerError ProblemDetails
 
 func (*VerifyRecoveryChallengeInternalServerError) verifyRecoveryChallengeRes() {}
-
-type VerifyRecoveryChallengeReq struct {
-	Challenge string `json:"challenge"`
-	// Hex-encoded HMAC-SHA256.
-	Hmac string `json:"hmac"`
-	// Ed25519 public key with prefix.
-	PublicKey string `json:"publicKey"`
-	// Base64-encoded Ed25519 signature of the challenge.
-	Signature string `json:"signature"`
-}
-
-// GetChallenge returns the value of Challenge.
-func (s *VerifyRecoveryChallengeReq) GetChallenge() string {
-	return s.Challenge
-}
-
-// GetHmac returns the value of Hmac.
-func (s *VerifyRecoveryChallengeReq) GetHmac() string {
-	return s.Hmac
-}
-
-// GetPublicKey returns the value of PublicKey.
-func (s *VerifyRecoveryChallengeReq) GetPublicKey() string {
-	return s.PublicKey
-}
-
-// GetSignature returns the value of Signature.
-func (s *VerifyRecoveryChallengeReq) GetSignature() string {
-	return s.Signature
-}
-
-// SetChallenge sets the value of Challenge.
-func (s *VerifyRecoveryChallengeReq) SetChallenge(val string) {
-	s.Challenge = val
-}
-
-// SetHmac sets the value of Hmac.
-func (s *VerifyRecoveryChallengeReq) SetHmac(val string) {
-	s.Hmac = val
-}
-
-// SetPublicKey sets the value of PublicKey.
-func (s *VerifyRecoveryChallengeReq) SetPublicKey(val string) {
-	s.PublicKey = val
-}
-
-// SetSignature sets the value of Signature.
-func (s *VerifyRecoveryChallengeReq) SetSignature(val string) {
-	s.Signature = val
-}
 
 // Ref: #/components/schemas/VerifyResult
 type VerifyResult struct {

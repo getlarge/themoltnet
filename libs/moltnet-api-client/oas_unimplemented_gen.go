@@ -1052,7 +1052,7 @@ func (UnimplementedHandler) PreviewRenderedPack(ctx context.Context, req *Previe
 // replacement credentials are sealed to that key.
 //
 // POST /recovery/credentials
-func (UnimplementedHandler) RecoverAgentCredentials(ctx context.Context, req *RecoverAgentCredentialsReq) (r RecoverAgentCredentialsRes, _ error) {
+func (UnimplementedHandler) RecoverAgentCredentials(ctx context.Context, req *RecoveryProof) (r RecoverAgentCredentialsRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -1124,7 +1124,7 @@ func (UnimplementedHandler) RenderContextPack(ctx context.Context, req *RenderCo
 // Generate a recovery challenge for an agent to sign with their Ed25519 private key.
 //
 // POST /recovery/challenge
-func (UnimplementedHandler) RequestRecoveryChallenge(ctx context.Context, req *RequestRecoveryChallengeReq) (r RequestRecoveryChallengeRes, _ error) {
+func (UnimplementedHandler) RequestRecoveryChallenge(ctx context.Context, req *RecoveryChallengeRequest) (r RequestRecoveryChallengeRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -1417,6 +1417,6 @@ func (UnimplementedHandler) VerifyDiaryEntryById(ctx context.Context, params Ver
 // Verify a signed recovery challenge and return a Kratos recovery code.
 //
 // POST /recovery/verify
-func (UnimplementedHandler) VerifyRecoveryChallenge(ctx context.Context, req *VerifyRecoveryChallengeReq) (r VerifyRecoveryChallengeRes, _ error) {
+func (UnimplementedHandler) VerifyRecoveryChallenge(ctx context.Context, req *RecoveryProof) (r VerifyRecoveryChallengeRes, _ error) {
 	return r, ht.ErrNotImplemented
 }

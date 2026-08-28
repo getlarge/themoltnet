@@ -18,7 +18,13 @@ import {
 } from '@moltnet/models';
 import { type Static, Type } from 'typebox';
 
-import { DateTime, NullableDateTime } from './atoms.js';
+import {
+  DateTime,
+  MAX_CHALLENGE_LENGTH,
+  MAX_ED25519_SIGNATURE_LENGTH,
+  MAX_PUBLIC_KEY_LENGTH,
+  NullableDateTime,
+} from './atoms.js';
 
 const PREVIEW_SIGN_METHOD = 'human-hardware-previewsign';
 const PREVIEW_SIGN_CREDENTIAL_TYPE = 'preview-sign-arkg';
@@ -319,6 +325,49 @@ export const CompletePreviewSignRequestSchema = Type.Object(
 
 // ── Recovery ────────────────────────────────────────────────
 
+export const RecoveryPurposeSchema = Type.Union(
+  [Type.Literal('credentials'), Type.Literal('identity')],
+  { $id: 'RecoveryPurpose' },
+);
+
+export const RecoveryChallengeRequestSchema = Type.Object(
+  {
+    publicKey: Type.String({
+      pattern: '^ed25519:[A-Za-z0-9+/=]+$',
+      maxLength: MAX_PUBLIC_KEY_LENGTH,
+      description: 'Ed25519 public key with prefix',
+    }),
+    purpose: Type.Unsafe<Static<typeof RecoveryPurposeSchema>>(
+      Type.Ref(RecoveryPurposeSchema.$id),
+    ),
+  },
+  { $id: 'RecoveryChallengeRequest', additionalProperties: false },
+);
+
+export const RecoveryProofSchema = Type.Object(
+  {
+    challenge: Type.String({
+      minLength: 1,
+      maxLength: MAX_CHALLENGE_LENGTH,
+    }),
+    hmac: Type.String({
+      pattern: '^[a-f0-9]{64}$',
+      description: 'Hex-encoded HMAC-SHA256',
+    }),
+    signature: Type.String({
+      minLength: 1,
+      maxLength: MAX_ED25519_SIGNATURE_LENGTH,
+      description: 'Base64-encoded Ed25519 signature of the challenge',
+    }),
+    publicKey: Type.String({
+      pattern: '^ed25519:[A-Za-z0-9+/=]+$',
+      maxLength: MAX_PUBLIC_KEY_LENGTH,
+      description: 'Ed25519 public key with prefix',
+    }),
+  },
+  { $id: 'RecoveryProof', additionalProperties: false },
+);
+
 export const RecoveryChallengeResponseSchema = Type.Object(
   {
     challenge: Type.String({
@@ -342,9 +391,12 @@ export const RecoveryVerifyResponseSchema = Type.Object(
 
 export const RecoveryCredentialsResponseSchema = Type.Object(
   {
-    sealedCredentials: Type.String({
+    clientId: Type.String({
+      description: 'OAuth2 client identifier whose secret was replaced',
+    }),
+    sealedClientSecret: Type.String({
       description:
-        'X25519 sealed envelope containing the replacement OAuth2 clientId and clientSecret',
+        'X25519 sealed envelope containing the replacement OAuth2 client secret',
     }),
   },
   { $id: 'RecoveryCredentialsResponse' },

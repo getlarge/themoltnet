@@ -3098,7 +3098,7 @@ func (s *Server) decodePreviewRenderedPackRequest(r *http.Request) (
 }
 
 func (s *Server) decodeRecoverAgentCredentialsRequest(r *http.Request) (
-	req *RecoverAgentCredentialsReq,
+	req *RecoveryProof,
 	rawBody []byte,
 	close func() error,
 	rerr error,
@@ -3145,7 +3145,7 @@ func (s *Server) decodeRecoverAgentCredentialsRequest(r *http.Request) (
 		rawBody = append(rawBody, buf...)
 		d := jx.DecodeBytes(buf)
 
-		var request RecoverAgentCredentialsReq
+		var request RecoveryProof
 		if err := func() error {
 			if err := request.Decode(d); err != nil {
 				return err
@@ -3504,7 +3504,7 @@ func (s *Server) decodeRenderContextPackRequest(r *http.Request) (
 }
 
 func (s *Server) decodeRequestRecoveryChallengeRequest(r *http.Request) (
-	req *RequestRecoveryChallengeReq,
+	req *RecoveryChallengeRequest,
 	rawBody []byte,
 	close func() error,
 	rerr error,
@@ -3551,7 +3551,7 @@ func (s *Server) decodeRequestRecoveryChallengeRequest(r *http.Request) (
 		rawBody = append(rawBody, buf...)
 		d := jx.DecodeBytes(buf)
 
-		var request RequestRecoveryChallengeReq
+		var request RecoveryChallengeRequest
 		if err := func() error {
 			if err := request.Decode(d); err != nil {
 				return err
@@ -5664,7 +5664,7 @@ func (s *Server) decodeVerifyCryptoSignatureRequest(r *http.Request) (
 }
 
 func (s *Server) decodeVerifyRecoveryChallengeRequest(r *http.Request) (
-	req *VerifyRecoveryChallengeReq,
+	req *RecoveryProof,
 	rawBody []byte,
 	close func() error,
 	rerr error,
@@ -5711,7 +5711,7 @@ func (s *Server) decodeVerifyRecoveryChallengeRequest(r *http.Request) (
 		rawBody = append(rawBody, buf...)
 		d := jx.DecodeBytes(buf)
 
-		var request VerifyRecoveryChallengeReq
+		var request RecoveryProof
 		if err := func() error {
 			if err := request.Decode(d); err != nil {
 				return err

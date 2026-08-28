@@ -25165,7 +25165,7 @@ func (s *Server) handleRecoverAgentCredentialsRequest(args [0]string, argsEscape
 		}
 
 		type (
-			Request  = *RecoverAgentCredentialsReq
+			Request  = *RecoveryProof
 			Params   = struct{}
 			Response = RecoverAgentCredentialsRes
 		)
@@ -26792,7 +26792,7 @@ func (s *Server) handleRequestRecoveryChallengeRequest(args [0]string, argsEscap
 		}
 
 		type (
-			Request  = *RequestRecoveryChallengeReq
+			Request  = *RecoveryChallengeRequest
 			Params   = struct{}
 			Response = RequestRecoveryChallengeRes
 		)
@@ -33919,7 +33919,7 @@ func (s *Server) handleVerifyRecoveryChallengeRequest(args [0]string, argsEscape
 		}
 
 		type (
-			Request  = *VerifyRecoveryChallengeReq
+			Request  = *RecoveryProof
 			Params   = struct{}
 			Response = VerifyRecoveryChallengeRes
 		)

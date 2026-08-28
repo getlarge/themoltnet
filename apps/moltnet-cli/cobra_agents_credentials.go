@@ -53,7 +53,8 @@ the Ed25519 identity key in the resolved credentials file.
 The server returns the replacement credentials only in a sealed envelope for
 that key. The CLI decrypts the envelope locally and atomically updates the
 configured credentials file or secret provider. The previous client secret is
-invalidated immediately.`,
+invalidated immediately, but access tokens already issued with it remain valid
+until they expire.`,
 		Example: `  moltnet agents credentials recover --yes`,
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {

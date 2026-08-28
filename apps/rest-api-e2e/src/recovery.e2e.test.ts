@@ -72,7 +72,7 @@ describe('Recovery Flow', () => {
     it('issues a recovery challenge for a known agent', async () => {
       const { data, error } = await requestRecoveryChallenge({
         client,
-        body: { publicKey: agent.keyPair.publicKey },
+        body: { publicKey: agent.keyPair.publicKey, purpose: 'identity' },
       });
 
       expect(error).toBeUndefined();
@@ -87,7 +87,7 @@ describe('Recovery Flow', () => {
 
       const { data, error, response } = await requestRecoveryChallenge({
         client,
-        body: { publicKey: unknownKeyPair.publicKey },
+        body: { publicKey: unknownKeyPair.publicKey, purpose: 'identity' },
       });
 
       expect(error).toBeUndefined();
@@ -104,7 +104,7 @@ describe('Recovery Flow', () => {
       // Step 1: Request challenge
       const { data: challengeData } = await requestRecoveryChallenge({
         client,
-        body: { publicKey: agent.keyPair.publicKey },
+        body: { publicKey: agent.keyPair.publicKey, purpose: 'identity' },
       });
       expect(challengeData).toBeDefined();
 
@@ -140,7 +140,7 @@ describe('Recovery Flow', () => {
       // Step 1: Request challenge from our API
       const { data: challengeData } = await requestRecoveryChallenge({
         client,
-        body: { publicKey: agent.keyPair.publicKey },
+        body: { publicKey: agent.keyPair.publicKey, purpose: 'identity' },
       });
 
       // Step 2: Sign with private key
@@ -226,7 +226,7 @@ describe('Recovery Flow', () => {
     it('rejects signature from wrong private key', async () => {
       const { data: challengeData } = await requestRecoveryChallenge({
         client,
-        body: { publicKey: agent.keyPair.publicKey },
+        body: { publicKey: agent.keyPair.publicKey, purpose: 'identity' },
       });
 
       // Sign with a different key — proves you DON'T own this identity
@@ -257,7 +257,7 @@ describe('Recovery Flow', () => {
     it('rejects tampered challenge (HMAC mismatch)', async () => {
       const { data: challengeData } = await requestRecoveryChallenge({
         client,
-        body: { publicKey: agent.keyPair.publicKey },
+        body: { publicKey: agent.keyPair.publicKey, purpose: 'identity' },
       });
 
       // Tamper with the challenge but reuse the original HMAC
@@ -288,7 +288,7 @@ describe('Recovery Flow', () => {
     it('rejects expired challenge', async () => {
       // Build a challenge with a timestamp in the past (> 5 min TTL)
       const expiredTimestamp = Date.now() - 10 * 60 * 1000; // 10 min ago
-      const expiredChallenge = `moltnet:recovery:${agent.keyPair.publicKey}:fake-nonce:${expiredTimestamp}`;
+      const expiredChallenge = `moltnet:recovery:identity:${agent.keyPair.publicKey}:fake-nonce:${expiredTimestamp}`;
 
       const signature = await cryptoService.sign(
         expiredChallenge,
@@ -320,7 +320,10 @@ describe('Recovery Flow', () => {
       const { data: challengeData, error: challengeError } =
         await requestRecoveryChallenge({
           client,
-          body: { publicKey: agent.keyPair.publicKey },
+          body: {
+            publicKey: agent.keyPair.publicKey,
+            purpose: 'credentials',
+          },
         });
       expect(challengeError).toBeUndefined();
       expect(challengeData).toBeDefined();
@@ -342,18 +345,15 @@ describe('Recovery Flow', () => {
       expect(error).toBeUndefined();
       expect(response.status).toBe(200);
       expect(data).toBeDefined();
-      const replacement = JSON.parse(
-        openSealedEnvelope(data!.sealedCredentials, agent.keyPair.privateKey),
-      ) as { clientId: string; clientSecret: string };
-      expect(replacement.clientId).toBe(agent.clientId);
-      expect(replacement.clientSecret).not.toBe(previousSecret);
+      const replacementSecret = openSealedEnvelope(
+        data!.sealedClientSecret,
+        agent.keyPair.privateKey,
+      );
+      expect(data!.clientId).toBe(agent.clientId);
+      expect(replacementSecret).not.toBe(previousSecret);
 
       await expect(
-        requestOAuthToken(
-          harness.baseUrl,
-          replacement.clientId,
-          replacement.clientSecret,
-        ),
+        requestOAuthToken(harness.baseUrl, data!.clientId, replacementSecret),
       ).resolves.toMatchObject({ status: 200 });
       await expect(
         requestOAuthToken(harness.baseUrl, agent.clientId, previousSecret),

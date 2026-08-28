@@ -23,6 +23,8 @@ export interface OryClientConfig {
   ketoReadUrl?: string;
   ketoWriteUrl?: string;
   talosAdminUrl?: string;
+  /** Timeout for Hydra admin requests (default: 5 seconds). */
+  hydraRequestTimeoutMs?: number;
   /** Timeout for Talos verification requests (default: 5 seconds). */
   talosRequestTimeoutMs?: number;
 }
@@ -47,6 +49,20 @@ export function createOryClients(config: OryClientConfig): OryClients {
     return new Configuration({
       basePath: url ?? config.baseUrl,
       ...accessToken,
+    });
+  }
+
+  function makeTimeoutConfig(url: string | undefined, timeoutMs: number) {
+    return new Configuration({
+      basePath: url ?? config.baseUrl,
+      ...accessToken,
+      fetchApi: async (input, init) => {
+        const timeoutSignal = AbortSignal.timeout(timeoutMs);
+        const signal = init?.signal
+          ? AbortSignal.any([init.signal, timeoutSignal])
+          : timeoutSignal;
+        return globalThis.fetch(input, { ...init, signal });
+      },
     });
   }
 
@@ -83,7 +99,12 @@ export function createOryClients(config: OryClientConfig): OryClients {
   return {
     frontend: new FrontendApi(makeConfig(config.kratosPublicUrl)),
     identity,
-    oauth2: new OAuth2Api(makeConfig(config.hydraAdminUrl)),
+    oauth2: new OAuth2Api(
+      makeTimeoutConfig(
+        config.hydraAdminUrl,
+        config.hydraRequestTimeoutMs ?? 5_000,
+      ),
+    ),
     permission: new PermissionApi(makeConfig(config.ketoReadUrl)),
     relationship: new RelationshipApi(makeConfig(config.ketoWriteUrl)),
     relationshipRead: new RelationshipApi(makeConfig(config.ketoReadUrl)),

@@ -1747,6 +1747,14 @@ export type Readiness = {
   timestamp: string;
 };
 
+export type RecoveryChallengeRequest = {
+  /**
+   * Ed25519 public key with prefix
+   */
+  publicKey: string;
+  purpose: RecoveryPurpose;
+};
+
 export type RecoveryChallengeResponse = {
   /**
    * HMAC-signed recovery challenge string
@@ -1760,10 +1768,32 @@ export type RecoveryChallengeResponse = {
 
 export type RecoveryCredentialsResponse = {
   /**
-   * X25519 sealed envelope containing the replacement OAuth2 clientId and clientSecret
+   * OAuth2 client identifier whose secret was replaced
    */
-  sealedCredentials: string;
+  clientId: string;
+  /**
+   * X25519 sealed envelope containing the replacement OAuth2 client secret
+   */
+  sealedClientSecret: string;
 };
+
+export type RecoveryProof = {
+  challenge: string;
+  /**
+   * Hex-encoded HMAC-SHA256
+   */
+  hmac: string;
+  /**
+   * Ed25519 public key with prefix
+   */
+  publicKey: string;
+  /**
+   * Base64-encoded Ed25519 signature of the challenge
+   */
+  signature: string;
+};
+
+export type RecoveryPurpose = 'credentials' | 'identity';
 
 export type RecoveryVerifyResponse = {
   /**
@@ -8068,12 +8098,7 @@ export type GetLegreffierOnboardingStatusResponse =
   GetLegreffierOnboardingStatusResponses[keyof GetLegreffierOnboardingStatusResponses];
 
 export type RequestRecoveryChallengeData = {
-  body: {
-    /**
-     * Ed25519 public key with prefix
-     */
-    publicKey: string;
-  };
+  body: RecoveryChallengeRequest;
   path?: never;
   query?: never;
   url: '/recovery/challenge';
@@ -8104,21 +8129,7 @@ export type RequestRecoveryChallengeResponse =
   RequestRecoveryChallengeResponses[keyof RequestRecoveryChallengeResponses];
 
 export type RecoverAgentCredentialsData = {
-  body: {
-    challenge: string;
-    /**
-     * Hex-encoded HMAC-SHA256
-     */
-    hmac: string;
-    /**
-     * Ed25519 public key with prefix
-     */
-    publicKey: string;
-    /**
-     * Base64-encoded Ed25519 signature of the challenge
-     */
-    signature: string;
-  };
+  body: RecoveryProof;
   path?: never;
   query?: never;
   url: '/recovery/credentials';
@@ -8129,6 +8140,10 @@ export type RecoverAgentCredentialsErrors = {
    * Default Response
    */
   400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
   /**
    * Default Response
    */
@@ -8153,21 +8168,7 @@ export type RecoverAgentCredentialsResponse =
   RecoverAgentCredentialsResponses[keyof RecoverAgentCredentialsResponses];
 
 export type VerifyRecoveryChallengeData = {
-  body: {
-    challenge: string;
-    /**
-     * Hex-encoded HMAC-SHA256
-     */
-    hmac: string;
-    /**
-     * Ed25519 public key with prefix
-     */
-    publicKey: string;
-    /**
-     * Base64-encoded Ed25519 signature of the challenge
-     */
-    signature: string;
-  };
+  body: RecoveryProof;
   path?: never;
   query?: never;
   url: '/recovery/verify';

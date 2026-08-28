@@ -599,7 +599,7 @@ func encodePreviewRenderedPackRequest(
 }
 
 func encodeRecoverAgentCredentialsRequest(
-	req *RecoverAgentCredentialsReq,
+	req *RecoveryProof,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"
@@ -675,7 +675,7 @@ func encodeRenderContextPackRequest(
 }
 
 func encodeRequestRecoveryChallengeRequest(
-	req *RequestRecoveryChallengeReq,
+	req *RecoveryChallengeRequest,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"
@@ -1131,7 +1131,7 @@ func encodeVerifyCryptoSignatureRequest(
 }
 
 func encodeVerifyRecoveryChallengeRequest(
-	req *VerifyRecoveryChallengeReq,
+	req *RecoveryProof,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"
