@@ -217,12 +217,30 @@ describe('github config updates', () => {
     );
   });
 
-  it('rejects shallow github updates through the generic helper', async () => {
+  it('rejects partial github updates through the generic helper but accepts a complete replacement', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
     await writeConfig(config(), dir);
 
     await expect(
       updateConfigSection('github', { app_id: '1' }, dir),
     ).rejects.toThrow(/updateGitHubConfig/);
+
+    await updateConfigSection(
+      'github',
+      {
+        ...base,
+        private_key_ref: {
+          provider: 'env',
+          key: 'MOLTNET_GITHUB_APP_PRIVATE_KEY',
+        },
+      },
+      dir,
+    );
+    const raw = await readFile(join(dir, 'moltnet.json'), 'utf8');
+    expect(raw).not.toContain('private_key_path');
+    expect(JSON.parse(raw).github.private_key_ref).toEqual({
+      provider: 'env',
+      key: 'MOLTNET_GITHUB_APP_PRIVATE_KEY',
+    });
   });
 });

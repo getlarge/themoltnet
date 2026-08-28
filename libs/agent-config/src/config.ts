@@ -150,9 +150,20 @@ export async function updateConfigSection(
     return updateKeysConfig(keys as KeysConfig, configDir);
   }
   if (section === 'github') {
-    throw new Error(
-      'GitHub App settings must be updated with updateGitHubConfig()',
-    );
+    // Compatibility: a complete github object (exactly one PEM form) is still
+    // accepted and routed through the validating updater; a partial merge
+    // could leave both forms behind, so it is rejected.
+    const github = data as Partial<GitHubConfig>;
+    const complete =
+      typeof github.app_id === 'string' &&
+      typeof github.installation_id === 'string' &&
+      Boolean(github.private_key_path) !== Boolean(github.private_key_ref);
+    if (!complete) {
+      throw new Error(
+        'GitHub App settings must be replaced as a whole with updateGitHubConfig()',
+      );
+    }
+    return updateGitHubConfig(github as GitHubConfig, configDir);
   }
   const config = await readConfig(configDir);
   if (!config) {
