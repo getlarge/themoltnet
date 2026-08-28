@@ -561,4 +561,55 @@ describe('connect (agent-key references)', () => {
     ).rejects.toMatchObject({ code: 'INVALID_CONFIG' });
     expect(MockTokenManager).not.toHaveBeenCalled();
   });
+
+  it('refuses to send any agent key over remote plaintext HTTP', async () => {
+    await expect(
+      connect({ agentKey: 'k', apiUrl: 'http://remote.example.test' }),
+    ).rejects.toMatchObject({ code: 'INVALID_CONFIG' });
+
+    mockReadEnvCredentials.mockReturnValue({
+      apiUrl: 'http://remote.example.test',
+      agentKeyRef: 'memory:runtime/agent-key',
+    });
+    await expect(
+      connect({
+        secretProviders: memoryRegistry({ 'runtime/agent-key': 'ak' }),
+      }),
+    ).rejects.toMatchObject({ code: 'INVALID_CONFIG' });
+
+    mockReadEnvCredentials.mockReturnValue({
+      apiUrl: 'http://remote.example.test',
+    });
+    mockReadConfig.mockResolvedValueOnce({
+      identity_id: 'id-1',
+      registered_at: '2024-01-01',
+      agent_key_ref: { provider: 'memory', key: 'agent-key/id-1' },
+      oauth2: { client_id: 'cfg-id', client_secret: 'cfg-secret' },
+      keys: { public_key: 'pk', private_key: 'sk', fingerprint: 'fp' },
+      endpoints: { api: 'https://api.themolt.net', mcp: 'mcp' },
+    });
+    await expect(
+      connect({ secretProviders: memoryRegistry({ 'agent-key/id-1': 'ak' }) }),
+    ).rejects.toMatchObject({ code: 'INVALID_CONFIG' });
+    expect(mockCreateClient).not.toHaveBeenCalled();
+  });
+
+  it('allows plaintext HTTP to loopback for local stacks', async () => {
+    await connect({ agentKey: 'k', apiUrl: 'http://127.0.0.1:3000' });
+    await connect({ agentKey: 'k', apiUrl: 'http://localhost:3000' });
+    expect(mockCreateClient).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects a config agent_key_ref that names the env provider', async () => {
+    mockReadConfig.mockResolvedValueOnce({
+      identity_id: 'id-1',
+      registered_at: '2024-01-01',
+      agent_key_ref: { provider: 'env', key: 'MOLTNET_AGENT_KEY' },
+      oauth2: { client_id: 'cfg-id', client_secret: 'cfg-secret' },
+      keys: { public_key: 'pk', private_key: 'sk', fingerprint: 'fp' },
+      endpoints: { api: 'https://api.themolt.net', mcp: 'mcp' },
+    });
+
+    await expect(connect()).rejects.toMatchObject({ code: 'INVALID_CONFIG' });
+  });
 });

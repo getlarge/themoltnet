@@ -357,6 +357,17 @@ export function assertSecretReferenceBinding(
   ids: CredentialBindingIds,
 ): void {
   const canonical = expectedSecretKey(kind, ids);
+  if (
+    kind === 'agent-key' &&
+    reference.provider === ENVIRONMENT_SECRET_PROVIDER
+  ) {
+    // MOLTNET_AGENT_KEY selects environment (configless) mode before any
+    // config is read, so a config-bound env reference could never be
+    // resolved through the bound path — reject it instead of advertising it.
+    throw new Error(
+      'agent_key_ref cannot use the env provider; set MOLTNET_AGENT_KEY directly or reference a keyring/file secret',
+    );
+  }
   const valid =
     reference.provider === ENVIRONMENT_SECRET_PROVIDER
       ? reference.key === CREDENTIAL_ENV_KEYS[kind]

@@ -391,7 +391,6 @@ describe('agent key binding and env reference parsing', () => {
     expect(agentKeyKey('id-1')).toBe('agent-key/id-1');
     for (const reference of [
       { provider: 'os-keyring', key: 'agent-key/id-1' },
-      { provider: 'env', key: 'MOLTNET_AGENT_KEY' },
       { provider: 'file', key: 'agent-key.id-1' },
     ]) {
       expect(() =>
@@ -407,6 +406,15 @@ describe('agent key binding and env reference parsing', () => {
         { identityId: 'id-1' },
       ),
     ).toThrow(/not bound/);
+    // The env provider is unreachable for config-bound agent keys (the
+    // variable itself selects environment mode first), so it is rejected.
+    expect(() =>
+      assertSecretReferenceBinding(
+        'agent-key',
+        { provider: 'env', key: 'MOLTNET_AGENT_KEY' },
+        { identityId: 'id-1' },
+      ),
+    ).toThrow(/cannot use the env provider/);
   });
 
   it('parses <provider>:<key> references and rejects malformed ones', () => {
