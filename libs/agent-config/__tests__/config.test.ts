@@ -243,4 +243,19 @@ describe('github config updates', () => {
       key: 'MOLTNET_GITHUB_APP_PRIVATE_KEY',
     });
   });
+
+  it('accepts the setupGitHubAgent app_slug persistence shape (spread of an existing path-form section)', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
+    const github = { ...base, private_key_path: '/tmp/app.pem' };
+    await writeConfig({ ...config(), github }, dir);
+
+    await updateConfigSection('github', { ...github, app_slug: 'my-app' }, dir);
+
+    expect(
+      JSON.parse(await readFile(join(dir, 'moltnet.json'), 'utf8')).github,
+    ).toEqual({
+      ...github,
+      app_slug: 'my-app',
+    });
+  });
 });

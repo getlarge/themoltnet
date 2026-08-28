@@ -4,7 +4,10 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs, parseEnv } from 'node:util';
 
-import { getInstallationToken } from '@themoltnet/github-agent';
+import {
+  getInstallationToken,
+  githubAppKeySourceFromConfig,
+} from '@themoltnet/github-agent';
 import {
   type MoltNetConfig,
   resolveGitHubAppPrivateKey,
@@ -82,17 +85,18 @@ function createGithubTokenProvider(agentDir: string): GithubTokenProvider {
       'MoltNet GitHub auth requires github.app_id, github.installation_id, and github.private_key_path or github.private_key_ref in .moltnet/<agent>/moltnet.json',
     );
   }
+  // Lazy source: the provider is consulted only on a cache miss, and each
+  // miss re-resolves so a rotated keyring/file secret is picked up.
+  const keySource = githubAppKeySourceFromConfig({
+    resolvePem: () =>
+      resolveGitHubAppPrivateKey(config, createNodeSecretProviderRegistry()),
+    cacheDir: agentDir,
+  });
   return async (options) => {
-    // Resolve per call so a rotated keyring/file secret is picked up.
-    const privateKeyPem = await resolveGitHubAppPrivateKey(
-      config,
-      createNodeSecretProviderRegistry(),
-    );
     const token = await getInstallationToken({
       appId: github.app_id,
       installationId: github.installation_id,
-      privateKeyPem,
-      cacheDir: agentDir,
+      ...keySource,
       forceRefresh: options?.forceRefresh,
     });
     return token.token;
