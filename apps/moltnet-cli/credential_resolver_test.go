@@ -243,6 +243,9 @@ func TestResolveAgentKeyAndEnvReferences(t *testing.T) {
 		t.Fatalf("empty value error = %v", err)
 	}
 
+	if _, _, err := resolveAgentKey(&CredentialsFile{IdentityID: "id-1", AgentKeyRef: &SecretReference{Provider: environmentProviderName, Key: agentKeyEnv}}, registry); !errors.As(err, &resolutionErr) || resolutionErr.Code != "unbound" || !strings.Contains(err.Error(), "cannot use the env provider") {
+		t.Fatalf("env provider for a config-bound agent key must be rejected, got %v", err)
+	}
 	if got, err := resolveEnvSecretReference("os-keyring:agent-key/other", registry); err != nil || got != "x" {
 		t.Fatalf("env reference = %q, %v", got, err)
 	}

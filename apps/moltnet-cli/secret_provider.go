@@ -120,6 +120,11 @@ func validateSecretReferenceBinding(kind credentialKind, ref SecretReference, id
 	if err != nil {
 		return err
 	}
+	if kind == credentialAgentKey && ref.Provider == environmentProviderName {
+		// MOLTNET_AGENT_KEY selects environment mode before config is read,
+		// so a config-bound env reference could never reach this path.
+		return fmt.Errorf("agent_key_ref cannot use the env provider; set %s directly or reference a keyring/file secret", agentKeyEnv)
+	}
 	valid := ref.Key == canonical
 	switch ref.Provider {
 	case environmentProviderName:
