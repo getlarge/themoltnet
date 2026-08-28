@@ -347,9 +347,11 @@ func TestGetCachedInstallationToken_CacheHit(t *testing.T) {
 	// Write a valid cache file with token expiring in 1 hour
 	expiresAt := time.Now().Add(1 * time.Hour).UTC().Format(time.RFC3339)
 	cache := tokenCache{
-		Token:       "ghs_cached_token",
-		ExpiresAt:   expiresAt,
-		Permissions: map[string]string{"contents": "write"},
+		Token:          "ghs_cached_token",
+		ExpiresAt:      expiresAt,
+		Permissions:    map[string]string{"contents": "write"},
+		AppID:          "12345",
+		InstallationID: "67890",
 	}
 	cacheData, _ := json.Marshal(cache)
 	os.WriteFile(filepath.Join(tmpDir, "gh-token-cache.json"), cacheData, 0o600)
@@ -662,5 +664,31 @@ func TestGitHubKeySourceFromCredentialsKeepsLegacyCacheLocation(t *testing.T) {
 	}
 	if source.cacheDir != pemDir {
 		t.Fatalf("cacheDir = %q, want the PEM directory %q", source.cacheDir, pemDir)
+	}
+}
+
+func TestGetCachedInstallationTokenIgnoresRecordForAnotherApp(t *testing.T) {
+	tmpDir := t.TempDir()
+	keyPath := filepath.Join(tmpDir, "private-key.pem")
+	if err := os.WriteFile(keyPath, []byte("dummy"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cache := tokenCache{
+		Token:          "ghs_other_app",
+		ExpiresAt:      time.Now().Add(time.Hour).UTC().Format(time.RFC3339),
+		Permissions:    map[string]string{},
+		AppID:          "99999",
+		InstallationID: "67890",
+	}
+	cacheData, _ := json.Marshal(cache)
+	if err := os.WriteFile(filepath.Join(tmpDir, "gh-token-cache.json"), cacheData, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	// Mismatched record must be ignored: the dummy key then fails PEM decoding,
+	// proving a refresh was attempted instead of returning ghs_other_app.
+	_, err := getCachedInstallationToken("12345", keyPath, "67890")
+	if err == nil || !strings.Contains(err.Error(), "failed to decode PEM block") {
+		t.Fatalf("expected a refresh attempt, got err=%v", err)
 	}
 }

@@ -2,7 +2,7 @@ import { getConfigDir, readConfig } from '@moltnet/agent-config';
 import { resolveGitHubAppPrivateKey } from '@themoltnet/sdk';
 import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
 
-import { getInstallationToken } from './token.js';
+import { getInstallationToken, githubAppKeySourceFromConfig } from './token.js';
 
 /**
  * Git credential helper that outputs GitHub App installation tokens.
@@ -23,15 +23,15 @@ export async function credentialHelper(configDir?: string): Promise<void> {
     );
   }
 
-  const privateKeyPem = await resolveGitHubAppPrivateKey(
-    config,
-    createNodeSecretProviderRegistry(),
-  );
+  // Lazy: the provider is consulted only when no valid cached token exists.
   const { token } = await getInstallationToken({
     appId: config.github.app_id,
     installationId: config.github.installation_id,
-    privateKeyPem,
-    cacheDir: configDir ?? getConfigDir(),
+    ...githubAppKeySourceFromConfig({
+      resolvePem: () =>
+        resolveGitHubAppPrivateKey(config, createNodeSecretProviderRegistry()),
+      cacheDir: configDir ?? getConfigDir(),
+    }),
   });
 
   process.stdout.write(`username=x-access-token\npassword=${token}\n`);

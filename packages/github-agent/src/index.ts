@@ -9,5 +9,7 @@ export {
 export {
   findInstallationForOwner,
   getInstallationToken,
+  type GitHubAppKeyInput,
   type GitHubAppKeySource,
+  githubAppKeySourceFromConfig,
 } from './token.js';

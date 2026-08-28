@@ -220,10 +220,15 @@ func runGitHubTokenCmd(credPath string) error {
 }
 
 // tokenCache is the on-disk cache format for GitHub installation tokens.
+// AppID/InstallationID record which App the token was minted for; a record
+// that does not match the caller (or a legacy record without them) is never
+// returned, so two configs sharing a cache directory cannot exchange tokens.
 type tokenCache struct {
-	Token       string            `json:"token"`
-	ExpiresAt   string            `json:"expires_at"`
-	Permissions map[string]string `json:"permissions"`
+	Token          string            `json:"token"`
+	ExpiresAt      string            `json:"expires_at"`
+	Permissions    map[string]string `json:"permissions"`
+	AppID          string            `json:"app_id,omitempty"`
+	InstallationID string            `json:"installation_id,omitempty"`
 }
 
 type tokenRefreshFailure struct {
@@ -347,10 +352,11 @@ func getCachedTokenDetailsFromSource(
 ) (tokenCache, error) {
 	cachePath := tokenCachePath(source.cacheDir)
 
-	// Try reading cache
+	// Try reading cache — only a record minted for this App/installation counts.
 	if data, err := os.ReadFile(cachePath); err == nil {
 		var cached tokenCache
-		if err := json.Unmarshal(data, &cached); err == nil && cached.Token != "" && cached.ExpiresAt != "" {
+		if err := json.Unmarshal(data, &cached); err == nil && cached.Token != "" && cached.ExpiresAt != "" &&
+			cached.AppID == appID && cached.InstallationID == installationID {
 			expiresAt, err := time.Parse(time.RFC3339, cached.ExpiresAt)
 			if err == nil && timeNow().Add(5*time.Minute).Before(expiresAt) && cached.Permissions != nil {
 				return cached, nil
@@ -382,7 +388,9 @@ func getCachedTokenDetailsFromSource(
 		return tokenCache{}, err
 	}
 
-	// Write cache (best-effort)
+	// Write cache (best-effort), bound to this App/installation
+	details.AppID = appID
+	details.InstallationID = installationID
 	_ = writeJSONAtomic(cachePath, details)
 	_ = os.Remove(tokenRefreshFailurePath(source.cacheDir))
 
