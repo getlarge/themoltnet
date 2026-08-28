@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -282,5 +283,32 @@ func TestDeterministicEncryption(t *testing.T) {
 	}
 	if gotEnvelope.Ciphertext != v.SealedEnvelope.Ciphertext {
 		t.Errorf("ciphertext mismatch\n  got:  %s\n  want: %s", gotEnvelope.Ciphertext, v.SealedEnvelope.Ciphertext)
+	}
+}
+
+func TestRunDecryptCmdFromPrivateKeyReference(t *testing.T) {
+	bob, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv(identitySeedEnvKey, bob.PrivateKey)
+	credPath := filepath.Join(t.TempDir(), "moltnet.json")
+	creds := &CredentialsFile{IdentityID: "bob", Keys: CredentialsKeys{
+		PublicKey: bob.PublicKey, Fingerprint: "fp",
+		PrivateKeyRef: &SecretReference{Provider: environmentProviderName, Key: identitySeedEnvKey},
+	}}
+	if _, err := WriteConfigTo(creds, credPath); err != nil {
+		t.Fatal(err)
+	}
+	sealed, err := EncryptForAgent("for bob via reference", bob.PublicKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	if err := runDecryptCmd(&out, credPath, []string{sealed}); err != nil {
+		t.Fatalf("runDecryptCmd: %v", err)
+	}
+	if out.String() != "for bob via reference" {
+		t.Fatalf("decrypted = %q", out.String())
 	}
 }

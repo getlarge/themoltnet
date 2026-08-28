@@ -11,15 +11,35 @@ import (
 )
 
 // CredentialResolutionError classifies a failed credential lookup without
-// carrying the value. Codes: ambiguous, missing, unbound, invalid_value.
+// carrying the value. Codes: ambiguous, missing, unbound, invalid_value,
+// provider_failure. Cause retains the underlying provider error for callers
+// that deliberately surface diagnostics; Error() never includes it.
 type CredentialResolutionError struct {
 	Kind   credentialKind
 	Code   string
 	Detail string
+	Cause  error
 }
 
 func (e *CredentialResolutionError) Error() string {
 	return fmt.Sprintf("%s: %s", e.Kind, e.Detail)
+}
+
+func (e *CredentialResolutionError) Unwrap() error { return e.Cause }
+
+// resolveThroughRegistry normalizes provider failures into a value-free
+// provider_failure error, keeping the raw cause only for errors.As callers.
+func resolveThroughRegistry(kind credentialKind, registry *SecretProviderRegistry, ref SecretReference) (string, error) {
+	value, err := registry.Resolve(ref)
+	if err != nil {
+		return "", &CredentialResolutionError{
+			Kind:   kind,
+			Code:   "provider_failure",
+			Detail: fmt.Sprintf("secret provider %q could not resolve the reference", ref.Provider),
+			Cause:  err,
+		}
+	}
+	return value, nil
 }
 
 var (
@@ -51,7 +71,7 @@ func warnLegacyCredentialOnce(kind credentialKind) {
 	if w == nil {
 		w = os.Stderr
 	}
-	fmt.Fprintf(w, "Warning: plaintext %s in moltnet.json is deprecated; move it to a secret provider with 'moltnet config migrate'.\n", legacyField(kind))
+	fmt.Fprintf(w, "Warning: plaintext %s in moltnet.json is deprecated; move it to a secret provider reference (see docs/reference/agent-configuration.md).\n", legacyField(kind))
 }
 
 func resetLegacyCredentialWarnings() {
@@ -117,7 +137,7 @@ func resolveIdentitySeed(creds *CredentialsFile, registry *SecretProviderRegistr
 		if err := validateSecretReferenceBinding(credentialIdentitySeed, *ref, ids); err != nil {
 			return "", &CredentialResolutionError{Kind: credentialIdentitySeed, Code: "unbound", Detail: err.Error()}
 		}
-		value, err := registry.Resolve(*ref)
+		value, err := resolveThroughRegistry(credentialIdentitySeed, registry, *ref)
 		if err != nil {
 			return "", err
 		}

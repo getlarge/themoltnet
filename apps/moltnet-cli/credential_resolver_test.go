@@ -115,3 +115,31 @@ func TestResolveIdentitySeedRejectsAmbiguousMissingUnboundAndMismatch(t *testing
 		t.Fatalf("unbound error = %v", err)
 	}
 }
+
+type failingSecretProvider struct{}
+
+func (failingSecretProvider) Get(string) (string, error) {
+	return "", errors.New("backend said: leaked-canary")
+}
+func (failingSecretProvider) Set(string, string) error { return nil }
+func (failingSecretProvider) Delete(string) error      { return nil }
+
+func TestResolveIdentitySeedNormalizesProviderFailures(t *testing.T) {
+	_, pub := testSeedAndPublicKey(t)
+	registry := NewSecretProviderRegistry()
+	registry.Register("failing", failingSecretProvider{})
+	creds := &CredentialsFile{Keys: CredentialsKeys{PublicKey: pub, Fingerprint: "fp",
+		PrivateKeyRef: &SecretReference{Provider: "failing", Key: "identity/fp/seed"}}}
+
+	_, err := resolveIdentitySeed(creds, registry)
+	var resolutionErr *CredentialResolutionError
+	if !errors.As(err, &resolutionErr) || resolutionErr.Code != "provider_failure" {
+		t.Fatalf("error = %v, want provider_failure", err)
+	}
+	if strings.Contains(err.Error(), "leaked-canary") {
+		t.Fatalf("error leaked the provider message: %v", err)
+	}
+	if !strings.Contains(errors.Unwrap(err).Error(), "leaked-canary") {
+		t.Fatal("cause was not retained")
+	}
+}
