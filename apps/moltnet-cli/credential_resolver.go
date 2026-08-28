@@ -210,7 +210,7 @@ func resolveAgentKey(creds *CredentialsFile, registry *SecretProviderRegistry) (
 	if err := validateSecretReferenceBinding(kind, *creds.AgentKeyRef, credentialBindingIDs{IdentityID: creds.IdentityID}); err != nil {
 		return "", true, &CredentialResolutionError{Kind: kind, Code: "unbound", Detail: err.Error()}
 	}
-	value, err := registry.Resolve(*creds.AgentKeyRef)
+	value, err := resolveThroughRegistry(kind, registry, *creds.AgentKeyRef)
 	if err != nil {
 		return "", true, err
 	}
@@ -231,7 +231,8 @@ func resolveEnvSecretReference(raw string, registry *SecretProviderRegistry) (st
 	}
 	value, err := registry.Resolve(ref)
 	if err != nil {
-		return "", err
+		// Value-free: name the reference, keep the provider's message wrapped.
+		return "", fmt.Errorf("secret provider %q could not resolve %s:%s: %w", ref.Provider, ref.Provider, ref.Key, err)
 	}
 	value = strings.TrimSpace(value)
 	if value == "" {

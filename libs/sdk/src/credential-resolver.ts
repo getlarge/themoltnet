@@ -289,7 +289,9 @@ export async function resolveAgentKey(
       (cause as Error).message,
     );
   }
-  const value = (await registry.resolve(reference)).trim();
+  const value = (
+    await resolveThroughRegistry(kind, registry, reference)
+  ).trim();
   if (!value) {
     throw new CredentialResolutionError(
       kind,
@@ -310,7 +312,16 @@ export async function resolveEnvSecretReference(
   registry: SecretProviderRegistry,
 ): Promise<string> {
   const reference = parseSecretReferenceString(raw);
-  const value = (await registry.resolve(reference)).trim();
+  let value: string;
+  try {
+    value = (await registry.resolve(reference)).trim();
+  } catch (cause) {
+    // Value-free: name the reference, keep the provider's message as cause.
+    throw new Error(
+      `Secret provider ${JSON.stringify(reference.provider)} could not resolve ${reference.provider}:${reference.key}`,
+      { cause },
+    );
+  }
   if (!value) {
     throw new Error(
       `Secret reference ${reference.provider}:${reference.key} resolved to an empty value`,

@@ -485,7 +485,7 @@ describe('resolveAgentKey and resolveEnvSecretReference', () => {
     ).resolves.toBe('value');
     await expect(
       resolveEnvSecretReference('memory:missing', registry),
-    ).rejects.toThrow(/no value/);
+    ).rejects.toThrow(/could not resolve memory:missing/);
     await expect(
       resolveEnvSecretReference('not-a-ref', registry),
     ).rejects.toThrow(/<provider>:<key>/);
