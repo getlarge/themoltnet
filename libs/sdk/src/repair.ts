@@ -74,7 +74,10 @@ function validateConfig(config: MoltNetConfig, issues: ConfigIssue[]): void {
       action: 'warning',
     });
   }
-  if (!config.keys.private_key) {
+  if (
+    !('private_key' in config.keys && config.keys.private_key) &&
+    !config.keys.private_key_ref
+  ) {
     issues.push({
       field: 'keys.private_key',
       problem: 'missing',

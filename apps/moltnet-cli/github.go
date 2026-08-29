@@ -189,15 +189,7 @@ func runGitHubCredentialHelperCmd(credPath string) error {
 		return err
 	}
 
-	if creds.GitHub == nil {
-		return fmt.Errorf("GitHub App not configured — add 'github' section to moltnet.json")
-	}
-
-	token, err := getCachedInstallationToken(
-		creds.GitHub.AppID,
-		creds.GitHub.PrivateKeyPath,
-		creds.GitHub.InstallationID,
-	)
+	token, err := mintGitHubAppToken(creds, credPath)
 	if err != nil {
 		return err
 	}
@@ -218,15 +210,7 @@ func runGitHubTokenCmd(credPath string) error {
 		return err
 	}
 
-	if creds.GitHub == nil {
-		return fmt.Errorf("GitHub App not configured — add 'github' section to moltnet.json")
-	}
-
-	token, err := getCachedInstallationToken(
-		creds.GitHub.AppID,
-		creds.GitHub.PrivateKeyPath,
-		creds.GitHub.InstallationID,
-	)
+	token, err := mintGitHubAppToken(creds, path)
 	if err != nil {
 		return err
 	}
@@ -236,23 +220,79 @@ func runGitHubTokenCmd(credPath string) error {
 }
 
 // tokenCache is the on-disk cache format for GitHub installation tokens.
+// AppID/InstallationID record which App the token was minted for; a record
+// that does not match the caller (or a legacy record without them) is never
+// returned, so two configs sharing a cache directory cannot exchange tokens.
 type tokenCache struct {
-	Token       string            `json:"token"`
-	ExpiresAt   string            `json:"expires_at"`
-	Permissions map[string]string `json:"permissions"`
+	Token          string            `json:"token"`
+	ExpiresAt      string            `json:"expires_at"`
+	Permissions    map[string]string `json:"permissions"`
+	AppID          string            `json:"app_id,omitempty"`
+	InstallationID string            `json:"installation_id,omitempty"`
 }
 
 type tokenRefreshFailure struct {
 	FailedAt string `json:"failed_at"`
 }
 
-// tokenCachePath returns the cache file path next to the private key.
-func tokenCachePath(privateKeyPath string) string {
-	return filepath.Join(filepath.Dir(privateKeyPath), "gh-token-cache.json")
+// githubAppKeySource supplies the App PEM and the directory that holds the
+// token cache. A legacy path source caches next to the PEM file; a
+// credentials-backed source resolves github.private_key_ref on every load
+// and caches in the credentials directory.
+type githubAppKeySource struct {
+	loadPEM  func() ([]byte, error)
+	cacheDir string
 }
 
-func tokenRefreshFailurePath(privateKeyPath string) string {
-	return filepath.Join(filepath.Dir(privateKeyPath), "gh-token-cache-error.json")
+func githubKeySourceFromPath(privateKeyPath string) githubAppKeySource {
+	return githubAppKeySource{
+		loadPEM: func() ([]byte, error) {
+			pemData, err := os.ReadFile(privateKeyPath)
+			if err != nil {
+				return nil, fmt.Errorf("read GitHub App private key: %w", err)
+			}
+			return pemData, nil
+		},
+		cacheDir: filepath.Dir(privateKeyPath),
+	}
+}
+
+// githubKeySourceFromCredentials resolves the App PEM through the credential
+// resolver so both the legacy path and a private_key_ref work.
+func githubKeySourceFromCredentials(creds *CredentialsFile, credPath string, registry *SecretProviderRegistry) (githubAppKeySource, error) {
+	if creds == nil || creds.GitHub == nil {
+		return githubAppKeySource{}, fmt.Errorf("GitHub App not configured — add 'github' section to moltnet.json")
+	}
+	cacheDir, err := credentialsDir(credPath)
+	if err != nil {
+		return githubAppKeySource{}, err
+	}
+	if creds.GitHub.PrivateKeyRef == nil && creds.GitHub.PrivateKeyPath != "" {
+		// Keep the historical cache location for path-based agents.
+		cacheDir = filepath.Dir(creds.GitHub.PrivateKeyPath)
+	}
+	return githubAppKeySource{
+		loadPEM:  func() ([]byte, error) { return resolveGitHubAppPrivateKey(creds, registry) },
+		cacheDir: cacheDir,
+	}, nil
+}
+
+// credentialsDir returns the directory holding moltnet.json for credPath,
+// falling back to the default config directory.
+func credentialsDir(credPath string) (string, error) {
+	if strings.TrimSpace(credPath) != "" {
+		return filepath.Dir(credPath), nil
+	}
+	return GetConfigDir()
+}
+
+// tokenCachePath returns the cache file path inside cacheDir.
+func tokenCachePath(cacheDir string) string {
+	return filepath.Join(cacheDir, "gh-token-cache.json")
+}
+
+func tokenRefreshFailurePath(cacheDir string) string {
+	return filepath.Join(cacheDir, "gh-token-cache-error.json")
 }
 
 // timeNow is a seam for tests.
@@ -299,12 +339,24 @@ func getCachedInstallationTokenDetailsWithFailureTTL(
 	appID, privateKeyPath, installationID string,
 	failureTTL time.Duration,
 ) (tokenCache, error) {
-	cachePath := tokenCachePath(privateKeyPath)
+	return getCachedTokenDetailsFromSource(ctx, client, appID, githubKeySourceFromPath(privateKeyPath), installationID, failureTTL)
+}
 
-	// Try reading cache
+func getCachedTokenDetailsFromSource(
+	ctx context.Context,
+	client *http.Client,
+	appID string,
+	source githubAppKeySource,
+	installationID string,
+	failureTTL time.Duration,
+) (tokenCache, error) {
+	cachePath := tokenCachePath(source.cacheDir)
+
+	// Try reading cache — only a record minted for this App/installation counts.
 	if data, err := os.ReadFile(cachePath); err == nil {
 		var cached tokenCache
-		if err := json.Unmarshal(data, &cached); err == nil && cached.Token != "" && cached.ExpiresAt != "" {
+		if err := json.Unmarshal(data, &cached); err == nil && cached.Token != "" && cached.ExpiresAt != "" &&
+			cached.AppID == appID && cached.InstallationID == installationID {
 			expiresAt, err := time.Parse(time.RFC3339, cached.ExpiresAt)
 			if err == nil && timeNow().Add(5*time.Minute).Before(expiresAt) && cached.Permissions != nil {
 				return cached, nil
@@ -313,7 +365,7 @@ func getCachedInstallationTokenDetailsWithFailureTTL(
 	}
 
 	if failureTTL > 0 {
-		if data, err := os.ReadFile(tokenRefreshFailurePath(privateKeyPath)); err == nil {
+		if data, err := os.ReadFile(tokenRefreshFailurePath(source.cacheDir)); err == nil {
 			var failed tokenRefreshFailure
 			if json.Unmarshal(data, &failed) == nil {
 				failedAt, parseErr := time.Parse(time.RFC3339Nano, failed.FailedAt)
@@ -325,22 +377,45 @@ func getCachedInstallationTokenDetailsWithFailureTTL(
 	}
 
 	// Cache miss or expired — fetch fresh token
-	details, err := getInstallationTokenDetails(ctx, client, appID, privateKeyPath, installationID)
+	details, err := getInstallationTokenDetailsFromSource(ctx, client, appID, source, installationID)
 	if err != nil {
 		if failureTTL > 0 {
 			_ = writeJSONAtomic(
-				tokenRefreshFailurePath(privateKeyPath),
+				tokenRefreshFailurePath(source.cacheDir),
 				tokenRefreshFailure{FailedAt: timeNow().UTC().Format(time.RFC3339Nano)},
 			)
 		}
 		return tokenCache{}, err
 	}
 
-	// Write cache (best-effort)
+	// Write cache (best-effort), bound to this App/installation
+	details.AppID = appID
+	details.InstallationID = installationID
 	_ = writeJSONAtomic(cachePath, details)
-	_ = os.Remove(tokenRefreshFailurePath(privateKeyPath))
+	_ = os.Remove(tokenRefreshFailurePath(source.cacheDir))
 
 	return details, nil
+}
+
+// mintGitHubAppToken returns a cached or fresh installation token for the
+// credentials' GitHub App, resolving the PEM from a path or a secret reference.
+func mintGitHubAppToken(creds *CredentialsFile, credPath string) (string, error) {
+	source, err := githubKeySourceFromCredentials(creds, credPath, NewSecretProviderRegistry())
+	if err != nil {
+		return "", err
+	}
+	details, err := getCachedTokenDetailsFromSource(
+		context.Background(),
+		http.DefaultClient,
+		creds.GitHub.AppID,
+		source,
+		creds.GitHub.InstallationID,
+		0,
+	)
+	if err != nil {
+		return "", err
+	}
+	return details.Token, nil
 }
 
 // getInstallationToken exchanges a GitHub App JWT for an installation token.
@@ -364,28 +439,46 @@ func getInstallationTokenDetails(
 	client *http.Client,
 	appID, privateKeyPath, installationID string,
 ) (tokenCache, error) {
-	pemData, err := os.ReadFile(privateKeyPath)
-	if err != nil {
-		return tokenCache{}, fmt.Errorf("read GitHub App private key: %w", err)
-	}
+	return getInstallationTokenDetailsFromSource(ctx, client, appID, githubKeySourceFromPath(privateKeyPath), installationID)
+}
 
+// parseRSAPrivateKey decodes a PKCS#1 or PKCS#8 RSA private key PEM. Error
+// messages never include key material.
+func parseRSAPrivateKey(pemData []byte) (*rsa.PrivateKey, error) {
 	block, _ := pem.Decode(pemData)
 	if block == nil {
-		return tokenCache{}, fmt.Errorf("failed to decode PEM block from %s", privateKeyPath)
+		return nil, fmt.Errorf("failed to decode PEM block from GitHub App private key")
 	}
-
 	privKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if err != nil {
 		// Fall back to PKCS#8 format
 		pkcs8Key, errPKCS8 := x509.ParsePKCS8PrivateKey(block.Bytes)
 		if errPKCS8 != nil {
-			return tokenCache{}, fmt.Errorf("parse private key: PKCS#1: %v, PKCS#8: %w", err, errPKCS8)
+			return nil, fmt.Errorf("parse private key: PKCS#1: %v, PKCS#8: %w", err, errPKCS8)
 		}
 		var ok bool
 		privKey, ok = pkcs8Key.(*rsa.PrivateKey)
 		if !ok {
-			return tokenCache{}, fmt.Errorf("PKCS#8 key is not RSA")
+			return nil, fmt.Errorf("PKCS#8 key is not RSA")
 		}
+	}
+	return privKey, nil
+}
+
+func getInstallationTokenDetailsFromSource(
+	ctx context.Context,
+	client *http.Client,
+	appID string,
+	source githubAppKeySource,
+	installationID string,
+) (tokenCache, error) {
+	pemData, err := source.loadPEM()
+	if err != nil {
+		return tokenCache{}, err
+	}
+	privKey, err := parseRSAPrivateKey(pemData)
+	if err != nil {
+		return tokenCache{}, err
 	}
 
 	jwt, err := createAppJWT(appID, privKey)
@@ -513,11 +606,7 @@ func runGitHubExecCmd(credPath string, args []string, stdin io.Reader, stdout, s
 		return fmt.Errorf("moltnet github exec: GitHub App not configured — add 'github' section to moltnet.json")
 	}
 
-	token, err := getCachedInstallationToken(
-		creds.GitHub.AppID,
-		creds.GitHub.PrivateKeyPath,
-		creds.GitHub.InstallationID,
-	)
+	token, err := mintGitHubAppToken(creds, path)
 	if err != nil {
 		return fmt.Errorf("moltnet github exec: cannot mint GitHub App token: %w", err)
 	}

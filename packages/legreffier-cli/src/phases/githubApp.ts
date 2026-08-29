@@ -43,7 +43,7 @@ export async function runGithubAppPhase(opts: {
     return {
       appId: existingConfig.github.app_id,
       appSlug: existingConfig.github.app_slug ?? '',
-      pemPath: existingConfig.github.private_key_path,
+      pemPath: existingConfig.github.private_key_path ?? '',
       installationId: existingConfig.github.installation_id,
       skipped: true,
     };

@@ -1,5 +1,11 @@
 import { findInstallationForOwner } from '@themoltnet/github-agent';
-import { type MoltNetConfig, updateConfigSection } from '@themoltnet/sdk';
+import {
+  CredentialResolutionError,
+  type MoltNetConfig,
+  resolveGitHubAppPrivateKey,
+  updateGitHubConfig,
+} from '@themoltnet/sdk';
+import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
 
 import { updateEnvVar } from '../env-file.js';
 
@@ -43,24 +49,35 @@ export async function runPortResolveInstallationPhase(opts: {
     };
   }
 
-  if (!config.github?.app_id || !config.github?.private_key_path) {
+  if (
+    !config.github?.app_id ||
+    (!config.github?.private_key_path && !config.github?.private_key_ref)
+  ) {
     return {
       status: 'skipped',
-      message: 'github.app_id or private_key_path missing — cannot resolve',
+      message:
+        'github.app_id or private_key_path/private_key_ref missing — cannot resolve',
       installationId: config.github?.installation_id ?? '',
     };
   }
 
   const targetOwner = currentRepo.split('/')[0];
 
+  // Lazy key source through the shared resolver (both PEM forms). A
+  // credential that cannot be resolved is a port failure (rethrown below),
+  // not a skipped step — the target must not be left with an unusable
+  // identity; only GitHub API failures degrade to `skipped`.
+  const github = config.github;
   let result: { installationId: string } | null;
   try {
     result = await findInstallationForOwner({
-      appId: config.github.app_id,
-      privateKeyPath: config.github.private_key_path,
+      appId: github.app_id,
+      loadPrivateKeyPem: () =>
+        resolveGitHubAppPrivateKey(config, createNodeSecretProviderRegistry()),
       owner: targetOwner,
     });
   } catch (err) {
+    if (err instanceof CredentialResolutionError) throw err;
     return {
       status: 'skipped',
       message: `could not list app installations: ${(err as Error).message}`,
@@ -86,9 +103,8 @@ export async function runPortResolveInstallationPhase(opts: {
   }
 
   // Update moltnet.json with the resolved installation_id
-  await updateConfigSection(
-    'github',
-    { installation_id: result.installationId },
+  await updateGitHubConfig(
+    { ...config.github, installation_id: result.installationId },
     targetDir,
   );
 

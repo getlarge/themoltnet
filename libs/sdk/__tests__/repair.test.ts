@@ -66,6 +66,24 @@ describe('repairConfig', () => {
     expect(fields).toContain('endpoints.api');
   });
 
+  it('accepts keys.private_key_ref in place of keys.private_key', async () => {
+    const { private_key: _seed, ...keys } = validConfig.keys as {
+      public_key: string;
+      fingerprint: string;
+      private_key: string;
+    };
+    await writeConfig(tempDir, 'moltnet.json', {
+      ...validConfig,
+      keys: {
+        ...keys,
+        private_key_ref: { provider: 'env', key: 'MOLTNET_PRIVATE_KEY' },
+      },
+    });
+    const result = await repairConfig({ configDir: tempDir, dryRun: true });
+
+    expect(result.issues.map((i) => i.field)).not.toContain('keys.private_key');
+  });
+
   it('warns about stale SSH paths', async () => {
     const config: MoltNetConfig = {
       ...validConfig,

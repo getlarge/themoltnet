@@ -151,7 +151,7 @@ func TestSignWithRequestID(t *testing.T) {
 	_, _, client := newTestServer(t, handler)
 
 	// Act
-	sig, err := signWithRequestID(context.Background(), client, newLocalSeedSigner(&CredentialsFile{Keys: CredentialsKeys{PublicKey: kp.PublicKey, PrivateKey: kp.PrivateKey, Fingerprint: kp.Fingerprint}}), reqID.String())
+	sig, err := signWithRequestID(context.Background(), client, newLocalSeedSigner(&CredentialsFile{Keys: CredentialsKeys{PublicKey: kp.PublicKey, PrivateKey: kp.PrivateKey, Fingerprint: kp.Fingerprint}}, kp.PrivateKey), reqID.String())
 	if err != nil {
 		t.Fatalf("signWithRequestID() error: %v", err)
 	}
@@ -282,7 +282,7 @@ func TestSignWithRequestIDRejectsNonAgentVerificationMethod(t *testing.T) {
 	_, _, client := newTestServer(t, handler)
 
 	// Act
-	_, err = signWithRequestID(context.Background(), client, newLocalSeedSigner(&CredentialsFile{Keys: CredentialsKeys{PublicKey: kp.PublicKey, PrivateKey: kp.PrivateKey, Fingerprint: kp.Fingerprint}}), reqID.String())
+	_, err = signWithRequestID(context.Background(), client, newLocalSeedSigner(&CredentialsFile{Keys: CredentialsKeys{PublicKey: kp.PublicKey, PrivateKey: kp.PrivateKey, Fingerprint: kp.Fingerprint}}, kp.PrivateKey), reqID.String())
 
 	// Assert
 	if err == nil {

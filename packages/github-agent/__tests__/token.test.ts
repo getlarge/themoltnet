@@ -129,7 +129,12 @@ describe('getInstallationToken', () => {
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
     fs.writeFileSync(
       cachePath(privateKeyPath),
-      JSON.stringify({ token: 'ghs_cached', expires_at: expiresAt }),
+      JSON.stringify({
+        token: 'ghs_cached',
+        expires_at: expiresAt,
+        app_id: '12345',
+        installation_id: '67890',
+      }),
     );
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
@@ -249,5 +254,98 @@ describe('getInstallationToken', () => {
     );
     expect(cached.token).toBe('ghs_new');
     expect(cached.expires_at).toBe(freshExpiry);
+  });
+
+  it('accepts resolved PEM text and caches in the supplied directory', async () => {
+    const privateKeyPath = createTempRsaKeyFile();
+    const privateKeyPem = fs.readFileSync(privateKeyPath, 'utf8');
+    const cacheDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'github-agent-cache-'),
+    );
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        status: 201,
+        json: async () => ({
+          token: 'ghs_from_pem',
+          expires_at: '2099-01-01T00:00:00Z',
+        }),
+      })),
+    );
+
+    const result = await getInstallationToken({
+      appId: '12345',
+      installationId: '67890',
+      privateKeyPem,
+      cacheDir,
+    });
+
+    expect(result.token).toBe('ghs_from_pem');
+    expect(fs.existsSync(path.join(cacheDir, 'gh-token-cache.json'))).toBe(
+      true,
+    );
+    expect(fs.existsSync(cachePath(privateKeyPath))).toBe(false);
+  });
+
+  it('ignores a cached token minted for a different App or installation', async () => {
+    const privateKeyPath = createTempRsaKeyFile();
+    fs.writeFileSync(
+      cachePath(privateKeyPath),
+      JSON.stringify({
+        token: 'ghs_other_app',
+        expires_at: '2099-01-01T00:00:00Z',
+        app_id: '99999',
+        installation_id: '67890',
+      }),
+    );
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      status: 201,
+      json: async () => ({
+        token: 'ghs_fresh',
+        expires_at: '2099-01-01T00:00:00Z',
+      }),
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await getInstallationToken({
+      appId: '12345',
+      installationId: '67890',
+      privateKeyPath,
+    });
+
+    expect(result.token).toBe('ghs_fresh');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const record = JSON.parse(
+      fs.readFileSync(cachePath(privateKeyPath), 'utf8'),
+    );
+    expect(record).toMatchObject({ app_id: '12345', installation_id: '67890' });
+  });
+
+  it('does not invoke a lazy key loader when a valid cached token exists', async () => {
+    const cacheDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'github-agent-cache-'),
+    );
+    fs.writeFileSync(
+      path.join(cacheDir, 'gh-token-cache.json'),
+      JSON.stringify({
+        token: 'ghs_cached',
+        expires_at: '2099-01-01T00:00:00Z',
+        app_id: '12345',
+        installation_id: '67890',
+      }),
+    );
+    const loadPrivateKeyPem = vi.fn(async () => 'never');
+
+    const result = await getInstallationToken({
+      appId: '12345',
+      installationId: '67890',
+      loadPrivateKeyPem,
+      cacheDir,
+    });
+
+    expect(result.token).toBe('ghs_cached');
+    expect(loadPrivateKeyPem).not.toHaveBeenCalled();
   });
 });

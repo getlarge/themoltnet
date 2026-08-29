@@ -30,11 +30,45 @@ export type OAuth2Config =
       client_secret_ref: SecretReference;
     };
 
+/** Exactly one of `private_key` (legacy plaintext seed) or `private_key_ref`. */
+export type KeysConfig =
+  | {
+      public_key: string;
+      fingerprint: string;
+      private_key: string;
+      private_key_ref?: never;
+    }
+  | {
+      public_key: string;
+      fingerprint: string;
+      private_key?: never;
+      private_key_ref: SecretReference;
+    };
+
+/** Exactly one of `private_key_path` (legacy PEM file) or `private_key_ref`. */
+export type GitHubConfig =
+  | {
+      app_id: string;
+      app_slug?: string;
+      installation_id: string;
+      org?: string;
+      private_key_path: string;
+      private_key_ref?: never;
+    }
+  | {
+      app_id: string;
+      app_slug?: string;
+      installation_id: string;
+      org?: string;
+      private_key_path?: never;
+      private_key_ref: SecretReference;
+    };
+
 export interface MoltNetConfig {
   identity_id: string;
   registered_at: string;
   oauth2: OAuth2Config;
-  keys: { public_key: string; private_key: string; fingerprint: string };
+  keys: KeysConfig;
   endpoints: { api: string; mcp: string };
   ssh?: { private_key_path: string; public_key_path: string };
   git?: {
@@ -43,13 +77,7 @@ export interface MoltNetConfig {
     signing: boolean;
     config_path: string;
   };
-  github?: {
-    app_id: string;
-    app_slug?: string;
-    installation_id: string;
-    private_key_path: string;
-    org?: string;
-  };
+  github?: GitHubConfig;
 }
 
 export function getConfigDir(): string {
@@ -105,6 +133,38 @@ export async function updateConfigSection(
       'OAuth2 credentials must be updated with updateOAuth2Config()',
     );
   }
+  if (section === 'keys') {
+    // Compatibility: a complete keys object (exactly one seed form) is still
+    // accepted and routed through the validating updater; a partial merge
+    // could leave both forms behind, so it is rejected.
+    const keys = data as Partial<KeysConfig>;
+    const complete =
+      typeof keys.public_key === 'string' &&
+      typeof keys.fingerprint === 'string' &&
+      Boolean(keys.private_key) !== Boolean(keys.private_key_ref);
+    if (!complete) {
+      throw new Error(
+        'Signing keys must be replaced as a whole with updateKeysConfig()',
+      );
+    }
+    return updateKeysConfig(keys as KeysConfig, configDir);
+  }
+  if (section === 'github') {
+    // Compatibility: a complete github object (exactly one PEM form) is still
+    // accepted and routed through the validating updater; a partial merge
+    // could leave both forms behind, so it is rejected.
+    const github = data as Partial<GitHubConfig>;
+    const complete =
+      typeof github.app_id === 'string' &&
+      typeof github.installation_id === 'string' &&
+      Boolean(github.private_key_path) !== Boolean(github.private_key_ref);
+    if (!complete) {
+      throw new Error(
+        'GitHub App settings must be replaced as a whole with updateGitHubConfig()',
+      );
+    }
+    return updateGitHubConfig(github as GitHubConfig, configDir);
+  }
   const config = await readConfig(configDir);
   if (!config) {
     throw new Error('No config found — run `moltnet register` first');
@@ -134,5 +194,45 @@ export async function updateOAuth2Config(
     );
   }
   config.oauth2 = oauth2;
+  await writeConfig(config, configDir);
+}
+
+/** Replace the keys union atomically so the opposite seed form is removed. */
+export async function updateKeysConfig(
+  keys: KeysConfig,
+  configDir?: string,
+): Promise<void> {
+  const config = await readConfig(configDir);
+  if (!config) {
+    throw new Error('No config found — run `moltnet register` first');
+  }
+  const plaintext = keys.private_key?.trim();
+  const reference = keys.private_key_ref;
+  if (!keys.public_key.trim() || Boolean(plaintext) === Boolean(reference)) {
+    throw new Error(
+      'Keys config must set public_key and exactly one of private_key or private_key_ref',
+    );
+  }
+  config.keys = keys;
+  await writeConfig(config, configDir);
+}
+
+/** Replace the GitHub union atomically so the opposite PEM form is removed. */
+export async function updateGitHubConfig(
+  github: GitHubConfig,
+  configDir?: string,
+): Promise<void> {
+  const config = await readConfig(configDir);
+  if (!config) {
+    throw new Error('No config found — run `moltnet register` first');
+  }
+  const path = github.private_key_path?.trim();
+  const reference = github.private_key_ref;
+  if (!github.app_id.trim() || Boolean(path) === Boolean(reference)) {
+    throw new Error(
+      'GitHub config must set app_id and exactly one of private_key_path or private_key_ref',
+    );
+  }
+  config.github = github;
   await writeConfig(config, configDir);
 }

@@ -206,7 +206,7 @@ func waitForHealth(url string, timeout time.Duration) error {
 func TestE2E_DiaryCommit_Unsigned(t *testing.T) {
 	result, err := signAndCreateEntry(
 		e2eClient,
-		newLocalSeedSigner(e2eCreds),
+		newLocalSeedSigner(e2eCreds, e2eCreds.Keys.PrivateKey),
 		"<content>\nE2E test unsigned commit\n</content>\n<metadata>\nsigner: "+e2eCreds.Keys.Fingerprint+"\n</metadata>",
 		e2eDiaryID,
 		"E2E test: unsigned commit",
@@ -246,7 +246,7 @@ func TestE2E_DiaryCommit_Unsigned(t *testing.T) {
 func TestE2E_DiaryCommit_Signed(t *testing.T) {
 	result, err := signAndCreateEntry(
 		e2eClient,
-		newLocalSeedSigner(e2eCreds),
+		newLocalSeedSigner(e2eCreds, e2eCreds.Keys.PrivateKey),
 		"<content>\nE2E test signed commit\n</content>\n<metadata>\nsigner: "+e2eCreds.Keys.Fingerprint+"\n</metadata>",
 		e2eDiaryID,
 		"E2E test: signed commit",
@@ -308,7 +308,7 @@ func TestE2E_Sign_RequestID(t *testing.T) {
 		t.Fatalf("unexpected type: %T", sigRes)
 	}
 
-	sig, err := signWithRequestID(context.Background(), e2eClient, newLocalSeedSigner(e2eCreds), sigReq.ID.String())
+	sig, err := signWithRequestID(context.Background(), e2eClient, newLocalSeedSigner(e2eCreds, e2eCreds.Keys.PrivateKey), sigReq.ID.String())
 	if err != nil {
 		t.Fatalf("sign: %v", err)
 	}

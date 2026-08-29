@@ -355,3 +355,55 @@ func TestRemoteSignerRejectsMismatchedEchoedRequestID(t *testing.T) {
 		t.Fatalf("expected echoed-id mismatch, got %v", err)
 	}
 }
+
+func TestResolveSignerUsesPrivateKeyReference(t *testing.T) {
+	seed, pub := testSeedAndPublicKey(t)
+	t.Setenv(signerURLEnv, "")
+	t.Setenv(identitySeedEnvKey, seed)
+	credPath := filepath.Join(t.TempDir(), "moltnet.json")
+	creds := &CredentialsFile{IdentityID: "id", Keys: CredentialsKeys{PublicKey: pub, Fingerprint: "fp",
+		PrivateKeyRef: &SecretReference{Provider: environmentProviderName, Key: identitySeedEnvKey}}}
+	if _, err := WriteConfigTo(creds, credPath); err != nil {
+		t.Fatal(err)
+	}
+
+	signer, err := resolveSigner(credPath)
+	if err != nil {
+		t.Fatalf("resolveSigner: %v", err)
+	}
+	local, ok := signer.(*localSeedSigner)
+	if !ok || local.seed != seed {
+		t.Fatalf("signer = %T (seed match %v), want local seed signer", signer, ok && local.seed == seed)
+	}
+	sig, err := local.SignGitCommit(context.Background(), gitSshsigEnvelope())
+	if err != nil || len(sig) != ed25519.SignatureSize {
+		t.Fatalf("SignGitCommit: %d bytes, %v", len(sig), err)
+	}
+	if !ed25519.Verify(ed25519.PublicKey(mustDecodePublicKey(t, pub)), gitSshsigEnvelope(), sig) {
+		t.Fatal("signature does not verify with keys.public_key")
+	}
+}
+
+func TestResolveSignerRejectsSeedThatDoesNotDerivePublicKey(t *testing.T) {
+	seed, _ := testSeedAndPublicKey(t)
+	_, otherPub := testSeedAndPublicKey(t)
+	t.Setenv(signerURLEnv, "")
+	credPath := filepath.Join(t.TempDir(), "moltnet.json")
+	creds := &CredentialsFile{IdentityID: "id", Keys: CredentialsKeys{PublicKey: otherPub, Fingerprint: "fp", PrivateKey: seed}}
+	if _, err := WriteConfigTo(creds, credPath); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := resolveSigner(credPath); err == nil || !strings.Contains(err.Error(), "does not derive") {
+		t.Fatalf("resolveSigner error = %v, want mismatch", err)
+	}
+}
+
+func mustDecodePublicKey(t *testing.T, publicKey string) []byte {
+	t.Helper()
+	raw, err := base64.StdEncoding.DecodeString(stripEd25519Prefix(publicKey))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return raw
+}

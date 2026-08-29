@@ -4,8 +4,15 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs, parseEnv } from 'node:util';
 
-import { getInstallationToken } from '@themoltnet/github-agent';
-import type { MoltNetConfig } from '@themoltnet/sdk';
+import {
+  getInstallationToken,
+  githubAppKeySourceFromConfig,
+} from '@themoltnet/github-agent';
+import {
+  type MoltNetConfig,
+  resolveGitHubAppPrivateKey,
+} from '@themoltnet/sdk';
+import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
 
 import type { GithubTokenProvider } from './github-fetch.js';
 import { loadLifecycleConfig } from './lifecycle-config.js';
@@ -69,16 +76,27 @@ function createGithubTokenProvider(agentDir: string): GithubTokenProvider {
   const raw = readFileSync(join(agentDir, 'moltnet.json'), 'utf8');
   const config = JSON.parse(raw) as MoltNetConfig;
   const github = config.github;
-  if (!github?.app_id || !github.installation_id || !github.private_key_path) {
+  if (
+    !github?.app_id ||
+    !github.installation_id ||
+    (!github.private_key_path && !github.private_key_ref)
+  ) {
     throw new Error(
-      'MoltNet GitHub auth requires github.app_id, github.installation_id, and github.private_key_path in .moltnet/<agent>/moltnet.json',
+      'MoltNet GitHub auth requires github.app_id, github.installation_id, and github.private_key_path or github.private_key_ref in .moltnet/<agent>/moltnet.json',
     );
   }
+  // Lazy source: the provider is consulted only on a cache miss, and each
+  // miss re-resolves so a rotated keyring/file secret is picked up.
+  const keySource = githubAppKeySourceFromConfig({
+    resolvePem: () =>
+      resolveGitHubAppPrivateKey(config, createNodeSecretProviderRegistry()),
+    cacheDir: agentDir,
+  });
   return async (options) => {
     const token = await getInstallationToken({
       appId: github.app_id,
       installationId: github.installation_id,
-      privateKeyPath: github.private_key_path,
+      ...keySource,
       forceRefresh: options?.forceRefresh,
     });
     return token.token;

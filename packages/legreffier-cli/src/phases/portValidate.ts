@@ -6,9 +6,13 @@ import {
   type MoltNetConfig,
   readConfig,
   repairConfig,
+  resolveGitHubAppPrivateKey,
   type SecretProviderRegistry,
 } from '@themoltnet/sdk';
-import { resolveNodeOAuth2ClientSecret } from '@themoltnet/sdk/node';
+import {
+  createNodeSecretProviderRegistry,
+  resolveNodeOAuth2ClientSecret,
+} from '@themoltnet/sdk/node';
 
 export interface PortValidateResult {
   config: MoltNetConfig;
@@ -122,12 +126,29 @@ export async function runPortValidatePhase(opts: {
   }
   // Missing installation_id is not a source portability blocker. The port
   // flow resolves the target owner installation after copying the PEM.
-  if (!config.github?.private_key_path) {
+  if (!config.github?.private_key_path && !config.github?.private_key_ref) {
     issues.push({
       field: 'github.private_key_path',
-      problem: 'missing — required for port',
+      problem:
+        'missing — required for port (or github.private_key_ref for a secret provider)',
       action: 'warning',
     });
+  } else if (config.github?.private_key_ref) {
+    // Resolve the referenced PEM now, before any target files are written,
+    // so an unresolvable reference blocks the port instead of surfacing
+    // after copy/rewrite.
+    try {
+      await resolveGitHubAppPrivateKey(
+        config,
+        secretProviders ?? createNodeSecretProviderRegistry(),
+      );
+    } catch (error) {
+      issues.push({
+        field: 'github.private_key_ref',
+        problem: `cannot be resolved — ${error instanceof Error ? error.message : String(error)}`,
+        action: 'warning',
+      });
+    }
   }
 
   if (!config.ssh?.private_key_path) {
@@ -188,16 +209,31 @@ async function hydrateLegacyPortConfig(
       signing: config.git?.signing ?? true,
       config_path: gitConfigPath,
     },
-    github: {
-      ...config.github,
-      app_id: config.github?.app_id ?? '',
-      installation_id: config.github?.installation_id ?? '',
-      private_key_path:
-        config.github?.private_key_path ??
-        (config.github?.app_slug
-          ? join(sourceDir, `${config.github.app_slug}.pem`)
-          : ''),
-    },
+    github: hydrateGitHubSection(config.github, sourceDir),
+  };
+}
+
+function hydrateGitHubSection(
+  github: MoltNetConfig['github'],
+  sourceDir: string,
+): NonNullable<MoltNetConfig['github']> {
+  const appId = github?.app_id ?? '';
+  const installationId = github?.installation_id ?? '';
+  const slug = github?.app_slug;
+  if (github?.private_key_ref) {
+    return {
+      ...github,
+      app_id: appId,
+      installation_id: installationId,
+      private_key_ref: github.private_key_ref,
+    };
+  }
+  return {
+    ...github,
+    app_id: appId,
+    installation_id: installationId,
+    private_key_path:
+      github?.private_key_path ?? (slug ? join(sourceDir, `${slug}.pem`) : ''),
   };
 }
 

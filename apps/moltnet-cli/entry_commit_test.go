@@ -365,7 +365,7 @@ func TestSignAndCreateEntry_Unsigned(t *testing.T) {
 	}
 
 	// Act
-	result, err := signAndCreateEntry(client, newLocalSeedSigner(creds), "test payload", testDiaryID, "Test Title", []string{"tag1"}, 5, false)
+	result, err := signAndCreateEntry(client, newLocalSeedSigner(creds, creds.Keys.PrivateKey), "test payload", testDiaryID, "Test Title", []string{"tag1"}, 5, false)
 
 	// Assert
 	if err != nil {
@@ -432,7 +432,7 @@ func TestSignAndCreateEntry_Signed(t *testing.T) {
 	}
 
 	// Act
-	result, err := signAndCreateEntry(client, newLocalSeedSigner(creds), "test payload", testDiaryID, "Test Title", []string{"tag1"}, 5, true)
+	result, err := signAndCreateEntry(client, newLocalSeedSigner(creds, creds.Keys.PrivateKey), "test payload", testDiaryID, "Test Title", []string{"tag1"}, 5, true)
 
 	// Assert
 	if err != nil {

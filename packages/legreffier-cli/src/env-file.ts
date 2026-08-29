@@ -11,6 +11,7 @@ export interface WriteEnvFileOptions {
   /** @deprecated Secrets are resolved by `moltnet start`, never persisted. */
   clientSecret?: string;
   appId: string;
+  /** PEM file path; empty when the PEM is a secret-provider reference. */
   pemPath: string;
   installationId: string;
   fingerprint?: string;
@@ -56,7 +57,12 @@ export async function writeEnvFile(opts: WriteEnvFileOptions): Promise<void> {
   const managedEntries: [string, string][] = [
     [`${opts.prefix}_CLIENT_ID`, q(opts.clientId)],
     [`${opts.prefix}_GITHUB_APP_ID`, q(opts.appId)],
-    [`${opts.prefix}_GITHUB_APP_PRIVATE_KEY_PATH`, q(pemPath)],
+    ...(pemPath
+      ? ([[`${opts.prefix}_GITHUB_APP_PRIVATE_KEY_PATH`, q(pemPath)]] as [
+          string,
+          string,
+        ][])
+      : []),
     [`${opts.prefix}_GITHUB_APP_INSTALLATION_ID`, q(opts.installationId)],
     ['GIT_CONFIG_GLOBAL', q(`.moltnet/${opts.agentName}/gitconfig`)],
     ['MOLTNET_AGENT_NAME', q(opts.agentName)],
@@ -66,6 +72,8 @@ export async function writeEnvFile(opts: WriteEnvFileOptions): Promise<void> {
   ];
   const managedKeys = new Set(managedEntries.map(([k]) => k));
   managedKeys.add(`${opts.prefix}_CLIENT_SECRET`);
+  // Always managed so a stale path is dropped when the PEM becomes a reference.
+  managedKeys.add(`${opts.prefix}_GITHUB_APP_PRIVATE_KEY_PATH`);
 
   let existingLines: string[] = [];
   try {

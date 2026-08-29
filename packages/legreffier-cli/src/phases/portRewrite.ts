@@ -1,6 +1,10 @@
 import { basename, join } from 'node:path';
 
-import { type MoltNetConfig, updateConfigSection } from '@themoltnet/sdk';
+import {
+  type MoltNetConfig,
+  updateConfigSection,
+  updateGitHubConfig,
+} from '@themoltnet/sdk';
 
 import {
   appendAuthorshipVars,
@@ -59,7 +63,12 @@ export async function runPortRewritePhase(opts: {
     'ssh',
     basename(config.ssh.public_key_path),
   );
-  const newPem = join(targetDir, basename(config.github.private_key_path));
+  // A referenced PEM lives in a secret provider, not on disk: carry the
+  // reference over unchanged and skip the path rewrite.
+  const pemReference = config.github.private_key_ref;
+  const newPem = pemReference
+    ? ''
+    : join(targetDir, basename(config.github.private_key_path ?? ''));
   const newGitConfig = join(targetDir, 'gitconfig');
 
   // 1. Rewrite absolute paths in moltnet.json
@@ -68,14 +77,15 @@ export async function runPortRewritePhase(opts: {
     { private_key_path: newSshPriv, public_key_path: newSshPub },
     targetDir,
   );
-  await updateConfigSection(
-    'github',
+  await updateGitHubConfig(
     {
       app_id: config.github.app_id,
       app_slug: config.github.app_slug,
       installation_id: config.github.installation_id ?? '',
-      private_key_path: newPem,
       ...(config.github.org ? { org: config.github.org } : {}),
+      ...(pemReference
+        ? { private_key_ref: pemReference }
+        : { private_key_path: newPem }),
     },
     targetDir,
   );
@@ -93,7 +103,7 @@ export async function runPortRewritePhase(opts: {
   const rewrittenFields = [
     'ssh.private_key_path',
     'ssh.public_key_path',
-    'github.private_key_path',
+    ...(pemReference ? [] : ['github.private_key_path']),
     'git.config_path',
   ];
 

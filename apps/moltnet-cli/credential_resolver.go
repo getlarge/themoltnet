@@ -1,0 +1,198 @@
+package main
+
+import (
+	"crypto/ed25519"
+	"encoding/base64"
+	"fmt"
+	"io"
+	"os"
+	"strings"
+	"sync"
+)
+
+// CredentialResolutionError classifies a failed credential lookup without
+// carrying the value. Codes: ambiguous, missing, unbound, invalid_value,
+// provider_failure. Cause retains the underlying provider error for callers
+// that deliberately surface diagnostics; Error() never includes it.
+type CredentialResolutionError struct {
+	Kind   credentialKind
+	Code   string
+	Detail string
+	Cause  error
+}
+
+func (e *CredentialResolutionError) Error() string {
+	return fmt.Sprintf("%s: %s", e.Kind, e.Detail)
+}
+
+func (e *CredentialResolutionError) Unwrap() error { return e.Cause }
+
+// resolveThroughRegistry normalizes provider failures into a value-free
+// provider_failure error, keeping the raw cause only for errors.As callers.
+func resolveThroughRegistry(kind credentialKind, registry *SecretProviderRegistry, ref SecretReference) (string, error) {
+	value, err := registry.Resolve(ref)
+	if err != nil {
+		return "", &CredentialResolutionError{
+			Kind:   kind,
+			Code:   "provider_failure",
+			Detail: fmt.Sprintf("secret provider %q could not resolve the reference", ref.Provider),
+			Cause:  err,
+		}
+	}
+	return value, nil
+}
+
+var (
+	legacyCredentialWarningWriter io.Writer // nil → os.Stderr
+	legacyWarningsMu              sync.Mutex
+	legacyWarnings                = map[credentialKind]bool{}
+)
+
+func legacyField(kind credentialKind) string {
+	switch kind {
+	case credentialOAuth2ClientSecret:
+		return "oauth2.client_secret"
+	case credentialIdentitySeed:
+		return "keys.private_key"
+	case credentialGitHubAppPrivateKey:
+		return "github.private_key_path"
+	}
+	return string(kind)
+}
+
+// warnLegacyCredentialOnce prints the plaintext deprecation notice once per
+// process per credential kind, never including the value.
+func warnLegacyCredentialOnce(kind credentialKind) {
+	legacyWarningsMu.Lock()
+	defer legacyWarningsMu.Unlock()
+	if legacyWarnings[kind] {
+		return
+	}
+	legacyWarnings[kind] = true
+	w := legacyCredentialWarningWriter
+	if w == nil {
+		w = os.Stderr
+	}
+	fmt.Fprintf(w, "Warning: plaintext %s in moltnet.json is deprecated; move it to a secret provider reference (see docs/reference/agent-configuration.md).\n", legacyField(kind))
+}
+
+func resetLegacyCredentialWarnings() {
+	legacyWarningsMu.Lock()
+	defer legacyWarningsMu.Unlock()
+	legacyWarnings = map[credentialKind]bool{}
+}
+
+func resolveOAuth2Secret(creds *CredentialsFile, registry *SecretProviderRegistry) (string, error) {
+	if creds == nil {
+		return "", fmt.Errorf("credentials are missing")
+	}
+	legacy := creds.OAuth2.ClientSecret
+	ref := creds.OAuth2.ClientSecretRef
+	if legacy != "" && ref != nil {
+		return "", fmt.Errorf("oauth2 config must set exactly one of client_secret or client_secret_ref")
+	}
+	if ref != nil {
+		if err := validateOAuth2SecretReferenceBinding(creds, *ref); err != nil {
+			return "", err
+		}
+		return registry.Resolve(*ref)
+	}
+	if legacy != "" {
+		warnLegacyCredentialOnce(credentialOAuth2ClientSecret)
+		return legacy, nil
+	}
+	return "", fmt.Errorf("oauth2 config must set exactly one of client_secret or client_secret_ref")
+}
+
+func stripEd25519Prefix(publicKey string) string {
+	return strings.TrimPrefix(strings.TrimSpace(publicKey), "ed25519:")
+}
+
+func assertSeedMatchesPublicKey(seedB64, publicKey string) error {
+	seed, err := decodeEd25519Seed(seedB64)
+	if err != nil {
+		return &CredentialResolutionError{Kind: credentialIdentitySeed, Code: "invalid_value", Detail: "seed must be a base64-encoded 32-byte Ed25519 seed"}
+	}
+	derived := base64.StdEncoding.EncodeToString(ed25519.NewKeyFromSeed(seed).Public().(ed25519.PublicKey))
+	if derived != stripEd25519Prefix(publicKey) {
+		return &CredentialResolutionError{Kind: credentialIdentitySeed, Code: "invalid_value", Detail: "seed does not derive keys.public_key"}
+	}
+	return nil
+}
+
+// resolveIdentitySeed returns the agent's Ed25519 seed from keys.private_key
+// (legacy, warned once) or keys.private_key_ref, verifying the reference is
+// bound to this identity and that the value derives keys.public_key.
+func resolveIdentitySeed(creds *CredentialsFile, registry *SecretProviderRegistry) (string, error) {
+	if creds == nil {
+		return "", &CredentialResolutionError{Kind: credentialIdentitySeed, Code: "missing", Detail: "credentials are missing"}
+	}
+	legacy := strings.TrimSpace(creds.Keys.PrivateKey)
+	ref := creds.Keys.PrivateKeyRef
+	if legacy != "" && ref != nil {
+		return "", &CredentialResolutionError{Kind: credentialIdentitySeed, Code: "ambiguous", Detail: "config must set exactly one of keys.private_key or keys.private_key_ref"}
+	}
+	var seed string
+	switch {
+	case ref != nil:
+		ids := credentialBindingIDs{Fingerprint: creds.Keys.Fingerprint}
+		if err := validateSecretReferenceBinding(credentialIdentitySeed, *ref, ids); err != nil {
+			return "", &CredentialResolutionError{Kind: credentialIdentitySeed, Code: "unbound", Detail: err.Error()}
+		}
+		value, err := resolveThroughRegistry(credentialIdentitySeed, registry, *ref)
+		if err != nil {
+			return "", err
+		}
+		seed = strings.TrimSpace(value)
+	case legacy != "":
+		warnLegacyCredentialOnce(credentialIdentitySeed)
+		seed = legacy
+	default:
+		return "", &CredentialResolutionError{Kind: credentialIdentitySeed, Code: "missing", Detail: "config must set exactly one of keys.private_key or keys.private_key_ref"}
+	}
+	if err := assertSeedMatchesPublicKey(seed, creds.Keys.PublicKey); err != nil {
+		return "", err
+	}
+	return seed, nil
+}
+
+// resolveGitHubAppPrivateKey returns the GitHub App PEM from
+// github.private_key_path (legacy file, warned once) or
+// github.private_key_ref, verifying the reference is bound to this App and
+// the value parses as an RSA private key.
+func resolveGitHubAppPrivateKey(creds *CredentialsFile, registry *SecretProviderRegistry) ([]byte, error) {
+	kind := credentialGitHubAppPrivateKey
+	if creds == nil || creds.GitHub == nil {
+		return nil, &CredentialResolutionError{Kind: kind, Code: "missing", Detail: "GitHub App not configured — add 'github' section to moltnet.json"}
+	}
+	path := strings.TrimSpace(creds.GitHub.PrivateKeyPath)
+	ref := creds.GitHub.PrivateKeyRef
+	if path != "" && ref != nil {
+		return nil, &CredentialResolutionError{Kind: kind, Code: "ambiguous", Detail: "config must set exactly one of github.private_key_path or github.private_key_ref"}
+	}
+	var pemData []byte
+	switch {
+	case ref != nil:
+		if err := validateSecretReferenceBinding(kind, *ref, credentialBindingIDs{AppID: creds.GitHub.AppID}); err != nil {
+			return nil, &CredentialResolutionError{Kind: kind, Code: "unbound", Detail: err.Error()}
+		}
+		value, err := registry.Resolve(*ref)
+		if err != nil {
+			return nil, err
+		}
+		pemData = []byte(value)
+	case path != "":
+		warnLegacyCredentialOnce(kind)
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return nil, fmt.Errorf("read GitHub App private key: %w", err)
+		}
+		pemData = data
+	default:
+		return nil, &CredentialResolutionError{Kind: kind, Code: "missing", Detail: "config must set exactly one of github.private_key_path or github.private_key_ref"}
+	}
+	if _, err := parseRSAPrivateKey(pemData); err != nil {
+		return nil, &CredentialResolutionError{Kind: kind, Code: "invalid_value", Detail: "value is not an RSA private key PEM"}
+	}
+	return pemData, nil
+}

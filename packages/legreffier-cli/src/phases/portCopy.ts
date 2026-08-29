@@ -18,6 +18,7 @@ export interface PortCopyResult {
  * Copies:
  *  - `moltnet.json` (0600) — will later be rewritten in P3 with absolute paths
  *  - GitHub App PEM (0600) — at `<sourceDir>/<appSlug>.pem` by convention
+ *    (skipped when `github.private_key_ref` is used)
  *  - SSH private key (0600) and public key (0644)
  *  - `allowed_signers` if present (0644) — optional, warning only
  *
@@ -41,15 +42,25 @@ export async function runPortCopyPhase(opts: {
   await chmod(targetConfig, 0o600);
   copied.push(targetConfig);
 
-  // 2. GitHub App PEM
-  if (!config.github?.private_key_path) {
-    throw new Error('github.private_key_path missing — run portValidate first');
+  // 2. GitHub App PEM — only the path variant has a file to copy; a
+  //    `private_key_ref` lives in a secret provider and is carried over as-is
+  //    by the rewrite phase.
+  if (config.github?.private_key_ref) {
+    warnings.push(
+      'github.private_key_ref: PEM is provider-backed; nothing copied',
+    );
+  } else {
+    if (!config.github?.private_key_path) {
+      throw new Error(
+        'github.private_key_path missing — run portValidate first',
+      );
+    }
+    const pemFilename = basename(config.github.private_key_path);
+    const targetPem = join(targetDir, pemFilename);
+    await copyFile(config.github.private_key_path, targetPem);
+    await chmod(targetPem, 0o600);
+    copied.push(targetPem);
   }
-  const pemFilename = basename(config.github.private_key_path);
-  const targetPem = join(targetDir, pemFilename);
-  await copyFile(config.github.private_key_path, targetPem);
-  await chmod(targetPem, 0o600);
-  copied.push(targetPem);
 
   // 3. SSH keys (private + public). Preserve the relative layout under ssh/.
   if (!config.ssh?.private_key_path || !config.ssh?.public_key_path) {

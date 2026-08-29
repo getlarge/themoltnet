@@ -1,5 +1,15 @@
-import { getInstallationToken } from '@themoltnet/github-agent';
-import type { MoltNetConfig } from '@themoltnet/sdk';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+
+import {
+  getInstallationToken,
+  githubAppKeySourceFromConfig,
+} from '@themoltnet/github-agent';
+import {
+  type MoltNetConfig,
+  resolveGitHubAppPrivateKey,
+} from '@themoltnet/sdk';
+import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
 
 export type VerifyInstallationStatus = 'ok' | 'repo-not-in-scope' | 'warning';
 
@@ -35,6 +45,8 @@ export async function runPortVerifyInstallationPhase(opts: {
   /** owner/repo of the current target repo. If absent, the phase is skipped. */
   currentRepo?: string;
   apiBaseUrl?: string;
+  /** Token cache location when the PEM is a secret reference. */
+  configDir?: string;
 }): Promise<PortVerifyInstallationResult> {
   const { config, currentRepo, apiBaseUrl = 'https://api.github.com' } = opts;
 
@@ -48,21 +60,34 @@ export async function runPortVerifyInstallationPhase(opts: {
   if (
     !config.github?.app_id ||
     !config.github?.installation_id ||
-    !config.github?.private_key_path
+    (!config.github?.private_key_path && !config.github?.private_key_ref)
   ) {
     return {
       status: 'warning',
-      message: 'github.app_id / installation_id / private_key_path missing',
+      message:
+        'github.app_id / installation_id / private_key_path (or private_key_ref) missing',
       currentRepo,
     };
   }
 
+  // One validated key source for both PEM forms: the shared resolver applies
+  // provider policy and the RSA check, lazily, on a cache miss only.
+  const github = config.github;
+  const keySource = githubAppKeySourceFromConfig({
+    resolvePem: () =>
+      resolveGitHubAppPrivateKey(config, createNodeSecretProviderRegistry()),
+    cacheDir:
+      opts.configDir ??
+      (github.private_key_path
+        ? dirname(github.private_key_path)
+        : join(tmpdir(), `moltnet-port-verify-${github.app_id}`)),
+  });
   let token: string;
   try {
     const result = await getInstallationToken({
-      appId: config.github.app_id,
-      privateKeyPath: config.github.private_key_path,
-      installationId: config.github.installation_id,
+      appId: github.app_id,
+      installationId: github.installation_id,
+      ...keySource,
     });
     token = result.token;
   } catch (err) {

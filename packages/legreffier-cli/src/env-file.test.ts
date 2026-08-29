@@ -1,11 +1,15 @@
 import { execFileSync } from 'node:child_process';
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { appendAuthorshipVars, resolveHumanGitIdentity } from './env-file.js';
+import {
+  appendAuthorshipVars,
+  resolveHumanGitIdentity,
+  writeEnvFile,
+} from './env-file.js';
 
 vi.mock('node:child_process', () => ({
   execFileSync: vi.fn(),
@@ -137,5 +141,35 @@ describe('appendAuthorshipVars', () => {
 
     const content = await readFile(envPath, 'utf-8');
     expect(content).toBe('FOO=bar\n');
+  });
+
+  it('omits the PEM path entry for a provider-backed PEM and drops a stale one', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'legreffier-env-'));
+    await writeEnvFile({
+      envDir: dir,
+      agentName: 'ref-agent',
+      prefix: 'REF_AGENT',
+      clientId: 'cid',
+      appId: '123',
+      pemPath: join(dir, 'old.pem'),
+      installationId: '456',
+    });
+    expect(await readFile(join(dir, 'env'), 'utf8')).toContain(
+      'REF_AGENT_GITHUB_APP_PRIVATE_KEY_PATH=',
+    );
+
+    await writeEnvFile({
+      envDir: dir,
+      agentName: 'ref-agent',
+      prefix: 'REF_AGENT',
+      clientId: 'cid',
+      appId: '123',
+      pemPath: '',
+      installationId: '456',
+    });
+
+    const content = await readFile(join(dir, 'env'), 'utf8');
+    expect(content).not.toContain('GITHUB_APP_PRIVATE_KEY_PATH');
+    expect(content).toContain("REF_AGENT_GITHUB_APP_ID='123'");
   });
 });

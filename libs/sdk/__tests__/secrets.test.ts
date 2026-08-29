@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  assertSecretReferenceBinding,
   EnvironmentSecretProvider,
+  expectedSecretKey,
+  githubAppPrivateKeyKey,
+  identitySeedKey,
   oauth2SecretKey,
   READ_ONLY_CAPABILITIES,
   READ_WRITE_CAPABILITIES,
@@ -301,5 +305,81 @@ it('exposes read-only capabilities on the environment provider', () => {
     read: true,
     write: false,
     delete: false,
+  });
+});
+
+describe('credential binding table', () => {
+  it('derives stable keys per kind', () => {
+    expect(
+      expectedSecretKey('oauth2-client-secret', {
+        identityId: 'id',
+        clientId: 'c',
+      }),
+    ).toBe('oauth2/id/c');
+    expect(
+      expectedSecretKey('identity-seed', { fingerprint: '21FE-31DF' }),
+    ).toBe('identity/21FE-31DF/seed');
+    expect(identitySeedKey('fp')).toBe('identity/fp/seed');
+  });
+
+  it('accepts canonical keys, env variable names, and flattened file keys', () => {
+    const ids = { fingerprint: 'fp' };
+    for (const reference of [
+      { provider: 'os-keyring', key: 'identity/fp/seed' },
+      { provider: 'env', key: 'MOLTNET_PRIVATE_KEY' },
+      { provider: 'file', key: 'identity/fp/seed' },
+      { provider: 'file', key: 'identity.fp.seed' },
+    ]) {
+      expect(() =>
+        assertSecretReferenceBinding('identity-seed', reference, ids),
+      ).not.toThrow();
+    }
+  });
+
+  it('rejects keys bound to another identity, wrong env names, and flattened keys outside file', () => {
+    const ids = { fingerprint: 'fp' };
+    for (const reference of [
+      { provider: 'os-keyring', key: 'identity/other/seed' },
+      { provider: 'env', key: 'MOLTNET_CLIENT_SECRET' },
+      { provider: 'os-keyring', key: 'identity.fp.seed' },
+    ]) {
+      expect(() =>
+        assertSecretReferenceBinding('identity-seed', reference, ids),
+      ).toThrow(/not bound/);
+    }
+    expect(() =>
+      assertSecretReferenceBinding(
+        'identity-seed',
+        { provider: 'os-keyring', key: 'identity/fp/seed' },
+        {},
+      ),
+    ).toThrow(/fingerprint/);
+  });
+});
+
+describe('github app private key binding', () => {
+  it('derives the key from the app id and accepts env and flattened file forms', () => {
+    expect(githubAppPrivateKeyKey('123')).toBe('github-app/123/private-key');
+    expect(expectedSecretKey('github-app-private-key', { appId: '123' })).toBe(
+      'github-app/123/private-key',
+    );
+    for (const reference of [
+      { provider: 'os-keyring', key: 'github-app/123/private-key' },
+      { provider: 'env', key: 'MOLTNET_GITHUB_APP_PRIVATE_KEY' },
+      { provider: 'file', key: 'github-app.123.private-key' },
+    ]) {
+      expect(() =>
+        assertSecretReferenceBinding('github-app-private-key', reference, {
+          appId: '123',
+        }),
+      ).not.toThrow();
+    }
+    expect(() =>
+      assertSecretReferenceBinding(
+        'github-app-private-key',
+        { provider: 'os-keyring', key: 'github-app/999/private-key' },
+        { appId: '123' },
+      ),
+    ).toThrow(/not bound/);
   });
 });

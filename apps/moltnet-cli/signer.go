@@ -52,10 +52,14 @@ func resolveSigner(credPath string) (Signer, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w; set %s to use a host signing broker", err, signerURLEnv)
 	}
-	if err := validateSigningCredentials(creds); err != nil {
-		return nil, err
+	seed, err := resolveIdentitySeed(creds, NewSecretProviderRegistry())
+	if err != nil {
+		return nil, fmt.Errorf(
+			"credentials contain an invalid Ed25519 private key: %w — run 'moltnet register' or 'moltnet config repair'",
+			err,
+		)
 	}
-	return newLocalSeedSigner(creds), nil
+	return newLocalSeedSigner(creds, seed), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -64,10 +68,11 @@ func resolveSigner(credPath string) (Signer, error) {
 
 type localSeedSigner struct {
 	creds *CredentialsFile
+	seed  string
 }
 
-func newLocalSeedSigner(creds *CredentialsFile) *localSeedSigner {
-	return &localSeedSigner{creds: creds}
+func newLocalSeedSigner(creds *CredentialsFile, seed string) *localSeedSigner {
+	return &localSeedSigner{creds: creds, seed: seed}
 }
 
 func (s *localSeedSigner) Identity(_ context.Context) (SignerIdentity, error) {
@@ -96,7 +101,7 @@ func (s *localSeedSigner) SignDiaryEntry(ctx context.Context, client *moltnetapi
 	if err != nil {
 		return "", fmt.Errorf("decode signing_input: %w", formatTransportError(err))
 	}
-	sig, err := signRawBytes(rawBytes, s.creds.Keys.PrivateKey)
+	sig, err := signRawBytes(rawBytes, s.seed)
 	if err != nil {
 		return "", fmt.Errorf("sign: %w", formatTransportError(err))
 	}
@@ -117,7 +122,7 @@ func (s *localSeedSigner) SignGitCommit(_ context.Context, sshsig []byte) ([]byt
 	if err := assertGitSshsigEnvelope(env); err != nil {
 		return nil, err
 	}
-	seed, err := decodeEd25519Seed(s.creds.Keys.PrivateKey)
+	seed, err := decodeEd25519Seed(s.seed)
 	if err != nil {
 		return nil, err
 	}

@@ -253,7 +253,7 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 		AuthorshipConfigured: authorshipConfigured,
 		HumanGitIdentity:     ctx.EnvVars["MOLTNET_HUMAN_GIT_IDENTITY"],
 		AgentEmail:           gitIdentity.Email,
-		GitHubAppConfigured:  creds.GitHub != nil && creds.GitHub.AppID != "" && creds.GitHub.PrivateKeyPath != "",
+		GitHubAppConfigured:  creds.GitHub != nil && creds.GitHub.AppID != "" && (creds.GitHub.PrivateKeyPath != "" || creds.GitHub.PrivateKeyRef != nil),
 		CredentialProvider:   credentialProvider,
 		CredentialStatus:     credentialStatus,
 		RegisteredAt:         creds.RegisteredAt,

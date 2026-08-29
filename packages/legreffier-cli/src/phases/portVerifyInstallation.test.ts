@@ -6,6 +6,10 @@ import { runPortVerifyInstallationPhase } from './portVerifyInstallation.js';
 
 vi.mock('@themoltnet/github-agent', () => ({
   getInstallationToken: vi.fn(),
+  githubAppKeySourceFromConfig: (opts: {
+    resolvePem: () => Promise<string>;
+    cacheDir: string;
+  }) => ({ loadPrivateKeyPem: opts.resolvePem, cacheDir: opts.cacheDir }),
 }));
 
 const baseConfig: MoltNetConfig = {

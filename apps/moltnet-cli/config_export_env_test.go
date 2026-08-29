@@ -70,8 +70,8 @@ func TestConfigExportEnvToStdout(t *testing.T) {
 			ClientSecret: "export-client-secret",
 		},
 		Keys: CredentialsKeys{
-			PublicKey:   "ed25519:dGVzdC1wdWItLWZvci1tb2x0bmV0LWNsaS10ZXN0cyE=",
-			PrivateKey:  "dGVzdC1zZWVkLWZvci1tb2x0bmV0LWNsaS10ZXN0cyE=",
+			PublicKey:   "ed25519:11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=",
+			PrivateKey:  "nWGxne/9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A=",
 			Fingerprint: "SHA256:exportfingerprint",
 		},
 		Endpoints: CredentialsEndpoints{
@@ -153,8 +153,8 @@ func TestConfigExportEnvToFile(t *testing.T) {
 			ClientSecret: "file-client-secret",
 		},
 		Keys: CredentialsKeys{
-			PublicKey:   "ed25519:dGVzdC1wdWItLWZvci1tb2x0bmV0LWNsaS10ZXN0cyE=",
-			PrivateKey:  "dGVzdC1zZWVkLWZvci1tb2x0bmV0LWNsaS10ZXN0cyE=",
+			PublicKey:   "ed25519:11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=",
+			PrivateKey:  "nWGxne/9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A=",
 			Fingerprint: "SHA256:fingerprint",
 		},
 		Endpoints: CredentialsEndpoints{
@@ -208,7 +208,7 @@ func TestConfigExportEnvWithGitHub(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Write a fake PEM file
-	pemContent := "-----BEGIN RSA PRIVATE KEY-----\nfake-pem-content\n-----END RSA PRIVATE KEY-----"
+	pemContent := string(testRSAPrivateKeyPEM(t))
 	pemPath := filepath.Join(tmpDir, "app.pem")
 	if err := os.WriteFile(pemPath, []byte(pemContent), 0o600); err != nil {
 		t.Fatal(err)
@@ -221,8 +221,8 @@ func TestConfigExportEnvWithGitHub(t *testing.T) {
 			ClientSecret: "gh-secret",
 		},
 		Keys: CredentialsKeys{
-			PublicKey:   "ed25519:dGVzdC1wdWItLWZvci1tb2x0bmV0LWNsaS10ZXN0cyE=",
-			PrivateKey:  "dGVzdC1zZWVkLWZvci1tb2x0bmV0LWNsaS10ZXN0cyE=",
+			PublicKey:   "ed25519:11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=",
+			PrivateKey:  "nWGxne/9WmC6hEr0kuwsxERJxWl7MmkZcDusAxyuf2A=",
 			Fingerprint: "SHA256:fp",
 		},
 		Endpoints: CredentialsEndpoints{
@@ -279,7 +279,7 @@ func TestConfigExportEnvWithGitHub(t *testing.T) {
 	if !strings.Contains(stdout2, "MOLTNET_GITHUB_APP_PRIVATE_KEY=") {
 		t.Errorf("missing PEM with --include-github-pem, got:\n%s", stdout2)
 	}
-	if !strings.Contains(stdout2, "fake-pem-content") {
+	if !strings.Contains(stdout2, "BEGIN RSA PRIVATE KEY") {
 		t.Errorf("PEM content not included, got:\n%s", stdout2)
 	}
 }
@@ -393,5 +393,60 @@ func TestConfigExportEnvRoundTrip(t *testing.T) {
 	}
 	if reconstructed.Endpoints.API != "https://api.rt.example.com" {
 		t.Errorf("API URL mismatch: got %q", reconstructed.Endpoints.API)
+	}
+}
+
+func TestConfigExportEnvResolvesPrivateKeyReference(t *testing.T) {
+	seed, pub := testSeedAndPublicKey(t)
+	t.Setenv(signerURLEnv, "")
+	t.Setenv(identitySeedEnvKey, seed)
+	config := &CredentialsFile{
+		IdentityID: "export-id",
+		OAuth2:     CredentialsOAuth2{ClientID: "export-client", ClientSecret: "plain"},
+		Keys: CredentialsKeys{PublicKey: pub, Fingerprint: "fp",
+			PrivateKeyRef: &SecretReference{Provider: environmentProviderName, Key: identitySeedEnvKey}},
+	}
+	credPath := filepath.Join(t.TempDir(), "moltnet.json")
+	if _, err := WriteConfigTo(config, credPath); err != nil {
+		t.Fatal(err)
+	}
+	var output bytes.Buffer
+
+	if err := runConfigExportEnvCmdWithRegistry(&output, credPath, "", false, true, NewSecretProviderRegistry()); err != nil {
+		t.Fatalf("export referenced seed: %v", err)
+	}
+	if got := strings.Count(output.String(), "MOLTNET_PRIVATE_KEY="+seed); got != 1 {
+		t.Fatalf("expected the resolved seed once, got %d:\n%s", got, output.String())
+	}
+	if strings.Contains(output.String(), "private_key_ref") {
+		t.Fatalf("export leaked the reference document:\n%s", output.String())
+	}
+}
+
+func TestConfigExportEnvIncludesReferencedGitHubPEM(t *testing.T) {
+	pemData := testRSAPrivateKeyPEM(t)
+	t.Setenv(githubAppPrivateKeyEnvKey, string(pemData))
+	config := &CredentialsFile{
+		IdentityID: "id",
+		OAuth2:     CredentialsOAuth2{ClientID: "c", ClientSecret: "s"},
+		Keys:       CredentialsKeys{PublicKey: testPublicKey, PrivateKey: testPrivateKey, Fingerprint: "fp"},
+		GitHub: &GitHubSection{AppID: "123", InstallationID: "456",
+			PrivateKeyRef: &SecretReference{Provider: environmentProviderName, Key: githubAppPrivateKeyEnvKey}},
+	}
+	credPath := filepath.Join(t.TempDir(), "moltnet.json")
+	if _, err := WriteConfigTo(config, credPath); err != nil {
+		t.Fatal(err)
+	}
+	outFile := filepath.Join(t.TempDir(), "agent.env")
+	var output bytes.Buffer
+	if err := runConfigExportEnvCmdWithRegistry(&output, credPath, outFile, true, false, NewSecretProviderRegistry()); err != nil {
+		t.Fatalf("export: %v", err)
+	}
+	written, err := os.ReadFile(outFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(written), "MOLTNET_GITHUB_APP_PRIVATE_KEY=") || !strings.Contains(string(written), "BEGIN RSA PRIVATE KEY") {
+		t.Fatalf("expected the referenced PEM in the env file:\n%s", written)
 	}
 }

@@ -166,3 +166,40 @@ func TestRunSSHKeyExport(t *testing.T) {
 		t.Errorf("public key permissions: got %o, want 644", pubInfo.Mode().Perm())
 	}
 }
+
+func TestRunSSHKeyExportFromPrivateKeyReference(t *testing.T) {
+	tmpDir := t.TempDir()
+	credPath := filepath.Join(tmpDir, "credentials.json")
+	t.Setenv(signerURLEnv, "")
+	t.Setenv(identitySeedEnvKey, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
+	creds := CredentialsFile{
+		IdentityID: "test-agent",
+		Keys: CredentialsKeys{
+			PublicKey:     "ed25519:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik=",
+			Fingerprint:   "TEST-TEST-TEST-TEST",
+			PrivateKeyRef: &SecretReference{Provider: environmentProviderName, Key: identitySeedEnvKey},
+		},
+	}
+	data, err := json.Marshal(creds)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(credPath, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := runSSHKeyExport([]string{"--credentials", credPath, "--output-dir", filepath.Join(tmpDir, "ssh")}); err != nil {
+		t.Fatalf("runSSHKeyExport: %v", err)
+	}
+	privData, err := os.ReadFile(filepath.Join(tmpDir, "ssh", "id_ed25519"))
+	if err != nil {
+		t.Fatalf("read private key: %v", err)
+	}
+	if !strings.HasPrefix(string(privData), "-----BEGIN OPENSSH PRIVATE KEY-----") {
+		t.Error("private key file missing PEM header")
+	}
+	reread, err := ReadConfigFrom(credPath)
+	if err != nil || reread.Keys.PrivateKeyRef == nil || reread.Keys.PrivateKey != "" {
+		t.Fatalf("export must keep the reference form: %+v, %v", reread.Keys, err)
+	}
+}

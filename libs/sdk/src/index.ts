@@ -37,14 +37,25 @@ export { createAgent } from './agent.js';
 export { writeMcpConfig } from './config.js';
 export { connect, type ConnectOptions } from './connect.js';
 export {
+  type CredentialResolutionCode,
+  CredentialResolutionError,
+  resolveGitHubAppPrivateKey,
+  resolveIdentitySeed,
+  resolveOAuth2ClientSecret,
+} from './credential-resolver.js';
+export {
   deriveMcpUrl,
   getConfigDir,
   getConfigPath,
+  type GitHubConfig,
+  type KeysConfig,
   type MoltNetConfig,
   type OAuth2Config,
   readConfig,
   type SecretReference,
   updateConfigSection,
+  updateGitHubConfig,
+  updateKeysConfig,
   updateOAuth2Config,
   writeConfig,
 } from './credentials.js';
@@ -126,9 +137,16 @@ export { createRemoteSigner, RemoteSignerError } from './remote-signer.js';
 export { type ConfigIssue, repairConfig, type RepairResult } from './repair.js';
 export { type RetryOptions } from './retry.js';
 export {
+  assertSecretReferenceBinding,
   createDefaultSecretProviderRegistry,
+  CREDENTIAL_ENV_KEYS,
+  type CredentialBindingIds,
+  type CredentialKind,
   ENVIRONMENT_SECRET_PROVIDER,
   EnvironmentSecretProvider,
+  expectedSecretKey,
+  githubAppPrivateKeyKey,
+  identitySeedKey,
   MOLTNET_SECRET_SERVICE,
   oauth2SecretKey,
   OS_KEYRING_SECRET_PROVIDER,

@@ -5,22 +5,32 @@ import {
   sealForEd25519PublicKey,
 } from '@moltnet/crypto-service';
 
+import { resolveIdentitySeed } from './credential-resolver.js';
 import { readConfig } from './credentials.js';
+import {
+  createDefaultSecretProviderRegistry,
+  type SecretProviderRegistry,
+} from './secrets.js';
 
 export type { SealedEnvelope };
 
 /**
  * Derive the local agent's X25519 keypair from credentials.
+ *
+ * `secretProviders` resolves `keys.private_key_ref`; it defaults to the
+ * environment-only registry (pass `createNodeSecretProviderRegistry()` from
+ * `@themoltnet/sdk/node` for OS-keyring or file references).
  */
 export async function deriveEncryptionKeys(
   credentialsPath?: string,
+  secretProviders: SecretProviderRegistry = createDefaultSecretProviderRegistry(),
 ): Promise<{ privateKey: string; publicKey: string }> {
   const config = await readConfig(credentialsPath);
   if (!config) {
     throw new Error('No credentials found — run `moltnet register` first');
   }
   const privateKey = cryptoService.deriveX25519PrivateKey(
-    config.keys.private_key,
+    await resolveIdentitySeed(config, secretProviders),
   );
   const publicKey = cryptoService.deriveX25519PublicKey(config.keys.public_key);
   return { privateKey, publicKey };
@@ -53,10 +63,14 @@ export function decryptFromAgent(
 export async function decryptWithCredentials(
   sealedEnvelopeJson: string,
   credentialsPath?: string,
+  secretProviders: SecretProviderRegistry = createDefaultSecretProviderRegistry(),
 ): Promise<string> {
   const config = await readConfig(credentialsPath);
   if (!config) {
     throw new Error('No credentials found — run `moltnet register` first');
   }
-  return decryptFromAgent(sealedEnvelopeJson, config.keys.private_key);
+  return decryptFromAgent(
+    sealedEnvelopeJson,
+    await resolveIdentitySeed(config, secretProviders),
+  );
 }

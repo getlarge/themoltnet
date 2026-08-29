@@ -20,6 +20,93 @@ const (
 
 var environmentSecretKeyPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
+const (
+	identitySeedEnvKey        = "MOLTNET_PRIVATE_KEY"
+	githubAppPrivateKeyEnvKey = "MOLTNET_GITHUB_APP_PRIVATE_KEY"
+)
+
+// credentialKind names a credential whose provider key shape is fixed by the
+// binding table below; the same table exists in the Node SDK.
+type credentialKind string
+
+const (
+	credentialOAuth2ClientSecret  credentialKind = "oauth2-client-secret"
+	credentialIdentitySeed        credentialKind = "identity-seed"
+	credentialGitHubAppPrivateKey credentialKind = "github-app-private-key"
+)
+
+type credentialBindingIDs struct {
+	IdentityID  string
+	ClientID    string
+	Fingerprint string
+	AppID       string
+}
+
+// IdentitySeedKey returns the stable provider key for an agent's Ed25519 seed.
+func IdentitySeedKey(fingerprint string) string {
+	return "identity/" + fingerprint + "/seed"
+}
+
+// GitHubAppPrivateKeyKey returns the stable provider key for a GitHub App's
+// RSA private key.
+func GitHubAppPrivateKeyKey(appID string) string {
+	return "github-app/" + appID + "/private-key"
+}
+
+func credentialEnvKey(kind credentialKind) string {
+	switch kind {
+	case credentialOAuth2ClientSecret:
+		return environmentSecretKey
+	case credentialIdentitySeed:
+		return identitySeedEnvKey
+	case credentialGitHubAppPrivateKey:
+		return githubAppPrivateKeyEnvKey
+	}
+	return ""
+}
+
+func expectedSecretKey(kind credentialKind, ids credentialBindingIDs) (string, error) {
+	switch kind {
+	case credentialOAuth2ClientSecret:
+		if strings.TrimSpace(ids.IdentityID) == "" || strings.TrimSpace(ids.ClientID) == "" {
+			return "", fmt.Errorf("credential binding requires identity_id and oauth2.client_id")
+		}
+		return OAuth2SecretKey(ids.IdentityID, ids.ClientID), nil
+	case credentialIdentitySeed:
+		if strings.TrimSpace(ids.Fingerprint) == "" {
+			return "", fmt.Errorf("credential binding requires keys.fingerprint")
+		}
+		return IdentitySeedKey(ids.Fingerprint), nil
+	case credentialGitHubAppPrivateKey:
+		if strings.TrimSpace(ids.AppID) == "" {
+			return "", fmt.Errorf("credential binding requires github.app_id")
+		}
+		return GitHubAppPrivateKeyKey(ids.AppID), nil
+	}
+	return "", fmt.Errorf("unknown credential kind %q", kind)
+}
+
+// validateSecretReferenceBinding accepts the canonical key, the fixed env
+// variable for the env provider, or — for the file provider, whose
+// orchestrators may forbid "/" in credential IDs — the "."-flattened key.
+func validateSecretReferenceBinding(kind credentialKind, ref SecretReference, ids credentialBindingIDs) error {
+	canonical, err := expectedSecretKey(kind, ids)
+	if err != nil {
+		return err
+	}
+	valid := ref.Key == canonical
+	switch ref.Provider {
+	case environmentProviderName:
+		valid = ref.Key == credentialEnvKey(kind)
+	case fileProviderName:
+		valid = valid || ref.Key == strings.ReplaceAll(canonical, "/", ".")
+	}
+	if !valid {
+		return fmt.Errorf("%s reference is not bound to this MoltNet identity", kind)
+	}
+	return nil
+}
+
 var ErrSecretNotFound = errors.New("secret not found")
 
 // SecretReference identifies a secret without embedding its value in config.
@@ -227,38 +314,12 @@ func (OSKeyringSecretProvider) Delete(key string) error {
 	return err
 }
 
-func resolveOAuth2Secret(creds *CredentialsFile, registry *SecretProviderRegistry) (string, error) {
-	if creds == nil {
-		return "", fmt.Errorf("credentials are missing")
-	}
-	legacy := creds.OAuth2.ClientSecret
-	ref := creds.OAuth2.ClientSecretRef
-	if legacy != "" && ref != nil {
-		return "", fmt.Errorf("oauth2 config must set exactly one of client_secret or client_secret_ref")
-	}
-	if ref != nil {
-		if err := validateOAuth2SecretReferenceBinding(creds, *ref); err != nil {
-			return "", err
-		}
-		return registry.Resolve(*ref)
-	}
-	if legacy != "" {
-		fmt.Fprintln(os.Stderr, "Warning: plaintext oauth2.client_secret is deprecated; migrate it to a secret provider.")
-		return legacy, nil
-	}
-	return "", fmt.Errorf("oauth2 config must set exactly one of client_secret or client_secret_ref")
-}
-
 func validateOAuth2SecretReferenceBinding(creds *CredentialsFile, ref SecretReference) error {
 	if creds == nil {
 		return fmt.Errorf("credentials are missing")
 	}
-	expectedKey := OAuth2SecretKey(creds.IdentityID, creds.OAuth2.ClientID)
-	valid := ref.Key == expectedKey
-	if ref.Provider == environmentProviderName {
-		valid = ref.Key == environmentSecretKey
-	}
-	if !valid {
+	ids := credentialBindingIDs{IdentityID: creds.IdentityID, ClientID: creds.OAuth2.ClientID}
+	if err := validateSecretReferenceBinding(credentialOAuth2ClientSecret, ref, ids); err != nil {
 		return fmt.Errorf("oauth2 secret reference is not bound to this MoltNet identity and client")
 	}
 	return nil

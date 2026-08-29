@@ -5,8 +5,12 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import {
+  type GitHubConfig,
+  type KeysConfig,
   type MoltNetConfig,
   updateConfigSection,
+  updateGitHubConfig,
+  updateKeysConfig,
   updateOAuth2Config,
   writeConfig,
 } from '../src/config.js';
@@ -84,5 +88,174 @@ describe('OAuth2 config updates', () => {
     ).rejects.toThrow();
     expect(await readFile(join(dir, 'moltnet.json'), 'utf8')).toBe(before);
     expect(await readdir(blocked)).toEqual(['moltnet.json']);
+  });
+});
+
+describe('keys config updates', () => {
+  it('replaces the plaintext seed with a reference without retaining both forms', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
+    await writeConfig(config(), dir);
+
+    await updateKeysConfig(
+      {
+        public_key: 'pub',
+        fingerprint: 'fp',
+        private_key_ref: { provider: 'os-keyring', key: 'identity/fp/seed' },
+      },
+      dir,
+    );
+
+    const raw = await readFile(join(dir, 'moltnet.json'), 'utf8');
+    expect(raw).not.toContain('"private_key"');
+    expect(raw).toContain('"private_key_ref"');
+    expect(JSON.parse(raw).keys).toEqual({
+      public_key: 'pub',
+      fingerprint: 'fp',
+      private_key_ref: { provider: 'os-keyring', key: 'identity/fp/seed' },
+    });
+  });
+
+  it('rejects keys that set both or neither secret form', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
+    await writeConfig(config(), dir);
+    const both = {
+      public_key: 'pub',
+      fingerprint: 'fp',
+      private_key: 'priv',
+      private_key_ref: { provider: 'os-keyring', key: 'k' },
+    } as unknown as KeysConfig;
+    const neither = {
+      public_key: 'pub',
+      fingerprint: 'fp',
+    } as unknown as KeysConfig;
+
+    await expect(updateKeysConfig(both, dir)).rejects.toThrow(
+      /exactly one of private_key or private_key_ref/,
+    );
+    await expect(updateKeysConfig(neither, dir)).rejects.toThrow(
+      /exactly one of private_key or private_key_ref/,
+    );
+  });
+
+  it('rejects partial keys updates through the generic helper but accepts a complete replacement', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
+    await writeConfig(config(), dir);
+
+    await expect(
+      updateConfigSection(
+        'keys',
+        { private_key_ref: { provider: 'env', key: 'MOLTNET_PRIVATE_KEY' } },
+        dir,
+      ),
+    ).rejects.toThrow(/updateKeysConfig/);
+
+    await updateConfigSection(
+      'keys',
+      {
+        public_key: 'pub',
+        fingerprint: 'fp',
+        private_key_ref: { provider: 'env', key: 'MOLTNET_PRIVATE_KEY' },
+      },
+      dir,
+    );
+    const raw = await readFile(join(dir, 'moltnet.json'), 'utf8');
+    expect(raw).not.toContain('"private_key"');
+    expect(JSON.parse(raw).keys.private_key_ref).toEqual({
+      provider: 'env',
+      key: 'MOLTNET_PRIVATE_KEY',
+    });
+  });
+});
+
+describe('github config updates', () => {
+  const base = { app_id: '123', installation_id: '456' };
+
+  it('replaces the PEM path with a reference without retaining both forms', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
+    await writeConfig(
+      { ...config(), github: { ...base, private_key_path: '/tmp/app.pem' } },
+      dir,
+    );
+
+    await updateGitHubConfig(
+      {
+        ...base,
+        private_key_ref: {
+          provider: 'os-keyring',
+          key: 'github-app/123/private-key',
+        },
+      },
+      dir,
+    );
+
+    const raw = await readFile(join(dir, 'moltnet.json'), 'utf8');
+    expect(raw).not.toContain('private_key_path');
+    expect(JSON.parse(raw).github).toEqual({
+      ...base,
+      private_key_ref: {
+        provider: 'os-keyring',
+        key: 'github-app/123/private-key',
+      },
+    });
+  });
+
+  it('rejects github settings that set both or neither PEM form', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
+    await writeConfig(config(), dir);
+    const both = {
+      ...base,
+      private_key_path: '/tmp/app.pem',
+      private_key_ref: { provider: 'os-keyring', key: 'k' },
+    } as unknown as GitHubConfig;
+    const neither = { ...base } as unknown as GitHubConfig;
+
+    await expect(updateGitHubConfig(both, dir)).rejects.toThrow(
+      /exactly one of private_key_path or private_key_ref/,
+    );
+    await expect(updateGitHubConfig(neither, dir)).rejects.toThrow(
+      /exactly one of private_key_path or private_key_ref/,
+    );
+  });
+
+  it('rejects partial github updates through the generic helper but accepts a complete replacement', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
+    await writeConfig(config(), dir);
+
+    await expect(
+      updateConfigSection('github', { app_id: '1' }, dir),
+    ).rejects.toThrow(/updateGitHubConfig/);
+
+    await updateConfigSection(
+      'github',
+      {
+        ...base,
+        private_key_ref: {
+          provider: 'env',
+          key: 'MOLTNET_GITHUB_APP_PRIVATE_KEY',
+        },
+      },
+      dir,
+    );
+    const raw = await readFile(join(dir, 'moltnet.json'), 'utf8');
+    expect(raw).not.toContain('private_key_path');
+    expect(JSON.parse(raw).github.private_key_ref).toEqual({
+      provider: 'env',
+      key: 'MOLTNET_GITHUB_APP_PRIVATE_KEY',
+    });
+  });
+
+  it('accepts the setupGitHubAgent app_slug persistence shape (spread of an existing path-form section)', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
+    const github = { ...base, private_key_path: '/tmp/app.pem' };
+    await writeConfig({ ...config(), github }, dir);
+
+    await updateConfigSection('github', { ...github, app_slug: 'my-app' }, dir);
+
+    expect(
+      JSON.parse(await readFile(join(dir, 'moltnet.json'), 'utf8')).github,
+    ).toEqual({
+      ...github,
+      app_slug: 'my-app',
+    });
   });
 });

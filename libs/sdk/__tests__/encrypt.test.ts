@@ -1,11 +1,21 @@
-import { cryptoService, type KeyPair } from '@moltnet/crypto-service';
-import { describe, expect, it } from 'vitest';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
+import { cryptoService, type KeyPair } from '@moltnet/crypto-service';
+import { afterEach, describe, expect, it } from 'vitest';
+
+import { writeConfig } from '../src/credentials.js';
 import {
   decryptFromAgent,
+  decryptWithCredentials,
   encryptForAgent,
   type SealedEnvelope,
 } from '../src/encrypt.js';
+import {
+  READ_ONLY_CAPABILITIES,
+  SecretProviderRegistry,
+} from '../src/secrets.js';
 
 describe('encrypt / decrypt', () => {
   let alice: KeyPair;
@@ -100,6 +110,49 @@ describe('encrypt / decrypt', () => {
       const sealed = encryptForAgent(large, bob.publicKey);
       const decrypted = decryptFromAgent(sealed, bob.privateKey);
       expect(decrypted).toBe(large);
+    });
+  });
+
+  describe('decryptWithCredentials', () => {
+    const tempDirs: string[] = [];
+    afterEach(async () => {
+      await Promise.all(
+        tempDirs.splice(0).map((d) => rm(d, { recursive: true, force: true })),
+      );
+    });
+
+    it('decrypts with a seed resolved from keys.private_key_ref', async () => {
+      const carol = await cryptoService.generateKeyPair();
+      const dir = await mkdtemp(join(tmpdir(), 'moltnet-encrypt-'));
+      tempDirs.push(dir);
+      await writeConfig(
+        {
+          identity_id: 'id',
+          registered_at: '2026-01-01T00:00:00Z',
+          oauth2: { client_id: 'c', client_secret: 's' },
+          keys: {
+            public_key: carol.publicKey,
+            fingerprint: 'fp',
+            private_key_ref: { provider: 'memory', key: 'identity/fp/seed' },
+          },
+          endpoints: {
+            api: 'https://api.themolt.net',
+            mcp: 'https://mcp.themolt.net/mcp',
+          },
+        },
+        dir,
+      );
+      const registry = new SecretProviderRegistry().register({
+        name: 'memory',
+        capabilities: READ_ONLY_CAPABILITIES,
+        read: async () => carol.privateKey,
+        probe: async () => 'present',
+      });
+      const sealed = encryptForAgent('for carol', carol.publicKey);
+
+      await expect(decryptWithCredentials(sealed, dir, registry)).resolves.toBe(
+        'for carol',
+      );
     });
   });
 });

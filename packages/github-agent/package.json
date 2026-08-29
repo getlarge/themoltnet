@@ -34,7 +34,8 @@
     "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
   },
   "dependencies": {
-    "@noble/ed25519": "catalog:"
+    "@noble/ed25519": "catalog:",
+    "@themoltnet/sdk": "workspace:*"
   },
   "devDependencies": {
     "@moltnet/agent-config": "workspace:*",

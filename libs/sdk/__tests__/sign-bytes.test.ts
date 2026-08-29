@@ -5,6 +5,10 @@ import { join } from 'node:path';
 import { buildSigningBytes, cryptoService } from '@moltnet/crypto-service';
 import { describe, expect, it } from 'vitest';
 
+import {
+  READ_ONLY_CAPABILITIES,
+  SecretProviderRegistry,
+} from '../src/secrets.js';
 import { signBytes } from '../src/sign.js';
 
 describe('signBytes', () => {
@@ -72,5 +76,40 @@ describe('signBytes', () => {
     await expect(signBytes('dGVzdA==', '/nonexistent/path')).rejects.toThrow(
       'No credentials found',
     );
+  });
+
+  it('signs with a seed resolved from keys.private_key_ref', async () => {
+    const kp = await cryptoService.generateKeyPair();
+    const message = 'signBytes through a reference';
+    const nonce = 'ffffffff-bbbb-cccc-dddd-eeeeeeeeeeee';
+    const signingInput = Buffer.from(
+      buildSigningBytes(message, nonce),
+    ).toString('base64');
+    const dir = await mkdtemp(join(tmpdir(), 'moltnet-sdk-test-'));
+    await writeFile(
+      join(dir, 'moltnet.json'),
+      JSON.stringify({
+        identity_id: 'test-identity-id',
+        oauth2: { client_id: 'c', client_secret: 's' },
+        keys: {
+          public_key: kp.publicKey,
+          fingerprint: 'FP',
+          private_key_ref: { provider: 'memory', key: 'identity/FP/seed' },
+        },
+        endpoints: { api: 'https://api.themolt.net', mcp: 'm' },
+      }),
+    );
+    const registry = new SecretProviderRegistry().register({
+      name: 'memory',
+      capabilities: READ_ONLY_CAPABILITIES,
+      read: async () => kp.privateKey,
+      probe: async () => 'present',
+    });
+
+    const signature = await signBytes(signingInput, dir, registry);
+
+    await expect(
+      cryptoService.verifyWithNonce(message, nonce, signature, kp.publicKey),
+    ).resolves.toBe(true);
   });
 });
