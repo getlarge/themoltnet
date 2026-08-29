@@ -1,12 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  agentKeyKey,
   assertSecretReferenceBinding,
   EnvironmentSecretProvider,
   expectedSecretKey,
   githubAppPrivateKeyKey,
   identitySeedKey,
   oauth2SecretKey,
+  parseSecretReferenceString,
   READ_ONLY_CAPABILITIES,
   READ_WRITE_CAPABILITIES,
   SecretConflictError,
@@ -381,5 +383,57 @@ describe('github app private key binding', () => {
         { appId: '123' },
       ),
     ).toThrow(/not bound/);
+  });
+});
+
+describe('agent key binding and env reference parsing', () => {
+  it('binds agent keys to the identity id', () => {
+    expect(agentKeyKey('id-1')).toBe('agent-key/id-1');
+    for (const reference of [
+      { provider: 'os-keyring', key: 'agent-key/id-1' },
+      { provider: 'file', key: 'agent-key.id-1' },
+    ]) {
+      expect(() =>
+        assertSecretReferenceBinding('agent-key', reference, {
+          identityId: 'id-1',
+        }),
+      ).not.toThrow();
+    }
+    expect(() =>
+      assertSecretReferenceBinding(
+        'agent-key',
+        { provider: 'os-keyring', key: 'agent-key/other' },
+        { identityId: 'id-1' },
+      ),
+    ).toThrow(/not bound/);
+    // The env provider is unreachable for config-bound agent keys (the
+    // variable itself selects environment mode first), so it is rejected.
+    expect(() =>
+      assertSecretReferenceBinding(
+        'agent-key',
+        { provider: 'env', key: 'MOLTNET_AGENT_KEY' },
+        { identityId: 'id-1' },
+      ),
+    ).toThrow(/cannot use the env provider/);
+  });
+
+  it('parses <provider>:<key> references and rejects malformed ones', () => {
+    expect(parseSecretReferenceString('env:MOLTNET_AGENT_KEY')).toEqual({
+      provider: 'env',
+      key: 'MOLTNET_AGENT_KEY',
+    });
+    expect(parseSecretReferenceString(' file:agent-key.id-1 ')).toEqual({
+      provider: 'file',
+      key: 'agent-key.id-1',
+    });
+    expect(parseSecretReferenceString('os-keyring:agent-key/id-1')).toEqual({
+      provider: 'os-keyring',
+      key: 'agent-key/id-1',
+    });
+    for (const raw of ['', 'nocolon', ':key', 'env:', 'Env:KEY', '1p:key']) {
+      expect(() => parseSecretReferenceString(raw), raw).toThrow(
+        /<provider>:<key>/,
+      );
+    }
   });
 });

@@ -410,6 +410,18 @@ used; the last two are optional):
 | `MOLTNET_SECRET_ROOT_WRITABLE` | Optional; `1` allows `file` writes, default read-only               |
 | `MOLTNET_SECRET_MAX_BYTES`     | Optional; upper bound for one `file` secret, default `65536`        |
 
+Agent-key references (any registered provider, `<provider>:<key>`; alternatives
+to the corresponding plaintext variables, never both):
+
+| Variable                  | Effect                                                                  |
+| ------------------------- | ----------------------------------------------------------------------- |
+| `MOLTNET_AGENT_KEY_REF`   | Reference to a team-bound agent key; alternative to `MOLTNET_AGENT_KEY` |
+| `MOLTNET_PRIVATE_KEY_REF` | Reference to the Ed25519 seed; alternative to `MOLTNET_PRIVATE_KEY`     |
+
+Provider prerequisites: `file` needs `MOLTNET_SECRET_ROOT` (below); `os-keyring`
+needs an unlocked keyring available to the daemon's OS user; `env` reads the
+named variable.
+
 Optional variables:
 
 | Variable                             | Default                   |

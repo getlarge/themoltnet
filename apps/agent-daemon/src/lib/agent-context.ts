@@ -6,29 +6,47 @@ import {
   type Agent,
   AuthenticationError,
   connect,
+  readConfig,
   type Whoami,
 } from '@themoltnet/sdk';
 import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
+
+/** The mechanism `connect()` actually authenticated with. */
+export type DaemonAuthMechanism = 'agent-key' | 'oauth2';
 
 export interface DaemonAgentContext {
   agentDir: string;
   agentRootDir: string;
   agent: Agent;
+  /**
+   * Where credentials came from: the configless environment
+   * (`MOLTNET_AGENT_KEY` / `MOLTNET_AGENT_KEY_REF`) or `moltnet.json`.
+   */
+  credentialSource: 'environment' | 'config';
+  /**
+   * The authentication mechanism in use. Differs from `credentialSource`
+   * when `moltnet.json` carries an `agent_key_ref`: the source is `config`
+   * but the mechanism is `agent-key`.
+   */
+  authMechanism: DaemonAuthMechanism;
 }
 
 /**
- * How the daemon authenticates to MoltNet.
+ * Where the daemon's credentials come from — this is the *credential source*,
+ * not necessarily the authentication mechanism (see `DaemonAgentContext`).
  *
- * - `agent-key`: a static, team-bound bearer secret from `MOLTNET_AGENT_KEY`.
- * - `oauth2`: the default client-credentials flow using the agent's
- *   `moltnet.json` client id/secret.
+ * - `agent-key`: configless — a static, team-bound bearer secret from
+ *   `MOLTNET_AGENT_KEY` (or `MOLTNET_AGENT_KEY_REF`); no agent files are read.
+ * - `oauth2`: `moltnet.json` supplies the credentials; the mechanism is the
+ *   OAuth2 client-credentials flow unless the file carries `agent_key_ref`.
  */
 export type DaemonAuthMode = 'agent-key' | 'oauth2';
 
 /**
  * Report which auth mode `connect()` will use, without ever reading the secret
  * value into anything logged. Agent-key mode is selected when
- * `MOLTNET_AGENT_KEY` holds a non-blank value — mirroring the SDK precedence
+ * `MOLTNET_AGENT_KEY` or `MOLTNET_AGENT_KEY_REF` holds a non-blank value —
+ * mirroring the SDK precedence
  * where an environment key opts into key mode ahead of the config-file OAuth2
  * credentials. The daemon never passes explicit in-code credentials to
  * `connect()`, so this env-only check matches what `connect()` actually does.
@@ -36,7 +54,9 @@ export type DaemonAuthMode = 'agent-key' | 'oauth2';
  * Pure: `env` is passed in (the config module owns the `process.env` read).
  */
 export function detectAuthMode(env: NodeJS.ProcessEnv): DaemonAuthMode {
-  return env.MOLTNET_AGENT_KEY?.trim() ? 'agent-key' : 'oauth2';
+  return env.MOLTNET_AGENT_KEY?.trim() || env.MOLTNET_AGENT_KEY_REF?.trim()
+    ? 'agent-key'
+    : 'oauth2';
 }
 
 /** Result of the pure startup-binding assessment. */
@@ -149,8 +169,19 @@ export async function resolveAgentContext(
   if (options.authMode === 'agent-key') {
     const rootDir = roots[0] ?? process.cwd();
     const agentDir = join(rootDir, '.moltnet', agentName);
-    const agent = await connect();
-    return { agentDir, agentRootDir: rootDir, agent };
+    // No config dir: the key (or its MOLTNET_AGENT_KEY_REF) comes from the
+    // environment. The Node registry is still needed so a keyring or file
+    // reference can be resolved.
+    const agent = await connect({
+      secretProviders: createNodeSecretProviderRegistry(),
+    });
+    return {
+      agentDir,
+      agentRootDir: rootDir,
+      agent,
+      credentialSource: 'environment',
+      authMechanism: 'agent-key',
+    };
   }
 
   // OAuth2: the host needs `moltnet.json` to build its own Agent. Reading it on
@@ -162,10 +193,15 @@ export async function resolveAgentContext(
       configDir: located.agentDir,
       secretProviders: createNodeSecretProviderRegistry(),
     });
+    // connect() prefers a configured agent_key_ref over OAuth2; report the
+    // mechanism it actually used so diagnostics and telemetry agree.
+    const config = await readConfig(located.agentDir);
     return {
       agentDir: located.agentDir,
       agentRootDir: located.rootDir,
       agent,
+      credentialSource: 'config',
+      authMechanism: config?.agent_key_ref ? 'agent-key' : 'oauth2',
     };
   }
 

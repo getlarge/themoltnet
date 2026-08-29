@@ -5,21 +5,25 @@ import { join } from 'node:path';
 import type { Whoami } from '@themoltnet/sdk';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { connectMock, execFileSyncMock, AuthenticationErrorMock } = vi.hoisted(
-  () => {
-    class AuthenticationErrorMock extends Error {
-      constructor(message: string) {
-        super(message);
-        this.name = 'AuthenticationError';
-      }
+const {
+  connectMock,
+  execFileSyncMock,
+  readConfigMock,
+  AuthenticationErrorMock,
+} = vi.hoisted(() => {
+  class AuthenticationErrorMock extends Error {
+    constructor(message: string) {
+      super(message);
+      this.name = 'AuthenticationError';
     }
-    return {
-      connectMock: vi.fn(),
-      execFileSyncMock: vi.fn(),
-      AuthenticationErrorMock,
-    };
-  },
-);
+  }
+  return {
+    connectMock: vi.fn(),
+    execFileSyncMock: vi.fn(),
+    readConfigMock: vi.fn(),
+    AuthenticationErrorMock,
+  };
+});
 
 vi.mock('node:child_process', () => ({
   execFileSync: execFileSyncMock,
@@ -27,6 +31,7 @@ vi.mock('node:child_process', () => ({
 
 vi.mock('@themoltnet/sdk', () => ({
   connect: connectMock,
+  readConfig: readConfigMock,
   AuthenticationError: AuthenticationErrorMock,
 }));
 
@@ -46,6 +51,8 @@ import {
 describe('resolveAgentContext', () => {
   beforeEach(() => {
     connectMock.mockReset();
+    readConfigMock.mockReset();
+    readConfigMock.mockResolvedValue(null);
     connectMock.mockResolvedValue({ agent: 'connected' });
     execFileSyncMock.mockReset();
     createNodeSecretProviderRegistryMock.mockReset();
@@ -106,7 +113,7 @@ describe('resolveAgentContext', () => {
     }
   });
 
-  it('connects without config or secret providers in agent-key mode', async () => {
+  it('connects without a config dir in agent-key mode', async () => {
     const root = mkdtempSync(join(tmpdir(), 'daemon-agent-key-root-'));
     execFileSyncMock.mockImplementation(() => {
       throw new Error('not a git repo');
@@ -120,8 +127,11 @@ describe('resolveAgentContext', () => {
 
       const agentDir = join(root, '.moltnet', 'legreffier');
       expect(ctx.agentDir).toBe(agentDir);
-      expect(connectMock).toHaveBeenCalledWith();
-      expect(createNodeSecretProviderRegistryMock).not.toHaveBeenCalled();
+      // No configDir: the key (or its reference) comes from the environment;
+      // the Node registry is supplied so keyring/file references resolve.
+      expect(connectMock).toHaveBeenCalledTimes(1);
+      expect(connectMock.mock.calls[0][0]).not.toHaveProperty('configDir');
+      expect(createNodeSecretProviderRegistryMock).toHaveBeenCalledTimes(1);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -140,8 +150,11 @@ describe('resolveAgentContext', () => {
         authMode: 'agent-key',
       });
 
-      expect(connectMock).toHaveBeenCalledWith();
-      expect(createNodeSecretProviderRegistryMock).not.toHaveBeenCalled();
+      // No configDir: the key (or its reference) comes from the environment;
+      // the Node registry is supplied so keyring/file references resolve.
+      expect(connectMock).toHaveBeenCalledTimes(1);
+      expect(connectMock.mock.calls[0][0]).not.toHaveProperty('configDir');
+      expect(createNodeSecretProviderRegistryMock).toHaveBeenCalledTimes(1);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -186,6 +199,13 @@ describe('detectAuthMode', () => {
   it('treats a blank / whitespace-only key as not set', () => {
     expect(detectAuthMode({ MOLTNET_AGENT_KEY: '   ' })).toBe('oauth2');
     expect(detectAuthMode({ MOLTNET_AGENT_KEY: '' })).toBe('oauth2');
+  });
+
+  it('reports agent-key mode for MOLTNET_AGENT_KEY_REF', () => {
+    expect(detectAuthMode({ MOLTNET_AGENT_KEY_REF: 'file:agent-key.id' })).toBe(
+      'agent-key',
+    );
+    expect(detectAuthMode({ MOLTNET_AGENT_KEY_REF: ' ' })).toBe('oauth2');
   });
 
   it('defaults to oauth2 when the key is absent', () => {
@@ -345,3 +365,39 @@ function writeCredentials(root: string, agentName: string): void {
   writeFileSync(join(agentDir, 'moltnet.json'), '{}\n', 'utf8');
   writeFileSync(join(agentDir, 'env'), '', 'utf8');
 }
+
+describe('credential source vs auth mechanism', () => {
+  it('reports oauth2 for a plain config, agent-key for a config with agent_key_ref, and environment source in key mode', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'daemon-mechanism-root-'));
+    execFileSyncMock.mockImplementation(() => {
+      throw new Error('not a git repo');
+    });
+    try {
+      writeCredentials(root, 'legreffier');
+
+      const oauth = await resolveAgentContext('legreffier', {
+        agentRootDir: root,
+      });
+      expect(oauth.credentialSource).toBe('config');
+      expect(oauth.authMechanism).toBe('oauth2');
+
+      readConfigMock.mockResolvedValueOnce({
+        agent_key_ref: { provider: 'file', key: 'agent-key.id-1' },
+      });
+      const keyed = await resolveAgentContext('legreffier', {
+        agentRootDir: root,
+      });
+      expect(keyed.credentialSource).toBe('config');
+      expect(keyed.authMechanism).toBe('agent-key');
+
+      const env = await resolveAgentContext('legreffier', {
+        agentRootDir: root,
+        authMode: 'agent-key',
+      });
+      expect(env.credentialSource).toBe('environment');
+      expect(env.authMechanism).toBe('agent-key');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});

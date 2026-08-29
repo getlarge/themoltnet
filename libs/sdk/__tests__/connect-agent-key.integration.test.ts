@@ -38,7 +38,7 @@ describe('connect agent-key transport', () => {
 
     const agent = await connect({
       agentKey: 'opaque-key',
-      apiUrl: 'http://api.test',
+      apiUrl: 'https://api.test',
       retry: false,
     });
     await agent.agents.whoami();
@@ -58,7 +58,7 @@ describe('connect agent-key transport', () => {
 
     const agent = await connect({
       agentKey: 'super-secret-key',
-      apiUrl: 'http://api.test',
+      apiUrl: 'https://api.test',
       retry: false,
     });
 

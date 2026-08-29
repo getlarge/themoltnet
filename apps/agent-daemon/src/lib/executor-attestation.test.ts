@@ -6,11 +6,13 @@ const {
   createExecutorAttestorMock,
   readConfigMock,
   resolveIdentitySeedMock,
+  resolveEnvSecretReferenceMock,
   registryMock,
 } = vi.hoisted(() => ({
   createExecutorAttestorMock: vi.fn(),
   readConfigMock: vi.fn(),
   resolveIdentitySeedMock: vi.fn(),
+  resolveEnvSecretReferenceMock: vi.fn(),
   registryMock: { name: 'node-registry' },
 }));
 
@@ -18,6 +20,7 @@ vi.mock('@themoltnet/sdk', () => ({
   createExecutorAttestor: createExecutorAttestorMock,
   readConfig: readConfigMock,
   resolveIdentitySeed: resolveIdentitySeedMock,
+  resolveEnvSecretReference: resolveEnvSecretReferenceMock,
 }));
 vi.mock('@themoltnet/sdk/node', () => ({
   createNodeSecretProviderRegistry: () => registryMock,
@@ -65,6 +68,39 @@ describe('resolveExecutorSigningPrivateKey', () => {
       }),
     ).rejects.toThrow('MOLTNET_PRIVATE_KEY');
     expect(readConfigMock).not.toHaveBeenCalled();
+    expect(resolveEnvSecretReferenceMock).not.toHaveBeenCalled();
+  });
+
+  it('resolves MOLTNET_PRIVATE_KEY_REF through the Node registry in agent-key mode', async () => {
+    const seed = Buffer.alloc(32, 7).toString('base64');
+    resolveEnvSecretReferenceMock.mockResolvedValue(seed);
+
+    await expect(
+      resolveExecutorSigningPrivateKey({
+        authMode: 'agent-key',
+        agentDir: '/missing/.moltnet/agent',
+        configuredPrivateKey: '',
+        configuredPrivateKeyRef: 'file:identity.fp.seed',
+      }),
+    ).resolves.toBe(seed);
+    expect(resolveEnvSecretReferenceMock).toHaveBeenCalledWith(
+      'file:identity.fp.seed',
+      registryMock,
+    );
+    expect(readConfigMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects a resolved reference that is not a 32-byte seed', async () => {
+    resolveEnvSecretReferenceMock.mockResolvedValue('dG9vLXNob3J0');
+
+    await expect(
+      resolveExecutorSigningPrivateKey({
+        authMode: 'agent-key',
+        agentDir: '/missing/.moltnet/agent',
+        configuredPrivateKey: '',
+        configuredPrivateKeyRef: 'env:MOLTNET_SEED',
+      }),
+    ).rejects.toThrow('32-byte');
   });
 
   it('resolves the OAuth2 config seed through the Node secret-provider registry', async () => {

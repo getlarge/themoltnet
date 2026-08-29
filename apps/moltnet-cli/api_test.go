@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -370,5 +371,99 @@ func TestNewAuthenticatedClientMissingOAuthCredentialsNamesAgentKeyOption(t *tes
 	if !strings.Contains(err.Error(), agentKeyEnv) ||
 		!strings.Contains(err.Error(), "moltnet register") {
 		t.Errorf("error = %q, want both authentication options", err)
+	}
+}
+
+func TestNewAuthenticatedClientResolvesAgentKeyReference(t *testing.T) {
+	t.Setenv(agentKeyEnv, "")
+	t.Setenv(agentKeyRefEnv, "env:MOLTNET_TEST_AGENT_KEY")
+	t.Setenv("MOLTNET_TEST_AGENT_KEY", "ak_from_ref")
+	t.Setenv("HOME", t.TempDir())
+	generated, err := moltnetapi.NewServer(
+		&stubWhoamiHandler{identityID: uuid.MustParse("00000000-0000-0000-0000-000000000004")},
+		noopSecurityHandler{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var authorization string
+	apiSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authorization = r.Header.Get("Authorization")
+		generated.ServeHTTP(w, r)
+	}))
+	defer apiSrv.Close()
+
+	client, err := newAuthenticatedClient(apiSrv.URL, filepath.Join(t.TempDir(), "missing-moltnet.json"))
+	if err != nil {
+		t.Fatalf("newAuthenticatedClient() error: %v", err)
+	}
+	if _, err := client.GetWhoami(context.Background()); err != nil {
+		t.Fatalf("GetWhoami() error: %v", err)
+	}
+	if authorization != "Bearer ak_from_ref" {
+		t.Errorf("Authorization = %q, want the resolved agent key", authorization)
+	}
+}
+
+func TestNewAuthenticatedClientRejectsAgentKeyValueAndReferenceTogether(t *testing.T) {
+	t.Setenv(agentKeyEnv, "ak")
+	t.Setenv(agentKeyRefEnv, "env:X")
+	if _, err := newAuthenticatedClient("https://api.example.test", ""); err == nil || !strings.Contains(err.Error(), "set only one of") {
+		t.Fatalf("expected both-set error, got %v", err)
+	}
+}
+
+func TestNewAuthenticatedClientUsesConfigAgentKeyReferenceBeforeOAuth(t *testing.T) {
+	t.Setenv(agentKeyEnv, "")
+	t.Setenv(agentKeyRefEnv, "")
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "agent-key.id-1"), []byte("ak_from_config\n"), 0o400); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv(secretRootEnv, root)
+	generated, err := moltnetapi.NewServer(
+		&stubWhoamiHandler{identityID: uuid.MustParse("00000000-0000-0000-0000-000000000005")},
+		noopSecurityHandler{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tokenCalls := 0
+	var authorization string
+	apiSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/oauth2/token" {
+			tokenCalls++
+		}
+		authorization = r.Header.Get("Authorization")
+		generated.ServeHTTP(w, r)
+	}))
+	defer apiSrv.Close()
+	credPath := filepath.Join(t.TempDir(), "moltnet.json")
+	creds := &CredentialsFile{
+		IdentityID:  "id-1",
+		AgentKeyRef: &SecretReference{Provider: fileProviderName, Key: "agent-key.other"},
+		OAuth2:      CredentialsOAuth2{ClientID: "c", ClientSecret: "s"},
+		Endpoints:   CredentialsEndpoints{API: apiSrv.URL},
+	}
+	if _, err := WriteConfigTo(creds, credPath); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := newAuthenticatedClient(apiSrv.URL, credPath); err == nil || !strings.Contains(err.Error(), "not bound") {
+		t.Fatalf("a reference bound to another identity must be rejected; got err=%v", err)
+	}
+
+	creds.AgentKeyRef = &SecretReference{Provider: fileProviderName, Key: "agent-key.id-1"}
+	if _, err := WriteConfigTo(creds, credPath); err != nil {
+		t.Fatal(err)
+	}
+	client, err := newAuthenticatedClient(apiSrv.URL, credPath)
+	if err != nil {
+		t.Fatalf("newAuthenticatedClient() error: %v", err)
+	}
+	if _, err := client.GetWhoami(context.Background()); err != nil {
+		t.Fatalf("GetWhoami() error: %v", err)
+	}
+	if authorization != "Bearer ak_from_config" || tokenCalls != 0 {
+		t.Fatalf("Authorization = %q, tokenCalls = %d; want the config agent key and no OAuth2 exchange", authorization, tokenCalls)
 	}
 }

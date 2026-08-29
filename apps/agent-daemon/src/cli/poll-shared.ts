@@ -237,6 +237,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         authMode: cfg.authMode,
         agentDir: resolvedContext.agentDir,
         configuredPrivateKey: cfg.signingPrivateKey,
+        configuredPrivateKeyRef: cfg.signingPrivateKeyRef,
       });
       gate = 'validate_scopes';
       validateDaemonScopes(whoami);
@@ -389,7 +390,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     resourceAttributes: {
       'moltnet.team.id': teamId,
       'moltnet.agent.name': baseCommon.agent,
-      'moltnet.auth.mode': cfg.authMode,
+      'moltnet.auth.mode': ctx.authMechanism,
       'moltnet.runtime_profile.count': String(profiles.length),
       'moltnet.runtime_profile.ids': profiles.map((p) => p.id).join(','),
     },

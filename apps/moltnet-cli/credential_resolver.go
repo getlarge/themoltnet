@@ -56,6 +56,8 @@ func legacyField(kind credentialKind) string {
 		return "keys.private_key"
 	case credentialGitHubAppPrivateKey:
 		return "github.private_key_path"
+	case credentialAgentKey:
+		return "agent_key"
 	}
 	return string(kind)
 }
@@ -195,4 +197,46 @@ func resolveGitHubAppPrivateKey(creds *CredentialsFile, registry *SecretProvider
 		return nil, &CredentialResolutionError{Kind: kind, Code: "invalid_value", Detail: "value is not an RSA private key PEM"}
 	}
 	return pemData, nil
+}
+
+// resolveAgentKey returns the team-bound agent key from agent_key_ref. The
+// boolean reports whether a reference was configured at all; callers fall
+// back to OAuth2 when it is false.
+func resolveAgentKey(creds *CredentialsFile, registry *SecretProviderRegistry) (string, bool, error) {
+	kind := credentialAgentKey
+	if creds == nil || creds.AgentKeyRef == nil {
+		return "", false, nil
+	}
+	if err := validateSecretReferenceBinding(kind, *creds.AgentKeyRef, credentialBindingIDs{IdentityID: creds.IdentityID}); err != nil {
+		return "", true, &CredentialResolutionError{Kind: kind, Code: "unbound", Detail: err.Error()}
+	}
+	value, err := resolveThroughRegistry(kind, registry, *creds.AgentKeyRef)
+	if err != nil {
+		return "", true, err
+	}
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return "", true, &CredentialResolutionError{Kind: kind, Code: "invalid_value", Detail: "agent key is empty"}
+	}
+	return value, true, nil
+}
+
+// resolveEnvSecretReference resolves an environment-supplied <provider>:<key>
+// reference. The runtime environment is deployer-controlled, so no identity
+// binding is enforced — only the reference shape.
+func resolveEnvSecretReference(raw string, registry *SecretProviderRegistry) (string, error) {
+	ref, err := parseSecretReferenceString(raw)
+	if err != nil {
+		return "", err
+	}
+	value, err := registry.Resolve(ref)
+	if err != nil {
+		// Value-free: name the reference, keep the provider's message wrapped.
+		return "", fmt.Errorf("secret provider %q could not resolve %s:%s: %w", ref.Provider, ref.Provider, ref.Key, err)
+	}
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return "", fmt.Errorf("secret reference %s:%s resolved to an empty value", ref.Provider, ref.Key)
+	}
+	return value, nil
 }

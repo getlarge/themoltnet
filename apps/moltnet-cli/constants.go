@@ -4,6 +4,7 @@ const defaultAPIURL = "https://api.themolt.net"
 const defaultMCPURL = "https://mcp.themolt.net/mcp"
 
 const agentKeyEnv = "MOLTNET_AGENT_KEY"
+const agentKeyRefEnv = "MOLTNET_AGENT_KEY_REF"
 const apiURLEnv = "MOLTNET_API_URL"
 
 // signerURLEnv selects a host signing broker (see host capabilities). When set,

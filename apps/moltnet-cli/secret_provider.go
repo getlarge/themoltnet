@@ -33,6 +33,7 @@ const (
 	credentialOAuth2ClientSecret  credentialKind = "oauth2-client-secret"
 	credentialIdentitySeed        credentialKind = "identity-seed"
 	credentialGitHubAppPrivateKey credentialKind = "github-app-private-key"
+	credentialAgentKey            credentialKind = "agent-key"
 )
 
 type credentialBindingIDs struct {
@@ -53,6 +54,24 @@ func GitHubAppPrivateKeyKey(appID string) string {
 	return "github-app/" + appID + "/private-key"
 }
 
+// AgentKeyKey returns the stable provider key for an agent's team-bound key.
+func AgentKeyKey(identityID string) string {
+	return "agent-key/" + identityID
+}
+
+var secretProviderNamePattern = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
+
+// parseSecretReferenceString parses the <provider>:<key> form used by
+// environment references such as MOLTNET_AGENT_KEY_REF. The first colon splits.
+func parseSecretReferenceString(value string) (SecretReference, error) {
+	trimmed := strings.TrimSpace(value)
+	provider, key, found := strings.Cut(trimmed, ":")
+	if !found || !secretProviderNamePattern.MatchString(provider) || key == "" {
+		return SecretReference{}, fmt.Errorf("secret reference must be <provider>:<key> with a lowercase provider name")
+	}
+	return SecretReference{Provider: provider, Key: key}, nil
+}
+
 func credentialEnvKey(kind credentialKind) string {
 	switch kind {
 	case credentialOAuth2ClientSecret:
@@ -61,6 +80,8 @@ func credentialEnvKey(kind credentialKind) string {
 		return identitySeedEnvKey
 	case credentialGitHubAppPrivateKey:
 		return githubAppPrivateKeyEnvKey
+	case credentialAgentKey:
+		return agentKeyEnv
 	}
 	return ""
 }
@@ -82,6 +103,11 @@ func expectedSecretKey(kind credentialKind, ids credentialBindingIDs) (string, e
 			return "", fmt.Errorf("credential binding requires github.app_id")
 		}
 		return GitHubAppPrivateKeyKey(ids.AppID), nil
+	case credentialAgentKey:
+		if strings.TrimSpace(ids.IdentityID) == "" {
+			return "", fmt.Errorf("credential binding requires identity_id")
+		}
+		return AgentKeyKey(ids.IdentityID), nil
 	}
 	return "", fmt.Errorf("unknown credential kind %q", kind)
 }
@@ -93,6 +119,11 @@ func validateSecretReferenceBinding(kind credentialKind, ref SecretReference, id
 	canonical, err := expectedSecretKey(kind, ids)
 	if err != nil {
 		return err
+	}
+	if kind == credentialAgentKey && ref.Provider == environmentProviderName {
+		// MOLTNET_AGENT_KEY selects environment mode before config is read,
+		// so a config-bound env reference could never reach this path.
+		return fmt.Errorf("agent_key_ref cannot use the env provider; set %s directly or reference a keyring/file secret", agentKeyEnv)
 	}
 	valid := ref.Key == canonical
 	switch ref.Provider {

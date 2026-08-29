@@ -253,7 +253,8 @@ export function createDefaultSecretProviderRegistry(): SecretProviderRegistry {
 export type CredentialKind =
   | 'oauth2-client-secret'
   | 'identity-seed'
-  | 'github-app-private-key';
+  | 'github-app-private-key'
+  | 'agent-key';
 
 export interface CredentialBindingIds {
   identityId?: string;
@@ -268,6 +269,7 @@ export const CREDENTIAL_ENV_KEYS: Readonly<Record<CredentialKind, string>> =
     'oauth2-client-secret': 'MOLTNET_CLIENT_SECRET',
     'identity-seed': 'MOLTNET_PRIVATE_KEY',
     'github-app-private-key': 'MOLTNET_GITHUB_APP_PRIVATE_KEY',
+    'agent-key': 'MOLTNET_AGENT_KEY',
   });
 
 const BINDING_MESSAGES: Readonly<Record<CredentialKind, string>> =
@@ -278,6 +280,7 @@ const BINDING_MESSAGES: Readonly<Record<CredentialKind, string>> =
       'Identity seed reference is not bound to this MoltNet identity',
     'github-app-private-key':
       'GitHub App private key reference is not bound to this GitHub App',
+    'agent-key': 'Agent key reference is not bound to this MoltNet identity',
   });
 
 export function oauth2SecretKey(identityId: string, clientId: string): string {
@@ -290,6 +293,29 @@ export function identitySeedKey(fingerprint: string): string {
 
 export function githubAppPrivateKeyKey(appId: string): string {
   return `github-app/${appId}/private-key`;
+}
+
+export function agentKeyKey(identityId: string): string {
+  return `agent-key/${identityId}`;
+}
+
+const PROVIDER_NAME = /^[a-z][a-z0-9-]*$/;
+
+/**
+ * Parse the `<provider>:<key>` form used by environment references such as
+ * `MOLTNET_AGENT_KEY_REF=file:agent-key.identity-1`. The first colon splits.
+ */
+export function parseSecretReferenceString(value: string): SecretReference {
+  const trimmed = value.trim();
+  const separator = trimmed.indexOf(':');
+  const provider = separator > 0 ? trimmed.slice(0, separator) : '';
+  const key = separator > 0 ? trimmed.slice(separator + 1) : '';
+  if (!PROVIDER_NAME.test(provider) || !key) {
+    throw new Error(
+      'Secret reference must be <provider>:<key> with a lowercase provider name',
+    );
+  }
+  return { provider, key };
 }
 
 function requireId(value: string | undefined, name: string): string {
@@ -315,6 +341,8 @@ export function expectedSecretKey(
       return identitySeedKey(requireId(ids.fingerprint, 'fingerprint'));
     case 'github-app-private-key':
       return githubAppPrivateKeyKey(requireId(ids.appId, 'appId'));
+    case 'agent-key':
+      return agentKeyKey(requireId(ids.identityId, 'identityId'));
   }
 }
 
@@ -329,6 +357,17 @@ export function assertSecretReferenceBinding(
   ids: CredentialBindingIds,
 ): void {
   const canonical = expectedSecretKey(kind, ids);
+  if (
+    kind === 'agent-key' &&
+    reference.provider === ENVIRONMENT_SECRET_PROVIDER
+  ) {
+    // MOLTNET_AGENT_KEY selects environment (configless) mode before any
+    // config is read, so a config-bound env reference could never be
+    // resolved through the bound path — reject it instead of advertising it.
+    throw new Error(
+      'agent_key_ref cannot use the env provider; set MOLTNET_AGENT_KEY directly or reference a keyring/file secret',
+    );
+  }
   const valid =
     reference.provider === ENVIRONMENT_SECRET_PROVIDER
       ? reference.key === CREDENTIAL_ENV_KEYS[kind]

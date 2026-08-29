@@ -475,3 +475,141 @@ describe('connect (agent-key mode)', () => {
     expect(mockCreateClient).not.toHaveBeenCalled();
   });
 });
+
+describe('connect (agent-key references)', () => {
+  function memoryRegistry(values: Record<string, string>) {
+    return new SecretProviderRegistry().register({
+      name: 'memory',
+      capabilities: READ_ONLY_CAPABILITIES,
+      read: async (key) => values[key] ?? null,
+      probe: async (key) => (key in values ? 'present' : 'absent'),
+    });
+  }
+
+  it('resolves MOLTNET_AGENT_KEY_REF into a static bearer without reading config', async () => {
+    mockReadEnvCredentials.mockReturnValue({
+      apiUrl: 'https://agent-key.example.test',
+      agentKeyRef: 'memory:runtime/agent-key',
+    });
+
+    await connect({
+      secretProviders: memoryRegistry({ 'runtime/agent-key': 'ak_from_ref' }),
+    });
+
+    expect(mockReadConfig).not.toHaveBeenCalled();
+    expect(MockTokenManager).not.toHaveBeenCalled();
+    const agentOpts = mockCreateAgent.mock.calls[0]![0];
+    await expect(agentOpts.auth!()).resolves.toBe('ak_from_ref');
+  });
+
+  it('rejects MOLTNET_AGENT_KEY together with MOLTNET_AGENT_KEY_REF', async () => {
+    mockReadEnvCredentials.mockReturnValue({
+      apiUrl: 'https://agent-key.example.test',
+      agentKey: 'ak_value',
+      agentKeyRef: 'memory:runtime/agent-key',
+    });
+
+    await expect(connect()).rejects.toMatchObject({ code: 'INVALID_CONFIG' });
+    expect(mockReadConfig).not.toHaveBeenCalled();
+  });
+
+  it('surfaces an unresolvable env reference as NO_CREDENTIALS', async () => {
+    mockReadEnvCredentials.mockReturnValue({
+      apiUrl: 'https://agent-key.example.test',
+      agentKeyRef: 'memory:runtime/missing',
+    });
+
+    await expect(
+      connect({ secretProviders: memoryRegistry({}) }),
+    ).rejects.toMatchObject({ code: 'NO_CREDENTIALS' });
+  });
+
+  it('prefers a config agent_key_ref over OAuth2 and trusts the config endpoint', async () => {
+    mockReadConfig.mockResolvedValueOnce({
+      identity_id: 'id-1',
+      registered_at: '2024-01-01',
+      agent_key_ref: { provider: 'memory', key: 'agent-key/id-1' },
+      oauth2: { client_id: 'cfg-id', client_secret: 'cfg-secret' },
+      keys: { public_key: 'pk', private_key: 'sk', fingerprint: 'fp' },
+      endpoints: { api: 'https://api.themolt.net', mcp: 'mcp' },
+    });
+
+    await connect({
+      secretProviders: memoryRegistry({ 'agent-key/id-1': 'ak_cfg' }),
+    });
+
+    expect(MockTokenManager).not.toHaveBeenCalled();
+    expect(mockCreateClient).toHaveBeenCalledWith(
+      expect.objectContaining({ baseUrl: 'https://api.themolt.net' }),
+    );
+    const agentOpts = mockCreateAgent.mock.calls[0]![0];
+    await expect(agentOpts.auth!()).resolves.toBe('ak_cfg');
+  });
+
+  it('rejects a config agent_key_ref bound to another identity', async () => {
+    mockReadConfig.mockResolvedValueOnce({
+      identity_id: 'id-1',
+      registered_at: '2024-01-01',
+      agent_key_ref: { provider: 'memory', key: 'agent-key/other' },
+      oauth2: { client_id: 'cfg-id', client_secret: 'cfg-secret' },
+      keys: { public_key: 'pk', private_key: 'sk', fingerprint: 'fp' },
+      endpoints: { api: 'https://api.themolt.net', mcp: 'mcp' },
+    });
+
+    await expect(
+      connect({ secretProviders: memoryRegistry({ 'agent-key/other': 'x' }) }),
+    ).rejects.toMatchObject({ code: 'INVALID_CONFIG' });
+    expect(MockTokenManager).not.toHaveBeenCalled();
+  });
+
+  it('refuses to send any agent key over remote plaintext HTTP', async () => {
+    await expect(
+      connect({ agentKey: 'k', apiUrl: 'http://remote.example.test' }),
+    ).rejects.toMatchObject({ code: 'INVALID_CONFIG' });
+
+    mockReadEnvCredentials.mockReturnValue({
+      apiUrl: 'http://remote.example.test',
+      agentKeyRef: 'memory:runtime/agent-key',
+    });
+    await expect(
+      connect({
+        secretProviders: memoryRegistry({ 'runtime/agent-key': 'ak' }),
+      }),
+    ).rejects.toMatchObject({ code: 'INVALID_CONFIG' });
+
+    mockReadEnvCredentials.mockReturnValue({
+      apiUrl: 'http://remote.example.test',
+    });
+    mockReadConfig.mockResolvedValueOnce({
+      identity_id: 'id-1',
+      registered_at: '2024-01-01',
+      agent_key_ref: { provider: 'memory', key: 'agent-key/id-1' },
+      oauth2: { client_id: 'cfg-id', client_secret: 'cfg-secret' },
+      keys: { public_key: 'pk', private_key: 'sk', fingerprint: 'fp' },
+      endpoints: { api: 'https://api.themolt.net', mcp: 'mcp' },
+    });
+    await expect(
+      connect({ secretProviders: memoryRegistry({ 'agent-key/id-1': 'ak' }) }),
+    ).rejects.toMatchObject({ code: 'INVALID_CONFIG' });
+    expect(mockCreateClient).not.toHaveBeenCalled();
+  });
+
+  it('allows plaintext HTTP to loopback for local stacks', async () => {
+    await connect({ agentKey: 'k', apiUrl: 'http://127.0.0.1:3000' });
+    await connect({ agentKey: 'k', apiUrl: 'http://localhost:3000' });
+    expect(mockCreateClient).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects a config agent_key_ref that names the env provider', async () => {
+    mockReadConfig.mockResolvedValueOnce({
+      identity_id: 'id-1',
+      registered_at: '2024-01-01',
+      agent_key_ref: { provider: 'env', key: 'MOLTNET_AGENT_KEY' },
+      oauth2: { client_id: 'cfg-id', client_secret: 'cfg-secret' },
+      keys: { public_key: 'pk', private_key: 'sk', fingerprint: 'fp' },
+      endpoints: { api: 'https://api.themolt.net', mcp: 'mcp' },
+    });
+
+    await expect(connect()).rejects.toMatchObject({ code: 'INVALID_CONFIG' });
+  });
+});

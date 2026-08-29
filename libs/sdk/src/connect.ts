@@ -8,6 +8,8 @@ import { normalizeApiUrl } from './api-url.js';
 import { readEnvCredentials } from './config.js';
 import {
   CredentialResolutionError,
+  resolveAgentKey,
+  resolveEnvSecretReference,
   resolveOAuth2ClientSecret,
 } from './credential-resolver.js';
 import { readConfig } from './credentials.js';
@@ -73,14 +75,39 @@ async function resolveConnection(
   }
 
   // No explicit credentials — fall back to the environment, then the config.
-  // 3. Env agent key (opts into key mode only once explicit options are ruled out)
+  // 3. Env agent key or env agent-key reference (opts into key mode only once
+  //    explicit options are ruled out). A value and a reference together is a
+  //    misconfiguration, never a precedence question.
   const envAgentKey = env.agentKey?.trim();
+  const envAgentKeyRef = env.agentKeyRef?.trim();
+  if (envAgentKey && envAgentKeyRef) {
+    throw new MoltNetError(
+      'Set only one of MOLTNET_AGENT_KEY or MOLTNET_AGENT_KEY_REF.',
+      { code: 'INVALID_CONFIG' },
+    );
+  }
   if (envAgentKey) {
     return {
       mode: 'agentKey',
       agentKey: envAgentKey,
       apiUrl: requireAgentKeyApiUrl(options.apiUrl, env.apiUrl),
     };
+  }
+  if (envAgentKeyRef) {
+    const apiUrl = requireAgentKeyApiUrl(options.apiUrl, env.apiUrl);
+    let agentKey: string;
+    try {
+      agentKey = await resolveEnvSecretReference(
+        envAgentKeyRef,
+        options.secretProviders ?? createDefaultSecretProviderRegistry(),
+      );
+    } catch (error) {
+      throw new MoltNetError('Unable to resolve MOLTNET_AGENT_KEY_REF.', {
+        code: 'NO_CREDENTIALS',
+        detail: error instanceof Error ? error.message : String(error),
+      });
+    }
+    return { mode: 'agentKey', agentKey, apiUrl };
   }
   // 4. Env OAuth2 client credentials
   if (env.clientId && env.clientSecret) {
@@ -91,8 +118,47 @@ async function resolveConnection(
       apiUrl: normalizeApiUrl(options.apiUrl, env.apiUrl),
     };
   }
-  // 5. Config file (~/.config/moltnet/moltnet.json)
+  // 5. Config file (~/.config/moltnet/moltnet.json). A configured
+  //    agent_key_ref is a config-mode credential and precedes OAuth2; the
+  //    config's own API endpoint is trusted through the same check.
   const config = await readConfig(options.configDir);
+  if (config?.agent_key_ref) {
+    const apiUrl = normalizeApiUrl(
+      options.apiUrl,
+      env.apiUrl,
+      config.endpoints?.api,
+    );
+    if (!options.apiUrl && !env.apiUrl) {
+      requireTrustedConfigApiUrl(apiUrl);
+    }
+    requireSecureAgentKeyApiUrl(apiUrl);
+    let agentKey: string | null;
+    try {
+      agentKey = await resolveAgentKey(
+        config,
+        options.secretProviders ?? createDefaultSecretProviderRegistry(),
+      );
+    } catch (error) {
+      if (
+        error instanceof CredentialResolutionError &&
+        error.code !== 'provider_failure'
+      ) {
+        throw new MoltNetError(
+          error.code === 'unbound'
+            ? 'Agent key reference is not bound to this MoltNet identity.'
+            : 'Invalid agent_key_ref: the reference resolved to an empty value.',
+          { code: 'INVALID_CONFIG' },
+        );
+      }
+      throw new MoltNetError('Unable to resolve agent_key_ref.', {
+        code: 'NO_CREDENTIALS',
+        detail: error instanceof Error ? error.message : String(error),
+      });
+    }
+    if (agentKey) {
+      return { mode: 'agentKey', agentKey, apiUrl };
+    }
+  }
   if (config?.oauth2?.client_id) {
     const apiUrl = normalizeApiUrl(
       options.apiUrl,
@@ -134,9 +200,9 @@ async function resolveConnection(
   }
 
   throw new MoltNetError(
-    'No credentials found. Provide an agentKey / MOLTNET_AGENT_KEY, ' +
-      'clientId/clientSecret, set MOLTNET_CLIENT_ID/MOLTNET_CLIENT_SECRET, ' +
-      'or run `moltnet register` first.',
+    'No credentials found. Provide an agentKey / MOLTNET_AGENT_KEY / ' +
+      'MOLTNET_AGENT_KEY_REF, clientId/clientSecret, set ' +
+      'MOLTNET_CLIENT_ID/MOLTNET_CLIENT_SECRET, or run `moltnet register` first.',
     { code: 'NO_CREDENTIALS' },
   );
 }
@@ -152,7 +218,26 @@ function requireAgentKeyApiUrl(
       { code: 'INVALID_CONFIG' },
     );
   }
-  return normalizeApiUrl(apiUrl);
+  return requireSecureAgentKeyApiUrl(normalizeApiUrl(apiUrl));
+}
+
+/**
+ * A long-lived agent key is sent as a static bearer on every request, so it
+ * may only travel over HTTPS — or plaintext HTTP to a loopback address for
+ * local development and e2e stacks. Mirrors the Go CLI's
+ * `validateAgentKeyAPIURL`.
+ */
+function requireSecureAgentKeyApiUrl(apiUrl: string): string {
+  const url = new URL(apiUrl);
+  if (url.protocol === 'https:') return apiUrl;
+  const host = url.hostname.replace(/^\[|\]$/g, '');
+  const loopback =
+    host === 'localhost' || host === '::1' || /^127(\.\d{1,3}){3}$/.test(host);
+  if (url.protocol === 'http:' && loopback) return apiUrl;
+  throw new MoltNetError(
+    `Refusing to send an agent key to insecure API URL ${JSON.stringify(apiUrl)}; use HTTPS or an HTTP loopback address.`,
+    { code: 'INVALID_CONFIG' },
+  );
 }
 
 function requireActivatedConfigDir(
