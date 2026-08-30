@@ -73,6 +73,8 @@ test('releases one attested artifact with atomically bumped manifests', async ()
     packageManifest.version,
   );
   assert.match(workflow, /release-legreffier-plugin:/);
+  assert.match(workflow, /resolve "legreffier-plugin"/);
+  assert.doesNotMatch(workflow, /resolve "plugin"/);
   assert.match(workflow, /actions\/attest@v4/);
   assert.match(workflow, /sha256sum "\$ARCHIVE"/);
   assert.match(workflow, /--sort=name/);
