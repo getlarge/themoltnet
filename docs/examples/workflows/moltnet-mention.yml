@@ -15,7 +15,7 @@
 #
 # Provisioning each agent (one-time, per bot):
 #   1. moltnet register --name <agent>          # e.g. <repo>-bot
-#      (or `legreffier init --name <agent>` for the full identity flow)
+#      (or `moltnet agents init --name <agent>` for the full identity flow)
 #   2. moltnet config export-env \
 #        --credentials .moltnet/<agent>/moltnet.json \
 #        --include-github-pem -o .env.<agent>   # MOLTNET_* dotenv

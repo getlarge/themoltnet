@@ -1262,7 +1262,7 @@ action can:
 
 For OAuth-based jobs, the provisioning loop is:
 
-1. Generate the agent identity once with `legreffier init`.
+1. Generate the agent identity once with `moltnet agents init --name <agent>`.
 2. Export the identity with `moltnet config export-env --include-github-pem`.
 3. Upload `MOLTNET_*` values to a GitHub Environment as variables/secrets.
 4. Set `MOLTNET_AGENT_PROFILE` to a profile id or team-scoped profile name.
