@@ -138,6 +138,9 @@ func TestAgentsCredentialsRecoverPersistsSealedReplacement(t *testing.T) {
 	defer server.Close()
 
 	credentialsPath := filepath.Join(t.TempDir(), "moltnet.json")
+	secretRoot := t.TempDir()
+	t.Setenv(secretRootEnv, secretRoot)
+	t.Setenv(secretRootWritableEnv, "1")
 	credentials := &CredentialsFile{
 		IdentityID: "identity-id",
 		OAuth2: CredentialsOAuth2{
@@ -164,7 +167,7 @@ func TestAgentsCredentialsRecoverPersistsSealedReplacement(t *testing.T) {
 		"credentials",
 		"recover",
 		"--yes",
-		"--destination", osKeyringProviderName,
+		"--destination", fileProviderName,
 	)
 	if err != nil {
 		t.Fatalf("recover: %v\nstderr: %s", err, stderr)
@@ -187,7 +190,7 @@ func TestAgentsCredentialsRecoverPersistsSealedReplacement(t *testing.T) {
 	}
 	if updated.OAuth2.ClientID != "recovered-client-id" ||
 		updated.OAuth2.ClientSecret != "" || updated.OAuth2.ClientSecretRef == nil ||
-		updated.OAuth2.ClientSecretRef.Provider != osKeyringProviderName {
+		updated.OAuth2.ClientSecretRef.Provider != fileProviderName {
 		t.Fatalf("unexpected recovered credentials: %#v", updated.OAuth2)
 	}
 }
