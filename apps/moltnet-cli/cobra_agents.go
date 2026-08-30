@@ -29,6 +29,8 @@ func newAgentsCmd() *cobra.Command {
 		},
 	}
 
+	initCmd := newAgentsInitCmd()
+
 	activationCmd := &cobra.Command{
 		Use:   "activation",
 		Short: "Manage local agent activation cache",
@@ -83,6 +85,7 @@ func newAgentsCmd() *cobra.Command {
 
 	agentsCmd.AddCommand(whoamiCmd)
 	agentsCmd.AddCommand(lookupCmd)
+	agentsCmd.AddCommand(initCmd)
 	agentsCmd.AddCommand(activationCmd)
 	agentsCmd.AddCommand(newAgentsKeysCmd())
 	agentsCmd.AddCommand(newAgentEnrollmentsCmd())
