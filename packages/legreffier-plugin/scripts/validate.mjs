@@ -27,6 +27,15 @@ if (codex.name !== 'legreffier' || claude.name !== 'legreffier') {
 if (codex.version !== claude.version) {
   throw new Error('Codex and Claude plugin versions must match');
 }
+const contactEmail = 'legreffier@themolt.net';
+if (
+  codex.author?.email !== contactEmail ||
+  claude.author?.email !== contactEmail ||
+  claudeMarketplace.owner?.email !== contactEmail ||
+  claudeMarketplace.plugins[0]?.author?.email !== contactEmail
+) {
+  throw new Error(`Every plugin contact must use ${contactEmail}`);
+}
 if (
   codexMarketplace.plugins[0]?.source?.path !== './plugins/legreffier' ||
   claudeMarketplace.plugins[0]?.source !== './plugins/legreffier'
