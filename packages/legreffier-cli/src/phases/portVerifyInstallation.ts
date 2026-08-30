@@ -4,11 +4,9 @@ import { dirname, join } from 'node:path';
 import {
   getInstallationToken,
   githubAppKeySourceFromConfig,
-} from '@themoltnet/github-agent';
-import {
-  type MoltNetConfig,
   resolveGitHubAppPrivateKey,
-} from '@themoltnet/sdk';
+} from '@themoltnet/github-agent';
+import { type MoltNetConfig } from '@themoltnet/sdk';
 import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
 
 export type VerifyInstallationStatus = 'ok' | 'repo-not-in-scope' | 'warning';

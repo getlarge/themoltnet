@@ -1,6 +1,3 @@
-import { createPrivateKey } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
-
 import { cryptoService } from '@moltnet/crypto-service';
 
 import type { MoltNetConfig } from './credentials.js';
@@ -21,7 +18,8 @@ export type CredentialResolutionCode =
 /** Classifies a failed credential lookup without carrying the value. */
 export class CredentialResolutionError extends Error {
   constructor(
-    readonly kind: CredentialKind,
+    /** A MoltNet kind, or a consumer-owned kind such as `github-app-private-key`. */
+    readonly kind: CredentialKind | (string & {}),
     readonly code: CredentialResolutionCode,
     detail: string,
   ) {
@@ -33,19 +31,28 @@ export class CredentialResolutionError extends Error {
 const LEGACY_FIELDS: Readonly<Record<CredentialKind, string>> = Object.freeze({
   'oauth2-client-secret': 'oauth2.client_secret',
   'identity-seed': 'keys.private_key',
-  'github-app-private-key': 'github.private_key_path',
   'agent-key': 'agent_key',
 });
-const warned = new Set<CredentialKind>();
+const warned = new Set<string>();
 
-/** Emit the deprecation warning for a plaintext credential once per process. */
-export function warnLegacyCredentialOnce(kind: CredentialKind): void {
-  if (warned.has(kind)) return;
-  warned.add(kind);
+/**
+ * Emit the deprecation warning for a plaintext/file-path credential field
+ * once per process. Consumers that own a credential (for example
+ * `@themoltnet/github-agent`) call this with their own config field so every
+ * legacy form warns the same way.
+ */
+export function warnLegacyCredentialFieldOnce(field: string): void {
+  if (warned.has(field)) return;
+  warned.add(field);
   // eslint-disable-next-line no-console
   console.warn(
-    `Warning: plaintext ${LEGACY_FIELDS[kind]} in moltnet.json is deprecated; run 'moltnet config migrate' to move it to a secret provider reference (see docs/reference/agent-configuration.md).`,
+    `Warning: plaintext ${field} in moltnet.json is deprecated; run 'moltnet config migrate' to move it to a secret provider reference (see docs/reference/agent-configuration.md).`,
   );
+}
+
+/** Emit the deprecation warning for a MoltNet-owned credential kind. */
+export function warnLegacyCredentialOnce(kind: CredentialKind): void {
+  warnLegacyCredentialFieldOnce(LEGACY_FIELDS[kind]);
 }
 
 /** Test hook — module-internal, not part of the published SDK surface. */
@@ -58,8 +65,8 @@ export function resetLegacyCredentialWarnings(): void {
  * value-free `provider_failure` error. Provider messages are retained only
  * as `cause` so callers decide whether to surface them.
  */
-async function resolveThroughRegistry(
-  kind: CredentialKind,
+export async function resolveThroughRegistry(
+  kind: CredentialKind | (string & {}),
   registry: SecretProviderRegistry,
   reference: Parameters<SecretProviderRegistry['resolve']>[0],
 ): Promise<string> {
@@ -192,79 +199,6 @@ export async function resolveIdentitySeed(
   }
   await assertSeedMatchesPublicKey(seed, config.keys.public_key);
   return seed;
-}
-
-function assertRsaPrivateKeyPem(pem: string): void {
-  let type: string | undefined;
-  try {
-    type = createPrivateKey(pem).asymmetricKeyType;
-  } catch {
-    throw new CredentialResolutionError(
-      'github-app-private-key',
-      'invalid_value',
-      'value is not a parseable private key PEM',
-    );
-  }
-  if (type !== 'rsa') {
-    throw new CredentialResolutionError(
-      'github-app-private-key',
-      'invalid_value',
-      `expected an RSA private key, got ${type ?? 'unknown'}`,
-    );
-  }
-}
-
-/**
- * Resolve the GitHub App private key PEM from `github.private_key_path`
- * (legacy file, warned once) or `github.private_key_ref`, verifying the
- * reference is bound to this App and the value parses as an RSA key.
- */
-export async function resolveGitHubAppPrivateKey(
-  config: Pick<MoltNetConfig, 'github'>,
-  registry: SecretProviderRegistry,
-): Promise<string> {
-  const kind: CredentialKind = 'github-app-private-key';
-  const github = config.github;
-  if (!github) {
-    throw new CredentialResolutionError(
-      kind,
-      'missing',
-      'GitHub App not configured — add a github section to moltnet.json',
-    );
-  }
-  const path = github.private_key_path?.trim();
-  const reference = github.private_key_ref;
-  if (path && reference) {
-    throw new CredentialResolutionError(
-      kind,
-      'ambiguous',
-      'config must set exactly one of github.private_key_path or github.private_key_ref',
-    );
-  }
-  let pem: string;
-  if (reference) {
-    try {
-      assertSecretReferenceBinding(kind, reference, { appId: github.app_id });
-    } catch (cause) {
-      throw new CredentialResolutionError(
-        kind,
-        'unbound',
-        (cause as Error).message,
-      );
-    }
-    pem = await registry.resolve(reference);
-  } else if (path) {
-    warnLegacyCredentialOnce(kind);
-    pem = await readFile(path, 'utf8');
-  } else {
-    throw new CredentialResolutionError(
-      kind,
-      'missing',
-      'config must set exactly one of github.private_key_path or github.private_key_ref',
-    );
-  }
-  assertRsaPrivateKeyPem(pem);
-  return pem;
 }
 
 /**

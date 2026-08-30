@@ -7,11 +7,9 @@ import { parseArgs, parseEnv } from 'node:util';
 import {
   getInstallationToken,
   githubAppKeySourceFromConfig,
-} from '@themoltnet/github-agent';
-import {
-  type MoltNetConfig,
   resolveGitHubAppPrivateKey,
-} from '@themoltnet/sdk';
+} from '@themoltnet/github-agent';
+import { type MoltNetConfig } from '@themoltnet/sdk';
 import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
 
 import type { GithubTokenProvider } from './github-fetch.js';

@@ -22,6 +22,75 @@ import (
 )
 
 // runGitHubSetupCmd is the flag-free business logic for github setup.
+// GitHub App private keys are a github.go-owned credential: the binding
+// table in secret_provider.go knows nothing about them.
+const (
+	credentialGitHubAppPrivateKey credentialKind = "github-app-private-key"
+	githubAppPrivateKeyEnvKey                    = "MOLTNET_GITHUB_APP_PRIVATE_KEY"
+)
+
+// GitHubAppPrivateKeyKey returns the stable provider key for a GitHub App's
+// RSA private key.
+func GitHubAppPrivateKeyKey(appID string) string {
+	return "github-app/" + appID + "/private-key"
+}
+
+func githubAppPrivateKeyBinding(appID string) (secretReferenceBinding, error) {
+	if strings.TrimSpace(appID) == "" {
+		return secretReferenceBinding{}, fmt.Errorf("credential binding requires github.app_id")
+	}
+	return secretReferenceBinding{
+		canonicalKey: GitHubAppPrivateKeyKey(appID),
+		envKey:       githubAppPrivateKeyEnvKey,
+		description:  "GitHub App private key reference is not bound to this GitHub App",
+	}, nil
+}
+
+// resolveGitHubAppPrivateKey returns the GitHub App PEM from
+// github.private_key_path (legacy file, warned once) or
+// github.private_key_ref, verifying the reference is bound to this App and
+// the value parses as an RSA private key.
+func resolveGitHubAppPrivateKey(creds *CredentialsFile, registry *SecretProviderRegistry) ([]byte, error) {
+	kind := credentialGitHubAppPrivateKey
+	if creds == nil || creds.GitHub == nil {
+		return nil, &CredentialResolutionError{Kind: kind, Code: "missing", Detail: "GitHub App not configured — add 'github' section to moltnet.json"}
+	}
+	path := strings.TrimSpace(creds.GitHub.PrivateKeyPath)
+	ref := creds.GitHub.PrivateKeyRef
+	if path != "" && ref != nil {
+		return nil, &CredentialResolutionError{Kind: kind, Code: "ambiguous", Detail: "config must set exactly one of github.private_key_path or github.private_key_ref"}
+	}
+	var pemData []byte
+	switch {
+	case ref != nil:
+		binding, err := githubAppPrivateKeyBinding(creds.GitHub.AppID)
+		if err == nil {
+			err = validateSecretReferenceBoundTo(*ref, binding)
+		}
+		if err != nil {
+			return nil, &CredentialResolutionError{Kind: kind, Code: "unbound", Detail: err.Error()}
+		}
+		value, err := resolveThroughRegistry(kind, registry, *ref)
+		if err != nil {
+			return nil, err
+		}
+		pemData = []byte(value)
+	case path != "":
+		warnLegacyCredentialFieldOnce("github.private_key_path")
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return nil, fmt.Errorf("read GitHub App private key: %w", err)
+		}
+		pemData = data
+	default:
+		return nil, &CredentialResolutionError{Kind: kind, Code: "missing", Detail: "config must set exactly one of github.private_key_path or github.private_key_ref"}
+	}
+	if _, err := parseRSAPrivateKey(pemData); err != nil {
+		return nil, &CredentialResolutionError{Kind: kind, Code: "invalid_value", Detail: "value is not an RSA private key PEM"}
+	}
+	return pemData, nil
+}
+
 func runGitHubSetupCmd(credPath, name, appSlug string) error {
 	creds, err := loadCredentials(credPath)
 	if err != nil {

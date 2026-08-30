@@ -20,38 +20,57 @@ const (
 
 var environmentSecretKeyPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
-const (
-	identitySeedEnvKey        = "MOLTNET_PRIVATE_KEY"
-	githubAppPrivateKeyEnvKey = "MOLTNET_GITHUB_APP_PRIVATE_KEY"
-)
+const identitySeedEnvKey = "MOLTNET_PRIVATE_KEY"
 
-// credentialKind names a credential whose provider key shape is fixed by the
-// binding table below; the same table exists in the Node SDK.
+// credentialKind names a credential. MoltNet-owned kinds have their provider
+// key shape fixed by the binding table below (the same table exists in the
+// Node SDK); consumers that own other credentials (github.go for GitHub App
+// private keys) describe theirs with secretReferenceBinding and check it
+// through validateSecretReferenceBoundTo instead of extending the table.
 type credentialKind string
 
 const (
-	credentialOAuth2ClientSecret  credentialKind = "oauth2-client-secret"
-	credentialIdentitySeed        credentialKind = "identity-seed"
-	credentialGitHubAppPrivateKey credentialKind = "github-app-private-key"
-	credentialAgentKey            credentialKind = "agent-key"
+	credentialOAuth2ClientSecret credentialKind = "oauth2-client-secret"
+	credentialIdentitySeed       credentialKind = "identity-seed"
+	credentialAgentKey           credentialKind = "agent-key"
 )
 
 type credentialBindingIDs struct {
 	IdentityID  string
 	ClientID    string
 	Fingerprint string
-	AppID       string
+}
+
+// secretReferenceBinding describes which reference keys may resolve one
+// credential: the canonical provider key, the fixed environment variable for
+// the env provider (empty when env is not allowed), and the message raised
+// for any other key.
+type secretReferenceBinding struct {
+	canonicalKey string
+	envKey       string
+	description  string
+}
+
+// validateSecretReferenceBoundTo accepts the canonical key, the fixed env
+// variable for the env provider, or — for the file provider, whose
+// orchestrators may forbid "/" in credential IDs — the "."-flattened key.
+func validateSecretReferenceBoundTo(ref SecretReference, binding secretReferenceBinding) error {
+	valid := ref.Key == binding.canonicalKey
+	switch ref.Provider {
+	case environmentProviderName:
+		valid = binding.envKey != "" && ref.Key == binding.envKey
+	case fileProviderName:
+		valid = valid || ref.Key == strings.ReplaceAll(binding.canonicalKey, "/", ".")
+	}
+	if !valid {
+		return errors.New(binding.description)
+	}
+	return nil
 }
 
 // IdentitySeedKey returns the stable provider key for an agent's Ed25519 seed.
 func IdentitySeedKey(fingerprint string) string {
 	return "identity/" + fingerprint + "/seed"
-}
-
-// GitHubAppPrivateKeyKey returns the stable provider key for a GitHub App's
-// RSA private key.
-func GitHubAppPrivateKeyKey(appID string) string {
-	return "github-app/" + appID + "/private-key"
 }
 
 // AgentKeyKey returns the stable provider key for an agent's team-bound key.
@@ -78,8 +97,6 @@ func credentialEnvKey(kind credentialKind) string {
 		return environmentSecretKey
 	case credentialIdentitySeed:
 		return identitySeedEnvKey
-	case credentialGitHubAppPrivateKey:
-		return githubAppPrivateKeyEnvKey
 	case credentialAgentKey:
 		return agentKeyEnv
 	}
@@ -98,11 +115,6 @@ func expectedSecretKey(kind credentialKind, ids credentialBindingIDs) (string, e
 			return "", fmt.Errorf("credential binding requires keys.fingerprint")
 		}
 		return IdentitySeedKey(ids.Fingerprint), nil
-	case credentialGitHubAppPrivateKey:
-		if strings.TrimSpace(ids.AppID) == "" {
-			return "", fmt.Errorf("credential binding requires github.app_id")
-		}
-		return GitHubAppPrivateKeyKey(ids.AppID), nil
 	case credentialAgentKey:
 		if strings.TrimSpace(ids.IdentityID) == "" {
 			return "", fmt.Errorf("credential binding requires identity_id")
@@ -112,9 +124,8 @@ func expectedSecretKey(kind credentialKind, ids credentialBindingIDs) (string, e
 	return "", fmt.Errorf("unknown credential kind %q", kind)
 }
 
-// validateSecretReferenceBinding accepts the canonical key, the fixed env
-// variable for the env provider, or — for the file provider, whose
-// orchestrators may forbid "/" in credential IDs — the "."-flattened key.
+// validateSecretReferenceBinding checks a MoltNet-owned credential kind
+// against the binding table.
 func validateSecretReferenceBinding(kind credentialKind, ref SecretReference, ids credentialBindingIDs) error {
 	canonical, err := expectedSecretKey(kind, ids)
 	if err != nil {
@@ -125,17 +136,11 @@ func validateSecretReferenceBinding(kind credentialKind, ref SecretReference, id
 		// so a config-bound env reference could never reach this path.
 		return fmt.Errorf("agent_key_ref cannot use the env provider; set %s directly or reference a keyring/file secret", agentKeyEnv)
 	}
-	valid := ref.Key == canonical
-	switch ref.Provider {
-	case environmentProviderName:
-		valid = ref.Key == credentialEnvKey(kind)
-	case fileProviderName:
-		valid = valid || ref.Key == strings.ReplaceAll(canonical, "/", ".")
-	}
-	if !valid {
-		return fmt.Errorf("%s reference is not bound to this MoltNet identity", kind)
-	}
-	return nil
+	return validateSecretReferenceBoundTo(ref, secretReferenceBinding{
+		canonicalKey: canonical,
+		envKey:       credentialEnvKey(kind),
+		description:  fmt.Sprintf("%s reference is not bound to this MoltNet identity", kind),
+	})
 }
 
 var ErrSecretNotFound = errors.New("secret not found")

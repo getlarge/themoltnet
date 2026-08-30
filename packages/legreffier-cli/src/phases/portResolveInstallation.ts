@@ -1,8 +1,10 @@
-import { findInstallationForOwner } from '@themoltnet/github-agent';
+import {
+  findInstallationForOwner,
+  resolveGitHubAppPrivateKey,
+} from '@themoltnet/github-agent';
 import {
   CredentialResolutionError,
   type MoltNetConfig,
-  resolveGitHubAppPrivateKey,
   updateGitHubConfig,
 } from '@themoltnet/sdk';
 import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
