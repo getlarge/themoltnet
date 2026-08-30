@@ -41,6 +41,37 @@ const READ_ONLY_TOOLS = new Set([
   'teams_list',
 ]);
 
+const MUTATING_TOOLS = new Set([
+  'crypto_prepare_signature',
+  'crypto_submit_signature',
+  'diaries_create',
+  'diary_grants_create',
+  'diary_grants_revoke',
+  'entries_create',
+  'entries_delete',
+  'entries_update',
+  'packs_create',
+  'packs_render',
+  'packs_update',
+  'relations_create',
+  'relations_delete',
+  'relations_update',
+  'rendered_packs_update',
+  'task_grants_create',
+  'task_grants_revoke',
+  'tasks_artifacts_stage',
+  'tasks_artifacts_upload',
+  'tasks_continue',
+  'tasks_create',
+  'teams_create',
+  'teams_delete',
+  'teams_invite_create',
+  'teams_invite_delete',
+  'teams_join',
+  'teams_member_remove',
+  'teams_member_update_role',
+]);
+
 const DESTRUCTIVE_TOOLS = new Set([
   'diary_grants_revoke',
   'entries_delete',
@@ -56,14 +87,22 @@ const DESTRUCTIVE_TOOLS = new Set([
   'teams_member_update_role',
 ]);
 
+// Retry safety is independent of whether a tool is destructive. Keep the
+// allowlist deliberately conservative: every mutation requires an explicit
+// idempotency decision before clients may retry it automatically.
+const IDEMPOTENT_TOOLS = new Set(READ_ONLY_TOOLS);
+
 export function annotationsForTool(name: string): ToolAnnotations {
+  if (!READ_ONLY_TOOLS.has(name) && !MUTATING_TOOLS.has(name)) {
+    throw new Error(`Missing MCP tool annotation policy for ${name}`);
+  }
+
   const readOnly = READ_ONLY_TOOLS.has(name);
-  const destructive = DESTRUCTIVE_TOOLS.has(name);
 
   return {
     readOnlyHint: readOnly,
-    destructiveHint: destructive,
-    idempotentHint: readOnly || destructive,
+    destructiveHint: DESTRUCTIVE_TOOLS.has(name),
+    idempotentHint: IDEMPOTENT_TOOLS.has(name),
     // Every tool crosses the MCP server boundary into the hosted MoltNet
     // service, even when it only reads data.
     openWorldHint: true,

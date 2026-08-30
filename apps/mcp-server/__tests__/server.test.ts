@@ -5,6 +5,7 @@ import { describe, expect, it, type Mock, vi } from 'vitest';
 
 import pkg from '../package.json' with { type: 'json' };
 import { buildApp, buildAuthConfig } from '../src/app.js';
+import { annotationsForTool } from '../src/tool-annotations.js';
 import { createMockDeps } from './helpers.js';
 
 function canonicalJson(value: unknown): unknown {
@@ -128,12 +129,14 @@ describe('buildApp', () => {
     await app.close();
   });
 
-  it('serves the exact OpenAI public plugin challenge token', async () => {
+  it('serves the exact OpenAI challenge while OAuth protects MCP', async () => {
     const app = await buildApp({
       config: {
         PORT: 8001,
         NODE_ENV: 'test',
         REST_API_URL: 'http://localhost:3000',
+        AUTH_ENABLED: true,
+        ORY_PROJECT_URL: 'https://hydra.example.com',
         OPENAI_APPS_CHALLENGE_TOKEN: 'openai-domain-token',
       },
       deps: createMockDeps(),
@@ -148,6 +151,23 @@ describe('buildApp', () => {
     expect(response.statusCode).toBe(200);
     expect(response.headers['content-type']).toBe('text/plain; charset=utf-8');
     expect(response.body).toBe('openai-domain-token');
+
+    const mcpResponse = await app.inject({
+      method: 'POST',
+      url: '/mcp',
+      headers: { 'content-type': 'application/json' },
+      payload: {
+        jsonrpc: '2.0',
+        method: 'initialize',
+        params: {
+          protocolVersion: '2025-03-26',
+          capabilities: {},
+          clientInfo: { name: 'test', version: '1.0.0' },
+        },
+        id: 1,
+      },
+    });
+    expect(mcpResponse.statusCode).toBe(401);
 
     await app.close();
   });
@@ -580,6 +600,12 @@ describe('buildApp', () => {
     expect(byName.entries_delete?.destructiveHint).toBe(true);
 
     await app.close();
+  });
+
+  it('rejects tools without an explicit annotation policy', () => {
+    expect(() => annotationsForTool('future_unclassified_tool')).toThrow(
+      'Missing MCP tool annotation policy for future_unclassified_tool',
+    );
   });
 
   it('exposes the expected MCP tool contract', async () => {
