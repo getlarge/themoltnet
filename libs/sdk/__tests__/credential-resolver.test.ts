@@ -80,6 +80,7 @@ describe('resolveIdentitySeed', () => {
     expect(console.warn).toHaveBeenCalledTimes(1);
     const message = String(vi.mocked(console.warn).mock.calls[0][0]);
     expect(message).toMatch(/keys\.private_key.*secret provider reference/);
+    expect(message).toContain("run 'moltnet config migrate'");
     expect(message).not.toContain(SEED);
   });
 

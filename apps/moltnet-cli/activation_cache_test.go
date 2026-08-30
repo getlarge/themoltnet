@@ -633,3 +633,30 @@ func TestAgentsActivationValidateDetectsCredentialProviderChange(t *testing.T) {
 		t.Fatalf("forged provider map was trusted: %+v", result)
 	}
 }
+
+func TestAgentsActivationValidateReportsCredentialProviders(t *testing.T) {
+	t.Parallel()
+	dir := setupActivationCacheFixture(t)
+	rewriteActivationFixtureCredentials(t, dir, func(creds *CredentialsFile) {
+		creds.AgentKeyRef = &SecretReference{Provider: "os-keyring", Key: AgentKeyKey("test-agent")}
+	})
+	if err := runAgentsActivationRefreshCmd(io.Discard, dir, "test-agent", true); err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "agents", "activation", "validate", "--agent", "test-agent", "--dir", dir, "--json")
+	if err != nil {
+		t.Fatalf("validate: %v", err)
+	}
+	var result activationValidationResult
+	if err := json.Unmarshal([]byte(stdout), &result); err != nil {
+		t.Fatalf("unmarshal: %v\n%s", err, stdout)
+	}
+	if !result.Valid {
+		t.Fatalf("validate invalid: %+v", result)
+	}
+	want := map[string]string{"oauth2": "legacy-plaintext", "identitySeed": "legacy-plaintext", "githubApp": "absent", "agentKey": "os-keyring"}
+	if !maps.Equal(result.CredentialProviders, want) {
+		t.Fatalf("validate credentialProviders = %v, want %v", result.CredentialProviders, want)
+	}
+}

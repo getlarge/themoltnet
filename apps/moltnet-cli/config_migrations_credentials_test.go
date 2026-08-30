@@ -337,3 +337,93 @@ func TestConfigMigrateRunRejectsPlanGeneratedForAnotherDestination(t *testing.T)
 		t.Fatalf("expected destination mismatch to be rejected, got %v", err)
 	}
 }
+
+func TestConfigMigratePlanningRejectsIncompleteLegacyForms(t *testing.T) {
+	seed, publicKey := testSeedAndPublicKey(t)
+	cases := []struct {
+		name   string
+		mutate func(string) string
+		want   string
+	}{
+		{"seed without fingerprint", func(doc string) string {
+			return strings.Replace(doc, `"fingerprint": "fingerprint",`, `"fingerprint": "",`, 1)
+		}, "requires keys.fingerprint and keys.public_key"},
+		{"seed without public key", func(doc string) string {
+			return strings.Replace(doc, mustJSON(t, publicKey), `""`, 1)
+		}, "requires keys.fingerprint and keys.public_key"},
+		{"pem without app id", func(doc string) string {
+			doc = strings.Replace(doc, mustJSON(t, seed), mustJSON(t, ""), 1) // seed already migrated → PEM is next
+			return strings.Replace(doc, `"app_id": "123"`, `"app_id": ""`, 1)
+		}, "requires github.app_id"},
+		{"pem with both forms", func(doc string) string {
+			doc = strings.Replace(doc, mustJSON(t, seed), mustJSON(t, ""), 1)
+			return strings.Replace(doc, `"installation_id": "456",`, `"installation_id": "456", "private_key_ref": {"provider":"os-keyring","key":"github-app/123/private-key"},`, 1)
+		}, "exactly one of private_key_path or private_key_ref"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			credentialsPath, _ := writeReferenceBackedFixture(t, seed, publicKey, true)
+			raw, _ := os.ReadFile(credentialsPath)
+			if err := os.WriteFile(credentialsPath, []byte(tc.mutate(string(raw))), privateFileMode); err != nil {
+				t.Fatal(err)
+			}
+			_, err := buildConfigMigrationPlan(credentialsPath, defaultConfigMigrations(osKeyringProviderName))
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("error = %v, want %q", err, tc.want)
+			}
+		})
+	}
+}
+
+func TestConfigMigratePlansNothingWithoutLegacyForms(t *testing.T) {
+	seed, publicKey := testSeedAndPublicKey(t)
+	credentialsPath, _ := writeReferenceBackedFixture(t, seed, publicKey, false)
+	raw, _ := os.ReadFile(credentialsPath)
+	migrated := strings.Replace(string(raw), `"private_key": `+mustJSON(t, seed)+`,`, `"private_key_ref": {"provider":"os-keyring","key":"identity/fingerprint/seed"},`, 1)
+	if err := os.WriteFile(credentialsPath, []byte(migrated), privateFileMode); err != nil {
+		t.Fatal(err)
+	}
+	plan, err := buildConfigMigrationPlan(credentialsPath, defaultConfigMigrations(osKeyringProviderName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(plan.Migrations) != 0 {
+		t.Fatalf("reference-backed config without a github section planned %+v", plan.Migrations)
+	}
+}
+
+func TestConfigMigrateCommandValidatesDestinationBeforeReadingCredentials(t *testing.T) {
+	seed, publicKey := testSeedAndPublicKey(t)
+	credentialsPath, _ := writeReferenceBackedFixture(t, seed, publicKey, false)
+	missing := filepath.Join(t.TempDir(), "missing.json")
+	for _, tc := range []struct{ dest, path, want string }{
+		{"env", credentialsPath, "read-only"},
+		{"vault", credentialsPath, "not a writable secret provider"},
+		{"file", missing, "MOLTNET_SECRET_ROOT_WRITABLE=1"}, // destination error wins over the missing file
+	} {
+		t.Run(tc.dest, func(t *testing.T) {
+			t.Setenv(secretRootEnv, "")
+			t.Setenv(secretRootWritableEnv, "")
+			root := NewRootCmd("test", "")
+			_, _, err := executeCommand(root, "config", "migrate", "--credentials", tc.path, "--destination", tc.dest, "--dry-run")
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("error = %v, want %q", err, tc.want)
+			}
+		})
+	}
+	t.Run("writable file root reaches planning", func(t *testing.T) {
+		t.Setenv(secretRootEnv, t.TempDir())
+		t.Setenv(secretRootWritableEnv, "1")
+		root := NewRootCmd("test", "")
+		stdout, _, err := executeCommand(root, "config", "migrate", "--credentials", credentialsPath, "--destination", "file", "--dry-run")
+		if err != nil {
+			t.Fatalf("dry-run: %v", err)
+		}
+		if !strings.Contains(stdout, `2026-09-identity-seed-reference`) || !strings.Contains(stdout, `\"file\" provider`) {
+			t.Fatalf("plan should target the file provider:\n%s", stdout)
+		}
+		if strings.Contains(stdout, seed) {
+			t.Fatal("dry-run output leaked the seed")
+		}
+	})
+}
