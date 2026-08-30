@@ -100,6 +100,7 @@ jobs:
       e2e-any: ${{ steps.compute.outputs.e2e-any }}
       native-keyring: ${{ steps.compute.outputs.native-keyring }}
       landing: ${{ steps.compute.outputs.landing }}
+      legreffier-plugin: ${{ steps.compute.outputs.legreffier-plugin }}
       agents-matrix: ${{ steps.matrix.outputs.matrix }}
       has-agents: ${{ steps.matrix.outputs.has-agents }}
       tier: ${{ steps.matrix.outputs.tier }}
@@ -244,6 +245,12 @@ jobs:
             echo "landing=true" >> "$GITHUB_OUTPUT"
           else
             echo "landing=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if contains "@themoltnet/legreffier-plugin"; then
+            echo "legreffier-plugin=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "legreffier-plugin=false" >> "$GITHUB_OUTPUT"
           fi
 
           if contains "@themoltnet/os-keyring" "@themoltnet/sdk" "moltnet-cli"; then
@@ -494,6 +501,29 @@ jobs:
       - name: Complete Nx Cloud CI run
         if: always() && needs.affected.outputs.has-agents == 'true'
         run: pnpm exec nx-cloud complete-ci-run
+
+  plugin-validation:
+    name: LeGreffier plugin install
+    needs: [affected]
+    if: needs.affected.outputs.legreffier-plugin == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install plugin hosts
+        run: npm install --global @openai/codex@0.149.0 @anthropic-ai/claude-code@2.1.248
+      - name: Validate manifests
+        run: claude plugin validate packages/legreffier-plugin --strict
+      - name: Install in Codex and Claude
+        run: pnpm exec nx run @themoltnet/legreffier-plugin:smoke:install
 
   code-analysis:
     name: Code Analysis (Knip)
