@@ -192,4 +192,17 @@ test('ships a complete OpenAI public-review fixture', async () => {
   );
   assert.ok(submission.testCases.positive.length >= 5);
   assert.ok(submission.testCases.negative.length >= 3);
+  assert.match(submission.reviewerAccess.credentialDelivery, /portal/i);
+  for (const testCase of submission.testCases.positive) {
+    assert.ok(testCase.expectedBehavior);
+    assert.ok(testCase.expectedResultShape);
+    assert.ok(testCase.expectedTools.length > 0);
+    assert.ok(testCase.fixtureData.length > 0);
+  }
+  for (const testCase of submission.testCases.negative) {
+    assert.ok(testCase.expectedBehavior);
+    assert.ok(testCase.whyNotComplete);
+  }
+  assert.doesNotMatch(submission.listing.longDescription, /signed decisions/i);
+  assert.doesNotMatch(submission.releaseNotes, /signed diary workflows/i);
 });

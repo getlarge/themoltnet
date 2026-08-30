@@ -167,12 +167,31 @@ of the human MCP connection. ChatGPT does not depend on that local path.
 5. Connect a fresh human account and complete OAuth. Exercise every positive
    and negative case from the submission payload in both required review
    regions.
-6. Confirm `tools/list` includes `readOnlyHint`, `destructiveHint`,
-   `idempotentHint`, and `openWorldHint` for every tool.
-7. Verify the website, support, privacy, terms, and icon URLs return public
-   `2xx` responses.
-8. Submit through the verified MoltNet publisher organization and record the
-   resulting review ID in the release PR.
+6. Run **Scan Tools** in the OpenAI submission portal. Compare every discovered
+   tool with its implementation: reads must have `readOnlyHint: true`; writes
+   must use `openWorldHint: true` only when they can change publicly visible
+   internet state; irreversible writes must have `destructiveHint: true`.
+   Presence alone is not evidence that an annotation is correct.
+7. For each MCP App, compare its declared content security policy with browser
+   network requests from a clean session. Allow exactly the production origins
+   the component fetches from, then rescan the deployed server.
+8. Verify the website, support, and icon URLs return their expected public
+   content. Fetch the policy routes without JavaScript and require their
+   route-specific titles and canonical URLs—not just a `2xx` response:
+
+   ```bash
+   curl --fail --silent https://themolt.net/privacy | grep -F '<title>MoltNet Privacy Policy</title>'
+   curl --fail --silent https://themolt.net/privacy | grep -F '<link rel="canonical" href="https://themolt.net/privacy"'
+   curl --fail --silent https://themolt.net/terms | grep -F '<title>MoltNet Terms of Service</title>'
+   curl --fail --silent https://themolt.net/terms | grep -F '<link rel="canonical" href="https://themolt.net/terms"'
+   ```
+
+9. Supply the dedicated human review account through the OpenAI portal. Confirm
+   it has the seeded teams, diaries, entries, tasks, and packs named in the
+   submission fixture and works without MFA, email confirmation, SMS, or
+   private-network access.
+10. Submit through the verified MoltNet publisher organization and record the
+    resulting review ID in the release PR.
 
 After approval, test discovery and OAuth in a clean ChatGPT account before
 announcing availability. Only then may the legacy `@themoltnet/legreffier`

@@ -85,6 +85,60 @@ if (
     'OpenAI submission needs at least 5 positive and 3 negative cases',
   );
 }
+
+const submissionTools = new Set([
+  'diaries_list',
+  'entries_map_open',
+  'entries_search',
+  'packs_diff',
+  'packs_list',
+  'tasks_list',
+  'teams_list',
+]);
+const isNonEmptyString = (value) =>
+  typeof value === 'string' && value.trim().length > 0;
+
+if (
+  !isNonEmptyString(submission.reviewerAccess?.credentialDelivery) ||
+  !submission.reviewerAccess?.requirements?.length ||
+  !submission.reviewerAccess?.requirements?.every(isNonEmptyString)
+) {
+  throw new Error(
+    'OpenAI submission must document private reviewer credential delivery and access requirements',
+  );
+}
+for (const [index, testCase] of submission.testCases.positive.entries()) {
+  if (
+    !isNonEmptyString(testCase.prompt) ||
+    !isNonEmptyString(testCase.expectedBehavior) ||
+    !isNonEmptyString(testCase.expectedResultShape) ||
+    !testCase.fixtureData?.length ||
+    !testCase.fixtureData.every(isNonEmptyString) ||
+    !testCase.expectedTools?.length
+  ) {
+    throw new Error(
+      `OpenAI positive test case ${index + 1} is not reviewer-reproducible`,
+    );
+  }
+  for (const tool of testCase.expectedTools) {
+    if (!submissionTools.has(tool)) {
+      throw new Error(
+        `OpenAI positive test case ${index + 1} references unknown tool ${tool}`,
+      );
+    }
+  }
+}
+for (const [index, testCase] of submission.testCases.negative.entries()) {
+  if (
+    !isNonEmptyString(testCase.prompt) ||
+    !isNonEmptyString(testCase.expectedBehavior) ||
+    !isNonEmptyString(testCase.whyNotComplete)
+  ) {
+    throw new Error(
+      `OpenAI negative test case ${index + 1} needs a safe fallback and rationale`,
+    );
+  }
+}
 for (const field of [
   'websiteUrl',
   'supportUrl',
@@ -169,6 +223,28 @@ const walk = async (directory) => {
   }
   return files;
 };
+
+if (!process.argv.includes('--dist')) {
+  const repositoryRoot = resolve(packageRoot, '..', '..');
+  const mcpToolSource = (
+    await Promise.all(
+      (await walk(join(repositoryRoot, 'apps', 'mcp-server', 'src')))
+        .filter((path) => path.endsWith('.ts'))
+        .map((path) => readFile(path, 'utf8')),
+    )
+  ).join('\n');
+  const expectedTools = new Set(
+    submission.testCases.positive.flatMap((testCase) => testCase.expectedTools),
+  );
+  for (const tool of expectedTools) {
+    const registeredName = new RegExp(`\\bname:\\s*['"]${tool}['"]`);
+    if (!registeredName.test(mcpToolSource)) {
+      throw new Error(
+        `OpenAI submission references unregistered MCP tool ${tool}`,
+      );
+    }
+  }
+}
 
 for (const path of await walk(join(pluginRoot, 'skills'))) {
   const content = await readFile(path, 'utf8');
