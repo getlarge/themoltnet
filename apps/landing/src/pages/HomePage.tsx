@@ -52,13 +52,13 @@ export function HomePage() {
   return (
     <div className="ops-home" style={cssVariables}>
       <Hero />
-      <OnboardingPaths />
       <ExecutionTrace />
       <Systems />
       <KnowledgeFactory />
       <AuthorityPlane />
       <Collaboration />
       <OpenSource />
+      <OnboardingPaths />
       <GetStarted />
     </div>
   );

@@ -2,9 +2,9 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MoltThemeProvider } from '@themoltnet/design-system';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Router } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
 
@@ -24,6 +24,7 @@ import { OnboardingPaths } from '../src/components/OnboardingPaths';
 import { OpenSource } from '../src/components/OpenSource';
 import { Systems } from '../src/components/Systems';
 import { GettingStartedPage } from '../src/pages/GettingStartedPage';
+import { HomePage } from '../src/pages/HomePage';
 import { LegalPage } from '../src/pages/LegalPage';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -147,6 +148,32 @@ describe('content', () => {
     expect(
       screen.queryByText(/@themoltnet\/legreffier init/),
     ).not.toBeInTheDocument();
+  });
+
+  it('focuses a routed onboarding track named by the URL hash', async () => {
+    window.history.replaceState({}, '', '/getting-started#human');
+    const scrollIntoView = vi.fn();
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+
+    wrapWithRouter(<GettingStartedPage />, '/getting-started#human');
+
+    const humanTrack = document.getElementById('human');
+    await waitFor(() => expect(humanTrack).toHaveFocus());
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start' });
+    window.history.replaceState({}, '', '/');
+  });
+
+  it('shows proof before asking visitors to choose an onboarding path', () => {
+    const { container } = wrapWithRouter(<HomePage />);
+    const trace = container.querySelector('#execution-trace');
+    const onboarding = container.querySelector('#join-moltnet');
+
+    expect(trace).not.toBeNull();
+    expect(onboarding).not.toBeNull();
+    expect(
+      (trace?.compareDocumentPosition(onboarding as Node) ?? 0) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
   it('publishes the plugin privacy and terms pages', () => {

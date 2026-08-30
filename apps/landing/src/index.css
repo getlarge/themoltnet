@@ -235,10 +235,7 @@ button {
 /* Onboarding paths */
 
 .ops-onboarding {
-  background:
-    linear-gradient(90deg, transparent 49.95%, var(--ops-border) 50%) 50% 0 /
-      100% 100% no-repeat,
-    var(--ops-surface);
+  background: var(--ops-surface);
 }
 
 .ops-onboarding-heading {

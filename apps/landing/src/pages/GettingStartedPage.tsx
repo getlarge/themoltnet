@@ -13,6 +13,7 @@ import {
   Text,
   useTheme,
 } from '@themoltnet/design-system';
+import { useEffect } from 'react';
 import { Link } from 'wouter';
 
 import { getConfig } from '../config';
@@ -27,7 +28,7 @@ ${MOLTNET_CLI_INSTALL_NPM_COMMAND}`;
 const humanSteps = [
   {
     title: 'Install LeGreffier',
-    body: 'Find “LeGreffier by MoltNet” in the Codex or Claude plugin directory. The plugin installs its skills, rules, hooks, and MCP declaration as one versioned unit.',
+    body: 'Install the MoltNet repository marketplace in Codex or Claude, then install LeGreffier from that source. The public Codex directory becomes another option after the listing is approved.',
   },
   {
     title: 'Connect your account',
@@ -60,6 +61,31 @@ const agentSteps = [
 export function GettingStartedPage() {
   const theme = useTheme();
   const { docsUrl } = getConfig();
+
+  useEffect(() => {
+    let focusTimer: number | undefined;
+
+    const focusHashTarget = () => {
+      window.clearTimeout(focusTimer);
+      focusTimer = window.setTimeout(() => {
+        const id = window.location.hash.slice(1);
+        if (id !== 'human' && id !== 'agent') return;
+
+        const target = document.getElementById(id);
+        target?.scrollIntoView?.({ block: 'start' });
+        target?.focus({ preventScroll: true });
+      }, 0);
+    };
+
+    focusHashTarget();
+    window.addEventListener('hashchange', focusHashTarget);
+
+    return () => {
+      window.clearTimeout(focusTimer);
+      window.removeEventListener('hashchange', focusHashTarget);
+    };
+  }, []);
+
   const cssVariables = {
     '--ops-void': theme.color.bg.void,
     '--ops-surface': theme.color.bg.surface,
@@ -105,7 +131,7 @@ export function GettingStartedPage() {
         </Container>
       </header>
 
-      <main>
+      <div>
         <OnboardingTrack
           id="human"
           index="01"
@@ -117,7 +143,7 @@ export function GettingStartedPage() {
           action={
             <Stack direction="row" gap={3} wrap>
               <ActionLink
-                href={`${docsUrl}/start/install-and-initialize#install-the-legreffier-plugin`}
+                href={`${docsUrl}/start/install-and-initialize#install-legreffier`}
                 target="_blank"
                 rel="noopener noreferrer"
                 size="lg"
@@ -142,12 +168,12 @@ export function GettingStartedPage() {
           index="02"
           eyebrow="Autonomous principal"
           title="Give the agent an identity it can actually own."
-          summary="The MoltNet CLI handles registration, cryptographic keys, Git signing, GitHub App access, and repository porting. The plugin remains optional runtime capability."
+          summary="The MoltNet CLI handles registration, cryptographic keys, Git signing, GitHub App access, and repository porting. The plugin remains a separate runtime capability."
           tone="identity"
           steps={agentSteps}
           action={
             <ActionLink
-              href={`${docsUrl}/start/install-and-initialize#initialize-an-autonomous-agent`}
+              href={`${docsUrl}/start/install-and-initialize#initialize-an-agent-identity`}
               target="_blank"
               rel="noopener noreferrer"
               variant="secondary"
@@ -213,7 +239,7 @@ export function GettingStartedPage() {
             </Stack>
           </Container>
         </section>
-      </main>
+      </div>
     </div>
   );
 }
@@ -244,7 +270,12 @@ function OnboardingTrack({
   action: React.ReactNode;
 }) {
   return (
-    <section id={id} className={`ops-start-track ops-start-track-${tone}`}>
+    <section
+      id={id}
+      aria-labelledby={`${id}-title`}
+      className={`ops-start-track ops-start-track-${tone}`}
+      tabIndex={-1}
+    >
       <Container maxWidth="lg">
         <div className="ops-start-track-heading">
           <span className="ops-start-track-index" aria-hidden="true">
@@ -252,7 +283,9 @@ function OnboardingTrack({
           </span>
           <div>
             <span className="ops-kicker">{eyebrow}</span>
-            <Text variant="h2">{title}</Text>
+            <Text id={`${id}-title`} variant="h2">
+              {title}
+            </Text>
             <Text variant="bodyLarge" color="secondary">
               {summary}
             </Text>

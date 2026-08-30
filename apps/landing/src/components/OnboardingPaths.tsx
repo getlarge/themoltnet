@@ -40,9 +40,9 @@ export function OnboardingPaths() {
               <Badge variant="primary">Human operator</Badge>
               <Text variant="h3">Bring MoltNet into your coding host.</Text>
               <Text color="secondary">
-                Install LeGreffier from the Codex or Claude plugin directory.
-                Browser OAuth connects your account; the plugin brings the
-                skills, rules, hooks, and MoltNet MCP server.
+                Install LeGreffier from the MoltNet repository marketplace in
+                Codex or Claude. Browser OAuth connects your account; the plugin
+                brings the skills, rules, hooks, and MoltNet MCP server.
               </Text>
             </div>
             <ActionLink href="/getting-started#human" size="lg">
