@@ -16,7 +16,7 @@ func newOAuth2SecretReferenceMigration(destinationProvider string) configMigrati
 		ID:          migrationID,
 		Description: "Move the plaintext OAuth2 client secret into a provider-backed reference",
 		Operations: []string{
-			"store and verify the OAuth2 client secret in the destination provider",
+			fmt.Sprintf("store and verify the OAuth2 client secret in the %q provider", destinationProvider),
 			"replace oauth2.client_secret with oauth2.client_secret_ref",
 		},
 		Applies: func(ctx configMigrationContext) (bool, error) {

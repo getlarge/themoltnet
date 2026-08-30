@@ -97,13 +97,16 @@ An output file includes it and is written atomically with mode 0600.`,
 	var migrateGeneratePath string
 	var migrateRunPath string
 	var migrateDryRun bool
+	var migrateDestination string
 	migrateCmd := &cobra.Command{
 		Use:   "migrate",
 		Short: "Plan and apply configuration migrations",
 		Long: `Plan and apply the next state-aware MoltNet configuration migration.
 Each redacted JSON plan is bound to the exact credentials file content and
 contains at most one transition. Run the command again to apply the next one.
-Use --generate to inspect a plan before applying it with --run.`,
+Use --generate to inspect a plan before applying it with --run. Secrets move
+into the --destination provider (default os-keyring); pass the same
+--destination when running a generated plan.`,
 		Example: `  # Apply the next migration
   moltnet config migrate --credentials .moltnet/legreffier/moltnet.json
 
@@ -121,6 +124,7 @@ Use --generate to inspect a plan before applying it with --run.`,
 				credPath,
 				migrateGeneratePath,
 				migrateRunPath,
+				migrateDestination,
 				migrateDryRun,
 			)
 		},
@@ -128,6 +132,7 @@ Use --generate to inspect a plan before applying it with --run.`,
 	migrateCmd.Flags().StringVar(&migrateGeneratePath, "generate", "", "Write a redacted migration plan to this file")
 	migrateCmd.Flags().StringVar(&migrateRunPath, "run", "", "Run a previously generated migration plan")
 	migrateCmd.Flags().BoolVar(&migrateDryRun, "dry-run", false, "Print the migration plan without changing local state")
+	migrateCmd.Flags().StringVar(&migrateDestination, "destination", defaultMigrationDestination, "Secret provider that receives migrated secrets (os-keyring, or file with MOLTNET_SECRET_ROOT_WRITABLE=1)")
 
 	configCmd.AddCommand(repairCmd)
 	configCmd.AddCommand(initFromEnvCmd)

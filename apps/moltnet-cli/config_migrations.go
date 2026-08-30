@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"strings"
 
 	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/configmigrate"
 )
@@ -19,11 +20,39 @@ type configMigrationContext = configmigrate.Context
 type configMigrationPlan = configmigrate.Plan
 type configMigrationRunOutput = configmigrate.RunOutput
 
-func defaultConfigMigrations() []configMigration {
+const defaultMigrationDestination = osKeyringProviderName
+
+// defaultConfigMigrations returns the ordered transitions. Secret-moving
+// migrations store values in the destination provider; the destination is
+// part of each planned operation text, so a plan generated for one
+// destination cannot be run against another.
+func defaultConfigMigrations(destination string) []configMigration {
 	return []configMigration{
-		newOAuth2SecretReferenceMigration(osKeyringProviderName),
+		newOAuth2SecretReferenceMigration(destination),
 		newOAuth2EnvironmentCleanupMigration(),
+		newIdentitySeedReferenceMigration(destination),
+		newGitHubPEMReferenceMigration(destination),
 	}
+}
+
+// validateMigrationDestination rejects destinations that cannot receive
+// secrets before any credentials are read.
+func validateMigrationDestination(registry *SecretProviderRegistry, destination string) (string, error) {
+	destination = strings.TrimSpace(destination)
+	if destination == "" {
+		destination = defaultMigrationDestination
+	}
+	if registry == nil || !registry.CanWrite(destination) {
+		switch destination {
+		case environmentProviderName:
+			return "", fmt.Errorf("--destination %q is read-only; choose a provider that stores secrets", destination)
+		case fileProviderName:
+			return "", fmt.Errorf("--destination %q requires %s and %s=1", destination, secretRootEnv, secretRootWritableEnv)
+		default:
+			return "", fmt.Errorf("--destination %q is not a writable secret provider", destination)
+		}
+	}
+	return destination, nil
 }
 
 func newConfigMigrationEngine(migrations []configMigration) configmigrate.Engine[*SecretProviderRegistry] {
@@ -34,15 +63,20 @@ func newConfigMigrationEngine(migrations []configMigration) configmigrate.Engine
 	}
 }
 
-func runConfigMigrateCmd(w io.Writer, credPath, generatePath, runPath string, dryRun bool) error {
+func runConfigMigrateCmd(w io.Writer, credPath, generatePath, runPath, destination string, dryRun bool) error {
+	registry := NewSecretProviderRegistry()
+	destination, err := validateMigrationDestination(registry, destination)
+	if err != nil {
+		return err
+	}
 	return runConfigMigrateCmdWithRegistry(
 		w,
 		credPath,
 		generatePath,
 		runPath,
 		dryRun,
-		NewSecretProviderRegistry(),
-		defaultConfigMigrations(),
+		registry,
+		defaultConfigMigrations(destination),
 	)
 }
 

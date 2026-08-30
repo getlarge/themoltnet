@@ -165,6 +165,13 @@ type SecretProvider interface {
 	Delete(key string) error
 }
 
+// writableSecretProvider is implemented by providers whose write support
+// depends on runtime configuration. Providers that do not implement it are
+// assumed writable; a provider that never accepts writes returns false.
+type writableSecretProvider interface {
+	CanWrite() bool
+}
+
 // SecretProviderRegistry resolves provider names without coupling config
 // parsing to a specific local secret store.
 type SecretProviderRegistry struct {
@@ -187,6 +194,22 @@ func (r *SecretProviderRegistry) Register(name string, provider SecretProvider) 
 		r.providers = make(map[string]SecretProvider)
 	}
 	r.providers[strings.TrimSpace(name)] = provider
+}
+
+// CanWrite reports whether the named provider accepts Set/Delete in this
+// process. Unregistered providers are not writable.
+func (r *SecretProviderRegistry) CanWrite(name string) bool {
+	if r == nil {
+		return false
+	}
+	provider, ok := r.providers[strings.TrimSpace(name)]
+	if !ok {
+		return false
+	}
+	if writable, ok := provider.(writableSecretProvider); ok {
+		return writable.CanWrite()
+	}
+	return true
 }
 
 func (r *SecretProviderRegistry) Resolve(ref SecretReference) (string, error) {
@@ -312,6 +335,8 @@ func (EnvironmentSecretProvider) Get(key string) (string, error) {
 	}
 	return value, nil
 }
+
+func (EnvironmentSecretProvider) CanWrite() bool { return false }
 
 func (EnvironmentSecretProvider) Set(_, _ string) error {
 	return fmt.Errorf("environment secret provider is read-only")

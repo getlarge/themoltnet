@@ -274,6 +274,9 @@ func (p FileSecretProvider) Delete(key string) error {
 	return nil
 }
 
+// CanWrite reports whether MOLTNET_SECRET_ROOT_WRITABLE=1 enabled writes.
+func (p FileSecretProvider) CanWrite() bool { return p.Writable && p.Root != "" }
+
 func (p FileSecretProvider) requireWritable(key string) error {
 	if strings.TrimSpace(p.Root) == "" {
 		return fileErr(fileSecretProviderUnavailable, key, secretRootEnv+" is not set")
