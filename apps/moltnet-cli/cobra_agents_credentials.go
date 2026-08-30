@@ -51,11 +51,11 @@ another secure secret store must be updated manually. Use
 the Ed25519 identity key in the resolved credentials file.
 
 The server returns the replacement credentials only in a sealed envelope for
-that key. The CLI decrypts the envelope locally and atomically updates the
-configured credentials file or secret provider. The previous client secret is
-invalidated immediately, but access tokens already issued with it remain valid
-until they expire.`,
-		Example: `  moltnet agents credentials recover --yes`,
+that key. The CLI decrypts the envelope locally, stores it in a writable secret
+provider, then changes the configuration to reference that provider. The
+previous client secret is invalidated immediately, but access tokens already
+issued with it remain valid until they expire.`,
+		Example: `  moltnet agents credentials recover --yes --destination os-keyring`,
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runAgentsCredentialsRecoverCmd(agentsCredentialsRecoverOpts{
@@ -63,12 +63,14 @@ until they expire.`,
 				apiURLExplicit: cmd.Flag("api-url").Changed,
 				credPath:       flagString(cmd, "credentials"),
 				yes:            flagBool(cmd, "yes"),
+				destination:    flagString(cmd, "destination"),
 				out:            cmd.OutOrStdout(),
 				errOut:         cmd.ErrOrStderr(),
 			})
 		},
 	}
 	recoverCmd.Flags().Bool("yes", false, "Confirm the irreversible credential replacement")
+	recoverCmd.Flags().String("destination", "", "Writable secret provider for the recovered secret (required for plaintext OAuth2 credentials)")
 
 	credentialsCmd.AddCommand(rotateCmd, recoverCmd)
 	return credentialsCmd

@@ -164,6 +164,7 @@ func TestAgentsCredentialsRecoverPersistsSealedReplacement(t *testing.T) {
 		"credentials",
 		"recover",
 		"--yes",
+		"--destination", osKeyringProviderName,
 	)
 	if err != nil {
 		t.Fatalf("recover: %v\nstderr: %s", err, stderr)
@@ -185,7 +186,8 @@ func TestAgentsCredentialsRecoverPersistsSealedReplacement(t *testing.T) {
 		t.Fatalf("read recovered credentials: %v", err)
 	}
 	if updated.OAuth2.ClientID != "recovered-client-id" ||
-		updated.OAuth2.ClientSecret != "recovered-client-secret" {
+		updated.OAuth2.ClientSecret != "" || updated.OAuth2.ClientSecretRef == nil ||
+		updated.OAuth2.ClientSecretRef.Provider != osKeyringProviderName {
 		t.Fatalf("unexpected recovered credentials: %#v", updated.OAuth2)
 	}
 }
@@ -215,14 +217,12 @@ func TestAgentsCredentialsRecoverPreflightFailureBlocksNetwork(t *testing.T) {
 	)
 
 	err = runAgentsCredentialsRecoverCmd(agentsCredentialsRecoverOpts{
-		credPath: credentialsPath,
-		yes:      true,
-		preflightCredentials: func(string) error {
-			return errors.New("unsafe destination")
-		},
+		credPath:    credentialsPath,
+		yes:         true,
+		destination: "not-a-provider",
 	})
 
-	if err == nil || !strings.Contains(err.Error(), "recovery was not attempted") {
+	if err == nil || !strings.Contains(err.Error(), "not a writable secret provider") {
 		t.Fatalf("error = %v, want preflight failure", err)
 	}
 	if requests.Load() != 0 {
@@ -340,16 +340,17 @@ func TestAgentsCredentialsRecoverPersistenceFailureEmitsRecoveryJSON(
 		},
 	)
 	var stdout, stderr bytes.Buffer
+	registry, _ := newMemorySecretProviderRegistry()
 
 	err = runAgentsCredentialsRecoverCmd(agentsCredentialsRecoverOpts{
-		credPath: credentialsPath,
-		yes:      true,
-		out:      &stdout,
-		errOut:   &stderr,
-		writeCredentials: func(string, []byte) error {
-			return errors.New("persistence failed with recovered-client-secret")
-		},
-		verifyCredentials: func(string, string, string) error { return nil },
+		credPath:             credentialsPath,
+		yes:                  true,
+		destination:          osKeyringProviderName,
+		secretProviders:      registry,
+		out:                  &stdout,
+		errOut:               &stderr,
+		reconcileCredentials: func(string, *CredentialsFile, SecretReference) error { return errors.New("persistence failed") },
+		verifyCredentials:    func(string, string, string) error { return nil },
 	})
 
 	if err == nil {
@@ -359,12 +360,11 @@ func TestAgentsCredentialsRecoverPersistenceFailureEmitsRecoveryJSON(
 		strings.Contains(stderr.String(), "recovered-client-secret") {
 		t.Fatal("replacement secret leaked through error or stderr")
 	}
-	var output rotateCredentialsOutput
+	var output recoveredCredentialsOutput
 	if decodeErr := json.Unmarshal(stdout.Bytes(), &output); decodeErr != nil {
 		t.Fatalf("decode recovery output: %v", decodeErr)
 	}
-	if output.ClientSecret != "recovered-client-secret" ||
-		output.CredentialsUpdated {
+	if output.PersistenceState != "stored_config_pending" || !output.ManualRecoveryRequired || output.RecoveryPath == "" {
 		t.Fatalf("unexpected recovery output: %#v", output)
 	}
 }
@@ -407,9 +407,10 @@ func TestAgentsCredentialsRecoverRejectsInvalidSealedResponses(t *testing.T) {
 			var stdout bytes.Buffer
 
 			err := runAgentsCredentialsRecoverCmd(agentsCredentialsRecoverOpts{
-				credPath: credentialsPath,
-				yes:      true,
-				out:      &stdout,
+				credPath:    credentialsPath,
+				yes:         true,
+				destination: osKeyringProviderName,
+				out:         &stdout,
 			})
 
 			if err == nil || !strings.Contains(err.Error(), tt.wantError) {
@@ -443,23 +444,20 @@ func TestAgentsCredentialsRecoverVerificationFailureEmitsRecoveryJSON(
 	var stdout bytes.Buffer
 
 	err = runAgentsCredentialsRecoverCmd(agentsCredentialsRecoverOpts{
-		credPath: credentialsPath,
-		yes:      true,
-		out:      &stdout,
+		credPath:    credentialsPath,
+		yes:         true,
+		destination: osKeyringProviderName,
+		out:         &stdout,
 		verifyCredentials: func(string, string, string) error {
 			return errors.New("token mint failed")
 		},
 	})
 
-	if err == nil || !strings.Contains(err.Error(), "recover the new secret") {
-		t.Fatalf("error = %v, want recovery-output error", err)
+	if err == nil || !strings.Contains(err.Error(), "verify replacement OAuth2 credentials") {
+		t.Fatalf("error = %v, want verification error", err)
 	}
-	var output rotateCredentialsOutput
-	if decodeErr := json.Unmarshal(stdout.Bytes(), &output); decodeErr != nil {
-		t.Fatalf("decode recovery output: %v", decodeErr)
-	}
-	if output.ClientSecret != "recovered-client-secret" || output.CredentialsUpdated {
-		t.Fatalf("unexpected recovery output: %#v", output)
+	if stdout.Len() != 0 {
+		t.Fatalf("stdout = %q, want no secret-bearing recovery output", stdout.String())
 	}
 }
 
