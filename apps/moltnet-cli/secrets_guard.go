@@ -919,6 +919,7 @@ func isReviewedMoltnetConsumer(executable string, args []string, allowGitHubToke
 		[]string{"crypto", "verify"},
 		[]string{"git", "setup"},
 		[]string{"config", "repair"},
+		[]string{"config", "migrate"},
 		[]string{"secrets", "guard"},
 	) {
 		return true

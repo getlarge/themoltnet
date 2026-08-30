@@ -315,25 +315,53 @@ This keeps copied `.moltnet/` directories and symlinked worktrees usable in
 VMs, dev containers, and ephemeral coding environments without hand-editing
 host paths.
 
-Older configs that still contain `oauth2.client_secret` can be migrated to the
-OS keyring in place:
+## Migrate plaintext credentials to secret references
+
+Older configs that still carry plaintext or file-path credentials can be
+migrated in place:
 
 ```bash
 moltnet config migrate \
   --credentials .moltnet/<agent>/moltnet.json
 ```
 
+The migrations run in this order, one per invocation; run the command again
+until it reports no further transition:
+
+| Migration                           | Moves                                       | Into                               |
+| ----------------------------------- | ------------------------------------------- | ---------------------------------- |
+| `2026-08-oauth2-secret-reference`   | `oauth2.client_secret`                      | `oauth2.client_secret_ref`         |
+| `2026-08-remove-managed-oauth2-env` | `<PREFIX>_CLIENT_SECRET` in the env file    | (removed once the reference works) |
+| `2026-09-identity-seed-reference`   | `keys.private_key` (Ed25519 seed)           | `keys.private_key_ref`             |
+| `2026-09-github-pem-reference`      | the PEM read from `github.private_key_path` | `github.private_key_ref`           |
+
+Each secret-moving migration verifies the value before storing it (the seed
+must derive `keys.public_key`; the PEM must parse as an RSA private key),
+stores it under the canonical key for that credential, reads it back, and only
+then rewrites `moltnet.json`. A destination that already holds a different
+value is a conflict: nothing is overwritten and the config is left untouched.
+The GitHub PEM file is never deleted — remove it yourself once
+`moltnet github token` works from the reference.
+
+`--destination <provider>` selects where secrets go (default `os-keyring`).
+`file` is accepted only when `MOLTNET_SECRET_ROOT` points at a directory and
+`MOLTNET_SECRET_ROOT_WRITABLE=1` is set; `env` is read-only and rejected. The
+destination is recorded in the plan, so a plan generated for one provider
+cannot be run against another.
+
 Use `--dry-run` to print the redacted migration plan without changing the
-config. Each invocation applies at most one transition, so run the command
-again to remove the legacy managed client-secret entry from the agent env file.
-Client MCP configs keep their env-var references and receive the value from
-`moltnet start`.
+config. Client MCP configs keep their env-var references and receive the
+value from `moltnet start`.
 
 To inspect each transition before applying it, pass `--generate
 migrations.json`, inspect the mode-0600 plan, then apply it with `--run
-migrations.json`. Generate a new plan for the next transition. Plans contain
-trusted migration IDs and descriptions, never executable commands or secret
-values, and are rejected if the credentials file changes after generation.
+migrations.json` and the same `--destination`. Generate a new plan for the
+next transition. Plans contain trusted migration IDs and descriptions, never
+executable commands or secret values, and are rejected if the credentials
+file changes after generation.
+
+Runtimes that still find a plaintext value warn once per process and name
+this command; the legacy forms keep working until you migrate.
 
 ## Ephemeral environments
 

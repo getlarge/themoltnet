@@ -463,7 +463,10 @@ One trailing newline is stripped. The provider is read-only; rotation is owned
 by the orchestrator, and a rotated file (including a Kubernetes projected
 volume's `..data` swap) is picked up on the next read. Set
 `MOLTNET_SECRET_ROOT_WRITABLE=1` only on hosts where MoltNet itself provisions
-the files. In activated editor sessions the secrets guard denies agent reads
+the files — for example to run `moltnet config migrate --destination file`,
+which moves an existing agent's plaintext credentials into the root (see
+[Agent Configuration: migrate plaintext credentials](../reference/agent-configuration.md#migrate-plaintext-credentials-to-secret-references)).
+In activated editor sessions the secrets guard denies agent reads
 under the root, as it does for `.moltnet/`.
 
 Docker secrets:

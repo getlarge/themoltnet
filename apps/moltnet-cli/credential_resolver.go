@@ -75,7 +75,7 @@ func warnLegacyCredentialOnce(kind credentialKind) {
 	if w == nil {
 		w = os.Stderr
 	}
-	fmt.Fprintf(w, "Warning: plaintext %s in moltnet.json is deprecated; move it to a secret provider reference (see docs/reference/agent-configuration.md).\n", legacyField(kind))
+	fmt.Fprintf(w, "Warning: plaintext %s in moltnet.json is deprecated; run 'moltnet config migrate' to move it to a secret provider reference (see docs/reference/agent-configuration.md).\n", legacyField(kind))
 }
 
 func resetLegacyCredentialWarnings() {
