@@ -38,6 +38,9 @@ func TestE2E_AgentsCredentialsRecover(t *testing.T) {
 	if err != nil {
 		t.Fatalf("write dedicated credentials: %v", err)
 	}
+	secretRoot := t.TempDir()
+	t.Setenv(secretRootEnv, secretRoot)
+	t.Setenv(secretRootWritableEnv, "1")
 	binPath, err := ensureE2ECLIBinary()
 	if err != nil {
 		t.Fatalf("build CLI: %v", err)
@@ -50,6 +53,8 @@ func TestE2E_AgentsCredentialsRecover(t *testing.T) {
 		"credentials",
 		"recover",
 		"--yes",
+		"--destination",
+		fileProviderName,
 	)
 	if err != nil {
 		t.Fatalf("recover credentials: %v\nstderr: %s", err, stderr)
@@ -59,14 +64,14 @@ func TestE2E_AgentsCredentialsRecover(t *testing.T) {
 		t.Fatal("previous client secret leaked through command output")
 	}
 
-	var output rotateCredentialsOutput
+	var output recoveredCredentialsOutput
 	if err := json.Unmarshal([]byte(stdout), &output); err != nil {
 		t.Fatalf("parse recovery output: %v\n%s", err, stdout)
 	}
-	if !output.CredentialsUpdated ||
-		output.CredentialsPath != credentialsPath ||
+	if output.PersistenceState != "stored" ||
 		output.ClientID != agent.Credential.ClientID ||
-		output.ClientSecret != "" {
+		output.SecretReference.Provider != fileProviderName ||
+		output.RecoveryPath != "" {
 		t.Fatalf("unexpected recovery output: %#v", output)
 	}
 
@@ -75,13 +80,18 @@ func TestE2E_AgentsCredentialsRecover(t *testing.T) {
 		t.Fatalf("read recovered credentials: %v", err)
 	}
 	if updated.OAuth2.ClientID != agent.Credential.ClientID ||
-		updated.OAuth2.ClientSecret == "" ||
-		updated.OAuth2.ClientSecret == "lost-client-secret" ||
-		updated.OAuth2.ClientSecret == agent.Credential.ClientSecret {
-		t.Fatal("credentials file does not contain a distinct recovered secret")
+		updated.OAuth2.ClientSecret != "" || updated.OAuth2.ClientSecretRef == nil ||
+		updated.OAuth2.ClientSecretRef.Provider != fileProviderName {
+		t.Fatal("credentials file does not contain the recovered secret reference")
 	}
-	if strings.Contains(stdout, updated.OAuth2.ClientSecret) ||
-		strings.Contains(stderr, updated.OAuth2.ClientSecret) {
+	recoveredSecret, err := resolveOAuth2Secret(updated, NewSecretProviderRegistry())
+	if err != nil {
+		t.Fatalf("resolve recovered secret reference: %v", err)
+	}
+	if recoveredSecret == "lost-client-secret" || recoveredSecret == agent.Credential.ClientSecret {
+		t.Fatal("provider does not contain a distinct recovered secret")
+	}
+	if strings.Contains(stdout, recoveredSecret) || strings.Contains(stderr, recoveredSecret) {
 		t.Fatal("recovered client secret leaked through command output")
 	}
 	info, err := os.Stat(credentialsPath)
@@ -95,7 +105,7 @@ func TestE2E_AgentsCredentialsRecover(t *testing.T) {
 	newTokenManager := NewTokenManager(
 		e2eAPIURL,
 		updated.OAuth2.ClientID,
-		updated.OAuth2.ClientSecret,
+		recoveredSecret,
 	)
 	if _, err := newTokenManager.GetToken(); err != nil {
 		t.Fatalf("recovered client secret cannot mint a token: %v", err)
