@@ -240,6 +240,10 @@ func evaluateSecretsShellWithContext(command string, pathContext secretGuardPath
 				denial = "Direct OS credential-store reads are blocked in activated agent sessions. Use a non-revealing MoltNet consumer."
 				return false
 			}
+			if callSelectsUntrustedSecretDestination(executable, args, node, vars) {
+				denial = "Secret-moving MoltNet commands may only target the OS keyring in activated agent sessions; run them with a file destination from a human-controlled terminal."
+				return false
+			}
 			allowGitHubToken := scopedGitHubTokenCalls[node]
 			if isMoltnetRevealCommand(executable, args, allowGitHubToken) {
 				denial = "Commands that reveal or export credentials are blocked in activated agent sessions. Run the explicit command from a human-controlled terminal."
@@ -835,6 +839,8 @@ func isReviewedMoltnetConsumer(executable string, args []string, allowGitHubToke
 		[]string{"agents", "activation", "clear"},
 		[]string{"agents", "keys", "list"},
 		[]string{"agents", "keys", "revoke"},
+		[]string{"agents", "keys", "create"},
+		[]string{"agents", "keys", "rotate"},
 		[]string{"env", "check"},
 		[]string{"env", "configure"},
 		[]string{"entry", "create"},
@@ -919,6 +925,7 @@ func isReviewedMoltnetConsumer(executable string, args []string, allowGitHubToke
 		[]string{"crypto", "verify"},
 		[]string{"git", "setup"},
 		[]string{"config", "repair"},
+		[]string{"config", "migrate"},
 		[]string{"secrets", "guard"},
 	) {
 		return true
@@ -975,7 +982,9 @@ func isMoltnetRevealArgs(args []string, allowGitHubToken bool) bool {
 		return true
 	}
 	if len(args) >= 3 && args[0] == "agents" && args[1] == "keys" && (args[2] == "create" || args[2] == "rotate") {
-		return true
+		// --store keeps the secret inside a provider and prints only the
+		// reference; without it the one-time secret lands on stdout.
+		return !argsContainFlag(args[3:], "--store")
 	}
 	if len(args) >= 3 && args[0] == "agents" && args[1] == "credentials" && args[2] == "rotate" {
 		return true
@@ -1075,4 +1084,77 @@ func isKeyringRevealCommand(executable string, args []string) bool {
 	default:
 		return false
 	}
+}
+
+// isSecretMovingMoltnetArgs reports whether a moltnet invocation copies a
+// credential into a secret provider: config migrate, and agents keys
+// create/rotate with --store.
+func isSecretMovingMoltnetArgs(args []string) bool {
+	if matchesMoltnetOperation(args, []string{"config", "migrate"}) {
+		return true
+	}
+	if len(args) >= 3 && args[0] == "agents" && args[1] == "keys" && (args[2] == "create" || args[2] == "rotate") {
+		return argsContainFlag(args[3:], "--store")
+	}
+	return false
+}
+
+// callSelectsUntrustedSecretDestination denies secret-moving commands that
+// could route protected material to an agent-selected location: a
+// --destination other than the OS keyring (the file provider's root comes
+// from the environment, which the same command line can set), or any
+// MOLTNET_SECRET_ROOT* assignment or mention on the call. The guard
+// classifies protected roots from its own environment, so material copied
+// into an agent-chosen root would be readable afterwards.
+func callSelectsUntrustedSecretDestination(executable string, args []string, call *syntax.CallExpr, vars map[string]string) bool {
+	normalized, ok := normalizedMoltnetArgs(executable, args)
+	if !ok || !isSecretMovingMoltnetArgs(normalized) {
+		return false
+	}
+	if call != nil {
+		// Every word on the call must be static and free of secret-root
+		// mentions: `env MOLTNET_SECRET_ROOT=… moltnet …` prefixes are
+		// consumed by invocation parsing without being recorded, and a
+		// non-static word (`--destination=$(printf file)`) is invisible to
+		// the static argument check. Fail closed on both.
+		for _, word := range call.Args {
+			literal, static := staticShellWord(word, vars)
+			if !static || strings.Contains(literal, secretRootEnv) {
+				return true
+			}
+		}
+	}
+	for index, arg := range normalized {
+		switch {
+		case arg == "--destination":
+			if index+1 >= len(normalized) || normalized[index+1] != osKeyringProviderName {
+				return true
+			}
+		case strings.HasPrefix(arg, "--destination="):
+			if strings.TrimPrefix(arg, "--destination=") != osKeyringProviderName {
+				return true
+			}
+		case strings.Contains(arg, secretRootEnv):
+			return true
+		}
+	}
+	if call != nil {
+		for _, assign := range call.Assigns {
+			if assign.Name != nil && strings.HasPrefix(assign.Name.Value, secretRootEnv) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// argsContainFlag reports whether a bare boolean flag (or its =true form) is
+// present in args.
+func argsContainFlag(args []string, flag string) bool {
+	for _, arg := range args {
+		if arg == flag || arg == flag+"=true" {
+			return true
+		}
+	}
+	return false
 }

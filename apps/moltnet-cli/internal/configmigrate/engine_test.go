@@ -100,9 +100,13 @@ func TestEngineRejectsTamperedPlansBeforeMutation(t *testing.T) {
 	path := writeState(t, "0")
 	var ran []string
 	engine := testEngine([]Migration[struct{}]{stateMigration("first", "0", "1", &ran)})
+	engine.Parameters = map[string]string{"destination": "here"}
 	original, err := engine.BuildPlan(path)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if original.Parameters["destination"] != "here" {
+		t.Fatalf("plan must carry the engine parameters: %+v", original.Parameters)
 	}
 
 	tests := []struct {
@@ -116,6 +120,8 @@ func TestEngineRejectsTamperedPlansBeforeMutation(t *testing.T) {
 		{name: "unknown transition", mutate: func(plan *Plan) { plan.Migrations[0].ID = "unknown" }, want: "does not match"},
 		{name: "changed metadata", mutate: func(plan *Plan) { plan.Migrations[0].Operations = []string{"tampered"} }, want: "does not match"},
 		{name: "multiple transitions", mutate: func(plan *Plan) { plan.Migrations = append(plan.Migrations, plan.Migrations[0]) }, want: "at most one"},
+		{name: "changed parameters", mutate: func(plan *Plan) { plan.Parameters = map[string]string{"destination": "elsewhere"} }, want: "parameters do not match"},
+		{name: "dropped parameters", mutate: func(plan *Plan) { plan.Parameters = nil }, want: "parameters do not match"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

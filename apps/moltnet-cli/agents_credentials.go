@@ -397,7 +397,24 @@ func writeCredentialsRecoveryFile(
 func writeCredentialsRecoveryFileToDir(
 	recoveryDir string,
 	output rotateCredentialsOutput,
-) (path string, err error) {
+) (string, error) {
+	return writeRecoveryArtifact(recoveryDir, "client-secret-recovery-*.json", output)
+}
+
+// defaultRecoveryDir is the user-private location for protected recovery
+// artifacts (secrets or partial-state diagnostics that must outlive a failed
+// stdout write).
+func defaultRecoveryDir() (string, error) {
+	cacheDir, err := os.UserCacheDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(cacheDir, "moltnet", "recovery"), nil
+}
+
+// writeRecoveryArtifact durably writes payload as a mode-0600 JSON file in
+// recoveryDir and returns its path.
+func writeRecoveryArtifact(recoveryDir, pattern string, payload any) (path string, err error) {
 	if err := os.MkdirAll(recoveryDir, 0o700); err != nil {
 		return "", err
 	}
@@ -405,10 +422,7 @@ func writeCredentialsRecoveryFileToDir(
 		return "", err
 	}
 
-	file, err := os.CreateTemp(
-		recoveryDir,
-		"client-secret-recovery-*.json",
-	)
+	file, err := os.CreateTemp(recoveryDir, pattern)
 	if err != nil {
 		return "", err
 	}
@@ -424,7 +438,7 @@ func writeCredentialsRecoveryFileToDir(
 		_ = file.Close()
 		return "", err
 	}
-	if err := json.NewEncoder(file).Encode(output); err != nil {
+	if err := json.NewEncoder(file).Encode(payload); err != nil {
 		_ = file.Close()
 		return "", err
 	}

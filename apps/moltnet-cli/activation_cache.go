@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,7 +16,7 @@ import (
 	"time"
 )
 
-const activationCacheVersion = 3
+const activationCacheVersion = 4
 
 var requiredActivationInputs = []string{"credentials", "env", "gitconfig", "sshPublicKey"}
 
@@ -35,6 +36,7 @@ type activationCache struct {
 	AgentEmail           string                          `json:"agentEmail"`
 	GitHubAppConfigured  bool                            `json:"githubAppConfigured"`
 	CredentialProvider   string                          `json:"credentialProvider"`
+	CredentialProviders  map[string]string               `json:"credentialProviders"`
 	CredentialStatus     string                          `json:"credentialStatus"`
 	RegisteredAt         string                          `json:"registeredAt,omitempty"`
 	Inputs               map[string]activationCacheInput `json:"inputs"`
@@ -47,24 +49,25 @@ type activationCacheInput struct {
 }
 
 type activationValidationResult struct {
-	Valid                      bool     `json:"valid"`
-	Reason                     string   `json:"reason,omitempty"`
-	Changed                    []string `json:"changed,omitempty"`
-	AgentName                  string   `json:"agentName,omitempty"`
-	Fingerprint                string   `json:"fingerprint,omitempty"`
-	DiaryID                    string   `json:"diaryId,omitempty"`
-	TeamID                     string   `json:"teamId,omitempty"`
-	CredentialsPath            string   `json:"credentialsPath,omitempty"`
-	GitConfigGlobal            string   `json:"gitConfigGlobal,omitempty"`
-	AuthorshipMode             string   `json:"authorshipMode,omitempty"`
-	AuthorshipConfigured       bool     `json:"authorshipConfigured"`
-	HumanGitIdentity           string   `json:"humanGitIdentity,omitempty"`
-	HumanGitIdentityConfigured bool     `json:"humanGitIdentityConfigured"`
-	AgentEmail                 string   `json:"agentEmail,omitempty"`
-	GitHubAppConfigured        bool     `json:"githubAppConfigured"`
-	CredentialProvider         string   `json:"credentialProvider,omitempty"`
-	CredentialStatus           string   `json:"credentialStatus,omitempty"`
-	RegisteredAt               string   `json:"registeredAt,omitempty"`
+	Valid                      bool              `json:"valid"`
+	Reason                     string            `json:"reason,omitempty"`
+	Changed                    []string          `json:"changed,omitempty"`
+	AgentName                  string            `json:"agentName,omitempty"`
+	Fingerprint                string            `json:"fingerprint,omitempty"`
+	DiaryID                    string            `json:"diaryId,omitempty"`
+	TeamID                     string            `json:"teamId,omitempty"`
+	CredentialsPath            string            `json:"credentialsPath,omitempty"`
+	GitConfigGlobal            string            `json:"gitConfigGlobal,omitempty"`
+	AuthorshipMode             string            `json:"authorshipMode,omitempty"`
+	AuthorshipConfigured       bool              `json:"authorshipConfigured"`
+	HumanGitIdentity           string            `json:"humanGitIdentity,omitempty"`
+	HumanGitIdentityConfigured bool              `json:"humanGitIdentityConfigured"`
+	AgentEmail                 string            `json:"agentEmail,omitempty"`
+	GitHubAppConfigured        bool              `json:"githubAppConfigured"`
+	CredentialProvider         string            `json:"credentialProvider,omitempty"`
+	CredentialProviders        map[string]string `json:"credentialProviders,omitempty"`
+	CredentialStatus           string            `json:"credentialStatus,omitempty"`
+	RegisteredAt               string            `json:"registeredAt,omitempty"`
 }
 
 type activationContext struct {
@@ -206,13 +209,13 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 	if !authorshipConfigured {
 		authorshipMode = "agent"
 	}
-	credentialProvider := "legacy-plaintext"
+	credentialProviders := activationCredentialProviders(creds)
+	credentialProvider := credentialProviders[activationCredentialOAuth2]
 	credentialStatus := "missing"
 	if creds.OAuth2.ClientSecret != "" {
 		credentialStatus = "available"
 	}
 	if creds.OAuth2.ClientSecretRef != nil {
-		credentialProvider = creds.OAuth2.ClientSecretRef.Provider
 		credentialStatus = "configured"
 	}
 	fingerprint := firstNonEmpty(ctx.EnvVars["MOLTNET_FINGERPRINT"], creds.Keys.Fingerprint)
@@ -255,6 +258,7 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 		AgentEmail:           gitIdentity.Email,
 		GitHubAppConfigured:  creds.GitHub != nil && creds.GitHub.AppID != "" && (creds.GitHub.PrivateKeyPath != "" || creds.GitHub.PrivateKeyRef != nil),
 		CredentialProvider:   credentialProvider,
+		CredentialProviders:  credentialProviders,
 		CredentialStatus:     credentialStatus,
 		RegisteredAt:         creds.RegisteredAt,
 		Inputs:               inputs,
@@ -316,6 +320,53 @@ func validateActivationCache(ctx *activationContext) (*activationValidationResul
 	return &result, nil
 }
 
+// activationCredential* are the per-kind keys of
+// activationCache.CredentialProviders. Each value is the provider name of the
+// configured reference, or one of the activationProvider* markers for a
+// legacy plaintext value, a legacy file path, or no credential of that kind.
+// Only metadata is recorded; the referenced secrets are never read during
+// activation.
+const (
+	activationCredentialOAuth2       = "oauth2"
+	activationCredentialIdentitySeed = "identitySeed"
+	activationCredentialGitHubApp    = "githubApp"
+	activationCredentialAgentKey     = "agentKey"
+
+	activationProviderLegacyPlaintext = "legacy-plaintext"
+	activationProviderLegacyFile      = "legacy-file"
+	activationProviderAbsent          = "absent"
+)
+
+func activationCredentialProviders(creds *CredentialsFile) map[string]string {
+	providers := map[string]string{
+		activationCredentialOAuth2:       activationProviderLegacyPlaintext,
+		activationCredentialIdentitySeed: activationProviderAbsent,
+		activationCredentialGitHubApp:    activationProviderAbsent,
+		activationCredentialAgentKey:     activationProviderAbsent,
+	}
+	if creds.OAuth2.ClientSecretRef != nil {
+		providers[activationCredentialOAuth2] = creds.OAuth2.ClientSecretRef.Provider
+	}
+	switch {
+	case creds.Keys.PrivateKeyRef != nil:
+		providers[activationCredentialIdentitySeed] = creds.Keys.PrivateKeyRef.Provider
+	case strings.TrimSpace(creds.Keys.PrivateKey) != "":
+		providers[activationCredentialIdentitySeed] = activationProviderLegacyPlaintext
+	}
+	if creds.GitHub != nil {
+		switch {
+		case creds.GitHub.PrivateKeyRef != nil:
+			providers[activationCredentialGitHubApp] = creds.GitHub.PrivateKeyRef.Provider
+		case strings.TrimSpace(creds.GitHub.PrivateKeyPath) != "":
+			providers[activationCredentialGitHubApp] = activationProviderLegacyFile
+		}
+	}
+	if creds.AgentKeyRef != nil {
+		providers[activationCredentialAgentKey] = creds.AgentKeyRef.Provider
+	}
+	return providers
+}
+
 func activationMetadataEqual(cached, current *activationCache) bool {
 	return cached.Version == current.Version &&
 		cached.AgentName == current.AgentName &&
@@ -332,6 +383,7 @@ func activationMetadataEqual(cached, current *activationCache) bool {
 		cached.AgentEmail == current.AgentEmail &&
 		cached.GitHubAppConfigured == current.GitHubAppConfigured &&
 		cached.CredentialProvider == current.CredentialProvider &&
+		maps.Equal(cached.CredentialProviders, current.CredentialProviders) &&
 		cached.CredentialStatus == current.CredentialStatus &&
 		cached.RegisteredAt == current.RegisteredAt
 }
@@ -352,6 +404,7 @@ func activationResultFromCache(cache *activationCache) activationValidationResul
 		AgentEmail:                 cache.AgentEmail,
 		GitHubAppConfigured:        cache.GitHubAppConfigured,
 		CredentialProvider:         cache.CredentialProvider,
+		CredentialProviders:        maps.Clone(cache.CredentialProviders),
 		CredentialStatus:           cache.CredentialStatus,
 		RegisteredAt:               cache.RegisteredAt,
 	}

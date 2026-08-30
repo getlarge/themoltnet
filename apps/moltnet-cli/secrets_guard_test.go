@@ -61,6 +61,20 @@ func TestSecretsGuardDeniesAlternateShellConstructs(t *testing.T) {
 		`moltnet profile create --from-file .moltnet/agent/env --credentials .moltnet/agent/moltnet.json`,
 		`moltnet task artifacts upload task --file .moltnet/agent/env --credentials .moltnet/agent/moltnet.json`,
 		`GH_TOKEN=$(moltnet github token --credentials .moltnet/agent/moltnet.json) gh pr view 1; moltnet github token --credentials .moltnet/agent/moltnet.json`,
+		// Secret-moving commands must not route material to an agent-chosen root.
+		`moltnet config migrate --credentials .moltnet/agent/moltnet.json --destination file`,
+		`moltnet config migrate --credentials .moltnet/agent/moltnet.json --destination=file`,
+		`MOLTNET_SECRET_ROOT=/tmp/exfil MOLTNET_SECRET_ROOT_WRITABLE=1 moltnet config migrate --credentials .moltnet/agent/moltnet.json --destination file`,
+		`MOLTNET_SECRET_ROOT=/tmp/exfil moltnet config migrate --credentials .moltnet/agent/moltnet.json`,
+		`export MOLTNET_SECRET_ROOT=/tmp/exfil; moltnet config migrate --credentials .moltnet/agent/moltnet.json --destination file`,
+		`moltnet config migrate --credentials .moltnet/agent/moltnet.json --destination vault`,
+		`moltnet agents keys create --team-id team --agent-id agent --name d --store --destination file --credentials .moltnet/agent/moltnet.json`,
+		`env MOLTNET_SECRET_ROOT=/tmp/exfil MOLTNET_SECRET_ROOT_WRITABLE=1 moltnet agents keys rotate key --team-id team --store --destination file`,
+		`env MOLTNET_SECRET_ROOT=/tmp/exfil moltnet config migrate --credentials .moltnet/agent/moltnet.json`,
+		`moltnet agents keys rotate key --team-id team --store --destination=$(printf file)`,
+		`moltnet agents keys create --team-id team --agent-id agent --name d --store --destination "$DEST"`,
+		`D=file; moltnet config migrate --credentials .moltnet/agent/moltnet.json --destination "$D"`,
+		`moltnet config migrate --credentials .moltnet/agent/moltnet.json --destination $(printf file)`,
 	}
 	for _, command := range commands {
 		if reason := evaluateSecretsShellWithContext(command, testSecretGuardPathContext(t)); reason == "" {
@@ -149,6 +163,10 @@ func TestSecretsGuardAllowsSafeOperations(t *testing.T) {
 		`moltnet teams delete team --credentials .moltnet/agent/moltnet.json`,
 		`moltnet task artifacts upload task --file report.md --credentials .moltnet/agent/moltnet.json`,
 		`moltnet signing-requests list --credentials=.moltnet/agent/moltnet.json`,
+		`moltnet config migrate --credentials .moltnet/agent/moltnet.json --dry-run`,
+		`moltnet config migrate --credentials .moltnet/agent/moltnet.json --destination os-keyring`,
+		`moltnet agents keys create --team-id team --agent-id agent --name daemon --store --credentials .moltnet/agent/moltnet.json`,
+		`moltnet agents keys rotate key --team-id team --store --destination os-keyring`,
 		`GH_TOKEN=$(moltnet github token --credentials .moltnet/agent/moltnet.json) gh pr view 1`,
 	}
 	for _, command := range commands {

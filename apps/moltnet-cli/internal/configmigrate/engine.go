@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"maps"
 	"strings"
 
 	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/safefile"
@@ -23,6 +24,7 @@ type Plan struct {
 	GeneratedBy     string             `json:"generatedBy"`
 	CredentialsPath string             `json:"credentialsPath"`
 	ConfigSHA256    string             `json:"configSha256"`
+	Parameters      map[string]string  `json:"parameters,omitempty"`
 	Migrations      []PlannedMigration `json:"migrations"`
 }
 
@@ -68,7 +70,10 @@ type Migration[T any] struct {
 type Engine[T any] struct {
 	GeneratedBy    string
 	MaxConfigBytes int64
-	Migrations     []Migration[T]
+	// Parameters are execution inputs (such as the destination provider)
+	// that a plan is bound to; Apply rejects a plan whose parameters differ.
+	Parameters map[string]string
+	Migrations []Migration[T]
 }
 
 func (e Engine[T]) BuildPlan(credentialsPath string) (Plan, error) {
@@ -88,6 +93,7 @@ func (e Engine[T]) buildPlanFromDocument(credentialsPath string, document []byte
 		GeneratedBy:     e.GeneratedBy,
 		CredentialsPath: credentialsPath,
 		ConfigSHA256:    documentSHA256(document),
+		Parameters:      maps.Clone(e.Parameters),
 		Migrations:      make([]PlannedMigration, 0, 1),
 	}
 	ctx := Context{
@@ -122,6 +128,9 @@ func (e Engine[T]) Apply(plan Plan, runtime T) ([]string, error) {
 	}
 	if len(plan.Migrations) > 1 {
 		return nil, fmt.Errorf("migration plans may contain at most one transition")
+	}
+	if !maps.Equal(plan.Parameters, e.Parameters) {
+		return nil, fmt.Errorf("migration plan parameters do not match this invocation; generate a new plan")
 	}
 	if err := validateMigrations(e.Migrations); err != nil {
 		return nil, err
@@ -212,10 +221,14 @@ func NewStageError(stage string, state FailureState, err error) error {
 }
 
 func FailureFromError(plan Plan, err error) *Failure {
+	// Errors that are not StageErrors come from the engine's own plan and
+	// document validation (format, generator, parameters, stale content).
+	// They never carry secret material, so the cause is surfaced verbatim to
+	// tell the operator what to regenerate.
 	failure := &Failure{
 		Stage:     "apply",
 		Retryable: true,
-		Message:   "configuration migration failed during apply",
+		Message:   "configuration migration failed during apply: " + err.Error(),
 	}
 	if len(plan.Migrations) == 1 {
 		failure.Migration = plan.Migrations[0].ID

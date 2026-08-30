@@ -44,7 +44,7 @@ export function warnLegacyCredentialOnce(kind: CredentialKind): void {
   warned.add(kind);
   // eslint-disable-next-line no-console
   console.warn(
-    `Warning: plaintext ${LEGACY_FIELDS[kind]} in moltnet.json is deprecated; move it to a secret provider reference (see docs/reference/agent-configuration.md).`,
+    `Warning: plaintext ${LEGACY_FIELDS[kind]} in moltnet.json is deprecated; run 'moltnet config migrate' to move it to a secret provider reference (see docs/reference/agent-configuration.md).`,
   );
 }
 

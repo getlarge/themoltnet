@@ -259,6 +259,7 @@ type agentsKeysCreateOpts struct {
 	ttlSet         bool
 	idempotencyKey string
 	idempotencySet bool
+	store          agentKeyStoreOpts
 	out            io.Writer
 	errOut         io.Writer
 }
@@ -274,6 +275,11 @@ type createAgentKeyOutput struct {
 }
 
 func runAgentsKeysCreateCmd(opts agentsKeysCreateOpts) error {
+	// Validate the --store target before authenticating: an unusable
+	// destination should be the first thing an operator hears about.
+	if _, err := prepareAgentKeyStore(opts.store, opts.credPath); err != nil {
+		return err
+	}
 	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath)
 	if err != nil {
 		return err
@@ -285,6 +291,17 @@ func runAgentsKeysCreateWithClient(ctx context.Context, client *moltnetapi.Clien
 	req, params, idempotencyKey, err := buildCreateAgentKey(opts)
 	if err != nil {
 		return err
+	}
+	// Resolve the store target before the network so a bad destination or
+	// credentials file never mints a key whose secret would then be lost.
+	store, err := prepareAgentKeyStore(opts.store, opts.credPath)
+	if err != nil {
+		return err
+	}
+	if store != nil {
+		if err := store.requireAgentID(opts.agentID); err != nil {
+			return err
+		}
 	}
 	// When the CLI generated the idempotency key, a failed create must surface
 	// it so a bare re-run can reuse it instead of minting a duplicate credential
@@ -304,6 +321,12 @@ func runAgentsKeysCreateWithClient(ctx context.Context, client *moltnetapi.Clien
 			writeIdempotencyRetryHint(opts.errOut, idempotencyKey)
 		}
 		return formatAPIError(res)
+	}
+	if store != nil {
+		return store.persist(opts.out, opts.errOut, storedAgentKeyOutput{
+			Key:            created.Key,
+			IdempotencyKey: idempotencyKey,
+		}, created.Secret)
 	}
 	writeSecretNotice(opts.errOut)
 	return printJSONTo(opts.out, createAgentKeyOutput{
@@ -360,11 +383,15 @@ type agentsKeysRotateOpts struct {
 	teamID         string
 	identityScoped bool
 	keyID          string
+	store          agentKeyStoreOpts
 	out            io.Writer
 	errOut         io.Writer
 }
 
 func runAgentsKeysRotateCmd(opts agentsKeysRotateOpts) error {
+	if _, err := prepareAgentKeyStore(opts.store, opts.credPath); err != nil {
+		return err
+	}
 	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath)
 	if err != nil {
 		return err
@@ -377,6 +404,10 @@ func runAgentsKeysRotateWithClient(ctx context.Context, client *moltnetapi.Clien
 	if err != nil {
 		return err
 	}
+	store, err := prepareAgentKeyStore(opts.store, opts.credPath)
+	if err != nil {
+		return err
+	}
 	res, err := client.RotateAgentKey(ctx, params)
 	if err != nil {
 		return fmt.Errorf("agents keys rotate: %w", formatTransportError(err))
@@ -384,6 +415,19 @@ func runAgentsKeysRotateWithClient(ctx context.Context, client *moltnetapi.Clien
 	rotated, ok := res.(*moltnetapi.AgentKeyWithSecret)
 	if !ok {
 		return formatAPIError(res)
+	}
+	if store != nil {
+		output := storedAgentKeyOutput{Key: rotated.Key}
+		agentID, _ := agentKeyAgentID(rotated.Key)
+		if err := store.requireAgentID(agentID); err != nil {
+			// The old secret is already invalid. Preserve the new one in the
+			// protected recovery artifact rather than binding it to the wrong
+			// identity or printing it.
+			output.AgentKeyRef = store.ref
+			output.CredentialsPath = store.credentialsPath
+			return store.fail(opts.out, output, "verify_identity", rotated.Secret, err)
+		}
+		return store.persist(opts.out, opts.errOut, output, rotated.Secret)
 	}
 	writeSecretNotice(opts.errOut)
 	return printJSONTo(opts.out, rotated)

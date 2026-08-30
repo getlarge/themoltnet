@@ -165,6 +165,13 @@ type SecretProvider interface {
 	Delete(key string) error
 }
 
+// writableSecretProvider must be implemented by any provider that accepts
+// Set/Delete. Write support is declared, never assumed: a provider without
+// this interface is treated as read-only by destination validation.
+type writableSecretProvider interface {
+	CanWrite() bool
+}
+
 // SecretProviderRegistry resolves provider names without coupling config
 // parsing to a specific local secret store.
 type SecretProviderRegistry struct {
@@ -187,6 +194,21 @@ func (r *SecretProviderRegistry) Register(name string, provider SecretProvider) 
 		r.providers = make(map[string]SecretProvider)
 	}
 	r.providers[strings.TrimSpace(name)] = provider
+}
+
+// CanWrite reports whether the named provider declares write support in
+// this process. Unregistered providers and providers that do not implement
+// writableSecretProvider are not writable.
+func (r *SecretProviderRegistry) CanWrite(name string) bool {
+	if r == nil {
+		return false
+	}
+	provider, ok := r.providers[strings.TrimSpace(name)]
+	if !ok {
+		return false
+	}
+	writable, ok := provider.(writableSecretProvider)
+	return ok && writable.CanWrite()
 }
 
 func (r *SecretProviderRegistry) Resolve(ref SecretReference) (string, error) {
@@ -266,6 +288,35 @@ func (r *SecretProviderRegistry) Ensure(ref SecretReference, value string) (chan
 	return true, nil
 }
 
+// Replace stores value unconditionally (rotation semantics) and verifies the
+// read-back while holding the provider/key lock, so a concurrent writer
+// cannot interleave between storage and verification.
+func (r *SecretProviderRegistry) Replace(ref SecretReference, value string) error {
+	providerName, key, provider, err := r.provider(ref)
+	if err != nil {
+		return err
+	}
+	if value == "" {
+		return fmt.Errorf("secret value is required")
+	}
+	lock, err := safefile.AcquireNamed("secret-provider", providerName+"\x00"+key)
+	if err != nil {
+		return err
+	}
+	defer lock.Close()
+	if err := provider.Set(key, value); err != nil {
+		return fmt.Errorf("store secret with provider %q: %w", providerName, err)
+	}
+	verified, err := provider.Get(key)
+	if err != nil {
+		return fmt.Errorf("verify secret with provider %q: %w", providerName, err)
+	}
+	if verified != value {
+		return fmt.Errorf("verify secret with provider %q: stored value does not match", providerName)
+	}
+	return nil
+}
+
 func (r *SecretProviderRegistry) Delete(ref SecretReference) error {
 	providerName, key, provider, err := r.provider(ref)
 	if err != nil {
@@ -313,6 +364,8 @@ func (EnvironmentSecretProvider) Get(key string) (string, error) {
 	return value, nil
 }
 
+func (EnvironmentSecretProvider) CanWrite() bool { return false }
+
 func (EnvironmentSecretProvider) Set(_, _ string) error {
 	return fmt.Errorf("environment secret provider is read-only")
 }
@@ -332,6 +385,8 @@ func (OSKeyringSecretProvider) Get(key string) (string, error) {
 	}
 	return value, err
 }
+
+func (OSKeyringSecretProvider) CanWrite() bool { return true }
 
 func (OSKeyringSecretProvider) Set(key, value string) error {
 	return oskeyring.Set(secretServiceName, key, value)

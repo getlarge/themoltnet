@@ -19,6 +19,7 @@ func writeLegacyMigrationFixture(t *testing.T) (string, string) {
 		t.Fatal(err)
 	}
 	credentialsPath := filepath.Join(agentDir, "moltnet.json")
+	seed, publicKey := testSeedAndPublicKey(t)
 	config := `{
   "identity_id": "identity-id",
   "oauth2": {
@@ -26,8 +27,8 @@ func writeLegacyMigrationFixture(t *testing.T) (string, string) {
     "client_secret": "legacy-plaintext-secret"
   },
   "keys": {
-    "public_key": "public",
-    "private_key": "private",
+    "public_key": ` + mustJSON(t, publicKey) + `,
+    "private_key": ` + mustJSON(t, seed) + `,
     "fingerprint": "fingerprint"
   },
   "endpoints": {
@@ -62,9 +63,10 @@ func runNextConfigMigration(
 		credentialsPath,
 		"",
 		"",
+		osKeyringProviderName,
 		false,
 		registry,
-		defaultConfigMigrations(),
+		defaultConfigMigrations(osKeyringProviderName),
 	); err != nil {
 		t.Fatalf("run migration: %v\n%s", err, output.String())
 	}
@@ -117,8 +119,13 @@ func TestConfigMigrateUsesResumableSingleStepTransitions(t *testing.T) {
 	}
 
 	third := runNextConfigMigration(t, credentialsPath, registry)
-	if third.Changed || len(third.Applied) != 0 {
-		t.Fatalf("idempotent run changed state: %+v", third)
+	if strings.Join(third.Applied, ",") != "2026-09-identity-seed-reference" {
+		t.Fatalf("third applied migrations = %v", third.Applied)
+	}
+
+	fourth := runNextConfigMigration(t, credentialsPath, registry)
+	if fourth.Changed || len(fourth.Applied) != 0 {
+		t.Fatalf("idempotent run changed state: %+v", fourth)
 	}
 }
 
@@ -145,7 +152,7 @@ func TestConfigMigratePreservesLegacyEnvironmentUntilReferenceIsVerified(t *test
 
 			var output bytes.Buffer
 			err := runConfigMigrateCmdWithRegistry(
-				&output, credentialsPath, "", "", false, registry, defaultConfigMigrations(),
+				&output, credentialsPath, "", "", osKeyringProviderName, false, registry, defaultConfigMigrations(osKeyringProviderName),
 			)
 			if err == nil || err.Error() != "configuration migration failed during verify_reference" {
 				t.Fatalf("cleanup error = %v", err)
@@ -174,7 +181,7 @@ func TestConfigMigrateDryRunDoesNotMutateState(t *testing.T) {
 	var output bytes.Buffer
 
 	if err := runConfigMigrateCmdWithRegistry(
-		&output, credentialsPath, "", "", true, registry, defaultConfigMigrations(),
+		&output, credentialsPath, "", "", osKeyringProviderName, true, registry, defaultConfigMigrations(osKeyringProviderName),
 	); err != nil {
 		t.Fatal(err)
 	}
@@ -206,6 +213,7 @@ func TestConfigMigrateNeverReturnsOrPrintsProviderSecrets(t *testing.T) {
 		credentialsPath,
 		"",
 		"",
+		osKeyringProviderName,
 		false,
 		NewSecretProviderRegistry(),
 		[]configMigration{migration},
@@ -231,7 +239,7 @@ func TestConfigMigrateGeneratesAndRunsBoundRedactedPlan(t *testing.T) {
 	var output bytes.Buffer
 
 	if err := runConfigMigrateCmdWithRegistry(
-		&output, credentialsPath, planPath, "", false, registry, defaultConfigMigrations(),
+		&output, credentialsPath, planPath, "", osKeyringProviderName, false, registry, defaultConfigMigrations(osKeyringProviderName),
 	); err != nil {
 		t.Fatal(err)
 	}
@@ -252,7 +260,7 @@ func TestConfigMigrateGeneratesAndRunsBoundRedactedPlan(t *testing.T) {
 
 	output.Reset()
 	if err := runConfigMigrateCmdWithRegistry(
-		&output, credentialsPath, "", planPath, false, registry, defaultConfigMigrations(),
+		&output, credentialsPath, "", planPath, osKeyringProviderName, false, registry, defaultConfigMigrations(osKeyringProviderName),
 	); err != nil {
 		t.Fatal(err)
 	}
@@ -277,7 +285,7 @@ func TestConfigMigrateRejectsInvalidCommandModesAndPlanFiles(t *testing.T) {
 	}
 	for _, tt := range modeTests {
 		err := runConfigMigrateCmdWithRegistry(
-			io.Discard, credentialsPath, tt.generatePath, tt.runPath, tt.dryRun, registry, defaultConfigMigrations(),
+			io.Discard, credentialsPath, tt.generatePath, tt.runPath, osKeyringProviderName, tt.dryRun, registry, defaultConfigMigrations(osKeyringProviderName),
 		)
 		if err == nil || !strings.Contains(err.Error(), tt.want) {
 			t.Fatalf("mode error = %v, want %q", err, tt.want)
@@ -289,14 +297,14 @@ func TestConfigMigrateRejectsInvalidCommandModesAndPlanFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	err := runConfigMigrateCmdWithRegistry(
-		io.Discard, credentialsPath, "", malformedPath, false, registry, defaultConfigMigrations(),
+		io.Discard, credentialsPath, "", malformedPath, osKeyringProviderName, false, registry, defaultConfigMigrations(osKeyringProviderName),
 	)
 	if err == nil || !strings.Contains(err.Error(), "parse migration plan") {
 		t.Fatalf("malformed plan error = %v", err)
 	}
 
 	otherCredentialsPath, _ := writeLegacyMigrationFixture(t)
-	plan, err := buildConfigMigrationPlan(otherCredentialsPath, defaultConfigMigrations())
+	plan, err := buildConfigMigrationPlan(otherCredentialsPath, osKeyringProviderName, defaultConfigMigrations(osKeyringProviderName))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -305,7 +313,7 @@ func TestConfigMigrateRejectsInvalidCommandModesAndPlanFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	err = runConfigMigrateCmdWithRegistry(
-		io.Discard, credentialsPath, "", wrongTargetPath, false, registry, defaultConfigMigrations(),
+		io.Discard, credentialsPath, "", wrongTargetPath, osKeyringProviderName, false, registry, defaultConfigMigrations(osKeyringProviderName),
 	)
 	if err == nil || !strings.Contains(err.Error(), "migration plan targets") {
 		t.Fatalf("wrong-target plan error = %v", err)
@@ -346,7 +354,7 @@ func TestConfigMigrateDoesNotOverwriteConcurrentCredentialsChange(t *testing.T) 
 	var output bytes.Buffer
 
 	err := runConfigMigrateCmdWithRegistry(
-		&output, credentialsPath, "", "", false, registry, defaultConfigMigrations(),
+		&output, credentialsPath, "", "", osKeyringProviderName, false, registry, defaultConfigMigrations(osKeyringProviderName),
 	)
 	if err == nil || err.Error() != "configuration migration failed during replace_credentials" {
 		t.Fatalf("concurrent migration error = %v", err)
@@ -362,9 +370,12 @@ func TestConfigMigrateDoesNotOverwriteConcurrentCredentialsChange(t *testing.T) 
 	if err := json.Unmarshal(output.Bytes(), &result); err != nil {
 		t.Fatal(err)
 	}
+	// The secret is stored and verified; re-running re-plans against the new
+	// file content and Ensure accepts the identical value, so this is
+	// retryable with the secret retained — not a manual-recovery situation.
 	if result.Failure == nil || result.Failure.Stage != "replace_credentials" ||
-		!result.Failure.ManualRecoveryRequired || result.Failure.Retryable ||
-		!result.Changed || !result.ManualRecoveryRequired {
+		result.Failure.ManualRecoveryRequired || !result.Failure.Retryable ||
+		!result.Changed || result.ManualRecoveryRequired {
 		t.Fatalf("failure envelope = %+v", result.Failure)
 	}
 }
@@ -397,7 +408,7 @@ func TestConfigMigrateRetainsUnverifiedSecretForManualRecovery(t *testing.T) {
 	var output bytes.Buffer
 
 	err := runConfigMigrateCmdWithRegistry(
-		&output, credentialsPath, "", "", false, registry, defaultConfigMigrations(),
+		&output, credentialsPath, "", "", osKeyringProviderName, false, registry, defaultConfigMigrations(osKeyringProviderName),
 	)
 	if err == nil || err.Error() != "configuration migration failed during ensure_secret" {
 		t.Fatalf("migration error = %v", err)
@@ -450,7 +461,7 @@ func TestConfigMigrateRejectsConflictingUnavailableAndAmbiguousSecrets(t *testin
 			registry.Register(osKeyringProviderName, tt.provider)
 			var output bytes.Buffer
 			err := runConfigMigrateCmdWithRegistry(
-				&output, credentialsPath, "", "", false, registry, defaultConfigMigrations(),
+				&output, credentialsPath, "", "", osKeyringProviderName, false, registry, defaultConfigMigrations(osKeyringProviderName),
 			)
 			if err == nil {
 				t.Fatal("migration unexpectedly succeeded")
@@ -490,7 +501,7 @@ func TestConfigMigrateRejectsSymlinkedCredentialsAndEnvironment(t *testing.T) {
 		if err := os.Symlink(target, link); err != nil {
 			t.Fatal(err)
 		}
-		_, err := buildConfigMigrationPlan(link, defaultConfigMigrations())
+		_, err := buildConfigMigrationPlan(link, osKeyringProviderName, defaultConfigMigrations(osKeyringProviderName))
 		if err == nil || !strings.Contains(err.Error(), "symbolic link") {
 			t.Fatalf("symlinked credentials error = %v", err)
 		}
@@ -511,7 +522,7 @@ func TestConfigMigrateRejectsSymlinkedCredentialsAndEnvironment(t *testing.T) {
 		if err := os.Symlink(target, envPath); err != nil {
 			t.Fatal(err)
 		}
-		_, err := buildConfigMigrationPlan(credentialsPath, defaultConfigMigrations())
+		_, err := buildConfigMigrationPlan(credentialsPath, osKeyringProviderName, defaultConfigMigrations(osKeyringProviderName))
 		if err == nil || !strings.Contains(err.Error(), "symbolic link") {
 			t.Fatalf("symlinked environment error = %v", err)
 		}
@@ -524,14 +535,14 @@ func TestConfigMigrateRejectsSymlinkedCredentialsAndEnvironment(t *testing.T) {
 
 func TestConfigMigrateRejectsStalePlanAndShowsHelp(t *testing.T) {
 	credentialsPath, _ := writeLegacyMigrationFixture(t)
-	plan, err := buildConfigMigrationPlan(credentialsPath, defaultConfigMigrations())
+	plan, err := buildConfigMigrationPlan(credentialsPath, osKeyringProviderName, defaultConfigMigrations(osKeyringProviderName))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(credentialsPath, []byte(`{"changed":true}`), privateFileMode); err != nil {
 		t.Fatal(err)
 	}
-	_, err = applyConfigMigrationPlan(plan, NewSecretProviderRegistry(), defaultConfigMigrations())
+	_, err = applyConfigMigrationPlan(plan, osKeyringProviderName, NewSecretProviderRegistry(), defaultConfigMigrations(osKeyringProviderName))
 	if err == nil || !strings.Contains(err.Error(), "changed after") {
 		t.Fatalf("stale plan error = %v", err)
 	}
@@ -541,7 +552,7 @@ func TestConfigMigrateRejectsStalePlanAndShowsHelp(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, expected := range []string{"--dry-run", "--generate", "--run"} {
+	for _, expected := range []string{"--dry-run", "--generate", "--run", "--destination"} {
 		if !strings.Contains(stdout, expected) {
 			t.Fatalf("help missing %s:\n%s", expected, stdout)
 		}
