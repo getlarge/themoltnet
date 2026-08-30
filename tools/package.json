@@ -70,22 +70,6 @@
       "platform:cli"
     ],
     "targets": {
-      "sandbox-policy-docker": {
-        "cache": false,
-        "executor": "nx:run-commands",
-        "options": {
-          "command": "node --import tsx tools/src/sandbox-policy/docker-probe.ts",
-          "cwd": "{workspaceRoot}"
-        }
-      },
-      "sandbox-policy-gondolin": {
-        "cache": false,
-        "executor": "nx:run-commands",
-        "options": {
-          "command": "node --import tsx tools/src/sandbox-policy/gondolin-probe.ts",
-          "cwd": "{workspaceRoot}"
-        }
-      },
       "codex-environment-gondolin": {
         "cache": false,
         "executor": "nx:run-commands",

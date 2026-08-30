@@ -20,10 +20,6 @@ implementation can be added beside it without going through Pi.
 - `VmConfig.brokeredSecrets` — host-brokered secrets: the guest sees a
   placeholder, Gondolin's `SecretManager` substitutes the value only in
   requests to the declared protocol, host patterns, and ports.
-- `VmConfig.testOnlyHttpRoutes` — a narrowly validated research-fixture seam
-  that maps exact RFC 5737 origins to literal loopback HTTP origins and fails
-  closed otherwise. Ordinary VMs do not set Gondolin's custom `fetch`, so its
-  connect-time IP-pinned dispatcher remains active.
 - `ensureSnapshot` — build and cache the base checkpoint.
 - Small helpers: `findMainWorktree`, `isResolvedPathInsideRoot`,
   `abortableResource` / `throwIfAborted`.
@@ -93,17 +89,15 @@ helpers; OAuth client secrets sent in form bodies remain host-only.
 
 `vm.network.policy_bound` reports the complete hostname inputs passed to
 Gondolin; it is configuration evidence, not independent proof of Gondolin's
-resolved state. Controlled TEST-NET fixture runs additionally emit
-`vm.network.origin_checked` for canonical protocol/hostname/port decisions at
-request and IP phases. Denials remain available as
-`vm.network.origin_denied`. All diagnostics are value-free.
+resolved state. Brokered requests emit `vm.network.origin_checked` for
+canonical protocol/hostname/port decisions at request and IP phases. Denials
+remain available as `vm.network.origin_denied`. All diagnostics are
+value-free.
 
-The fixture routing seam is not a general custom transport. Gondolin 0.12 pins
-the actual upstream connection to the policy-checked IP only when using its
-default fetch. A generic custom fetch would retain the preflight IP check but
-lose connect-time pinning, leaving a DNS-rebinding window. General constrained
-routing therefore requires an upstream Gondolin primitive rather than another
-public `HttpFetch` callback here.
+Gondolin 0.12 pins the actual upstream connection to the policy-checked IP only
+when using its default fetch. This package therefore does not expose a custom
+fetch or fixture-routing seam: doing so would retain a preflight IP check while
+losing connect-time pinning and reopening a DNS-rebinding window.
 
 Rotation and revocation do not require exposing or changing the guest
 placeholder:

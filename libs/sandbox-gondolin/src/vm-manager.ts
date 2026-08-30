@@ -1,9 +1,7 @@
 import { execFileSync } from 'node:child_process';
-import { isIP } from 'node:net';
 import path from 'node:path';
 
 import type {
-  HttpFetch,
   HttpIpAllowInfo,
   SecretDefinition,
   VM,
@@ -19,6 +17,13 @@ import {
 } from '@earendil-works/gondolin';
 
 import { abortableResource, delay, throwIfAborted } from './abort-utils.js';
+import {
+  canonicalizeCredentialHostPattern,
+  canonicalizeHostname,
+  credentialHostMatches,
+  networkPatternCoversCredentialPattern,
+  normalizeNetworkHostPattern,
+} from './canonical-host.js';
 import {
   createHostOriginsOnRequest,
   type HostOriginHandler,
@@ -129,18 +134,6 @@ export interface VmDiagnostic {
   };
 }
 
-/**
- * Exact TEST-NET origin routed to a loopback-only research fixture.
- *
- * This deliberately narrow transport cannot express a production upstream:
- * source hosts must be RFC 5737 documentation addresses and targets must be
- * literal loopback HTTP origins. Every unmapped origin fails closed.
- */
-export interface TestOnlyHttpRoute {
-  fromOrigin: string;
-  toLoopbackOrigin: string;
-}
-
 /** Declarative, trusted-host guest projection (env, files, services). */
 export interface GuestProjectionInput {
   env?: Record<string, string>;
@@ -199,8 +192,6 @@ export interface VmConfig {
    * outside SandboxConfig: a remotely stored profile cannot register one.
    */
   hostOrigins?: Record<string, HostOriginHandler>;
-  /** Controlled RFC 5737-to-loopback routes used only by research fixtures. */
-  testOnlyHttpRoutes?: readonly TestOnlyHttpRoute[];
   /**
    * Trusted-host guest projection: env merged last (after broker
    * placeholders), files written before the session starts, services run in
@@ -491,26 +482,6 @@ const OBJECT_META_PROPERTY_NAMES = new Set([
   'prototype',
 ]);
 
-function normalizeHostPattern(pattern: string): string {
-  let normalized = pattern.trim().toLowerCase();
-  if (normalized.startsWith('[') && normalized.endsWith(']')) {
-    normalized = normalized.slice(1, -1);
-  }
-  if (normalized.endsWith('.')) normalized = normalized.slice(0, -1);
-  return normalized;
-}
-
-function isValidHostPattern(pattern: string): boolean {
-  if (isIP(pattern) !== 0) return true;
-  return (
-    pattern !== '' &&
-    !pattern.includes('://') &&
-    !pattern.includes('/') &&
-    !pattern.includes(':') &&
-    !/\s/.test(pattern)
-  );
-}
-
 /**
  * Canonicalize and validate the value-free portion of a brokered binding.
  * Runtime attestation and Gondolin enforcement both consume this function so
@@ -522,7 +493,7 @@ export function canonicalizeBrokeredHttpSecretDescriptor(
   const issues: string[] = [];
   const id = descriptor.id.trim();
   const guestEnv = descriptor.guestEnv.trim();
-  const hosts = [...new Set(descriptor.hosts.map(normalizeHostPattern))].sort();
+  const hosts: string[] = [];
   const protocolInput: unknown = descriptor.protocol ?? 'https';
   const protocol = protocolInput === 'http' ? 'http' : 'https';
   const ports = [
@@ -540,13 +511,18 @@ export function canonicalizeBrokeredHttpSecretDescriptor(
   ) {
     issues.push(`requirement "${id}" uses reserved guest env "${guestEnv}"`);
   }
-  if (hosts.length === 0) {
-    issues.push(`requirement "${id}" has no destination hosts`);
-  }
-  for (const host of hosts) {
-    if (!isValidHostPattern(host)) {
-      issues.push(`requirement "${id}" has invalid host pattern "${host}"`);
+  for (const hostInput of descriptor.hosts) {
+    try {
+      hosts.push(canonicalizeCredentialHostPattern(hostInput));
+    } catch {
+      issues.push(
+        `requirement "${id}" has invalid host pattern "${hostInput.trim()}"`,
+      );
     }
+  }
+  const uniqueHosts = [...new Set(hosts)].sort();
+  if (descriptor.hosts.length === 0) {
+    issues.push(`requirement "${id}" has no destination hosts`);
   }
   if (protocolInput !== 'https' && protocolInput !== 'http') {
     issues.push(
@@ -568,24 +544,11 @@ export function canonicalizeBrokeredHttpSecretDescriptor(
   return Object.freeze({
     id,
     guestEnv,
-    hosts: Object.freeze(hosts),
+    hosts: Object.freeze(uniqueHosts),
     protocol,
     ports: Object.freeze(ports),
     required: descriptor.required !== false,
   });
-}
-
-function hostMatchesPattern(hostname: string, pattern: string): boolean {
-  // Gondolin 0.12.x does not export its hostname matcher. Keep this compatibility
-  // shim private to the adapter boundary and pin its conservative use below;
-  // replace it with the upstream matcher if Gondolin exposes one.
-  const expression = normalizeHostPattern(pattern)
-    .split('*')
-    .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-    .join('.*');
-  return new RegExp(`^${expression}$`, 'i').test(
-    normalizeHostPattern(hostname),
-  );
 }
 
 /**
@@ -598,9 +561,7 @@ function networkPatternCoversSecretPattern(
   networkPattern: string,
   secretPattern: string,
 ): boolean {
-  if (networkPattern === '*') return true;
-  if (secretPattern.includes('*')) return networkPattern === secretPattern;
-  return hostMatchesPattern(secretPattern, networkPattern);
+  return networkPatternCoversCredentialPattern(networkPattern, secretPattern);
 }
 
 /**
@@ -617,7 +578,7 @@ export function prepareBrokeredHttpSecrets(options: {
   const guestEnvNames = new Set<string>();
   const occupiedGuestEnvNames = new Set(options.occupiedGuestEnvNames ?? []);
   const allowedHosts = [
-    ...new Set(options.allowedHosts.map(normalizeHostPattern)),
+    ...new Set(options.allowedHosts.map(normalizeNetworkHostPattern)),
   ];
   const secrets = Object.create(null) as Record<string, SecretDefinition>;
 
@@ -716,91 +677,12 @@ interface RequestOrigin {
   port: number;
 }
 
-const RFC_5737_PREFIXES = ['192.0.2.', '198.51.100.', '203.0.113.'];
-
-function canonicalRouteOrigin(value: string, label: string): URL {
-  const url = new URL(value);
-  if (
-    (url.protocol !== 'http:' && url.protocol !== 'https:') ||
-    url.username !== '' ||
-    url.password !== '' ||
-    url.pathname !== '/' ||
-    url.search !== '' ||
-    url.hash !== ''
-  ) {
-    throw new Error(`${label} must be a bare HTTP origin`);
-  }
-  return url;
-}
-
-function httpFetchInputUrl(input: Parameters<HttpFetch>[0]): URL {
-  if (typeof input === 'string') return new URL(input);
-  return new URL('href' in input ? input.href : input.url);
-}
-
-function createTestOnlyHttpFetch(
-  routes: readonly TestOnlyHttpRoute[],
-): HttpFetch {
-  if (routes.length === 0) {
-    throw new Error('test-only HTTP routes must not be empty');
-  }
-  const mappedOrigins = new Map<string, string>();
-  for (const route of routes) {
-    const source = canonicalRouteOrigin(route.fromOrigin, 'fixture source');
-    const target = canonicalRouteOrigin(
-      route.toLoopbackOrigin,
-      'fixture target',
-    );
-    if (
-      isIP(source.hostname) !== 4 ||
-      !RFC_5737_PREFIXES.some((prefix) => source.hostname.startsWith(prefix))
-    ) {
-      throw new Error(
-        `fixture source must use an RFC 5737 IPv4 address: ${source.hostname}`,
-      );
-    }
-    if (source.port === '') {
-      throw new Error('fixture source must include an explicit port');
-    }
-    if (target.protocol !== 'http:' || target.hostname !== '127.0.0.1') {
-      throw new Error(
-        'fixture target must use a literal 127.0.0.1 HTTP origin',
-      );
-    }
-    if (target.port === '') {
-      throw new Error('fixture target must include an explicit port');
-    }
-    if (mappedOrigins.has(source.origin)) {
-      throw new Error(`duplicate fixture source origin: ${source.origin}`);
-    }
-    mappedOrigins.set(source.origin, target.origin);
-  }
-
-  return (async (
-    input: Parameters<HttpFetch>[0],
-    init?: Parameters<HttpFetch>[1],
-  ) => {
-    const requested = httpFetchInputUrl(input);
-    const targetOrigin = mappedOrigins.get(requested.origin);
-    if (!targetOrigin) {
-      throw new Error(`unmapped test fixture origin: ${requested.origin}`);
-    }
-    const target = new URL(targetOrigin);
-    target.pathname = requested.pathname;
-    target.search = requested.search;
-    return globalThis.fetch(target, {
-      ...(init as unknown as RequestInit),
-      redirect: 'manual',
-    });
-  }) as unknown as HttpFetch;
-}
-
 function parseRequestOrigin(url: string): RequestOrigin | null {
   try {
     const parsed = new URL(url);
     const protocol = parsed.protocol.slice(0, -1);
     return {
-      hostname: normalizeHostPattern(parsed.hostname),
+      hostname: canonicalizeHostname(parsed.hostname),
       protocol,
       port: parsed.port ? Number(parsed.port) : protocol === 'https' ? 443 : 80,
     };
@@ -845,7 +727,7 @@ function createBrokeredHttpSecretOriginPolicy(
           requestOrigin.protocol !== entry.protocol ||
           !entry.ports.includes(requestOrigin.port) ||
           !entry.hosts.some((host) =>
-            hostMatchesPattern(requestOrigin.hostname, host),
+            credentialHostMatches(requestOrigin.hostname, host),
           )
         ) {
           return false;
@@ -895,9 +777,14 @@ export function createBrokeredHttpNetworkOriginPolicy(
     port: number;
     phase: 'request' | 'ip';
   }): boolean => {
-    const hostname = normalizeHostPattern(input.hostname);
+    let hostname: string;
+    try {
+      hostname = canonicalizeHostname(input.hostname);
+    } catch {
+      return false;
+    }
     const matching = origins.filter((origin) =>
-      origin.hosts.some((host) => hostMatchesPattern(hostname, host)),
+      origin.hosts.some((host) => credentialHostMatches(hostname, host)),
     );
     if (matching.length === 0) return true;
     const allowed = matching.some(
@@ -1149,14 +1036,12 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     config.brokeredSecrets ?? [],
     {
       onDecision(decision) {
-        if (config.testOnlyHttpRoutes) {
-          config.onDiagnostic?.({
-            event: 'vm.network.origin_checked',
-            level: 'info',
-            message: 'Checked a canonical brokered credential origin',
-            origin: decision,
-          });
-        }
+        config.onDiagnostic?.({
+          event: 'vm.network.origin_checked',
+          level: 'info',
+          message: 'Checked a canonical brokered credential origin',
+          origin: decision,
+        });
         if (!decision.allowed) {
           config.onDiagnostic?.({
             event: 'vm.network.origin_denied',
@@ -1281,13 +1166,9 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   const resources = config.sandboxConfig?.resources;
   const workspaceMode = config.workspaceMode ?? 'shared_mount';
   const cp = VmCheckpoint.load(config.checkpointPath);
-  const testOnlyHttpFetch = config.testOnlyHttpRoutes
-    ? createTestOnlyHttpFetch(config.testOnlyHttpRoutes)
-    : undefined;
   const vm = await abortableResource({
     promise: cp.resume({
       httpHooks,
-      ...(testOnlyHttpFetch && { fetch: testOnlyHttpFetch }),
       env: vmEnv,
       ...(resources?.memory && { memory: resources.memory }),
       ...(resources?.cpus && { cpus: resources.cpus }),
