@@ -5,6 +5,7 @@ import {
   canonicalizeHostname,
   credentialHostMatches,
   networkPatternCoversCredentialPattern,
+  normalizeNetworkHostPattern,
 } from './canonical-host.js';
 
 describe('Gondolin policy hostname canonicalization', () => {
@@ -31,6 +32,16 @@ describe('Gondolin policy hostname canonicalization', () => {
     expect(canonicalizeCredentialHostPattern('*.B\u00dcCHER.example.')).toBe(
       '*.xn--bcher-kva.example',
     );
+  });
+
+  it('handles long dot runs in linear time', () => {
+    const dots = '.'.repeat(50_000);
+
+    expect(normalizeNetworkHostPattern(`*${dots}x`)).toBe(`*${dots}x`);
+    expect(normalizeNetworkHostPattern(`*.example.com${dots}`)).toBe(
+      '*.example.com',
+    );
+    expect(() => canonicalizeHostname(`${dots}x`)).toThrow('invalid hostname');
   });
 
   it('limits credential wildcards to exactly one label', () => {

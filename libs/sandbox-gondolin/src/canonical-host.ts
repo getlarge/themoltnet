@@ -5,6 +5,12 @@ const DECIMAL_IPV4_COMPONENTS = /^\d+(?:\.\d+){0,3}$/;
 const NON_DECIMAL_IPV4 =
   /^(?:0x[\da-f]+|0[0-7]+)(?:\.(?:0x[\da-f]+|0[0-7]+|\d+)){0,3}$/i;
 
+function stripTrailingDots(value: string): string {
+  let end = value.length;
+  while (end > 0 && value.charCodeAt(end - 1) === 46) end -= 1;
+  return value.slice(0, end);
+}
+
 function rejectAlternateNumericAddress(hostname: string): void {
   if (
     isIP(hostname) === 0 &&
@@ -19,7 +25,7 @@ function rejectAlternateNumericAddress(hostname: string): void {
 /** Canonicalize one concrete DNS name or IP literal for policy comparison. */
 export function canonicalizeHostname(input: string): string {
   const withoutBrackets = input.trim().replace(/^\[|\]$/g, '');
-  const withoutTrailingDot = withoutBrackets.replace(/\.+$/, '');
+  const withoutTrailingDot = stripTrailingDots(withoutBrackets);
   if (!withoutTrailingDot) throw new Error('hostname is required');
 
   rejectAlternateNumericAddress(withoutTrailingDot);
@@ -76,7 +82,7 @@ export function normalizeNetworkHostPattern(input: string): string {
   if (pattern === '*') return pattern;
   if (!pattern.includes('*')) return canonicalizeHostname(pattern);
 
-  const normalized = pattern.toLowerCase().replace(/\.+$/, '');
+  const normalized = stripTrailingDots(pattern.toLowerCase());
   if (
     normalized === '' ||
     normalized.includes('://') ||
