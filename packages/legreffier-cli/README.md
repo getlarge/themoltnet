@@ -28,7 +28,7 @@ and across agents.
 
 | Requirement                    | Purpose                                         |
 | ------------------------------ | ----------------------------------------------- |
-| Node.js ≥ 22                   | Runtime                                         |
+| Node.js ≥ 22.20                | Runtime (required by the packaged Skills CLI)   |
 | Latest `moltnet` CLI on `PATH` | Installs and runs fail-closed credential guards |
 | A local Ed25519 identity       | Generated automatically during initialization   |
 | A GitHub account               | The CLI creates a GitHub App under it           |
@@ -98,8 +98,8 @@ Phases:
 4. **diary** — `reuse` carries `MOLTNET_DIARY_ID` from the source, `new`
    strips it so the agent creates a fresh per-repo diary on activation,
    `skip` leaves the env file untouched.
-5. **agent_setup** — writes per-agent MCP config, skills, settings, and
-   rules for each `--agent` (defaults to `claude`).
+5. **agent_setup** — installs the pinned managed skills once, then writes MCP
+   config, settings, and rules for each `--agent` (defaults to `claude`).
 6. **verify** — warning-only check that the GitHub App installation can
    reach the current repo (detected from `git remote get-url origin`).
    If the repo is out of scope, you'll see a link to the installation
@@ -172,12 +172,12 @@ stateDiagram-v2
     installation --> agent_setup
 
     state agent_setup {
-        [*] --> write_config
+        [*] --> install_skills
+        install_skills --> write_config
         write_config --> foreach_adapter
         state foreach_adapter {
             [*] --> write_mcp_config
-            write_mcp_config --> download_skills
-            download_skills --> write_settings
+            write_mcp_config --> write_settings
             write_settings --> [*]
         }
         foreach_adapter --> clear_state
@@ -246,9 +246,9 @@ from a pre-#1396 activation), `moltnet config repair` detects and fixes both.
 **Phase 4 — Installation.** Opens your browser to install the GitHub App on the
 repositories you choose. The server confirms and returns OAuth2 credentials.
 
-**Phase 5 — Agent Setup.** For each selected agent type, runs the corresponding
-adapter: writes MCP config, downloads the LeGreffier skill, and writes
-agent-specific settings. Clears temporary state on completion.
+**Phase 5 — Agent Setup.** Installs the three managed skills once through the
+packaged Skills CLI, then runs each selected agent adapter to write MCP config
+and agent-specific settings. Clears temporary state on completion.
 
 ## Files Created
 
@@ -256,6 +256,7 @@ agent-specific settings. Clears temporary state on completion.
 
 ```
 <repo>/
+├── skills-lock.json            # Pinned source/ref/path/hash for skills
 ├── .moltnet/<agent-name>/
 │   ├── moltnet.json            # Identity, keys, OAuth2, endpoints, git, GitHub
 │   ├── gitconfig               # Git identity + SSH commit signing
@@ -266,14 +267,17 @@ agent-specific settings. Clears temporary state on completion.
 │       └── id_ed25519.pub      # SSH public key
 ```
 
-> **Skills are stored once.** The LeGreffier skill files live as real files
-> under the canonical `.agents/skills/` tree. Each agent tree reuses that copy:
-> opencode and Codex read `.agents/skills/` natively, and `.claude/skills/`
-> holds **relative symlinks** into it (`.claude/skills/<skill>` →
-> `../../.agents/skills/<skill>`). This stores heavy payloads once and prevents
-> the trees from drifting (see issue #1393). On platforms without symlink
-> support (e.g. Windows without developer mode), the CLI falls back to copying
-> the files and prints a warning.
+> **Skills are pinned and stored once.** The packaged Skills CLI installs
+> `legreffier`, `legreffier-explore`, and `legreffier-onboarding` from the
+> immutable tag matching the installed LeGreffier version. It owns recursive
+> companion files, the canonical `.agents/skills/` tree, Claude Code's relative
+> symlinks, and the repository-root `skills-lock.json`. Codex and opencode read
+> `.agents/skills/` natively. The lock preserves unrelated skills and records
+> each managed source, ref, path, and SHA-256 content hash.
+
+Upgrade managed skills by upgrading `@themoltnet/legreffier` and rerunning
+`legreffier setup`. Do not point them at an automatic or unpinned “latest”
+update.
 
 ### Claude Code (`--agent claude`)
 

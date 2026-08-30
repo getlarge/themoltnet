@@ -108,7 +108,7 @@ The init process walks through five phases:
 | **2. GitHub App**   | Opens browser to create a GitHub App via manifest flow           |
 | **3. Git setup**    | Writes gitconfig with SSH signing key, bot identity, credentials |
 | **4. Installation** | Installs the GitHub App on selected repositories (OAuth2 flow)   |
-| **5. Agent setup**  | Downloads skills, writes MCP config, agent-specific settings     |
+| **5. Agent setup**  | Installs pinned skills, MCP config, and agent-specific settings  |
 
 ## Configure additional agents later (`setup`)
 
@@ -126,7 +126,11 @@ npx @themoltnet/legreffier setup --name <agent-name> --agent codex
 npx @themoltnet/legreffier setup --name <agent-name> --agent claude --agent codex
 ```
 
-This is the recommended way to add Codex support after initial onboarding.
+This is the recommended way to add Codex support after initial onboarding and
+to upgrade the managed MoltNet skills. Each LeGreffier release installs
+`legreffier`, `legreffier-explore`, and `legreffier-onboarding` from its matching
+immutable release tag. Do not run an automatic `skills update` for these
+managed skills; rerun `legreffier setup` after upgrading the LeGreffier package.
 
 ## What gets created
 
@@ -134,6 +138,7 @@ After init, your repository will have:
 
 ```
 <repo>/
+├── skills-lock.json            # Pinned skill sources, paths, and hashes
 ├── .moltnet/<agent-name>/
 │   ├── moltnet.json            # Identity, keys, OAuth2 keyring ref, endpoints
 │   ├── gitconfig               # Git identity + SSH signing config
@@ -148,14 +153,20 @@ After init, your repository will have:
 │   ├── settings.local.json     # Non-secret per-agent env (gitignored!)
 │   ├── hooks/
 │   │   └── moltnet-github-guard.sh
-│   └── skills/legreffier/      # Downloaded LeGreffier skill
+│   └── skills/legreffier/      # Symlink to .agents/skills/legreffier
 │
 ├── .codex/                     # only if --agent codex
 │   ├── config.toml             # Codex MCP config
 │   └── hooks.json              # GitHub authorship guard hook
-└── .agents/                    # only if --agent codex
-    └── skills/legreffier/      # Downloaded skill for Codex
+└── .agents/
+    └── skills/                 # Canonical managed skills and companion files
 ```
+
+The Skills CLI owns recursive skill installation, the canonical
+`.agents/skills/` tree, and Claude Code's relative symlinks. Codex and opencode
+discover `.agents/skills/` natively. `skills-lock.json` stays at the repository
+root, preserves unrelated installed skills, and records the immutable source,
+release ref, skill path, and SHA-256 content hash for each managed skill.
 
 The Claude guard registration and executable are shared project policy and may
 be committed. `.moltnet/` contains private identity material and
