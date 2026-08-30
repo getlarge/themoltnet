@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { readFile, readdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
@@ -8,6 +9,15 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const pluginRoot = join(root, 'plugins', 'legreffier');
 
 const read = (path) => readFile(join(pluginRoot, path), 'utf8');
+
+const runHook = (command, gitConfigGlobal) =>
+  spawnSync('/bin/sh', ['-c', command], {
+    encoding: 'utf8',
+    env: {
+      GIT_CONFIG_GLOBAL: gitConfigGlobal,
+      PATH: '/usr/bin:/bin',
+    },
+  });
 
 test('bundles all LeGreffier skills and companion references', async () => {
   const skillNames = await readdir(join(pluginRoot, 'skills'));
@@ -65,10 +75,44 @@ test('keeps human MCP authentication free of agent credentials', async () => {
 
 test('keeps the secrets hook fail-closed for activated agents', async () => {
   const hooks = JSON.parse(await read('hooks/hooks.json'));
-  const commands = hooks.hooks.PreToolUse[0].hooks.map((hook) => hook.command);
-  const secrets = commands.find((command) =>
-    command.includes('moltnet secrets guard'),
+  const groups = hooks.hooks.PreToolUse;
+  const secretGroup = groups.find((group) =>
+    group.hooks.some((hook) => hook.command.includes('moltnet secrets guard')),
   );
-  assert.ok(secrets);
+  assert.ok(secretGroup);
+  assert.equal(
+    secretGroup.matcher,
+    'Bash|Read|Write|Edit|Grep|Glob|apply_patch',
+  );
+
+  const secrets = secretGroup.hooks[0].command;
   assert.equal(secrets.includes('|| true'), false);
+
+  const human = runHook(secrets, '');
+  assert.equal(human.status, 0);
+  assert.equal(human.stdout, '');
+
+  const agent = runHook(secrets, '.moltnet/legreffier/gitconfig');
+  assert.equal(agent.status, 0);
+  assert.match(agent.stdout, /permissionDecision\"?:\"deny/);
+  assert.match(agent.stdout, /secret guard is unavailable/i);
+});
+
+test('blocks the human OAuth MCP for activated agents', async () => {
+  const hooks = JSON.parse(await read('hooks/hooks.json'));
+  const principalGroup = hooks.hooks.PreToolUse.find((group) =>
+    group.matcher.includes('mcp__plugin_legreffier_moltnet__'),
+  );
+  assert.ok(principalGroup);
+  assert.match(principalGroup.matcher, /mcp__moltnet__/);
+
+  const principal = principalGroup.hooks[0].command;
+  const human = runHook(principal, '');
+  assert.equal(human.status, 0);
+  assert.equal(human.stdout, '');
+
+  const agent = runHook(principal, '/repo/.moltnet/legreffier/gitconfig');
+  assert.equal(agent.status, 0);
+  assert.match(agent.stdout, /permissionDecision\"?:\"deny/);
+  assert.match(agent.stdout, /must use the released moltnet CLI/i);
 });

@@ -119,9 +119,10 @@ moltnet env configure --agent <AGENT_NAME> \
 using `teamId`, `diaryId`, or authorship fields later in onboarding.
 
 In human mode, the selected diary stays in conversation state; do not write an
-agent env file.
+agent env file. Human mode ends this stage here. Team administration remains in
+the MoltNet Console; do not continue into the agent-only branch below.
 
-## Team lead onboarding (optional branch)
+## Team lead onboarding (optional, agent mode only)
 
 After the diary is configured, check whether the agent is an **owner** or
 **manager** of a **shared** team (non-personal, or 2+ members). If yes,
@@ -130,9 +131,9 @@ section entirely.
 
 ### Detection
 
-1. From `team_members_list` (MCP) or `moltnet teams members list <team-id>`
-   (CLI), find the current agent's entry by matching `fingerprint` against
-   `moltnet.json` / `moltnet_whoami`.
+1. From `moltnet teams members list <team-id>`, find the current agent's entry
+   by matching `fingerprint` against the activation-validation result. Never
+   open `moltnet.json`.
 2. Read that entry's `role`. Trigger this branch only if
    `role in ["owner", "manager"]` **and** `personal == false` (or member
    count ≥ 2 when `personal` is unavailable).

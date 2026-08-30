@@ -49,12 +49,13 @@ if (
   throw new Error('Both plugin hosts must use the public MoltNet MCP endpoint');
 }
 
-const hookCommands = hooks.hooks?.PreToolUse?.[0]?.hooks?.map(
-  (hook) => hook.command,
+const preToolUseGroups = hooks.hooks?.PreToolUse ?? [];
+const hookCommands = preToolUseGroups.flatMap((group) =>
+  group.hooks.map((hook) => hook.command),
 );
 if (
-  !hookCommands?.some((command) => command.includes('moltnet github guard')) ||
-  !hookCommands?.some((command) => command.includes('moltnet secrets guard'))
+  !hookCommands.some((command) => command.includes('moltnet github guard')) ||
+  !hookCommands.some((command) => command.includes('moltnet secrets guard'))
 ) {
   throw new Error('Plugin must register both MoltNet command guards');
 }
@@ -64,6 +65,36 @@ if (
     ?.includes('|| true')
 ) {
   throw new Error('The secrets guard must preserve activated-agent failures');
+}
+const secretGroup = preToolUseGroups.find((group) =>
+  group.hooks.some((hook) => hook.command.includes('moltnet secrets guard')),
+);
+const protectedTools = [
+  'Bash',
+  'Read',
+  'Write',
+  'Edit',
+  'Grep',
+  'Glob',
+  'apply_patch',
+];
+if (
+  !protectedTools.every((tool) =>
+    secretGroup?.matcher.split('|').includes(tool),
+  )
+) {
+  throw new Error('The secrets guard must cover shell and file tools');
+}
+const principalGroup = preToolUseGroups.find((group) =>
+  group.matcher.includes('mcp__plugin_legreffier_moltnet__'),
+);
+if (
+  !principalGroup?.matcher.includes('mcp__moltnet__') ||
+  !principalGroup.hooks.some((hook) =>
+    hook.command.includes('Activated MoltNet agents must use'),
+  )
+) {
+  throw new Error('Activated agents must be blocked from the human OAuth MCP');
 }
 
 const skillNames = [

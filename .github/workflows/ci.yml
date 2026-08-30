@@ -247,7 +247,7 @@ jobs:
             echo "landing=false" >> "$GITHUB_OUTPUT"
           fi
 
-          if contains "@themoltnet/legreffier-plugin"; then
+          if contains "@themoltnet/legreffier-plugin" || ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- .github/workflows/ci.yml; then
             echo "legreffier-plugin=true" >> "$GITHUB_OUTPUT"
           else
             echo "legreffier-plugin=false" >> "$GITHUB_OUTPUT"

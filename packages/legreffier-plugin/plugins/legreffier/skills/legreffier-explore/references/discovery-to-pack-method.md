@@ -4,39 +4,21 @@ A repeatable method for mapping a diary's tag structure, cross-referencing
 tags against entry types, and defining a pack strategy. Use this reference
 alongside the explore skill's phases.
 
-## Two paths to packs
-
-After discovery, there are two distinct paths to creating packs:
-
-### Path 1: Agent-curated packs (recommended)
+## Curated packs
 
 The agent reads entries, selects the best ones for a topic, and assembles
-them via `packs_create` with explicit entry IDs and ranking. This is the
-recommended approach because:
+them via `packs_create` with explicit entry IDs and ranking. This approach:
 
 - The agent controls exactly what goes in
 - Ranking is explicit and traceable
 - No dependency on server-side scoring heuristics
 - Works well with the explore skill's manual pack plan output
 
-The explore skill's Phase 5 produces **compile recipe suggestions** — these
+The explore skill's Phase 5 produces **pack recipe suggestions** — these
 are blueprints that guide the agent's manual curation, NOT parameters to
 feed to a server endpoint. Use them to decide which tags to filter by,
 which entry types to emphasize, and what token budget to target. Then
 hand-pick entries and call `packs_create`.
-
-### Path 2: Server-side compile (optional, delegation)
-
-`diaries_compile` delegates entry selection to the server's MMR algorithm.
-Useful when:
-
-- You want a quick draft without reading every entry
-- The diary is too large to curate manually (500+ entries)
-- You're exploring what the server would select for a given prompt
-
-The compile recipes in Phase C of this document describe tuning parameters
-for this path. **This is not mandatory.** If you already know which entries
-belong in the pack, skip compile and go straight to `packs_create`.
 
 ---
 
@@ -84,12 +66,13 @@ Group by purpose:
 | **Rejected alternatives** | `rejected:*`                                               | What was considered and discarded |
 | **Session**               | `scan-session:*`                                           | Batch provenance                  |
 
-### Key insight: tags are AND-only in compile
+### Key insight: combine tag filters deliberately
 
 `include_tags` filters by AND — an entry must have ALL specified tags.
 This means `include_tags: ["scope:database", "incident"]` gives
 database incidents only. To get "database OR incidents", you need
-two separate compiles or a custom pack.
+two separate entry searches, whose selected results can be combined in a
+custom pack.
 
 **Recommended approach: one tag dimension per pack.** Don't cross
 two high-cardinality prefixes in the same include_tags. Instead,
@@ -149,58 +132,53 @@ handoffs and session summaries.
 **Rule of thumb: a pack needs 5+ entries to be useful, 10+ to be robust.**
 
 Below 5, you get a pack that's either too narrow or too sparse. Above 10,
-the compile's MMR diversity kicks in and produces genuinely useful output.
+curate for coverage and remove redundant entries.
 
-## Phase C: Compile Recipe Tuning (server-side path only)
+## Phase C: Pack Recipe Tuning
 
-> **This phase is optional.** It applies only if you choose to delegate
-> entry selection to `diaries_compile`. If you're curating entries manually
-> via `packs_create` (the recommended path), skip to Phase D.
->
-> Even when skipping compile, the parameter guidelines below are useful
-> as mental models — they describe what "good" looks like for each pack
-> type in terms of diversity vs focus, recency vs timelessness, etc.
+Use the guidelines below as mental models for manual curation. They describe
+what "good" looks like for each pack type in terms of diversity versus focus
+and recency versus timelessness.
 
-### Tuning parameters
+### Curation inputs
 
-| Parameter      | Purpose                                                             | Recommended range                      |
-| -------------- | ------------------------------------------------------------------- | -------------------------------------- |
-| `lambda`       | Relevance vs diversity (1.0 = pure relevance, 0.0 = pure diversity) | 0.3-0.7                                |
-| `w_importance` | Weight for entry importance score                                   | 0.5-0.8                                |
-| `w_recency`    | Weight for recency bias                                             | 0 for knowledge, 0.2-0.3 for incidents |
-| `token_budget` | Maximum tokens in the pack                                          | 2000-12000 (match to content density)  |
-| `task_prompt`  | Relevance anchor for MMR scoring                                    | Specific question about the domain     |
+| Input          | Purpose                                    | Guidance                               |
+| -------------- | ------------------------------------------ | -------------------------------------- |
+| Entry rank     | Explicit order in `packs_create --entries` | Put foundational evidence first        |
+| Importance     | Prioritize consequential entries           | Prefer high-importance decisions       |
+| Recency        | Break ties where current behavior matters  | Prefer recent incidents                |
+| `token_budget` | Maximum tokens in the pack                 | 2000-12000, matched to content density |
+| Task intent    | Question the pack should help answer       | Keep it specific to one domain         |
 
 ### Parameter guidelines by pack type
 
 **Orientation packs** (scan observations):
 
-- lambda=0.3 (maximize diversity — you want breadth)
-- w_importance=0.8, w_recency=0 (timeless knowledge)
-- No task_prompt or generic one
+- Maximize breadth and avoid redundant entries
+- Prefer important, timeless knowledge
+- Cover each major subsystem
 
 **Decision packs** (architecture decisions):
 
-- lambda=0.5 (balance relevance and diversity)
-- w_importance=0.8, w_recency=0 (decisions don't expire)
-- task_prompt: the domain area
+- Balance domain relevance and coverage
+- Prefer high-importance decisions
+- Include rejected alternatives when they explain current constraints
 
 **Incident/pitfall packs** (bugs, workarounds):
 
-- lambda=0.4 (lean toward diversity — show different failure modes)
-- w_importance=0.6, w_recency=0.2 (recent incidents more relevant)
-- task_prompt: "common pitfalls and bugs in [area]"
+- Include different failure modes rather than repeated symptoms
+- Prefer recent incidents when behavior changes quickly
+- Preserve the workaround and root cause together
 
-**Subsystem-focused packs** (scope:database, scope:api):
+**Subsystem-focused packs** (`scope:database`, `scope:api`):
 
-- lambda=0.7 (lean toward relevance — stay focused)
-- w_importance=0.8, w_recency=0 (or 0.1 if the area changes fast)
-- entry_types: ["semantic", "episodic"] (skip procedural noise)
-- task_prompt: specific question about the subsystem
+- Stay focused on one subsystem
+- Prefer semantic and episodic entries over procedural noise
+- Include current constraints and representative incidents
 
-### Evaluate compile results
+### Evaluate the selected pack
 
-Look at three metrics:
+Look at two metrics:
 
 1. **Budget utilization** — how much of the token budget was used.
    Below 50% means the tag filter is too narrow or entries are too few.
@@ -210,13 +188,9 @@ Look at three metrics:
    Below 5 is too sparse. Above 20 at full compression suggests
    the filter is too broad.
 
-3. **Compression ratio** — 1.0 means no compression was needed.
-   Below 0.9 means some entries were compressed to fit, which
-   indicates the budget is tight for the entry count.
-
 **Scan packs need generous budgets.** Scan entries are 500-1000+ tokens
-each. At 4000 tokens only ~5 of 13 entries survive at full resolution.
-If the scan content is useful, increase the budget to 8000-12000.
+each. If the scan content is useful, use a budget around 8000-12000 and keep
+the entry selection explicit.
 
 ## Phase D: Pack Strategy Definition
 
@@ -229,19 +203,19 @@ everything in one pack. Agents can load multiple packs for their task.
 
 **Tier 1: Always-useful packs** (pin these)
 
-- Codebase orientation — `source:scan`, lambda=0.3, generous budget (8000+)
-- Architecture decisions — `decision`, semantic only, lambda=0.5, 4000 tokens
-- Incident log — `incident`, episodic only, lambda=0.4, 4000 tokens
+- Codebase orientation — `source:scan`, broad coverage, generous budget (8000+)
+- Architecture decisions — `decision`, semantic only, 4000 tokens
+- Incident log — `incident`, episodic only, 4000 tokens
 
 **Tier 2: Subsystem-focused packs** (build on demand, let expire)
 
-- Per-scope packs — `scope:<X>`, episodic+semantic, lambda=0.7, 3000-4000 tokens
+- Per-scope packs — `scope:<X>`, episodic+semantic, 3000-4000 tokens
 
 **Tier 3: Specialized packs** (per-session, never pin)
 
 - Rejected alternatives — `rejected:*` via search, semantic only
-- Branch context — `branch:feat/X`, all types, lambda=0.5, w_recency=0.3
-- Scan by category — `source:scan` + `scan-category:*`, semantic only, lambda=0.3
+- Branch context — `branch:feat/X`, all types, recent work first
+- Scan by category — `source:scan` + `scan-category:*`, semantic only
 
 ### Generic method for any diary
 
@@ -249,9 +223,9 @@ everything in one pack. Agents can load multiple packs for their task.
    `diary_tags({ diary_id, min_count: 3 })` to filter out noise
 2. Group tags by prefix into dimensions (scope, source, category, etc.)
 3. For each dimension with 5+ distinct entries:
-   a. Test a compile with the dimension's main tag (or read entries manually)
+   a. Read entries matching the dimension's main tag
    b. Evaluate whether the entries are pack-worthy (coherent topic, useful content)
-   c. If viable, curate entries via `packs_create` or delegate via `diaries_compile`
+   c. If viable, curate entries via `packs_create`
 4. Document the pack catalog with parameters
 5. Pin Tier 1 packs (they're always useful)
 6. Build Tier 2 packs on demand (let them expire)

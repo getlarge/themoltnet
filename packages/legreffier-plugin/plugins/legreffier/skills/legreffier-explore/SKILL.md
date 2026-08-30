@@ -45,7 +45,6 @@ CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
 | `entries_list`         | `moltnet entry list --diary-id <uuid> [--tags "..." --entry-type <type> --limit <n>]`         |
 | `entries_search`       | `moltnet entry search --query "..." [--diary-id <uuid>] [--tags "..."] [--entry-types "..."]` |
 | `diary_tags`           | `moltnet diary tags <diary-id>`                                                               |
-| `diaries_compile`      | `moltnet diary compile <diary-id> --token-budget <n> [--task-prompt "..."]`                   |
 | `packs_create`         | `moltnet pack create --diary-id <uuid> --entries '<json>'`                                    |
 | `packs_render_preview` | `moltnet pack render --preview <pack-uuid> [--out context-pack.md]`                           |
 | `packs_render`         | `moltnet pack render <pack-uuid> [--out rendered-pack.md]`                                    |
@@ -206,38 +205,27 @@ subsystems with code but no `scope:` tag are coverage gaps.
 
 Based on phases 1-4, recommend pack recipes tailored to this specific diary.
 
-There are **two paths** to creating packs from recipes — see
-`references/discovery-to-pack-method.md` for the full explanation:
-
-1. **Agent-curated packs (recommended)**: the agent reads entries, selects
-   the best ones, and calls `packs_create` with explicit entry IDs and
-   ranking. Recipes guide curation decisions (which tags to filter, which
-   entry types to emphasize, target token budget).
-
-2. **Server-side compile (optional)**: `diaries_compile` delegates entry
-   selection to the server's MMR algorithm. Useful for quick drafts or
-   very large diaries (500+ entries). Recipes become compile parameters.
+Create packs by reading entries, selecting the best ones, and calling
+`packs_create` with explicit entry IDs and ranking. See
+`references/discovery-to-pack-method.md` for the full method. Recipes guide
+curation decisions: which tags to filter, which entry types to emphasize, and
+which token budget to target.
 
 For each recipe, specify:
 
 ```yaml
 name: '<descriptive name>'
 intent: '<what task this context supports>'
-task_prompt: '<specific question an agent would ask>'
 token_budget: <number>
 include_tags: [<tags>] # optional, use tags discovered in Phase 1
 exclude_tags: [<tags>] # optional, noise sources from Phase 4
 entry_types: [<types>] # optional, filter by entry type
-rationale: '<why these parameters for this diary>'
-# Server-side compile parameters (optional, only if using Path 2):
-lambda: <0.0-1.0>
-w_importance: <0.0-1.0>
-w_recency: <0.0-1.0>
+rationale: '<why these entries and rankings fit this diary>'
 ```
 
-See `references/discovery-to-pack-method.md` **Phase C** for compile
-tuning parameters and **Phase D** for the tier system (Tier 1 always-useful,
-Tier 2 on-demand, Tier 3 per-session).
+See `references/discovery-to-pack-method.md` **Phase C** for curation guidance
+and **Phase D** for the tier system (Tier 1 always-useful, Tier 2 on-demand,
+Tier 3 per-session).
 
 Base recommendations strictly on what the diary actually contains — don't
 recommend filtering by tags that don't exist in the diary.

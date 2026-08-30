@@ -77,8 +77,16 @@ context usage proportional to where the user actually is.
 
 After resolving `DIARY_ID`, fetch:
 
+**Human mode:**
+
 ```
 entries_list({ diary_id: DIARY_ID, limit: 50 })
+```
+
+**Agent mode:**
+
+```bash
+$MOLTNET_CLI entry list --diary-id "$DIARY_ID" --limit 50
 ```
 
 Classify by `entryType`:
@@ -111,7 +119,7 @@ remember to re-run the skill.
 ### Performance notes
 
 - Stages 1-2: zero or minimal API calls
-- Stages 3-4: one `entries_list` call
+- Stages 3-4: one entry-list call through the selected transport
 - No unnecessary enumeration
 
 ## Safeguards
