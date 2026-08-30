@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
+	"github.com/google/uuid"
 )
 
 func writeAgentKeyStoreFixture(t *testing.T, identityID string) string {
@@ -221,6 +222,110 @@ func TestAgentsKeysRotateStoreReplacesSecretAndChecksAgent(t *testing.T) {
 
 type failingWriteSecretProvider struct{}
 
+func (failingWriteSecretProvider) CanWrite() bool             { return true }
 func (failingWriteSecretProvider) Get(string) (string, error) { return "", ErrSecretNotFound }
 func (failingWriteSecretProvider) Set(string, string) error   { return errors.New("keyring locked") }
 func (failingWriteSecretProvider) Delete(string) error        { return nil }
+
+func validIdentityAgentKey(id string) moltnetapi.AgentKey {
+	k := moltnetapi.IdentityAgentKey{
+		ID:           id,
+		AgentId:      uuid.MustParse(testAgentID),
+		BindingScope: moltnetapi.IdentityAgentKeyBindingScopeIdentity,
+		Name:         id,
+		Scopes:       []moltnetapi.CredentialScope{},
+		Status:       moltnetapi.AgentKeyStatusActive,
+	}
+	k.CreatedAt.SetToNull()
+	k.ExpiresAt.SetToNull()
+	k.LastUsedAt.SetToNull()
+	k.RevocationDescription.SetToNull()
+	k.RevocationReason.SetToNull()
+	k.UpdatedAt.SetToNull()
+	return moltnetapi.NewIdentityAgentKeyAgentKey(k)
+}
+
+func TestAgentsKeysRotateStoreHandlesIdentityScopedKeys(t *testing.T) {
+	const secret = "sk_live_identity_rotated"
+	credentialsPath := writeAgentKeyStoreFixture(t, testAgentID)
+	registry, provider := newMemorySecretProviderRegistry()
+	handler := agentKeyCreateStubSecret(secret)
+	handler.rotate = func(_ moltnetapi.RotateAgentKeyParams) moltnetapi.RotateAgentKeyRes {
+		return &moltnetapi.AgentKeyWithSecret{Key: validIdentityAgentKey("key-id"), Secret: secret}
+	}
+	_, _, client := newTestServer(t, handler)
+
+	var out, errOut bytes.Buffer
+	err := runAgentsKeysRotateWithClient(context.Background(), client, agentsKeysRotateOpts{
+		credPath: credentialsPath, identityScoped: true, keyID: "key-id",
+		store: agentKeyStoreOpts{enabled: true, secretProviders: registry}, out: &out, errOut: &errOut,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if provider.values[AgentKeyKey(testAgentID)] != secret || strings.Contains(out.String(), secret) {
+		t.Fatalf("identity-scoped rotation not stored silently: %s", out.String())
+	}
+	if id, ok := agentKeyAgentID(validIdentityAgentKey("x")); !ok || id != testAgentID {
+		t.Fatalf("agentKeyAgentID(identity) = %q, %v", id, ok)
+	}
+	if _, ok := agentKeyAgentID(moltnetapi.AgentKey{}); ok {
+		t.Fatal("empty union must not report an agent id")
+	}
+}
+
+// echoingSecretProvider accepts writes but always reads back a different
+// value, modelling a store that normalizes or truncates secrets.
+type echoingSecretProvider struct{ writes int }
+
+func (p *echoingSecretProvider) CanWrite() bool             { return true }
+func (p *echoingSecretProvider) Get(string) (string, error) { return "normalized-elsewhere", nil }
+func (p *echoingSecretProvider) Set(string, string) error   { p.writes++; return nil }
+func (p *echoingSecretProvider) Delete(string) error        { return nil }
+
+func TestAgentsKeysCreateStoreTreatsReadBackMismatchAsStorageFailure(t *testing.T) {
+	const secret = "sk_live_readback"
+	credentialsPath := writeAgentKeyStoreFixture(t, testAgentID)
+	registry := NewSecretProviderRegistry()
+	provider := &echoingSecretProvider{}
+	registry.Register(osKeyringProviderName, provider)
+	_, _, client := newTestServer(t, agentKeyCreateStubSecret(secret))
+
+	var out, errOut bytes.Buffer
+	err := runAgentsKeysCreateWithClient(context.Background(), client, agentsKeysCreateOpts{
+		credPath: credentialsPath, teamID: testTeamID, agentID: testAgentID, name: "daemon",
+		store: agentKeyStoreOpts{enabled: true, secretProviders: registry}, out: &out, errOut: &errOut,
+	})
+	if err == nil || !strings.Contains(err.Error(), "verify stored agent key") || !strings.Contains(err.Error(), "store it yourself") {
+		t.Fatalf("expected verification recovery error, got %v", err)
+	}
+	if provider.writes != 1 {
+		t.Fatalf("expected exactly one write, got %d", provider.writes)
+	}
+	var result storedAgentKeyOutput
+	if jerr := json.Unmarshal(out.Bytes(), &result); jerr != nil || result.Secret != secret {
+		t.Fatalf("recovery JSON must carry the secret: %v %+v", jerr, result)
+	}
+	if creds, _ := ReadConfigFrom(credentialsPath); creds.AgentKeyRef != nil {
+		t.Fatal("agent_key_ref must not be written after a read-back mismatch")
+	}
+}
+
+func TestAgentsKeysStoreFlagsParseThroughCobra(t *testing.T) {
+	for _, sub := range [][]string{
+		{"create", "--team-id", testTeamID, "--agent-id", testAgentID, "--name", "d"},
+		{"rotate", "key-1", "--team-id", testTeamID},
+	} {
+		t.Run(sub[0], func(t *testing.T) {
+			root := NewRootCmd("test", "")
+			args := append([]string{"agents", "keys"}, sub...)
+			args = append(args, "--store", "--destination", "env", "--credentials", filepath.Join(t.TempDir(), "moltnet.json"), "--api-url", "https://api.example.test")
+			_, _, err := executeCommand(root, args...)
+			// The destination check runs before credentials or the network,
+			// so a read-only destination is the first thing to fail.
+			if err == nil || !strings.Contains(err.Error(), "read-only") {
+				t.Fatalf("--store/--destination not wired for %s: %v", sub[0], err)
+			}
+		})
+	}
+}

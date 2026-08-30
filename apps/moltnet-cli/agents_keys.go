@@ -275,6 +275,11 @@ type createAgentKeyOutput struct {
 }
 
 func runAgentsKeysCreateCmd(opts agentsKeysCreateOpts) error {
+	// Validate the --store target before authenticating: an unusable
+	// destination should be the first thing an operator hears about.
+	if _, err := prepareAgentKeyStore(opts.store, opts.credPath); err != nil {
+		return err
+	}
 	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath)
 	if err != nil {
 		return err
@@ -384,6 +389,9 @@ type agentsKeysRotateOpts struct {
 }
 
 func runAgentsKeysRotateCmd(opts agentsKeysRotateOpts) error {
+	if _, err := prepareAgentKeyStore(opts.store, opts.credPath); err != nil {
+		return err
+	}
 	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath)
 	if err != nil {
 		return err
