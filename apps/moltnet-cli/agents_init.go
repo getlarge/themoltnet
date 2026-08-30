@@ -432,6 +432,7 @@ func rejectAgentPathSymlinks(agentDir string) error {
 	for _, relativePath := range []string{
 		"moltnet.json",
 		agentsInitStateFile,
+		configPortStateFile,
 		"env",
 		"gitconfig",
 		"ssh",
