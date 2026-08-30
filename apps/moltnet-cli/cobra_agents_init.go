@@ -21,6 +21,7 @@ and are deliberately outside this command.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.apiURL, _ = cmd.Flags().GetString("api-url")
+			opts.apiURLExplicit = cmd.Flag("api-url").Changed
 			opts.out = cmd.OutOrStdout()
 			opts.errOut = cmd.ErrOrStderr()
 			return runAgentsInitCmd(opts)

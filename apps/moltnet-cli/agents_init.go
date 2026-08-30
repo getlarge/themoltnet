@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -16,25 +17,38 @@ import (
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 )
 
-const agentsInitStateFile = "init-state.json"
+const (
+	agentsInitStateFile           = "init-state.json"
+	agentsInitPhaseStarted        = "started"
+	agentsInitPhaseGitHubApp      = "github_app_ready"
+	agentsInitPhaseRemoteComplete = "remote_complete"
+)
+
+var agentNamePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$`)
 
 type agentsInitOpts struct {
-	apiURL  string
-	name    string
-	org     string
-	dir     string
-	noOpen  bool
-	timeout time.Duration
-	out     io.Writer
-	errOut  io.Writer
+	apiURL         string
+	apiURLExplicit bool
+	name           string
+	org            string
+	dir            string
+	noOpen         bool
+	timeout        time.Duration
+	out            io.Writer
+	errOut         io.Writer
 }
 
 type agentsInitState struct {
-	WorkflowID     string `json:"workflowId"`
-	ManifestURL    string `json:"manifestUrl"`
-	AppID          string `json:"appId,omitempty"`
-	AppSlug        string `json:"appSlug,omitempty"`
-	InstallationID string `json:"installationId,omitempty"`
+	WorkflowID             string `json:"workflowId"`
+	ManifestURL            string `json:"manifestUrl"`
+	Phase                  string `json:"phase"`
+	AppID                  string `json:"appId,omitempty"`
+	AppSlug                string `json:"appSlug,omitempty"`
+	SealedGitHubPrivateKey string `json:"sealedGitHubPrivateKey,omitempty"`
+	IdentityID             string `json:"identityId,omitempty"`
+	ClientID               string `json:"clientId,omitempty"`
+	SealedClientSecret     string `json:"sealedClientSecret,omitempty"`
+	InstallationID         string `json:"installationId,omitempty"`
 }
 
 type githubManifestCredentials struct {
@@ -44,8 +58,8 @@ type githubManifestCredentials struct {
 }
 
 func runAgentsInitCmd(opts agentsInitOpts) error {
-	if strings.TrimSpace(opts.name) == "" {
-		return fmt.Errorf("--name is required")
+	if err := validateAgentName(opts.name); err != nil {
+		return err
 	}
 	if opts.timeout <= 0 {
 		return fmt.Errorf("--timeout must be greater than zero")
@@ -61,38 +75,45 @@ func runAgentsInitCmd(opts agentsInitOpts) error {
 	if err != nil {
 		return fmt.Errorf("resolve repository root: %w", err)
 	}
-	agentDir := filepath.Join(repoRoot, ".moltnet", opts.name)
+	agentDir, err := prepareAgentDirectory(repoRoot, opts.name)
+	if err != nil {
+		return err
+	}
 	configPath := filepath.Join(agentDir, "moltnet.json")
 	statePath := filepath.Join(agentDir, agentsInitStateFile)
-	if err := os.MkdirAll(agentDir, 0o700); err != nil {
-		return fmt.Errorf("create agent directory: %w", err)
-	}
 
 	creds, err := ReadConfigFrom(configPath)
 	if err != nil {
 		return err
 	}
-	if agentInitComplete(creds) {
-		fmt.Fprintf(opts.out, "Agent %s is already initialized at %s\n", opts.name, configPath)
-		return nil
+	state, err := readAgentsInitState(statePath)
+	if err != nil {
+		return err
 	}
+	if state != nil && creds == nil {
+		return fmt.Errorf("initialization state exists but credentials are missing: %s", configPath)
+	}
+	apiURL := strings.TrimRight(
+		resolveAPIURLFromCredentials(opts.apiURL, opts.apiURLExplicit, creds),
+		"/",
+	)
 
 	provider := OSKeyringSecretProvider{}
 	if err := preflightAgentInitKeyring(provider); err != nil {
 		return err
 	}
-
-	state, err := readAgentsInitState(statePath)
-	if err != nil {
-		return err
-	}
-	apiURL := strings.TrimRight(opts.apiURL, "/")
-	if apiURL == "" {
-		apiURL = defaultAPIURL
+	if state == nil && agentInitRemoteComplete(creds) {
+		if err := completeLocalAgentInit(opts, repoRoot, agentDir, configPath, creds); err != nil {
+			return err
+		}
+		fmt.Fprintf(opts.out, "Agent %s is already initialized at %s\n", opts.name, configPath)
+		return nil
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), opts.timeout)
+	defer cancel()
 	if state == nil {
-		creds, state, err = startAgentsInit(apiURL, opts, configPath, statePath, provider)
+		creds, state, err = startAgentsInit(ctx, apiURL, opts, configPath, statePath, provider)
 		if err != nil {
 			return err
 		}
@@ -108,14 +129,12 @@ func runAgentsInitCmd(opts agentsInitOpts) error {
 	if err != nil {
 		return err
 	}
-	deadline := time.Now().Add(opts.timeout)
-
-	if state.AppID == "" {
+	if state.Phase == agentsInitPhaseStarted {
 		announceBrowserStep(opts, "Create the GitHub App", state.ManifestURL)
 		status, pollErr := pollAgentsInit(
+			ctx,
 			client,
 			state.WorkflowID,
-			deadline,
 			moltnetapi.GetLegreffierOnboardingStatusOKStatusGithubCodeReady,
 			moltnetapi.GetLegreffierOnboardingStatusOKStatusAwaitingInstallation,
 			moltnetapi.GetLegreffierOnboardingStatusOKStatusCompleted,
@@ -131,99 +150,118 @@ func runAgentsInitCmd(opts agentsInitOpts) error {
 		if decryptErr != nil {
 			return fmt.Errorf("decrypt GitHub manifest code: %w", decryptErr)
 		}
-		githubCreds, exchangeErr := exchangeGitHubManifest(code)
+		githubCreds, exchangeErr := exchangeGitHubManifest(ctx, newAPIHTTPClient(), code)
 		if exchangeErr != nil {
 			return exchangeErr
 		}
+		sealedPEM, sealErr := EncryptForAgent(githubCreds.PEM, creds.Keys.PublicKey)
+		if sealErr != nil {
+			return fmt.Errorf("seal GitHub App private key for resume: %w", sealErr)
+		}
 		state.AppID = fmt.Sprintf("%d", githubCreds.ID)
 		state.AppSlug = githubCreds.Slug
-		githubRef := SecretReference{
-			Provider: osKeyringProviderName,
-			Key:      GitHubAppPrivateKeyKey(state.AppID),
-		}
-		if err := provider.Set(githubRef.Key, githubCreds.PEM); err != nil {
-			return fmt.Errorf("store GitHub App private key: %w", err)
-		}
-		creds.GitHub = &GitHubSection{
-			AppID: state.AppID, AppSlug: state.AppSlug,
-			PrivateKeyRef: &githubRef, Org: opts.org,
-		}
-		if _, err := WriteConfigTo(creds, configPath); err != nil {
-			return err
-		}
+		state.SealedGitHubPrivateKey = sealedPEM
+		state.Phase = agentsInitPhaseGitHubApp
 		if err := writeAgentsInitState(statePath, state); err != nil {
 			return err
 		}
 	}
 
-	installURL := fmt.Sprintf("https://github.com/apps/%s/installations/new", state.AppSlug)
-	announceBrowserStep(opts, "Install the GitHub App", installURL)
-	status, err := pollAgentsInit(
-		client,
-		state.WorkflowID,
-		deadline,
-		moltnetapi.GetLegreffierOnboardingStatusOKStatusCompleted,
-	)
-	if err != nil {
-		return err
+	if state.Phase == agentsInitPhaseGitHubApp || state.Phase == agentsInitPhaseRemoteComplete {
+		githubPEM, decryptErr := DecryptFromAgent(state.SealedGitHubPrivateKey, seed)
+		if decryptErr != nil {
+			return fmt.Errorf("decrypt checkpointed GitHub App private key: %w", decryptErr)
+		}
+		githubRef := SecretReference{
+			Provider: osKeyringProviderName,
+			Key:      GitHubAppPrivateKeyKey(state.AppID),
+		}
+		if err := provider.Set(githubRef.Key, githubPEM); err != nil {
+			return fmt.Errorf("store GitHub App private key: %w", err)
+		}
+		org := opts.org
+		if org == "" && creds.GitHub != nil {
+			org = creds.GitHub.Org
+		}
+		creds.GitHub = &GitHubSection{
+			AppID: state.AppID, AppSlug: state.AppSlug,
+			PrivateKeyRef: &githubRef, Org: org,
+		}
+		if _, err := WriteConfigTo(creds, configPath); err != nil {
+			return err
+		}
 	}
 
-	identityID, ok := status.IdentityId.Get()
-	if !ok || identityID == "" {
-		return fmt.Errorf("completed onboarding did not include an identity ID")
+	if state.Phase != agentsInitPhaseRemoteComplete {
+		installURL := fmt.Sprintf("https://github.com/apps/%s/installations/new", state.AppSlug)
+		announceBrowserStep(opts, "Install the GitHub App", installURL)
+		status, pollErr := pollAgentsInit(
+			ctx,
+			client,
+			state.WorkflowID,
+			moltnetapi.GetLegreffierOnboardingStatusOKStatusCompleted,
+		)
+		if pollErr != nil {
+			return pollErr
+		}
+		identityID, ok := status.IdentityId.Get()
+		if !ok || identityID == "" {
+			return fmt.Errorf("completed onboarding did not include an identity ID")
+		}
+		clientID, ok := status.ClientId.Get()
+		if !ok || clientID == "" {
+			return fmt.Errorf("completed onboarding did not include an OAuth2 client ID")
+		}
+		sealedSecret, ok := status.ClientSecret.Get()
+		if !ok || sealedSecret == "" {
+			return fmt.Errorf("completed onboarding did not include the sealed OAuth2 secret")
+		}
+		installationID, ok := status.InstallationId.Get()
+		if !ok || installationID == "" {
+			return fmt.Errorf("completed onboarding did not include a GitHub installation ID")
+		}
+		state.IdentityID = identityID
+		state.ClientID = clientID
+		state.SealedClientSecret = sealedSecret
+		state.InstallationID = installationID
+		state.Phase = agentsInitPhaseRemoteComplete
+		if err := writeAgentsInitState(statePath, state); err != nil {
+			return err
+		}
 	}
-	clientID, ok := status.ClientId.Get()
-	if !ok || clientID == "" {
-		return fmt.Errorf("completed onboarding did not include an OAuth2 client ID")
-	}
-	sealedSecret, ok := status.ClientSecret.Get()
-	if !ok || sealedSecret == "" {
-		return fmt.Errorf("completed onboarding did not include the sealed OAuth2 secret")
-	}
-	clientSecret, err := DecryptFromAgent(sealedSecret, seed)
-	if err != nil {
-		return fmt.Errorf("decrypt OAuth2 client secret: %w", err)
-	}
-	installationID, _ := status.InstallationId.Get()
 
+	clientSecret, err := DecryptFromAgent(state.SealedClientSecret, seed)
+	if err != nil {
+		return fmt.Errorf("decrypt checkpointed OAuth2 client secret: %w", err)
+	}
 	oauthRef := SecretReference{
 		Provider: osKeyringProviderName,
-		Key:      OAuth2SecretKey(identityID, clientID),
+		Key:      OAuth2SecretKey(state.IdentityID, state.ClientID),
 	}
 	if err := provider.Set(oauthRef.Key, clientSecret); err != nil {
 		return fmt.Errorf("store OAuth2 client secret: %w", err)
 	}
-	creds.IdentityID = identityID
-	creds.OAuth2 = CredentialsOAuth2{ClientID: clientID, ClientSecretRef: &oauthRef}
+	creds.IdentityID = state.IdentityID
+	creds.OAuth2 = CredentialsOAuth2{ClientID: state.ClientID, ClientSecretRef: &oauthRef}
 	creds.RegisteredAt = time.Now().UTC().Format(time.RFC3339Nano)
-	creds.GitHub.InstallationID = installationID
+	creds.GitHub.InstallationID = state.InstallationID
 	if _, err := WriteConfigTo(creds, configPath); err != nil {
 		return err
 	}
 
-	if err := runSSHKeyExportCmd(configPath, filepath.Join(agentDir, "ssh")); err != nil {
-		return err
-	}
-	if err := runGitHubSetupCmd(configPath, opts.name, state.AppSlug); err != nil {
-		return err
-	}
-	if err := writeAgentEnv(agentDir, opts.name, clientID, state.AppID, installationID, creds.Keys.Fingerprint); err != nil {
+	if err := completeLocalAgentInit(opts, repoRoot, agentDir, configPath, creds); err != nil {
 		return err
 	}
 	if err := os.Remove(statePath); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("remove initialization state: %w", err)
 	}
-	if err := runAgentsActivationRefreshCmd(io.Discard, repoRoot, opts.name, false); err != nil {
-		return fmt.Errorf("refresh activation cache: %w", err)
-	}
-
 	fmt.Fprintf(opts.out, "Initialized %s (%s)\n", opts.name, creds.Keys.Fingerprint)
 	fmt.Fprintf(opts.out, "Credentials: %s\n", configPath)
 	fmt.Fprintln(opts.out, "Install the LeGreffier plugin in your agent host to add skills, hooks, and MCP access.")
 	return nil
 }
 
-func startAgentsInit(apiURL string, opts agentsInitOpts, configPath, statePath string, provider OSKeyringSecretProvider) (*CredentialsFile, *agentsInitState, error) {
+func startAgentsInit(ctx context.Context, apiURL string, opts agentsInitOpts, configPath, statePath string, provider OSKeyringSecretProvider) (*CredentialsFile, *agentsInitState, error) {
 	kp, err := GenerateKeyPair()
 	if err != nil {
 		return nil, nil, err
@@ -250,7 +288,7 @@ func startAgentsInit(apiURL string, opts agentsInitOpts, configPath, statePath s
 	if opts.org != "" {
 		req.Org = moltnetapi.NewOptString(opts.org)
 	}
-	res, err := client.StartLegreffierOnboarding(context.Background(), req, moltnetapi.StartLegreffierOnboardingParams{IdempotencyKey: nonce})
+	res, err := client.StartLegreffierOnboarding(ctx, req, moltnetapi.StartLegreffierOnboardingParams{IdempotencyKey: nonce})
 	if err != nil {
 		return nil, nil, fmt.Errorf("start onboarding: %w", formatTransportError(err))
 	}
@@ -270,7 +308,7 @@ func startAgentsInit(apiURL string, opts agentsInitOpts, configPath, statePath s
 	if _, err := WriteConfigTo(creds, configPath); err != nil {
 		return nil, nil, err
 	}
-	state := &agentsInitState{WorkflowID: started.WorkflowId, ManifestURL: started.ManifestFormUrl}
+	state := &agentsInitState{WorkflowID: started.WorkflowId, ManifestURL: started.ManifestFormUrl, Phase: agentsInitPhaseStarted}
 	if err := writeAgentsInitState(statePath, state); err != nil {
 		return nil, nil, err
 	}
@@ -286,13 +324,13 @@ func newPublicAPIClient(apiURL string) (*moltnetapi.Client, error) {
 	return client, nil
 }
 
-func pollAgentsInit(client *moltnetapi.Client, workflowID string, deadline time.Time, targets ...moltnetapi.GetLegreffierOnboardingStatusOKStatus) (*moltnetapi.GetLegreffierOnboardingStatusOK, error) {
+func pollAgentsInit(ctx context.Context, client *moltnetapi.Client, workflowID string, targets ...moltnetapi.GetLegreffierOnboardingStatusOKStatus) (*moltnetapi.GetLegreffierOnboardingStatusOK, error) {
 	wanted := make(map[moltnetapi.GetLegreffierOnboardingStatusOKStatus]bool, len(targets))
 	for _, target := range targets {
 		wanted[target] = true
 	}
-	for time.Now().Before(deadline) {
-		res, err := client.GetLegreffierOnboardingStatus(context.Background(), moltnetapi.GetLegreffierOnboardingStatusParams{WorkflowId: workflowID})
+	for {
+		res, err := client.GetLegreffierOnboardingStatus(ctx, moltnetapi.GetLegreffierOnboardingStatusParams{WorkflowId: workflowID})
 		if err != nil {
 			return nil, fmt.Errorf("poll onboarding: %w", formatTransportError(err))
 		}
@@ -306,20 +344,23 @@ func pollAgentsInit(client *moltnetapi.Client, workflowID string, deadline time.
 		if wanted[status.Status] {
 			return status, nil
 		}
-		time.Sleep(time.Second)
+		select {
+		case <-ctx.Done():
+			return nil, fmt.Errorf("timed out waiting for GitHub onboarding: %w", ctx.Err())
+		case <-time.After(time.Second):
+		}
 	}
-	return nil, fmt.Errorf("timed out waiting for GitHub onboarding")
 }
 
-func exchangeGitHubManifest(code string) (*githubManifestCredentials, error) {
+func exchangeGitHubManifest(ctx context.Context, client *http.Client, code string) (*githubManifestCredentials, error) {
 	url := fmt.Sprintf("%s/app-manifests/%s/conversions", strings.TrimRight(githubAPIBaseURL, "/"), code)
-	req, err := http.NewRequest(http.MethodPost, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
 	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
-	res, err := http.DefaultClient.Do(req)
+	res, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("exchange GitHub manifest: %w", err)
 	}
@@ -348,6 +389,96 @@ func announceBrowserStep(opts agentsInitOpts, label, url string) {
 	}
 }
 
+func validateAgentName(name string) error {
+	if !agentNamePattern.MatchString(name) {
+		return fmt.Errorf("--name must be 1-63 characters using only letters, numbers, '.', '_', or '-', and must start with a letter or number")
+	}
+	return nil
+}
+
+func prepareAgentDirectory(repoRoot, agentName string) (string, error) {
+	moltnetDir := filepath.Join(repoRoot, ".moltnet")
+	if err := os.MkdirAll(moltnetDir, 0o700); err != nil {
+		return "", fmt.Errorf("create .moltnet directory: %w", err)
+	}
+	resolvedMoltnetDir, err := filepath.EvalSymlinks(moltnetDir)
+	if err != nil {
+		return "", fmt.Errorf("resolve .moltnet directory: %w", err)
+	}
+	agentDir := filepath.Join(moltnetDir, agentName)
+	if info, statErr := os.Lstat(agentDir); statErr == nil && info.Mode()&os.ModeSymlink != 0 {
+		return "", fmt.Errorf("agent directory must not be a symbolic link: %s", agentDir)
+	} else if statErr != nil && !os.IsNotExist(statErr) {
+		return "", fmt.Errorf("inspect agent directory: %w", statErr)
+	}
+	if err := os.MkdirAll(agentDir, 0o700); err != nil {
+		return "", fmt.Errorf("create agent directory: %w", err)
+	}
+	resolvedAgentDir, err := filepath.EvalSymlinks(agentDir)
+	if err != nil {
+		return "", fmt.Errorf("resolve agent directory: %w", err)
+	}
+	rel, err := filepath.Rel(resolvedMoltnetDir, resolvedAgentDir)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("agent directory escapes repository .moltnet directory")
+	}
+	if err := rejectAgentPathSymlinks(agentDir); err != nil {
+		return "", err
+	}
+	return agentDir, nil
+}
+
+func rejectAgentPathSymlinks(agentDir string) error {
+	for _, relativePath := range []string{
+		"moltnet.json",
+		agentsInitStateFile,
+		"env",
+		"gitconfig",
+		"ssh",
+		filepath.Join("ssh", "id_ed25519"),
+		filepath.Join("ssh", "id_ed25519.pub"),
+	} {
+		path := filepath.Join(agentDir, relativePath)
+		info, err := os.Lstat(path)
+		if err == nil && info.Mode()&os.ModeSymlink != 0 {
+			return fmt.Errorf("managed agent path must not be a symbolic link: %s", path)
+		}
+		if err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("inspect managed agent path: %w", err)
+		}
+	}
+	return nil
+}
+
+func completeLocalAgentInit(opts agentsInitOpts, repoRoot, agentDir, configPath string, creds *CredentialsFile) error {
+	if !agentInitRemoteComplete(creds) {
+		return fmt.Errorf("cannot complete local setup before remote credentials are complete")
+	}
+	if err := rejectAgentPathSymlinks(agentDir); err != nil {
+		return err
+	}
+	if err := runSSHKeyExportCmd(configPath, filepath.Join(agentDir, "ssh")); err != nil {
+		return err
+	}
+	if err := runGitHubSetupCmd(configPath, opts.name, creds.GitHub.AppSlug); err != nil {
+		return err
+	}
+	if err := writeAgentEnv(
+		agentDir,
+		opts.name,
+		creds.OAuth2.ClientID,
+		creds.GitHub.AppID,
+		creds.GitHub.InstallationID,
+		creds.Keys.Fingerprint,
+	); err != nil {
+		return err
+	}
+	if err := runAgentsActivationRefreshCmd(io.Discard, repoRoot, opts.name, false); err != nil {
+		return fmt.Errorf("refresh activation cache: %w", err)
+	}
+	return nil
+}
+
 func openBrowser(url string) error {
 	var command string
 	var args []string
@@ -373,7 +504,7 @@ func preflightAgentInitKeyring(provider OSKeyringSecretProvider) error {
 	return nil
 }
 
-func agentInitComplete(creds *CredentialsFile) bool {
+func agentInitRemoteComplete(creds *CredentialsFile) bool {
 	return creds != nil && creds.IdentityID != "" && creds.OAuth2.ClientID != "" &&
 		creds.GitHub != nil && creds.GitHub.AppID != "" && creds.GitHub.InstallationID != ""
 }
@@ -392,6 +523,33 @@ func readAgentsInitState(path string) (*agentsInitState, error) {
 	}
 	if state.WorkflowID == "" {
 		return nil, fmt.Errorf("initialization state is missing workflowId")
+	}
+	if state.Phase == "" {
+		switch {
+		case state.IdentityID != "" || state.ClientID != "" || state.InstallationID != "":
+			state.Phase = agentsInitPhaseRemoteComplete
+		case state.AppID != "":
+			state.Phase = agentsInitPhaseGitHubApp
+		default:
+			state.Phase = agentsInitPhaseStarted
+		}
+	}
+	switch state.Phase {
+	case agentsInitPhaseStarted:
+		if state.ManifestURL == "" {
+			return nil, fmt.Errorf("started initialization checkpoint is missing manifestUrl")
+		}
+	case agentsInitPhaseGitHubApp:
+		if state.AppID == "" || state.AppSlug == "" || state.SealedGitHubPrivateKey == "" {
+			return nil, fmt.Errorf("GitHub App checkpoint is incomplete")
+		}
+	case agentsInitPhaseRemoteComplete:
+		if state.AppID == "" || state.AppSlug == "" || state.SealedGitHubPrivateKey == "" ||
+			state.IdentityID == "" || state.ClientID == "" || state.SealedClientSecret == "" || state.InstallationID == "" {
+			return nil, fmt.Errorf("remote-complete initialization checkpoint is incomplete")
+		}
+	default:
+		return nil, fmt.Errorf("initialization state has unknown phase %q", state.Phase)
 	}
 	return &state, nil
 }
@@ -412,7 +570,8 @@ func writeAgentEnv(agentDir, agentName, clientID, appID, installationID, fingerp
 	prefix := toEnvPrefix(agentName)
 	content := fmt.Sprintf(
 		"%s_CLIENT_ID='%s'\n%s_GITHUB_APP_ID='%s'\n%s_GITHUB_APP_INSTALLATION_ID='%s'\nGIT_CONFIG_GLOBAL='.moltnet/%s/gitconfig'\nMOLTNET_AGENT_NAME='%s'\nMOLTNET_FINGERPRINT='%s'\n",
-		prefix, clientID, prefix, appID, prefix, installationID, agentName, agentName, fingerprint,
+		prefix, shellQuote(clientID), prefix, shellQuote(appID), prefix, shellQuote(installationID),
+		shellQuote(agentName), shellQuote(agentName), shellQuote(fingerprint),
 	)
 	path := filepath.Join(agentDir, "env")
 	if err := writeFileAtomic(path, []byte(content)); err != nil {
