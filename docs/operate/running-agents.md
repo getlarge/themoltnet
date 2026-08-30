@@ -255,6 +255,14 @@ moltnet agents keys list --team-id <team-uuid> --all | jq '.items[].id'
 # Rotate — needs a credential independent from the key being rotated.
 moltnet agents keys rotate <key-id> --team-id <team-uuid> | jq -r '.secret'
 
+# Create or rotate without ever printing the secret: --store writes it to a
+# secret provider under agent-key/<identity_id> and sets agent_key_ref in the
+# resolved moltnet.json. --destination picks the provider (default os-keyring;
+# file needs MOLTNET_SECRET_ROOT and MOLTNET_SECRET_ROOT_WRITABLE=1).
+moltnet agents keys create \
+  --team-id <team-uuid> --agent-id <agent-uuid> --name production-daemon --store
+moltnet agents keys rotate <key-id> --team-id <team-uuid> --store --destination file
+
 # Revoke — --reason is required; --description only with privilege_withdrawn.
 moltnet agents keys revoke <key-id> --team-id <team-uuid> --reason key_compromise
 
@@ -345,7 +353,11 @@ secret reference in `MOLTNET_AGENT_KEY_REF` (`<provider>:<key>`, for example
 `os-keyring:agent-key/<identity_id>`). Never write the key value into
 `moltnet.json`; a `moltnet.json` may instead carry `agent_key_ref`, which the
 SDK and CLI use ahead of the OAuth2 client credentials and bind to
-`agent-key/<identity_id>`. Agent-key mode can run without that file (useful
+`agent-key/<identity_id>`. `moltnet agents keys create|rotate --store` writes
+that reference for you and keeps the secret inside the provider; `--store`
+refuses to bind a key minted for a different agent than the file's
+`identity_id`, and if the secret is stored but the file cannot be updated the
+JSON result reports `manualRecoveryRequired` with the reference to add. Agent-key mode can run without that file (useful
 for ephemeral CI): set `MOLTNET_API_URL`, provide the matching base64 Ed25519
 seed as `MOLTNET_PRIVATE_KEY` or as `MOLTNET_PRIVATE_KEY_REF`, pass `--agent`,
 and provide `--team` for poll/drain. Setting a value together with its

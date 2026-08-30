@@ -159,6 +159,8 @@ func TestSecretsGuardAllowsSafeOperations(t *testing.T) {
 		`moltnet signing-requests list --credentials=.moltnet/agent/moltnet.json`,
 		`moltnet config migrate --credentials .moltnet/agent/moltnet.json --dry-run`,
 		`moltnet config migrate --credentials .moltnet/agent/moltnet.json --destination os-keyring`,
+		`moltnet agents keys create --team-id team --agent-id agent --name daemon --store --credentials .moltnet/agent/moltnet.json`,
+		`moltnet agents keys rotate key --team-id team --store --destination os-keyring`,
 		`GH_TOKEN=$(moltnet github token --credentials .moltnet/agent/moltnet.json) gh pr view 1`,
 	}
 	for _, command := range commands {

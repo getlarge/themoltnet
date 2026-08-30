@@ -91,7 +91,8 @@ a second credential.`,
 		Example: `  moltnet agents keys create --team-id <uuid> --agent-id <uuid> --name ci-runner
 	  moltnet agents keys create --identity-scoped --agent-id <uuid> --name portable-runner
   moltnet agents keys create --team-id <uuid> --agent-id <uuid> --name ci-runner \
-    --ttl-days 30 --idempotency-key 7c9e...`,
+    --ttl-days 30 --idempotency-key 7c9e...
+  moltnet agents keys create --team-id <uuid> --agent-id <uuid> --name daemon --store`,
 		Args:    cobra.NoArgs,
 		PreRunE: validateAgentKeyBindingFlags,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -107,6 +108,7 @@ a second credential.`,
 				ttlSet:         cmd.Flags().Changed("ttl-days"),
 				idempotencyKey: flagString(cmd, "idempotency-key"),
 				idempotencySet: cmd.Flags().Changed("idempotency-key"),
+				store:          agentKeyStoreFlags(cmd),
 				out:            cmd.OutOrStdout(),
 				errOut:         cmd.ErrOrStderr(),
 			})
@@ -118,6 +120,7 @@ a second credential.`,
 	cmd.Flags().String("name", "", "Human-readable key name (required)")
 	cmd.Flags().Int("ttl-days", 0, "Key lifetime in days (server default applies if unset)")
 	cmd.Flags().String("idempotency-key", "", "Idempotency key for safe retries (generated if unset)")
+	addAgentKeyStoreFlags(cmd)
 	_ = cmd.MarkFlagRequired("agent-id")
 	_ = cmd.MarkFlagRequired("name")
 	return cmd
@@ -132,7 +135,8 @@ func newAgentsKeysRotateCmd() *cobra.Command {
 The new secret is returned exactly once, in the command result. Rotation
 requires a credential independent from the key being rotated — a key cannot
 rotate itself — so authenticate with OAuth2, another key, or as a team manager.`,
-		Example: `  moltnet agents keys rotate <key-id> --team-id <uuid>`,
+		Example: `  moltnet agents keys rotate <key-id> --team-id <uuid>
+  moltnet agents keys rotate <key-id> --team-id <uuid> --store`,
 		Args:    cobra.ExactArgs(1),
 		PreRunE: validateAgentKeyBindingFlags,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -143,6 +147,7 @@ rotate itself — so authenticate with OAuth2, another key, or as a team manager
 				teamID:         flagString(cmd, "team-id"),
 				identityScoped: flagBool(cmd, "identity-scoped"),
 				keyID:          args[0],
+				store:          agentKeyStoreFlags(cmd),
 				out:            cmd.OutOrStdout(),
 				errOut:         cmd.ErrOrStderr(),
 			})
@@ -150,7 +155,23 @@ rotate itself — so authenticate with OAuth2, another key, or as a team manager
 	}
 	cmd.Flags().String("team-id", "", "Team UUID (mutually exclusive with --identity-scoped)")
 	cmd.Flags().Bool("identity-scoped", false, "Rotate an identity-scoped key")
+	addAgentKeyStoreFlags(cmd)
 	return cmd
+}
+
+// addAgentKeyStoreFlags wires --store/--destination: the secret goes to a
+// provider and moltnet.json gains agent_key_ref instead of the secret being
+// printed.
+func addAgentKeyStoreFlags(cmd *cobra.Command) {
+	cmd.Flags().Bool("store", false, "Store the secret in a provider under agent-key/<identity_id> and set agent_key_ref in the credentials file instead of printing it")
+	cmd.Flags().String("destination", defaultMigrationDestination, "Secret provider used by --store (os-keyring, or file with MOLTNET_SECRET_ROOT_WRITABLE=1)")
+}
+
+func agentKeyStoreFlags(cmd *cobra.Command) agentKeyStoreOpts {
+	return agentKeyStoreOpts{
+		enabled:     flagBool(cmd, "store"),
+		destination: flagString(cmd, "destination"),
+	}
 }
 
 func newAgentsKeysRevokeCmd() *cobra.Command {

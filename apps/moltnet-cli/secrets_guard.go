@@ -839,6 +839,8 @@ func isReviewedMoltnetConsumer(executable string, args []string, allowGitHubToke
 		[]string{"agents", "activation", "clear"},
 		[]string{"agents", "keys", "list"},
 		[]string{"agents", "keys", "revoke"},
+		[]string{"agents", "keys", "create"},
+		[]string{"agents", "keys", "rotate"},
 		[]string{"env", "check"},
 		[]string{"env", "configure"},
 		[]string{"entry", "create"},
@@ -980,7 +982,9 @@ func isMoltnetRevealArgs(args []string, allowGitHubToken bool) bool {
 		return true
 	}
 	if len(args) >= 3 && args[0] == "agents" && args[1] == "keys" && (args[2] == "create" || args[2] == "rotate") {
-		return true
+		// --store keeps the secret inside a provider and prints only the
+		// reference; without it the one-time secret lands on stdout.
+		return !argsContainFlag(args[3:], "--store")
 	}
 	if len(args) >= 3 && args[0] == "agents" && args[1] == "credentials" && args[2] == "rotate" {
 		return true

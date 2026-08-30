@@ -259,6 +259,7 @@ type agentsKeysCreateOpts struct {
 	ttlSet         bool
 	idempotencyKey string
 	idempotencySet bool
+	store          agentKeyStoreOpts
 	out            io.Writer
 	errOut         io.Writer
 }
@@ -286,6 +287,17 @@ func runAgentsKeysCreateWithClient(ctx context.Context, client *moltnetapi.Clien
 	if err != nil {
 		return err
 	}
+	// Resolve the store target before the network so a bad destination or
+	// credentials file never mints a key whose secret would then be lost.
+	store, err := prepareAgentKeyStore(opts.store, opts.credPath)
+	if err != nil {
+		return err
+	}
+	if store != nil {
+		if err := store.requireAgentID(opts.agentID); err != nil {
+			return err
+		}
+	}
 	// When the CLI generated the idempotency key, a failed create must surface
 	// it so a bare re-run can reuse it instead of minting a duplicate credential
 	// whose one-time secret would be lost. A caller-supplied key already known
@@ -304,6 +316,12 @@ func runAgentsKeysCreateWithClient(ctx context.Context, client *moltnetapi.Clien
 			writeIdempotencyRetryHint(opts.errOut, idempotencyKey)
 		}
 		return formatAPIError(res)
+	}
+	if store != nil {
+		return store.persist(opts.out, opts.errOut, storedAgentKeyOutput{
+			Key:            created.Key,
+			IdempotencyKey: idempotencyKey,
+		}, created.Secret)
 	}
 	writeSecretNotice(opts.errOut)
 	return printJSONTo(opts.out, createAgentKeyOutput{
@@ -360,6 +378,7 @@ type agentsKeysRotateOpts struct {
 	teamID         string
 	identityScoped bool
 	keyID          string
+	store          agentKeyStoreOpts
 	out            io.Writer
 	errOut         io.Writer
 }
@@ -377,6 +396,10 @@ func runAgentsKeysRotateWithClient(ctx context.Context, client *moltnetapi.Clien
 	if err != nil {
 		return err
 	}
+	store, err := prepareAgentKeyStore(opts.store, opts.credPath)
+	if err != nil {
+		return err
+	}
 	res, err := client.RotateAgentKey(ctx, params)
 	if err != nil {
 		return fmt.Errorf("agents keys rotate: %w", formatTransportError(err))
@@ -384,6 +407,18 @@ func runAgentsKeysRotateWithClient(ctx context.Context, client *moltnetapi.Clien
 	rotated, ok := res.(*moltnetapi.AgentKeyWithSecret)
 	if !ok {
 		return formatAPIError(res)
+	}
+	if store != nil {
+		output := storedAgentKeyOutput{Key: rotated.Key}
+		agentID, _ := agentKeyAgentID(rotated.Key)
+		if err := store.requireAgentID(agentID); err != nil {
+			// The old secret is already invalid; hand the new one back rather
+			// than binding it to the wrong identity.
+			output.AgentKeyRef = store.ref
+			output.CredentialsPath = store.credentialsPath
+			return emitAgentKeyRecovery(opts.out, output, rotated.Secret, err)
+		}
+		return store.persist(opts.out, opts.errOut, output, rotated.Secret)
 	}
 	writeSecretNotice(opts.errOut)
 	return printJSONTo(opts.out, rotated)
