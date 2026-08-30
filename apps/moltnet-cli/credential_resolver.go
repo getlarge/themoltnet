@@ -45,7 +45,7 @@ func resolveThroughRegistry(kind credentialKind, registry *SecretProviderRegistr
 var (
 	legacyCredentialWarningWriter io.Writer // nil → os.Stderr
 	legacyWarningsMu              sync.Mutex
-	legacyWarnings                = map[credentialKind]bool{}
+	legacyWarnings                = map[string]bool{}
 )
 
 func legacyField(kind credentialKind) string {
@@ -54,8 +54,6 @@ func legacyField(kind credentialKind) string {
 		return "oauth2.client_secret"
 	case credentialIdentitySeed:
 		return "keys.private_key"
-	case credentialGitHubAppPrivateKey:
-		return "github.private_key_path"
 	case credentialAgentKey:
 		return "agent_key"
 	}
@@ -63,25 +61,32 @@ func legacyField(kind credentialKind) string {
 }
 
 // warnLegacyCredentialOnce prints the plaintext deprecation notice once per
-// process per credential kind, never including the value.
+// process per MoltNet-owned credential kind, never including the value.
 func warnLegacyCredentialOnce(kind credentialKind) {
+	warnLegacyCredentialFieldOnce(legacyField(kind))
+}
+
+// warnLegacyCredentialFieldOnce prints the deprecation notice for one config
+// field once per process. Consumers that own a credential (github.go) call
+// it with their own field so every legacy form warns the same way.
+func warnLegacyCredentialFieldOnce(field string) {
 	legacyWarningsMu.Lock()
 	defer legacyWarningsMu.Unlock()
-	if legacyWarnings[kind] {
+	if legacyWarnings[field] {
 		return
 	}
-	legacyWarnings[kind] = true
+	legacyWarnings[field] = true
 	w := legacyCredentialWarningWriter
 	if w == nil {
 		w = os.Stderr
 	}
-	fmt.Fprintf(w, "Warning: plaintext %s in moltnet.json is deprecated; run 'moltnet config migrate' to move it to a secret provider reference (see docs/reference/agent-configuration.md).\n", legacyField(kind))
+	fmt.Fprintf(w, "Warning: plaintext %s in moltnet.json is deprecated; run 'moltnet config migrate' to move it to a secret provider reference (see docs/reference/agent-configuration.md).\n", field)
 }
 
 func resetLegacyCredentialWarnings() {
 	legacyWarningsMu.Lock()
 	defer legacyWarningsMu.Unlock()
-	legacyWarnings = map[credentialKind]bool{}
+	legacyWarnings = map[string]bool{}
 }
 
 func resolveOAuth2Secret(creds *CredentialsFile, registry *SecretProviderRegistry) (string, error) {
@@ -156,47 +161,6 @@ func resolveIdentitySeed(creds *CredentialsFile, registry *SecretProviderRegistr
 		return "", err
 	}
 	return seed, nil
-}
-
-// resolveGitHubAppPrivateKey returns the GitHub App PEM from
-// github.private_key_path (legacy file, warned once) or
-// github.private_key_ref, verifying the reference is bound to this App and
-// the value parses as an RSA private key.
-func resolveGitHubAppPrivateKey(creds *CredentialsFile, registry *SecretProviderRegistry) ([]byte, error) {
-	kind := credentialGitHubAppPrivateKey
-	if creds == nil || creds.GitHub == nil {
-		return nil, &CredentialResolutionError{Kind: kind, Code: "missing", Detail: "GitHub App not configured — add 'github' section to moltnet.json"}
-	}
-	path := strings.TrimSpace(creds.GitHub.PrivateKeyPath)
-	ref := creds.GitHub.PrivateKeyRef
-	if path != "" && ref != nil {
-		return nil, &CredentialResolutionError{Kind: kind, Code: "ambiguous", Detail: "config must set exactly one of github.private_key_path or github.private_key_ref"}
-	}
-	var pemData []byte
-	switch {
-	case ref != nil:
-		if err := validateSecretReferenceBinding(kind, *ref, credentialBindingIDs{AppID: creds.GitHub.AppID}); err != nil {
-			return nil, &CredentialResolutionError{Kind: kind, Code: "unbound", Detail: err.Error()}
-		}
-		value, err := registry.Resolve(*ref)
-		if err != nil {
-			return nil, err
-		}
-		pemData = []byte(value)
-	case path != "":
-		warnLegacyCredentialOnce(kind)
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return nil, fmt.Errorf("read GitHub App private key: %w", err)
-		}
-		pemData = data
-	default:
-		return nil, &CredentialResolutionError{Kind: kind, Code: "missing", Detail: "config must set exactly one of github.private_key_path or github.private_key_ref"}
-	}
-	if _, err := parseRSAPrivateKey(pemData); err != nil {
-		return nil, &CredentialResolutionError{Kind: kind, Code: "invalid_value", Detail: "value is not an RSA private key PEM"}
-	}
-	return pemData, nil
 }
 
 // resolveAgentKey returns the team-bound agent key from agent_key_ref. The

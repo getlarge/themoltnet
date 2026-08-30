@@ -5,7 +5,6 @@ import {
   assertSecretReferenceBinding,
   EnvironmentSecretProvider,
   expectedSecretKey,
-  githubAppPrivateKeyKey,
   identitySeedKey,
   oauth2SecretKey,
   parseSecretReferenceString,
@@ -356,33 +355,6 @@ describe('credential binding table', () => {
         {},
       ),
     ).toThrow(/fingerprint/);
-  });
-});
-
-describe('github app private key binding', () => {
-  it('derives the key from the app id and accepts env and flattened file forms', () => {
-    expect(githubAppPrivateKeyKey('123')).toBe('github-app/123/private-key');
-    expect(expectedSecretKey('github-app-private-key', { appId: '123' })).toBe(
-      'github-app/123/private-key',
-    );
-    for (const reference of [
-      { provider: 'os-keyring', key: 'github-app/123/private-key' },
-      { provider: 'env', key: 'MOLTNET_GITHUB_APP_PRIVATE_KEY' },
-      { provider: 'file', key: 'github-app.123.private-key' },
-    ]) {
-      expect(() =>
-        assertSecretReferenceBinding('github-app-private-key', reference, {
-          appId: '123',
-        }),
-      ).not.toThrow();
-    }
-    expect(() =>
-      assertSecretReferenceBinding(
-        'github-app-private-key',
-        { provider: 'os-keyring', key: 'github-app/999/private-key' },
-        { appId: '123' },
-      ),
-    ).toThrow(/not bound/);
   });
 });
 

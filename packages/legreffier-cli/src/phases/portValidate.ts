@@ -1,12 +1,12 @@
 import { access, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { resolveGitHubAppPrivateKey } from '@themoltnet/github-agent';
 import {
   type ConfigIssue,
   type MoltNetConfig,
   readConfig,
   repairConfig,
-  resolveGitHubAppPrivateKey,
   type SecretProviderRegistry,
 } from '@themoltnet/sdk';
 import {

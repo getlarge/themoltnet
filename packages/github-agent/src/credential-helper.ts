@@ -1,7 +1,7 @@
 import { getConfigDir, readConfig } from '@moltnet/agent-config';
-import { resolveGitHubAppPrivateKey } from '@themoltnet/sdk';
 import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
 
+import { resolveGitHubAppPrivateKey } from './private-key.js';
 import { getInstallationToken, githubAppKeySourceFromConfig } from './token.js';
 
 /**

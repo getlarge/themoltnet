@@ -39,11 +39,13 @@ export { connect, type ConnectOptions } from './connect.js';
 export {
   type CredentialResolutionCode,
   CredentialResolutionError,
+  resetLegacyCredentialWarnings,
   resolveAgentKey,
   resolveEnvSecretReference,
-  resolveGitHubAppPrivateKey,
   resolveIdentitySeed,
   resolveOAuth2ClientSecret,
+  resolveThroughRegistry,
+  warnLegacyCredentialFieldOnce,
 } from './credential-resolver.js';
 export {
   deriveMcpUrl,
@@ -141,6 +143,7 @@ export { type RetryOptions } from './retry.js';
 export {
   agentKeyKey,
   assertSecretReferenceBinding,
+  assertSecretReferenceBoundTo,
   createDefaultSecretProviderRegistry,
   CREDENTIAL_ENV_KEYS,
   type CredentialBindingIds,
@@ -148,7 +151,6 @@ export {
   ENVIRONMENT_SECRET_PROVIDER,
   EnvironmentSecretProvider,
   expectedSecretKey,
-  githubAppPrivateKeyKey,
   identitySeedKey,
   MOLTNET_SECRET_SERVICE,
   oauth2SecretKey,
@@ -163,6 +165,7 @@ export {
   type SecretProviderCapabilities,
   SecretProviderReadOnlyError,
   SecretProviderRegistry,
+  type SecretReferenceBinding,
 } from './secrets.js';
 export { sign, signBytes } from './sign.js';
 export { exportSSHKey } from './ssh.js';

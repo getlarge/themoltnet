@@ -250,17 +250,54 @@ export function createDefaultSecretProviderRegistry(): SecretProviderRegistry {
   return new SecretProviderRegistry().register(new EnvironmentSecretProvider());
 }
 
+/**
+ * MoltNet-owned credential kinds whose provider key shape is fixed by the
+ * binding table below. Consumers that own other credentials (for example
+ * `@themoltnet/github-agent` for GitHub App private keys) describe their
+ * binding with {@link SecretReferenceBinding} and check it through
+ * {@link assertSecretReferenceBoundTo} instead of extending this table.
+ */
 export type CredentialKind =
   | 'oauth2-client-secret'
   | 'identity-seed'
-  | 'github-app-private-key'
   | 'agent-key';
 
 export interface CredentialBindingIds {
   identityId?: string;
   clientId?: string;
   fingerprint?: string;
-  appId?: string;
+}
+
+/**
+ * Describes which reference keys may resolve one credential: the canonical
+ * provider key, the fixed environment variable for the `env` provider (or
+ * `undefined` when `env` is not allowed), and the message raised for any
+ * other key.
+ */
+export interface SecretReferenceBinding {
+  canonicalKey: string;
+  envKey?: string;
+  description: string;
+}
+
+/**
+ * A reference must name this credential's own secret: the canonical key, the
+ * fixed environment variable for `env`, or — for `file`, whose orchestrators
+ * (systemd) forbid `/` in credential IDs — the flattened `.`-joined form.
+ */
+export function assertSecretReferenceBoundTo(
+  reference: SecretReference,
+  binding: SecretReferenceBinding,
+): void {
+  const valid =
+    reference.provider === ENVIRONMENT_SECRET_PROVIDER
+      ? binding.envKey !== undefined && reference.key === binding.envKey
+      : reference.key === binding.canonicalKey ||
+        (reference.provider === 'file' &&
+          reference.key === binding.canonicalKey.replaceAll('/', '.'));
+  if (!valid) {
+    throw new Error(binding.description);
+  }
 }
 
 /** Environment variable each kind may be read from through the `env` provider. */
@@ -268,7 +305,6 @@ export const CREDENTIAL_ENV_KEYS: Readonly<Record<CredentialKind, string>> =
   Object.freeze({
     'oauth2-client-secret': 'MOLTNET_CLIENT_SECRET',
     'identity-seed': 'MOLTNET_PRIVATE_KEY',
-    'github-app-private-key': 'MOLTNET_GITHUB_APP_PRIVATE_KEY',
     'agent-key': 'MOLTNET_AGENT_KEY',
   });
 
@@ -278,8 +314,6 @@ const BINDING_MESSAGES: Readonly<Record<CredentialKind, string>> =
       'OAuth2 secret reference is not bound to this MoltNet identity and client',
     'identity-seed':
       'Identity seed reference is not bound to this MoltNet identity',
-    'github-app-private-key':
-      'GitHub App private key reference is not bound to this GitHub App',
     'agent-key': 'Agent key reference is not bound to this MoltNet identity',
   });
 
@@ -289,10 +323,6 @@ export function oauth2SecretKey(identityId: string, clientId: string): string {
 
 export function identitySeedKey(fingerprint: string): string {
   return `identity/${fingerprint}/seed`;
-}
-
-export function githubAppPrivateKeyKey(appId: string): string {
-  return `github-app/${appId}/private-key`;
 }
 
 export function agentKeyKey(identityId: string): string {
@@ -339,24 +369,18 @@ export function expectedSecretKey(
       );
     case 'identity-seed':
       return identitySeedKey(requireId(ids.fingerprint, 'fingerprint'));
-    case 'github-app-private-key':
-      return githubAppPrivateKeyKey(requireId(ids.appId, 'appId'));
     case 'agent-key':
       return agentKeyKey(requireId(ids.identityId, 'identityId'));
   }
 }
 
-/**
- * A reference must name this agent's own secret: the canonical key, the
- * fixed environment variable for `env`, or — for `file`, whose orchestrators
- * (systemd) forbid `/` in credential IDs — the flattened `.`-joined form.
- */
+/** Binding check for a MoltNet-owned credential kind from the table above. */
 export function assertSecretReferenceBinding(
   kind: CredentialKind,
   reference: SecretReference,
   ids: CredentialBindingIds,
 ): void {
-  const canonical = expectedSecretKey(kind, ids);
+  const canonicalKey = expectedSecretKey(kind, ids);
   if (
     kind === 'agent-key' &&
     reference.provider === ENVIRONMENT_SECRET_PROVIDER
@@ -368,15 +392,11 @@ export function assertSecretReferenceBinding(
       'agent_key_ref cannot use the env provider; set MOLTNET_AGENT_KEY directly or reference a keyring/file secret',
     );
   }
-  const valid =
-    reference.provider === ENVIRONMENT_SECRET_PROVIDER
-      ? reference.key === CREDENTIAL_ENV_KEYS[kind]
-      : reference.key === canonical ||
-        (reference.provider === 'file' &&
-          reference.key === canonical.replaceAll('/', '.'));
-  if (!valid) {
-    throw new Error(BINDING_MESSAGES[kind]);
-  }
+  assertSecretReferenceBoundTo(reference, {
+    canonicalKey,
+    envKey: CREDENTIAL_ENV_KEYS[kind],
+    description: BINDING_MESSAGES[kind],
+  });
 }
 
 export function assertOAuth2SecretReferenceBinding(
