@@ -1289,6 +1289,21 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.resolve-publish.outputs.legreffier-plugin-tag }}
+
+      - name: Verify release tag checkout
+        env:
+          RELEASE_TAG: ${{ needs.resolve-publish.outputs.legreffier-plugin-tag }}
+        run: |
+          CHECKOUT_SHA=$(git rev-parse HEAD)
+          TAG_SHA=$(git rev-parse "${RELEASE_TAG}^{commit}")
+          if [ "$CHECKOUT_SHA" != "$TAG_SHA" ]; then
+            echo "Checkout ${CHECKOUT_SHA} does not match ${RELEASE_TAG} (${TAG_SHA})" >&2
+            exit 1
+          fi
+          echo "Building ${RELEASE_TAG} from ${CHECKOUT_SHA}"
 
       - name: Build deterministic LeGreffier plugin archive
         id: package
@@ -1319,19 +1334,62 @@ jobs:
           echo "archive=/tmp/${ARCHIVE}" >> "$GITHUB_OUTPUT"
           echo "checksum=/tmp/${ARCHIVE}.sha256" >> "$GITHUB_OUTPUT"
 
+      - name: Verify immutable release assets
+        id: assets
+        env:
+          ARCHIVE: ${{ steps.package.outputs.archive }}
+          CHECKSUM: ${{ steps.package.outputs.checksum }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.resolve-publish.outputs.legreffier-plugin-tag }}
+        run: |
+          ARCHIVE_NAME=$(basename "$ARCHIVE")
+          CHECKSUM_NAME=$(basename "$CHECKSUM")
+          ASSETS=$(gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name')
+          ARCHIVE_EXISTS=false
+          CHECKSUM_EXISTS=false
+          grep -Fxq "$ARCHIVE_NAME" <<<"$ASSETS" && ARCHIVE_EXISTS=true
+          grep -Fxq "$CHECKSUM_NAME" <<<"$ASSETS" && CHECKSUM_EXISTS=true
+
+          if [ "$ARCHIVE_EXISTS" != "$CHECKSUM_EXISTS" ]; then
+            echo "Release contains only one of ${ARCHIVE_NAME} and ${CHECKSUM_NAME}; refusing to mutate it" >&2
+            exit 1
+          fi
+          if [ "$ARCHIVE_EXISTS" = false ]; then
+            echo "upload=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          EXISTING_DIR=$(mktemp -d)
+          gh release download "$RELEASE_TAG" \
+            --pattern "$ARCHIVE_NAME" \
+            --pattern "$CHECKSUM_NAME" \
+            --dir "$EXISTING_DIR"
+          (
+            cd "$EXISTING_DIR"
+            sha256sum --check "$CHECKSUM_NAME"
+          )
+          NEW_DIGEST=$(sha256sum "$ARCHIVE" | cut -d' ' -f1)
+          EXISTING_DIGEST=$(sha256sum "$EXISTING_DIR/$ARCHIVE_NAME" | cut -d' ' -f1)
+          if [ "$NEW_DIGEST" != "$EXISTING_DIGEST" ]; then
+            echo "Immutable asset ${ARCHIVE_NAME} already exists with a different digest" >&2
+            exit 1
+          fi
+          echo "Existing assets match ${NEW_DIGEST}; upload is unnecessary"
+          echo "upload=false" >> "$GITHUB_OUTPUT"
+
       - name: Attest LeGreffier plugin provenance
         uses: actions/attest@v4
         with:
           subject-path: ${{ steps.package.outputs.archive }}
 
       - name: Upload immutable LeGreffier plugin artifacts
+        if: steps.assets.outputs.upload == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload "${{ needs.resolve-publish.outputs.legreffier-plugin-tag }}" \
             "${{ steps.package.outputs.archive }}" \
-            "${{ steps.package.outputs.checksum }}" \
-            --clobber
+            "${{ steps.package.outputs.checksum }}"
 
       - name: Publish release
         env:
