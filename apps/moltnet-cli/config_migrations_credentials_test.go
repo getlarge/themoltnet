@@ -515,3 +515,78 @@ func TestConfigMigrateReplacementFailureAfterStoreIsRetryable(t *testing.T) {
 		})
 	}
 }
+
+func TestConfigMigrateRunRejectsGeneratedPlanForAnotherDestinationThroughCommand(t *testing.T) {
+	seed, publicKey := testSeedAndPublicKey(t)
+	credentialsPath, _ := writeReferenceBackedFixture(t, seed, publicKey, false)
+	root := t.TempDir()
+	t.Setenv(secretRootEnv, root)
+	t.Setenv(secretRootWritableEnv, "1")
+	planPath := filepath.Join(t.TempDir(), "plan.json")
+
+	generate := NewRootCmd("test", "")
+	if _, _, err := executeCommand(generate, "config", "migrate", "--credentials", credentialsPath, "--generate", planPath); err != nil {
+		t.Fatalf("generate: %v", err)
+	}
+	planData, _ := os.ReadFile(planPath)
+	if !strings.Contains(string(planData), `"parameters"`) || !strings.Contains(string(planData), `"destination": "os-keyring"`) {
+		t.Fatalf("generated plan must carry the destination parameter:\n%s", planData)
+	}
+
+	run := NewRootCmd("test", "")
+	_, _, err := executeCommand(run, "config", "migrate", "--credentials", credentialsPath, "--run", planPath, "--destination", "file")
+	if err == nil || !strings.Contains(err.Error(), "parameters do not match") {
+		t.Fatalf("run with another destination must be rejected before applying: %v", err)
+	}
+	if entries, _ := os.ReadDir(root); len(entries) != 0 {
+		t.Fatalf("rejected plan wrote into the file root: %v", entries)
+	}
+	raw, _ := os.ReadFile(credentialsPath)
+	if !strings.Contains(string(raw), seed) {
+		t.Fatal("rejected plan mutated the credentials file")
+	}
+}
+
+func TestConfigMigrateStoresPEMWithExactlyOneTrailingNewlineStripped(t *testing.T) {
+	seed, publicKey := testSeedAndPublicKey(t)
+	credentialsPath, pemPath := writeReferenceBackedFixture(t, seed, publicKey, true)
+	// A PEM that ends in CRLF followed by an extra blank line: the shared
+	// stripOneNewline contract removes exactly one line ending, so the
+	// stored value keeps the CRLF and drops only the final "\n".
+	original, _ := os.ReadFile(pemPath)
+	padded := append(bytes.TrimRight(original, "\n"), []byte("\r\n\n")...)
+	if err := os.WriteFile(pemPath, padded, privateFileMode); err != nil {
+		t.Fatal(err)
+	}
+	registry, provider := newMemorySecretProviderRegistry()
+	runNextConfigMigration(t, credentialsPath, registry) // seed
+	runNextConfigMigration(t, credentialsPath, registry) // pem
+	want := string(bytes.TrimRight(original, "\n")) + "\r\n"
+	if got := provider.values[GitHubAppPrivateKeyKey("123")]; got != want {
+		t.Fatalf("stored PEM normalization differs from stripOneNewline:\n got tail %q\nwant tail %q", got[len(got)-6:], want[len(want)-6:])
+	}
+}
+
+func TestConfigMigrateOAuth2RewritePreservesUnknownFields(t *testing.T) {
+	credentialsPath, _ := writeLegacyMigrationFixture(t)
+	raw, _ := os.ReadFile(credentialsPath)
+	withUnknown := strings.Replace(string(raw), `"client_id": "client-id",`, `"client_id": "client-id", "oauth2_extra": "kept",`, 1)
+	withUnknown = strings.Replace(withUnknown, `"identity_id": "identity-id",`, `"identity_id": "identity-id", "top_level_extra": {"nested": true},`, 1)
+	if err := os.WriteFile(credentialsPath, []byte(withUnknown), privateFileMode); err != nil {
+		t.Fatal(err)
+	}
+	registry, _ := newMemorySecretProviderRegistry()
+	first := runNextConfigMigration(t, credentialsPath, registry)
+	if strings.Join(first.Applied, ",") != "2026-08-oauth2-secret-reference" {
+		t.Fatalf("applied = %v", first.Applied)
+	}
+	after, _ := os.ReadFile(credentialsPath)
+	for _, kept := range []string{`"oauth2_extra": "kept"`, `"nested": true`, `"registered_at": "2026-08-06T00:00:00Z"`, `"client_secret_ref"`} {
+		if !strings.Contains(string(after), kept) {
+			t.Fatalf("OAuth2 rewrite dropped %s:\n%s", kept, after)
+		}
+	}
+	if strings.Contains(string(after), `"client_secret":`) {
+		t.Fatalf("plaintext client_secret retained:\n%s", after)
+	}
+}

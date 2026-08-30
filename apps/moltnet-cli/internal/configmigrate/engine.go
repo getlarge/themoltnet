@@ -221,10 +221,14 @@ func NewStageError(stage string, state FailureState, err error) error {
 }
 
 func FailureFromError(plan Plan, err error) *Failure {
+	// Errors that are not StageErrors come from the engine's own plan and
+	// document validation (format, generator, parameters, stale content).
+	// They never carry secret material, so the cause is surfaced verbatim to
+	// tell the operator what to regenerate.
 	failure := &Failure{
 		Stage:     "apply",
 		Retryable: true,
-		Message:   "configuration migration failed during apply",
+		Message:   "configuration migration failed during apply: " + err.Error(),
 	}
 	if len(plan.Migrations) == 1 {
 		failure.Migration = plan.Migrations[0].ID
