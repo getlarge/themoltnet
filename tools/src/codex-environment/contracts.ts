@@ -1,4 +1,4 @@
-import { sanitizeForPersistence } from '../sandbox-policy/sanitize.js';
+import { sanitizeForPersistence } from './sanitize.js';
 
 export const CREDENTIAL_PREFLIGHT_REASONS = [
   'required_binding_missing',
