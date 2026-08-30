@@ -152,6 +152,32 @@ func TestRunGitSetup_NoSSH(t *testing.T) {
 	}
 }
 
+func TestRunGitSetupRejectsIdentityControlCharacters(t *testing.T) {
+	tmpDir := t.TempDir()
+	sshDir := filepath.Join(tmpDir, "ssh")
+	if err := os.MkdirAll(sshDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	pubKeyPath := filepath.Join(sshDir, "id_ed25519.pub")
+	if err := os.WriteFile(pubKeyPath, []byte("ssh-ed25519 AAAATEST\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	credPath := filepath.Join(tmpDir, "moltnet.json")
+	if _, err := WriteConfigTo(&CredentialsFile{
+		IdentityID: "identity",
+		SSH:        &SSHSection{PublicKeyPath: pubKeyPath},
+	}, credPath); err != nil {
+		t.Fatal(err)
+	}
+	err := runGitSetupCmd(credPath, "safe\n[credential]", "agent@example.test")
+	if err == nil || !strings.Contains(err.Error(), "control characters") {
+		t.Fatalf("runGitSetupCmd error = %v", err)
+	}
+	if regularFileExists(filepath.Join(tmpDir, "gitconfig")) {
+		t.Fatal("unsafe identity created a gitconfig")
+	}
+}
+
 func TestRunGitSetup_CustomNameEmail(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
