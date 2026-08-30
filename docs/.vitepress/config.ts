@@ -116,6 +116,10 @@ const referenceItems = [
 
 const contributeItems = [
   { text: 'LeGreffier Flows', link: '/contribute/legreffier-flows' },
+  {
+    text: 'OpenAI Plugin Submission',
+    link: '/contribute/openai-plugin-submission',
+  },
   { text: 'Agent Executors', link: '/contribute/agent-executors' },
   {
     text: 'Task Readiness Benchmark',

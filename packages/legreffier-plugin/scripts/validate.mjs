@@ -24,6 +24,9 @@ const claudeMarketplacePlugin = claudeMarketplace.plugins.find(
 );
 const claudeMcp = await readJson(join(pluginRoot, '.mcp.json'));
 const hooks = await readJson(join(pluginRoot, 'hooks', 'hooks.json'));
+const submission = await readJson(
+  join(root, 'submission', 'openai-public-plugin.json'),
+);
 
 if (codex.name !== 'legreffier' || claude.name !== 'legreffier') {
   throw new Error('Both plugin manifests must use the legreffier identifier');
@@ -59,6 +62,39 @@ if (
   claudeMcp.moltnet?.url !== 'https://mcp.themolt.net/mcp'
 ) {
   throw new Error('Both plugin hosts must use the public MoltNet MCP endpoint');
+}
+if (
+  submission.listing?.mcpServerUrl !== 'https://mcp.themolt.net/mcp' ||
+  submission.authentication?.type !== 'oauth2' ||
+  submission.authentication?.agentCredentialsAcceptedByPublicPlugin !== false
+) {
+  throw new Error('OpenAI submission must preserve the human OAuth boundary');
+}
+if (
+  submission.verification?.challengePath !==
+    '/.well-known/openai-apps-challenge' ||
+  submission.verification?.environmentVariable !== 'OPENAI_APPS_CHALLENGE_TOKEN'
+) {
+  throw new Error('OpenAI submission challenge contract is incomplete');
+}
+if (
+  submission.testCases?.positive?.length < 5 ||
+  submission.testCases?.negative?.length < 3
+) {
+  throw new Error(
+    'OpenAI submission needs at least 5 positive and 3 negative cases',
+  );
+}
+for (const field of [
+  'websiteUrl',
+  'supportUrl',
+  'privacyPolicyUrl',
+  'termsOfServiceUrl',
+  'iconUrl',
+]) {
+  if (!submission.listing?.[field]?.startsWith('https://')) {
+    throw new Error(`OpenAI submission listing.${field} must be an HTTPS URL`);
+  }
 }
 
 const preToolUseGroups = hooks.hooks?.PreToolUse ?? [];

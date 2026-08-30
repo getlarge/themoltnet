@@ -177,3 +177,19 @@ test('blocks the human OAuth MCP for activated agents', async () => {
   assert.match(agent.stdout, /permissionDecision\"?:\"deny/);
   assert.match(agent.stdout, /must use the released moltnet CLI/i);
 });
+
+test('ships a complete OpenAI public-review fixture', async () => {
+  const submission = JSON.parse(
+    await readFile(
+      join(root, 'submission', 'openai-public-plugin.json'),
+      'utf8',
+    ),
+  );
+  assert.equal(submission.authentication.type, 'oauth2');
+  assert.equal(
+    submission.authentication.agentCredentialsAcceptedByPublicPlugin,
+    false,
+  );
+  assert.ok(submission.testCases.positive.length >= 5);
+  assert.ok(submission.testCases.negative.length >= 3);
+});
