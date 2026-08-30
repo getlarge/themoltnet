@@ -31,7 +31,7 @@ on:
       republish:
         description: >
           Comma-separated packages to re-publish from existing draft releases.
-          Valid values: sdk, os-keyring, tasks-orchestrator, credentials, credential-broker, ctap, yubikey-preview-sign, signer, github-agent, legreffier, cli, api-client, dspy-adapters, skill, design-system, pi-extension, sandbox-gondolin, pi-runtime, shell-command-analyzer, agent-runtime, node-red-theme, agent-daemon, console, database, landing, mcp-host, mcp-server, rest-api, otel-custom-collector
+          Valid values: sdk, os-keyring, tasks-orchestrator, credentials, credential-broker, ctap, yubikey-preview-sign, signer, github-agent, legreffier, plugin, cli, api-client, dspy-adapters, skill, design-system, pi-extension, sandbox-gondolin, pi-runtime, shell-command-analyzer, agent-runtime, node-red-theme, agent-daemon, console, database, landing, mcp-host, mcp-server, rest-api, otel-custom-collector
         required: false
         type: string
 
@@ -94,6 +94,8 @@ jobs:
       skill-version: ${{ steps.release.outputs['packages/openclaw-skill--version'] }}
       legreffier-release-created: ${{ steps.release.outputs['packages/legreffier-cli--release_created'] }}
       legreffier-tag-name: ${{ steps.release.outputs['packages/legreffier-cli--tag_name'] }}
+      plugin-release-created: ${{ steps.release.outputs['packages/legreffier-plugin--release_created'] }}
+      plugin-tag-name: ${{ steps.release.outputs['packages/legreffier-plugin--tag_name'] }}
       agent-runtime-release-created: ${{ steps.release.outputs['libs/agent-runtime--release_created'] }}
       agent-runtime-tag-name: ${{ steps.release.outputs['libs/agent-runtime--tag_name'] }}
       pi-extension-release-created: ${{ steps.release.outputs['libs/pi-extension--release_created'] }}
@@ -250,6 +252,8 @@ jobs:
       skill-version: ${{ steps.resolve.outputs.skill-version }}
       legreffier: ${{ steps.resolve.outputs.legreffier }}
       legreffier-tag: ${{ steps.resolve.outputs.legreffier-tag }}
+      plugin: ${{ steps.resolve.outputs.plugin }}
+      plugin-tag: ${{ steps.resolve.outputs.plugin-tag }}
       agent-runtime: ${{ steps.resolve.outputs.agent-runtime }}
       agent-runtime-tag: ${{ steps.resolve.outputs.agent-runtime-tag }}
       pi-extension: ${{ steps.resolve.outputs.pi-extension }}
@@ -308,6 +312,8 @@ jobs:
           RP_SKILL_VERSION: ${{ needs.release-please.outputs.skill-version }}
           RP_LEGREFFIER_CREATED: ${{ needs.release-please.outputs.legreffier-release-created }}
           RP_LEGREFFIER_TAG: ${{ needs.release-please.outputs.legreffier-tag-name }}
+          RP_PLUGIN_CREATED: ${{ needs.release-please.outputs.plugin-release-created }}
+          RP_PLUGIN_TAG: ${{ needs.release-please.outputs.plugin-tag-name }}
           RP_AGENT_RUNTIME_CREATED: ${{ needs.release-please.outputs.agent-runtime-release-created }}
           RP_AGENT_RUNTIME_TAG: ${{ needs.release-please.outputs.agent-runtime-tag-name }}
           RP_PI_EXTENSION_CREATED: ${{ needs.release-please.outputs.pi-extension-release-created }}
@@ -433,6 +439,7 @@ jobs:
           resolve "dspy-adapters" "$RP_DSPY_CREATED"     "$RP_DSPY_TAG"      "dspy-adapters"
           resolve "skill"        "$RP_SKILL_CREATED"     "$RP_SKILL_TAG"     "openclaw-skill"
           resolve "legreffier"   "$RP_LEGREFFIER_CREATED" "$RP_LEGREFFIER_TAG" "legreffier"
+          resolve "plugin"       "$RP_PLUGIN_CREATED"    "$RP_PLUGIN_TAG"    "legreffier-plugin"
           resolve "design-system" "$RP_DESIGN_SYSTEM_CREATED" "$RP_DESIGN_SYSTEM_TAG" "design-system"
           resolve "agent-runtime" "$RP_AGENT_RUNTIME_CREATED" "$RP_AGENT_RUNTIME_TAG" "agent-runtime"
           resolve "pi-extension" "$RP_PI_EXTENSION_CREATED" "$RP_PI_EXTENSION_TAG" "pi-extension"
@@ -1269,6 +1276,67 @@ jobs:
                 -f sha="${COMMIT_SHA}"
               echo "  + ${SIB_TAG}"
             done
+
+  release-legreffier-plugin:
+    name: Release LeGreffier Plugin
+    needs: resolve-publish
+    if: ${{ needs.resolve-publish.outputs.plugin == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      artifact-metadata: write
+      attestations: write
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build deterministic plugin archive
+        id: package
+        env:
+          RELEASE_TAG: ${{ needs.resolve-publish.outputs.plugin-tag }}
+        run: |
+          VERSION=$(node -p "require('./packages/legreffier-plugin/package.json').version")
+          EXPECTED_TAG="legreffier-plugin-v${VERSION}"
+          if [ "$RELEASE_TAG" != "$EXPECTED_TAG" ]; then
+            echo "Expected tag ${EXPECTED_TAG}, got ${RELEASE_TAG}" >&2
+            exit 1
+          fi
+
+          node packages/legreffier-plugin/scripts/build.mjs
+          node packages/legreffier-plugin/scripts/validate.mjs --dist
+
+          ARCHIVE="legreffier-plugin-v${VERSION}.tar.gz"
+          tar --sort=name \
+            --mtime='UTC 1970-01-01' \
+            --owner=0 \
+            --group=0 \
+            --numeric-owner \
+            -czf "/tmp/${ARCHIVE}" \
+            -C packages/legreffier-plugin/dist .
+          cd /tmp
+          sha256sum "$ARCHIVE" > "${ARCHIVE}.sha256"
+
+          echo "archive=/tmp/${ARCHIVE}" >> "$GITHUB_OUTPUT"
+          echo "checksum=/tmp/${ARCHIVE}.sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Attest plugin provenance
+        uses: actions/attest@v4
+        with:
+          subject-path: ${{ steps.package.outputs.archive }}
+
+      - name: Upload immutable plugin artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ needs.resolve-publish.outputs.plugin-tag }}" \
+            "${{ steps.package.outputs.archive }}" \
+            "${{ steps.package.outputs.checksum }}" \
+            --clobber
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "${{ needs.resolve-publish.outputs.plugin-tag }}" --draft=false
 
   release-skill:
     name: Release OpenClaw Skill

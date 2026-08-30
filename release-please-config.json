@@ -208,6 +208,28 @@
       "component": "legreffier",
       "release-type": "node"
     },
+    "packages/legreffier-plugin": {
+      "bump-minor-pre-major": true,
+      "component": "legreffier-plugin",
+      "extra-files": [
+        {
+          "jsonpath": "$.version",
+          "path": "plugins/legreffier/.codex-plugin/plugin.json",
+          "type": "json"
+        },
+        {
+          "jsonpath": "$.version",
+          "path": "plugins/legreffier/.claude-plugin/plugin.json",
+          "type": "json"
+        },
+        {
+          "jsonpath": "$.plugins[0].version",
+          "path": ".claude-plugin/marketplace.json",
+          "type": "json"
+        }
+      ],
+      "release-type": "node"
+    },
     "packages/openclaw-skill": {
       "component": "openclaw-skill",
       "release-type": "simple"

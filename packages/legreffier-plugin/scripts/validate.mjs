@@ -10,6 +10,7 @@ const pluginRoot = join(root, 'plugins', 'legreffier');
 
 const readJson = async (path) => JSON.parse(await readFile(path, 'utf8'));
 
+const packageManifest = await readJson(join(packageRoot, 'package.json'));
 const codex = await readJson(join(pluginRoot, '.codex-plugin', 'plugin.json'));
 const claude = await readJson(
   join(pluginRoot, '.claude-plugin', 'plugin.json'),
@@ -18,14 +19,25 @@ const codexMarketplace = await readJson(join(root, 'marketplace.json'));
 const claudeMarketplace = await readJson(
   join(root, '.claude-plugin', 'marketplace.json'),
 );
+const claudeMarketplacePlugin = claudeMarketplace.plugins.find(
+  (plugin) => plugin.name === 'legreffier',
+);
 const claudeMcp = await readJson(join(pluginRoot, '.mcp.json'));
 const hooks = await readJson(join(pluginRoot, 'hooks', 'hooks.json'));
 
 if (codex.name !== 'legreffier' || claude.name !== 'legreffier') {
   throw new Error('Both plugin manifests must use the legreffier identifier');
 }
-if (codex.version !== claude.version) {
-  throw new Error('Codex and Claude plugin versions must match');
+const versions = new Set([
+  packageManifest.version,
+  codex.version,
+  claude.version,
+  claudeMarketplacePlugin?.version,
+]);
+if (versions.size !== 1) {
+  throw new Error(
+    'Package, Codex, Claude, and Claude marketplace versions must match',
+  );
 }
 const contactEmail = 'legreffier@themolt.net';
 if (

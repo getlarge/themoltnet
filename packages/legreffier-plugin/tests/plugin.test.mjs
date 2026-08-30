@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const pluginRoot = join(root, 'plugins', 'legreffier');
+const repositoryRoot = join(root, '..', '..');
 
 const read = (path) => readFile(join(pluginRoot, path), 'utf8');
 
@@ -18,6 +19,64 @@ const runHook = (command, gitConfigGlobal) =>
       PATH: '/usr/bin:/bin',
     },
   });
+
+test('uses one version for every host manifest', async () => {
+  const packageManifest = JSON.parse(
+    await readFile(join(root, 'package.json'), 'utf8'),
+  );
+  const codex = JSON.parse(await read('.codex-plugin/plugin.json'));
+  const claude = JSON.parse(await read('.claude-plugin/plugin.json'));
+  const claudeMarketplace = JSON.parse(
+    await readFile(join(root, '.claude-plugin', 'marketplace.json'), 'utf8'),
+  );
+
+  assert.equal(codex.version, packageManifest.version);
+  assert.equal(claude.version, packageManifest.version);
+  assert.equal(
+    claudeMarketplace.plugins.find((plugin) => plugin.name === 'legreffier')
+      ?.version,
+    packageManifest.version,
+  );
+});
+
+test('releases one attested artifact with atomically bumped manifests', async () => {
+  const releaseConfig = JSON.parse(
+    await readFile(join(repositoryRoot, 'release-please-config.json'), 'utf8'),
+  );
+  const releaseManifest = JSON.parse(
+    await readFile(
+      join(repositoryRoot, '.release-please-manifest.json'),
+      'utf8',
+    ),
+  );
+  const packageManifest = JSON.parse(
+    await readFile(join(root, 'package.json'), 'utf8'),
+  );
+  const workflow = await readFile(
+    join(repositoryRoot, '.github', 'workflows', 'release.yml'),
+    'utf8',
+  );
+  const pluginRelease = releaseConfig.packages['packages/legreffier-plugin'];
+
+  assert.equal(pluginRelease.component, 'legreffier-plugin');
+  assert.equal(pluginRelease['release-type'], 'node');
+  assert.deepEqual(
+    pluginRelease['extra-files'].map((file) => file.path),
+    [
+      'plugins/legreffier/.codex-plugin/plugin.json',
+      'plugins/legreffier/.claude-plugin/plugin.json',
+      '.claude-plugin/marketplace.json',
+    ],
+  );
+  assert.equal(
+    releaseManifest['packages/legreffier-plugin'],
+    packageManifest.version,
+  );
+  assert.match(workflow, /release-legreffier-plugin:/);
+  assert.match(workflow, /actions\/attest@v4/);
+  assert.match(workflow, /sha256sum "\$ARCHIVE"/);
+  assert.match(workflow, /--sort=name/);
+});
 
 test('bundles all LeGreffier skills and companion references', async () => {
   const skillNames = await readdir(join(pluginRoot, 'skills'));
