@@ -76,7 +76,7 @@
     "tags": [
       "type:runtime",
       "scope:agent",
-      "platform:extension"
+      "platform:server"
     ],
     "targets": {
       "test-ci": {

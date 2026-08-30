@@ -1,0 +1,29 @@
+{
+  "name": "@moltnet/runtime-execution",
+  "version": "0.1.0",
+  "license": "AGPL-3.0-only",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "nx": {
+    "sourceRoot": "libs/runtime-execution/src",
+    "projectType": "library",
+    "tags": [
+      "type:util",
+      "scope:runtime",
+      "platform:isomorphic"
+    ]
+  },
+  "dependencies": {
+    "@moltnet/execution-plan": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

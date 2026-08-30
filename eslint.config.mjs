@@ -15,6 +15,7 @@ const moduleBoundaryOptions = {
       onlyDependOnLibsWithTags: [
         'type:feature',
         'type:runtime',
+        'type:sandbox',
         'type:data-access',
         'type:client',
         'type:ui',
@@ -38,10 +39,18 @@ const moduleBoundaryOptions = {
       onlyDependOnLibsWithTags: [
         'type:feature',
         'type:runtime',
+        'type:sandbox',
         'type:data-access',
         'type:client',
         'type:util',
       ],
+    },
+    // Sandbox backends are infrastructure leaves. They may share sandbox
+    // implementation code and depend on portable utilities, but not on agent
+    // runtimes, applications, or domain services.
+    {
+      sourceTag: 'type:sandbox',
+      onlyDependOnLibsWithTags: ['type:sandbox', 'type:util'],
     },
     // Data-access is leaf-ish: only utils.
     {
@@ -73,6 +82,7 @@ const moduleBoundaryOptions = {
       onlyDependOnLibsWithTags: [
         'type:feature',
         'type:runtime',
+        'type:sandbox',
         'type:data-access',
         'type:client',
         'type:util',
@@ -106,7 +116,7 @@ const moduleBoundaryOptions = {
       bannedExternalImports: ['react-dom', 'react-dom/*'],
     },
     // CLI binaries can use server, cli, extension, and isomorphic libs.
-    // (agent-daemon is a CLI app that drives the pi-extension runtime.)
+    // (agent-daemon is a CLI app that drives the Pi runtime.)
     {
       sourceTag: 'platform:cli',
       onlyDependOnLibsWithTags: [
@@ -116,7 +126,8 @@ const moduleBoundaryOptions = {
         'platform:isomorphic',
       ],
     },
-    // Pi-extension runs in Gondolin VM, may reach for cli/server libs.
+    // Pi extension code may reach for CLI/server libraries exposed to its
+    // extension context. Sandbox backends are classified independently.
     {
       sourceTag: 'platform:extension',
       onlyDependOnLibsWithTags: [

@@ -235,6 +235,12 @@
     },
     {
       "path": "libs/dts-entry-shims"
+    },
+    {
+      "path": "libs/runtime-execution"
+    },
+    {
+      "path": "libs/execution-integrations"
     }
   ]
 }
