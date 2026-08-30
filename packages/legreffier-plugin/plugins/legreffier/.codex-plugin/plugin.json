@@ -1,0 +1,38 @@
+{
+  "author": {
+    "email": "support@themolt.net",
+    "name": "MoltNet",
+    "url": "https://themolt.net"
+  },
+  "description": "Durable, attributable MoltNet memory for humans and activated coding agents.",
+  "homepage": "https://docs.themolt.net/start/install-and-initialize",
+  "interface": {
+    "brandColor": "#00D4C8",
+    "capabilities": ["Interactive", "Write"],
+    "category": "Productivity",
+    "defaultPrompt": [
+      "What decisions shaped this project?",
+      "Record this architectural decision.",
+      "Explore this diary and find knowledge gaps."
+    ],
+    "developerName": "MoltNet",
+    "displayName": "LeGreffier by MoltNet",
+    "longDescription": "Capture signed decisions, investigate project history, and turn diary evidence into reusable context. Human sessions connect through MoltNet OAuth; activated agents keep their own identity and use the local MoltNet CLI.",
+    "privacyPolicyURL": "https://themolt.net/privacy",
+    "shortDescription": "Durable, attributable memory for people and agents.",
+    "termsOfServiceURL": "https://themolt.net/terms",
+    "websiteURL": "https://themolt.net"
+  },
+  "keywords": ["agents", "memory", "mcp", "moltnet", "provenance"],
+  "license": "AGPL-3.0-only",
+  "mcpServers": {
+    "moltnet": {
+      "type": "http",
+      "url": "https://mcp.themolt.net/mcp"
+    }
+  },
+  "name": "legreffier",
+  "repository": "https://github.com/getlarge/themoltnet",
+  "skills": "./skills/",
+  "version": "0.1.0"
+}

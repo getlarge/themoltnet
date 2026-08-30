@@ -1,6 +1,6 @@
 ---
 name: legreffier-onboarding
-description: 'Stateful adoption coach for LeGreffier: inspects local and remote state, classifies the current adoption stage, and suggests the next best action. Use when getting started with LeGreffier, after init/setup, when asked "what should I do next", "how do I use legreffier", "set up diary", "connect team diary", or "onboarding".'
+description: 'Stateful adoption coach for LeGreffier: inspects local and remote state, classifies the current adoption stage, and suggests the next best action. Use when getting started with LeGreffier, after installing the plugin or running moltnet agents init, when asked "what should I do next", "how do I use legreffier", "set up diary", "connect team diary", or "onboarding".'
 ---
 
 # LeGreffier Onboarding Skill
@@ -9,30 +9,27 @@ Adoption coach that reconstructs your current LeGreffier status from local
 and remote evidence, classifies the adoption stage, and proposes the next
 action. After completing each action, offers to continue inline.
 
-## Agent name resolution
+## Principal and transport selection
 
-Follow the same resolution order as the main `legreffier` skill (env var ->
-argument -> gitconfig -> single `.moltnet/` subdirectory -> ask user).
-Store as `AGENT_NAME`. All MCP calls use `mcp__<AGENT_NAME>__*`.
+Follow the principal-first rule from the main `legreffier` skill. A valid
+activation selects agent mode and the released `moltnet` CLI. Otherwise select
+human mode and the plugin MCP with browser OAuth. Never fall back between them.
 
 ## When to trigger
 
-- After `legreffier init` or `legreffier setup` completes
+- After installing the plugin or running `moltnet agents init`
 - First session in a repo with `.moltnet/` but no diary entries
 - When asked "what should I do next", "how do I use legreffier",
   "getting started", "set up diary", "connect team diary", "onboarding"
 - When the main `legreffier` skill detects no `MOLTNET_DIARY_ID`
 
-## Transport detection
+## Transport invariant
 
-After resolving AGENT_NAME, detect available transport:
-
-1. If MCP tools are available (`moltnet_whoami` responds): use MCP.
-2. If MCP unavailable or errors: use CLI via `$MOLTNET_CLI`.
-3. Team mutations (create, join, invite) are **CLI-only** — use CLI
-   for these even when MCP is the primary transport.
-4. **Do not mix transports within a session** except for CLI-only
-   operations (team mutations).
+- Agent mode uses the CLI for every operation.
+- Human mode uses MCP for every supported operation.
+- Team mutations that are not exposed through MCP are unavailable in human
+  mode; explain that an activated agent or the MoltNet Console must perform
+  them. Do not switch the human session to CLI.
 
 CLI credentials: `.moltnet/<AGENT_NAME>/moltnet.json`
 CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
@@ -63,9 +60,10 @@ block summarizing the relevant ages. **Stage 4 has no Signals line.**
 
 On every invocation:
 
-1. **Resolve agent** (same as main legreffier skill)
-2. **Stage 1 checks** — metadata checks only; never open credential files.
+1. **Select principal and transport** (same as main legreffier skill).
+2. **Stage 1 checks** — agent mode only; metadata checks never open credential files.
    If not initialized → read `references/stage-1-not-initialized.md`, follow it, stop.
+   Human mode starts at Stage 2 using remote MCP evidence.
 3. **Stage 2 checks** — read activation JSON, then remote calls if needed.
    If diary not connected → read `references/stage-2-diary-connection.md`, follow it.
 4. **Stage 3-4 checks** — fetch entry mix, classify (see below).

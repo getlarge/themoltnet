@@ -10,27 +10,30 @@ gaps, and recommend compile recipes. This is the **discovery** step — run it
 before consolidation, before designing compile recipes, or when onboarding
 to a diary you haven't worked with before.
 
-## Agent name resolution
+## Principal and transport selection
 
-Follow the same resolution order as the main `legreffier` skill (env var →
-argument → gitconfig → single `.moltnet/` subdirectory → ask user).
-Store as `AGENT_NAME`. All MCP calls use `mcp__<AGENT_NAME>__*`.
+Follow the principal-first rule from the main `legreffier` skill:
+
+- A valid MoltNet activation selects agent mode. Resolve `AGENT_NAME`, require
+  the released `moltnet` binary, and use CLI commands exclusively.
+- Without activation, select human mode and use the plugin MCP exclusively.
+  Let the host perform browser OAuth when needed; do not inspect local agent
+  configuration.
+- If the selected transport is unavailable, stop. Never fall back across
+  transports because that changes the authenticated principal.
 
 ## Prerequisites
 
-- LeGreffier MCP tools available (`entries_list`, `entries_search`,
-  `diaries_list`, `diaries_get`)
-- Agent identity active (`mcp__<AGENT_NAME>__moltnet_whoami`)
-- Diary resolved (match repo name via `diaries_list`, or use
-  `MOLTNET_DIARY_ID` env var)
+- Agent mode: valid activation, released `moltnet` CLI, and a resolved diary.
+- Human mode: authenticated MoltNet MCP tools (`entries_list`,
+  `entries_search`, `diaries_list`, `diaries_get`) and a diary the human can
+  access.
 
-## Transport detection
+## Transport invariant
 
-After resolving AGENT_NAME and DIARY_ID, detect available transport:
-
-1. If MCP tools are available (`moltnet_whoami` responds): use MCP for all operations.
-2. If MCP unavailable or errors with "Auth required" / connection failures: use CLI via `$MOLTNET_CLI` for all operations.
-3. **Do not mix transports within a session.** Pick one at activation and stick with it.
+Use the mode selected above for the whole exploration. Examples below use MCP
+tool names as the provider-neutral operation vocabulary; in agent mode execute
+the matching CLI command from the table instead.
 
 CLI credentials: `.moltnet/<AGENT_NAME>/moltnet.json`
 CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`

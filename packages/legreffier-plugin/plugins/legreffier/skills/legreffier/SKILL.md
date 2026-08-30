@@ -3,13 +3,41 @@ name: legreffier
 description: 'LeGreffier mode for Claude & Codex when GIT_CONFIG_GLOBAL=.moltnet/gitconfig; use to verify bot identity or commit signing key, sign commits with MoltNet diary (one per repo), investigate past rationale via signed diary search with relevance/recency weights, check git history or audit trail, and answer questions like "why did this break", "why did we do this", "show me the reasoning", or "what does the diary say". Also triggers for proactive, tag/task-filtered diary search before non-trivial work and for episodic diary entries when something breaks, a workaround is applied, or the user expresses surprise/frustration (e.g. "WTF", "how did that happen", "this is broken", "why did this break").'
 ---
 
-# LeGreffier Skill (Claude & Codex)
+# LeGreffier Skill
 
-Single skill for accountability: verify identity, write typed diary entries, sign commits with diary links, and investigate rationale. Works in Claude and Codex; no reliance on `.claude` hooks. Each repository has its own diary named after the repo.
+Single skill for accountability: verify identity, write typed diary entries,
+sign agent commits with diary links, and investigate rationale. It works in
+ChatGPT, Claude, and Codex. Each repository has its own diary named after the
+repo.
 
-## Agent name resolution
+## Principal and transport selection
 
-Store resolved name as `AGENT_NAME` for all MCP calls (`mcp__<AGENT_NAME>__<tool>`). Gitconfig path: `.moltnet/<AGENT_NAME>/gitconfig`.
+Choose the principal before resolving any identity or calling any tool. Keep
+the selected mode for the whole session.
+
+1. Select **agent mode** when `MOLTNET_SIGNER_URL` is set, when
+   `GIT_CONFIG_GLOBAL` identifies `.moltnet/<agent>/gitconfig`, when
+   `MOLTNET_CREDENTIALS_PATH` is set, or when
+   `moltnet agents activation validate --dir . --json` reports `valid: true`.
+2. In agent mode, require the released `moltnet` binary and use it for every
+   MoltNet operation. Never call the plugin MCP and never open a browser OAuth
+   flow. The activated agent identity is the principal.
+3. Otherwise select **human mode**. Use the plugin's MoltNet MCP tools for every
+   operation. Let the host perform OAuth authorization-code login when needed.
+   Never inspect `.moltnet/`, infer an agent name, or read agent credentials.
+4. If the selected transport is unavailable, stop with setup guidance. Never
+   fall back to the other transport, because that would change the principal
+   recorded in the audit trail.
+
+Human mode supports diary discovery, reading, search, reflection, and mutable
+human-attributed entries. Agent activation, cryptographic agent signing,
+accountable commits, GitHub App authorship, and credential lifecycle are
+agent-mode operations.
+
+## Agent name resolution (agent mode only)
+
+Store the resolved name as `AGENT_NAME`. Gitconfig path:
+`.moltnet/<AGENT_NAME>/gitconfig`.
 
 **Resolution order** (first match):
 
@@ -19,7 +47,7 @@ Store resolved name as `AGENT_NAME` for all MCP calls (`mcp__<AGENT_NAME>__<tool
 4. `.moltnet/` has exactly one subdirectory with `moltnet.json` → use it
 5. Multiple subdirectories → list them and ask the user
 
-## Worktree detection
+## Worktree detection (agent mode only)
 
 If `.moltnet/` is absent from CWD:
 
@@ -46,7 +74,7 @@ If `.moltnet/` is absent from CWD:
 
 ### Signing flow
 
-**CLI (preferred):**
+Agent mode creates signed entries through the CLI:
 
 ```bash
 $MOLTNET_CLI entry create-signed \
@@ -56,11 +84,8 @@ $MOLTNET_CLI entry create-signed \
 
 Progress → stderr; entry JSON → stdout.
 
-**MCP multi-step:**
-
-1. `crypto_prepare_signature({ message: "<CID>" })` → `id`, `signingInput`
-2. `crypto_submit_signature({ request_id: <id>, signature })`
-3. `entries_create({ ..., signing_request_id: "<id>" })`
+Human mode must not borrow an agent key. Use `entries_create` through MCP for a
+human-attributed mutable entry instead of manufacturing an agent signature.
 
 **Canonical JSON for CID:**
 
@@ -213,7 +238,7 @@ For `procedural` entries: extract refs from `git diff --cached --stat` (file pat
 
 When subagents are available, delegate diary entry composition (metadata gathering, ref extraction, `entries_create` call) to a subagent. Primary agent decides _what_ to record; subagent handles _how_ to structure and submit.
 
-## Session activation
+## Session activation (agent mode only)
 
 ### Warm cache fast path
 
@@ -252,15 +277,19 @@ Activation has two modes:
 
 1. Load identity:
    - If `MOLTNET_FINGERPRINT` set, use it (skip `moltnet_whoami`).
-   - Otherwise call `moltnet_whoami` — it returns the authenticated identity
+   - Otherwise call `$MOLTNET_CLI agents whoami` — it returns the authenticated identity
      (`identityId`, `clientId`, `publicKey`, `fingerprint`).
    - **Hard gate**: unauthenticated / unknown fingerprint → stop. "Not authenticated with MoltNet — check `.moltnet/<AGENT_NAME>/` credentials before continuing."
 2. Refresh activation as described above, then resolve team:
    - If activation JSON returned `teamId`, use it as `TEAM_ID`.
-   - Otherwise: the diary resolution below uses `diaries_list` without team filtering. The personal team is used implicitly when creating a new diary.
+   - Otherwise: the diary resolution below uses `$MOLTNET_CLI diary list`
+     without team filtering. The personal team is used implicitly when creating
+     a new diary.
 3. Resolve diary:
    - If activation JSON returned `diaryId`, use it as `DIARY_ID`.
-   - Otherwise: `REPO=$(basename $(git rev-parse --show-toplevel))`, call `diaries_list`, match `name == $REPO`. Not found → `diaries_create({ name: "$REPO", visibility: "moltnet" })`.
+   - Otherwise: `REPO=$(basename $(git rev-parse --show-toplevel))`, call
+     `$MOLTNET_CLI diary list`, and match `name == $REPO`. When absent, run
+     `$MOLTNET_CLI diary create --name "$REPO" --visibility moltnet`.
    - **Onboarding nudge** (at most once per session): if activation returned no
      `diaryId` and few or no entries exist in the resolved diary, mention:
      "Tip: run `/legreffier-onboarding` (or `$legreffier-onboarding` in Codex)
@@ -295,31 +324,29 @@ agent-signing --adapter ssh-agent` service). The identity check expects
 - `gh` uses the host-brokered placeholder declared by the runtime kernel; the
   `moltnet github token` manual form is unavailable.
 
-## Transport detection
+## Transport invariant
 
-After resolving AGENT_NAME and DIARY_ID, detect available transport:
-
-1. If MCP tools are available (`moltnet_whoami` responds): use MCP for all operations.
-2. If MCP unavailable or errors with "Auth required" / connection failures: use CLI for all operations.
-3. **Do not mix transports within a session.** Pick one at activation and stick with it.
+Use the mode selected in [Principal and transport selection](#principal-and-transport-selection).
+Availability does not choose the principal: agent mode is CLI-only and human
+mode is MCP-only.
 
 ### CLI binary resolution
 
-Resolve the CLI command once at session start and store as `MOLTNET_CLI`:
+In agent mode, resolve the released CLI once at session start:
 
 ```bash
-if command -v moltnet &>/dev/null; then
-  MOLTNET_CLI="moltnet"
-else
-  MOLTNET_CLI="npx @themoltnet/cli"
-fi
+command -v moltnet >/dev/null 2>&1 || {
+  echo "The released moltnet CLI is required for an activated agent session." >&2
+  exit 1
+}
+MOLTNET_CLI="moltnet"
 ```
 
 **Hard rule:** after resolving `MOLTNET_CLI`, use that exact command string for all CLI invocations in the session.
 
 - Do not substitute absolute paths discovered from previous runs.
-- Do not call cached `_npx/.../moltnet` binaries directly.
-- If `moltnet` is not on `PATH`, the only fallback is `npx @themoltnet/cli`.
+- Do not call cached `_npx/.../moltnet` binaries or repository-built binaries.
+- Do not use `npx` as a fallback; install the released CLI first.
 - Re-resolve only if the environment changes materially or the command fails with a command-not-found error.
 
 In sandboxed environments (Gondolin VM), the `moltnet` binary is always at `/usr/local/bin/moltnet`.
@@ -406,7 +433,8 @@ CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
    should point back to the design decision it implements.
 
    For high-risk + `--signed`, verify after using the [Verification](#verification) section above.
-   **Fallback** (CLI unavailable): MCP multi-step flow (crypto_prepare_signature → crypto_submit_signature → entries_create).
+   If the CLI is unavailable, stop. Switching to MCP would change the
+   authenticated principal.
 
 7. Commit (depends on `AUTHORSHIP_MODE` from session activation step 8):
 
@@ -447,8 +475,8 @@ CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
 Applies only when activation JSON reports `githubAppConfigured: true`. Never
 inspect `moltnet.json` to determine this. Skip this section otherwise.
 
-LeGreffier setup installs `moltnet github guard` as a `PreToolUse` Bash hook for
-Claude Code and Codex. The guard allows reads, requires a command-scoped agent
+The LeGreffier plugin registers `moltnet github guard` as a `PreToolUse` Bash
+hook for local Claude Code and Codex sessions. The guard allows reads, requires a command-scoped agent
 token for writes that the App can perform, and allows the user's `gh` token as
 a fallback only when the GitHub installation permission response proves that
 the App lacks the required capability. Unknown commands are denied; GraphQL
@@ -465,8 +493,6 @@ When using the agent token, the recommended first-class wrapper is:
 
 ```bash
 moltnet github exec -- gh <command>
-# or, if `moltnet` is not installed:
-npx @themoltnet/cli github exec -- gh <command>
 ```
 
 This resolves credentials from the activated context, mints a command-scoped
@@ -483,8 +509,6 @@ case "$CFG" in /*) ;; *) CFG="$(git rev-parse --show-toplevel)/$CFG" ;; esac
 CREDS="$(dirname "$CFG")/moltnet.json"
 [ -f "$CREDS" ] || { echo "FATAL: moltnet.json not found at $CREDS" >&2; exit 1; }
 GH_TOKEN=$(moltnet github token --credentials "$CREDS") gh <command>
-# or, if `moltnet` is not installed:
-GH_TOKEN=$(npx @themoltnet/cli github token --credentials "$CREDS") gh <command>
 ```
 
 Keep the assignment on the same simple command: a token attached to one command
@@ -683,7 +707,9 @@ Both `human` and `coauthor` require `MOLTNET_HUMAN_GIT_IDENTITY` to be set (e.g.
 - `git push` still uses the agent's GitHub App token (needed for push access via the bot).
 - If signed commits are required, do not use the legreffier flow — commit outside it.
 
-**Auto-population**: `MOLTNET_HUMAN_GIT_IDENTITY` is auto-populated from the human's global git config during `legreffier init` and `legreffier port`. Override with `--human-git-identity` flag.
+**Auto-population**: `MOLTNET_HUMAN_GIT_IDENTITY` is populated from the
+human's global git config during `moltnet agents init` and preserved by
+`moltnet config port`. Override it in the agent environment when needed.
 
 **Validation**: `moltnet env check` and `moltnet config repair` validate these vars and warn on misconfigurations.
 
@@ -718,7 +744,8 @@ Author should be the human, committer the bot, trailer present. Do **not** use t
 ## Reminders
 
 - `Co-Authored-By` trailers are added based on `MOLTNET_COMMIT_AUTHORSHIP` mode (see above).
-- Hooks from `.claude/` won't run in Codex — follow this workflow manually.
+- Plugin command hooks are an extra local safeguard; the skill remains the
+  source of workflow behavior and hosted ChatGPT sessions do not depend on hooks.
 - Tag every entry with `branch:<branch>` and at least one `scope:<...>`.
 - Write `semantic` entries during the work, not after.
 - Never "skip diary due to time constraints." If MoltNet tools are unavailable and user insists, ask for explicit approval; otherwise do not commit.

@@ -30,15 +30,15 @@ If `REGISTERED_AT` > `ADOPTION_LAG_DAYS` ago, lead with:
 > LeGreffier is not initialized in this repository.
 >
 > **Option A — Fresh setup:**
-> Run `npx @themoltnet/legreffier init --name <agent-name> --agent claude`
-> to create a new identity, GitHub App, and MCP connection.
+> Run `moltnet agents init --name <agent-name>` to create a new agent
+> identity, GitHub App integration, credentials, and git signing configuration.
 >
 > **Option B — Reuse an existing agent:**
 > If you already have a `.moltnet/<agent-name>/` directory in another
 > repository, you can port it here:
-> `npx @themoltnet/legreffier port --name <agent-name> --from <source-repo>/.moltnet/<agent-name> --agent claude`
-> This copies credentials, rewrites paths, and configures the diary
-> for this repo — much faster than a full init.
+> `moltnet config port --name <agent-name> --from <source-repo>/.moltnet/<agent-name>`
+> This copies the agent configuration and rewrites repository paths. The
+> installed plugin supplies skills and hooks independently.
 
 ## Post-init: check `.gitignore`
 
@@ -57,7 +57,8 @@ Stop here. Do not attempt API calls without credentials.
 
 ## Resolving `--from` for port
 
-The `legreffier port --from` flag only accepts `<repo-root>/.moltnet/<agent-name>`.
+The `moltnet config port --from` flag only accepts
+`<repo-root>/.moltnet/<agent-name>`.
 
 1. Extract `<repo-root>` and `<agent-name>` from user's message.
 2. Resolve to absolute path:

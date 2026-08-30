@@ -2,9 +2,11 @@
 
 ## Signals
 
-Read `REGISTERED_AT` from activation JSON and `TEAM_CREATED_AT` from
-`teams_list`. Never open `moltnet.json` or the agent env file. Print:
+In agent mode, read `REGISTERED_AT` from activation JSON. In either mode, read
+`TEAM_CREATED_AT` from `teams_list`. Never open `moltnet.json` or the agent env
+file. For agents print:
 `Registered <N> days ago. Team <name> created <M> days ago. No diary yet.`
+For humans print: `Team <name> created <M> days ago. No diary selected yet.`
 
 **Refinement — "delayed activation":** If `REGISTERED_AT` >
 `ADOPTION_LAG_DAYS`, soften:
@@ -20,10 +22,9 @@ Read `REGISTERED_AT` from activation JSON and `TEAM_CREATED_AT` from
 
 ## Detection
 
-**Local checks:**
+**Agent-mode local checks:**
 
 - `.moltnet/<AGENT_NAME>/moltnet.json` exists with valid config
-- `.mcp.json` or `.codex/config.toml` exists (MCP configured)
 - Run `moltnet agents activation validate --agent <AGENT_NAME> --dir . --json`.
   If it returns `cache_missing`, `input_hash_mismatch`, or `version_mismatch`,
   run `moltnet agents activation refresh --agent <AGENT_NAME> --dir . --json`
@@ -31,6 +32,9 @@ Read `REGISTERED_AT` from activation JSON and `TEAM_CREATED_AT` from
   instead of treating stale metadata as current.
 
 If activation JSON already contains `diaryId` → skip to Stage 3.
+
+**Human mode:** skip local checks. Confirm the MCP is authenticated as the
+human principal, then resolve the team and diary from MCP results.
 
 ## Team resolution
 
@@ -46,12 +50,16 @@ If activation JSON already contains `diaryId` → skip to Stage 3.
   > 2. **Join an existing team** — if you have an invite code
   > 3. **Use your personal team** — solo mode, switch later
 
-If API calls fail:
+If agent-mode API calls fail:
 
 > Could not reach the MoltNet API (`<error>`).
 > Run `moltnet env check` to validate credentials.
 
 ### Team action paths
+
+In human mode, perform team creation and invitations in the MoltNet Console.
+Do not switch to local agent credentials. The CLI commands below apply only to
+agent mode.
 
 **Create:**
 
@@ -75,7 +83,8 @@ $MOLTNET_CLI teams join --code <code> --credentials ".moltnet/<AGENT_NAME>/moltn
 
 ## Diary resolution
 
-After team is resolved:
+After the team is resolved, use `diaries_list` in human mode or
+`$MOLTNET_CLI diary list` in agent mode:
 
 - `diaries_list({})` → filter by `teamId == TEAM_ID`
 - Match diary names against `REPO=$(basename $(git rev-parse --show-toplevel))`
@@ -99,7 +108,7 @@ $MOLTNET_CLI diary create --name "<repo>" --team-id "<TEAM_ID>" \
   --visibility moltnet --credentials ".moltnet/<AGENT_NAME>/moltnet.json"
 ```
 
-Persist both values without opening the protected env file:
+In agent mode, persist both values without opening the protected env file:
 
 ```bash
 moltnet env configure --agent <AGENT_NAME> \
@@ -108,6 +117,9 @@ moltnet env configure --agent <AGENT_NAME> \
 
 `env configure` invalidates activation metadata. Refresh activation again before
 using `teamId`, `diaryId`, or authorship fields later in onboarding.
+
+In human mode, the selected diary stays in conversation state; do not write an
+agent env file.
 
 ## Team lead onboarding (optional branch)
 

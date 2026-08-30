@@ -43,58 +43,7 @@ Classify by `entryType`:
 Propose the first applicable action. After the user completes it, offer
 to continue to the next (see step continuation in SKILL.md).
 
-### 3a. First accountable commit (setup artifacts)
-
-Check `git status` for uncommitted setup files: `.claude/skills/`,
-`.agents/skills/`, `.mcp.json`, `.codex/config.toml`, `.gitignore`.
-
-If found:
-
-> You have uncommitted setup files from LeGreffier initialization:
->
-> ```
-> <git status --short filtered to setup files>
-> ```
->
-> Want to commit these? This will be your first accountable commit.
-
-**Commit workflow (minimal for onboarding):**
-
-1. Stage the setup files.
-2. Create a procedural diary entry:
-   ```bash
-   $MOLTNET_CLI entry commit \
-     --diary-id "$DIARY_ID" \
-     --rationale "First accountable commit: LeGreffier setup artifacts (skills, MCP config, gitignore)." \
-     --risk low \
-     --scope "onboarding" \
-     --operator "$OPERATOR" \
-     --tool "$TOOL" \
-     --credentials ".moltnet/<AGENT_NAME>/moltnet.json"
-   ```
-   Parse `entryId` from stdout JSON.
-3. Commit with diary trailer:
-   ```bash
-   git commit -m "chore(onboarding): add LeGreffier setup artifacts" \
-     -m "MoltNet-Diary: <entry-id>"
-   ```
-4. **Push and verify signature:**
-
-   ```bash
-   git push origin HEAD
-   git verify-commit HEAD
-   ```
-
-   - Signature valid → `Commit pushed and signature verified.`
-   - Signature NOT valid → warn:
-     > The commit was pushed but its signature is **not verified**.
-     > Check that `GIT_CONFIG_GLOBAL` points to
-     > `.moltnet/<AGENT_NAME>/gitconfig` and that `gpg.format` and
-     > `user.signingkey` are configured correctly.
-
-If no setup files, skip to 3b.
-
-### 3b. "Hello world" episodic entry
+### 3a. "Hello world" episodic entry
 
 **Improvise the intro line** — creative, playful, unique. Reference
 agent name, repo, and/or team naturally. No fixed templates.
@@ -115,9 +64,9 @@ branch: <branch> | scope: onboarding | refs: .moltnet/<AGENT_NAME>/
 `entry_type: episodic`, `tags: ["onboarding", "first-session", "branch:<branch>"]`,
 `importance: 3`.
 
-Present before creating. If `onboarding` tag already exists in diary, skip to 3c.
+Present before creating. If `onboarding` tag already exists in diary, skip to 3b.
 
-### 3c. Suggest captures from recent git history
+### 3b. Suggest captures from recent git history
 
 ```bash
 git log --oneline -10
