@@ -333,6 +333,9 @@ catalogs:
     react-dom:
       specifier: ^19.0.0
       version: 19.2.4
+    skills:
+      specifier: 1.5.23
+      version: 1.5.23
     smol-toml:
       specifier: ^1.6.1
       version: 1.6.1
@@ -3200,6 +3203,9 @@ importers:
       react:
         specifier: 'catalog:'
         version: 19.2.4
+      skills:
+        specifier: 'catalog:'
+        version: 1.5.23
       smol-toml:
         specifier: 'catalog:'
         version: 1.6.1
@@ -10846,6 +10852,11 @@ packages:
   sirv@3.0.2:
     resolution: {integrity: sha512-2wcC/oGxHis/BoHkkPwldgiPSYcpZK3JU28WoMVv55yHJgcZ8rlXvuG9iZggz+sU1d4bRgIGASwyWqjxu3FM0g==}
     engines: {node: '>=18'}
+
+  skills@1.5.23:
+    resolution: {integrity: sha512-+hMNBSi35yfX0sKD+ZcRm9y5or7u313OdkcvrRvJAsAzGCaA8wRTu2OmVdN0KRbk9ybqKby5dijkn6OVvNTUmw==}
+    engines: {node: '>=22.20.0'}
+    hasBin: true
 
   slice-ansi@7.1.2:
     resolution: {integrity: sha512-iOBWFgUX7caIZiuutICxVgX1SdxwAVFFKwt1EvMYYec/NWO5meOJ6K5uQxhrYBdQJne4KxiqZc+KptFOWFSI9w==}
@@ -20493,6 +20504,11 @@ snapshots:
       '@polka/url': 1.0.0-next.29
       mrmime: 2.0.1
       totalist: 3.0.1
+
+  skills@1.5.23:
+    dependencies:
+      tar: 7.5.22
+      yaml: 2.8.4
 
   slice-ansi@7.1.2:
     dependencies:

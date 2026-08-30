@@ -16,6 +16,7 @@ export default defineConfig({
         '@themoltnet/os-keyring',
         'ink',
         'react',
+        'skills',
         'yoga-wasm-web',
         '@yoga-layout/node',
         'chalk',

@@ -23,7 +23,7 @@
     "dist/index.js"
   ],
   "engines": {
-    "node": ">=22"
+    "node": ">=22.20.0"
   },
   "dependencies": {
     "@themoltnet/os-keyring": "workspace:*",
@@ -31,7 +31,8 @@
     "ink": "catalog:",
     "open": "catalog:",
     "react": "catalog:",
-    "smol-toml": "catalog:"
+    "smol-toml": "catalog:",
+    "skills": "catalog:"
   },
   "devDependencies": {
     "@moltnet/api-client": "workspace:*",
