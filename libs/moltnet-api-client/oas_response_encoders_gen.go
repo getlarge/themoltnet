@@ -9919,6 +9919,75 @@ func encodePreviewRenderedPackResponse(response PreviewRenderedPackRes, w http.R
 	}
 }
 
+func encodeRecoverAgentCredentialsResponse(response RecoverAgentCredentialsRes, w http.ResponseWriter, span trace.Span) error {
+	switch response := response.(type) {
+	case *RecoveryCredentialsResponse:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(200)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *RecoverAgentCredentialsBadRequest:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(400)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *RecoverAgentCredentialsNotFound:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(404)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *RecoverAgentCredentialsInternalServerError:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(500)
+		span.SetStatus(codes.Error, http.StatusText(500))
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *RecoverAgentCredentialsBadGateway:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(502)
+		span.SetStatus(codes.Error, http.StatusText(502))
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	default:
+		return errors.Errorf("unexpected response type: %T", response)
+	}
+}
+
 func encodeRegisterAgentResponse(response RegisterAgentRes, w http.ResponseWriter, span trace.Span) error {
 	switch response := response.(type) {
 	case *RegisterResponse:

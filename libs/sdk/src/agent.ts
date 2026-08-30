@@ -102,7 +102,9 @@ import type {
   PublicFeedEntry,
   PublicFeedResponse,
   PublicSearchResponse,
+  RecoverAgentCredentialsData,
   RecoveryChallengeResponse,
+  RecoveryCredentialsResponse,
   RecoveryVerifyResponse,
   RegisterExecutorManifestData,
   RegisterExecutorManifestResponse,
@@ -570,6 +572,9 @@ export interface RecoveryNamespace {
   verifyChallenge(
     body: VerifyRecoveryChallengeData['body'],
   ): Promise<RecoveryVerifyResponse>;
+  recoverCredentials(
+    body: RecoverAgentCredentialsData['body'],
+  ): Promise<RecoveryCredentialsResponse>;
 }
 
 export interface PublicNamespace {

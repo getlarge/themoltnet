@@ -6,7 +6,9 @@
  */
 
 import {
+  cryptoService,
   generateRecoveryChallenge,
+  openSealedEnvelope,
   signChallenge,
 } from '@moltnet/crypto-service';
 import type { FastifyInstance } from 'fastify';
@@ -20,6 +22,7 @@ import {
   vi,
 } from 'vitest';
 
+import { buildApp } from '../src/app.js';
 import {
   createMockAgent,
   createMockServices,
@@ -56,13 +59,13 @@ describe('Recovery routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/recovery/challenge',
-        payload: { publicKey: agent.publicKey },
+        payload: { publicKey: agent.publicKey, purpose: 'identity' },
       });
 
       expect(response.statusCode).toBe(200);
       const body = response.json();
       expect(body.challenge).toMatch(
-        /^moltnet:recovery:ed25519:[A-Za-z0-9+/=]+:[a-f0-9]{64}:\d+$/,
+        /^moltnet:recovery:identity:ed25519:[A-Za-z0-9+/=]+:[a-f0-9]{64}:\d+$/,
       );
       expect(body.hmac).toMatch(/^[a-f0-9]{64}$/);
       expect(body).not.toHaveProperty('identityId');
@@ -77,13 +80,16 @@ describe('Recovery routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/recovery/challenge',
-        payload: { publicKey: 'ed25519:unknownKeyBase64==' },
+        payload: {
+          publicKey: 'ed25519:unknownKeyBase64==',
+          purpose: 'credentials',
+        },
       });
 
       expect(response.statusCode).toBe(200);
       const body = response.json();
       expect(body.challenge).toMatch(
-        /^moltnet:recovery:ed25519:[A-Za-z0-9+/=]+:[a-f0-9]{64}:\d+$/,
+        /^moltnet:recovery:credentials:ed25519:[A-Za-z0-9+/=]+:[a-f0-9]{64}:\d+$/,
       );
       expect(body.hmac).toMatch(/^[a-f0-9]{64}$/);
     });
@@ -92,7 +98,10 @@ describe('Recovery routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/recovery/challenge',
-        payload: { publicKey: 'ed25519:' + 'A'.repeat(60) },
+        payload: {
+          publicKey: 'ed25519:' + 'A'.repeat(60),
+          purpose: 'identity',
+        },
       });
 
       expect(response.statusCode).toBe(400);
@@ -102,7 +111,17 @@ describe('Recovery routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/recovery/challenge',
-        payload: { publicKey: 'not-a-valid-key' },
+        payload: { publicKey: 'not-a-valid-key', purpose: 'identity' },
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('requires an explicit recovery purpose', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/recovery/challenge',
+        payload: { publicKey: 'ed25519:AAAA+/bbbb==' },
       });
 
       expect(response.statusCode).toBe(400);
@@ -113,7 +132,10 @@ describe('Recovery routes', () => {
     const VERIFY_PUBLIC_KEY = 'ed25519:AAAA+/bbbb==';
 
     function createValidPayload() {
-      const challenge = generateRecoveryChallenge(VERIFY_PUBLIC_KEY);
+      const challenge = generateRecoveryChallenge(
+        VERIFY_PUBLIC_KEY,
+        'identity',
+      );
       const hmac = signChallenge(challenge, TEST_RECOVERY_SECRET);
       return {
         challenge,
@@ -138,7 +160,6 @@ describe('Recovery routes', () => {
         }),
       };
       // Re-build app with mocked identity client
-      const { buildApp } = await import('../src/app.js');
       const testApp = await buildApp({
         diaryService: mocks.diaryService as any,
         diaryRepository: mocks.diaryRepository as any,
@@ -215,7 +236,7 @@ describe('Recovery routes', () => {
 
     it('returns 400 for expired challenge', async () => {
       const sixMinutesAgo = Date.now() - 6 * 60 * 1000;
-      const challenge = `moltnet:recovery:ed25519:AAAA+/bbbb==:${'a'.repeat(64)}:${sixMinutesAgo}`;
+      const challenge = `moltnet:recovery:identity:ed25519:AAAA+/bbbb==:${'a'.repeat(64)}:${sixMinutesAgo}`;
       const hmac = signChallenge(challenge, TEST_RECOVERY_SECRET);
 
       const response = await app.inject({
@@ -274,7 +295,6 @@ describe('Recovery routes', () => {
       mocks.cryptoService.verify.mockResolvedValue(true);
 
       // Build app with a failing identity client
-      const { buildApp } = await import('../src/app.js');
       const testApp = await buildApp({
         diaryService: mocks.diaryService as any,
         diaryRepository: mocks.diaryRepository as any,
@@ -348,7 +368,10 @@ describe('Recovery routes', () => {
 
     it('returns 400 for publicKey exceeding maxLength in verify', async () => {
       const longKey = 'ed25519:' + 'A'.repeat(60);
-      const challenge = generateRecoveryChallenge(VERIFY_PUBLIC_KEY);
+      const challenge = generateRecoveryChallenge(
+        VERIFY_PUBLIC_KEY,
+        'identity',
+      );
       const hmac = signChallenge(challenge, TEST_RECOVERY_SECRET);
 
       const response = await app.inject({
@@ -363,6 +386,215 @@ describe('Recovery routes', () => {
       });
 
       expect(response.statusCode).toBe(400);
+    });
+  });
+
+  describe('POST /recovery/credentials', () => {
+    const CREDENTIALS_PUBLIC_KEY = 'ed25519:AAAA+/bbbb==';
+
+    function createCredentialsPayload(
+      purpose: 'credentials' | 'identity' = 'credentials',
+    ) {
+      const challenge = generateRecoveryChallenge(
+        CREDENTIALS_PUBLIC_KEY,
+        purpose,
+      );
+      return {
+        challenge,
+        hmac: signChallenge(challenge, TEST_RECOVERY_SECRET),
+        signature: 'some-sig',
+        publicKey: CREDENTIALS_PUBLIC_KEY,
+      };
+    }
+
+    it('delivers the sealed replacement when post-commit eviction fails', async () => {
+      const keyPair = await cryptoService.generateKeyPair();
+      const agent = createMockAgent({
+        publicKey: keyPair.publicKey,
+        fingerprint: keyPair.fingerprint,
+      });
+      const challenge = generateRecoveryChallenge(
+        agent.publicKey,
+        'credentials',
+      );
+      const hmac = signChallenge(challenge, TEST_RECOVERY_SECRET);
+      const signature = await cryptoService.sign(challenge, keyPair.privateKey);
+      mocks.agentRepository.findByPublicKey.mockResolvedValue(agent);
+      mocks.cryptoService.verify.mockImplementation((...args) =>
+        cryptoService.verify(...args),
+      );
+
+      const getOAuth2Client = vi.fn().mockResolvedValue({
+        client_id: `moltnet-agent-${OWNER_ID}`,
+        client_name: `Agent: ${agent.fingerprint}`,
+        grant_types: ['client_credentials'],
+        response_types: [],
+        token_endpoint_auth_method: 'client_secret_post',
+        scope: 'openid',
+        metadata: { identity_id: OWNER_ID },
+      });
+      const setOAuth2Client = vi.fn().mockResolvedValue(undefined);
+      const evictOAuthClient = vi.fn(() => {
+        throw new Error('validator cache unavailable');
+      });
+      const testApp = await buildApp({
+        diaryService: mocks.diaryService as any,
+        diaryRepository: mocks.diaryRepository as any,
+        agentRepository: mocks.agentRepository as any,
+        cryptoService: mocks.cryptoService as any,
+        agentEnrollmentRepository: mocks.agentEnrollmentRepository as any,
+        signingRequestRepository: mocks.signingRequestRepository as any,
+        nonceRepository: mocks.nonceRepository as any,
+        dataSource: mocks.dataSource as any,
+        transactionRunner: mocks.transactionRunner as any,
+        embeddingService: mocks.embeddingService as any,
+        permissionChecker: mocks.permissionChecker as any,
+        tokenValidator: {
+          introspect: vi.fn().mockResolvedValue({ active: false }),
+          resolveAuthContext: vi.fn().mockResolvedValue(null),
+          evictOAuthClient,
+        } as any,
+        webhookApiKey: 'test-key',
+        recoverySecret: TEST_RECOVERY_SECRET,
+        oryClients: {
+          frontend: {} as any,
+          identity: {} as any,
+          oauth2: { getOAuth2Client, setOAuth2Client } as any,
+          permission: {} as any,
+          relationship: {} as any,
+        },
+        security: TEST_SECURITY_OPTIONS,
+      });
+
+      try {
+        const response = await testApp.inject({
+          method: 'POST',
+          url: '/recovery/credentials',
+          payload: { challenge, hmac, signature, publicKey: agent.publicKey },
+        });
+
+        expect(response.statusCode).toBe(200);
+        const recovered = response.json();
+        const clientSecret = openSealedEnvelope(
+          recovered.sealedClientSecret,
+          keyPair.privateKey,
+        );
+        expect(recovered.clientId).toBe(`moltnet-agent-${OWNER_ID}`);
+        expect(clientSecret).toEqual(expect.any(String));
+        expect(clientSecret).not.toHaveLength(0);
+        expect(setOAuth2Client).toHaveBeenCalledWith({
+          id: recovered.clientId,
+          oAuth2Client: expect.objectContaining({
+            client_secret: clientSecret,
+            metadata: { identity_id: OWNER_ID },
+          }),
+        });
+        expect(evictOAuthClient).toHaveBeenCalledWith(recovered.clientId);
+      } finally {
+        await testApp.close();
+      }
+    });
+
+    it('rejects a replay before attempting another credential rotation', async () => {
+      const payload = {
+        challenge: generateRecoveryChallenge(
+          'ed25519:AAAA+/bbbb==',
+          'credentials',
+        ),
+        hmac: '',
+        signature: 'some-sig',
+        publicKey: 'ed25519:AAAA+/bbbb==',
+      };
+      payload.hmac = signChallenge(payload.challenge, TEST_RECOVERY_SECRET);
+      mocks.nonceRepository.consume.mockResolvedValue(false);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/recovery/credentials',
+        payload,
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json().code).toBe('INVALID_CHALLENGE');
+      expect(mocks.agentRepository.findByPublicKey).not.toHaveBeenCalled();
+    });
+
+    it('rejects a proof issued for identity recovery', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/recovery/credentials',
+        payload: createCredentialsPayload('identity'),
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json().code).toBe('INVALID_CHALLENGE');
+      expect(response.json().detail).toBe(
+        'Challenge was issued for a different recovery purpose',
+      );
+    });
+
+    it('rejects a tampered HMAC', async () => {
+      const payload = createCredentialsPayload();
+      payload.hmac = 'a'.repeat(64);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/recovery/credentials',
+        payload,
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json().code).toBe('INVALID_CHALLENGE');
+    });
+
+    it('rejects an expired challenge', async () => {
+      const timestamp = Date.now() - 6 * 60 * 1000;
+      const challenge = `moltnet:recovery:credentials:ed25519:AAAA+/bbbb==:${'a'.repeat(64)}:${timestamp}`;
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/recovery/credentials',
+        payload: {
+          challenge,
+          hmac: signChallenge(challenge, TEST_RECOVERY_SECRET),
+          signature: 'some-sig',
+          publicKey: CREDENTIALS_PUBLIC_KEY,
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json().detail).toBe('Challenge expired');
+    });
+
+    it('returns the same error for an unknown key and a bad signature', async () => {
+      mocks.agentRepository.findByPublicKey.mockResolvedValue(null);
+      mocks.cryptoService.verify.mockResolvedValue(true);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/recovery/credentials',
+        payload: createCredentialsPayload(),
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json().code).toBe('INVALID_SIGNATURE');
+      expect(mocks.cryptoService.verify).toHaveBeenCalled();
+    });
+
+    it('rejects an invalid Ed25519 signature', async () => {
+      mocks.agentRepository.findByPublicKey.mockResolvedValue(
+        createMockAgent(),
+      );
+      mocks.cryptoService.verify.mockResolvedValue(false);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/recovery/credentials',
+        payload: createCredentialsPayload(),
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json().code).toBe('INVALID_SIGNATURE');
     });
   });
 });

@@ -8,7 +8,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/safefile"
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 )
 
@@ -34,10 +36,345 @@ type agentsCredentialsRotateOpts struct {
 }
 
 type rotateCredentialsOutput struct {
-	ClientID           string `json:"clientId"`
-	CredentialsPath    string `json:"credentialsPath"`
-	CredentialsUpdated bool   `json:"credentialsUpdated"`
-	ClientSecret       string `json:"clientSecret,omitempty"`
+	ClientID           string           `json:"clientId"`
+	CredentialsPath    string           `json:"credentialsPath,omitempty"`
+	SecretReference    *SecretReference `json:"secretReference,omitempty"`
+	CredentialsUpdated bool             `json:"credentialsUpdated"`
+	ClientSecret       string           `json:"clientSecret,omitempty"`
+}
+
+type agentsCredentialsRecoverOpts struct {
+	apiURL         string
+	apiURLExplicit bool
+	credPath       string
+	yes            bool
+	out            io.Writer
+	errOut         io.Writer
+	destination    string
+
+	preflightCredentials   func(string) error
+	writeCredentials       func(string, []byte) error
+	writeRecoveryFile      func(rotateCredentialsOutput) (string, error)
+	secretProviders        *SecretProviderRegistry
+	verifyCredentials      func(string, string, string) error
+	reconcileCredentials   func(string, *CredentialsFile, SecretReference) error
+	writeRecoveredArtifact func(recoveredSecretArtifact) (string, error)
+}
+
+// recoveredCredentialsOutput intentionally contains no bearer material. The
+// replacement exists only in the provider and, while persistence is pending,
+// in a mode-0600 recovery artifact.
+type recoveredCredentialsOutput struct {
+	ClientID               string          `json:"clientId"`
+	SecretReference        SecretReference `json:"secretReference"`
+	PersistenceState       string          `json:"persistenceState"`
+	RecoveryPath           string          `json:"recoveryPath,omitempty"`
+	ManualRecoveryRequired bool            `json:"manualRecoveryRequired,omitempty"`
+}
+
+type recoveredSecretArtifact struct {
+	ClientID               string          `json:"clientId"`
+	SecretReference        SecretReference `json:"secretReference"`
+	ClientSecret           string          `json:"clientSecret,omitempty"`
+	ManualRecoveryRequired bool            `json:"manualRecoveryRequired,omitempty"`
+}
+
+func runAgentsCredentialsRecoverCmd(opts agentsCredentialsRecoverOpts) error {
+	if !opts.yes {
+		return fmt.Errorf(
+			"credential recovery replaces the current client secret; re-run with --yes to confirm",
+		)
+	}
+
+	credentialsPath, err := resolveCredentialsPath(opts.credPath)
+	if err != nil {
+		return err
+	}
+	creds, _, err := readCredentialsDocument(credentialsPath)
+	if err != nil {
+		return err
+	}
+	secretProviders := opts.secretProviders
+	if secretProviders == nil {
+		secretProviders = NewSecretProviderRegistry()
+	}
+	seed, err := resolveIdentitySeed(creds, secretProviders)
+	if err != nil {
+		return err
+	}
+	if creds.OAuth2.ClientID == "" {
+		return fmt.Errorf("credentials missing client_id — run 'moltnet register'")
+	}
+	destination, err := resolveRecoveryDestination(creds, opts.destination, secretProviders)
+	if err != nil {
+		return err
+	}
+
+	apiURL := resolveAPIURLFromCredentials(
+		opts.apiURL,
+		opts.apiURLExplicit,
+		creds,
+	)
+	client, err := moltnetapi.NewClient(
+		strings.TrimRight(apiURL, "/"),
+		nil,
+		moltnetapi.WithClient(newAPIHTTPClient()),
+	)
+	if err != nil {
+		return fmt.Errorf("agents credentials recover: create API client: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	challengeRes, err := client.RequestRecoveryChallenge(
+		ctx,
+		&moltnetapi.RecoveryChallengeRequest{
+			PublicKey: creds.Keys.PublicKey,
+			Purpose:   moltnetapi.RecoveryPurposeCredentials,
+		},
+	)
+	if err != nil {
+		return fmt.Errorf(
+			"agents credentials recover: request challenge: %w",
+			formatTransportError(err),
+		)
+	}
+	challenge, ok := challengeRes.(*moltnetapi.RecoveryChallengeResponse)
+	if !ok {
+		return fmt.Errorf(
+			"agents credentials recover: request challenge: %w",
+			formatAPIError(challengeRes),
+		)
+	}
+	signature, err := SignRawMessage(challenge.Challenge, seed)
+	if err != nil {
+		return fmt.Errorf("agents credentials recover: sign challenge: %w", err)
+	}
+	recoveryRes, err := client.RecoverAgentCredentials(
+		ctx,
+		&moltnetapi.RecoveryProof{
+			Challenge: challenge.Challenge,
+			Hmac:      challenge.Hmac,
+			PublicKey: creds.Keys.PublicKey,
+			Signature: signature,
+		},
+	)
+	if err != nil {
+		return fmt.Errorf(
+			"agents credentials recover: replace credentials: %w",
+			formatTransportError(err),
+		)
+	}
+	recovery, ok := recoveryRes.(*moltnetapi.RecoveryCredentialsResponse)
+	if !ok {
+		return fmt.Errorf(
+			"agents credentials recover: replace credentials: %w",
+			formatAPIError(recoveryRes),
+		)
+	}
+	clientSecret, err := DecryptFromAgent(
+		recovery.SealedClientSecret, seed,
+	)
+	if err != nil {
+		return fmt.Errorf("agents credentials recover: decrypt response: %w", err)
+	}
+	if recovery.ClientId == "" || clientSecret == "" {
+		return fmt.Errorf(
+			"agents credentials recover: server returned an incomplete credential pair",
+		)
+	}
+	if recovery.ClientId != creds.OAuth2.ClientID {
+		return fmt.Errorf("agents credentials recover: server returned an unexpected client ID")
+	}
+	verifyCredentials := opts.verifyCredentials
+	if verifyCredentials == nil {
+		verifyCredentials = verifyRecoveredOAuth2Credentials
+	}
+	if err := verifyCredentials(apiURL, recovery.ClientId, clientSecret); err != nil {
+		return fmt.Errorf("agents credentials recover: verify replacement OAuth2 credentials: %w", err)
+	}
+
+	writeArtifact := opts.writeRecoveredArtifact
+	if writeArtifact == nil {
+		writeArtifact = writeRecoveredSecretArtifact
+	}
+	artifactPath, err := writeArtifact(recoveredSecretArtifact{ClientID: recovery.ClientId, SecretReference: destination, ClientSecret: clientSecret})
+	if err != nil {
+		return fmt.Errorf("agents credentials recover: write protected recovery artifact: %w", err)
+	}
+	output := recoveredCredentialsOutput{ClientID: recovery.ClientId, SecretReference: destination, PersistenceState: "pending", RecoveryPath: artifactPath}
+	if err := secretProviders.Replace(destination, clientSecret); err != nil {
+		_ = printJSONTo(opts.out, output)
+		return fmt.Errorf("agents credentials recover: store replacement: %w (recovery artifact: %s)", err, artifactPath)
+	}
+	reconcile := opts.reconcileCredentials
+	if reconcile == nil {
+		reconcile = reconcileRecoveredCredentials
+	}
+	if err := reconcile(credentialsPath, creds, destination); err != nil {
+		partialPath, partialErr := writeArtifact(recoveredSecretArtifact{ClientID: recovery.ClientId, SecretReference: destination, ManualRecoveryRequired: true})
+		if partialErr == nil {
+			_ = os.Remove(artifactPath)
+			artifactPath = partialPath
+		}
+		output.PersistenceState = "stored_config_pending"
+		output.RecoveryPath = artifactPath
+		output.ManualRecoveryRequired = true
+		_ = printJSONTo(opts.out, output)
+		return fmt.Errorf("agents credentials recover: replacement stored but credentials config was not reconciled: %w", err)
+	}
+	if err := os.Remove(artifactPath); err != nil {
+		return fmt.Errorf("agents credentials recover: remove protected recovery artifact: %w", err)
+	}
+	output.PersistenceState = "stored"
+	output.RecoveryPath = ""
+	if err := printJSONTo(opts.out, output); err != nil {
+		return err
+	}
+	if opts.errOut != nil {
+		fmt.Fprintf(opts.errOut, "Updated the OAuth2 secret in %s. Restart active agent processes.\n", destination.Provider)
+	}
+	return nil
+}
+
+func resolveRecoveryDestination(creds *CredentialsFile, requested string, registry *SecretProviderRegistry) (SecretReference, error) {
+	if strings.TrimSpace(requested) == "" {
+		if creds.OAuth2.ClientSecretRef == nil {
+			return SecretReference{}, fmt.Errorf("--destination is required when oauth2.client_secret is plaintext")
+		}
+		if err := validateOAuth2SecretReferenceBinding(creds, *creds.OAuth2.ClientSecretRef); err != nil {
+			return SecretReference{}, fmt.Errorf("invalid OAuth2 secret destination: %w", err)
+		}
+		if _, err := validateMigrationDestination(registry, creds.OAuth2.ClientSecretRef.Provider); err != nil {
+			return SecretReference{}, err
+		}
+		return *creds.OAuth2.ClientSecretRef, nil
+	}
+	provider, err := validateMigrationDestination(registry, requested)
+	if err != nil {
+		return SecretReference{}, err
+	}
+	return SecretReference{Provider: provider, Key: OAuth2SecretKey(creds.IdentityID, creds.OAuth2.ClientID)}, nil
+}
+
+func reconcileRecoveredCredentials(path string, original *CredentialsFile, destination SecretReference) error {
+	lock, err := safefile.Acquire(path)
+	if err != nil {
+		return err
+	}
+	defer lock.Close()
+	raw, err := safefile.ReadBoundedRegularFile(path, maxMigrationConfigBytes)
+	if err != nil {
+		return err
+	}
+	var current CredentialsFile
+	var currentDocument map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &current); err != nil {
+		return fmt.Errorf("parse credentials: %w", err)
+	}
+	if err := json.Unmarshal(raw, &currentDocument); err != nil {
+		return fmt.Errorf("parse credentials document: %w", err)
+	}
+	if current.IdentityID != original.IdentityID || current.OAuth2.ClientID != original.OAuth2.ClientID || current.Keys.Fingerprint != original.Keys.Fingerprint || !sameOAuth2Source(original, &current) {
+		return fmt.Errorf("credentials identity, client, or OAuth2 source changed concurrently")
+	}
+	updated, err := updateCredentialsDocumentWithReference(currentDocument, destination)
+	if err != nil {
+		return err
+	}
+	return lock.Replace(raw, updated, maxMigrationConfigBytes)
+}
+
+func sameOAuth2Source(a, b *CredentialsFile) bool {
+	if (a.OAuth2.ClientSecretRef == nil) != (b.OAuth2.ClientSecretRef == nil) {
+		return false
+	}
+	if a.OAuth2.ClientSecretRef != nil && *a.OAuth2.ClientSecretRef != *b.OAuth2.ClientSecretRef {
+		return false
+	}
+	return (a.OAuth2.ClientSecret == "") == (b.OAuth2.ClientSecret == "")
+}
+
+func updateCredentialsDocumentWithReference(document map[string]json.RawMessage, ref SecretReference) ([]byte, error) {
+	updated := make(map[string]json.RawMessage, len(document))
+	for key, value := range document {
+		updated[key] = value
+	}
+	var oauth2 map[string]json.RawMessage
+	if raw := updated["oauth2"]; raw != nil {
+		if err := json.Unmarshal(raw, &oauth2); err != nil {
+			return nil, fmt.Errorf("parse oauth2 credentials: %w", err)
+		}
+	}
+	if oauth2 == nil {
+		oauth2 = map[string]json.RawMessage{}
+	}
+	encoded, err := json.Marshal(ref)
+	if err != nil {
+		return nil, err
+	}
+	oauth2["client_secret_ref"] = encoded
+	delete(oauth2, "client_secret")
+	encoded, err = json.Marshal(oauth2)
+	if err != nil {
+		return nil, err
+	}
+	updated["oauth2"] = encoded
+	data, err := json.MarshalIndent(updated, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+	return append(data, '\n'), nil
+}
+
+func writeRecoveredSecretArtifact(payload recoveredSecretArtifact) (string, error) {
+	dir, err := defaultRecoveryDir()
+	if err != nil {
+		return "", err
+	}
+	return writeRecoveryArtifact(dir, "client-secret-recovery-*.json", payload)
+}
+
+func verifyRecoveredOAuth2Credentials(apiURL, clientID, clientSecret string) error {
+	tm := NewTokenManager(apiURL, clientID, clientSecret)
+	if _, err := tm.GetToken(); err != nil {
+		return fmt.Errorf("verify replacement OAuth2 credentials: %w", err)
+	}
+	return nil
+}
+
+func emitRecoveredCredentials(
+	opts agentsCredentialsRecoverOpts,
+	output rotateCredentialsOutput,
+	clientSecret string,
+) error {
+	output.ClientSecret = clientSecret
+	if err := printJSONTo(opts.out, output); err == nil {
+		if opts.errOut != nil {
+			fmt.Fprintln(opts.errOut, credentialsRotationRecoveryNotice)
+		}
+		return fmt.Errorf(
+			"agents credentials recover: server recovery succeeded but local credentials were not safely updated; recover the new secret from stdout",
+		)
+	}
+
+	writeRecoveryFile := opts.writeRecoveryFile
+	if writeRecoveryFile == nil {
+		writeRecoveryFile = writeCredentialsRecoveryFile
+	}
+	recoveryPath, err := writeRecoveryFile(output)
+	if err != nil {
+		return fmt.Errorf(
+			"agents credentials recover: local persistence, recovery output, and protected recovery file all failed",
+		)
+	}
+	if opts.errOut != nil {
+		fmt.Fprintf(opts.errOut, credentialsRecoveryFileNotice+"\n", recoveryPath)
+	}
+	return fmt.Errorf(
+		"agents credentials recover: recovery output failed; recover the new secret from %s",
+		recoveryPath,
+	)
 }
 
 func runAgentsCredentialsRotateCmd(opts agentsCredentialsRotateOpts) error {

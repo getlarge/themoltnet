@@ -136,6 +136,39 @@ mandatory to avoid losing the replacement.
 Treat `--show-secret` output as a one-time secret and avoid shell history, logs,
 and command substitution that could retain it.
 
+## Recover a lost OAuth2 client secret
+
+When the OAuth2 secret is unavailable but the identity seed remains available,
+recover it with a purpose-bound Ed25519 challenge. The CLI resolves either
+`keys.private_key` or `keys.private_key_ref`; the same resolved seed signs the
+challenge and decrypts the sealed replacement.
+
+```bash
+# Required when oauth2.client_secret is still plaintext.
+moltnet agents credentials recover --yes --destination os-keyring
+
+# An existing writable client_secret_ref is reused when --destination is omitted.
+moltnet agents credentials recover --yes
+```
+
+`--destination` must name a registered writable provider. `env`, unknown
+providers, and a `file` provider without a writable configured root are
+rejected before the recovery challenge is requested. The replacement is stored
+under `oauth2/<identity_id>/<client_id>`, read back while the provider lock is
+held, and `moltnet.json` is then rewritten to `client_secret_ref`; unrelated
+fields and entries for a previous provider are retained.
+
+Recovery never prints the replacement secret. Before storage, the only copy is
+a mode-0600 artifact under the user's `moltnet/recovery` cache directory. A
+successful command returns non-secret JSON with the client ID, reference, and
+`persistenceState: "stored"`. If the provider write fails, that JSON names the
+protected artifact. If storage succeeded but config reconciliation cannot be
+completed, the artifact is replaced with a non-secret
+`manualRecoveryRequired` record containing the reference to add manually.
+Activated agent sessions may run recovery only with an explicit
+`--destination os-keyring`; omitted, file, environment, dynamic, or
+agent-selected destinations are denied by the secrets guard.
+
 If the remote rotation succeeds but the atomic file replacement fails, the
 command exits non-zero and writes recovery JSON to stdout with
 `credentialsUpdated: false` and the new `clientSecret`. Capture that stdout

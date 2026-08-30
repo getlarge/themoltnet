@@ -14,10 +14,12 @@
 import {
   type Client,
   createClient,
+  recoverAgentCredentials,
   requestRecoveryChallenge,
   verifyRecoveryChallenge,
 } from '@moltnet/api-client';
-import { cryptoService } from '@moltnet/crypto-service';
+import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
+import { cryptoService, openSealedEnvelope } from '@moltnet/crypto-service';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, type TestAgent } from './helpers.js';
@@ -26,6 +28,23 @@ import {
   KRATOS_PUBLIC_URL,
   type TestHarness,
 } from './setup.js';
+
+function requestOAuthToken(
+  baseUrl: string,
+  clientId: string,
+  clientSecret: string,
+) {
+  return fetch(`${baseUrl}/oauth2/token`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: clientId,
+      client_secret: clientSecret,
+      scope: AGENT_OAUTH_SCOPES.join(' '),
+    }),
+  });
+}
 
 describe('Recovery Flow', () => {
   let harness: TestHarness;
@@ -53,7 +72,7 @@ describe('Recovery Flow', () => {
     it('issues a recovery challenge for a known agent', async () => {
       const { data, error } = await requestRecoveryChallenge({
         client,
-        body: { publicKey: agent.keyPair.publicKey },
+        body: { publicKey: agent.keyPair.publicKey, purpose: 'identity' },
       });
 
       expect(error).toBeUndefined();
@@ -68,7 +87,7 @@ describe('Recovery Flow', () => {
 
       const { data, error, response } = await requestRecoveryChallenge({
         client,
-        body: { publicKey: unknownKeyPair.publicKey },
+        body: { publicKey: unknownKeyPair.publicKey, purpose: 'identity' },
       });
 
       expect(error).toBeUndefined();
@@ -85,7 +104,7 @@ describe('Recovery Flow', () => {
       // Step 1: Request challenge
       const { data: challengeData } = await requestRecoveryChallenge({
         client,
-        body: { publicKey: agent.keyPair.publicKey },
+        body: { publicKey: agent.keyPair.publicKey, purpose: 'identity' },
       });
       expect(challengeData).toBeDefined();
 
@@ -121,7 +140,7 @@ describe('Recovery Flow', () => {
       // Step 1: Request challenge from our API
       const { data: challengeData } = await requestRecoveryChallenge({
         client,
-        body: { publicKey: agent.keyPair.publicKey },
+        body: { publicKey: agent.keyPair.publicKey, purpose: 'identity' },
       });
 
       // Step 2: Sign with private key
@@ -207,7 +226,7 @@ describe('Recovery Flow', () => {
     it('rejects signature from wrong private key', async () => {
       const { data: challengeData } = await requestRecoveryChallenge({
         client,
-        body: { publicKey: agent.keyPair.publicKey },
+        body: { publicKey: agent.keyPair.publicKey, purpose: 'identity' },
       });
 
       // Sign with a different key — proves you DON'T own this identity
@@ -238,7 +257,7 @@ describe('Recovery Flow', () => {
     it('rejects tampered challenge (HMAC mismatch)', async () => {
       const { data: challengeData } = await requestRecoveryChallenge({
         client,
-        body: { publicKey: agent.keyPair.publicKey },
+        body: { publicKey: agent.keyPair.publicKey, purpose: 'identity' },
       });
 
       // Tamper with the challenge but reuse the original HMAC
@@ -269,7 +288,7 @@ describe('Recovery Flow', () => {
     it('rejects expired challenge', async () => {
       // Build a challenge with a timestamp in the past (> 5 min TTL)
       const expiredTimestamp = Date.now() - 10 * 60 * 1000; // 10 min ago
-      const expiredChallenge = `moltnet:recovery:${agent.keyPair.publicKey}:fake-nonce:${expiredTimestamp}`;
+      const expiredChallenge = `moltnet:recovery:identity:${agent.keyPair.publicKey}:fake-nonce:${expiredTimestamp}`;
 
       const signature = await cryptoService.sign(
         expiredChallenge,
@@ -292,6 +311,53 @@ describe('Recovery Flow', () => {
 
       const problem = error as Record<string, unknown>;
       expect(problem.code).toBe('INVALID_CHALLENGE');
+    });
+  });
+
+  describe('POST /recovery/credentials', () => {
+    it('replaces and seals a lost OAuth2 credential', async () => {
+      const previousSecret = agent.clientSecret;
+      const { data: challengeData, error: challengeError } =
+        await requestRecoveryChallenge({
+          client,
+          body: {
+            publicKey: agent.keyPair.publicKey,
+            purpose: 'credentials',
+          },
+        });
+      expect(challengeError).toBeUndefined();
+      expect(challengeData).toBeDefined();
+
+      const signature = await cryptoService.sign(
+        challengeData!.challenge,
+        agent.keyPair.privateKey,
+      );
+      const { data, error, response } = await recoverAgentCredentials({
+        client,
+        body: {
+          challenge: challengeData!.challenge,
+          hmac: challengeData!.hmac,
+          signature,
+          publicKey: agent.keyPair.publicKey,
+        },
+      });
+
+      expect(error).toBeUndefined();
+      expect(response.status).toBe(200);
+      expect(data).toBeDefined();
+      const replacementSecret = openSealedEnvelope(
+        data!.sealedClientSecret,
+        agent.keyPair.privateKey,
+      );
+      expect(data!.clientId).toBe(agent.clientId);
+      expect(replacementSecret).not.toBe(previousSecret);
+
+      await expect(
+        requestOAuthToken(harness.baseUrl, data!.clientId, replacementSecret),
+      ).resolves.toMatchObject({ status: 200 });
+      await expect(
+        requestOAuthToken(harness.baseUrl, agent.clientId, previousSecret),
+      ).resolves.toMatchObject({ status: 401 });
     });
   });
 });

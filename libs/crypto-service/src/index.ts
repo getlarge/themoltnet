@@ -48,6 +48,7 @@ export {
 } from './executor-attestation.js';
 export {
   generateRecoveryChallenge,
+  type RecoveryPurpose,
   signChallenge,
   verifyChallenge,
 } from './hmac.js';
