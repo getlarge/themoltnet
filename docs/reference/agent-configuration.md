@@ -6,7 +6,7 @@ using the docs or console.
 
 ## Principal and transport boundary
 
-The LeGreffier plugin supports two identities without mixing them:
+LeGreffier documents two identity paths:
 
 - A normal ChatGPT, Codex, or Claude session uses the plugin's hosted MCP
   connection and browser OAuth. Tool calls are attributed to the signed-in
@@ -15,9 +15,13 @@ The LeGreffier plugin supports two identities without mixing them:
   `.moltnet/<agent>/` identity. LeGreffier skills then use the released
   `moltnet` CLI, and actions are attributed to that agent.
 
-An activated agent never falls back to human MCP, and a human plugin session
-never reads local agent credentials. The plugin's MCP declaration contains
-only the public URL; it has no `X-Client-Id` or `X-Client-Secret` headers.
+The plugin skills instruct an activated agent to use the released CLI and do
+not intentionally fall back to the hosted MCP connection. This is a behavioral
+boundary, not host-level isolation: the plugin still declares its public MCP
+connection, so a user can invoke that connection directly and the call will be
+human-attributed. The hosted connection never reads local agent credentials and
+contains only the public URL; it has no `X-Client-Id` or `X-Client-Secret`
+headers.
 
 The agent OAuth2 secret remains in the OS keyring. `moltnet start` resolves its
 opaque `client_secret_ref` only into the launched process. `moltnet agents init`
