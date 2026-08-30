@@ -16,6 +16,7 @@ import { toErrorMessage } from './api.js';
 import { writeEnvFile } from './env-file.js';
 import { ensureKeyringSecretReference } from './secret-storage.js';
 import { toEnvPrefix } from './setup.js';
+import { installManagedSkills } from './skills.js';
 import { AgentSelect } from './ui/AgentSelect.js';
 import type { AgentType, UISummary } from './ui/types.js';
 
@@ -78,12 +79,12 @@ export function SetupApp({
         };
 
         const written: string[] = [];
+        await installManagedSkills(dir, agents);
+        written.push('managed skills');
         for (const agentType of agents) {
           const adapter = adapters[agentType];
           await adapter.writeMcpConfig(opts);
           written.push(`${agentType}: MCP config`);
-          await adapter.writeSkills(dir);
-          written.push(`${agentType}: skills`);
           await adapter.writeSettings(opts);
           written.push(`${agentType}: settings`);
           await adapter.writeRules(opts);

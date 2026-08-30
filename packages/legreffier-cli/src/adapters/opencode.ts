@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { assertSecretGuardCapability } from '../secret-guard-capability.js';
-import { buildGhTokenRule, installCanonicalSkills } from '../setup.js';
+import { buildGhTokenRule } from '../setup.js';
 import type { AgentAdapter, AgentAdapterOptions } from './types.js';
 
 interface OpencodeMcpServer {
@@ -130,12 +130,6 @@ export class OpencodeAdapter implements AgentAdapter {
       mcp,
     };
     await writeFile(filePath, JSON.stringify(merged, null, 2) + '\n', 'utf-8');
-  }
-
-  async writeSkills(repoDir: string): Promise<void> {
-    // opencode discovers `.agents/skills/` natively — the canonical tree is
-    // all it needs, no per-agent copy or symlink.
-    await installCanonicalSkills(repoDir);
   }
 
   async writeSettings(opts: AgentAdapterOptions): Promise<void> {

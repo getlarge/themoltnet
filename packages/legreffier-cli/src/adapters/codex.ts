@@ -6,7 +6,6 @@ import { parse, stringify } from 'smol-toml';
 import { assertSecretGuardCapability } from '../secret-guard-capability.js';
 import {
   buildCodexRules,
-  installCanonicalSkills,
   mergeGitHubGuardHook,
   mergeSecretGuardHook,
 } from '../setup.js';
@@ -48,11 +47,6 @@ export class CodexAdapter implements AgentAdapter {
 
     const merged: CodexToml = { ...existing, mcp_servers: servers };
     await writeFile(filePath, stringify(merged) + '\n', 'utf-8');
-  }
-
-  async writeSkills(repoDir: string): Promise<void> {
-    // `.agents/skills/` is the canonical tree Codex reads natively.
-    await installCanonicalSkills(repoDir);
   }
 
   async writeSettings(opts: AgentAdapterOptions): Promise<void> {

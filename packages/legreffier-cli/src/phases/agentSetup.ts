@@ -9,6 +9,7 @@ import {
 } from '../env-file.js';
 import { ensureKeyringSecretReference } from '../secret-storage.js';
 import { toEnvPrefix } from '../setup.js';
+import { installManagedSkills } from '../skills.js';
 import { clearState } from '../state.js';
 import type { AgentType, UIAction } from '../ui/types.js';
 
@@ -108,10 +109,10 @@ export async function runAgentSetupPhase(opts: {
   };
 
   dispatch({ type: 'step', key: 'skills', status: 'running' });
+  await installManagedSkills(repoDir, agentTypes);
   for (const agentType of agentTypes) {
     const adapter = adapters[agentType];
     await adapter.writeMcpConfig(adapterOpts);
-    await adapter.writeSkills(repoDir);
   }
   dispatch({ type: 'step', key: 'skills', status: 'done' });
 

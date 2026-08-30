@@ -25,6 +25,7 @@ import {
 import { runPortVerifyInstallationPhase } from './phases/portVerifyInstallation.js';
 import { ensureKeyringSecretReference } from './secret-storage.js';
 import { toEnvPrefix } from './setup.js';
+import { installManagedSkills } from './skills.js';
 import type { AgentType } from './ui/types.js';
 
 export interface PortAppProps {
@@ -174,7 +175,7 @@ export function PortApp({
           sourceDiaryId,
         });
 
-        // Per-agent tool files (claude/codex): skills, settings, rules.
+        // Per-agent tool files (claude/codex): settings, rules, and MCP config.
         // Mirror what SetupApp does — reuse adapters directly.
         setPhase('agent_setup');
         const latestConfig = (await readConfig(targetDir)) ?? rewrittenConfig;
@@ -198,12 +199,12 @@ export function PortApp({
             : '',
           installationId: resolveResult.installationId,
         };
+        await installManagedSkills(targetRepoDir, agents);
+        filesWritten.push('managed skills');
         for (const agentType of agents) {
           const adapter = adapters[agentType];
           await adapter.writeMcpConfig(adapterOpts);
           filesWritten.push(`${agentType}: MCP config`);
-          await adapter.writeSkills(targetRepoDir);
-          filesWritten.push(`${agentType}: skills`);
           await adapter.writeSettings(adapterOpts);
           filesWritten.push(`${agentType}: settings`);
           await adapter.writeRules(adapterOpts);
