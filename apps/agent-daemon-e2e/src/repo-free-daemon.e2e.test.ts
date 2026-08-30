@@ -29,9 +29,28 @@ import {
 import { buildProducerVerification } from './fixtures.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
-const { createPiTaskExecutorMock } = vi.hoisted(() => ({
-  createPiTaskExecutorMock: vi.fn(),
-}));
+const { createPiTaskExecutorMock, observeGovernancePlanSafelySpy } = vi.hoisted(
+  () => ({
+    createPiTaskExecutorMock: vi.fn(),
+    observeGovernancePlanSafelySpy: vi.fn(),
+  }),
+);
+
+// Spy-passthrough on the REAL observer so the governance e2e can assert on
+// the compiled plan without scraping pino's fd-1 output.
+vi.mock(
+  '@themoltnet/agent-daemon/lib/governance-plan.js',
+  async (importOriginal) => {
+    const actual = await importOriginal<Record<string, unknown>>();
+    observeGovernancePlanSafelySpy.mockImplementation(
+      actual.observeGovernancePlanSafely as (...args: unknown[]) => unknown,
+    );
+    return {
+      ...actual,
+      observeGovernancePlanSafely: observeGovernancePlanSafelySpy,
+    };
+  },
+);
 
 vi.mock('@themoltnet/pi-runtime', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
@@ -276,6 +295,134 @@ describe('Agent daemon repo-free execution (e2e)', () => {
       privateKey,
     );
   }, 60_000);
+  it('compiles a default-deny governance plan (watch mode) during a real claim', async () => {
+    const sandboxRoot = mkdtempSync(join(tmpdir(), 'daemon-governance-e2e-'));
+    const agentRoot = mkdtempSync(join(tmpdir(), 'daemon-gov-root-e2e-'));
+    tempRoots.push(sandboxRoot);
+    tempRoots.push(agentRoot);
+    writeAgentCredentials({
+      agentRoot,
+      agentName,
+      clientId,
+      clientSecret,
+      publicKey,
+      privateKey,
+      fingerprint,
+      apiUrl: harness.restApiUrl,
+    });
+    const created = await agent.tasks.create(
+      {
+        taskType: 'freeform',
+        diaryId,
+        title: 'Governance watch-mode e2e',
+        input: {
+          brief: 'Exercise the credential governance observer.',
+          execution: { workspace: 'none' },
+        },
+      },
+      { teamId },
+    );
+    const profile = await agent.runtimeProfiles.create(
+      {
+        name: `governance-watch-${randomUUID()}`,
+        runtimeKind: 'gondolin_pi',
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-5',
+        leaseTtlSec: 300,
+        heartbeatIntervalMs: 15_000,
+        maxBatchSize: 10,
+        sandbox: {},
+      },
+      { teamId },
+    );
+    // Distinct provenance: profile-side requirements, trusted local bindings.
+    const sentinel = 'e2e-governance-sentinel-value';
+    vi.stubEnv('E2E_GOV_TOKEN', sentinel);
+    vi.stubEnv(
+      'MOLTNET_PROFILE_CREDENTIAL_REQUIREMENTS',
+      JSON.stringify({
+        [profile.id]: [
+          {
+            name: 'github-app',
+            kind: 'http-bearer',
+            projection: 'brokered-http',
+            guestEnv: 'GH_TOKEN',
+            destinations: [
+              { protocol: 'https', host: 'api.github.com', port: 443 },
+            ],
+          },
+        ],
+      }),
+    );
+    vi.stubEnv(
+      'MOLTNET_CREDENTIAL_BINDINGS',
+      JSON.stringify({
+        'github-app': { reference: { provider: 'env', key: 'E2E_GOV_TOKEN' } },
+      }),
+    );
+
+    const oldCwd = process.cwd();
+    try {
+      process.chdir(sandboxRoot);
+      const exitCode = await runOnce([
+        '--task-id',
+        created.id,
+        '--agent',
+        agentName,
+        '--profile',
+        profile.id,
+        '--agent-root',
+        agentRoot,
+      ]);
+      // Watch mode observes; it never gates the task.
+      expect(exitCode).toBe(0);
+    } finally {
+      process.chdir(oldCwd);
+      await agent.runtimeProfiles.delete(profile.id);
+    }
+
+    expect(observeGovernancePlanSafelySpy).toHaveBeenCalledTimes(1);
+    const input = observeGovernancePlanSafelySpy.mock.calls[0]?.[0] as {
+      config: { sources: { requirements: string; bindings: string } };
+      profile: { id: string };
+    };
+    expect(input.profile.id).toBe(profile.id);
+    expect(input.config.sources).toEqual({
+      requirements: 'profile-requirements-config',
+      bindings: 'local-bindings-config',
+    });
+    const observed = (await observeGovernancePlanSafelySpy.mock.results[0]
+      ?.value) as {
+      snapshot: {
+        cid: string;
+        plan: {
+          mode: string;
+          launchable: boolean;
+          decisions: { control: string; state: string; reason?: string }[];
+        };
+      };
+    };
+    expect(observed.snapshot.cid).toMatch(/^baga/);
+    expect(observed.snapshot.plan.mode).toBe('watch');
+    // Default-deny: no Credential:<name> policy is resolved, so the required
+    // credential records credential_authority_unresolved and the plan is not
+    // launchable — while the task itself still completed (watch mode).
+    expect(observed.snapshot.plan.launchable).toBe(false);
+    expect(observed.snapshot.plan.decisions[0]).toMatchObject({
+      control: 'credential:github-app',
+      state: 'failed',
+      reason: 'credential_authority_unresolved',
+    });
+    // Value-free: the bound secret's value never appears in the observed
+    // plan, its inputs, or the snapshot.
+    expect(JSON.stringify(observed)).not.toContain(sentinel);
+    expect(
+      JSON.stringify(observeGovernancePlanSafelySpy.mock.calls),
+    ).not.toContain(sentinel);
+
+    const final = await agent.tasks.get(created.id);
+    expect(final.status).toBe('completed');
+  }, 120_000);
 });
 
 function writeAgentCredentials(input: {

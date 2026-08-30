@@ -34,6 +34,16 @@ export interface DaemonConfig {
   signingPrivateKeyRef: string;
   /** `Name <email>` projected into guests for brokered commit signing. */
   gitAuthor: string;
+  /**
+   * Profile-side/private input for the observe-only #1970 governance plan:
+   * JSON map of profile id → credential requirements. Distinct provenance
+   * from `credentialBindings` by design (#2022 review).
+   */
+  profileCredentialRequirements: string;
+  /** Trusted local/deployment bindings: logical name → secret reference. */
+  credentialBindings: string;
+  /** Credential-governance mode: '', off, watch or enforce (see resolveCredentialEnforcement). */
+  credentialEnforcement: string;
   /** Include empty-list and idle-sleep spans for controlled benchmarks. */
   traceIdlePolling: boolean;
 }
@@ -51,6 +61,10 @@ export function loadConfig(): DaemonConfig {
     signingPrivateKey: process.env['MOLTNET_PRIVATE_KEY'] ?? '',
     signingPrivateKeyRef: process.env['MOLTNET_PRIVATE_KEY_REF'] ?? '',
     gitAuthor: process.env['MOLTNET_GIT_AUTHOR'] ?? '',
+    profileCredentialRequirements:
+      process.env['MOLTNET_PROFILE_CREDENTIAL_REQUIREMENTS'] ?? '',
+    credentialBindings: process.env['MOLTNET_CREDENTIAL_BINDINGS'] ?? '',
+    credentialEnforcement: process.env['MOLTNET_CREDENTIAL_ENFORCEMENT'] ?? '',
     traceIdlePolling: readBoolean(
       'MOLTNET_TRACE_IDLE_POLLING',
       process.env['MOLTNET_TRACE_IDLE_POLLING'],

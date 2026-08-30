@@ -19,6 +19,7 @@ import {
   findMainWorktree,
   GuestEnvironmentBoundaryError,
 } from '@themoltnet/pi-runtime';
+import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
 
 import { activatePiCodingAgentDir, loadConfig } from '../config.js';
 import { abortActiveAttemptOnSignal } from '../lib/abort-active-attempt.js';
@@ -47,6 +48,11 @@ import {
   validateExecutorSigningIdentity,
 } from '../lib/executor-attestation.js';
 import { finalizeTask } from '../lib/finalize.js';
+import {
+  loadRuntimeCredentialConfig,
+  observeGovernancePlanSafely,
+  resolveCredentialEnforcement,
+} from '../lib/governance-plan.js';
 import { isHelpFlag } from '../lib/help.js';
 import { createRootLogger, logDaemonStartupFailure } from '../lib/logger.js';
 import {
@@ -59,6 +65,7 @@ import {
 import { initWorkerOtel } from '../lib/otel.js';
 import { ensurePiAgentDir } from '../lib/pi-agent-dir.js';
 import { runWithDaemonRuntimeContext } from '../lib/runtime-context.js';
+import { runtimeExecutionOffer } from '../lib/runtime-governance.js';
 import { createRuntimeProfileRetryTriage } from '../lib/runtime-profile-retry-triage.js';
 import { reapRuntimeSlotResources } from '../lib/runtime-resource-reaper.js';
 import {
@@ -209,6 +216,17 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   }
 
   const cfg = loadConfig();
+  const credentialSources = {
+    profileRequirements: cfg.profileCredentialRequirements,
+    bindings: cfg.credentialBindings,
+  };
+  const runtimeCredentialConfig =
+    resolveCredentialEnforcement(
+      cfg.credentialEnforcement,
+      credentialSources,
+    ) === 'off'
+      ? null
+      : loadRuntimeCredentialConfig(credentialSources);
   const agentRootDir = resolve(
     process.cwd(),
     values['agent-root'] ?? process.cwd(),
@@ -687,6 +705,22 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           slotIdentity,
           stateDirs,
         } = selected;
+        if (runtimeCredentialConfig) {
+          await observeGovernancePlanSafely({
+            config: runtimeCredentialConfig,
+            profile,
+            offer: runtimeExecutionOffer(
+              selected.preparedRuntime,
+              selected.preparedRuntime.attestor.fingerprint,
+            ),
+            registry: createNodeSecretProviderRegistry(),
+            executorFingerprint: selected.preparedRuntime.attestor.fingerprint,
+            claimAuthority: claimedTask.claimAuthority ?? {},
+            taskId: claimedTask.task.id,
+            attemptN: claimedTask.attemptN,
+            logger: rootLogger,
+          });
+        }
         const taskLogger = rootLogger.child({
           runtimeProfileId: profile.id,
           runtimeProfileName: profile.name,
