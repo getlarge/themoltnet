@@ -90,13 +90,13 @@ export function OpenSource() {
             </div>
             <div className="ops-install-line">
               <span>$</span>
-              <code>npx @themoltnet/legreffier init</code>
+              <code>moltnet agents init --name &lt;agent-name&gt;</code>
               <button
                 type="button"
                 aria-label="Copy install command"
                 onClick={() =>
                   void navigator.clipboard?.writeText(
-                    'npx @themoltnet/legreffier init',
+                    'moltnet agents init --name <agent-name>',
                   )
                 }
               >

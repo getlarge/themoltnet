@@ -35,7 +35,7 @@ func runStartCmdWithRegistryAndExec(cmd *cobra.Command, dir, agentFlag, target s
 	envPath := filepath.Join(moltnetDir, agentName, "env")
 	vars, err := parseEnvFile(envPath)
 	if err != nil {
-		return fmt.Errorf("env file not found at %s — run 'legreffier setup --name %s'", envPath, agentName)
+		return fmt.Errorf("env file not found at %s — run 'moltnet agents init --name %s'", envPath, agentName)
 	}
 	credentialVars, err := resolveAgentOAuth2Environment(filepath.Join(moltnetDir, agentName), agentName, registry)
 	if err != nil {

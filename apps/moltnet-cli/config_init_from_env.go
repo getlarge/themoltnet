@@ -55,7 +55,7 @@ func normalizePEMEnvValue(raw string) string {
 
 // runConfigInitFromEnvCmd reconstructs an agent's .moltnet/<agent>/ directory
 // from environment variables. Designed for ephemeral CI/cloud environments
-// (e.g. Claude Code web) where legreffier init cannot run interactively.
+// (e.g. Claude Code web) where moltnet agents init cannot run interactively.
 func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool, envFile string, override bool) error {
 	return runConfigInitFromEnvCmdWithRegistry(
 		dir,

@@ -47,7 +47,7 @@ func missingMoltnetCredentialsError(cwd, mainRoot, context string) error {
 			"Looked for .moltnet at:\n"+
 			"- %s\n\n"+
 			"Create local credentials with:\n"+
-			"  legreffier init --name <agent>\n\n"+
+			"  moltnet agents init --name <agent>\n\n"+
 			"For CI, web, or other env-based setup, reconstruct them with:\n"+
 			"  moltnet config init-from-env --agent <agent>",
 		strings.Join(looked, "\n- "),
@@ -134,7 +134,7 @@ func resolveAgentName(moltnetDir, flagValue string) (string, error) {
 	if flagValue != "" {
 		agentDir := filepath.Join(moltnetDir, flagValue)
 		if _, err := os.Stat(filepath.Join(agentDir, "moltnet.json")); err != nil {
-			return "", fmt.Errorf("agent %q not found in %s — run 'legreffier init --name %s'", flagValue, moltnetDir, flagValue)
+			return "", fmt.Errorf("agent %q not found in %s — run 'moltnet agents init --name %s'", flagValue, moltnetDir, flagValue)
 		}
 		return flagValue, nil
 	}
@@ -169,7 +169,7 @@ func resolveAgentName(moltnetDir, flagValue string) (string, error) {
 
 	switch len(agents) {
 	case 0:
-		return "", fmt.Errorf("no agents found in %s — run 'legreffier init --name <agent>'", moltnetDir)
+		return "", fmt.Errorf("no agents found in %s — run 'moltnet agents init --name <agent>'", moltnetDir)
 	case 1:
 		return agents[0], nil
 	default:

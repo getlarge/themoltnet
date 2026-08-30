@@ -214,7 +214,7 @@ func runRegisterCmd(apiURL, credentialType, enrollmentToken string, jsonOut, noM
 	}
 	fmt.Fprintf(os.Stderr, "Credentials written to %s\n", credPath)
 	if !noMCP {
-		fmt.Fprintln(os.Stderr, "MCP config not written: run 'legreffier setup' to create a credential-safe client configuration")
+		fmt.Fprintln(os.Stderr, "MCP config not written: install LeGreffier from your host's plugin directory for authenticated MCP access")
 	}
 	return nil
 }

@@ -26,7 +26,7 @@ func newConfigCmd() *cobra.Command {
 		Short: "Reconstruct agent config from environment variables",
 		Long: `Reconstruct .moltnet/<agent>/ directory from environment variables.
 Designed for ephemeral environments (CI, Claude Code web) where
-legreffier init cannot run interactively.
+moltnet agents init cannot run interactively.
 
 Agent name resolution: --agent flag > MOLTNET_AGENT_NAME env var.
 

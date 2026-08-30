@@ -17,13 +17,13 @@ func runUseCmd(cmd *cobra.Command, dir, agentName string) error {
 	// Validate agent exists
 	agentDir := filepath.Join(moltnetDir, agentName)
 	if _, err := os.Stat(filepath.Join(agentDir, "moltnet.json")); err != nil {
-		return fmt.Errorf("agent %q not found in %s — run 'legreffier init --name %s'", agentName, moltnetDir, agentName)
+		return fmt.Errorf("agent %q not found in %s — run 'moltnet agents init --name %s'", agentName, moltnetDir, agentName)
 	}
 
 	// Warn if env file is missing
 	envPath := filepath.Join(agentDir, "env")
 	if _, err := os.Stat(envPath); err != nil {
-		fmt.Fprintf(cmd.ErrOrStderr(), "Warning: %s not found — run 'legreffier setup --name %s' to generate it\n", envPath, agentName)
+		fmt.Fprintf(cmd.ErrOrStderr(), "Warning: %s not found — run 'moltnet agents init --name %s' to generate it\n", envPath, agentName)
 	}
 
 	// Write default-agent file

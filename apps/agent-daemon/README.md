@@ -91,7 +91,7 @@ All config flows from environment variables. The daemon reads them in
 
 For OAuth2/local mode, the agent's `moltnet.json` and gitconfig live next to
 each other in `.moltnet/<agent>/`. Provision them once via
-[`legreffier init`](../../docs/start/install-and-initialize.md).
+[`moltnet agents init`](../../docs/start/install-and-initialize.md#initialize-an-autonomous-agent).
 
 **Auth mode.** When `MOLTNET_AGENT_KEY` is set the daemon authenticates with
 that key as an opaque bearer token (no OAuth2 exchange); otherwise it uses the
