@@ -274,8 +274,21 @@ func (p FileSecretProvider) Delete(key string) error {
 	return nil
 }
 
-// CanWrite reports whether MOLTNET_SECRET_ROOT_WRITABLE=1 enabled writes.
-func (p FileSecretProvider) CanWrite() bool { return p.Writable && p.Root != "" }
+// CanWrite reports whether writes are enabled and the root satisfies the
+// same prerequisites openRoot enforces (absolute path to an existing
+// directory), so destination validation cannot pass for a root that every
+// later write would reject.
+func (p FileSecretProvider) CanWrite() bool {
+	if !p.Writable {
+		return false
+	}
+	root := strings.TrimSpace(p.Root)
+	if root == "" || !filepath.IsAbs(root) {
+		return false
+	}
+	info, err := os.Stat(root)
+	return err == nil && info.IsDir()
+}
 
 func (p FileSecretProvider) requireWritable(key string) error {
 	if strings.TrimSpace(p.Root) == "" {

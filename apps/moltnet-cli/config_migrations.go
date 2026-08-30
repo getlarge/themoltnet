@@ -55,10 +55,13 @@ func validateMigrationDestination(registry *SecretProviderRegistry, destination 
 	return destination, nil
 }
 
-func newConfigMigrationEngine(migrations []configMigration) configmigrate.Engine[*SecretProviderRegistry] {
+const migrationDestinationParameter = "destination"
+
+func newConfigMigrationEngine(migrations []configMigration, destination string) configmigrate.Engine[*SecretProviderRegistry] {
 	return configmigrate.Engine[*SecretProviderRegistry]{
 		GeneratedBy:    "moltnet@" + version,
 		MaxConfigBytes: maxMigrationConfigBytes,
+		Parameters:     map[string]string{migrationDestinationParameter: destination},
 		Migrations:     migrations,
 	}
 }
@@ -74,6 +77,7 @@ func runConfigMigrateCmd(w io.Writer, credPath, generatePath, runPath, destinati
 		credPath,
 		generatePath,
 		runPath,
+		destination,
 		dryRun,
 		registry,
 		defaultConfigMigrations(destination),
@@ -82,7 +86,7 @@ func runConfigMigrateCmd(w io.Writer, credPath, generatePath, runPath, destinati
 
 func runConfigMigrateCmdWithRegistry(
 	w io.Writer,
-	credPath, generatePath, runPath string,
+	credPath, generatePath, runPath, destination string,
 	dryRun bool,
 	secretProviders *SecretProviderRegistry,
 	migrations []configMigration,
@@ -106,10 +110,10 @@ func runConfigMigrateCmdWithRegistry(
 		if filepath.Clean(plan.CredentialsPath) != filepath.Clean(credentialsPath) {
 			return fmt.Errorf("migration plan targets %s, not %s", plan.CredentialsPath, credentialsPath)
 		}
-		return runAndPrintConfigMigrationPlan(w, plan, secretProviders, migrations)
+		return runAndPrintConfigMigrationPlan(w, plan, destination, secretProviders, migrations)
 	}
 
-	plan, err := buildConfigMigrationPlan(credentialsPath, migrations)
+	plan, err := buildConfigMigrationPlan(credentialsPath, destination, migrations)
 	if err != nil {
 		return err
 	}
@@ -122,16 +126,17 @@ func runConfigMigrateCmdWithRegistry(
 		}
 		return printJSONTo(w, plan)
 	}
-	return runAndPrintConfigMigrationPlan(w, plan, secretProviders, migrations)
+	return runAndPrintConfigMigrationPlan(w, plan, destination, secretProviders, migrations)
 }
 
 func runAndPrintConfigMigrationPlan(
 	w io.Writer,
 	plan configMigrationPlan,
+	destination string,
 	secretProviders *SecretProviderRegistry,
 	migrations []configMigration,
 ) error {
-	applied, err := applyConfigMigrationPlan(plan, secretProviders, migrations)
+	applied, err := applyConfigMigrationPlan(plan, destination, secretProviders, migrations)
 	output := configMigrationRunOutput{
 		Plan:    plan,
 		Applied: applied,
@@ -149,16 +154,17 @@ func runAndPrintConfigMigrationPlan(
 	return printJSONTo(w, output)
 }
 
-func buildConfigMigrationPlan(credentialsPath string, migrations []configMigration) (configMigrationPlan, error) {
-	return newConfigMigrationEngine(migrations).BuildPlan(credentialsPath)
+func buildConfigMigrationPlan(credentialsPath, destination string, migrations []configMigration) (configMigrationPlan, error) {
+	return newConfigMigrationEngine(migrations, destination).BuildPlan(credentialsPath)
 }
 
 func applyConfigMigrationPlan(
 	plan configMigrationPlan,
+	destination string,
 	secretProviders *SecretProviderRegistry,
 	migrations []configMigration,
 ) ([]string, error) {
-	return newConfigMigrationEngine(migrations).Apply(plan, secretProviders)
+	return newConfigMigrationEngine(migrations, destination).Apply(plan, secretProviders)
 }
 
 func writeConfigMigrationPlan(path string, plan configMigrationPlan) error {

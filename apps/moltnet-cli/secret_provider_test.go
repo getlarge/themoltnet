@@ -34,6 +34,8 @@ func (p *memorySecretProvider) Get(key string) (string, error) {
 	return p.values[key], nil
 }
 
+func (p *memorySecretProvider) CanWrite() bool { return true }
+
 func (p *memorySecretProvider) Set(key, value string) error {
 	p.values[key] = value
 	return nil

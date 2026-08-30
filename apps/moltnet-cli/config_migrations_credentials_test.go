@@ -67,7 +67,7 @@ func mustJSON(t *testing.T, value string) string {
 func runMigrationExpectingFailure(t *testing.T, credentialsPath string, registry *SecretProviderRegistry) configMigrationRunOutput {
 	t.Helper()
 	var output bytes.Buffer
-	err := runConfigMigrateCmdWithRegistry(&output, credentialsPath, "", "", false, registry, defaultConfigMigrations(osKeyringProviderName))
+	err := runConfigMigrateCmdWithRegistry(&output, credentialsPath, "", "", osKeyringProviderName, false, registry, defaultConfigMigrations(osKeyringProviderName))
 	if err == nil {
 		t.Fatalf("migration unexpectedly succeeded:\n%s", output.String())
 	}
@@ -157,7 +157,7 @@ func TestConfigMigrateStoresSeedAndPEMInWritableFileRoot(t *testing.T) {
 	migrations := defaultConfigMigrations(fileProviderName)
 	run := func() configMigrationRunOutput {
 		var output bytes.Buffer
-		if err := runConfigMigrateCmdWithRegistry(&output, credentialsPath, "", "", false, registry, migrations); err != nil {
+		if err := runConfigMigrateCmdWithRegistry(&output, credentialsPath, "", "", fileProviderName, false, registry, migrations); err != nil {
 			t.Fatalf("run migration: %v\n%s", err, output.String())
 		}
 		var result configMigrationRunOutput
@@ -274,7 +274,7 @@ func TestConfigMigrateRejectsAmbiguousSeedAndPEMForms(t *testing.T) {
 	if err := os.WriteFile(credentialsPath, []byte(ambiguous), privateFileMode); err != nil {
 		t.Fatal(err)
 	}
-	_, err := buildConfigMigrationPlan(credentialsPath, defaultConfigMigrations(osKeyringProviderName))
+	_, err := buildConfigMigrationPlan(credentialsPath, osKeyringProviderName, defaultConfigMigrations(osKeyringProviderName))
 	if err == nil || !strings.Contains(err.Error(), "exactly one of private_key or private_key_ref") {
 		t.Fatalf("expected ambiguity error, got %v", err)
 	}
@@ -295,7 +295,9 @@ func TestValidateMigrationDestination(t *testing.T) {
 		{"file read-only", "file", false, "MOLTNET_SECRET_ROOT_WRITABLE=1"},
 		{"file writable", "file", true, ""},
 		{"unknown", "vault", false, "not a writable secret provider"},
+		{"undeclared write support", "memory", false, "not a writable secret provider"},
 	}
+	registry.Register("memory", readOnlyByOmissionProvider{})
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			registry.Register(fileProviderName, FileSecretProvider{Root: root, Writable: tc.writable, MaxBytes: defaultSecretMaxBytes})
@@ -325,15 +327,18 @@ func TestConfigMigrateRunRejectsPlanGeneratedForAnotherDestination(t *testing.T)
 	credentialsPath, _ := writeReferenceBackedFixture(t, seed, publicKey, false)
 	registry, _ := newMemorySecretProviderRegistry()
 	registry.Register(fileProviderName, FileSecretProvider{Root: t.TempDir(), Writable: true, MaxBytes: defaultSecretMaxBytes})
-	plan, err := buildConfigMigrationPlan(credentialsPath, defaultConfigMigrations(osKeyringProviderName))
+	plan, err := buildConfigMigrationPlan(credentialsPath, osKeyringProviderName, defaultConfigMigrations(osKeyringProviderName))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(strings.Join(plan.Migrations[0].Operations, "\n"), `"os-keyring"`) {
 		t.Fatalf("plan must name its destination: %+v", plan.Migrations[0].Operations)
 	}
-	_, err = applyConfigMigrationPlan(plan, registry, defaultConfigMigrations(fileProviderName))
-	if err == nil || !strings.Contains(err.Error(), "does not match") {
+	if plan.Parameters[migrationDestinationParameter] != osKeyringProviderName {
+		t.Fatalf("plan must record its destination as a parameter: %+v", plan.Parameters)
+	}
+	_, err = applyConfigMigrationPlan(plan, fileProviderName, registry, defaultConfigMigrations(fileProviderName))
+	if err == nil || !strings.Contains(err.Error(), "parameters do not match") {
 		t.Fatalf("expected destination mismatch to be rejected, got %v", err)
 	}
 }
@@ -367,7 +372,7 @@ func TestConfigMigratePlanningRejectsIncompleteLegacyForms(t *testing.T) {
 			if err := os.WriteFile(credentialsPath, []byte(tc.mutate(string(raw))), privateFileMode); err != nil {
 				t.Fatal(err)
 			}
-			_, err := buildConfigMigrationPlan(credentialsPath, defaultConfigMigrations(osKeyringProviderName))
+			_, err := buildConfigMigrationPlan(credentialsPath, osKeyringProviderName, defaultConfigMigrations(osKeyringProviderName))
 			if err == nil || !strings.Contains(err.Error(), tc.want) {
 				t.Fatalf("error = %v, want %q", err, tc.want)
 			}
@@ -383,7 +388,7 @@ func TestConfigMigratePlansNothingWithoutLegacyForms(t *testing.T) {
 	if err := os.WriteFile(credentialsPath, []byte(migrated), privateFileMode); err != nil {
 		t.Fatal(err)
 	}
-	plan, err := buildConfigMigrationPlan(credentialsPath, defaultConfigMigrations(osKeyringProviderName))
+	plan, err := buildConfigMigrationPlan(credentialsPath, osKeyringProviderName, defaultConfigMigrations(osKeyringProviderName))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -426,4 +431,87 @@ func TestConfigMigrateCommandValidatesDestinationBeforeReadingCredentials(t *tes
 			t.Fatal("dry-run output leaked the seed")
 		}
 	})
+}
+
+// readOnlyByOmissionProvider accepts Set but never declares write support.
+type readOnlyByOmissionProvider struct{}
+
+func (readOnlyByOmissionProvider) Get(string) (string, error) { return "", ErrSecretNotFound }
+func (readOnlyByOmissionProvider) Set(string, string) error   { return nil }
+func (readOnlyByOmissionProvider) Delete(string) error        { return nil }
+
+func TestFileSecretProviderCanWriteMatchesOpenRootPrerequisites(t *testing.T) {
+	dir := t.TempDir()
+	file := filepath.Join(dir, "not-a-dir")
+	if err := os.WriteFile(file, []byte("x"), privateFileMode); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name     string
+		provider FileSecretProvider
+		want     bool
+	}{
+		{"writable existing dir", FileSecretProvider{Root: dir, Writable: true}, true},
+		{"not writable", FileSecretProvider{Root: dir}, false},
+		{"relative root", FileSecretProvider{Root: "secrets", Writable: true}, false},
+		{"missing root", FileSecretProvider{Root: filepath.Join(dir, "missing"), Writable: true}, false},
+		{"root is a file", FileSecretProvider{Root: file, Writable: true}, false},
+		{"empty root", FileSecretProvider{Writable: true}, false},
+	} {
+		if got := tc.provider.CanWrite(); got != tc.want {
+			t.Errorf("%s: CanWrite = %v, want %v", tc.name, got, tc.want)
+		}
+	}
+}
+
+// touchingSecretProvider stores values in memory and, on every Set, appends a
+// newline to the credentials file so the migration's compare-and-swap
+// replacement fails after the secret was stored and verified.
+type touchingSecretProvider struct {
+	memorySecretProvider
+	path string
+}
+
+func (p *touchingSecretProvider) Set(key, value string) error {
+	data, err := os.ReadFile(p.path)
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(p.path, append(data, '\n'), privateFileMode); err != nil {
+		return err
+	}
+	return p.memorySecretProvider.Set(key, value)
+}
+
+func TestConfigMigrateReplacementFailureAfterStoreIsRetryable(t *testing.T) {
+	seed, publicKey := testSeedAndPublicKey(t)
+	credentialsPath, _ := writeReferenceBackedFixture(t, seed, publicKey, true)
+	provider := &touchingSecretProvider{memorySecretProvider: memorySecretProvider{values: map[string]string{}}, path: credentialsPath}
+	registry := NewSecretProviderRegistry()
+	registry.Register(osKeyringProviderName, provider)
+
+	for _, step := range []struct{ id, key string }{
+		{"2026-09-identity-seed-reference", IdentitySeedKey("fingerprint")},
+		{"2026-09-github-pem-reference", GitHubAppPrivateKeyKey("123")},
+	} {
+		t.Run(step.id, func(t *testing.T) {
+			result := runMigrationExpectingFailure(t, credentialsPath, registry)
+			if result.Failure == nil || result.Failure.Migration != step.id || result.Failure.Stage != "replace_credentials" {
+				t.Fatalf("unexpected failure: %+v", result.Failure)
+			}
+			if !result.Failure.Retryable || result.Failure.ManualRecoveryRequired || result.ManualRecoveryRequired || !result.Changed {
+				t.Fatalf("post-store replacement failure must be retryable with the secret retained: %+v", result.Failure)
+			}
+			if _, stored := provider.values[step.key]; !stored {
+				t.Fatal("secret must be retained in the destination")
+			}
+			// Re-running is the recovery path: Ensure accepts the identical
+			// value without writing again, so the file is not touched and the
+			// replacement succeeds.
+			retry := runNextConfigMigration(t, credentialsPath, registry)
+			if strings.Join(retry.Applied, ",") != step.id {
+				t.Fatalf("retry applied = %v", retry.Applied)
+			}
+		})
+	}
 }

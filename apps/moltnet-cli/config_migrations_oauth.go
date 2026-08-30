@@ -59,21 +59,48 @@ func migrateOAuth2SecretReference(
 		return migrationStageError("ensure_secret", retainedSecretState(storedNewValue), err)
 	}
 
-	updated, err := updateCredentialsDocumentReference(rawDocument, creds.OAuth2.ClientID, ref)
+	updated, err := rewriteCredentialsSection(rawDocument, "oauth2", func(section map[string]json.RawMessage) error {
+		clientIDJSON, err := json.Marshal(creds.OAuth2.ClientID)
+		if err != nil {
+			return err
+		}
+		refJSON, err := json.Marshal(ref)
+		if err != nil {
+			return err
+		}
+		section["client_id"] = clientIDJSON
+		section["client_secret_ref"] = refJSON
+		delete(section, "client_secret")
+		return nil
+	})
 	if err != nil {
-		return migrationStageError("prepare_credentials", retainedSecretState(storedNewValue), err)
+		return migrationStageError("prepare_credentials", retainedRetryableState(storedNewValue), err)
 	}
 	if err := ctx.ReplaceCredentials(updated); err != nil {
-		return migrationStageError("replace_credentials", retainedSecretState(storedNewValue), err)
+		return migrationStageError("replace_credentials", retainedRetryableState(storedNewValue), err)
 	}
 	return nil
 }
 
+// retainedSecretState describes a failure inside Ensure itself: when the
+// value was written but could not be verified, the operator has to inspect
+// the destination before retrying.
 func retainedSecretState(stored bool) configmigrate.FailureState {
 	return configmigrate.FailureState{
 		Retryable:              !stored,
 		Changed:                stored,
 		ManualRecoveryRequired: stored,
+	}
+}
+
+// retainedRetryableState describes a failure after Ensure verified the
+// destination: the secret is retained there (Changed) but re-running is safe
+// because Ensure accepts the identical stored value, so nothing needs manual
+// recovery.
+func retainedRetryableState(stored bool) configmigrate.FailureState {
+	return configmigrate.FailureState{
+		Retryable: true,
+		Changed:   stored,
 	}
 }
 
@@ -200,41 +227,4 @@ func parseCredentialsDocument(document []byte) (*CredentialsFile, map[string]jso
 		return nil, nil, fmt.Errorf("parse credentials document: %w", err)
 	}
 	return &creds, raw, nil
-}
-
-func updateCredentialsDocumentReference(
-	document map[string]json.RawMessage,
-	clientID string,
-	ref SecretReference,
-) ([]byte, error) {
-	updated := make(map[string]json.RawMessage, len(document))
-	for key, value := range document {
-		updated[key] = value
-	}
-	var oauth2 map[string]json.RawMessage
-	if raw := updated["oauth2"]; raw != nil {
-		if err := json.Unmarshal(raw, &oauth2); err != nil {
-			return nil, fmt.Errorf("parse oauth2 credentials: %w", err)
-		}
-	}
-	if oauth2 == nil {
-		oauth2 = make(map[string]json.RawMessage)
-	}
-	clientIDJSON, _ := json.Marshal(clientID)
-	refJSON, err := json.Marshal(ref)
-	if err != nil {
-		return nil, fmt.Errorf("marshal secret reference: %w", err)
-	}
-	oauth2["client_id"] = clientIDJSON
-	oauth2["client_secret_ref"] = refJSON
-	delete(oauth2, "client_secret")
-	updated["oauth2"], err = json.Marshal(oauth2)
-	if err != nil {
-		return nil, fmt.Errorf("marshal oauth2 credentials: %w", err)
-	}
-	data, err := json.MarshalIndent(updated, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal credentials: %w", err)
-	}
-	return append(data, '\n'), nil
 }

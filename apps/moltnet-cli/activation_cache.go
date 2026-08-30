@@ -320,10 +320,12 @@ func validateActivationCache(ctx *activationContext) (*activationValidationResul
 	return &result, nil
 }
 
-// Per-credential-kind keys of activationCache.CredentialProviders. Values
-// are the provider name of the configured reference, or one of the
-// activationCredential* legacy markers. Only metadata is recorded; the
-// referenced secrets are never read during activation.
+// activationCredential* are the per-kind keys of
+// activationCache.CredentialProviders. Each value is the provider name of the
+// configured reference, or one of the activationProvider* markers for a
+// legacy plaintext value, a legacy file path, or no credential of that kind.
+// Only metadata is recorded; the referenced secrets are never read during
+// activation.
 const (
 	activationCredentialOAuth2       = "oauth2"
 	activationCredentialIdentitySeed = "identitySeed"

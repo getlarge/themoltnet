@@ -165,9 +165,9 @@ type SecretProvider interface {
 	Delete(key string) error
 }
 
-// writableSecretProvider is implemented by providers whose write support
-// depends on runtime configuration. Providers that do not implement it are
-// assumed writable; a provider that never accepts writes returns false.
+// writableSecretProvider must be implemented by any provider that accepts
+// Set/Delete. Write support is declared, never assumed: a provider without
+// this interface is treated as read-only by destination validation.
 type writableSecretProvider interface {
 	CanWrite() bool
 }
@@ -196,8 +196,9 @@ func (r *SecretProviderRegistry) Register(name string, provider SecretProvider) 
 	r.providers[strings.TrimSpace(name)] = provider
 }
 
-// CanWrite reports whether the named provider accepts Set/Delete in this
-// process. Unregistered providers are not writable.
+// CanWrite reports whether the named provider declares write support in
+// this process. Unregistered providers and providers that do not implement
+// writableSecretProvider are not writable.
 func (r *SecretProviderRegistry) CanWrite(name string) bool {
 	if r == nil {
 		return false
@@ -206,10 +207,8 @@ func (r *SecretProviderRegistry) CanWrite(name string) bool {
 	if !ok {
 		return false
 	}
-	if writable, ok := provider.(writableSecretProvider); ok {
-		return writable.CanWrite()
-	}
-	return true
+	writable, ok := provider.(writableSecretProvider)
+	return ok && writable.CanWrite()
 }
 
 func (r *SecretProviderRegistry) Resolve(ref SecretReference) (string, error) {
@@ -357,6 +356,8 @@ func (OSKeyringSecretProvider) Get(key string) (string, error) {
 	}
 	return value, err
 }
+
+func (OSKeyringSecretProvider) CanWrite() bool { return true }
 
 func (OSKeyringSecretProvider) Set(key, value string) error {
 	return oskeyring.Set(secretServiceName, key, value)

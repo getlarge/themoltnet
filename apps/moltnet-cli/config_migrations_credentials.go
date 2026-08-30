@@ -63,10 +63,10 @@ func newIdentitySeedReferenceMigration(destinationProvider string) configMigrati
 				return nil
 			})
 			if err != nil {
-				return migrationStageError("prepare_credentials", retainedSecretState(stored), err)
+				return migrationStageError("prepare_credentials", retainedRetryableState(stored), err)
 			}
 			if err := ctx.ReplaceCredentials(updated); err != nil {
-				return migrationStageError("replace_credentials", retainedSecretState(stored), err)
+				return migrationStageError("replace_credentials", retainedRetryableState(stored), err)
 			}
 			return nil
 		},
@@ -122,10 +122,10 @@ func newGitHubPEMReferenceMigration(destinationProvider string) configMigration 
 				Provider: destinationProvider,
 				Key:      GitHubAppPrivateKeyKey(creds.GitHub.AppID),
 			}
-			// Providers may normalize a single trailing newline on read (the
-			// file provider does), so store the PEM without one; every PEM
-			// parser accepts the trimmed form.
-			stored, err := providers.Ensure(ref, strings.TrimRight(string(pemData), "\r\n"))
+			// Providers may strip a single trailing newline on read (the file
+			// provider does), so store the PEM in the same normalized form;
+			// every PEM parser accepts it.
+			stored, err := providers.Ensure(ref, stripOneNewline(string(pemData)))
 			if err != nil {
 				return migrationStageError("ensure_secret", retainedSecretState(stored), err)
 			}
@@ -139,10 +139,10 @@ func newGitHubPEMReferenceMigration(destinationProvider string) configMigration 
 				return nil
 			})
 			if err != nil {
-				return migrationStageError("prepare_credentials", retainedSecretState(stored), err)
+				return migrationStageError("prepare_credentials", retainedRetryableState(stored), err)
 			}
 			if err := ctx.ReplaceCredentials(updated); err != nil {
-				return migrationStageError("replace_credentials", retainedSecretState(stored), err)
+				return migrationStageError("replace_credentials", retainedRetryableState(stored), err)
 			}
 			return nil
 		},

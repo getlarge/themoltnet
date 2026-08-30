@@ -346,8 +346,13 @@ The GitHub PEM file is never deleted — remove it yourself once
 `--destination <provider>` selects where secrets go (default `os-keyring`).
 `file` is accepted only when `MOLTNET_SECRET_ROOT` points at a directory and
 `MOLTNET_SECRET_ROOT_WRITABLE=1` is set; `env` is read-only and rejected. The
-destination is recorded in the plan, so a plan generated for one provider
-cannot be run against another.
+destination is recorded in the plan's `parameters`, so a plan generated for
+one provider cannot be run against another. Inside an activated agent session
+the secrets guard only allows the default `os-keyring` destination: a `file`
+destination, or any `MOLTNET_SECRET_ROOT` assignment on the command, is
+denied because the agent could otherwise copy its own seed or PEM into a
+directory it selects. Run file-root migrations from a human-controlled
+terminal.
 
 Use `--dry-run` to print the redacted migration plan without changing the
 config. Client MCP configs keep their env-var references and receive the
