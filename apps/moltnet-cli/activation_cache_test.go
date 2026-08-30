@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -515,4 +517,119 @@ func setupActivationCacheFixture(t *testing.T) string {
 		t.Fatal(err)
 	}
 	return dir
+}
+
+func rewriteActivationFixtureCredentials(t *testing.T, dir string, mutate func(*CredentialsFile)) {
+	t.Helper()
+	credentialsPath := filepath.Join(dir, ".moltnet", "test-agent", "moltnet.json")
+	creds, err := ReadConfigFrom(credentialsPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mutate(creds)
+	if _, err := WriteConfigTo(creds, credentialsPath); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestAgentsActivationRecordsPerKindCredentialProviders(t *testing.T) {
+	t.Parallel()
+	dir := setupActivationCacheFixture(t)
+	rewriteActivationFixtureCredentials(t, dir, func(creds *CredentialsFile) {
+		creds.OAuth2.ClientSecret = ""
+		creds.OAuth2.ClientSecretRef = &SecretReference{Provider: "os-keyring", Key: OAuth2SecretKey("test-agent", "cid")}
+		creds.Keys.PrivateKey = ""
+		creds.Keys.PrivateKeyRef = &SecretReference{Provider: "file", Key: IdentitySeedKey("SHA256:testfingerprint")}
+		creds.GitHub = &GitHubSection{AppID: "123", InstallationID: "456", PrivateKeyPath: filepath.Join(dir, "app.pem")}
+		creds.AgentKeyRef = &SecretReference{Provider: "file", Key: AgentKeyKey("test-agent")}
+	})
+
+	var out bytes.Buffer
+	if err := runAgentsActivationRefreshCmd(&out, dir, "test-agent", true); err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+	var result activationValidationResult
+	if err := json.Unmarshal(out.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]string{"oauth2": "os-keyring", "identitySeed": "file", "githubApp": "legacy-file", "agentKey": "file"}
+	if !maps.Equal(result.CredentialProviders, want) {
+		t.Fatalf("credentialProviders = %v, want %v", result.CredentialProviders, want)
+	}
+	if result.CredentialProvider != "os-keyring" || result.CredentialStatus != "configured" || !result.GitHubAppConfigured {
+		t.Fatalf("legacy summary fields drifted: %+v", result)
+	}
+	if strings.Contains(out.String(), "identity/SHA256") || strings.Contains(out.String(), "agent-key/") {
+		t.Fatal("activation output must not echo secret reference keys")
+	}
+
+	legacy := setupActivationCacheFixture(t)
+	out.Reset()
+	if err := runAgentsActivationRefreshCmd(&out, legacy, "test-agent", true); err != nil {
+		t.Fatalf("refresh legacy: %v", err)
+	}
+	if err := json.Unmarshal(out.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	want = map[string]string{"oauth2": "legacy-plaintext", "identitySeed": "legacy-plaintext", "githubApp": "absent", "agentKey": "absent"}
+	if !maps.Equal(result.CredentialProviders, want) {
+		t.Fatalf("legacy credentialProviders = %v, want %v", result.CredentialProviders, want)
+	}
+}
+
+func TestAgentsActivationValidateRejectsPreviousCacheVersion(t *testing.T) {
+	t.Parallel()
+	dir := setupActivationCacheFixture(t)
+	if err := runAgentsActivationRefreshCmd(io.Discard, dir, "test-agent", true); err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+	cachePath := filepath.Join(dir, ".moltnet", "test-agent", "activation-cache.json")
+	cache, err := readActivationCache(cachePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cache.Version = 3
+	cache.CredentialProviders = nil
+	if err := writeActivationCache(cachePath, cache); err != nil {
+		t.Fatal(err)
+	}
+	ctx, err := resolveActivationContext(dir, "test-agent")
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := validateActivationCache(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Valid || result.Reason != "version_mismatch" {
+		t.Fatalf("v3 cache was accepted: %+v", result)
+	}
+}
+
+func TestAgentsActivationValidateDetectsCredentialProviderChange(t *testing.T) {
+	t.Parallel()
+	dir := setupActivationCacheFixture(t)
+	if err := runAgentsActivationRefreshCmd(io.Discard, dir, "test-agent", true); err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+	cachePath := filepath.Join(dir, ".moltnet", "test-agent", "activation-cache.json")
+	cache, err := readActivationCache(cachePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cache.CredentialProviders["identitySeed"] = "file"
+	if err := writeActivationCache(cachePath, cache); err != nil {
+		t.Fatal(err)
+	}
+	ctx, err := resolveActivationContext(dir, "test-agent")
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := validateActivationCache(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Valid || result.Reason != "cache_metadata_mismatch" {
+		t.Fatalf("forged provider map was trusted: %+v", result)
+	}
 }
