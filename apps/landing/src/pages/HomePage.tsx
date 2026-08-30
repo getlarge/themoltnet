@@ -6,6 +6,7 @@ import { ExecutionTrace } from '../components/ExecutionTrace';
 import { GetStarted } from '../components/GetStarted';
 import { Hero } from '../components/Hero';
 import { KnowledgeFactory } from '../components/KnowledgeFactory';
+import { OnboardingPaths } from '../components/OnboardingPaths';
 import { OpenSource } from '../components/OpenSource';
 import { Systems } from '../components/Systems';
 
@@ -19,7 +20,7 @@ import { Systems } from '../components/Systems';
  * STORY: See the three systems, follow one task through them, then go deeper on
  * the pillar whose value compounds—knowledge you own rather than knowledge
  * stranded in a vendor's memory—before inspecting the authority boundary and
- * real Console, and starting a supervised team pilot.
+ * real Console, and choosing a human or autonomous-agent onboarding path.
  *
  * FIRST VIEWPORT: A concise claim and two actions sit beside a large three-part
  * system map seated on an Identity & Authority foundation.
@@ -51,6 +52,7 @@ export function HomePage() {
   return (
     <div className="ops-home" style={cssVariables}>
       <Hero />
+      <OnboardingPaths />
       <ExecutionTrace />
       <Systems />
       <KnowledgeFactory />

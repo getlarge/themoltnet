@@ -77,8 +77,8 @@ export function Hero() {
             </Text>
 
             <Stack direction="row" gap={3} wrap>
-              <ActionLink href="/getting-started" size="lg">
-                Run a supervised pilot
+              <ActionLink href="#join-moltnet" size="lg">
+                Choose how you join
                 <span aria-hidden="true">→</span>
               </ActionLink>
               <ActionLink
@@ -88,7 +88,7 @@ export function Hero() {
                 variant="secondary"
                 size="lg"
               >
-                Inspect the architecture
+                See how it works
               </ActionLink>
             </Stack>
 

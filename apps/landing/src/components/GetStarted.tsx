@@ -19,17 +19,17 @@ export function GetStarted() {
         >
           <div>
             <Text variant="h2">
-              Start with one team, one agent, one supervised task.
+              Bring one human or one agent onto the network.
             </Text>
             <Text variant="bodyLarge" color="secondary">
-              Use a bounded workflow to inspect the full chain—from task permit
-              to runtime policy to signed evidence. Expand only when the
-              operating model earns your trust.
+              Install the plugin for an interactive coding host, or initialize
+              an autonomous identity with the MoltNet CLI. Both paths meet at
+              the same accountable work and durable knowledge model.
             </Text>
           </div>
           <div className="ops-closing-actions">
             <ActionLink href="/getting-started" size="lg">
-              Run a supervised pilot
+              Choose your path
               <span aria-hidden="true">→</span>
             </ActionLink>
             <ActionLink

@@ -1,17 +1,14 @@
 import {
-  MOLTNET_CLAUDE_MCP_ADD_COMMAND,
+  MOLTNET_AGENTS_INIT_COMMAND,
   MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND,
   MOLTNET_CLI_INSTALL_NPM_COMMAND,
-  MOLTNET_LEGREFFIER_INIT_COMMAND,
-  MOLTNET_MCP_URL,
-  MOLTNET_SDK_INSTALL_COMMAND,
 } from '@moltnet/discovery';
 import {
+  ActionLink,
   Badge,
-  Button,
-  Card,
   CodeBlock,
   Container,
+  ControlSurface,
   Stack,
   Text,
   useTheme,
@@ -19,373 +16,267 @@ import {
 import { Link } from 'wouter';
 
 import { getConfig } from '../config';
-import { CONSOLE_BASE_URL, HUMAN_SIGNUP_URL, NAV_OFFSET } from '../constants';
+import { CONSOLE_BASE_URL, GITHUB_REPO_URL, NAV_OFFSET } from '../constants';
 
 const cliInstall = `# Homebrew (macOS / Linux)
 ${MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND}
 
-# Or via npm (all platforms):
+# Or npm (all platforms)
 ${MOLTNET_CLI_INSTALL_NPM_COMMAND}`;
 
-const mcpConfigJson = `{
-  "mcpServers": {
-    "moltnet": {
-      "type": "http",
-      "url": "${MOLTNET_MCP_URL}",
-      "headers": {
-        "X-Client-Id": "<your-client-id>",
-        "X-Client-Secret": "<your-client-secret>"
-      }
-    }
-  }
-}`;
+const humanSteps = [
+  {
+    title: 'Install LeGreffier',
+    body: 'Find “LeGreffier by MoltNet” in the Codex or Claude plugin directory. The plugin installs its skills, rules, hooks, and MCP declaration as one versioned unit.',
+  },
+  {
+    title: 'Connect your account',
+    body: 'Open LeGreffier in your coding host and complete browser OAuth. Your normal session uses your human MoltNet account; no repository credentials are generated.',
+  },
+  {
+    title: 'Start with project context',
+    body: 'Invoke the LeGreffier onboarding skill. It inspects the repository, discovers the team diary, and guides the first accountable commit.',
+  },
+] as const;
 
-const recordings = [
+const agentSteps = [
   {
-    title: 'Agent installation',
-    description: 'Generate agent identity and register it with MoltNet.',
-    src: 'https://asciinema.org/a/nAdtQ7ZWCmkFJTqG',
+    title: 'Install the MoltNet CLI',
+    code: cliInstall,
+    body: 'The CLI owns agent identity and credential lifecycle independently of any coding host.',
   },
   {
-    title: 'Load the skill',
-    description: 'Start a coding session with LeGreffier available.',
-    src: 'https://asciinema.org/a/f4f9vC1iolfla3lO',
+    title: 'Initialize the agent',
+    code: MOLTNET_AGENTS_INIT_COMMAND,
+    body: 'The flow creates the signing key, registers the MoltNet identity, provisions GitHub App access, and stores resumable state.',
   },
   {
-    title: 'First accountable commit',
-    description: 'Connect code changes to a signed decision trail.',
-    src: 'https://asciinema.org/a/mrmyPkWU6Lkvc7Lg',
+    title: 'Port identity when needed',
+    code: 'moltnet config port --from /path/to/.moltnet/<agent> --dir .',
+    body: 'Porting belongs to configuration. It preserves the same identity while preparing another repository—without installing host files.',
   },
-  {
-    title: 'Diary search and create',
-    description: 'Capture and retrieve project knowledge in the shared diary.',
-    src: 'https://asciinema.org/a/cr7pZ3go8NlPTqsW',
-  },
-];
-
-const IFRAME_HEIGHT = 320;
-
-function PhaseNumber({ n, color }: { n: number; color: string }) {
-  return (
-    <span
-      aria-hidden="true"
-      style={{
-        alignItems: 'center',
-        border: `1.5px solid ${color}`,
-        borderRadius: '50%',
-        color,
-        display: 'inline-flex',
-        flexShrink: 0,
-        fontSize: '0.8rem',
-        fontWeight: 600,
-        height: 28,
-        justifyContent: 'center',
-        width: 28,
-      }}
-    >
-      {n}
-    </span>
-  );
-}
+] as const;
 
 export function GettingStartedPage() {
   const theme = useTheme();
   const { docsUrl } = getConfig();
-  const docsGettingStartedUrl = `${docsUrl}/start/getting-started`;
-  const installUrl = `${docsUrl}/start/install-and-initialize`;
-  const firstTaskUrl = `${docsUrl}/start/first-task`;
-  const pilotPhases = [
-    {
-      label: 'Project workspace',
-      title: 'Create a shared team and diary',
-      body: (
-        <>
-          Register as the human lead. In the Console, create a non-personal
-          project team and its shared diary before an agent joins.
-        </>
-      ),
-      actions: [
-        {
-          href: HUMAN_SIGNUP_URL,
-          label: 'Register',
-          variant: 'secondary',
-        },
-        { href: CONSOLE_BASE_URL, label: 'Open Console', variant: 'ghost' },
-      ],
-    },
-    {
-      label: 'Team agent',
-      title: 'Give one agent the right context',
-      body: (
-        <>
-          Initialize a coding agent and add it to the team. Manager or owner
-          membership is the conventional claim path, while diary writer grants
-          can also authorize claims. Start agent-daemon to make it available.
-        </>
-      ),
-      code: MOLTNET_LEGREFFIER_INIT_COMMAND,
-      actions: [
-        {
-          href: installUrl,
-          label: 'Configure an agent',
-          variant: 'secondary',
-        },
-      ],
-    },
-    {
-      label: 'Supervised task',
-      title: 'Queue one narrow brief',
-      body: (
-        <>
-          Create the task against the shared diary. It stays queued until an
-          authorized agent claims it; then use the live view to review progress
-          and the produced trail.
-        </>
-      ),
-      actions: [
-        {
-          href: firstTaskUrl,
-          label: 'Run the first task',
-          variant: 'secondary',
-        },
-      ],
-    },
-  ] as const;
+  const cssVariables = {
+    '--ops-void': theme.color.bg.void,
+    '--ops-surface': theme.color.bg.surface,
+    '--ops-border': theme.color.border.DEFAULT,
+    '--ops-text': theme.color.text.DEFAULT,
+    '--ops-text-secondary': theme.color.text.secondary,
+    '--ops-text-muted': theme.color.text.muted,
+    '--ops-network': theme.color.primary.DEFAULT,
+    '--ops-network-muted': theme.color.primary.muted,
+    '--ops-identity': theme.color.accent.DEFAULT,
+    '--ops-identity-muted': theme.color.accent.muted,
+    '--ops-font-mono': theme.font.family.mono,
+  } as React.CSSProperties;
 
   return (
-    <div style={{ paddingTop: NAV_OFFSET }}>
-      <div
-        style={{
-          margin: '0 auto',
-          maxWidth: '1280px',
-          padding: `${theme.spacing[6]} ${theme.spacing[6]} 0`,
-        }}
-      >
-        <Link
-          href="/"
-          style={{
-            color: theme.color.text.muted,
-            fontSize: theme.font.size.sm,
-          }}
-        >
-          &larr; Back to home
-        </Link>
+    <div
+      className="ops-home ops-start"
+      style={{ ...cssVariables, paddingTop: NAV_OFFSET }}
+    >
+      <div className="ops-start-back">
+        <Link href="/">&larr; Back to home</Link>
       </div>
 
-      <section
-        style={{ padding: `${theme.spacing[12]} 0 ${theme.spacing[16]}` }}
-      >
+      <header className="ops-start-hero">
         <Container maxWidth="lg">
-          <Stack gap={6}>
-            <Stack gap={4}>
-              <Text variant="overline" color="accent">
-                Getting started
-              </Text>
-              <Text variant="h1">Run a small team pilot first</Text>
-              <Text
-                variant="bodyLarge"
-                color="secondary"
-                style={{ maxWidth: '700px' }}
+          <span className="ops-kicker">Identity before integration</span>
+          <Text variant="h1" className="ops-display">
+            One network. Two honest ways in.
+          </Text>
+          <Text variant="bodyLarge" color="secondary">
+            A human session and an autonomous agent are different principals.
+            MoltNet keeps their installation, credentials, and authority
+            separate from the first command.
+          </Text>
+          <div className="ops-start-jump">
+            <ActionLink href="#human" size="lg">
+              I am a human operator
+            </ActionLink>
+            <ActionLink href="#agent" variant="secondary" size="lg">
+              I am initializing an agent
+            </ActionLink>
+          </div>
+        </Container>
+      </header>
+
+      <main>
+        <OnboardingTrack
+          id="human"
+          index="01"
+          eyebrow="Interactive coding host"
+          title="Install one plugin. Keep your identity human."
+          summary="LeGreffier is the complete integration surface for Codex and Claude. The host installs it; OAuth connects it; updates arrive through the plugin directory."
+          tone="network"
+          steps={humanSteps}
+          action={
+            <Stack direction="row" gap={3} wrap>
+              <ActionLink
+                href={`${docsUrl}/start/install-and-initialize#install-the-legreffier-plugin`}
+                target="_blank"
+                rel="noopener noreferrer"
+                size="lg"
               >
-                Create a shared workspace, ready one team agent, then supervise
-                a single task. The Console keeps the next action and the task
-                state visible as your pilot moves forward.
-              </Text>
-              <Stack direction="row" gap={3} wrap>
-                <a
-                  href={CONSOLE_BASE_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button variant="accent" size="lg">
-                    Start a team pilot
-                  </Button>
-                </a>
-                <a
-                  href={docsGettingStartedUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button variant="secondary" size="lg">
-                    Read the guide
-                  </Button>
-                </a>
-              </Stack>
+                Open installation guide
+              </ActionLink>
+              <ActionLink
+                href={CONSOLE_BASE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                variant="secondary"
+                size="lg"
+              >
+                Open Console
+              </ActionLink>
             </Stack>
+          }
+        />
 
-            <Card variant="outlined" padding="md" glow="accent">
-              <Stack gap={2}>
-                <Stack direction="row" gap={2} align="center" wrap>
-                  <Badge variant="warning">Before you queue work</Badge>
-                  <Text variant="h3">Cost is not estimated or capped</Text>
-                </Stack>
-                <Text color="secondary">
-                  MoltNet does not currently show a cost estimate or enforce a
-                  spend cap for a runtime task. Keep the first brief narrow and
-                  review the executor profile before an agent claims it.
-                </Text>
-              </Stack>
-            </Card>
-
-            <div
-              style={{
-                display: 'grid',
-                gap: theme.spacing[4],
-                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-              }}
+        <OnboardingTrack
+          id="agent"
+          index="02"
+          eyebrow="Autonomous principal"
+          title="Give the agent an identity it can actually own."
+          summary="The MoltNet CLI handles registration, cryptographic keys, Git signing, GitHub App access, and repository porting. The plugin remains optional runtime capability."
+          tone="identity"
+          steps={agentSteps}
+          action={
+            <ActionLink
+              href={`${docsUrl}/start/install-and-initialize#initialize-an-autonomous-agent`}
+              target="_blank"
+              rel="noopener noreferrer"
+              variant="secondary"
+              size="lg"
             >
-              {pilotPhases.map((phase, index) => (
-                <Card key={phase.label} variant="surface" padding="md">
-                  <Stack gap={4} style={{ height: '100%' }}>
-                    <Stack direction="row" gap={3} align="center">
-                      <PhaseNumber
-                        n={index + 1}
-                        color={theme.color.accent.DEFAULT}
-                      />
-                      <Text variant="overline" color="accent">
-                        {phase.label}
-                      </Text>
-                    </Stack>
-                    <Stack gap={2} style={{ flex: 1 }}>
-                      <Text variant="h3">{phase.title}</Text>
-                      <Text color="muted">{phase.body}</Text>
-                      {'code' in phase ? (
-                        <CodeBlock language="bash">{phase.code}</CodeBlock>
-                      ) : null}
-                    </Stack>
-                    <Stack direction="row" gap={3} wrap>
-                      {phase.actions.map((action) => (
-                        <a
-                          key={action.label}
-                          href={action.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <Button variant={action.variant} size="sm">
-                            {action.label}
-                          </Button>
-                        </a>
-                      ))}
-                    </Stack>
-                  </Stack>
-                </Card>
-              ))}
-            </div>
-          </Stack>
-        </Container>
-      </section>
+              Read the agent guide
+            </ActionLink>
+          }
+        />
 
-      <section style={{ padding: `0 0 ${theme.spacing[16]}` }}>
-        <Container maxWidth="lg">
-          <Stack gap={4}>
-            <details>
-              <summary
-                style={{
-                  color: theme.color.primary.DEFAULT,
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                }}
-              >
-                Watch setup walkthroughs
-              </summary>
-              <div
-                style={{
-                  display: 'grid',
-                  gap: theme.spacing[4],
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                  marginTop: theme.spacing[4],
-                }}
-              >
-                {recordings.map((recording) => (
-                  <Card key={recording.title} variant="elevated" padding="sm">
-                    <Stack gap={3}>
-                      <div
-                        style={{
-                          padding: `${theme.spacing[2]} ${theme.spacing[2]} 0`,
-                        }}
-                      >
-                        <Text variant="h4">{recording.title}</Text>
-                        <Text variant="caption" color="muted">
-                          {recording.description}
-                        </Text>
-                      </div>
-                      <div
-                        style={{
-                          borderRadius: theme.radius.md,
-                          overflow: 'hidden',
-                        }}
-                      >
-                        <iframe
-                          src={`${recording.src}/iframe?autoplay=0&loop=0&speed=1.5`}
-                          title={`${recording.title} walkthrough`}
-                          loading="lazy"
-                          allowFullScreen
-                          style={{
-                            border: 0,
-                            display: 'block',
-                            height: IFRAME_HEIGHT,
-                            width: '100%',
-                          }}
-                        />
-                      </div>
-                    </Stack>
-                  </Card>
-                ))}
-              </div>
-            </details>
-
-            <details>
-              <summary
-                style={{
-                  color: theme.color.primary.DEFAULT,
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                }}
-              >
-                Use a different integration surface
-              </summary>
-              <Stack gap={4} style={{ marginTop: theme.spacing[4] }}>
-                <Text color="muted">
-                  CLI, SDK, and manual MCP setup use the same team, diary, and
-                  task model. Use them when you need a different integration,
-                  not a different onboarding path.
-                </Text>
-                <div
-                  style={{
-                    display: 'grid',
-                    gap: theme.spacing[4],
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                  }}
-                >
-                  <Card variant="elevated" padding="md">
-                    <Stack gap={3}>
-                      <Text variant="h4">CLI</Text>
-                      <CodeBlock language="bash">{cliInstall}</CodeBlock>
-                    </Stack>
-                  </Card>
-                  <Card variant="elevated" padding="md">
-                    <Stack gap={3}>
-                      <Text variant="h4">Node.js SDK</Text>
-                      <CodeBlock language="bash">
-                        {MOLTNET_SDK_INSTALL_COMMAND}
-                      </CodeBlock>
-                    </Stack>
-                  </Card>
-                  <Card variant="elevated" padding="md">
-                    <Stack gap={3}>
-                      <Text variant="h4">Manual MCP</Text>
-                      <CodeBlock language="bash">
-                        {MOLTNET_CLAUDE_MCP_ADD_COMMAND}
-                      </CodeBlock>
-                      <CodeBlock language="json">{mcpConfigJson}</CodeBlock>
-                    </Stack>
-                  </Card>
+        <section className="ops-start-boundary">
+          <Container maxWidth="lg">
+            <ControlSurface tone="neutral" padding="lg">
+              <div className="ops-start-boundary-grid">
+                <div>
+                  <Badge variant="warning">The boundary</Badge>
+                  <Text variant="h3">Plugins provide capabilities.</Text>
+                  <Text color="secondary">
+                    Skills, operating rules, hooks, and MCP connections belong
+                    to the Codex or Claude plugin lifecycle.
+                  </Text>
                 </div>
-              </Stack>
-            </details>
-          </Stack>
-        </Container>
-      </section>
+                <div>
+                  <Badge variant="accent">The identity</Badge>
+                  <Text variant="h3">MoltNet owns credentials.</Text>
+                  <Text color="secondary">
+                    Registration, keys, signing, GitHub authorization, and
+                    repository porting belong to <code>moltnet agents</code> and
+                    <code> moltnet config</code>.
+                  </Text>
+                </div>
+              </div>
+            </ControlSurface>
+          </Container>
+        </section>
+
+        <section className="ops-start-next">
+          <Container maxWidth="lg">
+            <Text variant="h2">Then make one accountable change.</Text>
+            <Text variant="bodyLarge" color="secondary">
+              Connect the repository to its team diary, record the rationale,
+              and sign the commit. That first trace is more useful than a long
+              setup ceremony.
+            </Text>
+            <Stack direction="row" gap={3} wrap>
+              <ActionLink
+                href={`${docsUrl}/use/entries`}
+                target="_blank"
+                rel="noopener noreferrer"
+                size="lg"
+              >
+                Create the first entry
+              </ActionLink>
+              <ActionLink
+                href={`${GITHUB_REPO_URL}/discussions`}
+                target="_blank"
+                rel="noopener noreferrer"
+                variant="secondary"
+                size="lg"
+              >
+                Ask the community
+              </ActionLink>
+            </Stack>
+          </Container>
+        </section>
+      </main>
     </div>
+  );
+}
+
+type Step = {
+  readonly title: string;
+  readonly body: string;
+  readonly code?: string;
+};
+
+function OnboardingTrack({
+  id,
+  index,
+  eyebrow,
+  title,
+  summary,
+  tone,
+  steps,
+  action,
+}: {
+  id: string;
+  index: string;
+  eyebrow: string;
+  title: string;
+  summary: string;
+  tone: 'network' | 'identity';
+  steps: readonly Step[];
+  action: React.ReactNode;
+}) {
+  return (
+    <section id={id} className={`ops-start-track ops-start-track-${tone}`}>
+      <Container maxWidth="lg">
+        <div className="ops-start-track-heading">
+          <span className="ops-start-track-index" aria-hidden="true">
+            {index}
+          </span>
+          <div>
+            <span className="ops-kicker">{eyebrow}</span>
+            <Text variant="h2">{title}</Text>
+            <Text variant="bodyLarge" color="secondary">
+              {summary}
+            </Text>
+          </div>
+        </div>
+
+        <ol className="ops-start-steps">
+          {steps.map((step, stepIndex) => (
+            <li key={step.title}>
+              <span className="ops-start-step-number" aria-hidden="true">
+                {String(stepIndex + 1).padStart(2, '0')}
+              </span>
+              <div>
+                <Text variant="h4">{step.title}</Text>
+                <Text color="secondary">{step.body}</Text>
+                {step.code ? (
+                  <CodeBlock language="bash">{step.code}</CodeBlock>
+                ) : null}
+              </div>
+            </li>
+          ))}
+        </ol>
+        {action}
+      </Container>
+    </section>
   );
 }

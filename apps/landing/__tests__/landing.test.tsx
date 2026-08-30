@@ -20,9 +20,11 @@ import { GetStarted } from '../src/components/GetStarted';
 import { Hero } from '../src/components/Hero';
 import { KnowledgeFactory } from '../src/components/KnowledgeFactory';
 import { Nav } from '../src/components/Nav';
+import { OnboardingPaths } from '../src/components/OnboardingPaths';
 import { OpenSource } from '../src/components/OpenSource';
 import { Systems } from '../src/components/Systems';
 import { GettingStartedPage } from '../src/pages/GettingStartedPage';
+import { LegalPage } from '../src/pages/LegalPage';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -87,6 +89,10 @@ describe('smoke render', () => {
   it('renders Footer', () => {
     wrapWithRouter(<Footer />);
   });
+
+  it('renders OnboardingPaths', () => {
+    wrapWithRouter(<OnboardingPaths />);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -112,45 +118,49 @@ describe('content', () => {
     expect(screen.getByText('Identity & Authority')).toBeInTheDocument();
   });
 
-  it('Hero foregrounds one supervised-pilot CTA', () => {
+  it('Hero foregrounds the principal choice', () => {
     wrapWithRouter(<Hero />);
 
-    const pilotLinks = screen.getAllByRole('link', {
-      name: 'Run a supervised pilot',
+    const onboardingLinks = screen.getAllByRole('link', {
+      name: 'Choose how you join',
     });
-    expect(pilotLinks).toHaveLength(1);
-    expect(pilotLinks[0]).toHaveAttribute('href', '/getting-started');
+    expect(onboardingLinks).toHaveLength(1);
+    expect(onboardingLinks[0]).toHaveAttribute('href', '#join-moltnet');
     expect(
       screen.queryByRole('button', { name: 'Run a supervised pilot' }),
     ).not.toBeInTheDocument();
   });
 
-  it('Getting Started keeps the pilot phases visible and walkthroughs disclosed', () => {
+  it('Getting Started separates human and autonomous-agent identity', () => {
     wrapWithRouter(<GettingStartedPage />, '/getting-started');
 
     expect(
-      screen.getByRole('heading', { name: 'Run a small team pilot first' }),
+      screen.getByRole('heading', {
+        name: 'One network. Two honest ways in.',
+      }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Project workspace')).toBeInTheDocument();
-    expect(screen.getByText('Team agent')).toBeInTheDocument();
-    expect(screen.getByText('Supervised task')).toBeInTheDocument();
-    expect(screen.getByText('Watch setup walkthroughs')).toBeInTheDocument();
+    expect(screen.getByText('Interactive coding host')).toBeInTheDocument();
+    expect(screen.getByText('Autonomous principal')).toBeInTheDocument();
+    expect(screen.getByText('Install LeGreffier')).toBeInTheDocument();
+    expect(screen.getByText('Initialize the agent')).toBeInTheDocument();
+    expect(screen.getByText(/moltnet agents init/)).toBeInTheDocument();
     expect(
-      screen.getByText('Use a different integration surface'),
-    ).toBeInTheDocument();
+      screen.queryByText(/@themoltnet\/legreffier init/),
+    ).not.toBeInTheDocument();
+  });
 
-    const walkthroughs = screen
-      .getByText('Watch setup walkthroughs')
-      .closest('details');
-    const integrations = screen
-      .getByText('Use a different integration surface')
-      .closest('details');
-    expect(walkthroughs).toBeInTheDocument();
-    expect(walkthroughs).not.toHaveAttribute('open');
-    expect(integrations).toBeInTheDocument();
-    expect(integrations).not.toHaveAttribute('open');
-    expect(screen.queryByText('Human signup')).not.toBeInTheDocument();
-    expect(screen.queryByText('Recording coming soon')).not.toBeInTheDocument();
+  it('publishes the plugin privacy and terms pages', () => {
+    const { unmount } = wrapWithRouter(<LegalPage kind="privacy" />);
+    expect(
+      screen.getByRole('heading', { name: 'Privacy policy' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/browser OAuth/)).toBeInTheDocument();
+
+    unmount();
+    wrapWithRouter(<LegalPage kind="terms" />);
+    expect(
+      screen.getByRole('heading', { name: 'Terms of service' }),
+    ).toBeInTheDocument();
   });
 
   it('KnowledgeFactory leads with ownership and portability of agent memory', () => {
@@ -353,13 +363,13 @@ describe('content', () => {
     ).toBeInTheDocument();
   });
 
-  it('GetStarted closes on one bounded pilot', () => {
+  it('GetStarted closes on the two onboarding paths', () => {
     wrap(<GetStarted />);
     expect(
-      screen.getByText('Start with one team, one agent, one supervised task.'),
+      screen.getByText('Bring one human or one agent onto the network.'),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /run a supervised pilot/i }),
+      screen.getByRole('link', { name: /choose your path/i }),
     ).toHaveAttribute('href', '/getting-started');
   });
 

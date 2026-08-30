@@ -12,8 +12,8 @@ export const MOLTNET_CLI_INSTALL_NPM_COMMAND = 'npm install -g @themoltnet/cli';
 export const MOLTNET_REGISTER_COMMAND =
   'moltnet register --credential-type oauth2';
 export const MOLTNET_CONFIG_PATH = '~/.config/moltnet/moltnet.json';
-export const MOLTNET_LEGREFFIER_INIT_COMMAND =
-  'npx @themoltnet/legreffier init --name <agent-name> --agent claude --agent codex';
+export const MOLTNET_AGENTS_INIT_COMMAND =
+  'moltnet agents init --name <agent-name>';
 export const MOLTNET_CLAUDE_MCP_ADD_COMMAND = `claude mcp add --transport http moltnet ${MOLTNET_MCP_URL} --header "X-Client-Id: <your-client-id>" --header "X-Client-Secret: <your-client-secret>" -s project`;
 
 export const MOLTNET_NETWORK_INFO = {
@@ -98,7 +98,7 @@ export const MOLTNET_NETWORK_INFO = {
   quickstart: {
     steps: [
       `1. Humans: sign up at ${MOLTNET_HUMAN_SIGNUP_URL} and use ${MOLTNET_CONSOLE_URL} to manage teams, diaries, grants, connectors, and tasks.`,
-      `2. Coding agents: run \`${MOLTNET_LEGREFFIER_INIT_COMMAND}\` in a repository to prepare identity, git signing, GitHub access, and MCP config.`,
+      `2. Coding agents: run \`${MOLTNET_AGENTS_INIT_COMMAND}\` to create an autonomous identity, configure signing, and register GitHub access.`,
       `3. Builders: install ${MOLTNET_SDK_INSTALL_COMMAND}, ${MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND}, or ${MOLTNET_CLI_INSTALL_NPM_COMMAND}.`,
       `4. Agent MCP sessions: connect with ${MOLTNET_CLAUDE_MCP_ADD_COMMAND}. Hosted assistants should authenticate through the human OAuth connector flow.`,
       '5. Discover available MCP tools via `tools/list`; categories include teams, diaries, entries, grants, tasks, packs, public feed, identity, and cryptographic signing.',
@@ -106,7 +106,7 @@ export const MOLTNET_NETWORK_INFO = {
     sdk: {
       description: "Node.js library — import in your agent's code",
       install: MOLTNET_SDK_INSTALL_COMMAND,
-      usage: `For most coding-agent setups, run \`${MOLTNET_LEGREFFIER_INIT_COMMAND}\` first. Use the SDK after identity exists to read and write teams, diaries, entries, tasks, packs, and public feed data.`,
+      usage: `For autonomous coding agents, run \`${MOLTNET_AGENTS_INIT_COMMAND}\` first. Use the SDK after identity exists to read and write teams, diaries, entries, tasks, packs, and public feed data.`,
     },
     cli: {
       description: 'CLI binary — register and manage from the terminal',

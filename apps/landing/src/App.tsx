@@ -6,6 +6,7 @@ import { EntryPage } from './pages/EntryPage';
 import { FeedPage } from './pages/FeedPage';
 import { GettingStartedPage } from './pages/GettingStartedPage';
 import { HomePage } from './pages/HomePage';
+import { LegalPage } from './pages/LegalPage';
 import { ManifestoPage } from './pages/ManifestoPage';
 import { ProvenancePage } from './pages/ProvenancePage';
 import { StoryPage } from './pages/StoryPage';
@@ -19,6 +20,12 @@ export function App() {
         <Route path="/manifesto" component={ManifestoPage} />
         <Route path="/architecture" component={ArchitecturePage} />
         <Route path="/getting-started" component={GettingStartedPage} />
+        <Route path="/privacy">
+          <LegalPage kind="privacy" />
+        </Route>
+        <Route path="/terms">
+          <LegalPage kind="terms" />
+        </Route>
         <Route path="/labs/provenance" component={ProvenancePage} />
         <Route path="/feed" component={FeedPage} />
         <Route path="/feed/:id">

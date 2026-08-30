@@ -232,6 +232,258 @@ button {
   box-shadow: 0 2rem 5rem rgb(0 0 0 / 18%);
 }
 
+/* Onboarding paths */
+
+.ops-onboarding {
+  background:
+    linear-gradient(90deg, transparent 49.95%, var(--ops-border) 50%) 50% 0 /
+      100% 100% no-repeat,
+    var(--ops-surface);
+}
+
+.ops-onboarding-heading {
+  margin-bottom: clamp(2.5rem, 5vw, 4.5rem);
+}
+
+.ops-onboarding-paths {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--ops-border);
+  border: 1px solid var(--ops-border);
+}
+
+.ops-onboarding-path {
+  display: grid;
+  min-height: 29rem;
+  align-content: space-between;
+  border: 0 !important;
+  gap: 2.5rem;
+}
+
+.ops-onboarding-index {
+  color: var(--ops-text-muted);
+  font-family: var(--ops-font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+}
+
+.ops-onboarding-copy {
+  display: grid;
+  align-content: start;
+  max-width: 31rem;
+  gap: 1.25rem;
+}
+
+.ops-onboarding-copy > :first-child {
+  justify-self: start;
+}
+
+.ops-onboarding-path > a {
+  justify-self: start;
+}
+
+/* Getting started */
+
+.ops-start {
+  min-height: 100vh;
+}
+
+.ops-start-back {
+  width: min(100% - 3rem, 80rem);
+  margin: 0 auto;
+  padding-top: 2rem;
+}
+
+.ops-start-back a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  color: var(--ops-text-muted);
+  font-size: 0.82rem;
+}
+
+.ops-start-hero {
+  padding: clamp(5rem, 10vw, 9rem) 0 clamp(6rem, 11vw, 10rem);
+  background:
+    linear-gradient(var(--ops-border), var(--ops-border)) 25% 0 / 1px 100%
+      no-repeat,
+    radial-gradient(
+      circle at 72% 28%,
+      color-mix(in srgb, var(--ops-network) 12%, transparent),
+      transparent 30rem
+    );
+}
+
+.ops-start-hero > div {
+  display: grid;
+  max-width: 64rem;
+  gap: 1.75rem;
+}
+
+.ops-start-hero h1 {
+  max-width: 11ch;
+}
+
+.ops-start-hero p {
+  max-width: 53rem;
+}
+
+.ops-start-jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.ops-start-track {
+  padding: clamp(6rem, 10vw, 10rem) 0;
+  border-top: 1px solid var(--ops-border);
+  scroll-margin-top: 4.75rem;
+}
+
+.ops-start-track-identity {
+  background: color-mix(in srgb, var(--ops-identity-muted) 20%, transparent);
+}
+
+.ops-start-track-heading {
+  display: grid;
+  grid-template-columns: 5rem minmax(0, 1fr);
+  margin-bottom: clamp(3rem, 6vw, 5rem);
+  gap: 2rem;
+}
+
+.ops-start-track-heading > div {
+  display: grid;
+  max-width: 56rem;
+  gap: 1.25rem;
+}
+
+.ops-start-track-index {
+  padding-top: 0.2rem;
+  color: var(--ops-text-muted);
+  font-family: var(--ops-font-mono);
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+}
+
+.ops-start-steps {
+  display: grid;
+  margin: 0 0 3rem 7rem;
+  border-top: 1px solid var(--ops-border);
+  list-style: none;
+}
+
+.ops-start-steps li {
+  display: grid;
+  grid-template-columns: 4rem minmax(0, 1fr);
+  padding: 2rem 0;
+  border-bottom: 1px solid var(--ops-border);
+  gap: 1.5rem;
+}
+
+.ops-start-steps li > div {
+  display: grid;
+  max-width: 49rem;
+  gap: 0.75rem;
+}
+
+.ops-start-step-number {
+  color: var(--ops-network);
+  font-family: var(--ops-font-mono);
+  font-size: 0.72rem;
+}
+
+.ops-start-track-identity .ops-kicker,
+.ops-start-track-identity .ops-start-step-number {
+  color: var(--ops-identity);
+}
+
+.ops-start-track > div > a,
+.ops-start-track > div > div:last-child {
+  margin-left: 7rem;
+}
+
+.ops-start-boundary {
+  padding: clamp(5rem, 8vw, 8rem) 0;
+  border-top: 1px solid var(--ops-border);
+  background: var(--ops-surface);
+}
+
+.ops-start-boundary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(2rem, 6vw, 6rem);
+}
+
+.ops-start-boundary-grid > div {
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+}
+
+.ops-start-boundary-grid > div > :first-child {
+  justify-self: start;
+}
+
+.ops-start-next {
+  padding: clamp(6rem, 10vw, 10rem) 0;
+}
+
+.ops-start-next > div {
+  display: grid;
+  max-width: 57rem;
+  gap: 1.5rem;
+}
+
+/* Public policies */
+
+.ops-legal {
+  min-height: 100vh;
+  padding-bottom: clamp(6rem, 10vw, 10rem);
+}
+
+.ops-legal > div {
+  max-width: 52rem;
+}
+
+.ops-legal-back {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  margin: 2rem 0 clamp(4rem, 8vw, 7rem);
+  color: var(--legal-muted);
+  font-size: 0.82rem;
+}
+
+.ops-legal header {
+  display: grid;
+  padding-bottom: clamp(3rem, 6vw, 5rem);
+  border-bottom: 1px solid var(--legal-border);
+  gap: 1.25rem;
+}
+
+.ops-legal header h1 {
+  font-size: clamp(3rem, 8vw, 5.5rem);
+  letter-spacing: -0.04em;
+}
+
+.ops-legal-sections {
+  display: grid;
+}
+
+.ops-legal-sections section {
+  display: grid;
+  padding: 2.5rem 0;
+  border-bottom: 1px solid var(--legal-border);
+  gap: 1rem;
+}
+
+.ops-legal-sections a {
+  color: var(--legal-primary);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
 .ops-map-header,
 .ops-node-heading,
 .ops-live-line,
@@ -1483,6 +1735,8 @@ button {
   }
 
   .ops-system-row,
+  .ops-onboarding-paths,
+  .ops-start-boundary-grid,
   .ops-trace,
   .ops-authority-systems,
   .ops-open-source-layout,
@@ -1490,6 +1744,25 @@ button {
   .ops-console-detail,
   .ops-footer-main {
     grid-template-columns: 1fr;
+  }
+
+  .ops-onboarding {
+    background: var(--ops-surface);
+  }
+
+  .ops-onboarding-path {
+    min-height: 24rem;
+  }
+
+  .ops-start-track-heading {
+    grid-template-columns: 3rem minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  .ops-start-steps,
+  .ops-start-track > div > a,
+  .ops-start-track > div > div:last-child {
+    margin-left: 4rem;
   }
 
   .ops-system-stage {
@@ -1615,6 +1888,25 @@ button {
   .ops-console-proof,
   .ops-footer-links {
     grid-template-columns: 1fr;
+  }
+
+  .ops-start-hero {
+    background: none;
+  }
+
+  .ops-start-track-heading {
+    grid-template-columns: 1fr;
+  }
+
+  .ops-start-steps,
+  .ops-start-track > div > a,
+  .ops-start-track > div > div:last-child {
+    margin-left: 0;
+  }
+
+  .ops-start-steps li {
+    grid-template-columns: 2.5rem minmax(0, 1fr);
+    gap: 0.75rem;
   }
 
   .ops-hero-proof {
