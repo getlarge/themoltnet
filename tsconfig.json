@@ -132,6 +132,9 @@
       "path": "libs/entry-explore-mcp-app"
     },
     {
+      "path": "libs/execution-plan"
+    },
+    {
       "path": "libs/mcp-auth-proxy"
     },
     {
