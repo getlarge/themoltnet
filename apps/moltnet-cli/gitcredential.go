@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -112,26 +114,93 @@ func githubCredSection(gitconfig string, headerEnd int) string {
 	return rest
 }
 
-// buildCredentialBlock returns the tokenless gitconfig block that wires the
-// mint-on-demand GitHub credential helper plus the SSH->HTTPS insteadOf rule.
-// credPath, when non-empty, is passed as an absolute --credentials path so the
-// helper resolves the right agent from any CWD or worktree.
-//
-// The leading `helper = ""` resets any generic credential helper inherited from
-// a broader scope (system/global `credential.helper`, e.g. osxkeychain or
-// store) for github.com. Without it, git consults the inherited helper first
-// and uses the FIRST password it returns — a stale token cached in the
-// keychain would shadow this helper and reintroduce the #1396 401-on-stale
-// failure. The empty reset makes the agent helper authoritative for github.com.
-func buildCredentialBlock(credPath string) string {
+func githubCredentialHelperCommand(credPath string) (string, error) {
 	helper := "moltnet github credential-helper"
-	if credPath != "" {
-		helper += " --credentials " + credPath
+	if credPath == "" {
+		return helper, nil
 	}
-	return fmt.Sprintf(`[credential "https://github.com"]
-	helper = ""
-	helper = "!%s"
-[url "https://github.com/"]
-	insteadOf = git@github.com:
-`, helper)
+	absolute, err := filepath.Abs(credPath)
+	if err != nil {
+		return "", fmt.Errorf("resolve credentials path: %w", err)
+	}
+	if err := rejectControlCharacters("credentials path", absolute); err != nil {
+		return "", err
+	}
+	return helper + " --credentials '" + shellQuote(absolute) + "'", nil
+}
+
+// ensureGitHubCredentialConfig is the single idempotent installer for the
+// tokenless GitHub helper and SSH-to-HTTPS rewrite. Git serializes every value,
+// while the helper command separately shell-quotes the credentials argument.
+func ensureGitHubCredentialConfig(gitConfigPath, credPath string) error {
+	helper, err := githubCredentialHelperCommand(credPath)
+	if err != nil {
+		return err
+	}
+	helperKey := "credential.https://github.com.helper"
+	values, err := gitConfigGetAll(gitConfigPath, helperKey)
+	if err != nil {
+		return err
+	}
+	want := []string{"", "!" + helper}
+	if !equalStrings(values, want) {
+		if len(values) > 0 {
+			if err := runGitConfig(gitConfigPath, "--unset-all", helperKey); err != nil {
+				return err
+			}
+		}
+		for _, value := range want {
+			if err := runGitConfig(gitConfigPath, "--add", helperKey, value); err != nil {
+				return err
+			}
+		}
+	}
+	urlKey := "url.https://github.com/.insteadOf"
+	values, err = gitConfigGetAll(gitConfigPath, urlKey)
+	if err != nil {
+		return err
+	}
+	for _, value := range values {
+		if value == "git@github.com:" {
+			return nil
+		}
+	}
+	return runGitConfig(gitConfigPath, "--add", urlKey, "git@github.com:")
+}
+
+func gitConfigGetAll(path, key string) ([]string, error) {
+	command := exec.Command("git", "config", "--file", path, "--get-all", key)
+	output, err := command.Output()
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("read Git config %s: %w", key, err)
+	}
+	trimmed := strings.TrimSuffix(string(output), "\n")
+	if trimmed == "" {
+		return []string{""}, nil
+	}
+	return strings.Split(trimmed, "\n"), nil
+}
+
+func runGitConfig(path string, args ...string) error {
+	commandArgs := append([]string{"config", "--file", path}, args...)
+	command := exec.Command("git", commandArgs...)
+	if output, err := command.CombinedOutput(); err != nil {
+		return fmt.Errorf("update Git config: %w: %s", err, strings.TrimSpace(string(output)))
+	}
+	return nil
+}
+
+func equalStrings(left, right []string) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for i := range left {
+		if left[i] != right[i] {
+			return false
+		}
+	}
+	return true
 }
