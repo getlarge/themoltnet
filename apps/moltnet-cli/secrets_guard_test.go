@@ -69,6 +69,12 @@ func TestSecretsGuardDeniesAlternateShellConstructs(t *testing.T) {
 		`export MOLTNET_SECRET_ROOT=/tmp/exfil; moltnet config migrate --credentials .moltnet/agent/moltnet.json --destination file`,
 		`moltnet config migrate --credentials .moltnet/agent/moltnet.json --destination vault`,
 		`moltnet agents keys create --team-id team --agent-id agent --name d --store --destination file --credentials .moltnet/agent/moltnet.json`,
+		`env MOLTNET_SECRET_ROOT=/tmp/exfil MOLTNET_SECRET_ROOT_WRITABLE=1 moltnet agents keys rotate key --team-id team --store --destination file`,
+		`env MOLTNET_SECRET_ROOT=/tmp/exfil moltnet config migrate --credentials .moltnet/agent/moltnet.json`,
+		`moltnet agents keys rotate key --team-id team --store --destination=$(printf file)`,
+		`moltnet agents keys create --team-id team --agent-id agent --name d --store --destination "$DEST"`,
+		`D=file; moltnet config migrate --credentials .moltnet/agent/moltnet.json --destination "$D"`,
+		`moltnet config migrate --credentials .moltnet/agent/moltnet.json --destination $(printf file)`,
 	}
 	for _, command := range commands {
 		if reason := evaluateSecretsShellWithContext(command, testSecretGuardPathContext(t)); reason == "" {

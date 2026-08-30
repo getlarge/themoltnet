@@ -354,10 +354,18 @@ secret reference in `MOLTNET_AGENT_KEY_REF` (`<provider>:<key>`, for example
 `moltnet.json`; a `moltnet.json` may instead carry `agent_key_ref`, which the
 SDK and CLI use ahead of the OAuth2 client credentials and bind to
 `agent-key/<identity_id>`. `moltnet agents keys create|rotate --store` writes
-that reference for you and keeps the secret inside the provider; `--store`
-refuses to bind a key minted for a different agent than the file's
-`identity_id`, and if the secret is stored but the file cannot be updated the
-JSON result reports `manualRecoveryRequired` with the reference to add. Agent-key mode can run without that file (useful
+that reference for you and keeps the secret inside the provider. In `--store`
+mode the secret is never written to stdout or stderr, on success or on any
+failure: if the provider cannot store it, the one-time secret goes to a
+mode-0600 recovery artifact under the user cache directory
+(`moltnet/recovery/agent-key-recovery-*.json`) and the JSON result names that
+path; if the secret is stored but `moltnet.json` cannot be updated (for
+example its `identity_id` changed meanwhile), the result reports
+`manualRecoveryRequired` with the reference to add and the artifact holds no
+secret. `--store` refuses to bind a key minted for a different agent than the
+file's `identity_id`, merges `agent_key_ref` into the current file under the
+CLI writer lock so concurrent updates are kept, and — inside activated agent
+sessions — is only allowed with the default `os-keyring` destination. Agent-key mode can run without that file (useful
 for ephemeral CI): set `MOLTNET_API_URL`, provide the matching base64 Ed25519
 seed as `MOLTNET_PRIVATE_KEY` or as `MOLTNET_PRIVATE_KEY_REF`, pass `--agent`,
 and provide `--team` for poll/drain. Setting a value together with its

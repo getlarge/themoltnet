@@ -420,11 +420,12 @@ func runAgentsKeysRotateWithClient(ctx context.Context, client *moltnetapi.Clien
 		output := storedAgentKeyOutput{Key: rotated.Key}
 		agentID, _ := agentKeyAgentID(rotated.Key)
 		if err := store.requireAgentID(agentID); err != nil {
-			// The old secret is already invalid; hand the new one back rather
-			// than binding it to the wrong identity.
+			// The old secret is already invalid. Preserve the new one in the
+			// protected recovery artifact rather than binding it to the wrong
+			// identity or printing it.
 			output.AgentKeyRef = store.ref
 			output.CredentialsPath = store.credentialsPath
-			return emitAgentKeyRecovery(opts.out, output, rotated.Secret, err)
+			return store.fail(opts.out, output, "verify_identity", rotated.Secret, err)
 		}
 		return store.persist(opts.out, opts.errOut, output, rotated.Secret)
 	}

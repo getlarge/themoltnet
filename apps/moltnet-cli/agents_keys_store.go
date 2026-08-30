@@ -2,22 +2,29 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
 
 	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/configmigrate"
+	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/safefile"
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 )
 
 // agentKeyStoreOpts enables `agents keys create|rotate --store`: the one-time
 // secret is written to a secret provider under the canonical agent-key key and
-// moltnet.json gains agent_key_ref, so the value never has to be printed.
+// moltnet.json gains agent_key_ref. In this mode the secret is never written
+// to stdout or stderr — not on success and not on any failure path — so the
+// secrets guard can treat the invocation as non-revealing. Failures leave a
+// protected recovery artifact instead.
 type agentKeyStoreOpts struct {
-	enabled          bool
-	destination      string
-	secretProviders  *SecretProviderRegistry
-	writeCredentials func(path string, data []byte) error
+	enabled         bool
+	destination     string
+	secretProviders *SecretProviderRegistry
+	// writeRecovery persists a recovery artifact and returns its path. Tests
+	// point it at a temp dir; the default is the user cache recovery dir.
+	writeRecovery func(agentKeyRecovery) (string, error)
 }
 
 // agentKeyStoreTarget is resolved before any network call so a misconfigured
@@ -25,24 +32,35 @@ type agentKeyStoreOpts struct {
 type agentKeyStoreTarget struct {
 	credentialsPath string
 	identityID      string
-	document        map[string]json.RawMessage
 	ref             SecretReference
 	providers       *SecretProviderRegistry
-	write           func(path string, data []byte) error
+	writeRecovery   func(agentKeyRecovery) (string, error)
 }
 
 // storedAgentKeyOutput is printed instead of the secret-bearing result when
-// --store is used. Secret is set only when the secret could not be stored, so
-// the operator can recover it; ManualRecoveryRequired is set when the secret is
-// stored but moltnet.json could not be updated.
+// --store is used. It never carries the secret.
 type storedAgentKeyOutput struct {
 	Key                    moltnetapi.AgentKey `json:"key"`
 	IdempotencyKey         string              `json:"idempotencyKey,omitempty"`
 	AgentKeyRef            SecretReference     `json:"agentKeyRef"`
 	CredentialsPath        string              `json:"credentialsPath"`
+	SecretStored           bool                `json:"secretStored"`
 	CredentialsUpdated     bool                `json:"credentialsUpdated"`
-	Secret                 string              `json:"secret,omitempty"`
 	ManualRecoveryRequired bool                `json:"manualRecoveryRequired,omitempty"`
+	RecoveryPath           string              `json:"recoveryPath,omitempty"`
+}
+
+// agentKeyRecovery is the protected artifact written when --store cannot
+// complete. Secret is present only when the provider never verified the
+// value; once the secret is safely stored the artifact records the reference
+// and the state the operator must reconcile.
+type agentKeyRecovery struct {
+	Stage           string          `json:"stage"`
+	Reason          string          `json:"reason"`
+	AgentKeyRef     SecretReference `json:"agentKeyRef"`
+	CredentialsPath string          `json:"credentialsPath"`
+	SecretStored    bool            `json:"secretStored"`
+	Secret          string          `json:"secret,omitempty"`
 }
 
 func prepareAgentKeyStore(opts agentKeyStoreOpts, credPath string) (*agentKeyStoreTarget, error) {
@@ -65,24 +83,23 @@ func prepareAgentKeyStore(opts agentKeyStoreOpts, credPath string) (*agentKeySto
 	if err != nil {
 		return nil, fmt.Errorf("--store requires a credentials file to update: %w", err)
 	}
-	creds, document, err := parseCredentialsDocument(data)
+	creds, _, err := parseCredentialsDocument(data)
 	if err != nil {
 		return nil, err
 	}
 	if strings.TrimSpace(creds.IdentityID) == "" {
 		return nil, fmt.Errorf("--store requires identity_id in %s", credentialsPath)
 	}
-	write := opts.writeCredentials
-	if write == nil {
-		write = writeCredentialsAtomic
+	writeRecovery := opts.writeRecovery
+	if writeRecovery == nil {
+		writeRecovery = writeAgentKeyRecoveryFile
 	}
 	return &agentKeyStoreTarget{
 		credentialsPath: credentialsPath,
 		identityID:      creds.IdentityID,
-		document:        document,
 		ref:             SecretReference{Provider: destination, Key: AgentKeyKey(creds.IdentityID)},
 		providers:       providers,
-		write:           write,
+		writeRecovery:   writeRecovery,
 	}, nil
 }
 
@@ -96,33 +113,21 @@ func (t *agentKeyStoreTarget) requireAgentID(agentID string) error {
 	return nil
 }
 
-// persist stores the secret (replacing any previous key under the same
-// reference — rotation is the point), verifies it reads back, then rewrites
-// agent_key_ref. The returned output never contains the secret unless
-// storage itself failed.
+// persist stores the secret with lock-held verification (replacing any
+// previous key under the same reference — rotation is the point), then sets
+// agent_key_ref on the *current* credentials document under the CLI writer
+// lock with compare-and-replace, so a concurrent activation, migration, or
+// credential update is merged rather than discarded.
 func (t *agentKeyStoreTarget) persist(out io.Writer, errOut io.Writer, output storedAgentKeyOutput, secret string) error {
 	output.AgentKeyRef = t.ref
 	output.CredentialsPath = t.credentialsPath
-	if err := t.providers.Store(t.ref, secret); err != nil {
-		return emitAgentKeyRecovery(out, output, secret, fmt.Errorf("store agent key: %w", err))
+	if err := t.providers.Replace(t.ref, secret); err != nil {
+		return t.fail(out, output, "store_secret", secret, fmt.Errorf("store agent key: %w", err))
 	}
-	stored, err := t.providers.Resolve(t.ref)
-	if err != nil || stored != secret {
-		if err == nil {
-			err = fmt.Errorf("stored value does not match")
-		}
-		return emitAgentKeyRecovery(out, output, secret, fmt.Errorf("verify stored agent key: %w", err))
-	}
-	updated, err := rewriteAgentKeyReference(t.document, t.ref)
-	if err == nil {
-		err = t.write(t.credentialsPath, updated)
-	}
-	if err != nil {
-		output.ManualRecoveryRequired = true
-		if printErr := printJSONTo(out, output); printErr != nil {
-			return printErr
-		}
-		return fmt.Errorf("agent key stored at %s:%s but %s was not updated (%w); add agent_key_ref manually", t.ref.Provider, t.ref.Key, t.credentialsPath, err)
+	output.SecretStored = true
+
+	if err := t.updateCredentials(); err != nil {
+		return t.fail(out, output, "update_credentials", "", err)
 	}
 	output.CredentialsUpdated = true
 	if err := printJSONTo(out, output); err != nil {
@@ -134,29 +139,86 @@ func (t *agentKeyStoreTarget) persist(out io.Writer, errOut io.Writer, output st
 	return nil
 }
 
-func emitAgentKeyRecovery(out io.Writer, output storedAgentKeyOutput, secret string, cause error) error {
-	output.Secret = secret
-	if err := printJSONTo(out, output); err != nil {
-		return fmt.Errorf("%w; the one-time secret could not be written to stdout either", cause)
+var errAgentKeyIdentityChanged = errors.New("credentials file identity_id changed since the key was minted")
+
+func (t *agentKeyStoreTarget) updateCredentials() error {
+	lock, err := safefile.Acquire(t.credentialsPath)
+	if err != nil {
+		return fmt.Errorf("lock credentials: %w", err)
 	}
-	return fmt.Errorf("%w; the one-time secret is in the JSON result above — store it yourself", cause)
+	defer lock.Close()
+	current, err := configmigrate.ReadBoundedRegularFile(t.credentialsPath, maxMigrationConfigBytes)
+	if err != nil {
+		return fmt.Errorf("read credentials: %w", err)
+	}
+	creds, document, err := parseCredentialsDocument(current)
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(creds.IdentityID) != t.identityID {
+		return errAgentKeyIdentityChanged
+	}
+	updated, err := rewriteCredentialsDocument(document, func(top map[string]json.RawMessage) error {
+		refJSON, err := json.Marshal(t.ref)
+		if err != nil {
+			return fmt.Errorf("marshal secret reference: %w", err)
+		}
+		top["agent_key_ref"] = refJSON
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	if err := lock.Replace(current, updated, maxMigrationConfigBytes); err != nil {
+		return fmt.Errorf("replace credentials: %w", err)
+	}
+	return nil
 }
 
-func rewriteAgentKeyReference(document map[string]json.RawMessage, ref SecretReference) ([]byte, error) {
-	updated := make(map[string]json.RawMessage, len(document)+1)
-	for key, value := range document {
-		updated[key] = value
+// fail records the partial state durably before reporting it. The secret is
+// written only to the protected artifact, and only when it was never verified
+// in the provider; stdout and the error carry paths and state, never values.
+func (t *agentKeyStoreTarget) fail(out io.Writer, output storedAgentKeyOutput, stage, secret string, cause error) error {
+	output.ManualRecoveryRequired = true
+	recovery := agentKeyRecovery{
+		Stage:           stage,
+		Reason:          cause.Error(),
+		AgentKeyRef:     t.ref,
+		CredentialsPath: t.credentialsPath,
+		SecretStored:    output.SecretStored,
+		Secret:          secret,
 	}
-	refJSON, err := json.Marshal(ref)
+	recoveryPath, recoveryErr := t.writeRecovery(recovery)
+	if recoveryErr == nil {
+		output.RecoveryPath = recoveryPath
+	}
+	printErr := printJSONTo(out, output)
+
+	var next string
+	switch {
+	case output.SecretStored:
+		next = fmt.Sprintf("the key is stored at %s:%s; add agent_key_ref to %s manually", t.ref.Provider, t.ref.Key, t.credentialsPath)
+	case recoveryErr == nil:
+		next = fmt.Sprintf("the one-time secret was written to the protected recovery file %s", recoveryPath)
+	default:
+		next = "the one-time secret could not be preserved; revoke this key and mint a new one"
+	}
+	err := fmt.Errorf("agents keys --store failed during %s: %w; %s", stage, cause, next)
+	if recoveryErr != nil {
+		err = fmt.Errorf("%w (recovery artifact failed: %v)", err, recoveryErr)
+	}
+	if printErr != nil {
+		err = fmt.Errorf("%w (result output failed: %v)", err, printErr)
+	}
+	return err
+}
+
+func writeAgentKeyRecoveryFile(recovery agentKeyRecovery) (string, error) {
+	dir, err := defaultRecoveryDir()
 	if err != nil {
-		return nil, fmt.Errorf("marshal secret reference: %w", err)
+		return "", err
 	}
-	updated["agent_key_ref"] = refJSON
-	data, err := json.MarshalIndent(updated, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshal credentials: %w", err)
-	}
-	return append(data, '\n'), nil
+	return writeRecoveryArtifact(dir, "agent-key-recovery-*.json", recovery)
 }
 
 // agentKeyAgentID returns the agent UUID a key authenticates, for either

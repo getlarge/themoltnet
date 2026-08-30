@@ -240,7 +240,7 @@ func evaluateSecretsShellWithContext(command string, pathContext secretGuardPath
 				denial = "Direct OS credential-store reads are blocked in activated agent sessions. Use a non-revealing MoltNet consumer."
 				return false
 			}
-			if callSelectsUntrustedSecretDestination(executable, args, node) {
+			if callSelectsUntrustedSecretDestination(executable, args, node, vars) {
 				denial = "Secret-moving MoltNet commands may only target the OS keyring in activated agent sessions; run them with a file destination from a human-controlled terminal."
 				return false
 			}
@@ -1106,10 +1106,23 @@ func isSecretMovingMoltnetArgs(args []string) bool {
 // MOLTNET_SECRET_ROOT* assignment or mention on the call. The guard
 // classifies protected roots from its own environment, so material copied
 // into an agent-chosen root would be readable afterwards.
-func callSelectsUntrustedSecretDestination(executable string, args []string, call *syntax.CallExpr) bool {
+func callSelectsUntrustedSecretDestination(executable string, args []string, call *syntax.CallExpr, vars map[string]string) bool {
 	normalized, ok := normalizedMoltnetArgs(executable, args)
 	if !ok || !isSecretMovingMoltnetArgs(normalized) {
 		return false
+	}
+	if call != nil {
+		// Every word on the call must be static and free of secret-root
+		// mentions: `env MOLTNET_SECRET_ROOT=… moltnet …` prefixes are
+		// consumed by invocation parsing without being recorded, and a
+		// non-static word (`--destination=$(printf file)`) is invisible to
+		// the static argument check. Fail closed on both.
+		for _, word := range call.Args {
+			literal, static := staticShellWord(word, vars)
+			if !static || strings.Contains(literal, secretRootEnv) {
+				return true
+			}
+		}
 	}
 	for index, arg := range normalized {
 		switch {

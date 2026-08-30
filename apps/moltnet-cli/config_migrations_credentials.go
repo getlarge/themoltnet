@@ -149,34 +149,50 @@ func newGitHubPEMReferenceMigration(destinationProvider string) configMigration 
 	}
 }
 
-// rewriteCredentialsSection applies mutate to one top-level object of the raw
-// credentials document and re-serializes it, preserving every other field.
-func rewriteCredentialsSection(
+// rewriteCredentialsDocument is the single clone/mutate/serialize primitive
+// for raw credential documents: mutate sees a copy of the top-level object,
+// every field it does not touch is preserved byte-for-byte, and the result
+// uses the canonical two-space, newline-terminated encoding.
+func rewriteCredentialsDocument(
 	document map[string]json.RawMessage,
-	name string,
-	mutate func(section map[string]json.RawMessage) error,
+	mutate func(top map[string]json.RawMessage) error,
 ) ([]byte, error) {
-	updated := make(map[string]json.RawMessage, len(document))
+	updated := make(map[string]json.RawMessage, len(document)+1)
 	for key, value := range document {
 		updated[key] = value
 	}
-	section := make(map[string]json.RawMessage)
-	if raw := updated[name]; raw != nil {
-		if err := json.Unmarshal(raw, &section); err != nil {
-			return nil, fmt.Errorf("parse %s credentials: %w", name, err)
-		}
+	if err := mutate(updated); err != nil {
+		return nil, err
 	}
-	if err := mutate(section); err != nil {
-		return nil, fmt.Errorf("update %s credentials: %w", name, err)
-	}
-	sectionJSON, err := json.Marshal(section)
-	if err != nil {
-		return nil, fmt.Errorf("marshal %s credentials: %w", name, err)
-	}
-	updated[name] = sectionJSON
 	data, err := json.MarshalIndent(updated, "", "  ")
 	if err != nil {
 		return nil, fmt.Errorf("marshal credentials: %w", err)
 	}
 	return append(data, '\n'), nil
+}
+
+// rewriteCredentialsSection applies mutate to one top-level object of the raw
+// credentials document through rewriteCredentialsDocument.
+func rewriteCredentialsSection(
+	document map[string]json.RawMessage,
+	name string,
+	mutate func(section map[string]json.RawMessage) error,
+) ([]byte, error) {
+	return rewriteCredentialsDocument(document, func(top map[string]json.RawMessage) error {
+		section := make(map[string]json.RawMessage)
+		if raw := top[name]; raw != nil {
+			if err := json.Unmarshal(raw, &section); err != nil {
+				return fmt.Errorf("parse %s credentials: %w", name, err)
+			}
+		}
+		if err := mutate(section); err != nil {
+			return fmt.Errorf("update %s credentials: %w", name, err)
+		}
+		sectionJSON, err := json.Marshal(section)
+		if err != nil {
+			return fmt.Errorf("marshal %s credentials: %w", name, err)
+		}
+		top[name] = sectionJSON
+		return nil
+	})
 }

@@ -288,6 +288,35 @@ func (r *SecretProviderRegistry) Ensure(ref SecretReference, value string) (chan
 	return true, nil
 }
 
+// Replace stores value unconditionally (rotation semantics) and verifies the
+// read-back while holding the provider/key lock, so a concurrent writer
+// cannot interleave between storage and verification.
+func (r *SecretProviderRegistry) Replace(ref SecretReference, value string) error {
+	providerName, key, provider, err := r.provider(ref)
+	if err != nil {
+		return err
+	}
+	if value == "" {
+		return fmt.Errorf("secret value is required")
+	}
+	lock, err := safefile.AcquireNamed("secret-provider", providerName+"\x00"+key)
+	if err != nil {
+		return err
+	}
+	defer lock.Close()
+	if err := provider.Set(key, value); err != nil {
+		return fmt.Errorf("store secret with provider %q: %w", providerName, err)
+	}
+	verified, err := provider.Get(key)
+	if err != nil {
+		return fmt.Errorf("verify secret with provider %q: %w", providerName, err)
+	}
+	if verified != value {
+		return fmt.Errorf("verify secret with provider %q: stored value does not match", providerName)
+	}
+	return nil
+}
+
 func (r *SecretProviderRegistry) Delete(ref SecretReference) error {
 	providerName, key, provider, err := r.provider(ref)
 	if err != nil {
