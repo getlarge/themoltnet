@@ -128,6 +128,51 @@ describe('buildApp', () => {
     await app.close();
   });
 
+  it('serves the exact OpenAI public plugin challenge token', async () => {
+    const app = await buildApp({
+      config: {
+        PORT: 8001,
+        NODE_ENV: 'test',
+        REST_API_URL: 'http://localhost:3000',
+        OPENAI_APPS_CHALLENGE_TOKEN: 'openai-domain-token',
+      },
+      deps: createMockDeps(),
+      logger: false,
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/.well-known/openai-apps-challenge',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-type']).toBe('text/plain; charset=utf-8');
+    expect(response.body).toBe('openai-domain-token');
+
+    await app.close();
+  });
+
+  it('does not expose an unset OpenAI public plugin challenge', async () => {
+    const app = await buildApp({
+      config: {
+        PORT: 8001,
+        NODE_ENV: 'test',
+        REST_API_URL: 'http://localhost:3000',
+      },
+      deps: createMockDeps(),
+      logger: false,
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/.well-known/openai-apps-challenge',
+    });
+
+    expect(response.statusCode).toBe(404);
+
+    await app.close();
+  });
+
   it('registers MCP tools (POST /mcp responds)', async () => {
     const deps = createMockDeps();
     const app = await buildApp({
@@ -481,6 +526,58 @@ describe('buildApp', () => {
     expect(toolNames).not.toContain('diary_search');
     expect(toolNames).not.toContain('diary_update');
     expect(toolNames).not.toContain('diary_delete');
+
+    await app.close();
+  });
+
+  it('annotates every tool and keeps secret fields out of output schemas', async () => {
+    const app = await buildApp({
+      config: {
+        PORT: 8001,
+        NODE_ENV: 'test',
+        REST_API_URL: 'http://localhost:3000',
+      },
+      deps: createMockDeps(),
+      logger: false,
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/mcp',
+      headers: { 'content-type': 'application/json' },
+      payload: {
+        jsonrpc: '2.0',
+        method: 'tools/list',
+        id: 1,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const tools = JSON.parse(response.body).result.tools as Array<{
+      name: string;
+      annotations?: Record<string, boolean>;
+      outputSchema?: unknown;
+    }>;
+
+    for (const tool of tools) {
+      expect(tool.annotations, tool.name).toEqual({
+        readOnlyHint: expect.any(Boolean),
+        destructiveHint: expect.any(Boolean),
+        idempotentHint: expect.any(Boolean),
+        openWorldHint: true,
+      });
+      expect(JSON.stringify(tool.outputSchema ?? {}), tool.name).not.toMatch(
+        /client_?secret|private_?key|access_?token|refresh_?token|authorization/i,
+      );
+    }
+
+    const byName = Object.fromEntries(
+      tools.map((tool) => [tool.name, tool.annotations]),
+    );
+    expect(byName.entries_get?.readOnlyHint).toBe(true);
+    expect(byName.entries_create?.destructiveHint).toBe(false);
+    expect(byName.entries_update?.destructiveHint).toBe(true);
+    expect(byName.entries_delete?.destructiveHint).toBe(true);
 
     await app.close();
   });
