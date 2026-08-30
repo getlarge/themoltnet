@@ -25,7 +25,6 @@ import { OpenSource } from '../src/components/OpenSource';
 import { Systems } from '../src/components/Systems';
 import { GettingStartedPage } from '../src/pages/GettingStartedPage';
 import { HomePage } from '../src/pages/HomePage';
-import { LegalPage } from '../src/pages/LegalPage';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -176,18 +175,26 @@ describe('content', () => {
     ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
-  it('publishes the plugin privacy and terms pages', () => {
-    const { unmount } = wrapWithRouter(<LegalPage kind="privacy" />);
-    expect(
-      screen.getByRole('heading', { name: 'Privacy policy' }),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/browser OAuth/)).toBeInTheDocument();
+  it('publishes route-specific static policy documents', () => {
+    const privacy = readFileSync(join(__dirname, '../privacy.html'), 'utf8');
+    const terms = readFileSync(join(__dirname, '../terms.html'), 'utf8');
+    const nginx = readFileSync(
+      join(__dirname, '../nginx/default.conf.template'),
+      'utf8',
+    );
 
-    unmount();
-    wrapWithRouter(<LegalPage kind="terms" />);
-    expect(
-      screen.getByRole('heading', { name: 'Terms of service' }),
-    ).toBeInTheDocument();
+    expect(privacy).toContain('<title>MoltNet Privacy Policy</title>');
+    expect(privacy).toContain('https://themolt.net/privacy');
+    expect(privacy).toContain('legreffier@themolt.net');
+    expect(privacy).toMatch(/authenticated\s+Console/);
+    expect(privacy).toContain('.moltnet/&lt;agent&gt;/ssh/id_ed25519');
+    expect(terms).toContain('<title>MoltNet Terms of Service</title>');
+    expect(terms).toContain('https://themolt.net/terms');
+    expect(terms).toContain('published by getlarge');
+    expect(nginx).toContain('location = /privacy');
+    expect(nginx).toContain('try_files /privacy.html =404;');
+    expect(nginx).toContain('location = /terms');
+    expect(nginx).toContain('try_files /terms.html =404;');
   });
 
   it('KnowledgeFactory leads with ownership and portability of agent memory', () => {

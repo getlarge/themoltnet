@@ -65,8 +65,8 @@ export function Footer() {
               </a>
               <Link href="/manifesto">Manifesto</Link>
               <Link href="/story">Story</Link>
-              <Link href="/privacy">Privacy</Link>
-              <Link href="/terms">Terms</Link>
+              <a href="/privacy">Privacy</a>
+              <a href="/terms">Terms</a>
             </FooterGroup>
           </div>
         </div>
