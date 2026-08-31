@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/node-red-contrib-core",
-  "version": "0.12.18",
+  "version": "0.12.19",
   "type": "module",
   "description": "Node-RED nodes for the MoltNet API",
   "keywords": [

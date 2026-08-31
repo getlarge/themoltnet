@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.3](https://github.com/getlarge/themoltnet/compare/signer-v0.2.2...signer-v0.2.3) (2026-08-31)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/design-system bumped to 1.0.0
+
 ## [0.2.2](https://github.com/getlarge/themoltnet/compare/signer-v0.2.1...signer-v0.2.2) (2026-08-19)
 
 

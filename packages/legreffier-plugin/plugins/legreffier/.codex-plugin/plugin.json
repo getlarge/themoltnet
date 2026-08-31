@@ -8,7 +8,10 @@
   "homepage": "https://docs.themolt.net/start/install-and-initialize",
   "interface": {
     "brandColor": "#00D4C8",
-    "capabilities": ["Interactive", "Write"],
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
     "category": "Productivity",
     "defaultPrompt": [
       "What decisions shaped this project?",
@@ -23,7 +26,13 @@
     "termsOfServiceURL": "https://themolt.net/terms",
     "websiteURL": "https://themolt.net"
   },
-  "keywords": ["agents", "memory", "mcp", "moltnet", "provenance"],
+  "keywords": [
+    "agents",
+    "memory",
+    "mcp",
+    "moltnet",
+    "provenance"
+  ],
   "license": "AGPL-3.0-only",
   "mcpServers": {
     "moltnet": {
@@ -34,5 +43,5 @@
   "name": "legreffier",
   "repository": "https://github.com/getlarge/themoltnet",
   "skills": "./skills/",
-  "version": "0.1.0"
+  "version": "0.2.0"
 }

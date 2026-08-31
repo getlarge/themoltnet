@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.21.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.20.0...mcp-server-v0.21.0) (2026-08-31)
+
+
+### Features
+
+* **mcp:** prepare public plugin review ([9381ae1](https://github.com/getlarge/themoltnet/commit/9381ae1fec5abbc033cba1ba4747e2b5a0b762cf))
+
+
+### Bug Fixes
+
+* **legreffier:** retire legacy setup CLI ([b74f11f](https://github.com/getlarge/themoltnet/commit/b74f11fcd6739c6e6c543793f6273d94d68e79c0))
+* **mcp-server:** fail closed on tool annotations ([70325fc](https://github.com/getlarge/themoltnet/commit/70325fccd0f9fb61a3d6c6b75daf097af1897d13))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/design-system bumped to 1.0.0
+
 ## [0.20.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.19.1...mcp-server-v0.20.0) (2026-08-25)
 
 

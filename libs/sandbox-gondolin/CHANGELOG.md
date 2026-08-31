@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.5.0](https://github.com/getlarge/themoltnet/compare/sandbox-gondolin-v0.4.0...sandbox-gondolin-v0.5.0) (2026-08-31)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sandbox-gondolin:** remove VmConfig.testOnlyHttpRoutes and TestOnlyHttpRoute.
+
+### Features
+
+* **sandbox-gondolin:** productionize conformance findings ([40de081](https://github.com/getlarge/themoltnet/commit/40de0813556317c60cc92664714432a15bbfa3a2))
+* **sandbox-gondolin:** productionize issue 2007 conformance findings ([e308b04](https://github.com/getlarge/themoltnet/commit/e308b04503c0cf10f15ccd9721ad91c0baf59c2d))
+* **sandbox:** prove exact-origin credential delivery ([b143846](https://github.com/getlarge/themoltnet/commit/b143846ec11f8817df4395bdf60a214b43a2f149))
+* **sandbox:** prove Gondolin exact-origin credential delivery ([5bdfe15](https://github.com/getlarge/themoltnet/commit/5bdfe1549f9d8f0d41b8d5b95996d12e23bae3d1))
+
+
+### Bug Fixes
+
+* **sandbox-gondolin:** make trailing-dot stripping linear ([f95ea32](https://github.com/getlarge/themoltnet/commit/f95ea32499ec2e88b836f247ea5af54ce0a39379))
+* **sandbox:** address Gondolin credential-boundary review ([032281d](https://github.com/getlarge/themoltnet/commit/032281d4fd5db062f3814ef6ab665006cfe968d6))
+* **sandbox:** preserve Gondolin IP pinning ([656a9fb](https://github.com/getlarge/themoltnet/commit/656a9fb58711b5eed1743b643e483c4db42bf615))
+
 ## [0.4.0](https://github.com/getlarge/themoltnet/compare/sandbox-gondolin-v0.3.0...sandbox-gondolin-v0.4.0) (2026-08-26)
 
 

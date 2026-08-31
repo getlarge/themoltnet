@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.45.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.44.0...agent-runtime-v0.45.0) (2026-08-31)
+
+
+### Features
+
+* **evals:** judge all artifact-producing attempts ([8f75b74](https://github.com/getlarge/themoltnet/commit/8f75b7456481e785974a22cacd516f421823c88a))
+* **evals:** judge all artifact-producing attempts ([4da8f54](https://github.com/getlarge/themoltnet/commit/4da8f549b574e6434bac64c12239dcf609e02e62))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.138.0
+
 ## [0.44.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.43.2...agent-runtime-v0.44.0) (2026-08-25)
 
 
