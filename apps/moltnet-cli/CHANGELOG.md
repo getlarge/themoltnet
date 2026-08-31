@@ -1,50 +1,5 @@
 # Changelog
 
-## [1.86.0](https://github.com/getlarge/themoltnet/compare/cli-v1.85.2...cli-v1.86.0) (2026-08-31)
-
-
-### Features
-
-* **auth:** recover lost agent OAuth credentials ([6a9b52c](https://github.com/getlarge/themoltnet/commit/6a9b52c233abb62db7a4ed346a0f0919c4447907))
-* **cli:** centralize agent initialization ([24b0251](https://github.com/getlarge/themoltnet/commit/24b02512e790a6bb6d50bd033677eadc030bfb1a))
-* **cli:** move repository porting into config ([c5a8f7e](https://github.com/getlarge/themoltnet/commit/c5a8f7e6d767ce08d54076f30262747650c3dcb0))
-* **cli:** recover lost OAuth credentials ([f7a00dc](https://github.com/getlarge/themoltnet/commit/f7a00dc6810d99877d325e95c70dec991ff1ae74))
-* **credentials:** agent_key_ref and daemon env references ([#1833](https://github.com/getlarge/themoltnet/issues/1833), PR 3c) ([c52d394](https://github.com/getlarge/themoltnet/commit/c52d394e588f9c88b6b1e77d8a25bd350a70a230))
-* **credentials:** github.private_key_ref for GitHub App tokens ([#1833](https://github.com/getlarge/themoltnet/issues/1833), PR 3b) ([7d35ffa](https://github.com/getlarge/themoltnet/commit/7d35ffacfc94a5150a9ee4a42529ef76933f0ba2))
-* **credentials:** headless file secret provider ([#1833](https://github.com/getlarge/themoltnet/issues/1833), PR 2/4) ([aa1461a](https://github.com/getlarge/themoltnet/commit/aa1461ad94e6a062f18000cead74369ad3d021e9))
-* **credentials:** Node secret provider write path ([#1833](https://github.com/getlarge/themoltnet/issues/1833), PR 1/4) ([3cf98f0](https://github.com/getlarge/themoltnet/commit/3cf98f0ab15abcb871879cbf7c96d5ee41681c5d))
-* **moltnet-cli:** add keys.private_key_ref with a shared credential binding table and resolver ([855d9b7](https://github.com/getlarge/themoltnet/commit/855d9b7d2f040746dd1337a4ba120aa94fda534b))
-* **moltnet-cli:** add the headless file secret provider ([0dd2b8c](https://github.com/getlarge/themoltnet/commit/0dd2b8c9909c863a4d8c616a6fb8f4267ba5c978))
-* **moltnet-cli:** agents keys --store writes agent_key_ref ([#1833](https://github.com/getlarge/themoltnet/issues/1833), PR 3e) ([f5492c1](https://github.com/getlarge/themoltnet/commit/f5492c168534def400a1a762b9d9e4656d99a0d0))
-* **moltnet-cli:** allow config migrate in the secrets guard and document credential migrations ([ec3cf9c](https://github.com/getlarge/themoltnet/commit/ec3cf9ce12fb5b80c4b951d538cfaab410738fc4))
-* **moltnet-cli:** authenticate with agent_key_ref and MOLTNET_AGENT_KEY_REF ([fa8b5b6](https://github.com/getlarge/themoltnet/commit/fa8b5b6b694e26497e1995032d33b8333a1f5c9b))
-* **moltnet-cli:** deny agent reads under the headless secret root ([601328b](https://github.com/getlarge/themoltnet/commit/601328b2c86d55f08f1606c6fcc1f4b3f9eb8e5d))
-* **moltnet-cli:** migrate identity seeds and GitHub PEMs to secret references ([f04b4b1](https://github.com/getlarge/themoltnet/commit/f04b4b158e12865e457ecee8652b4411de64a4f1))
-* **moltnet-cli:** mint GitHub App tokens from github.private_key_ref ([c7fef28](https://github.com/getlarge/themoltnet/commit/c7fef2832f171f8a0c0098e179b26f22c1d474ee))
-* **moltnet-cli:** record per-kind credential providers in activation cache v4 ([bce5ebf](https://github.com/getlarge/themoltnet/commit/bce5ebf05a80a7efc29efee2713b07d9030d76f5))
-* **moltnet-cli:** resolve the identity seed through keys.private_key_ref in every consumer ([82e3949](https://github.com/getlarge/themoltnet/commit/82e3949137e303e4fcc309487e461f84985705ba))
-* **moltnet-cli:** store agent keys as agent_key_ref with agents keys --store ([f28080c](https://github.com/getlarge/themoltnet/commit/f28080c902dd0842361696054b2e81467fb2714f))
-
-
-### Bug Fixes
-
-* **auth:** harden credential recovery delivery ([c29eb0a](https://github.com/getlarge/themoltnet/commit/c29eb0a3045e8da2ce235fdb7123f2ec898a7754))
-* **cli:** align credential recovery with provider storage ([35070a4](https://github.com/getlarge/themoltnet/commit/35070a4a0fd8503676905cedec56786b88a72992))
-* **cli:** centralize agent config serializers ([ca4273a](https://github.com/getlarge/themoltnet/commit/ca4273a50df2227fc92ac1f047e715a25434a4e9))
-* **cli:** harden resumable agent initialization ([49ab1ad](https://github.com/getlarge/themoltnet/commit/49ab1ad91955e302bf2de3d650923abb412baad6))
-* **cli:** make config port safely resumable ([752fd14](https://github.com/getlarge/themoltnet/commit/752fd14e343a770aa40404191ba6b9673bf61a2d))
-* **credentials:** normalize agent-key provider failures ([4ffd843](https://github.com/getlarge/themoltnet/commit/4ffd843ea3d3d41c71fb37ea8f998bf547b08b4f))
-* **github-agent:** bind token caches to the App and load keys lazily ([fea6370](https://github.com/getlarge/themoltnet/commit/fea6370bf1719abbede1d8b03950cecb6e3155d9))
-* **legreffier:** retire legacy setup CLI ([b74f11f](https://github.com/getlarge/themoltnet/commit/b74f11fcd6739c6e6c543793f6273d94d68e79c0))
-* **legreffier:** retire legacy setup CLI ([5346620](https://github.com/getlarge/themoltnet/commit/5346620a2bd31594e5defde5a92246b001315c87))
-* **moltnet-cli:** contain the file secret provider with os.Root ([7fbb733](https://github.com/getlarge/themoltnet/commit/7fbb73390e507c4692443c59f6f9eab633e3ac06))
-* **moltnet-cli:** deny agent-selected migration destinations and make post-store failures retryable ([1a984d1](https://github.com/getlarge/themoltnet/commit/1a984d17644b92a29824ab368fc38aec1d95fd19))
-* **moltnet-cli:** deny secret-root aliases and MOLTNET_SECRET_ROOT expansions in the guard ([d76b3b1](https://github.com/getlarge/themoltnet/commit/d76b3b1b9d9e1196b88fb9369a8783ea88a0aa52))
-* **moltnet-cli:** find keytar-written Secret Service items on linux ([ddcaf6e](https://github.com/getlarge/themoltnet/commit/ddcaf6ee841bf3a1fa524370e99cc8aa106d2d5e))
-* **moltnet-cli:** make agents keys --store non-revealing on every path with locked config merge ([8b419d0](https://github.com/getlarge/themoltnet/commit/8b419d00d73f12ac97345ca718e7d84d1b7bb974))
-* **moltnet-cli:** normalize provider failures and cover reference-backed consumers ([ea67972](https://github.com/getlarge/themoltnet/commit/ea67972a6b7dea23ffe8be2b5d6764da8817ea78))
-* **moltnet-cli:** reject env-provider agent_key_ref ([abd3e69](https://github.com/getlarge/themoltnet/commit/abd3e697cc02644fc3e3947a4bd38805c022a9eb))
-
 ## [1.85.2](https://github.com/getlarge/themoltnet/compare/cli-v1.85.1...cli-v1.85.2) (2026-08-26)
 
 
