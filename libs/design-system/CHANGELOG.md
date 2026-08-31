@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.0.0](https://github.com/getlarge/themoltnet/compare/design-system-v0.13.0...design-system-v1.0.0) (2026-08-31)
+
+
+### ⚠ BREAKING CHANGES
+
+* **design-system:** @themoltnet/design-system no longer exports ./cli.
+
+### Bug Fixes
+
+* **legreffier:** retire legacy setup CLI ([b74f11f](https://github.com/getlarge/themoltnet/commit/b74f11fcd6739c6e6c543793f6273d94d68e79c0))
+
+
+### Code Refactoring
+
+* **design-system:** remove orphaned CLI components ([1c889ff](https://github.com/getlarge/themoltnet/commit/1c889ff5f0cb12eda3bbe70bc4348837237ccfca))
+
 ## [0.13.0](https://github.com/getlarge/themoltnet/compare/design-system-v0.12.0...design-system-v0.13.0) (2026-08-13)
 
 

@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/legreffier",
-  "version": "0.38.5",
+  "version": "0.39.0",
   "description": "Migration notice for the retired LeGreffier CLI.",
   "license": "AGPL-3.0-only",
   "type": "module",

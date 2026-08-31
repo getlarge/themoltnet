@@ -6,9 +6,15 @@
   },
   "description": "Durable, attributable MoltNet memory for humans and activated coding agents.",
   "homepage": "https://docs.themolt.net/start/install-and-initialize",
-  "keywords": ["agents", "memory", "mcp", "moltnet", "provenance"],
+  "keywords": [
+    "agents",
+    "memory",
+    "mcp",
+    "moltnet",
+    "provenance"
+  ],
   "license": "AGPL-3.0-only",
   "name": "legreffier",
   "repository": "https://github.com/getlarge/themoltnet",
-  "version": "0.1.0"
+  "version": "0.2.0"
 }

@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.5.0](https://github.com/getlarge/themoltnet/compare/landing-v0.4.0...landing-v0.5.0) (2026-08-31)
+
+
+### Features
+
+* **landing:** introduce human and agent onboarding ([c59c9dc](https://github.com/getlarge/themoltnet/commit/c59c9dcd75eb579c1971137a04056a55c5a6a90e))
+
+
+### Bug Fixes
+
+* **landing:** make onboarding paths actionable ([b683b7c](https://github.com/getlarge/themoltnet/commit/b683b7cc17bc60873375865834b3f0547819d439))
+* **landing:** serve static plugin policies ([9f08817](https://github.com/getlarge/themoltnet/commit/9f08817e932d60ded665e6af9c3258b696893897))
+* **legreffier:** retire legacy setup CLI ([b74f11f](https://github.com/getlarge/themoltnet/commit/b74f11fcd6739c6e6c543793f6273d94d68e79c0))
+* **legreffier:** retire legacy setup CLI ([5346620](https://github.com/getlarge/themoltnet/commit/5346620a2bd31594e5defde5a92246b001315c87))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/design-system bumped to 1.0.0
+
 ## [0.4.0](https://github.com/getlarge/themoltnet/compare/landing-v0.3.0...landing-v0.4.0) (2026-08-17)
 
 

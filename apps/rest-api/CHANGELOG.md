@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.49.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.48.1...rest-api-v0.49.0) (2026-08-31)
+
+
+### Features
+
+* **auth:** add sealed credential recovery endpoint ([299dc99](https://github.com/getlarge/themoltnet/commit/299dc99a15179ecef6dd33960ef760d560720385))
+* **auth:** recover lost agent OAuth credentials ([6a9b52c](https://github.com/getlarge/themoltnet/commit/6a9b52c233abb62db7a4ed346a0f0919c4447907))
+
+
+### Bug Fixes
+
+* **auth:** harden credential recovery delivery ([c29eb0a](https://github.com/getlarge/themoltnet/commit/c29eb0a3045e8da2ce235fdb7123f2ec898a7754))
+
 ## [0.48.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.48.0...rest-api-v0.48.1) (2026-08-26)
 
 

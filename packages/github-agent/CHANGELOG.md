@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.28.0](https://github.com/getlarge/themoltnet/compare/github-agent-v0.27.0...github-agent-v0.28.0) (2026-08-31)
+
+
+### Features
+
+* **credentials:** github.private_key_ref for GitHub App tokens ([#1833](https://github.com/getlarge/themoltnet/issues/1833), PR 3b) ([7d35ffa](https://github.com/getlarge/themoltnet/commit/7d35ffacfc94a5150a9ee4a42529ef76933f0ba2))
+* **github-agent:** mint installation tokens from a referenced PEM ([62c51f1](https://github.com/getlarge/themoltnet/commit/62c51f1f4cb1391fb986a38d7a247fc81142368b))
+
+
+### Bug Fixes
+
+* **github-agent:** bind token caches to the App and load keys lazily ([fea6370](https://github.com/getlarge/themoltnet/commit/fea6370bf1719abbede1d8b03950cecb6e3155d9))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.138.0
+
 ## [0.27.0](https://github.com/getlarge/themoltnet/compare/github-agent-v0.26.1...github-agent-v0.27.0) (2026-08-25)
 
 

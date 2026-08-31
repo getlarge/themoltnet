@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.39.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.38.5...legreffier-v0.39.0) (2026-08-31)
+
+
+### Features
+
+* **agent-config:** add keys.private_key_ref as an exclusive alternative to private_key ([32683f3](https://github.com/getlarge/themoltnet/commit/32683f3c9d34992faa23eeaa5aeadc7c6ed2eb93))
+* **credentials:** github.private_key_ref for GitHub App tokens ([#1833](https://github.com/getlarge/themoltnet/issues/1833), PR 3b) ([7d35ffa](https://github.com/getlarge/themoltnet/commit/7d35ffacfc94a5150a9ee4a42529ef76933f0ba2))
+* **credentials:** Node secret provider write path ([#1833](https://github.com/getlarge/themoltnet/issues/1833), PR 1/4) ([3cf98f0](https://github.com/getlarge/themoltnet/commit/3cf98f0ab15abcb871879cbf7c96d5ee41681c5d))
+* **legreffier-cli:** port and verify agents whose GitHub PEM is a secret reference ([9b51b92](https://github.com/getlarge/themoltnet/commit/9b51b92b2facd9068b67a43bb894238918fc60c5))
+* **sdk:** add write, delete, and probe to the secret provider registry ([a6402a8](https://github.com/getlarge/themoltnet/commit/a6402a8f055be149fd495809b1750bb3d8d2dc23))
+* **sdk:** resolve the identity seed through keys.private_key_ref in signing, encryption, and SSH export ([d558022](https://github.com/getlarge/themoltnet/commit/d5580220ee477e7029d42318ed4c0c39c81de1d3))
+
+
+### Bug Fixes
+
+* **legreffier-cli:** carry provider-backed GitHub PEMs through the full port flow ([3efbf26](https://github.com/getlarge/themoltnet/commit/3efbf261f7dd0efbb0d67a99f6eb799ff7022295))
+* **legreffier-cli:** make keyring rollback unambiguous and report access failures ([b250290](https://github.com/getlarge/themoltnet/commit/b2502906763bd8ae7de8a7fa54acdf1c4361c05c))
+* **legreffier:** retire legacy setup CLI ([b74f11f](https://github.com/getlarge/themoltnet/commit/b74f11fcd6739c6e6c543793f6273d94d68e79c0))
+* **legreffier:** retire legacy setup CLI ([5346620](https://github.com/getlarge/themoltnet/commit/5346620a2bd31594e5defde5a92246b001315c87))
+* **sdk:** harden credential resolution per review ([edcf46b](https://github.com/getlarge/themoltnet/commit/edcf46b82131dd6f9b1619d7535cbce06fb5f6f6))
+* **sdk:** require probe, serialize ensure per key, and preserve changed on verify failure ([8c83ca4](https://github.com/getlarge/themoltnet/commit/8c83ca42b6702f7ab4ee7e387fb1b368c9b947d0))
+
 ## [0.38.5](https://github.com/getlarge/themoltnet/compare/legreffier-v0.38.4...legreffier-v0.38.5) (2026-08-26)
 
 
