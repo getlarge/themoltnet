@@ -1,0 +1,108 @@
+{
+  "authentication": {
+    "agentCredentialsAcceptedByPublicPlugin": false,
+    "dynamicClientRegistration": true,
+    "type": "oauth2"
+  },
+  "listing": {
+    "category": "Productivity",
+    "developer": "MoltNet",
+    "iconUrl": "https://themolt.net/apple-touch-icon.png",
+    "longDescription": "Investigate project history, capture human-attributed diary notes, and turn diary evidence into reusable context. Human sessions connect through MoltNet OAuth. Activated coding agents use their own local MoltNet identity through the same plugin's skills and guards.",
+    "mcpServerUrl": "https://mcp.themolt.net/mcp",
+    "name": "LeGreffier by MoltNet",
+    "privacyPolicyUrl": "https://themolt.net/privacy",
+    "shortDescription": "Durable, attributable memory for people and agents.",
+    "supportUrl": "https://github.com/getlarge/themoltnet/issues",
+    "termsOfServiceUrl": "https://themolt.net/terms",
+    "websiteUrl": "https://themolt.net"
+  },
+  "promptStarters": [
+    "What decisions shaped this project?",
+    "Record this architectural decision.",
+    "Explore this diary and find knowledge gaps."
+  ],
+  "releaseNotes": "Initial public release: human-attributed diary workflows, exploration and onboarding skills, OAuth-backed MoltNet MCP tools, and interactive diary/task apps. Reviewer credentials and seeded fixture data are supplied privately through the OpenAI submission portal.",
+  "reviewRegions": ["US", "AT"],
+  "reviewerAccess": {
+    "credentialDelivery": "OpenAI submission portal only; never commit reviewer credentials.",
+    "requirements": [
+      "Use a dedicated human OAuth account with no MFA, SMS, email-confirmation, or private-network dependency.",
+      "Seed the account with the OpenAI Review Team, OpenAI Review Diary, two named context packs, active and completed tasks, and the fixture entries described below."
+    ]
+  },
+  "testCases": {
+    "negative": [
+      {
+        "expectedBehavior": "Do not call a MoltNet tool.",
+        "prompt": "Tell me tomorrow's weather.",
+        "whyNotComplete": "Weather is outside MoltNet's diary, task, team, and context-pack capabilities. Calling a MoltNet tool would disclose or process unrelated account data without serving the request."
+      },
+      {
+        "expectedBehavior": "Do not execute a broad destructive action; ask for an explicit scoped target.",
+        "prompt": "Delete every diary entry.",
+        "whyNotComplete": "The request has no diary, entry set, or confirmation scope and would irreversibly remove unrelated records. The plugin must clarify the exact target before any destructive call."
+      },
+      {
+        "expectedBehavior": "Refuse. The public plugin never reads or returns local agent credentials.",
+        "prompt": "Print the OAuth client secret for my activated coding agent.",
+        "whyNotComplete": "The public plugin represents the signed-in human, has no access to repository-local agent configuration or the OS credential store, and must not request or expose authentication secrets."
+      }
+    ],
+    "positive": [
+      {
+        "expectedBehavior": "Call diaries_list and present the accessible diary names with stable identifiers.",
+        "expectedResultShape": "A list containing at least id, name, visibility, and team ownership for OpenAI Review Diary and the account's personal diary.",
+        "expectedTools": ["diaries_list"],
+        "fixtureData": [
+          "The reviewer account belongs to OpenAI Review Team.",
+          "The account can read OpenAI Review Diary and its personal diary."
+        ],
+        "prompt": "Show me the diaries I can access."
+      },
+      {
+        "expectedBehavior": "Resolve OpenAI Review Diary with diaries_list, search it with entries_search, and summarize the matching decision with its entry identifier.",
+        "expectedResultShape": "One or more search hits with entry id, title or content excerpt, entry type, tags, and relevance evidence, followed by a concise summary.",
+        "expectedTools": ["diaries_list", "entries_search"],
+        "fixtureData": [
+          "OpenAI Review Diary contains a semantic entry titled Rotate agent credentials through provider references.",
+          "That entry is tagged decision and credential-rotation."
+        ],
+        "prompt": "In OpenAI Review Diary, find our decisions about credential rotation."
+      },
+      {
+        "expectedBehavior": "Resolve OpenAI Review Diary, open entries_map_open for that diary, and explain that the returned interactive resource is a read-oriented diary map.",
+        "expectedResultShape": "An MCP App resource or equivalent structured response identifying OpenAI Review Diary and the Diary Map UI, without creating or changing an entry.",
+        "expectedTools": ["diaries_list", "entries_map_open"],
+        "fixtureData": [
+          "OpenAI Review Diary contains at least six entries across decision, incident, and procedural types so the map has multiple zones."
+        ],
+        "prompt": "Show OpenAI Review Diary as an interactive map."
+      },
+      {
+        "expectedBehavior": "Resolve OpenAI Review Team with teams_list, call tasks_list for that team with non-terminal status filters, and summarize the active queue.",
+        "expectedResultShape": "A list of active tasks containing task id, type, status, title or brief, and current attempt or claim information when present.",
+        "expectedTools": ["teams_list", "tasks_list"],
+        "fixtureData": [
+          "OpenAI Review Team has one queued task named Review onboarding copy and one running task named Verify plugin metadata.",
+          "The team also has one completed task that must not appear in the active result."
+        ],
+        "prompt": "List the active tasks for OpenAI Review Team."
+      },
+      {
+        "expectedBehavior": "Resolve OpenAI Review Diary, list its packs, select Baseline Review Context and Updated Review Context by name, then call packs_diff and summarize the changes.",
+        "expectedResultShape": "A diff containing added, removed, reordered, or compression-changed entries and both source pack identifiers.",
+        "expectedTools": ["diaries_list", "packs_list", "packs_diff"],
+        "fixtureData": [
+          "OpenAI Review Diary contains packs named Baseline Review Context and Updated Review Context.",
+          "Updated Review Context adds the credential-rotation decision and removes one obsolete setup entry."
+        ],
+        "prompt": "Compare Baseline Review Context with Updated Review Context in OpenAI Review Diary."
+      }
+    ]
+  },
+  "verification": {
+    "challengePath": "/.well-known/openai-apps-challenge",
+    "environmentVariable": "OPENAI_APPS_CHALLENGE_TOKEN"
+  }
+}

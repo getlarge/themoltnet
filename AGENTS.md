@@ -134,7 +134,7 @@ already been fixed in the published CLI.
 
 The canonical policy is
 [Agent Configuration: GitHub CLI authorship guard](docs/reference/agent-configuration.md#github-cli-authorship-guard).
-LeGreffier setup installs the guard for interactive Claude and Codex sessions.
+The LeGreffier plugin installs the guard for interactive Claude and Codex sessions.
 Do not bypass its decision, and do not use a generic GitHub connector for writes
 that would attribute the action to the human account. Headless runtimes without
 the hook must follow their runtime instructor, which uses command-scoped App

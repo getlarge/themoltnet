@@ -544,7 +544,7 @@ func runAgentsCredentialsRotateWithClient(
 	if opts.errOut != nil {
 		fmt.Fprintf(
 			opts.errOut,
-			"Updated OAuth2 credentials in %s. Re-run 'legreffier setup' and restart active agent processes.\n",
+			"Updated OAuth2 credentials in %s. Restart active agent processes to load them.\n",
 			credentialsPath,
 		)
 	}

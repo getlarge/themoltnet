@@ -20,6 +20,17 @@ server {
         return 301 ${API_BASE_URL}/.well-known/moltnet.json;
     }
 
+    # Public plugin policies are route-specific static documents. Serving their
+    # generated HTML directly keeps titles, canonical URLs, and policy copy
+    # available to reviewers and crawlers without executing the SPA bundle.
+    location = /privacy {
+        try_files /privacy.html =404;
+    }
+
+    location = /terms {
+        try_files /terms.html =404;
+    }
+
     location /assets/ {
         expires 1y;
         add_header Cache-Control "public, immutable";

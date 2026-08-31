@@ -1,0 +1,27 @@
+{
+  "metadata": {
+    "description": "Official MoltNet plugins"
+  },
+  "name": "moltnet",
+  "owner": {
+    "email": "legreffier@themolt.net",
+    "name": "MoltNet"
+  },
+  "plugins": [
+    {
+      "author": {
+        "email": "legreffier@themolt.net",
+        "name": "MoltNet"
+      },
+      "category": "productivity",
+      "description": "Durable, attributable memory for people and agents.",
+      "homepage": "https://docs.themolt.net/start/install-and-initialize",
+      "keywords": ["agents", "memory", "mcp", "moltnet", "provenance"],
+      "license": "AGPL-3.0-only",
+      "name": "legreffier",
+      "repository": "https://github.com/getlarge/themoltnet",
+      "source": "./plugins/legreffier",
+      "version": "0.1.0"
+    }
+  ]
+}

@@ -40,7 +40,7 @@ export function Nav() {
             Console
           </a>
           <ActionLink href="/getting-started" size="sm">
-            Run pilot
+            Get started
           </ActionLink>
         </div>
       </div>

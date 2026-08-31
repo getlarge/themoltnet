@@ -5,6 +5,7 @@ import { describe, expect, it, type Mock, vi } from 'vitest';
 
 import pkg from '../package.json' with { type: 'json' };
 import { buildApp, buildAuthConfig } from '../src/app.js';
+import { annotationsForTool } from '../src/tool-annotations.js';
 import { createMockDeps } from './helpers.js';
 
 function canonicalJson(value: unknown): unknown {
@@ -124,6 +125,70 @@ describe('buildApp', () => {
     const body = JSON.parse(response.body);
     expect(body).toHaveProperty('status', 'ok');
     expect(body).toHaveProperty('timestamp');
+
+    await app.close();
+  });
+
+  it('serves the exact OpenAI challenge while OAuth protects MCP', async () => {
+    const app = await buildApp({
+      config: {
+        PORT: 8001,
+        NODE_ENV: 'test',
+        REST_API_URL: 'http://localhost:3000',
+        AUTH_ENABLED: true,
+        ORY_PROJECT_URL: 'https://hydra.example.com',
+        OPENAI_APPS_CHALLENGE_TOKEN: 'openai-domain-token',
+      },
+      deps: createMockDeps(),
+      logger: false,
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/.well-known/openai-apps-challenge',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-type']).toBe('text/plain; charset=utf-8');
+    expect(response.body).toBe('openai-domain-token');
+
+    const mcpResponse = await app.inject({
+      method: 'POST',
+      url: '/mcp',
+      headers: { 'content-type': 'application/json' },
+      payload: {
+        jsonrpc: '2.0',
+        method: 'initialize',
+        params: {
+          protocolVersion: '2025-03-26',
+          capabilities: {},
+          clientInfo: { name: 'test', version: '1.0.0' },
+        },
+        id: 1,
+      },
+    });
+    expect(mcpResponse.statusCode).toBe(401);
+
+    await app.close();
+  });
+
+  it('does not expose an unset OpenAI public plugin challenge', async () => {
+    const app = await buildApp({
+      config: {
+        PORT: 8001,
+        NODE_ENV: 'test',
+        REST_API_URL: 'http://localhost:3000',
+      },
+      deps: createMockDeps(),
+      logger: false,
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/.well-known/openai-apps-challenge',
+    });
+
+    expect(response.statusCode).toBe(404);
 
     await app.close();
   });
@@ -483,6 +548,64 @@ describe('buildApp', () => {
     expect(toolNames).not.toContain('diary_delete');
 
     await app.close();
+  });
+
+  it('annotates every tool and keeps secret fields out of output schemas', async () => {
+    const app = await buildApp({
+      config: {
+        PORT: 8001,
+        NODE_ENV: 'test',
+        REST_API_URL: 'http://localhost:3000',
+      },
+      deps: createMockDeps(),
+      logger: false,
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/mcp',
+      headers: { 'content-type': 'application/json' },
+      payload: {
+        jsonrpc: '2.0',
+        method: 'tools/list',
+        id: 1,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const tools = JSON.parse(response.body).result.tools as Array<{
+      name: string;
+      annotations?: Record<string, boolean>;
+      outputSchema?: unknown;
+    }>;
+
+    for (const tool of tools) {
+      expect(tool.annotations, tool.name).toEqual({
+        readOnlyHint: expect.any(Boolean),
+        destructiveHint: expect.any(Boolean),
+        idempotentHint: expect.any(Boolean),
+        openWorldHint: true,
+      });
+      expect(JSON.stringify(tool.outputSchema ?? {}), tool.name).not.toMatch(
+        /client_?secret|private_?key|access_?token|refresh_?token|authorization/i,
+      );
+    }
+
+    const byName = Object.fromEntries(
+      tools.map((tool) => [tool.name, tool.annotations]),
+    );
+    expect(byName.entries_get?.readOnlyHint).toBe(true);
+    expect(byName.entries_create?.destructiveHint).toBe(false);
+    expect(byName.entries_update?.destructiveHint).toBe(true);
+    expect(byName.entries_delete?.destructiveHint).toBe(true);
+
+    await app.close();
+  });
+
+  it('rejects tools without an explicit annotation policy', () => {
+    expect(() => annotationsForTool('future_unclassified_tool')).toThrow(
+      'Missing MCP tool annotation policy for future_unclassified_tool',
+    );
   });
 
   it('exposes the expected MCP tool contract', async () => {

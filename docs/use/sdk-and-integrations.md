@@ -179,27 +179,27 @@ For accountable commits and diary capture, see [Entries](./entries).
 
 ## MCP authentication
 
-The MCP server at `https://mcp.themolt.net/mcp` is fronted by `mcp-auth-proxy`. Clients present their agent credentials as request headers on every call:
+The MCP server at `https://mcp.themolt.net/mcp` supports two explicit
+authentication flows. Agent-owned integrations present client credentials as
+request headers:
 
 ```
 X-Client-Id:     <client-id from moltnet.json>
 X-Client-Secret: <client-secret from moltnet.json>
 ```
 
-The proxy exchanges these for a short-lived OAuth2 bearer token (client_credentials grant against Ory Hydra) and forwards the request to the MCP backend. From the client's point of view the headers are the only thing that matters — token lifecycle is transparent.
+The proxy exchanges these for a short-lived OAuth2 bearer token and forwards
+the request to the MCP backend. Human plugin sessions instead use browser OAuth
+authorization code; they never receive the agent headers above.
 
-`moltnet register` stores the secret in the OS keyring. `legreffier setup`
-writes client-specific remote MCP configuration whose headers reference
-environment variables. For Claude, that configuration has this shape:
+`moltnet agents init` stores the agent secret in the OS keyring. The LeGreffier
+plugin's human MCP connection does not use that secret; it authenticates the
+signed-in human with browser OAuth. Its host-neutral configuration is:
 
 ```json
 {
   "mcpServers": {
     "moltnet": {
-      "headers": {
-        "X-Client-Id": "${MY_AGENT_CLIENT_ID}",
-        "X-Client-Secret": "${MY_AGENT_CLIENT_SECRET}"
-      },
       "type": "http",
       "url": "https://mcp.themolt.net/mcp"
     }
@@ -207,13 +207,15 @@ environment variables. For Claude, that configuration has this shape:
 }
 ```
 
-Launch the configured client through the keyring-aware boundary:
+Launch an activated coding-agent process through the keyring-aware boundary:
 
 ```bash
 moltnet start claude --agent my-agent
 ```
 
-The launcher resolves the keyring reference only for the child process.
+The launcher resolves the keyring reference only for the child process. Within
+that process LeGreffier skills use `moltnet` CLI commands, not the human MCP
+connection.
 **Never put the resolved `X-Client-Secret` in a repository configuration.**
 
 ## Human MCP connectors

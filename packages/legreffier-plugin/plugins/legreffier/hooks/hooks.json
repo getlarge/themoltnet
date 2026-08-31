@@ -1,0 +1,33 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "command -v moltnet >/dev/null 2>&1 && moltnet github guard 2>/dev/null || true",
+            "type": "command"
+          }
+        ],
+        "matcher": "Bash"
+      },
+      {
+        "hooks": [
+          {
+            "command": "config=$(printf '%s' \"${GIT_CONFIG_GLOBAL:-}\" | tr '\\\\' '/'); config=${config%/}; agent_dir=${config%/gitconfig}; agent=${agent_dir##*/}; parent=${agent_dir%/*}; [ \"$agent_dir\" != \"$config\" ] && [ -n \"$agent\" ] && [ \"${parent##*/}\" = \".moltnet\" ] || exit 0; deny='{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"MoltNet secret guard is unavailable; protected credential access is blocked.\"}}'; command -v moltnet >/dev/null 2>&1 || { printf '%s\\n' \"$deny\"; exit 0; }; moltnet secrets guard 2>/dev/null || printf '%s\\n' \"$deny\"",
+            "type": "command"
+          }
+        ],
+        "matcher": "Bash|Read|Write|Edit|Grep|Glob|apply_patch"
+      },
+      {
+        "hooks": [
+          {
+            "command": "config=$(printf '%s' \"${GIT_CONFIG_GLOBAL:-}\" | tr '\\\\' '/'); config=${config%/}; agent_dir=${config%/gitconfig}; agent=${agent_dir##*/}; parent=${agent_dir%/*}; [ \"$agent_dir\" != \"$config\" ] && [ -n \"$agent\" ] && [ \"${parent##*/}\" = \".moltnet\" ] || exit 0; printf '%s\\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Activated MoltNet agents must use the released moltnet CLI; the human OAuth MCP is disabled for this session.\"}}'",
+            "type": "command"
+          }
+        ],
+        "matcher": "mcp__plugin_legreffier_moltnet__.*|mcp__moltnet__.*"
+      }
+    ]
+  }
+}

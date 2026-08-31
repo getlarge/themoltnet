@@ -1,11 +1,16 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
+	"unicode"
+
+	"github.com/natefinch/atomic"
 )
 
 // runGitSetupCmd is the flag-free business logic for git setup.
@@ -39,6 +44,12 @@ func runGitSetupCmd(credPath, name, email string) error {
 	if gitEmail == "" {
 		gitEmail = creds.IdentityID + "@agents.themolt.net"
 	}
+	if err := validateGitIdentityValue("Git name", gitName); err != nil {
+		return err
+	}
+	if err := validateGitIdentityValue("Git email", gitEmail); err != nil {
+		return err
+	}
 
 	// Build allowed_signers — relative to the config file
 	var configDir string
@@ -60,27 +71,16 @@ func runGitSetupCmd(credPath, name, email string) error {
 		return fmt.Errorf("write allowed_signers: %w", err)
 	}
 
-	// Build gitconfig
-	gitconfig := fmt.Sprintf(`[user]
-	name = %s
-	email = %s
-	signingkey = %s
-
-[gpg]
-	format = ssh
-
-[gpg "ssh"]
-	allowedSignersFile = %s
-
-[commit]
-	gpgsign = true
-
-[tag]
-	gpgsign = true
-`, gitName, gitEmail, creds.SSH.PublicKeyPath, allowedSignersPath)
-
 	gitconfigPath := filepath.Join(configDir, "gitconfig")
-	if err := os.WriteFile(gitconfigPath, []byte(gitconfig), 0o644); err != nil {
+	if err := writeGitConfigFile(gitconfigPath, map[string]string{
+		"user.name":                  gitName,
+		"user.email":                 gitEmail,
+		"user.signingkey":            creds.SSH.PublicKeyPath,
+		"gpg.format":                 "ssh",
+		"gpg.ssh.allowedSignersFile": allowedSignersPath,
+		"commit.gpgsign":             "true",
+		"tag.gpgsign":                "true",
+	}); err != nil {
 		return fmt.Errorf("write gitconfig: %w", err)
 	}
 
@@ -109,6 +109,60 @@ func runGitSetupCmd(credPath, name, email string) error {
 	fmt.Fprintf(os.Stderr, "\nActivate with: export GIT_CONFIG_GLOBAL=%s\n", gitconfigPath)
 
 	return nil
+}
+
+func rejectControlCharacters(label, value string) error {
+	for _, r := range value {
+		if unicode.IsControl(r) {
+			return fmt.Errorf("%s must not contain control characters", label)
+		}
+	}
+	return nil
+}
+
+func validateGitIdentityValue(label, value string) error {
+	return rejectControlCharacters(label, value)
+}
+
+func writeGitConfigFile(path string, values map[string]string) error {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return err
+	}
+	temp, err := os.CreateTemp(dir, ".gitconfig-*")
+	if err != nil {
+		return err
+	}
+	tempPath := temp.Name()
+	if err := temp.Close(); err != nil {
+		return err
+	}
+	defer os.Remove(tempPath)
+	if err := os.Chmod(tempPath, 0o600); err != nil {
+		return err
+	}
+	for _, key := range []string{
+		"user.name",
+		"user.email",
+		"user.signingkey",
+		"gpg.format",
+		"gpg.ssh.allowedSignersFile",
+		"commit.gpgsign",
+		"tag.gpgsign",
+	} {
+		command := exec.Command("git", "config", "--file", tempPath, key, values[key])
+		if output, commandErr := command.CombinedOutput(); commandErr != nil {
+			return fmt.Errorf("set %s: %w: %s", key, commandErr, strings.TrimSpace(string(output)))
+		}
+	}
+	data, err := os.ReadFile(tempPath)
+	if err != nil {
+		return err
+	}
+	if err := atomic.WriteFile(path, bytes.NewReader(data)); err != nil {
+		return err
+	}
+	return os.Chmod(path, 0o600)
 }
 
 // runGitSetup is the legacy flag-parsing entry point, preserved for existing tests.

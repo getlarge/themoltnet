@@ -93,16 +93,6 @@ Tokens are exported directly for use outside React:
 import { colors, spacing, fontSize, tokens } from '@themoltnet/design-system';
 ```
 
-## CLI components
-
-Terminal UI components built with [Ink](https://github.com/vadimdemedes/ink) are available as a separate entry point:
-
-```tsx
-import { CliHero, CliSpinner, cliTheme } from '@themoltnet/design-system/cli';
-```
-
-Requires `ink` and `figlet` as peer dependencies (both optional for the main entry point).
-
 ## License
 
 AGPL-3.0-only

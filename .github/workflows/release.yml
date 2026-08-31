@@ -31,7 +31,7 @@ on:
       republish:
         description: >
           Comma-separated packages to re-publish from existing draft releases.
-          Valid values: sdk, os-keyring, tasks-orchestrator, credentials, credential-broker, ctap, yubikey-preview-sign, signer, github-agent, legreffier, cli, api-client, dspy-adapters, skill, design-system, pi-extension, sandbox-gondolin, pi-runtime, shell-command-analyzer, agent-runtime, node-red-theme, agent-daemon, console, database, landing, mcp-host, mcp-server, rest-api, otel-custom-collector
+          Valid values: sdk, os-keyring, tasks-orchestrator, credentials, credential-broker, ctap, yubikey-preview-sign, signer, github-agent, legreffier, legreffier-plugin, cli, api-client, dspy-adapters, skill, design-system, pi-extension, sandbox-gondolin, pi-runtime, shell-command-analyzer, agent-runtime, node-red-theme, agent-daemon, console, database, landing, mcp-host, mcp-server, rest-api, otel-custom-collector
         required: false
         type: string
 
@@ -94,6 +94,8 @@ jobs:
       skill-version: ${{ steps.release.outputs['packages/openclaw-skill--version'] }}
       legreffier-release-created: ${{ steps.release.outputs['packages/legreffier-cli--release_created'] }}
       legreffier-tag-name: ${{ steps.release.outputs['packages/legreffier-cli--tag_name'] }}
+      legreffier-plugin-release-created: ${{ steps.release.outputs['packages/legreffier-plugin--release_created'] }}
+      legreffier-plugin-tag-name: ${{ steps.release.outputs['packages/legreffier-plugin--tag_name'] }}
       agent-runtime-release-created: ${{ steps.release.outputs['libs/agent-runtime--release_created'] }}
       agent-runtime-tag-name: ${{ steps.release.outputs['libs/agent-runtime--tag_name'] }}
       pi-extension-release-created: ${{ steps.release.outputs['libs/pi-extension--release_created'] }}
@@ -250,6 +252,8 @@ jobs:
       skill-version: ${{ steps.resolve.outputs.skill-version }}
       legreffier: ${{ steps.resolve.outputs.legreffier }}
       legreffier-tag: ${{ steps.resolve.outputs.legreffier-tag }}
+      legreffier-plugin: ${{ steps.resolve.outputs.legreffier-plugin }}
+      legreffier-plugin-tag: ${{ steps.resolve.outputs.legreffier-plugin-tag }}
       agent-runtime: ${{ steps.resolve.outputs.agent-runtime }}
       agent-runtime-tag: ${{ steps.resolve.outputs.agent-runtime-tag }}
       pi-extension: ${{ steps.resolve.outputs.pi-extension }}
@@ -308,6 +312,8 @@ jobs:
           RP_SKILL_VERSION: ${{ needs.release-please.outputs.skill-version }}
           RP_LEGREFFIER_CREATED: ${{ needs.release-please.outputs.legreffier-release-created }}
           RP_LEGREFFIER_TAG: ${{ needs.release-please.outputs.legreffier-tag-name }}
+          RP_LEGREFFIER_PLUGIN_CREATED: ${{ needs.release-please.outputs.legreffier-plugin-release-created }}
+          RP_LEGREFFIER_PLUGIN_TAG: ${{ needs.release-please.outputs.legreffier-plugin-tag-name }}
           RP_AGENT_RUNTIME_CREATED: ${{ needs.release-please.outputs.agent-runtime-release-created }}
           RP_AGENT_RUNTIME_TAG: ${{ needs.release-please.outputs.agent-runtime-tag-name }}
           RP_PI_EXTENSION_CREATED: ${{ needs.release-please.outputs.pi-extension-release-created }}
@@ -433,6 +439,7 @@ jobs:
           resolve "dspy-adapters" "$RP_DSPY_CREATED"     "$RP_DSPY_TAG"      "dspy-adapters"
           resolve "skill"        "$RP_SKILL_CREATED"     "$RP_SKILL_TAG"     "openclaw-skill"
           resolve "legreffier"   "$RP_LEGREFFIER_CREATED" "$RP_LEGREFFIER_TAG" "legreffier"
+          resolve "legreffier-plugin" "$RP_LEGREFFIER_PLUGIN_CREATED" "$RP_LEGREFFIER_PLUGIN_TAG" "legreffier-plugin"
           resolve "design-system" "$RP_DESIGN_SYSTEM_CREATED" "$RP_DESIGN_SYSTEM_TAG" "design-system"
           resolve "agent-runtime" "$RP_AGENT_RUNTIME_CREATED" "$RP_AGENT_RUNTIME_TAG" "agent-runtime"
           resolve "pi-extension" "$RP_PI_EXTENSION_CREATED" "$RP_PI_EXTENSION_TAG" "pi-extension"
@@ -1269,6 +1276,125 @@ jobs:
                 -f sha="${COMMIT_SHA}"
               echo "  + ${SIB_TAG}"
             done
+
+  release-legreffier-plugin:
+    name: Release LeGreffier Plugin
+    needs: resolve-publish
+    if: ${{ needs.resolve-publish.outputs.legreffier-plugin == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      artifact-metadata: write
+      attestations: write
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.resolve-publish.outputs.legreffier-plugin-tag }}
+
+      - name: Verify release tag checkout
+        env:
+          RELEASE_TAG: ${{ needs.resolve-publish.outputs.legreffier-plugin-tag }}
+        run: |
+          CHECKOUT_SHA=$(git rev-parse HEAD)
+          TAG_SHA=$(git rev-parse "${RELEASE_TAG}^{commit}")
+          if [ "$CHECKOUT_SHA" != "$TAG_SHA" ]; then
+            echo "Checkout ${CHECKOUT_SHA} does not match ${RELEASE_TAG} (${TAG_SHA})" >&2
+            exit 1
+          fi
+          echo "Building ${RELEASE_TAG} from ${CHECKOUT_SHA}"
+
+      - name: Build deterministic LeGreffier plugin archive
+        id: package
+        env:
+          RELEASE_TAG: ${{ needs.resolve-publish.outputs.legreffier-plugin-tag }}
+        run: |
+          VERSION=$(node -p "require('./packages/legreffier-plugin/package.json').version")
+          EXPECTED_TAG="legreffier-plugin-v${VERSION}"
+          if [ "$RELEASE_TAG" != "$EXPECTED_TAG" ]; then
+            echo "Expected tag ${EXPECTED_TAG}, got ${RELEASE_TAG}" >&2
+            exit 1
+          fi
+
+          node packages/legreffier-plugin/scripts/build.mjs
+          node packages/legreffier-plugin/scripts/validate.mjs --dist
+
+          ARCHIVE="legreffier-plugin-v${VERSION}.tar.gz"
+          tar --sort=name \
+            --mtime='UTC 1970-01-01' \
+            --owner=0 \
+            --group=0 \
+            --numeric-owner \
+            -czf "/tmp/${ARCHIVE}" \
+            -C packages/legreffier-plugin/dist .
+          cd /tmp
+          sha256sum "$ARCHIVE" > "${ARCHIVE}.sha256"
+
+          echo "archive=/tmp/${ARCHIVE}" >> "$GITHUB_OUTPUT"
+          echo "checksum=/tmp/${ARCHIVE}.sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Verify immutable release assets
+        id: assets
+        env:
+          ARCHIVE: ${{ steps.package.outputs.archive }}
+          CHECKSUM: ${{ steps.package.outputs.checksum }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.resolve-publish.outputs.legreffier-plugin-tag }}
+        run: |
+          ARCHIVE_NAME=$(basename "$ARCHIVE")
+          CHECKSUM_NAME=$(basename "$CHECKSUM")
+          ASSETS=$(gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name')
+          ARCHIVE_EXISTS=false
+          CHECKSUM_EXISTS=false
+          grep -Fxq "$ARCHIVE_NAME" <<<"$ASSETS" && ARCHIVE_EXISTS=true
+          grep -Fxq "$CHECKSUM_NAME" <<<"$ASSETS" && CHECKSUM_EXISTS=true
+
+          if [ "$ARCHIVE_EXISTS" != "$CHECKSUM_EXISTS" ]; then
+            echo "Release contains only one of ${ARCHIVE_NAME} and ${CHECKSUM_NAME}; refusing to mutate it" >&2
+            exit 1
+          fi
+          if [ "$ARCHIVE_EXISTS" = false ]; then
+            echo "upload=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          EXISTING_DIR=$(mktemp -d)
+          gh release download "$RELEASE_TAG" \
+            --pattern "$ARCHIVE_NAME" \
+            --pattern "$CHECKSUM_NAME" \
+            --dir "$EXISTING_DIR"
+          (
+            cd "$EXISTING_DIR"
+            sha256sum --check "$CHECKSUM_NAME"
+          )
+          NEW_DIGEST=$(sha256sum "$ARCHIVE" | cut -d' ' -f1)
+          EXISTING_DIGEST=$(sha256sum "$EXISTING_DIR/$ARCHIVE_NAME" | cut -d' ' -f1)
+          if [ "$NEW_DIGEST" != "$EXISTING_DIGEST" ]; then
+            echo "Immutable asset ${ARCHIVE_NAME} already exists with a different digest" >&2
+            exit 1
+          fi
+          echo "Existing assets match ${NEW_DIGEST}; upload is unnecessary"
+          echo "upload=false" >> "$GITHUB_OUTPUT"
+
+      - name: Attest LeGreffier plugin provenance
+        uses: actions/attest@v4
+        with:
+          subject-path: ${{ steps.package.outputs.archive }}
+
+      - name: Upload immutable LeGreffier plugin artifacts
+        if: steps.assets.outputs.upload == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ needs.resolve-publish.outputs.legreffier-plugin-tag }}" \
+            "${{ steps.package.outputs.archive }}" \
+            "${{ steps.package.outputs.checksum }}"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "${{ needs.resolve-publish.outputs.legreffier-plugin-tag }}" --draft=false
 
   release-skill:
     name: Release OpenClaw Skill

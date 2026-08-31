@@ -45,7 +45,7 @@ export function Footer() {
               <a href={docsUrl} target="_blank" rel="noopener noreferrer">
                 Documentation
               </a>
-              <Link href="/getting-started">Team pilot</Link>
+              <Link href="/getting-started">Getting started</Link>
               <Link href="/architecture">Architecture</Link>
             </FooterGroup>
             <FooterGroup title="Project">
@@ -65,6 +65,8 @@ export function Footer() {
               </a>
               <Link href="/manifesto">Manifesto</Link>
               <Link href="/story">Story</Link>
+              <a href="/privacy">Privacy</a>
+              <a href="/terms">Terms</a>
             </FooterGroup>
           </div>
         </div>

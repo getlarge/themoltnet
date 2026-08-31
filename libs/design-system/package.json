@@ -13,10 +13,6 @@
     "./tokens": {
       "import": "./src/tokens.ts",
       "types": "./src/tokens.ts"
-    },
-    "./cli": {
-      "import": "./src/cli/index.ts",
-      "types": "./src/cli/index.ts"
     }
   },
   "publishConfig": {
@@ -28,10 +24,6 @@
       "./tokens": {
         "types": "./dist/tokens.d.ts",
         "import": "./dist/tokens.js"
-      },
-      "./cli": {
-        "types": "./dist/cli/index.d.ts",
-        "import": "./dist/cli/index.js"
       }
     }
   },
@@ -44,13 +36,7 @@
     "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
   },
   "peerDependencies": {
-    "ink": ">=5.0.0",
     "react": "^18.0.0 || ^19.0.0"
-  },
-  "peerDependenciesMeta": {
-    "ink": {
-      "optional": true
-    }
   },
   "devDependencies": {
     "@testing-library/jest-dom": "catalog:",
@@ -58,7 +44,6 @@
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",
-    "ink": "catalog:",
     "jsdom": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",

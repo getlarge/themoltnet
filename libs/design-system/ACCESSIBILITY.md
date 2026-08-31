@@ -67,9 +67,6 @@ browser React TSX files:
 - Register the plugin in `eslint.config.mjs`.
 - Enable its recommended flat config for `apps/*/src/**/*.tsx` and
   `libs/*/src/**/*.tsx`.
-- Exclude or separately scope Ink CLI components under
-  `libs/design-system/src/cli/**/*.tsx`, because DOM accessibility rules do not
-  map cleanly to terminal UI.
 
 Start strict on rules that catch real bugs with low false-positive rates:
 

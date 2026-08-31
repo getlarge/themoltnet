@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -54,7 +55,7 @@ func normalizePEMEnvValue(raw string) string {
 
 // runConfigInitFromEnvCmd reconstructs an agent's .moltnet/<agent>/ directory
 // from environment variables. Designed for ephemeral CI/cloud environments
-// (e.g. Claude Code web) where legreffier init cannot run interactively.
+// (e.g. Claude Code web) where moltnet agents init cannot run interactively.
 func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool, envFile string, override bool) error {
 	return runConfigInitFromEnvCmdWithRegistry(
 		dir,
@@ -262,6 +263,12 @@ func shellQuote(v string) string {
 // If the file already exists, user-section content (lines after the
 // "# User section" marker, plus any non-managed keys) is preserved.
 func writeAgentEnvFile(agentDir, agentName string, config *CredentialsFile) error {
+	return writeAgentEnvFileWithUserVars(agentDir, agentName, config, nil)
+}
+
+// writeAgentEnvFileWithUserVars uses the canonical managed env serializer and
+// merges the selected non-secret variables into its preserved user section.
+func writeAgentEnvFileWithUserVars(agentDir, agentName string, config *CredentialsFile, userVars map[string]string) error {
 	prefix := toEnvPrefix(agentName)
 	moltnetRelDir := filepath.Join(".moltnet", agentName)
 
@@ -274,6 +281,10 @@ func writeAgentEnvFile(agentDir, agentName string, config *CredentialsFile) erro
 		prefix + "_GITHUB_APP_INSTALLATION_ID":  true,
 		"GIT_CONFIG_GLOBAL":                     true,
 		"MOLTNET_AGENT_NAME":                    true,
+		"MOLTNET_FINGERPRINT":                   true,
+	}
+	for key := range userVars {
+		managedKeys[key] = true
 	}
 
 	var lines []string
@@ -282,10 +293,14 @@ func writeAgentEnvFile(agentDir, agentName string, config *CredentialsFile) erro
 
 	if config.GitHub != nil {
 		lines = append(lines, fmt.Sprintf("%s_GITHUB_APP_ID='%s'", prefix, shellQuote(config.GitHub.AppID)))
-		pemPath := portableAgentEnvPath(agentDir, agentName, config.GitHub.PrivateKeyPath)
-		lines = append(lines, fmt.Sprintf("%s_GITHUB_APP_PRIVATE_KEY_PATH='%s'", prefix, shellQuote(pemPath)))
+		if config.GitHub.PrivateKeyPath != "" {
+			pemPath := portableAgentEnvPath(agentDir, agentName, config.GitHub.PrivateKeyPath)
+			lines = append(lines, fmt.Sprintf("%s_GITHUB_APP_PRIVATE_KEY_PATH='%s'", prefix, shellQuote(pemPath)))
+		}
 		lines = append(lines, fmt.Sprintf("%s_GITHUB_APP_INSTALLATION_ID='%s'", prefix, shellQuote(config.GitHub.InstallationID)))
 	}
+	lines = append(lines, fmt.Sprintf("MOLTNET_AGENT_NAME='%s'", shellQuote(agentName)))
+	lines = append(lines, fmt.Sprintf("MOLTNET_FINGERPRINT='%s'", shellQuote(config.Keys.Fingerprint)))
 
 	gitconfigPath := filepath.Join(agentDir, "gitconfig")
 	if _, err := os.Stat(gitconfigPath); err == nil {
@@ -299,6 +314,14 @@ func writeAgentEnvFile(agentDir, agentName string, config *CredentialsFile) erro
 		return fmt.Errorf("inspect env file: %w", err)
 	}
 	userLines := extractUserSection(existingEnv, managedKeys)
+	keys := make([]string, 0, len(userVars))
+	for key := range userVars {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		userLines = append(userLines, fmt.Sprintf("%s='%s'", key, shellQuote(userVars[key])))
+	}
 
 	lines = append(lines, "")
 	lines = append(lines, "# User section — add custom variables below")

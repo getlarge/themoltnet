@@ -46,7 +46,6 @@
     "@zip.js/zip.js": "catalog:",
     "drizzle-orm": "catalog:",
     "fastq": "catalog:",
-    "figlet": "catalog:",
     "jose": "catalog:",
     "smol-toml": "catalog:",
     "tar": "catalog:",
@@ -56,7 +55,6 @@
   },
   "devDependencies": {
     "@nx/devkit": "catalog:",
-    "@types/figlet": "^1.7.0",
     "@types/node": "catalog:",
     "@types/ws": "catalog:",
     "tsx": "catalog:",

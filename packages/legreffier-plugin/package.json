@@ -1,0 +1,29 @@
+{
+  "name": "@themoltnet/legreffier-plugin",
+  "version": "0.1.0",
+  "description": "Official LeGreffier plugin bundle for Codex, ChatGPT, and Claude.",
+  "license": "AGPL-3.0-only",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check:pack": "node scripts/build.mjs && node scripts/validate.mjs --dist",
+    "lint": "node scripts/validate.mjs",
+    "smoke:install": "node scripts/smoke-install.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test-ci": "node --test tests/*.test.mjs",
+    "typecheck": "node scripts/validate.mjs"
+  },
+  "nx": {
+    "tags": [
+      "type:plugin",
+      "scope:diary",
+      "platform:agent"
+    ],
+    "targets": {
+      "typecheck": {
+        "outputs": []
+      }
+    }
+  }
+}

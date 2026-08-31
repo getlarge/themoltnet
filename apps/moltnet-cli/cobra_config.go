@@ -26,7 +26,7 @@ func newConfigCmd() *cobra.Command {
 		Short: "Reconstruct agent config from environment variables",
 		Long: `Reconstruct .moltnet/<agent>/ directory from environment variables.
 Designed for ephemeral environments (CI, Claude Code web) where
-legreffier init cannot run interactively.
+moltnet agents init cannot run interactively.
 
 Agent name resolution: --agent flag > MOLTNET_AGENT_NAME env var.
 
@@ -134,9 +134,32 @@ into the --destination provider (default os-keyring); pass the same
 	migrateCmd.Flags().BoolVar(&migrateDryRun, "dry-run", false, "Print the migration plan without changing local state")
 	migrateCmd.Flags().StringVar(&migrateDestination, "destination", defaultMigrationDestination, "Secret provider that receives migrated secrets (os-keyring, or file with MOLTNET_SECRET_ROOT_WRITABLE=1)")
 
+	portOpts := configPortOpts{}
+	portCmd := &cobra.Command{
+		Use:   "port",
+		Short: "Port an agent configuration into this repository",
+		Long: `Copy a validated .moltnet/<agent> configuration into another
+repository, preserve provider-backed secrets by reference, and regenerate all
+repository-bound SSH, Git, environment, and activation files. This command
+does not install or configure agent-host plugins.`,
+		Example: `  moltnet config port --from /path/to/repo/.moltnet/legreffier
+  moltnet config port --from /path/to/repo/.moltnet/legreffier --dir . --name reviewer`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			portOpts.out = cmd.OutOrStdout()
+			return runConfigPortCmd(portOpts)
+		},
+	}
+	portCmd.Flags().StringVar(&portOpts.from, "from", "", "Source .moltnet/<agent> directory (required)")
+	portCmd.Flags().StringVar(&portOpts.dir, "dir", ".", "Target repository root directory")
+	portCmd.Flags().StringVar(&portOpts.name, "name", "", "Target agent name (default: source directory name)")
+	portCmd.Flags().StringVar(&portOpts.installationID, "installation-id", "", "Override the GitHub App installation ID")
+	_ = portCmd.MarkFlagRequired("from")
+
 	configCmd.AddCommand(repairCmd)
 	configCmd.AddCommand(initFromEnvCmd)
 	configCmd.AddCommand(exportEnvCmd)
 	configCmd.AddCommand(migrateCmd)
+	configCmd.AddCommand(portCmd)
 	return configCmd
 }

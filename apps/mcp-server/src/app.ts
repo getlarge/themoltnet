@@ -32,7 +32,10 @@ import { registerResources } from './resources.js';
 import { registerTaskApp } from './task-app.js';
 import { registerTaskTools } from './task-tools.js';
 import { registerTeamTools } from './team-tools.js';
+import { installToolAnnotationPolicy } from './tool-annotations.js';
 import type { McpDeps } from './types.js';
+
+const OPENAI_APPS_CHALLENGE_PATH = '/.well-known/openai-apps-challenge';
 
 export interface AppOptions {
   config: McpServerConfig;
@@ -81,7 +84,7 @@ export function buildAuthConfig(config: McpServerConfig): AuthorizationConfig {
     enabled: true,
     authorizationServers: [hydra.publicUrl],
     resourceUri,
-    excludedPaths: ['/healthz', '/healthz/ready'],
+    excludedPaths: ['/healthz', '/healthz/ready', OPENAI_APPS_CHALLENGE_PATH],
     tokenValidation: {
       jwksUri: `${hydra.publicUrl}/.well-known/jwks.json`,
       introspectionEndpoint: hydra.apiKey
@@ -181,6 +184,16 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   // Health checks (excluded from auth)
   app.get('/healthz', () => {
     return { status: 'ok', timestamp: new Date().toISOString() };
+  });
+
+  app.get(OPENAI_APPS_CHALLENGE_PATH, (_request, reply) => {
+    if (!config.OPENAI_APPS_CHALLENGE_TOKEN) {
+      return reply.status(404).send();
+    }
+
+    return reply
+      .type('text/plain; charset=utf-8')
+      .send(config.OPENAI_APPS_CHALLENGE_TOKEN);
   });
 
   app.get('/healthz/ready', async (request, reply) => {
@@ -313,6 +326,8 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     authorization,
     ...(tracer ? { telemetry: { tracer } } : {}),
   });
+
+  installToolAnnotationPolicy(app);
 
   // Inject MCP app configuration for resource metadata
   const mcpAppConfig = resolveMcpAppConfig(config);

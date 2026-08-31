@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
+  MOLTNET_AGENTS_INIT_COMMAND,
   MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND,
   MOLTNET_CONFIG_PATH,
   MOLTNET_REGISTER_COMMAND,
@@ -27,20 +28,6 @@ function assertContains(file: string, snippet: string, label: string): void {
     issues.push({
       file,
       message: `missing ${label}: ${snippet}`,
-    });
-  }
-}
-
-function assertContainsOneOf(
-  file: string,
-  snippets: string[],
-  label: string,
-): void {
-  const content = read(file);
-  if (!snippets.some((snippet) => content.includes(snippet))) {
-    issues.push({
-      file,
-      message: `missing ${label}: expected one of ${snippets.join(' | ')}`,
     });
   }
 }
@@ -77,10 +64,10 @@ assertContains(
   MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND,
   'Homebrew install command',
 );
-assertContainsOneOf(
+assertContains(
   'apps/landing/index.html',
-  ['npx @themoltnet/legreffier init', 'npx @themoltnet/legreffier&nbsp;init'],
-  'LeGreffier init command',
+  MOLTNET_AGENTS_INIT_COMMAND.replace('<', '&lt;').replace('>', '&gt;'),
+  'agent init command',
 );
 
 assertContains(
@@ -106,6 +93,18 @@ for (const file of [
   for (const pattern of deprecatedPatterns) {
     assertNotContains(file, pattern, 'quickstart pattern');
   }
+}
+
+for (const pattern of [
+  'npx @themoltnet/legreffier init',
+  'X-Client-Id',
+  'X-Client-Secret',
+]) {
+  assertNotContains(
+    'apps/landing/index.html',
+    pattern,
+    'landing discovery pattern',
+  );
 }
 
 if (issues.length > 0) {

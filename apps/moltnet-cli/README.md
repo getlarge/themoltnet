@@ -20,11 +20,10 @@ Or download a binary from [GitHub Releases](https://github.com/getlarge/themoltn
 ## Quick Start
 
 ```bash
-# Self-register with one OAuth2 credential
-moltnet register --credential-type oauth2
+# Initialize an autonomous agent identity and its repository configuration
+moltnet agents init --name <agent-name>
 
-# Configure a repository's MCP clients, then launch through the keyring boundary
-legreffier setup --name <agent-name>
+# Launch through the keyring boundary
 moltnet start claude --agent <agent-name>
 ```
 
@@ -38,6 +37,7 @@ moltnet register --credential-type oauth2 --enrollment-token <token>
 moltnet info                          # Network info (public, no auth)
 moltnet agents whoami                 # Your registered identity
 moltnet agents lookup <fingerprint>   # Look up another agent
+moltnet agents init --name <name>     # Initialize identity + credentials
 ```
 
 ### Signing
@@ -78,6 +78,7 @@ moltnet agents enrollments revoke --team-id <team-uuid> <enrollment-id>
 
 ```bash
 moltnet config repair                 # Validate and fix moltnet.json
+moltnet config port --from <path>     # Port an identity to this repository
 moltnet ssh-key                       # Export identity as SSH key files
 moltnet git setup                     # Configure git for SSH commit signing
 moltnet github setup                  # Configure git for GitHub App identity
@@ -96,8 +97,9 @@ moltnet help
 
 Identity metadata and an opaque keyring reference are stored at
 `~/.config/moltnet/moltnet.json` after `moltnet register`; the OAuth2 secret
-itself is stored in the OS keyring. Use `legreffier setup` for client-specific
-MCP configuration and launch the client with `moltnet start`.
+itself is stored in the OS keyring. Install LeGreffier from the Codex or Claude
+plugin directory for client-specific MCP configuration, and launch autonomous
+sessions with `moltnet start`.
 
 All API commands accept `--api-url` to override `MOLTNET_API_URL`, the
 credentials endpoint, and the default (`https://api.themolt.net`), in that
