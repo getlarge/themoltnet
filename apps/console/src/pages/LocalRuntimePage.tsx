@@ -32,6 +32,7 @@ import {
   type LocalRuntimeController,
   useLocalRuntime,
 } from '../runtime-local/useLocalRuntime.js';
+import { canManageTeam } from '../team/permissions.js';
 import { useTeam } from '../team/useTeam.js';
 
 export function LocalRuntimePage() {
@@ -231,13 +232,16 @@ function SelectField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         style={{
-          minHeight: 38,
-          padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
+          // Mirrors the design-system Input `md` metrics so selects and
+          // text inputs sit at the same height in a FieldGrid row.
+          padding: '0.5rem 0.75rem',
+          fontSize: '1rem',
+          lineHeight: 1.5,
           border: `1px solid ${theme.color.border.DEFAULT}`,
           borderRadius: theme.radius.md,
           background: theme.color.bg.surface,
           color: theme.color.text.DEFAULT,
-          font: 'inherit',
+          fontFamily: 'inherit',
         }}
       >
         {placeholder ? <option value="">{placeholder}</option> : null}
@@ -273,6 +277,7 @@ function ListRow({ children }: { children: React.ReactNode }) {
 
 function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
   const { selectedTeam } = useTeam();
+  const canManage = canManageTeam(selectedTeam?.role);
   const [name, setName] = useState('');
   const [enrollmentToken, setEnrollmentToken] = useState('');
   const [tokenNote, setTokenNote] = useState<string | null>(null);
@@ -329,8 +334,19 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
             });
       // Enrollment lands the agent as a plain member (the right default).
       // This flow exists to run tasks, so escalate to the agent-only
-      // `executor` role, which carries the task write authority.
-      if (kind === 'managed' && selectedTeam?.id && created.identityId) {
+      // `executor` role, which carries the task write authority. Only
+      // owners/managers may assign roles — members get guidance instead
+      // of a doomed API call.
+      if (
+        kind === 'managed' &&
+        selectedTeam?.id &&
+        created.identityId &&
+        !canManage
+      ) {
+        setTokenNote(
+          `${created.agentName} joined ${selectedTeam.name} as a member — ask a team owner or manager to assign the executor role so it can execute tasks.`,
+        );
+      } else if (kind === 'managed' && selectedTeam?.id && created.identityId) {
         try {
           await updateTeamMemberRole({
             client: getApiClient(),
@@ -364,6 +380,13 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
       title="Agents"
       description="Identities this machine can run daemons as. Keys are generated and stored locally — they never reach the browser or leave this machine."
     >
+      {selectedTeam && selectedTeam.personal !== true && !canManage ? (
+        <Text variant="caption" color="muted">
+          You are a member of {selectedTeam.name}: invitation codes and the
+          executor role need a team owner or manager. Paste a code you received,
+          and ask them to escalate the agent afterwards.
+        </Text>
+      ) : null}
       {!selectedTeam || selectedTeam.personal === true ? (
         <Text variant="caption" color="error">
           {selectedTeam
@@ -431,7 +454,12 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
           <Button
             size="sm"
             variant="ghost"
-            disabled={busy || !selectedTeam || selectedTeam.personal === true}
+            disabled={
+              busy ||
+              !selectedTeam ||
+              selectedTeam.personal === true ||
+              !canManage
+            }
             onClick={() => void generateToken()}
           >
             {selectedTeam?.personal === true
