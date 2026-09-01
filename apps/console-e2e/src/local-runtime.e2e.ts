@@ -1,0 +1,307 @@
+/**
+ * Local runtime page E2E — the course-flow journey (#2061).
+ *
+ * Runs the real `moltnet-agent serve` supervisor on the host (the Console
+ * only ever talks to `http://127.0.0.1:17374`) and drives the page the way
+ * a learner would: pair → generate an invitation code → create a managed
+ * agent → configure a provider from discovered models → start a daemon
+ * run → stop it. Model discovery hits a tiny local stub so the journey is
+ * network-free beyond the e2e stack itself.
+ */
+import { type ChildProcess, spawn } from 'node:child_process';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { createServer, type Server } from 'node:http';
+import { createServer as createNetServer } from 'node:net';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+import { createRuntimeProfile, createTeam } from '@moltnet/api-client';
+import { expect, test } from '@playwright/test';
+
+import {
+  CONSOLE_URL,
+  createCookieSessionApiClient,
+  createTestUser,
+  expectConsoleOverview,
+  getSessionCookie,
+  loginViaBrowser,
+  registerViaBrowser,
+  REST_API_URL,
+  submitKratosForm,
+  waitForVerificationCode,
+} from './helpers/index.js';
+
+/** The Console image resolves the supervisor at this fixed loopback port. */
+const SERVE_PORT = 17374;
+const SERVE_URL = `http://127.0.0.1:${SERVE_PORT}`;
+const DAEMON_ROOT = resolve(import.meta.dirname, '../../agent-daemon');
+const MODEL_ID = 'e2e-fake';
+const PROVIDER_ID = 'e2e-local';
+
+/**
+ * Spawn `moltnet-agent serve` from source. Uses node + tsx's loader flags
+ * directly (what the `tsx` CLI does internally) so the supervisor is our
+ * direct child: signals reach it unwrapped, and runs it starts re-exec
+ * the same absolute loader paths from their own working directory.
+ */
+function spawnServe(args: string[]): ChildProcess {
+  const tsxDist = join(DAEMON_ROOT, 'node_modules/tsx/dist');
+  return spawn(
+    process.execPath,
+    [
+      '--require',
+      join(tsxDist, 'preflight.cjs'),
+      '--import',
+      pathToFileURL(join(tsxDist, 'loader.mjs')).href,
+      'src/main.ts',
+      'serve',
+      ...args,
+    ],
+    { cwd: DAEMON_ROOT, env: process.env, stdio: ['ignore', 'pipe', 'pipe'] },
+  );
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolveSleep) => {
+    setTimeout(resolveSleep, ms);
+  });
+}
+
+async function waitForServeHealth(stderr: () => string): Promise<void> {
+  const deadline = Date.now() + 60_000;
+  while (Date.now() < deadline) {
+    const healthy = await fetch(`${SERVE_URL}/health`)
+      .then((response) => response.ok)
+      .catch(() => false);
+    if (healthy) return;
+    await sleep(250);
+  }
+  throw new Error(
+    `serve did not become healthy\n--- serve stderr ---\n${stderr()}`,
+  );
+}
+
+async function isPortFree(port: number): Promise<boolean> {
+  return new Promise((resolveFree) => {
+    const probe = createNetServer();
+    probe.once('error', () => resolveFree(false));
+    probe.listen(port, '127.0.0.1', () => probe.close(() => resolveFree(true)));
+  });
+}
+
+function startModelStub(): Promise<{ server: Server; url: string }> {
+  return new Promise((resolveStub) => {
+    const server = createServer((request, response) => {
+      if ((request.url ?? '').endsWith('/models')) {
+        response
+          .writeHead(200, { 'content-type': 'application/json' })
+          .end(
+            JSON.stringify({ data: [{ id: MODEL_ID }, { id: 'e2e-other' }] }),
+          );
+        return;
+      }
+      response.writeHead(404).end();
+    });
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address();
+      const port = typeof address === 'object' && address ? address.port : 0;
+      resolveStub({ server, url: `http://127.0.0.1:${port}` });
+    });
+  });
+}
+
+test.describe.serial('Local runtime page', () => {
+  const user = createTestUser({ prefix: 'local-runtime' });
+  const nonce = Date.now().toString(36);
+  const teamName = `local-runtime-${nonce}`;
+  const agentName = `learner-agent-${nonce}`;
+  const profileName = `local-profile-${nonce}`;
+  let serve: ChildProcess;
+  let serveRoot: string;
+  let serveStderr = '';
+  let modelStub: { server: Server; url: string };
+  let teamId: string;
+  let profileId: string;
+
+  test.beforeAll(async () => {
+    if (!(await isPortFree(SERVE_PORT))) {
+      throw new Error(
+        `Port ${SERVE_PORT} is busy — stop any running \`moltnet-agent serve\` before this suite.`,
+      );
+    }
+    modelStub = await startModelStub();
+    serveRoot = await mkdtemp(join(tmpdir(), 'moltnet-serve-console-e2e-'));
+    serve = spawnServe([
+      '--port',
+      String(SERVE_PORT),
+      '--root',
+      serveRoot,
+      '--allowed-origins',
+      CONSOLE_URL,
+      '--api-url',
+      REST_API_URL,
+    ]);
+    serve.stderr?.on('data', (chunk: Buffer) => {
+      serveStderr += chunk.toString();
+    });
+    await waitForServeHealth(() => serveStderr);
+  });
+
+  test.afterAll(async () => {
+    if (serve && serve.exitCode === null) {
+      const exited = new Promise<void>((resolveExit) => {
+        serve.once('exit', () => resolveExit());
+      });
+      serve.kill('SIGTERM');
+      await Promise.race([exited, sleep(15_000)]);
+      if (serve.exitCode === null) serve.kill('SIGKILL');
+    }
+    modelStub?.server.close();
+    if (serveRoot) await rm(serveRoot, { recursive: true, force: true });
+  });
+
+  test('a learner pairs the console, enrols an agent, configures a provider, and runs a daemon', async ({
+    page,
+    context,
+  }) => {
+    // ── Register + a project team (personal teams cannot enrol agents) ──
+    await registerViaBrowser(page, user);
+    const codeInput = page.locator('input[name="code"]');
+    if (await codeInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await codeInput.fill(await waitForVerificationCode(user.email));
+      await submitKratosForm(page);
+    }
+    await page.goto(`${CONSOLE_URL}/`);
+    await expectConsoleOverview(page);
+    const cookieHeader = await getSessionCookie(page);
+    const humanClient = createCookieSessionApiClient(cookieHeader);
+    const team = await createTeam({
+      client: humanClient,
+      body: { name: teamName },
+    });
+    if (!team.data?.id) {
+      throw new Error(`createTeam failed: ${JSON.stringify(team.error)}`);
+    }
+    teamId = team.data.id;
+
+    // ── Pairing: Connect opens the approval tab, Approve binds the origin ──
+    await page.goto(`${CONSOLE_URL}/runtime/local`);
+    const teamSelect = page.locator('select[aria-label="Select team"]');
+    await expect(teamSelect).toBeVisible();
+    await teamSelect.selectOption({ label: teamName });
+
+    const connect = page.getByRole('button', { name: 'Connect' });
+    await expect(connect).toBeVisible();
+    const approvalPagePromise = context.waitForEvent('page');
+    await connect.click();
+    const approval = await approvalPagePromise;
+    await approval.waitForLoadState();
+    await expect(approval).toHaveURL(new RegExp(`^${SERVE_URL}/pairings/`));
+    await expect(approval.getByText(CONSOLE_URL)).toBeVisible();
+    await approval.getByRole('button', { name: 'Approve' }).click();
+    await expect(approval.getByText('Connection approved')).toBeVisible();
+    await approval.close();
+
+    await expect(page.getByRole('button', { name: 'Connect' })).toHaveCount(0);
+    await expect(page.getByText('LLM providers')).toBeVisible();
+    await expect(page.getByText('Not paired')).toHaveCount(0);
+
+    // ── Managed agent from a console-generated invitation code ──
+    await page.getByLabel('Agent name').fill(agentName);
+    await page
+      .getByRole('button', { name: `Generate invitation code for ${teamName}` })
+      .click();
+    await expect(page.getByLabel('Invitation code')).not.toHaveValue('');
+    await page.getByRole('button', { name: 'Create identity' }).click();
+    const agentRow = page.getByText(agentName, { exact: true }).first();
+    await expect(agentRow).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByLabel('Agent name')).toHaveValue('');
+
+    // ── Provider: custom preset, discovered models, write-only key ──
+    await page
+      .getByRole('button', { name: 'Custom (OpenAI-compatible)' })
+      .click();
+    await page.getByLabel('Provider id').fill(PROVIDER_ID);
+    await page.getByLabel('Base URL').fill(`${modelStub.url}/v1`);
+    await page.getByLabel('API key', { exact: true }).fill('e2e-key');
+    await page.getByRole('button', { name: 'Fetch models' }).click();
+    const modelCheckbox = page.getByRole('checkbox', { name: MODEL_ID });
+    await expect(modelCheckbox).toBeVisible();
+    await modelCheckbox.check();
+    await page.getByRole('button', { name: 'Save provider' }).click();
+    await expect(
+      page.getByText(PROVIDER_ID, { exact: true }).first(),
+    ).toBeVisible();
+
+    // ── Runtime profile pinning that provider/model (via API, as an owner) ──
+    let created: Awaited<ReturnType<typeof createRuntimeProfile>> | undefined;
+    await expect(async () => {
+      created = await createRuntimeProfile({
+        client: humanClient,
+        headers: { 'x-moltnet-team-id': teamId },
+        body: {
+          name: profileName,
+          runtimeKind: 'gondolin_pi',
+          provider: PROVIDER_ID,
+          model: MODEL_ID,
+          sandbox: {},
+        },
+      });
+      expect(created.response.status).toBe(201);
+    }).toPass({ timeout: 20_000 });
+    if (!created?.data?.id)
+      throw new Error('createRuntimeProfile returned no id');
+    profileId = created.data.id;
+
+    // ── Run: pick agent + profile, start, watch it come up, stop ──
+    await page.reload();
+    await expect(page.getByText('Runs', { exact: true })).toBeVisible();
+    await teamSelect.selectOption({ label: teamName });
+    const agentSelect = page
+      .locator('label', { hasText: 'Agent' })
+      .locator('select')
+      .first();
+    const profileSelect = page
+      .locator('label', { hasText: 'Runtime profile' })
+      .locator('select')
+      .first();
+    await expect(agentSelect).toBeVisible();
+    await agentSelect.selectOption(agentName);
+    await profileSelect.selectOption({
+      label: `${profileName} · ${profileId.slice(0, 8)}`,
+    });
+    await page.getByRole('button', { name: 'Start run' }).click();
+
+    const runRow = page.getByText(`poll · ${profileName} · freeform`);
+    await expect(runRow).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText('running', { exact: true })).toBeVisible();
+    // Evidence the child daemon really came up and polls as the agent: the
+    // live log tail shows the poll loop, and the run never flips to failed.
+    await page.getByRole('button', { name: 'Logs' }).click();
+    await expect(page.getByText(/agent-daemon\.starting/)).toBeVisible({
+      timeout: 60_000,
+    });
+    await expect(page.getByText(/\[fatal\]/)).toHaveCount(0);
+    await expect(page.getByText('running', { exact: true })).toBeVisible();
+    await expect(page.getByText('failed', { exact: true })).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Stop' }).click();
+    await expect(page.getByRole('button', { name: 'Stop' })).toHaveCount(0, {
+      timeout: 30_000,
+    });
+    await expect(page.getByText('running', { exact: true })).toHaveCount(0);
+  });
+
+  test('pairing is per browser context: a fresh one must connect again', async ({
+    page,
+  }) => {
+    await loginViaBrowser(page, user);
+    await page.goto(`${CONSOLE_URL}/runtime/local`);
+    // The pairing token lives in the browser, never on the server: a new
+    // context finds the same supervisor but starts from "Not paired".
+    await expect(page.getByText('Not paired')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Connect' })).toBeVisible();
+    await expect(page.getByText('LLM providers')).toHaveCount(0);
+  });
+});
