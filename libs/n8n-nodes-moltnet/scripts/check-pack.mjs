@@ -51,13 +51,7 @@ try {
   // probes that are specific to community nodes.
   execFileSync(
     'pnpm',
-    [
-      'exec',
-      'tsx',
-      '../../tools/src/check-pack.ts',
-      '--package',
-      packageRoot,
-    ],
+    ['exec', 'tsx', '../../tools/src/check-pack.ts', '--package', packageRoot],
     { cwd: packageRoot, stdio: 'inherit' },
   );
 
@@ -146,10 +140,7 @@ try {
   const consumerHost = join(consumerModules, 'n8n-workflow');
   if (!existsSync(consumerHost)) symlinkSync(hostModule, consumerHost, 'dir');
 
-  const installedRoot = join(
-    consumerModules,
-    '@themoltnet/n8n-nodes-moltnet',
-  );
+  const installedRoot = join(consumerModules, '@themoltnet/n8n-nodes-moltnet');
   execFileSync(
     process.execPath,
     [
