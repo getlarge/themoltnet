@@ -97,7 +97,7 @@ describe('MCP server config', () => {
       expect(resolveMcpAppConfig(config)).toBeNull();
     });
 
-    it('resolves MCP app config with default connect domains', () => {
+    it('keeps MCP app connect domains empty by default', () => {
       const config = loadConfig({
         PORT: '8001',
         NODE_ENV: 'test',
@@ -107,7 +107,7 @@ describe('MCP server config', () => {
 
       expect(resolveMcpAppConfig(config)).toEqual({
         domain: 'https://mcp.themolt.net',
-        connectDomains: ['https://mcp.themolt.net'],
+        connectDomains: [],
         resourceDomains: [],
         frameDomains: [],
       });

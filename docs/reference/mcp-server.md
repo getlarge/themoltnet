@@ -134,10 +134,29 @@ and the production challenge token has been installed. OpenAI approval is an
 external release gate; merging the plugin code does not make it publicly
 discoverable.
 
-The canonical submission payload is
+Upload the generated
+`packages/legreffier-plugin/dist/submission/chatgpt-app-submission.json` when
+the OpenAI portal offers **Use Codex to fill this form more quickly**. It
+contains the exact v1 import schema, all discovered tool annotations with
+justifications, and exactly five positive plus three negative test cases. The
+generated payload is deliberately not committed; the package build reproduces
+it from the versioned reviewer fixture and MCP annotation policy.
+Keep its `$schema` value on the `apps-sdk` URL required by the upload form,
+even though that public URL currently redirects to the newer `plugins` path.
+
+The complementary reviewer fixture is
 [`packages/legreffier-plugin/submission/openai-public-plugin.json`](../../packages/legreffier-plugin/submission/openai-public-plugin.json).
-Keep listing copy, test cases, authentication claims, and release notes there so
-the review input stays versioned with the plugin.
+It keeps the fields the import schema does not carry—listing URLs, icon URL,
+OAuth boundary, reviewer-access requirements, prompt starters, availability,
+challenge configuration, demo recording URL, and release notes—versioned beside
+the upload.
+
+Build or regenerate the upload after changing MCP tools, annotations, or test
+cases:
+
+```bash
+pnpm exec nx run @themoltnet/legreffier-plugin:submission:generate
+```
 
 ### Identity boundary
 
@@ -206,7 +225,7 @@ Reviewer context:
   policy; annotations are not an authorization mechanism.
 - The two interactive tools render task and diary-map views. All other tools
   return typed structured content.
-- Support: `legreffier@themolt.net` or the public GitHub issue tracker.
+- Support: `legreffier@themolt.net` or the public GitHub Discussions area.
 
 ## Prompts
 

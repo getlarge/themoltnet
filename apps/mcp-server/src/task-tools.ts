@@ -614,7 +614,7 @@ export function registerTaskTools(
     {
       name: 'tasks_continue',
       description:
-        'Create a freeform continuation of a prior freeform attempt with warm Pi-session resume. Reads the source task, builds a freeform CreateTaskRequest with input.continueFrom plus an auto-injected task_status:completed claim condition, then delegates to tasks_create. No new server endpoint — see issue #1287.',
+        'Continue a prior freeform task in a warm agent session. Creates and enqueues a new task linked to the completed source attempt.',
       inputSchema: TaskContinueSchema,
       outputSchema: TaskOutputSchema,
     },

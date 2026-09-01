@@ -1,4 +1,6 @@
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 
 import { MCP_CLIENT_SCOPES, MCP_M2M_SCOPES } from '@moltnet/models';
 import { describe, expect, it, type Mock, vi } from 'vitest';
@@ -584,8 +586,9 @@ describe('buildApp', () => {
         readOnlyHint: expect.any(Boolean),
         destructiveHint: expect.any(Boolean),
         idempotentHint: expect.any(Boolean),
-        openWorldHint: true,
+        openWorldHint: expect.any(Boolean),
       });
+      expect(tool.outputSchema, tool.name).toBeDefined();
       expect(JSON.stringify(tool.outputSchema ?? {}), tool.name).not.toMatch(
         /client_?secret|private_?key|access_?token|refresh_?token|authorization/i,
       );
@@ -598,6 +601,46 @@ describe('buildApp', () => {
     expect(byName.entries_create?.destructiveHint).toBe(false);
     expect(byName.entries_update?.destructiveHint).toBe(true);
     expect(byName.entries_delete?.destructiveHint).toBe(true);
+    expect(byName.entries_create?.openWorldHint).toBe(false);
+    expect(byName.tasks_create?.openWorldHint).toBe(true);
+    expect(byName.tasks_continue?.openWorldHint).toBe(true);
+
+    const submission = JSON.parse(
+      execFileSync(
+        process.execPath,
+        [
+          fileURLToPath(
+            new URL(
+              '../../../packages/legreffier-plugin/scripts/generate-openai-submission.mjs',
+              import.meta.url,
+            ),
+          ),
+          '--stdout',
+        ],
+        { encoding: 'utf8' },
+      ),
+    ) as {
+      tools: Record<
+        string,
+        {
+          annotations: {
+            readOnlyHint: boolean;
+            openWorldHint: boolean;
+            destructiveHint: boolean;
+          };
+        }
+      >;
+    };
+    expect(Object.keys(submission.tools).sort()).toEqual(
+      tools.map(({ name }) => name).sort(),
+    );
+    for (const tool of tools) {
+      expect(submission.tools[tool.name]?.annotations, tool.name).toEqual({
+        readOnlyHint: tool.annotations?.readOnlyHint,
+        openWorldHint: tool.annotations?.openWorldHint,
+        destructiveHint: tool.annotations?.destructiveHint,
+      });
+    }
 
     await app.close();
   });

@@ -1,4 +1,5 @@
 import { access, lstat, readFile, readdir } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -27,6 +28,18 @@ const hooks = await readJson(join(pluginRoot, 'hooks', 'hooks.json'));
 const submission = await readJson(
   join(root, 'submission', 'openai-public-plugin.json'),
 );
+const chatgptSubmission = process.argv.includes('--dist')
+  ? await readJson(join(root, 'submission', 'chatgpt-app-submission.json'))
+  : JSON.parse(
+      execFileSync(
+        process.execPath,
+        [
+          join(packageRoot, 'scripts', 'generate-openai-submission.mjs'),
+          '--stdout',
+        ],
+        { encoding: 'utf8' },
+      ),
+    );
 
 if (codex.name !== 'legreffier' || claude.name !== 'legreffier') {
   throw new Error('Both plugin manifests must use the legreffier identifier');
@@ -84,6 +97,28 @@ if (
   throw new Error(
     'OpenAI submission needs at least 5 positive and 3 negative cases',
   );
+}
+if (
+  chatgptSubmission.$schema !==
+    'https://developers.openai.com/apps-sdk/schemas/chatgpt-app-submission.v1.json' ||
+  chatgptSubmission.schema_version !== 1 ||
+  Object.keys(chatgptSubmission.tools ?? {}).length === 0 ||
+  chatgptSubmission.test_cases?.length !== 5 ||
+  chatgptSubmission.negative_test_cases?.length !== 3
+) {
+  throw new Error('ChatGPT submission import does not match the v1 contract');
+}
+for (const [name, tool] of Object.entries(chatgptSubmission.tools)) {
+  if (
+    typeof tool.annotations?.readOnlyHint !== 'boolean' ||
+    typeof tool.annotations?.openWorldHint !== 'boolean' ||
+    typeof tool.annotations?.destructiveHint !== 'boolean' ||
+    !tool.justifications?.read_only_justification ||
+    !tool.justifications?.open_world_justification ||
+    !tool.justifications?.destructive_justification
+  ) {
+    throw new Error(`ChatGPT submission has incomplete metadata for ${name}`);
+  }
 }
 
 const submissionTools = new Set([
@@ -149,6 +184,15 @@ for (const field of [
   if (!submission.listing?.[field]?.startsWith('https://')) {
     throw new Error(`OpenAI submission listing.${field} must be an HTTPS URL`);
   }
+}
+if (submission.demoRecordingUrl !== 'https://youtu.be/xKgHelMRDZs') {
+  throw new Error('OpenAI submission must preserve the demo recording URL');
+}
+for (const asset of [codex.interface?.composerIcon, codex.interface?.logo]) {
+  if (!asset?.startsWith('./assets/')) {
+    throw new Error('Codex plugin visual assets must live under ./assets');
+  }
+  await access(resolve(pluginRoot, asset));
 }
 
 const preToolUseGroups = hooks.hooks?.PreToolUse ?? [];

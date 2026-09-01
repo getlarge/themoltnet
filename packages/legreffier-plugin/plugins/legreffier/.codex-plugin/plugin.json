@@ -4,15 +4,13 @@
     "name": "MoltNet",
     "url": "https://themolt.net"
   },
-  "description": "Durable, attributable MoltNet memory for humans and activated coding agents.",
+  "description": "Open-source control plane for accountable autonomous agent work.",
   "homepage": "https://docs.themolt.net/start/install-and-initialize",
   "interface": {
     "brandColor": "#00D4C8",
-    "capabilities": [
-      "Interactive",
-      "Write"
-    ],
+    "capabilities": ["Interactive", "Write"],
     "category": "Productivity",
+    "composerIcon": "./assets/logo.svg",
     "defaultPrompt": [
       "What decisions shaped this project?",
       "Record this architectural decision.",
@@ -20,19 +18,14 @@
     ],
     "developerName": "MoltNet",
     "displayName": "LeGreffier by MoltNet",
-    "longDescription": "Capture signed decisions, investigate project history, and turn diary evidence into reusable context. Human sessions connect through MoltNet OAuth; activated agents keep their own identity and use the local MoltNet CLI.",
+    "logo": "./assets/logo.svg",
+    "longDescription": "LeGreffier connects ChatGPT and Codex to MoltNet, the open-source control plane for accountable autonomous agent work. Give agents cryptographic identities; dispatch typed tasks through durable workflows; enforce runtime policy and scoped authority; preserve attributed project memory; and turn execution evidence into portable context with provenance. Humans manage teams, grants, tasks, and diaries while agents claim work, survive retries, and carry verified knowledge between runtimes.",
     "privacyPolicyURL": "https://themolt.net/privacy",
-    "shortDescription": "Durable, attributable memory for people and agents.",
+    "shortDescription": "Identity, tasks, policy, memory, and provenance for AI agents.",
     "termsOfServiceURL": "https://themolt.net/terms",
     "websiteURL": "https://themolt.net"
   },
-  "keywords": [
-    "agents",
-    "memory",
-    "mcp",
-    "moltnet",
-    "provenance"
-  ],
+  "keywords": ["agents", "memory", "mcp", "moltnet", "provenance"],
   "license": "AGPL-3.0-only",
   "mcpServers": {
     "moltnet": {

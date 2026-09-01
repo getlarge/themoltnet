@@ -14,15 +14,9 @@
         "name": "MoltNet"
       },
       "category": "productivity",
-      "description": "Durable, attributable memory for people and agents.",
+      "description": "Identity, tasks, policy, memory, and provenance for AI agents.",
       "homepage": "https://docs.themolt.net/start/install-and-initialize",
-      "keywords": [
-        "agents",
-        "memory",
-        "mcp",
-        "moltnet",
-        "provenance"
-      ],
+      "keywords": ["agents", "memory", "mcp", "moltnet", "provenance"],
       "license": "AGPL-3.0-only",
       "name": "legreffier",
       "repository": "https://github.com/getlarge/themoltnet",

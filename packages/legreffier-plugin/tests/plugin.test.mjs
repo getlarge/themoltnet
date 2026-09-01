@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { readFile, readdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
@@ -190,6 +190,7 @@ test('ships a complete OpenAI public-review fixture', async () => {
     submission.authentication.agentCredentialsAcceptedByPublicPlugin,
     false,
   );
+  assert.equal(submission.demoRecordingUrl, 'https://youtu.be/xKgHelMRDZs');
   assert.ok(submission.testCases.positive.length >= 5);
   assert.ok(submission.testCases.negative.length >= 3);
   assert.match(submission.reviewerAccess.credentialDelivery, /portal/i);
@@ -205,4 +206,20 @@ test('ships a complete OpenAI public-review fixture', async () => {
   }
   assert.doesNotMatch(submission.listing.longDescription, /signed decisions/i);
   assert.doesNotMatch(submission.releaseNotes, /signed diary workflows/i);
+
+  const chatgptSubmission = JSON.parse(
+    execFileSync(
+      process.execPath,
+      [join(root, 'scripts', 'generate-openai-submission.mjs'), '--stdout'],
+      { encoding: 'utf8' },
+    ),
+  );
+  assert.equal(
+    chatgptSubmission.$schema,
+    'https://developers.openai.com/apps-sdk/schemas/chatgpt-app-submission.v1.json',
+  );
+  assert.equal(chatgptSubmission.schema_version, 1);
+  assert.equal(chatgptSubmission.test_cases.length, 5);
+  assert.equal(chatgptSubmission.negative_test_cases.length, 3);
+  assert.ok(Object.keys(chatgptSubmission.tools).length > 0);
 });
