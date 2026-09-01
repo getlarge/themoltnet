@@ -1,0 +1,101 @@
+{
+  "name": "@themoltnet/n8n-nodes-moltnet",
+  "version": "0.1.0",
+  "description": "n8n community nodes for creating and waiting on MoltNet tasks",
+  "keywords": [
+    "n8n-community-node-package",
+    "moltnet",
+    "tasks",
+    "agents"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "getlarge"
+  },
+  "homepage": "https://github.com/getlarge/themoltnet/tree/main/libs/n8n-nodes-moltnet#readme",
+  "bugs": {
+    "url": "https://github.com/getlarge/themoltnet/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getlarge/themoltnet.git",
+    "directory": "libs/n8n-nodes-moltnet"
+  },
+  "main": "dist/nodes/MoltNet/MoltNet.node.js",
+  "scripts": {
+    "build": "vite build",
+    "check:pack": "node scripts/check-pack.mjs",
+    "dev": "node scripts/dev.mjs",
+    "lint:n8n": "n8n-node lint",
+    "test": "vitest run"
+  },
+  "files": [
+    "dist",
+    "examples",
+    "README.md",
+    "LICENSE.md"
+  ],
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "strict": false,
+    "credentials": [
+      "dist/credentials/MoltNetApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/MoltNet/MoltNet.node.js"
+    ]
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  },
+  "devDependencies": {
+    "@n8n/node-cli": "catalog:",
+    "@themoltnet/sdk": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "n8n-workflow": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=22.22"
+  },
+  "nx": {
+    "tags": [
+      "type:client",
+      "scope:n8n",
+      "platform:server"
+    ],
+    "targets": {
+      "dev": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "cwd": "libs/n8n-nodes-moltnet",
+          "command": "node scripts/dev.mjs"
+        }
+      },
+      "check:pack": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "cwd": "libs/n8n-nodes-moltnet",
+          "command": "node scripts/check-pack.mjs"
+        }
+      },
+      "test-ci": {
+        "executor": "nx:noop",
+        "dependsOn": [
+          "test"
+        ],
+        "metadata": {
+          "description": "CI alias for the Vitest suite"
+        }
+      }
+    }
+  }
+}

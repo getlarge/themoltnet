@@ -22,8 +22,11 @@ import {
   ATTR_SERVICE_NAME,
   ATTR_SERVICE_VERSION,
 } from '@opentelemetry/semantic-conventions';
-import { type Agent, connect } from '@themoltnet/sdk';
-import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
+import type { Agent } from '@themoltnet/sdk';
+import {
+  connect,
+  createNodeSecretProviderRegistry,
+} from '@themoltnet/sdk/node';
 
 export interface InitWorkerOtelOptions {
   serviceName: string;

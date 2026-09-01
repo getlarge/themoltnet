@@ -1,3 +1,4 @@
+import { buildTaskSnapshot } from '@themoltnet/sdk';
 import type {
   Node,
   NodeDef,
@@ -7,7 +8,6 @@ import type {
 
 import type { MoltnetAgentNode } from './agent.js';
 import { withAgent } from './agent-call.js';
-import { buildTaskSnapshot } from './task-snapshot.js';
 
 /**
  * `moltnet-task-get` — one-shot read of a MoltNet task and its attempts via the

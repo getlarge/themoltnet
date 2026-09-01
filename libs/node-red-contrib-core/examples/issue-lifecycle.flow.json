@@ -2,13 +2,13 @@
   {
     "disabled": false,
     "id": "moltnet_lifecycle_tab",
-    "info": "Reproduces the apps/issue-lifecycle orchestration shape in Node-RED.\n\nEach step is: tasks:create → task:wait → switch(phase/decision) → next step.\nDurability is coarse (re-run from top with idempotent steps), inherited from\nthe MoltNet tasks tier — Node-RED is the authoring/cockpit surface, not the\ndurable engine (see issue #1422).\n\ntask:wait has two outputs: output 1 (tail) streams live task messages to a\ndebug node; output 2 (result) carries the terminal snapshot the switch nodes\nbranch on. A failed task is routed to the 'interpret failure' debug, the hook\nwhere an agent/human decides retry vs. escalate — exactly what the\nissue-lifecycle supervisor does.\n\nReplace the moltnet-agent clientId/secret and the inject's issue payload, then\nwire real task bodies into each tasks:create (this example uses minimal bodies).",
+    "info": "Reproduces the apps/issue-lifecycle orchestration shape in Node-RED.\n\nEach step is: tasks:create → task:wait → switch(phase/decision) → next step.\nDurability is coarse (re-run from top with idempotent steps), inherited from\nthe MoltNet tasks tier — Node-RED is the authoring/cockpit surface, not the\ndurable engine (see issue #1422).\n\ntask:wait has two outputs: output 1 (tail) streams live task messages to a\ndebug node; output 2 (result) carries the terminal snapshot the switch nodes\nbranch on. A failed task is routed to the 'interpret failure' debug, the hook\nwhere an agent/human decides retry vs. escalate — exactly what the\nissue-lifecycle supervisor does.\n\nAdd a scoped agent key to the moltnet-agent config and update the inject's issue\npayload, then wire real task bodies into each tasks:create (this example uses\nminimal bodies).",
     "label": "MoltNet Issue Lifecycle (example)",
     "type": "tab"
   },
   {
     "apiUrl": "https://api.themolt.net",
-    "clientId": "",
+    "authType": "agentKey",
     "diaryId": "",
     "id": "moltnet_agent_cfg",
     "name": "my-agent",

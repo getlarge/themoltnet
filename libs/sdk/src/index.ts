@@ -29,13 +29,19 @@ export type {
   TaskArtifactUploadBody,
   TaskCreateOptions,
   TaskGrantsNamespace,
+  TaskReadOptions,
   TaskRequestOptions,
   TasksNamespace,
   TeamsNamespace,
 } from './agent.js';
 export { createAgent } from './agent.js';
 export { writeMcpConfig } from './config.js';
-export { connect, type ConnectOptions } from './connect.js';
+export {
+  connect,
+  type ConnectAgentKeyOptions,
+  type ConnectOAuth2Options,
+  type ConnectOptions,
+} from './connect.js';
 export {
   type CredentialResolutionCode,
   CredentialResolutionError,
@@ -169,6 +175,11 @@ export {
 } from './secrets.js';
 export { sign, signBytes } from './sign.js';
 export { exportSSHKey } from './ssh.js';
+export {
+  buildTaskSnapshot,
+  isTerminalTaskStatus,
+  type TaskSnapshot,
+} from './task-snapshot.js';
 export {
   type AcceptedMeta,
   type ArtifactFilter,

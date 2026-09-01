@@ -1,9 +1,8 @@
 import type { GetNetworkInfoResponse } from '@moltnet/api-client';
 import { createClient, getNetworkInfo } from '@moltnet/api-client';
 
+import { normalizeOptionalApiUrl } from './api-url.js';
 import { NetworkError } from './errors.js';
-
-const DEFAULT_API_URL = 'https://api.themolt.net';
 
 export interface InfoOptions {
   apiUrl?: string;
@@ -12,7 +11,7 @@ export interface InfoOptions {
 export async function info(
   options?: InfoOptions,
 ): Promise<GetNetworkInfoResponse> {
-  const apiUrl = (options?.apiUrl ?? DEFAULT_API_URL).replace(/\/$/, '');
+  const apiUrl = normalizeOptionalApiUrl(options?.apiUrl);
   const client = createClient({ baseUrl: apiUrl });
 
   const { data, error } = await getNetworkInfo({ client });

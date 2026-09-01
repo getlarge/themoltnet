@@ -25,7 +25,8 @@ import * as core from '@actions/core';
 // v9 added an `exports` map that no longer exposes the ./lib/* subpaths.
 import type { getOctokit } from '@actions/github';
 import type { SuccessCriteria } from '@moltnet/tasks';
-import { type Agent, connect } from '@themoltnet/sdk';
+import type { Agent } from '@themoltnet/sdk';
+import { connect } from '@themoltnet/sdk/node';
 
 import { createAssessTask, createTask } from './create-task.js';
 import { parseMention } from './parse-mention.js';

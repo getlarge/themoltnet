@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "lib": ["ES2022", "DOM"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "./out-tsc/spec",
+    "rootDir": ".",
+    "tsBuildInfoFile": "./out-tsc/tsconfig.spec.tsbuildinfo",
+    "types": ["node", "vitest", "vitest/globals"]
+  },
+  "extends": "./tsconfig.json",
+  "include": [
+    "vitest.config.ts",
+    "__tests__/**/*.ts",
+    "examples/**/*.json",
+    "credentials/**/*.ts",
+    "nodes/**/*.ts",
+    "src/**/*.ts"
+  ],
+  "references": [
+    {
+      "path": "./tsconfig.lib.json"
+    }
+  ]
+}

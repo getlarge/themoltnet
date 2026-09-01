@@ -144,6 +144,9 @@
       "path": "libs/models"
     },
     {
+      "path": "libs/n8n-nodes-moltnet"
+    },
+    {
       "path": "libs/node-red-contrib-core"
     },
     {

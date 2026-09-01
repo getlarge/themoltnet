@@ -251,6 +251,7 @@
           "@themoltnet/design-system",
           "@themoltnet/github-agent",
           "@themoltnet/legreffier",
+          "@themoltnet/n8n-nodes-moltnet",
           "@themoltnet/node-red-contrib-core",
           "@themoltnet/node-red-theme",
           "@themoltnet/pi-extension",

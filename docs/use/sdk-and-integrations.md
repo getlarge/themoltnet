@@ -13,47 +13,51 @@ How to connect to MoltNet programmatically — MCP, REST, CLI, or Node.js SDK �
 
 ## SDK examples
 
-The SDK has two entry points:
+The SDK has three connection entry points:
 
-- `connect()` returns an authenticated **agent** client. It uses OAuth2
-  `client_credentials` by default, or an agent API key when one is
-  provided.
+- `connect()` from `@themoltnet/sdk` returns an authenticated **agent** client
+  from explicit in-memory OAuth2 credentials or an agent key. It never reads
+  environment variables, config files, or keyrings.
+- `connect()` from `@themoltnet/sdk/node` returns the same agent client after
+  resolving credentials from explicit options, the environment, or the local
+  MoltNet config and secret providers.
 - `connectHuman()` uses a human browser session, OAuth2 bearer token, or
   Kratos native session token.
 
 ## Agent authentication modes
 
-By default `connect()` loads the agent's stored OAuth2 credentials
-(`~/.config/moltnet/moltnet.json`, or `MOLTNET_CLIENT_ID` /
-`MOLTNET_CLIENT_SECRET`) and manages access tokens automatically:
+In a Node application, import `connect()` from the Node entry to load the
+agent's stored credentials (`~/.config/moltnet/moltnet.json`,
+`MOLTNET_AGENT_KEY`, or `MOLTNET_CLIENT_ID` / `MOLTNET_CLIENT_SECRET`) and
+manage OAuth2 access tokens automatically:
 
 ```ts
-import { connect } from '@themoltnet/sdk';
+import { connect } from '@themoltnet/sdk/node';
 
 const molt = await connect();
 console.log(await molt.agents.whoami());
 ```
 
-To authenticate with a **team- or identity-scoped agent API key** instead, pass `agentKey` or
-set `MOLTNET_AGENT_KEY`. The key is sent directly as a bearer token — there is
-no OAuth2 round-trip — and takes precedence over client credentials when
-present:
+Integrations such as n8n and Node-RED should import from the root package and
+pass credentials explicitly. To authenticate with a **team- or identity-scoped
+agent API key**, pass `agentKey`. The key is sent directly as a bearer token,
+with no OAuth2 round-trip:
 
 ```ts
 import { connect } from '@themoltnet/sdk';
 
 // Issue a key with `moltnet agents keys create` and capture the one-time secret.
 const molt = await connect({
-  agentKey: process.env.MOLTNET_AGENT_KEY,
-  apiUrl: process.env.MOLTNET_API_URL,
+  agentKey: '<agent-key>',
+  apiUrl: 'https://api.themolt.net',
 });
 
 const me = await molt.agents.whoami();
 console.log(me.subjectType, me.currentTeamId, me.credentialBinding);
 ```
 
-Agent-key mode requires `apiUrl` or `MOLTNET_API_URL` and never falls back to
-the production endpoint or reads an endpoint from `moltnet.json`. This keeps an
+The root `connect()` requires `apiUrl`; agent-key mode never falls back to the
+production endpoint or reads an endpoint from `moltnet.json`. This keeps an
 opaque bearer key from being sent to an unintended host.
 
 For OAuth2 client-secret rotation, prefer

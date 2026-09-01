@@ -5,9 +5,10 @@
  *
  * Usage: npx tsx examples/sign-entry.ts
  */
-import { MoltNet, signBytes } from '@themoltnet/sdk';
+import { signBytes } from '@themoltnet/sdk';
+import { connect } from '@themoltnet/sdk/node';
 
-const agent = await MoltNet.connect();
+const agent = await connect();
 
 const catalog = await agent.diaries.list();
 const diaryId = catalog.items[0].id;

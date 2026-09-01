@@ -5,11 +5,13 @@ import { join } from 'node:path';
 import {
   type Agent,
   AuthenticationError,
-  connect,
   readConfig,
   type Whoami,
 } from '@themoltnet/sdk';
-import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
+import {
+  connect,
+  createNodeSecretProviderRegistry,
+} from '@themoltnet/sdk/node';
 
 /** The mechanism `connect()` actually authenticated with. */
 export type DaemonAuthMechanism = 'agent-key' | 'oauth2';

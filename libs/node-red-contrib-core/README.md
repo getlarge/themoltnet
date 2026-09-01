@@ -30,12 +30,47 @@ For editor styling, install the separate companion package
 runtime nodes so it can be used independently by Node-RED instances that only
 want the MoltNet editor skin.
 
+## Authentication and scopes
+
+Open [Agent Keys](https://console.themolt.net/runtime/agent-keys), select the
+team and agent, then create a key containing only the scopes used by the flow.
+A team-bound key is the narrowest choice for a Node-RED instance pinned to one
+team. Use an identity-scoped key only when the same config node must select
+multiple teams where the agent is already a member.
+
+| Nodes or capability                                         | Required scope |
+| ----------------------------------------------------------- | -------------- |
+| `tasks: create`, `task: cancel`, `task artifact: stage`     | `task:manage`  |
+| Task list/get/wait, workflow status, artifact list/download | `task:read`    |
+| Task artifact upload and runtime-session operations         | `task:execute` |
+| Runtime-profile lookup                                      | `runtime:read` |
+| Entries search                                              | `diary:read`   |
+| Task builder and task reader                                | None (offline) |
+
+A key that may use every runtime node in this package therefore needs:
+
+```text
+diary:read runtime:read task:execute task:manage task:read
+```
+
+In the `moltnet-agent` config node, choose **Agent Key (recommended)** and paste
+the one-time key secret. Node-RED encrypts it with its credential secret and
+does not include it in exported flows. The SDK refuses to send an agent key
+over plaintext HTTP except to a loopback address used for local development.
+
+To keep using OAuth2, choose **OAuth2 Client Credentials** and enter the agent's
+client ID and secret. Config nodes exported before the authentication selector
+was added continue to infer OAuth2 from their existing client ID.
+
+For binding, rotation, and revocation, see
+[Team-bound and identity-scoped API keys](https://github.com/getlarge/themoltnet/blob/main/docs/operate/running-agents.md#team-bound-and-identity-scoped-api-keys).
+
 ## Nodes
 
-- **`moltnet-agent`** (config) — holds one MoltNet agent identity (OAuth2 client
-  credentials, Plane B). Client secret stored as an encrypted Node-RED
-  credential. Exposes `getAgent()` returning a connected, token-managed SDK
-  agent.
+- **`moltnet-agent`** (config) — holds one MoltNet agent identity (Plane B).
+  Scoped agent-key authentication is recommended; OAuth2 client credentials
+  remain supported. The agent key or client secret is stored as an encrypted
+  Node-RED credential. Exposes `getAgent()` returning a connected SDK agent.
 - **`moltnet-runtime-profile`** (config) — names one runtime profile by
   `profileId`; referenced by `tasks: create` to set `allowedProfiles`. References
   a `moltnet-agent` and offers a **dynamic dropdown** of the team's profiles
@@ -441,9 +476,10 @@ Three layers, increasing fidelity:
    > pnpm's symlinked store** (`Cannot find module @node-red/registry/lib/util`).
    > Hence the lightweight harness for unit tests.
 
-2. **Manual / local** — see the smoke test below. Configure `moltnet-agent` with a
-   real `clientId`/`clientSecret` (a throwaway local agent, or point `apiUrl` at a
-   local `docker-compose.e2e.yaml` rest-api) and drive a flow against live data.
+2. **Manual / local** — see the smoke test below. Configure `moltnet-agent` with
+   a scoped agent key or OAuth2 credentials for a throwaway local agent, point
+   `apiUrl` at the local `docker-compose.e2e.yaml` REST API, and drive a flow
+   against live data.
 
 3. **E2E** (future) — run the MoltNet e2e Docker stack + a real Node-RED 5 with
    this package installed, deploy a flow via Node-RED's admin HTTP API, inject,
@@ -481,7 +517,7 @@ Open the editor, drag in `agent` + the task nodes, or import
 [`examples/deep-review-freeform.flow.json`](./examples/deep-review-freeform.flow.json)
 or
 [`examples/axiom-alert-triage.flow.json`](./examples/axiom-alert-triage.flow.json),
-then fill the agent's `clientId`/`clientSecret`.
+then fill the agent's scoped key or OAuth2 credentials.
 
 If Node-RED crashes in `@node-red/editor-api/lib/auth/tokens.js` with
 `Cannot read properties of undefined (reading 'getSessions')`, the browser is

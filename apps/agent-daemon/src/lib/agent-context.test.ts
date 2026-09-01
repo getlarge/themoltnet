@@ -30,7 +30,6 @@ vi.mock('node:child_process', () => ({
 }));
 
 vi.mock('@themoltnet/sdk', () => ({
-  connect: connectMock,
   readConfig: readConfigMock,
   AuthenticationError: AuthenticationErrorMock,
 }));
@@ -38,6 +37,7 @@ vi.mock('@themoltnet/sdk', () => ({
 const createNodeSecretProviderRegistryMock = vi.hoisted(() => vi.fn());
 
 vi.mock('@themoltnet/sdk/node', () => ({
+  connect: connectMock,
   createNodeSecretProviderRegistry: createNodeSecretProviderRegistryMock,
 }));
 

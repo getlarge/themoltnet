@@ -7,8 +7,8 @@ import { type FakeNode, FakeRed } from './fake-red.js';
 
 /**
  * Mock the SDK boundary: the agent config node's only network seam is
- * `connect(...)`. We replace it with a spy that hands back a sentinel agent so
- * the tests assert on the node's caching + credential behavior, never the wire.
+ * `connect(...)`. We replace it with a spy that hands back a sentinel
+ * agent so tests assert on caching + credential behavior, never the wire.
  */
 const connectMock = vi.fn();
 vi.mock('@themoltnet/sdk', () => ({
@@ -31,6 +31,7 @@ function setup(
     credentials,
   }) as FakeNode & {
     apiUrl: string;
+    authType: 'agentKey' | 'oauth2';
     clientId?: string;
     teamId?: string;
     diaryId?: string;
@@ -51,6 +52,7 @@ describe('moltnet-agent', () => {
     expect(node.teamId).toBe('team-1');
     expect(node.diaryId).toBe('diary-1');
     expect(node.apiUrl).toBe('https://api.themolt.net');
+    expect(node.authType).toBe('oauth2');
     expect(node.clientId).toBe('client-1');
   });
 
@@ -83,6 +85,22 @@ describe('moltnet-agent', () => {
     expect(connectMock).toHaveBeenCalledWith({
       clientId: 'client-1',
       clientSecret: 'secret-1',
+      apiUrl: 'https://api.themolt.net',
+    });
+  });
+
+  it('uses agent key authentication by default for new configs', async () => {
+    const sentinel = { id: 'agent-key-sentinel' };
+    connectMock.mockResolvedValue(sentinel);
+    const { node } = setup(
+      { apiUrl: 'https://api.themolt.net' },
+      { agentKey: '  scoped-agent-key  ' },
+    );
+
+    await expect(node.getAgent()).resolves.toBe(sentinel);
+    expect(node.authType).toBe('agentKey');
+    expect(connectMock).toHaveBeenCalledWith({
+      agentKey: 'scoped-agent-key',
       apiUrl: 'https://api.themolt.net',
     });
   });

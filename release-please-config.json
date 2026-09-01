@@ -111,6 +111,11 @@
       "component": "moltnet-api-client",
       "release-type": "go"
     },
+    "libs/n8n-nodes-moltnet": {
+      "bump-minor-pre-major": true,
+      "component": "n8n-nodes-moltnet",
+      "release-type": "node"
+    },
     "libs/node-red-contrib-core": {
       "bump-minor-pre-major": true,
       "component": "node-red-contrib-core",

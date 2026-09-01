@@ -1,0 +1,18 @@
+{
+  "categories": ["Development", "Developer Tools"],
+  "codexVersion": "1.0",
+  "node": "@themoltnet/n8n-nodes-moltnet",
+  "nodeVersion": "1.0",
+  "resources": {
+    "credentialDocumentation": [
+      {
+        "url": "https://github.com/getlarge/themoltnet/tree/main/libs/n8n-nodes-moltnet#credentials"
+      }
+    ],
+    "primaryDocumentation": [
+      {
+        "url": "https://github.com/getlarge/themoltnet/tree/main/libs/n8n-nodes-moltnet"
+      }
+    ]
+  }
+}

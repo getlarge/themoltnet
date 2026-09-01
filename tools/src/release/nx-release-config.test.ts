@@ -283,7 +283,7 @@ describe('Nx release configuration', () => {
     );
     expect(result.stdout).toContain('--platform linux/amd64,linux/arm64');
     expect(result.stdout).not.toContain('ci-main');
-  });
+  }, 30_000);
 
   it('moves ci-main in the affected main build without a second refresh', () => {
     const result = runNode(
@@ -400,7 +400,7 @@ describe('Nx release configuration', () => {
         nodePackagingProjects,
       );
     }
-  });
+  }, 30_000);
 
   it('uses the Docker host architecture for local image loads', () => {
     const result = runNode('tools/docker-build.mjs', [

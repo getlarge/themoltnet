@@ -23,10 +23,10 @@
   "include": ["src"],
   "references": [
     {
-      "path": "../pi-runtime/tsconfig.lib.json"
+      "path": "../sdk/tsconfig.lib.json"
     },
     {
-      "path": "../sdk/tsconfig.lib.json"
+      "path": "../pi-runtime/tsconfig.lib.json"
     },
     {
       "path": "../os-keyring/tsconfig.lib.json"

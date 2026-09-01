@@ -1,3 +1,4 @@
+import { buildTaskSnapshot, isTerminalTaskStatus } from '@themoltnet/sdk';
 import type {
   Node,
   NodeDef,
@@ -7,7 +8,6 @@ import type {
 
 import type { MoltnetAgentNode } from './agent.js';
 import { withAgent } from './agent-call.js';
-import { buildTaskSnapshot, isTerminalTaskStatus } from './task-snapshot.js';
 
 /**
  * `moltnet-task-wait` — polls a MoltNet task until it settles, in one loop that

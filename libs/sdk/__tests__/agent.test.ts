@@ -47,6 +47,7 @@ import {
   listRuntimeProfiles,
   listSigningRequests,
   listTaskArtifacts,
+  listTaskAttempts,
   listTasks,
   listTaskSchemas,
   listTeamInvites,
@@ -683,6 +684,7 @@ describe('Agent facade', () => {
       } as any);
 
       const agent = makeAgent();
+      const controller = new AbortController();
       const created = await agent.tasks.create(
         {
           taskType: 'fulfill_brief',
@@ -691,12 +693,35 @@ describe('Agent facade', () => {
         },
         { teamId: 'team-1' },
       );
-      await agent.tasks.get(created.id);
+      await agent.tasks.get(created.id, { signal: controller.signal });
 
       expect(getTask).toHaveBeenCalledWith(
         expect.objectContaining({
           headers: { 'x-moltnet-team-id': 'team-1' },
           path: { id: 'task-1' },
+          signal: controller.signal,
+        }),
+      );
+    });
+
+    it('passes cancellation signals to task attempt reads', async () => {
+      vi.mocked(listTaskAttempts).mockResolvedValueOnce({
+        data: [],
+        error: undefined,
+      } as any);
+      const controller = new AbortController();
+      const agent = makeAgent();
+
+      await agent.tasks.listAttempts('task-1', {
+        teamId: 'team-1',
+        signal: controller.signal,
+      });
+
+      expect(listTaskAttempts).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: { 'x-moltnet-team-id': 'team-1' },
+          path: { id: 'task-1' },
+          signal: controller.signal,
         }),
       );
     });

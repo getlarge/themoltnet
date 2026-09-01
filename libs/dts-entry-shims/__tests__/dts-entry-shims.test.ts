@@ -57,6 +57,42 @@ describe('buildSharedEntryShims', () => {
     expect(stats.node.retained).toEqual(['connect']);
   });
 
+  it('retains a configured same-named export that differs from the primary', () => {
+    // Arrange — both entries intentionally export `connect`, but the Node
+    // entry accepts ambient options while the root requires explicit ones.
+    const declarations = {
+      index: `
+        export declare interface Agent { id: string }
+        export declare interface ConnectOptions { apiUrl: string }
+        export declare function connect(options: ConnectOptions): Promise<Agent>;
+      `,
+      node: `
+        declare interface Agent { id: string }
+        export declare interface ConnectOptions { configDir?: string }
+        export declare function connect(options?: ConnectOptions): Promise<Agent>;
+        export { }
+      `,
+    };
+
+    // Act
+    const { shims, stats } = buildSharedEntryShims({
+      declarations,
+      primaryEntry: 'index',
+      retainedExports: { node: ['connect', 'ConnectOptions'] },
+    });
+
+    // Assert
+    expect(shims.node).toContain(
+      'export declare function connect(options?: ConnectOptions)',
+    );
+    expect(shims.node).toContain(
+      'export declare interface ConnectOptions { configDir?: string }',
+    );
+    expect(shims.node).toContain("export type { Agent } from './index.js';");
+    expect(stats.node.reexported).toEqual(['Agent']);
+    expect(stats.node.retained).toEqual(['connect', 'ConnectOptions']);
+  });
+
   it('exports a type named in an exported signature, fixing TS2459', () => {
     // Arrange — the defect from issue #1928: `Agent` is reachable only as
     // `connect`'s return type, so the entry declares it without exporting it.

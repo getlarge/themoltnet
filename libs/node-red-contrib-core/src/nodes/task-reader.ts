@@ -1,3 +1,4 @@
+import type { TaskSnapshot } from '@themoltnet/sdk';
 import {
   type ArtifactFilter,
   createResultReader,
@@ -10,8 +11,6 @@ import type {
   NodeInitializer,
   NodeMessageInFlow,
 } from 'node-red';
-
-import type { TaskSnapshot } from './task-snapshot.js';
 
 /**
  * `moltnet-task-reader` — turns a completed task snapshot (from

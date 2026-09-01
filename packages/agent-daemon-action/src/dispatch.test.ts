@@ -18,7 +18,7 @@ vi.mock('@actions/core', () => ({
   warning: mocks.warning,
 }));
 
-vi.mock('@themoltnet/sdk', () => ({
+vi.mock('@themoltnet/sdk/node', () => ({
   connect: mocks.connect,
 }));
 
