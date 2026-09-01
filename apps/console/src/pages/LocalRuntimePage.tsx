@@ -4,6 +4,7 @@
  * start/stop/observe runs. Works only in a browser on the machine running
  * `serve` (loopback), by design.
  */
+import { createAgentEnrollment } from '@moltnet/api-client';
 import { listRuntimeProfilesOptions } from '@moltnet/api-client/query';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -268,11 +269,43 @@ function ListRow({ children }: { children: React.ReactNode }) {
 // ── agents ─────────────────────────────────────────────────────────────────
 
 function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
+  const { selectedTeam } = useTeam();
   const [name, setName] = useState('');
   const [enrollmentToken, setEnrollmentToken] = useState('');
+  const [tokenNote, setTokenNote] = useState<string | null>(null);
   const [configDir, setConfigDir] = useState('');
   const [busy, setBusy] = useState(false);
   const agents = runtime.data?.agents ?? [];
+
+  const generateToken = async () => {
+    if (!selectedTeam?.id) return;
+    setBusy(true);
+    setTokenNote(null);
+    try {
+      const result = await createAgentEnrollment({
+        client: getApiClient(),
+        headers: { 'x-moltnet-team-id': selectedTeam.id },
+        body: {},
+      });
+      const created = result.data as
+        | { token?: string; expiresAt?: string }
+        | undefined;
+      if (created?.token) {
+        setEnrollmentToken(created.token);
+        setTokenNote(
+          `Single-use token for ${selectedTeam.name} filled in — create the identity before it expires${created.expiresAt ? ` (${new Date(created.expiresAt).toLocaleTimeString()})` : ''}.`,
+        );
+      } else {
+        setTokenNote('Token creation returned no token — check team role.');
+      }
+    } catch (error) {
+      setTokenNote(
+        error instanceof Error ? error.message : 'Token creation failed',
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const submit = async (kind: 'managed' | 'external') => {
     setBusy(true);
@@ -307,6 +340,13 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
       title="Agents"
       description="Identities this machine can run daemons as. Keys are generated and stored locally — they never reach the browser or leave this machine."
     >
+      {!selectedTeam || selectedTeam.personal === true ? (
+        <Text variant="caption" color="error">
+          {selectedTeam
+            ? 'Personal teams cannot enroll agents. Create or select a project team (Teams page) before creating identities — otherwise the agent lands in its own isolated team.'
+            : 'Select a team first — agents enroll into the selected team.'}
+        </Text>
+      ) : null}
       {agents.length > 0 ? (
         <Stack gap={0}>
           {agents.map((agent) => (
@@ -345,12 +385,17 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
           />
           <Input
             label="Enrollment token (optional)"
-            hint="Joins the issuing team instead of self-registering."
+            hint="Joins the issuing team instead of self-registering. Without one, the agent lands in its own personal team and cannot poll this team's queue."
             value={enrollmentToken}
             onChange={(event) => setEnrollmentToken(event.target.value)}
           />
         </FieldGrid>
-        <Stack direction="row">
+        {tokenNote ? (
+          <Text variant="caption" color="muted">
+            {tokenNote}
+          </Text>
+        ) : null}
+        <Stack direction="row" gap={2}>
           <Button
             size="sm"
             variant="accent"
@@ -358,6 +403,16 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
             onClick={() => void submit('managed')}
           >
             Create identity
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={busy || !selectedTeam || selectedTeam.personal === true}
+            onClick={() => void generateToken()}
+          >
+            {selectedTeam?.personal === true
+              ? 'Personal teams cannot enroll agents'
+              : `Generate token for ${selectedTeam?.name ?? 'team'}`}
           </Button>
         </Stack>
       </Stack>
@@ -750,6 +805,12 @@ function RunsSection({ runtime }: { runtime: LocalRuntimeController }) {
     label: entry.name ? `${entry.name} · ${entry.id.slice(0, 8)}` : entry.id,
   }));
 
+  const selectedAgent = agents.find((entry) => entry.agentName === agent);
+  const boundElsewhere =
+    selectedAgent?.kind === 'managed' &&
+    Boolean(selectedAgent.teamId) &&
+    selectedAgent.teamId !== selectedTeam?.id;
+
   const start = async () => {
     if (!selectedTeam?.id) return;
     setBusy(true);
@@ -789,7 +850,12 @@ function RunsSection({ runtime }: { runtime: LocalRuntimeController }) {
             placeholder="Select…"
             options={agents.map((entry) => ({
               value: entry.agentName,
-              label: entry.agentName,
+              label:
+                entry.kind === 'managed' &&
+                entry.teamId &&
+                entry.teamId !== selectedTeam?.id
+                  ? `${entry.agentName} (bound to another team)`
+                  : entry.agentName,
             }))}
           />
           {profileOptions.length > 0 ? (
@@ -824,11 +890,27 @@ function RunsSection({ runtime }: { runtime: LocalRuntimeController }) {
             ]}
           />
         </FieldGrid>
+        {boundElsewhere ? (
+          <Text variant="caption" color="error">
+            {agent} has a key bound to team{' '}
+            <Text as="span" mono>
+              {selectedAgent?.teamId}
+            </Text>{' '}
+            and cannot poll {selectedTeam?.name}. Create a new agent with an
+            enrollment token from {selectedTeam?.name} instead.
+          </Text>
+        ) : null}
         <Stack direction="row">
           <Button
             size="sm"
             variant="accent"
-            disabled={busy || !agent || !profile.trim() || !selectedTeam?.id}
+            disabled={
+              busy ||
+              !agent ||
+              !profile.trim() ||
+              !selectedTeam?.id ||
+              boundElsewhere
+            }
             onClick={() => void start()}
           >
             Start run

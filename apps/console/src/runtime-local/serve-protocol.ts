@@ -11,6 +11,7 @@ export const ServeAgentViewSchema = Type.Object({
   identityId: Type.Optional(Type.String()),
   fingerprint: Type.Optional(Type.String()),
   apiUrl: Type.Optional(Type.String()),
+  teamId: Type.Optional(Type.String()),
   configDir: Type.Optional(Type.String()),
   createdAt: DateTimeSchema,
   hasAgentKey: Type.Optional(Type.Boolean()),

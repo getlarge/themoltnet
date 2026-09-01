@@ -188,7 +188,18 @@ export class ProviderLoginService {
             'This provider flow needs an interactive prompt; run `pi /login` in a terminal instead',
           ),
         ),
-      onSelect: () => Promise.resolve(undefined),
+      // Some flows ask which login method to use (Codex offers browser vs
+      // device code; answering `undefined` cancels the login outright).
+      // Prefer the device-code method: the console shows the code inline,
+      // no localhost callback server involved. Otherwise take the first
+      // (default) option.
+      onSelect: (prompt) =>
+        Promise.resolve(
+          (
+            prompt.options.find((option) => /device/i.test(option.id)) ??
+            prompt.options[0]
+          )?.id,
+        ),
       signal: abort.signal,
     };
 

@@ -75,6 +75,12 @@ export interface CreateManagedAgentInput {
 export interface ActivatedAgent {
   activation: AgentActivation;
   config: MoltNetConfig;
+  /**
+   * Team the verified credential is bound to, straight from the
+   * authenticated `whoami` — never cached. Runs fail fast when the spec
+   * targets a different team than the key can act in.
+   */
+  boundTeamId?: string;
 }
 
 function reserveAlias(store: ServeStore, alias: string): () => void {
@@ -381,7 +387,15 @@ export async function verifyAgentActivation(
     'authenticated whoami',
     `agent "${activation.alias}" pinned activation`,
   );
-  return { activation, config: verified.config };
+  const boundTeamId =
+    verified.whoami.credentialBinding?.bindingScope === 'team'
+      ? (verified.whoami.credentialBinding.boundTeamId ?? undefined)
+      : undefined;
+  return {
+    activation,
+    config: verified.config,
+    ...(boundTeamId ? { boundTeamId } : {}),
+  };
 }
 
 async function verifyManagedActivation(

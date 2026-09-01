@@ -329,6 +329,14 @@ export class RunManager {
       signal,
     );
     this.assertStartOpen(signal);
+    if (agent.boundTeamId && agent.boundTeamId !== spec.teamId) {
+      throw new ServeRunError(
+        'invalid_spec',
+        `agent "${spec.agent}" has a key bound to team ${agent.boundTeamId}; ` +
+          `start the run with that team, or create a new agent with an ` +
+          `enrollment token from team ${spec.teamId}`,
+      );
+    }
     const id = `${Date.now().toString(36)}-${randomBytes(4).toString('hex')}`;
     const runDir = this.store.runDir(id);
     const piDir = join(runDir, 'pi');

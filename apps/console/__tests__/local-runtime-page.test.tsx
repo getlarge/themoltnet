@@ -13,6 +13,10 @@ import { createTestWrapper } from './test-query-client.js';
 const SERVE = 'http://127.0.0.1:17374';
 
 vi.mock('../src/api.js', () => ({ getApiClient: () => ({}) }));
+const createAgentEnrollment = vi.hoisted(() => vi.fn());
+vi.mock('@moltnet/api-client', () => ({
+  createAgentEnrollment: (...args: unknown[]) => createAgentEnrollment(...args),
+}));
 vi.mock('../src/config.js', () => ({
   getConfig: () => ({ serveUrl: 'http://127.0.0.1:17374' }),
 }));
@@ -29,7 +33,12 @@ vi.mock('../src/team/useTeam.js', () => ({
   useTeam: () => ({
     error: null,
     refreshTeams: vi.fn(),
-    selectedTeam: { id: 'team-1', name: 'Team One', role: 'owner' },
+    selectedTeam: {
+      id: 'team-1',
+      name: 'Team One',
+      personal: false,
+      role: 'owner',
+    },
   }),
 }));
 
@@ -57,6 +66,7 @@ const serveState = {
         identityId: 'id-1',
         fingerprint: 'FP-1',
         apiUrl: 'https://api.example',
+        teamId: undefined as string | undefined,
         createdAt: 't',
         hasAgentKey: true,
         hasPrivateKey: true,
@@ -232,6 +242,41 @@ describe('LocalRuntimePage', () => {
     await screen.findByText('GitHub Copilot');
     fireEvent.click(screen.getByRole('button', { name: 'Reconnect' }));
     expect(await screen.findByText('device flow refused')).toBeInTheDocument();
+  });
+
+  it('generates an enrollment token into the form for the selected team', async () => {
+    createAgentEnrollment.mockResolvedValue({
+      data: { token: 'enrol-123', expiresAt: '2030-01-01T00:00:00Z' },
+    });
+    renderPage();
+    await screen.findAllByText('existing-bot');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Generate token for Team One' }),
+    );
+    await waitFor(() =>
+      expect(
+        (screen.getByLabelText(/Enrollment token/) as HTMLInputElement).value,
+      ).toBe('enrol-123'),
+    );
+    expect(createAgentEnrollment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headers: { 'x-moltnet-team-id': 'team-1' },
+      }),
+    );
+  });
+
+  it('blocks starting a run for an agent bound to another team', async () => {
+    serveState.status.agents[0] = {
+      ...serveState.status.agents[0],
+      teamId: 'personal-team-9',
+    };
+    renderPage();
+    await screen.findAllByText(/existing-bot/);
+    const agentSelect = screen.getByLabelText('Agent');
+    fireEvent.change(agentSelect, { target: { value: 'existing-bot' } });
+    expect(await screen.findByText(/bound to team/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Start run' })).toBeDisabled();
+    delete (serveState.status.agents[0] as { teamId?: string }).teamId;
   });
 
   it('discovers models from a preset and saves only the selected ones', async () => {

@@ -281,6 +281,36 @@ describe('serve subscriptions', () => {
     expect(gone.statusCode).toBe(404);
   });
 
+  it('answers method-selection prompts with the device-code option', async () => {
+    const { harness, runLogin } = makeHarness();
+    const { app, token } = await fixture({ runLogin });
+    const startPromise = app.inject({
+      method: 'POST',
+      url: '/v1/subscriptions/anthropic/login',
+      headers: authedHeaders(token),
+    });
+    await new Promise((resolvePromise) => {
+      setTimeout(() => resolvePromise(undefined), 10);
+    });
+    await expect(
+      harness.callbacks?.onSelect({
+        message: 'Select OpenAI Codex login method:',
+        options: [
+          { id: 'browser', label: 'Browser login (default)' },
+          { id: 'device_code', label: 'Device code login (headless)' },
+        ],
+      }),
+    ).resolves.toBe('device_code');
+    await expect(
+      harness.callbacks?.onSelect({
+        message: 'pick one',
+        options: [{ id: 'only', label: 'Only option' }],
+      }),
+    ).resolves.toBe('only');
+    harness.finish();
+    await startPromise;
+  });
+
   it('404s unknown providers and missing logins', async () => {
     const { runLogin } = makeHarness();
     const { app, token } = await fixture({ runLogin });
