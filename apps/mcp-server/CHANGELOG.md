@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.22.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.21.0...mcp-server-v0.22.0) (2026-09-01)
+
+
+### Features
+
+* **plugin:** generate ChatGPT App submission artifact ([8cf3085](https://github.com/getlarge/themoltnet/commit/8cf3085cffc638328a77086232b9e2e30564894b))
+* **plugin:** prepare ChatGPT App submission import ([1270255](https://github.com/getlarge/themoltnet/commit/1270255b540dc611c9b93d671d71c41f8afbf4ac))
+
+
+### Bug Fixes
+
+* **mcp:** align OpenAI tool safety metadata ([4d692a5](https://github.com/getlarge/themoltnet/commit/4d692a568651fdfbba082e1e2e14b31c77a914a0))
+* **plugin:** generate submission artifact at build time ([5ba9b4b](https://github.com/getlarge/themoltnet/commit/5ba9b4b06a3f6b5656ddc796629828689517b3d7))
+
 ## [0.21.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.20.0...mcp-server-v0.21.0) (2026-08-31)
 
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.66.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.65.0...moltnet-api-client-v1.66.0) (2026-09-01)
+
+
+### Features
+
+* **auth:** resolve OAuth recovery clients from identity proof ([de11105](https://github.com/getlarge/themoltnet/commit/de111053782c04a443d36d12767b0efc499e8098))
+* **auth:** resolve recovery clients from identity proof ([e1518a7](https://github.com/getlarge/themoltnet/commit/e1518a78f137b98a430db493faab8d7b18e25e8f))
+
 ## [1.65.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.64.0...moltnet-api-client-v1.65.0) (2026-08-31)
 
 

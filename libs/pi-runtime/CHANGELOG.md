@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.13.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.12.2...pi-runtime-v0.13.0) (2026-09-01)
+
+
+### Features
+
+* **n8n:** add MoltNet Create and Wait community nodes ([89a4964](https://github.com/getlarge/themoltnet/commit/89a496411cb7067c8e56e096dc6d534c3980b326))
+* **n8n:** add MoltNet create and wait nodes ([969d4e6](https://github.com/getlarge/themoltnet/commit/969d4e6c7fb9156e3147ab8403da9635923b8637))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.45.1
+    * @themoltnet/sdk bumped to 0.139.0
+
 ## [0.12.2](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.12.1...pi-runtime-v0.12.2) (2026-08-31)
 
 
