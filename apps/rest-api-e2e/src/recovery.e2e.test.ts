@@ -315,8 +315,29 @@ describe('Recovery Flow', () => {
   });
 
   describe('POST /recovery/credentials', () => {
-    it('replaces and seals a lost OAuth2 credential', async () => {
-      const previousSecret = agent.clientSecret;
+    it('resolves and rotates a legacy UUID OAuth2 client', async () => {
+      await harness.hydraAdminOAuth2.deleteOAuth2Client({
+        id: agent.clientId,
+      });
+      const legacyClient = await harness.hydraAdminOAuth2.createOAuth2Client({
+        oAuth2Client: {
+          client_name: `Agent: ${agent.keyPair.fingerprint}`,
+          grant_types: ['client_credentials'],
+          response_types: [],
+          token_endpoint_auth_method: 'client_secret_post',
+          scope: AGENT_OAUTH_SCOPES.join(' '),
+          metadata: {
+            type: 'moltnet_agent',
+            identity_id: agent.identityId,
+            public_key: agent.keyPair.publicKey,
+            fingerprint: agent.keyPair.fingerprint,
+          },
+        },
+      });
+      expect(legacyClient.client_id).toBeDefined();
+      expect(legacyClient.client_secret).toBeDefined();
+      const legacyClientId = legacyClient.client_id!;
+      const previousSecret = legacyClient.client_secret!;
       const { data: challengeData, error: challengeError } =
         await requestRecoveryChallenge({
           client,
@@ -349,14 +370,14 @@ describe('Recovery Flow', () => {
         data!.sealedClientSecret,
         agent.keyPair.privateKey,
       );
-      expect(data!.clientId).toBe(agent.clientId);
+      expect(data!.clientId).toBe(legacyClientId);
       expect(replacementSecret).not.toBe(previousSecret);
 
       await expect(
         requestOAuthToken(harness.baseUrl, data!.clientId, replacementSecret),
       ).resolves.toMatchObject({ status: 200 });
       await expect(
-        requestOAuthToken(harness.baseUrl, agent.clientId, previousSecret),
+        requestOAuthToken(harness.baseUrl, legacyClientId, previousSecret),
       ).resolves.toMatchObject({ status: 401 });
     });
   });

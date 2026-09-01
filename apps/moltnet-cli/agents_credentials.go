@@ -57,7 +57,7 @@ type agentsCredentialsRecoverOpts struct {
 	writeRecoveryFile      func(rotateCredentialsOutput) (string, error)
 	secretProviders        *SecretProviderRegistry
 	verifyCredentials      func(string, string, string) error
-	reconcileCredentials   func(string, *CredentialsFile, SecretReference) error
+	reconcileCredentials   func(string, *CredentialsFile, string, SecretReference) error
 	writeRecoveredArtifact func(recoveredSecretArtifact) (string, error)
 }
 
@@ -102,10 +102,7 @@ func runAgentsCredentialsRecoverCmd(opts agentsCredentialsRecoverOpts) error {
 	if err != nil {
 		return err
 	}
-	if creds.OAuth2.ClientID == "" {
-		return fmt.Errorf("credentials missing client_id — run 'moltnet register'")
-	}
-	destination, err := resolveRecoveryDestination(creds, opts.destination, secretProviders)
+	destinationProvider, err := resolveRecoveryDestinationProvider(creds, opts.destination, secretProviders)
 	if err != nil {
 		return err
 	}
@@ -183,9 +180,7 @@ func runAgentsCredentialsRecoverCmd(opts agentsCredentialsRecoverOpts) error {
 			"agents credentials recover: server returned an incomplete credential pair",
 		)
 	}
-	if recovery.ClientId != creds.OAuth2.ClientID {
-		return fmt.Errorf("agents credentials recover: server returned an unexpected client ID")
-	}
+	destination := SecretReference{Provider: destinationProvider, Key: OAuth2SecretKey(creds.IdentityID, recovery.ClientId)}
 	verifyCredentials := opts.verifyCredentials
 	if verifyCredentials == nil {
 		verifyCredentials = verifyRecoveredOAuth2Credentials
@@ -211,7 +206,7 @@ func runAgentsCredentialsRecoverCmd(opts agentsCredentialsRecoverOpts) error {
 	if reconcile == nil {
 		reconcile = reconcileRecoveredCredentials
 	}
-	if err := reconcile(credentialsPath, creds, destination); err != nil {
+	if err := reconcile(credentialsPath, creds, recovery.ClientId, destination); err != nil {
 		partialPath, partialErr := writeArtifact(recoveredSecretArtifact{ClientID: recovery.ClientId, SecretReference: destination, ManualRecoveryRequired: true})
 		if partialErr == nil {
 			_ = os.Remove(artifactPath)
@@ -237,27 +232,24 @@ func runAgentsCredentialsRecoverCmd(opts agentsCredentialsRecoverOpts) error {
 	return nil
 }
 
-func resolveRecoveryDestination(creds *CredentialsFile, requested string, registry *SecretProviderRegistry) (SecretReference, error) {
+func resolveRecoveryDestinationProvider(creds *CredentialsFile, requested string, registry *SecretProviderRegistry) (string, error) {
 	if strings.TrimSpace(requested) == "" {
 		if creds.OAuth2.ClientSecretRef == nil {
-			return SecretReference{}, fmt.Errorf("--destination is required when oauth2.client_secret is plaintext")
-		}
-		if err := validateOAuth2SecretReferenceBinding(creds, *creds.OAuth2.ClientSecretRef); err != nil {
-			return SecretReference{}, fmt.Errorf("invalid OAuth2 secret destination: %w", err)
+			return "", fmt.Errorf("--destination is required when oauth2.client_secret is plaintext")
 		}
 		if _, err := validateMigrationDestination(registry, creds.OAuth2.ClientSecretRef.Provider); err != nil {
-			return SecretReference{}, err
+			return "", err
 		}
-		return *creds.OAuth2.ClientSecretRef, nil
+		return creds.OAuth2.ClientSecretRef.Provider, nil
 	}
 	provider, err := validateMigrationDestination(registry, requested)
 	if err != nil {
-		return SecretReference{}, err
+		return "", err
 	}
-	return SecretReference{Provider: provider, Key: OAuth2SecretKey(creds.IdentityID, creds.OAuth2.ClientID)}, nil
+	return provider, nil
 }
 
-func reconcileRecoveredCredentials(path string, original *CredentialsFile, destination SecretReference) error {
+func reconcileRecoveredCredentials(path string, original *CredentialsFile, clientID string, destination SecretReference) error {
 	lock, err := safefile.Acquire(path)
 	if err != nil {
 		return err
@@ -278,7 +270,7 @@ func reconcileRecoveredCredentials(path string, original *CredentialsFile, desti
 	if current.IdentityID != original.IdentityID || current.OAuth2.ClientID != original.OAuth2.ClientID || current.Keys.Fingerprint != original.Keys.Fingerprint || !sameOAuth2Source(original, &current) {
 		return fmt.Errorf("credentials identity, client, or OAuth2 source changed concurrently")
 	}
-	updated, err := updateCredentialsDocumentWithReference(currentDocument, destination)
+	updated, err := updateCredentialsDocumentWithReference(currentDocument, clientID, destination)
 	if err != nil {
 		return err
 	}
@@ -295,7 +287,7 @@ func sameOAuth2Source(a, b *CredentialsFile) bool {
 	return (a.OAuth2.ClientSecret == "") == (b.OAuth2.ClientSecret == "")
 }
 
-func updateCredentialsDocumentWithReference(document map[string]json.RawMessage, ref SecretReference) ([]byte, error) {
+func updateCredentialsDocumentWithReference(document map[string]json.RawMessage, clientID string, ref SecretReference) ([]byte, error) {
 	updated := make(map[string]json.RawMessage, len(document))
 	for key, value := range document {
 		updated[key] = value
@@ -314,6 +306,10 @@ func updateCredentialsDocumentWithReference(document map[string]json.RawMessage,
 		return nil, err
 	}
 	oauth2["client_secret_ref"] = encoded
+	oauth2["client_id"], err = json.Marshal(clientID)
+	if err != nil {
+		return nil, err
+	}
 	delete(oauth2, "client_secret")
 	encoded, err = json.Marshal(oauth2)
 	if err != nil {

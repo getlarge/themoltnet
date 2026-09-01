@@ -45356,6 +45356,10 @@ type RecoverAgentCredentialsBadRequest ProblemDetails
 
 func (*RecoverAgentCredentialsBadRequest) recoverAgentCredentialsRes() {}
 
+type RecoverAgentCredentialsConflict ProblemDetails
+
+func (*RecoverAgentCredentialsConflict) recoverAgentCredentialsRes() {}
+
 type RecoverAgentCredentialsInternalServerError ProblemDetails
 
 func (*RecoverAgentCredentialsInternalServerError) recoverAgentCredentialsRes() {}
@@ -45423,7 +45427,7 @@ func (*RecoveryChallengeResponse) requestRecoveryChallengeRes() {}
 
 // Ref: #/components/schemas/RecoveryCredentialsResponse
 type RecoveryCredentialsResponse struct {
-	// OAuth2 client identifier whose secret was replaced.
+	// Actual server-resolved Hydra OAuth2 client identifier whose secret was replaced.
 	ClientId string `json:"clientId"`
 	// X25519 sealed envelope containing the replacement OAuth2 client secret.
 	SealedClientSecret string `json:"sealedClientSecret"`

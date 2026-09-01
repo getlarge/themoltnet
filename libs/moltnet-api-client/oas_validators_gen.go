@@ -24935,6 +24935,14 @@ func (s *RecoverAgentCredentialsBadRequest) Validate() error {
 	return nil
 }
 
+func (s *RecoverAgentCredentialsConflict) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *RecoverAgentCredentialsInternalServerError) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {

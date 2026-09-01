@@ -144,7 +144,6 @@ func TestAgentsCredentialsRecoverPersistsSealedReplacement(t *testing.T) {
 	credentials := &CredentialsFile{
 		IdentityID: "identity-id",
 		OAuth2: CredentialsOAuth2{
-			ClientID:     "recovered-client-id",
 			ClientSecret: "stale-client-secret",
 		},
 		Keys: CredentialsKeys{
@@ -190,7 +189,8 @@ func TestAgentsCredentialsRecoverPersistsSealedReplacement(t *testing.T) {
 	}
 	if updated.OAuth2.ClientID != "recovered-client-id" ||
 		updated.OAuth2.ClientSecret != "" || updated.OAuth2.ClientSecretRef == nil ||
-		updated.OAuth2.ClientSecretRef.Provider != fileProviderName {
+		updated.OAuth2.ClientSecretRef.Provider != fileProviderName ||
+		updated.OAuth2.ClientSecretRef.Key != OAuth2SecretKey("identity-id", "recovered-client-id") {
 		t.Fatalf("unexpected recovered credentials: %#v", updated.OAuth2)
 	}
 }
@@ -285,14 +285,14 @@ func TestAgentsCredentialsRecoverUpdatesReferencedSecret(t *testing.T) {
 	defer server.Close()
 	ref := &SecretReference{
 		Provider: osKeyringProviderName,
-		Key:      OAuth2SecretKey("identity-id", "recovered-client-id"),
+		Key:      OAuth2SecretKey("identity-id", "stale-client-id"),
 	}
 	credentialsPath := writeRecoveryTestCredentials(
 		t,
 		keyPair,
 		server.URL,
 		CredentialsOAuth2{
-			ClientID:        "recovered-client-id",
+			ClientID:        "stale-client-id",
 			ClientSecretRef: ref,
 		},
 	)
@@ -312,8 +312,17 @@ func TestAgentsCredentialsRecoverUpdatesReferencedSecret(t *testing.T) {
 	if err != nil {
 		t.Fatalf("recover referenced secret: %v", err)
 	}
-	if provider.values[ref.Key] != "recovered-client-secret" {
-		t.Fatalf("stored secret = %q", provider.values[ref.Key])
+	canonicalKey := OAuth2SecretKey("identity-id", "recovered-client-id")
+	if provider.values[canonicalKey] != "recovered-client-secret" {
+		t.Fatalf("stored secret = %q", provider.values[canonicalKey])
+	}
+	if provider.values[ref.Key] != "lost-client-secret" {
+		t.Fatal("obsolete provider entry was modified")
+	}
+	updated, err := ReadConfigFrom(credentialsPath)
+	if err != nil || updated.OAuth2.ClientID != "recovered-client-id" ||
+		updated.OAuth2.ClientSecretRef == nil || updated.OAuth2.ClientSecretRef.Key != canonicalKey {
+		t.Fatalf("credentials were not reconciled to the server client ID: %#v, %v", updated, err)
 	}
 	if strings.Contains(stdout.String(), "recovered-client-secret") ||
 		strings.Contains(stderr.String(), "recovered-client-secret") {
@@ -321,6 +330,37 @@ func TestAgentsCredentialsRecoverUpdatesReferencedSecret(t *testing.T) {
 	}
 	if !strings.Contains(stderr.String(), osKeyringProviderName) {
 		t.Fatalf("stderr = %q, want provider destination", stderr.String())
+	}
+}
+
+func TestReconcileRecoveredCredentialsRejectsConcurrentClientChange(t *testing.T) {
+	keyPair, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("generate key pair: %v", err)
+	}
+	path := writeRecoveryTestCredentials(t, keyPair, "https://api.example.com", CredentialsOAuth2{})
+	original, err := ReadConfigFrom(path)
+	if err != nil {
+		t.Fatalf("read original credentials: %v", err)
+	}
+	current, _, err := readCredentialsDocument(path)
+	if err != nil {
+		t.Fatalf("read current credentials: %v", err)
+	}
+	current.OAuth2.ClientID = "concurrent-client-id"
+	if _, err := WriteConfigTo(current, path); err != nil {
+		t.Fatalf("write concurrent change: %v", err)
+	}
+	ref := SecretReference{Provider: osKeyringProviderName, Key: OAuth2SecretKey("identity-id", "resolved-client-id")}
+
+	err = reconcileRecoveredCredentials(path, original, "resolved-client-id", ref)
+
+	if err == nil || !strings.Contains(err.Error(), "changed concurrently") {
+		t.Fatalf("error = %v, want concurrent change rejection", err)
+	}
+	after, readErr := ReadConfigFrom(path)
+	if readErr != nil || after.OAuth2.ClientID != "concurrent-client-id" || after.OAuth2.ClientSecretRef != nil {
+		t.Fatalf("concurrent credentials were overwritten: %#v, %v", after, readErr)
 	}
 }
 
@@ -352,7 +392,7 @@ func TestAgentsCredentialsRecoverPersistenceFailureEmitsRecoveryJSON(
 		secretProviders:      registry,
 		out:                  &stdout,
 		errOut:               &stderr,
-		reconcileCredentials: func(string, *CredentialsFile, SecretReference) error { return errors.New("persistence failed") },
+		reconcileCredentials: func(string, *CredentialsFile, string, SecretReference) error { return errors.New("persistence failed") },
 		verifyCredentials:    func(string, string, string) error { return nil },
 	})
 
