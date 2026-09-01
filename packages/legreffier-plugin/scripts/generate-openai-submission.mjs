@@ -121,7 +121,7 @@ const submission = {
   schema_version: 1,
   app_info: {
     display_name: reviewerFixture.listing.name,
-    subtitle: 'Durable, attributable memory',
+    subtitle: 'Control plane for AI agents',
     description: reviewerFixture.listing.longDescription,
     category: 'PRODUCTIVITY',
   },

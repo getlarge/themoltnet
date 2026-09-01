@@ -221,7 +221,7 @@ Reviewer context:
   policy; annotations are not an authorization mechanism.
 - The two interactive tools render task and diary-map views. All other tools
   return typed structured content.
-- Support: `legreffier@themolt.net` or the public GitHub issue tracker.
+- Support: `legreffier@themolt.net` or the public GitHub Discussions area.
 
 ## Prompts
 
