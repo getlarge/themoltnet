@@ -21,6 +21,7 @@ import {
   NodeConnectionTypes,
   NodeOperationError,
   sleep,
+  sleepWithAbort,
 } from 'n8n-workflow';
 
 import {
@@ -233,64 +234,100 @@ async function waitForTask(
   }
   const startedAt = Date.now();
   const deadline = startedAt + timeoutSeconds * 1_000;
-  const signal = context.getExecutionCancelSignal();
+  const executionSignal = context.getExecutionCancelSignal();
+  const deadlineController = new AbortController();
+  const deadlineSleepController = new AbortController();
+  void sleepWithAbort(timeoutSeconds * 1_000, deadlineSleepController.signal)
+    .then(() =>
+      deadlineController.abort(new Error('MoltNet task wait timed out')),
+    )
+    .catch(() => undefined);
+  const requestSignal = executionSignal
+    ? AbortSignal.any([executionSignal, deadlineController.signal])
+    : deadlineController.signal;
   const teamId =
     optionalString(context.getNodeParameter('teamId', itemIndex, '')) ??
     optionalString(credentials.teamId);
-  const options = requestOptions(teamId, signal);
+  const options = requestOptions(teamId, requestSignal);
   const timeoutState: WaitTimeoutState = {
     startedAt,
     lastStatus: undefined,
     pollCount: 0,
   };
 
-  for (;;) {
-    throwIfCancelled(context, signal, itemIndex);
-    if (timeoutState.pollCount > 0 && Date.now() >= deadline) {
-      throw waitTimeoutError(
+  try {
+    for (;;) {
+      throwIfCancelled(context, executionSignal, itemIndex);
+      throwIfTimedOut(
         context,
         taskId,
         timeoutSeconds,
+        deadline,
         timeoutState,
         itemIndex,
       );
-    }
 
-    timeoutState.pollCount += 1;
-    try {
-      const task = await agent.tasks.get(taskId, options);
-      throwIfCancelled(context, signal, itemIndex);
-      timeoutState.lastStatus = task.status;
-      if (isTerminalTaskStatus(task.status)) {
-        const attempts = await readAttemptsWithRetry(
+      timeoutState.pollCount += 1;
+      try {
+        const task = await awaitWithAbort(
+          agent.tasks.get(taskId, options),
+          requestSignal,
+        );
+        throwIfCancelled(context, executionSignal, itemIndex);
+        throwIfTimedOut(
           context,
-          agent,
           taskId,
-          options,
-          pollIntervalSeconds,
           timeoutSeconds,
           deadline,
           timeoutState,
           itemIndex,
         );
-        return buildTaskSnapshot(task, attempts) as unknown as IDataObject;
+        timeoutState.lastStatus = task.status;
+        if (isTerminalTaskStatus(task.status)) {
+          const attempts = await readAttemptsWithRetry(
+            context,
+            agent,
+            taskId,
+            options,
+            executionSignal,
+            deadlineController.signal,
+            pollIntervalSeconds,
+            timeoutSeconds,
+            deadline,
+            timeoutState,
+            itemIndex,
+          );
+          return buildTaskSnapshot(task, attempts) as unknown as IDataObject;
+        }
+      } catch (error) {
+        throwIfCancelled(context, executionSignal, itemIndex);
+        throwIfTimedOut(
+          context,
+          taskId,
+          timeoutSeconds,
+          deadline,
+          timeoutState,
+          itemIndex,
+          deadlineController.signal.aborted,
+        );
+        if (!isTransientReadError(error)) {
+          throw toNodeError(context, error, itemIndex);
+        }
       }
-    } catch (error) {
-      if (!isTransientReadError(error)) {
-        throw toNodeError(context, error, itemIndex);
-      }
-    }
 
-    await waitBeforeRetry(
-      context,
-      taskId,
-      pollIntervalSeconds,
-      timeoutSeconds,
-      deadline,
-      timeoutState,
-      signal,
-      itemIndex,
-    );
+      await waitBeforeRetry(
+        context,
+        taskId,
+        pollIntervalSeconds,
+        timeoutSeconds,
+        deadline,
+        timeoutState,
+        executionSignal,
+        itemIndex,
+      );
+    }
+  } finally {
+    deadlineSleepController.abort();
   }
 }
 
@@ -305,6 +342,8 @@ async function readAttemptsWithRetry(
   agent: Agent,
   taskId: string,
   options: { teamId?: string; signal?: AbortSignal },
+  executionSignal: AbortSignal | undefined,
+  deadlineSignal: AbortSignal,
   pollIntervalSeconds: number,
   timeoutSeconds: number,
   deadline: number,
@@ -313,12 +352,41 @@ async function readAttemptsWithRetry(
 ) {
   let retryCount = 0;
   for (;;) {
-    throwIfCancelled(context, options.signal, itemIndex);
+    throwIfCancelled(context, executionSignal, itemIndex);
+    throwIfTimedOut(
+      context,
+      taskId,
+      timeoutSeconds,
+      deadline,
+      timeoutState,
+      itemIndex,
+    );
     try {
-      const attempts = await agent.tasks.listAttempts(taskId, options);
-      throwIfCancelled(context, options.signal, itemIndex);
+      const attempts = await awaitWithAbort(
+        agent.tasks.listAttempts(taskId, options),
+        options.signal ?? deadlineSignal,
+      );
+      throwIfCancelled(context, executionSignal, itemIndex);
+      throwIfTimedOut(
+        context,
+        taskId,
+        timeoutSeconds,
+        deadline,
+        timeoutState,
+        itemIndex,
+      );
       return attempts;
     } catch (error) {
+      throwIfCancelled(context, executionSignal, itemIndex);
+      throwIfTimedOut(
+        context,
+        taskId,
+        timeoutSeconds,
+        deadline,
+        timeoutState,
+        itemIndex,
+        deadlineSignal.aborted,
+      );
       if (!isTransientReadError(error)) {
         throw toNodeError(context, error, itemIndex);
       }
@@ -331,7 +399,7 @@ async function readAttemptsWithRetry(
       timeoutSeconds,
       deadline,
       timeoutState,
-      options.signal,
+      executionSignal,
       itemIndex,
       retryCount,
     );
@@ -394,17 +462,51 @@ function isTransientReadError(error: unknown): boolean {
   );
 }
 
+function throwIfTimedOut(
+  context: IExecuteFunctions,
+  taskId: string,
+  timeoutSeconds: number,
+  deadline: number,
+  timeoutState: WaitTimeoutState,
+  itemIndex: number,
+  deadlineAborted = false,
+): void {
+  if (!deadlineAborted && Date.now() < deadline) return;
+  throw waitTimeoutError(
+    context,
+    taskId,
+    timeoutSeconds,
+    timeoutState,
+    itemIndex,
+  );
+}
+
 function throwIfCancelled(
   context: IExecuteFunctions,
   signal: AbortSignal | undefined,
   itemIndex: number,
 ): void {
   if (!signal?.aborted) return;
-  throw new NodeOperationError(
-    context.getNode(),
-    'Execution was cancelled while waiting for the MoltNet task',
-    { itemIndex },
-  );
+  throw new NodeOperationError(context.getNode(), 'Execution was cancelled', {
+    itemIndex,
+  });
+}
+
+function awaitWithAbort<T>(
+  operation: Promise<T>,
+  signal: AbortSignal,
+): Promise<T> {
+  if (signal.aborted) {
+    return Promise.reject(signal.reason ?? new Error('Operation aborted'));
+  }
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () =>
+      reject(signal.reason ?? new Error('Operation aborted'));
+    signal.addEventListener('abort', onAbort, { once: true });
+    void operation.then(resolve, reject).finally(() => {
+      signal.removeEventListener('abort', onAbort);
+    });
+  });
 }
 
 async function cancellableSleep(
@@ -422,11 +524,9 @@ async function cancellableSleep(
   await new Promise<void>((resolve, reject) => {
     const onAbort = () => {
       reject(
-        new NodeOperationError(
-          context.getNode(),
-          'Execution was cancelled while waiting for the MoltNet task',
-          { itemIndex },
-        ),
+        new NodeOperationError(context.getNode(), 'Execution was cancelled', {
+          itemIndex,
+        }),
       );
     };
     signal.addEventListener('abort', onAbort, { once: true });
@@ -672,9 +772,11 @@ export class MoltNet implements INodeType {
     const inputItems = this.getInputData();
     const outputItems: INodeExecutionData[] = [];
     const connections = new Map<string, Promise<Agent>>();
+    const executionSignal = this.getExecutionCancelSignal();
 
     for (let itemIndex = 0; itemIndex < inputItems.length; itemIndex += 1) {
       try {
+        throwIfCancelled(this, executionSignal, itemIndex);
         const operation = this.getNodeParameter(
           'operation',
           itemIndex,
@@ -697,6 +799,7 @@ export class MoltNet implements INodeType {
         outputItems.push({ json: result, pairedItem: { item: itemIndex } });
       } catch (error) {
         const nodeError = toNodeError(this, error, itemIndex);
+        if (executionSignal?.aborted) throw nodeError;
         if (!this.continueOnFail()) throw nodeError;
         outputItems.push({
           json: continueOnFailData(error, nodeError),

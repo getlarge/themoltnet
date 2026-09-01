@@ -320,6 +320,32 @@ describe('MoltNet node', () => {
     });
   });
 
+  it.each([
+    { name: 'task read', taskReadResponses: ['hang' as const] },
+    { name: 'attempt read', attemptReadResponses: ['hang' as const] },
+  ])('aborts a hung $name at the configured deadline', async (apiOptions) => {
+    vi.useFakeTimers();
+    const api = new FakeMoltNetApi(apiOptions);
+    vi.stubGlobal('fetch', api.fetch);
+    const execution = new MoltNet().execute.call(
+      createExecuteContext({
+        parameters: {
+          operation: 'wait',
+          taskId: api.taskId,
+          pollInterval: 5,
+          timeout: 1,
+        },
+      }),
+    );
+    const rejection = execution.catch((error: unknown) => error);
+
+    await vi.advanceTimersByTimeAsync(1_000);
+
+    await expect(rejection).resolves.toMatchObject({
+      message: expect.stringMatching(/Timed out waiting for task/),
+    });
+  });
+
   it('rejects unsafe polling intervals', async () => {
     const context = createExecuteContext({
       parameters: {
@@ -459,6 +485,69 @@ describe('MoltNet node', () => {
     await expect(execution).rejects.toThrow(/Execution was cancelled/);
     expect(
       api.requests.filter(({ url }) => url.endsWith(`/tasks/${api.taskId}`)),
+    ).toHaveLength(1);
+  });
+
+  it('treats cancellation as terminal when Continue On Fail is enabled', async () => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    const api = new FakeMoltNetApi({ terminalStatus: 'running' });
+    vi.stubGlobal('fetch', api.fetch);
+    const execution = new MoltNet().execute.call(
+      createExecuteContext({
+        cancelSignal: controller.signal,
+        continueOnFail: true,
+        items: [{ json: {} }, { json: {} }],
+        parameters: [
+          {
+            operation: 'wait',
+            taskId: api.taskId,
+            pollInterval: 5,
+            timeout: 30,
+          },
+          {
+            operation: 'create',
+            taskType: 'freeform',
+            input: '{"brief":"Must not be created"}',
+            options: {},
+          },
+        ],
+      }),
+    );
+    await vi.advanceTimersByTimeAsync(0);
+
+    controller.abort();
+
+    await expect(execution).rejects.toThrow(/Execution was cancelled/);
+    expect(api.createdBodies).toHaveLength(0);
+  });
+
+  it('preserves SDK rate-limit retries for task creation', async () => {
+    vi.useFakeTimers();
+    const api = new FakeMoltNetApi({ createResponses: [429, 201] });
+    vi.stubGlobal('fetch', api.fetch);
+    const execution = new MoltNet().execute.call(
+      createExecuteContext({
+        parameters: {
+          operation: 'create',
+          taskType: 'freeform',
+          input: '{"brief":"Retry after throttling"}',
+          options: {},
+        },
+      }),
+    );
+
+    await vi.runAllTimersAsync();
+    const [output] = await execution;
+
+    expect(output[0].json.id).toBe(api.taskId);
+    expect(
+      api.requests.filter(
+        ({ method, url }) => method === 'POST' && url.endsWith('/tasks'),
+      ),
+    ).toHaveLength(2);
+    expect(
+      api.requests.filter(({ url }) => url.endsWith('/oauth2/token')),
     ).toHaveLength(1);
   });
 

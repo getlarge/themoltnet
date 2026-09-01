@@ -23,9 +23,10 @@ export interface FakeApiOptions {
   statuses?: string[];
   terminalStatus?: string;
   createStatus?: number;
+  createResponses?: number[];
   createProblem?: IDataObject;
-  taskReadResponses?: Array<number | 'network'>;
-  attemptReadResponses?: Array<number | 'network'>;
+  taskReadResponses?: Array<number | 'hang' | 'network'>;
+  attemptReadResponses?: Array<number | 'hang' | 'network'>;
   attempts?: IDataObject[];
   acceptedAttemptN?: number | null;
 }
@@ -46,12 +47,14 @@ export class FakeMoltNetApi {
   private readonly statuses: string[];
   private readonly terminalStatus: string;
   private readonly createStatus: number;
+  private readonly createResponses: number[];
   private readonly createProblem: IDataObject | undefined;
-  private readonly taskReadResponses: Array<number | 'network'>;
-  private readonly attemptReadResponses: Array<number | 'network'>;
+  private readonly taskReadResponses: Array<number | 'hang' | 'network'>;
+  private readonly attemptReadResponses: Array<number | 'hang' | 'network'>;
   private readonly attempts: IDataObject[];
   private readonly acceptedAttemptN: number | null | undefined;
   private statusIndex = 0;
+  private createIndex = 0;
   private taskReadIndex = 0;
   private attemptReadIndex = 0;
   private taskTeamId = teamId;
@@ -60,6 +63,7 @@ export class FakeMoltNetApi {
     this.statuses = options.statuses ?? [];
     this.terminalStatus = options.terminalStatus ?? 'completed';
     this.createStatus = options.createStatus ?? 201;
+    this.createResponses = options.createResponses ?? [];
     this.createProblem = options.createProblem;
     this.taskReadResponses = options.taskReadResponses ?? [];
     this.attemptReadResponses = options.attemptReadResponses ?? [];
@@ -88,24 +92,29 @@ export class FakeMoltNetApi {
     if (url.pathname === '/tasks' && request.method === 'POST') {
       const body = (await request.json()) as IDataObject;
       this.createdBodies.push(body);
-      if (this.createStatus >= 400) {
+      const createStatus =
+        this.createResponses[this.createIndex++] ?? this.createStatus;
+      if (createStatus >= 400) {
         return jsonResponse(
           this.createProblem ?? {
             type: 'about:blank',
             title: 'Task create failed',
-            status: this.createStatus,
+            status: createStatus,
             detail: 'The fake API rejected the task',
           },
-          this.createStatus,
+          createStatus,
         );
       }
       this.taskTeamId = request.headers.get('x-moltnet-team-id') ?? teamId;
-      return jsonResponse(this.task(body), this.createStatus);
+      return jsonResponse(this.task(body), createStatus);
     }
     if (url.pathname === `/tasks/${this.taskId}`) {
       const responseStatus = this.taskReadResponses[this.taskReadIndex++];
       if (responseStatus === 'network') {
         throw new TypeError('The fake network dropped the task read');
+      }
+      if (responseStatus === 'hang') {
+        return waitForAbort(request.signal);
       }
       if (responseStatus !== undefined && responseStatus >= 400) {
         return problemResponse(responseStatus, 'Task read failed');
@@ -117,6 +126,9 @@ export class FakeMoltNetApi {
       const responseStatus = this.attemptReadResponses[this.attemptReadIndex++];
       if (responseStatus === 'network') {
         throw new TypeError('The fake network dropped the attempts read');
+      }
+      if (responseStatus === 'hang') {
+        return waitForAbort(request.signal);
       }
       if (responseStatus !== undefined && responseStatus >= 400) {
         return problemResponse(responseStatus, 'Attempt read failed');
@@ -209,4 +221,16 @@ function problemResponse(status: number, title: string): Response {
     },
     status,
   );
+}
+
+function waitForAbort(signal: AbortSignal): Promise<Response> {
+  return new Promise((_resolve, reject) => {
+    const onAbort = () =>
+      reject(signal.reason ?? new DOMException('Aborted', 'AbortError'));
+    if (signal.aborted) {
+      onAbort();
+      return;
+    }
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
 }

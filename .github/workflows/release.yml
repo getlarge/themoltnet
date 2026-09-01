@@ -864,6 +864,7 @@ jobs:
     needs: resolve-publish
     if: ${{ always() && needs.resolve-publish.outputs.n8n-nodes-moltnet == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       contents: read
       id-token: write
