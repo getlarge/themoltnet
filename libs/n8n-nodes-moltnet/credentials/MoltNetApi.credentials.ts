@@ -6,8 +6,8 @@ export class MoltNetApi implements ICredentialType {
   displayName = 'MoltNet API';
 
   icon = {
-    light: 'file:../nodes/MoltNet/moltnet.svg',
-    dark: 'file:../nodes/MoltNet/moltnet.dark.svg',
+    light: 'file:../nodes/MoltNet/moltnet-mark.svg',
+    dark: 'file:../nodes/MoltNet/moltnet-mark.dark.svg',
   } as const;
 
   // n8n's closest supported palette color to MoltNet identity amber.

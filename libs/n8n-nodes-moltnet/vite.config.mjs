@@ -8,8 +8,11 @@ const here = dirname(fileURLToPath(import.meta.url));
 
 const assets = [
   ['nodes/MoltNet/MoltNet.node.json', 'nodes/MoltNet/MoltNet.node.json'],
-  ['nodes/MoltNet/moltnet.svg', 'nodes/MoltNet/moltnet.svg'],
-  ['nodes/MoltNet/moltnet.dark.svg', 'nodes/MoltNet/moltnet.dark.svg'],
+  ['nodes/MoltNet/moltnet-mark.svg', 'nodes/MoltNet/moltnet-mark.svg'],
+  [
+    'nodes/MoltNet/moltnet-mark.dark.svg',
+    'nodes/MoltNet/moltnet-mark.dark.svg',
+  ],
 ];
 
 export default defineConfig({

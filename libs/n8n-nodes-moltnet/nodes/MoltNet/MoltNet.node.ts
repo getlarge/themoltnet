@@ -194,8 +194,8 @@ export class MoltNet implements INodeType {
     displayName: 'MoltNet',
     name: 'moltNet',
     icon: {
-      light: 'file:moltnet.svg',
-      dark: 'file:moltnet.dark.svg',
+      light: 'file:moltnet-mark.svg',
+      dark: 'file:moltnet-mark.dark.svg',
     },
     // n8n's closest supported palette color to MoltNet network teal.
     iconColor: 'azure',
