@@ -899,25 +899,13 @@ jobs:
         id: package-version
         run: node -p '"version=" + require("./libs/n8n-nodes-moltnet/package.json").version' >> "$GITHUB_OUTPUT"
 
-      - name: Check whether the exact version is already published
-        id: registry-state
-        shell: bash
-        run: |
-          version="${{ steps.package-version.outputs.version }}"
-          if published="$(npm view "@themoltnet/n8n-nodes-moltnet@$version" version 2>/dev/null)" && [[ "$published" == "$version" ]]; then
-            echo "published=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "published=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Publish @themoltnet/n8n-nodes-moltnet
-        if: steps.registry-state.outputs.published != 'true'
-        uses: nick-fields/retry@v4.0.0
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          retry_wait_seconds: 30
-          command: pnpm --filter @themoltnet/n8n-nodes-moltnet publish --no-git-checks --access public --provenance
+      - name: Publish or reconcile @themoltnet/n8n-nodes-moltnet
+        env:
+          PACKAGE_VERSION: ${{ steps.package-version.outputs.version }}
+        run: >-
+          pnpm exec tsx tools/src/release/npm-publish-exact.cli.ts
+          --package @themoltnet/n8n-nodes-moltnet
+          --version "$PACKAGE_VERSION"
 
   scan-n8n-nodes-moltnet:
     name: Scan exact MoltNet n8n package
