@@ -87,7 +87,7 @@ describe('credentials / config', () => {
       // Assert
       expect(result).not.toBeNull();
       expect(result!.identity_id).toBe('uuid-123');
-      expect(result!.oauth2.client_id).toBe('client-id');
+      expect(result!.oauth2?.client_id).toBe('client-id');
     });
 
     it('ignores credentials.json when moltnet.json is absent', async () => {

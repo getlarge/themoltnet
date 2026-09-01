@@ -10,7 +10,14 @@ import {
   stat,
   unlink,
 } from 'node:fs/promises';
-import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import {
+  basename,
+  dirname,
+  isAbsolute,
+  relative,
+  resolve,
+  sep,
+} from 'node:path';
 
 import { readEnvironmentVariable } from './config.js';
 import {
@@ -167,8 +174,7 @@ export class FileSecretProvider implements SecretProvider {
 
   async write(key: string, value: string): Promise<void> {
     const root = this.#requireWritable(key);
-    validateFileSecretKey(key);
-    const target = join(root, key);
+    const target = resolveFileSecretPath(root, key);
     const existing = await lstatOrNull(target, key);
     if (existing?.isSymbolicLink()) {
       throw new FileSecretProviderError(
@@ -206,8 +212,7 @@ export class FileSecretProvider implements SecretProvider {
 
   async delete(key: string): Promise<void> {
     const root = this.#requireWritable(key);
-    validateFileSecretKey(key);
-    const target = join(root, key);
+    const target = resolveFileSecretPath(root, key);
     const existing = await lstatOrNull(target, key);
     if (!existing) return;
     if (!existing.isFile()) {
@@ -266,9 +271,8 @@ export class FileSecretProvider implements SecretProvider {
   /** Real path of an existing, contained, safe regular file; null when absent. */
   async #resolveExisting(key: string): Promise<string | null> {
     const root = this.#requireRoot(key);
-    validateFileSecretKey(key);
     const rootReal = await resolveRoot(root, key);
-    const candidate = join(root, key);
+    const candidate = resolveFileSecretPath(root, key);
     let real: string;
     try {
       real = await realpath(candidate);
@@ -298,6 +302,20 @@ export class FileSecretProvider implements SecretProvider {
     }
     return real;
   }
+}
+
+function resolveFileSecretPath(root: string, key: string): string {
+  validateFileSecretKey(key);
+  const normalizedRoot = resolve(root);
+  // Preserve canonical nested keys while making every segment an explicit
+  // path-injection sanitizer recognized by static analysis.
+  const safeKey = key
+    .split('/')
+    .map((segment) => basename(segment))
+    .join(sep);
+  const target = resolve(normalizedRoot, safeKey);
+  assertStrictlyInsideRoot(normalizedRoot, target, key);
+  return target;
 }
 
 async function resolveRoot(root: string, key: string): Promise<string> {

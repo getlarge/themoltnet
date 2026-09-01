@@ -1,7 +1,11 @@
 import type { CredentialScope } from '@moltnet/models';
 
 import type { Agent } from './agent.js';
-import { normalizeApiUrl, requireSecureCredentialApiUrl } from './api-url.js';
+import {
+  assertTrustedConfigApiUrl,
+  normalizeApiUrl,
+  requireSecureCredentialApiUrl,
+} from './api-url.js';
 import { readEnvCredentials } from './config.js';
 import { connect } from './connect.js';
 import {
@@ -129,7 +133,7 @@ async function resolveConnection(
       config.endpoints?.api,
     );
     if (!options.apiUrl && !env.apiUrl) {
-      requireTrustedConfigApiUrl(apiUrl);
+      assertTrustedConfigApiUrl(apiUrl);
     }
     requireSecureCredentialApiUrl(apiUrl);
     let agentKey: string | null;
@@ -166,7 +170,7 @@ async function resolveConnection(
       config.endpoints?.api,
     );
     if (!options.apiUrl && !env.apiUrl) {
-      requireTrustedConfigApiUrl(apiUrl);
+      assertTrustedConfigApiUrl(apiUrl);
     }
     let clientSecret: string;
     try {
@@ -232,23 +236,6 @@ function requireActivatedConfigDir(
   if (requested !== normalize(activatedCredentialsPath)) {
     throw new MoltNetError(
       'configDir does not match the identity activated by `moltnet start`.',
-      { code: 'INVALID_CONFIG' },
-    );
-  }
-}
-
-function requireTrustedConfigApiUrl(apiUrl: string): void {
-  const url = new URL(apiUrl);
-  const loopback =
-    url.hostname === 'localhost' ||
-    url.hostname === '127.0.0.1' ||
-    url.hostname === '[::1]';
-  const moltNet =
-    url.protocol === 'https:' &&
-    (url.hostname === 'themolt.net' || url.hostname.endsWith('.themolt.net'));
-  if (!loopback && !moltNet) {
-    throw new MoltNetError(
-      'Config-provided credential endpoints must use HTTPS on themolt.net or a loopback host.',
       { code: 'INVALID_CONFIG' },
     );
   }

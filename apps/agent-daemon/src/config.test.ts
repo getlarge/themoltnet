@@ -42,4 +42,17 @@ describe('loadConfig observability settings', () => {
       'Set only one of MOLTNET_AGENT_KEY or MOLTNET_AGENT_KEY_REF',
     );
   });
+
+  it('loads serve identity pins atomically', () => {
+    vi.stubEnv('MOLTNET_EXPECTED_IDENTITY_ID', 'id-1');
+    expect(() => loadConfig()).toThrow('must be set together');
+
+    vi.stubEnv('MOLTNET_EXPECTED_PUBLIC_KEY', 'pk-1');
+    vi.stubEnv('MOLTNET_EXPECTED_FINGERPRINT', 'fp-1');
+    expect(loadConfig().expectedIdentity).toEqual({
+      identityId: 'id-1',
+      publicKey: 'pk-1',
+      fingerprint: 'fp-1',
+    });
+  });
 });

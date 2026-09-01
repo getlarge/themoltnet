@@ -5,7 +5,8 @@
  * the OS keyring under the same canonical keys). Shaped as an embryo of the
  * #1834 portable agent profile store:
  *
- *   - agent entries carry `moltnet.json`-compatible public fields;
+ *   - managed `agents/<alias>.json` files are exact `MoltNetConfig` documents;
+ *   - `serve.json` activations keep aliases and external paths separate;
  *   - secret keys follow the canonical `libs/sdk` naming
  *     (`agent-key/<identityId>`, `identity/<fingerprint>/seed`);
  *   - the index is derived state — identity is re-verified against the API
@@ -13,24 +14,39 @@
  */
 import { randomBytes } from 'node:crypto';
 import {
+  lstatSync,
   mkdirSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   renameSync,
   writeFileSync,
 } from 'node:fs';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve, sep } from 'node:path';
+
+import type { MoltNetConfig } from '@themoltnet/sdk';
 
 export const SERVE_STATE_VERSION = 1;
 
 const NAME_RE = /^[a-z0-9][a-z0-9_-]{0,63}$/i;
+const PROVIDER_ID_RE = /^[a-z0-9][a-z0-9-]{0,63}$/;
 
 export function assertStoreName(kind: string, value: string): string {
   if (!NAME_RE.test(value)) {
     throw new ServeStoreError(
       'invalid_name',
       `${kind} must match ${NAME_RE.source}`,
+    );
+  }
+  return value;
+}
+
+export function assertProviderId(value: string): string {
+  if (!PROVIDER_ID_RE.test(value)) {
+    throw new ServeStoreError(
+      'invalid_name',
+      `provider id must match ${PROVIDER_ID_RE.source}`,
     );
   }
   return value;
@@ -43,10 +59,12 @@ export class ServeStoreError extends Error {
       | 'invalid_name'
       | 'not_found'
       | 'already_exists'
-      | 'invalid_state',
+      | 'invalid_state'
+      | 'io_error',
     message: string,
+    options?: ErrorOptions,
   ) {
-    super(message);
+    super(message, options);
   }
 }
 
@@ -70,35 +88,45 @@ export interface ServeState {
   version: typeof SERVE_STATE_VERSION;
   /** Console origins approved via the pairing ceremony, token hashes at rest. */
   pairedOrigins: Record<string, PairedOriginRecord>;
+  /** Durable alias reservations written before remote registration starts. */
+  pendingRegistrations: Record<string, PendingRegistration>;
+  /** Alias/profile activations; external configs remain at `configPath`. */
+  activations: Record<string, AgentActivation>;
 }
 
-export interface ManagedAgentEntry {
-  version: 1;
-  kind: 'managed';
-  agentName: string;
+export interface PendingRegistration {
+  apiUrl: string;
+  createdAt: string;
+}
+
+interface ActivationIdentity {
+  alias: string;
+  /** Identity material pinned after authenticated `whoami`. */
   identityId: string;
   publicKey: string;
   fingerprint: string;
+  createdAt: string;
+}
+
+export interface ManagedAgentActivation extends ActivationIdentity {
+  source: 'managed';
+  /** Registration endpoint pinned with the managed identity. */
   apiUrl: string;
-  /** `<provider>:<key>` secret references — values never live here. */
-  agentKeyRef: string;
-  privateKeyRef: string;
-  createdAt: string;
+  configPath?: never;
+  configApiUrl?: never;
 }
 
-export interface ExternalAgentEntry {
-  version: 1;
-  kind: 'external';
-  agentName: string;
-  /** Absolute path to an existing `.moltnet/<agent>` directory. */
-  configDir: string;
+export interface ExternalAgentActivation extends ActivationIdentity {
+  source: 'external';
+  /** Exact external `moltnet.json` path. Absent for managed activations. */
+  configPath: string;
+  /** Config endpoint pinned at attach time. */
+  configApiUrl: string;
+  /** Operator override used when authenticating an external config. */
   apiUrl?: string;
-  identityId?: string;
-  fingerprint?: string;
-  createdAt: string;
 }
 
-export type AgentEntry = ManagedAgentEntry | ExternalAgentEntry;
+export type AgentActivation = ManagedAgentActivation | ExternalAgentActivation;
 
 export interface ProviderEntry {
   /** Pi provider API kind, e.g. `openai-completions`. */
@@ -113,6 +141,25 @@ export interface ProviderEntry {
 }
 
 export type ProvidersState = Record<string, ProviderEntry>;
+
+export function providerEnvName(providerId: string): string {
+  const id = assertProviderId(providerId);
+  return `MOLTNET_PROVIDER_${id.replaceAll('-', '_').toUpperCase()}_API_KEY`;
+}
+
+export function assertProviderEnvName(
+  providerId: string,
+  value: string,
+): string {
+  const expected = providerEnvName(providerId);
+  if (value !== expected) {
+    throw new ServeStoreError(
+      'invalid_state',
+      `provider envName must be ${expected}`,
+    );
+  }
+  return value;
+}
 
 export interface RunSpec {
   agent: string;
@@ -135,16 +182,18 @@ function readJson<T>(path: string): T | null {
   let raw: string;
   try {
     raw = readFileSync(path, 'utf8');
-  } catch {
-    return null;
+  } catch (cause) {
+    if ((cause as NodeJS.ErrnoException).code === 'ENOENT') return null;
+    throw new ServeStoreError('io_error', `could not read state at ${path}`, {
+      cause,
+    });
   }
   try {
     return JSON.parse(raw) as T;
   } catch (cause) {
-    throw new ServeStoreError(
-      'invalid_state',
-      `corrupt JSON at ${path}: ${(cause as Error).message}`,
-    );
+    throw new ServeStoreError('invalid_state', `corrupt JSON at ${path}`, {
+      cause,
+    });
   }
 }
 
@@ -187,15 +236,52 @@ export class ServeStore {
   }
 
   readServeState(): ServeState {
-    const state = readJson<ServeState>(this.servePath);
-    if (!state) return { version: SERVE_STATE_VERSION, pairedOrigins: {} };
-    if (state.version !== SERVE_STATE_VERSION) {
+    const state = readJson<unknown>(this.servePath);
+    if (!state) {
+      return {
+        version: SERVE_STATE_VERSION,
+        pairedOrigins: {},
+        pendingRegistrations: {},
+        activations: {},
+      };
+    }
+    if (!isRecord(state) || state.version !== SERVE_STATE_VERSION) {
       throw new ServeStoreError(
         'invalid_state',
-        `serve.json version ${String(state.version)} is not supported`,
+        `serve.json version ${String(isRecord(state) ? state.version : undefined)} is not supported`,
       );
     }
-    return state;
+    if (
+      !isRecord(state.pairedOrigins) ||
+      !isRecord(state.pendingRegistrations) ||
+      !isRecord(state.activations)
+    ) {
+      throw new ServeStoreError(
+        'invalid_state',
+        'serve.json is missing the version 1 activation map; clear the unreleased serve store and reconfigure it',
+      );
+    }
+    for (const [alias, activation] of Object.entries(state.activations)) {
+      validateActivation(alias, activation);
+    }
+    for (const [alias, registration] of Object.entries(
+      state.pendingRegistrations,
+    )) {
+      assertStoreName('agent name', alias);
+      if (
+        !isRecord(registration) ||
+        typeof registration.apiUrl !== 'string' ||
+        registration.apiUrl.length === 0 ||
+        typeof registration.createdAt !== 'string' ||
+        registration.createdAt.length === 0
+      ) {
+        throw new ServeStoreError(
+          'invalid_state',
+          `pending registration "${alias}" is not valid`,
+        );
+      }
+    }
+    return state as unknown as ServeState;
   }
 
   writeServeState(state: ServeState): void {
@@ -205,31 +291,70 @@ export class ServeStore {
   // ── agents ─────────────────────────────────────────────────────────────
 
   agentPath(name: string): string {
-    return join(this.agentsDir, `${assertStoreName('agent name', name)}.json`);
+    return storeChildPath(this.agentsDir, 'agent name', name, '.json');
   }
 
-  readAgent(name: string): AgentEntry | null {
-    return readJson<AgentEntry>(this.agentPath(name));
+  readAgentConfig(alias: string): MoltNetConfig | null {
+    return readJson<MoltNetConfig>(this.agentPath(alias));
   }
 
-  writeAgent(entry: AgentEntry): void {
-    writeJsonAtomic(this.agentPath(entry.agentName), entry);
+  writeAgentConfig(alias: string, config: MoltNetConfig): void {
+    writeJsonAtomic(this.agentPath(alias), config);
   }
 
-  listAgents(): AgentEntry[] {
-    let files: string[];
-    try {
-      files = readdirSync(this.agentsDir);
-    } catch {
-      return [];
+  readActivation(alias: string): AgentActivation | null {
+    return (
+      this.readServeState().activations[assertStoreName('agent name', alias)] ??
+      null
+    );
+  }
+
+  hasPendingRegistration(alias: string): boolean {
+    return Boolean(
+      this.readServeState().pendingRegistrations[
+        assertStoreName('agent name', alias)
+      ],
+    );
+  }
+
+  reserveRegistration(alias: string, apiUrl: string): void {
+    const name = assertStoreName('agent name', alias);
+    const state = this.readServeState();
+    if (state.activations[name] || state.pendingRegistrations[name]) {
+      throw new ServeStoreError(
+        'already_exists',
+        `agent "${name}" already exists in the serve store`,
+      );
     }
-    const entries: AgentEntry[] = [];
-    for (const file of files) {
-      if (!file.endsWith('.json')) continue;
-      const entry = readJson<AgentEntry>(join(this.agentsDir, file));
-      if (entry) entries.push(entry);
+    state.pendingRegistrations[name] = {
+      apiUrl,
+      createdAt: new Date().toISOString(),
+    };
+    this.writeServeState(state);
+  }
+
+  clearPendingRegistration(alias: string): void {
+    const name = assertStoreName('agent name', alias);
+    const state = this.readServeState();
+    delete state.pendingRegistrations[name];
+    this.writeServeState(state);
+  }
+
+  writeActivation(activation: AgentActivation): void {
+    const alias = assertStoreName('agent name', activation.alias);
+    validateActivation(alias, activation);
+    const state = this.readServeState();
+    state.activations[alias] = activation;
+    if (activation.source === 'managed') {
+      delete state.pendingRegistrations[alias];
     }
-    return entries.sort((a, b) => a.agentName.localeCompare(b.agentName));
+    this.writeServeState(state);
+  }
+
+  listActivations(): AgentActivation[] {
+    return Object.values(this.readServeState().activations).sort((a, b) =>
+      a.alias.localeCompare(b.alias),
+    );
   }
 
   // ── providers ──────────────────────────────────────────────────────────
@@ -239,18 +364,68 @@ export class ServeStore {
   }
 
   readProviders(): ProvidersState {
-    return readJson<ProvidersState>(this.providersPath) ?? {};
+    const state = readJson<ProvidersState>(this.providersPath) ?? {};
+    this.validateProviders(state);
+    return state;
   }
 
   writeProviders(state: ProvidersState): void {
-    for (const id of Object.keys(state)) assertStoreName('provider id', id);
+    this.validateProviders(state);
     writeJsonAtomic(this.providersPath, state);
+  }
+
+  private validateProviders(state: ProvidersState): void {
+    for (const [id, provider] of Object.entries(state)) {
+      assertProviderId(id);
+      assertProviderEnvName(id, provider.envName);
+    }
   }
 
   // ── runs ───────────────────────────────────────────────────────────────
 
   runDir(id: string): string {
-    return join(this.runsDir, assertStoreName('run id', id));
+    return storeChildPath(this.runsDir, 'run id', id);
+  }
+
+  resolveRunLogPath(id: string): string {
+    let root: string;
+    let runDir: string;
+    try {
+      root = realpathSync(this.runsDir);
+      runDir = realpathSync(this.runDir(id));
+    } catch (cause) {
+      throw new ServeStoreError('io_error', 'could not resolve run directory', {
+        cause,
+      });
+    }
+    if (!isStrictDescendant(root, runDir)) {
+      throw new ServeStoreError(
+        'invalid_state',
+        'run directory escapes its store',
+      );
+    }
+    const logPath = join(runDir, 'daemon.log');
+    try {
+      const info = lstatSync(logPath);
+      if (info.isSymbolicLink()) {
+        throw new ServeStoreError(
+          'invalid_state',
+          'run log must not be a symbolic link',
+        );
+      }
+      const resolvedLog = realpathSync(logPath);
+      if (!isStrictDescendant(runDir, resolvedLog)) {
+        throw new ServeStoreError('invalid_state', 'run log escapes its store');
+      }
+    } catch (cause) {
+      if (cause instanceof ServeStoreError) throw cause;
+      if ((cause as NodeJS.ErrnoException).code !== 'ENOENT') {
+        throw new ServeStoreError('io_error', 'could not resolve run log', {
+          cause,
+        });
+      }
+    }
+    return logPath;
   }
 
   createRunDir(id: string): { dir: string; piDir: string; logPath: string } {
@@ -282,5 +457,69 @@ export class ServeStore {
       if (record) records.push(record);
     }
     return records.sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function storeChildPath(
+  root: string,
+  kind: string,
+  value: string,
+  suffix = '',
+): string {
+  const name = assertStoreName(kind, value);
+  const normalizedRoot = resolve(root);
+  const candidate = resolve(normalizedRoot, `${name}${suffix}`);
+  if (!isStrictDescendant(normalizedRoot, candidate)) {
+    throw new ServeStoreError('invalid_name', `${kind} escapes its store`);
+  }
+  return candidate;
+}
+
+function isStrictDescendant(root: string, candidate: string): boolean {
+  const rootPrefix = root.endsWith(sep) ? root : `${root}${sep}`;
+  return candidate !== root && candidate.startsWith(rootPrefix);
+}
+
+function validateActivation(alias: string, value: unknown): void {
+  const invalid = (): never => {
+    throw new ServeStoreError(
+      'invalid_state',
+      `activation "${alias}" is not a valid version 1 activation`,
+    );
+  };
+  if (!isRecord(value)) invalid();
+  const activation = value as Record<string, unknown>;
+  if (activation.alias !== alias) invalid();
+  if (
+    !['identityId', 'publicKey', 'fingerprint', 'createdAt'].every(
+      (field) =>
+        typeof activation[field] === 'string' && activation[field].length > 0,
+    )
+  ) {
+    invalid();
+  }
+  if (activation.source === 'managed') {
+    if (
+      typeof activation.apiUrl !== 'string' ||
+      activation.apiUrl.length === 0 ||
+      activation.configPath !== undefined ||
+      activation.configApiUrl !== undefined
+    )
+      invalid();
+    return;
+  }
+  if (
+    activation.source !== 'external' ||
+    typeof activation.configPath !== 'string' ||
+    activation.configPath.length === 0 ||
+    typeof activation.configApiUrl !== 'string' ||
+    activation.configApiUrl.length === 0 ||
+    (activation.apiUrl !== undefined && typeof activation.apiUrl !== 'string')
+  ) {
+    invalid();
   }
 }

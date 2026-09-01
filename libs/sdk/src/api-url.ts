@@ -46,6 +46,23 @@ export function requireSecureCredentialApiUrl(apiUrl: string): string {
   );
 }
 
+/** Reject a config-selected endpoint that is unsafe for long-lived credentials. */
+export function assertTrustedConfigApiUrl(apiUrl: string): void {
+  const url = new URL(apiUrl);
+  const host = url.hostname.replace(/^\[|\]$/g, '');
+  const loopback =
+    host === 'localhost' || host === '::1' || /^127(\.\d{1,3}){3}$/.test(host);
+  const moltNet =
+    url.protocol === 'https:' &&
+    (host === 'themolt.net' || host.endsWith('.themolt.net'));
+  if (!loopback && !moltNet) {
+    throw new MoltNetError(
+      'Config-provided API endpoints must use HTTPS on themolt.net or a loopback host.',
+      { code: 'INVALID_CONFIG' },
+    );
+  }
+}
+
 function stripTrailingSlash(apiUrl: string): string {
   return apiUrl.replace(/\/$/, '');
 }

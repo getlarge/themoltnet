@@ -72,7 +72,8 @@ export interface MoltNetConfig {
    * OAuth2 client credentials; the key value itself is never stored here.
    */
   agent_key_ref?: SecretReference;
-  oauth2: OAuth2Config;
+  /** OAuth2 credentials are absent on agent-key-only profiles. */
+  oauth2?: OAuth2Config;
   keys: KeysConfig;
   endpoints: { api: string; mcp: string };
   ssh?: { private_key_path: string; public_key_path: string };

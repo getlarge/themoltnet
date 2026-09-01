@@ -124,6 +124,11 @@ export interface StartupWhoamiSource {
 export async function validateStartupBinding(options: {
   agent: StartupWhoamiSource;
   teamId?: string;
+  expectedIdentity?: {
+    identityId: string;
+    publicKey: string;
+    fingerprint: string;
+  };
 }): Promise<Whoami> {
   let whoami: Whoami;
   const maxAttempts = 3;
@@ -144,6 +149,17 @@ export async function validateStartupBinding(options: {
   const assessment = assessStartupBinding(whoami, options.teamId);
   if (!assessment.ok) {
     throw new Error(`Daemon startup validation failed: ${assessment.reason}`);
+  }
+  const expected = options.expectedIdentity;
+  if (
+    expected &&
+    (whoami.identityId !== expected.identityId ||
+      whoami.publicKey !== expected.publicKey ||
+      whoami.fingerprint !== expected.fingerprint)
+  ) {
+    throw new Error(
+      'Daemon startup validation failed: authenticated identity does not match the serve activation.',
+    );
   }
   return whoami;
 }

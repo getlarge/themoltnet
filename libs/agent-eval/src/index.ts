@@ -29,8 +29,11 @@ export {
 export {
   writeAgentCredentials,
   type WriteAgentCredentialsInput,
+  type WriteMultiProviderPiConfigInput,
   writePiConfig,
   type WritePiConfigInput,
+  type WritePiProviderInput,
+  type WriteSingleProviderPiConfigInput,
 } from './pi-config.js';
 export { readScenario, ScenarioError } from './read-scenario.js';
 export {

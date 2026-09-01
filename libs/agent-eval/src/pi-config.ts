@@ -1,12 +1,4 @@
-/**
- * Shared helpers for writing the throwaway agent credentials and Pi
- * provider/model config a live eval run needs. Extracted verbatim (then
- * parameterized over provider/model) from
- * `apps/agent-daemon-e2e/src/live-ollama.e2e.test.ts` so the per-PR smoke test
- * and the nightly matrix runner share exactly one copy.
- *
- * Node-only (fs). Not imported by the pure reader/builder/gate path.
- */
+/** Shared Node-only writers used by live evals and daemon serve runs. */
 import { randomUUID } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -71,9 +63,25 @@ export function writeAgentCredentials(input: WriteAgentCredentialsInput): void {
   );
 }
 
-export interface WritePiConfigInput {
+export interface WritePiProviderInput {
+  /** Pi provider API kind, e.g. `openai-completions`. */
+  api: string;
+  /** Provider base URL. */
+  baseUrl: string;
+  /** Model ids exposed by this provider. */
+  models: readonly string[];
+  /** Optional Pi environment placeholder, e.g. `$OLLAMA_API_KEY`. */
+  apiKeyEnvRef?: string;
+}
+
+interface WritePiConfigBase {
   /** `PI_CODING_AGENT_DIR` — where `models.json` + `settings.json` land. */
   piDir: string;
+  /** Overrides or extends the generated settings document. */
+  settings?: Readonly<Record<string, unknown>>;
+}
+
+export interface WriteSingleProviderPiConfigInput extends WritePiConfigBase {
   /** Pi provider id, e.g. `ollama-cloud`. */
   provider: string;
   /** Pi model id, e.g. `qwen3-coder:480b-cloud`. */
@@ -86,39 +94,57 @@ export interface WritePiConfigInput {
    * Env-var reference (with `$`) holding the provider API key. Defaults to
    * `$OLLAMA_API_KEY`.
    */
-  apiKeyRef?: string;
+  apiKeyEnvRef?: string;
+  providers?: never;
 }
 
+export interface WriteMultiProviderPiConfigInput extends WritePiConfigBase {
+  /** Provider registry keyed by Pi provider id. */
+  providers: Readonly<Record<string, WritePiProviderInput>>;
+  provider?: never;
+  model?: never;
+  baseUrl?: never;
+  apiKeyEnvRef?: never;
+}
+
+export type WritePiConfigInput =
+  | WriteSingleProviderPiConfigInput
+  | WriteMultiProviderPiConfigInput;
+
 /**
- * Write a Pi `models.json` + `settings.json` pinned to a single provider/model
- * into `piDir`. The model is pinned deliberately: a live eval measures ONE
- * model per run so the score is attributable.
+ * Write Pi `models.json` + `settings.json`. Eval callers use the single-provider
+ * form so scores stay attributable; serve callers may supply many providers.
  */
 export function writePiConfig(input: WritePiConfigInput): void {
-  const baseUrl = input.baseUrl ?? 'https://ollama.com/v1';
-  const apiKeyRef = input.apiKeyRef ?? '$OLLAMA_API_KEY';
+  const multiProvider = 'providers' in input && input.providers !== undefined;
+  const providers = multiProvider
+    ? Object.fromEntries(
+        Object.entries(input.providers).map(([id, provider]) => [
+          id,
+          {
+            api: provider.api,
+            ...(provider.apiKeyEnvRef ? { apiKey: provider.apiKeyEnvRef } : {}),
+            baseUrl: provider.baseUrl,
+            models: provider.models.map((id) => ({ id })),
+          },
+        ]),
+      )
+    : {
+        [input.provider]: {
+          api: 'openai-completions',
+          apiKey: input.apiKeyEnvRef ?? '$OLLAMA_API_KEY',
+          baseUrl: input.baseUrl ?? 'https://ollama.com/v1',
+          models: [{ id: input.model }],
+        },
+      };
   writeFileSync(
     join(input.piDir, 'models.json'),
-    JSON.stringify(
-      {
-        providers: {
-          [input.provider]: {
-            api: 'openai-completions',
-            apiKey: apiKeyRef,
-            baseUrl,
-            models: [{ id: input.model }],
-          },
-        },
-      },
-      null,
-      2,
-    ) + '\n',
+    JSON.stringify({ providers }, null, 2) + '\n',
     'utf8',
   );
-  writeFileSync(
-    join(input.piDir, 'settings.json'),
-    JSON.stringify(
-      {
+  const defaultSettings = multiProvider
+    ? { enableInstallTelemetry: false }
+    : {
         defaultModel: input.model,
         defaultProvider: input.provider,
         enableInstallTelemetry: false,
@@ -126,10 +152,10 @@ export function writePiConfig(input: WritePiConfigInput): void {
         packages: ['npm:@themoltnet/pi-extension'],
         transport: 'sse',
         treeFilterMode: 'default',
-      },
-      null,
-      2,
-    ) + '\n',
+      };
+  writeFileSync(
+    join(input.piDir, 'settings.json'),
+    JSON.stringify({ ...defaultSettings, ...input.settings }, null, 2) + '\n',
     'utf8',
   );
 }

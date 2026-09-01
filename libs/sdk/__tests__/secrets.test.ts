@@ -5,6 +5,7 @@ import {
   assertSecretReferenceBinding,
   EnvironmentSecretProvider,
   expectedSecretKey,
+  formatSecretReferenceString,
   identitySeedKey,
   oauth2SecretKey,
   parseSecretReferenceString,
@@ -407,5 +408,20 @@ describe('agent key binding and env reference parsing', () => {
         /<provider>:<key>/,
       );
     }
+  });
+
+  it('formats references canonically and round-trips through the parser', () => {
+    for (const reference of [
+      { provider: 'env', key: 'MOLTNET_AGENT_KEY' },
+      { provider: 'file', key: 'agent-key/id-1' },
+      { provider: 'os-keyring', key: 'identity/fp/seed' },
+    ]) {
+      expect(
+        parseSecretReferenceString(formatSecretReferenceString(reference)),
+      ).toEqual(reference);
+    }
+    expect(() =>
+      formatSecretReferenceString({ provider: 'File', key: 'key' }),
+    ).toThrow(/<provider>:<key>/);
   });
 });

@@ -7,9 +7,10 @@
  * origin: the `x-moltnet-serve-token` header must verify against the
  * origin-bound token issued by the one-click pairing ceremony.
  */
-import { statSync } from 'node:fs';
+import { constants as fsConstants } from 'node:fs';
 import { open } from 'node:fs/promises';
 
+import rateLimit from '@fastify/rate-limit';
 import {
   assertNavigationRequest,
   isLoopbackViolation,
@@ -17,7 +18,14 @@ import {
   rejectExplicitCrossSite,
   requireOriginHeader,
 } from '@moltnet/loopback-companion';
-import type { FileSecretProvider } from '@themoltnet/sdk/node';
+import {
+  formatSecretReferenceString,
+  type SecretProviderRegistry,
+} from '@themoltnet/sdk';
+import {
+  FILE_SECRET_PROVIDER,
+  type FileSecretProvider,
+} from '@themoltnet/sdk/node';
 import Fastify, {
   type FastifyBaseLogger,
   type FastifyInstance,
@@ -38,6 +46,8 @@ import {
 } from './pairing.js';
 import { type RunManager, ServeRunError } from './runs.js';
 import {
+  assertProviderEnvName,
+  assertProviderId,
   type ProviderEntry,
   type ServeStore,
   ServeStoreError,
@@ -46,10 +56,13 @@ import {
 export const SERVE_TOKEN_HEADER = 'x-moltnet-serve-token';
 const BODY_LIMIT = 64 * 1024;
 const LOG_POLL_INTERVAL_MS = 500;
+const RATE_LIMIT_MAX = 120;
+const RATE_LIMIT_WINDOW_MS = 60_000;
 
 export interface BuildServeServerOptions {
   store: ServeStore;
   secrets: FileSecretProvider;
+  externalSecretProviders: SecretProviderRegistry;
   pairing: PairingService;
   runs: RunManager;
   allowedOrigins: readonly string[];
@@ -59,6 +72,8 @@ export interface BuildServeServerOptions {
   defaultApiUrl: string;
   version: string;
   logger?: FastifyBaseLogger;
+  /** Override used by focused rate-limit tests. */
+  rateLimitMax?: number;
 }
 
 class ServeHttpError extends Error {
@@ -138,6 +153,20 @@ export function buildServeServer(
     allowedHeaders: [SERVE_TOKEN_HEADER],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
+  void app.register(rateLimit, {
+    global: false,
+    max: options.rateLimitMax ?? RATE_LIMIT_MAX,
+    timeWindow: RATE_LIMIT_WINDOW_MS,
+    errorResponseBuilder: () =>
+      new ServeHttpError(429, 'rate_limited', 'Too many requests'),
+    keyGenerator: (request) => {
+      const origin = request.headers.origin;
+      return isConfiguredOrigin(origin, options)
+        ? `origin:${origin}`
+        : `ip:${request.ip}`;
+    },
+  });
+  app.after(() => app.addHook('onRequest', app.rateLimit()));
 
   app.addContentTypeParser(
     'application/x-www-form-urlencoded',
@@ -229,7 +258,9 @@ export function buildServeServer(
     return {
       version: options.version,
       platform: process.platform,
-      agents: store.listAgents().map((entry) => publicAgentView(entry)),
+      agents: store
+        .listActivations()
+        .map((activation) => publicAgentView(store, activation)),
       providers: Object.fromEntries(
         Object.entries(store.readProviders()).map(([id, provider]) => [
           id,
@@ -245,7 +276,9 @@ export function buildServeServer(
 
   app.get('/v1/agents', async (request) => {
     requirePairedOrigin(request);
-    return store.listAgents().map((entry) => publicAgentView(entry));
+    return store
+      .listActivations()
+      .map((activation) => publicAgentView(store, activation));
   });
 
   app.post('/v1/agents', async (request, reply) => {
@@ -255,22 +288,26 @@ export function buildServeServer(
     if (kind === 'managed') {
       const entry = await createManagedAgent(options.store, options.secrets, {
         name: requireString(body, 'name'),
-        apiUrl: optionalString(body, 'apiUrl') ?? options.defaultApiUrl,
+        apiUrl: options.defaultApiUrl,
         ...(optionalString(body, 'enrollmentToken')
           ? { enrollmentToken: optionalString(body, 'enrollmentToken') }
           : {}),
       });
-      return reply.code(201).send(publicAgentView(entry));
+      return reply.code(201).send(publicAgentView(store, entry.activation));
     }
     if (kind === 'external') {
-      const entry = await attachExternalAgent(options.store, {
-        name: requireString(body, 'name'),
-        configDir: requireString(body, 'configDir'),
-        ...(optionalString(body, 'apiUrl')
-          ? { apiUrl: optionalString(body, 'apiUrl') }
-          : {}),
-      });
-      return reply.code(201).send(publicAgentView(entry));
+      const entry = await attachExternalAgent(
+        options.store,
+        options.externalSecretProviders,
+        {
+          name: requireString(body, 'name'),
+          configDir: requireString(body, 'configDir'),
+          ...(optionalString(body, 'apiUrl')
+            ? { apiUrl: optionalString(body, 'apiUrl') }
+            : {}),
+        },
+      );
+      return reply.code(201).send(publicAgentView(store, entry.activation));
     }
     throw new ServeHttpError(
       400,
@@ -291,22 +328,34 @@ export function buildServeServer(
 
   app.put('/v1/providers/:providerId', async (request, reply) => {
     requirePairedOrigin(request);
-    const { providerId } = request.params as { providerId: string };
+    const { providerId: rawProviderId } = request.params as {
+      providerId: string;
+    };
+    const providerId = assertProviderId(rawProviderId);
     const body = requireBody<Record<string, unknown>>(request);
     const providers = store.readProviders();
     const entry: ProviderEntry = {
       api: requireString(body, 'api'),
       baseUrl: requireString(body, 'baseUrl'),
-      envName: requireString(body, 'envName'),
+      envName: assertProviderEnvName(
+        providerId,
+        requireString(body, 'envName'),
+      ),
       models: stringArray(body, 'models'),
     };
     const apiKey = optionalString(body, 'apiKey');
     if (apiKey) {
       const key = `pi-provider/${providerId}`;
       await options.secrets.write(key, apiKey);
-      entry.apiKeyRef = `file:${key}`;
-    } else if (providers[providerId]?.apiKeyRef) {
-      // Absent apiKey on update keeps the stored secret.
+      entry.apiKeyRef = formatSecretReferenceString({
+        provider: FILE_SECRET_PROVIDER,
+        key,
+      });
+    } else if (
+      providers[providerId]?.apiKeyRef &&
+      providers[providerId].baseUrl === entry.baseUrl
+    ) {
+      // Reuse a key only while its destination remains unchanged.
       entry.apiKeyRef = providers[providerId].apiKeyRef;
     }
     providers[providerId] = entry;
@@ -344,8 +393,8 @@ export function buildServeServer(
   app.get('/v1/runs/:runId/logs', async (request, reply) => {
     requirePairedOrigin(request);
     const { runId } = request.params as { runId: string };
-    runs.status(runId); // 404 on unknown run
-    const logPath = `${store.runDir(runId)}/daemon.log`;
+    const record = runs.status(runId); // 404 on unknown run
+    store.resolveRunLogPath(record.id);
 
     reply.raw.writeHead(200, {
       'content-type': 'text/event-stream',
@@ -357,15 +406,24 @@ export function buildServeServer(
     let offset = 0;
     let closed = false;
     const push = async (): Promise<void> => {
-      let size = 0;
+      let logPath: string;
       try {
-        size = statSync(logPath).size;
+        // Revalidate before each open. O_NOFOLLOW closes the remaining race on
+        // POSIX; Windows lacks that flag, so the lstat/realpath check in the
+        // store narrows (but cannot eliminate) the platform's TOCTOU window.
+        logPath = store.resolveRunLogPath(record.id);
       } catch {
         return;
       }
-      if (size <= offset) return;
-      const handle = await open(logPath, 'r');
+      const handle = await open(
+        logPath,
+        fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW,
+      ).catch(() => null);
+      if (!handle) return;
       try {
+        const info = await handle.stat();
+        if (!info.isFile() || info.size <= offset) return;
+        const size = info.size;
         const length = size - offset;
         const buffer = Buffer.alloc(length);
         await handle.read(buffer, 0, length, offset);
@@ -395,12 +453,47 @@ export function buildServeServer(
       .code(404)
       .send({ code: 'not_found', message: 'Route is not available' }),
   );
-  app.setErrorHandler(async (error, _request, reply) => {
+  app.setErrorHandler(async (error, request, reply) => {
     const { statusCode, code, message } = normalizeServeError(error);
+    if (statusCode === 500) {
+      request.log.error(
+        {
+          ...safeErrorContext(error),
+          code: 'serve_request_failed',
+          method: request.method,
+          route: request.routeOptions.url,
+        },
+        'Serve request failed',
+      );
+    }
     return reply.code(statusCode).send({ code, message });
   });
 
   return app;
+}
+
+function safeErrorContext(error: unknown): Record<string, string> {
+  const context: Record<string, string> = {
+    errorType: error instanceof Error ? error.name : typeof error,
+  };
+  const applicationCode = safeErrorToken(
+    (error as { code?: unknown } | null)?.code,
+  );
+  if (applicationCode) context['applicationCode'] = applicationCode;
+  const cause = error instanceof Error ? error.cause : undefined;
+  const fsCode = safeErrorToken((cause as NodeJS.ErrnoException | null)?.code);
+  const syscall = safeErrorToken(
+    (cause as NodeJS.ErrnoException | null)?.syscall,
+  );
+  if (fsCode) context['fsCode'] = fsCode;
+  if (syscall) context['syscall'] = syscall;
+  return context;
+}
+
+function safeErrorToken(value: unknown): string | undefined {
+  return typeof value === 'string' && /^[a-z0-9_:-]{1,64}$/iu.test(value)
+    ? value
+    : undefined;
 }
 
 function providerView(provider: ProviderEntry): Record<string, unknown> {
@@ -418,13 +511,20 @@ function corsHeadersFor(
   options: BuildServeServerOptions,
 ): Record<string, string> {
   const origin = request.headers.origin;
-  if (
-    typeof origin === 'string' &&
-    (options.allowedOrigins.includes(origin) || origin === options.selfOrigin)
-  ) {
+  if (isConfiguredOrigin(origin, options)) {
     return { 'access-control-allow-origin': origin, vary: 'origin' };
   }
   return {};
+}
+
+function isConfiguredOrigin(
+  origin: string | undefined,
+  options: BuildServeServerOptions,
+): origin is string {
+  return (
+    typeof origin === 'string' &&
+    (options.allowedOrigins.includes(origin) || origin === options.selfOrigin)
+  );
 }
 
 function normalizeServeError(error: unknown): {
@@ -462,7 +562,12 @@ function normalizeServeError(error: unknown): {
   }
   if (error instanceof ServeStoreError) {
     return {
-      statusCode: error.code === 'not_found' ? 404 : 400,
+      statusCode:
+        error.code === 'not_found'
+          ? 404
+          : error.code === 'io_error'
+            ? 500
+            : 400,
       code: error.code,
       message: error.message,
     };

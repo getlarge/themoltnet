@@ -1,31 +1,45 @@
 /**
- * Serve identity flows (#2061):
+ * Serve identity activation (#2061/#1834 boundary).
  *
- * - `createManagedAgent` — generate + register a fresh agent identity
- *   locally via the SDK (`register()` builds the Ed25519 keypair and signed
- *   proof; supports team enrollment tokens). Secret values land in the
- *   serve FileSecretProvider root under the canonical keys; the store keeps
- *   references only. The seed never leaves this machine or touches the
- *   browser.
- * - `attachExternalAgent` — index an existing `.moltnet/<agent>` config by
- *   PATH (never by copying secrets), verified against the live API
- *   (`whoami`) before it is trusted, per the #1834 server-side-verification
- *   rule.
+ * Managed agent files are canonical `MoltNetConfig` documents. Alias,
+ * provenance, pinned identity material, and external config paths live only
+ * in the versioned activation map in `serve.json`. Every attach and run loads
+ * the current config and verifies it with authenticated `whoami` before use.
  */
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
-
-import { connect, register } from '@themoltnet/sdk';
-import type { FileSecretProvider } from '@themoltnet/sdk/node';
+import { open } from 'node:fs/promises';
+import { basename, dirname, isAbsolute, join } from 'node:path';
 
 import {
-  type AgentEntry,
+  type Agent,
+  agentKeyKey,
+  assertTrustedConfigApiUrl,
+  type ConnectOptions,
+  deriveMcpUrl,
+  identitySeedKey,
+  type MoltNetConfig,
+  MoltNetError,
+  register,
+  resolveAgentKey,
+  type SecretProviderRegistry,
+  type Whoami,
+} from '@themoltnet/sdk';
+import {
+  connect,
+  FILE_SECRET_PROVIDER,
+  type FileSecretProvider,
+} from '@themoltnet/sdk/node';
+
+import {
+  type AgentActivation,
   assertStoreName,
-  type ExternalAgentEntry,
-  type ManagedAgentEntry,
+  type ExternalAgentActivation,
+  type ManagedAgentActivation,
   type ServeStore,
   ServeStoreError,
 } from './store.js';
+
+const MAX_CONFIG_BYTES = 64 * 1024;
+const pendingAliases = new WeakMap<ServeStore, Set<string>>();
 
 export class ServeIdentityError extends Error {
   override name = 'ServeIdentityError';
@@ -33,6 +47,8 @@ export class ServeIdentityError extends Error {
     readonly code:
       | 'agent_exists'
       | 'config_not_found'
+      | 'registration_failed'
+      | 'registration_incomplete'
       | 'verification_failed'
       | 'unsupported_credential',
     message: string,
@@ -42,154 +58,532 @@ export class ServeIdentityError extends Error {
   }
 }
 
+export type ConnectAgent = (
+  options?: ConnectOptions,
+) => Promise<Pick<Agent, 'agents'>>;
+
 export interface CreateManagedAgentInput {
   name: string;
   apiUrl: string;
   enrollmentToken?: string;
 }
 
+export interface ActivatedAgent {
+  activation: AgentActivation;
+  config: MoltNetConfig;
+}
+
+interface IdentityPin {
+  identityId: string;
+  publicKey: string;
+  fingerprint: string;
+}
+
+function reserveAlias(store: ServeStore, alias: string): () => void {
+  let pending = pendingAliases.get(store);
+  if (!pending) {
+    pending = new Set<string>();
+    pendingAliases.set(store, pending);
+  }
+  if (
+    pending.has(alias) ||
+    store.hasPendingRegistration(alias) ||
+    store.readActivation(alias) ||
+    store.readAgentConfig(alias)
+  ) {
+    throw new ServeIdentityError(
+      'agent_exists',
+      `agent "${alias}" already exists in the serve store`,
+    );
+  }
+  pending.add(alias);
+  return () => pending.delete(alias);
+}
+
 export async function createManagedAgent(
   store: ServeStore,
   secrets: FileSecretProvider,
   input: CreateManagedAgentInput,
-): Promise<ManagedAgentEntry> {
-  const name = assertStoreName('agent name', input.name);
-  if (store.readAgent(name)) {
-    throw new ServeIdentityError(
-      'agent_exists',
-      `agent "${name}" already exists in the serve store`,
-    );
+): Promise<ActivatedAgent> {
+  const alias = assertStoreName('agent name', input.name);
+  const releaseAlias = reserveAlias(store, alias);
+  let registeredIdentityId: string | undefined;
+  try {
+    // This durable marker prevents a retry from creating a second remote
+    // identity if registration commits but its response or a local write fails.
+    store.reserveRegistration(alias, input.apiUrl);
+    const result = await register({
+      credentialType: 'agent_key',
+      apiUrl: input.apiUrl,
+      ...(input.enrollmentToken
+        ? { enrollmentToken: input.enrollmentToken }
+        : {}),
+    });
+    if (result.credentials.type !== 'agent_key') {
+      throw new ServeIdentityError(
+        'unsupported_credential',
+        `registration returned credential type "${result.credentials.type}"; serve manages agent-key credentials only`,
+      );
+    }
+
+    const now = new Date().toISOString();
+    const { identityId, fingerprint, publicKey, privateKey } = result.identity;
+    registeredIdentityId = identityId;
+    const agentKeyReference = {
+      provider: FILE_SECRET_PROVIDER,
+      key: agentKeyKey(identityId),
+    };
+    const seedReference = {
+      provider: FILE_SECRET_PROVIDER,
+      key: identitySeedKey(fingerprint),
+    };
+    const config: MoltNetConfig = {
+      identity_id: identityId,
+      registered_at: now,
+      agent_key_ref: agentKeyReference,
+      keys: {
+        public_key: publicKey,
+        fingerprint,
+        private_key_ref: seedReference,
+      },
+      endpoints: {
+        api: result.apiUrl,
+        mcp: deriveMcpUrl(result.apiUrl),
+      },
+    };
+    const activation: AgentActivation = {
+      alias,
+      source: 'managed',
+      identityId,
+      publicKey,
+      fingerprint,
+      createdAt: now,
+      apiUrl: result.apiUrl,
+    };
+    // Persist the non-secret recovery record first. If a later write fails,
+    // reserveAlias blocks accidental re-registration of the remote identity.
+    store.writeAgentConfig(alias, config);
+    await secrets.write(agentKeyReference.key, result.credentials.secret);
+    await secrets.write(seedReference.key, privateKey);
+    store.writeActivation(activation);
+    return { activation, config };
+  } catch (cause) {
+    if (
+      !registeredIdentityId &&
+      cause instanceof MoltNetError &&
+      cause.statusCode !== undefined &&
+      cause.statusCode >= 400 &&
+      cause.statusCode < 500
+    ) {
+      store.clearPendingRegistration(alias);
+      throw new ServeIdentityError(
+        'registration_failed',
+        `registration for "${alias}" was rejected`,
+        { cause },
+      );
+    }
+    if (store.hasPendingRegistration(alias)) {
+      throw new ServeIdentityError(
+        'registration_incomplete',
+        registeredIdentityId
+          ? `identity "${registeredIdentityId}" was registered but local activation is incomplete; reconcile or clear its pending serve record before retrying`
+          : `registration for "${alias}" may be incomplete; inspect the remote API before changing its pending serve record`,
+        { cause },
+      );
+    }
+    throw cause;
+  } finally {
+    releaseAlias();
   }
-
-  const result = await register({
-    credentialType: 'agent_key',
-    apiUrl: input.apiUrl,
-    ...(input.enrollmentToken
-      ? { enrollmentToken: input.enrollmentToken }
-      : {}),
-  });
-  if (result.credentials.type !== 'agent_key') {
-    throw new ServeIdentityError(
-      'unsupported_credential',
-      `registration returned credential type "${result.credentials.type}"; serve manages agent-key credentials only`,
-    );
-  }
-
-  const { identityId, fingerprint, publicKey, privateKey } = result.identity;
-  // Canonical secret keys (libs/sdk/src/secrets.ts naming) so the Go CLI
-  // and a later os-keyring migration interoperate without translation.
-  const agentKeyKey = `agent-key/${identityId}`;
-  const seedKey = `identity/${fingerprint}/seed`;
-  await secrets.write(agentKeyKey, result.credentials.secret);
-  await secrets.write(seedKey, privateKey);
-
-  const entry: ManagedAgentEntry = {
-    version: 1,
-    kind: 'managed',
-    agentName: name,
-    identityId,
-    publicKey,
-    fingerprint,
-    apiUrl: result.apiUrl,
-    agentKeyRef: `file:${agentKeyKey}`,
-    privateKeyRef: `file:${seedKey}`,
-    createdAt: new Date().toISOString(),
-  };
-  store.writeAgent(entry);
-  return entry;
 }
 
 export interface AttachExternalAgentInput {
   name: string;
-  /** Absolute path to the `.moltnet/<agent>` directory. */
+  /** Absolute path to the existing `.moltnet/<agent>` directory. */
   configDir: string;
   apiUrl?: string;
 }
 
 export async function attachExternalAgent(
   store: ServeStore,
+  secretProviders: SecretProviderRegistry,
   input: AttachExternalAgentInput,
-): Promise<ExternalAgentEntry> {
-  const name = assertStoreName('agent name', input.name);
-  if (store.readAgent(name)) {
-    throw new ServeIdentityError(
-      'agent_exists',
-      `agent "${name}" already exists in the serve store`,
-    );
-  }
-  if (!existsSync(join(input.configDir, 'moltnet.json'))) {
-    throw new ServeIdentityError(
-      'config_not_found',
-      `no moltnet.json under ${input.configDir}`,
-    );
-  }
-
-  // Server-side verification before the index trusts local metadata: build
-  // an authenticated SDK agent from the referenced config and ask the API
-  // who it actually is. Secret resolution goes through the config's own
-  // providers (keyring/file/env) — nothing is copied into the serve store.
-  let identityId: string | undefined;
-  let fingerprint: string | undefined;
+  connectAgent: ConnectAgent = connect,
+): Promise<ActivatedAgent> {
+  const alias = assertStoreName('agent name', input.name);
+  const releaseAlias = reserveAlias(store, alias);
   try {
-    const agent = await connect({
-      configDir: input.configDir,
+    if (!isAbsolute(input.configDir)) {
+      throw new ServeIdentityError(
+        'config_not_found',
+        'external configDir must be an absolute path',
+      );
+    }
+    const configPath = join(input.configDir, 'moltnet.json');
+    externalAgentLocation(configPath);
+    const config = await readCurrentConfig(configPath);
+    const configApiUrl = requireTrustedConfigApiUrl(config, configPath);
+    if (input.apiUrl) assertTrustedConfigApiUrl(input.apiUrl);
+    const effectiveApiUrl = input.apiUrl ?? configApiUrl;
+    const whoami = await authenticateConfig(
+      input.configDir,
+      effectiveApiUrl,
+      secretProviders,
+      connectAgent,
+    );
+    const identity = identityFromConfig(config);
+    assertIdentityMatches(
+      identity,
+      whoami,
+      `external config ${configPath}`,
+      'authenticated whoami',
+    );
+
+    const activation: AgentActivation = {
+      alias,
+      source: 'external',
+      ...identity,
+      createdAt: new Date().toISOString(),
+      configPath,
+      configApiUrl,
       ...(input.apiUrl ? { apiUrl: input.apiUrl } : {}),
-    });
-    const whoami = await agent.agents.whoami();
-    identityId = whoami.identityId;
-    fingerprint = (whoami as { fingerprint?: string }).fingerprint ?? undefined;
+    };
+    store.writeActivation(activation);
+    return { activation, config };
+  } finally {
+    releaseAlias();
+  }
+}
+
+/** Load and authenticate the current config, then compare all pinned fields. */
+export async function verifyAgentActivation(
+  store: ServeStore,
+  alias: string,
+  managedSecretProviders: SecretProviderRegistry,
+  externalSecretProviders: SecretProviderRegistry,
+  connectAgent: ConnectAgent = connect,
+): Promise<ActivatedAgent> {
+  const activation = requireActivation(store, alias);
+  const verified =
+    activation.source === 'managed'
+      ? await verifyManagedActivation(
+          store,
+          activation,
+          managedSecretProviders,
+          connectAgent,
+        )
+      : await verifyExternalActivation(
+          activation,
+          externalSecretProviders,
+          connectAgent,
+        );
+  assertIdentityMatches(
+    verified.whoami,
+    activation,
+    'authenticated whoami',
+    `agent "${activation.alias}" pinned activation`,
+  );
+  return { activation, config: verified.config };
+}
+
+async function verifyManagedActivation(
+  store: ServeStore,
+  activation: ManagedAgentActivation,
+  secretProviders: SecretProviderRegistry,
+  connectAgent: ConnectAgent,
+): Promise<{ config: MoltNetConfig; whoami: Whoami }> {
+  const configPath = store.agentPath(activation.alias);
+  const config = await readCurrentConfig(configPath);
+  assertActivatedConfig(
+    config,
+    activation,
+    configPath,
+    requireConfigApiUrl(config, configPath),
+    activation.apiUrl,
+  );
+  let agentKey: string | null;
+  try {
+    agentKey = await resolveAgentKey(config, secretProviders);
   } catch (cause) {
+    throw verificationError(
+      `could not resolve the managed agent key for "${activation.alias}"`,
+      cause,
+    );
+  }
+  if (!agentKey) {
     throw new ServeIdentityError(
       'verification_failed',
-      `could not verify ${input.configDir} against the API: ${(cause as Error).message}`,
+      `managed config for "${activation.alias}" has no agent_key_ref`,
+    );
+  }
+  const whoami = await callWhoami(
+    connectAgent,
+    { agentKey, apiUrl: activation.apiUrl },
+    configPath,
+  );
+  return { config, whoami };
+}
+
+async function verifyExternalActivation(
+  activation: ExternalAgentActivation,
+  secretProviders: SecretProviderRegistry,
+  connectAgent: ConnectAgent,
+): Promise<{ config: MoltNetConfig; whoami: Whoami }> {
+  externalAgentLocation(activation.configPath);
+  assertTrustedConfigApiUrl(activation.configApiUrl);
+  if (activation.apiUrl) assertTrustedConfigApiUrl(activation.apiUrl);
+  const config = await readCurrentConfig(activation.configPath);
+  assertActivatedConfig(
+    config,
+    activation,
+    activation.configPath,
+    requireTrustedConfigApiUrl(config, activation.configPath),
+    activation.configApiUrl,
+  );
+  const whoami = await authenticateConfig(
+    dirname(activation.configPath),
+    activation.apiUrl ?? activation.configApiUrl,
+    secretProviders,
+    connectAgent,
+  );
+  return { config, whoami };
+}
+
+function assertActivatedConfig(
+  config: MoltNetConfig,
+  activation: AgentActivation,
+  configPath: string,
+  currentApiUrl: string,
+  pinnedApiUrl: string,
+): void {
+  if (currentApiUrl !== pinnedApiUrl) {
+    throw new ServeIdentityError(
+      'verification_failed',
+      `agent config at ${configPath} API endpoint does not match its pinned activation`,
+    );
+  }
+  assertIdentityMatches(
+    identityFromConfig(config),
+    activation,
+    configPath,
+    `agent "${activation.alias}" pinned activation`,
+  );
+}
+
+function requireConfigApiUrl(
+  config: MoltNetConfig,
+  configPath: string,
+): string {
+  const apiUrl = config?.endpoints?.api?.trim();
+  if (!apiUrl) {
+    throw new ServeIdentityError(
+      'verification_failed',
+      `agent config at ${configPath} is missing endpoints.api`,
+    );
+  }
+  return apiUrl;
+}
+
+function requireTrustedConfigApiUrl(
+  config: MoltNetConfig,
+  configPath: string,
+): string {
+  const apiUrl = requireConfigApiUrl(config, configPath);
+  try {
+    assertTrustedConfigApiUrl(apiUrl);
+    return apiUrl;
+  } catch (cause) {
+    throw verificationError(
+      `agent config at ${configPath} has an untrusted endpoints.api`,
+      cause,
+    );
+  }
+}
+
+async function readCurrentConfig(configPath: string): Promise<MoltNetConfig> {
+  let file;
+  try {
+    file = await open(configPath, 'r');
+  } catch (cause) {
+    throw new ServeIdentityError(
+      'config_not_found',
+      `agent config is missing at ${configPath}`,
       { cause },
     );
   }
-
-  const entry: ExternalAgentEntry = {
-    version: 1,
-    kind: 'external',
-    agentName: name,
-    configDir: input.configDir,
-    ...(input.apiUrl ? { apiUrl: input.apiUrl } : {}),
-    ...(identityId ? { identityId } : {}),
-    ...(fingerprint ? { fingerprint } : {}),
-    createdAt: new Date().toISOString(),
-  };
-  store.writeAgent(entry);
-  return entry;
+  let raw: string;
+  try {
+    const stats = await file.stat();
+    if (!stats.isFile()) {
+      throw new ServeIdentityError(
+        'verification_failed',
+        `agent config at ${configPath} must be a regular file no larger than ${MAX_CONFIG_BYTES} bytes`,
+      );
+    }
+    const buffer = Buffer.alloc(MAX_CONFIG_BYTES + 1);
+    const { bytesRead } = await file.read(buffer, 0, buffer.length, 0);
+    if (bytesRead > MAX_CONFIG_BYTES) {
+      throw new ServeIdentityError(
+        'verification_failed',
+        `agent config at ${configPath} must be a regular file no larger than ${MAX_CONFIG_BYTES} bytes`,
+      );
+    }
+    raw = buffer.toString('utf8', 0, bytesRead);
+  } finally {
+    await file.close();
+  }
+  try {
+    return JSON.parse(raw) as MoltNetConfig;
+  } catch (cause) {
+    throw verificationError(
+      `agent config is not valid JSON at ${configPath}`,
+      cause,
+    );
+  }
 }
 
-/** Non-secret projection of an agent entry for `GET` responses. */
-export function publicAgentView(entry: AgentEntry): Record<string, unknown> {
-  if (entry.kind === 'managed') {
+/** Resolve the unchanged daemon CLI's root/name pair for an external config. */
+export function externalAgentLocation(configPath: string): {
+  agentName: string;
+  agentRoot: string;
+} {
+  const configDir = dirname(configPath);
+  const moltnetDir = dirname(configDir);
+  if (
+    !isAbsolute(configPath) ||
+    basename(configPath) !== 'moltnet.json' ||
+    basename(moltnetDir) !== '.moltnet'
+  ) {
+    throw new ServeIdentityError(
+      'config_not_found',
+      `external config must be at an absolute <agent-root>/.moltnet/<agent>/moltnet.json path`,
+    );
+  }
+  return {
+    agentName: assertStoreName(
+      'external config agent name',
+      basename(configDir),
+    ),
+    agentRoot: dirname(moltnetDir),
+  };
+}
+
+async function authenticateConfig(
+  configDir: string,
+  apiUrl: string | undefined,
+  secretProviders: SecretProviderRegistry,
+  connectAgent: ConnectAgent,
+): Promise<Whoami> {
+  return callWhoami(
+    connectAgent,
+    {
+      configDir,
+      ...(apiUrl ? { apiUrl } : {}),
+      secretProviders,
+    },
+    configDir,
+  );
+}
+
+async function callWhoami(
+  connectAgent: ConnectAgent,
+  options: ConnectOptions,
+  source: string,
+): Promise<Whoami> {
+  try {
+    const agent = await connectAgent(options);
+    return await agent.agents.whoami();
+  } catch (cause) {
+    throw verificationError(
+      `could not authenticate ${source} against the API`,
+      cause,
+    );
+  }
+}
+
+function identityFromConfig(config: MoltNetConfig): IdentityPin {
+  const identityId = config?.identity_id?.trim();
+  const publicKey = config?.keys?.public_key?.trim();
+  const fingerprint = config?.keys?.fingerprint?.trim();
+  if (!identityId || !publicKey || !fingerprint) {
+    throw new ServeIdentityError(
+      'verification_failed',
+      'agent config is missing canonical identity_id, keys.public_key, or keys.fingerprint',
+    );
+  }
+  return {
+    identityId,
+    publicKey,
+    fingerprint,
+  };
+}
+
+function assertIdentityMatches(
+  current: Partial<IdentityPin>,
+  expected: Partial<IdentityPin>,
+  currentLabel: string,
+  expectedLabel: string,
+): void {
+  for (const [field, key] of [
+    ['identity id', 'identityId'],
+    ['public key', 'publicKey'],
+    ['fingerprint', 'fingerprint'],
+  ] as const) {
+    if (!current[key] || !expected[key] || current[key] !== expected[key]) {
+      throw new ServeIdentityError(
+        'verification_failed',
+        `${currentLabel} ${field} does not match ${expectedLabel}`,
+      );
+    }
+  }
+}
+
+function verificationError(
+  message: string,
+  cause: unknown,
+): ServeIdentityError {
+  return new ServeIdentityError('verification_failed', message, { cause });
+}
+
+/** Non-secret projection preserving the existing `/v1` response shape. */
+export function publicAgentView(
+  store: ServeStore,
+  activation: AgentActivation,
+): Record<string, unknown> {
+  if (activation.source === 'managed') {
+    const config = store.readAgentConfig(activation.alias);
     return {
-      kind: entry.kind,
-      agentName: entry.agentName,
-      identityId: entry.identityId,
-      fingerprint: entry.fingerprint,
-      apiUrl: entry.apiUrl,
-      createdAt: entry.createdAt,
-      // Presence booleans only — never reference strings or values.
-      hasAgentKey: Boolean(entry.agentKeyRef),
-      hasPrivateKey: Boolean(entry.privateKeyRef),
+      kind: 'managed',
+      agentName: activation.alias,
+      identityId: activation.identityId,
+      fingerprint: activation.fingerprint,
+      apiUrl: activation.apiUrl,
+      createdAt: activation.createdAt,
+      hasAgentKey: Boolean(config?.agent_key_ref),
+      hasPrivateKey: Boolean(config?.keys.private_key_ref),
     };
   }
   return {
-    kind: entry.kind,
-    agentName: entry.agentName,
-    configDir: entry.configDir,
-    ...(entry.apiUrl ? { apiUrl: entry.apiUrl } : {}),
-    ...(entry.identityId ? { identityId: entry.identityId } : {}),
-    ...(entry.fingerprint ? { fingerprint: entry.fingerprint } : {}),
-    createdAt: entry.createdAt,
+    kind: 'external',
+    agentName: activation.alias,
+    configDir: dirname(activation.configPath),
+    ...(activation.apiUrl ? { apiUrl: activation.apiUrl } : {}),
+    identityId: activation.identityId,
+    fingerprint: activation.fingerprint,
+    createdAt: activation.createdAt,
   };
 }
 
-export function requireAgent(store: ServeStore, name: string): AgentEntry {
-  const entry = store.readAgent(name);
-  if (!entry) {
-    throw new ServeStoreError('not_found', `agent "${name}" is not configured`);
+export function requireActivation(
+  store: ServeStore,
+  alias: string,
+): AgentActivation {
+  const activation = store.readActivation(alias);
+  if (!activation) {
+    throw new ServeStoreError(
+      'not_found',
+      `agent "${alias}" is not configured`,
+    );
   }
-  return entry;
+  return activation;
 }

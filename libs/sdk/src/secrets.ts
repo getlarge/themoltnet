@@ -330,6 +330,17 @@ export function agentKeyKey(identityId: string): string {
 }
 
 const PROVIDER_NAME = /^[a-z][a-z0-9-]*$/;
+const SECRET_REFERENCE_MESSAGE =
+  'Secret reference must be <provider>:<key> with a lowercase provider name';
+
+function normalizeSecretReference(reference: SecretReference): SecretReference {
+  const provider = reference.provider.trim();
+  const key = reference.key.trim();
+  if (!PROVIDER_NAME.test(provider) || !key) {
+    throw new Error(SECRET_REFERENCE_MESSAGE);
+  }
+  return { provider, key };
+}
 
 /**
  * Parse the `<provider>:<key>` form used by environment references such as
@@ -340,12 +351,15 @@ export function parseSecretReferenceString(value: string): SecretReference {
   const separator = trimmed.indexOf(':');
   const provider = separator > 0 ? trimmed.slice(0, separator) : '';
   const key = separator > 0 ? trimmed.slice(separator + 1) : '';
-  if (!PROVIDER_NAME.test(provider) || !key) {
-    throw new Error(
-      'Secret reference must be <provider>:<key> with a lowercase provider name',
-    );
-  }
-  return { provider, key };
+  return normalizeSecretReference({ provider, key });
+}
+
+/** Format a structured secret reference as the canonical `<provider>:<key>`. */
+export function formatSecretReferenceString(
+  reference: SecretReference,
+): string {
+  const { provider, key } = normalizeSecretReference(reference);
+  return `${provider}:${key}`;
 }
 
 function requireId(value: string | undefined, name: string): string {

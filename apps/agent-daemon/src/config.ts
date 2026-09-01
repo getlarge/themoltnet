@@ -46,11 +46,18 @@ export interface DaemonConfig {
   credentialEnforcement: string;
   /** Include empty-list and idle-sleep spans for controlled benchmarks. */
   traceIdlePolling: boolean;
+  /** Identity pin supplied by the local serve supervisor. */
+  expectedIdentity?: {
+    identityId: string;
+    publicKey: string;
+    fingerprint: string;
+  };
 }
 
 export function loadConfig(): DaemonConfig {
   assertSingleCredentialForm('MOLTNET_AGENT_KEY', 'MOLTNET_AGENT_KEY_REF');
   assertSingleCredentialForm('MOLTNET_PRIVATE_KEY', 'MOLTNET_PRIVATE_KEY_REF');
+  const expectedIdentity = readExpectedIdentity();
   return {
     otelEndpoint: process.env['MOLTNET_OTEL_ENDPOINT'] ?? '',
     logLevel: process.env['LOG_LEVEL'] ?? '',
@@ -69,7 +76,22 @@ export function loadConfig(): DaemonConfig {
       'MOLTNET_TRACE_IDLE_POLLING',
       process.env['MOLTNET_TRACE_IDLE_POLLING'],
     ),
+    ...(expectedIdentity ? { expectedIdentity } : {}),
   };
+}
+
+function readExpectedIdentity(): DaemonConfig['expectedIdentity'] {
+  const identityId = process.env['MOLTNET_EXPECTED_IDENTITY_ID']?.trim() ?? '';
+  const publicKey = process.env['MOLTNET_EXPECTED_PUBLIC_KEY']?.trim() ?? '';
+  const fingerprint = process.env['MOLTNET_EXPECTED_FINGERPRINT']?.trim() ?? '';
+  const present = [identityId, publicKey, fingerprint].filter(Boolean).length;
+  if (present === 0) return undefined;
+  if (present !== 3) {
+    throw new Error(
+      'MOLTNET_EXPECTED_IDENTITY_ID, MOLTNET_EXPECTED_PUBLIC_KEY, and MOLTNET_EXPECTED_FINGERPRINT must be set together',
+    );
+  }
+  return { identityId, publicKey, fingerprint };
 }
 
 function assertSingleCredentialForm(valueName: string, refName: string): void {
@@ -96,6 +118,7 @@ export interface ServeEnvConfig {
   root: string;
   xdgConfigHome: string;
   apiUrl: string;
+  logLevel: string;
 }
 
 export function loadServeEnvConfig(): ServeEnvConfig {
@@ -105,6 +128,7 @@ export function loadServeEnvConfig(): ServeEnvConfig {
     root: process.env['MOLTNET_SERVE_ROOT'] ?? '',
     xdgConfigHome: process.env['XDG_CONFIG_HOME'] ?? '',
     apiUrl: process.env['MOLTNET_API_URL'] ?? '',
+    logLevel: process.env['LOG_LEVEL'] ?? '',
   };
 }
 

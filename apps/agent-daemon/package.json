@@ -120,6 +120,7 @@
     "@fastify/cors": "catalog:",
     "@fastify/helmet": "catalog:",
     "@fastify/otel": "catalog:",
+    "@fastify/rate-limit": "catalog:",
     "@ipld/dag-cbor": "catalog:",
     "@noble/ciphers": "catalog:",
     "@noble/curves": "catalog:",
@@ -151,9 +152,11 @@
     "pino": "catalog:",
     "pino-opentelemetry-transport": "catalog:",
     "pino-pretty": "catalog:",
+    "proper-lockfile": "catalog:",
     "typebox": "catalog:"
   },
   "devDependencies": {
+    "@moltnet/agent-eval": "workspace:*",
     "@moltnet/bootstrap": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/execution-integrations": "workspace:*",
@@ -163,6 +166,7 @@
     "@moltnet/observability": "workspace:*",
     "@moltnet/runtime-profiles": "workspace:*",
     "@moltnet/tasks": "workspace:*",
+    "@types/proper-lockfile": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
