@@ -584,8 +584,9 @@ describe('buildApp', () => {
         readOnlyHint: expect.any(Boolean),
         destructiveHint: expect.any(Boolean),
         idempotentHint: expect.any(Boolean),
-        openWorldHint: true,
+        openWorldHint: expect.any(Boolean),
       });
+      expect(tool.outputSchema, tool.name).toBeDefined();
       expect(JSON.stringify(tool.outputSchema ?? {}), tool.name).not.toMatch(
         /client_?secret|private_?key|access_?token|refresh_?token|authorization/i,
       );
@@ -598,6 +599,9 @@ describe('buildApp', () => {
     expect(byName.entries_create?.destructiveHint).toBe(false);
     expect(byName.entries_update?.destructiveHint).toBe(true);
     expect(byName.entries_delete?.destructiveHint).toBe(true);
+    expect(byName.entries_create?.openWorldHint).toBe(false);
+    expect(byName.tasks_create?.openWorldHint).toBe(true);
+    expect(byName.tasks_continue?.openWorldHint).toBe(true);
 
     await app.close();
   });

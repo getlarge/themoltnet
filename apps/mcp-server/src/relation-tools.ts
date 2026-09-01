@@ -22,6 +22,7 @@ import type {
 import {
   RelationCreateOutputSchema,
   RelationCreateSchema,
+  RelationDeleteOutputSchema,
   RelationDeleteSchema,
   RelationListOutputSchema,
   RelationListSchema,
@@ -197,6 +198,7 @@ export function registerRelationTools(
       name: 'relations_delete',
       description: 'Delete a relation by its ID.',
       inputSchema: RelationDeleteSchema,
+      outputSchema: RelationDeleteOutputSchema,
     },
     async (args, ctx) => handleRelationsDelete(args, deps, ctx),
   );

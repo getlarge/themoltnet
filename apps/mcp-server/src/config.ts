@@ -235,9 +235,7 @@ export function resolveMcpAppConfig(
     return null;
   }
 
-  const connectDomains = config.MCP_APP_CONNECT_DOMAINS
-    ? parseDomainList(config.MCP_APP_CONNECT_DOMAINS)
-    : [config.MCP_APP_DOMAIN];
+  const connectDomains = parseDomainList(config.MCP_APP_CONNECT_DOMAINS);
 
   return {
     domain: config.MCP_APP_DOMAIN,

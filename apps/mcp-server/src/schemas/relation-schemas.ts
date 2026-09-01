@@ -176,6 +176,11 @@ export const RelationListOutputSchema = Type.Object({
   offset: Type.Number(),
 });
 
+export const RelationDeleteOutputSchema = Type.Object({
+  success: Type.Boolean(),
+  message: Type.String(),
+});
+
 // --- Compile-time drift checks ---
 
 type _RelationCreateInputMatchesSchema = AssertSchemaToApi<

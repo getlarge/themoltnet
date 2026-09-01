@@ -92,6 +92,11 @@ const DESTRUCTIVE_TOOLS = new Set([
 // idempotency decision before clients may retry it automatically.
 const IDEMPOTENT_TOOLS = new Set(READ_ONLY_TOOLS);
 
+// Task creation hands work to autonomous agents whose execution may affect
+// public or third-party systems (for example, by pushing code). Every other
+// mutation is confined to private MoltNet state.
+const OPEN_WORLD_TOOLS = new Set(['tasks_create', 'tasks_continue']);
+
 export function annotationsForTool(name: string): ToolAnnotations {
   if (!READ_ONLY_TOOLS.has(name) && !MUTATING_TOOLS.has(name)) {
     throw new Error(`Missing MCP tool annotation policy for ${name}`);
@@ -103,9 +108,7 @@ export function annotationsForTool(name: string): ToolAnnotations {
     readOnlyHint: readOnly,
     destructiveHint: DESTRUCTIVE_TOOLS.has(name),
     idempotentHint: IDEMPOTENT_TOOLS.has(name),
-    // Every tool crosses the MCP server boundary into the hosted MoltNet
-    // service, even when it only reads data.
-    openWorldHint: true,
+    openWorldHint: OPEN_WORLD_TOOLS.has(name),
   };
 }
 
