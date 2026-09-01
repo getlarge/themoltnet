@@ -140,6 +140,19 @@ function navigateTo(url: string): Promise<{ status: number; text: string }> {
  * the same absolute loader paths from their own working directory.
  */
 function spawnServe(args: string[]): ChildProcess {
+  // MOLTNET_AGENT_BUNDLE=<payload dir> runs the suite against a built,
+  // signed bundle (tools/release/agent-bundle) instead of the source tree:
+  // the launcher, the bundled Node runtime, the production dependency
+  // tree and the child re-exec path all get exercised. cwd is /tmp so
+  // nothing can resolve from the repository by accident.
+  const bundle = process.env.MOLTNET_AGENT_BUNDLE;
+  if (bundle) {
+    return spawn(join(bundle, 'bin/moltnet-agent'), ['serve', ...args], {
+      cwd: '/tmp',
+      env: process.env,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  }
   const tsxDist = join(DAEMON_ROOT, 'node_modules/tsx/dist');
   return spawn(
     process.execPath,
