@@ -29,7 +29,7 @@ export function normalizeOptionalApiUrl(apiUrl?: string): string {
 }
 
 /**
- * A long-lived agent key may only travel over HTTPS, or plaintext HTTP to a
+ * Long-lived credentials may only travel over HTTPS, or plaintext HTTP to a
  * loopback address for local development and e2e stacks.
  */
 export function requireSecureCredentialApiUrl(apiUrl: string): string {

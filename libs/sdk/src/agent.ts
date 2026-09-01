@@ -766,6 +766,14 @@ export interface TaskRequestOptions {
   teamId: string;
 }
 
+/** Per-call context for cancellable task reads. */
+export interface TaskReadOptions {
+  /** Active team. Sets `x-moltnet-team-id` for the request when provided. */
+  teamId?: string;
+  /** Abort the underlying HTTP request when the caller is cancelled. */
+  signal?: AbortSignal;
+}
+
 /** Per-call context for task creation. */
 export interface TaskCreateOptions extends TaskRequestOptions {
   /** Retry key for task creation, scoped by team and authenticated proposer. */
@@ -864,7 +872,7 @@ export interface TasksNamespace {
     options?: TaskRequestOptions,
   ): Promise<TaskResultReader>;
 
-  get(id: string, options?: TaskRequestOptions): Promise<Task>;
+  get(id: string, options?: TaskReadOptions): Promise<Task>;
 
   claim(
     id: string,
@@ -911,10 +919,7 @@ export interface TasksNamespace {
     options?: TaskRequestOptions,
   ): Promise<BatchDeleteTasksAcceptedResponse>;
 
-  listAttempts(
-    id: string,
-    options?: TaskRequestOptions,
-  ): Promise<TaskAttempt[]>;
+  listAttempts(id: string, options?: TaskReadOptions): Promise<TaskAttempt[]>;
 
   listMessages(
     id: string,

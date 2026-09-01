@@ -76,7 +76,7 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
   };
   const headersForTask = (
     taskId: string,
-    options?: TaskRequestOptions,
+    options?: { teamId?: string },
   ): ReturnType<typeof requiredTeamHeaders> | undefined => {
     const teamId = options?.teamId ?? taskTeams.get(taskId);
     return teamId ? requiredTeamHeaders({ teamId }) : undefined;
@@ -308,6 +308,7 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
             auth,
             headers: headersForTask(id, options),
             path: { id },
+            signal: options?.signal,
           }),
         ),
       );
@@ -419,6 +420,7 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
           auth,
           headers: headersForTask(id, options),
           path: { id },
+          signal: options?.signal,
         }),
       );
     },

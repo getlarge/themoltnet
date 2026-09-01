@@ -262,8 +262,9 @@ function requireTrustedConfigApiUrl(apiUrl: string): void {
  * 1. Explicit `agentKey` option → agent-key mode (static bearer)
  * 2. Explicit `clientId` / `clientSecret` → OAuth2 client-credentials
  * 3. `MOLTNET_AGENT_KEY` env → agent-key mode
- * 4. `MOLTNET_CLIENT_ID` / `MOLTNET_CLIENT_SECRET` env → OAuth2
- * 5. Config file (`~/.config/moltnet/moltnet.json`) → `agent_key_ref`, then
+ * 4. `MOLTNET_AGENT_KEY_REF` env → resolved agent-key mode
+ * 5. `MOLTNET_CLIENT_ID` / `MOLTNET_CLIENT_SECRET` env → OAuth2
+ * 6. Config file (`~/.config/moltnet/moltnet.json`) → `agent_key_ref`, then
  *    OAuth2, resolving credential references only at this use boundary
  *
  * In agent-key mode the key is sent directly as a bearer token — no OAuth2
