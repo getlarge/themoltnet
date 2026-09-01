@@ -175,6 +175,9 @@ for (const field of [
     throw new Error(`OpenAI submission listing.${field} must be an HTTPS URL`);
   }
 }
+if (submission.demoRecordingUrl !== 'https://youtu.be/xKgHelMRDZs') {
+  throw new Error('OpenAI submission must preserve the demo recording URL');
+}
 for (const asset of [codex.interface?.composerIcon, codex.interface?.logo]) {
   if (!asset?.startsWith('./assets/')) {
     throw new Error('Codex plugin visual assets must live under ./assets');

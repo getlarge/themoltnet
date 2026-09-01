@@ -190,6 +190,7 @@ test('ships a complete OpenAI public-review fixture', async () => {
     submission.authentication.agentCredentialsAcceptedByPublicPlugin,
     false,
   );
+  assert.equal(submission.demoRecordingUrl, 'https://youtu.be/xKgHelMRDZs');
   assert.ok(submission.testCases.positive.length >= 5);
   assert.ok(submission.testCases.negative.length >= 3);
   assert.match(submission.reviewerAccess.credentialDelivery, /portal/i);

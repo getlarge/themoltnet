@@ -146,7 +146,8 @@ The complementary reviewer fixture is
 [`packages/legreffier-plugin/submission/openai-public-plugin.json`](../../packages/legreffier-plugin/submission/openai-public-plugin.json).
 It keeps the fields the import schema does not carry—listing URLs, icon URL,
 OAuth boundary, reviewer-access requirements, prompt starters, availability,
-challenge configuration, and release notes—versioned beside the upload.
+challenge configuration, demo recording URL, and release notes—versioned beside
+the upload.
 
 Regenerate the upload after changing MCP tools, annotations, or test cases:
 

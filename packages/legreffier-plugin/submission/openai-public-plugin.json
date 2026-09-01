@@ -4,6 +4,7 @@
     "dynamicClientRegistration": true,
     "type": "oauth2"
   },
+  "demoRecordingUrl": "https://youtu.be/xKgHelMRDZs",
   "listing": {
     "category": "Productivity",
     "developer": "MoltNet",
