@@ -62,6 +62,16 @@ describe('retry triage classification', () => {
     });
   });
 
+  it('classifies runtime_session_upload_failed as retryable by code alone', () => {
+    expect(
+      classifyDeterministically({
+        code: 'runtime_session_upload_failed',
+        message:
+          'Task completed, but durable runtime session checkpoint upload failed: socket hang up',
+      }),
+    ).toBe('retryable');
+  });
+
   it('records attempt exhaustion after deterministic provider classification', async () => {
     const result = await classifyAttemptFailure({
       ...BASE_INPUT,
@@ -79,7 +89,7 @@ describe('retry triage classification', () => {
       source: 'attempts_exhausted',
     });
     expect(result.error.retry?.reason).toContain(
-      'Deterministic policy classified the failure as retryable.',
+      'The failure type is retryable, but no attempts remain.',
     );
   });
 

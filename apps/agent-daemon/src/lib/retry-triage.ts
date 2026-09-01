@@ -36,13 +36,15 @@ export interface ClassifiedAttemptFailure {
 type RetrySource = ClassifiedAttemptFailure['source'];
 
 const RETRYABLE_CODES = new Set([
-  'checkpoint_upload_failed',
   'complete_call_failed',
   'daemon_abort',
   'dispatch_expired',
   'lease_expired',
   'llm_api_error',
-  'runtime_session_checkpoint_failed',
+  // Emitted by `applyRuntimeSessionUploadFailure` when the in-attempt
+  // upload retries are exhausted; the completed work is gone, so a
+  // fresh attempt is the only recovery left.
+  'runtime_session_upload_failed',
   'session_prompt_failed',
 ]);
 
@@ -115,10 +117,16 @@ export async function classifyAttemptFailure(
     input.remainingAttempts !== undefined &&
     input.remainingAttempts <= 0
   ) {
+    // Two different senses of "retryable" meet here: the error's
+    // intrinsic class (would a retry help?) and the final decision
+    // (no attempts remain, so: no). Spell both out so the log line
+    // does not read as `retryable: false ... failure is retryable`.
     const deterministicReason =
       deterministic === 'ambiguous'
         ? ''
-        : ` Deterministic policy classified the failure as ${deterministic}.`;
+        : deterministic === 'retryable'
+          ? ' The failure type is retryable, but no attempts remain.'
+          : ' The failure type is non-retryable.';
     return {
       error: withRetryInfo(input.error, {
         retryable: false,

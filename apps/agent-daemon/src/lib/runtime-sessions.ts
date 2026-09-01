@@ -87,10 +87,37 @@ export function applyRuntimeSessionUploadFailure(
   };
 }
 
+export interface UploadRetryOptions {
+  /** Total tries including the first (default 3). */
+  maxTries?: number;
+  /** Backoff base; the delay before try N+1 is `baseDelayMs * N` (default 750). */
+  baseDelayMs?: number;
+  /** Injectable for tests. */
+  sleep?: (ms: number) => Promise<void>;
+}
+
+/**
+ * Transient faults worth retrying in-attempt: network-level errors
+ * (no HTTP status at all) and 5xx/429 responses. A 4xx (auth,
+ * validation, not-found) will not heal on retry.
+ */
+export function isTransientUploadError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const statusCode = (error as { statusCode?: unknown }).statusCode;
+  if (typeof statusCode !== 'number') return true;
+  return statusCode >= 500 || statusCode === 429;
+}
+
+const defaultSleep = (ms: number) =>
+  new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
 export function createApiRuntimeSessionStore(args: {
   agent: Agent;
+  uploadRetry?: UploadRetryOptions;
 }): RuntimeSessionStore {
-  const { agent } = args;
+  const { agent, uploadRetry } = args;
 
   return {
     async findRuntimeSessionByTaskAttempt(teamId, taskId, attemptN) {
@@ -124,17 +151,38 @@ export function createApiRuntimeSessionStore(args: {
           `Cannot upload runtime session for ${input.taskId}/${input.attemptN}: no local session file in ${input.sessionDir}`,
         );
       }
-      await agent.runtimeSessions.upload(
-        { attemptN: input.attemptN, taskId: input.taskId },
-        createReadStream(sessionPath),
-        {
-          parentSessionId: input.parentSessionId ?? undefined,
-          sessionKind: input.sessionKind,
-          sourceRuntimeProfileId: input.sourceRuntimeProfileId ?? undefined,
-          sourceSlotId: input.sourceSlotId ?? undefined,
-        },
-        { teamId: input.teamId },
-      );
+      // A transient checkpoint-upload fault must not burn the attempt:
+      // the executor work is already done, and re-running a whole
+      // attempt only to redo one HTTP PUT is the wrong retry layer.
+      // Retry here with backoff; only a persistent failure escalates
+      // into `applyRuntimeSessionUploadFailure` at the call site.
+      const maxTries = uploadRetry?.maxTries ?? 3;
+      const baseDelayMs = uploadRetry?.baseDelayMs ?? 750;
+      const sleep = uploadRetry?.sleep ?? defaultSleep;
+      for (let tryN = 1; ; tryN += 1) {
+        try {
+          await agent.runtimeSessions.upload(
+            { attemptN: input.attemptN, taskId: input.taskId },
+            // The body stream is consumed even by a failed try; a
+            // fresh stream per try keeps retries from PUTting an
+            // empty body.
+            createReadStream(sessionPath),
+            {
+              parentSessionId: input.parentSessionId ?? undefined,
+              sessionKind: input.sessionKind,
+              sourceRuntimeProfileId: input.sourceRuntimeProfileId ?? undefined,
+              sourceSlotId: input.sourceSlotId ?? undefined,
+            },
+            { teamId: input.teamId },
+          );
+          return;
+        } catch (error) {
+          if (tryN >= maxTries || !isTransientUploadError(error)) {
+            throw error;
+          }
+          await sleep(baseDelayMs * tryN);
+        }
+      }
     },
   };
 }
