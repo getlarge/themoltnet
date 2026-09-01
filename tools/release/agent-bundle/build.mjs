@@ -382,6 +382,11 @@ function vendorQemuImg(payloadDir) {
   }
 
   const version = spawnSync(target, ['--version'], { encoding: 'utf8' });
+  if (version.status !== 0 || !version.stdout.startsWith('qemu-img')) {
+    throw new Error(
+      `vendored qemu-img failed to run (status ${version.status}): ${version.stderr || version.stdout}`,
+    );
+  }
   return {
     version: version.stdout.split('\n')[0],
     dylibs: copied.length,
@@ -434,10 +439,13 @@ async function main() {
 
   if (args.packOnly) {
     // CI signs the assembled payload in place, then packs: the tarball
-    // must contain the signed binaries, not the ones we assembled.
+    // must contain the signed binaries, not the ones we assembled — and
+    // signing rewrites every Mach-O, so the manifest's integrity hashes
+    // MUST be recomputed here or self-heal would reject its own files.
     if (!existsSync(join(payloadDir, 'manifest.json'))) {
       throw new Error(`nothing to pack: ${payloadDir} has no manifest.json`);
     }
+    refreshManifestHashes(payloadDir, platform);
     pack(args.out, bundleName);
     return;
   }
@@ -520,6 +528,36 @@ async function main() {
   for (const file of manifest.native) console.log(`    ${file.path}`);
 
   if (args.pack) pack(args.out, bundleName);
+}
+
+/**
+ * Recompute `manifest.native` from the files on disk. Signing mutates
+ * every Mach-O after assembly; the file SET must not change (that would
+ * mean the payload was tampered with between assemble and pack).
+ */
+function refreshManifestHashes(payloadDir, platform) {
+  const manifestPath = join(payloadDir, 'manifest.json');
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+  const onDisk = listNativeFiles(payloadDir, platform).map((path) =>
+    relative(payloadDir, path),
+  );
+  const recorded = manifest.native.map((file) => file.path);
+  const missing = recorded.filter((path) => !onDisk.includes(path));
+  const added = onDisk.filter((path) => !recorded.includes(path));
+  if (missing.length > 0 || added.length > 0) {
+    throw new Error(
+      `native file set changed since assembly (missing: ${missing.join(', ') || '-'}; added: ${added.join(', ') || '-'}) — refusing to pack`,
+    );
+  }
+  manifest.native = recorded.map((path) => ({
+    path,
+    size: statSync(join(payloadDir, path)).size,
+    sha256: sha256File(join(payloadDir, path)),
+  }));
+  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  console.log(
+    `manifest refreshed: ${recorded.length} native hashes recomputed`,
+  );
 }
 
 function pack(outDir, bundleName) {

@@ -24,11 +24,28 @@ SERVICE_LABEL="net.themolt.agent.serve"
 log() { printf '%s\n' "$*" >&2; }
 die() { log "error: $*"; exit 1; }
 
+# Must match the release workflow's build matrix exactly: a platform that
+# detects as "supported" but is never published would request 404 assets.
+RELEASED_PLATFORMS="darwin-arm64 linux-x64"
+
 platform() {
   os=$(uname -s); arch=$(uname -m)
   case "$os" in Darwin) os=darwin ;; Linux) os=linux ;; *) die "unsupported OS: $os" ;; esac
   case "$arch" in arm64|aarch64) arch=arm64 ;; x86_64|amd64) arch=x64 ;; *) die "unsupported arch: $arch" ;; esac
-  printf '%s-%s' "$os" "$arch"
+  plat="$os-$arch"
+  case " $RELEASED_PLATFORMS " in
+    *" $plat "*) ;;
+    *) die "no moltnet-agent release exists for $plat yet (released: $RELEASED_PLATFORMS)" ;;
+  esac
+  printf '%s' "$plat"
+}
+
+# Versions become filesystem path segments under $HOME_DIR: reject anything
+# empty or path-hostile before it can turn a cleanup into `rm -rf` of the root.
+validate_version() {
+  case "$1" in
+    ''|*[!0-9A-Za-z.+-]*|.*) die "refusing unsafe version string: '$1'" ;;
+  esac
 }
 
 sha256() {
@@ -104,6 +121,11 @@ register_service() {
         service_unit > "$unit"
         systemctl --user daemon-reload
         systemctl --user enable --now moltnet-agent.service
+        # enable --now is a no-op for an already-active unit: force the
+        # upgrade to actually run the newly installed version.
+        systemctl --user try-restart moltnet-agent.service 2>/dev/null || true
+        systemctl --user is-active --quiet moltnet-agent.service \
+          || die "moltnet-agent.service failed to start after install"
         log "systemd user unit moltnet-agent.service enabled"
       else
         log "no systemd user session; start 'moltnet-agent serve' yourself (headless mode)"
@@ -158,13 +180,26 @@ install() {
   actual=$(sha256 "$archive")
   [ "$expected" = "$actual" ] || die "checksum mismatch for $name.tar.gz"
 
+  validate_version "$version"
   target="$HOME_DIR/$version"
+  case "$target" in "$HOME_DIR"/?*) ;; *) die "install target escapes $HOME_DIR" ;; esac
+
+  # One install at a time per root; a stale lock means a crashed installer.
+  mkdir -p "$HOME_DIR"
+  if ! mkdir "$HOME_DIR/.install-lock" 2>/dev/null; then
+    die "another install is in progress (remove $HOME_DIR/.install-lock if it is stale)"
+  fi
+  trap 'rmdir "$HOME_DIR/.install-lock" 2>/dev/null; rm -rf "$work"' EXIT
   if [ -x "$target/bin/moltnet-agent" ] && [ "$(readlink "$HOME_DIR/current" 2>/dev/null)" = "$target" ]; then
     log "moltnet-agent $version already installed"
   else
-    rm -rf "$target.partial"; mkdir -p "$target.partial"
-    tar -xzf "$archive" -C "$target.partial" --strip-components 1
-    rm -rf "$target"; mv "$target.partial" "$target"
+    staging=$(mktemp -d "$HOME_DIR/.staging.XXXXXX")
+    tar -xzf "$archive" -C "$staging" --strip-components 1
+    if [ -e "$staging/UNSIGNED" ] && [ "${MOLTNET_AGENT_ALLOW_UNSIGNED:-0}" != 1 ]; then
+      rm -rf "$staging"
+      die "this artifact is marked UNSIGNED (built without the release signing identity); refusing to install it. Set MOLTNET_AGENT_ALLOW_UNSIGNED=1 only if you built it yourself."
+    fi
+    rm -rf "$target"; mv "$staging" "$target"
     ln -sfn "$target" "$HOME_DIR/current"
     log "installed to $target"
   fi
@@ -173,13 +208,13 @@ install() {
   ln -sfn "$HOME_DIR/current/bin/moltnet-agent" "$BIN_DIR/moltnet-agent"
   case ":$PATH:" in *":$BIN_DIR:"*) ;; *) log "note: add $BIN_DIR to your PATH" ;; esac
 
-  # Prune older versions (keep current).
+  register_service "$plat"
+  # Prune older versions only after the service points at the new one.
   for dir in "$HOME_DIR"/*/; do
     dir=${dir%/}
-    case "$dir" in "$target"|*/current) ;; *) rm -rf "$dir" ;; esac
+    case "$dir" in "$target"|*/current|*/.install-lock|*/.staging.*) ;; *) rm -rf "$dir" ;; esac
   done
 
-  register_service "$plat"
   case "$plat" in
     linux-*)
       # The darwin bundle vendors qemu-img; on Linux it comes from the distro.

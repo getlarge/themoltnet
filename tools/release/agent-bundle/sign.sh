@@ -87,15 +87,34 @@ sign_one() {
       codesign $common --identifier net.themolt.agent --entitlements "$work/node.plist" -s "$identity" "$file"
       ;;
     *gondolin-krun-runner)
-      # Preserve the entitlements it ships with (hypervisor), whatever they are.
-      if codesign -d --entitlements "$work/krun.plist" --xml "$file" 2>/dev/null && [ -s "$work/krun.plist" ]; then
-        add_lib_validation_optout "$work/krun.plist"
-        # shellcheck disable=SC2086
-        codesign $common --entitlements "$work/krun.plist" -s "$identity" "$file"
-      else
-        # shellcheck disable=SC2086
-        codesign $common --entitlements "$work/exec.plist" -s "$identity" "$file"
-      fi
+      # Entitlement allowlist: the runner needs exactly the hypervisor
+      # entitlement (plus our ad-hoc library-validation opt-out). We verify
+      # the binary's current set is WITHIN the allowlist — so dependency
+      # drift or compromise fails signing loudly — then apply a freshly
+      # authored plist containing exactly the allowlisted entitlements,
+      # never whatever the package happened to carry.
+      current=$(codesign -d --entitlements - --xml "$file" 2>/dev/null \
+        | grep -oE '<key>[^<]+</key>' | sed 's/<[^>]*>//g' || true)
+      for ent in $current; do
+        case "$ent" in
+          com.apple.security.hypervisor) ;;
+          com.apple.security.cs.disable-library-validation) ;;
+          *)
+            echo "refusing to sign gondolin-krun-runner: entitlement outside the allowlist: $ent" >&2
+            exit 1
+            ;;
+        esac
+      done
+      cat > "$work/krun.plist" <<'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>com.apple.security.hypervisor</key><true/>
+</dict></plist>
+PLIST
+      add_lib_validation_optout "$work/krun.plist"
+      # shellcheck disable=SC2086
+      codesign $common --entitlements "$work/krun.plist" -s "$identity" "$file"
       ;;
     *.dylib|*.so|*.node)
       # shellcheck disable=SC2086
@@ -111,24 +130,47 @@ sign_one() {
   echo "signed  $1"
 }
 
-# Inside-out: shared objects and addons first, then executables, runtime last.
-echo "$native_paths" | grep -E '\.(dylib|so|node)$' | while IFS= read -r p; do [ -n "$p" ] && sign_one "$p"; done
-echo "$native_paths" | grep -vE '\.(dylib|so|node)$' | grep -v "^$runtime$" | while IFS= read -r p; do [ -n "$p" ] && sign_one "$p"; done
+# Inside-out: shared objects and addons first, then executables, runtime
+# last. Plain for-loops on purpose: `exit` inside a `... | while` pipeline
+# only leaves the subshell and the script would keep signing after a
+# refusal. Native paths never contain whitespace (node_modules layout).
+set -f
+for p in $native_paths; do
+  case "$p" in *.dylib|*.so|*.node) sign_one "$p" ;; esac
+done
+for p in $native_paths; do
+  case "$p" in *.dylib|*.so|*.node) ;; "$runtime") ;; *) sign_one "$p" ;; esac
+done
+set +f
 sign_one "$runtime"
 
 if [ "$verify" = 1 ]; then
-  echo "$native_paths" | while IFS= read -r p; do
-    [ -n "$p" ] || continue
-    codesign --verify --strict -v "$payload/$p" 2>&1 | sed "s#^#verify  #"
+  failures=$work/verify-failures
+  : > "$failures"
+  set -f
+  for p in $native_paths; do
+    if out=$(codesign --verify --strict -v "$payload/$p" 2>&1); then
+      printf '%s\n' "$out" | sed "s#^#verify  #"
+    else
+      printf '%s\n' "$out" | sed "s#^#verify  FAILED #" >&2
+      echo "$p" >> "$failures"
+    fi
   done
-  echo "entitlements on $runtime:"
-  codesign -d --entitlements - "$payload/$runtime" 2>/dev/null | grep -E "allow-jit|unsigned-executable-memory" || echo "  (none found — V8 JIT would break)" >&2
+  set +f
+  ents=$(codesign -d --entitlements - "$payload/$runtime" 2>/dev/null || true)
+  echo "$ents" | grep -q "allow-jit" || { echo "runtime is missing allow-jit (V8 breaks)" >&2; echo "$runtime:jit" >> "$failures"; }
+  echo "$ents" | grep -q "unsigned-executable-memory" || { echo "runtime is missing allow-unsigned-executable-memory" >&2; echo "$runtime:mem" >> "$failures"; }
   krun=$(echo "$native_paths" | grep 'gondolin-krun-runner$' | head -1 || true)
   if [ -n "$krun" ]; then
-    echo "entitlements on $krun:"
-    codesign -d --entitlements - "$payload/$krun" 2>/dev/null | grep -E "hypervisor" || echo "  (hypervisor entitlement missing)" >&2
+    codesign -d --entitlements - "$payload/$krun" 2>/dev/null | grep -q "hypervisor" \
+      || { echo "krun runner is missing the hypervisor entitlement" >&2; echo "$krun:hv" >> "$failures"; }
   fi
-  if [ "$identity" != "-" ]; then
-    spctl -a -vv -t execute "$payload/$runtime" 2>&1 | sed "s#^#spctl   #"
+  # Gatekeeper (spctl) is deliberately NOT checked here: before notarization
+  # every Developer ID binary is "rejected"; notarize.sh asserts it after.
+  if [ -s "$failures" ]; then
+    echo "signature verification failed for:" >&2
+    sed 's/^/  /' "$failures" >&2
+    exit 1
   fi
+  echo "verification passed for $(echo "$native_paths" | grep -c .) native files"
 fi

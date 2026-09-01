@@ -1788,7 +1788,11 @@ jobs:
       NX_LOAD_DOT_ENV_FILES: 'false'
       PAYLOAD: dist/agent-bundle/moltnet-agent-${{ matrix.platform }}
     steps:
+      # Bundle assembly runs dependency lifecycle scripts; never leave the
+      # checkout token on disk for them. Release upload uses GH_TOKEN env.
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v6
 
@@ -1816,9 +1820,13 @@ jobs:
           APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
         run: |
           if [ -z "$APPLE_CERT_P12" ]; then
-            echo "::warning::APPLE_CERT_P12 not configured — the darwin bundle will ship UNSIGNED"
-            echo "identity=" >> "$GITHUB_OUTPUT"
-            exit 0
+            if [ "${{ vars.ALLOW_UNSIGNED_DARWIN }}" = "true" ]; then
+              echo "::warning::APPLE_CERT_P12 not configured and ALLOW_UNSIGNED_DARWIN=true — shipping an UNSIGNED darwin bundle"
+              echo "identity=" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "::error::APPLE_CERT_P12 is not configured; refusing to publish an unsigned darwin bundle (set repo variable ALLOW_UNSIGNED_DARWIN=true to override)"
+            exit 1
           fi
           keychain="$RUNNER_TEMP/signing.keychain-db"
           password=$(openssl rand -hex 16)
