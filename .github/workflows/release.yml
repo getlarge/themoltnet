@@ -1764,6 +1764,98 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # Self-contained `moltnet-agent` bundles (#2063): pinned Node runtime +
+  # daemon + native vendor binaries, assembled ON each target platform (the
+  # krun-runner package is per-platform). macOS artifacts are Developer-ID
+  # signed + notarized when the Apple secrets are configured; until then the
+  # job still proves assembly and ships an unsigned tarball marked as such.
+  release-agent-bundle:
+    name: Release moltnet-agent bundle (${{ matrix.platform }})
+    needs: [resolve-publish, publish-agent-daemon]
+    if: ${{ always() && needs.resolve-publish.outputs.agent-daemon == 'true' && !failure() && !cancelled() }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: darwin-arm64
+            os: macos-latest
+          - platform: linux-x64
+            os: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    env:
+      NX_LOAD_DOT_ENV_FILES: 'false'
+      PAYLOAD: dist/agent-bundle/moltnet-agent-${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .tool-versions
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Assemble payload
+        run: pnpm exec nx run @themoltnet/agent-daemon:bundle
+
+      - name: Import Developer ID certificate
+        id: cert
+        if: ${{ runner.os == 'macOS' }}
+        env:
+          APPLE_CERT_P12: ${{ secrets.APPLE_CERT_P12 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+        run: |
+          if [ -z "$APPLE_CERT_P12" ]; then
+            echo "::warning::APPLE_CERT_P12 not configured — the darwin bundle will ship UNSIGNED"
+            echo "identity=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          password=$(openssl rand -hex 16)
+          echo "$APPLE_CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          security import "$RUNNER_TEMP/cert.p12" -P "$APPLE_CERT_PASSWORD" -A -t cert -f pkcs12 -k "$keychain"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$password" "$keychain"
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          identity=$(security find-identity -v -p codesigning "$keychain" | grep "Developer ID Application" | head -1 | sed 's/.*"\(.*\)"/\1/')
+          rm -f "$RUNNER_TEMP/cert.p12"
+          [ -n "$identity" ] || { echo "no Developer ID Application identity in the p12" >&2; exit 1; }
+          echo "identity=$identity" >> "$GITHUB_OUTPUT"
+
+      - name: Sign (Developer ID, hardened runtime)
+        if: ${{ runner.os == 'macOS' && steps.cert.outputs.identity != '' }}
+        run: sh tools/release/agent-bundle/sign.sh --payload "$PAYLOAD" --identity "${{ steps.cert.outputs.identity }}" --verify
+
+      - name: Notarize
+        if: ${{ runner.os == 'macOS' && steps.cert.outputs.identity != '' }}
+        env:
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
+          NOTARY_KEY: ${{ secrets.NOTARY_KEY }}
+        run: sh tools/release/agent-bundle/notarize.sh --payload "$PAYLOAD"
+
+      - name: Mark unsigned macOS artifact
+        if: ${{ runner.os == 'macOS' && steps.cert.outputs.identity == '' }}
+        run: touch "$PAYLOAD/UNSIGNED"
+
+      - name: Pack payload
+        run: node tools/release/agent-bundle/build.mjs --pack-only --out dist/agent-bundle
+
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ needs.resolve-publish.outputs.agent-daemon-tag }}" \
+            "$PAYLOAD.tar.gz" "$PAYLOAD.tar.gz.sha256" \
+            tools/release/agent-bundle/install.sh \
+            --clobber
+
   publish-design-system:
     name: Publish Design System to npm
     needs: resolve-publish
