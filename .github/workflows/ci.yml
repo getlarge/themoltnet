@@ -3,10 +3,6 @@ name: CI
 on:
   push:
     branches: [main]
-    # Baseline PRs run the required pull-request checks before merge. Avoid a
-    # second full CI/deploy cycle when their generated-only commit lands.
-    paths-ignore:
-      - '.codeboarding/**'
   # Run stacked PRs too: a stack's upper PR targets the preceding branch,
   # not main, and must still receive the same validation.
   pull_request:
