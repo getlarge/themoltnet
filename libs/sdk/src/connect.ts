@@ -4,7 +4,7 @@ import type { CredentialScope } from '@moltnet/models';
 
 import type { Agent } from './agent.js';
 import { createAgent } from './agent.js';
-import { normalizeApiUrl } from './api-url.js';
+import { normalizeApiUrl, requireSecureAgentKeyApiUrl } from './api-url.js';
 import { readEnvCredentials } from './config.js';
 import {
   CredentialResolutionError,
@@ -219,25 +219,6 @@ function requireAgentKeyApiUrl(
     );
   }
   return requireSecureAgentKeyApiUrl(normalizeApiUrl(apiUrl));
-}
-
-/**
- * A long-lived agent key is sent as a static bearer on every request, so it
- * may only travel over HTTPS — or plaintext HTTP to a loopback address for
- * local development and e2e stacks. Mirrors the Go CLI's
- * `validateAgentKeyAPIURL`.
- */
-function requireSecureAgentKeyApiUrl(apiUrl: string): string {
-  const url = new URL(apiUrl);
-  if (url.protocol === 'https:') return apiUrl;
-  const host = url.hostname.replace(/^\[|\]$/g, '');
-  const loopback =
-    host === 'localhost' || host === '::1' || /^127(\.\d{1,3}){3}$/.test(host);
-  if (url.protocol === 'http:' && loopback) return apiUrl;
-  throw new MoltNetError(
-    `Refusing to send an agent key to insecure API URL ${JSON.stringify(apiUrl)}; use HTTPS or an HTTP loopback address.`,
-    { code: 'INVALID_CONFIG' },
-  );
 }
 
 function requireActivatedConfigDir(
