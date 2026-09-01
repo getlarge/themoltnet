@@ -23,6 +23,8 @@ export interface FakeApiOptions {
   statuses?: string[];
   terminalStatus?: string;
   createStatus?: number;
+  attempts?: IDataObject[];
+  acceptedAttemptN?: number | null;
 }
 
 export class FakeMoltNetApi {
@@ -41,12 +43,17 @@ export class FakeMoltNetApi {
   private readonly statuses: string[];
   private readonly terminalStatus: string;
   private readonly createStatus: number;
+  private readonly attempts: IDataObject[];
+  private readonly acceptedAttemptN: number | null | undefined;
   private statusIndex = 0;
+  private taskTeamId = teamId;
 
   constructor(options: FakeApiOptions = {}) {
     this.statuses = options.statuses ?? [];
     this.terminalStatus = options.terminalStatus ?? 'completed';
     this.createStatus = options.createStatus ?? 201;
+    this.attempts = options.attempts ?? [this.attempt];
+    this.acceptedAttemptN = options.acceptedAttemptN;
   }
 
   readonly fetch = async (
@@ -81,6 +88,7 @@ export class FakeMoltNetApi {
           this.createStatus,
         );
       }
+      this.taskTeamId = request.headers.get('x-moltnet-team-id') ?? teamId;
       return jsonResponse(this.task(body), this.createStatus);
     }
     if (url.pathname === `/tasks/${this.taskId}`) {
@@ -88,7 +96,7 @@ export class FakeMoltNetApi {
       return jsonResponse(this.task({}, status));
     }
     if (url.pathname === `/tasks/${this.taskId}/attempts`) {
-      return jsonResponse([this.attempt]);
+      return jsonResponse(this.attempts);
     }
 
     return jsonResponse({ title: 'Not found', status: 404 }, 404);
@@ -97,7 +105,7 @@ export class FakeMoltNetApi {
   private task(body: IDataObject, status = 'queued'): IDataObject {
     return {
       id: this.taskId,
-      teamId,
+      teamId: this.taskTeamId,
       diaryId,
       taskType: body.taskType ?? 'freeform',
       input: body.input ?? { brief: 'test' },
@@ -107,7 +115,12 @@ export class FakeMoltNetApi {
       correlationId:
         body.correlationId ?? '55555555-5555-4555-8555-555555555555',
       status,
-      acceptedAttemptN: status === 'completed' ? 1 : null,
+      acceptedAttemptN:
+        this.acceptedAttemptN === undefined
+          ? status === 'completed'
+            ? 1
+            : null
+          : this.acceptedAttemptN,
       createdAt: '2026-08-31T00:00:00.000Z',
       updatedAt: '2026-08-31T00:00:00.000Z',
     };

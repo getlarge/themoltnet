@@ -118,8 +118,9 @@ For binding, rotation, and revocation, see
   task builder validates the request before it is sent.
 - **Wait** polls a task until it is completed, failed, cancelled, or expired,
   then emits a normalized task snapshot with the attempts and accepted output.
-  The default interval is five seconds and the default timeout is 30 minutes;
-  set timeout to zero to disable it.
+  The default interval is five seconds, increases with jittered backoff to at
+  most 60 seconds, and has a finite 30-minute execution cap. Run Wait again to
+  inspect a task that outlives that cap.
 
 Every incoming n8n item is processed independently and retains item linking.
 Enable **Continue On Fail** to receive an error item instead of stopping the
@@ -140,6 +141,10 @@ The runner builds and watches the CommonJS bundle, links it into an isolated n8n
 user directory, and serves the editor at <http://localhost:5678>. Opening the
 editor needs no MoltNet infrastructure. Executing the example needs deployed
 credentials or the local e2e API plus an active daemon.
+
+The packaged example uses the registry node identity. For local development,
+the runner prints the full path to a generated copy using n8n's `CUSTOM`
+loader identity; import that generated file into the local editor.
 
 ## Scope
 

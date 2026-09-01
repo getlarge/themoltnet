@@ -5,12 +5,18 @@ import { MoltNet } from '../nodes/MoltNet/MoltNet.node.js';
 import { createExecuteContext, FakeMoltNetApi } from './harness.js';
 
 describe('shipped Create to Wait workflow', () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
 
   it('feeds the real Create output into the real Wait operation', async () => {
     const api = new FakeMoltNetApi({
       statuses: ['running', 'completed'],
     });
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0);
     vi.stubGlobal('fetch', api.fetch);
     const createNode = workflow.nodes.find(
       ({ name }) => name === 'MoltNet Create',
@@ -18,6 +24,8 @@ describe('shipped Create to Wait workflow', () => {
     const waitNode = workflow.nodes.find(({ name }) => name === 'MoltNet Wait');
     expect(createNode).toBeDefined();
     expect(waitNode).toBeDefined();
+    expect(createNode?.type).toBe('@themoltnet/n8n-nodes-moltnet.moltNet');
+    expect(waitNode?.type).toBe('@themoltnet/n8n-nodes-moltnet.moltNet');
 
     const [created] = await new MoltNet().execute.call(
       createExecuteContext({ parameters: createNode!.parameters }),
@@ -25,17 +33,19 @@ describe('shipped Create to Wait workflow', () => {
     const taskIdExpression = waitNode!.parameters.taskId;
     expect(taskIdExpression).toBe('={{$json.id}}');
 
-    const [waited] = await new MoltNet().execute.call(
+    const execution = new MoltNet().execute.call(
       createExecuteContext({
         items: created,
         parameters: {
           ...waitNode!.parameters,
           taskId: created[0].json.id,
-          pollInterval: 0.001,
-          timeout: 1,
+          pollInterval: 5,
+          timeout: 30,
         },
       }),
     );
+    await vi.runAllTimersAsync();
+    const [waited] = await execution;
 
     expect(waited[0].json).toMatchObject({
       taskId: api.taskId,

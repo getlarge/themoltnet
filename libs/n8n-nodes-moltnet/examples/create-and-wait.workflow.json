@@ -32,7 +32,7 @@
         "taskType": "freeform"
       },
       "position": [240, 0],
-      "type": "CUSTOM.moltNet",
+      "type": "@themoltnet/n8n-nodes-moltnet.moltNet",
       "typeVersion": 1
     },
     {
@@ -46,7 +46,7 @@
         "timeout": 1800
       },
       "position": [480, 0],
-      "type": "CUSTOM.moltNet",
+      "type": "@themoltnet/n8n-nodes-moltnet.moltNet",
       "typeVersion": 1
     }
   ],

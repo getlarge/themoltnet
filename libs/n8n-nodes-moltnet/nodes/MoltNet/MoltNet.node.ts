@@ -1,4 +1,10 @@
-import { type Agent, MoltNetError, TaskBuildError } from '@themoltnet/sdk';
+import {
+  type Agent,
+  buildTaskSnapshot,
+  isTerminalTaskStatus,
+  MoltNetError,
+  TaskBuildError,
+} from '@themoltnet/sdk';
 import type {
   ICredentialsDecrypted,
   ICredentialTestFunctions,
@@ -22,13 +28,12 @@ import {
   type MoltNetCredentials,
   optionalString,
 } from '../../src/client.js';
-import {
-  buildTaskSnapshot,
-  isTerminalTaskStatus,
-} from '../../src/task-snapshot.js';
 
 const defaultPollIntervalSeconds = 5;
 const defaultTimeoutSeconds = 1_800;
+const minimumPollIntervalSeconds = 5;
+const maximumPollIntervalSeconds = 60;
+const maximumTimeoutSeconds = 1_800;
 
 interface CreateOptions extends IDataObject {
   title?: string;
@@ -75,13 +80,36 @@ function toNodeError(
     return error;
   }
   if (error instanceof MoltNetError) {
+    const validationErrors = error.validationErrors?.map(
+      ({ field, message }) => ({ field, message }) satisfies JsonObject,
+    );
+    const errorData: JsonObject = {
+      message: error.message,
+      name: error.name,
+      code: error.code,
+      ...(error.statusCode === undefined
+        ? {}
+        : { status: error.statusCode, statusCode: error.statusCode }),
+      ...(error.detail === undefined ? {} : { detail: error.detail }),
+      ...(validationErrors === undefined ? {} : { validationErrors }),
+    };
     return new NodeApiError(
       context.getNode(),
+      { response: { data: errorData } },
       {
+        itemIndex,
         message: error.message,
-        name: error.name,
-      } as JsonObject,
-      { itemIndex, message: error.message },
+        description:
+          error.detail ??
+          validationErrors
+            ?.map(
+              ({ field, message }) => `${String(field)}: ${String(message)}`,
+            )
+            .join('; '),
+        ...(error.statusCode === undefined
+          ? {}
+          : { httpCode: String(error.statusCode) }),
+      },
     );
   }
   return new NodeOperationError(
@@ -166,27 +194,112 @@ async function waitForTask(
     itemIndex,
     defaultTimeoutSeconds,
   ) as number;
+  if (
+    !Number.isFinite(pollIntervalSeconds) ||
+    pollIntervalSeconds < minimumPollIntervalSeconds
+  ) {
+    throw new NodeOperationError(
+      context.getNode(),
+      `Polling interval must be at least ${minimumPollIntervalSeconds} seconds`,
+      { itemIndex },
+    );
+  }
+  if (
+    !Number.isFinite(timeoutSeconds) ||
+    timeoutSeconds <= 0 ||
+    timeoutSeconds > maximumTimeoutSeconds
+  ) {
+    throw new NodeOperationError(
+      context.getNode(),
+      `Timeout must be between 1 and ${maximumTimeoutSeconds} seconds`,
+      { itemIndex },
+    );
+  }
   const startedAt = Date.now();
-  const options = requestOptions(optionalString(credentials.teamId));
+  const deadline = startedAt + timeoutSeconds * 1_000;
+  const options = requestOptions(
+    taskTeamIdFromInput(context, itemIndex) ??
+      optionalString(credentials.teamId),
+  );
+  let pollCount = 0;
 
   for (;;) {
+    if (pollCount > 0 && Date.now() >= deadline) {
+      throw waitTimeoutError(context, taskId, timeoutSeconds, itemIndex);
+    }
     const task = await agent.tasks.get(taskId, options);
     if (isTerminalTaskStatus(task.status)) {
       const attempts = await agent.tasks.listAttempts(taskId, options);
       return buildTaskSnapshot(task, attempts) as unknown as IDataObject;
     }
-    if (
-      timeoutSeconds > 0 &&
-      Date.now() - startedAt >= timeoutSeconds * 1_000
-    ) {
-      throw new NodeOperationError(
-        context.getNode(),
-        `Timed out waiting for task ${taskId} after ${timeoutSeconds} seconds`,
-        { itemIndex },
-      );
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) {
+      throw waitTimeoutError(context, taskId, timeoutSeconds, itemIndex);
     }
-    await sleep(pollIntervalSeconds * 1_000);
+    const backoffMs = Math.min(
+      maximumPollIntervalSeconds * 1_000,
+      pollIntervalSeconds * 1_000 * 2 ** Math.min(pollCount, 10),
+    );
+    const jitteredMs = Math.min(
+      maximumPollIntervalSeconds * 1_000,
+      Math.round(backoffMs * (1 + Math.random() * 0.2)),
+    );
+    pollCount += 1;
+    await sleep(Math.min(jitteredMs, remainingMs));
   }
+}
+
+function taskTeamIdFromInput(
+  context: IExecuteFunctions,
+  itemIndex: number,
+): string | undefined {
+  const json = context.getInputData()[itemIndex]?.json;
+  const task = json?.task;
+  return (
+    optionalString(json?.teamId) ??
+    (task && typeof task === 'object' && !Array.isArray(task)
+      ? optionalString((task as IDataObject).teamId)
+      : undefined)
+  );
+}
+
+function waitTimeoutError(
+  context: IExecuteFunctions,
+  taskId: string,
+  timeoutSeconds: number,
+  itemIndex: number,
+): NodeOperationError {
+  return new NodeOperationError(
+    context.getNode(),
+    `Timed out waiting for task ${taskId} after ${timeoutSeconds} seconds`,
+    { itemIndex },
+  );
+}
+
+function continueOnFailData(error: unknown, nodeError: Error): IDataObject {
+  if (error instanceof NodeApiError) {
+    const data = error.context.data;
+    return data && typeof data === 'object' && !Array.isArray(data)
+      ? { error: nodeError.message, ...(data as IDataObject) }
+      : { error: nodeError.message };
+  }
+  if (!(error instanceof MoltNetError)) return { error: nodeError.message };
+  return {
+    error: nodeError.message,
+    code: error.code,
+    ...(error.statusCode === undefined ? {} : { statusCode: error.statusCode }),
+    ...(error.detail === undefined ? {} : { detail: error.detail }),
+    ...(error.validationErrors === undefined
+      ? {}
+      : {
+          validationErrors: error.validationErrors.map(
+            ({ field, message }) => ({
+              field,
+              message,
+            }),
+          ),
+        }),
+  };
 }
 
 export class MoltNet implements INodeType {
@@ -240,7 +353,8 @@ export class MoltNet implements INodeType {
             name: 'Wait',
             value: 'wait',
             action: 'Wait for a task',
-            description: 'Poll until a task reaches a terminal status',
+            description:
+              'Poll with bounded backoff until a task reaches a terminal status',
           },
         ],
         default: 'create',
@@ -325,7 +439,7 @@ export class MoltNet implements INodeType {
         displayName: 'Polling Interval (Seconds)',
         name: 'pollInterval',
         type: 'number',
-        typeOptions: { minValue: 0.01 },
+        typeOptions: { minValue: minimumPollIntervalSeconds },
         default: defaultPollIntervalSeconds,
         displayOptions: { show: { operation: ['wait'], resource: ['task'] } },
       },
@@ -333,10 +447,11 @@ export class MoltNet implements INodeType {
         displayName: 'Timeout (Seconds)',
         name: 'timeout',
         type: 'number',
-        typeOptions: { minValue: 0 },
+        typeOptions: { minValue: 1, maxValue: maximumTimeoutSeconds },
         default: defaultTimeoutSeconds,
         displayOptions: { show: { operation: ['wait'], resource: ['task'] } },
-        description: 'Set to 0 to wait without a timeout',
+        description:
+          'Finite execution cap; longer tasks can be checked by running Wait again',
       },
     ],
   };
@@ -367,6 +482,9 @@ export class MoltNet implements INodeType {
   async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
     const inputItems = this.getInputData();
     const outputItems: INodeExecutionData[] = [];
+    let connectionPromise:
+      | Promise<{ agent: Agent; credentials: MoltNetCredentials }>
+      | undefined;
 
     for (let itemIndex = 0; itemIndex < inputItems.length; itemIndex += 1) {
       try {
@@ -374,11 +492,14 @@ export class MoltNet implements INodeType {
           'operation',
           itemIndex,
         ) as string;
-        const credentials = await this.getCredentials<MoltNetCredentials>(
+        connectionPromise ??= this.getCredentials<MoltNetCredentials>(
           'moltNetApi',
           itemIndex,
-        );
-        const agent = await connectMoltNet(credentials);
+        ).then(async (credentials) => ({
+          credentials,
+          agent: await connectMoltNet(credentials),
+        }));
+        const { agent, credentials } = await connectionPromise;
         const result =
           operation === 'create'
             ? await createTask(this, agent, credentials, itemIndex)
@@ -388,7 +509,7 @@ export class MoltNet implements INodeType {
         const nodeError = toNodeError(this, error, itemIndex);
         if (!this.continueOnFail()) throw nodeError;
         outputItems.push({
-          json: { error: nodeError.message },
+          json: continueOnFailData(error, nodeError),
           error: nodeError,
           pairedItem: { item: itemIndex },
         });

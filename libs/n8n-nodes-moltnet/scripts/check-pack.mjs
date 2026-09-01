@@ -1,3 +1,5 @@
+import { execFileSync } from 'node:child_process';
+import console from 'node:console';
 import {
   existsSync,
   mkdirSync,
@@ -8,12 +10,10 @@ import {
   symlinkSync,
   writeFileSync,
 } from 'node:fs';
-import console from 'node:console';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { execFileSync } from 'node:child_process';
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const temporaryRoot = mkdtempSync(join(tmpdir(), 'moltnet-n8n-pack-'));
@@ -45,6 +45,22 @@ function listFiles(root, prefix = '') {
 }
 
 try {
+  // Run the repository-wide entrypoint, source-leak, relative-import,
+  // declaration, private-dependency, and provenance checks first. The rest of
+  // this script adds the n8n manifest, CommonJS, host-peer, and cloud-safety
+  // probes that are specific to community nodes.
+  execFileSync(
+    'pnpm',
+    [
+      'exec',
+      'tsx',
+      '../../tools/src/check-pack.ts',
+      '--package',
+      packageRoot,
+    ],
+    { cwd: packageRoot, stdio: 'inherit' },
+  );
+
   const packed = JSON.parse(
     execFileSync(
       'pnpm',
@@ -77,17 +93,6 @@ try {
   for (const file of requiredFiles) {
     assert(files.includes(file), `Packed package is missing ${file}`);
   }
-
-  const leakedSource = files.find(
-    (file) =>
-      file.startsWith('src/') ||
-      file.startsWith('nodes/') ||
-      file.startsWith('credentials/') ||
-      file.startsWith('__tests__/') ||
-      file.endsWith('.ts') ||
-      file.endsWith('.tsbuildinfo'),
-  );
-  assert(!leakedSource, `Packed package leaked source file ${leakedSource}`);
 
   for (const entry of manifest.n8n.nodes.concat(manifest.n8n.credentials)) {
     assert(
@@ -141,7 +146,10 @@ try {
   const consumerHost = join(consumerModules, 'n8n-workflow');
   if (!existsSync(consumerHost)) symlinkSync(hostModule, consumerHost, 'dir');
 
-  const installedRoot = join(consumerModules, '@themoltnet/n8n-nodes-moltnet');
+  const installedRoot = join(
+    consumerModules,
+    '@themoltnet/n8n-nodes-moltnet',
+  );
   execFileSync(
     process.execPath,
     [

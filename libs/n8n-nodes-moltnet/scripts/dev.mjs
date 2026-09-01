@@ -2,6 +2,7 @@ import {
   existsSync,
   lstatSync,
   mkdirSync,
+  readFileSync,
   symlinkSync,
   unlinkSync,
   writeFileSync,
@@ -18,6 +19,7 @@ const userFolder = resolve(tmpdir(), 'moltnet-n8n-nodes-dev');
 const runtimeFolder = resolve(userFolder, 'runtime');
 const nodeModulesFolder = resolve(userFolder, '.n8n/custom/node_modules');
 const packageLink = resolve(nodeModulesFolder, '@themoltnet/n8n-nodes-moltnet');
+const localWorkflowPath = resolve(userFolder, 'create-and-wait.workflow.json');
 const n8nBinary = resolve(
   runtimeFolder,
   'node_modules/.bin',
@@ -83,9 +85,25 @@ function ensureN8nRuntime() {
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
+function writeLocalWorkflow() {
+  const workflow = JSON.parse(
+    readFileSync(
+      resolve(packageRoot, 'examples/create-and-wait.workflow.json'),
+      'utf8',
+    ),
+  );
+  for (const node of workflow.nodes ?? []) {
+    if (node.type === '@themoltnet/n8n-nodes-moltnet.moltNet') {
+      node.type = 'CUSTOM.moltNet';
+    }
+  }
+  writeFileSync(localWorkflowPath, JSON.stringify(workflow, null, 2));
+}
+
 runBuild();
 linkPackage();
 ensureN8nRuntime();
+writeLocalWorkflow();
 
 const children = [
   spawn('pnpm', ['exec', 'vite', 'build', '--watch'], {
@@ -140,3 +158,4 @@ for (const child of children) {
 }
 
 console.log('MoltNet n8n development editor: http://localhost:5678');
+console.log(`Local importable workflow: ${localWorkflowPath}`);
