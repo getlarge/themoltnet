@@ -9,6 +9,9 @@
  */
 
 export const SERVE_TOKEN_HEADER = 'x-moltnet-serve-token';
+const READ_TIMEOUT_MS = 5_000;
+const MUTATION_TIMEOUT_MS = 60_000;
+const MAX_SSE_EVENT_CHARS = 256 * 1024;
 
 export interface ServeAgentView {
   kind: 'managed' | 'external';
@@ -114,7 +117,10 @@ function loopbackUrl(value: string): URL {
       url.hostname !== 'localhost' &&
       url.hostname !== '[::1]') ||
     url.username ||
-    url.password
+    url.password ||
+    url.pathname !== '/' ||
+    url.search ||
+    url.hash
   ) {
     throw new Error('serve companion URL must be plain loopback http');
   }
@@ -130,39 +136,46 @@ export function createServeClient(options: {
   const baseUrl = loopbackUrl(options.baseUrl);
   const base = baseUrl.href.replace(/\/$/, '');
   const fetchImpl = options.fetch ?? fetch;
-  const requestTimeoutMs = options.requestTimeoutMs ?? 5_000;
+  const requestTimeoutMs = options.requestTimeoutMs ?? READ_TIMEOUT_MS;
 
   async function request<T>(
     method: string,
     path: string,
     body?: unknown,
+    requestOptions: {
+      timeoutMs?: number | null;
+    } = {},
   ): Promise<T> {
     const headers: Record<string, string> = { accept: 'application/json' };
     const token = options.getToken();
     if (token) headers[SERVE_TOKEN_HEADER] = token;
     if (body !== undefined) headers['content-type'] = 'application/json';
-    const response = await fetchImpl(`${base}${path}`, {
-      method,
-      credentials: 'omit',
-      redirect: 'error',
-      signal: AbortSignal.timeout(requestTimeoutMs),
-      headers,
-      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-    });
+    let response: Response;
+    try {
+      response = await fetchImpl(`${base}${path}`, {
+        method,
+        credentials: 'omit',
+        redirect: 'error',
+        signal:
+          requestOptions.timeoutMs === null
+            ? undefined
+            : AbortSignal.timeout(requestOptions.timeoutMs ?? requestTimeoutMs),
+        headers,
+        ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+      });
+    } catch (error) {
+      const timedOut =
+        error instanceof DOMException && error.name === 'TimeoutError';
+      throw new ServeClientError(
+        timedOut ? 'request_timeout' : 'serve_unavailable',
+        timedOut
+          ? 'The local supervisor request timed out.'
+          : 'The local supervisor is unavailable.',
+        0,
+      );
+    }
     if (!response.ok) {
-      let code = 'request_failed';
-      let message = `serve request failed with ${response.status}`;
-      try {
-        const problem = (await response.json()) as {
-          code?: string;
-          message?: string;
-        };
-        if (problem.code) code = problem.code;
-        if (problem.message) message = problem.message;
-      } catch {
-        // keep defaults
-      }
-      throw new ServeClientError(code, message, response.status);
+      throw await responseError(response);
     }
     return (await response.json()) as T;
   }
@@ -194,13 +207,19 @@ export function createServeClient(options: {
       return request('GET', '/v1/status');
     },
     createAgent(body: CreateAgentBody) {
-      return request('POST', '/v1/agents', body);
+      return request('POST', '/v1/agents', body, {
+        timeoutMs: null,
+      });
     },
     putProvider(id: string, body: PutProviderBody) {
-      return request('PUT', `/v1/providers/${id}`, body);
+      return request('PUT', `/v1/providers/${id}`, body, {
+        timeoutMs: MUTATION_TIMEOUT_MS,
+      });
     },
     startRun(body: StartRunBody) {
-      return request('POST', '/v1/runs', body);
+      return request('POST', '/v1/runs', body, {
+        timeoutMs: null,
+      });
     },
     async stopRun(runId: string): Promise<void> {
       await request('DELETE', `/v1/runs/${runId}`);
@@ -221,26 +240,73 @@ export function createServeClient(options: {
         headers,
         signal,
       });
-      if (!response.ok || !response.body) {
+      if (!response.ok) throw await responseError(response);
+      if (!response.body) {
         throw new ServeClientError(
           'logs_unavailable',
-          `log stream failed with ${response.status}`,
+          'The local supervisor returned an empty log stream.',
           response.status,
         );
       }
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) return;
-        buffer += decoder.decode(value, { stream: true });
-        const parts = buffer.split('\n');
-        buffer = parts.pop() ?? '';
-        for (const part of parts) {
-          if (part.startsWith('data: ')) onLine(part.slice('data: '.length));
+      try {
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) {
+            buffer += decoder.decode();
+            emitSseLines(buffer.split(/\r?\n/u), onLine);
+            return;
+          }
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split(/\r?\n/u);
+          buffer = parts.pop() ?? '';
+          if (buffer.length > MAX_SSE_EVENT_CHARS) {
+            throw new ServeClientError(
+              'logs_event_too_large',
+              'The local supervisor returned an oversized log event.',
+              0,
+            );
+          }
+          emitSseLines(parts, onLine);
         }
+      } finally {
+        await reader.cancel().catch(() => undefined);
+        reader.releaseLock();
       }
     },
   };
+}
+
+async function responseError(response: Response): Promise<ServeClientError> {
+  let code = 'request_failed';
+  let message = `serve request failed with ${response.status}`;
+  try {
+    const problem = (await response.json()) as {
+      code?: string;
+      message?: string;
+    };
+    if (problem.code) code = problem.code;
+    if (problem.message) message = problem.message;
+  } catch {
+    // Keep the stable fallback for non-JSON failures.
+  }
+  return new ServeClientError(code, message, response.status);
+}
+
+function emitSseLines(parts: string[], onLine: (line: string) => void): void {
+  for (const part of parts) {
+    const payload = part.startsWith('data: ')
+      ? part.slice('data: '.length)
+      : undefined;
+    if ((payload ?? part).length > MAX_SSE_EVENT_CHARS) {
+      throw new ServeClientError(
+        'logs_event_too_large',
+        'The local supervisor returned an oversized log event.',
+        0,
+      );
+    }
+    if (payload !== undefined) onLine(payload);
+  }
 }

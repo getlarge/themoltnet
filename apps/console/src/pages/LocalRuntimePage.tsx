@@ -6,9 +6,23 @@
  */
 import { listRuntimeProfilesOptions } from '@moltnet/api-client/query';
 import { useQuery } from '@tanstack/react-query';
-import { Badge, Button, Input, Stack, Text } from '@themoltnet/design-system';
-import { useEffect, useRef, useState } from 'react';
+import {
+  Badge,
+  Button,
+  Input,
+  Select,
+  Stack,
+  Text,
+} from '@themoltnet/design-system';
+import {
+  type Dispatch,
+  type SetStateAction,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 
+import { abortableDelay } from '../abortable-delay.js';
 import { getApiClient } from '../api.js';
 import type {
   ServeRunView,
@@ -27,9 +41,11 @@ export function LocalRuntimePage() {
     <Stack gap={6}>
       <CompanionBanner runtime={runtime} />
       {runtime.actionError ? (
-        <Text variant="caption" color="error">
-          {runtime.actionError}
-        </Text>
+        <div role="alert">
+          <Text variant="caption" color="error">
+            {runtime.actionError}
+          </Text>
+        </div>
       ) : null}
       {runtime.status === 'connected' && runtime.data ? (
         <Stack gap={6}>
@@ -51,7 +67,29 @@ function CompanionBanner({ runtime }: { runtime: LocalRuntimeController }) {
           Supervisor {runtime.data?.version ?? ''} at {runtime.serveUrl}
         </Text>
         <Button variant="ghost" size="sm" onClick={() => runtime.disconnect()}>
-          Forget pairing
+          Disconnect this tab
+        </Button>
+      </Stack>
+    );
+  }
+  if (runtime.status === 'degraded') {
+    return (
+      <Stack gap={3}>
+        <Stack direction="row" gap={3} align="center" wrap>
+          <Badge variant="warning">connection lost</Badge>
+          <Text variant="caption">
+            The supervisor answered earlier, but status refresh failed.
+          </Text>
+        </Stack>
+        {runtime.connectionError ? (
+          <div role="alert">
+            <Text variant="caption" color="error">
+              {runtime.connectionError}
+            </Text>
+          </div>
+        ) : null}
+        <Button size="sm" onClick={() => void runtime.retry()}>
+          Reconnect
         </Button>
       </Stack>
     );
@@ -95,6 +133,21 @@ function CompanionBanner({ runtime }: { runtime: LocalRuntimeController }) {
         >
           {runtime.status === 'pairing' ? 'Waiting…' : 'Connect'}
         </Button>
+        {runtime.status === 'pairing' && runtime.pairingApprovalUrl ? (
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() =>
+              window.open(
+                runtime.pairingApprovalUrl ?? '',
+                '_blank',
+                'popup,noopener,noreferrer',
+              )
+            }
+          >
+            Open approval
+          </Button>
+        ) : null}
       </Stack>
     );
   }
@@ -124,11 +177,11 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
         ...(kind === 'external' ? { configDir: configDir.trim() } : {}),
       });
       setName('');
-      setEnrollmentToken('');
       setConfigDir('');
     } catch {
       // surfaced via runtime.actionError
     } finally {
+      if (kind === 'managed') setEnrollmentToken('');
       setBusy(false);
     }
   };
@@ -169,6 +222,9 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
         <Input
           label="Enrollment token (optional)"
           hint="Joins the issuing team instead of self-registering."
+          type="password"
+          autoComplete="off"
+          spellCheck={false}
           value={enrollmentToken}
           onChange={(event) => setEnrollmentToken(event.target.value)}
         />
@@ -301,16 +357,40 @@ function ProvidersSection({ runtime }: { runtime: LocalRuntimeController }) {
 }
 
 function RunsSection({ runtime }: { runtime: LocalRuntimeController }) {
+  const [logRunId, setLogRunId] = useState<string | null>(null);
+  const runs = runtime.data?.runs ?? [];
+  const agents = runtime.data?.agents ?? [];
+
+  return (
+    <Stack gap={3}>
+      <Text variant="h4" as="h2">
+        Runs
+      </Text>
+      <RunStartForm runtime={runtime} agents={agents} />
+      <RunList
+        runtime={runtime}
+        runs={runs}
+        logRunId={logRunId}
+        setLogRunId={setLogRunId}
+      />
+      {logRunId ? <LogTail runtime={runtime} runId={logRunId} /> : null}
+    </Stack>
+  );
+}
+
+function RunStartForm({
+  runtime,
+  agents,
+}: {
+  runtime: LocalRuntimeController;
+  agents: NonNullable<LocalRuntimeController['data']>['agents'];
+}) {
   const { selectedTeam } = useTeam();
   const [agent, setAgent] = useState('');
   const [profile, setProfile] = useState('');
   const [taskTypes, setTaskTypes] = useState('freeform');
   const [mode, setMode] = useState<StartRunBody['mode']>('poll');
   const [busy, setBusy] = useState(false);
-  const [logRunId, setLogRunId] = useState<string | null>(null);
-  const runs = runtime.data?.runs ?? [];
-  const agents = runtime.data?.agents ?? [];
-
   const profilesQuery = useQuery({
     ...listRuntimeProfilesOptions({
       client: getApiClient(),
@@ -337,40 +417,34 @@ function RunsSection({ runtime }: { runtime: LocalRuntimeController }) {
         mode,
       });
     } catch {
-      // surfaced via runtime.actionError
+      // Surfaced via runtime.actionError.
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <Stack gap={3}>
-      <Text variant="h4" as="h2">
-        Runs
-      </Text>
+    <Stack gap={2}>
       {!selectedTeam ? (
         <Text variant="caption" color="muted">
           Select a team to start runs.
         </Text>
       ) : null}
       <Stack direction="row" gap={2} align="flex-end" wrap>
-        <label>
-          <Text variant="caption" color="muted">
-            Agent
-          </Text>
-          <select
-            value={agent}
-            onChange={(event) => setAgent(event.target.value)}
-            style={{ display: 'block', minWidth: 160, padding: 6 }}
-          >
-            <option value="">Select…</option>
-            {agents.map((entry) => (
-              <option key={entry.agentName} value={entry.agentName}>
-                {entry.agentName}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Select
+          label="Agent"
+          size="sm"
+          value={agent}
+          onChange={(event) => setAgent(event.target.value)}
+          style={{ minWidth: 160 }}
+        >
+          <option value="">Select…</option>
+          {agents.map((entry) => (
+            <option key={entry.agentName} value={entry.agentName}>
+              {entry.agentName}
+            </option>
+          ))}
+        </Select>
         <Input
           label="Runtime profile"
           hint={
@@ -386,49 +460,62 @@ function RunsSection({ runtime }: { runtime: LocalRuntimeController }) {
           value={taskTypes}
           onChange={(event) => setTaskTypes(event.target.value)}
         />
-        <label>
-          <Text variant="caption" color="muted">
-            Mode
-          </Text>
-          <select
-            value={mode}
-            onChange={(event) =>
-              setMode(event.target.value as StartRunBody['mode'])
-            }
-            style={{ display: 'block', minWidth: 100, padding: 6 }}
-          >
-            <option value="poll">poll</option>
-            <option value="drain">drain</option>
-          </select>
-        </label>
+        <Select
+          label="Mode"
+          size="sm"
+          value={mode}
+          onChange={(event) =>
+            setMode(event.target.value as StartRunBody['mode'])
+          }
+          style={{ minWidth: 100 }}
+        >
+          <option value="poll">poll</option>
+          <option value="drain">drain</option>
+        </Select>
         <Button
           size="sm"
           variant="accent"
-          disabled={busy || !agent || !profile.trim() || !selectedTeam?.id}
+          loading={busy}
+          loadingLabel="Starting run"
+          disabled={!agent || !profile.trim() || !selectedTeam?.id}
           onClick={() => void start()}
         >
           Start run
         </Button>
       </Stack>
-      <Stack gap={2}>
-        {runs.map((run) => (
-          <RunRow
-            key={run.id}
-            run={run}
-            onStop={() => void runtime.stopRun(run.id)}
-            onToggleLogs={() =>
-              setLogRunId((current) => (current === run.id ? null : run.id))
-            }
-            logsOpen={logRunId === run.id}
-          />
-        ))}
-        {runs.length === 0 ? (
-          <Text variant="caption" color="muted">
-            No runs yet.
-          </Text>
-        ) : null}
-      </Stack>
-      {logRunId ? <LogTail runtime={runtime} runId={logRunId} /> : null}
+    </Stack>
+  );
+}
+
+function RunList({
+  runtime,
+  runs,
+  logRunId,
+  setLogRunId,
+}: {
+  runtime: LocalRuntimeController;
+  runs: ServeRunView[];
+  logRunId: string | null;
+  setLogRunId: Dispatch<SetStateAction<string | null>>;
+}) {
+  return (
+    <Stack gap={2}>
+      {runs.map((run) => (
+        <RunRow
+          key={run.id}
+          run={run}
+          onStop={() => void runtime.stopRun(run.id)}
+          onToggleLogs={() =>
+            setLogRunId((current) => (current === run.id ? null : run.id))
+          }
+          logsOpen={logRunId === run.id}
+        />
+      ))}
+      {runs.length === 0 ? (
+        <Text variant="caption" color="muted">
+          No runs yet.
+        </Text>
+      ) : null}
     </Stack>
   );
 }
@@ -459,7 +546,13 @@ function RunRow({
       <Text variant="caption" color="muted">
         {run.mode} · {run.profiles.join(', ')} · {run.taskTypes.join(', ')}
       </Text>
-      <Button variant="ghost" size="sm" onClick={onToggleLogs}>
+      <Button
+        variant="ghost"
+        size="sm"
+        aria-expanded={logsOpen}
+        aria-controls={runLogPanelId(run.id)}
+        onClick={onToggleLogs}
+      >
         {logsOpen ? 'Hide logs' : 'Logs'}
       </Button>
       {run.active ? (
@@ -478,43 +571,102 @@ function LogTail({
   runtime: LocalRuntimeController;
   runId: string;
 }) {
+  const streamLogs = runtime.streamLogs;
   const [lines, setLines] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
   const preRef = useRef<HTMLPreElement>(null);
 
   useEffect(() => {
     setLines([]);
+    setError(null);
     const controller = new AbortController();
-    void runtime
-      .streamLogs(
-        runId,
-        (line) => {
-          setLines((current) => [...current.slice(-500), line]);
-        },
-        controller.signal,
-      )
-      .catch(() => undefined);
-    return () => controller.abort();
-  }, [runtime, runId]);
+    const pending: string[] = [];
+    let flushTimer: number | undefined;
+    const flush = () => {
+      flushTimer = undefined;
+      if (pending.length === 0) return;
+      const batch = pending.splice(0);
+      setLines((current) => [...current, ...batch].slice(-500));
+    };
+    const onLine = (line: string) => {
+      pending.push(line);
+      flushTimer ??= window.setTimeout(flush, 50);
+    };
+    const follow = async () => {
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        setLines([]);
+        setError(null);
+        try {
+          await streamLogs(runId, onLine, controller.signal);
+          if (controller.signal.aborted) return;
+          throw new Error('The log stream closed unexpectedly.');
+        } catch (streamError) {
+          if (controller.signal.aborted) return;
+          flush();
+          const message =
+            streamError instanceof Error
+              ? streamError.message
+              : 'The log stream disconnected.';
+          if (attempt === 3) {
+            setError(message);
+            return;
+          }
+          const delay = Math.min(1_000 * 2 ** attempt, 8_000);
+          setError(`${message} Retrying in ${delay / 1_000}s…`);
+          await abortableDelay(delay, controller.signal).catch(() => undefined);
+        }
+      }
+    };
+    void follow();
+    return () => {
+      controller.abort();
+      if (flushTimer !== undefined) window.clearTimeout(flushTimer);
+    };
+  }, [streamLogs, runId, retryKey]);
 
   useEffect(() => {
-    preRef.current?.scrollTo({ top: preRef.current.scrollHeight });
+    if (preRef.current) preRef.current.scrollTop = preRef.current.scrollHeight;
   }, [lines]);
 
   return (
-    <pre
-      ref={preRef}
-      aria-label={`Logs for run ${runId}`}
-      style={{
-        maxHeight: 320,
-        overflow: 'auto',
-        fontSize: 12,
-        lineHeight: 1.5,
-        padding: 12,
-        borderRadius: 8,
-        border: '1px solid color-mix(in srgb, currentColor 20%, transparent)',
-      }}
-    >
-      {lines.length > 0 ? lines.join('\n') : 'Waiting for output…'}
-    </pre>
+    <Stack gap={2}>
+      {error ? (
+        <Stack direction="row" gap={2} align="center" wrap>
+          <div role="alert">
+            <Text variant="caption" color="error">
+              {error}
+            </Text>
+          </div>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => setRetryKey((key) => key + 1)}
+          >
+            Retry log stream
+          </Button>
+        </Stack>
+      ) : null}
+      <pre
+        id={runLogPanelId(runId)}
+        ref={preRef}
+        aria-label={`Logs for run ${runId}`}
+        style={{
+          maxHeight: 320,
+          overflow: 'auto',
+          fontSize: 12,
+          lineHeight: 1.5,
+          padding: 12,
+          borderRadius: 8,
+          border: '1px solid color-mix(in srgb, currentColor 20%, transparent)',
+        }}
+      >
+        {lines.length > 0 ? lines.join('\n') : 'Waiting for output…'}
+      </pre>
+    </Stack>
   );
+}
+
+function runLogPanelId(runId: string): string {
+  return `run-logs-${runId}`;
 }

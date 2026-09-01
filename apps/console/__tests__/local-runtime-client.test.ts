@@ -23,6 +23,9 @@ describe('serve companion client', () => {
       'https://evil.example',
       'http://serve.example',
       'http://user:pw@127.0.0.1:17374',
+      'http://127.0.0.1:17374/prefix',
+      'http://127.0.0.1:17374?target=other',
+      'http://127.0.0.1:17374#fragment',
     ]) {
       expect(() =>
         createServeClient({ baseUrl, getToken: () => null }),
@@ -100,7 +103,111 @@ describe('serve companion client', () => {
     }
   });
 
-  it('parses SSE data lines from the log stream', async () => {
+  it('sends mutation routes and bodies without browser credentials', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        jsonResponse(
+          { kind: 'managed', agentName: 'bot', createdAt: 't' },
+          201,
+        ),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          api: 'openai-completions',
+          baseUrl: 'https://provider.example',
+          envName: 'MOLTNET_PROVIDER_TEST_API_KEY',
+          models: ['model'],
+          hasApiKey: true,
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(
+          {
+            id: 'run-1',
+            agent: 'bot',
+            teamId: 'team',
+            profiles: ['profile'],
+            taskTypes: ['freeform'],
+            mode: 'poll',
+            status: 'running',
+            startedAt: 't',
+            active: true,
+          },
+          201,
+        ),
+      )
+      .mockResolvedValueOnce(jsonResponse({ status: 'stopped' }));
+    const client = createServeClient({
+      baseUrl: BASE,
+      getToken: () => 'tok',
+      fetch: fetchMock,
+    });
+
+    await client.createAgent({ kind: 'managed', name: 'bot' });
+    await client.putProvider('test', {
+      api: 'openai-completions',
+      baseUrl: 'https://provider.example',
+      envName: 'MOLTNET_PROVIDER_TEST_API_KEY',
+      models: ['model'],
+      apiKey: 'write-only',
+    });
+    await client.startRun({
+      agent: 'bot',
+      teamId: 'team',
+      profiles: ['profile'],
+      taskTypes: ['freeform'],
+      mode: 'poll',
+    });
+    await client.stopRun('run-1');
+
+    expect(
+      fetchMock.mock.calls.map(([input, init]) => ({
+        url: String(input),
+        method: init?.method,
+        body: init?.body ? JSON.parse(String(init.body)) : undefined,
+      })),
+    ).toEqual([
+      {
+        url: `${BASE}/v1/agents`,
+        method: 'POST',
+        body: { kind: 'managed', name: 'bot' },
+      },
+      {
+        url: `${BASE}/v1/providers/test`,
+        method: 'PUT',
+        body: {
+          api: 'openai-completions',
+          baseUrl: 'https://provider.example',
+          envName: 'MOLTNET_PROVIDER_TEST_API_KEY',
+          models: ['model'],
+          apiKey: 'write-only',
+        },
+      },
+      {
+        url: `${BASE}/v1/runs`,
+        method: 'POST',
+        body: {
+          agent: 'bot',
+          teamId: 'team',
+          profiles: ['profile'],
+          taskTypes: ['freeform'],
+          mode: 'poll',
+        },
+      },
+      {
+        url: `${BASE}/v1/runs/run-1`,
+        method: 'DELETE',
+        body: undefined,
+      },
+    ]);
+    expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeUndefined();
+    expect(fetchMock.mock.calls[2]?.[1]?.signal).toBeUndefined();
+    expect(fetchMock.mock.calls[1]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+    expect(fetchMock.mock.calls[3]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('parses SSE lines and preserves stream request invariants', async () => {
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {
         const encoder = new TextEncoder();
@@ -121,11 +228,113 @@ describe('serve companion client', () => {
       fetch: fetchMock,
     });
     const lines: string[] = [];
+    const controller = new AbortController();
+    await client.streamLogs(
+      'run-1',
+      (line) => lines.push(line),
+      controller.signal,
+    );
+    expect(lines).toEqual(['first line', 'second line']);
+    const [input, init] = fetchMock.mock.calls[0];
+    const request = new Request(input as string, init);
+    expect(request.url).toBe(`${BASE}/v1/runs/run-1/logs`);
+    expect(request.credentials).toBe('omit');
+    expect(request.redirect).toBe('error');
+    expect(request.headers.get(SERVE_TOKEN_HEADER)).toBe('tok');
+    expect(request.headers.has('authorization')).toBe(false);
+    expect(request.headers.has('cookie')).toBe(false);
+    expect(init?.signal).toBe(controller.signal);
+  });
+
+  it('maps log authorization and empty-stream failures', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        jsonResponse({ code: 'pairing_required', message: 'Pair again' }, 401),
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 200 }));
+    const client = createServeClient({
+      baseUrl: BASE,
+      getToken: () => 'tok',
+      fetch: fetchMock,
+    });
+    const signal = new AbortController().signal;
+
+    await expect(
+      client.streamLogs('run-1', vi.fn(), signal),
+    ).rejects.toMatchObject({ code: 'pairing_required', status: 401 });
+    await expect(
+      client.streamLogs('run-1', vi.fn(), signal),
+    ).rejects.toMatchObject({ code: 'logs_unavailable' });
+  });
+
+  it('rejects oversized SSE events from a replacement listener', async () => {
+    const cancel = vi.fn();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(
+          new TextEncoder().encode('x'.repeat(256 * 1024 + 1)),
+        );
+      },
+      cancel,
+    });
+    const client = createServeClient({
+      baseUrl: BASE,
+      getToken: () => 'tok',
+      fetch: vi.fn<typeof fetch>().mockResolvedValue(new Response(stream)),
+    });
+
+    await expect(
+      client.streamLogs('run-1', vi.fn(), new AbortController().signal),
+    ).rejects.toMatchObject({ code: 'logs_event_too_large' });
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+
+  it('accepts a maximum-sized log payload without counting the SSE prefix', async () => {
+    const payload = 'x'.repeat(256 * 1024);
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(`data: ${payload}\n\n`));
+        controller.close();
+      },
+    });
+    const client = createServeClient({
+      baseUrl: BASE,
+      getToken: () => 'tok',
+      fetch: vi.fn<typeof fetch>().mockResolvedValue(new Response(stream)),
+    });
+    const lines: string[] = [];
+
     await client.streamLogs(
       'run-1',
       (line) => lines.push(line),
       new AbortController().signal,
     );
-    expect(lines).toEqual(['first line', 'second line']);
+
+    expect(lines).toEqual([payload]);
+  });
+
+  it('propagates log-stream aborts to fetch', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(
+      (_input, init) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener(
+            'abort',
+            () => reject(init.signal?.reason),
+            { once: true },
+          );
+        }),
+    );
+    const client = createServeClient({
+      baseUrl: BASE,
+      getToken: () => 'tok',
+      fetch: fetchMock,
+    });
+    const controller = new AbortController();
+
+    const streaming = client.streamLogs('run-1', vi.fn(), controller.signal);
+    controller.abort(new DOMException('aborted', 'AbortError'));
+
+    await expect(streaming).rejects.toMatchObject({ name: 'AbortError' });
   });
 });

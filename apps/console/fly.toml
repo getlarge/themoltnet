@@ -13,6 +13,8 @@ primary_region = "fra"
   CONSOLE_BASE_URL = "https://console.themolt.net"
   # The signer runs on each operator's machine, not inside Fly.
   SIGNER_BASE_URL = "http://127.0.0.1:17373"
+  # The agent supervisor also runs on the operator's machine.
+  MOLTNET_SERVE_URL = "http://127.0.0.1:17374"
   # Must match the rest-api deployment's PACK_GC_COMPILE_TTL_DAYS: the console
   # computes the unpin retention window from it. See #1858.
   PACK_GC_COMPILE_TTL_DAYS = "7"

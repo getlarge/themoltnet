@@ -19,6 +19,8 @@ import {
 } from '@moltnet/signer-api-client';
 import { Value } from 'typebox/value';
 
+import { abortableDelay } from '../abortable-delay.js';
+
 export interface SignerCompanionClient {
   connect(): Promise<SignerSession>;
   createCeremony(request: SignerCeremonyRequest): Promise<SignerCeremony>;
@@ -287,25 +289,4 @@ function combineSignals(
 ): AbortSignal {
   const timeout = AbortSignal.timeout(timeoutMs);
   return signal ? AbortSignal.any([signal, timeout]) : timeout;
-}
-
-function abortableDelay(
-  milliseconds: number,
-  signal?: AbortSignal,
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const onAbort = () => {
-      globalThis.clearTimeout(timeout);
-      reject(
-        signal?.reason instanceof Error
-          ? signal.reason
-          : new DOMException('The operation was aborted', 'AbortError'),
-      );
-    };
-    const timeout = globalThis.setTimeout(() => {
-      signal?.removeEventListener('abort', onAbort);
-      resolve();
-    }, milliseconds);
-    signal?.addEventListener('abort', onAbort, { once: true });
-  });
 }
