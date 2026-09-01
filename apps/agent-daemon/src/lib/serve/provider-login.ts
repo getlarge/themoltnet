@@ -10,6 +10,12 @@
  * so serve stays in lockstep with what Pi can actually authenticate
  * (anthropic, openai-codex, github-copilot, …) without hardcoding.
  */
+// TODO(upstream): Anthropic logins end on pi's own callback server with a
+// Pi-branded success page (`oauthSuccessHtml` in pi-ai's anthropic flow;
+// redirect_uri is hardcoded to localhost:53692). A `successRedirectUrl`
+// option upstream would let us bounce the tab back to the Console like the
+// Codex device-code flow does. Tracked here instead of vendoring the PKCE
+// flow into serve.
 import { getOAuthProviders } from '@earendil-works/pi-ai/oauth';
 import { AuthStorage } from '@earendil-works/pi-coding-agent';
 

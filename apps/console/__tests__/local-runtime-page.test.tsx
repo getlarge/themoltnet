@@ -176,7 +176,7 @@ describe('LocalRuntimePage', () => {
     expect(
       screen.getByRole('button', { name: 'Create identity' }),
     ).toBeDisabled();
-    fireEvent.change(screen.getByLabelText(/Enrollment token/), {
+    fireEvent.change(screen.getByLabelText(/Invitation code/), {
       target: { value: 'enrol-abc' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Create identity' }));
@@ -251,18 +251,20 @@ describe('LocalRuntimePage', () => {
     expect(await screen.findByText('device flow refused')).toBeInTheDocument();
   });
 
-  it('generates an enrollment token into the form for the selected team', async () => {
+  it('generates an invitation code into the form for the selected team', async () => {
     createAgentEnrollment.mockResolvedValue({
       data: { token: 'enrol-123', expiresAt: '2030-01-01T00:00:00Z' },
     });
     renderPage();
     await screen.findAllByText('existing-bot');
     fireEvent.click(
-      screen.getByRole('button', { name: 'Generate token for Team One' }),
+      screen.getByRole('button', {
+        name: 'Generate invitation code for Team One',
+      }),
     );
     await waitFor(() =>
       expect(
-        (screen.getByLabelText(/Enrollment token/) as HTMLInputElement).value,
+        (screen.getByLabelText(/Invitation code/) as HTMLInputElement).value,
       ).toBe('enrol-123'),
     );
     expect(createAgentEnrollment).toHaveBeenCalledWith(

@@ -293,10 +293,12 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
       if (created?.token) {
         setEnrollmentToken(created.token);
         setTokenNote(
-          `Single-use token for ${selectedTeam.name} filled in — create the identity before it expires${created.expiresAt ? ` (${new Date(created.expiresAt).toLocaleTimeString()})` : ''}.`,
+          `Single-use invitation code for ${selectedTeam.name} filled in — create the identity before it expires${created.expiresAt ? ` (${new Date(created.expiresAt).toLocaleTimeString()})` : ''}.`,
         );
       } else {
-        setTokenNote('Token creation returned no token — check team role.');
+        setTokenNote(
+          'Invitation code creation returned nothing — check team role.',
+        );
       }
     } catch (error) {
       setTokenNote(
@@ -341,8 +343,8 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
       {!selectedTeam || selectedTeam.personal === true ? (
         <Text variant="caption" color="error">
           {selectedTeam
-            ? 'Personal teams cannot enroll agents. Create or select a project team (Teams page) before creating identities — otherwise the agent lands in its own isolated team.'
-            : 'Select a team first — agents enroll into the selected team.'}
+            ? 'Personal teams cannot invite agents. Create or select a project team (Teams page) first — agents join the selected team via a single-use invitation code.'
+            : 'Select a team first — agents join the selected team via an invitation code.'}
         </Text>
       ) : null}
       {agents.length > 0 ? (
@@ -382,8 +384,8 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
             onChange={(event) => setName(event.target.value)}
           />
           <Input
-            label="Enrollment token"
-            hint="Required — binds the agent's key to the issuing team. Generate one below, or ask a team manager."
+            label="Invitation code"
+            hint="Required — a single-use team invitation that binds the agent's key to the issuing team. Generate one below, or ask a team manager."
             value={enrollmentToken}
             onChange={(event) => setEnrollmentToken(event.target.value)}
           />
@@ -409,8 +411,8 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
             onClick={() => void generateToken()}
           >
             {selectedTeam?.personal === true
-              ? 'Personal teams cannot enroll agents'
-              : `Generate token for ${selectedTeam?.name ?? 'team'}`}
+              ? 'Personal teams cannot invite agents'
+              : `Generate invitation code for ${selectedTeam?.name ?? 'team'}`}
           </Button>
         </Stack>
       </Stack>
@@ -895,7 +897,7 @@ function RunsSection({ runtime }: { runtime: LocalRuntimeController }) {
               {selectedAgent?.teamId}
             </Text>{' '}
             and cannot poll {selectedTeam?.name}. Create a new agent with an
-            enrollment token from {selectedTeam?.name} instead.
+            invitation code from {selectedTeam?.name} instead.
           </Text>
         ) : null}
         <Stack direction="row">
