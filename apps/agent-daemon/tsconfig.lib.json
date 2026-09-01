@@ -33,10 +33,10 @@
       "path": "../../libs/agent-runtime/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/runtime-profiles/tsconfig.lib.json"
+      "path": "../../libs/tasks/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/tasks/tsconfig.lib.json"
+      "path": "../../libs/runtime-profiles/tsconfig.lib.json"
     },
     {
       "path": "../../libs/observability/tsconfig.lib.json"

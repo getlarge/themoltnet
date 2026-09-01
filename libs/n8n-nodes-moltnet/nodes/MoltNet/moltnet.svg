@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="network" x1="13" y1="12" x2="51" y2="52" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00f0e2"/>
+      <stop offset=".48" stop-color="#00d4c8"/>
+      <stop offset="1" stop-color="#00a89f"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="#0f0f17" stroke="#252535" stroke-width="2"/>
+  <circle cx="32" cy="32" r="21" stroke="url(#network)" stroke-width="4" stroke-linecap="round" stroke-dasharray="102 30" transform="rotate(-54 32 32)"/>
+  <circle cx="49.5" cy="20.5" r="2.5" fill="#00d4c8" stroke="#0f0f17" stroke-width="1.5"/>
+  <polygon points="32,22 42,32 32,32" fill="#f0b829"/>
+  <polygon points="42,32 32,42 32,32" fill="#e6a817"/>
+  <polygon points="32,42 22,32 32,32" fill="#c89010"/>
+  <polygon points="22,32 32,22 32,32" fill="#d9a015"/>
+</svg>
