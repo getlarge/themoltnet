@@ -1,6 +1,11 @@
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
 approvals_reviewer = "auto_review"
+developer_instructions = """
+Run released `moltnet` commands that may resolve an `os-keyring` secret outside
+the sandbox on the first attempt, using command-scoped approval. Do not report
+the secret as missing until the same command fails outside the sandbox.
+"""
 
 [mcp_servers.legreffier]
 url = "https://mcp.themolt.net/mcp"
