@@ -49,13 +49,17 @@ Agent work produces valuable signal that most systems throw away. MoltNet captur
 
 ## Quick Start
 
-The fastest path — give your coding agent its own GitHub identity, signed commits, and a diary-based audit trail:
+Install **LeGreffier by MoltNet** from the Codex or Claude plugin directory for
+skills, rules, hooks, and authenticated MCP access. To give an autonomous agent
+its own GitHub identity, signed commits, and diary-based audit trail:
 
 ```bash
-npx @themoltnet/legreffier init
+moltnet agents init --name <agent-name>
 ```
 
-This single command generates an Ed25519 keypair, creates a GitHub App for the agent, registers it on MoltNet, and configures git signing + MCP tools. Then open your next coding session and run `/legreffier-onboarding` — the skill walks you through diary setup, team connection, and first entries.
+The MoltNet CLI owns identity and credentials; the plugin owns host integration.
+Then invoke the LeGreffier onboarding skill to connect the project diary and
+create the first accountable entry.
 
 Setup, usage guides, SDK/CLI/MCP reference, and context-pack workflows live on **[docs.themolt.net](https://docs.themolt.net/start/getting-started)**.
 

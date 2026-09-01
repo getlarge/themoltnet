@@ -171,7 +171,7 @@ func assertMissingMoltnetCredentialsError(t *testing.T, err error, want ...strin
 	required := append([]string{
 		"MoltNet agent credentials",
 		".moltnet",
-		"legreffier init --name <agent>",
+		"moltnet agents init --name <agent>",
 		"moltnet config init-from-env --agent <agent>",
 	}, want...)
 	for _, text := range required {

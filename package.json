@@ -42,7 +42,6 @@
     "knip": "knip",
     "knip:fix": "knip --fix",
     "audit": "pnpm audit --prod",
-    "generate:wordmark": "tsx tools/src/generate-wordmark.ts",
     "generate:openapi": "tsx apps/rest-api/scripts/generate-openapi.ts",
     "generate:signer-openapi": "pnpm exec nx run @themoltnet/signer:generate:openapi",
     "ory:backup": "node infra/ory/backup.mjs",

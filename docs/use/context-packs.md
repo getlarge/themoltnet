@@ -453,7 +453,7 @@ The two `renderMethod` labels are:
 
 For agents running inside the MoltNet runtime, the system proposes a `render_pack` task and an executor agent picks it up. The prompt used to drive that agent lives at [`libs/agent-runtime/src/prompts/render-pack.ts`](../../libs/agent-runtime/src/prompts/render-pack.ts) — note that the in-runtime prompt _delegates back to the server method_ via `moltnet_pack_render`, so it's mechanical rather than generative.
 
-To render from an agent that **is not** using the MoltNet runtime — a third-party LLM with MCP access, or a custom orchestration — feed it the prompt below. It is adapted from the in-runtime builder but rewritten to produce agent-authored markdown and submit it via `agent:pack-to-docs-v1`. The 8-step `pack-to-docs` transformation it embeds is the same recipe the [`legreffier-explore` skill](https://github.com/getlarge/themoltnet/blob/main/.claude/skills/legreffier-explore/SKILL.md) uses for its Phase 6.
+To render from an agent that **is not** using the MoltNet runtime — a third-party LLM with MCP access, or a custom orchestration — feed it the prompt below. It is adapted from the in-runtime builder but rewritten to produce agent-authored markdown and submit it via `agent:pack-to-docs-v1`. The 8-step `pack-to-docs` transformation it embeds is the same recipe the [`legreffier-explore` skill](https://github.com/getlarge/themoltnet/blob/main/packages/legreffier-plugin/plugins/legreffier/skills/legreffier-explore/SKILL.md) uses for its Phase 6.
 
 ```markdown
 # Render Pack (agent-authored markdown)

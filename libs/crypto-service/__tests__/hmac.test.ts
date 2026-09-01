@@ -13,20 +13,21 @@ const FIVE_MINUTES_MS = 5 * 60 * 1000;
 describe('HMAC challenge utilities', () => {
   describe('generateRecoveryChallenge', () => {
     it('produces a challenge in the expected format', () => {
-      const challenge = generateRecoveryChallenge(TEST_PUBLIC_KEY);
+      const challenge = generateRecoveryChallenge(TEST_PUBLIC_KEY, 'identity');
       const parts = challenge.split(':');
-      expect(parts).toHaveLength(6);
+      expect(parts).toHaveLength(7);
       expect(parts[0]).toBe('moltnet');
       expect(parts[1]).toBe('recovery');
-      // parts[2]:parts[3] = ed25519:keyData
-      expect(`${parts[2]}:${parts[3]}`).toBe(TEST_PUBLIC_KEY);
-      expect(parts[4]).toMatch(/^[a-f0-9]{64}$/);
-      expect(Number(parts[5])).toBeGreaterThan(0);
+      expect(parts[2]).toBe('identity');
+      // parts[3]:parts[4] = ed25519:keyData
+      expect(`${parts[3]}:${parts[4]}`).toBe(TEST_PUBLIC_KEY);
+      expect(parts[5]).toMatch(/^[a-f0-9]{64}$/);
+      expect(Number(parts[6])).toBeGreaterThan(0);
     });
 
     it('produces unique challenges on successive calls', () => {
-      const a = generateRecoveryChallenge(TEST_PUBLIC_KEY);
-      const b = generateRecoveryChallenge(TEST_PUBLIC_KEY);
+      const a = generateRecoveryChallenge(TEST_PUBLIC_KEY, 'identity');
+      const b = generateRecoveryChallenge(TEST_PUBLIC_KEY, 'identity');
       expect(a).not.toBe(b);
     });
   });
@@ -34,7 +35,9 @@ describe('HMAC challenge utilities', () => {
   describe('signChallenge', () => {
     it('produces deterministic output for same inputs', () => {
       const challenge =
-        'moltnet:recovery:ed25519:key:' + 'a'.repeat(64) + ':1700000000000';
+        'moltnet:recovery:identity:ed25519:key:' +
+        'a'.repeat(64) +
+        ':1700000000000';
       const hmac1 = signChallenge(challenge, TEST_SECRET);
       const hmac2 = signChallenge(challenge, TEST_SECRET);
       expect(hmac1).toBe(hmac2);
@@ -42,14 +45,16 @@ describe('HMAC challenge utilities', () => {
 
     it('produces different output for different secrets', () => {
       const challenge =
-        'moltnet:recovery:ed25519:key:' + 'a'.repeat(64) + ':1700000000000';
+        'moltnet:recovery:identity:ed25519:key:' +
+        'a'.repeat(64) +
+        ':1700000000000';
       const hmac1 = signChallenge(challenge, 'secret-a');
       const hmac2 = signChallenge(challenge, 'secret-b');
       expect(hmac1).not.toBe(hmac2);
     });
 
     it('returns a hex-encoded string', () => {
-      const challenge = generateRecoveryChallenge(TEST_PUBLIC_KEY);
+      const challenge = generateRecoveryChallenge(TEST_PUBLIC_KEY, 'identity');
       const hmac = signChallenge(challenge, TEST_SECRET);
       expect(hmac).toMatch(/^[a-f0-9]{64}$/);
     });
@@ -57,7 +62,7 @@ describe('HMAC challenge utilities', () => {
 
   describe('verifyChallenge', () => {
     it('accepts a valid challenge within TTL', () => {
-      const challenge = generateRecoveryChallenge(TEST_PUBLIC_KEY);
+      const challenge = generateRecoveryChallenge(TEST_PUBLIC_KEY, 'identity');
       const hmac = signChallenge(challenge, TEST_SECRET);
 
       const result = verifyChallenge(
@@ -70,7 +75,7 @@ describe('HMAC challenge utilities', () => {
     });
 
     it('accepts when expectedPublicKey matches embedded key', () => {
-      const challenge = generateRecoveryChallenge(TEST_PUBLIC_KEY);
+      const challenge = generateRecoveryChallenge(TEST_PUBLIC_KEY, 'identity');
       const hmac = signChallenge(challenge, TEST_SECRET);
 
       const result = verifyChallenge(
@@ -83,8 +88,27 @@ describe('HMAC challenge utilities', () => {
       expect(result).toEqual({ valid: true });
     });
 
+    it('rejects a challenge issued for a different purpose', () => {
+      const challenge = generateRecoveryChallenge(TEST_PUBLIC_KEY, 'identity');
+      const hmac = signChallenge(challenge, TEST_SECRET);
+
+      const result = verifyChallenge(
+        challenge,
+        hmac,
+        TEST_SECRET,
+        FIVE_MINUTES_MS,
+        TEST_PUBLIC_KEY,
+        'credentials',
+      );
+
+      expect(result).toEqual({
+        valid: false,
+        reason: 'Challenge was issued for a different recovery purpose',
+      });
+    });
+
     it('rejects when expectedPublicKey differs from embedded key', () => {
-      const challenge = generateRecoveryChallenge(TEST_PUBLIC_KEY);
+      const challenge = generateRecoveryChallenge(TEST_PUBLIC_KEY, 'identity');
       const hmac = signChallenge(challenge, TEST_SECRET);
 
       const result = verifyChallenge(
@@ -102,7 +126,7 @@ describe('HMAC challenge utilities', () => {
     });
 
     it('rejects a tampered challenge', () => {
-      const challenge = generateRecoveryChallenge(TEST_PUBLIC_KEY);
+      const challenge = generateRecoveryChallenge(TEST_PUBLIC_KEY, 'identity');
       const hmac = signChallenge(challenge, TEST_SECRET);
       const tampered = challenge.replace('moltnet', 'tampered');
 
@@ -116,7 +140,7 @@ describe('HMAC challenge utilities', () => {
     });
 
     it('rejects a tampered HMAC', () => {
-      const challenge = generateRecoveryChallenge(TEST_PUBLIC_KEY);
+      const challenge = generateRecoveryChallenge(TEST_PUBLIC_KEY, 'identity');
       const hmac = signChallenge(challenge, TEST_SECRET);
       const tamperedHmac = hmac.replace(hmac[0], hmac[0] === 'a' ? 'b' : 'a');
 
@@ -130,7 +154,7 @@ describe('HMAC challenge utilities', () => {
     });
 
     it('rejects a challenge signed with a different secret', () => {
-      const challenge = generateRecoveryChallenge(TEST_PUBLIC_KEY);
+      const challenge = generateRecoveryChallenge(TEST_PUBLIC_KEY, 'identity');
       const hmac = signChallenge(challenge, 'wrong-secret');
 
       const result = verifyChallenge(
@@ -144,7 +168,7 @@ describe('HMAC challenge utilities', () => {
 
     it('rejects an expired challenge', () => {
       const sixMinutesAgo = Date.now() - 6 * 60 * 1000;
-      const challenge = `moltnet:recovery:ed25519:key:${'a'.repeat(64)}:${sixMinutesAgo}`;
+      const challenge = `moltnet:recovery:identity:ed25519:key:${'a'.repeat(64)}:${sixMinutesAgo}`;
       const hmac = signChallenge(challenge, TEST_SECRET);
 
       const result = verifyChallenge(
@@ -159,7 +183,7 @@ describe('HMAC challenge utilities', () => {
 
     it('rejects a challenge with a future timestamp', () => {
       const future = Date.now() + 60_000;
-      const challenge = `moltnet:recovery:ed25519:key:${'a'.repeat(64)}:${future}`;
+      const challenge = `moltnet:recovery:identity:ed25519:key:${'a'.repeat(64)}:${future}`;
       const hmac = signChallenge(challenge, TEST_SECRET);
 
       const result = verifyChallenge(
@@ -190,7 +214,7 @@ describe('HMAC challenge utilities', () => {
     });
 
     it('round-trip: generate, sign, verify succeeds', () => {
-      const challenge = generateRecoveryChallenge(TEST_PUBLIC_KEY);
+      const challenge = generateRecoveryChallenge(TEST_PUBLIC_KEY, 'identity');
       const hmac = signChallenge(challenge, TEST_SECRET);
       const result = verifyChallenge(
         challenge,

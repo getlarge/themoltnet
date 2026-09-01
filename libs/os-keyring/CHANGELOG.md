@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.0](https://github.com/getlarge/themoltnet/compare/os-keyring-v0.2.0...os-keyring-v0.3.0) (2026-08-31)
+
+
+### Features
+
+* **credentials:** Node secret provider write path ([#1833](https://github.com/getlarge/themoltnet/issues/1833), PR 1/4) ([3cf98f0](https://github.com/getlarge/themoltnet/commit/3cf98f0ab15abcb871879cbf7c96d5ee41681c5d))
+* **os-keyring:** write, delete, and probe secrets in Go-compatible form ([3eca9cd](https://github.com/getlarge/themoltnet/commit/3eca9cdb32edd4ba75a78c3b4ffc67f26a0409b0))
+
+
+### Bug Fixes
+
+* **moltnet-cli:** find keytar-written Secret Service items on linux ([ddcaf6e](https://github.com/getlarge/themoltnet/commit/ddcaf6ee841bf3a1fa524370e99cc8aa106d2d5e))
+
 ## [0.2.0](https://github.com/getlarge/themoltnet/compare/os-keyring-v0.1.0...os-keyring-v0.2.0) (2026-08-09)
 
 

@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/sandbox-gondolin",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Gondolin microVM sandbox lifecycle for MoltNet runtimes: checkpoint resume, egress policy, VFS shadowing, guest credential boundary, host-brokered secrets",
   "keywords": [
     "moltnet",
@@ -44,9 +44,9 @@
   },
   "nx": {
     "tags": [
-      "type:runtime",
+      "type:sandbox",
       "scope:agent",
-      "platform:extension"
+      "platform:server"
     ],
     "targets": {
       "test-ci": {

@@ -1,7 +1,7 @@
 {
   "name": "@themoltnet/legreffier",
-  "version": "0.38.5",
-  "description": "LeGreffier — attribution and measured memory for AI coding agents.",
+  "version": "0.39.0",
+  "description": "Migration notice for the retired LeGreffier CLI.",
   "license": "AGPL-3.0-only",
   "type": "module",
   "repository": {
@@ -17,7 +17,7 @@
     "dev": "vite build --watch",
     "typecheck": "tsc -b --emitDeclarationOnly && tsc -b tsconfig.test.json --force",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package . && pnpm run smoke:pack",
-    "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --local-dependency ../../libs/os-keyring --bin legreffier --args --help --expect \"attribution and measured memory\""
+    "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --bin legreffier --args --help --expect \"LeGreffier CLI has been retired\""
   },
   "files": [
     "dist/index.js"
@@ -25,22 +25,9 @@
   "engines": {
     "node": ">=22"
   },
-  "dependencies": {
-    "@themoltnet/os-keyring": "workspace:*",
-    "citty": "catalog:",
-    "ink": "catalog:",
-    "open": "catalog:",
-    "react": "catalog:",
-    "smol-toml": "catalog:"
-  },
+  "dependencies": {},
   "devDependencies": {
-    "@moltnet/api-client": "workspace:*",
-    "@moltnet/crypto-service": "workspace:*",
-    "@themoltnet/design-system": "workspace:*",
-    "@themoltnet/github-agent": "workspace:*",
-    "@themoltnet/sdk": "workspace:*",
     "@types/node": "catalog:",
-    "@types/react": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"

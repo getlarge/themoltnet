@@ -79,6 +79,9 @@ export const DEFAULT_REDACT_PATHS = [
   'body.secret',
   'body.privateKey',
   'body.recoveryCodes',
+  'body.challenge',
+  'body.hmac',
+  'body.signature',
   // Nested request body
   'req.body.password',
   'req.body.token',
@@ -88,6 +91,9 @@ export const DEFAULT_REDACT_PATHS = [
   'req.body.secret',
   'req.body.privateKey',
   'req.body.recoveryCodes',
+  'req.body.challenge',
+  'req.body.hmac',
+  'req.body.signature',
   // Error context that might contain sensitive data
   'err.config.headers.authorization',
   'err.config.headers.cookie',

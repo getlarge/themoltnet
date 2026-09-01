@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.45.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.44.1...agent-daemon-v0.45.0) (2026-08-31)
+
+
+### Features
+
+* **agent-daemon:** accept MOLTNET_AGENT_KEY_REF and MOLTNET_PRIVATE_KEY_REF ([35a397d](https://github.com/getlarge/themoltnet/commit/35a397d9cdd494a8ac48d04b9989f03963fd0001))
+* **agent-daemon:** resolve the executor signing seed from keys.private_key_ref ([9b2da16](https://github.com/getlarge/themoltnet/commit/9b2da16219c7db5e60e1f3b45e2088aa213a91aa))
+* **credentials:** agent_key_ref and daemon env references ([#1833](https://github.com/getlarge/themoltnet/issues/1833), PR 3c) ([c52d394](https://github.com/getlarge/themoltnet/commit/c52d394e588f9c88b6b1e77d8a25bd350a70a230))
+* **credentials:** github.private_key_ref for GitHub App tokens ([#1833](https://github.com/getlarge/themoltnet/issues/1833), PR 3b) ([7d35ffa](https://github.com/getlarge/themoltnet/commit/7d35ffacfc94a5150a9ee4a42529ef76933f0ba2))
+* **evals:** judge all artifact-producing attempts ([8f75b74](https://github.com/getlarge/themoltnet/commit/8f75b7456481e785974a22cacd516f421823c88a))
+
+
+### Bug Fixes
+
+* **agent-daemon:** report the authentication mechanism separately from the credential source ([26c3b74](https://github.com/getlarge/themoltnet/commit/26c3b74d85a939fc922aa4ab717ada463168d0a5))
+* **legreffier:** retire legacy setup CLI ([b74f11f](https://github.com/getlarge/themoltnet/commit/b74f11fcd6739c6e6c543793f6273d94d68e79c0))
+* **legreffier:** retire legacy setup CLI ([5346620](https://github.com/getlarge/themoltnet/commit/5346620a2bd31594e5defde5a92246b001315c87))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.45.0
+    * @themoltnet/os-keyring bumped to 0.3.0
+    * @themoltnet/pi-runtime bumped to 0.12.2
+    * @themoltnet/sdk bumped to 0.138.0
+
 ## [0.44.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.44.0...agent-daemon-v0.44.1) (2026-08-26)
 
 

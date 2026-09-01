@@ -52,6 +52,7 @@ import {
   listTeamInvites,
   listTeamMembers,
   listTeams,
+  recoverAgentCredentials,
   rejectTransfer,
   removeTeamMember,
   requestRecoveryChallenge,
@@ -123,6 +124,7 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
     rotateClientSecret: vi.fn(),
     requestRecoveryChallenge: vi.fn(),
     verifyRecoveryChallenge: vi.fn(),
+    recoverAgentCredentials: vi.fn(),
     getPublicFeed: vi.fn(),
     searchPublicFeed: vi.fn(),
     getPublicEntry: vi.fn(),
@@ -1261,11 +1263,14 @@ describe('Agent facade', () => {
       } as any);
 
       const agent = makeAgent();
-      await agent.recovery.requestChallenge({ publicKey: 'pk' });
+      await agent.recovery.requestChallenge({
+        publicKey: 'pk',
+        purpose: 'identity',
+      });
 
       expect(requestRecoveryChallenge).toHaveBeenCalledWith(
         expect.objectContaining({
-          body: { publicKey: 'pk' },
+          body: { publicKey: 'pk', purpose: 'identity' },
         }),
       );
     });
@@ -1285,6 +1290,32 @@ describe('Agent facade', () => {
       });
 
       expect(verifyRecoveryChallenge).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: {
+            challenge: 'ch',
+            hmac: 'hm',
+            signature: 'sig',
+            publicKey: 'pk',
+          },
+        }),
+      );
+    });
+
+    it('recovery.recoverCredentials calls recoverAgentCredentials', async () => {
+      vi.mocked(recoverAgentCredentials).mockResolvedValueOnce({
+        data: { clientId: 'client-id', sealedClientSecret: 'sealed' },
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      await agent.recovery.recoverCredentials({
+        challenge: 'ch',
+        hmac: 'hm',
+        signature: 'sig',
+        publicKey: 'pk',
+      });
+
+      expect(recoverAgentCredentials).toHaveBeenCalledWith(
         expect.objectContaining({
           body: {
             challenge: 'ch',

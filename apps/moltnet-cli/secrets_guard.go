@@ -926,6 +926,7 @@ func isReviewedMoltnetConsumer(executable string, args []string, allowGitHubToke
 		[]string{"git", "setup"},
 		[]string{"config", "repair"},
 		[]string{"config", "migrate"},
+		[]string{"agents", "credentials", "recover"},
 		[]string{"secrets", "guard"},
 	) {
 		return true
@@ -1087,10 +1088,13 @@ func isKeyringRevealCommand(executable string, args []string) bool {
 }
 
 // isSecretMovingMoltnetArgs reports whether a moltnet invocation copies a
-// credential into a secret provider: config migrate, and agents keys
-// create/rotate with --store.
+// credential into a secret provider: config migrate, credential recovery, and
+// agents keys create/rotate with --store.
 func isSecretMovingMoltnetArgs(args []string) bool {
 	if matchesMoltnetOperation(args, []string{"config", "migrate"}) {
+		return true
+	}
+	if matchesMoltnetOperation(args, []string{"agents", "credentials", "recover"}) {
 		return true
 	}
 	if len(args) >= 3 && args[0] == "agents" && args[1] == "keys" && (args[2] == "create" || args[2] == "rotate") {
@@ -1123,6 +1127,20 @@ func callSelectsUntrustedSecretDestination(executable string, args []string, cal
 				return true
 			}
 		}
+	}
+	// Recovery is more restrictive than a migration: an activated agent must
+	// consciously select the trusted host keyring rather than inherit a
+	// destination from the credentials file.
+	if matchesMoltnetOperation(normalized, []string{"agents", "credentials", "recover"}) {
+		for index, arg := range normalized {
+			if arg == "--destination" && index+1 < len(normalized) && normalized[index+1] == osKeyringProviderName {
+				return false
+			}
+			if arg == "--destination="+osKeyringProviderName {
+				return false
+			}
+		}
+		return true
 	}
 	for index, arg := range normalized {
 		switch {

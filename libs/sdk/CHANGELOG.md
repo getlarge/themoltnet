@@ -1,5 +1,45 @@
 # Changelog
 
+## [0.138.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.137.0...sdk-v0.138.0) (2026-08-31)
+
+
+### Features
+
+* **agent-config:** add keys.private_key_ref as an exclusive alternative to private_key ([32683f3](https://github.com/getlarge/themoltnet/commit/32683f3c9d34992faa23eeaa5aeadc7c6ed2eb93))
+* **auth:** recover lost agent OAuth credentials ([6a9b52c](https://github.com/getlarge/themoltnet/commit/6a9b52c233abb62db7a4ed346a0f0919c4447907))
+* **credentials:** agent_key_ref and daemon env references ([#1833](https://github.com/getlarge/themoltnet/issues/1833), PR 3c) ([c52d394](https://github.com/getlarge/themoltnet/commit/c52d394e588f9c88b6b1e77d8a25bd350a70a230))
+* **credentials:** github.private_key_ref for GitHub App tokens ([#1833](https://github.com/getlarge/themoltnet/issues/1833), PR 3b) ([7d35ffa](https://github.com/getlarge/themoltnet/commit/7d35ffacfc94a5150a9ee4a42529ef76933f0ba2))
+* **credentials:** headless file secret provider ([#1833](https://github.com/getlarge/themoltnet/issues/1833), PR 2/4) ([aa1461a](https://github.com/getlarge/themoltnet/commit/aa1461ad94e6a062f18000cead74369ad3d021e9))
+* **credentials:** Node secret provider write path ([#1833](https://github.com/getlarge/themoltnet/issues/1833), PR 1/4) ([3cf98f0](https://github.com/getlarge/themoltnet/commit/3cf98f0ab15abcb871879cbf7c96d5ee41681c5d))
+* **moltnet-cli:** agents keys --store writes agent_key_ref ([#1833](https://github.com/getlarge/themoltnet/issues/1833), PR 3e) ([f5492c1](https://github.com/getlarge/themoltnet/commit/f5492c168534def400a1a762b9d9e4656d99a0d0))
+* **moltnet-cli:** allow config migrate in the secrets guard and document credential migrations ([ec3cf9c](https://github.com/getlarge/themoltnet/commit/ec3cf9ce12fb5b80c4b951d538cfaab410738fc4))
+* **sdk:** add github.private_key_ref with a shared resolver ([4d53a05](https://github.com/getlarge/themoltnet/commit/4d53a0534fecad983727d75bb760c6d09dac0684))
+* **sdk:** add the credential binding table and shared resolver ([a3ebcc6](https://github.com/getlarge/themoltnet/commit/a3ebcc6c9f554caa006c014396944a5eccbd6254))
+* **sdk:** add the headless file secret provider ([b383592](https://github.com/getlarge/themoltnet/commit/b3835925a34eb3ba5805f394e44860ac3f6b797f))
+* **sdk:** add write, delete, and probe to the secret provider registry ([a6402a8](https://github.com/getlarge/themoltnet/commit/a6402a8f055be149fd495809b1750bb3d8d2dc23))
+* **sdk:** forward keyring write, delete, and probe through the Node proxy ([4bb60dc](https://github.com/getlarge/themoltnet/commit/4bb60dcecb49a8418d3aa7be754f81a2323fa2d4))
+* **sdk:** resolve agent keys from agent_key_ref and MOLTNET_AGENT_KEY_REF ([ab55944](https://github.com/getlarge/themoltnet/commit/ab559443231becda6efb10701319ba27fa0fde0b))
+* **sdk:** resolve the identity seed through keys.private_key_ref in signing, encryption, and SSH export ([d558022](https://github.com/getlarge/themoltnet/commit/d5580220ee477e7029d42318ed4c0c39c81de1d3))
+
+
+### Bug Fixes
+
+* **auth:** harden credential recovery delivery ([c29eb0a](https://github.com/getlarge/themoltnet/commit/c29eb0a3045e8da2ce235fdb7123f2ec898a7754))
+* **credentials:** normalize agent-key provider failures ([4ffd843](https://github.com/getlarge/themoltnet/commit/4ffd843ea3d3d41c71fb37ea8f998bf547b08b4f))
+* **sdk:** harden credential resolution per review ([edcf46b](https://github.com/getlarge/themoltnet/commit/edcf46b82131dd6f9b1619d7535cbce06fb5f6f6))
+* **sdk:** harden file provider deletion, durability, and root validation ([b7be2af](https://github.com/getlarge/themoltnet/commit/b7be2af2907ef50df357128e38f7f8c16fd30486))
+* **sdk:** require HTTPS or loopback for every agent-key path and reject env-provider agent_key_ref ([c5399d4](https://github.com/getlarge/themoltnet/commit/c5399d4d00cd9c66ff14cc63150e290457a6cdda))
+* **sdk:** require probe, serialize ensure per key, and preserve changed on verify failure ([8c83ca4](https://github.com/getlarge/themoltnet/commit/8c83ca42b6702f7ab4ee7e387fb1b368c9b947d0))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @themoltnet/os-keyring bumped to 0.3.0
+  * peerDependencies
+    * @themoltnet/os-keyring bumped to 0.3.0
+
 ## [0.137.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.136.0...sdk-v0.137.0) (2026-08-25)
 
 

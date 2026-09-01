@@ -62,6 +62,12 @@ export const McpServerConfigSchema = Type.Object({
       description: "This server's public URL (for OAuth2 resource metadata)",
     }),
   ),
+  OPENAI_APPS_CHALLENGE_TOKEN: Type.Optional(
+    Type.String({
+      minLength: 1,
+      description: 'OpenAI public plugin domain-verification token',
+    }),
+  ),
   MCP_APP_DOMAIN: Type.Optional(
     Type.String({
       minLength: 1,

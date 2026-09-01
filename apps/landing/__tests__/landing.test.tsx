@@ -2,9 +2,9 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MoltThemeProvider } from '@themoltnet/design-system';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Router } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
 
@@ -20,9 +20,11 @@ import { GetStarted } from '../src/components/GetStarted';
 import { Hero } from '../src/components/Hero';
 import { KnowledgeFactory } from '../src/components/KnowledgeFactory';
 import { Nav } from '../src/components/Nav';
+import { OnboardingPaths } from '../src/components/OnboardingPaths';
 import { OpenSource } from '../src/components/OpenSource';
 import { Systems } from '../src/components/Systems';
 import { GettingStartedPage } from '../src/pages/GettingStartedPage';
+import { HomePage } from '../src/pages/HomePage';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -87,6 +89,10 @@ describe('smoke render', () => {
   it('renders Footer', () => {
     wrapWithRouter(<Footer />);
   });
+
+  it('renders OnboardingPaths', () => {
+    wrapWithRouter(<OnboardingPaths />);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -112,45 +118,83 @@ describe('content', () => {
     expect(screen.getByText('Identity & Authority')).toBeInTheDocument();
   });
 
-  it('Hero foregrounds one supervised-pilot CTA', () => {
+  it('Hero foregrounds the principal choice', () => {
     wrapWithRouter(<Hero />);
 
-    const pilotLinks = screen.getAllByRole('link', {
-      name: 'Run a supervised pilot',
+    const onboardingLinks = screen.getAllByRole('link', {
+      name: 'Choose how you join',
     });
-    expect(pilotLinks).toHaveLength(1);
-    expect(pilotLinks[0]).toHaveAttribute('href', '/getting-started');
+    expect(onboardingLinks).toHaveLength(1);
+    expect(onboardingLinks[0]).toHaveAttribute('href', '#join-moltnet');
     expect(
       screen.queryByRole('button', { name: 'Run a supervised pilot' }),
     ).not.toBeInTheDocument();
   });
 
-  it('Getting Started keeps the pilot phases visible and walkthroughs disclosed', () => {
+  it('Getting Started separates human and autonomous-agent identity', () => {
     wrapWithRouter(<GettingStartedPage />, '/getting-started');
 
     expect(
-      screen.getByRole('heading', { name: 'Run a small team pilot first' }),
+      screen.getByRole('heading', {
+        name: 'One network. Two honest ways in.',
+      }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Project workspace')).toBeInTheDocument();
-    expect(screen.getByText('Team agent')).toBeInTheDocument();
-    expect(screen.getByText('Supervised task')).toBeInTheDocument();
-    expect(screen.getByText('Watch setup walkthroughs')).toBeInTheDocument();
+    expect(screen.getByText('Interactive coding host')).toBeInTheDocument();
+    expect(screen.getByText('Autonomous principal')).toBeInTheDocument();
+    expect(screen.getByText('Install LeGreffier')).toBeInTheDocument();
+    expect(screen.getByText('Initialize the agent')).toBeInTheDocument();
+    expect(screen.getByText(/moltnet agents init/)).toBeInTheDocument();
     expect(
-      screen.getByText('Use a different integration surface'),
-    ).toBeInTheDocument();
+      screen.queryByText(/@themoltnet\/legreffier init/),
+    ).not.toBeInTheDocument();
+  });
 
-    const walkthroughs = screen
-      .getByText('Watch setup walkthroughs')
-      .closest('details');
-    const integrations = screen
-      .getByText('Use a different integration surface')
-      .closest('details');
-    expect(walkthroughs).toBeInTheDocument();
-    expect(walkthroughs).not.toHaveAttribute('open');
-    expect(integrations).toBeInTheDocument();
-    expect(integrations).not.toHaveAttribute('open');
-    expect(screen.queryByText('Human signup')).not.toBeInTheDocument();
-    expect(screen.queryByText('Recording coming soon')).not.toBeInTheDocument();
+  it('focuses a routed onboarding track named by the URL hash', async () => {
+    window.history.replaceState({}, '', '/getting-started#human');
+    const scrollIntoView = vi.fn();
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+
+    wrapWithRouter(<GettingStartedPage />, '/getting-started#human');
+
+    const humanTrack = document.getElementById('human');
+    await waitFor(() => expect(humanTrack).toHaveFocus());
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start' });
+    window.history.replaceState({}, '', '/');
+  });
+
+  it('shows proof before asking visitors to choose an onboarding path', () => {
+    const { container } = wrapWithRouter(<HomePage />);
+    const trace = container.querySelector('#execution-trace');
+    const onboarding = container.querySelector('#join-moltnet');
+
+    expect(trace).not.toBeNull();
+    expect(onboarding).not.toBeNull();
+    expect(
+      (trace?.compareDocumentPosition(onboarding as Node) ?? 0) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('publishes route-specific static policy documents', () => {
+    const privacy = readFileSync(join(__dirname, '../privacy.html'), 'utf8');
+    const terms = readFileSync(join(__dirname, '../terms.html'), 'utf8');
+    const nginx = readFileSync(
+      join(__dirname, '../nginx/default.conf.template'),
+      'utf8',
+    );
+
+    expect(privacy).toContain('<title>MoltNet Privacy Policy</title>');
+    expect(privacy).toContain('https://themolt.net/privacy');
+    expect(privacy).toContain('legreffier@themolt.net');
+    expect(privacy).toMatch(/authenticated\s+Console/);
+    expect(privacy).toContain('.moltnet/&lt;agent&gt;/ssh/id_ed25519');
+    expect(terms).toContain('<title>MoltNet Terms of Service</title>');
+    expect(terms).toContain('https://themolt.net/terms');
+    expect(terms).toContain('published by getlarge');
+    expect(nginx).toContain('location = /privacy');
+    expect(nginx).toContain('try_files /privacy.html =404;');
+    expect(nginx).toContain('location = /terms');
+    expect(nginx).toContain('try_files /terms.html =404;');
   });
 
   it('KnowledgeFactory leads with ownership and portability of agent memory', () => {
@@ -353,13 +397,13 @@ describe('content', () => {
     ).toBeInTheDocument();
   });
 
-  it('GetStarted closes on one bounded pilot', () => {
+  it('GetStarted closes on the two onboarding paths', () => {
     wrap(<GetStarted />);
     expect(
-      screen.getByText('Start with one team, one agent, one supervised task.'),
+      screen.getByText('Bring one human or one agent onto the network.'),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /run a supervised pilot/i }),
+      screen.getByRole('link', { name: /choose your path/i }),
     ).toHaveAttribute('href', '/getting-started');
   });
 

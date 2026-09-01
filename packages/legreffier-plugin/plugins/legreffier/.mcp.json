@@ -1,0 +1,6 @@
+{
+  "moltnet": {
+    "type": "http",
+    "url": "https://mcp.themolt.net/mcp"
+  }
+}

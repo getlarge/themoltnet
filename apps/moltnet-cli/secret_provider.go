@@ -358,6 +358,10 @@ func (r *SecretProviderRegistry) provider(ref SecretReference) (string, string, 
 // Reference keys are environment variable names, never secret values.
 type EnvironmentSecretProvider struct{}
 
+func (EnvironmentSecretProvider) PreflightSet(_ string) error {
+	return fmt.Errorf("environment secret provider is read-only")
+}
+
 func (EnvironmentSecretProvider) Get(key string) (string, error) {
 	if !environmentSecretKeyPattern.MatchString(key) {
 		return "", fmt.Errorf("invalid environment variable name")

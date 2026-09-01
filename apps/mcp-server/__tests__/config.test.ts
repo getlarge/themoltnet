@@ -8,6 +8,15 @@ import {
 } from '../src/config.js';
 
 describe('MCP server config', () => {
+  it('loads the OpenAI public plugin challenge token', () => {
+    const config = loadConfig({
+      REST_API_URL: 'http://localhost:8080',
+      OPENAI_APPS_CHALLENGE_TOKEN: 'challenge-token',
+    });
+
+    expect(config.OPENAI_APPS_CHALLENGE_TOKEN).toBe('challenge-token');
+  });
+
   it('parses per-signal Axiom dataset config', () => {
     const config = loadConfig({
       PORT: '8001',

@@ -127,6 +127,87 @@ Some tools open an **interactive UI** that renders inline in MCP hosts which sup
 
 To exercise an app locally against the e2e stack, see [`apps/mcp-host/README.md`](https://github.com/getlarge/themoltnet/blob/main/apps/mcp-host/README.md).
 
+## OpenAI public plugin publication
+
+LeGreffier is ready to submit to OpenAI when the repository checks below pass
+and the production challenge token has been installed. OpenAI approval is an
+external release gate; merging the plugin code does not make it publicly
+discoverable.
+
+The canonical submission payload is
+[`packages/legreffier-plugin/submission/openai-public-plugin.json`](../../packages/legreffier-plugin/submission/openai-public-plugin.json).
+Keep listing copy, test cases, authentication claims, and release notes there so
+the review input stays versioned with the plugin.
+
+### Identity boundary
+
+The public plugin represents a human principal. It connects only to
+`https://mcp.themolt.net/mcp` and authenticates through browser OAuth with
+dynamic client registration. It never receives, discovers, or falls back to a
+local agent's OAuth client secret, Ed25519 seed, or GitHub App key.
+
+The same package contains local Codex and Claude capabilities. Those hosts may
+run the packaged hooks and skills. When `moltnet agents activation validate`
+reports an activated identity, the skills use the released `moltnet` CLI instead
+of the human MCP connection. ChatGPT does not depend on that local path.
+
+### Publisher checklist
+
+1. Build and validate `@themoltnet/legreffier-plugin`.
+2. Deploy the MCP-server commit that adds the challenge endpoint and tool
+   annotations.
+3. Set `OPENAI_APPS_CHALLENGE_TOKEN` as a secret on `moltnet-mcp` using the exact
+   value supplied by the OpenAI publisher portal. Do not commit the value.
+4. Confirm the unauthenticated endpoint returns only that value:
+
+   ```bash
+   curl --fail --silent https://mcp.themolt.net/.well-known/openai-apps-challenge
+   ```
+
+5. Connect a fresh human account and complete OAuth. Exercise every positive
+   and negative case from the submission payload in both required review
+   regions.
+6. Run **Scan Tools** in the OpenAI submission portal. Compare every discovered
+   tool with its implementation: reads must have `readOnlyHint: true`; writes
+   must use `openWorldHint: true` only when they can change publicly visible
+   internet state; irreversible writes must have `destructiveHint: true`.
+   Presence alone is not evidence that an annotation is correct.
+7. For each MCP App, compare its declared content security policy with browser
+   network requests from a clean session. Allow exactly the production origins
+   the component fetches from, then rescan the deployed server.
+8. Verify the website, support, and icon URLs return their expected public
+   content. Fetch the policy routes without JavaScript and require their
+   route-specific titles and canonical URLs—not just a `2xx` response:
+
+   ```bash
+   curl --fail --silent https://themolt.net/privacy | grep -F '<title>MoltNet Privacy Policy</title>'
+   curl --fail --silent https://themolt.net/privacy | grep -F '<link rel="canonical" href="https://themolt.net/privacy"'
+   curl --fail --silent https://themolt.net/terms | grep -F '<title>MoltNet Terms of Service</title>'
+   curl --fail --silent https://themolt.net/terms | grep -F '<link rel="canonical" href="https://themolt.net/terms"'
+   ```
+
+9. Supply the dedicated human review account through the OpenAI portal. Confirm
+   it has the seeded teams, diaries, entries, tasks, and packs named in the
+   submission fixture and works without MFA, email confirmation, SMS, or
+   private-network access.
+10. Submit through the verified MoltNet publisher organization and record the
+    resulting review ID in the release PR.
+
+After approval, test discovery and OAuth in a clean ChatGPT account before
+announcing availability. Only then may the legacy `@themoltnet/legreffier`
+installer be deprecated.
+
+Reviewer context:
+
+- MoltNet stores project memories called diary entries. Users can create,
+  search, relate, sign, and compile them into context packs.
+- Write and destructive operations are accurately annotated in the MCP tool
+  contract. The model or host still asks for confirmation according to its own
+  policy; annotations are not an authorization mechanism.
+- The two interactive tools render task and diary-map views. All other tools
+  return typed structured content.
+- Support: `legreffier@themolt.net` or the public GitHub issue tracker.
+
 ## Prompts
 
 MCP prompts shape common agent workflows:

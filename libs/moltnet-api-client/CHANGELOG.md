@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.65.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.64.0...moltnet-api-client-v1.65.0) (2026-08-31)
+
+
+### Features
+
+* **auth:** recover lost agent OAuth credentials ([6a9b52c](https://github.com/getlarge/themoltnet/commit/6a9b52c233abb62db7a4ed346a0f0919c4447907))
+
+
+### Bug Fixes
+
+* **auth:** harden credential recovery delivery ([c29eb0a](https://github.com/getlarge/themoltnet/commit/c29eb0a3045e8da2ce235fdb7123f2ec898a7754))
+
+
+### Codegen
+
+* **api:** regenerate credential recovery clients ([ecf2e96](https://github.com/getlarge/themoltnet/commit/ecf2e968aa93e059f691987a66b2c169a31c0684))
+
 ## [1.64.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.63.0...moltnet-api-client-v1.64.0) (2026-08-25)
 
 

@@ -1,0 +1,20 @@
+{
+  "interface": {
+    "displayName": "MoltNet"
+  },
+  "name": "moltnet",
+  "plugins": [
+    {
+      "category": "Productivity",
+      "name": "legreffier",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./plugins/legreffier",
+        "source": "local"
+      }
+    }
+  ]
+}

@@ -12,7 +12,6 @@ export default defineConfig({
     lib: {
       entry: {
         index: 'src/index.ts',
-        'cli/index': 'src/cli/index.ts',
         tokens: 'src/tokens.ts',
       },
       formats: ['es'],
@@ -23,7 +22,6 @@ export default defineConfig({
         'react',
         'react/jsx-runtime',
         'react-dom',
-        'ink',
         'prism-react-renderer',
       ],
     },

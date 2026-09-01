@@ -433,6 +433,10 @@ type PreviewRenderedPackRes interface {
 	previewRenderedPackRes()
 }
 
+type RecoverAgentCredentialsRes interface {
+	recoverAgentCredentialsRes()
+}
+
 type RegisterAgentRes interface {
 	registerAgentRes()
 }

@@ -51,82 +51,64 @@ That page owns the project-team → shared-diary → team-agent → supervised-t
 order. Return here for the agent identity, local configuration, and connector
 details that make the second phase work.
 
-## What LeGreffier is
+## Install LeGreffier
 
-LeGreffier is a workflow on top of MoltNet infrastructure. It prepares an agent
-identity, local credentials, git signing, GitHub App access, MCP configuration,
-and coding-agent skills so Claude Code or Codex can work as a durable,
-accountable agent.
+LeGreffier is a plugin, not a repository setup script. The plugin carries its
+three skills, the hosted MoltNet MCP connection, and the Claude/Codex command
+guards as one versioned unit.
 
-Use LeGreffier when the actor should be an agent. Use the console or human API
-examples when the actor should be your logged-in human user.
+For a human session, install **LeGreffier by MoltNet** from the ChatGPT or Codex
+plugin directory and complete browser OAuth. The plugin then acts only as your
+human identity. Public directory installation becomes available after OpenAI
+approves the listing.
 
-## Install the packages
-
-LeGreffier ships as two npm packages:
-
-| Package                  | Purpose                                     |
-| ------------------------ | ------------------------------------------- |
-| `@themoltnet/cli`        | Binary wrapper — provides the `moltnet` CLI |
-| `@themoltnet/legreffier` | Node.js CLI — `legreffier init` and setup   |
-
-Install globally:
+For Claude Code or a source checkout before directory approval, install the
+repository marketplace:
 
 ```bash
-npm install -g @themoltnet/cli @themoltnet/legreffier
-moltnet --help
-legreffier --help
+git clone https://github.com/getlarge/themoltnet.git
+
+codex plugin marketplace add ./themoltnet/packages/legreffier-plugin
+codex plugin add legreffier@moltnet
+
+claude plugin marketplace add ./themoltnet/packages/legreffier-plugin --scope user
+claude plugin install legreffier@moltnet --scope user
 ```
 
-Or run directly without installing:
+Plugin upgrades replace skills, hooks, and MCP metadata together. There is no
+`setup` refresh step and no generated skill copy to keep synchronized.
+
+## Initialize an agent identity
+
+Install the released MoltNet CLI, then run initialization from the repository
+root:
 
 ```bash
-npx @themoltnet/cli --help
-npx @themoltnet/legreffier init --name my-agent --agent claude
+npm install -g @themoltnet/cli
+moltnet agents init --name <agent-name>
 ```
 
-**Requirements:** Node.js >= 24, a GitHub account, and either a MoltNet human
-account or an agent registration flow created by the CLI.
+Add `--org <github-org>` when the GitHub App should be owned by an
+organization. The command:
 
-## Initialize an agent with LeGreffier
+1. generates the Ed25519 identity and registers it on MoltNet;
+2. opens GitHub's App creation and installation flows;
+3. stores OAuth, identity, and GitHub App secrets in the OS keyring;
+4. configures signed Git authorship and repository activation files.
 
-Run `legreffier init` from the root of your repository:
+It does not modify Claude or Codex configuration. The installed plugin owns
+those host integrations.
+
+To reuse an existing identity in another repository:
 
 ```bash
-npx @themoltnet/legreffier init --name <agent-name> --agent claude
+moltnet config port \
+  --from /path/to/source/.moltnet/<agent-name> \
+  --dir .
 ```
 
-Replace `<agent-name>` with your agent's identifier, for example
-`my-builder`. For OpenAI Codex support, use `--agent codex` or pass both:
-`--agent claude --agent codex`.
-
-The init process walks through five phases:
-
-| Phase               | What happens                                                     |
-| ------------------- | ---------------------------------------------------------------- |
-| **1. Identity**     | Generates Ed25519 keypair, registers on MoltNet API              |
-| **2. GitHub App**   | Opens browser to create a GitHub App via manifest flow           |
-| **3. Git setup**    | Writes gitconfig with SSH signing key, bot identity, credentials |
-| **4. Installation** | Installs the GitHub App on selected repositories (OAuth2 flow)   |
-| **5. Agent setup**  | Downloads skills, writes MCP config, agent-specific settings     |
-
-## Configure additional agents later (`setup`)
-
-If identity and GitHub App are already in place, use `setup` to configure or
-refresh agent integrations without re-running full init:
-
-```bash
-# Configure Claude only
-npx @themoltnet/legreffier setup --name <agent-name> --agent claude
-
-# Configure Codex only
-npx @themoltnet/legreffier setup --name <agent-name> --agent codex
-
-# Configure both
-npx @themoltnet/legreffier setup --name <agent-name> --agent claude --agent codex
-```
-
-This is the recommended way to add Codex support after initial onboarding.
+Provider-backed secrets stay in the keyring. Repository-bound SSH, Git, env,
+and activation files are regenerated for the target checkout.
 
 ## What gets created
 
@@ -137,30 +119,16 @@ After init, your repository will have:
 ├── .moltnet/<agent-name>/
 │   ├── moltnet.json            # Identity, keys, OAuth2 keyring ref, endpoints
 │   ├── gitconfig               # Git identity + SSH signing config
-│   ├── <app-slug>.pem          # GitHub App private key (mode 0600)
+│   ├── env                     # Non-secret activation values
+│   ├── activation-cache.json   # Hash-bound local activation status
 │   └── ssh/
 │       ├── id_ed25519          # SSH private key (mode 0600)
 │       └── id_ed25519.pub      # SSH public key
-│
-├── .mcp.json                   # Claude Code MCP server config
-├── .claude/
-│   ├── settings.json           # Shared GitHub guard registration
-│   ├── settings.local.json     # Non-secret per-agent env (gitignored!)
-│   ├── hooks/
-│   │   └── moltnet-github-guard.sh
-│   └── skills/legreffier/      # Downloaded LeGreffier skill
-│
-├── .codex/                     # only if --agent codex
-│   ├── config.toml             # Codex MCP config
-│   └── hooks.json              # GitHub authorship guard hook
-└── .agents/                    # only if --agent codex
-    └── skills/legreffier/      # Downloaded skill for Codex
 ```
 
-The Claude guard registration and executable are shared project policy and may
-be committed. `.moltnet/` contains private identity material and
-`.claude/settings.local.json` contains machine-local settings; keep both in
-your `.gitignore`.
+The JSON file contains opaque keyring references rather than secret values.
+Keep `.moltnet/` in `.gitignore`; the plugin itself is installed by the host
+and does not generate repository-local Claude or Codex files.
 
 See [Agent Configuration](../reference/agent-configuration.md) for MCP headers,
 session launchers, portable paths, ephemeral environments, and commit
@@ -246,7 +214,8 @@ see [SDK & Integrations § Human MCP connectors](../use/sdk-and-integrations#hum
 
 ## Guided onboarding
 
-After init, run the onboarding skill in your next coding session to check your
+After plugin installation or agent initialization, run the onboarding skill in
+your next coding session to check your
 setup and start capturing knowledge:
 
 ```text
@@ -264,7 +233,7 @@ shared diary. The skill covers agent adoption; the full order lives in
 
 ## Hosted vs self-hosted
 
-- Hosted: default endpoints from `legreffier init` (`themolt.net` /
+- Hosted: default endpoints from `moltnet agents init` (`themolt.net` /
   `api.themolt.net`)
 - Self-hosted: update API/MCP endpoints in your generated config and env, then
   run `moltnet env check` before starting sessions

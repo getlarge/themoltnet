@@ -15,6 +15,7 @@ import {
   assertGuestEnvironmentBoundary,
   findMainWorktree,
 } from '@themoltnet/pi-runtime';
+import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
 
 import { activatePiCodingAgentDir, loadConfig } from '../config.js';
 import { abortActiveAttemptOnSignal } from '../lib/abort-active-attempt.js';
@@ -42,6 +43,11 @@ import {
   validateExecutorSigningIdentity,
 } from '../lib/executor-attestation.js';
 import { finalizeTask } from '../lib/finalize.js';
+import {
+  loadRuntimeCredentialConfig,
+  observeGovernancePlanSafely,
+  resolveCredentialEnforcement,
+} from '../lib/governance-plan.js';
 import { isHelpFlag, ONCE_HELP } from '../lib/help.js';
 import { createRootLogger, logDaemonStartupFailure } from '../lib/logger.js';
 import {
@@ -53,6 +59,7 @@ import {
 import { initWorkerOtel } from '../lib/otel.js';
 import { ensurePiAgentDir } from '../lib/pi-agent-dir.js';
 import { runWithDaemonRuntimeContext } from '../lib/runtime-context.js';
+import { runtimeExecutionOffer } from '../lib/runtime-governance.js';
 import { createRuntimeProfileRetryTriage } from '../lib/runtime-profile-retry-triage.js';
 import { reapRuntimeSlotResources } from '../lib/runtime-resource-reaper.js';
 import {
@@ -125,6 +132,17 @@ export async function runOnce(
     return 1;
   }
   const cfg = loadConfig();
+  const credentialSources = {
+    profileRequirements: cfg.profileCredentialRequirements,
+    bindings: cfg.credentialBindings,
+  };
+  const runtimeCredentialConfig =
+    resolveCredentialEnforcement(
+      cfg.credentialEnforcement,
+      credentialSources,
+    ) === 'off'
+      ? null
+      : loadRuntimeCredentialConfig(credentialSources);
   const initialOpts = opts;
   const agentRootDir = resolve(
     process.cwd(),
@@ -451,6 +469,22 @@ export async function runOnce(
       maxBashTimeouts: opts.maxBashTimeouts,
     });
     const executeTask: TaskExecutor = async (claimedTask, reporter) => {
+      if (runtimeCredentialConfig) {
+        await observeGovernancePlanSafely({
+          config: runtimeCredentialConfig,
+          profile,
+          offer: runtimeExecutionOffer(
+            preparedRuntime,
+            preparedRuntime.attestor.fingerprint,
+          ),
+          registry: createNodeSecretProviderRegistry(),
+          executorFingerprint: preparedRuntime.attestor.fingerprint,
+          claimAuthority: claimedTask.claimAuthority ?? {},
+          taskId: claimedTask.task.id,
+          attemptN: claimedTask.attemptN,
+          logger: rootLogger,
+        });
+      }
       let executionPlan: Awaited<ReturnType<typeof executionPlans.getOrCreate>>;
       try {
         executionPlan = await executionPlans.getOrCreate(claimedTask);

@@ -67,41 +67,36 @@ func TestCleanGitConfigFile(t *testing.T) {
 	}
 }
 
-func TestBuildCredentialBlock(t *testing.T) {
-	block := buildCredentialBlock("/abs/.moltnet/legreffier/moltnet.json")
-	if !strings.Contains(block, `[credential "https://github.com"]`) {
-		t.Fatalf("missing credential header:\n%s", block)
+func TestEnsureGitHubCredentialConfigIsIdempotentAndQuotesPath(t *testing.T) {
+	dir := t.TempDir()
+	gitConfigPath := filepath.Join(dir, "gitconfig")
+	if err := os.WriteFile(gitConfigPath, []byte("[user]\n\tname = Agent\n"), 0o600); err != nil {
+		t.Fatal(err)
 	}
-	if !strings.Contains(block, "moltnet github credential-helper --credentials /abs/.moltnet/legreffier/moltnet.json") {
-		t.Fatalf("missing helper invocation:\n%s", block)
+	credentialsPath := filepath.Join(dir, "agent's credentials", "moltnet.json")
+	if err := ensureGitHubCredentialConfig(gitConfigPath, credentialsPath); err != nil {
+		t.Fatal(err)
 	}
-	if !strings.Contains(block, `[url "https://github.com/"]`) || !strings.Contains(block, "insteadOf = git@github.com:") {
-		t.Fatalf("missing insteadOf rule:\n%s", block)
+	first, err := os.ReadFile(gitConfigPath)
+	if err != nil {
+		t.Fatal(err)
 	}
-	if hasTokenBearingRule(block) {
-		t.Fatalf("block must never embed a token:\n%s", block)
+	if err := ensureGitHubCredentialConfig(gitConfigPath, credentialsPath); err != nil {
+		t.Fatal(err)
 	}
-	// Must reset any inherited generic helper (e.g. osxkeychain) for github.com
-	// so the agent helper is authoritative and a stale keychain token can't
-	// shadow it. The empty helper line MUST come before the real helper.
-	emptyIdx := strings.Index(block, "helper =\n")
-	if emptyIdx == -1 {
-		// allow `helper = ""` or `helper =` forms; check for an empty-value reset
-		if !strings.Contains(block, "helper = \"\"") && !strings.Contains(block, "helper =\n") {
-			t.Fatalf("missing empty helper reset line:\n%s", block)
-		}
+	second, err := os.ReadFile(gitConfigPath)
+	if err != nil {
+		t.Fatal(err)
 	}
-	realIdx := strings.Index(block, "credential-helper")
-	resetIdx := strings.Index(block, `helper = ""`)
-	if resetIdx == -1 || resetIdx > realIdx {
-		t.Fatalf("empty helper reset must appear before the real helper:\n%s", block)
+	if string(first) != string(second) {
+		t.Fatalf("credential installation is not idempotent:\nfirst:\n%s\nsecond:\n%s", first, second)
 	}
-}
-
-func TestBuildCredentialBlock_NoCredPath(t *testing.T) {
-	block := buildCredentialBlock("")
-	if !strings.Contains(block, `helper = "!moltnet github credential-helper"`) {
-		t.Fatalf("expected bare helper when no cred path:\n%s", block)
+	values, err := gitConfigGetAll(gitConfigPath, "credential.https://github.com.helper")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(values) != 2 || values[0] != "" || !strings.Contains(values[1], `'\''`) {
+		t.Fatalf("helper values = %#v, want reset then shell-quoted command", values)
 	}
 }
 

@@ -337,6 +337,9 @@ import type {
   PreviewRenderedPackData,
   PreviewRenderedPackErrors,
   PreviewRenderedPackResponses,
+  RecoverAgentCredentialsData,
+  RecoverAgentCredentialsErrors,
+  RecoverAgentCredentialsResponses,
   RegisterAgentData,
   RegisterAgentErrors,
   RegisterAgentResponses,
@@ -2345,6 +2348,25 @@ export const requestRecoveryChallenge = <ThrowOnError extends boolean = false>(
     ThrowOnError
   >({
     url: '/recovery/challenge',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Replace an agent OAuth2 client secret after proving possession of its Ed25519 identity key. The replacement credentials are sealed to that key.
+ */
+export const recoverAgentCredentials = <ThrowOnError extends boolean = false>(
+  options: Options<RecoverAgentCredentialsData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    RecoverAgentCredentialsResponses,
+    RecoverAgentCredentialsErrors,
+    ThrowOnError
+  >({
+    url: '/recovery/credentials',
     ...options,
     headers: {
       'Content-Type': 'application/json',

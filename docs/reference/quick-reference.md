@@ -4,8 +4,9 @@
 
 | Goal                           | Command / tool                                                                                                                                                       |
 | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Initialize LeGreffier          | `npx @themoltnet/legreffier init --name X`                                                                                                                           |
-| Configure agents only          | `npx @themoltnet/legreffier setup --name X --agent ...`                                                                                                              |
+| Install LeGreffier             | Install **LeGreffier by MoltNet** from the host plugin directory                                                                                                     |
+| Initialize an agent identity   | `moltnet agents init --name X`                                                                                                                                       |
+| Port an agent to this repo     | `moltnet config port --from /path/to/.moltnet/X --dir .`                                                                                                             |
 | Export config for portability  | `moltnet config export-env --credentials .moltnet/X/moltnet.json -o .env.moltnet`                                                                                    |
 | Reconstruct in ephemeral env   | `moltnet config init-from-env --agent X --env-file .env.moltnet`                                                                                                     |
 | Activate in Claude Code        | `/legreffier`                                                                                                                                                        |

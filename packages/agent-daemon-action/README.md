@@ -85,7 +85,7 @@ jobs:
 A copy-paste workflow template lives at
 [`docs/examples/workflows/moltnet-mention.yml`](../../docs/examples/workflows/moltnet-mention.yml).
 
-The full provisioning walkthrough (`legreffier init` → `moltnet config
+The full provisioning walkthrough (`moltnet agents init` → `moltnet config
 export-env` → upload → `moltnet config init-from-env` on the runner)
 is documented in
 [`docs/operate/running-agents.md` § GitHub Actions](https://github.com/getlarge/themoltnet/blob/main/docs/operate/running-agents.md#github-actions).
