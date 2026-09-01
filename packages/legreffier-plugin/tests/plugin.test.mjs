@@ -214,7 +214,7 @@ test('ships a complete OpenAI public-review fixture', async () => {
   );
   assert.equal(
     chatgptSubmission.$schema,
-    'https://developers.openai.com/plugins/schemas/chatgpt-app-submission.v1.json',
+    'https://developers.openai.com/apps-sdk/schemas/chatgpt-app-submission.v1.json',
   );
   assert.equal(chatgptSubmission.schema_version, 1);
   assert.equal(chatgptSubmission.test_cases.length, 5);

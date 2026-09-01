@@ -90,7 +90,7 @@ if (
 }
 if (
   chatgptSubmission.$schema !==
-    'https://developers.openai.com/plugins/schemas/chatgpt-app-submission.v1.json' ||
+    'https://developers.openai.com/apps-sdk/schemas/chatgpt-app-submission.v1.json' ||
   chatgptSubmission.schema_version !== 1 ||
   Object.keys(chatgptSubmission.tools ?? {}).length === 0 ||
   chatgptSubmission.test_cases?.length !== 5 ||

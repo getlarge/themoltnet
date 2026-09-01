@@ -117,7 +117,7 @@ const negativeTestCases = reviewerFixture.testCases.negative.map(
 
 const submission = {
   $schema:
-    'https://developers.openai.com/plugins/schemas/chatgpt-app-submission.v1.json',
+    'https://developers.openai.com/apps-sdk/schemas/chatgpt-app-submission.v1.json',
   schema_version: 1,
   app_info: {
     display_name: reviewerFixture.listing.name,

@@ -139,6 +139,8 @@ Upload
 when the OpenAI portal offers **Use Codex to fill this form more quickly**. It
 contains the exact v1 import schema, all discovered tool annotations with
 justifications, and exactly five positive plus three negative test cases.
+Keep its `$schema` value on the `apps-sdk` URL required by the upload form,
+even though that public URL currently redirects to the newer `plugins` path.
 
 The complementary reviewer fixture is
 [`packages/legreffier-plugin/submission/openai-public-plugin.json`](../../packages/legreffier-plugin/submission/openai-public-plugin.json).
