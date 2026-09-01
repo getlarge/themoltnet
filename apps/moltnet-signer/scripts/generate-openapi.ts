@@ -23,12 +23,24 @@ function sortKeysDeep(value: unknown): unknown {
 }
 
 function createStubService(): SignerCeremonyService {
-  return new Proxy(
-    {},
-    {
-      get: () => () => Promise.resolve(null),
-    },
-  ) as SignerCeremonyService;
+  // Server construction reads two members eagerly: `approvalOrigin` is
+  // normalized into the CORS self-allowlist at startup (so it must be a
+  // real loopback origin, not a stub function) and `isCorsOriginAllowed`
+  // is the injected origin decision. Everything else is only reached by
+  // route handlers, which the spec generator never invokes.
+  const eager: Pick<
+    SignerCeremonyService,
+    'approvalOrigin' | 'isCorsOriginAllowed'
+  > = {
+    approvalOrigin: 'http://127.0.0.1:17373',
+    isCorsOriginAllowed: () => false,
+  };
+  return new Proxy(eager as SignerCeremonyService, {
+    get: (target, property) =>
+      property in target
+        ? Reflect.get(target, property)
+        : () => Promise.resolve(null),
+  });
 }
 
 async function main(): Promise<void> {
