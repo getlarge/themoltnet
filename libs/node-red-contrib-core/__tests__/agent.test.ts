@@ -7,16 +7,16 @@ import { type FakeNode, FakeRed } from './fake-red.js';
 
 /**
  * Mock the SDK boundary: the agent config node's only network seam is
- * `connect(...)`. We replace it with a spy that hands back a sentinel agent so
- * the tests assert on the node's caching + credential behavior, never the wire.
+ * `connectExplicit(...)`. We replace it with a spy that hands back a sentinel
+ * agent so tests assert on caching + credential behavior, never the wire.
  */
-const connectMock = vi.fn();
+const connectExplicitMock = vi.fn();
 vi.mock('@themoltnet/sdk', () => ({
-  connect: (opts: unknown) => connectMock(opts) as unknown,
+  connectExplicit: (opts: unknown) => connectExplicitMock(opts) as unknown,
 }));
 
 afterEach(() => {
-  connectMock.mockReset();
+  connectExplicitMock.mockReset();
 });
 
 /** Instantiate the config node with a def + optional credentials. */
@@ -31,6 +31,7 @@ function setup(
     credentials,
   }) as FakeNode & {
     apiUrl: string;
+    authType: 'agentKey' | 'oauth2';
     clientId?: string;
     teamId?: string;
     diaryId?: string;
@@ -51,6 +52,7 @@ describe('moltnet-agent', () => {
     expect(node.teamId).toBe('team-1');
     expect(node.diaryId).toBe('diary-1');
     expect(node.apiUrl).toBe('https://api.themolt.net');
+    expect(node.authType).toBe('oauth2');
     expect(node.clientId).toBe('client-1');
   });
 
@@ -67,7 +69,7 @@ describe('moltnet-agent', () => {
 
   it('connects once and caches the agent across getAgent() calls', async () => {
     const sentinel = { id: 'agent-sentinel' };
-    connectMock.mockResolvedValue(sentinel);
+    connectExplicitMock.mockReturnValue(sentinel);
     const { node } = setup(
       { clientId: 'client-1', apiUrl: 'https://api.themolt.net' },
       { clientSecret: 'secret-1' },
@@ -79,10 +81,26 @@ describe('moltnet-agent', () => {
     expect(first).toBe(sentinel);
     expect(second).toBe(sentinel);
     // One connect for two getAgent calls — the promise is cached.
-    expect(connectMock).toHaveBeenCalledTimes(1);
-    expect(connectMock).toHaveBeenCalledWith({
+    expect(connectExplicitMock).toHaveBeenCalledTimes(1);
+    expect(connectExplicitMock).toHaveBeenCalledWith({
       clientId: 'client-1',
       clientSecret: 'secret-1',
+      apiUrl: 'https://api.themolt.net',
+    });
+  });
+
+  it('uses agent key authentication by default for new configs', async () => {
+    const sentinel = { id: 'agent-key-sentinel' };
+    connectExplicitMock.mockReturnValue(sentinel);
+    const { node } = setup(
+      { apiUrl: 'https://api.themolt.net' },
+      { agentKey: '  scoped-agent-key  ' },
+    );
+
+    await expect(node.getAgent()).resolves.toBe(sentinel);
+    expect(node.authType).toBe('agentKey');
+    expect(connectExplicitMock).toHaveBeenCalledWith({
+      agentKey: 'scoped-agent-key',
       apiUrl: 'https://api.themolt.net',
     });
   });
@@ -93,13 +111,15 @@ describe('moltnet-agent', () => {
       /clientId and clientSecret are required/,
     );
     // Never reached the SDK.
-    expect(connectMock).not.toHaveBeenCalled();
+    expect(connectExplicitMock).not.toHaveBeenCalled();
   });
 
   it('does not cache a failed connect — a later call retries', async () => {
-    connectMock
-      .mockRejectedValueOnce(new Error('boom'))
-      .mockResolvedValueOnce({ id: 'agent-2' });
+    connectExplicitMock
+      .mockImplementationOnce(() => {
+        throw new Error('boom');
+      })
+      .mockReturnValueOnce({ id: 'agent-2' });
     const { node } = setup(
       { clientId: 'client-1' },
       { clientSecret: 'secret-1' },
@@ -109,7 +129,7 @@ describe('moltnet-agent', () => {
     // The rejected promise was cleared, so the next call connects again.
     const retried = await node.getAgent();
     expect(retried).toEqual({ id: 'agent-2' });
-    expect(connectMock).toHaveBeenCalledTimes(2);
+    expect(connectExplicitMock).toHaveBeenCalledTimes(2);
   });
 
   it('rehydrates the cached agent once when an operation fails unauthorized', async () => {
@@ -128,7 +148,7 @@ describe('moltnet-agent', () => {
         get: vi.fn().mockResolvedValue({ id: 'task-1' }),
       },
     };
-    connectMock.mockResolvedValueOnce(stale).mockResolvedValueOnce(fresh);
+    connectExplicitMock.mockReturnValueOnce(stale).mockReturnValueOnce(fresh);
     const { node } = setup(
       { clientId: 'client-1' },
       { clientSecret: 'secret-1' },
@@ -142,6 +162,6 @@ describe('moltnet-agent', () => {
     expect(result).toEqual({ id: 'task-1' });
     expect(stale.tasks.get).toHaveBeenCalledTimes(1);
     expect(fresh.tasks.get).toHaveBeenCalledTimes(1);
-    expect(connectMock).toHaveBeenCalledTimes(2);
+    expect(connectExplicitMock).toHaveBeenCalledTimes(2);
   });
 });

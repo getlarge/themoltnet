@@ -6,6 +6,8 @@ import { describe, expect, it } from 'vitest';
 
 type FlowNode = {
   id: string;
+  authType?: string;
+  clientId?: string;
   type?: string;
   name?: string;
   func?: string;
@@ -37,6 +39,28 @@ function byId(flow: FlowNode[]): Map<string, FlowNode> {
 }
 
 describe('example flows', () => {
+  it('defaults every exported MoltNet agent config to scoped agent keys', () => {
+    const examples = [
+      'ab-eval-with-judge.flow.json',
+      'axiom-alert-triage.flow.json',
+      'cockpit.flow.json',
+      'deep-review-freeform.flow.json',
+      'issue-lifecycle.flow.json',
+      'weather-advisor.flow.json',
+    ];
+
+    for (const example of examples) {
+      const configs = loadExample(example).filter(
+        ({ type }) => type === 'moltnet-agent',
+      );
+      expect(configs.length, example).toBeGreaterThan(0);
+      for (const config of configs) {
+        expect(config.authType, example).toBe('agentKey');
+        expect(config.clientId, example).toBeUndefined();
+      }
+    }
+  });
+
   it('configures the Node-RED dev runner with filesystem flow context', () => {
     const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
     const devRunner = readFileSync(resolve(root, 'scripts/dev.mjs'), 'utf8');

@@ -255,7 +255,7 @@
   },
   {
     "apiUrl": "https://api.themolt.net",
-    "clientId": "b46d59c1-0b14-453c-a57b-8be1ced93141",
+    "authType": "agentKey",
     "diaryId": "6e4d9948-8ec5-4f59-b82a-3acbc4bbc396",
     "id": "eval_agent_cfg",
     "name": "eval-agent",

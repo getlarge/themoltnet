@@ -8,7 +8,7 @@
   },
   {
     "apiUrl": "https://api.themolt.net",
-    "clientId": "",
+    "authType": "agentKey",
     "diaryId": "",
     "id": "moltnet_agent_cfg",
     "name": "triage-agent",

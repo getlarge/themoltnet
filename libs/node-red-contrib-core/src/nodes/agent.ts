@@ -1,4 +1,4 @@
-import { type Agent, connect } from '@themoltnet/sdk';
+import { type Agent, connectExplicit } from '@themoltnet/sdk';
 import type { Node, NodeDef, NodeInitializer } from 'node-red';
 
 /**
@@ -6,16 +6,19 @@ import type { Node, NodeDef, NodeInitializer } from 'node-red';
  * MoltNet agent identity (Plane B). Other MoltNet nodes reference it and call
  * `getAgent()` to obtain a connected, token-managed SDK agent.
  *
- * The client secret is stored as a Node-RED credential (encrypted at rest via
- * the runtime's `credentialSecret`), never in the exported flow JSON.
+ * The agent key or OAuth2 client secret is stored as a Node-RED credential
+ * (encrypted at rest via the runtime's `credentialSecret`), never in the
+ * exported flow JSON.
  */
 
 interface MoltnetAgentCredentials {
-  clientSecret: string;
+  agentKey?: string;
+  clientSecret?: string;
 }
 
 interface MoltnetAgentDef extends NodeDef {
   apiUrl?: string;
+  authType?: 'agentKey' | 'oauth2';
   clientId?: string;
   teamId?: string;
   diaryId?: string;
@@ -23,6 +26,7 @@ interface MoltnetAgentDef extends NodeDef {
 
 export interface MoltnetAgentNode extends Node<MoltnetAgentCredentials> {
   apiUrl: string;
+  authType: 'agentKey' | 'oauth2';
   clientId?: string;
   /** Default team context for tasks created via this agent. */
   teamId?: string;
@@ -40,39 +44,77 @@ const init: NodeInitializer = (RED): void => {
     RED.nodes.createNode(this, def);
     this.apiUrl = def.apiUrl?.trim() || 'https://api.themolt.net';
     this.clientId = def.clientId?.trim();
+    // Flows exported before authType existed used OAuth2 and carried clientId.
+    this.authType =
+      def.authType === 'agentKey' || def.authType === 'oauth2'
+        ? def.authType
+        : this.clientId
+          ? 'oauth2'
+          : 'agentKey';
     this.teamId = def.teamId?.trim() || undefined;
     this.diaryId = def.diaryId?.trim() || undefined;
 
-    // Lazily connect once and reuse; the SDK's TokenManager refreshes the
-    // OAuth2 token under the hood, so one Agent per config node is correct.
+    // Lazily connect once and reuse. OAuth2 tokens refresh under the hood;
+    // agent-key connections reuse the same static bearer.
     let agentPromise: Promise<Agent> | null = null;
     this.resetAgent = function resetAgent(): void {
       agentPromise = null;
     };
     this.getAgent = function getAgent(this: MoltnetAgentNode): Promise<Agent> {
+      const authType = this.authType;
+      const agentKey = this.credentials?.agentKey?.trim();
+      const clientId = this.clientId;
       const clientSecret = this.credentials?.clientSecret;
-      if (!this.clientId || !clientSecret) {
-        return Promise.reject(
-          new Error('moltnet-agent: clientId and clientSecret are required'),
-        );
+      let connect: () => Agent;
+      if (authType === 'agentKey') {
+        if (!agentKey) {
+          return Promise.reject(
+            new Error('moltnet-agent: agentKey is required'),
+          );
+        }
+        connect = () =>
+          connectExplicit({
+            agentKey,
+            apiUrl: this.apiUrl,
+          });
+      } else {
+        if (!clientId || !clientSecret) {
+          return Promise.reject(
+            new Error(
+              'moltnet-agent: clientId and clientSecret are required for OAuth2',
+            ),
+          );
+        }
+        connect = () =>
+          connectExplicit({
+            clientId,
+            clientSecret,
+            apiUrl: this.apiUrl,
+          });
       }
       // Don't cache a rejected connect — a fixed credential should retry.
       if (!agentPromise) {
-        agentPromise = connect({
-          clientId: this.clientId,
-          clientSecret,
-          apiUrl: this.apiUrl,
-        }).catch((err) => {
-          agentPromise = null;
-          throw err;
-        });
+        agentPromise = Promise.resolve()
+          .then(connect)
+          .catch((err) => {
+            agentPromise = null;
+            throw err;
+          });
       }
       return agentPromise;
     };
   }
 
-  RED.nodes.registerType('moltnet-agent', MoltnetAgentNode, {
-    credentials: { clientSecret: { type: 'password' } },
+  RED.nodes.registerType<
+    MoltnetAgentNode,
+    MoltnetAgentDef,
+    Record<string, never>,
+    MoltnetAgentCredentials
+  >('moltnet-agent', MoltnetAgentNode, {
+    credentials: {
+      agentKey: { type: 'password' },
+      clientSecret: { type: 'password' },
+    },
   });
 };
 

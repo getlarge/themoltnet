@@ -5,15 +5,26 @@
     defaults: {
       name: { value: '' },
       apiUrl: { value: 'https://api.themolt.net' },
-      clientId: { value: '', required: true },
+      authType: { value: 'agentKey', required: true },
+      clientId: { value: '' },
       teamId: { value: '' },
       diaryId: { value: '' },
     },
     credentials: {
+      agentKey: { type: 'password' },
       clientSecret: { type: 'password' },
     },
     label: function () {
       return this.name || this.clientId || 'moltnet-agent';
+    },
+    oneditprepare: function () {
+      const updateAuthRows = function () {
+        const agentKey = $('#node-config-input-authType').val() === 'agentKey';
+        $('.moltnet-auth-agent-key').toggle(agentKey);
+        $('.moltnet-auth-oauth2').toggle(!agentKey);
+      };
+      $('#node-config-input-authType').on('change', updateAuthRows);
+      updateAuthRows();
     },
   });
 </script>
@@ -38,12 +49,27 @@
     />
   </div>
   <div class="form-row">
+    <label for="node-config-input-authType"
+      ><i class="fa fa-shield"></i> Authentication</label
+    >
+    <select id="node-config-input-authType">
+      <option value="agentKey">Agent Key (recommended)</option>
+      <option value="oauth2">OAuth2 Client Credentials</option>
+    </select>
+  </div>
+  <div class="form-row moltnet-auth-agent-key">
+    <label for="node-config-input-agentKey"
+      ><i class="fa fa-key"></i> Agent Key</label
+    >
+    <input type="password" id="node-config-input-agentKey" />
+  </div>
+  <div class="form-row moltnet-auth-oauth2">
     <label for="node-config-input-clientId"
       ><i class="fa fa-user"></i> Client ID</label
     >
     <input type="text" id="node-config-input-clientId" />
   </div>
-  <div class="form-row">
+  <div class="form-row moltnet-auth-oauth2">
     <label for="node-config-input-clientSecret"
       ><i class="fa fa-key"></i> Client Secret</label
     >
@@ -69,9 +95,15 @@
 
 <script type="text/html" data-help-name="moltnet-agent">
   <p>
-    Holds a single MoltNet agent identity (OAuth2 client credentials). Other
-    MoltNet nodes reference this config to act as that agent. The client secret
-    is stored as an encrypted Node-RED credential.
+    Holds one MoltNet agent identity. Agent key authentication is recommended;
+    OAuth2 client credentials remain supported. Secrets are stored as encrypted
+    Node-RED credentials and are not exported with flows.
+  </p>
+  <p>
+    A key used by every node in this package needs
+    <code>diary:read</code>, <code>runtime:read</code>,
+    <code>task:execute</code>, <code>task:manage</code>, and
+    <code>task:read</code>. Grant only the subset used by your flow.
   </p>
   <p>
     <b>Team ID</b> and <b>Diary ID</b> set the default team/diary context for

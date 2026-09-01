@@ -2,13 +2,13 @@
   {
     "disabled": false,
     "id": "weather_tab",
-    "info": "Free-text request → INTENT agent (classify + extract slots) → Open-Meteo forecast → ADVISOR agent (reason → recommend) → JUDGE agent (evaluate vs rubric) → decision.\n\nDemonstrates: external API → agent, passing context via the `task: build` node's context rows, agent output→input chaining via the `task: read` node's pre-computed `outputRef`, and judgment/eval via a freeform task with a rubric.\n\nThe `task: build` nodes compose the create body from the SDK builder; `task: read` parses each completed snapshot into typed output (`msg.payload`) + a flat `msg.result` (summary, outputRef, artifactBody).\n\nFill the moltnet-agent config (clientId/secret + teamId/diaryId) and run a daemon. See the comment node for model-specialization notes.",
+    "info": "Free-text request → INTENT agent (classify + extract slots) → Open-Meteo forecast → ADVISOR agent (reason → recommend) → JUDGE agent (evaluate vs rubric) → decision.\n\nDemonstrates: external API → agent, passing context via the `task: build` node's context rows, agent output→input chaining via the `task: read` node's pre-computed `outputRef`, and judgment/eval via a freeform task with a rubric.\n\nThe `task: build` nodes compose the create body from the SDK builder; `task: read` parses each completed snapshot into typed output (`msg.payload`) + a flat `msg.result` (summary, outputRef, artifactBody).\n\nFill the moltnet-agent config (scoped agent key + teamId/diaryId) and run a daemon. See the comment node for model-specialization notes.",
     "label": "MoltNet Weather Advisor (multi-agent)",
     "type": "tab"
   },
   {
     "apiUrl": "https://api.themolt.net",
-    "clientId": "",
+    "authType": "agentKey",
     "diaryId": "",
     "id": "weather_agent_cfg",
     "name": "weather-agent",

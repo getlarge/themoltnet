@@ -8,7 +8,7 @@
   },
   {
     "apiUrl": "https://api.themolt.net",
-    "clientId": "",
+    "authType": "agentKey",
     "id": "moltnet_agent_cfg",
     "name": "my-agent",
     "type": "moltnet-agent"
