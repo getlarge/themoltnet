@@ -146,7 +146,9 @@ async function fetchNodeBinary(version, platform, cacheDir) {
   return join(extractDir, 'bin/node');
 }
 
-const MACHO_MAGICS = [0xfeedfacf, 0xcffaedfe, 0xcafebabe, 0xfeedface, 0xcefaedfe];
+const MACHO_MAGICS = [
+  0xfeedfacf, 0xcffaedfe, 0xcafebabe, 0xfeedface, 0xcefaedfe,
+];
 const ELF_MAGIC = 0x7f454c46;
 
 /** Native code for THIS platform's loader: Mach-O on darwin, ELF on linux. */
@@ -194,7 +196,8 @@ function listNativeFiles(root, platform) {
       const path = join(dir, entry.name);
       if (entry.isSymbolicLink()) continue;
       if (entry.isDirectory()) walk(path);
-      else if (entry.isFile() && isNativeForHost(path, platform)) hits.push(path);
+      else if (entry.isFile() && isNativeForHost(path, platform))
+        hits.push(path);
     }
   };
   walk(root);
@@ -217,7 +220,10 @@ function applyPublishConfig(nodeModulesDir) {
         if (depth < 6) walk(path, depth + 1);
       } else if (entry.name === 'package.json') {
         const manifest = JSON.parse(readFileSync(path, 'utf8'));
-        if (!manifest.name?.startsWith('@themoltnet/') || !manifest.publishConfig) {
+        if (
+          !manifest.name?.startsWith('@themoltnet/') ||
+          !manifest.publishConfig
+        ) {
           continue;
         }
         const { publishConfig, ...rest } = manifest;
@@ -225,7 +231,10 @@ function applyPublishConfig(nodeModulesDir) {
         // writing in place would edit the repo's own package.json. Unlink
         // first so the payload gets a fresh inode.
         rmSync(path);
-        writeFileSync(path, `${JSON.stringify({ ...rest, ...publishConfig }, null, 2)}\n`);
+        writeFileSync(
+          path,
+          `${JSON.stringify({ ...rest, ...publishConfig }, null, 2)}\n`,
+        );
         applied.push(manifest.name);
       }
     }
@@ -365,4 +374,3 @@ main().catch((error) => {
   console.error(error instanceof Error ? error.message : error);
   process.exit(1);
 });
-
