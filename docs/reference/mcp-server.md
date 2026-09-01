@@ -134,11 +134,13 @@ and the production challenge token has been installed. OpenAI approval is an
 external release gate; merging the plugin code does not make it publicly
 discoverable.
 
-Upload
-[`packages/legreffier-plugin/submission/chatgpt-app-submission.json`](../../packages/legreffier-plugin/submission/chatgpt-app-submission.json)
-when the OpenAI portal offers **Use Codex to fill this form more quickly**. It
+Upload the generated
+`packages/legreffier-plugin/dist/submission/chatgpt-app-submission.json` when
+the OpenAI portal offers **Use Codex to fill this form more quickly**. It
 contains the exact v1 import schema, all discovered tool annotations with
-justifications, and exactly five positive plus three negative test cases.
+justifications, and exactly five positive plus three negative test cases. The
+generated payload is deliberately not committed; the package build reproduces
+it from the versioned reviewer fixture and MCP annotation policy.
 Keep its `$schema` value on the `apps-sdk` URL required by the upload form,
 even though that public URL currently redirects to the newer `plugins` path.
 
@@ -149,7 +151,8 @@ OAuth boundary, reviewer-access requirements, prompt starters, availability,
 challenge configuration, demo recording URL, and release notes—versioned beside
 the upload.
 
-Regenerate the upload after changing MCP tools, annotations, or test cases:
+Build or regenerate the upload after changing MCP tools, annotations, or test
+cases:
 
 ```bash
 pnpm exec nx run @themoltnet/legreffier-plugin:submission:generate

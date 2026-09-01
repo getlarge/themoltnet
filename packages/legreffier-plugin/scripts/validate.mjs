@@ -1,4 +1,5 @@
 import { access, lstat, readFile, readdir } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -27,9 +28,18 @@ const hooks = await readJson(join(pluginRoot, 'hooks', 'hooks.json'));
 const submission = await readJson(
   join(root, 'submission', 'openai-public-plugin.json'),
 );
-const chatgptSubmission = await readJson(
-  join(root, 'submission', 'chatgpt-app-submission.json'),
-);
+const chatgptSubmission = process.argv.includes('--dist')
+  ? await readJson(join(root, 'submission', 'chatgpt-app-submission.json'))
+  : JSON.parse(
+      execFileSync(
+        process.execPath,
+        [
+          join(packageRoot, 'scripts', 'generate-openai-submission.mjs'),
+          '--stdout',
+        ],
+        { encoding: 'utf8' },
+      ),
+    );
 
 if (codex.name !== 'legreffier' || claude.name !== 'legreffier') {
   throw new Error('Both plugin manifests must use the legreffier identifier');

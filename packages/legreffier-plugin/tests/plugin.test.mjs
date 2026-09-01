@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { readFile, readdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
@@ -208,9 +208,10 @@ test('ships a complete OpenAI public-review fixture', async () => {
   assert.doesNotMatch(submission.releaseNotes, /signed diary workflows/i);
 
   const chatgptSubmission = JSON.parse(
-    await readFile(
-      join(root, 'submission', 'chatgpt-app-submission.json'),
-      'utf8',
+    execFileSync(
+      process.execPath,
+      [join(root, 'scripts', 'generate-openai-submission.mjs'), '--stdout'],
+      { encoding: 'utf8' },
     ),
   );
   assert.equal(

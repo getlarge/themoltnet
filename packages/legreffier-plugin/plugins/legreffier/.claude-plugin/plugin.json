@@ -6,13 +6,7 @@
   },
   "description": "Open-source control plane for accountable autonomous agent work.",
   "homepage": "https://docs.themolt.net/start/install-and-initialize",
-  "keywords": [
-    "agents",
-    "memory",
-    "mcp",
-    "moltnet",
-    "provenance"
-  ],
+  "keywords": ["agents", "memory", "mcp", "moltnet", "provenance"],
   "license": "AGPL-3.0-only",
   "name": "legreffier",
   "repository": "https://github.com/getlarge/themoltnet",

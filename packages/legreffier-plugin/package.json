@@ -6,8 +6,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node scripts/build.mjs",
-    "check:pack": "node scripts/build.mjs && node scripts/validate.mjs --dist",
+    "build": "node scripts/build.mjs && node scripts/generate-openai-submission.mjs",
+    "check:pack": "node scripts/build.mjs && node scripts/generate-openai-submission.mjs && node scripts/validate.mjs --dist",
     "lint": "node scripts/validate.mjs",
     "smoke:install": "node scripts/smoke-install.mjs",
     "submission:generate": "node scripts/generate-openai-submission.mjs",

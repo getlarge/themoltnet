@@ -1,5 +1,6 @@
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 
 import { MCP_CLIENT_SCOPES, MCP_M2M_SCOPES } from '@moltnet/models';
 import { describe, expect, it, type Mock, vi } from 'vitest';
@@ -605,12 +606,18 @@ describe('buildApp', () => {
     expect(byName.tasks_continue?.openWorldHint).toBe(true);
 
     const submission = JSON.parse(
-      await readFile(
-        new URL(
-          '../../../packages/legreffier-plugin/submission/chatgpt-app-submission.json',
-          import.meta.url,
-        ),
-        'utf8',
+      execFileSync(
+        process.execPath,
+        [
+          fileURLToPath(
+            new URL(
+              '../../../packages/legreffier-plugin/scripts/generate-openai-submission.mjs',
+              import.meta.url,
+            ),
+          ),
+          '--stdout',
+        ],
+        { encoding: 'utf8' },
       ),
     ) as {
       tools: Record<

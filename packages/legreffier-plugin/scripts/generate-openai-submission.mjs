@@ -1,4 +1,4 @@
-import { readFile, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -132,11 +132,14 @@ const submission = {
 const serialized = `${JSON.stringify(submission, null, 2)}\n`;
 const outputPath = join(
   packageRoot,
+  'dist',
   'submission',
   'chatgpt-app-submission.json',
 );
 
-if (process.argv.includes('--check')) {
+if (process.argv.includes('--stdout')) {
+  process.stdout.write(serialized);
+} else if (process.argv.includes('--check')) {
   const current = await readFile(outputPath, 'utf8');
   if (current !== serialized) {
     throw new Error(
@@ -144,5 +147,7 @@ if (process.argv.includes('--check')) {
     );
   }
 } else {
+  await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(outputPath, serialized);
+  process.stdout.write(`${outputPath}\n`);
 }
