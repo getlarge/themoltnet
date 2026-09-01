@@ -9,10 +9,17 @@ import {
   type CommandSpec,
   publishExactVersion,
 } from './npm-publish-exact';
+import { runCommand } from './npm-publish-exact.cli';
 
-const published = (version = '1.2.3'): CommandResult => ({
+const expectedIntegrity = 'sha512-Zml4dHVyZQ==';
+const publishOptions = {
+  packageName: '@scope/package',
+  version: '1.2.3',
+  expectedIntegrity,
+};
+const published = (integrity = expectedIntegrity): CommandResult => ({
   exitCode: 0,
-  stdout: `"${version}"\n`,
+  stdout: `${JSON.stringify(integrity)}\n`,
   stderr: '',
 });
 const missing: CommandResult = {
@@ -41,10 +48,7 @@ describe('exact npm publication', () => {
   it('skips an exact version that is already published', async () => {
     const { commands, runner } = sequenceRunner([published()]);
 
-    const result = await publishExactVersion(
-      { packageName: '@scope/package', version: '1.2.3' },
-      runner,
-    );
+    const result = await publishExactVersion(publishOptions, runner);
 
     expect(result).toEqual({
       state: 'already-published',
@@ -56,10 +60,7 @@ describe('exact npm publication', () => {
   it('publishes only after an exact-version 404', async () => {
     const { commands, runner } = sequenceRunner([missing, publishSucceeded]);
 
-    const result = await publishExactVersion(
-      { packageName: '@scope/package', version: '1.2.3' },
-      runner,
-    );
+    const result = await publishExactVersion(publishOptions, runner);
 
     expect(result).toEqual({ state: 'published', publishAttempts: 1 });
     expect(commands.map(({ command }) => command)).toEqual(['npm', 'pnpm']);
@@ -79,8 +80,7 @@ describe('exact npm publication', () => {
 
     const result = await publishExactVersion(
       {
-        packageName: '@scope/package',
-        version: '1.2.3',
+        ...publishOptions,
         retryDelayMs: 0,
       },
       runner,
@@ -103,13 +103,29 @@ describe('exact npm publication', () => {
     };
     const { commands, runner } = sequenceRunner([outage]);
 
-    await expect(
-      publishExactVersion(
-        { packageName: '@scope/package', version: '1.2.3' },
-        runner,
-      ),
-    ).rejects.toThrow(/Unable to determine npm registry state/);
+    await expect(publishExactVersion(publishOptions, runner)).rejects.toThrow(
+      /Unable to determine npm registry state/,
+    );
     expect(commands.map(({ command }) => command)).toEqual(['npm']);
+  });
+
+  it('fails closed when the published tarball integrity differs', async () => {
+    const { runner } = sequenceRunner([published('sha512-dW5leHBlY3RlZA==')]);
+
+    await expect(publishExactVersion(publishOptions, runner)).rejects.toThrow(
+      /Published artifact integrity mismatch/,
+    );
+  });
+
+  it('terminates a hung registry child at the command timeout', () => {
+    const result = runCommand({
+      command: process.execPath,
+      args: ['-e', 'setTimeout(() => undefined, 10_000)'],
+      timeoutMs: 20,
+    });
+
+    expect(result.exitCode).toBeNull();
+    expect(result.stderr).toMatch(/ETIMEDOUT|timed out/i);
   });
 
   it('keeps promotion gated when the exact-version scanner fails', () => {
@@ -124,6 +140,9 @@ describe('exact npm publication', () => {
 
     expect(workflow).toMatch(
       /promote-n8n-nodes-moltnet:[\s\S]*needs\.scan-n8n-nodes-moltnet\.result == 'success'/,
+    );
+    expect(workflow).toMatch(
+      /publish-n8n-nodes-moltnet:[\s\S]*timeout-minutes: 45/,
     );
   });
 });
