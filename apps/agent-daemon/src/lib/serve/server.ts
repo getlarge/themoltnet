@@ -46,6 +46,10 @@ import {
   renderPairingResultPage,
   ServePairingError,
 } from './pairing.js';
+import {
+  type ProviderLoginService,
+  ServeSubscriptionError,
+} from './provider-login.js';
 import { type RunManager, ServeRunError } from './runs.js';
 import {
   assertProviderEnvName,
@@ -139,6 +143,7 @@ export interface BuildServeServerOptions {
   externalSecretProviders: SecretProviderRegistry;
   pairing: PairingService;
   runs: RunManager;
+  subscriptions: ProviderLoginService;
   allowedOrigins: readonly string[];
   /** The serve base URL origin, so the approval page may CORS to itself. */
   selfOrigin?: string;
@@ -293,6 +298,7 @@ export function buildServeServer(
   registerStatusRoute(app, options, requirePairedOrigin);
   registerAgentRoutes(app, options, requirePairedOrigin);
   registerProviderRoutes(app, options, requirePairedOrigin);
+  registerSubscriptionRoutes(app, options, requirePairedOrigin);
   registerRunRoutes(app, options, requirePairedOrigin);
 
   app.setNotFoundHandler(async (_request, reply) =>
@@ -380,6 +386,7 @@ function registerStatusRoute(
     return {
       version: options.version,
       platform: process.platform,
+      subscriptions: options.subscriptions.list(),
       agents: store
         .listActivations()
         .map((activation) => publicAgentView(store, activation)),
@@ -536,6 +543,30 @@ function runViews(runs: RunManager): Array<Record<string, unknown>> {
   return runs
     .list(RUN_HISTORY_LIMIT)
     .map((record) => ({ ...record, active: runs.isActive(record.id) }));
+}
+
+function registerSubscriptionRoutes(
+  app: FastifyInstance,
+  options: BuildServeServerOptions,
+  requirePairedOrigin: PairedOriginGuard,
+): void {
+  app.get('/v1/subscriptions', async (request) => {
+    requirePairedOrigin(request);
+    return options.subscriptions.list();
+  });
+
+  app.post('/v1/subscriptions/:providerId/login', async (request, reply) => {
+    requirePairedOrigin(request);
+    const { providerId } = request.params as { providerId: string };
+    const login = await options.subscriptions.start(providerId);
+    return reply.code(201).send(login);
+  });
+
+  app.get('/v1/subscriptions/:providerId/login', async (request) => {
+    requirePairedOrigin(request);
+    const { providerId } = request.params as { providerId: string };
+    return options.subscriptions.status(providerId);
+  });
 }
 
 function registerRunRoutes(
@@ -779,6 +810,18 @@ function normalizeServeError(error: unknown): {
   if (error instanceof ServeRunError) {
     return {
       statusCode: error.code === 'run_not_found' ? 404 : 400,
+      code: error.code,
+      message: error.message,
+    };
+  }
+  if (error instanceof ServeSubscriptionError) {
+    return {
+      statusCode:
+        error.code === 'login_not_found'
+          ? 404
+          : error.code === 'provider_unknown'
+            ? 404
+            : 400,
       code: error.code,
       message: error.message,
     };

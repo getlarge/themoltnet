@@ -22,6 +22,9 @@ import {
   ServeRunViewSchema,
   type ServeStatus,
   ServeStatusSchema,
+  type ServeSubscriptionLogin,
+  ServeSubscriptionLoginSchema,
+  type ServeSubscriptionView,
 } from './serve-protocol.js';
 
 export type {
@@ -29,6 +32,8 @@ export type {
   ServeProviderView,
   ServeRunView,
   ServeStatus,
+  ServeSubscriptionLogin,
+  ServeSubscriptionView,
 } from './serve-protocol.js';
 
 export const SERVE_TOKEN_HEADER = 'x-moltnet-serve-token';
@@ -94,6 +99,8 @@ export interface ServeClient {
   putProvider(id: string, body: PutProviderBody): Promise<ServeProviderView>;
   startRun(body: StartRunBody): Promise<ServeRunView>;
   stopRun(runId: string): Promise<void>;
+  startSubscriptionLogin(providerId: string): Promise<ServeSubscriptionLogin>;
+  subscriptionLoginStatus(providerId: string): Promise<ServeSubscriptionLogin>;
   streamLogs(
     runId: string,
     onLine: (line: string) => void,
@@ -232,6 +239,31 @@ export function createServeClient(options: {
     },
     async stopRun(runId: string): Promise<void> {
       await request('DELETE', `/v1/runs/${encodeURIComponent(runId)}`, null);
+    },
+    startSubscriptionLogin(providerId: string) {
+      const id = assertProviderId(providerId);
+      return request(
+        'POST',
+        `/v1/subscriptions/${id}/login`,
+        (value) =>
+          parseServeResponse(
+            ServeSubscriptionLoginSchema,
+            value,
+            'subscription login',
+          ),
+        undefined,
+        { timeoutMs: MUTATION_TIMEOUT_MS },
+      );
+    },
+    subscriptionLoginStatus(providerId: string) {
+      const id = assertProviderId(providerId);
+      return request('GET', `/v1/subscriptions/${id}/login`, (value) =>
+        parseServeResponse(
+          ServeSubscriptionLoginSchema,
+          value,
+          'subscription login',
+        ),
+      );
     },
     // SSE over fetch: EventSource cannot send the pairing-token header, so
     // read the stream manually and surface `data:` payload lines.

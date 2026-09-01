@@ -27,6 +27,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { verifyAgentActivation } from './identity.js';
 import { PairingService } from './pairing.js';
+import { ProviderLoginService } from './provider-login.js';
 import { RunManager, type SpawnImpl } from './runs.js';
 import {
   buildServeServer,
@@ -165,6 +166,12 @@ async function fixture(
     externalSecretProviders,
     pairing: new PairingService(),
     runs,
+    subscriptions: new ProviderLoginService({
+      authPath: store.piAuthJsonPath,
+      listProviders: () => [],
+      runLogin: () => Promise.resolve(),
+      isConnected: () => false,
+    }),
     allowedOrigins: [CONSOLE_ORIGIN],
     selfOrigin: 'http://127.0.0.1:17374',
     defaultApiUrl: 'https://api.example',

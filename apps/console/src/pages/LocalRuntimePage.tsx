@@ -264,6 +264,51 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
   );
 }
 
+function SubscriptionsRow({ runtime }: { runtime: LocalRuntimeController }) {
+  const subscriptions = runtime.data?.subscriptions ?? [];
+  const login = runtime.subscriptionLogin;
+  if (subscriptions.length === 0) return null;
+  return (
+    <Stack gap={2}>
+      <Text variant="caption" color="muted">
+        Subscriptions (Claude Pro/Max, ChatGPT Codex, GitHub Copilot) — the
+        OAuth flow runs on this machine; tokens never reach the browser.
+      </Text>
+      <Stack direction="row" gap={2} align="center" wrap>
+        {subscriptions.map((subscription) => (
+          <Stack key={subscription.id} direction="row" gap={2} align="center">
+            <Badge variant={subscription.connected ? 'success' : 'default'}>
+              {subscription.name}
+            </Badge>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={login?.status === 'pending'}
+              onClick={() => void runtime.connectSubscription(subscription.id)}
+            >
+              {subscription.connected ? 'Reconnect' : 'Connect'}
+            </Button>
+          </Stack>
+        ))}
+      </Stack>
+      {login?.status === 'pending' && login.userCode ? (
+        <Text variant="caption">
+          Enter code{' '}
+          <Text as="span" mono>
+            {login.userCode}
+          </Text>{' '}
+          at {login.verificationUri}
+        </Text>
+      ) : null}
+      {login?.status === 'pending' && login.authUrl && !login.userCode ? (
+        <Text variant="caption" color="muted">
+          Finish signing in via the tab that just opened.
+        </Text>
+      ) : null}
+    </Stack>
+  );
+}
+
 function ProvidersSection({ runtime }: { runtime: LocalRuntimeController }) {
   const [id, setId] = useState('ollama');
   const [baseUrl, setBaseUrl] = useState('https://ollama.com/v1');
@@ -297,6 +342,7 @@ function ProvidersSection({ runtime }: { runtime: LocalRuntimeController }) {
       <Text variant="h4" as="h2">
         LLM providers
       </Text>
+      <SubscriptionsRow runtime={runtime} />
       {providers.length > 0 ? (
         <Stack gap={2}>
           {providers.map(([providerId, provider]) => (

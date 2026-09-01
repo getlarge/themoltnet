@@ -15,6 +15,7 @@ import {
   type ServeClient,
   ServeClientError,
   type ServeStatus,
+  type ServeSubscriptionLogin,
   type StartRunBody,
 } from './serve-client.js';
 
@@ -60,6 +61,9 @@ export interface LocalRuntimeController {
     onLine: (line: string) => void,
     signal: AbortSignal,
   ) => Promise<void>;
+  /** Live device-code/instruction info for an in-flight subscription login. */
+  subscriptionLogin: ServeSubscriptionLogin | null;
+  connectSubscription(providerId: string): Promise<void>;
 }
 
 export function useLocalRuntime(): LocalRuntimeController {
@@ -72,6 +76,8 @@ export function useLocalRuntime(): LocalRuntimeController {
   const [pairingApprovalUrl, setPairingApprovalUrl] = useState<string | null>(
     null,
   );
+  const [subscriptionLogin, setSubscriptionLogin] =
+    useState<ServeSubscriptionLogin | null>(null);
 
   const client = useMemo(
     () =>
@@ -201,6 +207,40 @@ export function useLocalRuntime(): LocalRuntimeController {
     }
   }, [client, persistToken, probe]);
 
+  const connectSubscription = useCallback(
+    async (providerId: string) => {
+      setActionError(null);
+      try {
+        let login = await client.startSubscriptionLogin(providerId);
+        setSubscriptionLogin(login);
+        if (login.authUrl) {
+          window.open(login.authUrl, '_blank', 'noopener');
+        }
+        const deadline = Date.now() + 5 * 60_000;
+        while (login.status === 'pending' && Date.now() < deadline) {
+          await new Promise((resolvePromise) => {
+            setTimeout(resolvePromise, 2_000);
+          });
+          login = await client.subscriptionLoginStatus(providerId);
+          setSubscriptionLogin(login);
+        }
+        if (login.status === 'failed') {
+          setActionError(login.error ?? 'Subscription login failed');
+        }
+        if (login.status !== 'pending') {
+          await statusQuery.refetch();
+          if (login.status === 'completed') setSubscriptionLogin(null);
+        }
+      } catch (error) {
+        setActionError(
+          error instanceof Error ? error.message : 'Subscription login failed',
+        );
+        setSubscriptionLogin(null);
+      }
+    },
+    [client, statusQuery],
+  );
+
   const disconnect = useCallback(() => {
     pairingAbortRef.current?.abort();
     persistToken(null);
@@ -245,6 +285,8 @@ export function useLocalRuntime(): LocalRuntimeController {
     startRun: (body) => runAction(() => client.startRun(body)),
     stopRun: (runId) => runAction(() => client.stopRun(runId)),
     streamLogs,
+    subscriptionLogin,
+    connectSubscription,
   };
 }
 

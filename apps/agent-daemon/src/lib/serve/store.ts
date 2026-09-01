@@ -211,12 +211,19 @@ export class ServeStore {
   readonly agentsDir: string;
   readonly runsDir: string;
   readonly secretsDir: string;
+  /** Shared Pi credential dir; `auth.json` inside is pi-managed (lockfiled). */
+  readonly piDir: string;
 
   constructor(root: string) {
     this.root = root;
     this.agentsDir = join(root, 'agents');
     this.runsDir = join(root, 'runs');
     this.secretsDir = join(root, 'secrets');
+    this.piDir = join(root, 'pi');
+  }
+
+  get piAuthJsonPath(): string {
+    return join(this.piDir, 'auth.json');
   }
 
   /** Create the directory layout (0700) if missing. Idempotent. */

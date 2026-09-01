@@ -11,7 +11,13 @@
 import type { ChildProcess } from 'node:child_process';
 import { spawn as nodeSpawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { createWriteStream, mkdirSync, openSync, rmSync } from 'node:fs';
+import {
+  createWriteStream,
+  mkdirSync,
+  openSync,
+  rmSync,
+  symlinkSync,
+} from 'node:fs';
 import { dirname, join } from 'node:path';
 import { Transform } from 'node:stream';
 
@@ -363,6 +369,15 @@ export class RunManager {
           ]),
         ),
       });
+      // Subscription credentials: every run shares the store's pi/auth.json
+      // (pi lockfiles it and rotates tokens in place). A dangling link is
+      // fine — pi treats a missing auth.json as "no subscription auth".
+      try {
+        symlinkSync(this.store.piAuthJsonPath, join(piDir, 'auth.json'));
+      } catch {
+        // already linked or filesystem without symlinks: env-var providers
+        // still work; subscription auth is simply unavailable for the run.
+      }
 
       const entry = this.entrypoint();
       logStream = createWriteStream(logPath, {
