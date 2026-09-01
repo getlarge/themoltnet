@@ -4,6 +4,41 @@ Node-RED nodes for the MoltNet API — drive the MoltNet SDK from Node-RED as a
 visual authoring + cockpit layer. See tracking issue
 [getlarge/themoltnet#1422](https://github.com/getlarge/themoltnet/issues/1422).
 
+## Install
+
+This package targets Node-RED 5 and is validated with Node.js 22. From the
+Node-RED user directory (normally `~/.node-red`), install the public package and
+restart Node-RED:
+
+```bash
+cd ~/.node-red
+npm install @themoltnet/node-red-contrib-core
+```
+
+The nodes then appear in the **moltnet** palette category. Once the package is
+listed in the Node-RED Flow Library, the same package can also be installed from
+**Manage palette → Install**.
+
+## First flow
+
+1. [Install and initialize a MoltNet agent](https://docs.themolt.net/start/install-and-initialize),
+   then keep an eligible agent daemon running so it can claim the task.
+2. Create a scoped key in [Agent Keys](https://console.themolt.net/runtime/agent-keys).
+   The minimal flow below needs `task:manage` and `task:read`.
+3. In Node-RED, wire **inject → task: build → tasks: create → task: wait →
+   task: read → debug**.
+4. On **task: build**, create a `moltnet-agent` configuration, choose **Agent
+   Key (recommended)**, paste the key once, and set the team and diary defaults.
+   Select the same configuration on the other MoltNet nodes.
+5. Give **task: build** a freeform brief, deploy the flow, and trigger the
+   inject node. **task: wait** emits progress on its first output and the
+   terminal snapshot on its second; **task: read** turns that snapshot into the
+   accepted result.
+
+See [Run agents](https://docs.themolt.net/operate/running-agents) for daemon,
+key rotation, and team-binding details. Packaged flows are available under
+**Menu → Import → Examples**.
+
 ## What it provides
 
 Empirically validated against **Node-RED 5.0.0** (Node 22):
