@@ -35,8 +35,15 @@ done
 if [ "$identity" = "-" ]; then
   # Timestamps require a real identity; hardened runtime is fine ad-hoc.
   common="--force --options runtime"
+  # Hardened runtime enforces library validation: an executable may only
+  # load dylibs/addons signed by the same Team ID. Ad-hoc signatures carry
+  # none, so executables (node runtime, krun runner, qemu-img) need the
+  # opt-out to load our ad-hoc dylibs/addons. A Developer ID build shares
+  # one Team ID across every file and keeps validation ON.
+  adhoc_lib_validation=1
 else
   common="--force --timestamp --options runtime"
+  adhoc_lib_validation=0
 fi
 
 work=$(mktemp -d)
@@ -50,6 +57,19 @@ cat > "$work/node.plist" <<'EOF'
   <key>com.apple.security.cs.allow-unsigned-executable-memory</key><true/>
 </dict></plist>
 EOF
+cat > "$work/exec.plist" <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+</dict></plist>
+EOF
+# Add the library-validation opt-out to an entitlements plist (ad-hoc only).
+add_lib_validation_optout() {
+  [ "$adhoc_lib_validation" = 1 ] || return 0
+  /usr/libexec/PlistBuddy -c "Add :com.apple.security.cs.disable-library-validation bool true" "$1" >/dev/null 2>&1 || true
+}
+add_lib_validation_optout "$work/node.plist"
+add_lib_validation_optout "$work/exec.plist"
 
 # manifest.native[].path, one per line — no jq dependency on the runner.
 native_paths=$(node -e '
@@ -69,16 +89,23 @@ sign_one() {
     *gondolin-krun-runner)
       # Preserve the entitlements it ships with (hypervisor), whatever they are.
       if codesign -d --entitlements "$work/krun.plist" --xml "$file" 2>/dev/null && [ -s "$work/krun.plist" ]; then
+        add_lib_validation_optout "$work/krun.plist"
         # shellcheck disable=SC2086
         codesign $common --entitlements "$work/krun.plist" -s "$identity" "$file"
       else
         # shellcheck disable=SC2086
-        codesign $common -s "$identity" "$file"
+        codesign $common --entitlements "$work/exec.plist" -s "$identity" "$file"
       fi
       ;;
-    *)
+    *.dylib|*.so|*.node)
       # shellcheck disable=SC2086
       codesign $common -s "$identity" "$file"
+      ;;
+    *)
+      # Other executables (qemu-img): no entitlements in release; the
+      # ad-hoc opt-out only.
+      # shellcheck disable=SC2086
+      codesign $common --entitlements "$work/exec.plist" -s "$identity" "$file"
       ;;
   esac
   echo "signed  $1"

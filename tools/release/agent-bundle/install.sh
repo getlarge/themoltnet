@@ -174,6 +174,13 @@ install() {
   done
 
   register_service "$plat"
+  case "$plat" in
+    linux-*)
+      # The darwin bundle vendors qemu-img; on Linux it comes from the distro.
+      command -v qemu-img >/dev/null 2>&1 \
+        || log "note: qemu-img not found — sandboxed (gondolin) runs need it: apt install qemu-utils / dnf install qemu-img"
+      ;;
+  esac
   log "moltnet-agent $version ready — open the Console's Local runtime page to pair."
 }
 

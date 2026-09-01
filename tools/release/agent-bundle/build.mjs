@@ -10,7 +10,8 @@
  *     daemon/                    @themoltnet/agent-daemon dist + production node_modules
  *                                (includes the per-platform gondolin-krun-runner package:
  *                                 the runner + libkrun.dylib live under node_modules)
- *     vendor/                    reserved: qemu-img (static build; not shipped yet)
+ *     vendor/qemu-img            Homebrew qemu-img + its dylib closure (vendor/lib), relinked
+ *                                to @executable_path/@loader_path — gondolin needs it on the host
  *     manifest.json              versions + sha256 of every executable/Mach-O for self-heal
  *
  * Why a runtime folder instead of a single binary: the 2026-09-01 spike showed
@@ -36,6 +37,7 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -56,6 +58,7 @@ function parseArgs(argv) {
     skipDaemonBuild: false,
     pack: false,
     packOnly: false,
+    qemuImg: true,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -64,9 +67,10 @@ function parseArgs(argv) {
     else if (arg === '--skip-daemon-build') args.skipDaemonBuild = true;
     else if (arg === '--pack') args.pack = true;
     else if (arg === '--pack-only') args.packOnly = true;
+    else if (arg === '--no-qemu-img') args.qemuImg = false;
     else if (arg === '-h' || arg === '--help') {
       console.log(
-        'usage: build.mjs [--out DIR] [--node VERSION] [--skip-daemon-build] [--pack | --pack-only]',
+        'usage: build.mjs [--out DIR] [--node VERSION] [--skip-daemon-build] [--no-qemu-img] [--pack | --pack-only]',
       );
       process.exit(0);
     } else throw new Error(`unknown argument: ${arg}`);
@@ -243,6 +247,147 @@ function applyPublishConfig(nodeModulesDir) {
   return applied;
 }
 
+function machoDeps(file) {
+  const out = spawnSync('otool', ['-L', file], { encoding: 'utf8' });
+  if (out.status !== 0) throw new Error(`otool -L failed for ${file}`);
+  return out.stdout
+    .split('\n')
+    .slice(1)
+    .map((line) => line.trim().split(' (')[0])
+    .filter(Boolean)
+    .filter(
+      (dep) => !dep.startsWith('/usr/lib/') && !dep.startsWith('/System/'),
+    );
+}
+
+function machoRpaths(file) {
+  const out = spawnSync('otool', ['-l', file], { encoding: 'utf8' }).stdout;
+  return [...out.matchAll(/LC_RPATH[\s\S]*?path (\S+)/g)].map((m) => m[1]);
+}
+
+/** Resolve a load command to a real file, following @loader_path/@rpath. */
+function resolveDep(dep, fromFile) {
+  const candidates = [];
+  if (dep.startsWith('@loader_path/') || dep.startsWith('@executable_path/')) {
+    candidates.push(join(dirname(fromFile), dep.replace(/^@[a-z_]+\//, '')));
+  } else if (dep.startsWith('@rpath/')) {
+    for (const rpath of machoRpaths(fromFile)) {
+      candidates.push(
+        join(
+          rpath.replace(/^@loader_path/, dirname(fromFile)),
+          dep.slice('@rpath/'.length),
+        ),
+      );
+    }
+  } else {
+    candidates.push(dep);
+  }
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) return realpathSync(candidate);
+  }
+  throw new Error(`cannot resolve ${dep} referenced by ${fromFile}`);
+}
+
+function findQemuImg() {
+  if (process.env.QEMU_IMG) return process.env.QEMU_IMG;
+  const brew = spawnSync('brew', ['--prefix', 'qemu'], { encoding: 'utf8' });
+  if (brew.status === 0) {
+    const candidate = join(brew.stdout.trim(), 'bin/qemu-img');
+    if (existsSync(candidate)) return candidate;
+  }
+  const which = spawnSync('which', ['qemu-img'], { encoding: 'utf8' });
+  return which.status === 0 ? which.stdout.trim() : null;
+}
+
+/**
+ * gondolin shells out to `qemu-img` (create/info/resize) on the host, so the
+ * bundle must carry one. Vendor Homebrew's build plus the closure of its
+ * non-system dylibs, relinked so nothing points back into /opt/homebrew:
+ *   vendor/qemu-img        → @executable_path/lib/<dylib>
+ *   vendor/lib/<dylib>     → @loader_path/<dylib>
+ * The launcher puts vendor/ first on PATH. Every file here is Mach-O, so it
+ * lands in manifest.native and gets signed with the rest of the payload.
+ */
+function vendorQemuImg(payloadDir) {
+  const source = findQemuImg();
+  if (!source) {
+    throw new Error(
+      'qemu-img not found (brew install qemu, or set QEMU_IMG); pass --no-qemu-img to skip',
+    );
+  }
+  const vendorDir = join(payloadDir, 'vendor');
+  const libDir = join(vendorDir, 'lib');
+  mkdirSync(libDir, { recursive: true });
+
+  // Walk the closure from the real binary.
+  const closure = new Map(); // realpath -> basename
+  const queue = [realpathSync(source)];
+  const binary = queue[0];
+  while (queue.length > 0) {
+    const file = queue.pop();
+    for (const dep of machoDeps(file)) {
+      const real = resolveDep(dep, file);
+      if (real === binary || closure.has(real)) continue;
+      closure.set(real, real.split('/').at(-1));
+      queue.push(real);
+    }
+  }
+
+  const target = join(vendorDir, 'qemu-img');
+  writeFileSync(target, readFileSync(binary));
+  chmodSync(target, 0o755);
+  const copied = [];
+  for (const [real, base] of closure) {
+    const dest = join(libDir, base);
+    writeFileSync(dest, readFileSync(real));
+    chmodSync(dest, 0o755);
+    copied.push(dest);
+  }
+
+  const relink = (file, prefix) => {
+    const args = [];
+    for (const dep of machoDeps(file)) {
+      const real = resolveDep(dep, file === target ? binary : realOf(file));
+      const base = closure.get(real) ?? real.split('/').at(-1);
+      args.push('-change', dep, `${prefix}${base}`);
+    }
+    if (file !== target)
+      args.push('-id', `@loader_path/${file.split('/').at(-1)}`);
+    if (args.length === 0) return;
+    const result = spawnSync('install_name_tool', [...args, file], {
+      encoding: 'utf8',
+    });
+    if (result.status !== 0)
+      throw new Error(`install_name_tool failed for ${file}: ${result.stderr}`);
+  };
+  // Resolve deps of a copied dylib against its ORIGINAL location (its
+  // @loader_path siblings live there, not in vendor/lib yet).
+  const originals = new Map(
+    copied.map((dest, i) => [dest, [...closure.keys()][i]]),
+  );
+  const realOf = (dest) => originals.get(dest);
+  for (const dest of copied) relink(dest, '@loader_path/');
+  relink(target, '@executable_path/lib/');
+
+  // install_name_tool invalidates the signatures and arm64 refuses to run
+  // such binaries. Ad-hoc sign now so the payload is runnable as assembled;
+  // sign.sh replaces these with the release identity.
+  for (const file of [...copied, target]) {
+    const signed = spawnSync('codesign', ['--force', '-s', '-', file], {
+      encoding: 'utf8',
+    });
+    if (signed.status !== 0) {
+      throw new Error(`ad-hoc codesign failed for ${file}: ${signed.stderr}`);
+    }
+  }
+
+  const version = spawnSync(target, ['--version'], { encoding: 'utf8' });
+  return {
+    version: version.stdout.split('\n')[0],
+    dylibs: copied.length,
+  };
+}
+
 function writeLauncher(payloadDir) {
   const launcher = join(payloadDir, 'bin/moltnet-agent');
   mkdirSync(dirname(launcher), { recursive: true });
@@ -325,6 +470,14 @@ async function main() {
   chmodSync(runtime, 0o755);
 
   mkdirSync(join(payloadDir, 'vendor'), { recursive: true });
+  if (args.qemuImg && platform.os === 'darwin') {
+    const vendored = vendorQemuImg(payloadDir);
+    console.log(`vendored ${vendored.version} (+${vendored.dylibs} dylibs)`);
+  } else if (platform.os === 'linux') {
+    console.log(
+      'linux: qemu-img is not vendored (install qemu-utils on the host)',
+    );
+  }
   const launcher = writeLauncher(payloadDir);
   writeFileSync(
     join(payloadDir, 'LICENSE'),
