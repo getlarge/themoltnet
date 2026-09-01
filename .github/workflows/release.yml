@@ -31,7 +31,7 @@ on:
       republish:
         description: >
           Comma-separated packages to re-publish from existing draft releases.
-          Valid values: sdk, os-keyring, tasks-orchestrator, credentials, credential-broker, ctap, yubikey-preview-sign, signer, github-agent, legreffier, cli, api-client, dspy-adapters, skill, design-system, pi-extension, sandbox-gondolin, pi-runtime, shell-command-analyzer, agent-runtime, node-red-theme, agent-daemon, console, database, landing, mcp-host, mcp-server, rest-api, otel-custom-collector
+          Valid values: sdk, os-keyring, tasks-orchestrator, credentials, credential-broker, ctap, yubikey-preview-sign, signer, github-agent, legreffier, cli, api-client, dspy-adapters, skill, design-system, pi-extension, sandbox-gondolin, pi-runtime, shell-command-analyzer, agent-runtime, n8n-nodes-moltnet, node-red-theme, agent-daemon, console, database, landing, mcp-host, mcp-server, rest-api, otel-custom-collector
         required: false
         type: string
 
@@ -104,6 +104,8 @@ jobs:
       pi-runtime-tag-name: ${{ steps.release.outputs['libs/pi-runtime--tag_name'] }}
       shell-command-analyzer-release-created: ${{ steps.release.outputs['libs/shell-command-analyzer--release_created'] }}
       shell-command-analyzer-tag-name: ${{ steps.release.outputs['libs/shell-command-analyzer--tag_name'] }}
+      n8n-nodes-moltnet-release-created: ${{ steps.release.outputs['libs/n8n-nodes-moltnet--release_created'] }}
+      n8n-nodes-moltnet-tag-name: ${{ steps.release.outputs['libs/n8n-nodes-moltnet--tag_name'] }}
       node-red-release-created: ${{ steps.release.outputs['libs/node-red-contrib-core--release_created'] }}
       node-red-tag-name: ${{ steps.release.outputs['libs/node-red-contrib-core--tag_name'] }}
       node-red-theme-release-created: ${{ steps.release.outputs['libs/node-red-theme--release_created'] }}
@@ -260,6 +262,8 @@ jobs:
       pi-runtime-tag: ${{ steps.resolve.outputs.pi-runtime-tag }}
       shell-command-analyzer: ${{ steps.resolve.outputs.shell-command-analyzer }}
       shell-command-analyzer-tag: ${{ steps.resolve.outputs.shell-command-analyzer-tag }}
+      n8n-nodes-moltnet: ${{ steps.resolve.outputs.n8n-nodes-moltnet }}
+      n8n-nodes-moltnet-tag: ${{ steps.resolve.outputs.n8n-nodes-moltnet-tag }}
       node-red: ${{ steps.resolve.outputs.node-red }}
       node-red-tag: ${{ steps.resolve.outputs.node-red-tag }}
       node-red-theme: ${{ steps.resolve.outputs.node-red-theme }}
@@ -318,6 +322,8 @@ jobs:
           RP_PI_RUNTIME_TAG: ${{ needs.release-please.outputs.pi-runtime-tag-name }}
           RP_SHELL_ANALYZER_CREATED: ${{ needs.release-please.outputs.shell-command-analyzer-release-created }}
           RP_SHELL_ANALYZER_TAG: ${{ needs.release-please.outputs.shell-command-analyzer-tag-name }}
+          RP_N8N_NODES_CREATED: ${{ needs.release-please.outputs.n8n-nodes-moltnet-release-created }}
+          RP_N8N_NODES_TAG: ${{ needs.release-please.outputs.n8n-nodes-moltnet-tag-name }}
           RP_NODE_RED_CREATED: ${{ needs.release-please.outputs.node-red-release-created }}
           RP_NODE_RED_TAG: ${{ needs.release-please.outputs.node-red-tag-name }}
           RP_NODE_RED_THEME_CREATED: ${{ needs.release-please.outputs.node-red-theme-release-created }}
@@ -439,6 +445,7 @@ jobs:
           resolve "sandbox-gondolin" "$RP_SANDBOX_GONDOLIN_CREATED" "$RP_SANDBOX_GONDOLIN_TAG" "sandbox-gondolin"
           resolve "pi-runtime" "$RP_PI_RUNTIME_CREATED" "$RP_PI_RUNTIME_TAG" "pi-runtime"
           resolve "shell-command-analyzer" "$RP_SHELL_ANALYZER_CREATED" "$RP_SHELL_ANALYZER_TAG" "shell-command-analyzer"
+          resolve "n8n-nodes-moltnet" "$RP_N8N_NODES_CREATED" "$RP_N8N_NODES_TAG" "n8n-nodes-moltnet"
           resolve "node-red"     "$RP_NODE_RED_CREATED"  "$RP_NODE_RED_TAG"  "node-red-contrib-core"
           resolve "node-red-theme" "$RP_NODE_RED_THEME_CREATED" "$RP_NODE_RED_THEME_TAG" "node-red-theme"
           resolve "agent-daemon" "$RP_AGENT_DAEMON_CREATED" "$RP_AGENT_DAEMON_TAG" "agent-daemon"
@@ -843,6 +850,62 @@ jobs:
           command: pnpm --filter @themoltnet/yubikey-preview-sign publish --no-git-checks --access public --provenance
       - name: Publish YubiKey previewSign release
         run: gh release edit "${{ needs.resolve-publish.outputs.yubikey-preview-sign-tag }}" --draft=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-n8n-nodes-moltnet:
+    name: Publish MoltNet n8n nodes to npm
+    needs: resolve-publish
+    if: ${{ always() && needs.resolve-publish.outputs.n8n-nodes-moltnet == 'true' && !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm exec nx run @themoltnet/n8n-nodes-moltnet:lint
+
+      - run: pnpm exec nx run @themoltnet/n8n-nodes-moltnet:typecheck
+
+      # `test-ci` is the atomized Nx Agents target used by affected CI. Release
+      # jobs run on a single GitHub runner, so execute the equivalent suite.
+      - run: pnpm exec nx run @themoltnet/n8n-nodes-moltnet:test
+
+      - run: pnpm exec nx run @themoltnet/n8n-nodes-moltnet:check:pack
+
+      - name: Read exact package version
+        id: package-version
+        run: node -p '"version=" + require("./libs/n8n-nodes-moltnet/package.json").version' >> "$GITHUB_OUTPUT"
+
+      - name: Publish @themoltnet/n8n-nodes-moltnet
+        uses: nick-fields/retry@v4.0.0
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: pnpm --filter @themoltnet/n8n-nodes-moltnet publish --no-git-checks --access public --provenance
+
+      - name: Scan exact published community package
+        uses: nick-fields/retry@v4.0.0
+        with:
+          timeout_minutes: 10
+          max_attempts: 6
+          retry_wait_seconds: 30
+          command: pnpm dlx @n8n/scan-community-package@latest "@themoltnet/n8n-nodes-moltnet@${{ steps.package-version.outputs.version }}"
+
+      - name: Publish n8n node release
+        run: gh release edit "${{ needs.resolve-publish.outputs.n8n-nodes-moltnet-tag }}" --draft=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
