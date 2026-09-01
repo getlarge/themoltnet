@@ -388,9 +388,16 @@ function vendorQemuImg(payloadDir) {
   };
 }
 
-function writeLauncher(payloadDir) {
+function writeLauncher(payloadDir, platform) {
   const launcher = join(payloadDir, 'bin/moltnet-agent');
   mkdirSync(dirname(launcher), { recursive: true });
+  // The bundle must not depend on a host qemu-system install: on macOS the
+  // gondolin backend defaults to the bundled, signed krun runner (libkrun).
+  // gondolin's own default is qemu; the env override keeps working.
+  const vmmDefault =
+    platform.os === 'darwin'
+      ? '\n# Bundled VM backend: libkrun (signed krun runner ships in the payload).\nexport GONDOLIN_VMM="${GONDOLIN_VMM:-krun}"'
+      : '';
   writeFileSync(
     launcher,
     `#!/bin/sh
@@ -406,7 +413,7 @@ done
 root=$(CDPATH= cd -- "$(dirname -- "$self")/.." && pwd)
 export MOLTNET_AGENT_BUNDLE_ROOT="$root"
 # vendor/ carries host tools we ship (qemu-img); keep the user's PATH after it.
-export PATH="$root/vendor:$PATH"
+export PATH="$root/vendor:$PATH"${vmmDefault}
 exec "$root/libexec/moltnet-agent" "$root/daemon/dist/main.js" "$@"
 `,
   );
@@ -478,7 +485,7 @@ async function main() {
       'linux: qemu-img is not vendored (install qemu-utils on the host)',
     );
   }
-  const launcher = writeLauncher(payloadDir);
+  const launcher = writeLauncher(payloadDir, platform);
   writeFileSync(
     join(payloadDir, 'LICENSE'),
     readFileSync(join(repoRoot, 'LICENSE')),
