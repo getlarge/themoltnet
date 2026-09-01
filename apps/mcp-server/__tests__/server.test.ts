@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 
 import { MCP_CLIENT_SCOPES, MCP_M2M_SCOPES } from '@moltnet/models';
 import { describe, expect, it, type Mock, vi } from 'vitest';
@@ -602,6 +603,37 @@ describe('buildApp', () => {
     expect(byName.entries_create?.openWorldHint).toBe(false);
     expect(byName.tasks_create?.openWorldHint).toBe(true);
     expect(byName.tasks_continue?.openWorldHint).toBe(true);
+
+    const submission = JSON.parse(
+      await readFile(
+        new URL(
+          '../../../packages/legreffier-plugin/submission/chatgpt-app-submission.json',
+          import.meta.url,
+        ),
+        'utf8',
+      ),
+    ) as {
+      tools: Record<
+        string,
+        {
+          annotations: {
+            readOnlyHint: boolean;
+            openWorldHint: boolean;
+            destructiveHint: boolean;
+          };
+        }
+      >;
+    };
+    expect(Object.keys(submission.tools).sort()).toEqual(
+      tools.map(({ name }) => name).sort(),
+    );
+    for (const tool of tools) {
+      expect(submission.tools[tool.name]?.annotations, tool.name).toEqual({
+        readOnlyHint: tool.annotations?.readOnlyHint,
+        openWorldHint: tool.annotations?.openWorldHint,
+        destructiveHint: tool.annotations?.destructiveHint,
+      });
+    }
 
     await app.close();
   });

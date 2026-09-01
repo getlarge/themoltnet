@@ -205,4 +205,19 @@ test('ships a complete OpenAI public-review fixture', async () => {
   }
   assert.doesNotMatch(submission.listing.longDescription, /signed decisions/i);
   assert.doesNotMatch(submission.releaseNotes, /signed diary workflows/i);
+
+  const chatgptSubmission = JSON.parse(
+    await readFile(
+      join(root, 'submission', 'chatgpt-app-submission.json'),
+      'utf8',
+    ),
+  );
+  assert.equal(
+    chatgptSubmission.$schema,
+    'https://developers.openai.com/plugins/schemas/chatgpt-app-submission.v1.json',
+  );
+  assert.equal(chatgptSubmission.schema_version, 1);
+  assert.equal(chatgptSubmission.test_cases.length, 5);
+  assert.equal(chatgptSubmission.negative_test_cases.length, 3);
+  assert.ok(Object.keys(chatgptSubmission.tools).length > 0);
 });
