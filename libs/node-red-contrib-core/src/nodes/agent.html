@@ -18,6 +18,18 @@
       return this.name || this.clientId || 'moltnet-agent';
     },
     oneditprepare: function () {
+      // Node-RED applies defaults before opening an older config node, so a
+      // flow saved before authType existed appears to use the new agentKey
+      // default. Detect its retained OAuth2 fields/credential marker and put
+      // the editor back in OAuth2 mode before a deploy can persist the default.
+      const legacyOAuth2 =
+        typeof this.clientId === 'string' &&
+        this.clientId.trim().length > 0 &&
+        this.credentials?.has_clientSecret === true &&
+        this.credentials?.has_agentKey !== true;
+      if (legacyOAuth2 && this.authType !== 'oauth2') {
+        $('#node-config-input-authType').val('oauth2');
+      }
       const updateAuthRows = function () {
         const agentKey = $('#node-config-input-authType').val() === 'agentKey';
         $('.moltnet-auth-agent-key').toggle(agentKey);
