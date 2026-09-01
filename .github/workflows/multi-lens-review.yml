@@ -51,8 +51,8 @@ jobs:
               core.setFailed('Multi-lens review only runs for same-repository pull requests');
               return;
             }
-            if (pr.head.ref === 'codeboarding/sync' || pr.user.login === 'dependabot[bot]') {
-              core.setFailed(`Multi-lens review is disabled for ${pr.head.ref}`);
+            if (pr.user.login === 'dependabot[bot]') {
+              core.setFailed('Multi-lens review is disabled for Dependabot pull requests');
               return;
             }
             const response = await github.rest.pulls.get({

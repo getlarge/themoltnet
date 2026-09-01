@@ -12,10 +12,6 @@ infra/ory
 # source/theme files under docs/.vitepress remain part of the project graph.
 **/.vitepress/cache
 
-# Generated and versioned by CodeBoarding. Baseline-only changes must not
-# affect the Nx project graph or affected project calculations.
-.codeboarding
-
 # Nx format passes changed files to Prettier as explicit paths. Prettier rejects
 # symbolic links before applying .prettierignore, so exclude this navigation
 # alias while its AGENTS.md target remains the formatted source of truth.

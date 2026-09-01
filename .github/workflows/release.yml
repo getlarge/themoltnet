@@ -6,7 +6,6 @@ on:
     paths-ignore:
       - 'docs/**'
       - '.claude/**'
-      - '.codeboarding/**'
       - '**.md'
   workflow_dispatch:
     inputs:
