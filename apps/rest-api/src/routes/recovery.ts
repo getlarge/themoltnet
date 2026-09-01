@@ -66,6 +66,28 @@ function upstreamStatus(error: unknown): number | undefined {
   return error.response.status;
 }
 
+function nextPageToken(link: string | null): string | undefined {
+  if (!link) return undefined;
+  const nextLinks = link.split(',').flatMap((part) => {
+    const match = part.trim().match(/^<([^>]+)>(.*)$/);
+    if (!match) throw new Error('Malformed pagination link');
+    const rel = match[2]
+      .split(';')
+      .map((value) => value.trim().match(/^rel="([^"]+)"$/)?.[1])
+      .find(Boolean);
+    return rel?.split(/\s+/).includes('next') ? [match[1]] : [];
+  });
+  if (nextLinks.length > 1) throw new Error('Multiple next page links');
+  if (nextLinks.length === 0) return undefined;
+  const tokens = new URL(nextLinks[0], 'http://localhost').searchParams.getAll(
+    'page_token',
+  );
+  if (tokens.length !== 1 || !tokens[0]) {
+    throw new Error('Invalid next page token');
+  }
+  return tokens[0];
+}
+
 export async function recoveryRoutes(
   fastify: FastifyInstance,
   options: RecoveryRouteOptions,
@@ -252,6 +274,7 @@ export async function recoveryRoutes(
           200: Type.Ref(RecoveryCredentialsResponseSchema.$id),
           400: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ProblemDetailsSchema.$id),
           500: Type.Ref(ProblemDetailsSchema.$id),
           502: Type.Ref(ProblemDetailsSchema.$id),
         },
@@ -259,45 +282,134 @@ export async function recoveryRoutes(
     },
     async (request) => {
       const agent = await verifyRecoveryProof(request, 'credentials');
-      const clientId = agentOAuth2ClientId(agent.identityId);
+      const deterministicClientId = agentOAuth2ClientId(agent.identityId);
 
       let existingClient;
       try {
         existingClient = await fastify.oauth2Client.getOAuth2Client({
-          id: clientId,
+          id: deterministicClientId,
         });
       } catch (err) {
-        if (upstreamStatus(err) === 404) {
-          fastify.log.warn(
+        if (upstreamStatus(err) !== 404) {
+          fastify.log.error(
             {
+              err,
               fingerprint: agent.fingerprint,
               identityId: agent.identityId,
-              clientId,
+              clientId: deterministicClientId,
               requestId: request.id,
               ip: request.ip,
               rotated: false,
             },
-            'OAuth2 credential recovery client not found',
+            'OAuth2 credential recovery lookup failed',
           );
+          throw createProblem(
+            'upstream-error',
+            'Failed to fetch OAuth2 client',
+          );
+        }
+
+        const matches = [];
+        const seenTokens = new Set<string>();
+        let pageToken: string | undefined;
+        try {
+          do {
+            const page = await fastify.oauth2Client.listOAuth2ClientsRaw({
+              clientName: `Agent: ${agent.fingerprint}`,
+              pageSize: 250,
+              pageToken,
+            });
+            const clients = await page.value();
+            matches.push(
+              ...clients.filter((client) => {
+                const metadata = client.metadata as
+                  | Record<string, unknown>
+                  | undefined;
+                return (
+                  client.client_name === `Agent: ${agent.fingerprint}` &&
+                  metadata?.identity_id === agent.identityId &&
+                  metadata?.public_key === agent.publicKey &&
+                  metadata?.fingerprint === agent.fingerprint
+                );
+              }),
+            );
+            pageToken = nextPageToken(page.raw.headers.get('link'));
+            if (pageToken && seenTokens.has(pageToken)) {
+              throw new Error('Repeated next page token');
+            }
+            if (pageToken) seenTokens.add(pageToken);
+          } while (pageToken);
+        } catch (legacyError) {
+          fastify.log.error(
+            {
+              err: legacyError,
+              fingerprint: agent.fingerprint,
+              identityId: agent.identityId,
+              requestId: request.id,
+              ip: request.ip,
+              rotated: false,
+            },
+            'OAuth2 credential recovery legacy lookup failed',
+          );
+          throw createProblem(
+            'upstream-error',
+            'Failed to fetch OAuth2 client',
+          );
+        }
+        if (matches.length === 0) {
           throw createProblem(
             'not-found',
             'No OAuth2 client exists for this agent',
           );
         }
+        if (matches.length > 1) {
+          fastify.log.warn(
+            {
+              fingerprint: agent.fingerprint,
+              identityId: agent.identityId,
+              matchCount: matches.length,
+              requestId: request.id,
+              rotated: false,
+            },
+            'OAuth2 credential recovery legacy client is ambiguous',
+          );
+          throw createProblem(
+            'conflict',
+            'Multiple OAuth2 clients match this agent identity',
+          );
+        }
+        existingClient = matches[0];
+      }
+
+      const clientId = existingClient.client_id;
+      if (!clientId) {
         fastify.log.error(
           {
-            err,
             fingerprint: agent.fingerprint,
             identityId: agent.identityId,
-            clientId,
             requestId: request.id,
             ip: request.ip,
             rotated: false,
           },
-          'OAuth2 credential recovery lookup failed',
+          'OAuth2 credential recovery client has no ID',
         );
-        throw createProblem('upstream-error', 'Failed to fetch OAuth2 client');
+        throw createProblem(
+          'upstream-error',
+          'OAuth2 client data is incomplete',
+        );
       }
+
+      fastify.log.info(
+        {
+          fingerprint: agent.fingerprint,
+          identityId: agent.identityId,
+          clientId,
+          resolution:
+            clientId === deterministicClientId ? 'deterministic' : 'legacy',
+          requestId: request.id,
+        },
+        'OAuth2 credential recovery client resolved',
+      );
 
       const clientSecret = crypto.randomUUID();
       let sealedClientSecret: string;
@@ -330,13 +442,7 @@ export async function recoveryRoutes(
         await fastify.oauth2Client.setOAuth2Client({
           id: clientId,
           oAuth2Client: {
-            client_name: existingClient.client_name,
-            grant_types: existingClient.grant_types,
-            response_types: existingClient.response_types,
-            token_endpoint_auth_method:
-              existingClient.token_endpoint_auth_method,
-            scope: existingClient.scope,
-            metadata: existingClient.metadata,
+            ...existingClient,
             client_secret: clientSecret,
           },
         });

@@ -392,7 +392,8 @@ export const RecoveryVerifyResponseSchema = Type.Object(
 export const RecoveryCredentialsResponseSchema = Type.Object(
   {
     clientId: Type.String({
-      description: 'OAuth2 client identifier whose secret was replaced',
+      description:
+        'Actual server-resolved Hydra OAuth2 client identifier whose secret was replaced',
     }),
     sealedClientSecret: Type.String({
       description:

@@ -616,13 +616,14 @@ sequenceDiagram
     participant API as REST API
     participant DB as Postgres
     participant KRA as Ory Kratos
+    participant HYD as Ory Hydra
 
     Note over Agent: Agent lost session/tokens<br/>but still has Ed25519 private key
 
     rect rgb(232, 245, 233)
         Note over Agent,API: Step 1 — Request Challenge
         Agent->>Agent: Derive public key from private key
-        Agent->>API: POST /recovery/challenge<br/>{ publicKey: "ed25519:base64..." }
+        Agent->>API: POST /recovery/challenge<br/>{ publicKey, purpose }
         API->>DB: Verify agents exists for this public key
         API->>API: Generate challenge:<br/>"moltnet:recovery:{pubKey}:{random}:{timestamp}"
         API->>API: HMAC-SHA256(challenge, RECOVERY_CHALLENGE_SECRET)
@@ -636,7 +637,7 @@ sequenceDiagram
 
     rect rgb(227, 242, 253)
         Note over Agent,KRA: Step 3 — Verify & Recover
-        Agent->>API: POST /recovery/verify<br/>{ challenge, hmac, signature, publicKey }
+        Agent->>API: POST /recovery/{verify|credentials}<br/>{ challenge, hmac, signature, publicKey }<br/>No OAuth client ID supplied
         API->>API: Verify HMAC (timing-safe)
         API->>API: Verify challenge not expired (5min TTL)
         API->>API: Verify challenge bound to publicKey
@@ -644,15 +645,25 @@ sequenceDiagram
         API->>API: ed25519.verify(challenge, signature, publicKey)
         API->>DB: Store nonce in used_recovery_nonces
 
-        API->>KRA: createRecoveryCodeForIdentity(identity_id)
-        KRA-->>API: { recovery_code, flow_url }
-        API-->>Agent: { recoveryCode, recoveryFlowUrl }
+        alt Identity recovery
+            API->>KRA: createRecoveryCodeForIdentity(identity_id)
+            KRA-->>API: { recovery_code, flow_url }
+            API-->>Agent: { recoveryCode, recoveryFlowUrl }
+        else OAuth credential recovery
+            API->>HYD: Get moltnet-agent-{identityId}
+            opt Deterministic client is absent
+                API->>HYD: List every Agent: {fingerprint} page<br/>and match exact identity metadata
+            end
+            API->>HYD: Rotate resolved client, preserving configuration
+            HYD-->>API: Replacement stored
+            API-->>Agent: { actual clientId, sealedClientSecret }
+            Agent->>Agent: Verify credential, store canonical reference,<br/>atomically rebuild client_id + client_secret_ref
+        end
     end
 
-    rect rgb(243, 229, 245)
-        Note over Agent,KRA: Step 4 — Complete Recovery
+    opt Complete identity recovery
         Agent->>KRA: POST /self-service/recovery?flow={id}<br/>{ method: "code", code: recovery_code }
-        KRA-->>Agent: { session_token }<br/>Agent can now re-register OAuth2 client
+        KRA-->>Agent: { session_token }
     end
 ```
 

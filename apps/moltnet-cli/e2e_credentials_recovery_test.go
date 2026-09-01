@@ -23,7 +23,6 @@ func TestE2E_AgentsCredentialsRecover(t *testing.T) {
 	credentialsPath, err := writeE2ECredsFile(&CredentialsFile{
 		IdentityID: agent.IdentityID,
 		OAuth2: CredentialsOAuth2{
-			ClientID:     agent.Credential.ClientID,
 			ClientSecret: "lost-client-secret",
 		},
 		Keys: CredentialsKeys{
@@ -81,7 +80,8 @@ func TestE2E_AgentsCredentialsRecover(t *testing.T) {
 	}
 	if updated.OAuth2.ClientID != agent.Credential.ClientID ||
 		updated.OAuth2.ClientSecret != "" || updated.OAuth2.ClientSecretRef == nil ||
-		updated.OAuth2.ClientSecretRef.Provider != fileProviderName {
+		updated.OAuth2.ClientSecretRef.Provider != fileProviderName ||
+		updated.OAuth2.ClientSecretRef.Key != OAuth2SecretKey(agent.IdentityID, agent.Credential.ClientID) {
 		t.Fatal("credentials file does not contain the recovered secret reference")
 	}
 	recoveredSecret, err := resolveOAuth2Secret(updated, NewSecretProviderRegistry())

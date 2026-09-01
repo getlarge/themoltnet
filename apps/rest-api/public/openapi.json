@@ -7169,7 +7169,7 @@
       "RecoveryCredentialsResponse": {
         "properties": {
           "clientId": {
-            "description": "OAuth2 client identifier whose secret was replaced",
+            "description": "Actual server-resolved Hydra OAuth2 client identifier whose secret was replaced",
             "type": "string"
           },
           "sealedClientSecret": {
@@ -27043,6 +27043,16 @@
             "description": "Default Response"
           },
           "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
             "content": {
               "application/json": {
                 "schema": {

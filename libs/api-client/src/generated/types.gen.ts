@@ -1768,7 +1768,7 @@ export type RecoveryChallengeResponse = {
 
 export type RecoveryCredentialsResponse = {
   /**
-   * OAuth2 client identifier whose secret was replaced
+   * Actual server-resolved Hydra OAuth2 client identifier whose secret was replaced
    */
   clientId: string;
   /**
@@ -8144,6 +8144,10 @@ export type RecoverAgentCredentialsErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
   /**
    * Default Response
    */

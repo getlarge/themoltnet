@@ -407,6 +407,47 @@ describe('Recovery routes', () => {
       };
     }
 
+    const createCredentialsApp = (
+      oauth2: Record<string, unknown>,
+      evictOAuthClient = vi.fn(),
+    ) =>
+      buildApp({
+        diaryService: mocks.diaryService as any,
+        diaryRepository: mocks.diaryRepository as any,
+        agentRepository: mocks.agentRepository as any,
+        cryptoService: mocks.cryptoService as any,
+        agentEnrollmentRepository: mocks.agentEnrollmentRepository as any,
+        signingRequestRepository: mocks.signingRequestRepository as any,
+        nonceRepository: mocks.nonceRepository as any,
+        dataSource: mocks.dataSource as any,
+        transactionRunner: mocks.transactionRunner as any,
+        embeddingService: mocks.embeddingService as any,
+        permissionChecker: mocks.permissionChecker as any,
+        tokenValidator: {
+          introspect: vi.fn().mockResolvedValue({ active: false }),
+          resolveAuthContext: vi.fn().mockResolvedValue(null),
+          evictOAuthClient,
+        } as any,
+        webhookApiKey: 'test-key',
+        recoverySecret: TEST_RECOVERY_SECRET,
+        oryClients: {
+          frontend: {} as any,
+          identity: {} as any,
+          oauth2: oauth2 as any,
+          permission: {} as any,
+          relationship: {} as any,
+        },
+        security: TEST_SECURITY_OPTIONS,
+      });
+
+    const notFound = () =>
+      Object.assign(new Error('not found'), { response: { status: 404 } });
+
+    const page = (clients: unknown, link?: string) => ({
+      raw: { headers: new Headers(link ? { link } : undefined) },
+      value: vi.fn().mockResolvedValue(clients),
+    });
+
     it('delivers the sealed replacement when post-commit eviction fails', async () => {
       const keyPair = await cryptoService.generateKeyPair();
       const agent = createMockAgent({
@@ -434,37 +475,14 @@ describe('Recovery routes', () => {
         metadata: { identity_id: OWNER_ID },
       });
       const setOAuth2Client = vi.fn().mockResolvedValue(undefined);
+      const listOAuth2ClientsRaw = vi.fn();
       const evictOAuthClient = vi.fn(() => {
         throw new Error('validator cache unavailable');
       });
-      const testApp = await buildApp({
-        diaryService: mocks.diaryService as any,
-        diaryRepository: mocks.diaryRepository as any,
-        agentRepository: mocks.agentRepository as any,
-        cryptoService: mocks.cryptoService as any,
-        agentEnrollmentRepository: mocks.agentEnrollmentRepository as any,
-        signingRequestRepository: mocks.signingRequestRepository as any,
-        nonceRepository: mocks.nonceRepository as any,
-        dataSource: mocks.dataSource as any,
-        transactionRunner: mocks.transactionRunner as any,
-        embeddingService: mocks.embeddingService as any,
-        permissionChecker: mocks.permissionChecker as any,
-        tokenValidator: {
-          introspect: vi.fn().mockResolvedValue({ active: false }),
-          resolveAuthContext: vi.fn().mockResolvedValue(null),
-          evictOAuthClient,
-        } as any,
-        webhookApiKey: 'test-key',
-        recoverySecret: TEST_RECOVERY_SECRET,
-        oryClients: {
-          frontend: {} as any,
-          identity: {} as any,
-          oauth2: { getOAuth2Client, setOAuth2Client } as any,
-          permission: {} as any,
-          relationship: {} as any,
-        },
-        security: TEST_SECURITY_OPTIONS,
-      });
+      const testApp = await createCredentialsApp(
+        { getOAuth2Client, listOAuth2ClientsRaw, setOAuth2Client },
+        evictOAuthClient,
+      );
 
       try {
         const response = await testApp.inject({
@@ -490,10 +508,196 @@ describe('Recovery routes', () => {
           }),
         });
         expect(evictOAuthClient).toHaveBeenCalledWith(recovered.clientId);
+        expect(listOAuth2ClientsRaw).not.toHaveBeenCalled();
       } finally {
         await testApp.close();
       }
     });
+
+    it('finds the exact legacy client across every filtered page', async () => {
+      const keyPair = await cryptoService.generateKeyPair();
+      const agent = createMockAgent({
+        publicKey: keyPair.publicKey,
+        fingerprint: keyPair.fingerprint,
+      });
+      mocks.agentRepository.findByPublicKey.mockResolvedValue(agent);
+      mocks.cryptoService.verify.mockResolvedValue(true);
+      const exact = {
+        client_id: 'legacy-uuid',
+        client_name: `Agent: ${agent.fingerprint}`,
+        audience: ['preserved-audience'],
+        metadata: {
+          identity_id: agent.identityId,
+          public_key: agent.publicKey,
+          fingerprint: agent.fingerprint,
+        },
+      };
+      const listOAuth2ClientsRaw = vi
+        .fn()
+        .mockResolvedValueOnce(
+          page(
+            [
+              {
+                ...exact,
+                client_id: 'wrong-identity',
+                metadata: { ...exact.metadata, identity_id: 'other' },
+              },
+              {
+                ...exact,
+                client_id: 'wrong-key',
+                metadata: { ...exact.metadata, public_key: 'other' },
+              },
+            ],
+            '</admin/clients?page_size=250&page_token=next>; rel="next"',
+          ),
+        )
+        .mockResolvedValueOnce(
+          page([
+            {
+              ...exact,
+              client_id: 'wrong-fingerprint',
+              metadata: { ...exact.metadata, fingerprint: 'other' },
+            },
+            { ...exact, client_id: 'wrong-name', client_name: 'Agent: other' },
+            exact,
+          ]),
+        );
+      const setOAuth2Client = vi.fn();
+      const testApp = await createCredentialsApp({
+        getOAuth2Client: vi.fn().mockRejectedValue(notFound()),
+        listOAuth2ClientsRaw,
+        setOAuth2Client,
+      });
+
+      try {
+        const challenge = generateRecoveryChallenge(
+          agent.publicKey,
+          'credentials',
+        );
+        const response = await testApp.inject({
+          method: 'POST',
+          url: '/recovery/credentials',
+          payload: {
+            challenge,
+            hmac: signChallenge(challenge, TEST_RECOVERY_SECRET),
+            signature: 'some-sig',
+            publicKey: agent.publicKey,
+          },
+        });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.json().clientId).toBe('legacy-uuid');
+        expect(listOAuth2ClientsRaw).toHaveBeenNthCalledWith(2, {
+          clientName: `Agent: ${agent.fingerprint}`,
+          pageSize: 250,
+          pageToken: 'next',
+        });
+        expect(setOAuth2Client).toHaveBeenCalledWith({
+          id: 'legacy-uuid',
+          oAuth2Client: expect.objectContaining({
+            audience: ['preserved-audience'],
+            client_secret: expect.any(String),
+          }),
+        });
+      } finally {
+        await testApp.close();
+      }
+    });
+
+    it.each([
+      ['no match', [page([])], 404],
+      [
+        'multiple matches',
+        [page([{ client_id: 'one' }, { client_id: 'two' }])],
+        409,
+      ],
+      ['matching client without an ID', [page([{}])], 502],
+      [
+        'malformed pagination',
+        [page([], '</admin/clients?page_size=250>; rel="next"')],
+        502,
+      ],
+      ['malformed Hydra data', [page({})], 502],
+    ])('does not mutate on %s', async (_name, pages, statusCode) => {
+      const agent = createMockAgent({ publicKey: CREDENTIALS_PUBLIC_KEY });
+      mocks.agentRepository.findByPublicKey.mockResolvedValue(agent);
+      mocks.cryptoService.verify.mockResolvedValue(true);
+      const metadata = {
+        identity_id: agent.identityId,
+        public_key: agent.publicKey,
+        fingerprint: agent.fingerprint,
+      };
+      const hydratedPages = pages.map((result) => ({
+        ...result,
+        value: vi.fn(async () => {
+          const clients = await result.value();
+          return Array.isArray(clients)
+            ? clients.map((client) => ({
+                client_name: `Agent: ${agent.fingerprint}`,
+                metadata,
+                ...client,
+              }))
+            : clients;
+        }),
+      }));
+      const setOAuth2Client = vi.fn();
+      const testApp = await createCredentialsApp({
+        getOAuth2Client: vi.fn().mockRejectedValue(notFound()),
+        listOAuth2ClientsRaw: vi
+          .fn()
+          .mockImplementation(() => hydratedPages.shift()),
+        setOAuth2Client,
+      });
+
+      try {
+        const response = await testApp.inject({
+          method: 'POST',
+          url: '/recovery/credentials',
+          payload: createCredentialsPayload(),
+        });
+        expect(response.statusCode).toBe(statusCode);
+        expect(setOAuth2Client).not.toHaveBeenCalled();
+      } finally {
+        await testApp.close();
+      }
+    });
+
+    it.each([404, 503])(
+      'maps Hydra list/get failure after status %i without mutation',
+      async (status) => {
+        const agent = createMockAgent({ publicKey: CREDENTIALS_PUBLIC_KEY });
+        mocks.agentRepository.findByPublicKey.mockResolvedValue(agent);
+        mocks.cryptoService.verify.mockResolvedValue(true);
+        const listOAuth2ClientsRaw = vi
+          .fn()
+          .mockRejectedValue(new Error('Hydra unavailable'));
+        const setOAuth2Client = vi.fn();
+        const testApp = await createCredentialsApp({
+          getOAuth2Client: vi.fn().mockRejectedValue(
+            Object.assign(new Error('lookup failed'), {
+              response: { status },
+            }),
+          ),
+          listOAuth2ClientsRaw,
+          setOAuth2Client,
+        });
+
+        try {
+          const response = await testApp.inject({
+            method: 'POST',
+            url: '/recovery/credentials',
+            payload: createCredentialsPayload(),
+          });
+          expect(response.statusCode).toBe(502);
+          expect(setOAuth2Client).not.toHaveBeenCalled();
+          expect(listOAuth2ClientsRaw).toHaveBeenCalledTimes(
+            status === 404 ? 1 : 0,
+          );
+        } finally {
+          await testApp.close();
+        }
+      },
+    );
 
     it('rejects a replay before attempting another credential rotation', async () => {
       const payload = {
