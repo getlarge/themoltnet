@@ -1,3 +1,4 @@
+import { executionCapabilityOfferFromPiManifest } from '@moltnet/execution-integrations/pi';
 import {
   agentSigningCapability,
   buildPiExecutorManifest,
@@ -10,6 +11,7 @@ import {
   type PiRuntimeDefinition,
 } from '@themoltnet/pi-runtime';
 
+import { registerRuntimeExecutionOffer } from './lib/runtime-governance.js';
 import type { DaemonRuntimeAdapter, PreparedDaemonRuntime } from './runtime.js';
 
 export const PI_KERNEL_TOOL_NAMES = [
@@ -55,7 +57,7 @@ export function createPiDaemonAdapter(
       const extensionTools = runtime.extensions.flatMap(
         (extension) => extension.declaredTools,
       );
-      return {
+      const prepared: PreparedDaemonRuntime = {
         runtimeKind: runtime.runtimeKind,
         manifest: manifest as unknown as Record<string, unknown>,
         tools: [
@@ -78,6 +80,12 @@ export function createPiDaemonAdapter(
             resolvedVmTemplate: resolvedTemplate,
           }),
       };
+      registerRuntimeExecutionOffer(prepared, (executorFingerprint) =>
+        executionCapabilityOfferFromPiManifest(manifest, {
+          executorFingerprint,
+        }),
+      );
+      return prepared;
     },
   };
 }

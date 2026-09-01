@@ -69,6 +69,10 @@
     "./lib/state-dir.js": {
       "import": "./src/lib/state-dir.ts",
       "types": "./src/lib/state-dir.ts"
+    },
+    "./lib/governance-plan.js": {
+      "import": "./src/lib/governance-plan.ts",
+      "types": "./src/lib/governance-plan.ts"
     }
   },
   "publishConfig": {
@@ -150,6 +154,8 @@
   "devDependencies": {
     "@moltnet/bootstrap": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/execution-integrations": "workspace:*",
+    "@moltnet/execution-plan": "workspace:*",
     "@moltnet/models": "workspace:*",
     "@moltnet/observability": "workspace:*",
     "@moltnet/runtime-profiles": "workspace:*",

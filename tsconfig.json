@@ -132,6 +132,9 @@
       "path": "libs/entry-explore-mcp-app"
     },
     {
+      "path": "libs/execution-plan"
+    },
+    {
       "path": "libs/mcp-auth-proxy"
     },
     {
@@ -232,6 +235,12 @@
     },
     {
       "path": "libs/dts-entry-shims"
+    },
+    {
+      "path": "libs/runtime-execution"
+    },
+    {
+      "path": "libs/execution-integrations"
     }
   ]
 }

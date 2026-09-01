@@ -9,6 +9,8 @@ export default [
       // Private workspace packages are build inputs bundled into dist, not
       // installable runtime dependencies.
       '@moltnet/crypto-service',
+      '@moltnet/execution-integrations',
+      '@moltnet/execution-plan',
       '@moltnet/runtime-profiles',
       '@moltnet/tasks',
       // Runtime dependencies reached through public package/plugin boundaries

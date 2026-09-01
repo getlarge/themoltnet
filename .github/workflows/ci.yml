@@ -188,8 +188,8 @@ jobs:
           fi
 
           # The agent-daemon Core lane also runs the live Gondolin VM tests,
-          # which now live in the sandbox package below Pi.
-          if contains "@themoltnet/agent-daemon-e2e" || contains "@themoltnet/sandbox-gondolin"; then
+          # including the execution integration boundary.
+          if contains "@themoltnet/agent-daemon-e2e" || contains "@themoltnet/sandbox-gondolin" || contains "@moltnet/execution-integrations"; then
             echo "e2e-agent-daemon=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-agent-daemon=false" >> "$GITHUB_OUTPUT"
@@ -1145,6 +1145,11 @@ jobs:
         env:
           MOLTNET_PI_VM_INTEGRATION: '1'
         run: pnpm exec nx run @themoltnet/sandbox-gondolin:test-ci--src/vm-manager.integration.test.ts
+      - name: Run governed Gondolin integration test
+        if: needs.affected.outputs.e2e-agent-daemon == 'true' && matrix.lane.vm_integration
+        env:
+          MOLTNET_PI_VM_INTEGRATION: '1'
+        run: pnpm exec nx run @moltnet/execution-integrations:test-ci--src/gondolin.integration.test.ts
       - name: Run agent-daemon ${{ matrix.lane.name }} E2E tests
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
         run: pnpm exec nx run @themoltnet/agent-daemon-e2e:e2e --configuration=${{ matrix.lane.configuration }}

@@ -44,9 +44,9 @@
   },
   "nx": {
     "tags": [
-      "type:runtime",
+      "type:sandbox",
       "scope:agent",
-      "platform:extension"
+      "platform:server"
     ],
     "targets": {
       "test-ci": {

@@ -1,0 +1,48 @@
+{
+  "name": "@moltnet/execution-integrations",
+  "version": "0.1.0",
+  "license": "AGPL-3.0-only",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./runtime-profile": {
+      "import": "./src/runtime-profile.ts",
+      "types": "./src/runtime-profile.ts"
+    },
+    "./pi": {
+      "import": "./src/pi.ts",
+      "types": "./src/pi.ts"
+    },
+    "./gondolin": {
+      "import": "./src/gondolin.ts",
+      "types": "./src/gondolin.ts"
+    },
+    "./credential-broker": {
+      "import": "./src/credential-broker.ts",
+      "types": "./src/credential-broker.ts"
+    }
+  },
+  "nx": {
+    "sourceRoot": "libs/execution-integrations/src",
+    "projectType": "library",
+    "tags": [
+      "type:runtime",
+      "scope:runtime",
+      "platform:cli"
+    ]
+  },
+  "dependencies": {
+    "@moltnet/agent-config": "workspace:*",
+    "@moltnet/execution-plan": "workspace:*",
+    "@moltnet/runtime-execution": "workspace:*",
+    "@moltnet/runtime-policy-service": "workspace:*",
+    "@themoltnet/agent-runtime": "workspace:*",
+    "@themoltnet/pi-runtime": "workspace:*",
+    "@themoltnet/sandbox-gondolin": "workspace:*",
+    "@themoltnet/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
