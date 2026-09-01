@@ -1206,6 +1206,9 @@ importers:
       '@moltnet/crypto-service':
         specifier: workspace:*
         version: link:../../libs/crypto-service
+      '@moltnet/loopback-companion':
+        specifier: workspace:*
+        version: link:../../libs/loopback-companion
       '@moltnet/models':
         specifier: workspace:*
         version: link:../../libs/models
@@ -2263,6 +2266,28 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 3.2.4(@types/debug@4.1.13)(@types/node@25.1.0)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+
+  libs/loopback-companion:
+    dependencies:
+      '@fastify/cors':
+        specifier: 'catalog:'
+        version: 11.2.0
+      '@fastify/helmet':
+        specifier: 'catalog:'
+        version: 13.0.2
+      fastify:
+        specifier: 'catalog:'
+        version: 5.8.5
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.19
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
 
   libs/mcp-auth-proxy:
     dependencies:
@@ -16782,7 +16807,7 @@ snapshots:
       tsconfig-paths: 4.2.0
       tslib: 2.8.1
       vite: 8.0.3(@types/node@22.19.19)(esbuild@0.27.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
-      vitest: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.4)(jiti@2.4.2)(jsdom@25.0.1)(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+      vitest: 3.2.4(@types/debug@4.1.13)(@types/node@25.1.0)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@1.8.0))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
     transitivePeerDependencies:
       - '@babel/traverse'
       - '@nx/eslint'
