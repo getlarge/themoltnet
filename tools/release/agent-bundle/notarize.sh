@@ -34,9 +34,11 @@ else key_path="$work/AuthKey.p8"; printf '%s' "${NOTARY_KEY:-}" > "$key_path"; f
 echo "ditto -c -k --keepParent $payload $zip"
 [ "$dry_run" = 1 ] || ditto -c -k --keepParent "$payload" "$zip"
 
-echo "xcrun notarytool submit $zip --key <p8> --key-id $NOTARY_KEY_ID --issuer $NOTARY_ISSUER_ID --wait"
+# Uploading ~100 MB and Apple's scan routinely take 10-20 minutes; bound
+# the wait so a stuck submission fails the job instead of hanging it.
+echo "xcrun notarytool submit $zip --key <p8> --key-id <key-id> --issuer <issuer> --wait --timeout 45m"
 [ "$dry_run" = 1 ] || xcrun notarytool submit "$zip" \
-  --key "$key_path" --key-id "$NOTARY_KEY_ID" --issuer "$NOTARY_ISSUER_ID" --wait
+  --key "$key_path" --key-id "$NOTARY_KEY_ID" --issuer "$NOTARY_ISSUER_ID" --wait --timeout 45m
 
 # Sanity: Gatekeeper's verdict on the runtime binary after notarization.
 runtime=$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).runtime)' "$payload/manifest.json")
