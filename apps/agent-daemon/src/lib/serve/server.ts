@@ -423,11 +423,10 @@ function registerAgentRoutes(
     const signal = requestOperationSignal(request, options.shutdownSignal);
     const kind = requireString(body, 'kind');
     if (kind === 'managed') {
-      const enrollmentToken = optionalString(body, 'enrollmentToken');
       const entry = await createManagedAgent(store, options.secrets, {
         name: requireString(body, 'name'),
-        apiUrl: options.defaultApiUrl,
-        ...(enrollmentToken ? { enrollmentToken } : {}),
+        apiUrl: optionalString(body, 'apiUrl') ?? options.defaultApiUrl,
+        enrollmentToken: requireString(body, 'enrollmentToken'),
         signal,
       });
       return reply.code(201).send(publicAgentView(store, entry.activation));

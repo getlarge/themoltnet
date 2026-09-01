@@ -53,6 +53,7 @@ export class ServeIdentityError extends Error {
       | 'registration_failed'
       | 'registration_incomplete'
       | 'verification_failed'
+      | 'enrollment_required'
       | 'unsupported_credential',
     message: string,
     options?: ErrorOptions,
@@ -68,7 +69,8 @@ export type ConnectAgent = (
 export interface CreateManagedAgentInput {
   name: string;
   apiUrl: string;
-  enrollmentToken?: string;
+  /** Serve-created agents must enroll into a team reachable by the operator. */
+  enrollmentToken: string;
   signal?: AbortSignal;
 }
 
@@ -110,6 +112,12 @@ export async function createManagedAgent(
   input: CreateManagedAgentInput,
 ): Promise<ActivatedAgent> {
   const alias = assertStoreName('agent name', input.name);
+  if (!input.enrollmentToken.trim()) {
+    throw new ServeIdentityError(
+      'enrollment_required',
+      'an enrollment token from the target team is required — a self-registered agent would be stranded in its own personal team',
+    );
+  }
   const releaseAlias = reserveAlias(store, alias);
   let registeredIdentityId: string | undefined;
   try {
@@ -129,9 +137,7 @@ export async function createManagedAgent(
     const result = await register({
       credentialType: 'agent_key',
       apiUrl,
-      ...(input.enrollmentToken
-        ? { enrollmentToken: input.enrollmentToken }
-        : {}),
+      enrollmentToken: input.enrollmentToken,
       signal: boundedIdentitySignal(input.signal),
     });
     if (result.credentials.type !== 'agent_key') {

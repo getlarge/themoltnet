@@ -784,6 +784,26 @@ describe('serve providers and runs', () => {
     expect(store.readRun(run.id)?.status).toBe('stopped');
   });
 
+  it('refuses managed-agent creation without an enrollment token', async () => {
+    const { app } = await fixture();
+    const token = await pair(app);
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/agents',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [SERVE_TOKEN_HEADER]: token,
+        'content-type': 'application/json',
+      },
+      payload: { kind: 'managed', name: 'orphan-bot' },
+    });
+    expect(response.statusCode).toBe(400);
+    expect(response.json<{ message: string }>().message).toContain(
+      'enrollmentToken',
+    );
+  });
+
   it('does not leak ambient supervisor credentials into run children', async () => {
     const { app, store, spawned } = await fixture({
       baseEnv: {

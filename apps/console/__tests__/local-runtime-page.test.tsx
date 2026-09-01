@@ -172,6 +172,13 @@ describe('LocalRuntimePage', () => {
     fireEvent.change(screen.getByLabelText('Agent name'), {
       target: { value: 'legreffier-local' },
     });
+    // The token is required: the button stays disabled until it is filled.
+    expect(
+      screen.getByRole('button', { name: 'Create identity' }),
+    ).toBeDisabled();
+    fireEvent.change(screen.getByLabelText(/Enrollment token/), {
+      target: { value: 'enrol-abc' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Create identity' }));
     expect(
       await screen.findByText('Agent key management is not configured'),

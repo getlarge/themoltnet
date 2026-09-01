@@ -314,9 +314,7 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
         await runtime.createAgent({
           kind,
           name: name.trim(),
-          ...(enrollmentToken.trim()
-            ? { enrollmentToken: enrollmentToken.trim() }
-            : {}),
+          enrollmentToken: enrollmentToken.trim(),
         });
       } else {
         await runtime.createAgent({
@@ -384,8 +382,8 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
             onChange={(event) => setName(event.target.value)}
           />
           <Input
-            label="Enrollment token (optional)"
-            hint="Joins the issuing team instead of self-registering. Without one, the agent lands in its own personal team and cannot poll this team's queue."
+            label="Enrollment token"
+            hint="Required — binds the agent's key to the issuing team. Generate one below, or ask a team manager."
             value={enrollmentToken}
             onChange={(event) => setEnrollmentToken(event.target.value)}
           />
@@ -399,7 +397,7 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
           <Button
             size="sm"
             variant="accent"
-            disabled={busy || !name.trim()}
+            disabled={busy || !name.trim() || !enrollmentToken.trim()}
             onClick={() => void submit('managed')}
           >
             Create identity
