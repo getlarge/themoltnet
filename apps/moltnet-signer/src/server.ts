@@ -4,6 +4,7 @@ import {
   isLoopbackViolation,
   registerLoopbackSecurity,
   rejectExplicitCrossSite,
+  requireOriginHeader,
 } from '@moltnet/loopback-companion';
 import type { SignerCeremonyRequest } from '@moltnet/models';
 import {
@@ -83,14 +84,8 @@ export function createSignerServer(
   // authority via the injected decision.
   registerLoopbackSecurity(app, {
     allowedHeaders: [SESSION_HEADER],
-    isOriginAllowed: (origin) => {
-      try {
-        service.assertCorsOrigin(origin);
-        return true;
-      } catch {
-        return false;
-      }
-    },
+    isOriginAllowed: (origin) => service.isCorsOriginAllowed(origin),
+    selfOrigins: [service.approvalOrigin],
   });
 
   app.addContentTypeParser(
@@ -317,11 +312,13 @@ function rejectCrossSiteConfirmation(request: FastifyRequest): void {
 }
 
 function requireOrigin(request: FastifyRequest): string {
-  const origin = request.headers.origin;
-  if (!origin) {
-    throw new SignerCeremonyError('origin_not_allowed', 'Origin is required');
+  try {
+    return requireOriginHeader(request.headers);
+  } catch (cause) {
+    throw new SignerCeremonyError('origin_not_allowed', 'Origin is required', {
+      cause,
+    });
   }
-  return origin;
 }
 
 function requireSessionHeader(request: FastifyRequest): string {

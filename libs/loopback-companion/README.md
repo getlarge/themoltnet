@@ -23,12 +23,13 @@ One implementation of the transport-security profile both companions need:
   loopback) and `cache-control: no-store` on every response.
 
 Violations are `LoopbackViolationError` values with a `kind`; each consumer
-maps kinds onto its own protocol error codes and HTTP statuses. See
-`docs/research/local-runtime-serve/design.md` for the companion architecture.
+maps kinds onto its own protocol error codes and HTTP statuses. See the
+[local runtime design record](https://github.com/getlarge/themoltnet/issues/2061#issuecomment-5491359692)
+for the companion architecture.
 
 ## Development
 
 ```bash
-pnpm exec nx run loopback-companion:test
-pnpm exec nx run loopback-companion:typecheck
+pnpm exec nx run @moltnet/loopback-companion:test
+pnpm exec nx run @moltnet/loopback-companion:typecheck
 ```

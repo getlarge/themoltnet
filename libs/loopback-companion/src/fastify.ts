@@ -5,6 +5,8 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { LoopbackViolationError } from './errors.js';
 import { isLoopbackHostname, OriginAllowlist } from './origin.js';
 
+const CORS_PREFLIGHT_MAX_AGE_SECONDS = 600;
+
 /**
  * Enforce that the `Host` header identifies loopback. Blocks DNS-rebinding
  * setups where a public hostname resolves to 127.0.0.1: the browser then
@@ -37,16 +39,7 @@ export function requireLoopbackHost(request: FastifyRequest): void {
   }
 }
 
-export interface LoopbackSecurityOptions {
-  /** Exact browser origins allowed to call the JSON API via CORS. */
-  allowedOrigins?: readonly string[];
-  /**
-   * Custom CORS origin decision, replacing the `allowedOrigins` allowlist.
-   * Used by consumers whose service already owns origin authority (the
-   * signer's ceremony service). Must be a pure predicate — never throw.
-   * One of `allowedOrigins` or `isOriginAllowed` is required.
-   */
-  isOriginAllowed?: (origin: string) => boolean;
+interface LoopbackSecurityBaseOptions {
   /**
    * Additional origins treated as "self" for CORS (e.g. the companion's own
    * loopback base URL used by locally served approval pages).
@@ -64,6 +57,26 @@ export interface LoopbackSecurityOptions {
   contentSecurityPolicyDirectives?: Record<string, readonly string[]>;
 }
 
+/** Use a shared exact-origin allowlist as the primary CORS authority. */
+interface LoopbackAllowlistSecurityOptions extends LoopbackSecurityBaseOptions {
+  allowedOrigins: readonly string[];
+  isOriginAllowed?: never;
+}
+
+/** Use a consumer-owned decision as the primary CORS authority. */
+interface LoopbackPredicateSecurityOptions extends LoopbackSecurityBaseOptions {
+  allowedOrigins?: never;
+  isOriginAllowed: (origin: string) => boolean;
+}
+
+/**
+ * Configure exactly one primary origin authority. `selfOrigins` are always
+ * composed with that authority, regardless of which mode is selected.
+ */
+export type LoopbackSecurityOptions =
+  | LoopbackAllowlistSecurityOptions
+  | LoopbackPredicateSecurityOptions;
+
 /**
  * Register the loopback-companion security profile on a Fastify app:
  *
@@ -74,28 +87,27 @@ export interface LoopbackSecurityOptions {
  *   not rejected here — route-level controls stay mandatory);
  * - hardened helmet defaults.
  *
- * Returns the allowlist so services can share the same origin decisions.
  */
 export function registerLoopbackSecurity(
   app: FastifyInstance,
   options: LoopbackSecurityOptions,
-): { allowlist: OriginAllowlist | null } {
+): void {
   if (!options.allowedOrigins && !options.isOriginAllowed) {
     throw new Error(
       'registerLoopbackSecurity requires allowedOrigins or isOriginAllowed',
     );
   }
-  const allowlist = options.allowedOrigins
+  const primaryAllowlist = options.allowedOrigins
     ? new OriginAllowlist(options.allowedOrigins)
     : null;
   const selfAllowlist =
     options.selfOrigins && options.selfOrigins.length > 0
       ? new OriginAllowlist(options.selfOrigins)
       : null;
-  const isOriginAllowed =
-    options.isOriginAllowed ??
-    ((origin: string) =>
-      allowlist?.has(origin) === true || selfAllowlist?.has(origin) === true);
+  const isOriginAllowed = (origin: string): boolean =>
+    selfAllowlist?.has(origin) === true ||
+    primaryAllowlist?.has(origin) === true ||
+    options.isOriginAllowed?.(origin) === true;
 
   app.addHook('onRequest', (request, _reply, done) => {
     requireLoopbackHost(request);
@@ -131,7 +143,7 @@ export function registerLoopbackSecurity(
 
   void app.register(cors, {
     allowedHeaders: ['content-type', ...(options.allowedHeaders ?? [])],
-    maxAge: 600,
+    maxAge: CORS_PREFLIGHT_MAX_AGE_SECONDS,
     methods: [...(options.methods ?? ['GET', 'POST', 'OPTIONS'])],
     origin: (origin, callback) => {
       // Safari may serialize a same-origin loopback form navigation as the
@@ -173,6 +185,4 @@ export function registerLoopbackSecurity(
     hsts: false,
     referrerPolicy: { policy: 'no-referrer' },
   });
-
-  return { allowlist };
 }

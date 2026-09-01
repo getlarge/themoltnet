@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { SignerCeremonyService } from './ceremony-service.js';
 import { registerSignerOpenApi } from './openapi.js';
-import { createSignerServer } from './server.js';
+import { createSignerServer, SESSION_HEADER } from './server.js';
 
 const CONSOLE_ORIGIN = 'https://console.themolt.net';
 const fixtures: {
@@ -195,6 +195,24 @@ describe('loopback signer server', () => {
 
   it('binds an origin to a capability and keeps approval on its own page', async () => {
     const { server } = await fixture();
+    const preflightResponse = await server.inject({
+      method: 'OPTIONS',
+      url: '/v1/ceremonies',
+      headers: {
+        host: '127.0.0.1:17373',
+        origin: CONSOLE_ORIGIN,
+        'access-control-request-method': 'POST',
+        'access-control-request-headers': `content-type,${SESSION_HEADER}`,
+      },
+    });
+    expect(preflightResponse.statusCode).toBe(204);
+    expect(
+      preflightResponse.headers['access-control-allow-headers']
+        ?.split(',')
+        .map((header) => header.trim())
+        .sort(),
+    ).toEqual(['content-type', SESSION_HEADER]);
+
     const sessionResponse = await server.inject({
       method: 'POST',
       url: '/v1/sessions',

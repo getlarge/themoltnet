@@ -1,4 +1,5 @@
 import { canonicalJsonBytes } from '@moltnet/crypto-service/canonical-json';
+import { normalizeOrigin, OriginAllowlist } from '@moltnet/loopback-companion';
 import {
   type SignerCeremony,
   type SignerCeremonyRequest,
@@ -132,7 +133,7 @@ export class SignerCeremonyError extends Error {
 }
 
 export class SignerCeremonyService {
-  private readonly allowedOrigins: ReadonlySet<string>;
+  private readonly allowedOrigins: OriginAllowlist;
   private readonly sessions = new Map<string, SessionState>();
   private readonly ceremonies = new Map<string, CeremonyState>();
   private readonly now: () => Date;
@@ -140,9 +141,7 @@ export class SignerCeremonyService {
   private readonly sweepTimer: NodeJS.Timeout;
 
   constructor(private readonly options: SignerCeremonyServiceOptions) {
-    this.allowedOrigins = new Set(
-      options.allowedOrigins.map((origin) => normalizedOrigin(origin)),
-    );
+    this.allowedOrigins = new OriginAllowlist(options.allowedOrigins);
     this.now = options.now ?? (() => new Date());
     this.approvalBaseUrl = options.approvalBaseUrl ?? 'http://127.0.0.1:17373';
     this.sweepTimer = setInterval(() => this.sweepExpired(), SWEEP_INTERVAL_MS);
@@ -162,10 +161,12 @@ export class SignerCeremonyService {
     this.requireOrigin(origin);
   }
 
-  assertCorsOrigin(origin: string): void {
-    const normalized = normalizedOrigin(origin);
-    if (normalized === normalizedOrigin(this.approvalBaseUrl)) return;
-    this.requireOrigin(normalized);
+  isCorsOriginAllowed(origin: string): boolean {
+    return this.allowedOrigins.has(origin);
+  }
+
+  get approvalOrigin(): string {
+    return normalizeOrigin(this.approvalBaseUrl);
   }
 
   async createCeremony(input: {
@@ -469,22 +470,14 @@ export class SignerCeremonyService {
   }
 
   private requireOrigin(value: string): string {
-    let origin: string;
     try {
-      origin = normalizedOrigin(value);
+      return this.allowedOrigins.assert(value);
     } catch {
       throw new SignerCeremonyError(
         'origin_not_allowed',
         'Origin is not allowed',
       );
     }
-    if (!this.allowedOrigins.has(origin)) {
-      throw new SignerCeremonyError(
-        'origin_not_allowed',
-        'Origin is not allowed',
-      );
-    }
-    return origin;
   }
 
   private requireSession(token: string, origin: string): SessionState {
@@ -596,24 +589,6 @@ export class SignerCeremonyService {
       }
     }
   }
-}
-
-function normalizedOrigin(value: string): string {
-  const url = new URL(value);
-  if (
-    url.origin !== value ||
-    (url.protocol !== 'https:' &&
-      !(url.protocol === 'http:' && isLoopback(url.hostname)))
-  ) {
-    throw new Error('Invalid origin');
-  }
-  return url.origin;
-}
-
-function isLoopback(hostname: string): boolean {
-  return (
-    hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]'
-  );
 }
 
 function strictBase64Url(
