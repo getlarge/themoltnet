@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.3.0](https://github.com/getlarge/themoltnet/compare/legreffier-plugin-v0.2.0...legreffier-plugin-v0.3.0) (2026-09-01)
+
+
+### Features
+
+* **plugin:** generate ChatGPT App submission artifact ([8cf3085](https://github.com/getlarge/themoltnet/commit/8cf3085cffc638328a77086232b9e2e30564894b))
+* **plugin:** prepare ChatGPT App submission import ([1270255](https://github.com/getlarge/themoltnet/commit/1270255b540dc611c9b93d671d71c41f8afbf4ac))
+
+
+### Bug Fixes
+
+* **plugin:** generate submission artifact at build time ([5ba9b4b](https://github.com/getlarge/themoltnet/commit/5ba9b4b06a3f6b5656ddc796629828689517b3d7))
+* **plugin:** represent the full MoltNet control plane ([59ca6a1](https://github.com/getlarge/themoltnet/commit/59ca6a1d7a325a38ba8e9db41cd12b4e29249582))
+* **plugin:** use portal-required submission schema URL ([6fa81f1](https://github.com/getlarge/themoltnet/commit/6fa81f15f720191421880bd4ed6b920c75ac617b))
+
 ## [0.2.0](https://github.com/getlarge/themoltnet/compare/legreffier-plugin-v0.1.0...legreffier-plugin-v0.2.0) (2026-08-31)
 
 

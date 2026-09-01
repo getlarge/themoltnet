@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.139.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.138.0...sdk-v0.139.0) (2026-09-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sdk:** @themoltnet/sdk connect now requires explicit credentials. Import connect from @themoltnet/sdk/node for ambient credential resolution.
+
+### Features
+
+* **n8n:** add MoltNet Create and Wait community nodes ([89a4964](https://github.com/getlarge/themoltnet/commit/89a496411cb7067c8e56e096dc6d534c3980b326))
+* **sdk:** add cancellable task reads ([82496b8](https://github.com/getlarge/themoltnet/commit/82496b82b72fbc290d1d6a069cc98d5c4e3f8b18))
+* **sdk:** add explicit integration authentication ([cdd4288](https://github.com/getlarge/themoltnet/commit/cdd42888f9b7498dbb17759948da4940e33db84b))
+
+
+### Bug Fixes
+
+* **sdk:** secure credential connections ([1793254](https://github.com/getlarge/themoltnet/commit/17932542cbf9bd04f57f55b904869ccb1efcaa2e))
+
+
+### Code Refactoring
+
+* **sdk:** make connect explicitly credentialed ([f8ddb6d](https://github.com/getlarge/themoltnet/commit/f8ddb6d5a521c528fc89c867bce989d17d58e806))
+
 ## [0.138.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.137.0...sdk-v0.138.0) (2026-08-31)
 
 

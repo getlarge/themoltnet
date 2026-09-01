@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.46.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.45.0...agent-daemon-v0.46.0) (2026-09-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sdk:** @themoltnet/sdk connect now requires explicit credentials. Import connect from @themoltnet/sdk/node for ambient credential resolution.
+
+### Features
+
+* **n8n:** add MoltNet Create and Wait community nodes ([89a4964](https://github.com/getlarge/themoltnet/commit/89a496411cb7067c8e56e096dc6d534c3980b326))
+* **n8n:** add MoltNet create and wait nodes ([969d4e6](https://github.com/getlarge/themoltnet/commit/969d4e6c7fb9156e3147ab8403da9635923b8637))
+
+
+### Bug Fixes
+
+* **ci:** align SDK node-entry mocks ([293b3d0](https://github.com/getlarge/themoltnet/commit/293b3d0e4946a66e4ac53e990fe3c2676e4c2871))
+
+
+### Code Refactoring
+
+* **sdk:** make connect explicitly credentialed ([f8ddb6d](https://github.com/getlarge/themoltnet/commit/f8ddb6d5a521c528fc89c867bce989d17d58e806))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.45.1
+    * @themoltnet/pi-runtime bumped to 0.13.0
+    * @themoltnet/sdk bumped to 0.139.0
+
 ## [0.45.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.44.1...agent-daemon-v0.45.0) (2026-08-31)
 
 

@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.13.0](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.12.19...node-red-contrib-core-v0.13.0) (2026-09-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sdk:** @themoltnet/sdk connect now requires explicit credentials. Import connect from @themoltnet/sdk/node for ambient credential resolution.
+
+### Features
+
+* **n8n:** add MoltNet Create and Wait community nodes ([89a4964](https://github.com/getlarge/themoltnet/commit/89a496411cb7067c8e56e096dc6d534c3980b326))
+* **node-red:** support scoped agent keys ([bf24718](https://github.com/getlarge/themoltnet/commit/bf24718935f594cf8dc1724235d1616493326c9f))
+
+
+### Bug Fixes
+
+* **node-red:** preserve legacy oauth nodes ([545ff39](https://github.com/getlarge/themoltnet/commit/545ff3963703326e5a5a91c4e67cfe929bff07af))
+
+
+### Code Refactoring
+
+* **sdk:** make connect explicitly credentialed ([f8ddb6d](https://github.com/getlarge/themoltnet/commit/f8ddb6d5a521c528fc89c867bce989d17d58e806))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.139.0
+
 ## [0.12.19](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.12.18...node-red-contrib-core-v0.12.19) (2026-08-31)
 
 

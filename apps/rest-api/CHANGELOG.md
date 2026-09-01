@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.50.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.49.0...rest-api-v0.50.0) (2026-09-01)
+
+
+### Features
+
+* **auth:** resolve OAuth recovery clients from identity proof ([de11105](https://github.com/getlarge/themoltnet/commit/de111053782c04a443d36d12767b0efc499e8098))
+* **auth:** resolve recovery clients from identity proof ([e1518a7](https://github.com/getlarge/themoltnet/commit/e1518a78f137b98a430db493faab8d7b18e25e8f))
+
 ## [0.49.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.48.1...rest-api-v0.49.0) (2026-08-31)
 
 
