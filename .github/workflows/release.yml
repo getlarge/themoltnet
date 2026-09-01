@@ -948,7 +948,7 @@ jobs:
       contents: write
     steps:
       - name: Publish n8n node release
-        run: gh release edit "${{ needs.resolve-publish.outputs.n8n-nodes-moltnet-tag }}" --draft=false
+        run: gh release edit "${{ needs.resolve-publish.outputs.n8n-nodes-moltnet-tag }}" --draft=false --repo "${{ github.repository }}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
