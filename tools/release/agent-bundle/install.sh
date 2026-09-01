@@ -187,7 +187,11 @@ install() {
         || log "note: qemu-img not found — sandboxed (gondolin) runs need it: apt install qemu-utils / dnf install qemu-img"
       ;;
   esac
-  log "moltnet-agent $version ready — open the Console's Local runtime page to pair."
+  if "$HOME_DIR/current/bin/moltnet-agent" serve --help >/dev/null 2>&1; then
+    log "moltnet-agent $version ready — open the Console's Local runtime page to pair."
+  else
+    log "moltnet-agent $version ready."
+  fi
 }
 
 case "${1:-}" in
