@@ -558,6 +558,12 @@ importers:
       '@earendil-works/pi-coding-agent':
         specifier: 'catalog:'
         version: 0.84.4(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@4.4.3))(ws@8.21.0)(zod@4.4.3)
+      '@fastify/cors':
+        specifier: 'catalog:'
+        version: 11.2.0
+      '@fastify/helmet':
+        specifier: 'catalog:'
+        version: 13.0.2
       '@fastify/otel':
         specifier: 'catalog:'
         version: 0.18.0(@opentelemetry/api@1.9.1)
@@ -636,6 +642,9 @@ importers:
       '@themoltnet/sdk':
         specifier: workspace:*
         version: link:../../libs/sdk
+      fastify:
+        specifier: 'catalog:'
+        version: 5.8.5
       fastify-plugin:
         specifier: 'catalog:'
         version: 5.1.0
@@ -667,6 +676,9 @@ importers:
       '@moltnet/execution-plan':
         specifier: workspace:*
         version: link:../../libs/execution-plan
+      '@moltnet/loopback-companion':
+        specifier: workspace:*
+        version: link:../../libs/loopback-companion
       '@moltnet/models':
         specifier: workspace:*
         version: link:../../libs/models

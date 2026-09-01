@@ -51,6 +51,9 @@
       "path": "../../libs/execution-plan/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/loopback-companion/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/crypto-service/tsconfig.lib.json"
     },
     {

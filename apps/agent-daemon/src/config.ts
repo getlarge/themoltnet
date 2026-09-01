@@ -88,3 +88,27 @@ function readBoolean(name: string, value: string | undefined): boolean {
 export function activatePiCodingAgentDir(path: string): void {
   process.env['PI_CODING_AGENT_DIR'] = path;
 }
+
+/** Env-derived defaults for `serve` (single process.env entry point). */
+export interface ServeEnvConfig {
+  port: string;
+  allowedOrigins: string;
+  root: string;
+  xdgConfigHome: string;
+  apiUrl: string;
+}
+
+export function loadServeEnvConfig(): ServeEnvConfig {
+  return {
+    port: process.env['MOLTNET_SERVE_PORT'] ?? '',
+    allowedOrigins: process.env['MOLTNET_SERVE_ALLOWED_ORIGINS'] ?? '',
+    root: process.env['MOLTNET_SERVE_ROOT'] ?? '',
+    xdgConfigHome: process.env['XDG_CONFIG_HOME'] ?? '',
+    apiUrl: process.env['MOLTNET_API_URL'] ?? '',
+  };
+}
+
+/** Full process environment for spawned serve run children. */
+export function processEnvSnapshot(): NodeJS.ProcessEnv {
+  return process.env;
+}
