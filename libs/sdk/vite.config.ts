@@ -25,7 +25,13 @@ export default defineConfig({
       // of one declaration are two types to TypeScript, which is fatal for
       // TaskBuilder's `private taskType`. Collapse the secondary entries onto
       // index.d.ts so shared types keep a single identity (issue #1928).
-      afterBuild: () => shareRolledUpEntries({ outDir: 'dist' }),
+      afterBuild: () =>
+        shareRolledUpEntries({
+          outDir: 'dist',
+          // The root requires in-memory credentials, while /node keeps ambient
+          // env/config/keyring resolution under the same public export name.
+          retainedExports: { node: ['connect', 'ConnectOptions'] },
+        }),
       tsconfigPath: './tsconfig.lib.json',
       include: ['src/**/*.ts'],
       compilerOptions: {

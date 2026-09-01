@@ -98,7 +98,7 @@ activated child process so `MOLTNET_TEAM_ID` is available without exporting the
 protected agent environment into the operator shell:
 
 ```ts
-import { connect } from '@themoltnet/sdk';
+import { connect } from '@themoltnet/sdk/node';
 
 const agent = await connect({ configDir: '.moltnet/local-dev' });
 

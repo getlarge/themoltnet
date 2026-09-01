@@ -124,7 +124,7 @@ Identity-scoped lifecycle is agent self-service, so connect as the agent and
 select the binding explicitly. Do not pass `teamId`:
 
 ```ts
-import { connect } from '@themoltnet/sdk';
+import { connect } from '@themoltnet/sdk/node';
 
 const molt = await connect();
 const portable = await molt.agentKeys.create(

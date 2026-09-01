@@ -390,7 +390,7 @@ profile's enforcement mode, then verify what will be enforced.
 ::: code-group
 
 ```ts [SDK]
-import { connect } from '@themoltnet/sdk';
+import { connect } from '@themoltnet/sdk/node';
 
 const agent = await connect({ configDir });
 const teamId = '<team-uuid>';

@@ -35,13 +35,12 @@ export type {
 } from './agent.js';
 export { createAgent } from './agent.js';
 export { writeMcpConfig } from './config.js';
-export { connect, type ConnectOptions } from './connect.js';
 export {
-  connectExplicit,
-  type ConnectExplicitAgentKeyOptions,
-  type ConnectExplicitOAuth2Options,
-  type ConnectExplicitOptions,
-} from './connect-explicit.js';
+  connect,
+  type ConnectAgentKeyOptions,
+  type ConnectOAuth2Options,
+  type ConnectOptions,
+} from './connect.js';
 export {
   type CredentialResolutionCode,
   CredentialResolutionError,

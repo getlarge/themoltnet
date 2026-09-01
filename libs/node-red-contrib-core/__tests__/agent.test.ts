@@ -7,16 +7,16 @@ import { type FakeNode, FakeRed } from './fake-red.js';
 
 /**
  * Mock the SDK boundary: the agent config node's only network seam is
- * `connectExplicit(...)`. We replace it with a spy that hands back a sentinel
+ * `connect(...)`. We replace it with a spy that hands back a sentinel
  * agent so tests assert on caching + credential behavior, never the wire.
  */
-const connectExplicitMock = vi.fn();
+const connectMock = vi.fn();
 vi.mock('@themoltnet/sdk', () => ({
-  connectExplicit: (opts: unknown) => connectExplicitMock(opts) as unknown,
+  connect: (opts: unknown) => connectMock(opts) as unknown,
 }));
 
 afterEach(() => {
-  connectExplicitMock.mockReset();
+  connectMock.mockReset();
 });
 
 /** Instantiate the config node with a def + optional credentials. */
@@ -69,7 +69,7 @@ describe('moltnet-agent', () => {
 
   it('connects once and caches the agent across getAgent() calls', async () => {
     const sentinel = { id: 'agent-sentinel' };
-    connectExplicitMock.mockReturnValue(sentinel);
+    connectMock.mockResolvedValue(sentinel);
     const { node } = setup(
       { clientId: 'client-1', apiUrl: 'https://api.themolt.net' },
       { clientSecret: 'secret-1' },
@@ -81,8 +81,8 @@ describe('moltnet-agent', () => {
     expect(first).toBe(sentinel);
     expect(second).toBe(sentinel);
     // One connect for two getAgent calls — the promise is cached.
-    expect(connectExplicitMock).toHaveBeenCalledTimes(1);
-    expect(connectExplicitMock).toHaveBeenCalledWith({
+    expect(connectMock).toHaveBeenCalledTimes(1);
+    expect(connectMock).toHaveBeenCalledWith({
       clientId: 'client-1',
       clientSecret: 'secret-1',
       apiUrl: 'https://api.themolt.net',
@@ -91,7 +91,7 @@ describe('moltnet-agent', () => {
 
   it('uses agent key authentication by default for new configs', async () => {
     const sentinel = { id: 'agent-key-sentinel' };
-    connectExplicitMock.mockReturnValue(sentinel);
+    connectMock.mockResolvedValue(sentinel);
     const { node } = setup(
       { apiUrl: 'https://api.themolt.net' },
       { agentKey: '  scoped-agent-key  ' },
@@ -99,7 +99,7 @@ describe('moltnet-agent', () => {
 
     await expect(node.getAgent()).resolves.toBe(sentinel);
     expect(node.authType).toBe('agentKey');
-    expect(connectExplicitMock).toHaveBeenCalledWith({
+    expect(connectMock).toHaveBeenCalledWith({
       agentKey: 'scoped-agent-key',
       apiUrl: 'https://api.themolt.net',
     });
@@ -111,15 +111,13 @@ describe('moltnet-agent', () => {
       /clientId and clientSecret are required/,
     );
     // Never reached the SDK.
-    expect(connectExplicitMock).not.toHaveBeenCalled();
+    expect(connectMock).not.toHaveBeenCalled();
   });
 
   it('does not cache a failed connect — a later call retries', async () => {
-    connectExplicitMock
-      .mockImplementationOnce(() => {
-        throw new Error('boom');
-      })
-      .mockReturnValueOnce({ id: 'agent-2' });
+    connectMock
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockResolvedValueOnce({ id: 'agent-2' });
     const { node } = setup(
       { clientId: 'client-1' },
       { clientSecret: 'secret-1' },
@@ -129,7 +127,7 @@ describe('moltnet-agent', () => {
     // The rejected promise was cleared, so the next call connects again.
     const retried = await node.getAgent();
     expect(retried).toEqual({ id: 'agent-2' });
-    expect(connectExplicitMock).toHaveBeenCalledTimes(2);
+    expect(connectMock).toHaveBeenCalledTimes(2);
   });
 
   it('rehydrates the cached agent once when an operation fails unauthorized', async () => {
@@ -148,7 +146,7 @@ describe('moltnet-agent', () => {
         get: vi.fn().mockResolvedValue({ id: 'task-1' }),
       },
     };
-    connectExplicitMock.mockReturnValueOnce(stale).mockReturnValueOnce(fresh);
+    connectMock.mockResolvedValueOnce(stale).mockResolvedValueOnce(fresh);
     const { node } = setup(
       { clientId: 'client-1' },
       { clientSecret: 'secret-1' },
@@ -162,6 +160,6 @@ describe('moltnet-agent', () => {
     expect(result).toEqual({ id: 'task-1' });
     expect(stale.tasks.get).toHaveBeenCalledTimes(1);
     expect(fresh.tasks.get).toHaveBeenCalledTimes(1);
-    expect(connectExplicitMock).toHaveBeenCalledTimes(2);
+    expect(connectMock).toHaveBeenCalledTimes(2);
   });
 });

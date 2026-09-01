@@ -1,4 +1,4 @@
-import { type Agent, connectExplicit } from '@themoltnet/sdk';
+import { type Agent, connect } from '@themoltnet/sdk';
 import type { IDataObject } from 'n8n-workflow';
 
 export interface MoltNetCredentials extends IDataObject {
@@ -23,12 +23,10 @@ export function connectMoltNet(
     if (!agentKey) {
       return Promise.reject(new Error('MoltNet agent key is required'));
     }
-    return Promise.resolve(
-      connectExplicit({
-        apiUrl: credentials.apiUrl.trim(),
-        agentKey,
-      }),
-    );
+    return connect({
+      apiUrl: credentials.apiUrl.trim(),
+      agentKey,
+    });
   }
 
   if (!clientId || !credentials.clientSecret) {
@@ -36,13 +34,11 @@ export function connectMoltNet(
       new Error('MoltNet OAuth2 client ID and client secret are required'),
     );
   }
-  return Promise.resolve(
-    connectExplicit({
-      apiUrl: credentials.apiUrl.trim(),
-      clientId,
-      clientSecret: credentials.clientSecret,
-    }),
-  );
+  return connect({
+    apiUrl: credentials.apiUrl.trim(),
+    clientId,
+    clientSecret: credentials.clientSecret,
+  });
 }
 
 export function optionalString(value: unknown): string | undefined {

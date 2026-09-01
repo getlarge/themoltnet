@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 
 import type { Agent } from '@themoltnet/sdk';
-import { connect } from '@themoltnet/sdk';
+import { connect } from '@themoltnet/sdk/node';
 
 const ACTIVE_STATUSES = ['waiting', 'queued', 'dispatched', 'running'] as const;
 

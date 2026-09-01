@@ -1,6 +1,9 @@
 import type { Agent } from './agent.js';
 import { readEnvironmentVariable } from './config.js';
-import { connect as connectBase, type ConnectOptions } from './connect.js';
+import {
+  type AmbientConnectOptions,
+  connectAmbient,
+} from './connect-ambient.js';
 import { resolveOAuth2ClientSecret } from './credential-resolver.js';
 import type { MoltNetConfig } from './credentials.js';
 import {
@@ -109,8 +112,8 @@ export async function resolveNodeOAuth2ClientSecret(
 }
 
 /** Node entry point: includes the lazy OS keyring unless callers supply a registry. */
-export function connect(options: ConnectOptions = {}): Promise<Agent> {
-  return connectBase({
+export function connect(options: AmbientConnectOptions = {}): Promise<Agent> {
+  return connectAmbient({
     ...options,
     secretProviders:
       options.secretProviders ?? createNodeSecretProviderRegistry(),
@@ -132,4 +135,4 @@ export {
   validateFileSecretKey,
 } from './file-secret-provider.js';
 export { MOLTNET_SECRET_SERVICE };
-export type { ConnectOptions };
+export type { AmbientConnectOptions as ConnectOptions };

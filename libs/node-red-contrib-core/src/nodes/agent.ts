@@ -1,4 +1,4 @@
-import { type Agent, connectExplicit } from '@themoltnet/sdk';
+import { type Agent, connect } from '@themoltnet/sdk';
 import type { Node, NodeDef, NodeInitializer } from 'node-red';
 
 /**
@@ -65,15 +65,15 @@ const init: NodeInitializer = (RED): void => {
       const agentKey = this.credentials?.agentKey?.trim();
       const clientId = this.clientId;
       const clientSecret = this.credentials?.clientSecret;
-      let connect: () => Agent;
+      let createConnection: () => Promise<Agent>;
       if (authType === 'agentKey') {
         if (!agentKey) {
           return Promise.reject(
             new Error('moltnet-agent: agentKey is required'),
           );
         }
-        connect = () =>
-          connectExplicit({
+        createConnection = () =>
+          connect({
             agentKey,
             apiUrl: this.apiUrl,
           });
@@ -85,8 +85,8 @@ const init: NodeInitializer = (RED): void => {
             ),
           );
         }
-        connect = () =>
-          connectExplicit({
+        createConnection = () =>
+          connect({
             clientId,
             clientSecret,
             apiUrl: this.apiUrl,
@@ -94,12 +94,10 @@ const init: NodeInitializer = (RED): void => {
       }
       // Don't cache a rejected connect — a fixed credential should retry.
       if (!agentPromise) {
-        agentPromise = Promise.resolve()
-          .then(connect)
-          .catch((err) => {
-            agentPromise = null;
-            throw err;
-          });
+        agentPromise = createConnection().catch((err) => {
+          agentPromise = null;
+          throw err;
+        });
       }
       return agentPromise;
     };

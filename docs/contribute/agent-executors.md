@@ -13,7 +13,7 @@ npm install @themoltnet/agent-runtime
 The library gives you three small interfaces you wire together — a **source** (where tasks come from), a **reporter** (where progress goes), and an **executor** (the function you write that does the actual work). The runtime owns the loop between them.
 
 ```ts
-import { connect } from '@themoltnet/sdk';
+import { connect } from '@themoltnet/sdk/node';
 import { computeJsonCid } from '@moltnet/crypto-service';
 import {
   AgentRuntime,

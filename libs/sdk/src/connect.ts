@@ -5,296 +5,75 @@ import type { CredentialScope } from '@moltnet/models';
 import type { Agent } from './agent.js';
 import { createAgent } from './agent.js';
 import { normalizeApiUrl, requireSecureAgentKeyApiUrl } from './api-url.js';
-import { readEnvCredentials } from './config.js';
 import {
-  CredentialResolutionError,
-  resolveAgentKey,
-  resolveEnvSecretReference,
-  resolveOAuth2ClientSecret,
-} from './credential-resolver.js';
-import { readConfig } from './credentials.js';
-import { MoltNetError } from './errors.js';
-import type { RetryOptions } from './retry.js';
-import { createAgentKeyFetch, createRetryFetch } from './retry.js';
-import {
-  createDefaultSecretProviderRegistry,
-  type SecretProviderRegistry,
-} from './secrets.js';
+  createAgentKeyFetch,
+  createRetryFetch,
+  type RetryOptions,
+} from './retry.js';
 import { TokenManager } from './token.js';
 
-export interface ConnectOptions {
-  clientId?: string;
-  clientSecret?: string;
-  apiUrl?: string;
-  configDir?: string;
-  /**
-   * Opaque agent-key secret. When set, `connect()` authenticates with it as a
-   * static bearer token instead of the OAuth2 client-credentials flow. Also
-   * read from the `MOLTNET_AGENT_KEY` environment variable.
-   */
-  agentKey?: string;
-  /** OAuth2 scopes requested for access tokens. Defaults to the full agent grant. */
-  scopes?: readonly CredentialScope[];
-  /** Set false to disable automatic token management. Default: true */
-  autoToken?: boolean;
-  /** Retry options for 401/429. Set false to disable retries. Default: enabled */
+interface ConnectBaseOptions {
+  apiUrl: string;
+  /** Retry options for 401/429. Set false to disable retries. */
   retry?: RetryOptions | false;
-  /** Providers used to resolve oauth2.client_secret_ref at connection time. */
-  secretProviders?: SecretProviderRegistry;
 }
 
-type ResolvedConnection =
-  | { mode: 'agentKey'; agentKey: string; apiUrl: string }
-  | { mode: 'oauth2'; clientId: string; clientSecret: string; apiUrl: string };
-
-async function resolveConnection(
-  options: ConnectOptions,
-): Promise<ResolvedConnection> {
-  const env = readEnvCredentials();
-  requireActivatedConfigDir(options.configDir, env.credentialsPath);
-  const explicitAgentKey = options.agentKey?.trim();
-
-  // Explicit in-code credentials — of either kind — are always authoritative,
-  // so a stray environment variable can never override what the caller wrote.
-  // 1. Explicit agent key
-  if (explicitAgentKey) {
-    return {
-      mode: 'agentKey',
-      agentKey: explicitAgentKey,
-      apiUrl: requireAgentKeyApiUrl(options.apiUrl, env.apiUrl),
-    };
-  }
-  // 2. Explicit OAuth2 client credentials
-  if (options.clientId && options.clientSecret) {
-    return {
-      mode: 'oauth2',
-      clientId: options.clientId,
-      clientSecret: options.clientSecret,
-      apiUrl: normalizeApiUrl(options.apiUrl, env.apiUrl),
-    };
-  }
-
-  // No explicit credentials — fall back to the environment, then the config.
-  // 3. Env agent key or env agent-key reference (opts into key mode only once
-  //    explicit options are ruled out). A value and a reference together is a
-  //    misconfiguration, never a precedence question.
-  const envAgentKey = env.agentKey?.trim();
-  const envAgentKeyRef = env.agentKeyRef?.trim();
-  if (envAgentKey && envAgentKeyRef) {
-    throw new MoltNetError(
-      'Set only one of MOLTNET_AGENT_KEY or MOLTNET_AGENT_KEY_REF.',
-      { code: 'INVALID_CONFIG' },
-    );
-  }
-  if (envAgentKey) {
-    return {
-      mode: 'agentKey',
-      agentKey: envAgentKey,
-      apiUrl: requireAgentKeyApiUrl(options.apiUrl, env.apiUrl),
-    };
-  }
-  if (envAgentKeyRef) {
-    const apiUrl = requireAgentKeyApiUrl(options.apiUrl, env.apiUrl);
-    let agentKey: string;
-    try {
-      agentKey = await resolveEnvSecretReference(
-        envAgentKeyRef,
-        options.secretProviders ?? createDefaultSecretProviderRegistry(),
-      );
-    } catch (error) {
-      throw new MoltNetError('Unable to resolve MOLTNET_AGENT_KEY_REF.', {
-        code: 'NO_CREDENTIALS',
-        detail: error instanceof Error ? error.message : String(error),
-      });
-    }
-    return { mode: 'agentKey', agentKey, apiUrl };
-  }
-  // 4. Env OAuth2 client credentials
-  if (env.clientId && env.clientSecret) {
-    return {
-      mode: 'oauth2',
-      clientId: env.clientId,
-      clientSecret: env.clientSecret,
-      apiUrl: normalizeApiUrl(options.apiUrl, env.apiUrl),
-    };
-  }
-  // 5. Config file (~/.config/moltnet/moltnet.json). A configured
-  //    agent_key_ref is a config-mode credential and precedes OAuth2; the
-  //    config's own API endpoint is trusted through the same check.
-  const config = await readConfig(options.configDir);
-  if (config?.agent_key_ref) {
-    const apiUrl = normalizeApiUrl(
-      options.apiUrl,
-      env.apiUrl,
-      config.endpoints?.api,
-    );
-    if (!options.apiUrl && !env.apiUrl) {
-      requireTrustedConfigApiUrl(apiUrl);
-    }
-    requireSecureAgentKeyApiUrl(apiUrl);
-    let agentKey: string | null;
-    try {
-      agentKey = await resolveAgentKey(
-        config,
-        options.secretProviders ?? createDefaultSecretProviderRegistry(),
-      );
-    } catch (error) {
-      if (
-        error instanceof CredentialResolutionError &&
-        error.code !== 'provider_failure'
-      ) {
-        throw new MoltNetError(
-          error.code === 'unbound'
-            ? 'Agent key reference is not bound to this MoltNet identity.'
-            : 'Invalid agent_key_ref: the reference resolved to an empty value.',
-          { code: 'INVALID_CONFIG' },
-        );
-      }
-      throw new MoltNetError('Unable to resolve agent_key_ref.', {
-        code: 'NO_CREDENTIALS',
-        detail: error instanceof Error ? error.message : String(error),
-      });
-    }
-    if (agentKey) {
-      return { mode: 'agentKey', agentKey, apiUrl };
-    }
-  }
-  if (config?.oauth2?.client_id) {
-    const apiUrl = normalizeApiUrl(
-      options.apiUrl,
-      env.apiUrl,
-      config.endpoints?.api,
-    );
-    if (!options.apiUrl && !env.apiUrl) {
-      requireTrustedConfigApiUrl(apiUrl);
-    }
-    let clientSecret: string;
-    try {
-      clientSecret = await resolveOAuth2ClientSecret(
-        config,
-        options.secretProviders ?? createDefaultSecretProviderRegistry(),
-      );
-    } catch (error) {
-      if (
-        error instanceof CredentialResolutionError &&
-        error.code !== 'provider_failure'
-      ) {
-        throw new MoltNetError(
-          error.code === 'unbound'
-            ? 'OAuth2 secret reference is not bound to this MoltNet identity and client.'
-            : 'Invalid OAuth2 config: set exactly one of client_secret or client_secret_ref.',
-          { code: 'INVALID_CONFIG' },
-        );
-      }
-      throw new MoltNetError('Unable to resolve OAuth2 client secret.', {
-        code: 'NO_CREDENTIALS',
-        detail: error instanceof Error ? error.message : String(error),
-      });
-    }
-    return {
-      mode: 'oauth2',
-      clientId: config.oauth2.client_id,
-      clientSecret,
-      apiUrl,
-    };
-  }
-
-  throw new MoltNetError(
-    'No credentials found. Provide an agentKey / MOLTNET_AGENT_KEY / ' +
-      'MOLTNET_AGENT_KEY_REF, clientId/clientSecret, set ' +
-      'MOLTNET_CLIENT_ID/MOLTNET_CLIENT_SECRET, or run `moltnet register` first.',
-    { code: 'NO_CREDENTIALS' },
-  );
+/** Static agent-key credentials for an ambient-free SDK connection. */
+export interface ConnectAgentKeyOptions extends ConnectBaseOptions {
+  agentKey: string;
+  clientId?: never;
+  clientSecret?: never;
+  scopes?: never;
+  autoToken?: never;
 }
 
-function requireAgentKeyApiUrl(
-  explicitApiUrl: string | undefined,
-  environmentApiUrl: string | undefined,
-): string {
-  const apiUrl = explicitApiUrl?.trim() || environmentApiUrl?.trim();
-  if (!apiUrl) {
-    throw new MoltNetError(
-      'Agent-key authentication requires an explicit API endpoint. Set apiUrl or MOLTNET_API_URL; agent-key mode does not read moltnet.json.',
-      { code: 'INVALID_CONFIG' },
-    );
-  }
-  return requireSecureAgentKeyApiUrl(normalizeApiUrl(apiUrl));
+/** OAuth2 credentials and token behavior for an ambient-free connection. */
+export interface ConnectOAuth2Options extends ConnectBaseOptions {
+  agentKey?: never;
+  clientId: string;
+  clientSecret: string;
+  /** OAuth2 scopes requested for access tokens. */
+  scopes?: readonly CredentialScope[];
+  /** Set false to disable automatic token management. Default: true. */
+  autoToken?: boolean;
 }
 
-function requireActivatedConfigDir(
-  configDir: string | undefined,
-  activatedCredentialsPath: string | undefined,
-): void {
-  if (!configDir || !activatedCredentialsPath) return;
-  const normalize = (value: string) =>
-    value.replaceAll('\\', '/').replace(/\/+$/, '');
-  const requested = `${normalize(configDir)}/moltnet.json`;
-  if (requested !== normalize(activatedCredentialsPath)) {
-    throw new MoltNetError(
-      'configDir does not match the identity activated by `moltnet start`.',
-      { code: 'INVALID_CONFIG' },
-    );
-  }
-}
-
-function requireTrustedConfigApiUrl(apiUrl: string): void {
-  const url = new URL(apiUrl);
-  const loopback =
-    url.hostname === 'localhost' ||
-    url.hostname === '127.0.0.1' ||
-    url.hostname === '[::1]';
-  const moltNet =
-    url.protocol === 'https:' &&
-    (url.hostname === 'themolt.net' || url.hostname.endsWith('.themolt.net'));
-  if (!loopback && !moltNet) {
-    throw new MoltNetError(
-      'Config-provided OAuth2 endpoints must use HTTPS on themolt.net or a loopback host.',
-      { code: 'INVALID_CONFIG' },
-    );
-  }
-}
+export type ConnectOptions = ConnectAgentKeyOptions | ConnectOAuth2Options;
 
 /**
- * Connect to MoltNet and return an authenticated Agent facade.
+ * Connect with one required in-memory credential mode: a static agent key or
+ * OAuth2 client credentials.
  *
- * Credential resolution, highest precedence first. Explicit in-code options —
- * of either kind — always win over the environment and config file:
- * 1. Explicit `agentKey` option → agent-key mode (static bearer)
- * 2. Explicit `clientId` / `clientSecret` → OAuth2 client-credentials
- * 3. `MOLTNET_AGENT_KEY` env → agent-key mode
- * 4. `MOLTNET_CLIENT_ID` / `MOLTNET_CLIENT_SECRET` env → OAuth2
- * 5. Config file (`~/.config/moltnet/moltnet.json`) → OAuth2, resolving a
- *    `client_secret_ref` only at this use boundary
- *
- * In agent-key mode the key is sent directly as a bearer token — no OAuth2
- * round-trip — and 429 backoff still applies; a rejected key surfaces an
- * `AuthenticationError`.
+ * This entry point never reads environment variables, config files, keyrings,
+ * or other ambient credential providers. Node applications that intentionally
+ * use ambient credential resolution should import `connect` from
+ * `@themoltnet/sdk/node`.
  */
-export async function connect(options: ConnectOptions = {}): Promise<Agent> {
-  const resolved = await resolveConnection(options);
+export function connect(options: ConnectOptions): Promise<Agent> {
+  return Promise.resolve().then(() => createConnection(options));
+}
 
-  // Agent-key mode: authenticate with a static bearer. A static key cannot be
-  // refreshed, so there is no TokenManager; the key-mode fetch keeps 429 backoff
-  // and turns a rejected key (401) into an actionable AuthenticationError.
-  if (resolved.mode === 'agentKey') {
+function createConnection(options: ConnectOptions): Agent {
+  const apiUrl = normalizeApiUrl(options.apiUrl);
+  if (typeof options.agentKey === 'string') {
+    const agentKey = options.agentKey.trim();
+    if (!agentKey) {
+      throw new TypeError('connect requires a non-empty agent key.');
+    }
     const client: Client = createClient({
-      baseUrl: resolved.apiUrl,
+      baseUrl: requireSecureAgentKeyApiUrl(apiUrl),
       fetch: createAgentKeyFetch(options.retry),
     });
-    const auth = () => Promise.resolve(resolved.agentKey);
-    return createAgent({ client, auth });
+    return createAgent({ client, auth: () => Promise.resolve(agentKey) });
   }
 
-  const creds = resolved;
   const autoToken = options.autoToken ?? true;
-
   const tokenManager = new TokenManager({
-    clientId: creds.clientId,
-    clientSecret: creds.clientSecret,
-    apiUrl: creds.apiUrl,
+    apiUrl,
+    clientId: options.clientId,
+    clientSecret: options.clientSecret,
     scopes: options.scopes,
   });
-
   const retryFetch =
     autoToken && options.retry !== false
       ? createRetryFetch(
@@ -302,28 +81,19 @@ export async function connect(options: ConnectOptions = {}): Promise<Agent> {
           options.retry === undefined ? undefined : options.retry,
         )
       : undefined;
-
-  // When retries are disabled but autoToken is on, still invalidate
-  // the cached token on 401 so the next API call re-authenticates
-  // instead of reusing a stale token until natural expiry.
   const invalidateOnAuthError =
     autoToken && !retryFetch
       ? async (input: RequestInfo | URL, init?: RequestInit) => {
           const response = await fetch(input, init);
-          if (response.status === 401) {
-            tokenManager.invalidate();
-          }
+          if (response.status === 401) tokenManager.invalidate();
           return response;
         }
       : undefined;
-
   const customFetch = retryFetch ?? invalidateOnAuthError;
-
   const client: Client = createClient({
-    baseUrl: creds.apiUrl,
+    baseUrl: apiUrl,
     ...(customFetch && { fetch: customFetch }),
   });
-
   const auth = autoToken ? () => tokenManager.getToken() : undefined;
 
   return createAgent({ client, tokenManager, auth });
