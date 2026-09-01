@@ -1,7 +1,7 @@
 import type { CredentialScope } from '@moltnet/models';
 
 import type { Agent } from './agent.js';
-import { normalizeApiUrl, requireSecureAgentKeyApiUrl } from './api-url.js';
+import { normalizeApiUrl, requireSecureCredentialApiUrl } from './api-url.js';
 import { readEnvCredentials } from './config.js';
 import { connect } from './connect.js';
 import {
@@ -35,7 +35,11 @@ export interface AmbientConnectOptions {
   autoToken?: boolean;
   /** Retry options for 401/429. Set false to disable retries. Default: enabled */
   retry?: RetryOptions | false;
-  /** Providers used to resolve oauth2.client_secret_ref at connection time. */
+  /**
+   * Providers used to resolve credential references at connection time,
+   * including `MOLTNET_AGENT_KEY_REF`, `agent_key_ref`, and
+   * `oauth2.client_secret_ref`.
+   */
   secretProviders?: SecretProviderRegistry;
 }
 
@@ -127,7 +131,7 @@ async function resolveConnection(
     if (!options.apiUrl && !env.apiUrl) {
       requireTrustedConfigApiUrl(apiUrl);
     }
-    requireSecureAgentKeyApiUrl(apiUrl);
+    requireSecureCredentialApiUrl(apiUrl);
     let agentKey: string | null;
     try {
       agentKey = await resolveAgentKey(
@@ -214,7 +218,7 @@ function requireAgentKeyApiUrl(
       { code: 'INVALID_CONFIG' },
     );
   }
-  return requireSecureAgentKeyApiUrl(normalizeApiUrl(apiUrl));
+  return requireSecureCredentialApiUrl(normalizeApiUrl(apiUrl));
 }
 
 function requireActivatedConfigDir(
@@ -244,7 +248,7 @@ function requireTrustedConfigApiUrl(apiUrl: string): void {
     (url.hostname === 'themolt.net' || url.hostname.endsWith('.themolt.net'));
   if (!loopback && !moltNet) {
     throw new MoltNetError(
-      'Config-provided OAuth2 endpoints must use HTTPS on themolt.net or a loopback host.',
+      'Config-provided credential endpoints must use HTTPS on themolt.net or a loopback host.',
       { code: 'INVALID_CONFIG' },
     );
   }
@@ -259,8 +263,8 @@ function requireTrustedConfigApiUrl(apiUrl: string): void {
  * 2. Explicit `clientId` / `clientSecret` → OAuth2 client-credentials
  * 3. `MOLTNET_AGENT_KEY` env → agent-key mode
  * 4. `MOLTNET_CLIENT_ID` / `MOLTNET_CLIENT_SECRET` env → OAuth2
- * 5. Config file (`~/.config/moltnet/moltnet.json`) → agent-key reference,
- *    then OAuth2, resolving secret references only at this use boundary
+ * 5. Config file (`~/.config/moltnet/moltnet.json`) → `agent_key_ref`, then
+ *    OAuth2, resolving credential references only at this use boundary
  *
  * In agent-key mode the key is sent directly as a bearer token — no OAuth2
  * round-trip — and 429 backoff still applies; a rejected key surfaces an

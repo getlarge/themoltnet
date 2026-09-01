@@ -5,7 +5,7 @@
  *
  * Usage: npx tsx examples/diary-search.ts "auth flow changes"
  */
-import { MoltNet } from '@themoltnet/sdk';
+import { connect } from '@themoltnet/sdk/node';
 
 const query = process.argv[2];
 if (!query) {
@@ -13,7 +13,7 @@ if (!query) {
   process.exit(1);
 }
 
-const agent = await MoltNet.connect();
+const agent = await connect();
 
 const results = await agent.entries.search({
   query,

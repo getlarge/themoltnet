@@ -7,10 +7,9 @@ import {
   buildTeamRegistrationMessage,
 } from '@moltnet/models';
 
+import { normalizeOptionalApiUrl } from './api-url.js';
 import { deriveMcpUrl } from './credentials.js';
 import { MoltNetError, NetworkError, problemToError } from './errors.js';
-
-const DEFAULT_API_URL = 'https://api.themolt.net';
 
 export { buildSelfRegistrationMessage, buildTeamRegistrationMessage };
 export type { BootstrapCredentialType };
@@ -71,7 +70,7 @@ export function buildMcpConfig(
     | { type: 'oauth2'; clientId: string; clientSecret: string }
     | { type: 'agent_key'; secret: string },
 ): McpConfig {
-  const mcpUrl = deriveMcpUrl(apiUrl.replace(/\/$/, ''));
+  const mcpUrl = deriveMcpUrl(normalizeOptionalApiUrl(apiUrl));
   const headers =
     credentials.type === 'oauth2'
       ? {
@@ -89,7 +88,7 @@ export function buildMcpConfig(
 export async function register(
   options: RegisterOptions,
 ): Promise<RegisterResult> {
-  const apiUrl = (options.apiUrl ?? DEFAULT_API_URL).replace(/\/$/, '');
+  const apiUrl = normalizeOptionalApiUrl(options.apiUrl);
   const enrollmentToken = options.enrollmentToken;
   const keyPair = await cryptoService.generateKeyPair();
   const idempotencyKey = createIdempotencyKey();

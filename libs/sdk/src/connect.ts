@@ -4,7 +4,7 @@ import type { CredentialScope } from '@moltnet/models';
 
 import type { Agent } from './agent.js';
 import { createAgent } from './agent.js';
-import { normalizeApiUrl, requireSecureAgentKeyApiUrl } from './api-url.js';
+import { normalizeApiUrl, requireSecureCredentialApiUrl } from './api-url.js';
 import {
   createAgentKeyFetch,
   createRetryFetch,
@@ -54,14 +54,14 @@ export function connect(options: ConnectOptions): Promise<Agent> {
 }
 
 function createConnection(options: ConnectOptions): Agent {
-  const apiUrl = normalizeApiUrl(options.apiUrl);
+  const apiUrl = requireSecureCredentialApiUrl(normalizeApiUrl(options.apiUrl));
   if (typeof options.agentKey === 'string') {
     const agentKey = options.agentKey.trim();
     if (!agentKey) {
       throw new TypeError('connect requires a non-empty agent key.');
     }
     const client: Client = createClient({
-      baseUrl: requireSecureAgentKeyApiUrl(apiUrl),
+      baseUrl: apiUrl,
       fetch: createAgentKeyFetch(options.retry),
     });
     return createAgent({ client, auth: () => Promise.resolve(agentKey) });

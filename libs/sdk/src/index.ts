@@ -175,6 +175,11 @@ export {
 export { sign, signBytes } from './sign.js';
 export { exportSSHKey } from './ssh.js';
 export {
+  buildTaskSnapshot,
+  isTerminalTaskStatus,
+  type TaskSnapshot,
+} from './task-snapshot.js';
+export {
   type AcceptedMeta,
   type ArtifactFilter,
   type ArtifactReferenceSource,

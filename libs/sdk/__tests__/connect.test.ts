@@ -66,12 +66,15 @@ describe('connect', () => {
     );
   });
 
-  it('refuses to send an agent key over remote plaintext HTTP', async () => {
+  it.each([
+    { agentKey: 'opaque-agent-key' },
+    { clientId: 'client-id', clientSecret: 'client-secret' },
+  ])('refuses to send credentials over remote plaintext HTTP', async (auth) => {
     await expect(
       connect({
         apiUrl: 'http://remote.example.test',
-        agentKey: 'opaque-agent-key',
+        ...auth,
       }),
-    ).rejects.toThrow(/Refusing to send an agent key/);
+    ).rejects.toThrow(/Refusing to send credentials/);
   });
 });
