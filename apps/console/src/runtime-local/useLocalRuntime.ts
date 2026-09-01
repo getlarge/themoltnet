@@ -12,6 +12,7 @@ import {
   type CreateAgentBody,
   createServeClient,
   type PutProviderBody,
+  type ServeAgentView,
   type ServeClient,
   ServeClientError,
   type ServeStatus,
@@ -52,7 +53,7 @@ export interface LocalRuntimeController {
   pair(): Promise<void>;
   retry(): Promise<void>;
   disconnect(): void;
-  createAgent(body: CreateAgentBody): Promise<void>;
+  createAgent(body: CreateAgentBody): Promise<ServeAgentView>;
   putProvider(id: string, body: PutProviderBody): Promise<void>;
   startRun(body: StartRunBody): Promise<void>;
   stopRun(runId: string): Promise<void>;
@@ -269,11 +270,15 @@ export function useLocalRuntime(): LocalRuntimeController {
   }, [persistToken]);
 
   const refetchStatus = statusQuery.refetch;
-  const runAction = async (action: () => Promise<unknown>) => {
+  // Generic on purpose: createAgent needs the created view back (executor
+  // escalation), while every mutation still reconciles the status query —
+  // including after failures, before the operator retries.
+  const runAction = async <T,>(action: () => Promise<T>): Promise<T> => {
     setActionError(null);
     try {
-      await action();
+      const result = await action();
       await refetchStatus();
+      return result;
     } catch (error) {
       // Reconcile before the operator retries a failed mutation.
       await refetchStatus();
@@ -299,8 +304,10 @@ export function useLocalRuntime(): LocalRuntimeController {
     retry: probe,
     disconnect,
     createAgent: (body) => runAction(() => client.createAgent(body)),
-    putProvider: (id, body) => runAction(() => client.putProvider(id, body)),
-    startRun: (body) => runAction(() => client.startRun(body)),
+    putProvider: (id, body) =>
+      runAction(() => client.putProvider(id, body)).then(() => undefined),
+    startRun: (body) =>
+      runAction(() => client.startRun(body)).then(() => undefined),
     stopRun: (runId) => runAction(() => client.stopRun(runId)),
     streamLogs,
     subscriptionLogin,

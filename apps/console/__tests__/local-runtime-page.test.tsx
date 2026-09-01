@@ -14,8 +14,10 @@ const SERVE = 'http://127.0.0.1:17374';
 
 vi.mock('../src/api.js', () => ({ getApiClient: () => ({}) }));
 const createAgentEnrollment = vi.hoisted(() => vi.fn());
+const updateTeamMemberRole = vi.hoisted(() => vi.fn());
 vi.mock('@moltnet/api-client', () => ({
   createAgentEnrollment: (...args: unknown[]) => createAgentEnrollment(...args),
+  updateTeamMemberRole: (...args: unknown[]) => updateTeamMemberRole(...args),
 }));
 vi.mock('../src/config.js', () => ({
   getConfig: () => ({ serveUrl: 'http://127.0.0.1:17374' }),
@@ -249,6 +251,43 @@ describe('LocalRuntimePage', () => {
     await screen.findByText('GitHub Copilot');
     fireEvent.click(screen.getByRole('button', { name: 'Reconnect' }));
     expect(await screen.findByText('device flow refused')).toBeInTheDocument();
+  });
+
+  it('escalates a freshly created managed agent to team executor', async () => {
+    updateTeamMemberRole.mockResolvedValue({ data: { role: 'executor' } });
+    handlers['POST /v1/agents'] = () =>
+      jsonResponse(
+        {
+          kind: 'managed',
+          agentName: 'course-bot',
+          identityId: 'new-id-1',
+          fingerprint: 'FP-2',
+          apiUrl: 'https://api.example',
+          teamId: 'team-1',
+          createdAt: 't',
+        },
+        201,
+      );
+    renderPage();
+    await screen.findAllByText('existing-bot');
+    fireEvent.change(screen.getByLabelText('Agent name'), {
+      target: { value: 'course-bot' },
+    });
+    fireEvent.change(screen.getByLabelText(/Invitation code/), {
+      target: { value: 'enrol-xyz' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Create identity' }));
+    await waitFor(() =>
+      expect(updateTeamMemberRole).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: 'team-1', subjectId: 'new-id-1' },
+          body: { role: 'executor' },
+        }),
+      ),
+    );
+    expect(
+      await screen.findByText(/joined Team One as an executor/),
+    ).toBeInTheDocument();
   });
 
   it('generates an invitation code into the form for the selected team', async () => {

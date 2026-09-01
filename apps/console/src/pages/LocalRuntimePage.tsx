@@ -4,7 +4,10 @@
  * start/stop/observe runs. Works only in a browser on the machine running
  * `serve` (loopback), by design.
  */
-import { createAgentEnrollment } from '@moltnet/api-client';
+import {
+  createAgentEnrollment,
+  updateTeamMemberRole,
+} from '@moltnet/api-client';
 import { listRuntimeProfilesOptions } from '@moltnet/api-client/query';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -312,18 +315,39 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
   const submit = async (kind: 'managed' | 'external') => {
     setBusy(true);
     try {
-      if (kind === 'managed') {
-        await runtime.createAgent({
-          kind,
-          name: name.trim(),
-          enrollmentToken: enrollmentToken.trim(),
-        });
-      } else {
-        await runtime.createAgent({
-          kind,
-          name: name.trim(),
-          configDir: configDir.trim(),
-        });
+      const created =
+        kind === 'managed'
+          ? await runtime.createAgent({
+              kind,
+              name: name.trim(),
+              enrollmentToken: enrollmentToken.trim(),
+            })
+          : await runtime.createAgent({
+              kind,
+              name: name.trim(),
+              configDir: configDir.trim(),
+            });
+      // Enrollment lands the agent as a plain member (the right default).
+      // This flow exists to run tasks, so escalate to the agent-only
+      // `executor` role, which carries the task write authority.
+      if (kind === 'managed' && selectedTeam?.id && created.identityId) {
+        try {
+          await updateTeamMemberRole({
+            client: getApiClient(),
+            headers: { 'x-moltnet-team-id': selectedTeam.id },
+            path: { id: selectedTeam.id, subjectId: created.identityId },
+            body: { role: 'executor' },
+          });
+          setTokenNote(
+            `${created.agentName} joined ${selectedTeam.name} as an executor.`,
+          );
+        } catch (error) {
+          setTokenNote(
+            `${created.agentName} was created but the executor role assignment failed (${
+              error instanceof Error ? error.message : 'unknown error'
+            }) — set it on the Teams page so it can execute tasks.`,
+          );
+        }
       }
       setName('');
       setEnrollmentToken('');
