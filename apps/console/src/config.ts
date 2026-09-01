@@ -13,6 +13,8 @@ export interface AppConfig {
   docsUrl: string;
   /** Local signer companion. Never receives browser credentials. */
   signerUrl: string;
+  /** Local agent-daemon serve supervisor. Never receives browser credentials. */
+  serveUrl: string;
   /**
    * Retention window applied to an unpinned pack, in days.
    *
@@ -29,6 +31,7 @@ export interface AppConfig {
 
 const DEFAULT_DOCS_URL = 'https://docs.themolt.net';
 const DEFAULT_SIGNER_URL = 'http://127.0.0.1:17373';
+const DEFAULT_SERVE_URL = 'http://127.0.0.1:17374';
 /** Matches the rest-api default in `apps/rest-api/src/config.ts`. */
 const DEFAULT_PACK_GC_TTL_DAYS = 7;
 
@@ -63,6 +66,7 @@ export function getConfig(): AppConfig {
   // requiring it in injected runtime config (keeps existing /config.js valid).
   const docsUrl = normalizeUrl(injected?.docsUrl) || DEFAULT_DOCS_URL;
   const signerUrl = normalizeUrl(injected?.signerUrl) || DEFAULT_SIGNER_URL;
+  const serveUrl = normalizeUrl(injected?.serveUrl) || DEFAULT_SERVE_URL;
   // Non-critical: an unset or malformed value falls back rather than blocking
   // boot, since a wrong retention window is far less bad than a dead console.
   const packGcTtlDays =
@@ -76,6 +80,7 @@ export function getConfig(): AppConfig {
       consoleUrl: injectedConsoleUrl,
       docsUrl,
       signerUrl,
+      serveUrl,
       packGcTtlDays,
     };
   }
@@ -99,6 +104,7 @@ export function getConfig(): AppConfig {
     docsUrl: normalizeUrl(import.meta.env.VITE_DOCS_URL) || DEFAULT_DOCS_URL,
     signerUrl:
       normalizeUrl(import.meta.env.VITE_SIGNER_URL) || DEFAULT_SIGNER_URL,
+    serveUrl: normalizeUrl(import.meta.env.VITE_SERVE_URL) || DEFAULT_SERVE_URL,
     packGcTtlDays:
       normalizePositiveNumber(import.meta.env.VITE_PACK_GC_TTL_DAYS) ??
       DEFAULT_PACK_GC_TTL_DAYS,
