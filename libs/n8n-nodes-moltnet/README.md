@@ -81,8 +81,9 @@ moltnet diary list \
 
 Save the credential and select **Test**. The test authenticates through the
 MoltNet SDK and calls `agents.whoami()`. Assign the same saved credential to
-both the Create and Wait nodes. Per-node team and diary options override the
-credential defaults.
+both the Create and Wait nodes. Create's team and diary options override the
+credential defaults. Wait has its own explicit **Team ID** override and uses
+the credential's default team when that field is empty.
 
 ### Local e2e credentials
 
@@ -120,7 +121,9 @@ For binding, rotation, and revocation, see
   then emits a normalized task snapshot with the attempts and accepted output.
   The default interval is five seconds, increases with jittered backoff to at
   most 60 seconds, and has a finite 30-minute execution cap. Run Wait again to
-  inspect a task that outlives that cap.
+  inspect a task that outlives that cap. To carry a Create team override into
+  Wait, set Wait's **Team ID** to `{{$json.teamId}}`, as the packaged example
+  does. Wait does not silently trust team IDs found in incoming JSON.
 
 Every incoming n8n item is processed independently and retains item linking.
 Enable **Continue On Fail** to receive an error item instead of stopping the

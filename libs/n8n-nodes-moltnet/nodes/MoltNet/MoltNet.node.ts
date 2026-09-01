@@ -121,8 +121,24 @@ function toNodeError(
 
 function requestOptions(
   teamId: string | undefined,
-): { teamId: string } | undefined {
-  return teamId ? { teamId } : undefined;
+  signal: AbortSignal | undefined,
+): { teamId?: string; signal?: AbortSignal } {
+  return {
+    ...(teamId ? { teamId } : {}),
+    ...(signal ? { signal } : {}),
+  };
+}
+
+function credentialCacheKey(credentials: MoltNetCredentials): string {
+  return JSON.stringify([
+    credentials.apiUrl.trim(),
+    credentials.authentication ?? '',
+    optionalString(credentials.agentApiKey) ?? '',
+    optionalString(credentials.clientId) ?? '',
+    credentials.clientSecret ?? '',
+    optionalString(credentials.teamId) ?? '',
+    optionalString(credentials.diaryId) ?? '',
+  ]);
 }
 
 async function createTask(
@@ -217,62 +233,226 @@ async function waitForTask(
   }
   const startedAt = Date.now();
   const deadline = startedAt + timeoutSeconds * 1_000;
-  const options = requestOptions(
-    taskTeamIdFromInput(context, itemIndex) ??
-      optionalString(credentials.teamId),
-  );
-  let pollCount = 0;
+  const signal = context.getExecutionCancelSignal();
+  const teamId =
+    optionalString(context.getNodeParameter('teamId', itemIndex, '')) ??
+    optionalString(credentials.teamId);
+  const options = requestOptions(teamId, signal);
+  const timeoutState: WaitTimeoutState = {
+    startedAt,
+    lastStatus: undefined,
+    pollCount: 0,
+  };
 
   for (;;) {
-    if (pollCount > 0 && Date.now() >= deadline) {
-      throw waitTimeoutError(context, taskId, timeoutSeconds, itemIndex);
+    throwIfCancelled(context, signal, itemIndex);
+    if (timeoutState.pollCount > 0 && Date.now() >= deadline) {
+      throw waitTimeoutError(
+        context,
+        taskId,
+        timeoutSeconds,
+        timeoutState,
+        itemIndex,
+      );
     }
-    const task = await agent.tasks.get(taskId, options);
-    if (isTerminalTaskStatus(task.status)) {
-      const attempts = await agent.tasks.listAttempts(taskId, options);
-      return buildTaskSnapshot(task, attempts) as unknown as IDataObject;
+
+    timeoutState.pollCount += 1;
+    try {
+      const task = await agent.tasks.get(taskId, options);
+      throwIfCancelled(context, signal, itemIndex);
+      timeoutState.lastStatus = task.status;
+      if (isTerminalTaskStatus(task.status)) {
+        const attempts = await readAttemptsWithRetry(
+          context,
+          agent,
+          taskId,
+          options,
+          pollIntervalSeconds,
+          timeoutSeconds,
+          deadline,
+          timeoutState,
+          itemIndex,
+        );
+        return buildTaskSnapshot(task, attempts) as unknown as IDataObject;
+      }
+    } catch (error) {
+      if (!isTransientReadError(error)) {
+        throw toNodeError(context, error, itemIndex);
+      }
     }
-    const remainingMs = deadline - Date.now();
-    if (remainingMs <= 0) {
-      throw waitTimeoutError(context, taskId, timeoutSeconds, itemIndex);
-    }
-    const backoffMs = Math.min(
-      maximumPollIntervalSeconds * 1_000,
-      pollIntervalSeconds * 1_000 * 2 ** Math.min(pollCount, 10),
+
+    await waitBeforeRetry(
+      context,
+      taskId,
+      pollIntervalSeconds,
+      timeoutSeconds,
+      deadline,
+      timeoutState,
+      signal,
+      itemIndex,
     );
-    const jitteredMs = Math.min(
-      maximumPollIntervalSeconds * 1_000,
-      Math.round(backoffMs * (1 + Math.random() * 0.2)),
-    );
-    pollCount += 1;
-    await sleep(Math.min(jitteredMs, remainingMs));
   }
 }
 
-function taskTeamIdFromInput(
+interface WaitTimeoutState {
+  startedAt: number;
+  lastStatus: string | undefined;
+  pollCount: number;
+}
+
+async function readAttemptsWithRetry(
   context: IExecuteFunctions,
+  agent: Agent,
+  taskId: string,
+  options: { teamId?: string; signal?: AbortSignal },
+  pollIntervalSeconds: number,
+  timeoutSeconds: number,
+  deadline: number,
+  timeoutState: WaitTimeoutState,
   itemIndex: number,
-): string | undefined {
-  const json = context.getInputData()[itemIndex]?.json;
-  const task = json?.task;
-  return (
-    optionalString(json?.teamId) ??
-    (task && typeof task === 'object' && !Array.isArray(task)
-      ? optionalString((task as IDataObject).teamId)
-      : undefined)
+) {
+  let retryCount = 0;
+  for (;;) {
+    throwIfCancelled(context, options.signal, itemIndex);
+    try {
+      const attempts = await agent.tasks.listAttempts(taskId, options);
+      throwIfCancelled(context, options.signal, itemIndex);
+      return attempts;
+    } catch (error) {
+      if (!isTransientReadError(error)) {
+        throw toNodeError(context, error, itemIndex);
+      }
+    }
+    retryCount += 1;
+    await waitBeforeRetry(
+      context,
+      taskId,
+      pollIntervalSeconds,
+      timeoutSeconds,
+      deadline,
+      timeoutState,
+      options.signal,
+      itemIndex,
+      retryCount,
+    );
+  }
+}
+
+async function waitBeforeRetry(
+  context: IExecuteFunctions,
+  taskId: string,
+  pollIntervalSeconds: number,
+  timeoutSeconds: number,
+  deadline: number,
+  timeoutState: WaitTimeoutState,
+  signal: AbortSignal | undefined,
+  itemIndex: number,
+  retryCount = timeoutState.pollCount - 1,
+): Promise<void> {
+  const remainingMs = deadline - Date.now();
+  if (remainingMs <= 0) {
+    throw waitTimeoutError(
+      context,
+      taskId,
+      timeoutSeconds,
+      timeoutState,
+      itemIndex,
+    );
+  }
+  const delayMs = pollingDelayMs(pollIntervalSeconds, retryCount);
+  await cancellableSleep(
+    context,
+    Math.min(delayMs, remainingMs),
+    signal,
+    itemIndex,
   );
+}
+
+function pollingDelayMs(
+  pollIntervalSeconds: number,
+  retryCount: number,
+): number {
+  const minimumMs = minimumPollIntervalSeconds * 1_000;
+  const maximumMs = maximumPollIntervalSeconds * 1_000;
+  const cappedMs = Math.min(
+    maximumMs,
+    pollIntervalSeconds * 1_000 * 2 ** Math.min(retryCount, 10),
+  );
+  const lowerBoundMs = Math.max(minimumMs, cappedMs * 0.8);
+  const upperBoundMs = Math.min(maximumMs, cappedMs * 1.2);
+  return Math.round(
+    lowerBoundMs + Math.random() * (upperBoundMs - lowerBoundMs),
+  );
+}
+
+function isTransientReadError(error: unknown): boolean {
+  return (
+    error instanceof MoltNetError &&
+    (error.code === 'NETWORK_ERROR' ||
+      error.statusCode === 429 ||
+      (error.statusCode !== undefined && error.statusCode >= 500))
+  );
+}
+
+function throwIfCancelled(
+  context: IExecuteFunctions,
+  signal: AbortSignal | undefined,
+  itemIndex: number,
+): void {
+  if (!signal?.aborted) return;
+  throw new NodeOperationError(
+    context.getNode(),
+    'Execution was cancelled while waiting for the MoltNet task',
+    { itemIndex },
+  );
+}
+
+async function cancellableSleep(
+  context: IExecuteFunctions,
+  durationMs: number,
+  signal: AbortSignal | undefined,
+  itemIndex: number,
+): Promise<void> {
+  throwIfCancelled(context, signal, itemIndex);
+  if (!signal) {
+    await sleep(durationMs);
+    return;
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    const onAbort = () => {
+      reject(
+        new NodeOperationError(
+          context.getNode(),
+          'Execution was cancelled while waiting for the MoltNet task',
+          { itemIndex },
+        ),
+      );
+    };
+    signal.addEventListener('abort', onAbort, { once: true });
+    void sleep(durationMs)
+      .then(resolve, reject)
+      .finally(() => {
+        signal.removeEventListener('abort', onAbort);
+      });
+  });
 }
 
 function waitTimeoutError(
   context: IExecuteFunctions,
   taskId: string,
   timeoutSeconds: number,
+  state: WaitTimeoutState,
   itemIndex: number,
 ): NodeOperationError {
+  const elapsedSeconds = Math.max(0, Date.now() - state.startedAt) / 1_000;
   return new NodeOperationError(
     context.getNode(),
-    `Timed out waiting for task ${taskId} after ${timeoutSeconds} seconds`,
-    { itemIndex },
+    `Timed out waiting for task ${taskId} after ${elapsedSeconds.toFixed(1)} seconds`,
+    {
+      itemIndex,
+      description: `Configured timeout: ${timeoutSeconds} seconds; polls: ${state.pollCount}; last status: ${state.lastStatus ?? 'unknown'}.`,
+    },
   );
 }
 
@@ -436,6 +616,15 @@ export class MoltNet implements INodeType {
         displayOptions: { show: { operation: ['wait'], resource: ['task'] } },
       },
       {
+        displayName: 'Team ID',
+        name: 'teamId',
+        type: 'string',
+        default: '',
+        displayOptions: { show: { operation: ['wait'], resource: ['task'] } },
+        description:
+          'Explicit team override for this read; otherwise uses the credential default',
+      },
+      {
         displayName: 'Polling Interval (Seconds)',
         name: 'pollInterval',
         type: 'number',
@@ -482,9 +671,7 @@ export class MoltNet implements INodeType {
   async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
     const inputItems = this.getInputData();
     const outputItems: INodeExecutionData[] = [];
-    let connectionPromise:
-      | Promise<{ agent: Agent; credentials: MoltNetCredentials }>
-      | undefined;
+    const connections = new Map<string, Promise<Agent>>();
 
     for (let itemIndex = 0; itemIndex < inputItems.length; itemIndex += 1) {
       try {
@@ -492,14 +679,17 @@ export class MoltNet implements INodeType {
           'operation',
           itemIndex,
         ) as string;
-        connectionPromise ??= this.getCredentials<MoltNetCredentials>(
+        const credentials = await this.getCredentials<MoltNetCredentials>(
           'moltNetApi',
           itemIndex,
-        ).then(async (credentials) => ({
-          credentials,
-          agent: await connectMoltNet(credentials),
-        }));
-        const { agent, credentials } = await connectionPromise;
+        );
+        const cacheKey = credentialCacheKey(credentials);
+        let connection = connections.get(cacheKey);
+        if (!connection) {
+          connection = connectMoltNet(credentials);
+          connections.set(cacheKey, connection);
+        }
+        const agent = await connection;
         const result =
           operation === 'create'
             ? await createTask(this, agent, credentials, itemIndex)

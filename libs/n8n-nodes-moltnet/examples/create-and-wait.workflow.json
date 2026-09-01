@@ -43,6 +43,7 @@
         "pollInterval": 5,
         "resource": "task",
         "taskId": "={{$json.id}}",
+        "teamId": "={{$json.teamId}}",
         "timeout": 1800
       },
       "position": [480, 0],

@@ -26,6 +26,8 @@ export function connectMoltNet(
     return connect({
       apiUrl: credentials.apiUrl.trim(),
       agentKey,
+      // Wait owns deadline-bounded, cancellable retries at the node layer.
+      retry: { maxRateLimitRetries: 0 },
     });
   }
 
@@ -38,6 +40,8 @@ export function connectMoltNet(
     apiUrl: credentials.apiUrl.trim(),
     clientId,
     clientSecret: credentials.clientSecret,
+    // Wait owns deadline-bounded, cancellable retries at the node layer.
+    retry: { maxRateLimitRetries: 0 },
   });
 }
 

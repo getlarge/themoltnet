@@ -23,6 +23,9 @@ export interface FakeApiOptions {
   statuses?: string[];
   terminalStatus?: string;
   createStatus?: number;
+  createProblem?: IDataObject;
+  taskReadResponses?: Array<number | 'network'>;
+  attemptReadResponses?: Array<number | 'network'>;
   attempts?: IDataObject[];
   acceptedAttemptN?: number | null;
 }
@@ -43,15 +46,23 @@ export class FakeMoltNetApi {
   private readonly statuses: string[];
   private readonly terminalStatus: string;
   private readonly createStatus: number;
+  private readonly createProblem: IDataObject | undefined;
+  private readonly taskReadResponses: Array<number | 'network'>;
+  private readonly attemptReadResponses: Array<number | 'network'>;
   private readonly attempts: IDataObject[];
   private readonly acceptedAttemptN: number | null | undefined;
   private statusIndex = 0;
+  private taskReadIndex = 0;
+  private attemptReadIndex = 0;
   private taskTeamId = teamId;
 
   constructor(options: FakeApiOptions = {}) {
     this.statuses = options.statuses ?? [];
     this.terminalStatus = options.terminalStatus ?? 'completed';
     this.createStatus = options.createStatus ?? 201;
+    this.createProblem = options.createProblem;
+    this.taskReadResponses = options.taskReadResponses ?? [];
+    this.attemptReadResponses = options.attemptReadResponses ?? [];
     this.attempts = options.attempts ?? [this.attempt];
     this.acceptedAttemptN = options.acceptedAttemptN;
   }
@@ -79,7 +90,7 @@ export class FakeMoltNetApi {
       this.createdBodies.push(body);
       if (this.createStatus >= 400) {
         return jsonResponse(
-          {
+          this.createProblem ?? {
             type: 'about:blank',
             title: 'Task create failed',
             status: this.createStatus,
@@ -92,10 +103,24 @@ export class FakeMoltNetApi {
       return jsonResponse(this.task(body), this.createStatus);
     }
     if (url.pathname === `/tasks/${this.taskId}`) {
+      const responseStatus = this.taskReadResponses[this.taskReadIndex++];
+      if (responseStatus === 'network') {
+        throw new TypeError('The fake network dropped the task read');
+      }
+      if (responseStatus !== undefined && responseStatus >= 400) {
+        return problemResponse(responseStatus, 'Task read failed');
+      }
       const status = this.statuses[this.statusIndex++] ?? this.terminalStatus;
       return jsonResponse(this.task({}, status));
     }
     if (url.pathname === `/tasks/${this.taskId}/attempts`) {
+      const responseStatus = this.attemptReadResponses[this.attemptReadIndex++];
+      if (responseStatus === 'network') {
+        throw new TypeError('The fake network dropped the attempts read');
+      }
+      if (responseStatus !== undefined && responseStatus >= 400) {
+        return problemResponse(responseStatus, 'Attempt read failed');
+      }
       return jsonResponse(this.attempts);
     }
 
@@ -130,8 +155,9 @@ export class FakeMoltNetApi {
 export interface HarnessOptions {
   items?: INodeExecutionData[];
   parameters: IDataObject | IDataObject[];
-  credentials?: MoltNetCredentials;
+  credentials?: MoltNetCredentials | MoltNetCredentials[];
   continueOnFail?: boolean;
+  cancelSignal?: AbortSignal;
 }
 
 export function createExecuteContext(
@@ -152,7 +178,13 @@ export function createExecuteContext(
 
   return {
     continueOnFail: () => options.continueOnFail ?? false,
-    getCredentials: async () => options.credentials ?? defaultCredentials,
+    getCredentials: async (_type: string, itemIndex: number) => {
+      const credentials = options.credentials ?? defaultCredentials;
+      return Array.isArray(credentials)
+        ? (credentials[itemIndex] ?? credentials[0])
+        : credentials;
+    },
+    getExecutionCancelSignal: () => options.cancelSignal,
     getInputData: () => items,
     getNode: () => node,
     getNodeParameter: (name: string, itemIndex: number, fallback?: unknown) =>
@@ -165,4 +197,16 @@ function jsonResponse(body: unknown, status = 200): Response {
     status,
     headers: { 'content-type': 'application/json' },
   });
+}
+
+function problemResponse(status: number, title: string): Response {
+  return jsonResponse(
+    {
+      type: 'about:blank',
+      title,
+      status,
+      detail: `The fake API returned HTTP ${status}`,
+    },
+    status,
+  );
 }
