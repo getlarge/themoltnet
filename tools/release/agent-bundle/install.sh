@@ -81,6 +81,12 @@ EOF
 
 register_service() {
   [ "${MOLTNET_AGENT_NO_SERVICE:-0}" = 1 ] && { log "service registration skipped"; return; }
+  # The login service runs `moltnet-agent serve`; a daemon release without
+  # that subcommand would just crash-loop under KeepAlive.
+  if ! "$HOME_DIR/current/bin/moltnet-agent" serve --help >/dev/null 2>&1; then
+    log "this moltnet-agent release has no 'serve' command; login service not registered (run daemons with 'moltnet-agent poll' for now)"
+    return
+  fi
   case "$1" in
     darwin-*)
       plist="$HOME/Library/LaunchAgents/$SERVICE_LABEL.plist"
