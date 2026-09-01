@@ -26,6 +26,8 @@ export interface SharedEntryShimInput {
   readonly declarations: Readonly<Record<string, string>>;
   /** Entry whose rollup stays authoritative and self-contained. */
   readonly primaryEntry: string;
+  /** Same-named exports that intentionally differ from the primary entry. */
+  readonly retainedExports?: Readonly<Record<string, readonly string[]>>;
 }
 
 export interface SharedEntryShimStats {
@@ -256,6 +258,10 @@ export function buildSharedEntryShims(
 
     const source = parse(entry, text);
     const declarations = collectDeclarations(source);
+    const forcedRetained = new Set(input.retainedExports?.[entry] ?? []);
+    const isSharedWithPrimary = (name: string): boolean => {
+      return primaryExports.has(name) && !forcedRetained.has(name);
+    };
 
     const reexported: string[] = [];
     const retainedNames = new Set<string>();
@@ -263,7 +269,7 @@ export function buildSharedEntryShims(
 
     for (const [name, declaration] of declarations) {
       if (!declaration.exported) continue;
-      if (primaryExports.has(name)) {
+      if (isSharedWithPrimary(name)) {
         reexported.push(name);
       } else {
         retainedNames.add(name);
@@ -284,7 +290,7 @@ export function buildSharedEntryShims(
 
       for (const reference of referencedNames(declaration.statements)) {
         if (reference === name) continue;
-        if (primaryExports.has(reference)) {
+        if (isSharedWithPrimary(reference)) {
           imported.add(reference);
         } else if (
           declarations.has(reference) &&
@@ -305,7 +311,7 @@ export function buildSharedEntryShims(
     for (const declaration of declarations.values()) {
       if (!declaration.exported) continue;
       for (const reference of referencedNames(declaration.statements)) {
-        if (primaryExports.has(reference)) {
+        if (isSharedWithPrimary(reference)) {
           namedInSignatures.add(reference);
         }
       }
@@ -387,6 +393,8 @@ export interface ShareRolledUpEntriesOptions {
    * which is safe because the build empties the directory first.
    */
   readonly entries?: readonly string[];
+  /** Same-named exports that intentionally differ from the primary entry. */
+  readonly retainedExports?: Readonly<Record<string, readonly string[]>>;
   /** Progress sink. Defaults to `console.log`. */
   readonly log?: (message: string) => void;
 }
@@ -431,6 +439,9 @@ export function shareRolledUpEntries(
   const { shims, stats } = buildSharedEntryShims({
     declarations,
     primaryEntry,
+    ...(options.retainedExports === undefined
+      ? {}
+      : { retainedExports: options.retainedExports }),
   });
 
   for (const [entry, contents] of Object.entries(shims)) {
