@@ -451,19 +451,40 @@ function ProvidersSection({ runtime }: { runtime: LocalRuntimeController }) {
           ))}
         </Stack>
       ) : null}
-      {login?.status === 'pending' && login.userCode ? (
-        <Text variant="caption">
-          Enter code{' '}
-          <Text as="span" mono weight="semibold">
-            {login.userCode}
-          </Text>{' '}
-          at {login.verificationUri}
-        </Text>
-      ) : null}
-      {login?.status === 'pending' && login.authUrl && !login.userCode ? (
-        <Text variant="caption" color="muted">
-          Finish signing in via the tab that just opened.
-        </Text>
+      {login?.status === 'pending' ? (
+        <Stack direction="row" gap={3} align="center" wrap>
+          {login.userCode ? (
+            <Text variant="caption">
+              Enter code{' '}
+              <Text as="span" mono weight="semibold">
+                {login.userCode}
+              </Text>{' '}
+              at{' '}
+              <a href={login.verificationUri} target="_blank" rel="noopener">
+                {login.verificationUri}
+              </a>
+            </Text>
+          ) : login.authUrl ? (
+            <Button
+              size="sm"
+              variant="accent"
+              onClick={() => window.open(login.authUrl, '_blank', 'noopener')}
+            >
+              Open sign-in page
+            </Button>
+          ) : (
+            <Text variant="caption" color="muted">
+              Starting the sign-in flow…
+            </Text>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => void runtime.cancelSubscription(login.providerId)}
+          >
+            Cancel
+          </Button>
+        </Stack>
       ) : null}
 
       {providers.length > 0 ? (
@@ -563,9 +584,12 @@ function RunsSection({ runtime }: { runtime: LocalRuntimeController }) {
     }),
     enabled: Boolean(selectedTeam?.id),
   });
-  const profileNames = (
+  const profileOptions = (
     (profilesQuery.data?.items ?? []) as { name?: string; id: string }[]
-  ).map((entry) => entry.name ?? entry.id);
+  ).map((entry) => ({
+    value: entry.name ?? entry.id,
+    label: entry.name ? `${entry.name} · ${entry.id.slice(0, 8)}` : entry.id,
+  }));
 
   const start = async () => {
     if (!selectedTeam?.id) return;
@@ -609,16 +633,22 @@ function RunsSection({ runtime }: { runtime: LocalRuntimeController }) {
               label: entry.agentName,
             }))}
           />
-          <Input
-            label="Runtime profile"
-            hint={
-              profileNames.length > 0
-                ? `Known: ${profileNames.slice(0, 4).join(', ')}${profileNames.length > 4 ? ', …' : ''}`
-                : 'Profile UUID or team-scoped name.'
-            }
-            value={profile}
-            onChange={(event) => setProfile(event.target.value)}
-          />
+          {profileOptions.length > 0 ? (
+            <SelectField
+              label="Runtime profile"
+              value={profile}
+              onChange={setProfile}
+              placeholder="Select…"
+              options={profileOptions}
+            />
+          ) : (
+            <Input
+              label="Runtime profile"
+              hint="No profiles in this team yet — create one under Profiles, or paste a UUID."
+              value={profile}
+              onChange={(event) => setProfile(event.target.value)}
+            />
+          )}
           <Input
             label="Task types"
             hint="Comma-separated, e.g. freeform"

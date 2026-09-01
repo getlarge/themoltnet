@@ -567,6 +567,12 @@ function registerSubscriptionRoutes(
     const { providerId } = request.params as { providerId: string };
     return options.subscriptions.status(providerId);
   });
+
+  app.delete('/v1/subscriptions/:providerId/login', async (request) => {
+    requirePairedOrigin(request);
+    const { providerId } = request.params as { providerId: string };
+    return options.subscriptions.cancel(providerId);
+  });
 }
 
 function registerRunRoutes(
@@ -833,9 +839,14 @@ function normalizeServeError(error: unknown): {
       message: error.message,
     };
   }
+  // Loopback companion for the operator's own machine: surfacing the real
+  // message is a feature — the alternative is a blind "Request failed".
   return {
     statusCode: 500,
     code: 'internal_error',
-    message: 'Request failed',
+    message:
+      error instanceof Error && error.message
+        ? error.message
+        : 'Request failed',
   };
 }

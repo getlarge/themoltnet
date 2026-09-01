@@ -64,6 +64,7 @@ export interface LocalRuntimeController {
   /** Live device-code/instruction info for an in-flight subscription login. */
   subscriptionLogin: ServeSubscriptionLogin | null;
   connectSubscription(providerId: string): Promise<void>;
+  cancelSubscription(providerId: string): Promise<void>;
 }
 
 export function useLocalRuntime(): LocalRuntimeController {
@@ -211,10 +212,14 @@ export function useLocalRuntime(): LocalRuntimeController {
     async (providerId: string) => {
       setActionError(null);
       try {
+        // No window.open here: after an await we are outside the click
+        // gesture and popup blockers (Safari especially) silently eat it.
+        // The page renders an explicit "Open sign-in page" link instead.
         let login = await client.startSubscriptionLogin(providerId);
         setSubscriptionLogin(login);
-        if (login.authUrl) {
-          window.open(login.authUrl, '_blank', 'noopener');
+        if (login.status === 'failed') {
+          setActionError(login.error ?? 'Subscription login failed');
+          return;
         }
         const deadline = Date.now() + 5 * 60_000;
         while (login.status === 'pending' && Date.now() < deadline) {
@@ -239,6 +244,18 @@ export function useLocalRuntime(): LocalRuntimeController {
       }
     },
     [client, statusQuery],
+  );
+
+  const cancelSubscription = useCallback(
+    async (providerId: string) => {
+      try {
+        await client.cancelSubscriptionLogin(providerId);
+      } catch {
+        // best effort — the pending login expires server-side regardless
+      }
+      setSubscriptionLogin(null);
+    },
+    [client],
   );
 
   const disconnect = useCallback(() => {
@@ -287,6 +304,7 @@ export function useLocalRuntime(): LocalRuntimeController {
     streamLogs,
     subscriptionLogin,
     connectSubscription,
+    cancelSubscription,
   };
 }
 

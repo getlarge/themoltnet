@@ -101,6 +101,7 @@ export interface ServeClient {
   stopRun(runId: string): Promise<void>;
   startSubscriptionLogin(providerId: string): Promise<ServeSubscriptionLogin>;
   subscriptionLoginStatus(providerId: string): Promise<ServeSubscriptionLogin>;
+  cancelSubscriptionLogin(providerId: string): Promise<void>;
   streamLogs(
     runId: string,
     onLine: (line: string) => void,
@@ -264,6 +265,9 @@ export function createServeClient(options: {
           'subscription login',
         ),
       );
+    },
+    async cancelSubscriptionLogin(providerId: string): Promise<void> {
+      await request('DELETE', `/v1/subscriptions/${providerId}/login`);
     },
     // SSE over fetch: EventSource cannot send the pairing-token header, so
     // read the stream manually and surface `data:` payload lines.

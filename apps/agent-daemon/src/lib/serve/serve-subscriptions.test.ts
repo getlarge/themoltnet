@@ -235,6 +235,42 @@ describe('serve subscriptions', () => {
     });
   });
 
+  it('cancels a pending login: aborts the flow and clears state', async () => {
+    const { harness, runLogin } = makeHarness();
+    const { app, token } = await fixture({ runLogin });
+
+    const startPromise = app.inject({
+      method: 'POST',
+      url: '/v1/subscriptions/anthropic/login',
+      headers: authedHeaders(token),
+    });
+    await new Promise((resolvePromise) => {
+      setTimeout(() => resolvePromise(undefined), 10);
+    });
+    harness.callbacks?.onAuth({ url: 'https://claude.ai/oauth/x' });
+    await startPromise;
+    expect(harness.callbacks?.signal?.aborted).toBe(false);
+
+    const cancelled = await app.inject({
+      method: 'DELETE',
+      url: '/v1/subscriptions/anthropic/login',
+      headers: authedHeaders(token),
+    });
+    expect(cancelled.statusCode).toBe(200);
+    expect(cancelled.json()).toEqual({
+      providerId: 'anthropic',
+      status: 'cancelled',
+    });
+    expect(harness.callbacks?.signal?.aborted).toBe(true);
+
+    const gone = await app.inject({
+      method: 'GET',
+      url: '/v1/subscriptions/anthropic/login',
+      headers: authedHeaders(token),
+    });
+    expect(gone.statusCode).toBe(404);
+  });
+
   it('404s unknown providers and missing logins', async () => {
     const { runLogin } = makeHarness();
     const { app, token } = await fixture({ runLogin });

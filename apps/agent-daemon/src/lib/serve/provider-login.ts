@@ -24,6 +24,7 @@ export class ServeSubscriptionError extends Error {
       | 'provider_unknown'
       | 'login_in_progress'
       | 'login_not_found'
+      | 'login_cancelled'
       | 'login_unsupported_prompt',
     message: string,
   ) {
@@ -52,6 +53,7 @@ export interface SubscriptionLoginView {
 interface PendingLogin extends SubscriptionLoginView {
   startedAt: number;
   infoArrived: () => void;
+  abort: AbortController;
 }
 
 export interface LoginCallbacksLike {
@@ -63,6 +65,7 @@ export interface LoginCallbacksLike {
     message: string;
     options: { id: string; label: string }[];
   }) => Promise<string | undefined>;
+  signal?: AbortSignal;
 }
 
 export interface ProviderLoginServiceOptions {
@@ -155,11 +158,13 @@ export class ProviderLoginService {
     const infoPromise = new Promise<void>((resolvePromise) => {
       infoArrived = () => resolvePromise();
     });
+    const abort = new AbortController();
     const login: PendingLogin = {
       providerId,
       status: 'pending',
       startedAt: this.now(),
       infoArrived,
+      abort,
     };
     this.logins.set(providerId, login);
 
@@ -184,6 +189,7 @@ export class ProviderLoginService {
           ),
         ),
       onSelect: () => Promise.resolve(undefined),
+      signal: abort.signal,
     };
 
     const runLogin =
@@ -217,6 +223,20 @@ export class ProviderLoginService {
       }),
     ]);
     return snapshot(login);
+  }
+
+  /** Abort an in-flight login and forget it. */
+  cancel(providerId: string): { providerId: string; status: 'cancelled' } {
+    const login = this.logins.get(providerId);
+    if (!login) {
+      throw new ServeSubscriptionError(
+        'login_not_found',
+        `no login in progress for "${providerId}"`,
+      );
+    }
+    login.abort.abort(new Error('login cancelled from the console'));
+    this.logins.delete(providerId);
+    return { providerId, status: 'cancelled' };
   }
 }
 
