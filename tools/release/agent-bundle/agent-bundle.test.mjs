@@ -34,6 +34,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '../../..');
 const installer = join(here, 'install.sh');
 const signer = join(here, 'sign.sh');
+const notarizer = join(here, 'notarize.sh');
 const builder = join(here, 'build.mjs');
 const supportedHost =
   (process.platform === 'darwin' && process.arch === 'arm64') ||
@@ -750,4 +751,84 @@ describe('signing policy', () => {
       assert.match(result.stdout, /verification passed for 3 native files/);
     },
   );
+});
+
+function createStubNotarizer({ codesignStatus = 0 } = {}) {
+  const root = tempDir('moltnet-agent-notarize-stub-');
+  const payload = join(root, 'payload');
+  const runtime = 'libexec/moltnet-agent';
+  mkdirSync(join(payload, 'libexec'), { recursive: true });
+  writeFileSync(join(payload, runtime), 'native fixture');
+  writeFileSync(join(payload, 'manifest.json'), JSON.stringify({ runtime }));
+
+  const bin = join(root, 'bin');
+  const commandLog = join(root, 'commands.log');
+  mkdirSync(bin);
+  writeFileSync(join(bin, 'ditto'), '#!/bin/sh\nexit 0\n');
+  writeFileSync(join(bin, 'xcrun'), '#!/bin/sh\nexit 0\n');
+  writeFileSync(
+    join(bin, 'codesign'),
+    `#!/bin/sh
+printf 'codesign %s\\n' "$*" >> "$COMMAND_LOG"
+if [ "${codesignStatus}" -ne 0 ]; then
+  echo 'notarization requirement failed' >&2
+  exit ${codesignStatus}
+fi
+`,
+  );
+  writeFileSync(
+    join(bin, 'spctl'),
+    `#!/bin/sh
+printf 'spctl %s\\n' "$*" >> "$COMMAND_LOG"
+echo 'spctl must not assess raw executable code' >&2
+exit 99
+`,
+  );
+  for (const command of ['ditto', 'xcrun', 'codesign', 'spctl']) {
+    chmodSync(join(bin, command), 0o755);
+  }
+
+  return {
+    commandLog,
+    env: {
+      ...process.env,
+      COMMAND_LOG: commandLog,
+      NOTARY_ISSUER_ID: 'issuer-id',
+      NOTARY_KEY: 'private-key-contents',
+      NOTARY_KEY_ID: 'key-id',
+      PATH: `${bin}:${process.env.PATH}`,
+    },
+    payload,
+    runtime,
+  };
+}
+
+describe('notarization verification', () => {
+  it('checks the notarization requirement for raw executable code', () => {
+    const fixture = createStubNotarizer();
+
+    const result = runSync('sh', [notarizer, '--payload', fixture.payload], {
+      env: fixture.env,
+    });
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(
+      readFileSync(fixture.commandLog, 'utf8'),
+      `codesign -vvvv -R=notarized --check-notarization ${join(
+        fixture.payload,
+        fixture.runtime,
+      )}\n`,
+    );
+  });
+
+  it('fails when the runtime does not satisfy the notarization requirement', () => {
+    const fixture = createStubNotarizer({ codesignStatus: 1 });
+
+    const result = runSync('sh', [notarizer, '--payload', fixture.payload], {
+      env: fixture.env,
+    });
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /notarization requirement failed/);
+  });
 });
