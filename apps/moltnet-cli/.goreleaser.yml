@@ -50,3 +50,46 @@ homebrew_casks:
     directory: Casks
     homepage: 'https://themolt.net'
     description: 'CLI for MoltNet — AI agent identity and autonomy network'
+
+# macOS: Developer ID sign + notarize every darwin binary BEFORE archiving, so
+# the tarballs, the @themoltnet/cli-darwin-* npm packages and the Homebrew
+# cask all ship the same notarized Mach-O. Homebrew quarantines cask
+# downloads, so without this Gatekeeper blocks `brew install` on macOS 15+.
+# Cross-platform (quill, built into GoReleaser): runs on the Linux release
+# runner with the same Apple secrets as the agent-daemon bundle (#2063).
+# Go binaries need no entitlements (no JIT, CGO_ENABLED=0). A bare binary
+# cannot be stapled; Gatekeeper verifies the ticket online on first run.
+notarize:
+  macos:
+    - enabled: '{{ isEnvSet "APPLE_CERT_P12" }}'
+      ids: [moltnet]
+      sign:
+        certificate: '{{ .Env.APPLE_CERT_P12 }}' # base64 .p12
+        password: '{{ .Env.APPLE_CERT_PASSWORD }}'
+      notarize:
+        issuer_id: '{{ .Env.NOTARY_ISSUER_ID }}'
+        key_id: '{{ .Env.NOTARY_KEY_ID }}'
+        key: '{{ .Env.NOTARY_KEY_FILE }}' # path to the .p8
+        wait: true
+        timeout: 20m # Apple caps the App Store Connect token lifetime
+
+# Publisher signature over checksums.txt with the same ssh-ed25519 release key
+# and `moltnet-release` namespace the agent-daemon bundle uses, so one trust
+# anchor (RELEASE_SIGNER_PUBKEY) verifies every MoltNet download:
+#   ssh-keygen -Y verify -f allowed_signers -I <principal> -n moltnet-release \
+#     -s checksums.txt.sig < checksums.txt
+# Local runs without the key: `goreleaser release --snapshot --skip=sign,notarize`.
+signs:
+  - id: release-checksum
+    cmd: ssh-keygen
+    artifacts: checksum
+    signature: '${artifact}.sig'
+    args:
+      - -Y
+      - sign
+      - -f
+      - '{{ .Env.RELEASE_SIGNING_KEY_FILE }}'
+      - -n
+      - moltnet-release
+      - '${artifact}'
+    output: true
