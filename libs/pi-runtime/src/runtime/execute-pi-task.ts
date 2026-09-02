@@ -1401,7 +1401,7 @@ export async function executePiTask(
       // to the canonical home-rooted path so local `pi /login` flows
       // continue to work unchanged.
       const piAuthDir = resolvePiCodingAgentDir();
-      const { modelHandle, modelRegistry } = resolveRuntimeProfileModel(
+      const { modelHandle, modelRuntime } = await resolveRuntimeProfileModel(
         piAuthDir,
         opts.provider,
         opts.model,
@@ -1651,7 +1651,7 @@ export async function executePiTask(
           cwdPath,
           piAuthDir,
           modelHandle,
-          modelRegistry,
+          modelRuntime,
           thinkingLevel: opts.thinkingLevel,
           temperature: opts.temperature,
           topP: opts.topP,
@@ -1709,7 +1709,7 @@ export async function executePiTask(
             cwdPath,
             piAuthDir,
             modelHandle,
-            modelRegistry,
+            modelRuntime,
             thinkingLevel: opts.thinkingLevel,
             temperature: opts.temperature,
             topP: opts.topP,

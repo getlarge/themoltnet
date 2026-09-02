@@ -36,6 +36,11 @@ export {
   type VmFsForContext,
 } from './runtime/inject-task-context.js';
 export {
+  resolveRuntimeProfileModel,
+  type RuntimeModelSelection,
+  RuntimeProfileModelResolutionError,
+} from './runtime/model-selection.js';
+export {
   createPiRetryTriage,
   normalizeRetryTriageResult,
   type PiRetryTriage,
