@@ -1945,13 +1945,42 @@ jobs:
           ssh-keygen -Y sign -f "$key" -n moltnet-release "$PAYLOAD.tar.gz.sha256"
           rm -f "$key"
 
+      # The served installer embeds the release public key: injected here from
+      # the repo variable (rotation = variable update, no code change) and
+      # cross-checked against the actual signing key so a mismatched rotation
+      # can never publish an installer that rejects its own releases.
+      - name: Embed release public key into the installer
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+          RELEASE_SIGNER_PUBKEY: ${{ vars.RELEASE_SIGNER_PUBKEY }}
+        run: |
+          if [ -z "$RELEASE_SIGNER_PUBKEY" ]; then
+            echo "::error::repo variable RELEASE_SIGNER_PUBKEY is not set; refusing to publish an installer without a trust anchor"
+            exit 1
+          fi
+          key="$RUNNER_TEMP/release-signing-key"
+          printf '%s\n' "$RELEASE_SIGNING_KEY" > "$key"
+          chmod 600 "$key"
+          derived=$(ssh-keygen -y -f "$key" | cut -d' ' -f1-2)
+          rm -f "$key"
+          declared=$(printf '%s' "$RELEASE_SIGNER_PUBKEY" | cut -d' ' -f1-2)
+          if [ "$derived" != "$declared" ]; then
+            echo "::error::RELEASE_SIGNER_PUBKEY does not match RELEASE_SIGNING_KEY — fix the rotation before releasing"
+            exit 1
+          fi
+          sed "s#^RELEASE_SIGNER_PUBKEY=\"\"#RELEASE_SIGNER_PUBKEY=\"$declared\"#" \
+            tools/release/agent-bundle/install.sh > "$RUNNER_TEMP/install.sh"
+          grep -q "^RELEASE_SIGNER_PUBKEY=\"ssh-" "$RUNNER_TEMP/install.sh" \
+            || { echo "::error::public key injection failed"; exit 1; }
+          sh -n "$RUNNER_TEMP/install.sh"
+
       - name: Upload release assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload "${{ needs.resolve-publish.outputs.agent-daemon-tag }}" \
             "$PAYLOAD.tar.gz" "$PAYLOAD.tar.gz.sha256" "$PAYLOAD.tar.gz.sha256.sig" \
-            tools/release/agent-bundle/install.sh \
+            "$RUNNER_TEMP/install.sh#install.sh" \
             --clobber
 
   # Un-draft the agent-daemon release only when the npm publish AND both
