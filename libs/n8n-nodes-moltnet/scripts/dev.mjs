@@ -40,8 +40,11 @@ function runBuild() {
 function linkPackage() {
   mkdirSync(dirname(packageLink), { recursive: true });
 
-  if (existsSync(packageLink)) {
-    if (!lstatSync(packageLink).isSymbolicLink()) {
+  // existsSync() follows symlinks, so it returns false for a link left behind
+  // by a removed worktree. lstatSync() still sees that directory entry.
+  const existingLink = lstatSync(packageLink, { throwIfNoEntry: false });
+  if (existingLink) {
+    if (!existingLink.isSymbolicLink()) {
       throw new Error(
         `Refusing to replace non-symlink development path: ${packageLink}`,
       );
