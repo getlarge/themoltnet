@@ -393,34 +393,9 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
 // ── providers ──────────────────────────────────────────────────────────────
 
 function ProvidersSection({ runtime }: { runtime: LocalRuntimeController }) {
-  const [id, setId] = useState('ollama');
-  const [baseUrl, setBaseUrl] = useState('https://ollama.com/v1');
-  const [models, setModels] = useState('');
-  const [apiKey, setApiKey] = useState('');
-  const [busy, setBusy] = useState(false);
   const providers = Object.entries(runtime.data?.providers ?? {});
   const subscriptions = runtime.data?.subscriptions ?? [];
   const login = runtime.subscriptionLogin;
-
-  const submit = async () => {
-    setBusy(true);
-    try {
-      await runtime.putProvider(id.trim(), {
-        api: 'openai-completions',
-        baseUrl: baseUrl.trim(),
-        models: models
-          .split(',')
-          .map((model) => model.trim())
-          .filter(Boolean),
-        ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
-      });
-    } catch {
-      // surfaced via runtime.actionError
-    } finally {
-      setApiKey('');
-      setBusy(false);
-    }
-  };
 
   return (
     <SectionCard
@@ -429,61 +404,84 @@ function ProvidersSection({ runtime }: { runtime: LocalRuntimeController }) {
     >
       {subscriptions.length > 0 ? (
         <Stack gap={0}>
-          {subscriptions.map((subscription) => (
-            <ListRow key={subscription.id}>
-              <Text weight="medium">{subscription.name}</Text>
-              <Badge variant={subscription.connected ? 'success' : 'default'}>
-                {subscription.connected ? 'connected' : 'not connected'}
-              </Badge>
-              <div style={{ marginLeft: 'auto' }}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={login?.status === 'pending'}
-                  onClick={() =>
-                    void runtime.connectSubscription(subscription.id)
-                  }
+          {subscriptions.map((subscription) => {
+            const pendingHere =
+              login?.status === 'pending' &&
+              login.providerId === subscription.id;
+            return (
+              <ListRow key={subscription.id}>
+                <Text weight="medium">{subscription.name}</Text>
+                <Badge variant={subscription.connected ? 'success' : 'default'}>
+                  {subscription.connected ? 'connected' : 'not connected'}
+                </Badge>
+                <div
+                  style={{
+                    marginLeft: 'auto',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    flexWrap: 'wrap',
+                    justifyContent: 'flex-end',
+                  }}
                 >
-                  {subscription.connected ? 'Reconnect' : 'Connect'}
-                </Button>
-              </div>
-            </ListRow>
-          ))}
-        </Stack>
-      ) : null}
-      {login?.status === 'pending' ? (
-        <Stack direction="row" gap={3} align="center" wrap>
-          {login.userCode ? (
-            <Text variant="caption">
-              Enter code{' '}
-              <Text as="span" mono weight="semibold">
-                {login.userCode}
-              </Text>{' '}
-              at{' '}
-              <a href={login.verificationUri} target="_blank" rel="noopener">
-                {login.verificationUri}
-              </a>
-            </Text>
-          ) : login.authUrl ? (
-            <Button
-              size="sm"
-              variant="accent"
-              onClick={() => window.open(login.authUrl, '_blank', 'noopener')}
-            >
-              Open sign-in page
-            </Button>
-          ) : (
-            <Text variant="caption" color="muted">
-              Starting the sign-in flow…
-            </Text>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => void runtime.cancelSubscription(login.providerId)}
-          >
-            Cancel
-          </Button>
+                  {pendingHere && login.userCode ? (
+                    <Text variant="caption">
+                      Enter{' '}
+                      <Text as="span" mono weight="semibold">
+                        {login.userCode}
+                      </Text>{' '}
+                      at{' '}
+                      <a
+                        href={login.verificationUri}
+                        target="_blank"
+                        rel="noopener"
+                      >
+                        {login.verificationUri}
+                      </a>
+                    </Text>
+                  ) : null}
+                  {pendingHere && !login.userCode && login.authUrl ? (
+                    <Button
+                      size="sm"
+                      variant="accent"
+                      onClick={() =>
+                        window.open(login.authUrl, '_blank', 'noopener')
+                      }
+                    >
+                      Open sign-in page
+                    </Button>
+                  ) : null}
+                  {pendingHere && !login.userCode && !login.authUrl ? (
+                    <Text variant="caption" color="muted">
+                      Starting…
+                    </Text>
+                  ) : null}
+                  {pendingHere ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        void runtime.cancelSubscription(subscription.id)
+                      }
+                    >
+                      Cancel
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={login?.status === 'pending'}
+                      onClick={() =>
+                        void runtime.connectSubscription(subscription.id)
+                      }
+                    >
+                      {subscription.connected ? 'Reconnect' : 'Connect'}
+                    </Button>
+                  )}
+                </div>
+              </ListRow>
+            );
+          })}
         </Stack>
       ) : null}
 
@@ -518,49 +516,210 @@ function ProvidersSection({ runtime }: { runtime: LocalRuntimeController }) {
 
       <Divider />
 
-      <Stack gap={3}>
-        <Text variant="caption" weight="semibold">
-          Add an API-key provider
-        </Text>
-        <FieldGrid>
-          <Input
-            label="Provider id"
-            value={id}
-            onChange={(event) => setId(event.target.value)}
-          />
-          <Input
-            label="Base URL"
-            value={baseUrl}
-            onChange={(event) => setBaseUrl(event.target.value)}
-          />
-          <Input
-            label="Models (comma-separated)"
-            hint="Must include the model your runtime profile pins."
-            value={models}
-            onChange={(event) => setModels(event.target.value)}
-          />
-          <Input
-            label="API key"
-            type="password"
-            autoComplete="off"
-            spellCheck={false}
-            hint="Write-only; leaving it blank on update keeps the stored key."
-            value={apiKey}
-            onChange={(event) => setApiKey(event.target.value)}
-          />
-        </FieldGrid>
-        <Stack direction="row">
-          <Button
-            size="sm"
-            variant="accent"
-            disabled={busy || !id.trim() || !baseUrl.trim()}
-            onClick={() => void submit()}
-          >
-            Save provider
-          </Button>
-        </Stack>
-      </Stack>
+      <ApiKeyProviderForm runtime={runtime} />
     </SectionCard>
+  );
+}
+
+const PROVIDER_PRESETS = [
+  {
+    id: 'ollama-local',
+    label: 'Ollama (local)',
+    providerId: 'ollama-local',
+    baseUrl: 'http://localhost:11434/v1',
+    needsKey: false,
+  },
+  {
+    id: 'ollama-cloud',
+    label: 'Ollama (cloud)',
+    providerId: 'ollama',
+    baseUrl: 'https://ollama.com/v1',
+    needsKey: true,
+  },
+  {
+    id: 'custom',
+    label: 'Custom (OpenAI-compatible)',
+    providerId: '',
+    baseUrl: '',
+    needsKey: true,
+  },
+] as const;
+
+function ApiKeyProviderForm({ runtime }: { runtime: LocalRuntimeController }) {
+  const [preset, setPreset] = useState<string>('ollama-local');
+  const [id, setId] = useState('ollama-local');
+  const [baseUrl, setBaseUrl] = useState('http://localhost:11434/v1');
+  const [apiKey, setApiKey] = useState('');
+  const [discovered, setDiscovered] = useState<string[]>([]);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [discoverError, setDiscoverError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const activePreset =
+    PROVIDER_PRESETS.find((entry) => entry.id === preset) ??
+    PROVIDER_PRESETS[2];
+
+  const applyPreset = (presetId: string) => {
+    const next =
+      PROVIDER_PRESETS.find((entry) => entry.id === presetId) ??
+      PROVIDER_PRESETS[2];
+    setPreset(next.id);
+    setId(next.providerId);
+    setBaseUrl(next.baseUrl);
+    setDiscovered([]);
+    setSelected(new Set());
+    setDiscoverError(null);
+  };
+
+  const discover = async () => {
+    setBusy(true);
+    setDiscoverError(null);
+    try {
+      const providerId = id.trim();
+      await runtime.putProvider(providerId, {
+        api: 'openai-completions',
+        baseUrl: baseUrl.trim(),
+        models: runtime.data?.providers[providerId]?.models ?? [],
+        ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
+      });
+      const models = await runtime.discoverModels(providerId);
+      setDiscovered(models);
+      setSelected(new Set(models.length === 1 ? models : []));
+    } catch (error) {
+      setDiscovered([]);
+      setDiscoverError(
+        error instanceof Error ? error.message : 'Discovery failed',
+      );
+    } finally {
+      setApiKey('');
+      setBusy(false);
+    }
+  };
+
+  const toggleModel = (model: string) => {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(model)) next.delete(model);
+      else next.add(model);
+      return next;
+    });
+  };
+
+  const save = async () => {
+    setBusy(true);
+    try {
+      await runtime.putProvider(id.trim(), {
+        api: 'openai-completions',
+        baseUrl: baseUrl.trim(),
+        models: [...selected],
+        ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
+      });
+      setDiscovered([]);
+      setSelected(new Set());
+    } catch {
+      // surfaced via runtime.actionError
+    } finally {
+      setApiKey('');
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Stack gap={3}>
+      <Text variant="caption" weight="semibold">
+        Add an API-key provider
+      </Text>
+      <Stack direction="row" gap={2} wrap>
+        {PROVIDER_PRESETS.map((entry) => (
+          <Button
+            key={entry.id}
+            size="sm"
+            variant={preset === entry.id ? 'accent' : 'ghost'}
+            onClick={() => applyPreset(entry.id)}
+          >
+            {entry.label}
+          </Button>
+        ))}
+      </Stack>
+      <FieldGrid>
+        <Input
+          label="Provider id"
+          value={id}
+          onChange={(event) => setId(event.target.value)}
+        />
+        <Input
+          label="Base URL"
+          value={baseUrl}
+          onChange={(event) => setBaseUrl(event.target.value)}
+        />
+        <Input
+          label={
+            activePreset.needsKey ? 'API key' : 'API key (not required locally)'
+          }
+          type="password"
+          autoComplete="off"
+          spellCheck={false}
+          hint="Write-only; leaving it blank on update keeps the stored key."
+          value={apiKey}
+          onChange={(event) => setApiKey(event.target.value)}
+        />
+      </FieldGrid>
+      <Stack direction="row" gap={2} align="center" wrap>
+        <Button
+          size="sm"
+          disabled={busy || !id.trim() || !baseUrl.trim()}
+          onClick={() => void discover()}
+        >
+          {busy ? 'Fetching…' : 'Fetch models'}
+        </Button>
+        {discoverError ? (
+          <Text variant="caption" color="error">
+            {discoverError}
+          </Text>
+        ) : null}
+      </Stack>
+      {discovered.length > 0 ? (
+        <Stack gap={2}>
+          <Text variant="caption" color="muted">
+            Select the models to expose ({selected.size} of {discovered.length})
+            — include the one your runtime profile pins.
+          </Text>
+          <Stack direction="row" gap={2} wrap>
+            {discovered.map((model) => (
+              <label
+                key={model}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  cursor: 'pointer',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={selected.has(model)}
+                  onChange={() => toggleModel(model)}
+                />
+                <Text variant="caption" mono>
+                  {model}
+                </Text>
+              </label>
+            ))}
+          </Stack>
+        </Stack>
+      ) : null}
+      <Stack direction="row">
+        <Button
+          size="sm"
+          variant="accent"
+          disabled={
+            busy || !id.trim() || !baseUrl.trim() || selected.size === 0
+          }
+          onClick={() => void save()}
+        >
+          Save provider
+        </Button>
+      </Stack>
+    </Stack>
   );
 }
 

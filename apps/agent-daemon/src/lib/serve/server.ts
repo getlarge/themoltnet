@@ -21,6 +21,7 @@ import {
 } from '@moltnet/loopback-companion';
 import {
   formatSecretReferenceString,
+  parseSecretReferenceString,
   type SecretProviderRegistry,
 } from '@themoltnet/sdk';
 import {
@@ -140,6 +141,7 @@ export async function readServeLogDelta(
 export interface BuildServeServerOptions {
   store: ServeStore;
   secrets: FileSecretProvider;
+  secretProviders: SecretProviderRegistry;
   externalSecretProviders: SecretProviderRegistry;
   pairing: PairingService;
   runs: RunManager;
@@ -155,6 +157,8 @@ export interface BuildServeServerOptions {
   shutdownSignal?: AbortSignal;
   /** Override used by focused rate-limit tests. */
   rateLimitMax?: number;
+  /** Injectable for tests: outbound fetch used for provider model discovery. */
+  discoverFetch?: typeof fetch;
 }
 
 class ServeHttpError extends Error {
@@ -499,6 +503,95 @@ function registerProviderRoutes(
         providerView(provider),
       ]),
     );
+  });
+  app.post('/v1/providers/:providerId/discover-models', async (request) => {
+    requirePairedOrigin(request);
+    const { providerId: rawProviderId } = request.params as {
+      providerId: string;
+    };
+    const providerId = assertProviderId(rawProviderId);
+    const provider = store.readProviders()[providerId];
+    if (!provider) {
+      throw new ServeHttpError(
+        404,
+        'provider_not_found',
+        `provider "${providerId}" was not found`,
+      );
+    }
+    const baseUrl = provider.baseUrl.replace(/\/$/, '');
+    let parsed: URL;
+    try {
+      parsed = new URL(baseUrl);
+    } catch {
+      throw new ServeHttpError(
+        400,
+        'invalid_provider',
+        `provider "${providerId}" has an invalid base URL`,
+      );
+    }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw new ServeHttpError(
+        400,
+        'invalid_provider',
+        `provider "${providerId}" base URL must be http(s)`,
+      );
+    }
+    let apiKey: string | undefined;
+    if (provider.apiKeyRef) {
+      try {
+        apiKey = await options.secretProviders.resolve(
+          parseSecretReferenceString(provider.apiKeyRef),
+        );
+      } catch {
+        throw new ServeHttpError(
+          400,
+          'provider_secret_unavailable',
+          `provider "${providerId}" API key could not be resolved`,
+        );
+      }
+    }
+    const headers: Record<string, string> = apiKey
+      ? { authorization: `Bearer ${apiKey}` }
+      : {};
+    const fetchImpl = options.discoverFetch ?? fetch;
+    const models = new Set<string>();
+    const tryJson = async (url: string): Promise<unknown | null> => {
+      try {
+        const response = await fetchImpl(url, {
+          headers,
+          redirect: 'error',
+          signal: AbortSignal.timeout(10_000),
+        });
+        if (!response.ok) return null;
+        return (await response.json()) as unknown;
+      } catch {
+        return null;
+      }
+    };
+    const openai = (await tryJson(`${baseUrl}/models`)) as {
+      data?: { id?: string }[];
+    } | null;
+    for (const model of openai?.data ?? []) {
+      if (typeof model.id === 'string' && model.id) models.add(model.id);
+    }
+    if (models.size === 0) {
+      const tags = (await tryJson(`${parsed.origin}/api/tags`)) as {
+        models?: { name?: string }[];
+      } | null;
+      for (const model of tags?.models ?? []) {
+        if (typeof model.name === 'string' && model.name) {
+          models.add(model.name);
+        }
+      }
+    }
+    if (models.size === 0) {
+      throw new ServeHttpError(
+        502,
+        'discovery_failed',
+        `no models discovered for provider "${providerId}"`,
+      );
+    }
+    return { models: [...models].sort() };
   });
   app.put('/v1/providers/:providerId', async (request, reply) => {
     requirePairedOrigin(request);

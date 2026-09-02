@@ -99,6 +99,7 @@ export async function runServe(argv: string[]): Promise<number> {
           const app = buildServeServer({
             store,
             secrets,
+            secretProviders,
             externalSecretProviders,
             pairing,
             runs,

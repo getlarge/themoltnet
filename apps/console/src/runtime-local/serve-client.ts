@@ -102,6 +102,7 @@ export interface ServeClient {
   startSubscriptionLogin(providerId: string): Promise<ServeSubscriptionLogin>;
   subscriptionLoginStatus(providerId: string): Promise<ServeSubscriptionLogin>;
   cancelSubscriptionLogin(providerId: string): Promise<void>;
+  discoverModels(providerId: string): Promise<string[]>;
   streamLogs(
     runId: string,
     onLine: (line: string) => void,
@@ -268,6 +269,13 @@ export function createServeClient(options: {
     },
     async cancelSubscriptionLogin(providerId: string): Promise<void> {
       await request('DELETE', `/v1/subscriptions/${providerId}/login`);
+    },
+    async discoverModels(providerId: string): Promise<string[]> {
+      const result = await request<{ models: string[] }>(
+        'POST',
+        `/v1/providers/${encodeURIComponent(providerId)}/discover-models`,
+      );
+      return result.models;
     },
     // SSE over fetch: EventSource cannot send the pairing-token header, so
     // read the stream manually and surface `data:` payload lines.

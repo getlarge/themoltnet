@@ -65,6 +65,7 @@ export interface LocalRuntimeController {
   subscriptionLogin: ServeSubscriptionLogin | null;
   connectSubscription(providerId: string): Promise<void>;
   cancelSubscription(providerId: string): Promise<void>;
+  discoverModels(providerId: string): Promise<string[]>;
 }
 
 export function useLocalRuntime(): LocalRuntimeController {
@@ -305,6 +306,7 @@ export function useLocalRuntime(): LocalRuntimeController {
     subscriptionLogin,
     connectSubscription,
     cancelSubscription,
+    discoverModels: (providerId) => client.discoverModels(providerId),
   };
 }
 

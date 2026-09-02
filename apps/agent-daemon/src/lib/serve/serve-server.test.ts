@@ -163,6 +163,7 @@ async function fixture(
   const app = buildServeServer({
     store,
     secrets,
+    secretProviders,
     externalSecretProviders,
     pairing: new PairingService(),
     runs,

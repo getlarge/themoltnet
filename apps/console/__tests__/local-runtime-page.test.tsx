@@ -234,6 +234,62 @@ describe('LocalRuntimePage', () => {
     expect(await screen.findByText('device flow refused')).toBeInTheDocument();
   });
 
+  it('discovers models from a preset and saves only the selected ones', async () => {
+    handlers['POST /v1/providers/ollama-local/discover-models'] = () =>
+      jsonResponse({ models: ['llama3.3:70b', 'qwen3-coder:480b-cloud'] });
+    handlers['PUT /v1/providers/ollama-local'] = (init) =>
+      jsonResponse({
+        api: 'openai-completions',
+        baseUrl: 'http://localhost:11434/v1',
+        envName: 'OLLAMA_API_KEY',
+        models: JSON.parse(String(init?.body)).models,
+        hasApiKey: false,
+      });
+    renderPage();
+    await screen.findAllByText('existing-bot');
+
+    // Preset pre-fills the endpoint; no hand-typed base URL needed.
+    fireEvent.click(screen.getByRole('button', { name: 'Ollama (local)' }));
+    expect((screen.getByLabelText('Base URL') as HTMLInputElement).value).toBe(
+      'http://localhost:11434/v1',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fetch models' }));
+    const modelCheckbox = await screen.findByRole('checkbox', {
+      name: 'qwen3-coder:480b-cloud',
+    });
+    fireEvent.click(modelCheckbox);
+    fireEvent.click(screen.getByRole('button', { name: 'Save provider' }));
+
+    await waitFor(() => {
+      const put = requests
+        .filter(
+          (entry) =>
+            entry.method === 'PUT' &&
+            entry.url.endsWith('/v1/providers/ollama-local'),
+        )
+        .at(-1);
+      expect(put?.body).toMatchObject({
+        baseUrl: 'http://localhost:11434/v1',
+        envName: 'OLLAMA_API_KEY',
+        models: ['qwen3-coder:480b-cloud'],
+      });
+    });
+    const discovery = requests.find((entry) =>
+      entry.url.endsWith('/v1/providers/ollama-local/discover-models'),
+    );
+    expect(discovery?.body).toBeUndefined();
+    const stagedProvider = requests.find(
+      (entry) =>
+        entry.method === 'PUT' &&
+        entry.url.endsWith('/v1/providers/ollama-local'),
+    );
+    expect(stagedProvider?.body).toMatchObject({
+      baseUrl: 'http://localhost:11434/v1',
+      models: [],
+    });
+  });
+
   it('offers the team runtime profiles as a picker with id suffixes', async () => {
     profilesState.items = [
       { id: '11111111-aaaa-bbbb-cccc-000000000001', name: 'course-profile' },

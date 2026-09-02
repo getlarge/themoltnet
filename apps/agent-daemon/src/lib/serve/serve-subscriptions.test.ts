@@ -9,7 +9,10 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { FileSecretProvider } from '@themoltnet/sdk/node';
+import {
+  createNodeSecretProviderRegistry,
+  FileSecretProvider,
+} from '@themoltnet/sdk/node';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -56,6 +59,7 @@ function makeHarness(): {
 async function fixture(options: {
   runLogin: (id: string, callbacks: LoginCallbacksLike) => Promise<void>;
   connected?: Set<string>;
+  discoverFetch?: typeof fetch;
 }): Promise<{ app: FastifyInstance; token: string }> {
   const temp = mkdtempSync(join(tmpdir(), 'serve-subs-'));
   const store = new ServeStore(join(temp, 'moltnet')).ensure();
@@ -63,6 +67,8 @@ async function fixture(options: {
     root: store.secretsDir,
     writable: true,
   });
+  const secretProviders = createNodeSecretProviderRegistry().register(secrets);
+  const externalSecretProviders = createNodeSecretProviderRegistry();
   const connected = options.connected ?? new Set<string>();
   const subscriptions = new ProviderLoginService({
     authPath: store.piAuthJsonPath,
@@ -75,7 +81,8 @@ async function fixture(options: {
   });
   const runs = new RunManager({
     store,
-    secrets,
+    secretProviders,
+    externalSecretProviders,
     baseEnv: {},
     entrypoint: { execPath: '/bin/node', execArgv: [], scriptPath: '/m.js' },
     spawnImpl: (() =>
@@ -84,12 +91,15 @@ async function fixture(options: {
   const app = buildServeServer({
     store,
     secrets,
-    pairing: new PairingService(store),
+    secretProviders,
+    externalSecretProviders,
+    pairing: new PairingService(),
     runs,
     subscriptions,
     allowedOrigins: [CONSOLE_ORIGIN],
     defaultApiUrl: 'https://api.example',
     version: 'test',
+    ...(options.discoverFetch ? { discoverFetch: options.discoverFetch } : {}),
   });
   await app.ready();
   cleanups.push(async () => {
@@ -289,5 +299,111 @@ describe('serve subscriptions', () => {
     });
     expect(missing.statusCode).toBe(404);
     expect(missing.json()).toMatchObject({ code: 'login_not_found' });
+  });
+});
+
+describe('provider model discovery', () => {
+  it('discovers via the OpenAI models endpoint with the key attached', async () => {
+    const { runLogin } = makeHarness();
+    const calls: { url: string; auth: string | null }[] = [];
+    const discoverFetch = (async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => {
+      const url = String(input);
+      calls.push({
+        url,
+        auth:
+          (init?.headers as Record<string, string> | undefined)?.[
+            'authorization'
+          ] ?? null,
+      });
+      return new Response(
+        JSON.stringify({ data: [{ id: 'qwen3' }, { id: 'gpt-oss:120b' }] }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      );
+    }) as typeof fetch;
+    const { app, token } = await fixture({ runLogin, discoverFetch });
+    const configured = await app.inject({
+      method: 'PUT',
+      url: '/v1/providers/ollama',
+      headers: { ...authedHeaders(token), 'content-type': 'application/json' },
+      payload: {
+        api: 'openai-completions',
+        baseUrl: 'https://ollama.com/v1',
+        envName: 'OLLAMA_API_KEY',
+        models: [],
+        apiKey: 'sk-test',
+      },
+    });
+    expect(configured.statusCode).toBe(200);
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/providers/ollama/discover-models',
+      headers: authedHeaders(token),
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ models: ['gpt-oss:120b', 'qwen3'] });
+    expect(calls[0]).toEqual({
+      url: 'https://ollama.com/v1/models',
+      auth: 'Bearer sk-test',
+    });
+  });
+
+  it('falls back to the Ollama tags endpoint and 502s when nothing answers', async () => {
+    const { runLogin } = makeHarness();
+    const discoverFetch = (async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith('/api/tags')) {
+        return new Response(
+          JSON.stringify({ models: [{ name: 'llama3.3:70b' }] }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        );
+      }
+      return new Response('nope', { status: 404 });
+    }) as typeof fetch;
+    const { app, token } = await fixture({ runLogin, discoverFetch });
+    await app.inject({
+      method: 'PUT',
+      url: '/v1/providers/ollama-local',
+      headers: { ...authedHeaders(token), 'content-type': 'application/json' },
+      payload: {
+        api: 'openai-completions',
+        baseUrl: 'http://localhost:11434/v1',
+        envName: 'OLLAMA_API_KEY',
+        models: [],
+      },
+    });
+    const ok = await app.inject({
+      method: 'POST',
+      url: '/v1/providers/ollama-local/discover-models',
+      headers: authedHeaders(token),
+    });
+    expect(ok.json()).toEqual({ models: ['llama3.3:70b'] });
+
+    const dead = (async () =>
+      new Response('nope', { status: 404 })) as unknown as typeof fetch;
+    const second = await fixture({ runLogin, discoverFetch: dead });
+    await second.app.inject({
+      method: 'PUT',
+      url: '/v1/providers/ollama-local',
+      headers: {
+        ...authedHeaders(second.token),
+        'content-type': 'application/json',
+      },
+      payload: {
+        api: 'openai-completions',
+        baseUrl: 'http://localhost:11434/v1',
+        envName: 'OLLAMA_API_KEY',
+        models: [],
+      },
+    });
+    const failed = await second.app.inject({
+      method: 'POST',
+      url: '/v1/providers/ollama-local/discover-models',
+      headers: authedHeaders(second.token),
+    });
+    expect(failed.statusCode).toBe(502);
+    expect(failed.json()).toMatchObject({ code: 'discovery_failed' });
   });
 });
