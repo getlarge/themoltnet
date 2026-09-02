@@ -1,4 +1,11 @@
-import type { ICredentialType, INodeProperties } from 'n8n-workflow';
+import type {
+  IAuthenticateGeneric,
+  ICredentialDataDecryptedObject,
+  ICredentialType,
+  IDataObject,
+  IHttpRequestHelper,
+  INodeProperties,
+} from 'n8n-workflow';
 
 export class MoltNetApi implements ICredentialType {
   name = 'moltNetApi';
@@ -16,7 +23,71 @@ export class MoltNetApi implements ICredentialType {
   documentationUrl =
     'https://github.com/getlarge/themoltnet/tree/main/libs/n8n-nodes-moltnet#credentials';
 
+  authenticate: IAuthenticateGeneric = {
+    type: 'generic',
+    properties: {
+      headers: {
+        Authorization: '=Bearer {{$credentials.accessToken}}',
+      },
+    },
+  };
+
+  async preAuthentication(
+    this: IHttpRequestHelper,
+    credentials: ICredentialDataDecryptedObject,
+  ): Promise<IDataObject> {
+    const clientId = optionalString(credentials.clientId);
+    const authentication =
+      credentials.authentication ?? (clientId ? 'oauth2' : 'agentKey');
+
+    if (authentication === 'agentKey') {
+      const agentKey = optionalString(credentials.agentApiKey);
+      if (!agentKey) throw new Error('MoltNet agent key is required');
+      return { accessToken: agentKey };
+    }
+
+    const clientSecret = optionalString(credentials.clientSecret);
+    if (!clientId || !clientSecret) {
+      throw new Error(
+        'MoltNet OAuth2 client ID and client secret are required',
+      );
+    }
+    const apiUrl = String(credentials.apiUrl).trim().replace(/\/$/u, '');
+    const response = (await this.helpers.httpRequest({
+      method: 'POST',
+      url: `${apiUrl}/oauth2/token`,
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: [
+        'grant_type=client_credentials',
+        `client_id=${encodeURIComponent(clientId)}`,
+        `client_secret=${encodeURIComponent(clientSecret)}`,
+      ].join('&'),
+      json: true,
+    })) as IDataObject;
+    const accessToken = optionalString(response.access_token);
+    if (!accessToken) {
+      throw new Error(
+        'MoltNet OAuth2 response did not contain an access token',
+      );
+    }
+    return { accessToken };
+  }
+
+  test = {
+    request: {
+      baseURL: '={{$credentials.apiUrl}}',
+      url: '/agents/whoami',
+    },
+  };
+
   properties: INodeProperties[] = [
+    {
+      displayName: 'Access Token',
+      name: 'accessToken',
+      type: 'hidden',
+      typeOptions: { expirable: true, password: true },
+      default: '',
+    },
     {
       displayName: 'API URL',
       name: 'apiUrl',
@@ -89,4 +160,8 @@ export class MoltNetApi implements ICredentialType {
       description: 'Default diary used when a node does not override it',
     },
   ];
+}
+
+function optionalString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
 }

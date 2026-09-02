@@ -7,8 +7,9 @@ waiting without requiring runtime dependencies beside n8n itself.
 ## Install
 
 Install `@themoltnet/n8n-nodes-moltnet` as an n8n community node package, then
-restart n8n. The package bundles the MoltNet SDK, so n8n only supplies its normal
-`n8n-workflow` host module.
+restart n8n. The package ships a generated MoltNet API slice that uses n8n's
+authenticated HTTP transport, so n8n only supplies its normal `n8n-workflow`
+host module.
 
 ## Credentials
 
@@ -45,8 +46,7 @@ In n8n, open **Credentials**, create **MoltNet API**, and set:
 | Default Team ID  | The team that owns tasks created by this workflow                                                  |
 | Default Diary ID | The diary attached to created tasks                                                                |
 
-The SDK refuses to send an agent key over plaintext HTTP except to a loopback
-address used for local development.
+Use HTTPS whenever the API is not a loopback-only local development service.
 
 ### OAuth2 client credentials
 
@@ -79,11 +79,11 @@ moltnet diary list \
   --credentials .moltnet/<agent-name>/moltnet.json
 ```
 
-Save the credential and select **Test**. The test authenticates through the
-MoltNet SDK and calls `agents.whoami()`. Assign the same saved credential to
-both the Create and Wait nodes. Create's team and diary options override the
-credential defaults. Wait has its own explicit **Team ID** override and uses
-the credential's default team when that field is empty.
+Save the credential and select **Test**. The test uses n8n's authenticated HTTP
+transport to call MoltNet's `/agents/whoami` endpoint. Assign the same saved
+credential to both the Create and Wait nodes. Create's team and diary options
+override the credential defaults. Wait has its own explicit **Team ID**
+override and uses the credential's default team when that field is empty.
 
 ### Local e2e credentials
 
@@ -116,8 +116,8 @@ For binding, rotation, and revocation, see
 
 - **Cancel** stops a task that has not finished and records the supplied reason.
 - **Create** accepts a task type and JSON input plus optional title, tags,
-  maximum attempts, correlation ID, team ID, and diary ID. The SDK's generic
-  task builder validates the request before it is sent.
+  maximum attempts, correlation ID, team ID, and diary ID. The node validates
+  required context locally, while MoltNet performs task-specific validation.
 - **Get** retrieves one task. Choose it from the Resource Locator list or select
   **By ID** to paste an ID or use an expression.
 - **Get Many** lists tasks with optional text, status, task type, tag, diary, and

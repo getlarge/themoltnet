@@ -148,5 +148,8 @@ describe('exact npm publication', () => {
     expect(workflow).toMatch(
       /publish-n8n-nodes-moltnet:[\s\S]*timeout-minutes: 45/,
     );
+    expect(workflow).toMatch(
+      /scan-n8n-nodes-moltnet:[\s\S]*grep -Fq "Package \$scan_package has passed all security checks"/,
+    );
   });
 });

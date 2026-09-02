@@ -30,6 +30,15 @@ const requiredFiles = [
   'README.md',
   'LICENSE.md',
 ];
+const repositoryCredential = 'dist/credentials/MoltNetApi.credentials.js';
+const forbiddenRuntimePatterns = [
+  [/\bglobalThis\b/u, 'uses the restricted global globalThis'],
+  [/\b(?:setTimeout|setInterval)\s*\(/u, 'uses restricted timer globals'],
+  [/\bfetch\s*\(/u, 'uses fetch instead of n8n HTTP transport'],
+  [/\bprocess\./u, 'accesses the process global'],
+  [/\b(?:__dirname|__filename)\b/u, 'uses restricted path globals'],
+  [/["']node:/u, 'imports a Node.js built-in module'],
+];
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -45,6 +54,17 @@ function listFiles(root, prefix = '') {
 }
 
 try {
+  try {
+    execFileSync('git', ['ls-files', '--error-unmatch', repositoryCredential], {
+      cwd: packageRoot,
+      stdio: 'pipe',
+    });
+  } catch {
+    throw new Error(
+      `Creator Portal requires ${repositoryCredential} to be tracked at the exact n8n manifest path`,
+    );
+  }
+
   // Run the repository-wide entrypoint, source-leak, relative-import,
   // declaration, private-dependency, and provenance checks first. The rest of
   // this script adds the n8n manifest, CommonJS, host-peer, and cloud-safety
@@ -105,10 +125,9 @@ try {
       !/require\(["'](?:@themoltnet\/sdk|@moltnet\/)/u.test(source),
       `${file} retains an unresolved private/workspace import`,
     );
-    assert(
-      !/(?:node:fs|process\.env|Deno\.env)/u.test(source),
-      `${file} accesses the filesystem or process environment`,
-    );
+    for (const [pattern, failure] of forbiddenRuntimePatterns) {
+      assert(!pattern.test(source), `${file} ${failure}`);
+    }
   }
 
   mkdirSync(consumerRoot, { recursive: true });

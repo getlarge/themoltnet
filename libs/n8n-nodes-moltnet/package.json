@@ -27,6 +27,7 @@
     "build": "vite build",
     "check:pack": "node scripts/check-pack.mjs",
     "dev": "node scripts/dev.mjs",
+    "generate": "openapi-ts",
     "lint:n8n": "n8n-node lint",
     "test": "vitest run"
   },
@@ -50,8 +51,8 @@
     "n8n-workflow": "*"
   },
   "devDependencies": {
+    "@hey-api/openapi-ts": "catalog:",
     "@n8n/node-cli": "catalog:",
-    "@themoltnet/sdk": "workspace:*",
     "@types/node": "catalog:",
     "eslint": "catalog:",
     "n8n-workflow": "catalog:",
@@ -70,12 +71,33 @@
       "platform:server"
     ],
     "targets": {
+      "build": {
+        "dependsOn": [
+          "generate"
+        ]
+      },
       "dev": {
         "executor": "nx:run-commands",
         "cache": false,
         "options": {
           "cwd": "libs/n8n-nodes-moltnet",
           "command": "node scripts/dev.mjs"
+        }
+      },
+      "generate": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "inputs": [
+          "{projectRoot}/openapi-ts.config.ts",
+          "{projectRoot}/src/hey-api-n8n/**/*",
+          "{workspaceRoot}/apps/rest-api/public/openapi.json"
+        ],
+        "outputs": [
+          "{projectRoot}/src/generated"
+        ],
+        "options": {
+          "cwd": "libs/n8n-nodes-moltnet",
+          "command": "openapi-ts"
         }
       },
       "check:pack": {

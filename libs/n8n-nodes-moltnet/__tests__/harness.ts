@@ -1,10 +1,13 @@
 import type {
+  ICredentialDataDecryptedObject,
   IDataObject,
   IExecuteFunctions,
+  IHttpRequestOptions,
   INode,
   INodeExecutionData,
 } from 'n8n-workflow';
 
+import { MoltNetApi } from '../credentials/MoltNetApi.credentials.js';
 import type { MoltNetCredentials } from '../src/client.js';
 
 const teamId = '11111111-1111-4111-8111-111111111111';
@@ -205,19 +208,83 @@ export function createExecuteContext(
     position: [0, 0],
     parameters: {},
   };
+  let activeCredentials = Array.isArray(options.credentials)
+    ? (options.credentials[0] ?? defaultCredentials)
+    : (options.credentials ?? defaultCredentials);
+  const tokens = new Map<string, string>();
+
+  const httpRequest = async (requestOptions: IHttpRequestOptions) => {
+    const headers = new Headers(
+      Object.entries(requestOptions.headers ?? {}).flatMap(([name, value]) =>
+        value === undefined || value === null
+          ? []
+          : [[name, String(value)] as [string, string]],
+      ),
+    );
+    let body: BodyInit | undefined;
+    if (requestOptions.body !== undefined) {
+      body =
+        typeof requestOptions.body === 'string'
+          ? requestOptions.body
+          : JSON.stringify(requestOptions.body);
+    }
+    const response = await fetch(requestOptions.url, {
+      method: requestOptions.method,
+      headers,
+      body,
+      signal: requestOptions.abortSignal as AbortSignal | undefined,
+    });
+    const data = (await response.json()) as IDataObject;
+    if (!response.ok) {
+      throw {
+        response: { data, status: response.status },
+        statusCode: response.status,
+      };
+    }
+    return data;
+  };
+
+  const helpers = {
+    httpRequest,
+    httpRequestWithAuthentication: async (
+      _credentialsType: string,
+      requestOptions: IHttpRequestOptions,
+    ) => {
+      const cacheKey = JSON.stringify(activeCredentials);
+      let token = tokens.get(cacheKey);
+      if (!token) {
+        const credential = new MoltNetApi();
+        const result = await credential.preAuthentication.call(
+          { helpers: { httpRequest } },
+          activeCredentials as unknown as ICredentialDataDecryptedObject,
+        );
+        token = String(result.accessToken);
+        tokens.set(cacheKey, token);
+      }
+      return httpRequest({
+        ...requestOptions,
+        headers: {
+          ...requestOptions.headers,
+          authorization: `Bearer ${token}`,
+        },
+      });
+    },
+  };
 
   return {
     continueOnFail: () => options.continueOnFail ?? false,
     getCredentials: async (_type: string, itemIndex: number) => {
       const credentials = options.credentials ?? defaultCredentials;
-      return Array.isArray(credentials)
+      activeCredentials = Array.isArray(credentials)
         ? (credentials[itemIndex] ?? credentials[0])
         : credentials;
+      return activeCredentials;
     },
     getExecutionCancelSignal: () => options.cancelSignal,
     getInputData: () => items,
     isToolExecution: () => options.toolExecution ?? false,
     getNode: () => node,
+    helpers,
     getNodeParameter: (name: string, itemIndex: number, fallback?: unknown) =>
       parameters[itemIndex]?.[name] ?? parameters[0]?.[name] ?? fallback,
   } as unknown as IExecuteFunctions;
