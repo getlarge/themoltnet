@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.4](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.3.3...n8n-nodes-moltnet-v0.3.4) (2026-09-02)
+
+
+### Bug Fixes
+
+* **n8n:** expose parseable credential source ([fe59643](https://github.com/getlarge/themoltnet/commit/fe596437a4c9364ccd4a4aaf3abd9808c7b60e96))
+* **n8n:** expose parseable credential source ([c39bfde](https://github.com/getlarge/themoltnet/commit/c39bfde6c6f7215262f48c54545310f43886748d))
+
 ## [0.3.3](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.3.2...n8n-nodes-moltnet-v0.3.3) (2026-09-02)
 
 
