@@ -205,8 +205,14 @@ async function fetchNodeBinary(version, platform, cacheDir) {
 // byte orders — a valid binary in any of these forms must be signed and
 // manifest-hashed, so the set has to be complete.
 const MACHO_MAGICS = [
-  0xfeedface, 0xcefaedfe, 0xfeedfacf, 0xcffaedfe, // thin 32/64
-  0xcafebabe, 0xbebafeca, 0xcafebabf, 0xbfbafeca, // FAT / FAT64
+  0xfeedface,
+  0xcefaedfe,
+  0xfeedfacf,
+  0xcffaedfe, // thin 32/64
+  0xcafebabe,
+  0xbebafeca,
+  0xcafebabf,
+  0xbfbafeca, // FAT / FAT64
 ];
 const ELF_MAGIC = 0x7f454c46;
 
