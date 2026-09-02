@@ -1,0 +1,4 @@
+interface:
+  display_name: 'n8n Community Nodes'
+  short_description: 'Build and verify n8n community nodes'
+  default_prompt: 'Use $n8n-community-nodes to audit and improve this n8n community node.'
