@@ -224,18 +224,39 @@ function getCacheDir(): string {
   return path.join(base, 'moltnet', 'gondolin');
 }
 
+/**
+ * The VM backend the snapshot will be built with. Gondolin checkpoints
+ * record `compatibleVmm` and refuse to resume under a backend the build
+ * did not produce assets for, so the backend MUST be part of the cache
+ * key: a qemu-built snapshot resumed under `GONDOLIN_VMM=krun` (the
+ * signed bundle's default) would otherwise fail every run until the
+ * cache is wiped by hand.
+ */
+export function resolveSnapshotVmm(
+  env: NodeJS.ProcessEnv = process.env,
+): 'qemu' | 'krun' {
+  return env.GONDOLIN_VMM?.trim().toLowerCase() === 'krun' ? 'krun' : 'qemu';
+}
+
 function computeConfigHash(config: SnapshotConfig): string {
   const h = createHash('sha256');
-  // Include base constants so hash changes if we bump gh/cli versions
+  // Include base constants so hash changes if we bump gh/cli versions,
+  // and the VM backend so qemu/krun builds never share a checkpoint.
   h.update(
     JSON.stringify({
       baseAlpine: BASE_ALPINE_PACKAGES,
       ghVersion: GH_VERSION,
       cliVersion: MOLTNET_CLI_VERSION,
+      vmm: resolveSnapshotVmm(),
       config,
     }),
   );
   return h.digest('hex').slice(0, 12);
+}
+
+/** Exposed for tests: the cache directory name for a snapshot config. */
+export function snapshotCacheKey(config: SnapshotConfig = {}): string {
+  return `v2-${computeConfigHash(config)}`;
 }
 
 function getSnapshotPath(config: SnapshotConfig): string {
