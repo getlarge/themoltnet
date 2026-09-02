@@ -4,7 +4,6 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { writeAgentCredentials, writePiConfig } from '@moltnet/agent-eval';
 import { computeJsonCid } from '@moltnet/crypto-service';
 // eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises the daemon app entry point.
 import { runOnce } from '@themoltnet/agent-daemon/cli/once.js';
@@ -18,6 +17,7 @@ import {
   ApiTaskReporter,
   PollingApiTaskSource,
 } from '@themoltnet/agent-runtime';
+import { writeAgentCredentials, writePiConfig } from '@themoltnet/pi-runtime';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 

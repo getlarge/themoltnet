@@ -32,7 +32,8 @@
   ],
   "scripts": {
     "check:pack": "tsx ../../tools/src/check-pack.ts --package . && pnpm run smoke:pack",
-    "smoke:pack": "node scripts/smoke-packed-analyzer.mjs"
+    "smoke:pack": "node scripts/smoke-packed-analyzer.mjs",
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@earendil-works/gondolin": "catalog:",

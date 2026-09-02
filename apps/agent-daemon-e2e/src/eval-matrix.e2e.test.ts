@@ -29,11 +29,10 @@ import {
   type Scenario,
   type ScoreMatrix,
   summarizeMatrix,
-  writeAgentCredentials,
-  writePiConfig,
 } from '@moltnet/agent-eval';
 // eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises the daemon app entry point.
 import { runOnce } from '@themoltnet/agent-daemon/cli/once.js';
+import { writeAgentCredentials, writePiConfig } from '@themoltnet/pi-runtime';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 

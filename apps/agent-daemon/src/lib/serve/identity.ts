@@ -13,7 +13,6 @@ import {
   type Agent,
   agentKeyKey,
   assertTrustedConfigApiUrl,
-  type ConnectOptions,
   deriveMcpUrl,
   identitySeedKey,
   type MoltNetConfig,
@@ -25,6 +24,7 @@ import {
 } from '@themoltnet/sdk';
 import {
   connect,
+  type ConnectOptions,
   FILE_SECRET_PROVIDER,
   type FileSecretProvider,
 } from '@themoltnet/sdk/node';

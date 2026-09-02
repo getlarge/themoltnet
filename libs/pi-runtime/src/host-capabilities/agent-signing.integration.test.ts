@@ -8,7 +8,7 @@
  * the test cross-compiles apps/moltnet-cli for the guest (or uses
  * MOLTNET_CLI_LINUX_BINARY) and projects it as /home/agent/bin/moltnet.
  */
-/* eslint-disable no-restricted-syntax -- opt-in real-VM test reads its gate and toolchain from the environment, not daemon config */
+
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';

@@ -9,10 +9,6 @@
     ".": {
       "import": "./src/index.ts",
       "types": "./src/index.ts"
-    },
-    "./pi-config": {
-      "import": "./src/pi-config.ts",
-      "types": "./src/pi-config.ts"
     }
   },
   "scripts": {},

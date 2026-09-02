@@ -14,7 +14,7 @@ import { randomBytes } from 'node:crypto';
 import { createWriteStream, openSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import { writePiConfig } from '@moltnet/agent-eval/pi-config';
+import { writePiConfig } from '@themoltnet/pi-runtime';
 import {
   formatSecretReferenceString,
   parseSecretReferenceString,
