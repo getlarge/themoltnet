@@ -104,6 +104,8 @@ const moduleBoundaryOptions = {
         'drizzle-orm/*',
         '@dbos-inc/*',
         '@ory/client',
+        '@earendil-works/pi-*',
+        '@earendil-works/pi-*/*',
       ],
     },
     // Server code cannot pull in browser-only libs nor browser-only
