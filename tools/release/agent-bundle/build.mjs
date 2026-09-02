@@ -38,6 +38,7 @@ import {
   readdirSync,
   readFileSync,
   realpathSync,
+  renameSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -112,13 +113,42 @@ function sha256File(path) {
   return hash.digest('hex');
 }
 
-async function download(url, destination) {
-  const response = await fetch(url);
-  if (!response.ok || !response.body) {
-    throw new Error(`download failed ${response.status}: ${url}`);
-  }
+/**
+ * Download with a deadline, bounded retries, and an atomic rename so an
+ * interrupted transfer can never poison the persistent cache.
+ */
+async function download(
+  url,
+  destination,
+  { attempts = 3, timeoutMs = 120_000 } = {},
+) {
   mkdirSync(dirname(destination), { recursive: true });
-  await pipeline(response.body, createWriteStream(destination));
+  const partial = `${destination}.partial-${process.pid}`;
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      if (!response.ok || !response.body) {
+        throw new Error(`download failed ${response.status}: ${url}`);
+      }
+      await pipeline(response.body, createWriteStream(partial));
+      renameSync(partial, destination);
+      return;
+    } catch (error) {
+      lastError = error;
+      rmSync(partial, { force: true });
+      if (attempt < attempts) {
+        await new Promise((resolveDelay) => {
+          setTimeout(resolveDelay, 1_000 * attempt);
+        });
+      }
+    }
+  }
+  throw new Error(`download failed after ${attempts} attempts: ${url}`, {
+    cause: lastError,
+  });
 }
 
 /** Fetch (cached) the official Node tarball and verify it against SHASUMS256. */
@@ -385,6 +415,17 @@ function vendorQemuImg(payloadDir) {
   if (version.status !== 0 || !version.stdout.startsWith('qemu-img')) {
     throw new Error(
       `vendored qemu-img failed to run (status ${version.status}): ${version.stderr || version.stdout}`,
+    );
+  }
+  // Pin the major so silent Homebrew drift cannot change what our release
+  // identity signs; bump deliberately via QEMU_IMG_EXPECTED_MAJOR.
+  const expectedMajor = process.env.QEMU_IMG_EXPECTED_MAJOR ?? '11';
+  const actualMajor = /qemu-img version (\d+)\./.exec(version.stdout)?.[1];
+  if (actualMajor !== expectedMajor) {
+    throw new Error(
+      `vendored qemu-img major ${actualMajor} != expected ${expectedMajor} ` +
+        `(${version.stdout.split('\n')[0]}); review the closure and bump ` +
+        `QEMU_IMG_EXPECTED_MAJOR deliberately`,
     );
   }
   return {
