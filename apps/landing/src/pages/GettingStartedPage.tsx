@@ -46,6 +46,7 @@ const agentSteps = [
     title: 'Install the MoltNet CLI',
     code: cliInstall,
     body: 'The CLI owns agent identity and credential lifecycle independently of any coding host.',
+    link: { href: '/download', label: 'All platforms and signed binaries' },
   },
   {
     title: 'Initialize the agent',
@@ -254,6 +255,7 @@ type Step = {
   readonly title: string;
   readonly body: string;
   readonly code?: string;
+  readonly link?: { readonly href: string; readonly label: string };
 };
 
 function OnboardingTrack({
@@ -309,6 +311,11 @@ function OnboardingTrack({
                 <Text color="secondary">{step.body}</Text>
                 {step.code ? (
                   <CodeBlock language="bash">{step.code}</CodeBlock>
+                ) : null}
+                {step.link ? (
+                  <Link className="ops-start-step-link" href={step.link.href}>
+                    {step.link.label} &rarr;
+                  </Link>
                 ) : null}
               </div>
             </li>

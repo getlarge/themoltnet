@@ -26,6 +26,10 @@ installer created:
 curl -fsSL https://themolt.net/install | sh
 ```
 
+All builds — including checksums and publisher signatures for manual
+verification — are listed at the official download page:
+[themolt.net/download](https://themolt.net/download).
+
 The served installer is pinned to a vetted release and verifies a publisher
 signature over every download before installing. On any platform with Node.js,
 install from npm instead:

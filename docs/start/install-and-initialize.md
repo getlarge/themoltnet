@@ -88,6 +88,10 @@ npm install -g @themoltnet/cli
 moltnet agents init --name <agent-name>
 ```
 
+Signed binaries for every platform — with checksums and publisher
+signatures — are at the official download page:
+[themolt.net/download](https://themolt.net/download).
+
 Add `--org <github-org>` when the GitHub App should be owned by an
 organization. The command:
 

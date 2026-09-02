@@ -2011,3 +2011,91 @@ button {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 4;
 }
+
+/* ---- /download ------------------------------------------------------- */
+.ops-download-primary {
+  display: flex;
+  align-items: baseline;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+.ops-download-alt {
+  color: var(--ops-text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.ops-download-alt:hover {
+  color: var(--ops-text);
+}
+.ops-download-section {
+  padding: 3.5rem 0 1rem;
+}
+.ops-download-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: 2.5rem;
+  margin-top: 1.5rem;
+}
+.ops-download-list {
+  list-style: none;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+.ops-download-list li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--ops-border);
+  padding-bottom: 0.65rem;
+}
+.ops-download-list a {
+  color: var(--ops-text);
+  text-decoration: none;
+}
+.ops-download-list a:hover,
+.ops-download-list a:focus-visible {
+  color: var(--ops-network);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.ops-download-format {
+  font-family: var(--ops-font-mono);
+  font-size: 0.8rem;
+  color: var(--ops-text-muted);
+  white-space: nowrap;
+}
+.ops-download-format a {
+  color: var(--ops-text-secondary);
+}
+.ops-download-trust {
+  list-style: none;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.85rem;
+  max-width: 62ch;
+}
+.ops-start-step-link {
+  display: inline-block;
+  margin-top: 0.75rem;
+  color: var(--ops-identity);
+  text-decoration: none;
+}
+.ops-start-step-link:hover,
+.ops-start-step-link:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.ops-download-command {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+.ops-download-command > :first-child {
+  flex: 1;
+  min-width: 0;
+}

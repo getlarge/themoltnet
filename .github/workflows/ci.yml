@@ -37,34 +37,51 @@ jobs:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
-      - name: Compare the served installer pin against the latest release
+      - name: Compare the served download pins against the latest releases
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
           template=apps/landing/nginx/default.conf.template
-          pinned=$(grep -o 'agent-daemon-v[0-9A-Za-z.+-]*' "$template" | head -1)
-          if [ -z "$pinned" ]; then
-            echo "::error file=$template::no installer pin found in the landing nginx template"
-            exit 1
-          fi
-          latest=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 100 \
-            --json tagName --jq '[.[].tagName | select(startswith("agent-daemon-v"))][0] // empty')
-          # Version-ORDER comparison, not equality: a pin pointing at a not-
-          # yet-published (draft) release is AHEAD, not behind. Only warn when
-          # the latest published release sorts strictly newer than the pin.
-          newest=$(printf '%s\n%s\n' "$pinned" "$latest" | sort -V | tail -1)
-          if [ -z "$latest" ] || [ "$pinned" = "$latest" ] || [ "$newest" = "$pinned" ]; then
-            echo "installer pin $pinned is current or ahead (latest published agent-daemon release: ${latest:-none})"
-            exit 0
-          fi
-          echo "::warning file=$template::themolt.net/install serves $pinned but the latest agent-daemon release is $latest — bump the pin when that version should become public"
+          pin_of() {
+            grep -oE "set \\$$1 [0-9A-Za-z.+-]+;" "$template" | head -1 | awk '{print $3}' | tr -d ';'
+          }
+          latest_of() {
+            gh release list --repo "$GITHUB_REPOSITORY" --limit 100 \
+              --json tagName --jq "[.[].tagName | select(startswith(\"$1-v\"))][0] // empty"
+          }
+          stale_lines=""
+          check() {
+            local product="$1" var="$2" prefix="$3" version pinned latest newest
+            version=$(pin_of "$var")
+            if [ -z "$version" ]; then
+              echo "::error file=$template::no \$$var pin found in the landing nginx template"
+              exit 1
+            fi
+            pinned="$prefix-v$version"
+            latest=$(latest_of "$prefix")
+            # Version-ORDER comparison, not equality: a pin pointing at a not-
+            # yet-published (draft) release is AHEAD, not behind. Only warn
+            # when the latest published release sorts strictly newer.
+            newest=$(printf '%s\n%s\n' "$pinned" "$latest" | sort -V | tail -1)
+            if [ -z "$latest" ] || [ "$pinned" = "$latest" ] || [ "$newest" = "$pinned" ]; then
+              echo "$product pin $pinned is current or ahead (latest published: ${latest:-none})"
+              return 0
+            fi
+            echo "::warning file=$template::themolt.net serves $product $pinned but the latest release is $latest — bump the pin when that version should become public"
+            stale_lines="$stale_lines
+          - **$product**: pinned \`$pinned\`, latest published \`$latest\`"
+          }
+          check "MoltNet CLI" cli_version cli
+          check "MoltNet agent bundle" agent_version agent-daemon
+          [ -n "$stale_lines" ] || exit 0
           marker='<!-- installer-pin-check -->'
-          body=$(printf '%s\n%s\n\n%s' \
+          body=$(printf '%s\n%s\n%s\n\n%s' \
             "$marker" \
-            "⚠️ **Installer pin is behind**: \`themolt.net/install\` serves \`$pinned\`, but the latest agent-daemon release is \`$latest\`." \
-            "The pin is deliberate — bump the redirect in \`$template\` when that version should become public.")
+            "⚠️ **Download pins are behind** — themolt.net serves older versions than the latest published releases:" \
+            "$stale_lines" \
+            "The pins are deliberate — bump the \`set\` lines in \`$template\` when those versions should become public.")
           existing=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" --paginate \
             --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -1)
           if [ -n "$existing" ]; then
