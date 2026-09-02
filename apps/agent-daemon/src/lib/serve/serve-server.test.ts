@@ -10,6 +10,7 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
+  type symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { type FileHandle, open } from 'node:fs/promises';
@@ -27,6 +28,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { verifyAgentActivation } from './identity.js';
 import { PairingService } from './pairing.js';
+import { ProviderLoginService } from './provider-login.js';
 import { RunManager, type SpawnImpl } from './runs.js';
 import {
   buildServeServer,
@@ -78,11 +80,14 @@ async function fixture(
     rateLimitMax?: number;
     baseEnv?: NodeJS.ProcessEnv;
     maxLogBytes?: number;
+    discoverFetch?: typeof fetch;
+    symlinkImpl?: typeof symlinkSync;
   } = {},
 ): Promise<Fixture> {
   const {
     baseEnv = { PATH: '/usr/bin' },
     maxLogBytes,
+    symlinkImpl,
     ...serverOptions
   } = options;
   const temp = mkdtempSync(join(tmpdir(), 'serve-server-'));
@@ -143,7 +148,13 @@ async function fixture(
     if (!config) {
       throw new ServeStoreError('not_found', `Missing config for '${alias}'`);
     }
-    return Promise.resolve({ activation, config });
+    return Promise.resolve({
+      activation,
+      config,
+      ...(activation.boundTeamId
+        ? { boundTeamId: activation.boundTeamId }
+        : {}),
+    });
   };
   const runs = new RunManager({
     store,
@@ -157,14 +168,22 @@ async function fixture(
     },
     spawnImpl,
     verifyActivationImpl: verifyActivation,
+    ...(symlinkImpl ? { symlinkImpl } : {}),
     ...(maxLogBytes === undefined ? {} : { maxLogBytes }),
   });
   const app = buildServeServer({
     store,
     secrets,
+    secretProviders,
     externalSecretProviders,
     pairing: new PairingService(),
     runs,
+    subscriptions: new ProviderLoginService({
+      authPath: store.piAuthJsonPath,
+      listProviders: () => [],
+      runLogin: () => Promise.resolve(),
+      isConnected: () => false,
+    }),
     allowedOrigins: [CONSOLE_ORIGIN],
     selfOrigin: 'http://127.0.0.1:17374',
     defaultApiUrl: 'https://api.example',
@@ -179,7 +198,7 @@ async function fixture(
   return { app, store, secrets, spawned, children };
 }
 
-function activateManaged(store: ServeStore): void {
+function activateManaged(store: ServeStore, boundTeamId?: string): void {
   store.writeAgentConfig('course-bot', {
     identity_id: 'id-1',
     registered_at: 't',
@@ -200,6 +219,7 @@ function activateManaged(store: ServeStore): void {
     identityId: 'id-1',
     publicKey: 'pk',
     fingerprint: 'FP-1',
+    ...(boundTeamId ? { boundTeamId } : {}),
     createdAt: 't',
     apiUrl: 'https://api.example',
   });
@@ -776,6 +796,145 @@ describe('serve providers and runs', () => {
     expect(store.readRun(run.id)?.status).toBe('stopped');
   });
 
+  it('refuses managed-agent creation without an enrollment token', async () => {
+    const { app } = await fixture();
+    const token = await pair(app);
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/agents',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [SERVE_TOKEN_HEADER]: token,
+        'content-type': 'application/json',
+      },
+      payload: { kind: 'managed', name: 'orphan-bot' },
+    });
+    expect(response.statusCode).toBe(400);
+    expect(response.json<{ message: string }>().message).toContain(
+      'enrollmentToken',
+    );
+  });
+
+  it('rejects a managed registration API override before forwarding its enrollment token', async () => {
+    const { app } = await fixture();
+    const token = await pair(app);
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/agents',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [SERVE_TOKEN_HEADER]: token,
+        'content-type': 'application/json',
+      },
+      payload: {
+        kind: 'managed',
+        name: 'egress-bot',
+        enrollmentToken: 'single-use-secret',
+        apiUrl: 'https://attacker.example',
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'invalid_body' });
+    expect(response.body).not.toContain('single-use-secret');
+  });
+
+  it('exposes the pinned team binding and rejects cross-team run starts', async () => {
+    const { app, store, spawned } = await fixture();
+    const token = await pair(app);
+    activateManaged(store, 'team-bound');
+    const headers = {
+      host: HOST,
+      origin: CONSOLE_ORIGIN,
+      [SERVE_TOKEN_HEADER]: token,
+      'content-type': 'application/json',
+    };
+
+    const agents = await app.inject({
+      method: 'GET',
+      url: '/v1/agents',
+      headers,
+    });
+    expect(agents.json()).toEqual([
+      expect.objectContaining({
+        agentName: 'course-bot',
+        teamId: 'team-bound',
+      }),
+    ]);
+
+    const rejected = await app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers,
+      payload: {
+        agent: 'course-bot',
+        teamId: 'team-other',
+        profiles: ['profile'],
+        taskTypes: ['freeform'],
+        mode: 'poll',
+      },
+    });
+    expect(rejected.statusCode).toBe(400);
+    expect(rejected.json<{ message: string }>().message).toContain(
+      'bound to team team-bound',
+    );
+    expect(spawned).toHaveLength(0);
+
+    const accepted = await app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers,
+      payload: {
+        agent: 'course-bot',
+        teamId: 'team-bound',
+        profiles: ['profile'],
+        taskTypes: ['freeform'],
+        mode: 'poll',
+      },
+    });
+    expect(accepted.statusCode).toBe(201);
+    expect(spawned).toHaveLength(1);
+  });
+
+  it('fails run startup when subscription credentials cannot be linked', async () => {
+    const { app, store, spawned } = await fixture({
+      symlinkImpl: () => {
+        throw Object.assign(new Error('symlinks unavailable'), {
+          code: 'EPERM',
+        });
+      },
+    });
+    const token = await pair(app);
+    activateManaged(store);
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [SERVE_TOKEN_HEADER]: token,
+        'content-type': 'application/json',
+      },
+      payload: {
+        agent: 'course-bot',
+        teamId: 'team-1',
+        profiles: ['profile'],
+        taskTypes: ['freeform'],
+        mode: 'poll',
+      },
+    });
+
+    expect(response.statusCode).toBe(500);
+    expect(response.json()).toMatchObject({
+      code: 'io_error',
+      message: 'could not link subscription credentials into the run',
+    });
+    expect(spawned).toHaveLength(0);
+    expect(readdirSync(store.runsDir)).toEqual([]);
+  });
+
   it('does not leak ambient supervisor credentials into run children', async () => {
     const { app, store, spawned } = await fixture({
       baseEnv: {
@@ -1095,6 +1254,11 @@ describe('serve providers and runs', () => {
     });
 
     expect(response.statusCode).toBe(500);
+    expect(response.json()).toEqual({
+      code: 'internal_error',
+      message: 'The local supervisor could not complete the request.',
+    });
+    expect(response.body).not.toContain('disk full');
     expect(spawned).toHaveLength(1);
     expect(children[0]?.killed).toContain('SIGKILL');
     expect(readdirSync(store.runsDir)).toEqual([]);

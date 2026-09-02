@@ -1,296 +1,463 @@
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react';
-import { MoltThemeProvider } from '@themoltnet/design-system';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+/**
+ * Integration tests for the Local runtime page: real page + real
+ * useLocalRuntime hook + real serve-client against a mocked loopback fetch.
+ * Covers the manual-test papercuts: surfaced errors, explicit sign-in link
+ * (no popup-blocked window.open), login cancel, and the profile picker.
+ */
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LocalRuntimePage } from '../src/pages/LocalRuntimePage.js';
+import { createTestWrapper } from './test-query-client.js';
 
-const mocks = vi.hoisted(() => ({
-  createAgent: vi.fn(),
-  disconnect: vi.fn(),
-  pair: vi.fn(),
-  putProvider: vi.fn(),
-  retry: vi.fn(),
-  startRun: vi.fn(),
-  stopRun: vi.fn(),
-  streamLogs: vi.fn(),
-  runtime: {} as Record<string, unknown>,
+const SERVE = 'http://127.0.0.1:17374';
+
+vi.mock('../src/api.js', () => ({ getApiClient: () => ({}) }));
+const createAgentEnrollment = vi.hoisted(() => vi.fn());
+const updateTeamMemberRole = vi.hoisted(() => vi.fn());
+vi.mock('@moltnet/api-client', () => ({
+  createAgentEnrollment: (...args: unknown[]) => createAgentEnrollment(...args),
+  updateTeamMemberRole: (...args: unknown[]) => updateTeamMemberRole(...args),
 }));
-
+vi.mock('../src/config.js', () => ({
+  getConfig: () => ({ serveUrl: 'http://127.0.0.1:17374' }),
+}));
+const profilesState = vi.hoisted(() => ({
+  items: [] as { id: string; name?: string }[],
+}));
 vi.mock('@moltnet/api-client/query', () => ({
-  listRuntimeProfilesOptions: () => ({ queryKey: ['profiles'] }),
+  listRuntimeProfilesOptions: () => ({
+    queryKey: ['runtime-profiles'],
+    queryFn: async () => ({ items: profilesState.items }),
+  }),
 }));
-
-vi.mock('@tanstack/react-query', () => ({
-  useQuery: () => ({ data: { items: [] } }),
-}));
-
-vi.mock('../src/api.js', () => ({
-  getApiClient: () => ({ kind: 'test-client' }),
-}));
-
 vi.mock('../src/team/useTeam.js', () => ({
   useTeam: () => ({
-    selectedTeam: { id: 'team-1', name: 'Team', role: 'owner' },
+    error: null,
+    refreshTeams: vi.fn(),
+    selectedTeam: {
+      id: 'team-1',
+      name: 'Team One',
+      personal: false,
+      role: 'owner',
+    },
   }),
 }));
 
-vi.mock('../src/runtime-local/useLocalRuntime.js', () => ({
-  useLocalRuntime: () => mocks.runtime,
-}));
+type Handler = (init?: RequestInit) => Response | Promise<Response>;
 
-function renderPage() {
-  return render(
-    <MoltThemeProvider mode="dark">
-      <LocalRuntimePage />
-    </MoltThemeProvider>,
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'content-type': 'application/json' },
+  });
+}
+
+const serveState = {
+  status: {
+    version: 'test',
+    platform: 'darwin',
+    subscriptions: [
+      { id: 'anthropic', name: 'Anthropic', connected: false },
+      { id: 'github-copilot', name: 'GitHub Copilot', connected: true },
+    ],
+    agents: [
+      {
+        kind: 'managed',
+        agentName: 'existing-bot',
+        identityId: 'id-1',
+        fingerprint: 'FP-1',
+        apiUrl: 'https://api.example',
+        teamId: undefined as string | undefined,
+        createdAt: 't',
+        hasAgentKey: true,
+        hasPrivateKey: true,
+      },
+    ],
+    providers: {
+      ollama: {
+        api: 'openai-completions',
+        baseUrl: 'https://ollama.com/v1',
+        envName: 'MOLTNET_PROVIDER_OLLAMA_API_KEY',
+        models: ['qwen3'],
+        hasApiKey: true,
+      },
+    },
+    runs: [],
+  },
+};
+
+let handlers: Record<string, Handler>;
+const requests: { method: string; url: string; body: unknown }[] = [];
+
+function installFetch() {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = (init?.method ?? 'GET').toUpperCase();
+      requests.push({
+        method,
+        url,
+        body: init?.body ? JSON.parse(String(init.body)) : undefined,
+      });
+      const key = `${method} ${url.replace(SERVE, '')}`;
+      const handler = handlers[key];
+      if (!handler) return jsonResponse({ code: 'not_found' }, 404);
+      return handler(init);
+    }),
   );
 }
 
 beforeEach(() => {
-  vi.clearAllMocks();
-  for (const action of [
-    mocks.createAgent,
-    mocks.putProvider,
-    mocks.startRun,
-    mocks.stopRun,
-  ]) {
-    action.mockResolvedValue(undefined);
-  }
-  mocks.streamLogs.mockImplementation(
-    (_runId: string, _onLine: (line: string) => void, signal: AbortSignal) =>
-      new Promise<void>((resolve) => {
-        signal.addEventListener('abort', () => resolve(), { once: true });
-      }),
+  requests.length = 0;
+  profilesState.items = [];
+  sessionStorage.setItem(
+    `moltnet-serve-token::${SERVE}`,
+    'paired-token-for-tests',
   );
-  Object.assign(mocks.runtime, {
-    status: 'connected',
-    serveUrl: 'http://127.0.0.1:17374',
-    actionError: null,
-    connectionError: null,
-    pairingApprovalUrl: null,
-    pair: mocks.pair,
-    retry: mocks.retry,
-    disconnect: mocks.disconnect,
-    createAgent: mocks.createAgent,
-    putProvider: mocks.putProvider,
-    startRun: mocks.startRun,
-    stopRun: mocks.stopRun,
-    streamLogs: mocks.streamLogs,
-    data: {
-      version: 'test',
-      platform: 'darwin',
-      agents: [
+  handlers = {
+    'GET /health': () => jsonResponse({ status: 'ok' }),
+    'GET /v1/status': () => jsonResponse(serveState.status),
+  };
+  installFetch();
+});
+
+function renderPage() {
+  return render(<LocalRuntimePage />, { wrapper: createTestWrapper() });
+}
+
+describe('LocalRuntimePage', () => {
+  it('connects with a stored token and renders all sections from /v1/status', async () => {
+    renderPage();
+    expect(await screen.findByText('Connected')).toBeInTheDocument();
+    expect((await screen.findAllByText('existing-bot')).length).toBeGreaterThan(
+      0,
+    );
+    expect(screen.getByText('Anthropic')).toBeInTheDocument();
+    expect(screen.getByText('ollama')).toBeInTheDocument();
+    expect(screen.getByText(/No runs yet/)).toBeInTheDocument();
+    // Token travels in the pairing header, never as browser credentials.
+    const statusCall = (
+      fetch as unknown as ReturnType<typeof vi.fn>
+    ).mock.calls.find(([url]) => String(url).endsWith('/v1/status'));
+    expect(statusCall?.[1]?.credentials).toBe('omit');
+    expect(
+      (statusCall?.[1]?.headers as Record<string, string>)[
+        'x-moltnet-serve-token'
+      ],
+    ).toBe('paired-token-for-tests');
+  });
+
+  it('shows the install instructions when no supervisor answers', async () => {
+    handlers['GET /health'] = () => {
+      throw new Error('connection refused');
+    };
+    renderPage();
+    expect(await screen.findByText('Not running')).toBeInTheDocument();
+    expect(
+      screen.getByText('npx @themoltnet/agent-daemon serve'),
+    ).toBeInTheDocument();
+  });
+
+  it('surfaces the serve error message when creating an identity fails', async () => {
+    handlers['POST /v1/agents'] = () =>
+      jsonResponse(
+        {
+          code: 'internal_error',
+          message: 'Agent key management is not configured',
+        },
+        500,
+      );
+    renderPage();
+    await screen.findAllByText('existing-bot');
+    fireEvent.change(screen.getByLabelText('Agent name'), {
+      target: { value: 'legreffier-local' },
+    });
+    // The token is required: the button stays disabled until it is filled.
+    expect(
+      screen.getByRole('button', { name: 'Create identity' }),
+    ).toBeDisabled();
+    fireEvent.change(screen.getByLabelText(/Invitation code/), {
+      target: { value: 'enrol-abc' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Create identity' }));
+    expect(
+      await screen.findByText('Agent key management is not configured'),
+    ).toBeInTheDocument();
+  });
+
+  it('renders an explicit sign-in link for a redirect login instead of auto-opening', async () => {
+    handlers['POST /v1/subscriptions/anthropic/login'] = () =>
+      jsonResponse(
+        {
+          providerId: 'anthropic',
+          status: 'pending',
+          authUrl: 'https://claude.ai/oauth/authorize?x=1',
+        },
+        201,
+      );
+    handlers['GET /v1/subscriptions/anthropic/login'] = () =>
+      jsonResponse({ providerId: 'anthropic', status: 'pending' });
+    const open = vi.fn();
+    vi.stubGlobal('open', open);
+    renderPage();
+    await screen.findByText('Anthropic');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Connect' })[0]);
+    expect(
+      await screen.findByRole('button', { name: 'Open sign-in page' }),
+    ).toBeInTheDocument();
+    // Nothing auto-opened outside the user gesture.
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  it('cancels a pending login and clears the pending row', async () => {
+    handlers['POST /v1/subscriptions/anthropic/login'] = () =>
+      jsonResponse(
+        { providerId: 'anthropic', status: 'pending', authUrl: 'https://x' },
+        201,
+      );
+    handlers['DELETE /v1/subscriptions/anthropic/login'] = () =>
+      jsonResponse({ providerId: 'anthropic', status: 'cancelled' });
+    renderPage();
+    await screen.findByText('Anthropic');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Connect' })[0]);
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('button', { name: 'Open sign-in page' }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(
+      requests.some(
+        (entry) =>
+          entry.method === 'DELETE' &&
+          entry.url.endsWith('/v1/subscriptions/anthropic/login'),
+      ),
+    ).toBe(true);
+  });
+
+  it('keeps a pending login visible when server cancellation fails', async () => {
+    handlers['POST /v1/subscriptions/anthropic/login'] = () =>
+      jsonResponse(
+        { providerId: 'anthropic', status: 'pending', authUrl: 'https://x' },
+        201,
+      );
+    handlers['DELETE /v1/subscriptions/anthropic/login'] = () =>
+      jsonResponse(
+        {
+          code: 'internal_error',
+          message: 'Could not cancel the provider sign-in.',
+        },
+        500,
+      );
+    renderPage();
+    await screen.findByText('Anthropic');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Connect' })[0]);
+    await screen.findByRole('button', { name: 'Open sign-in page' });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(
+      await screen.findByText('Could not cancel the provider sign-in.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Open sign-in page' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+  });
+
+  it('shows a failed login error immediately', async () => {
+    handlers['POST /v1/subscriptions/github-copilot/login'] = () =>
+      jsonResponse(
+        {
+          providerId: 'github-copilot',
+          status: 'failed',
+          error: 'device flow refused',
+        },
+        201,
+      );
+    renderPage();
+    await screen.findByText('GitHub Copilot');
+    fireEvent.click(screen.getByRole('button', { name: 'Reconnect' }));
+    expect(await screen.findByText('device flow refused')).toBeInTheDocument();
+  });
+
+  it('escalates a freshly created managed agent to team executor', async () => {
+    updateTeamMemberRole.mockResolvedValue({ data: { role: 'executor' } });
+    handlers['POST /v1/agents'] = () =>
+      jsonResponse(
         {
           kind: 'managed',
           agentName: 'course-bot',
-          createdAt: 't',
-          fingerprint: 'FP-1',
-        },
-      ],
-      providers: {},
-      runs: [
-        {
-          id: 'run-1',
-          agent: 'course-bot',
+          identityId: 'new-id-1',
+          fingerprint: 'FP-2',
+          apiUrl: 'https://api.example',
           teamId: 'team-1',
-          profiles: ['profile-1'],
-          taskTypes: ['freeform'],
-          mode: 'poll',
-          status: 'running',
-          pid: 1234,
-          startedAt: '2026-09-02T08:00:00.000Z',
-          active: true,
+          createdAt: 't',
         },
-      ],
-    },
-  });
-});
-
-afterEach(() => vi.useRealTimers());
-
-describe('LocalRuntimePage', () => {
-  it('opens fallback pairing approval without an opener', () => {
-    Object.assign(mocks.runtime, {
-      status: 'pairing',
-      data: undefined,
-      pairingApprovalUrl: 'http://127.0.0.1:17374/pairings/pair-1',
-    });
-    const open = vi.spyOn(window, 'open').mockReturnValue(null);
-    renderPage();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Open approval' }));
-
-    expect(open).toHaveBeenCalledWith(
-      'http://127.0.0.1:17374/pairings/pair-1',
-      '_blank',
-      'popup,noopener,noreferrer',
-    );
-  });
-
-  it('keeps enrollment/provider secrets write-only across submissions', async () => {
-    mocks.createAgent.mockRejectedValueOnce(new Error('registration failed'));
-    renderPage();
-    const enrollment = screen.getByLabelText('Enrollment token (optional)');
-    expect(enrollment).toHaveAttribute('type', 'password');
-    fireEvent.change(screen.getByLabelText('Agent name'), {
-      target: { value: 'new-bot' },
-    });
-    fireEvent.change(enrollment, { target: { value: 'join-secret' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Create identity' }));
-
-    await waitFor(() =>
-      expect(mocks.createAgent).toHaveBeenCalledWith({
-        kind: 'managed',
-        name: 'new-bot',
-        enrollmentToken: 'join-secret',
-      }),
-    );
-    await waitFor(() => expect(enrollment).toHaveValue(''));
-
-    fireEvent.change(screen.getByLabelText('Models (comma-separated)'), {
-      target: { value: 'model-a, model-b' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Save provider' }));
-    await waitFor(() =>
-      expect(mocks.putProvider).toHaveBeenLastCalledWith('ollama', {
-        api: 'openai-completions',
-        baseUrl: 'https://ollama.com/v1',
-        models: ['model-a', 'model-b'],
-      }),
-    );
-
-    mocks.putProvider.mockRejectedValueOnce(new Error('provider failed'));
-    fireEvent.change(screen.getByLabelText('API key'), {
-      target: { value: 'provider-secret' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Save provider' }));
-    await waitFor(() =>
-      expect(mocks.putProvider).toHaveBeenLastCalledWith(
-        'ollama',
-        expect.objectContaining({ apiKey: 'provider-secret' }),
-      ),
-    );
-    await waitFor(() =>
-      expect(screen.getByLabelText('API key')).toHaveValue(''),
-    );
-    expect(screen.getByLabelText('API key')).toHaveAttribute(
-      'autocomplete',
-      'off',
-    );
-  });
-
-  it('starts, stops, and tears down a selected run log stream', async () => {
-    mocks.stopRun.mockRejectedValueOnce(new Error('stop failed'));
-    renderPage();
-    expect(screen.getByText(/run-1 · started/u)).toBeVisible();
-    expect(screen.getByText(/pid 1234/u)).toBeVisible();
-    fireEvent.change(screen.getByLabelText('Agent'), {
-      target: { value: 'course-bot' },
-    });
-    fireEvent.change(screen.getByLabelText('Runtime profile'), {
-      target: { value: 'profile-1' },
-    });
-    fireEvent.change(screen.getByLabelText('Task types'), {
-      target: { value: 'freeform, fulfill_brief' },
-    });
-    fireEvent.change(screen.getByLabelText('Mode'), {
-      target: { value: 'drain' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Start run' }));
-
-    await waitFor(() =>
-      expect(mocks.startRun).toHaveBeenCalledWith({
-        agent: 'course-bot',
-        teamId: 'team-1',
-        profiles: ['profile-1'],
-        taskTypes: ['freeform', 'fulfill_brief'],
-        mode: 'drain',
-      }),
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Stop' }));
-    expect(mocks.stopRun).toHaveBeenCalledWith('run-1');
-
-    fireEvent.click(screen.getByRole('button', { name: 'Logs' }));
-    await waitFor(() => expect(mocks.streamLogs).toHaveBeenCalled());
-    const signal = mocks.streamLogs.mock.calls[0]?.[2] as AbortSignal;
-    expect(signal.aborted).toBe(false);
-    fireEvent.click(screen.getByRole('button', { name: 'Hide logs' }));
-    expect(signal.aborted).toBe(true);
-  });
-
-  it('bounds rendered log output by bytes as well as line count', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    const first = `first-${'a'.repeat(200_000)}`;
-    const second = `second-${'b'.repeat(200_000)}`;
-    const third = `third-${'c'.repeat(200_000)}`;
-    mocks.streamLogs.mockImplementationOnce(
-      (_runId: string, onLine: (line: string) => void, signal: AbortSignal) => {
-        onLine(first);
-        onLine(second);
-        onLine(third);
-        return new Promise<void>((resolve) => {
-          signal.addEventListener('abort', () => resolve(), { once: true });
-        });
-      },
-    );
-    renderPage();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Logs' }));
-    await act(() => vi.advanceTimersByTimeAsync(60));
-
-    const output = screen.getByLabelText('Logs for run run-1').textContent;
-    expect(output).not.toContain('first-');
-    expect(output).toContain('second-');
-    expect(output).toContain('third-');
-    expect(
-      new TextEncoder().encode(output ?? '').byteLength,
-    ).toBeLessThanOrEqual(512 * 1024);
-  });
-
-  it('replaces a failed log snapshot when automatic retry reconnects', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    mocks.streamLogs
-      .mockImplementationOnce(
-        (_runId: string, onLine: (line: string) => void) => {
-          onLine('stale replay');
-          return Promise.reject(new Error('stream offline'));
-        },
-      )
-      .mockImplementation(
-        (
-          _runId: string,
-          onLine: (line: string) => void,
-          signal: AbortSignal,
-        ) => {
-          onLine('fresh replay');
-          return new Promise<void>((resolve) => {
-            signal.addEventListener('abort', () => resolve(), { once: true });
-          });
-        },
+        201,
       );
     renderPage();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Logs' }));
-
+    await screen.findAllByText('existing-bot');
+    fireEvent.change(screen.getByLabelText('Agent name'), {
+      target: { value: 'course-bot' },
+    });
+    fireEvent.change(screen.getByLabelText(/Invitation code/), {
+      target: { value: 'enrol-xyz' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Create identity' }));
     await waitFor(() =>
-      expect(screen.getByRole('alert')).toHaveTextContent(
-        'stream offline Retrying in 1s',
+      expect(updateTeamMemberRole).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: 'team-1', subjectId: 'new-id-1' },
+          body: { role: 'executor' },
+        }),
       ),
     );
-    await act(() => vi.advanceTimersByTimeAsync(1_100));
-    await waitFor(() => expect(mocks.streamLogs).toHaveBeenCalledTimes(2));
-    expect(screen.queryByRole('alert')).toBeNull();
-    expect(screen.getByLabelText('Logs for run run-1')).toHaveTextContent(
-      'fresh replay',
+    expect(
+      await screen.findByText(/joined Team One as an executor/),
+    ).toBeInTheDocument();
+  });
+
+  it('generates an invitation code into the form for the selected team', async () => {
+    createAgentEnrollment.mockResolvedValue({
+      data: { token: 'enrol-123', expiresAt: '2030-01-01T00:00:00Z' },
+    });
+    renderPage();
+    await screen.findAllByText('existing-bot');
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Generate invitation code for Team One',
+      }),
     );
-    expect(screen.getByLabelText('Logs for run run-1')).not.toHaveTextContent(
-      'stale replay',
+    await waitFor(() =>
+      expect(
+        (screen.getByLabelText(/Invitation code/) as HTMLInputElement).value,
+      ).toBe('enrol-123'),
     );
+    expect(createAgentEnrollment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headers: { 'x-moltnet-team-id': 'team-1' },
+      }),
+    );
+  });
+
+  it('blocks starting a run for an agent bound to another team', async () => {
+    serveState.status.agents[0] = {
+      ...serveState.status.agents[0],
+      teamId: 'personal-team-9',
+    };
+    renderPage();
+    await screen.findAllByText(/existing-bot/);
+    const agentSelect = screen.getByLabelText('Agent');
+    fireEvent.change(agentSelect, { target: { value: 'existing-bot' } });
+    expect(await screen.findByText(/bound to team/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Start run' })).toBeDisabled();
+    delete (serveState.status.agents[0] as { teamId?: string }).teamId;
+  });
+
+  it('discovers models from a preset and saves only the selected ones', async () => {
+    handlers['POST /v1/providers/ollama-local/discover-models'] = () =>
+      jsonResponse({ models: ['llama3.3:70b', 'qwen3-coder:480b-cloud'] });
+    handlers['PUT /v1/providers/ollama-local'] = (init) =>
+      jsonResponse({
+        api: 'openai-completions',
+        baseUrl: 'http://localhost:11434/v1',
+        envName: 'MOLTNET_PROVIDER_OLLAMA_LOCAL_API_KEY',
+        models: JSON.parse(String(init?.body)).models,
+        hasApiKey: false,
+      });
+    renderPage();
+    await screen.findAllByText('existing-bot');
+
+    // Preset pre-fills the endpoint; no hand-typed base URL needed.
+    fireEvent.click(screen.getByRole('button', { name: 'Ollama (local)' }));
+    expect((screen.getByLabelText('Base URL') as HTMLInputElement).value).toBe(
+      'http://localhost:11434/v1',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fetch models' }));
+    const modelCheckbox = await screen.findByRole('checkbox', {
+      name: 'qwen3-coder:480b-cloud',
+    });
+    fireEvent.click(modelCheckbox);
+    fireEvent.click(screen.getByRole('button', { name: 'Save provider' }));
+
+    await waitFor(() => {
+      const put = requests
+        .filter(
+          (entry) =>
+            entry.method === 'PUT' &&
+            entry.url.endsWith('/v1/providers/ollama-local'),
+        )
+        .at(-1);
+      expect(put?.body).toMatchObject({
+        baseUrl: 'http://localhost:11434/v1',
+        envName: 'MOLTNET_PROVIDER_OLLAMA_LOCAL_API_KEY',
+        models: ['qwen3-coder:480b-cloud'],
+      });
+    });
+    const discovery = requests.find((entry) =>
+      entry.url.endsWith('/v1/providers/ollama-local/discover-models'),
+    );
+    expect(discovery?.body).toBeUndefined();
+    const stagedProvider = requests.find(
+      (entry) =>
+        entry.method === 'PUT' &&
+        entry.url.endsWith('/v1/providers/ollama-local'),
+    );
+    expect(stagedProvider?.body).toMatchObject({
+      baseUrl: 'http://localhost:11434/v1',
+      models: [],
+    });
+  });
+
+  it('renders large discovery results in bounded, filterable pages', async () => {
+    const models = Array.from(
+      { length: 120 },
+      (_value, index) => `model-${String(index).padStart(3, '0')}`,
+    );
+    handlers['POST /v1/providers/ollama-local/discover-models'] = () =>
+      jsonResponse({ models });
+    handlers['PUT /v1/providers/ollama-local'] = () =>
+      jsonResponse({
+        api: 'openai-completions',
+        baseUrl: 'http://localhost:11434/v1',
+        envName: 'MOLTNET_PROVIDER_OLLAMA_LOCAL_API_KEY',
+        models: [],
+        hasApiKey: false,
+      });
+    renderPage();
+    await screen.findAllByText('existing-bot');
+    fireEvent.click(screen.getByRole('button', { name: 'Fetch models' }));
+
+    await screen.findByLabelText('Filter discovered models');
+    expect(screen.getAllByRole('checkbox')).toHaveLength(50);
+    fireEvent.click(screen.getByRole('button', { name: 'Show 50 more' }));
+    expect(screen.getAllByRole('checkbox')).toHaveLength(100);
+    fireEvent.change(screen.getByLabelText('Filter discovered models'), {
+      target: { value: 'model-119' },
+    });
+    expect(screen.getAllByRole('checkbox')).toHaveLength(1);
+    expect(
+      screen.getByRole('checkbox', { name: 'model-119' }),
+    ).toBeInTheDocument();
+  });
+
+  it('offers the team runtime profiles as a picker with id suffixes', async () => {
+    profilesState.items = [
+      { id: '11111111-aaaa-bbbb-cccc-000000000001', name: 'course-profile' },
+      { id: '22222222-aaaa-bbbb-cccc-000000000002', name: 'review-profile' },
+    ];
+    renderPage();
+    await screen.findAllByText('existing-bot');
+    // The picker swaps in once the async profiles query resolves.
+    expect(
+      await screen.findByRole('option', { name: 'course-profile · 11111111' }),
+    ).toBeInTheDocument();
+    const select = screen.getByLabelText('Runtime profile');
+    expect(select.tagName).toBe('SELECT');
+    fireEvent.change(select, { target: { value: 'review-profile' } });
+    expect((select as HTMLSelectElement).value).toBe('review-profile');
   });
 });

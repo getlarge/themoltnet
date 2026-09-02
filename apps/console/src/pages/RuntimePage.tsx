@@ -11,7 +11,7 @@ export function RuntimePage({ children }: { children: ReactNode }) {
       <PageHeader
         eyebrow="Agent Runtime"
         title="Runtime authority"
-        description={`Manage profiles, tool policies, and agent keys${
+        description={`Manage profiles, tool policies, agent keys, and local daemons${
           selectedTeam ? ` for ${selectedTeam.name}` : ''
         }.`}
       />

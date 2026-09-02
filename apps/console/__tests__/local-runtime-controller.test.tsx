@@ -433,7 +433,11 @@ describe('useLocalRuntime', () => {
     const initialStatusCalls = statusCalls;
 
     await act(() =>
-      result.current.createAgent({ kind: 'managed', name: 'bot' }),
+      result.current.createAgent({
+        kind: 'managed',
+        name: 'bot',
+        enrollmentToken: 'enrol-test',
+      }),
     );
     await act(() =>
       result.current.putProvider('test', {
@@ -488,7 +492,11 @@ describe('useLocalRuntime', () => {
 
       const mutation =
         action === 'createAgent'
-          ? result.current.createAgent({ kind: 'managed', name: 'bot' })
+          ? result.current.createAgent({
+              kind: 'managed',
+              name: 'bot',
+              enrollmentToken: 'enrol-test',
+            })
           : action === 'putProvider'
             ? result.current.putProvider('test', {
                 api: 'openai-completions',

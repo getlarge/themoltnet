@@ -99,6 +99,8 @@ interface ActivationIdentity {
   identityId: string;
   publicKey: string;
   fingerprint: string;
+  /** Team binding authenticated through whoami when the activation is made. */
+  boundTeamId?: string;
   createdAt: string;
 }
 
@@ -126,7 +128,7 @@ export interface ProviderEntry {
   /** Pi provider API kind, e.g. `openai-completions`. */
   api: string;
   baseUrl: string;
-  /** Env var name the generated models.json references (e.g. OLLAMA_API_KEY). */
+  /** Canonical env var name referenced by generated models.json. */
   envName: string;
   /** Model ids offered by this provider (fed by discovery later, #2064). */
   models: string[];
@@ -211,12 +213,19 @@ export class ServeStore {
   readonly agentsDir: string;
   readonly runsDir: string;
   readonly secretsDir: string;
+  /** Shared Pi credential dir; `auth.json` inside is pi-managed (lockfiled). */
+  readonly piDir: string;
 
   constructor(root: string) {
     this.root = root;
     this.agentsDir = join(root, 'agents');
     this.runsDir = join(root, 'runs');
     this.secretsDir = join(root, 'secrets');
+    this.piDir = join(root, 'pi');
+  }
+
+  get piAuthJsonPath(): string {
+    return join(this.piDir, 'auth.json');
   }
 
   /** Create the directory layout (0700) if missing. Idempotent. */

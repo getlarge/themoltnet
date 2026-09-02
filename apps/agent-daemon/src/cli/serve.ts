@@ -16,6 +16,7 @@ import { loadServeEnvConfig, processEnvSnapshot } from '../config.js';
 import { isHelpFlag, SERVE_HELP } from '../lib/help.js';
 import { createRootLogger } from '../lib/logger.js';
 import { PairingService } from '../lib/serve/pairing.js';
+import { ProviderLoginService } from '../lib/serve/provider-login.js';
 import { RunManager } from '../lib/serve/runs.js';
 import { ServeLockError, withServeLock } from '../lib/serve/serve-lock.js';
 import { buildServeServer } from '../lib/serve/server.js';
@@ -84,6 +85,10 @@ export async function runServe(argv: string[]): Promise<number> {
           const externalSecretProviders = createNodeSecretProviderRegistry();
           const pairing = new PairingService();
           const shutdownController = new AbortController();
+          const subscriptions = new ProviderLoginService({
+            authPath: store.piAuthJsonPath,
+            logger,
+          });
           const runs = new RunManager({
             store,
             secretProviders,
@@ -95,9 +100,11 @@ export async function runServe(argv: string[]): Promise<number> {
           const app = buildServeServer({
             store,
             secrets,
+            secretProviders,
             externalSecretProviders,
             pairing,
             runs,
+            subscriptions,
             allowedOrigins,
             selfOrigin,
             defaultApiUrl,

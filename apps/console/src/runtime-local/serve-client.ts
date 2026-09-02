@@ -10,6 +10,7 @@
 
 import { loopbackHttpUrl } from '../loopback-url.js';
 import {
+  DiscoverModelsSchema,
   PairingClaimedSchema,
   PairingStartedSchema,
   parseServeResponse,
@@ -22,6 +23,8 @@ import {
   ServeRunViewSchema,
   type ServeStatus,
   ServeStatusSchema,
+  type ServeSubscriptionLogin,
+  ServeSubscriptionLoginSchema,
 } from './serve-protocol.js';
 
 export type {
@@ -29,6 +32,8 @@ export type {
   ServeProviderView,
   ServeRunView,
   ServeStatus,
+  ServeSubscriptionLogin,
+  ServeSubscriptionView,
 } from './serve-protocol.js';
 
 export const SERVE_TOKEN_HEADER = 'x-moltnet-serve-token';
@@ -40,7 +45,7 @@ export type CreateAgentBody =
   | {
       kind: 'managed';
       name: string;
-      enrollmentToken?: string;
+      enrollmentToken: string;
       apiUrl?: never;
       configDir?: never;
     }
@@ -94,6 +99,16 @@ export interface ServeClient {
   putProvider(id: string, body: PutProviderBody): Promise<ServeProviderView>;
   startRun(body: StartRunBody): Promise<ServeRunView>;
   stopRun(runId: string): Promise<void>;
+  startSubscriptionLogin(
+    providerId: string,
+    signal?: AbortSignal,
+  ): Promise<ServeSubscriptionLogin>;
+  subscriptionLoginStatus(
+    providerId: string,
+    signal?: AbortSignal,
+  ): Promise<ServeSubscriptionLogin>;
+  cancelSubscriptionLogin(providerId: string): Promise<void>;
+  discoverModels(providerId: string): Promise<string[]>;
   streamLogs(
     runId: string,
     onLine: (line: string) => void,
@@ -119,21 +134,26 @@ export function createServeClient(options: {
     body?: unknown,
     requestOptions: {
       timeoutMs?: number;
+      signal?: AbortSignal;
     } = {},
   ): Promise<T> {
     const headers: Record<string, string> = { accept: 'application/json' };
     const token = options.getToken();
     if (token) headers[SERVE_TOKEN_HEADER] = token;
     if (body !== undefined) headers['content-type'] = 'application/json';
+    const timeoutSignal = AbortSignal.timeout(
+      requestOptions.timeoutMs ?? requestTimeoutMs,
+    );
+    const signal = requestOptions.signal
+      ? forwardAbort(requestOptions.signal, timeoutSignal)
+      : timeoutSignal;
     let response: Response;
     try {
       response = await fetchImpl(`${base}${path}`, {
         method,
         credentials: 'omit',
         redirect: 'error',
-        signal: AbortSignal.timeout(
-          requestOptions.timeoutMs ?? requestTimeoutMs,
-        ),
+        signal,
         headers,
         ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
       });
@@ -233,6 +253,58 @@ export function createServeClient(options: {
     async stopRun(runId: string): Promise<void> {
       await request('DELETE', `/v1/runs/${encodeURIComponent(runId)}`, null);
     },
+    startSubscriptionLogin(providerId: string, signal?: AbortSignal) {
+      const id = assertProviderId(providerId);
+      return request(
+        'POST',
+        `/v1/subscriptions/${id}/login`,
+        (value) =>
+          parseServeResponse(
+            ServeSubscriptionLoginSchema,
+            value,
+            'subscription login',
+          ),
+        undefined,
+        { timeoutMs: MUTATION_TIMEOUT_MS, signal },
+      );
+    },
+    subscriptionLoginStatus(providerId: string, signal?: AbortSignal) {
+      const id = assertProviderId(providerId);
+      return request(
+        'GET',
+        `/v1/subscriptions/${id}/login`,
+        (value) =>
+          parseServeResponse(
+            ServeSubscriptionLoginSchema,
+            value,
+            'subscription login',
+          ),
+        undefined,
+        { signal },
+      );
+    },
+    async cancelSubscriptionLogin(providerId: string): Promise<void> {
+      const id = assertProviderId(providerId);
+      await request(
+        'DELETE',
+        `/v1/subscriptions/${id}/login`,
+        null,
+        undefined,
+        { timeoutMs: MUTATION_TIMEOUT_MS },
+      );
+    },
+    async discoverModels(providerId: string): Promise<string[]> {
+      const id = assertProviderId(providerId);
+      const result = await request(
+        'POST',
+        `/v1/providers/${id}/discover-models`,
+        (value) =>
+          parseServeResponse(DiscoverModelsSchema, value, 'model discovery'),
+        undefined,
+        { timeoutMs: MUTATION_TIMEOUT_MS },
+      );
+      return result.models;
+    },
     // SSE over fetch: EventSource cannot send the pairing-token header, so
     // read the stream manually and surface `data:` payload lines.
     async streamLogs(
@@ -297,6 +369,24 @@ export function createServeClient(options: {
       }
     },
   };
+}
+
+function forwardAbort(...sources: AbortSignal[]): AbortSignal {
+  const controller = new AbortController();
+  for (const source of sources) {
+    if (source.aborted) {
+      controller.abort(source.reason);
+      break;
+    }
+    const forward = () => controller.abort(source.reason);
+    source.addEventListener('abort', forward, { once: true });
+    controller.signal.addEventListener(
+      'abort',
+      () => source.removeEventListener('abort', forward),
+      { once: true },
+    );
+  }
+  return controller.signal;
 }
 
 async function responseError(response: Response): Promise<ServeClientError> {

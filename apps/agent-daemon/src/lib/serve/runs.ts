@@ -11,7 +11,13 @@
 import type { ChildProcess } from 'node:child_process';
 import { spawn as nodeSpawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { createWriteStream, mkdirSync, openSync, rmSync } from 'node:fs';
+import {
+  createWriteStream,
+  mkdirSync,
+  openSync,
+  rmSync,
+  symlinkSync,
+} from 'node:fs';
 import { dirname, join } from 'node:path';
 import { Transform } from 'node:stream';
 
@@ -115,6 +121,8 @@ export interface RunManagerOptions {
   /** Defaults to re-execing the current entry script. */
   entrypoint?: RunEntrypoint;
   spawnImpl?: SpawnImpl;
+  /** Injectable for focused filesystem-failure tests. */
+  symlinkImpl?: typeof symlinkSync;
   now?: () => Date;
   verifyActivationImpl?: typeof verifyAgentActivation;
   logger?: RunLogger;
@@ -323,6 +331,14 @@ export class RunManager {
       signal,
     );
     this.assertStartOpen(signal);
+    if (agent.boundTeamId && agent.boundTeamId !== spec.teamId) {
+      throw new ServeRunError(
+        'invalid_spec',
+        `agent "${spec.agent}" has a key bound to team ${agent.boundTeamId}; ` +
+          `start the run with that team, or create a new agent with an ` +
+          `enrollment token from team ${spec.teamId}`,
+      );
+    }
     const id = `${Date.now().toString(36)}-${randomBytes(4).toString('hex')}`;
     const runDir = this.store.runDir(id);
     const piDir = join(runDir, 'pi');
@@ -363,6 +379,24 @@ export class RunManager {
           ]),
         ),
       });
+      // Subscription credentials: every run shares the store's pi/auth.json
+      // (pi lockfiles it and rotates tokens in place). A dangling link is
+      // fine — pi treats a missing auth.json as "no subscription auth".
+      // Failing to create the link is not fine: reporting the run as started
+      // would make a connected subscription silently unavailable to the
+      // child.
+      try {
+        (this.options.symlinkImpl ?? symlinkSync)(
+          this.store.piAuthJsonPath,
+          join(piDir, 'auth.json'),
+        );
+      } catch (cause) {
+        throw new ServeStoreError(
+          'io_error',
+          'could not link subscription credentials into the run',
+          { cause },
+        );
+      }
 
       const entry = this.entrypoint();
       logStream = createWriteStream(logPath, {

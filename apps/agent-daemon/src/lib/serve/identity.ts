@@ -53,6 +53,7 @@ export class ServeIdentityError extends Error {
       | 'registration_failed'
       | 'registration_incomplete'
       | 'verification_failed'
+      | 'enrollment_required'
       | 'unsupported_credential',
     message: string,
     options?: ErrorOptions,
@@ -68,13 +69,20 @@ export type ConnectAgent = (
 export interface CreateManagedAgentInput {
   name: string;
   apiUrl: string;
-  enrollmentToken?: string;
+  /** Serve-created agents must enroll into a team reachable by the operator. */
+  enrollmentToken: string;
   signal?: AbortSignal;
 }
 
 export interface ActivatedAgent {
   activation: AgentActivation;
   config: MoltNetConfig;
+  /**
+   * Team the verified credential is bound to, straight from the
+   * authenticated `whoami` — never cached. Runs fail fast when the spec
+   * targets a different team than the key can act in.
+   */
+  boundTeamId?: string;
 }
 
 function reserveAlias(store: ServeStore, alias: string): () => void {
@@ -102,8 +110,15 @@ export async function createManagedAgent(
   store: ServeStore,
   secrets: FileSecretProvider,
   input: CreateManagedAgentInput,
+  connectAgent: ConnectAgent = connect,
 ): Promise<ActivatedAgent> {
   const alias = assertStoreName('agent name', input.name);
+  if (!input.enrollmentToken.trim()) {
+    throw new ServeIdentityError(
+      'enrollment_required',
+      'an enrollment token from the target team is required — a self-registered agent would be stranded in its own personal team',
+    );
+  }
   const releaseAlias = reserveAlias(store, alias);
   let registeredIdentityId: string | undefined;
   try {
@@ -123,9 +138,7 @@ export async function createManagedAgent(
     const result = await register({
       credentialType: 'agent_key',
       apiUrl,
-      ...(input.enrollmentToken
-        ? { enrollmentToken: input.enrollmentToken }
-        : {}),
+      enrollmentToken: input.enrollmentToken,
       signal: boundedIdentitySignal(input.signal),
     });
     if (result.credentials.type !== 'agent_key') {
@@ -160,22 +173,36 @@ export async function createManagedAgent(
         mcp: deriveMcpUrl(result.apiUrl),
       },
     };
+    // Persist the non-secret recovery record first. If a later write fails,
+    // reserveAlias blocks accidental re-registration of the remote identity.
+    store.writeAgentConfig(alias, config);
+    await secrets.write(agentKeyReference.key, result.credentials.secret);
+    await secrets.write(seedReference.key, privateKey);
+    const whoami = await callWhoami(
+      connectAgent,
+      { agentKey: result.credentials.secret, apiUrl: result.apiUrl },
+      store.agentPath(alias),
+      input.signal,
+    );
+    assertIdentityMatches(
+      whoami,
+      { identityId, publicKey, fingerprint },
+      'authenticated whoami',
+      `new managed agent "${alias}"`,
+    );
+    const boundTeamId = boundTeamIdFromWhoami(whoami);
     const activation: AgentActivation = {
       alias,
       source: 'managed',
       identityId,
       publicKey,
       fingerprint,
+      ...(boundTeamId ? { boundTeamId } : {}),
       createdAt: now,
       apiUrl: result.apiUrl,
     };
-    // Persist the non-secret recovery record first. If a later write fails,
-    // reserveAlias blocks accidental re-registration of the remote identity.
-    store.writeAgentConfig(alias, config);
-    await secrets.write(agentKeyReference.key, result.credentials.secret);
-    await secrets.write(seedReference.key, privateKey);
     store.writeActivation(activation);
-    return { activation, config };
+    return { activation, config, ...(boundTeamId ? { boundTeamId } : {}) };
   } catch (cause) {
     if (
       !registeredIdentityId &&
@@ -276,15 +303,21 @@ export async function reconcileManagedRegistration(
     'authenticated whoami',
     `pending registration "${alias}" config`,
   );
+  const boundTeamId = boundTeamIdFromWhoami(whoami);
   const recovered: ManagedAgentActivation = {
     alias,
     source: 'managed',
     ...identity,
+    ...(boundTeamId ? { boundTeamId } : {}),
     createdAt: config.registered_at,
     apiUrl,
   };
   store.writeActivation(recovered);
-  return { activation: recovered, config };
+  return {
+    activation: recovered,
+    config,
+    ...(recovered.boundTeamId ? { boundTeamId: recovered.boundTeamId } : {}),
+  };
 }
 
 export interface AttachExternalAgentInput {
@@ -333,18 +366,26 @@ export async function attachExternalAgent(
       `external config ${configPath}`,
       'authenticated whoami',
     );
+    const boundTeamId = boundTeamIdFromWhoami(whoami);
 
     const activation: AgentActivation = {
       alias,
       source: 'external',
       ...identity,
+      ...(boundTeamId ? { boundTeamId } : {}),
       createdAt: new Date().toISOString(),
       configPath,
       configApiUrl,
       ...(input.apiUrl ? { apiUrl: input.apiUrl } : {}),
     };
     store.writeActivation(activation);
-    return { activation, config };
+    return {
+      activation,
+      config,
+      ...(activation.boundTeamId
+        ? { boundTeamId: activation.boundTeamId }
+        : {}),
+    };
   } finally {
     releaseAlias();
   }
@@ -381,7 +422,18 @@ export async function verifyAgentActivation(
     'authenticated whoami',
     `agent "${activation.alias}" pinned activation`,
   );
-  return { activation, config: verified.config };
+  const boundTeamId = boundTeamIdFromWhoami(verified.whoami);
+  if (activation.boundTeamId !== boundTeamId) {
+    throw new ServeIdentityError(
+      'verification_failed',
+      `authenticated whoami team binding does not match agent "${activation.alias}" pinned activation`,
+    );
+  }
+  return {
+    activation,
+    config: verified.config,
+    ...(boundTeamId ? { boundTeamId } : {}),
+  };
 }
 
 async function verifyManagedActivation(
@@ -683,6 +735,7 @@ export function publicAgentView(
       agentName: activation.alias,
       identityId: activation.identityId,
       fingerprint: activation.fingerprint,
+      ...(activation.boundTeamId ? { teamId: activation.boundTeamId } : {}),
       apiUrl: activation.apiUrl,
       createdAt: activation.createdAt,
       hasAgentKey: Boolean(config?.agent_key_ref),
@@ -696,8 +749,15 @@ export function publicAgentView(
     ...(activation.apiUrl ? { apiUrl: activation.apiUrl } : {}),
     identityId: activation.identityId,
     fingerprint: activation.fingerprint,
+    ...(activation.boundTeamId ? { teamId: activation.boundTeamId } : {}),
     createdAt: activation.createdAt,
   };
+}
+
+function boundTeamIdFromWhoami(whoami: Whoami): string | undefined {
+  return whoami.credentialBinding?.bindingScope === 'team'
+    ? (whoami.credentialBinding.boundTeamId ?? undefined)
+    : undefined;
 }
 
 export function requireActivation(

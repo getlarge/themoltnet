@@ -51,6 +51,7 @@ selfservice:
   # redirect to the UI set `return_to` explicitly.
   default_browser_return_url: http://localhost:5173/
   allowed_return_urls:
+    - http://localhost:4433/
     - http://localhost:4455/
     - http://localhost:5173/
     - http://localhost:5174/
@@ -105,6 +106,7 @@ selfservice:
             # must log in explicitly so the login `after-login` webhook fires and
             # completes human onboarding (link identity_id, create personal team).
             # See diary: "post-registration auto-login skips human onboarding".
+          default_browser_return_url: http://localhost:4433/self-service/login/browser?return_to=http://localhost:5173/
         password:
           hooks:
             - hook: web_hook
@@ -124,6 +126,7 @@ selfservice:
                 can_interrupt: true
             # No `session` hook — see the comment under registration.after.oidc.
             # Registration redirects to login; onboarding runs on after-login.
+          default_browser_return_url: http://localhost:4433/self-service/login/browser?return_to=http://localhost:5173/
 
     login:
       ui_url: http://localhost:4455/login

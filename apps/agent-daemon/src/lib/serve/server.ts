@@ -21,6 +21,7 @@ import {
 } from '@moltnet/loopback-companion';
 import {
   formatSecretReferenceString,
+  parseSecretReferenceString,
   type SecretProviderRegistry,
 } from '@themoltnet/sdk';
 import {
@@ -41,11 +42,22 @@ import {
   ServeIdentityError,
 } from './identity.js';
 import {
+  type DiscoveryFailure,
+  MAX_DISCOVERED_MODELS,
+  ModelDiscoveryCollector,
+  parseProviderBaseUrl,
+  ServeModelDiscoveryError,
+} from './model-discovery.js';
+import {
   type PairingService,
   renderPairingApprovalPage,
   renderPairingResultPage,
   ServePairingError,
 } from './pairing.js';
+import {
+  type ProviderLoginService,
+  ServeSubscriptionError,
+} from './provider-login.js';
 import { type RunManager, ServeRunError } from './runs.js';
 import {
   assertProviderEnvName,
@@ -136,9 +148,11 @@ export async function readServeLogDelta(
 export interface BuildServeServerOptions {
   store: ServeStore;
   secrets: FileSecretProvider;
+  secretProviders: SecretProviderRegistry;
   externalSecretProviders: SecretProviderRegistry;
   pairing: PairingService;
   runs: RunManager;
+  subscriptions: ProviderLoginService;
   allowedOrigins: readonly string[];
   /** The serve base URL origin, so the approval page may CORS to itself. */
   selfOrigin?: string;
@@ -150,6 +164,8 @@ export interface BuildServeServerOptions {
   shutdownSignal?: AbortSignal;
   /** Override used by focused rate-limit tests. */
   rateLimitMax?: number;
+  /** Injectable for tests: outbound fetch used for provider model discovery. */
+  discoverFetch?: typeof fetch;
 }
 
 class ServeHttpError extends Error {
@@ -199,17 +215,21 @@ function optionalString(
   return value.trim();
 }
 
-function stringArray(body: Record<string, unknown>, field: string): string[] {
+function stringArray(
+  body: Record<string, unknown>,
+  field: string,
+  options: { allowEmpty?: boolean } = {},
+): string[] {
   const value = body[field];
   if (
     !Array.isArray(value) ||
-    value.length === 0 ||
+    (!options.allowEmpty && value.length === 0) ||
     value.some((item) => typeof item !== 'string' || item.length === 0)
   ) {
     throw new ServeHttpError(
       400,
       'invalid_body',
-      `"${field}" must be a non-empty string array`,
+      `"${field}" must be ${options.allowEmpty ? 'a' : 'a non-empty'} string array`,
     );
   }
   return value as string[];
@@ -293,7 +313,11 @@ export function buildServeServer(
   registerStatusRoute(app, options, requirePairedOrigin);
   registerAgentRoutes(app, options, requirePairedOrigin);
   registerProviderRoutes(app, options, requirePairedOrigin);
+  registerSubscriptionRoutes(app, options, requirePairedOrigin);
   registerRunRoutes(app, options, requirePairedOrigin);
+  app.addHook('onClose', () => {
+    options.subscriptions.close();
+  });
 
   app.setNotFoundHandler(async (_request, reply) =>
     reply
@@ -380,6 +404,7 @@ function registerStatusRoute(
     return {
       version: options.version,
       platform: process.platform,
+      subscriptions: options.subscriptions.list(),
       agents: store
         .listActivations()
         .map((activation) => publicAgentView(store, activation)),
@@ -412,11 +437,17 @@ function registerAgentRoutes(
     const signal = requestOperationSignal(request, options.shutdownSignal);
     const kind = requireString(body, 'kind');
     if (kind === 'managed') {
-      const enrollmentToken = optionalString(body, 'enrollmentToken');
+      if (body['apiUrl'] !== undefined) {
+        throw new ServeHttpError(
+          400,
+          'invalid_body',
+          'managed agent registration uses the configured MoltNet API URL; apiUrl cannot be overridden',
+        );
+      }
       const entry = await createManagedAgent(store, options.secrets, {
         name: requireString(body, 'name'),
         apiUrl: options.defaultApiUrl,
-        ...(enrollmentToken ? { enrollmentToken } : {}),
+        enrollmentToken: requireString(body, 'enrollmentToken'),
         signal,
       });
       return reply.code(201).send(publicAgentView(store, entry.activation));
@@ -493,6 +524,142 @@ function registerProviderRoutes(
       ]),
     );
   });
+  app.post('/v1/providers/:providerId/discover-models', async (request) => {
+    requirePairedOrigin(request);
+    const { providerId: rawProviderId } = request.params as {
+      providerId: string;
+    };
+    const providerId = assertProviderId(rawProviderId);
+    const provider = store.readProviders()[providerId];
+    if (!provider) {
+      throw new ServeHttpError(
+        404,
+        'provider_not_found',
+        `provider "${providerId}" was not found`,
+      );
+    }
+    const parsed = parseProviderBaseUrl(provider.baseUrl, providerId);
+    const baseUrl = parsed.href.replace(/\/$/u, '');
+    let apiKey: string | undefined;
+    if (provider.apiKeyRef) {
+      try {
+        apiKey = await options.secretProviders.resolve(
+          parseSecretReferenceString(provider.apiKeyRef),
+        );
+      } catch (error) {
+        request.log.warn(
+          {
+            ...safeErrorContext(error),
+            code: 'serve_provider_secret_unavailable',
+            providerId,
+          },
+          'Provider API key could not be resolved for model discovery',
+        );
+        throw new ServeHttpError(
+          400,
+          'provider_secret_unavailable',
+          `provider "${providerId}" API key could not be resolved`,
+        );
+      }
+    }
+    const headers: Record<string, string> = apiKey
+      ? { authorization: `Bearer ${apiKey}` }
+      : {};
+    const fetchImpl = options.discoverFetch ?? fetch;
+    const failures: DiscoveryFailure[] = [];
+    const collector = new ModelDiscoveryCollector();
+    const tryJson = async (
+      endpoint: 'openai_models' | 'ollama_tags',
+      url: string,
+    ): Promise<unknown> => {
+      let response: Response;
+      try {
+        response = await fetchImpl(url, {
+          headers,
+          redirect: 'error',
+          signal: AbortSignal.timeout(10_000),
+        });
+      } catch (error) {
+        const errorType = error instanceof Error ? error.name : typeof error;
+        failures.push({ kind: 'network', errorType });
+        request.log.warn(
+          {
+            code: 'serve_provider_discovery_request_failed',
+            endpoint,
+            errorType,
+            providerId,
+          },
+          'Provider model discovery request failed',
+        );
+        return null;
+      }
+      if (!response.ok) {
+        failures.push({ kind: 'http', status: response.status });
+        const context = {
+          code: 'serve_provider_discovery_upstream_error',
+          endpoint,
+          providerId,
+          statusCode: response.status,
+        };
+        if (
+          response.status >= 500 ||
+          response.status === 401 ||
+          response.status === 403
+        ) {
+          request.log.warn(context, 'Provider model discovery was rejected');
+        } else {
+          request.log.info(
+            context,
+            'Provider model discovery endpoint unavailable',
+          );
+        }
+        return null;
+      }
+      try {
+        return (await response.json()) as unknown;
+      } catch {
+        failures.push({ kind: 'invalid_response' });
+        request.log.warn(
+          {
+            code: 'serve_provider_discovery_invalid_json',
+            endpoint,
+            providerId,
+          },
+          'Provider model discovery returned invalid JSON',
+        );
+        return null;
+      }
+    };
+    collector.addOpenAiResponse(
+      await tryJson('openai_models', `${baseUrl}/models`),
+    );
+    if (collector.size === 0) {
+      collector.addOllamaResponse(
+        await tryJson('ollama_tags', `${parsed.origin}/api/tags`),
+      );
+    }
+    const result = collector.result(providerId, failures);
+    if (result.discoveredCount > result.models.length) {
+      request.log.warn(
+        {
+          code: 'serve_provider_discovery_truncated',
+          discoveredCount: result.discoveredCount,
+          providerId,
+          returnedCount: MAX_DISCOVERED_MODELS,
+        },
+        'Provider model discovery result was truncated',
+      );
+    }
+    request.log.info(
+      {
+        code: 'serve_provider_discovery_completed',
+        modelCount: result.models.length,
+        providerId,
+      },
+      'Provider model discovery completed',
+    );
+    return { models: result.models };
+  });
   app.put('/v1/providers/:providerId', async (request, reply) => {
     requirePairedOrigin(request);
     const { providerId: rawProviderId } = request.params as {
@@ -500,14 +667,16 @@ function registerProviderRoutes(
     };
     const providerId = assertProviderId(rawProviderId);
     const body = requireBody<Record<string, unknown>>(request);
+    const baseUrl = requireString(body, 'baseUrl');
+    parseProviderBaseUrl(baseUrl, providerId);
     const entry: ProviderEntry = {
       api: requireString(body, 'api'),
-      baseUrl: requireString(body, 'baseUrl'),
+      baseUrl,
       envName: assertProviderEnvName(
         providerId,
         requireString(body, 'envName'),
       ),
-      models: stringArray(body, 'models'),
+      models: stringArray(body, 'models', { allowEmpty: true }),
     };
     const apiKey = optionalString(body, 'apiKey');
     await serialize(async () => {
@@ -536,6 +705,36 @@ function runViews(runs: RunManager): Array<Record<string, unknown>> {
   return runs
     .list(RUN_HISTORY_LIMIT)
     .map((record) => ({ ...record, active: runs.isActive(record.id) }));
+}
+
+function registerSubscriptionRoutes(
+  app: FastifyInstance,
+  options: BuildServeServerOptions,
+  requirePairedOrigin: PairedOriginGuard,
+): void {
+  app.get('/v1/subscriptions', async (request) => {
+    requirePairedOrigin(request);
+    return options.subscriptions.list();
+  });
+
+  app.post('/v1/subscriptions/:providerId/login', async (request, reply) => {
+    requirePairedOrigin(request);
+    const { providerId } = request.params as { providerId: string };
+    const login = await options.subscriptions.start(providerId);
+    return reply.code(201).send(login);
+  });
+
+  app.get('/v1/subscriptions/:providerId/login', async (request) => {
+    requirePairedOrigin(request);
+    const { providerId } = request.params as { providerId: string };
+    return options.subscriptions.status(providerId);
+  });
+
+  app.delete('/v1/subscriptions/:providerId/login', async (request) => {
+    requirePairedOrigin(request);
+    const { providerId } = request.params as { providerId: string };
+    return options.subscriptions.cancel(providerId);
+  });
 }
 
 function registerRunRoutes(
@@ -783,6 +982,25 @@ function normalizeServeError(error: unknown): {
       message: error.message,
     };
   }
+  if (error instanceof ServeSubscriptionError) {
+    return {
+      statusCode:
+        error.code === 'login_not_found'
+          ? 404
+          : error.code === 'provider_unknown'
+            ? 404
+            : 400,
+      code: error.code,
+      message: error.message,
+    };
+  }
+  if (error instanceof ServeModelDiscoveryError) {
+    return {
+      statusCode: error.statusCode,
+      code: error.code,
+      message: error.message,
+    };
+  }
   if (error instanceof ServeIdentityError) {
     return {
       statusCode: error.code === 'agent_exists' ? 409 : 400,
@@ -793,6 +1011,6 @@ function normalizeServeError(error: unknown): {
   return {
     statusCode: 500,
     code: 'internal_error',
-    message: 'Request failed',
+    message: 'The local supervisor could not complete the request.',
   };
 }

@@ -11,6 +11,7 @@ export const ServeAgentViewSchema = Type.Object({
   identityId: Type.Optional(Type.String()),
   fingerprint: Type.Optional(Type.String()),
   apiUrl: Type.Optional(Type.String()),
+  teamId: Type.Optional(Type.String()),
   configDir: Type.Optional(Type.String()),
   createdAt: DateTimeSchema,
   hasAgentKey: Type.Optional(Type.Boolean()),
@@ -45,9 +46,30 @@ export const ServeRunViewSchema = Type.Object({
   active: Type.Boolean(),
 });
 
+export const ServeSubscriptionViewSchema = Type.Object({
+  id: Type.String(),
+  name: Type.String(),
+  connected: Type.Boolean(),
+});
+
+export const ServeSubscriptionLoginSchema = Type.Object({
+  providerId: Type.String(),
+  status: Type.Union([
+    Type.Literal('pending'),
+    Type.Literal('completed'),
+    Type.Literal('failed'),
+  ]),
+  authUrl: Type.Optional(Type.String()),
+  instructions: Type.Optional(Type.String()),
+  userCode: Type.Optional(Type.String()),
+  verificationUri: Type.Optional(Type.String()),
+  error: Type.Optional(Type.String()),
+});
+
 export const ServeStatusSchema = Type.Object({
   version: Type.String(),
   platform: Type.String(),
+  subscriptions: Type.Optional(Type.Array(ServeSubscriptionViewSchema)),
   agents: Type.Array(ServeAgentViewSchema),
   providers: Type.Record(Type.String(), ServeProviderViewSchema),
   runs: Type.Array(ServeRunViewSchema),
@@ -60,6 +82,10 @@ export const PairingStartedSchema = Type.Object({
 
 export const PairingClaimedSchema = Type.Object({ token: Type.String() });
 
+export const DiscoverModelsSchema = Type.Object({
+  models: StringArraySchema,
+});
+
 export const ProblemSchema = Type.Object({
   code: Type.Optional(Type.String()),
   message: Type.Optional(Type.String()),
@@ -68,6 +94,10 @@ export const ProblemSchema = Type.Object({
 export type ServeAgentView = Static<typeof ServeAgentViewSchema>;
 export type ServeProviderView = Static<typeof ServeProviderViewSchema>;
 export type ServeRunView = Static<typeof ServeRunViewSchema>;
+export type ServeSubscriptionView = Static<typeof ServeSubscriptionViewSchema>;
+export type ServeSubscriptionLogin = Static<
+  typeof ServeSubscriptionLoginSchema
+>;
 export type ServeStatus = Static<typeof ServeStatusSchema>;
 
 export function parseServeResponse<T extends TSchema>(

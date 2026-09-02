@@ -12,9 +12,11 @@ import {
   type CreateAgentBody,
   createServeClient,
   type PutProviderBody,
+  type ServeAgentView,
   type ServeClient,
   ServeClientError,
   type ServeStatus,
+  type ServeSubscriptionLogin,
   type StartRunBody,
 } from './serve-client.js';
 
@@ -51,7 +53,7 @@ export interface LocalRuntimeController {
   pair(): Promise<void>;
   retry(): Promise<void>;
   disconnect(): void;
-  createAgent(body: CreateAgentBody): Promise<void>;
+  createAgent(body: CreateAgentBody): Promise<ServeAgentView>;
   putProvider(id: string, body: PutProviderBody): Promise<void>;
   startRun(body: StartRunBody): Promise<void>;
   stopRun(runId: string): Promise<void>;
@@ -60,18 +62,26 @@ export interface LocalRuntimeController {
     onLine: (line: string) => void,
     signal: AbortSignal,
   ) => Promise<void>;
+  /** Live device-code/instruction info for an in-flight subscription login. */
+  subscriptionLogin: ServeSubscriptionLogin | null;
+  connectSubscription(providerId: string): Promise<void>;
+  cancelSubscription(providerId: string): Promise<void>;
+  discoverModels(providerId: string): Promise<string[]>;
 }
 
 export function useLocalRuntime(): LocalRuntimeController {
   const serveUrl = getConfig().serveUrl;
   const tokenRef = useRef<string | null>(readStoredToken(serveUrl));
   const pairingAbortRef = useRef<AbortController | null>(null);
+  const subscriptionAbortRef = useRef<AbortController | null>(null);
   const [status, setStatus] = useState<LocalRuntimeStatus>('connecting');
   const [actionError, setActionError] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [pairingApprovalUrl, setPairingApprovalUrl] = useState<string | null>(
     null,
   );
+  const [subscriptionLogin, setSubscriptionLogin] =
+    useState<ServeSubscriptionLogin | null>(null);
 
   const client = useMemo(
     () =>
@@ -135,7 +145,10 @@ export function useLocalRuntime(): LocalRuntimeController {
 
   useEffect(() => {
     void probe();
-    return () => pairingAbortRef.current?.abort();
+    return () => {
+      pairingAbortRef.current?.abort();
+      subscriptionAbortRef.current?.abort();
+    };
   }, [probe]);
 
   const statusQuery = useQuery({
@@ -201,21 +214,102 @@ export function useLocalRuntime(): LocalRuntimeController {
     }
   }, [client, persistToken, probe]);
 
+  const connectSubscription = useCallback(
+    async (providerId: string) => {
+      subscriptionAbortRef.current?.abort();
+      const controller = new AbortController();
+      subscriptionAbortRef.current = controller;
+      setActionError(null);
+      try {
+        // No window.open here: after an await we are outside the click
+        // gesture and popup blockers (Safari especially) silently eat it.
+        // The page renders an explicit "Open sign-in page" link instead.
+        let login = await client.startSubscriptionLogin(
+          providerId,
+          controller.signal,
+        );
+        controller.signal.throwIfAborted();
+        setSubscriptionLogin(login);
+        if (login.status === 'failed') {
+          setActionError(login.error ?? 'Subscription login failed');
+          return;
+        }
+        const deadline = Date.now() + 5 * 60_000;
+        while (login.status === 'pending' && Date.now() < deadline) {
+          await abortableDelay(2_000, controller.signal);
+          login = await client.subscriptionLoginStatus(
+            providerId,
+            controller.signal,
+          );
+          controller.signal.throwIfAborted();
+          setSubscriptionLogin(login);
+        }
+        if (login.status === 'failed') {
+          setActionError(login.error ?? 'Subscription login failed');
+        }
+        if (login.status !== 'pending') {
+          await statusQuery.refetch();
+          if (login.status === 'completed') setSubscriptionLogin(null);
+        }
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        setActionError(
+          error instanceof Error ? error.message : 'Subscription login failed',
+        );
+        setSubscriptionLogin(null);
+      } finally {
+        if (subscriptionAbortRef.current === controller) {
+          subscriptionAbortRef.current = null;
+        }
+      }
+    },
+    [client, statusQuery],
+  );
+
+  const cancelSubscription = useCallback(
+    async (providerId: string) => {
+      subscriptionAbortRef.current?.abort();
+      subscriptionAbortRef.current = null;
+      setActionError(null);
+      try {
+        await client.cancelSubscriptionLogin(providerId);
+        setSubscriptionLogin(null);
+        await statusQuery.refetch();
+      } catch (error) {
+        if (error instanceof ServeClientError && error.status === 404) {
+          setSubscriptionLogin(null);
+          await statusQuery.refetch();
+          return;
+        }
+        // Keep the pending state visible: clearing it would claim cancellation
+        // succeeded while the server may still own a live OAuth flow.
+        setActionError(errorMessage(error, 'Could not cancel sign-in'));
+      }
+    },
+    [client, statusQuery],
+  );
+
   const disconnect = useCallback(() => {
     pairingAbortRef.current?.abort();
+    subscriptionAbortRef.current?.abort();
     persistToken(null);
     setPairingApprovalUrl(null);
+    setSubscriptionLogin(null);
     setActionError(null);
     setConnectionError(null);
     setStatus('unpaired');
   }, [persistToken]);
 
   const refetchStatus = statusQuery.refetch;
-  const runAction = async (action: () => Promise<unknown>) => {
+  // Generic on purpose: createAgent needs the created view back (executor
+  // escalation), while every mutation still reconciles the status query —
+  // including after failures, before the operator retries.
+  const runAction = async <T>(action: () => Promise<T>): Promise<T> => {
     setActionError(null);
     try {
-      await action();
+      const result = await action();
       await refetchStatus();
+      return result;
     } catch (error) {
       // Reconcile before the operator retries a failed mutation.
       await refetchStatus();
@@ -241,10 +335,16 @@ export function useLocalRuntime(): LocalRuntimeController {
     retry: probe,
     disconnect,
     createAgent: (body) => runAction(() => client.createAgent(body)),
-    putProvider: (id, body) => runAction(() => client.putProvider(id, body)),
-    startRun: (body) => runAction(() => client.startRun(body)),
+    putProvider: (id, body) =>
+      runAction(() => client.putProvider(id, body)).then(() => undefined),
+    startRun: (body) =>
+      runAction(() => client.startRun(body)).then(() => undefined),
     stopRun: (runId) => runAction(() => client.stopRun(runId)),
     streamLogs,
+    subscriptionLogin,
+    connectSubscription,
+    cancelSubscription,
+    discoverModels: (providerId) => client.discoverModels(providerId),
   };
 }
 
