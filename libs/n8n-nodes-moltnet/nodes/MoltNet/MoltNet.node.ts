@@ -387,7 +387,6 @@ function outputMode(
   context: IExecuteFunctions,
   itemIndex: number,
 ): { fields: string[]; mode: OutputMode } {
-  if (context.getNode().typeVersion < 2) return { fields: [], mode: 'raw' };
   if (context.isToolExecution()) {
     return {
       mode: context.getNodeParameter(
@@ -991,8 +990,7 @@ export class MoltNet implements INodeType {
     // n8n's closest supported palette color to MoltNet network teal.
     iconColor: 'azure',
     group: ['transform'],
-    version: [1, 2],
-    defaultVersion: 2,
+    version: 1,
     subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
     description: 'Create, find, inspect, cancel, and wait for MoltNet tasks',
     defaults: { name: 'MoltNet' },
@@ -1131,27 +1129,11 @@ export class MoltNet implements INodeType {
       {
         displayName: 'Task ID',
         name: 'taskId',
-        type: 'string',
-        default: '={{$json.id}}',
-        required: true,
-        displayOptions: {
-          show: {
-            '@version': [1],
-            operation: ['cancel', 'get', 'wait'],
-            resource: ['task'],
-          },
-        },
-        description: 'ID of the task to use',
-      },
-      {
-        displayName: 'Task ID',
-        name: 'taskId',
         type: 'resourceLocator',
         default: { mode: 'list', value: '' },
         required: true,
         displayOptions: {
           show: {
-            '@version': [2],
             operation: ['cancel', 'get', 'wait'],
             resource: ['task'],
           },
@@ -1317,7 +1299,6 @@ export class MoltNet implements INodeType {
         displayOptions: {
           show: {
             '@tool': [false],
-            '@version': [2],
             operation: ['cancel', 'create', 'get', 'getMany', 'wait'],
             resource: ['task'],
           },
@@ -1333,7 +1314,6 @@ export class MoltNet implements INodeType {
         displayOptions: {
           show: {
             '@tool': [true],
-            '@version': [2],
             operation: ['cancel', 'create', 'get', 'getMany', 'wait'],
             resource: ['task'],
           },
@@ -1364,7 +1344,6 @@ export class MoltNet implements INodeType {
         displayOptions: {
           show: {
             '@tool': [true],
-            '@version': [2],
             operation: ['cancel', 'create', 'get', 'getMany'],
             output: ['selectedFields'],
             resource: ['task'],
@@ -1381,7 +1360,6 @@ export class MoltNet implements INodeType {
         displayOptions: {
           show: {
             '@tool': [true],
-            '@version': [2],
             operation: ['wait'],
             output: ['selectedFields'],
             resource: ['task'],

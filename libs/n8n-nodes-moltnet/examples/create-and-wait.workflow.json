@@ -34,7 +34,7 @@
       },
       "position": [240, 0],
       "type": "@themoltnet/n8n-nodes-moltnet.moltNet",
-      "typeVersion": 2
+      "typeVersion": 1
     },
     {
       "id": "moltnet-wait",
@@ -54,7 +54,7 @@
       },
       "position": [480, 0],
       "type": "@themoltnet/n8n-nodes-moltnet.moltNet",
-      "typeVersion": 2
+      "typeVersion": 1
     }
   ],
   "settings": {}

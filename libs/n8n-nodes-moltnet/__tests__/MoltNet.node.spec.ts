@@ -20,7 +20,7 @@ describe('MoltNet node', () => {
     expect(new MoltNet().description.iconColor).toBe('azure');
   });
 
-  it('defines version 2 with n8n UX copy and task selection', () => {
+  it('defines the n8n UX copy and task selection on version 1', () => {
     const description = new MoltNet().description;
     const operation = description.properties.find(
       ({ name }) => name === 'operation',
@@ -32,8 +32,7 @@ describe('MoltNet node', () => {
       ({ name }) => name === 'simplify',
     );
 
-    expect(description.version).toEqual([1, 2]);
-    expect(description.defaultVersion).toBe(2);
+    expect(description.version).toBe(1);
     expect(operation?.options).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ action: 'Cancel task', name: 'Cancel' }),
@@ -52,7 +51,7 @@ describe('MoltNet node', () => {
     );
   });
 
-  it('keeps version 1 raw output and simplifies new version 2 nodes', async () => {
+  it('simplifies output by default and supports raw output', async () => {
     const api = new FakeMoltNetApi();
     vi.stubGlobal('fetch', api.fetch);
     const parameters = {
@@ -62,23 +61,25 @@ describe('MoltNet node', () => {
       options: {},
     };
 
-    const [legacy] = await new MoltNet().execute.call(
-      createExecuteContext({ parameters, typeVersion: 1 }),
+    const [simplified] = await new MoltNet().execute.call(
+      createExecuteContext({ parameters }),
     );
-    const [current] = await new MoltNet().execute.call(
-      createExecuteContext({ parameters, typeVersion: 2 }),
+    const [raw] = await new MoltNet().execute.call(
+      createExecuteContext({
+        parameters: { ...parameters, simplify: false },
+      }),
     );
 
-    expect(legacy[0].json.input).toMatchObject({
+    expect(raw[0].json.input).toMatchObject({
       brief: 'Compare node versions',
     });
-    expect(Object.keys(current[0].json)).toHaveLength(10);
-    expect(current[0].json).toMatchObject({
+    expect(Object.keys(simplified[0].json)).toHaveLength(10);
+    expect(simplified[0].json).toMatchObject({
       id: api.taskId,
       status: 'queued',
       taskType: 'freeform',
     });
-    expect(current[0].json.input).toBeUndefined();
+    expect(simplified[0].json.input).toBeUndefined();
   });
 
   it('lets AI tools select output fields while always retaining the task ID', async () => {
@@ -96,7 +97,6 @@ describe('MoltNet node', () => {
           fieldsToInclude: ['status', 'title'],
         },
         toolExecution: true,
-        typeVersion: 2,
       }),
     );
 
@@ -119,7 +119,6 @@ describe('MoltNet node', () => {
           teamId: '',
           simplify: true,
         },
-        typeVersion: 2,
       }),
     );
     const [listed] = await new MoltNet().execute.call(
@@ -132,7 +131,6 @@ describe('MoltNet node', () => {
           filters: { query: 'review', statuses: ['queued'] },
           simplify: true,
         },
-        typeVersion: 2,
       }),
     );
     const [cancelled] = await new MoltNet().execute.call(
@@ -144,7 +142,6 @@ describe('MoltNet node', () => {
           reason: 'No longer needed',
           simplify: true,
         },
-        typeVersion: 2,
       }),
     );
 
@@ -173,7 +170,6 @@ describe('MoltNet node', () => {
     vi.stubGlobal('fetch', api.fetch);
     const executeContext = createExecuteContext({
       parameters: {},
-      typeVersion: 2,
     });
     const loadContext = {
       getCredentials: executeContext.getCredentials,
@@ -368,7 +364,9 @@ describe('MoltNet node', () => {
       ],
       expected: {
         accepted: true,
-        attempt: { attemptN: 2 },
+        attemptN: 2,
+        attemptStatus: 'completed',
+        attemptCount: 2,
         state: { answer: 99 },
         error: null,
       },
@@ -398,7 +396,9 @@ describe('MoltNet node', () => {
       ],
       expected: {
         accepted: false,
-        attempt: { attemptN: 3 },
+        attemptN: 3,
+        attemptStatus: 'failed',
+        attemptCount: 2,
         state: null,
         error: {
           code: 'ATTEMPTS_EXHAUSTED',
@@ -413,7 +413,7 @@ describe('MoltNet node', () => {
       attempts: [],
       expected: {
         accepted: false,
-        attempt: null,
+        attemptCount: 0,
         state: null,
         error: null,
       },
@@ -432,7 +432,9 @@ describe('MoltNet node', () => {
       ],
       expected: {
         accepted: false,
-        attempt: { attemptN: 2 },
+        attemptN: 2,
+        attemptStatus: 'timed_out',
+        attemptCount: 1,
         state: null,
         error: { code: 'RUN_TIMEOUT', message: 'execution expired' },
       },
@@ -468,7 +470,7 @@ describe('MoltNet node', () => {
         terminal: true,
         ...expected,
       });
-      expect(output[0].json.attempts).toEqual(attempts);
+      expect(output[0].json.attempts).toBeUndefined();
       expect(output[0].pairedItem).toEqual({ item: 0 });
     },
   );
