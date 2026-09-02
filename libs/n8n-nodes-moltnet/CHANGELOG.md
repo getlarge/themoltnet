@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.2](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.3.1...n8n-nodes-moltnet-v0.3.2) (2026-09-02)
+
+
+### Bug Fixes
+
+* **n8n:** satisfy Creator Portal prechecks ([43354cf](https://github.com/getlarge/themoltnet/commit/43354cf29781cd6a95dd991d52b3f60c22ec969f))
+* **n8n:** use host-native generated API client ([c563d1f](https://github.com/getlarge/themoltnet/commit/c563d1f6ef697d4909f301254eee5546b478e726))
+
 ## [0.3.1](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.3.0...n8n-nodes-moltnet-v0.3.1) (2026-09-02)
 
 

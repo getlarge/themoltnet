@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.47.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.46.1...agent-daemon-v0.47.0) (2026-09-02)
+
+
+### Features
+
+* **agent-daemon:** self-contained moltnet-agent bundle with signing and installer ([4150207](https://github.com/getlarge/themoltnet/commit/4150207ff6d7c6874aea7a50f3b3948c40cf8508))
+
 ## [0.46.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.46.0...agent-daemon-v0.46.1) (2026-09-02)
 
 
