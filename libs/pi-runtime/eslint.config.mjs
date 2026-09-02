@@ -7,6 +7,7 @@ export default [
   createNxDependencyChecksConfig({
     ignoredDependencies: [
       '@earendil-works/pi-ai',
+      '@earendil-works/pi-coding-agent',
       '@moltnet/crypto-service',
       // Private workspace package bundled into the published Vite output.
       '@moltnet/runtime-profiles',

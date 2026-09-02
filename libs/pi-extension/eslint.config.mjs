@@ -7,6 +7,7 @@ export default [
   createNxDependencyChecksConfig({
     ignoredDependencies: [
       '@earendil-works/pi-ai',
+      '@earendil-works/pi-coding-agent',
       '@moltnet/crypto-service',
       // Dynamically imported by @themoltnet/sdk/node for OS keyring
       // secret resolution; not directly imported by this package.
