@@ -29,11 +29,12 @@
           "title": "n8n example task"
         },
         "resource": "task",
+        "simplify": true,
         "taskType": "freeform"
       },
       "position": [240, 0],
       "type": "@themoltnet/n8n-nodes-moltnet.moltNet",
-      "typeVersion": 1
+      "typeVersion": 2
     },
     {
       "id": "moltnet-wait",
@@ -42,13 +43,18 @@
         "operation": "wait",
         "pollInterval": 5,
         "resource": "task",
-        "taskId": "={{$json.id}}",
+        "simplify": true,
+        "taskId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{$json.id}}"
+        },
         "teamId": "={{$json.teamId}}",
         "timeout": 1800
       },
       "position": [480, 0],
       "type": "@themoltnet/n8n-nodes-moltnet.moltNet",
-      "typeVersion": 1
+      "typeVersion": 2
     }
   ],
   "settings": {}

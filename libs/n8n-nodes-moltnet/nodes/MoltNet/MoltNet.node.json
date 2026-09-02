@@ -2,7 +2,7 @@
   "categories": ["Development", "Developer Tools"],
   "codexVersion": "1.0",
   "node": "@themoltnet/n8n-nodes-moltnet",
-  "nodeVersion": "1.0",
+  "nodeVersion": "2.0",
   "resources": {
     "credentialDocumentation": [
       {
