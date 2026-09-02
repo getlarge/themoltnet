@@ -35,6 +35,10 @@ export type {
   TeamsNamespace,
 } from './agent.js';
 export { createAgent } from './agent.js';
+export {
+  assertTrustedConfigApiUrl,
+  requireSecureCredentialApiUrl,
+} from './api-url.js';
 export { writeMcpConfig } from './config.js';
 export {
   connect,
@@ -157,6 +161,7 @@ export {
   ENVIRONMENT_SECRET_PROVIDER,
   EnvironmentSecretProvider,
   expectedSecretKey,
+  formatSecretReferenceString,
   identitySeedKey,
   MOLTNET_SECRET_SERVICE,
   oauth2SecretKey,

@@ -10,6 +10,7 @@ export interface TokenManagerOptions {
   scopes?: readonly CredentialScope[];
   /** Buffer in ms subtracted from expires_in to refresh early. Default: 30000 */
   expiryBufferMs?: number;
+  signal?: AbortSignal;
 }
 
 interface CachedToken {
@@ -23,6 +24,7 @@ export class TokenManager {
   private readonly tokenUrl: string;
   private readonly scopes: readonly CredentialScope[];
   private readonly expiryBufferMs: number;
+  private readonly signal: AbortSignal | undefined;
   private cached: CachedToken | null = null;
 
   constructor(options: TokenManagerOptions) {
@@ -32,6 +34,7 @@ export class TokenManager {
     this.tokenUrl = `${apiUrl}/oauth2/token`;
     this.scopes = options.scopes ?? AGENT_OAUTH_SCOPES;
     this.expiryBufferMs = options.expiryBufferMs ?? 30_000;
+    this.signal = options.signal;
   }
 
   /** Return a valid access token, obtaining or refreshing as needed. */
@@ -57,6 +60,7 @@ export class TokenManager {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: body.toString(),
+        signal: this.signal,
       });
     } catch (error) {
       throw new NetworkError(

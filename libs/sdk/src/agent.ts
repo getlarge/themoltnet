@@ -463,7 +463,7 @@ export interface PacksNamespace {
 export interface AgentsNamespace {
   /** Return this agent's identity and context (subject type, current team,
    *  and — under agent-key auth — the credential binding). */
-  whoami(): Promise<Whoami>;
+  whoami(options?: { signal?: AbortSignal }): Promise<Whoami>;
 
   lookup(fingerprint: string): Promise<AgentProfile>;
 

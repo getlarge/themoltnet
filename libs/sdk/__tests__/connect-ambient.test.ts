@@ -524,12 +524,11 @@ describe('connect (agent-key references)', () => {
     ).rejects.toMatchObject({ code: 'NO_CREDENTIALS' });
   });
 
-  it('prefers a config agent_key_ref over OAuth2 and trusts the config endpoint', async () => {
+  it('connects an agent-key-only config and trusts its endpoint', async () => {
     mockReadConfig.mockResolvedValueOnce({
       identity_id: 'id-1',
       registered_at: '2024-01-01',
       agent_key_ref: { provider: 'memory', key: 'agent-key/id-1' },
-      oauth2: { client_id: 'cfg-id', client_secret: 'cfg-secret' },
       keys: { public_key: 'pk', private_key: 'sk', fingerprint: 'fp' },
       endpoints: { api: 'https://api.themolt.net', mcp: 'mcp' },
     });

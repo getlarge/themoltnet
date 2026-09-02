@@ -38,6 +38,19 @@ describe('whoami', () => {
     expect(result.credentialBinding).toBeUndefined();
   });
 
+  it('forwards request cancellation', async () => {
+    get.mockResolvedValue({
+      data: { identityId: 'id-1', subjectType: 'agent', currentTeamId: null },
+    });
+    const controller = new AbortController();
+
+    await whoami({ signal: controller.signal });
+
+    expect(get).toHaveBeenCalledWith(
+      expect.objectContaining({ signal: controller.signal }),
+    );
+  });
+
   it('propagates a typed API error with its status code', async () => {
     get.mockResolvedValue({
       error: { status: 401, title: 'Unauthorized' },

@@ -88,10 +88,18 @@ export async function resolveOAuth2ClientSecret(
   registry: SecretProviderRegistry,
 ): Promise<string> {
   const kind: CredentialKind = 'oauth2-client-secret';
+  const oauth2 = config.oauth2;
+  if (!oauth2) {
+    throw new CredentialResolutionError(
+      kind,
+      'missing',
+      'config does not contain OAuth2 credentials',
+    );
+  }
   // Client secrets are opaque: trim only to decide presence, never the value.
-  const legacy = config.oauth2.client_secret;
+  const legacy = oauth2.client_secret;
   const hasLegacy = Boolean(legacy?.trim());
-  const reference = config.oauth2.client_secret_ref;
+  const reference = oauth2.client_secret_ref;
   if (hasLegacy && reference) {
     throw new CredentialResolutionError(
       kind,
@@ -103,7 +111,7 @@ export async function resolveOAuth2ClientSecret(
     try {
       assertSecretReferenceBinding(kind, reference, {
         identityId: config.identity_id,
-        clientId: config.oauth2.client_id,
+        clientId: oauth2.client_id,
       });
     } catch (cause) {
       throw new CredentialResolutionError(

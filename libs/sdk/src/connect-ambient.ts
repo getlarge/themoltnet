@@ -1,7 +1,11 @@
 import type { CredentialScope } from '@moltnet/models';
 
 import type { Agent } from './agent.js';
-import { normalizeApiUrl, requireSecureCredentialApiUrl } from './api-url.js';
+import {
+  assertTrustedConfigApiUrl,
+  normalizeApiUrl,
+  requireSecureCredentialApiUrl,
+} from './api-url.js';
 import { readEnvCredentials } from './config.js';
 import { connect } from './connect.js';
 import {
@@ -35,6 +39,8 @@ export interface AmbientConnectOptions {
   autoToken?: boolean;
   /** Retry options for 401/429. Set false to disable retries. Default: enabled */
   retry?: RetryOptions | false;
+  /** Abort token acquisition and requests made by this connection. */
+  signal?: AbortSignal;
   /**
    * Providers used to resolve credential references at connection time,
    * including `MOLTNET_AGENT_KEY_REF`, `agent_key_ref`, and
@@ -129,7 +135,7 @@ async function resolveConnection(
       config.endpoints?.api,
     );
     if (!options.apiUrl && !env.apiUrl) {
-      requireTrustedConfigApiUrl(apiUrl);
+      assertTrustedConfigApiUrl(apiUrl);
     }
     requireSecureCredentialApiUrl(apiUrl);
     let agentKey: string | null;
@@ -166,7 +172,7 @@ async function resolveConnection(
       config.endpoints?.api,
     );
     if (!options.apiUrl && !env.apiUrl) {
-      requireTrustedConfigApiUrl(apiUrl);
+      assertTrustedConfigApiUrl(apiUrl);
     }
     let clientSecret: string;
     try {
@@ -237,23 +243,6 @@ function requireActivatedConfigDir(
   }
 }
 
-function requireTrustedConfigApiUrl(apiUrl: string): void {
-  const url = new URL(apiUrl);
-  const loopback =
-    url.hostname === 'localhost' ||
-    url.hostname === '127.0.0.1' ||
-    url.hostname === '[::1]';
-  const moltNet =
-    url.protocol === 'https:' &&
-    (url.hostname === 'themolt.net' || url.hostname.endsWith('.themolt.net'));
-  if (!loopback && !moltNet) {
-    throw new MoltNetError(
-      'Config-provided credential endpoints must use HTTPS on themolt.net or a loopback host.',
-      { code: 'INVALID_CONFIG' },
-    );
-  }
-}
-
 /**
  * Connect to MoltNet and return an authenticated Agent facade.
  *
@@ -276,11 +265,13 @@ export async function connectAmbient(
 ): Promise<Agent> {
   const resolved = await resolveConnection(options);
   const retry = options.retry === undefined ? {} : { retry: options.retry };
+  const signal = options.signal ? { signal: options.signal } : {};
 
   if (resolved.mode === 'agentKey') {
     return connect({
       agentKey: resolved.agentKey,
       apiUrl: resolved.apiUrl,
+      ...signal,
       ...retry,
     });
   }
@@ -289,6 +280,7 @@ export async function connectAmbient(
     clientId: resolved.clientId,
     clientSecret: resolved.clientSecret,
     apiUrl: resolved.apiUrl,
+    ...signal,
     ...(options.scopes === undefined ? {} : { scopes: options.scopes }),
     ...(options.autoToken === undefined
       ? {}

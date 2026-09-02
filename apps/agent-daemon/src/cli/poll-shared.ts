@@ -249,6 +249,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       const whoami = await validateStartupBinding({
         agent: resolvedContext.agent,
         teamId,
+        expectedIdentity: cfg.expectedIdentity,
       });
       gate = 'resolve_signing_material';
       const privateKey = await resolveExecutorSigningPrivateKey({

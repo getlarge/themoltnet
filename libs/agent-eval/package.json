@@ -9,6 +9,10 @@
     ".": {
       "import": "./src/index.ts",
       "types": "./src/index.ts"
+    },
+    "./agent-credentials": {
+      "import": "./src/agent-credentials.ts",
+      "types": "./src/agent-credentials.ts"
     }
   },
   "scripts": {},

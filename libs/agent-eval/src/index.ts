@@ -26,12 +26,6 @@ export {
   type GateTaskAttempt,
   type GateTaskMessage,
 } from './check-gates.js';
-export {
-  writeAgentCredentials,
-  type WriteAgentCredentialsInput,
-  writePiConfig,
-  type WritePiConfigInput,
-} from './pi-config.js';
 export { readScenario, ScenarioError } from './read-scenario.js';
 export {
   GateExpectations,

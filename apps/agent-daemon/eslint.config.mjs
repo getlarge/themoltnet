@@ -17,6 +17,11 @@ export default [
       // or bundled private workspace packages; Nx's static project graph
       // cannot see these indirect edges.
       '@earendil-works/gondolin',
+      // Registered by the bundled @moltnet/loopback-companion security
+      // profile (serve supervisor); the published bundle needs them
+      // installable.
+      '@fastify/cors',
+      '@fastify/helmet',
       '@earendil-works/pi-coding-agent',
       '@fastify/otel',
       '@ipld/dag-cbor',

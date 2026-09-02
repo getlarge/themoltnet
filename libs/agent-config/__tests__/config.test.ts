@@ -29,6 +29,29 @@ function config(): MoltNetConfig {
 }
 
 describe('OAuth2 config updates', () => {
+  it('round-trips an agent-key-only config without an OAuth2 section', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'moltnet-config-'));
+    const { oauth2: _oauth2, ...agentKeyOnly } = config();
+
+    const path = await writeConfig(
+      {
+        ...agentKeyOnly,
+        agent_key_ref: {
+          provider: 'file',
+          key: 'agent-key/identity',
+        },
+      },
+      dir,
+    );
+
+    const stored = JSON.parse(await readFile(path, 'utf8')) as MoltNetConfig;
+    expect(stored.oauth2).toBeUndefined();
+    expect(stored.agent_key_ref).toEqual({
+      provider: 'file',
+      key: 'agent-key/identity',
+    });
+  });
+
   it('replaces plaintext with a reference without retaining both forms', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'agent-config-'));
     await writeConfig(config(), dir);

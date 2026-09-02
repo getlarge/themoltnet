@@ -330,6 +330,47 @@ describe('validateStartupBinding', () => {
     ).rejects.toThrow(TEAM_B);
   });
 
+  const pinnedWhoami: Whoami = {
+    identityId: 'id-1',
+    publicKey: 'pk-1',
+    fingerprint: 'fp-1',
+    scopes: ['agent:profile'],
+    subjectType: 'agent',
+  };
+  const expectedIdentity = {
+    identityId: 'id-1',
+    publicKey: 'pk-1',
+    fingerprint: 'fp-1',
+  };
+
+  it('accepts a child identity matching its serve activation', async () => {
+    await expect(
+      validateStartupBinding({
+        agent: stubAgent(() => Promise.resolve(pinnedWhoami)),
+        teamId: TEAM_A,
+        expectedIdentity,
+      }),
+    ).resolves.toEqual(pinnedWhoami);
+  });
+
+  it.each([
+    ['identity id', { identityId: 'id-2' }],
+    ['public key', { publicKey: 'pk-2' }],
+    ['fingerprint', { fingerprint: 'fp-2' }],
+  ])(
+    'rejects a child %s differing from its serve activation',
+    async (_, change) => {
+      const whoami: Whoami = { ...pinnedWhoami, ...change };
+      await expect(
+        validateStartupBinding({
+          agent: stubAgent(() => Promise.resolve(whoami)),
+          teamId: TEAM_A,
+          expectedIdentity,
+        }),
+      ).rejects.toThrow('does not match the serve activation');
+    },
+  );
+
   it('propagates non-auth errors unchanged', async () => {
     const boom = new Error('network down');
     const agent = stubAgent(() => Promise.reject(boom));

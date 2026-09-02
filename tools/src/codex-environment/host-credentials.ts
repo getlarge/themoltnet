@@ -15,17 +15,15 @@ export function preflightBrokeredHostCredential(
   config: MoltNetConfig,
   environment: NodeJS.ProcessEnv,
 ): CredentialPreflightReason {
+  const oauth2 = config.oauth2;
+  if (!oauth2) return 'required_binding_missing';
   const hasBinding =
-    ('client_secret' in config.oauth2 &&
-      Boolean(config.oauth2.client_secret)) ||
-    Boolean(config.oauth2.client_secret_ref);
+    ('client_secret' in oauth2 && Boolean(oauth2.client_secret)) ||
+    Boolean(oauth2.client_secret_ref);
   if (!hasBinding) return 'required_binding_missing';
 
   const deliveredClientId = environment.MOLTNET_CLIENT_ID?.trim();
-  if (
-    deliveredClientId &&
-    deliveredClientId !== config.oauth2.client_id.trim()
-  ) {
+  if (deliveredClientId && deliveredClientId !== oauth2.client_id.trim()) {
     return 'binding_requirement_mismatch';
   }
   const deliveredSecret = environment.MOLTNET_CLIENT_SECRET?.trim();

@@ -47,15 +47,25 @@ export default defineConfig({
     }),
   ],
   build: {
-    ssr: 'src/index.ts',
+    ssr: true,
     outDir: 'dist',
     emptyOutDir: true,
+    rollupOptions: {
+      external,
+      input: {
+        index: 'src/index.ts',
+        'pi-config': 'src/pi-config.ts',
+      },
+    },
     rolldownOptions: {
       // Published workspace dependencies are installed by package consumers.
       // In particular, the analyzer owns runtime WASM assets whose
       // import.meta.url paths are detached when its source export is bundled.
       external,
-      input: 'src/index.ts',
+      input: {
+        index: 'src/index.ts',
+        'pi-config': 'src/pi-config.ts',
+      },
     },
   },
   ssr: {

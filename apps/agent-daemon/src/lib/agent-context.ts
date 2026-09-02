@@ -13,6 +13,8 @@ import {
   createNodeSecretProviderRegistry,
 } from '@themoltnet/sdk/node';
 
+import { assessIdentityPin, type IdentityPin } from './identity-pin.js';
+
 /** The mechanism `connect()` actually authenticated with. */
 export type DaemonAuthMechanism = 'agent-key' | 'oauth2';
 
@@ -124,6 +126,7 @@ export interface StartupWhoamiSource {
 export async function validateStartupBinding(options: {
   agent: StartupWhoamiSource;
   teamId?: string;
+  expectedIdentity?: IdentityPin;
 }): Promise<Whoami> {
   let whoami: Whoami;
   const maxAttempts = 3;
@@ -144,6 +147,12 @@ export async function validateStartupBinding(options: {
   const assessment = assessStartupBinding(whoami, options.teamId);
   if (!assessment.ok) {
     throw new Error(`Daemon startup validation failed: ${assessment.reason}`);
+  }
+  const expected = options.expectedIdentity;
+  if (expected && !assessIdentityPin(whoami, expected).ok) {
+    throw new Error(
+      'Daemon startup validation failed: authenticated identity does not match the serve activation.',
+    );
   }
   return whoami;
 }
