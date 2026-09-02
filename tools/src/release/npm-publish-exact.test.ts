@@ -141,6 +141,10 @@ describe('exact npm publication', () => {
     expect(workflow).toMatch(
       /promote-n8n-nodes-moltnet:[\s\S]*needs\.scan-n8n-nodes-moltnet\.result == 'success'/,
     );
+    const promotionJob = workflow.match(
+      / {2}promote-n8n-nodes-moltnet:[\s\S]*?(?=\n {2}publish-node-red:)/,
+    )?.[0];
+    expect(promotionJob).toContain('--repo "${{ github.repository }}"');
     expect(workflow).toMatch(
       /publish-n8n-nodes-moltnet:[\s\S]*timeout-minutes: 45/,
     );
