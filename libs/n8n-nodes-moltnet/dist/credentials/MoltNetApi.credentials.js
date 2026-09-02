@@ -39,7 +39,8 @@ var MoltNetApi = class {
 	}
 	test = { request: {
 		baseURL: "={{$credentials.apiUrl}}",
-		url: "/agents/whoami"
+		url: "/agents/whoami",
+		method: "GET"
 	} };
 	properties = [
 		{

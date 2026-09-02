@@ -1,6 +1,7 @@
 import type {
   IAuthenticateGeneric,
   ICredentialDataDecryptedObject,
+  ICredentialTestRequest,
   ICredentialType,
   IDataObject,
   IHttpRequestHelper,
@@ -73,10 +74,12 @@ export class MoltNetApi implements ICredentialType {
     return { accessToken };
   }
 
-  test = {
+  // Keep the explicit type to match n8n's documented starter-kit shape.
+  test: ICredentialTestRequest = {
     request: {
       baseURL: '={{$credentials.apiUrl}}',
       url: '/agents/whoami',
+      method: 'GET',
     },
   };
 
