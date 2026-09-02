@@ -20,6 +20,10 @@ reconciled with both official pages on 2026-09-02.
 - Package name starts with `n8n-nodes-` or `@<scope>/n8n-nodes-`.
 - `package.json` keywords include `n8n-community-node-package`.
 - `package.json#n8n` registers every shipped node and credential entry.
+- Match the starter kit's explicit credential-test shape:
+  `test: ICredentialTestRequest = { request: ... }`. The Portal links directly
+  to that declaration when reporting a missing test, while the beta scanner
+  does not reproduce this pre-check.
 - The interface, help, errors, examples, and README are English-only.
 
 ## Source and documentation
@@ -30,12 +34,11 @@ reconciled with both official pages on 2026-09-02.
   locating credential source files. If the exact-version beta scanner passes
   but the Portal reports `Can't find credential file in repo`, expose the
   credential at the repository-root `credentials/<Name>.credentials.ts` path.
-  Prefer a tracked file-level symlink to the package source so GitHub's Contents
-  API resolves the canonical file without maintaining a duplicate. Do not use a
-  directory symlink: repository tree traversal does not expose nested paths
-  beneath it consistently. If Nx formatting passes changed files to Prettier as
-  explicit paths, add the file symlink to `.nxignore`; `.prettierignore` cannot
-  suppress Prettier's explicit-symlink error.
+  Use a tracked, byte-identical regular-file copy of the package source. Do not
+  use a symlink: GitHub's Contents API dereferences it, but the raw-content URL
+  returns only the link target text, which can let the Portal find the path and
+  then report that the credential test is missing. Enforce copy equality in
+  package validation to prevent drift.
 - `package.json#author` includes an explicit email that matches the verified
   npm owner and Creator Portal account. Do not rely on the registry-generated
   `maintainers` array: Creator Portal resolves `author.email` separately.
@@ -86,8 +89,8 @@ Inspect the tarball produced by pack validation and confirm:
 - every credential path in `package.json#n8n.credentials` is tracked in the
   public repository at that exact path; Creator Portal may resolve the manifest
   path against Git rather than infer it from the source credential;
-- any repository-root Creator Portal compatibility symlink is tracked and
-  resolves to the canonical package credential source;
+- any repository-root Creator Portal compatibility copy is tracked and remains
+  byte-identical to the canonical package credential source;
 - a clean project can install and require both CommonJS entries without the
   bundled SDK or another undeclared runtime package installed separately.
 

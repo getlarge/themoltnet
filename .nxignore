@@ -16,10 +16,3 @@ infra/ory
 # symbolic links before applying .prettierignore, so exclude this navigation
 # alias while its AGENTS.md target remains the formatted source of truth.
 .agents/skills/dbos-typescript/CLAUDE.md
-
-# n8n Creator Portal currently resolves credential source from the Git
-# repository root without honoring package.json#repository.directory. Nx
-# format passes changed files to Prettier as explicit paths, and Prettier
-# rejects symlinks before consulting .prettierignore. The package check:pack
-# target verifies this alias is tracked and resolves to the canonical source.
-credentials/MoltNetApi.credentials.ts

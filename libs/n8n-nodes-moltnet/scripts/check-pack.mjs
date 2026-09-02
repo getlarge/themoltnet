@@ -2,12 +2,10 @@ import { execFileSync } from 'node:child_process';
 import console from 'node:console';
 import {
   existsSync,
-  lstatSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
-  realpathSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -74,13 +72,10 @@ try {
   }
 
   const portalCredentialPath = resolve(repositoryRoot, portalCredential);
+  const credentialSource = readFileSync(sourceCredential, 'utf8');
   assert(
-    lstatSync(portalCredentialPath).isSymbolicLink(),
-    `${portalCredential} must remain a symlink to avoid duplicating credential source`,
-  );
-  assert(
-    realpathSync(portalCredentialPath) === realpathSync(sourceCredential),
-    `${portalCredential} must resolve to the package credential source`,
+    readFileSync(portalCredentialPath, 'utf8') === credentialSource,
+    `${portalCredential} must be a byte-identical checked-in copy of the package credential source`,
   );
 
   try {

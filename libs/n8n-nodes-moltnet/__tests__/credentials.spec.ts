@@ -58,6 +58,7 @@ describe('MoltNet API credentials', () => {
       request: {
         baseURL: '={{$credentials.apiUrl}}',
         url: '/agents/whoami',
+        method: 'GET',
       },
     });
   });
