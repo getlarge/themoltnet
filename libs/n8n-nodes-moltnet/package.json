@@ -10,7 +10,8 @@
   ],
   "license": "MIT",
   "author": {
-    "name": "getlarge"
+    "name": "getlarge",
+    "email": "ed@getlarge.eu"
   },
   "homepage": "https://github.com/getlarge/themoltnet/tree/main/libs/n8n-nodes-moltnet#readme",
   "bugs": {

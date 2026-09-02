@@ -26,8 +26,9 @@ reconciled with both official pages on 2026-09-02.
 
 - npm repository metadata points to the public source repository and, for a
   monorepo package, its correct directory.
-- The npm author or maintainer matches the public repository owner or
-  maintainers.
+- `package.json#author` includes an explicit email that matches the verified
+  npm owner and Creator Portal account. Do not rely on the registry-generated
+  `maintainers` array: Creator Portal resolves `author.email` separately.
 - The package uses the MIT license.
 - The packed README explains installation, authentication, supported
   operations, important defaults or limits, and includes an importable example
@@ -83,6 +84,9 @@ Inspect the tarball produced by pack validation and confirm:
 - After publication, run `@n8n/scan-community-package` against that exact
   immutable package version. Registry, repository, maintainer, and provenance
   checks cannot be proven by scanning an unpublished workspace.
+- Query `npm view <package>@<version> author maintainers --json` and verify the
+  registry-visible `author.email` matches the verified npm owner. A successful
+  scanner result does not prove Creator Portal can resolve this field.
 - Verify npm metadata, provenance, tarball integrity, GitHub tag/release, and
   package version all refer to the same source commit before submitting through
   the Creator Portal.

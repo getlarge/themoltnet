@@ -80,6 +80,10 @@ try {
     'Published package must have no runtime dependencies',
   );
   assert(
+    manifest.author?.email === 'ed@getlarge.eu',
+    'Published package author.email must match the npm owner for n8n Creator Portal submission',
+  );
+  assert(
     manifest.peerDependencies?.['n8n-workflow'] === '*',
     'n8n-workflow must remain a host peer dependency',
   );
