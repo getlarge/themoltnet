@@ -1,67 +1,6 @@
-/** Shared Node-only writers used by live evals and daemon serve runs. */
-import { randomUUID } from 'node:crypto';
-import { mkdirSync, writeFileSync } from 'node:fs';
+/** Node-only writer used by daemon serve runs and live evals. */
+import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-
-export interface WriteAgentCredentialsInput {
-  /** Root under which `.moltnet/<agentName>/` is created. */
-  agentRoot: string;
-  agentName: string;
-  clientId: string;
-  clientSecret: string;
-  /**
-   * The agent's real ed25519 keypair, from `harness.createAgent(...)`'s
-   * `creds.keyPair`. NOT placeholders: the daemon's `runOnce` registration
-   * signs an executor attestation with the private key (`libs/crypto-service`
-   * → `signExecutorAttestation`), so a placeholder key fails registration with
-   * `Uint8Array expected` before the task ever runs.
-   */
-  publicKey: string;
-  privateKey: string;
-  fingerprint: string;
-  /** REST API base URL the daemon talks to. */
-  apiUrl: string;
-}
-
-/**
- * Write a throwaway `.moltnet/<agentName>/moltnet.json` + `env` for a live run,
- * carrying the agent's real keypair so daemon registration can sign the
- * executor attestation.
- */
-export function writeAgentCredentials(input: WriteAgentCredentialsInput): void {
-  const agentDir = join(input.agentRoot, '.moltnet', input.agentName);
-  mkdirSync(agentDir, { recursive: true });
-  writeFileSync(
-    join(agentDir, 'moltnet.json'),
-    JSON.stringify(
-      {
-        identity_id: randomUUID(),
-        registered_at: new Date().toISOString(),
-        oauth2: {
-          client_id: input.clientId,
-          client_secret: input.clientSecret,
-        },
-        keys: {
-          public_key: input.publicKey,
-          private_key: input.privateKey,
-          fingerprint: input.fingerprint,
-        },
-        endpoints: {
-          api: input.apiUrl,
-          mcp: `${input.apiUrl}/mcp`,
-        },
-      },
-      null,
-      2,
-    ) + '\n',
-    'utf8',
-  );
-  writeFileSync(
-    join(agentDir, 'env'),
-    `MOLTNET_AGENT_NAME=${input.agentName}\n`,
-    'utf8',
-  );
-}
 
 export interface WritePiProviderInput {
   /** Pi provider API kind, e.g. `openai-completions`. */

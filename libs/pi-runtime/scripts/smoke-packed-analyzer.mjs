@@ -149,7 +149,10 @@ try {
       '--input-type=module',
       '--eval',
       [
-        "await import('@themoltnet/pi-runtime');",
+        "const runtime = await import('@themoltnet/pi-runtime');",
+        "if ('writePiConfig' in runtime || 'writeAgentCredentials' in runtime) throw new Error('root runtime leaked config writers');",
+        "const piConfig = await import('@themoltnet/pi-runtime/pi-config');",
+        "if (typeof piConfig.writePiConfig !== 'function' || 'writeAgentCredentials' in piConfig) throw new Error('focused pi-config exports are incorrect');",
         "const { ShellCommandAnalyzer } = await import('@themoltnet/shell-command-analyzer');",
         'const analyzer = await ShellCommandAnalyzer.create();',
         "const analysis = analyzer.analyze('echo ready');",
@@ -170,5 +173,5 @@ try {
 }
 
 process.stdout.write(
-  'OK: packed pi-runtime installs cleanly and initializes ShellCommandAnalyzer\n',
+  'OK: packed pi-runtime exposes focused Pi config and initializes ShellCommandAnalyzer\n',
 );

@@ -16,6 +16,10 @@
     ".": {
       "import": "./src/index.ts",
       "types": "./src/index.ts"
+    },
+    "./pi-config": {
+      "import": "./src/pi-config.ts",
+      "types": "./src/pi-config.ts"
     }
   },
   "publishConfig": {
@@ -23,6 +27,10 @@
       ".": {
         "types": "./dist/index.d.ts",
         "import": "./dist/index.js"
+      },
+      "./pi-config": {
+        "types": "./dist/pi-config.d.ts",
+        "import": "./dist/pi-config.js"
       }
     }
   },

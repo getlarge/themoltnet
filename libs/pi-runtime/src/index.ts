@@ -12,7 +12,6 @@ export {
   type TrackedError,
 } from './moltnet/tools.js';
 export { createPiOtelExtension, type PiOtelOptions } from './otel/index.js';
-export * from './pi-config.js';
 export { buildAgentSession } from './runtime/agent-session-factory.js';
 export {
   createGondolinToolDefinitions,
