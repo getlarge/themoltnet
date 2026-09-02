@@ -88,15 +88,17 @@ conditions, labels, defaults, placeholders, resource locators, output modes,
 dark/light icons, and one failing execution. A code-only inspection cannot
 fully validate n8n editor behavior.
 
-Run `@n8n/scan-community-package` against the exact immutable npm version after
-publication. Do not use an unpublished workspace scan as proof of registry,
-repository, or provenance compliance.
+Run `npx --yes @n8n/scan-community-package@beta <package>@<version>` against
+the exact immutable npm version after publication for Creator Portal parity.
+Keep the scanner out of workspace dependencies and do not install it globally.
+Do not use an unpublished workspace scan as proof of registry, repository, or
+provenance compliance.
 
 Treat emitted JavaScript and repository manifest paths as verification inputs:
 scan the built entries for restricted dependency code, and ensure every
 credential path registered in `package.json#n8n` is tracked at that exact Git
 path. Require the scanner's explicit `has passed all security checks` output in
-CI because scanner 0.34.0 may print a failed report with status 0. See the
+CI because scanner releases may print a failed report with status 0. See the
 verification checklist for the concrete pack and publication gates.
 
 The scanner does not prove that Creator Portal can resolve package ownership.

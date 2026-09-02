@@ -151,5 +151,11 @@ describe('exact npm publication', () => {
     expect(workflow).toMatch(
       /scan-n8n-nodes-moltnet:[\s\S]*grep -Fq "Package \$scan_package has passed all security checks"/,
     );
+    expect(workflow).toMatch(
+      /scan-n8n-nodes-moltnet:[\s\S]*npx --yes @n8n\/scan-community-package@beta "\$scan_package"/,
+    );
+    expect(workflow).not.toMatch(
+      /scan-n8n-nodes-moltnet:[\s\S]*pnpm dlx @n8n\/scan-community-package/,
+    );
   });
 });
