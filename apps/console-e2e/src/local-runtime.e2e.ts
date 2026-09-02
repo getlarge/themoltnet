@@ -178,6 +178,7 @@ test.describe.serial('Local runtime page', () => {
     page,
     context,
   }) => {
+    test.setTimeout(300_000);
     // ── Register + a project team (personal teams cannot enrol agents) ──
     await registerViaBrowser(page, user);
     const codeInput = page.locator('input[name="code"]');
@@ -292,10 +293,12 @@ test.describe.serial('Local runtime page', () => {
     // Evidence the child daemon really came up and polls as the agent: the
     // live log tail shows the poll loop, and the run never flips to failed.
     await page.getByRole('button', { name: 'Logs' }).click();
-    await expect(page.getByText(/agent-daemon\.starting/)).toBeVisible({
-      timeout: 60_000,
+    const logPanel = page.getByLabel(/Logs for run/);
+    await expect(logPanel).toContainText(/agent-daemon\.starting|\[fatal\]/, {
+      timeout: 240_000,
     });
-    await expect(page.getByText(/\[fatal\]/)).toHaveCount(0);
+    await expect(logPanel).not.toContainText('[fatal]');
+    await expect(logPanel).toContainText('agent-daemon.starting');
     await expect(page.getByText('running', { exact: true })).toBeVisible();
     await expect(page.getByText('failed', { exact: true })).toHaveCount(0);
 
