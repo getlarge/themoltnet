@@ -51,8 +51,12 @@ jobs:
           fi
           latest=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 100 \
             --json tagName --jq '[.[].tagName | select(startswith("agent-daemon-v"))][0] // empty')
-          if [ -z "$latest" ] || [ "$pinned" = "$latest" ]; then
-            echo "installer pin $pinned is current (latest agent-daemon release: ${latest:-none})"
+          # Version-ORDER comparison, not equality: a pin pointing at a not-
+          # yet-published (draft) release is AHEAD, not behind. Only warn when
+          # the latest published release sorts strictly newer than the pin.
+          newest=$(printf '%s\n%s\n' "$pinned" "$latest" | sort -V | tail -1)
+          if [ -z "$latest" ] || [ "$pinned" = "$latest" ] || [ "$newest" = "$pinned" ]; then
+            echo "installer pin $pinned is current or ahead (latest published agent-daemon release: ${latest:-none})"
             exit 0
           fi
           echo "::warning file=$template::themolt.net/install serves $pinned but the latest agent-daemon release is $latest — bump the pin when that version should become public"
