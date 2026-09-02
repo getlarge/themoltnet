@@ -116,8 +116,8 @@
   },
   "dependencies": {
     "@earendil-works/gondolin": "catalog:",
-    "@earendil-works/pi-ai": "0.79.4",
-    "@earendil-works/pi-coding-agent": "0.79.4",
+    "@earendil-works/pi-ai": "catalog:",
+    "@earendil-works/pi-coding-agent": "catalog:",
     "@fastify/cors": "catalog:",
     "@fastify/helmet": "catalog:",
     "@fastify/otel": "catalog:",

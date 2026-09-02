@@ -5,11 +5,16 @@
  */
 import type { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
-import { mkdtempSync, rmSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
-import { AuthStorage } from '@earendil-works/pi-coding-agent';
 import {
   createNodeSecretProviderRegistry,
   FileSecretProvider,
@@ -150,6 +155,18 @@ async function fixture(options: {
 
 function authedHeaders(token: string): Record<string, string> {
   return { host: HOST, origin: CONSOLE_ORIGIN, [SERVE_TOKEN_HEADER]: token };
+}
+
+function writeAuthFile(
+  authPath: string,
+  credentials: Record<string, unknown>,
+): void {
+  mkdirSync(dirname(authPath), { recursive: true });
+  writeFileSync(authPath, `${JSON.stringify(credentials)}\n`, { mode: 0o600 });
+}
+
+function readAuthFile(authPath: string): Record<string, unknown> {
+  return JSON.parse(readFileSync(authPath, 'utf8')) as Record<string, unknown>;
 }
 
 describe('serve subscriptions', () => {
@@ -337,9 +354,8 @@ describe('serve subscriptions', () => {
     const temp = mkdtempSync(join(tmpdir(), 'serve-subs-auth-'));
     cleanups.push(() => rmSync(temp, { recursive: true, force: true }));
     const authPath = join(temp, 'auth.json');
-    AuthStorage.create(authPath).set('anthropic', {
-      type: 'api_key',
-      key: 'persisted-locally',
+    writeAuthFile(authPath, {
+      anthropic: { type: 'api_key', key: 'persisted-locally' },
     });
     const service = new ProviderLoginService({
       authPath,
@@ -352,7 +368,10 @@ describe('serve subscriptions', () => {
   });
 
   it('restores prior credentials when a cancelled flow persists late', async () => {
-    const authStorage = AuthStorage.inMemory({
+    const temp = mkdtempSync(join(tmpdir(), 'serve-subs-restore-'));
+    cleanups.push(() => rmSync(temp, { recursive: true, force: true }));
+    const authPath = join(temp, 'auth.json');
+    writeAuthFile(authPath, {
       anthropic: { type: 'api_key', key: 'previous-credential' },
     });
     let callbacks: LoginCallbacksLike | undefined;
@@ -363,17 +382,18 @@ describe('serve subscriptions', () => {
       error: vi.fn(),
     };
     const service = new ProviderLoginService({
-      authPath: '/unused/auth.json',
-      authStorage,
+      authPath,
       listProviders: () => [{ id: 'anthropic', name: 'Anthropic' }],
       logger,
       runLogin: (_providerId, nextCallbacks) => {
         callbacks = nextCallbacks;
         return new Promise<void>((resolvePromise) => {
           finish = () => {
-            authStorage.set('anthropic', {
-              type: 'api_key',
-              key: 'late-new-credential',
+            writeAuthFile(authPath, {
+              anthropic: {
+                type: 'api_key',
+                key: 'late-new-credential',
+              },
             });
             resolvePromise();
           };
@@ -387,14 +407,12 @@ describe('serve subscriptions', () => {
 
     service.cancel('anthropic');
     finish?.();
-    await new Promise<void>((resolvePromise) => {
-      setImmediate(resolvePromise);
-    });
-
-    expect(authStorage.get('anthropic')).toEqual({
-      type: 'api_key',
-      key: 'previous-credential',
-    });
+    await vi.waitFor(() =>
+      expect(readAuthFile(authPath)['anthropic']).toEqual({
+        type: 'api_key',
+        key: 'previous-credential',
+      }),
+    );
     expect(callbacks?.signal?.aborted).toBe(true);
     expect(logger.info).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -407,22 +425,25 @@ describe('serve subscriptions', () => {
   });
 
   it('expires and aborts pending flows without retaining late credentials', async () => {
-    const authStorage = AuthStorage.inMemory();
+    const temp = mkdtempSync(join(tmpdir(), 'serve-subs-expiry-'));
+    cleanups.push(() => rmSync(temp, { recursive: true, force: true }));
+    const authPath = join(temp, 'auth.json');
     let now = 0;
     let callbacks: LoginCallbacksLike | undefined;
     let finish: (() => void) | undefined;
     const service = new ProviderLoginService({
-      authPath: '/unused/auth.json',
-      authStorage,
+      authPath,
       listProviders: () => [{ id: 'anthropic', name: 'Anthropic' }],
       now: () => now,
       runLogin: (_providerId, nextCallbacks) => {
         callbacks = nextCallbacks;
         return new Promise<void>((resolvePromise) => {
           finish = () => {
-            authStorage.set('anthropic', {
-              type: 'api_key',
-              key: 'late-expired-credential',
+            writeAuthFile(authPath, {
+              anthropic: {
+                type: 'api_key',
+                key: 'late-expired-credential',
+              },
             });
             resolvePromise();
           };
@@ -439,12 +460,43 @@ describe('serve subscriptions', () => {
       { id: 'anthropic', name: 'Anthropic', connected: false },
     ]);
     finish?.();
-    await new Promise<void>((resolvePromise) => {
-      setImmediate(resolvePromise);
+    await vi.waitFor(() =>
+      expect(readAuthFile(authPath)['anthropic']).toBeUndefined(),
+    );
+    expect(callbacks?.signal?.aborted).toBe(true);
+  });
+
+  it('retains completed credentials after status expiry and shutdown', async () => {
+    const temp = mkdtempSync(join(tmpdir(), 'serve-subs-completed-'));
+    cleanups.push(() => rmSync(temp, { recursive: true, force: true }));
+    const authPath = join(temp, 'auth.json');
+    let now = 0;
+    const service = new ProviderLoginService({
+      authPath,
+      listProviders: () => [{ id: 'anthropic', name: 'Anthropic' }],
+      isConnected: () => true,
+      now: () => now,
+      runLogin: (_providerId, callbacks) => {
+        callbacks.onAuth({ url: 'https://provider.example/authorize' });
+        writeAuthFile(authPath, {
+          anthropic: { type: 'oauth', access: 'kept-after-login' },
+        });
+        return Promise.resolve();
+      },
     });
 
-    expect(callbacks?.signal?.aborted).toBe(true);
-    expect(authStorage.has('anthropic')).toBe(false);
+    await service.start('anthropic');
+    await vi.waitFor(() =>
+      expect(service.status('anthropic').status).toBe('completed'),
+    );
+    now = 10 * 60 * 1000 + 1;
+    service.list();
+    service.close();
+
+    expect(readAuthFile(authPath)['anthropic']).toEqual({
+      type: 'oauth',
+      access: 'kept-after-login',
+    });
   });
 
   it('masks upstream failure messages and logs only bounded metadata', async () => {
@@ -456,7 +508,6 @@ describe('serve subscriptions', () => {
     };
     const service = new ProviderLoginService({
       authPath: '/unused/auth.json',
-      authStorage: AuthStorage.inMemory(),
       listProviders: () => [{ id: 'anthropic', name: 'Anthropic' }],
       logger,
       runLogin,
