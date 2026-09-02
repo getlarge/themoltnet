@@ -1,0 +1,9 @@
+CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+SELECT 'CREATE DATABASE kratos'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'kratos')\gexec
+SELECT 'CREATE DATABASE hydra'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'hydra')\gexec
+SELECT 'CREATE DATABASE keto'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'keto')\gexec

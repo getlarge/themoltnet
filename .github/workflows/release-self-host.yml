@@ -1,0 +1,72 @@
+name: Release self-host bundle
+
+on:
+  push:
+    tags:
+      - self-host-v*
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Bundle version (for example 1.0.0-rc.1)
+        required: true
+
+permissions:
+  contents: write
+  packages: read
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [ -n "$INPUT_VERSION" ]; then
+            version="$INPUT_VERSION"
+          else
+            version="${REF_NAME#self-host-v}"
+          fi
+          echo "value=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Authenticate to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build digest-pinned archive
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          set -euo pipefail
+          root="moltnet-self-host-$VERSION"
+          node tools/release/self-host-bundle.mjs --version "$VERSION" --output "$root"
+          find "$root" -type f -print0 | sort -z | xargs -0 sha256sum > "$root/SHA256SUMS"
+          tar -czf "$root.tar.gz" "$root"
+          sha256sum "$root.tar.gz" > "$root.tar.gz.sha256"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: moltnet-self-host-${{ steps.version.outputs.value }}
+          path: |
+            moltnet-self-host-${{ steps.version.outputs.value }}.tar.gz
+            moltnet-self-host-${{ steps.version.outputs.value }}.tar.gz.sha256
+
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/self-host-v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          gh release create "self-host-v$VERSION" \
+            "moltnet-self-host-$VERSION.tar.gz" \
+            "moltnet-self-host-$VERSION.tar.gz.sha256" \
+            --verify-tag \
+            --generate-notes
