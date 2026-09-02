@@ -24,6 +24,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   attachExternalAgent,
   createManagedAgent,
+  reconcileManagedRegistration,
   verifyAgentActivation,
 } from './identity.js';
 import { ServeStore } from './store.js';
@@ -122,6 +123,25 @@ afterEach(() => {
 });
 
 describe('managed serve agents', () => {
+  it('rejects remote plaintext registration before reserving or registering', async () => {
+    const store = freshStore();
+    const secrets = new FileSecretProvider({
+      root: store.secretsDir,
+      writable: true,
+    });
+
+    await expect(
+      createManagedAgent(store, secrets, {
+        name: 'unsafe',
+        apiUrl: 'http://api.example.test',
+        enrollmentToken: 'enrollment-secret',
+      }),
+    ).rejects.toMatchObject({ code: 'registration_failed' });
+
+    expect(registerMock).not.toHaveBeenCalled();
+    expect(store.hasPendingRegistration('unsafe')).toBe(false);
+  });
+
   it('reserves an alias while registration is in flight', async () => {
     const store = freshStore();
     const secrets = new FileSecretProvider({
@@ -238,6 +258,67 @@ describe('managed serve agents', () => {
       }),
     ).rejects.toMatchObject({ code: 'agent_exists' });
     expect(registerMock).toHaveBeenCalledTimes(1);
+
+    await expect(
+      reconcileManagedRegistration(store, secrets, 'partial', 'resume'),
+    ).resolves.toMatchObject({
+      activation: { alias: 'partial', identityId: 'identity-1' },
+    });
+    expect(store.hasPendingRegistration('partial')).toBe(false);
+    expect(registerMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('explicitly abandons incomplete local registration artifacts', async () => {
+    const store = freshStore();
+    const secrets = new FileSecretProvider({
+      root: store.secretsDir,
+      writable: true,
+    });
+    vi.spyOn(secrets, 'write').mockRejectedValueOnce(new Error('disk full'));
+    await expect(
+      createManagedAgent(store, secrets, {
+        name: 'abandoned',
+        apiUrl: 'https://api.themolt.net',
+      }),
+    ).rejects.toMatchObject({ code: 'registration_incomplete' });
+
+    await expect(
+      reconcileManagedRegistration(store, secrets, 'abandoned', 'abandon'),
+    ).resolves.toBeNull();
+    expect(store.hasPendingRegistration('abandoned')).toBe(false);
+    expect(store.readAgentConfig('abandoned')).toBeNull();
+  });
+
+  it('abandons metadata without deleting config-selected secret keys', async () => {
+    const store = freshStore();
+    const secrets = new FileSecretProvider({
+      root: store.secretsDir,
+      writable: true,
+    });
+    vi.spyOn(store, 'writeActivation').mockImplementationOnce(() => {
+      throw new Error('disk full');
+    });
+    await expect(
+      createManagedAgent(store, secrets, {
+        name: 'tampered',
+        apiUrl: 'https://api.themolt.net',
+      }),
+    ).rejects.toMatchObject({ code: 'registration_incomplete' });
+    await secrets.write('agent-key/victim', 'victim-secret');
+    const config = store.readAgentConfig('tampered');
+    if (!config) throw new Error('pending config missing');
+    config.agent_key_ref = { provider: 'file', key: 'agent-key/victim' };
+    store.writeAgentConfig('tampered', config);
+
+    await expect(
+      reconcileManagedRegistration(store, secrets, 'tampered', 'abandon'),
+    ).resolves.toBeNull();
+
+    await expect(secrets.read('agent-key/victim')).resolves.toBe(
+      'victim-secret',
+    );
+    expect(store.hasPendingRegistration('tampered')).toBe(false);
+    expect(store.readAgentConfig('tampered')).toBeNull();
   });
 
   it('blocks retry when registration fails after its durable reservation', async () => {
@@ -329,10 +410,16 @@ describe('managed serve agents', () => {
         registry(),
       ),
     ).resolves.toMatchObject({ activation: { alias: 'managed' } });
-    expect(connectMock).toHaveBeenCalledWith({
-      agentKey: 'resolved-agent-key',
-      apiUrl: 'https://custom.example',
-    });
+    expect(connectMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agentKey: 'resolved-agent-key',
+        apiUrl: 'https://custom.example',
+      }),
+    );
+    const connectOptions = connectMock.mock.lastCall?.[0] as
+      | Parameters<typeof SdkNode.connect>[0]
+      | undefined;
+    expect(connectOptions?.signal).toBeInstanceOf(AbortSignal);
 
     const changed = store.readAgentConfig('managed');
     if (!changed) throw new Error('managed test config missing');
@@ -352,7 +439,36 @@ describe('managed serve agents', () => {
 });
 
 describe('external serve agents', () => {
-  it('rejects an untrusted API override before sending credentials', async () => {
+  it('propagates cancellation through external whoami authentication', async () => {
+    const store = freshStore();
+    const configDir = writeExternalConfig(externalConfig());
+    const controller = new AbortController();
+    controller.abort();
+    connectMock.mockImplementationOnce(
+      async (options: NonNullable<Parameters<typeof SdkNode.connect>[0]>) => {
+        expect(options.signal?.aborted).toBe(true);
+        return {
+          agents: {
+            whoami: vi.fn(({ signal }: { signal?: AbortSignal } = {}) => {
+              expect(signal?.aborted).toBe(true);
+              return Promise.reject(new Error('aborted'));
+            }),
+          },
+        };
+      },
+    );
+
+    await expect(
+      attachExternalAgent(store, registry(), {
+        name: 'cancelled',
+        configDir,
+        signal: controller.signal,
+      }),
+    ).rejects.toMatchObject({ code: 'verification_failed' });
+    expect(store.readActivation('cancelled')).toBeNull();
+  });
+
+  it('rejects a remote plaintext API override before connecting', async () => {
     const store = freshStore();
     const configDir = writeExternalConfig(externalConfig());
 
@@ -360,34 +476,37 @@ describe('external serve agents', () => {
       attachExternalAgent(store, registry(), {
         name: 'external',
         configDir,
-        apiUrl: 'https://attacker.example',
+        apiUrl: 'http://remote.example.test',
       }),
-    ).rejects.toThrow('themolt.net or a loopback host');
+    ).rejects.toThrow('does not match its configured endpoint');
     expect(connectMock).not.toHaveBeenCalled();
     expect(store.readActivation('external')).toBeNull();
   });
 
-  it('pins an authenticated config path without copying the config', async () => {
+  it('pins an authenticated config path with a matching API endpoint', async () => {
     const store = freshStore();
     const configDir = writeExternalConfig(externalConfig());
 
     await attachExternalAgent(store, registry(), {
       name: 'external',
       configDir,
-      apiUrl: 'http://127.0.0.1:3000',
+      apiUrl: 'https://api.themolt.net',
     });
 
     expect(store.readActivation('external')).toMatchObject({
       source: 'external',
       configPath: join(configDir, 'moltnet.json'),
-      apiUrl: 'http://127.0.0.1:3000',
+      apiUrl: 'https://api.themolt.net',
       identityId: 'identity-1',
       publicKey: 'ed25519:public',
       fingerprint: 'FP-1',
     });
     expect(store.readAgentConfig('external')).toBeNull();
     expect(connectMock).toHaveBeenCalledWith(
-      expect.objectContaining({ configDir, apiUrl: 'http://127.0.0.1:3000' }),
+      expect.objectContaining({
+        configDir,
+        apiUrl: 'https://api.themolt.net',
+      }),
     );
   });
 

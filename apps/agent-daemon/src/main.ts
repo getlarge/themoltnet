@@ -3,11 +3,14 @@
 import './instrumentation.js';
 
 import { runAgentDaemonCli } from './cli.js';
+import { installSupervisorParentGuard } from './lib/supervisor-parent-guard.js';
 import { defaultPiDaemonAdapter } from './pi.js';
 import {
   extractRuntimeModule,
   loadDaemonRuntimeAdapter,
 } from './runtime-loader.js';
+
+installSupervisorParentGuard();
 
 async function main(): Promise<number> {
   const selection = extractRuntimeModule(process.argv.slice(2));

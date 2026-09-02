@@ -20,6 +20,7 @@ import { RunManager } from '../lib/serve/runs.js';
 import { ServeLockError, withServeLock } from '../lib/serve/serve-lock.js';
 import { buildServeServer } from '../lib/serve/server.js';
 import { resolveServeRoot, ServeStore } from '../lib/serve/store.js';
+import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
 
 const DEFAULT_PORT = 17374;
 const DEFAULT_ALLOWED_ORIGINS = 'https://console.themolt.net';
@@ -81,12 +82,14 @@ export async function runServe(argv: string[]): Promise<number> {
           const secretProviders =
             createNodeSecretProviderRegistry().register(secrets);
           const externalSecretProviders = createNodeSecretProviderRegistry();
-          const pairing = new PairingService(store);
+          const pairing = new PairingService();
+          const shutdownController = new AbortController();
           const runs = new RunManager({
             store,
             secretProviders,
             externalSecretProviders,
             baseEnv: processEnvSnapshot(),
+            logger,
           });
           const selfOrigin = `http://127.0.0.1:${port}`;
           const app = buildServeServer({
@@ -100,6 +103,7 @@ export async function runServe(argv: string[]): Promise<number> {
             defaultApiUrl,
             version: 'dev',
             logger,
+            shutdownSignal: shutdownController.signal,
           });
 
           try {
@@ -111,7 +115,7 @@ export async function runServe(argv: string[]): Promise<number> {
               'Pair from the Console "Local runtime" page; approve the one-click prompt this server opens.',
             );
 
-            return await waitForServeShutdown(runs, app);
+            return await waitForServeShutdown(runs, app, shutdownController);
           } catch (cause) {
             await app.close().catch(() => undefined);
             throw cause;
@@ -143,32 +147,46 @@ function waitForServeShutdown(
     close(): Promise<unknown>;
     server: { closeAllConnections(): void };
   },
+  shutdownController: AbortController,
 ): Promise<number> {
   return new Promise<number>((resolvePromise) => {
     let shuttingDown = false;
-    const cleanup = (): void => {
-      process.off('SIGINT', shutdown);
-      process.off('SIGTERM', shutdown);
-    };
     const shutdown = (): void => {
       if (shuttingDown) return;
       shuttingDown = true;
-      console.error('shutting down: stopping runs…');
-      const close = app.close();
-      app.server.closeAllConnections();
-      const cleanupPromise = Promise.allSettled([runs.stopAll(), close]);
-      let timeout: ReturnType<typeof setTimeout>;
-      const deadline = new Promise<null>((resolveDeadline) => {
-        timeout = setTimeout(() => resolveDeadline(null), SHUTDOWN_TIMEOUT_MS);
-      });
-      void Promise.race([cleanupPromise, deadline]).then((results) => {
-        clearTimeout(timeout);
-        if (results === null) {
-          console.error('shutdown cleanup exceeded its 15 second deadline');
-          cleanup();
-          resolvePromise(1);
-          return;
+      shutdownController.abort();
+      void (async () => {
+        app.server.closeAllConnections();
+        const cleanupPromise = Promise.allSettled([
+          runs.stopAll(),
+          app.close(),
+        ]);
+        let timedOut = false;
+        let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
+        await Promise.race([
+          cleanupPromise,
+          new Promise<void>((resolveDeadline) => {
+            deadlineTimer = setTimeout(() => {
+              timedOut = true;
+              resolveDeadline();
+            }, SHUTDOWN_TIMEOUT_MS);
+          }),
+        ]);
+        if (deadlineTimer) clearTimeout(deadlineTimer);
+        let forcedExitTimer: ReturnType<typeof setTimeout> | undefined;
+        if (timedOut) {
+          console.error(
+            'shutdown cleanup exceeded its 15 second deadline; force-stopping runs',
+          );
+          runs.forceStopAll();
+          app.server.closeAllConnections();
+          // Never return ownership to withServeLock while cleanup is still
+          // pending. If forced cleanup also stalls, exit with the lock held;
+          // proper-lockfile will recover it only after this process is gone.
+          forcedExitTimer = setTimeout(() => process.exit(1), 2_000);
         }
+        const results = await cleanupPromise;
+        if (forcedExitTimer) clearTimeout(forcedExitTimer);
         const failures = results.filter(
           (result): result is PromiseRejectedResult =>
             result.status === 'rejected',
@@ -178,13 +196,15 @@ function waitForServeShutdown(
             `shutdown cleanup failed: ${(failure.reason as Error).message}`,
           );
         }
-        cleanup();
+        handlers.dispose();
         const exitCode =
           typeof process.exitCode === 'number' ? process.exitCode : 0;
         resolvePromise(failures.length > 0 ? 1 : exitCode);
-      });
+      })();
     };
-    process.once('SIGINT', shutdown);
-    process.once('SIGTERM', shutdown);
+    const handlers = installShutdownSignalHandlers({
+      logDrain: () => console.error('shutting down: stopping runs…'),
+      drain: shutdown,
+    });
   });
 }

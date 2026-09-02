@@ -20,6 +20,7 @@ import {
   readFileSync,
   realpathSync,
   renameSync,
+  rmSync,
   writeFileSync,
 } from 'node:fs';
 import { homedir } from 'node:os';
@@ -79,15 +80,8 @@ export function resolveServeRoot(input: {
   return join(xdg || join(homedir(), '.config'), 'moltnet');
 }
 
-export interface PairedOriginRecord {
-  tokenHash: string;
-  createdAt: string;
-}
-
 export interface ServeState {
   version: typeof SERVE_STATE_VERSION;
-  /** Console origins approved via the pairing ceremony, token hashes at rest. */
-  pairedOrigins: Record<string, PairedOriginRecord>;
   /** Durable alias reservations written before remote registration starts. */
   pendingRegistrations: Record<string, PendingRegistration>;
   /** Alias/profile activations; external configs remain at `configPath`. */
@@ -199,8 +193,17 @@ function readJson<T>(path: string): T | null {
 
 function writeJsonAtomic(path: string, value: unknown): void {
   const temp = `${path}.${randomBytes(6).toString('hex')}.tmp`;
-  writeFileSync(temp, `${JSON.stringify(value, null, 2)}\n`, { mode: 0o600 });
-  renameSync(temp, path);
+  try {
+    writeFileSync(temp, `${JSON.stringify(value, null, 2)}\n`, { mode: 0o600 });
+    renameSync(temp, path);
+  } catch (cause) {
+    try {
+      rmSync(temp, { force: true });
+    } catch {
+      // Preserve the write failure; the unique temporary file is harmless.
+    }
+    throw cause;
+  }
 }
 
 export class ServeStore {
@@ -240,7 +243,6 @@ export class ServeStore {
     if (!state) {
       return {
         version: SERVE_STATE_VERSION,
-        pairedOrigins: {},
         pendingRegistrations: {},
         activations: {},
       };
@@ -251,11 +253,13 @@ export class ServeStore {
         `serve.json version ${String(isRecord(state) ? state.version : undefined)} is not supported`,
       );
     }
-    if (
-      !isRecord(state.pairedOrigins) ||
-      !isRecord(state.pendingRegistrations) ||
-      !isRecord(state.activations)
-    ) {
+    if ('pairedOrigins' in state) {
+      throw new ServeStoreError(
+        'invalid_state',
+        'serve.json uses the obsolete pairing format; clear the unreleased serve store and reconfigure it',
+      );
+    }
+    if (!isRecord(state.pendingRegistrations) || !isRecord(state.activations)) {
       throw new ServeStoreError(
         'invalid_state',
         'serve.json is missing the version 1 activation map; clear the unreleased serve store and reconfigure it',
@@ -281,7 +285,14 @@ export class ServeStore {
         );
       }
     }
-    return state as unknown as ServeState;
+    return {
+      version: SERVE_STATE_VERSION,
+      pendingRegistrations: state.pendingRegistrations as Record<
+        string,
+        PendingRegistration
+      >,
+      activations: state.activations as Record<string, AgentActivation>,
+    };
   }
 
   writeServeState(state: ServeState): void {
@@ -300,6 +311,10 @@ export class ServeStore {
 
   writeAgentConfig(alias: string, config: MoltNetConfig): void {
     writeJsonAtomic(this.agentPath(alias), config);
+  }
+
+  removeAgentConfig(alias: string): void {
+    rmSync(this.agentPath(alias), { force: true });
   }
 
   readActivation(alias: string): AgentActivation | null {
@@ -443,21 +458,74 @@ export class ServeStore {
     writeJsonAtomic(join(this.runDir(record.id), 'run.json'), record);
   }
 
-  listRuns(): RunRecord[] {
+  listRuns(limit = Number.POSITIVE_INFINITY): RunRecord[] {
     let ids: string[];
     try {
       ids = readdirSync(this.runsDir);
     } catch {
       return [];
     }
+    const sortedIds = ids
+      .filter((id) => NAME_RE.test(id))
+      .sort()
+      .reverse();
+    const selectedIds = Number.isFinite(limit)
+      ? sortedIds.slice(0, Math.max(0, limit))
+      : sortedIds;
     const records: RunRecord[] = [];
-    for (const id of ids) {
-      if (!NAME_RE.test(id)) continue;
+    for (const id of selectedIds) {
       const record = this.readRun(id);
       if (record) records.push(record);
     }
     return records.sort((a, b) => b.startedAt.localeCompare(a.startedAt));
   }
+
+  /** Remove only completed run directories outside the configured budget. */
+  pruneCompletedRuns(options: {
+    maxCount: number;
+    maxAgeMs: number;
+    maxBytes: number;
+    now?: Date;
+  }): string[] {
+    const now = (options.now ?? new Date()).getTime();
+    let retainedBytes = 0;
+    let retainedCount = 0;
+    const removed: string[] = [];
+    for (const record of this.listRuns()) {
+      if (record.status === 'running') continue;
+      const dir = this.runDir(record.id);
+      const bytes = directoryBytes(dir);
+      const endedAt = Date.parse(record.endedAt ?? record.startedAt);
+      const expired =
+        !Number.isFinite(endedAt) || now - endedAt > options.maxAgeMs;
+      const overCount = retainedCount >= options.maxCount;
+      const overBytes = retainedBytes + bytes > options.maxBytes;
+      if (expired || overCount || overBytes) {
+        rmSync(dir, { recursive: true, force: true });
+        removed.push(record.id);
+        continue;
+      }
+      retainedCount += 1;
+      retainedBytes += bytes;
+    }
+    return removed;
+  }
+}
+
+function directoryBytes(path: string): number {
+  let info;
+  try {
+    info = lstatSync(path);
+  } catch {
+    return 0;
+  }
+  if (info.isSymbolicLink()) return 0;
+  if (!info.isDirectory()) return info.size;
+  let total = 0;
+  for (const entry of readdirSync(path, { withFileTypes: true })) {
+    total += directoryBytes(join(path, entry.name));
+  }
+  return total;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

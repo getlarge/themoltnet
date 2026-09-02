@@ -18,6 +18,7 @@ import {
   type MoltNetConfig,
   MoltNetError,
   register,
+  requireSecureCredentialApiUrl,
   resolveAgentKey,
   type SecretProviderRegistry,
   type Whoami,
@@ -29,6 +30,7 @@ import {
   type FileSecretProvider,
 } from '@themoltnet/sdk/node';
 
+import { assessIdentityPin, type IdentityPin } from '../identity-pin.js';
 import {
   type AgentActivation,
   assertStoreName,
@@ -39,6 +41,7 @@ import {
 } from './store.js';
 
 const MAX_CONFIG_BYTES = 64 * 1024;
+const IDENTITY_OPERATION_TIMEOUT_MS = 15_000;
 const pendingAliases = new WeakMap<ServeStore, Set<string>>();
 
 export class ServeIdentityError extends Error {
@@ -66,17 +69,12 @@ export interface CreateManagedAgentInput {
   name: string;
   apiUrl: string;
   enrollmentToken?: string;
+  signal?: AbortSignal;
 }
 
 export interface ActivatedAgent {
   activation: AgentActivation;
   config: MoltNetConfig;
-}
-
-interface IdentityPin {
-  identityId: string;
-  publicKey: string;
-  fingerprint: string;
 }
 
 function reserveAlias(store: ServeStore, alias: string): () => void {
@@ -109,15 +107,26 @@ export async function createManagedAgent(
   const releaseAlias = reserveAlias(store, alias);
   let registeredIdentityId: string | undefined;
   try {
+    let apiUrl: string;
+    try {
+      apiUrl = requireSecureCredentialApiUrl(input.apiUrl);
+    } catch (cause) {
+      throw new ServeIdentityError(
+        'registration_failed',
+        'registration API URL must use HTTPS or HTTP loopback',
+        { cause },
+      );
+    }
     // This durable marker prevents a retry from creating a second remote
     // identity if registration commits but its response or a local write fails.
-    store.reserveRegistration(alias, input.apiUrl);
+    store.reserveRegistration(alias, apiUrl);
     const result = await register({
       credentialType: 'agent_key',
-      apiUrl: input.apiUrl,
+      apiUrl,
       ...(input.enrollmentToken
         ? { enrollmentToken: input.enrollmentToken }
         : {}),
+      signal: boundedIdentitySignal(input.signal),
     });
     if (result.credentials.type !== 'agent_key') {
       throw new ServeIdentityError(
@@ -197,11 +206,93 @@ export async function createManagedAgent(
   }
 }
 
+/** Resume a fully persisted registration or explicitly abandon local recovery. */
+export async function reconcileManagedRegistration(
+  store: ServeStore,
+  secrets: FileSecretProvider,
+  aliasInput: string,
+  action: 'resume' | 'abandon',
+  connectAgent: ConnectAgent = connect,
+  signal?: AbortSignal,
+): Promise<ActivatedAgent | null> {
+  const alias = assertStoreName('agent name', aliasInput);
+  const activation = store.readActivation(alias);
+  if (activation) {
+    const config = store.readAgentConfig(alias);
+    if (!config) {
+      throw new ServeIdentityError(
+        'registration_incomplete',
+        `managed activation for "${alias}" is missing its canonical config`,
+      );
+    }
+    return { activation, config };
+  }
+  if (!store.hasPendingRegistration(alias)) {
+    throw new ServeIdentityError(
+      'config_not_found',
+      `agent "${alias}" has no pending registration to reconcile`,
+    );
+  }
+  const config = store.readAgentConfig(alias);
+  if (action === 'abandon') {
+    // The canonical config is mutable and therefore cannot authorize deletion.
+    // Leave any partial secret files orphaned; a later store-level GC can clean
+    // them from immutable registration metadata.
+    store.removeAgentConfig(alias);
+    store.clearPendingRegistration(alias);
+    return null;
+  }
+  if (
+    !config?.agent_key_ref ||
+    config.agent_key_ref.provider !== FILE_SECRET_PROVIDER ||
+    config.keys.private_key_ref?.provider !== FILE_SECRET_PROVIDER
+  ) {
+    throw new ServeIdentityError(
+      'registration_incomplete',
+      `pending registration for "${alias}" does not have complete managed references`,
+    );
+  }
+  const [agentKey, privateKeyState] = await Promise.all([
+    secrets.read(config.agent_key_ref.key),
+    secrets.probe(config.keys.private_key_ref.key),
+  ]);
+  if (!agentKey || privateKeyState !== 'present') {
+    throw new ServeIdentityError(
+      'registration_incomplete',
+      `pending registration for "${alias}" is missing persisted secret material`,
+    );
+  }
+  const identity = identityFromConfig(config);
+  const apiUrl = requireConfigApiUrl(config, store.agentPath(alias));
+  const whoami = await callWhoami(
+    connectAgent,
+    { agentKey, apiUrl },
+    store.agentPath(alias),
+    signal,
+  );
+  assertIdentityMatches(
+    whoami,
+    identity,
+    'authenticated whoami',
+    `pending registration "${alias}" config`,
+  );
+  const recovered: ManagedAgentActivation = {
+    alias,
+    source: 'managed',
+    ...identity,
+    createdAt: config.registered_at,
+    apiUrl,
+  };
+  store.writeActivation(recovered);
+  return { activation: recovered, config };
+}
+
 export interface AttachExternalAgentInput {
   name: string;
   /** Absolute path to the existing `.moltnet/<agent>` directory. */
   configDir: string;
   apiUrl?: string;
+  signal?: AbortSignal;
 }
 
 export async function attachExternalAgent(
@@ -223,13 +314,17 @@ export async function attachExternalAgent(
     externalAgentLocation(configPath);
     const config = await readCurrentConfig(configPath);
     const configApiUrl = requireTrustedConfigApiUrl(config, configPath);
-    if (input.apiUrl) assertTrustedConfigApiUrl(input.apiUrl);
-    const effectiveApiUrl = input.apiUrl ?? configApiUrl;
+    const effectiveApiUrl = requireTrustedApiOverride(
+      input.apiUrl,
+      configApiUrl,
+      configPath,
+    );
     const whoami = await authenticateConfig(
       input.configDir,
       effectiveApiUrl,
       secretProviders,
       connectAgent,
+      input.signal,
     );
     const identity = identityFromConfig(config);
     assertIdentityMatches(
@@ -262,6 +357,7 @@ export async function verifyAgentActivation(
   managedSecretProviders: SecretProviderRegistry,
   externalSecretProviders: SecretProviderRegistry,
   connectAgent: ConnectAgent = connect,
+  signal?: AbortSignal,
 ): Promise<ActivatedAgent> {
   const activation = requireActivation(store, alias);
   const verified =
@@ -271,11 +367,13 @@ export async function verifyAgentActivation(
           activation,
           managedSecretProviders,
           connectAgent,
+          signal,
         )
       : await verifyExternalActivation(
           activation,
           externalSecretProviders,
           connectAgent,
+          signal,
         );
   assertIdentityMatches(
     verified.whoami,
@@ -291,6 +389,7 @@ async function verifyManagedActivation(
   activation: ManagedAgentActivation,
   secretProviders: SecretProviderRegistry,
   connectAgent: ConnectAgent,
+  signal?: AbortSignal,
 ): Promise<{ config: MoltNetConfig; whoami: Whoami }> {
   const configPath = store.agentPath(activation.alias);
   const config = await readCurrentConfig(configPath);
@@ -320,6 +419,7 @@ async function verifyManagedActivation(
     connectAgent,
     { agentKey, apiUrl: activation.apiUrl },
     configPath,
+    signal,
   );
   return { config, whoami };
 }
@@ -328,10 +428,10 @@ async function verifyExternalActivation(
   activation: ExternalAgentActivation,
   secretProviders: SecretProviderRegistry,
   connectAgent: ConnectAgent,
+  signal?: AbortSignal,
 ): Promise<{ config: MoltNetConfig; whoami: Whoami }> {
   externalAgentLocation(activation.configPath);
   assertTrustedConfigApiUrl(activation.configApiUrl);
-  if (activation.apiUrl) assertTrustedConfigApiUrl(activation.apiUrl);
   const config = await readCurrentConfig(activation.configPath);
   assertActivatedConfig(
     config,
@@ -340,13 +440,35 @@ async function verifyExternalActivation(
     requireTrustedConfigApiUrl(config, activation.configPath),
     activation.configApiUrl,
   );
+  const effectiveApiUrl = requireTrustedApiOverride(
+    activation.apiUrl,
+    activation.configApiUrl,
+    activation.configPath,
+  );
   const whoami = await authenticateConfig(
     dirname(activation.configPath),
-    activation.apiUrl ?? activation.configApiUrl,
+    effectiveApiUrl,
     secretProviders,
     connectAgent,
+    signal,
   );
   return { config, whoami };
+}
+
+/** Never let request or activation metadata redirect persisted credentials. */
+function requireTrustedApiOverride(
+  override: string | undefined,
+  configApiUrl: string,
+  configPath: string,
+): string {
+  if (!override) return configApiUrl;
+  if (override !== configApiUrl) {
+    throw new ServeIdentityError(
+      'verification_failed',
+      `API override for ${configPath} does not match its configured endpoint`,
+    );
+  }
+  return configApiUrl;
 }
 
 function assertActivatedConfig(
@@ -473,6 +595,7 @@ async function authenticateConfig(
   apiUrl: string | undefined,
   secretProviders: SecretProviderRegistry,
   connectAgent: ConnectAgent,
+  signal?: AbortSignal,
 ): Promise<Whoami> {
   return callWhoami(
     connectAgent,
@@ -482,6 +605,7 @@ async function authenticateConfig(
       secretProviders,
     },
     configDir,
+    signal,
   );
 }
 
@@ -489,16 +613,23 @@ async function callWhoami(
   connectAgent: ConnectAgent,
   options: ConnectOptions,
   source: string,
+  signal?: AbortSignal,
 ): Promise<Whoami> {
   try {
-    const agent = await connectAgent(options);
-    return await agent.agents.whoami();
+    const boundedSignal = boundedIdentitySignal(signal);
+    const agent = await connectAgent({ ...options, signal: boundedSignal });
+    return await agent.agents.whoami({ signal: boundedSignal });
   } catch (cause) {
     throw verificationError(
       `could not authenticate ${source} against the API`,
       cause,
     );
   }
+}
+
+function boundedIdentitySignal(signal?: AbortSignal): AbortSignal {
+  const timeout = AbortSignal.timeout(IDENTITY_OPERATION_TIMEOUT_MS);
+  return signal ? AbortSignal.any([signal, timeout]) : timeout;
 }
 
 function identityFromConfig(config: MoltNetConfig): IdentityPin {
@@ -524,17 +655,12 @@ function assertIdentityMatches(
   currentLabel: string,
   expectedLabel: string,
 ): void {
-  for (const [field, key] of [
-    ['identity id', 'identityId'],
-    ['public key', 'publicKey'],
-    ['fingerprint', 'fingerprint'],
-  ] as const) {
-    if (!current[key] || !expected[key] || current[key] !== expected[key]) {
-      throw new ServeIdentityError(
-        'verification_failed',
-        `${currentLabel} ${field} does not match ${expectedLabel}`,
-      );
-    }
+  const assessment = assessIdentityPin(current, expected);
+  if (!assessment.ok) {
+    throw new ServeIdentityError(
+      'verification_failed',
+      `${currentLabel} ${assessment.label} does not match ${expectedLabel}`,
+    );
   }
 }
 

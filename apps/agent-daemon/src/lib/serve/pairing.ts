@@ -9,16 +9,17 @@
  *   3. One click POSTs the confirmation form (explicit cross-site rejected;
  *      the one-time token is the primary CSRF control).
  *   4. Console claims `/v1/pairings/<id>/claim` from the same origin and
- *      receives the bearer token exactly once; only its SHA-256 lands on
- *      disk (`serve.json`).
+ *      receives the bearer token exactly once; only its SHA-256 remains in
+ *      this supervisor process.
  *
  * The token exists for shared-machine cross-user protection and to bind
  * "this console session is the operator" — browser-vs-browser isolation is
- * already covered by the loopback-companion origin checks.
+ * already covered by the loopback-companion origin checks. Grants are
+ * deliberately process-scoped: after the listening socket changes owners, a
+ * token disclosed to an impostor on that port cannot authenticate to a later
+ * supervisor process.
  */
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-
-import type { ServeStore } from './store.js';
 
 const PENDING_TTL_MS = 10 * 60 * 1000;
 
@@ -61,9 +62,9 @@ function safeEqual(a: string, b: string): boolean {
 
 export class PairingService {
   private readonly pending = new Map<string, PendingPairing>();
+  private readonly paired = new Map<string, string>();
 
   constructor(
-    private readonly store: ServeStore,
     private readonly options: {
       now?: () => number;
       randomToken?: () => string;
@@ -85,11 +86,6 @@ export class PairingService {
     for (const [id, pairing] of this.pending) {
       if (pairing.expiresAt <= now) this.pending.delete(id);
     }
-  }
-
-  /** True when the origin already holds a paired token. */
-  isPaired(origin: string): boolean {
-    return Boolean(this.store.readServeState().pairedOrigins[origin]);
   }
 
   start(origin: string): { pairingId: string; approvalPath: string } {
@@ -146,18 +142,13 @@ export class PairingService {
     }
     const token = pairing.bearerToken;
     this.pending.delete(pairingId);
-    const state = this.store.readServeState();
-    state.pairedOrigins[origin] = {
-      tokenHash: sha256Hex(token),
-      createdAt: new Date(this.now()).toISOString(),
-    };
-    this.store.writeServeState(state);
+    this.paired.set(origin, sha256Hex(token));
     return { token };
   }
 
   verify(origin: string, token: string): void {
-    const record = this.store.readServeState().pairedOrigins[origin];
-    if (!record || !safeEqual(record.tokenHash, sha256Hex(token))) {
+    const tokenHash = this.paired.get(origin);
+    if (!tokenHash || !safeEqual(tokenHash, sha256Hex(token))) {
       throw new ServePairingError(
         'pairing_token_invalid',
         'Pairing token is not valid for this origin',
@@ -213,7 +204,7 @@ export function renderPairingApprovalPage(input: {
 <main>
 <h1>Allow this site to manage local MoltNet agents?</h1>
 <p><code>${origin}</code> asks to configure agents and start or stop local daemon runs on this machine.</p>
-<p class="small">Approve only if you opened that page yourself. This grant persists until you remove it from the serve configuration.</p>
+<p class="small">Approve only if you opened that page yourself. This grant lasts until the local supervisor stops.</p>
 <form method="post" action="/pairings/${escapeHtml(input.pairingId)}/confirm">
 <input type="hidden" name="confirmToken" value="${escapeHtml(input.confirmToken)}" />
 <button type="submit">Approve</button>

@@ -1,4 +1,5 @@
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -49,11 +50,10 @@ describe('ServeStore', () => {
     }
   });
 
-  it('round-trips serve state and defaults to empty pairings', () => {
+  it('round-trips the versioned activation state', () => {
     const store = freshStore();
     expect(store.readServeState()).toEqual({
       version: 1,
-      pairedOrigins: {},
       pendingRegistrations: {},
       activations: {},
     });
@@ -61,14 +61,26 @@ describe('ServeStore', () => {
       version: 1,
       activations: {},
       pendingRegistrations: {},
-      pairedOrigins: {
-        'https://console.themolt.net': { tokenHash: 'ab', createdAt: 't' },
-      },
     });
-    expect(
-      store.readServeState().pairedOrigins['https://console.themolt.net'],
-    ).toEqual({ tokenHash: 'ab', createdAt: 't' });
+    expect(store.readServeState().activations).toEqual({});
     expect(statSync(join(store.root, 'serve.json')).mode & 0o777).toBe(0o600);
+  });
+
+  it('rejects the obsolete durable pairing format', () => {
+    const store = freshStore();
+    writeFileSync(
+      join(store.root, 'serve.json'),
+      JSON.stringify({
+        version: 1,
+        pendingRegistrations: {},
+        activations: {},
+        pairedOrigins: {
+          'https://console.themolt.net': { tokenHash: 'obsolete' },
+        },
+      }),
+    );
+
+    expect(() => store.readServeState()).toThrow('obsolete pairing format');
   });
 
   it('does not treat unreadable state as missing state', () => {
@@ -214,7 +226,6 @@ describe('ServeStore', () => {
       join(store.root, 'serve.json'),
       JSON.stringify({
         version: 1,
-        pairedOrigins: {},
         pendingRegistrations: {},
         activations: { broken: activation },
       }),
@@ -333,5 +344,44 @@ describe('ServeStore', () => {
     });
     expect(store.readRun('run-1')?.status).toBe('running');
     expect(store.listRuns()).toHaveLength(1);
+  });
+
+  it('retains only completed run artifacts inside count, age, and byte budgets', () => {
+    const store = freshStore();
+    const writeRun = (
+      id: string,
+      status: 'running' | 'exited',
+      startedAt: string,
+      bytes: number,
+    ) => {
+      const { logPath } = store.createRunDir(id);
+      store.writeRun({
+        id,
+        agent: 'agent',
+        teamId: 'team',
+        profiles: ['profile'],
+        taskTypes: ['freeform'],
+        mode: 'poll',
+        status,
+        startedAt,
+        ...(status === 'exited' ? { endedAt: startedAt, exitCode: 0 } : {}),
+      });
+      writeFileSync(logPath, 'x'.repeat(bytes));
+    };
+    writeRun('old', 'exited', '2025-01-01T00:00:00Z', 10);
+    writeRun('large', 'exited', '2026-01-02T00:00:00Z', 2_000);
+    writeRun('recent', 'exited', '2026-01-03T00:00:00Z', 10);
+    writeRun('active', 'running', '2025-01-01T00:00:00Z', 2_000);
+
+    const removed = store.pruneCompletedRuns({
+      maxCount: 2,
+      maxAgeMs: 7 * 24 * 60 * 60 * 1_000,
+      maxBytes: 1_000,
+      now: new Date('2026-01-04T00:00:00Z'),
+    });
+
+    expect(removed.sort()).toEqual(['large', 'old']);
+    expect(existsSync(store.runDir('recent'))).toBe(true);
+    expect(existsSync(store.runDir('active'))).toBe(true);
   });
 });

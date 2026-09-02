@@ -6,6 +6,7 @@
  * sprinkling string lookups across the codebase.
  */
 import { type DaemonAuthMode, detectAuthMode } from './lib/agent-context.js';
+import type { IdentityPin } from './lib/identity-pin.js';
 
 export interface DaemonConfig {
   /** OTLP endpoint for trace export. Empty = OTel bootstrap is a no-op. */
@@ -47,11 +48,7 @@ export interface DaemonConfig {
   /** Include empty-list and idle-sleep spans for controlled benchmarks. */
   traceIdlePolling: boolean;
   /** Identity pin supplied by the local serve supervisor. */
-  expectedIdentity?: {
-    identityId: string;
-    publicKey: string;
-    fingerprint: string;
-  };
+  expectedIdentity?: IdentityPin;
 }
 
 export function loadConfig(): DaemonConfig {

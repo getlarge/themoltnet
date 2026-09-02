@@ -12,8 +12,10 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
+import { type FileHandle, open } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { PassThrough } from 'node:stream';
 
 import {
   READ_ONLY_CAPABILITIES,
@@ -26,7 +28,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { verifyAgentActivation } from './identity.js';
 import { PairingService } from './pairing.js';
 import { RunManager, type SpawnImpl } from './runs.js';
-import { buildServeServer, SERVE_TOKEN_HEADER } from './server.js';
+import {
+  buildServeServer,
+  readServeLogDelta,
+  SERVE_TOKEN_HEADER,
+} from './server.js';
 import { ServeStore, ServeStoreError } from './store.js';
 
 const CONSOLE_ORIGIN = 'https://console.themolt.net';
@@ -35,12 +41,16 @@ const HOST = '127.0.0.1:17374';
 class FakeChild extends EventEmitter {
   pid = 4242;
   killed: string[] = [];
-  stdout = null;
-  stderr = null;
+  stdout = new PassThrough();
+  stderr = new PassThrough();
   kill(signal?: string): boolean {
     this.killed.push(signal ?? 'SIGTERM');
     // Simulate prompt, clean exit on SIGTERM.
-    setImmediate(() => this.emit('exit', 0));
+    setImmediate(() => {
+      this.stdout.end();
+      this.stderr.end();
+      this.emit('exit', 0, signal ?? 'SIGTERM');
+    });
     return true;
   }
 }
@@ -48,6 +58,7 @@ class FakeChild extends EventEmitter {
 interface Fixture {
   app: FastifyInstance;
   store: ServeStore;
+  secrets: FileSecretProvider;
   spawned: {
     command: string;
     args: readonly string[];
@@ -63,8 +74,17 @@ afterEach(async () => {
 });
 
 async function fixture(
-  options: { rateLimitMax?: number } = {},
+  options: {
+    rateLimitMax?: number;
+    baseEnv?: NodeJS.ProcessEnv;
+    maxLogBytes?: number;
+  } = {},
 ): Promise<Fixture> {
+  const {
+    baseEnv = { PATH: '/usr/bin' },
+    maxLogBytes,
+    ...serverOptions
+  } = options;
   const temp = mkdtempSync(join(tmpdir(), 'serve-server-'));
   const store = new ServeStore(join(temp, 'moltnet')).ensure();
   const secrets = new FileSecretProvider({
@@ -85,7 +105,18 @@ async function fixture(
       probe: (key) =>
         Promise.resolve(key === 'provider/ollama' ? 'present' : 'absent'),
     });
-  const externalSecretProviders = new SecretProviderRegistry();
+  const externalSecretProviders = new SecretProviderRegistry().register({
+    name: 'memory',
+    capabilities: READ_ONLY_CAPABILITIES,
+    read: (key) =>
+      Promise.resolve(
+        key === 'oauth2/external-id/client' ? 'resolved-external-secret' : null,
+      ),
+    probe: (key) =>
+      Promise.resolve(
+        key === 'oauth2/external-id/client' ? 'present' : 'absent',
+      ),
+  });
   const spawnImpl: SpawnImpl = (command, args, options) => {
     const child = new FakeChild();
     spawned.push({ command, args, options });
@@ -118,7 +149,7 @@ async function fixture(
     store,
     secretProviders,
     externalSecretProviders,
-    baseEnv: { PATH: '/usr/bin' },
+    baseEnv,
     entrypoint: {
       execPath: '/usr/bin/node',
       execArgv: [],
@@ -126,25 +157,26 @@ async function fixture(
     },
     spawnImpl,
     verifyActivationImpl: verifyActivation,
+    ...(maxLogBytes === undefined ? {} : { maxLogBytes }),
   });
   const app = buildServeServer({
     store,
     secrets,
     externalSecretProviders,
-    pairing: new PairingService(store),
+    pairing: new PairingService(),
     runs,
     allowedOrigins: [CONSOLE_ORIGIN],
     selfOrigin: 'http://127.0.0.1:17374',
     defaultApiUrl: 'https://api.example',
     version: 'test',
-    ...options,
+    ...serverOptions,
   });
   await app.ready();
   cleanups.push(async () => {
     await app.close();
     rmSync(temp, { recursive: true, force: true });
   });
-  return { app, store, spawned, children };
+  return { app, store, secrets, spawned, children };
 }
 
 function activateManaged(store: ServeStore): void {
@@ -222,6 +254,19 @@ async function pair(app: FastifyInstance): Promise<string> {
 }
 
 describe('serve pairing', () => {
+  it('invalidates grants when the supervisor process changes', () => {
+    const firstProcess = new PairingService();
+    const { pairingId } = firstProcess.start(CONSOLE_ORIGIN);
+    const { confirmToken } = firstProcess.approval(pairingId);
+    firstProcess.confirm(pairingId, confirmToken);
+    const { token } = firstProcess.claim(pairingId, CONSOLE_ORIGIN);
+
+    expect(() => firstProcess.verify(CONSOLE_ORIGIN, token)).not.toThrow();
+    expect(() => new PairingService().verify(CONSOLE_ORIGIN, token)).toThrow(
+      'not valid for this origin',
+    );
+  });
+
   it('completes the one-click ceremony and gates /v1 on the token', async () => {
     const { app } = await fixture();
 
@@ -315,6 +360,147 @@ describe('serve pairing', () => {
 });
 
 describe('serve providers and runs', () => {
+  it('caps log replay without dropping lines appended across polls', async () => {
+    const temp = mkdtempSync(join(tmpdir(), 'serve-log-tail-'));
+    cleanups.push(() => rmSync(temp, { recursive: true, force: true }));
+    const logPath = join(temp, 'run.log');
+    const state = { offset: 0, fragment: '' };
+    writeFileSync(logPath, 'discarded\nkept\n');
+
+    let handle = await open(logPath, 'r');
+    const replay = await readServeLogDelta(handle, state, 8);
+    await handle.close();
+    expect(replay).toEqual({ lines: ['kept'], omitted: true });
+
+    writeFileSync(logPath, 'partial', { flag: 'a' });
+    handle = await open(logPath, 'r');
+    const partial = await readServeLogDelta(handle, state, 32);
+    await handle.close();
+    expect(partial).toEqual({ lines: [], omitted: false });
+
+    writeFileSync(logPath, ' line\nnext\n', { flag: 'a' });
+    handle = await open(logPath, 'r');
+    const appended = await readServeLogDelta(handle, state, 32);
+    await handle.close();
+    expect(appended).toEqual({
+      lines: ['partial line', 'next'],
+      omitted: false,
+    });
+
+    const longLineState = { offset: 0, fragment: '' };
+    writeFileSync(logPath, '1234');
+    handle = await open(logPath, 'r');
+    expect(await readServeLogDelta(handle, longLineState, 8)).toMatchObject({
+      omitted: false,
+    });
+    await handle.close();
+    writeFileSync(logPath, '56789', { flag: 'a' });
+    handle = await open(logPath, 'r');
+    expect(await readServeLogDelta(handle, longLineState, 8)).toEqual({
+      lines: [],
+      omitted: true,
+    });
+    await handle.close();
+    expect(longLineState.fragment).toBe('');
+
+    const unicode = Buffer.from('🦞\n');
+    const unicodeState = { offset: 0, fragment: '' };
+    writeFileSync(logPath, unicode.subarray(0, 2));
+    handle = await open(logPath, 'r');
+    expect(await readServeLogDelta(handle, unicodeState, 32)).toMatchObject({
+      lines: [],
+    });
+    await handle.close();
+    writeFileSync(logPath, unicode.subarray(2), { flag: 'a' });
+    handle = await open(logPath, 'r');
+    expect(await readServeLogDelta(handle, unicodeState, 32)).toMatchObject({
+      lines: ['🦞'],
+    });
+    await handle.close();
+  });
+
+  it('consumes a bounded log delta across short file reads', async () => {
+    const contents = Buffer.from('first\nsecond\n');
+    const handle = {
+      stat: () =>
+        Promise.resolve({ isFile: () => true, size: contents.length }),
+      read: (
+        buffer: Buffer,
+        offset: number,
+        length: number,
+        position: number | null,
+      ) => {
+        const start = position ?? 0;
+        const bytesRead = Math.min(length, 3, contents.length - start);
+        contents.copy(buffer, offset, start, start + bytesRead);
+        return Promise.resolve({ bytesRead, buffer });
+      },
+    } as unknown as FileHandle;
+
+    await expect(
+      readServeLogDelta(handle, { offset: 0, fragment: '' }, 32),
+    ).resolves.toEqual({
+      lines: ['first', 'second'],
+      omitted: false,
+    });
+  });
+
+  it('bounds the run history returned by the polled status surface', async () => {
+    const { app, store } = await fixture();
+    const token = await pair(app);
+    activateManaged(store);
+    const activeResponse = await app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [SERVE_TOKEN_HEADER]: token,
+        'content-type': 'application/json',
+      },
+      payload: {
+        agent: 'course-bot',
+        teamId: 'team',
+        profiles: ['profile'],
+        taskTypes: ['freeform'],
+        mode: 'poll',
+      },
+    });
+    const activeId = activeResponse.json<{ id: string }>().id;
+    for (let index = 0; index < 105; index += 1) {
+      const id = `z-history-${String(index).padStart(3, '0')}`;
+      store.createRunDir(id);
+      store.writeRun({
+        id,
+        agent: 'agent',
+        teamId: 'team',
+        profiles: ['profile'],
+        taskTypes: ['freeform'],
+        mode: 'poll',
+        status: 'exited',
+        startedAt: new Date(index * 1_000).toISOString(),
+      });
+    }
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/status',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [SERVE_TOKEN_HEADER]: token,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const runs = response.json<{ runs: { id: string; active: boolean }[] }>()
+      .runs;
+    expect(runs).toHaveLength(101);
+    expect(runs).toContainEqual(
+      expect.objectContaining({ id: activeId, active: true }),
+    );
+  });
+
   it.each([
     'MOLTNET_API_URL',
     'NODE_OPTIONS',
@@ -417,6 +603,64 @@ describe('serve providers and runs', () => {
     expect(store.readProviders().ollama.apiKeyRef).toBeUndefined();
   });
 
+  it('serializes provider updates so concurrent writes cannot drop entries', async () => {
+    const { app, store, secrets } = await fixture();
+    const token = await pair(app);
+    const headers = {
+      host: HOST,
+      origin: CONSOLE_ORIGIN,
+      [SERVE_TOKEN_HEADER]: token,
+      'content-type': 'application/json',
+    };
+    const originalWrite = secrets.write.bind(secrets);
+    let firstStarted!: () => void;
+    let releaseFirst!: () => void;
+    const started = new Promise<void>((resolvePromise) => {
+      firstStarted = resolvePromise;
+    });
+    const release = new Promise<void>((resolvePromise) => {
+      releaseFirst = resolvePromise;
+    });
+    vi.spyOn(secrets, 'write').mockImplementation(async (key, value) => {
+      if (key === 'pi-provider/first') {
+        firstStarted();
+        await release;
+      }
+      await originalWrite(key, value);
+    });
+    const payload = (id: string) => ({
+      api: 'openai-completions',
+      baseUrl: `https://${id}.example/v1`,
+      envName: `MOLTNET_PROVIDER_${id.toUpperCase()}_API_KEY`,
+      models: ['model'],
+      apiKey: `${id}-secret`,
+    });
+
+    const first = app.inject({
+      method: 'PUT',
+      url: '/v1/providers/first',
+      headers,
+      payload: payload('first'),
+    });
+    await started;
+    const second = app.inject({
+      method: 'PUT',
+      url: '/v1/providers/second',
+      headers,
+      payload: payload('second'),
+    });
+    releaseFirst();
+    const responses = await Promise.all([first, second]);
+
+    expect(responses.every((response) => response.statusCode === 200)).toBe(
+      true,
+    );
+    expect(Object.keys(store.readProviders()).sort()).toEqual([
+      'first',
+      'second',
+    ]);
+  });
+
   it('starts and stops a run for a managed agent with resolved provider env', async () => {
     const { app, store, spawned, children } = await fixture();
     const token = await pair(app);
@@ -459,8 +703,25 @@ describe('serve providers and runs', () => {
     expect(created.statusCode).toBe(201);
     const run = created.json<{ id: string; status: string }>();
     expect(run.status).toBe('running');
+    expect(created.json()).not.toHaveProperty('active');
 
-    expect(spawned).toHaveLength(1);
+    const duplicate = await app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers,
+      payload: {
+        agent: 'course-bot',
+        teamId: 'team-1',
+        profiles: ['course-profile'],
+        taskTypes: ['freeform'],
+        mode: 'poll',
+      },
+    });
+    expect(duplicate.statusCode).toBe(201);
+    expect(duplicate.json()).not.toHaveProperty('active');
+    expect(duplicate.json<{ id: string }>().id).not.toBe(run.id);
+
+    expect(spawned).toHaveLength(2);
     const [{ command, args, options }] = spawned;
     expect(command).toBe('/usr/bin/node');
     expect(args).toEqual([
@@ -515,6 +776,146 @@ describe('serve providers and runs', () => {
     expect(store.readRun(run.id)?.status).toBe('stopped');
   });
 
+  it('does not leak ambient supervisor credentials into run children', async () => {
+    const { app, store, spawned } = await fixture({
+      baseEnv: {
+        PATH: '/usr/bin',
+        HOME: '/tmp/home',
+        SSH_AUTH_SOCK: '/tmp/agent.sock',
+        KUBECONFIG: '/tmp/kubeconfig',
+        DOCKER_CONFIG: '/tmp/docker',
+        MOLTNET_GIT_AUTHOR: 'Agent <agent@example.test>',
+        MOLTNET_OTEL_ENDPOINT: 'http://127.0.0.1:4318',
+        MOLTNET_AGENT_KEY: 'ambient-agent-key',
+        MOLTNET_CLIENT_SECRET: 'ambient-client-secret',
+        MOLTNET_PRIVATE_KEY: 'ambient-private-key',
+        GITHUB_TOKEN: 'ambient-github-token',
+        ANTHROPIC_API_KEY: 'ambient-provider-key',
+        DATABASE_URL: 'postgres://user:password@database.example/db',
+        PI_AUTH_JSON: '{"provider":"ambient"}',
+      },
+    });
+    const token = await pair(app);
+    activateManaged(store);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [SERVE_TOKEN_HEADER]: token,
+        'content-type': 'application/json',
+      },
+      payload: {
+        agent: 'course-bot',
+        teamId: 'team-1',
+        profiles: ['profile'],
+        taskTypes: ['freeform'],
+        mode: 'poll',
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    const childEnv = spawned[0]?.options.env ?? {};
+    expect(childEnv).toMatchObject({
+      PATH: '/usr/bin',
+      MOLTNET_GIT_AUTHOR: 'Agent <agent@example.test>',
+      MOLTNET_OTEL_ENDPOINT: 'http://127.0.0.1:4318',
+    });
+    expect(childEnv.HOME).not.toBe('/tmp/home');
+    expect(childEnv.HOME).toMatch(/\/runs\/[^/]+\/home$/u);
+    expect(childEnv).not.toHaveProperty('SSH_AUTH_SOCK');
+    expect(childEnv).not.toHaveProperty('KUBECONFIG');
+    expect(childEnv).not.toHaveProperty('DOCKER_CONFIG');
+    expect(childEnv).not.toHaveProperty('MOLTNET_AGENT_KEY');
+    expect(childEnv).not.toHaveProperty('MOLTNET_CLIENT_SECRET');
+    expect(childEnv).not.toHaveProperty('MOLTNET_PRIVATE_KEY');
+    expect(childEnv).not.toHaveProperty('GITHUB_TOKEN');
+    expect(childEnv).not.toHaveProperty('ANTHROPIC_API_KEY');
+    expect(childEnv).not.toHaveProperty('DATABASE_URL');
+    expect(childEnv).not.toHaveProperty('PI_AUTH_JSON');
+    expect(childEnv['MOLTNET_AGENT_KEY_REF']).toBe('file:agent-key/id-1');
+  });
+
+  it('caps active child logs at the configured byte budget', async () => {
+    const { app, store, children } = await fixture({ maxLogBytes: 32 });
+    const token = await pair(app);
+    activateManaged(store);
+    const created = await app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [SERVE_TOKEN_HEADER]: token,
+        'content-type': 'application/json',
+      },
+      payload: {
+        agent: 'course-bot',
+        teamId: 'team-1',
+        profiles: ['profile'],
+        taskTypes: ['freeform'],
+        mode: 'poll',
+      },
+    });
+    const { id } = created.json<{ id: string }>();
+    children[0]?.stdout.write('x'.repeat(128));
+    children[0]?.kill('SIGTERM');
+    await vi.waitFor(() => {
+      expect(
+        readFileSync(join(store.runDir(id), 'daemon.log'), 'utf8'),
+      ).toContain('[truncated]');
+      expect(
+        readFileSync(join(store.runDir(id), 'daemon.log')).byteLength,
+      ).toBeLessThanOrEqual(32);
+    });
+  });
+
+  it('reconciles persisted running records when a supervisor is replaced', async () => {
+    const { store } = await fixture();
+    store.createRunDir('interrupted');
+    store.writeRun({
+      id: 'interrupted',
+      agent: 'course-bot',
+      teamId: 'team-1',
+      profiles: ['profile'],
+      taskTypes: ['freeform'],
+      mode: 'poll',
+      status: 'running',
+      pid: 1234,
+      startedAt: '2026-01-01T00:00:00Z',
+    });
+    const logger = {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    };
+
+    new RunManager({
+      store,
+      secretProviders: new SecretProviderRegistry(),
+      externalSecretProviders: new SecretProviderRegistry(),
+      baseEnv: {},
+      logger,
+      now: () => new Date('2026-01-02T00:00:00Z'),
+    });
+
+    expect(store.readRun('interrupted')).toMatchObject({
+      status: 'failed',
+      exitCode: null,
+      endedAt: '2026-01-02T00:00:00.000Z',
+    });
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        runId: 'interrupted',
+        pid: 1234,
+        transition: 'interrupted',
+      }),
+      'serve run interrupted by supervisor replacement',
+    );
+  });
+
   it('launches an external alias from the exact configured agent directory', async () => {
     const { app, store, spawned } = await fixture();
     const token = await pair(app);
@@ -527,14 +928,20 @@ describe('serve providers and runs', () => {
       JSON.stringify({
         identity_id: 'external-id',
         registered_at: 't',
-        oauth2: { client_id: 'client', client_secret: 'secret' },
+        oauth2: {
+          client_id: 'client',
+          client_secret_ref: {
+            provider: 'memory',
+            key: 'oauth2/external-id/client',
+          },
+        },
         keys: {
           public_key: 'pk',
           private_key: 'seed',
           fingerprint: 'fp',
         },
         endpoints: {
-          api: 'https://api.themolt.net',
+          api: 'http://127.0.0.1:4000',
           mcp: 'https://mcp.themolt.net/mcp',
         },
       }),
@@ -547,7 +954,7 @@ describe('serve providers and runs', () => {
       fingerprint: 'fp',
       createdAt: 't',
       configPath,
-      configApiUrl: 'https://api.themolt.net',
+      configApiUrl: 'http://127.0.0.1:4000',
       apiUrl: 'http://127.0.0.1:4000',
     });
 
@@ -574,6 +981,10 @@ describe('serve providers and runs', () => {
     expect(spawned[0]?.args).toContain(agentRoot);
     expect(spawned[0]?.options.env['MOLTNET_API_URL']).toBe(
       'http://127.0.0.1:4000',
+    );
+    expect(spawned[0]?.options.env['MOLTNET_CLIENT_ID']).toBe('client');
+    expect(spawned[0]?.options.env['MOLTNET_CLIENT_SECRET']).toBe(
+      'resolved-external-secret',
     );
     expect(spawned[0]?.options.env['MOLTNET_EXPECTED_IDENTITY_ID']).toBe(
       'external-id',
