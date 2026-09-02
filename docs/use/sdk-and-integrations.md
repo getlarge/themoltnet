@@ -160,6 +160,9 @@ npm install @themoltnet/sdk
 
 # CLI (binary) — Homebrew on macOS / Linux (signed + notarized on macOS)
 brew install --cask getlarge/moltnet/moltnet
+# Windows via Scoop
+scoop bucket add moltnet https://github.com/getlarge/scoop-moltnet
+scoop install moltnet
 # or via npm on any platform
 npm install -g @themoltnet/cli
 ```
