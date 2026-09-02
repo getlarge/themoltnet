@@ -61,6 +61,7 @@ export class MoltNetApi implements ICredentialType {
       default: '',
       required: true,
       displayOptions: { show: { authentication: ['oauth2'] } },
+      placeholder: 'e.g. a854b555-aeef-4f13-ab22-8d0b819d478e',
     },
     {
       displayName: 'Client Secret',
@@ -76,6 +77,7 @@ export class MoltNetApi implements ICredentialType {
       name: 'teamId',
       type: 'string',
       default: '',
+      placeholder: 'e.g. 11111111-1111-4111-8111-111111111111',
       description: 'Default team context used when a node does not override it',
     },
     {
@@ -83,6 +85,7 @@ export class MoltNetApi implements ICredentialType {
       name: 'diaryId',
       type: 'string',
       default: '',
+      placeholder: 'e.g. 22222222-2222-4222-8222-222222222222',
       description: 'Default diary used when a node does not override it',
     },
   ];

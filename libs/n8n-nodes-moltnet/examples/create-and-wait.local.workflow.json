@@ -8,7 +8,7 @@
       "main": [[{ "index": 0, "node": "MoltNet Wait", "type": "main" }]]
     }
   },
-  "name": "MoltNet Create and Wait",
+  "name": "MoltNet Create and Wait (Local Development)",
   "nodes": [
     {
       "id": "manual-trigger",
@@ -33,7 +33,7 @@
         "taskType": "freeform"
       },
       "position": [240, 0],
-      "type": "@themoltnet/n8n-nodes-moltnet.moltNet",
+      "type": "CUSTOM.moltNet",
       "typeVersion": 1
     },
     {
@@ -53,7 +53,7 @@
         "timeout": 1800
       },
       "position": [480, 0],
-      "type": "@themoltnet/n8n-nodes-moltnet.moltNet",
+      "type": "CUSTOM.moltNet",
       "typeVersion": 1
     }
   ],

@@ -1,7 +1,7 @@
 {
   "name": "@themoltnet/n8n-nodes-moltnet",
   "version": "0.2.0",
-  "description": "n8n community nodes for creating and waiting on MoltNet tasks",
+  "description": "n8n community nodes for creating, finding, cancelling, and waiting on MoltNet tasks",
   "keywords": [
     "n8n-community-node-package",
     "moltnet",
@@ -31,7 +31,7 @@
   },
   "files": [
     "dist",
-    "examples",
+    "examples/create-and-wait.workflow.json",
     "README.md",
     "LICENSE.md"
   ],

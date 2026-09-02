@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import localWorkflow from '../examples/create-and-wait.local.workflow.json';
 import workflow from '../examples/create-and-wait.workflow.json';
 import { MoltNet } from '../nodes/MoltNet/MoltNet.node.js';
 import { createExecuteContext, FakeMoltNetApi } from './harness.js';
@@ -28,20 +29,28 @@ describe('shipped Create to Wait workflow', () => {
     expect(waitNode?.type).toBe('@themoltnet/n8n-nodes-moltnet.moltNet');
 
     const [created] = await new MoltNet().execute.call(
-      createExecuteContext({ parameters: createNode!.parameters }),
+      createExecuteContext({
+        parameters: createNode!.parameters,
+        typeVersion: createNode!.typeVersion,
+      }),
     );
     const taskIdExpression = waitNode!.parameters.taskId;
-    expect(taskIdExpression).toBe('={{$json.id}}');
+    expect(taskIdExpression).toMatchObject({
+      __rl: true,
+      mode: 'id',
+      value: '={{$json.id}}',
+    });
 
     const execution = new MoltNet().execute.call(
       createExecuteContext({
         items: created,
         parameters: {
           ...waitNode!.parameters,
-          taskId: created[0].json.id,
+          taskId: { __rl: true, mode: 'id', value: created[0].json.id },
           pollInterval: 5,
           timeout: 30,
         },
+        typeVersion: waitNode!.typeVersion,
       }),
     );
     await vi.runAllTimersAsync();
@@ -54,5 +63,27 @@ describe('shipped Create to Wait workflow', () => {
       accepted: true,
       state: { answer: 42 },
     });
+  });
+
+  it('provides a repository-local workflow for the custom directory loader', () => {
+    const moltNetNodes = localWorkflow.nodes.filter(({ name }) =>
+      name.startsWith('MoltNet '),
+    );
+
+    expect(moltNetNodes).toHaveLength(2);
+    expect(moltNetNodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'MoltNet Create',
+          type: 'CUSTOM.moltNet',
+          typeVersion: 1,
+        }),
+        expect.objectContaining({
+          name: 'MoltNet Wait',
+          type: 'CUSTOM.moltNet',
+          typeVersion: 1,
+        }),
+      ]),
+    );
   });
 });

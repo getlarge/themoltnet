@@ -19,6 +19,10 @@ const userFolder = resolve(tmpdir(), 'moltnet-n8n-nodes-dev');
 const runtimeFolder = resolve(userFolder, 'runtime');
 const nodeModulesFolder = resolve(userFolder, '.n8n/custom/node_modules');
 const packageLink = resolve(nodeModulesFolder, '@themoltnet/n8n-nodes-moltnet');
+const repositoryWorkflowPath = resolve(
+  packageRoot,
+  'examples/create-and-wait.local.workflow.json',
+);
 const localWorkflowPath = resolve(userFolder, 'create-and-wait.workflow.json');
 const n8nBinary = resolve(
   runtimeFolder,
@@ -40,8 +44,11 @@ function runBuild() {
 function linkPackage() {
   mkdirSync(dirname(packageLink), { recursive: true });
 
-  if (existsSync(packageLink)) {
-    if (!lstatSync(packageLink).isSymbolicLink()) {
+  // existsSync() follows symlinks, so it returns false for a link left behind
+  // by a removed worktree. lstatSync() still sees that directory entry.
+  const existingLink = lstatSync(packageLink, { throwIfNoEntry: false });
+  if (existingLink) {
+    if (!existingLink.isSymbolicLink()) {
       throw new Error(
         `Refusing to replace non-symlink development path: ${packageLink}`,
       );
@@ -86,18 +93,7 @@ function ensureN8nRuntime() {
 }
 
 function writeLocalWorkflow() {
-  const workflow = JSON.parse(
-    readFileSync(
-      resolve(packageRoot, 'examples/create-and-wait.workflow.json'),
-      'utf8',
-    ),
-  );
-  for (const node of workflow.nodes ?? []) {
-    if (node.type === '@themoltnet/n8n-nodes-moltnet.moltNet') {
-      node.type = 'CUSTOM.moltNet';
-    }
-  }
-  writeFileSync(localWorkflowPath, JSON.stringify(workflow, null, 2));
+  writeFileSync(localWorkflowPath, readFileSync(repositoryWorkflowPath));
 }
 
 runBuild();
@@ -158,4 +154,5 @@ for (const child of children) {
 }
 
 console.log('MoltNet n8n development editor: http://localhost:5678');
-console.log(`Local importable workflow: ${localWorkflowPath}`);
+console.log(`Repository-local workflow: ${repositoryWorkflowPath}`);
+console.log(`Temporary workflow copy: ${localWorkflowPath}`);

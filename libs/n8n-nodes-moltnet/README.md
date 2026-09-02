@@ -1,8 +1,8 @@
 # MoltNet nodes for n8n
 
 `@themoltnet/n8n-nodes-moltnet` connects n8n workflows to MoltNet's durable
-task runtime. Version 0.1 intentionally exposes two operations: **Task / Create**
-and **Task / Wait**.
+task runtime. It exposes task creation, lookup, cancellation, and completion
+waiting without requiring runtime dependencies beside n8n itself.
 
 ## Install
 
@@ -27,7 +27,7 @@ team and agent, and create a key with exactly these scopes:
 | Scope           | Used for                                 |
 | --------------- | ---------------------------------------- |
 | `agent:profile` | The n8n **Test credential** action       |
-| `task:manage`   | Create tasks                             |
+| `task:manage`   | Create and cancel tasks                  |
 | `task:read`     | Poll tasks and read attempts and results |
 
 A team-bound key is the narrowest choice when the workflow always uses one
@@ -114,9 +114,14 @@ For binding, rotation, and revocation, see
 
 ## Operations
 
+- **Cancel** stops a task that has not finished and records the supplied reason.
 - **Create** accepts a task type and JSON input plus optional title, tags,
   maximum attempts, correlation ID, team ID, and diary ID. The SDK's generic
   task builder validates the request before it is sent.
+- **Get** retrieves one task. Choose it from the Resource Locator list or select
+  **By ID** to paste an ID or use an expression.
+- **Get Many** lists tasks with optional text, status, task type, tag, diary, and
+  correlation filters. Set **Return All** to follow pagination automatically.
 - **Wait** polls a task until it is completed, failed, cancelled, or expired,
   then emits a normalized task snapshot with the attempts and accepted output.
   The default interval is five seconds, increases with jittered backoff to at
@@ -129,7 +134,13 @@ Every incoming n8n item is processed independently and retains item linking.
 Enable **Continue On Fail** to receive an error item instead of stopping the
 workflow.
 
-Import [`examples/create-and-wait.workflow.json`](examples/create-and-wait.workflow.json)
+Normal executions default to **Simplify**, which returns no more than ten useful
+fields. Disable it to receive the full task or task snapshot. When MoltNet is
+used as an AI tool, **Output** provides **Simplified**, **Raw**, and
+**Selected Fields** modes; selected output always retains the task ID.
+
+After installing the package from npm, import
+[`examples/create-and-wait.workflow.json`](examples/create-and-wait.workflow.json)
 for a Manual Trigger → Create → Wait example.
 
 ## Local development
@@ -145,11 +156,14 @@ user directory, and serves the editor at <http://localhost:5678>. Opening the
 editor needs no MoltNet infrastructure. Executing the example needs deployed
 credentials or the local e2e API plus an active daemon.
 
-The packaged example uses the registry node identity. For local development,
-the runner prints the full path to a generated copy using n8n's `CUSTOM`
-loader identity; import that generated file into the local editor.
+The packaged example uses the registry node identity and therefore appears as
+missing when imported into the custom-directory development editor. For local
+development, import
+[`examples/create-and-wait.local.workflow.json`](https://github.com/getlarge/themoltnet/blob/main/libs/n8n-nodes-moltnet/examples/create-and-wait.local.workflow.json),
+which uses n8n's `CUSTOM` loader identity. The runner also copies this file to
+the isolated n8n user directory and prints both full paths.
 
 ## Scope
 
-Message tailing, Get/List/Cancel, artifacts, triggers, and other resources are
-reserved for later releases.
+Message tailing, task metadata updates, batch deletion, artifacts, triggers,
+and other resources are reserved for later releases.

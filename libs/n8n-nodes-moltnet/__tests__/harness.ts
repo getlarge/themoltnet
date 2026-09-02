@@ -34,6 +34,7 @@ export interface FakeApiOptions {
 export class FakeMoltNetApi {
   readonly requests: Request[] = [];
   readonly createdBodies: IDataObject[] = [];
+  readonly cancellationReasons: string[] = [];
   readonly taskId = '33333333-3333-4333-8333-333333333333';
   readonly attempt = {
     taskId: this.taskId,
@@ -89,6 +90,12 @@ export class FakeMoltNetApi {
         currentTeamId: teamId,
       });
     }
+    if (url.pathname === '/tasks' && request.method === 'GET') {
+      return jsonResponse({
+        items: [this.task({}, 'queued')],
+        total: 1,
+      });
+    }
     if (url.pathname === '/tasks' && request.method === 'POST') {
       const body = (await request.json()) as IDataObject;
       this.createdBodies.push(body);
@@ -107,6 +114,14 @@ export class FakeMoltNetApi {
       }
       this.taskTeamId = request.headers.get('x-moltnet-team-id') ?? teamId;
       return jsonResponse(this.task(body), createStatus);
+    }
+    if (
+      url.pathname === `/tasks/${this.taskId}/cancel` &&
+      request.method === 'POST'
+    ) {
+      const body = (await request.json()) as IDataObject;
+      this.cancellationReasons.push(String(body.reason));
+      return jsonResponse(this.task({}, 'cancelled'));
     }
     if (url.pathname === `/tasks/${this.taskId}`) {
       const responseStatus = this.taskReadResponses[this.taskReadIndex++];
@@ -158,8 +173,9 @@ export class FakeMoltNetApi {
             ? 1
             : null
           : this.acceptedAttemptN,
-      createdAt: '2026-08-31T00:00:00.000Z',
-      updatedAt: '2026-08-31T00:00:00.000Z',
+      queuedAt: '2026-08-31T00:00:00.000Z',
+      expiresAt: '2026-08-31T01:00:00.000Z',
+      completedAt: status === 'completed' ? '2026-08-31T00:01:00.000Z' : null,
     };
   }
 }
@@ -170,6 +186,8 @@ export interface HarnessOptions {
   credentials?: MoltNetCredentials | MoltNetCredentials[];
   continueOnFail?: boolean;
   cancelSignal?: AbortSignal;
+  typeVersion?: number;
+  toolExecution?: boolean;
 }
 
 export function createExecuteContext(
@@ -183,7 +201,7 @@ export function createExecuteContext(
     id: 'molt-net-test',
     name: 'MoltNet',
     type: '@themoltnet/n8n-nodes-moltnet.moltNet',
-    typeVersion: 1,
+    typeVersion: options.typeVersion ?? 1,
     position: [0, 0],
     parameters: {},
   };
@@ -198,6 +216,7 @@ export function createExecuteContext(
     },
     getExecutionCancelSignal: () => options.cancelSignal,
     getInputData: () => items,
+    isToolExecution: () => options.toolExecution ?? false,
     getNode: () => node,
     getNodeParameter: (name: string, itemIndex: number, fallback?: unknown) =>
       parameters[itemIndex]?.[name] ?? parameters[0]?.[name] ?? fallback,
