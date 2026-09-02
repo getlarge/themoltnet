@@ -1919,6 +1919,16 @@ jobs:
           node-version-file: .tool-versions
           cache: pnpm
 
+      # The root postinstall constructs the Nx project graph; @nx-go/nx-go
+      # invokes `go list -m -json` during it, and the macOS runner image has
+      # no Go on PATH ('/bin/sh: go: command not found'). Install it
+      # explicitly on both matrix legs, mirroring ci.yml.
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+          cache-dependency-path: |
+            go.work.sum
+
       - run: pnpm install --frozen-lockfile
 
       - name: Assemble payload
