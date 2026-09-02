@@ -1172,14 +1172,14 @@ jobs:
           SEMVER="${TAG#cli-}"
           echo "semver=$SEMVER" >> "$GITHUB_OUTPUT"
 
-      - name: Generate GitHub App token for Homebrew tap and Scoop bucket
+      - name: Generate GitHub App token for Homebrew tap, Scoop bucket and APT repo
         uses: actions/create-github-app-token@v3
         id: app-token
         with:
           app-id: ${{ secrets.MOLTNET_RELEASE_APP_ID }}
           private-key: ${{ secrets.MOLTNET_RELEASE_APP_KEY }}
           owner: getlarge
-          repositories: homebrew-moltnet,scoop-moltnet
+          repositories: homebrew-moltnet,scoop-moltnet,apt-moltnet
 
       - name: Prepare signing material
         id: signing
@@ -1255,10 +1255,69 @@ jobs:
           gh release upload "${{ needs.resolve-publish.outputs.cli-tag }}" \
             apps/moltnet-cli/dist/*.tar.gz \
             apps/moltnet-cli/dist/*.zip \
+            apps/moltnet-cli/dist/*.deb \
             apps/moltnet-cli/dist/checksums.txt \
             apps/moltnet-cli/dist/checksums.txt.sig
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Linux counterpart of the tap and bucket: getlarge/apt-moltnet is a
+      # GitHub Pages site holding a reprepro-generated APT repository. The
+      # repository is rebuilt from scratch on every CLI release (only the newest
+      # version is served; older .deb files stay on the GitHub release) and
+      # force-pushed as a single orphan commit so the distribution repo never
+      # accumulates binary history. apt verifies OpenPGP signatures only, so
+      # the index is signed with a dedicated GPG key (APT_SIGNING_KEY) rather
+      # than the ssh release key; the public half is committed to apt-moltnet as
+      # moltnet.gpg and pinned by fingerprint below so a swapped secret cannot
+      # silently re-key the repository.
+      - name: Publish APT repository
+        env:
+          APT_SIGNING_KEY: ${{ secrets.APT_SIGNING_KEY }}
+          APT_SIGNING_FINGERPRINT: 9C4ED25C43C7DB198C8DB69D253494FBBBDA8506
+          APT_REPO_TOKEN: ${{ steps.app-token.outputs.token }}
+          CLI_VERSION: ${{ steps.tag.outputs.semver }}
+        run: |
+          set -euo pipefail
+          if [ -z "$APT_SIGNING_KEY" ]; then
+            echo "::error::APT_SIGNING_KEY is not configured; refusing to publish an unsigned APT repository"
+            exit 1
+          fi
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq reprepro >/dev/null
+
+          export GNUPGHOME="$RUNNER_TEMP/apt-gnupg"
+          mkdir -m 700 "$GNUPGHOME"
+          printf '%s\n' "$APT_SIGNING_KEY" | gpg --batch --quiet --import
+          if ! gpg --batch --list-secret-keys --with-colons | grep -q "^fpr:.*:${APT_SIGNING_FINGERPRINT}:"; then
+            echo "::error::APT_SIGNING_KEY does not contain the pinned key ${APT_SIGNING_FINGERPRINT}"
+            exit 1
+          fi
+
+          REPO="$RUNNER_TEMP/apt-moltnet"
+          git clone --quiet --depth 1 \
+            "https://x-access-token:${APT_REPO_TOKEN}@github.com/getlarge/apt-moltnet.git" "$REPO"
+          cd "$REPO"
+          if ! grep -qx "SignWith: ${APT_SIGNING_FINGERPRINT}" conf/distributions; then
+            echo "::error::apt-moltnet conf/distributions does not pin SignWith: ${APT_SIGNING_FINGERPRINT}"
+            exit 1
+          fi
+          if ! gpg --batch --show-keys --with-colons moltnet.gpg | grep -q "^fpr:.*:${APT_SIGNING_FINGERPRINT}:"; then
+            echo "::error::apt-moltnet moltnet.gpg does not carry the pinned key ${APT_SIGNING_FINGERPRINT}"
+            exit 1
+          fi
+
+          rm -rf dists pool db
+          reprepro --basedir . includedeb stable "$GITHUB_WORKSPACE"/apps/moltnet-cli/dist/*.deb
+          reprepro --basedir . list stable
+          gpg --batch --verify dists/stable/InRelease
+          gpg --batch --verify dists/stable/Release.gpg dists/stable/Release
+
+          git checkout --quiet --orphan release
+          git add -A
+          git -c user.name='MoltNet Release Signing' -c user.email='legreffier@themolt.net' \
+            commit --quiet -m "release: moltnet ${CLI_VERSION}"
+          git push --quiet --force origin release:main
 
       - name: Publish CLI release
         run: gh release edit "${{ needs.resolve-publish.outputs.cli-tag }}" --draft=false
