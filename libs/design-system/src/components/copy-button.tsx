@@ -6,6 +6,12 @@ import type { Size } from '../types.js';
 export interface CopyButtonProps {
   value: string;
   label?: string;
+  /**
+   * Visible chip text. Defaults to the value itself, which suits short
+   * identifiers; pass a short verb such as "Copy" when the value is a
+   * multi-line script already shown in an adjacent code block.
+   */
+  text?: string;
   size?: Size;
   ariaLabel?: string;
 }
@@ -13,6 +19,7 @@ export interface CopyButtonProps {
 export function CopyButton({
   value,
   label,
+  text,
   size = 'md',
   ariaLabel,
 }: CopyButtonProps) {
@@ -95,7 +102,7 @@ export function CopyButton({
         }}
         title={failed ? 'Copy failed' : copied ? 'Copied!' : 'Click to copy'}
       >
-        <span>{value}</span>
+        <span>{text ?? value}</span>
         <span
           aria-hidden="true"
           style={{
