@@ -1,3 +1,4 @@
+import { parseAllowedOrigins } from '@moltnet/loopback-companion';
 import { Type } from 'typebox';
 import { Value } from 'typebox/value';
 
@@ -50,9 +51,9 @@ export function getSignerConfig(
   }
 
   const host = '127.0.0.1';
-  const allowedOrigins = config.MOLTNET_SIGNER_ALLOWED_ORIGINS.split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+  const allowedOrigins = parseAllowedOrigins(
+    config.MOLTNET_SIGNER_ALLOWED_ORIGINS,
+  );
   if (allowedOrigins.length === 0) {
     throw new Error('Invalid signer config:\n  - allowed origins are required');
   }

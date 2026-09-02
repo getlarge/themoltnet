@@ -11,13 +11,16 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
-      "path": "../../libs/design-system/tsconfig.lib.json"
-    },
-    {
       "path": "../../libs/yubikey-preview-sign/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/design-system/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/models/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/loopback-companion/tsconfig.lib.json"
     },
     {
       "path": "../../libs/crypto-service/tsconfig.lib.json"

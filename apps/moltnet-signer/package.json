@@ -60,6 +60,7 @@
   "devDependencies": {
     "@fastify/swagger": "catalog:",
     "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/loopback-companion": "workspace:*",
     "@moltnet/models": "workspace:*",
     "@types/node": "catalog:",
     "tsx": "catalog:",

@@ -1,6 +1,11 @@
-import cors from '@fastify/cors';
-import helmet from '@fastify/helmet';
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
+import {
+  assertNavigationRequest,
+  isLoopbackViolation,
+  registerLoopbackSecurity,
+  rejectExplicitCrossSite,
+  requireOriginHeader,
+} from '@moltnet/loopback-companion';
 import type { SignerCeremonyRequest } from '@moltnet/models';
 import {
   SignerCeremonyParamsSchema,
@@ -72,27 +77,17 @@ export function createSignerServer(
     app.addSchema(schema);
   }
 
-  app.removeContentTypeParser('application/json');
-  app.addContentTypeParser(
-    'application/json',
-    { parseAs: 'buffer' },
-    (_request, body, done) => {
-      try {
-        const json = new TextDecoder('utf-8', { fatal: true }).decode(
-          typeof body === 'string' ? Buffer.from(body) : body,
-        );
-        done(null, JSON.parse(json));
-      } catch {
-        done(
-          new SignerCeremonyError(
-            'ceremony_invalid',
-            'Request body must be valid UTF-8 JSON',
-          ),
-          undefined,
-        );
-      }
-    },
-  );
+  // Loopback Host enforcement, no-store responses, strict UTF-8 JSON
+  // parsing, exact-origin CORS (with the Safari `null`-origin carve-out —
+  // the route's one-time confirmation token remains mandatory), and the
+  // hardened helmet profile. The ceremony service stays the origin
+  // authority via the injected decision.
+  registerLoopbackSecurity(app, {
+    allowedHeaders: [SESSION_HEADER],
+    isOriginAllowed: (origin) => service.isCorsOriginAllowed(origin),
+    selfOrigins: [service.approvalOrigin],
+  });
+
   app.addContentTypeParser(
     'application/x-www-form-urlencoded',
     { parseAs: 'buffer' },
@@ -113,53 +108,6 @@ export function createSignerServer(
       }
     },
   );
-
-  app.addHook('onRequest', (request, _reply, done) => {
-    requireLoopbackHost(request);
-    done();
-  });
-  app.addHook('onSend', async (_request, reply, payload) => {
-    reply.header('cache-control', 'no-store');
-    return payload;
-  });
-
-  void app.register(cors, {
-    allowedHeaders: ['content-type', SESSION_HEADER],
-    maxAge: 600,
-    methods: ['GET', 'POST', 'OPTIONS'],
-    origin: (origin, callback) => {
-      // Safari may serialize a same-origin loopback form navigation as the
-      // opaque Origin value `null`. It does not need a CORS response; the
-      // route's one-time confirmation token remains mandatory.
-      if (!origin || origin === 'null') {
-        callback(null, false);
-        return;
-      }
-      try {
-        service.assertCorsOrigin(origin);
-        callback(null, true);
-      } catch (error) {
-        callback(error as Error, false);
-      }
-    },
-  });
-  void app.register(helmet, {
-    contentSecurityPolicy: {
-      useDefaults: false,
-      directives: {
-        baseUri: ["'none'"],
-        defaultSrc: ["'none'"],
-        formAction: ["'self'"],
-        frameAncestors: ["'none'"],
-        styleSrc: ["'unsafe-inline'"],
-      },
-    },
-    crossOriginEmbedderPolicy: false,
-    crossOriginOpenerPolicy: false,
-    crossOriginResourcePolicy: { policy: 'same-origin' },
-    hsts: false,
-    referrerPolicy: { policy: 'no-referrer' },
-  });
 
   app.after(() => {
     const server = app.withTypeProvider<TypeBoxTypeProvider>();
@@ -339,14 +287,9 @@ export function createSignerServer(
 }
 
 function requireApprovalNavigation(request: FastifyRequest): void {
-  const site = request.headers['sec-fetch-site'];
-  const mode = request.headers['sec-fetch-mode'];
-  const destination = request.headers['sec-fetch-dest'];
-  if (
-    (site !== 'cross-site' && site !== 'same-origin' && site !== 'none') ||
-    mode !== 'navigate' ||
-    destination !== 'document'
-  ) {
+  try {
+    assertNavigationRequest(request.headers);
+  } catch {
     throw new SignerCeremonyError(
       'origin_not_allowed',
       'Approval must be opened as a browser navigation',
@@ -358,54 +301,24 @@ function rejectCrossSiteConfirmation(request: FastifyRequest): void {
   // The one-time confirmation token is the primary CSRF control. Safari may
   // omit Fetch Metadata on same-origin form submissions, so only reject an
   // explicit cross-site signal here instead of requiring the header.
-  const site = request.headers['sec-fetch-site'];
-  if (site === 'cross-site') {
-    rejectConfirmationOrigin();
-  }
-}
-
-function rejectConfirmationOrigin(): never {
-  throw new SignerCeremonyError(
-    'origin_not_allowed',
-    'Confirmation must come from the approval page',
-  );
-}
-
-function requireLoopbackHost(request: FastifyRequest): void {
-  const host = request.headers.host;
-  if (!host) {
-    throw new SignerCeremonyError(
-      'ceremony_invalid',
-      'Host header is required',
-    );
-  }
-  let hostname: string;
   try {
-    hostname = new URL(`http://${host}`).hostname;
+    rejectExplicitCrossSite(request.headers);
   } catch {
     throw new SignerCeremonyError(
-      'ceremony_invalid',
-      'Host header must identify loopback',
-    );
-  }
-  if (
-    hostname !== '127.0.0.1' &&
-    hostname !== 'localhost' &&
-    hostname !== '[::1]'
-  ) {
-    throw new SignerCeremonyError(
-      'ceremony_invalid',
-      'Host header must identify loopback',
+      'origin_not_allowed',
+      'Confirmation must come from the approval page',
     );
   }
 }
 
 function requireOrigin(request: FastifyRequest): string {
-  const origin = request.headers.origin;
-  if (!origin) {
-    throw new SignerCeremonyError('origin_not_allowed', 'Origin is required');
+  try {
+    return requireOriginHeader(request.headers);
+  } catch (cause) {
+    throw new SignerCeremonyError('origin_not_allowed', 'Origin is required', {
+      cause,
+    });
   }
-  return origin;
 }
 
 function requireSessionHeader(request: FastifyRequest): string {
@@ -424,6 +337,28 @@ function normalizeError(
   request: FastifyRequest,
 ): SignerCeremonyError {
   if (error instanceof SignerCeremonyError) return error;
+  if (isLoopbackViolation(error)) {
+    // Transport violations raised by @moltnet/loopback-companion. Origin
+    // violations keep the signer's historical code and message; host and
+    // body violations keep the lib's message (identical to the pre-lib
+    // signer wording) under `ceremony_invalid`.
+    switch (error.kind) {
+      case 'origin_required':
+      case 'origin_invalid':
+      case 'origin_not_allowed':
+      case 'navigation_required':
+      case 'cross_site_rejected':
+        return new SignerCeremonyError(
+          'origin_not_allowed',
+          'Origin is not allowed',
+          { cause: error },
+        );
+      default:
+        return new SignerCeremonyError('ceremony_invalid', error.message, {
+          cause: error,
+        });
+    }
+  }
   const fastifyError = error as Partial<FastifyError>;
   if (fastifyError.validation) {
     return new SignerCeremonyError(
