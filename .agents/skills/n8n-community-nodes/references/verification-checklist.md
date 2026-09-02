@@ -33,7 +33,9 @@ reconciled with both official pages on 2026-09-02.
   Prefer a tracked file-level symlink to the package source so GitHub's Contents
   API resolves the canonical file without maintaining a duplicate. Do not use a
   directory symlink: repository tree traversal does not expose nested paths
-  beneath it consistently.
+  beneath it consistently. If Nx formatting passes changed files to Prettier as
+  explicit paths, add the file symlink to `.nxignore`; `.prettierignore` cannot
+  suppress Prettier's explicit-symlink error.
 - `package.json#author` includes an explicit email that matches the verified
   npm owner and Creator Portal account. Do not rely on the registry-generated
   `maintainers` array: Creator Portal resolves `author.email` separately.
