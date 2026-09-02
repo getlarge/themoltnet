@@ -1404,6 +1404,15 @@ jobs:
           fi
           echo "Building ${RELEASE_TAG} from ${CHECKOUT_SHA}"
 
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
       - name: Build deterministic LeGreffier plugin archive
         id: package
         env:
@@ -1416,8 +1425,7 @@ jobs:
             exit 1
           fi
 
-          node packages/legreffier-plugin/scripts/build.mjs
-          node packages/legreffier-plugin/scripts/validate.mjs --dist
+          pnpm exec nx run @themoltnet/legreffier-plugin:check:pack
 
           ARCHIVE="legreffier-plugin-v${VERSION}.tar.gz"
           tar --sort=name \
