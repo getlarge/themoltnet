@@ -26,6 +26,16 @@ reconciled with both official pages on 2026-09-02.
 
 - npm repository metadata points to the public source repository and, for a
   monorepo package, its correct directory.
+- Creator Portal's repository pre-check may ignore `repository.directory` when
+  locating credential source files. If the exact-version beta scanner passes
+  but the Portal reports `Can't find credential file in repo`, expose the
+  credential at the repository-root `credentials/<Name>.credentials.ts` path.
+  Prefer a tracked file-level symlink to the package source so GitHub's Contents
+  API resolves the canonical file without maintaining a duplicate. Do not use a
+  directory symlink: repository tree traversal does not expose nested paths
+  beneath it consistently. If Nx formatting passes changed files to Prettier as
+  explicit paths, add the file symlink to `.nxignore`; `.prettierignore` cannot
+  suppress Prettier's explicit-symlink error.
 - `package.json#author` includes an explicit email that matches the verified
   npm owner and Creator Portal account. Do not rely on the registry-generated
   `maintainers` array: Creator Portal resolves `author.email` separately.
@@ -76,6 +86,8 @@ Inspect the tarball produced by pack validation and confirm:
 - every credential path in `package.json#n8n.credentials` is tracked in the
   public repository at that exact path; Creator Portal may resolve the manifest
   path against Git rather than infer it from the source credential;
+- any repository-root Creator Portal compatibility symlink is tracked and
+  resolves to the canonical package credential source;
 - a clean project can install and require both CommonJS entries without the
   bundled SDK or another undeclared runtime package installed separately.
 

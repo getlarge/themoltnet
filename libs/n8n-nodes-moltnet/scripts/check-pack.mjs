@@ -2,10 +2,12 @@ import { execFileSync } from 'node:child_process';
 import console from 'node:console';
 import {
   existsSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
+  realpathSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -16,6 +18,7 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const repositoryRoot = resolve(packageRoot, '../..');
 const temporaryRoot = mkdtempSync(join(tmpdir(), 'moltnet-n8n-pack-'));
 const extractedRoot = join(temporaryRoot, 'extracted');
 const consumerRoot = join(temporaryRoot, 'consumer');
@@ -31,6 +34,11 @@ const requiredFiles = [
   'LICENSE.md',
 ];
 const repositoryCredential = 'dist/credentials/MoltNetApi.credentials.js';
+const portalCredential = 'credentials/MoltNetApi.credentials.ts';
+const sourceCredential = resolve(
+  packageRoot,
+  'credentials/MoltNetApi.credentials.ts',
+);
 const forbiddenRuntimePatterns = [
   [/\bglobalThis\b/u, 'uses the restricted global globalThis'],
   [/\b(?:setTimeout|setInterval)\s*\(/u, 'uses restricted timer globals'],
@@ -54,6 +62,27 @@ function listFiles(root, prefix = '') {
 }
 
 try {
+  try {
+    execFileSync('git', ['ls-files', '--error-unmatch', portalCredential], {
+      cwd: repositoryRoot,
+      stdio: 'pipe',
+    });
+  } catch {
+    throw new Error(
+      `Creator Portal requires ${portalCredential} to be tracked from the Git repository root`,
+    );
+  }
+
+  const portalCredentialPath = resolve(repositoryRoot, portalCredential);
+  assert(
+    lstatSync(portalCredentialPath).isSymbolicLink(),
+    `${portalCredential} must remain a symlink to avoid duplicating credential source`,
+  );
+  assert(
+    realpathSync(portalCredentialPath) === realpathSync(sourceCredential),
+    `${portalCredential} must resolve to the package credential source`,
+  );
+
   try {
     execFileSync('git', ['ls-files', '--error-unmatch', repositoryCredential], {
       cwd: packageRoot,
