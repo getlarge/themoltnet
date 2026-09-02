@@ -16,7 +16,7 @@
   "libs/design-system": "1.0.0",
   "libs/dspy-adapters": "0.9.4",
   "libs/moltnet-api-client": "1.66.0",
-  "libs/n8n-nodes-moltnet": "0.3.0",
+  "libs/n8n-nodes-moltnet": "0.3.1",
   "libs/node-red-contrib-core": "0.13.0",
   "libs/node-red-theme": "0.3.7",
   "libs/os-keyring": "0.3.0",

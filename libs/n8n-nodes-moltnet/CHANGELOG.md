@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.3.0...n8n-nodes-moltnet-v0.3.1) (2026-09-02)
+
+
+### Bug Fixes
+
+* **n8n:** publish Creator Portal author email ([101cf44](https://github.com/getlarge/themoltnet/commit/101cf440b9ecadf556652f5ecffc15578cb83cab))
+* **n8n:** publish Creator Portal author email ([6e093f1](https://github.com/getlarge/themoltnet/commit/6e093f1019ecdf58f88f7614032bf77773185a00))
+
 ## [0.3.0](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.2.0...n8n-nodes-moltnet-v0.3.0) (2026-09-02)
 
 
