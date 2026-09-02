@@ -27,6 +27,7 @@ import {
   isNativeForHost,
   sha256File,
   validateQemuRuntimeProvenance,
+  vendorQemuImg,
   writeLauncher,
 } from './build.mjs';
 
@@ -95,12 +96,15 @@ function digest(path) {
 
 function createBundle({
   version = '1.2.3',
-  manifestPlatform = platform,
+  archivePlatform = platform,
+  manifestPlatform = archivePlatform,
   helpStatus = 0,
+  serveOutput = 'unknown command: serve',
+  serveStatus = 1,
   unsigned = false,
 } = {}) {
   const root = tempDir('moltnet-agent-fixture-');
-  const name = `moltnet-agent-${platform}`;
+  const name = `moltnet-agent-${archivePlatform}`;
   const payload = join(root, name);
   mkdirSync(join(payload, 'bin'), { recursive: true });
   const binary = join(payload, 'bin/moltnet-agent');
@@ -112,8 +116,8 @@ if [ "\${1:-}" = "--help" ]; then
   exit ${helpStatus}
 fi
 if [ "\${1:-}" = "serve" ]; then
-  echo "unknown command: serve" >&2
-  exit 1
+  echo "${serveOutput}" >&2
+  exit ${serveStatus}
 fi
 exit 0
 `,
@@ -138,6 +142,18 @@ exit 0
   const checksum = `${archive}.sha256`;
   writeFileSync(checksum, `${digest(archive)}  ${basename(archive)}\n`);
   return { archive, checksum, name, payload, root, version };
+}
+
+function addCommandStubs(context, commands) {
+  const root = tempDir('moltnet-agent-command-stubs-');
+  const bin = join(root, 'bin');
+  mkdirSync(bin);
+  for (const [name, source] of Object.entries(commands)) {
+    writeFileSync(join(bin, name), source);
+    chmodSync(join(bin, name), 0o755);
+  }
+  context.env.PATH = `${bin}:${context.env.PATH}`;
+  return root;
 }
 
 function createInstallContext(fixture) {
@@ -292,17 +308,35 @@ describe('agent bundle installer', { skip: !supportedHost }, () => {
     assert.equal(readFileSync(marker, 'utf8'), 'safe');
   });
 
+  it('refuses a non-empty foreign root without the ownership sentinel', async () => {
+    const fixture = createBundle();
+    const context = createInstallContext(fixture);
+    const marker = join(context.installRoot, 'foreign-data');
+    mkdirSync(context.installRoot, { recursive: true });
+    writeFileSync(marker, 'keep');
+
+    const result = await runInstaller(context, ['--uninstall']);
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /missing \.moltnet-agent-root/);
+    assert.equal(readFileSync(marker, 'utf8'), 'keep');
+  });
+
   it('serializes installs with the sibling mutation lock', async () => {
     const fixture = createBundle();
     const context = createInstallContext(fixture);
     const installed = await runInstaller(context);
     assert.equal(installed.status, 0, installed.stderr);
+    assert.equal(existsSync(`${context.installRoot}.lock`), false);
     mkdirSync(`${context.installRoot}.lock`);
 
     const second = await runInstaller(context);
+    const uninstall = await runInstaller(context, ['--uninstall']);
 
     assert.notEqual(second.status, 0);
     assert.match(second.stderr, /another install\/uninstall is in progress/);
+    assert.notEqual(uninstall.status, 0);
+    assert.match(uninstall.stderr, /another install\/uninstall is in progress/);
     assert.equal(
       readlinkSync(join(context.installRoot, 'current')),
       join(context.installRoot, fixture.version),
@@ -321,6 +355,54 @@ describe('agent bundle installer', { skip: !supportedHost }, () => {
     assert.equal(existsSync(join(context.binDir, 'moltnet-agent')), false);
     assert.equal(
       existsSync(join(context.installRoot, `${fixture.version}.broken`)),
+      true,
+    );
+    assert.equal(existsSync(`${context.installRoot}.lock`), false);
+  });
+
+  it('upgrades atomically, prunes only the previous version, and uninstalls', async () => {
+    const first = createBundle({ version: '1.0.0' });
+    const context = createInstallContext(first);
+    const installed = await runInstaller(context);
+    assert.equal(installed.status, 0, installed.stderr);
+
+    const second = createBundle({ version: '2.0.0' });
+    context.env.MOLTNET_AGENT_ARCHIVE = second.archive;
+    const upgraded = await runInstaller(context);
+
+    assert.equal(upgraded.status, 0, upgraded.stderr);
+    assert.equal(
+      readlinkSync(join(context.installRoot, 'current')),
+      join(context.installRoot, second.version),
+    );
+    assert.equal(existsSync(join(context.installRoot, first.version)), false);
+    assert.equal(existsSync(join(context.installRoot, second.version)), true);
+
+    const removed = await runInstaller(context, ['--uninstall']);
+    assert.equal(removed.status, 0, removed.stderr);
+    assert.equal(existsSync(context.installRoot), false);
+    assert.equal(existsSync(`${context.installRoot}.lock`), false);
+  });
+
+  it('rolls a failed upgrade back and keeps the broken payload for diagnosis', async () => {
+    const first = createBundle({ version: '1.0.0' });
+    const context = createInstallContext(first);
+    const installed = await runInstaller(context);
+    assert.equal(installed.status, 0, installed.stderr);
+
+    const broken = createBundle({ version: '2.0.0', helpStatus: 7 });
+    context.env.MOLTNET_AGENT_ARCHIVE = broken.archive;
+    const result = await runInstaller(context);
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /rolled back to 1\.0\.0/);
+    assert.equal(
+      readlinkSync(join(context.installRoot, 'current')),
+      join(context.installRoot, first.version),
+    );
+    assert.equal(existsSync(join(context.installRoot, first.version)), true);
+    assert.equal(
+      existsSync(join(context.installRoot, `${broken.version}.broken`)),
       true,
     );
     assert.equal(existsSync(`${context.installRoot}.lock`), false);
@@ -352,6 +434,19 @@ describe('agent bundle installer', { skip: !supportedHost }, () => {
     assert.equal(existsSync(context.installRoot), false);
   });
 
+  it('rejects empty and path-hostile versions before touching the install root', async () => {
+    for (const version of ['', '../escape']) {
+      const fixture = createBundle({ version });
+      const context = createInstallContext(fixture);
+
+      const result = await runInstaller(context);
+
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /refusing unsafe version string/);
+      assert.equal(existsSync(context.installRoot), false);
+    }
+  });
+
   it('binds remote archives to the requested version and platform', async () => {
     const fixture = createBundle({ version: '1.0.0' });
     const context = createInstallContext(fixture);
@@ -376,6 +471,107 @@ describe('agent bundle installer', { skip: !supportedHost }, () => {
     const refused = await runInstaller(wrongContext);
     assert.notEqual(refused.status, 0);
     assert.match(refused.stderr, /archive manifest is for platform/);
+  });
+
+  it('selects darwin-arm64 under Rosetta and rejects unreleased platforms', async () => {
+    const translated = createBundle({ archivePlatform: 'darwin-arm64' });
+    const translatedContext = createInstallContext(translated);
+    addCommandStubs(translatedContext, {
+      sysctl: '#!/bin/sh\nprintf 1\n',
+      uname: `#!/bin/sh
+case "$1" in
+  -s) printf Darwin ;;
+  -m) printf x86_64 ;;
+esac
+`,
+    });
+
+    const installed = await runInstaller(translatedContext);
+    assert.equal(installed.status, 0, installed.stderr);
+
+    const unsupported = createBundle({ archivePlatform: 'darwin-arm64' });
+    const unsupportedContext = createInstallContext(unsupported);
+    addCommandStubs(unsupportedContext, {
+      sysctl: '#!/bin/sh\nprintf 0\n',
+      uname: `#!/bin/sh
+case "$1" in
+  -s) printf Darwin ;;
+  -m) printf x86_64 ;;
+esac
+`,
+    });
+
+    const refused = await runInstaller(unsupportedContext);
+    assert.notEqual(refused.status, 0);
+    assert.match(
+      refused.stderr,
+      /no moltnet-agent release exists for darwin-x64 yet.*darwin-arm64 linux-x64/,
+    );
+    assert.equal(existsSync(unsupportedContext.installRoot), false);
+  });
+
+  it('distinguishes a missing serve command from a broken serve command', async () => {
+    const missing = createBundle();
+    const missingContext = createInstallContext(missing);
+    delete missingContext.env.MOLTNET_AGENT_NO_SERVICE;
+
+    const skipped = await runInstaller(missingContext);
+    assert.equal(skipped.status, 0, skipped.stderr);
+    assert.match(skipped.stderr, /has no 'serve' command/);
+
+    const broken = createBundle({
+      serveOutput: 'serve self-check crashed',
+      serveStatus: 7,
+    });
+    const brokenContext = createInstallContext(broken);
+    delete brokenContext.env.MOLTNET_AGENT_NO_SERVICE;
+
+    const refused = await runInstaller(brokenContext);
+    assert.notEqual(refused.status, 0);
+    assert.match(refused.stderr, /installed binary failed its self-check/);
+    assert.match(refused.stderr, /serve self-check crashed/);
+    assert.equal(existsSync(join(brokenContext.installRoot, 'current')), false);
+  });
+
+  it('restarts and asserts the Linux systemd unit during an upgrade', async () => {
+    const first = createBundle({
+      archivePlatform: 'linux-x64',
+      serveStatus: 0,
+      version: '1.0.0',
+    });
+    const context = createInstallContext(first);
+    delete context.env.MOLTNET_AGENT_NO_SERVICE;
+    const stubRoot = addCommandStubs(context, {
+      journalctl: '#!/bin/sh\nexit 0\n',
+      systemctl: `#!/bin/sh
+printf '%s\\n' "$*" >> "$SYSTEMCTL_LOG"
+exit 0
+`,
+      uname: `#!/bin/sh
+case "$1" in
+  -s) printf Linux ;;
+  -m) printf x86_64 ;;
+esac
+`,
+    });
+    const systemctlLog = join(stubRoot, 'systemctl.log');
+    context.env.SYSTEMCTL_LOG = systemctlLog;
+    const installed = await runInstaller(context);
+    assert.equal(installed.status, 0, installed.stderr);
+    writeFileSync(systemctlLog, '');
+
+    const second = createBundle({
+      archivePlatform: 'linux-x64',
+      serveStatus: 0,
+      version: '2.0.0',
+    });
+    context.env.MOLTNET_AGENT_ARCHIVE = second.archive;
+    const upgraded = await runInstaller(context);
+
+    assert.equal(upgraded.status, 0, upgraded.stderr);
+    const commands = readFileSync(systemctlLog, 'utf8');
+    assert.match(commands, /--user try-restart moltnet-agent\.service/);
+    assert.match(commands, /--user is-active --quiet moltnet-agent\.service/);
   });
 
   it('round-trips the release signature trust anchor', async () => {
@@ -608,6 +804,40 @@ describe('frozen QEMU runtime provenance', () => {
       );
     }
   });
+
+  it('rejects a vendored qemu-img whose major drifts from the release pin', () => {
+    const root = tempDir('moltnet-agent-qemu-major-');
+    const source = join(root, 'qemu-img');
+    writeFileSync(source, '#!/bin/sh\nprintf "qemu-img version 12.0.0\\n"\n');
+    chmodSync(source, 0o755);
+    const context = { env: { ...process.env } };
+    addCommandStubs(context, {
+      codesign: '#!/bin/sh\nexit 0\n',
+      otool: `#!/bin/sh
+case "$1" in
+  -L) printf '%s:\\n' "$2" ;;
+  -l) exit 0 ;;
+esac
+`,
+    });
+    const originalPath = process.env.PATH;
+    const originalExpectedMajor = process.env.QEMU_IMG_EXPECTED_MAJOR;
+    process.env.PATH = context.env.PATH;
+    delete process.env.QEMU_IMG_EXPECTED_MAJOR;
+    try {
+      assert.throws(
+        () => vendorQemuImg(join(root, 'payload'), source),
+        /vendored qemu-img major 12 != expected 11/,
+      );
+    } finally {
+      process.env.PATH = originalPath;
+      if (originalExpectedMajor === undefined) {
+        delete process.env.QEMU_IMG_EXPECTED_MAJOR;
+      } else {
+        process.env.QEMU_IMG_EXPECTED_MAJOR = originalExpectedMajor;
+      }
+    }
+  });
 });
 
 describe('launcher log bound', { skip: !supportedHost }, () => {
@@ -631,7 +861,15 @@ describe('launcher log bound', { skip: !supportedHost }, () => {
   });
 });
 
-function createStubSigner({ extraEntitlement = false } = {}) {
+function createStubSigner({
+  extraEntitlement = false,
+  krunEntitlements = ['com.apple.security.hypervisor'],
+  runtimeEntitlements = [
+    'com.apple.security.cs.allow-jit',
+    'com.apple.security.cs.allow-unsigned-executable-memory',
+  ],
+  tampered = true,
+} = {}) {
   const root = tempDir('moltnet-agent-sign-stub-');
   const payload = join(root, 'payload');
   const paths = [
@@ -653,6 +891,7 @@ function createStubSigner({ extraEntitlement = false } = {}) {
     }),
   );
   const bin = join(root, 'bin');
+  const commandLog = join(root, 'codesign.log');
   mkdirSync(bin);
   writeFileSync(join(bin, 'uname'), '#!/bin/sh\nprintf Darwin\n');
   chmodSync(join(bin, 'uname'), 0o755);
@@ -660,27 +899,50 @@ function createStubSigner({ extraEntitlement = false } = {}) {
     join(bin, 'codesign'),
     `#!/bin/sh
 last=""
-for arg in "$@"; do last=$arg; done
+entitlements=""
+previous=""
+for arg in "$@"; do
+  last=$arg
+  if [ "$previous" = "--entitlements" ]; then entitlements=$arg; fi
+  previous=$arg
+done
 case " $* " in
   *" -d "*)
     case "$last" in
       *gondolin-krun-runner)
-        echo '<key>${extraEntitlement ? 'com.apple.security.network.client' : 'com.apple.security.hypervisor'}</key>' ;;
+${[
+  ...krunEntitlements,
+  ...(extraEntitlement ? ['com.apple.security.network.client'] : []),
+]
+  .map((entitlement) => `        echo '<key>${entitlement}</key>'`)
+  .join('\n')} ;;
       *moltnet-agent)
-        echo '<key>com.apple.security.cs.allow-jit</key>'
-        echo '<key>com.apple.security.cs.allow-unsigned-executable-memory</key>' ;;
+${runtimeEntitlements
+  .map((entitlement) => `        echo '<key>${entitlement}</key>'`)
+  .join('\n')} ;;
     esac
     exit 0 ;;
   *" --verify "*)
-    case "$last" in *bad.node) echo 'tampered fixture' >&2; exit 1 ;; esac
+    ${tampered ? `case "$last" in *bad.node) echo 'tampered fixture' >&2; exit 1 ;; esac` : ''}
     exit 0 ;;
-  *) exit 0 ;;
+  *)
+    policy=no-library-validation
+    if [ -n "$entitlements" ] && grep -q disable-library-validation "$entitlements"; then
+      policy=disable-library-validation
+    fi
+    printf '%s [%s]\\n' "$last" "$policy" >> "$CODESIGN_LOG"
+    exit 0 ;;
 esac
 `,
   );
   chmodSync(join(bin, 'codesign'), 0o755);
   return {
-    env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+    commandLog,
+    env: {
+      ...process.env,
+      CODESIGN_LOG: commandLog,
+      PATH: `${bin}:${process.env.PATH}`,
+    },
     payload,
   };
 }
@@ -713,6 +975,64 @@ describe('signing policy', () => {
     assert.match(result.stderr, /signature verification failed for:/);
     assert.match(result.stderr, /lib\/bad.node/);
   });
+
+  it('fails verification when required runtime or krun entitlements are missing', () => {
+    const fixture = createStubSigner({
+      krunEntitlements: [],
+      runtimeEntitlements: [],
+      tampered: false,
+    });
+
+    const result = runSync(
+      'sh',
+      [signer, '--payload', fixture.payload, '--adhoc', '--verify'],
+      { env: fixture.env },
+    );
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /runtime is missing allow-jit/);
+    assert.match(
+      result.stderr,
+      /runtime is missing allow-unsigned-executable-memory/,
+    );
+    assert.match(result.stderr, /krun runner is missing the hypervisor/);
+  });
+
+  it(
+    'disables library validation only for ad-hoc signatures',
+    { skip: process.platform !== 'darwin' },
+    () => {
+      const adhoc = createStubSigner({ tampered: false });
+      const adhocResult = runSync(
+        'sh',
+        [signer, '--payload', adhoc.payload, '--adhoc'],
+        { env: adhoc.env },
+      );
+      assert.equal(adhocResult.status, 0, adhocResult.stderr);
+      assert.match(
+        readFileSync(adhoc.commandLog, 'utf8'),
+        /disable-library-validation/,
+      );
+
+      const developerId = createStubSigner({ tampered: false });
+      const developerIdResult = runSync(
+        'sh',
+        [
+          signer,
+          '--payload',
+          developerId.payload,
+          '--identity',
+          'Developer ID Application: Fixture',
+        ],
+        { env: developerId.env },
+      );
+      assert.equal(developerIdResult.status, 0, developerIdResult.stderr);
+      assert.doesNotMatch(
+        readFileSync(developerId.commandLog, 'utf8'),
+        /disable-library-validation/,
+      );
+    },
+  );
 
   it(
     'completes the real ad-hoc signing and entitlement checks on macOS',

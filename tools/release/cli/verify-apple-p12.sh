@@ -35,7 +35,15 @@ cleanup() {
 }
 trap cleanup EXIT HUP INT TERM
 
-if ! openssl pkcs12 -legacy -in "$p12" -passin env:APPLE_CERT_PASSWORD \
+openssl_pkcs12_decode() {
+  if openssl pkcs12 -help 2>&1 | grep -q -- '-legacy'; then
+    openssl pkcs12 -legacy "$@"
+  else
+    openssl pkcs12 "$@"
+  fi
+}
+
+if ! openssl_pkcs12_decode -in "$p12" -passin env:APPLE_CERT_PASSWORD \
   -nokeys -out "$work/bundle.pem" 2>/dev/null; then
   echo "APPLE_CERT_P12 could not be decoded; check the P12 and password" >&2
   exit 1
