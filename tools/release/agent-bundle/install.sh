@@ -71,13 +71,30 @@ acquire_lock() {
 }
 release_lock() { rmdir "$LOCK_DIR" 2>/dev/null || true; }
 
+# Host detection is deliberately separate from release-download eligibility:
+# uninstall and service management must keep working even if the release
+# matrix later drops or renames this platform.
+host_os() {
+  case "$(uname -s)" in
+    Darwin) printf 'darwin' ;;
+    Linux) printf 'linux' ;;
+    *) die "unsupported OS: $(uname -s)" ;;
+  esac
+}
+
+service_definition_path() {
+  case "$(host_os)" in
+    darwin) printf '%s' "$HOME/Library/LaunchAgents/$SERVICE_LABEL.plist" ;;
+    linux) printf '%s' "$HOME/.config/systemd/user/moltnet-agent.service" ;;
+  esac
+}
+
 # Must match the release workflow's build matrix exactly: a platform that
 # detects as "supported" but is never published would request 404 assets.
 RELEASED_PLATFORMS="darwin-arm64 linux-x64"
 
 platform() {
-  os=$(uname -s); arch=$(uname -m)
-  case "$os" in Darwin) os=darwin ;; Linux) os=linux ;; *) die "unsupported OS: $os" ;; esac
+  os=$(host_os); arch=$(uname -m)
   # Rosetta reports x86_64 for a translated shell on Apple Silicon; the
   # native arm64 artifact is the right one for that hardware.
   if [ "$os" = darwin ] && [ "$arch" = x86_64 ] \
@@ -126,6 +143,12 @@ validate_version() {
   esac
 }
 
+# Bounded transport policy for release assets: connection deadline, overall
+# deadline, and retries on transient failures.
+fetch_url() {
+  curl -fsSL --retry 3 --retry-connrefused --connect-timeout 15 --max-time 600 -o "$2" "$1"
+}
+
 sha256() {
   if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1" | cut -d' ' -f1
   else shasum -a 256 "$1" | cut -d' ' -f1; fi
@@ -133,7 +156,8 @@ sha256() {
 
 latest_version() {
   # Bundle releases are tagged `agent-daemon-v<semver>` by release-please.
-  curl -fsSL "https://api.github.com/repos/$REPO/releases?per_page=50" \
+  curl -fsSL --retry 3 --connect-timeout 15 --max-time 60 \
+    "https://api.github.com/repos/$REPO/releases?per_page=50" \
     | grep -o '"tag_name": *"agent-daemon-v[^"]*"' | head -1 | sed 's/.*agent-daemon-v//; s/"//'
 }
 
@@ -175,7 +199,16 @@ EOF
 }
 
 register_service() {
-  [ "${MOLTNET_AGENT_NO_SERVICE:-0}" = 1 ] && { log "service registration skipped"; return; }
+  # Service-independent smoke check FIRST: even with registration skipped
+  # (MOLTNET_AGENT_NO_SERVICE=1), a launcher that cannot execute at all must
+  # fail the install — the headless path would otherwise replace and prune
+  # the last working version.
+  if ! smoke_out=$("$HOME_DIR/current/bin/moltnet-agent" --help 2>&1); then
+    log "installed binary failed its self-check (--help):"
+    printf '%s\n' "$smoke_out" | tail -5 >&2
+    return 1
+  fi
+  [ "${MOLTNET_AGENT_NO_SERVICE:-0}" = 1 ] && { log "service registration skipped"; return 0; }
   # The login service runs `moltnet-agent serve`. Distinguish a release
   # that simply lacks the subcommand (skip quietly) from a broken binary
   # (fail loudly so the caller can roll back).
@@ -231,12 +264,12 @@ register_service() {
 }
 
 unregister_service() {
-  case "$(platform)" in
-    darwin-*)
+  case "$(host_os)" in
+    darwin)
       launchctl bootout "gui/$(id -u)/$SERVICE_LABEL" >/dev/null 2>&1 || true
       rm -f "$HOME/Library/LaunchAgents/$SERVICE_LABEL.plist"
       ;;
-    linux-*)
+    linux)
       if command -v systemctl >/dev/null 2>&1; then
         systemctl --user disable --now moltnet-agent.service >/dev/null 2>&1 || true
       fi
@@ -248,9 +281,17 @@ unregister_service() {
 uninstall() {
   assert_owned_root
   if [ ! -e "$HOME_DIR/$SENTINEL" ]; then
-    log "nothing to uninstall at $HOME_DIR"
-    rm -f "$BIN_DIR/moltnet-agent"
-    unregister_service
+    # Nothing provably ours at this root: remove only artifacts that
+    # verifiably point INTO $HOME_DIR — never an unrelated executable or a
+    # user-managed service definition.
+    log "no installer-owned root at $HOME_DIR"
+    case "$(readlink "$BIN_DIR/moltnet-agent" 2>/dev/null)" in
+      "$HOME_DIR"/*) rm -f "$BIN_DIR/moltnet-agent" ;;
+    esac
+    service_file=$(service_definition_path)
+    if [ -f "$service_file" ] && grep -qF "$HOME_DIR/current" "$service_file"; then
+      unregister_service
+    fi
     return 0
   fi
   acquire_lock
@@ -282,10 +323,20 @@ install() {
     base="${MOLTNET_AGENT_BASE_URL:-https://github.com/$REPO/releases/download/agent-daemon-v$version}"
     archive="$work/$name.tar.gz"; checksum_file="$archive.sha256"
     log "downloading moltnet-agent $version ($plat)…"
-    curl -fsSL "$base/$name.tar.gz" -o "$archive"
-    curl -fsSL "$base/$name.tar.gz.sha256" -o "$checksum_file"
+    fetch_url "$base/$name.tar.gz" "$archive" || die "downloading $name.tar.gz failed"
+    fetch_url "$base/$name.tar.gz.sha256" "$checksum_file" || die "downloading $name.tar.gz.sha256 failed"
     signature_file="$archive.sha256.sig"
-    curl -fsSL "$base/$name.tar.gz.sha256.sig" -o "$signature_file" 2>/dev/null || : > "$signature_file"
+    # Distinguish "this release predates signing" (404 → empty file, which
+    # verify_release_signature fails closed on unless waived) from a
+    # transport failure, which must never be misread as a missing signature.
+    sig_status=$(curl -sSL --retry 3 --retry-connrefused --connect-timeout 15 --max-time 120 \
+      -o "$signature_file" -w '%{http_code}' "$base/$name.tar.gz.sha256.sig") \
+      || die "network failure fetching the release signature"
+    case "$sig_status" in
+      200) ;;
+      404) : > "$signature_file" ;;
+      *) die "fetching the release signature failed (HTTP $sig_status)" ;;
+    esac
   fi
 
   verify_release_signature "$checksum_file" "$signature_file"
@@ -310,6 +361,20 @@ install() {
       rm -rf "$staging"
       die "this artifact is marked UNSIGNED (built without the release signing identity); refusing to install it. Set MOLTNET_AGENT_ALLOW_UNSIGNED=1 only if you built it yourself."
     fi
+    # The signed checksum authenticates the archive BYTES; bind them to the
+    # requested version/platform so an older valid archive+checksum+sig trio
+    # cannot be replayed under a newer tag. (Local archives derive $version
+    # from their own manifest, so the check is a tautology there.)
+    staged_version=$(grep -o '"version": *"[^"]*"' "$staging/manifest.json" 2>/dev/null | head -1 | sed 's/.*: *"//; s/"//')
+    staged_platform=$(grep -o '"platform": *"[^"]*"' "$staging/manifest.json" 2>/dev/null | head -1 | sed 's/.*: *"//; s/"//')
+    if [ "$staged_version" != "$version" ]; then
+      rm -rf "$staging"
+      die "archive manifest reports version '$staged_version' but $version was requested — possible replay of a different release"
+    fi
+    if [ "$staged_platform" != "$plat" ]; then
+      rm -rf "$staging"
+      die "archive manifest is for platform '$staged_platform', not $plat"
+    fi
     rm -rf "$target"; mv "$staging" "$target"
     previous_target=$(readlink "$HOME_DIR/current" 2>/dev/null || true)
     ln -sfn "$target" "$HOME_DIR/current"
@@ -327,15 +392,23 @@ install() {
   fi
 
   if ! register_service "$plat"; then
-    # Roll back: restore the previous version and its service; keep the
-    # broken one on disk for inspection, clearly named.
     if [ -n "${previous_target:-}" ] && [ -d "$previous_target" ] && [ "$previous_target" != "$target" ]; then
+      # Upgrade: restore the previous version AND verify its service came
+      # back — a rollback that leaves no daemon running must say so.
       ln -sfn "$previous_target" "$HOME_DIR/current"
       mv "$target" "$target.broken" 2>/dev/null || true
-      register_service "$plat" || true
-      die "upgrade to $version failed its readiness check; rolled back to $(basename "$previous_target") (broken payload kept at $target.broken)"
+      if register_service "$plat"; then
+        die "upgrade to $version failed its readiness check; rolled back to $(basename "$previous_target") (broken payload kept at $target.broken)"
+      fi
+      die "upgrade to $version failed its readiness check AND restoring $(basename "$previous_target") failed its own readiness check — no daemon is running (broken payload kept at $target.broken)"
     fi
-    die "install of $version failed its readiness check"
+    # First install: leave nothing half-registered behind — a retry must
+    # start from a clean slate.
+    unregister_service
+    rm -f "$BIN_DIR/moltnet-agent"
+    rm -f "$HOME_DIR/current"
+    mv "$target" "$target.broken" 2>/dev/null || true
+    die "install of $version failed its readiness check (broken payload kept at $target.broken)"
   fi
 
   # Prune older versions only after the new one is confirmed running.
@@ -365,9 +438,34 @@ install() {
   fi
 }
 
+usage() {
+  cat <<'EOF'
+moltnet-agent installer — curl -fsSL https://get.themolt.net | sh
+
+Installs the signed bundle under ~/.local/share/moltnet/agent/<version>,
+links `moltnet-agent` on PATH, and registers `moltnet-agent serve` as a
+login service (LaunchAgent on macOS, systemd user unit on Linux).
+Re-running upgrades in place; --uninstall removes what the installer created.
+
+Environment overrides:
+  MOLTNET_AGENT_VERSION       version to install (default: latest release)
+  MOLTNET_AGENT_BASE_URL      release asset base URL
+  MOLTNET_AGENT_ARCHIVE       local .tar.gz (skips download; .sha256 beside it)
+  MOLTNET_AGENT_HOME          install root (default ~/.local/share/moltnet/agent)
+  MOLTNET_AGENT_BIN_DIR       bin link directory (default ~/.local/bin)
+  MOLTNET_AGENT_NO_SERVICE=1  skip service registration
+
+Trust-chain escape hatches (only for artifacts you built yourself):
+  MOLTNET_AGENT_ALLOW_UNSIGNED=1    accept an artifact carrying the UNSIGNED
+                                    marker (waives the Apple code-signing chain)
+  MOLTNET_AGENT_ALLOW_UNVERIFIED=1  skip release-signature verification
+                                    (waives the publisher trust chain)
+EOF
+}
+
 case "${1:-}" in
   --uninstall) uninstall ;;
-  -h|--help) sed -n '2,17p' "$0" ;;
+  -h|--help) usage ;;
   "") install ;;
   *) die "unknown argument: $1" ;;
 esac

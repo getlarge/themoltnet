@@ -1769,10 +1769,10 @@ jobs:
   # signed + notarized; a missing APPLE_CERT_P12 FAILS the release. The only
   # exception is the repo variable ALLOW_UNSIGNED_DARWIN=true, which ships a
   # tarball carrying an UNSIGNED marker that the installer refuses by default.
-  # Assemble bundles WITHOUT any signing credentials in scope: the daemon
-  # is built, the payload assembled, and (linux) packed here. The darwin
-  # payload is handed to a separate minimal job for signing so build-time
-  # code never shares a runner with the Apple identity.
+  # Assemble bundles WITHOUT any credentials in scope: the daemon is built
+  # and the payload assembled here, then handed to a per-platform minimal
+  # signing/upload job — build-time lifecycle scripts never share a runner
+  # with the Apple identity OR the release-signing key.
   assemble-agent-bundle:
     name: Assemble moltnet-agent bundle (${{ matrix.platform }})
     needs: [resolve-publish, publish-agent-daemon]
@@ -1786,14 +1786,15 @@ jobs:
           - platform: linux-x64
             os: ubuntu-latest
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
     permissions:
-      contents: write
+      contents: read
     env:
       NX_LOAD_DOT_ENV_FILES: 'false'
       PAYLOAD: dist/agent-bundle/moltnet-agent-${{ matrix.platform }}
     steps:
       # Bundle assembly runs dependency lifecycle scripts; never leave the
-      # checkout token on disk for them. Release upload uses GH_TOKEN env.
+      # checkout token on disk for them.
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
@@ -1817,44 +1818,14 @@ jobs:
       - name: Assemble payload
         run: pnpm exec nx run @themoltnet/agent-daemon:bundle
 
-      - name: Hand the darwin payload to the isolated signing job
-        if: ${{ runner.os == 'macOS' }}
+      - name: Hand the payload to the isolated signing job
         run: tar -cf "$RUNNER_TEMP/payload.tar" -C dist/agent-bundle "moltnet-agent-${{ matrix.platform }}"
 
       - uses: actions/upload-artifact@v4
-        if: ${{ runner.os == 'macOS' }}
         with:
           name: unsigned-payload-${{ matrix.platform }}
           path: ${{ runner.temp }}/payload.tar
           retention-days: 1
-
-      - name: Pack payload (linux, unsigned by design)
-        if: ${{ runner.os == 'Linux' }}
-        run: node tools/release/agent-bundle/build.mjs --pack-only --out dist/agent-bundle
-
-      - name: Sign release checksum (linux)
-        if: ${{ runner.os == 'Linux' }}
-        env:
-          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
-        run: |
-          if [ -z "$RELEASE_SIGNING_KEY" ]; then
-            echo "::error::RELEASE_SIGNING_KEY is not configured; refusing to publish an unauthenticated bundle"
-            exit 1
-          fi
-          key="$RUNNER_TEMP/release-signing-key"
-          printf '%s\n' "$RELEASE_SIGNING_KEY" > "$key"
-          chmod 600 "$key"
-          ssh-keygen -Y sign -f "$key" -n moltnet-release "$PAYLOAD.tar.gz.sha256"
-          rm -f "$key"
-
-      - name: Upload release assets (linux)
-        if: ${{ runner.os == 'Linux' }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release upload "${{ needs.resolve-publish.outputs.agent-daemon-tag }}" \
-            "$PAYLOAD.tar.gz" "$PAYLOAD.tar.gz.sha256" "$PAYLOAD.tar.gz.sha256.sig" \
-            --clobber
 
   # Isolated signing: minimal checkout (signing tools only), no dependency
   # install, no lifecycle scripts — the only code sharing a runner with the
@@ -1864,6 +1835,7 @@ jobs:
     needs: [resolve-publish, assemble-agent-bundle]
     if: ${{ always() && needs.resolve-publish.outputs.agent-daemon == 'true' && needs.assemble-agent-bundle.result == 'success' }}
     runs-on: macos-latest
+    timeout-minutes: 75
     permissions:
       contents: write
     env:
@@ -1983,6 +1955,58 @@ jobs:
             "$RUNNER_TEMP/install.sh#install.sh" \
             --clobber
 
+  # Same isolation boundary as darwin: the release key only ever appears on
+  # a bare-checkout runner that executed no dependency lifecycle scripts.
+  sign-agent-bundle-linux:
+    name: Sign moltnet-agent bundle (linux-x64)
+    needs: [resolve-publish, assemble-agent-bundle]
+    if: ${{ always() && needs.resolve-publish.outputs.agent-daemon == 'true' && needs.assemble-agent-bundle.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    env:
+      PAYLOAD: dist/agent-bundle/moltnet-agent-linux-x64
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: unsigned-payload-linux-x64
+          path: ${{ runner.temp }}
+
+      - name: Unpack payload
+        run: |
+          mkdir -p dist/agent-bundle
+          tar -xf "$RUNNER_TEMP/payload.tar" -C dist/agent-bundle
+
+      - name: Pack payload (unsigned by design — no darwin code signing on linux)
+        run: node tools/release/agent-bundle/build.mjs --pack-only --out dist/agent-bundle
+
+      - name: Sign release checksum
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+        run: |
+          if [ -z "$RELEASE_SIGNING_KEY" ]; then
+            echo "::error::RELEASE_SIGNING_KEY is not configured; refusing to publish an unauthenticated bundle"
+            exit 1
+          fi
+          key="$RUNNER_TEMP/release-signing-key"
+          printf '%s\n' "$RELEASE_SIGNING_KEY" > "$key"
+          chmod 600 "$key"
+          ssh-keygen -Y sign -f "$key" -n moltnet-release "$PAYLOAD.tar.gz.sha256"
+          rm -f "$key"
+
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ needs.resolve-publish.outputs.agent-daemon-tag }}" \
+            "$PAYLOAD.tar.gz" "$PAYLOAD.tar.gz.sha256" "$PAYLOAD.tar.gz.sha256.sig" \
+            --clobber
+
   # Un-draft the agent-daemon release only when the npm publish AND both
   # bundle legs (artifacts + signatures) have succeeded.
   finalize-agent-daemon-release:
@@ -1993,9 +2017,11 @@ jobs:
         publish-agent-daemon,
         assemble-agent-bundle,
         sign-agent-bundle-darwin,
+        sign-agent-bundle-linux,
       ]
-    if: ${{ always() && needs.resolve-publish.outputs.agent-daemon == 'true' && needs.publish-agent-daemon.result == 'success' && needs.assemble-agent-bundle.result == 'success' && needs.sign-agent-bundle-darwin.result == 'success' }}
+    if: ${{ always() && needs.resolve-publish.outputs.agent-daemon == 'true' && needs.publish-agent-daemon.result == 'success' && needs.assemble-agent-bundle.result == 'success' && needs.sign-agent-bundle-darwin.result == 'success' && needs.sign-agent-bundle-linux.result == 'success' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     steps:

@@ -12,7 +12,8 @@
  *                                 the runner + libkrun.dylib live under node_modules)
  *     vendor/qemu-img            Homebrew qemu-img + its dylib closure (vendor/lib), relinked
  *                                to @executable_path/@loader_path — gondolin needs it on the host
- *     manifest.json              versions + sha256 of every executable/Mach-O for self-heal
+ *     manifest.json              versions + sha256 of every host-native binary
+ *                                (Mach-O on darwin, ELF on linux) for signing + self-heal
  *
  * Why a runtime folder instead of a single binary: the 2026-09-01 spike showed
  * yao-pkg / Node SEA fight every native boundary (keytar's hard `.node`
@@ -32,8 +33,11 @@ import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
   chmodSync,
+  closeSync,
   createWriteStream,
   existsSync,
+  openSync,
+  readSync,
   mkdirSync,
   readdirSync,
   readFileSync,
@@ -108,8 +112,19 @@ function run(cmd, args, options = {}) {
 }
 
 function sha256File(path) {
+  // Stream in bounded chunks: peak RSS must not scale with the largest
+  // artifact (the packed archive is already hundreds of MB).
   const hash = createHash('sha256');
-  hash.update(readFileSync(path));
+  const fd = openSync(path, 'r');
+  try {
+    const buffer = Buffer.alloc(4 * 1024 * 1024);
+    let bytes;
+    while ((bytes = readSync(fd, buffer, 0, buffer.length, -1)) > 0) {
+      hash.update(bytes === buffer.length ? buffer : buffer.subarray(0, bytes));
+    }
+  } finally {
+    closeSync(fd);
+  }
   return hash.digest('hex');
 }
 
@@ -139,6 +154,9 @@ async function download(
     } catch (error) {
       lastError = error;
       rmSync(partial, { force: true });
+      console.warn(
+        `download attempt ${attempt}/${attempts} failed for ${url}: ${error.message}`,
+      );
       if (attempt < attempts) {
         await new Promise((resolveDelay) => {
           setTimeout(resolveDelay, 1_000 * attempt);
@@ -146,9 +164,12 @@ async function download(
       }
     }
   }
-  throw new Error(`download failed after ${attempts} attempts: ${url}`, {
-    cause: lastError,
-  });
+  // The top-level handler prints only error.message: carry the terminal
+  // cause in the message itself so operators see WHY, not just how often.
+  throw new Error(
+    `download failed after ${attempts} attempts: ${url} (last error: ${lastError?.message ?? 'unknown'})`,
+    { cause: lastError },
+  );
 }
 
 /** Fetch (cached) the official Node tarball and verify it against SHASUMS256. */
@@ -180,16 +201,29 @@ async function fetchNodeBinary(version, platform, cacheDir) {
   return join(extractDir, 'bin/node');
 }
 
+// Thin (32/64-bit, both endiannesses) plus FAT and FAT64 headers in both
+// byte orders — a valid binary in any of these forms must be signed and
+// manifest-hashed, so the set has to be complete.
 const MACHO_MAGICS = [
-  0xfeedfacf, 0xcffaedfe, 0xcafebabe, 0xfeedface, 0xcefaedfe,
+  0xfeedface, 0xcefaedfe, 0xfeedfacf, 0xcffaedfe, // thin 32/64
+  0xcafebabe, 0xbebafeca, 0xcafebabf, 0xbfbafeca, // FAT / FAT64
 ];
 const ELF_MAGIC = 0x7f454c46;
 
 /** Native code for THIS platform's loader: Mach-O on darwin, ELF on linux. */
 function isNativeForHost(path, platform) {
-  const fd = readFileSync(path);
-  if (fd.length < 4) return false;
-  const magic = fd.readUInt32BE(0);
+  // Only the 4-byte magic matters: never read whole files just to
+  // classify them (the payload is hundreds of MB).
+  const header = Buffer.alloc(4);
+  const fd = openSync(path, 'r');
+  let bytes;
+  try {
+    bytes = readSync(fd, header, 0, 4, 0);
+  } finally {
+    closeSync(fd);
+  }
+  if (bytes < 4) return false;
+  const magic = header.readUInt32BE(0);
   return platform.os === 'darwin'
     ? MACHO_MAGICS.includes(magic)
     : magic === ELF_MAGIC;
@@ -458,6 +492,14 @@ while [ -L "$self" ]; do
 done
 root=$(CDPATH= cd -- "$(dirname -- "$self")/.." && pwd)
 export MOLTNET_AGENT_BUNDLE_ROOT="$root"
+# Bound the service log on every start: launchd/systemd append stdout to
+# <install root>/serve.log and a crash loop restarts through this launcher,
+# so truncating here keeps the log bounded BETWEEN installs too.
+servelog=$(dirname -- "$root")/serve.log
+if [ -f "$servelog" ] && [ "$(wc -c < "$servelog")" -gt 10485760 ]; then
+  tail -c 1048576 "$servelog" > "$servelog.tmp" 2>/dev/null \
+    && mv "$servelog.tmp" "$servelog" 2>/dev/null || rm -f "$servelog.tmp"
+fi
 # vendor/ carries host tools we ship (qemu-img); keep the user's PATH after it.
 export PATH="$root/vendor:$PATH"${vmmDefault}
 exec "$root/libexec/moltnet-agent" "$root/daemon/dist/main.js" "$@"

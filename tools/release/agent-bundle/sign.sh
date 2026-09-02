@@ -9,8 +9,10 @@
 #
 # Entitlements:
 #   - libexec/moltnet-agent (the Node runtime) keeps the JIT pair V8 needs;
-#   - gondolin-krun-runner keeps whatever it already carries (hypervisor):
-#     we extract and re-apply, never author, its entitlements;
+#   - gondolin-krun-runner is verified against a fail-closed allowlist
+#     (hypervisor, plus the ad-hoc library-validation opt-out) and then
+#     re-signed with a freshly AUTHORED plist of exactly those entitlements
+#     — whatever the package shipped is never copied through;
 #   - dylibs / .node addons / other executables get none.
 set -eu
 
