@@ -57,13 +57,19 @@ assert_owned_root() {
   fi
 }
 
+# The mutation lock is a SIBLING of the install root, not inside it, so
+# uninstall can hold it while removing the tree itself — releasing it first
+# would let a concurrent install start extracting into a directory that is
+# mid-deletion.
+LOCK_DIR="${HOME_DIR%/}.lock"
 acquire_lock() {
   mkdir -p "$HOME_DIR"
   : > "$HOME_DIR/$SENTINEL"
-  if ! mkdir "$HOME_DIR/.install-lock" 2>/dev/null; then
-    die "another install/uninstall is in progress (remove $HOME_DIR/.install-lock if it is stale)"
+  if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+    die "another install/uninstall is in progress (remove $LOCK_DIR if it is stale)"
   fi
 }
+release_lock() { rmdir "$LOCK_DIR" 2>/dev/null || true; }
 
 # Must match the release workflow's build matrix exactly: a platform that
 # detects as "supported" but is never published would request 404 assets.
@@ -248,12 +254,14 @@ uninstall() {
     return 0
   fi
   acquire_lock
-  trap 'rmdir "$HOME_DIR/.install-lock" 2>/dev/null || true' EXIT
+  trap 'release_lock' EXIT
   unregister_service
   rm -f "$BIN_DIR/moltnet-agent"
-  rmdir "$HOME_DIR/.install-lock" 2>/dev/null || true
-  trap - EXIT
+  # Hold the lock through the removal: the tree must be gone before any
+  # concurrent install may proceed.
   rm -rf "$HOME_DIR"
+  release_lock
+  trap - EXIT
   log "moltnet-agent removed (config in ~/.config/moltnet was kept)"
 }
 
@@ -292,7 +300,7 @@ install() {
   assert_owned_root
   # One install at a time per root; a stale lock means a crashed installer.
   acquire_lock
-  trap 'rmdir "$HOME_DIR/.install-lock" 2>/dev/null; rm -rf "$work"' EXIT
+  trap 'release_lock; rm -rf "$work"' EXIT
   if [ -x "$target/bin/moltnet-agent" ] && [ "$(readlink "$HOME_DIR/current" 2>/dev/null)" = "$target" ]; then
     log "moltnet-agent $version already installed"
   else
@@ -333,24 +341,27 @@ install() {
   # Prune older versions only after the new one is confirmed running.
   for dir in "$HOME_DIR"/*/; do
     dir=${dir%/}
-    case "$dir" in "$target"|*/current|*/.install-lock|*/.staging.*|*.broken) ;; *) rm -rf "$dir" ;; esac
+    case "$dir" in "$target"|*/current|*/.staging.*|*.broken) ;; *) rm -rf "$dir" ;; esac
   done
 
+  sandbox_ready=1
   case "$plat" in
     linux-*)
       # The darwin bundle vendors qemu-img; on Linux both the image tool and
       # the system emulator come from the distro (same contract as the
-      # daemon GitHub Action setup).
+      # daemon GitHub Action setup: qemu-utils + qemu-system-x86).
       command -v qemu-img >/dev/null 2>&1 \
-        || log "note: qemu-img not found — sandboxed (gondolin) runs need it: apt install qemu-utils / dnf install qemu-img"
+        || { log "note: qemu-img not found — sandboxed (gondolin) runs need it: apt install qemu-utils / dnf install qemu-img"; sandbox_ready=0; }
       command -v qemu-system-x86_64 >/dev/null 2>&1 \
-        || log "note: qemu-system-x86_64 not found — sandboxed (gondolin) runs need it: apt install qemu-system-x86 / dnf install qemu-system-x86"
+        || { log "note: qemu-system-x86_64 not found — sandboxed (gondolin) runs need it: apt install qemu-system-x86 / dnf install qemu-system-x86"; sandbox_ready=0; }
       ;;
   esac
+  ready_suffix=""
+  [ "$sandbox_ready" = 1 ] || ready_suffix=" (sandboxed runs unavailable until the qemu packages above are installed)"
   if "$HOME_DIR/current/bin/moltnet-agent" serve --help >/dev/null 2>&1; then
-    log "moltnet-agent $version ready — open the Console's Local runtime page to pair."
+    log "moltnet-agent $version ready$ready_suffix — open the Console's Local runtime page to pair."
   else
-    log "moltnet-agent $version ready."
+    log "moltnet-agent $version ready$ready_suffix."
   fi
 }
 
