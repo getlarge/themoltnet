@@ -82,6 +82,10 @@ export const PairingStartedSchema = Type.Object({
 
 export const PairingClaimedSchema = Type.Object({ token: Type.String() });
 
+export const DiscoverModelsSchema = Type.Object({
+  models: StringArraySchema,
+});
+
 export const ProblemSchema = Type.Object({
   code: Type.Optional(Type.String()),
   message: Type.Optional(Type.String()),

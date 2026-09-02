@@ -362,7 +362,7 @@ describe('provider model discovery', () => {
       payload: {
         api: 'openai-completions',
         baseUrl: 'https://ollama.com/v1',
-        envName: 'OLLAMA_API_KEY',
+        envName: 'MOLTNET_PROVIDER_OLLAMA_API_KEY',
         models: [],
         apiKey: 'sk-test',
       },
@@ -401,7 +401,7 @@ describe('provider model discovery', () => {
       payload: {
         api: 'openai-completions',
         baseUrl: 'http://localhost:11434/v1',
-        envName: 'OLLAMA_API_KEY',
+        envName: 'MOLTNET_PROVIDER_OLLAMA_LOCAL_API_KEY',
         models: [],
       },
     });
@@ -425,7 +425,7 @@ describe('provider model discovery', () => {
       payload: {
         api: 'openai-completions',
         baseUrl: 'http://localhost:11434/v1',
-        envName: 'OLLAMA_API_KEY',
+        envName: 'MOLTNET_PROVIDER_OLLAMA_LOCAL_API_KEY',
         models: [],
       },
     });

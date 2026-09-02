@@ -208,17 +208,21 @@ function optionalString(
   return value.trim();
 }
 
-function stringArray(body: Record<string, unknown>, field: string): string[] {
+function stringArray(
+  body: Record<string, unknown>,
+  field: string,
+  options: { allowEmpty?: boolean } = {},
+): string[] {
   const value = body[field];
   if (
     !Array.isArray(value) ||
-    value.length === 0 ||
+    (!options.allowEmpty && value.length === 0) ||
     value.some((item) => typeof item !== 'string' || item.length === 0)
   ) {
     throw new ServeHttpError(
       400,
       'invalid_body',
-      `"${field}" must be a non-empty string array`,
+      `"${field}" must be ${options.allowEmpty ? 'a' : 'a non-empty'} string array`,
     );
   }
   return value as string[];
@@ -606,7 +610,7 @@ function registerProviderRoutes(
         providerId,
         requireString(body, 'envName'),
       ),
-      models: stringArray(body, 'models'),
+      models: stringArray(body, 'models', { allowEmpty: true }),
     };
     const apiKey = optionalString(body, 'apiKey');
     await serialize(async () => {

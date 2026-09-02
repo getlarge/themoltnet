@@ -126,7 +126,7 @@ export interface ProviderEntry {
   /** Pi provider API kind, e.g. `openai-completions`. */
   api: string;
   baseUrl: string;
-  /** Env var name the generated models.json references (e.g. OLLAMA_API_KEY). */
+  /** Canonical env var name referenced by generated models.json. */
   envName: string;
   /** Model ids offered by this provider (fed by discovery later, #2064). */
   models: string[];

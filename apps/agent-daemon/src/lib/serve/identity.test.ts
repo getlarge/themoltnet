@@ -284,6 +284,7 @@ describe('managed serve agents', () => {
       createManagedAgent(store, secrets, {
         name: 'abandoned',
         apiUrl: 'https://api.themolt.net',
+        enrollmentToken: 'enroll-tok',
       }),
     ).rejects.toMatchObject({ code: 'registration_incomplete' });
 
@@ -307,6 +308,7 @@ describe('managed serve agents', () => {
       createManagedAgent(store, secrets, {
         name: 'tampered',
         apiUrl: 'https://api.themolt.net',
+        enrollmentToken: 'enroll-tok',
       }),
     ).rejects.toMatchObject({ code: 'registration_incomplete' });
     await secrets.write('agent-key/victim', 'victim-secret');

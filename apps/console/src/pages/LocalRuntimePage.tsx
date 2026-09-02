@@ -22,7 +22,6 @@ import {
 } from '@themoltnet/design-system';
 import { Fragment, useState } from 'react';
 
-import { abortableDelay } from '../abortable-delay.js';
 import { getApiClient } from '../api.js';
 import { runLogPanelId, RunLogTail } from '../runtime-local/RunLogTail.js';
 import type {
@@ -758,7 +757,8 @@ function ApiKeyProviderForm({ runtime }: { runtime: LocalRuntimeController }) {
   const save = async () => {
     setBusy(true);
     try {
-      await runtime.putProvider(id.trim(), {
+      const providerId = id.trim();
+      await runtime.putProvider(providerId, {
         api: 'openai-completions',
         baseUrl: baseUrl.trim(),
         models: [...selected],

@@ -78,7 +78,7 @@ const serveState = {
       ollama: {
         api: 'openai-completions',
         baseUrl: 'https://ollama.com/v1',
-        envName: 'OLLAMA_API_KEY',
+        envName: 'MOLTNET_PROVIDER_OLLAMA_API_KEY',
         models: ['qwen3'],
         hasApiKey: true,
       },
@@ -334,7 +334,7 @@ describe('LocalRuntimePage', () => {
       jsonResponse({
         api: 'openai-completions',
         baseUrl: 'http://localhost:11434/v1',
-        envName: 'OLLAMA_API_KEY',
+        envName: 'MOLTNET_PROVIDER_OLLAMA_LOCAL_API_KEY',
         models: JSON.parse(String(init?.body)).models,
         hasApiKey: false,
       });
@@ -364,7 +364,7 @@ describe('LocalRuntimePage', () => {
         .at(-1);
       expect(put?.body).toMatchObject({
         baseUrl: 'http://localhost:11434/v1',
-        envName: 'OLLAMA_API_KEY',
+        envName: 'MOLTNET_PROVIDER_OLLAMA_LOCAL_API_KEY',
         models: ['qwen3-coder:480b-cloud'],
       });
     });

@@ -10,6 +10,7 @@
 
 import { loopbackHttpUrl } from '../loopback-url.js';
 import {
+  DiscoverModelsSchema,
   PairingClaimedSchema,
   PairingStartedSchema,
   parseServeResponse,
@@ -24,7 +25,6 @@ import {
   ServeStatusSchema,
   type ServeSubscriptionLogin,
   ServeSubscriptionLoginSchema,
-  type ServeSubscriptionView,
 } from './serve-protocol.js';
 
 export type {
@@ -268,12 +268,24 @@ export function createServeClient(options: {
       );
     },
     async cancelSubscriptionLogin(providerId: string): Promise<void> {
-      await request('DELETE', `/v1/subscriptions/${providerId}/login`);
+      const id = assertProviderId(providerId);
+      await request(
+        'DELETE',
+        `/v1/subscriptions/${id}/login`,
+        null,
+        undefined,
+        { timeoutMs: MUTATION_TIMEOUT_MS },
+      );
     },
     async discoverModels(providerId: string): Promise<string[]> {
-      const result = await request<{ models: string[] }>(
+      const id = assertProviderId(providerId);
+      const result = await request(
         'POST',
-        `/v1/providers/${encodeURIComponent(providerId)}/discover-models`,
+        `/v1/providers/${id}/discover-models`,
+        (value) =>
+          parseServeResponse(DiscoverModelsSchema, value, 'model discovery'),
+        undefined,
+        { timeoutMs: MUTATION_TIMEOUT_MS },
       );
       return result.models;
     },

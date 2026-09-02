@@ -73,6 +73,7 @@ export function useLocalRuntime(): LocalRuntimeController {
   const serveUrl = getConfig().serveUrl;
   const tokenRef = useRef<string | null>(readStoredToken(serveUrl));
   const pairingAbortRef = useRef<AbortController | null>(null);
+  const subscriptionAbortRef = useRef<AbortController | null>(null);
   const [status, setStatus] = useState<LocalRuntimeStatus>('connecting');
   const [actionError, setActionError] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
@@ -144,7 +145,10 @@ export function useLocalRuntime(): LocalRuntimeController {
 
   useEffect(() => {
     void probe();
-    return () => pairingAbortRef.current?.abort();
+    return () => {
+      pairingAbortRef.current?.abort();
+      subscriptionAbortRef.current?.abort();
+    };
   }, [probe]);
 
   const statusQuery = useQuery({
@@ -212,12 +216,16 @@ export function useLocalRuntime(): LocalRuntimeController {
 
   const connectSubscription = useCallback(
     async (providerId: string) => {
+      subscriptionAbortRef.current?.abort();
+      const controller = new AbortController();
+      subscriptionAbortRef.current = controller;
       setActionError(null);
       try {
         // No window.open here: after an await we are outside the click
         // gesture and popup blockers (Safari especially) silently eat it.
         // The page renders an explicit "Open sign-in page" link instead.
         let login = await client.startSubscriptionLogin(providerId);
+        controller.signal.throwIfAborted();
         setSubscriptionLogin(login);
         if (login.status === 'failed') {
           setActionError(login.error ?? 'Subscription login failed');
@@ -225,10 +233,9 @@ export function useLocalRuntime(): LocalRuntimeController {
         }
         const deadline = Date.now() + 5 * 60_000;
         while (login.status === 'pending' && Date.now() < deadline) {
-          await new Promise((resolvePromise) => {
-            setTimeout(resolvePromise, 2_000);
-          });
+          await abortableDelay(2_000, controller.signal);
           login = await client.subscriptionLoginStatus(providerId);
+          controller.signal.throwIfAborted();
           setSubscriptionLogin(login);
         }
         if (login.status === 'failed') {
@@ -239,10 +246,15 @@ export function useLocalRuntime(): LocalRuntimeController {
           if (login.status === 'completed') setSubscriptionLogin(null);
         }
       } catch (error) {
+        if (controller.signal.aborted) return;
         setActionError(
           error instanceof Error ? error.message : 'Subscription login failed',
         );
         setSubscriptionLogin(null);
+      } finally {
+        if (subscriptionAbortRef.current === controller) {
+          subscriptionAbortRef.current = null;
+        }
       }
     },
     [client, statusQuery],
@@ -250,6 +262,8 @@ export function useLocalRuntime(): LocalRuntimeController {
 
   const cancelSubscription = useCallback(
     async (providerId: string) => {
+      subscriptionAbortRef.current?.abort();
+      subscriptionAbortRef.current = null;
       try {
         await client.cancelSubscriptionLogin(providerId);
       } catch {
@@ -262,6 +276,7 @@ export function useLocalRuntime(): LocalRuntimeController {
 
   const disconnect = useCallback(() => {
     pairingAbortRef.current?.abort();
+    subscriptionAbortRef.current?.abort();
     persistToken(null);
     setPairingApprovalUrl(null);
     setActionError(null);
@@ -273,7 +288,7 @@ export function useLocalRuntime(): LocalRuntimeController {
   // Generic on purpose: createAgent needs the created view back (executor
   // escalation), while every mutation still reconciles the status query —
   // including after failures, before the operator retries.
-  const runAction = async <T,>(action: () => Promise<T>): Promise<T> => {
+  const runAction = async <T>(action: () => Promise<T>): Promise<T> => {
     setActionError(null);
     try {
       const result = await action();
