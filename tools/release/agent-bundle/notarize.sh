@@ -40,7 +40,9 @@ echo "xcrun notarytool submit $zip --key <p8> --key-id <key-id> --issuer <issuer
 [ "$dry_run" = 1 ] || xcrun notarytool submit "$zip" \
   --key "$key_path" --key-id "$NOTARY_KEY_ID" --issuer "$NOTARY_ISSUER_ID" --wait --timeout 45m
 
-# Sanity: Gatekeeper's verdict on the runtime binary after notarization.
+# spctl assesses app bundles and rejects raw executables as "not an app" even
+# when their notarization ticket is valid. For non-app code, require the ticket
+# directly through codesign (Apple DTS, "Testing a Notarised Product").
 runtime=$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).runtime)' "$payload/manifest.json")
-echo "spctl -a -vv -t execute $payload/$runtime"
-[ "$dry_run" = 1 ] || spctl -a -vv -t execute "$payload/$runtime"
+echo "codesign -vvvv -R=notarized --check-notarization $payload/$runtime"
+[ "$dry_run" = 1 ] || codesign -vvvv -R="notarized" --check-notarization "$payload/$runtime"
