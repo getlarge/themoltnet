@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.49.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.48.0...agent-daemon-v0.49.0) (2026-09-02)
+
+
+### Features
+
+* **serve:** broker subscription OAuth logins from the console ([7a09011](https://github.com/getlarge/themoltnet/commit/7a09011187894b5c8e51b295cecf076e4178d6c7))
+* **serve:** provider model discovery with console presets ([4bcc034](https://github.com/getlarge/themoltnet/commit/4bcc034975c2364d218b22268d84c1e7f15b38ef)), closes [#2064](https://github.com/getlarge/themoltnet/issues/2064)
+* **serve:** subscription OAuth brokering from the console ([7697968](https://github.com/getlarge/themoltnet/commit/76979682a0bc181ab9ecbfbb4d7bfeb7d6457352))
+
+
+### Bug Fixes
+
+* **agent-daemon:** harden serve provider flows ([c97df47](https://github.com/getlarge/themoltnet/commit/c97df47ec3cb08214c33055f5788a6c73806613e))
+* **agent-daemon:** retry runtime session upload in-attempt before failing the task ([f7a56de](https://github.com/getlarge/themoltnet/commit/f7a56de9615e29f2717608af1538bb81051d81d4))
+* **console:** merge runtime-page hardening into the rebased task-card layout ([5caef65](https://github.com/getlarge/themoltnet/commit/5caef655112356235c415f581eee8e84aa4ebce5))
+* **serve:** bind model discovery to stored providers ([bcffa48](https://github.com/getlarge/themoltnet/commit/bcffa48d3ca65f8ff7db37c42615a267b3a883bc))
+* **serve:** cancellable logins, surfaced errors, profile picker + tests ([71e5f95](https://github.com/getlarge/themoltnet/commit/71e5f9514ca08f84acb2c93b7032c9f02eaf5c25))
+* **serve:** codex device-code login and team-binding guardrails ([5dde4fe](https://github.com/getlarge/themoltnet/commit/5dde4fe549426d8ba60c307a8fb09594bd36befa))
+* **serve:** require an enrollment token for managed agents ([bb8e2a7](https://github.com/getlarge/themoltnet/commit/bb8e2a749ef2de86020588c86104362369181f9f))
+
 ## [0.48.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.47.0...agent-daemon-v0.48.0) (2026-09-02)
 
 
