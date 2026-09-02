@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import localWorkflow from '../examples/create-and-wait.local.workflow.json';
 import workflow from '../examples/create-and-wait.workflow.json';
 import { MoltNet } from '../nodes/MoltNet/MoltNet.node.js';
 import { createExecuteContext, FakeMoltNetApi } from './harness.js';
@@ -62,5 +63,27 @@ describe('shipped Create to Wait workflow', () => {
       accepted: true,
       state: { answer: 42 },
     });
+  });
+
+  it('provides a repository-local workflow for the custom directory loader', () => {
+    const moltNetNodes = localWorkflow.nodes.filter(({ name }) =>
+      name.startsWith('MoltNet '),
+    );
+
+    expect(moltNetNodes).toHaveLength(2);
+    expect(moltNetNodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'MoltNet Create',
+          type: 'CUSTOM.moltNet',
+          typeVersion: 1,
+        }),
+        expect.objectContaining({
+          name: 'MoltNet Wait',
+          type: 'CUSTOM.moltNet',
+          typeVersion: 1,
+        }),
+      ]),
+    );
   });
 });

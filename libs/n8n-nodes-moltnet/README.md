@@ -139,7 +139,8 @@ fields. Disable it to receive the full task or task snapshot. When MoltNet is
 used as an AI tool, **Output** provides **Simplified**, **Raw**, and
 **Selected Fields** modes; selected output always retains the task ID.
 
-Import [`examples/create-and-wait.workflow.json`](examples/create-and-wait.workflow.json)
+After installing the package from npm, import
+[`examples/create-and-wait.workflow.json`](examples/create-and-wait.workflow.json)
 for a Manual Trigger → Create → Wait example.
 
 ## Local development
@@ -155,9 +156,12 @@ user directory, and serves the editor at <http://localhost:5678>. Opening the
 editor needs no MoltNet infrastructure. Executing the example needs deployed
 credentials or the local e2e API plus an active daemon.
 
-The packaged example uses the registry node identity. For local development,
-the runner prints the full path to a generated copy using n8n's `CUSTOM`
-loader identity; import that generated file into the local editor.
+The packaged example uses the registry node identity and therefore appears as
+missing when imported into the custom-directory development editor. For local
+development, import
+[`examples/create-and-wait.local.workflow.json`](https://github.com/getlarge/themoltnet/blob/main/libs/n8n-nodes-moltnet/examples/create-and-wait.local.workflow.json),
+which uses n8n's `CUSTOM` loader identity. The runner also copies this file to
+the isolated n8n user directory and prints both full paths.
 
 ## Scope
 
