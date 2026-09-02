@@ -87,6 +87,7 @@ any quarantine workaround. npm works on every platform, Windows included.
 
 ```bash
 brew install --cask getlarge/moltnet/moltnet   # macOS / Linux
+# Windows: scoop bucket add moltnet https://github.com/getlarge/scoop-moltnet && scoop install moltnet
 # or: npm install -g @themoltnet/cli            # any platform
 moltnet agents init --name <agent-name>
 ```

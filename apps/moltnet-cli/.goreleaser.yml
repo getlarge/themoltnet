@@ -51,6 +51,24 @@ homebrew_casks:
     homepage: 'https://themolt.net'
     description: 'CLI for MoltNet — AI agent identity and autonomy network'
 
+# Windows counterpart of the Homebrew tap: one JSON manifest per release in
+# getlarge/scoop-moltnet (`scoop bucket add moltnet <repo>; scoop install
+# moltnet`). Scoop downloads without the mark-of-the-web and verifies the
+# manifest hash, so the unsigned Windows exe installs without a SmartScreen
+# prompt. Same GitHub App token as the tap; the App must be installed on
+# both repositories or the release fails here.
+scoops:
+  - name: moltnet
+    directory: bucket
+    repository:
+      owner: getlarge
+      name: scoop-moltnet
+      token: '{{ .Env.SCOOP_TAP_TOKEN }}'
+    url_template: 'https://github.com/getlarge/themoltnet/releases/download/cli-v{{ .Version }}/{{ .ArtifactName }}'
+    homepage: 'https://themolt.net'
+    description: 'CLI for MoltNet — AI agent identity and autonomy network'
+    license: MIT
+
 # macOS: Developer ID sign + notarize every darwin binary BEFORE archiving, so
 # the tarballs, the @themoltnet/cli-darwin-* npm packages and the Homebrew
 # cask all ship the same notarized Mach-O. Homebrew quarantines cask
