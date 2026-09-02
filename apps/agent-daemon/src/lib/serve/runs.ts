@@ -121,6 +121,8 @@ export interface RunManagerOptions {
   /** Defaults to re-execing the current entry script. */
   entrypoint?: RunEntrypoint;
   spawnImpl?: SpawnImpl;
+  /** Injectable for focused filesystem-failure tests. */
+  symlinkImpl?: typeof symlinkSync;
   now?: () => Date;
   verifyActivationImpl?: typeof verifyAgentActivation;
   logger?: RunLogger;
@@ -380,11 +382,20 @@ export class RunManager {
       // Subscription credentials: every run shares the store's pi/auth.json
       // (pi lockfiles it and rotates tokens in place). A dangling link is
       // fine — pi treats a missing auth.json as "no subscription auth".
+      // Failing to create the link is not fine: reporting the run as started
+      // would make a connected subscription silently unavailable to the
+      // child.
       try {
-        symlinkSync(this.store.piAuthJsonPath, join(piDir, 'auth.json'));
-      } catch {
-        // already linked or filesystem without symlinks: env-var providers
-        // still work; subscription auth is simply unavailable for the run.
+        (this.options.symlinkImpl ?? symlinkSync)(
+          this.store.piAuthJsonPath,
+          join(piDir, 'auth.json'),
+        );
+      } catch (cause) {
+        throw new ServeStoreError(
+          'io_error',
+          'could not link subscription credentials into the run',
+          { cause },
+        );
       }
 
       const entry = this.entrypoint();

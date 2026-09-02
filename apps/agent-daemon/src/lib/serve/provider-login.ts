@@ -16,6 +16,8 @@
 // option upstream would let us bounce the tab back to the Console like the
 // Codex device-code flow does. Tracked here instead of vendoring the PKCE
 // flow into serve.
+import { randomUUID } from 'node:crypto';
+
 import { getOAuthProviders } from '@earendil-works/pi-ai/oauth';
 import { AuthStorage } from '@earendil-works/pi-coding-agent';
 
@@ -28,9 +30,7 @@ export class ServeSubscriptionError extends Error {
   constructor(
     readonly code:
       | 'provider_unknown'
-      | 'login_in_progress'
       | 'login_not_found'
-      | 'login_cancelled'
       | 'login_unsupported_prompt',
     message: string,
   ) {
@@ -57,9 +57,12 @@ export interface SubscriptionLoginView {
 }
 
 interface PendingLogin extends SubscriptionLoginView {
+  operationId: string;
   startedAt: number;
   infoArrived: () => void;
   abort: AbortController;
+  invalidated: boolean;
+  previousCredential: ReturnType<AuthStorage['get']>;
 }
 
 export interface LoginCallbacksLike {
@@ -86,13 +89,34 @@ export interface ProviderLoginServiceOptions {
   ) => Promise<void>;
   /** Overridable for tests: whether a provider has stored credentials. */
   isConnected?: (providerId: string) => boolean;
+  /** Overridable for focused lifecycle tests. */
+  authStorage?: AuthStorage;
+  logger?: ProviderLoginLogger;
   now?: () => number;
 }
 
+export interface ProviderLoginLogger {
+  info(context: Record<string, unknown>, message: string): void;
+  warn(context: Record<string, unknown>, message: string): void;
+  error(context: Record<string, unknown>, message: string): void;
+}
+
+const silentLogger: ProviderLoginLogger = {
+  info: () => undefined,
+  warn: () => undefined,
+  error: () => undefined,
+};
+
 export class ProviderLoginService {
   private readonly logins = new Map<string, PendingLogin>();
+  private readonly authStorage: AuthStorage;
+  private readonly logger: ProviderLoginLogger;
 
-  constructor(private readonly options: ProviderLoginServiceOptions) {}
+  constructor(private readonly options: ProviderLoginServiceOptions) {
+    this.authStorage =
+      options.authStorage ?? AuthStorage.create(this.options.authPath);
+    this.logger = options.logger ?? silentLogger;
+  }
 
   private now(): number {
     return this.options.now?.() ?? Date.now();
@@ -111,14 +135,27 @@ export class ProviderLoginService {
   private connected(providerId: string): boolean {
     if (this.options.isConnected) return this.options.isConnected(providerId);
     try {
-      return AuthStorage.create(this.options.authPath).getAuthStatus(providerId)
-        .configured;
-    } catch {
+      // Read a fresh instance so the status proves the credential reached
+      // auth.json rather than merely existing in AuthStorage's memory.
+      const storage = this.options.authStorage
+        ? this.authStorage
+        : AuthStorage.create(this.options.authPath);
+      return storage.getAuthStatus(providerId).configured;
+    } catch (error) {
+      this.logger.warn(
+        {
+          event: 'serve.subscription_auth_read_failed',
+          providerId,
+          ...safeLoginError(error),
+        },
+        'Could not read subscription authentication state',
+      );
       return false;
     }
   }
 
   list(): SubscriptionProviderView[] {
+    this.sweep();
     return this.providers().map((provider) => ({
       ...provider,
       connected: this.connected(provider.id),
@@ -128,8 +165,51 @@ export class ProviderLoginService {
   private sweep(): void {
     const now = this.now();
     for (const [id, login] of this.logins) {
-      if (login.startedAt + LOGIN_TTL_MS <= now) this.logins.delete(id);
+      if (login.startedAt + LOGIN_TTL_MS <= now) {
+        this.invalidate(login, 'expired');
+        this.logins.delete(id);
+      }
     }
+  }
+
+  private restoreCredential(login: PendingLogin): void {
+    try {
+      if (login.previousCredential) {
+        this.authStorage.set(login.providerId, login.previousCredential);
+      } else {
+        this.authStorage.logout(login.providerId);
+      }
+    } catch (error) {
+      this.logger.error(
+        {
+          event: 'serve.subscription_login_cleanup_failed',
+          operationId: login.operationId,
+          providerId: login.providerId,
+          ...safeLoginError(error),
+        },
+        'Could not restore subscription credentials after an invalidated login',
+      );
+    }
+  }
+
+  private invalidate(
+    login: PendingLogin,
+    transition: 'cancelled' | 'expired' | 'shutdown',
+  ): void {
+    if (login.invalidated) return;
+    login.invalidated = true;
+    login.abort.abort(new Error(`subscription login ${transition}`));
+    this.restoreCredential(login);
+    login.infoArrived();
+    this.logger.info(
+      {
+        event: 'serve.subscription_login_transition',
+        operationId: login.operationId,
+        providerId: login.providerId,
+        transition,
+      },
+      'Subscription login invalidated',
+    );
   }
 
   status(providerId: string): SubscriptionLoginView {
@@ -168,51 +248,30 @@ export class ProviderLoginService {
     const login: PendingLogin = {
       providerId,
       status: 'pending',
+      operationId: randomUUID(),
       startedAt: this.now(),
       infoArrived,
       abort,
+      invalidated: false,
+      previousCredential: this.authStorage.get(providerId),
     };
     this.logins.set(providerId, login);
+    this.logger.info(
+      {
+        event: 'serve.subscription_login_transition',
+        operationId: login.operationId,
+        providerId,
+        transition: 'started',
+      },
+      'Subscription login started',
+    );
 
-    const callbacks: LoginCallbacksLike = {
-      onAuth: (info) => {
-        login.authUrl = info.url;
-        if (info.instructions) login.instructions = info.instructions;
-        login.infoArrived();
-      },
-      onDeviceCode: (info) => {
-        login.userCode = info.userCode;
-        login.verificationUri = info.verificationUri;
-        login.infoArrived();
-      },
-      // Serve has no interactive terminal: any flow demanding a typed
-      // answer fails closed with a actionable message instead of hanging.
-      onPrompt: () =>
-        Promise.reject(
-          new ServeSubscriptionError(
-            'login_unsupported_prompt',
-            'This provider flow needs an interactive prompt; run `pi /login` in a terminal instead',
-          ),
-        ),
-      // Some flows ask which login method to use (Codex offers browser vs
-      // device code; answering `undefined` cancels the login outright).
-      // Prefer the device-code method: the console shows the code inline,
-      // no localhost callback server involved. Otherwise take the first
-      // (default) option.
-      onSelect: (prompt) =>
-        Promise.resolve(
-          (
-            prompt.options.find((option) => /device/i.test(option.id)) ??
-            prompt.options[0]
-          )?.id,
-        ),
-      signal: abort.signal,
-    };
+    const callbacks = createLoginCallbacks(login, this.logger);
 
     const runLogin =
       this.options.runLogin ??
       ((id: string, loginCallbacks: LoginCallbacksLike) =>
-        AuthStorage.create(this.options.authPath).login(
+        this.authStorage.login(
           id,
           // AuthStorage's callback contract is a superset of ours.
           loginCallbacks as Parameters<AuthStorage['login']>[1],
@@ -220,12 +279,57 @@ export class ProviderLoginService {
 
     const completion = runLogin(providerId, callbacks).then(
       () => {
-        login.status = 'completed';
+        if (login.invalidated) {
+          // Some upstream providers finish after abort. Restore the snapshot
+          // again so a late persistence write cannot reconnect a cancelled or
+          // expired flow.
+          this.restoreCredential(login);
+          return;
+        }
+        if (!this.options.runLogin && !this.connected(providerId)) {
+          login.status = 'failed';
+          login.error =
+            'Subscription sign-in completed, but credentials were not persisted. Start again to retry.';
+          this.logger.error(
+            {
+              event: 'serve.subscription_login_transition',
+              operationId: login.operationId,
+              providerId,
+              transition: 'persistence_failed',
+            },
+            'Subscription login credentials were not persisted',
+          );
+        } else {
+          login.status = 'completed';
+          this.logger.info(
+            {
+              event: 'serve.subscription_login_transition',
+              operationId: login.operationId,
+              providerId,
+              transition: 'completed',
+            },
+            'Subscription login completed',
+          );
+        }
         login.infoArrived();
       },
       (error: unknown) => {
+        if (login.invalidated) {
+          this.restoreCredential(login);
+          return;
+        }
         login.status = 'failed';
-        login.error = error instanceof Error ? error.message : 'login failed';
+        login.error = publicLoginError(error);
+        this.logger.warn(
+          {
+            event: 'serve.subscription_login_transition',
+            operationId: login.operationId,
+            providerId,
+            transition: 'failed',
+            ...safeLoginError(error),
+          },
+          'Subscription login failed',
+        );
         login.infoArrived();
       },
     );
@@ -251,10 +355,92 @@ export class ProviderLoginService {
         `no login in progress for "${providerId}"`,
       );
     }
-    login.abort.abort(new Error('login cancelled from the console'));
+    this.invalidate(login, 'cancelled');
     this.logins.delete(providerId);
     return { providerId, status: 'cancelled' };
   }
+
+  /** Abort every pending flow during supervisor shutdown. */
+  close(): void {
+    for (const login of this.logins.values()) {
+      this.invalidate(login, 'shutdown');
+    }
+    this.logins.clear();
+  }
+}
+
+function createLoginCallbacks(
+  login: PendingLogin,
+  logger: ProviderLoginLogger,
+): LoginCallbacksLike {
+  return {
+    onAuth: (info) => {
+      login.authUrl = info.url;
+      if (info.instructions) login.instructions = info.instructions;
+      logger.info(
+        {
+          event: 'serve.subscription_login_transition',
+          operationId: login.operationId,
+          providerId: login.providerId,
+          transition: 'authorization_ready',
+        },
+        'Subscription authorization URL ready',
+      );
+      login.infoArrived();
+    },
+    onDeviceCode: (info) => {
+      login.userCode = info.userCode;
+      login.verificationUri = info.verificationUri;
+      logger.info(
+        {
+          event: 'serve.subscription_login_transition',
+          operationId: login.operationId,
+          providerId: login.providerId,
+          transition: 'device_code_ready',
+        },
+        'Subscription device code ready',
+      );
+      login.infoArrived();
+    },
+    // Serve has no interactive terminal: any flow demanding a typed
+    // answer fails closed with an actionable message instead of hanging.
+    onPrompt: () =>
+      Promise.reject(
+        new ServeSubscriptionError(
+          'login_unsupported_prompt',
+          'This provider flow needs an interactive prompt; run `pi /login` in a terminal instead',
+        ),
+      ),
+    // Some flows ask which login method to use (Codex offers browser vs
+    // device code; answering `undefined` cancels the login outright).
+    // Prefer the device-code method: the console shows the code inline,
+    // no localhost callback server involved. Otherwise take the first
+    // (default) option.
+    onSelect: (prompt) =>
+      Promise.resolve(
+        (
+          prompt.options.find((option) => /device/i.test(option.id)) ??
+          prompt.options[0]
+        )?.id,
+      ),
+    signal: login.abort.signal,
+  };
+}
+
+function publicLoginError(error: unknown): string {
+  if (error instanceof ServeSubscriptionError) return error.message;
+  return 'Subscription sign-in failed. Start again to retry.';
+}
+
+function safeLoginError(error: unknown): Record<string, string> {
+  const result: Record<string, string> = {
+    errorType: error instanceof Error ? error.name : typeof error,
+  };
+  const code = (error as { code?: unknown } | null)?.code;
+  if (typeof code === 'string' && /^[a-z0-9_:-]{1,64}$/iu.test(code)) {
+    result['applicationCode'] = code;
+  }
+  return result;
 }
 
 function snapshot(login: PendingLogin): SubscriptionLoginView {

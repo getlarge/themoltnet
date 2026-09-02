@@ -79,7 +79,7 @@ export function applyRuntimeSessionUploadFailure(
       message:
         'Task completed, but durable runtime session checkpoint upload failed: ' +
         (err instanceof Error ? err.message : String(err)),
-      retryable: true,
+      retryable: isTransientUploadError(err),
     },
     output: null,
     outputCid: null,
@@ -116,8 +116,11 @@ const defaultSleep = (ms: number) =>
 export function createApiRuntimeSessionStore(args: {
   agent: Agent;
   uploadRetry?: UploadRetryOptions;
+  logger?: {
+    warn(context: Record<string, unknown>, message: string): void;
+  };
 }): RuntimeSessionStore {
-  const { agent, uploadRetry } = args;
+  const { agent, logger, uploadRetry } = args;
 
   return {
     async findRuntimeSessionByTaskAttempt(teamId, taskId, attemptN) {
@@ -180,11 +183,28 @@ export function createApiRuntimeSessionStore(args: {
           if (tryN >= maxTries || !isTransientUploadError(error)) {
             throw error;
           }
-          await sleep(baseDelayMs * tryN);
+          const delayMs = baseDelayMs * tryN;
+          logger?.warn(
+            {
+              event: 'agent-daemon.runtime_session_upload_retry',
+              attemptN: input.attemptN,
+              delayMs,
+              statusCode: uploadStatusCode(error),
+              taskId: input.taskId,
+              tryN,
+            },
+            'Retrying durable runtime session upload',
+          );
+          await sleep(delayMs);
         }
       }
     },
   };
+}
+
+function uploadStatusCode(error: unknown): number | undefined {
+  const statusCode = (error as { statusCode?: unknown } | null)?.statusCode;
+  return typeof statusCode === 'number' ? statusCode : undefined;
 }
 
 function resolveContinueFrom(claimedTask: RuntimeSessionClaim):

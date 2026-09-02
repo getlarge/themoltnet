@@ -99,6 +99,8 @@ interface ActivationIdentity {
   identityId: string;
   publicKey: string;
   fingerprint: string;
+  /** Team binding authenticated through whoami when the activation is made. */
+  boundTeamId?: string;
   createdAt: string;
 }
 

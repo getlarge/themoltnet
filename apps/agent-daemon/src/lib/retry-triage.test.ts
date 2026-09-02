@@ -62,14 +62,23 @@ describe('retry triage classification', () => {
     });
   });
 
-  it('classifies runtime_session_upload_failed as retryable by code alone', () => {
+  it('classifies runtime_session_upload_failed from the upload error class', () => {
     expect(
       classifyDeterministically({
         code: 'runtime_session_upload_failed',
         message:
           'Task completed, but durable runtime session checkpoint upload failed: socket hang up',
+        retryable: true,
       }),
     ).toBe('retryable');
+    expect(
+      classifyDeterministically({
+        code: 'runtime_session_upload_failed',
+        message:
+          'Task completed, but durable runtime session checkpoint upload failed: http 403',
+        retryable: false,
+      }),
+    ).toBe('non_retryable');
   });
 
   it('records attempt exhaustion after deterministic provider classification', async () => {

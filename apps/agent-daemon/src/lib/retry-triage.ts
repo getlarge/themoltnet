@@ -41,10 +41,6 @@ const RETRYABLE_CODES = new Set([
   'dispatch_expired',
   'lease_expired',
   'llm_api_error',
-  // Emitted by `applyRuntimeSessionUploadFailure` when the in-attempt
-  // upload retries are exhausted; the completed work is gone, so a
-  // fresh attempt is the only recovery left.
-  'runtime_session_upload_failed',
   'session_prompt_failed',
 ]);
 
@@ -213,6 +209,10 @@ export function classifyDeterministically(
 ): 'retryable' | 'non_retryable' | 'ambiguous' {
   const code = error.code.toLowerCase();
   const message = error.message;
+
+  if (code === 'runtime_session_upload_failed') {
+    return error.retryable === true ? 'retryable' : 'non_retryable';
+  }
 
   if (NON_RETRYABLE_CODES.has(code)) return 'non_retryable';
   if (NON_RETRYABLE_MESSAGE_PATTERNS.some((pattern) => pattern.test(message))) {

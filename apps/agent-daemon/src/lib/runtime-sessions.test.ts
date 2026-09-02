@@ -25,7 +25,7 @@ function makeOutput(status: TaskOutput['status']): TaskOutput {
 }
 
 describe('runtime session finalization helpers', () => {
-  it('turns a completed output into a retryable failure when checkpoint upload fails', () => {
+  it('turns a completed output into a retryable failure for transient checkpoint errors', () => {
     const output = makeOutput('completed');
 
     const result = applyRuntimeSessionUploadFailure(
@@ -45,6 +45,18 @@ describe('runtime session finalization helpers', () => {
       },
     });
     expect(result.error?.message).toContain('object storage unavailable');
+  });
+
+  it('keeps persistent checkpoint upload failures non-retryable', () => {
+    const result = applyRuntimeSessionUploadFailure(
+      makeOutput('completed'),
+      makeHttpError(403),
+    );
+
+    expect(result.error).toMatchObject({
+      code: 'runtime_session_upload_failed',
+      retryable: false,
+    });
   });
 
   it('preserves an already failed output when checkpoint upload also fails', () => {
@@ -122,7 +134,13 @@ describe('uploadAttemptFinal in-attempt retry', () => {
       .mockRejectedValueOnce(makeHttpError(503))
       .mockResolvedValueOnce(undefined);
     const sleep = vi.fn().mockResolvedValue(undefined);
-    const store = makeStore(upload, { baseDelayMs: 750, sleep });
+    const logger = { warn: vi.fn() };
+    const agent = { runtimeSessions: { upload } } as unknown as Agent;
+    const store = createApiRuntimeSessionStore({
+      agent,
+      logger,
+      uploadRetry: { baseDelayMs: 750, sleep },
+    });
 
     // Act
     await store.uploadAttemptFinal({ ...UPLOAD_INPUT, sessionDir });
@@ -136,6 +154,17 @@ describe('uploadAttemptFinal in-attempt retry', () => {
     // retried PUT upload an empty body.
     const bodies = upload.mock.calls.map((call) => call[1] as unknown);
     expect(new Set(bodies).size).toBe(3);
+    expect(logger.warn).toHaveBeenCalledTimes(2);
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'agent-daemon.runtime_session_upload_retry',
+        taskId: 'task-1',
+        tryN: 1,
+        delayMs: 750,
+        statusCode: 503,
+      }),
+      'Retrying durable runtime session upload',
+    );
   });
 
   it('does not retry a persistent 4xx failure', async () => {

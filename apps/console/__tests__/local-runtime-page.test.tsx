@@ -237,6 +237,35 @@ describe('LocalRuntimePage', () => {
     ).toBe(true);
   });
 
+  it('keeps a pending login visible when server cancellation fails', async () => {
+    handlers['POST /v1/subscriptions/anthropic/login'] = () =>
+      jsonResponse(
+        { providerId: 'anthropic', status: 'pending', authUrl: 'https://x' },
+        201,
+      );
+    handlers['DELETE /v1/subscriptions/anthropic/login'] = () =>
+      jsonResponse(
+        {
+          code: 'internal_error',
+          message: 'Could not cancel the provider sign-in.',
+        },
+        500,
+      );
+    renderPage();
+    await screen.findByText('Anthropic');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Connect' })[0]);
+    await screen.findByRole('button', { name: 'Open sign-in page' });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(
+      await screen.findByText('Could not cancel the provider sign-in.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Open sign-in page' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+  });
+
   it('shows a failed login error immediately', async () => {
     handlers['POST /v1/subscriptions/github-copilot/login'] = () =>
       jsonResponse(
@@ -381,6 +410,38 @@ describe('LocalRuntimePage', () => {
       baseUrl: 'http://localhost:11434/v1',
       models: [],
     });
+  });
+
+  it('renders large discovery results in bounded, filterable pages', async () => {
+    const models = Array.from(
+      { length: 120 },
+      (_value, index) => `model-${String(index).padStart(3, '0')}`,
+    );
+    handlers['POST /v1/providers/ollama-local/discover-models'] = () =>
+      jsonResponse({ models });
+    handlers['PUT /v1/providers/ollama-local'] = () =>
+      jsonResponse({
+        api: 'openai-completions',
+        baseUrl: 'http://localhost:11434/v1',
+        envName: 'MOLTNET_PROVIDER_OLLAMA_LOCAL_API_KEY',
+        models: [],
+        hasApiKey: false,
+      });
+    renderPage();
+    await screen.findAllByText('existing-bot');
+    fireEvent.click(screen.getByRole('button', { name: 'Fetch models' }));
+
+    await screen.findByLabelText('Filter discovered models');
+    expect(screen.getAllByRole('checkbox')).toHaveLength(50);
+    fireEvent.click(screen.getByRole('button', { name: 'Show 50 more' }));
+    expect(screen.getAllByRole('checkbox')).toHaveLength(100);
+    fireEvent.change(screen.getByLabelText('Filter discovered models'), {
+      target: { value: 'model-119' },
+    });
+    expect(screen.getAllByRole('checkbox')).toHaveLength(1);
+    expect(
+      screen.getByRole('checkbox', { name: 'model-119' }),
+    ).toBeInTheDocument();
   });
 
   it('offers the team runtime profiles as a picker with id suffixes', async () => {

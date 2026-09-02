@@ -87,6 +87,7 @@ export async function runServe(argv: string[]): Promise<number> {
           const shutdownController = new AbortController();
           const subscriptions = new ProviderLoginService({
             authPath: store.piAuthJsonPath,
+            logger,
           });
           const runs = new RunManager({
             store,

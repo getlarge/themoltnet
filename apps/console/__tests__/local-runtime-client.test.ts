@@ -190,7 +190,11 @@ describe('serve companion client', () => {
       fetch: fetchMock,
     });
 
-    await client.createAgent({ kind: 'managed', name: 'bot' });
+    await client.createAgent({
+      kind: 'managed',
+      name: 'bot',
+      enrollmentToken: 'enroll-token',
+    });
     await client.putProvider('test', {
       api: 'openai-completions',
       baseUrl: 'https://provider.example',
@@ -216,7 +220,11 @@ describe('serve companion client', () => {
       {
         url: `${BASE}/v1/agents`,
         method: 'POST',
-        body: { kind: 'managed', name: 'bot' },
+        body: {
+          kind: 'managed',
+          name: 'bot',
+          enrollmentToken: 'enroll-token',
+        },
       },
       {
         url: `${BASE}/v1/providers/test`,
@@ -281,6 +289,39 @@ describe('serve companion client', () => {
       }),
     ).rejects.toMatchObject({ code: 'invalid_provider_id' });
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('propagates subscription polling cancellation into the HTTP request', async () => {
+    let requestSignal: AbortSignal | null = null;
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(
+      (_input, init) =>
+        new Promise<Response>((_resolve, reject) => {
+          requestSignal = init?.signal ?? null;
+          init?.signal?.addEventListener(
+            'abort',
+            () => reject(init.signal?.reason),
+            { once: true },
+          );
+        }),
+    );
+    const client = createServeClient({
+      baseUrl: BASE,
+      getToken: () => 'tok',
+      fetch: fetchMock,
+    });
+    const controller = new AbortController();
+
+    const polling = client.subscriptionLoginStatus(
+      'anthropic',
+      controller.signal,
+    );
+    await vi.waitFor(() => expect(requestSignal).not.toBeNull());
+    controller.abort();
+
+    await expect(polling).rejects.toMatchObject({
+      code: 'serve_unavailable',
+    });
+    expect((requestSignal as AbortSignal | null)?.aborted).toBe(true);
   });
 
   it('parses SSE lines and preserves stream request invariants', async () => {

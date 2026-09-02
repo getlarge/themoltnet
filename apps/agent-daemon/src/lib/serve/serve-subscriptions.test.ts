@@ -9,12 +9,13 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { AuthStorage } from '@earendil-works/pi-coding-agent';
 import {
   createNodeSecretProviderRegistry,
   FileSecretProvider,
 } from '@themoltnet/sdk/node';
 import type { FastifyInstance } from 'fastify';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { PairingService } from './pairing.js';
 import {
@@ -242,7 +243,7 @@ describe('serve subscriptions', () => {
     });
     expect(statusResponse.json()).toMatchObject({
       status: 'failed',
-      error: 'access_denied',
+      error: 'Subscription sign-in failed. Start again to retry.',
     });
   });
 
@@ -330,6 +331,151 @@ describe('serve subscriptions', () => {
     });
     expect(missing.statusCode).toBe(404);
     expect(missing.json()).toMatchObject({ code: 'login_not_found' });
+  });
+
+  it('reads connection state back from the production auth.json storage', () => {
+    const temp = mkdtempSync(join(tmpdir(), 'serve-subs-auth-'));
+    cleanups.push(() => rmSync(temp, { recursive: true, force: true }));
+    const authPath = join(temp, 'auth.json');
+    AuthStorage.create(authPath).set('anthropic', {
+      type: 'api_key',
+      key: 'persisted-locally',
+    });
+    const service = new ProviderLoginService({
+      authPath,
+      listProviders: () => [{ id: 'anthropic', name: 'Anthropic' }],
+    });
+
+    expect(service.list()).toEqual([
+      { id: 'anthropic', name: 'Anthropic', connected: true },
+    ]);
+  });
+
+  it('restores prior credentials when a cancelled flow persists late', async () => {
+    const authStorage = AuthStorage.inMemory({
+      anthropic: { type: 'api_key', key: 'previous-credential' },
+    });
+    let callbacks: LoginCallbacksLike | undefined;
+    let finish: (() => void) | undefined;
+    const logger = {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    };
+    const service = new ProviderLoginService({
+      authPath: '/unused/auth.json',
+      authStorage,
+      listProviders: () => [{ id: 'anthropic', name: 'Anthropic' }],
+      logger,
+      runLogin: (_providerId, nextCallbacks) => {
+        callbacks = nextCallbacks;
+        return new Promise<void>((resolvePromise) => {
+          finish = () => {
+            authStorage.set('anthropic', {
+              type: 'api_key',
+              key: 'late-new-credential',
+            });
+            resolvePromise();
+          };
+        });
+      },
+    });
+    const starting = service.start('anthropic');
+    await vi.waitFor(() => expect(callbacks).toBeDefined());
+    callbacks?.onAuth({ url: 'https://provider.example/authorize' });
+    await starting;
+
+    service.cancel('anthropic');
+    finish?.();
+    await new Promise<void>((resolvePromise) => {
+      setImmediate(resolvePromise);
+    });
+
+    expect(authStorage.get('anthropic')).toEqual({
+      type: 'api_key',
+      key: 'previous-credential',
+    });
+    expect(callbacks?.signal?.aborted).toBe(true);
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        operationId: expect.any(String) as string,
+        providerId: 'anthropic',
+        transition: 'cancelled',
+      }),
+      'Subscription login invalidated',
+    );
+  });
+
+  it('expires and aborts pending flows without retaining late credentials', async () => {
+    const authStorage = AuthStorage.inMemory();
+    let now = 0;
+    let callbacks: LoginCallbacksLike | undefined;
+    let finish: (() => void) | undefined;
+    const service = new ProviderLoginService({
+      authPath: '/unused/auth.json',
+      authStorage,
+      listProviders: () => [{ id: 'anthropic', name: 'Anthropic' }],
+      now: () => now,
+      runLogin: (_providerId, nextCallbacks) => {
+        callbacks = nextCallbacks;
+        return new Promise<void>((resolvePromise) => {
+          finish = () => {
+            authStorage.set('anthropic', {
+              type: 'api_key',
+              key: 'late-expired-credential',
+            });
+            resolvePromise();
+          };
+        });
+      },
+    });
+    const starting = service.start('anthropic');
+    await vi.waitFor(() => expect(callbacks).toBeDefined());
+    callbacks?.onAuth({ url: 'https://provider.example/authorize' });
+    await starting;
+
+    now = 10 * 60 * 1000 + 1;
+    expect(service.list()).toEqual([
+      { id: 'anthropic', name: 'Anthropic', connected: false },
+    ]);
+    finish?.();
+    await new Promise<void>((resolvePromise) => {
+      setImmediate(resolvePromise);
+    });
+
+    expect(callbacks?.signal?.aborted).toBe(true);
+    expect(authStorage.has('anthropic')).toBe(false);
+  });
+
+  it('masks upstream failure messages and logs only bounded metadata', async () => {
+    const { harness, runLogin } = makeHarness();
+    const logger = {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    };
+    const service = new ProviderLoginService({
+      authPath: '/unused/auth.json',
+      authStorage: AuthStorage.inMemory(),
+      listProviders: () => [{ id: 'anthropic', name: 'Anthropic' }],
+      logger,
+      runLogin,
+    });
+    const starting = service.start('anthropic');
+    await vi.waitFor(() => expect(harness.callbacks).not.toBeNull());
+    harness.callbacks?.onAuth({ url: 'https://provider.example/authorize' });
+    await starting;
+    harness.finish(new Error('access_token=super-secret-token'));
+    await vi.waitFor(() =>
+      expect(service.status('anthropic').status).toBe('failed'),
+    );
+
+    expect(service.status('anthropic').error).toBe(
+      'Subscription sign-in failed. Start again to retry.',
+    );
+    expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(
+      'super-secret-token',
+    );
   });
 });
 
@@ -436,5 +582,79 @@ describe('provider model discovery', () => {
     });
     expect(failed.statusCode).toBe(502);
     expect(failed.json()).toMatchObject({ code: 'discovery_failed' });
+  });
+
+  it.each([
+    [
+      'discovery_unauthorized',
+      (async () => new Response('denied', { status: 401 })) as typeof fetch,
+    ],
+    [
+      'discovery_invalid_response',
+      (async () =>
+        new Response('not-json', {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })) as typeof fetch,
+    ],
+    [
+      'discovery_unavailable',
+      (async () => {
+        throw new TypeError('connection refused');
+      }) as typeof fetch,
+    ],
+  ])(
+    'classifies model discovery failure as %s',
+    async (code, discoverFetch) => {
+      const { runLogin } = makeHarness();
+      const { app, token } = await fixture({ runLogin, discoverFetch });
+      await app.inject({
+        method: 'PUT',
+        url: '/v1/providers/custom',
+        headers: {
+          ...authedHeaders(token),
+          'content-type': 'application/json',
+        },
+        payload: {
+          api: 'openai-completions',
+          baseUrl: 'https://provider.example/v1',
+          envName: 'MOLTNET_PROVIDER_CUSTOM_API_KEY',
+          models: [],
+        },
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/providers/custom/discover-models',
+        headers: authedHeaders(token),
+      });
+
+      expect(response.statusCode).toBe(502);
+      expect(response.json()).toMatchObject({ code });
+    },
+  );
+
+  it('rejects secret-bearing provider URLs at the server boundary', async () => {
+    const { runLogin } = makeHarness();
+    const { app, token } = await fixture({
+      runLogin,
+      discoverFetch: vi.fn<typeof fetch>(),
+    });
+    const response = await app.inject({
+      method: 'PUT',
+      url: '/v1/providers/custom',
+      headers: { ...authedHeaders(token), 'content-type': 'application/json' },
+      payload: {
+        api: 'openai-completions',
+        baseUrl: 'https://provider.example/v1?api_key=secret',
+        envName: 'MOLTNET_PROVIDER_CUSTOM_API_KEY',
+        models: [],
+        apiKey: 'write-only-secret',
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'invalid_provider' });
+    expect(response.body).not.toContain('write-only-secret');
   });
 });

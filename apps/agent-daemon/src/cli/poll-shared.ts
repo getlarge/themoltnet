@@ -344,6 +344,9 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   const slotRegistry = createApiRuntimeSlotStore({ agent: ctx.agent });
   const runtimeSessionStore = createApiRuntimeSessionStore({
     agent: ctx.agent,
+    logger: {
+      warn: (context, message) => rootLogger.warn(context, message),
+    },
   });
   const sourceAttemptResolver = createApiSourceAttemptResolver({
     agent: ctx.agent,

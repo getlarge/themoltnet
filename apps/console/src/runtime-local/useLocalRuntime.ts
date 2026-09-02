@@ -224,7 +224,10 @@ export function useLocalRuntime(): LocalRuntimeController {
         // No window.open here: after an await we are outside the click
         // gesture and popup blockers (Safari especially) silently eat it.
         // The page renders an explicit "Open sign-in page" link instead.
-        let login = await client.startSubscriptionLogin(providerId);
+        let login = await client.startSubscriptionLogin(
+          providerId,
+          controller.signal,
+        );
         controller.signal.throwIfAborted();
         setSubscriptionLogin(login);
         if (login.status === 'failed') {
@@ -234,7 +237,10 @@ export function useLocalRuntime(): LocalRuntimeController {
         const deadline = Date.now() + 5 * 60_000;
         while (login.status === 'pending' && Date.now() < deadline) {
           await abortableDelay(2_000, controller.signal);
-          login = await client.subscriptionLoginStatus(providerId);
+          login = await client.subscriptionLoginStatus(
+            providerId,
+            controller.signal,
+          );
           controller.signal.throwIfAborted();
           setSubscriptionLogin(login);
         }
@@ -264,14 +270,23 @@ export function useLocalRuntime(): LocalRuntimeController {
     async (providerId: string) => {
       subscriptionAbortRef.current?.abort();
       subscriptionAbortRef.current = null;
+      setActionError(null);
       try {
         await client.cancelSubscriptionLogin(providerId);
-      } catch {
-        // best effort — the pending login expires server-side regardless
+        setSubscriptionLogin(null);
+        await statusQuery.refetch();
+      } catch (error) {
+        if (error instanceof ServeClientError && error.status === 404) {
+          setSubscriptionLogin(null);
+          await statusQuery.refetch();
+          return;
+        }
+        // Keep the pending state visible: clearing it would claim cancellation
+        // succeeded while the server may still own a live OAuth flow.
+        setActionError(errorMessage(error, 'Could not cancel sign-in'));
       }
-      setSubscriptionLogin(null);
     },
-    [client],
+    [client, statusQuery],
   );
 
   const disconnect = useCallback(() => {
@@ -279,6 +294,7 @@ export function useLocalRuntime(): LocalRuntimeController {
     subscriptionAbortRef.current?.abort();
     persistToken(null);
     setPairingApprovalUrl(null);
+    setSubscriptionLogin(null);
     setActionError(null);
     setConnectionError(null);
     setStatus('unpaired');
