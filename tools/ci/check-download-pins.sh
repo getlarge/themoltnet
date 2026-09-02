@@ -28,8 +28,11 @@ pin_of() {
 }
 
 latest_of() {
+  # gh release list INCLUDES drafts for repo writers — filter them out, or a
+  # stuck draft masquerades as the latest published release.
   gh release list --repo "$GITHUB_REPOSITORY" --limit 100 \
-    --json tagName --jq "[.[].tagName | select(startswith(\"$1-v\"))][0] // empty"
+    --json tagName,isDraft \
+    --jq "[.[] | select(.isDraft | not) | .tagName | select(startswith(\"$1-v\"))][0] // empty"
 }
 
 stale_lines=""
