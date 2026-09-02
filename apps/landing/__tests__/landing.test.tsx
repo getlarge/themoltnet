@@ -158,7 +158,10 @@ describe('content', () => {
 
     const humanTrack = document.getElementById('human');
     await waitFor(() => expect(humanTrack).toHaveFocus());
-    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start' });
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      block: 'start',
+      behavior: 'instant',
+    });
     window.history.replaceState({}, '', '/');
   });
 
@@ -395,6 +398,91 @@ describe('content', () => {
     expect(
       screen.getByText(/open-source infrastructure for durable/i),
     ).toBeInTheDocument();
+  });
+
+  it('OnboardingPaths gives the agent path install, download, and verification routes', () => {
+    wrapWithRouter(<OnboardingPaths />);
+
+    const install = screen.getByRole('group', {
+      name: 'Install the MoltNet CLI',
+    });
+    expect(install).toHaveTextContent(
+      'brew install --cask getlarge/moltnet/moltnet',
+    );
+    expect(
+      screen.getByRole('button', {
+        name: 'Copy the Homebrew install command',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /signed binaries for every platform/i }),
+    ).toHaveAttribute('href', '/download');
+    expect(
+      screen.getByRole('link', { name: /verify the checksum and signature/i }),
+    ).toHaveAttribute('href', '/download#verify');
+    // The human path stays plugin-only; no install command leaks across.
+    expect(screen.getAllByText(/brew install --cask/).length).toBe(1);
+  });
+
+  it('Getting Started agent track links every CLI binary and shows checksum verification', () => {
+    wrapWithRouter(<GettingStartedPage />, '/getting-started');
+
+    for (const [name, href] of [
+      ['macOS (Apple Silicon)', '/download/cli/darwin-arm64'],
+      ['macOS (Intel)', '/download/cli/darwin-x64'],
+      ['Linux (x64)', '/download/cli/linux-x64'],
+      ['Linux (arm64)', '/download/cli/linux-arm64'],
+      ['Windows (x64)', '/download/cli/windows-x64'],
+      ['Windows (arm64)', '/download/cli/windows-arm64'],
+      ['checksums.txt', '/download/cli/checksums'],
+      ['checksums.txt.sig', '/download/cli/checksums.sig'],
+    ] as const) {
+      expect(screen.getByRole('link', { name })).toHaveAttribute('href', href);
+    }
+
+    expect(screen.getByText('Verify the download')).toBeInTheDocument();
+    const verify = screen.getByText(/shasum -a 256 -c checksums\.txt/);
+    expect(verify).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /ssh-keygen -Y verify -f signers -I legreffier@themolt\.net/,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /full verification guide/i }),
+    ).toHaveAttribute('href', '/download#verify');
+    expect(
+      screen.getByRole('button', {
+        name: 'Copy commands: Verify the download',
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('AgentBeacon publishes machine-readable download and verification data', () => {
+    const { container } = wrap(<AgentBeacon />);
+    const beacon = container.querySelector('#agent-beacon');
+    const download = JSON.parse(
+      beacon?.getAttribute('data-agent-download') ?? '{}',
+    );
+
+    expect(download.manifest).toBe(
+      'https://themolt.net/download/manifest.json',
+    );
+    expect(download.cli.platforms['linux-arm64']).toBe(
+      'https://themolt.net/download/cli/linux-arm64',
+    );
+    expect(download.cli.checksumsSignature).toBe(
+      'https://themolt.net/download/cli/checksums.sig',
+    );
+    expect(download.agent.platforms['darwin-arm64']).toBe(
+      'https://themolt.net/download/agent/darwin-arm64',
+    );
+    expect(download.verify).toMatchObject({
+      checksum: 'sha256',
+      signature: 'ssh-ed25519',
+      signer: 'legreffier@themolt.net',
+      namespace: 'moltnet-release',
+    });
   });
 
   it('GetStarted closes on the two onboarding paths', () => {

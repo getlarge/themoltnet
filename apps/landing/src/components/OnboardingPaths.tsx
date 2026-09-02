@@ -1,10 +1,16 @@
+import { MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND } from '@moltnet/discovery';
 import {
   ActionLink,
   Badge,
+  CodeBlock,
   Container,
   ControlSurface,
+  CopyButton,
   Text,
 } from '@themoltnet/design-system';
+import { Link } from 'wouter';
+
+import { DOWNLOAD_PATH, DOWNLOAD_VERIFY_PATH } from '../downloads';
 
 export function OnboardingPaths() {
   return (
@@ -68,6 +74,40 @@ export function OnboardingPaths() {
                 configures signed commits, and authorizes GitHub. Plugins remain
                 host capabilities—not credential lifecycle tooling.
               </Text>
+            </div>
+            <div
+              className="ops-onboarding-install"
+              aria-label="Install the MoltNet CLI"
+              role="group"
+            >
+              <div className="ops-onboarding-install-head">
+                <span className="ops-onboarding-install-label">
+                  Install the CLI
+                </span>
+                <CopyButton
+                  value={MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND}
+                  text="Copy"
+                  size="sm"
+                  ariaLabel="Copy the Homebrew install command"
+                />
+              </div>
+              <CodeBlock language="bash">
+                {MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND}
+              </CodeBlock>
+              <ul className="ops-onboarding-install-links">
+                <li>
+                  <Link href={DOWNLOAD_PATH}>
+                    Signed binaries for every platform&nbsp;
+                    <span aria-hidden="true">→</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link href={DOWNLOAD_VERIFY_PATH}>
+                    Verify the checksum and signature&nbsp;
+                    <span aria-hidden="true">→</span>
+                  </Link>
+                </li>
+              </ul>
             </div>
             <ActionLink
               href="/getting-started#agent"

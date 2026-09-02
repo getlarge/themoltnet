@@ -250,10 +250,15 @@ button {
   border: 1px solid var(--ops-border);
 }
 
+/*
+ * Flex column, not space-between grid: both cards share a row, so the index,
+ * badge, and heading start on the same baseline whatever each card holds, and
+ * the action pins to the bottom edge in both.
+ */
 .ops-onboarding-path {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   min-height: 29rem;
-  align-content: space-between;
   border: 0 !important;
   gap: 2.5rem;
 }
@@ -277,7 +282,110 @@ button {
 }
 
 .ops-onboarding-path > a {
-  justify-self: start;
+  align-self: flex-start;
+  margin-top: auto;
+}
+
+/* Agent path: install command plus the signed-download and verification links */
+
+.ops-onboarding-install {
+  display: grid;
+  min-width: 0;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--ops-border);
+  gap: 0.75rem;
+}
+
+.ops-onboarding-install > * {
+  min-width: 0; /* let the code block scroll instead of widening the card */
+}
+
+.ops-onboarding-install-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ops-onboarding-install-label {
+  color: var(--ops-identity);
+  font-family: var(--ops-font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ops-onboarding-install-links {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  gap: 0.25rem;
+}
+
+.ops-onboarding-install-links a {
+  display: inline-block;
+  padding: 0.65rem 0; /* ≥44px target without flex, so wrapped text keeps its arrow */
+  color: var(--ops-text);
+  font-size: 0.92rem;
+  text-decoration: none;
+}
+
+.ops-onboarding-install-links a:hover,
+.ops-onboarding-install-links a:focus-visible {
+  color: var(--ops-identity);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+/* Getting started: direct download row under a step */
+
+.ops-start-step-downloads {
+  display: grid;
+  margin-top: 0.5rem;
+  gap: 0.5rem;
+}
+
+.ops-start-step-downloads-label {
+  color: var(--ops-text-muted);
+  font-family: var(--ops-font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ops-start-step-downloads ul {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  column-gap: 1.25rem;
+  row-gap: 0.25rem;
+}
+
+/* Nested inside .ops-start-steps li, so out-specify that step-row grid. */
+.ops-start-steps .ops-start-step-downloads li {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  grid-template-columns: none;
+  gap: 0.35rem;
+}
+
+.ops-start-step-downloads a {
+  color: var(--ops-text);
+  font-size: 0.92rem;
+  text-decoration: none;
+}
+
+.ops-start-step-downloads a:hover,
+.ops-start-step-downloads a:focus-visible {
+  color: var(--ops-identity);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 
 /* Getting started */
@@ -1674,6 +1782,16 @@ button {
     grid-template-columns: 1fr;
   }
 
+  /* Two onboarding cards side by side leave no room for the agent card's
+     install command below this width; stack them before the copy wraps. */
+  .ops-onboarding-paths {
+    grid-template-columns: 1fr;
+  }
+
+  .ops-onboarding-path {
+    min-height: 0;
+  }
+
   .ops-hero-copy {
     max-width: 48rem;
   }
@@ -2092,8 +2210,16 @@ button {
 }
 .ops-download-command {
   display: flex;
+  min-width: 0; /* grid/flex parents must let the code block shrink and scroll */
   align-items: flex-start;
   gap: 0.75rem;
+}
+.ops-download-method {
+  display: grid;
+  gap: 0.75rem;
+}
+.ops-download-section .ops-download-method:first-of-type {
+  margin-top: 1.5rem;
 }
 .ops-download-command > :first-child {
   flex: 1;
