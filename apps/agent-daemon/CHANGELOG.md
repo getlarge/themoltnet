@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.48.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.47.0...agent-daemon-v0.48.0) (2026-09-02)
+
+
+### Features
+
+* **agent-daemon:** add serve loopback supervisor for console-managed runs ([bc07765](https://github.com/getlarge/themoltnet/commit/bc07765c631937c2fdbff3cb26b8a0d91553d9bf)), closes [#2061](https://github.com/getlarge/themoltnet/issues/2061)
+* **agent-daemon:** serve loopback supervisor for console-managed runs ([f2c69d4](https://github.com/getlarge/themoltnet/commit/f2c69d45a3e2aa85c442df5915d50d25dcad4913))
+* **pi-runtime:** upgrade Pi to 0.84.4 ([08f1f20](https://github.com/getlarge/themoltnet/commit/08f1f20fb3a0c0782e9544cc8cbb67b85dd40c63))
+
+
+### Bug Fixes
+
+* **agent-daemon:** harden serve persistence ([11d05f9](https://github.com/getlarge/themoltnet/commit/11d05f96cf6a8f339c626bcd9755af656834e224))
+* **agent-daemon:** harden serve persistence ([1a3a535](https://github.com/getlarge/themoltnet/commit/1a3a5355566395ecc164c3d9b874b84844ee9674))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.45.2
+    * @themoltnet/pi-runtime bumped to 0.14.0
+    * @themoltnet/sdk bumped to 0.140.0
+
 ## [0.47.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.46.1...agent-daemon-v0.47.0) (2026-09-02)
 
 

@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.14.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.13.1...pi-runtime-v0.14.0) (2026-09-02)
+
+
+### Features
+
+* **agent-daemon:** serve loopback supervisor for console-managed runs ([f2c69d4](https://github.com/getlarge/themoltnet/commit/f2c69d45a3e2aa85c442df5915d50d25dcad4913))
+* **pi-runtime:** upgrade Pi to 0.84.4 ([08f1f20](https://github.com/getlarge/themoltnet/commit/08f1f20fb3a0c0782e9544cc8cbb67b85dd40c63))
+* **pi-runtime:** upgrade Pi to 0.84.4 ([076bd06](https://github.com/getlarge/themoltnet/commit/076bd06466e038b08d88d0f3a9c558ccd962e295))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.45.2
+    * @themoltnet/sdk bumped to 0.140.0
+
 ## [0.13.1](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.13.0...pi-runtime-v0.13.1) (2026-09-02)
 
 

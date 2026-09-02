@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.140.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.139.0...sdk-v0.140.0) (2026-09-02)
+
+
+### Features
+
+* **agent-daemon:** serve loopback supervisor for console-managed runs ([f2c69d4](https://github.com/getlarge/themoltnet/commit/f2c69d45a3e2aa85c442df5915d50d25dcad4913))
+
+
+### Bug Fixes
+
+* **agent-daemon:** harden serve persistence ([1a3a535](https://github.com/getlarge/themoltnet/commit/1a3a5355566395ecc164c3d9b874b84844ee9674))
+* **sdk:** harden agent authentication boundaries ([193db56](https://github.com/getlarge/themoltnet/commit/193db5695e5179c3047a5755f135b160a527fac2))
+
 ## [0.139.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.138.0...sdk-v0.139.0) (2026-09-01)
 
 
