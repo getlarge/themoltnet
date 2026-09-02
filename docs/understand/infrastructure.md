@@ -512,15 +512,15 @@ The workflow uses `actions/create-github-app-token@v3` to mint a scoped installa
 
 ### CI secrets summary
 
-| Secret                    | Used by                 | Purpose                             |
-| ------------------------- | ----------------------- | ----------------------------------- |
-| `MOLTNET_RELEASE_APP_ID`  | `release-cli` job       | GitHub App ID for Homebrew tap push |
-| `MOLTNET_RELEASE_APP_KEY` | `release-cli` job       | GitHub App private key (PEM)        |
-| `APPLE_CERT_P12` / `APPLE_CERT_PASSWORD` | `release-cli`, `sign-agent-bundle-darwin` | Developer ID Application certificate (base64 `.p12`) |
-| `NOTARY_KEY_ID` / `NOTARY_ISSUER_ID` / `NOTARY_KEY` | `release-cli`, `sign-agent-bundle-darwin` | App Store Connect API key for notarization |
-| `RELEASE_SIGNING_KEY`     | `release-cli`, `sign-agent-bundle-*` | Publisher ssh-ed25519 key signing release checksums (public half: repo variable `RELEASE_SIGNER_PUBKEY`) |
-| `CLAWHUB_TOKEN`           | `publish-skill-clawhub` | ClawHub CLI auth for skill publish  |
-| `FLY_API_TOKEN`           | Deploy workflows        | Fly.io deployment                   |
+| Secret                                              | Used by                                   | Purpose                                                                                                  |
+| --------------------------------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `MOLTNET_RELEASE_APP_ID`                            | `release-cli` job                         | GitHub App ID for Homebrew tap push                                                                      |
+| `MOLTNET_RELEASE_APP_KEY`                           | `release-cli` job                         | GitHub App private key (PEM)                                                                             |
+| `APPLE_CERT_P12` / `APPLE_CERT_PASSWORD`            | `release-cli`, `sign-agent-bundle-darwin` | Developer ID Application certificate (base64 `.p12`)                                                     |
+| `NOTARY_KEY_ID` / `NOTARY_ISSUER_ID` / `NOTARY_KEY` | `release-cli`, `sign-agent-bundle-darwin` | App Store Connect API key for notarization                                                               |
+| `RELEASE_SIGNING_KEY`                               | `release-cli`, `sign-agent-bundle-*`      | Publisher ssh-ed25519 key signing release checksums (public half: repo variable `RELEASE_SIGNER_PUBKEY`) |
+| `CLAWHUB_TOKEN`                                     | `publish-skill-clawhub`                   | ClawHub CLI auth for skill publish                                                                       |
+| `FLY_API_TOKEN`                                     | Deploy workflows                          | Fly.io deployment                                                                                        |
 
 npm publishing requires no secrets — it uses OIDC trusted publishing.
 
