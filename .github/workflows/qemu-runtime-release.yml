@@ -2,15 +2,6 @@ name: QEMU Runtime Release
 
 on:
   workflow_dispatch:
-  # Bootstrap qemu-runtime-v11.1.1-r1 from this PR. Removed after the first
-  # immutable runtime release exists; future updates use workflow_dispatch.
-  push:
-    branches: [feat/agent-bundle]
-    paths:
-      - .github/workflows/qemu-runtime-release.yml
-      - tools/release/agent-bundle/build-qemu-runtime.mjs
-      - tools/release/agent-bundle/qemu-release-key.asc
-      - tools/release/agent-bundle/qemu-runtime-source.json
 
 concurrency:
   group: qemu-runtime-release

@@ -10,8 +10,7 @@
  *     daemon/                    @themoltnet/agent-daemon dist + production node_modules
  *                                (includes the per-platform gondolin-krun-runner package:
  *                                 the runner + libkrun.dylib live under node_modules)
- *     vendor/qemu-img            Homebrew qemu-img + its dylib closure (vendor/lib), relinked
- *                                to @executable_path/@loader_path — gondolin needs it on the host
+ *     vendor/qemu-img            pinned immutable QEMU runtime — gondolin needs it on the host
  *     manifest.json              versions + sha256 of every host-native binary
  *                                (Mach-O on darwin, ELF on linux) for signing + self-heal
  *
@@ -36,6 +35,7 @@ import {
   closeSync,
   createWriteStream,
   existsSync,
+  mkdtempSync,
   openSync,
   readSync,
   mkdirSync,
@@ -47,7 +47,7 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
-import { homedir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { fileURLToPath } from 'node:url';
@@ -199,6 +199,154 @@ async function fetchNodeBinary(version, platform, cacheDir) {
     run('tar', ['-xzf', tarball, '-C', extractDir, '--strip-components', '1']);
   }
   return join(extractDir, 'bin/node');
+}
+
+function readQemuRuntimeConfig() {
+  return JSON.parse(readFileSync(join(here, 'qemu-runtime.json'), 'utf8'));
+}
+
+export function validateQemuRuntimeProvenance(
+  provenance,
+  platform,
+  config,
+  artifact,
+) {
+  const expected = {
+    schemaVersion: 1,
+    runtimeVersion: config.runtimeVersion,
+    platform: platform.id,
+    minimumMacosVersion: artifact.minimumMacosVersion,
+    qemuVersion: artifact.qemuVersion,
+    sourceSha256: artifact.sourceSha256,
+  };
+  const actual = {
+    schemaVersion: provenance.schemaVersion,
+    runtimeVersion: provenance.runtimeVersion,
+    platform: provenance.platform,
+    minimumMacosVersion: provenance.minimumMacosVersion,
+    qemuVersion: provenance.qemu?.version,
+    sourceSha256: provenance.qemu?.sourceSha256,
+  };
+  for (const key of Object.keys(expected)) {
+    if (actual[key] !== expected[key]) {
+      throw new Error(
+        `QEMU runtime provenance ${key} ${actual[key] ?? 'missing'} != ${expected[key]}`,
+      );
+    }
+  }
+  if (
+    !Array.isArray(provenance.nativeFiles) ||
+    provenance.nativeFiles.length === 0
+  ) {
+    throw new Error('QEMU runtime provenance has no native file inventory');
+  }
+}
+
+function exerciseQemuImg(binary) {
+  const work = mkdtempSync(join(tmpdir(), 'moltnet-qemu-img-smoke-'));
+  try {
+    const image = join(work, 'smoke.qcow2');
+    const execute = (args) => {
+      const result = spawnSync(binary, args, { encoding: 'utf8' });
+      if (result.status !== 0) {
+        throw new Error(
+          `frozen qemu-img ${args[0]} smoke test failed: ${result.stderr || result.stdout}`,
+        );
+      }
+      return result.stdout;
+    };
+    execute(['create', '-q', '-f', 'qcow2', image, '16M']);
+    execute(['info', '--output=json', image]);
+    execute(['resize', image, '24M']);
+    const resized = JSON.parse(execute(['info', '--output=json', image]));
+    if (resized['virtual-size'] !== 24 * 1024 * 1024) {
+      throw new Error('frozen qemu-img resize smoke test returned wrong size');
+    }
+  } finally {
+    rmSync(work, { force: true, recursive: true });
+  }
+}
+
+/** Install the exact MoltNet-controlled QEMU artifact pinned in the repo. */
+export async function fetchQemuRuntime(payloadDir, platform, cacheDir) {
+  const config = readQemuRuntimeConfig();
+  const artifact = config.platforms?.[platform.id];
+  if (!artifact) {
+    throw new Error(`no frozen QEMU runtime for ${platform.id}`);
+  }
+  const archiveName = new URL(artifact.url).pathname.split('/').at(-1);
+  if (!archiveName)
+    throw new Error(`invalid QEMU runtime URL: ${artifact.url}`);
+  const archive = join(cacheDir, archiveName);
+  if (existsSync(archive) && sha256File(archive) !== artifact.sha256) {
+    rmSync(archive, { force: true });
+  }
+  if (!existsSync(archive)) {
+    console.log(`downloading frozen QEMU runtime ${config.runtimeVersion}`);
+    await download(artifact.url, archive);
+  }
+  const actualSha256 = sha256File(archive);
+  if (actualSha256 !== artifact.sha256) {
+    rmSync(archive, { force: true });
+    throw new Error(
+      `QEMU runtime checksum mismatch (${actualSha256} != ${artifact.sha256})`,
+    );
+  }
+
+  const listing = spawnSync('tar', ['-tzf', archive], { encoding: 'utf8' });
+  if (listing.status !== 0) {
+    throw new Error(`cannot inspect QEMU runtime archive: ${listing.stderr}`);
+  }
+  const entries = listing.stdout.split('\n').filter(Boolean);
+  if (
+    entries.length === 0 ||
+    entries.some(
+      (entry) =>
+        entry !== artifact.root && !entry.startsWith(`${artifact.root}/`),
+    )
+  ) {
+    throw new Error(`QEMU runtime archive must contain only ${artifact.root}/`);
+  }
+  run('tar', ['-xzf', archive, '-C', payloadDir, '--strip-components', '1']);
+
+  const provenancePath = join(payloadDir, 'vendor/provenance.json');
+  if (!existsSync(provenancePath)) {
+    throw new Error('QEMU runtime archive has no vendor/provenance.json');
+  }
+  const provenance = JSON.parse(readFileSync(provenancePath, 'utf8'));
+  validateQemuRuntimeProvenance(provenance, platform, config, artifact);
+  for (const file of provenance.nativeFiles) {
+    const path = resolve(payloadDir, file.path);
+    const rel = relative(payloadDir, path);
+    if (rel.startsWith('..') || !existsSync(path)) {
+      throw new Error(`QEMU runtime native file is invalid: ${file.path}`);
+    }
+    const digest = sha256File(path);
+    if (digest !== file.sha256) {
+      throw new Error(
+        `QEMU runtime native file checksum mismatch: ${file.path}`,
+      );
+    }
+  }
+
+  const binary = join(payloadDir, 'vendor/qemu-img');
+  const version = spawnSync(binary, ['--version'], { encoding: 'utf8' });
+  const expectedVersion = `qemu-img version ${artifact.qemuVersion}`;
+  if (
+    version.status !== 0 ||
+    version.stdout.split('\n')[0] !== expectedVersion
+  ) {
+    throw new Error(
+      `unexpected frozen QEMU runtime version: ${version.stdout || version.stderr}`,
+    );
+  }
+  exerciseQemuImg(binary);
+  return {
+    version: config.runtimeVersion,
+    archiveSha256: artifact.sha256,
+    qemuVersion: artifact.qemuVersion,
+    sourceSha256: artifact.sourceSha256,
+  };
 }
 
 // Thin (32/64-bit, both endiannesses) plus FAT and FAT64 headers in both
@@ -523,7 +671,7 @@ async function main() {
   const version = daemonManifest.version;
   const bundleName = `moltnet-agent-${platform.id}`;
   const payloadDir = join(args.out, bundleName);
-  const cacheDir = join(homedir(), '.cache/moltnet-release/node');
+  const cacheDir = join(homedir(), '.cache/moltnet-release');
 
   if (args.packOnly) {
     // CI signs the assembled payload in place, then packs: the tarball
@@ -566,16 +714,26 @@ async function main() {
   const published = applyPublishConfig(join(payloadDir, 'daemon/node_modules'));
   console.log(`applied publishConfig: ${published.join(', ')}`);
 
-  const nodeBinary = await fetchNodeBinary(args.node, platform, cacheDir);
+  const nodeBinary = await fetchNodeBinary(
+    args.node,
+    platform,
+    join(cacheDir, 'node'),
+  );
   const runtime = join(payloadDir, 'libexec/moltnet-agent');
   mkdirSync(dirname(runtime), { recursive: true });
   writeFileSync(runtime, readFileSync(nodeBinary));
   chmodSync(runtime, 0o755);
 
-  mkdirSync(join(payloadDir, 'vendor'), { recursive: true });
+  let qemuRuntime;
   if (args.qemuImg && platform.os === 'darwin') {
-    const vendored = vendorQemuImg(payloadDir);
-    console.log(`vendored ${vendored.version} (+${vendored.dylibs} dylibs)`);
+    qemuRuntime = await fetchQemuRuntime(
+      payloadDir,
+      platform,
+      join(cacheDir, 'qemu'),
+    );
+    console.log(
+      `installed frozen QEMU ${qemuRuntime.qemuVersion} runtime ${qemuRuntime.version}`,
+    );
   } else if (platform.os === 'linux') {
     console.log(
       'linux: qemu-img is not vendored (install qemu-utils on the host)',
@@ -598,6 +756,7 @@ async function main() {
     launcher: relative(payloadDir, launcher),
     runtime: relative(payloadDir, runtime),
     entry: 'daemon/dist/main.js',
+    ...(qemuRuntime ? { qemuRuntime } : {}),
     // Everything a signer must touch and self-heal must re-verify.
     native: nativeFiles.map((path) => ({
       path: relative(payloadDir, path),

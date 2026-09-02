@@ -1808,13 +1808,6 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # gondolin shells out to qemu-img on the host; the darwin bundle vendors
-      # Homebrew's build + dylib closure (relinked, then signed with the rest).
-      # build.mjs pins the qemu major so silent upstream drift fails the build.
-      - name: Install qemu (vendored qemu-img source)
-        if: ${{ runner.os == 'macOS' }}
-        run: brew install qemu
-
       - name: Assemble payload
         run: pnpm exec nx run @themoltnet/agent-daemon:bundle
 

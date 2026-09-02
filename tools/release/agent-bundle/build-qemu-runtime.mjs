@@ -8,6 +8,7 @@
  * and emits a release archive whose digest is pinned by the agent bundle.
  */
 import { spawnSync } from 'node:child_process';
+import console from 'node:console';
 import {
   copyFileSync,
   existsSync,
@@ -21,6 +22,7 @@ import {
 } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { basename, dirname, join, relative, resolve } from 'node:path';
+import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 import {
