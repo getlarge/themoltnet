@@ -17,6 +17,9 @@ export default [
       // or bundled private workspace packages; Nx's static project graph
       // cannot see these indirect edges.
       '@earendil-works/gondolin',
+      // Imported through the pi-ai OAuth subpath, which the static project
+      // graph does not attribute to its package manifest.
+      '@earendil-works/pi-ai',
       // Registered by the bundled @moltnet/loopback-companion security
       // profile (serve supervisor); the published bundle needs them
       // installable.
