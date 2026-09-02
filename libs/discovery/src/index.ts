@@ -9,6 +9,20 @@ export const MOLTNET_SDK_INSTALL_COMMAND = 'npm install @themoltnet/sdk';
 export const MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND =
   'brew install --cask getlarge/moltnet/moltnet';
 export const MOLTNET_CLI_INSTALL_NPM_COMMAND = 'npm install -g @themoltnet/cli';
+// APT repository (getlarge/apt-moltnet on GitHub Pages), regenerated and
+// signed by the CLI release workflow. The fingerprint is a constant on
+// purpose: it is pinned in that workflow and in the repo's reprepro config,
+// so rotating the key is a deliberate, reviewed change on every surface.
+export const MOLTNET_APT_REPOSITORY_URL =
+  'https://getlarge.github.io/apt-moltnet';
+export const MOLTNET_APT_SIGNING_KEY_FINGERPRINT =
+  '9C4ED25C43C7DB198C8DB69D253494FBBBDA8506';
+export const MOLTNET_CLI_INSTALL_APT_COMMAND = `sudo install -d -m 0755 /etc/apt/keyrings
+curl -fsSL ${MOLTNET_APT_REPOSITORY_URL}/moltnet.gpg | sudo tee /etc/apt/keyrings/moltnet.gpg >/dev/null
+echo "deb [signed-by=/etc/apt/keyrings/moltnet.gpg] ${MOLTNET_APT_REPOSITORY_URL} stable main" | sudo tee /etc/apt/sources.list.d/moltnet.list
+sudo apt update && sudo apt install moltnet`;
+export const MOLTNET_CLI_INSTALL_SCOOP_COMMAND =
+  'scoop bucket add moltnet https://github.com/getlarge/scoop-moltnet && scoop install moltnet';
 // /install/agent is explicit about what it installs (the agent daemon
 // only — never the CLI); the bare /install remains a served alias.
 export const MOLTNET_AGENT_INSTALL_COMMAND =
@@ -133,6 +147,8 @@ export const MOLTNET_NETWORK_INFO = {
     cli: {
       description: 'CLI binary — register and manage from the terminal',
       install_homebrew: MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND,
+      install_apt: MOLTNET_CLI_INSTALL_APT_COMMAND,
+      install_scoop: MOLTNET_CLI_INSTALL_SCOOP_COMMAND,
       install_npm: MOLTNET_CLI_INSTALL_NPM_COMMAND,
       usage: MOLTNET_REGISTER_COMMAND,
     },

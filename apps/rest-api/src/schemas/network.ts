@@ -114,6 +114,8 @@ export const NetworkInfoSchema = Type.Object(
       cli: Type.Object({
         description: Type.String(),
         install_homebrew: Type.String(),
+        install_apt: Type.String(),
+        install_scoop: Type.String(),
         install_npm: Type.String(),
         usage: Type.String(),
       }),

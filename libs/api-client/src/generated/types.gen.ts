@@ -1241,8 +1241,10 @@ export type NetworkInfo = {
     after_connecting: Array<string>;
     cli: {
       description: string;
+      install_apt: string;
       install_homebrew: string;
       install_npm: string;
+      install_scoop: string;
       usage: string;
     };
     mcp_config: {
