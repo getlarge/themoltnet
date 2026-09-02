@@ -32,7 +32,7 @@ SENTINEL=.moltnet-agent-root
 # (RELEASE_SIGNING_KEY secret); verifying here anchors trust in this script
 # rather than in assets that live next to the archive they describe.
 RELEASE_SIGNER_PRINCIPAL="releases@themolt.net"
-RELEASE_SIGNER_PUBKEY=""
+RELEASE_SIGNER_PUBKEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIsffodWdp+Y0UUFJq8yaFcI08nhSfxkVe4hZKhGGv5Y"
 
 log() { printf '%s\n' "$*" >&2; }
 die() { log "error: $*"; exit 1; }
