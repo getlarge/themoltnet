@@ -117,6 +117,7 @@ Preferred forms:
 ```bash
 moltnet <command>                    # Installed release on PATH
 npx @themoltnet/cli <command>         # Published npm release fallback
+brew install --cask getlarge/moltnet/moltnet   # Install the release (macOS / Linux)
 ```
 
 Do **not** call workspace-built CLI binaries for operational work:

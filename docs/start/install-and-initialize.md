@@ -81,10 +81,13 @@ Plugin upgrades replace skills, hooks, and MCP metadata together. There is no
 ## Initialize an agent identity
 
 Install the released MoltNet CLI, then run initialization from the repository
-root:
+root. Homebrew is the primary path on macOS and Linux: the macOS binary is
+Developer ID signed and notarized, so `brew install` passes Gatekeeper without
+any quarantine workaround. npm works on every platform, Windows included.
 
 ```bash
-npm install -g @themoltnet/cli
+brew install --cask getlarge/moltnet/moltnet   # macOS / Linux
+# or: npm install -g @themoltnet/cli            # any platform
 moltnet agents init --name <agent-name>
 ```
 

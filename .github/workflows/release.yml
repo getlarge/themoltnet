@@ -1141,11 +1141,19 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # Go CLI binaries. macOS binaries are Developer-ID signed + notarized by
+  # GoReleaser (quill, no macOS runner) with the same Apple secrets as the
+  # agent-daemon bundle; a missing APPLE_CERT_P12 FAILS the release unless the
+  # repo variable ALLOW_UNSIGNED_DARWIN=true. checksums.txt is signed with the
+  # publisher ssh key (RELEASE_SIGNING_KEY) so every download shares one
+  # trust anchor (RELEASE_SIGNER_PUBKEY). Signing material is written to
+  # $RUNNER_TEMP for the GoReleaser step only and removed afterwards.
   release-cli:
     name: Release CLI binaries
     needs: resolve-publish
     if: ${{ always() && needs.resolve-publish.outputs.cli == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       contents: write
     steps:
@@ -1173,6 +1181,48 @@ jobs:
           owner: getlarge
           repositories: homebrew-moltnet
 
+      - name: Prepare signing material
+        id: signing
+        env:
+          APPLE_CERT_P12: ${{ secrets.APPLE_CERT_P12 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
+          NOTARY_KEY: ${{ secrets.NOTARY_KEY }}
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+          ALLOW_UNSIGNED_DARWIN: ${{ vars.ALLOW_UNSIGNED_DARWIN }}
+        run: |
+          set -euo pipefail
+          if [ -z "$RELEASE_SIGNING_KEY" ]; then
+            echo "::error::RELEASE_SIGNING_KEY is not configured; refusing to publish CLI binaries without a publisher signature"
+            exit 1
+          fi
+          key="$RUNNER_TEMP/release-signing-key"
+          printf '%s\n' "$RELEASE_SIGNING_KEY" > "$key"
+          chmod 600 "$key"
+          echo "release-signing-key-file=$key" >> "$GITHUB_OUTPUT"
+
+          if [ -z "$APPLE_CERT_P12" ]; then
+            if [ "$ALLOW_UNSIGNED_DARWIN" = "true" ]; then
+              echo "::warning::APPLE_CERT_P12 not configured and ALLOW_UNSIGNED_DARWIN=true — shipping UNSIGNED darwin CLI binaries"
+              echo "sign-darwin=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "::error::APPLE_CERT_P12 is not configured; refusing to publish unsigned darwin CLI binaries (set repo variable ALLOW_UNSIGNED_DARWIN=true to override)"
+            exit 1
+          fi
+          for v in APPLE_CERT_PASSWORD NOTARY_KEY_ID NOTARY_ISSUER_ID NOTARY_KEY; do
+            if [ -z "${!v}" ]; then
+              echo "::error::$v is not configured but APPLE_CERT_P12 is; notarization cannot run"
+              exit 1
+            fi
+          done
+          notary_key="$RUNNER_TEMP/AuthKey.p8"
+          printf '%s\n' "$NOTARY_KEY" > "$notary_key"
+          chmod 600 "$notary_key"
+          echo "notary-key-file=$notary_key" >> "$GITHUB_OUTPUT"
+          echo "sign-darwin=true" >> "$GITHUB_OUTPUT"
+
       - uses: goreleaser/goreleaser-action@v7
         with:
           version: '~> v2'
@@ -1182,13 +1232,26 @@ jobs:
           GOWORK: off
           GORELEASER_CURRENT_TAG: ${{ steps.tag.outputs.semver }}
           HOMEBREW_TAP_TOKEN: ${{ steps.app-token.outputs.token }}
+          RELEASE_SIGNING_KEY_FILE: ${{ steps.signing.outputs.release-signing-key-file }}
+          # `notarize.macos[].enabled` keys off APPLE_CERT_P12 being non-empty
+          # (isEnvSet); the guard above already decided whether that is allowed.
+          APPLE_CERT_P12: ${{ steps.signing.outputs.sign-darwin == 'true' && secrets.APPLE_CERT_P12 || '' }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
+          NOTARY_KEY_FILE: ${{ steps.signing.outputs.notary-key-file }}
+
+      - name: Remove signing material
+        if: ${{ always() }}
+        run: rm -f "$RUNNER_TEMP/release-signing-key" "$RUNNER_TEMP/AuthKey.p8"
 
       - name: Upload binaries to GitHub Release
         run: |
           gh release upload "${{ needs.resolve-publish.outputs.cli-tag }}" \
             apps/moltnet-cli/dist/*.tar.gz \
             apps/moltnet-cli/dist/*.zip \
-            apps/moltnet-cli/dist/checksums.txt
+            apps/moltnet-cli/dist/checksums.txt \
+            apps/moltnet-cli/dist/checksums.txt.sig
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

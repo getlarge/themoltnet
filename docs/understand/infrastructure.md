@@ -458,7 +458,7 @@ Releases are automated via [release-please](https://github.com/googleapis/releas
 
 1. **Release Please** — creates/updates a release PR. The config uses the `node-workspace` plugin so Node packages that depend on other workspace packages (for example `apps/agent-daemon` bundling `@themoltnet/pi-extension`, `@themoltnet/agent-runtime`, and `@themoltnet/sdk`) are pulled into the same release round when those deps bump. The CLI packages remain in their own `linked-versions` group.
 2. **Publish SDK to npm** — builds, tests, publishes `@themoltnet/sdk` with provenance, then publishes the draft release
-3. **Release CLI binaries** — cross-compiles Go binaries via GoReleaser, pushes Homebrew formula, uploads assets to the draft release, then publishes it
+3. **Release CLI binaries** — cross-compiles Go binaries via GoReleaser, Developer-ID signs and notarizes the macOS binaries (quill, on the Linux runner), signs `checksums.txt` with the publisher ssh key, pushes the Homebrew cask, uploads assets to the draft release, then publishes it
 4. **Publish CLI to npm** — publishes the `@themoltnet/cli` npm wrapper (thin binary downloader)
 5. **Publish bundled Node apps/libs** — jobs such as `publish-agent-daemon`, `publish-agent-runtime`, and `publish-pi-extension` publish the packages selected by the release PR
 6. **Publish Docker images** — each released Docker component is built through its Nx `docker:build` target and pushed to GHCR as a `linux/amd64` + `linux/arm64` manifest. The image uses the bare Release Please version (for example `0.41.0`), matching the Nx Docker production version scheme; repository names still come from each project's `nx.release.docker.repositoryName`.
@@ -493,6 +493,8 @@ The workflow uses `permissions: id-token: write` so GitHub Actions can mint OIDC
 
 The CLI is distributed via `brew install --cask getlarge/moltnet/moltnet`. GoReleaser pushes the cask to the [getlarge/homebrew-moltnet](https://github.com/getlarge/homebrew-moltnet) repository using a short-lived token from a GitHub App.
 
+Homebrew quarantines cask downloads, and macOS 15+ blocks a quarantined executable that is not notarized. The `notarize.macos` block in `apps/moltnet-cli/.goreleaser.yml` therefore signs each darwin binary with the Developer ID Application certificate and submits it to Apple's notary service **before** archiving, so the tarballs, the `@themoltnet/cli-darwin-*` npm packages and the cask all carry the same notarized Mach-O. It reuses the agent-daemon bundle's Apple secrets (#2063). A missing `APPLE_CERT_P12` fails the release unless the repo variable `ALLOW_UNSIGNED_DARWIN=true` is set. The `signs` block writes `checksums.txt.sig` with the publisher ssh-ed25519 key (`RELEASE_SIGNING_KEY`, namespace `moltnet-release`), verifiable against the `RELEASE_SIGNER_PUBKEY` repo variable exactly like the bundle checksums. Windows binaries are not Authenticode-signed.
+
 **GitHub App setup:**
 
 1. Create a GitHub App (org or personal) with **Repository permissions > Contents: Read and write**
@@ -510,12 +512,15 @@ The workflow uses `actions/create-github-app-token@v3` to mint a scoped installa
 
 ### CI secrets summary
 
-| Secret                    | Used by                 | Purpose                             |
-| ------------------------- | ----------------------- | ----------------------------------- |
-| `MOLTNET_RELEASE_APP_ID`  | `release-cli` job       | GitHub App ID for Homebrew tap push |
-| `MOLTNET_RELEASE_APP_KEY` | `release-cli` job       | GitHub App private key (PEM)        |
-| `CLAWHUB_TOKEN`           | `publish-skill-clawhub` | ClawHub CLI auth for skill publish  |
-| `FLY_API_TOKEN`           | Deploy workflows        | Fly.io deployment                   |
+| Secret                                              | Used by                                   | Purpose                                                                                                  |
+| --------------------------------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `MOLTNET_RELEASE_APP_ID`                            | `release-cli` job                         | GitHub App ID for Homebrew tap push                                                                      |
+| `MOLTNET_RELEASE_APP_KEY`                           | `release-cli` job                         | GitHub App private key (PEM)                                                                             |
+| `APPLE_CERT_P12` / `APPLE_CERT_PASSWORD`            | `release-cli`, `sign-agent-bundle-darwin` | Developer ID Application certificate (base64 `.p12`)                                                     |
+| `NOTARY_KEY_ID` / `NOTARY_ISSUER_ID` / `NOTARY_KEY` | `release-cli`, `sign-agent-bundle-darwin` | App Store Connect API key for notarization                                                               |
+| `RELEASE_SIGNING_KEY`                               | `release-cli`, `sign-agent-bundle-*`      | Publisher ssh-ed25519 key signing release checksums (public half: repo variable `RELEASE_SIGNER_PUBKEY`) |
+| `CLAWHUB_TOKEN`                                     | `publish-skill-clawhub`                   | ClawHub CLI auth for skill publish                                                                       |
+| `FLY_API_TOKEN`                                     | Deploy workflows                          | Fly.io deployment                                                                                        |
 
 npm publishing requires no secrets — it uses OIDC trusted publishing.
 
