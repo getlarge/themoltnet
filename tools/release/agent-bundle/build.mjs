@@ -111,7 +111,7 @@ function run(cmd, args, options = {}) {
   }
 }
 
-function sha256File(path) {
+export function sha256File(path) {
   // Stream in bounded chunks: peak RSS must not scale with the largest
   // artifact (the packed archive is already hundreds of MB).
   const hash = createHash('sha256');
@@ -132,7 +132,7 @@ function sha256File(path) {
  * Download with a deadline, bounded retries, and an atomic rename so an
  * interrupted transfer can never poison the persistent cache.
  */
-async function download(
+export async function download(
   url,
   destination,
   { attempts = 3, timeoutMs = 120_000 } = {},
@@ -217,7 +217,7 @@ const MACHO_MAGICS = [
 const ELF_MAGIC = 0x7f454c46;
 
 /** Native code for THIS platform's loader: Mach-O on darwin, ELF on linux. */
-function isNativeForHost(path, platform) {
+export function isNativeForHost(path, platform) {
   // Only the 4-byte magic matters: never read whole files just to
   // classify them (the payload is hundreds of MB).
   const header = Buffer.alloc(4);
@@ -378,8 +378,7 @@ function findQemuImg() {
  * The launcher puts vendor/ first on PATH. Every file here is Mach-O, so it
  * lands in manifest.native and gets signed with the rest of the payload.
  */
-function vendorQemuImg(payloadDir) {
-  const source = findQemuImg();
+export function vendorQemuImg(payloadDir, source = findQemuImg()) {
   if (!source) {
     throw new Error(
       'qemu-img not found (brew install qemu, or set QEMU_IMG); pass --no-qemu-img to skip',
@@ -474,7 +473,7 @@ function vendorQemuImg(payloadDir) {
   };
 }
 
-function writeLauncher(payloadDir, platform) {
+export function writeLauncher(payloadDir, platform) {
   const launcher = join(payloadDir, 'bin/moltnet-agent');
   mkdirSync(dirname(launcher), { recursive: true });
   // The bundle must not depend on a host qemu-system install: on macOS the
@@ -624,7 +623,7 @@ async function main() {
  * every Mach-O after assembly; the file SET must not change (that would
  * mean the payload was tampered with between assemble and pack).
  */
-function refreshManifestHashes(payloadDir, platform) {
+export function refreshManifestHashes(payloadDir, platform) {
   const manifestPath = join(payloadDir, 'manifest.json');
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
   const onDisk = listNativeFiles(payloadDir, platform).map((path) =>
@@ -657,7 +656,9 @@ function pack(outDir, bundleName) {
   console.log(`packed: ${tarball} (${digest})`);
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error);
-  process.exit(1);
-});
+if (resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exit(1);
+  });
+}
