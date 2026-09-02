@@ -22,7 +22,20 @@
       "platform:browser"
     ],
     "implicitDependencies": [
-      "@moltnet/console"
-    ]
+      "@moltnet/console",
+      "@themoltnet/agent-daemon"
+    ],
+    "targets": {
+      "e2e": {
+        "dependsOn": [
+          {
+            "projects": [
+              "@themoltnet/agent-daemon"
+            ],
+            "target": "bundle"
+          }
+        ]
+      }
+    }
   }
 }

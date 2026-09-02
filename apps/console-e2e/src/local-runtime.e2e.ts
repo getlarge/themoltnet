@@ -9,6 +9,7 @@
  * network-free beyond the e2e stack itself.
  */
 import { type ChildProcess, spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
 import { createServer as createNetServer } from 'node:net';
@@ -36,16 +37,28 @@ import {
 const SERVE_PORT = 17374;
 const SERVE_URL = `http://127.0.0.1:${SERVE_PORT}`;
 const DAEMON_ROOT = resolve(import.meta.dirname, '../../agent-daemon');
+const DAEMON_BUNDLE_ROOT = resolve(
+  import.meta.dirname,
+  `../../../dist/agent-bundle/moltnet-agent-${process.platform}-${process.arch}`,
+);
 const MODEL_ID = 'e2e-fake';
 const PROVIDER_ID = 'e2e-local';
 
 /**
- * Spawn `moltnet-agent serve` from source. Uses node + tsx's loader flags
- * directly (what the `tsx` CLI does internally) so the supervisor is our
- * direct child: signals reach it unwrapped, and runs it starts re-exec
- * the same absolute loader paths from their own working directory.
+ * Spawn the production bundle when Nx has materialised it for this suite. The
+ * source fallback keeps direct Playwright invocation useful while preserving
+ * the same direct-child signal semantics in both modes.
  */
 function spawnServe(args: string[]): ChildProcess {
+  const bundleRoot = process.env['MOLTNET_AGENT_BUNDLE'] ?? DAEMON_BUNDLE_ROOT;
+  const bundledEntry = join(bundleRoot, 'bin/moltnet-agent');
+  if (existsSync(bundledEntry)) {
+    return spawn(bundledEntry, ['serve', ...args], {
+      cwd: tmpdir(),
+      env: process.env,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  }
   const tsxDist = join(DAEMON_ROOT, 'node_modules/tsx/dist');
   return spawn(
     process.execPath,
