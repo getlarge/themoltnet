@@ -30,6 +30,9 @@ verification submission or release when their contents may have changed.
 2. Inspect the credential classes, node descriptions, execution code,
    `package.json`, README, examples, tests, build configuration, and pack
    validation. Inspect the packed artifact when publication is in scope.
+   For Creator Portal submission, confirm the packed `author.email` exactly
+   matches the verified npm owner and Portal account; npm maintainer metadata
+   does not substitute for this field.
 3. Report findings as:
    - **Required**: an explicit n8n requirement is unmet.
    - **Recommended**: n8n says "try", "whenever possible", or the API makes a
@@ -88,3 +91,8 @@ fully validate n8n editor behavior.
 Run `@n8n/scan-community-package` against the exact immutable npm version after
 publication. Do not use an unpublished workspace scan as proof of registry,
 repository, or provenance compliance.
+
+The scanner does not prove that Creator Portal can resolve package ownership.
+Query the exact published version with `npm view <package>@<version> author
+maintainers --json` and confirm `author.email` is present and matches the
+verified npm owner before submission.
