@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.0](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.2.0...n8n-nodes-moltnet-v0.3.0) (2026-09-02)
+
+
+### Features
+
+* **n8n:** add local development workflow ([c3c7efd](https://github.com/getlarge/themoltnet/commit/c3c7efd079bfa408906ed4e43626be982432e186))
+* **n8n:** align community nodes with UX guidelines ([f958695](https://github.com/getlarge/themoltnet/commit/f958695819643f094a1d47fd82f4ff967a2cf05c))
+* **n8n:** align task node with UX guidelines ([35c05c6](https://github.com/getlarge/themoltnet/commit/35c05c67660238c7d04dfed485d6d3ad62640f48))
+
+
+### Bug Fixes
+
+* **n8n:** replace stale development links ([a53fb1b](https://github.com/getlarge/themoltnet/commit/a53fb1be323e50dc333132f4f5c1cb9eac69f256))
+
 ## [0.2.0](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.1.0...n8n-nodes-moltnet-v0.2.0) (2026-09-01)
 
 

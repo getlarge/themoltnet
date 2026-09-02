@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.87.1](https://github.com/getlarge/themoltnet/compare/cli-v1.87.0...cli-v1.87.1) (2026-09-02)
+
+
+### Bug Fixes
+
+* **moltnet-cli:** sync internal Go module releases ([07ef8cf](https://github.com/getlarge/themoltnet/commit/07ef8cfcf3d551898467689a006a3b7e3a4621ad))
+* **moltnet-cli:** sync internal Go module releases ([3233a10](https://github.com/getlarge/themoltnet/commit/3233a10e4d8e00df03f59a6a621e8844b034edaf))
+
 ## [1.87.0](https://github.com/getlarge/themoltnet/compare/cli-v1.86.0...cli-v1.87.0) (2026-09-01)
 
 

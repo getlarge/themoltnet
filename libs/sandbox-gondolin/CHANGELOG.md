@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.1](https://github.com/getlarge/themoltnet/compare/sandbox-gondolin-v0.5.0...sandbox-gondolin-v0.5.1) (2026-09-02)
+
+
+### Bug Fixes
+
+* **sandbox-gondolin:** key the snapshot cache by VM backend ([1d4953b](https://github.com/getlarge/themoltnet/commit/1d4953b59a05f167018eb1e92e5f24d1fccdf21b))
+* **sandbox-gondolin:** key the snapshot cache by VM backend ([a08afe7](https://github.com/getlarge/themoltnet/commit/a08afe70eacf777312ae446546118513ea2c793e))
+
 ## [0.5.0](https://github.com/getlarge/themoltnet/compare/sandbox-gondolin-v0.4.0...sandbox-gondolin-v0.5.0) (2026-08-31)
 
 
