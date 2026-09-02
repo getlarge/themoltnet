@@ -31,7 +31,7 @@ SENTINEL=.moltnet-agent-root
 # archive checksum file is signed in CI with the matching private key
 # (RELEASE_SIGNING_KEY secret); verifying here anchors trust in this script
 # rather than in assets that live next to the archive they describe.
-RELEASE_SIGNER_PRINCIPAL="releases@themolt.net"
+RELEASE_SIGNER_PRINCIPAL="legreffier@themolt.net"
 # Injected at release time from the RELEASE_SIGNER_PUBKEY repo variable (the
 # CI cross-checks it against the signing key before uploading). Deliberately
 # NOT fetched at install time: the trust anchor must live in the script the

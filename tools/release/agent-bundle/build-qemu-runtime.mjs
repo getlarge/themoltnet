@@ -24,6 +24,7 @@ import { homedir, tmpdir } from 'node:os';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { parseArgs as nodeParseArgs } from 'node:util';
 
 import {
   download,
@@ -38,19 +39,26 @@ const sourceConfig = JSON.parse(
 );
 
 function parseArgs(argv) {
-  const args = {
-    out: resolve('dist/qemu-runtime'),
-    cache: join(homedir(), 'Library/Caches/moltnet/qemu-runtime'),
-  };
-  for (let i = 0; i < argv.length; i += 1) {
-    if (argv[i] === '--out') args.out = resolve(argv[++i]);
-    else if (argv[i] === '--cache') args.cache = resolve(argv[++i]);
-    else if (argv[i] === '-h' || argv[i] === '--help') {
-      console.log('usage: build-qemu-runtime.mjs [--out DIR] [--cache DIR]');
-      process.exit(0);
-    } else throw new Error(`unknown argument: ${argv[i]}`);
+  const { values } = nodeParseArgs({
+    args: argv,
+    options: {
+      out: { type: 'string' },
+      cache: { type: 'string' },
+      help: { type: 'boolean', short: 'h', default: false },
+    },
+    allowPositionals: false,
+    strict: true,
+  });
+  if (values.help) {
+    console.log('usage: build-qemu-runtime.mjs [--out DIR] [--cache DIR]');
+    process.exit(0);
   }
-  return args;
+  return {
+    out: resolve(values.out ?? 'dist/qemu-runtime'),
+    cache: resolve(
+      values.cache ?? join(homedir(), 'Library/Caches/moltnet/qemu-runtime'),
+    ),
+  };
 }
 
 function run(command, args, options = {}) {

@@ -51,36 +51,41 @@ import { homedir, tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { fileURLToPath } from 'node:url';
+import { parseArgs as nodeParseArgs } from 'node:util';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '../../..');
 const daemonRoot = join(repoRoot, 'apps/agent-daemon');
 
 function parseArgs(argv) {
-  const args = {
-    out: join(repoRoot, 'dist/agent-bundle'),
-    node: readPinnedNodeVersion(),
-    skipDaemonBuild: false,
-    pack: false,
-    packOnly: false,
-    qemuImg: true,
-  };
-  for (let i = 0; i < argv.length; i += 1) {
-    const arg = argv[i];
-    if (arg === '--out') args.out = resolve(argv[++i]);
-    else if (arg === '--node') args.node = argv[++i];
-    else if (arg === '--skip-daemon-build') args.skipDaemonBuild = true;
-    else if (arg === '--pack') args.pack = true;
-    else if (arg === '--pack-only') args.packOnly = true;
-    else if (arg === '--no-qemu-img') args.qemuImg = false;
-    else if (arg === '-h' || arg === '--help') {
-      console.log(
-        'usage: build.mjs [--out DIR] [--node VERSION] [--skip-daemon-build] [--no-qemu-img] [--pack | --pack-only]',
-      );
-      process.exit(0);
-    } else throw new Error(`unknown argument: ${arg}`);
+  const { values } = nodeParseArgs({
+    args: argv,
+    options: {
+      out: { type: 'string' },
+      node: { type: 'string' },
+      'skip-daemon-build': { type: 'boolean', default: false },
+      pack: { type: 'boolean', default: false },
+      'pack-only': { type: 'boolean', default: false },
+      'no-qemu-img': { type: 'boolean', default: false },
+      help: { type: 'boolean', short: 'h', default: false },
+    },
+    allowPositionals: false,
+    strict: true,
+  });
+  if (values.help) {
+    console.log(
+      'usage: build.mjs [--out DIR] [--node VERSION] [--skip-daemon-build] [--no-qemu-img] [--pack | --pack-only]',
+    );
+    process.exit(0);
   }
-  return args;
+  return {
+    out: values.out ? resolve(values.out) : join(repoRoot, 'dist/agent-bundle'),
+    node: values.node ?? readPinnedNodeVersion(),
+    skipDaemonBuild: values['skip-daemon-build'],
+    pack: values.pack,
+    packOnly: values['pack-only'],
+    qemuImg: !values['no-qemu-img'],
+  };
 }
 
 function readPinnedNodeVersion() {
