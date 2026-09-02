@@ -22,6 +22,53 @@ env:
   NX_LOAD_DOT_ENV_FILES: 'false'
 
 jobs:
+  # themolt.net/install serves a deliberately pinned installer release. This
+  # check keeps the pin honest: it warns (annotation + PR comment) when a
+  # newer agent-daemon release exists, without forcing the bump.
+  installer-pin:
+    name: Installer pin freshness
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Compare the served installer pin against the latest release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          template=apps/landing/nginx/default.conf.template
+          pinned=$(grep -o 'agent-daemon-v[0-9A-Za-z.+-]*' "$template" | head -1)
+          if [ -z "$pinned" ]; then
+            echo "::error file=$template::no installer pin found in the landing nginx template"
+            exit 1
+          fi
+          latest=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 100 \
+            --json tagName --jq '[.[].tagName | select(startswith("agent-daemon-v"))][0] // empty')
+          if [ -z "$latest" ] || [ "$pinned" = "$latest" ]; then
+            echo "installer pin $pinned is current (latest agent-daemon release: ${latest:-none})"
+            exit 0
+          fi
+          echo "::warning file=$template::themolt.net/install serves $pinned but the latest agent-daemon release is $latest — bump the pin when that version should become public"
+          marker='<!-- installer-pin-check -->'
+          body=$(printf '%s\n%s\n\n%s' \
+            "$marker" \
+            "⚠️ **Installer pin is behind**: \`themolt.net/install\` serves \`$pinned\`, but the latest agent-daemon release is \`$latest\`." \
+            "The pin is deliberate — bump the redirect in \`$template\` when that version should become public.")
+          existing=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" --paginate \
+            --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -1)
+          if [ -n "$existing" ]; then
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$existing" -f body="$body" >/dev/null
+          else
+            gh api --method POST "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" -f body="$body" >/dev/null
+          fi
+
   agent-bundle:
     name: Agent bundle (${{ matrix.os }})
     needs: [affected]

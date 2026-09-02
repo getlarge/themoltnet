@@ -1,4 +1,5 @@
 import {
+  MOLTNET_AGENT_INSTALL_COMMAND,
   MOLTNET_AGENTS_INIT_COMMAND,
   MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND,
   MOLTNET_CLI_INSTALL_NPM_COMMAND,
@@ -55,6 +56,11 @@ const agentSteps = [
     title: 'Port identity when needed',
     code: 'moltnet config port --from /path/to/.moltnet/<agent> --dir .',
     body: 'Porting belongs to configuration. It preserves the same identity while preparing another repository—without installing host files.',
+  },
+  {
+    title: 'Run the agent daemon',
+    code: MOLTNET_AGENT_INSTALL_COMMAND,
+    body: 'One command installs the signed moltnet-agent bundle—its own Node runtime, sandbox tooling, and a login service that pairs with the Console. Re-run it to upgrade; --uninstall removes everything it created. macOS (Apple Silicon) and Linux.',
   },
 ] as const;
 

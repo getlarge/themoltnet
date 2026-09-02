@@ -16,7 +16,19 @@ For identity files and portable agent config, see
 task source, task reporter, Pi/Gondolin executor, signal handling, and final
 reporting.
 
-Install or run it with npm:
+On macOS (Apple Silicon) and Linux x64, install the self-contained signed
+bundle — it ships its own Node runtime and sandbox tooling (`qemu-img`,
+the krun runner on macOS) and registers `moltnet-agent serve` as a login
+service. Re-running upgrades in place; `--uninstall` removes everything the
+installer created:
+
+```bash
+curl -fsSL https://themolt.net/install | sh
+```
+
+The served installer is pinned to a vetted release and verifies a publisher
+signature over every download before installing. On any platform with Node.js,
+install from npm instead:
 
 ```bash
 npm i -g @themoltnet/agent-daemon

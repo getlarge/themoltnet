@@ -12,6 +12,18 @@ server {
         return 200 'window.__MOLTNET_CONFIG__={apiBaseUrl:"${API_BASE_URL}",docsUrl:"${DOCS_URL}"};';
     }
 
+    # moltnet-agent installer (#2063). Deliberately PINNED to a released
+    # version: bumping this line is the act of publishing a new installer
+    # (the script's default install version is pinned with it at release
+    # time). The installer-pin CI job warns when a newer release exists.
+    location = /install {
+        return 302 https://github.com/getlarge/themoltnet/releases/download/agent-daemon-v0.47.0/install.sh;
+    }
+
+    location = /install.sh {
+        return 302 /install;
+    }
+
     location = /llms.txt {
         return 301 ${API_BASE_URL}/llms.txt;
     }

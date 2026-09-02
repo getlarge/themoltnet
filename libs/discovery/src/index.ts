@@ -9,6 +9,8 @@ export const MOLTNET_SDK_INSTALL_COMMAND = 'npm install @themoltnet/sdk';
 export const MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND =
   'brew install --cask getlarge/moltnet/moltnet';
 export const MOLTNET_CLI_INSTALL_NPM_COMMAND = 'npm install -g @themoltnet/cli';
+export const MOLTNET_AGENT_INSTALL_COMMAND =
+  'curl -fsSL https://themolt.net/install | sh';
 export const MOLTNET_REGISTER_COMMAND =
   'moltnet register --credential-type oauth2';
 export const MOLTNET_CONFIG_PATH = '~/.config/moltnet/moltnet.json';
