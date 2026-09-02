@@ -493,7 +493,21 @@ The workflow uses `permissions: id-token: write` so GitHub Actions can mint OIDC
 
 The CLI is distributed via `brew install --cask getlarge/moltnet/moltnet`. GoReleaser pushes the cask to the [getlarge/homebrew-moltnet](https://github.com/getlarge/homebrew-moltnet) repository using a short-lived token from a GitHub App.
 
-Homebrew quarantines cask downloads, and macOS 15+ blocks a quarantined executable that is not notarized. The `notarize.macos` block in `apps/moltnet-cli/.goreleaser.yml` therefore signs each darwin binary with the Developer ID Application certificate and submits it to Apple's notary service **before** archiving, so the tarballs, the `@themoltnet/cli-darwin-*` npm packages and the cask all carry the same notarized Mach-O. It reuses the agent-daemon bundle's Apple secrets (#2063). A missing `APPLE_CERT_P12` fails the release unless the repo variable `ALLOW_UNSIGNED_DARWIN=true` is set. The `signs` block writes `checksums.txt.sig` with the publisher ssh-ed25519 key (`RELEASE_SIGNING_KEY`, namespace `moltnet-release`), verifiable against the `RELEASE_SIGNER_PUBKEY` repo variable exactly like the bundle checksums. Windows binaries are not Authenticode-signed.
+Homebrew quarantines cask downloads, and macOS 15+ blocks a quarantined executable that is not notarized. The `notarize.macos` block in `apps/moltnet-cli/.goreleaser.yml` therefore signs each darwin binary with the Developer ID Application certificate and submits it to Apple's notary service **before** archiving, so the tarballs, the `@themoltnet/cli-darwin-*` npm packages and the cask all carry the same notarized Mach-O. It reuses the agent-daemon bundle's Apple secrets (#2063). Quill requires `APPLE_CERT_P12` to contain the complete chain: the Developer ID Application leaf, the Developer ID G2 intermediate, and the self-signed Apple Root CA. A leaf-plus-intermediate P12 can be accepted by Quill's chain preflight while producing an invalid designated requirement, so the release workflow validates the three-certificate chain before GoReleaser runs. A missing or incomplete `APPLE_CERT_P12` fails the release unless the repo variable `ALLOW_UNSIGNED_DARWIN=true` is set. The `signs` block writes `checksums.txt.sig` with the publisher ssh-ed25519 key (`RELEASE_SIGNING_KEY`, namespace `moltnet-release`), verifiable against the `RELEASE_SIGNER_PUBKEY` repo variable exactly like the bundle checksums. Windows binaries are not Authenticode-signed.
+
+Build the P12 with both CA certificates in `-certfile` (the root certificate is public and comes from Apple's Certificate Authority page):
+
+```bash
+cat DeveloperIDG2CA.pem AppleIncRootCertificate.pem > DeveloperID-full-chain.pem
+openssl pkcs12 -export -legacy \
+  -inkey devid-application.key \
+  -in devid.crt \
+  -certfile DeveloperID-full-chain.pem \
+  -name "Developer ID Application" \
+  -out devid-application.p12
+```
+
+Base64-encode that P12 into `APPLE_CERT_P12`. Keep `-legacy`: macOS `security import` must also be able to consume the same secret for the native agent-daemon signing job.
 
 The Windows counterpart is the Scoop bucket [getlarge/scoop-moltnet](https://github.com/getlarge/scoop-moltnet) (`scoop bucket add moltnet https://github.com/getlarge/scoop-moltnet && scoop install moltnet`): the `scoops` block in the same GoReleaser config writes `bucket/moltnet.json` with the zip URLs and SHA256 hashes on every CLI release, pushed with the same GitHub App token (`SCOOP_TAP_TOKEN`). The App must be installed on **both** `homebrew-moltnet` and `scoop-moltnet`; a `404` on `/repos/getlarge/scoop-moltnet/installation` means the bucket repo is missing from the App's repository selection. Scoop downloads without the mark-of-the-web and verifies the manifest hash, so the unsigned exe installs without a SmartScreen prompt.
 
@@ -518,7 +532,7 @@ The workflow uses `actions/create-github-app-token@v3` to mint a scoped installa
 | --------------------------------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | `MOLTNET_RELEASE_APP_ID`                            | `release-cli` job                         | GitHub App ID for Homebrew tap push                                                                      |
 | `MOLTNET_RELEASE_APP_KEY`                           | `release-cli` job                         | GitHub App private key (PEM)                                                                             |
-| `APPLE_CERT_P12` / `APPLE_CERT_PASSWORD`            | `release-cli`, `sign-agent-bundle-darwin` | Developer ID Application certificate (base64 `.p12`)                                                     |
+| `APPLE_CERT_P12` / `APPLE_CERT_PASSWORD`            | `release-cli`, `sign-agent-bundle-darwin` | Developer ID Application certificate plus G2 intermediate and Apple root (base64 `.p12`)                 |
 | `NOTARY_KEY_ID` / `NOTARY_ISSUER_ID` / `NOTARY_KEY` | `release-cli`, `sign-agent-bundle-darwin` | App Store Connect API key for notarization                                                               |
 | `RELEASE_SIGNING_KEY`                               | `release-cli`, `sign-agent-bundle-*`      | Publisher ssh-ed25519 key signing release checksums (public half: repo variable `RELEASE_SIGNER_PUBKEY`) |
 | `CLAWHUB_TOKEN`                                     | `publish-skill-clawhub`                   | ClawHub CLI auth for skill publish                                                                       |

@@ -1217,6 +1217,10 @@ jobs:
               exit 1
             fi
           done
+          cert="$RUNNER_TEMP/apple-developer-id.p12"
+          printf '%s' "$APPLE_CERT_P12" | base64 --decode > "$cert"
+          chmod 600 "$cert"
+          sh tools/release/cli/verify-apple-p12.sh --p12 "$cert"
           notary_key="$RUNNER_TEMP/AuthKey.p8"
           printf '%s\n' "$NOTARY_KEY" > "$notary_key"
           chmod 600 "$notary_key"
@@ -1244,7 +1248,7 @@ jobs:
 
       - name: Remove signing material
         if: ${{ always() }}
-        run: rm -f "$RUNNER_TEMP/release-signing-key" "$RUNNER_TEMP/AuthKey.p8"
+        run: rm -f "$RUNNER_TEMP/release-signing-key" "$RUNNER_TEMP/AuthKey.p8" "$RUNNER_TEMP/apple-developer-id.p12"
 
       - name: Upload binaries to GitHub Release
         run: |

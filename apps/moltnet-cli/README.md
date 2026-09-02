@@ -14,8 +14,8 @@ npm install -g @themoltnet/cli
 
 Or download a binary from [GitHub Releases](https://github.com/getlarge/themoltnet/releases).
 
-> **macOS Gatekeeper:** The binary is not Apple-notarized. If macOS blocks it, run:
-> `xattr -d com.apple.quarantine $(which moltnet)`
+> **macOS Gatekeeper:** Release binaries are Developer ID signed and notarized
+> before they are archived for Homebrew, npm, and GitHub Releases.
 
 ## Quick Start
 

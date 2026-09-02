@@ -75,6 +75,8 @@ scoops:
 # downloads, so without this Gatekeeper blocks `brew install` on macOS 15+.
 # Cross-platform (quill, built into GoReleaser): runs on the Linux release
 # runner with the same Apple secrets as the agent-daemon bundle (#2063).
+# Quill requires APPLE_CERT_P12 to contain the leaf, Developer ID G2
+# intermediate, and Apple root; the release workflow validates that chain.
 # Go binaries need no entitlements (no JIT, CGO_ENABLED=0). A bare binary
 # cannot be stapled; Gatekeeper verifies the ticket online on first run.
 notarize:

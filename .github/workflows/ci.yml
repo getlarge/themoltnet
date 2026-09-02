@@ -311,7 +311,7 @@ jobs:
             echo "native-keyring=false" >> "$GITHUB_OUTPUT"
           fi
 
-          if ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- tools/release/agent-bundle tools/package.json apps/agent-daemon/package.json .tool-versions .github/workflows/ci.yml; then
+          if ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- tools/release/agent-bundle tools/release/cli tools/package.json apps/agent-daemon/package.json apps/moltnet-cli/.goreleaser.yml .tool-versions .github/workflows/ci.yml .github/workflows/release.yml; then
             echo "agent-bundle=true" >> "$GITHUB_OUTPUT"
           else
             echo "agent-bundle=false" >> "$GITHUB_OUTPUT"
