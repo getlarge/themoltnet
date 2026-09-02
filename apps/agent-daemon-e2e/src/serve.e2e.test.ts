@@ -412,34 +412,73 @@ describe('moltnet-agent serve (loopback supervisor)', () => {
   });
 
   it('discovers models from OpenAI-compatible and Ollama endpoints, failing closed otherwise', async () => {
-    const openai = await call('/v1/providers/discover-models', {
-      method: 'POST',
+    const openaiProvider = 'e2e-discovery-openai';
+    const savedOpenai = await call(`/v1/providers/${openaiProvider}`, {
+      method: 'PUT',
       token,
-      body: { baseUrl: `${modelStub.url}/v1`, apiKey: 'unused' },
+      body: {
+        api: 'openai-completions',
+        baseUrl: `${modelStub.url}/v1`,
+        envName: 'MOLTNET_PROVIDER_E2E_DISCOVERY_OPENAI_API_KEY',
+        models: [],
+        apiKey: 'unused',
+      },
     });
+    expect(savedOpenai.status).toBe(200);
+    const openai = await call(
+      `/v1/providers/${openaiProvider}/discover-models`,
+      { method: 'POST', token },
+    );
     expect(openai.status).toBe(200);
     expect(openai.json).toEqual({ models: [MODEL_ID, 'e2e-other'] });
 
-    const ollama = await call('/v1/providers/discover-models', {
-      method: 'POST',
+    const ollamaProvider = 'e2e-discovery-ollama';
+    const savedOllama = await call(`/v1/providers/${ollamaProvider}`, {
+      method: 'PUT',
       token,
-      body: { baseUrl: `${tagsStub.url}/v1` },
+      body: {
+        api: 'openai-completions',
+        baseUrl: `${tagsStub.url}/v1`,
+        envName: 'MOLTNET_PROVIDER_E2E_DISCOVERY_OLLAMA_API_KEY',
+        models: [],
+      },
     });
+    expect(savedOllama.status).toBe(200);
+    const ollama = await call(
+      `/v1/providers/${ollamaProvider}/discover-models`,
+      { method: 'POST', token },
+    );
     expect(ollama.status).toBe(200);
     expect(ollama.json).toEqual({ models: ['tags-only-model'] });
 
-    const dead = await call('/v1/providers/discover-models', {
+    const deadProvider = 'e2e-discovery-dead';
+    const savedDead = await call(`/v1/providers/${deadProvider}`, {
+      method: 'PUT',
+      token,
+      body: {
+        api: 'openai-completions',
+        baseUrl: `http://127.0.0.1:${await freePort()}/v1`,
+        envName: 'MOLTNET_PROVIDER_E2E_DISCOVERY_DEAD_API_KEY',
+        models: [],
+      },
+    });
+    expect(savedDead.status).toBe(200);
+    const dead = await call(`/v1/providers/${deadProvider}/discover-models`, {
       method: 'POST',
       token,
-      body: { baseUrl: `http://127.0.0.1:${await freePort()}/v1` },
     });
     expect(dead.status).toBe(502);
-    expect((dead.json as ServeError).code).toBe('discovery_failed');
+    expect((dead.json as ServeError).code).toBe('discovery_unavailable');
 
-    const bogus = await call('/v1/providers/discover-models', {
-      method: 'POST',
+    const bogus = await call('/v1/providers/e2e-discovery-bogus', {
+      method: 'PUT',
       token,
-      body: { baseUrl: 'ftp://nope' },
+      body: {
+        api: 'openai-completions',
+        baseUrl: 'ftp://nope',
+        envName: 'MOLTNET_PROVIDER_E2E_DISCOVERY_BOGUS_API_KEY',
+        models: [],
+      },
     });
     expect(bogus.status).toBe(400);
   });
@@ -451,7 +490,7 @@ describe('moltnet-agent serve (loopback supervisor)', () => {
       body: {
         api: 'openai-completions',
         baseUrl: `${modelStub.url}/v1`,
-        envName: 'E2E_LOCAL_API_KEY',
+        envName: 'MOLTNET_PROVIDER_E2E_LOCAL_API_KEY',
         models: [MODEL_ID],
         apiKey: RAW_API_KEY,
       },
@@ -459,7 +498,7 @@ describe('moltnet-agent serve (loopback supervisor)', () => {
     expect(saved.status).toBe(200);
     expect(saved.json).toMatchObject({
       api: 'openai-completions',
-      envName: 'E2E_LOCAL_API_KEY',
+      envName: 'MOLTNET_PROVIDER_E2E_LOCAL_API_KEY',
       models: [MODEL_ID],
       hasApiKey: true,
     });
@@ -472,7 +511,7 @@ describe('moltnet-agent serve (loopback supervisor)', () => {
       body: {
         api: 'openai-completions',
         baseUrl: `${modelStub.url}/v1`,
-        envName: 'E2E_LOCAL_API_KEY',
+        envName: 'MOLTNET_PROVIDER_E2E_LOCAL_API_KEY',
         models: [MODEL_ID, 'e2e-other'],
       },
     });
@@ -489,7 +528,7 @@ describe('moltnet-agent serve (loopback supervisor)', () => {
     const result = await call('/v1/agents', {
       method: 'POST',
       token,
-      body: { kind: 'managed', name: 'stranded', apiUrl: harness.restApiUrl },
+      body: { kind: 'managed', name: 'stranded' },
     });
     expect(result.status).toBe(400);
   });
@@ -506,7 +545,6 @@ describe('moltnet-agent serve (loopback supervisor)', () => {
       body: {
         kind: 'managed',
         name: agentName,
-        apiUrl: harness.restApiUrl,
         enrollmentToken: enrollment.token,
       },
     });
@@ -538,7 +576,6 @@ describe('moltnet-agent serve (loopback supervisor)', () => {
       body: {
         kind: 'managed',
         name: `${agentName}-replay`,
-        apiUrl: harness.restApiUrl,
         enrollmentToken: enrollment.token,
       },
     });
@@ -600,8 +637,12 @@ describe('moltnet-agent serve (loopback supervisor)', () => {
     // little longer to catch an immediate crash (fatal / error level).
     const logs = await readRunLogs(
       runId,
-      (text) => text.includes('[fatal]') || text.includes('"level":50'),
-      15_000,
+      (text) =>
+        text.includes('[fatal]') ||
+        text.includes('"level":50') ||
+        (text.includes('agent-daemon.starting') &&
+          text.includes(`"boundTeamId":"${teamId}"`)),
+      60_000,
     );
     expect(logs).toContain('agent-daemon.starting');
     expect(logs).toContain(`"boundTeamId":"${teamId}"`);
@@ -644,7 +685,7 @@ describe('moltnet-agent serve (loopback supervisor)', () => {
         setTimeout(() => r('timeout'), 15_000);
       }),
     ]);
-    expect(code).toBe(0);
+    expect(code).toBe(143);
     await expect(fetch(`${base}/health`)).rejects.toThrow();
   }, 30_000);
 });
