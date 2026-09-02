@@ -119,4 +119,42 @@ describe('MoltNet API credentials', () => {
       true,
     );
   });
+
+  it('guides users when credential authentication is rejected', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string | URL | Request) => {
+        const request = new Request(input);
+        if (new URL(request.url).pathname === '/oauth2/token') {
+          return new Response(
+            JSON.stringify({
+              type: 'about:blank',
+              title: 'Unauthorized',
+              status: 401,
+            }),
+            { status: 401, headers: { 'content-type': 'application/json' } },
+          );
+        }
+        return new Response(null, { status: 500 });
+      }),
+    );
+    const node = new MoltNet();
+
+    const result =
+      await node.methods.credentialTest.moltNetApiCredentialTest.call(
+        {} as ICredentialTestFunctions,
+        {
+          id: 'rejected-credential-id',
+          name: 'Rejected MoltNet credential',
+          type: 'moltNetApi',
+          data: defaultCredentials,
+        } as ICredentialsDecrypted,
+      );
+
+    expect(result).toEqual({
+      status: 'Error',
+      message:
+        'Authentication was rejected. Check the selected authentication method and secret.',
+    });
+  });
 });

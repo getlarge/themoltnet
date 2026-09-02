@@ -1,3 +1,4 @@
+import type { ILoadOptionsFunctions } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -17,6 +18,186 @@ describe('MoltNet node', () => {
 
   it('uses the MoltNet task coordination color', () => {
     expect(new MoltNet().description.iconColor).toBe('azure');
+  });
+
+  it('defines version 2 with n8n UX copy and task selection', () => {
+    const description = new MoltNet().description;
+    const operation = description.properties.find(
+      ({ name }) => name === 'operation',
+    );
+    const taskLocator = description.properties.find(
+      ({ name, type }) => name === 'taskId' && type === 'resourceLocator',
+    );
+    const simplify = description.properties.find(
+      ({ name }) => name === 'simplify',
+    );
+
+    expect(description.version).toEqual([1, 2]);
+    expect(description.defaultVersion).toBe(2);
+    expect(operation?.options).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ action: 'Cancel task', name: 'Cancel' }),
+        expect.objectContaining({ action: 'Create task', name: 'Create' }),
+        expect.objectContaining({ action: 'Get task', name: 'Get' }),
+        expect.objectContaining({ action: 'Get many tasks', name: 'Get Many' }),
+        expect.objectContaining({ action: 'Wait for task', name: 'Wait' }),
+      ]),
+    );
+    expect(taskLocator?.modes?.[0]).toMatchObject({
+      displayName: 'From List',
+      name: 'list',
+    });
+    expect(simplify?.description).toBe(
+      'Whether to return a simplified version of the response instead of the raw data',
+    );
+  });
+
+  it('keeps version 1 raw output and simplifies new version 2 nodes', async () => {
+    const api = new FakeMoltNetApi();
+    vi.stubGlobal('fetch', api.fetch);
+    const parameters = {
+      operation: 'create',
+      taskType: 'freeform',
+      input: '{"brief":"Compare node versions"}',
+      options: {},
+    };
+
+    const [legacy] = await new MoltNet().execute.call(
+      createExecuteContext({ parameters, typeVersion: 1 }),
+    );
+    const [current] = await new MoltNet().execute.call(
+      createExecuteContext({ parameters, typeVersion: 2 }),
+    );
+
+    expect(legacy[0].json.input).toMatchObject({
+      brief: 'Compare node versions',
+    });
+    expect(Object.keys(current[0].json)).toHaveLength(10);
+    expect(current[0].json).toMatchObject({
+      id: api.taskId,
+      status: 'queued',
+      taskType: 'freeform',
+    });
+    expect(current[0].json.input).toBeUndefined();
+  });
+
+  it('lets AI tools select output fields while always retaining the task ID', async () => {
+    const api = new FakeMoltNetApi();
+    vi.stubGlobal('fetch', api.fetch);
+
+    const [output] = await new MoltNet().execute.call(
+      createExecuteContext({
+        parameters: {
+          operation: 'create',
+          taskType: 'freeform',
+          input: '{"brief":"Select output"}',
+          options: { title: 'Selected output' },
+          output: 'selectedFields',
+          fieldsToInclude: ['status', 'title'],
+        },
+        toolExecution: true,
+        typeVersion: 2,
+      }),
+    );
+
+    expect(output[0].json).toEqual({
+      id: api.taskId,
+      status: 'queued',
+      title: 'Selected output',
+    });
+  });
+
+  it('gets, lists, and cancels tasks with item linking', async () => {
+    const api = new FakeMoltNetApi();
+    vi.stubGlobal('fetch', api.fetch);
+
+    const [got] = await new MoltNet().execute.call(
+      createExecuteContext({
+        parameters: {
+          operation: 'get',
+          taskId: { __rl: true, mode: 'id', value: api.taskId },
+          teamId: '',
+          simplify: true,
+        },
+        typeVersion: 2,
+      }),
+    );
+    const [listed] = await new MoltNet().execute.call(
+      createExecuteContext({
+        parameters: {
+          operation: 'getMany',
+          teamId: '',
+          returnAll: false,
+          limit: 1,
+          filters: { query: 'review', statuses: ['queued'] },
+          simplify: true,
+        },
+        typeVersion: 2,
+      }),
+    );
+    const [cancelled] = await new MoltNet().execute.call(
+      createExecuteContext({
+        parameters: {
+          operation: 'cancel',
+          taskId: { __rl: true, mode: 'list', value: api.taskId },
+          teamId: '',
+          reason: 'No longer needed',
+          simplify: true,
+        },
+        typeVersion: 2,
+      }),
+    );
+
+    expect(got[0]).toMatchObject({
+      json: { id: api.taskId },
+      pairedItem: { item: 0 },
+    });
+    expect(listed[0]).toMatchObject({
+      json: { id: api.taskId },
+      pairedItem: { item: 0 },
+    });
+    expect(cancelled[0]).toMatchObject({
+      json: { id: api.taskId, status: 'cancelled' },
+      pairedItem: { item: 0 },
+    });
+    expect(api.cancellationReasons).toEqual(['No longer needed']);
+    const listRequest = api.requests.find(
+      ({ method, url }) => method === 'GET' && url.includes('/tasks?'),
+    );
+    expect(listRequest?.url).toContain('query=review');
+    expect(listRequest?.url).toContain('statuses=queued');
+  });
+
+  it('searches tasks for the Resource Locator using credential team context', async () => {
+    const api = new FakeMoltNetApi();
+    vi.stubGlobal('fetch', api.fetch);
+    const executeContext = createExecuteContext({
+      parameters: {},
+      typeVersion: 2,
+    });
+    const loadContext = {
+      getCredentials: executeContext.getCredentials,
+      getCurrentNodeParameter: () => '',
+      getNode: executeContext.getNode,
+    } as unknown as ILoadOptionsFunctions;
+
+    const result = await new MoltNet().methods.listSearch.searchTasks.call(
+      loadContext,
+      'review',
+    );
+
+    expect(result.results).toEqual([
+      {
+        name: 'freeform (queued)',
+        value: api.taskId,
+      },
+    ]);
+    const request = api.requests.find(
+      ({ method, url }) => method === 'GET' && url.includes('/tasks?'),
+    );
+    expect(request?.headers.get('x-moltnet-team-id')).toBe(
+      defaultCredentials.teamId,
+    );
   });
 
   it('creates a validated task with option and context precedence', async () => {
@@ -313,10 +494,10 @@ describe('MoltNet node', () => {
 
     expect(error).toMatchObject({
       message: expect.stringMatching(
-        /Timed out waiting for task.*after 1\.0 seconds/,
+        /Task.*did not finish within 1\.0 seconds/,
       ),
       description:
-        'Configured timeout: 1 seconds; polls: 1; last status: running.',
+        "Increase 'Timeout (Seconds)' or run Wait again. Configured timeout: 1 seconds; checks: 1; last status: running.",
     });
   });
 
@@ -342,7 +523,7 @@ describe('MoltNet node', () => {
     await vi.advanceTimersByTimeAsync(1_000);
 
     await expect(rejection).resolves.toMatchObject({
-      message: expect.stringMatching(/Timed out waiting for task/),
+      message: expect.stringMatching(/Task.*did not finish within/),
     });
   });
 
@@ -357,7 +538,7 @@ describe('MoltNet node', () => {
     });
 
     await expect(new MoltNet().execute.call(context)).rejects.toThrow(
-      /Polling interval must be at least 5 seconds/,
+      /Polling Interval \(Seconds\).*at least 5/,
     );
   });
 
@@ -374,7 +555,7 @@ describe('MoltNet node', () => {
       });
 
       await expect(new MoltNet().execute.call(context)).rejects.toThrow(
-        /Timeout must be between 1 and 1800 seconds/,
+        /Timeout \(Seconds\).*between 1 and 1800/,
       );
     },
   );
@@ -456,7 +637,11 @@ describe('MoltNet node', () => {
           },
         }),
       ),
-    ).rejects.toThrow(/403/);
+    ).rejects.toMatchObject({
+      message: 'MoltNet denied this request',
+      description:
+        "Check the agent key scopes and confirm that 'Team ID' selects a team the agent can access.",
+    });
     expect(
       api.requests.filter(({ url }) => url.endsWith(`/tasks/${api.taskId}`)),
     ).toHaveLength(1);

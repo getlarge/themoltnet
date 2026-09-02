@@ -28,20 +28,28 @@ describe('shipped Create to Wait workflow', () => {
     expect(waitNode?.type).toBe('@themoltnet/n8n-nodes-moltnet.moltNet');
 
     const [created] = await new MoltNet().execute.call(
-      createExecuteContext({ parameters: createNode!.parameters }),
+      createExecuteContext({
+        parameters: createNode!.parameters,
+        typeVersion: createNode!.typeVersion,
+      }),
     );
     const taskIdExpression = waitNode!.parameters.taskId;
-    expect(taskIdExpression).toBe('={{$json.id}}');
+    expect(taskIdExpression).toMatchObject({
+      __rl: true,
+      mode: 'id',
+      value: '={{$json.id}}',
+    });
 
     const execution = new MoltNet().execute.call(
       createExecuteContext({
         items: created,
         parameters: {
           ...waitNode!.parameters,
-          taskId: created[0].json.id,
+          taskId: { __rl: true, mode: 'id', value: created[0].json.id },
           pollInterval: 5,
           timeout: 30,
         },
+        typeVersion: waitNode!.typeVersion,
       }),
     );
     await vi.runAllTimersAsync();
