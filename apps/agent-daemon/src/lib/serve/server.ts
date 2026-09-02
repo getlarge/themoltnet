@@ -790,6 +790,7 @@ function registerRunLogRoute(
       );
     }
     openStreams += 1;
+    reply.hijack();
     reply.raw.writeHead(200, {
       'content-type': 'text/event-stream',
       'cache-control': 'no-store',
