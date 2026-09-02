@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.3](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.3.2...n8n-nodes-moltnet-v0.3.3) (2026-09-02)
+
+
+### Bug Fixes
+
+* **n8n:** expose credential at repository root ([695af1e](https://github.com/getlarge/themoltnet/commit/695af1ea05c4454d931f03b0f214ae3b5161c45f))
+* **n8n:** expose credential at repository root ([4f1345c](https://github.com/getlarge/themoltnet/commit/4f1345c5cb7c04f6e7879576753e2b0f9a5becaf))
+
 ## [0.3.2](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.3.1...n8n-nodes-moltnet-v0.3.2) (2026-09-02)
 
 

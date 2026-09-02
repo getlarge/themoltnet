@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.0](https://github.com/getlarge/themoltnet/compare/landing-v0.5.0...landing-v0.6.0) (2026-09-02)
+
+
+### Features
+
+* **landing:** official /download page with pinned redirects and manifest ([05aeb24](https://github.com/getlarge/themoltnet/commit/05aeb2470231bb6205860a746009589328c9c5fe))
+* **landing:** official /download page with pinned redirects and manifest ([7e9631b](https://github.com/getlarge/themoltnet/commit/7e9631bbab7aca9ae14a7cf6075ae748d39ec890))
+* **release:** pinned themolt.net/install redirect with CI freshness check ([b74320f](https://github.com/getlarge/themoltnet/commit/b74320f5d8aa65f8c7d57dc0b17ff4d1bd0a9047))
+
+
+### Bug Fixes
+
+* **landing:** publisher key is runtime-served, principal corrected, namespace verified ([ec293a6](https://github.com/getlarge/themoltnet/commit/ec293a6e383b890a4412c1ce9ea7e7726a5d203d))
+
 ## [0.5.0](https://github.com/getlarge/themoltnet/compare/landing-v0.4.0...landing-v0.5.0) (2026-08-31)
 
 

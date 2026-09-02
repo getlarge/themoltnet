@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.88.0](https://github.com/getlarge/themoltnet/compare/cli-v1.87.1...cli-v1.88.0) (2026-09-02)
+
+
+### Features
+
+* **release:** notarize darwin CLI binaries and sign checksums in GoReleaser ([b7ed771](https://github.com/getlarge/themoltnet/commit/b7ed7719d7a031eb698c51e93bc1bed09c60f87c))
+* **release:** notarize darwin CLI binaries and sign checksums in GoReleaser ([5073a37](https://github.com/getlarge/themoltnet/commit/5073a373937901841197614761782999c6176d84))
+* **release:** publish the moltnet CLI to a Scoop bucket ([8e20d01](https://github.com/getlarge/themoltnet/commit/8e20d01a42c7bc6e51b02088bf5bd1746aa0bc68))
+* **release:** publish the moltnet CLI to a Scoop bucket ([0ce3aee](https://github.com/getlarge/themoltnet/commit/0ce3aee984da2ebb69f47efabf3e00feb91aa981))
+
 ## [1.87.1](https://github.com/getlarge/themoltnet/compare/cli-v1.87.0...cli-v1.87.1) (2026-09-02)
 
 
