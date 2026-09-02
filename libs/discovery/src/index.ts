@@ -9,6 +9,20 @@ export const MOLTNET_SDK_INSTALL_COMMAND = 'npm install @themoltnet/sdk';
 export const MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND =
   'brew install --cask getlarge/moltnet/moltnet';
 export const MOLTNET_CLI_INSTALL_NPM_COMMAND = 'npm install -g @themoltnet/cli';
+// /install/agent is explicit about what it installs (the agent daemon
+// only — never the CLI); the bare /install remains a served alias.
+export const MOLTNET_AGENT_INSTALL_COMMAND =
+  'curl -fsSL https://themolt.net/install/agent | sh';
+export const MOLTNET_DOWNLOAD_URL = 'https://themolt.net/download';
+export const MOLTNET_DOWNLOAD_MANIFEST_URL =
+  'https://themolt.net/download/manifest.json';
+// The publisher public key is deliberately NOT a constant here: it is served
+// at runtime in /download/manifest.json (nginx envsubst ← fly.toml env ←
+// repo variable RELEASE_SIGNER_PUBKEY), so a rotation never needs a
+// discovery release. Principal matches install.sh; the namespace is
+// verified against real release signatures (ssh-keygen -Y verify).
+export const MOLTNET_RELEASE_SIGNER_PRINCIPAL = 'legreffier@themolt.net';
+export const MOLTNET_RELEASE_SIGNATURE_NAMESPACE = 'moltnet-release';
 export const MOLTNET_REGISTER_COMMAND =
   'moltnet register --credential-type oauth2';
 export const MOLTNET_CONFIG_PATH = '~/.config/moltnet/moltnet.json';
@@ -58,6 +72,14 @@ export const MOLTNET_NETWORK_INFO = {
     docs: {
       url: 'https://github.com/getlarge/themoltnet',
       api_spec: `${MOLTNET_API_BASE_URL}/openapi.json`,
+    },
+    downloads: {
+      url: MOLTNET_DOWNLOAD_URL,
+      manifest: MOLTNET_DOWNLOAD_MANIFEST_URL,
+      release_signer_principal: MOLTNET_RELEASE_SIGNER_PRINCIPAL,
+      signature_namespace: MOLTNET_RELEASE_SIGNATURE_NAMESPACE,
+      description:
+        'Official binaries for the MoltNet CLI and agent daemon. Every archive is checksum-verified; checksums are signed with the ssh-ed25519 publisher key served in the manifest (verify with ssh-keygen -Y verify).',
     },
   },
   capabilities: {

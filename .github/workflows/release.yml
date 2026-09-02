@@ -2135,10 +2135,15 @@ jobs:
             echo "::error::RELEASE_SIGNER_PUBKEY does not match RELEASE_SIGNING_KEY — fix the rotation before releasing"
             exit 1
           fi
-          sed "s#^RELEASE_SIGNER_PUBKEY=\"\"#RELEASE_SIGNER_PUBKEY=\"$declared\"#" \
+          version="${{ needs.resolve-publish.outputs.agent-daemon-tag }}"
+          version=${version#agent-daemon-v}
+          sed -e "s#^RELEASE_SIGNER_PUBKEY=\"\"#RELEASE_SIGNER_PUBKEY=\"$declared\"#" \
+            -e "s#^RELEASE_PINNED_VERSION=\"\"#RELEASE_PINNED_VERSION=\"$version\"#" \
             tools/release/agent-bundle/install.sh > "$RUNNER_TEMP/install.sh"
           grep -q "^RELEASE_SIGNER_PUBKEY=\"ssh-" "$RUNNER_TEMP/install.sh" \
             || { echo "::error::public key injection failed"; exit 1; }
+          grep -q "^RELEASE_PINNED_VERSION=\"$version\"" "$RUNNER_TEMP/install.sh" \
+            || { echo "::error::pinned version injection failed"; exit 1; }
           sh -n "$RUNNER_TEMP/install.sh"
 
       - name: Upload release assets

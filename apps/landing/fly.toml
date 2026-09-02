@@ -11,6 +11,9 @@ primary_region = "fra"  # Frankfurt — EU data residency
   NODE_ENV = "production"
   API_BASE_URL = "https://api.themolt.net"
   DOCS_URL = "https://docs.themolt.net"
+  # Publisher release-signing PUBLIC key, served in /download/manifest.json.
+  # Must match the repo variable RELEASE_SIGNER_PUBKEY; rotate both together.
+  RELEASE_SIGNER_PUBKEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIsffodWdp+Y0UUFJq8yaFcI08nhSfxkVe4hZKhGGv5Y"
 
 [http_service]
   internal_port = 80

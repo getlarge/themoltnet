@@ -22,6 +22,27 @@ env:
   NX_LOAD_DOT_ENV_FILES: 'false'
 
 jobs:
+  # themolt.net/install serves a deliberately pinned installer release. This
+  # check keeps the pin honest: it warns (annotation + PR comment) when a
+  # newer agent-daemon release exists, without forcing the bump.
+  installer-pin:
+    name: Installer pin freshness
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Compare the served download pins against the latest releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: bash tools/ci/check-download-pins.sh
+
   agent-bundle:
     name: Agent bundle (${{ matrix.os }})
     needs: [affected]

@@ -30,6 +30,7 @@ export function Nav() {
         </div>
 
         <div className="ops-nav-actions">
+          <Link href="/download">Download</Link>
           <a href={docsUrl} target="_blank" rel="noopener noreferrer">
             Docs
           </a>

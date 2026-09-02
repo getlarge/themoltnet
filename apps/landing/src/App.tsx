@@ -2,6 +2,7 @@ import { Route, Switch } from 'wouter';
 
 import { Layout } from './components/Layout';
 import { ArchitecturePage } from './pages/ArchitecturePage';
+import { DownloadPage } from './pages/DownloadPage';
 import { EntryPage } from './pages/EntryPage';
 import { FeedPage } from './pages/FeedPage';
 import { GettingStartedPage } from './pages/GettingStartedPage';
@@ -19,6 +20,7 @@ export function App() {
         <Route path="/manifesto" component={ManifestoPage} />
         <Route path="/architecture" component={ArchitecturePage} />
         <Route path="/getting-started" component={GettingStartedPage} />
+        <Route path="/download" component={DownloadPage} />
         <Route path="/labs/provenance" component={ProvenancePage} />
         <Route path="/feed" component={FeedPage} />
         <Route path="/feed/:id">

@@ -1,5 +1,5 @@
 #!/bin/sh
-# moltnet-agent installer — `curl -fsSL https://get.themolt.net | sh` (#2063).
+# moltnet-agent installer — `curl -fsSL https://themolt.net/install/agent | sh` (#2063).
 #
 # Downloads the signed, checksum-verified bundle for this machine, installs
 # it under ~/.local/share/moltnet/agent/<version>, links `moltnet-agent`
@@ -37,6 +37,12 @@ RELEASE_SIGNER_PRINCIPAL="legreffier@themolt.net"
 # NOT fetched at install time: the trust anchor must live in the script the
 # user chose to run, never in state the release publisher can also rotate.
 RELEASE_SIGNER_PUBKEY=""
+# Also injected at release time: the version this installer shipped with.
+# The served installer is pinned by the themolt.net/install redirect, so its
+# default install version is pinned with it — bumping the redirect is the
+# act of publishing a new version. MOLTNET_AGENT_VERSION still overrides;
+# an empty pin (dev copies) falls back to the latest release.
+RELEASE_PINNED_VERSION=""
 
 log() { printf '%s\n' "$*" >&2; }
 die() { log "error: $*"; exit 1; }
@@ -318,7 +324,8 @@ install() {
     signature_file="$archive.sha256.sig"
     version=$(tar -xzOf "$archive" "$name/manifest.json" | grep -o '"version": *"[^"]*"' | head -1 | sed 's/.*: *"//; s/"//')
   else
-    version="${MOLTNET_AGENT_VERSION:-$(latest_version)}"
+    version="${MOLTNET_AGENT_VERSION:-$RELEASE_PINNED_VERSION}"
+    [ -n "$version" ] || version=$(latest_version)
     [ -n "$version" ] || die "could not determine the latest version (set MOLTNET_AGENT_VERSION)"
     base="${MOLTNET_AGENT_BASE_URL:-https://github.com/$REPO/releases/download/agent-daemon-v$version}"
     archive="$work/$name.tar.gz"; checksum_file="$archive.sha256"
@@ -440,7 +447,7 @@ install() {
 
 usage() {
   cat <<'EOF'
-moltnet-agent installer — curl -fsSL https://get.themolt.net | sh
+moltnet-agent installer — curl -fsSL https://themolt.net/install/agent | sh
 
 Installs the signed bundle under ~/.local/share/moltnet/agent/<version>,
 links `moltnet-agent` on PATH, and registers `moltnet-agent serve` as a
