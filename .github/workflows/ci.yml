@@ -45,7 +45,9 @@ jobs:
           set -euo pipefail
           template=apps/landing/nginx/default.conf.template
           pin_of() {
-            grep -oE "set \\$$1 [0-9A-Za-z.+-]+;" "$template" | head -1 | awk '{print $3}' | tr -d ';'
+            # [$] matches a literal dollar without backslash-escaping games
+            # ($$ in a double-quoted script would expand to the shell PID).
+            grep -oE "set [\$]$1 [0-9A-Za-z.+-]+;" "$template" | head -1 | awk '{print $3}' | tr -d ';'
           }
           latest_of() {
             gh release list --repo "$GITHUB_REPOSITORY" --limit 100 \
