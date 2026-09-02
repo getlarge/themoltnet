@@ -11,9 +11,24 @@ const here = dirname(fileURLToPath(import.meta.url));
 const verifier = join(here, 'verify-apple-p12.sh');
 const fixture = mkdtempSync(join(tmpdir(), 'moltnet-p12-chain-test-'));
 const password = 'test-password';
+const pkcs12LegacySupported = (() => {
+  const result = spawnSync('openssl', ['pkcs12', '-help'], {
+    encoding: 'utf8',
+  });
+  return `${result.stdout}${result.stderr}`.includes('-legacy');
+})();
 
 function openssl(args) {
   execFileSync('openssl', args, { cwd: fixture, stdio: 'ignore' });
+}
+
+function exportPkcs12(args) {
+  openssl([
+    'pkcs12',
+    '-export',
+    ...(pkcs12LegacySupported ? ['-legacy'] : []),
+    ...args,
+  ]);
 }
 
 function verify(p12, suppliedPassword = password) {
@@ -115,10 +130,7 @@ before(() => {
     readFileSync(join(fixture, 'intermediate.pem'), 'utf8') +
       readFileSync(join(fixture, 'root.pem'), 'utf8'),
   );
-  openssl([
-    'pkcs12',
-    '-export',
-    '-legacy',
+  exportPkcs12([
     '-inkey',
     'leaf.key',
     '-in',
@@ -130,10 +142,7 @@ before(() => {
     '-out',
     'full-chain.p12',
   ]);
-  openssl([
-    'pkcs12',
-    '-export',
-    '-legacy',
+  exportPkcs12([
     '-inkey',
     'leaf.key',
     '-in',

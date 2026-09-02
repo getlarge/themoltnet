@@ -998,37 +998,41 @@ describe('signing policy', () => {
     assert.match(result.stderr, /krun runner is missing the hypervisor/);
   });
 
-  it('disables library validation only for ad-hoc signatures', () => {
-    const adhoc = createStubSigner({ tampered: false });
-    const adhocResult = runSync(
-      'sh',
-      [signer, '--payload', adhoc.payload, '--adhoc'],
-      { env: adhoc.env },
-    );
-    assert.equal(adhocResult.status, 0, adhocResult.stderr);
-    assert.match(
-      readFileSync(adhoc.commandLog, 'utf8'),
-      /disable-library-validation/,
-    );
+  it(
+    'disables library validation only for ad-hoc signatures',
+    { skip: process.platform !== 'darwin' },
+    () => {
+      const adhoc = createStubSigner({ tampered: false });
+      const adhocResult = runSync(
+        'sh',
+        [signer, '--payload', adhoc.payload, '--adhoc'],
+        { env: adhoc.env },
+      );
+      assert.equal(adhocResult.status, 0, adhocResult.stderr);
+      assert.match(
+        readFileSync(adhoc.commandLog, 'utf8'),
+        /disable-library-validation/,
+      );
 
-    const developerId = createStubSigner({ tampered: false });
-    const developerIdResult = runSync(
-      'sh',
-      [
-        signer,
-        '--payload',
-        developerId.payload,
-        '--identity',
-        'Developer ID Application: Fixture',
-      ],
-      { env: developerId.env },
-    );
-    assert.equal(developerIdResult.status, 0, developerIdResult.stderr);
-    assert.doesNotMatch(
-      readFileSync(developerId.commandLog, 'utf8'),
-      /disable-library-validation/,
-    );
-  });
+      const developerId = createStubSigner({ tampered: false });
+      const developerIdResult = runSync(
+        'sh',
+        [
+          signer,
+          '--payload',
+          developerId.payload,
+          '--identity',
+          'Developer ID Application: Fixture',
+        ],
+        { env: developerId.env },
+      );
+      assert.equal(developerIdResult.status, 0, developerIdResult.stderr);
+      assert.doesNotMatch(
+        readFileSync(developerId.commandLog, 'utf8'),
+        /disable-library-validation/,
+      );
+    },
+  );
 
   it(
     'completes the real ad-hoc signing and entitlement checks on macOS',
