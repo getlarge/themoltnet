@@ -52,8 +52,8 @@
     "@themoltnet/sdk": "workspace:*"
   },
   "peerDependencies": {
-    "@earendil-works/pi-ai": "0.79.4",
-    "@earendil-works/pi-coding-agent": "0.79.4"
+    "@earendil-works/pi-ai": "0.84.4",
+    "@earendil-works/pi-coding-agent": "0.84.4"
   },
   "peerDependenciesMeta": {
     "@earendil-works/pi-coding-agent": {

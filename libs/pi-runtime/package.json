@@ -50,8 +50,8 @@
     "typebox": "catalog:"
   },
   "peerDependencies": {
-    "@earendil-works/pi-ai": "0.79.4",
-    "@earendil-works/pi-coding-agent": "0.79.4"
+    "@earendil-works/pi-ai": "0.84.4",
+    "@earendil-works/pi-coding-agent": "0.84.4"
   },
   "devDependencies": {
     "@earendil-works/pi-ai": "catalog:",

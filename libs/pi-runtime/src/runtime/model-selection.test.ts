@@ -53,11 +53,11 @@ afterEach(() => {
 });
 
 describe('resolveRuntimeProfileModel', () => {
-  it('resolves a custom provider model from the active Pi directory', () => {
+  it('resolves a custom provider model from the active Pi directory', async () => {
     const piDir = createPiDir();
     writeCustomModels(piDir);
 
-    const selection = resolveRuntimeProfileModel(
+    const selection = await resolveRuntimeProfileModel(
       piDir,
       'custom-cloud',
       'planner-fast',
@@ -69,12 +69,12 @@ describe('resolveRuntimeProfileModel', () => {
       api: 'openai-completions',
       baseUrl: 'https://models.example.test/v1',
     });
-    expect(selection.modelRegistry.find('custom-cloud', 'planner-fast')).toBe(
-      selection.modelHandle,
-    );
+    expect(
+      selection.modelRuntime.getModel('custom-cloud', 'planner-fast'),
+    ).toStrictEqual(selection.modelHandle);
   });
 
-  it('fails closed instead of selecting the Pi settings default', () => {
+  it('fails closed instead of selecting the Pi settings default', async () => {
     const piDir = createPiDir();
     writeCustomModels(piDir);
     writeFileSync(
@@ -85,22 +85,22 @@ describe('resolveRuntimeProfileModel', () => {
       }),
     );
 
-    expect(() =>
+    await expect(
       resolveRuntimeProfileModel(
         piDir,
         'custom-cloud',
         'missing-profile-model',
         'planner-profile',
       ),
-    ).toThrow(RuntimeProfileModelResolutionError);
-    expect(() =>
+    ).rejects.toThrow(RuntimeProfileModelResolutionError);
+    await expect(
       resolveRuntimeProfileModel(
         piDir,
         'custom-cloud',
         'missing-profile-model',
         'planner-profile',
       ),
-    ).toThrow(
+    ).rejects.toThrow(
       'Runtime profile "planner-profile" model "custom-cloud/missing-profile-model" was not found',
     );
   });

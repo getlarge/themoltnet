@@ -62,13 +62,13 @@ describe('buildAgentSession', () => {
   });
 
   it('continues the persistent session by default', async () => {
-    const modelRegistry = {};
+    const modelRuntime = {};
     await buildAgentSession({
       mountPath: '/guest/workspace',
       cwdPath: '/guest/workspace',
       piAuthDir: '/agent',
       modelHandle: {} as never,
-      modelRegistry: modelRegistry as never,
+      modelRuntime: modelRuntime as never,
       thinkingLevel: 'high',
       customTools: [],
       appendSystemPrompt: ['runtime'],
@@ -86,7 +86,7 @@ describe('buildAgentSession', () => {
     expect(createAgentSession).toHaveBeenCalledWith(
       expect.objectContaining({
         thinkingLevel: 'high',
-        modelRegistry,
+        modelRuntime,
       }),
     );
   });
@@ -97,7 +97,7 @@ describe('buildAgentSession', () => {
       cwdPath: '/guest/workspace',
       piAuthDir: '/agent',
       modelHandle: {} as never,
-      modelRegistry: {} as never,
+      modelRuntime: {} as never,
       customTools: [],
       appendSystemPrompt: ['runtime'],
       otelSpanAttrs: {},
@@ -109,7 +109,7 @@ describe('buildAgentSession', () => {
       cwdPath: '/guest/workspace',
       piAuthDir: '/agent',
       modelHandle: {} as never,
-      modelRegistry: {} as never,
+      modelRuntime: {} as never,
       temperature: 0.2,
       topP: 0.9,
       topK: 40,
@@ -124,7 +124,7 @@ describe('buildAgentSession', () => {
     expect(resourceLoaderArgs[1]?.extensionFactories).toHaveLength(2);
   });
 
-  it('keeps modelRegistry optional for existing callers', async () => {
+  it('keeps modelRuntime optional for existing callers', async () => {
     await buildAgentSession({
       mountPath: '/guest/workspace',
       cwdPath: '/guest/workspace',
@@ -137,7 +137,7 @@ describe('buildAgentSession', () => {
     });
 
     expect(createAgentSession).toHaveBeenCalledWith(
-      expect.not.objectContaining({ modelRegistry: expect.anything() }),
+      expect.not.objectContaining({ modelRuntime: expect.anything() }),
     );
   });
 
@@ -147,7 +147,7 @@ describe('buildAgentSession', () => {
       cwdPath: '/guest/workspace',
       piAuthDir: '/agent',
       modelHandle: {} as never,
-      modelRegistry: {} as never,
+      modelRuntime: {} as never,
       customTools: [],
       appendSystemPrompt: ['runtime'],
       otelSpanAttrs: {},

@@ -3,6 +3,7 @@ import {
   createAgentSession,
   DefaultResourceLoader,
   defineTool,
+  type ModelRuntime,
   SessionManager,
 } from '@earendil-works/pi-coding-agent';
 
@@ -56,6 +57,7 @@ const SECRET_KEY_PATTERN =
 
 export function createPiRetryTriage(options: {
   model: Model<Api>;
+  modelRuntime?: ModelRuntime;
   thinkingLevel?: PiRetryTriageThinkingLevel | null;
   piAgentDir: string;
   timeoutMs?: number;
@@ -76,6 +78,7 @@ export function createPiRetryTriage(options: {
       agentDir: options.piAgentDir,
       cwd,
       model: options.model,
+      ...(options.modelRuntime ? { modelRuntime: options.modelRuntime } : {}),
       thinkingLevel: (options.thinkingLevel ?? undefined) as
         | NonNullable<Parameters<typeof createAgentSession>[0]>['thinkingLevel']
         | undefined,

@@ -37,9 +37,7 @@ const stubArgs = (
   mountPath: '/guest/workspace',
   piAuthDir: '/home/agent/.pi/agent',
   modelHandle: {} as Parameters<typeof createSubagentTool>[0]['modelHandle'],
-  modelRegistry: {} as Parameters<
-    typeof createSubagentTool
-  >[0]['modelRegistry'],
+  modelRuntime: {} as Parameters<typeof createSubagentTool>[0]['modelRuntime'],
   agentName: 'test-agent',
   inheritedCustomTools: [],
   parentRuntimeInstructor: '# Parent runtime instructor (test stub)',
@@ -233,22 +231,22 @@ describe('createSubagentTool', () => {
     expect(factory.capturedBuildArgs?.extraExtensionFactories).toEqual([gate]);
   });
 
-  it('shares the exact custom model registry with the subagent session', async () => {
+  it('shares the exact custom model runtime with the subagent session', async () => {
     const payload = { verdict: 'ok', score: 0.5 };
     const factory = makeFakeSessionFactory(payload);
-    const modelRegistry = {};
+    const modelRuntime = {};
     const handle = createSubagentTool({
       ...stubArgs({
-        modelRegistry: modelRegistry as Parameters<
+        modelRuntime: modelRuntime as Parameters<
           typeof createSubagentTool
-        >[0]['modelRegistry'],
+        >[0]['modelRuntime'],
       }),
       buildAgentSession: factory.build,
     });
 
     await callOuter(handle.tool, { task: 'grade', output_schema: 'sample' });
 
-    expect(factory.capturedBuildArgs?.modelRegistry).toBe(modelRegistry);
+    expect(factory.capturedBuildArgs?.modelRuntime).toBe(modelRuntime);
   });
 
   it('increments getCallCount across multiple successful calls', async () => {

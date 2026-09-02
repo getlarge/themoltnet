@@ -36,7 +36,7 @@ import {
   DefaultResourceLoader,
   type ExtensionAPI,
   type LoadSkillsResult,
-  type ModelRegistry,
+  type ModelRuntime,
   SessionManager,
   type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
@@ -58,8 +58,8 @@ export interface BuildAgentSessionArgs {
   piAuthDir: string;
   /** Resolved pi model handle (provider + model id). */
   modelHandle: Model<Api>;
-  /** Registry that resolved modelHandle, including custom providers/auth. */
-  modelRegistry?: ModelRegistry;
+  /** Runtime that resolved modelHandle, including custom providers/auth. */
+  modelRuntime?: ModelRuntime;
   /** Optional runtime-profile thinking/reasoning level applied at session start. */
   thinkingLevel?: PiThinkingLevel | null;
   /** Optional runtime-profile sampling temperature applied to provider requests. */
@@ -166,7 +166,7 @@ export async function buildAgentSession(
     agentDir: args.piAuthDir,
     cwd: args.cwdPath,
     model: args.modelHandle,
-    ...(args.modelRegistry ? { modelRegistry: args.modelRegistry } : {}),
+    ...(args.modelRuntime ? { modelRuntime: args.modelRuntime } : {}),
     thinkingLevel: args.thinkingLevel ?? undefined,
     tools: args.tools,
     customTools: args.customTools,
