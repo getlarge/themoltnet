@@ -173,6 +173,18 @@
       "scope:agent",
       "platform:cli"
     ],
-    "targets": {}
+    "targets": {
+      "bundle": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "cwd": "{workspaceRoot}",
+          "command": "node tools/release/agent-bundle/build.mjs --skip-daemon-build --out dist/agent-bundle"
+        }
+      }
+    }
   }
 }

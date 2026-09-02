@@ -22,6 +22,40 @@ env:
   NX_LOAD_DOT_ENV_FILES: 'false'
 
 jobs:
+  agent-bundle:
+    name: Agent bundle (${{ matrix.os }})
+    needs: [affected]
+    if: needs.affected.outputs.agent-bundle == 'true'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-15]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          filter: tree:0
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      # The root postinstall constructs the Nx project graph. @nx-go/nx-go
+      # invokes `go list` during that graph construction, before the test runs.
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+          cache-dependency-path: |
+            go.work.sum
+            apps/moltnet-cli/go.sum
+            libs/moltnet-api-client/go.sum
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec nx run @moltnet/tools:test:agent-bundle
+
   native-keyring:
     name: Native keyring
     needs: [affected]
@@ -95,6 +129,7 @@ jobs:
       e2e-orchestration: ${{ steps.compute.outputs.e2e-orchestration }}
       e2e-any: ${{ steps.compute.outputs.e2e-any }}
       native-keyring: ${{ steps.compute.outputs.native-keyring }}
+      agent-bundle: ${{ steps.compute.outputs.agent-bundle }}
       landing: ${{ steps.compute.outputs.landing }}
       legreffier-plugin: ${{ steps.compute.outputs.legreffier-plugin }}
       agents-matrix: ${{ steps.matrix.outputs.matrix }}
@@ -253,6 +288,12 @@ jobs:
             echo "native-keyring=true" >> "$GITHUB_OUTPUT"
           else
             echo "native-keyring=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- tools/release/agent-bundle tools/package.json apps/agent-daemon/package.json .tool-versions .github/workflows/ci.yml; then
+            echo "agent-bundle=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "agent-bundle=false" >> "$GITHUB_OUTPUT"
           fi
 
           # Resolve the e2e image ref for each app service. The orchestrator

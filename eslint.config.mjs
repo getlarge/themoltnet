@@ -215,6 +215,9 @@ export default tseslint.config(
       // graph, same rationale as above.
       '**/scripts/generate-gtfobins.mjs',
       '**/scripts/sync-wasm.mjs',
+      // Standalone node release script that assembles the moltnet-agent
+      // bundle (#2063); same rationale as above.
+      'tools/release/agent-bundle/build.mjs',
     ],
   },
 

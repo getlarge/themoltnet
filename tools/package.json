@@ -18,6 +18,7 @@
     "bench:embedding": "tsx src/bench-embedding-warmup.ts",
     "bench:task-readiness": "tsx src/bench-task-readiness.ts",
     "smtp:test": "tsx src/test-smtp.ts",
+    "test:agent-bundle": "node --test release/agent-bundle/agent-bundle.test.mjs",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
@@ -68,6 +69,19 @@
       "platform:cli"
     ],
     "targets": {
+      "test:agent-bundle": {
+        "executor": "nx:run-script",
+        "options": {
+          "script": "test:agent-bundle"
+        },
+        "cache": true,
+        "inputs": [
+          "{workspaceRoot}/tools/release/agent-bundle/**",
+          "{projectRoot}/package.json",
+          "{workspaceRoot}/apps/agent-daemon/package.json",
+          "{workspaceRoot}/.tool-versions"
+        ]
+      },
       "codex-environment-gondolin": {
         "cache": false,
         "executor": "nx:run-commands",

@@ -1,0 +1,63 @@
+name: QEMU Runtime Release
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: qemu-runtime-release
+  cancel-in-progress: false
+
+permissions:
+  artifact-metadata: write
+  attestations: write
+  contents: write
+  id-token: write
+
+jobs:
+  build-and-release:
+    name: Build and release QEMU runtime (darwin-arm64)
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install build-only dependencies
+        run: brew install glib ninja pkgconf
+
+      - name: Build from official QEMU source
+        run: node tools/release/agent-bundle/build-qemu-runtime.mjs
+
+      - name: Attest QEMU runtime provenance
+        uses: actions/attest@v4
+        with:
+          subject-path: dist/qemu-runtime/moltnet-qemu-runtime-darwin-arm64.tar.gz
+
+      - name: Verify artifact and publish immutable release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          CONFIG=tools/release/agent-bundle/qemu-runtime-source.json
+          VERSION=$(node -p "require('./$CONFIG').runtimeVersion")
+          QEMU_VERSION=$(node -p "require('./$CONFIG').qemuVersion")
+          TAG="qemu-runtime-v$VERSION"
+          ARCHIVE="dist/qemu-runtime/moltnet-qemu-runtime-darwin-arm64.tar.gz"
+          (cd "$(dirname "$ARCHIVE")" && shasum -a 256 --check "$(basename "$ARCHIVE").sha256")
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::error::release $TAG already exists; immutable runtime releases cannot be overwritten"
+            exit 1
+          fi
+          gh release create "$TAG" \
+            "$ARCHIVE" \
+            "$ARCHIVE.sha256" \
+            "dist/qemu-runtime/qemu-$QEMU_VERSION.tar.xz" \
+            "dist/qemu-runtime/qemu-$QEMU_VERSION.tar.xz.sig" \
+            --target "$GITHUB_SHA" \
+            --title "MoltNet QEMU runtime $VERSION" \
+            --notes "Immutable darwin-arm64 qemu-img runtime built from the official QEMU $QEMU_VERSION source release. The runtime archive, source archive, detached upstream signature, build recipe, provenance, and checksums are retained together. QEMU's advertised release key was expired at signing time; provenance records the cryptographically matching signature, advertised fingerprint, and exact source digest without claiming current key certification. Assets are append-only: publish a new rN tag instead of replacing this release."
