@@ -1172,14 +1172,14 @@ jobs:
           SEMVER="${TAG#cli-}"
           echo "semver=$SEMVER" >> "$GITHUB_OUTPUT"
 
-      - name: Generate GitHub App token for Homebrew tap
+      - name: Generate GitHub App token for Homebrew tap and Scoop bucket
         uses: actions/create-github-app-token@v3
         id: app-token
         with:
           app-id: ${{ secrets.MOLTNET_RELEASE_APP_ID }}
           private-key: ${{ secrets.MOLTNET_RELEASE_APP_KEY }}
           owner: getlarge
-          repositories: homebrew-moltnet
+          repositories: homebrew-moltnet,scoop-moltnet
 
       - name: Prepare signing material
         id: signing
@@ -1232,6 +1232,7 @@ jobs:
           GOWORK: off
           GORELEASER_CURRENT_TAG: ${{ steps.tag.outputs.semver }}
           HOMEBREW_TAP_TOKEN: ${{ steps.app-token.outputs.token }}
+          SCOOP_TAP_TOKEN: ${{ steps.app-token.outputs.token }}
           RELEASE_SIGNING_KEY_FILE: ${{ steps.signing.outputs.release-signing-key-file }}
           # `notarize.macos[].enabled` keys off APPLE_CERT_P12 being non-empty
           # (isEnvSet); the guard above already decided whether that is allowed.
