@@ -45,6 +45,9 @@ reconciled with both official pages on 2026-09-02.
   `continueOnFail()` behavior appropriate to the node.
 - Keep restricted globals and imports out of both direct code and bundled
   dependency closure.
+- Scan the emitted JavaScript, not only TypeScript source. Bundling can introduce
+  restricted globals, timers, Node built-ins, or direct network transports from
+  an otherwise lint-clean dependency closure.
 - Load every manifest entry from a clean installation of the tarball. For n8n's
   CommonJS loader, verify the shipped node and credential modules with
   `require()`.
@@ -70,6 +73,9 @@ Inspect the tarball produced by pack validation and confirm:
 - no `src/`, tests, private imports, source maps containing private source, or
   workspace protocols leak;
 - all `package.json#n8n` entries and icons exist;
+- every credential path in `package.json#n8n.credentials` is tracked in the
+  public repository at that exact path; Creator Portal may resolve the manifest
+  path against Git rather than infer it from the source credential;
 - a clean project can install and require both CommonJS entries without the
   bundled SDK or another undeclared runtime package installed separately.
 
@@ -84,6 +90,9 @@ Inspect the tarball produced by pack validation and confirm:
 - After publication, run `@n8n/scan-community-package` against that exact
   immutable package version. Registry, repository, maintainer, and provenance
   checks cannot be proven by scanning an unpublished workspace.
+- Do not trust the scanner process status by itself. Scanner 0.34.0 can print a
+  failed report and return status 0, so CI must also require the explicit
+  `has passed all security checks` marker before promotion.
 - Query `npm view <package>@<version> author maintainers --json` and verify the
   registry-visible `author.email` matches the verified npm owner. A successful
   scanner result does not prove Creator Portal can resolve this field.
