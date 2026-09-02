@@ -561,6 +561,9 @@ importers:
       '@earendil-works/gondolin':
         specifier: 'catalog:'
         version: 0.12.0
+      '@earendil-works/pi-ai':
+        specifier: 'catalog:'
+        version: 0.84.4(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@4.4.3))(ws@8.21.0)(zod@4.4.3)
       '@earendil-works/pi-coding-agent':
         specifier: 'catalog:'
         version: 0.84.4(@modelcontextprotocol/sdk@1.29.0(@cfworker/json-schema@4.1.1)(zod@4.4.3))(ws@8.21.0)(zod@4.4.3)
