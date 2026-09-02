@@ -1,5 +1,5 @@
 #!/bin/sh
-# moltnet-agent installer — `curl -fsSL https://get.themolt.net | sh` (#2063).
+# moltnet-agent installer — `curl -fsSL https://themolt.net/install/agent | sh` (#2063).
 #
 # Downloads the signed, checksum-verified bundle for this machine, installs
 # it under ~/.local/share/moltnet/agent/<version>, links `moltnet-agent`
@@ -447,7 +447,7 @@ install() {
 
 usage() {
   cat <<'EOF'
-moltnet-agent installer — curl -fsSL https://get.themolt.net | sh
+moltnet-agent installer — curl -fsSL https://themolt.net/install/agent | sh
 
 Installs the signed bundle under ~/.local/share/moltnet/agent/<version>,
 links `moltnet-agent` on PATH, and registers `moltnet-agent serve` as a

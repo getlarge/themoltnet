@@ -23,7 +23,7 @@ service. Re-running upgrades in place; `--uninstall` removes everything the
 installer created:
 
 ```bash
-curl -fsSL https://themolt.net/install | sh
+curl -fsSL https://themolt.net/install/agent | sh
 ```
 
 All builds — including checksums and publisher signatures for manual

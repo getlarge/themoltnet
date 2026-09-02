@@ -32,6 +32,13 @@ server {
         return 302 /install;
     }
 
+    # The specific, documented form — the installer handles ONLY the agent
+    # daemon (the CLI installs via Homebrew/npm or /download). /install stays
+    # as the short alias.
+    location = /install/agent {
+        return 302 https://github.com/getlarge/themoltnet/releases/download/agent-daemon-v$agent_version/install.sh;
+    }
+
     # Machine-readable pin manifest — the /download page reads it, so the
     # version literals live only in the `set` lines above. Never cache: a pin
     # bump must be visible on the next load.
