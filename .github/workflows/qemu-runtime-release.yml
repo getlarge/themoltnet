@@ -57,7 +57,7 @@ jobs:
           QEMU_VERSION=$(node -p "require('./$CONFIG').qemuVersion")
           TAG="qemu-runtime-v$VERSION"
           ARCHIVE="dist/qemu-runtime/moltnet-qemu-runtime-darwin-arm64.tar.gz"
-          shasum -a 256 --check "$ARCHIVE.sha256"
+          (cd "$(dirname "$ARCHIVE")" && shasum -a 256 --check "$(basename "$ARCHIVE").sha256")
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "::error::release $TAG already exists; immutable runtime releases cannot be overwritten"
             exit 1
