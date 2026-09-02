@@ -2317,12 +2317,12 @@ importers:
 
   libs/n8n-nodes-moltnet:
     devDependencies:
+      '@hey-api/openapi-ts':
+        specifier: 'catalog:'
+        version: 0.89.2(magicast@0.3.5)(typescript@5.9.3)
       '@n8n/node-cli':
         specifier: 'catalog:'
         version: 0.45.5(de4df2a4f0643aae692099d9291cdda3)
-      '@themoltnet/sdk':
-        specifier: workspace:*
-        version: link:../sdk
       '@types/node':
         specifier: 'catalog:'
         version: 22.19.19

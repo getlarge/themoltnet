@@ -1,17 +1,7 @@
-import {
-  type Agent,
-  buildTaskSnapshot,
-  isTerminalTaskStatus,
-  MoltNetError,
-  TaskBuildError,
-} from '@themoltnet/sdk';
 import type {
-  ICredentialsDecrypted,
-  ICredentialTestFunctions,
   IDataObject,
   IExecuteFunctions,
   ILoadOptionsFunctions,
-  INodeCredentialTestResult,
   INodeExecutionData,
   INodeListSearchResult,
   INodeParameterResourceLocator,
@@ -29,9 +19,16 @@ import {
 
 import {
   connectMoltNet,
+  type MoltNetClient,
   type MoltNetCredentials,
   optionalString,
+  type TaskListQuery,
+  type TaskStatus,
 } from '../../src/client.js';
+import {
+  buildTaskSnapshot,
+  isTerminalTaskStatus,
+} from '../../src/task-snapshot.js';
 
 const defaultPollIntervalSeconds = 5;
 const defaultTimeoutSeconds = 1_800;
@@ -95,8 +92,13 @@ interface GetManyFilters extends IDataObject {
 
 type NodeErrorContext = Pick<IExecuteFunctions, 'getNode'>;
 type OutputMode = 'raw' | 'selectedFields' | 'simplified';
-type TaskListQuery = NonNullable<Parameters<Agent['tasks']['list']>[0]>;
-type TaskStatus = NonNullable<TaskListQuery['statuses']>[number];
+interface ApiFailure {
+  code?: string;
+  data?: JsonObject;
+  detail?: string;
+  statusCode?: number;
+  validationErrors?: JsonObject[];
+}
 
 function parseInput(
   context: IExecuteFunctions,
@@ -136,32 +138,31 @@ function toNodeError(
   error: unknown,
   itemIndex?: number,
 ): NodeApiError | NodeOperationError {
-  if (error instanceof NodeApiError || error instanceof NodeOperationError) {
+  if (error instanceof NodeOperationError) {
     return error;
   }
-  if (error instanceof MoltNetError) {
-    const validationErrors = error.validationErrors?.map(
-      ({ field, message }) => ({ field, message }) satisfies JsonObject,
-    );
-    const errorData: JsonObject = {
-      name: error.name,
-      code: error.code,
-      ...(error.statusCode === undefined
+  const failure = apiFailure(error);
+  if (error instanceof NodeApiError || failure.statusCode || failure.data) {
+    const errorData: JsonObject = failure.data ?? {
+      ...(failure.code === undefined ? {} : { code: failure.code }),
+      ...(failure.statusCode === undefined
         ? {}
-        : { status: error.statusCode, statusCode: error.statusCode }),
-      ...(error.detail === undefined ? {} : { detail: error.detail }),
-      ...(validationErrors === undefined ? {} : { validationErrors }),
+        : { status: failure.statusCode, statusCode: failure.statusCode }),
+      ...(failure.detail === undefined ? {} : { detail: failure.detail }),
+      ...(failure.validationErrors === undefined
+        ? {}
+        : { validationErrors: failure.validationErrors }),
     };
     return new NodeApiError(
       context.getNode(),
       { response: { data: errorData } },
       {
         ...(itemIndex === undefined ? {} : { itemIndex }),
-        message: apiErrorMessage(error),
-        description: apiRecoveryDescription(error, validationErrors),
-        ...(error.statusCode === undefined
+        message: apiErrorMessage(failure),
+        description: apiRecoveryDescription(failure),
+        ...(failure.statusCode === undefined
           ? {}
-          : { httpCode: String(error.statusCode) }),
+          : { httpCode: String(failure.statusCode) }),
       },
     );
   }
@@ -172,7 +173,7 @@ function toNodeError(
   );
 }
 
-function apiErrorMessage(error: MoltNetError): string {
+function apiErrorMessage(error: ApiFailure): string {
   if (error.statusCode === 401) return 'MoltNet rejected the credential';
   if (error.statusCode === 403) return 'MoltNet denied this request';
   if (error.statusCode === 404) {
@@ -190,11 +191,8 @@ function apiErrorMessage(error: MoltNetError): string {
   return 'The MoltNet request could not be completed';
 }
 
-function apiRecoveryDescription(
-  error: MoltNetError,
-  validationErrors: JsonObject[] | undefined,
-): string {
-  const validation = validationErrors
+function apiRecoveryDescription(error: ApiFailure): string {
+  const validation = error.validationErrors
     ?.map(({ field, message }) => `${String(field)}: ${String(message)}`)
     .join('; ');
   if (error.statusCode === 401) {
@@ -222,14 +220,48 @@ function apiRecoveryDescription(
   return 'Check the node fields, credential, and team access, then run the node again.';
 }
 
-function credentialRecoveryMessage(error: unknown): string {
-  if (error instanceof MoltNetError && error.statusCode === 401) {
-    return 'Authentication was rejected. Check the selected authentication method and secret.';
-  }
-  if (error instanceof MoltNetError && error.statusCode === 403) {
-    return "Authentication succeeded, but the credential cannot read the agent profile. Grant 'agent:profile' and test again.";
-  }
-  return "Connection could not be verified. Check 'API URL', the authentication values, and the required scopes.";
+function record(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
+function apiFailure(error: unknown): ApiFailure {
+  const source = record(error);
+  const response = record(source?.response);
+  const context = record(source?.context);
+  const data =
+    record(context?.data) ?? record(response?.data) ?? record(response?.body);
+  const rawStatus =
+    error instanceof NodeApiError
+      ? error.httpCode
+      : (source?.statusCode ?? source?.status ?? response?.status);
+  const statusCode =
+    typeof rawStatus === 'number'
+      ? rawStatus
+      : typeof rawStatus === 'string' && /^\d+$/u.test(rawStatus)
+        ? Number(rawStatus)
+        : undefined;
+  const rawValidation = data?.validationErrors ?? data?.errors;
+  const validationErrors = Array.isArray(rawValidation)
+    ? rawValidation.flatMap((value) => {
+        const item = record(value);
+        return item ? [item as JsonObject] : [];
+      })
+    : undefined;
+  return {
+    ...(typeof data?.code === 'string'
+      ? { code: data.code }
+      : typeof data?.type === 'string'
+        ? { code: data.type }
+        : typeof source?.code === 'string'
+          ? { code: source.code }
+          : {}),
+    ...(data ? { data: data as JsonObject } : {}),
+    ...(typeof data?.detail === 'string' ? { detail: data.detail } : {}),
+    ...(statusCode === undefined ? {} : { statusCode }),
+    ...(validationErrors?.length ? { validationErrors } : {}),
+  };
 }
 
 function requestOptions(
@@ -242,23 +274,31 @@ function requestOptions(
   };
 }
 
-function credentialCacheKey(credentials: MoltNetCredentials): string {
-  return JSON.stringify([
-    credentials.apiUrl.trim(),
-    credentials.authentication ?? '',
-    optionalString(credentials.agentApiKey) ?? '',
-    optionalString(credentials.clientId) ?? '',
-    credentials.clientSecret ?? '',
-    optionalString(credentials.teamId) ?? '',
-    optionalString(credentials.diaryId) ?? '',
-  ]);
-}
-
 function resolveTeamId(
   override: unknown,
   credentials: MoltNetCredentials,
 ): string | undefined {
   return optionalString(override) ?? optionalString(credentials.teamId);
+}
+
+function requireDiaryId(
+  context: NodeErrorContext,
+  override: unknown,
+  credentials: MoltNetCredentials,
+  itemIndex?: number,
+): string {
+  const diaryId =
+    optionalString(override) ?? optionalString(credentials.diaryId);
+  if (diaryId) return diaryId;
+  throw new NodeOperationError(
+    context.getNode(),
+    "'Diary ID' is required for this operation",
+    {
+      ...(itemIndex === undefined ? {} : { itemIndex }),
+      description:
+        "Set 'Diary ID' in Options or save 'Default Diary ID' in the selected credential.",
+    },
+  );
 }
 
 function requireTeamId(
@@ -426,7 +466,7 @@ function formatOutput(
 
 async function createTask(
   context: IExecuteFunctions,
-  agent: Agent,
+  agent: MoltNetClient,
   credentials: MoltNetCredentials,
   itemIndex: number,
 ): Promise<IDataObject> {
@@ -441,45 +481,60 @@ async function createTask(
     itemIndex,
     {},
   ) as CreateOptions;
-  const teamId = resolveTeamId(options.teamId, credentials);
-  const diaryId =
-    optionalString(options.diaryId) ?? optionalString(credentials.diaryId);
+  const teamId = requireTeamId(context, options.teamId, credentials, itemIndex);
+  const diaryId = requireDiaryId(
+    context,
+    options.diaryId,
+    credentials,
+    itemIndex,
+  );
 
   try {
-    const builder = agent.tasks.buildTask(taskType.trim(), input);
-    if (teamId) builder.team(teamId);
-    if (diaryId) builder.diary(diaryId);
-    const title = optionalString(options.title);
-    if (title) builder.title(title);
-    const correlationId = optionalString(options.correlationId);
-    if (correlationId) builder.correlationId(correlationId);
-    if (typeof options.maxAttempts === 'number') {
-      builder.maxAttempts(options.maxAttempts);
+    if (!taskType.trim()) {
+      throw new NodeOperationError(
+        context.getNode(),
+        "'Task Type' is required",
+        {
+          itemIndex,
+          description: "Enter the MoltNet task type in 'Task Type'.",
+        },
+      );
     }
+    const title = optionalString(options.title);
+    const correlationId = optionalString(options.correlationId);
     const tags = optionalString(options.tags)
       ?.split(',')
       .map((tag) => tag.trim())
       .filter(Boolean);
-    if (tags?.length) builder.tags(...tags);
-    return (await agent.tasks.create(builder.build())) as IDataObject;
-  } catch (error) {
-    if (error instanceof TaskBuildError) {
-      throw new NodeOperationError(
-        context.getNode(),
-        'The task could not be created from the configured fields',
-        {
-          itemIndex,
-          description: `${error.message}. Check 'Task Type', 'Input', 'Team ID', and 'Diary ID'.`,
-        },
-      );
+    const body = {
+      taskType: taskType.trim(),
+      input,
+      diaryId,
+      ...(title ? { title } : {}),
+      ...(correlationId ? { correlationId } : {}),
+      ...(typeof options.maxAttempts === 'number'
+        ? { maxAttempts: options.maxAttempts }
+        : {}),
+      ...(tags?.length ? { tags } : {}),
+    };
+    for (let retry = 0; ; retry += 1) {
+      try {
+        return (await agent.tasks.create(body, { teamId })) as IDataObject;
+      } catch (error) {
+        if (apiFailure(error).statusCode !== 429 || retry >= 2) {
+          throw toNodeError(context, error, itemIndex);
+        }
+        await sleep(1_000 * 2 ** retry);
+      }
     }
+  } catch (error) {
     throw toNodeError(context, error, itemIndex);
   }
 }
 
 async function getTask(
   context: IExecuteFunctions,
-  agent: Agent,
+  agent: MoltNetClient,
   credentials: MoltNetCredentials,
   itemIndex: number,
 ): Promise<IDataObject> {
@@ -504,7 +559,7 @@ async function getTask(
 
 async function cancelTask(
   context: IExecuteFunctions,
-  agent: Agent,
+  agent: MoltNetClient,
   credentials: MoltNetCredentials,
   itemIndex: number,
 ): Promise<IDataObject> {
@@ -539,7 +594,7 @@ async function cancelTask(
 
 async function getManyTasks(
   context: IExecuteFunctions,
-  agent: Agent,
+  agent: MoltNetClient,
   credentials: MoltNetCredentials,
   itemIndex: number,
 ): Promise<IDataObject[]> {
@@ -582,7 +637,7 @@ async function getManyTasks(
 
 async function waitForTask(
   context: IExecuteFunctions,
-  agent: Agent,
+  agent: MoltNetClient,
   credentials: MoltNetCredentials,
   itemIndex: number,
 ): Promise<IDataObject> {
@@ -736,7 +791,7 @@ interface WaitTimeoutState {
 
 async function readAttemptsWithRetry(
   context: IExecuteFunctions,
-  agent: Agent,
+  agent: MoltNetClient,
   taskId: string,
   options: { teamId?: string; signal?: AbortSignal },
   executionSignal: AbortSignal | undefined,
@@ -851,11 +906,14 @@ function pollingDelayMs(
 }
 
 function isTransientReadError(error: unknown): boolean {
+  const failure = apiFailure(error);
   return (
-    error instanceof MoltNetError &&
-    (error.code === 'NETWORK_ERROR' ||
-      error.statusCode === 429 ||
-      (error.statusCode !== undefined && error.statusCode >= 500))
+    error instanceof TypeError ||
+    failure.code === 'NETWORK_ERROR' ||
+    failure.code === 'ECONNRESET' ||
+    failure.code === 'ETIMEDOUT' ||
+    failure.statusCode === 429 ||
+    (failure.statusCode !== undefined && failure.statusCode >= 500)
   );
 }
 
@@ -954,28 +1012,23 @@ function waitTimeoutError(
 }
 
 function continueOnFailData(error: unknown, nodeError: Error): IDataObject {
-  if (error instanceof NodeApiError) {
-    const data = error.context.data;
-    return data && typeof data === 'object' && !Array.isArray(data)
-      ? { error: nodeError.message, ...(data as IDataObject) }
-      : { error: nodeError.message };
+  const failure = apiFailure(error);
+  if (!failure.statusCode && !failure.code && !failure.data) {
+    return { error: nodeError.message };
   }
-  if (!(error instanceof MoltNetError)) return { error: nodeError.message };
   return {
     error: nodeError.message,
-    code: error.code,
-    ...(error.statusCode === undefined ? {} : { statusCode: error.statusCode }),
-    ...(error.detail === undefined ? {} : { detail: error.detail }),
-    ...(error.validationErrors === undefined
+    ...(failure.code === undefined ? {} : { code: failure.code }),
+    ...(failure.statusCode === undefined
+      ? {}
+      : { statusCode: failure.statusCode }),
+    ...(failure.detail === undefined ? {} : { detail: failure.detail }),
+    ...(failure.validationErrors === undefined
       ? {}
       : {
-          validationErrors: error.validationErrors.map(
-            ({ field, message }) => ({
-              field,
-              message,
-            }),
-          ),
+          validationErrors: failure.validationErrors,
         }),
+    ...(failure.data ?? {}),
   };
 }
 
@@ -1001,7 +1054,6 @@ export class MoltNet implements INodeType {
       {
         name: 'moltNetApi',
         required: true,
-        testedBy: 'moltNetApiCredentialTest',
       },
     ],
     properties: [
@@ -1386,7 +1438,7 @@ export class MoltNet implements INodeType {
           credentials,
         );
         try {
-          const agent = await connectMoltNet(credentials);
+          const agent = connectMoltNet(this, credentials);
           const response = await agent.tasks.list(
             {
               limit: 50,
@@ -1413,32 +1465,11 @@ export class MoltNet implements INodeType {
         }
       },
     },
-    credentialTest: {
-      async moltNetApiCredentialTest(
-        this: ICredentialTestFunctions,
-        credential: ICredentialsDecrypted,
-      ): Promise<INodeCredentialTestResult> {
-        void this;
-        try {
-          const agent = await connectMoltNet(
-            credential.data as MoltNetCredentials,
-          );
-          await agent.agents.whoami();
-          return { status: 'OK', message: 'Authentication successful' };
-        } catch (error) {
-          return {
-            status: 'Error',
-            message: credentialRecoveryMessage(error),
-          };
-        }
-      },
-    },
   };
 
   async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
     const inputItems = this.getInputData();
     const outputItems: INodeExecutionData[] = [];
-    const connections = new Map<string, Promise<Agent>>();
     const executionSignal = this.getExecutionCancelSignal();
 
     for (let itemIndex = 0; itemIndex < inputItems.length; itemIndex += 1) {
@@ -1452,13 +1483,7 @@ export class MoltNet implements INodeType {
           'moltNetApi',
           itemIndex,
         );
-        const cacheKey = credentialCacheKey(credentials);
-        let connection = connections.get(cacheKey);
-        if (!connection) {
-          connection = connectMoltNet(credentials);
-          connections.set(cacheKey, connection);
-        }
-        const agent = await connection;
+        const agent = connectMoltNet(this, credentials);
         let results: IDataObject[];
         switch (operation) {
           case 'cancel':

@@ -16,9 +16,9 @@ export default [
   ...baseConfig,
   createNxDependencyChecksConfig({
     ignoredDependencies: [
-      // n8n loads community nodes with require(); the SDK is deliberately
-      // bundled from devDependencies so the published package stays standalone.
-      '@themoltnet/sdk',
+      // This build-time generator is not imported by either published entry;
+      // its small generated client is bundled so runtime dependencies stay empty.
+      '@hey-api/openapi-ts',
     ],
   }),
 ];

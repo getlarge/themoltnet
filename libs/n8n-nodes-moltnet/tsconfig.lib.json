@@ -20,9 +20,5 @@
   ],
   "extends": "./tsconfig.json",
   "include": ["credentials/**/*.ts", "nodes/**/*.ts", "src/**/*.ts"],
-  "references": [
-    {
-      "path": "../sdk/tsconfig.lib.json"
-    }
-  ]
+  "references": []
 }

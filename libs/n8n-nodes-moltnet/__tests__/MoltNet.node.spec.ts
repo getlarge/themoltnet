@@ -175,6 +175,7 @@ describe('MoltNet node', () => {
       getCredentials: executeContext.getCredentials,
       getCurrentNodeParameter: () => '',
       getNode: executeContext.getNode,
+      helpers: executeContext.helpers,
     } as unknown as ILoadOptionsFunctions;
 
     const result = await new MoltNet().methods.listSearch.searchTasks.call(
@@ -709,7 +710,7 @@ describe('MoltNet node', () => {
     expect(api.createdBodies).toHaveLength(0);
   });
 
-  it('preserves SDK rate-limit retries for task creation', async () => {
+  it('retries rate-limited task creation through n8n transport', async () => {
     vi.useFakeTimers();
     const api = new FakeMoltNetApi({ createResponses: [429, 201] });
     vi.stubGlobal('fetch', api.fetch);
