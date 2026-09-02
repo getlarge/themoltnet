@@ -48,6 +48,15 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+      # The root postinstall constructs the Nx project graph. @nx-go/nx-go
+      # invokes `go list` during that graph construction, before the test runs.
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+          cache-dependency-path: |
+            go.work.sum
+            apps/moltnet-cli/go.sum
+            libs/moltnet-api-client/go.sum
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec nx run @moltnet/tools:test:agent-bundle
 
