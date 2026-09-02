@@ -14,16 +14,10 @@ import {
   Stack,
   Text,
 } from '@themoltnet/design-system';
-import {
-  type Dispatch,
-  type SetStateAction,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { type Dispatch, type SetStateAction, useState } from 'react';
 
-import { abortableDelay } from '../abortable-delay.js';
 import { getApiClient } from '../api.js';
+import { runLogPanelId, RunLogTail } from '../runtime-local/RunLogTail.js';
 import type {
   ServeRunView,
   StartRunBody,
@@ -106,6 +100,13 @@ function CompanionBanner({ runtime }: { runtime: LocalRuntimeController }) {
         <Text variant="caption" mono>
           npx @themoltnet/agent-daemon serve
         </Text>
+        {runtime.connectionError ? (
+          <div role="alert">
+            <Text variant="caption" color="error">
+              {runtime.connectionError}
+            </Text>
+          </div>
+        ) : null}
         <Stack direction="row" gap={2}>
           <Button size="sm" onClick={() => void runtime.retry()}>
             Retry
@@ -168,14 +169,21 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
   const submit = async (kind: 'managed' | 'external') => {
     setBusy(true);
     try {
-      await runtime.createAgent({
-        kind,
-        name: name.trim(),
-        ...(kind === 'managed' && enrollmentToken.trim()
-          ? { enrollmentToken: enrollmentToken.trim() }
-          : {}),
-        ...(kind === 'external' ? { configDir: configDir.trim() } : {}),
-      });
+      if (kind === 'managed') {
+        await runtime.createAgent({
+          kind,
+          name: name.trim(),
+          ...(enrollmentToken.trim()
+            ? { enrollmentToken: enrollmentToken.trim() }
+            : {}),
+        });
+      } else {
+        await runtime.createAgent({
+          kind,
+          name: name.trim(),
+          configDir: configDir.trim(),
+        });
+      }
       setName('');
       setConfigDir('');
     } catch {
@@ -259,7 +267,6 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
 function ProvidersSection({ runtime }: { runtime: LocalRuntimeController }) {
   const [id, setId] = useState('ollama');
   const [baseUrl, setBaseUrl] = useState('https://ollama.com/v1');
-  const [envName, setEnvName] = useState('OLLAMA_API_KEY');
   const [models, setModels] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [busy, setBusy] = useState(false);
@@ -271,17 +278,16 @@ function ProvidersSection({ runtime }: { runtime: LocalRuntimeController }) {
       await runtime.putProvider(id.trim(), {
         api: 'openai-completions',
         baseUrl: baseUrl.trim(),
-        envName: envName.trim(),
         models: models
           .split(',')
           .map((model) => model.trim())
           .filter(Boolean),
         ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
       });
-      setApiKey('');
     } catch {
       // surfaced via runtime.actionError
     } finally {
+      setApiKey('');
       setBusy(false);
     }
   };
@@ -326,11 +332,6 @@ function ProvidersSection({ runtime }: { runtime: LocalRuntimeController }) {
           onChange={(event) => setBaseUrl(event.target.value)}
         />
         <Input
-          label="Key env var"
-          value={envName}
-          onChange={(event) => setEnvName(event.target.value)}
-        />
-        <Input
           label="Models (comma-separated)"
           hint="Must include the model your runtime profile pins."
           value={models}
@@ -339,6 +340,8 @@ function ProvidersSection({ runtime }: { runtime: LocalRuntimeController }) {
         <Input
           label="API key"
           type="password"
+          autoComplete="off"
+          spellCheck={false}
           hint="Write-only; leaving it blank on update keeps the stored key."
           value={apiKey}
           onChange={(event) => setApiKey(event.target.value)}
@@ -346,7 +349,7 @@ function ProvidersSection({ runtime }: { runtime: LocalRuntimeController }) {
         <Button
           size="sm"
           variant="accent"
-          disabled={busy || !id.trim() || !baseUrl.trim() || !envName.trim()}
+          disabled={busy || !id.trim() || !baseUrl.trim()}
           onClick={() => void submit()}
         >
           Save provider
@@ -373,7 +376,7 @@ function RunsSection({ runtime }: { runtime: LocalRuntimeController }) {
         logRunId={logRunId}
         setLogRunId={setLogRunId}
       />
-      {logRunId ? <LogTail runtime={runtime} runId={logRunId} /> : null}
+      {logRunId ? <RunLogTail runtime={runtime} runId={logRunId} /> : null}
     </Stack>
   );
 }
@@ -504,7 +507,7 @@ function RunList({
         <RunRow
           key={run.id}
           run={run}
-          onStop={() => void runtime.stopRun(run.id)}
+          onStop={() => runtime.stopRun(run.id).catch(() => undefined)}
           onToggleLogs={() =>
             setLogRunId((current) => (current === run.id ? null : run.id))
           }
@@ -538,135 +541,48 @@ function RunRow({
         ? 'error'
         : 'default';
   return (
-    <Stack direction="row" gap={3} align="center">
-      <Badge variant={tone}>{run.status}</Badge>
-      <Text variant="caption" weight="medium">
-        {run.agent}
-      </Text>
-      <Text variant="caption" color="muted">
-        {run.mode} · {run.profiles.join(', ')} · {run.taskTypes.join(', ')}
-      </Text>
-      <Button
-        variant="ghost"
-        size="sm"
-        aria-expanded={logsOpen}
-        aria-controls={runLogPanelId(run.id)}
-        onClick={onToggleLogs}
-      >
-        {logsOpen ? 'Hide logs' : 'Logs'}
-      </Button>
-      {run.active ? (
-        <Button variant="ghost" size="sm" onClick={onStop}>
-          Stop
+    <Stack gap={1}>
+      <Stack direction="row" gap={3} align="center" wrap>
+        <Badge variant={tone}>{run.status}</Badge>
+        <Text variant="caption" weight="medium">
+          {run.agent}
+        </Text>
+        <Text variant="caption" color="muted">
+          {run.mode} · {run.profiles.join(', ')} · {run.taskTypes.join(', ')}
+        </Text>
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-expanded={logsOpen}
+          aria-controls={runLogPanelId(run.id)}
+          onClick={onToggleLogs}
+        >
+          {logsOpen ? 'Hide logs' : 'Logs'}
         </Button>
-      ) : null}
-    </Stack>
-  );
-}
-
-function LogTail({
-  runtime,
-  runId,
-}: {
-  runtime: LocalRuntimeController;
-  runId: string;
-}) {
-  const streamLogs = runtime.streamLogs;
-  const [lines, setLines] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [retryKey, setRetryKey] = useState(0);
-  const preRef = useRef<HTMLPreElement>(null);
-
-  useEffect(() => {
-    setLines([]);
-    setError(null);
-    const controller = new AbortController();
-    const pending: string[] = [];
-    let flushTimer: number | undefined;
-    const flush = () => {
-      flushTimer = undefined;
-      if (pending.length === 0) return;
-      const batch = pending.splice(0);
-      setLines((current) => [...current, ...batch].slice(-500));
-    };
-    const onLine = (line: string) => {
-      pending.push(line);
-      flushTimer ??= window.setTimeout(flush, 50);
-    };
-    const follow = async () => {
-      for (let attempt = 0; attempt < 4; attempt += 1) {
-        setLines([]);
-        setError(null);
-        try {
-          await streamLogs(runId, onLine, controller.signal);
-          if (controller.signal.aborted) return;
-          throw new Error('The log stream closed unexpectedly.');
-        } catch (streamError) {
-          if (controller.signal.aborted) return;
-          flush();
-          const message =
-            streamError instanceof Error
-              ? streamError.message
-              : 'The log stream disconnected.';
-          if (attempt === 3) {
-            setError(message);
-            return;
-          }
-          const delay = Math.min(1_000 * 2 ** attempt, 8_000);
-          setError(`${message} Retrying in ${delay / 1_000}s…`);
-          await abortableDelay(delay, controller.signal).catch(() => undefined);
-        }
-      }
-    };
-    void follow();
-    return () => {
-      controller.abort();
-      if (flushTimer !== undefined) window.clearTimeout(flushTimer);
-    };
-  }, [streamLogs, runId, retryKey]);
-
-  useEffect(() => {
-    if (preRef.current) preRef.current.scrollTop = preRef.current.scrollHeight;
-  }, [lines]);
-
-  return (
-    <Stack gap={2}>
-      {error ? (
-        <Stack direction="row" gap={2} align="center" wrap>
-          <div role="alert">
-            <Text variant="caption" color="error">
-              {error}
-            </Text>
-          </div>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => setRetryKey((key) => key + 1)}
-          >
-            Retry log stream
+        {run.active ? (
+          <Button variant="ghost" size="sm" onClick={onStop}>
+            Stop
           </Button>
-        </Stack>
-      ) : null}
-      <pre
-        id={runLogPanelId(runId)}
-        ref={preRef}
-        aria-label={`Logs for run ${runId}`}
-        style={{
-          maxHeight: 320,
-          overflow: 'auto',
-          fontSize: 12,
-          lineHeight: 1.5,
-          padding: 12,
-          borderRadius: 8,
-          border: '1px solid color-mix(in srgb, currentColor 20%, transparent)',
-        }}
-      >
-        {lines.length > 0 ? lines.join('\n') : 'Waiting for output…'}
-      </pre>
+        ) : null}
+      </Stack>
+      <Text variant="caption" color="muted" mono>
+        {run.id} · started {formatRunTimestamp(run.startedAt)}
+        {run.endedAt ? ` · ended ${formatRunTimestamp(run.endedAt)}` : ''}
+        {run.pid !== undefined ? ` · pid ${run.pid}` : ''}
+        {run.exitCode !== undefined
+          ? ` · exit ${run.exitCode === null ? 'signal' : run.exitCode}`
+          : ''}
+      </Text>
     </Stack>
   );
 }
 
-function runLogPanelId(runId: string): string {
-  return `run-logs-${runId}`;
+function formatRunTimestamp(value: string): string {
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp)
+    ? new Intl.DateTimeFormat(undefined, {
+        dateStyle: 'short',
+        timeStyle: 'medium',
+      }).format(timestamp)
+    : value;
 }

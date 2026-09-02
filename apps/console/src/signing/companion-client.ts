@@ -20,6 +20,7 @@ import {
 import { Value } from 'typebox/value';
 
 import { abortableDelay } from '../abortable-delay.js';
+import { loopbackHttpUrl } from '../loopback-url.js';
 
 export interface SignerCompanionClient {
   connect(): Promise<SignerSession>;
@@ -53,7 +54,7 @@ export function createSignerCompanionClient(options: {
   fetch?: typeof fetch;
   requestTimeoutMs?: number;
 }): SignerCompanionClient {
-  const baseUrl = loopbackUrl(options.baseUrl);
+  const baseUrl = loopbackHttpUrl(options.baseUrl, 'Signer companion');
   const fetchImpl = options.fetch ?? fetch;
   const requestTimeoutMs = options.requestTimeoutMs ?? 5_000;
   const transport = createClient({
@@ -188,24 +189,6 @@ function unavailableError(error: unknown): SignerCompanionError {
   );
 }
 
-function loopbackUrl(value: string): URL {
-  const url = new URL(value);
-  if (
-    url.protocol !== 'http:' ||
-    (url.hostname !== '127.0.0.1' &&
-      url.hostname !== 'localhost' &&
-      url.hostname !== '[::1]') ||
-    url.username ||
-    url.password ||
-    url.pathname !== '/' ||
-    url.search ||
-    url.hash
-  ) {
-    throw new Error('Signer companion URL must be loopback HTTP');
-  }
-  return url;
-}
-
 function parseSession(value: unknown): SignerSession {
   if (
     !Value.Check(signerProtocolSchemaContext, SignerSessionSchema, value) ||
@@ -246,7 +229,7 @@ function isDateTime(value: unknown): value is string {
 
 function isLoopbackApprovalUrl(value: string): boolean {
   try {
-    loopbackUrl(new URL(value).origin);
+    loopbackHttpUrl(new URL(value).origin, 'Signer companion');
     return true;
   } catch {
     return false;

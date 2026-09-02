@@ -103,6 +103,52 @@ describe('serve companion client', () => {
     }
   });
 
+  it('preserves typed health probe outcomes', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(null, { status: 200 }))
+      .mockResolvedValueOnce(new Response(null, { status: 503 }))
+      .mockRejectedValueOnce(new DOMException('slow', 'TimeoutError'))
+      .mockRejectedValueOnce(new TypeError('offline'));
+    const client = createServeClient({
+      baseUrl: BASE,
+      getToken: () => null,
+      fetch: fetchMock,
+    });
+
+    await expect(client.health()).resolves.toEqual({ status: 'ok' });
+    await expect(client.health()).resolves.toEqual({
+      status: 'incompatible',
+      httpStatus: 503,
+    });
+    await expect(client.health()).resolves.toEqual({
+      status: 'unavailable',
+      reason: 'timeout',
+    });
+    await expect(client.health()).resolves.toEqual({
+      status: 'unavailable',
+      reason: 'network',
+    });
+  });
+
+  it('rejects incompatible JSON response shapes', async () => {
+    const client = createServeClient({
+      baseUrl: BASE,
+      getToken: () => 'tok',
+      fetch: vi.fn<typeof fetch>().mockResolvedValue(
+        jsonResponse({
+          version: 'test',
+          platform: 'darwin',
+          agents: [],
+          providers: {},
+          runs: [{ id: 'missing-required-fields' }],
+        }),
+      ),
+    });
+
+    await expect(client.status()).rejects.toThrow('invalid status response');
+  });
+
   it('sends mutation routes and bodies without browser credentials', async () => {
     const fetchMock = vi
       .fn<typeof fetch>()
@@ -148,7 +194,6 @@ describe('serve companion client', () => {
     await client.putProvider('test', {
       api: 'openai-completions',
       baseUrl: 'https://provider.example',
-      envName: 'MOLTNET_PROVIDER_TEST_API_KEY',
       models: ['model'],
       apiKey: 'write-only',
     });
@@ -201,10 +246,41 @@ describe('serve companion client', () => {
         body: undefined,
       },
     ]);
-    expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeUndefined();
-    expect(fetchMock.mock.calls[2]?.[1]?.signal).toBeUndefined();
+    expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+    expect(fetchMock.mock.calls[2]?.[1]?.signal).toBeInstanceOf(AbortSignal);
     expect(fetchMock.mock.calls[1]?.[1]?.signal).toBeInstanceOf(AbortSignal);
     expect(fetchMock.mock.calls[3]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('derives provider env names and rejects secret-bearing provider URLs', async () => {
+    const fetchMock = vi.fn<typeof fetch>();
+    const client = createServeClient({
+      baseUrl: BASE,
+      getToken: () => 'tok',
+      fetch: fetchMock,
+    });
+    const body = {
+      api: 'openai-completions',
+      models: ['model'],
+    };
+
+    for (const baseUrl of [
+      'https://user:secret@provider.example/v1',
+      'https://provider.example/v1?api_key=secret',
+      'https://provider.example/v1#secret',
+      'file:///tmp/provider',
+    ]) {
+      await expect(
+        client.putProvider('ollama-cloud', { ...body, baseUrl }),
+      ).rejects.toMatchObject({ code: 'invalid_provider_url' });
+    }
+    await expect(
+      client.putProvider('../escape', {
+        ...body,
+        baseUrl: 'https://provider.example/v1',
+      }),
+    ).rejects.toMatchObject({ code: 'invalid_provider_id' });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('parses SSE lines and preserves stream request invariants', async () => {
@@ -252,7 +328,18 @@ describe('serve companion client', () => {
       .mockResolvedValueOnce(
         jsonResponse({ code: 'pairing_required', message: 'Pair again' }, 401),
       )
-      .mockResolvedValueOnce(new Response(null, { status: 200 }));
+      .mockResolvedValueOnce(
+        new Response(null, {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response('not an event stream', {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+      );
     const client = createServeClient({
       baseUrl: BASE,
       getToken: () => 'tok',
@@ -266,6 +353,9 @@ describe('serve companion client', () => {
     await expect(
       client.streamLogs('run-1', vi.fn(), signal),
     ).rejects.toMatchObject({ code: 'logs_unavailable' });
+    await expect(
+      client.streamLogs('run-1', vi.fn(), signal),
+    ).rejects.toMatchObject({ code: 'logs_invalid_content_type' });
   });
 
   it('rejects oversized SSE events from a replacement listener', async () => {
@@ -281,7 +371,11 @@ describe('serve companion client', () => {
     const client = createServeClient({
       baseUrl: BASE,
       getToken: () => 'tok',
-      fetch: vi.fn<typeof fetch>().mockResolvedValue(new Response(stream)),
+      fetch: vi.fn<typeof fetch>().mockResolvedValue(
+        new Response(stream, {
+          headers: { 'content-type': 'text/event-stream' },
+        }),
+      ),
     });
 
     await expect(
@@ -301,7 +395,42 @@ describe('serve companion client', () => {
     const client = createServeClient({
       baseUrl: BASE,
       getToken: () => 'tok',
-      fetch: vi.fn<typeof fetch>().mockResolvedValue(new Response(stream)),
+      fetch: vi.fn<typeof fetch>().mockResolvedValue(
+        new Response(stream, {
+          headers: { 'content-type': 'text/event-stream' },
+        }),
+      ),
+    });
+    const lines: string[] = [];
+
+    await client.streamLogs(
+      'run-1',
+      (line) => lines.push(line),
+      new AbortController().signal,
+    );
+
+    expect(lines).toEqual([payload]);
+  });
+
+  it('accepts a fragmented maximum-sized payload consistently', async () => {
+    const payload = 'x'.repeat(256 * 1024);
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const encoder = new TextEncoder();
+        controller.enqueue(encoder.encode('data: '));
+        controller.enqueue(encoder.encode(payload));
+        controller.enqueue(encoder.encode('\n\n'));
+        controller.close();
+      },
+    });
+    const client = createServeClient({
+      baseUrl: BASE,
+      getToken: () => 'tok',
+      fetch: vi.fn<typeof fetch>().mockResolvedValue(
+        new Response(stream, {
+          headers: { 'content-type': 'text/event-stream' },
+        }),
+      ),
     });
     const lines: string[] = [];
 

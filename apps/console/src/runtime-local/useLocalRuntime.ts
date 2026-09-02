@@ -98,8 +98,21 @@ export function useLocalRuntime(): LocalRuntimeController {
   const probe = useCallback(async () => {
     setStatus('connecting');
     setConnectionError(null);
-    if (!(await client.health())) {
+    const health = await client.health();
+    if (health.status === 'unavailable') {
+      setConnectionError(
+        health.reason === 'timeout'
+          ? 'The local supervisor health check timed out.'
+          : 'The local supervisor could not be reached.',
+      );
       setStatus('unavailable');
+      return;
+    }
+    if (health.status === 'incompatible') {
+      setConnectionError(
+        `The local supervisor health check returned HTTP ${health.httpStatus}.`,
+      );
+      setStatus('degraded');
       return;
     }
     if (!tokenRef.current) {

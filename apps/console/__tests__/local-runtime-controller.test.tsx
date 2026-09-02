@@ -216,4 +216,298 @@ describe('useLocalRuntime', () => {
     expect(sessionStorage.getItem(TOKEN_KEY)).toBeNull();
     expect(result.current.status).toBe('unpaired');
   });
+
+  it('retries pending pairing claims until approval', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const popup = popupFixture();
+    vi.spyOn(window, 'open').mockReturnValue(popup as unknown as Window);
+    let claims = 0;
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockImplementation((input, init) => {
+        const url = String(input);
+        if (url.endsWith('/health')) {
+          return Promise.resolve(new Response(null, { status: 200 }));
+        }
+        if (url.endsWith('/v1/pairings') && init?.method === 'POST') {
+          return Promise.resolve(
+            jsonResponse({
+              pairingId: 'pair-3',
+              approvalPath: '/pairings/pair-3',
+            }),
+          );
+        }
+        if (url.endsWith('/v1/pairings/pair-3/claim')) {
+          claims += 1;
+          return Promise.resolve(
+            claims === 1
+              ? jsonResponse(
+                  { code: 'pairing_not_approved', message: 'Pending' },
+                  401,
+                )
+              : jsonResponse({ token: 'eventual-token' }),
+          );
+        }
+        if (url.endsWith('/v1/status')) {
+          return Promise.resolve(jsonResponse(serveStatus()));
+        }
+        return Promise.reject(new Error(`Unexpected request: ${url}`));
+      });
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = renderHook(() => useLocalRuntime(), {
+      wrapper: createTestWrapper(),
+    });
+    await waitFor(() => expect(result.current.status).toBe('unpaired'));
+
+    let pairing: Promise<void>;
+    act(() => {
+      pairing = result.current.pair();
+    });
+    await act(() => vi.advanceTimersByTimeAsync(2_100));
+    await act(() => pairing!);
+
+    expect(claims).toBe(2);
+    expect(sessionStorage.getItem(TOKEN_KEY)).toBe('eventual-token');
+    expect(result.current.status).toBe('connected');
+  });
+
+  it('surfaces terminal pairing errors without retrying', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.spyOn(window, 'open').mockReturnValue(
+      popupFixture() as unknown as Window,
+    );
+    let claims = 0;
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockImplementation((input, init) => {
+        const url = String(input);
+        if (url.endsWith('/health')) {
+          return Promise.resolve(new Response(null, { status: 200 }));
+        }
+        if (url.endsWith('/v1/pairings') && init?.method === 'POST') {
+          return Promise.resolve(
+            jsonResponse({
+              pairingId: 'pair-4',
+              approvalPath: '/pairings/pair-4',
+            }),
+          );
+        }
+        if (url.endsWith('/v1/pairings/pair-4/claim')) {
+          claims += 1;
+          return Promise.resolve(
+            jsonResponse(
+              { code: 'pairing_expired', message: 'Pairing expired' },
+              410,
+            ),
+          );
+        }
+        return Promise.resolve(new Response(null, { status: 200 }));
+      });
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = renderHook(() => useLocalRuntime(), {
+      wrapper: createTestWrapper(),
+    });
+    await waitFor(() => expect(result.current.status).toBe('unpaired'));
+
+    let pairing: Promise<void>;
+    act(() => {
+      pairing = result.current.pair();
+    });
+    await act(() => vi.advanceTimersByTimeAsync(1_100));
+    await act(() => pairing!);
+
+    expect(claims).toBe(1);
+    expect(result.current.actionError).toBe('Pairing expired');
+    expect(result.current.status).toBe('unpaired');
+  });
+
+  it('times out pairing approval after the bounded claim window', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+    vi.spyOn(window, 'open').mockReturnValue(
+      popupFixture() as unknown as Window,
+    );
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockImplementation((input, init) => {
+        const url = String(input);
+        if (url.endsWith('/health')) {
+          return Promise.resolve(new Response(null, { status: 200 }));
+        }
+        if (url.endsWith('/v1/pairings') && init?.method === 'POST') {
+          return Promise.resolve(
+            jsonResponse({
+              pairingId: 'pair-5',
+              approvalPath: '/pairings/pair-5',
+            }),
+          );
+        }
+        if (url.endsWith('/v1/pairings/pair-5/claim')) {
+          return Promise.resolve(
+            jsonResponse(
+              { code: 'pairing_not_approved', message: 'Pending' },
+              401,
+            ),
+          );
+        }
+        return Promise.resolve(new Response(null, { status: 200 }));
+      });
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = renderHook(() => useLocalRuntime(), {
+      wrapper: createTestWrapper(),
+    });
+    await waitFor(() => expect(result.current.status).toBe('unpaired'));
+
+    let pairing: Promise<void>;
+    act(() => {
+      pairing = result.current.pair();
+    });
+    await act(() => vi.advanceTimersByTimeAsync(121_000));
+    await act(() => pairing!);
+
+    expect(result.current.actionError).toContain('timed out');
+    expect(result.current.status).toBe('unpaired');
+  });
+
+  it('executes every mutation action and reconciles status after success', async () => {
+    sessionStorage.setItem(TOKEN_KEY, 'stored-token');
+    let statusCalls = 0;
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockImplementation((input, init) => {
+        const url = String(input);
+        if (url.endsWith('/health')) {
+          return Promise.resolve(new Response(null, { status: 200 }));
+        }
+        if (url.endsWith('/v1/status')) {
+          statusCalls += 1;
+          return Promise.resolve(jsonResponse(serveStatus()));
+        }
+        if (url.endsWith('/v1/agents') && init?.method === 'POST') {
+          return Promise.resolve(
+            jsonResponse(
+              { kind: 'managed', agentName: 'bot', createdAt: 't' },
+              201,
+            ),
+          );
+        }
+        if (url.endsWith('/v1/providers/test') && init?.method === 'PUT') {
+          return Promise.resolve(
+            jsonResponse({
+              api: 'openai-completions',
+              baseUrl: 'https://provider.example/v1',
+              envName: 'MOLTNET_PROVIDER_TEST_API_KEY',
+              models: ['model'],
+              hasApiKey: true,
+            }),
+          );
+        }
+        if (url.endsWith('/v1/runs') && init?.method === 'POST') {
+          return Promise.resolve(
+            jsonResponse(
+              {
+                id: 'run-1',
+                agent: 'bot',
+                teamId: 'team',
+                profiles: ['profile'],
+                taskTypes: ['freeform'],
+                mode: 'poll',
+                status: 'running',
+                startedAt: 't',
+                active: true,
+              },
+              201,
+            ),
+          );
+        }
+        if (url.endsWith('/v1/runs/run-1') && init?.method === 'DELETE') {
+          return Promise.resolve(jsonResponse({ status: 'stopped' }));
+        }
+        return Promise.reject(new Error(`Unexpected request: ${url}`));
+      });
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = renderHook(() => useLocalRuntime(), {
+      wrapper: createTestWrapper(),
+    });
+    await waitFor(() => expect(result.current.status).toBe('connected'));
+    const initialStatusCalls = statusCalls;
+
+    await act(() =>
+      result.current.createAgent({ kind: 'managed', name: 'bot' }),
+    );
+    await act(() =>
+      result.current.putProvider('test', {
+        api: 'openai-completions',
+        baseUrl: 'https://provider.example/v1',
+        models: ['model'],
+        apiKey: 'secret',
+      }),
+    );
+    await act(() =>
+      result.current.startRun({
+        agent: 'bot',
+        teamId: 'team',
+        profiles: ['profile'],
+        taskTypes: ['freeform'],
+        mode: 'poll',
+      }),
+    );
+    await act(() => result.current.stopRun('run-1'));
+
+    expect(statusCalls).toBe(initialStatusCalls + 4);
+    expect(result.current.actionError).toBeNull();
+  });
+
+  it.each(['createAgent', 'putProvider', 'startRun', 'stopRun'] as const)(
+    'reconciles status and surfaces %s failures',
+    async (action) => {
+      sessionStorage.setItem(TOKEN_KEY, 'stored-token');
+      let statusCalls = 0;
+      const fetchMock = vi.fn<typeof fetch>().mockImplementation((input) => {
+        const url = String(input);
+        if (url.endsWith('/health')) {
+          return Promise.resolve(new Response(null, { status: 200 }));
+        }
+        if (url.endsWith('/v1/status')) {
+          statusCalls += 1;
+          return Promise.resolve(jsonResponse(serveStatus()));
+        }
+        return Promise.resolve(
+          jsonResponse(
+            { code: 'mutation_failed', message: `${action} failed` },
+            500,
+          ),
+        );
+      });
+      vi.stubGlobal('fetch', fetchMock);
+      const { result } = renderHook(() => useLocalRuntime(), {
+        wrapper: createTestWrapper(),
+      });
+      await waitFor(() => expect(result.current.status).toBe('connected'));
+      const initialStatusCalls = statusCalls;
+
+      const mutation =
+        action === 'createAgent'
+          ? result.current.createAgent({ kind: 'managed', name: 'bot' })
+          : action === 'putProvider'
+            ? result.current.putProvider('test', {
+                api: 'openai-completions',
+                baseUrl: 'https://provider.example/v1',
+                models: ['model'],
+              })
+            : action === 'startRun'
+              ? result.current.startRun({
+                  agent: 'bot',
+                  teamId: 'team',
+                  profiles: ['profile'],
+                  taskTypes: ['freeform'],
+                  mode: 'poll',
+                })
+              : result.current.stopRun('run-1');
+
+      await act(() => expect(mutation).rejects.toThrow(`${action} failed`));
+      expect(statusCalls).toBe(initialStatusCalls + 1);
+      expect(result.current.actionError).toBe(`${action} failed`);
+    },
+  );
 });

@@ -103,7 +103,8 @@ beforeEach(() => {
           taskTypes: ['freeform'],
           mode: 'poll',
           status: 'running',
-          startedAt: 't',
+          pid: 1234,
+          startedAt: '2026-09-02T08:00:00.000Z',
           active: true,
         },
       ],
@@ -160,11 +161,11 @@ describe('LocalRuntimePage', () => {
       expect(mocks.putProvider).toHaveBeenLastCalledWith('ollama', {
         api: 'openai-completions',
         baseUrl: 'https://ollama.com/v1',
-        envName: 'OLLAMA_API_KEY',
         models: ['model-a', 'model-b'],
       }),
     );
 
+    mocks.putProvider.mockRejectedValueOnce(new Error('provider failed'));
     fireEvent.change(screen.getByLabelText('API key'), {
       target: { value: 'provider-secret' },
     });
@@ -178,10 +179,17 @@ describe('LocalRuntimePage', () => {
     await waitFor(() =>
       expect(screen.getByLabelText('API key')).toHaveValue(''),
     );
+    expect(screen.getByLabelText('API key')).toHaveAttribute(
+      'autocomplete',
+      'off',
+    );
   });
 
   it('starts, stops, and tears down a selected run log stream', async () => {
+    mocks.stopRun.mockRejectedValueOnce(new Error('stop failed'));
     renderPage();
+    expect(screen.getByText(/run-1 · started/u)).toBeVisible();
+    expect(screen.getByText(/pid 1234/u)).toBeVisible();
     fireEvent.change(screen.getByLabelText('Agent'), {
       target: { value: 'course-bot' },
     });
@@ -214,6 +222,35 @@ describe('LocalRuntimePage', () => {
     expect(signal.aborted).toBe(false);
     fireEvent.click(screen.getByRole('button', { name: 'Hide logs' }));
     expect(signal.aborted).toBe(true);
+  });
+
+  it('bounds rendered log output by bytes as well as line count', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const first = `first-${'a'.repeat(200_000)}`;
+    const second = `second-${'b'.repeat(200_000)}`;
+    const third = `third-${'c'.repeat(200_000)}`;
+    mocks.streamLogs.mockImplementationOnce(
+      (_runId: string, onLine: (line: string) => void, signal: AbortSignal) => {
+        onLine(first);
+        onLine(second);
+        onLine(third);
+        return new Promise<void>((resolve) => {
+          signal.addEventListener('abort', () => resolve(), { once: true });
+        });
+      },
+    );
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Logs' }));
+    await act(() => vi.advanceTimersByTimeAsync(60));
+
+    const output = screen.getByLabelText('Logs for run run-1').textContent;
+    expect(output).not.toContain('first-');
+    expect(output).toContain('second-');
+    expect(output).toContain('third-');
+    expect(
+      new TextEncoder().encode(output ?? '').byteLength,
+    ).toBeLessThanOrEqual(512 * 1024);
   });
 
   it('replaces a failed log snapshot when automatic retry reconnects', async () => {
