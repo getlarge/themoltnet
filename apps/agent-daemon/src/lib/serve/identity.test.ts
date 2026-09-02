@@ -174,12 +174,14 @@ describe('managed serve agents', () => {
     const first = createManagedAgent(store, secrets, {
       name: 'same-alias',
       apiUrl: 'https://api.themolt.net',
+      enrollmentToken: 'enroll-tok',
     });
     await started;
     await expect(
       createManagedAgent(store, secrets, {
         name: 'same-alias',
         apiUrl: 'https://api.themolt.net',
+        enrollmentToken: 'enroll-tok',
       }),
     ).rejects.toMatchObject({ code: 'agent_exists' });
     finishRegistration();
@@ -199,6 +201,7 @@ describe('managed serve agents', () => {
     const result = await createManagedAgent(store, secrets, {
       name: 'course-bot',
       apiUrl: 'https://api.themolt.net',
+      enrollmentToken: 'enroll-tok',
     });
 
     expect(result.config.registered_at).toMatch(/^\d{4}-\d{2}-\d{2}T/u);
@@ -245,6 +248,7 @@ describe('managed serve agents', () => {
       createManagedAgent(store, secrets, {
         name: 'partial',
         apiUrl: 'https://api.themolt.net',
+        enrollmentToken: 'enroll-tok',
       }),
     ).rejects.toMatchObject({ code: 'registration_incomplete' });
     expect(store.readAgentConfig('partial')).toMatchObject({
@@ -255,6 +259,7 @@ describe('managed serve agents', () => {
       createManagedAgent(store, secrets, {
         name: 'partial',
         apiUrl: 'https://api.themolt.net',
+        enrollmentToken: 'enroll-tok',
       }),
     ).rejects.toMatchObject({ code: 'agent_exists' });
     expect(registerMock).toHaveBeenCalledTimes(1);
@@ -333,6 +338,7 @@ describe('managed serve agents', () => {
       createManagedAgent(store, secrets, {
         name: 'uncertain',
         apiUrl: 'https://api.themolt.net',
+        enrollmentToken: 'enroll-tok',
       }),
     ).rejects.toMatchObject({ code: 'registration_incomplete' });
     expect(store.hasPendingRegistration('uncertain')).toBe(true);
@@ -341,6 +347,7 @@ describe('managed serve agents', () => {
       createManagedAgent(store, secrets, {
         name: 'uncertain',
         apiUrl: 'https://api.themolt.net',
+        enrollmentToken: 'enroll-tok',
       }),
     ).rejects.toMatchObject({ code: 'agent_exists' });
     expect(registerMock).toHaveBeenCalledTimes(1);
@@ -363,6 +370,7 @@ describe('managed serve agents', () => {
       createManagedAgent(store, secrets, {
         name: 'retryable',
         apiUrl: 'https://api.themolt.net',
+        enrollmentToken: 'enroll-tok',
       }),
     ).rejects.toMatchObject({ code: 'registration_failed' });
     expect(store.hasPendingRegistration('retryable')).toBe(false);
@@ -371,6 +379,7 @@ describe('managed serve agents', () => {
       createManagedAgent(store, secrets, {
         name: 'retryable',
         apiUrl: 'https://api.themolt.net',
+        enrollmentToken: 'enroll-tok',
       }),
     ).resolves.toMatchObject({ activation: { alias: 'retryable' } });
     expect(registerMock).toHaveBeenCalledTimes(2);

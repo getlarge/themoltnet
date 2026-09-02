@@ -97,6 +97,7 @@ async function fixture(options: {
     runs,
     subscriptions,
     allowedOrigins: [CONSOLE_ORIGIN],
+    selfOrigin: 'http://127.0.0.1:17374',
     defaultApiUrl: 'https://api.example',
     version: 'test',
     ...(options.discoverFetch ? { discoverFetch: options.discoverFetch } : {}),

@@ -112,7 +112,7 @@ function installFetch() {
 beforeEach(() => {
   requests.length = 0;
   profilesState.items = [];
-  localStorage.setItem(
+  sessionStorage.setItem(
     `moltnet-serve-token::${SERVE}`,
     'paired-token-for-tests',
   );

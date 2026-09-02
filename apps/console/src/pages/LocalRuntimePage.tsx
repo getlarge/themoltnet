@@ -22,6 +22,7 @@ import {
 } from '@themoltnet/design-system';
 import { Fragment, useState } from 'react';
 
+import { abortableDelay } from '../abortable-delay.js';
 import { getApiClient } from '../api.js';
 import { runLogPanelId, RunLogTail } from '../runtime-local/RunLogTail.js';
 import type {
@@ -86,6 +87,32 @@ function ConnectionStrip({ runtime }: { runtime: LocalRuntimeController }) {
       </Card>
     );
   }
+  if (runtime.status === 'degraded') {
+    return (
+      <Card padding="sm">
+        <Stack gap={3}>
+          <Stack direction="row" gap={3} align="center" wrap>
+            <Badge variant="warning">Connection lost</Badge>
+            <Text variant="caption">
+              The supervisor answered earlier, but status refresh failed.
+            </Text>
+          </Stack>
+          {runtime.connectionError ? (
+            <div role="alert">
+              <Text variant="caption" color="error">
+                {runtime.connectionError}
+              </Text>
+            </div>
+          ) : null}
+          <Stack direction="row">
+            <Button size="sm" onClick={() => void runtime.retry()}>
+              Reconnect
+            </Button>
+          </Stack>
+        </Stack>
+      </Card>
+    );
+  }
   if (runtime.status === 'unavailable') {
     return (
       <Card padding="lg">
@@ -146,6 +173,21 @@ function ConnectionStrip({ runtime }: { runtime: LocalRuntimeController }) {
           >
             {pairing ? 'Waiting…' : 'Connect'}
           </Button>
+          {pairing && runtime.pairingApprovalUrl ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() =>
+                window.open(
+                  runtime.pairingApprovalUrl ?? '',
+                  '_blank',
+                  'popup,noopener,noreferrer',
+                )
+              }
+            >
+              Open approval
+            </Button>
+          ) : null}
         </Stack>
       </Card>
     );
@@ -366,11 +408,11 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
         }
       }
       setName('');
-      setEnrollmentToken('');
       setConfigDir('');
     } catch {
       // surfaced via runtime.actionError
     } finally {
+      if (kind === 'managed') setEnrollmentToken('');
       setBusy(false);
     }
   };
@@ -433,6 +475,8 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
           <Input
             label="Invitation code"
             hint="Required — a single-use team invitation that binds the agent's key to the issuing team. Generate one below, or ask a team manager."
+            autoComplete="off"
+            spellCheck={false}
             value={enrollmentToken}
             onChange={(event) => setEnrollmentToken(event.target.value)}
           />
@@ -833,16 +877,15 @@ function ApiKeyProviderForm({ runtime }: { runtime: LocalRuntimeController }) {
 // ── runs ───────────────────────────────────────────────────────────────────
 
 function RunsSection({ runtime }: { runtime: LocalRuntimeController }) {
+  const [logRunId, setLogRunId] = useState<string | null>(null);
+  const runs = runtime.data?.runs ?? [];
+  const agents = runtime.data?.agents ?? [];
   const { selectedTeam } = useTeam();
   const [agent, setAgent] = useState('');
   const [profile, setProfile] = useState('');
   const [taskTypes, setTaskTypes] = useState('freeform');
   const [mode, setMode] = useState<StartRunBody['mode']>('poll');
   const [busy, setBusy] = useState(false);
-  const [logRunId, setLogRunId] = useState<string | null>(null);
-  const runs = runtime.data?.runs ?? [];
-  const agents = runtime.data?.agents ?? [];
-
   const profilesQuery = useQuery({
     ...listRuntimeProfilesOptions({
       client: getApiClient(),
@@ -878,7 +921,7 @@ function RunsSection({ runtime }: { runtime: LocalRuntimeController }) {
         mode,
       });
     } catch {
-      // surfaced via runtime.actionError
+      // Surfaced via runtime.actionError.
     } finally {
       setBusy(false);
     }
@@ -956,12 +999,10 @@ function RunsSection({ runtime }: { runtime: LocalRuntimeController }) {
           <Button
             size="sm"
             variant="accent"
+            loading={busy}
+            loadingLabel="Starting run"
             disabled={
-              busy ||
-              !agent ||
-              !profile.trim() ||
-              !selectedTeam?.id ||
-              boundElsewhere
+              !agent || !profile.trim() || !selectedTeam?.id || boundElsewhere
             }
             onClick={() => void start()}
           >
