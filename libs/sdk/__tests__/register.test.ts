@@ -127,6 +127,19 @@ describe('register', () => {
     ).toBe('http://localhost:8000');
   });
 
+  it('rejects remote plaintext HTTP before generating or sending credentials', async () => {
+    await expect(
+      register({
+        credentialType: 'agent_key',
+        enrollmentToken: 'sensitive-enrollment-token',
+        apiUrl: 'http://api.example.com',
+      }),
+    ).rejects.toThrow('Refusing to send credentials to insecure API URL');
+    expect(cryptoService.generateKeyPair).not.toHaveBeenCalled();
+    expect(enrollAgent).not.toHaveBeenCalled();
+    expect(registerAgent).not.toHaveBeenCalled();
+  });
+
   it('maps API errors and transport failures', async () => {
     vi.mocked(registerAgent).mockResolvedValue({
       data: undefined,
@@ -157,6 +170,20 @@ describe('register', () => {
     expect(registerAgent).toHaveBeenCalledTimes(2);
     expect(vi.mocked(registerAgent).mock.calls[1][0]).toEqual(
       vi.mocked(registerAgent).mock.calls[0][0],
+    );
+  });
+
+  it('forwards registration cancellation to the API request', async () => {
+    vi.mocked(registerAgent).mockResolvedValue(success(oauthResponse));
+    const controller = new AbortController();
+
+    await register({
+      credentialType: 'oauth2',
+      signal: controller.signal,
+    });
+
+    expect(registerAgent).toHaveBeenCalledWith(
+      expect.objectContaining({ signal: controller.signal }),
     );
   });
 

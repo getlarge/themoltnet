@@ -8,7 +8,16 @@ import { unwrapResult } from '../agent-context.js';
  * caller's identity and context: `subjectType`, `currentTeamId`, and, for an
  * agent authenticated via an agent key, its `credentialBinding`.
  */
-export function createWhoami(context: AgentContext): () => Promise<Whoami> {
+export function createWhoami(
+  context: AgentContext,
+): (options?: { signal?: AbortSignal }) => Promise<Whoami> {
   const { client, auth } = context;
-  return async () => unwrapResult(await getWhoami({ client, auth }));
+  return async (options) =>
+    unwrapResult(
+      await getWhoami({
+        client,
+        auth,
+        ...(options?.signal ? { signal: options.signal } : {}),
+      }),
+    );
 }

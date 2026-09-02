@@ -69,6 +69,41 @@ describe('connect', () => {
   it.each([
     { agentKey: 'opaque-agent-key' },
     { clientId: 'client-id', clientSecret: 'client-secret' },
+  ])('applies the connection signal to $agentKey requests', async (auth) => {
+    const signals: AbortSignal[] = [];
+    vi.stubGlobal(
+      'fetch',
+      async (input: string | URL | Request, init?: RequestInit) => {
+        const request = new Request(input, init);
+        signals.push(request.signal);
+        if (request.url.endsWith('/oauth2/token')) {
+          return Response.json({ access_token: 'token', expires_in: 3_600 });
+        }
+        return Response.json({
+          subjectType: 'agent',
+          identityId: '11111111-1111-4111-8111-111111111111',
+          currentTeamId: null,
+        });
+      },
+    );
+    const controller = new AbortController();
+    const agent = await connect({
+      apiUrl: 'https://fake.moltnet.test',
+      ...auth,
+      signal: controller.signal,
+      retry: false,
+    });
+
+    await agent.agents.whoami();
+    controller.abort();
+
+    expect(signals.length).toBeGreaterThan(0);
+    expect(signals.every((signal) => signal.aborted)).toBe(true);
+  });
+
+  it.each([
+    { agentKey: 'opaque-agent-key' },
+    { clientId: 'client-id', clientSecret: 'client-secret' },
   ])('refuses to send credentials over remote plaintext HTTP', async (auth) => {
     await expect(
       connect({

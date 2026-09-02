@@ -7,7 +7,10 @@ import {
   buildTeamRegistrationMessage,
 } from '@moltnet/models';
 
-import { normalizeOptionalApiUrl } from './api-url.js';
+import {
+  normalizeOptionalApiUrl,
+  requireSecureCredentialApiUrl,
+} from './api-url.js';
 import { deriveMcpUrl } from './credentials.js';
 import { MoltNetError, NetworkError, problemToError } from './errors.js';
 
@@ -19,6 +22,8 @@ export interface RegisterOptions {
   /** Redeem this token into its issuing team instead of self-registering. */
   enrollmentToken?: string;
   apiUrl?: string;
+  /** Abort registration and any replay request. */
+  signal?: AbortSignal;
 }
 
 export interface EnrollOptions extends Omit<
@@ -88,7 +93,9 @@ export function buildMcpConfig(
 export async function register(
   options: RegisterOptions,
 ): Promise<RegisterResult> {
-  const apiUrl = normalizeOptionalApiUrl(options.apiUrl);
+  const apiUrl = requireSecureCredentialApiUrl(
+    normalizeOptionalApiUrl(options.apiUrl),
+  );
   const enrollmentToken = options.enrollmentToken;
   const keyPair = await cryptoService.generateKeyPair();
   const idempotencyKey = createIdempotencyKey();
@@ -125,6 +132,7 @@ export async function register(
         proof,
         credentialType: options.credentialType,
       },
+      ...(options.signal ? { signal: options.signal } : {}),
     };
     const send = () =>
       enrollmentToken

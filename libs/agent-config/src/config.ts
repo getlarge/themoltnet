@@ -64,16 +64,9 @@ export type GitHubConfig =
       private_key_ref: SecretReference;
     };
 
-export interface MoltNetConfig {
+interface MoltNetConfigBase {
   identity_id: string;
   registered_at: string;
-  /**
-   * Team-bound agent key reference. When present it is used instead of the
-   * OAuth2 client credentials; the key value itself is never stored here.
-   */
-  agent_key_ref?: SecretReference;
-  /** OAuth2 credentials are absent on agent-key-only profiles. */
-  oauth2?: OAuth2Config;
   keys: KeysConfig;
   endpoints: { api: string; mcp: string };
   ssh?: { private_key_path: string; public_key_path: string };
@@ -85,6 +78,16 @@ export interface MoltNetConfig {
   };
   github?: GitHubConfig;
 }
+
+/**
+ * A canonical profile must contain at least one authentication mechanism.
+ * Profiles may contain both during credential transitions.
+ */
+export type MoltNetConfig = MoltNetConfigBase &
+  (
+    | { agent_key_ref: SecretReference; oauth2?: OAuth2Config }
+    | { agent_key_ref?: SecretReference; oauth2: OAuth2Config }
+  );
 
 export function getConfigDir(): string {
   return join(homedir(), '.config', 'moltnet');

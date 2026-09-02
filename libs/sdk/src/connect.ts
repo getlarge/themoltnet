@@ -16,6 +16,8 @@ interface ConnectBaseOptions {
   apiUrl: string;
   /** Retry options for 401/429. Set false to disable retries. */
   retry?: RetryOptions | false;
+  /** Abort token acquisition and requests made by this connection. */
+  signal?: AbortSignal;
 }
 
 /** Static agent-key credentials for an ambient-free SDK connection. */
@@ -62,7 +64,10 @@ function createConnection(options: ConnectOptions): Agent {
     }
     const client: Client = createClient({
       baseUrl: apiUrl,
-      fetch: createAgentKeyFetch(options.retry),
+      fetch: withConnectionSignal(
+        createAgentKeyFetch(options.retry),
+        options.signal,
+      ),
     });
     return createAgent({ client, auth: () => Promise.resolve(agentKey) });
   }
@@ -73,6 +78,7 @@ function createConnection(options: ConnectOptions): Agent {
     clientId: options.clientId,
     clientSecret: options.clientSecret,
     scopes: options.scopes,
+    signal: options.signal,
   });
   const retryFetch =
     autoToken && options.retry !== false
@@ -90,11 +96,31 @@ function createConnection(options: ConnectOptions): Agent {
         }
       : undefined;
   const customFetch = retryFetch ?? invalidateOnAuthError;
+  const connectionFetch = options.signal
+    ? withConnectionSignal(customFetch ?? fetch, options.signal)
+    : customFetch;
   const client: Client = createClient({
     baseUrl: apiUrl,
-    ...(customFetch && { fetch: customFetch }),
+    ...(connectionFetch && { fetch: connectionFetch }),
   });
   const auth = autoToken ? () => tokenManager.getToken() : undefined;
 
   return createAgent({ client, tokenManager, auth });
+}
+
+function withConnectionSignal(
+  fetchImpl: typeof fetch,
+  connectionSignal?: AbortSignal,
+): typeof fetch {
+  if (!connectionSignal) return fetchImpl;
+  return (input, init) => {
+    const requestSignal =
+      init?.signal ?? (input instanceof Request ? input.signal : undefined);
+    return fetchImpl(input, {
+      ...init,
+      signal: requestSignal
+        ? AbortSignal.any([connectionSignal, requestSignal])
+        : connectionSignal,
+    });
+  };
 }
