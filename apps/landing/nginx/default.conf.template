@@ -41,11 +41,13 @@ server {
 
     # Machine-readable pin manifest — the /download page reads it, so the
     # version literals live only in the `set` lines above. Never cache: a pin
-    # bump must be visible on the next load.
+    # bump must be visible on the next load. ${RELEASE_SIGNER_PUBKEY} is
+    # substituted by the nginx image's envsubst at container start from the
+    # environment (fly.toml [env]); rotation = env update, no code change.
     location = /download/manifest.json {
         default_type application/json;
         add_header Cache-Control "no-cache, must-revalidate";
-        return 200 '{"cli":{"version":"$cli_version","tag":"cli-v$cli_version"},"agent":{"version":"$agent_version","tag":"agent-daemon-v$agent_version"}}';
+        return 200 '{"cli":{"version":"$cli_version","tag":"cli-v$cli_version"},"agent":{"version":"$agent_version","tag":"agent-daemon-v$agent_version"},"signer":{"principal":"legreffier@themolt.net","namespace":"moltnet-release","publicKey":"${RELEASE_SIGNER_PUBKEY}"}}';
     }
 
     # MoltNet CLI — release assets use amd64 (not x64) and .zip on Windows.

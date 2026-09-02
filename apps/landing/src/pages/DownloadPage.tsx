@@ -4,7 +4,6 @@ import {
   MOLTNET_CLI_INSTALL_NPM_COMMAND,
   MOLTNET_RELEASE_SIGNATURE_NAMESPACE,
   MOLTNET_RELEASE_SIGNER_PRINCIPAL,
-  MOLTNET_RELEASE_SIGNER_PUBKEY,
 } from '@moltnet/discovery';
 import {
   ActionLink,
@@ -27,7 +26,14 @@ import { NAV_OFFSET } from '../constants';
 type DownloadManifest = {
   cli?: { version?: string; tag?: string };
   agent?: { version?: string; tag?: string };
+  signer?: { principal?: string; namespace?: string; publicKey?: string };
 };
+
+/** The key is runtime-injected server-side; guard against a missing env. */
+function signerKeyOf(manifest: DownloadManifest | null): string | undefined {
+  const key = manifest?.signer?.publicKey;
+  return key?.startsWith('ssh-') ? key : undefined;
+}
 
 export type PlatformId =
   | 'darwin-arm64'
@@ -73,8 +79,9 @@ const AGENT_PLATFORMS: readonly PlatformId[] = [
   'linux-x64',
 ] as const;
 
-const VERIFY_COMMANDS =
-  `# 1. Download an archive and its signed checksum (agent bundle shown).
+function verifyCommands(publicKey: string | undefined): string {
+  const key = publicKey ?? '<publisher key — see /download/manifest.json>';
+  return `# 1. Download an archive and its signed checksum (agent bundle shown).
 curl -fsSL -o moltnet-agent-darwin-arm64.tar.gz https://themolt.net/download/agent/darwin-arm64
 curl -fsSL -o moltnet-agent-darwin-arm64.tar.gz.sha256 https://themolt.net/download/agent/darwin-arm64.sha256
 curl -fsSL -o moltnet-agent-darwin-arm64.tar.gz.sha256.sig https://themolt.net/download/agent/darwin-arm64.sha256.sig
@@ -83,23 +90,15 @@ curl -fsSL -o moltnet-agent-darwin-arm64.tar.gz.sha256.sig https://themolt.net/d
 shasum -a 256 -c moltnet-agent-darwin-arm64.tar.gz.sha256
 
 # 3. Verify the checksum's publisher signature (ssh-ed25519).
-printf '%s namespaces="${MOLTNET_RELEASE_SIGNATURE_NAMESPACE}" %s\\n' \\
-  '${MOLTNET_RELEASE_SIGNER_PRINCIPAL}' '${MOLTNET_RELEASE_SIGNER_PUBKEY}' > signers
-ssh-keygen -Y verify -f signers -I ${MOLTNET_RELEASE_SIGNER_PRINCIPAL} \\
-  -n ${MOLTNET_RELEASE_SIGNATURE_NAMESPACE} \\
+printf '%s namespaces="NS" %s\\n' \\
+  'PRINCIPAL' 'KEY' > signers
+ssh-keygen -Y verify -f signers -I PRINCIPAL \\
+  -n NS \\
   -s moltnet-agent-darwin-arm64.tar.gz.sha256.sig < moltnet-agent-darwin-arm64.tar.gz.sha256`
-    .replaceAll(
-      '${MOLTNET_RELEASE_SIGNATURE_NAMESPACE}',
-      MOLTNET_RELEASE_SIGNATURE_NAMESPACE,
-    )
-    .replaceAll(
-      '${MOLTNET_RELEASE_SIGNER_PRINCIPAL}',
-      MOLTNET_RELEASE_SIGNER_PRINCIPAL,
-    )
-    .replaceAll(
-      '${MOLTNET_RELEASE_SIGNER_PUBKEY}',
-      MOLTNET_RELEASE_SIGNER_PUBKEY,
-    );
+    .replaceAll('NS', MOLTNET_RELEASE_SIGNATURE_NAMESPACE)
+    .replaceAll('PRINCIPAL', MOLTNET_RELEASE_SIGNER_PRINCIPAL)
+    .replaceAll('KEY', key);
+}
 
 const ALTERNATIVE_INSTALLS = [
   {
@@ -148,6 +147,7 @@ export function DownloadPage() {
   );
   const cliVersion = manifest?.cli?.version;
   const agentVersion = manifest?.agent?.version;
+  const signerKey = signerKeyOf(manifest);
 
   const cssVariables = {
     '--ops-void': theme.color.bg.void,
@@ -328,12 +328,15 @@ export function DownloadPage() {
           <Text variant="bodyLarge" color="secondary">
             Every archive has a SHA-256 checksum, and every checksum carries a
             detached ssh-ed25519 signature from the MoltNet publisher key. The
-            key below is the trust anchor — it matches the{' '}
-            <code>release_signer_public_key</code> advertised in MoltNet&apos;s
-            discovery document.
+            key is served in{' '}
+            <a href="/download/manifest.json">/download/manifest.json</a> on
+            this domain — the trust anchor is this site, not the release
+            storage.
           </Text>
-          <CodeBlock language="text">{MOLTNET_RELEASE_SIGNER_PUBKEY}</CodeBlock>
-          <CodeBlock language="bash">{VERIFY_COMMANDS}</CodeBlock>
+          {signerKey ? (
+            <CodeBlock language="text">{signerKey}</CodeBlock>
+          ) : null}
+          <CodeBlock language="bash">{verifyCommands(signerKey)}</CodeBlock>
           <Text color="secondary">
             For the CLI, verify the downloaded archive against{' '}
             <code>checksums.txt</code> with{' '}

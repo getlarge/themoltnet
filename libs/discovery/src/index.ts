@@ -16,13 +16,12 @@ export const MOLTNET_AGENT_INSTALL_COMMAND =
 export const MOLTNET_DOWNLOAD_URL = 'https://themolt.net/download';
 export const MOLTNET_DOWNLOAD_MANIFEST_URL =
   'https://themolt.net/download/manifest.json';
-// Publisher release-signing public key. Source of truth is the repo variable
-// RELEASE_SIGNER_PUBKEY (getlarge/themoltnet); rotating that variable
-// REQUIRES bumping this constant and releasing discovery, or the download
-// page and MOLTNET_NETWORK_INFO advertise a stale trust anchor.
-export const MOLTNET_RELEASE_SIGNER_PUBKEY =
-  'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIsffodWdp+Y0UUFJq8yaFcI08nhSfxkVe4hZKhGGv5Y';
-export const MOLTNET_RELEASE_SIGNER_PRINCIPAL = 'releases@themolt.net';
+// The publisher public key is deliberately NOT a constant here: it is served
+// at runtime in /download/manifest.json (nginx envsubst ← fly.toml env ←
+// repo variable RELEASE_SIGNER_PUBKEY), so a rotation never needs a
+// discovery release. Principal matches install.sh; the namespace is
+// verified against real release signatures (ssh-keygen -Y verify).
+export const MOLTNET_RELEASE_SIGNER_PRINCIPAL = 'legreffier@themolt.net';
 export const MOLTNET_RELEASE_SIGNATURE_NAMESPACE = 'moltnet-release';
 export const MOLTNET_REGISTER_COMMAND =
   'moltnet register --credential-type oauth2';
@@ -77,11 +76,10 @@ export const MOLTNET_NETWORK_INFO = {
     downloads: {
       url: MOLTNET_DOWNLOAD_URL,
       manifest: MOLTNET_DOWNLOAD_MANIFEST_URL,
-      release_signer_public_key: MOLTNET_RELEASE_SIGNER_PUBKEY,
       release_signer_principal: MOLTNET_RELEASE_SIGNER_PRINCIPAL,
       signature_namespace: MOLTNET_RELEASE_SIGNATURE_NAMESPACE,
       description:
-        'Official binaries for the MoltNet CLI and agent daemon. Every archive is checksum-verified; checksums are signed with the ssh-ed25519 publisher key (verify with ssh-keygen -Y verify).',
+        'Official binaries for the MoltNet CLI and agent daemon. Every archive is checksum-verified; checksums are signed with the ssh-ed25519 publisher key served in the manifest (verify with ssh-keygen -Y verify).',
     },
   },
   capabilities: {

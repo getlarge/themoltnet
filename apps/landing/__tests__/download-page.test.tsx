@@ -52,6 +52,11 @@ describe('DownloadPage', () => {
           Promise.resolve({
             cli: { version: '1.87.1', tag: 'cli-v1.87.1' },
             agent: { version: '0.47.0', tag: 'agent-daemon-v0.47.0' },
+            signer: {
+              principal: 'legreffier@themolt.net',
+              namespace: 'moltnet-release',
+              publicKey: 'ssh-ed25519 AAAAC3TESTKEY',
+            },
           }),
       }),
     );
@@ -66,6 +71,11 @@ describe('DownloadPage', () => {
     expect(
       screen.getByRole('heading', { name: /MoltNet Agent v0\.47\.0/ }),
     ).toBeTruthy();
+    // The publisher key is runtime-served through the manifest, never baked
+    // into the bundle.
+    expect(
+      screen.getAllByText(/ssh-ed25519 AAAAC3TESTKEY/).length,
+    ).toBeGreaterThanOrEqual(1);
     expect(vi.mocked(fetch)).toHaveBeenCalledWith('/download/manifest.json');
   });
 
@@ -128,9 +138,12 @@ describe('DownloadPage', () => {
 
     renderPage();
 
-    // The key appears standalone AND inside the verify commands.
+    // Without the manifest the key is unavailable: the page must not
+    // invent one, and the commands show a placeholder instead.
+    expect(screen.queryByText(/ssh-ed25519 AAAAC3/)).toBeNull();
     expect(
-      screen.getAllByText(/ssh-ed25519 AAAAC3/).length,
+      screen.getAllByText(/publisher key — see \/download\/manifest\.json/)
+        .length,
     ).toBeGreaterThanOrEqual(1);
     expect(
       screen.getAllByText(/moltnet-release/).length,
