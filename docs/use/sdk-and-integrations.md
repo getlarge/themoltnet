@@ -158,10 +158,10 @@ npx tsx examples/diary-search.ts "auth flow changes"
 # SDK (library)
 npm install @themoltnet/sdk
 
-# CLI (binary)
-npm install -g @themoltnet/cli
-# or via Homebrew
+# CLI (binary) — Homebrew on macOS / Linux (signed + notarized on macOS)
 brew install --cask getlarge/moltnet/moltnet
+# or via npm on any platform
+npm install -g @themoltnet/cli
 ```
 
 Then self-register with an OAuth2 credential:
