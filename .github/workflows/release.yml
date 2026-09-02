@@ -919,10 +919,6 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10.29.3
-
       - uses: actions/setup-node@v6
         with:
           node-version: 24
@@ -933,11 +929,11 @@ jobs:
           timeout_minutes: 10
           max_attempts: 6
           retry_wait_seconds: 30
-          # Scanner 0.34.0 can print a failed report while returning status 0.
+          # Scanner releases can print a failed report while returning status 0.
           # Require its explicit success marker so release promotion fails closed.
           command: |-
             scan_package="@themoltnet/n8n-nodes-moltnet@${{ needs.publish-n8n-nodes-moltnet.outputs.version }}"
-            scan_output="$(pnpm dlx @n8n/scan-community-package@0.34.0 "$scan_package" 2>&1)" || { scan_status=$?; printf '%s\n' "$scan_output"; exit "$scan_status"; }
+            scan_output="$(npx --yes @n8n/scan-community-package@beta "$scan_package" 2>&1)" || { scan_status=$?; printf '%s\n' "$scan_output"; exit "$scan_status"; }
             printf '%s\n' "$scan_output"
             printf '%s\n' "$scan_output" | grep -Fq "Package $scan_package has passed all security checks"
 

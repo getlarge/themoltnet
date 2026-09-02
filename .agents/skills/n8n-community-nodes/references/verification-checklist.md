@@ -87,11 +87,14 @@ Inspect the tarball produced by pack validation and confirm:
 - The publishing job needs `id-token: write` and should use npm Trusted
   Publishing/OIDC rather than a long-lived token when configured.
 - Submit the exact npm version whose provenance and contents were checked.
-- After publication, run `@n8n/scan-community-package` against that exact
-  immutable package version. Registry, repository, maintainer, and provenance
-  checks cannot be proven by scanning an unpublished workspace.
-- Do not trust the scanner process status by itself. Scanner 0.34.0 can print a
-  failed report and return status 0, so CI must also require the explicit
+- After publication, run
+  `npx --yes @n8n/scan-community-package@beta <package>@<version>` against that
+  exact immutable package version. Keep it ephemeral rather than adding it to
+  workspace dependencies or installing it globally. Registry, repository,
+  maintainer, and provenance checks cannot be proven by scanning an unpublished
+  workspace.
+- Do not trust the scanner process status by itself. Scanner releases may print
+  a failed report and return status 0, so CI must also require the explicit
   `has passed all security checks` marker before promotion.
 - Query `npm view <package>@<version> author maintainers --json` and verify the
   registry-visible `author.email` matches the verified npm owner. A successful
