@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.88.1](https://github.com/getlarge/themoltnet/compare/cli-v1.88.0...cli-v1.88.1) (2026-09-02)
+
+
+### Bug Fixes
+
+* **release:** validate complete Apple signing chain ([0ffd0d8](https://github.com/getlarge/themoltnet/commit/0ffd0d86794900aebdb91ab00853d6cab8b06296))
+* **release:** validate complete Apple signing chain ([518a2cb](https://github.com/getlarge/themoltnet/commit/518a2cb09886901abc7527203df720299b0f5c19))
+
 ## [1.88.0](https://github.com/getlarge/themoltnet/compare/cli-v1.87.1...cli-v1.88.0) (2026-09-02)
 
 

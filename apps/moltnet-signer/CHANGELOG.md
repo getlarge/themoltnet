@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.4](https://github.com/getlarge/themoltnet/compare/signer-v0.2.3...signer-v0.2.4) (2026-09-02)
+
+
+### Bug Fixes
+
+* **signer:** address loopback companion review findings ([000dcc7](https://github.com/getlarge/themoltnet/commit/000dcc79dae939b4f82b466bfea55e54d6bcfdd6))
+* **signer:** give the OpenAPI generator stub a real approvalOrigin ([e364fb1](https://github.com/getlarge/themoltnet/commit/e364fb150bfcb236991cd8a0d8076f026af31a78))
+
 ## [0.2.3](https://github.com/getlarge/themoltnet/compare/signer-v0.2.2...signer-v0.2.3) (2026-08-31)
 
 

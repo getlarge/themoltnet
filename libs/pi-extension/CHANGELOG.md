@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.40.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.39.1...pi-extension-v0.40.0) (2026-09-02)
+
+
+### Features
+
+* **pi-runtime:** upgrade Pi to 0.84.4 ([08f1f20](https://github.com/getlarge/themoltnet/commit/08f1f20fb3a0c0782e9544cc8cbb67b85dd40c63))
+* **pi-runtime:** upgrade Pi to 0.84.4 ([076bd06](https://github.com/getlarge/themoltnet/commit/076bd06466e038b08d88d0f3a9c558ccd962e295))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/pi-runtime bumped to 0.14.0
+    * @themoltnet/sdk bumped to 0.140.0
+
 ## [0.39.1](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.39.0...pi-extension-v0.39.1) (2026-09-02)
 
 
