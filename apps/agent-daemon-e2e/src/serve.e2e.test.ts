@@ -569,15 +569,8 @@ describe.sequential('moltnet-agent serve (loopback supervisor)', () => {
         models: [],
       },
     });
-    expect(metadataAddress.status).toBe(200);
-    const metadataDiscovery = await call(
-      '/v1/providers/e2e-discovery-metadata/discover-models',
-      { method: 'POST', token },
-    );
-    expect(metadataDiscovery.status).toBe(400);
-    expect((metadataDiscovery.json as ServeError).code).toBe(
-      'invalid_provider',
-    );
+    expect(metadataAddress.status).toBe(400);
+    expect((metadataAddress.json as ServeError).code).toBe('invalid_provider');
 
     let redirectedRequestReachedTarget = false;
     const redirectTarget = await startJsonStub(
