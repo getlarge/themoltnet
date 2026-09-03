@@ -1,10 +1,6 @@
 import {
   MOLTNET_AGENT_INSTALL_COMMAND,
   MOLTNET_APT_SIGNING_KEY_FINGERPRINT,
-  MOLTNET_CLI_INSTALL_APT_COMMAND,
-  MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND,
-  MOLTNET_CLI_INSTALL_NPM_COMMAND,
-  MOLTNET_CLI_INSTALL_SCOOP_COMMAND,
 } from '@moltnet/discovery';
 import {
   ActionLink,
@@ -25,6 +21,7 @@ import {
   agentVerifyCommands,
   CLI_CHECKSUMS_PATH,
   CLI_CHECKSUMS_SIGNATURE_PATH,
+  CLI_INSTALLERS,
   CLI_PLATFORMS,
   cliDownloadPath,
   cliVerifyCommands,
@@ -66,27 +63,12 @@ export function detectPlatform(userAgent: string): PlatformId {
 }
 
 const ALTERNATIVE_INSTALLS = [
+  ...CLI_INSTALLERS.map((installer, index) => ({
+    ...installer,
+    title: index === 0 ? `${installer.title} — recommended` : installer.title,
+  })),
   {
-    title: 'Homebrew (macOS / Linux) — recommended',
-    command: MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND,
-    body: 'Installs the signed, notarized MoltNet CLI and keeps it updated with brew upgrade.',
-  },
-  {
-    title: 'APT (Debian / Ubuntu)',
-    command: MOLTNET_CLI_INSTALL_APT_COMMAND,
-    body: 'Adds the signed MoltNet APT repository and installs the CLI; apt upgrade keeps it updated.',
-  },
-  {
-    title: 'Scoop (Windows)',
-    command: MOLTNET_CLI_INSTALL_SCOOP_COMMAND,
-    body: 'Installs the CLI from the MoltNet Scoop bucket; scoop update keeps it updated.',
-  },
-  {
-    title: 'npm (all platforms)',
-    command: MOLTNET_CLI_INSTALL_NPM_COMMAND,
-    body: 'Installs the CLI through the npm registry on any platform with Node.js.',
-  },
-  {
+    id: 'agent',
     title: 'Agent daemon (macOS / Linux)',
     command: MOLTNET_AGENT_INSTALL_COMMAND,
     body: 'Installs the signed self-contained moltnet-agent bundle and registers it as a login service. Re-run to upgrade; --uninstall removes it.',

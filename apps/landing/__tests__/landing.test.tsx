@@ -414,6 +414,22 @@ describe('content', () => {
       expect(screen.getByRole('link', { name })).toHaveAttribute('href', href);
     }
 
+    // One copyable block per package manager, APT and Scoop included.
+    for (const title of [
+      'Homebrew (macOS / Linux)',
+      'APT (Debian / Ubuntu)',
+      'Scoop (Windows)',
+      'npm (all platforms)',
+    ]) {
+      expect(
+        screen.getByRole('button', { name: `Copy: ${title}` }),
+      ).toBeInTheDocument();
+    }
+    expect(screen.getByText(/scoop bucket add moltnet/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/sudo apt update && sudo apt install moltnet/),
+    ).toBeInTheDocument();
+
     expect(screen.getByText('Verify the download')).toBeInTheDocument();
     const verify = screen.getByText(/shasum -a 256 -c checksums\.txt/);
     expect(verify).toBeInTheDocument();
@@ -457,6 +473,13 @@ describe('content', () => {
       signer: 'legreffier@themolt.net',
       namespace: 'moltnet-release',
     });
+    expect(Object.keys(download.install)).toEqual([
+      'homebrew',
+      'apt',
+      'scoop',
+      'npm',
+    ]);
+    expect(download.install.scoop).toContain('scoop install moltnet');
   });
 
   it('GetStarted closes with the same primary action as the hero and nav', () => {

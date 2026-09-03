@@ -10,7 +10,11 @@ import {
 } from '@themoltnet/design-system';
 import { Link } from 'wouter';
 
-import { DOWNLOAD_PATH, DOWNLOAD_VERIFY_PATH } from '../downloads';
+import {
+  DOWNLOAD_INSTALL_PATH,
+  DOWNLOAD_PATH,
+  DOWNLOAD_VERIFY_PATH,
+} from '../downloads';
 
 /**
  * The plugin install step from docs/start/install-and-initialize.md. The
@@ -127,6 +131,12 @@ export function OnboardingPaths() {
                 {MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND}
               </CodeBlock>
               <ul className="ops-onboarding-install-links">
+                <li>
+                  <Link href={DOWNLOAD_INSTALL_PATH}>
+                    Also via APT, Scoop, or npm&nbsp;
+                    <span aria-hidden="true">→</span>
+                  </Link>
+                </li>
                 <li>
                   <Link href={DOWNLOAD_PATH}>
                     Signed binaries for every platform&nbsp;

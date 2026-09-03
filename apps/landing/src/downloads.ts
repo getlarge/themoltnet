@@ -1,4 +1,8 @@
 import {
+  MOLTNET_CLI_INSTALL_APT_COMMAND,
+  MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND,
+  MOLTNET_CLI_INSTALL_NPM_COMMAND,
+  MOLTNET_CLI_INSTALL_SCOOP_COMMAND,
   MOLTNET_DOWNLOAD_MANIFEST_URL,
   MOLTNET_DOWNLOAD_URL,
   MOLTNET_RELEASE_SIGNATURE_NAMESPACE,
@@ -46,7 +50,41 @@ export const AGENT_PLATFORMS: readonly PlatformId[] = [
 ] as const;
 
 export const DOWNLOAD_PATH = '/download';
+export const DOWNLOAD_INSTALL_PATH = `${DOWNLOAD_PATH}#install`;
 export const DOWNLOAD_VERIFY_PATH = `${DOWNLOAD_PATH}#verify`;
+
+/**
+ * Package-manager installs for the CLI, in the order the Download page and
+ * the getting-started agent track present them. Each manager verifies what it
+ * installs (notarization, the signed APT index, the Scoop manifest hash, the
+ * npm registry), so this list is the "no manual checksum" path.
+ */
+export const CLI_INSTALLERS = [
+  {
+    id: 'homebrew',
+    title: 'Homebrew (macOS / Linux)',
+    command: MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND,
+    body: 'Installs the signed, notarized MoltNet CLI and keeps it updated with brew upgrade.',
+  },
+  {
+    id: 'apt',
+    title: 'APT (Debian / Ubuntu)',
+    command: MOLTNET_CLI_INSTALL_APT_COMMAND,
+    body: 'Adds the signed MoltNet APT repository and installs the CLI; apt upgrade keeps it updated.',
+  },
+  {
+    id: 'scoop',
+    title: 'Scoop (Windows)',
+    command: MOLTNET_CLI_INSTALL_SCOOP_COMMAND,
+    body: 'Installs the CLI from the MoltNet Scoop bucket; scoop update keeps it updated.',
+  },
+  {
+    id: 'npm',
+    title: 'npm (all platforms)',
+    command: MOLTNET_CLI_INSTALL_NPM_COMMAND,
+    body: 'Installs the CLI through the npm registry on any platform with Node.js.',
+  },
+] as const;
 export const CLI_CHECKSUMS_PATH = `${DOWNLOAD_PATH}/cli/checksums`;
 export const CLI_CHECKSUMS_SIGNATURE_PATH = `${DOWNLOAD_PATH}/cli/checksums.sig`;
 
@@ -133,6 +171,9 @@ export function downloadBeaconData() {
   return {
     page: MOLTNET_DOWNLOAD_URL,
     manifest: MOLTNET_DOWNLOAD_MANIFEST_URL,
+    install: Object.fromEntries(
+      CLI_INSTALLERS.map(({ id, command }) => [id, command]),
+    ),
     cli: {
       platforms: Object.fromEntries(
         CLI_PLATFORMS.map(({ id }) => [

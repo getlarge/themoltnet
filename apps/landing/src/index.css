@@ -389,6 +389,37 @@ button {
   text-underline-offset: 0.2em;
 }
 
+/* Getting started: one command block per package manager */
+
+.ops-start-step-installers {
+  display: grid;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  list-style: none;
+  gap: 1rem;
+}
+
+.ops-start-steps .ops-start-step-installers li {
+  display: grid;
+  padding: 0;
+  border: 0;
+  grid-template-columns: none;
+  gap: 0.4rem;
+}
+
+.ops-start-step-installer-title {
+  color: var(--ops-text);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+/* `.ops-start-steps li > div` turns any direct div into a grid; the command
+   row inside an installer item must stay a flex row with its Copy chip. */
+.ops-start-steps .ops-start-step-installers li > div {
+  display: flex;
+  max-width: none;
+}
+
 /* Getting started: direct download row under a step */
 
 .ops-start-step-downloads {

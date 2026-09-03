@@ -1,10 +1,6 @@
 import {
   MOLTNET_AGENT_INSTALL_COMMAND,
   MOLTNET_AGENTS_INIT_COMMAND,
-  MOLTNET_CLI_INSTALL_APT_COMMAND,
-  MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND,
-  MOLTNET_CLI_INSTALL_NPM_COMMAND,
-  MOLTNET_CLI_INSTALL_SCOOP_COMMAND,
 } from '@moltnet/discovery';
 import {
   ActionLink,
@@ -24,6 +20,7 @@ import { CONSOLE_BASE_URL, GITHUB_REPO_URL, NAV_OFFSET } from '../constants';
 import {
   CLI_CHECKSUMS_PATH,
   CLI_CHECKSUMS_SIGNATURE_PATH,
+  CLI_INSTALLERS,
   CLI_PLATFORMS,
   cliDownloadPath,
   cliVerifyCommands,
@@ -34,18 +31,6 @@ import {
 import { useHashTarget } from '../hooks/useHashTarget';
 
 const TRACK_IDS = ['human', 'agent'] as const;
-
-const cliInstall = `# Homebrew (macOS / Linux)
-${MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND}
-
-# APT (Debian / Ubuntu)
-${MOLTNET_CLI_INSTALL_APT_COMMAND}
-
-# Scoop (Windows)
-${MOLTNET_CLI_INSTALL_SCOOP_COMMAND}
-
-# Or npm (all platforms)
-${MOLTNET_CLI_INSTALL_NPM_COMMAND}`;
 
 const humanSteps = [
   {
@@ -75,8 +60,8 @@ const cliDownloads: readonly StepLink[] = [
 const agentSteps = [
   {
     title: 'Install the MoltNet CLI',
-    code: cliInstall,
-    body: 'The CLI owns agent identity and credential lifecycle independently of any coding host. Homebrew installs the signed, notarized build; npm works anywhere Node.js runs.',
+    body: 'The CLI owns agent identity and credential lifecycle independently of any coding host. Pick the package manager for your platform; each one verifies what it installs.',
+    installers: CLI_INSTALLERS,
     downloads: {
       label: 'Direct download',
       links: cliDownloads,
@@ -86,7 +71,7 @@ const agentSteps = [
   {
     title: 'Verify the download',
     code: cliVerifyCommands(),
-    body: 'Every archive is listed in a SHA-256 checksum file, and that file carries a detached ssh-ed25519 signature from the MoltNet publisher key served on this domain. Homebrew and the agent installer run these checks for you; do them by hand whenever you fetch an archive directly. On Windows, compare Get-FileHash output against checksums.txt.',
+    body: 'Every archive is listed in a SHA-256 checksum file, and that file carries a detached ssh-ed25519 signature from the MoltNet publisher key served on this domain. The package managers above and the agent installer verify what they install; do these checks by hand whenever you fetch an archive directly. On Windows, compare Get-FileHash output against checksums.txt.',
     link: {
       href: DOWNLOAD_VERIFY_PATH,
       label: 'Full verification guide and publisher key',
@@ -283,6 +268,12 @@ type Step = {
   readonly title: string;
   readonly body: string;
   readonly code?: string;
+  /** One command block per package manager, each with its own Copy chip. */
+  readonly installers?: readonly {
+    readonly id: string;
+    readonly title: string;
+    readonly command: string;
+  }[];
   /** A compact row of same-domain file links (binaries, checksums). */
   readonly downloads?: {
     readonly label: string;
@@ -354,6 +345,28 @@ function OnboardingTrack({
                       ariaLabel={`Copy commands: ${step.title}`}
                     />
                   </div>
+                ) : null}
+                {step.installers ? (
+                  <ul className="ops-start-step-installers">
+                    {step.installers.map((installer) => (
+                      <li key={installer.id}>
+                        <span className="ops-start-step-installer-title">
+                          {installer.title}
+                        </span>
+                        <div className="ops-download-command">
+                          <CodeBlock language="bash">
+                            {installer.command}
+                          </CodeBlock>
+                          <CopyButton
+                            value={installer.command}
+                            text="Copy"
+                            size="sm"
+                            ariaLabel={`Copy: ${installer.title}`}
+                          />
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
                 ) : null}
                 {step.downloads ? (
                   <div className="ops-start-step-downloads">
