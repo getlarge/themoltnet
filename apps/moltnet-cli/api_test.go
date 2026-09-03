@@ -186,7 +186,7 @@ func TestNewAuthenticatedClientUsesStandaloneAgentKey(t *testing.T) {
 	// makes command substitution from a newline-terminated secret file safe and
 	// matches the SDK's environment handling.
 	t.Setenv(agentKeyEnv, "  opaque-agent-key  ")
-	t.Setenv("HOME", t.TempDir())
+	isolateCredentialDiscovery(t)
 
 	wantID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
 	generated, err := moltnetapi.NewServer(
@@ -362,7 +362,7 @@ func TestNewAuthenticatedClientRejectsInsecureRemoteAgentKeyEndpoint(t *testing.
 
 func TestNewAuthenticatedClientMissingOAuthCredentialsNamesAgentKeyOption(t *testing.T) {
 	t.Setenv(agentKeyEnv, "")
-	t.Setenv("HOME", t.TempDir())
+	isolateCredentialDiscovery(t)
 
 	_, err := newAuthenticatedClient(defaultAPIURL, "")
 	if err == nil {
@@ -378,7 +378,7 @@ func TestNewAuthenticatedClientResolvesAgentKeyReference(t *testing.T) {
 	t.Setenv(agentKeyEnv, "")
 	t.Setenv(agentKeyRefEnv, "env:MOLTNET_TEST_AGENT_KEY")
 	t.Setenv("MOLTNET_TEST_AGENT_KEY", "ak_from_ref")
-	t.Setenv("HOME", t.TempDir())
+	isolateCredentialDiscovery(t)
 	generated, err := moltnetapi.NewServer(
 		&stubWhoamiHandler{identityID: uuid.MustParse("00000000-0000-0000-0000-000000000004")},
 		noopSecurityHandler{},
