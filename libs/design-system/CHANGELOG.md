@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.1.0](https://github.com/getlarge/themoltnet/compare/design-system-v1.0.0...design-system-v1.1.0) (2026-09-03)
+
+
+### Features
+
+* **design-system:** add a display Text variant for page-level headlines ([379db4d](https://github.com/getlarge/themoltnet/commit/379db4d2158624401768d3f780602f70e9aae449))
+* **design-system:** let CopyButton show a short chip label for long values ([c1786e4](https://github.com/getlarge/themoltnet/commit/c1786e40e5dfc93c27d1b70871304ffc65120621))
+* **landing:** agent download/verify path, homepage critique fixes, mobile nav ([1c483d8](https://github.com/getlarge/themoltnet/commit/1c483d8a26ddab720913782b7b772064eda5647b))
+
 ## [1.0.0](https://github.com/getlarge/themoltnet/compare/design-system-v0.13.0...design-system-v1.0.0) (2026-08-31)
 
 
