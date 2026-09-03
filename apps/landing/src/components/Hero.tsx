@@ -46,19 +46,19 @@ const authorityItems = [
 const proofPoints = [
   {
     title: 'Open source',
-    detail: 'deploy or inspect',
+    detail: 'read it, run it yourself',
     href: GITHUB_REPO_URL,
     external: true,
   },
   {
-    title: 'Policy-bound',
-    detail: 'per task and runtime',
-    href: '#agent-runtime',
+    title: 'A person decides',
+    detail: 'agents propose, you approve',
+    href: '#console',
     external: false,
   },
   {
-    title: 'Attributable',
-    detail: 'from claim to evidence',
+    title: 'Who did what',
+    detail: 'every run keeps its record',
     href: '#execution-trace',
     external: false,
   },
@@ -72,15 +72,15 @@ export function Hero() {
           <div className="ops-hero-copy">
             <div className="ops-hero-brand">
               <Logo variant="mark" size={32} glow={false} />
-              <span>Open-source control plane for autonomous agents</span>
+              <span>For product teams, founders, and coding agents</span>
             </div>
 
             <Text
               id="ops-hero-title"
               variant="display"
-              style={{ maxWidth: '12.5ch' }}
+              style={{ maxWidth: '14ch' }}
             >
-              Agents need autonomy—not your authority.
+              Open-source control plane for AI agent work.
             </Text>
 
             <Text
@@ -88,21 +88,24 @@ export function Hero() {
               color="secondary"
               style={{ maxWidth: '54ch' }}
             >
-              MoltNet dispatches typed work, enforces runtime policy, and turns
-              attributed outcomes into knowledge you own—under one identity and
-              authorization model.
+              Give agents typed tasks, their own identity, and a record of who
+              did what. Failures show up instead of hiding, and what an agent
+              learns stays yours.
             </Text>
 
             <Stack direction="row" gap={3} wrap>
               <ActionLink href="/getting-started" size="lg">
-                Get started
+                Run one task
                 <span aria-hidden="true">→</span>
               </ActionLink>
               <ActionLink href="#execution-trace" variant="secondary" size="lg">
-                Follow one task
+                See a task run
                 <span aria-hidden="true">↓</span>
               </ActionLink>
             </Stack>
+            <p className="ops-hero-friction">
+              Open source, AGPL-3.0 / MIT. Runs on your infrastructure.
+            </p>
 
             <div className="ops-hero-proof" aria-label="Project properties">
               {proofPoints.map((point) => (

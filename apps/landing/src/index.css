@@ -242,6 +242,12 @@ button {
   text-transform: uppercase;
 }
 
+.ops-hero-friction {
+  margin-top: -0.75rem;
+  color: var(--ops-text-muted);
+  font-size: 0.85rem;
+}
+
 .ops-hero-proof {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

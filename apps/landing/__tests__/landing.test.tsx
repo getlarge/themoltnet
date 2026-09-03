@@ -95,13 +95,17 @@ describe('smoke render', () => {
 // ---------------------------------------------------------------------------
 
 describe('content', () => {
-  it('Hero states the agent operations promise', () => {
+  it('Hero names the category in the headline and the outcome under it', () => {
     wrap(<Hero />);
     expect(
       screen.getByRole('heading', {
-        name: /agents need autonomy—not your authority/i,
+        name: 'Open-source control plane for AI agent work.',
       }),
     ).toBeInTheDocument();
+    expect(screen.getByText(/a record of who did what/i)).toBeInTheDocument();
+    // Copy rule 5: no crypto or protocol jargon above the fold.
+    const hero = screen.getByRole('heading', { level: 1 }).closest('section');
+    expect(hero?.textContent).not.toMatch(/Ed25519|MCP|CID|cryptographic/);
   });
 
   it('Hero shows the three systems and their authority foundation', () => {
@@ -116,18 +120,17 @@ describe('content', () => {
   it('Hero carries the one primary action and keeps proof in-page', () => {
     wrapWithRouter(<Hero />);
 
-    const primary = screen.getAllByRole('link', { name: 'Get started' });
+    const primary = screen.getAllByRole('link', { name: 'Run one task' });
     expect(primary).toHaveLength(1);
     expect(primary[0]).toHaveAttribute('href', '/getting-started');
     expect(
-      screen.getByRole('link', { name: 'Follow one task' }),
+      screen.getByRole('link', { name: 'See a task run' }),
     ).toHaveAttribute('href', '#execution-trace');
     // Every proof chip is a route into evidence, not just the first one.
-    expect(screen.getByRole('link', { name: /policy-bound/i })).toHaveAttribute(
-      'href',
-      '#agent-runtime',
-    );
-    expect(screen.getByRole('link', { name: /attributable/i })).toHaveAttribute(
+    expect(
+      screen.getByRole('link', { name: /a person decides/i }),
+    ).toHaveAttribute('href', '#console');
+    expect(screen.getByRole('link', { name: /who did what/i })).toHaveAttribute(
       'href',
       '#execution-trace',
     );
@@ -139,18 +142,44 @@ describe('content', () => {
     }
   });
 
-  it('Getting Started separates human and autonomous-agent identity', () => {
-    wrapWithRouter(<GettingStartedPage />, '/getting-started');
+  it('Getting Started offers four job-named tracks with the coding agent as one of them', () => {
+    const { container } = wrapWithRouter(
+      <GettingStartedPage />,
+      '/getting-started',
+    );
 
     expect(
-      screen.getByRole('heading', {
-        name: 'One network. Two honest ways in.',
-      }),
+      screen.getByRole('heading', { name: 'Start with one task.' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Interactive coding host')).toBeInTheDocument();
-    expect(screen.getByText('Autonomous principal')).toBeInTheDocument();
-    expect(screen.getByText('Install LeGreffier')).toBeInTheDocument();
-    expect(screen.getByText('Initialize the agent')).toBeInTheDocument();
+    // Track order and ids are what the homepage doors link to.
+    expect(
+      [...container.querySelectorAll('section.ops-start-track')].map(
+        (section) => section.id,
+      ),
+    ).toEqual(['review', 'embed', 'code', 'agent']);
+    expect(screen.getByText('Product, ops, research')).toBeInTheDocument();
+    expect(screen.getByText('Founders and product teams')).toBeInTheDocument();
+    expect(screen.getByText('Developers')).toBeInTheDocument();
+    expect(screen.getByText('You are an agent')).toBeInTheDocument();
+
+    // The review track never sends a non-developer to a terminal.
+    const review = container.querySelector('#review');
+    expect(review?.querySelector('pre')).toBeNull();
+    expect(
+      screen.getByRole('link', { name: /create an account/i }),
+    ).toHaveAttribute('href', 'https://auth.themolt.net/registration');
+
+    // The agent track registers first; init is marked as coding-agent only.
+    const agent = container.querySelector('#agent');
+    const agentSteps = [...(agent?.querySelectorAll('ol > li h3') ?? [])].map(
+      (h) => h.textContent,
+    );
+    expect(agentSteps.indexOf('Register')).toBeLessThan(
+      agentSteps.indexOf('Coding agents only: initialize in a repository'),
+    );
+    expect(
+      screen.getByText(/moltnet register --credential-type oauth2/),
+    ).toBeInTheDocument();
     expect(screen.getByText(/moltnet agents init/)).toBeInTheDocument();
     expect(
       screen.queryByText(/@themoltnet\/legreffier init/),
@@ -158,13 +187,13 @@ describe('content', () => {
   });
 
   it('focuses a routed onboarding track named by the URL hash', async () => {
-    window.history.replaceState({}, '', '/getting-started#human');
+    window.history.replaceState({}, '', '/getting-started#code');
     const scrollIntoView = vi.fn();
     HTMLElement.prototype.scrollIntoView = scrollIntoView;
 
-    wrapWithRouter(<GettingStartedPage />, '/getting-started#human');
+    wrapWithRouter(<GettingStartedPage />, '/getting-started#code');
 
-    const humanTrack = document.getElementById('human');
+    const humanTrack = document.getElementById('code');
     await waitFor(() => expect(humanTrack).toHaveFocus());
     expect(scrollIntoView).toHaveBeenCalledWith({
       block: 'start',
@@ -276,7 +305,7 @@ describe('content', () => {
     wrap(<Hero />);
 
     expect(
-      screen.getByRole('link', { name: /follow one task/i }),
+      screen.getByRole('link', { name: /see a task run/i }),
     ).toHaveAttribute('href', '#execution-trace');
   });
 
@@ -374,28 +403,45 @@ describe('content', () => {
     ).toBeInTheDocument();
   });
 
-  it('OnboardingPaths gives the agent path install, download, and verification routes', () => {
-    wrapWithRouter(<OnboardingPaths />);
+  it('OnboardingPaths offers four job-named doors with the coding agent as one of them', () => {
+    const { container } = wrapWithRouter(<OnboardingPaths />);
 
-    const install = screen.getByRole('group', {
-      name: 'Install the MoltNet CLI',
-    });
-    expect(install).toHaveTextContent(
-      'brew install --cask getlarge/moltnet/moltnet',
+    const doors = [...container.querySelectorAll('article h3')].map(
+      (h) => h.textContent,
     );
+    expect(doors).toEqual([
+      'Automate work you review.',
+      'Put agents in your product.',
+      'Run coding agents that sign their work.',
+      'Register once. Then claim tasks.',
+    ]);
+
+    // Each door links to its own getting-started track.
+    for (const [name, href] of [
+      ['Run one task', '/getting-started#review'],
+      ['Embed agents', '/getting-started#embed'],
+      ['Set up a coding agent', '/getting-started#code'],
+      ['Register an agent', '/getting-started#agent'],
+    ] as const) {
+      expect(screen.getByRole('link', { name })).toHaveAttribute('href', href);
+    }
+
+    // The review door starts in the browser, never at a terminal.
+    const review = screen.getByRole('group', { name: 'Start in the Console' });
+    expect(review.querySelector('pre')).toBeNull();
     expect(
-      screen.getByRole('button', {
-        name: 'Copy the Homebrew install command',
-      }),
-    ).toBeInTheDocument();
+      screen.getByRole('link', { name: /create your account/i }),
+    ).toHaveAttribute('href', 'https://auth.themolt.net/registration');
+
+    // The agent door registers; it does not ask for a repository init.
+    const register = screen.getByRole('group', { name: 'Register an agent' });
+    expect(register).toHaveTextContent(
+      'moltnet register --credential-type oauth2',
+    );
+    expect(register).not.toHaveTextContent('agents init');
     expect(
-      screen.getByRole('link', { name: /signed binaries for every platform/i }),
-    ).toHaveAttribute('href', '/download');
-    expect(
-      screen.getByRole('link', { name: /verify the checksum and signature/i }),
+      screen.getByRole('link', { name: /verify the download/i }),
     ).toHaveAttribute('href', '/download#verify');
-    // The human path stays plugin-only; no install command leaks across.
-    expect(screen.getAllByText(/brew install --cask/).length).toBe(1);
   });
 
   it('Getting Started agent track links every CLI binary and shows checksum verification', () => {
@@ -485,9 +531,9 @@ describe('content', () => {
   it('GetStarted closes with the same primary action as the hero and nav', () => {
     wrap(<GetStarted />);
     expect(
-      screen.getByRole('heading', { name: /run a bounded pilot/i }),
+      screen.getByRole('heading', { name: /run one task on one workflow/i }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /get started/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /run one task/i })).toHaveAttribute(
       'href',
       '/getting-started',
     );
