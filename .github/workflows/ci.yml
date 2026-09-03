@@ -102,7 +102,7 @@ jobs:
           tar.exe -cf - --exclude=.git . | wsl.exe --distribution $distro -- bash -lc 'tar -xf - -C ~/src/themoltnet'
       - name: Install WSL2 build and Gondolin dependencies
         run: |
-          wsl.exe --distribution Ubuntu-24.04 -- bash -lc @'
+          $script = @'
             set -euo pipefail
             sudo apt-get update -qq
             sudo apt-get install -y --no-install-recommends ca-certificates curl git qemu-utils qemu-system-x86
@@ -111,9 +111,12 @@ jobs:
             corepack enable
             corepack prepare pnpm@10 --activate
           '@
+          $script = $script -replace "`r", ''
+          wsl.exe --distribution Ubuntu-24.04 -- bash -lc $script
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build, install, and validate the Linux bundle in WSL2
         run: |
-          wsl.exe --distribution Ubuntu-24.04 -- bash -lc @'
+          $script = @'
             set -euo pipefail
             cd ~/src/themoltnet
             pnpm install --frozen-lockfile
@@ -131,6 +134,9 @@ jobs:
             nohup "$HOME/.local/bin/moltnet-agent" server > "$HOME/moltnet-agent-server.log" 2>&1 &
             echo $! > "$HOME/moltnet-agent-server.pid"
           '@
+          $script = $script -replace "`r", ''
+          wsl.exe --distribution Ubuntu-24.04 -- bash -lc $script
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Probe the WSL2 loopback server from Windows
         run: |
           for ($attempt = 0; $attempt -lt 30; $attempt++) {
@@ -143,13 +149,16 @@ jobs:
           throw 'Windows could not reach the WSL moltnet-agent server on 127.0.0.1:17374.'
       - name: Run real Gondolin integrations in WSL2
         run: |
-          wsl.exe --distribution Ubuntu-24.04 -- bash -lc @'
+          $script = @'
             set -euo pipefail
             cd ~/src/themoltnet
             export MOLTNET_PI_VM_INTEGRATION=1
             pnpm exec nx run @themoltnet/sandbox-gondolin:test-ci--src/vm-manager.integration.test.ts
             pnpm exec nx run @moltnet/execution-integrations:test-ci--src/gondolin.integration.test.ts
           '@
+          $script = $script -replace "`r", ''
+          wsl.exe --distribution Ubuntu-24.04 -- bash -lc $script
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Show WSL agent server log on failure
         if: failure()
         run: wsl.exe --distribution Ubuntu-24.04 -- bash -lc 'cat "$HOME/moltnet-agent-server.log" 2>/dev/null || true'
