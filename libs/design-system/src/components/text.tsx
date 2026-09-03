@@ -4,6 +4,7 @@ import { useTheme } from '../hooks.js';
 import type { BaseComponentProps } from '../types.js';
 
 export type TextVariant =
+  | 'display'
   | 'h1'
   | 'h2'
   | 'h3'
@@ -34,6 +35,7 @@ export interface TextProps extends BaseComponentProps {
 }
 
 const defaultElements: Record<TextVariant, ElementType> = {
+  display: 'h1',
   h1: 'h1',
   h2: 'h2',
   h3: 'h3',
@@ -59,6 +61,15 @@ export function Text({
   const element = as ?? defaultElements[variant];
 
   const variantStyles: Record<TextVariant, React.CSSProperties> = {
+    // Page-level headline: tight, decisive, at most two clauses (DESIGN.md).
+    display: {
+      fontSize: theme.font.size.display,
+      fontWeight: theme.font.weight.semibold,
+      lineHeight: 0.96,
+      letterSpacing: '-0.035em',
+      textWrap: 'balance',
+      margin: 0,
+    },
     h1: {
       fontSize: theme.font.size['4xl'],
       fontWeight: theme.font.weight.bold,
