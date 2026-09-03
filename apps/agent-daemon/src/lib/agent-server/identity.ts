@@ -214,7 +214,7 @@ export async function createManagedAgent(
       store.clearPendingRegistration(alias);
       throw new AgentServerIdentityError(
         'registration_failed',
-        `registration for "${alias}" was rejected`,
+        registrationRejectionMessage(alias, cause),
         { cause },
       );
     }
@@ -231,6 +231,15 @@ export async function createManagedAgent(
   } finally {
     releaseAlias();
   }
+}
+
+function registrationRejectionMessage(
+  alias: string,
+  cause: MoltNetError,
+): string {
+  const status = cause.statusCode === undefined ? '' : ` (${cause.statusCode})`;
+  const detail = cause.detail?.trim() || cause.message;
+  return `registration for "${alias}" was rejected${status}: ${detail}`;
 }
 
 /** Resume a fully persisted registration or explicitly abandon local recovery. */

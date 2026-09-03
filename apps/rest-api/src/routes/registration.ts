@@ -10,7 +10,7 @@ import { createHash } from 'node:crypto';
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
-import { DBOS, hashAgentEnrollmentToken } from '@moltnet/database';
+import { DBOS } from '@moltnet/database';
 import {
   buildSelfRegistrationMessage,
   buildTeamRegistrationMessage,
@@ -64,8 +64,8 @@ const EnrollBodySchema = Type.Intersect([
   RegistrationIdentitySchema,
   Type.Object({
     token: Type.String({
-      pattern: '^[A-Za-z0-9_-]{43}$',
-      description: 'Single-use agent enrollment token',
+      pattern: '^mlt_inv_[A-Za-z0-9_-]{22}$',
+      description: 'Team invite code, usable by people and managed agents',
     }),
   }),
 ]);
@@ -170,7 +170,7 @@ export async function registrationRoutes(fastify: FastifyInstance) {
         operationId: 'enrollAgent',
         tags: ['auth'],
         description:
-          'Redeem a single-use enrollment token using an Ed25519 proof of key possession. Grants only membership in the issuing team and returns exactly one selected credential.',
+          'Redeem a team invite using an Ed25519 proof of key possession. Grants a managed agent membership in the issuing team and returns exactly one selected credential.',
         headers: IdempotencyHeadersSchema,
         body: EnrollBodySchema,
         response: {
@@ -186,7 +186,7 @@ export async function registrationRoutes(fastify: FastifyInstance) {
     async (request) => {
       const { token, publicKey, proof, credentialType } = request.body;
       const idempotencyKey = request.headers['idempotency-key'];
-      const tokenHash = hashAgentEnrollmentToken(token);
+      const tokenHash = createHash('sha256').update(token).digest('hex');
       const fingerprint = await verifyRegistrationProof(fastify.cryptoService, {
         message: buildTeamRegistrationMessage({
           enrollmentTokenHash: tokenHash,
@@ -203,7 +203,11 @@ export async function registrationRoutes(fastify: FastifyInstance) {
           fingerprint,
           credentialType,
           idempotencyKey,
-          mode: { type: 'team', enrollmentTokenHash: tokenHash },
+          mode: {
+            type: 'team_invite',
+            inviteCode: token,
+            inviteCodeHash: tokenHash,
+          },
         },
         'team',
       );

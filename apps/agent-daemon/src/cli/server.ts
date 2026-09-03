@@ -4,6 +4,7 @@
  * Starts nothing on its own: it binds 127.0.0.1 and waits for a paired
  * Console origin to configure agents/providers and start/stop runs.
  */
+import { createInterface } from 'node:readline/promises';
 import { parseArgs } from 'node:util';
 
 import { parseAllowedOrigins } from '@moltnet/loopback-companion';
@@ -26,6 +27,13 @@ import {
   AgentServerStore,
   resolveAgentServerRoot,
 } from '../lib/agent-server/store.js';
+import {
+  ensureLocalTlsMaterial,
+  isLocalCaTrusted,
+  isMacos,
+  removeLocalCa,
+  trustLocalCa,
+} from '../lib/agent-server/tls.js';
 import { AGENT_SERVER_HELP, isHelpFlag } from '../lib/help.js';
 import { createRootLogger } from '../lib/logger.js';
 import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
@@ -41,14 +49,17 @@ export async function runAgentServer(argv: string[]): Promise<number> {
     return 0;
   }
 
+  const trustRequested = argv[0] === 'trust';
+  const commandArgs = trustRequested ? argv.slice(1) : argv;
   const envConfig = loadAgentServerEnvConfig();
   const { values } = parseArgs({
-    args: argv,
+    args: commandArgs,
     options: {
       port: { type: 'string' },
       'allowed-origins': { type: 'string' },
       root: { type: 'string' },
       'api-url': { type: 'string' },
+      remove: { type: 'boolean' },
     },
   });
 
@@ -74,6 +85,7 @@ export async function runAgentServer(argv: string[]): Promise<number> {
     values['api-url'] ?? (envConfig.apiUrl || DEFAULT_API_URL);
 
   const store = new AgentServerStore(root).ensure();
+  if (trustRequested) return runTrustCommand(commandArgs, root);
   const { logger, shutdown: shutdownLogger } = createRootLogger({
     name: 'agent-daemon.server',
     level: envConfig.logLevel || 'info',
@@ -104,7 +116,8 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             logger,
             runtimeRegistry: new RuntimeRegistry(store.root),
           });
-          const selfOrigin = `http://127.0.0.1:${port}`;
+          const tls = isMacos() ? await ensureTrustedLocalTls(root) : undefined;
+          const selfOrigin = `${tls ? 'https' : 'http'}://127.0.0.1:${port}`;
           const app = buildAgentServer({
             store,
             secrets,
@@ -115,6 +128,7 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             subscriptions,
             allowedOrigins,
             selfOrigin,
+            ...(tls ? { tls: { key: tls.key, cert: tls.cert } } : {}),
             defaultApiUrl,
             version: 'dev',
             logger,
@@ -158,6 +172,49 @@ export async function runAgentServer(argv: string[]): Promise<number> {
   } finally {
     await shutdownLogger();
   }
+}
+
+async function runTrustCommand(argv: string[], root: string): Promise<number> {
+  if (!isMacos()) {
+    console.error(
+      'Local HTTPS trust setup is currently supported on macOS only.',
+    );
+    return 1;
+  }
+  if (argv.includes('--remove')) {
+    await removeLocalCa(root);
+    console.error('Removed the MoltNet local CA from your login keychain.');
+    return 0;
+  }
+  await ensureTrustedLocalTls(root);
+  console.error('MoltNet local HTTPS trust is ready for this macOS user.');
+  return 0;
+}
+
+async function ensureTrustedLocalTls(root: string) {
+  const material = await ensureLocalTlsMaterial(root);
+  if (await isLocalCaTrusted(root)) return material;
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    throw new Error(
+      'Local HTTPS trust is not configured. Run `moltnet-agent server trust` from an interactive terminal.',
+    );
+  }
+  const prompt = createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+  try {
+    const answer = await prompt.question(
+      `Trust MoltNet's local CA (${material.fingerprint}) in this macOS login keychain? [y/N] `,
+    );
+    if (!/^y(es)?$/i.test(answer.trim())) {
+      throw new Error('Local HTTPS trust was not approved.');
+    }
+  } finally {
+    prompt.close();
+  }
+  await trustLocalCa(root);
+  return material;
 }
 
 function waitForAgentServerShutdown(

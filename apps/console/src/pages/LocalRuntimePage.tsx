@@ -4,10 +4,7 @@
  * start, stop, and observe runs. Works only in a browser on the machine running
  * Agent Server (loopback), by design.
  */
-import {
-  createAgentEnrollment,
-  updateTeamMemberRole,
-} from '@moltnet/api-client';
+import { updateTeamMemberRole } from '@moltnet/api-client';
 import { listRuntimeProfilesOptions } from '@moltnet/api-client/query';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -339,38 +336,6 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
   const [busy, setBusy] = useState(false);
   const agents = runtime.data?.agents ?? [];
 
-  const generateToken = async () => {
-    if (!selectedTeam?.id) return;
-    setBusy(true);
-    setTokenNote(null);
-    try {
-      const result = await createAgentEnrollment({
-        client: getApiClient(),
-        headers: { 'x-moltnet-team-id': selectedTeam.id },
-        body: {},
-      });
-      const created = result.data as
-        | { token?: string; expiresAt?: string }
-        | undefined;
-      if (created?.token) {
-        setEnrollmentToken(created.token);
-        setTokenNote(
-          `Single-use invitation code for ${selectedTeam.name} filled in — create the identity before it expires${created.expiresAt ? ` (${new Date(created.expiresAt).toLocaleTimeString()})` : ''}.`,
-        );
-      } else {
-        setTokenNote(
-          'Invitation code creation returned nothing — check team role.',
-        );
-      }
-    } catch (error) {
-      setTokenNote(
-        error instanceof Error ? error.message : 'Token creation failed',
-      );
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const submit = async (kind: 'managed' | 'external') => {
     setBusy(true);
     try {
@@ -485,8 +450,8 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
             onChange={(event) => setName(event.target.value)}
           />
           <Input
-            label="Invitation code"
-            hint="Required — a single-use team invitation that binds the agent's key to the issuing team. Generate one below, or ask a team manager."
+            label="Team invite code"
+            hint="Required — a single-use or multi-use mlt_inv_… code from the Teams page. It binds this agent key to the issuing team."
             autoComplete="off"
             spellCheck={false}
             value={enrollmentToken}
@@ -506,21 +471,6 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
             onClick={() => void submit('managed')}
           >
             Create identity
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={
-              busy ||
-              !selectedTeam ||
-              selectedTeam.personal === true ||
-              !canManage
-            }
-            onClick={() => void generateToken()}
-          >
-            {selectedTeam?.personal === true
-              ? 'Personal teams cannot invite agents'
-              : `Generate invitation code for ${selectedTeam?.name ?? 'team'}`}
           </Button>
         </Stack>
       </Stack>

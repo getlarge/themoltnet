@@ -19,7 +19,7 @@ import type {
   StartAgentServerRunData,
 } from '@moltnet/agent-daemon-api-client';
 
-import { loopbackFetch, loopbackHttpUrl } from '../loopback-url.js';
+import { loopbackFetch, loopbackUrl } from '../loopback-url.js';
 import {
   AgentServerAgentViewSchema,
   AgentServerProviderViewSchema,
@@ -104,7 +104,7 @@ export function createAgentServerClient(options: {
   fetch?: typeof fetch;
   requestTimeoutMs?: number;
 }): AgentServerClient {
-  const baseUrl = loopbackHttpUrl(options.baseUrl, 'Agent Server');
+  const baseUrl = loopbackUrl(options.baseUrl, 'Agent Server');
   const base = baseUrl.href.replace(/\/$/, '');
   const fetchImpl = options.fetch ?? fetch;
   const requestTimeoutMs = options.requestTimeoutMs ?? READ_TIMEOUT_MS;

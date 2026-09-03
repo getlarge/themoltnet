@@ -59,11 +59,6 @@ function createDeps() {
       deleteOAuth2Client: vi.fn(),
       setOAuth2Client: vi.fn(),
     },
-    agentEnrollmentRepository: {
-      findPendingByTokenHash: vi.fn().mockResolvedValue({ teamId: TEAM_ID }),
-      redeem: vi.fn().mockResolvedValue({ teamId: TEAM_ID }),
-      releaseRedemption: vi.fn().mockResolvedValue(true),
-    },
     agentRepository: {
       upsert: vi.fn(),
       delete: vi.fn(),
@@ -74,6 +69,20 @@ function createDeps() {
       delete: vi.fn().mockResolvedValue(true),
     },
     teamRepository: {
+      findInviteByCode: vi.fn().mockResolvedValue({
+        id: 'invite-1',
+        teamId: TEAM_ID,
+        expiresAt: new Date('2030-01-01'),
+      }),
+      findById: vi.fn().mockResolvedValue({
+        id: TEAM_ID,
+        personal: false,
+        status: 'active',
+      }),
+      claimInvite: vi
+        .fn()
+        .mockResolvedValue({ id: 'invite-1', teamId: TEAM_ID }),
+      revertInviteClaim: vi.fn(),
       findPersonalByCreator: vi.fn().mockResolvedValue(null),
       create: vi.fn().mockResolvedValue({ id: TEAM_ID }),
       delete: vi.fn().mockResolvedValue(true),
@@ -160,7 +169,7 @@ describe('registration workflow', () => {
     expect(deps.issueAgentKey).not.toHaveBeenCalled();
   });
 
-  it('atomically redeems an enrollment and grants only Team#members', async () => {
+  it('atomically claims a team invite and grants only Team#members', async () => {
     const deps = createDeps();
     setRegistrationDeps(deps as never);
 
@@ -169,7 +178,11 @@ describe('registration workflow', () => {
       fingerprint: FINGERPRINT,
       credentialType: 'agent_key',
       idempotencyKey: 'nonce',
-      mode: { type: 'team', enrollmentTokenHash: TOKEN_HASH },
+      mode: {
+        type: 'team_invite',
+        inviteCode: 'mlt_inv_test',
+        inviteCodeHash: TOKEN_HASH,
+      },
     });
 
     expect(deps.issueAgentKey).not.toHaveBeenCalled();
@@ -177,10 +190,7 @@ describe('registration workflow', () => {
     expect(result.credential).toEqual(
       expect.objectContaining({ type: 'agent_key', secret: 'agent-secret' }),
     );
-    expect(deps.agentEnrollmentRepository.redeem).toHaveBeenCalledWith(
-      TOKEN_HASH,
-      IDENTITY_ID,
-    );
+    expect(deps.teamRepository.claimInvite).toHaveBeenCalledWith('invite-1');
     expect(deps.relationshipWriter.grantTeamMembers).toHaveBeenCalledWith(
       TEAM_ID,
       IDENTITY_ID,
@@ -264,9 +274,9 @@ describe('registration workflow', () => {
     expect(deps.agentRepository.delete).toHaveBeenCalledWith(IDENTITY_ID);
   });
 
-  it('allows only one winner when redemption loses a concurrent race', async () => {
+  it('allows only one winner when an invite claim loses a concurrent race', async () => {
     const deps = createDeps();
-    deps.agentEnrollmentRepository.redeem.mockResolvedValueOnce(null);
+    deps.teamRepository.claimInvite.mockResolvedValueOnce(null);
     setRegistrationDeps(deps as never);
 
     await expect(
@@ -275,7 +285,11 @@ describe('registration workflow', () => {
         fingerprint: FINGERPRINT,
         credentialType: 'oauth2',
         idempotencyKey: 'nonce',
-        mode: { type: 'team', enrollmentTokenHash: TOKEN_HASH },
+        mode: {
+          type: 'team_invite',
+          inviteCode: 'mlt_inv_test',
+          inviteCodeHash: TOKEN_HASH,
+        },
       }),
     ).rejects.toThrow(EnrollmentValidationError);
     expect(deps.oauth2Api.createOAuth2Client).not.toHaveBeenCalled();
@@ -322,14 +336,16 @@ describe('registration workflow', () => {
       fingerprint: FINGERPRINT,
       credentialType: 'agent_key',
       idempotencyKey: 'nonce',
-      mode: { type: 'team', enrollmentTokenHash: TOKEN_HASH },
+      mode: {
+        type: 'team_invite',
+        inviteCode: 'mlt_inv_test',
+        inviteCodeHash: TOKEN_HASH,
+      },
     });
     await expect(issueRegistrationCredential(workflowResult)).rejects.toThrow(
       'Talos unavailable',
     );
-    expect(
-      deps.agentEnrollmentRepository.releaseRedemption,
-    ).not.toHaveBeenCalled();
+    expect(deps.teamRepository.revertInviteClaim).not.toHaveBeenCalled();
     expect(deps.agentRepository.delete).not.toHaveBeenCalled();
     expect(deps.identityApi.deleteIdentity).not.toHaveBeenCalled();
   });

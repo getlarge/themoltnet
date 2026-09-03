@@ -703,10 +703,11 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
   });
 
   it('creates a managed agent from a team invitation code and captures the team binding', async () => {
-    const enrollment = await agent.agentEnrollments.create(
-      { expiresInMinutes: 15 },
-      { teamId },
-    );
+    const invite = await agent.teams.invites.create(teamId, {
+      role: 'member',
+      maxUses: 1,
+      expiresInHours: 1,
+    });
 
     const created = await call('/v1/agents', {
       method: 'POST',
@@ -714,7 +715,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       body: {
         kind: 'managed',
         name: agentName,
-        enrollmentToken: enrollment.token,
+        enrollmentToken: invite.code,
       },
     });
     expect(created.status).toBe(201);
@@ -750,7 +751,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       body: {
         kind: 'managed',
         name: `${agentName}-replay`,
-        enrollmentToken: enrollment.token,
+        enrollmentToken: invite.code,
       },
     });
     expect(replay.status).toBe(400);

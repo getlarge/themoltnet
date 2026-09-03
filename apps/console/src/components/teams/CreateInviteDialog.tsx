@@ -76,14 +76,16 @@ export function CreateInviteDialog({
     <Dialog
       open={open}
       onClose={handleClose}
-      title="Create Invite"
+      title="Create team invite"
       width="420px"
     >
       <Stack gap={4}>
         {createdCode ? (
           <Stack gap={3} align="center">
-            <Text color="muted">Share this code with the invitee:</Text>
-            <CopyButton value={createdCode} label="Invite code" />
+            <Text color="muted">
+              Share this code with a teammate or managed agent:
+            </Text>
+            <CopyButton value={createdCode} label="Team invite code" />
             <Button variant="ghost" size="sm" onClick={handleClose}>
               Done
             </Button>

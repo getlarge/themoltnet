@@ -201,6 +201,12 @@ export function renderPairingApprovalPage(input: {
 </style>
 </head>
 <body>
+<script>
+  // The Console must remain this popup's opener until it finishes navigating
+  // from about:blank. Safari rejects that cross-origin navigation otherwise.
+  // Once this trusted local approval document has loaded, it needs no opener.
+  window.opener = null;
+</script>
 <main>
 <h1>Allow this site to manage local MoltNet agents?</h1>
 <p><code>${origin}</code> asks to configure agents and start or stop local daemon runs on this machine.</p>

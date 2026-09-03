@@ -33,6 +33,21 @@ describe('agent server client', () => {
     }
   });
 
+  it('uses HTTPS without requesting private-network access', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(null, { status: 200 }));
+    const client = createAgentServerClient({
+      baseUrl: 'https://127.0.0.1:17374',
+      getToken: () => null,
+      fetch: fetchMock,
+    });
+
+    await expect(client.health()).resolves.toEqual({ status: 'ok' });
+    expect(fetchMock.mock.calls[0][0]).toBe('https://127.0.0.1:17374/health');
+    expect(fetchMock.mock.calls[0][1]).not.toHaveProperty('targetAddressSpace');
+  });
+
   it('never sends browser credentials and attaches the pairing token', async () => {
     const fetchMock = vi
       .fn<typeof fetch>()
