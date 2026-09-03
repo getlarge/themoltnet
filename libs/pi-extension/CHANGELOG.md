@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.40.1](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.40.0...pi-extension-v0.40.1) (2026-09-03)
+
+
+### Bug Fixes
+
+* **agent-daemon:** declare pi-ai runtime dependency ([443fecb](https://github.com/getlarge/themoltnet/commit/443fecb9989864846417e66ead56128128aaf920))
+* **ci:** account for Pi dependency boundaries ([da0be80](https://github.com/getlarge/themoltnet/commit/da0be80484277ac55c73dca68d2a1f2707014b5f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/pi-runtime bumped to 0.14.1
+
 ## [0.40.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.39.1...pi-extension-v0.40.0) (2026-09-02)
 
 
