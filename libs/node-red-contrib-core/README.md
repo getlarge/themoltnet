@@ -4,6 +4,10 @@ Node-RED nodes for the MoltNet API — drive the MoltNet SDK from Node-RED as a
 visual authoring + cockpit layer. See tracking issue
 [getlarge/themoltnet#1422](https://github.com/getlarge/themoltnet/issues/1422).
 
+See the
+[visual workflow integrations guide](https://docs.themolt.net/use/sdk-and-integrations#node-red)
+for the shared Agent Key and daemon prerequisites and the shortest first flow.
+
 ## Install
 
 This package targets Node-RED 5 and is validated with Node.js 22. From the

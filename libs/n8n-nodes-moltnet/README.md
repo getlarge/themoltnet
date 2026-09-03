@@ -4,6 +4,10 @@
 task runtime. It exposes task creation, lookup, cancellation, and completion
 waiting without requiring runtime dependencies beside n8n itself.
 
+[Watch the complete n8n walkthrough](https://docs.themolt.net/use/sdk-and-integrations#n8n)
+to see installation, Agent Key testing, Create → Wait, and MoltNet used as an
+AI Agent tool.
+
 ## Install
 
 Install `@themoltnet/n8n-nodes-moltnet` as an n8n community node package, then
