@@ -31,11 +31,15 @@
           "kind": {
             "anyOf": [
               {
-                "enum": ["managed"],
+                "enum": [
+                  "managed"
+                ],
                 "type": "string"
               },
               {
-                "enum": ["external"],
+                "enum": [
+                  "external"
+                ],
                 "type": "string"
               }
             ]
@@ -44,17 +48,25 @@
             "type": "string"
           }
         },
-        "required": ["kind", "agentName", "createdAt"],
+        "required": [
+          "kind",
+          "agentName",
+          "createdAt"
+        ],
         "type": "object"
       },
       "AgentServerHealth": {
         "properties": {
           "status": {
-            "enum": ["ok"],
+            "enum": [
+              "ok"
+            ],
             "type": "string"
           }
         },
-        "required": ["status"],
+        "required": [
+          "status"
+        ],
         "type": "object"
       },
       "AgentServerLogStream": {
@@ -70,7 +82,10 @@
             "type": "string"
           }
         },
-        "required": ["code", "message"],
+        "required": [
+          "code",
+          "message"
+        ],
         "type": "object"
       },
       "AgentServerProvider": {
@@ -95,7 +110,13 @@
             "type": "array"
           }
         },
-        "required": ["api", "baseUrl", "envName", "models", "hasApiKey"],
+        "required": [
+          "api",
+          "baseUrl",
+          "envName",
+          "models",
+          "hasApiKey"
+        ],
         "type": "object"
       },
       "AgentServerRun": {
@@ -109,7 +130,9 @@
                 "type": "boolean"
               }
             },
-            "required": ["active"],
+            "required": [
+              "active"
+            ],
             "type": "object"
           }
         ]
@@ -139,11 +162,15 @@
           "mode": {
             "anyOf": [
               {
-                "enum": ["poll"],
+                "enum": [
+                  "poll"
+                ],
                 "type": "string"
               },
               {
-                "enum": ["drain"],
+                "enum": [
+                  "drain"
+                ],
                 "type": "string"
               }
             ]
@@ -164,19 +191,27 @@
           "status": {
             "anyOf": [
               {
-                "enum": ["running"],
+                "enum": [
+                  "running"
+                ],
                 "type": "string"
               },
               {
-                "enum": ["exited"],
+                "enum": [
+                  "exited"
+                ],
                 "type": "string"
               },
               {
-                "enum": ["stopped"],
+                "enum": [
+                  "stopped"
+                ],
                 "type": "string"
               },
               {
-                "enum": ["failed"],
+                "enum": [
+                  "failed"
+                ],
                 "type": "string"
               }
             ]
@@ -258,7 +293,11 @@
             "type": "string"
           }
         },
-        "required": ["id", "name", "connected"],
+        "required": [
+          "id",
+          "name",
+          "connected"
+        ],
         "type": "object"
       },
       "AgentServerSubscriptionLogin": {
@@ -279,15 +318,21 @@
           "status": {
             "anyOf": [
               {
-                "enum": ["pending"],
+                "enum": [
+                  "pending"
+                ],
                 "type": "string"
               },
               {
-                "enum": ["completed"],
+                "enum": [
+                  "completed"
+                ],
                 "type": "string"
               },
               {
-                "enum": ["failed"],
+                "enum": [
+                  "failed"
+                ],
                 "type": "string"
               }
             ]
@@ -300,7 +345,10 @@
             "type": "string"
           }
         },
-        "required": ["providerId", "status"],
+        "required": [
+          "providerId",
+          "status"
+        ],
         "type": "object"
       },
       "CancelledSubscription": {
@@ -309,11 +357,16 @@
             "type": "string"
           },
           "status": {
-            "enum": ["cancelled"],
+            "enum": [
+              "cancelled"
+            ],
             "type": "string"
           }
         },
-        "required": ["providerId", "status"],
+        "required": [
+          "providerId",
+          "status"
+        ],
         "type": "object"
       },
       "DiscoveredModels": {
@@ -325,7 +378,9 @@
             "type": "array"
           }
         },
-        "required": ["models"],
+        "required": [
+          "models"
+        ],
         "type": "object"
       },
       "PairingClaimed": {
@@ -334,7 +389,9 @@
             "type": "string"
           }
         },
-        "required": ["token"],
+        "required": [
+          "token"
+        ],
         "type": "object"
       },
       "PairingStarted": {
@@ -346,7 +403,10 @@
             "type": "string"
           }
         },
-        "required": ["pairingId", "approvalPath"],
+        "required": [
+          "pairingId",
+          "approvalPath"
+        ],
         "type": "object"
       },
       "ReconcileAgentResult": {
@@ -357,11 +417,15 @@
           {
             "properties": {
               "abandoned": {
-                "enum": [true],
+                "enum": [
+                  true
+                ],
                 "type": "boolean"
               }
             },
-            "required": ["abandoned"],
+            "required": [
+              "abandoned"
+            ],
             "type": "object"
           }
         ]
@@ -398,7 +462,9 @@
             "description": "Default Response"
           }
         },
-        "tags": ["system"]
+        "tags": [
+          "system"
+        ]
       }
     },
     "/v1/agents": {
@@ -434,7 +500,9 @@
             "agentServerToken": []
           }
         ],
-        "tags": ["agents"]
+        "tags": [
+          "agents"
+        ]
       },
       "post": {
         "operationId": "createAgentServerAgent",
@@ -449,11 +517,16 @@
                         "type": "string"
                       },
                       "kind": {
-                        "enum": ["managed"],
+                        "enum": [
+                          "managed"
+                        ],
                         "type": "string"
                       }
                     },
-                    "required": ["kind", "enrollmentToken"],
+                    "required": [
+                      "kind",
+                      "enrollmentToken"
+                    ],
                     "type": "object"
                   },
                   {
@@ -466,11 +539,16 @@
                         "type": "string"
                       },
                       "kind": {
-                        "enum": ["external"],
+                        "enum": [
+                          "external"
+                        ],
                         "type": "string"
                       }
                     },
-                    "required": ["kind", "configDir"],
+                    "required": [
+                      "kind",
+                      "configDir"
+                    ],
                     "type": "object"
                   }
                 ],
@@ -478,11 +556,15 @@
                   "kind": {
                     "anyOf": [
                       {
-                        "enum": ["managed"],
+                        "enum": [
+                          "managed"
+                        ],
                         "type": "string"
                       },
                       {
-                        "enum": ["external"],
+                        "enum": [
+                          "external"
+                        ],
                         "type": "string"
                       }
                     ]
@@ -491,7 +573,10 @@
                     "type": "string"
                   }
                 },
-                "required": ["kind", "name"],
+                "required": [
+                  "kind",
+                  "name"
+                ],
                 "type": "object"
               }
             }
@@ -525,7 +610,9 @@
             "agentServerToken": []
           }
         ],
-        "tags": ["agents"]
+        "tags": [
+          "agents"
+        ]
       }
     },
     "/v1/agents/{agentName}/reconcile": {
@@ -549,17 +636,23 @@
                   "action": {
                     "anyOf": [
                       {
-                        "enum": ["resume"],
+                        "enum": [
+                          "resume"
+                        ],
                         "type": "string"
                       },
                       {
-                        "enum": ["abandon"],
+                        "enum": [
+                          "abandon"
+                        ],
                         "type": "string"
                       }
                     ]
                   }
                 },
-                "required": ["action"],
+                "required": [
+                  "action"
+                ],
                 "type": "object"
               }
             }
@@ -593,7 +686,9 @@
             "agentServerToken": []
           }
         ],
-        "tags": ["agents"]
+        "tags": [
+          "agents"
+        ]
       }
     },
     "/v1/pairings": {
@@ -621,7 +716,9 @@
             "description": "Default Response"
           }
         },
-        "tags": ["pairing"]
+        "tags": [
+          "pairing"
+        ]
       }
     },
     "/v1/pairings/{pairingId}/claim": {
@@ -659,7 +756,9 @@
             "description": "Default Response"
           }
         },
-        "tags": ["pairing"]
+        "tags": [
+          "pairing"
+        ]
       }
     },
     "/v1/providers": {
@@ -695,7 +794,9 @@
             "agentServerToken": []
           }
         ],
-        "tags": ["providers"]
+        "tags": [
+          "providers"
+        ]
       }
     },
     "/v1/providers/{providerId}": {
@@ -736,7 +837,12 @@
                     "type": "array"
                   }
                 },
-                "required": ["api", "baseUrl", "envName", "models"],
+                "required": [
+                  "api",
+                  "baseUrl",
+                  "envName",
+                  "models"
+                ],
                 "type": "object"
               }
             }
@@ -770,7 +876,9 @@
             "agentServerToken": []
           }
         ],
-        "tags": ["providers"]
+        "tags": [
+          "providers"
+        ]
       }
     },
     "/v1/providers/{providerId}/discover-models": {
@@ -813,7 +921,9 @@
             "agentServerToken": []
           }
         ],
-        "tags": ["providers"]
+        "tags": [
+          "providers"
+        ]
       }
     },
     "/v1/runs": {
@@ -849,7 +959,9 @@
             "agentServerToken": []
           }
         ],
-        "tags": ["runs"]
+        "tags": [
+          "runs"
+        ]
       },
       "post": {
         "operationId": "startAgentServerRun",
@@ -864,11 +976,15 @@
                   "mode": {
                     "anyOf": [
                       {
-                        "enum": ["poll"],
+                        "enum": [
+                          "poll"
+                        ],
                         "type": "string"
                       },
                       {
-                        "enum": ["drain"],
+                        "enum": [
+                          "drain"
+                        ],
                         "type": "string"
                       }
                     ]
@@ -929,7 +1045,9 @@
             "agentServerToken": []
           }
         ],
-        "tags": ["runs"]
+        "tags": [
+          "runs"
+        ]
       }
     },
     "/v1/runs/{runId}": {
@@ -972,7 +1090,9 @@
             "agentServerToken": []
           }
         ],
-        "tags": ["runs"]
+        "tags": [
+          "runs"
+        ]
       }
     },
     "/v1/runs/{runId}/logs": {
@@ -1015,7 +1135,9 @@
             "agentServerToken": []
           }
         ],
-        "tags": ["runs"]
+        "tags": [
+          "runs"
+        ]
       }
     },
     "/v1/status": {
@@ -1048,7 +1170,9 @@
             "agentServerToken": []
           }
         ],
-        "tags": ["system"]
+        "tags": [
+          "system"
+        ]
       }
     },
     "/v1/subscriptions": {
@@ -1084,7 +1208,9 @@
             "agentServerToken": []
           }
         ],
-        "tags": ["subscriptions"]
+        "tags": [
+          "subscriptions"
+        ]
       }
     },
     "/v1/subscriptions/{providerId}/login": {
@@ -1127,7 +1253,9 @@
             "agentServerToken": []
           }
         ],
-        "tags": ["subscriptions"]
+        "tags": [
+          "subscriptions"
+        ]
       },
       "get": {
         "operationId": "getAgentServerSubscriptionLogin",
@@ -1168,7 +1296,9 @@
             "agentServerToken": []
           }
         ],
-        "tags": ["subscriptions"]
+        "tags": [
+          "subscriptions"
+        ]
       },
       "post": {
         "operationId": "startAgentServerSubscriptionLogin",
@@ -1209,7 +1339,9 @@
             "agentServerToken": []
           }
         ],
-        "tags": ["subscriptions"]
+        "tags": [
+          "subscriptions"
+        ]
       }
     }
   },
