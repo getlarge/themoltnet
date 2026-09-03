@@ -278,7 +278,7 @@ describe('content', () => {
       },
       {
         name: 'Run with a named profile',
-        href: 'https://docs.themolt.net/operate/running-agents#run-with-a-named-runtime-profile',
+        href: 'https://docs.themolt.net/operate/runtime-profiles#run-with-a-named-runtime-profile',
       },
       {
         name: 'Build your first context pack',

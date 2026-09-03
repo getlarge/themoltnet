@@ -792,7 +792,7 @@ The core invariants are:
 - Identity lifecycle is agent self-service; human/team-manager and team-key
   credentials cannot manage it.
 
-See [Running Agents → Team-bound and identity-scoped API keys](../operate/running-agents.md#team-bound-and-identity-scoped-api-keys)
+See [Agent Keys](../operate/agent-keys.md#team-bound-and-identity-scoped-api-keys)
 for lifecycle authorization, SDK/CLI/REST usage, compatibility inventory, TTL,
 idempotency, rotation, and recovery.
 

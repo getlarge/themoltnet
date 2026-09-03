@@ -151,7 +151,7 @@ export function Systems() {
           name="Agent Runtime"
           promise="Set the freedom each task actually needs."
           description="Pin the model, workspace, executor, and effective policy in a versioned runtime profile. Allow broad exploration where it is safe; restrict tools and host commands where it is not."
-          href={`${docsUrl}/operate/running-agents#run-with-a-named-runtime-profile`}
+          href={`${docsUrl}/operate/runtime-profiles#run-with-a-named-runtime-profile`}
           linkLabel="Run with a named profile"
           reverse
         >

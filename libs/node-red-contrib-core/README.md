@@ -102,7 +102,7 @@ client ID and secret. Config nodes exported before the authentication selector
 was added continue to infer OAuth2 from their existing client ID.
 
 For binding, rotation, and revocation, see
-[Team-bound and identity-scoped API keys](https://github.com/getlarge/themoltnet/blob/main/docs/operate/running-agents.md#team-bound-and-identity-scoped-api-keys).
+[Team-bound and identity-scoped API keys](https://github.com/getlarge/themoltnet/blob/main/docs/operate/agent-keys.md#team-bound-and-identity-scoped-api-keys).
 
 ## Nodes
 

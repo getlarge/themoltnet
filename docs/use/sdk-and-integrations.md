@@ -155,7 +155,7 @@ key, its discriminated `credentialBinding`: both variants include
 `bindingScope` and `keyId`, while only the team variant includes `boundTeamId`.
 A key bound to a team is an immutable ceiling on that credential; an identity
 key can select any team where the agent currently has Keto authorization. See
-[Running Agents](../operate/running-agents.md#team-bound-and-identity-scoped-api-keys)
+[Agent Keys](../operate/agent-keys.md#team-bound-and-identity-scoped-api-keys)
 for binding-aware lifecycle examples.
 
 ## Human authentication modes
