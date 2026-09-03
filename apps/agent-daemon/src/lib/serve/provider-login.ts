@@ -42,6 +42,7 @@ export class ServeSubscriptionError extends Error {
     readonly code:
       | 'provider_unknown'
       | 'login_not_found'
+      | 'login_cleanup_failed'
       | 'login_unsupported_prompt',
     message: string,
   ) {
@@ -65,6 +66,8 @@ export interface SubscriptionLoginView {
   userCode?: string;
   verificationUri?: string;
   error?: string;
+  /** The initial OAuth handshake has not surfaced actionable information yet. */
+  waitingForAuthorization?: boolean;
 }
 
 interface PendingLogin extends SubscriptionLoginView {
@@ -198,13 +201,14 @@ export class ProviderLoginService {
     }
   }
 
-  private restoreCredential(login: PendingLogin): void {
+  private restoreCredential(login: PendingLogin): boolean {
     try {
       restoreStoredCredential(
         this.options.authPath,
         login.providerId,
         login.previousCredential,
       );
+      return true;
     } catch (error) {
       this.logger.error(
         {
@@ -215,17 +219,18 @@ export class ProviderLoginService {
         },
         'Could not restore subscription credentials after an invalidated login',
       );
+      return false;
     }
   }
 
   private invalidate(
     login: PendingLogin,
     transition: 'cancelled' | 'expired' | 'shutdown',
-  ): void {
-    if (login.invalidated) return;
+  ): boolean {
+    if (login.invalidated) return true;
     login.invalidated = true;
     login.abort.abort(new Error(`subscription login ${transition}`));
-    this.restoreCredential(login);
+    const restored = this.restoreCredential(login);
     login.infoArrived();
     this.logger.info(
       {
@@ -236,6 +241,7 @@ export class ProviderLoginService {
       },
       'Subscription login invalidated',
     );
+    return restored;
   }
 
   status(providerId: string): SubscriptionLoginView {
@@ -363,13 +369,30 @@ export class ProviderLoginService {
     // Detached: completion is observed through polling `status()`.
     void completion;
 
-    await Promise.race([
+    const infoReceived = await Promise.race([
       infoPromise,
       new Promise<void>((resolvePromise) => {
-        const timer = setTimeout(resolvePromise, START_INFO_TIMEOUT_MS);
+        const timer = setTimeout(() => resolvePromise(), START_INFO_TIMEOUT_MS);
         timer.unref?.();
       }),
-    ]);
+    ]).then(
+      () =>
+        login.authUrl !== undefined ||
+        login.userCode !== undefined ||
+        login.status !== 'pending',
+    );
+    if (!infoReceived) {
+      login.waitingForAuthorization = true;
+      this.logger.warn(
+        {
+          event: 'serve.subscription_login_start_info_timeout',
+          operationId: login.operationId,
+          providerId,
+          timeoutMs: START_INFO_TIMEOUT_MS,
+        },
+        'Subscription login is still waiting for authorization information',
+      );
+    }
     return snapshot(login);
   }
 
@@ -382,7 +405,13 @@ export class ProviderLoginService {
         `no login in progress for "${providerId}"`,
       );
     }
-    this.invalidate(login, 'cancelled');
+    const restored = this.invalidate(login, 'cancelled');
+    if (!restored) {
+      throw new ServeSubscriptionError(
+        'login_cleanup_failed',
+        `could not safely cancel login for "${providerId}"; credential cleanup requires intervention`,
+      );
+    }
     this.logins.delete(providerId);
     return { providerId, status: 'cancelled' };
   }
@@ -555,6 +584,7 @@ function snapshot(login: PendingLogin): SubscriptionLoginView {
     userCode,
     verificationUri,
     error,
+    waitingForAuthorization,
   } = login;
   return {
     providerId,
@@ -564,5 +594,6 @@ function snapshot(login: PendingLogin): SubscriptionLoginView {
     ...(userCode ? { userCode } : {}),
     ...(verificationUri ? { verificationUri } : {}),
     ...(error ? { error } : {}),
+    ...(waitingForAuthorization ? { waitingForAuthorization } : {}),
   };
 }

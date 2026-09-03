@@ -15,6 +15,7 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
+import { ModelRuntime } from '@earendil-works/pi-coding-agent';
 import {
   createNodeSecretProviderRegistry,
   FileSecretProvider,
@@ -170,6 +171,52 @@ function readAuthFile(authPath: string): Record<string, unknown> {
 }
 
 describe('serve subscriptions', () => {
+  it('adapts the production ModelRuntime OAuth discovery and login callbacks', async () => {
+    const authPath = join(
+      mkdtempSync(join(tmpdir(), 'serve-subs-runtime-')),
+      'auth.json',
+    );
+    cleanups.push(() =>
+      rmSync(dirname(authPath), { recursive: true, force: true }),
+    );
+    const login = vi.fn(
+      async (
+        _id: string,
+        _method: string,
+        interaction: Parameters<ModelRuntime['login']>[2],
+      ) => {
+        interaction.notify({
+          type: 'auth_url',
+          url: 'https://provider.example/authorize',
+        });
+        await new Promise<void>(() => {});
+      },
+    );
+    const runtime = {
+      getProviders: () => [
+        { id: 'anthropic', name: 'Anthropic', auth: { oauth: {} } },
+        { id: 'api-key-only', name: 'API key', auth: {} },
+      ],
+      login,
+    } as unknown as ModelRuntime;
+    const create = vi.spyOn(ModelRuntime, 'create').mockResolvedValue(runtime);
+
+    const service = await ProviderLoginService.create({ authPath });
+    expect(service.list()).toEqual([
+      { id: 'anthropic', name: 'Anthropic', connected: false },
+    ]);
+    await expect(service.start('anthropic')).resolves.toMatchObject({
+      status: 'pending',
+      authUrl: 'https://provider.example/authorize',
+    });
+    expect(create).toHaveBeenCalledWith({ authPath, refreshOnCreate: false });
+    expect(login).toHaveBeenCalledWith(
+      'anthropic',
+      'oauth',
+      expect.any(Object),
+    );
+  });
+
   it('lists providers with connection state', async () => {
     const { runLogin } = makeHarness();
     const { app, token } = await fixture({
