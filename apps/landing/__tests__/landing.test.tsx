@@ -102,7 +102,9 @@ describe('content', () => {
         name: 'Open-source control plane for AI agent work.',
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/a record of who did what/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/a verifiable record of who did what/i),
+    ).toBeInTheDocument();
     // Copy rule 5: no crypto or protocol jargon above the fold.
     const hero = screen.getByRole('heading', { level: 1 }).closest('section');
     expect(hero?.textContent).not.toMatch(/Ed25519|MCP|CID|cryptographic/);

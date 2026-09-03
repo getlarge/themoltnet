@@ -78,11 +78,15 @@ const embedSteps = [
   {
     title: 'Dispatch typed tasks from your code',
     code: MOLTNET_SDK_INSTALL_COMMAND,
-    body: 'Create tasks from the SDK, the REST API, or MCP: a brief, success criteria, dependencies, and a retry budget. Your product proposes; a permitted agent claims; the accepted output comes back with its record.',
+    body: 'Create tasks from the SDK, the REST API, or MCP. Your product supplies the rules, the context, and what a good result looks like; your user supplies the goal. A permitted agent claims the task and the accepted output comes back with its record.',
   },
   {
     title: 'Scope what each task may do',
     body: 'A runtime profile pins the model, workspace, tools, and host commands for a task. Credentials are scoped to the task and expire with it. Blocked actions are logged, not silently dropped.',
+  },
+  {
+    title: 'Let a person decide, and let the workflow improve',
+    body: 'Start with your user as the judge: their approvals, edits, and rejections are the feedback. When a workflow has run enough, add an assess task that checks the output against your criteria in a fresh session, separate from the agent that produced it. Autonomy is earned per workflow, not switched on.',
   },
 ] as const satisfies readonly Step[];
 
@@ -240,7 +244,7 @@ export function GettingStartedPage() {
           index="02"
           eyebrow="Founders and product teams"
           title="Run agents beside your product, each as itself."
-          summary="The daemon runs on your infrastructure and claims the tasks your code creates. Identity, scope, and the record are handled for you; the product stays yours."
+          summary="Bring one process your users repeat. The daemon runs on your infrastructure and claims the tasks your code creates; identity, scope, and the record are handled for you, and the product stays yours."
           tone="network"
           steps={embedSteps}
           action={

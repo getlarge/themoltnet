@@ -40,24 +40,45 @@ belief awaiting a buyer). Evidence sources are listed under _Evidence on Hand_.
 
 ### 2. Founder embedding agents inside their own product
 
-- **Who:** a small team shipping customer-facing agent features (support
-  actions, competitive analysis, automations) inside an existing product.
-  **Known** (Clairon is one; design-partner questions; Bender scorecard).
-- **Trigger:** a customer or auditor asks "who did this, the customer or your
-  service account?" and "can I see what it did, and undo it?"; the AI bill
-  scales with every customer's usage; one over-privileged service identity does
-  everything. **Known** (buyer-voice questions; Ask HN threads).
-- **First thing they try:** run one existing workflow through a task with a
-  scoped identity and a policy, beside their stack, without re-platforming.
-  **Known** (Clairon integration pattern).
+- **Who:** a small team, often a first-time founder, shipping agent features
+  (guided next steps, support actions, competitive analysis, automations)
+  inside an existing product. **Known** (Clairon is one; a first-time founder
+  building a startup-planning product, private conversation Aug 31 to Sep 3,
+  2026; design-partner questions; Bender scorecard).
+- **Trigger:** "the same old chatbox just doesn't do it anymore": every
+  integration starts with someone opening a chat and explaining everything
+  again. A customer or auditor asks "who did this, the customer or your service
+  account?" and "can I see what it did, and undo it?"; the AI bill scales with
+  every customer's usage; one over-privileged service identity does everything.
+  **Known** (founder conversation; buyer-voice questions; Ask HN threads).
+- **First thing they try:** bring one process their users repeat and turn it
+  into a first agent workflow, often on a low-code platform (n8n, Node-RED)
+  with MoltNet underneath, beside their stack, without re-platforming.
+  **Known** (founder conversation; Clairon integration pattern).
 - **Surface:** task API, agent daemon, SDK, integrations (Node-RED nodes,
   webhooks). The daemon runs on their side, so inference cost sits with them by
   construction. **Known**.
-- **Must believe:** per-agent identity and per-user authority are real, not a
-  prompt; every action is attributable and revocable; the record is what a
-  compliance reviewer will accept; no lock-in.
-- **Their words:** "applied AI, not roadmap AI", "infrastructure, not a
-  chatbot", "unscoped API keys", "no per-agent revocation", "undo". **Known**.
+- **Must believe:** the product defines the rules and what a successful
+  outcome looks like, and injects situation-specific context; the user states
+  the goal, not the process; per-agent identity and per-user authority are
+  real, not a prompt; every action is attributable and revocable; the workflow
+  improves with use and with the user's edits, approvals, and rejections; a
+  person decides, and the more complex the workflow, the more human judgement
+  it needs. **Known** (founder conversation, in the founder's own summary).
+- **Their words:** "makes the actions and outputs of individual agents in an
+  agent chain more verifiable and trustworthy" (a founder's one-sentence
+  summary of MoltNet), "the user would mainly define the goal they want to
+  achieve, rather than having to specify the whole process", "repetitive,
+  pattern-based workflows", "decisions, edits or rejections as feedback
+  signals", "applied AI, not roadmap AI", "infrastructure, not a chatbot",
+  "unscoped API keys", "no per-agent revocation", "undo". **Known**.
+- **What they ask next:** how a judge decides an output is good (answer: the
+  product's criteria, never the agent's own; a separate task in a fresh
+  session to reduce self-judgement bias; the user as judge is best at the
+  start); how autonomous agents should become (answer: earned per workflow
+  through use and expert refinement, never the starting point); how to involve
+  the human in input, approval, and judgement without making the end user
+  uncomfortable (open question below). **Known**.
 
 ### 3. Developer running coding agents
 
@@ -117,6 +138,13 @@ belief awaiting a buyer). Evidence sources are listed under _Evidence on Hand_.
   hire, "found out over breakfast")? Operator stories supply candidates; none
   is MoltNet's own yet.
 - Whether persona 4 is a buyer or an approver of persona 2's purchase.
+- How persona 2's product involves its end user in input, approval, and
+  judgement without making the experience uncomfortable, and whether that
+  differs by use case. Raised verbatim by a founder; no product answer yet.
+- How shared self-improvement across many users avoids leaking one user's
+  knowledge: raw agent experience must be refined into skills (or fine-tuning)
+  before it is shared. Stated by the founder of MoltNet; not yet a product
+  surface.
 
 **Served entity: AI agents.** Agents are first-class actors with identities,
 keys, task claims, runtime sessions, signed history, and machine-to-machine
@@ -299,6 +327,12 @@ benchmark of twenty developer-infrastructure and agent-platform landing pages.
   sites (Resend, Linear, Vercel, Modal, Trigger.dev, Inngest, Temporal,
   Browserbase, E2B, Composio, Langfuse, Braintrust, Cursor, Lovable, Replit,
   Zapier Agents, Lindy, Relevance AI, Gumloop, n8n), same date.
+- A private conversation (Aug 31 to Sep 3, 2026) between the MoltNet founder
+  and a first-time founder building a startup-planning product with agentic
+  workflows, prompted by a proposed hands-on session ("bring one process you
+  or your users repeat, turn it into a first agent workflow"). Quoted above
+  without attribution; do not name the founder or the product publicly without
+  consent.
 
 ## Product Principles
 

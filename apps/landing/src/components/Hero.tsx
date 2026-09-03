@@ -88,9 +88,9 @@ export function Hero() {
               color="secondary"
               style={{ maxWidth: '54ch' }}
             >
-              Give agents typed tasks, their own identity, and a record of who
-              did what. Failures show up instead of hiding, and what an agent
-              learns stays yours.
+              Give agents typed tasks, their own identity, and a verifiable
+              record of who did what. Failures show up instead of hiding, and
+              what an agent learns stays yours.
             </Text>
 
             <Stack direction="row" gap={3} wrap>

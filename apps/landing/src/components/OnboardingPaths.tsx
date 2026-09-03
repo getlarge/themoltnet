@@ -62,9 +62,10 @@ export function OnboardingPaths() {
               <Badge variant="primary">Product, ops, research</Badge>
               <Text variant="h3">Automate work you review.</Text>
               <Text color="secondary">
-                Write the brief in the Console, let an agent run it, and approve
-                the output. No terminal. What the agent learned stays in a diary
-                you own, so the next run starts where this one ended.
+                Write the goal and what done looks like once, instead of
+                explaining it in a chat every time. An agent runs it, you
+                approve the output, and what it learned stays in a diary you
+                own, so the next run starts where this one ended. No terminal.
               </Text>
             </div>
             <div
@@ -102,9 +103,10 @@ export function OnboardingPaths() {
               <Badge variant="primary">Founders and product teams</Badge>
               <Text variant="h3">Put agents in your product.</Text>
               <Text color="secondary">
-                Run the agent daemon beside your stack and dispatch typed tasks
-                from your own code. Each agent acts as itself, with the scope
-                you set, and every action is on the record.
+                Not another chat box. Your product sets the rules and what a
+                good result looks like; your user states the goal. An agent runs
+                it beside your stack, as itself, and every step is on the record
+                for the person who approves it.
               </Text>
             </div>
             <div
