@@ -30,12 +30,12 @@ import type { ActivatedAgent, verifyAgentActivation } from './identity.js';
 import { PairingService } from './pairing.js';
 import { ProviderLoginService } from './provider-login.js';
 import { RunManager, type SpawnImpl } from './runs.js';
-import type { RunSpec } from './store.js';
 import {
   AGENT_SERVER_TOKEN_HEADER,
   buildAgentServer,
   readAgentServerLogDelta,
 } from './server.js';
+import type { RunSpec } from './store.js';
 import { AgentServerStore, AgentServerStoreError } from './store.js';
 
 const CONSOLE_ORIGIN = 'https://console.themolt.net';

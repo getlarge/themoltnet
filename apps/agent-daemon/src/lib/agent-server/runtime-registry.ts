@@ -12,7 +12,7 @@ import {
   loadDaemonRuntimeAdapter,
   resolveRuntimeModuleUrl,
 } from '../../runtime-loader.js';
-import { assertStoreName, AgentServerStoreError } from './store.js';
+import { AgentServerStoreError,assertStoreName } from './store.js';
 
 export interface RuntimeRegistration {
   kind: string;
