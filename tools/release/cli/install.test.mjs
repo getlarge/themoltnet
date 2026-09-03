@@ -11,6 +11,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
+import process from 'node:process';
 import { afterEach, describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 

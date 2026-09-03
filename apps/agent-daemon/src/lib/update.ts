@@ -33,7 +33,6 @@ export function detectDaemonInstallMethod(
 }
 export function daemonUpdateCommand(
   method: DaemonInstallMethod,
-  executable = process.argv[1] ?? '',
 ): string {
   if (method === 'npm') return 'npm install -g @themoltnet/agent-daemon@latest';
   return 'curl -fsSL https://themolt.net/install/agent | sh';
@@ -52,7 +51,7 @@ export async function checkDaemonUpdate(input: {
     updateAvailable: false,
     installMethod,
     releaseUrl: 'https://themolt.net/download',
-    command: daemonUpdateCommand(installMethod, executable),
+    command: daemonUpdateCommand(installMethod),
   };
   const now = input.now ?? new Date();
   if (!input.force) {

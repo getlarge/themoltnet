@@ -26,7 +26,7 @@ describe('daemon update discovery', () => {
     expect(daemonUpdateCommand('npm')).toBe(
       'npm install -g @themoltnet/agent-daemon@latest',
     );
-    expect(daemonUpdateCommand('direct', '/tmp/moltnet-agent')).toBe(
+    expect(daemonUpdateCommand('direct')).toBe(
       'curl -fsSL https://themolt.net/install/agent | sh',
     );
   });
