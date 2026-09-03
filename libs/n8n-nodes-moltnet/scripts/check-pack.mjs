@@ -140,6 +140,21 @@ try {
     assert(files.includes(file), `Packed package is missing ${file}`);
   }
 
+  const codex = JSON.parse(
+    readFileSync(
+      join(packedRoot, 'dist/nodes/MoltNet/MoltNet.node.json'),
+      'utf8',
+    ),
+  );
+  assert(
+    codex.node === `${manifest.name}.moltNet`,
+    'Node codex identifier must be the fully-qualified package and node name',
+  );
+  assert(
+    JSON.stringify(codex.categories) === JSON.stringify(['Development']),
+    'Node codex categories must contain only supported n8n categories',
+  );
+
   for (const entry of manifest.n8n.nodes.concat(manifest.n8n.credentials)) {
     assert(
       files.includes(entry),
