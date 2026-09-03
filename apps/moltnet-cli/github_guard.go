@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/vektah/gqlparser/v2/ast"
@@ -160,6 +161,44 @@ func resolveGitConfigGlobalPath(configured string) (string, error) {
 		return filepath.Clean(configured), nil
 	}
 
+	root, err := gitToplevel()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Clean(filepath.Join(root, configured)), nil
+}
+
+type gitToplevelResult struct {
+	root string
+	err  error
+}
+
+var (
+	gitToplevelMu    sync.Mutex
+	gitToplevelCache = map[string]gitToplevelResult{}
+)
+
+// gitToplevel returns the repository root of the working directory, memoized
+// per directory for the life of the process.
+//
+// resolveCredentialsPath runs on the hot path of every command since issue
+// #2129, and a relative GIT_CONFIG_GLOBAL — the shape LeGreffier activation
+// uses in linked worktrees — makes each call shell out to git. Caching keeps
+// one credential resolution per command from costing several subprocesses. The
+// key is the working directory so a process that chdirs (tests do) still
+// resolves against the repository it moved into.
+func gitToplevel() (string, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	gitToplevelMu.Lock()
+	defer gitToplevelMu.Unlock()
+	if cached, ok := gitToplevelCache[dir]; ok {
+		return cached.root, cached.err
+	}
+
 	ctx, cancel := context.WithTimeout(
 		context.Background(),
 		githubGuardGitTimeout,
@@ -167,13 +206,13 @@ func resolveGitConfigGlobalPath(configured string) (string, error) {
 	defer cancel()
 	cmd := exec.CommandContext(ctx, "git", "rev-parse", "--show-toplevel")
 	cmd.Stderr = io.Discard
-	root, err := cmd.Output()
-	if err != nil {
-		return "", err
+	out, err := cmd.Output()
+	result := gitToplevelResult{err: err}
+	if err == nil {
+		result.root = strings.TrimSpace(string(out))
 	}
-	return filepath.Clean(
-		filepath.Join(strings.TrimSpace(string(root)), configured),
-	), nil
+	gitToplevelCache[dir] = result
+	return result.root, result.err
 }
 
 func envEnabled(name string) bool {
