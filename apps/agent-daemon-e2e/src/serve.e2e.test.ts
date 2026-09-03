@@ -578,6 +578,66 @@ describe.sequential('moltnet-agent serve (loopback supervisor)', () => {
     expect((metadataDiscovery.json as ServeError).code).toBe(
       'invalid_provider',
     );
+
+    let redirectedRequestReachedTarget = false;
+    const redirectTarget = await startJsonStub(
+      {
+        '/v1/models': { data: [{ id: 'must-not-be-returned' }] },
+      },
+      () => {
+        redirectedRequestReachedTarget = true;
+      },
+    );
+    const redirector = await new Promise<{ server: Server; url: string }>(
+      (resolveRedirector) => {
+        const server = createServer((_request, response) => {
+          response.writeHead(302, {
+            location: `${redirectTarget.url}/v1/models`,
+          });
+          response.end();
+        });
+        server.listen(0, '127.0.0.1', () => {
+          const address = server.address();
+          const port =
+            typeof address === 'object' && address ? address.port : 0;
+          resolveRedirector({ server, url: `http://127.0.0.1:${port}` });
+        });
+      },
+    );
+    try {
+      const redirected = await call('/v1/providers/e2e-discovery-redirect', {
+        method: 'PUT',
+        token,
+        body: {
+          api: 'openai-completions',
+          baseUrl: `${redirector.url}/v1`,
+          envName: 'MOLTNET_PROVIDER_E2E_DISCOVERY_REDIRECT_API_KEY',
+          models: [],
+          apiKey: 'redirect-secret',
+        },
+      });
+      expect(redirected.status).toBe(200);
+      const redirectedDiscovery = await call(
+        '/v1/providers/e2e-discovery-redirect/discover-models',
+        { method: 'POST', token },
+      );
+      expect(redirectedDiscovery.status).toBe(502);
+      expect((redirectedDiscovery.json as ServeError).code).toBe(
+        'discovery_unavailable',
+      );
+      expect(redirectedRequestReachedTarget).toBe(false);
+    } finally {
+      await Promise.all(
+        [redirector.server, redirectTarget.server].map(
+          (server) =>
+            new Promise<void>((resolveClose, rejectClose) => {
+              server.close((error) =>
+                error ? rejectClose(error) : resolveClose(),
+              );
+            }),
+        ),
+      );
+    }
   });
 
   it('stores a provider with a write-only API key that never reaches config files or responses', async () => {
