@@ -175,7 +175,8 @@ test.describe.serial('Local runtime page', () => {
         );
       });
     }
-    if (agentServerRoot) await rm(agentServerRoot, { recursive: true, force: true });
+    if (agentServerRoot)
+      await rm(agentServerRoot, { recursive: true, force: true });
   });
 
   test('a learner pairs the console, enrols an agent, configures a provider, and runs a daemon', async ({
@@ -217,7 +218,9 @@ test.describe.serial('Local runtime page', () => {
       await connect.click();
       const approval = await approvalPagePromise;
       await approval.waitForLoadState();
-      await expect(approval).toHaveURL(new RegExp(`^${AGENT_SERVER_URL}/pairings/`));
+      await expect(approval).toHaveURL(
+        new RegExp(`^${AGENT_SERVER_URL}/pairings/`),
+      );
       await expect(approval.getByText(CONSOLE_URL)).toBeVisible();
       await approval.getByRole('button', { name: 'Approve' }).click();
       await expect(approval.getByText('Connection approved')).toBeVisible();
