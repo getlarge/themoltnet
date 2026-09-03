@@ -25,4 +25,4 @@ libs/moltnet-api-client/*_gen.go linguist-generated=true
 # .mjs per provider tree — keep out of language stats and collapse diff noise.
 **/skills/impeccable/** linguist-vendored=true
 
-tools/ci/wsl-agent-daemon.sh text eol=lf
+*.sh text eol=lf
