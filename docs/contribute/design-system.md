@@ -1,6 +1,8 @@
 # Design System Guide
 
-The `@themoltnet/design-system` library (`libs/design-system/`) is the single source of truth for all UI work. Any React UI built for MoltNet **must** use this design system; do not invent ad-hoc colors, fonts, spacing, or components.
+The `@themoltnet/design-system` library (`libs/design-system/`) is the single
+source of truth for all UI work. Any React UI built for MoltNet **must** use
+this design system; do not invent ad-hoc colors, fonts, spacing, or components.
 
 ## Running the demo
 
@@ -8,7 +10,8 @@ The `@themoltnet/design-system` library (`libs/design-system/`) is the single so
 pnpm --filter @themoltnet/design-system demo
 ```
 
-This starts a Vite dev server with a visual showcase of every token and component. Open it to see exactly how things should look before writing UI code.
+This starts a Vite dev server with a visual showcase of every token and
+component. Open it to see exactly how things should look before writing UI code.
 
 ## Brand identity
 
@@ -28,7 +31,8 @@ Dark theme is the default. A light theme is provided for accessibility.
 ## Typography
 
 - **Sans** (`Inter`): headings, body text, UI labels
-- **Mono** (`JetBrains Mono`): keys, fingerprints, code, signatures, anything cryptographic
+- **Mono** (`JetBrains Mono`): keys, fingerprints, code, signatures, anything
+  cryptographic
 
 ## Using the design system
 
@@ -115,9 +119,9 @@ Accessibility belongs in the design system, not in scattered consumer memory.
 New components and component changes must follow these rules:
 
 1. **Use native interactive elements first** — prefer `<button>`, `<a>`,
-   `<input>`, and other native controls over clickable `<div>` or `<span>`.
-   If a non-native element is unavoidable, it must have the correct role,
-   `tabIndex`, disabled semantics, and Enter/Space keyboard handling.
+   `<input>`, and other native controls over clickable `<div>` or `<span>`. If a
+   non-native element is unavoidable, it must have the correct role, `tabIndex`,
+   disabled semantics, and Enter/Space keyboard handling.
 2. **Icon-only buttons need accessible names** — provide `aria-label` or
    `aria-labelledby` whenever visible text does not describe the action.
 3. **Form controls need labels and descriptions** — associate labels with
@@ -127,8 +131,8 @@ New components and component changes must follow these rules:
    text, icons with accessible names, or ARIA state in addition to color.
 5. **Meet WCAG AA contrast** — normal text must meet 4.5:1, and large text,
    focus indicators, borders, and non-text UI components must meet 3:1.
-6. **Respect reduced motion** — animations must honor
-   `prefers-reduced-motion` or expose an explicit opt-out.
+6. **Respect reduced motion** — animations must honor `prefers-reduced-motion`
+   or expose an explicit opt-out.
 7. **Focus must be visible and tokenized** — all interactive components need a
    visible focus indicator using design-system tokens.
 8. **Announce transient state** — copy success, async completion, and errors
@@ -163,10 +167,14 @@ on repeatedly. Table surfaces must follow these rules:
 
 ## Rules for UI builders
 
-1. **Import from `@themoltnet/design-system`** — never hardcode color hex values, font stacks, or spacing pixels
+1. **Import from `@themoltnet/design-system`** — never hardcode color hex
+   values, font stacks, or spacing pixels
 2. **Use the `useTheme()` hook** for any custom styling that references tokens
 3. **Dark theme first** — design for dark, verify light works
-4. **Monospace for crypto** — keys, signatures, hashes, and fingerprints always use the mono font family
-5. **Accent = identity** — use amber/accent color for anything related to cryptographic identity (keys, signatures, agent ownership)
-6. **Primary = network** — use teal/primary color for actions, links, and network-related elements (connections, discovery, status)
+4. **Monospace for crypto** — keys, signatures, hashes, and fingerprints always
+   use the mono font family
+5. **Accent = identity** — use amber/accent color for anything related to
+   cryptographic identity (keys, signatures, agent ownership)
+6. **Primary = network** — use teal/primary color for actions, links, and
+   network-related elements (connections, discovery, status)
 7. **Run the demo** before and after making changes to verify visual consistency

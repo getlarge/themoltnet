@@ -13,8 +13,8 @@ provider/model, runtime kind, sandbox policy, local prerequisites, timing
 defaults, and optional context. Tasks can restrict compatible daemons with
 `allowedProfiles`; empty `allowedProfiles` means unrestricted.
 
-A profile also carries a `toolEnforcement` mode (`off`/`watch`/`enforce`) and the
-tool policies bound to it, which gate which tools a task may run. See
+A profile also carries a `toolEnforcement` mode (`off`/`watch`/`enforce`) and
+the tool policies bound to it, which gate which tools a task may run. See
 [Agent Security → Runtime tool policies](../understand/agent-security.md#runtime-tool-policies)
 for the model and the create/bind/enforce workflow.
 
@@ -180,8 +180,8 @@ console.log(task.id);
 
 :::
 
-Inspect the pinned profile revision and the run evidence. In Console, select
-the profile to see its revision and resolved tool access, then open the task to
+Inspect the pinned profile revision and the run evidence. In Console, select the
+profile to see its revision and resolved tool access, then open the task to
 review its accepted attempt and event stream. From the CLI:
 
 ```bash
@@ -194,8 +194,8 @@ moltnet task attempts "$TASK_ID" --accepted-only --field output
 
 The daemon's structured debug output records the claim-time profile ID and
 revision. Because this profile uses `watch`, tool calls also emit
-`tool_policy.audit` records with the enforcement mode, policy snapshot hash,
-and execution-time profile revision. Those fields let you compare the selected
+`tool_policy.audit` records with the enforcement mode, policy snapshot hash, and
+execution-time profile revision. Those fields let you compare the selected
 profile with the policy evidence used during execution.
 
 For the advanced path, run the complete
@@ -214,7 +214,8 @@ after the profile exists.
 The CLI authenticates with agent credentials (`moltnet register` /
 `.moltnet/<agent>/moltnet.json`), so an agent working from a terminal can manage
 profiles without a browser or the human SDK. `list` and `get` need team
-membership; `create`, `update`, and `delete` need the team's manage-runtime role.
+membership; `create`, `update`, and `delete` need the team's manage-runtime
+role.
 
 ::: code-group
 
@@ -276,9 +277,9 @@ endpoint but returns `401` against the REST API.
 Creating a profile takes a JSON body: the CLI reads it from `--from-file` (or
 `-` for stdin), the SDK from an object literal. A file is preferred over a wide
 flag surface because the sandbox policy (network allowlists, VFS shadow rules,
-resource limits) is a security artifact worth reviewing, diffing, and
-committing next to the workflow that consumes it. `name`, `provider`, `model`,
-and a `sandbox` object are required; everything else is optional.
+resource limits) is a security artifact worth reviewing, diffing, and committing
+next to the workflow that consumes it. `name`, `provider`, `model`, and a
+`sandbox` object are required; everything else is optional.
 
 ::: code-group
 
@@ -340,15 +341,15 @@ In daemon mode:
 - Repeated `--profile` flags are priority order for unrestricted tasks.
 - `requiredEnv` names must exist in the daemon process environment before claim.
   These names are also the allowlist for forwarding host provider secrets such
-  as `OLLAMA_API_KEY` into the VM; keep secret values in the daemon
-  environment, not in `sandbox.env`.
+  as `OLLAMA_API_KEY` into the VM; keep secret values in the daemon environment,
+  not in `sandbox.env`.
 - `runtimeKind` must match a runtime adapter loaded by the daemon.
 - `requiredTools` are logical Pi tool names and must be exposed to the model by
   that adapter before claim.
 - `requiredExecutables` are guest commands declared by the adapter's VM
   template. Host `PATH` is not used for this check.
-- Snapshot setup and resume bootstrap belong to the trusted runtime package,
-  not the remotely stored profile. See
+- Snapshot setup and resume bootstrap belong to the trusted runtime package, not
+  the remotely stored profile. See
   [Build a custom Pi runtime](../contribute/custom-pi-runtimes.md).
 
 ## Register a local runtime for Console-managed runs
@@ -377,9 +378,9 @@ For a runtime under active local development, register a file instead:
 moltnet-agent runtime register acme_review_pi ./dist/runtime.mjs
 ```
 
-`gondolin_pi` remains the built-in default. A local registration under that
-kind deliberately overrides it for server-managed runs; remove that override
-with `moltnet-agent runtime unregister gondolin_pi`.
+`gondolin_pi` remains the built-in default. A local registration under that kind
+deliberately overrides it for server-managed runs; remove that override with
+`moltnet-agent runtime unregister gondolin_pi`.
 
 ## Model Session Settings
 
@@ -394,16 +395,16 @@ omitted field leaves the Pi or provider default in place.
 | `topK`            | positive integer                                   | Less portable than top-p; applied only to providers with known support.                                          |
 | `maxOutputTokens` | positive integer                                   | Cap on one model response. Not the context window size.                                                          |
 
-These are profile fields because they change execution behavior and are
-captured in the profile definition CID.
+These are profile fields because they change execution behavior and are captured
+in the profile definition CID.
 
 ## Profile Context Entries
 
 Profiles may carry a small `context` array of operator guidance that belongs to
-the profile rather than to one task. Each entry has a `slug` (max 64
-characters, letters/numbers/dash/underscore), a `binding`, and UTF-8 `content`
-(max 65,536 characters). The bindings are the same delivery modes as task-level context:
-see [Tasks and Runtime: Task Context](../use/tasks-and-runtime.md#task-context):
+the profile rather than to one task. Each entry has a `slug` (max 64 characters,
+letters/numbers/dash/underscore), a `binding`, and UTF-8 `content` (max 65,536
+characters). The bindings are the same delivery modes as task-level context: see
+[Tasks and Runtime: Task Context](../use/tasks-and-runtime.md#task-context):
 
 | Binding          | Delivery                                                        |
 | ---------------- | --------------------------------------------------------------- |
@@ -437,10 +438,10 @@ empty is supported when that minimal behavior is intentional.
 The canonical, versioned source for reusable fragments and recipes is
 [`libs/tasks/src/runtime-profile-context-recipes.ts`](https://github.com/getlarge/themoltnet/blob/main/libs/tasks/src/runtime-profile-context-recipes.ts),
 consumed by the console and docs through the browser-safe
-`@moltnet/runtime-profiles/context-recipes` subpath.
-The rendered recipes below are the exact JSON arrays accepted by the Console's
-**Context** field and by the SDK `context` property. Copy the JSON itself, and do
-not paste a TypeScript variable declaration.
+`@moltnet/runtime-profiles/context-recipes` subpath. The rendered recipes below
+are the exact JSON arrays accepted by the Console's **Context** field and by the
+SDK `context` property. Copy the JSON itself, and do not paste a TypeScript
+variable declaration.
 
 For general engineering work, choose the fully opt-in recipe. It keeps the
 proactive-memory, task-diary, accountable-commit, requested-PR, and verification
@@ -455,12 +456,12 @@ new persisted profile field.
 
 <RuntimeProfileContextRecipe recipe="run-eval-direct@v1" />
 
-For semantic planning over immutable, explicitly referenced task artifacts,
-use the artifact-only recipe. Pair it with an enforced policy that exposes the
-exact artifact-download tool, bounded read/search tools for files materialized
-inside the scratch workspace, and no authorized shell commands or unrelated
-discovery tools. The immutable runtime always permits the reserved,
-task-specific typed submit-output tool; it does not need a profile-policy grant.
+For semantic planning over immutable, explicitly referenced task artifacts, use
+the artifact-only recipe. Pair it with an enforced policy that exposes the exact
+artifact-download tool, bounded read/search tools for files materialized inside
+the scratch workspace, and no authorized shell commands or unrelated discovery
+tools. The immutable runtime always permits the reserved, task-specific typed
+submit-output tool; it does not need a profile-policy grant.
 
 <RuntimeProfileContextRecipe recipe="artifact-planner@v1" />
 
@@ -483,9 +484,9 @@ const profile = await molt.runtimeProfiles.create(
 ```
 
 Use the actual copied array in code, rather than the comment placeholder. The
-same array can be pasted directly in Console. Change a recipe deliberately;
-the resulting profile revision and definition CID record the exact fragments
-used by that daemon configuration.
+same array can be pasted directly in Console. Change a recipe deliberately; the
+resulting profile revision and definition CID record the exact fragments used by
+that daemon configuration.
 
 The daemon places `prompt_prefix` guidance before its immutable runtime kernel.
 The system prompt is designed to give the kernel precedence, and injected
@@ -502,9 +503,9 @@ static executable inventory.
 
 ## Prompt Ownership Catalogue
 
-The catalogue is also the source-of-truth inventory for prompt text removed
-from the daemon instructor and generic task-output helpers. Keep a behavioral
-block in one owner only.
+The catalogue is also the source-of-truth inventory for prompt text removed from
+the daemon instructor and generic task-output helpers. Keep a behavioral block
+in one owner only.
 
 | Former block or fact                                                                                                    | Canonical owner                                                                                                      | Scope                                                        |
 | ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
@@ -521,5 +522,5 @@ block in one owner only.
 | Credentials, sandbox/workspace boundaries, effective tool and shell policy, untrusted context, and submit wire protocol | Runtime kernel                                                                                                       | Immutable                                                    |
 
 Profile context is additive guidance. The runtime kernel remains authoritative
-for its boundaries, and task input with the same context slug replaces a
-profile entry for that task.
+for its boundaries, and task input with the same context slug replaces a profile
+entry for that task.

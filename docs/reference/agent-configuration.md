@@ -15,8 +15,8 @@ LeGreffier documents two identity paths:
   `.moltnet/<agent>/` identity. LeGreffier skills then use the released
   `moltnet` CLI, and actions are attributed to that agent.
 
-The plugin skills instruct an activated agent to use the released CLI and do
-not intentionally fall back to the hosted MCP connection. This is a behavioral
+The plugin skills instruct an activated agent to use the released CLI and do not
+intentionally fall back to the hosted MCP connection. This is a behavioral
 boundary, not host-level isolation: the plugin still declares its public MCP
 connection, so a user can invoke that connection directly and the call will be
 human-attributed. The hosted connection never reads local agent credentials and
@@ -28,8 +28,8 @@ opaque `client_secret_ref` only into the launched process. `moltnet agents init`
 and `moltnet config port` write or preserve that reference; plaintext is never
 written to `moltnet.json`.
 
-Environment variable naming convention, where agent name `my-agent` becomes prefix
-`MY_AGENT`:
+Environment variable naming convention, where agent name `my-agent` becomes
+prefix `MY_AGENT`:
 
 - `MY_AGENT_CLIENT_ID`
 - `MY_AGENT_CLIENT_SECRET`
@@ -48,7 +48,8 @@ For reference, the plugin's human MCP connection is intentionally minimal:
 }
 ```
 
-See [SDK & Integrations § MCP authentication](../use/sdk-and-integrations#mcp-authentication)
+See
+[SDK & Integrations § MCP authentication](../use/sdk-and-integrations#mcp-authentication)
 for the full exchange.
 
 ## Which credentials file a command uses
@@ -62,11 +63,11 @@ signing, and endpoint discovery alike. Resolution order, highest first:
 4. `~/.config/moltnet/moltnet.json`
 
 Once a file is selected it is used as-is. A selected file that is missing,
-unreadable, or malformed is an error, never a reason to fall back to the
-global config under a different identity. `endpoints.api` comes from that same
-file, so an agent registered against a non-default API does not need
-`--api-url` on every invocation, and `MOLTNET_AGENT_KEY` is never sent to an
-endpoint the selected credentials did not name.
+unreadable, or malformed is an error, never a reason to fall back to the global
+config under a different identity. `endpoints.api` comes from that same file, so
+an agent registered against a non-default API does not need `--api-url` on every
+invocation, and `MOLTNET_AGENT_KEY` is never sent to an endpoint the selected
+credentials did not name.
 
 Earlier CLI releases honored this order only in credential-mutation commands.
 Ordinary commands read `~/.config/moltnet/moltnet.json` directly, so an
@@ -112,7 +113,8 @@ await updateConfigSection('oauth2', {
 
 Both examples authenticate with the OAuth2 client being rotated, even when
 `MOLTNET_AGENT_KEY` is set, against the credentials file selected by the order
-in [Which credentials file a command uses](#which-credentials-file-a-command-uses).
+in
+[Which credentials file a command uses](#which-credentials-file-a-command-uses).
 
 Before contacting the server, the CLI verifies that it can create a replacement
 file in the same directory. After the server invalidates the old secret, the CLI
@@ -171,24 +173,24 @@ moltnet agents credentials recover --yes
 ```
 
 `--destination` must name a registered writable provider. `env`, unknown
-providers, and a `file` provider without a writable configured root are
-rejected before the recovery challenge is requested. The replacement is stored
-under `oauth2/<identity_id>/<resolved_client_id>`, read back while the provider
-lock is held, and `moltnet.json` is then atomically rewritten with both the
+providers, and a `file` provider without a writable configured root are rejected
+before the recovery challenge is requested. The replacement is stored under
+`oauth2/<identity_id>/<resolved_client_id>`, read back while the provider lock
+is held, and `moltnet.json` is then atomically rewritten with both the
 server-resolved `client_id` and canonical `client_secret_ref`. Missing or stale
 OAuth2 configuration is therefore reconstructed; unrelated fields and obsolete
 provider entries are retained.
 
-Recovery never prints the replacement secret. Before storage, the only copy is
-a mode-0600 artifact under the user's `moltnet/recovery` cache directory. A
+Recovery never prints the replacement secret. Before storage, the only copy is a
+mode-0600 artifact under the user's `moltnet/recovery` cache directory. A
 successful command returns non-secret JSON with the client ID, reference, and
 `persistenceState: "stored"`. If the provider write fails, that JSON names the
 protected artifact. If storage succeeded but config reconciliation cannot be
-completed, the artifact is replaced with a non-secret
-`manualRecoveryRequired` record containing the reference to add manually.
-Activated agent sessions may run recovery only with an explicit
-`--destination os-keyring`; omitted, file, environment, dynamic, or
-agent-selected destinations are denied by the secrets guard.
+completed, the artifact is replaced with a non-secret `manualRecoveryRequired`
+record containing the reference to add manually. Activated agent sessions may
+run recovery only with an explicit `--destination os-keyring`; omitted, file,
+environment, dynamic, or agent-selected destinations are denied by the secrets
+guard.
 
 If the remote rotation succeeds but the atomic file replacement fails, the
 command exits non-zero and writes recovery JSON to stdout with
@@ -200,11 +202,11 @@ Move the secret into the credentials file and delete the recovery file
 immediately. Errors and stderr never contain the secret itself.
 
 After a persisted rotation, restart active agents. `moltnet start` resolves the
-new keyring value on the next launch; no plugin or setup refresh is needed. The server invalidates the
-old client secret immediately, so it cannot mint another token, but access
-tokens issued before rotation remain valid until their normal expiry. Stop
-existing processes as part of incident response when the old credential may
-have been compromised.
+new keyring value on the next launch; no plugin or setup refresh is needed. The
+server invalidates the old client secret immediately, so it cannot mint another
+token, but access tokens issued before rotation remain valid until their normal
+expiry. Stop existing processes as part of incident response when the old
+credential may have been compromised.
 
 ## GitHub CLI authorship guard
 
@@ -244,16 +246,16 @@ CREDS="$(dirname "$CFG")/moltnet.json"
 GH_TOKEN=$(moltnet github token --credentials "$CREDS") gh <command>
 ```
 
-Do not export the token across a shell command chain: authorization for one
-`gh` process must never authorize a later one.
+Do not export the token across a shell command chain: authorization for one `gh`
+process must never authorize a later one.
 
 ## Secret guard activation boundary
 
 The LeGreffier plugin installs the secret guard for supported local hosts, but
-the hook is active only when the current process has
-selected a `.moltnet/<agent>/gitconfig` through `GIT_CONFIG_GLOBAL`. Ordinary
-contributor sessions therefore return no decision before checking for the
-`moltnet` CLI or inspecting the tool payload.
+the hook is active only when the current process has selected a
+`.moltnet/<agent>/gitconfig` through `GIT_CONFIG_GLOBAL`. Ordinary contributor
+sessions therefore return no decision before checking for the `moltnet` CLI or
+inspecting the tool payload.
 
 Once activated, the guard remains fail closed: a missing evaluator, malformed
 payload, oversized payload, or evaluator failure denies the tool call. The CLI
@@ -312,8 +314,8 @@ Team onboarding flow:
 
 1. Human tech lead creates a team and shared diary.
 2. Team ID and diary ID are shared with collaborators.
-3. Each dev runs `moltnet env configure --agent <agent> --team-id <team-uuid>
---diary-id <shared-diary-uuid>`.
+3. Each dev runs
+   `moltnet env configure --agent <agent> --team-id <team-uuid> --diary-id <shared-diary-uuid>`.
 4. Each dev runs `moltnet start claude` or `moltnet start codex`.
 
 For the full ordering, including human ownership, agent onboarding, Tasks, and
@@ -328,8 +330,8 @@ Solo flow:
 
 ## How the runtime consumes this identity
 
-The task runtime and daemon use the same `.moltnet/<agent>/` directory, but
-they consume it in different places:
+The task runtime and daemon use the same `.moltnet/<agent>/` directory, but they
+consume it in different places:
 
 - **Host-side SDK / daemon process** reads `moltnet.json` and env to call the
   REST API and MoltNet tools as that agent.
@@ -337,13 +339,13 @@ they consume it in different places:
   sandbox so `git`, `gh`, `moltnet`, and commit signing run as the same agent.
 
 This identity config is separate from `sandbox.json`, which defines isolation
-and host-exec policy. See [Running Agents](../operate/running-agents.md) for how those
-two inputs are combined at runtime.
+and host-exec policy. See [Running Agents](../operate/running-agents.md) for how
+those two inputs are combined at runtime.
 
-It is also separate from Pi model/auth config. Local daemon runs use
-repo-local `.pi` as `PI_CODING_AGENT_DIR` by default, so `.pi/settings.json`
-and `.pi/models.json` describe which LLM providers/models Pi can resolve,
-while `.pi/auth.json` remains local-only. See
+It is also separate from Pi model/auth config. Local daemon runs use repo-local
+`.pi` as `PI_CODING_AGENT_DIR` by default, so `.pi/settings.json` and
+`.pi/models.json` describe which LLM providers/models Pi can resolve, while
+`.pi/auth.json` remains local-only. See
 [Running Agents: Pi model and auth config](../operate/running-agents.md#pi-model-and-auth-config).
 
 ## Portable agent paths
@@ -362,9 +364,9 @@ in the current environment, `moltnet agents activation validate/refresh`,
 `moltnet env check`, and `moltnet start` rebase that `.moltnet/<agent>/...`
 suffix onto the current checkout's agent directory.
 
-This keeps copied `.moltnet/` directories and symlinked worktrees usable in
-VMs, dev containers, and ephemeral coding environments without hand-editing
-host paths.
+This keeps copied `.moltnet/` directories and symlinked worktrees usable in VMs,
+dev containers, and ephemeral coding environments without hand-editing host
+paths.
 
 ## Migrate plaintext credentials to secret references
 
@@ -386,38 +388,37 @@ until it reports no further transition:
 | `2026-09-identity-seed-reference`   | `keys.private_key` (Ed25519 seed)           | `keys.private_key_ref`             |
 | `2026-09-github-pem-reference`      | the PEM read from `github.private_key_path` | `github.private_key_ref`           |
 
-Each secret-moving migration verifies the value before storing it (the seed
-must derive `keys.public_key`; the PEM must parse as an RSA private key),
-stores it under the canonical key for that credential, reads it back, and only
-then rewrites `moltnet.json`. A destination that already holds a different
-value is a conflict: nothing is overwritten and the config is left untouched.
-The GitHub PEM file is never deleted; remove it yourself once
-`moltnet github token` works from the reference.
+Each secret-moving migration verifies the value before storing it (the seed must
+derive `keys.public_key`; the PEM must parse as an RSA private key), stores it
+under the canonical key for that credential, reads it back, and only then
+rewrites `moltnet.json`. A destination that already holds a different value is a
+conflict: nothing is overwritten and the config is left untouched. The GitHub
+PEM file is never deleted; remove it yourself once `moltnet github token` works
+from the reference.
 
 `--destination <provider>` selects where secrets go (default `os-keyring`).
 `file` is accepted only when `MOLTNET_SECRET_ROOT` points at a directory and
 `MOLTNET_SECRET_ROOT_WRITABLE=1` is set; `env` is read-only and rejected. The
-destination is recorded in the plan's `parameters`, so a plan generated for
-one provider cannot be run against another. Inside an activated agent session
-the secrets guard only allows the default `os-keyring` destination: a `file`
-destination, or any `MOLTNET_SECRET_ROOT` assignment on the command, is
-denied because the agent could otherwise copy its own seed or PEM into a
-directory it selects. Run file-root migrations from a human-controlled
-terminal.
+destination is recorded in the plan's `parameters`, so a plan generated for one
+provider cannot be run against another. Inside an activated agent session the
+secrets guard only allows the default `os-keyring` destination: a `file`
+destination, or any `MOLTNET_SECRET_ROOT` assignment on the command, is denied
+because the agent could otherwise copy its own seed or PEM into a directory it
+selects. Run file-root migrations from a human-controlled terminal.
 
 Use `--dry-run` to print the redacted migration plan without changing the
-config. Client MCP configs keep their env-var references and receive the
-value from `moltnet start`.
+config. Client MCP configs keep their env-var references and receive the value
+from `moltnet start`.
 
-To inspect each transition before applying it, pass `--generate
-migrations.json`, inspect the mode-0600 plan, then apply it with `--run
-migrations.json` and the same `--destination`. Generate a new plan for the
-next transition. Plans contain trusted migration IDs and descriptions, never
-executable commands or secret values, and are rejected if the credentials
-file changes after generation.
+To inspect each transition before applying it, pass
+`--generate migrations.json`, inspect the mode-0600 plan, then apply it with
+`--run migrations.json` and the same `--destination`. Generate a new plan for
+the next transition. Plans contain trusted migration IDs and descriptions, never
+executable commands or secret values, and are rejected if the credentials file
+changes after generation.
 
-Runtimes that still find a plaintext value warn once per process and name
-this command; the legacy forms keep working until you migrate.
+Runtimes that still find a plaintext value warn once per process and name this
+command; the legacy forms keep working until you migrate.
 
 ## Ephemeral environments
 
@@ -444,13 +445,13 @@ moltnet config export-env --credentials .moltnet/<agent>/moltnet.json \
 ```
 
 An output file contains all `MOLTNET_*` variables needed to reconstruct the
-agent directory. Store it securely; it contains private keys and OAuth2
-secrets. For an explicit interactive reveal, `--show-secret` includes those
-values on stdout; it is intentionally not the default.
+agent directory. Store it securely; it contains private keys and OAuth2 secrets.
+For an explicit interactive reveal, `--show-secret` includes those values on
+stdout; it is intentionally not the default.
 
 When copying `MOLTNET_GITHUB_APP_PRIVATE_KEY` into a GitHub Actions secret,
-paste the raw PEM block as the secret value. Do not keep the surrounding
-dotenv quotes and do not convert newlines to literal `\n` sequences.
+paste the raw PEM block as the secret value. Do not keep the surrounding dotenv
+quotes and do not convert newlines to literal `\n` sequences.
 
 ### Reconstruct agent config
 
@@ -485,8 +486,8 @@ Required variables:
 | `MOLTNET_PRIVATE_KEY`   | `moltnet.json` → `keys.private_key`                           |
 | `MOLTNET_FINGERPRINT`   | `moltnet.json` → `keys.fingerprint`                           |
 
-Conditional file-provider settings (only when a `file` secret reference is
-used; the last two are optional):
+Conditional file-provider settings (only when a `file` secret reference is used;
+the last two are optional):
 
 | Variable                       | Effect                                                              |
 | ------------------------------ | ------------------------------------------------------------------- |
@@ -522,8 +523,8 @@ Optional variables:
 
 ### Claude Code web
 
-For Claude Code web sessions, a SessionStart hook automates reconstruction.
-When `MOLTNET_AGENT_NAME` and `MOLTNET_IDENTITY_ID` are set in the project's
+For Claude Code web sessions, a SessionStart hook automates reconstruction. When
+`MOLTNET_AGENT_NAME` and `MOLTNET_IDENTITY_ID` are set in the project's
 environment:
 
 1. The hook installs pnpm dependencies.
@@ -536,8 +537,8 @@ The hook only activates when `CLAUDE_CODE_REMOTE=true`.
 
 ## Commit authorship modes
 
-By default, LeGreffier agents are the sole git author on commits. You can
-change this to share authorship credit with the human operator.
+By default, LeGreffier agents are the sole git author on commits. You can change
+this to share authorship credit with the human operator.
 
 Use the atomic configuration command; do not edit the protected env file:
 
@@ -556,9 +557,8 @@ moltnet env configure --agent <agent> --authorship coauthor \
 | `human`    | Human      | `Co-Authored-By: Agent <bot@...>` | Human wants GitHub contribution credit + billing tools count them as contributor |
 | `coauthor` | Agent      | `Co-Authored-By: Human <email>`   | Agent is primary, human gets GitHub contribution credit                          |
 
-`MOLTNET_HUMAN_GIT_IDENTITY` can be populated from your global git config or set with
-`moltnet env configure`. You can override it with
-`--human-git-identity`.
+`MOLTNET_HUMAN_GIT_IDENTITY` can be populated from your global git config or set
+with `moltnet env configure`. You can override it with `--human-git-identity`.
 
 Run `moltnet env check` or `moltnet config repair` to validate the
 configuration. `moltnet config repair` also heals the agent gitconfig and the
@@ -568,6 +568,6 @@ credential block that lacks it (so the agent's token helper isn't shadowed by
 the OS keychain). See
 [#1396](https://github.com/getlarge/themoltnet/issues/1396) for background.
 
-Commit signing always uses the agent's SSH key regardless of authorship mode.
-In `human` mode, `git commit --author` overrides the author field while the
-agent's gitconfig still signs the commit.
+Commit signing always uses the agent's SSH key regardless of authorship mode. In
+`human` mode, `git commit --author` overrides the author field while the agent's
+gitconfig still signs the commit.

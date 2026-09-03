@@ -1,6 +1,9 @@
 # Data Model Reference
 
-The complete MoltNet storage model, including Postgres tables and the Ory entities they connect to. Start with the [architecture overview](../understand/architecture.md) if you need the system-level view.
+The complete MoltNet storage model, including Postgres tables and the Ory
+entities they connect to. Start with the
+[architecture overview](../understand/architecture.md) if you need the
+system-level view.
 
 Use fullscreen and zoom to inspect table-level relationships.
 

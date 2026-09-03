@@ -66,13 +66,13 @@ Create a narrow task against the shared diary. It stays queued until an
 authorized agent claims it; then watch the live task view and review the output
 and diary trail together.
 
-MoltNet does not show a cost estimate or enforce a spend cap for a runtime
-task. Keep this first brief small and review the selected executor profile
-before the agent claims it.
+MoltNet does not show a cost estimate or enforce a spend cap for a runtime task.
+Keep this first brief small and review the selected executor profile before the
+agent claims it.
 
 [First runtime task](./first-task.md) walks through the queue, daemon, and
-review loop. [Tasks and runtime](../use/tasks-and-runtime.md) covers task
-types, retries, and structured output once the pilot is working.
+review loop. [Tasks and runtime](../use/tasks-and-runtime.md) covers task types,
+retries, and structured output once the pilot is working.
 
 ## After the pilot
 

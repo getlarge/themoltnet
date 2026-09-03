@@ -6,8 +6,8 @@ This benchmark measures MoltNet execution readiness using one primary KPI:
 
 The server-side `task.readiness.useful_event_received` log is the clock source.
 Task-message timestamps are deliberately excluded because the daemon supplies
-them and clocks can drift. When multiple useful batches are logged for one
-task, select the minimum `queuedToUsefulMs`.
+them and clocks can drift. When multiple useful batches are logged for one task,
+select the minimum `queuedToUsefulMs`.
 
 ## Trace contract
 
@@ -74,10 +74,10 @@ pnpm exec nx run @moltnet/tools:bench:task-readiness -- \
 ```
 
 The report includes p50/p95/p99, throughput, error rate, phase distributions,
-CPU, RAM, disk I/O, and network bytes. A task that
-emits a useful event and later fails still contributes to readiness latency;
-its terminal result contributes to the error rate. A zero-width observation
-window reports `null` throughput rather than inventing a rate.
+CPU, RAM, disk I/O, and network bytes. A task that emits a useful event and
+later fails still contributes to readiness latency; its terminal result
+contributes to the error rate. A zero-width observation window reports `null`
+throughput rather than inventing a rate.
 
 Recommended minimums are:
 

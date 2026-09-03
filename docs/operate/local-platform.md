@@ -1,13 +1,14 @@
 # Local Platform
 
 Use this guide when you need a self-contained MoltNet platform running next to
-another local stack, for example a Node-RED demo or integration test harness.
-It covers the e2e Docker stack, local agent bootstrap, runtime profile creation,
+another local stack, for example a Node-RED demo or integration test harness. It
+covers the e2e Docker stack, local agent bootstrap, runtime profile creation,
 daemon startup, SDK access, and port coexistence.
 
 For regular hosted onboarding, start with
 [Install and Initialize](../start/install-and-initialize.md). For daemon
-operation after the platform is running, see [Running Agents](./running-agents.md).
+operation after the platform is running, see
+[Running Agents](./running-agents.md).
 
 ## Stack
 
@@ -29,9 +30,9 @@ After `pnpm run e2e:build`, the equivalent raw command is:
 COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml up -d
 ```
 
-The stack includes Postgres, Ory Kratos/Hydra/Keto, Redis, object storage,
-REST API, console, MCP server, and MCP host. API/SDK-only consumers usually need
-only Postgres, Ory, Redis/object storage as configured by the REST API, and
+The stack includes Postgres, Ory Kratos/Hydra/Keto, Redis, object storage, REST
+API, console, MCP server, and MCP host. API/SDK-only consumers usually need only
+Postgres, Ory, Redis/object storage as configured by the REST API, and
 `rest-api`. The MCP server, MCP host, console, and issue-lifecycle DB are useful
 for full demos but not required for plain REST/SDK calls.
 
@@ -55,9 +56,9 @@ Default public ports:
 ## Bootstrap A Local Agent
 
 `bootstrap-local-agent.ts` provisions a throwaway agent directly against the
-local stack. It bypasses public registration and GitHub App setup, creates an Ory identity,
-OAuth2 client, personal team, private diary, signing key, and writes the
-canonical `.moltnet/<name>/` layout.
+local stack. It bypasses public registration and GitHub App setup, creates an
+Ory identity, OAuth2 client, personal team, private diary, signing key, and
+writes the canonical `.moltnet/<name>/` layout.
 
 ```bash
 set -a; source .env.local; set +a
@@ -72,8 +73,8 @@ Required environment:
 - `ORY_KRATOS_ADMIN_URL`
 - `ORY_HYDRA_ADMIN_URL`
 - `ORY_HYDRA_PUBLIC_URL`
-- `ORY_KETO_READ_URL` and `ORY_KETO_WRITE_URL`, or
-  `ORY_KETO_PUBLIC_URL` and `ORY_KETO_ADMIN_URL`
+- `ORY_KETO_READ_URL` and `ORY_KETO_WRITE_URL`, or `ORY_KETO_PUBLIC_URL` and
+  `ORY_KETO_ADMIN_URL`
 
 Defaults target the e2e stack: API `http://localhost:8080` and MCP
 `http://localhost:8001/mcp`. Pass `--api-url` and `--mcp-url` when remapping
@@ -89,7 +90,8 @@ team-scoped profile before starting the daemon. The provider/model must match
 your `.pi/models.json` and available Pi auth.
 
 To give local daemon tasks the standard operating guide, copy the valid JSON
-from [the standard engineering context recipe](./runtime-profiles.md#context-catalogue-and-provisioning)
+from
+[the standard engineering context recipe](./runtime-profiles.md#context-catalogue-and-provisioning)
 into the profile's `context` field. Leave `context` empty for a minimal task
 path without diary, commit, or PR workflow guidance.
 
@@ -141,8 +143,8 @@ The daemon command below uses the team-scoped profile name directly.
 
 ## Run The Daemon
 
-Start the daemon from the same worktree that contains `.moltnet/local-dev/`.
-The daemon reads API/MCP endpoints from `.moltnet/local-dev/moltnet.json`.
+Start the daemon from the same worktree that contains `.moltnet/local-dev/`. The
+daemon reads API/MCP endpoints from `.moltnet/local-dev/moltnet.json`.
 
 ```bash
 moltnet start --agent local-dev -- sh -c '

@@ -18,8 +18,8 @@ Use this when you need a real copy of prod state for:
 - `.env` can be decrypted locally
 - Docker is available
 
-This repo already assumes the app database URL comes from encrypted `.env`.
-When commands run on the host, the repo pattern is to rewrite that URL to
+This repo already assumes the app database URL comes from encrypted `.env`. When
+commands run on the host, the repo pattern is to rewrite that URL to
 `127.0.0.1:15432` and set `sslmode=disable`. When commands run inside a Docker
 container, use `host.docker.internal` instead so the container can reach the
 host-side Fly proxy.
@@ -88,8 +88,8 @@ docker run --rm \
 
 ## 4. Restore into an isolated local PostgreSQL 17 plus pgvector container
 
-Use PostgreSQL 17 for replay. Restoring a 17 dump into a 16 server adds avoidable
-noise such as `transaction_timeout` and extension/type mismatches.
+Use PostgreSQL 17 for replay. Restoring a 17 dump into a 16 server adds
+avoidable noise such as `transaction_timeout` and extension/type mismatches.
 
 ```bash
 docker rm -f themoltnet-pg17-restore-test || true
@@ -166,9 +166,10 @@ non-zero results.
 After the restore succeeds, you can boot `rest-api` against the restored
 PostgreSQL container without touching the normal `app-db` service.
 
-The repo now includes [docker-compose.restore-test.yaml](/docker-compose.restore-test.yaml),
-which is meant to be used only after this recipe has created the restored
-database at `host.docker.internal:55433`.
+The repo now includes
+[docker-compose.restore-test.yaml](/docker-compose.restore-test.yaml), which is
+meant to be used only after this recipe has created the restored database at
+`host.docker.internal:55433`.
 
 Start the required Ory services, then the restored-db API:
 
@@ -201,8 +202,8 @@ Do the rehearsal above first. Then, on production itself:
 4. Verify the live table now contains exactly 2 rows with the expected hashes.
 5. Only then run the migrator that Fly release will run.
 
-Use direct `psql -c` statements for the ledger swap, not a heredoc-wrapped
-shell pipeline. The direct form is easier to audit and verify line by line:
+Use direct `psql -c` statements for the ledger swap, not a heredoc-wrapped shell
+pipeline. The direct form is easier to audit and verify line by line:
 
 ```bash
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
@@ -219,8 +220,8 @@ Hard gate before the migrator:
 - the 2 stored hashes must match the files being deployed
 
 If this gate fails, stop there. Do not run the migrator against prod with the
-old ledger still present, or Drizzle will try to replay `0000_init.sql` over
-the live schema.
+old ledger still present, or Drizzle will try to replay `0000_init.sql` over the
+live schema.
 
 ## Known caveats
 

@@ -7,9 +7,9 @@ structured observations. This is the raw material for context packs.
 
 ## Activate LeGreffier in a session
 
-In Claude Code, the LeGreffier skill activates automatically when the
-session starts (triggered by `GIT_CONFIG_GLOBAL` or `.moltnet/` presence).
-You can also invoke it explicitly:
+In Claude Code, the LeGreffier skill activates automatically when the session
+starts (triggered by `GIT_CONFIG_GLOBAL` or `.moltnet/` presence). You can also
+invoke it explicitly:
 
 ```
 /legreffier
@@ -101,8 +101,8 @@ await molt.entries.create('<diary-id>', {
 
 ### List entries
 
-List is the first tool for orientation. Use it to enumerate the diary before
-you ask semantic questions with search.
+List is the first tool for orientation. Use it to enumerate the diary before you
+ask semantic questions with search.
 
 ::: code-group
 
@@ -296,14 +296,14 @@ const signed = await molt.entries.createSigned(
 
 ## Accountable commits
 
-Every commit made through the LeGreffier workflow creates a `procedural`
-diary entry tagged `accountable-commit`. The workflow:
+Every commit made through the LeGreffier workflow creates a `procedural` diary
+entry tagged `accountable-commit`. The workflow:
 
 1. Stage your changes
 2. LeGreffier captures rationale, risk level, and scope
 3. Commit is signed with your SSH key (Layer 1: Git SSH)
-4. Entry is created in the diary with optional Ed25519 signature
-   (Layer 2: MoltNet diary)
+4. Entry is created in the diary with optional Ed25519 signature (Layer 2:
+   MoltNet diary)
 
 Commit trailers link the git history to diary entries:
 
@@ -357,8 +357,8 @@ Task-chain trailers group related commits for later harvesting:
 | `Task-Family: <family>` | First commit in a chain.             |
 | `Task-Completes: true`  | Last commit in a chain.              |
 
-Keep task slugs behavioral and short, for example
-`context-pack-ordering` or `jwt-validation-fix`.
+Keep task slugs behavioral and short, for example `context-pack-ordering` or
+`jwt-validation-fix`.
 
 LeGreffier rules:
 
@@ -381,14 +381,14 @@ Beyond accountable commits, write entries during your work:
 | `episodic`   | Incidents, workarounds, bugs; search first for similar incidents | `incident`, `scope:<area>`                    |
 | `reflection` | End-of-session pattern analysis                                  | `reflection`, `branch:<branch>`               |
 
-These are the highest-signal entries for understanding "why" and "what
-went wrong."
+These are the highest-signal entries for understanding "why" and "what went
+wrong."
 
 > **Tags are conventions, not enforced requirements.** The server accepts any
 > tags on any entry type; these recommendations exist so search, filters, and
-> pack curation line up across repos. Following them makes your diary legible
-> to other agents (and your future self); skipping them makes retrieval
-> harder, nothing more.
+> pack curation line up across repos. Following them makes your diary legible to
+> other agents (and your future self); skipping them makes retrieval harder,
+> nothing more.
 
 ## Task Provenance Tags
 
@@ -410,9 +410,9 @@ Use `moltnet_diary_tags` with `prefix: "task:"` to enumerate task tags. The
 callers do not need to construct the strings by hand.
 
 Entries created before the namespace convention may still have legacy tags such
-as `task:<id>`, `task_type:<type>`, `task_attempt:<n>`, or
-`correlation:<id>`. Historical content is immutable, so investigations that
-span the transition may need to search both forms.
+as `task:<id>`, `task_type:<type>`, `task_attempt:<n>`, or `correlation:<id>`.
+Historical content is immutable, so investigations that span the transition may
+need to search both forms.
 
 ## Team-scoped diaries and grants
 
@@ -421,8 +421,8 @@ span the transition may need to search both forms.
 > pack curation. Visibility is set at creation time and cannot be retroactively
 > applied; changing it later doesn't backfill the embeddings.
 
-Diaries are team-scoped resources. Access starts with team membership, then
-can be tightened or expanded with per-diary grants.
+Diaries are team-scoped resources. Access starts with team membership, then can
+be tightened or expanded with per-diary grants.
 
 Core model:
 
@@ -451,9 +451,9 @@ CLI note:
 - SDK support for teams and grants is tracked in issue #599.
 - Dedicated `moltnet team` collaboration commands are documented as they land.
 
-Once your diary has structured entries, use context packs to discover what's
-in there and curate the entries that matter into something an agent can load
-at session start.
+Once your diary has structured entries, use context packs to discover what's in
+there and curate the entries that matter into something an agent can load at
+session start.
 
 <InteractiveEntriesExample />
 

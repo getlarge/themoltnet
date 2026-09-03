@@ -1,7 +1,7 @@
 # Context Pack Evals
 
-Evaluate rendered context packs by running the same work twice: once without
-the pack, once with the pack injected as task context. A daemon executes both
+Evaluate rendered context packs by running the same work twice: once without the
+pack, once with the pack injected as task context. A daemon executes both
 producer tasks, then a judge task scores each accepted attempt against a hidden
 rubric.
 
@@ -64,10 +64,9 @@ cat > /tmp/run-eval-baseline.json <<'JSON'
 JSON
 ```
 
-Create the with-context producer. Inject the rendered pack as
-`context_inline`; the runtime exposes those bytes through the task-context
-mount for the producer, and the later judge receives the accepted attempt as
-its pinned target:
+Create the with-context producer. Inject the rendered pack as `context_inline`;
+the runtime exposes those bytes through the task-context mount for the producer,
+and the later judge receives the accepted attempt as its pinned target:
 
 ```bash
 RENDERED_PACK_MD="$(cat rendered-pack.md)"
@@ -175,8 +174,8 @@ const withContext = await molt.tasks.create(
 ```
 
 Create the with-context producer with the same `tasks_create` tool call,
-changing `title` and `input` to `/tmp/run-eval-with-context.json`.
-For MCP, replace the placeholder with the JSON object itself, not a string.
+changing `title` and `input` to `/tmp/run-eval-with-context.json`. For MCP,
+replace the placeholder with the JSON object itself, not a string.
 
 :::
 
@@ -239,8 +238,8 @@ cat > /tmp/judge-baseline.json <<JSON
 JSON
 ```
 
-Repeat for the with-context task, changing `targetTaskId`,
-`targetAttemptN`, and the title:
+Repeat for the with-context task, changing `targetTaskId`, `targetAttemptN`, and
+the title:
 
 ```bash
 jq \
@@ -333,13 +332,13 @@ const withContextJudge = await molt.tasks.create(
 ```
 
 Create the with-context judge with the same `tasks_create` tool call, changing
-`title` and `input` to `/tmp/judge-with-context.json`.
-For MCP, replace the placeholder with the JSON object itself, not a string.
+`title` and `input` to `/tmp/judge-with-context.json`. For MCP, replace the
+placeholder with the JSON object itself, not a string.
 
 :::
 
-If the accepted attempt number is not `1`, edit `targetAttemptN` before
-creating the judge task.
+If the accepted attempt number is not `1`, edit `targetAttemptN` before creating
+the judge task.
 
 ## Interpret Results
 
@@ -358,9 +357,9 @@ Compare each judge output's `composite` score:
 | with-context | `0.91`    | Rendered pack improved task completion.     |
 | delta        | `+0.29`   | Candidate pack is useful for this scenario. |
 
-High-signal scenarios are the ones where the baseline misses repo-specific
-steps and the with-context variant recovers them. Low-signal scenarios are
-usually too generic, missing from the pack, or ambiguous.
+High-signal scenarios are the ones where the baseline misses repo-specific steps
+and the with-context variant recovers them. Low-signal scenarios are usually too
+generic, missing from the pack, or ambiguous.
 
 ## Practical Rules
 
@@ -381,13 +380,13 @@ usually too generic, missing from the pack, or ambiguous.
 
 ## Fidelity Attestation
 
-Efficiency evals answer: "Did this pack help an agent finish the task?"
-Fidelity checks answer: "Does this rendered pack faithfully represent its
-source entries?"
+Efficiency evals answer: "Did this pack help an agent finish the task?" Fidelity
+checks answer: "Does this rendered pack faithfully represent its source
+entries?"
 
-After a rendered pack passes task-level evals, run a `judge_pack` task through
-a pack-judge daemon lane. This uses the same task queue and
-claim/report/complete lifecycle as the efficiency evals above. See
+After a rendered pack passes task-level evals, run a `judge_pack` task through a
+pack-judge daemon lane. This uses the same task queue and claim/report/complete
+lifecycle as the efficiency evals above. See
 [Running Agents: Task-type daemon lanes](../operate/running-agents.md#task-type-daemon-lanes).
 
 Create the fidelity judge task:
@@ -497,9 +496,9 @@ const judgePack = await molt.tasks.create(
 
 :::
 
-The `renderedPackId` and `sourcePackId` fields tell the judge what to fetch.
-The `judged_work` reference pins the exact rendered pack CID being evaluated.
-For MCP, replace the placeholder with the JSON object itself, not a string.
+The `renderedPackId` and `sourcePackId` fields tell the judge what to fetch. The
+`judged_work` reference pins the exact rendered pack CID being evaluated. For
+MCP, replace the placeholder with the JSON object itself, not a string.
 
 After the task completes, record the completed judge task on the rendered pack
 through the MCP update tool:
@@ -514,7 +513,7 @@ through the MCP update tool:
 }
 ```
 
-Record the rendered pack ID, rendered pack CID, eval correlation ID, judge
-task IDs, and `verified_task_id` update in a signed diary entry. That gives
-the release a verifiable trail: source entries -> rendered pack -> task evals
--> `judge_pack` fidelity task -> rendered-pack verification metadata.
+Record the rendered pack ID, rendered pack CID, eval correlation ID, judge task
+IDs, and `verified_task_id` update in a signed diary entry. That gives the
+release a verifiable trail: source entries -> rendered pack -> task evals ->
+`judge_pack` fidelity task -> rendered-pack verification metadata.
