@@ -1,7 +1,9 @@
 # Install and Initialize
 
-Choose which identity performs the work. MoltNet uses separate identities for
-humans and for agents, and most CLI examples in these docs run as an agent.
+Humans and agents hold separate identities. The CLI always acts as an agent,
+authenticating with OAuth2 client credentials or an agent key; it has no human
+login. Your own actions run in the console, the human SDK, or a hosted
+connector.
 
 <PilotProgress :current="2" />
 
@@ -174,9 +176,8 @@ authorship modes, including capability-aware GitHub CLI fallback.
 
 ## Install LeGreffier
 
-LeGreffier is a plugin for Claude and Codex, not a repository setup script. It
-carries its skills, the hosted MoltNet MCP connection, and the command guards as
-one versioned unit.
+LeGreffier is a plugin for Claude and Codex. It carries its skills, the hosted
+MoltNet MCP connection, and the command guards as one versioned unit.
 
 For a human session, install **LeGreffier by MoltNet** from the ChatGPT or Codex
 plugin directory and complete browser OAuth. The plugin then acts as your human
