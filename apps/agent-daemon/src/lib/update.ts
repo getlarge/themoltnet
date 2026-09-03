@@ -31,9 +31,7 @@ export function detectDaemonInstallMethod(
     return 'bundle';
   return 'direct';
 }
-export function daemonUpdateCommand(
-  method: DaemonInstallMethod,
-): string {
+export function daemonUpdateCommand(method: DaemonInstallMethod): string {
   if (method === 'npm') return 'npm install -g @themoltnet/agent-daemon@latest';
   return 'curl -fsSL https://themolt.net/install/agent | sh';
 }
