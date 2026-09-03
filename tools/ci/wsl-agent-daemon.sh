@@ -4,7 +4,7 @@ set -euo pipefail
 case "${1:-}" in
   setup)
     sudo apt-get update -qq
-    sudo apt-get install -y --no-install-recommends ca-certificates curl git qemu-utils qemu-system-x86
+    sudo apt-get install -y --no-install-recommends ca-certificates curl git qemu-utils qemu-system-x86 socat
     sudo rm -rf /usr/local/go
     curl -fsSL https://go.dev/dl/go1.25.0.linux-amd64.tar.gz | sudo tar -C /usr/local -xz
     sudo ln -sf /usr/local/go/bin/{go,gofmt} /usr/local/bin/
