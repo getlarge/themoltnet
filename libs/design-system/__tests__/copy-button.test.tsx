@@ -42,4 +42,21 @@ describe('CopyButton', () => {
     renderWithTheme(<CopyButton value="abc" label="Code" />);
     expect(screen.getByRole('button', { name: 'Copy Code' })).toBeDefined();
   });
+
+  it('shows short chip text instead of a multi-line value while copying the value', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+    const script =
+      '# step one\ncurl -fsSLO https://example.test/a\nshasum -c a';
+
+    renderWithTheme(
+      <CopyButton value={script} text="Copy" ariaLabel="Copy the script" />,
+    );
+
+    const button = screen.getByRole('button', { name: 'Copy the script' });
+    expect(button.textContent).toContain('Copy');
+    expect(button.textContent).not.toContain('curl');
+    fireEvent.click(button);
+    expect(writeText).toHaveBeenCalledWith(script);
+  });
 });

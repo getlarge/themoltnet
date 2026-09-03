@@ -1,10 +1,6 @@
 import {
   MOLTNET_AGENT_INSTALL_COMMAND,
   MOLTNET_AGENTS_INIT_COMMAND,
-  MOLTNET_CLI_INSTALL_APT_COMMAND,
-  MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND,
-  MOLTNET_CLI_INSTALL_NPM_COMMAND,
-  MOLTNET_CLI_INSTALL_SCOOP_COMMAND,
 } from '@moltnet/discovery';
 import {
   ActionLink,
@@ -12,27 +8,29 @@ import {
   CodeBlock,
   Container,
   ControlSurface,
+  CopyButton,
   Stack,
   Text,
   useTheme,
 } from '@themoltnet/design-system';
-import { useEffect } from 'react';
 import { Link } from 'wouter';
 
 import { getConfig } from '../config';
 import { CONSOLE_BASE_URL, GITHUB_REPO_URL, NAV_OFFSET } from '../constants';
+import {
+  CLI_CHECKSUMS_PATH,
+  CLI_CHECKSUMS_SIGNATURE_PATH,
+  CLI_INSTALLERS,
+  CLI_PLATFORMS,
+  cliDownloadPath,
+  cliVerifyCommands,
+  DOWNLOAD_PATH,
+  DOWNLOAD_VERIFY_PATH,
+  PLATFORM_LABELS,
+} from '../downloads';
+import { useHashTarget } from '../hooks/useHashTarget';
 
-const cliInstall = `# Homebrew (macOS / Linux)
-${MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND}
-
-# APT (Debian / Ubuntu)
-${MOLTNET_CLI_INSTALL_APT_COMMAND}
-
-# Scoop (Windows)
-${MOLTNET_CLI_INSTALL_SCOOP_COMMAND}
-
-# Or npm (all platforms)
-${MOLTNET_CLI_INSTALL_NPM_COMMAND}`;
+const TRACK_IDS = ['human', 'agent'] as const;
 
 const humanSteps = [
   {
@@ -47,14 +45,37 @@ const humanSteps = [
     title: 'Start with project context',
     body: 'Invoke the LeGreffier onboarding skill. It inspects the repository, discovers the team diary, and guides the first accountable commit.',
   },
-] as const;
+] as const satisfies readonly Step[];
+
+const cliDownloads: readonly StepLink[] = [
+  ...CLI_PLATFORMS.map(({ id, archive }) => ({
+    href: cliDownloadPath(id),
+    label: PLATFORM_LABELS[id],
+    detail: `.${archive}`,
+  })),
+  { href: CLI_CHECKSUMS_PATH, label: 'checksums.txt' },
+  { href: CLI_CHECKSUMS_SIGNATURE_PATH, label: 'checksums.txt.sig' },
+];
 
 const agentSteps = [
   {
     title: 'Install the MoltNet CLI',
-    code: cliInstall,
-    body: 'The CLI owns agent identity and credential lifecycle independently of any coding host.',
-    link: { href: '/download', label: 'All platforms and signed binaries' },
+    body: 'The CLI owns agent identity and credential lifecycle independently of any coding host. Pick the package manager for your platform; each one verifies what it installs.',
+    installers: CLI_INSTALLERS,
+    downloads: {
+      label: 'Direct download',
+      links: cliDownloads,
+    },
+    link: { href: DOWNLOAD_PATH, label: 'Every platform and the agent bundle' },
+  },
+  {
+    title: 'Verify the download',
+    code: cliVerifyCommands(),
+    body: 'Every archive is listed in a SHA-256 checksum file, and that file carries a detached ssh-ed25519 signature from the MoltNet publisher key served on this domain. The package managers above and the agent installer verify what they install; do these checks by hand whenever you fetch an archive directly. On Windows, compare Get-FileHash output against checksums.txt.',
+    link: {
+      href: DOWNLOAD_VERIFY_PATH,
+      label: 'Full verification guide and publisher key',
+    },
   },
   {
     title: 'Initialize the agent',
@@ -69,37 +90,16 @@ const agentSteps = [
   {
     title: 'Run the agent daemon',
     code: MOLTNET_AGENT_INSTALL_COMMAND,
-    body: 'One command installs the signed moltnet-agent bundle—its own Node runtime, sandbox tooling, and a login service that pairs with the Console. Re-run it to upgrade; --uninstall removes everything it created. macOS (Apple Silicon) and Linux.',
+    body: 'One command installs the signed moltnet-agent bundle—its own Node runtime, sandbox tooling, and a login service that pairs with the Console. It verifies the bundle checksum and signature before extracting. Re-run it to upgrade; --uninstall removes everything it created. macOS (Apple Silicon) and Linux.',
+    link: { href: DOWNLOAD_PATH, label: 'Agent bundle archives and checksums' },
   },
-] as const;
+] as const satisfies readonly Step[];
 
 export function GettingStartedPage() {
   const theme = useTheme();
   const { docsUrl } = getConfig();
 
-  useEffect(() => {
-    let focusTimer: number | undefined;
-
-    const focusHashTarget = () => {
-      window.clearTimeout(focusTimer);
-      focusTimer = window.setTimeout(() => {
-        const id = window.location.hash.slice(1);
-        if (id !== 'human' && id !== 'agent') return;
-
-        const target = document.getElementById(id);
-        target?.scrollIntoView?.({ block: 'start' });
-        target?.focus({ preventScroll: true });
-      }, 0);
-    };
-
-    focusHashTarget();
-    window.addEventListener('hashchange', focusHashTarget);
-
-    return () => {
-      window.clearTimeout(focusTimer);
-      window.removeEventListener('hashchange', focusHashTarget);
-    };
-  }, []);
+  useHashTarget(TRACK_IDS);
 
   const cssVariables = {
     '--ops-void': theme.color.bg.void,
@@ -127,9 +127,7 @@ export function GettingStartedPage() {
       <header className="ops-start-hero">
         <Container maxWidth="lg">
           <span className="ops-kicker">Identity before integration</span>
-          <Text variant="h1" className="ops-display">
-            One network. Two honest ways in.
-          </Text>
+          <Text variant="display">One network. Two honest ways in.</Text>
           <Text variant="bodyLarge" color="secondary">
             A human session and an autonomous agent are different principals.
             MoltNet keeps their installation, credentials, and authority
@@ -259,11 +257,29 @@ export function GettingStartedPage() {
   );
 }
 
+type StepLink = {
+  readonly href: string;
+  readonly label: string;
+  /** Trailing mono detail such as the archive extension. */
+  readonly detail?: string;
+};
+
 type Step = {
   readonly title: string;
   readonly body: string;
   readonly code?: string;
-  readonly link?: { readonly href: string; readonly label: string };
+  /** One command block per package manager, each with its own Copy chip. */
+  readonly installers?: readonly {
+    readonly id: string;
+    readonly title: string;
+    readonly command: string;
+  }[];
+  /** A compact row of same-domain file links (binaries, checksums). */
+  readonly downloads?: {
+    readonly label: string;
+    readonly links: readonly StepLink[];
+  };
+  readonly link?: StepLink;
 };
 
 function OnboardingTrack({
@@ -315,10 +331,61 @@ function OnboardingTrack({
                 {String(stepIndex + 1).padStart(2, '0')}
               </span>
               <div>
-                <Text variant="h4">{step.title}</Text>
+                <Text variant="h3" className="ops-start-step-title">
+                  {step.title}
+                </Text>
                 <Text color="secondary">{step.body}</Text>
                 {step.code ? (
-                  <CodeBlock language="bash">{step.code}</CodeBlock>
+                  <div className="ops-download-command">
+                    <CodeBlock language="bash">{step.code}</CodeBlock>
+                    <CopyButton
+                      value={step.code}
+                      text="Copy"
+                      size="sm"
+                      ariaLabel={`Copy commands: ${step.title}`}
+                    />
+                  </div>
+                ) : null}
+                {step.installers ? (
+                  <ul className="ops-start-step-installers">
+                    {step.installers.map((installer) => (
+                      <li key={installer.id}>
+                        <span className="ops-start-step-installer-title">
+                          {installer.title}
+                        </span>
+                        <div className="ops-download-command">
+                          <CodeBlock language="bash">
+                            {installer.command}
+                          </CodeBlock>
+                          <CopyButton
+                            value={installer.command}
+                            text="Copy"
+                            size="sm"
+                            ariaLabel={`Copy: ${installer.title}`}
+                          />
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                {step.downloads ? (
+                  <div className="ops-start-step-downloads">
+                    <span className="ops-start-step-downloads-label">
+                      {step.downloads.label}
+                    </span>
+                    <ul>
+                      {step.downloads.links.map((file) => (
+                        <li key={file.href}>
+                          <a href={file.href}>{file.label}</a>
+                          {file.detail ? (
+                            <span className="ops-download-format">
+                              {file.detail}
+                            </span>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 ) : null}
                 {step.link ? (
                   <Link className="ops-start-step-link" href={step.link.href}>

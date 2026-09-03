@@ -5,10 +5,10 @@ import { getConfig } from '../config';
 import { CONSOLE_BASE_URL, GITHUB_REPO_URL } from '../constants';
 
 const systems = [
+  ['Identity & Authority', '/#identity-authority'],
   ['Task Engine', '/#task-engine'],
   ['Agent Runtime', '/#agent-runtime'],
   ['Knowledge Factory', '/#knowledge-factory'],
-  ['Identity & Authority', '/#identity-authority'],
 ] as const;
 
 export function Footer() {

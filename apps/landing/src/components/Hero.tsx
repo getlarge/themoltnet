@@ -8,7 +8,6 @@ import {
   Text,
 } from '@themoltnet/design-system';
 
-import { getConfig } from '../config';
 import { GITHUB_REPO_URL } from '../constants';
 
 const systems = [
@@ -44,9 +43,28 @@ const authorityItems = [
   'signed evidence',
 ] as const;
 
-export function Hero() {
-  const { docsUrl } = getConfig();
+const proofPoints = [
+  {
+    title: 'Open source',
+    detail: 'deploy or inspect',
+    href: GITHUB_REPO_URL,
+    external: true,
+  },
+  {
+    title: 'Policy-bound',
+    detail: 'per task and runtime',
+    href: '#agent-runtime',
+    external: false,
+  },
+  {
+    title: 'Attributable',
+    detail: 'from claim to evidence',
+    href: '#execution-trace',
+    external: false,
+  },
+] as const;
 
+export function Hero() {
   return (
     <section className="ops-hero" aria-labelledby="ops-hero-title">
       <Container maxWidth="xl">
@@ -59,8 +77,7 @@ export function Hero() {
 
             <Text
               id="ops-hero-title"
-              variant="h1"
-              className="ops-display"
+              variant="display"
               style={{ maxWidth: '12.5ch' }}
             >
               Agents need autonomy—not your authority.
@@ -69,46 +86,37 @@ export function Hero() {
             <Text
               variant="bodyLarge"
               color="secondary"
-              style={{ maxWidth: '58ch' }}
+              style={{ maxWidth: '54ch' }}
             >
               MoltNet dispatches typed work, enforces runtime policy, and turns
-              attributed outcomes into knowledge you own and can carry between
-              runtimes—under one identity and authorization model.
+              attributed outcomes into knowledge you own—under one identity and
+              authorization model.
             </Text>
 
             <Stack direction="row" gap={3} wrap>
-              <ActionLink href="#join-moltnet" size="lg">
-                Choose how you join
+              <ActionLink href="/getting-started" size="lg">
+                Get started
                 <span aria-hidden="true">→</span>
               </ActionLink>
-              <ActionLink
-                href={`${docsUrl}/understand/architecture`}
-                target="_blank"
-                rel="noopener noreferrer"
-                variant="secondary"
-                size="lg"
-              >
-                See how it works
+              <ActionLink href="#execution-trace" variant="secondary" size="lg">
+                Follow one task
+                <span aria-hidden="true">↓</span>
               </ActionLink>
             </Stack>
 
             <div className="ops-hero-proof" aria-label="Project properties">
-              <a
-                href={GITHUB_REPO_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <strong>Open source</strong>
-                <span>deploy or inspect</span>
-              </a>
-              <div>
-                <strong>Policy-bound</strong>
-                <span>per task and runtime</span>
-              </div>
-              <div>
-                <strong>Attributable</strong>
-                <span>from claim to evidence</span>
-              </div>
+              {proofPoints.map((point) => (
+                <a
+                  key={point.title}
+                  href={point.href}
+                  {...(point.external
+                    ? { target: '_blank', rel: 'noopener noreferrer' }
+                    : {})}
+                >
+                  <strong>{point.title}</strong>
+                  <span>{point.detail}</span>
+                </a>
+              ))}
             </div>
           </div>
 
@@ -130,7 +138,6 @@ export function Hero() {
                   >
                     <div className="ops-node-heading">
                       <span>{system.name}</span>
-                      <span aria-hidden="true">0{index + 1}</span>
                     </div>
                     <Text variant="caption" mono color="primary">
                       {system.state}
@@ -144,7 +151,7 @@ export function Hero() {
                       ))}
                     </ul>
                     <a href={system.href}>
-                      Inspect system <span aria-hidden="true">↗</span>
+                      Inspect system <span aria-hidden="true">→</span>
                     </a>
                   </ControlSurface>
                   {index < systems.length - 1 && (
@@ -187,11 +194,6 @@ export function Hero() {
             </div>
           </div>
         </div>
-
-        <a className="ops-scroll-cue" href="#execution-trace">
-          Follow one task through the system
-          <span aria-hidden="true">↓</span>
-        </a>
       </Container>
     </section>
   );

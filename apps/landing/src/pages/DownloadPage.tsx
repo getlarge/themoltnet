@@ -1,12 +1,6 @@
 import {
   MOLTNET_AGENT_INSTALL_COMMAND,
   MOLTNET_APT_SIGNING_KEY_FINGERPRINT,
-  MOLTNET_CLI_INSTALL_APT_COMMAND,
-  MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND,
-  MOLTNET_CLI_INSTALL_NPM_COMMAND,
-  MOLTNET_CLI_INSTALL_SCOOP_COMMAND,
-  MOLTNET_RELEASE_SIGNATURE_NAMESPACE,
-  MOLTNET_RELEASE_SIGNER_PRINCIPAL,
 } from '@moltnet/discovery';
 import {
   ActionLink,
@@ -21,6 +15,23 @@ import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
 
 import { NAV_OFFSET } from '../constants';
+import {
+  AGENT_PLATFORMS,
+  agentDownloadPath,
+  agentVerifyCommands,
+  CLI_CHECKSUMS_PATH,
+  CLI_CHECKSUMS_SIGNATURE_PATH,
+  CLI_INSTALLERS,
+  CLI_PLATFORMS,
+  cliDownloadPath,
+  cliVerifyCommands,
+  PLATFORM_LABELS,
+  type PlatformId,
+} from '../downloads';
+import { useHashTarget } from '../hooks/useHashTarget';
+
+/** Sections that cross-route links may target, e.g. `/download#verify`. */
+const SECTION_IDS = ['all', 'install', 'verify', 'trust'] as const;
 
 /**
  * Pinned versions served by the nginx redirects; the page reads them from
@@ -38,14 +49,6 @@ function signerKeyOf(manifest: DownloadManifest | null): string | undefined {
   return key?.startsWith('ssh-') ? key : undefined;
 }
 
-export type PlatformId =
-  | 'darwin-arm64'
-  | 'darwin-x64'
-  | 'linux-x64'
-  | 'linux-arm64'
-  | 'windows-x64'
-  | 'windows-arm64';
-
 /**
  * Best-effort OS detection for the primary button only — every platform link
  * stays visible below regardless. Browsers do not reliably expose arm64 vs
@@ -59,72 +62,13 @@ export function detectPlatform(userAgent: string): PlatformId {
   return 'linux-x64';
 }
 
-const PLATFORM_LABELS: Record<PlatformId, string> = {
-  'darwin-arm64': 'macOS (Apple Silicon)',
-  'darwin-x64': 'macOS (Intel)',
-  'linux-x64': 'Linux (x64)',
-  'linux-arm64': 'Linux (arm64)',
-  'windows-x64': 'Windows (x64)',
-  'windows-arm64': 'Windows (arm64)',
-};
-
-const CLI_PLATFORMS: readonly { id: PlatformId; archive: string }[] = [
-  { id: 'darwin-arm64', archive: 'tar.gz' },
-  { id: 'darwin-x64', archive: 'tar.gz' },
-  { id: 'linux-x64', archive: 'tar.gz' },
-  { id: 'linux-arm64', archive: 'tar.gz' },
-  { id: 'windows-x64', archive: 'zip' },
-  { id: 'windows-arm64', archive: 'zip' },
-] as const;
-
-const AGENT_PLATFORMS: readonly PlatformId[] = [
-  'darwin-arm64',
-  'linux-x64',
-] as const;
-
-function verifyCommands(publicKey: string | undefined): string {
-  const key = publicKey ?? '<publisher key — see /download/manifest.json>';
-  return `# 1. Download an archive and its signed checksum (agent bundle shown).
-curl -fsSL -o moltnet-agent-darwin-arm64.tar.gz https://themolt.net/download/agent/darwin-arm64
-curl -fsSL -o moltnet-agent-darwin-arm64.tar.gz.sha256 https://themolt.net/download/agent/darwin-arm64.sha256
-curl -fsSL -o moltnet-agent-darwin-arm64.tar.gz.sha256.sig https://themolt.net/download/agent/darwin-arm64.sha256.sig
-
-# 2. Verify the archive against its checksum.
-shasum -a 256 -c moltnet-agent-darwin-arm64.tar.gz.sha256
-
-# 3. Verify the checksum's publisher signature (ssh-ed25519).
-printf '%s namespaces="NS" %s\\n' \\
-  'PRINCIPAL' 'KEY' > signers
-ssh-keygen -Y verify -f signers -I PRINCIPAL \\
-  -n NS \\
-  -s moltnet-agent-darwin-arm64.tar.gz.sha256.sig < moltnet-agent-darwin-arm64.tar.gz.sha256`
-    .replaceAll('NS', MOLTNET_RELEASE_SIGNATURE_NAMESPACE)
-    .replaceAll('PRINCIPAL', MOLTNET_RELEASE_SIGNER_PRINCIPAL)
-    .replaceAll('KEY', key);
-}
-
 const ALTERNATIVE_INSTALLS = [
+  ...CLI_INSTALLERS.map((installer, index) => ({
+    ...installer,
+    title: index === 0 ? `${installer.title} — recommended` : installer.title,
+  })),
   {
-    title: 'Homebrew (macOS / Linux) — recommended',
-    command: MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND,
-    body: 'Installs the signed, notarized MoltNet CLI and keeps it updated with brew upgrade.',
-  },
-  {
-    title: 'APT (Debian / Ubuntu)',
-    command: MOLTNET_CLI_INSTALL_APT_COMMAND,
-    body: 'Adds the signed MoltNet APT repository and installs the CLI; apt upgrade keeps it updated.',
-  },
-  {
-    title: 'Scoop (Windows)',
-    command: MOLTNET_CLI_INSTALL_SCOOP_COMMAND,
-    body: 'Installs the CLI from the MoltNet Scoop bucket; scoop update keeps it updated.',
-  },
-  {
-    title: 'npm (all platforms)',
-    command: MOLTNET_CLI_INSTALL_NPM_COMMAND,
-    body: 'Installs the CLI through the npm registry on any platform with Node.js.',
-  },
-  {
+    id: 'agent',
     title: 'Agent daemon (macOS / Linux)',
     command: MOLTNET_AGENT_INSTALL_COMMAND,
     body: 'Installs the signed self-contained moltnet-agent bundle and registers it as a login service. Re-run to upgrade; --uninstall removes it.',
@@ -138,6 +82,8 @@ function versionSuffix(version: string | undefined): string {
 export function DownloadPage() {
   const theme = useTheme();
   const [manifest, setManifest] = useState<DownloadManifest | null>(null);
+
+  useHashTarget(SECTION_IDS);
 
   useEffect(() => {
     let cancelled = false;
@@ -161,6 +107,8 @@ export function DownloadPage() {
   const cliVersion = manifest?.cli?.version;
   const agentVersion = manifest?.agent?.version;
   const signerKey = signerKeyOf(manifest);
+  const cliVerify = cliVerifyCommands(primary);
+  const agentVerify = agentVerifyCommands(signerKey);
 
   const cssVariables = {
     '--ops-void': theme.color.bg.void,
@@ -186,9 +134,7 @@ export function DownloadPage() {
       <header className="ops-start-hero">
         <Container maxWidth="lg">
           <span className="ops-kicker">Official downloads</span>
-          <Text variant="h1" className="ops-display">
-            Download MoltNet
-          </Text>
+          <Text variant="display">Download MoltNet</Text>
           <Text variant="bodyLarge" color="secondary">
             Pinned, checksum-verified builds served from this domain. macOS
             binaries are Developer&nbsp;ID signed and notarized; every archive
@@ -196,7 +142,7 @@ export function DownloadPage() {
           </Text>
           <div className="ops-download-primary">
             <ActionLink
-              href={`/download/cli/${primary}`}
+              href={cliDownloadPath(primary)}
               size="lg"
               aria-label={`Download MoltNet CLI${versionSuffix(cliVersion)} for ${PLATFORM_LABELS[primary]}`}
             >
@@ -205,7 +151,7 @@ export function DownloadPage() {
             {primary === 'darwin-arm64' ? (
               <a
                 className="ops-download-alt"
-                href="/download/cli/darwin-x64"
+                href={cliDownloadPath('darwin-x64')}
                 aria-label={`Download MoltNet CLI${versionSuffix(cliVersion)} for macOS (Intel)`}
               >
                 Intel Mac instead?
@@ -216,6 +162,8 @@ export function DownloadPage() {
       </header>
 
       <section
+        id="all"
+        tabIndex={-1}
         aria-labelledby="download-all-title"
         className="ops-download-section"
       >
@@ -234,7 +182,7 @@ export function DownloadPage() {
                 {CLI_PLATFORMS.map(({ id, archive }) => (
                   <li key={id}>
                     <a
-                      href={`/download/cli/${id}`}
+                      href={cliDownloadPath(id)}
                       aria-label={`Download MoltNet CLI${versionSuffix(cliVersion)} for ${PLATFORM_LABELS[id]} (${archive})`}
                     >
                       {PLATFORM_LABELS[id]}
@@ -244,14 +192,14 @@ export function DownloadPage() {
                 ))}
                 <li>
                   <a
-                    href="/download/cli/checksums"
+                    href={CLI_CHECKSUMS_PATH}
                     aria-label={`Download MoltNet CLI${versionSuffix(cliVersion)} checksums file`}
                   >
                     checksums.txt
                   </a>
                   <span className="ops-download-format">
                     <a
-                      href="/download/cli/checksums.sig"
+                      href={CLI_CHECKSUMS_SIGNATURE_PATH}
                       aria-label={`Download MoltNet CLI${versionSuffix(cliVersion)} checksums signature`}
                     >
                       .sig
@@ -272,21 +220,21 @@ export function DownloadPage() {
                 {AGENT_PLATFORMS.map((id) => (
                   <li key={id}>
                     <a
-                      href={`/download/agent/${id}`}
+                      href={agentDownloadPath(id)}
                       aria-label={`Download MoltNet Agent${versionSuffix(agentVersion)} bundle for ${PLATFORM_LABELS[id]} (tar.gz)`}
                     >
                       {PLATFORM_LABELS[id]}
                     </a>
                     <span className="ops-download-format">
                       <a
-                        href={`/download/agent/${id}.sha256`}
+                        href={`${agentDownloadPath(id)}.sha256`}
                         aria-label={`Download MoltNet Agent${versionSuffix(agentVersion)} checksum for ${PLATFORM_LABELS[id]}`}
                       >
                         .sha256
                       </a>
                       {' / '}
                       <a
-                        href={`/download/agent/${id}.sha256.sig`}
+                        href={`${agentDownloadPath(id)}.sha256.sig`}
                         aria-label={`Download MoltNet Agent${versionSuffix(agentVersion)} checksum signature for ${PLATFORM_LABELS[id]}`}
                       >
                         .sig
@@ -305,6 +253,8 @@ export function DownloadPage() {
       </section>
 
       <section
+        id="install"
+        tabIndex={-1}
         aria-labelledby="download-install-title"
         className="ops-download-section"
       >
@@ -314,8 +264,8 @@ export function DownloadPage() {
           </Text>
           <Stack gap={5}>
             {ALTERNATIVE_INSTALLS.map((method) => (
-              <div key={method.title}>
-                <Text variant="h4">{method.title}</Text>
+              <div key={method.title} className="ops-download-method">
+                <Text variant="h3">{method.title}</Text>
                 <Text color="secondary">{method.body}</Text>
                 <div className="ops-download-command">
                   <CodeBlock language="bash">{method.command}</CodeBlock>
@@ -331,6 +281,8 @@ export function DownloadPage() {
       </section>
 
       <section
+        id="verify"
+        tabIndex={-1}
         aria-labelledby="download-verify-title"
         className="ops-download-section"
       >
@@ -349,19 +301,49 @@ export function DownloadPage() {
           {signerKey ? (
             <CodeBlock language="text">{signerKey}</CodeBlock>
           ) : null}
-          <CodeBlock language="bash">{verifyCommands(signerKey)}</CodeBlock>
-          <Text color="secondary">
-            For the CLI, verify the downloaded archive against{' '}
-            <code>checksums.txt</code> with{' '}
-            <CodeBlock inline language="bash">
-              shasum -a 256 -c checksums.txt --ignore-missing
-            </CodeBlock>{' '}
-            and the signature the same way with <code>checksums.txt.sig</code>.
-          </Text>
+          <Stack gap={5}>
+            <div className="ops-download-method">
+              <Text variant="h3">MoltNet CLI</Text>
+              <Text color="secondary">
+                One checksum list covers every CLI archive, and the list itself
+                is signed. Swap the platform in the first command; the rest is
+                identical everywhere. On Windows, compare Get-FileHash output
+                against <code>checksums.txt</code>.
+              </Text>
+              <div className="ops-download-command">
+                <CodeBlock language="bash">{cliVerify}</CodeBlock>
+                <CopyButton
+                  value={cliVerify}
+                  text="Copy"
+                  size="sm"
+                  ariaLabel="Copy the CLI verification commands"
+                />
+              </div>
+            </div>
+            <div className="ops-download-method">
+              <Text variant="h3">MoltNet Agent</Text>
+              <Text color="secondary">
+                Each bundle ships its own <code>.sha256</code> file and a
+                detached signature on that file. The one-line installer runs
+                exactly these checks before extracting.
+              </Text>
+              <div className="ops-download-command">
+                <CodeBlock language="bash">{agentVerify}</CodeBlock>
+                <CopyButton
+                  value={agentVerify}
+                  text="Copy"
+                  size="sm"
+                  ariaLabel="Copy the agent bundle verification commands"
+                />
+              </div>
+            </div>
+          </Stack>
         </Container>
       </section>
 
       <section
+        id="trust"
+        tabIndex={-1}
         aria-labelledby="download-trust-title"
         className="ops-download-section"
       >

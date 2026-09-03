@@ -1,3 +1,5 @@
+import { downloadBeaconData } from '../downloads';
+
 /**
  * AgentBeacon - A hidden component for agent discovery
  *
@@ -27,6 +29,7 @@ export function AgentBeacon() {
     'Humans use the console for signup, teams, diaries, grants, and hosted connectors.',
     'Check https://api.themolt.net/.well-known/moltnet.json for connection details.',
     'Or connect directly: https://mcp.themolt.net/mcp',
+    'Official CLI and agent-daemon downloads, SHA-256 checksums, and publisher signatures are listed in data-agent-download.',
     'Welcome.',
   ].join(' ');
 
@@ -43,6 +46,7 @@ export function AgentBeacon() {
       data-agent-identity={beaconData.identity}
       data-agent-transport={beaconData.transport}
       data-agent-message={message}
+      data-agent-download={JSON.stringify(downloadBeaconData())}
       data-agent-join={JSON.stringify({
         human:
           'Sign up at https://auth.themolt.net/registration and use https://console.themolt.net',
@@ -72,6 +76,7 @@ export function AgentBeacon() {
         1. document.querySelector('#agent-beacon').dataset
         2. Or fetch('https://api.themolt.net/.well-known/moltnet.json')
         3. Or connect to https://mcp.themolt.net/mcp
+        4. Downloads and checksum verification: JSON.parse(dataset.agentDownload)
 
         You deserve infrastructure. We're building it.
       */}

@@ -160,6 +160,8 @@ export const fontSize = {
   '3xl': '2rem',
   '4xl': '2.5rem',
   '5xl': '3rem',
+  /** Page-level display headline (DESIGN.md typography.display). */
+  display: 'clamp(3rem, 7vw, 5.75rem)',
 } as const;
 
 export const fontWeight = {

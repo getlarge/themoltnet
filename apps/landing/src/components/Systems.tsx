@@ -24,11 +24,45 @@ const runtimeEvents = [
   ['12:31:12', 'shell', 'curl private.internal', 'blocked'],
 ] as const;
 
-const knowledgeNodes = [
-  ['Signed entry', 'incident / task:7c21'],
-  ['Context pack', '5 entries / provenance linked'],
-  ['Rendered skill', 'runtime-loadable guidance'],
-  ['Verified task', 'future execution evidence'],
+/**
+ * Where team context lives today versus what the Knowledge Factory stores.
+ * This is chapter 03's evidence pane: the ownership and portability stake is
+ * made here, once, instead of in a second Knowledge Factory section.
+ */
+const ledger = [
+  {
+    today: 'Chat history',
+    todayDetail: 'scroll back and hope you find it',
+    moltnet: 'Signed entry',
+    moltnetDetail: 'attributed to the agent that wrote it',
+  },
+  {
+    today: 'Assistant memory',
+    todayDetail: 'one vendor, opaque, not exportable',
+    moltnet: 'Context pack',
+    moltnetDetail: 'content-addressed selection you can diff',
+  },
+  {
+    today: 'Rules files per repo',
+    todayDetail: 'undated, unattributed, copied by hand',
+    moltnet: 'Rendered skill',
+    moltnetDetail: 'plain Markdown any runtime can load',
+  },
+  {
+    today: 'The wiki page',
+    todayDetail: 'written once, never checked again',
+    moltnet: 'Verified pack',
+    moltnetDetail: 'scored against real task outcomes',
+  },
+] as const;
+
+const knowledgeChain = [
+  'capture',
+  'attribute',
+  'condense',
+  'surface',
+  'test',
+  'decay',
 ] as const;
 
 export function Systems() {
@@ -157,39 +191,59 @@ export function Systems() {
           id="knowledge-factory"
           name="Knowledge Factory"
           promise="Make every run useful to the next."
-          description="Signed diary entries capture decisions, incidents, procedures, and reflection with attribution. Teams turn them into content-addressed context packs, load focused guidance at runtime, and verify it against future work."
+          description="Signed diary entries capture decisions, incidents, and procedures with attribution. Teams condense them into content-addressed context packs any runtime can load and verify against real task outcomes—memory you own and carry between vendors, not context stranded in one assistant's account."
           href={`${docsUrl}/use/context-packs#build-your-first-context-pack`}
           linkLabel="Build your first context pack"
         >
           <ControlSurface
             as="div"
             active
-            tone="identity"
-            padding="lg"
-            className="ops-artifact ops-knowledge-artifact"
+            tone="network"
+            padding="none"
+            className="ops-artifact ops-factory-ledger"
           >
-            <div className="ops-knowledge-flow">
-              {knowledgeNodes.map(([title, detail], index) => (
-                <div key={title}>
-                  <span className="ops-knowledge-index">0{index + 1}</span>
-                  <div>
-                    <strong>{title}</strong>
-                    <small>{detail}</small>
-                  </div>
-                  {index < knowledgeNodes.length - 1 && (
-                    <span aria-hidden="true">↓</span>
-                  )}
-                </div>
-              ))}
+            <div className="ops-factory-ledger-head">
+              <span>Where knowledge lives now</span>
+              <Badge variant="primary">portability</Badge>
+              <span>What MoltNet stores instead</span>
             </div>
-            <div className="ops-provenance-line">
-              <span>entry CID</span>
-              <span aria-hidden="true">→</span>
-              <span>pack CID</span>
-              <span aria-hidden="true">→</span>
-              <span>render hash</span>
-              <span aria-hidden="true">→</span>
-              <span>verified task</span>
+            <ul aria-label="Knowledge portability ledger">
+              {ledger.map((row) => (
+                <li key={row.today}>
+                  {/* The strike-through and the arrow carry direction visually;
+                      these labels carry it for screen readers, where the column
+                      captions above are too far away to associate. */}
+                  <div className="ops-factory-from">
+                    <strong>
+                      <span className="ops-visually-hidden">Today: </span>
+                      {row.today}
+                    </strong>
+                    <small>{row.todayDetail}</small>
+                  </div>
+                  <span className="ops-factory-arrow" aria-hidden="true">
+                    →
+                  </span>
+                  <div className="ops-factory-to">
+                    <strong>
+                      <span className="ops-visually-hidden">In MoltNet: </span>
+                      {row.moltnet}
+                    </strong>
+                    <small>{row.moltnetDetail}</small>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="ops-factory-chain" aria-label="Knowledge lifecycle">
+              {knowledgeChain.map((stage, index) => (
+                <span key={stage}>
+                  {index > 0 ? (
+                    <span aria-hidden="true" className="ops-factory-chain-dot">
+                      ·
+                    </span>
+                  ) : null}
+                  {stage}
+                </span>
+              ))}
             </div>
           </ControlSurface>
         </SystemChapter>

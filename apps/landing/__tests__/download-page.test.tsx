@@ -153,4 +153,54 @@ describe('DownloadPage', () => {
       screen.getByRole('heading', { name: 'Verify your download' }),
     ).toBeTruthy();
   });
+
+  it('spells out CLI checksum verification for the detected platform', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+    vi.stubGlobal('navigator', {
+      userAgent: 'Mozilla/5.0 (X11; Linux aarch64)',
+    });
+
+    renderPage();
+
+    expect(
+      screen.getByText(
+        /curl -fsSLOJ https:\/\/themolt\.net\/download\/cli\/linux-arm64/,
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        /curl -fsSLOJ https:\/\/themolt\.net\/download\/cli\/checksums\.sig/,
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(/shasum -a 256 -c checksums\.txt --ignore-missing/),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('button', {
+        name: 'Copy the CLI verification commands',
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('button', {
+        name: 'Copy the agent bundle verification commands',
+      }),
+    ).toBeTruthy();
+  });
+
+  it('focuses the verification section when reached by hash', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+    window.history.replaceState({}, '', '/download#verify');
+    const scrollIntoView = vi.fn();
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+
+    renderPage();
+
+    const verify = document.getElementById('verify');
+    await waitFor(() => expect(verify).toHaveFocus());
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      block: 'start',
+      behavior: 'instant',
+    });
+    window.history.replaceState({}, '', '/');
+  });
 });
