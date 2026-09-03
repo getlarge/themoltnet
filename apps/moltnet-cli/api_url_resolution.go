@@ -12,8 +12,10 @@ import (
 // Precedence (highest first):
 //  1. --api-url, if explicitly set by the user on this invocation.
 //  2. MOLTNET_API_URL, if non-blank.
-//  3. endpoints.api from the resolved credentials file (credPath, or the
-//     auto-discovered default when credPath is empty).
+//  3. endpoints.api from the resolved credentials file. credPath is resolved
+//     through resolveCredentialsPath, the same canonical selection
+//     loadCredentials uses, so a command's endpoint and its identity always
+//     come from one credentials file (issue #2129).
 //  4. defaultAPIURL.
 //
 // This exists so the credentials file is self-contained: an agent bootstrapped
@@ -27,6 +29,9 @@ import (
 // authenticated command and must never fail loudly when credentials are
 // missing or malformed. Downstream code already surfaces credential errors
 // with actionable messages (e.g. loadCredentials → "run 'moltnet register'").
+// Swallowing falls back to defaultAPIURL, never to a different credentials
+// file, so an unreadable activated config cannot redirect a command at the
+// global agent's endpoint.
 func resolveAPIURL(cmd *cobra.Command, credPath string) string {
 	if cmd != nil {
 		if f := cmd.Flag("api-url"); f != nil && f.Changed {
@@ -37,13 +42,11 @@ func resolveAPIURL(cmd *cobra.Command, credPath string) string {
 		return apiURL
 	}
 
-	var creds *CredentialsFile
-	var err error
-	if credPath != "" {
-		creds, err = ReadConfigFrom(credPath)
-	} else {
-		creds, err = ReadConfig()
+	resolved, err := resolveCredentialsPath(credPath)
+	if err != nil {
+		return defaultAPIURL
 	}
+	creds, err := ReadConfigFrom(resolved)
 	if err == nil && creds != nil && creds.Endpoints.API != "" {
 		return creds.Endpoints.API
 	}
