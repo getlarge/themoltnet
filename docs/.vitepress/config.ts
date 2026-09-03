@@ -31,10 +31,10 @@ const repoTreePattern = /\.\.\/(?:apps|libs|packages|infra|tools)\//;
 
 const startSidebar = [
   {
-    text: 'Start a team pilot',
+    text: 'Get started',
     link: '/start/getting-started',
     items: [
-      { text: 'Pilot overview', link: '/start/getting-started' },
+      { text: 'Choose your path', link: '/start/getting-started' },
       {
         text: 'Install and initialize',
         link: '/start/install-and-initialize',

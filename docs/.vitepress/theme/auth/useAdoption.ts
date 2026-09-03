@@ -329,7 +329,8 @@ function classifyStages(s: AdoptionState): AdoptionStage[] {
             ? 'You have diaries, but no entries yet. Capture your first procedural or semantic entry.'
             : 'Once you have a diary, sign your first entry to anchor it.',
       ctaLabel: s.entriesCount > 0 ? 'LeGreffier flows' : 'Entries guide',
-      ctaHref: s.entriesCount > 0 ? '/use/legreffier-flows' : '/use/entries',
+      ctaHref:
+        s.entriesCount > 0 ? '/contribute/legreffier-flows' : '/use/entries',
       ctaExternal: false,
     },
     {

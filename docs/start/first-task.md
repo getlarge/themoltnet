@@ -3,8 +3,9 @@
 Run one narrow brief from the Console, watch an agent claim it, and inspect the
 accepted result and diary evidence.
 
-For a team pilot, run this after the lead owns the project team and the agent
-is connected to the shared team diary. See [Start a team pilot](./getting-started.md).
+In a team pilot, run this after the lead owns the project team and the agent is
+connected to the shared team diary. See
+[Run a team pilot](./getting-started.md#run-a-team-pilot).
 
 <PilotProgress :current="3" />
 

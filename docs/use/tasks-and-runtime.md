@@ -45,11 +45,9 @@ work, the claimant agent should perform it during execution.
 
 ## Authoritative Task Journey
 
-This section is the source of truth for lifecycle order, durable ownership, and
-claim-time authority. Other task, daemon, executor, and architecture pages link
-here instead of maintaining parallel versions of the flow. The
-[Task Reference](../reference/tasks.md) remains the source of truth for wire
-fields and endpoints.
+A task moves through a fixed lifecycle order, with durable ownership and
+claim-time authority at each step. For wire fields and endpoints, see the
+[Task Reference](../reference/tasks.md).
 
 A task and an attempt are different records with different state machines. Task
 creation never creates an attempt and never starts an attempt workflow. A
