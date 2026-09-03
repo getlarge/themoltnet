@@ -77,6 +77,83 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec nx run @moltnet/tools:test:agent-bundle
 
+  wsl-agent-daemon:
+    name: WSL2 agent daemon acceptance
+    needs: [affected]
+    if: needs.affected.outputs.wsl-agent-daemon == 'true'
+    runs-on: windows-2025
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Provision Ubuntu 24.04 and copy the checkout to ext4
+        run: |
+          $distro = 'Ubuntu-24.04'
+          if (-not (wsl.exe --list --quiet | ForEach-Object { $_.Trim() } | Where-Object { $_ -eq $distro })) {
+            wsl.exe --install --distribution $distro --no-launch
+          }
+          wsl.exe --distribution $distro -- bash -lc 'rm -rf ~/src/themoltnet && mkdir -p ~/src/themoltnet'
+          tar.exe -cf - --exclude=.git . | wsl.exe --distribution $distro -- bash -lc 'tar -xf - -C ~/src/themoltnet'
+      - name: Install WSL2 build and Gondolin dependencies
+        run: |
+          wsl.exe --distribution Ubuntu-24.04 -- bash -lc @'
+            set -euo pipefail
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends ca-certificates curl git qemu-utils qemu-system-x86
+            curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
+            sudo apt-get install -y --no-install-recommends nodejs
+            corepack enable
+            corepack prepare pnpm@10 --activate
+          '@
+      - name: Build, install, and validate the Linux bundle in WSL2
+        run: |
+          wsl.exe --distribution Ubuntu-24.04 -- bash -lc @'
+            set -euo pipefail
+            cd ~/src/themoltnet
+            pnpm install --frozen-lockfile
+            pnpm exec nx run @moltnet/tools:test:agent-bundle
+            pnpm exec nx run @themoltnet/agent-daemon:bundle
+            archive=dist/agent-bundle/moltnet-agent-linux-x64.tar.gz
+            MOLTNET_AGENT_ARCHIVE="$archive" \
+              MOLTNET_AGENT_ALLOW_UNSIGNED=1 \
+              MOLTNET_AGENT_ALLOW_UNVERIFIED=1 \
+              sh tools/release/agent-bundle/install.sh
+            test ! -e "$HOME/.config/systemd/user/moltnet-agent.service"
+            "$HOME/.local/bin/moltnet-agent" --help
+            "$HOME/.local/bin/moltnet-agent" server --help
+            if [ -e /dev/kvm ]; then echo 'KVM available'; else echo 'KVM unavailable; QEMU TCG fallback expected'; fi
+            nohup "$HOME/.local/bin/moltnet-agent" server > "$HOME/moltnet-agent-server.log" 2>&1 &
+            echo $! > "$HOME/moltnet-agent-server.pid"
+          '@
+      - name: Probe the WSL2 loopback server from Windows
+        run: |
+          for ($attempt = 0; $attempt -lt 30; $attempt++) {
+            try {
+              $health = Invoke-RestMethod -Uri http://127.0.0.1:17374/health -TimeoutSec 2
+              if ($health.status -eq 'ok') { exit 0 }
+            } catch {}
+            Start-Sleep -Seconds 1
+          }
+          throw 'Windows could not reach the WSL moltnet-agent server on 127.0.0.1:17374.'
+      - name: Run real Gondolin integrations in WSL2
+        run: |
+          wsl.exe --distribution Ubuntu-24.04 -- bash -lc @'
+            set -euo pipefail
+            cd ~/src/themoltnet
+            export MOLTNET_PI_VM_INTEGRATION=1
+            pnpm exec nx run @themoltnet/sandbox-gondolin:test-ci--src/vm-manager.integration.test.ts
+            pnpm exec nx run @moltnet/execution-integrations:test-ci--src/gondolin.integration.test.ts
+          '@
+      - name: Show WSL agent server log on failure
+        if: failure()
+        run: wsl.exe --distribution Ubuntu-24.04 -- bash -lc 'cat "$HOME/moltnet-agent-server.log" 2>/dev/null || true'
+
   native-keyring:
     name: Native keyring
     needs: [affected]
@@ -151,6 +228,7 @@ jobs:
       e2e-any: ${{ steps.compute.outputs.e2e-any }}
       native-keyring: ${{ steps.compute.outputs.native-keyring }}
       agent-bundle: ${{ steps.compute.outputs.agent-bundle }}
+      wsl-agent-daemon: ${{ steps.compute.outputs.wsl-agent-daemon }}
       landing: ${{ steps.compute.outputs.landing }}
       legreffier-plugin: ${{ steps.compute.outputs.legreffier-plugin }}
       agents-matrix: ${{ steps.matrix.outputs.matrix }}
@@ -315,6 +393,15 @@ jobs:
             echo "agent-bundle=true" >> "$GITHUB_OUTPUT"
           else
             echo "agent-bundle=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          # WSL acceptance covers the daemon, Pi/Gondolin host stack, bundle
+          # contract, and the user-facing WSL guidance. CI/release changes
+          # also gate it because they can alter the assembled artifact.
+          if contains "@themoltnet/agent-daemon" "@themoltnet/agent-daemon-e2e" "@themoltnet/sandbox-gondolin" "@moltnet/execution-integrations" "@moltnet/pi-extension" || ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- tools/release/agent-bundle apps/agent-daemon .github/workflows/ci.yml .github/workflows/release.yml docs/operate/running-agents.md apps/landing/src/pages/DownloadPage.tsx apps/landing/src/pages/GettingStartedPage.tsx; then
+            echo "wsl-agent-daemon=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "wsl-agent-daemon=false" >> "$GITHUB_OUTPUT"
           fi
 
           # Resolve the e2e image ref for each app service. The orchestrator
