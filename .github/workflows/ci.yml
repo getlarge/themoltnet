@@ -95,11 +95,6 @@ jobs:
       - name: Provision Ubuntu 24.04 and copy the checkout to ext4
         run: |
           $distro = 'Ubuntu-24.04'
-          @'
-          [wsl2]
-          localhostForwarding=true
-          '@ | Set-Content "$env:USERPROFILE\.wslconfig" -NoNewline
-          wsl.exe --shutdown
           if (-not (wsl.exe --list --quiet | ForEach-Object { $_.Trim() } | Where-Object { $_ -eq $distro })) {
             wsl.exe --install --distribution $distro --no-launch
           }
