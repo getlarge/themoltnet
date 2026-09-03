@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {},
   "dependencies": {
+    "@moltnet/agent-daemon-api-client": "workspace:*",
     "@moltnet/api-client": "workspace:*",
     "@moltnet/diary-ui": "workspace:*",
     "@moltnet/models": "workspace:*",

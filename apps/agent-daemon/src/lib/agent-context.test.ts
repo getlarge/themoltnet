@@ -343,7 +343,7 @@ describe('validateStartupBinding', () => {
     fingerprint: 'fp-1',
   };
 
-  it('accepts a child identity matching its serve activation', async () => {
+  it('accepts a child identity matching its Agent Server activation', async () => {
     await expect(
       validateStartupBinding({
         agent: stubAgent(() => Promise.resolve(pinnedWhoami)),
@@ -358,7 +358,7 @@ describe('validateStartupBinding', () => {
     ['public key', { publicKey: 'pk-2' }],
     ['fingerprint', { fingerprint: 'fp-2' }],
   ])(
-    'rejects a child %s differing from its serve activation',
+    'rejects a child %s differing from its Agent Server activation',
     async (_, change) => {
       const whoami: Whoami = { ...pinnedWhoami, ...change };
       await expect(
@@ -367,7 +367,7 @@ describe('validateStartupBinding', () => {
           teamId: TEAM_A,
           expectedIdentity,
         }),
-      ).rejects.toThrow('does not match the serve activation');
+      ).rejects.toThrow('does not match the Agent Server activation');
     },
   );
 

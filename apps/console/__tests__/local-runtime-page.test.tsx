@@ -1,6 +1,6 @@
 /**
  * Integration tests for the Local runtime page: real page + real
- * useLocalRuntime hook + real serve-client against a mocked loopback fetch.
+ * useLocalRuntime hook + real Agent Server client against a mocked loopback fetch.
  * Covers the manual-test papercuts: surfaced errors, explicit sign-in link
  * (no popup-blocked window.open), login cancel, and the profile picker.
  */
@@ -10,7 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LocalRuntimePage } from '../src/pages/LocalRuntimePage.js';
 import { createTestWrapper } from './test-query-client.js';
 
-const SERVE = 'http://127.0.0.1:17374';
+const AGENT_SERVER = 'http://127.0.0.1:17374';
 
 vi.mock('../src/api.js', () => ({ getApiClient: () => ({}) }));
 const createAgentEnrollment = vi.hoisted(() => vi.fn());
@@ -20,7 +20,7 @@ vi.mock('@moltnet/api-client', () => ({
   updateTeamMemberRole: (...args: unknown[]) => updateTeamMemberRole(...args),
 }));
 vi.mock('../src/config.js', () => ({
-  getConfig: () => ({ serveUrl: 'http://127.0.0.1:17374' }),
+  getConfig: () => ({ agentServerUrl: 'http://127.0.0.1:17374' }),
 }));
 const profilesState = vi.hoisted(() => ({
   items: [] as { id: string; name?: string }[],
@@ -53,13 +53,13 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-const serveState = {
+const agentServerState = {
   status: {
     version: 'test',
     platform: 'darwin',
     subscriptions: [
       { id: 'anthropic', name: 'Anthropic', connected: false },
-      { id: 'github-copilot', name: 'GitHub Copilot', connected: true },
+      { id: 'openai-codex', name: 'OpenAI Codex', connected: true },
     ],
     agents: [
       {
@@ -101,7 +101,7 @@ function installFetch() {
         url,
         body: init?.body ? JSON.parse(String(init.body)) : undefined,
       });
-      const key = `${method} ${url.replace(SERVE, '')}`;
+      const key = `${method} ${url.replace(AGENT_SERVER, '')}`;
       const handler = handlers[key];
       if (!handler) return jsonResponse({ code: 'not_found' }, 404);
       return handler(init);
@@ -113,12 +113,12 @@ beforeEach(() => {
   requests.length = 0;
   profilesState.items = [];
   sessionStorage.setItem(
-    `moltnet-serve-token::${SERVE}`,
+    `moltnet-agent-server-token::${AGENT_SERVER}`,
     'paired-token-for-tests',
   );
   handlers = {
     'GET /health': () => jsonResponse({ status: 'ok' }),
-    'GET /v1/status': () => jsonResponse(serveState.status),
+    'GET /v1/status': () => jsonResponse(agentServerState.status),
   };
   installFetch();
 });
@@ -144,7 +144,7 @@ describe('LocalRuntimePage', () => {
     expect(statusCall?.[1]?.credentials).toBe('omit');
     expect(
       (statusCall?.[1]?.headers as Record<string, string>)[
-        'x-moltnet-serve-token'
+        'x-moltnet-agent-server-token'
       ],
     ).toBe('paired-token-for-tests');
   });
@@ -156,11 +156,11 @@ describe('LocalRuntimePage', () => {
     renderPage();
     expect(await screen.findByText('Not running')).toBeInTheDocument();
     expect(
-      screen.getByText('npx @themoltnet/agent-daemon serve'),
+      screen.getByText('npx @themoltnet/agent-daemon server'),
     ).toBeInTheDocument();
   });
 
-  it('surfaces the serve error message when creating an identity fails', async () => {
+  it('surfaces the Agent Server error when creating an identity fails', async () => {
     handlers['POST /v1/agents'] = () =>
       jsonResponse(
         {
@@ -267,17 +267,17 @@ describe('LocalRuntimePage', () => {
   });
 
   it('shows a failed login error immediately', async () => {
-    handlers['POST /v1/subscriptions/github-copilot/login'] = () =>
+    handlers['POST /v1/subscriptions/openai-codex/login'] = () =>
       jsonResponse(
         {
-          providerId: 'github-copilot',
+          providerId: 'openai-codex',
           status: 'failed',
           error: 'device flow refused',
         },
         201,
       );
     renderPage();
-    await screen.findByText('GitHub Copilot');
+    await screen.findByText('OpenAI Codex');
     fireEvent.click(screen.getByRole('button', { name: 'Reconnect' }));
     expect(await screen.findByText('device flow refused')).toBeInTheDocument();
   });
@@ -343,8 +343,8 @@ describe('LocalRuntimePage', () => {
   });
 
   it('blocks starting a run for an agent bound to another team', async () => {
-    serveState.status.agents[0] = {
-      ...serveState.status.agents[0],
+    agentServerState.status.agents[0] = {
+      ...agentServerState.status.agents[0],
       teamId: 'personal-team-9',
     };
     renderPage();
@@ -353,7 +353,7 @@ describe('LocalRuntimePage', () => {
     fireEvent.change(agentSelect, { target: { value: 'existing-bot' } });
     expect(await screen.findByText(/bound to team/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Start run' })).toBeDisabled();
-    delete (serveState.status.agents[0] as { teamId?: string }).teamId;
+    delete (agentServerState.status.agents[0] as { teamId?: string }).teamId;
   });
 
   it('discovers models from a preset and saves only the selected ones', async () => {

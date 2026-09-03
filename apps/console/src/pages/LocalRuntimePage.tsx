@@ -1,8 +1,8 @@
 /**
- * Local runtime page (#2062 Part C): manage `moltnet-agent serve` daemons on
+ * Local runtime page (#2062 Part C): manage `moltnet-agent server` daemons on
  * this machine — pair, configure agents/providers (secret write-only), and
- * start/stop/observe runs. Works only in a browser on the machine running
- * `serve` (loopback), by design.
+ * start, stop, and observe runs. Works only in a browser on the machine running
+ * Agent Server (loopback), by design.
  */
 import {
   createAgentEnrollment,
@@ -23,12 +23,12 @@ import {
 import { Fragment, useState } from 'react';
 
 import { getApiClient } from '../api.js';
+import type {
+  AgentServerRunView,
+  StartRunBody,
+} from '../runtime-local/agent-server-client.js';
 import { ApiKeyProviderForm } from '../runtime-local/ApiKeyProviderForm.js';
 import { runLogPanelId, RunLogTail } from '../runtime-local/RunLogTail.js';
-import type {
-  ServeRunView,
-  StartRunBody,
-} from '../runtime-local/serve-client.js';
 import {
   type LocalRuntimeController,
   useLocalRuntime,
@@ -72,7 +72,7 @@ function ConnectionStrip({ runtime }: { runtime: LocalRuntimeController }) {
             <Text variant="caption" color="muted">
               Supervisor {runtime.data?.version ?? ''} at{' '}
               <Text as="span" mono>
-                {runtime.serveUrl}
+                {runtime.agentServerUrl}
               </Text>
             </Text>
           </Stack>
@@ -122,7 +122,7 @@ function ConnectionStrip({ runtime }: { runtime: LocalRuntimeController }) {
             <Text weight="medium">
               No local supervisor at{' '}
               <Text as="span" mono>
-                {runtime.serveUrl}
+                {runtime.agentServerUrl}
               </Text>
             </Text>
           </Stack>
@@ -131,7 +131,7 @@ function ConnectionStrip({ runtime }: { runtime: LocalRuntimeController }) {
               Start it on this machine, then retry:
             </Text>
             <Text mono variant="caption">
-              npx @themoltnet/agent-daemon serve
+              npx @themoltnet/agent-daemon server
             </Text>
           </Stack>
           <Stack direction="row">
@@ -195,7 +195,7 @@ function ConnectionStrip({ runtime }: { runtime: LocalRuntimeController }) {
   return (
     <Card padding="sm">
       <Text variant="caption" color="muted">
-        Looking for a local supervisor at {runtime.serveUrl}…
+        Looking for a local supervisor at {runtime.agentServerUrl}…
       </Text>
     </Card>
   );
@@ -843,7 +843,7 @@ function RunRow({
   onToggleLogs,
   logsOpen,
 }: {
-  run: ServeRunView;
+  run: AgentServerRunView;
   onStop: () => void;
   onToggleLogs: () => void;
   logsOpen: boolean;

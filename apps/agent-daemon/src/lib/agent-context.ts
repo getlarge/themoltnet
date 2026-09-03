@@ -151,7 +151,7 @@ export async function validateStartupBinding(options: {
   const expected = options.expectedIdentity;
   if (expected && !assessIdentityPin(whoami, expected).ok) {
     throw new Error(
-      'Daemon startup validation failed: authenticated identity does not match the serve activation.',
+      'Daemon startup validation failed: authenticated identity does not match the Agent Server activation.',
     );
   }
   return whoami;

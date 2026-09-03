@@ -7,7 +7,7 @@ interface SupervisedProcess {
   kill(pid: number, signal: NodeJS.Signals): boolean;
 }
 
-/** Exit a supervised run when its serve parent's IPC channel disappears. */
+/** Exit a supervised run when its Agent Server parent's IPC channel disappears. */
 export function installSupervisorParentGuard(
   proc: SupervisedProcess = process,
 ): boolean {

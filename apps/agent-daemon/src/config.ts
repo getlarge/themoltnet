@@ -47,7 +47,7 @@ export interface DaemonConfig {
   credentialEnforcement: string;
   /** Include empty-list and idle-sleep spans for controlled benchmarks. */
   traceIdlePolling: boolean;
-  /** Identity pin supplied by the local serve supervisor. */
+  /** Identity pin supplied by the local Agent Server. */
   expectedIdentity?: IdentityPin;
 }
 
@@ -108,8 +108,8 @@ export function activatePiCodingAgentDir(path: string): void {
   process.env['PI_CODING_AGENT_DIR'] = path;
 }
 
-/** Env-derived defaults for `serve` (single process.env entry point). */
-export interface ServeEnvConfig {
+/** Env-derived defaults for `server` (single process.env entry point). */
+export interface AgentServerEnvConfig {
   port: string;
   allowedOrigins: string;
   root: string;
@@ -118,18 +118,18 @@ export interface ServeEnvConfig {
   logLevel: string;
 }
 
-export function loadServeEnvConfig(): ServeEnvConfig {
+export function loadAgentServerEnvConfig(): AgentServerEnvConfig {
   return {
-    port: process.env['MOLTNET_SERVE_PORT'] ?? '',
-    allowedOrigins: process.env['MOLTNET_SERVE_ALLOWED_ORIGINS'] ?? '',
-    root: process.env['MOLTNET_SERVE_ROOT'] ?? '',
+    port: process.env['MOLTNET_AGENT_SERVER_PORT'] ?? '',
+    allowedOrigins: process.env['MOLTNET_AGENT_SERVER_ALLOWED_ORIGINS'] ?? '',
+    root: process.env['MOLTNET_AGENT_SERVER_ROOT'] ?? '',
     xdgConfigHome: process.env['XDG_CONFIG_HOME'] ?? '',
     apiUrl: process.env['MOLTNET_API_URL'] ?? '',
     logLevel: process.env['LOG_LEVEL'] ?? '',
   };
 }
 
-/** Full process environment for spawned serve run children. */
+/** Full process environment for spawned Agent Server run children. */
 export function processEnvSnapshot(): NodeJS.ProcessEnv {
   return process.env;
 }

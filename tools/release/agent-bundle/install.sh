@@ -3,7 +3,7 @@
 #
 # Downloads the signed, checksum-verified bundle for this machine, installs
 # it under ~/.local/share/moltnet/agent/<version>, links `moltnet-agent`
-# on PATH, and registers `moltnet-agent serve` as a login service
+# on PATH, and registers `moltnet-agent server` as a login service
 # (LaunchAgent on macOS, systemd user unit on Linux). Idempotent: re-running
 # upgrades in place; `--uninstall` removes everything it created.
 #
@@ -191,11 +191,11 @@ EOF
 service_unit() {
   cat <<EOF
 [Unit]
-Description=MoltNet agent supervisor (moltnet-agent serve)
+Description=MoltNet agent supervisor (moltnet-agent server)
 After=network-online.target
 
 [Service]
-ExecStart=$HOME_DIR/current/bin/moltnet-agent serve
+ExecStart=$HOME_DIR/current/bin/moltnet-agent server
 Restart=always
 RestartSec=2
 
@@ -215,7 +215,7 @@ register_service() {
     return 1
   fi
   [ "${MOLTNET_AGENT_NO_SERVICE:-0}" = 1 ] && { log "service registration skipped"; return 0; }
-  # The login service runs `moltnet-agent serve`. Distinguish a release
+  # The login service runs `moltnet-agent server`. Distinguish a release
   # that simply lacks the subcommand (skip quietly) from a broken binary
   # (fail loudly so the caller can roll back).
   serve_help_output=$("$HOME_DIR/current/bin/moltnet-agent" serve --help 2>&1)
@@ -263,7 +263,7 @@ register_service() {
         fi
         log "systemd user unit moltnet-agent.service enabled"
       else
-        log "no systemd user session; start 'moltnet-agent serve' yourself (headless mode)"
+        log "no systemd user session; start 'moltnet-agent server' yourself (headless mode)"
       fi
       ;;
   esac
@@ -450,7 +450,7 @@ usage() {
 moltnet-agent installer — curl -fsSL https://themolt.net/install/agent | sh
 
 Installs the signed bundle under ~/.local/share/moltnet/agent/<version>,
-links `moltnet-agent` on PATH, and registers `moltnet-agent serve` as a
+links `moltnet-agent` on PATH, and registers `moltnet-agent server` as a
 login service (LaunchAgent on macOS, systemd user unit on Linux).
 Re-running upgrades in place; --uninstall removes what the installer created.
 

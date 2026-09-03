@@ -18,7 +18,7 @@ reporting.
 
 On macOS (Apple Silicon) and Linux x64, install the self-contained signed
 bundle — it ships its own Node runtime and sandbox tooling (`qemu-img`,
-the krun runner on macOS) and registers `moltnet-agent serve` as a login
+the krun runner on macOS) and registers `moltnet-agent server` as a login
 service. Re-running upgrades in place; `--uninstall` removes everything the
 installer created:
 

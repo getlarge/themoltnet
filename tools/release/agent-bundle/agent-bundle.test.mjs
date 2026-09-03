@@ -100,7 +100,7 @@ function createBundle({
   manifestPlatform = archivePlatform,
   helpStatus = 0,
   serveOutput = 'unknown command: serve',
-  serveStatus = 1,
+  agentServerStatus = 1,
   unsigned = false,
 } = {}) {
   const root = tempDir('moltnet-agent-fixture-');
@@ -117,7 +117,7 @@ if [ "\${1:-}" = "--help" ]; then
 fi
 if [ "\${1:-}" = "serve" ]; then
   echo "${serveOutput}" >&2
-  exit ${serveStatus}
+  exit ${agentServerStatus}
 fi
 exit 0
 `,
@@ -285,7 +285,7 @@ describe('agent bundle installer', { skip: !supportedHost }, () => {
           )
         : join(context.home, '.config/systemd/user/moltnet-agent.service');
     mkdirSync(dirname(service), { recursive: true });
-    writeFileSync(service, 'ExecStart=/user/managed/moltnet-agent serve\n');
+    writeFileSync(service, 'ExecStart=/user/managed/moltnet-agent server\n');
 
     const removed = await runInstaller(context, ['--uninstall']);
 
@@ -521,7 +521,7 @@ esac
 
     const broken = createBundle({
       serveOutput: 'serve self-check crashed',
-      serveStatus: 7,
+      agentServerStatus: 7,
     });
     const brokenContext = createInstallContext(broken);
     delete brokenContext.env.MOLTNET_AGENT_NO_SERVICE;
@@ -536,7 +536,7 @@ esac
   it('restarts and asserts the Linux systemd unit during an upgrade', async () => {
     const first = createBundle({
       archivePlatform: 'linux-x64',
-      serveStatus: 0,
+      agentServerStatus: 0,
       version: '1.0.0',
     });
     const context = createInstallContext(first);
@@ -562,7 +562,7 @@ esac
 
     const second = createBundle({
       archivePlatform: 'linux-x64',
-      serveStatus: 0,
+      agentServerStatus: 0,
       version: '2.0.0',
     });
     context.env.MOLTNET_AGENT_ARCHIVE = second.archive;
