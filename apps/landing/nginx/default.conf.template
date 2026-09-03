@@ -19,8 +19,8 @@ server {
     # release. The nginx image's envsubst only substitutes container env vars
     # (API_BASE_URL, DOCS_URL), so these nginx runtime variables survive
     # templating untouched. One literal per product — everything below derives.
-    set $cli_version 1.88.1;
-    set $agent_version 0.49.0;
+    set $cli_version 1.89.0;
+    set $agent_version 0.49.1;
 
     # The served installer's default install version is pinned with it at
     # release time, so this one line controls what `curl | sh` delivers.
