@@ -460,7 +460,7 @@ describe.sequential('moltnet-agent serve (loopback supervisor)', () => {
       origin: OTHER_ORIGIN,
     });
     expect(stolen.status).toBe(403);
-    expect((stolen.json as ServeError).code).toBe('pairing_origin_mismatch');
+    expect((stolen.json as ServeError).code).toBe('origin_not_allowed');
 
     const claimed = await call(`/v1/pairings/${pairingId}/claim`, {
       method: 'POST',
