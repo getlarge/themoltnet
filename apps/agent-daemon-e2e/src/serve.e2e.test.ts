@@ -835,7 +835,7 @@ describe.sequential('moltnet-agent serve (loopback supervisor)', () => {
     await waitFor(
       async () => {
         const current = await agent.tasks.get(task.id);
-        return current.status === 'claimed' || current.status === 'running';
+        return current.status === 'dispatched' || current.status === 'running';
       },
       { timeoutMs: 60_000 },
     );
