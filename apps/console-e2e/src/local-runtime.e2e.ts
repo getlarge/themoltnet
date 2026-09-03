@@ -15,7 +15,6 @@ import { createServer, type Server } from 'node:http';
 import { createServer as createNetServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
 
 import { createRuntimeProfile, createTeam } from '@moltnet/api-client';
 import { expect, test } from '@playwright/test';
@@ -36,18 +35,18 @@ import {
 /** The Console image resolves the supervisor at this fixed loopback port. */
 const SERVE_PORT = 17374;
 const SERVE_URL = `http://127.0.0.1:${SERVE_PORT}`;
-const DAEMON_ROOT = resolve(import.meta.dirname, '../../agent-daemon');
 const DAEMON_BUNDLE_ROOT = resolve(
   import.meta.dirname,
   `../../../dist/agent-bundle/moltnet-agent-${process.platform}-${process.arch}`,
 );
 const MODEL_ID = 'e2e-fake';
 const PROVIDER_ID = 'e2e-local';
+const STDERR_TAIL_BYTES = 16 * 1024;
 
 /**
- * Spawn the production bundle when Nx has materialised it for this suite. The
- * source fallback keeps direct Playwright invocation useful while preserving
- * the same direct-child signal semantics in both modes.
+ * This suite intentionally drives the Nx-built daemon bundle. Its target has
+ * an explicit dependency on that bundle so source-tree resolution cannot hide
+ * packaging or runtime regressions.
  */
 function spawnServe(args: string[]): ChildProcess {
   const bundleRoot = process.env['MOLTNET_AGENT_BUNDLE'] ?? DAEMON_BUNDLE_ROOT;
@@ -59,19 +58,8 @@ function spawnServe(args: string[]): ChildProcess {
       stdio: ['ignore', 'pipe', 'pipe'],
     });
   }
-  const tsxDist = join(DAEMON_ROOT, 'node_modules/tsx/dist');
-  return spawn(
-    process.execPath,
-    [
-      '--require',
-      join(tsxDist, 'preflight.cjs'),
-      '--import',
-      pathToFileURL(join(tsxDist, 'loader.mjs')).href,
-      'src/main.ts',
-      'serve',
-      ...args,
-    ],
-    { cwd: DAEMON_ROOT, env: process.env, stdio: ['ignore', 'pipe', 'pipe'] },
+  throw new Error(
+    `Daemon bundle is missing at ${bundledEntry}; run the console E2E target through Nx so its bundle dependency is built first.`,
   );
 }
 
@@ -79,6 +67,10 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolveSleep) => {
     setTimeout(resolveSleep, ms);
   });
+}
+
+function appendStderrTail(current: string, chunk: Buffer): string {
+  return `${current}${chunk.toString()}`.slice(-STDERR_TAIL_BYTES);
 }
 
 async function waitForServeHealth(stderr: () => string): Promise<void> {
@@ -156,7 +148,7 @@ test.describe.serial('Local runtime page', () => {
       REST_API_URL,
     ]);
     serve.stderr?.on('data', (chunk: Buffer) => {
-      serveStderr += chunk.toString();
+      serveStderr = appendStderrTail(serveStderr, chunk);
     });
     await waitForServeHealth(() => serveStderr);
   });
@@ -168,9 +160,18 @@ test.describe.serial('Local runtime page', () => {
       });
       serve.kill('SIGTERM');
       await Promise.race([exited, sleep(15_000)]);
-      if (serve.exitCode === null) serve.kill('SIGKILL');
+      if (serve.exitCode === null) {
+        serve.kill('SIGKILL');
+        await exited;
+      }
     }
-    modelStub?.server.close();
+    if (modelStub) {
+      await new Promise<void>((resolveClose, rejectClose) => {
+        modelStub.server.close((error) =>
+          error ? rejectClose(error) : resolveClose(),
+        );
+      });
+    }
     if (serveRoot) await rm(serveRoot, { recursive: true, force: true });
   });
 
@@ -179,79 +180,85 @@ test.describe.serial('Local runtime page', () => {
     context,
   }) => {
     test.setTimeout(300_000);
-    // ── Register + a project team (personal teams cannot enrol agents) ──
-    await registerViaBrowser(page, user);
-    const codeInput = page.locator('input[name="code"]');
-    if (await codeInput.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await codeInput.fill(await waitForVerificationCode(user.email));
-      await submitKratosForm(page);
-    }
-    await page.goto(`${CONSOLE_URL}/`);
-    await expectConsoleOverview(page);
-    const cookieHeader = await getSessionCookie(page);
-    const humanClient = createCookieSessionApiClient(cookieHeader);
-    const team = await createTeam({
-      client: humanClient,
-      body: { name: teamName },
+    let humanClient!: ReturnType<typeof createCookieSessionApiClient>;
+    await test.step('register and create the project team', async () => {
+      await registerViaBrowser(page, user);
+      const codeInput = page.locator('input[name="code"]');
+      if (await codeInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await codeInput.fill(await waitForVerificationCode(user.email));
+        await submitKratosForm(page);
+      }
+      await page.goto(`${CONSOLE_URL}/`);
+      await expectConsoleOverview(page);
+      const cookieHeader = await getSessionCookie(page);
+      humanClient = createCookieSessionApiClient(cookieHeader);
+      const team = await createTeam({
+        client: humanClient,
+        body: { name: teamName },
+      });
+      if (!team.data?.id) {
+        throw new Error(`createTeam failed: ${JSON.stringify(team.error)}`);
+      }
+      teamId = team.data.id;
     });
-    if (!team.data?.id) {
-      throw new Error(`createTeam failed: ${JSON.stringify(team.error)}`);
-    }
-    teamId = team.data.id;
 
-    // ── Pairing: Connect opens the approval tab, Approve binds the origin ──
-    await page.goto(`${CONSOLE_URL}/runtime/local`);
-    const teamSelect = page.locator('select[aria-label="Select team"]');
-    await expect(teamSelect).toBeVisible();
-    await teamSelect.selectOption({ label: teamName });
+    await test.step('pair the Console to the local supervisor', async () => {
+      await page.goto(`${CONSOLE_URL}/runtime/local`);
+      const teamSelect = page.locator('select[aria-label="Select team"]');
+      await expect(teamSelect).toBeVisible();
+      await teamSelect.selectOption({ label: teamName });
 
-    const connect = page.getByRole('button', { name: 'Connect' });
-    await expect(connect).toBeVisible();
-    const approvalPagePromise = context.waitForEvent('page');
-    await connect.click();
-    const approval = await approvalPagePromise;
-    await approval.waitForLoadState();
-    await expect(approval).toHaveURL(new RegExp(`^${SERVE_URL}/pairings/`));
-    await expect(approval.getByText(CONSOLE_URL)).toBeVisible();
-    await approval.getByRole('button', { name: 'Approve' }).click();
-    await expect(approval.getByText('Connection approved')).toBeVisible();
-    await approval.close();
+      const connect = page.getByRole('button', { name: 'Connect' });
+      await expect(connect).toBeVisible();
+      const approvalPagePromise = context.waitForEvent('page');
+      await connect.click();
+      const approval = await approvalPagePromise;
+      await approval.waitForLoadState();
+      await expect(approval).toHaveURL(new RegExp(`^${SERVE_URL}/pairings/`));
+      await expect(approval.getByText(CONSOLE_URL)).toBeVisible();
+      await approval.getByRole('button', { name: 'Approve' }).click();
+      await expect(approval.getByText('Connection approved')).toBeVisible();
+      await approval.close();
 
-    await expect(page.getByRole('button', { name: 'Connect' })).toHaveCount(0);
-    await expect(page.getByText('LLM providers')).toBeVisible();
-    await expect(page.getByText('Not paired')).toHaveCount(0);
+      await expect(page.getByRole('button', { name: 'Connect' })).toHaveCount(
+        0,
+      );
+      await expect(page.getByText('LLM providers')).toBeVisible();
+      await expect(page.getByText('Not paired')).toHaveCount(0);
+    });
 
-    // ── Managed agent from a console-generated invitation code ──
-    await page.getByLabel('Agent name').fill(agentName);
-    await page
-      .getByRole('button', { name: `Generate invitation code for ${teamName}` })
-      .click();
-    await expect(page.getByLabel('Invitation code')).not.toHaveValue('');
-    await page.getByRole('button', { name: 'Create identity' }).click();
-    const agentRow = page.getByText(agentName, { exact: true }).first();
-    await expect(agentRow).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByLabel('Agent name')).toHaveValue('');
+    await test.step('create a managed agent from an invitation', async () => {
+      await page.getByLabel('Agent name').fill(agentName);
+      await page
+        .getByRole('button', {
+          name: `Generate invitation code for ${teamName}`,
+        })
+        .click();
+      await expect(page.getByLabel('Invitation code')).not.toHaveValue('');
+      await page.getByRole('button', { name: 'Create identity' }).click();
+      const agentRow = page.getByText(agentName, { exact: true }).first();
+      await expect(agentRow).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByLabel('Agent name')).toHaveValue('');
+    });
 
-    // ── Provider: custom preset, discovered models, write-only key ──
-    await page
-      .getByRole('button', { name: 'Custom (OpenAI-compatible)' })
-      .click();
-    await page.getByLabel('Provider id').fill(PROVIDER_ID);
-    await page.getByLabel('Base URL').fill(`${modelStub.url}/v1`);
-    await page.getByLabel('API key', { exact: true }).fill('e2e-key');
-    await page.getByRole('button', { name: 'Fetch models' }).click();
-    const modelCheckbox = page.getByRole('checkbox', { name: MODEL_ID });
-    await expect(modelCheckbox).toBeVisible();
-    await modelCheckbox.check();
-    await page.getByRole('button', { name: 'Save provider' }).click();
-    await expect(
-      page.getByText(PROVIDER_ID, { exact: true }).first(),
-    ).toBeVisible();
+    await test.step('configure the provider and runtime profile', async () => {
+      await page
+        .getByRole('button', { name: 'Custom (OpenAI-compatible)' })
+        .click();
+      await page.getByLabel('Provider id').fill(PROVIDER_ID);
+      await page.getByLabel('Base URL').fill(`${modelStub.url}/v1`);
+      await page.getByLabel('API key', { exact: true }).fill('e2e-key');
+      await page.getByRole('button', { name: 'Fetch models' }).click();
+      const modelCheckbox = page.getByRole('checkbox', { name: MODEL_ID });
+      await expect(modelCheckbox).toBeVisible();
+      await modelCheckbox.check();
+      await page.getByRole('button', { name: 'Save provider' }).click();
+      await expect(
+        page.getByText(PROVIDER_ID, { exact: true }).first(),
+      ).toBeVisible();
 
-    // ── Runtime profile pinning that provider/model (via API, as an owner) ──
-    let created: Awaited<ReturnType<typeof createRuntimeProfile>> | undefined;
-    await expect(async () => {
-      created = await createRuntimeProfile({
+      // ── Runtime profile pinning that provider/model (via API, as an owner) ──
+      const created = await createRuntimeProfile({
         client: humanClient,
         headers: { 'x-moltnet-team-id': teamId },
         body: {
@@ -263,50 +270,55 @@ test.describe.serial('Local runtime page', () => {
         },
       });
       expect(created.response.status).toBe(201);
-    }).toPass({ timeout: 20_000 });
-    if (!created?.data?.id)
-      throw new Error('createRuntimeProfile returned no id');
-    profileId = created.data.id;
-
-    // ── Run: pick agent + profile, start, watch it come up, stop ──
-    await page.reload();
-    await expect(page.getByText('Runs', { exact: true })).toBeVisible();
-    await teamSelect.selectOption({ label: teamName });
-    const agentSelect = page
-      .locator('label', { hasText: 'Agent' })
-      .locator('select')
-      .first();
-    const profileSelect = page
-      .locator('label', { hasText: 'Runtime profile' })
-      .locator('select')
-      .first();
-    await expect(agentSelect).toBeVisible();
-    await agentSelect.selectOption(agentName);
-    await profileSelect.selectOption({
-      label: `${profileName} · ${profileId.slice(0, 8)}`,
+      if (!created?.data?.id)
+        throw new Error('createRuntimeProfile returned no id');
+      profileId = created.data.id;
     });
-    await page.getByRole('button', { name: 'Start run' }).click();
 
-    const runRow = page.getByText(`poll · ${profileName} · freeform`);
-    await expect(runRow).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByText('running', { exact: true })).toBeVisible();
-    // Evidence the child daemon really came up and polls as the agent: the
-    // live log tail shows the poll loop, and the run never flips to failed.
-    await page.getByRole('button', { name: 'Logs' }).click();
-    const logPanel = page.getByLabel(/Logs for run/);
-    await expect(logPanel).toContainText(/agent-daemon\.starting|\[fatal\]/, {
-      timeout: 240_000,
-    });
-    await expect(logPanel).not.toContainText('[fatal]');
-    await expect(logPanel).toContainText('agent-daemon.starting');
-    await expect(page.getByText('running', { exact: true })).toBeVisible();
-    await expect(page.getByText('failed', { exact: true })).toHaveCount(0);
+    await test.step('start the daemon and verify a clean stop', async () => {
+      await page.reload();
+      await expect(page.getByText('Runs', { exact: true })).toBeVisible();
+      const teamSelect = page.locator('select[aria-label="Select team"]');
+      await teamSelect.selectOption({ label: teamName });
+      const agentSelect = page
+        .locator('label', { hasText: 'Agent' })
+        .locator('select')
+        .first();
+      const profileSelect = page
+        .locator('label', { hasText: 'Runtime profile' })
+        .locator('select')
+        .first();
+      await expect(agentSelect).toBeVisible();
+      await agentSelect.selectOption(agentName);
+      await profileSelect.selectOption({
+        label: `${profileName} · ${profileId.slice(0, 8)}`,
+      });
+      await page.getByRole('button', { name: 'Start run' }).click();
 
-    await page.getByRole('button', { name: 'Stop' }).click();
-    await expect(page.getByRole('button', { name: 'Stop' })).toHaveCount(0, {
-      timeout: 30_000,
+      const runRow = page.getByText(`poll · ${profileName} · freeform`);
+      await expect(runRow).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByText('running', { exact: true })).toBeVisible();
+      // Evidence the child daemon really came up and polls as the agent: the
+      // live log tail shows the poll loop, and the run never flips to failed.
+      await page.getByRole('button', { name: 'Logs' }).click();
+      const logPanel = page.getByLabel(/Logs for run/);
+      await expect(logPanel).toContainText(/agent-daemon\.starting|\[fatal\]/, {
+        timeout: 240_000,
+      });
+      await expect(logPanel).not.toContainText('[fatal]');
+      await expect(logPanel).toContainText('agent-daemon.starting');
+      await expect(page.getByText('running', { exact: true })).toBeVisible();
+      await expect(page.getByText('failed', { exact: true })).toHaveCount(0);
+
+      await page.getByRole('button', { name: 'Stop' }).click();
+      await expect(page.getByRole('button', { name: 'Stop' })).toHaveCount(0, {
+        timeout: 30_000,
+      });
+      await expect(page.getByText('running', { exact: true })).toHaveCount(0);
+      await expect(page.getByText('stopped', { exact: true })).toBeVisible({
+        timeout: 30_000,
+      });
     });
-    await expect(page.getByText('running', { exact: true })).toHaveCount(0);
   });
 
   test('pairing is per browser context: a fresh one must connect again', async ({

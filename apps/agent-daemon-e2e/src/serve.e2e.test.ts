@@ -13,7 +13,12 @@
  */
 import { type ChildProcess, spawn } from 'node:child_process';
 import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
-import { createServer, request as httpRequest, type Server } from 'node:http';
+import {
+  createServer,
+  type IncomingMessage,
+  request as httpRequest,
+  type Server,
+} from 'node:http';
 import { createServer as createNetServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -31,6 +36,7 @@ const DAEMON_ROOT = resolve(import.meta.dirname, '../../agent-daemon');
 const PROVIDER_ID = 'e2e-local';
 const MODEL_ID = 'e2e-fake';
 const RAW_API_KEY = 'e2e-secret-key-never-in-config';
+const STDERR_TAIL_BYTES = 16 * 1024;
 
 interface CallInit {
   method?: string;
@@ -49,6 +55,10 @@ interface CallResult {
 interface ServeError {
   code?: string;
   message?: string;
+}
+
+function appendStderrTail(current: string, chunk: Buffer): string {
+  return `${current}${chunk.toString()}`.slice(-STDERR_TAIL_BYTES);
 }
 
 async function freePort(): Promise<number> {
@@ -79,9 +89,11 @@ async function waitFor(
 
 function startJsonStub(
   routes: Record<string, unknown>,
+  onRequest?: (request: IncomingMessage) => void,
 ): Promise<{ server: Server; url: string }> {
   return new Promise((resolveStub) => {
     const server = createServer((request, response) => {
+      onRequest?.(request);
       const path = new URL(request.url ?? '/', 'http://stub').pathname;
       const payload = routes[path];
       if (payload === undefined) {
@@ -169,6 +181,76 @@ function spawnServe(args: string[]): ChildProcess {
   );
 }
 
+/** Owns the supervisor process, its bounded diagnostics, and shutdown. */
+class ServeSupervisor {
+  readonly exit: Promise<number | null>;
+  private stderr = '';
+
+  private constructor(
+    readonly process: ChildProcess,
+    readonly baseUrl: string,
+  ) {
+    process.stderr?.on('data', (chunk: Buffer) => {
+      this.stderr = appendStderrTail(this.stderr, chunk);
+    });
+    this.exit = new Promise((resolveExit) => {
+      process.once('exit', (code) => resolveExit(code));
+    });
+  }
+
+  static async start(options: {
+    root: string;
+    apiUrl: string;
+    allowedOrigin: string;
+  }): Promise<ServeSupervisor> {
+    const port = await freePort();
+    const baseUrl = `http://127.0.0.1:${port}`;
+    const supervisor = new ServeSupervisor(
+      spawnServe([
+        '--port',
+        String(port),
+        '--root',
+        options.root,
+        '--allowed-origins',
+        options.allowedOrigin,
+        '--api-url',
+        options.apiUrl,
+      ]),
+      baseUrl,
+    );
+    await waitFor(
+      async () => {
+        try {
+          return (await fetch(`${baseUrl}/health`)).ok;
+        } catch {
+          return false;
+        }
+      },
+      { timeoutMs: 60_000 },
+    ).catch((error: unknown) => {
+      throw new Error(
+        `serve did not become healthy: ${String(error)}\n--- serve stderr ---\n${supervisor.stderr}`,
+      );
+    });
+    return supervisor;
+  }
+
+  async stop(): Promise<void> {
+    if (this.process.exitCode !== null) return;
+    this.process.kill('SIGTERM');
+    await Promise.race([
+      this.exit,
+      new Promise<void>((resolveTimeout) => {
+        setTimeout(resolveTimeout, 15_000);
+      }),
+    ]);
+    if (this.process.exitCode === null) {
+      this.process.kill('SIGKILL');
+      await this.exit;
+    }
+  }
+}
+
 /** Files under `root` (excluding the secrets directory) that contain `needle`. */
 async function configFilesContaining(
   root: string,
@@ -182,7 +264,11 @@ async function configFilesContaining(
         if (entry.name === 'secrets') continue;
         await walk(path);
       } else if (entry.isFile()) {
-        const content = await readFile(path, 'utf8').catch(() => '');
+        const content = await readFile(path, 'utf8').catch((error: unknown) => {
+          throw new Error(`could not inspect non-secret config file ${path}`, {
+            cause: error,
+          });
+        });
         if (content.includes(needle)) hits.push(path);
       }
     }
@@ -191,18 +277,18 @@ async function configFilesContaining(
   return hits;
 }
 
-describe('moltnet-agent serve (loopback supervisor)', () => {
+describe.sequential('moltnet-agent serve (loopback supervisor)', () => {
   let harness: DaemonTestHarness;
   let agent: Agent;
   let personalTeamId: string;
+  let privateDiaryId: string;
   let teamId: string;
   let serveRoot: string;
-  let serve: ChildProcess;
-  let serveExit: Promise<number | null>;
-  let serveStderr = '';
+  let supervisor: ServeSupervisor;
   let base: string;
   let token: string;
   let modelStub: { server: Server; url: string };
+  let modelStubAuthorization: string | undefined;
   let tagsStub: { server: Server; url: string };
   const agentName = `serve-e2e-${Date.now().toString(36)}`;
   const profileName = `serve-e2e-profile-${Date.now().toString(36)}`;
@@ -214,10 +300,16 @@ describe('moltnet-agent serve (loopback supervisor)', () => {
     if (init.origin !== null) headers.origin = init.origin ?? ALLOWED_ORIGIN;
     if (init.body !== undefined) headers['content-type'] = 'application/json';
     if (init.token) headers[SERVE_TOKEN_HEADER] = init.token;
+    const method = init.method ?? 'GET';
     const response = await fetch(`${base}${path}`, {
-      method: init.method ?? 'GET',
+      method,
       headers,
       body: init.body === undefined ? undefined : JSON.stringify(init.body),
+      signal: AbortSignal.timeout(15_000),
+    }).catch((error: unknown) => {
+      throw new Error(`${method} ${path} did not complete within 15 seconds`, {
+        cause: error,
+      });
     });
     const text = await response.text();
     let json: unknown = null;
@@ -277,63 +369,47 @@ describe('moltnet-agent serve (loopback supervisor)', () => {
       name: `serve-e2e-team-${Date.now().toString(36)}`,
     });
     teamId = team.id;
+    const diary = await agent.diaries.create(
+      { name: `serve-e2e-diary-${Date.now().toString(36)}` },
+      { teamId },
+    );
+    privateDiaryId = diary.id;
 
-    modelStub = await startJsonStub({
-      '/v1/models': { data: [{ id: MODEL_ID }, { id: 'e2e-other' }] },
-    });
+    modelStub = await startJsonStub(
+      {
+        '/v1/models': { data: [{ id: MODEL_ID }, { id: 'e2e-other' }] },
+      },
+      (request) => {
+        if (request.url === '/v1/models') {
+          modelStubAuthorization = request.headers.authorization;
+        }
+      },
+    );
     tagsStub = await startJsonStub({
       '/api/tags': { models: [{ name: 'tags-only-model' }] },
     });
 
     serveRoot = await mkdtemp(join(tmpdir(), 'moltnet-serve-e2e-'));
-    const port = await freePort();
-    base = `http://127.0.0.1:${port}`;
-    serve = spawnServe([
-      '--port',
-      String(port),
-      '--root',
-      serveRoot,
-      '--allowed-origins',
-      ALLOWED_ORIGIN,
-      '--api-url',
-      harness.restApiUrl,
-    ]);
-    serve.stderr?.on('data', (chunk: Buffer) => {
-      serveStderr += chunk.toString();
+    supervisor = await ServeSupervisor.start({
+      root: serveRoot,
+      apiUrl: harness.restApiUrl,
+      allowedOrigin: ALLOWED_ORIGIN,
     });
-    serveExit = new Promise((resolveExit) => {
-      serve.once('exit', (code) => resolveExit(code));
-    });
-    await waitFor(
-      async () => {
-        try {
-          const response = await fetch(`${base}/health`);
-          return response.ok;
-        } catch {
-          return false;
-        }
-      },
-      { timeoutMs: 60_000 },
-    ).catch((error: unknown) => {
-      throw new Error(
-        `serve did not become healthy: ${String(error)}\n--- serve stderr ---\n${serveStderr}`,
-      );
-    });
+    base = supervisor.baseUrl;
   });
 
   afterAll(async () => {
-    if (serve && serve.exitCode === null) {
-      serve.kill('SIGTERM');
-      await Promise.race([
-        serveExit,
-        new Promise((r) => {
-          setTimeout(r, 15_000);
-        }),
-      ]);
-      if (serve.exitCode === null) serve.kill('SIGKILL');
-    }
-    modelStub?.server.close();
-    tagsStub?.server.close();
+    await supervisor?.stop();
+    await Promise.all(
+      [modelStub, tagsStub].map(
+        (stub) =>
+          new Promise<void>((resolveClose, rejectClose) => {
+            stub.server.close((error) =>
+              error ? rejectClose(error) : resolveClose(),
+            );
+          }),
+      ),
+    );
     if (serveRoot) await rm(serveRoot, { recursive: true, force: true });
     await harness?.teardown();
   });
@@ -383,7 +459,8 @@ describe('moltnet-agent serve (loopback supervisor)', () => {
       method: 'POST',
       origin: OTHER_ORIGIN,
     });
-    expect(stolen.status).toBeGreaterThanOrEqual(400);
+    expect(stolen.status).toBe(403);
+    expect((stolen.json as ServeError).code).toBe('pairing_origin_mismatch');
 
     const claimed = await call(`/v1/pairings/${pairingId}/claim`, {
       method: 'POST',
@@ -481,6 +558,26 @@ describe('moltnet-agent serve (loopback supervisor)', () => {
       },
     });
     expect(bogus.status).toBe(400);
+
+    const metadataAddress = await call('/v1/providers/e2e-discovery-metadata', {
+      method: 'PUT',
+      token,
+      body: {
+        api: 'openai-completions',
+        baseUrl: 'http://169.254.169.254/latest/meta-data',
+        envName: 'MOLTNET_PROVIDER_E2E_DISCOVERY_METADATA_API_KEY',
+        models: [],
+      },
+    });
+    expect(metadataAddress.status).toBe(200);
+    const metadataDiscovery = await call(
+      '/v1/providers/e2e-discovery-metadata/discover-models',
+      { method: 'POST', token },
+    );
+    expect(metadataDiscovery.status).toBe(400);
+    expect((metadataDiscovery.json as ServeError).code).toBe(
+      'invalid_provider',
+    );
   });
 
   it('stores a provider with a write-only API key that never reaches config files or responses', async () => {
@@ -515,7 +612,16 @@ describe('moltnet-agent serve (loopback supervisor)', () => {
         models: [MODEL_ID, 'e2e-other'],
       },
     });
+    expect(updated.status).toBe(200);
     expect(updated.json).toMatchObject({ hasApiKey: true });
+    expect(updated.text).not.toContain(RAW_API_KEY);
+
+    const discoveredAfterKeylessUpdate = await call(
+      `/v1/providers/${PROVIDER_ID}/discover-models`,
+      { method: 'POST', token },
+    );
+    expect(discoveredAfterKeylessUpdate.status).toBe(200);
+    expect(modelStubAuthorization).toBe(`Bearer ${RAW_API_KEY}`);
 
     const listed = await call('/v1/providers', { token });
     expect(listed.status).toBe(200);
@@ -561,7 +667,12 @@ describe('moltnet-agent serve (loopback supervisor)', () => {
     expect(view.fingerprint).toMatch(/^[0-9A-F]{4}(-[0-9A-F]{4}){3}$/);
     // Presence booleans only — never key material or reference strings.
     expect(Object.keys(created.json as object)).not.toEqual(
-      expect.arrayContaining(['agentKeyRef', 'privateKeyRef', 'agentKey']),
+      expect.arrayContaining([
+        'agentKeyRef',
+        'privateKeyRef',
+        'agentKey',
+        'privateKey',
+      ]),
     );
     managedIdentityId = view.identityId;
 
@@ -579,7 +690,8 @@ describe('moltnet-agent serve (loopback supervisor)', () => {
         enrollmentToken: enrollment.token,
       },
     });
-    expect(replay.status).toBeGreaterThanOrEqual(400);
+    expect(replay.status).toBe(400);
+    expect((replay.json as ServeError).code).toBe('registration_failed');
   });
 
   it('refuses to start a run in a team the agent key is not bound to', async () => {
@@ -649,6 +761,25 @@ describe('moltnet-agent serve (loopback supervisor)', () => {
     expect(logs).not.toContain('[fatal]');
     expect(logs).not.toContain('"level":50');
 
+    // Startup logs alone do not prove the daemon owns the polling loop.
+    // A real queued task must transition out of the queue under this run.
+    const task = await agent.tasks.create(
+      {
+        taskType: 'freeform',
+        title: 'serve polling e2e',
+        diaryId: privateDiaryId,
+        input: { brief: 'Prove the serve-launched daemon claims work.' },
+      },
+      { teamId },
+    );
+    await waitFor(
+      async () => {
+        const current = await agent.tasks.get(task.id);
+        return current.status === 'claimed' || current.status === 'running';
+      },
+      { timeoutMs: 60_000 },
+    );
+
     const listed = await call('/v1/runs', { token });
     expect(listed.json).toEqual([
       expect.objectContaining({ id: runId, status: 'running', active: true }),
@@ -664,8 +795,14 @@ describe('moltnet-agent serve (loopback supervisor)', () => {
         const runs = (await call('/v1/runs', { token })).json as {
           id: string;
           active: boolean;
+          status: string;
         }[];
-        return runs.some((run) => run.id === runId && run.active === false);
+        return runs.some(
+          (run) =>
+            run.id === runId &&
+            run.active === false &&
+            run.status === 'stopped',
+        );
       },
       { timeoutMs: 20_000 },
     );
@@ -678,13 +815,8 @@ describe('moltnet-agent serve (loopback supervisor)', () => {
   }, 120_000);
 
   it('shuts down cleanly on SIGTERM', async () => {
-    serve.kill('SIGTERM');
-    const code = await Promise.race([
-      serveExit,
-      new Promise<'timeout'>((r) => {
-        setTimeout(() => r('timeout'), 15_000);
-      }),
-    ]);
+    await supervisor.stop();
+    const code = await supervisor.exit;
     expect(code).toBe(143);
     await expect(fetch(`${base}/health`)).rejects.toThrow();
   }, 30_000);
