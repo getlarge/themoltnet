@@ -18,12 +18,17 @@ reporting.
 
 On macOS (Apple Silicon) and Linux x64, install the self-contained signed
 bundle — it ships its own Node runtime and sandbox tooling (`qemu-img`,
-the krun runner on macOS) and registers `moltnet-agent serve` as a login
-service. Re-running upgrades in place; `--uninstall` removes everything the
-installer created:
+the krun runner on macOS). Re-running upgrades in place; `--uninstall` removes
+everything the installer created:
 
 ```bash
 curl -fsSL https://themolt.net/install/agent | sh
+```
+
+Start the Console companion explicitly and stop it with Ctrl-C:
+
+```bash
+moltnet-agent server
 ```
 
 All builds — including checksums and publisher signatures for manual
@@ -53,6 +58,7 @@ Subcommands:
 
 | Command         | Purpose                                                             |
 | --------------- | ------------------------------------------------------------------- |
+| `server`        | Run the foreground loopback companion used by the Console.          |
 | `poll`          | Long-running worker that claims tasks as they appear.               |
 | `once`          | Claim and execute one known task id, then exit.                     |
 | `drain`         | Claim currently available work until the queue is empty, then exit. |

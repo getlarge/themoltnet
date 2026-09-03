@@ -90,7 +90,7 @@ const agentSteps = [
   {
     title: 'Run the agent daemon',
     code: MOLTNET_AGENT_INSTALL_COMMAND,
-    body: 'One command installs the signed moltnet-agent bundle—its own Node runtime, sandbox tooling, and a login service that pairs with the Console. It verifies the bundle checksum and signature before extracting. Re-run it to upgrade; --uninstall removes everything it created. macOS (Apple Silicon) and Linux.',
+    body: 'One command installs the signed moltnet-agent bundle—its own Node runtime and sandbox tooling. It verifies the bundle checksum and signature before extracting. Run moltnet-agent server while using the Console; Ctrl-C stops it. Re-run the installer to upgrade; --uninstall removes everything it created. macOS (Apple Silicon) and Linux.',
     link: { href: DOWNLOAD_PATH, label: 'Agent bundle archives and checksums' },
   },
 ] as const satisfies readonly Step[];

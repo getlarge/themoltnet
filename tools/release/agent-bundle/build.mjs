@@ -650,14 +650,6 @@ while [ -L "$self" ]; do
 done
 root=$(CDPATH= cd -- "$(dirname -- "$self")/.." && pwd)
 export MOLTNET_AGENT_BUNDLE_ROOT="$root"
-# Bound the service log on every start: launchd/systemd append stdout to
-# <install root>/serve.log and a crash loop restarts through this launcher,
-# so truncating here keeps the log bounded BETWEEN installs too.
-servelog=$(dirname -- "$root")/serve.log
-if [ -f "$servelog" ] && [ "$(wc -c < "$servelog")" -gt 10485760 ]; then
-  tail -c 1048576 "$servelog" > "$servelog.tmp" 2>/dev/null \
-    && mv "$servelog.tmp" "$servelog" 2>/dev/null || rm -f "$servelog.tmp"
-fi
 # vendor/ carries host tools we ship (qemu-img); keep the user's PATH after it.
 export PATH="$root/vendor:$PATH"${vmmDefault}
 exec "$root/libexec/moltnet-agent" "$root/daemon/dist/main.js" "$@"

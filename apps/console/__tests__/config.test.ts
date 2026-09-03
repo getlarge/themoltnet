@@ -24,7 +24,7 @@ describe('getConfig', () => {
     // /config.js (which predates docsUrl) stays valid.
     expect(config.docsUrl).toBe('https://docs.themolt.net');
     expect(config.signerUrl).toBe('http://127.0.0.1:17373');
-    expect(config.serveUrl).toBe('http://127.0.0.1:17374');
+    expect(config.agentServerUrl).toBe('http://127.0.0.1:17374');
   });
 
   it('uses injected docsUrl when provided', () => {
@@ -43,10 +43,10 @@ describe('getConfig', () => {
       kratosUrl: 'https://kratos.example.com',
       apiBaseUrl: 'https://api.example.com',
       consoleUrl: 'https://console.example.com',
-      serveUrl: 'http://127.0.0.1:18474',
+      agentServerUrl: 'http://127.0.0.1:18474',
     };
 
-    expect(getConfig().serveUrl).toBe('http://127.0.0.1:18474');
+    expect(getConfig().agentServerUrl).toBe('http://127.0.0.1:18474');
   });
 
   it('falls back to import.meta.env when no injected config', () => {
@@ -77,7 +77,7 @@ describe('getConfig', () => {
     expect(config.consoleUrl).toBe('http://localhost:5174');
     expect(config.docsUrl).toBe('https://docs.themolt.net');
     expect(config.signerUrl).toBe('http://127.0.0.1:17373');
-    expect(config.serveUrl).toBe('http://127.0.0.1:17374');
+    expect(config.agentServerUrl).toBe('http://127.0.0.1:17374');
   });
 });
 

@@ -4,11 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useLocalRuntime } from '../src/runtime-local/useLocalRuntime.js';
 import { createTestWrapper } from './test-query-client.js';
 
-const SERVE_URL = 'http://127.0.0.1:17374';
-const TOKEN_KEY = `moltnet-serve-token::${SERVE_URL}`;
+const AGENT_SERVER_URL = 'http://127.0.0.1:17374';
+const TOKEN_KEY = `moltnet-agent-server-token::${AGENT_SERVER_URL}`;
 
 vi.mock('../src/config.js', () => ({
-  getConfig: () => ({ serveUrl: SERVE_URL }),
+  getConfig: () => ({ agentServerUrl: AGENT_SERVER_URL }),
 }));
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -18,10 +18,11 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-function serveStatus() {
+function agentServerStatus() {
   return {
     version: 'test',
     platform: 'darwin',
+    subscriptions: [],
     agents: [],
     providers: {},
     runs: [],
@@ -94,7 +95,7 @@ describe('useLocalRuntime', () => {
         }
         statusCalls += 1;
         if (statusCalls <= 2) {
-          return Promise.resolve(jsonResponse(serveStatus()));
+          return Promise.resolve(jsonResponse(agentServerStatus()));
         }
         return Promise.resolve(
           jsonResponse(
@@ -146,7 +147,7 @@ describe('useLocalRuntime', () => {
           return Promise.resolve(jsonResponse({ token: 'approved-token' }));
         }
         if (url.endsWith('/v1/status')) {
-          return Promise.resolve(jsonResponse(serveStatus()));
+          return Promise.resolve(jsonResponse(agentServerStatus()));
         }
         return Promise.reject(new Error(`Unexpected request: ${url}`));
       });
@@ -165,7 +166,7 @@ describe('useLocalRuntime', () => {
     expect(popup.opener).toBeNull();
     await act(() => pairing!);
     expect(popup.location.replace).toHaveBeenCalledWith(
-      `${SERVE_URL}/pairings/pair-1`,
+      `${AGENT_SERVER_URL}/pairings/pair-1`,
     );
     expect(sessionStorage.getItem(TOKEN_KEY)).toBe('approved-token');
     expect(result.current.status).toBe('connected');
@@ -186,7 +187,7 @@ describe('useLocalRuntime', () => {
           resolveStart = resolve;
         });
       }
-      return Promise.resolve(jsonResponse(serveStatus()));
+      return Promise.resolve(jsonResponse(agentServerStatus()));
     });
     vi.stubGlobal('fetch', fetchMock);
     const { result } = renderHook(() => useLocalRuntime(), {
@@ -206,7 +207,7 @@ describe('useLocalRuntime', () => {
     );
     await waitFor(() =>
       expect(result.current.pairingApprovalUrl).toBe(
-        `${SERVE_URL}/pairings/pair-2`,
+        `${AGENT_SERVER_URL}/pairings/pair-2`,
       ),
     );
     expect(result.current.actionError).toContain('Popup blocked');
@@ -249,7 +250,7 @@ describe('useLocalRuntime', () => {
           );
         }
         if (url.endsWith('/v1/status')) {
-          return Promise.resolve(jsonResponse(serveStatus()));
+          return Promise.resolve(jsonResponse(agentServerStatus()));
         }
         return Promise.reject(new Error(`Unexpected request: ${url}`));
       });
@@ -381,7 +382,7 @@ describe('useLocalRuntime', () => {
         }
         if (url.endsWith('/v1/status')) {
           statusCalls += 1;
-          return Promise.resolve(jsonResponse(serveStatus()));
+          return Promise.resolve(jsonResponse(agentServerStatus()));
         }
         if (url.endsWith('/v1/agents') && init?.method === 'POST') {
           return Promise.resolve(
@@ -474,7 +475,7 @@ describe('useLocalRuntime', () => {
         }
         if (url.endsWith('/v1/status')) {
           statusCalls += 1;
-          return Promise.resolve(jsonResponse(serveStatus()));
+          return Promise.resolve(jsonResponse(agentServerStatus()));
         }
         return Promise.resolve(
           jsonResponse(

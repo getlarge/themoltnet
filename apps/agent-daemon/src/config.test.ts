@@ -43,7 +43,7 @@ describe('loadConfig observability settings', () => {
     );
   });
 
-  it('loads serve identity pins atomically', () => {
+  it('loads Agent Server identity pins atomically', () => {
     vi.stubEnv('MOLTNET_EXPECTED_IDENTITY_ID', 'id-1');
     expect(() => loadConfig()).toThrow('must be set together');
 

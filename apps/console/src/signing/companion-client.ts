@@ -20,7 +20,7 @@ import {
 import { Value } from 'typebox/value';
 
 import { abortableDelay } from '../abortable-delay.js';
-import { loopbackHttpUrl } from '../loopback-url.js';
+import { loopbackFetch, loopbackHttpUrl } from '../loopback-url.js';
 
 export interface SignerCompanionClient {
   connect(): Promise<SignerSession>;
@@ -60,7 +60,7 @@ export function createSignerCompanionClient(options: {
   const transport = createClient({
     baseUrl: baseUrl.href,
     credentials: 'omit',
-    fetch: fetchImpl,
+    fetch: (input, init) => loopbackFetch(fetchImpl, input, init),
     redirect: 'error',
   });
   let session: SignerSession | null = null;

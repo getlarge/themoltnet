@@ -120,6 +120,31 @@ describe('registerLoopbackSecurity', () => {
     });
     expect(denied.statusCode).toBe(403);
     expect(denied.json()).toEqual({ code: 'origin_not_allowed' });
+    expect(
+      denied.headers['access-control-allow-private-network'],
+    ).toBeUndefined();
+  });
+
+  it('opts allowlisted preflights into private network access', async () => {
+    app = await buildApp();
+    const response = await app.inject({
+      method: 'OPTIONS',
+      url: '/probe',
+      headers: {
+        host: '127.0.0.1:7777',
+        origin: CONSOLE_ORIGIN,
+        'access-control-request-method': 'GET',
+        'access-control-request-private-network': 'true',
+      },
+    });
+
+    expect(response.statusCode).toBe(204);
+    expect(response.headers['access-control-allow-origin']).toBe(
+      CONSOLE_ORIGIN,
+    );
+    expect(response.headers['access-control-allow-private-network']).toBe(
+      'true',
+    );
   });
 
   it('composes self origins with a custom origin authority', async () => {

@@ -1,0 +1,1360 @@
+{
+  "components": {
+    "schemas": {
+      "AgentServerAgent": {
+        "properties": {
+          "agentName": {
+            "type": "string"
+          },
+          "apiUrl": {
+            "type": "string"
+          },
+          "configDir": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "fingerprint": {
+            "type": "string"
+          },
+          "hasAgentKey": {
+            "type": "boolean"
+          },
+          "hasPrivateKey": {
+            "type": "boolean"
+          },
+          "identityId": {
+            "type": "string"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "enum": [
+                  "managed"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "external"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "teamId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "agentName",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "AgentServerHealth": {
+        "properties": {
+          "status": {
+            "enum": [
+              "ok"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "AgentServerLogStream": {
+        "contentMediaType": "text/event-stream",
+        "type": "string"
+      },
+      "AgentServerProblem": {
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "type": "object"
+      },
+      "AgentServerProvider": {
+        "properties": {
+          "api": {
+            "type": "string"
+          },
+          "baseUrl": {
+            "format": "uri",
+            "type": "string"
+          },
+          "envName": {
+            "type": "string"
+          },
+          "hasApiKey": {
+            "type": "boolean"
+          },
+          "models": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "api",
+          "baseUrl",
+          "envName",
+          "models",
+          "hasApiKey"
+        ],
+        "type": "object"
+      },
+      "AgentServerRun": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/AgentServerRunRecord"
+          },
+          {
+            "properties": {
+              "active": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "active"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "AgentServerRunRecord": {
+        "properties": {
+          "agent": {
+            "type": "string"
+          },
+          "endedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "exitCode": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "enum": [
+                  "poll"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "drain"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "pid": {
+            "type": "number"
+          },
+          "profiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "running"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "exited"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "stopped"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "failed"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "taskTypes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "teamId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "agent",
+          "teamId",
+          "profiles",
+          "taskTypes",
+          "mode",
+          "status",
+          "startedAt"
+        ],
+        "type": "object"
+      },
+      "AgentServerStatus": {
+        "properties": {
+          "agents": {
+            "items": {
+              "$ref": "#/components/schemas/AgentServerAgent"
+            },
+            "type": "array"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "providers": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/AgentServerProvider"
+            },
+            "type": "object"
+          },
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/AgentServerRun"
+            },
+            "type": "array"
+          },
+          "subscriptions": {
+            "items": {
+              "$ref": "#/components/schemas/AgentServerSubscription"
+            },
+            "type": "array"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "platform",
+          "subscriptions",
+          "agents",
+          "providers",
+          "runs"
+        ],
+        "type": "object"
+      },
+      "AgentServerSubscription": {
+        "properties": {
+          "connected": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "connected"
+        ],
+        "type": "object"
+      },
+      "AgentServerSubscriptionLogin": {
+        "properties": {
+          "authUrl": {
+            "format": "uri",
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "providerId": {
+            "type": "string"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "pending"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "completed"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "failed"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "userCode": {
+            "type": "string"
+          },
+          "verificationUri": {
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "required": [
+          "providerId",
+          "status"
+        ],
+        "type": "object"
+      },
+      "CancelledSubscription": {
+        "properties": {
+          "providerId": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "cancelled"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "providerId",
+          "status"
+        ],
+        "type": "object"
+      },
+      "DiscoveredModels": {
+        "properties": {
+          "models": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "models"
+        ],
+        "type": "object"
+      },
+      "PairingClaimed": {
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "type": "object"
+      },
+      "PairingStarted": {
+        "properties": {
+          "approvalPath": {
+            "type": "string"
+          },
+          "pairingId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "pairingId",
+          "approvalPath"
+        ],
+        "type": "object"
+      },
+      "ReconcileAgentResult": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/AgentServerAgent"
+          },
+          {
+            "properties": {
+              "abandoned": {
+                "enum": [
+                  true
+                ],
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "abandoned"
+            ],
+            "type": "object"
+          }
+        ]
+      }
+    },
+    "securitySchemes": {
+      "agentServerToken": {
+        "description": "Origin-bound capability issued by local pairing.",
+        "in": "header",
+        "name": "x-moltnet-agent-server-token",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "description": "Private loopback protocol between MoltNet Console and the local agent daemon server.",
+    "title": "MoltNet Agent Server API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "getAgentServerHealth",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerHealth"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/v1/agents": {
+      "get": {
+        "operationId": "listAgentServerAgents",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AgentServerAgent"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "agents"
+        ]
+      },
+      "post": {
+        "operationId": "createAgentServerAgent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "properties": {
+                      "enrollmentToken": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "enum": [
+                          "managed"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "enrollmentToken"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "properties": {
+                      "apiUrl": {
+                        "format": "uri",
+                        "type": "string"
+                      },
+                      "configDir": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "enum": [
+                          "external"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "configDir"
+                    ],
+                    "type": "object"
+                  }
+                ],
+                "properties": {
+                  "kind": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "managed"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "external"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "name"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerAgent"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "agents"
+        ]
+      }
+    },
+    "/v1/agents/{agentName}/reconcile": {
+      "post": {
+        "operationId": "reconcileAgentServerAgent",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "agentName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "action": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "resume"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "abandon"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "action"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconcileAgentResult"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "agents"
+        ]
+      }
+    },
+    "/v1/pairings": {
+      "post": {
+        "operationId": "startAgentServerPairing",
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PairingStarted"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "tags": [
+          "pairing"
+        ]
+      }
+    },
+    "/v1/pairings/{pairingId}/claim": {
+      "post": {
+        "operationId": "claimAgentServerPairing",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pairingId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PairingClaimed"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "tags": [
+          "pairing"
+        ]
+      }
+    },
+    "/v1/providers": {
+      "get": {
+        "operationId": "listAgentServerProviders",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/AgentServerProvider"
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "providers"
+        ]
+      }
+    },
+    "/v1/providers/{providerId}": {
+      "put": {
+        "operationId": "putAgentServerProvider",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "providerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "api": {
+                    "type": "string"
+                  },
+                  "apiKey": {
+                    "type": "string"
+                  },
+                  "baseUrl": {
+                    "format": "uri",
+                    "type": "string"
+                  },
+                  "envName": {
+                    "type": "string"
+                  },
+                  "models": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "api",
+                  "baseUrl",
+                  "envName",
+                  "models"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProvider"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "providers"
+        ]
+      }
+    },
+    "/v1/providers/{providerId}/discover-models": {
+      "post": {
+        "operationId": "discoverAgentServerProviderModels",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "providerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscoveredModels"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "providers"
+        ]
+      }
+    },
+    "/v1/runs": {
+      "get": {
+        "operationId": "listAgentServerRuns",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AgentServerRun"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "runs"
+        ]
+      },
+      "post": {
+        "operationId": "startAgentServerRun",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "agent": {
+                    "type": "string"
+                  },
+                  "mode": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "poll"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "drain"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "profiles": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "taskTypes": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "teamId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "agent",
+                  "teamId",
+                  "profiles",
+                  "taskTypes",
+                  "mode"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerRun"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "runs"
+        ]
+      }
+    },
+    "/v1/runs/{runId}": {
+      "delete": {
+        "operationId": "stopAgentServerRun",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerRunRecord"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "runs"
+        ]
+      }
+    },
+    "/v1/runs/{runId}/logs": {
+      "get": {
+        "operationId": "streamAgentServerRunLogs",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerLogStream"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "runs"
+        ]
+      }
+    },
+    "/v1/status": {
+      "get": {
+        "operationId": "getAgentServerStatus",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerStatus"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/v1/subscriptions": {
+      "get": {
+        "operationId": "listAgentServerSubscriptions",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AgentServerSubscription"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "subscriptions"
+        ]
+      }
+    },
+    "/v1/subscriptions/{providerId}/login": {
+      "delete": {
+        "operationId": "cancelAgentServerSubscriptionLogin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "providerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelledSubscription"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "subscriptions"
+        ]
+      },
+      "get": {
+        "operationId": "getAgentServerSubscriptionLogin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "providerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerSubscriptionLogin"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "subscriptions"
+        ]
+      },
+      "post": {
+        "operationId": "startAgentServerSubscriptionLogin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "providerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerSubscriptionLogin"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "subscriptions"
+        ]
+      }
+    }
+  },
+  "servers": [
+    {
+      "description": "Local Agent Server",
+      "url": "http://127.0.0.1:{port}",
+      "variables": {
+        "port": {
+          "default": "17374",
+          "description": "Agent Server loopback port"
+        }
+      }
+    }
+  ]
+}

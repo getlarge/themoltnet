@@ -87,6 +87,9 @@
       "path": "libs/signer-api-client"
     },
     {
+      "path": "libs/agent-daemon-api-client"
+    },
+    {
       "path": "libs/auth"
     },
     {

@@ -1,8 +1,8 @@
 /**
- * Local runtime page (#2062 Part C): manage `moltnet-agent serve` daemons on
+ * Local runtime page (#2062 Part C): manage `moltnet-agent server` daemons on
  * this machine — pair, configure agents/providers (secret write-only), and
- * start/stop/observe runs. Works only in a browser on the machine running
- * `serve` (loopback), by design.
+ * start, stop, and observe runs. Works only in a browser on the machine running
+ * Agent Server (loopback), by design.
  */
 import {
   createAgentEnrollment,
@@ -11,6 +11,7 @@ import {
 import { listRuntimeProfilesOptions } from '@moltnet/api-client/query';
 import { useQuery } from '@tanstack/react-query';
 import {
+  ActionLink,
   Badge,
   Button,
   Card,
@@ -23,18 +24,20 @@ import {
 import { Fragment, useState } from 'react';
 
 import { getApiClient } from '../api.js';
+import type {
+  AgentServerRunView,
+  StartRunBody,
+} from '../runtime-local/agent-server-client.js';
 import { ApiKeyProviderForm } from '../runtime-local/ApiKeyProviderForm.js';
 import { runLogPanelId, RunLogTail } from '../runtime-local/RunLogTail.js';
-import type {
-  ServeRunView,
-  StartRunBody,
-} from '../runtime-local/serve-client.js';
 import {
   type LocalRuntimeController,
   useLocalRuntime,
 } from '../runtime-local/useLocalRuntime.js';
 import { canManageTeam } from '../team/permissions.js';
 import { useTeam } from '../team/useTeam.js';
+
+const AGENT_DOWNLOAD_URL = 'https://themolt.net/download#install';
 
 export function LocalRuntimePage() {
   const runtime = useLocalRuntime();
@@ -72,7 +75,7 @@ function ConnectionStrip({ runtime }: { runtime: LocalRuntimeController }) {
             <Text variant="caption" color="muted">
               Supervisor {runtime.data?.version ?? ''} at{' '}
               <Text as="span" mono>
-                {runtime.serveUrl}
+                {runtime.agentServerUrl}
               </Text>
             </Text>
           </Stack>
@@ -122,17 +125,26 @@ function ConnectionStrip({ runtime }: { runtime: LocalRuntimeController }) {
             <Text weight="medium">
               No local supervisor at{' '}
               <Text as="span" mono>
-                {runtime.serveUrl}
+                {runtime.agentServerUrl}
               </Text>
             </Text>
           </Stack>
           <Stack gap={2}>
             <Text variant="caption" color="muted">
-              Start it on this machine, then retry:
+              Start the installed MoltNet Agent binary on this machine:
             </Text>
             <Text mono variant="caption">
-              npx @themoltnet/agent-daemon serve
+              moltnet-agent server
             </Text>
+            <ActionLink
+              variant="ghost"
+              size="sm"
+              href={AGENT_DOWNLOAD_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Download MoltNet Agent
+            </ActionLink>
           </Stack>
           <Stack direction="row">
             <Button size="sm" onClick={() => void runtime.retry()}>
@@ -195,7 +207,7 @@ function ConnectionStrip({ runtime }: { runtime: LocalRuntimeController }) {
   return (
     <Card padding="sm">
       <Text variant="caption" color="muted">
-        Looking for a local supervisor at {runtime.serveUrl}…
+        Looking for a local supervisor at {runtime.agentServerUrl}…
       </Text>
     </Card>
   );
@@ -843,7 +855,7 @@ function RunRow({
   onToggleLogs,
   logsOpen,
 }: {
-  run: ServeRunView;
+  run: AgentServerRunView;
   onStop: () => void;
   onToggleLogs: () => void;
   logsOpen: boolean;

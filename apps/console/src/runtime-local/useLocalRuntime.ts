@@ -1,5 +1,5 @@
 /**
- * Connection and state controller for the local serve supervisor (#2062).
+ * Connection and state controller for the local agent server (#2062).
  * Pairing grants are process-scoped by the daemon and kept in sessionStorage,
  * so a browser restart or daemon restart requires fresh local approval.
  */
@@ -9,16 +9,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { abortableDelay } from '../abortable-delay.js';
 import { getConfig } from '../config.js';
 import {
+  type AgentServerAgentView,
+  type AgentServerClient,
+  AgentServerClientError,
+  type AgentServerStatus,
+  type AgentServerSubscriptionLogin,
   type CreateAgentBody,
-  createServeClient,
+  createAgentServerClient,
   type PutProviderBody,
-  type ServeAgentView,
-  type ServeClient,
-  ServeClientError,
-  type ServeStatus,
-  type ServeSubscriptionLogin,
   type StartRunBody,
-} from './serve-client.js';
+} from './agent-server-client.js';
 
 export type LocalRuntimeStatus =
   | 'connecting'
@@ -31,13 +31,13 @@ export type LocalRuntimeStatus =
 const CLAIM_POLL_INTERVAL_MS = 1_000;
 const CLAIM_TIMEOUT_MS = 120_000;
 
-function tokenStorageKey(serveUrl: string): string {
-  return `moltnet-serve-token::${serveUrl}`;
+function tokenStorageKey(agentServerUrl: string): string {
+  return `moltnet-agent-server-token::${agentServerUrl}`;
 }
 
-function readStoredToken(serveUrl: string): string | null {
+function readStoredToken(agentServerUrl: string): string | null {
   try {
-    return sessionStorage.getItem(tokenStorageKey(serveUrl));
+    return sessionStorage.getItem(tokenStorageKey(agentServerUrl));
   } catch {
     return null;
   }
@@ -45,15 +45,15 @@ function readStoredToken(serveUrl: string): string | null {
 
 export interface LocalRuntimeController {
   status: LocalRuntimeStatus;
-  serveUrl: string;
-  data: ServeStatus | undefined;
+  agentServerUrl: string;
+  data: AgentServerStatus | undefined;
   actionError: string | null;
   connectionError: string | null;
   pairingApprovalUrl: string | null;
   pair(): Promise<void>;
   retry(): Promise<void>;
   disconnect(): void;
-  createAgent(body: CreateAgentBody): Promise<ServeAgentView>;
+  createAgent(body: CreateAgentBody): Promise<AgentServerAgentView>;
   putProvider(id: string, body: PutProviderBody): Promise<void>;
   startRun(body: StartRunBody): Promise<void>;
   stopRun(runId: string): Promise<void>;
@@ -63,15 +63,15 @@ export interface LocalRuntimeController {
     signal: AbortSignal,
   ) => Promise<void>;
   /** Live device-code/instruction info for an in-flight subscription login. */
-  subscriptionLogin: ServeSubscriptionLogin | null;
+  subscriptionLogin: AgentServerSubscriptionLogin | null;
   connectSubscription(providerId: string): Promise<void>;
   cancelSubscription(providerId: string): Promise<void>;
   discoverModels(providerId: string): Promise<string[]>;
 }
 
 export function useLocalRuntime(): LocalRuntimeController {
-  const serveUrl = getConfig().serveUrl;
-  const tokenRef = useRef<string | null>(readStoredToken(serveUrl));
+  const agentServerUrl = getConfig().agentServerUrl;
+  const tokenRef = useRef<string | null>(readStoredToken(agentServerUrl));
   const pairingAbortRef = useRef<AbortController | null>(null);
   const subscriptionAbortRef = useRef<AbortController | null>(null);
   const [status, setStatus] = useState<LocalRuntimeStatus>('connecting');
@@ -81,28 +81,29 @@ export function useLocalRuntime(): LocalRuntimeController {
     null,
   );
   const [subscriptionLogin, setSubscriptionLogin] =
-    useState<ServeSubscriptionLogin | null>(null);
+    useState<AgentServerSubscriptionLogin | null>(null);
 
   const client = useMemo(
     () =>
-      createServeClient({
-        baseUrl: serveUrl,
+      createAgentServerClient({
+        baseUrl: agentServerUrl,
         getToken: () => tokenRef.current,
       }),
-    [serveUrl],
+    [agentServerUrl],
   );
 
   const persistToken = useCallback(
     (token: string | null) => {
       tokenRef.current = token;
       try {
-        if (token) sessionStorage.setItem(tokenStorageKey(serveUrl), token);
-        else sessionStorage.removeItem(tokenStorageKey(serveUrl));
+        if (token)
+          sessionStorage.setItem(tokenStorageKey(agentServerUrl), token);
+        else sessionStorage.removeItem(tokenStorageKey(agentServerUrl));
       } catch {
         // Storage unavailable: keep the process-scoped token in this tab only.
       }
     },
-    [serveUrl],
+    [agentServerUrl],
   );
 
   const probe = useCallback(async () => {
@@ -152,7 +153,7 @@ export function useLocalRuntime(): LocalRuntimeController {
   }, [probe]);
 
   const statusQuery = useQuery({
-    queryKey: ['local-runtime', 'status', serveUrl],
+    queryKey: ['local-runtime', 'status', agentServerUrl],
     queryFn: () => client.status(),
     enabled: status === 'connected',
     refetchInterval: 5_000,
@@ -276,7 +277,7 @@ export function useLocalRuntime(): LocalRuntimeController {
         setSubscriptionLogin(null);
         await statusQuery.refetch();
       } catch (error) {
-        if (error instanceof ServeClientError && error.status === 404) {
+        if (error instanceof AgentServerClientError && error.status === 404) {
           setSubscriptionLogin(null);
           await statusQuery.refetch();
           return;
@@ -326,7 +327,7 @@ export function useLocalRuntime(): LocalRuntimeController {
 
   return {
     status,
-    serveUrl,
+    agentServerUrl,
     data: statusQuery.data,
     actionError,
     connectionError,
@@ -349,7 +350,7 @@ export function useLocalRuntime(): LocalRuntimeController {
 }
 
 async function claimApprovedPairing(
-  client: ServeClient,
+  client: AgentServerClient,
   pairingId: string,
   signal: AbortSignal,
 ): Promise<string> {
@@ -361,7 +362,7 @@ async function claimApprovedPairing(
       return token;
     } catch (error) {
       const pending =
-        error instanceof ServeClientError &&
+        error instanceof AgentServerClientError &&
         (error.code === 'pairing_not_approved' || error.status === 401);
       if (!pending) throw error;
       if (Date.now() >= deadline) {
@@ -372,7 +373,7 @@ async function claimApprovedPairing(
 }
 
 function isUnauthorized(error: unknown): boolean {
-  return error instanceof ServeClientError && error.status === 401;
+  return error instanceof AgentServerClientError && error.status === 401;
 }
 
 function errorMessage(error: unknown, fallback = 'Connection failed'): string {

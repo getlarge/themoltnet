@@ -277,7 +277,7 @@ services:
       API_BASE_URL: http://localhost:8080
       CONSOLE_BASE_URL: http://localhost:5174
       SIGNER_BASE_URL: http://127.0.0.1:17373
-      MOLTNET_SERVE_URL: http://127.0.0.1:17374
+      MOLTNET_AGENT_SERVER_URL: ${MOLTNET_AGENT_SERVER_URL:-http://127.0.0.1:17374}
       PACK_GC_COMPILE_TTL_DAYS: '7'
     depends_on:
       rest-api:

@@ -28,7 +28,6 @@ import {
   sha256File,
   validateQemuRuntimeProvenance,
   vendorQemuImg,
-  writeLauncher,
 } from './build.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -99,8 +98,6 @@ function createBundle({
   archivePlatform = platform,
   manifestPlatform = archivePlatform,
   helpStatus = 0,
-  serveOutput = 'unknown command: serve',
-  serveStatus = 1,
   unsigned = false,
 } = {}) {
   const root = tempDir('moltnet-agent-fixture-');
@@ -114,10 +111,6 @@ function createBundle({
 if [ "\${1:-}" = "--help" ]; then
   echo "fixture help"
   exit ${helpStatus}
-fi
-if [ "\${1:-}" = "serve" ]; then
-  echo "${serveOutput}" >&2
-  exit ${serveStatus}
 fi
 exit 0
 `,
@@ -173,7 +166,6 @@ function createInstallContext(fixture) {
       MOLTNET_AGENT_ARCHIVE: fixture.archive,
       MOLTNET_AGENT_BIN_DIR: binDir,
       MOLTNET_AGENT_HOME: installRoot,
-      MOLTNET_AGENT_NO_SERVICE: '1',
     },
   };
 }
@@ -285,13 +277,62 @@ describe('agent bundle installer', { skip: !supportedHost }, () => {
           )
         : join(context.home, '.config/systemd/user/moltnet-agent.service');
     mkdirSync(dirname(service), { recursive: true });
-    writeFileSync(service, 'ExecStart=/user/managed/moltnet-agent serve\n');
+    writeFileSync(service, 'ExecStart=/user/managed/moltnet-agent server\n');
 
     const removed = await runInstaller(context, ['--uninstall']);
 
     assert.equal(removed.status, 0, removed.stderr);
     assert.equal(readFileSync(binary, 'utf8'), 'user-owned');
     assert.equal(existsSync(service), true);
+  });
+
+  it('removes an installer-owned legacy login service during install', async () => {
+    const fixture = createBundle();
+    const context = createInstallContext(fixture);
+    const service =
+      process.platform === 'darwin'
+        ? join(
+            context.home,
+            'Library/LaunchAgents/net.themolt.agent.serve.plist',
+          )
+        : join(context.home, '.config/systemd/user/moltnet-agent.service');
+    mkdirSync(dirname(service), { recursive: true });
+    writeFileSync(
+      service,
+      `${context.installRoot}/current/bin/moltnet-agent server\n`,
+    );
+    addCommandStubs(context, {
+      launchctl: '#!/bin/sh\nexit 0\n',
+      systemctl: '#!/bin/sh\nexit 0\n',
+    });
+
+    const installed = await runInstaller(context);
+
+    assert.equal(installed.status, 0, installed.stderr);
+    assert.equal(existsSync(service), false);
+    assert.match(installed.stderr, /run 'moltnet-agent server'/);
+  });
+
+  it('preserves a same-named login service owned by another install', async () => {
+    const fixture = createBundle();
+    const context = createInstallContext(fixture);
+    const service =
+      process.platform === 'darwin'
+        ? join(
+            context.home,
+            'Library/LaunchAgents/net.themolt.agent.serve.plist',
+          )
+        : join(context.home, '.config/systemd/user/moltnet-agent.service');
+    mkdirSync(dirname(service), { recursive: true });
+    writeFileSync(service, '/another/install/moltnet-agent server\n');
+
+    const installed = await runInstaller(context);
+
+    assert.equal(installed.status, 0, installed.stderr);
+    assert.equal(
+      readFileSync(service, 'utf8'),
+      '/another/install/moltnet-agent server\n',
+    );
   });
 
   it('refuses sensitive roots without touching their contents', async () => {
@@ -510,68 +551,15 @@ esac
     assert.equal(existsSync(unsupportedContext.installRoot), false);
   });
 
-  it('distinguishes a missing serve command from a broken serve command', async () => {
-    const missing = createBundle();
-    const missingContext = createInstallContext(missing);
-    delete missingContext.env.MOLTNET_AGENT_NO_SERVICE;
+  it('rejects a bundle whose launcher self-check fails', async () => {
+    const broken = createBundle({ helpStatus: 7 });
+    const context = createInstallContext(broken);
 
-    const skipped = await runInstaller(missingContext);
-    assert.equal(skipped.status, 0, skipped.stderr);
-    assert.match(skipped.stderr, /has no 'serve' command/);
+    const refused = await runInstaller(context);
 
-    const broken = createBundle({
-      serveOutput: 'serve self-check crashed',
-      serveStatus: 7,
-    });
-    const brokenContext = createInstallContext(broken);
-    delete brokenContext.env.MOLTNET_AGENT_NO_SERVICE;
-
-    const refused = await runInstaller(brokenContext);
     assert.notEqual(refused.status, 0);
     assert.match(refused.stderr, /installed binary failed its self-check/);
-    assert.match(refused.stderr, /serve self-check crashed/);
-    assert.equal(existsSync(join(brokenContext.installRoot, 'current')), false);
-  });
-
-  it('restarts and asserts the Linux systemd unit during an upgrade', async () => {
-    const first = createBundle({
-      archivePlatform: 'linux-x64',
-      serveStatus: 0,
-      version: '1.0.0',
-    });
-    const context = createInstallContext(first);
-    delete context.env.MOLTNET_AGENT_NO_SERVICE;
-    const stubRoot = addCommandStubs(context, {
-      journalctl: '#!/bin/sh\nexit 0\n',
-      systemctl: `#!/bin/sh
-printf '%s\\n' "$*" >> "$SYSTEMCTL_LOG"
-exit 0
-`,
-      uname: `#!/bin/sh
-case "$1" in
-  -s) printf Linux ;;
-  -m) printf x86_64 ;;
-esac
-`,
-    });
-    const systemctlLog = join(stubRoot, 'systemctl.log');
-    context.env.SYSTEMCTL_LOG = systemctlLog;
-    const installed = await runInstaller(context);
-    assert.equal(installed.status, 0, installed.stderr);
-    writeFileSync(systemctlLog, '');
-
-    const second = createBundle({
-      archivePlatform: 'linux-x64',
-      serveStatus: 0,
-      version: '2.0.0',
-    });
-    context.env.MOLTNET_AGENT_ARCHIVE = second.archive;
-    const upgraded = await runInstaller(context);
-
-    assert.equal(upgraded.status, 0, upgraded.stderr);
-    const commands = readFileSync(systemctlLog, 'utf8');
-    assert.match(commands, /--user try-restart moltnet-agent\.service/);
-    assert.match(commands, /--user is-active --quiet moltnet-agent\.service/);
+    assert.equal(existsSync(join(context.installRoot, 'current')), false);
   });
 
   it('round-trips the release signature trust anchor', async () => {
@@ -837,27 +825,6 @@ esac
         process.env.QEMU_IMG_EXPECTED_MAJOR = originalExpectedMajor;
       }
     }
-  });
-});
-
-describe('launcher log bound', { skip: !supportedHost }, () => {
-  it('truncates a crash-loop log on every launcher start', () => {
-    const installRoot = tempDir('moltnet-agent-launcher-');
-    const payload = join(installRoot, '1.2.3');
-    const runtime = join(payload, 'libexec/moltnet-agent');
-    mkdirSync(dirname(runtime), { recursive: true });
-    writeFileSync(runtime, '#!/bin/sh\nexit 0\n');
-    chmodSync(runtime, 0o755);
-    mkdirSync(join(payload, 'daemon/dist'), { recursive: true });
-    writeFileSync(join(payload, 'daemon/dist/main.js'), '');
-    const launcher = writeLauncher(payload, { os: process.platform });
-    const log = join(installRoot, 'serve.log');
-    writeFileSync(log, Buffer.alloc(11 * 1024 * 1024, 1));
-
-    const result = runSync(launcher, [], { env: process.env });
-
-    assert.equal(result.status, 0, result.stderr);
-    assert.equal(statSync(log).size, 1024 * 1024);
   });
 });
 

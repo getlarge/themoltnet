@@ -28,6 +28,7 @@ libs/moltnet-api-client/openapi-normalized.json
 # is the real guard. See diary incident c72108c8.
 apps/rest-api/public/openapi.json
 apps/moltnet-signer/openapi.json
+apps/agent-daemon/openapi.json
 
 # Release Please owns these plugin manifests through JSON `extra-files` updates.
 # Its serializer expands arrays in a way Prettier immediately reverses, so

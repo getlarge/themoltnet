@@ -1,7 +1,7 @@
 /**
  * Local runtime page E2E — the course-flow journey (#2061).
  *
- * Runs the real `moltnet-agent serve` supervisor on the host (the Console
+ * Runs the real `moltnet-agent server` supervisor on the host (the Console
  * only ever talks to `http://127.0.0.1:17374`) and drives the page the way
  * a learner would: pair → generate an invitation code → create a managed
  * agent → configure a provider from discovered models → start a daemon
@@ -32,9 +32,10 @@ import {
   waitForVerificationCode,
 } from './helpers/index.js';
 
-/** The Console image resolves the supervisor at this fixed loopback port. */
-const SERVE_PORT = 17374;
-const SERVE_URL = `http://127.0.0.1:${SERVE_PORT}`;
+/** The Console image and host-side Agent Server must use the same loopback URL. */
+const AGENT_SERVER_URL =
+  process.env['MOLTNET_AGENT_SERVER_URL'] ?? 'http://127.0.0.1:17374';
+const AGENT_SERVER_PORT = Number(new URL(AGENT_SERVER_URL).port);
 const DAEMON_BUNDLE_ROOT = resolve(
   import.meta.dirname,
   `../../../dist/agent-bundle/moltnet-agent-${process.platform}-${process.arch}`,
@@ -48,11 +49,11 @@ const STDERR_TAIL_BYTES = 16 * 1024;
  * an explicit dependency on that bundle so source-tree resolution cannot hide
  * packaging or runtime regressions.
  */
-function spawnServe(args: string[]): ChildProcess {
+function spawnAgentServer(args: string[]): ChildProcess {
   const bundleRoot = process.env['MOLTNET_AGENT_BUNDLE'] ?? DAEMON_BUNDLE_ROOT;
   const bundledEntry = join(bundleRoot, 'bin/moltnet-agent');
   if (existsSync(bundledEntry)) {
-    return spawn(bundledEntry, ['serve', ...args], {
+    return spawn(bundledEntry, ['server', ...args], {
       cwd: tmpdir(),
       env: process.env,
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -73,17 +74,17 @@ function appendStderrTail(current: string, chunk: Buffer): string {
   return `${current}${chunk.toString()}`.slice(-STDERR_TAIL_BYTES);
 }
 
-async function waitForServeHealth(stderr: () => string): Promise<void> {
+async function waitForAgentServerHealth(stderr: () => string): Promise<void> {
   const deadline = Date.now() + 60_000;
   while (Date.now() < deadline) {
-    const healthy = await fetch(`${SERVE_URL}/health`)
+    const healthy = await fetch(`${AGENT_SERVER_URL}/health`)
       .then((response) => response.ok)
       .catch(() => false);
     if (healthy) return;
     await sleep(250);
   }
   throw new Error(
-    `serve did not become healthy\n--- serve stderr ---\n${stderr()}`,
+    `agent server did not become healthy\n--- agent server stderr ---\n${stderr()}`,
   );
 }
 
@@ -122,46 +123,48 @@ test.describe.serial('Local runtime page', () => {
   const teamName = `local-runtime-${nonce}`;
   const agentName = `learner-agent-${nonce}`;
   const profileName = `local-profile-${nonce}`;
-  let serve: ChildProcess;
-  let serveRoot: string;
-  let serveStderr = '';
+  let agentServer: ChildProcess;
+  let agentServerRoot: string;
+  let agentServerStderr = '';
   let modelStub: { server: Server; url: string };
   let teamId: string;
   let profileId: string;
 
   test.beforeAll(async () => {
-    if (!(await isPortFree(SERVE_PORT))) {
+    if (!(await isPortFree(AGENT_SERVER_PORT))) {
       throw new Error(
-        `Port ${SERVE_PORT} is busy — stop any running \`moltnet-agent serve\` before this suite.`,
+        `Port ${AGENT_SERVER_PORT} is busy — stop any running \`moltnet-agent server\` before this suite.`,
       );
     }
     modelStub = await startModelStub();
-    serveRoot = await mkdtemp(join(tmpdir(), 'moltnet-serve-console-e2e-'));
-    serve = spawnServe([
+    agentServerRoot = await mkdtemp(
+      join(tmpdir(), 'moltnet-agent-server-console-e2e-'),
+    );
+    agentServer = spawnAgentServer([
       '--port',
-      String(SERVE_PORT),
+      String(AGENT_SERVER_PORT),
       '--root',
-      serveRoot,
+      agentServerRoot,
       '--allowed-origins',
       CONSOLE_URL,
       '--api-url',
       REST_API_URL,
     ]);
-    serve.stderr?.on('data', (chunk: Buffer) => {
-      serveStderr = appendStderrTail(serveStderr, chunk);
+    agentServer.stderr?.on('data', (chunk: Buffer) => {
+      agentServerStderr = appendStderrTail(agentServerStderr, chunk);
     });
-    await waitForServeHealth(() => serveStderr);
+    await waitForAgentServerHealth(() => agentServerStderr);
   });
 
   test.afterAll(async () => {
-    if (serve && serve.exitCode === null) {
+    if (agentServer && agentServer.exitCode === null) {
       const exited = new Promise<void>((resolveExit) => {
-        serve.once('exit', () => resolveExit());
+        agentServer.once('exit', () => resolveExit());
       });
-      serve.kill('SIGTERM');
+      agentServer.kill('SIGTERM');
       await Promise.race([exited, sleep(15_000)]);
-      if (serve.exitCode === null) {
-        serve.kill('SIGKILL');
+      if (agentServer.exitCode === null) {
+        agentServer.kill('SIGKILL');
         await exited;
       }
     }
@@ -172,7 +175,8 @@ test.describe.serial('Local runtime page', () => {
         );
       });
     }
-    if (serveRoot) await rm(serveRoot, { recursive: true, force: true });
+    if (agentServerRoot)
+      await rm(agentServerRoot, { recursive: true, force: true });
   });
 
   test('a learner pairs the console, enrols an agent, configures a provider, and runs a daemon', async ({
@@ -214,7 +218,9 @@ test.describe.serial('Local runtime page', () => {
       await connect.click();
       const approval = await approvalPagePromise;
       await approval.waitForLoadState();
-      await expect(approval).toHaveURL(new RegExp(`^${SERVE_URL}/pairings/`));
+      await expect(approval).toHaveURL(
+        new RegExp(`^${AGENT_SERVER_URL}/pairings/`),
+      );
       await expect(approval.getByText(CONSOLE_URL)).toBeVisible();
       await approval.getByRole('button', { name: 'Approve' }).click();
       await expect(approval.getByText('Connection approved')).toBeVisible();

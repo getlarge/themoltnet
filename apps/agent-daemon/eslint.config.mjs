@@ -25,6 +25,9 @@ export default [
       // installable.
       '@fastify/cors',
       '@fastify/helmet',
+      // Used only by the deterministic OpenAPI generator, not the shipped
+      // daemon entry graph.
+      '@fastify/swagger',
       '@earendil-works/pi-coding-agent',
       '@fastify/otel',
       '@ipld/dag-cbor',

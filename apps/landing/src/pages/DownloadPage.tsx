@@ -71,7 +71,7 @@ const ALTERNATIVE_INSTALLS = [
     id: 'agent',
     title: 'Agent daemon (macOS / Linux)',
     command: MOLTNET_AGENT_INSTALL_COMMAND,
-    body: 'Installs the signed self-contained moltnet-agent bundle and registers it as a login service. Re-run to upgrade; --uninstall removes it.',
+    body: 'Installs the signed self-contained moltnet-agent bundle. Run moltnet-agent server while using the Console; Ctrl-C stops it. Re-run to upgrade; --uninstall removes it.',
   },
 ] as const;
 
@@ -213,8 +213,8 @@ export function DownloadPage() {
                 MoltNet Agent{versionSuffix(agentVersion)}
               </Text>
               <Text color="secondary">
-                Self-contained daemon bundle: pinned Node runtime, sandbox
-                tooling, and the serve login service.
+                Self-contained daemon bundle: pinned Node runtime and sandbox
+                tooling. You decide when to run the Agent Server.
               </Text>
               <ul className="ops-download-list">
                 {AGENT_PLATFORMS.map((id) => (

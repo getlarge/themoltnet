@@ -1,0 +1,48 @@
+{
+  "name": "@moltnet/agent-daemon-api-client",
+  "version": "0.1.0",
+  "license": "AGPL-3.0-only",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "generate": "openapi-ts",
+    "test": "vitest run --passWithNoTests"
+  },
+  "nx": {
+    "sourceRoot": "libs/agent-daemon-api-client/src",
+    "projectType": "library",
+    "tags": [
+      "type:client",
+      "scope:agent",
+      "platform:isomorphic"
+    ],
+    "targets": {
+      "typecheck": {
+        "executor": "nx:noop",
+        "dependsOn": [
+          "build"
+        ],
+        "cache": true,
+        "inputs": [
+          "production",
+          "^production"
+        ],
+        "outputs": []
+      }
+    }
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

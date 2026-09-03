@@ -15,3 +15,15 @@ export function loopbackHttpUrl(value: string, label: string): URL {
   }
   return url;
 }
+
+export function loopbackFetch(
+  fetchImpl: typeof fetch,
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<Response> {
+  const loopbackInit: RequestInit & { targetAddressSpace: 'loopback' } = {
+    ...init,
+    targetAddressSpace: 'loopback',
+  };
+  return fetchImpl(input, loopbackInit);
+}

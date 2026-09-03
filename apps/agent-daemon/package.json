@@ -111,6 +111,7 @@
     "dev": "tsx watch src/main.ts",
     "start": "node dist/main.js",
     "build": "vite build",
+    "generate:openapi": "tsx scripts/generate-openapi.ts",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package . && pnpm run smoke:pack",
     "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --local-dependency ../../libs/sdk --local-dependency ../../libs/os-keyring --local-dependency ../../libs/agent-runtime --local-dependency ../../libs/shell-command-analyzer --local-dependency ../../libs/pi-runtime --copy-file test-fixtures/runtime-adapter.mjs runtime-adapter.mjs --probe-file test-fixtures/keyring-pack-probe.mjs keyring-pack-probe.mjs --bin moltnet-agent --args --runtime ./runtime-adapter.mjs --help --expect \"long-running task worker for MoltNet\""
   },
@@ -157,6 +158,7 @@
     "typebox": "catalog:"
   },
   "devDependencies": {
+    "@fastify/swagger": "catalog:",
     "@moltnet/agent-eval": "workspace:*",
     "@moltnet/bootstrap": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
@@ -182,6 +184,11 @@
       "platform:cli"
     ],
     "targets": {
+      "generate:openapi": {
+        "outputs": [
+          "{projectRoot}/openapi.json"
+        ]
+      },
       "bundle": {
         "executor": "nx:run-commands",
         "cache": false,

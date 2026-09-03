@@ -3,10 +3,10 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  createServeClient,
-  SERVE_TOKEN_HEADER,
-  ServeClientError,
-} from '../src/runtime-local/serve-client.js';
+  AGENT_SERVER_TOKEN_HEADER,
+  AgentServerClientError,
+  createAgentServerClient,
+} from '../src/runtime-local/agent-server-client.js';
 
 const BASE = 'http://127.0.0.1:17374';
 
@@ -17,18 +17,18 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-describe('serve companion client', () => {
+describe('agent server client', () => {
   it('refuses non-loopback base URLs', () => {
     for (const baseUrl of [
       'https://evil.example',
-      'http://serve.example',
+      'http://agent-server.example',
       'http://user:pw@127.0.0.1:17374',
       'http://127.0.0.1:17374/prefix',
       'http://127.0.0.1:17374?target=other',
       'http://127.0.0.1:17374#fragment',
     ]) {
       expect(() =>
-        createServeClient({ baseUrl, getToken: () => null }),
+        createAgentServerClient({ baseUrl, getToken: () => null }),
       ).toThrow('loopback');
     }
   });
@@ -43,13 +43,14 @@ describe('serve companion client', () => {
         jsonResponse({
           version: 'test',
           platform: 'darwin',
+          subscriptions: [],
           agents: [],
           providers: {},
           runs: [],
         }),
       );
     let token: string | null = null;
-    const client = createServeClient({
+    const client = createAgentServerClient({
       baseUrl: BASE,
       getToken: () => token,
       fetch: fetchMock,
@@ -60,6 +61,7 @@ describe('serve companion client', () => {
     await client.status();
 
     for (const [input, init] of fetchMock.mock.calls) {
+      expect(init).toMatchObject({ targetAddressSpace: 'loopback' });
       const request =
         input instanceof Request ? input : new Request(input as string, init);
       expect(request.url).toMatch(/^http:\/\/127\.0\.0\.1:17374\//);
@@ -71,15 +73,15 @@ describe('serve companion client', () => {
       fetchMock.mock.calls[0][0] as string,
       fetchMock.mock.calls[0][1],
     );
-    expect(first.headers.has(SERVE_TOKEN_HEADER)).toBe(false);
+    expect(first.headers.has(AGENT_SERVER_TOKEN_HEADER)).toBe(false);
     const second = new Request(
       fetchMock.mock.calls[1][0] as string,
       fetchMock.mock.calls[1][1],
     );
-    expect(second.headers.get(SERVE_TOKEN_HEADER)).toBe('paired-token');
+    expect(second.headers.get(AGENT_SERVER_TOKEN_HEADER)).toBe('paired-token');
   });
 
-  it('maps serve problem responses onto typed errors', async () => {
+  it('maps Agent Server problem responses onto typed errors', async () => {
     const fetchMock = vi
       .fn<typeof fetch>()
       .mockResolvedValue(
@@ -88,7 +90,7 @@ describe('serve companion client', () => {
           401,
         ),
       );
-    const client = createServeClient({
+    const client = createAgentServerClient({
       baseUrl: BASE,
       getToken: () => null,
       fetch: fetchMock,
@@ -97,9 +99,9 @@ describe('serve companion client', () => {
       await client.status();
       expect.unreachable();
     } catch (error) {
-      expect(error).toBeInstanceOf(ServeClientError);
-      expect((error as ServeClientError).code).toBe('pairing_required');
-      expect((error as ServeClientError).status).toBe(401);
+      expect(error).toBeInstanceOf(AgentServerClientError);
+      expect((error as AgentServerClientError).code).toBe('pairing_required');
+      expect((error as AgentServerClientError).status).toBe(401);
     }
   });
 
@@ -110,7 +112,7 @@ describe('serve companion client', () => {
       .mockResolvedValueOnce(new Response(null, { status: 503 }))
       .mockRejectedValueOnce(new DOMException('slow', 'TimeoutError'))
       .mockRejectedValueOnce(new TypeError('offline'));
-    const client = createServeClient({
+    const client = createAgentServerClient({
       baseUrl: BASE,
       getToken: () => null,
       fetch: fetchMock,
@@ -132,13 +134,14 @@ describe('serve companion client', () => {
   });
 
   it('rejects incompatible JSON response shapes', async () => {
-    const client = createServeClient({
+    const client = createAgentServerClient({
       baseUrl: BASE,
       getToken: () => 'tok',
       fetch: vi.fn<typeof fetch>().mockResolvedValue(
         jsonResponse({
           version: 'test',
           platform: 'darwin',
+          subscriptions: [],
           agents: [],
           providers: {},
           runs: [{ id: 'missing-required-fields' }],
@@ -184,7 +187,7 @@ describe('serve companion client', () => {
         ),
       )
       .mockResolvedValueOnce(jsonResponse({ status: 'stopped' }));
-    const client = createServeClient({
+    const client = createAgentServerClient({
       baseUrl: BASE,
       getToken: () => 'tok',
       fetch: fetchMock,
@@ -262,7 +265,7 @@ describe('serve companion client', () => {
 
   it('derives provider env names and rejects secret-bearing provider URLs', async () => {
     const fetchMock = vi.fn<typeof fetch>();
-    const client = createServeClient({
+    const client = createAgentServerClient({
       baseUrl: BASE,
       getToken: () => 'tok',
       fetch: fetchMock,
@@ -304,7 +307,7 @@ describe('serve companion client', () => {
           );
         }),
     );
-    const client = createServeClient({
+    const client = createAgentServerClient({
       baseUrl: BASE,
       getToken: () => 'tok',
       fetch: fetchMock,
@@ -319,7 +322,7 @@ describe('serve companion client', () => {
     controller.abort();
 
     await expect(polling).rejects.toMatchObject({
-      code: 'serve_unavailable',
+      code: 'agent_server_unavailable',
     });
     expect((requestSignal as AbortSignal | null)?.aborted).toBe(true);
   });
@@ -339,7 +342,7 @@ describe('serve companion client', () => {
         headers: { 'content-type': 'text/event-stream' },
       }),
     );
-    const client = createServeClient({
+    const client = createAgentServerClient({
       baseUrl: BASE,
       getToken: () => 'tok',
       fetch: fetchMock,
@@ -357,7 +360,7 @@ describe('serve companion client', () => {
     expect(request.url).toBe(`${BASE}/v1/runs/run-1/logs`);
     expect(request.credentials).toBe('omit');
     expect(request.redirect).toBe('error');
-    expect(request.headers.get(SERVE_TOKEN_HEADER)).toBe('tok');
+    expect(request.headers.get(AGENT_SERVER_TOKEN_HEADER)).toBe('tok');
     expect(request.headers.has('authorization')).toBe(false);
     expect(request.headers.has('cookie')).toBe(false);
     expect(init?.signal).toBe(controller.signal);
@@ -381,7 +384,7 @@ describe('serve companion client', () => {
           headers: { 'content-type': 'application/json' },
         }),
       );
-    const client = createServeClient({
+    const client = createAgentServerClient({
       baseUrl: BASE,
       getToken: () => 'tok',
       fetch: fetchMock,
@@ -409,7 +412,7 @@ describe('serve companion client', () => {
       },
       cancel,
     });
-    const client = createServeClient({
+    const client = createAgentServerClient({
       baseUrl: BASE,
       getToken: () => 'tok',
       fetch: vi.fn<typeof fetch>().mockResolvedValue(
@@ -433,7 +436,7 @@ describe('serve companion client', () => {
         controller.close();
       },
     });
-    const client = createServeClient({
+    const client = createAgentServerClient({
       baseUrl: BASE,
       getToken: () => 'tok',
       fetch: vi.fn<typeof fetch>().mockResolvedValue(
@@ -464,7 +467,7 @@ describe('serve companion client', () => {
         controller.close();
       },
     });
-    const client = createServeClient({
+    const client = createAgentServerClient({
       baseUrl: BASE,
       getToken: () => 'tok',
       fetch: vi.fn<typeof fetch>().mockResolvedValue(
@@ -495,7 +498,7 @@ describe('serve companion client', () => {
           );
         }),
     );
-    const client = createServeClient({
+    const client = createAgentServerClient({
       baseUrl: BASE,
       getToken: () => 'tok',
       fetch: fetchMock,

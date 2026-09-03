@@ -13,7 +13,7 @@ server {
         # console computes the same retention window the server enforces. Quoted
         # so an unset var yields "" rather than invalid JS; the client parses it
         # and falls back. Set it from the same value as the API deployment.
-        return 200 'window.__MOLTNET_CONFIG__={kratosUrl:"${KRATOS_PUBLIC_URL}",apiBaseUrl:"${API_BASE_URL}",consoleUrl:"${CONSOLE_BASE_URL}",signerUrl:"${SIGNER_BASE_URL}",serveUrl:"${MOLTNET_SERVE_URL}",packGcTtlDays:"${PACK_GC_COMPILE_TTL_DAYS}"};';
+        return 200 'window.__MOLTNET_CONFIG__={kratosUrl:"${KRATOS_PUBLIC_URL}",apiBaseUrl:"${API_BASE_URL}",consoleUrl:"${CONSOLE_BASE_URL}",signerUrl:"${SIGNER_BASE_URL}",agentServerUrl:"${MOLTNET_AGENT_SERVER_URL}",packGcTtlDays:"${PACK_GC_COMPILE_TTL_DAYS}"};';
     }
 
     # Cache hashed assets immutably

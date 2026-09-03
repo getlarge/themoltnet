@@ -1,7 +1,7 @@
 import { runDrain } from './cli/drain.js';
 import { runOnce } from './cli/once.js';
 import { runPoll } from './cli/poll.js';
-import { runServe } from './cli/serve.js';
+import { runAgentServer } from './cli/server.js';
 import { runSyncSessions } from './cli/sync-sessions.js';
 import { ROOT_USAGE } from './lib/help.js';
 import type { DaemonRuntimeAdapter } from './runtime.js';
@@ -18,8 +18,8 @@ export async function runAgentDaemonCli(options: {
       return runOnce(rest, options.runtime);
     case 'drain':
       return runDrain(rest, options.runtime);
-    case 'serve':
-      return runServe(rest);
+    case 'server':
+      return runAgentServer(rest);
     case 'sync-sessions':
       return runSyncSessions(rest);
     case '-h':

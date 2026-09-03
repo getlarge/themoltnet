@@ -28,7 +28,7 @@ import type {
 } from '@themoltnet/agent-runtime';
 import type { SecretProviderRegistry } from '@themoltnet/sdk';
 
-export const DEFAULT_GOVERNANCE_OBSERVE_TIMEOUT_MS = 2_000;
+export const DEFAULT_GOVERNANCE_OBAGENT_SERVER_TIMEOUT_MS = 2_000;
 
 export interface RuntimeCredentialConfig {
   /** Profile-side/private input: requirements keyed by runtime profile id. */
@@ -268,7 +268,7 @@ export async function observeGovernancePlan(
  */
 export async function observeGovernancePlanSafely(
   input: ObserveGovernancePlanInput,
-  timeoutMs = DEFAULT_GOVERNANCE_OBSERVE_TIMEOUT_MS,
+  timeoutMs = DEFAULT_GOVERNANCE_OBAGENT_SERVER_TIMEOUT_MS,
 ): Promise<ObservedGovernancePlan | null> {
   let timeout: ReturnType<typeof setTimeout> | undefined;
   try {
