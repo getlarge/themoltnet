@@ -95,19 +95,16 @@ jobs:
       - name: Provision Ubuntu 24.04 and copy the checkout to ext4
         run: |
           $distro = 'Ubuntu-24.04'
+          @'
+          [wsl2]
+          localhostForwarding=true
+          '@ | Set-Content "$env:USERPROFILE\.wslconfig" -NoNewline
+          wsl.exe --shutdown
           if (-not (wsl.exe --list --quiet | ForEach-Object { $_.Trim() } | Where-Object { $_ -eq $distro })) {
             wsl.exe --install --distribution $distro --no-launch
           }
           wsl.exe --distribution $distro -- bash -lc 'rm -rf ~/src/themoltnet && mkdir -p ~/src/themoltnet'
           tar.exe -cf - --exclude=.git . | wsl.exe --distribution $distro -- bash -lc 'tar -xf - -C ~/src/themoltnet'
-      - name: Restore WSL pnpm store
-        id: wsl-pnpm-store
-        uses: actions/cache/restore@v5
-        with:
-          path: \\wsl.localhost\Ubuntu-24.04\root\.local\share\pnpm\store
-          key: wsl2-ubuntu-24.04-pnpm-10-linux-x64-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            wsl2-ubuntu-24.04-pnpm-10-linux-x64-
       - name: Restore WSL bundle runtime
         id: wsl-bundle-runtime
         uses: actions/cache/restore@v5
@@ -133,14 +130,8 @@ jobs:
       - name: Show WSL agent server log on failure
         if: failure()
         run: wsl.exe --distribution Ubuntu-24.04 -- bash -lc 'cat "$HOME/moltnet-agent-server.log" 2>/dev/null || true'
-      - name: Save WSL pnpm store
-        if: always() && steps.wsl-pnpm-store.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
-        with:
-          path: \\wsl.localhost\Ubuntu-24.04\root\.local\share\pnpm\store
-          key: wsl2-ubuntu-24.04-pnpm-10-linux-x64-${{ hashFiles('pnpm-lock.yaml') }}
       - name: Save WSL bundle runtime
-        if: always() && steps.wsl-bundle-runtime.outputs.cache-hit != 'true'
+        if: success() && steps.wsl-bundle-runtime.outputs.cache-hit != 'true'
         uses: actions/cache/save@v5
         with:
           path: \\wsl.localhost\Ubuntu-24.04\root\.cache\moltnet-release

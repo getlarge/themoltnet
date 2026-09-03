@@ -27,6 +27,11 @@ case "${1:-}" in
     if [ -e /dev/kvm ]; then echo 'KVM available'; else echo 'KVM unavailable; QEMU TCG fallback expected'; fi
     nohup "$HOME/.local/bin/moltnet-agent" server > "$HOME/moltnet-agent-server.log" 2>&1 &
     echo $! > "$HOME/moltnet-agent-server.pid"
+    for _ in $(seq 1 30); do
+      curl -fsS http://127.0.0.1:17374/health && break
+      sleep 1
+    done
+    curl -fsS http://127.0.0.1:17374/health
     ;;
   integrations)
     cd ~/src/themoltnet
