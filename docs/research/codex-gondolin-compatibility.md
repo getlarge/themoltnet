@@ -2,8 +2,8 @@
 
 This private compatibility spike tests whether Codex can keep its App Server,
 authentication, model traffic, and host tools on the trusted host while running
-model-requested shell commands through an exec-server inside Gondolin. The
-probe also exercises purpose-bound host credential use: the guest can request a
+model-requested shell commands through an exec-server inside Gondolin. The probe
+also exercises purpose-bound host credential use: the guest can request a
 host-authenticated MoltNet identity check and Git signature without receiving
 the OAuth client secret or signing key.
 
@@ -13,9 +13,9 @@ evidence for issue #1980 rather than a production compatibility promise.
 
 ## Run the probe
 
-The probe currently pins Codex 0.149.0, Gondolin 0.12.0, a macOS ARM64 host,
-and a Linux ARM64 guest. The released host `codex` binary must match the pin.
-The probe downloads `@openai/codex@0.149.0-linux-arm64`, cross-compiles the
+The probe currently pins Codex 0.149.0, Gondolin 0.12.0, a macOS ARM64 host, and
+a Linux ARM64 guest. The released host `codex` binary must match the pin. The
+probe downloads `@openai/codex@0.149.0-linux-arm64`, cross-compiles the
 workspace CLI for the guest, verifies both Codex binaries, performs one
 low-effort model turn, and deletes the binaries and temporary workspace after
 the VM closes. The Nx target launches the Node probe through the released
@@ -34,8 +34,8 @@ Neither setting is persisted in evidence.
 The retained JSON records only versions, package integrity, readiness and
 completion states, fixed markers, environment-variable names matching the
 credential heuristic, and cleanup results. It rejects prompts, transcripts,
-thread/environment identifiers, machine paths, token-like strings, private
-keys, and registered synthetic values.
+thread/environment identifiers, machine paths, token-like strings, private keys,
+and registered synthetic values.
 
 ## What a passing result means
 
@@ -43,8 +43,8 @@ A pass establishes that:
 
 - the Codex environment changes from pending to ready;
 - the model's command runs through the Linux guest exec-server;
-- the model's guest command invokes a boolean-only, host-authenticated
-  `whoami` capability after verifying the binding delivered by `moltnet start`;
+- the model's guest command invokes a boolean-only, host-authenticated `whoami`
+  capability after verifying the binding delivered by `moltnet start`;
 - `git commit -S` in the guest is signed by the operation-scoped host signer,
   while an ungranted diary-signing operation is denied;
 - a host-only sentinel is absent from the guest environment;

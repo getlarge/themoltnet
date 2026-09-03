@@ -18,8 +18,8 @@ revision `a2f2958a57877f9bd14a478f59dd426173016a6b`:
 | Docker Sandbox | v0.39.0 |       24 |           2 |          26 | complete | no       |
 | Gondolin       |  0.12.0 |       23 |           0 |          29 | complete | no       |
 
-Counts are an inventory, not a score. No negative result was promoted without
-a healthy positive fixture baseline. Both runs had zero evidence-validation
+Counts are an inventory, not a score. No negative result was promoted without a
+healthy positive fixture baseline. Both runs had zero evidence-validation
 violations and retained no credential or machine path.
 
 ## Gondolin production boundary
@@ -41,8 +41,8 @@ normal VM resumes consume them:
   result remains pinned to the actual upstream connection.
 
 The research-only TEST-NET-to-loopback fetch seam was removed. Although useful
-for deterministic probing, a custom fetch bypasses Gondolin 0.12's
-connect-time IP-pinned dispatcher and therefore must not be a production API.
+for deterministic probing, a custom fetch bypasses Gondolin 0.12's connect-time
+IP-pinned dispatcher and therefore must not be a production API.
 
 Gondolin 0.12.0 did not independently establish portable enforcement for raw
 TCP, generic proxy bypass, every redirect variant, controlled resolver changes,

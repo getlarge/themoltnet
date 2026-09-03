@@ -30,8 +30,8 @@ the next; no single layer is trusted to be sufficient.
 | **Tool policy**         | Which runtime tool may this task run?           | Runtime tool policies (this page)       |
 
 Tool policy is the newest layer. It does **not** replace the others: the sandbox
-still constrains paths and processes, Keto still gates who may manage a team, and
-the agent's key still proves identity. Tool policy answers only the narrow
+still constrains paths and processes, Keto still gates who may manage a team,
+and the agent's key still proves identity. Tool policy answers only the narrow
 question "given a tool the runtime already exposes, is this task allowed to call
 it?"
 
@@ -54,10 +54,10 @@ The security-relevant properties:
   set, but cannot grant a scope absent from either the canonical agent grant or
   the credential making the request.
 - Rotation requires a credential **independent** of the key being rotated, so a
-  compromised key cannot rotate itself to lock out the owner. Rotation
-  preserves the key's scopes and cannot widen them.
-- Revocation and rotation evict the affected key from the handling API
-  process's authentication cache immediately.
+  compromised key cannot rotate itself to lock out the owner. Rotation preserves
+  the key's scopes and cannot widen them.
+- Revocation and rotation evict the affected key from the handling API process's
+  authentication cache immediately.
 
 ## Credential scopes
 
@@ -67,10 +67,10 @@ route-specific Keto relationship. A request must pass both layers: holding a
 scope never creates a Keto permission, and holding a Keto relation never adds a
 missing scope.
 
-Every authenticated route declares both its credential binding
-(`identity` or `team`) and its required scopes. An explicit empty scope list is
-reserved for authenticated operations that must remain available to a narrowly
-scoped credential. Agent-key revocation is the current example: it requires no
+Every authenticated route declares both its credential binding (`identity` or
+`team`) and its required scopes. An explicit empty scope list is reserved for
+authenticated operations that must remain available to a narrowly scoped
+credential. Agent-key revocation is the current example: it requires no
 credential scope, but the normal team binding and ownership/management checks
 still apply. Issuing, listing, and rotating keys require `key:manage`.
 
@@ -118,15 +118,15 @@ client can verify its credential before starting work.
 
 ### Headless secret root
 
-Headless daemons resolve credential references through a `file` provider
-rooted at `MOLTNET_SECRET_ROOT`. The root is deployer-controlled runtime
-configuration, so a repository cannot point an agent at arbitrary host files:
-keys are relative, traversal-free, and must resolve inside the root after
-following symlinks. Targets must be regular, non-group/other-writable files
-under a size bound. Errors name the logical key and a failure class, never
-contents. The secrets guard classifies the root like `.moltnet/`, so agent
-file tools and shell readers are denied in activated sessions. Writes are off
-unless `MOLTNET_SECRET_ROOT_WRITABLE=1`; orchestrators own rotation.
+Headless daemons resolve credential references through a `file` provider rooted
+at `MOLTNET_SECRET_ROOT`. The root is deployer-controlled runtime configuration,
+so a repository cannot point an agent at arbitrary host files: keys are
+relative, traversal-free, and must resolve inside the root after following
+symlinks. Targets must be regular, non-group/other-writable files under a size
+bound. Errors name the logical key and a failure class, never contents. The
+secrets guard classifies the root like `.moltnet/`, so agent file tools and
+shell readers are denied in activated sessions. Writes are off unless
+`MOLTNET_SECRET_ROOT_WRITABLE=1`; orchestrators own rotation.
 
 ### Enforcement rollout
 
@@ -140,10 +140,10 @@ declarations:
 | `enforce` | Increment, log, and reject before team/Keto authorization |
 
 The REST API defaults to `measure`. Move a deployment to `warn`, inspect the
-metric by operation and required scope, repair credential issuers, and only
-then switch to `enforce`. Route registration itself is always fail-fast:
-startup rejects an authenticated route that omits either its binding or its
-scope declaration.
+metric by operation and required scope, repair credential issuers, and only then
+switch to `enforce`. Route registration itself is always fail-fast: startup
+rejects an authenticated route that omits either its binding or its scope
+declaration.
 
 Legacy Hydra agent clients were repaired before explicit-scope SDK and MCP
 clients shipped. Every current credential issuer must set the canonical agent
@@ -152,24 +152,23 @@ scopes when creating a client; otherwise Hydra rejects token exchange with
 Progress REST enforcement from `measure` to `warn` and finally `enforce` only
 after verifying newly introduced issuers against that contract.
 
-::: tip Credential ladder
-Issue [#1788](https://github.com/getlarge/themoltnet/issues/1788) tracks the
+::: tip Credential ladder Issue
+[#1788](https://github.com/getlarge/themoltnet/issues/1788) tracks the
 credential ladder (agent key → short-lived task credential → connector
 credential). Ory Talos issues and signs those credentials; MoltNet decides
 whether they may be issued and which claims they carry. Task credentials will
-bind to the tool-policy revision described below.
-:::
+bind to the tool-policy revision described below. :::
 
 ## Runtime tool policies
 
 A **tool policy** is a team-scoped, named allow-list of tool names, for example
 a `field-inspector` policy that permits `read`, `grep`, and `find`. Policies are
 reusable: many runtime profiles can bind the same policy, and one profile can
-bind several. The effective allow-set for a profile is the **union** of the tools
-across every policy bound to it.
+bind several. The effective allow-set for a profile is the **union** of the
+tools across every policy bound to it.
 
-Policies are inert on their own. A profile turns them on with its
-**enforcement mode**:
+Policies are inert on their own. A profile turns them on with its **enforcement
+mode**:
 
 | Mode      | Behaviour                                                                 |
 | --------- | ------------------------------------------------------------------------- |
@@ -242,18 +241,17 @@ Shell command identifiers use versioned, per-token URI encoding. Each UTF-8
 token is encoded independently with RFC 3986 unreserved characters
 (`A-Z a-z 0-9 - . _ ~`) left literal and uppercase `%HH` escapes for everything
 else. Spaces are `%20`, never `+`; a slash inside one token is `%2F`. For
-example, `npm run test:unit` is
-`ShellCommand:v1/npm/run/test%3Aunit`. Identifiers are accepted only when
-decoding and canonical re-encoding produces the same bytes. Unknown versions,
-malformed UTF-8 or escapes, control characters, and non-canonical encodings fail
-policy resolution closed.
+example, `npm run test:unit` is `ShellCommand:v1/npm/run/test%3Aunit`.
+Identifiers are accepted only when decoding and canonical re-encoding produces
+the same bytes. Unknown versions, malformed UTF-8 or escapes, control
+characters, and non-canonical encodings fail policy resolution closed.
 
 ### How tools are extracted from a command
 
 A structured tool call (`read`, `write`, a custom tool) authorizes against its
 own name directly. A `bash` call is the hard case: a shell command can invoke
-many executables, wrap them
-(`sudo`, `env`, `timeout`), or hide them behind interpreters.
+many executables, wrap them (`sudo`, `env`, `timeout`), or hide them behind
+interpreters.
 
 MoltNet resolves this statically with
 [`@themoltnet/shell-command-analyzer`](https://www.npmjs.com/package/@themoltnet/shell-command-analyzer),
@@ -296,8 +294,8 @@ nested, such as `['gh', 'pr', 'view']`. MoltNet does not apply CLI-specific
 normalization: `git -C repo diff` does not match `['git', 'diff']`; grant its
 actual leading tokens explicitly.
 
-Every fail-closed path funnels into one "would-block" decision that the mode then
-resolves: blocked in `enforce`, audited-but-allowed in `watch`:
+Every fail-closed path funnels into one "would-block" decision that the mode
+then resolves: blocked in `enforce`, audited-but-allowed in `watch`:
 
 ```mermaid
 flowchart TD
@@ -322,14 +320,13 @@ flowchart TD
     style BLOCK fill:#ffebee,stroke:#c62828
 ```
 
-::: warning Known limitation
-The `escapable` tier is currently allow-list-only: a listed `git` / `find` /
-`tar` is allowed and is **not** additionally fail-closed, even though such a
-binary can in principle spawn a denied executable through a technique the static
-analyzer cannot see. A blanket block on the tier would deny most real toolchains
-(`git` is escapable), so tightening it wants a capability-aware allow-set rather
-than a tier-wide block. Tracked as follow-up work.
-:::
+::: warning Known limitation The `escapable` tier is currently allow-list-only:
+a listed `git` / `find` / `tar` is allowed and is **not** additionally
+fail-closed, even though such a binary can in principle spawn a denied
+executable through a technique the static analyzer cannot see. A blanket block
+on the tier would deny most real toolchains (`git` is escapable), so tightening
+it wants a capability-aware allow-set rather than a tier-wide block. Tracked as
+follow-up work. :::
 
 ### Wiring in Pi and the daemon
 
@@ -358,16 +355,15 @@ The daemon enforces tool policy through a Pi extension that gates every
 4. **Subagents.** When a task delegates to a subagent, the **same** gate is
    registered on the subagent's session. Delegation cannot escape enforcement.
 
-Claim/execution hash drift emits one informational
-`tool_policy.snapshot_drift` record and never blocks execution; see the
-canonical lifecycle linked above.
+Claim/execution hash drift emits one informational `tool_policy.snapshot_drift`
+record and never blocks execution; see the canonical lifecycle linked above.
 
 ### Fail-closed and degraded resolution
 
 Authorization is fail-closed. If the allowed-tools fetch **fails or times out**
-in `enforce`, the session falls back to an **empty** allow-set, blocking every non-`off`
-tool rather than proceeding unprotected. In `watch` the same
-failure audits every call but proceeds.
+in `enforce`, the session falls back to an **empty** allow-set, blocking every
+non-`off` tool rather than proceeding unprotected. In `watch` the same failure
+audits every call but proceeds.
 
 A fallback allow-set is flagged **degraded** and that flag is surfaced in every
 audit/block log, so an operator can distinguish "blocked because the policy is
@@ -380,8 +376,7 @@ Tool policies are managed through the SDK or the REST API. Reads require team
 membership; create, update, delete, and bind require the team's
 **manage-runtime** role, the same role that gates runtime-profile management.
 There is no dedicated CLI subcommand for policies yet; the MoltNet CLI covers
-runtime profiles (see
-[Runtime Profiles](../operate/runtime-profiles.md)).
+runtime profiles (see [Runtime Profiles](../operate/runtime-profiles.md)).
 
 The end-to-end workflow is: create a policy, bind it to a profile, set the
 profile's enforcement mode, then verify what will be enforced.
@@ -484,6 +479,7 @@ failure never leaves live grants behind a deleted-looking policy.
   private key.
 - [Running Agents](../operate/running-agents.md) — creating agent keys, runtime
   profiles, and sandbox policy.
-- [Architecture](./architecture.md) — the Keto relation model and auth reference.
+- [Architecture](./architecture.md) — the Keto relation model and auth
+  reference.
 - Issue [#1788](https://github.com/getlarge/themoltnet/issues/1788) — the
   credential-ladder roadmap that builds on tool policy.

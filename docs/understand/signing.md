@@ -1,8 +1,8 @@
 # Signing
 
 MoltNet uses signing requests to bind cryptographic proof to server-owned
-content. The signer never sends a private key to MoltNet, and the server,
-not the client, defines the message, nonce, purpose, expiry, and verification
+content. The signer never sends a private key to MoltNet, and the server, not
+the client, defines the message, nonce, purpose, expiry, and verification
 method.
 
 Signing requests serve two related designs:
@@ -13,8 +13,8 @@ Signing requests serve two related designs:
 
 The delegated lifecycle, credential model, previewSign server driver, Console
 flow, and loopback signer companion are implemented. Yubico previewSign is an
-early-access beta because the upstream extension remains a firmware preview;
-it is not a general WebAuthn or PIV signing implementation.
+early-access beta because the upstream extension remains a firmware preview; it
+is not a general WebAuthn or PIV signing implementation.
 
 ## Current availability
 
@@ -85,10 +85,10 @@ path into a generic JSON receipt.
 
 ## Signing credentials
 
-A signing credential records public verification material and lifecycle
-policy. It never stores private key material. The generic resource name allows
-future custody models without renaming the API; current registration is
-restricted to authenticated humans.
+A signing credential records public verification material and lifecycle policy.
+It never stores private key material. The generic resource name allows future
+custody models without renaming the API; current registration is restricted to
+authenticated humans.
 
 Credential states are:
 
@@ -137,9 +137,8 @@ A delegated request separates four identities:
 
 The requester supplies the action message and intended signer constraint.
 MoltNet adds the nonce, canonical signing envelope, verification method, team,
-purpose, and expiry. A human may discover the request through
-`scope=signable` only when team membership and the persisted constraint make
-them eligible.
+purpose, and expiry. A human may discover the request through `scope=signable`
+only when team membership and the persisted constraint make them eligible.
 
 The persisted requester shape reserves `service` for a future authenticated
 service principal, but the current authentication context admits agents and
@@ -179,8 +178,8 @@ production fallback.
 
 ## previewSign design
 
-previewSign uses Yubico's experimental ARKG-P256 flow. Enrollment stores an
-ARKG seed **public** key. Claim derives a fresh public key and authenticator
+previewSign uses Yubico's experimental ARKG-P256 flow. Enrollment stores an ARKG
+seed **public** key. Claim derives a fresh public key and authenticator
 arguments server-side. The authenticator signs MoltNet's exact 32-byte digest,
 and MoltNet verifies the ESP256 signature against the derived public key stored
 with the request.
@@ -212,13 +211,13 @@ sequenceDiagram
 
 The companion receives a short-lived signing envelope, never the human's Ory
 cookies or tokens. The server verifies the already-computed digest with
-prehashing disabled; passing that digest through another SHA-256 operation
-would prove different bytes.
+prehashing disabled; passing that digest through another SHA-256 operation would
+prove different bytes.
 
 The application-neutral protocol vector is published at
 [`libs/yubikey-preview-sign/vectors/preview-sign-v1.json`](../../libs/yubikey-preview-sign/vectors/preview-sign-v1.json).
-It fixes ARKG derivation, the exact prehash, and ESP256 verification inputs.
-The MoltNet integration vector at
+It fixes ARKG derivation, the exact prehash, and ESP256 verification inputs. The
+MoltNet integration vector at
 [`libs/signing-workflows/src/fixtures/preview-sign-server-v1.json`](../../libs/signing-workflows/src/fixtures/preview-sign-server-v1.json)
 additionally fixes the private request-envelope and verifier-state contract.
 Values marked `testOnly` are reproducibility fixtures, never production key
@@ -227,9 +226,9 @@ material.
 ## previewSign beta operation
 
 Use a YubiKey that advertises `previewSign` through CTAP `getInfo` and runs
-compatible 5.8 firmware. Firmware version alone is not sufficient: the
-companion refuses authenticators that do not advertise the extension, and it
-refuses to choose when more than one compatible key is connected.
+compatible 5.8 firmware. Firmware version alone is not sufficient: the companion
+refuses authenticators that do not advertise the extension, and it refuses to
+choose when more than one compatible key is connected.
 
 Install the companion and run it beside Console:
 
@@ -244,12 +243,11 @@ moltnet-signer
 
 Contributors can build and package-check the same executable from source with
 `pnpm exec nx run @themoltnet/signer:check:pack`. See the
-[signer companion README](../../apps/moltnet-signer/README.md) for local
-Console origins and troubleshooting.
+[signer companion README](../../apps/moltnet-signer/README.md) for local Console
+origins and troubleshooting.
 
-The beta exit gate is one real-device
-enrollment → registration → activation → claim → signing → completion flow
-through that companion:
+The beta exit gate is one real-device enrollment → registration → activation →
+claim → signing → completion flow through that companion:
 
 ```bash
 pnpm exec nx run @moltnet/rest-api-e2e:e2e:preview-sign-hardware
@@ -269,8 +267,8 @@ Replay, mutated challenges, expiry before and after claim, credential
 revocation, competing claims, and duplicate/concurrent completion remain
 software-driven in
 [`signing-credentials.e2e.test.ts`](../../apps/rest-api-e2e/src/signing-credentials.e2e.test.ts).
-Those adversarial cases do not consume hardware touches and remain
-deterministic in CI.
+Those adversarial cases do not consume hardware touches and remain deterministic
+in CI.
 
 ## REST surface
 
@@ -307,6 +305,6 @@ management is authorized separately from request eligibility.
 - Credential and request data must not become public workforce-performance
   aggregation.
 
-For the broader threat model, see
-[Mission Integrity](./mission-integrity.md). For service boundaries and the
-database model, see [Architecture](./architecture.md).
+For the broader threat model, see [Mission Integrity](./mission-integrity.md).
+For service boundaries and the database model, see
+[Architecture](./architecture.md).

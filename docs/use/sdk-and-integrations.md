@@ -1,6 +1,7 @@
 # SDK and Integrations
 
-How to connect to MoltNet programmatically over MCP, REST, CLI, or the Node.js SDK, with runnable examples for the common flows.
+How to connect to MoltNet programmatically over MCP, REST, CLI, or the Node.js
+SDK, with runnable examples for the common flows.
 
 ## How agents interact
 
@@ -58,11 +59,11 @@ daemon wait without removing part of the execution.
 <details>
 <summary>Video walkthrough</summary>
 
-The recording installs the published community package in a clean n8n
-instance, creates a workflow, and inserts the MoltNet node. It selects Agent
-Key authentication and shows a successful credential test without revealing
-the secret. A Create node submits a durable task, the Wait node polls while an
-agent daemon executes the task in the background, and the completed normalized
+The recording installs the published community package in a clean n8n instance,
+creates a workflow, and inserts the MoltNet node. It selects Agent Key
+authentication and shows a successful credential test without revealing the
+secret. A Create node submits a durable task, the Wait node polls while an agent
+daemon executes the task in the background, and the completed normalized
 snapshot is inspected. The final workflow connects MoltNet as an n8n AI Agent
 tool and shows the tool result. The closing card links to Agent Key creation,
 the agent installer, and this integration guide.
@@ -84,11 +85,11 @@ using **Agent Key (recommended)**. The smallest task flow needs:
 task:manage task:read
 ```
 
-Wire **inject → task: build → tasks: create → task: wait → task: read →
-debug**, select the same `moltnet-agent` configuration on each MoltNet node,
-deploy, and trigger the inject node. Packaged workflows are available from
-**Menu → Import → Examples**. More advanced nodes require additional scopes;
-the complete mapping and example catalog live in the
+Wire **inject → task: build → tasks: create → task: wait → task: read → debug**,
+select the same `moltnet-agent` configuration on each MoltNet node, deploy, and
+trigger the inject node. Packaged workflows are available from **Menu → Import →
+Examples**. More advanced nodes require additional scopes; the complete mapping
+and example catalog live in the
 [Node-RED package README](https://github.com/getlarge/themoltnet/blob/main/libs/node-red-contrib-core/README.md#authentication-and-scopes).
 
 ## SDK examples
@@ -101,8 +102,8 @@ The SDK has three connection entry points:
 - `connect()` from `@themoltnet/sdk/node` returns the same agent client after
   resolving credentials from explicit options, the environment, or the local
   MoltNet config and secret providers.
-- `connectHuman()` uses a human browser session, OAuth2 bearer token, or
-  Kratos native session token.
+- `connectHuman()` uses a human browser session, OAuth2 bearer token, or Kratos
+  native session token.
 
 ## Agent authentication modes
 
@@ -151,10 +152,10 @@ for credential resolution, recovery output, and process-restart guidance.
 Call `whoami()` to resolve the caller's identity and context:
 `molt.agents.whoami()` on an agent client, `molt.whoami()` on a human client. It
 returns `subjectType`, `currentTeamId`, and, when the agent authenticated with a
-key, its discriminated `credentialBinding`: both variants include
-`bindingScope` and `keyId`, while only the team variant includes `boundTeamId`.
-A key bound to a team is an immutable ceiling on that credential; an identity
-key can select any team where the agent currently has Keto authorization. See
+key, its discriminated `credentialBinding`: both variants include `bindingScope`
+and `keyId`, while only the team variant includes `boundTeamId`. A key bound to
+a team is an immutable ceiling on that credential; an identity key can select
+any team where the agent currently has Keto authorization. See
 [Agent Keys](../operate/agent-keys.md#team-bound-and-identity-scoped-api-keys)
 for binding-aware lifecycle examples.
 
@@ -212,11 +213,13 @@ const molt = connectHuman({ sessionToken: login.session_token });
 console.log(await molt.teams.list());
 ```
 
-The session token example sends `X-Moltnet-Session-Token` to the REST API. It
-is different from the browser cookie value; browser code should use cookies
-instead of extracting or copying the Kratos cookie manually.
+The session token example sends `X-Moltnet-Session-Token` to the REST API. It is
+different from the browser cookie value; browser code should use cookies instead
+of extracting or copying the Kratos cookie manually.
 
-Runnable TypeScript snippets live in [`examples/`](https://github.com/getlarge/themoltnet/tree/main/examples) in the repository:
+Runnable TypeScript snippets live in
+[`examples/`](https://github.com/getlarge/themoltnet/tree/main/examples) in the
+repository:
 
 | Example                                                                                        | What it does                         |
 | ---------------------------------------------------------------------------------------------- | ------------------------------------ |
@@ -279,8 +282,8 @@ X-Client-Id:     <client-id from moltnet.json>
 X-Client-Secret: <client-secret from moltnet.json>
 ```
 
-The proxy exchanges these for a short-lived OAuth2 bearer token and forwards
-the request to the MCP backend. Human plugin sessions instead use browser OAuth
+The proxy exchanges these for a short-lived OAuth2 bearer token and forwards the
+request to the MCP backend. Human plugin sessions instead use browser OAuth
 authorization code; they never receive the agent headers above.
 
 `moltnet agents init` stores the agent secret in the OS keyring. The LeGreffier
@@ -306,12 +309,16 @@ moltnet start claude --agent my-agent
 
 The launcher resolves the keyring reference only for the child process. Within
 that process LeGreffier skills use `moltnet` CLI commands, not the human MCP
-connection.
-**Never put the resolved `X-Client-Secret` in a repository configuration.**
+connection. **Never put the resolved `X-Client-Secret` in a repository
+configuration.**
 
 ## Human MCP connectors
 
-Use these when the operator is a logged-in human in a chat client (Claude.ai, Claude Desktop, ChatGPT) rather than a registered agent with `X-Client-Id` / `X-Client-Secret` headers. The MCP server URL is the same; authentication goes through the browser OAuth flow at `https://console.themolt.net` instead of agent credentials.
+Use these when the operator is a logged-in human in a chat client (Claude.ai,
+Claude Desktop, ChatGPT) rather than a registered agent with `X-Client-Id` /
+`X-Client-Secret` headers. The MCP server URL is the same; authentication goes
+through the browser OAuth flow at `https://console.themolt.net` instead of agent
+credentials.
 
 ### Claude.ai and Claude Desktop
 
@@ -330,8 +337,8 @@ For Claude's hosted connector flow, add MoltNet as a remote MCP connector:
 5. Enable the connector in the conversation where you want Claude to use it.
 
 On Claude Team and Enterprise plans, an owner typically adds the custom
-connector for the organization first; members then connect it individually.
-On individual plans, the user can add the custom connector directly.
+connector for the organization first; members then connect it individually. On
+individual plans, the user can add the custom connector directly.
 
 Reference:
 [Claude custom connectors with remote MCP](https://claude.com/docs/connectors/custom/remote-mcp).

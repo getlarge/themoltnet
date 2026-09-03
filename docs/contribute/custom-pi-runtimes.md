@@ -8,9 +8,8 @@ installation or bootstrap channel.
 Start with the example's
 [end-to-end manual smoke test](https://github.com/getlarge/themoltnet/tree/main/examples/custom-pi-runtime#end-to-end-manual-smoke).
 Its README is the complete operational walkthrough; the runtime authoring
-contract follows.
-The runtime module default-exports the adapter consumed by the universal daemon
-CLI:
+contract follows. The runtime module default-exports the adapter consumed by the
+universal daemon CLI:
 
 ```ts
 const runtime = definePiRuntime({
@@ -89,24 +88,23 @@ At startup the daemon:
 
 `DaemonRuntimeAdapter` is a pre-1.0 extension contract. Its `prepare()` input
 contains only the selected profile and an optional progress callback. The
-prepared result contains the manifest, tool and executable inventories, and
-the task-executor factory. Runtime adapters do not receive `configDir` and do
-not return an attestor: authentication, signing-key resolution, identity
-validation, and executor attestation belong exclusively to daemon core.
+prepared result contains the manifest, tool and executable inventories, and the
+task-executor factory. Runtime adapters do not receive `configDir` and do not
+return an attestor: authentication, signing-key resolution, identity validation,
+and executor attestation belong exclusively to daemon core.
 
-Registration binds the manifest fingerprint to the authenticated agent. A
-claim lost to a `409` race therefore does not require another signature or
-upload the manifest again.
+Registration binds the manifest fingerprint to the authenticated agent. A claim
+lost to a `409` race therefore does not require another signature or upload the
+manifest again.
 
 The daemon still owns task routing, leases, heartbeats, cancellation, warm
 sessions, continuation state, retries, output validation, and finalization.
 Runtime authors do not create a launcher or copy `executePiTask` or the polling
 loop.
 
-`--runtime` is intentionally local-only. A remote profile selects
-`runtimeKind` and declares requirements, but cannot name, install, or update a
-runtime module. The loaded adapter must match the selected profile's
-`runtimeKind`.
+`--runtime` is intentionally local-only. A remote profile selects `runtimeKind`
+and declares requirements, but cannot name, install, or update a runtime module.
+The loaded adapter must match the selected profile's `runtimeKind`.
 
 ## Deployment
 
@@ -114,8 +112,8 @@ Apply migration `0036` before deploying runtime-kind or executable-requirement
 writers. It changes `runtimeKind` from a fixed enum to a validated string and
 adds `requiredExecutables`.
 
-Remote sandbox provisioning was never part of the supported deployment path,
-so there is no versioned profile format or provisioning backfill. The API and
+Remote sandbox provisioning was never part of the supported deployment path, so
+there is no versioned profile format or provisioning backfill. The API and
 daemon validate the current policy-only sandbox shape directly. Snapshot setup
 and resume commands belong exclusively to the trusted local runtime module.
 

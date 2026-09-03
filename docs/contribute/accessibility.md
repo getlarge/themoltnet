@@ -27,8 +27,8 @@ bar for new work:
   focus, and leave the component without traps.
 - State is exposed programmatically: current page, selected tab, pressed toggle,
   expanded drawer, busy/loading, invalid fields, and error text.
-- Visual meaning is not color-only. Pair color with text, shape, icon naming,
-  or ARIA state.
+- Visual meaning is not color-only. Pair color with text, shape, icon naming, or
+  ARIA state.
 - Text and non-text controls meet WCAG AA contrast in dark and light themes.
 - Motion respects `prefers-reduced-motion`; essential animation has a static
   equivalent.
@@ -40,7 +40,8 @@ Use this checklist for apps such as the console and landing site:
 1. Add a skip link that moves focus to the main content region.
 2. On route changes, move focus to the page's main region or page heading unless
    the navigation is an in-page state change.
-3. Label primary navigation and mark the active route with `aria-current="page"`.
+3. Label primary navigation and mark the active route with
+   `aria-current="page"`.
 4. For tabs, use `role="tablist"`, `role="tab"`, `aria-selected`, and
    `aria-controls`; make sure the active panel is identifiable.
 5. For toggles and segmented controls, expose state with `aria-pressed` or the

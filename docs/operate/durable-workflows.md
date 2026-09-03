@@ -210,7 +210,8 @@ If the exact old code cannot be re-adopted, a reviewed repair tool may use
 1. Inspect recorded steps and choose the first safe `startStep`.
 2. Prove every effect after that point is idempotent or already reconciled.
 3. Supply a new workflow ID and the intended running application version.
-4. Record the source workflow, fork ID, start step, and approval in the incident.
+4. Record the source workflow, fork ID, start step, and approval in the
+   incident.
 5. Monitor the fork to one terminal result; do not delete or rewrite the source
    history.
 

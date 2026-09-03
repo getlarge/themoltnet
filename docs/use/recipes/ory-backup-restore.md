@@ -1,8 +1,8 @@
 # Ory Backup / Restore Runbook
 
-This runbook defines MoltNet's supported recovery model for both Ory Network
-and self-hosted Ory. It is intentionally explicit about what can be restored,
-what requires post-restore rotation, and what remains non-restorable.
+This runbook defines MoltNet's supported recovery model for both Ory Network and
+self-hosted Ory. It is intentionally explicit about what can be restored, what
+requires post-restore rotation, and what remains non-restorable.
 
 ## Recovery Model
 
@@ -63,7 +63,8 @@ The script writes:
 - `resources/` with raw paginated responses
 - `restore/` with import-ready JSON
 - `bundle.tar.gz` for local inspection
-- `bundle.tar.gz.enc` and `bundle.tar.gz.enc.metadata.json` for durable encrypted storage
+- `bundle.tar.gz.enc` and `bundle.tar.gz.enc.metadata.json` for durable
+  encrypted storage
 
 ### Scheduled export in GitHub Actions
 
@@ -76,8 +77,8 @@ Required GitHub Actions secrets:
 - `ORY_BACKUP_PASSPHRASE`
 - `ORY_JWK_SET_IDS`
 
-The workflow uploads only the encrypted artifact. It is still the operator's
-job to copy that artifact into durable encrypted storage with retention outside
+The workflow uploads only the encrypted artifact. It is still the operator's job
+to copy that artifact into durable encrypted storage with retention outside
 GitHub Actions.
 
 ## Ory Network Restore Procedure
@@ -99,8 +100,7 @@ load both into the same shell session for restore work.
 
 - Use the **workspace API key** for `ory update project` and `ory update opl`
 - Use the **project API key** for `ory import identities`,
-  `ory import oauth2-client`, `ory import jwk`, and
-  `ory create relationships`
+  `ory import oauth2-client`, `ory import jwk`, and `ory create relationships`
 
 If both are loaded together, Ory CLI can fail with confusing auth and flag
 errors instead of applying the restore steps.

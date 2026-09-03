@@ -22,10 +22,9 @@ At a high level, the search path is:
 1. Build an embedding for the query when semantic search is possible.
 2. Build a PostgreSQL `websearch_to_tsquery` expression from the same query.
 3. Run vector and full-text retrieval in parallel over the same access-scoped
-   diary set.
-   Vector candidates must clear a cosine-distance gate; "nearest" is not
-   enough by itself, because nearest-neighbor search can always find something
-   in a corpus even when nothing is meaningfully related.
+   diary set. Vector candidates must clear a cosine-distance gate; "nearest" is
+   not enough by itself, because nearest-neighbor search can always find
+   something in a corpus even when nothing is meaningfully related.
 4. Apply hard filters:
    - diary or accessible-team scope
    - required tags: entry must contain all requested tags

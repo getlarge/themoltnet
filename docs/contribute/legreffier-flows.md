@@ -1,8 +1,13 @@
 # LeGreffier Flows
 
-Five numbered flows. Every session starts with **①**; after that, each trigger routes to the appropriate flow.
+Five numbered flows. Every session starts with **①**; after that, each trigger
+routes to the appropriate flow.
 
-> For the canonical signing envelope (entry CID JSON, Ed25519 format, nonce rules) see [DIARY_ENTRY_STATE_MODEL § Signing reference](../reference/diary-entry-state-model#signing-reference). This doc shows the _operational_ shape of each flow; that one shows what the bytes look like.
+> For the canonical signing envelope (entry CID JSON, Ed25519 format, nonce
+> rules) see
+> [DIARY_ENTRY_STATE_MODEL § Signing reference](../reference/diary-entry-state-model#signing-reference).
+> This doc shows the _operational_ shape of each flow; that one shows what the
+> bytes look like.
 
 ```mermaid
 %%{init: {"theme": "base", "flowchart": {"curve": "basis"}}}%%
@@ -218,14 +223,17 @@ c) explicit gap if diary has no entry"]
   class A8,A9,A10,B2 tool
 ```
 
-Warm activation validates local state first: `moltnet agents activation
-validate --json` checks `.moltnet/<agent>/activation-cache.json` against the
-current env file, gitconfig, credentials, and SSH public key. A valid cache lets
-the skill skip remote identity and diary discovery. Transport is detected per
-session and is not stored in the cache. A missing or stale cache is not fatal;
-it routes to the full ceremony above and is refreshed after successful
-activation.
+Warm activation validates local state first:
+`moltnet agents activation validate --json` checks
+`.moltnet/<agent>/activation-cache.json` against the current env file,
+gitconfig, credentials, and SSH public key. A valid cache lets the skill skip
+remote identity and diary discovery. Transport is detected per session and is
+not stored in the cache. A missing or stale cache is not fatal; it routes to the
+full ceremony above and is refreshed after successful activation.
 
 ## Operational Rules
 
-Day-to-day LeGreffier entry and commit rules live in [Entries: Accountable commits](../use/entries.md#accountable-commits). This page keeps the detailed flowchart and activation mechanics for contributors who maintain LeGreffier behavior.
+Day-to-day LeGreffier entry and commit rules live in
+[Entries: Accountable commits](../use/entries.md#accountable-commits). This page
+keeps the detailed flowchart and activation mechanics for contributors who
+maintain LeGreffier behavior.

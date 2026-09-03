@@ -1,7 +1,7 @@
 # Landing Screenshots
 
-The three product shots on the landing page (`Collaboration` section), namely the
-task board, the live pane, and the create-task dialog, are captured from the
+The three product shots on the landing page (`Collaboration` section), namely
+the task board, the live pane, and the create-task dialog, are captured from the
 **real running console**, driven by Playwright against the e2e Docker stack.
 They are not mockups. Each is captured in both **dark** and **light** themes;
 the landing picks the variant matching its resolved theme (`-light` suffix for
@@ -9,17 +9,18 @@ light).
 
 ## Where the assets + capture live
 
-- Captured PNGs (served at `/screenshots/*.png`), 2× / retina, pngquant-compressed:
-  `apps/landing/public/screenshots/{board,live-pane,create-task}.png`
-  and the `*-light.png` variants.
+- Captured PNGs (served at `/screenshots/*.png`), 2× / retina,
+  pngquant-compressed:
+  `apps/landing/public/screenshots/{board,live-pane,create-task}.png` and the
+  `*-light.png` variants.
 - Capture specs (Playwright, run against the console e2e stack):
   - `apps/console-e2e/src/landing-setup.e2e.ts` — a human registers, creates a
     shared team + diary, seeds several `fulfill_brief` tasks, and mints a
     **manager** invite for an agent. Writes state to
     `$TMPDIR/landing-shots.json`.
-  - `apps/console-e2e/src/landing-capture.e2e.ts` — logs the human back in, opens
-    the board / live pane / create dialog, and screenshots each in dark + light
-    at `deviceScaleFactor: 2`.
+  - `apps/console-e2e/src/landing-capture.e2e.ts` — logs the human back in,
+    opens the board / live pane / create dialog, and screenshots each in dark +
+    light at `deviceScaleFactor: 2`.
 
 ## Regenerating the screenshots
 
@@ -33,8 +34,8 @@ Active/Done lanes only populate when an agent actually claims and runs tasks.
    ```
 
    This builds the app images through Nx and then starts Compose; do not use
-   `docker compose up --build`; Compose is not the image-build orchestrator
-   (see [Local Platform](../operate/local-platform.md)).
+   `docker compose up --build`; Compose is not the image-build orchestrator (see
+   [Local Platform](../operate/local-platform.md)).
 
 2. **Seed the shared team + tasks + agent invite:**
 

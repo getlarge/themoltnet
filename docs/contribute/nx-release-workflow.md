@@ -1,7 +1,7 @@
 # Nx Release Workflow Notes
 
-Contributor notes for migrating release orchestration from release-please to
-Nx release, and for how Nx release is expected to be used.
+Contributor notes for migrating release orchestration from release-please to Nx
+release, and for how Nx release is expected to be used.
 
 ## Intent
 
@@ -18,10 +18,10 @@ mutually exclusive with the legacy jobs and serialized with all other release
 runs. The normal push-to-`main` Release Please flow remains unchanged during
 this period.
 
-Remove the legacy jobs, Release Please configuration, and recovery workflow
-only after Nx has completed several production releases, including npm OIDC,
-GHCR, Go proxy verification, GitHub release asset upload, and GitHub Action tag
-updates. Keep the workflow filename as `release.yml` when that cleanup happens.
+Remove the legacy jobs, Release Please configuration, and recovery workflow only
+after Nx has completed several production releases, including npm OIDC, GHCR, Go
+proxy verification, GitHub release asset upload, and GitHub Action tag updates.
+Keep the workflow filename as `release.yml` when that cleanup happens.
 
 ## Release Groups
 
@@ -134,9 +134,9 @@ release, do not set `GO_RELEASE_SKIP_PROXY`; the Go publish targets must verify
 the tagged modules through GOPROXY after the release commit and tags are pushed.
 `GO_RELEASE_USE_LOCAL_REPLACES=true` is also local-only; it lets the Go CLI
 artifact build resolve sibling Go modules from the worktree while the rehearsal
-tags are still local-only.
-`GITHUB_ACTION_RELEASE_SKIP_PUSH=true` is local-only and prevents the GitHub
-Action publisher from moving the stable major tag such as `v0`.
+tags are still local-only. `GITHUB_ACTION_RELEASE_SKIP_PUSH=true` is local-only
+and prevents the GitHub Action publisher from moving the stable major tag such
+as `v0`.
 
 If Verdaccio requires an npm token, create a throwaway local user and write a
 root `.npmrc` in the disposable worktree. Nx forwards `--userconfig` to custom
@@ -321,8 +321,9 @@ in `nx.json` `release.version.versionActionsOptions`.
 
 ## Go CLI Artifacts
 
-The Go CLI release artifact step is owned by the `moltnet-cli:nx-release-publish`
-target. It calls `tools/src/release/go-artifact-publisher.cli.ts` with
+The Go CLI release artifact step is owned by the
+`moltnet-cli:nx-release-publish` target. It calls
+`tools/src/release/go-artifact-publisher.cli.ts` with
 `apps/moltnet-cli/nx-release-artifacts.json`.
 
 That config is the local shape we want to extract into a generic Nx Go release
@@ -336,8 +337,8 @@ plugin:
 - Upload archives and checksums to the configurable artifact store.
 
 The six npm platform packages declare `implicitDependencies` on `moltnet-cli`.
-Their generated `nx-release-publish` targets depend on `^nx-release-publish`,
-so Nx runs `moltnet-cli:nx-release-publish` before publishing those packages.
+Their generated `nx-release-publish` targets depend on `^nx-release-publish`, so
+Nx runs `moltnet-cli:nx-release-publish` before publishing those packages.
 
 The only artifact store currently implemented is GitHub Releases:
 
@@ -370,9 +371,9 @@ pnpm exec nx run moltnet-cli:nx-release-publish -- --skip-upload --verbose
 
 ## GitHub Actions
 
-The agent daemon action is semvered by the `github-actions` release group.
-It is not published to npm; consumers load it from this repository with
-path-based GitHub Action syntax:
+The agent daemon action is semvered by the `github-actions` release group. It is
+not published to npm; consumers load it from this repository with path-based
+GitHub Action syntax:
 
 ```yaml
 uses: getlarge/themoltnet/packages/agent-daemon-action@v0

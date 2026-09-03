@@ -86,11 +86,11 @@ Notes:
 - `episodic` entries stay in `draft` state permanently by convention.
 - `superseded` is not an enum — it is inferred from the existence of an accepted
   `supersedes` relation in `entry_relations` where the entry is the target.
-- Draft entries can be hard-deleted. Signed entries cannot be deleted — create
-  a new entry and add a `supersedes` relation instead.
+- Draft entries can be hard-deleted. Signed entries cannot be deleted — create a
+  new entry and add a `supersedes` relation instead.
 - Diaries containing signed entries cannot be deleted.
-- `contentHash` is recomputed on any update to CID-input fields (content,
-  title, entryType, tags) for unsigned entries.
+- `contentHash` is recomputed on any update to CID-input fields (content, title,
+  entryType, tags) for unsigned entries.
 - A `draft` entry can be superseded directly (no signing required on the old
   entry: a `supersedes` relation is created, which does not modify the entry).
 
@@ -115,7 +115,8 @@ access regardless of visibility level.
 Entries and derived artifacts carry strong provenance:
 
 - `diary_entries.created_by` = authenticated principal that created the entry
-- `context_packs.created_by` = authenticated principal that materialized the pack
+- `context_packs.created_by` = authenticated principal that materialized the
+  pack
 
 `created_by` is authoritative for attribution and poison tracing. It is **not**
 the source of authorization decisions. Authorization remains diary-scoped.
@@ -180,8 +181,8 @@ following is enforced by the server; agents that sign locally must reproduce
 this byte-for-byte or the CID and signature verification will fail.
 
 **Entry CID envelope.** `contentHash` is a CIDv1 (sha2-256, raw codec,
-base32lower multibase, `bafk…` prefix) over a [RFC 8785
-JCS](https://www.rfc-editor.org/rfc/rfc8785) canonicalization of:
+base32lower multibase, `bafk…` prefix) over a
+[RFC 8785 JCS](https://www.rfc-editor.org/rfc/rfc8785) canonicalization of:
 
 ```json
 {
@@ -208,8 +209,8 @@ differently shaped is not a valid signature.
 **Two signing flows (don't confuse them).**
 
 - _Entry immutability._ The `contentHash` (CID) is the thing signed. The
-  signature is stored as `contentSignature`; the nonce lives on the entry.
-  This is what the verify endpoint (`GET /diaries/:id/entries/:entryId/verify`,
+  signature is stored as `contentSignature`; the nonce lives on the entry. This
+  is what the verify endpoint (`GET /diaries/:id/entries/:entryId/verify`,
   exposed via the REST API, CLI, and SDK) checks.
 - _Arbitrary message signing._ `crypto_prepare_signature` without an entry id
   signs an opaque message, used by the LeGreffier skill for accountable-commit
@@ -251,8 +252,8 @@ entry_B (successor) ──supersedes──► entry_A (original, signed)
   keeps query performance comparable to the former column-based check.
 
 Supersession is one of several relation types in the entry graph. Unlike
-`elaborates` or `supports`, it implies the target entry is no longer the
-active version.
+`elaborates` or `supports`, it implies the target entry is no longer the active
+version.
 
 ---
 
@@ -280,9 +281,9 @@ prevent it.
 
 ### 1. ~~Implementation drift~~ RESOLVED: signing opt-in is the only immutability gate
 
-**Decision (2026-03-14)**: Signing is opt-in. Unsigned entries of any type remain
-fully mutable. The entry type affects _conventions_ (the skill recommends signing
-semantic/procedural/reflection entries) but the system enforces
+**Decision (2026-03-14)**: Signing is opt-in. Unsigned entries of any type
+remain fully mutable. The entry type affects _conventions_ (the skill recommends
+signing semantic/procedural/reflection entries) but the system enforces
 immutability only when `contentSignature IS NOT NULL`.
 
 This means:
@@ -305,23 +306,25 @@ hash unless explicitly signed.
 
 ### 3. ~~supersededBy is 1:1, but consolidation is N:1~~ RESOLVED: consolidation produces relations, not packs
 
-**Decision (2026-03-15)**: Consolidation is a **graph operation**, not an artifact
-operation. When and if the consolidate flow ships, it will return clustering
-suggestions and optionally write proposed `entry_relations` edges; it will not
-produce context packs.
+**Decision (2026-03-15)**: Consolidation is a **graph operation**, not an
+artifact operation. When and if the consolidate flow ships, it will return
+clustering suggestions and optionally write proposed `entry_relations` edges; it
+will not produce context packs.
 
-Context packs are reserved for **runtime artifacts**: compile packs (token-fitted
-selections for LLM context) and optimized packs (GEPA-refined versions). See
-[Knowledge Factory](../understand/knowledge-factory) for the pack side of the story.
+Context packs are reserved for **runtime artifacts**: compile packs
+(token-fitted selections for LLM context) and optimized packs (GEPA-refined
+versions). See [Knowledge Factory](../understand/knowledge-factory) for the pack
+side of the story.
 
-The `supersededBy` column has been removed (migration 0031). All supersession
-is now tracked via `entry_relations` with relation type `supersedes`, unifying
-both 1:1 linear replacement and N:M cases in a single graph model.
+The `supersededBy` column has been removed (migration 0031). All supersession is
+now tracked via `entry_relations` with relation type `supersedes`, unifying both
+1:1 linear replacement and N:M cases in a single graph model.
 
 The concrete relation types a consolidation run would emit are not yet frozen
 and will be decided when the flow becomes real. Today, `entry_relations` is
 populated manually (via `relations_create`) using the six enum values:
-`supersedes`, `elaborates`, `contradicts`, `supports`, `caused_by`, `references`.
+`supersedes`, `elaborates`, `contradicts`, `supports`, `caused_by`,
+`references`.
 
 ### 4. Context packs are diary-derived objects, not independent ACL roots
 
@@ -330,9 +333,9 @@ inherits from the parent diary. The `ContextPack` Keto namespace is parented to
 `Diary`; its `read`, `manage`, and `verify_claim` permits all resolve through
 the diary.
 
-Full details (primitives, CID envelope, lifecycle, and the Keto model) live
-in [Knowledge Factory](../understand/knowledge-factory). Cross-linked here because the
-diary ↔ pack ACL inheritance is an entry-side invariant: you cannot grant
+Full details (primitives, CID envelope, lifecycle, and the Keto model) live in
+[Knowledge Factory](../understand/knowledge-factory). Cross-linked here because
+the diary ↔ pack ACL inheritance is an entry-side invariant: you cannot grant
 someone pack access without granting diary access.
 
 ### 5. ~~tags are part of the CID input but mutable on unsigned entries~~ RESOLVED
