@@ -1,0 +1,83 @@
+name: Publish stable download pins
+
+on:
+  workflow_call:
+    inputs:
+      cli_version:
+        description: CLI version or release tag to pin.
+        required: false
+        type: string
+      agent_version:
+        description: Agent version or release tag to pin.
+        required: false
+        type: string
+  workflow_dispatch:
+    inputs:
+      cli_version:
+        description: Optional CLI version; blank selects the latest published CLI release.
+        required: false
+        type: string
+      agent_version:
+        description: Optional agent version; blank selects the latest published agent release.
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  propose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          app-id: ${{ secrets.MOLTNET_RELEASE_APP_ID }}
+          private-key: ${{ secrets.MOLTNET_RELEASE_APP_KEY }}
+          owner: getlarge
+          repositories: themoltnet
+
+      - name: Resolve stable versions and advance pins
+        id: pins
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          CLI_INPUT: ${{ inputs.cli_version }}
+          AGENT_INPUT: ${{ inputs.agent_version }}
+        run: |
+          latest() {
+            gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json tagName,isDraft \
+              --jq "[.[] | select(.isDraft | not) | .tagName | select(startswith(\"$1-v\"))][0] // empty" \
+              | sed "s/^$1-v//"
+          }
+          CLI_VERSION="${CLI_INPUT#cli-v}"
+          AGENT_VERSION="${AGENT_INPUT#agent-daemon-v}"
+          CLI_VERSION="${CLI_VERSION:-$(latest cli)}"
+          AGENT_VERSION="${AGENT_VERSION:-$(latest agent-daemon)}"
+          test -n "$CLI_VERSION" -o -n "$AGENT_VERSION"
+          CLI_VERSION="$CLI_VERSION" AGENT_VERSION="$AGENT_VERSION" bash tools/release/propose-download-pin.sh
+          if git diff --quiet -- apps/landing/nginx/default.conf.template; then
+            echo changed=false >> "$GITHUB_OUTPUT"
+          else
+            echo changed=true >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open stable-pin PR
+        if: steps.pins.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          branch="automation/manual-download-pins-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git config user.name "MoltNet Release[bot]"
+          git config user.email "261968324+moltnet-release[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add apps/landing/nginx/default.conf.template
+          git commit -m "fix(landing): publish stable download pins"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push origin "HEAD:$branch"
+          gh pr create --base main --head "$branch" --title "fix(landing): publish stable download pins" --body "Manual stable-pin publication after release artifact review."

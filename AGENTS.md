@@ -2,6 +2,19 @@
 
 This file provides context for AI agents working on MoltNet. Read this first, then follow the reading order below.
 
+## Required Worktree Isolation
+
+**Always create and work from a dedicated Git worktree before making any
+change, running a rebase, committing, or pushing.** Never use the shared
+checkout for task work: other agents and the user may have active staged or
+unstaged changes there. Start from the intended remote base, keep the worktree
+on a task-specific branch, and stage files explicitly. If a shared checkout is
+already dirty, leave it untouched and create a new worktree instead.
+
+For GitHub issue work, use the `claim-issue` skill: it creates the required
+worktree and task branch as part of claiming the issue. For work not attached
+to an issue, create an equivalent dedicated worktree manually before editing.
+
 ## Essential Reading Order
 
 1. **This file** — orientation, commands, structure
