@@ -33381,14 +33381,21 @@ func (s *NetworkInfoQuickstart) SetSteps(val []string) {
 
 type NetworkInfoQuickstartCli struct {
 	Description     string `json:"description"`
+	InstallApt      string `json:"install_apt"`
 	InstallHomebrew string `json:"install_homebrew"`
 	InstallNpm      string `json:"install_npm"`
+	InstallScoop    string `json:"install_scoop"`
 	Usage           string `json:"usage"`
 }
 
 // GetDescription returns the value of Description.
 func (s *NetworkInfoQuickstartCli) GetDescription() string {
 	return s.Description
+}
+
+// GetInstallApt returns the value of InstallApt.
+func (s *NetworkInfoQuickstartCli) GetInstallApt() string {
+	return s.InstallApt
 }
 
 // GetInstallHomebrew returns the value of InstallHomebrew.
@@ -33401,6 +33408,11 @@ func (s *NetworkInfoQuickstartCli) GetInstallNpm() string {
 	return s.InstallNpm
 }
 
+// GetInstallScoop returns the value of InstallScoop.
+func (s *NetworkInfoQuickstartCli) GetInstallScoop() string {
+	return s.InstallScoop
+}
+
 // GetUsage returns the value of Usage.
 func (s *NetworkInfoQuickstartCli) GetUsage() string {
 	return s.Usage
@@ -33411,6 +33423,11 @@ func (s *NetworkInfoQuickstartCli) SetDescription(val string) {
 	s.Description = val
 }
 
+// SetInstallApt sets the value of InstallApt.
+func (s *NetworkInfoQuickstartCli) SetInstallApt(val string) {
+	s.InstallApt = val
+}
+
 // SetInstallHomebrew sets the value of InstallHomebrew.
 func (s *NetworkInfoQuickstartCli) SetInstallHomebrew(val string) {
 	s.InstallHomebrew = val
@@ -33419,6 +33436,11 @@ func (s *NetworkInfoQuickstartCli) SetInstallHomebrew(val string) {
 // SetInstallNpm sets the value of InstallNpm.
 func (s *NetworkInfoQuickstartCli) SetInstallNpm(val string) {
 	s.InstallNpm = val
+}
+
+// SetInstallScoop sets the value of InstallScoop.
+func (s *NetworkInfoQuickstartCli) SetInstallScoop(val string) {
+	s.InstallScoop = val
 }
 
 // SetUsage sets the value of Usage.

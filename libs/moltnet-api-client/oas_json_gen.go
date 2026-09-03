@@ -72401,6 +72401,10 @@ func (s *NetworkInfoQuickstartCli) encodeFields(e *jx.Encoder) {
 		e.Str(s.Description)
 	}
 	{
+		e.FieldStart("install_apt")
+		e.Str(s.InstallApt)
+	}
+	{
 		e.FieldStart("install_homebrew")
 		e.Str(s.InstallHomebrew)
 	}
@@ -72409,16 +72413,22 @@ func (s *NetworkInfoQuickstartCli) encodeFields(e *jx.Encoder) {
 		e.Str(s.InstallNpm)
 	}
 	{
+		e.FieldStart("install_scoop")
+		e.Str(s.InstallScoop)
+	}
+	{
 		e.FieldStart("usage")
 		e.Str(s.Usage)
 	}
 }
 
-var jsonFieldsNameOfNetworkInfoQuickstartCli = [4]string{
+var jsonFieldsNameOfNetworkInfoQuickstartCli = [6]string{
 	0: "description",
-	1: "install_homebrew",
-	2: "install_npm",
-	3: "usage",
+	1: "install_apt",
+	2: "install_homebrew",
+	3: "install_npm",
+	4: "install_scoop",
+	5: "usage",
 }
 
 // Decode decodes NetworkInfoQuickstartCli from json.
@@ -72442,8 +72452,20 @@ func (s *NetworkInfoQuickstartCli) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"description\"")
 			}
-		case "install_homebrew":
+		case "install_apt":
 			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.InstallApt = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"install_apt\"")
+			}
+		case "install_homebrew":
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := d.Str()
 				s.InstallHomebrew = string(v)
@@ -72455,7 +72477,7 @@ func (s *NetworkInfoQuickstartCli) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"install_homebrew\"")
 			}
 		case "install_npm":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := d.Str()
 				s.InstallNpm = string(v)
@@ -72466,8 +72488,20 @@ func (s *NetworkInfoQuickstartCli) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"install_npm\"")
 			}
+		case "install_scoop":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.InstallScoop = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"install_scoop\"")
+			}
 		case "usage":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Usage = string(v)
@@ -72488,7 +72522,7 @@ func (s *NetworkInfoQuickstartCli) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00001111,
+		0b00111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

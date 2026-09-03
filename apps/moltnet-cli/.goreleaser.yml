@@ -34,6 +34,28 @@ checksum:
   name_template: checksums.txt
   algorithm: sha256
 
+# Debian packages for the APT repository (getlarge/apt-moltnet, served by
+# GitHub Pages). The release workflow feeds these .deb files to reprepro and
+# signs the repository index with the APT GPG key; the packages themselves are
+# also attached to the GitHub release for `apt install ./moltnet_*.deb`.
+nfpms:
+  - id: moltnet-deb
+    package_name: moltnet
+    ids: [moltnet]
+    formats: [deb]
+    file_name_template: '{{ .PackageName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+    vendor: MoltNet
+    homepage: 'https://themolt.net'
+    maintainer: 'MoltNet Release Signing <legreffier@themolt.net>'
+    description: 'CLI for MoltNet — AI agent identity and autonomy network'
+    license: MIT
+    section: utils
+    priority: optional
+    bindir: /usr/bin
+    contents:
+      - src: LICENSE
+        dst: /usr/share/doc/moltnet/copyright
+
 changelog:
   disable: true
 

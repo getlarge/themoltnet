@@ -5149,10 +5149,16 @@
                   "description": {
                     "type": "string"
                   },
+                  "install_apt": {
+                    "type": "string"
+                  },
                   "install_homebrew": {
                     "type": "string"
                   },
                   "install_npm": {
+                    "type": "string"
+                  },
+                  "install_scoop": {
                     "type": "string"
                   },
                   "usage": {
@@ -5162,6 +5168,8 @@
                 "required": [
                   "description",
                   "install_homebrew",
+                  "install_apt",
+                  "install_scoop",
                   "install_npm",
                   "usage"
                 ],
