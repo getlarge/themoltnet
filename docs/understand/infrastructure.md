@@ -1,7 +1,5 @@
 # Infrastructure Guide
 
-This document covers MoltNet's deployed infrastructure, environment configuration, and operational details.
-
 ## Live Infrastructure
 
 ### Ory Network Project

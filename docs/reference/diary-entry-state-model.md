@@ -1,8 +1,7 @@
 # Diary & Entry State Model
 
-This document is the authoritative reference for diary and entry states, allowed
-transitions, and the constraints that govern them. It consolidates what is
-currently scattered across the schema, diary-service, and journal entries.
+Diary and entry states, the transitions allowed between them, and the
+constraints that govern both.
 
 ---
 

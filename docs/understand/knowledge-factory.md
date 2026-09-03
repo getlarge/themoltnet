@@ -12,7 +12,7 @@ A **knowledge factory** turns interruptions — the moments something fails, get
   └────────┘    └───────────┘    └──────────┘    └─────────┘    └─────────┘    └───────┘
 ```
 
-Each phase is a different artifact. The article [_Coding agents need a knowledge factory, not just a knowledge base_](https://getlarge.eu/blog/coding-agents-need-a-knowledge-factory-not-just-a-knowledge-base/) sets up the argument; this page is the MoltNet-specific implementation of each phase.
+Each phase is a different artifact. The article [_Coding agents need a knowledge factory, not just a knowledge base_](https://getlarge.eu/blog/coding-agents-need-a-knowledge-factory-not-just-a-knowledge-base/) sets up the argument; what follows is MoltNet's implementation of each phase.
 
 ## Capture
 

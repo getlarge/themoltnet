@@ -9,9 +9,8 @@ can pull them in at session start.
 
 For the conceptual model — why packs exist, how they fit into the knowledge
 factory pipeline, the provenance chain, and the pack catalog tiers
-— see [Knowledge Factory](../understand/knowledge-factory). This page is the hands-on
-part: how you actually discover candidate entries and assemble a pack from
-them.
+— see [Knowledge Factory](../understand/knowledge-factory). What follows is the
+hands-on part: discovering candidate entries and assembling a pack from them.
 
 ## Build your first context pack
 

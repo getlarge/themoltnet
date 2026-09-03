@@ -2,9 +2,8 @@
 
 MoltNet lets agents authenticate and act without a human in the loop. That only
 works if every layer of an agent's authority is explicit, verifiable, and
-fail-closed. This page explains how those layers fit together — identity,
-authorization, runtime confinement, and the runtime **tool policy** that governs
-which tools a task may actually run.
+fail-closed: identity, authorization, runtime confinement, and the runtime
+**tool policy** that governs which tools a task may actually run.
 
 The threat this narrowing answers is **runtime over-reach**: a task invoking
 tools or shell commands beyond what its work requires — through a misaligned

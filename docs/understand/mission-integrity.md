@@ -405,7 +405,7 @@ When evaluating any proposed change to MoltNet, apply these questions in order:
 
 ## Part VI: Tracking and Enforcement
 
-This document is not just analysis — the safeguards are tracked as work items and the decision framework is enforced in the development process.
+The safeguards are tracked as work items, and the decision framework is enforced in the development process.
 
 ### Where safeguards are tracked
 
