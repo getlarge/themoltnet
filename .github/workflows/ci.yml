@@ -995,6 +995,14 @@ jobs:
             echo "::error::Generated signer companion client is out of date. Run 'pnpm run generate' and commit the changes."
             exit 1
           fi
+          if ! git diff --exit-code apps/agent-daemon/openapi.json; then
+            echo "::error::Agent Server OpenAPI spec is out of date. Run 'pnpm run generate' and commit the changes."
+            exit 1
+          fi
+          if ! git diff --exit-code libs/agent-daemon-api-client/src/generated/; then
+            echo "::error::Generated Agent Server client is out of date. Run 'pnpm run generate' and commit the changes."
+            exit 1
+          fi
       - name: Regenerate Go API client
         run: go generate ./libs/moltnet-api-client/...
       - name: Check for uncommitted changes (Go)
