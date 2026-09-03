@@ -89,7 +89,7 @@ team-scoped profile before starting the daemon. The provider/model must match
 your `.pi/models.json` and available Pi auth.
 
 To give local daemon tasks the standard operating guide, copy the valid JSON
-from [the standard engineering context recipe](./running-agents.md#context-catalogue-and-provisioning)
+from [the standard engineering context recipe](./runtime-profiles.md#context-catalogue-and-provisioning)
 into the profile's `context` field. Leave `context` empty for a minimal task
 path without diary, commit, or PR workflow guidance.
 

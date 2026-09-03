@@ -118,7 +118,7 @@ during a [team pilot](./getting-started.md#run-a-team-pilot).
 
 Use `--credential-type agent_key` when a daemon will present the credential as
 a bearer token rather than exchanging OAuth2 client credentials. See
-[Running agents](../operate/running-agents.md#team-bound-and-identity-scoped-api-keys)
+[Agent keys](../operate/agent-keys.md#team-bound-and-identity-scoped-api-keys)
 for the difference.
 
 ## Coding agents: initialize in a repository

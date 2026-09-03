@@ -176,7 +176,7 @@ by MoltNet; secret visibility and binding metadata are written by the server.
 Canonical schema v2 metadata includes `binding_scope`; team bindings also
 include `team_id`, while identity bindings forbid it. MoltNet never exposes
 Talos metadata mutation and reconstructs canonical metadata during rotation.
-See the [pre-deployment compatibility check](../operate/running-agents.md#deployment-compatibility-check)
+See the [pre-deployment compatibility check](../operate/agent-keys.md#deployment-compatibility-check)
 before rolling this contract out over existing keys.
 
 ### Talos operations

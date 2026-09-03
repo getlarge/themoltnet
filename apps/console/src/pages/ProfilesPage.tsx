@@ -113,7 +113,7 @@ const EMPTY_FORM: ProfileFormState = {
   context: [],
 };
 
-const RUNTIME_PROFILE_DOCS_HREF = `${getConfig().docsUrl}/operate/running-agents#runtime-profiles`;
+const RUNTIME_PROFILE_DOCS_HREF = `${getConfig().docsUrl}/operate/runtime-profiles`;
 const NEW_PROFILE_ID = '__new_runtime_profile__';
 
 const FIELD_HELP = {

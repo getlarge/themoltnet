@@ -57,7 +57,7 @@ Create a runtime profile for the provider and sandbox that will execute tasks
 before starting the daemon. Context is opt-in: leave it empty for a minimal,
 fast task path, or copy an explicit context recipe for a daemon-wide operating
 guide covering diary research, commits, verification, and PRs.
-[Running agents: Runtime profiles](../operate/running-agents.md#context-catalogue-and-provisioning)
+[Runtime profiles](../operate/runtime-profiles.md#context-catalogue-and-provisioning)
 has the first-profile example and copyable JSON context recipes.
 
 ### 3. Run a first supervised task

@@ -100,7 +100,7 @@ environment only — never store it in `moltnet.json`. The daemon reconciles a
 team-bound key against `--team` at startup; an identity-scoped key may select
 any team where the agent is authorized. It fails fast if the key is rejected,
 is not an agent, or a team binding mismatches. See
-[Run the daemon with an agent key](../../docs/operate/running-agents.md#run-the-daemon-with-an-agent-key).
+[Run the daemon with an agent key](../../docs/operate/agent-keys.md#run-the-daemon-with-an-agent-key).
 
 Daemon authentication and the guest boundary are two separate concerns. How the
 daemon authenticates (an agent key, or OAuth2 resolved from
@@ -196,7 +196,7 @@ host-exec command is safe to run without a dialog.
 ### Remote runtime profiles
 
 The canonical user-facing guide lives in the public docs:
-[Running Agents § Runtime Profiles](https://docs.themolt.net/operate/running-agents#runtime-profiles).
+[Running Agents § Runtime Profiles](https://docs.themolt.net/operate/runtime-profiles).
 
 ## Correlation anchors
 

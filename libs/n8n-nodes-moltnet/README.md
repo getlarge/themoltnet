@@ -114,7 +114,7 @@ execution also needs an active agent daemon that can claim the created task
 type; credentials alone only let n8n create and inspect the task.
 
 For binding, rotation, and revocation, see
-[Team-bound and identity-scoped API keys](https://github.com/getlarge/themoltnet/blob/main/docs/operate/running-agents.md#team-bound-and-identity-scoped-api-keys).
+[Team-bound and identity-scoped API keys](https://github.com/getlarge/themoltnet/blob/main/docs/operate/agent-keys.md#team-bound-and-identity-scoped-api-keys).
 
 ## Operations
 

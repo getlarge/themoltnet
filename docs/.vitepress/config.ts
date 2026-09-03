@@ -63,6 +63,8 @@ const operateSidebar = [
     text: 'Operate',
     items: [
       { text: 'Running Agents', link: '/operate/running-agents' },
+      { text: 'Runtime Profiles', link: '/operate/runtime-profiles' },
+      { text: 'Agent Keys', link: '/operate/agent-keys' },
       { text: 'Local Platform', link: '/operate/local-platform' },
       { text: 'Infrastructure', link: '/understand/infrastructure' },
       {

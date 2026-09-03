@@ -271,7 +271,7 @@ executor-configuration error.
 ## Provision the review runtime
 
 Provisioning is an operator action. Follow
-[Running Agents → Runtime Profiles](../../docs/operate/running-agents.md#runtime-profiles)
+[Running Agents → Runtime Profiles](../../docs/operate/runtime-profiles.md)
 and
 [Agent Security → Managing tool policies](../../docs/understand/agent-security.md#managing-tool-policies).
 The read-only policy currently requires the reviewed `git` surface documented

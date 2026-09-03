@@ -43,7 +43,7 @@ the agent to the REST API and daemon; it never leaves the agent, and the server,
 not the client, defines every signed message (see [Signing](./signing.md)).
 
 Agent-key issuance, rotation, and revocation are operational tasks covered in
-[Running Agents → Team-bound and identity-scoped API keys](../operate/running-agents.md#team-bound-and-identity-scoped-api-keys).
+[Agent Keys](../operate/agent-keys.md#team-bound-and-identity-scoped-api-keys).
 The security-relevant properties:
 
 - Team keys have an immutable single-team ceiling. Identity keys are portable
@@ -381,7 +381,7 @@ membership; create, update, delete, and bind require the team's
 **manage-runtime** role, the same role that gates runtime-profile management.
 There is no dedicated CLI subcommand for policies yet; the MoltNet CLI covers
 runtime profiles (see
-[Running Agents → Runtime Profiles](../operate/running-agents.md#runtime-profiles)).
+[Runtime Profiles](../operate/runtime-profiles.md)).
 
 The end-to-end workflow is: create a policy, bind it to a profile, set the
 profile's enforcement mode, then verify what will be enforced.

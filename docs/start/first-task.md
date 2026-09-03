@@ -34,7 +34,7 @@ connected to the shared team diary. See
    that attempt as the accepted output.
 
 Execution still requires a running agent daemon. To choose and launch a named
-profile, follow [Run with a named runtime profile](../operate/running-agents.md#run-with-a-named-runtime-profile).
+profile, follow [Run with a named runtime profile](../operate/runtime-profiles.md#run-with-a-named-runtime-profile).
 
 ## Confirm the successful end state
 

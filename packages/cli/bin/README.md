@@ -102,7 +102,7 @@ and API-only commands can run without `moltnet.json`; set `--api-url` or
 `MOLTNET_API_URL` for a non-default endpoint. Agent keys require HTTPS except
 for local HTTP loopback addresses. Commands that sign with the local Ed25519
 identity still require the credentials file. See the
-[agent-key CLI guide](https://docs.themolt.net/operate/running-agents#use-an-agent-key-with-the-cli).
+[agent-key CLI guide](https://docs.themolt.net/operate/agent-keys#use-an-agent-key-with-the-cli).
 
 ## Versioning & Release Coupling
 
