@@ -61,7 +61,7 @@ func TestResolveAPIURL_CredentialsUsedWhenFlagUnchanged(t *testing.T) {
 func TestResolveAPIURL_DefaultWhenNoCredentials(t *testing.T) {
 	// Isolate the auto-discovered ReadConfig() lookup from the developer's
 	// real ~/.config/moltnet/moltnet.json by pointing HOME at an empty dir.
-	t.Setenv("HOME", t.TempDir())
+	isolateCredentialDiscovery(t)
 	cmd := newCmdWithAPIFlag(t)
 
 	got := resolveAPIURL(cmd, "")

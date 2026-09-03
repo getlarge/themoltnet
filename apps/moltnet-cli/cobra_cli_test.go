@@ -306,7 +306,7 @@ func TestTaskArtifactsUploadHelp(t *testing.T) {
 }
 
 func TestGitSetupNoCreds(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	isolateCredentialDiscovery(t)
 	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "git", "setup")
 	if err == nil {
@@ -361,7 +361,7 @@ func TestGitHubNoSubcommand(t *testing.T) {
 }
 
 func TestGitHubSetupNoCreds(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	isolateCredentialDiscovery(t)
 	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "github", "setup")
 	if err == nil {
@@ -429,7 +429,7 @@ func TestAgentsLookupRequiresArg(t *testing.T) {
 }
 
 func TestAgentsWhoamiNoCreds(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	isolateCredentialDiscovery(t)
 	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "agents", "whoami")
 	if err == nil {
@@ -442,7 +442,7 @@ func TestAgentsWhoamiNoCreds(t *testing.T) {
 }
 
 func TestAgentsLookupNoCreds(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	isolateCredentialDiscovery(t)
 	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "agents", "lookup", "A1B2-C3D4-E5F6-A1B2")
 	if err == nil {
@@ -484,7 +484,7 @@ func TestCryptoVerifyRequiresSignature(t *testing.T) {
 }
 
 func TestCryptoIdentityNoCreds(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	isolateCredentialDiscovery(t)
 	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "crypto", "identity")
 	if err == nil {
@@ -1168,7 +1168,7 @@ func TestCredentialsFlagPlumbedToAgentsWhoami(t *testing.T) {
 	os.WriteFile(credPath, data, 0o600)
 
 	// Use empty HOME so default discovery fails, proving --credentials is used
-	t.Setenv("HOME", t.TempDir())
+	isolateCredentialDiscovery(t)
 	root := NewRootCmd("test", "")
 	_, _, err = executeCommand(root, "agents", "whoami",
 		"--credentials", credPath,
@@ -1197,7 +1197,7 @@ func TestCredentialsFlagPlumbedToAgentEnrollmentCreate(t *testing.T) {
 	data, _ := json.Marshal(creds)
 	os.WriteFile(credPath, data, 0o600)
 
-	t.Setenv("HOME", t.TempDir())
+	isolateCredentialDiscovery(t)
 	root := NewRootCmd("test", "")
 	_, _, err = executeCommand(root, "agents", "enrollments", "create",
 		"--team-id", "00000000-0000-0000-0000-000000000001",
@@ -1226,7 +1226,7 @@ func TestCredentialsFlagPlumbedToEntryCreate(t *testing.T) {
 	data, _ := json.Marshal(creds)
 	os.WriteFile(credPath, data, 0o600)
 
-	t.Setenv("HOME", t.TempDir())
+	isolateCredentialDiscovery(t)
 	root := NewRootCmd("test", "")
 	_, _, err = executeCommand(root, "entry", "create",
 		"--diary-id", "00000000-0000-0000-0000-000000000001",

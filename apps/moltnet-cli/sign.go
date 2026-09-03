@@ -77,22 +77,33 @@ func readPayload(args []string) (string, error) {
 	return args[0], nil
 }
 
-// loadCredentials reads credentials from the given path or the default location.
+// loadCredentials reads credentials from the canonical path for this
+// invocation.
+//
+// An empty path means auto-discovery, which must go through
+// resolveCredentialsPath so that MOLTNET_CREDENTIALS_PATH and the moltnet.json
+// beside GIT_CONFIG_GLOBAL win over the global config. Reading the global
+// config directly here silently authenticated and signed as the global agent
+// while the shell was activated for a repository agent (issue #2129).
+//
+// Once a path is selected it is used as-is: a selected-but-unreadable
+// credentials file is an error, never a reason to fall back to the global
+// config.
 func loadCredentials(path string) (*CredentialsFile, error) {
-	var creds *CredentialsFile
-	var err error
-
-	if path != "" {
-		creds, err = ReadConfigFrom(path)
-	} else {
-		creds, err = ReadConfig()
+	resolved, err := resolveCredentialsPath(path)
+	if err != nil {
+		return nil, fmt.Errorf("read credentials: %w", err)
 	}
 
+	creds, err := ReadConfigFrom(resolved)
 	if err != nil {
 		return nil, fmt.Errorf("read credentials: %w", err)
 	}
 	if creds == nil {
-		return nil, fmt.Errorf("no credentials found — run 'moltnet register' first")
+		return nil, fmt.Errorf(
+			"no credentials found at %s — run 'moltnet register' first",
+			resolved,
+		)
 	}
 	return creds, nil
 }
