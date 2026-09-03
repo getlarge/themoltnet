@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.9.0](https://github.com/getlarge/themoltnet/compare/landing-v0.8.0...landing-v0.9.0) (2026-09-03)
+
+
+### Features
+
+* **agent-daemon:** establish the Agent Server API ([a169bee](https://github.com/getlarge/themoltnet/commit/a169beeedd34a88dcaf5861ebefb08903bc84d3c))
+
+
+### Bug Fixes
+
+* **agent-bundle:** keep the Agent Server foreground-only ([5a86ceb](https://github.com/getlarge/themoltnet/commit/5a86ceb980f52ad1b99f3497a506e539f486391d))
+
 ## [0.8.0](https://github.com/getlarge/themoltnet/compare/landing-v0.7.0...landing-v0.8.0) (2026-09-03)
 
 

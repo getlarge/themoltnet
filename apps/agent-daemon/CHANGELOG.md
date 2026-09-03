@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.50.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.49.1...agent-daemon-v0.50.0) (2026-09-03)
+
+
+### Features
+
+* **agent-daemon:** establish the Agent Server API ([a169bee](https://github.com/getlarge/themoltnet/commit/a169beeedd34a88dcaf5861ebefb08903bc84d3c))
+* **agent-daemon:** establish the Agent Server API ([8af2474](https://github.com/getlarge/themoltnet/commit/8af24743a33d80d0ca7fdc84c0c5cf50c4e80494))
+
+
+### Bug Fixes
+
+* **agent-daemon:** reconcile latest stack hardening ([ad0b7bd](https://github.com/getlarge/themoltnet/commit/ad0b7bd1ac07c1707f2bc1545ee2676840bad94d))
+* **agent-daemon:** stabilize generated OpenAPI formatting ([f536a68](https://github.com/getlarge/themoltnet/commit/f536a6806ad2a2b82a3c18addb4fef0cd7aad283))
+
 ## [0.49.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.49.0...agent-daemon-v0.49.1) (2026-09-03)
 
 

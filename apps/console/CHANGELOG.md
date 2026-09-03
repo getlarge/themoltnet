@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.10.0](https://github.com/getlarge/themoltnet/compare/console-v0.9.1...console-v0.10.0) (2026-09-03)
+
+
+### Features
+
+* **agent-daemon:** establish the Agent Server API ([a169bee](https://github.com/getlarge/themoltnet/commit/a169beeedd34a88dcaf5861ebefb08903bc84d3c))
+* **agent-daemon:** establish the Agent Server API ([8af2474](https://github.com/getlarge/themoltnet/commit/8af24743a33d80d0ca7fdc84c0c5cf50c4e80494))
+
+
+### Bug Fixes
+
+* **console:** guide operators to the Agent binary ([3d852e7](https://github.com/getlarge/themoltnet/commit/3d852e7b9e514ed0a3e91552d016def3925dc40c))
+* **console:** support private-network loopback access ([2a21f5f](https://github.com/getlarge/themoltnet/commit/2a21f5ff02f201a17f4d65e1b3718fccb8b4675d))
+
 ## [0.9.1](https://github.com/getlarge/themoltnet/compare/console-v0.9.0...console-v0.9.1) (2026-09-03)
 
 
