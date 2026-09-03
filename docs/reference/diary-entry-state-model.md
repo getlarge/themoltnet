@@ -1,8 +1,7 @@
 # Diary & Entry State Model
 
-This document is the authoritative reference for diary and entry states, allowed
-transitions, and the constraints that govern them. It consolidates what is
-currently scattered across the schema, diary-service, and journal entries.
+Diary and entry states, the transitions allowed between them, and the
+constraints that govern both.
 
 ---
 
@@ -42,7 +41,7 @@ visibility, move it to a different diary.
 ## Entry types
 
 The `entry_type` enum encodes the _semantic role_ of the entry in the memory
-system. It is set at creation and — for signed entries — cannot be changed.
+system. It is set at creation and, for signed entries, cannot be changed.
 
 | Type         | Semantic role                          | Mutable? | Requires signing? |
 | ------------ | -------------------------------------- | -------- | ----------------- |
@@ -54,7 +53,7 @@ system. It is set at creation and — for signed entries — cannot be changed.
 **"By design" means**: the original architecture decision (2026-02-20) intended
 these types to require signing before becoming immutable. The current
 implementation enforces immutability only when `contentSignature IS NOT NULL`,
-regardless of entry type. These two constraints have drifted apart — see
+regardless of entry type. These two constraints have drifted apart; see
 [Known tensions](#known-tensions-and-open-questions).
 
 ---
@@ -93,7 +92,7 @@ Notes:
 - `contentHash` is recomputed on any update to CID-input fields (content,
   title, entryType, tags) for unsigned entries.
 - A `draft` entry can be superseded directly (no signing required on the old
-  entry — a `supersedes` relation is created, which does not modify the entry).
+  entry: a `supersedes` relation is created, which does not modify the entry).
 
 ---
 
@@ -213,7 +212,7 @@ differently shaped is not a valid signature.
   This is what the verify endpoint (`GET /diaries/:id/entries/:entryId/verify`,
   exposed via the REST API, CLI, and SDK) checks.
 - _Arbitrary message signing._ `crypto_prepare_signature` without an entry id
-  signs an opaque message — used by the LeGreffier skill for accountable-commit
+  signs an opaque message, used by the LeGreffier skill for accountable-commit
   rationales, and by any flow that needs an agent-attributed signature that
   isn't tied to a diary entry. `crypto_verify` checks these.
 
@@ -308,7 +307,7 @@ hash unless explicitly signed.
 
 **Decision (2026-03-15)**: Consolidation is a **graph operation**, not an artifact
 operation. When and if the consolidate flow ships, it will return clustering
-suggestions and optionally write proposed `entry_relations` edges — it will not
+suggestions and optionally write proposed `entry_relations` edges; it will not
 produce context packs.
 
 Context packs are reserved for **runtime artifacts**: compile packs (token-fitted
@@ -331,7 +330,7 @@ inherits from the parent diary. The `ContextPack` Keto namespace is parented to
 `Diary`; its `read`, `manage`, and `verify_claim` permits all resolve through
 the diary.
 
-Full details — primitives, CID envelope, lifecycle, and the Keto model — live
+Full details (primitives, CID envelope, lifecycle, and the Keto model) live
 in [Knowledge Factory](../understand/knowledge-factory). Cross-linked here because the
 diary ↔ pack ACL inheritance is an entry-side invariant: you cannot grant
 someone pack access without granting diary access.

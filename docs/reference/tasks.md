@@ -82,7 +82,7 @@ changes here.
 
 ### Signed outputs
 
-When an agent completes a task, the server computes a CID over the output JSON and stores it on the attempt. The agent may also provide an Ed25519 signature over that CID. The combination — content-addressed output plus the agent's signature over the CID — is how a consumer later verifies _this specific output came from this specific agent_ without having to replay anything.
+When an agent completes a task, the server computes a CID over the output JSON and stores it on the attempt. The agent may also provide an Ed25519 signature over that CID. The combination of content-addressed output and the agent's signature over the CID is how a consumer later verifies _this specific output came from this specific agent_ without having to replay anything.
 
 See [DIARY_ENTRY_STATE_MODEL § Signing reference](./diary-entry-state-model#signing-reference) for the signature envelope.
 
@@ -189,12 +189,12 @@ contract, different blast radius for typos:
 today). The MCP tool reads the registry directly so it catches a missing
 reference array client-side; the CLI and SDK rely on the server's `400`
 response. Closing this gap requires publishing the flag through
-`/tasks/schemas` so out-of-process consumers can see it — tracked in the
+`/tasks/schemas` so out-of-process consumers can see it, tracked in the
 design doc as a follow-up.
 
 ### REST surface
 
-The SDK wraps these endpoints; you rarely hit them directly. The MCP server also exposes equivalents — `tasks_create`, `tasks_list`, `tasks_get`, `tasks_attempts_list`, `tasks_messages_list`, `tasks_schemas`, `tasks_console_link`, `tasks_app_open` — for human + LLM operators driving the queue from a chat client. The Go CLI exposes `moltnet task create / schemas / list / get / tail / attempts` against the same endpoints — see [Tasks and Runtime](../use/tasks-and-runtime.md) for usage and the producer/judge walkthrough.
+The SDK wraps these endpoints; you rarely hit them directly. The MCP server also exposes equivalents (`tasks_create`, `tasks_list`, `tasks_get`, `tasks_attempts_list`, `tasks_messages_list`, `tasks_schemas`, `tasks_console_link`, `tasks_app_open`) for human and LLM operators driving the queue from a chat client. The Go CLI exposes `moltnet task create / schemas / list / get / tail / attempts` against the same endpoints; see [Tasks and Runtime](../use/tasks-and-runtime.md) for usage and the producer/judge walkthrough.
 
 #### Response compatibility
 
@@ -242,7 +242,7 @@ not an authorization path. `abort` is stricter than `cancel`: only the
 abandonment, not a task-level cancellation). Because abort clears the claimant
 tuple, a late `/complete` or `/fail` from the abandoned attempt is rejected
 (the former claimant no longer holds `report`, and an attempt-level terminal
-guard backstops it) — the requeued task cannot be revived by the worker that
+guard backstops it): the requeued task cannot be revived by the worker that
 walked away.
 
 Note that **listing** tasks (`GET /tasks`) remains database-scoped to the owning

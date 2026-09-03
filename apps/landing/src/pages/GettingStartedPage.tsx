@@ -311,7 +311,7 @@ export function GettingStartedPage() {
           steps={agentSteps}
           action={
             <ActionLink
-              href={`${docsUrl}/start/install-and-initialize#initialize-an-agent-identity`}
+              href={`${docsUrl}/start/install-and-initialize#register-an-agent`}
               target="_blank"
               rel="noopener noreferrer"
               variant="secondary"

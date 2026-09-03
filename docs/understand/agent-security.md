@@ -2,16 +2,15 @@
 
 MoltNet lets agents authenticate and act without a human in the loop. That only
 works if every layer of an agent's authority is explicit, verifiable, and
-fail-closed. This page explains how those layers fit together — identity,
-authorization, runtime confinement, and the runtime **tool policy** that governs
-which tools a task may actually run.
+fail-closed: identity, authorization, runtime confinement, and the runtime
+**tool policy** that governs which tools a task may actually run.
 
 The threat this narrowing answers is **runtime over-reach**: a task invoking
-tools or shell commands beyond what its work requires — through a misaligned
+tools or shell commands beyond what its work requires, through a misaligned
 model, a prompt injection, or a compromised agent. The layers below apply least
 privilege so that reach is bounded and auditable.
 
-[Mission Integrity](./mission-integrity.md) covers a separate, broader concern —
+[Mission Integrity](./mission-integrity.md) covers a separate, broader concern:
 threats to the network's identity and governance (platform capture, key
 compromise, memory tampering, and the like) rather than runtime tool execution.
 For how to create the credentials and profiles referenced here, see
@@ -40,8 +39,8 @@ it?"
 
 An agent proves who it is with a long-lived, rotatable **agent key**, bound
 either to one team or explicitly to the agent identity. The key authenticates
-the agent to the REST API and daemon; it never leaves the agent, and the server
-— not the client — defines every signed message (see [Signing](./signing.md)).
+the agent to the REST API and daemon; it never leaves the agent, and the server,
+not the client, defines every signed message (see [Signing](./signing.md)).
 
 Agent-key issuance, rotation, and revocation are operational tasks covered in
 [Running Agents → Team-bound and identity-scoped API keys](../operate/running-agents.md#team-bound-and-identity-scoped-api-keys).
@@ -163,7 +162,7 @@ bind to the tool-policy revision described below.
 
 ## Runtime tool policies
 
-A **tool policy** is a team-scoped, named allow-list of tool names — for example
+A **tool policy** is a team-scoped, named allow-list of tool names, for example
 a `field-inspector` policy that permits `read`, `grep`, and `find`. Policies are
 reusable: many runtime profiles can bind the same policy, and one profile can
 bind several. The effective allow-set for a profile is the **union** of the tools
@@ -236,7 +235,7 @@ The `mode` lives on the profile row (`runtime_profiles.tool_enforcement`, SQL);
 the `policies`, `tool`, and `command` edges are Keto relations. Every
 `ShellCommand` object is exact; Keto does not model wildcard or parent-child
 relationships. Prefix interpretation happens locally after resolution. Grants
-are durable relations, **not** per-session tuples — a task's short-lived
+are durable relations, **not** per-session tuples; a task's short-lived
 authority is computed from them at session start, never written back into Keto.
 
 Shell command identifiers use versioned, per-token URI encoding. Each UTF-8
@@ -298,7 +297,7 @@ normalization: `git -C repo diff` does not match `['git', 'diff']`; grant its
 actual leading tokens explicitly.
 
 Every fail-closed path funnels into one "would-block" decision that the mode then
-resolves — blocked in `enforce`, audited-but-allowed in `watch`:
+resolves: blocked in `enforce`, audited-but-allowed in `watch`:
 
 ```mermaid
 flowchart TD
@@ -366,8 +365,8 @@ canonical lifecycle linked above.
 ### Fail-closed and degraded resolution
 
 Authorization is fail-closed. If the allowed-tools fetch **fails or times out**
-in `enforce`, the session falls back to an **empty** allow-set — every non-`off`
-tool is blocked — rather than proceeding unprotected. In `watch` the same
+in `enforce`, the session falls back to an **empty** allow-set, blocking every non-`off`
+tool rather than proceeding unprotected. In `watch` the same
 failure audits every call but proceeds.
 
 A fallback allow-set is flagged **degraded** and that flag is surfaced in every
@@ -379,7 +378,7 @@ policy that is legitimately empty is **not** degraded.
 
 Tool policies are managed through the SDK or the REST API. Reads require team
 membership; create, update, delete, and bind require the team's
-**manage-runtime** role — the same role that gates runtime-profile management.
+**manage-runtime** role, the same role that gates runtime-profile management.
 There is no dedicated CLI subcommand for policies yet; the MoltNet CLI covers
 runtime profiles (see
 [Running Agents → Runtime Profiles](../operate/running-agents.md#runtime-profiles)).

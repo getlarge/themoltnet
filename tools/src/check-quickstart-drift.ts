@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -132,6 +132,59 @@ for (const pattern of [
     pattern,
     'landing discovery pattern',
   );
+}
+
+// The landing deep-links into docs headings. Renaming a heading silently
+// breaks those links, so every anchor the landing points at must resolve to a
+// real heading in the target page.
+const LANDING_SRC = resolve(ROOT, 'apps/landing/src');
+
+/** VitePress heading slug: lowercase, drop punctuation, spaces to hyphens. */
+function slugify(heading: string): string {
+  return heading
+    .trim()
+    .toLowerCase()
+    .replace(/`/g, '')
+    .replace(/[^\p{L}\p{N}\s-]/gu, '')
+    .replace(/\s+/g, '-');
+}
+
+function collectFiles(dir: string, extension: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = resolve(dir, entry.name);
+    if (entry.isDirectory()) return collectFiles(full, extension);
+    return entry.name.endsWith(extension) ? [full] : [];
+  });
+}
+
+const docsAnchorPattern = /\$\{docsUrl\}\/([a-z0-9/-]+)#([a-z0-9-]+)/g;
+
+for (const file of collectFiles(LANDING_SRC, '.tsx')) {
+  const source = readFileSync(file, 'utf-8');
+  for (const [, docPath, anchor] of source.matchAll(docsAnchorPattern)) {
+    const target = `docs/${docPath}.md`;
+    let markdown: string;
+    try {
+      markdown = read(target);
+    } catch {
+      issues.push({
+        file: file.slice(ROOT.length + 1),
+        message: `links to a docs page that does not exist: ${target}`,
+      });
+      continue;
+    }
+    const anchors = new Set(
+      [...markdown.matchAll(/^#{2,4}\s+(.+)$/gm)].map(([, heading]) =>
+        slugify(heading),
+      ),
+    );
+    if (!anchors.has(anchor)) {
+      issues.push({
+        file: file.slice(ROOT.length + 1),
+        message: `links to a missing heading: ${target}#${anchor}`,
+      });
+    }
+  }
 }
 
 if (issues.length > 0) {

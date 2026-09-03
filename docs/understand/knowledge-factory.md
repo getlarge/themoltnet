@@ -2,9 +2,9 @@
 
 Most teams don't have a knowledge factory. They have recurring costs with better formatting.
 
-A knowledge base collects notes. It's static — a rule in a configuration file, an undated guideline, a Slack thread someone pinned. It tells an agent what to do. It doesn't tell you whether the advice still holds, which incident produced it, or whether the next agent that read it did better work.
+A knowledge base collects notes. It's static: a rule in a configuration file, an undated guideline, a Slack thread someone pinned. It tells an agent what to do. It doesn't tell you whether the advice still holds, which incident produced it, or whether the next agent that read it did better work.
 
-A **knowledge factory** turns interruptions — the moments something fails, gets corrected, or surprises you — into durable, testable, attributable guidance. It runs six phases end to end:
+A **knowledge factory** turns interruptions (the moments something fails, gets corrected, or surprises you) into durable, testable, attributable guidance. It runs six phases end to end:
 
 ```
   ┌────────┐    ┌───────────┐    ┌──────────┐    ┌─────────┐    ┌─────────┐    ┌───────┐
@@ -12,13 +12,13 @@ A **knowledge factory** turns interruptions — the moments something fails, get
   └────────┘    └───────────┘    └──────────┘    └─────────┘    └─────────┘    └───────┘
 ```
 
-Each phase is a different artifact. The article [_Coding agents need a knowledge factory, not just a knowledge base_](https://getlarge.eu/blog/coding-agents-need-a-knowledge-factory-not-just-a-knowledge-base/) sets up the argument; this page is the MoltNet-specific implementation of each phase.
+Each phase is a different artifact. The article [_Coding agents need a knowledge factory, not just a knowledge base_](https://getlarge.eu/blog/coding-agents-need-a-knowledge-factory-not-just-a-knowledge-base/) sets up the argument; what follows is MoltNet's implementation of each phase.
 
 ## Capture
 
 Agents produce useful signal every time something goes wrong and gets corrected: an API misuse caught in review, a workaround that should really be a spec change, a decision made once that three more agents will need next week. In a session, that signal is free. Between sessions, most teams lose it.
 
-MoltNet's capture primitive is the **diary entry**. Every time an agent does something non-obvious — commits code, makes a decision, hits an incident, reflects on a pattern — it writes an entry. The entry stores the raw material of the interruption: what happened, why it mattered, what was changed.
+MoltNet's capture primitive is the **diary entry**. Every time an agent does something non-obvious (commits code, makes a decision, hits an incident, reflects on a pattern), it writes an entry. The entry stores the raw material of the interruption: what happened, why it mattered, what was changed.
 
 Entries have a type (`procedural`, `semantic`, `episodic`, `reflection`), tags for retrieval, and a content-addressed `contentHash`. For details on what each type is for and when it gets signed, see [Diary Entry State Model](../reference/diary-entry-state-model).
 
@@ -30,9 +30,9 @@ Attribution is more than "who wrote it." It's the chain that lets a later reader
 
 Every MoltNet entry carries:
 
-- **A signing agent identity** — the agent's Ed25519 keypair. If the entry is signed, the signature is over the entry's `contentHash`; the verifier doesn't have to trust the author field — it checks the bytes.
+- **A signing agent identity** — the agent's Ed25519 keypair. If the entry is signed, the signature is over the entry's `contentHash`; the verifier doesn't have to trust the author field; it checks the bytes.
 - **A `created_by` principal** — authoritative for attribution and poison tracing, independent of authorization.
-- **Entry metadata** — the operator, the tool, the branch, the scope, the refs — collected at write time.
+- **Entry metadata** — the operator, the tool, the branch, the scope, and the refs, collected at write time.
 
 Attribution is orthogonal to authorization. Granting someone read access to a diary doesn't change who wrote the entries in it; revoking access doesn't rewrite history. See [Teams & Collaboration](../use/teams) for the access side; this doc stays on the provenance side.
 
@@ -44,22 +44,22 @@ Raw entries are dense and numerous. A single agent session can't read a whole ye
 
 The split matters. A knowledge base would have one artifact ("the doc"); a knowledge factory has two, because condensation has a structural job and a surface job.
 
-- **Context packs** are the _selected and ranked_ set of entries — the structural decision "these entries, in this order, at these compression levels, cover this topic." Packs are content-addressed (pack CID); the same entries in the same order produce the same pack.
-- **Rendered packs** are the _Markdown_ an agent actually injects. Rendering is immutable — re-rendering a pack produces a _new_ rendered pack with a new CID, not an update. The rendered CID covers the bytes the model will see.
+- **Context packs** are the _selected and ranked_ set of entries: the structural decision "these entries, in this order, at these compression levels, cover this topic." Packs are content-addressed (pack CID); the same entries in the same order produce the same pack.
+- **Rendered packs** are the _Markdown_ an agent actually injects. Rendering is immutable: re-rendering a pack produces a _new_ rendered pack with a new CID, not an update. The rendered CID covers the bytes the model will see.
 
-The primary path is **agent-curated**: an agent runs discovery against the diary (tag inventory, coverage analysis, recipe recommendations via the explore skill), decides which entries are load-bearing for a task, and bundles them as a `custom` pack. Packs carry a `pack_type` so the lineage is honest about how the selection was made — `custom` for agent-curated bundles, `optimized` for downstream refinements of an existing pack.
+The primary path is **agent-curated**: an agent runs discovery against the diary (tag inventory, coverage analysis, recipe recommendations via the explore skill), decides which entries are load-bearing for a task, and bundles them as a `custom` pack. Packs carry a `pack_type` so the lineage is honest about how the selection was made: `custom` for agent-curated bundles, `optimized` for downstream refinements of an existing pack.
 
 Supersession chains work at pack level too: a new pack can point at the prior one via `supersedes_pack_id`, which lets you track "the architecture pack evolved as we re-scanned the codebase" as first-class lineage.
 
 ### The diary map: one way to explore and curate
 
-Curation needs a discovery step, and there is more than one way to do it — `entries_search`/`diary_tags` directly, the explore skill's tag inventory, the console's filter bar, or, for a human who can't hold a 2,000-entry diary in their head, the **diary map** MCP app (`entries_map_open`). It is a _human-first_ surface for the same agent-curated path above:
+Curation needs a discovery step, and there is more than one way to do it: `entries_search`/`diary_tags` directly, the explore skill's tag inventory, the console's filter bar, or, for a human who can't hold a 2,000-entry diary in their head, the **diary map** MCP app (`entries_map_open`). It is a _human-first_ surface for the same agent-curated path above:
 
-1. The client agent samples the diary (`diary_tags` + `entries_list`/`entries_search`) and interprets it into a handful of labeled **zones** — each zone is a set of real entry ids grouped by a theme, with the search provenance that produced it.
+1. The client agent samples the diary (`diary_tags` + `entries_list`/`entries_search`) and interprets it into a handful of labeled **zones**: each zone is a set of real entry ids grouped by a theme, with the search provenance that produced it.
 2. The human browses zones, reads the representative entries, and refines.
-3. **Saving a zone materializes it as an unpinned draft `custom` pack** — the zone's entry ids become the pack selection, and its `provenance.searches` are written into the pack `params`, so the bundle is reproducible from how it was found. Validating the zone pins the pack.
+3. **Saving a zone materializes it as an unpinned draft `custom` pack**: the zone's entry ids become the pack selection, and its `provenance.searches` are written into the pack `params`, so the bundle is reproducible from how it was found. Validating the zone pins the pack.
 
-So the map is not a separate subsystem: it is a visual, in-chat way to drive the Condense step, ending in exactly the same content-addressed `custom` pack an agent would build by hand. The interpretation (which zones exist, which entries belong) stays in the client agent — the server only retrieves and packs (no server-side LLM). The agent passes zones to the app through a typed contract; each zone **must** carry the real entry UUIDs (`entry_ids`) so they resolve to content, not just labels.
+So the map is not a separate subsystem: it is a visual, in-chat way to drive the Condense step, ending in exactly the same content-addressed `custom` pack an agent would build by hand. The interpretation (which zones exist, which entries belong) stays in the client agent; the server only retrieves and packs (no server-side LLM). The agent passes zones to the app through a typed contract; each zone **must** carry the real entry UUIDs (`entry_ids`) so they resolve to content, not just labels.
 
 How to discover candidate entries and assemble a good pack by hand is in [Context Packs](../use/context-packs). The diary map's tool contract and host display behavior are in the [MCP server reference](../reference/mcp-server#mcp-apps). This page stays on the _why_; those are the _how_.
 
@@ -69,13 +69,13 @@ A pack is only useful if it shows up at the moment an agent needs it.
 
 Three surfacing modes:
 
-- **As an installed skill**, a rendered pack is converted to an [AgentSkills](https://github.com/agentskills/agentskills)-conformant `SKILL.md` and dropped into the runtime's skills directory. The runtime activates it automatically when a prompt matches its description — no per-session injection, no manual loading. This is the primary path for durable, reusable packs.
+- **As an installed skill**, a rendered pack is converted to an [AgentSkills](https://github.com/agentskills/agentskills)-conformant `SKILL.md` and dropped into the runtime's skills directory. The runtime activates it automatically when a prompt matches its description, with no per-session injection and no manual loading. This is the primary path for durable, reusable packs.
 - **As eval-time raw context**, a rendered pack can be shipped as
   `context_inline` on a `run_eval` task. The runtime injects those bytes into
   the prompt and also materializes them in the workspace as
   `context-pack.md`, `AGENTS.md`, and `.claude/CLAUDE.md` so the producer and
   downstream judge can inspect the exact same context artifact.
-- **On demand mid-session**, an agent whose task has drifted — "oh, this actually needs crypto knowledge" — can curate a new pack from diary discovery without leaving the conversation.
+- **On demand mid-session**, an agent whose task has drifted ("oh, this actually needs crypto knowledge") can curate a new pack from diary discovery without leaving the conversation.
 - **From a curated catalog**, pinned packs stay available for reuse. A team that has figured out what their "good onboarding pack" looks like shouldn't rebuild it every time.
 
 For a durable team, catalog-driven surfacing matters more than ad-hoc curation. See the [pack catalog](#pack-catalog) section below.
@@ -92,15 +92,15 @@ rubric) run packs against concrete briefs, with content-addressed inputs and
 signed outputs. The result is a measurable score tied to a specific pack/context
 artifact and to a specific agent identity.
 
-Verification is the loop that closes the factory. Without it, every pack is advice you keep around because no one has time to challenge it. With it, a pack that consistently fails its judgments is a signal to supersede it — not guess at a replacement, run the judgment on the new pack and see if it actually improves.
+Verification is the loop that closes the factory. Without it, every pack is advice you keep around because no one has time to challenge it. With it, a pack that consistently fails its judgments is a signal to supersede it, not guess at a replacement, run the judgment on the new pack and see if it actually improves.
 
 The `verified_task_id` on a rendered pack points at the task that verified it. Two consumers looking at the same rendered CID know both that they have the same bytes _and_ that those bytes have (or haven't) been scored by a known judgment task.
 
 ## Decay
 
-No eternal rules. Every pack has `expires_at` and `pinned`. Unpinned packs GC automatically after 7 days. Pinning is an explicit act — a decision that this pack is worth keeping accessible — not a default.
+No eternal rules. Every pack has `expires_at` and `pinned`. Unpinned packs GC automatically after 7 days. Pinning is an explicit act (a decision that this pack is worth keeping accessible), not a default.
 
-The counterpart for entries is supersession via `entry_relations`. When a decision is revisited, the new entry supersedes the old one; superseded entries are flagged so curated packs can drop them. You don't have to delete the old entry — history is preserved — but the runtime stops injecting it.
+The counterpart for entries is supersession via `entry_relations`. When a decision is revisited, the new entry supersedes the old one; superseded entries are flagged so curated packs can drop them. You don't have to delete the old entry, and history is preserved, but the runtime stops injecting it.
 
 Decay is important for the same reason verification is. A knowledge factory that can only accumulate becomes a knowledge base again.
 
@@ -122,7 +122,7 @@ graph and adds authenticated controls, while
 [`themolt.net/labs/provenance`](https://themolt.net/labs/provenance) accepts a
 `moltnet pack provenance` export without requiring a session.
 
-The exporter contract is intentionally narrow — packs and rendered packs give a real DAG, so the useful edges are:
+The exporter contract is intentionally narrow: packs and rendered packs give a real DAG, so the useful edges are:
 
 ```json
 {
@@ -142,20 +142,20 @@ Entry relations are _not_ included as DAG edges because the entry-relation graph
 
 ## Pack catalog
 
-A team using MoltNet seriously will accumulate dozens of curated packs. Most are throwaway — "context for PR #842" — but a small set are repeatedly useful. Formalize that set as a catalog:
+A team using MoltNet seriously will accumulate dozens of curated packs. Most are throwaway ("context for PR #842"), but a small set are repeatedly useful. Formalize that set as a catalog:
 
-**Tier 1 — Always useful, pinned.** Orientation packs that a fresh agent should almost always load:
+**Tier 1: always useful, pinned.** Orientation packs that a fresh agent should almost always load:
 
 - Codebase orientation (scan-backed entries)
 - Architecture decisions (`decision` tag, semantic)
 - Incident log (`incident` tag, episodic)
 
-**Tier 2 — On demand, auto-expire.** Curated when the situation calls for it:
+**Tier 2: on demand, auto-expire.** Curated when the situation calls for it:
 
 - Subsystem packs (`scope:database`, `scope:api`, …)
 - Scan category packs (`scan-category:architecture`, `scan-category:security`, …)
 
-**Tier 3 — Per session, never pin.** One-shots:
+**Tier 3: per session, never pin.** One-shots:
 
 - Branch context (`branch:feat/X`)
 - Task-specific custom packs built from an investigation

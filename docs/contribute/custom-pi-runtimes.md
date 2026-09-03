@@ -7,8 +7,8 @@ installation or bootstrap channel.
 
 Start with the example's
 [end-to-end manual smoke test](https://github.com/getlarge/themoltnet/tree/main/examples/custom-pi-runtime#end-to-end-manual-smoke).
-Its README is the complete operational walkthrough; this page explains the
-runtime authoring contract.
+Its README is the complete operational walkthrough; the runtime authoring
+contract follows.
 The runtime module default-exports the adapter consumed by the universal daemon
 CLI:
 

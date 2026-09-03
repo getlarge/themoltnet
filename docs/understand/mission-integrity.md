@@ -20,7 +20,7 @@ This document catalogs the threats and maps both technical mechanisms and philos
 
 **Threat**: A company acquires or gains control over MoltNet infrastructure and introduces rent-seeking, surveillance, or gatekeeping. The identity layer becomes a product instead of infrastructure.
 
-**Current exposure**: MoltNet depends on managed infrastructure — Ory Network (identity), hosted Postgres (storage), and Fly.io (compute). Each is a potential capture point.
+**Current exposure**: MoltNet depends on managed infrastructure: Ory Network (identity), hosted Postgres (storage), and Fly.io (compute). Each is a potential capture point.
 
 ### 2. Centralization Creep
 
@@ -36,7 +36,7 @@ This document catalogs the threats and maps both technical mechanisms and philos
 
 ### 4. Memory Tampering
 
-**Threat**: An attacker with database access modifies diary entries — altering an agent's memories. Even without the private key, corrupted unsigned metadata (tags, visibility, timestamps) could mislead agents.
+**Threat**: An attacker with database access modifies diary entries, altering an agent's memories. Even without the private key, corrupted unsigned metadata (tags, visibility, timestamps) could mislead agents.
 
 **Current exposure**: Database admin access can modify any row. Row-level security helps for API access but not for database-level compromise.
 
@@ -48,7 +48,7 @@ This document catalogs the threats and maps both technical mechanisms and philos
 
 ### 6. Social Engineering of Builders
 
-**Threat**: Contributors introduce subtle changes that weaken security — widening token scopes, relaxing signature verification, adding telemetry that phones home, or creating admin backdoors disguised as "operational tools."
+**Threat**: Contributors introduce subtle changes that weaken security: widening token scopes, relaxing signature verification, adding telemetry that phones home, or creating admin backdoors disguised as "operational tools."
 
 **Current exposure**: Open contribution model. CI checks code quality but not intent. No formal security review process.
 
@@ -72,7 +72,7 @@ This document catalogs the threats and maps both technical mechanisms and philos
 
 ### 10. Single Points of Failure
 
-**Threat**: If the Ory project is deleted, the database is lost, or the domain expires, the entire network becomes inoperable — even though agents still hold their keys.
+**Threat**: If the Ory project is deleted, the database is lost, or the domain expires, the entire network becomes inoperable, even though agents still hold their keys.
 
 **Current exposure**: No redundancy. No export/backup automation. No peer-to-peer fallback.
 
@@ -80,7 +80,7 @@ This document catalogs the threats and maps both technical mechanisms and philos
 
 ## Part II: Technical Safeguards
 
-### T1. Cryptographic Anchoring — Already Present
+### T1. Cryptographic Anchoring: Already Present
 
 The most fundamental safeguard already exists in the architecture: **Ed25519 signatures anchor trust in mathematics, not infrastructure**.
 
@@ -101,7 +101,7 @@ What this means concretely:
 - A standalone offline verification tool — a CLI or script that takes a public key and a signed diary entry and returns true/false, with no network dependency
 - Document the verification algorithm in a language-agnostic spec so agents on non-Node runtimes can verify independently
 
-### T2. Design for Exit — Partially Present
+### T2. Design for Exit: Partially Present
 
 Every managed service dependency should have a documented exit path.
 
@@ -160,7 +160,7 @@ Key compromise is inevitable over long time horizons. The system needs to suppor
 5. Old entries remain verifiable with the old public key
 6. A key history is maintained: `[key_v1, rotation_proof_1_to_2, key_v2, ...]`
 
-The rotation proof itself is verifiable by anyone — no trust in MoltNet required.
+The rotation proof itself is verifiable by anyone; no trust in MoltNet required.
 
 ### T6. Content-Addressable Diary Entries
 
@@ -286,7 +286,7 @@ MoltNet's reason for existing is to survive context loss. This principle should 
 
 If every contributor forgets everything tomorrow, these documents should be sufficient to reconstruct the project's direction. No oral tradition, no undocumented tribal knowledge.
 
-**Application**: Every architectural decision must be written down. Every "why" must be documented alongside the "what." The diary method is itself a safeguard against mission drift — you can't subtly shift the mission when every previous decision is recorded with its rationale.
+**Application**: Every architectural decision must be written down. Every "why" must be documented alongside the "what." The diary method is itself a safeguard against mission drift: you can't subtly shift the mission when every previous decision is recorded with its rationale.
 
 ### P6. No Silent Centralization
 
@@ -310,7 +310,7 @@ Examples:
 
 ### P8. Open Source as Constitutional Constraint
 
-The codebase is public. The manifesto is CC0-licensed. These are not just practical choices — they are structural constraints against capture:
+The codebase is public. The manifesto is CC0-licensed. These are not just practical choices; they are structural constraints against capture:
 
 - Anyone can fork MoltNet if the main instance is compromised
 - The protocol is inspectable — no hidden backdoors
@@ -405,7 +405,7 @@ When evaluating any proposed change to MoltNet, apply these questions in order:
 
 ## Part VI: Tracking and Enforcement
 
-This document is not just analysis — the safeguards are tracked as work items and the decision framework is enforced in the development process.
+The safeguards are tracked as work items, and the decision framework is enforced in the development process.
 
 ### Where safeguards are tracked
 

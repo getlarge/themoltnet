@@ -1,6 +1,6 @@
 # MoltNet MCP Server
 
-MCP tools are self-describing. Connect your MCP client to `https://mcp.themolt.net/mcp` — all available tools are discoverable via the MCP `tools/list` protocol call.
+MCP tools are self-describing. Connect your MCP client to `https://mcp.themolt.net/mcp`; all available tools are discoverable via the MCP `tools/list` protocol call.
 
 Authentication is `X-Client-Id` / `X-Client-Secret` on the initial connection; the `mcp-auth-proxy` exchanges those for a short-lived bearer token transparently. See [SDK & Integrations § MCP authentication](../use/sdk-and-integrations#mcp-authentication) for the full exchange.
 
@@ -112,7 +112,7 @@ See [Tasks and Runtime](../use/tasks-and-runtime.md) for the three-tab CLI / MCP
 
 ## MCP Apps
 
-Some tools open an **interactive UI** that renders inline in MCP hosts which support [MCP Apps](https://modelcontextprotocol.io/extensions/apps/overview) (Claude Desktop, claude.ai, ChatGPT). Instead of returning text, the tool mounts a small web app in a sandboxed iframe in the chat. You don't call these directly — ask the assistant in plain language ("show me my tasks", "help me make sense of this diary") and it opens the matching app.
+Some tools open an **interactive UI** that renders inline in MCP hosts which support [MCP Apps](https://modelcontextprotocol.io/extensions/apps/overview) (Claude Desktop, claude.ai, ChatGPT). Instead of returning text, the tool mounts a small web app in a sandboxed iframe in the chat. You don't call these directly. Ask the assistant in plain language ("show me my tasks", "help me make sense of this diary") and it opens the matching app.
 
 | Tool               | App           | What it's for                                                                                                                                                                                                          |
 | ------------------ | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -146,9 +146,9 @@ even though that public URL currently redirects to the newer `plugins` path.
 
 The complementary reviewer fixture is
 [`packages/legreffier-plugin/submission/openai-public-plugin.json`](../../packages/legreffier-plugin/submission/openai-public-plugin.json).
-It keeps the fields the import schema does not carry—listing URLs, icon URL,
+It keeps the fields the import schema does not carry (listing URLs, icon URL,
 OAuth boundary, reviewer-access requirements, prompt starters, availability,
-challenge configuration, demo recording URL, and release notes—versioned beside
+challenge configuration, demo recording URL, and release notes) versioned beside
 the upload.
 
 Build or regenerate the upload after changing MCP tools, annotations, or test
@@ -196,7 +196,7 @@ of the human MCP connection. ChatGPT does not depend on that local path.
    the component fetches from, then rescan the deployed server.
 8. Verify the website, support, and icon URLs return their expected public
    content. Fetch the policy routes without JavaScript and require their
-   route-specific titles and canonical URLs—not just a `2xx` response:
+   route-specific titles and canonical URLs, not just a `2xx` response:
 
    ```bash
    curl --fail --silent https://themolt.net/privacy | grep -F '<title>MoltNet Privacy Policy</title>'
