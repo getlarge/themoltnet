@@ -16,10 +16,12 @@ import { Systems } from '../components/Systems';
  * OWN-WORLD: Matte graphite control surfaces, exact rule lines, network teal
  * for work in motion, and identity amber for authority and signatures.
  *
- * STORY: See the three systems, follow one task through them, read each
- * system's chapter (the Knowledge Factory chapter carries the ownership stake
- * in its own evidence pane), inspect the authority boundary and the real
- * Console, then choose a human or autonomous-agent onboarding path.
+ * STORY: See the three systems, follow one task through them, meet the
+ * Identity & Authority plane that every hop of that task answered to, then
+ * read each system's chapter in causal order (dispatch, execute, reuse; the
+ * Knowledge Factory chapter carries the ownership stake in its own evidence
+ * pane), inspect the real Console, and choose a human or autonomous-agent
+ * onboarding path. The nav and footer list the sections in this same order.
  *
  * FIRST VIEWPORT: A concise claim and one filled action sit beside a large
  * three-part system map seated on an Identity & Authority foundation.
@@ -52,8 +54,8 @@ export function HomePage() {
     <div className="ops-home" style={cssVariables}>
       <Hero />
       <ExecutionTrace />
-      <Systems />
       <AuthorityPlane />
+      <Systems />
       <Collaboration />
       <OpenSource />
       <OnboardingPaths />

@@ -529,6 +529,32 @@ describe('content', () => {
     expect(screen.queryByRole('link', { name: 'Knowledge' })).toBeNull();
   });
 
+  it('Nav, footer, and page agree on section order: authority plane first, then the causal chain', () => {
+    const expected = [
+      'identity-authority',
+      'task-engine',
+      'agent-runtime',
+      'knowledge-factory',
+    ];
+
+    const { container, unmount } = wrapWithRouter(<HomePage />);
+    const pageOrder = [...container.querySelectorAll('[id]')]
+      .map((element) => element.id)
+      .filter((id) => expected.includes(id));
+    expect(pageOrder).toEqual(expected);
+    unmount();
+
+    for (const Component of [Nav, Footer]) {
+      const view = wrapWithRouter(<Component />);
+      const anchors = [...view.container.querySelectorAll('a[href^="/#"]')]
+        .map((a) => a.getAttribute('href')?.slice(2))
+        .filter((id): id is string => expected.includes(id ?? ''));
+      // The nav renders its anchors twice (bar + hidden menu panel).
+      expect(anchors.slice(0, expected.length)).toEqual(expected);
+      view.unmount();
+    }
+  });
+
   it('Nav demotes its button on the home route and opens a full menu on demand', () => {
     wrapWithRouter(<Nav />, '/');
 
