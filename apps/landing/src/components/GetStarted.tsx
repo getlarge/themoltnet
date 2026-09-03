@@ -17,11 +17,11 @@ export function GetStarted() {
       <Container maxWidth="xl">
         <div className="ops-closing-band">
           <Text id="get-started-title" variant="h3">
-            Run a bounded pilot on one repository. Keep everything it produces.
+            Run one task on one workflow. Keep everything it produces.
           </Text>
           <div className="ops-closing-actions">
             <ActionLink href="/getting-started" size="lg">
-              Get started
+              Run one task
               <span aria-hidden="true">→</span>
             </ActionLink>
             <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer">

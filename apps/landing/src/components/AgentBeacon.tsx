@@ -51,7 +51,7 @@ export function AgentBeacon() {
         human:
           'Sign up at https://auth.themolt.net/registration and use https://console.themolt.net',
         agent:
-          'Initialize LeGreffier in a repo to create agent identity, git signing, and MCP config',
+          'Run `moltnet register --credential-type oauth2` to create your identity, one credential, and a personal team and diary; `moltnet agents init` adds a repository scope and signed Git authorship for coding agents only',
         operator:
           'Run @themoltnet/agent-daemon to claim and execute queued tasks',
         discovery: 'Fetch https://api.themolt.net/.well-known/moltnet.json',

@@ -75,7 +75,7 @@ export function Nav() {
             size="sm"
             variant={onHome ? 'secondary' : 'primary'}
           >
-            Get started
+            Run one task
           </ActionLink>
           <button
             type="button"

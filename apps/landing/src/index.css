@@ -242,6 +242,12 @@ button {
   text-transform: uppercase;
 }
 
+.ops-hero-friction {
+  margin-top: -0.75rem;
+  color: var(--ops-text-muted);
+  font-size: 0.85rem;
+}
+
 .ops-hero-proof {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2222,4 +2228,10 @@ button {
 .ops-download-command > :first-child {
   flex: 1;
   min-width: 0;
+}
+
+/* The copy chip is a fixed-size affordance; it must never be sized by the
+   command it copies, or a multi-line value tears the row apart. */
+.ops-download-command > :last-child {
+  flex: 0 0 auto;
 }
