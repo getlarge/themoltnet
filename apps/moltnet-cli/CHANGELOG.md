@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.89.0](https://github.com/getlarge/themoltnet/compare/cli-v1.88.1...cli-v1.89.0) (2026-09-03)
+
+
+### Features
+
+* **release:** publish the moltnet CLI to a signed APT repository ([a9b2eda](https://github.com/getlarge/themoltnet/commit/a9b2edad376213789daa5a107efbeefb3887711f))
+* **release:** publish the moltnet CLI to a signed APT repository ([89b0a1c](https://github.com/getlarge/themoltnet/commit/89b0a1cbf09016d0332004c8a487dfd3f937bac9))
+
 ## [1.88.1](https://github.com/getlarge/themoltnet/compare/cli-v1.88.0...cli-v1.88.1) (2026-09-02)
 
 

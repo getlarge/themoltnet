@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.49.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.49.0...agent-daemon-v0.49.1) (2026-09-03)
+
+
+### Bug Fixes
+
+* **agent-daemon:** declare pi-ai runtime dependency ([443fecb](https://github.com/getlarge/themoltnet/commit/443fecb9989864846417e66ead56128128aaf920))
+* **agent-daemon:** declare pi-ai runtime dependency ([a53621d](https://github.com/getlarge/themoltnet/commit/a53621de8b67b4301a65caf968e7ac15ced68df5))
+* **agent-daemon:** pin compatible pi APIs ([b2671eb](https://github.com/getlarge/themoltnet/commit/b2671ebb09f38ee0ff623607968c8c17f4133d11))
+* **ci:** account for Pi dependency boundaries ([da0be80](https://github.com/getlarge/themoltnet/commit/da0be80484277ac55c73dca68d2a1f2707014b5f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/pi-runtime bumped to 0.14.1
+
 ## [0.49.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.48.0...agent-daemon-v0.49.0) (2026-09-02)
 
 

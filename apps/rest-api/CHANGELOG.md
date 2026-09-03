@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.51.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.50.0...rest-api-v0.51.0) (2026-09-03)
+
+
+### Features
+
+* **discovery:** expose APT and Scoop CLI install commands ([f65ce90](https://github.com/getlarge/themoltnet/commit/f65ce90d84418652c608f3f453e9c92523a79760))
+* **release:** publish the moltnet CLI to a signed APT repository ([a9b2eda](https://github.com/getlarge/themoltnet/commit/a9b2edad376213789daa5a107efbeefb3887711f))
+
 ## [0.50.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.49.0...rest-api-v0.50.0) (2026-09-01)
 
 

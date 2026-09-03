@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.67.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.66.0...moltnet-api-client-v1.67.0) (2026-09-03)
+
+
+### Features
+
+* **release:** publish the moltnet CLI to a signed APT repository ([a9b2eda](https://github.com/getlarge/themoltnet/commit/a9b2edad376213789daa5a107efbeefb3887711f))
+
+
+### Codegen
+
+* **api-client:** regenerate the Go client for install_apt and install_scoop ([0bd44a6](https://github.com/getlarge/themoltnet/commit/0bd44a61345418c125955d32bfc3faec3ba9c20d))
+
 ## [1.66.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.65.0...moltnet-api-client-v1.66.0) (2026-09-01)
 
 
