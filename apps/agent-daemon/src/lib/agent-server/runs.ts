@@ -21,6 +21,7 @@ import {
 import { dirname, join } from 'node:path';
 import { Transform } from 'node:stream';
 
+import { resolveRuntimeProfiles } from '@themoltnet/agent-runtime';
 import { writePiConfig } from '@themoltnet/pi-runtime/pi-config';
 import {
   formatSecretReferenceString,
@@ -30,12 +31,14 @@ import {
   resolveOAuth2ClientSecret,
   type SecretProviderRegistry,
 } from '@themoltnet/sdk';
+import { connect } from '@themoltnet/sdk/node';
 
 import {
   type ActivatedAgent,
   externalAgentLocation,
   verifyAgentActivation,
 } from './identity.js';
+import type { RuntimeRegistry } from './runtime-registry.js';
 import type {
   AgentServerStore,
   ProvidersState,
@@ -132,6 +135,14 @@ export interface RunManagerOptions {
   maxRunStorageBytes?: number;
   maxActiveRuns?: number;
   maxActiveRunsPerAgent?: number;
+  /** Operator-owned allowlist used to resolve profile runtime kinds locally. */
+  runtimeRegistry?: RuntimeRegistry;
+  /** Injectable preflight boundary for HTTP integration tests. */
+  resolveRuntimeModule?: (
+    spec: RunSpec,
+    agent: ActivatedAgent,
+    cwd: string,
+  ) => Promise<string | undefined>;
 }
 
 export interface RunLogger {
@@ -200,6 +211,7 @@ export class RunManager {
     agent: ActivatedAgent,
     piDir: string,
     providers: ProvidersState = this.store.readProviders(),
+    runtimeModule?: string,
   ): Promise<{ args: string[]; env: Record<string, string>; cwd: string }> {
     const { activation, config } = agent;
     const homeDir = join(dirname(piDir), 'home');
@@ -225,6 +237,7 @@ export class RunManager {
             };
           })();
     const args = [
+      ...(runtimeModule ? ['--runtime', runtimeModule] : []),
       spec.mode,
       '--agent',
       target.agentName,
@@ -347,11 +360,17 @@ export class RunManager {
     const runDir = this.store.runDir(id);
     const piDir = join(runDir, 'pi');
     const providers = this.store.readProviders();
+    const runtimeModule = this.options.resolveRuntimeModule
+      ? await this.options.resolveRuntimeModule(spec, agent, dirname(piDir))
+      : this.options.runtimeRegistry
+        ? await this.resolveRuntimeModule(spec, agent, dirname(piDir))
+        : undefined;
     const { args, env, cwd } = await this.prepare(
       spec,
       agent,
       piDir,
       providers,
+      runtimeModule,
     );
     this.assertStartOpen(signal);
     let child: ChildProcess | undefined;
@@ -506,6 +525,57 @@ export class RunManager {
       });
       throw cause;
     }
+  }
+
+  private async resolveRuntimeModule(
+    spec: RunSpec,
+    activated: ActivatedAgent,
+    cwd: string,
+  ): Promise<string | undefined> {
+    const agent = await this.connectActivatedAgent(activated);
+    const profiles = await resolveRuntimeProfiles({
+      agent,
+      profiles: spec.profiles,
+      teamId: spec.teamId,
+      cwd,
+    });
+    const kinds = [...new Set(profiles.map((profile) => profile.runtimeKind))];
+    if (kinds.length !== 1) {
+      throw new AgentServerRunError(
+        'invalid_spec',
+        'All profiles in a server-managed run must use the same runtime kind.',
+      );
+    }
+    const kind = kinds[0];
+    const registration = this.options.runtimeRegistry?.resolve(kind);
+    if (registration) return registration.moduleUrl;
+    if (kind === 'gondolin_pi') return undefined;
+    throw new AgentServerRunError(
+      'invalid_spec',
+      `No local runtime is registered for profile kind "${kind}".`,
+    );
+  }
+
+  private async connectActivatedAgent(activated: ActivatedAgent) {
+    const { activation, config } = activated;
+    if (activation.source === 'managed') {
+      const agentKey = await resolveAgentKey(
+        config,
+        this.options.secretProviders,
+      );
+      if (!agentKey) {
+        throw new AgentServerRunError(
+          'invalid_spec',
+          `managed agent "${activation.alias}" has no agent key`,
+        );
+      }
+      return connect({ agentKey, apiUrl: activation.apiUrl });
+    }
+    return connect({
+      configDir: dirname(activation.configPath),
+      apiUrl: activation.apiUrl ?? activation.configApiUrl,
+      secretProviders: this.options.externalSecretProviders,
+    });
   }
 
   stop(id: string): RunRecord {

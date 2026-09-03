@@ -12,7 +12,7 @@ import {
   loadDaemonRuntimeAdapter,
   resolveRuntimeModuleUrl,
 } from '../../runtime-loader.js';
-import { assertStoreName, ServeStoreError } from './store.js';
+import { assertStoreName, AgentServerStoreError } from './store.js';
 
 export interface RuntimeRegistration {
   kind: string;
@@ -42,7 +42,7 @@ export class RuntimeRegistry {
     if (!existsSync(this.path)) return [];
     const value = JSON.parse(readFileSync(this.path, 'utf8')) as unknown;
     if (!Array.isArray(value) || !value.every(isRegistration))
-      throw new ServeStoreError(
+      throw new AgentServerStoreError(
         'invalid_state',
         'runtime registry contains an invalid registration',
       );

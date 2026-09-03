@@ -20,6 +20,7 @@ import {
 import { PairingService } from '../lib/agent-server/pairing.js';
 import { ProviderLoginService } from '../lib/agent-server/provider-login.js';
 import { RunManager } from '../lib/agent-server/runs.js';
+import { RuntimeRegistry } from '../lib/agent-server/runtime-registry.js';
 import { buildAgentServer } from '../lib/agent-server/server.js';
 import {
   AgentServerStore,
@@ -101,6 +102,7 @@ export async function runAgentServer(argv: string[]): Promise<number> {
             externalSecretProviders,
             baseEnv: processEnvSnapshot(),
             logger,
+            runtimeRegistry: new RuntimeRegistry(store.root),
           });
           const selfOrigin = `http://127.0.0.1:${port}`;
           const app = buildAgentServer({

@@ -5,7 +5,10 @@ import { runOnce } from './cli/once.js';
 import { runPoll } from './cli/poll.js';
 import { runAgentServer } from './cli/server.js';
 import { runSyncSessions } from './cli/sync-sessions.js';
+import { loadAgentServerEnvConfig } from './config.js';
 import { ROOT_USAGE } from './lib/help.js';
+import { RuntimeRegistry } from './lib/agent-server/runtime-registry.js';
+import { resolveAgentServerRoot } from './lib/agent-server/store.js';
 import { checkDaemonUpdate } from './lib/update.js';
 import type { DaemonRuntimeAdapter } from './runtime.js';
 import { DAEMON_VERSION } from './version.js';
@@ -43,6 +46,8 @@ export async function runAgentDaemonCli(options: {
       return runSyncSessions(rest);
     case 'update':
       return runUpdate(rest);
+    case 'runtime':
+      return runRuntime(rest);
     case '-h':
     case '--help':
       console.log(ROOT_USAGE);
@@ -83,4 +88,35 @@ async function runUpdate(argv: string[]): Promise<number> {
     console.error(error instanceof Error ? error.message : String(error));
     return 1;
   }
+}
+
+async function runRuntime(argv: string[]): Promise<number> {
+  const config = loadAgentServerEnvConfig();
+  const registry = new RuntimeRegistry(
+    resolveAgentServerRoot({
+      root: config.root,
+      xdgConfigHome: config.xdgConfigHome,
+    }),
+  );
+  const [command, ...rest] = argv;
+  if (command === 'list') {
+    console.log(JSON.stringify(registry.list(), null, 2));
+    return 0;
+  }
+  if (command === 'unregister' && rest.length === 1) {
+    if (!registry.unregister(rest[0])) {
+      throw new Error(`No runtime registered for "${rest[0]}".`);
+    }
+    return 0;
+  }
+  if (command === 'register' && rest.length === 2) {
+    console.log(
+      JSON.stringify(await registry.register(rest[0], rest[1]), null, 2),
+    );
+    return 0;
+  }
+  console.error(
+    'Usage: moltnet-agent runtime <list|register <kind> <module>|unregister <kind>>',
+  );
+  return 1;
 }
