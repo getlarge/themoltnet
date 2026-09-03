@@ -19,7 +19,7 @@ import type {
   StartAgentServerRunData,
 } from '@moltnet/agent-daemon-api-client';
 
-import { loopbackHttpUrl } from '../loopback-url.js';
+import { loopbackFetch, loopbackHttpUrl } from '../loopback-url.js';
 import {
   AgentServerAgentViewSchema,
   AgentServerProviderViewSchema,
@@ -131,7 +131,7 @@ export function createAgentServerClient(options: {
       : timeoutSignal;
     let response: Response;
     try {
-      response = await fetchImpl(`${base}${path}`, {
+      response = await loopbackFetch(fetchImpl, `${base}${path}`, {
         method,
         credentials: 'omit',
         redirect: 'error',
@@ -161,7 +161,7 @@ export function createAgentServerClient(options: {
     baseUrl: base,
     async health(): Promise<AgentServerHealthResult> {
       try {
-        const response = await fetchImpl(`${base}/health`, {
+        const response = await loopbackFetch(fetchImpl, `${base}/health`, {
           credentials: 'omit',
           redirect: 'error',
           signal: AbortSignal.timeout(2_000),

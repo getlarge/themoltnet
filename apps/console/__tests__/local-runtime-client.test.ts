@@ -61,6 +61,7 @@ describe('agent server client', () => {
     await client.status();
 
     for (const [input, init] of fetchMock.mock.calls) {
+      expect(init).toMatchObject({ targetAddressSpace: 'loopback' });
       const request =
         input instanceof Request ? input : new Request(input as string, init);
       expect(request.url).toMatch(/^http:\/\/127\.0\.0\.1:17374\//);

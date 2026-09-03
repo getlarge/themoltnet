@@ -6,6 +6,8 @@ import { LoopbackViolationError } from './errors.js';
 import { isLoopbackHostname, OriginAllowlist } from './origin.js';
 
 const CORS_PREFLIGHT_MAX_AGE_SECONDS = 600;
+const PRIVATE_NETWORK_REQUEST_HEADER = 'access-control-request-private-network';
+const PRIVATE_NETWORK_ALLOW_HEADER = 'access-control-allow-private-network';
 
 /**
  * Enforce that the `Host` header identifies loopback. Blocks DNS-rebinding
@@ -113,8 +115,15 @@ export function registerLoopbackSecurity(
     requireLoopbackHost(request);
     done();
   });
-  app.addHook('onSend', async (_request, reply, payload) => {
+  app.addHook('onSend', async (request, reply, payload) => {
     reply.header('cache-control', 'no-store');
+    if (
+      request.method === 'OPTIONS' &&
+      request.headers[PRIVATE_NETWORK_REQUEST_HEADER] === 'true' &&
+      reply.getHeader('access-control-allow-origin') === request.headers.origin
+    ) {
+      reply.header(PRIVATE_NETWORK_ALLOW_HEADER, 'true');
+    }
     return payload;
   });
 

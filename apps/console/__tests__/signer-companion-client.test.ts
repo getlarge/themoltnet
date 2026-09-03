@@ -44,6 +44,7 @@ describe('signer companion client', () => {
     });
 
     for (const [input, init] of fetchMock.mock.calls) {
+      expect(init).toMatchObject({ targetAddressSpace: 'loopback' });
       const request =
         input instanceof Request ? input : new Request(input, init);
       expect(request.url).toMatch(/^http:\/\/127\.0\.0\.1:17373\//);
