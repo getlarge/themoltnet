@@ -100,13 +100,20 @@ jobs:
           }
           wsl.exe --distribution $distro -- bash -lc 'rm -rf ~/src/themoltnet && mkdir -p ~/src/themoltnet'
           tar.exe -cf - --exclude=.git . | wsl.exe --distribution $distro -- bash -lc 'tar -xf - -C ~/src/themoltnet'
-      - name: Cache WSL pnpm store
-        uses: actions/cache@v5
+      - name: Restore WSL pnpm store
+        id: wsl-pnpm-store
+        uses: actions/cache/restore@v5
         with:
           path: \\wsl.localhost\Ubuntu-24.04\root\.local\share\pnpm\store
           key: wsl2-ubuntu-24.04-pnpm-10-linux-x64-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
             wsl2-ubuntu-24.04-pnpm-10-linux-x64-
+      - name: Restore WSL bundle runtime
+        id: wsl-bundle-runtime
+        uses: actions/cache/restore@v5
+        with:
+          path: \\wsl.localhost\Ubuntu-24.04\root\.cache\moltnet-release
+          key: wsl2-agent-bundle-runtime-linux-x64-${{ hashFiles('.tool-versions') }}
       - name: Install WSL2 build, Go, and Gondolin dependencies
         run: wsl.exe --distribution Ubuntu-24.04 -- bash -lc 'cd ~/src/themoltnet && bash tools/ci/wsl-agent-daemon.sh setup'
       - name: Build, install, and validate the Linux bundle in WSL2
@@ -126,6 +133,18 @@ jobs:
       - name: Show WSL agent server log on failure
         if: failure()
         run: wsl.exe --distribution Ubuntu-24.04 -- bash -lc 'cat "$HOME/moltnet-agent-server.log" 2>/dev/null || true'
+      - name: Save WSL pnpm store
+        if: always() && steps.wsl-pnpm-store.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: \\wsl.localhost\Ubuntu-24.04\root\.local\share\pnpm\store
+          key: wsl2-ubuntu-24.04-pnpm-10-linux-x64-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: Save WSL bundle runtime
+        if: always() && steps.wsl-bundle-runtime.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: \\wsl.localhost\Ubuntu-24.04\root\.cache\moltnet-release
+          key: wsl2-agent-bundle-runtime-linux-x64-${{ hashFiles('.tool-versions') }}
 
   native-keyring:
     name: Native keyring

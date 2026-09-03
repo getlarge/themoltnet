@@ -19,6 +19,7 @@ case "${1:-}" in
     pnpm install --frozen-lockfile
     pnpm exec nx run @moltnet/tools:test:agent-bundle
     pnpm exec nx run @themoltnet/agent-daemon:bundle
+    node tools/release/agent-bundle/build.mjs --out dist/agent-bundle --pack-only
     archive=dist/agent-bundle/moltnet-agent-linux-x64.tar.gz
     MOLTNET_AGENT_ARCHIVE="$archive" MOLTNET_AGENT_ALLOW_UNSIGNED=1 MOLTNET_AGENT_ALLOW_UNVERIFIED=1 sh tools/release/agent-bundle/install.sh
     "$HOME/.local/bin/moltnet-agent" --help
