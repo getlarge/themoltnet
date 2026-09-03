@@ -547,7 +547,19 @@ export class RunManager {
       );
     }
     const kind = kinds[0];
-    const registration = this.options.runtimeRegistry?.resolve(kind);
+    let registration;
+    try {
+      registration = this.options.runtimeRegistry?.resolve(kind);
+    } catch (cause) {
+      this.log('warn', 'registered runtime unavailable locally', {
+        runtimeKind: kind,
+        ...runtimeRegistryFailure(cause),
+      });
+      throw new AgentServerRunError(
+        'invalid_spec',
+        `Registered runtime "${kind}" is unavailable locally; re-register it before starting a run.`,
+      );
+    }
     if (registration) return registration.moduleUrl;
     if (kind === 'gondolin_pi') return undefined;
     throw new AgentServerRunError(
@@ -847,6 +859,17 @@ function safeRunError(error: unknown): Record<string, unknown> {
   return {
     errorType: error instanceof Error ? error.name : typeof error,
     ...(typeof code === 'string' ? { errorCode: code } : {}),
+  };
+}
+
+function runtimeRegistryFailure(error: unknown): Record<string, unknown> {
+  const code = (error as NodeJS.ErrnoException | null)?.code;
+  return {
+    errorType: error instanceof Error ? error.name : typeof error,
+    ...(typeof code === 'string' ? { errorCode: code } : {}),
+    ...(error instanceof Error
+      ? { errorMessage: error.message.slice(0, 512) }
+      : {}),
   };
 }
 
