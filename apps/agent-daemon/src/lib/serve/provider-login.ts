@@ -2,12 +2,12 @@
  * Subscription-provider OAuth brokering for `serve` (#2061 slice 4).
  *
  * The console clicks "Connect"; serve runs the Pi OAuth flow host-side via
- * `AuthStorage.login()` (which owns persistence into the shared
+ * `ModelRuntime.login()` (which owns persistence into the shared
  * `pi/auth.json` and token rotation thereafter). The browser only ever sees
  * the provider's authorize URL or device code — never tokens.
  *
- * Provider ids come from pi-ai's own OAuth registry (`getOAuthProviders`),
- * so serve stays in lockstep with what Pi can actually authenticate
+ * Provider ids come from Pi's model runtime, so serve stays in lockstep with
+ * what Pi can actually authenticate
  * (anthropic, openai-codex, github-copilot, …) without hardcoding.
  */
 // TODO(upstream): Anthropic logins end on pi's own callback server with a
@@ -16,10 +16,21 @@
 // option upstream would let us bounce the tab back to the Console like the
 // Codex device-code flow does. Tracked here instead of vendoring the PKCE
 // flow into serve.
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
+import {
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { dirname } from 'node:path';
 
-import { getOAuthProviders } from '@earendil-works/pi-ai/oauth';
-import { AuthStorage } from '@earendil-works/pi-coding-agent';
+import {
+  ModelRuntime,
+  readStoredCredential,
+} from '@earendil-works/pi-coding-agent';
+import { lockSync } from 'proper-lockfile';
 
 const LOGIN_TTL_MS = 10 * 60 * 1000;
 /** How long `start()` waits for the flow to surface a URL / device code. */
@@ -31,6 +42,7 @@ export class ServeSubscriptionError extends Error {
     readonly code:
       | 'provider_unknown'
       | 'login_not_found'
+      | 'login_cleanup_failed'
       | 'login_unsupported_prompt',
     message: string,
   ) {
@@ -54,6 +66,8 @@ export interface SubscriptionLoginView {
   userCode?: string;
   verificationUri?: string;
   error?: string;
+  /** The initial OAuth handshake has not surfaced actionable information yet. */
+  waitingForAuthorization?: boolean;
 }
 
 interface PendingLogin extends SubscriptionLoginView {
@@ -62,7 +76,7 @@ interface PendingLogin extends SubscriptionLoginView {
   infoArrived: () => void;
   abort: AbortController;
   invalidated: boolean;
-  previousCredential: ReturnType<AuthStorage['get']>;
+  previousCredential: ReturnType<typeof readStoredCredential>;
 }
 
 export interface LoginCallbacksLike {
@@ -89,8 +103,8 @@ export interface ProviderLoginServiceOptions {
   ) => Promise<void>;
   /** Overridable for tests: whether a provider has stored credentials. */
   isConnected?: (providerId: string) => boolean;
-  /** Overridable for focused lifecycle tests. */
-  authStorage?: AuthStorage;
+  /** Initialized Pi runtime. Production uses `ProviderLoginService.create`. */
+  modelRuntime?: ModelRuntime;
   logger?: ProviderLoginLogger;
   now?: () => number;
 }
@@ -109,13 +123,20 @@ const silentLogger: ProviderLoginLogger = {
 
 export class ProviderLoginService {
   private readonly logins = new Map<string, PendingLogin>();
-  private readonly authStorage: AuthStorage;
   private readonly logger: ProviderLoginLogger;
 
   constructor(private readonly options: ProviderLoginServiceOptions) {
-    this.authStorage =
-      options.authStorage ?? AuthStorage.create(this.options.authPath);
     this.logger = options.logger ?? silentLogger;
+  }
+
+  static async create(
+    options: Omit<ProviderLoginServiceOptions, 'modelRuntime'>,
+  ): Promise<ProviderLoginService> {
+    const modelRuntime = await ModelRuntime.create({
+      authPath: options.authPath,
+      refreshOnCreate: false,
+    });
+    return new ProviderLoginService({ ...options, modelRuntime });
   }
 
   private now(): number {
@@ -123,24 +144,23 @@ export class ProviderLoginService {
   }
 
   private providers(): { id: string; name: string }[] {
-    return (
-      this.options.listProviders?.() ??
-      getOAuthProviders().map((provider) => ({
-        id: provider.id,
-        name: provider.name,
-      }))
-    );
+    return this.options.listProviders
+      ? this.options.listProviders()
+      : this.runtime()
+          .getProviders()
+          .filter((provider) => provider.auth.oauth !== undefined)
+          .map((provider) => ({
+            id: provider.id,
+            name: provider.name,
+          }));
   }
 
   private connected(providerId: string): boolean {
     if (this.options.isConnected) return this.options.isConnected(providerId);
     try {
-      // Read a fresh instance so the status proves the credential reached
-      // auth.json rather than merely existing in AuthStorage's memory.
-      const storage = this.options.authStorage
-        ? this.authStorage
-        : AuthStorage.create(this.options.authPath);
-      return storage.getAuthStatus(providerId).configured;
+      return (
+        readStoredCredential(providerId, this.options.authPath) !== undefined
+      );
     } catch (error) {
       this.logger.warn(
         {
@@ -152,6 +172,15 @@ export class ProviderLoginService {
       );
       return false;
     }
+  }
+
+  private runtime(): ModelRuntime {
+    if (!this.options.modelRuntime) {
+      throw new Error(
+        'ProviderLoginService requires a model runtime when production adapters are not overridden',
+      );
+    }
+    return this.options.modelRuntime;
   }
 
   list(): SubscriptionProviderView[] {
@@ -166,19 +195,20 @@ export class ProviderLoginService {
     const now = this.now();
     for (const [id, login] of this.logins) {
       if (login.startedAt + LOGIN_TTL_MS <= now) {
-        this.invalidate(login, 'expired');
+        if (login.status === 'pending') this.invalidate(login, 'expired');
         this.logins.delete(id);
       }
     }
   }
 
-  private restoreCredential(login: PendingLogin): void {
+  private restoreCredential(login: PendingLogin): boolean {
     try {
-      if (login.previousCredential) {
-        this.authStorage.set(login.providerId, login.previousCredential);
-      } else {
-        this.authStorage.logout(login.providerId);
-      }
+      restoreStoredCredential(
+        this.options.authPath,
+        login.providerId,
+        login.previousCredential,
+      );
+      return true;
     } catch (error) {
       this.logger.error(
         {
@@ -189,17 +219,18 @@ export class ProviderLoginService {
         },
         'Could not restore subscription credentials after an invalidated login',
       );
+      return false;
     }
   }
 
   private invalidate(
     login: PendingLogin,
     transition: 'cancelled' | 'expired' | 'shutdown',
-  ): void {
-    if (login.invalidated) return;
+  ): boolean {
+    if (login.invalidated) return true;
     login.invalidated = true;
     login.abort.abort(new Error(`subscription login ${transition}`));
-    this.restoreCredential(login);
+    const restored = this.restoreCredential(login);
     login.infoArrived();
     this.logger.info(
       {
@@ -210,6 +241,7 @@ export class ProviderLoginService {
       },
       'Subscription login invalidated',
     );
+    return restored;
   }
 
   status(providerId: string): SubscriptionLoginView {
@@ -253,7 +285,10 @@ export class ProviderLoginService {
       infoArrived,
       abort,
       invalidated: false,
-      previousCredential: this.authStorage.get(providerId),
+      previousCredential: readStoredCredential(
+        providerId,
+        this.options.authPath,
+      ),
     };
     this.logins.set(providerId, login);
     this.logger.info(
@@ -271,11 +306,9 @@ export class ProviderLoginService {
     const runLogin =
       this.options.runLogin ??
       ((id: string, loginCallbacks: LoginCallbacksLike) =>
-        this.authStorage.login(
-          id,
-          // AuthStorage's callback contract is a superset of ours.
-          loginCallbacks as Parameters<AuthStorage['login']>[1],
-        ));
+        this.runtime()
+          .login(id, 'oauth', toAuthInteraction(loginCallbacks))
+          .then(() => undefined));
 
     const completion = runLogin(providerId, callbacks).then(
       () => {
@@ -336,13 +369,30 @@ export class ProviderLoginService {
     // Detached: completion is observed through polling `status()`.
     void completion;
 
-    await Promise.race([
+    const infoReceived = await Promise.race([
       infoPromise,
       new Promise<void>((resolvePromise) => {
-        const timer = setTimeout(resolvePromise, START_INFO_TIMEOUT_MS);
+        const timer = setTimeout(() => resolvePromise(), START_INFO_TIMEOUT_MS);
         timer.unref?.();
       }),
-    ]);
+    ]).then(
+      () =>
+        login.authUrl !== undefined ||
+        login.userCode !== undefined ||
+        login.status !== 'pending',
+    );
+    if (!infoReceived) {
+      login.waitingForAuthorization = true;
+      this.logger.warn(
+        {
+          event: 'serve.subscription_login_start_info_timeout',
+          operationId: login.operationId,
+          providerId,
+          timeoutMs: START_INFO_TIMEOUT_MS,
+        },
+        'Subscription login is still waiting for authorization information',
+      );
+    }
     return snapshot(login);
   }
 
@@ -355,7 +405,13 @@ export class ProviderLoginService {
         `no login in progress for "${providerId}"`,
       );
     }
-    this.invalidate(login, 'cancelled');
+    const restored = this.invalidate(login, 'cancelled');
+    if (!restored) {
+      throw new ServeSubscriptionError(
+        'login_cleanup_failed',
+        `could not safely cancel login for "${providerId}"; credential cleanup requires intervention`,
+      );
+    }
     this.logins.delete(providerId);
     return { providerId, status: 'cancelled' };
   }
@@ -363,9 +419,85 @@ export class ProviderLoginService {
   /** Abort every pending flow during supervisor shutdown. */
   close(): void {
     for (const login of this.logins.values()) {
-      this.invalidate(login, 'shutdown');
+      if (login.status === 'pending') this.invalidate(login, 'shutdown');
     }
     this.logins.clear();
+  }
+}
+
+function toAuthInteraction(
+  callbacks: LoginCallbacksLike,
+): Parameters<ModelRuntime['login']>[2] {
+  return {
+    ...(callbacks.signal ? { signal: callbacks.signal } : {}),
+    notify: (event) => {
+      switch (event.type) {
+        case 'auth_url':
+          callbacks.onAuth({
+            url: event.url,
+            ...(event.instructions ? { instructions: event.instructions } : {}),
+          });
+          break;
+        case 'device_code':
+          callbacks.onDeviceCode({
+            userCode: event.userCode,
+            verificationUri: event.verificationUri,
+          });
+          break;
+        case 'info':
+        case 'progress':
+          callbacks.onProgress?.(event.message);
+          break;
+      }
+    },
+    prompt: async (prompt) => {
+      if (prompt.type !== 'select') {
+        return callbacks.onPrompt({ message: prompt.message });
+      }
+      const selected = await callbacks.onSelect({
+        message: prompt.message,
+        options: prompt.options.map(({ id, label }) => ({ id, label })),
+      });
+      if (!selected) {
+        throw new ServeSubscriptionError(
+          'login_unsupported_prompt',
+          'This provider flow did not offer a supported sign-in method',
+        );
+      }
+      return selected;
+    },
+  };
+}
+
+function restoreStoredCredential(
+  authPath: string,
+  providerId: string,
+  credential: ReturnType<typeof readStoredCredential>,
+): void {
+  mkdirSync(dirname(authPath), { recursive: true, mode: 0o700 });
+  try {
+    writeFileSync(authPath, '{}\n', { flag: 'wx', mode: 0o600 });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+  }
+
+  const release = lockSync(authPath, { realpath: false });
+  const temp = `${authPath}.${randomBytes(6).toString('hex')}.tmp`;
+  try {
+    const parsed = JSON.parse(readFileSync(authPath, 'utf8')) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error(`Pi credential store is not an object: ${authPath}`);
+    }
+    const credentials = parsed as Record<string, unknown>;
+    if (credential) credentials[providerId] = credential;
+    else delete credentials[providerId];
+    writeFileSync(temp, `${JSON.stringify(credentials, null, 2)}\n`, {
+      mode: 0o600,
+    });
+    renameSync(temp, authPath);
+  } finally {
+    rmSync(temp, { force: true });
+    release();
   }
 }
 
@@ -452,6 +584,7 @@ function snapshot(login: PendingLogin): SubscriptionLoginView {
     userCode,
     verificationUri,
     error,
+    waitingForAuthorization,
   } = login;
   return {
     providerId,
@@ -461,5 +594,6 @@ function snapshot(login: PendingLogin): SubscriptionLoginView {
     ...(userCode ? { userCode } : {}),
     ...(verificationUri ? { verificationUri } : {}),
     ...(error ? { error } : {}),
+    ...(waitingForAuthorization ? { waitingForAuthorization } : {}),
   };
 }

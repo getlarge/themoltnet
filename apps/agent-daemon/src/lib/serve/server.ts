@@ -790,6 +790,7 @@ function registerRunLogRoute(
       );
     }
     openStreams += 1;
+    reply.hijack();
     reply.raw.writeHead(200, {
       'content-type': 'text/event-stream',
       'cache-control': 'no-store',
@@ -863,7 +864,7 @@ function registerRunLogRoute(
       }, LOG_POLL_INTERVAL_MS);
       pollTimer.unref();
     };
-    request.raw.on('close', () => finish());
+    reply.raw.on('close', () => finish());
     try {
       await push();
       if (runs.isActive(record.id)) schedule();

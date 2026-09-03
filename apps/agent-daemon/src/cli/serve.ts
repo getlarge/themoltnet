@@ -85,7 +85,7 @@ export async function runServe(argv: string[]): Promise<number> {
           const externalSecretProviders = createNodeSecretProviderRegistry();
           const pairing = new PairingService();
           const shutdownController = new AbortController();
-          const subscriptions = new ProviderLoginService({
+          const subscriptions = await ProviderLoginService.create({
             authPath: store.piAuthJsonPath,
             logger,
           });

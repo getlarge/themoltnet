@@ -1,3 +1,5 @@
+import { isIP } from 'node:net';
+
 export const MAX_DISCOVERED_MODELS = 500;
 
 export class ServeModelDiscoveryError extends Error {
@@ -88,7 +90,26 @@ export function parseProviderBaseUrl(value: string, providerId: string): URL {
       400,
     );
   }
+  if (isNonLoopbackPrivateAddress(parsed.hostname)) {
+    throw new ServeModelDiscoveryError(
+      'invalid_provider',
+      `provider "${providerId}" base URL must not target a private network address`,
+      400,
+    );
+  }
   return parsed;
+}
+
+function isNonLoopbackPrivateAddress(hostname: string): boolean {
+  if (isIP(hostname) !== 4) return false;
+  const [first, second] = hostname.split('.').map(Number);
+  if (first === 127) return false;
+  return (
+    first === 10 ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && second === 168) ||
+    (first === 169 && second === 254)
+  );
 }
 
 function discoveryFailure(
