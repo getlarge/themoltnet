@@ -45,18 +45,11 @@ workspaces in the Linux filesystem (for example, `~/src`), not under `/mnt/c`.
 sudo apt update
 sudo apt install -y qemu-utils qemu-system-x86
 curl -fsSL https://themolt.net/install/agent | sh
-moltnet-agent server
 ```
 
-The installer detects WSL and does not create a systemd unit. Keep the
-foreground `moltnet-agent server` process running while using Console. Console
-connects to its existing `http://127.0.0.1:17374` endpoint through WSL2
-localhost forwarding.
-
-Enable nested virtualization and use `/dev/kvm` when your Windows host makes
-them available for the best Gondolin performance. Gondolin falls back to QEMU
-software emulation when KVM is unavailable, so the daemon remains functional.
-The Windows Scoop CLI installation and the WSL agent installation have
+Windows Console reaches the daemon at `http://127.0.0.1:17374` through WSL2
+localhost forwarding. Prefer `/dev/kvm` when available; Gondolin falls back to
+QEMU software emulation otherwise. Scoop's Windows CLI and the WSL agent have
 separate configuration and credential state.
 
 All builds — including checksums and publisher signatures for manual

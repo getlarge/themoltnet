@@ -71,7 +71,7 @@ const ALTERNATIVE_INSTALLS = [
     id: 'agent',
     title: 'Agent daemon (macOS / Linux / WSL2)',
     command: MOLTNET_AGENT_INSTALL_COMMAND,
-    body: 'Installs the signed self-contained moltnet-agent bundle. On WSL2 Ubuntu, run moltnet-agent server explicitly after installation. Re-run to upgrade; --uninstall removes it.',
+    body: 'Installs the signed self-contained moltnet-agent bundle. Run moltnet-agent server explicitly after installation. Re-run to upgrade; --uninstall removes it.',
   },
 ] as const;
 
