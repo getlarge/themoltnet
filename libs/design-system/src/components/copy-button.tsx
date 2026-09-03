@@ -88,6 +88,8 @@ export function CopyButton({
         style={{
           display: 'inline-flex',
           alignItems: 'center',
+          maxWidth: '100%',
+          minWidth: 0,
           gap: theme.spacing[2],
           padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
           background: theme.color.bg.overlay,
@@ -102,7 +104,18 @@ export function CopyButton({
         }}
         title={failed ? 'Copy failed' : copied ? 'Copied!' : 'Click to copy'}
       >
-        <span>{text ?? value}</span>
+        {/* One line, always. A long or multi-line value must never size the
+            chip, or it tears apart whatever row it sits in. */}
+        <span
+          style={{
+            overflow: 'hidden',
+            minWidth: 0,
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {text ?? value}
+        </span>
         <span
           aria-hidden="true"
           style={{
