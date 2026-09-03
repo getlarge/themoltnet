@@ -26,7 +26,7 @@ import { FileSecretProvider } from '@themoltnet/sdk/node';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { verifyAgentActivation } from './identity.js';
+import type { ActivatedAgent, verifyAgentActivation } from './identity.js';
 import { PairingService } from './pairing.js';
 import { ProviderLoginService } from './provider-login.js';
 import { RunManager, type SpawnImpl } from './runs.js';
@@ -35,6 +35,7 @@ import {
   buildAgentServer,
   readAgentServerLogDelta,
 } from './server.js';
+import type { RunSpec } from './store.js';
 import { AgentServerStore, AgentServerStoreError } from './store.js';
 
 const CONSOLE_ORIGIN = 'https://console.themolt.net';
@@ -82,12 +83,18 @@ async function fixture(
     maxLogBytes?: number;
     discoverFetch?: typeof fetch;
     symlinkImpl?: typeof symlinkSync;
+    resolveRuntimeModule?: (
+      spec: RunSpec,
+      agent: ActivatedAgent,
+      cwd: string,
+    ) => Promise<string | undefined>;
   } = {},
 ): Promise<Fixture> {
   const {
     baseEnv = { PATH: '/usr/bin' },
     maxLogBytes,
     symlinkImpl,
+    resolveRuntimeModule,
     ...serverOptions
   } = options;
   const temp = mkdtempSync(join(tmpdir(), 'agent-server-'));
@@ -173,6 +180,7 @@ async function fixture(
     verifyActivationImpl: verifyActivation,
     ...(symlinkImpl ? { symlinkImpl } : {}),
     ...(maxLogBytes === undefined ? {} : { maxLogBytes }),
+    ...(resolveRuntimeModule ? { resolveRuntimeModule } : {}),
   });
   const app = buildAgentServer({
     store,
@@ -688,6 +696,46 @@ describe('agent server providers and runs', () => {
       'first',
       'second',
     ]);
+  });
+
+  it('uses only the locally resolved runtime module for a Console run', async () => {
+    const localRuntime = 'file:///opt/moltnet/runtimes/acme-review.mjs';
+    const resolveRuntimeModule = vi.fn(async () => localRuntime);
+    const { app, store, spawned } = await fixture({ resolveRuntimeModule });
+    const token = await pair(app);
+    activateManaged(store);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+        'content-type': 'application/json',
+      },
+      payload: {
+        agent: 'course-bot',
+        teamId: 'team-1',
+        profiles: ['review-profile'],
+        taskTypes: ['freeform'],
+        mode: 'poll',
+        runtime: 'https://attacker.example/runtime.mjs',
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(resolveRuntimeModule).toHaveBeenCalledWith(
+      expect.objectContaining({ profiles: ['review-profile'] }),
+      expect.any(Object),
+      expect.any(String),
+    );
+    expect(spawned[0]?.args).toEqual(
+      expect.arrayContaining(['--runtime', localRuntime]),
+    );
+    expect(spawned[0]?.args).not.toContain(
+      'https://attacker.example/runtime.mjs',
+    );
   });
 
   it('starts and stops a run for a managed agent with resolved provider env', async () => {

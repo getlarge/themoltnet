@@ -913,6 +913,36 @@ In daemon mode:
   not the remotely stored profile. See
   [Build a custom Pi runtime](../contribute/custom-pi-runtimes.md).
 
+### Register a local runtime for Console-managed runs
+
+`moltnet-agent server` resolves a profile's `runtimeKind` through its local
+runtime registry. Console never supplies a module path, package name, or
+installation instruction to the server.
+
+Install the runtime with your package manager, then register the local module
+from that project:
+
+```bash
+pnpm add @acme/review-runtime
+moltnet-agent runtime register acme_review_pi @acme/review-runtime
+moltnet-agent runtime list
+```
+
+Registration imports the module locally, verifies that its adapter declares
+`runtimeKind: "acme_review_pi"`, and records fingerprints for the resolved
+module and package lockfile. A server-managed run starts only when its selected
+profiles use one runtime kind. Re-register after the module or lockfile changes.
+
+For a runtime under active local development, register a file instead:
+
+```bash
+moltnet-agent runtime register acme_review_pi ./dist/runtime.mjs
+```
+
+`gondolin_pi` remains the built-in default. A local registration under that
+kind deliberately overrides it for server-managed runs; remove that override
+with `moltnet-agent runtime unregister gondolin_pi`.
+
 ### Model Session Settings
 
 Profiles set model behavior before the daemon starts a Pi session. `null` or an
