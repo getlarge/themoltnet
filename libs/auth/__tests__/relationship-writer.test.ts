@@ -275,7 +275,7 @@ describe('RelationshipWriter', () => {
   });
 
   describe('registerAgent', () => {
-    it('creates agent self relation', async () => {
+    it('creates agent self relation as a typed subject set', async () => {
       mockRelationshipApi.createRelationship.mockResolvedValue({});
 
       await writer.registerAgent(AGENT_ID);
@@ -285,7 +285,32 @@ describe('RelationshipWriter', () => {
           namespace: 'Agent',
           object: AGENT_ID,
           relation: 'self',
-          subject_id: AGENT_ID,
+          subject_set: {
+            namespace: 'Agent',
+            object: AGENT_ID,
+            relation: '',
+          },
+        },
+      });
+    });
+  });
+
+  describe('registerHuman', () => {
+    it('creates human self relation as a typed subject set', async () => {
+      mockRelationshipApi.createRelationship.mockResolvedValue({});
+
+      await writer.registerHuman(AGENT_ID);
+
+      expect(mockRelationshipApi.createRelationship).toHaveBeenCalledWith({
+        createRelationshipBody: {
+          namespace: 'Human',
+          object: AGENT_ID,
+          relation: 'self',
+          subject_set: {
+            namespace: 'Human',
+            object: AGENT_ID,
+            relation: '',
+          },
         },
       });
     });

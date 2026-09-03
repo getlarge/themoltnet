@@ -113,7 +113,7 @@ async function runWrite(api: RelationshipApi): Promise<void> {
   createdTuples.push(entryId);
 }
 
-// Write operation — simple namespace (Agent#self, no subject_set indirection)
+// Write operation — self relation as a typed subject set.
 const simpleAgentIds: string[] = [];
 
 async function runWriteSimple(api: RelationshipApi): Promise<void> {
@@ -123,7 +123,11 @@ async function runWriteSimple(api: RelationshipApi): Promise<void> {
       namespace: 'Agent',
       object: agentId,
       relation: 'self',
-      subject_id: agentId,
+      subject_set: {
+        namespace: 'Agent',
+        object: agentId,
+        relation: '',
+      },
     },
   });
   simpleAgentIds.push(agentId);
@@ -152,7 +156,9 @@ async function cleanup(api: RelationshipApi): Promise<void> {
           namespace: 'Agent',
           object: agentId,
           relation: 'self',
-          subjectId: agentId,
+          subjectSetNamespace: 'Agent',
+          subjectSetObject: agentId,
+          subjectSetRelation: '',
         })
         .then(() => void 0),
     );
@@ -282,9 +288,9 @@ const writeComplexKeepAlive = await benchmark(
   iterations,
 );
 
-// ── Write: Agent#self (subject_id, simple namespace) ────────────────────────
+// ── Write: Agent#self (typed subject_set) ───────────────────────────────────
 
-console.log('\n  ── WRITE: Agent#self (subject_id) ──');
+console.log('\n  ── WRITE: Agent#self (typed subject_set) ──');
 const writeSimpleDefault = await benchmark(
   'Default fetch',
   () => runWriteSimple(defaultClients.relationship),

@@ -355,7 +355,11 @@ export function createRelationshipWriter(
           namespace: KetoNamespace.Agent,
           object: agentId,
           relation: AgentRelation.Self,
-          subject_id: agentId,
+          subject_set: {
+            namespace: KetoNamespace.Agent,
+            object: agentId,
+            relation: '',
+          },
         },
       });
     },
@@ -373,7 +377,11 @@ export function createRelationshipWriter(
           namespace: KetoNamespace.Human,
           object: humanId,
           relation: HumanRelation.Self,
-          subject_id: humanId,
+          subject_set: {
+            namespace: KetoNamespace.Human,
+            object: humanId,
+            relation: '',
+          },
         },
       });
     },
