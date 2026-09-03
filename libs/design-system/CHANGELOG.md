@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/getlarge/themoltnet/compare/design-system-v1.1.0...design-system-v1.1.1) (2026-09-03)
+
+
+### Bug Fixes
+
+* **design-system:** keep the CopyButton chip from being sized by its value ([69bdbc3](https://github.com/getlarge/themoltnet/commit/69bdbc394e458daf988ed2dd042e14b35c69e9b6))
+
 ## [1.1.0](https://github.com/getlarge/themoltnet/compare/design-system-v1.0.0...design-system-v1.1.0) (2026-09-03)
 
 

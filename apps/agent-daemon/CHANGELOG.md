@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.51.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.50.0...agent-daemon-v0.51.0) (2026-09-03)
+
+
+### Features
+
+* **agent-daemon:** add validated runtime registry ([f7ab3f1](https://github.com/getlarge/themoltnet/commit/f7ab3f14125c4966a73f31d0b2ea56a74a8e58ff))
+* **agent-daemon:** add validated runtime registry ([87ae07b](https://github.com/getlarge/themoltnet/commit/87ae07bfb4de96eb569ef5a00530dfa5afef859c))
+* **agent-daemon:** use registered runtimes in server runs ([7c75c13](https://github.com/getlarge/themoltnet/commit/7c75c13980e44c02d1beec91e9a01e306b7df315))
+* **updates:** add installer-aware release notifications ([77d95ad](https://github.com/getlarge/themoltnet/commit/77d95adca41f816b38a15dec987d66e3b007d079))
+* **updates:** add installer-aware release notifications ([672190c](https://github.com/getlarge/themoltnet/commit/672190cbbabbfd8146b0f9ea914a9dc5d042fe71))
+
+
+### Bug Fixes
+
+* **agent-daemon:** report unavailable runtimes safely ([4698307](https://github.com/getlarge/themoltnet/commit/4698307586adeec57d4bf56184a5c2a8ac75c727))
+* **agent-daemon:** sort runtime registry imports ([8ede700](https://github.com/getlarge/themoltnet/commit/8ede70092eb3ca59996d87e15404d5ae3169e9eb))
+* **updates:** restore daemon source entrypoint ([0e92af7](https://github.com/getlarge/themoltnet/commit/0e92af782a7236a3bb52d66f7a100d65627aa47b))
+
 ## [0.50.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.49.1...agent-daemon-v0.50.0) (2026-09-03)
 
 

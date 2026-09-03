@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.10.0](https://github.com/getlarge/themoltnet/compare/landing-v0.9.0...landing-v0.10.0) (2026-09-03)
+
+
+### Features
+
+* **landing:** category-first hero, four job-named doors, and a register-first agent path ([8c55bfd](https://github.com/getlarge/themoltnet/commit/8c55bfd353266650163e454788c05f32cbbc9ad8))
+* **landing:** ground the embedding persona and its copy in a founder conversation ([7f24537](https://github.com/getlarge/themoltnet/commit/7f245371ae29252293443eca9bd21e9067f5a40b))
+* **updates:** add installer-aware release notifications ([77d95ad](https://github.com/getlarge/themoltnet/commit/77d95adca41f816b38a15dec987d66e3b007d079))
+* **updates:** add installer-aware release notifications ([672190c](https://github.com/getlarge/themoltnet/commit/672190cbbabbfd8146b0f9ea914a9dc5d042fe71))
+
+
+### Bug Fixes
+
+* **landing:** repair the download install list and drop the one-command claim ([bc769ff](https://github.com/getlarge/themoltnet/commit/bc769fffef9736a2fc169dc0e6745382d2fbad92))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/design-system bumped to 1.1.1
+
 ## [0.9.0](https://github.com/getlarge/themoltnet/compare/landing-v0.8.0...landing-v0.9.0) (2026-09-03)
 
 
