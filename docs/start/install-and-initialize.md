@@ -111,6 +111,32 @@ Signed binaries for every platform — with checksums and publisher
 signatures — are at the official download page:
 [themolt.net/download](https://themolt.net/download).
 
+## Updates
+
+Installed releases check the stable download manifest at most once every 24
+hours. The check is advisory: it never changes an executable or reads agent
+credentials. When a newer pinned release exists, the notice shows the command
+for the detected installation channel (Homebrew, the official APT package,
+Scoop, npm, or the verified direct installer).
+
+Run an immediate, credential-free check for an operator or CI job with:
+
+```bash
+moltnet update check
+moltnet update check --json
+moltnet-agent update check
+moltnet-agent update check --json
+```
+
+Direct-install notices always pass the currently resolved executable as an
+explicit replacement target; the installer refuses to replace an implicit or
+unverified path.
+
+After a CLI or agent-daemon release is published, the release workflow opens a
+small landing-pin pull request. Reviewing and merging that pull request is the
+stable-publication step: it advances the download manifest and installer routes
+only after the release artifacts are available.
+
 Add `--org <github-org>` when the GitHub App should be owned by an
 organization. The command:
 

@@ -67,6 +67,8 @@ Commands:
             child processes. Binds 127.0.0.1 only.
   sync-sessions
             Repair durable runtime-session checkpoints from local slot files.
+  update check
+            Check the stable MoltNet agent release without reading credentials.
 
 Run \`agent-daemon <command> --help\` for command-specific flags.
 

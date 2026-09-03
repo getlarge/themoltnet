@@ -133,3 +133,16 @@ export function loadAgentServerEnvConfig(): AgentServerEnvConfig {
 export function processEnvSnapshot(): NodeJS.ProcessEnv {
   return process.env;
 }
+
+/** Environment inputs used by the credential-free update cache. */
+export interface UpdateEnvConfig {
+  xdgCacheHome: string;
+  localAppData: string;
+}
+
+export function loadUpdateEnvConfig(): UpdateEnvConfig {
+  return {
+    xdgCacheHome: process.env['XDG_CACHE_HOME'] ?? '',
+    localAppData: process.env['LOCALAPPDATA'] ?? '',
+  };
+}

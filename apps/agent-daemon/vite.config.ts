@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 
@@ -6,8 +8,12 @@ import { externalizeInstallableDependencies } from '../../vite.shared';
 const external = externalizeInstallableDependencies(
   new URL('./package.json', import.meta.url),
 );
+const packageVersion = JSON.parse(
+  readFileSync(new URL('./package.json', import.meta.url), 'utf8'),
+) as { version: string };
 
 export default defineConfig({
+  define: { __MOLTNET_AGENT_VERSION__: JSON.stringify(packageVersion.version) },
   plugins: [
     dts({
       tsconfigPath: './tsconfig.lib.json',

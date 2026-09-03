@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -28,8 +29,21 @@ without human intervention.`,
 		"MoltNet API base URL (default: $MOLTNET_API_URL, credentials endpoint, or production)",
 	)
 	rootCmd.PersistentFlags().String("credentials", "", "Path to credentials file (empty = auto-discover)")
+	rootCmd.PersistentPreRun = func(cmd *cobra.Command, args []string) {
+		// Advisory and credential-free: the refresh must never delay a command.
+		if cmd.Name() != "start" || isCLIWorkspaceInvocation() {
+			return
+		}
+		go func() {
+			result, err := checkCLIUpdate(context.Background(), version, false)
+			if err == nil && result.UpdateAvailable {
+				fmt.Fprintf(cmd.ErrOrStderr(), "A new MoltNet CLI release (%s) is available. Run: %s\n", result.Latest, result.Command)
+			}
+		}()
+	}
 
 	rootCmd.AddCommand(newVersionCmd(version, commit))
+	rootCmd.AddCommand(newUpdateCmd(version))
 	rootCmd.AddCommand(newInfoCmd())
 	rootCmd.AddCommand(newRegisterCmd())
 	rootCmd.AddCommand(newSSHKeyCmd())

@@ -72,7 +72,7 @@ body=$(printf '%s\n%s\n%s\n\n%s' \
   "$MARKER" \
   "⚠️ **Download pins are behind** — themolt.net serves older versions than the latest published releases:" \
   "$stale_lines" \
-  "The pins are deliberate — bump the \`set\` lines in \`$TEMPLATE\` when those versions should become public.")
+  "The pins are deliberate — bump the \`set\` lines in \`$TEMPLATE\` when those versions should become public. [**Open a pin-update PR**](https://github.com/$GITHUB_REPOSITORY/actions/workflows/publish-download-pins.yml) after reviewing the released artifacts.")
 
 existing=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" --paginate \
   --jq ".[] | select(.body | startswith(\"$MARKER\")) | .id" | head -1)

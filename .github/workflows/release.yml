@@ -1250,6 +1250,18 @@ jobs:
         if: ${{ always() }}
         run: rm -f "$RUNNER_TEMP/release-signing-key" "$RUNNER_TEMP/AuthKey.p8" "$RUNNER_TEMP/apple-developer-id.p12"
 
+      - name: Render verified CLI installer
+        env:
+          RELEASE_SIGNER_PUBKEY: ${{ vars.RELEASE_SIGNER_PUBKEY }}
+          VERSION: ${{ steps.tag.outputs.semver }}
+        run: |
+          test -n "$RELEASE_SIGNER_PUBKEY"
+          sed -e "s#^RELEASE_PINNED_VERSION=\"\"#RELEASE_PINNED_VERSION=\"$VERSION\"#" \
+            -e "s#^RELEASE_SIGNER_PUBKEY=\"\"#RELEASE_SIGNER_PUBKEY=\"$RELEASE_SIGNER_PUBKEY\"#" \
+            tools/release/cli/install.sh > apps/moltnet-cli/dist/install.sh
+          chmod +x apps/moltnet-cli/dist/install.sh
+          sh -n apps/moltnet-cli/dist/install.sh
+
       - name: Upload binaries to GitHub Release
         run: |
           gh release upload "${{ needs.resolve-publish.outputs.cli-tag }}" \
@@ -1257,7 +1269,8 @@ jobs:
             apps/moltnet-cli/dist/*.zip \
             apps/moltnet-cli/dist/*.deb \
             apps/moltnet-cli/dist/checksums.txt \
-            apps/moltnet-cli/dist/checksums.txt.sig
+            apps/moltnet-cli/dist/checksums.txt.sig \
+            apps/moltnet-cli/dist/install.sh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -2331,6 +2344,73 @@ jobs:
         run: gh release edit "${{ needs.resolve-publish.outputs.agent-daemon-tag }}" --draft=false --repo "$GITHUB_REPOSITORY"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # The binary-release jobs own artifact publication; this separate PR owns
+  # the stable public pin. A reviewer can verify the release before merging,
+  # while the normal landing release/deploy path remains unchanged.
+  propose-download-pin:
+    name: Propose stable download pin update
+    needs: [resolve-publish, release-cli, finalize-agent-daemon-release]
+    if: >-
+      always() && !cancelled() &&
+      (needs.resolve-publish.outputs.cli == 'true' || needs.resolve-publish.outputs.agent-daemon == 'true') &&
+      (needs.resolve-publish.outputs.cli != 'true' || needs.release-cli.result == 'success') &&
+      (needs.resolve-publish.outputs.agent-daemon != 'true' || needs.finalize-agent-daemon-release.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Create GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.MOLTNET_RELEASE_APP_ID }}
+          private-key: ${{ secrets.MOLTNET_RELEASE_APP_KEY }}
+          owner: getlarge
+          repositories: themoltnet
+
+      - name: Advance served stable pins
+        id: pins
+        env:
+          CLI_TAG: ${{ needs.resolve-publish.outputs.cli-tag }}
+          AGENT_TAG: ${{ needs.resolve-publish.outputs.agent-daemon-tag }}
+        run: |
+          CLI_VERSION="${CLI_TAG#cli-v}"
+          AGENT_VERSION="${AGENT_TAG#agent-daemon-v}"
+          if [ "${{ needs.resolve-publish.outputs.cli }}" != true ]; then CLI_VERSION=; fi
+          if [ "${{ needs.resolve-publish.outputs.agent-daemon }}" != true ]; then AGENT_VERSION=; fi
+          CLI_VERSION="$CLI_VERSION" AGENT_VERSION="$AGENT_VERSION" \
+            bash tools/release/propose-download-pin.sh
+          if git diff --quiet -- apps/landing/nginx/default.conf.template; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open landing pin PR
+        if: steps.pins.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          CLI_TAG: ${{ needs.resolve-publish.outputs.cli-tag }}
+          AGENT_TAG: ${{ needs.resolve-publish.outputs.agent-daemon-tag }}
+        run: |
+          branch="automation/download-pins-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git config user.name "MoltNet Release[bot]"
+          git config user.email "261968324+moltnet-release[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add apps/landing/nginx/default.conf.template
+          git commit -m "fix(landing): publish stable download pins"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push origin "HEAD:$branch"
+          gh pr create --base main --head "$branch" \
+            --title "fix(landing): publish stable download pins" \
+            --body "Publishes the released stable pins for ${CLI_TAG:-the CLI} and ${AGENT_TAG:-the agent daemon}. The release jobs completed before this PR was created; merging it updates the official manifest and installer routes."
 
   publish-design-system:
     name: Publish Design System to npm

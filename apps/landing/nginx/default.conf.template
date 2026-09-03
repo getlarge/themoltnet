@@ -32,6 +32,13 @@ server {
         return 302 /install;
     }
 
+    # CLI direct-install entry point. Like the agent route, this is pinned by
+    # $cli_version; the release asset verifies its signed checksum before it
+    # replaces the explicit target supplied by the caller.
+    location = /install/cli {
+        return 302 https://github.com/getlarge/themoltnet/releases/download/cli-v$cli_version/install.sh;
+    }
+
     # The specific, documented form — the installer handles ONLY the agent
     # daemon (the CLI installs via Homebrew/npm or /download). /install stays
     # as the short alias.
