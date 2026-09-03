@@ -4,7 +4,9 @@ import { fileURLToPath } from 'node:url';
 
 import {
   MOLTNET_AGENTS_INIT_COMMAND,
+  MOLTNET_CLI_INSTALL_APT_COMMAND,
   MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND,
+  MOLTNET_CLI_INSTALL_SCOOP_COMMAND,
   MOLTNET_CONFIG_PATH,
   MOLTNET_REGISTER_COMMAND,
   MOLTNET_SDK_INSTALL_COMMAND,
@@ -51,7 +53,32 @@ assertContains(
   MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND,
   'Homebrew install command',
 );
+assertContains(SDK_DOC, MOLTNET_CLI_INSTALL_APT_COMMAND, 'APT install command');
+assertContains(
+  SDK_DOC,
+  MOLTNET_CLI_INSTALL_SCOOP_COMMAND,
+  'Scoop install command',
+);
 assertContains(SDK_DOC, MOLTNET_REGISTER_COMMAND, 'CLI register command');
+
+// The activation guide is the second place the install commands are spelled
+// out; keep it in lockstep with the discovery constants.
+const INSTALL_DOC = 'docs/start/install-and-initialize.md';
+assertContains(
+  INSTALL_DOC,
+  MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND,
+  'Homebrew install command',
+);
+assertContains(
+  INSTALL_DOC,
+  MOLTNET_CLI_INSTALL_APT_COMMAND,
+  'APT install command',
+);
+assertContains(
+  INSTALL_DOC,
+  MOLTNET_CLI_INSTALL_SCOOP_COMMAND,
+  'Scoop install command',
+);
 assertContains(SDK_DOC, MOLTNET_CONFIG_PATH, 'credentials path');
 
 assertContains(

@@ -1,7 +1,10 @@
 import {
   MOLTNET_AGENT_INSTALL_COMMAND,
+  MOLTNET_APT_SIGNING_KEY_FINGERPRINT,
+  MOLTNET_CLI_INSTALL_APT_COMMAND,
   MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND,
   MOLTNET_CLI_INSTALL_NPM_COMMAND,
+  MOLTNET_CLI_INSTALL_SCOOP_COMMAND,
   MOLTNET_RELEASE_SIGNATURE_NAMESPACE,
   MOLTNET_RELEASE_SIGNER_PRINCIPAL,
 } from '@moltnet/discovery';
@@ -105,6 +108,16 @@ const ALTERNATIVE_INSTALLS = [
     title: 'Homebrew (macOS / Linux) — recommended',
     command: MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND,
     body: 'Installs the signed, notarized MoltNet CLI and keeps it updated with brew upgrade.',
+  },
+  {
+    title: 'APT (Debian / Ubuntu)',
+    command: MOLTNET_CLI_INSTALL_APT_COMMAND,
+    body: 'Adds the signed MoltNet APT repository and installs the CLI; apt upgrade keeps it updated.',
+  },
+  {
+    title: 'Scoop (Windows)',
+    command: MOLTNET_CLI_INSTALL_SCOOP_COMMAND,
+    body: 'Installs the CLI from the MoltNet Scoop bucket; scoop update keeps it updated.',
   },
   {
     title: 'npm (all platforms)',
@@ -366,7 +379,10 @@ export function DownloadPage() {
             <li>
               <Text>
                 <strong>Linux</strong> — archives are verified through the
-                signed checksums above; there is no OS-level signature.
+                signed checksums above; there is no OS-level signature. The APT
+                repository index is signed with the MoltNet apt key{' '}
+                <code>{MOLTNET_APT_SIGNING_KEY_FINGERPRINT}</code>, which apt
+                verifies on every update.
               </Text>
             </li>
             <li>

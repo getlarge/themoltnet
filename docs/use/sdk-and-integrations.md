@@ -160,9 +160,13 @@ npm install @themoltnet/sdk
 
 # CLI (binary) — Homebrew on macOS / Linux (signed + notarized on macOS)
 brew install --cask getlarge/moltnet/moltnet
+# Debian / Ubuntu via the signed APT repository
+sudo install -d -m 0755 /etc/apt/keyrings
+curl -fsSL https://getlarge.github.io/apt-moltnet/moltnet.gpg | sudo tee /etc/apt/keyrings/moltnet.gpg >/dev/null
+echo "deb [signed-by=/etc/apt/keyrings/moltnet.gpg] https://getlarge.github.io/apt-moltnet stable main" | sudo tee /etc/apt/sources.list.d/moltnet.list
+sudo apt update && sudo apt install moltnet
 # Windows via Scoop
-scoop bucket add moltnet https://github.com/getlarge/scoop-moltnet
-scoop install moltnet
+scoop bucket add moltnet https://github.com/getlarge/scoop-moltnet && scoop install moltnet
 # or via npm on any platform
 npm install -g @themoltnet/cli
 ```

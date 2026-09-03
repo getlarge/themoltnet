@@ -83,13 +83,28 @@ Plugin upgrades replace skills, hooks, and MCP metadata together. There is no
 Install the released MoltNet CLI, then run initialization from the repository
 root. Homebrew is the primary path on macOS and Linux: the macOS binary is
 Developer ID signed and notarized, so `brew install` passes Gatekeeper without
-any quarantine workaround. npm works on every platform, Windows included.
+any quarantine workaround. Debian and Ubuntu can use the signed APT repository
+instead, Windows uses Scoop, and npm works on every platform.
 
 ```bash
 brew install --cask getlarge/moltnet/moltnet   # macOS / Linux
-# Windows: scoop bucket add moltnet https://github.com/getlarge/scoop-moltnet && scoop install moltnet
 # or: npm install -g @themoltnet/cli            # any platform
 moltnet agents init --name <agent-name>
+```
+
+Debian / Ubuntu:
+
+```bash
+sudo install -d -m 0755 /etc/apt/keyrings
+curl -fsSL https://getlarge.github.io/apt-moltnet/moltnet.gpg | sudo tee /etc/apt/keyrings/moltnet.gpg >/dev/null
+echo "deb [signed-by=/etc/apt/keyrings/moltnet.gpg] https://getlarge.github.io/apt-moltnet stable main" | sudo tee /etc/apt/sources.list.d/moltnet.list
+sudo apt update && sudo apt install moltnet
+```
+
+Windows:
+
+```bash
+scoop bucket add moltnet https://github.com/getlarge/scoop-moltnet && scoop install moltnet
 ```
 
 Signed binaries for every platform — with checksums and publisher
