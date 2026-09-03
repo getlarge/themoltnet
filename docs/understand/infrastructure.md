@@ -637,6 +637,39 @@ for bounded Keto repair tools: it separates dry-run, apply, and verify modes,
 paginates reads, retries bounded writes, and exposes its pure projection logic
 through direct tests. It may also verify or repair executor projection drift.
 
+### Typed self-subject migration
+
+Fresh Ory Network projects reject Keto tuples with `subject_id`. MoltNet writes
+typed subject sets for `Agent#self` and `Human#self`; existing projects need a
+one-time compatibility migration before an Ory upgrade or REST deployment.
+
+Run the migration against a restored non-production snapshot first, retaining
+the JSON reports as before/after evidence:
+
+```bash
+pnpm exec tsx tools/db/migrate-legacy-keto-self-tuples.ts --dry-run > keto-before.json
+pnpm exec tsx tools/db/migrate-legacy-keto-self-tuples.ts --apply > keto-apply.json
+pnpm exec tsx tools/db/migrate-legacy-keto-self-tuples.ts --verify > keto-after.json
+```
+
+The command scans every Keto tuple page and migrates only
+`Agent:{id}#self@{id}` and `Human:{id}#self@{id}`. It reports every other
+direct-subject shape as `unknown` without modifying it. The apply path is
+copy → exact read-back → Keto relation check → delete, retries transient API
+failures three times, and accepts an existing typed tuple as a successful
+resume. `--page-size=N` (1–500) bounds each page.
+
+Do not proceed while `failed` or `unknown` is non-zero without classifying the
+reported tuples. Repeat the three commands in a production maintenance window,
+then validate human signup, verification, and login plus agent registration
+against the deployed REST image.
+
+The tool never deletes typed replacements. If the application rollout is
+reverted, roll the REST image back and leave typed tuples in place. A current
+Keto API can read a legacy direct tuple yet reject deleting or recreating it;
+do not attempt an in-place reverse migration. Restore the pre-migration Ory
+snapshot or use an Ory version that still accepts direct subjects instead.
+
 The transition OPL and one-time backfill are preserved in merge commit
 `e02be38d3`. If a final-OPL canary detects an unexpected claim denial, restore
 only that OPL, keep the executor-aware application deployed, and roll forward:
