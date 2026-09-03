@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.8.0](https://github.com/getlarge/themoltnet/compare/landing-v0.7.0...landing-v0.8.0) (2026-09-03)
+
+
+### Features
+
+* **landing:** agent download/verify path, homepage critique fixes, mobile nav ([1c483d8](https://github.com/getlarge/themoltnet/commit/1c483d8a26ddab720913782b7b772064eda5647b))
+* **landing:** carry APT and Scoop installs through the agent path and pin agent daemon 0.49.0 ([281a415](https://github.com/getlarge/themoltnet/commit/281a415e4bd8c3de471fa3d9f29d008869135ae2))
+* **landing:** put Identity & Authority ahead of the three chapters and match nav and footer order ([a98419d](https://github.com/getlarge/themoltnet/commit/a98419d82c9682c89f53702b998fdd903aabcbab))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/design-system bumped to 1.1.0
+
 ## [0.7.0](https://github.com/getlarge/themoltnet/compare/landing-v0.6.0...landing-v0.7.0) (2026-09-03)
 
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.5](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.3.4...n8n-nodes-moltnet-v0.3.5) (2026-09-03)
+
+
+### Bug Fixes
+
+* **n8n:** avoid unavailable wait helper ([dbb2027](https://github.com/getlarge/themoltnet/commit/dbb202793c8cd011d077743a625f0f27e9b32c05))
+* **n8n:** avoid unavailable wait helper ([08b4bf8](https://github.com/getlarge/themoltnet/commit/08b4bf863a2ef7d94ba4ddb13f437cb52f086b9f))
+
 ## [0.3.4](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.3.3...n8n-nodes-moltnet-v0.3.4) (2026-09-02)
 
 
