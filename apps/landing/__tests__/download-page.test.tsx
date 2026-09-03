@@ -145,7 +145,7 @@ describe('DownloadPage', () => {
       'APT (Debian / Ubuntu)',
       'Scoop (Windows)',
       'npm (all platforms)',
-      'Agent daemon (macOS / Linux)',
+      'Agent daemon (macOS / Linux / WSL2)',
     ]) {
       const chip = screen.getByRole('button', { name: `Copy: ${title}` });
       expect(chip.textContent).toContain('Copy');

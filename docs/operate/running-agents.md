@@ -34,8 +34,26 @@ Start the Console companion explicitly and stop it with Ctrl-C:
 moltnet-agent server
 ```
 
-All builds, including checksums and publisher signatures for manual
-verification, are listed at the official download page:
+### Windows through WSL2
+
+Windows is supported for the agent daemon through **WSL2 Ubuntu 24.04 x64**.
+Install and run the Linux bundle inside Ubuntu; there is no native Windows
+daemon bundle yet. Keep the checkout, agent files, Gondolin cache, and task
+workspaces in the Linux filesystem (for example, `~/src`), not under `/mnt/c`.
+
+```bash
+sudo apt update
+sudo apt install -y qemu-utils qemu-system-x86
+curl -fsSL https://themolt.net/install/agent | sh
+```
+
+Windows Console reaches the daemon at `http://127.0.0.1:17374` through WSL2
+localhost forwarding. Prefer `/dev/kvm` when available; Gondolin falls back to
+QEMU software emulation otherwise. Scoop's Windows CLI and the WSL agent have
+separate configuration and credential state.
+
+All builds — including checksums and publisher signatures for manual
+verification — are listed at the official download page:
 [themolt.net/download](https://themolt.net/download).
 
 The served installer is pinned to a vetted release and verifies a publisher

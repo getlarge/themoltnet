@@ -77,6 +77,66 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec nx run @moltnet/tools:test:agent-bundle
 
+  wsl-agent-daemon:
+    name: WSL2 agent daemon acceptance
+    needs: [affected]
+    if: needs.affected.outputs.wsl-agent-daemon == 'true'
+    runs-on: windows-2025
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Provision Ubuntu 24.04 and copy the checkout to ext4
+        run: |
+          $distro = 'Ubuntu-24.04'
+          if (-not (wsl.exe --list --quiet | ForEach-Object { $_.Trim() } | Where-Object { $_ -eq $distro })) {
+            wsl.exe --install --distribution $distro --no-launch
+          }
+          wsl.exe --distribution $distro -- bash -lc 'rm -rf ~/src/themoltnet && mkdir -p ~/src/themoltnet'
+          tar.exe -cf - --exclude=.git . | wsl.exe --distribution $distro -- bash -lc 'tar -xf - -C ~/src/themoltnet'
+      - name: Restore WSL bundle runtime
+        id: wsl-bundle-runtime
+        uses: actions/cache/restore@v5
+        with:
+          path: \\wsl.localhost\Ubuntu-24.04\root\.cache\moltnet-release
+          key: wsl2-agent-bundle-runtime-linux-x64-${{ hashFiles('.tool-versions') }}
+      - name: Install WSL2 build, Go, and Gondolin dependencies
+        run: wsl.exe --distribution Ubuntu-24.04 -- bash -lc 'cd ~/src/themoltnet && bash tools/ci/wsl-agent-daemon.sh setup'
+      - name: Build, install, and validate the Linux bundle in WSL2
+        run: wsl.exe --distribution Ubuntu-24.04 -- bash -lc 'cd ~/src/themoltnet && bash tools/ci/wsl-agent-daemon.sh bundle'
+      # The hosted Windows image does not relay WSL2 loopback ports
+      # (actions/runner-images#12466). The strict WSL /health gate above
+      # verifies the foreground server; this probe records runner behavior.
+      - name: Probe the WSL2 loopback server from Windows (informational)
+        run: |
+          try {
+            $health = Invoke-RestMethod -Uri http://127.0.0.1:17374/health -TimeoutSec 2 -ErrorAction Stop
+            if ($health.status -eq 'ok') {
+              Write-Host 'Windows reached the WSL moltnet-agent server on loopback.'
+            } else {
+              Write-Warning 'Windows received an unexpected WSL agent health response.'
+            }
+          } catch {
+            Write-Warning "Hosted runner could not relay the WSL loopback port: $($_.Exception.Message)"
+          }
+      - name: Run real Gondolin integrations in WSL2
+        run: wsl.exe --distribution Ubuntu-24.04 -- bash -lc 'cd ~/src/themoltnet && bash tools/ci/wsl-agent-daemon.sh integrations'
+      - name: Show WSL agent server log on failure
+        if: failure()
+        run: wsl.exe --distribution Ubuntu-24.04 -- bash -lc 'cat "$HOME/moltnet-agent-server.log" 2>/dev/null || true'
+      - name: Save WSL bundle runtime
+        if: success() && steps.wsl-bundle-runtime.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: \\wsl.localhost\Ubuntu-24.04\root\.cache\moltnet-release
+          key: wsl2-agent-bundle-runtime-linux-x64-${{ hashFiles('.tool-versions') }}
+
   native-keyring:
     name: Native keyring
     needs: [affected]
@@ -151,6 +211,7 @@ jobs:
       e2e-any: ${{ steps.compute.outputs.e2e-any }}
       native-keyring: ${{ steps.compute.outputs.native-keyring }}
       agent-bundle: ${{ steps.compute.outputs.agent-bundle }}
+      wsl-agent-daemon: ${{ steps.compute.outputs.wsl-agent-daemon }}
       landing: ${{ steps.compute.outputs.landing }}
       legreffier-plugin: ${{ steps.compute.outputs.legreffier-plugin }}
       agents-matrix: ${{ steps.matrix.outputs.matrix }}
@@ -315,6 +376,15 @@ jobs:
             echo "agent-bundle=true" >> "$GITHUB_OUTPUT"
           else
             echo "agent-bundle=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          # WSL acceptance covers the daemon, Pi/Gondolin host stack, bundle
+          # contract, and the user-facing WSL guidance. CI/release changes
+          # also gate it because they can alter the assembled artifact.
+          if contains "@themoltnet/agent-daemon" "@themoltnet/agent-daemon-e2e" "@themoltnet/sandbox-gondolin" "@moltnet/execution-integrations" "@moltnet/pi-extension" || ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- tools/release/agent-bundle apps/agent-daemon .github/workflows/ci.yml .github/workflows/release.yml docs/operate/running-agents.md apps/landing/src/pages/DownloadPage.tsx apps/landing/src/pages/GettingStartedPage.tsx; then
+            echo "wsl-agent-daemon=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "wsl-agent-daemon=false" >> "$GITHUB_OUTPUT"
           fi
 
           # Resolve the e2e image ref for each app service. The orchestrator
