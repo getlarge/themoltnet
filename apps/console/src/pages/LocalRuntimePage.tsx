@@ -11,6 +11,7 @@ import {
 import { listRuntimeProfilesOptions } from '@moltnet/api-client/query';
 import { useQuery } from '@tanstack/react-query';
 import {
+  ActionLink,
   Badge,
   Button,
   Card,
@@ -35,6 +36,8 @@ import {
 } from '../runtime-local/useLocalRuntime.js';
 import { canManageTeam } from '../team/permissions.js';
 import { useTeam } from '../team/useTeam.js';
+
+const AGENT_DOWNLOAD_URL = 'https://themolt.net/download#install';
 
 export function LocalRuntimePage() {
   const runtime = useLocalRuntime();
@@ -128,11 +131,20 @@ function ConnectionStrip({ runtime }: { runtime: LocalRuntimeController }) {
           </Stack>
           <Stack gap={2}>
             <Text variant="caption" color="muted">
-              Start it on this machine, then retry:
+              Start the installed MoltNet Agent binary on this machine:
             </Text>
             <Text mono variant="caption">
-              npx @themoltnet/agent-daemon server
+              moltnet-agent server
             </Text>
+            <ActionLink
+              variant="ghost"
+              size="sm"
+              href={AGENT_DOWNLOAD_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Download MoltNet Agent
+            </ActionLink>
           </Stack>
           <Stack direction="row">
             <Button size="sm" onClick={() => void runtime.retry()}>

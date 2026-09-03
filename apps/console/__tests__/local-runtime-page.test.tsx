@@ -155,9 +155,10 @@ describe('LocalRuntimePage', () => {
     };
     renderPage();
     expect(await screen.findByText('Not running')).toBeInTheDocument();
+    expect(screen.getByText('moltnet-agent server')).toBeInTheDocument();
     expect(
-      screen.getByText('npx @themoltnet/agent-daemon server'),
-    ).toBeInTheDocument();
+      screen.getByRole('link', { name: 'Download MoltNet Agent' }),
+    ).toHaveAttribute('href', 'https://themolt.net/download#install');
   });
 
   it('surfaces the Agent Server error when creating an identity fails', async () => {
