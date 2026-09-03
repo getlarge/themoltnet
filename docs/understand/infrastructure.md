@@ -625,58 +625,6 @@ npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
   node infra/ory/deploy.mjs --apply --opl-only
 ```
 
-### Executor-role authorization
-
-Executor claim authority is live in the final `infra/ory/permissions.ts` model.
-Agent owners and managers have materialized `Team#executors` projections, while
-standalone executors retain `Team#members` access. New role writers reconcile
-the complete projection atomically.
-
-`tools/db/backfill-team-executors.ts` remains as the production-proven reference
-for bounded Keto repair tools: it separates dry-run, apply, and verify modes,
-paginates reads, retries bounded writes, and exposes its pure projection logic
-through direct tests. It may also verify or repair executor projection drift.
-
-The transition OPL and one-time backfill are preserved in merge commit
-`e02be38d3`. If a final-OPL canary detects an unexpected claim denial, restore
-only that OPL, keep the executor-aware application deployed, and roll forward:
-
-```bash
-git show e02be38d3:infra/ory/permissions.executor-transition.ts \
-  > /tmp/moltnet-executor-transition.ts
-npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
-  node infra/ory/deploy.mjs --apply --opl-only \
-  --opl-file /tmp/moltnet-executor-transition.ts
-```
-
-Do not roll the application below the executor-aware release. PostgreSQL enum
-values are not safely removable, so migration `0040_soft_luke_cage.sql` is
-intentionally irreversible and remains in place.
-
-The pre-cutover bridge remains recoverable from merge commit `5a86e87d`. If
-post-contraction canaries detect an unexpected denial, restore only that OPL;
-do not roll back the ownership tuples or run `ory update project`:
-
-```bash
-git show 5a86e87d:infra/ory/permissions.ts > /tmp/moltnet-task-ownership-bridge.ts
-npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
-  node infra/ory/deploy.mjs --apply --opl-only \
-  --opl-file /tmp/moltnet-task-ownership-bridge.ts
-```
-
-Keep inert `Task#parent` tuples through the agreed rollback observation
-window. Once that window closes, preview, purge, and independently verify them
-with the bounded and idempotent cleanup tool:
-
-```bash
-npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
-  pnpm exec tsx tools/db/purge-task-parent-relations.ts --dry-run
-npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
-  pnpm exec tsx tools/db/purge-task-parent-relations.ts --apply
-npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
-  pnpm exec tsx tools/db/purge-task-parent-relations.ts --verify
-```
-
 ## Ory Backup / Restore
 
 MoltNet supports two different recovery modes:
