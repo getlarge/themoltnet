@@ -1,6 +1,16 @@
 name: Publish stable download pins
 
 on:
+  workflow_call:
+    inputs:
+      cli_version:
+        description: CLI version or release tag to pin.
+        required: false
+        type: string
+      agent_version:
+        description: Agent version or release tag to pin.
+        required: false
+        type: string
   workflow_dispatch:
     inputs:
       cli_version:
@@ -45,8 +55,10 @@ jobs:
               --jq "[.[] | select(.isDraft | not) | .tagName | select(startswith(\"$1-v\"))][0] // empty" \
               | sed "s/^$1-v//"
           }
-          CLI_VERSION="${CLI_INPUT:-$(latest cli)}"
-          AGENT_VERSION="${AGENT_INPUT:-$(latest agent-daemon)}"
+          CLI_VERSION="${CLI_INPUT#cli-v}"
+          AGENT_VERSION="${AGENT_INPUT#agent-daemon-v}"
+          CLI_VERSION="${CLI_VERSION:-$(latest cli)}"
+          AGENT_VERSION="${AGENT_VERSION:-$(latest agent-daemon)}"
           test -n "$CLI_VERSION" -o -n "$AGENT_VERSION"
           CLI_VERSION="$CLI_VERSION" AGENT_VERSION="$AGENT_VERSION" bash tools/release/propose-download-pin.sh
           if git diff --quiet -- apps/landing/nginx/default.conf.template; then
