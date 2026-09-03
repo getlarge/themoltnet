@@ -2,10 +2,9 @@
 # moltnet-agent installer — `curl -fsSL https://themolt.net/install/agent | sh` (#2063).
 #
 # Downloads the signed, checksum-verified bundle for this machine, installs
-# it under ~/.local/share/moltnet/agent/<version>, links `moltnet-agent`
-# on PATH, and registers `moltnet-agent server` as a login service
-# (LaunchAgent on macOS, systemd user unit on Linux). Idempotent: re-running
-# upgrades in place; `--uninstall` removes everything it created.
+# it under ~/.local/share/moltnet/agent/<version> and links `moltnet-agent`
+# on PATH. Idempotent: re-running upgrades in place; `--uninstall` removes
+# everything it created. The Agent Server runs explicitly in the foreground.
 #
 # Environment overrides (mostly for CI and local testing):
 #   MOLTNET_AGENT_VERSION   version to install (default: latest release)
@@ -13,7 +12,6 @@
 #   MOLTNET_AGENT_ARCHIVE   path to a local .tar.gz (skips download; .sha256 beside it)
 #   MOLTNET_AGENT_HOME      install root (default ~/.local/share/moltnet/agent)
 #   MOLTNET_AGENT_BIN_DIR   where the `moltnet-agent` link goes (default ~/.local/bin)
-#   MOLTNET_AGENT_NO_SERVICE=1  skip service registration
 #   MOLTNET_AGENT_ALLOW_UNSIGNED=1  accept an artifact carrying the UNSIGNED
 #       marker (local builds only — it waives the signing trust chain)
 #   MOLTNET_AGENT_ALLOW_UNVERIFIED=1  skip release-signature verification
@@ -24,7 +22,7 @@ set -eu
 REPO="getlarge/themoltnet"
 HOME_DIR="${MOLTNET_AGENT_HOME:-$HOME/.local/share/moltnet/agent}"
 BIN_DIR="${MOLTNET_AGENT_BIN_DIR:-$HOME/.local/bin}"
-SERVICE_LABEL="net.themolt.agent.serve"
+LEGACY_SERVICE_LABEL="net.themolt.agent.serve"
 
 SENTINEL=.moltnet-agent-root
 # Publisher release-signing key (ssh-ed25519, allowed_signers format). The
@@ -88,9 +86,9 @@ host_os() {
   esac
 }
 
-service_definition_path() {
+legacy_service_definition_path() {
   case "$(host_os)" in
-    darwin) printf '%s' "$HOME/Library/LaunchAgents/$SERVICE_LABEL.plist" ;;
+    darwin) printf '%s' "$HOME/Library/LaunchAgents/$LEGACY_SERVICE_LABEL.plist" ;;
     linux) printf '%s' "$HOME/.config/systemd/user/moltnet-agent.service" ;;
   esac
 }
@@ -167,119 +165,29 @@ latest_version() {
     | grep -o '"tag_name": *"agent-daemon-v[^"]*"' | head -1 | sed 's/.*agent-daemon-v//; s/"//'
 }
 
-service_plist() {
-  cat <<EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict>
-  <key>Label</key><string>$SERVICE_LABEL</string>
-  <key>ProgramArguments</key><array>
-    <string>$HOME_DIR/current/bin/moltnet-agent</string>
-    <string>serve</string>
-  </array>
-  <key>RunAtLoad</key><true/>
-  <key>KeepAlive</key><true/>
-  <key>StandardOutPath</key><string>$HOME_DIR/serve.log</string>
-  <key>StandardErrorPath</key><string>$HOME_DIR/serve.log</string>
-  <key>EnvironmentVariables</key><dict>
-    <key>PATH</key><string>/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/opt/homebrew/bin</string>
-  </dict>
-</dict></plist>
-EOF
-}
-
-service_unit() {
-  cat <<EOF
-[Unit]
-Description=MoltNet agent supervisor (moltnet-agent server)
-After=network-online.target
-
-[Service]
-ExecStart=$HOME_DIR/current/bin/moltnet-agent server
-Restart=always
-RestartSec=2
-
-[Install]
-WantedBy=default.target
-EOF
-}
-
-register_service() {
-  # Service-independent smoke check FIRST: even with registration skipped
-  # (MOLTNET_AGENT_NO_SERVICE=1), a launcher that cannot execute at all must
-  # fail the install — the headless path would otherwise replace and prune
-  # the last working version.
+verify_launcher() {
   if ! smoke_out=$("$HOME_DIR/current/bin/moltnet-agent" --help 2>&1); then
     log "installed binary failed its self-check (--help):"
     printf '%s\n' "$smoke_out" | tail -5 >&2
     return 1
   fi
-  [ "${MOLTNET_AGENT_NO_SERVICE:-0}" = 1 ] && { log "service registration skipped"; return 0; }
-  # The login service runs `moltnet-agent server`. Distinguish a release
-  # that simply lacks the subcommand (skip quietly) from a broken binary
-  # (fail loudly so the caller can roll back).
-  serve_help_output=$("$HOME_DIR/current/bin/moltnet-agent" serve --help 2>&1)
-  serve_help_status=$?
-  if [ "$serve_help_status" != 0 ]; then
-    if printf '%s' "$serve_help_output" | grep -qi "unknown command"; then
-      log "this moltnet-agent release has no 'serve' command; login service not registered (run daemons with 'moltnet-agent poll' for now)"
-      return 0
-    fi
-    log "installed binary failed its self-check:"
-    printf '%s\n' "$serve_help_output" | tail -5 >&2
-    return 1
-  fi
-  case "$1" in
-    darwin-*)
-      plist="$HOME/Library/LaunchAgents/$SERVICE_LABEL.plist"
-      mkdir -p "$(dirname "$plist")"
-      launchctl bootout "gui/$(id -u)/$SERVICE_LABEL" >/dev/null 2>&1 || true
-      service_plist > "$plist"
-      launchctl bootstrap "gui/$(id -u)" "$plist"
-      launchctl kickstart -k "gui/$(id -u)/$SERVICE_LABEL" >/dev/null 2>&1 || true
-      sleep 2
-      if ! launchctl print "gui/$(id -u)/$SERVICE_LABEL" 2>/dev/null | grep -q "state = running"; then
-        tail -20 "$HOME_DIR/serve.log" 2>/dev/null >&2 || true
-        log "LaunchAgent $SERVICE_LABEL did not reach running state"
-        return 1
-      fi
-      log "LaunchAgent $SERVICE_LABEL registered ($plist)"
-      ;;
-    linux-*)
-      if command -v systemctl >/dev/null 2>&1 && systemctl --user status >/dev/null 2>&1; then
-        unit="$HOME/.config/systemd/user/moltnet-agent.service"
-        mkdir -p "$(dirname "$unit")"
-        service_unit > "$unit"
-        systemctl --user daemon-reload
-        systemctl --user enable --now moltnet-agent.service
-        # enable --now is a no-op for an already-active unit: force the
-        # upgrade to actually run the newly installed version.
-        systemctl --user try-restart moltnet-agent.service 2>/dev/null || true
-        sleep 2
-        if ! systemctl --user is-active --quiet moltnet-agent.service; then
-          journalctl --user -u moltnet-agent.service -n 10 --no-pager 2>/dev/null | tail -10 >&2 || true
-          log "moltnet-agent.service failed to start after install"
-          return 1
-        fi
-        log "systemd user unit moltnet-agent.service enabled"
-      else
-        log "no systemd user session; start 'moltnet-agent server' yourself (headless mode)"
-      fi
-      ;;
-  esac
 }
 
-unregister_service() {
+unregister_legacy_service() {
+  service_file=$(legacy_service_definition_path)
+  if [ ! -f "$service_file" ] || ! grep -qF "$HOME_DIR/current" "$service_file"; then
+    return 0
+  fi
   case "$(host_os)" in
     darwin)
-      launchctl bootout "gui/$(id -u)/$SERVICE_LABEL" >/dev/null 2>&1 || true
-      rm -f "$HOME/Library/LaunchAgents/$SERVICE_LABEL.plist"
+      launchctl bootout "gui/$(id -u)/$LEGACY_SERVICE_LABEL" >/dev/null 2>&1 || true
+      rm -f "$service_file"
       ;;
     linux)
       if command -v systemctl >/dev/null 2>&1; then
         systemctl --user disable --now moltnet-agent.service >/dev/null 2>&1 || true
       fi
-      rm -f "$HOME/.config/systemd/user/moltnet-agent.service"
+      rm -f "$service_file"
       ;;
   esac
 }
@@ -294,15 +202,12 @@ uninstall() {
     case "$(readlink "$BIN_DIR/moltnet-agent" 2>/dev/null)" in
       "$HOME_DIR"/*) rm -f "$BIN_DIR/moltnet-agent" ;;
     esac
-    service_file=$(service_definition_path)
-    if [ -f "$service_file" ] && grep -qF "$HOME_DIR/current" "$service_file"; then
-      unregister_service
-    fi
+    unregister_legacy_service
     return 0
   fi
   acquire_lock
   trap 'release_lock' EXIT
-  unregister_service
+  unregister_legacy_service
   rm -f "$BIN_DIR/moltnet-agent"
   # Hold the lock through the removal: the tree must be gone before any
   # concurrent install may proceed.
@@ -392,33 +297,30 @@ install() {
   ln -sfn "$HOME_DIR/current/bin/moltnet-agent" "$BIN_DIR/moltnet-agent"
   case ":$PATH:" in *":$BIN_DIR:"*) ;; *) log "note: add $BIN_DIR to your PATH" ;; esac
 
-  # Truncate an unbounded crash-loop log before (re)starting the service.
-  if [ -f "$HOME_DIR/serve.log" ] && [ "$(wc -c < "$HOME_DIR/serve.log")" -gt 10485760 ]; then
-    tail -c 1048576 "$HOME_DIR/serve.log" > "$HOME_DIR/serve.log.tmp" \
-      && mv "$HOME_DIR/serve.log.tmp" "$HOME_DIR/serve.log"
-  fi
-
-  if ! register_service "$plat"; then
+  if ! verify_launcher; then
     if [ -n "${previous_target:-}" ] && [ -d "$previous_target" ] && [ "$previous_target" != "$target" ]; then
-      # Upgrade: restore the previous version AND verify its service came
-      # back — a rollback that leaves no daemon running must say so.
+      # Upgrade: restore the previous version and verify its launcher.
       ln -sfn "$previous_target" "$HOME_DIR/current"
       mv "$target" "$target.broken" 2>/dev/null || true
-      if register_service "$plat"; then
+      if verify_launcher; then
         die "upgrade to $version failed its readiness check; rolled back to $(basename "$previous_target") (broken payload kept at $target.broken)"
       fi
-      die "upgrade to $version failed its readiness check AND restoring $(basename "$previous_target") failed its own readiness check — no daemon is running (broken payload kept at $target.broken)"
+      die "upgrade to $version failed its readiness check AND restoring $(basename "$previous_target") failed its own readiness check (broken payload kept at $target.broken)"
     fi
-    # First install: leave nothing half-registered behind — a retry must
-    # start from a clean slate.
-    unregister_service
+    # First install: leave no broken activation behind.
+    unregister_legacy_service
     rm -f "$BIN_DIR/moltnet-agent"
     rm -f "$HOME_DIR/current"
     mv "$target" "$target.broken" 2>/dev/null || true
     die "install of $version failed its readiness check (broken payload kept at $target.broken)"
   fi
 
-  # Prune older versions only after the new one is confirmed running.
+  # Releases before this one installed a persistent login service. Stop and
+  # remove that installer-owned legacy service during upgrade; running the
+  # Agent Server is now an explicit foreground action.
+  unregister_legacy_service
+
+  # Prune older versions only after the new launcher passes its self-check.
   for dir in "$HOME_DIR"/*/; do
     dir=${dir%/}
     case "$dir" in "$target"|*/current|*/.staging.*|*.broken) ;; *) rm -rf "$dir" ;; esac
@@ -438,8 +340,8 @@ install() {
   esac
   ready_suffix=""
   [ "$sandbox_ready" = 1 ] || ready_suffix=" (sandboxed runs unavailable until the qemu packages above are installed)"
-  if "$HOME_DIR/current/bin/moltnet-agent" serve --help >/dev/null 2>&1; then
-    log "moltnet-agent $version ready$ready_suffix — open the Console's Local runtime page to pair."
+  if "$HOME_DIR/current/bin/moltnet-agent" server --help >/dev/null 2>&1; then
+    log "moltnet-agent $version ready$ready_suffix — run 'moltnet-agent server', then open the Console's Local runtime page to pair."
   else
     log "moltnet-agent $version ready$ready_suffix."
   fi
@@ -449,10 +351,10 @@ usage() {
   cat <<'EOF'
 moltnet-agent installer — curl -fsSL https://themolt.net/install/agent | sh
 
-Installs the signed bundle under ~/.local/share/moltnet/agent/<version>,
-links `moltnet-agent` on PATH, and registers `moltnet-agent server` as a
-login service (LaunchAgent on macOS, systemd user unit on Linux).
-Re-running upgrades in place; --uninstall removes what the installer created.
+Installs the signed bundle under ~/.local/share/moltnet/agent/<version> and
+links `moltnet-agent` on PATH. Run `moltnet-agent server` explicitly while
+using the Console; Ctrl-C stops it. Re-running upgrades in place;
+--uninstall removes what the installer created.
 
 Environment overrides:
   MOLTNET_AGENT_VERSION       version to install (default: latest release)
@@ -460,8 +362,6 @@ Environment overrides:
   MOLTNET_AGENT_ARCHIVE       local .tar.gz (skips download; .sha256 beside it)
   MOLTNET_AGENT_HOME          install root (default ~/.local/share/moltnet/agent)
   MOLTNET_AGENT_BIN_DIR       bin link directory (default ~/.local/bin)
-  MOLTNET_AGENT_NO_SERVICE=1  skip service registration
-
 Trust-chain escape hatches (only for artifacts you built yourself):
   MOLTNET_AGENT_ALLOW_UNSIGNED=1    accept an artifact carrying the UNSIGNED
                                     marker (waives the Apple code-signing chain)
