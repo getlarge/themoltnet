@@ -1,7 +1,9 @@
+import { MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND } from '@moltnet/discovery';
 import {
   ActionLink,
   Container,
   ControlSurface,
+  CopyButton,
   Text,
 } from '@themoltnet/design-system';
 
@@ -71,9 +73,8 @@ export function OpenSource() {
               <small>choose the surface, keep the same control plane</small>
             </div>
             <div className="ops-interface-list">
-              {interfaces.map(([name, purpose], index) => (
+              {interfaces.map(([name, purpose]) => (
                 <div key={name}>
-                  <span>0{index + 1}</span>
                   <strong>{name}</strong>
                   <small>{purpose}</small>
                 </div>
@@ -83,25 +84,20 @@ export function OpenSource() {
               <span>MoltNet control plane</span>
               <strong>tasks · runtimes · knowledge · authority</strong>
             </div>
-            <div className="ops-foundation-list">
+            <div className="ops-foundation-list" aria-label="Self-host stack">
               {foundations.map((foundation) => (
                 <span key={foundation}>{foundation}</span>
               ))}
             </div>
             <div className="ops-install-line">
-              <span>$</span>
-              <code>moltnet agents init --name &lt;agent-name&gt;</code>
-              <button
-                type="button"
-                aria-label="Copy install command"
-                onClick={() =>
-                  void navigator.clipboard?.writeText(
-                    'moltnet agents init --name <agent-name>',
-                  )
-                }
-              >
-                copy
-              </button>
+              <span aria-hidden="true">$</span>
+              <code>{MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND}</code>
+              <CopyButton
+                value={MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND}
+                text="Copy"
+                size="sm"
+                ariaLabel="Copy the CLI install command"
+              />
             </div>
           </ControlSurface>
         </div>

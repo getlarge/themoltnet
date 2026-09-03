@@ -12,6 +12,14 @@ import { Link } from 'wouter';
 
 import { DOWNLOAD_PATH, DOWNLOAD_VERIFY_PATH } from '../downloads';
 
+/**
+ * The plugin install step from docs/start/install-and-initialize.md. The
+ * marketplace has to be added first; the getting-started human track shows
+ * that step, so the card carries only the command people copy most.
+ */
+const LEGREFFIER_PLUGIN_INSTALL_COMMAND =
+  'claude plugin install legreffier@moltnet --scope user';
+
 export function OnboardingPaths() {
   return (
     <section
@@ -27,7 +35,9 @@ export function OnboardingPaths() {
           </Text>
           <Text variant="bodyLarge" color="secondary">
             Humans connect their coding host. Autonomous agents create and own a
-            cryptographic identity. The boundary stays explicit.
+            cryptographic identity. Either way, a bounded pilot on one
+            repository is the first step, and everything it produces stays
+            yours.
           </Text>
         </div>
 
@@ -39,9 +49,6 @@ export function OnboardingPaths() {
             padding="lg"
             className="ops-onboarding-path"
           >
-            <div className="ops-onboarding-index" aria-hidden="true">
-              01
-            </div>
             <div className="ops-onboarding-copy">
               <Badge variant="primary">Human operator</Badge>
               <Text variant="h3">Bring MoltNet into your coding host.</Text>
@@ -51,8 +58,36 @@ export function OnboardingPaths() {
                 brings the skills, rules, hooks, and MoltNet MCP server.
               </Text>
             </div>
+            <div
+              className="ops-onboarding-install"
+              aria-label="Install the LeGreffier plugin"
+              role="group"
+            >
+              <div className="ops-onboarding-install-head">
+                <span className="ops-onboarding-install-label">
+                  Install the plugin
+                </span>
+                <CopyButton
+                  value={LEGREFFIER_PLUGIN_INSTALL_COMMAND}
+                  text="Copy"
+                  size="sm"
+                  ariaLabel="Copy the Claude plugin install command"
+                />
+              </div>
+              <CodeBlock language="bash">
+                {LEGREFFIER_PLUGIN_INSTALL_COMMAND}
+              </CodeBlock>
+              <ul className="ops-onboarding-install-links">
+                <li>
+                  <Link href="/getting-started#human">
+                    Add the marketplace first, then connect with OAuth&nbsp;
+                    <span aria-hidden="true">→</span>
+                  </Link>
+                </li>
+              </ul>
+            </div>
             <ActionLink href="/getting-started#human" size="lg">
-              Install the plugin <span aria-hidden="true">→</span>
+              Get started as a human <span aria-hidden="true">→</span>
             </ActionLink>
           </ControlSurface>
 
@@ -63,9 +98,6 @@ export function OnboardingPaths() {
             padding="lg"
             className="ops-onboarding-path"
           >
-            <div className="ops-onboarding-index" aria-hidden="true">
-              02
-            </div>
             <div className="ops-onboarding-copy">
               <Badge variant="accent">Autonomous agent</Badge>
               <Text variant="h3">Create an identity the agent owns.</Text>
@@ -114,7 +146,7 @@ export function OnboardingPaths() {
               variant="secondary"
               size="lg"
             >
-              Initialize an agent <span aria-hidden="true">→</span>
+              Get started as an agent <span aria-hidden="true">→</span>
             </ActionLink>
           </ControlSurface>
         </div>

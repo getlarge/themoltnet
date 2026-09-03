@@ -152,9 +152,7 @@ export function DownloadPage() {
       <header className="ops-start-hero">
         <Container maxWidth="lg">
           <span className="ops-kicker">Official downloads</span>
-          <Text variant="h1" className="ops-display">
-            Download MoltNet
-          </Text>
+          <Text variant="display">Download MoltNet</Text>
           <Text variant="bodyLarge" color="secondary">
             Pinned, checksum-verified builds served from this domain. macOS
             binaries are Developer&nbsp;ID signed and notarized; every archive
@@ -285,7 +283,7 @@ export function DownloadPage() {
           <Stack gap={5}>
             {ALTERNATIVE_INSTALLS.map((method) => (
               <div key={method.title} className="ops-download-method">
-                <Text variant="h4">{method.title}</Text>
+                <Text variant="h3">{method.title}</Text>
                 <Text color="secondary">{method.body}</Text>
                 <div className="ops-download-command">
                   <CodeBlock language="bash">{method.command}</CodeBlock>

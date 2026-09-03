@@ -36,7 +36,7 @@ button {
 .ops-kicker {
   color: var(--ops-network);
   font-family: var(--ops-font-mono);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 650;
   letter-spacing: 0.12em;
   line-height: 1.4;
@@ -108,7 +108,7 @@ button {
   border-left: 1px solid var(--molt-border);
   color: var(--molt-text-muted);
   font-family: var(--molt-font-mono);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -142,6 +142,64 @@ button {
 .ops-nav-systems a:hover,
 .ops-nav-actions > a:hover {
   color: var(--molt-text);
+}
+
+/*
+ * Disclosure menu. Hidden while the bar shows everything; from 1180px down
+ * the system anchors leave the bar, and from 820px down the operate links
+ * do too, so the toggle is the only way to reach them on a phone.
+ */
+.ops-nav-menu-toggle {
+  display: none;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--molt-border);
+  border-radius: 8px;
+  color: var(--molt-text);
+  background: transparent;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.ops-nav-menu-toggle:hover {
+  border-color: var(--molt-border-hover, var(--molt-border));
+}
+
+.ops-nav-panel {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(100% - 3rem, 90rem);
+  margin: 0 auto;
+  padding: 1rem 0 1.5rem;
+  border-top: 1px solid var(--molt-border);
+  gap: 1.5rem;
+}
+
+.ops-nav-panel[hidden] {
+  display: none;
+}
+
+.ops-nav-panel-group {
+  display: grid;
+  align-content: start;
+}
+
+.ops-nav-panel-group > span {
+  margin-bottom: 0.35rem;
+  color: var(--molt-text-muted);
+  font-family: var(--molt-font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ops-nav-panel-group a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--molt-text);
+  font-size: 0.95rem;
 }
 
 /* Hero */
@@ -179,15 +237,9 @@ button {
   gap: 0.8rem;
   color: var(--ops-text-muted);
   font-family: var(--ops-font-mono);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-}
-
-.ops-display {
-  font-size: clamp(3.1rem, 5.1vw, 5.8rem) !important;
-  letter-spacing: -0.04em !important;
-  line-height: 0.95 !important;
 }
 
 .ops-hero-proof {
@@ -204,6 +256,12 @@ button {
   padding: 0.8rem 1rem;
   border-right: 1px solid var(--ops-border);
   gap: 0.2rem;
+  transition: color 120ms ease;
+}
+
+.ops-hero-proof > a:hover strong,
+.ops-hero-proof > a:focus-visible strong {
+  color: var(--ops-network);
 }
 
 .ops-hero-proof > *:first-child {
@@ -221,7 +279,7 @@ button {
 
 .ops-hero-proof span {
   color: var(--ops-text-muted);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
 }
 
 .ops-system-map {
@@ -261,13 +319,6 @@ button {
   min-height: 29rem;
   border: 0 !important;
   gap: 2.5rem;
-}
-
-.ops-onboarding-index {
-  color: var(--ops-text-muted);
-  font-family: var(--ops-font-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.12em;
 }
 
 .ops-onboarding-copy {
@@ -310,7 +361,7 @@ button {
 .ops-onboarding-install-label {
   color: var(--ops-identity);
   font-family: var(--ops-font-mono);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -349,7 +400,7 @@ button {
 .ops-start-step-downloads-label {
   color: var(--ops-text-muted);
   font-family: var(--ops-font-mono);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -495,7 +546,13 @@ button {
 .ops-start-step-number {
   color: var(--ops-network);
   font-family: var(--ops-font-mono);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
+}
+
+/* Step titles are h3 (they sit under the track's h2) at a step-sized scale. */
+.ops-start-step-title,
+.ops-download-method h3 {
+  font-size: 1.25rem !important;
 }
 
 .ops-start-track-identity .ops-kicker,
@@ -631,12 +688,6 @@ button {
   font-weight: 650;
 }
 
-.ops-node-heading > span:last-child {
-  color: var(--ops-text-muted);
-  font-family: var(--ops-font-mono);
-  font-size: 0.7rem;
-}
-
 .ops-system-node ul {
   display: grid;
   list-style: none;
@@ -658,7 +709,7 @@ button {
   align-self: end;
   margin-top: auto;
   color: var(--ops-text-muted);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
 }
 
 .ops-map-arrow {
@@ -695,7 +746,7 @@ button {
 
 .ops-authority-title span,
 .ops-authority-title div span {
-  font-size: 0.68rem;
+  font-size: 0.75rem;
 }
 
 .ops-authority-items {
@@ -712,7 +763,7 @@ button {
   border: 1px solid var(--ops-border);
   color: var(--ops-text-secondary);
   font-family: var(--ops-font-mono);
-  font-size: 0.65rem;
+  font-size: 0.75rem;
 }
 
 .ops-live-line {
@@ -721,7 +772,7 @@ button {
   min-height: 2.5rem;
   gap: 0.7rem;
   color: var(--ops-text-muted);
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   white-space: nowrap;
 }
 
@@ -739,20 +790,7 @@ button {
   animation: ops-pulse 2.4s ease-out infinite;
 }
 
-.ops-scroll-cue {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  margin-top: 2rem;
-  gap: 1rem;
-  color: var(--ops-text-muted);
-  font-family: var(--ops-font-mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-/* Knowledge factory entry point */
+/* Knowledge Factory ledger (chapter 03 evidence pane) */
 
 .ops-visually-hidden {
   position: absolute;
@@ -766,13 +804,8 @@ button {
   white-space: nowrap;
 }
 
-.ops-factory-section .ops-kicker {
-  color: var(--ops-identity);
-}
-
 .ops-factory-ledger {
   overflow: hidden;
-  margin-top: 3.5rem;
 }
 
 .ops-factory-ledger-head {
@@ -782,17 +815,17 @@ button {
   min-height: 3.25rem;
   padding: 0 1.5rem;
   border-bottom: 1px solid var(--ops-border);
-  background: var(--ops-identity-muted);
+  background: var(--ops-network-muted);
   color: var(--ops-text-secondary);
   font-family: var(--ops-font-mono);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   letter-spacing: 0.06em;
   gap: 1rem;
   text-transform: uppercase;
 }
 
 .ops-factory-ledger-head > span:last-child {
-  color: var(--ops-identity);
+  color: var(--ops-network);
   text-align: right;
 }
 
@@ -837,12 +870,12 @@ button {
 .ops-factory-to small {
   color: var(--ops-text-muted);
   font-family: var(--ops-font-mono);
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   line-height: 1.5;
 }
 
 .ops-factory-arrow {
-  color: var(--ops-identity);
+  color: var(--ops-network);
   font-size: 0.9rem;
 }
 
@@ -854,99 +887,14 @@ button {
   padding: 1rem 1.5rem;
   color: var(--ops-text-muted);
   font-family: var(--ops-font-mono);
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   letter-spacing: 0.08em;
   gap: 0.75rem;
   text-transform: uppercase;
 }
 
-.ops-factory-audiences {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  margin-top: 2rem;
-  gap: 1.5rem;
-}
-
-.ops-factory-audience {
-  display: grid;
-  align-content: start;
-  gap: 1rem;
-}
-
-.ops-factory-audience ul {
-  display: grid;
-  gap: 0.9rem;
-  list-style: none;
-}
-
-.ops-factory-audience li {
-  display: grid;
-  grid-template-columns: 1.25rem 1fr;
-  color: var(--ops-text-secondary);
-  font-size: 0.92rem;
-  line-height: 1.6;
-  gap: 0.5rem;
-}
-
-.ops-factory-audience li > span:first-child {
-  color: var(--ops-identity);
-  font-size: 0.8rem;
-  line-height: 1.85;
-}
-
-.ops-factory-byproduct {
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
-  align-items: start;
-  margin-top: 3.5rem;
-  padding-top: 3rem;
-  border-top: 1px solid var(--ops-border);
-  gap: 2.5rem 3rem;
-}
-
-.ops-factory-byproduct > div:first-child {
-  display: grid;
-  gap: 1.1rem;
-}
-
-.ops-factory-links {
-  display: grid;
-  border: 1px solid var(--ops-border);
-  border-radius: 0.75rem;
-}
-
-.ops-factory-links a {
-  display: grid;
-  min-height: 4.5rem;
-  align-content: center;
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--ops-border);
-  gap: 0.25rem;
-}
-
-.ops-factory-links a:last-child {
-  border-bottom: 0;
-}
-
-.ops-factory-links a:hover {
-  background: var(--ops-elevated);
-}
-
-.ops-factory-links strong {
-  color: var(--ops-text);
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.ops-factory-links span {
-  color: var(--ops-text-muted);
-  font-family: var(--ops-font-mono);
-  font-size: 0.66rem;
-}
-
-.ops-factory-byproduct > a {
-  grid-column: 1 / -1;
-  justify-self: start;
+.ops-factory-chain-dot {
+  margin-right: 0.75rem;
 }
 
 /* Execution trace */
@@ -973,7 +921,7 @@ button {
   margin-bottom: 0.65rem;
   color: var(--ops-text-muted);
   font-family: var(--ops-font-mono);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
 }
 
 .ops-trace-node {
@@ -1001,7 +949,7 @@ button {
 
 .ops-trace-node header small {
   color: var(--ops-text-muted);
-  font-size: 0.65rem;
+  font-size: 0.75rem;
 }
 
 .ops-trace-node dl {
@@ -1020,7 +968,7 @@ button {
 .ops-trace-node dt,
 .ops-data-grid dt {
   color: var(--ops-text-muted);
-  font-size: 0.64rem;
+  font-size: 0.75rem;
 }
 
 .ops-trace-node dd,
@@ -1028,7 +976,7 @@ button {
   overflow: hidden;
   color: var(--ops-text-secondary);
   font-family: var(--ops-font-mono);
-  font-size: 0.63rem;
+  font-size: 0.75rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1053,7 +1001,7 @@ button {
 .ops-identity-rail > * {
   padding: 0.8rem;
   border-right: 1px solid var(--ops-border);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
 }
 
 .ops-identity-rail > *:last-child {
@@ -1117,7 +1065,7 @@ button {
 .ops-terminal-header > span {
   color: var(--ops-text-muted);
   font-family: var(--ops-font-mono);
-  font-size: 0.65rem;
+  font-size: 0.75rem;
 }
 
 .ops-state-track {
@@ -1169,7 +1117,7 @@ button {
 .ops-state-track small {
   color: var(--ops-text-muted);
   font-family: var(--ops-font-mono);
-  font-size: 0.62rem;
+  font-size: 0.75rem;
 }
 
 .ops-data-grid {
@@ -1192,7 +1140,7 @@ button {
   gap: 1rem;
   color: var(--ops-text-muted);
   font-family: var(--ops-font-mono);
-  font-size: 0.66rem;
+  font-size: 0.75rem;
 }
 
 .ops-task-stream > div {
@@ -1233,7 +1181,7 @@ button {
 .ops-terminal code {
   color: var(--ops-text-muted);
   font-family: var(--ops-font-mono);
-  font-size: 0.62rem;
+  font-size: 0.75rem;
 }
 
 .ops-terminal code {
@@ -1250,7 +1198,7 @@ button {
   gap: 0.7rem;
   color: var(--ops-text-muted);
   font-family: var(--ops-font-mono);
-  font-size: 0.62rem;
+  font-size: 0.75rem;
 }
 
 .ops-runtime-artifact footer strong {
@@ -1279,7 +1227,7 @@ button {
 .ops-knowledge-flow small {
   color: var(--ops-text-muted);
   font-family: var(--ops-font-mono);
-  font-size: 0.64rem;
+  font-size: 0.75rem;
 }
 
 .ops-knowledge-flow > div > span:last-child {
@@ -1289,7 +1237,7 @@ button {
 .ops-knowledge-index {
   color: var(--ops-identity);
   font-family: var(--ops-font-mono);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
 }
 
 .ops-provenance-line {
@@ -1301,7 +1249,7 @@ button {
   border: 1px solid var(--ops-border);
   color: var(--ops-text-muted);
   font-family: var(--ops-font-mono);
-  font-size: 0.62rem;
+  font-size: 0.75rem;
 }
 
 /* Authority plane */
@@ -1367,7 +1315,7 @@ button {
 .ops-authority-systems small {
   color: var(--ops-text-muted);
   font-family: var(--ops-font-mono);
-  font-size: 0.62rem;
+  font-size: 0.75rem;
 }
 
 .ops-authority-controls {
@@ -1389,7 +1337,14 @@ button {
 
 .ops-authority-controls li > div:last-child {
   display: grid;
-  gap: 1rem;
+  gap: 0.75rem;
+}
+
+/* Sits under the section h2, so it is an h3 at the old h4 size; a little
+   more room above the heading than below it keeps the rhythm readable. */
+.ops-authority-control-title {
+  margin-top: 0.35rem !important;
+  font-size: 1.25rem !important;
 }
 
 .ops-authority-controls code {
@@ -1400,7 +1355,7 @@ button {
   border-top: 1px solid var(--ops-border);
   color: var(--ops-identity);
   font-family: var(--ops-font-mono);
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1471,7 +1426,7 @@ button {
 .ops-console-chrome code {
   color: var(--ops-text-muted);
   font-family: var(--ops-font-mono);
-  font-size: 0.64rem;
+  font-size: 0.75rem;
 }
 
 .ops-console-frame > img {
@@ -1500,7 +1455,7 @@ button {
 .ops-console-proof li > span {
   color: var(--ops-network);
   font-family: var(--ops-font-mono);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
 }
 
 .ops-console-proof li > div {
@@ -1510,7 +1465,7 @@ button {
 
 .ops-console-proof p {
   color: var(--ops-text-muted);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   line-height: 1.5;
 }
 
@@ -1542,7 +1497,7 @@ button {
 
 .ops-console-detail figcaption span {
   color: var(--ops-text-muted);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
 }
 
 /* Open source */
@@ -1581,7 +1536,7 @@ button {
 .ops-stack-label small {
   color: var(--ops-text-muted);
   font-family: var(--ops-font-mono);
-  font-size: 0.62rem;
+  font-size: 0.75rem;
 }
 
 .ops-interface-list {
@@ -1602,11 +1557,10 @@ button {
   border-right: 0;
 }
 
-.ops-interface-list span,
 .ops-interface-list small {
   color: var(--ops-text-muted);
   font-family: var(--ops-font-mono);
-  font-size: 0.6rem;
+  font-size: 0.75rem;
 }
 
 .ops-interface-list strong {
@@ -1624,7 +1578,7 @@ button {
   color: var(--ops-network);
   background: var(--ops-network-muted);
   font-family: var(--ops-font-mono);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
 }
 
 .ops-foundation-list {
@@ -1644,60 +1598,53 @@ button {
   color: var(--ops-text-muted);
   background: var(--ops-void);
   font-family: var(--ops-font-mono);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
 }
 
 .ops-install-line code {
+  overflow: hidden;
   color: var(--ops-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.ops-install-line button {
-  min-width: 44px;
-  min-height: 44px;
-  border: 0;
-  color: var(--ops-network);
-  background: transparent;
-  cursor: pointer;
-  font-family: var(--ops-font-mono);
-  font-size: 0.65rem;
+/* Closing band and footer */
+
+.ops-get-started {
+  padding: clamp(3.5rem, 6vw, 5rem) 0;
 }
 
-/* Closing CTA and footer */
-
-.ops-closing-surface {
+.ops-closing-band {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  padding: clamp(2rem, 5vw, 4rem) !important;
-  gap: 3rem;
+  gap: 2rem 3rem;
 }
 
-.ops-closing-surface > div:first-child {
-  display: grid;
-  max-width: 50rem;
-  gap: 1rem;
+.ops-closing-band h3 {
+  max-width: 34ch;
+  text-wrap: balance;
 }
 
 .ops-closing-actions {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.ops-closing-links {
   display: flex;
-  grid-column: 1 / -1;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--ops-border);
-  gap: 2rem;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.75rem;
 }
 
-.ops-closing-links a {
+.ops-closing-actions > a:not(:first-child) {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
   gap: 0.5rem;
   color: var(--ops-text-muted);
-  font-size: 0.78rem;
+  font-size: 0.85rem;
+  transition: color 120ms ease;
+}
+
+.ops-closing-actions > a:not(:first-child):hover {
+  color: var(--ops-text);
 }
 
 .ops-footer {
@@ -1756,7 +1703,7 @@ button {
   border-top: 1px solid var(--molt-border);
   color: var(--molt-text-muted);
   font-family: var(--molt-font-mono);
-  font-size: 0.65rem;
+  font-size: 0.75rem;
 }
 
 @keyframes ops-pulse {
@@ -1821,8 +1768,9 @@ button {
     border-bottom: 1px solid var(--ops-border);
   }
 
-  .ops-factory-byproduct {
-    grid-template-columns: 1fr;
+  .ops-nav-menu-toggle {
+    display: inline-grid;
+    place-items: center;
   }
 }
 
@@ -1832,8 +1780,13 @@ button {
   }
 
   .ops-nav-brand > span,
-  .ops-nav-actions > a:not(:last-child) {
+  .ops-nav-actions > a:not(:nth-last-child(-n + 2)) {
     display: none;
+  }
+
+  .ops-nav-panel {
+    grid-template-columns: 1fr;
+    width: min(100% - 2rem, 90rem);
   }
 
   .ops-section {
@@ -1843,10 +1796,6 @@ button {
   .ops-hero {
     padding-top: 8rem;
     background: none;
-  }
-
-  .ops-display {
-    font-size: clamp(2.8rem, 12vw, 4.8rem) !important;
   }
 
   .ops-system-row,
@@ -1919,10 +1868,6 @@ button {
     order: initial;
   }
 
-  .ops-factory-audiences {
-    grid-template-columns: 1fr;
-  }
-
   .ops-factory-ledger-head {
     grid-template-columns: 1fr auto;
     min-height: auto;
@@ -1976,7 +1921,7 @@ button {
     gap: 0.35rem;
   }
 
-  .ops-closing-surface {
+  .ops-closing-band {
     grid-template-columns: 1fr;
   }
 
@@ -2034,11 +1979,11 @@ button {
   }
 
   .ops-hero-proof strong {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
   }
 
   .ops-hero-proof span {
-    font-size: 0.62rem;
+    font-size: 0.75rem;
   }
 
   .ops-map-header {
@@ -2075,11 +2020,29 @@ button {
 
   .ops-terminal > div {
     grid-template-columns: 3.7rem 1fr auto;
+    padding: 0.65rem 1.25rem;
+    row-gap: 0.3rem;
   }
 
   .ops-terminal code {
     grid-column: 1 / -1;
     grid-row: 2;
+    white-space: normal;
+  }
+
+  /* Captured screens are 2500px wide; at phone width they are unreadable
+     shrunk, so let the detail figures pan instead of squashing them. */
+  .ops-console-detail figure {
+    overflow-x: auto;
+  }
+
+  .ops-console-detail img {
+    min-width: 34rem;
+  }
+
+  .ops-console-detail figcaption {
+    position: sticky;
+    left: 0;
   }
 
   .ops-runtime-artifact footer,
@@ -2099,8 +2062,12 @@ button {
     border-bottom: 1px solid var(--ops-border);
   }
 
-  .ops-foundation-list,
-  .ops-closing-links {
+  .ops-foundation-list {
+    flex-direction: column;
+  }
+
+  .ops-closing-actions {
+    align-items: flex-start;
     flex-direction: column;
   }
 

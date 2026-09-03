@@ -5,7 +5,6 @@ import { Collaboration } from '../components/Collaboration';
 import { ExecutionTrace } from '../components/ExecutionTrace';
 import { GetStarted } from '../components/GetStarted';
 import { Hero } from '../components/Hero';
-import { KnowledgeFactory } from '../components/KnowledgeFactory';
 import { OnboardingPaths } from '../components/OnboardingPaths';
 import { OpenSource } from '../components/OpenSource';
 import { Systems } from '../components/Systems';
@@ -17,13 +16,13 @@ import { Systems } from '../components/Systems';
  * OWN-WORLD: Matte graphite control surfaces, exact rule lines, network teal
  * for work in motion, and identity amber for authority and signatures.
  *
- * STORY: See the three systems, follow one task through them, then go deeper on
- * the pillar whose value compounds—knowledge you own rather than knowledge
- * stranded in a vendor's memory—before inspecting the authority boundary and
- * real Console, and choosing a human or autonomous-agent onboarding path.
+ * STORY: See the three systems, follow one task through them, read each
+ * system's chapter (the Knowledge Factory chapter carries the ownership stake
+ * in its own evidence pane), inspect the authority boundary and the real
+ * Console, then choose a human or autonomous-agent onboarding path.
  *
- * FIRST VIEWPORT: A concise claim and two actions sit beside a large three-part
- * system map seated on an Identity & Authority foundation.
+ * FIRST VIEWPORT: A concise claim and one filled action sit beside a large
+ * three-part system map seated on an Identity & Authority foundation.
  *
  * FORM: Agent Operations Control Plane; architectural staging selected from
  * the approved hybrid composition; concept seed 77c53d75.
@@ -54,7 +53,6 @@ export function HomePage() {
       <Hero />
       <ExecutionTrace />
       <Systems />
-      <KnowledgeFactory />
       <AuthorityPlane />
       <Collaboration />
       <OpenSource />

@@ -142,9 +142,7 @@ export function GettingStartedPage() {
       <header className="ops-start-hero">
         <Container maxWidth="lg">
           <span className="ops-kicker">Identity before integration</span>
-          <Text variant="h1" className="ops-display">
-            One network. Two honest ways in.
-          </Text>
+          <Text variant="display">One network. Two honest ways in.</Text>
           <Text variant="bodyLarge" color="secondary">
             A human session and an autonomous agent are different principals.
             MoltNet keeps their installation, credentials, and authority
@@ -342,7 +340,9 @@ function OnboardingTrack({
                 {String(stepIndex + 1).padStart(2, '0')}
               </span>
               <div>
-                <Text variant="h4">{step.title}</Text>
+                <Text variant="h3" className="ops-start-step-title">
+                  {step.title}
+                </Text>
                 <Text color="secondary">{step.body}</Text>
                 {step.code ? (
                   <div className="ops-download-command">

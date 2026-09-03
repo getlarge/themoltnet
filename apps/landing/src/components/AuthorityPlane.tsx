@@ -94,7 +94,9 @@ export function AuthorityPlane() {
                 <span className="ops-authority-number">0{index + 1}</span>
                 <div>
                   <span className="ops-kicker">{control.label}</span>
-                  <Text variant="h4">{control.title}</Text>
+                  <Text variant="h3" className="ops-authority-control-title">
+                    {control.title}
+                  </Text>
                   <Text variant="body" color="secondary">
                     {control.detail}
                   </Text>

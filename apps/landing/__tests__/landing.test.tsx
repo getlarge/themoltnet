@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MoltThemeProvider } from '@themoltnet/design-system';
 import { describe, expect, it, vi } from 'vitest';
 import { Router } from 'wouter';
@@ -18,7 +18,6 @@ import { TagChip } from '../src/components/feed/TagChip';
 import { Footer } from '../src/components/Footer';
 import { GetStarted } from '../src/components/GetStarted';
 import { Hero } from '../src/components/Hero';
-import { KnowledgeFactory } from '../src/components/KnowledgeFactory';
 import { Nav } from '../src/components/Nav';
 import { OnboardingPaths } from '../src/components/OnboardingPaths';
 import { OpenSource } from '../src/components/OpenSource';
@@ -56,10 +55,6 @@ describe('smoke render', () => {
 
   it('renders Hero', () => {
     wrap(<Hero />);
-  });
-
-  it('renders KnowledgeFactory', () => {
-    wrap(<KnowledgeFactory />);
   });
 
   it('renders ExecutionTrace', () => {
@@ -118,17 +113,30 @@ describe('content', () => {
     expect(screen.getByText('Identity & Authority')).toBeInTheDocument();
   });
 
-  it('Hero foregrounds the principal choice', () => {
+  it('Hero carries the one primary action and keeps proof in-page', () => {
     wrapWithRouter(<Hero />);
 
-    const onboardingLinks = screen.getAllByRole('link', {
-      name: 'Choose how you join',
-    });
-    expect(onboardingLinks).toHaveLength(1);
-    expect(onboardingLinks[0]).toHaveAttribute('href', '#join-moltnet');
+    const primary = screen.getAllByRole('link', { name: 'Get started' });
+    expect(primary).toHaveLength(1);
+    expect(primary[0]).toHaveAttribute('href', '/getting-started');
     expect(
-      screen.queryByRole('button', { name: 'Run a supervised pilot' }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('link', { name: 'Follow one task' }),
+    ).toHaveAttribute('href', '#execution-trace');
+    // Every proof chip is a route into evidence, not just the first one.
+    expect(screen.getByRole('link', { name: /policy-bound/i })).toHaveAttribute(
+      'href',
+      '#agent-runtime',
+    );
+    expect(screen.getByRole('link', { name: /attributable/i })).toHaveAttribute(
+      'href',
+      '#execution-trace',
+    );
+    // In-page anchors use the in-page glyph, not the external-link glyph.
+    for (const link of screen.getAllByRole('link', {
+      name: /inspect system/i,
+    })) {
+      expect(link.textContent).not.toContain('↗');
+    }
   });
 
   it('Getting Started separates human and autonomous-agent identity', () => {
@@ -200,19 +208,20 @@ describe('content', () => {
     expect(nginx).toContain('try_files /terms.html =404;');
   });
 
-  it('KnowledgeFactory leads with ownership and portability of agent memory', () => {
-    wrap(<KnowledgeFactory />);
+  it('Knowledge Factory chapter carries the ownership ledger once', () => {
+    const { container } = wrapWithRouter(<HomePage />);
 
-    expect(
-      screen.getByRole('heading', {
-        name: 'Your agents learn on your work. That memory should be yours.',
-      }),
-    ).toBeInTheDocument();
+    // One Knowledge Factory section, not a chapter plus a deep dive.
+    expect(container.querySelectorAll('#knowledge-factory')).toHaveLength(1);
+    expect(container.querySelector('#knowledge-ownership')).toBeNull();
 
     const ledger = screen.getByRole('list', {
       name: 'Knowledge portability ledger',
     });
     expect(ledger.querySelectorAll(':scope > li')).toHaveLength(4);
+    expect(
+      container.querySelector('#knowledge-factory')?.contains(ledger),
+    ).toBe(true);
     // Direction is announced, not just struck through, so the ledger still
     // reads as before/after without the visual column captions.
     expect(screen.getByText('Assistant memory')).toHaveTextContent(
@@ -221,44 +230,11 @@ describe('content', () => {
     expect(screen.getByText('Context pack')).toHaveTextContent(
       'In MoltNet: Context pack',
     );
-  });
-
-  it('KnowledgeFactory addresses both the individual and the organisation', () => {
-    wrap(<KnowledgeFactory />);
-
-    expect(screen.getByText('For one person')).toBeInTheDocument();
+    // No second Knowledge Factory heading or audience cards anywhere.
     expect(
-      screen.getByRole('heading', {
-        name: 'Own the conversations you already had.',
-      }),
-    ).toBeInTheDocument();
-    expect(screen.getByText('For an organisation')).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', {
-        name: 'One memory instead of twelve silos.',
-      }),
-    ).toBeInTheDocument();
-  });
-
-  it('KnowledgeFactory credits the other two pillars rather than demoting them', () => {
-    wrap(<KnowledgeFactory />);
-
-    expect(
-      screen.getByRole('heading', {
-        name: 'This pillar is only worth anything because the other two hold it up.',
-      }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Task Engine/ })).toHaveAttribute(
-      'href',
-      '#task-engine',
-    );
-    expect(screen.getByRole('link', { name: /Agent Runtime/ })).toHaveAttribute(
-      'href',
-      '#agent-runtime',
-    );
-    expect(
-      screen.getByRole('link', { name: /Identity & Authority/ }),
-    ).toHaveAttribute('href', '#identity-authority');
+      screen.queryByText(/that memory should be yours/i),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('For one person')).not.toBeInTheDocument();
   });
 
   it('Systems exposes exactly one runnable guide for each system', () => {
@@ -300,9 +276,7 @@ describe('content', () => {
     wrap(<Hero />);
 
     expect(
-      screen.getByRole('link', {
-        name: /follow one task through the system/i,
-      }),
+      screen.getByRole('link', { name: /follow one task/i }),
     ).toHaveAttribute('href', '#execution-trace');
   });
 
@@ -485,14 +459,27 @@ describe('content', () => {
     });
   });
 
-  it('GetStarted closes on the two onboarding paths', () => {
+  it('GetStarted closes with the same primary action as the hero and nav', () => {
     wrap(<GetStarted />);
     expect(
-      screen.getByText('Bring one human or one agent onto the network.'),
+      screen.getByRole('heading', { name: /run a bounded pilot/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /get started/i })).toHaveAttribute(
+      'href',
+      '/getting-started',
+    );
+    expect(screen.queryByText(/choose your path/i)).not.toBeInTheDocument();
+  });
+
+  it('OpenSource shows how to install before anything else and copies it', () => {
+    wrap(<OpenSource />);
+    expect(
+      screen.getByText('brew install --cask getlarge/moltnet/moltnet'),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /choose your path/i }),
-    ).toHaveAttribute('href', '/getting-started');
+      screen.getByRole('button', { name: 'Copy the CLI install command' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/moltnet agents init/)).not.toBeInTheDocument();
   });
 
   it('Nav links to the console', () => {
@@ -503,7 +490,7 @@ describe('content', () => {
     expect(link.getAttribute('rel')).toContain('noopener');
   });
 
-  it('Nav exposes direct anchors to the three systems', () => {
+  it('Nav exposes direct anchors to the systems under their binding names', () => {
     wrapWithRouter(<Nav />);
     expect(screen.getByRole('link', { name: 'Task Engine' })).toHaveAttribute(
       'href',
@@ -513,10 +500,36 @@ describe('content', () => {
       'href',
       '/#agent-runtime',
     );
-    expect(screen.getByRole('link', { name: 'Knowledge' })).toHaveAttribute(
-      'href',
-      '/#knowledge-factory',
+    expect(
+      screen.getByRole('link', { name: 'Knowledge Factory' }),
+    ).toHaveAttribute('href', '/#knowledge-factory');
+    expect(screen.queryByRole('link', { name: 'Knowledge' })).toBeNull();
+  });
+
+  it('Nav demotes its button on the home route and opens a full menu on demand', () => {
+    wrapWithRouter(<Nav />, '/');
+
+    const toggle = screen.getByRole('button', { name: 'Open menu' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    // The panel is hidden until opened, so its links are not in the tree.
+    expect(screen.getAllByRole('link', { name: 'Docs' })).toHaveLength(1);
+
+    fireEvent.click(toggle);
+
+    expect(screen.getByRole('button', { name: 'Close menu' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
     );
+    expect(screen.getAllByRole('link', { name: 'Docs' })).toHaveLength(2);
+    expect(screen.getAllByRole('link', { name: 'Console' })).toHaveLength(2);
+    expect(
+      screen.getAllByRole('link', { name: 'Identity & Authority' }).length,
+    ).toBeGreaterThan(0);
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(
+      screen.getByRole('button', { name: 'Open menu' }),
+    ).toBeInTheDocument();
   });
 
   it('App exposes a skip link and main landmark', () => {
