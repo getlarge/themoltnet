@@ -1261,6 +1261,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Publish CLI release
+        run: gh release edit "${{ needs.resolve-publish.outputs.cli-tag }}" --draft=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       # Linux counterpart of the tap and bucket: getlarge/apt-moltnet is a
       # GitHub Pages site holding a reprepro-generated APT repository. The
       # repository is rebuilt from scratch on every CLI release (only the newest
@@ -1270,7 +1275,12 @@ jobs:
       # the index is signed with a dedicated GPG key (APT_SIGNING_KEY) rather
       # than the ssh release key; the public half is committed to apt-moltnet as
       # moltnet.gpg and pinned by fingerprint below so a swapped secret cannot
-      # silently re-key the repository.
+      # silently re-key the repository. The index is verified with gpgv against
+      # that published moltnet.gpg (exactly what apt does on the client), so a
+      # stale or wrong public key fails the release instead of every user's
+      # `apt update`. This step runs AFTER the GitHub release is public: the
+      # whole thing is idempotent (regenerate + force-push), so a flaky mirror
+      # or push must never hold the tarballs, tap and bucket hostage.
       - name: Publish APT repository
         env:
           APT_SIGNING_KEY: ${{ secrets.APT_SIGNING_KEY }}
@@ -1279,12 +1289,28 @@ jobs:
           CLI_VERSION: ${{ steps.tag.outputs.semver }}
         run: |
           set -euo pipefail
+          # retry <label> <command...>: three attempts with a short backoff for
+          # the network calls only (mirrors, clone, push). Everything that
+          # checks keys or signatures stays single-shot and fails loudly.
+          retry() {
+            local label="$1" attempt=1
+            shift
+            until "$@"; do
+              if [ "$attempt" -ge 3 ]; then
+                echo "::error::${label} failed after ${attempt} attempts"
+                return 1
+              fi
+              echo "::warning::${label} failed (attempt ${attempt}/3); retrying in $((attempt * 15))s"
+              sleep $((attempt * 15))
+              attempt=$((attempt + 1))
+            done
+          }
           if [ -z "$APT_SIGNING_KEY" ]; then
             echo "::error::APT_SIGNING_KEY is not configured; refusing to publish an unsigned APT repository"
             exit 1
           fi
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq reprepro >/dev/null
+          retry "apt-get update" sudo apt-get update -qq
+          retry "apt-get install reprepro" sudo apt-get install -y -qq reprepro
 
           export GNUPGHOME="$RUNNER_TEMP/apt-gnupg"
           mkdir -m 700 "$GNUPGHOME"
@@ -1295,8 +1321,12 @@ jobs:
           fi
 
           REPO="$RUNNER_TEMP/apt-moltnet"
-          git clone --quiet --depth 1 \
-            "https://x-access-token:${APT_REPO_TOKEN}@github.com/getlarge/apt-moltnet.git" "$REPO"
+          clone_apt_repo() {
+            rm -rf "$REPO"
+            git clone --quiet --depth 1 \
+              "https://x-access-token:${APT_REPO_TOKEN}@github.com/getlarge/apt-moltnet.git" "$REPO"
+          }
+          retry "clone apt-moltnet" clone_apt_repo
           cd "$REPO"
           if ! grep -qx "SignWith: ${APT_SIGNING_FINGERPRINT}" conf/distributions; then
             echo "::error::apt-moltnet conf/distributions does not pin SignWith: ${APT_SIGNING_FINGERPRINT}"
@@ -1310,19 +1340,28 @@ jobs:
           rm -rf dists pool db
           reprepro --basedir . includedeb stable "$GITHUB_WORKSPACE"/apps/moltnet-cli/dist/*.deb
           reprepro --basedir . list stable
-          gpg --batch --verify dists/stable/InRelease
-          gpg --batch --verify dists/stable/Release.gpg dists/stable/Release
+
+          # Verify like a client: gpgv with the published keyring only (no web
+          # of trust, no imported secret key), and require VALIDSIG to name the
+          # pinned fingerprint.
+          verify_with_published_key() {
+            gpgv --keyring "$PWD/moltnet.gpg" --status-fd 1 "$@" 2>/dev/null \
+              | grep -q "^\[GNUPG:\] VALIDSIG ${APT_SIGNING_FINGERPRINT} "
+          }
+          if ! verify_with_published_key dists/stable/InRelease; then
+            echo "::error::dists/stable/InRelease does not verify against the published moltnet.gpg with key ${APT_SIGNING_FINGERPRINT}"
+            exit 1
+          fi
+          if ! verify_with_published_key dists/stable/Release.gpg dists/stable/Release; then
+            echo "::error::dists/stable/Release.gpg does not verify against the published moltnet.gpg with key ${APT_SIGNING_FINGERPRINT}"
+            exit 1
+          fi
 
           git checkout --quiet --orphan release
           git add -A
           git -c user.name='MoltNet Release Signing' -c user.email='legreffier@themolt.net' \
             commit --quiet -m "release: moltnet ${CLI_VERSION}"
-          git push --quiet --force origin release:main
-
-      - name: Publish CLI release
-        run: gh release edit "${{ needs.resolve-publish.outputs.cli-tag }}" --draft=false
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          retry "push apt-moltnet" git push --quiet --force origin release:main
 
   publish-cli-platforms:
     name: Publish @themoltnet/cli-${{ matrix.npm_dir }} to npm
