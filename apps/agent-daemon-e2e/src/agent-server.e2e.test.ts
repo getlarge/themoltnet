@@ -30,6 +30,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const ALLOWED_ORIGIN = 'http://localhost:5174';
+const PAIRING_ORIGIN = 'http://localhost:5175';
 const OTHER_ORIGIN = 'http://localhost:9999';
 const AGENT_SERVER_TOKEN_HEADER = 'x-moltnet-agent-server-token';
 const DAEMON_ROOT = resolve(import.meta.dirname, '../../agent-daemon');
@@ -201,7 +202,7 @@ class AgentServerSupervisor {
   static async start(options: {
     root: string;
     apiUrl: string;
-    allowedOrigin: string;
+    allowedOrigins: readonly string[];
   }): Promise<AgentServerSupervisor> {
     const port = await freePort();
     const baseUrl = `http://127.0.0.1:${port}`;
@@ -212,7 +213,7 @@ class AgentServerSupervisor {
         '--root',
         options.root,
         '--allowed-origins',
-        options.allowedOrigin,
+        options.allowedOrigins.join(','),
         '--api-url',
         options.apiUrl,
       ]),
@@ -389,11 +390,13 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       '/api/tags': { models: [{ name: 'tags-only-model' }] },
     });
 
-    agentServerRoot = await mkdtemp(join(tmpdir(), 'moltnet-agent-server-e2e-'));
+    agentServerRoot = await mkdtemp(
+      join(tmpdir(), 'moltnet-agent-server-e2e-'),
+    );
     supervisor = await AgentServerSupervisor.start({
       root: agentServerRoot,
       apiUrl: harness.restApiUrl,
-      allowedOrigin: ALLOWED_ORIGIN,
+      allowedOrigins: [ALLOWED_ORIGIN, PAIRING_ORIGIN],
     });
     base = supervisor.baseUrl;
   });
@@ -410,7 +413,8 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
           }),
       ),
     );
-    if (agentServerRoot) await rm(agentServerRoot, { recursive: true, force: true });
+    if (agentServerRoot)
+      await rm(agentServerRoot, { recursive: true, force: true });
     await harness?.teardown();
   });
 
@@ -457,10 +461,12 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     // Assert: only the pairing origin can claim the token.
     const stolen = await call(`/v1/pairings/${pairingId}/claim`, {
       method: 'POST',
-      origin: OTHER_ORIGIN,
+      origin: PAIRING_ORIGIN,
     });
     expect(stolen.status).toBe(403);
-    expect((stolen.json as AgentServerError).code).toBe('origin_not_allowed');
+    expect((stolen.json as AgentServerError).code).toBe(
+      'pairing_origin_mismatch',
+    );
 
     const claimed = await call(`/v1/pairings/${pairingId}/claim`, {
       method: 'POST',
@@ -483,9 +489,9 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     // A token presented from another origin is not honoured.
     const crossOrigin = await call('/v1/status', {
       token,
-      origin: OTHER_ORIGIN,
+      origin: PAIRING_ORIGIN,
     });
-    expect(crossOrigin.status).toBe(403);
+    expect(crossOrigin.status).toBe(401);
   });
 
   it('discovers models from OpenAI-compatible and Ollama endpoints, failing closed otherwise', async () => {
@@ -682,7 +688,9 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     expect(listed.status).toBe(200);
     expect(listed.text).not.toContain(RAW_API_KEY);
 
-    expect(await configFilesContaining(agentServerRoot, RAW_API_KEY)).toEqual([]);
+    expect(await configFilesContaining(agentServerRoot, RAW_API_KEY)).toEqual(
+      [],
+    );
   });
 
   it('refuses a managed agent without an invitation code', async () => {
@@ -763,7 +771,9 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     });
     expect(result.status).toBe(400);
     expect((result.json as AgentServerError).code).toBe('invalid_spec');
-    expect((result.json as AgentServerError).message).toContain('bound to team');
+    expect((result.json as AgentServerError).message).toContain(
+      'bound to team',
+    );
   });
 
   it('starts a daemon run that polls the API, streams its logs, and stops on request', async () => {

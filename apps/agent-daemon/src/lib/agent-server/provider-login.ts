@@ -411,7 +411,7 @@ export class ProviderLoginService {
     }
     const restored = this.invalidate(login, 'cancelled');
     if (!restored) {
-      throw new ServeSubscriptionError(
+      throw new AgentServerSubscriptionError(
         'login_cleanup_failed',
         `could not safely cancel login for "${providerId}"; credential cleanup requires intervention`,
       );

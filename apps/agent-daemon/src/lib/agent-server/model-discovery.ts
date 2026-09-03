@@ -91,7 +91,7 @@ export function parseProviderBaseUrl(value: string, providerId: string): URL {
     );
   }
   if (isNonLoopbackPrivateAddress(parsed.hostname)) {
-    throw new ServeModelDiscoveryError(
+    throw new AgentServerModelDiscoveryError(
       'invalid_provider',
       `provider "${providerId}" base URL must not target a private network address`,
       400,
