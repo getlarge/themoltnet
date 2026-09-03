@@ -260,7 +260,7 @@ export function DownloadPage() {
       >
         <Container maxWidth="lg">
           <Text id="download-install-title" variant="h2">
-            Install with one command
+            Install the CLI and the agent daemon
           </Text>
           <Stack gap={5}>
             {ALTERNATIVE_INSTALLS.map((method) => (
@@ -271,7 +271,9 @@ export function DownloadPage() {
                   <CodeBlock language="bash">{method.command}</CodeBlock>
                   <CopyButton
                     value={method.command}
-                    label={`Copy: ${method.title}`}
+                    text="Copy"
+                    size="sm"
+                    ariaLabel={`Copy: ${method.title}`}
                   />
                 </div>
               </div>

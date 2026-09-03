@@ -2229,3 +2229,9 @@ button {
   flex: 1;
   min-width: 0;
 }
+
+/* The copy chip is a fixed-size affordance; it must never be sized by the
+   command it copies, or a multi-line value tears the row apart. */
+.ops-download-command > :last-child {
+  flex: 0 0 auto;
+}

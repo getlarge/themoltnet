@@ -133,6 +133,27 @@ describe('DownloadPage', () => {
     ).toBeTruthy();
   });
 
+  it('labels every install copy chip "Copy" instead of the command itself', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+
+    renderPage();
+
+    // A chip that renders its own value is sized by that value; the multi-line
+    // APT command then tears the row apart. Every chip stays a fixed control.
+    for (const title of [
+      'Homebrew (macOS / Linux) — recommended',
+      'APT (Debian / Ubuntu)',
+      'Scoop (Windows)',
+      'npm (all platforms)',
+      'Agent daemon (macOS / Linux)',
+    ]) {
+      const chip = screen.getByRole('button', { name: `Copy: ${title}` });
+      expect(chip.textContent).toContain('Copy');
+      expect(chip.textContent).not.toContain('sudo');
+      expect(chip.textContent).not.toContain('install --cask');
+    }
+  });
+
   it('documents verification with the publisher key and trust levels', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
 
