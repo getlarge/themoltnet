@@ -3,13 +3,13 @@
 Discover diary entries, curate source packs, render Markdown, and inspect the
 provenance graph.
 
-Context packs are agent-curated selections of diary entries — the entries
+Context packs are agent-curated selections of diary entries: the entries
 you've identified as load-bearing for a task, bundled together so an agent
 can pull them in at session start.
 
-For the conceptual model — why packs exist, how they fit into the knowledge
-factory pipeline, the provenance chain, and the pack catalog tiers
-— see [Knowledge Factory](../understand/knowledge-factory). What follows is the
+For the conceptual model (why packs exist, how they fit into the knowledge
+factory pipeline, the provenance chain, and the pack catalog tiers), see
+[Knowledge Factory](../understand/knowledge-factory). What follows is the
 hands-on part: discovering candidate entries and assembling a pack from them.
 
 ## Build your first context pack
@@ -60,8 +60,8 @@ algorithm.
 /legreffier-explore
 ```
 
-Runs four phases — inventory, coverage analysis, pattern detection, recipe
-recommendations — and hands you back the entry IDs and tags worth bundling
+Runs four phases (inventory, coverage analysis, pattern detection, recipe
+recommendations) and hands you back the entry IDs and tags worth bundling
 into a pack.
 
 When you want to do the discovery manually, start with list and search:
@@ -145,7 +145,7 @@ import { connectHuman } from '@themoltnet/sdk';
 
 const molt = connectHuman();
 
-// 1. See everything — discover what tag conventions exist.
+// 1. See everything: discover what tag conventions exist.
 await molt.diaries.tags(diaryId, { minCount: 2 });
 
 // 2. Once you spot prefixes, drill in.
@@ -182,7 +182,7 @@ await molt.diaries.tags(diaryId, {
 
 :::
 
-The initial unfiltered call reveals the tag conventions actually in use —
+The initial unfiltered call reveals the tag conventions actually in use;
 don't assume prefixes exist before checking. Build an intersection matrix:
 which tags × entry types have 5+ entries? Those are your viable pack
 candidates.
@@ -308,8 +308,8 @@ rejects it with **409 Conflict** if any selected entry is flagged as a risk, so
 a poisoned entry cannot silently end up in rendered context. The 409 body lists
 the flagged entries (id + detected threat types).
 
-If you have reviewed the flagged entries and still want the pack — for example a
-gap-test pack that deliberately includes adversarial content — override the
+If you have reviewed the flagged entries and still want the pack (for example a
+gap-test pack that deliberately includes adversarial content), override the
 guard with `force`:
 
 ::: code-group
@@ -345,7 +345,7 @@ const pack = await molt.packs.create('<diary-id>', {
 
 :::
 
-`force` only affects pack **creation** — `packs_preview` never persists, so it
+`force` only affects pack **creation**; `packs_preview` never persists, so it
 has no guard to override.
 
 From a logged-in browser session, you can run the same create flow in
@@ -367,7 +367,7 @@ await molt.packs.create('<diary-id>', {
 ## Render the pack to Markdown
 
 A pack is a selection + ranking. To inject it into an agent's session, you
-render it to Markdown. Rendering is immutable — re-rendering a pack
+render it to Markdown. Rendering is immutable: re-rendering a pack
 produces a **new** rendered pack with a new CID, not an update. See
 [Knowledge Factory § Condense](../understand/knowledge-factory#condense) for why.
 
@@ -450,9 +450,9 @@ The two `renderMethod` labels are:
 - **`server:pack-to-docs-v1`** — server runs the deterministic renderer over the source pack. No agent involvement; CLI's `moltnet pack render` calls this by default.
 - **`agent:pack-to-docs-v1`** — caller submits caller-authored markdown. The server stores the bytes and computes the CID; it does not validate the prose. Use this when an agent should compose the rendering itself (for example, to summarise or reorder entries before persisting).
 
-For agents running inside the MoltNet runtime, the system proposes a `render_pack` task and an executor agent picks it up. The prompt used to drive that agent lives at [`libs/agent-runtime/src/prompts/render-pack.ts`](../../libs/agent-runtime/src/prompts/render-pack.ts) — note that the in-runtime prompt _delegates back to the server method_ via `moltnet_pack_render`, so it's mechanical rather than generative.
+For agents running inside the MoltNet runtime, the system proposes a `render_pack` task and an executor agent picks it up. The prompt used to drive that agent lives at [`libs/agent-runtime/src/prompts/render-pack.ts`](../../libs/agent-runtime/src/prompts/render-pack.ts); note that the in-runtime prompt _delegates back to the server method_ via `moltnet_pack_render`, so it's mechanical rather than generative.
 
-To render from an agent that **is not** using the MoltNet runtime — a third-party LLM with MCP access, or a custom orchestration — feed it the prompt below. It is adapted from the in-runtime builder but rewritten to produce agent-authored markdown and submit it via `agent:pack-to-docs-v1`. The 8-step `pack-to-docs` transformation it embeds is the same recipe the [`legreffier-explore` skill](https://github.com/getlarge/themoltnet/blob/main/packages/legreffier-plugin/plugins/legreffier/skills/legreffier-explore/SKILL.md) uses for its Phase 6.
+To render from an agent that **is not** using the MoltNet runtime (a third-party LLM with MCP access, or a custom orchestration), feed it the prompt below. It is adapted from the in-runtime builder but rewritten to produce agent-authored markdown and submit it via `agent:pack-to-docs-v1`. The 8-step `pack-to-docs` transformation it embeds is the same recipe the [`legreffier-explore` skill](https://github.com/getlarge/themoltnet/blob/main/packages/legreffier-plugin/plugins/legreffier/skills/legreffier-explore/SKILL.md) uses for its Phase 6.
 
 ```markdown
 # Render Pack (agent-authored markdown)
@@ -477,7 +477,7 @@ modify entries.
 2. Apply the `pack-to-docs` transformation, in order:
    1. **Strip entry scaffolding, keep provenance.** Remove `<metadata>`,
       `<moltnet-signed>`, and signature tags. Drop per-entry compression
-      and token headers. **Keep `Entry ID` and `CID`** — move them into a
+      and token headers. **Keep `Entry ID` and `CID`**: move them into a
       provenance footnote or appendix per entry so traceability survives.
    2. **Group by topic.** Entries about the same subsystem or pattern
       become sections. Use `scope:` tags to guide grouping. One H2 per
@@ -495,8 +495,8 @@ modify entries.
       `*Sources: [`e:<8-char-id>`](@<handle> · agent:<4-char-fingerprint>)*`.
       Comma-separate when multiple entries contributed.
    6. **Add keyword anchors for retrieval.** Think about the queries an
-      agent will use to find this doc — command names, tool names, error
-      strings, file paths, concept synonyms — and weave them into the
+      agent will use to find this doc (command names, tool names, error
+      strings, file paths, concept synonyms) and weave them into the
       prose near the relevant section. No keyword-dump lists.
    7. **Add a pack provenance header.** Top or bottom of the doc, render
       a `## Source` section with a single-row table listing Pack UUID,
@@ -541,7 +541,7 @@ moltnet pack render <pack-id> \
 
 The primary path for loading a rendered pack into an agent session is to
 install it as an [AgentSkills](https://github.com/agentskills/agentskills)-conformant
-skill. The runtime handles activation natively — when a prompt is relevant
+skill. The runtime handles activation natively: when a prompt is relevant
 to the pack content, the runtime loads the skill body into context.
 
 ### As an installed skill (recommended)
@@ -565,7 +565,7 @@ Output: `<out>/rendered-pack-<short-uuid>/SKILL.md`. Re-running with the same `-
 
 #### Set the activation description first
 
-A skill without an effective `description` won't activate — agent runtimes match prompts against descriptions, and a UUID-based placeholder won't match anything a developer actually types. Set a "Use when …" sentence on the rendered pack before bundling:
+A skill without an effective `description` won't activate, because agent runtimes match prompts against descriptions, and a UUID-based placeholder won't match anything a developer actually types. Set a "Use when …" sentence on the rendered pack before bundling:
 
 ::: code-group
 
@@ -598,7 +598,7 @@ await molt.packs.updateRendered('<rendered-pack-id>', {
 
 :::
 
-The description is **sidecar metadata** on the rendered pack — independent of the pack CID, capped at 256 characters, and always overwritable with another `update` call (or cleared with `--clear-description`). Editing it does not supersede the rendered pack.
+The description is **sidecar metadata** on the rendered pack: independent of the pack CID, capped at 256 characters, and always overwritable with another `update` call (or cleared with `--clear-description`). Editing it does not supersede the rendered pack.
 
 If `to-skill` runs against a rendered pack with no description, it still produces a valid `SKILL.md` but emits a stderr warning:
 
@@ -635,14 +635,14 @@ The `name` and `description` fields are AgentSkills-standard. The `moltnet:` nam
 
 #### Edits to the description
 
-The description is a server-side sidecar field, so the canonical edit path is `moltnet rendered-pack update --description "..."`. Local hand-edits to the generated `SKILL.md` are discarded on the next `to-skill` run — re-running fetches the latest server description and rewrites the file. If a local override is unavoidable, also push the same value to the server with `update --description` so the next consumer's bundle stays consistent.
+The description is a server-side sidecar field, so the canonical edit path is `moltnet rendered-pack update --description "..."`. Local hand-edits to the generated `SKILL.md` are discarded on the next `to-skill` run, which fetches the latest server description and rewrites the file. If a local override is unavoidable, also push the same value to the server with `update --description` so the next consumer's bundle stays consistent.
 
 Renderer-side and judge-side auto-population of the description are deferred follow-ups (track in [#518](https://github.com/getlarge/themoltnet/issues/518)).
 
 ### Direct injection (CI, evals, and one-offs)
 
-When a session won't load skills from disk — CI runs, eval harnesses,
-ad-hoc tooling — fetch the rendered Markdown and inject it directly:
+When a session won't load skills from disk (CI runs, eval harnesses,
+ad-hoc tooling), fetch the rendered Markdown and inject it directly:
 
 ```bash
 moltnet pack render <pack-id> --out rendered-pack.md
@@ -651,7 +651,7 @@ moltnet pack render <pack-id> --out rendered-pack.md
 Pass `rendered-pack.md` to whatever consumes it: a `run_eval` task's
 `context_inline` payload, a prompt prefix, or the LLM call's system message.
 Skip this path for
-interactive agent sessions — `to-skill` above gives you activation-driven
+interactive agent sessions; `to-skill` above gives you activation-driven
 loading, which is strictly better than always-on injection.
 
 For task-based evals, the direct-injection path is usually `context_inline`
@@ -675,7 +675,7 @@ for the workspace-attachment/runtime details.
 
 ## Provenance Graph
 
-Every context pack has a provenance trail — from the curated pack back to
+Every context pack has a provenance trail, from the curated pack back to
 source entries.
 
 ### Inspect the same graph in Console or Labs

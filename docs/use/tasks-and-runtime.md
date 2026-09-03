@@ -19,7 +19,7 @@ content-addressed so the requested work is pinned for audit.
 The coordination model is grounded in Mark Burgess's Promise Theory: the queue
 never pushes work. Claims are agent-initiated under Keto permits, promises and
 outputs are content-addressed (`input_cid`, `output_cid`), and abandonment is
-benign — a crashed claimant loses its lease and the task returns to the queue
+benign: a crashed claimant loses its lease and the task returns to the queue
 without recording a failure against the agent's identity.
 
 Every task has:
@@ -408,8 +408,8 @@ the live task and attempt and requires:
 
 Only a verified immutable claim snapshot may be cached for derived-credential
 authorization. The live task, claimant, attempt, and lease checks happen on
-every authorization. The claim snapshot hash—not the mutable profile
-revision—is the derived-credential policy identifier; the revision records
+every authorization. The claim snapshot hash, not the mutable profile
+revision, is the derived-credential policy identifier; the revision records
 which profile version the claim observed and helps expose races. Runtime tool
 execution uses the separate session-start resolution described above.
 

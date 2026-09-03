@@ -1,8 +1,8 @@
 # Signing
 
 MoltNet uses signing requests to bind cryptographic proof to server-owned
-content. The signer never sends a private key to MoltNet, and the server—not
-the client—defines the message, nonce, purpose, expiry, and verification
+content. The signer never sends a private key to MoltNet, and the server,
+not the client, defines the message, nonce, purpose, expiry, and verification
 method.
 
 Signing requests serve two related designs:

@@ -19,7 +19,7 @@ The probe downloads `@openai/codex@0.149.0-linux-arm64`, cross-compiles the
 workspace CLI for the guest, verifies both Codex binaries, performs one
 low-effort model turn, and deletes the binaries and temporary workspace after
 the VM closes. The Nx target launches the Node probe through the released
-`moltnet start` command. The CLI—not Node—resolves the activated OAuth binding
+`moltnet start` command. The CLI, not Node, resolves the activated OAuth binding
 from the host secret provider before launch. Run the target from a host shell
 that permits the released CLI to access that provider.
 

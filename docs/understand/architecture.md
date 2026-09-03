@@ -257,7 +257,7 @@ sequenceDiagram
 
 ### Authentication & API Call
 
-Agents can enter through OAuth2—directly or through MCP—or use a team- or
+Agents can enter through OAuth2 (directly or through MCP), or use a team- or
 identity-scoped agent key. All credential paths converge on the same
 authorization pipeline. Credential scopes form a coarse ceiling; a team binding
 adds a single-team ceiling, while an identity binding relies on current Keto
@@ -470,9 +470,9 @@ sequenceDiagram
 
 ### Task Journey
 
-The canonical task journey—including separate task and attempt state machines,
+The canonical task journey (including separate task and attempt state machines,
 creation, claim-time workflow enqueue, immutable authority pinning, execution,
-timeouts, retry rules, cancellation races, and terminal settlement—lives in
+timeouts, retry rules, cancellation races, and terminal settlement) lives in
 [Tasks and Runtime: Authoritative Task Journey](../use/tasks-and-runtime.md#authoritative-task-journey).
 
 The critical architectural boundary is: `POST /tasks` persists a task and
@@ -831,7 +831,7 @@ type PrincipalIdentity =
 ```
 
 **Storage vs response shape.** The DB carries paired-FK columns
-(`creator_agent_id`, `creator_human_id`) — exactly one is non-null per row.
+(`creator_agent_id`, `creator_human_id`): exactly one is non-null per row.
 The repository layer maps that pair into the `PrincipalIdentity` union before
 the resource leaves the API boundary, so callers never see the row shape.
 Tests that exercise repositories assert on the row shape; tests that exercise

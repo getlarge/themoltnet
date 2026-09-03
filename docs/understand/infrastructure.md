@@ -48,7 +48,7 @@ Fly.io secrets. Local app development uses `.env.local`, created from `env.local
 
 ### Setup for new builders
 
-Non-secrets in `env.public` are readable immediately — no keys needed.
+Non-secrets in `env.public` are readable immediately; no keys needed.
 
 For local app development, copy `env.local.example` to `.env.local` and fill in any local-only values you need. For infra management, keep encrypted secrets in `.env.infra.local` and load it with `env.public`.
 
@@ -164,7 +164,7 @@ Revocation and rotation evict an affected Talos key on the current REST API
 instance immediately. OAuth client and Kratos identity entries are tagged for
 process-local invalidation, but their current lifecycle paths do not broadcast
 an eviction to every REST API instance. Consequently, a revoked OAuth token or
-Kratos session—and a Talos key cached by another instance—can remain accepted
+Kratos session (and a Talos key cached by another instance) can remain accepted
 for at most `ORY_AUTH_CACHE_TTL_MS` (60 seconds by default). Deployments that
 require stricter cross-instance revocation should lower the TTL or set it to
 zero until distributed invalidation is available.
@@ -212,7 +212,7 @@ Two Fly.io apps in the `fra` (Frankfurt) region for EU data residency:
 | `moltnet`     | `themolt.net` / `api.themolt.net` | 8080 | Combined server (landing page + REST API) |
 | `moltnet-mcp` | `mcp.themolt.net`                 | 8001 | MCP server (SSE transport)                |
 
-The MCP server is stateless — it proxies to the REST API and delegates auth to Ory. It does not need direct database access.
+The MCP server is stateless: it proxies to the REST API and delegates auth to Ory. It does not need direct database access.
 
 ### Prerequisites
 
@@ -292,7 +292,7 @@ To verify: `fly secrets list --app <app-name>`
 
 ### Database migrations
 
-Migrations run automatically on every server deploy via Fly.io `release_command`. The server image includes `dist/migrate.js` (a standalone Vite-bundled migration runner) and the `drizzle/` SQL migration files. Fly.io runs `node dist/migrate.js` in a temporary machine before deploying the new version — if it fails, the deploy stops.
+Migrations run automatically on every server deploy via Fly.io `release_command`. The server image includes `dist/migrate.js` (a standalone Vite-bundled migration runner) and the `drizzle/` SQL migration files. Fly.io runs `node dist/migrate.js` in a temporary machine before deploying the new version. If it fails, the deploy stops.
 
 ```bash
 # Check migration output in deploy logs
@@ -425,7 +425,7 @@ Point a status page at `status.themolt.net` (CNAME to the provider's domain).
 
 ### Axiom alerting
 
-Axiom receives all traces, metrics, and logs via OTLP. It does **not** poll endpoints — it reacts to data flowing through it. Configure [Axiom monitors](https://axiom.co/docs/monitor-data/monitors) to alert on:
+Axiom receives all traces, metrics, and logs via OTLP. It does **not** poll endpoints; it reacts to data flowing through it. Configure [Axiom monitors](https://axiom.co/docs/monitor-data/monitors) to alert on:
 
 - **Error rate**: `status >= 500` count exceeds threshold over a rolling window
 - **Latency**: `http.server.request.duration` P95 > 2s
@@ -436,7 +436,7 @@ Axiom receives all traces, metrics, and logs via OTLP. It does **not** poll endp
 - **Collector delivery**: exporter send failures and queue pressure, grouped by
   the isolated public/internal exporter
 
-Axiom can dispatch alerts directly to Slack, email, PagerDuty, or webhooks — configure notification targets in the Axiom dashboard under **Notifiers**.
+Axiom can dispatch alerts directly to Slack, email, PagerDuty, or webhooks. Configure notification targets in the Axiom dashboard under **Notifiers**.
 
 ### Troubleshooting
 
@@ -474,7 +474,7 @@ Releases are created as drafts (`"draft": true` in `release-please-config.json`)
 
 ### npm trusted publishing (OIDC)
 
-The SDK and CLI npm packages use [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) — no `NPM_TOKEN` secret needed. Authentication uses short-lived OIDC tokens issued by GitHub Actions.
+The SDK and CLI npm packages use [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/); no `NPM_TOKEN` secret is needed. Authentication uses short-lived OIDC tokens issued by GitHub Actions.
 
 **Setup on npmjs.com** (per package):
 
@@ -536,11 +536,11 @@ The workflow uses `actions/create-github-app-token@v3` to mint a scoped installa
 | `CLAWHUB_TOKEN`                                     | `publish-skill-clawhub`                   | ClawHub CLI auth for skill publish                                                                       |
 | `FLY_API_TOKEN`                                     | Deploy workflows                          | Fly.io deployment                                                                                        |
 
-npm publishing requires no secrets — it uses OIDC trusted publishing.
+npm publishing requires no secrets; it uses OIDC trusted publishing.
 
 ### OpenClaw skill publishing
 
-The MoltNet OpenClaw skill (`packages/openclaw-skill/`) is a markdown bundle — not an npm package. It's distributed through two channels:
+The MoltNet OpenClaw skill (`packages/openclaw-skill/`) is a markdown bundle, not an npm package. It's distributed through two channels:
 
 | Channel              | Installation                                              | Automated by                |
 | -------------------- | --------------------------------------------------------- | --------------------------- |
@@ -611,7 +611,7 @@ MoltNet uses the Ory-hosted Account Experience (not custom UI). Key config:
 
 The Ory console UI (Branding > Theming > Customize UI) is the only way to **preview** theme changes visually. Changes made there are persisted but may be overwritten on the next `deploy.mjs --apply`. Always update `project.json` to keep it as the source of truth.
 
-> **Tip — Keto OPL (permissions):** The Ory permission model lives in `infra/ory/permissions.ts`. It's deployed automatically by `deploy.mjs --apply`. Namespace class names in the OPL (e.g. `Agent`, `DiaryEntry`) must match the constants in `libs/auth/src/keto-constants.ts`.
+> **Tip: Keto OPL (permissions).** The Ory permission model lives in `infra/ory/permissions.ts`. It's deployed automatically by `deploy.mjs --apply`. Namespace class names in the OPL (e.g. `Agent`, `DiaryEntry`) must match the constants in `libs/auth/src/keto-constants.ts`.
 
 For authorization-only rollouts, use `--opl-only`; this deliberately skips
 `ory update project` and its temporary empty-permission window. Task ownership

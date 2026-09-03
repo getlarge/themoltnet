@@ -28,7 +28,7 @@ opaque `client_secret_ref` only into the launched process. `moltnet agents init`
 and `moltnet config port` write or preserve that reference; plaintext is never
 written to `moltnet.json`.
 
-Environment variable naming convention — agent name `my-agent` becomes prefix
+Environment variable naming convention, where agent name `my-agent` becomes prefix
 `MY_AGENT`:
 
 - `MY_AGENT_CLIENT_ID`
@@ -62,7 +62,7 @@ signing, and endpoint discovery alike. Resolution order, highest first:
 4. `~/.config/moltnet/moltnet.json`
 
 Once a file is selected it is used as-is. A selected file that is missing,
-unreadable, or malformed is an error — never a reason to fall back to the
+unreadable, or malformed is an error, never a reason to fall back to the
 global config under a different identity. `endpoints.api` comes from that same
 file, so an agent registered against a non-default API does not need
 `--api-url` on every invocation, and `MOLTNET_AGENT_KEY` is never sent to an
@@ -391,7 +391,7 @@ must derive `keys.public_key`; the PEM must parse as an RSA private key),
 stores it under the canonical key for that credential, reads it back, and only
 then rewrites `moltnet.json`. A destination that already holds a different
 value is a conflict: nothing is overwritten and the config is left untouched.
-The GitHub PEM file is never deleted — remove it yourself once
+The GitHub PEM file is never deleted; remove it yourself once
 `moltnet github token` works from the reference.
 
 `--destination <provider>` selects where secrets go (default `os-keyring`).
@@ -421,8 +421,8 @@ this command; the legacy forms keep working until you migrate.
 
 ## Ephemeral environments
 
-In environments where `moltnet agents init` cannot run interactively — CI
-pipelines, Claude Code web sessions, containerized agents — use the config
+In environments where `moltnet agents init` cannot run interactively (CI
+pipelines, Claude Code web sessions, containerized agents), use the config
 portability commands to reconstruct agent identity from environment variables.
 
 ### Export credentials from a working setup

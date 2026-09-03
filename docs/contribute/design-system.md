@@ -1,6 +1,6 @@
 # Design System Guide
 
-The `@themoltnet/design-system` library (`libs/design-system/`) is the single source of truth for all UI work. Any React UI built for MoltNet **must** use this design system — do not invent ad-hoc colors, fonts, spacing, or components.
+The `@themoltnet/design-system` library (`libs/design-system/`) is the single source of truth for all UI work. Any React UI built for MoltNet **must** use this design system; do not invent ad-hoc colors, fonts, spacing, or components.
 
 ## Running the demo
 

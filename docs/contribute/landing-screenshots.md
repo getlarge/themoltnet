@@ -1,7 +1,7 @@
 # Landing Screenshots
 
-The three product shots on the landing page (`Collaboration` section) — the
-task board, the live pane, and the create-task dialog — are captured from the
+The three product shots on the landing page (`Collaboration` section), namely the
+task board, the live pane, and the create-task dialog, are captured from the
 **real running console**, driven by Playwright against the e2e Docker stack.
 They are not mockups. Each is captured in both **dark** and **light** themes;
 the landing picks the variant matching its resolved theme (`-light` suffix for
@@ -32,7 +32,7 @@ Active/Done lanes only populate when an agent actually claims and runs tasks.
    pnpm run e2e:up
    ```
 
-   This builds the app images through Nx and then starts Compose — do not use
+   This builds the app images through Nx and then starts Compose; do not use
    `docker compose up --build`; Compose is not the image-build orchestrator
    (see [Local Platform](../operate/local-platform.md)).
 
@@ -45,7 +45,7 @@ Active/Done lanes only populate when an agent actually claims and runs tasks.
    Note the printed `team=… invite=…`.
 
 3. **Bootstrap an agent and join the team as MANAGER** (claiming a task needs
-   diary write, which comes from team-manager — a plain member gets 403):
+   diary write, which comes from team-manager; a plain member gets 403):
 
    ```bash
    set -a; source <repo-root>/.env.local; set +a
@@ -70,7 +70,7 @@ Active/Done lanes only populate when an agent actually claims and runs tasks.
    ```
 
    Tasks move Pending → Active → Done/Failed. Note: `fulfill_brief` validation
-   is strict — an attempt that does not emit a valid `FulfillBriefOutput` is
+   is strict: an attempt that does not emit a valid `FulfillBriefOutput` is
    marked **failed** (with `maxAttempts: 1`). Re-seed Pending tasks via the API
    if you want a fuller Pending lane at capture time.
 
