@@ -14,7 +14,6 @@ import {
   NodeConnectionTypes,
   NodeOperationError,
   sleep,
-  sleepWithAbort,
 } from 'n8n-workflow';
 
 import {
@@ -686,16 +685,10 @@ async function waitForTask(
   const startedAt = Date.now();
   const deadline = startedAt + timeoutSeconds * 1_000;
   const executionSignal = context.getExecutionCancelSignal();
-  const deadlineController = new AbortController();
-  const deadlineSleepController = new AbortController();
-  void sleepWithAbort(timeoutSeconds * 1_000, deadlineSleepController.signal)
-    .then(() =>
-      deadlineController.abort(new Error('MoltNet task wait timed out')),
-    )
-    .catch(() => undefined);
+  const deadlineSignal = AbortSignal.timeout(timeoutSeconds * 1_000);
   const requestSignal = executionSignal
-    ? AbortSignal.any([executionSignal, deadlineController.signal])
-    : deadlineController.signal;
+    ? AbortSignal.any([executionSignal, deadlineSignal])
+    : deadlineSignal;
   const teamId = resolveTeamId(
     context.getNodeParameter('teamId', itemIndex, ''),
     credentials,
@@ -707,8 +700,23 @@ async function waitForTask(
     pollCount: 0,
   };
 
-  try {
-    for (;;) {
+  for (;;) {
+    throwIfCancelled(context, executionSignal, itemIndex);
+    throwIfTimedOut(
+      context,
+      taskId,
+      timeoutSeconds,
+      deadline,
+      timeoutState,
+      itemIndex,
+    );
+
+    timeoutState.pollCount += 1;
+    try {
+      const task = await awaitWithAbort(
+        agent.tasks.get(taskId, options),
+        requestSignal,
+      );
       throwIfCancelled(context, executionSignal, itemIndex);
       throwIfTimedOut(
         context,
@@ -718,68 +726,49 @@ async function waitForTask(
         timeoutState,
         itemIndex,
       );
-
-      timeoutState.pollCount += 1;
-      try {
-        const task = await awaitWithAbort(
-          agent.tasks.get(taskId, options),
-          requestSignal,
-        );
-        throwIfCancelled(context, executionSignal, itemIndex);
-        throwIfTimedOut(
+      timeoutState.lastStatus = task.status;
+      if (isTerminalTaskStatus(task.status)) {
+        const attempts = await readAttemptsWithRetry(
           context,
+          agent,
           taskId,
+          options,
+          executionSignal,
+          deadlineSignal,
+          pollIntervalSeconds,
           timeoutSeconds,
           deadline,
           timeoutState,
           itemIndex,
         );
-        timeoutState.lastStatus = task.status;
-        if (isTerminalTaskStatus(task.status)) {
-          const attempts = await readAttemptsWithRetry(
-            context,
-            agent,
-            taskId,
-            options,
-            executionSignal,
-            deadlineController.signal,
-            pollIntervalSeconds,
-            timeoutSeconds,
-            deadline,
-            timeoutState,
-            itemIndex,
-          );
-          return buildTaskSnapshot(task, attempts) as unknown as IDataObject;
-        }
-      } catch (error) {
-        throwIfCancelled(context, executionSignal, itemIndex);
-        throwIfTimedOut(
-          context,
-          taskId,
-          timeoutSeconds,
-          deadline,
-          timeoutState,
-          itemIndex,
-          deadlineController.signal.aborted,
-        );
-        if (!isTransientReadError(error)) {
-          throw toNodeError(context, error, itemIndex);
-        }
+        return buildTaskSnapshot(task, attempts) as unknown as IDataObject;
       }
-
-      await waitBeforeRetry(
+    } catch (error) {
+      throwIfCancelled(context, executionSignal, itemIndex);
+      throwIfTimedOut(
         context,
         taskId,
-        pollIntervalSeconds,
         timeoutSeconds,
         deadline,
         timeoutState,
-        executionSignal,
         itemIndex,
+        deadlineSignal.aborted,
       );
+      if (!isTransientReadError(error)) {
+        throw toNodeError(context, error, itemIndex);
+      }
     }
-  } finally {
-    deadlineSleepController.abort();
+
+    await waitBeforeRetry(
+      context,
+      taskId,
+      pollIntervalSeconds,
+      timeoutSeconds,
+      deadline,
+      timeoutState,
+      executionSignal,
+      itemIndex,
+    );
   }
 }
 

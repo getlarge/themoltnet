@@ -44,6 +44,10 @@ const forbiddenRuntimePatterns = [
   [/\bprocess\./u, 'accesses the process global'],
   [/\b(?:__dirname|__filename)\b/u, 'uses restricted path globals'],
   [/["']node:/u, 'imports a Node.js built-in module'],
+  [
+    /\bsleepWithAbort\b/u,
+    'uses an n8n-workflow export unavailable in supported n8n hosts',
+  ],
 ];
 
 function assert(condition, message) {
