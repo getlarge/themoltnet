@@ -1252,14 +1252,32 @@ jobs:
 
       - name: Render verified CLI installer
         env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
           RELEASE_SIGNER_PUBKEY: ${{ vars.RELEASE_SIGNER_PUBKEY }}
           VERSION: ${{ steps.tag.outputs.semver }}
         run: |
-          test -n "$RELEASE_SIGNER_PUBKEY"
+          if [ -z "$RELEASE_SIGNER_PUBKEY" ]; then
+            echo "::error::repo variable RELEASE_SIGNER_PUBKEY is not set; refusing to publish an installer without a trust anchor"
+            exit 1
+          fi
+          key="$RUNNER_TEMP/release-signing-key"
+          printf '%s\n' "$RELEASE_SIGNING_KEY" > "$key"
+          chmod 600 "$key"
+          derived=$(ssh-keygen -y -f "$key" | cut -d' ' -f1-2)
+          rm -f "$key"
+          declared=$(printf '%s' "$RELEASE_SIGNER_PUBKEY" | cut -d' ' -f1-2)
+          if [ "$derived" != "$declared" ]; then
+            echo "::error::RELEASE_SIGNER_PUBKEY does not match RELEASE_SIGNING_KEY — fix the rotation before releasing"
+            exit 1
+          fi
           sed -e "s#^RELEASE_PINNED_VERSION=\"\"#RELEASE_PINNED_VERSION=\"$VERSION\"#" \
-            -e "s#^RELEASE_SIGNER_PUBKEY=\"\"#RELEASE_SIGNER_PUBKEY=\"$RELEASE_SIGNER_PUBKEY\"#" \
+            -e "s#^RELEASE_SIGNER_PUBKEY=\"\"#RELEASE_SIGNER_PUBKEY=\"$declared\"#" \
             tools/release/cli/install.sh > apps/moltnet-cli/dist/install.sh
           chmod +x apps/moltnet-cli/dist/install.sh
+          grep -q "^RELEASE_SIGNER_PUBKEY=\"ssh-" apps/moltnet-cli/dist/install.sh \
+            || { echo "::error::public key injection failed"; exit 1; }
+          grep -q "^RELEASE_PINNED_VERSION=\"$VERSION\"" apps/moltnet-cli/dist/install.sh \
+            || { echo "::error::pinned version injection failed"; exit 1; }
           sh -n apps/moltnet-cli/dist/install.sh
 
       - name: Upload binaries to GitHub Release

@@ -22,6 +22,11 @@ import (
 const updateManifestURL = "https://themolt.net/download/manifest.json"
 const updateCacheTTL = 24 * time.Hour
 
+// Package variables make the transport boundary testable without changing the
+// public, pinned manifest endpoint used by released binaries.
+var cliUpdateManifestURL = updateManifestURL
+var cliUpdateHTTPClient = &http.Client{}
+
 type updateManifest struct {
 	CLI struct {
 		Version string `json:"version"`
@@ -95,11 +100,11 @@ func checkCLIUpdate(ctx context.Context, current string, force bool) (updateResu
 func fetchCLILatest(ctx context.Context) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, updateManifestURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, cliUpdateManifestURL, nil)
 	if err != nil {
 		return "", err
 	}
-	res, err := (&http.Client{}).Do(req)
+	res, err := cliUpdateHTTPClient.Do(req)
 	if err != nil {
 		return "", err
 	}

@@ -18,7 +18,7 @@
     "bench:embedding": "tsx src/bench-embedding-warmup.ts",
     "bench:task-readiness": "tsx src/bench-task-readiness.ts",
     "smtp:test": "tsx src/test-smtp.ts",
-    "test:agent-bundle": "node --test release/agent-bundle/agent-bundle.test.mjs release/cli/p12-chain.test.mjs",
+    "test:agent-bundle": "node --test release/agent-bundle/agent-bundle.test.mjs release/cli/install.test.mjs release/cli/p12-chain.test.mjs",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
