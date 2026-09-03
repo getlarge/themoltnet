@@ -5,7 +5,7 @@ the pack, once with the pack injected as task context. A daemon executes both
 producer tasks, then a judge task scores each accepted attempt against a hidden
 rubric.
 
-This page covers task-level efficiency evals. For the runtime model and task
+These are task-level efficiency evals. For the runtime model and task
 operations, see [Tasks and Runtime](./tasks-and-runtime.md). For daemon setup
 and workspace behavior, see [Running Agents](../operate/running-agents.md).
 
