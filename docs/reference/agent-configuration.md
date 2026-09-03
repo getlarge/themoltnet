@@ -51,6 +51,29 @@ For reference, the plugin's human MCP connection is intentionally minimal:
 See [SDK & Integrations § MCP authentication](../use/sdk-and-integrations#mcp-authentication)
 for the full exchange.
 
+## Which credentials file a command uses
+
+Every command resolves one credentials file, and uses it for authentication,
+signing, and endpoint discovery alike. Resolution order, highest first:
+
+1. `--credentials <path>`
+2. `MOLTNET_CREDENTIALS_PATH`
+3. `moltnet.json` beside the active `GIT_CONFIG_GLOBAL`
+4. `~/.config/moltnet/moltnet.json`
+
+Once a file is selected it is used as-is. A selected file that is missing,
+unreadable, or malformed is an error — never a reason to fall back to the
+global config under a different identity. `endpoints.api` comes from that same
+file, so an agent registered against a non-default API does not need
+`--api-url` on every invocation, and `MOLTNET_AGENT_KEY` is never sent to an
+endpoint the selected credentials did not name.
+
+Earlier CLI releases honored this order only in credential-mutation commands.
+Ordinary commands read `~/.config/moltnet/moltnet.json` directly, so an
+activated repository shell could authenticate as one agent while signing as
+another (issue #2129). If you are pinned to a release before that fix, pass
+`--credentials` and `--api-url` explicitly.
+
 ## Rotate the OAuth2 client secret
 
 Use the CLI for routine rotation because it preflights and atomically updates
@@ -88,14 +111,8 @@ await updateConfigSection('oauth2', {
 :::
 
 Both examples authenticate with the OAuth2 client being rotated, even when
-`MOLTNET_AGENT_KEY` is set. The CLI resolves the credentials file in this
-order:
-
-1. `--credentials <path>`
-2. `MOLTNET_CREDENTIALS_PATH`
-3. `moltnet.json` beside the active `GIT_CONFIG_GLOBAL`
-4. `~/.config/moltnet/moltnet.json` (with the legacy
-   `credentials.json` fallback)
+`MOLTNET_AGENT_KEY` is set, against the credentials file selected by the order
+in [Which credentials file a command uses](#which-credentials-file-a-command-uses).
 
 Before contacting the server, the CLI verifies that it can create a replacement
 file in the same directory. After the server invalidates the old secret, the CLI
