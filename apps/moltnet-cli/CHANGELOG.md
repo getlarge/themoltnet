@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.90.0](https://github.com/getlarge/themoltnet/compare/cli-v1.89.0...cli-v1.90.0) (2026-09-03)
+
+
+### Features
+
+* **updates:** add installer-aware release notifications ([77d95ad](https://github.com/getlarge/themoltnet/commit/77d95adca41f816b38a15dec987d66e3b007d079))
+* **updates:** add installer-aware release notifications ([672190c](https://github.com/getlarge/themoltnet/commit/672190cbbabbfd8146b0f9ea914a9dc5d042fe71))
+
+
+### Bug Fixes
+
+* **cli:** honor activated credential auto-discovery across commands ([6af5060](https://github.com/getlarge/themoltnet/commit/6af5060313be2026e7252f2fc1299321189e4e93))
+* **moltnet-cli:** honor activated credentials across commands ([ae4fb72](https://github.com/getlarge/themoltnet/commit/ae4fb722e482eec79e3fd79a81dbede690908a17)), closes [#2129](https://github.com/getlarge/themoltnet/issues/2129)
+
+
+### Performance Improvements
+
+* **moltnet-cli:** memoize git repository root lookup ([5ab6c81](https://github.com/getlarge/themoltnet/commit/5ab6c811c07e3469c5b7d6fca7b5cc18eefd7e3c))
+
 ## [1.89.0](https://github.com/getlarge/themoltnet/compare/cli-v1.88.1...cli-v1.89.0) (2026-09-03)
 
 

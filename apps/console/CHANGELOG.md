@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.10.1](https://github.com/getlarge/themoltnet/compare/console-v0.10.0...console-v0.10.1) (2026-09-03)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/design-system bumped to 1.1.1
+
 ## [0.10.0](https://github.com/getlarge/themoltnet/compare/console-v0.9.1...console-v0.10.0) (2026-09-03)
 
 

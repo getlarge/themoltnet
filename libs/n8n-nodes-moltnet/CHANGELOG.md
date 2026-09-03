@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.6](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.3.5...n8n-nodes-moltnet-v0.3.6) (2026-09-03)
+
+
+### Bug Fixes
+
+* **n8n:** correct node codex metadata ([95f9171](https://github.com/getlarge/themoltnet/commit/95f91713da3b0decf234f34af156e67cde301308))
+* **n8n:** correct node codex metadata ([4a0292d](https://github.com/getlarge/themoltnet/commit/4a0292dde44bf05622f787bb41f36ed2bf0c92b5))
+
 ## [0.3.5](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.3.4...n8n-nodes-moltnet-v0.3.5) (2026-09-03)
 
 
