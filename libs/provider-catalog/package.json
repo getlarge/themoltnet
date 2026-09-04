@@ -1,0 +1,33 @@
+{
+  "name": "@moltnet/provider-catalog",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Version-pinned global runtime model suggestions",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "generate:pi": "tsx scripts/generate-pi-catalog.ts",
+    "check:pi": "tsx scripts/generate-pi-catalog.ts --check",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "catalog:",
+    "@types/node": "catalog:",
+    "prettier": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:util",
+      "scope:runtime",
+      "platform:isomorphic"
+    ]
+  }
+}

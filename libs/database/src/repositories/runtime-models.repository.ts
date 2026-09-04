@@ -1,4 +1,4 @@
-import { and, eq, isNull, or, sql } from 'drizzle-orm';
+import { and, eq, isNull, notInArray, or, sql } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import {
@@ -30,6 +30,11 @@ export type ListRuntimeModelsFilter = {
   teamId?: string;
   provider?: string;
 };
+
+export type GlobalRuntimeModelCatalogEntry = Pick<
+  NewRuntimeModel,
+  'provider' | 'model' | 'displayName' | 'description' | 'capabilities'
+>;
 
 export function createRuntimeModelRepository(db: Database) {
   return {
@@ -76,6 +81,52 @@ export function createRuntimeModelRepository(db: Database) {
       }
     },
 
+    /**
+     * Reconcile the source-controlled global catalog without touching team
+     * entries. Present rows are refreshed and re-enabled; models removed from
+     * one of the catalog's providers are retained as inactive history.
+     */
+    async reconcileGlobalCatalog(
+      entries: readonly GlobalRuntimeModelCatalogEntry[],
+    ): Promise<void> {
+      const executor = getExecutor(db);
+      for (const entry of entries) {
+        await executor
+          .insert(runtimeModels)
+          .values({ ...entry, teamId: null, isActive: true })
+          .onConflictDoUpdate({
+            target: [runtimeModels.provider, runtimeModels.model],
+            targetWhere: sql`team_id IS NULL`,
+            set: {
+              displayName: entry.displayName,
+              description: entry.description,
+              capabilities: entry.capabilities,
+              isActive: true,
+              updatedAt: sql`now()`,
+            },
+          });
+      }
+
+      const modelsByProvider = new Map<string, string[]>();
+      for (const entry of entries) {
+        const models = modelsByProvider.get(entry.provider) ?? [];
+        models.push(entry.model);
+        modelsByProvider.set(entry.provider, models);
+      }
+      for (const [provider, models] of modelsByProvider) {
+        await executor
+          .update(runtimeModels)
+          .set({ isActive: false, updatedAt: sql`now()` })
+          .where(
+            and(
+              isNull(runtimeModels.teamId),
+              eq(runtimeModels.provider, provider),
+              notInArray(runtimeModels.model, models),
+            ),
+          );
+      }
+    },
+
     async findById(id: string): Promise<RuntimeModel | null> {
       const [row] = await getExecutor(db)
         .select()
@@ -95,12 +146,13 @@ export function createRuntimeModelRepository(db: Database) {
     ): Promise<RuntimeModel[]> {
       const conditions = [isActiveFilter()];
       if (filter.teamId) {
-        conditions.push(
-          or(
-            isNull(runtimeModels.teamId),
-            eq(runtimeModels.teamId, filter.teamId),
-          )!,
+        const visibleToTeam = or(
+          isNull(runtimeModels.teamId),
+          eq(runtimeModels.teamId, filter.teamId),
         );
+        if (visibleToTeam) {
+          conditions.push(visibleToTeam);
+        }
       } else {
         conditions.push(isNull(runtimeModels.teamId));
       }

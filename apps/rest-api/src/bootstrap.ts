@@ -72,6 +72,7 @@ import {
   type ObservabilityContext,
   observabilityPlugin,
 } from '@moltnet/observability';
+import { globalRuntimeModelCatalog } from '@moltnet/provider-catalog';
 import { createRuntimePolicyService } from '@moltnet/runtime-policy-service';
 import { createRuntimeSessionStorage } from '@moltnet/runtime-session-service';
 import {
@@ -329,6 +330,13 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   );
   const taskArtifactRepository = createTaskArtifactRepository(dbConnection.db);
   const runtimeModelRepository = createRuntimeModelRepository(dbConnection.db);
+  await runtimeModelRepository.reconcileGlobalCatalog(
+    globalRuntimeModelCatalog,
+  );
+  app.log.info(
+    { entries: globalRuntimeModelCatalog.length },
+    'Global runtime model catalog reconciled',
+  );
   const runtimePolicyRepository = createRuntimePolicyRepository(
     dbConnection.db,
   );

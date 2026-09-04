@@ -186,13 +186,27 @@ describe('Runtime Models Catalog API', () => {
       auth: () => owner.accessToken,
     });
     expect(response.status).toBe(200);
-    // 13 seeded couples from migration 0021. We don't assert a hard count
-    // (a future seed bump would force a noisy test fix), only that the
-    // well-known seed rows are present.
+    // The source-controlled catalog is reconciled at API bootstrap. We don't
+    // assert a hard count because Pi's version-pinned static catalog evolves,
+    // but do pin representatives from each catalog source.
     const providers = new Set(data!.items.map((i) => i.provider));
     expect(providers.has('anthropic')).toBe(true);
     expect(providers.has('openai')).toBe(true);
     expect(providers.has('ollama')).toBe(true);
+    expect(providers.has('ollama-cloud')).toBe(true);
+    expect(providers.has('openai-codex')).toBe(true);
+    expect(
+      data!.items.some(
+        (item) =>
+          item.provider === 'anthropic' && item.model === 'claude-sonnet-4-5',
+      ),
+    ).toBe(true);
+    expect(
+      data!.items.some(
+        (item) =>
+          item.provider === 'ollama-cloud' && item.model === 'minimax-m3:cloud',
+      ),
+    ).toBe(true);
     // Seeded entries are global → no teamId.
     for (const item of data!.items) {
       expect(item.teamId).toBeNull();

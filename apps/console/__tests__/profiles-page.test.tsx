@@ -21,6 +21,7 @@ vi.mock('@moltnet/api-client', () => ({
 const queryState = vi.hoisted(() => ({
   role: 'owner' as 'owner' | 'manager' | 'member',
   profiles: [] as unknown[],
+  models: [] as unknown[],
   policies: [] as unknown[],
   policyIds: [] as string[],
   allowedTools: [] as string[],
@@ -34,7 +35,7 @@ vi.mock('@moltnet/api-client/query', () => ({
   }),
   listRuntimeModelsOptions: () => ({
     queryKey: ['runtime-models'],
-    queryFn: async () => ({ items: [] }),
+    queryFn: async () => ({ items: queryState.models }),
   }),
   listRuntimePoliciesOptions: () => ({
     queryKey: ['runtime-policies'],
@@ -158,10 +159,52 @@ describe('ProfilesPage context editor', () => {
     vi.clearAllMocks();
     queryState.role = 'owner';
     queryState.profiles = [];
+    queryState.models = [];
     queryState.policies = [];
     queryState.policyIds = [];
     queryState.allowedTools = [];
     queryState.allowedToolsEnforcement = 'off';
+  });
+
+  it('renders provider-scoped catalog suggestions while retaining free-form profile inputs', async () => {
+    queryState.models = [
+      {
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-5',
+        displayName: 'Anthropic · Claude Sonnet 4.5',
+      },
+      {
+        provider: 'ollama',
+        model: 'qwen3-coder',
+        displayName: 'Ollama · qwen3-coder',
+      },
+      {
+        provider: 'ollama-cloud',
+        model: 'minimax-m3:cloud',
+        displayName: 'Ollama Cloud · minimax-m3:cloud',
+      },
+    ];
+    renderPage();
+
+    await waitFor(() => {
+      expect(
+        document.querySelectorAll('#runtime-profile-provider-options option'),
+      ).toHaveLength(3);
+    });
+    expect(
+      Array.from(
+        document.querySelectorAll('#runtime-profile-provider-options option'),
+      ).map((option) => option.getAttribute('value')),
+    ).toEqual(['anthropic', 'ollama', 'ollama-cloud']);
+
+    fireEvent.change(screen.getByLabelText('Provider'), {
+      target: { value: 'ollama-cloud' },
+    });
+    expect(
+      Array.from(
+        document.querySelectorAll('#runtime-profile-model-options option'),
+      ).map((option) => option.getAttribute('value')),
+    ).toEqual(['minimax-m3:cloud']);
   });
 
   it('applies a suggested recipe as ordinary editable entries', async () => {
