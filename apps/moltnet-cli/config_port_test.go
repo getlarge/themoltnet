@@ -9,19 +9,16 @@ import (
 	"testing"
 )
 
-func TestConfigPortHelpSeparatesHostPlugins(t *testing.T) {
+func TestConfigIdentityReplacesRepositoryPorting(t *testing.T) {
 	root := NewRootCmd("test", "")
-	stdout, _, err := executeCommand(root, "config", "port", "--help")
+	stdout, _, err := executeCommand(root, "config", "identity", "--help")
 	if err != nil {
-		t.Fatalf("config port --help: %v", err)
+		t.Fatalf("config identity --help: %v", err)
 	}
-	for _, expected := range []string{"--from", "--dir", "--name", "--installation-id"} {
+	for _, expected := range []string{"list", "show", "select"} {
 		if !strings.Contains(stdout, expected) {
 			t.Errorf("help missing %s:\n%s", expected, stdout)
 		}
-	}
-	if !strings.Contains(stdout, "does not install") {
-		t.Fatalf("help must make the plugin boundary explicit:\n%s", stdout)
 	}
 }
 
@@ -131,7 +128,7 @@ func TestCopyPortableAgentEnvUsesCanonicalSerializer(t *testing.T) {
 		"# Managed by moltnet config init-from-env",
 		"CUSTOM='preserved'",
 		`MOLTNET_HUMAN_GIT_IDENTITY='Ed O'\''Agent <ed@example.test>'`,
-		"MOLTNET_AGENT_NAME='reviewer'",
+		"MOLTNET_ACTIVE_IDENTITY='reviewer'",
 	} {
 		if !strings.Contains(content, expected) {
 			t.Fatalf("canonical env missing %q:\n%s", expected, content)
