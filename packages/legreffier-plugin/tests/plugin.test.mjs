@@ -157,6 +157,13 @@ test('keeps the secrets hook fail-closed for activated agents', async () => {
   assert.equal(agent.status, 0);
   assert.match(agent.stdout, /permissionDecision\"?:\"deny/);
   assert.match(agent.stdout, /secret guard is unavailable/i);
+
+  const central = runHook(
+    secrets,
+    '/Users/test/.config/moltnet/identities/legreffier/gitconfig',
+  );
+  assert.equal(central.status, 0);
+  assert.match(central.stdout, /permissionDecision\"?:\"deny/);
 });
 
 test('blocks the human OAuth MCP for activated agents', async () => {
@@ -176,6 +183,13 @@ test('blocks the human OAuth MCP for activated agents', async () => {
   assert.equal(agent.status, 0);
   assert.match(agent.stdout, /permissionDecision\"?:\"deny/);
   assert.match(agent.stdout, /must use the released moltnet CLI/i);
+
+  const central = runHook(
+    principal,
+    '/Users/test/.config/moltnet/identities/legreffier/gitconfig',
+  );
+  assert.equal(central.status, 0);
+  assert.match(central.stdout, /permissionDecision\"?:\"deny/);
 });
 
 test('ships a complete OpenAI public-review fixture', async () => {
