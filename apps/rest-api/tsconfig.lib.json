@@ -36,6 +36,9 @@
       "path": "../../libs/runtime-policy-service/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/provider-catalog"
+    },
+    {
       "path": "../../libs/oauth-token-cache/tsconfig.lib.json"
     },
     {

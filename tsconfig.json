@@ -18,6 +18,9 @@
   "files": [],
   "references": [
     {
+      "path": "./libs/provider-catalog"
+    },
+    {
       "path": "apps/moltnet-signer"
     },
     {
