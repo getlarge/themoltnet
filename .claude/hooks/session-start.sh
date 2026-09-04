@@ -22,15 +22,18 @@ fi
 # Reconstruct agent config from env vars if MOLTNET_AGENT_NAME is set
 # and the agent directory doesn't exist yet.
 # Set MOLTNET_AGENT_NAME and credential env vars in Claude Code project settings.
-if [ -n "${MOLTNET_AGENT_NAME:-}" ] && [ -n "${MOLTNET_IDENTITY_ID:-}" ]; then
-  if [ ! -f "$CLAUDE_PROJECT_DIR/.moltnet/$MOLTNET_AGENT_NAME/moltnet.json" ]; then
+identity="${MOLTNET_ACTIVE_IDENTITY:-${MOLTNET_AGENT_NAME:-}}"
+if [ -n "$identity" ] && [ -n "${MOLTNET_IDENTITY_ID:-}" ]; then
+  identity_dir="$HOME/.config/moltnet/identities/$identity"
+  if [ ! -f "$identity_dir/moltnet.json" ]; then
     npx --yes @themoltnet/cli config init-from-env \
-      --agent "$MOLTNET_AGENT_NAME" --dir "$CLAUDE_PROJECT_DIR"
+      --name "$identity"
   fi
 
   # Export GIT_CONFIG_GLOBAL for commit signing
-  GITCONFIG="$CLAUDE_PROJECT_DIR/.moltnet/$MOLTNET_AGENT_NAME/gitconfig"
+  GITCONFIG="$identity_dir/gitconfig"
   if [ -f "$GITCONFIG" ] && [ -n "${CLAUDE_ENV_FILE:-}" ]; then
     echo "export GIT_CONFIG_GLOBAL='$GITCONFIG'" >> "$CLAUDE_ENV_FILE"
+    echo "export MOLTNET_ACTIVE_IDENTITY='$identity'" >> "$CLAUDE_ENV_FILE"
   fi
 fi
