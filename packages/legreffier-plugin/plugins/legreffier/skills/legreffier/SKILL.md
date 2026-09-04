@@ -265,7 +265,7 @@ Activation has two modes:
    - If `MOLTNET_FINGERPRINT` set, use it (skip `moltnet_whoami`).
    - Otherwise call `$MOLTNET_CLI agents whoami` — it returns the authenticated identity
      (`identityId`, `clientId`, `publicKey`, `fingerprint`).
-   - **Hard gate**: unauthenticated / unknown fingerprint → stop. "Not authenticated with MoltNet — check `.moltnet/<AGENT_NAME>/` credentials before continuing."
+   - **Hard gate**: unauthenticated / unknown fingerprint → stop. "Not authenticated with MoltNet — select a central identity with `moltnet config identity select <alias>` before continuing."
 2. Refresh activation as described above, then resolve team:
    - If activation JSON returned `teamId`, use it as `TEAM_ID`.
    - Otherwise: run `$MOLTNET_CLI teams list`, identify the personal team, and
@@ -279,7 +279,7 @@ Activation has two modes:
      `diaryId` and few or no entries exist in the resolved diary, mention:
      "Tip: run `/legreffier-onboarding` (or `$legreffier-onboarding` in Codex)
      to check your setup and start capturing knowledge."
-4. Identity check: `git config user.name && git config user.email && git config user.signingkey && git config gpg.format`. Expected: name=`AGENT_NAME`, email `...+<AGENT_NAME>[bot]@users.noreply.github.com`, signingkey=`.moltnet/<AGENT_NAME>/ssh/id_ed25519.pub`, format=`ssh`. If any missing, set `GIT_CONFIG_GLOBAL` and restart.
+4. Identity check: `git config user.name && git config user.email && git config user.signingkey && git config gpg.format`. Expected: name=`IDENTITY_ALIAS`, email `...+<IDENTITY_ALIAS>[bot]@users.noreply.github.com`, signingkey=`~/.config/moltnet/identities/<IDENTITY_ALIAS>/ssh/id_ed25519.pub`, format=`ssh`. If any missing, set `GIT_CONFIG_GLOBAL` to the selected identity's `gitconfig` and restart.
 5. Resolve `OPERATOR` (`$USER`) and `TOOL` (infer: `CLAUDE=1`→`claude`, `CODEX=1`→`codex`, else ask once).
 6. Resolve commit authorship from activation JSON:
    - Use `authorshipConfigured`, `authorshipMode` (default: `agent`),
@@ -292,12 +292,12 @@ Activation has two modes:
 ### Guest (sandboxed) sessions
 
 When `MOLTNET_SIGNER_URL` is set, the session runs inside a sandbox whose
-trusted daemon serves host capabilities. There is no `.moltnet/` tree, no
+trusted daemon serves host capabilities. There is no repository `.moltnet/` tree, no
 credentials file, and no private key in the guest — do not look for them.
 
 - Identity: `curl -s "$MOLTNET_SIGNER_URL/identity"` returns `agentName`,
   `identityId`, `publicKey`, `fingerprint`, `gitName`, `gitEmail`.
-- Skip worktree `.moltnet` symlinking and the activation cache; the projected
+- Skip repository identity bindings and the activation cache; the projected
   `GIT_CONFIG_GLOBAL` already carries identity, `gpg.format=ssh`,
   `user.signingKey = key::ssh-ed25519 …` and `allowed_signers`.
 - `git commit -S` signs through `SSH_AUTH_SOCK` (the `moltnet capability serve
