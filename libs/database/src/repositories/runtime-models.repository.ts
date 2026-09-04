@@ -146,12 +146,13 @@ export function createRuntimeModelRepository(db: Database) {
     ): Promise<RuntimeModel[]> {
       const conditions = [isActiveFilter()];
       if (filter.teamId) {
-        conditions.push(
-          or(
-            isNull(runtimeModels.teamId),
-            eq(runtimeModels.teamId, filter.teamId),
-          ),
+        const visibleToTeam = or(
+          isNull(runtimeModels.teamId),
+          eq(runtimeModels.teamId, filter.teamId),
         );
+        if (visibleToTeam) {
+          conditions.push(visibleToTeam);
+        }
       } else {
         conditions.push(isNull(runtimeModels.teamId));
       }
