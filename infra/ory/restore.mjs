@@ -218,6 +218,19 @@ function extractBundle({ archivePath, destDir }) {
   });
 }
 
+/**
+ * The Ory CLI refuses to run when a project API key and an explicit --project
+ * flag are both present, and it considers the variable "set" even when it holds
+ * the empty string. Blanking it is therefore not enough — it has to be removed
+ * from the child environment entirely. We always pass --project, because the
+ * workspace key alone cannot select a tenant.
+ */
+function buildOryEnv() {
+  const env = { ...process.env };
+  delete env.ORY_PROJECT_API_KEY;
+  return env;
+}
+
 function runOry(args) {
   return execFileSync('ory', args, {
     // Run outside the repo so the CLI cannot pick up stray dotenv files from
@@ -226,12 +239,7 @@ function runOry(args) {
     cwd: '/tmp',
     encoding: 'utf8',
     maxBuffer: ORY_STDIO_MAX_BUFFER,
-    env: {
-      ...process.env,
-      // The Ory CLI refuses to run when a project API key and an explicit
-      // --project flag are both present; we always pass --project.
-      ORY_PROJECT_API_KEY: '',
-    },
+    env: buildOryEnv(),
   });
 }
 
