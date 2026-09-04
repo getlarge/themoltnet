@@ -292,6 +292,7 @@ func TestSecretsGuardInactiveContextNoOpsBeforeParsing(t *testing.T) {
 		"/tmp/.moltnet/team/agent/gitconfig",
 	} {
 		t.Run(configured, func(t *testing.T) {
+			t.Setenv("HOME", t.TempDir())
 			t.Setenv("GIT_CONFIG_GLOBAL", configured)
 			var output bytes.Buffer
 			if err := runSecretsGuardCmd(strings.NewReader("{"), &output); err != nil {
@@ -305,8 +306,7 @@ func TestSecretsGuardInactiveContextNoOpsBeforeParsing(t *testing.T) {
 }
 
 func TestSecretsGuardActivatedContextStillFailsClosed(t *testing.T) {
-	agentDir := filepath.Join(t.TempDir(), ".moltnet", "agent")
-	t.Setenv("GIT_CONFIG_GLOBAL", filepath.Join(agentDir, "gitconfig"))
+	setupGitHubGuardIdentity(t)
 	var output bytes.Buffer
 	if err := runSecretsGuardCmd(strings.NewReader("{"), &output); err != nil {
 		t.Fatal(err)
@@ -317,19 +317,10 @@ func TestSecretsGuardActivatedContextStillFailsClosed(t *testing.T) {
 }
 
 func TestSecretsGuardActivatedRelativeConfigResolutionFailureFailsClosed(t *testing.T) {
-	previousDir, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("get working directory: %v", err)
+	agentDir := setupGitHubGuardIdentity(t)
+	if err := os.Remove(filepath.Join(agentDir, "gitconfig")); err != nil {
+		t.Fatal(err)
 	}
-	if err := os.Chdir(t.TempDir()); err != nil {
-		t.Fatalf("change directory: %v", err)
-	}
-	t.Cleanup(func() {
-		if err := os.Chdir(previousDir); err != nil {
-			t.Errorf("restore working directory: %v", err)
-		}
-	})
-	t.Setenv("GIT_CONFIG_GLOBAL", ".moltnet/agent/gitconfig")
 
 	var output bytes.Buffer
 	if err := runSecretsGuardCmd(strings.NewReader("{"), &output); err != nil {

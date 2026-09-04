@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -483,15 +482,14 @@ func TestRunGitHubGuard_DisabledByEnvironment(t *testing.T) {
 }
 
 func TestCurrentGitHubGuardContext_AbsoluteConfigAndEnvironment(t *testing.T) {
-	agentDir := filepath.Join(t.TempDir(), ".moltnet", "agent")
-	t.Setenv("GIT_CONFIG_GLOBAL", filepath.Join(agentDir, "gitconfig"))
+	agentDir := setupGitHubGuardIdentity(t)
 	t.Setenv("MOLTNET_COMMIT_AUTHORSHIP", "human")
 	t.Setenv("MOLTNET_GITHUB_GUARD_STRICT", "true")
 
 	guardCtx, ok := currentGitHubGuardContext()
 
 	if !ok {
-		t.Fatal("expected an absolute MoltNet git config to activate the guard")
+		t.Fatal("expected the selected central identity to activate the guard")
 	}
 	if guardCtx.AuthorshipMode != "human" || !guardCtx.Strict {
 		t.Fatalf("unexpected context: %#v", guardCtx)
@@ -502,14 +500,7 @@ func TestCurrentGitHubGuardContext_AbsoluteConfigAndEnvironment(t *testing.T) {
 }
 
 func TestCurrentGitHubGuardContext_RelativeConfigReadsAgentEnv(t *testing.T) {
-	repoDir := t.TempDir()
-	if output, err := exec.Command("git", "init", repoDir).CombinedOutput(); err != nil {
-		t.Fatalf("git init: %v: %s", err, output)
-	}
-	agentDir := filepath.Join(repoDir, ".moltnet", "agent")
-	if err := os.MkdirAll(agentDir, 0o700); err != nil {
-		t.Fatalf("create agent dir: %v", err)
-	}
+	agentDir := setupGitHubGuardIdentity(t)
 	if err := os.WriteFile(
 		filepath.Join(agentDir, "env"),
 		[]byte("MOLTNET_COMMIT_AUTHORSHIP=human\n"),
@@ -518,52 +509,23 @@ func TestCurrentGitHubGuardContext_RelativeConfigReadsAgentEnv(t *testing.T) {
 		t.Fatalf("write agent env: %v", err)
 	}
 
-	previousDir, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("get working directory: %v", err)
-	}
-	if err := os.Chdir(repoDir); err != nil {
-		t.Fatalf("change directory: %v", err)
-	}
-	t.Cleanup(func() {
-		if err := os.Chdir(previousDir); err != nil {
-			t.Errorf("restore working directory: %v", err)
-		}
-	})
-	t.Setenv("GIT_CONFIG_GLOBAL", ".moltnet/agent/gitconfig")
 	t.Setenv("MOLTNET_COMMIT_AUTHORSHIP", "")
 
 	guardCtx, ok := currentGitHubGuardContext()
 
 	if !ok {
-		t.Fatal("expected a relative MoltNet git config inside a repository to activate the guard")
+		t.Fatal("expected a selected central identity to activate the guard")
 	}
 	if guardCtx.AuthorshipMode != "human" {
 		t.Fatalf("authorship mode = %q, want human", guardCtx.AuthorshipMode)
 	}
-	resolvedRepoDir, err := filepath.EvalSymlinks(repoDir)
-	if err != nil {
-		t.Fatalf("resolve repository path: %v", err)
-	}
-	if want := filepath.Join(resolvedRepoDir, ".moltnet", "agent", "moltnet.json"); guardCtx.CredentialsPath != want {
+	if want := filepath.Join(agentDir, "moltnet.json"); guardCtx.CredentialsPath != want {
 		t.Fatalf("credentials path = %q, want %q", guardCtx.CredentialsPath, want)
 	}
 }
 
 func TestCurrentGitHubGuardContext_RelativeConfigOutsideRepositoryIsInactive(t *testing.T) {
-	previousDir, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("get working directory: %v", err)
-	}
-	if err := os.Chdir(t.TempDir()); err != nil {
-		t.Fatalf("change directory: %v", err)
-	}
-	t.Cleanup(func() {
-		if err := os.Chdir(previousDir); err != nil {
-			t.Errorf("restore working directory: %v", err)
-		}
-	})
-	t.Setenv("GIT_CONFIG_GLOBAL", ".moltnet/agent/gitconfig")
+	t.Setenv("HOME", t.TempDir())
 
 	if guardCtx, ok := currentGitHubGuardContext(); ok {
 		t.Fatalf("expected inactive context outside a repository, got %#v", guardCtx)
@@ -571,8 +533,7 @@ func TestCurrentGitHubGuardContext_RelativeConfigOutsideRepositoryIsInactive(t *
 }
 
 func TestGitHubGuardCobraPath(t *testing.T) {
-	agentDir := filepath.Join(t.TempDir(), ".moltnet", "agent")
-	t.Setenv("GIT_CONFIG_GLOBAL", filepath.Join(agentDir, "gitconfig"))
+	setupGitHubGuardIdentity(t)
 	root := NewRootCmd("test", "")
 	root.SetIn(strings.NewReader(
 		`{"tool_input":{"command":"gh future-command mutate"}}`,
@@ -590,6 +551,28 @@ func TestGitHubGuardCobraPath(t *testing.T) {
 	if decoded.HookSpecificOutput.PermissionDecision != "deny" {
 		t.Fatalf("unexpected guard output: %#v", decoded)
 	}
+}
+
+func setupGitHubGuardIdentity(t *testing.T) string {
+	t.Helper()
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	agentDir := filepath.Join(home, ".config", "moltnet", "identities", "agent")
+	if err := os.MkdirAll(agentDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"moltnet.json", "gitconfig"} {
+		if err := os.WriteFile(filepath.Join(agentDir, name), []byte("{}\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(agentDir, "env"), []byte("MOLTNET_COMMIT_AUTHORSHIP=human\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeIdentitySelector("agent"); err != nil {
+		t.Fatal(err)
+	}
+	return agentDir
 }
 
 func TestEvaluateGitHubGuard_StaticVariablesResolveScopedWrites(t *testing.T) {
