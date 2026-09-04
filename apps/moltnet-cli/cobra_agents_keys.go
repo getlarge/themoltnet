@@ -92,6 +92,8 @@ a second credential.`,
 	  moltnet agents keys create --identity-scoped --agent-id <uuid> --name portable-runner
   moltnet agents keys create --team-id <uuid> --agent-id <uuid> --name ci-runner \
     --ttl-days 30 --idempotency-key 7c9e...
+  moltnet agents keys create --team-id <uuid> --agent-id <uuid> --name daemon \
+    --scopes agent:profile,runtime:read,task:read,task:claim,task:execute
   moltnet agents keys create --team-id <uuid> --agent-id <uuid> --name daemon --store`,
 		Args:    cobra.NoArgs,
 		PreRunE: validateAgentKeyBindingFlags,
@@ -104,6 +106,7 @@ a second credential.`,
 				identityScoped: flagBool(cmd, "identity-scoped"),
 				agentID:        flagString(cmd, "agent-id"),
 				name:           flagString(cmd, "name"),
+				scopes:         flagStringSlice(cmd, "scopes"),
 				ttlDays:        flagInt(cmd, "ttl-days"),
 				ttlSet:         cmd.Flags().Changed("ttl-days"),
 				idempotencyKey: flagString(cmd, "idempotency-key"),
@@ -118,6 +121,7 @@ a second credential.`,
 	cmd.Flags().Bool("identity-scoped", false, "Bind the key to the agent identity")
 	cmd.Flags().String("agent-id", "", "Agent UUID the key authenticates (required)")
 	cmd.Flags().String("name", "", "Human-readable key name (required)")
+	cmd.Flags().StringSlice("scopes", nil, "Credential scopes to request, comma-separated (default agent grant applies if unset)")
 	cmd.Flags().Int("ttl-days", 0, "Key lifetime in days (server default applies if unset)")
 	cmd.Flags().String("idempotency-key", "", "Idempotency key for safe retries (generated if unset)")
 	addAgentKeyStoreFlags(cmd)

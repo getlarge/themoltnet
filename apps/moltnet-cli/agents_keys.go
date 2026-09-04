@@ -255,6 +255,7 @@ type agentsKeysCreateOpts struct {
 	identityScoped bool
 	agentID        string
 	name           string
+	scopes         []string
 	ttlDays        int
 	ttlSet         bool
 	idempotencyKey string
@@ -336,6 +337,39 @@ func runAgentsKeysCreateWithClient(ctx context.Context, client *moltnetapi.Clien
 	})
 }
 
+// parseCredentialScopes turns --scopes values into the generated enum, keeping
+// input order and rejecting duplicates. Only the scope vocabulary is checked
+// here: whether the requesting credential may actually delegate a scope is a
+// server decision (it must be a subset of both the canonical agent grant and
+// the caller's own scopes), and re-deriving it locally would go stale.
+//
+// Omitting the flag means "unset" — the server applies the default agent grant.
+// `--scopes ""` is a single empty value, not an unset flag, and is rejected:
+// a caller who typed it meant to narrow and should hear that it did nothing.
+func parseCredentialScopes(values []string) ([]moltnetapi.CredentialScope, error) {
+	if len(values) == 0 {
+		return nil, nil
+	}
+	seen := make(map[string]struct{}, len(values))
+	scopes := make([]moltnetapi.CredentialScope, 0, len(values))
+	for _, raw := range values {
+		scope := strings.TrimSpace(raw)
+		if scope == "" {
+			return nil, fmt.Errorf("--scopes must not contain an empty value")
+		}
+		if _, dup := seen[scope]; dup {
+			return nil, fmt.Errorf("--scopes lists %q more than once", scope)
+		}
+		seen[scope] = struct{}{}
+		candidate := moltnetapi.CredentialScope(scope)
+		if err := candidate.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid --scopes value %q: not a known credential scope", scope)
+		}
+		scopes = append(scopes, candidate)
+	}
+	return scopes, nil
+}
+
 // buildCreateAgentKey assembles the request body and params for a create and
 // returns the idempotency key that was resolved. When the caller does not supply
 // --idempotency-key the CLI generates a fresh UUID: the API requires the header,
@@ -358,6 +392,11 @@ func buildCreateAgentKey(opts agentsKeysCreateOpts) (*moltnetapi.CreateAgentKeyR
 		Name:         opts.name,
 		BindingScope: binding.bindingScope,
 	}
+	scopes, err := parseCredentialScopes(opts.scopes)
+	if err != nil {
+		return nil, moltnetapi.CreateAgentKeyParams{}, "", err
+	}
+	req.Scopes = scopes
 	if opts.ttlSet {
 		if opts.ttlDays <= 0 {
 			return nil, moltnetapi.CreateAgentKeyParams{}, "", fmt.Errorf("--ttl-days must be >= 1, got %d", opts.ttlDays)

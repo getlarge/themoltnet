@@ -191,6 +191,15 @@ moltnet agents keys create \
   --team-id <team-uuid> --agent-id <agent-uuid> --name production-daemon \
   --ttl-days 30 | jq -r '.secret' > daemon.key
 
+# Narrow the grant with --scopes. Omit it and the server applies the canonical
+# agent grant. Requested scopes must be a subset of both that grant and the
+# scopes the requesting credential itself holds, so a key can never widen
+# authority. Rotation preserves a key's scopes and cannot change them.
+moltnet agents keys create \
+  --team-id <team-uuid> --agent-id <agent-uuid> --name production-daemon \
+  --scopes agent:profile,runtime:read,task:read,task:claim,task:execute \
+  --ttl-days 30 | jq -r '.secret' > daemon.key
+
 # List — one opaque-cursor page by default; --all follows the cursor to the end.
 moltnet agents keys list --team-id <team-uuid> --status active --limit 20
 moltnet agents keys list --team-id <team-uuid> --all | jq '.items[].id'
