@@ -48,7 +48,7 @@ describe('AgentServerStore', () => {
     const store = freshStore();
     for (const dir of [
       store.root,
-      store.agentsDir,
+      store.identitiesDir,
       store.runsDir,
       store.secretsDir,
     ]) {
@@ -168,10 +168,38 @@ describe('AgentServerStore', () => {
     });
 
     const raw = readFileSync(store.agentPath('zeta'), 'utf8');
+    expect(store.agentPath('zeta')).toBe(
+      join(store.root, 'identities', 'zeta', 'moltnet.json'),
+    );
     expect(raw).not.toContain('agentName');
     expect(raw).not.toContain('agentKeyRef');
     expect(raw).not.toContain('privateKeyRef');
     expect(raw).not.toContain('secret-value');
+  });
+
+  it('uses the shared versioned selector without consulting repository state', () => {
+    const store = freshStore();
+    store.writeAgentConfig('first', {
+      identity_id: 'id-first',
+      registered_at: 't',
+      oauth2: { client_id: 'client-first' },
+      keys: { public_key: 'pk', fingerprint: 'fp' },
+      endpoints: { api: 'https://api.example', mcp: 'https://mcp.example' },
+    });
+    store.writeAgentConfig('second', {
+      identity_id: 'id-second',
+      registered_at: 't',
+      oauth2: { client_id: 'client-second' },
+      keys: { public_key: 'pk', fingerprint: 'fp' },
+      endpoints: { api: 'https://api.example', mcp: 'https://mcp.example' },
+    });
+
+    expect(store.readIdentitySelector()).toEqual({
+      version: 1,
+      default_identity: 'first',
+    });
+    expect(store.resolveIdentityAlias(undefined, 'second')).toBe('second');
+    expect(store.resolveIdentityAlias()).toBe('first');
   });
 
   it('keeps external paths only in activation metadata', () => {

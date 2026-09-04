@@ -599,25 +599,11 @@ func resolveCredentialsPath(explicit string) (string, error) {
 	if value := strings.TrimSpace(os.Getenv("MOLTNET_CREDENTIALS_PATH")); value != "" {
 		return absolutePath(value)
 	}
-	if gitConfig := strings.TrimSpace(os.Getenv("GIT_CONFIG_GLOBAL")); gitConfig != "" {
-		configPath, err := resolveGitConfigGlobalPath(gitConfig)
-		if err != nil {
-			return "", fmt.Errorf("resolve GIT_CONFIG_GLOBAL: %w", err)
-		}
-		sibling := filepath.Join(filepath.Dir(configPath), "moltnet.json")
-		if regularFileExists(sibling) {
-			return sibling, nil
-		}
-	}
-
-	configPath, err := GetConfigPath()
+	alias, err := resolveIdentityAlias("")
 	if err != nil {
 		return "", fmt.Errorf("resolve credentials path: %w", err)
 	}
-	if regularFileExists(configPath) {
-		return configPath, nil
-	}
-	return configPath, nil
+	return identityCredentialsPath(alias)
 }
 
 func absolutePath(path string) (string, error) {

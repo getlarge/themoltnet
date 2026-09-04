@@ -61,6 +61,11 @@ type GitHubSection struct {
 
 // GetConfigDir returns ~/.config/moltnet.
 func GetConfigDir() (string, error) {
+	// Honour HOME explicitly so CLI tests and containerized deployments can
+	// relocate the user-local store without changing the process user record.
+	if home := os.Getenv("HOME"); home != "" {
+		return filepath.Join(home, ".config", "moltnet"), nil
+	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("get home dir: %w", err)
@@ -68,23 +73,22 @@ func GetConfigDir() (string, error) {
 	return filepath.Join(home, ".config", "moltnet"), nil
 }
 
-// GetConfigPath returns ~/.config/moltnet/moltnet.json.
+// GetConfigPath returns the credentials path for the selected central identity.
 func GetConfigPath() (string, error) {
-	dir, err := GetConfigDir()
+	alias, err := resolveIdentityAlias("")
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(dir, "moltnet.json"), nil
+	return identityCredentialsPath(alias)
 }
 
-// ReadConfig reads moltnet.json from the default config directory.
+// ReadConfig reads the selected central identity document.
 func ReadConfig() (*CredentialsFile, error) {
-	dir, err := GetConfigDir()
+	path, err := GetConfigPath()
 	if err != nil {
 		return nil, err
 	}
-
-	return ReadConfigFrom(filepath.Join(dir, "moltnet.json"))
+	return ReadConfigFrom(path)
 }
 
 // ReadConfigFrom reads and parses a config file at the given path.
@@ -103,13 +107,16 @@ func ReadConfigFrom(path string) (*CredentialsFile, error) {
 	return &creds, nil
 }
 
-// WriteConfig writes config to ~/.config/moltnet/moltnet.json with mode 0o600.
+// WriteConfig writes to the selected identity. New callers should use
+// writeCentralIdentityConfig so identity creation names its alias explicitly.
 func WriteConfig(config *CredentialsFile) (string, error) {
-	dir, err := GetConfigDir()
+	alias, err := resolveIdentityAlias("")
 	if err != nil {
-		return "", err
+		// Kept for internal callers that predate aliases; it never revives the
+		// legacy global file and makes a first local identity explicit enough.
+		alias = "default"
 	}
-	return WriteConfigTo(config, filepath.Join(dir, "moltnet.json"))
+	return writeCentralIdentityConfig(alias, config)
 }
 
 // WriteConfigTo writes config to the specified path with mode 0o600.

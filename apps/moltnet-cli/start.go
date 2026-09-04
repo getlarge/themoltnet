@@ -23,53 +23,40 @@ func runStartCmdWithRegistry(cmd *cobra.Command, dir, agentFlag, target string, 
 type execProcess func(targetPath string, argv, env []string) error
 
 func runStartCmdWithRegistryAndExec(cmd *cobra.Command, dir, agentFlag, target string, targetArgs []string, dryRun bool, registry *SecretProviderRegistry, execFn execProcess) error {
-	moltnetDir, err := resolveMoltnetDir(dir)
+	_ = dir
+	agentName, err := resolveIdentityAlias(agentFlag)
 	if err != nil {
 		return err
 	}
-	agentName, err := resolveAgentName(moltnetDir, agentFlag)
+	agentDir, err := identityDir(agentName)
 	if err != nil {
 		return err
 	}
 
-	envPath := filepath.Join(moltnetDir, agentName, "env")
+	envPath := filepath.Join(agentDir, "env")
 	vars, err := parseEnvFile(envPath)
 	if err != nil {
-		return fmt.Errorf("env file not found at %s — run 'moltnet agents init --name %s'", envPath, agentName)
+		return fmt.Errorf("identity environment not found at %s — run 'moltnet agents init --name %s'", envPath, agentName)
 	}
-	credentialVars, err := resolveAgentOAuth2Environment(filepath.Join(moltnetDir, agentName), agentName, registry)
+	credentialVars, err := resolveAgentOAuth2Environment(agentDir, agentName, registry)
 	if err != nil {
 		return err
 	}
 	for key, value := range credentialVars {
 		vars[key] = value
 	}
-	launchConfigPath := filepath.Join(dir, ".moltnet", agentName, "moltnet.json")
-	if !regularFileExists(launchConfigPath) {
-		launchConfigPath = filepath.Join(moltnetDir, agentName, "moltnet.json")
-	}
+	launchConfigPath := filepath.Join(agentDir, "moltnet.json")
 	launchConfigPath, err = filepath.Abs(launchConfigPath)
 	if err != nil {
 		return fmt.Errorf("resolve agent credentials path: %w", err)
 	}
 	vars["MOLTNET_CREDENTIALS_PATH"] = filepath.Clean(launchConfigPath)
+	vars["MOLTNET_ACTIVE_IDENTITY"] = agentName
 
 	// Resolve target binary
 	targetPath, err := osExec.LookPath(target)
 	if err != nil {
 		return fmt.Errorf("%q not found in PATH", target)
-	}
-
-	// Resolve relative paths in env vars against the .moltnet directory's
-	// parent (repo root). This ensures paths like .moltnet/<agent>/gitconfig
-	// work correctly when launched from a linked worktree where .moltnet/
-	// was resolved from the main worktree.
-	repoRoot := filepath.Dir(moltnetDir)
-	paths := newAgentPathResolver(repoRoot, filepath.Join(moltnetDir, agentName), agentName)
-	for k, v := range vars {
-		if k == "GIT_CONFIG_GLOBAL" && v != "" {
-			vars[k] = paths.resolveFile(v, "gitconfig")
-		}
 	}
 
 	// Build environment: current env with agent env vars replacing any
