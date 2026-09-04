@@ -11,11 +11,6 @@ func TestReadConfig_MoltnetJson(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 
-	dir := filepath.Join(tmpDir, ".config", "moltnet")
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		t.Fatal(err)
-	}
-
 	config := CredentialsFile{
 		IdentityID:   "uuid-from-moltnet",
 		RegisteredAt: "2026-01-01T00:00:00Z",
@@ -23,8 +18,7 @@ func TestReadConfig_MoltnetJson(t *testing.T) {
 		Keys:         CredentialsKeys{PublicKey: "pk", PrivateKey: "sk", Fingerprint: "fp"},
 		Endpoints:    CredentialsEndpoints{API: "https://api.test", MCP: "https://api.test/mcp"},
 	}
-	data, _ := json.Marshal(config)
-	if err := os.WriteFile(filepath.Join(dir, "moltnet.json"), data, 0o600); err != nil {
+	if _, err := writeCentralIdentityConfig("primary", &config); err != nil {
 		t.Fatal(err)
 	}
 
@@ -40,7 +34,7 @@ func TestReadConfig_MoltnetJson(t *testing.T) {
 	}
 }
 
-func TestReadConfig_IgnoresCredentialsJSON(t *testing.T) {
+func TestReadConfigDoesNotDiscoverLegacyGlobalDocument(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 
@@ -61,12 +55,8 @@ func TestReadConfig_IgnoresCredentialsJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	read, err := ReadConfig()
-	if err != nil {
-		t.Fatalf("ReadConfig: %v", err)
-	}
-	if read != nil {
-		t.Fatalf("expected credentials.json to be ignored, got identity %q", read.IdentityID)
+	if _, err := ReadConfig(); err == nil {
+		t.Fatal("legacy global document unexpectedly selected")
 	}
 }
 
@@ -95,9 +85,10 @@ func TestReadConfig_PrefersMoltnetJson(t *testing.T) {
 	}
 
 	legacyData, _ := json.Marshal(legacy)
-	modernData, _ := json.Marshal(modern)
-	os.WriteFile(filepath.Join(dir, "credentials.json"), legacyData, 0o600)
-	os.WriteFile(filepath.Join(dir, "moltnet.json"), modernData, 0o600)
+	os.WriteFile(filepath.Join(dir, "moltnet.json"), legacyData, 0o600)
+	if _, err := writeCentralIdentityConfig("modern", &modern); err != nil {
+		t.Fatal(err)
+	}
 
 	read, err := ReadConfig()
 	if err != nil {
@@ -107,7 +98,7 @@ func TestReadConfig_PrefersMoltnetJson(t *testing.T) {
 		t.Fatal("expected non-nil")
 	}
 	if read.IdentityID != "uuid-new" {
-		t.Errorf("should prefer moltnet.json: got %s, want uuid-new", read.IdentityID)
+		t.Errorf("should select central identity: got %s, want uuid-new", read.IdentityID)
 	}
 }
 
@@ -128,7 +119,7 @@ func TestWriteConfig(t *testing.T) {
 		t.Fatalf("WriteConfig: %v", err)
 	}
 
-	expectedPath := filepath.Join(tmpDir, ".config", "moltnet", "moltnet.json")
+	expectedPath := filepath.Join(tmpDir, ".config", "moltnet", "identities", "default", "moltnet.json")
 	if path != expectedPath {
 		t.Errorf("path: got %s, want %s", path, expectedPath)
 	}
