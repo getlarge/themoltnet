@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -225,7 +226,11 @@ func newConfigIdentityCmd() *cobra.Command {
 			if creds == nil {
 				return fmt.Errorf("identity %q not found", alias)
 			}
-			return printJSONTo(cmd.OutOrStdout(), map[string]interface{}{"alias": alias, "path": path, "identity": creds})
+			identity, err := redactedIdentityDocument(creds)
+			if err != nil {
+				return err
+			}
+			return printJSONTo(cmd.OutOrStdout(), map[string]interface{}{"alias": alias, "path": path, "identity": identity})
 		},
 	}
 	selectCmd := &cobra.Command{
@@ -249,4 +254,27 @@ func newConfigIdentityCmd() *cobra.Command {
 	}
 	identityCmd.AddCommand(listCmd, showCmd, selectCmd)
 	return identityCmd
+}
+
+// redactedIdentityDocument retains public metadata and secret references, but
+// never emits plaintext credentials or a local PEM location to stdout.
+func redactedIdentityDocument(creds *CredentialsFile) (map[string]interface{}, error) {
+	data, err := json.Marshal(creds)
+	if err != nil {
+		return nil, fmt.Errorf("marshal identity document: %w", err)
+	}
+	var document map[string]interface{}
+	if err := json.Unmarshal(data, &document); err != nil {
+		return nil, fmt.Errorf("decode identity document: %w", err)
+	}
+	if oauth, ok := document["oauth2"].(map[string]interface{}); ok {
+		delete(oauth, "client_secret")
+	}
+	if keys, ok := document["keys"].(map[string]interface{}); ok {
+		delete(keys, "private_key")
+	}
+	if github, ok := document["github"].(map[string]interface{}); ok {
+		delete(github, "private_key_path")
+	}
+	return document, nil
 }

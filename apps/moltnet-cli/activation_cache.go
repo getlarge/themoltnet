@@ -449,37 +449,19 @@ type activationGitIdentity struct {
 }
 
 func readActivationGitIdentity(gitconfigPath string) (activationGitIdentity, error) {
-	name, err := readGitConfigValue(gitconfigPath, "user.name")
-	if err != nil {
-		return activationGitIdentity{}, err
-	}
-	email, err := readGitConfigValue(gitconfigPath, "user.email")
-	if err != nil {
-		return activationGitIdentity{}, err
-	}
-	signingKey, err := readGitConfigValue(gitconfigPath, "user.signingkey")
-	if err != nil {
-		return activationGitIdentity{}, err
-	}
-	gpgFormat, err := readGitConfigValue(gitconfigPath, "gpg.format")
-	if err != nil {
-		return activationGitIdentity{}, err
-	}
-	return activationGitIdentity{
-		Name:       name,
-		Email:      email,
-		SigningKey: signingKey,
-		GPGFormat:  gpgFormat,
-	}, nil
-}
-
-func readGitConfigValue(gitconfigPath, key string) (string, error) {
-	cmd := exec.Command("git", "config", "--file", gitconfigPath, "--get", key)
+	cmd := exec.Command("git", "config", "--file", gitconfigPath, "--list")
 	out, err := cmd.Output()
 	if err != nil {
-		return "", fmt.Errorf("git config %s: %w", key, err)
+		return activationGitIdentity{}, fmt.Errorf("read git config: %w", err)
 	}
-	return strings.TrimSpace(string(out)), nil
+	values := map[string]string{}
+	for _, line := range strings.Split(string(out), "\n") {
+		key, value, ok := strings.Cut(line, "=")
+		if ok {
+			values[strings.ToLower(key)] = value
+		}
+	}
+	return activationGitIdentity{Name: values["user.name"], Email: values["user.email"], SigningKey: values["user.signingkey"], GPGFormat: values["gpg.format"]}, nil
 }
 
 func printActivationValidationResult(w io.Writer, result *activationValidationResult, jsonOut bool) error {

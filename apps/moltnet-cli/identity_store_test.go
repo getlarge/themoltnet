@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -14,6 +16,27 @@ func centralIdentityFixture(alias string) *CredentialsFile {
 			PublicKey: "ed25519:test", Fingerprint: alias + "-fingerprint",
 		},
 		Endpoints: CredentialsEndpoints{API: "https://" + alias + ".example.test"},
+	}
+}
+
+func TestRedactedIdentityDocumentOmitsPlaintextSecrets(t *testing.T) {
+	document, err := redactedIdentityDocument(&CredentialsFile{
+		IdentityID: "identity",
+		OAuth2:     CredentialsOAuth2{ClientID: "client", ClientSecret: "oauth-secret"},
+		Keys:       CredentialsKeys{PublicKey: "public", PrivateKey: "seed-secret", Fingerprint: "fingerprint"},
+		GitHub:     &GitHubSection{AppID: "app", PrivateKeyPath: "/private/key.pem"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := json.Marshal(document)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, secret := range []string{"oauth-secret", "seed-secret", "/private/key.pem"} {
+		if strings.Contains(string(data), secret) {
+			t.Fatalf("redacted identity document revealed %q: %s", secret, data)
+		}
 	}
 }
 
