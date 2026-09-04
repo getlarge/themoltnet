@@ -252,7 +252,7 @@ describe('POST /tasks', () => {
       identityId: HUMAN_IDENTITY,
       humanId: HUMAN_ROW_ID,
       clientId: null,
-      scopes: ['diary:read', 'diary:write'],
+      scopes: ['diary:read', 'diary:write', 'task:manage'],
       currentTeamId: null,
     });
 

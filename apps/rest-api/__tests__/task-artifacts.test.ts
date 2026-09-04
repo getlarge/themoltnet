@@ -196,11 +196,10 @@ describe('task artifact routes', () => {
   ] as const)(
     'enforces $expectedScope for the task artifact operation',
     async ({ expectedScope, method, providedScope, url }) => {
-      const scopedApp = await createTestApp(
-        createMockServices(),
-        { ...VALID_AUTH_CONTEXT, scopes: [providedScope] },
-        { scopeEnforcementMode: 'enforce' },
-      );
+      const scopedApp = await createTestApp(createMockServices(), {
+        ...VALID_AUTH_CONTEXT,
+        scopes: [providedScope],
+      });
       try {
         const response = await scopedApp.inject({
           method,

@@ -80,7 +80,7 @@ describe('agent key routes', () => {
     app = await createTestApp(
       mocks,
       VALID_AUTH_CONTEXT,
-      { scopeEnforcementMode: 'enforce' },
+      undefined,
       {
         talosApi: talosApi as unknown as OryClients['apiKeys'],
       },

@@ -319,6 +319,17 @@ describe('loadConfig', () => {
     expect(() => loadConfig(envWithoutKey)).toThrow('Invalid Webhook config');
   });
 
+  it.each(['measure', 'warn', 'enforce'])(
+    'refuses to start when AUTH_SCOPE_ENFORCEMENT is still set to %s',
+    (mode) => {
+      // Scope enforcement has no off switch. A deployment that still carries
+      // the removed variable is told, rather than being silently overridden.
+      expect(() =>
+        loadConfig({ ...validEnv, AUTH_SCOPE_ENFORCEMENT: mode }),
+      ).toThrow('AUTH_SCOPE_ENFORCEMENT has been removed');
+    },
+  );
+
   it('rejects a public plaintext Talos admin URL in production', () => {
     expect(() =>
       loadConfig({

@@ -1,4 +1,4 @@
-import type { AuthContext } from '@moltnet/auth';
+import { type AuthContext, HUMAN_SESSION_SCOPES } from '@moltnet/auth';
 import {
   registerSigningMethodDriver,
   VERIFICATION_METHOD,
@@ -97,7 +97,9 @@ const humanAuth: AuthContext = {
   identityId: OWNER_ID,
   humanId: HUMAN_ID,
   clientId: null,
-  scopes: [],
+  // Mirror what the session resolver actually grants a Kratos session; an
+  // empty list is not a credential any issuer produces.
+  scopes: [...HUMAN_SESSION_SCOPES],
   currentTeamId: TEAM_ID,
 };
 

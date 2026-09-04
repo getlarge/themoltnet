@@ -3,7 +3,7 @@
     {
       "id": "overview",
       "name": "How to use this dashboard",
-      "text": "Start with scope rollout state, credential-scope denials, server errors, and slow routes. Drill into service, route, status, trace_id, taskId, teamId, and diaryId. Metrics live in the separate MoltNet Metrics dashboard.",
+      "text": "Start with credential-scope denials, server errors, and slow routes. Drill into service, route, status, trace_id, taskId, teamId, and diaryId. Metrics live in the separate MoltNet Metrics dashboard.",
       "type": "Note"
     },
     {
@@ -67,10 +67,10 @@
       "type": "Table"
     },
     {
-      "id": "scope-enforcement-mode",
-      "name": "Active credential-scope mode",
+      "id": "scope-enforcement-active",
+      "name": "Credential-scope enforcement booted",
       "query": {
-        "apl": "['moltnet-logs']\n| where body == \"auth.scope.enforcement_mode\"\n| extend environment = tostring(['resource.deployment.environment']), mode = tostring(['attributes.mode'])\n| summarize last_seen = max(_time) by environment, mode\n| order by last_seen desc"
+        "apl": "['moltnet-logs']\n| where body == \"auth.scope.enforcement_active\"\n| extend environment = tostring(['resource.deployment.environment']), version = tostring(['resource.service.version'])\n| summarize boots = count(), last_seen = max(_time) by environment, version\n| order by last_seen desc"
       },
       "type": "Table"
     },
@@ -78,7 +78,7 @@
       "id": "scope-denials",
       "name": "Credential-scope denials",
       "query": {
-        "mpl": "`moltnet-metrics`:`auth.scope.denial.total`\n| align to 5m using sum\n| group by `deployment.environment`, `auth.scope.mode`, `auth.scope.operation`, `auth.scope.required` using sum"
+        "mpl": "`moltnet-metrics`:`auth.scope.denial.total`\n| align to 5m using sum\n| group by `deployment.environment`, `auth.scope.operation`, `auth.scope.required` using sum"
       },
       "type": "Table"
     }
@@ -176,7 +176,7 @@
     },
     {
       "h": 4,
-      "i": "scope-enforcement-mode",
+      "i": "scope-enforcement-active",
       "minH": 1,
       "minW": 1,
       "moved": false,

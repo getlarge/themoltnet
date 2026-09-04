@@ -10,6 +10,17 @@ import {
   VALID_AUTH_CONTEXT,
 } from './helpers.js';
 
+/**
+ * One read-only probe per scope family. Write scopes (`diary:write`,
+ * `pack:write`, `task:claim`, `task:manage`, `runtime:manage`, `diary:manage`,
+ * `team:manage`) are deliberately absent: Fastify validates the body before the
+ * preHandler chain, so probing them here would assert schema validation rather
+ * than the scope gate. Those families are covered by their own route suites.
+ *
+ * `connector:invoke` and `human:profile` are in the vocabulary but declared by
+ * no route — connector issuance was never built, and `human:profile` is carried
+ * only by human sessions.
+ */
 interface ScopeProbe {
   family: string;
   request: Pick<InjectOptions, 'method' | 'url'>;
@@ -61,6 +72,12 @@ const PROBES: readonly ScopeProbe[] = [
     scope: 'task:read',
   },
   {
+    family: 'task execution',
+    request: { method: 'GET', url: '/runtime-slots' },
+    scope: 'task:execute',
+    teamBound: true,
+  },
+  {
     family: 'team',
     request: { method: 'GET', url: '/teams' },
     scope: 'team:read',
@@ -75,7 +92,7 @@ describe('credential scope policy matrix', () => {
     app = await createTestApp(
       createMockServices(),
       null,
-      { scopeEnforcementMode: 'enforce' },
+      undefined,
       undefined,
       (token) => ({
         ...VALID_AUTH_CONTEXT,
@@ -100,6 +117,29 @@ describe('credential scope policy matrix', () => {
       });
 
       expect(response.json()).not.toMatchObject({
+        detail: `Missing required scope: ${scope}`,
+      });
+    },
+  );
+
+  it.each(PROBES)(
+    'rejects a credential holding only an unrelated scope on the $family gate',
+    async ({ request, scope, teamBound }) => {
+      // The strongest regression guard: a credential that carries a real scope,
+      // just not this route's. Proves the gate is per-scope rather than
+      // "authenticated and holding something".
+      const unrelated: CredentialScope =
+        scope === 'team:read' ? 'agent:profile' : 'team:read';
+      const response = await app.inject({
+        ...request,
+        headers: {
+          authorization: `Bearer ${unrelated}`,
+          ...(teamBound ? { 'x-moltnet-team-id': OWNER_ID } : {}),
+        },
+      });
+
+      expect(response.statusCode).toBe(403);
+      expect(response.json()).toMatchObject({
         detail: `Missing required scope: ${scope}`,
       });
     },

@@ -3,6 +3,7 @@
  */
 
 import {
+  cancelTask,
   claimTask,
   createAgentKey,
   createClient,
@@ -14,8 +15,9 @@ import {
   listDiaries,
   revokeAgentKey,
   rotateAgentKey,
+  taskHeartbeat,
 } from '@moltnet/api-client';
-import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
+import { AGENT_CREDENTIAL_SCOPES, AGENT_OAUTH_SCOPES } from '@moltnet/auth';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, type TestAgent } from './helpers.js';
@@ -285,6 +287,108 @@ describe('agent keys', () => {
     expect(createTeamResult.error).toMatchObject({
       code: 'FORBIDDEN',
       detail: 'Missing required scope: team:manage',
+    });
+  });
+
+  it('runs the daemon hot path on the documented five scopes and no further', async () => {
+    // AGENT_CREDENTIAL_SCOPES is what the daemon README and the Console both
+    // promise is sufficient. This asserts both halves of that promise: the
+    // claim/heartbeat path works, and the set is a real ceiling — it cannot
+    // cancel work or mint credentials.
+    const client = createClient({ baseUrl: harness.baseUrl });
+
+    const { data: daemonKey, error: daemonKeyError } = await createAgentKey({
+      client,
+      auth: () => agent.accessToken,
+      headers: {
+        'idempotency-key': 'rest-api-e2e-agent-key-daemon-scopes',
+        'x-moltnet-team-id': agent.personalTeamId,
+      },
+      body: {
+        agentId: agent.identityId,
+        name: 'rest-api-e2e-daemon',
+        scopes: [...AGENT_CREDENTIAL_SCOPES],
+        ttlDays: 1,
+      },
+    });
+    if (daemonKeyError || !daemonKey) {
+      throw new Error(
+        `MoltNet did not issue the daemon key: ${JSON.stringify(daemonKeyError)}`,
+      );
+    }
+    const daemonSecret = daemonKey.secret;
+    const teamHeaders = { 'x-moltnet-team-id': agent.personalTeamId };
+
+    const task = await createTask({
+      client,
+      auth: () => agent.accessToken,
+      headers: teamHeaders,
+      body: {
+        taskType: 'freeform',
+        title: 'Daemon scope ceiling',
+        diaryId: agent.privateDiaryId,
+        input: { brief: 'prove the five-scope daemon grant is sufficient' },
+      },
+    });
+    expect(task.error).toBeUndefined();
+    const taskId = task.data!.id;
+
+    // task:claim
+    const claimed = await claimTask({
+      client,
+      auth: () => daemonSecret,
+      headers: teamHeaders,
+      path: { id: taskId },
+      body: { leaseTtlSec: 60 },
+    });
+    expect(claimed.response.status).toBe(200);
+    expect(claimed.error).toBeUndefined();
+
+    // task:execute
+    const beat = await taskHeartbeat({
+      client,
+      auth: () => daemonSecret,
+      headers: teamHeaders,
+      path: { id: taskId, n: claimed.data!.attempt.attemptN },
+      body: { leaseTtlSec: 60 },
+    });
+    expect(beat.response.status).toBe(200);
+    expect(beat.error).toBeUndefined();
+
+    // task:manage is deliberately absent from the daemon grant.
+    const cancelled = await cancelTask({
+      client,
+      auth: () => daemonSecret,
+      headers: teamHeaders,
+      path: { id: taskId },
+      body: { reason: 'must-not-be-cancellable' },
+    });
+    expect(cancelled.response.status).toBe(403);
+    expect(cancelled.error).toMatchObject({
+      code: 'FORBIDDEN',
+      detail: 'Missing required scope: task:manage',
+    });
+
+    // key:manage is deliberately absent: a leaked daemon key cannot bootstrap
+    // a wider credential for itself.
+    const escalation = await createAgentKey({
+      client,
+      auth: () => daemonSecret,
+      headers: {
+        'idempotency-key': 'rest-api-e2e-agent-key-escalation',
+        ...teamHeaders,
+      },
+      body: {
+        agentId: agent.identityId,
+        name: 'must-not-be-issued',
+        scopes: [...AGENT_OAUTH_SCOPES],
+        ttlDays: 1,
+      },
+    });
+    expect(escalation.response.status).toBe(403);
+    expect(escalation.error).toMatchObject({
+      code: 'FORBIDDEN',
+      detail: 'Missing required scope: key:manage',
     });
   });
 
