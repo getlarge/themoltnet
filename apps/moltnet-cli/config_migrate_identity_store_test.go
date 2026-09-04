@@ -13,7 +13,14 @@ func TestMigrateLegacyIdentityStoreInfersAliasAndPreservesDefault(t *testing.T) 
 		t.Fatal(err)
 	}
 	legacyPath := filepath.Join(home, "repo", ".moltnet", "legacy", "moltnet.json")
-	legacy := centralIdentityFixture("legacy")
+	identity := newIdentityFixture(t, "legacy", "https://legacy.example.test")
+	legacy := &CredentialsFile{
+		IdentityID: identity.identityID,
+		OAuth2:     CredentialsOAuth2{ClientID: identity.clientID, ClientSecret: identity.clientID + "-secret"},
+		Keys:       CredentialsKeys{PublicKey: identity.publicKey, PrivateKey: identity.seed, Fingerprint: identity.fingerprint},
+		Endpoints:  CredentialsEndpoints{API: identity.api},
+		Git:        &GitSection{Name: "Legacy Bot", Email: "legacy@example.test"},
+	}
 	if _, err := WriteConfigTo(legacy, legacyPath); err != nil {
 		t.Fatal(err)
 	}
@@ -31,6 +38,13 @@ func TestMigrateLegacyIdentityStoreInfersAliasAndPreservesDefault(t *testing.T) 
 	target, _ := identityCredentialsPath("legacy")
 	if copied, err := ReadConfigFrom(target); err != nil || copied.IdentityID != legacy.IdentityID {
 		t.Fatalf("copied config = %#v, %v", copied, err)
+	} else {
+		if copied.SSH == nil || filepath.Dir(copied.SSH.PublicKeyPath) != filepath.Join(filepath.Dir(target), "ssh") {
+			t.Fatalf("SSH was not regenerated centrally: %#v", copied.SSH)
+		}
+		if copied.Git == nil || copied.Git.ConfigPath != filepath.Join(filepath.Dir(target), "gitconfig") {
+			t.Fatalf("Git config was not regenerated centrally: %#v", copied.Git)
+		}
 	}
 	if env, err := os.ReadFile(filepath.Join(filepath.Dir(target), "env")); err != nil || string(env) != "CUSTOM_VALUE='kept'\n" {
 		t.Fatalf("copied env = %q, %v", env, err)
