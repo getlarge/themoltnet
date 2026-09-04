@@ -26,8 +26,14 @@ func migrateLegacyIdentityStore(credentialsPath, requestedAlias string, dryRun b
 	if alias == "" && filepath.Base(filepath.Dir(legacyDir)) == ".moltnet" {
 		alias = filepath.Base(legacyDir)
 	}
+	// The early agent daemon stored managed documents as
+	// agents/<alias>.json. It has no bundle directory, but its filename still
+	// provides the local-only alias required by the central store.
+	if alias == "" && filepath.Base(legacyDir) == "agents" && filepath.Ext(path) == ".json" {
+		alias = strings.TrimSuffix(filepath.Base(path), ".json")
+	}
 	if alias == "" {
-		return nil, fmt.Errorf("--name is required when the legacy credentials path is not .moltnet/<alias>/moltnet.json")
+		return nil, fmt.Errorf("--name is required when the legacy credentials path does not encode an identity alias")
 	}
 	if err := validateAgentName(alias); err != nil {
 		return nil, err

@@ -73,6 +73,37 @@ func TestMigrateLegacyIdentityStoreRequiresNameOutsideLegacyLayout(t *testing.T)
 	}
 }
 
+func TestMigrateLegacyIdentityStoreInfersAliasFromDaemonAgentDocument(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	legacyPath := filepath.Join(home, ".config", "moltnet", "agents", "daemon-agent.json")
+	identity := newIdentityFixture(t, "daemon-agent", "https://daemon.example.test")
+	legacy := &CredentialsFile{
+		IdentityID: identity.identityID,
+		OAuth2:     CredentialsOAuth2{ClientID: identity.clientID, ClientSecret: "daemon-secret"},
+		Keys:       CredentialsKeys{PublicKey: identity.publicKey, PrivateKey: identity.seed, Fingerprint: identity.fingerprint},
+		Endpoints:  CredentialsEndpoints{API: identity.api},
+	}
+	if _, err := WriteConfigTo(legacy, legacyPath); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := migrateLegacyIdentityStore(legacyPath, "", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result["alias"] != "daemon-agent" {
+		t.Fatalf("migration result = %#v", result)
+	}
+	target, err := identityCredentialsPath("daemon-agent")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if copied, err := ReadConfigFrom(target); err != nil || copied == nil || copied.IdentityID != legacy.IdentityID {
+		t.Fatalf("migrated daemon document = %#v, %v", copied, err)
+	}
+}
+
 func TestMigrateLegacyIdentityStoreRejectsIncompleteOnboarding(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	legacyDir := filepath.Join(t.TempDir(), ".moltnet", "pending")
