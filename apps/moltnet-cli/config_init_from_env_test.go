@@ -361,13 +361,12 @@ func TestConfigInitFromEnvFileOverride(t *testing.T) {
 }
 
 func TestConfigInitFromEnvFileMissing(t *testing.T) {
-	t.Parallel()
 	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
 
 	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "config", "init-from-env",
-		"--agent", "test-agent",
-		"--dir", tmpDir,
+		"--name", "test-agent",
 		"--env-file", filepath.Join(tmpDir, "nonexistent.env"),
 	)
 	if err == nil {
