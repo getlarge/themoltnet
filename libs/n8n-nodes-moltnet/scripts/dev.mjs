@@ -29,6 +29,7 @@ const n8nBinary = resolve(
   'node_modules/.bin',
   process.platform === 'win32' ? 'n8n.cmd' : 'n8n',
 );
+const n8nManifest = resolve(runtimeFolder, 'node_modules/n8n/package.json');
 
 function runBuild() {
   const result = spawnSync('pnpm', ['exec', 'vite', 'build'], {
@@ -82,7 +83,9 @@ function ensureN8nRuntime() {
     ),
   );
 
-  if (existsSync(n8nBinary)) return;
+  // A cancelled npm install can leave the executable behind without the
+  // package manifest that the executable loads on startup.
+  if (existsSync(n8nBinary) && existsSync(n8nManifest)) return;
 
   console.log('Installing the isolated n8n development runtime...');
   const result = spawnSync('npm', ['install', '--no-audit', '--no-fund'], {
@@ -113,6 +116,7 @@ const children = [
       ...process.env,
       DB_SQLITE_POOL_SIZE: '10',
       N8N_DEV_RELOAD: 'true',
+      N8N_UNVERIFIED_PACKAGES_ENABLED: 'true',
       // This isolated editor is intentionally served over local HTTP. Keep the
       // override scoped to this development child; production n8n should use
       // secure cookies behind HTTPS.
