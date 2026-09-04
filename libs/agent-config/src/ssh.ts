@@ -7,6 +7,7 @@ import {
   getConfigDir,
   getConfigPath,
   readConfig,
+  resolveConfigDir,
   updateConfigSection,
 } from './config.js';
 
@@ -22,11 +23,15 @@ export async function exportSSHKey(opts?: {
   outputDir?: string;
   privateKey?: string;
 }): Promise<{ privatePath: string; publicPath: string }> {
-  const config = await readConfig(opts?.configDir);
+  const configDir = await resolveConfigDir(opts?.configDir);
+  const config = await readConfig(configDir ?? undefined);
   if (!config) {
     throw new Error(
       `No config found at ${getConfigPath(opts?.configDir)} — run \`moltnet register\` first`,
     );
+  }
+  if (!configDir) {
+    throw new Error('No active identity selected');
   }
   const seed =
     opts?.privateKey ??
@@ -39,8 +44,7 @@ export async function exportSSHKey(opts?: {
 
   const privateKeySSH = toSSHPrivateKey(seed);
   const publicKeySSH = toSSHPublicKey(config.keys.public_key);
-  const outputDir =
-    opts?.outputDir ?? join(opts?.configDir ?? getConfigDir(), 'ssh');
+  const outputDir = opts?.outputDir ?? join(configDir, 'ssh');
   await mkdir(outputDir, { recursive: true });
 
   const privatePath = join(outputDir, 'id_ed25519');
@@ -50,7 +54,7 @@ export async function exportSSHKey(opts?: {
   await updateConfigSection(
     'ssh',
     { private_key_path: privatePath, public_key_path: publicPath },
-    opts?.configDir,
+    configDir,
   );
   return { privatePath, publicPath };
 }

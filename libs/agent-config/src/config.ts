@@ -93,14 +93,63 @@ export function getConfigDir(): string {
   return join(homedir(), '.config', 'moltnet');
 }
 
+export interface IdentitySelector {
+  version: 1;
+  default_identity?: string;
+}
+
+const identityAliasPattern = /^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$/;
+
+export function getIdentityDir(alias: string): string {
+  if (!identityAliasPattern.test(alias)) {
+    throw new Error(`invalid identity alias: ${alias}`);
+  }
+  return join(getConfigDir(), 'identities', alias);
+}
+
+/** Resolve an explicit credentials directory, active identity, or default. */
+export async function resolveConfigDir(
+  configDir?: string,
+): Promise<string | null> {
+  if (configDir) return configDir;
+  let alias = process.env.MOLTNET_ACTIVE_IDENTITY?.trim();
+  if (!alias) {
+    try {
+      const content = await readFile(
+        join(getConfigDir(), 'identity-selector.json'),
+        'utf-8',
+      );
+      const selector = JSON.parse(content) as IdentitySelector;
+      if (selector.version !== 1) {
+        throw new Error(
+          `identity selector version ${String(selector.version)} is not supported`,
+        );
+      }
+      alias = selector.default_identity?.trim();
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+      throw error;
+    }
+  }
+  return alias ? getIdentityDir(alias) : null;
+}
+
 export function getConfigPath(configDir?: string): string {
-  return join(configDir ?? getConfigDir(), 'moltnet.json');
+  if (configDir) return join(configDir, 'moltnet.json');
+  const alias = process.env.MOLTNET_ACTIVE_IDENTITY?.trim();
+  if (!alias) {
+    throw new Error(
+      'no active identity selected; set MOLTNET_ACTIVE_IDENTITY or use an explicit credentials directory',
+    );
+  }
+  return join(getIdentityDir(alias), 'moltnet.json');
 }
 
 export async function readConfig(
   configDir?: string,
 ): Promise<MoltNetConfig | null> {
-  const dir = configDir ?? getConfigDir();
+  const dir = await resolveConfigDir(configDir);
+  if (!dir) return null;
   try {
     const content = await readFile(join(dir, 'moltnet.json'), 'utf-8');
     return JSON.parse(content) as MoltNetConfig;
@@ -113,7 +162,12 @@ export async function writeConfig(
   config: MoltNetConfig,
   configDir?: string,
 ): Promise<string> {
-  const dir = configDir ?? getConfigDir();
+  const dir = await resolveConfigDir(configDir);
+  if (!dir) {
+    throw new Error(
+      'no active identity selected; set MOLTNET_ACTIVE_IDENTITY before writing config',
+    );
+  }
   await mkdir(dir, { recursive: true });
   const filePath = join(dir, 'moltnet.json');
   // Write to a sibling temp file and rename so the config is either fully

@@ -1,4 +1,4 @@
-import { getConfigDir, readConfig } from '@moltnet/agent-config';
+import { readConfig, resolveConfigDir } from '@moltnet/agent-config';
 import { createNodeSecretProviderRegistry } from '@themoltnet/sdk/node';
 
 import { resolveGitHubAppPrivateKey } from './private-key.js';
@@ -13,9 +13,13 @@ import { getInstallationToken, githubAppKeySourceFromConfig } from './token.js';
  * token cache lives in the config directory.
  */
 export async function credentialHelper(configDir?: string): Promise<void> {
-  const config = await readConfig(configDir);
+  const resolvedConfigDir = await resolveConfigDir(configDir);
+  const config = await readConfig(resolvedConfigDir ?? undefined);
   if (!config) {
     throw new Error('No config found — run `moltnet register` first');
+  }
+  if (!resolvedConfigDir) {
+    throw new Error('No active identity selected');
   }
   if (!config.github) {
     throw new Error(
@@ -30,7 +34,7 @@ export async function credentialHelper(configDir?: string): Promise<void> {
     ...githubAppKeySourceFromConfig({
       resolvePem: () =>
         resolveGitHubAppPrivateKey(config, createNodeSecretProviderRegistry()),
-      cacheDir: configDir ?? getConfigDir(),
+      cacheDir: resolvedConfigDir,
     }),
   });
 
