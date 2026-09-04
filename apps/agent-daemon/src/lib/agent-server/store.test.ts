@@ -182,15 +182,29 @@ describe('AgentServerStore', () => {
     store.writeAgentConfig('first', {
       identity_id: 'id-first',
       registered_at: 't',
-      oauth2: { client_id: 'client-first' },
-      keys: { public_key: 'pk', fingerprint: 'fp' },
+      oauth2: {
+        client_id: 'client-first',
+        client_secret_ref: { provider: 'file', key: 'oauth2/id-first' },
+      },
+      keys: {
+        public_key: 'pk',
+        fingerprint: 'fp',
+        private_key_ref: { provider: 'file', key: 'identity/fp/seed' },
+      },
       endpoints: { api: 'https://api.example', mcp: 'https://mcp.example' },
     });
     store.writeAgentConfig('second', {
       identity_id: 'id-second',
       registered_at: 't',
-      oauth2: { client_id: 'client-second' },
-      keys: { public_key: 'pk', fingerprint: 'fp' },
+      oauth2: {
+        client_id: 'client-second',
+        client_secret_ref: { provider: 'file', key: 'oauth2/id-second' },
+      },
+      keys: {
+        public_key: 'pk',
+        fingerprint: 'fp',
+        private_key_ref: { provider: 'file', key: 'identity/fp/seed' },
+      },
       endpoints: { api: 'https://api.example', mcp: 'https://mcp.example' },
     });
 
