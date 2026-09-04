@@ -52,7 +52,7 @@ func newGitHubCmd() *cobra.Command {
 		Long: `Read a Claude Code or Codex PreToolUse hook payload from stdin and
 deny write-capable gh commands that would silently use human credentials.
 
-Malformed input and commands outside an activated MoltNet git context are
+Malformed input and commands outside a selected MoltNet identity context are
 allowed silently. Set MOLTNET_GITHUB_GUARD_STRICT=1 to deny writes when App
 permission state is unavailable, or MOLTNET_GITHUB_GUARD=off to disable the
 guard for an emergency editor session.`,
@@ -65,13 +65,12 @@ guard for an emergency editor session.`,
 	}
 
 	// exec subcommand — first-class agent-authored GitHub execution path
-	// (issue #1824). Resolves credentials from the activated context, mints
+	// (issue #1824). Resolves credentials from the selected central identity, mints
 	// a command-scoped App token, and runs exactly one `gh` child process.
 	execCmd := &cobra.Command{
 		Use:   "exec -- gh <command>",
 		Short: "Run a gh command with a command-scoped MoltNet GitHub App token",
-		Long: `Resolve the active .moltnet/<agent>/moltnet.json from the activated
-context, mint a GitHub App installation token, and execute exactly one child
+		Long: `Resolve the selected central identity document, mint a GitHub App installation token, and execute exactly one child
 gh process with GH_TOKEN set to that token.
 
 The token is never printed or persisted. If token minting fails, the command

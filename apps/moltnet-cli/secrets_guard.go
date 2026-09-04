@@ -30,7 +30,7 @@ type pathClass int
 
 const (
 	pathNone          pathClass = iota
-	pathCredential              // .moltnet/<agent>/moltnet.json, env, pem, …
+	pathCredential              // central identity or legacy bundle secret material
 	pathManagedConfig           // .claude/settings.json, .codex/hooks.json, …
 )
 
@@ -472,7 +472,7 @@ func classifyPathLexical(value string) pathClass {
 		return pathNone
 	}
 
-	// Credential paths: .moltnet/<agent>/...
+	// Credential paths: central identities and explicit legacy bundles.
 	if class := classifyCredentialPath(value); class != pathNone {
 		return class
 	}
@@ -560,20 +560,27 @@ func wordExpandsSecretRoot(word *syntax.Word) bool {
 	return found
 }
 
-// classifyCredentialPath checks whether a path is inside .moltnet/ credential
-// material. Returns pathCredential for confidential files, pathNone otherwise.
+// classifyCredentialPath checks legacy repository bundles and central identity
+// directories. Public Git and SSH exports remain readable; all secret-bearing
+// identity material is protected.
 func classifyCredentialPath(value string) pathClass {
 	marker := ".moltnet/"
 	index := strings.Index(value, marker)
-	if index < 0 {
-		if value == ".moltnet" || strings.HasSuffix(value, "/.moltnet") {
-			return pathCredential
+	legacy := index >= 0
+	if !legacy {
+		marker = ".config/moltnet/identities/"
+		index = strings.Index(value, marker)
+		if index < 0 {
+			if value == ".moltnet" || strings.HasSuffix(value, "/.moltnet") ||
+				strings.HasSuffix(value, "/.config/moltnet/identities") {
+				return pathCredential
+			}
+			return pathNone
 		}
-		return pathNone
 	}
 	rel := strings.TrimPrefix(value[index+len(marker):], "/")
 	parts := strings.Split(rel, "/")
-	if len(parts) == 1 && parts[0] == "default-agent" {
+	if legacy && len(parts) == 1 && parts[0] == "default-agent" {
 		return pathNone
 	}
 	if len(parts) < 2 {

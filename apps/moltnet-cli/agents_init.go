@@ -31,7 +31,6 @@ type agentsInitOpts struct {
 	apiURLExplicit bool
 	name           string
 	org            string
-	dir            string
 	noOpen         bool
 	timeout        time.Duration
 	out            io.Writer

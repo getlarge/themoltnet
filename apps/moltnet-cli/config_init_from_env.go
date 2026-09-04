@@ -53,7 +53,7 @@ func normalizePEMEnvValue(raw string) string {
 	return value
 }
 
-// runConfigInitFromEnvCmd reconstructs an agent's .moltnet/<agent>/ directory
+// runConfigInitFromEnvCmd reconstructs an identity's central local directory
 // from environment variables. Designed for ephemeral CI/cloud environments
 // (e.g. Claude Code web) where moltnet agents init cannot run interactively.
 func runConfigInitFromEnvCmd(dir, agentName string, skipGit bool, envFile string, override bool) error {
