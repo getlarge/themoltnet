@@ -351,34 +351,26 @@ func TestEnvCheckMissingVars(t *testing.T) {
 // --- start command tests ---
 
 func TestStartDryRun(t *testing.T) {
-	t.Parallel()
 	dir := t.TempDir()
-	moltnetDir := filepath.Join(dir, ".moltnet")
-	agentDir := filepath.Join(moltnetDir, "test-agent")
+	t.Setenv("HOME", dir)
+	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	os.MkdirAll(agentDir, 0o755)
 	_, _ = WriteConfigTo(&CredentialsFile{
 		IdentityID: "test-identity",
 		OAuth2:     CredentialsOAuth2{ClientID: "cid", ClientSecret: "super-secret"},
 	}, filepath.Join(agentDir, "moltnet.json"))
-	os.WriteFile(filepath.Join(agentDir, "env"), []byte("MY_VAR='hello'\nGIT_CONFIG_GLOBAL='.moltnet/test-agent/gitconfig'\n"), 0o644)
+	gitconfig := filepath.Join(agentDir, "gitconfig")
+	os.WriteFile(filepath.Join(agentDir, "env"), []byte("MY_VAR='hello'\nGIT_CONFIG_GLOBAL='"+gitconfig+"'\n"), 0o644)
 
 	root := NewRootCmd("test", "")
-	stdout, _, err := executeCommand(root, "start", "echo", "--agent", "test-agent", "--dir", dir, "--dry-run")
+	stdout, _, err := executeCommand(root, "start", "echo", "--identity", "test-agent", "--dry-run")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !strings.Contains(stdout, "MY_VAR=hello") {
 		t.Errorf("expected MY_VAR in dry-run output, got: %s", stdout)
 	}
-	// GIT_CONFIG_GLOBAL should be resolved to an absolute path. dir is
-	// canonicalized so the expectation matches the canonical form returned
-	// by resolveMoltnetDir (e.g. /var → /private/var on macOS).
-	canonicalDir, err := filepath.EvalSymlinks(dir)
-	if err != nil {
-		t.Fatalf("eval symlinks: %v", err)
-	}
-	absGitconfig := filepath.Join(canonicalDir, ".moltnet", "test-agent", "gitconfig")
-	if !strings.Contains(stdout, "GIT_CONFIG_GLOBAL="+absGitconfig) {
+	if !strings.Contains(stdout, "GIT_CONFIG_GLOBAL="+gitconfig) {
 		t.Errorf("expected absolute GIT_CONFIG_GLOBAL path, got: %s", stdout)
 	}
 	if !strings.Contains(stdout, "echo") {
@@ -394,10 +386,9 @@ func TestStartDryRun(t *testing.T) {
 }
 
 func TestStartDryRunForwardsTargetArgs(t *testing.T) {
-	t.Parallel()
 	dir := t.TempDir()
-	moltnetDir := filepath.Join(dir, ".moltnet")
-	agentDir := filepath.Join(moltnetDir, "test-agent")
+	t.Setenv("HOME", dir)
+	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	os.MkdirAll(agentDir, 0o755)
 	_, _ = WriteConfigTo(&CredentialsFile{
 		IdentityID: "test-identity",
@@ -410,10 +401,8 @@ func TestStartDryRunForwardsTargetArgs(t *testing.T) {
 		root,
 		"start",
 		"echo",
-		"--agent",
+		"--identity",
 		"test-agent",
-		"--dir",
-		dir,
 		"--dry-run",
 		"--",
 		"--model",
@@ -436,15 +425,8 @@ func TestStartDryRunForwardsTargetArgs(t *testing.T) {
 
 func TestStartInjectsKeyringSecretOnlyIntoChildEnvironment(t *testing.T) {
 	dir := t.TempDir()
-	workingDir, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	relativeDir, err := filepath.Rel(workingDir, dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	agentDir := filepath.Join(dir, ".moltnet", "test-agent")
+	t.Setenv("HOME", dir)
+	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	if err := os.MkdirAll(agentDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -479,9 +461,9 @@ func TestStartInjectsKeyringSecretOnlyIntoChildEnvironment(t *testing.T) {
 		return nil
 	}
 
-	err = runStartCmdWithRegistryAndExec(
+	err := runStartCmdWithRegistryAndExec(
 		NewRootCmd("test", ""),
-		relativeDir,
+		"",
 		"test-agent",
 		"echo",
 		[]string{"hello"},
@@ -516,7 +498,7 @@ func TestStartInjectsKeyringSecretOnlyIntoChildEnvironment(t *testing.T) {
 	if got := childEnv["MOLTNET_CLIENT_SECRET"]; got != "launch-only-secret" {
 		t.Fatalf("generic child client secret = %q, want launch-time keyring value", got)
 	}
-	wantCredentialsPath, err := filepath.Abs(filepath.Join(relativeDir, ".moltnet", "test-agent", "moltnet.json"))
+	wantCredentialsPath, err := filepath.Abs(filepath.Join(agentDir, "moltnet.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -553,14 +535,14 @@ func TestStartMissingAgent(t *testing.T) {
 }
 
 func TestStartMissingEnvFile(t *testing.T) {
-	t.Parallel()
 	dir := t.TempDir()
-	agentDir := filepath.Join(dir, ".moltnet", "test-agent")
+	t.Setenv("HOME", dir)
+	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	os.MkdirAll(agentDir, 0o755)
 	os.WriteFile(filepath.Join(agentDir, "moltnet.json"), []byte("{}"), 0o644)
 
 	root := NewRootCmd("test", "")
-	_, _, err := executeCommand(root, "start", "claude", "--agent", "test-agent", "--dir", dir)
+	_, _, err := executeCommand(root, "start", "claude", "--identity", "test-agent")
 	if err == nil {
 		t.Fatal("expected error for missing env file")
 	}
