@@ -58,12 +58,22 @@ func migrateLegacyIdentityStore(credentialsPath, requestedAlias string, dryRun b
 		}
 		return result, nil
 	}
-	if _, err := WriteConfigTo(creds, target); err != nil {
+	identitiesDir := filepath.Dir(filepath.Dir(target))
+	if err := os.MkdirAll(identitiesDir, 0o700); err != nil {
+		return nil, fmt.Errorf("create central identity store: %w", err)
+	}
+	stagingDir, err := os.MkdirTemp(identitiesDir, "."+alias+"-")
+	if err != nil {
+		return nil, fmt.Errorf("create migration staging directory: %w", err)
+	}
+	defer func() { _ = os.RemoveAll(stagingDir) }()
+	stagedConfig := filepath.Join(stagingDir, "moltnet.json")
+	if _, err := WriteConfigTo(creds, stagedConfig); err != nil {
 		return nil, err
 	}
 	// SSH and Git paths are derived deployment artifacts. Recreate them beneath
 	// the central identity directory rather than retaining repository paths.
-	if err := runSSHKeyExportCmd(target, filepath.Join(filepath.Dir(target), "ssh")); err != nil {
+	if err := runSSHKeyExportCmd(stagedConfig, filepath.Join(stagingDir, "ssh")); err != nil {
 		return nil, fmt.Errorf("regenerate SSH exports: %w", err)
 	}
 	gitName, gitEmail := alias, creds.IdentityID+"@agents.themolt.net"
@@ -75,24 +85,37 @@ func migrateLegacyIdentityStore(credentialsPath, requestedAlias string, dryRun b
 			gitEmail = creds.Git.Email
 		}
 	}
-	if err := runGitSetupCmd(target, gitName, gitEmail); err != nil {
+	if err := runGitSetupCmd(stagedConfig, gitName, gitEmail); err != nil {
 		return nil, fmt.Errorf("regenerate Git configuration: %w", err)
 	}
-	if regenerated, err := ReadConfigFrom(target); err != nil {
+	if regenerated, err := ReadConfigFrom(stagedConfig); err != nil {
 		return nil, err
 	} else if regenerated != nil && regenerated.GitHub != nil && regenerated.Git != nil {
-		if err := ensureGitHubCredentialConfig(regenerated.Git.ConfigPath, target); err != nil {
+		if err := ensureGitHubCredentialConfig(regenerated.Git.ConfigPath, stagedConfig); err != nil {
 			return nil, fmt.Errorf("enforce tokenless GitHub credential helper: %w", err)
 		}
 	}
-	// env is non-secret activation context. Preserve it verbatim with owner-only
-	// permissions; derived SSH/Git/cache files are regenerated in later steps.
+	// Preserve only user-provided environment lines. Managed values, including
+	// old repository Git/SSH paths, are regenerated for the central directory.
 	if data, err := os.ReadFile(filepath.Join(legacyDir, "env")); err == nil {
-		if err := writeFileAtomic(filepath.Join(filepath.Dir(target), "env"), data); err != nil {
+		if err := writeFileAtomic(filepath.Join(stagingDir, "env"), data); err != nil {
 			return nil, fmt.Errorf("copy legacy environment: %w", err)
 		}
 	} else if !os.IsNotExist(err) {
 		return nil, fmt.Errorf("read legacy environment: %w", err)
+	}
+	regenerated, err := ReadConfigFrom(stagedConfig)
+	if err != nil {
+		return nil, err
+	}
+	if err := writeAgentEnvFile(stagingDir, alias, regenerated); err != nil {
+		return nil, fmt.Errorf("regenerate central environment: %w", err)
+	}
+	if err := rewriteStagedIdentityPaths(stagingDir, filepath.Dir(target), regenerated); err != nil {
+		return nil, err
+	}
+	if err := os.Rename(stagingDir, filepath.Dir(target)); err != nil {
+		return nil, fmt.Errorf("publish central identity: %w", err)
 	}
 	if selector, err := readIdentitySelector(); err != nil {
 		return nil, err
@@ -102,4 +125,37 @@ func migrateLegacyIdentityStore(credentialsPath, requestedAlias string, dryRun b
 		}
 	}
 	return result, nil
+}
+
+// rewriteStagedIdentityPaths keeps a staged migration atomic while ensuring
+// the published document and activation files never retain temporary paths.
+func rewriteStagedIdentityPaths(stagingDir, targetDir string, creds *CredentialsFile) error {
+	replace := func(value string) string { return strings.ReplaceAll(value, stagingDir, targetDir) }
+	if creds.SSH != nil {
+		creds.SSH.PrivateKeyPath = replace(creds.SSH.PrivateKeyPath)
+		creds.SSH.PublicKeyPath = replace(creds.SSH.PublicKeyPath)
+	}
+	if creds.Git != nil {
+		creds.Git.ConfigPath = replace(creds.Git.ConfigPath)
+	}
+	if creds.GitHub != nil {
+		creds.GitHub.PrivateKeyPath = replace(creds.GitHub.PrivateKeyPath)
+	}
+	if _, err := WriteConfigTo(creds, filepath.Join(stagingDir, "moltnet.json")); err != nil {
+		return fmt.Errorf("rewrite staged credentials paths: %w", err)
+	}
+	for _, name := range []string{"gitconfig", "env"} {
+		path := filepath.Join(stagingDir, name)
+		data, err := os.ReadFile(path)
+		if os.IsNotExist(err) {
+			continue
+		}
+		if err != nil {
+			return fmt.Errorf("read staged %s: %w", name, err)
+		}
+		if err := writeFileAtomic(path, []byte(strings.ReplaceAll(string(data), stagingDir, targetDir))); err != nil {
+			return fmt.Errorf("rewrite staged %s paths: %w", name, err)
+		}
+	}
+	return nil
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -24,7 +25,7 @@ func TestMigrateLegacyIdentityStoreInfersAliasAndPreservesDefault(t *testing.T) 
 	if _, err := WriteConfigTo(legacy, legacyPath); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(filepath.Dir(legacyPath), "env"), []byte("CUSTOM_VALUE='kept'\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(filepath.Dir(legacyPath), "env"), []byte("GIT_CONFIG_GLOBAL='/old/repository/gitconfig'\nCUSTOM_VALUE='kept'\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -46,8 +47,10 @@ func TestMigrateLegacyIdentityStoreInfersAliasAndPreservesDefault(t *testing.T) 
 			t.Fatalf("Git config was not regenerated centrally: %#v", copied.Git)
 		}
 	}
-	if env, err := os.ReadFile(filepath.Join(filepath.Dir(target), "env")); err != nil || string(env) != "CUSTOM_VALUE='kept'\n" {
-		t.Fatalf("copied env = %q, %v", env, err)
+	if env, err := os.ReadFile(filepath.Join(filepath.Dir(target), "env")); err != nil {
+		t.Fatalf("read migrated env: %v", err)
+	} else if got := string(env); !strings.Contains(got, "CUSTOM_VALUE='kept'") || strings.Contains(got, "/old/repository") || !strings.Contains(got, "MOLTNET_ACTIVE_IDENTITY='legacy'") {
+		t.Fatalf("migrated env = %q", got)
 	}
 	selector, err := readIdentitySelector()
 	if err != nil || selector.DefaultIdentity != "current" {
@@ -82,5 +85,28 @@ func TestMigrateLegacyIdentityStoreRejectsIncompleteOnboarding(t *testing.T) {
 	}
 	if _, err := migrateLegacyIdentityStore(path, "", false); err == nil {
 		t.Fatal("incomplete onboarding unexpectedly migrated")
+	}
+}
+
+func TestMigrateLegacyIdentityStoreLeavesNoPartialIdentityOnRegenerationFailure(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	legacyDir := filepath.Join(home, "repo", ".moltnet", "broken")
+	legacyPath := filepath.Join(legacyDir, "moltnet.json")
+	broken := centralIdentityFixture("broken")
+	broken.Keys.PublicKey = "not-an-ed25519-public-key"
+	if _, err := WriteConfigTo(broken, legacyPath); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := migrateLegacyIdentityStore(legacyPath, "", false); err == nil {
+		t.Fatal("migration unexpectedly succeeded")
+	}
+	target, err := identityDir("broken")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(target); !os.IsNotExist(err) {
+		t.Fatalf("partial central identity remains at %s: %v", target, err)
 	}
 }
