@@ -4,7 +4,7 @@ inputs:
   agent-name:
     description: >
       MoltNet agent name. OAuth mode materialises
-      $GITHUB_WORKSPACE/.moltnet/<agent-name>/ from MOLTNET_* env vars via
+      ~/.config/moltnet/identities/<agent-name>/ from MOLTNET_* env vars via
       `moltnet config init-from-env`; agent-key mode remains configless. When
       empty, the action falls back to the MOLTNET_AGENT_NAME env var the
       caller set on the step.
@@ -271,7 +271,7 @@ runs:
           exit 1
         fi
         export MOLTNET_API_URL="${MOLTNET_API_URL:-https://api.themolt.net}"
-        AGENT_DIR="$GITHUB_WORKSPACE/.moltnet/$MOLTNET_AGENT_NAME"
+        AGENT_DIR="$HOME/.config/moltnet/identities/$MOLTNET_AGENT_NAME"
         if [ -n "${MOLTNET_AGENT_KEY:-}" ]; then
           if [ -z "${MOLTNET_PRIVATE_KEY:-}" ]; then
             echo "::error::MOLTNET_PRIVATE_KEY is required with MOLTNET_AGENT_KEY for executor attestation" >&2
@@ -284,6 +284,7 @@ runs:
           {
             echo "MOLTNET_AGENT_DIR=$AGENT_DIR"
             echo "MOLTNET_AGENT_NAME=$MOLTNET_AGENT_NAME"
+            echo "MOLTNET_ACTIVE_IDENTITY=$MOLTNET_AGENT_NAME"
             echo "MOLTNET_API_URL=$MOLTNET_API_URL"
           } >> "$GITHUB_ENV"
           echo "::notice::Using configless MoltNet agent-key authentication"
@@ -309,21 +310,18 @@ runs:
           fi
           export MOLTNET_GITHUB_APP_PRIVATE_KEY="$pem_normalized"
         fi
-        # OAuth mode reconstructs the agent's .moltnet/<agent>/ tree (moltnet.json,
+        # OAuth mode reconstructs a central identity directory (moltnet.json,
         # SSH keys, gitconfig, optional GitHub App PEM) from the
         # caller-supplied MOLTNET_* env vars using the canonical CLI
-        # helper. The daemon resolves agent credentials via
-        # `git rev-parse --show-toplevel` + .moltnet/<name>/, so the
-        # materialized dir must be inside the checked-out repo —
-        # i.e. $GITHUB_WORKSPACE. The dispatcher reads OAuth client
-        # credentials from env directly via SDK.connect().
+        # helper. The daemon selects it via MOLTNET_ACTIVE_IDENTITY,
+        # independently of the checkout.
         npx -y @themoltnet/cli config init-from-env \
-          --dir "$GITHUB_WORKSPACE" \
-          --agent "$MOLTNET_AGENT_NAME"
+          --name "$MOLTNET_AGENT_NAME"
         {
           echo "GIT_CONFIG_GLOBAL=$AGENT_DIR/gitconfig"
           echo "MOLTNET_AGENT_DIR=$AGENT_DIR"
           echo "MOLTNET_AGENT_NAME=$MOLTNET_AGENT_NAME"
+          echo "MOLTNET_ACTIVE_IDENTITY=$MOLTNET_AGENT_NAME"
         } >> "$GITHUB_ENV"
 
     - name: Verify GitHub App PEM is well-formed
@@ -530,7 +528,7 @@ runs:
           end
         ' "$TASK_SPEC_PATH")
 
-        CREDS="$GITHUB_WORKSPACE/.moltnet/$MOLTNET_AGENT_NAME/moltnet.json"
+        CREDS="$HOME/.config/moltnet/identities/$MOLTNET_AGENT_NAME/moltnet.json"
         credential_args=()
         if [ -n "${MOLTNET_AGENT_KEY:-}" ]; then
           echo "::notice::Creating task with configless agent-key authentication"

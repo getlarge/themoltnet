@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const {
   connectMock,
   execFileSyncMock,
+  getIdentityDirMock,
   readConfigMock,
   AuthenticationErrorMock,
 } = vi.hoisted(() => {
@@ -20,19 +21,23 @@ const {
   return {
     connectMock: vi.fn(),
     execFileSyncMock: vi.fn(),
+    getIdentityDirMock: vi.fn((name: string) =>
+      join('/central/identities', name),
+    ),
     readConfigMock: vi.fn(),
     AuthenticationErrorMock,
   };
 });
 
-vi.mock('node:child_process', () => ({
-  execFileSync: execFileSyncMock,
-}));
-
 vi.mock('@themoltnet/sdk', () => ({
   readConfig: readConfigMock,
+  getIdentityDir: getIdentityDirMock,
   AuthenticationError: AuthenticationErrorMock,
 }));
+
+// Retained while fixtures exercise callers that still pass agentRootDir; the
+// resolver no longer invokes Git for credential discovery.
+vi.mock('node:child_process', () => ({ execFileSync: execFileSyncMock }));
 
 const createNodeSecretProviderRegistryMock = vi.hoisted(() => vi.fn());
 
@@ -54,6 +59,7 @@ describe('resolveAgentContext', () => {
     readConfigMock.mockReset();
     readConfigMock.mockResolvedValue(null);
     connectMock.mockResolvedValue({ agent: 'connected' });
+    getIdentityDirMock.mockClear();
     execFileSyncMock.mockReset();
     createNodeSecretProviderRegistryMock.mockReset();
     createNodeSecretProviderRegistryMock.mockReturnValue({
@@ -61,22 +67,20 @@ describe('resolveAgentContext', () => {
     });
   });
 
-  it('uses an explicit repo-free root when credentials exist there', async () => {
+  it('selects the central identity independently of an explicit repository root', async () => {
     const root = mkdtempSync(join(tmpdir(), 'daemon-agent-root-'));
     execFileSyncMock.mockImplementation(() => {
       throw new Error('not a git repo');
     });
 
     try {
-      writeCredentials(root, 'legreffier');
-
       const ctx = await resolveAgentContext('legreffier', {
         agentRootDir: root,
       });
 
-      const agentDir = join(root, '.moltnet', 'legreffier');
+      const agentDir = '/central/identities/legreffier';
       expect(ctx.agentDir).toBe(agentDir);
-      expect(ctx.agentRootDir).toBe(root);
+      expect(ctx.agentRootDir).toBe(agentDir);
       expect(connectMock).toHaveBeenCalledWith(
         expect.objectContaining({
           configDir: agentDir,
@@ -89,21 +93,19 @@ describe('resolveAgentContext', () => {
     }
   });
 
-  it('falls back to the git root when the explicit root has no credentials', async () => {
+  it('does not fall back to the Git root', async () => {
     const sandboxRoot = mkdtempSync(join(tmpdir(), 'daemon-sandbox-root-'));
     const gitRoot = mkdtempSync(join(tmpdir(), 'daemon-git-root-'));
     execFileSyncMock.mockReturnValue(`${gitRoot}\n`);
 
     try {
-      writeCredentials(gitRoot, 'legreffier');
-
       const ctx = await resolveAgentContext('legreffier', {
         agentRootDir: sandboxRoot,
       });
 
-      const agentDir = join(gitRoot, '.moltnet', 'legreffier');
+      const agentDir = '/central/identities/legreffier';
       expect(ctx.agentDir).toBe(agentDir);
-      expect(ctx.agentRootDir).toBe(gitRoot);
+      expect(ctx.agentRootDir).toBe(agentDir);
       expect(connectMock).toHaveBeenCalledWith(
         expect.objectContaining({ configDir: agentDir }),
       );
@@ -125,7 +127,7 @@ describe('resolveAgentContext', () => {
         authMode: 'agent-key',
       });
 
-      const agentDir = join(root, '.moltnet', 'legreffier');
+      const agentDir = '/central/identities/legreffier';
       expect(ctx.agentDir).toBe(agentDir);
       // No configDir: the key (or its reference) comes from the environment;
       // the Node registry is supplied so keyring/file references resolve.
@@ -167,9 +169,7 @@ describe('resolveAgentContext', () => {
     });
 
     try {
-      const agentDir = join(root, '.moltnet', 'legreffier');
-      mkdirSync(agentDir, { recursive: true });
-      writeFileSync(join(agentDir, 'moltnet.json'), '{}\n', 'utf8');
+      const agentDir = '/central/identities/legreffier';
 
       const ctx = await resolveAgentContext('legreffier', {
         agentRootDir: root,

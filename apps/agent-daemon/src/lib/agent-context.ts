@@ -1,10 +1,7 @@
-import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
-
 import {
   type Agent,
   AuthenticationError,
+  getIdentityDir,
   readConfig,
   type Whoami,
 } from '@themoltnet/sdk';
@@ -160,9 +157,8 @@ export async function validateStartupBinding(options: {
 /**
  * Resolve the agent's MoltNet credentials directory and connect via SDK.
  *
- * Looks under an explicit agent root first, then falls back to the git root
- * when available. Fails fast if the dir is missing — credentials are required,
- * the daemon never falls back to unauthenticated calls.
+ * The daemon selects the same central identity directory as the CLI. It never
+ * inspects a repository, Git state, or legacy agent bundle for credentials.
  */
 export async function resolveAgentContext(
   agentName: string,
@@ -176,10 +172,9 @@ export async function resolveAgentContext(
       `Invalid agent name "${agentName}": must match /^[a-zA-Z0-9_-]+$/`,
     );
   }
-  const roots = resolveCredentialRoots(options.agentRootDir);
+  void options.agentRootDir; // retained for source compatibility; no discovery.
+  const agentDir = getIdentityDir(agentName);
   if (options.authMode === 'agent-key') {
-    const rootDir = roots[0] ?? process.cwd();
-    const agentDir = join(rootDir, '.moltnet', agentName);
     // No config dir: the key (or its MOLTNET_AGENT_KEY_REF) comes from the
     // environment. The Node registry is still needed so a keyring or file
     // reference can be resolved.
@@ -188,7 +183,7 @@ export async function resolveAgentContext(
     });
     return {
       agentDir,
-      agentRootDir: rootDir,
+      agentRootDir: agentDir,
       agent,
       credentialSource: 'environment',
       authMechanism: 'agent-key',
@@ -198,29 +193,20 @@ export async function resolveAgentContext(
   // OAuth2: the host needs `moltnet.json` to build its own Agent. Reading it on
   // the host never implies projecting it into the guest — the guest receives no
   // MoltNet credential material.
-  const located = locateAgentConfig(roots, agentName);
-  if (located) {
-    const agent = await connect({
-      configDir: located.agentDir,
-      secretProviders: createNodeSecretProviderRegistry(),
-    });
-    // connect() prefers a configured agent_key_ref over OAuth2; report the
-    // mechanism it actually used so diagnostics and telemetry agree.
-    const config = await readConfig(located.agentDir);
-    return {
-      agentDir: located.agentDir,
-      agentRootDir: located.rootDir,
-      agent,
-      credentialSource: 'config',
-      authMechanism: config?.agent_key_ref ? 'agent-key' : 'oauth2',
-    };
-  }
-
-  const tried = roots.map((root) => join(root, '.moltnet', agentName));
-  throw new Error(
-    `Missing credentials for ${agentName}. ` +
-      `Checked ${tried.join(', ')}. Run the agent onboarding flow first.`,
-  );
+  const agent = await connect({
+    configDir: agentDir,
+    secretProviders: createNodeSecretProviderRegistry(),
+  });
+  // connect() prefers a configured agent_key_ref over OAuth2; report the
+  // mechanism it actually used so diagnostics and telemetry agree.
+  const config = await readConfig(agentDir);
+  return {
+    agentDir,
+    agentRootDir: agentDir,
+    agent,
+    credentialSource: 'config',
+    authMechanism: config?.agent_key_ref ? 'agent-key' : 'oauth2',
+  };
 }
 
 function isTransientWhoamiError(error: unknown): boolean {
@@ -231,30 +217,4 @@ function isTransientWhoamiError(error: unknown): boolean {
     typeof statusCode === 'number' &&
     (statusCode === 408 || statusCode === 429 || statusCode >= 500)
   );
-}
-
-function locateAgentConfig(
-  roots: readonly string[],
-  agentName: string,
-): { rootDir: string; agentDir: string } | undefined {
-  for (const rootDir of roots) {
-    const agentDir = join(rootDir, '.moltnet', agentName);
-    if (existsSync(join(agentDir, 'moltnet.json')))
-      return { rootDir, agentDir };
-  }
-  return undefined;
-}
-
-function resolveCredentialRoots(agentRootDir?: string): string[] {
-  const roots = agentRootDir ? [agentRootDir] : [];
-  try {
-    const gitRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], {
-      encoding: 'utf8',
-      stdio: 'pipe',
-    }).trim();
-    if (!roots.includes(gitRoot)) roots.push(gitRoot);
-  } catch {
-    // Repo-free daemon runs are valid as long as the explicit root has creds.
-  }
-  return roots;
 }

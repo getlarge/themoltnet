@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { cryptoService } from '@moltnet/crypto-service';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   READ_ONLY_CAPABILITIES,
@@ -19,6 +19,10 @@ vi.mock('node:fs/promises', () => ({
 
 afterEach(() => {
   vi.clearAllMocks();
+});
+
+beforeEach(() => {
+  vi.stubEnv('MOLTNET_ACTIVE_IDENTITY', 'test-agent');
 });
 
 const mockCredentials = {
