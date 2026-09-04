@@ -139,18 +139,18 @@ func currentGitHubGuardContext() (githubGuardContext, bool) {
 // callers can fail closed instead of treating a broken activated session as an
 // ordinary contributor session.
 func currentMoltnetGitConfigPath() (path string, active bool, err error) {
-	configured := strings.TrimSpace(os.Getenv("GIT_CONFIG_GLOBAL"))
-	if !isMoltnetGitConfig(configured) {
+	alias, err := resolveIdentityAlias("")
+	if err != nil {
 		return "", false, nil
 	}
-
-	gitConfigPath, err := resolveGitConfigGlobalPath(configured)
+	identityPath, err := identityDir(alias)
 	if err != nil {
-		return "", true, fmt.Errorf("resolve activated GIT_CONFIG_GLOBAL: %w", err)
+		return "", true, fmt.Errorf("resolve active identity: %w", err)
 	}
-	if !isMoltnetGitConfig(gitConfigPath) {
+	gitConfigPath := filepath.Join(identityPath, "gitconfig")
+	if !regularFileExists(gitConfigPath) {
 		return "", true, fmt.Errorf(
-			"resolved activated GIT_CONFIG_GLOBAL has an invalid path shape",
+			"active identity gitconfig is unavailable",
 		)
 	}
 	return gitConfigPath, true, nil
