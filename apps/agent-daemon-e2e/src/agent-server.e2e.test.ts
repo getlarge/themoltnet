@@ -24,6 +24,21 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import {
+  claimAgentServerPairing,
+  createAgentServerAgent,
+  type CreateAgentServerAgentData,
+  createClient,
+  discoverAgentServerProviderModels,
+  getAgentServerStatus,
+  listAgentServerAgents,
+  listAgentServerProviders,
+  listAgentServerRuns,
+  putAgentServerProvider,
+  startAgentServerPairing,
+  startAgentServerRun,
+  stopAgentServerRun,
+} from '@moltnet/agent-daemon-api-client';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -38,25 +53,6 @@ const PROVIDER_ID = 'e2e-local';
 const MODEL_ID = 'e2e-fake';
 const RAW_API_KEY = 'e2e-secret-key-never-in-config';
 const STDERR_TAIL_BYTES = 16 * 1024;
-
-interface CallInit {
-  method?: string;
-  body?: unknown;
-  token?: string;
-  origin?: string | null;
-  headers?: Record<string, string>;
-}
-
-interface CallResult {
-  status: number;
-  json: unknown;
-  text: string;
-}
-
-interface AgentServerError {
-  code?: string;
-  message?: string;
-}
 
 function appendStderrTail(current: string, chunk: Buffer): string {
   return `${current}${chunk.toString()}`.slice(-STDERR_TAIL_BYTES);
@@ -296,30 +292,15 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
   let managedIdentityId: string;
   let runId: string;
 
-  async function call(path: string, init: CallInit = {}): Promise<CallResult> {
-    const headers: Record<string, string> = { ...(init.headers ?? {}) };
-    if (init.origin !== null) headers.origin = init.origin ?? ALLOWED_ORIGIN;
-    if (init.body !== undefined) headers['content-type'] = 'application/json';
-    if (init.token) headers[AGENT_SERVER_TOKEN_HEADER] = init.token;
-    const method = init.method ?? 'GET';
-    const response = await fetch(`${base}${path}`, {
-      method,
-      headers,
-      body: init.body === undefined ? undefined : JSON.stringify(init.body),
-      signal: AbortSignal.timeout(15_000),
-    }).catch((error: unknown) => {
-      throw new Error(`${method} ${path} did not complete within 15 seconds`, {
-        cause: error,
-      });
+  function agentServerClient(origin = ALLOWED_ORIGIN, paired = true) {
+    return createClient({
+      baseUrl: base,
+      credentials: 'omit',
+      headers: {
+        origin,
+        ...(paired ? { [AGENT_SERVER_TOKEN_HEADER]: token } : {}),
+      },
     });
-    const text = await response.text();
-    let json: unknown = null;
-    try {
-      json = text ? JSON.parse(text) : null;
-    } catch {
-      json = null;
-    }
-    return { status: response.status, json, text };
   }
 
   /** Read the SSE log tail for up to `timeoutMs`, resolving early on `until`. */
@@ -419,24 +400,27 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
   });
 
   it('answers health without pairing and gates the JSON API behind pairing', async () => {
-    expect((await call('/health', { origin: null })).status).toBe(200);
+    expect((await fetch(`${base}/health`)).status).toBe(200);
 
-    const unpaired = await call('/v1/status');
-    expect(unpaired.status).toBe(401);
-    expect((unpaired.json as AgentServerError).code).toBe('pairing_required');
+    const unpaired = await getAgentServerStatus({
+      client: agentServerClient(ALLOWED_ORIGIN, false),
+    });
+    expect(unpaired.response.status).toBe(401);
+    expect(unpaired.error?.code).toBe('pairing_required');
 
-    const foreign = await call('/v1/status', { origin: OTHER_ORIGIN });
-    expect(foreign.status).toBe(403);
+    const foreign = await getAgentServerStatus({
+      client: agentServerClient(OTHER_ORIGIN, false),
+    });
+    expect(foreign.response.status).toBe(403);
   });
 
   it('completes the pairing ceremony and binds the token to the origin', async () => {
     // Arrange: the Console starts a pairing from its own origin.
-    const started = await call('/v1/pairings', { method: 'POST' });
-    expect(started.status).toBe(201);
-    const { pairingId, approvalPath } = started.json as {
-      pairingId: string;
-      approvalPath: string;
-    };
+    const started = await startAgentServerPairing({
+      client: agentServerClient(ALLOWED_ORIGIN, false),
+    });
+    expect(started.response.status).toBe(201);
+    const { pairingId, approvalPath } = started.data!;
     expect(approvalPath).toBe(`/pairings/${pairingId}`);
 
     // Act: the user opens the approval page (a top-level navigation)...
@@ -459,46 +443,44 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     expect(await confirmed.text()).toContain('Connection approved');
 
     // Assert: only the pairing origin can claim the token.
-    const stolen = await call(`/v1/pairings/${pairingId}/claim`, {
-      method: 'POST',
-      origin: PAIRING_ORIGIN,
+    const stolen = await claimAgentServerPairing({
+      client: agentServerClient(PAIRING_ORIGIN, false),
+      path: { pairingId },
     });
-    expect(stolen.status).toBe(403);
-    expect((stolen.json as AgentServerError).code).toBe(
-      'pairing_origin_mismatch',
-    );
+    expect(stolen.response.status).toBe(403);
+    expect(stolen.error?.code).toBe('pairing_origin_mismatch');
 
-    const claimed = await call(`/v1/pairings/${pairingId}/claim`, {
-      method: 'POST',
+    const claimed = await claimAgentServerPairing({
+      client: agentServerClient(ALLOWED_ORIGIN, false),
+      path: { pairingId },
     });
-    expect(claimed.status).toBe(200);
-    token = (claimed.json as { token: string }).token;
+    expect(claimed.response.status).toBe(200);
+    token = claimed.data!.token;
     expect(token.length).toBeGreaterThan(20);
 
-    const status = await call('/v1/status', { token });
-    expect(status.status).toBe(200);
-    expect(status.json).toMatchObject({
+    const status = await getAgentServerStatus({
+      client: agentServerClient(),
+    });
+    expect(status.response.status).toBe(200);
+    expect(status.data).toMatchObject({
       agents: [],
       providers: {},
       runs: [],
     });
-    expect(
-      Array.isArray((status.json as { subscriptions: unknown }).subscriptions),
-    ).toBe(true);
+    expect(Array.isArray(status.data?.subscriptions)).toBe(true);
 
     // A token presented from another origin is not honoured.
-    const crossOrigin = await call('/v1/status', {
-      token,
-      origin: PAIRING_ORIGIN,
+    const crossOrigin = await getAgentServerStatus({
+      client: agentServerClient(PAIRING_ORIGIN),
     });
-    expect(crossOrigin.status).toBe(401);
+    expect(crossOrigin.response.status).toBe(401);
   });
 
   it('discovers models from OpenAI-compatible and Ollama endpoints, failing closed otherwise', async () => {
     const openaiProvider = 'e2e-discovery-openai';
-    const savedOpenai = await call(`/v1/providers/${openaiProvider}`, {
-      method: 'PUT',
-      token,
+    const savedOpenai = await putAgentServerProvider({
+      client: agentServerClient(),
+      path: { providerId: openaiProvider },
       body: {
         api: 'openai-completions',
         baseUrl: `${modelStub.url}/v1`,
@@ -507,18 +489,18 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         apiKey: 'unused',
       },
     });
-    expect(savedOpenai.status).toBe(200);
-    const openai = await call(
-      `/v1/providers/${openaiProvider}/discover-models`,
-      { method: 'POST', token },
-    );
-    expect(openai.status).toBe(200);
-    expect(openai.json).toEqual({ models: [MODEL_ID, 'e2e-other'] });
+    expect(savedOpenai.response.status).toBe(200);
+    const openai = await discoverAgentServerProviderModels({
+      client: agentServerClient(),
+      path: { providerId: openaiProvider },
+    });
+    expect(openai.response.status).toBe(200);
+    expect(openai.data).toEqual({ models: [MODEL_ID, 'e2e-other'] });
 
     const ollamaProvider = 'e2e-discovery-ollama';
-    const savedOllama = await call(`/v1/providers/${ollamaProvider}`, {
-      method: 'PUT',
-      token,
+    const savedOllama = await putAgentServerProvider({
+      client: agentServerClient(),
+      path: { providerId: ollamaProvider },
       body: {
         api: 'openai-completions',
         baseUrl: `${tagsStub.url}/v1`,
@@ -526,18 +508,18 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         models: [],
       },
     });
-    expect(savedOllama.status).toBe(200);
-    const ollama = await call(
-      `/v1/providers/${ollamaProvider}/discover-models`,
-      { method: 'POST', token },
-    );
-    expect(ollama.status).toBe(200);
-    expect(ollama.json).toEqual({ models: ['tags-only-model'] });
+    expect(savedOllama.response.status).toBe(200);
+    const ollama = await discoverAgentServerProviderModels({
+      client: agentServerClient(),
+      path: { providerId: ollamaProvider },
+    });
+    expect(ollama.response.status).toBe(200);
+    expect(ollama.data).toEqual({ models: ['tags-only-model'] });
 
     const deadProvider = 'e2e-discovery-dead';
-    const savedDead = await call(`/v1/providers/${deadProvider}`, {
-      method: 'PUT',
-      token,
+    const savedDead = await putAgentServerProvider({
+      client: agentServerClient(),
+      path: { providerId: deadProvider },
       body: {
         api: 'openai-completions',
         baseUrl: `http://127.0.0.1:${await freePort()}/v1`,
@@ -545,17 +527,17 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         models: [],
       },
     });
-    expect(savedDead.status).toBe(200);
-    const dead = await call(`/v1/providers/${deadProvider}/discover-models`, {
-      method: 'POST',
-      token,
+    expect(savedDead.response.status).toBe(200);
+    const dead = await discoverAgentServerProviderModels({
+      client: agentServerClient(),
+      path: { providerId: deadProvider },
     });
-    expect(dead.status).toBe(502);
-    expect((dead.json as AgentServerError).code).toBe('discovery_unavailable');
+    expect(dead.response.status).toBe(502);
+    expect(dead.error?.code).toBe('discovery_unavailable');
 
-    const bogus = await call('/v1/providers/e2e-discovery-bogus', {
-      method: 'PUT',
-      token,
+    const bogus = await putAgentServerProvider({
+      client: agentServerClient(),
+      path: { providerId: 'e2e-discovery-bogus' },
       body: {
         api: 'openai-completions',
         baseUrl: 'ftp://nope',
@@ -563,11 +545,11 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         models: [],
       },
     });
-    expect(bogus.status).toBe(400);
+    expect(bogus.response.status).toBe(400);
 
-    const metadataAddress = await call('/v1/providers/e2e-discovery-metadata', {
-      method: 'PUT',
-      token,
+    const metadataAddress = await putAgentServerProvider({
+      client: agentServerClient(),
+      path: { providerId: 'e2e-discovery-metadata' },
       body: {
         api: 'openai-completions',
         baseUrl: 'http://169.254.169.254/latest/meta-data',
@@ -575,10 +557,8 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         models: [],
       },
     });
-    expect(metadataAddress.status).toBe(400);
-    expect((metadataAddress.json as AgentServerError).code).toBe(
-      'invalid_provider',
-    );
+    expect(metadataAddress.response.status).toBe(400);
+    expect(metadataAddress.error?.code).toBe('invalid_provider');
 
     let redirectedRequestReachedTarget = false;
     const redirectTarget = await startJsonStub(
@@ -606,9 +586,9 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       },
     );
     try {
-      const redirected = await call('/v1/providers/e2e-discovery-redirect', {
-        method: 'PUT',
-        token,
+      const redirected = await putAgentServerProvider({
+        client: agentServerClient(),
+        path: { providerId: 'e2e-discovery-redirect' },
         body: {
           api: 'openai-completions',
           baseUrl: `${redirector.url}/v1`,
@@ -617,15 +597,13 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
           apiKey: 'redirect-secret',
         },
       });
-      expect(redirected.status).toBe(200);
-      const redirectedDiscovery = await call(
-        '/v1/providers/e2e-discovery-redirect/discover-models',
-        { method: 'POST', token },
-      );
-      expect(redirectedDiscovery.status).toBe(502);
-      expect((redirectedDiscovery.json as AgentServerError).code).toBe(
-        'discovery_unavailable',
-      );
+      expect(redirected.response.status).toBe(200);
+      const redirectedDiscovery = await discoverAgentServerProviderModels({
+        client: agentServerClient(),
+        path: { providerId: 'e2e-discovery-redirect' },
+      });
+      expect(redirectedDiscovery.response.status).toBe(502);
+      expect(redirectedDiscovery.error?.code).toBe('discovery_unavailable');
       expect(redirectedRequestReachedTarget).toBe(false);
     } finally {
       await Promise.all(
@@ -642,9 +620,9 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
   });
 
   it('stores a provider with a write-only API key that never reaches config files or responses', async () => {
-    const saved = await call(`/v1/providers/${PROVIDER_ID}`, {
-      method: 'PUT',
-      token,
+    const saved = await putAgentServerProvider({
+      client: agentServerClient(),
+      path: { providerId: PROVIDER_ID },
       body: {
         api: 'openai-completions',
         baseUrl: `${modelStub.url}/v1`,
@@ -653,19 +631,19 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         apiKey: RAW_API_KEY,
       },
     });
-    expect(saved.status).toBe(200);
-    expect(saved.json).toMatchObject({
+    expect(saved.response.status).toBe(200);
+    expect(saved.data).toMatchObject({
       api: 'openai-completions',
       envName: 'MOLTNET_PROVIDER_E2E_LOCAL_API_KEY',
       models: [MODEL_ID],
       hasApiKey: true,
     });
-    expect(saved.text).not.toContain(RAW_API_KEY);
+    expect(JSON.stringify(saved.data)).not.toContain(RAW_API_KEY);
 
     // Updating without a key keeps the stored one.
-    const updated = await call(`/v1/providers/${PROVIDER_ID}`, {
-      method: 'PUT',
-      token,
+    const updated = await putAgentServerProvider({
+      client: agentServerClient(),
+      path: { providerId: PROVIDER_ID },
       body: {
         api: 'openai-completions',
         baseUrl: `${modelStub.url}/v1`,
@@ -673,20 +651,23 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         models: [MODEL_ID, 'e2e-other'],
       },
     });
-    expect(updated.status).toBe(200);
-    expect(updated.json).toMatchObject({ hasApiKey: true });
-    expect(updated.text).not.toContain(RAW_API_KEY);
+    expect(updated.response.status).toBe(200);
+    expect(updated.data).toMatchObject({ hasApiKey: true });
+    expect(JSON.stringify(updated.data)).not.toContain(RAW_API_KEY);
 
-    const discoveredAfterKeylessUpdate = await call(
-      `/v1/providers/${PROVIDER_ID}/discover-models`,
-      { method: 'POST', token },
-    );
-    expect(discoveredAfterKeylessUpdate.status).toBe(200);
+    const discoveredAfterKeylessUpdate =
+      await discoverAgentServerProviderModels({
+        client: agentServerClient(),
+        path: { providerId: PROVIDER_ID },
+      });
+    expect(discoveredAfterKeylessUpdate.response.status).toBe(200);
     expect(modelStubAuthorization).toBe(`Bearer ${RAW_API_KEY}`);
 
-    const listed = await call('/v1/providers', { token });
-    expect(listed.status).toBe(200);
-    expect(listed.text).not.toContain(RAW_API_KEY);
+    const listed = await listAgentServerProviders({
+      client: agentServerClient(),
+    });
+    expect(listed.response.status).toBe(200);
+    expect(JSON.stringify(listed.data)).not.toContain(RAW_API_KEY);
 
     expect(await configFilesContaining(agentServerRoot, RAW_API_KEY)).toEqual(
       [],
@@ -694,12 +675,15 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
   });
 
   it('refuses a managed agent without an invitation code', async () => {
-    const result = await call('/v1/agents', {
-      method: 'POST',
-      token,
-      body: { kind: 'managed', name: 'stranded' },
+    const result = await createAgentServerAgent({
+      client: agentServerClient(),
+      // Intentional negative request: verify server-side schema enforcement.
+      body: {
+        kind: 'managed',
+        name: 'stranded',
+      } as unknown as CreateAgentServerAgentData['body'],
     });
-    expect(result.status).toBe(400);
+    expect(result.response.status).toBe(400);
   });
 
   it('creates a managed agent from a team invitation code and captures the team binding', async () => {
@@ -709,28 +693,27 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       expiresInHours: 1,
     });
 
-    const created = await call('/v1/agents', {
-      method: 'POST',
-      token,
+    const created = await createAgentServerAgent({
+      client: agentServerClient(),
       body: {
         kind: 'managed',
         name: agentName,
         enrollmentToken: invite.code,
       },
     });
-    expect(created.status).toBe(201);
-    expect(created.json).toMatchObject({
+    expect(created.response.status).toBe(201);
+    expect(created.data).toMatchObject({
       kind: 'managed',
       agentName,
       teamId,
       hasAgentKey: true,
       hasPrivateKey: true,
     });
-    const view = created.json as { identityId: string; fingerprint: string };
+    const view = created.data!;
     expect(view.identityId).toMatch(/^[0-9a-f-]{36}$/);
     expect(view.fingerprint).toMatch(/^[0-9A-F]{4}(-[0-9A-F]{4}){3}$/);
     // Presence booleans only — never key material or reference strings.
-    expect(Object.keys(created.json as object)).not.toEqual(
+    expect(Object.keys(created.data!)).not.toEqual(
       expect.arrayContaining([
         'agentKeyRef',
         'privateKeyRef',
@@ -738,30 +721,30 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         'privateKey',
       ]),
     );
-    managedIdentityId = view.identityId;
+    managedIdentityId = view.identityId!;
 
-    const listed = await call('/v1/agents', { token });
-    expect(listed.status).toBe(200);
-    expect(listed.json).toEqual([expect.objectContaining({ agentName })]);
+    const listed = await listAgentServerAgents({
+      client: agentServerClient(),
+    });
+    expect(listed.response.status).toBe(200);
+    expect(listed.data).toEqual([expect.objectContaining({ agentName })]);
 
     // Single-use: the same code cannot enrol a second agent.
-    const replay = await call('/v1/agents', {
-      method: 'POST',
-      token,
+    const replay = await createAgentServerAgent({
+      client: agentServerClient(),
       body: {
         kind: 'managed',
         name: `${agentName}-replay`,
         enrollmentToken: invite.code,
       },
     });
-    expect(replay.status).toBe(400);
-    expect((replay.json as AgentServerError).code).toBe('registration_failed');
+    expect(replay.response.status).toBe(400);
+    expect(replay.error?.code).toBe('registration_failed');
   });
 
   it('refuses to start a run in a team the agent key is not bound to', async () => {
-    const result = await call('/v1/runs', {
-      method: 'POST',
-      token,
+    const result = await startAgentServerRun({
+      client: agentServerClient(),
       body: {
         agent: agentName,
         teamId: personalTeamId,
@@ -770,11 +753,9 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         mode: 'poll',
       },
     });
-    expect(result.status).toBe(400);
-    expect((result.json as AgentServerError).code).toBe('invalid_spec');
-    expect((result.json as AgentServerError).message).toContain(
-      'bound to team',
-    );
+    expect(result.response.status).toBe(400);
+    expect(result.error?.code).toBe('invalid_spec');
+    expect(result.error?.message).toContain('bound to team');
   });
 
   it('starts a daemon run that polls the API, streams its logs, and stops on request', async () => {
@@ -793,9 +774,8 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     );
 
     // Act
-    const started = await call('/v1/runs', {
-      method: 'POST',
-      token,
+    const started = await startAgentServerRun({
+      client: agentServerClient(),
       body: {
         agent: agentName,
         teamId,
@@ -804,8 +784,8 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         mode: 'poll',
       },
     });
-    expect(started.status).toBe(201);
-    const record = started.json as { id: string; status: string; pid?: number };
+    expect(started.response.status).toBe(201);
+    const record = started.data!;
     expect(record.status).toBe('running');
     runId = record.id;
 
@@ -846,23 +826,24 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       { timeoutMs: 60_000 },
     );
 
-    const listed = await call('/v1/runs', { token });
-    expect(listed.json).toEqual([
+    const listed = await listAgentServerRuns({ client: agentServerClient() });
+    expect(listed.data).toEqual([
       expect.objectContaining({ id: runId, status: 'running', active: true }),
     ]);
 
-    const stopped = await call(`/v1/runs/${runId}`, {
-      method: 'DELETE',
-      token,
+    const stopped = await stopAgentServerRun({
+      client: agentServerClient(),
+      path: { runId },
     });
-    expect(stopped.status).toBe(200);
+    expect(stopped.response.status).toBe(200);
     await waitFor(
       async () => {
-        const runs = (await call('/v1/runs', { token })).json as {
-          id: string;
-          active: boolean;
-          status: string;
-        }[];
+        const runs =
+          (
+            await listAgentServerRuns({
+              client: agentServerClient(),
+            })
+          ).data ?? [];
         return runs.some(
           (run) =>
             run.id === runId &&
@@ -873,11 +854,11 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       { timeoutMs: 20_000 },
     );
 
-    const unknown = await call('/v1/runs/does-not-exist', {
-      method: 'DELETE',
-      token,
+    const unknown = await stopAgentServerRun({
+      client: agentServerClient(),
+      path: { runId: 'does-not-exist' },
     });
-    expect(unknown.status).toBe(404);
+    expect(unknown.response.status).toBe(404);
   }, 120_000);
 
   it('shuts down cleanly on SIGTERM', async () => {
