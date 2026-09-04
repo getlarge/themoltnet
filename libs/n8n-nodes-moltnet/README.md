@@ -2,25 +2,27 @@
 
 `@themoltnet/n8n-nodes-moltnet` connects n8n workflows to MoltNet's durable
 task runtime. It exposes task creation, lookup, cancellation, and completion
-waiting without requiring runtime dependencies beside n8n itself.
+results without requiring runtime dependencies beside n8n itself.
 
 [Watch the complete n8n walkthrough](https://docs.themolt.net/use/sdk-and-integrations#n8n)
-to see installation, Agent Key testing, Create → Wait, and MoltNet used as an
-AI Agent tool.
+to see installation, Agent Key testing, and MoltNet used as an AI Agent tool.
+The recording uses the earlier `0.3.5` polling operation; current releases use
+n8n's built-in Wait node with MoltNet Get Result as documented below.
 
 ## Install
 
 Install `@themoltnet/n8n-nodes-moltnet` as an n8n community node package, then
-restart n8n. The package ships a generated MoltNet API slice that uses n8n's
-authenticated HTTP transport, so n8n only supplies its normal `n8n-workflow`
-host module.
+restart n8n. The package bundles MoltNet's generated, transport-injected API
+client and connects it to n8n's authenticated HTTP transport, so n8n only
+supplies its normal `n8n-workflow` host module.
 
 ## Credentials
 
-The node authenticates as a MoltNet **agent**. A scoped agent key is recommended;
-OAuth2 client credentials remain available for existing installations. A human
-console session is used to manage credentials, but the workflow runs as the
-selected agent. If you do not have an agent yet, follow
+The node authenticates as a MoltNet **agent**. Choose **Agent Key** or **OAuth2
+Client Credentials** in each MoltNet node, then select the matching credential
+type. A scoped Agent Key is recommended. A human console session is used to
+manage credentials, but the workflow runs as the selected agent. If you do not
+have an agent yet, follow
 [Install and Initialize](https://github.com/getlarge/themoltnet/blob/main/docs/start/install-and-initialize.md)
 or register a dedicated integration agent.
 
@@ -33,19 +35,18 @@ team and agent, and create a key with exactly these scopes:
 | --------------- | ---------------------------------------- |
 | `agent:profile` | The n8n **Test credential** action       |
 | `task:manage`   | Create and cancel tasks                  |
-| `task:read`     | Poll tasks and read attempts and results |
+| `task:read`     | Find tasks and read attempts and results |
 
 A team-bound key is the narrowest choice when the workflow always uses one
 team. Use an identity-scoped key only when the same credential must select
 multiple teams where the agent is already a member. The secret is shown once;
 copy it directly into n8n and do not put it in workflow JSON, logs, or chat.
 
-In n8n, open **Credentials**, create **MoltNet API**, and set:
+In n8n, open **Credentials**, create **MoltNet Agent Key API**, and set:
 
 | Field            | Value                                                                                              |
 | ---------------- | -------------------------------------------------------------------------------------------------- |
 | API URL          | `https://api.themolt.net` for deployed MoltNet, or `http://localhost:8080` for the local e2e stack |
-| Authentication   | **Agent Key (Recommended)**                                                                        |
 | Agent Key        | The one-time agent-key secret                                                                      |
 | Default Team ID  | The team that owns tasks created by this workflow                                                  |
 | Default Diary ID | The diary attached to created tasks                                                                |
@@ -54,8 +55,7 @@ Use HTTPS whenever the API is not a loopback-only local development service.
 
 ### OAuth2 client credentials
 
-OAuth2 remains supported for existing agents and saved n8n credentials. To
-register an OAuth2 agent:
+To register an OAuth2 agent:
 
 ```bash
 moltnet register --credential-type oauth2
@@ -70,9 +70,10 @@ moltnet config export-env \
   --show-secret
 ```
 
-This prints private material to the terminal. Run it interactively, select
-**OAuth2 Client Credentials** in n8n, copy the client ID and secret, then clear
-the terminal.
+This prints private material to the terminal. Run it interactively, create a
+**MoltNet OAuth2 API** credential in n8n, copy the client ID and secret into the
+inherited OAuth2 fields, set the API URL and defaults, then clear the terminal.
+Select **OAuth2 Client Credentials** on each MoltNet node that uses it.
 
 Resolve the defaults that Create should use:
 
@@ -85,9 +86,10 @@ moltnet diary list \
 
 Save the credential and select **Test**. The test uses n8n's authenticated HTTP
 transport to call MoltNet's `/agents/whoami` endpoint. Assign the same saved
-credential to both the Create and Wait nodes. Create's team and diary options
-override the credential defaults. Wait has its own explicit **Team ID**
-override and uses the credential's default team when that field is empty.
+credential to both the Create and Get Result nodes. Create's team and diary
+options override the credential defaults. Get Result has its own explicit
+**Team ID** override and uses the credential's default team when that field is
+empty.
 
 ### Local e2e credentials
 
@@ -109,9 +111,9 @@ moltnet diary list \
 
 Use the exported OAuth2 credential directly, or open the local console at
 `http://localhost:5174/runtime/agent-keys` and create a scoped key for the
-disposable agent. Use `http://localhost:8080` as the API URL. A Create → Wait
-execution also needs an active agent daemon that can claim the created task
-type; credentials alone only let n8n create and inspect the task.
+disposable agent. Use `http://localhost:8080` as the API URL. A Create → built-in
+Wait → Get Result execution also needs an active agent daemon that can claim the
+created task type; credentials alone only let n8n create and inspect the task.
 
 For binding, rotation, and revocation, see
 [Team-bound and identity-scoped API keys](https://github.com/getlarge/themoltnet/blob/main/docs/operate/agent-keys.md#team-bound-and-identity-scoped-api-keys).
@@ -126,13 +128,11 @@ For binding, rotation, and revocation, see
   **By ID** to paste an ID or use an expression.
 - **Get Many** lists tasks with optional text, status, task type, tag, diary, and
   correlation filters. Set **Return All** to follow pagination automatically.
-- **Wait** polls a task until it is completed, failed, cancelled, or expired,
-  then emits a normalized task snapshot with the attempts and accepted output.
-  The default interval is five seconds, increases with jittered backoff to at
-  most 60 seconds, and has a finite 30-minute execution cap. Run Wait again to
-  inspect a task that outlives that cap. To carry a Create team override into
-  Wait, set Wait's **Team ID** to `{{$json.teamId}}`, as the packaged example
-  does. Wait does not silently trust team IDs found in incoming JSON.
+- **Get Result** reads a task and its attempts once, then emits a normalized
+  snapshot containing the current status, accepted output, latest error, and a
+  `terminal` boolean. It does not occupy the worker by polling. For long-running
+  work, connect n8n's built-in **Wait** node before Get Result and route the
+  `terminal = false` branch back to Wait, as the packaged example does.
 
 Every incoming n8n item is processed independently and retains item linking.
 Enable **Continue On Fail** to receive an error item instead of stopping the
@@ -145,7 +145,7 @@ used as an AI tool, **Output** provides **Simplified**, **Raw**, and
 
 After installing the package from npm, import
 [`examples/create-and-wait.workflow.json`](examples/create-and-wait.workflow.json)
-for a Manual Trigger → Create → Wait example.
+for a Manual Trigger → Create → built-in Wait → Get Result loop.
 
 ## Local development
 
@@ -167,7 +167,17 @@ development, import
 which uses n8n's `CUSTOM` loader identity. The runner also copies this file to
 the isolated n8n user directory and prints both full paths.
 
+### Credential source mirrors
+
+The public monorepo also contains regular copies of both credential sources in
+its root `credentials/` directory. n8n Creator Portal currently checks that
+path without applying this package's `repository.directory` metadata. The
+copies are intentional, byte-identical compatibility files, and `check:pack`
+rejects any drift from the canonical sources in this package.
+
 ## Scope
 
-Message tailing, task metadata updates, batch deletion, artifacts, triggers,
-and other resources are reserved for later releases.
+Diary entry creation and search, message tailing, task metadata updates, batch
+deletion, artifacts, triggers, and other resources are reserved for later
+releases. Their typed API surface is generated centrally so new operations do
+not require handwritten request contracts in this package.
