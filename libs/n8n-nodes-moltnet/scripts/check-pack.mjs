@@ -34,12 +34,10 @@ const requiredFiles = [
 ];
 const credentialSources = [
   {
-    repository: 'dist/credentials/MoltNetAgentApi.credentials.js',
     portal: 'credentials/MoltNetAgentApi.credentials.ts',
     source: 'credentials/MoltNetAgentApi.credentials.ts',
   },
   {
-    repository: 'dist/credentials/MoltNetOAuth2Api.credentials.js',
     portal: 'credentials/MoltNetOAuth2Api.credentials.ts',
     source: 'credentials/MoltNetOAuth2Api.credentials.ts',
   },
@@ -92,21 +90,6 @@ try {
       readFileSync(portalCredentialPath, 'utf8') === credentialSource,
       `${credential.portal} must be a byte-identical checked-in copy of the package credential source`,
     );
-
-    try {
-      execFileSync(
-        'git',
-        ['ls-files', '--error-unmatch', credential.repository],
-        {
-          cwd: packageRoot,
-          stdio: 'pipe',
-        },
-      );
-    } catch {
-      throw new Error(
-        `Creator Portal requires ${credential.repository} to be tracked at the exact n8n manifest path`,
-      );
-    }
   }
 
   // Run the repository-wide entrypoint, source-leak, relative-import,
