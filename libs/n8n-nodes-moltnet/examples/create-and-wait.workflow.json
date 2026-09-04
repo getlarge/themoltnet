@@ -5,7 +5,16 @@
       "main": [[{ "index": 0, "node": "MoltNet Create", "type": "main" }]]
     },
     "MoltNet Create": {
-      "main": [[{ "index": 0, "node": "MoltNet Wait", "type": "main" }]]
+      "main": [[{ "index": 0, "node": "Wait 5 Seconds", "type": "main" }]]
+    },
+    "MoltNet Get Result": {
+      "main": [[{ "index": 0, "node": "Task Finished?", "type": "main" }]]
+    },
+    "Task Finished?": {
+      "main": [[], [{ "index": 0, "node": "Wait 5 Seconds", "type": "main" }]]
+    },
+    "Wait 5 Seconds": {
+      "main": [[{ "index": 0, "node": "MoltNet Get Result", "type": "main" }]]
     }
   },
   "name": "MoltNet Create and Wait",
@@ -22,6 +31,7 @@
       "id": "moltnet-create",
       "name": "MoltNet Create",
       "parameters": {
+        "authentication": "agentKey",
         "input": "{\"brief\":\"Say hello from n8n\"}",
         "operation": "create",
         "options": {
@@ -37,24 +47,62 @@
       "typeVersion": 1
     },
     {
-      "id": "moltnet-wait",
-      "name": "MoltNet Wait",
+      "id": "wait-five-seconds",
+      "name": "Wait 5 Seconds",
+      "parameters": { "amount": 5 },
+      "position": [480, 0],
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "webhookId": "moltnet-task-wait"
+    },
+    {
+      "id": "moltnet-get-result",
+      "name": "MoltNet Get Result",
       "parameters": {
-        "operation": "wait",
-        "pollInterval": 5,
+        "authentication": "agentKey",
+        "operation": "getResult",
         "resource": "task",
         "simplify": true,
         "taskId": {
           "__rl": true,
           "mode": "id",
-          "value": "={{$json.id}}"
-        },
-        "teamId": "={{$json.teamId}}",
-        "timeout": 1800
+          "value": "={{$json.taskId || $json.id}}"
+        }
       },
-      "position": [480, 0],
+      "position": [720, 0],
       "type": "@themoltnet/n8n-nodes-moltnet.moltNet",
       "typeVersion": 1
+    },
+    {
+      "id": "task-finished",
+      "name": "Task Finished?",
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "task-terminal",
+              "leftValue": "={{$json.terminal}}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": true
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "position": [960, 0],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2
     }
   ],
   "settings": {}

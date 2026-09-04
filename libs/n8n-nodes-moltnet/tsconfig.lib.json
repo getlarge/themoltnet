@@ -19,6 +19,10 @@
     "scripts"
   ],
   "extends": "./tsconfig.json",
-  "include": ["credentials/**/*.ts", "nodes/**/*.ts", "src/**/*.ts"],
-  "references": []
+  "include": ["credentials/**/*.ts", "nodes/**/*.ts"],
+  "references": [
+    {
+      "path": "../api-client/tsconfig.lib.json"
+    }
+  ]
 }

@@ -15,8 +15,7 @@
     "__tests__/**/*.ts",
     "examples/**/*.json",
     "credentials/**/*.ts",
-    "nodes/**/*.ts",
-    "src/**/*.ts"
+    "nodes/**/*.ts"
   ],
   "references": [
     {
