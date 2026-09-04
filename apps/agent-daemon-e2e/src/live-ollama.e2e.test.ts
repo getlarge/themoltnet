@@ -414,10 +414,20 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
     const failedAttempt = attempts.find((attempt) => attempt.attemptN === 1);
     expect(failedAttempt?.status).toBe('failed');
     const retry = failedAttempt?.error?.retry;
-    expect(retry?.source).toBe('triage');
-    expect(['retry', 'do_not_retry']).toContain(retry?.decision);
-    expect(['low', 'medium', 'high']).toContain(retry?.confidence);
+    expect(['triage', 'triage_failed']).toContain(retry?.source);
     expect(retry?.reason?.trim() ?? '').not.toHaveLength(0);
+
+    if (retry?.source === 'triage') {
+      expect(['retry', 'do_not_retry']).toContain(retry.decision);
+      expect(['low', 'medium', 'high']).toContain(retry.confidence);
+    } else {
+      // A live provider can be unreachable or produce an invalid response.
+      // The runtime must persist its fail-closed fallback and not retry.
+      expect(retry?.source).toBe('triage_failed');
+      expect(retry?.decision).toBeUndefined();
+      expect(retry?.confidence).toBeUndefined();
+      expect(failedAttempt?.error?.retryable).toBe(false);
+    }
 
     // The deterministic E2E above owns the exact retry-policy assertion.
     // This live integration test instead proves that runtime behavior honors

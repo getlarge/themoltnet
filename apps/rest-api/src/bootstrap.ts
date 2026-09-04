@@ -528,7 +528,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
         setRegistrationDeps({
           identityApi: oryClients.identity,
           oauth2Api: oryClients.oauth2,
-          agentEnrollmentRepository,
           agentRepository,
           diaryRepository,
           teamRepository,

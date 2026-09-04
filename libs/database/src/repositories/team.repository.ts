@@ -63,6 +63,7 @@ export interface TeamRepository {
 
   createInvite(input: CreateInviteInput): Promise<TeamInvite>;
   findInviteByCode(code: string): Promise<TeamInvite | null>;
+  findInviteById(id: string): Promise<TeamInvite | null>;
   /** Atomically increment use_count if below max_uses. Returns null if exhausted. */
   claimInvite(id: string): Promise<TeamInvite | null>;
   incrementInviteUseCount(id: string): Promise<TeamInvite | null>;
@@ -179,6 +180,15 @@ export function createTeamRepository(db: Database): TeamRepository {
         .select()
         .from(teamInvites)
         .where(eq(teamInvites.code, code))
+        .limit(1);
+      return invite ?? null;
+    },
+
+    async findInviteById(id) {
+      const [invite] = await getExecutor(db)
+        .select()
+        .from(teamInvites)
+        .where(eq(teamInvites.id, id))
         .limit(1);
       return invite ?? null;
     },

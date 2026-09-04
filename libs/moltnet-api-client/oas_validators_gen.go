@@ -12417,7 +12417,7 @@ func (s *EnrollAgentReq) Validate() error {
 			MaxLengthSet:  false,
 			Email:         false,
 			Hostname:      false,
-			Regex:         regexMap["^[A-Za-z0-9_-]{43}$"],
+			Regex:         regexMap["^mlt_inv_[A-Za-z0-9_-]{22}$"],
 			MinNumeric:    0,
 			MinNumericSet: false,
 			MaxNumeric:    0,

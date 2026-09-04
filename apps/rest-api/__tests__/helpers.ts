@@ -584,6 +584,7 @@ export function createMockServices(): MockServices {
       delete: vi.fn(),
       createInvite: vi.fn(),
       findInviteByCode: vi.fn(),
+      findInviteById: vi.fn(),
       claimInvite: vi.fn(),
       incrementInviteUseCount: vi.fn(),
       listInvites: vi.fn(),

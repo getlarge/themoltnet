@@ -3809,7 +3809,7 @@ export type EnrollAgentData = {
     publicKey: string;
   } & {
     /**
-     * Single-use agent enrollment token
+     * Team invite code, usable by people and managed agents
      */
     token: string;
   };

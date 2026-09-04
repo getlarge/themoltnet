@@ -175,6 +175,10 @@ selfservice:
 
     verification:
       enabled: false
+      # E2E enables verification through an environment override. Keep the UI
+      # destination here so every enabled local flow has the official Kratos
+      # self-service UI to render it.
+      ui_url: http://localhost:4455/verification
 
     settings:
       ui_url: http://localhost:4455/settings

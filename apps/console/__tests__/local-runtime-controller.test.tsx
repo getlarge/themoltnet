@@ -163,7 +163,7 @@ describe('useLocalRuntime', () => {
     });
 
     expect(window.open).toHaveBeenCalledWith('about:blank', '_blank', 'popup');
-    expect(popup.opener).toBeNull();
+    expect(popup.opener).toBe(window);
     await act(() => pairing!);
     expect(popup.location.replace).toHaveBeenCalledWith(
       `${AGENT_SERVER_URL}/pairings/pair-1`,

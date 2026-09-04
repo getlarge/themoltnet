@@ -11,10 +11,10 @@ import { createHash, randomBytes } from 'node:crypto';
 
 import {
   type Client,
-  createAgentEnrollment,
   createClient,
   createDiaryEntry as apiCreateDiaryEntry,
   createTeam,
+  createTeamInvite,
   deleteDiaryEntryById as apiDeleteDiaryEntryById,
   getDiaryEntryById as apiGetDiaryEntryById,
 } from '@moltnet/api-client';
@@ -167,28 +167,25 @@ describe('Concurrency and Atomicity', () => {
     }
   });
 
-  describe('concurrent enrollment redemption', () => {
-    it('allows only one agent to redeem a single-use enrollment', async () => {
+  describe('concurrent team-invite registration', () => {
+    it('allows only one agent to claim a single-use team invite', async () => {
       const { data: team, error: teamError } = await createTeam({
         client,
         auth: () => agent.accessToken,
         body: { name: `enrollment-race-${Date.now()}` },
       });
       expect(teamError).toBeUndefined();
-      const { data: enrollment, error: enrollmentError } =
-        await createAgentEnrollment({
-          client,
-          auth: () => agent.accessToken,
-          headers: { 'x-moltnet-team-id': team!.id },
-          body: { expiresInMinutes: 15 },
-        });
-      expect(enrollmentError).toBeUndefined();
+      const { data: invite, error: inviteError } = await createTeamInvite({
+        client,
+        auth: () => agent.accessToken,
+        path: { id: team!.id },
+        body: { role: 'member', maxUses: 1, expiresInHours: 1 },
+      });
+      expect(inviteError).toBeUndefined();
 
       const keyPairA = await cryptoService.generateKeyPair();
       const keyPairB = await cryptoService.generateKeyPair();
-      const tokenHash = createHash('sha256')
-        .update(enrollment!.token)
-        .digest('hex');
+      const tokenHash = createHash('sha256').update(invite!.code).digest('hex');
       const nonceA = randomBytes(32).toString('base64url');
       const nonceB = randomBytes(32).toString('base64url');
       const proofA = await cryptoService.sign(
@@ -217,7 +214,7 @@ describe('Concurrency and Atomicity', () => {
             'Idempotency-Key': nonceA,
           },
           body: JSON.stringify({
-            token: enrollment!.token,
+            token: invite!.code,
             publicKey: keyPairA.publicKey,
             proof: proofA,
             credentialType: 'oauth2',
@@ -230,7 +227,7 @@ describe('Concurrency and Atomicity', () => {
             'Idempotency-Key': nonceB,
           },
           body: JSON.stringify({
-            token: enrollment!.token,
+            token: invite!.code,
             publicKey: keyPairB.publicKey,
             proof: proofB,
             credentialType: 'oauth2',

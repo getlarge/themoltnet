@@ -13,10 +13,8 @@ import { createTestWrapper } from './test-query-client.js';
 const AGENT_SERVER = 'http://127.0.0.1:17374';
 
 vi.mock('../src/api.js', () => ({ getApiClient: () => ({}) }));
-const createAgentEnrollment = vi.hoisted(() => vi.fn());
 const updateTeamMemberRole = vi.hoisted(() => vi.fn());
 vi.mock('@moltnet/api-client', () => ({
-  createAgentEnrollment: (...args: unknown[]) => createAgentEnrollment(...args),
   updateTeamMemberRole: (...args: unknown[]) => updateTeamMemberRole(...args),
 }));
 vi.mock('../src/config.js', () => ({
@@ -179,7 +177,7 @@ describe('LocalRuntimePage', () => {
     expect(
       screen.getByRole('button', { name: 'Create identity' }),
     ).toBeDisabled();
-    fireEvent.change(screen.getByLabelText(/Invitation code/), {
+    fireEvent.change(screen.getByLabelText(/Team invite code/), {
       target: { value: 'enrol-abc' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Create identity' }));
@@ -303,7 +301,7 @@ describe('LocalRuntimePage', () => {
     fireEvent.change(screen.getByLabelText('Agent name'), {
       target: { value: 'course-bot' },
     });
-    fireEvent.change(screen.getByLabelText(/Invitation code/), {
+    fireEvent.change(screen.getByLabelText(/Team invite code/), {
       target: { value: 'enrol-xyz' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Create identity' }));
@@ -318,29 +316,6 @@ describe('LocalRuntimePage', () => {
     expect(
       await screen.findByText(/joined Team One as an executor/),
     ).toBeInTheDocument();
-  });
-
-  it('generates an invitation code into the form for the selected team', async () => {
-    createAgentEnrollment.mockResolvedValue({
-      data: { token: 'enrol-123', expiresAt: '2030-01-01T00:00:00Z' },
-    });
-    renderPage();
-    await screen.findAllByText('existing-bot');
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Generate invitation code for Team One',
-      }),
-    );
-    await waitFor(() =>
-      expect(
-        (screen.getByLabelText(/Invitation code/) as HTMLInputElement).value,
-      ).toBe('enrol-123'),
-    );
-    expect(createAgentEnrollment).toHaveBeenCalledWith(
-      expect.objectContaining({
-        headers: { 'x-moltnet-team-id': 'team-1' },
-      }),
-    );
   });
 
   it('blocks starting a run for an agent bound to another team', async () => {
@@ -411,6 +386,34 @@ describe('LocalRuntimePage', () => {
       baseUrl: 'http://localhost:11434/v1',
       models: [],
     });
+  });
+
+  it('pre-fills an existing provider for edits and can remove it', async () => {
+    handlers['DELETE /v1/providers/ollama'] = () =>
+      new Response(null, { status: 204 });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    renderPage();
+    await screen.findAllByText('existing-bot');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    expect(screen.getByText('Edit ollama')).toBeInTheDocument();
+    expect(
+      (screen.getByLabelText('Provider id') as HTMLInputElement).value,
+    ).toBe('ollama');
+    expect(
+      screen.getByRole('button', { name: 'Update provider' }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+    await waitFor(() =>
+      expect(
+        requests.some(
+          (entry) =>
+            entry.method === 'DELETE' &&
+            entry.url.endsWith('/v1/providers/ollama'),
+        ),
+      ).toBe(true),
+    );
   });
 
   it('renders large discovery results in bounded, filterable pages', async () => {

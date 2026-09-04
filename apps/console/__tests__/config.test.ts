@@ -24,7 +24,7 @@ describe('getConfig', () => {
     // /config.js (which predates docsUrl) stays valid.
     expect(config.docsUrl).toBe('https://docs.themolt.net');
     expect(config.signerUrl).toBe('http://127.0.0.1:17373');
-    expect(config.agentServerUrl).toBe('http://127.0.0.1:17374');
+    expect(config.agentServerUrl).toBe('https://127.0.0.1:17374');
   });
 
   it('uses injected docsUrl when provided', () => {
@@ -77,7 +77,7 @@ describe('getConfig', () => {
     expect(config.consoleUrl).toBe('http://localhost:5174');
     expect(config.docsUrl).toBe('https://docs.themolt.net');
     expect(config.signerUrl).toBe('http://127.0.0.1:17373');
-    expect(config.agentServerUrl).toBe('http://127.0.0.1:17374');
+    expect(config.agentServerUrl).toBe('https://127.0.0.1:17374');
   });
 });
 

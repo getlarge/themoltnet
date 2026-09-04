@@ -157,6 +157,8 @@ export interface BuildAgentServerOptions {
   allowedOrigins: readonly string[];
   /** The Agent Server base URL origin, so the approval page may CORS to itself. */
   selfOrigin?: string;
+  /** TLS credentials for the macOS loopback endpoint. */
+  tls?: { key: string; cert: string };
   /** Default MoltNet API URL for newly created managed agents. */
   defaultApiUrl: string;
   version: string;
@@ -258,9 +260,13 @@ export function buildAgentServer(
   options: BuildAgentServerOptions,
 ): FastifyInstance {
   const { pairing } = options;
+  const fastifyOptions = {
+    bodyLimit: BODY_LIMIT,
+    ...(options.tls ? { https: options.tls } : {}),
+  };
   const app = options.logger
-    ? Fastify({ bodyLimit: BODY_LIMIT, loggerInstance: options.logger })
-    : Fastify({ bodyLimit: BODY_LIMIT });
+    ? Fastify({ ...fastifyOptions, loggerInstance: options.logger })
+    : Fastify(fastifyOptions);
 
   options.registerOpenApi?.(app);
   for (const schema of AGENT_SERVER_SCHEMAS) app.addSchema(schema);
@@ -342,15 +348,20 @@ export function buildAgentServer(
   );
   app.setErrorHandler(async (error, request, reply) => {
     const { statusCode, code, message } = normalizeAgentServerError(error);
-    if (statusCode === 500) {
-      request.log.error(
+    if (statusCode === 500 || error instanceof AgentServerIdentityError) {
+      request.log[statusCode === 500 ? 'error' : 'warn'](
         {
           ...safeErrorContext(error),
-          code: 'agent_server_request_failed',
+          code:
+            statusCode === 500
+              ? 'agent_server_request_failed'
+              : 'agent_server_identity_rejected',
           method: request.method,
           route: request.routeOptions.url,
         },
-        'AgentServer request failed',
+        statusCode === 500
+          ? 'AgentServer request failed'
+          : 'AgentServer identity request rejected',
       );
     }
     return reply.code(statusCode).send({ code, message });
@@ -747,16 +758,41 @@ function registerProviderRoutes(
             provider: FILE_SECRET_PROVIDER,
             key,
           });
-        } else if (
-          providers[providerId]?.apiKeyRef &&
-          providers[providerId].baseUrl === entry.baseUrl
-        ) {
+        } else if (providers[providerId]?.apiKeyRef) {
           entry.apiKeyRef = providers[providerId].apiKeyRef;
         }
         providers[providerId] = entry;
         store.writeProviders(providers);
       });
       return reply.code(200).send(providerView(entry));
+    },
+  );
+  app.delete(
+    '/v1/providers/:providerId',
+    { schema: AgentServerRouteSchemas.deleteProvider, attachValidation: true },
+    async (request, reply) => {
+      requirePairedOrigin(request);
+      const { providerId: rawProviderId } = request.params as {
+        providerId: string;
+      };
+      const providerId = assertProviderId(rawProviderId);
+      await serialize(async () => {
+        const providers = store.readProviders();
+        const provider = providers[providerId];
+        if (!provider) {
+          throw new AgentServerHttpError(
+            404,
+            'agent_server_provider_not_found',
+            `Provider ${providerId} was not found`,
+          );
+        }
+        if (provider.apiKeyRef) {
+          await options.secrets.delete(`pi-provider/${providerId}`);
+        }
+        delete providers[providerId];
+        store.writeProviders(providers);
+      });
+      return reply.code(204).send(null);
     },
   );
 }
@@ -973,8 +1009,8 @@ function registerRunLogRoute(
   );
 }
 
-function safeErrorContext(error: unknown): Record<string, string> {
-  const context: Record<string, string> = {
+function safeErrorContext(error: unknown): Record<string, string | number> {
+  const context: Record<string, string | number> = {
     errorType: error instanceof Error ? error.name : typeof error,
   };
   const applicationCode = safeErrorToken(
@@ -982,13 +1018,25 @@ function safeErrorContext(error: unknown): Record<string, string> {
   );
   if (applicationCode) context['applicationCode'] = applicationCode;
   const cause = error instanceof Error ? error.cause : undefined;
+  if (cause instanceof Error) {
+    context['causeType'] = cause.name;
+    const causeMessage = safeLogMessage(cause.message);
+    if (causeMessage) context['causeMessage'] = causeMessage;
+  }
   const fsCode = safeErrorToken((cause as NodeJS.ErrnoException | null)?.code);
   const syscall = safeErrorToken(
     (cause as NodeJS.ErrnoException | null)?.syscall,
   );
   if (fsCode) context['fsCode'] = fsCode;
   if (syscall) context['syscall'] = syscall;
+  const causeStatus = (cause as { statusCode?: unknown } | null)?.statusCode;
+  if (typeof causeStatus === 'number') context['causeStatusCode'] = causeStatus;
   return context;
+}
+
+function safeLogMessage(value: string): string | undefined {
+  const normalized = value.replace(/[\r\n\t]/gu, ' ').trim();
+  return normalized ? normalized.slice(0, 500) : undefined;
 }
 
 function safeErrorToken(value: unknown): string | undefined {

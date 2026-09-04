@@ -4,10 +4,7 @@
  * start, stop, and observe runs. Works only in a browser on the machine running
  * Agent Server (loopback), by design.
  */
-import {
-  createAgentEnrollment,
-  updateTeamMemberRole,
-} from '@moltnet/api-client';
+import { updateTeamMemberRole } from '@moltnet/api-client';
 import { listRuntimeProfilesOptions } from '@moltnet/api-client/query';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -339,38 +336,6 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
   const [busy, setBusy] = useState(false);
   const agents = runtime.data?.agents ?? [];
 
-  const generateToken = async () => {
-    if (!selectedTeam?.id) return;
-    setBusy(true);
-    setTokenNote(null);
-    try {
-      const result = await createAgentEnrollment({
-        client: getApiClient(),
-        headers: { 'x-moltnet-team-id': selectedTeam.id },
-        body: {},
-      });
-      const created = result.data as
-        | { token?: string; expiresAt?: string }
-        | undefined;
-      if (created?.token) {
-        setEnrollmentToken(created.token);
-        setTokenNote(
-          `Single-use invitation code for ${selectedTeam.name} filled in — create the identity before it expires${created.expiresAt ? ` (${new Date(created.expiresAt).toLocaleTimeString()})` : ''}.`,
-        );
-      } else {
-        setTokenNote(
-          'Invitation code creation returned nothing — check team role.',
-        );
-      }
-    } catch (error) {
-      setTokenNote(
-        error instanceof Error ? error.message : 'Token creation failed',
-      );
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const submit = async (kind: 'managed' | 'external') => {
     setBusy(true);
     try {
@@ -444,7 +409,7 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
       {!selectedTeam || selectedTeam.personal === true ? (
         <Text variant="caption" color="error">
           {selectedTeam
-            ? 'Personal teams cannot invite agents. Create or select a project team (Teams page) first — agents join the selected team via a single-use invitation code.'
+            ? 'Personal teams cannot invite agents. Create or select a project team (Teams page) first — agents join the selected team via an invitation code.'
             : 'Select a team first — agents join the selected team via an invitation code.'}
         </Text>
       ) : null}
@@ -485,8 +450,8 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
             onChange={(event) => setName(event.target.value)}
           />
           <Input
-            label="Invitation code"
-            hint="Required — a single-use team invitation that binds the agent's key to the issuing team. Generate one below, or ask a team manager."
+            label="Team invite code"
+            hint="Required — a single-use or multi-use mlt_inv_… code from the Teams page. It binds this agent key to the issuing team."
             autoComplete="off"
             spellCheck={false}
             value={enrollmentToken}
@@ -506,21 +471,6 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
             onClick={() => void submit('managed')}
           >
             Create identity
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={
-              busy ||
-              !selectedTeam ||
-              selectedTeam.personal === true ||
-              !canManage
-            }
-            onClick={() => void generateToken()}
-          >
-            {selectedTeam?.personal === true
-              ? 'Personal teams cannot invite agents'
-              : `Generate invitation code for ${selectedTeam?.name ?? 'team'}`}
           </Button>
         </Stack>
       </Stack>
@@ -559,6 +509,28 @@ function ProvidersSection({ runtime }: { runtime: LocalRuntimeController }) {
   const providers = Object.entries(runtime.data?.providers ?? {});
   const subscriptions = runtime.data?.subscriptions ?? [];
   const login = runtime.subscriptionLogin;
+  const [editingProviderId, setEditingProviderId] = useState<string | null>(
+    null,
+  );
+  const editingProvider = providers.find(
+    ([providerId]) => providerId === editingProviderId,
+  );
+
+  const removeProvider = async (providerId: string) => {
+    if (
+      !window.confirm(
+        `Remove ${providerId}? Its local API key will be deleted from this machine.`,
+      )
+    ) {
+      return;
+    }
+    try {
+      await runtime.deleteProvider(providerId);
+      if (editingProviderId === providerId) setEditingProviderId(null);
+    } catch {
+      // surfaced via runtime.actionError
+    }
+  };
 
   return (
     <SectionCard
@@ -672,6 +644,22 @@ function ProvidersSection({ runtime }: { runtime: LocalRuntimeController }) {
                   {provider.hasApiKey ? 'key stored' : 'no key'}
                 </Badge>
               </div>
+              <Stack direction="row" gap={1} style={{ marginLeft: 8 }}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setEditingProviderId(providerId)}
+                >
+                  Edit
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => void removeProvider(providerId)}
+                >
+                  Remove
+                </Button>
+              </Stack>
             </ListRow>
           ))}
         </Stack>
@@ -679,7 +667,15 @@ function ProvidersSection({ runtime }: { runtime: LocalRuntimeController }) {
 
       <Divider />
 
-      <ApiKeyProviderForm runtime={runtime} />
+      <ApiKeyProviderForm
+        runtime={runtime}
+        provider={
+          editingProvider
+            ? { id: editingProvider[0], ...editingProvider[1] }
+            : null
+        }
+        onDone={() => setEditingProviderId(null)}
+      />
     </SectionCard>
   );
 }

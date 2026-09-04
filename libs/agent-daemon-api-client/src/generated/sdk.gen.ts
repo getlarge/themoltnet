@@ -12,6 +12,9 @@ import type {
   CreateAgentServerAgentData,
   CreateAgentServerAgentErrors,
   CreateAgentServerAgentResponses,
+  DeleteAgentServerProviderData,
+  DeleteAgentServerProviderErrors,
+  DeleteAgentServerProviderResponses,
   DiscoverAgentServerProviderModelsData,
   DiscoverAgentServerProviderModelsErrors,
   DiscoverAgentServerProviderModelsResponses,
@@ -159,6 +162,19 @@ export const listAgentServerProviders = <ThrowOnError extends boolean = false>(
   >({
     security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
     url: '/v1/providers',
+    ...options,
+  });
+
+export const deleteAgentServerProvider = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteAgentServerProviderData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteAgentServerProviderResponses,
+    DeleteAgentServerProviderErrors,
+    ThrowOnError
+  >({
+    security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
+    url: '/v1/providers/{providerId}',
     ...options,
   });
 

@@ -17834,7 +17834,7 @@ type EnrollAgentReq struct {
 	Proof string `json:"proof"`
 	// Ed25519 public key in "ed25519:<base64>" format (32-byte raw key).
 	PublicKey string `json:"publicKey"`
-	// Single-use agent enrollment token.
+	// Team invite code, usable by people and managed agents.
 	Token string `json:"token"`
 }
 

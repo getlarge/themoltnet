@@ -425,7 +425,11 @@ describe('managed agent server agents', () => {
         apiUrl: 'https://api.themolt.net',
         enrollmentToken: 'enroll-tok',
       }),
-    ).rejects.toMatchObject({ code: 'registration_failed' });
+    ).rejects.toMatchObject({
+      code: 'registration_failed',
+      message:
+        'registration for "retryable" was rejected (400): bad enrollment token',
+    });
     expect(store.hasPendingRegistration('retryable')).toBe(false);
 
     await expect(

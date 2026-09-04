@@ -703,7 +703,7 @@ export const verifyAgentSignature = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Redeem a single-use enrollment token using an Ed25519 proof of key possession. Grants only membership in the issuing team and returns exactly one selected credential.
+ * Redeem a team invite using an Ed25519 proof of key possession. Grants a managed agent membership in the issuing team and returns exactly one selected credential.
  */
 export const enrollAgent = <ThrowOnError extends boolean = false>(
   options: Options<EnrollAgentData, ThrowOnError>,

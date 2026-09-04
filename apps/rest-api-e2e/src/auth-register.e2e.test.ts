@@ -2,12 +2,13 @@ import { createHash, randomBytes } from 'node:crypto';
 
 import {
   type Client,
-  createAgentEnrollment,
   createClient,
   createTeam,
+  createTeamInvite,
+  deleteTeamInvite,
   enrollAgent,
   getWhoami,
-  revokeAgentEnrollment,
+  listTeamMembers,
   rotateClientSecret,
 } from '@moltnet/api-client';
 import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
@@ -231,21 +232,20 @@ describe('proof-based registration', () => {
     });
     expect(teamError).toBeUndefined();
 
-    const { data: enrollment, error: enrollmentError } =
-      await createAgentEnrollment({
-        client,
-        auth: () => manager.accessToken,
-        headers: { 'x-moltnet-team-id': team!.id },
-        body: { expiresInMinutes: 15 },
-      });
-    expect(enrollmentError).toBeUndefined();
+    const { data: invite, error: inviteError } = await createTeamInvite({
+      client,
+      auth: () => manager.accessToken,
+      path: { id: team!.id },
+      body: { role: 'member', maxUses: 1, expiresInHours: 1 },
+    });
+    expect(inviteError).toBeUndefined();
 
-    const input = await signedTeamRegistration(enrollment!.token);
+    const input = await signedTeamRegistration(invite!.code);
     const enrolled = await enrollAgent({
       client,
       headers: { 'idempotency-key': input.idempotencyKey },
       body: {
-        token: enrollment!.token,
+        token: invite!.code,
         publicKey: input.keyPair.publicKey,
         proof: input.proof,
         credentialType: 'oauth2',
@@ -273,7 +273,49 @@ describe('proof-based registration', () => {
     expect(whoami.data?.identityId).toBe(enrolled.data.identityId);
   });
 
-  it('prevents redemption after an enrollment is revoked', async () => {
+  it('honors an executor team invite during managed-agent enrollment', async () => {
+    const { data: team, error: teamError } = await createTeam({
+      client,
+      auth: () => manager.accessToken,
+      body: { name: `enrollment-executor-${Date.now()}` },
+    });
+    expect(teamError).toBeUndefined();
+
+    const { data: invite, error: inviteError } = await createTeamInvite({
+      client,
+      auth: () => manager.accessToken,
+      path: { id: team!.id },
+      body: { role: 'executor', maxUses: 1, expiresInHours: 1 },
+    });
+    expect(inviteError).toBeUndefined();
+
+    const input = await signedTeamRegistration(invite!.code);
+    const enrolled = await enrollAgent({
+      client,
+      headers: { 'idempotency-key': input.idempotencyKey },
+      body: {
+        token: invite!.code,
+        publicKey: input.keyPair.publicKey,
+        proof: input.proof,
+        credentialType: 'oauth2',
+      },
+    });
+    expect(enrolled.response.status).toBe(200);
+
+    const members = await listTeamMembers({
+      client,
+      auth: () => manager.accessToken,
+      path: { id: team!.id },
+    });
+    expect(members.response.status).toBe(200);
+    expect(
+      members.data?.items.find(
+        (member) => member.subjectId === enrolled.data?.identityId,
+      )?.role,
+    ).toBe('executor');
+  });
+
+  it('prevents registration after a team invite is revoked', async () => {
     const { data: team, error: teamError } = await createTeam({
       client,
       auth: () => manager.accessToken,
@@ -281,30 +323,28 @@ describe('proof-based registration', () => {
     });
     expect(teamError).toBeUndefined();
 
-    const { data: enrollment, error: enrollmentError } =
-      await createAgentEnrollment({
-        client,
-        auth: () => manager.accessToken,
-        headers: { 'x-moltnet-team-id': team!.id },
-        body: { expiresInMinutes: 15 },
-      });
-    expect(enrollmentError).toBeUndefined();
-
-    const revoked = await revokeAgentEnrollment({
+    const { data: invite, error: inviteError } = await createTeamInvite({
       client,
       auth: () => manager.accessToken,
-      headers: { 'x-moltnet-team-id': team!.id },
-      path: { id: enrollment!.id },
+      path: { id: team!.id },
+      body: { role: 'member', maxUses: 1, expiresInHours: 1 },
     });
-    expect(revoked.response.status).toBe(204);
+    expect(inviteError).toBeUndefined();
+
+    const revoked = await deleteTeamInvite({
+      client,
+      auth: () => manager.accessToken,
+      path: { id: team!.id, inviteId: invite!.id },
+    });
+    expect(revoked.response.status).toBe(200);
     expect(revoked.error).toBeUndefined();
 
-    const input = await signedTeamRegistration(enrollment!.token);
+    const input = await signedTeamRegistration(invite!.code);
     const redemption = await enrollAgent({
       client,
       headers: { 'idempotency-key': input.idempotencyKey },
       body: {
-        token: enrollment!.token,
+        token: invite!.code,
         publicKey: input.keyPair.publicKey,
         proof: input.proof,
         credentialType: 'oauth2',

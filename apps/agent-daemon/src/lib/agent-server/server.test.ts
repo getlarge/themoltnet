@@ -5,6 +5,7 @@
 import type { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readdirSync,
@@ -636,8 +637,50 @@ describe('agent server providers and runs', () => {
         models: ['qwen3-coder:480b-cloud'],
       },
     });
-    expect(redirect.json()).toMatchObject({ hasApiKey: false });
-    expect(store.readProviders().ollama.apiKeyRef).toBeUndefined();
+    expect(redirect.json()).toMatchObject({ hasApiKey: true });
+    expect(store.readProviders().ollama.apiKeyRef).toBeDefined();
+    expect(existsSync(join(store.secretsDir, 'pi-provider', 'ollama'))).toBe(
+      true,
+    );
+  });
+
+  it('removes a provider and its local API key', async () => {
+    const { app, store } = await fixture();
+    const token = await pair(app);
+    const headers = {
+      host: HOST,
+      origin: CONSOLE_ORIGIN,
+      [AGENT_SERVER_TOKEN_HEADER]: token,
+      'content-type': 'application/json',
+    };
+    await app.inject({
+      method: 'PUT',
+      url: '/v1/providers/ollama',
+      headers,
+      payload: {
+        api: 'openai-completions',
+        baseUrl: 'https://ollama.com/v1',
+        envName: 'MOLTNET_PROVIDER_OLLAMA_API_KEY',
+        models: ['qwen3-coder:480b-cloud'],
+        apiKey: 'remove-me',
+      },
+    });
+
+    const removed = await app.inject({
+      method: 'DELETE',
+      url: '/v1/providers/ollama',
+      headers: {
+        host: HOST,
+        origin: CONSOLE_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+    });
+
+    expect(removed.statusCode).toBe(204);
+    expect(store.readProviders().ollama).toBeUndefined();
+    expect(existsSync(join(store.secretsDir, 'pi-provider/ollama'))).toBe(
+      false,
+    );
   });
 
   it('serializes provider updates so concurrent writes cannot drop entries', async () => {

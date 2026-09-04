@@ -433,8 +433,8 @@ func (UnimplementedHandler) DownloadTaskArtifactByCid(ctx context.Context, param
 
 // EnrollAgent implements enrollAgent operation.
 //
-// Redeem a single-use enrollment token using an Ed25519 proof of key possession. Grants only
-// membership in the issuing team and returns exactly one selected credential.
+// Redeem a team invite using an Ed25519 proof of key possession. Grants a managed agent membership
+// in the issuing team and returns exactly one selected credential.
 //
 // POST /auth/enroll
 func (UnimplementedHandler) EnrollAgent(ctx context.Context, req OptEnrollAgentReq, params EnrollAgentParams) (r EnrollAgentRes, _ error) {

@@ -3,7 +3,7 @@
  *
  * Runs the real `moltnet-agent server` supervisor on the host (the Console
  * only ever talks to `http://127.0.0.1:17374`) and drives the page the way
- * a learner would: pair → generate an invitation code → create a managed
+ * a learner would: pair → provide a team invitation code → create a managed
  * agent → configure a provider from discovered models → start a daemon
  * run → stop it. Model discovery hits a tiny local stub so the journey is
  * network-free beyond the e2e stack itself.
@@ -16,7 +16,11 @@ import { createServer as createNetServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
-import { createRuntimeProfile, createTeam } from '@moltnet/api-client';
+import {
+  createRuntimeProfile,
+  createTeam,
+  createTeamInvite,
+} from '@moltnet/api-client';
 import { expect, test } from '@playwright/test';
 
 import {
@@ -234,13 +238,17 @@ test.describe.serial('Local runtime page', () => {
     });
 
     await test.step('create a managed agent from an invitation', async () => {
+      const { data: invite, error } = await createTeamInvite({
+        client: humanClient,
+        path: { id: teamId },
+        body: { role: 'member' },
+      });
+      if (!invite?.code) {
+        throw new Error(`createTeamInvite failed: ${JSON.stringify(error)}`);
+      }
+
       await page.getByLabel('Agent name').fill(agentName);
-      await page
-        .getByRole('button', {
-          name: `Generate invitation code for ${teamName}`,
-        })
-        .click();
-      await expect(page.getByLabel('Invitation code')).not.toHaveValue('');
+      await page.getByLabel('Team invite code').fill(invite.code);
       await page.getByRole('button', { name: 'Create identity' }).click();
       const agentRow = page.getByText(agentName, { exact: true }).first();
       await expect(agentRow).toBeVisible({ timeout: 30_000 });

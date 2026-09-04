@@ -19,7 +19,7 @@ import type {
   StartAgentServerRunData,
 } from '@moltnet/agent-daemon-api-client';
 
-import { loopbackFetch, loopbackHttpUrl } from '../loopback-url.js';
+import { loopbackFetch, loopbackUrl } from '../loopback-url.js';
 import {
   AgentServerAgentViewSchema,
   AgentServerProviderViewSchema,
@@ -79,6 +79,7 @@ export interface AgentServerClient {
   status(): Promise<AgentServerStatus>;
   createAgent(body: CreateAgentBody): Promise<AgentServerAgent>;
   putProvider(id: string, body: PutProviderBody): Promise<AgentServerProvider>;
+  deleteProvider(id: string): Promise<void>;
   startRun(body: StartRunBody): Promise<AgentServerRun>;
   stopRun(runId: string): Promise<void>;
   startSubscriptionLogin(
@@ -104,7 +105,7 @@ export function createAgentServerClient(options: {
   fetch?: typeof fetch;
   requestTimeoutMs?: number;
 }): AgentServerClient {
-  const baseUrl = loopbackHttpUrl(options.baseUrl, 'Agent Server');
+  const baseUrl = loopbackUrl(options.baseUrl, 'Agent Server');
   const base = baseUrl.href.replace(/\/$/, '');
   const fetchImpl = options.fetch ?? fetch;
   const requestTimeoutMs = options.requestTimeoutMs ?? READ_TIMEOUT_MS;
@@ -228,6 +229,12 @@ export function createAgentServerClient(options: {
         },
         { timeoutMs: MUTATION_TIMEOUT_MS },
       );
+    },
+    async deleteProvider(id: string): Promise<void> {
+      const providerId = assertProviderId(id);
+      await request('DELETE', `/v1/providers/${providerId}`, null, undefined, {
+        timeoutMs: MUTATION_TIMEOUT_MS,
+      });
     },
     startRun(body: StartRunBody) {
       return request(

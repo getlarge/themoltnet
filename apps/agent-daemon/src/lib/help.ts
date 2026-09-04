@@ -65,6 +65,8 @@ Commands:
   server    Loopback supervisor for console-managed runs: pairing,
             agent/provider config store, and start/stop of poll/drain
             child processes. Binds 127.0.0.1 only.
+  server trust
+            Install the per-user macOS local-HTTPS CA after explicit consent.
   sync-sessions
             Repair durable runtime-session checkpoints from local slot files.
   update check
@@ -222,4 +224,8 @@ Options:
                               (or MOLTNET_AGENT_SERVER_ROOT).
   --api-url <url>             Default MoltNet API for new managed agents.
                               Default: https://api.themolt.net.
+
+On macOS, the first interactive run asks to trust a per-user local CA in the
+login keychain and serves HTTPS. Run \`agent-daemon server trust --remove\` to
+remove that exact CA. Linux continues to use the Chromium PNA HTTP path.
 `;

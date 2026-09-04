@@ -30,6 +30,14 @@ export type LocalRuntimeStatus =
 
 const CLAIM_POLL_INTERVAL_MS = 1_000;
 const CLAIM_TIMEOUT_MS = 120_000;
+const DEFAULT_HTTPS_AGENT_SERVER_URL = 'https://127.0.0.1:17374';
+const DEFAULT_HTTP_AGENT_SERVER_URL = 'http://127.0.0.1:17374';
+
+function supportsLoopbackPna(): boolean {
+  return (
+    typeof Request !== 'undefined' && 'targetAddressSpace' in Request.prototype
+  );
+}
 
 function tokenStorageKey(agentServerUrl: string): string {
   return `moltnet-agent-server-token::${agentServerUrl}`;
@@ -55,6 +63,7 @@ export interface LocalRuntimeController {
   disconnect(): void;
   createAgent(body: CreateAgentBody): Promise<AgentServerAgentView>;
   putProvider(id: string, body: PutProviderBody): Promise<void>;
+  deleteProvider(id: string): Promise<void>;
   startRun(body: StartRunBody): Promise<void>;
   stopRun(runId: string): Promise<void>;
   streamLogs: (
@@ -70,7 +79,10 @@ export interface LocalRuntimeController {
 }
 
 export function useLocalRuntime(): LocalRuntimeController {
-  const agentServerUrl = getConfig().agentServerUrl;
+  const configuredAgentServerUrl = getConfig().agentServerUrl;
+  const [agentServerUrl, setAgentServerUrl] = useState(
+    configuredAgentServerUrl,
+  );
   const tokenRef = useRef<string | null>(readStoredToken(agentServerUrl));
   const pairingAbortRef = useRef<AbortController | null>(null);
   const subscriptionAbortRef = useRef<AbortController | null>(null);
@@ -111,6 +123,27 @@ export function useLocalRuntime(): LocalRuntimeController {
     setConnectionError(null);
     const health = await client.health();
     if (health.status === 'unavailable') {
+      if (
+        agentServerUrl === DEFAULT_HTTPS_AGENT_SERVER_URL &&
+        supportsLoopbackPna()
+      ) {
+        const fallback = createAgentServerClient({
+          baseUrl: DEFAULT_HTTP_AGENT_SERVER_URL,
+          getToken: () => tokenRef.current,
+        });
+        const fallbackHealth = await fallback.health();
+        if (fallbackHealth.status === 'ok') {
+          try {
+            tokenRef.current = sessionStorage.getItem(
+              tokenStorageKey(DEFAULT_HTTP_AGENT_SERVER_URL),
+            );
+          } catch {
+            // Storage unavailable: retain the current tab token only.
+          }
+          setAgentServerUrl(DEFAULT_HTTP_AGENT_SERVER_URL);
+          return;
+        }
+      }
       setConnectionError(
         health.reason === 'timeout'
           ? 'The local supervisor health check timed out.'
@@ -176,7 +209,6 @@ export function useLocalRuntime(): LocalRuntimeController {
     const controller = new AbortController();
     pairingAbortRef.current = controller;
     const popup = window.open('about:blank', '_blank', 'popup');
-    if (popup) popup.opener = null;
     setActionError(null);
     setConnectionError(null);
     setPairingApprovalUrl(null);
@@ -338,6 +370,7 @@ export function useLocalRuntime(): LocalRuntimeController {
     createAgent: (body) => runAction(() => client.createAgent(body)),
     putProvider: (id, body) =>
       runAction(() => client.putProvider(id, body)).then(() => undefined),
+    deleteProvider: (id) => runAction(() => client.deleteProvider(id)),
     startRun: (body) =>
       runAction(() => client.startRun(body)).then(() => undefined),
     stopRun: (runId) => runAction(() => client.stopRun(runId)),

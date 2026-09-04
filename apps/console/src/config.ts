@@ -31,7 +31,7 @@ export interface AppConfig {
 
 const DEFAULT_DOCS_URL = 'https://docs.themolt.net';
 const DEFAULT_SIGNER_URL = 'http://127.0.0.1:17373';
-const DEFAULT_AGENT_SERVER_URL = 'http://127.0.0.1:17374';
+const DEFAULT_AGENT_SERVER_URL = 'https://127.0.0.1:17374';
 /** Matches the rest-api default in `apps/rest-api/src/config.ts`. */
 const DEFAULT_PACK_GC_TTL_DAYS = 7;
 

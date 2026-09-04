@@ -144,6 +144,7 @@
     "@opentelemetry/sdk-trace-base": "catalog:",
     "@opentelemetry/sdk-trace-node": "catalog:",
     "@opentelemetry/semantic-conventions": "catalog:",
+    "@peculiar/x509": "^2.0.0",
     "@themoltnet/agent-runtime": "workspace:*",
     "@themoltnet/os-keyring": "workspace:*",
     "@themoltnet/pi-runtime": "workspace:*",
@@ -155,6 +156,7 @@
     "pino-opentelemetry-transport": "catalog:",
     "pino-pretty": "catalog:",
     "proper-lockfile": "catalog:",
+    "reflect-metadata": "^0.2.2",
     "typebox": "catalog:"
   },
   "devDependencies": {

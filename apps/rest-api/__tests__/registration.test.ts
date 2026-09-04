@@ -46,7 +46,7 @@ vi.mock('../src/workflows/index.js', async (importOriginal) => {
 const PUBLIC_KEY = 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=';
 const FINGERPRINT = 'C212-DAFA-27C5-6C57';
 const IDEMPOTENCY_KEY = 'a'.repeat(43);
-const TOKEN = 'b'.repeat(43);
+const TOKEN = `mlt_inv_${'b'.repeat(22)}`;
 const TOKEN_HASH = 'f'.repeat(64);
 const SUCCESS = {
   identityId: '550e8400-e29b-41d4-a716-446655440000',
@@ -75,6 +75,9 @@ describe('registration routes', () => {
     mocks.cryptoService.parsePublicKey.mockReturnValue(new Uint8Array(32));
     mocks.cryptoService.generateFingerprint.mockReturnValue(FINGERPRINT);
     mocks.cryptoService.verify.mockResolvedValue(true);
+    mocks.teamRepository.findInviteByCode.mockResolvedValue({
+      id: 'invite-1',
+    });
     mockWorkflowResult.mockResolvedValue({
       identityId: SUCCESS.identityId,
       identityOwnedForCompensation: true,
@@ -148,7 +151,11 @@ describe('registration routes', () => {
     expect(workflowCall).toHaveBeenCalledWith(
       expect.objectContaining({
         credentialType: 'agent_key',
-        mode: { type: 'team', enrollmentTokenHash: actualHash },
+        mode: {
+          type: 'team_invite',
+          inviteId: 'invite-1',
+          inviteCodeHash: actualHash,
+        },
       }),
     );
   });
