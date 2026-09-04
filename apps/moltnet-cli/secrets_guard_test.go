@@ -623,12 +623,19 @@ func TestSecretsGuardKeepsCredentialConfidentialityStrict(t *testing.T) {
 	// Reads of actual credential material remain denied even with read tools.
 	commands := []string{
 		`cat .moltnet/agent/moltnet.json`,
+		`cat /Users/test/.config/moltnet/identities/agent/moltnet.json`,
 		`sed -n 1p .moltnet/agent/env`,
+		`sed -n 1p /Users/test/.config/moltnet/identities/agent/env`,
 		`rg secret .moltnet/agent/moltnet.json`,
+		`rg secret /Users/test/.config/moltnet/identities/agent/moltnet.json`,
 		`head .moltnet/agent/moltnet.json`,
+		`head /Users/test/.config/moltnet/identities/agent/moltnet.json`,
 		`jq . .moltnet/agent/moltnet.json`,
+		`jq . /Users/test/.config/moltnet/identities/agent/moltnet.json`,
 		`cp .moltnet/agent/moltnet.json /tmp/leaked.json`,
+		`cp /Users/test/.config/moltnet/identities/agent/moltnet.json /tmp/leaked-central.json`,
 		`cp .moltnet/agent/env /tmp/leaked-env`,
+		`cp /Users/test/.config/moltnet/identities/agent/env /tmp/leaked-central-env`,
 	}
 	for _, command := range commands {
 		if reason := evaluateSecretsShellWithContext(command, testSecretGuardPathContext(t)); reason == "" {

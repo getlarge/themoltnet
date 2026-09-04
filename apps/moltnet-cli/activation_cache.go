@@ -422,7 +422,7 @@ func writeActivationCache(path string, cache *activationCache) error {
 		return fmt.Errorf("marshal activation cache: %w", err)
 	}
 	data = append(data, '\n')
-	if err := os.WriteFile(path, data, 0o600); err != nil {
+	if err := writeFileAtomic(path, data); err != nil {
 		return fmt.Errorf("write activation cache: %w", err)
 	}
 	return nil

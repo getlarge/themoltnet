@@ -28,6 +28,9 @@ from identity creation.`,
 		},
 	}
 	cmd.Flags().StringVar(&opts.name, "name", "", "Agent and GitHub App name (required)")
+	cmd.Flags().String("dir", "", "Deprecated repository directory")
+	_ = cmd.Flags().MarkDeprecated("dir", "repository identity discovery was removed")
+	_ = cmd.Flags().MarkHidden("dir")
 	cmd.Flags().StringVar(&opts.org, "org", "", "GitHub organization that will own the App")
 	cmd.Flags().BoolVar(&opts.noOpen, "no-open", false, "Print browser URLs without opening them")
 	cmd.Flags().DurationVar(&opts.timeout, "timeout", 5*time.Minute, "Maximum time to wait for GitHub setup")

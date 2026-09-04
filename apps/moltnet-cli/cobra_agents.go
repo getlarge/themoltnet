@@ -42,11 +42,15 @@ func newAgentsCmd() *cobra.Command {
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			identity, _ := cmd.Flags().GetString("identity")
+			if identity == "" {
+				identity, _ = cmd.Flags().GetString("agent")
+			}
 			jsonOut, _ := cmd.Flags().GetBool("json")
 			return runAgentsActivationValidateCmd(cmd.OutOrStdout(), identity, jsonOut)
 		},
 	}
 	validateCmd.Flags().String("identity", "", "Identity alias (overrides active identity)")
+	addDeprecatedIdentityFlags(validateCmd)
 	validateCmd.Flags().Bool("json", false, "Print machine-readable JSON")
 
 	refreshCmd := &cobra.Command{
@@ -55,11 +59,15 @@ func newAgentsCmd() *cobra.Command {
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			identity, _ := cmd.Flags().GetString("identity")
+			if identity == "" {
+				identity, _ = cmd.Flags().GetString("agent")
+			}
 			jsonOut, _ := cmd.Flags().GetBool("json")
 			return runAgentsActivationRefreshCmd(cmd.OutOrStdout(), identity, jsonOut)
 		},
 	}
 	refreshCmd.Flags().String("identity", "", "Identity alias (overrides active identity)")
+	addDeprecatedIdentityFlags(refreshCmd)
 	refreshCmd.Flags().Bool("json", false, "Print machine-readable JSON")
 
 	clearCmd := &cobra.Command{
@@ -68,10 +76,14 @@ func newAgentsCmd() *cobra.Command {
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			identity, _ := cmd.Flags().GetString("identity")
+			if identity == "" {
+				identity, _ = cmd.Flags().GetString("agent")
+			}
 			return runAgentsActivationClearCmd(cmd.OutOrStdout(), identity)
 		},
 	}
 	clearCmd.Flags().String("identity", "", "Identity alias (overrides active identity)")
+	addDeprecatedIdentityFlags(clearCmd)
 
 	activationCmd.AddCommand(validateCmd)
 	activationCmd.AddCommand(refreshCmd)

@@ -467,35 +467,6 @@ func rejectAgentPathSymlinks(agentDir string) error {
 	return nil
 }
 
-func completeLocalAgentInit(opts agentsInitOpts, repoRoot, agentDir, configPath string, creds *CredentialsFile) error {
-	if !agentInitRemoteComplete(creds) {
-		return fmt.Errorf("cannot complete local setup before remote credentials are complete")
-	}
-	if err := rejectAgentPathSymlinks(agentDir); err != nil {
-		return err
-	}
-	if err := runSSHKeyExportCmd(configPath, filepath.Join(agentDir, "ssh")); err != nil {
-		return err
-	}
-	if err := runGitHubSetupCmd(configPath, opts.name, creds.GitHub.AppSlug); err != nil {
-		return err
-	}
-	if err := writeAgentEnv(
-		agentDir,
-		opts.name,
-		creds.OAuth2.ClientID,
-		creds.GitHub.AppID,
-		creds.GitHub.InstallationID,
-		creds.Keys.Fingerprint,
-	); err != nil {
-		return err
-	}
-	if err := runAgentsActivationRefreshCmd(io.Discard, opts.name, false); err != nil {
-		return fmt.Errorf("refresh activation cache: %w", err)
-	}
-	return nil
-}
-
 func completeCentralIdentityInit(opts agentsInitOpts, identityDir, configPath string, creds *CredentialsFile) error {
 	if !agentInitRemoteComplete(creds) {
 		return fmt.Errorf("cannot complete local setup before remote credentials are complete")
@@ -612,20 +583,6 @@ func writeAgentsInitState(path string, state *agentsInitState) error {
 	data = append(data, '\n')
 	if err := writeFileAtomic(path, data); err != nil {
 		return fmt.Errorf("write initialization state: %w", err)
-	}
-	return nil
-}
-
-func writeAgentEnv(agentDir, agentName, clientID, appID, installationID, fingerprint string) error {
-	prefix := toEnvPrefix(agentName)
-	content := fmt.Sprintf(
-		"%s_CLIENT_ID='%s'\n%s_GITHUB_APP_ID='%s'\n%s_GITHUB_APP_INSTALLATION_ID='%s'\nGIT_CONFIG_GLOBAL='.moltnet/%s/gitconfig'\nMOLTNET_AGENT_NAME='%s'\nMOLTNET_FINGERPRINT='%s'\n",
-		prefix, shellQuote(clientID), prefix, shellQuote(appID), prefix, shellQuote(installationID),
-		shellQuote(agentName), shellQuote(agentName), shellQuote(fingerprint),
-	)
-	path := filepath.Join(agentDir, "env")
-	if err := writeFileAtomic(path, []byte(content)); err != nil {
-		return fmt.Errorf("write agent env: %w", err)
 	}
 	return nil
 }
