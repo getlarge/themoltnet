@@ -309,8 +309,8 @@ type Invoker interface {
 	DownloadTaskArtifactByCid(ctx context.Context, params DownloadTaskArtifactByCidParams) (DownloadTaskArtifactByCidRes, error)
 	// EnrollAgent invokes enrollAgent operation.
 	//
-	// Redeem a single-use enrollment token using an Ed25519 proof of key possession. Grants only
-	// membership in the issuing team and returns exactly one selected credential.
+	// Redeem a team invite using an Ed25519 proof of key possession. Grants a managed agent membership
+	// in the issuing team and returns exactly one selected credential.
 	//
 	// POST /auth/enroll
 	EnrollAgent(ctx context.Context, request OptEnrollAgentReq, params EnrollAgentParams) (EnrollAgentRes, error)
@@ -8580,8 +8580,8 @@ func (c *Client) sendDownloadTaskArtifactByCid(ctx context.Context, params Downl
 
 // EnrollAgent invokes enrollAgent operation.
 //
-// Redeem a single-use enrollment token using an Ed25519 proof of key possession. Grants only
-// membership in the issuing team and returns exactly one selected credential.
+// Redeem a team invite using an Ed25519 proof of key possession. Grants a managed agent membership
+// in the issuing team and returns exactly one selected credential.
 //
 // POST /auth/enroll
 func (c *Client) EnrollAgent(ctx context.Context, request OptEnrollAgentReq, params EnrollAgentParams) (EnrollAgentRes, error) {

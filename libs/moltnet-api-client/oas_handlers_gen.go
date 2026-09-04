@@ -10753,8 +10753,8 @@ func (s *Server) handleDownloadTaskArtifactByCidRequest(args [2]string, argsEsca
 
 // handleEnrollAgentRequest handles enrollAgent operation.
 //
-// Redeem a single-use enrollment token using an Ed25519 proof of key possession. Grants only
-// membership in the issuing team and returns exactly one selected credential.
+// Redeem a team invite using an Ed25519 proof of key possession. Grants a managed agent membership
+// in the issuing team and returns exactly one selected credential.
 //
 // POST /auth/enroll
 func (s *Server) handleEnrollAgentRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {

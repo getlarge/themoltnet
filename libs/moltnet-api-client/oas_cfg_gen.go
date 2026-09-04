@@ -38,6 +38,7 @@ var regexMap = map[string]ogenregex.Regexp{
 	"^[a-z][a-z0-9._-]{0,99}$":            ogenregex.MustCompile("^[a-z][a-z0-9._-]{0,99}$"),
 	"^bafk[a-z2-7]+$":                     ogenregex.MustCompile("^bafk[a-z2-7]+$"),
 	"^ed25519:[A-Za-z0-9+/=]+$":           ogenregex.MustCompile("^ed25519:[A-Za-z0-9+/=]+$"),
+	"^mlt_inv_[A-Za-z0-9_-]{22}$":         ogenregex.MustCompile("^mlt_inv_[A-Za-z0-9_-]{22}$"),
 	"^sha256:[0-9a-f]{64}$":               ogenregex.MustCompile("^sha256:[0-9a-f]{64}$"),
 }
 var (
