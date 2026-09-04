@@ -23,10 +23,13 @@ func TestAgentsInitCommandIsAgentScoped(t *testing.T) {
 	if err != nil {
 		t.Fatalf("agents init --help: %v", err)
 	}
-	for _, expected := range []string{"--name", "--org", "--dir", "--no-open"} {
+	for _, expected := range []string{"--name", "--org", "--no-open"} {
 		if !strings.Contains(stdout, expected) {
 			t.Errorf("help missing %s:\n%s", expected, stdout)
 		}
+	}
+	if strings.Contains(stdout, "--dir") {
+		t.Fatalf("agents init must not accept repository-target flags:\n%s", stdout)
 	}
 	if strings.Contains(stdout, "claude") || strings.Contains(stdout, "codex") {
 		t.Fatalf("agents init must not configure agent hosts:\n%s", stdout)

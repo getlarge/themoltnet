@@ -331,6 +331,28 @@ func TestSecretsGuardActivatedRelativeConfigResolutionFailureFailsClosed(t *test
 	}
 }
 
+func TestClassifyCredentialPathProtectsCentralIdentities(t *testing.T) {
+	base := "/Users/test/.config/moltnet/identities/agent"
+	for _, path := range []string{
+		base,
+		base + "/moltnet.json",
+		base + "/env",
+		base + "/ssh/id_ed25519",
+	} {
+		if got := classifyCredentialPath(path); got != pathCredential {
+			t.Fatalf("classifyCredentialPath(%q) = %v, want credential", path, got)
+		}
+	}
+	for _, path := range []string{
+		base + "/gitconfig",
+		base + "/ssh/id_ed25519.pub",
+	} {
+		if got := classifyCredentialPath(path); got != pathNone {
+			t.Fatalf("classifyCredentialPath(%q) = %v, want public", path, got)
+		}
+	}
+}
+
 func TestSecretsGuardOversizedInputHasActionableDenial(t *testing.T) {
 	t.Parallel()
 	payload := `{"tool_name":"Write","tool_input":{"file_path":"docs/large.md","content":"` + strings.Repeat("x", maxSecretHookPayloadBytes) + `"}}`

@@ -194,7 +194,7 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 
 	gitConfigGlobal := firstNonEmpty(ctx.EnvVars["GIT_CONFIG_GLOBAL"], valueOrEmpty(creds.Git, func(g *GitSection) string {
 		return g.ConfigPath
-	}), filepath.Join(".moltnet", ctx.AgentName, "gitconfig"))
+	}), "gitconfig")
 	paths := newAgentPathResolver(ctx.AgentDir, ctx.AgentDir, ctx.AgentName)
 	gitconfigPath := paths.resolveFile(gitConfigGlobal, "gitconfig")
 
