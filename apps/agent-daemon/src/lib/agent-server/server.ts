@@ -763,11 +763,41 @@ function registerProviderRoutes(
           providers[providerId].baseUrl === entry.baseUrl
         ) {
           entry.apiKeyRef = providers[providerId].apiKeyRef;
+        } else if (providers[providerId]?.apiKeyRef) {
+          await options.secrets.delete(`pi-provider/${providerId}`);
         }
         providers[providerId] = entry;
         store.writeProviders(providers);
       });
       return reply.code(200).send(providerView(entry));
+    },
+  );
+  app.delete(
+    '/v1/providers/:providerId',
+    { schema: AgentServerRouteSchemas.deleteProvider, attachValidation: true },
+    async (request, reply) => {
+      requirePairedOrigin(request);
+      const { providerId: rawProviderId } = request.params as {
+        providerId: string;
+      };
+      const providerId = assertProviderId(rawProviderId);
+      await serialize(async () => {
+        const providers = store.readProviders();
+        const provider = providers[providerId];
+        if (!provider) {
+          throw new AgentServerHttpError(
+            404,
+            'agent_server_provider_not_found',
+            `Provider ${providerId} was not found`,
+          );
+        }
+        if (provider.apiKeyRef) {
+          await options.secrets.delete(`pi-provider/${providerId}`);
+        }
+        delete providers[providerId];
+        store.writeProviders(providers);
+      });
+      return reply.code(204).send(null);
     },
   );
 }

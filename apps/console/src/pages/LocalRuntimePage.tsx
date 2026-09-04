@@ -509,6 +509,28 @@ function ProvidersSection({ runtime }: { runtime: LocalRuntimeController }) {
   const providers = Object.entries(runtime.data?.providers ?? {});
   const subscriptions = runtime.data?.subscriptions ?? [];
   const login = runtime.subscriptionLogin;
+  const [editingProviderId, setEditingProviderId] = useState<string | null>(
+    null,
+  );
+  const editingProvider = providers.find(
+    ([providerId]) => providerId === editingProviderId,
+  );
+
+  const removeProvider = async (providerId: string) => {
+    if (
+      !window.confirm(
+        `Remove ${providerId}? Its local API key will be deleted from this machine.`,
+      )
+    ) {
+      return;
+    }
+    try {
+      await runtime.deleteProvider(providerId);
+      if (editingProviderId === providerId) setEditingProviderId(null);
+    } catch {
+      // surfaced via runtime.actionError
+    }
+  };
 
   return (
     <SectionCard
@@ -622,6 +644,22 @@ function ProvidersSection({ runtime }: { runtime: LocalRuntimeController }) {
                   {provider.hasApiKey ? 'key stored' : 'no key'}
                 </Badge>
               </div>
+              <Stack direction="row" gap={1} style={{ marginLeft: 8 }}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setEditingProviderId(providerId)}
+                >
+                  Edit
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => void removeProvider(providerId)}
+                >
+                  Remove
+                </Button>
+              </Stack>
             </ListRow>
           ))}
         </Stack>
@@ -629,7 +667,15 @@ function ProvidersSection({ runtime }: { runtime: LocalRuntimeController }) {
 
       <Divider />
 
-      <ApiKeyProviderForm runtime={runtime} />
+      <ApiKeyProviderForm
+        runtime={runtime}
+        provider={
+          editingProvider
+            ? { id: editingProvider[0], ...editingProvider[1] }
+            : null
+        }
+        onDone={() => setEditingProviderId(null)}
+      />
     </SectionCard>
   );
 }

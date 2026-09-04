@@ -63,6 +63,7 @@ export interface LocalRuntimeController {
   disconnect(): void;
   createAgent(body: CreateAgentBody): Promise<AgentServerAgentView>;
   putProvider(id: string, body: PutProviderBody): Promise<void>;
+  deleteProvider(id: string): Promise<void>;
   startRun(body: StartRunBody): Promise<void>;
   stopRun(runId: string): Promise<void>;
   streamLogs: (
@@ -362,6 +363,7 @@ export function useLocalRuntime(): LocalRuntimeController {
     createAgent: (body) => runAction(() => client.createAgent(body)),
     putProvider: (id, body) =>
       runAction(() => client.putProvider(id, body)).then(() => undefined),
+    deleteProvider: (id) => runAction(() => client.deleteProvider(id)),
     startRun: (body) =>
       runAction(() => client.startRun(body)).then(() => undefined),
     stopRun: (runId) => runAction(() => client.stopRun(runId)),

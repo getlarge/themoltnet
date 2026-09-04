@@ -305,6 +305,32 @@ export type ListAgentServerProvidersResponses = {
 export type ListAgentServerProvidersResponse =
   ListAgentServerProvidersResponses[keyof ListAgentServerProvidersResponses];
 
+export type DeleteAgentServerProviderData = {
+  body?: never;
+  path: {
+    providerId: string;
+  };
+  query?: never;
+  url: '/v1/providers/{providerId}';
+};
+
+export type DeleteAgentServerProviderErrors = {
+  /**
+   * Default Response
+   */
+  default: AgentServerProblem;
+};
+
+export type DeleteAgentServerProviderError =
+  DeleteAgentServerProviderErrors[keyof DeleteAgentServerProviderErrors];
+
+export type DeleteAgentServerProviderResponses = {
+  /**
+   * Default Response
+   */
+  204: unknown;
+};
+
 export type PutAgentServerProviderData = {
   body: {
     api: string;

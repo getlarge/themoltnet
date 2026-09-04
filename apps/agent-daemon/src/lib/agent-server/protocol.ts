@@ -292,6 +292,13 @@ export const AgentServerRouteSchemas = {
       ...problemResponse,
     },
   },
+  deleteProvider: {
+    operationId: 'deleteAgentServerProvider',
+    tags: ['providers'],
+    security: pairedSecurity,
+    params: ProviderParamsSchema,
+    response: { 204: Type.Any(), ...problemResponse },
+  },
   listSubscriptions: {
     operationId: 'listAgentServerSubscriptions',
     tags: ['subscriptions'],

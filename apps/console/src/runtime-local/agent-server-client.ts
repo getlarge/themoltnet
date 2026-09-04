@@ -79,6 +79,7 @@ export interface AgentServerClient {
   status(): Promise<AgentServerStatus>;
   createAgent(body: CreateAgentBody): Promise<AgentServerAgent>;
   putProvider(id: string, body: PutProviderBody): Promise<AgentServerProvider>;
+  deleteProvider(id: string): Promise<void>;
   startRun(body: StartRunBody): Promise<AgentServerRun>;
   stopRun(runId: string): Promise<void>;
   startSubscriptionLogin(
@@ -228,6 +229,12 @@ export function createAgentServerClient(options: {
         },
         { timeoutMs: MUTATION_TIMEOUT_MS },
       );
+    },
+    async deleteProvider(id: string): Promise<void> {
+      const providerId = assertProviderId(id);
+      await request('DELETE', `/v1/providers/${providerId}`, null, undefined, {
+        timeoutMs: MUTATION_TIMEOUT_MS,
+      });
     },
     startRun(body: StartRunBody) {
       return request(

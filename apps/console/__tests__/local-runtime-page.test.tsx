@@ -388,6 +388,34 @@ describe('LocalRuntimePage', () => {
     });
   });
 
+  it('pre-fills an existing provider for edits and can remove it', async () => {
+    handlers['DELETE /v1/providers/ollama'] = () =>
+      new Response(null, { status: 204 });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    renderPage();
+    await screen.findAllByText('existing-bot');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    expect(screen.getByText('Edit ollama')).toBeInTheDocument();
+    expect(
+      (screen.getByLabelText('Provider id') as HTMLInputElement).value,
+    ).toBe('ollama');
+    expect(
+      screen.getByRole('button', { name: 'Update provider' }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+    await waitFor(() =>
+      expect(
+        requests.some(
+          (entry) =>
+            entry.method === 'DELETE' &&
+            entry.url.endsWith('/v1/providers/ollama'),
+        ),
+      ).toBe(true),
+    );
+  });
+
   it('renders large discovery results in bounded, filterable pages', async () => {
     const models = Array.from(
       { length: 120 },

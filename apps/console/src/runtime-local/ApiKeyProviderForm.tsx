@@ -5,7 +5,7 @@ import {
   Text,
   useTheme,
 } from '@themoltnet/design-system';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { LocalRuntimeController } from './useLocalRuntime.js';
 
@@ -37,8 +37,17 @@ const PROVIDER_PRESETS = [
 
 export function ApiKeyProviderForm({
   runtime,
+  provider,
+  onDone,
 }: {
   runtime: LocalRuntimeController;
+  provider?: {
+    id: string;
+    api: string;
+    baseUrl: string;
+    models: string[];
+  } | null;
+  onDone?: () => void;
 }) {
   const [preset, setPreset] = useState<string>('ollama-local');
   const [id, setId] = useState('ollama-local');
@@ -54,6 +63,17 @@ export function ApiKeyProviderForm({
   const activePreset =
     PROVIDER_PRESETS.find((entry) => entry.id === preset) ??
     PROVIDER_PRESETS[2];
+
+  useEffect(() => {
+    if (!provider) return;
+    setPreset('custom');
+    setId(provider.id);
+    setBaseUrl(provider.baseUrl);
+    setDiscovered(provider.models);
+    selectedRef.current = new Set(provider.models);
+    setSelectionVersion((current) => current + 1);
+    setDiscoverError(null);
+  }, [provider]);
 
   const resetModels = (models: string[] = []) => {
     setDiscovered(models);
@@ -115,6 +135,7 @@ export function ApiKeyProviderForm({
         ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
       });
       resetModels();
+      onDone?.();
     } catch {
       // surfaced via runtime.actionError
     } finally {
@@ -126,7 +147,7 @@ export function ApiKeyProviderForm({
   return (
     <Stack gap={3}>
       <Text variant="caption" weight="semibold">
-        Add an API-key provider
+        {provider ? `Edit ${provider.id}` : 'Add an API-key provider'}
       </Text>
       <Stack direction="row" gap={2} wrap>
         {PROVIDER_PRESETS.map((entry) => (
@@ -191,8 +212,13 @@ export function ApiKeyProviderForm({
           }
           onClick={() => void save()}
         >
-          Save provider
+          {provider ? 'Update provider' : 'Save provider'}
         </Button>
+        {provider ? (
+          <Button size="sm" variant="ghost" onClick={onDone}>
+            Cancel edit
+          </Button>
+        ) : null}
       </Stack>
     </Stack>
   );
