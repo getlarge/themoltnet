@@ -66,12 +66,19 @@ jobs:
         run: |
           set -euo pipefail
           case "$TARGET_KIND" in
-            production) TARGET=7219f256-464a-4511-874c-bde7724f6897 ;;
-            stage)      TARGET=733bd245-607b-4f0d-80d1-ef1b413aba69 ;;
+            production)
+              TARGET=7219f256-464a-4511-874c-bde7724f6897
+              URL=https://auth.themolt.net
+              ;;
+            stage)
+              TARGET=733bd245-607b-4f0d-80d1-ef1b413aba69
+              URL=https://musing-ellis-0cbj34g2d2.projects.oryapis.com
+              ;;
             *) echo "::error::Unknown target_project: $TARGET_KIND"; exit 1 ;;
           esac
-          echo "Resolved $TARGET_KIND -> $TARGET"
+          echo "Resolved $TARGET_KIND -> $TARGET ($URL)"
           echo "project_id=$TARGET" >> "$GITHUB_OUTPUT"
+          echo "project_url=$URL" >> "$GITHUB_OUTPUT"
 
       - name: Download backup bundle
         uses: actions/download-artifact@v6
@@ -90,8 +97,14 @@ jobs:
 
       - name: Restore
         env:
+          # Identity operations are data-plane calls: they need the PROJECT key.
+          # The workspace key cannot authenticate them (it stalls the CLI).
+          ORY_PROJECT_API_KEY: ${{ secrets.ORY_PROJECT_API_KEY }}
           ORY_WORKSPACE_API_KEY: ${{ secrets.ORY_WORKSPACE_API_KEY }}
           ORY_BACKUP_PASSPHRASE: ${{ secrets.ORY_BACKUP_PASSPHRASE }}
+          # Pins the tenant: the preflight proves the project key belongs to
+          # the project served at this URL before anything is written.
+          ORY_PROJECT_URL: ${{ steps.target.outputs.project_url }}
         run: |
           node infra/ory/restore.mjs \
             --bundle ./ory-backup/bundle.tar.gz.enc \
