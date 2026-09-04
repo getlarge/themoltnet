@@ -19,12 +19,14 @@ team; otherwise registration creates a personal team and diary.`,
 			enrollmentToken, _ := cmd.Flags().GetString("enrollment-token")
 			jsonOut, _ := cmd.Flags().GetBool("json")
 			noMCP, _ := cmd.Flags().GetBool("no-mcp")
-			return runRegisterCmd(apiURL, credentialType, enrollmentToken, jsonOut, noMCP)
+			name, _ := cmd.Flags().GetString("name")
+			return runRegisterCmdWithName(apiURL, credentialType, enrollmentToken, jsonOut, noMCP, name)
 		},
 	}
 
 	cmd.Flags().String("credential-type", "", "Credential to create: oauth2 or agent_key (required)")
 	cmd.Flags().String("enrollment-token", "", "Single-use team enrollment token")
+	cmd.Flags().String("name", "", "Local identity alias (required unless --json is used)")
 	cmd.Flags().Bool("json", false, "Output JSON to stdout only, no file writes")
 	cmd.Flags().Bool("no-mcp", false, "Skip writing .mcp.json")
 	_ = cmd.MarkFlagRequired("credential-type")

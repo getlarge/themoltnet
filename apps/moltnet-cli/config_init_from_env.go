@@ -85,17 +85,22 @@ func runConfigInitFromEnvCmdWithRegistry(
 		fmt.Fprintf(os.Stderr, "Loaded env file %s (override=%v)\n", envFile, override)
 	}
 
-	// Resolve agent name: --agent flag > MOLTNET_AGENT_NAME env var
+	// Resolve identity alias: --name flag > MOLTNET_ACTIVE_IDENTITY env var.
 	if agentName == "" {
-		agentName = getenv("MOLTNET_AGENT_NAME", fileVars, override)
+		agentName = getenv("MOLTNET_ACTIVE_IDENTITY", fileVars, override)
 	}
 	if agentName == "" {
-		return fmt.Errorf("--agent is required (or set MOLTNET_AGENT_NAME)")
+		return fmt.Errorf("--name is required (or set MOLTNET_ACTIVE_IDENTITY)")
 	}
 
-	// Resolve agent config directory early so we can skip before validating env vars.
-	moltnetDir := filepath.Join(dir, ".moltnet")
-	agentDir := filepath.Join(moltnetDir, agentName)
+	// The environment reconstructs a central identity, never a repository tree.
+	// Keep dir in the function signature temporarily for Go callers, but it is
+	// deliberately ignored and has no effect on credentials discovery.
+	_ = dir
+	agentDir, err := identityDir(agentName)
+	if err != nil {
+		return err
+	}
 	configPath := filepath.Join(agentDir, "moltnet.json")
 
 	// Skip if already initialized (no env vars needed).
@@ -236,10 +241,15 @@ func runConfigInitFromEnvCmdWithRegistry(
 		return fmt.Errorf("write env file: %w", err)
 	}
 
-	// Set as default agent
-	defaultPath := filepath.Join(moltnetDir, "default-agent")
-	if err := os.WriteFile(defaultPath, []byte(agentName+"\n"), 0o644); err != nil {
-		return fmt.Errorf("write default-agent: %w", err)
+	// A newly created identity becomes the default only when no default exists.
+	selector, err := readIdentitySelector()
+	if err != nil {
+		return err
+	}
+	if selector == nil || selector.DefaultIdentity == "" {
+		if err := writeIdentitySelector(agentName); err != nil {
+			return err
+		}
 	}
 
 	fmt.Fprintf(os.Stderr, "Agent %q initialized from environment variables\n", agentName)
@@ -270,7 +280,7 @@ func writeAgentEnvFile(agentDir, agentName string, config *CredentialsFile) erro
 // merges the selected non-secret variables into its preserved user section.
 func writeAgentEnvFileWithUserVars(agentDir, agentName string, config *CredentialsFile, userVars map[string]string) error {
 	prefix := toEnvPrefix(agentName)
-	moltnetRelDir := filepath.Join(".moltnet", agentName)
+	moltnetRelDir := agentDir
 
 	// Build managed keys set for deduplication.
 	managedKeys := map[string]bool{
@@ -280,7 +290,7 @@ func writeAgentEnvFileWithUserVars(agentDir, agentName string, config *Credentia
 		prefix + "_GITHUB_APP_PRIVATE_KEY_PATH": true,
 		prefix + "_GITHUB_APP_INSTALLATION_ID":  true,
 		"GIT_CONFIG_GLOBAL":                     true,
-		"MOLTNET_AGENT_NAME":                    true,
+		"MOLTNET_ACTIVE_IDENTITY":               true,
 		"MOLTNET_FINGERPRINT":                   true,
 	}
 	for key := range userVars {
@@ -299,12 +309,12 @@ func writeAgentEnvFileWithUserVars(agentDir, agentName string, config *Credentia
 		}
 		lines = append(lines, fmt.Sprintf("%s_GITHUB_APP_INSTALLATION_ID='%s'", prefix, shellQuote(config.GitHub.InstallationID)))
 	}
-	lines = append(lines, fmt.Sprintf("MOLTNET_AGENT_NAME='%s'", shellQuote(agentName)))
+	lines = append(lines, fmt.Sprintf("MOLTNET_ACTIVE_IDENTITY='%s'", shellQuote(agentName)))
 	lines = append(lines, fmt.Sprintf("MOLTNET_FINGERPRINT='%s'", shellQuote(config.Keys.Fingerprint)))
 
 	gitconfigPath := filepath.Join(agentDir, "gitconfig")
 	if _, err := os.Stat(gitconfigPath); err == nil {
-		lines = append(lines, fmt.Sprintf("GIT_CONFIG_GLOBAL='%s'", shellQuote(moltnetRelDir+"/gitconfig")))
+		lines = append(lines, fmt.Sprintf("GIT_CONFIG_GLOBAL='%s'", shellQuote(filepath.Join(moltnetRelDir, "gitconfig"))))
 	}
 
 	// Preserve user-section content from existing env file.

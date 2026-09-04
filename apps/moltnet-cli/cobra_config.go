@@ -1,6 +1,10 @@
 package main
 
-import "github.com/spf13/cobra"
+import (
+	"fmt"
+
+	"github.com/spf13/cobra"
+)
 
 func newConfigCmd() *cobra.Command {
 	configCmd := &cobra.Command{
@@ -24,43 +28,41 @@ func newConfigCmd() *cobra.Command {
 	initFromEnvCmd := &cobra.Command{
 		Use:   "init-from-env",
 		Short: "Reconstruct agent config from environment variables",
-		Long: `Reconstruct .moltnet/<agent>/ directory from environment variables.
+		Long: `Reconstruct a central identity directory from environment variables.
 Designed for ephemeral environments (CI, Claude Code web) where
 moltnet agents init cannot run interactively.
 
-Agent name resolution: --agent flag > MOLTNET_AGENT_NAME env var.
+Identity alias resolution: --name flag > MOLTNET_ACTIVE_IDENTITY env var.
 
 Required env vars:
   MOLTNET_IDENTITY_ID, MOLTNET_CLIENT_ID, MOLTNET_CLIENT_SECRET,
   MOLTNET_PUBLIC_KEY, MOLTNET_PRIVATE_KEY, MOLTNET_FINGERPRINT
 
 Optional env vars:
-  MOLTNET_AGENT_NAME (alternative to --agent flag)
+  MOLTNET_ACTIVE_IDENTITY (alternative to --name flag)
   MOLTNET_API_URL (default: https://api.themolt.net)
   MOLTNET_REGISTERED_AT (default: now)
   MOLTNET_GIT_NAME (default: agent name), MOLTNET_GIT_EMAIL
   MOLTNET_GITHUB_APP_ID, MOLTNET_GITHUB_APP_SLUG,
   MOLTNET_GITHUB_APP_INSTALLATION_ID, MOLTNET_GITHUB_APP_PRIVATE_KEY`,
 		Example: `  # Set env vars, then run:
-  moltnet config init-from-env --agent legreffier
-  moltnet config init-from-env --agent legreffier --skip-git
+  moltnet config init-from-env --name legreffier
+  moltnet config init-from-env --name legreffier --skip-git
 
-  # Derive agent name from MOLTNET_AGENT_NAME in env file:
+  # Derive identity alias from MOLTNET_ACTIVE_IDENTITY in env file:
   moltnet config init-from-env --env-file .env.moltnet
 
   # Load vars from a file and override process env:
-  moltnet config init-from-env --agent legreffier --env-file .env.moltnet --override`,
+  moltnet config init-from-env --name legreffier --env-file .env.moltnet --override`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			dir, _ := cmd.Flags().GetString("dir")
-			agent, _ := cmd.Flags().GetString("agent")
+			name, _ := cmd.Flags().GetString("name")
 			skipGit, _ := cmd.Flags().GetBool("skip-git")
 			envFile, _ := cmd.Flags().GetString("env-file")
 			override, _ := cmd.Flags().GetBool("override")
-			return runConfigInitFromEnvCmd(dir, agent, skipGit, envFile, override)
+			return runConfigInitFromEnvCmd("", name, skipGit, envFile, override)
 		},
 	}
-	initFromEnvCmd.Flags().String("agent", "", "Agent name (or set MOLTNET_AGENT_NAME)")
-	initFromEnvCmd.Flags().String("dir", ".", "Repository root directory")
+	initFromEnvCmd.Flags().String("name", "", "Identity alias (or set MOLTNET_ACTIVE_IDENTITY)")
 	initFromEnvCmd.Flags().Bool("skip-git", false, "Skip git signing setup")
 	initFromEnvCmd.Flags().String("env-file", "", "Load variables from a dotenv file")
 	initFromEnvCmd.Flags().Bool("override", false, "Let env-file values override process environment")
@@ -160,6 +162,84 @@ does not install or configure agent-host plugins.`,
 	configCmd.AddCommand(initFromEnvCmd)
 	configCmd.AddCommand(exportEnvCmd)
 	configCmd.AddCommand(migrateCmd)
-	configCmd.AddCommand(portCmd)
+	// `config port` copied repository-owned identity material. Identities now
+	// live centrally; repository bindings are intentionally a separate concern.
+	_ = portCmd
+	configCmd.AddCommand(newConfigIdentityCmd())
 	return configCmd
+}
+
+func newConfigIdentityCmd() *cobra.Command {
+	identityCmd := &cobra.Command{
+		Use:   "identity",
+		Short: "Manage locally stored agent identities",
+	}
+	listCmd := &cobra.Command{
+		Use:   "list",
+		Short: "List central identity aliases",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			aliases, err := listIdentityAliases()
+			if err != nil {
+				return err
+			}
+			selector, err := readIdentitySelector()
+			if err != nil {
+				return err
+			}
+			defaultAlias := ""
+			if selector != nil {
+				defaultAlias = selector.DefaultIdentity
+			}
+			return printJSONTo(cmd.OutOrStdout(), map[string]interface{}{"identities": aliases, "default": defaultAlias})
+		},
+	}
+	showCmd := &cobra.Command{
+		Use:   "show [alias]",
+		Short: "Show a central identity document without resolving its secrets",
+		Args:  cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			alias := ""
+			if len(args) == 1 {
+				alias = args[0]
+			}
+			alias, err := resolveIdentityAlias(alias)
+			if err != nil {
+				return err
+			}
+			path, err := identityCredentialsPath(alias)
+			if err != nil {
+				return err
+			}
+			creds, err := ReadConfigFrom(path)
+			if err != nil {
+				return err
+			}
+			if creds == nil {
+				return fmt.Errorf("identity %q not found", alias)
+			}
+			return printJSONTo(cmd.OutOrStdout(), map[string]interface{}{"alias": alias, "path": path, "identity": creds})
+		},
+	}
+	selectCmd := &cobra.Command{
+		Use:   "select <alias>",
+		Short: "Persist the default central identity",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			path, err := identityCredentialsPath(args[0])
+			if err != nil {
+				return err
+			}
+			if !regularFileExists(path) {
+				return fmt.Errorf("identity %q not found", args[0])
+			}
+			if err := writeIdentitySelector(args[0]); err != nil {
+				return err
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "Default identity set to %q\n", args[0])
+			return nil
+		},
+	}
+	identityCmd.AddCommand(listCmd, showCmd, selectCmd)
+	return identityCmd
 }

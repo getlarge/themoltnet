@@ -5,7 +5,8 @@
  * the OS keyring under the same canonical keys). Shaped as an embryo of the
  * #1834 portable agent profile store:
  *
- *   - managed `agents/<alias>.json` files are exact `MoltNetConfig` documents;
+ *   - managed `identities/<alias>/moltnet.json` files are exact
+ *     `MoltNetConfig` documents shared with the released Go CLI;
  *   - `agent-server.json` activations keep aliases and external paths separate;
  *   - secret keys follow the canonical `libs/sdk` naming
  *     (`agent-key/<identityId>`, `identity/<fingerprint>/seed`);
@@ -29,6 +30,7 @@ import { join, resolve, sep } from 'node:path';
 import type { MoltNetConfig } from '@themoltnet/sdk';
 
 export const AGENT_SERVER_STATE_VERSION = 1;
+export const IDENTITY_SELECTOR_VERSION = 1;
 
 const NAME_RE = /^[a-z0-9][a-z0-9_-]{0,63}$/i;
 const PROVIDER_ID_RE = /^[a-z0-9][a-z0-9-]{0,63}$/;
@@ -86,6 +88,12 @@ export interface AgentServerState {
   pendingRegistrations: Record<string, PendingRegistration>;
   /** Alias/profile activations; external configs remain at `configPath`. */
   activations: Record<string, AgentActivation>;
+}
+
+/** Same versioned, value-free selector contract as the Go CLI. */
+export interface IdentitySelector {
+  version: typeof IDENTITY_SELECTOR_VERSION;
+  default_identity?: string;
 }
 
 export interface PendingRegistration {
@@ -218,7 +226,7 @@ function writeJsonAtomic(path: string, value: unknown): void {
 
 export class AgentServerStore {
   readonly root: string;
-  readonly agentsDir: string;
+  readonly identitiesDir: string;
   readonly runsDir: string;
   readonly secretsDir: string;
   /** Shared Pi credential dir; `auth.json` inside is pi-managed (lockfiled). */
@@ -226,10 +234,15 @@ export class AgentServerStore {
 
   constructor(root: string) {
     this.root = root;
-    this.agentsDir = join(root, 'agents');
+    this.identitiesDir = join(root, 'identities');
     this.runsDir = join(root, 'runs');
     this.secretsDir = join(root, 'secrets');
     this.piDir = join(root, 'pi');
+  }
+
+  /** @deprecated Use identitiesDir. Kept source-compatible for adapters. */
+  get agentsDir(): string {
+    return this.identitiesDir;
   }
 
   get piAuthJsonPath(): string {
@@ -240,7 +253,7 @@ export class AgentServerStore {
   ensure(): this {
     for (const dir of [
       this.root,
-      this.agentsDir,
+      this.identitiesDir,
       this.runsDir,
       this.secretsDir,
     ]) {
@@ -316,10 +329,63 @@ export class AgentServerStore {
     writeJsonAtomic(this.statePath, state);
   }
 
-  // ── agents ─────────────────────────────────────────────────────────────
+  // ── identities ─────────────────────────────────────────────────────────
 
   agentPath(name: string): string {
-    return storeChildPath(this.agentsDir, 'agent name', name, '.json');
+    return join(
+      storeChildPath(this.identitiesDir, 'identity alias', name),
+      'moltnet.json',
+    );
+  }
+
+  /** Central identity directory, shared with the Go CLI layout. */
+  identityDir(name: string): string {
+    return storeChildPath(this.identitiesDir, 'identity alias', name);
+  }
+
+  private get identitySelectorPath(): string {
+    return join(this.root, 'identity-selector.json');
+  }
+
+  readIdentitySelector(): IdentitySelector | null {
+    const selector = readJson<unknown>(this.identitySelectorPath);
+    if (!selector) return null;
+    if (
+      !isRecord(selector) ||
+      selector.version !== IDENTITY_SELECTOR_VERSION ||
+      (selector.default_identity !== undefined &&
+        typeof selector.default_identity !== 'string')
+    ) {
+      throw new AgentServerStoreError(
+        'invalid_state',
+        'identity-selector.json is not a supported selector document',
+      );
+    }
+    if (selector.default_identity) {
+      assertStoreName('identity alias', selector.default_identity);
+    }
+    return selector as IdentitySelector;
+  }
+
+  writeIdentitySelector(alias: string): void {
+    writeJsonAtomic(this.identitySelectorPath, {
+      version: IDENTITY_SELECTOR_VERSION,
+      default_identity: assertStoreName('identity alias', alias),
+    } satisfies IdentitySelector);
+  }
+
+  resolveIdentityAlias(explicit?: string, active?: string): string {
+    const alias =
+      explicit?.trim() ||
+      active?.trim() ||
+      this.readIdentitySelector()?.default_identity;
+    if (!alias) {
+      throw new AgentServerStoreError(
+        'not_found',
+        'no active identity selected',
+      );
+    }
+    return assertStoreName('identity alias', alias);
   }
 
   readAgentConfig(alias: string): MoltNetConfig | null {
@@ -327,7 +393,11 @@ export class AgentServerStore {
   }
 
   writeAgentConfig(alias: string, config: MoltNetConfig): void {
+    mkdirSync(this.identityDir(alias), { recursive: true, mode: 0o700 });
     writeJsonAtomic(this.agentPath(alias), config);
+    if (!this.readIdentitySelector()?.default_identity) {
+      this.writeIdentitySelector(alias);
+    }
   }
 
   removeAgentConfig(alias: string): void {
