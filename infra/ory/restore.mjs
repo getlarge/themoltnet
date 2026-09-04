@@ -40,8 +40,7 @@ import { join, resolve } from 'node:path';
 import { createDecipheriv, scryptSync } from 'node:crypto';
 import { pipeline } from 'node:stream/promises';
 
-const ORY_STDIO_MAX_BUFFER = 64 * 1024 * 1024;
-const ORY_COMMAND_TIMEOUT_MS = 120_000;
+const ORY_REQUEST_TIMEOUT_MS = 60_000;
 
 /**
  * Fields accepted by Ory's `createIdentityBody`. The CLI strict-decodes, so any
@@ -76,6 +75,7 @@ function parseArgs(argv) {
     decryptPassphraseEnv: 'ORY_BACKUP_PASSPHRASE',
     mapOut: null,
     preserveVerifiedAddresses: true,
+    preflightOnly: false,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -121,6 +121,9 @@ function parseArgs(argv) {
         args.decryptPassphraseEnv = next;
         index += 1;
         break;
+      case '--preflight-only':
+        args.preflightOnly = true;
+        break;
       case '--no-preserve-verified-addresses':
         args.preserveVerifiedAddresses = false;
         break;
@@ -133,9 +136,13 @@ function parseArgs(argv) {
     }
   }
 
-  if (!args.bundle) fatal('--bundle is required');
+  if (!args.bundle && !args.preflightOnly) {
+    fatal('--bundle is required');
+  }
   if (!args.targetProject) fatal('--target-project is required');
-  if (!args.bundleMetadata) args.bundleMetadata = `${args.bundle}.metadata.json`;
+  if (args.bundle && !args.bundleMetadata) {
+    args.bundleMetadata = `${args.bundle}.metadata.json`;
+  }
   if (!args.mapOut) args.mapOut = join(args.workDir, 'identity-id-map.json');
 
   return args;
@@ -152,6 +159,7 @@ Flags:
   --mode plan|apply               plan = diff only, no writes (default: plan)
   --map-out <path>                Where to write the old -> new ID mapping
   --decrypt-passphrase-env <env>  Env var holding the bundle passphrase
+  --preflight-only                Verify tenant + list identities, then exit
   --no-preserve-verified-addresses  Let Kratos regenerate address state
 
 Exit codes:
@@ -219,56 +227,119 @@ function extractBundle({ archivePath, destDir }) {
   });
 }
 
+
 /**
- * The Ory CLI refuses to run when a project API key and an explicit --project
- * flag are both present, and it considers the variable "set" even when it holds
- * the empty string. Blanking it is therefore not enough — it has to be removed
- * from the child environment entirely. We always pass --project, because the
- * workspace key alone cannot select a tenant.
+ * Preflight tenant check.
+ *
+ * For data operations the project API key alone selects the tenant, with no
+ * --project flag to cross-check — the exact ambiguity that let an agent delete
+ * production identities while believing it targeted stage. The project URL,
+ * however, names the tenant unambiguously, and a project API key is scoped to
+ * its own project: presenting it to a different project's URL is rejected.
+ * Calling both together therefore proves key and intended tenant agree.
  */
-function buildOryEnv() {
-  const env = { ...process.env };
-  delete env.ORY_PROJECT_API_KEY;
-  return env;
+async function verifyTenant({ projectUrl, expectedProject }) {
+  const key = process.env.ORY_PROJECT_API_KEY;
+  const response = await fetch(
+    `${projectUrl.replace(/\/$/, '')}/admin/identities?page_size=1`,
+    {
+      headers: { Authorization: `Bearer ${key}` },
+      signal: AbortSignal.timeout(30_000),
+    },
+  );
+
+  if (!response.ok) {
+    fatal(
+      `Tenant preflight failed: ${response.status} ${response.statusText} from ` +
+        `${projectUrl}. The project API key does not belong to the project ` +
+        `served at that URL, so it is NOT safe to assume it points at ` +
+        `${expectedProject}. Refusing to continue.`,
+    );
+  }
+
+  log(`Tenant preflight OK: project API key is valid for ${projectUrl}`);
 }
 
-function runOry(args) {
-  // --yes confirms any dialog non-interactively; combined with stdio stdin
-  // 'ignore' below it guarantees the CLI can never wait on input.
-  return execFileSync('ory', [...args, '--yes'], {
-    // Run outside the repo so the CLI cannot pick up stray dotenv files from
-    // the working directory, mirroring backup.mjs. Every path handed to the CLI
-    // must therefore be absolute.
-    cwd: '/tmp',
-    encoding: 'utf8',
-    maxBuffer: ORY_STDIO_MAX_BUFFER,
-    // stdin MUST be 'ignore'. With the default 'pipe' the child inherits an
-    // open stdin that never closes, so any prompt the CLI decides to emit hangs
-    // the process forever instead of failing — observed as a CI job stuck in
-    // the Restore step. backup.mjs uses the same guard.
-    stdio: ['ignore', 'pipe', 'pipe'],
-    // Belt and braces: never block on a confirmation dialog, and never hang a
-    // job indefinitely if the API stalls.
-    timeout: ORY_COMMAND_TIMEOUT_MS,
-    env: buildOryEnv(),
+/**
+ * Ory Kratos admin API client.
+ *
+ * The Ory CLI is deliberately not used for data-plane work. It failed three
+ * different ways against this project (rejects a blank credential var, stalls
+ * indefinitely when handed a workspace key, and reports "Access credentials are
+ * invalid" for a project key that the REST API accepts with 200). REST is
+ * explicit about the tenant, returns real status codes, and can be exercised
+ * locally before a CI run.
+ */
+async function oryFetch(path, { method = 'GET', body } = {}) {
+  const base = requireProjectUrl();
+  const response = await fetch(`${base}${path}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${process.env.ORY_PROJECT_API_KEY}`,
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+    signal: AbortSignal.timeout(ORY_REQUEST_TIMEOUT_MS),
   });
+
+  const text = await response.text();
+
+  if (!response.ok) {
+    throw new Error(
+      `${method} ${path} -> ${response.status} ${response.statusText}: ${text.slice(0, 500)}`,
+    );
+  }
+
+  return {
+    data: text ? JSON.parse(text) : null,
+    nextPageToken: parseNextPageToken(response.headers.get('link')),
+  };
 }
 
-function listTargetIdentities(projectId) {
-  const stdout = runOry([
-    'list',
-    'identities',
-    '--project',
-    projectId,
-    '--page-size',
-    '500',
-    '--consistency',
-    'strong',
-    '--format',
-    'json',
-  ]);
-  const parsed = JSON.parse(stdout);
-  return parsed.identities ?? (Array.isArray(parsed) ? parsed : []);
+/**
+ * Ory paginates with an opaque `page_token` advertised in the RFC 8288 Link
+ * header. Guessing the token (e.g. reusing the last row's id) happens to work
+ * on a single page and silently truncates on more than one, so parse what the
+ * server actually said.
+ */
+function parseNextPageToken(linkHeader) {
+  if (!linkHeader) return undefined;
+
+  for (const part of linkHeader.split(',')) {
+    const match = part.match(/<([^>]+)>\s*;\s*rel="next"/);
+    if (!match) continue;
+    const token = new URL(match[1], 'https://placeholder.invalid').searchParams.get(
+      'page_token',
+    );
+    if (token) return token;
+  }
+
+  return undefined;
+}
+
+function requireProjectUrl() {
+  const url = process.env.ORY_PROJECT_URL;
+  if (!url) fatal('ORY_PROJECT_URL must be set');
+  return url.replace(/\/$/, '');
+}
+
+/** List every identity in the tenant, following Ory's page tokens. */
+async function listTargetIdentities() {
+  const identities = [];
+  let pageToken;
+
+  while (true) {
+    const query = new URLSearchParams({ page_size: '500' });
+    if (pageToken) query.set('page_token', pageToken);
+
+    const { data, nextPageToken } = await oryFetch(`/admin/identities?${query}`);
+    identities.push(...(Array.isArray(data) ? data : (data?.identities ?? [])));
+
+    if (!nextPageToken || nextPageToken === pageToken) break;
+    pageToken = nextPageToken;
+  }
+
+  return identities;
 }
 
 /** Stable business key used to match a backup identity to a live one. */
@@ -308,22 +379,19 @@ function toImportBody(identity, { preserveVerifiedAddresses }) {
   return body;
 }
 
-function importIdentity({ projectId, body, workDir, index }) {
-  const payloadPath = join(workDir, `import-${String(index).padStart(3, '0')}.json`);
+async function importIdentity({ body, workDir, index }) {
+  // Keep the payload on disk: if Kratos rejects one, the exact body that was
+  // sent is recoverable from the job artifacts.
+  const payloadPath = join(
+    workDir,
+    `import-${String(index).padStart(3, '0')}.json`,
+  );
   writeJson(payloadPath, body);
 
-  const stdout = runOry([
-    'import',
-    'identities',
-    '--project',
-    projectId,
-    '--format',
-    'json',
-    payloadPath,
-  ]);
-
-  const parsed = JSON.parse(stdout);
-  const created = Array.isArray(parsed) ? parsed[0] : parsed;
+  const { data: created } = await oryFetch('/admin/identities', {
+    method: 'POST',
+    body,
+  });
 
   if (!created?.id) {
     fatal(`Import returned no identity ID for payload ${payloadPath}`);
@@ -334,6 +402,20 @@ function importIdentity({ projectId, body, workDir, index }) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  if (args.preflightOnly) {
+    const projectUrl = requireProjectUrl();
+    await verifyTenant({
+      projectUrl,
+      expectedProject: args.targetProject,
+    });
+    const identities = await listTargetIdentities();
+    log(`Identities currently in ${args.targetProject}: ${identities.length}`);
+    for (const identity of identities) {
+      log(`  ${identity.id}  ${identityKey(identity)}`);
+    }
+    return;
+  }
+
   const passphrase = process.env[args.decryptPassphraseEnv];
 
   if (!passphrase) {
@@ -381,9 +463,15 @@ async function main() {
     log('NOTE: target project differs from the bundle source project.');
   }
 
+  const projectUrl = process.env.ORY_PROJECT_URL;
+  if (!projectUrl) {
+    fatal('ORY_PROJECT_URL must be set so the tenant can be verified');
+  }
   log('');
+  await verifyTenant({ projectUrl, expectedProject: args.targetProject });
+
   log('Listing identities in target project ...');
-  const targetIdentities = listTargetIdentities(args.targetProject);
+  const targetIdentities = await listTargetIdentities();
   const targetKeys = new Set(targetIdentities.map(identityKey));
 
   const missing = backupIdentities.filter((i) => !targetKeys.has(identityKey(i)));
@@ -443,8 +531,7 @@ async function main() {
     const body = toImportBody(identity, {
       preserveVerifiedAddresses: args.preserveVerifiedAddresses,
     });
-    const created = importIdentity({
-      projectId: args.targetProject,
+    const created = await importIdentity({
       body,
       workDir: args.workDir,
       index,
@@ -460,7 +547,7 @@ async function main() {
     log(`  [${index}/${missing.length}] ${identityKey(identity)}: ${identity.id} -> ${created.id}`);
   }
 
-  const after = listTargetIdentities(args.targetProject);
+  const after = await listTargetIdentities();
   plan.counts.inTargetAfter = after.length;
 
   writeJson(args.mapOut, plan);
