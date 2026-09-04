@@ -491,7 +491,7 @@ func completeLocalAgentInit(opts agentsInitOpts, repoRoot, agentDir, configPath 
 	); err != nil {
 		return err
 	}
-	if err := runAgentsActivationRefreshCmd(io.Discard, repoRoot, opts.name, false); err != nil {
+	if err := runAgentsActivationRefreshCmd(io.Discard, opts.name, false); err != nil {
 		return fmt.Errorf("refresh activation cache: %w", err)
 	}
 	return nil

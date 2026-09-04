@@ -41,14 +41,12 @@ func newAgentsCmd() *cobra.Command {
 		Short: "Validate local activation cache without network calls",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			dir, _ := cmd.Flags().GetString("dir")
-			agent, _ := cmd.Flags().GetString("agent")
+			identity, _ := cmd.Flags().GetString("identity")
 			jsonOut, _ := cmd.Flags().GetBool("json")
-			return runAgentsActivationValidateCmd(cmd.OutOrStdout(), dir, agent, jsonOut)
+			return runAgentsActivationValidateCmd(cmd.OutOrStdout(), identity, jsonOut)
 		},
 	}
-	validateCmd.Flags().String("agent", "", "Agent name (overrides default)")
-	validateCmd.Flags().String("dir", ".", "Repository root directory")
+	validateCmd.Flags().String("identity", "", "Identity alias (overrides active identity)")
 	validateCmd.Flags().Bool("json", false, "Print machine-readable JSON")
 
 	refreshCmd := &cobra.Command{
@@ -56,14 +54,12 @@ func newAgentsCmd() *cobra.Command {
 		Short: "Refresh local activation cache from local config files",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			dir, _ := cmd.Flags().GetString("dir")
-			agent, _ := cmd.Flags().GetString("agent")
+			identity, _ := cmd.Flags().GetString("identity")
 			jsonOut, _ := cmd.Flags().GetBool("json")
-			return runAgentsActivationRefreshCmd(cmd.OutOrStdout(), dir, agent, jsonOut)
+			return runAgentsActivationRefreshCmd(cmd.OutOrStdout(), identity, jsonOut)
 		},
 	}
-	refreshCmd.Flags().String("agent", "", "Agent name (overrides default)")
-	refreshCmd.Flags().String("dir", ".", "Repository root directory")
+	refreshCmd.Flags().String("identity", "", "Identity alias (overrides active identity)")
 	refreshCmd.Flags().Bool("json", false, "Print machine-readable JSON")
 
 	clearCmd := &cobra.Command{
@@ -71,13 +67,11 @@ func newAgentsCmd() *cobra.Command {
 		Short: "Clear local activation cache",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			dir, _ := cmd.Flags().GetString("dir")
-			agent, _ := cmd.Flags().GetString("agent")
-			return runAgentsActivationClearCmd(cmd.OutOrStdout(), dir, agent)
+			identity, _ := cmd.Flags().GetString("identity")
+			return runAgentsActivationClearCmd(cmd.OutOrStdout(), identity)
 		},
 	}
-	clearCmd.Flags().String("agent", "", "Agent name (overrides default)")
-	clearCmd.Flags().String("dir", ".", "Repository root directory")
+	clearCmd.Flags().String("identity", "", "Identity alias (overrides active identity)")
 
 	activationCmd.AddCommand(validateCmd)
 	activationCmd.AddCommand(refreshCmd)

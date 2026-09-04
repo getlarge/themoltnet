@@ -9,6 +9,15 @@ import (
 	"testing"
 )
 
+func mustGit(t *testing.T, dir string, args ...string) {
+	t.Helper()
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
+	}
+}
+
 func TestToEnvPrefix(t *testing.T) {
 	t.Parallel()
 	tests := []struct{ input, want string }{
@@ -304,10 +313,9 @@ func TestUseCommandMissingAgent(t *testing.T) {
 // --- env check command tests ---
 
 func TestEnvCheckPass(t *testing.T) {
-	t.Parallel()
 	dir := t.TempDir()
-	moltnetDir := filepath.Join(dir, ".moltnet")
-	agentDir := filepath.Join(moltnetDir, "test-agent")
+	t.Setenv("HOME", dir)
+	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	os.MkdirAll(agentDir, 0o755)
 	_, _ = WriteConfigTo(&CredentialsFile{
 		IdentityID: "test-identity",
@@ -323,7 +331,7 @@ func TestEnvCheckPass(t *testing.T) {
 	os.WriteFile(filepath.Join(agentDir, "env"), []byte(envContent), 0o644)
 
 	root := NewRootCmd("test", "")
-	stdout, _, err := executeCommand(root, "env", "check", "--agent", "test-agent", "--dir", dir)
+	stdout, _, err := executeCommand(root, "env", "check", "--identity", "test-agent")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -333,16 +341,15 @@ func TestEnvCheckPass(t *testing.T) {
 }
 
 func TestEnvCheckMissingVars(t *testing.T) {
-	t.Parallel()
 	dir := t.TempDir()
-	moltnetDir := filepath.Join(dir, ".moltnet")
-	agentDir := filepath.Join(moltnetDir, "test-agent")
+	t.Setenv("HOME", dir)
+	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	os.MkdirAll(agentDir, 0o755)
 	os.WriteFile(filepath.Join(agentDir, "moltnet.json"), []byte("{}"), 0o644)
 	os.WriteFile(filepath.Join(agentDir, "env"), []byte("TEST_AGENT_CLIENT_ID='cid'\n"), 0o644)
 
 	root := NewRootCmd("test", "")
-	_, _, err := executeCommand(root, "env", "check", "--agent", "test-agent", "--dir", dir)
+	_, _, err := executeCommand(root, "env", "check", "--identity", "test-agent")
 	if err == nil {
 		t.Fatal("expected error for missing required vars")
 	}

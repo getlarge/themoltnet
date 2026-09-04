@@ -6,18 +6,16 @@ import (
 	"io"
 	"maps"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 )
 
 func TestAgentsActivationValidateMissingCache(t *testing.T) {
-	t.Parallel()
-	dir := setupActivationCacheFixture(t)
+	setupActivationCacheFixture(t)
 
 	root := NewRootCmd("test", "")
-	stdout, _, err := executeCommand(root, "agents", "activation", "validate", "--agent", "test-agent", "--dir", dir, "--json")
+	stdout, _, err := executeCommand(root, "agents", "activation", "validate", "--identity", "test-agent", "--json")
 	if err != nil {
 		t.Fatalf("validate: %v", err)
 	}
@@ -42,7 +40,6 @@ func TestAgentsActivationValidateMissingCache(t *testing.T) {
 }
 
 func TestAgentsActivationValidateCorruptedCache(t *testing.T) {
-	t.Parallel()
 	dir := setupActivationCacheFixture(t)
 	cachePath := filepath.Join(dir, ".moltnet", "test-agent", "activation-cache.json")
 	if err := os.WriteFile(cachePath, []byte("{not valid json"), 0o600); err != nil {
@@ -50,7 +47,7 @@ func TestAgentsActivationValidateCorruptedCache(t *testing.T) {
 	}
 
 	root := NewRootCmd("test", "")
-	stdout, _, err := executeCommand(root, "agents", "activation", "validate", "--agent", "test-agent", "--dir", dir, "--json")
+	stdout, _, err := executeCommand(root, "agents", "activation", "validate", "--identity", "test-agent", "--json")
 	if err != nil {
 		t.Fatalf("validate: %v", err)
 	}
@@ -68,11 +65,10 @@ func TestAgentsActivationValidateCorruptedCache(t *testing.T) {
 }
 
 func TestAgentsActivationRefreshThenValidate(t *testing.T) {
-	t.Parallel()
 	dir := setupActivationCacheFixture(t)
 
 	root := NewRootCmd("test", "")
-	stdout, _, err := executeCommand(root, "agents", "activation", "refresh", "--agent", "test-agent", "--dir", dir, "--json")
+	stdout, _, err := executeCommand(root, "agents", "activation", "refresh", "--identity", "test-agent", "--json")
 	if err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
@@ -129,7 +125,7 @@ func TestAgentsActivationRefreshThenValidate(t *testing.T) {
 	}
 
 	validateRoot := NewRootCmd("test", "")
-	stdout, _, err = executeCommand(validateRoot, "agents", "activation", "validate", "--agent", "test-agent", "--dir", dir, "--json")
+	stdout, _, err = executeCommand(validateRoot, "agents", "activation", "validate", "--identity", "test-agent", "--json")
 	if err != nil {
 		t.Fatalf("validate: %v", err)
 	}
@@ -143,7 +139,6 @@ func TestAgentsActivationRefreshThenValidate(t *testing.T) {
 }
 
 func TestAgentsActivationRefreshPreservesExplicitAuthorshipPresence(t *testing.T) {
-	t.Parallel()
 	dir := setupActivationCacheFixture(t)
 	envPath := filepath.Join(dir, ".moltnet", "test-agent", "env")
 	data, err := os.ReadFile(envPath)
@@ -155,7 +150,7 @@ func TestAgentsActivationRefreshPreservesExplicitAuthorshipPresence(t *testing.T
 		t.Fatal(err)
 	}
 
-	ctx, err := resolveActivationContext(dir, "test-agent")
+	ctx, err := resolveActivationContext("test-agent")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,7 +165,6 @@ func TestAgentsActivationRefreshPreservesExplicitAuthorshipPresence(t *testing.T
 }
 
 func TestAgentsActivationRefreshRebasesPortedAbsolutePaths(t *testing.T) {
-	t.Parallel()
 	dir := setupActivationCacheFixture(t)
 	agentDir := filepath.Join(dir, ".moltnet", "test-agent")
 	hostAgentDir := filepath.Join(
@@ -209,7 +203,7 @@ func TestAgentsActivationRefreshRebasesPortedAbsolutePaths(t *testing.T) {
 	}
 
 	root := NewRootCmd("test", "")
-	stdout, _, err := executeCommand(root, "agents", "activation", "refresh", "--agent", "test-agent", "--dir", dir, "--json")
+	stdout, _, err := executeCommand(root, "agents", "activation", "refresh", "--identity", "test-agent", "--json")
 	if err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
@@ -221,7 +215,7 @@ func TestAgentsActivationRefreshRebasesPortedAbsolutePaths(t *testing.T) {
 	if !result.Valid {
 		t.Fatalf("refresh valid = false, reason=%s", result.Reason)
 	}
-	if result.GitConfigGlobal != ".moltnet/test-agent/gitconfig" {
+	if result.GitConfigGlobal != "gitconfig" {
 		t.Fatalf("gitConfigGlobal = %q", result.GitConfigGlobal)
 	}
 
@@ -229,19 +223,18 @@ func TestAgentsActivationRefreshRebasesPortedAbsolutePaths(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read cache: %v", err)
 	}
-	if cache.Inputs["gitconfig"].Path != ".moltnet/test-agent/gitconfig" {
+	if cache.Inputs["gitconfig"].Path != "gitconfig" {
 		t.Fatalf("gitconfig input path = %q", cache.Inputs["gitconfig"].Path)
 	}
-	if cache.Inputs["sshPublicKey"].Path != ".moltnet/test-agent/ssh/id_ed25519.pub" {
+	if cache.Inputs["sshPublicKey"].Path != "ssh/id_ed25519.pub" {
 		t.Fatalf("ssh public key input path = %q", cache.Inputs["sshPublicKey"].Path)
 	}
 }
 
 func TestAgentsActivationValidateHashMismatch(t *testing.T) {
-	t.Parallel()
 	dir := setupActivationCacheFixture(t)
 
-	if err := runAgentsActivationRefreshCmd(io.Discard, dir, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
 	envPath := filepath.Join(dir, ".moltnet", "test-agent", "env")
@@ -263,13 +256,12 @@ func TestAgentsActivationValidateHashMismatch(t *testing.T) {
 	if result.Reason != "input_hash_mismatch" {
 		t.Fatalf("reason = %q", result.Reason)
 	}
-	if len(result.Changed) == 0 || !strings.Contains(strings.Join(result.Changed, ","), ".moltnet/test-agent/env") {
+	if len(result.Changed) == 0 || !strings.Contains(strings.Join(result.Changed, ","), "env") {
 		t.Fatalf("expected env in changed paths, got %v", result.Changed)
 	}
 }
 
-func TestAgentsActivationValidateRepoMismatch(t *testing.T) {
-	t.Parallel()
+func TestAgentsActivationValidateAgentMismatch(t *testing.T) {
 	dir := setupActivationCacheFixture(t)
 
 	if err := runAgentsActivationRefreshCmd(io.Discard, dir, "test-agent", true); err != nil {
@@ -280,7 +272,7 @@ func TestAgentsActivationValidateRepoMismatch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read cache: %v", err)
 	}
-	cache.RepoRoot = filepath.Join(dir, "other")
+	cache.AgentName = "other-agent"
 	if err := writeActivationCache(cachePath, cache); err != nil {
 		t.Fatalf("write cache: %v", err)
 	}
@@ -293,13 +285,12 @@ func TestAgentsActivationValidateRepoMismatch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("validate: %v", err)
 	}
-	if result.Valid || result.Reason != "repo_mismatch" {
-		t.Fatalf("result = %+v, want repo_mismatch", result)
+	if result.Valid || result.Reason != "agent_mismatch" {
+		t.Fatalf("result = %+v, want agent_mismatch", result)
 	}
 }
 
 func TestAgentsActivationValidateMissingRequiredInput(t *testing.T) {
-	t.Parallel()
 	dir := setupActivationCacheFixture(t)
 
 	if err := runAgentsActivationRefreshCmd(io.Discard, dir, "test-agent", true); err != nil {
@@ -332,7 +323,6 @@ func TestAgentsActivationValidateMissingRequiredInput(t *testing.T) {
 }
 
 func TestAgentsActivationValidateUnavailableInputReturnsInvalidJSON(t *testing.T) {
-	t.Parallel()
 	dir := setupActivationCacheFixture(t)
 	if err := runAgentsActivationRefreshCmd(io.Discard, dir, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
@@ -343,7 +333,7 @@ func TestAgentsActivationValidateUnavailableInputReturnsInvalidJSON(t *testing.T
 	}
 
 	root := NewRootCmd("test", "")
-	stdout, _, err := executeCommand(root, "agents", "activation", "validate", "--agent", "test-agent", "--dir", dir, "--json")
+	stdout, _, err := executeCommand(root, "agents", "activation", "validate", "--identity", "test-agent", "--json")
 	if err != nil {
 		t.Fatalf("validate must report invalidation, not fail: %v", err)
 	}
@@ -357,7 +347,6 @@ func TestAgentsActivationValidateUnavailableInputReturnsInvalidJSON(t *testing.T
 }
 
 func TestAgentsActivationValidateRejectsForgedCacheMetadata(t *testing.T) {
-	t.Parallel()
 	dir := setupActivationCacheFixture(t)
 	if err := runAgentsActivationRefreshCmd(io.Discard, dir, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
@@ -392,7 +381,6 @@ func TestAgentsActivationValidateRejectsForgedCacheMetadata(t *testing.T) {
 }
 
 func TestAgentsActivationClear(t *testing.T) {
-	t.Parallel()
 	dir := setupActivationCacheFixture(t)
 
 	if err := runAgentsActivationRefreshCmd(io.Discard, dir, "test-agent", true); err != nil {
@@ -410,83 +398,46 @@ func TestAgentsActivationClear(t *testing.T) {
 	}
 }
 
-// TestAgentsActivationValidateAcrossWorktrees regresses the bug where validating
-// the activation cache from a linked git worktree returned repo_mismatch because
-// resolveRepoRoot used `git rev-parse --show-toplevel` (worktree path) while the
-// cache was written from the main worktree. Activation state is shared across
-// worktrees via the .moltnet symlink, so the cache must canonicalize on the
-// main worktree root.
-func TestAgentsActivationValidateAcrossWorktrees(t *testing.T) {
-	t.Parallel()
-	if _, err := exec.LookPath("git"); err != nil {
-		t.Skip("git not available")
+func TestAgentsActivationValidateOutsideGitRepository(t *testing.T) {
+	setupActivationCacheFixture(t)
+	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
+		t.Fatalf("refresh: %v", err)
 	}
-
-	mainRoot := setupActivationCacheFixture(t)
-	mustGit(t, mainRoot, "init", "-q", "-b", "main")
-	mustGit(t, mainRoot, "-c", "user.email=t@e", "-c", "user.name=t", "commit", "--allow-empty", "-q", "-m", "init")
-
-	worktreeRoot := filepath.Join(t.TempDir(), "wt")
-	mustGit(t, mainRoot, "worktree", "add", "-q", worktreeRoot, "-b", "feature")
-	t.Cleanup(func() { _ = exec.Command("git", "-C", mainRoot, "worktree", "remove", "-f", worktreeRoot).Run() })
-
-	// Canonicalize via the same path resolution validateActivationCache uses,
-	// so symlinked tmpdirs (e.g. /var → /private/var on macOS) don't trip the
-	// equality check spuriously.
-	expectedRoot, err := exec.Command("git", "-C", mainRoot, "rev-parse", "--show-toplevel").Output()
+	ctx, err := resolveActivationContext("test-agent")
 	if err != nil {
-		t.Fatalf("resolve canonical mainRoot: %v", err)
-	}
-	wantRoot := filepath.Clean(strings.TrimSpace(string(expectedRoot)))
-
-	if err := runAgentsActivationRefreshCmd(io.Discard, mainRoot, "test-agent", true); err != nil {
-		t.Fatalf("refresh from main: %v", err)
-	}
-
-	ctx, err := resolveActivationContext(worktreeRoot, "test-agent")
-	if err != nil {
-		t.Fatalf("context from worktree: %v", err)
-	}
-	if ctx.RepoRoot != wantRoot {
-		t.Fatalf("ctx.RepoRoot = %q from worktree, want main root %q", ctx.RepoRoot, wantRoot)
+		t.Fatalf("context: %v", err)
 	}
 	result, err := validateActivationCache(ctx)
-	if err != nil {
-		t.Fatalf("validate from worktree: %v", err)
-	}
-	if !result.Valid {
-		t.Fatalf("expected valid cache from worktree, got invalid: reason=%q changed=%v",
-			result.Reason, result.Changed)
-	}
-}
-
-func mustGit(t *testing.T, dir string, args ...string) {
-	t.Helper()
-	cmd := exec.Command("git", args...)
-	cmd.Dir = dir
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
+	if err != nil || !result.Valid {
+		t.Fatalf("central cache must validate without a repository: result=%+v err=%v", result, err)
 	}
 }
 
 func setupActivationCacheFixture(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
-	agentDir := filepath.Join(dir, ".moltnet", "test-agent")
+	t.Setenv("HOME", dir)
+	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	sshDir := filepath.Join(agentDir, "ssh")
 	if err := os.MkdirAll(sshDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, ".moltnet", "default-agent"), []byte("test-agent\n"), 0o644); err != nil {
+	// Keep existing fixture path assertions readable while the commands resolve
+	// only through HOME/.config/moltnet. No production discovery follows this
+	// compatibility symlink.
+	if err := os.Symlink(filepath.Join(".config", "moltnet", "identities"), filepath.Join(dir, ".moltnet")); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeIdentitySelector("test-agent"); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(agentDir, "ssh", "id_ed25519.pub"), []byte("ssh-ed25519 AAAATEST test-agent\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(agentDir, "gitconfig"), []byte("[user]\n\tname = Test Agent\n\temail = test-agent@example.com\n\tsigningkey = .moltnet/test-agent/ssh/id_ed25519.pub\n[gpg]\n\tformat = ssh\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(agentDir, "gitconfig"), []byte("[user]\n\tname = Test Agent\n\temail = test-agent@example.com\n\tsigningkey = ssh/id_ed25519.pub\n[gpg]\n\tformat = ssh\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	env := "MOLTNET_AGENT_NAME='test-agent'\nMOLTNET_FINGERPRINT='SHA256:testfingerprint'\nMOLTNET_DIARY_ID='00000000-0000-4000-8000-000000000001'\nMOLTNET_TEAM_ID='00000000-0000-4000-8000-000000000011'\nGIT_CONFIG_GLOBAL='.moltnet/test-agent/gitconfig'\n"
+	env := "MOLTNET_AGENT_NAME='test-agent'\nMOLTNET_FINGERPRINT='SHA256:testfingerprint'\nMOLTNET_DIARY_ID='00000000-0000-4000-8000-000000000001'\nMOLTNET_TEAM_ID='00000000-0000-4000-8000-000000000011'\nGIT_CONFIG_GLOBAL='gitconfig'\n"
 	if err := os.WriteFile(filepath.Join(agentDir, "env"), []byte(env), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -521,7 +472,7 @@ func setupActivationCacheFixture(t *testing.T) string {
 
 func rewriteActivationFixtureCredentials(t *testing.T, dir string, mutate func(*CredentialsFile)) {
 	t.Helper()
-	credentialsPath := filepath.Join(dir, ".moltnet", "test-agent", "moltnet.json")
+	credentialsPath := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent", "moltnet.json")
 	creds, err := ReadConfigFrom(credentialsPath)
 	if err != nil {
 		t.Fatal(err)
@@ -533,7 +484,6 @@ func rewriteActivationFixtureCredentials(t *testing.T, dir string, mutate func(*
 }
 
 func TestAgentsActivationRecordsPerKindCredentialProviders(t *testing.T) {
-	t.Parallel()
 	dir := setupActivationCacheFixture(t)
 	rewriteActivationFixtureCredentials(t, dir, func(creds *CredentialsFile) {
 		creds.OAuth2.ClientSecret = ""
@@ -578,7 +528,6 @@ func TestAgentsActivationRecordsPerKindCredentialProviders(t *testing.T) {
 }
 
 func TestAgentsActivationValidateRejectsPreviousCacheVersion(t *testing.T) {
-	t.Parallel()
 	dir := setupActivationCacheFixture(t)
 	if err := runAgentsActivationRefreshCmd(io.Discard, dir, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
@@ -607,7 +556,6 @@ func TestAgentsActivationValidateRejectsPreviousCacheVersion(t *testing.T) {
 }
 
 func TestAgentsActivationValidateDetectsCredentialProviderChange(t *testing.T) {
-	t.Parallel()
 	dir := setupActivationCacheFixture(t)
 	if err := runAgentsActivationRefreshCmd(io.Discard, dir, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
@@ -635,7 +583,6 @@ func TestAgentsActivationValidateDetectsCredentialProviderChange(t *testing.T) {
 }
 
 func TestAgentsActivationValidateReportsCredentialProviders(t *testing.T) {
-	t.Parallel()
 	dir := setupActivationCacheFixture(t)
 	rewriteActivationFixtureCredentials(t, dir, func(creds *CredentialsFile) {
 		creds.AgentKeyRef = &SecretReference{Provider: "os-keyring", Key: AgentKeyKey("test-agent")}
@@ -644,7 +591,7 @@ func TestAgentsActivationValidateReportsCredentialProviders(t *testing.T) {
 		t.Fatalf("refresh: %v", err)
 	}
 	root := NewRootCmd("test", "")
-	stdout, _, err := executeCommand(root, "agents", "activation", "validate", "--agent", "test-agent", "--dir", dir, "--json")
+	stdout, _, err := executeCommand(root, "agents", "activation", "validate", "--identity", "test-agent", "--json")
 	if err != nil {
 		t.Fatalf("validate: %v", err)
 	}

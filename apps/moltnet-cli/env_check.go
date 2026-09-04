@@ -9,25 +9,23 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func runEnvCheckCmd(cmd *cobra.Command, dir, agentFlag string) error {
-	moltnetDir, err := resolveMoltnetDir(dir)
+func runEnvCheckCmd(cmd *cobra.Command, identityFlag string) error {
+	agentName, err := resolveIdentityAlias(identityFlag)
 	if err != nil {
 		return err
 	}
-	agentName, err := resolveAgentName(moltnetDir, agentFlag)
+	agentDir, err := identityDir(agentName)
 	if err != nil {
 		return err
 	}
-
-	envPath := filepath.Join(moltnetDir, agentName, "env")
+	envPath := filepath.Join(agentDir, "env")
 	vars, err := parseEnvFile(envPath)
 	if err != nil {
 		return fmt.Errorf("env file not found at %s — run 'moltnet agents init --name %s'", envPath, agentName)
 	}
 
 	prefix := toEnvPrefix(agentName)
-	repoRoot := filepath.Dir(moltnetDir)
-	paths := newAgentPathResolver(repoRoot, filepath.Join(moltnetDir, agentName), agentName)
+	paths := newAgentPathResolver(agentDir, agentDir, agentName)
 	fmt.Fprintf(cmd.OutOrStdout(), "Checking agent %q (%s)\n\n", agentName, envPath)
 
 	failed := false
@@ -42,7 +40,7 @@ func runEnvCheckCmd(cmd *cobra.Command, dir, agentFlag string) error {
 		{prefix + "_GITHUB_APP_INSTALLATION_ID", false},
 		{"GIT_CONFIG_GLOBAL", true},
 	}
-	if _, err := resolveAgentOAuth2Environment(filepath.Join(moltnetDir, agentName), agentName, NewSecretProviderRegistry()); err != nil {
+	if _, err := resolveAgentOAuth2Environment(agentDir, agentName, NewSecretProviderRegistry()); err != nil {
 		fmt.Fprintf(cmd.OutOrStdout(), "✗ %s_CLIENT_SECRET → %v\n", prefix, err)
 		failed = true
 	} else {
