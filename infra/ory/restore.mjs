@@ -76,6 +76,7 @@ function parseArgs(argv) {
     mapOut: null,
     preserveVerifiedAddresses: true,
     preflightOnly: false,
+    limit: null,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -121,6 +122,14 @@ function parseArgs(argv) {
         args.decryptPassphraseEnv = next;
         index += 1;
         break;
+      case '--limit':
+        if (!next) fatal('--limit requires a value');
+        args.limit = Number(next);
+        if (!Number.isInteger(args.limit) || args.limit <= 0) {
+          fatal('--limit must be a positive integer');
+        }
+        index += 1;
+        break;
       case '--preflight-only':
         args.preflightOnly = true;
         break;
@@ -159,6 +168,7 @@ Flags:
   --mode plan|apply               plan = diff only, no writes (default: plan)
   --map-out <path>                Where to write the old -> new ID mapping
   --decrypt-passphrase-env <env>  Env var holding the bundle passphrase
+  --limit <n>                     Import at most n identities (canary run)
   --preflight-only                Verify tenant + list identities, then exit
   --no-preserve-verified-addresses  Let Kratos regenerate address state
 
@@ -342,26 +352,82 @@ async function listTargetIdentities() {
   return identities;
 }
 
-/** Stable business key used to match a backup identity to a live one. */
+/**
+ * Stable business key used to match a backup identity to a live one.
+ *
+ * MUST NOT fall back to identity.id: a restored identity gets a NEW id, so an
+ * id-based key never matches its own backup entry and a re-run would import
+ * every identity a second time. Agent identities carry exactly one trait,
+ * `public_key` (see infra/ory/identity-schema.json), which is the durable
+ * anchor; humans key on email.
+ */
 function identityKey(identity) {
   const traits = identity.traits ?? {};
-  return (
+  const key =
+    traits.public_key ??
     traits.email ??
     traits.username ??
-    identity.metadata_public?.human_id ??
-    identity.id
-  );
+    identity.metadata_public?.human_id;
+
+  if (!key) {
+    fatal(
+      `Identity ${identity.id} has no stable key (no public_key, email, ` +
+        'username or human_id). Refusing to continue: without one, a re-run ' +
+        'would duplicate it.',
+    );
+  }
+
+  return key;
 }
 
-/** Strip an exported identity down to what `ory import identities` accepts. */
+/**
+ * Ory's credential READ shape is not its IMPORT shape.
+ *
+ * `GET /admin/identities` returns `{type, identifiers, config, version,
+ * created_at, updated_at}` per credential; the create body accepts only
+ * `{config: …}` and strict-decodes everything else — hence
+ * `400 json: unknown field "created_at"`. Only oidc and password carry a
+ * config that can be re-imported; other methods (code, webauthn, …) are
+ * dropped, and the user re-enrols them.
+ */
+function sanitizeCredentials(credentials) {
+  if (!credentials) return undefined;
+
+  const out = {};
+
+  if (Array.isArray(credentials.oidc?.config?.providers)) {
+    const providers = credentials.oidc.config.providers
+      .filter((provider) => provider?.provider && provider?.subject)
+      .map((provider) => ({
+        provider: provider.provider,
+        subject: provider.subject,
+        ...(provider.organization ? { organization: provider.organization } : {}),
+      }));
+    if (providers.length > 0) out.oidc = { config: { providers } };
+  }
+
+  if (credentials.password?.config?.hashed_password) {
+    out.password = {
+      config: { hashed_password: credentials.password.config.hashed_password },
+    };
+  }
+
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/** Strip an exported identity down to what the create endpoint accepts. */
 function toImportBody(identity, { preserveVerifiedAddresses }) {
   const body = {};
 
   for (const field of IMPORTABLE_FIELDS) {
+    if (field === 'credentials') continue;
     if (identity[field] !== undefined && identity[field] !== null) {
       body[field] = identity[field];
     }
   }
+
+  const credentials = sanitizeCredentials(identity.credentials);
+  if (credentials) body.credentials = credentials;
 
   if (preserveVerifiedAddresses && identity.verifiable_addresses?.length) {
     // Only the value/verified/via/status subset is accepted; the exported
@@ -522,11 +588,20 @@ async function main() {
     return;
   }
 
+  const toImport =
+    args.limit === null ? missing : missing.slice(0, args.limit);
+
   log('');
-  log(`APPLY MODE — importing ${missing.length} identities ...`);
+  if (args.limit !== null) {
+    log(
+      `APPLY MODE (LIMITED) — importing ${toImport.length} of ${missing.length} identities ...`,
+    );
+  } else {
+    log(`APPLY MODE — importing ${toImport.length} identities ...`);
+  }
 
   let index = 0;
-  for (const identity of missing) {
+  for (const identity of toImport) {
     index += 1;
     const body = toImportBody(identity, {
       preserveVerifiedAddresses: args.preserveVerifiedAddresses,
@@ -544,7 +619,7 @@ async function main() {
       human_id: identity.metadata_public?.human_id ?? null,
     });
 
-    log(`  [${index}/${missing.length}] ${identityKey(identity)}: ${identity.id} -> ${created.id}`);
+    log(`  [${index}/${toImport.length}] ${identityKey(identity)}: ${identity.id} -> ${created.id}`);
   }
 
   const after = await listTargetIdentities();

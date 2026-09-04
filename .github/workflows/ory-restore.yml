@@ -33,6 +33,10 @@ on:
         options:
           - plan
           - apply
+      limit:
+        description: 'Optional: import at most N identities (canary run). Blank = all.'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -106,12 +110,17 @@ jobs:
           # the project served at this URL before anything is written.
           ORY_PROJECT_URL: ${{ steps.target.outputs.project_url }}
         run: |
+          LIMIT_ARG=""
+          if [ -n "${{ inputs.limit }}" ]; then
+            LIMIT_ARG="--limit ${{ inputs.limit }}"
+          fi
           node infra/ory/restore.mjs \
             --bundle ./ory-backup/bundle.tar.gz.enc \
             --target-project "${{ steps.target.outputs.project_id }}" \
             --mode "${{ inputs.mode }}" \
             --work-dir ./.ory-restore \
-            --map-out ./.ory-restore/identity-id-map.json
+            --map-out ./.ory-restore/identity-id-map.json \
+            $LIMIT_ARG
 
       - name: Upload ID mapping
         if: always()
