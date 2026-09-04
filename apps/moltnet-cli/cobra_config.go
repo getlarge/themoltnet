@@ -56,6 +56,9 @@ Optional env vars:
   moltnet config init-from-env --name legreffier --env-file .env.moltnet --override`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name, _ := cmd.Flags().GetString("name")
+			if name == "" {
+				name, _ = cmd.Flags().GetString("agent")
+			}
 			skipGit, _ := cmd.Flags().GetBool("skip-git")
 			envFile, _ := cmd.Flags().GetString("env-file")
 			override, _ := cmd.Flags().GetBool("override")
@@ -63,6 +66,7 @@ Optional env vars:
 		},
 	}
 	initFromEnvCmd.Flags().String("name", "", "Identity alias (or set MOLTNET_ACTIVE_IDENTITY)")
+	addDeprecatedIdentityFlags(initFromEnvCmd)
 	initFromEnvCmd.Flags().Bool("skip-git", false, "Skip git signing setup")
 	initFromEnvCmd.Flags().String("env-file", "", "Load variables from a dotenv file")
 	initFromEnvCmd.Flags().Bool("override", false, "Let env-file values override process environment")

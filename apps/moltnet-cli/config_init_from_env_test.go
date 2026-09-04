@@ -87,6 +87,16 @@ func TestConfigInitFromEnvMissingEnvVars(t *testing.T) {
 	}
 }
 
+func TestConfigInitFromEnvAcceptsDeprecatedAgentAlias(t *testing.T) {
+	clearMoltnetEnv(t)
+	t.Setenv("HOME", t.TempDir())
+	root := NewRootCmd("test", "")
+	_, _, err := executeCommand(root, "config", "init-from-env", "--agent", "test-agent", "--dir", ".")
+	if err == nil || !strings.Contains(err.Error(), "MOLTNET_IDENTITY_ID") {
+		t.Fatalf("deprecated --agent was not mapped to --name: %v", err)
+	}
+}
+
 func TestConfigInitFromEnvCreatesFiles(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)

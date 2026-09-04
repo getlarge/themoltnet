@@ -366,6 +366,15 @@ func classifyProtectedPathWithContext(value string, pathContext secretGuardPathC
 	if class := classifySecretRootPath(value, pathContext.cwd, os.LookupEnv); class != pathNone {
 		return class
 	}
+	// Central identities are deliberately independent of a repository. Unlike
+	// legacy .moltnet bundles, an absolute central identity path must therefore
+	// be protected even when the hook is running from an unrelated checkout.
+	normalized := normalizePolicyPath(value)
+	if strings.Contains(normalized, ".config/moltnet/identities/") {
+		if class := classifyCredentialPath(normalized); class != pathNone {
+			return class
+		}
+	}
 	if strings.ContainsAny(value, "*?[") {
 		pattern := value
 		if !filepath.IsAbs(pattern) {

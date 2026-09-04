@@ -340,6 +340,39 @@ func TestEnvCheckPass(t *testing.T) {
 	}
 }
 
+func TestEnvCheckAcceptsDeprecatedAgentAlias(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
+	if err := os.MkdirAll(agentDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := WriteConfigTo(&CredentialsFile{IdentityID: "test-identity", OAuth2: CredentialsOAuth2{ClientID: "cid", ClientSecret: "csec"}}, filepath.Join(agentDir, "moltnet.json")); err != nil {
+		t.Fatal(err)
+	}
+	gitconfigPath := filepath.Join(agentDir, "gitconfig")
+	if err := os.WriteFile(gitconfigPath, []byte("[user]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	pemPath := filepath.Join(agentDir, "test-agent.pem")
+	if err := os.WriteFile(pemPath, []byte("---PEM---"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	env := fmt.Sprintf("TEST_AGENT_CLIENT_ID='cid'\nTEST_AGENT_GITHUB_APP_ID='test-agent'\nTEST_AGENT_GITHUB_APP_PRIVATE_KEY_PATH='%s'\nTEST_AGENT_GITHUB_APP_INSTALLATION_ID='12345'\nGIT_CONFIG_GLOBAL='%s'\n", pemPath, gitconfigPath)
+	if err := os.WriteFile(filepath.Join(agentDir, "env"), []byte(env), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "env", "check", "--agent", "test-agent", "--dir", ".")
+	if err != nil {
+		t.Fatalf("env check legacy aliases: %v", err)
+	}
+	if !strings.Contains(stdout, "All required checks passed") {
+		t.Fatalf("unexpected output: %s", stdout)
+	}
+}
+
 func TestEnvCheckMissingVars(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
