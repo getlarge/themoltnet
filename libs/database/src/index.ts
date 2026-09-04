@@ -128,6 +128,7 @@ export {
 export {
   type CreateRuntimeModelInput,
   createRuntimeModelRepository,
+  type GlobalRuntimeModelCatalogEntry,
   type ListRuntimeModelsFilter,
   type RuntimeModelRepository,
   type UpdateRuntimeModelInput,

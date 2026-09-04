@@ -646,6 +646,7 @@ export function createMockServices(): MockServices {
     },
     runtimeModelRepository: {
       create: vi.fn(),
+      reconcileGlobalCatalog: vi.fn(),
       findById: vi.fn(),
       listVisible: vi.fn().mockResolvedValue([]),
       update: vi.fn(),
