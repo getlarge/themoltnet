@@ -637,10 +637,10 @@ describe('agent server providers and runs', () => {
         models: ['qwen3-coder:480b-cloud'],
       },
     });
-    expect(redirect.json()).toMatchObject({ hasApiKey: false });
-    expect(store.readProviders().ollama.apiKeyRef).toBeUndefined();
+    expect(redirect.json()).toMatchObject({ hasApiKey: true });
+    expect(store.readProviders().ollama.apiKeyRef).toBeDefined();
     expect(existsSync(join(store.secretsDir, 'pi-provider', 'ollama'))).toBe(
-      false,
+      true,
     );
   });
 

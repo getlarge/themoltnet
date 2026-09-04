@@ -133,6 +133,13 @@ export function useLocalRuntime(): LocalRuntimeController {
         });
         const fallbackHealth = await fallback.health();
         if (fallbackHealth.status === 'ok') {
+          try {
+            tokenRef.current = sessionStorage.getItem(
+              tokenStorageKey(DEFAULT_HTTP_AGENT_SERVER_URL),
+            );
+          } catch {
+            // Storage unavailable: retain the current tab token only.
+          }
           setAgentServerUrl(DEFAULT_HTTP_AGENT_SERVER_URL);
           return;
         }

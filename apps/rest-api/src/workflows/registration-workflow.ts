@@ -8,6 +8,8 @@ import {
   AGENT_OAUTH_SCOPES,
   KetoNamespace,
   type RelationshipWriter,
+  TEAM_ROLE,
+  type TeamInviteRole,
 } from '@moltnet/auth';
 import {
   type AgentRepository,
@@ -25,7 +27,7 @@ export type RegistrationCredentialType = 'oauth2' | 'agent_key';
 
 export type RegistrationMode =
   | { type: 'self' }
-  | { type: 'team_invite'; inviteCode: string; inviteCodeHash: string };
+  | { type: 'team_invite'; inviteId: string; inviteCodeHash: string };
 
 export interface RegistrationInput {
   credentialType: RegistrationCredentialType;
@@ -52,7 +54,8 @@ export function registrationInputsEqual(
     left.mode.type === 'self' ||
     (left.mode.type === 'team_invite' &&
       right.mode.type === 'team_invite' &&
-      left.mode.inviteCode === right.mode.inviteCode)
+      left.mode.inviteId === right.mode.inviteId &&
+      left.mode.inviteCodeHash === right.mode.inviteCodeHash)
   );
 }
 
@@ -129,9 +132,16 @@ type CompensateSelfRegistrationFn = (
   identityId: string,
   deleteIdentity: boolean,
 ) => Promise<void>;
+type CompensateTeamEnrollmentFn = (
+  teamId: string,
+  inviteId: string | null,
+  identityId: string,
+  deleteIdentity: boolean,
+) => Promise<void>;
 
 let _workflow: RegisterAgentFn | null = null;
 let _compensateSelfRegistration: CompensateSelfRegistrationFn | null = null;
+let _compensateTeamEnrollment: CompensateTeamEnrollmentFn | null = null;
 
 function isConflictError(error: unknown): boolean {
   return (
@@ -227,9 +237,11 @@ export function initRegistrationWorkflow(): void {
   if (_workflow) return;
 
   const validateTeamInviteStep = DBOS.registerStep(
-    async (code: string): Promise<{ teamId: string; inviteId: string }> => {
+    async (
+      inviteId: string,
+    ): Promise<{ teamId: string; inviteId: string; role: TeamInviteRole }> => {
       const { teamRepository } = getDeps();
-      const invite = await teamRepository.findInviteByCode(code);
+      const invite = await teamRepository.findInviteById(inviteId);
       if (!invite || invite.expiresAt < new Date()) {
         throw new EnrollmentValidationError('Invite is invalid or expired');
       }
@@ -239,7 +251,7 @@ export function initRegistrationWorkflow(): void {
           'Invite does not grant access to an active team',
         );
       }
-      return { teamId: invite.teamId, inviteId: invite.id };
+      return { teamId: invite.teamId, inviteId: invite.id, role: invite.role };
     },
     { name: 'registration.step.validateTeamInvite', retriesAllowed: false },
   );
@@ -350,16 +362,39 @@ export function initRegistrationWorkflow(): void {
     },
   );
 
-  const grantTeamMemberStep = DBOS.registerStep(
-    async (teamId: string, identityId: string): Promise<void> => {
-      await getDeps().relationshipWriter.grantTeamMembers(
-        teamId,
-        identityId,
-        KetoNamespace.Agent,
-      );
+  const grantTeamRoleStep = DBOS.registerStep(
+    async (
+      teamId: string,
+      identityId: string,
+      role: TeamInviteRole,
+    ): Promise<void> => {
+      const { relationshipWriter } = getDeps();
+      switch (role) {
+        case TEAM_ROLE.Manager:
+          await relationshipWriter.grantTeamManagers(
+            teamId,
+            identityId,
+            KetoNamespace.Agent,
+          );
+          return;
+        case TEAM_ROLE.Executor:
+          await relationshipWriter.grantTeamExecutors(
+            teamId,
+            identityId,
+            KetoNamespace.Agent,
+          );
+          return;
+        case TEAM_ROLE.Member:
+          await relationshipWriter.grantTeamMembers(
+            teamId,
+            identityId,
+            KetoNamespace.Agent,
+          );
+          return;
+      }
     },
     {
-      name: 'registration.step.grantTeamMember',
+      name: 'registration.step.grantTeamRole',
       retriesAllowed: true,
       maxAttempts: 5,
       intervalSeconds: 2,
@@ -521,11 +556,36 @@ export function initRegistrationWorkflow(): void {
   );
   const compensateSelfRegistrationWorkflow = _compensateSelfRegistration;
 
+  _compensateTeamEnrollment = DBOS.registerWorkflow(
+    async (
+      teamId: string,
+      inviteId: string | null,
+      identityId: string,
+      deleteIdentity: boolean,
+    ): Promise<void> => {
+      await cleanupTeamEnrollmentStep(teamId, identityId);
+      await getDeps().transactionRunner.runInTransaction(
+        async () => {
+          if (inviteId) {
+            await getDeps().teamRepository.revertInviteClaim(inviteId);
+          }
+          await getDeps().agentRepository.delete(identityId);
+        },
+        { name: 'registration.tx.compensateTeamEnrollment' },
+      );
+      if (deleteIdentity) {
+        await deleteKratosIdentityStep(identityId);
+      }
+    },
+    { name: 'registration.compensateTeamEnrollment' },
+  );
+  const compensateTeamEnrollmentWorkflow = _compensateTeamEnrollment;
+
   _workflow = DBOS.registerWorkflow(
     async (input: RegistrationInput): Promise<RegistrationWorkflowResult> => {
       const invite =
         input.mode.type === 'team_invite'
-          ? await validateTeamInviteStep(input.mode.inviteCode)
+          ? await validateTeamInviteStep(input.mode.inviteId)
           : null;
       const enrollmentTeamId = invite?.teamId ?? null;
       let claimedInviteId: string | null = null;
@@ -604,7 +664,11 @@ export function initRegistrationWorkflow(): void {
           await grantPrivateDiaryStep(persisted.privateDiaryId, teamId);
         }
         if (input.mode.type === 'team_invite') {
-          await grantTeamMemberStep(teamId, identityId);
+          await grantTeamRoleStep(
+            teamId,
+            identityId,
+            invite?.role ?? TEAM_ROLE.Member,
+          );
         }
 
         return {
@@ -625,19 +689,19 @@ export function initRegistrationWorkflow(): void {
         const parentWorkflowId = DBOS.workflowID ?? identityId;
         if (input.mode.type === 'team_invite') {
           try {
-            if (enrollmentTeamId && claimedInviteId) {
-              await cleanupTeamEnrollmentStep(enrollmentTeamId, identityId);
-            }
-            await getDeps().transactionRunner.runInTransaction(async () => {
-              if (claimedInviteId) {
-                await getDeps().teamRepository.revertInviteClaim(
-                  claimedInviteId,
-                );
-              }
-              await getDeps().agentRepository.delete(identityId);
-            });
-            if (identity.ownedForCompensation) {
-              await deleteKratosIdentityStep(identityId);
+            if (enrollmentTeamId) {
+              const handle = await DBOS.startWorkflow(
+                compensateTeamEnrollmentWorkflow,
+                {
+                  workflowID: `registration-team-compensation:${parentWorkflowId}`,
+                },
+              )(
+                enrollmentTeamId,
+                claimedInviteId,
+                identityId,
+                identity.ownedForCompensation,
+              );
+              await handle.getResult();
             }
           } catch (compensationError) {
             logger.error(

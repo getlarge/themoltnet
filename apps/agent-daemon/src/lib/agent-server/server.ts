@@ -758,13 +758,8 @@ function registerProviderRoutes(
             provider: FILE_SECRET_PROVIDER,
             key,
           });
-        } else if (
-          providers[providerId]?.apiKeyRef &&
-          providers[providerId].baseUrl === entry.baseUrl
-        ) {
-          entry.apiKeyRef = providers[providerId].apiKeyRef;
         } else if (providers[providerId]?.apiKeyRef) {
-          await options.secrets.delete(`pi-provider/${providerId}`);
+          entry.apiKeyRef = providers[providerId].apiKeyRef;
         }
         providers[providerId] = entry;
         store.writeProviders(providers);

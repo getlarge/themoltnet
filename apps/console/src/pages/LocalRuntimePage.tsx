@@ -409,7 +409,7 @@ function AgentsSection({ runtime }: { runtime: LocalRuntimeController }) {
       {!selectedTeam || selectedTeam.personal === true ? (
         <Text variant="caption" color="error">
           {selectedTeam
-            ? 'Personal teams cannot invite agents. Create or select a project team (Teams page) first — agents join the selected team via a single-use invitation code.'
+            ? 'Personal teams cannot invite agents. Create or select a project team (Teams page) first — agents join the selected team via an invitation code.'
             : 'Select a team first — agents join the selected team via an invitation code.'}
         </Text>
       ) : null}

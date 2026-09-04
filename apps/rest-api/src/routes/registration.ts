@@ -187,6 +187,13 @@ export async function registrationRoutes(fastify: FastifyInstance) {
       const { token, publicKey, proof, credentialType } = request.body;
       const idempotencyKey = request.headers['idempotency-key'];
       const tokenHash = createHash('sha256').update(token).digest('hex');
+      const invite = await fastify.teamRepository.findInviteByCode(token);
+      if (!invite) {
+        throw createProblem(
+          'registration-failed',
+          'Invite is invalid or expired',
+        );
+      }
       const fingerprint = await verifyRegistrationProof(fastify.cryptoService, {
         message: buildTeamRegistrationMessage({
           enrollmentTokenHash: tokenHash,
@@ -205,7 +212,7 @@ export async function registrationRoutes(fastify: FastifyInstance) {
           idempotencyKey,
           mode: {
             type: 'team_invite',
-            inviteCode: token,
+            inviteId: invite.id,
             inviteCodeHash: tokenHash,
           },
         },

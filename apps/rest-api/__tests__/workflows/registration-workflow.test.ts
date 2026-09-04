@@ -73,6 +73,13 @@ function createDeps() {
         id: 'invite-1',
         teamId: TEAM_ID,
         expiresAt: new Date('2030-01-01'),
+        role: 'member',
+      }),
+      findInviteById: vi.fn().mockResolvedValue({
+        id: 'invite-1',
+        teamId: TEAM_ID,
+        expiresAt: new Date('2030-01-01'),
+        role: 'member',
       }),
       findById: vi.fn().mockResolvedValue({
         id: TEAM_ID,
@@ -91,6 +98,7 @@ function createDeps() {
       registerAgent: vi.fn(),
       removeAgentRelations: vi.fn(),
       grantTeamOwners: vi.fn(),
+      grantTeamManagers: vi.fn(),
       grantTeamExecutors: vi.fn(),
       grantTeamMembers: vi.fn(),
       removeTeamMemberRelation: vi.fn(),
@@ -169,7 +177,7 @@ describe('registration workflow', () => {
     expect(deps.issueAgentKey).not.toHaveBeenCalled();
   });
 
-  it('atomically claims a team invite and grants only Team#members', async () => {
+  it('atomically claims a team invite and grants its role', async () => {
     const deps = createDeps();
     setRegistrationDeps(deps as never);
 
@@ -180,7 +188,7 @@ describe('registration workflow', () => {
       idempotencyKey: 'nonce',
       mode: {
         type: 'team_invite',
-        inviteCode: 'mlt_inv_test',
+        inviteId: 'invite-1',
         inviteCodeHash: TOKEN_HASH,
       },
     });
@@ -206,6 +214,36 @@ describe('registration workflow', () => {
         teamId: TEAM_ID,
       }),
     );
+  });
+
+  it('honors an executor team invite for managed-agent enrollment', async () => {
+    const deps = createDeps();
+    deps.teamRepository.findInviteById.mockResolvedValue({
+      id: 'invite-1',
+      teamId: TEAM_ID,
+      expiresAt: new Date('2030-01-01'),
+      role: 'executor',
+    });
+    setRegistrationDeps(deps as never);
+
+    await registrationWorkflow.registerAgent({
+      publicKey: PUBLIC_KEY,
+      fingerprint: FINGERPRINT,
+      credentialType: 'oauth2',
+      idempotencyKey: 'executor-nonce',
+      mode: {
+        type: 'team_invite',
+        inviteId: 'invite-1',
+        inviteCodeHash: TOKEN_HASH,
+      },
+    });
+
+    expect(deps.relationshipWriter.grantTeamExecutors).toHaveBeenCalledWith(
+      TEAM_ID,
+      IDENTITY_ID,
+      'Agent',
+    );
+    expect(deps.relationshipWriter.grantTeamMembers).not.toHaveBeenCalled();
   });
 
   it('reconciles a lost Kratos create response through the public-key identifier', async () => {
@@ -287,7 +325,7 @@ describe('registration workflow', () => {
         idempotencyKey: 'nonce',
         mode: {
           type: 'team_invite',
-          inviteCode: 'mlt_inv_test',
+          inviteId: 'invite-1',
           inviteCodeHash: TOKEN_HASH,
         },
       }),
@@ -338,7 +376,7 @@ describe('registration workflow', () => {
       idempotencyKey: 'nonce',
       mode: {
         type: 'team_invite',
-        inviteCode: 'mlt_inv_test',
+        inviteId: 'invite-1',
         inviteCodeHash: TOKEN_HASH,
       },
     });

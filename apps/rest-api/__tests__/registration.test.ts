@@ -75,6 +75,9 @@ describe('registration routes', () => {
     mocks.cryptoService.parsePublicKey.mockReturnValue(new Uint8Array(32));
     mocks.cryptoService.generateFingerprint.mockReturnValue(FINGERPRINT);
     mocks.cryptoService.verify.mockResolvedValue(true);
+    mocks.teamRepository.findInviteByCode.mockResolvedValue({
+      id: 'invite-1',
+    });
     mockWorkflowResult.mockResolvedValue({
       identityId: SUCCESS.identityId,
       identityOwnedForCompensation: true,
@@ -150,7 +153,7 @@ describe('registration routes', () => {
         credentialType: 'agent_key',
         mode: {
           type: 'team_invite',
-          inviteCode: TOKEN,
+          inviteId: 'invite-1',
           inviteCodeHash: actualHash,
         },
       }),
