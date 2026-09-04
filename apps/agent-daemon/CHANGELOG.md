@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.52.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.51.0...agent-daemon-v0.52.0) (2026-09-04)
+
+
+### Features
+
+* **runtime:** manage local providers ([803d949](https://github.com/getlarge/themoltnet/commit/803d9497d180ec84c865850aebd99f2f070ad8fd))
+
+
+### Bug Fixes
+
+* **agent-daemon:** preserve enrollment roles and provider keys ([5cbfbeb](https://github.com/getlarge/themoltnet/commit/5cbfbebddeff78efb56e13cd8b326b2dd1977761))
+* **agent-daemon:** support Safari loopback HTTPS ([b650d9a](https://github.com/getlarge/themoltnet/commit/b650d9a302ed35961de5bec56f0cf65bc8c4f676))
+* **agent-daemon:** support Safari loopback HTTPS ([76e0726](https://github.com/getlarge/themoltnet/commit/76e07265d6e9ff72a26b34719cd4aa692a4ab2ad))
+
 ## [0.51.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.50.0...agent-daemon-v0.51.0) (2026-09-03)
 
 

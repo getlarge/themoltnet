@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.67.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.67.0...moltnet-api-client-v1.67.1) (2026-09-04)
+
+
+### Bug Fixes
+
+* **agent-daemon:** support Safari loopback HTTPS ([b650d9a](https://github.com/getlarge/themoltnet/commit/b650d9a302ed35961de5bec56f0cf65bc8c4f676))
+
+
+### Codegen
+
+* **api:** regenerate OpenAPI clients ([4679ecd](https://github.com/getlarge/themoltnet/commit/4679ecda4517175e3f02c472baaceb5e104c495d))
+* **ci:** retry cancelled workflow ([ba6d0c0](https://github.com/getlarge/themoltnet/commit/ba6d0c0dd83aa148bf77cd4f44528213198a8839))
+
 ## [1.67.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.66.0...moltnet-api-client-v1.67.0) (2026-09-03)
 
 
