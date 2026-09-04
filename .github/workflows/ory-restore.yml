@@ -1,0 +1,110 @@
+name: Ory Identity Restore
+
+# Restores Kratos identities from an encrypted backup bundle produced by
+# "Ory Backup Export". The bundle passphrase (ORY_BACKUP_PASSPHRASE) only
+# exists as an environment secret, so decryption happens here rather than on a
+# workstation — the plaintext identities (which carry OIDC credentials and PII)
+# never leave the runner.
+#
+# Identity IDs CANNOT be preserved (Ory has no API to choose them), so a
+# successful apply emits an old -> new ID mapping that must then be replayed
+# against Postgres (agents.identity_id, humans.identity_id) and Keto
+# (Agent:<identity_id> tuples).
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: 'Run ID of the Ory Backup Export that produced the bundle'
+        required: true
+        type: string
+      target_project:
+        description: 'Ory project to restore into'
+        required: true
+        type: choice
+        options:
+          - stage
+          - production
+      mode:
+        description: 'plan = diff only (no writes); apply = import identities'
+        required: true
+        default: plan
+        type: choice
+        options:
+          - plan
+          - apply
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  restore:
+    name: Restore Ory identities (${{ inputs.mode }} -> ${{ inputs.target_project }})
+    runs-on: ubuntu-latest
+    # The production environment holds ORY_BACKUP_PASSPHRASE and can carry a
+    # required-reviewer rule, which gates `apply` behind a human approval.
+    environment: production
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install Ory CLI
+        run: bash <(curl -s https://raw.githubusercontent.com/ory/meta/master/install.sh) -d -b /usr/local/bin ory
+
+      - name: Resolve target project ID
+        id: target
+        # Ory project IDs are not secrets — ORY_PROJECT_ID is already committed
+        # in plaintext in env.public. Pinning them here keeps the workflow from
+        # silently targeting an empty/wrong project if a var is unset, which is
+        # the exact failure mode that caused the incident this restores from.
+        env:
+          TARGET_KIND: ${{ inputs.target_project }}
+        run: |
+          set -euo pipefail
+          case "$TARGET_KIND" in
+            production) TARGET=7219f256-464a-4511-874c-bde7724f6897 ;;
+            stage)      TARGET=733bd245-607b-4f0d-80d1-ef1b413aba69 ;;
+            *) echo "::error::Unknown target_project: $TARGET_KIND"; exit 1 ;;
+          esac
+          echo "Resolved $TARGET_KIND -> $TARGET"
+          echo "project_id=$TARGET" >> "$GITHUB_OUTPUT"
+
+      - name: Download backup bundle
+        uses: actions/download-artifact@v6
+        with:
+          name: ory-backup-${{ inputs.source_run_id }}
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: ./ory-backup
+
+      - name: Show bundle provenance
+        run: |
+          echo "--- bundle README ---"
+          cat ./ory-backup/README.txt
+          echo "--- bundle metadata ---"
+          cat ./ory-backup/metadata.json
+
+      - name: Restore
+        env:
+          ORY_WORKSPACE_API_KEY: ${{ secrets.ORY_WORKSPACE_API_KEY }}
+          ORY_BACKUP_PASSPHRASE: ${{ secrets.ORY_BACKUP_PASSPHRASE }}
+        run: |
+          node infra/ory/restore.mjs \
+            --bundle ./ory-backup/bundle.tar.gz.enc \
+            --target-project "${{ steps.target.outputs.project_id }}" \
+            --mode "${{ inputs.mode }}" \
+            --work-dir ./.ory-restore \
+            --map-out ./.ory-restore/identity-id-map.json
+
+      - name: Upload ID mapping
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ory-restore-map-${{ github.run_id }}
+          path: ./.ory-restore/identity-id-map.json
+          if-no-files-found: warn
+          retention-days: 30
