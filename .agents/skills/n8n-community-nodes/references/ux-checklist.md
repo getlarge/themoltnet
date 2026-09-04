@@ -11,6 +11,10 @@ This checklist was reconciled with the official page on 2026-09-02.
 - Include OAuth when the service exposes a suitable OAuth flow. If it is not
   applicable to the identity represented by the node, record why rather than
   silently omitting it.
+- When API keys and OAuth are both supported, expose separate credential types
+  and an Authentication selector on the node. Extend n8n's built-in
+  `oAuth2Api` credential for OAuth instead of implementing token exchange in
+  the node; keep the API-key credential focused on its bearer/header mapping.
 - Provide a credential test that performs the smallest useful authenticated
   request and returns a helpful success or recovery message.
 
@@ -31,6 +35,9 @@ This checklist was reconciled with the official page on 2026-09-02.
 - Use n8n's prescribed descriptions for standard pagination controls:
   `Whether to return all results or only up to a given limit` for `Return All`
   and `Max number of results to return` for `Limit`.
+- Do not poll a long-running remote job inside an app node. Provide a one-shot
+  status or result operation, then demonstrate n8n's built-in Wait node and an
+  IF loop in the example workflow so n8n can persist the paused execution.
 
 ## Output
 

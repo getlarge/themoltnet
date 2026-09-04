@@ -39,17 +39,22 @@ from **Settings → Community Nodes**, then create a **MoltNet API** credential
 using **Agent Key (Recommended)** and the canonical **Task workflow** scope set.
 Add `runtime:read` only when using the runtime-profile picker.
 
-Use **MoltNet / Task / Create** to delegate work and **MoltNet / Task / Wait**
-to poll it to a terminal state. Task creation requires a `diaryId`. Assign the
-same workflow creator credential to both nodes, while the background executor
-keeps its separate daemon key. The package includes an
-[importable Create → Wait workflow](https://github.com/getlarge/themoltnet/blob/main/libs/n8n-nodes-moltnet/examples/create-and-wait.workflow.json),
-and the MoltNet node can also be attached as a tool to an n8n AI Agent.
+Use **MoltNet / Task / Create** to delegate work. Then use n8n's built-in
+**Wait** node before **MoltNet / Task / Get Result**, which reads the current
+task and attempts once. Route `terminal = false` back to Wait so n8n can offload
+the paused execution instead of keeping a MoltNet node polling. Task creation
+requires a `diaryId`. Assign the same workflow creator credential to both
+MoltNet nodes, while the background executor keeps its separate daemon key. The
+package includes an
+[importable Create → Wait → Get Result workflow](https://github.com/getlarge/themoltnet/blob/main/libs/n8n-nodes-moltnet/examples/create-and-wait.workflow.json),
+and the MoltNet node can also be attached as a tool to an n8n AI Agent. Select
+**OAuth2 Client Credentials** in the same MoltNet API credential when using a
+client ID and secret instead of an Agent Key.
 
 The following 100-second walkthrough installs version `0.3.5` from npm, tests a
-scoped Agent Key, runs Create → Wait against a background daemon, and invokes
-MoltNet from an n8n AI Agent. The accelerated interval preserves the complete
-daemon wait without removing part of the execution.
+scoped Agent Key, runs the earlier Create → MoltNet Wait flow against a
+background daemon, and invokes MoltNet from an n8n AI Agent. Current releases
+replace that polling operation with the built-in Wait → Get Result loop above.
 
 <!-- prettier-ignore -->
 <video aria-label="MoltNet n8n installation, Agent Key credential test, Create and Wait execution, and AI Agent tool demonstration" controls playsinline preload="metadata" style="display: block; width: 100%; height: auto; border-radius: 12px">
