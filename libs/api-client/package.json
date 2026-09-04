@@ -18,6 +18,10 @@
     "./retry": {
       "import": "./src/retry-fetch.ts",
       "types": "./src/retry-fetch.ts"
+    },
+    "./transport": {
+      "import": "./src/transport.ts",
+      "types": "./src/transport.ts"
     }
   },
   "peerDependencies": {
@@ -26,6 +30,7 @@
   "scripts": {
     "build": "tsc -b",
     "generate": "openapi-ts",
+    "generate:transport": "openapi-ts --file openapi-transport.config.ts",
     "dev": "tsc --watch"
   },
   "devDependencies": {
@@ -41,6 +46,22 @@
       "platform:isomorphic"
     ],
     "targets": {
+      "generate:transport": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "inputs": [
+          "{projectRoot}/openapi-transport.config.ts",
+          "{projectRoot}/generator/transport-client/**/*",
+          "{workspaceRoot}/apps/rest-api/public/openapi.json"
+        ],
+        "outputs": [
+          "{projectRoot}/src/generated-transport"
+        ],
+        "options": {
+          "cwd": "libs/api-client",
+          "command": "openapi-ts --file openapi-transport.config.ts"
+        }
+      },
       "typecheck": {
         "executor": "nx:noop",
         "dependsOn": [
