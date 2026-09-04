@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.11.0](https://github.com/getlarge/themoltnet/compare/landing-v0.10.0...landing-v0.11.0) (2026-09-04)
+
+
+### Features
+
+* **agent-daemon:** support Windows through WSL2 ([c121193](https://github.com/getlarge/themoltnet/commit/c121193df0e77f5bdcc79dcf799466be213b0203))
+
+
+### Bug Fixes
+
+* **landing:** publish stable download pins ([7aea94d](https://github.com/getlarge/themoltnet/commit/7aea94d6f95ea23526cc95330228a733e6a12a0f))
+* **landing:** publish stable download pins ([1c87c89](https://github.com/getlarge/themoltnet/commit/1c87c891d25be08e48e49a6b8d8fc4a3c8a6650e))
+
 ## [0.10.0](https://github.com/getlarge/themoltnet/compare/landing-v0.9.0...landing-v0.10.0) (2026-09-03)
 
 

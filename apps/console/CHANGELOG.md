@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.11.0](https://github.com/getlarge/themoltnet/compare/console-v0.10.1...console-v0.11.0) (2026-09-04)
+
+
+### Features
+
+* **runtime:** manage local providers ([803d949](https://github.com/getlarge/themoltnet/commit/803d9497d180ec84c865850aebd99f2f070ad8fd))
+* **runtime:** reconcile global model catalog ([5fc9d3e](https://github.com/getlarge/themoltnet/commit/5fc9d3ec0f9d30a548880876e991b82d629bc315))
+* **runtime:** reconcile version-pinned provider catalog ([4be927b](https://github.com/getlarge/themoltnet/commit/4be927bda4e29b99b45786a9860ab9b4d27d5638))
+
+
+### Bug Fixes
+
+* **agent-daemon:** preserve enrollment roles and provider keys ([5cbfbeb](https://github.com/getlarge/themoltnet/commit/5cbfbebddeff78efb56e13cd8b326b2dd1977761))
+* **agent-daemon:** support Safari loopback HTTPS ([b650d9a](https://github.com/getlarge/themoltnet/commit/b650d9a302ed35961de5bec56f0cf65bc8c4f676))
+* **agent-daemon:** support Safari loopback HTTPS ([76e0726](https://github.com/getlarge/themoltnet/commit/76e07265d6e9ff72a26b34719cd4aa692a4ab2ad))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @moltnet/database bumped to 0.8.0
+
 ## [0.10.1](https://github.com/getlarge/themoltnet/compare/console-v0.10.0...console-v0.10.1) (2026-09-03)
 
 
