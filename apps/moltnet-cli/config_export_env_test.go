@@ -361,10 +361,11 @@ func TestConfigExportEnvRoundTrip(t *testing.T) {
 
 	// Step 2: init-from-env WITHOUT --agent — should derive from MOLTNET_AGENT_NAME
 	targetDir := filepath.Join(tmpDir, "target")
+	t.Setenv("HOME", targetDir)
 	registry, _ := newMemorySecretProviderRegistry()
 	err = runConfigInitFromEnvCmdWithRegistry(
 		targetDir,
-		"",
+		"rt-agent",
 		true,
 		envFile,
 		false,
@@ -376,7 +377,7 @@ func TestConfigExportEnvRoundTrip(t *testing.T) {
 
 	// Step 3: read back the reconstructed config and verify
 	reconstructed, err := ReadConfigFrom(
-		filepath.Join(targetDir, ".moltnet", "rt-agent", "moltnet.json"),
+		filepath.Join(targetDir, ".config", "moltnet", "identities", "rt-agent", "moltnet.json"),
 	)
 	if err != nil {
 		t.Fatalf("failed to read reconstructed config: %v", err)

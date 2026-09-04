@@ -267,16 +267,15 @@ func TestResolveAgentName_FlagNotFound(t *testing.T) {
 // --- use command tests ---
 
 func TestUseCommand(t *testing.T) {
-	t.Parallel()
 	dir := t.TempDir()
-	moltnetDir := filepath.Join(dir, ".moltnet")
-	agentDir := filepath.Join(moltnetDir, "test-agent")
+	t.Setenv("HOME", dir)
+	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	os.MkdirAll(agentDir, 0o755)
 	os.WriteFile(filepath.Join(agentDir, "moltnet.json"), []byte("{}"), 0o644)
 	os.WriteFile(filepath.Join(agentDir, "env"), []byte("X=1\n"), 0o644)
 
 	root := NewRootCmd("test", "")
-	stdout, _, err := executeCommand(root, "use", "test-agent", "--dir", dir)
+	stdout, _, err := executeCommand(root, "use", "test-agent")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -284,12 +283,9 @@ func TestUseCommand(t *testing.T) {
 		t.Errorf("expected agent name in output, got: %s", stdout)
 	}
 
-	data, err := os.ReadFile(filepath.Join(moltnetDir, "default-agent"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if strings.TrimSpace(string(data)) != "test-agent" {
-		t.Errorf("default-agent = %q, want %q", string(data), "test-agent")
+	selector, err := readIdentitySelector()
+	if err != nil || selector.DefaultIdentity != "test-agent" {
+		t.Fatalf("identity selector = %#v, %v", selector, err)
 	}
 }
 
