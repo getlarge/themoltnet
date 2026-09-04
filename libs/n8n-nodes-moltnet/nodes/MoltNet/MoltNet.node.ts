@@ -18,22 +18,15 @@ import {
 
 import {
   connectMoltNet,
+  credentialTypeForAuthentication,
+  type MoltNetAuthentication,
   type MoltNetClient,
   type MoltNetCredentials,
   optionalString,
   type TaskListQuery,
   type TaskStatus,
-} from '../../src/client.js';
-import {
-  buildTaskSnapshot,
-  isTerminalTaskStatus,
-} from '../../src/task-snapshot.js';
-
-const defaultPollIntervalSeconds = 5;
-const defaultTimeoutSeconds = 1_800;
-const minimumPollIntervalSeconds = 5;
-const maximumPollIntervalSeconds = 60;
-const maximumTimeoutSeconds = 1_800;
+} from './GenericFunctions.js';
+import { buildTaskSnapshot } from './TaskSnapshot.js';
 const taskStatuses = [
   { name: 'Waiting', value: 'waiting' },
   { name: 'Queued', value: 'queued' },
@@ -455,11 +448,11 @@ function formatOutput(
 ): IDataObject {
   if (configuration.mode === 'raw') return result;
   if (configuration.mode === 'simplified') {
-    return operation === 'wait'
+    return operation === 'getResult'
       ? simplifyTaskSnapshot(result)
       : simplifyTask(result);
   }
-  const idField = operation === 'wait' ? 'taskId' : 'id';
+  const idField = operation === 'getResult' ? 'taskId' : 'id';
   return definedFields(result, [idField, ...configuration.fields]);
 }
 
@@ -634,7 +627,7 @@ async function getManyTasks(
   }
 }
 
-async function waitForTask(
+async function getTaskResult(
   context: IExecuteFunctions,
   agent: MoltNetClient,
   credentials: MoltNetCredentials,
@@ -645,284 +638,20 @@ async function waitForTask(
     context.getNodeParameter('taskId', itemIndex),
     itemIndex,
   );
-  const pollIntervalSeconds = context.getNodeParameter(
-    'pollInterval',
-    itemIndex,
-    defaultPollIntervalSeconds,
-  ) as number;
-  const timeoutSeconds = context.getNodeParameter(
-    'timeout',
-    itemIndex,
-    defaultTimeoutSeconds,
-  ) as number;
-  if (
-    !Number.isFinite(pollIntervalSeconds) ||
-    pollIntervalSeconds < minimumPollIntervalSeconds
-  ) {
-    throw new NodeOperationError(
-      context.getNode(),
-      `'Polling Interval (Seconds)' must be at least ${minimumPollIntervalSeconds}`,
-      {
-        itemIndex,
-        description: `Set 'Polling Interval (Seconds)' to ${minimumPollIntervalSeconds} or more.`,
-      },
-    );
-  }
-  if (
-    !Number.isFinite(timeoutSeconds) ||
-    timeoutSeconds <= 0 ||
-    timeoutSeconds > maximumTimeoutSeconds
-  ) {
-    throw new NodeOperationError(
-      context.getNode(),
-      `'Timeout (Seconds)' must be between 1 and ${maximumTimeoutSeconds}`,
-      {
-        itemIndex,
-        description: `Set 'Timeout (Seconds)' to a value from 1 through ${maximumTimeoutSeconds}.`,
-      },
-    );
-  }
-  const startedAt = Date.now();
-  const deadline = startedAt + timeoutSeconds * 1_000;
-  const executionSignal = context.getExecutionCancelSignal();
-  const deadlineSignal = AbortSignal.timeout(timeoutSeconds * 1_000);
-  const requestSignal = executionSignal
-    ? AbortSignal.any([executionSignal, deadlineSignal])
-    : deadlineSignal;
   const teamId = resolveTeamId(
     context.getNodeParameter('teamId', itemIndex, ''),
     credentials,
   );
-  const options = requestOptions(teamId, requestSignal);
-  const timeoutState: WaitTimeoutState = {
-    startedAt,
-    lastStatus: undefined,
-    pollCount: 0,
-  };
-
-  for (;;) {
-    throwIfCancelled(context, executionSignal, itemIndex);
-    throwIfTimedOut(
-      context,
-      taskId,
-      timeoutSeconds,
-      deadline,
-      timeoutState,
-      itemIndex,
-    );
-
-    timeoutState.pollCount += 1;
-    try {
-      const task = await awaitWithAbort(
-        agent.tasks.get(taskId, options),
-        requestSignal,
-      );
-      throwIfCancelled(context, executionSignal, itemIndex);
-      throwIfTimedOut(
-        context,
-        taskId,
-        timeoutSeconds,
-        deadline,
-        timeoutState,
-        itemIndex,
-      );
-      timeoutState.lastStatus = task.status;
-      if (isTerminalTaskStatus(task.status)) {
-        const attempts = await readAttemptsWithRetry(
-          context,
-          agent,
-          taskId,
-          options,
-          executionSignal,
-          deadlineSignal,
-          pollIntervalSeconds,
-          timeoutSeconds,
-          deadline,
-          timeoutState,
-          itemIndex,
-        );
-        return buildTaskSnapshot(task, attempts) as unknown as IDataObject;
-      }
-    } catch (error) {
-      throwIfCancelled(context, executionSignal, itemIndex);
-      throwIfTimedOut(
-        context,
-        taskId,
-        timeoutSeconds,
-        deadline,
-        timeoutState,
-        itemIndex,
-        deadlineSignal.aborted,
-      );
-      if (!isTransientReadError(error)) {
-        throw toNodeError(context, error, itemIndex);
-      }
-    }
-
-    await waitBeforeRetry(
-      context,
-      taskId,
-      pollIntervalSeconds,
-      timeoutSeconds,
-      deadline,
-      timeoutState,
-      executionSignal,
-      itemIndex,
-    );
+  const options = requestOptions(teamId, context.getExecutionCancelSignal());
+  try {
+    const [task, attempts] = await Promise.all([
+      agent.tasks.get(taskId, options),
+      agent.tasks.listAttempts(taskId, options),
+    ]);
+    return buildTaskSnapshot(task, attempts) as unknown as IDataObject;
+  } catch (error) {
+    throw toNodeError(context, error, itemIndex);
   }
-}
-
-interface WaitTimeoutState {
-  startedAt: number;
-  lastStatus: string | undefined;
-  pollCount: number;
-}
-
-async function readAttemptsWithRetry(
-  context: IExecuteFunctions,
-  agent: MoltNetClient,
-  taskId: string,
-  options: { teamId?: string; signal?: AbortSignal },
-  executionSignal: AbortSignal | undefined,
-  deadlineSignal: AbortSignal,
-  pollIntervalSeconds: number,
-  timeoutSeconds: number,
-  deadline: number,
-  timeoutState: WaitTimeoutState,
-  itemIndex: number,
-) {
-  let retryCount = 0;
-  for (;;) {
-    throwIfCancelled(context, executionSignal, itemIndex);
-    throwIfTimedOut(
-      context,
-      taskId,
-      timeoutSeconds,
-      deadline,
-      timeoutState,
-      itemIndex,
-    );
-    try {
-      const attempts = await awaitWithAbort(
-        agent.tasks.listAttempts(taskId, options),
-        options.signal ?? deadlineSignal,
-      );
-      throwIfCancelled(context, executionSignal, itemIndex);
-      throwIfTimedOut(
-        context,
-        taskId,
-        timeoutSeconds,
-        deadline,
-        timeoutState,
-        itemIndex,
-      );
-      return attempts;
-    } catch (error) {
-      throwIfCancelled(context, executionSignal, itemIndex);
-      throwIfTimedOut(
-        context,
-        taskId,
-        timeoutSeconds,
-        deadline,
-        timeoutState,
-        itemIndex,
-        deadlineSignal.aborted,
-      );
-      if (!isTransientReadError(error)) {
-        throw toNodeError(context, error, itemIndex);
-      }
-    }
-    retryCount += 1;
-    await waitBeforeRetry(
-      context,
-      taskId,
-      pollIntervalSeconds,
-      timeoutSeconds,
-      deadline,
-      timeoutState,
-      executionSignal,
-      itemIndex,
-      retryCount,
-    );
-  }
-}
-
-async function waitBeforeRetry(
-  context: IExecuteFunctions,
-  taskId: string,
-  pollIntervalSeconds: number,
-  timeoutSeconds: number,
-  deadline: number,
-  timeoutState: WaitTimeoutState,
-  signal: AbortSignal | undefined,
-  itemIndex: number,
-  retryCount = timeoutState.pollCount - 1,
-): Promise<void> {
-  const remainingMs = deadline - Date.now();
-  if (remainingMs <= 0) {
-    throw waitTimeoutError(
-      context,
-      taskId,
-      timeoutSeconds,
-      timeoutState,
-      itemIndex,
-    );
-  }
-  const delayMs = pollingDelayMs(pollIntervalSeconds, retryCount);
-  await cancellableSleep(
-    context,
-    Math.min(delayMs, remainingMs),
-    signal,
-    itemIndex,
-  );
-}
-
-function pollingDelayMs(
-  pollIntervalSeconds: number,
-  retryCount: number,
-): number {
-  const minimumMs = minimumPollIntervalSeconds * 1_000;
-  const maximumMs = maximumPollIntervalSeconds * 1_000;
-  const cappedMs = Math.min(
-    maximumMs,
-    pollIntervalSeconds * 1_000 * 2 ** Math.min(retryCount, 10),
-  );
-  const lowerBoundMs = Math.max(minimumMs, cappedMs * 0.8);
-  const upperBoundMs = Math.min(maximumMs, cappedMs * 1.2);
-  return Math.round(
-    lowerBoundMs + Math.random() * (upperBoundMs - lowerBoundMs),
-  );
-}
-
-function isTransientReadError(error: unknown): boolean {
-  const failure = apiFailure(error);
-  return (
-    error instanceof TypeError ||
-    failure.code === 'NETWORK_ERROR' ||
-    failure.code === 'ECONNRESET' ||
-    failure.code === 'ETIMEDOUT' ||
-    failure.statusCode === 429 ||
-    (failure.statusCode !== undefined && failure.statusCode >= 500)
-  );
-}
-
-function throwIfTimedOut(
-  context: IExecuteFunctions,
-  taskId: string,
-  timeoutSeconds: number,
-  deadline: number,
-  timeoutState: WaitTimeoutState,
-  itemIndex: number,
-  deadlineAborted = false,
-): void {
-  if (!deadlineAborted && Date.now() < deadline) return;
-  throw waitTimeoutError(
-    context,
-    taskId,
-    timeoutSeconds,
-    timeoutState,
-    itemIndex,
-  );
 }
 
 function throwIfCancelled(
@@ -934,70 +663,6 @@ function throwIfCancelled(
   throw new NodeOperationError(context.getNode(), 'Execution was cancelled', {
     itemIndex,
   });
-}
-
-function awaitWithAbort<T>(
-  operation: Promise<T>,
-  signal: AbortSignal,
-): Promise<T> {
-  if (signal.aborted) {
-    return Promise.reject(signal.reason ?? new Error('Operation aborted'));
-  }
-  return new Promise<T>((resolve, reject) => {
-    const onAbort = () =>
-      reject(signal.reason ?? new Error('Operation aborted'));
-    signal.addEventListener('abort', onAbort, { once: true });
-    void operation.then(resolve, reject).finally(() => {
-      signal.removeEventListener('abort', onAbort);
-    });
-  });
-}
-
-async function cancellableSleep(
-  context: IExecuteFunctions,
-  durationMs: number,
-  signal: AbortSignal | undefined,
-  itemIndex: number,
-): Promise<void> {
-  throwIfCancelled(context, signal, itemIndex);
-  if (!signal) {
-    await sleep(durationMs);
-    return;
-  }
-
-  await new Promise<void>((resolve, reject) => {
-    const onAbort = () => {
-      reject(
-        new NodeOperationError(context.getNode(), 'Execution was cancelled', {
-          itemIndex,
-        }),
-      );
-    };
-    signal.addEventListener('abort', onAbort, { once: true });
-    void sleep(durationMs)
-      .then(resolve, reject)
-      .finally(() => {
-        signal.removeEventListener('abort', onAbort);
-      });
-  });
-}
-
-function waitTimeoutError(
-  context: IExecuteFunctions,
-  taskId: string,
-  timeoutSeconds: number,
-  state: WaitTimeoutState,
-  itemIndex: number,
-): NodeOperationError {
-  const elapsedSeconds = Math.max(0, Date.now() - state.startedAt) / 1_000;
-  return new NodeOperationError(
-    context.getNode(),
-    `Task ${taskId} did not finish within ${elapsedSeconds.toFixed(1)} seconds`,
-    {
-      itemIndex,
-      description: `Increase 'Timeout (Seconds)' or run Wait again. Configured timeout: ${timeoutSeconds} seconds; checks: ${state.pollCount}; last status: ${state.lastStatus ?? 'unknown'}.`,
-    },
-  );
 }
 
 function continueOnFailData(error: unknown, nodeError: Error): IDataObject {
@@ -1034,18 +699,43 @@ export class MoltNet implements INodeType {
     group: ['transform'],
     version: 1,
     subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
-    description: 'Create, find, inspect, cancel, and wait for MoltNet tasks',
+    description: 'Create, find, inspect, and cancel MoltNet tasks',
     defaults: { name: 'MoltNet' },
     inputs: [NodeConnectionTypes.Main],
     outputs: [NodeConnectionTypes.Main],
     usableAsTool: true,
     credentials: [
       {
-        name: 'moltNetApi',
+        name: 'moltNetAgentApi',
         required: true,
+        displayOptions: { show: { authentication: ['agentKey'] } },
+      },
+      {
+        name: 'moltNetOAuth2Api',
+        required: true,
+        displayOptions: { show: { authentication: ['oauth2'] } },
       },
     ],
     properties: [
+      {
+        displayName: 'Authentication',
+        name: 'authentication',
+        type: 'options',
+        default: 'agentKey',
+        noDataExpression: true,
+        options: [
+          {
+            name: 'Agent Key (Recommended)',
+            value: 'agentKey',
+            description: 'Use a scoped, rotatable MoltNet Agent Key',
+          },
+          {
+            name: 'OAuth2 Client Credentials',
+            value: 'oauth2',
+            description: 'Use a MoltNet OAuth2 client ID and client secret',
+          },
+        ],
+      },
       {
         displayName: 'Resource',
         name: 'resource',
@@ -1086,10 +776,10 @@ export class MoltNet implements INodeType {
             description: 'Retrieve a filtered list of MoltNet tasks',
           },
           {
-            name: 'Wait',
-            value: 'wait',
-            action: 'Wait for task',
-            description: 'Check a task until it finishes or expires',
+            name: 'Get Result',
+            value: 'getResult',
+            action: 'Get task result',
+            description: 'Retrieve a task and all of its attempts once',
           },
         ],
         default: 'create',
@@ -1175,7 +865,7 @@ export class MoltNet implements INodeType {
         required: true,
         displayOptions: {
           show: {
-            operation: ['cancel', 'get', 'wait'],
+            operation: ['cancel', 'get', 'getResult'],
             resource: ['task'],
           },
         },
@@ -1222,7 +912,7 @@ export class MoltNet implements INodeType {
         default: '',
         displayOptions: {
           show: {
-            operation: ['cancel', 'get', 'getMany', 'wait'],
+            operation: ['cancel', 'get', 'getMany', 'getResult'],
             resource: ['task'],
           },
         },
@@ -1315,24 +1005,6 @@ export class MoltNet implements INodeType {
         ],
       },
       {
-        displayName: 'Polling Interval (Seconds)',
-        name: 'pollInterval',
-        type: 'number',
-        typeOptions: { minValue: minimumPollIntervalSeconds },
-        default: defaultPollIntervalSeconds,
-        displayOptions: { show: { operation: ['wait'], resource: ['task'] } },
-      },
-      {
-        displayName: 'Timeout (Seconds)',
-        name: 'timeout',
-        type: 'number',
-        typeOptions: { minValue: 1, maxValue: maximumTimeoutSeconds },
-        default: defaultTimeoutSeconds,
-        displayOptions: { show: { operation: ['wait'], resource: ['task'] } },
-        description:
-          "Maximum wait for this run; check longer tasks by running 'Wait' again",
-      },
-      {
         displayName: 'Simplify',
         name: 'simplify',
         type: 'boolean',
@@ -1340,7 +1012,7 @@ export class MoltNet implements INodeType {
         displayOptions: {
           show: {
             '@tool': [false],
-            operation: ['cancel', 'create', 'get', 'getMany', 'wait'],
+            operation: ['cancel', 'create', 'get', 'getMany', 'getResult'],
             resource: ['task'],
           },
         },
@@ -1355,7 +1027,7 @@ export class MoltNet implements INodeType {
         displayOptions: {
           show: {
             '@tool': [true],
-            operation: ['cancel', 'create', 'get', 'getMany', 'wait'],
+            operation: ['cancel', 'create', 'get', 'getMany', 'getResult'],
             resource: ['task'],
           },
         },
@@ -1401,7 +1073,7 @@ export class MoltNet implements INodeType {
         displayOptions: {
           show: {
             '@tool': [true],
-            operation: ['wait'],
+            operation: ['getResult'],
             output: ['selectedFields'],
             resource: ['task'],
           },
@@ -1419,15 +1091,19 @@ export class MoltNet implements INodeType {
         filter?: string,
         paginationToken?: string,
       ): Promise<INodeListSearchResult> {
+        const authentication = this.getCurrentNodeParameter(
+          'authentication',
+        ) as MoltNetAuthentication;
+        const credentialType = credentialTypeForAuthentication(authentication);
         const credentials =
-          await this.getCredentials<MoltNetCredentials>('moltNetApi');
+          await this.getCredentials<MoltNetCredentials>(credentialType);
         const teamId = requireTeamId(
           this,
           this.getCurrentNodeParameter('teamId'),
           credentials,
         );
         try {
-          const agent = connectMoltNet(this, credentials);
+          const agent = connectMoltNet(this, credentialType, credentials);
           const response = await agent.tasks.list(
             {
               limit: 50,
@@ -1468,11 +1144,17 @@ export class MoltNet implements INodeType {
           'operation',
           itemIndex,
         ) as string;
+        const authentication = this.getNodeParameter(
+          'authentication',
+          itemIndex,
+          'agentKey',
+        ) as MoltNetAuthentication;
+        const credentialType = credentialTypeForAuthentication(authentication);
         const credentials = await this.getCredentials<MoltNetCredentials>(
-          'moltNetApi',
+          credentialType,
           itemIndex,
         );
-        const agent = connectMoltNet(this, credentials);
+        const agent = connectMoltNet(this, credentialType, credentials);
         let results: IDataObject[];
         switch (operation) {
           case 'cancel':
@@ -1487,8 +1169,10 @@ export class MoltNet implements INodeType {
           case 'getMany':
             results = await getManyTasks(this, agent, credentials, itemIndex);
             break;
-          case 'wait':
-            results = [await waitForTask(this, agent, credentials, itemIndex)];
+          case 'getResult':
+            results = [
+              await getTaskResult(this, agent, credentials, itemIndex),
+            ];
             break;
           default:
             throw new NodeOperationError(

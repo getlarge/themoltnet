@@ -22,7 +22,8 @@ const extractedRoot = join(temporaryRoot, 'extracted');
 const consumerRoot = join(temporaryRoot, 'consumer');
 
 const requiredFiles = [
-  'dist/credentials/MoltNetApi.credentials.js',
+  'dist/credentials/MoltNetAgentApi.credentials.js',
+  'dist/credentials/MoltNetOAuth2Api.credentials.js',
   'dist/nodes/MoltNet/MoltNet.node.js',
   'dist/nodes/MoltNet/MoltNet.node.json',
   'dist/nodes/MoltNet/moltnet-mark.svg',
@@ -31,12 +32,18 @@ const requiredFiles = [
   'README.md',
   'LICENSE.md',
 ];
-const repositoryCredential = 'dist/credentials/MoltNetApi.credentials.js';
-const portalCredential = 'credentials/MoltNetApi.credentials.ts';
-const sourceCredential = resolve(
-  packageRoot,
-  'credentials/MoltNetApi.credentials.ts',
-);
+const credentialSources = [
+  {
+    repository: 'dist/credentials/MoltNetAgentApi.credentials.js',
+    portal: 'credentials/MoltNetAgentApi.credentials.ts',
+    source: 'credentials/MoltNetAgentApi.credentials.ts',
+  },
+  {
+    repository: 'dist/credentials/MoltNetOAuth2Api.credentials.js',
+    portal: 'credentials/MoltNetOAuth2Api.credentials.ts',
+    source: 'credentials/MoltNetOAuth2Api.credentials.ts',
+  },
+];
 const forbiddenRuntimePatterns = [
   [/\bglobalThis\b/u, 'uses the restricted global globalThis'],
   [/\b(?:setTimeout|setInterval)\s*\(/u, 'uses restricted timer globals'],
@@ -64,33 +71,42 @@ function listFiles(root, prefix = '') {
 }
 
 try {
-  try {
-    execFileSync('git', ['ls-files', '--error-unmatch', portalCredential], {
-      cwd: repositoryRoot,
-      stdio: 'pipe',
-    });
-  } catch {
-    throw new Error(
-      `Creator Portal requires ${portalCredential} to be tracked from the Git repository root`,
-    );
-  }
+  for (const credential of credentialSources) {
+    try {
+      execFileSync('git', ['ls-files', '--error-unmatch', credential.portal], {
+        cwd: repositoryRoot,
+        stdio: 'pipe',
+      });
+    } catch {
+      throw new Error(
+        `Creator Portal requires ${credential.portal} to be tracked from the Git repository root`,
+      );
+    }
 
-  const portalCredentialPath = resolve(repositoryRoot, portalCredential);
-  const credentialSource = readFileSync(sourceCredential, 'utf8');
-  assert(
-    readFileSync(portalCredentialPath, 'utf8') === credentialSource,
-    `${portalCredential} must be a byte-identical checked-in copy of the package credential source`,
-  );
-
-  try {
-    execFileSync('git', ['ls-files', '--error-unmatch', repositoryCredential], {
-      cwd: packageRoot,
-      stdio: 'pipe',
-    });
-  } catch {
-    throw new Error(
-      `Creator Portal requires ${repositoryCredential} to be tracked at the exact n8n manifest path`,
+    const portalCredentialPath = resolve(repositoryRoot, credential.portal);
+    const credentialSource = readFileSync(
+      resolve(packageRoot, credential.source),
+      'utf8',
     );
+    assert(
+      readFileSync(portalCredentialPath, 'utf8') === credentialSource,
+      `${credential.portal} must be a byte-identical checked-in copy of the package credential source`,
+    );
+
+    try {
+      execFileSync(
+        'git',
+        ['ls-files', '--error-unmatch', credential.repository],
+        {
+          cwd: packageRoot,
+          stdio: 'pipe',
+        },
+      );
+    } catch {
+      throw new Error(
+        `Creator Portal requires ${credential.repository} to be tracked at the exact n8n manifest path`,
+      );
+    }
   }
 
   // Run the repository-wide entrypoint, source-leak, relative-import,
@@ -212,10 +228,12 @@ try {
     [
       '-e',
       [
-        `const credentials = require(${JSON.stringify(join(installedRoot, requiredFiles[0]))});`,
-        `const node = require(${JSON.stringify(join(installedRoot, requiredFiles[1]))});`,
-        "if (typeof credentials.MoltNetApi !== 'function') process.exit(2);",
-        "if (typeof node.MoltNet !== 'function') process.exit(3);",
+        `const agentCredentials = require(${JSON.stringify(join(installedRoot, requiredFiles[0]))});`,
+        `const oauthCredentials = require(${JSON.stringify(join(installedRoot, requiredFiles[1]))});`,
+        `const node = require(${JSON.stringify(join(installedRoot, requiredFiles[2]))});`,
+        "if (typeof agentCredentials.MoltNetAgentApi !== 'function') process.exit(2);",
+        "if (typeof oauthCredentials.MoltNetOAuth2Api !== 'function') process.exit(3);",
+        "if (typeof node.MoltNet !== 'function') process.exit(4);",
       ].join('\n'),
     ],
     { cwd: consumerRoot, stdio: 'inherit' },

@@ -16,9 +16,9 @@ export default [
   ...baseConfig,
   createNxDependencyChecksConfig({
     ignoredDependencies: [
-      // This build-time generator is not imported by either published entry;
-      // its small generated client is bundled so runtime dependencies stay empty.
-      '@hey-api/openapi-ts',
+      // The private generated API client is intentionally bundled from
+      // devDependencies so the published n8n package has no runtime deps.
+      '@moltnet/api-client',
     ],
   }),
 ];

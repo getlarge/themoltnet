@@ -1,4 +1,4 @@
-import type { Task, TaskAttempt } from './client.js';
+import type { Task, TaskAttempt } from './GenericFunctions.js';
 
 const terminalStatuses = new Set<Task['status']>([
   'completed',
