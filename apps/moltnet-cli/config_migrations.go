@@ -66,11 +66,30 @@ func newConfigMigrationEngine(migrations []configMigration, destination string) 
 	}
 }
 
-func runConfigMigrateCmd(w io.Writer, credPath, generatePath, runPath, destination string, dryRun bool) error {
+func runConfigMigrateCmd(w io.Writer, credPath, generatePath, runPath, destination string, dryRun bool, names ...string) error {
+	name := ""
+	if len(names) > 0 {
+		name = names[0]
+	}
 	registry := NewSecretProviderRegistry()
 	destination, err := validateMigrationDestination(registry, destination)
 	if err != nil {
 		return err
+	}
+	// Store migration is deliberately opt-in through an explicit path. Its alias
+	// is inferred from .moltnet/<alias>/moltnet.json when possible; --name is
+	// only needed for a credentials document outside that legacy layout.
+	if strings.TrimSpace(credPath) != "" && destination == defaultMigrationDestination && generatePath == "" && runPath == "" {
+		credentialsPath, pathErr := absolutePath(credPath)
+		if pathErr != nil {
+			return pathErr
+		}
+		if migrated, migrateErr := migrateLegacyIdentityStore(credentialsPath, name, dryRun); migrateErr != nil || migrated != nil {
+			if migrateErr != nil {
+				return migrateErr
+			}
+			return printJSONTo(w, migrated)
+		}
 	}
 	return runConfigMigrateCmdWithRegistry(
 		w,
@@ -90,6 +109,7 @@ func runConfigMigrateCmdWithRegistry(
 	dryRun bool,
 	secretProviders *SecretProviderRegistry,
 	migrations []configMigration,
+	names ...string,
 ) error {
 	if dryRun && (generatePath != "" || runPath != "") {
 		return fmt.Errorf("--dry-run cannot be combined with --generate or --run")
