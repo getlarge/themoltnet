@@ -61,6 +61,30 @@ func migrateLegacyIdentityStore(credentialsPath, requestedAlias string, dryRun b
 	if _, err := WriteConfigTo(creds, target); err != nil {
 		return nil, err
 	}
+	// SSH and Git paths are derived deployment artifacts. Recreate them beneath
+	// the central identity directory rather than retaining repository paths.
+	if err := runSSHKeyExportCmd(target, filepath.Join(filepath.Dir(target), "ssh")); err != nil {
+		return nil, fmt.Errorf("regenerate SSH exports: %w", err)
+	}
+	gitName, gitEmail := alias, creds.IdentityID+"@agents.themolt.net"
+	if creds.Git != nil {
+		if creds.Git.Name != "" {
+			gitName = creds.Git.Name
+		}
+		if creds.Git.Email != "" {
+			gitEmail = creds.Git.Email
+		}
+	}
+	if err := runGitSetupCmd(target, gitName, gitEmail); err != nil {
+		return nil, fmt.Errorf("regenerate Git configuration: %w", err)
+	}
+	if regenerated, err := ReadConfigFrom(target); err != nil {
+		return nil, err
+	} else if regenerated != nil && regenerated.GitHub != nil && regenerated.Git != nil {
+		if err := ensureGitHubCredentialConfig(regenerated.Git.ConfigPath, target); err != nil {
+			return nil, fmt.Errorf("enforce tokenless GitHub credential helper: %w", err)
+		}
+	}
 	// env is non-secret activation context. Preserve it verbatim with owner-only
 	// permissions; derived SSH/Git/cache files are regenerated in later steps.
 	if data, err := os.ReadFile(filepath.Join(legacyDir, "env")); err == nil {
