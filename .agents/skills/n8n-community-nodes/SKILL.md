@@ -94,12 +94,14 @@ Keep the scanner out of workspace dependencies and do not install it globally.
 Do not use an unpublished workspace scan as proof of registry, repository, or
 provenance compliance.
 
-Treat emitted JavaScript and repository manifest paths as verification inputs:
-scan the built entries for restricted dependency code, and ensure every
-credential path registered in `package.json#n8n` is tracked at that exact Git
-path. Require the scanner's explicit `has passed all security checks` output in
-CI because scanner releases may print a failed report with status 0. See the
-verification checklist for the concrete pack and publication gates.
+Treat emitted JavaScript and packed manifest paths as verification inputs: scan
+the built entries for restricted dependency code, and ensure every credential
+path registered in `package.json#n8n` exists in the packed tarball and loads in
+a clean installation. Generated `dist` entries do not need to be tracked in
+Git; the official starter ignores `dist`. Require the scanner's explicit `has
+passed all security checks` output in CI because scanner releases may print a
+failed report with status 0. See the verification checklist for the concrete
+pack and publication gates.
 
 The scanner does not prove that Creator Portal can resolve package ownership.
 Query the exact published version with `npm view <package>@<version> author
