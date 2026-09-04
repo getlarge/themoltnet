@@ -41,6 +41,7 @@ import { createDecipheriv, scryptSync } from 'node:crypto';
 import { pipeline } from 'node:stream/promises';
 
 const ORY_STDIO_MAX_BUFFER = 64 * 1024 * 1024;
+const ORY_COMMAND_TIMEOUT_MS = 120_000;
 
 /**
  * Fields accepted by Ory's `createIdentityBody`. The CLI strict-decodes, so any
@@ -232,13 +233,23 @@ function buildOryEnv() {
 }
 
 function runOry(args) {
-  return execFileSync('ory', args, {
+  // --yes confirms any dialog non-interactively; combined with stdio stdin
+  // 'ignore' below it guarantees the CLI can never wait on input.
+  return execFileSync('ory', [...args, '--yes'], {
     // Run outside the repo so the CLI cannot pick up stray dotenv files from
     // the working directory, mirroring backup.mjs. Every path handed to the CLI
     // must therefore be absolute.
     cwd: '/tmp',
     encoding: 'utf8',
     maxBuffer: ORY_STDIO_MAX_BUFFER,
+    // stdin MUST be 'ignore'. With the default 'pipe' the child inherits an
+    // open stdin that never closes, so any prompt the CLI decides to emit hangs
+    // the process forever instead of failing — observed as a CI job stuck in
+    // the Restore step. backup.mjs uses the same guard.
+    stdio: ['ignore', 'pipe', 'pipe'],
+    // Belt and braces: never block on a confirmation dialog, and never hang a
+    // job indefinitely if the API stalls.
+    timeout: ORY_COMMAND_TIMEOUT_MS,
     env: buildOryEnv(),
   });
 }
@@ -370,6 +381,8 @@ async function main() {
     log('NOTE: target project differs from the bundle source project.');
   }
 
+  log('');
+  log('Listing identities in target project ...');
   const targetIdentities = listTargetIdentities(args.targetProject);
   const targetKeys = new Set(targetIdentities.map(identityKey));
 
