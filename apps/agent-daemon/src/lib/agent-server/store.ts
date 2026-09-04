@@ -364,7 +364,7 @@ export class AgentServerStore {
     if (selector.default_identity) {
       assertStoreName('identity alias', selector.default_identity);
     }
-    return selector as IdentitySelector;
+    return selector as unknown as IdentitySelector;
   }
 
   writeIdentitySelector(alias: string): void {
