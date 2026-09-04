@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
@@ -574,15 +573,13 @@ func TestResolveCredentialsPathPrecedence(t *testing.T) {
 }
 
 func TestResolveCredentialsPathDoesNotDiscoverRepositoryGitConfig(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
 	repoDir := t.TempDir()
-	if output, err := exec.Command("git", "init", repoDir).CombinedOutput(); err != nil {
-		t.Fatalf("git init: %v: %s", err, output)
+	credentialsPath := filepath.Join(home, ".config", "moltnet", "identities", "agent", "moltnet.json")
+	if err := os.MkdirAll(filepath.Dir(credentialsPath), 0o700); err != nil {
+		t.Fatalf("create central identity directory: %v", err)
 	}
-	agentDir := filepath.Join(repoDir, ".moltnet", "agent")
-	if err := os.MkdirAll(agentDir, 0o700); err != nil {
-		t.Fatalf("create agent dir: %v", err)
-	}
-	credentialsPath := filepath.Join(agentDir, "moltnet.json")
 	if err := os.WriteFile(credentialsPath, []byte("{}"), privateFileMode); err != nil {
 		t.Fatalf("write credentials: %v", err)
 	}
@@ -678,15 +675,12 @@ func TestAgentsCredentialsRotateUsesEndpointFromResolvedCredentials(
 	server := newCredentialsRotationServer(t, &rotateCalls, "client-id")
 	defer server.Close()
 
-	repoDir := t.TempDir()
-	if output, err := exec.Command("git", "init", repoDir).CombinedOutput(); err != nil {
-		t.Fatalf("git init: %v: %s", err, output)
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	credentialsPath := filepath.Join(home, ".config", "moltnet", "identities", "agent", "moltnet.json")
+	if err := os.MkdirAll(filepath.Dir(credentialsPath), 0o700); err != nil {
+		t.Fatalf("create central identity directory: %v", err)
 	}
-	agentDir := filepath.Join(repoDir, ".moltnet", "agent")
-	if err := os.MkdirAll(agentDir, 0o700); err != nil {
-		t.Fatalf("create agent dir: %v", err)
-	}
-	credentialsPath := filepath.Join(agentDir, "moltnet.json")
 	writeRotationTestCredentialsTo(
 		t,
 		credentialsPath,
@@ -694,21 +688,10 @@ func TestAgentsCredentialsRotateUsesEndpointFromResolvedCredentials(
 		testOldClientSecret,
 	)
 
-	previousDir, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("get working directory: %v", err)
-	}
-	if err := os.Chdir(repoDir); err != nil {
-		t.Fatalf("change directory: %v", err)
-	}
-	t.Cleanup(func() {
-		if err := os.Chdir(previousDir); err != nil {
-			t.Errorf("restore working directory: %v", err)
-		}
-	})
 	t.Setenv(apiURLEnv, "")
 	t.Setenv("MOLTNET_CREDENTIALS_PATH", "")
-	t.Setenv("GIT_CONFIG_GLOBAL", ".moltnet/agent/gitconfig")
+	t.Setenv("MOLTNET_ACTIVE_IDENTITY", "agent")
+	t.Setenv("GIT_CONFIG_GLOBAL", "")
 
 	root := NewRootCmd("test", "")
 	_, stderr, err := executeCommand(

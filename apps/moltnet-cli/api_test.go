@@ -369,7 +369,7 @@ func TestNewAuthenticatedClientMissingOAuthCredentialsNamesAgentKeyOption(t *tes
 		t.Fatal("expected missing credentials error")
 	}
 	if !strings.Contains(err.Error(), agentKeyEnv) ||
-		!strings.Contains(err.Error(), "moltnet register") {
+		!strings.Contains(err.Error(), "config identity select") {
 		t.Errorf("error = %q, want both authentication options", err)
 	}
 }

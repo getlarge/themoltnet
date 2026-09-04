@@ -113,7 +113,7 @@ func resolveIdentityAlias(explicit string) (string, error) {
 		}
 	}
 	if alias == "" {
-		return "", fmt.Errorf("no active identity selected; run 'moltnet config identity select <alias>'")
+		return "", fmt.Errorf("no credentials found: no active identity selected; run 'moltnet config identity select <alias>'")
 	}
 	if err := validateAgentName(alias); err != nil {
 		return "", fmt.Errorf("invalid active identity: %w", err)
