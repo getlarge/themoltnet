@@ -1,5 +1,4 @@
 import type {
-  ICredentialDataDecryptedObject,
   IDataObject,
   IExecuteFunctions,
   IHttpRequestOptions,
@@ -7,17 +6,14 @@ import type {
   INodeExecutionData,
 } from 'n8n-workflow';
 
-import { MoltNetApi } from '../credentials/MoltNetApi.credentials.js';
-import type { MoltNetCredentials } from '../src/client.js';
+import type { MoltNetCredentials } from '../nodes/MoltNet/GenericFunctions.js';
 
 const teamId = '11111111-1111-4111-8111-111111111111';
 const diaryId = '22222222-2222-4222-8222-222222222222';
 
 export const defaultCredentials: MoltNetCredentials = {
   apiUrl: 'https://fake.moltnet.test',
-  authentication: 'oauth2',
-  clientId: 'client-id',
-  clientSecret: 'client-secret',
+  agentApiKey: 'opaque-agent-key',
   teamId,
   diaryId,
 };
@@ -247,18 +243,30 @@ export function createExecuteContext(
   const helpers = {
     httpRequest,
     httpRequestWithAuthentication: async (
-      _credentialsType: string,
+      credentialsType: string,
       requestOptions: IHttpRequestOptions,
     ) => {
       const cacheKey = JSON.stringify(activeCredentials);
       let token = tokens.get(cacheKey);
       if (!token) {
-        const credential = new MoltNetApi();
-        const result = await credential.preAuthentication.call(
-          { helpers: { httpRequest } },
-          activeCredentials as unknown as ICredentialDataDecryptedObject,
-        );
-        token = String(result.accessToken);
+        if (credentialsType === 'moltNetAgentApi') {
+          token = String(activeCredentials.agentApiKey);
+        } else {
+          const response = (await httpRequest({
+            method: 'POST',
+            url: `${String(activeCredentials.apiUrl)}/oauth2/token`,
+            headers: {
+              'content-type': 'application/x-www-form-urlencoded',
+            },
+            body: [
+              'grant_type=client_credentials',
+              `client_id=${encodeURIComponent(String(activeCredentials.clientId))}`,
+              `client_secret=${encodeURIComponent(String(activeCredentials.clientSecret))}`,
+            ].join('&'),
+            json: true,
+          })) as IDataObject;
+          token = String(response.access_token);
+        }
         tokens.set(cacheKey, token);
       }
       return httpRequest({
