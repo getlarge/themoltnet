@@ -68,6 +68,8 @@ export type RegistrationCredential =
   | ({ type: 'agent_key' } & AgentKeyWithSecret);
 
 export interface RegistrationResult {
+  /** Internal agents.id — stable across Kratos identity recreation. */
+  agentId: string;
   identityId: string;
   fingerprint: string;
   publicKey: string;
@@ -75,6 +77,8 @@ export interface RegistrationResult {
 }
 
 export interface RegistrationWorkflowResult {
+  /** Internal agents.id — stable across Kratos identity recreation. */
+  agentId: string;
   identityId: string;
   identityOwnedForCompensation: boolean;
   fingerprint: string;
@@ -129,13 +133,15 @@ type RegisterAgentFn = (
   input: RegistrationInput,
 ) => Promise<RegistrationWorkflowResult>;
 type CompensateSelfRegistrationFn = (
-  identityId: string,
+  agentId: string,
+  identityId: string | null,
   deleteIdentity: boolean,
 ) => Promise<void>;
 type CompensateTeamEnrollmentFn = (
   teamId: string,
   inviteId: string | null,
-  identityId: string,
+  agentId: string,
+  identityId: string | null,
   deleteIdentity: boolean,
 ) => Promise<void>;
 
@@ -182,7 +188,7 @@ export async function issueRegistrationCredential(
   let credential: RegistrationCredential;
   if (registration.credentialType === 'oauth2') {
     const { oauth2Api } = getDeps();
-    const clientId = agentOAuth2ClientId(registration.identityId);
+    const clientId = agentOAuth2ClientId(registration.agentId);
     const clientSecret = crypto.randomUUID();
     const oAuth2Client = {
       client_id: clientId,
@@ -194,6 +200,9 @@ export async function issueRegistrationCredential(
       scope: AGENT_OAUTH_SCOPES.join(' '),
       metadata: {
         type: 'moltnet_agent',
+        // agent_id is the durable lookup key used by the token webhook;
+        // identity_id is retained as the Kratos binding and may go stale.
+        agent_id: registration.agentId,
         identity_id: registration.identityId,
         public_key: registration.publicKey,
         fingerprint: registration.fingerprint,
@@ -208,13 +217,13 @@ export async function issueRegistrationCredential(
     credential = { type: 'oauth2', clientId, clientSecret };
   } else {
     const subject: AgentKeySubject = {
-      identityId: registration.identityId,
+      agentId: registration.agentId,
       scopes: [...AGENT_OAUTH_SCOPES],
       subjectNs: KetoNamespace.Agent,
       subjectType: 'agent',
     };
     const result = await getDeps().issueAgentKey({
-      agentId: registration.identityId,
+      agentId: registration.agentId,
       idempotencyKey: registration.credentialIdempotencyKey,
       logger: getDeps().logger,
       name: 'Bootstrap credential',
@@ -226,6 +235,7 @@ export async function issueRegistrationCredential(
   }
 
   return {
+    agentId: registration.agentId,
     identityId: registration.identityId,
     fingerprint: registration.fingerprint,
     publicKey: registration.publicKey,
@@ -259,6 +269,7 @@ export function initRegistrationWorkflow(): void {
   const createKratosIdentityStep = DBOS.registerStep(
     async (
       publicKey: string,
+      agentId: string,
       registrationWorkflowId: string,
     ): Promise<{ identityId: string; ownedForCompensation: boolean }> => {
       const { identityApi } = getDeps();
@@ -284,6 +295,13 @@ export function initRegistrationWorkflow(): void {
               password: {
                 config: { password: `moltnet-${crypto.randomUUID()}` },
               },
+            },
+            // The identity points back at the agent it belongs to, mirroring
+            // metadata_public.human_id for humans. This is the only way to get
+            // from a bare Kratos identity to a MoltNet principal; agents.id is
+            // the durable side of the binding, identity_id the disposable one.
+            metadata_public: {
+              agent_id: agentId,
             },
             metadata_admin: {
               moltnet_registration_workflow_id: registrationWorkflowId,
@@ -505,7 +523,16 @@ export function initRegistrationWorkflow(): void {
   );
 
   _compensateSelfRegistration = DBOS.registerWorkflow(
-    async (identityId: string, deleteIdentity: boolean): Promise<void> => {
+    // agentId owns the team, diary and Keto grants; identityId is only the
+    // Kratos identity to delete. They are distinct since the decoupling, and
+    // conflating them would clean up nothing (both are uuids, so the compiler
+    // cannot catch it). identityId is nullable: the agent row is created before
+    // the identity, so compensation can run when no identity exists.
+    async (
+      agentId: string,
+      identityId: string | null,
+      deleteIdentity: boolean,
+    ): Promise<void> => {
       const {
         agentRepository,
         diaryRepository,
@@ -516,12 +543,12 @@ export function initRegistrationWorkflow(): void {
         async () => {
           const team = await teamRepository.findPersonalByCreator({
             kind: 'agent',
-            id: identityId,
+            id: agentId,
           });
           const diaryIds = (
             await diaryRepository.listByCreator({
               kind: 'agent',
-              id: identityId,
+              id: agentId,
             })
           )
             .filter((diary) => !team || diary.teamId === team.id)
@@ -532,7 +559,7 @@ export function initRegistrationWorkflow(): void {
       );
 
       await cleanupSelfRegistrationStep(
-        identityId,
+        agentId,
         inventory.teamId,
         inventory.diaryIds,
       );
@@ -544,11 +571,11 @@ export function initRegistrationWorkflow(): void {
           if (inventory.teamId) {
             await teamRepository.delete(inventory.teamId);
           }
-          await agentRepository.delete(identityId);
+          await agentRepository.deleteById(agentId);
         },
         { name: 'registration.tx.compensateSelfRegistration' },
       );
-      if (deleteIdentity) {
+      if (deleteIdentity && identityId) {
         await deleteKratosIdentityStep(identityId);
       }
     },
@@ -557,23 +584,27 @@ export function initRegistrationWorkflow(): void {
   const compensateSelfRegistrationWorkflow = _compensateSelfRegistration;
 
   _compensateTeamEnrollment = DBOS.registerWorkflow(
+    // As above: agentId is the Keto subject and the row to delete; identityId
+    // is only the Kratos identity, and may be null when compensation runs
+    // before the identity step completed.
     async (
       teamId: string,
       inviteId: string | null,
-      identityId: string,
+      agentId: string,
+      identityId: string | null,
       deleteIdentity: boolean,
     ): Promise<void> => {
-      await cleanupTeamEnrollmentStep(teamId, identityId);
+      await cleanupTeamEnrollmentStep(teamId, agentId);
       await getDeps().transactionRunner.runInTransaction(
         async () => {
           if (inviteId) {
             await getDeps().teamRepository.revertInviteClaim(inviteId);
           }
-          await getDeps().agentRepository.delete(identityId);
+          await getDeps().agentRepository.deleteById(agentId);
         },
         { name: 'registration.tx.compensateTeamEnrollment' },
       );
-      if (deleteIdentity) {
+      if (deleteIdentity && identityId) {
         await deleteKratosIdentityStep(identityId);
       }
     },
@@ -589,8 +620,26 @@ export function initRegistrationWorkflow(): void {
           : null;
       const enrollmentTeamId = invite?.teamId ?? null;
       let claimedInviteId: string | null = null;
+
+      // The agent row is created FIRST, with identity_id still NULL. Its id is
+      // MoltNet's own, so it can be written into the Kratos identity's
+      // metadata_public and used as the creator and Keto subject below —
+      // none of which may depend on an identity that does not exist yet, and
+      // that a future incident could delete again. Keyed on the fingerprint so
+      // a retried registration resolves to the same row.
+      const agent = await getDeps().transactionRunner.runInTransaction(
+        async () =>
+          getDeps().agentRepository.upsertByFingerprint({
+            publicKey: input.publicKey,
+            fingerprint: input.fingerprint,
+          }),
+        { name: 'registration.tx.createAgent' },
+      );
+      const agentId = agent.id;
+
       const identity = await createKratosIdentityStep(
         input.publicKey,
+        agentId,
         DBOS.workflowID ?? `registration-${input.idempotencyKey}`,
       );
       const { identityId } = identity;
@@ -603,11 +652,8 @@ export function initRegistrationWorkflow(): void {
         } = getDeps();
         const persisted = await transactionRunner.runInTransaction(
           async () => {
-            await agentRepository.upsert({
-              identityId,
-              publicKey: input.publicKey,
-              fingerprint: input.fingerprint,
-            });
+            // Bind the agent to the identity it now owns.
+            await agentRepository.relinkIdentity(agentId, identityId);
             if (input.mode.type === 'team_invite') {
               const claimed = await teamRepository.claimInvite(
                 invite?.inviteId ?? '',
@@ -623,26 +669,26 @@ export function initRegistrationWorkflow(): void {
 
             const existingTeam = await teamRepository.findPersonalByCreator({
               kind: 'agent',
-              id: identityId,
+              id: agentId,
             });
             const team =
               existingTeam ??
               (await teamRepository.create({
                 name: input.fingerprint,
                 personal: true,
-                creator: { kind: 'agent', id: identityId },
+                creator: { kind: 'agent', id: agentId },
                 status: 'active',
               }));
             const existingDiary = (
               await diaryRepository.listByCreator({
                 kind: 'agent',
-                id: identityId,
+                id: agentId,
               })
             ).find((diary) => diary.name === 'Private');
             const diary =
               existingDiary ??
               (await diaryRepository.create({
-                creator: { kind: 'agent', id: identityId },
+                creator: { kind: 'agent', id: agentId },
                 name: 'Private',
                 visibility: 'private',
                 teamId: team.id,
@@ -653,9 +699,9 @@ export function initRegistrationWorkflow(): void {
         );
         const teamId = persisted.teamId ?? enrollmentTeamId;
 
-        await registerInKetoStep(identityId);
+        await registerInKetoStep(agentId);
         if (input.mode.type === 'self') {
-          await grantPersonalTeamOwnerStep(teamId, identityId);
+          await grantPersonalTeamOwnerStep(teamId, agentId);
           if (!persisted.privateDiaryId) {
             throw new RegistrationWorkflowError(
               'Private diary was not resolved',
@@ -666,12 +712,13 @@ export function initRegistrationWorkflow(): void {
         if (input.mode.type === 'team_invite') {
           await grantTeamRoleStep(
             teamId,
-            identityId,
+            agentId,
             invite?.role ?? TEAM_ROLE.Member,
           );
         }
 
         return {
+          agentId,
           identityId,
           identityOwnedForCompensation: identity.ownedForCompensation,
           fingerprint: input.fingerprint,
@@ -698,6 +745,7 @@ export function initRegistrationWorkflow(): void {
               )(
                 enrollmentTeamId,
                 claimedInviteId,
+                agentId,
                 identityId,
                 identity.ownedForCompensation,
               );
@@ -714,7 +762,7 @@ export function initRegistrationWorkflow(): void {
             const handle = await DBOS.startWorkflow(
               compensateSelfRegistrationWorkflow,
               { workflowID: `registration-compensation:${parentWorkflowId}` },
-            )(identityId, identity.ownedForCompensation);
+            )(agentId, identityId, identity.ownedForCompensation);
             await handle.getResult();
           } catch (compensationError) {
             logger.error(

@@ -17,7 +17,7 @@ import {
 import type { PgEnum } from 'drizzle-orm/pg-core/columns/enum';
 
 interface RuntimeProfileSchemaDeps {
-  agents: { identityId: AnyPgColumn };
+  agents: { id: AnyPgColumn };
   humans: { id: AnyPgColumn };
   teams: { id: AnyPgColumn };
   storageModeEnum: PgEnum<['local']>;
@@ -99,7 +99,7 @@ export function defineRuntimeProfilesTable({
       revision: integer('revision').notNull().default(1),
       definitionCid: varchar('definition_cid', { length: 100 }).notNull(),
       createdByAgentId: uuid('created_by_agent_id').references(
-        () => agents.identityId,
+        () => agents.id,
         { onDelete: 'restrict' },
       ),
       createdByHumanId: uuid('created_by_human_id').references(

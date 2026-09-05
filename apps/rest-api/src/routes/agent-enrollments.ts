@@ -54,10 +54,10 @@ export async function agentEnrollmentRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const teamId = requireCurrentTeamId(request, 'agent enrollments');
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
       const canManage = await fastify.permissionChecker.canManageTeamMembers(
         teamId,
-        identityId,
+        subjectId,
         subjectNs,
       );
       if (!canManage) throw createProblem('forbidden');
@@ -115,10 +115,10 @@ export async function agentEnrollmentRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const teamId = requireCurrentTeamId(request, 'agent enrollments');
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
       const canManage = await fastify.permissionChecker.canManageTeamMembers(
         teamId,
-        identityId,
+        subjectId,
         subjectNs,
       );
       if (!canManage) throw createProblem('forbidden');

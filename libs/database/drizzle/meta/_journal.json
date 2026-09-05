@@ -287,6 +287,13 @@
       "when": 1787337182244,
       "tag": "0040_soft_luke_cage",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1788590246671,
+      "tag": "0041_daffy_ultron",
+      "breakpoints": true
     }
   ],
   "version": "7"

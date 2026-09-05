@@ -687,13 +687,20 @@ func (*AgentKeyWithSecret) rotateAgentKeyRes() {}
 
 // Ref: #/components/schemas/AgentPrincipal
 type AgentPrincipal struct {
+	// UUID v4 identifier.
+	AgentId uuid.UUID `json:"agentId"`
 	// Key fingerprint (A1B2-C3D4-E5F6-G7H8).
 	Fingerprint string `json:"fingerprint"`
 	// UUID v4 identifier.
-	IdentityId uuid.UUID          `json:"identityId"`
+	IdentityId NilUUID            `json:"identityId"`
 	Kind       AgentPrincipalKind `json:"kind"`
 	// Ed25519 public key with prefix.
 	PublicKey string `json:"publicKey"`
+}
+
+// GetAgentId returns the value of AgentId.
+func (s *AgentPrincipal) GetAgentId() uuid.UUID {
+	return s.AgentId
 }
 
 // GetFingerprint returns the value of Fingerprint.
@@ -702,7 +709,7 @@ func (s *AgentPrincipal) GetFingerprint() string {
 }
 
 // GetIdentityId returns the value of IdentityId.
-func (s *AgentPrincipal) GetIdentityId() uuid.UUID {
+func (s *AgentPrincipal) GetIdentityId() NilUUID {
 	return s.IdentityId
 }
 
@@ -716,13 +723,18 @@ func (s *AgentPrincipal) GetPublicKey() string {
 	return s.PublicKey
 }
 
+// SetAgentId sets the value of AgentId.
+func (s *AgentPrincipal) SetAgentId(val uuid.UUID) {
+	s.AgentId = val
+}
+
 // SetFingerprint sets the value of Fingerprint.
 func (s *AgentPrincipal) SetFingerprint(val string) {
 	s.Fingerprint = val
 }
 
 // SetIdentityId sets the value of IdentityId.
-func (s *AgentPrincipal) SetIdentityId(val uuid.UUID) {
+func (s *AgentPrincipal) SetIdentityId(val NilUUID) {
 	s.IdentityId = val
 }
 
@@ -45780,10 +45792,16 @@ func (*RegisterExecutorManifestUnauthorized) registerExecutorManifestRes() {}
 
 // Ref: #/components/schemas/RegisterResponse
 type RegisterResponse struct {
+	AgentId     uuid.UUID                  `json:"agentId"`
 	Credential  RegisterResponseCredential `json:"credential"`
 	Fingerprint string                     `json:"fingerprint"`
 	IdentityId  uuid.UUID                  `json:"identityId"`
 	PublicKey   string                     `json:"publicKey"`
+}
+
+// GetAgentId returns the value of AgentId.
+func (s *RegisterResponse) GetAgentId() uuid.UUID {
+	return s.AgentId
 }
 
 // GetCredential returns the value of Credential.
@@ -45804,6 +45822,11 @@ func (s *RegisterResponse) GetIdentityId() uuid.UUID {
 // GetPublicKey returns the value of PublicKey.
 func (s *RegisterResponse) GetPublicKey() string {
 	return s.PublicKey
+}
+
+// SetAgentId sets the value of AgentId.
+func (s *RegisterResponse) SetAgentId(val uuid.UUID) {
+	s.AgentId = val
 }
 
 // SetCredential sets the value of Credential.
@@ -63778,6 +63801,7 @@ type Whoami struct {
 	IdentityId        uuid.UUID                  `json:"identityId"`
 	PublicKey         OptString                  `json:"publicKey"`
 	Scopes            []string                   `json:"scopes"`
+	SubjectId         uuid.UUID                  `json:"subjectId"`
 	SubjectType       WhoamiSubjectType          `json:"subjectType"`
 }
 
@@ -63814,6 +63838,11 @@ func (s *Whoami) GetPublicKey() OptString {
 // GetScopes returns the value of Scopes.
 func (s *Whoami) GetScopes() []string {
 	return s.Scopes
+}
+
+// GetSubjectId returns the value of SubjectId.
+func (s *Whoami) GetSubjectId() uuid.UUID {
+	return s.SubjectId
 }
 
 // GetSubjectType returns the value of SubjectType.
@@ -63854,6 +63883,11 @@ func (s *Whoami) SetPublicKey(val OptString) {
 // SetScopes sets the value of Scopes.
 func (s *Whoami) SetScopes(val []string) {
 	s.Scopes = val
+}
+
+// SetSubjectId sets the value of SubjectId.
+func (s *Whoami) SetSubjectId(val uuid.UUID) {
+	s.SubjectId = val
 }
 
 // SetSubjectType sets the value of SubjectType.

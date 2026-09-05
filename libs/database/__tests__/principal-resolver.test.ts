@@ -12,14 +12,19 @@ describe('resolvePrincipal', () => {
   it('returns agent variant when agent columns are present', () => {
     const row: PrincipalRow = {
       creatorAgentId: '11111111-1111-1111-1111-111111111111',
+      creatorAgentIdentityId: '22222222-2222-2222-2222-222222222222',
       creatorAgentFingerprint: 'A1B2-C3D4-E5F6-1234',
       creatorAgentPublicKey: 'ed25519:x',
       creatorHumanId: null,
       creatorHumanIdentityId: null,
     };
+    // Deliberately distinct values: creatorAgentId is the internal agents.id
+    // and must not be reported as the Kratos identity. Equal values would let
+    // a regression that conflates the two pass unnoticed.
     expect(resolvePrincipal(row)).toEqual({
       kind: 'agent',
-      identityId: '11111111-1111-1111-1111-111111111111',
+      agentId: '11111111-1111-1111-1111-111111111111',
+      identityId: '22222222-2222-2222-2222-222222222222',
       fingerprint: 'A1B2-C3D4-E5F6-1234',
       publicKey: 'ed25519:x',
     });
@@ -28,6 +33,7 @@ describe('resolvePrincipal', () => {
   it('returns human variant when human columns are present', () => {
     const row: PrincipalRow = {
       creatorAgentId: null,
+      creatorAgentIdentityId: null,
       creatorAgentFingerprint: null,
       creatorAgentPublicKey: null,
       creatorHumanId: '22222222-2222-2222-2222-222222222222',
@@ -43,6 +49,7 @@ describe('resolvePrincipal', () => {
   it('returns human variant with null identityId pre-onboarding', () => {
     const row: PrincipalRow = {
       creatorAgentId: null,
+      creatorAgentIdentityId: null,
       creatorAgentFingerprint: null,
       creatorAgentPublicKey: null,
       creatorHumanId: '22222222-2222-2222-2222-222222222222',
@@ -83,6 +90,7 @@ describe('resolvePrincipal', () => {
   it('throws PrincipalMissingError when neither column is set', () => {
     const row: PrincipalRow = {
       creatorAgentId: null,
+      creatorAgentIdentityId: null,
       creatorAgentFingerprint: null,
       creatorAgentPublicKey: null,
       creatorHumanId: null,

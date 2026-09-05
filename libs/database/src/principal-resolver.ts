@@ -14,7 +14,10 @@
 
 export interface AgentPrincipal {
   kind: 'agent';
-  identityId: string;
+  /** Internal `agents.id` — stable, and what every agent FK references. */
+  agentId: string;
+  /** Bound Kratos identity, or null when the agent has none. */
+  identityId: string | null;
   fingerprint: string;
   publicKey: string;
 }
@@ -30,6 +33,12 @@ export type PrincipalIdentity = AgentPrincipal | HumanPrincipal;
 
 export interface PrincipalRow {
   creatorAgentId: string | null;
+  /**
+   * `agents.identity_id` from the creator JOIN. Required as its own column
+   * since the decoupling: `creatorAgentId` is now the internal agent ID, not
+   * the Kratos identity, so the two can no longer be conflated.
+   */
+  creatorAgentIdentityId: string | null;
   creatorAgentFingerprint: string | null;
   creatorAgentPublicKey: string | null;
   creatorHumanId: string | null;
@@ -192,7 +201,8 @@ export function resolvePrincipal(row: PrincipalRow): PrincipalIdentity {
     }
     return {
       kind: 'agent',
-      identityId: row.creatorAgentId as string,
+      agentId: row.creatorAgentId as string,
+      identityId: row.creatorAgentIdentityId ?? null,
       fingerprint: row.creatorAgentFingerprint,
       publicKey: row.creatorAgentPublicKey,
     };

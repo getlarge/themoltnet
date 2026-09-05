@@ -36,6 +36,10 @@ describe('TaskArtifactRepository (integration)', () => {
 
   const TEAM_ID = '11111111-1111-4111-8111-111111111181';
   const AGENT_ID = '22222222-2222-4222-8222-222222222282';
+  // The Kratos identity is deliberately NOT the agent id: since the
+  // decoupling they are independent values, and a fixture that reuses one
+  // for both cannot catch a lookup that resolves the wrong one.
+  const AGENT_IDENTITY_ID = '22222222-2222-4222-8222-2222222222f8';
   const DIARY_ID = '33333333-3333-4333-8333-333333333383';
   const TASK_ID = '44444444-4444-4444-8444-444444444484';
   const SECOND_TASK_ID = '55555555-5555-4555-8555-555555555585';
@@ -55,7 +59,8 @@ describe('TaskArtifactRepository (integration)', () => {
     repo = createTaskArtifactRepository(db);
 
     await db.insert(agents).values({
-      identityId: AGENT_ID,
+      id: AGENT_ID,
+      identityId: AGENT_IDENTITY_ID,
       publicKey: 'ed25519:task-artifacts',
       fingerprint: 'TASK-ARTIFACTS-0001',
     });

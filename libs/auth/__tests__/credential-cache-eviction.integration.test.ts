@@ -6,6 +6,7 @@ import { createTokenValidator } from '../src/token-validator.js';
 
 const CLIENT_ID = 'hydra-client-uuid';
 const IDENTITY_ID = '550e8400-e29b-41d4-a716-446655440000';
+const AGENT_ID = '550e8400-e29b-41d4-a716-4466554400aa';
 const FIRST_HUMAN_ID = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
 const SECOND_HUMAN_ID = '7ca7b810-9dad-11d1-80b4-00c04fd430c9';
 const OAUTH_ACCESS_TOKEN = 'ory_at_positive_cache_integration';
@@ -21,6 +22,7 @@ describe('credential lifecycle cache eviction', () => {
         scope: 'diary:read',
         sub: CLIENT_ID,
         ext: {
+          'moltnet:agent_id': AGENT_ID,
           'moltnet:identity_id': IDENTITY_ID,
           'moltnet:public_key': 'ed25519:first',
           'moltnet:fingerprint': 'FIRST',
@@ -32,6 +34,7 @@ describe('credential lifecycle cache eviction', () => {
         scope: 'diary:read',
         sub: CLIENT_ID,
         ext: {
+          'moltnet:agent_id': AGENT_ID,
           'moltnet:identity_id': IDENTITY_ID,
           'moltnet:public_key': 'ed25519:second',
           'moltnet:fingerprint': 'SECOND',

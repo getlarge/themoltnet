@@ -10,6 +10,7 @@ import {
   ENTRY_ID,
   type MockServices,
   OWNER_ID,
+  OWNER_IDENTITY_ID,
   resetMockServices,
   TEST_BEARER_TOKEN,
   VALID_AUTH_CONTEXT,
@@ -182,8 +183,15 @@ describe('Diary entry routes - tags and entry item routes', () => {
 
       expect(response.statusCode).toBe(200);
       expect(response.json().id).toBe(ENTRY_ID);
+      // agentId is the internal principal; identityId is the Kratos binding.
+      // Asserting both, with distinct fixture values, is what catches code
+      // that conflates them.
       expect(response.json().creator).toEqual(
-        expect.objectContaining({ kind: 'agent', identityId: OWNER_ID }),
+        expect.objectContaining({
+          kind: 'agent',
+          agentId: OWNER_ID,
+          identityId: OWNER_IDENTITY_ID,
+        }),
       );
     });
 

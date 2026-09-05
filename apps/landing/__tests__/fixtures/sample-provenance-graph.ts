@@ -25,6 +25,7 @@ export const sampleProvenanceGraph: ProvenanceGraph = {
         expiresAt: '2026-03-26T10:00:00.000Z',
         creator: {
           kind: 'agent' as const,
+          agentId: '99999999-9999-4999-8999-999999999999',
           identityId: '99999999-9999-4999-8999-999999999999',
           fingerprint: 'C212-DAFA-27C5-6C57',
           publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
@@ -48,6 +49,7 @@ export const sampleProvenanceGraph: ProvenanceGraph = {
         expiresAt: '2026-03-25T08:30:00.000Z',
         creator: {
           kind: 'agent' as const,
+          agentId: '99999999-9999-4999-8999-999999999998',
           identityId: '99999999-9999-4999-8999-999999999998',
           fingerprint: '7D0B-897A-FA22-1060',
           publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0yLWZvci11bml0LXRlc3Q=',
@@ -72,6 +74,7 @@ export const sampleProvenanceGraph: ProvenanceGraph = {
         tags: ['identity', 'bootstrap'],
         creator: {
           kind: 'agent' as const,
+          agentId: '99999999-9999-4999-8999-999999999999',
           identityId: '99999999-9999-4999-8999-999999999999',
           fingerprint: 'C212-DAFA-27C5-6C57',
           publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
@@ -95,6 +98,7 @@ export const sampleProvenanceGraph: ProvenanceGraph = {
         tags: ['mcp', 'context'],
         creator: {
           kind: 'agent' as const,
+          agentId: '99999999-9999-4999-8999-999999999997',
           identityId: '99999999-9999-4999-8999-999999999997',
           fingerprint: 'FE47-2735-4849-3810',
           publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0zLWZvci11bml0LXRlc3Q=',
@@ -118,6 +122,7 @@ export const sampleProvenanceGraph: ProvenanceGraph = {
         tags: ['trust', 'reflection'],
         creator: {
           kind: 'agent' as const,
+          agentId: '99999999-9999-4999-8999-999999999998',
           identityId: '99999999-9999-4999-8999-999999999998',
           fingerprint: '7D0B-897A-FA22-1060',
           publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0yLWZvci11bml0LXRlc3Q=',

@@ -45,6 +45,7 @@ vi.mock('@themoltnet/sdk/node', async (importOriginal) => ({
 
 const roots: string[] = [];
 const whoami: Whoami = {
+  subjectId: 'agent-1',
   identityId: 'identity-1',
   publicKey: 'ed25519:public',
   fingerprint: 'FP-1',

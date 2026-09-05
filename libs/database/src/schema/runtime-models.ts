@@ -14,7 +14,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 interface RuntimeModelSchemaDeps {
-  agents: { identityId: AnyPgColumn };
+  agents: { id: AnyPgColumn };
   humans: { id: AnyPgColumn };
   teams: { id: AnyPgColumn };
 }
@@ -54,7 +54,7 @@ export function defineRuntimeModelsTable({
         .default(sql`'{}'::jsonb`),
       isActive: boolean('is_active').notNull().default(true),
       createdByAgentId: uuid('created_by_agent_id').references(
-        () => agents.identityId,
+        () => agents.id,
         { onDelete: 'restrict' },
       ),
       createdByHumanId: uuid('created_by_human_id').references(

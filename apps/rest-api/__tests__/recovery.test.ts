@@ -29,6 +29,7 @@ import {
   createTestApp,
   type MockServices,
   OWNER_ID,
+  OWNER_IDENTITY_ID,
   resetMockServices,
   TEST_RECOVERY_SECRET,
   TEST_SECURITY_OPTIONS,
@@ -210,7 +211,9 @@ describe('Recovery routes', () => {
           mockIdentityClient.createRecoveryCodeForIdentity,
         ).toHaveBeenCalledWith({
           createRecoveryCodeForIdentityBody: {
-            identity_id: OWNER_ID,
+            // Ory's own API — this one really does take a Kratos identity,
+            // not the internal agents.id.
+            identity_id: OWNER_IDENTITY_ID,
             flow_type: 'api',
           },
         });

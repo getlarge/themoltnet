@@ -15,6 +15,7 @@ import {
   createTestApp,
   type MockServices,
   OWNER_ID,
+  OWNER_IDENTITY_ID,
   resetMockServices,
   TEST_WEBHOOK_API_KEY,
 } from './helpers.js';
@@ -276,7 +277,10 @@ describe('Hook routes', () => {
       expect(response.statusCode).toBe(200);
       const body = response.json();
       expect(body.session.access_token).toEqual({
-        'moltnet:identity_id': OWNER_ID,
+        // Two separate claims for two separate things: agent_id is the Keto
+        // subject and FK target, identity_id is only the Ory binding.
+        'moltnet:agent_id': OWNER_ID,
+        'moltnet:identity_id': OWNER_IDENTITY_ID,
         'moltnet:public_key':
           'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
         'moltnet:fingerprint': 'C212-DAFA-27C5-6C57',

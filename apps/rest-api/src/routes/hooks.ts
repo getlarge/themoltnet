@@ -65,6 +65,16 @@ declare module 'fastify' {
 }
 
 interface MoltNetClientMetadata {
+  /**
+   * Internal `agents.id`. Authoritative once present.
+   *
+   * Backfilled onto every existing MoltNet client. Clients created before the
+   * registration workflow writes it will lack it — that change alters DBOS
+   * workflow source and is gated on draining in-flight registrations, so the
+   * identity fallback below stays until then.
+   */
+  agent_id?: string;
+  /** Kratos identity bound to the agent. */
   identity_id: string;
   public_key?: string;
 }
@@ -506,28 +516,38 @@ export async function hookRoutes(fastify: FastifyInstance) {
 
         // ── Agent path ───────────────────────────────────────────
         if (isMoltNetMetadata(clientData.metadata)) {
-          const identityId = clientData.metadata.identity_id;
+          const { agent_id: agentId, identity_id: identityId } =
+            clientData.metadata;
 
-          const agent =
-            await fastify.agentRepository.findByIdentityId(identityId);
+          // Prefer the internal ID: it is stable across identity recreation,
+          // whereas an identity lookup stops resolving the moment Kratos is
+          // rebuilt. The identity branch is a correct lookup in its own right
+          // (not an alias for the agent ID) and exists only for clients
+          // predating the agent_id backfill.
+          const agent = agentId
+            ? await fastify.agentRepository.findById(agentId)
+            : await fastify.agentRepository.findByIdentityId(identityId);
 
           if (!agent) {
             fastify.log.warn(
               {
+                agent_id: agentId ?? null,
                 identity_id: identityId,
                 client_id: tokenRequest.client_id,
+                resolved_by: agentId ? 'agent_id' : 'identity_id',
               },
-              'Token exchange: no agent record for identity',
+              'Token exchange: no agent record for client',
             );
             return await reply.status(403).send({
               error: 'agent_not_found',
-              error_description: 'No agent record found for identity',
+              error_description: 'No agent record found for client',
             });
           }
 
           return await reply.status(200).send({
             session: {
               access_token: {
+                'moltnet:agent_id': agent.id,
                 'moltnet:identity_id': agent.identityId,
                 'moltnet:public_key': agent.publicKey,
                 'moltnet:fingerprint': agent.fingerprint,

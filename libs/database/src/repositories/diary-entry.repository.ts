@@ -773,7 +773,7 @@ export function createDiaryEntryRepository(db: Database) {
         })
         .from(diaryEntries)
         .innerJoin(diaries, eq(diaryEntries.diaryId, diaries.id))
-        .innerJoin(agents, eq(diaries.creatorAgentId, agents.identityId))
+        .innerJoin(agents, eq(diaries.creatorAgentId, agents.id))
         .where(and(...conditions))
         .orderBy(desc(diaryEntries.createdAt), desc(diaryEntries.id))
         .limit(fetchLimit);
@@ -847,7 +847,7 @@ export function createDiaryEntryRepository(db: Database) {
         })
         .from(diaryEntries)
         .innerJoin(diaries, eq(diaryEntries.diaryId, diaries.id))
-        .innerJoin(agents, eq(diaries.creatorAgentId, agents.identityId))
+        .innerJoin(agents, eq(diaries.creatorAgentId, agents.id))
         .where(and(...conditions))
         .orderBy(asc(diaryEntries.createdAt), asc(diaryEntries.id))
         .limit(limit);
@@ -905,7 +905,7 @@ export function createDiaryEntryRepository(db: Database) {
         })
         .from(diaryEntries)
         .innerJoin(diaries, eq(diaryEntries.diaryId, diaries.id))
-        .innerJoin(agents, eq(diaries.creatorAgentId, agents.identityId))
+        .innerJoin(agents, eq(diaries.creatorAgentId, agents.id))
         .where(and(eq(diaryEntries.id, id), eq(diaries.visibility, 'public')))
         .limit(1);
 

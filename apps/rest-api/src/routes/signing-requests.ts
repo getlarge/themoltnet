@@ -132,7 +132,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         request.log.info(
           {
             signingId: created.id,
-            agentId: request.authContext!.identityId,
+            identityId: request.authContext!.identityId,
           },
           'crypto.signature_prepared',
         );

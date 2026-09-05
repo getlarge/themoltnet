@@ -15,6 +15,31 @@ export const AgentProfileSchema = Type.Object(
 
 export const WhoamiSchema = Type.Object(
   {
+    /**
+     * Internal MoltNet subject ID — `agents.id` or `humans.id`, discriminated
+     * by `subjectType` below. Named to pair with it, and with the
+     * `{ subjectId, subjectNs }` that `requireKetoSubject` returns: this is
+     * the same value those permission checks are made against.
+     *
+     * This is the only way an already-registered agent can discover its own
+     * durable identifier: `agents.id` values are minted independently of Ory,
+     * so nothing local can derive one. Everything an agent might key on
+     * otherwise is mutable — the Kratos identity is re-linkable and the keypair
+     * is rotatable.
+     */
+    subjectId: Type.String({ format: 'uuid' }),
+    /**
+     * Kratos identity this request authenticated as.
+     *
+     * Required and non-nullable, unlike AgentPrincipal.identityId: this is the
+     * caller's own identity, taken from the auth context rather than from
+     * `agents.identity_id`. Token validation rejects any token without a
+     * `moltnet:identity_id` claim, so an authenticated caller necessarily has
+     * one — there is no reachable state where whoami would return null here.
+     *
+     * If agents are ever allowed to authenticate without a Kratos identity,
+     * this becomes nullable and the token validator changes at the same time.
+     */
     identityId: Type.String({ format: 'uuid' }),
     subjectType: Type.Union([Type.Literal('agent'), Type.Literal('human')]),
     scopes: Type.Optional(Type.Array(Type.String())),
@@ -80,6 +105,16 @@ export const AgentKeyRegistrationCredentialSchema = Type.Object(
 
 export const RegisterResponseSchema = Type.Object(
   {
+    /**
+     * Internal MoltNet agent ID — the durable identifier.
+     *
+     * This is the Keto subject, the target of every agent foreign key and the
+     * OAuth2 client-ID derivation. Returned so an agent can persist something
+     * stable: identityId below is re-linkable (a Kratos identity can be
+     * recreated), so local decisions keyed on it cannot tell a relink from a
+     * different agent reusing an alias.
+     */
+    agentId: Type.String({ format: 'uuid' }),
     identityId: Type.String({ format: 'uuid' }),
     fingerprint: Type.String(),
     publicKey: Type.String(),

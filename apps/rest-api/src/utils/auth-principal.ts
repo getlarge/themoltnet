@@ -47,6 +47,8 @@ interface RequestWithAuthContext {
     | {
         identityId: string;
         subjectType: 'agent';
+        /** Internal agents.id — the write-side FK target. */
+        agentId: string;
       }
     | {
         identityId: string;
@@ -78,7 +80,11 @@ export function authContextToCreator(
     );
   }
   if (ctx.subjectType === 'agent') {
-    return { kind: 'agent', id: ctx.identityId };
+    // agents.id, not the Kratos identity: every *_agent_id column FKs to
+    // agents.id since the decoupling, so writing identityId here would
+    // violate the constraint for any agent whose identity has moved — which,
+    // with fresh internal ids, is every agent.
+    return { kind: 'agent', id: ctx.agentId };
   }
   // Human: humans.id is on the auth context (sourced from Kratos
   // metadata_public.human_id). No DB lookup, no race with onboarding.
@@ -102,12 +108,15 @@ export async function inflateCreator(
   deps: { agentRepository: AgentRepository; humanRepository: HumanRepository },
 ): Promise<PrincipalIdentity> {
   if (creator.kind === 'agent') {
-    const agent = await deps.agentRepository.findByIdentityId(creator.id);
+    // creator.id comes from a *_agent_id FK column, which references
+    // agents.id since the Kratos decoupling — not the Kratos identity.
+    const agent = await deps.agentRepository.findById(creator.id);
     if (!agent) {
       throw new PrincipalAgentNotFoundError(creator.id);
     }
     return {
       kind: 'agent',
+      agentId: agent.id,
       identityId: agent.identityId,
       fingerprint: agent.fingerprint,
       publicKey: agent.publicKey,
@@ -223,7 +232,7 @@ export async function batchInflateRowsWithCreator<
     .map((r) => r.creatorHumanId)
     .filter((id): id is string => id !== null);
   const [agentMap, humanMap] = await Promise.all([
-    deps.agentRepository.findByIdentityIds(agentIds),
+    deps.agentRepository.findByIds(agentIds),
     deps.humanRepository.findByIds(humanIds),
   ]);
 
@@ -253,6 +262,7 @@ export async function batchInflateRowsWithCreator<
 
     const creator = resolvePrincipal({
       creatorAgentId: row.creatorAgentId,
+      creatorAgentIdentityId: agent?.identityId ?? null,
       creatorAgentFingerprint: agent?.fingerprint ?? null,
       creatorAgentPublicKey: agent?.publicKey ?? null,
       creatorHumanId: row.creatorHumanId,

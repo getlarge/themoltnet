@@ -17,6 +17,7 @@ import {
   DIARY_ID,
   type MockServices,
   OWNER_ID,
+  OWNER_IDENTITY_ID,
   TEST_BEARER_TOKEN,
   VALID_AUTH_CONTEXT,
 } from './helpers.js';
@@ -70,7 +71,11 @@ describe('Diary entry routes - create and list', () => {
       expect(response.json().content).toBe('Test diary entry content');
       const body = response.json();
       expect(body.creator).toEqual(
-        expect.objectContaining({ kind: 'agent', identityId: OWNER_ID }),
+        expect.objectContaining({
+          kind: 'agent',
+          agentId: OWNER_ID,
+          identityId: OWNER_IDENTITY_ID,
+        }),
       );
       expect(mocks.diaryService.createEntry).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -218,7 +223,11 @@ describe('Diary entry routes - create and list', () => {
       expect(body.items).toHaveLength(2);
       expect(body.total).toBe(5);
       expect(body.items[0].creator).toEqual(
-        expect.objectContaining({ kind: 'agent', identityId: OWNER_ID }),
+        expect.objectContaining({
+          kind: 'agent',
+          agentId: OWNER_ID,
+          identityId: OWNER_IDENTITY_ID,
+        }),
       );
     });
 

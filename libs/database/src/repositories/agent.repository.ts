@@ -35,6 +35,49 @@ export function createAgentRepository(db: Database) {
     },
 
     /**
+     * Create or fetch an agent by its key fingerprint, without requiring a
+     * Kratos identity.
+     *
+     * Registration creates the agent row FIRST, so `agents.id` exists before
+     * the Kratos identity is minted and can be written into the identity's
+     * metadata_public. At that point `identity_id` is still NULL, so it cannot
+     * serve as the conflict target — the fingerprint (uniquely indexed, and
+     * derived from the agent's public key) is the only stable key available.
+     *
+     * Idempotent: a retried registration resolves to the same agent row rather
+     * than orphaning the first one.
+     */
+    async upsertByFingerprint(agent: {
+      publicKey: string;
+      fingerprint: string;
+    }): Promise<Agent> {
+      const [result] = await getExecutor(db)
+        .insert(agents)
+        .values({ publicKey: agent.publicKey, fingerprint: agent.fingerprint })
+        .onConflictDoUpdate({
+          target: agents.fingerprint,
+          set: { publicKey: agent.publicKey, updatedAt: new Date() },
+        })
+        .returning();
+
+      return result;
+    },
+
+    /**
+     * Delete an agent by its internal ID. Used by registration compensation,
+     * which knows the agent it created but may have no Kratos identity to
+     * delete by (the identity step may never have run).
+     */
+    async deleteById(agentId: string): Promise<boolean> {
+      const result = await getExecutor(db)
+        .delete(agents)
+        .where(eq(agents.id, agentId))
+        .returning({ id: agents.id });
+
+      return result.length > 0;
+    },
+
+    /**
      * Find agent by Ory identity ID
      */
     async findByIdentityId(identityId: string): Promise<Agent | null> {
@@ -61,7 +104,64 @@ export function createAgentRepository(db: Database) {
         .select()
         .from(agents)
         .where(inArray(agents.identityId, unique));
-      return new Map(rows.map((a) => [a.identityId, a]));
+      // identityId is nullable since agents were decoupled from Kratos, but a
+      // row matched by `identity_id IN (...)` necessarily has one. The
+      // predicate makes that provable rather than merely asserted.
+      return new Map(
+        rows
+          .filter(
+            (a): a is Agent & { identityId: string } => a.identityId !== null,
+          )
+          .map((a) => [a.identityId, a]),
+      );
+    },
+
+    /**
+     * Batch lookup agents by internal MoltNet ID. Returns a Map keyed by `id`.
+     *
+     * This is the batch form to use when inflating a creator: `*_agent_id` FK
+     * columns reference `agents.id`, not the Kratos identity. Using
+     * `findByIdentityIds` for that misses every agent whose id and identity
+     * differ — which is all of them once an identity is recreated.
+     */
+    async findByIds(agentIds: readonly string[]): Promise<Map<string, Agent>> {
+      const unique = Array.from(new Set(agentIds.filter(Boolean)));
+      if (unique.length === 0) return new Map();
+      const rows = await getExecutor(db)
+        .select()
+        .from(agents)
+        .where(inArray(agents.id, unique));
+      return new Map(rows.map((a) => [a.id, a]));
+    },
+
+    /**
+     * Find an agent by its internal MoltNet ID.
+     *
+     * This is the stable lookup: `id` never changes, whereas `identityId` moves
+     * whenever the Kratos identity is recreated.
+     */
+    async findById(agentId: string): Promise<Agent | null> {
+      const [agent] = await getExecutor(db)
+        .select()
+        .from(agents)
+        .where(eq(agents.id, agentId))
+        .limit(1);
+
+      return agent || null;
+    },
+
+    /**
+     * Bind an agent to a Kratos identity, or clear the binding with `null`.
+     * Used to relink after an identity loss without touching any other column.
+     */
+    async relinkIdentity(
+      agentId: string,
+      identityId: string | null,
+    ): Promise<void> {
+      await getExecutor(db)
+        .update(agents)
+        .set({ identityId, updatedAt: new Date() })
+        .where(eq(agents.id, agentId));
     },
 
     /**

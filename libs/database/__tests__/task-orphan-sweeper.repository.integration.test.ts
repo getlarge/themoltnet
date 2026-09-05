@@ -52,6 +52,10 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
 
   const TEAM_ID = '11111111-1111-4111-8111-111111111101';
   const AGENT_ID = '22222222-2222-4222-8222-222222222202';
+  // The Kratos identity is deliberately NOT the agent id: since the
+  // decoupling they are independent values, and a fixture that reuses one
+  // for both cannot catch a lookup that resolves the wrong one.
+  const AGENT_IDENTITY_ID = '22222222-2222-4222-8222-2222222222f0';
   const DIARY_ID = '33333333-3333-4333-8333-333333333303';
 
   beforeAll(async () => {
@@ -75,7 +79,8 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
     // Seed FK rows once — task inserts cascade through these.
     // Note: agents must exist before teams reference them via createdBy.
     await db.insert(agents).values({
-      identityId: AGENT_ID,
+      id: AGENT_ID,
+      identityId: AGENT_IDENTITY_ID,
       publicKey: 'ed25519:dGVzdA==',
       fingerprint: 'AAAA-BBBB-CCCC-DDDD',
     });

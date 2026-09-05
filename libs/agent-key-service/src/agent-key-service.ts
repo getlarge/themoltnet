@@ -62,7 +62,12 @@ export interface AgentKeySubject {
   credentialKeyId?: string;
   /** Binding of the Talos credential authorizing this request; absent for OAuth. */
   credentialBindingScope?: 'identity' | 'team';
-  identityId: string;
+  /**
+   * Internal agents.id, not the Kratos identity. Named for what it carries:
+   * both are uuid, so the field name is the only thing telling a reader which
+   * of the two this is.
+   */
+  agentId: string;
   scopes: string[];
   subjectNs: KetoNamespace;
   subjectType: 'agent' | 'human';
@@ -517,7 +522,7 @@ async function canManageAllTeamKeys(
 ): Promise<boolean> {
   return deps.permissionChecker.canManageTeamCredentials(
     teamId,
-    subject.identityId,
+    subject.agentId,
     subject.subjectNs,
   );
 }
@@ -531,14 +536,14 @@ async function assertCanManageAgentKey(
   if (binding.bindingScope === 'identity') {
     if (
       subject.subjectType === 'agent' &&
-      subject.identityId === agentId &&
+      subject.agentId === agentId &&
       subject.credentialBindingScope !== 'team'
     ) {
       return;
     }
     throw createProblem('forbidden');
   }
-  if (subject.subjectType === 'agent' && subject.identityId === agentId) return;
+  if (subject.subjectType === 'agent' && subject.agentId === agentId) return;
   if (await canManageAllTeamKeys(deps, subject, binding.teamId)) return;
   throw createProblem('forbidden');
 }
@@ -557,7 +562,7 @@ async function assertCanManageExistingAgentKey(
       subject.scopes.includes('key:manage');
     if (
       subject.subjectType === 'agent' &&
-      subject.identityId === agentId &&
+      subject.agentId === agentId &&
       subject.credentialBindingScope !== 'team' &&
       (isAuthorizingCredential || canManageSiblings)
     ) {
@@ -565,7 +570,7 @@ async function assertCanManageExistingAgentKey(
     }
     throw createProblem('not-found');
   }
-  if (subject.subjectType === 'agent' && subject.identityId === agentId) return;
+  if (subject.subjectType === 'agent' && subject.agentId === agentId) return;
   if (await canManageAllTeamKeys(deps, subject, binding.teamId)) return;
   throw createProblem('not-found');
 }
@@ -618,17 +623,17 @@ async function resolveListQuery(
     ) {
       throw createProblem('forbidden');
     }
-    if (input.agentId && input.agentId !== input.subject.identityId) {
+    if (input.agentId && input.agentId !== input.subject.agentId) {
       throw createProblem('forbidden');
     }
     const cursorQuery = {
-      actorId: input.subject.identityId,
+      actorId: input.subject.agentId,
       bindingScope: 'identity' as const,
       status: input.status ?? null,
       teamId: null,
     };
     return {
-      agentFilter: input.subject.identityId,
+      agentFilter: input.subject.agentId,
       cursorQuery,
       limit: input.limit ?? DEFAULT_LIST_LIMIT,
       pageToken: decodeCursor(input.cursor, cursorQuery),
@@ -645,12 +650,12 @@ async function resolveListQuery(
   if (
     !canManageAll &&
     input.agentId &&
-    input.agentId !== input.subject.identityId
+    input.agentId !== input.subject.agentId
   ) {
     throw createProblem('forbidden');
   }
 
-  const agentFilter = canManageAll ? input.agentId : input.subject.identityId;
+  const agentFilter = canManageAll ? input.agentId : input.subject.agentId;
   const cursorQuery = {
     actorId: agentFilter ?? null,
     bindingScope: 'team' as const,
@@ -771,7 +776,7 @@ async function scanAgentKeyPages(
     {
       action: 'list',
       ...bindingLogFields(expectedBinding),
-      actorId: input.subject.identityId,
+      actorId: input.subject.agentId,
       scannedCount,
       matchedCount: items.length,
       talosCalls,
