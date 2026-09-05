@@ -1,6 +1,6 @@
 ---
 name: legreffier
-description: 'LeGreffier mode for Claude & Codex when GIT_CONFIG_GLOBAL=.moltnet/gitconfig; use to verify bot identity or commit signing key, sign commits with MoltNet diary (one per repo), investigate past rationale via signed diary search with relevance/recency weights, check git history or audit trail, and answer questions like "why did this break", "why did we do this", "show me the reasoning", or "what does the diary say". Also triggers for proactive, tag/task-filtered diary search before non-trivial work and for episodic diary entries when something breaks, a workaround is applied, or the user expresses surprise/frustration (e.g. "WTF", "how did that happen", "this is broken", "why did this break").'
+description: 'LeGreffier mode for Claude & Codex when a central MoltNet identity is selected; use to verify bot identity or commit signing key, sign commits with MoltNet diary (one per repo), investigate past rationale via signed diary search with relevance/recency weights, check git history or audit trail, and answer questions like "why did this break", "why did we do this", "show me the reasoning", or "what does the diary say". Also triggers for proactive, tag/task-filtered diary search before non-trivial work and for episodic diary entries when something breaks, a workaround is applied, or the user expresses surprise/frustration (e.g. "WTF", "how did that happen", "this is broken", "why did this break").'
 ---
 
 # LeGreffier Skill
@@ -15,16 +15,15 @@ repo.
 Choose the principal before resolving any identity or calling any tool. Keep
 the selected mode for the whole session.
 
-1. Select **agent mode** when `MOLTNET_SIGNER_URL` is set, when
-   `GIT_CONFIG_GLOBAL` identifies `.moltnet/<agent>/gitconfig`, when
-   `MOLTNET_CREDENTIALS_PATH` is set, or when
-   `moltnet agents activation validate --dir . --json` reports `valid: true`.
+1. Select **agent mode** when `MOLTNET_SIGNER_URL`,
+   `MOLTNET_CREDENTIALS_PATH`, or `MOLTNET_ACTIVE_IDENTITY` is set, or when
+   `moltnet agents activation validate --json` reports `valid: true`.
 2. In agent mode, require the released `moltnet` binary and use it for every
    MoltNet operation. Never call the plugin MCP and never open a browser OAuth
    flow. The activated agent identity is the principal.
 3. Otherwise select **human mode**. Use the plugin's MoltNet MCP tools for every
    operation. Let the host perform OAuth authorization-code login when needed.
-   Never inspect `.moltnet/`, infer an agent name, or read agent credentials.
+   Never inspect local identity credentials or infer an identity alias.
 4. If the selected transport is unavailable, stop with setup guidance. Never
    fall back to the other transport, because that would change the principal
    recorded in the audit trail.
@@ -34,32 +33,20 @@ human-attributed entries. Agent activation, cryptographic agent signing,
 accountable commits, GitHub App authorship, and credential lifecycle are
 agent-mode operations.
 
-## Agent name resolution (agent mode only)
+## Identity selection (agent mode only)
 
-Store the resolved name as `AGENT_NAME`. Gitconfig path:
-`.moltnet/<AGENT_NAME>/gitconfig`.
+Store the selected local alias as `IDENTITY_ALIAS`. The identity document,
+environment, Git config, and SSH exports live under
+`~/.config/moltnet/identities/<IDENTITY_ALIAS>/`.
 
-**Resolution order** (first match):
-
-1. `MOLTNET_AGENT_NAME` env var
-2. `$ARGUMENTS` if provided at skill invocation
-3. `GIT_CONFIG_GLOBAL` matches `.moltnet/<name>/gitconfig` → extract `<name>`
-4. `.moltnet/` has exactly one subdirectory with `moltnet.json` → use it
-5. Multiple subdirectories → list them and ask the user
-
-## Worktree detection (agent mode only)
-
-If `.moltnet/` is absent from CWD:
-
-1. `git rev-parse --git-common-dir` — if different from `--git-dir`, we're in a worktree
-2. Common dir's parent = main worktree root
-3. If `<main>/.moltnet/` exists: `ln -s <main>/.moltnet .moltnet`
-4. If `<main>/.claude/settings.local.json` exists and local one doesn't: symlink it too
-5. If main worktree has no `.moltnet/` either, stop and tell the user to run `legreffier` there first
+The CLI resolution order is authoritative: an explicit `--identity` selector,
+then `MOLTNET_ACTIVE_IDENTITY`, then the persisted default selected with
+`moltnet config identity select <alias>`. Never inspect a repository, Git
+configuration, `.moltnet/`, or a legacy global document to choose an identity.
 
 ## When to trigger
 
-- Commits/staging while `GIT_CONFIG_GLOBAL=.moltnet/<AGENT_NAME>/gitconfig`
+- Commits/staging while a central identity is selected
 - Verify signing identity (name/email/key), "bot verification", "commit signing"
 - Explain past decisions: "why was X changed", "what was the reasoning", "check the audit", "what does the diary say", "show me the history", "git history"
 - Any session that changes files or produces a commit (diary entry mandatory before declaring complete)
@@ -68,7 +55,7 @@ If `.moltnet/` is absent from CWD:
 
 ## Two signature layers
 
-**Layer 1 — Git SSH (commit-level):** `gpg.format=ssh`, key at `.moltnet/<AGENT_NAME>/ssh/id_ed25519.pub`. Automatic on every `git commit` via gitconfig. Verify with: `git verify-commit <hash>`.
+**Layer 1 — Git SSH (commit-level):** `gpg.format=ssh`, key at `~/.config/moltnet/identities/<IDENTITY_ALIAS>/ssh/id_ed25519.pub`. Automatic on every `git commit` via the selected identity's gitconfig. Verify with: `git verify-commit <hash>`.
 
 **Layer 2 — MoltNet Diary (entry-level):** Ed25519 over a structured payload. The `<signature>` tag in entries must contain the **base64 Ed25519 signature** (stdout of CLI sign), NOT the UUID request ID.
 
@@ -245,12 +232,13 @@ Activation has two modes:
 - **Warm activation**: local cache validation for identity and diary state, followed by normal transport detection.
 - **Cold ceremony**: full identity and diary resolution; used only when the cache is missing, stale, or explicitly bypassed.
 
-1. Resolve `AGENT_NAME` (see above). Check worktree.
-2. Set env: `GIT_CONFIG_GLOBAL=.moltnet/<AGENT_NAME>/gitconfig`
+1. Resolve `IDENTITY_ALIAS` (see above).
+2. Load the selected identity environment if Git activation is needed; do not
+   create repository symlinks or let a repository choose the identity.
 3. If `moltnet` is available, try local cache validation:
 
    ```bash
-   moltnet agents activation validate --agent "$AGENT_NAME" --dir . --json
+   moltnet agents activation validate --identity "$IDENTITY_ALIAS" --json
    ```
 
    If the JSON has `"valid": true`, trust its non-secret identity, diary,
@@ -266,10 +254,10 @@ Activation has two modes:
    steps:
 
    ```bash
-   moltnet agents activation refresh --agent "$AGENT_NAME" --dir . --json
+   moltnet agents activation refresh --identity "$IDENTITY_ALIAS" --json
    ```
 
-   Use `moltnet agents activation clear --agent "$AGENT_NAME" --dir .` only when deliberately discarding cached activation state.
+   Use `moltnet agents activation clear --identity "$IDENTITY_ALIAS"` only when deliberately discarding cached activation state.
 
 ### Cold ceremony
 
@@ -277,7 +265,7 @@ Activation has two modes:
    - If `MOLTNET_FINGERPRINT` set, use it (skip `moltnet_whoami`).
    - Otherwise call `$MOLTNET_CLI agents whoami` — it returns the authenticated identity
      (`identityId`, `clientId`, `publicKey`, `fingerprint`).
-   - **Hard gate**: unauthenticated / unknown fingerprint → stop. "Not authenticated with MoltNet — check `.moltnet/<AGENT_NAME>/` credentials before continuing."
+   - **Hard gate**: unauthenticated / unknown fingerprint → stop. "Not authenticated with MoltNet — select a central identity with `moltnet config identity select <alias>` before continuing."
 2. Refresh activation as described above, then resolve team:
    - If activation JSON returned `teamId`, use it as `TEAM_ID`.
    - Otherwise: run `$MOLTNET_CLI teams list`, identify the personal team, and
@@ -291,7 +279,7 @@ Activation has two modes:
      `diaryId` and few or no entries exist in the resolved diary, mention:
      "Tip: run `/legreffier-onboarding` (or `$legreffier-onboarding` in Codex)
      to check your setup and start capturing knowledge."
-4. Identity check: `git config user.name && git config user.email && git config user.signingkey && git config gpg.format`. Expected: name=`AGENT_NAME`, email `...+<AGENT_NAME>[bot]@users.noreply.github.com`, signingkey=`.moltnet/<AGENT_NAME>/ssh/id_ed25519.pub`, format=`ssh`. If any missing, set `GIT_CONFIG_GLOBAL` and restart.
+4. Identity check: `git config user.name && git config user.email && git config user.signingkey && git config gpg.format`. Expected: name=`IDENTITY_ALIAS`, email `...+<IDENTITY_ALIAS>[bot]@users.noreply.github.com`, signingkey=`~/.config/moltnet/identities/<IDENTITY_ALIAS>/ssh/id_ed25519.pub`, format=`ssh`. If any missing, set `GIT_CONFIG_GLOBAL` to the selected identity's `gitconfig` and restart.
 5. Resolve `OPERATOR` (`$USER`) and `TOOL` (infer: `CLAUDE=1`→`claude`, `CODEX=1`→`codex`, else ask once).
 6. Resolve commit authorship from activation JSON:
    - Use `authorshipConfigured`, `authorshipMode` (default: `agent`),
@@ -304,12 +292,12 @@ Activation has two modes:
 ### Guest (sandboxed) sessions
 
 When `MOLTNET_SIGNER_URL` is set, the session runs inside a sandbox whose
-trusted daemon serves host capabilities. There is no `.moltnet/` tree, no
+trusted daemon serves host capabilities. There is no repository `.moltnet/` tree, no
 credentials file, and no private key in the guest — do not look for them.
 
 - Identity: `curl -s "$MOLTNET_SIGNER_URL/identity"` returns `agentName`,
   `identityId`, `publicKey`, `fingerprint`, `gitName`, `gitEmail`.
-- Skip worktree `.moltnet` symlinking and the activation cache; the projected
+- Skip repository identity bindings and the activation cache; the projected
   `GIT_CONFIG_GLOBAL` already carries identity, `gpg.format=ssh`,
   `user.signingKey = key::ssh-ed25519 …` and `allowed_signers`.
 - `git commit -S` signs through `SSH_AUTH_SOCK` (the `moltnet capability serve
@@ -349,8 +337,8 @@ MOLTNET_CLI="moltnet"
 In sandboxed environments (Gondolin VM), the `moltnet` binary is always at `/usr/local/bin/moltnet`.
 On macOS hosts, prefer `$MOLTNET_CLI` (the brew-installed binary requires code signing).
 
-CLI credentials: `.moltnet/<AGENT_NAME>/moltnet.json`
-CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
+CLI credentials resolve from the selected central identity. Use
+`--credentials <path>` only for explicit migration or advanced overrides.
 
 ### CLI equivalents
 
@@ -382,7 +370,8 @@ CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
 
 ## Accountable commit workflow
 
-0. Credentials path: `MOLTNET_CREDENTIALS_PATH` else `.moltnet/<AGENT_NAME>/moltnet.json`.
+0. Credentials resolve by the central selector. `MOLTNET_CREDENTIALS_PATH` or
+   `--credentials` are explicit overrides only and never participate in automatic discovery.
 1. `git diff --cached --stat` and `git diff --cached`. Nothing staged → stop.
    - **Scope gate**: one coherent change set with a single rationale. Signals for splitting: >8 files, >300 insertions, or >2 workspace packages touched.
    - Mixed/unrelated work → split before committing.
@@ -405,8 +394,7 @@ CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
      --risk <low|medium|high> \
      --scope "<scope1,scope2>" \
      --operator "$OPERATOR" \
-     --tool "$TOOL" \
-     --credentials ".moltnet/<AGENT_NAME>/moltnet.json"
+     --tool "$TOOL"
    ```
 
    Output (stdout): `{"entryId":"<uuid>","signature":"<base64>"}`. Parse `entryId`.
@@ -510,12 +498,9 @@ GH_TOKEN=$(moltnet github token --credentials "$CREDS") gh <command>
 Keep the assignment on the same simple command: a token attached to one command
 in a chain does not authorize another `gh` process.
 
-The `git rev-parse --show-toplevel` anchor is required because
-`GIT_CONFIG_GLOBAL` may be a relative path (e.g.
-`.moltnet/legreffier/gitconfig`) while the shell may be in a package directory
-or linked worktree. Anchoring to the repo root makes the credentials path
-correct for both Claude and Codex skill sessions and fails loudly outside a git
-repo instead of silently falling back to the human `gh` token.
+GitHub token resolution is independent of the current repository: it uses the
+selected central identity, so credential helper and GitHub operations work from
+arbitrary non-Git directories without falling back to a human token.
 
 The token and its installation permissions are cached locally (~1 hour
 lifetime, 5-min expiry buffer). Legacy cache entries without permissions are
@@ -685,7 +670,8 @@ After creating, link with `relations_create` when meaningful:
 
 ## Commit authorship modes
 
-Configured via `MOLTNET_COMMIT_AUTHORSHIP` in `.moltnet/<AGENT_NAME>/env`.
+Configured via `MOLTNET_COMMIT_AUTHORSHIP` in the selected central identity's
+`env` file.
 
 | Mode              | Git author | Signature    | PR author via `gh pr` | Trailer                           | Use case                                           |
 | ----------------- | ---------- | ------------ | --------------------- | --------------------------------- | -------------------------------------------------- |
