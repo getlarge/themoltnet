@@ -84,13 +84,11 @@ export class AgentServerStoreError extends Error {
  * so honouring XDG here gave one application two config roots: on a machine
  * with the variable set, the daemon wrote identities the CLI and SDK could not
  * read. `MOLTNET_AGENT_SERVER_ROOT` remains the explicit escape hatch for a
- * genuinely custom location. `xdgConfigHome` is still accepted so callers can
- * report a legacy root; see adoptLegacyXdgRoot.
+ * genuinely custom location. The XDG parameter is gone rather than ignored: an
+ * accepted-but-discarded argument reads like it still works. Callers adopting
+ * state from the old root pass it to ensure() instead.
  */
-export function resolveAgentServerRoot(input: {
-  root?: string;
-  xdgConfigHome?: string;
-}): string {
+export function resolveAgentServerRoot(input: { root?: string }): string {
   const override = input.root?.trim();
   if (override) return override;
   return join(homedir(), '.config', 'moltnet');
