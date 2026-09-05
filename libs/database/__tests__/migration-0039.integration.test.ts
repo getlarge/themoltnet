@@ -25,6 +25,12 @@ describe('migration 0039 workflow invariants', () => {
   let duplicatePool: Pool;
   let stopContainer: () => Promise<void>;
   let oldMigrationsFolder: string;
+  /**
+   * Migration 0041 mints a fresh `agents.id`, so the seeded UUID above is the
+   * agent's `identity_id` from that point on and no longer the value foreign
+   * keys carry. Resolved after the migration and used by the assertions below.
+   */
+  let migratedAgentId: string;
 
   beforeAll(async () => {
     const container = await new PostgreSqlContainer('pgvector/pgvector:pg16')
@@ -170,6 +176,15 @@ describe('migration 0039 workflow invariants', () => {
     await migrate(drizzle(duplicatePool), {
       migrationsFolder: migrationFolder,
     });
+
+    const seededAgent = await duplicatePool.query<{ id: string }>(
+      'SELECT id FROM agents WHERE identity_id = $1',
+      ['10000000-0000-4000-a000-000000000001'],
+    );
+    expect(seededAgent.rows).toHaveLength(1);
+    migratedAgentId = seededAgent.rows[0].id;
+    // 0041 must not reuse the identity as the new primary key.
+    expect(migratedAgentId).not.toBe('10000000-0000-4000-a000-000000000001');
   }, 120_000);
 
   afterAll(async () => {
@@ -281,7 +296,7 @@ describe('migration 0039 workflow invariants', () => {
         [
           '20000000-0000-4000-a000-000000000001',
           '30000000-0000-4000-a000-000000000001',
-          '10000000-0000-4000-a000-000000000001',
+          migratedAgentId,
           keyHash,
           requestCid,
         ],

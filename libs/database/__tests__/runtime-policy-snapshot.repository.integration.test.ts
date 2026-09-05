@@ -32,6 +32,10 @@ describe('RuntimePolicySnapshotRepository (integration)', () => {
 
   const TEAM_ID = '11111111-1111-4111-8111-111111111111';
   const AGENT_ID = '22222222-2222-4222-8222-222222222222';
+  // The Kratos identity is deliberately NOT the agent id: since the
+  // decoupling they are independent values, and a fixture that reuses one
+  // for both cannot catch a lookup that resolves the wrong one.
+  const AGENT_IDENTITY_ID = '22222222-2222-4222-8222-2222222222f2';
   const TASK_ID = '33333333-3333-4333-8333-333333333333';
   const PROFILE_ID = '44444444-4444-4444-8444-444444444444';
   const EXECUTOR_FINGERPRINT = 'bafkreiauthorityexecutor';
@@ -57,7 +61,8 @@ describe('RuntimePolicySnapshotRepository (integration)', () => {
     repo = createRuntimePolicySnapshotRepository(db);
 
     await db.insert(agents).values({
-      identityId: AGENT_ID,
+      id: AGENT_ID,
+      identityId: AGENT_IDENTITY_ID,
       publicKey: 'ed25519:runtime-policy-snapshot',
       fingerprint: 'AUTH-SNAPSHOT-0001',
     });

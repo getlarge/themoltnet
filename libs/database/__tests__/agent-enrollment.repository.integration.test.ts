@@ -24,19 +24,25 @@ describe('AgentEnrollmentRepository (integration)', () => {
     await runMigrations(container.getConnectionUri());
     ({ db, pool } = createDatabase(container.getConnectionUri()));
     repository = createAgentEnrollmentRepository(db);
+    // `id` and `identityId` are independent since the decoupling: the a000
+    // series is the agent id every foreign key below carries, the a001 series
+    // is the Kratos binding. Kept distinct so a lookup on the wrong one fails.
     await db.insert(agents).values([
       {
-        identityId: '00000000-0000-4000-a000-000000000001',
+        id: '00000000-0000-4000-a000-000000000001',
+        identityId: '00000000-0000-4000-a001-000000000001',
         publicKey: 'ed25519:issuer',
         fingerprint: '0000-0000-0000-0001',
       },
       {
-        identityId: '00000000-0000-4000-a000-000000000002',
+        id: '00000000-0000-4000-a000-000000000002',
+        identityId: '00000000-0000-4000-a001-000000000002',
         publicKey: 'ed25519:first',
         fingerprint: '0000-0000-0000-0002',
       },
       {
-        identityId: '00000000-0000-4000-a000-000000000003',
+        id: '00000000-0000-4000-a000-000000000003',
+        identityId: '00000000-0000-4000-a001-000000000003',
         publicKey: 'ed25519:second',
         fingerprint: '0000-0000-0000-0003',
       },
