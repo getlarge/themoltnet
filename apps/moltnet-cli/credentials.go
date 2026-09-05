@@ -110,11 +110,14 @@ func ReadConfigFrom(path string) (*CredentialsFile, error) {
 // WriteConfig writes to the selected identity. New callers should use
 // writeCentralIdentityConfig so identity creation names its alias explicitly.
 func WriteConfig(config *CredentialsFile) (string, error) {
+	// Deliberately propagates the resolution error. Falling back to a
+	// "default" alias wrote key material into an identity the operator never
+	// chose and then promoted it to the persisted default — so a corrupt or
+	// unsupported-version selector silently minted and selected a phantom
+	// identity, leaving a half-written store behind.
 	alias, err := resolveIdentityAlias("")
 	if err != nil {
-		// Kept for internal callers that predate aliases; it never revives the
-		// legacy global file and makes a first local identity explicit enough.
-		alias = "default"
+		return "", err
 	}
 	return writeCentralIdentityConfig(alias, config)
 }

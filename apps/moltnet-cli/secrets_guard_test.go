@@ -819,3 +819,104 @@ func TestClassifySecretRootPathCanonicalizesAliases(t *testing.T) {
 		t.Fatalf("root configured through an alias = %v, want pathCredential", got)
 	}
 }
+
+// The central store lives outside every repository root, so the root-relative
+// classification can never reach it. Before this, the only central-path check
+// ran on the raw argument, so working *inside* the identity directory — where
+// the argument carries no `.config/moltnet/identities/` marker — read
+// credentials straight through the guard.
+func TestSecretsGuardDeniesCredentialReadFromInsideIdentityDir(t *testing.T) {
+	t.Parallel()
+	home := t.TempDir()
+	identityDir := filepath.Join(home, ".config", "moltnet", "identities", "agent")
+	if err := os.MkdirAll(filepath.Join(identityDir, "ssh"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	for _, rel := range []string{"moltnet.json", "env", "ssh/id_ed25519"} {
+		if err := os.WriteFile(filepath.Join(identityDir, rel), []byte("{}\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// cwd is the identity directory itself, so every argument is a bare
+	// filename; the active checkout is an UNRELATED repository, so the
+	// root-relative classification cannot reach the store. Using the store's
+	// own parent as the root would make this test pass without the fix.
+	repoRoot := t.TempDir()
+	pathContext := newSecretGuardPathContext(identityDir, repoRoot, repoRoot)
+	for _, command := range []string{
+		`cat moltnet.json`,
+		`cat ./moltnet.json`,
+		`sed -n 1p env`,
+		`cp moltnet.json /tmp/leaked.json`,
+		`cat ssh/id_ed25519`,
+		`cat ../agent/moltnet.json`,
+	} {
+		if reason := evaluateSecretsShellWithContext(command, pathContext); reason == "" {
+			t.Errorf("expected denial for cwd-relative credential read %q", command)
+		}
+	}
+
+	// The public members stay readable from the same cwd.
+	for _, command := range []string{`cat gitconfig`, `cat ssh/id_ed25519.pub`} {
+		if reason := evaluateSecretsShellWithContext(command, pathContext); reason != "" {
+			t.Errorf("expected allow for public file %q, got: %s", command, reason)
+		}
+	}
+}
+
+// A symlink into the central store must classify by its target, not its name.
+func TestSecretsGuardDeniesCredentialReadThroughSymlink(t *testing.T) {
+	t.Parallel()
+	home := t.TempDir()
+	identityDir := filepath.Join(home, ".config", "moltnet", "identities", "agent")
+	if err := os.MkdirAll(identityDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(identityDir, "moltnet.json")
+	if err := os.WriteFile(target, []byte("{}\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	work := t.TempDir()
+	link := filepath.Join(work, "innocent.json")
+	if err := os.Symlink(target, link); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+
+	pathContext := newSecretGuardPathContext(work, work, work)
+	if reason := evaluateSecretsShellWithContext("cat "+link, pathContext); reason == "" {
+		t.Errorf("expected denial for symlinked credential read %q", link)
+	}
+}
+
+// Whoever can write identity-selector.json silently repoints every later
+// credential resolution — signing, GitHub token minting — at a different local
+// identity, so the selector and the store root are integrity-sensitive.
+func TestSecretsGuardProtectsIdentitySelectorAndStoreRoot(t *testing.T) {
+	t.Parallel()
+	for _, path := range []string{
+		"/Users/test/.config/moltnet/identity-selector.json",
+		"/Users/test/.config/moltnet",
+	} {
+		if got := classifyCentralStorePath(normalizePolicyPath(path)); got != pathCredential {
+			t.Errorf("classifyCentralStorePath(%q) = %v, want credential", path, got)
+		}
+	}
+	// An unrelated file under the config root stays unclassified.
+	if got := classifyCentralStorePath(normalizePolicyPath("/Users/test/.config/moltnet/unrelated.txt")); got != pathNone {
+		t.Errorf("unrelated config file should not be protected, got %v", got)
+	}
+
+	home := t.TempDir()
+	repoRoot := t.TempDir()
+	pathContext := newSecretGuardPathContext(repoRoot, repoRoot, repoRoot)
+	for _, command := range []string{
+		`echo x > ` + filepath.Join(home, ".config/moltnet/identity-selector.json"),
+		`cp /tmp/evil.json ` + filepath.Join(home, ".config/moltnet/identity-selector.json"),
+		`rm -rf ` + filepath.Join(home, ".config/moltnet"),
+	} {
+		if reason := evaluateSecretsShellWithContext(command, pathContext); reason == "" {
+			t.Errorf("expected denial for selector mutation %q", command)
+		}
+	}
+}

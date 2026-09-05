@@ -525,10 +525,93 @@ func TestCurrentGitHubGuardContext_RelativeConfigReadsAgentEnv(t *testing.T) {
 }
 
 func TestCurrentGitHubGuardContext_RelativeConfigOutsideRepositoryIsInactive(t *testing.T) {
+	isolateIdentityEnv(t)
 	t.Setenv("HOME", t.TempDir())
 
 	if guardCtx, ok := currentGitHubGuardContext(); ok {
 		t.Fatalf("expected inactive context outside a repository, got %#v", guardCtx)
+	}
+}
+
+// A persisted default identity is NOT activation. Before this, any human shell
+// on a machine that had ever created an identity was treated as an activated
+// agent session, so the guard minted App tokens in ordinary contributor shells.
+func TestCurrentGitHubGuardContextPersistedSelectorAloneIsNotActivation(t *testing.T) {
+	agentDir := setupGitHubGuardIdentity(t)
+	_ = agentDir
+	t.Setenv("MOLTNET_ACTIVE_IDENTITY", "")
+
+	if guardCtx, ok := currentGitHubGuardContext(); ok {
+		t.Fatalf("selector alone must not activate the guard, got %#v", guardCtx)
+	}
+}
+
+// A legacy activated session sets GIT_CONFIG_GLOBAL and may have no selector at
+// all. It must still activate, otherwise its `gh` writes are silently
+// attributed to the human account.
+func TestCurrentGitHubGuardContextLegacyGitConfigGlobalActivates(t *testing.T) {
+	isolateIdentityEnv(t)
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	agentDir := filepath.Join(home, "repo", ".moltnet", "legacy")
+	if err := os.MkdirAll(agentDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"moltnet.json", "gitconfig"} {
+		if err := os.WriteFile(filepath.Join(agentDir, name), []byte("{}\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Setenv("GIT_CONFIG_GLOBAL", filepath.Join(agentDir, "gitconfig"))
+
+	guardCtx, ok := currentGitHubGuardContext()
+	if !ok {
+		t.Fatal("legacy GIT_CONFIG_GLOBAL session must activate the guard")
+	}
+	if want := filepath.Join(agentDir, "moltnet.json"); guardCtx.CredentialsPath != want {
+		t.Fatalf("credentials path = %q, want %q", guardCtx.CredentialsPath, want)
+	}
+}
+
+// An activated session whose identity cannot be resolved must DENY, not fall
+// through to "ordinary contributor" — which would attribute the write to the
+// human account. This is the github-guard counterpart of
+// TestSecretsGuardActivatedContextStillFailsClosed.
+func TestGitHubGuardActivatedSessionWithoutGitConfigFailsClosed(t *testing.T) {
+	isolateIdentityEnv(t)
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	agentDir := filepath.Join(home, ".config", "moltnet", "identities", "agent")
+	if err := os.MkdirAll(agentDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	// moltnet.json but deliberately no gitconfig: the shape `moltnet register`
+	// produces.
+	if err := os.WriteFile(filepath.Join(agentDir, "moltnet.json"), []byte("{}\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("MOLTNET_ACTIVE_IDENTITY", "agent")
+
+	guardCtx, ok := currentGitHubGuardContext()
+	if !ok {
+		t.Fatal("an activated session must stay active even when unresolvable")
+	}
+	if guardCtx.Failure == "" {
+		t.Fatal("expected a failure reason so the guard denies instead of allowing")
+	}
+
+	var out strings.Builder
+	err := runGitHubGuard(
+		strings.NewReader(`{"tool_input":{"command":"gh pr merge 1"}}`),
+		&out,
+		func() (githubGuardContext, bool) { return guardCtx, true },
+		func(context.Context, string) (map[string]string, error) { return nil, nil },
+	)
+	if err != nil {
+		t.Fatalf("runGitHubGuard: %v", err)
+	}
+	if !strings.Contains(out.String(), "\"permissionDecision\":\"deny\"") {
+		t.Fatalf("expected deny, got %q", out.String())
 	}
 }
 
@@ -553,8 +636,20 @@ func TestGitHubGuardCobraPath(t *testing.T) {
 	}
 }
 
+// isolateIdentityEnv clears every ambient activation signal. The test process
+// often inherits GIT_CONFIG_GLOBAL / MOLTNET_ACTIVE_IDENTITY / MOLTNET_AGENT_NAME
+// from an activated developer or CI session; without this, tests assert against
+// the developer's own identity instead of their fixture.
+func isolateIdentityEnv(t *testing.T) {
+	t.Helper()
+	t.Setenv("GIT_CONFIG_GLOBAL", "")
+	t.Setenv("MOLTNET_ACTIVE_IDENTITY", "")
+	t.Setenv("MOLTNET_AGENT_NAME", "")
+}
+
 func setupGitHubGuardIdentity(t *testing.T) string {
 	t.Helper()
+	isolateIdentityEnv(t)
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	agentDir := filepath.Join(home, ".config", "moltnet", "identities", "agent")
@@ -572,6 +667,9 @@ func setupGitHubGuardIdentity(t *testing.T) string {
 	if err := writeIdentitySelector("agent"); err != nil {
 		t.Fatal(err)
 	}
+	// Activation is session-scoped: the persisted selector alone answers
+	// "which identity", not "is this shell an agent session".
+	t.Setenv("MOLTNET_ACTIVE_IDENTITY", "agent")
 	return agentDir
 }
 

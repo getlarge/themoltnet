@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func runUseCmd(cmd *cobra.Command, dir, agentName string) error {
+func runUseCmd(cmd *cobra.Command, agentName string) error {
 	path, err := identityCredentialsPath(agentName)
 	if err != nil {
 		return err

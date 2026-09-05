@@ -154,17 +154,26 @@ repository-bound SSH, Git, environment, and activation files. This command
 does not install or configure agent-host plugins.`,
 		Example: `  moltnet config port --from /path/to/repo/.moltnet/legreffier
   moltnet config port --from /path/to/repo/.moltnet/legreffier --dir . --name reviewer`,
-		Args: cobra.NoArgs,
+		Args:   cobra.NoArgs,
+		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			portOpts.out = cmd.OutOrStdout()
-			return runConfigPortCmd(portOpts)
+			return fmt.Errorf(
+				"'moltnet config port' has been retired: identities are no "+
+					"longer copied between repositories, they live in the "+
+					"central store at ~/.config/moltnet/identities/<alias>.\n"+
+					"To bring an existing repository bundle into the central "+
+					"store, run:\n"+
+					"  moltnet config migrate --credentials %s\n"+
+					"To pick which identity is active, run:\n"+
+					"  moltnet config identity select <alias>",
+				portOpts.from+"/"+identityConfigFileName,
+			)
 		},
 	}
-	portCmd.Flags().StringVar(&portOpts.from, "from", "", "Source .moltnet/<agent> directory (required)")
+	portCmd.Flags().StringVar(&portOpts.from, "from", "", "Source .moltnet/<agent> directory")
 	portCmd.Flags().StringVar(&portOpts.dir, "dir", ".", "Target repository root directory")
 	portCmd.Flags().StringVar(&portOpts.name, "name", "", "Target agent name (default: source directory name)")
 	portCmd.Flags().StringVar(&portOpts.installationID, "installation-id", "", "Override the GitHub App installation ID")
-	_ = portCmd.MarkFlagRequired("from")
 
 	configCmd.AddCommand(repairCmd)
 	configCmd.AddCommand(initFromEnvCmd)
@@ -172,7 +181,11 @@ does not install or configure agent-host plugins.`,
 	configCmd.AddCommand(migrateCmd)
 	// `config port` copied repository-owned identity material. Identities now
 	// live centrally; repository bindings are intentionally a separate concern.
-	_ = portCmd
+	// It stays registered as a retirement signpost: the command is documented
+	// in the landing page, several docs pages and packages/legreffier-cli's
+	// published README, none of which this change can update, and "unknown
+	// command" gives a user following any of them nowhere to go.
+	configCmd.AddCommand(portCmd)
 	configCmd.AddCommand(newConfigIdentityCmd())
 	return configCmd
 }
@@ -238,18 +251,9 @@ func newConfigIdentityCmd() *cobra.Command {
 		Short: "Persist the default central identity",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path, err := identityCredentialsPath(args[0])
-			if err != nil {
-				return err
-			}
-			if !regularFileExists(path) {
-				return fmt.Errorf("identity %q not found", args[0])
-			}
-			if err := writeIdentitySelector(args[0]); err != nil {
-				return err
-			}
-			fmt.Fprintf(cmd.OutOrStdout(), "Default identity set to %q\n", args[0])
-			return nil
+			// `moltnet use` is documented as an alias for this command, so
+			// they must not drift: one implementation, one message.
+			return runUseCmd(cmd, args[0])
 		},
 	}
 	identityCmd.AddCommand(listCmd, showCmd, selectCmd)
@@ -267,14 +271,40 @@ func redactedIdentityDocument(creds *CredentialsFile) (map[string]interface{}, e
 	if err := json.Unmarshal(data, &document); err != nil {
 		return nil, fmt.Errorf("decode identity document: %w", err)
 	}
-	if oauth, ok := document["oauth2"].(map[string]interface{}); ok {
-		delete(oauth, "client_secret")
+	// Allowlist, not denylist. A denylist leaks every secret field added to
+	// CredentialsFile later by default, and the author of that field has no
+	// reason to look here. Anything not named below is dropped.
+	publicFields := map[string][]string{
+		"oauth2":    {"client_id", "token_url", "scopes"},
+		"keys":      {"public_key", "fingerprint", "algorithm"},
+		"github":    {"app_id", "app_slug", "installation_id", "org"},
+		"endpoints": nil, // no secrets: keep whole
+		"ssh":       {"public_key_path"},
+		"git":       nil, // name/email/signing config only
 	}
-	if keys, ok := document["keys"].(map[string]interface{}); ok {
-		delete(keys, "private_key")
-	}
-	if github, ok := document["github"].(map[string]interface{}); ok {
-		delete(github, "private_key_path")
+	for key, value := range document {
+		nested, ok := value.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		allowed, known := publicFields[key]
+		if !known {
+			// Unknown nested object: drop it wholesale rather than guess.
+			delete(document, key)
+			continue
+		}
+		if allowed == nil {
+			continue
+		}
+		keep := make(map[string]struct{}, len(allowed))
+		for _, field := range allowed {
+			keep[field] = struct{}{}
+		}
+		for field := range nested {
+			if _, ok := keep[field]; !ok {
+				delete(nested, field)
+			}
+		}
 	}
 	return document, nil
 }

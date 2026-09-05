@@ -35,6 +35,7 @@ func TestReadConfig_MoltnetJson(t *testing.T) {
 }
 
 func TestReadConfigDoesNotDiscoverLegacyGlobalDocument(t *testing.T) {
+	isolateIdentityEnv(t)
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 
@@ -103,6 +104,7 @@ func TestReadConfig_PrefersMoltnetJson(t *testing.T) {
 }
 
 func TestWriteConfig(t *testing.T) {
+	isolateIdentityEnv(t)
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
 
@@ -114,12 +116,25 @@ func TestWriteConfig(t *testing.T) {
 		Endpoints:    CredentialsEndpoints{API: "https://api.test", MCP: "https://api.test/mcp"},
 	}
 
+	// With no identity selected the write must fail rather than invent a
+	// "default" alias and promote it to the persisted default.
+	if _, err := WriteConfig(config); err == nil {
+		t.Fatal("WriteConfig must not invent an identity when none is selected")
+	}
+	if entries, err := os.ReadDir(filepath.Join(tmpDir, ".config", "moltnet", "identities")); err == nil && len(entries) > 0 {
+		t.Fatalf("no identity directory may be created on failure, got %d", len(entries))
+	}
+
+	if err := writeIdentitySelector("chosen"); err != nil {
+		t.Fatalf("writeIdentitySelector: %v", err)
+	}
+
 	path, err := WriteConfig(config)
 	if err != nil {
 		t.Fatalf("WriteConfig: %v", err)
 	}
 
-	expectedPath := filepath.Join(tmpDir, ".config", "moltnet", "identities", "default", "moltnet.json")
+	expectedPath := filepath.Join(tmpDir, ".config", "moltnet", "identities", "chosen", "moltnet.json")
 	if path != expectedPath {
 		t.Errorf("path: got %s, want %s", path, expectedPath)
 	}
@@ -128,16 +143,13 @@ func TestWriteConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("stat: %v", err)
 	}
-	if perm := info.Mode().Perm(); perm != 0o600 {
-		t.Errorf("permissions: got %o, want 600", perm)
+	if mode := info.Mode().Perm(); mode != 0o600 {
+		t.Errorf("mode: got %o, want 600", mode)
 	}
-
-	read, err := ReadConfigFrom(path)
-	if err != nil {
-		t.Fatalf("ReadConfigFrom: %v", err)
-	}
-	if read.IdentityID != "uuid-write-test" {
-		t.Errorf("identity_id: got %s", read.IdentityID)
+	if dirInfo, err := os.Stat(filepath.Dir(path)); err != nil {
+		t.Fatalf("stat identity dir: %v", err)
+	} else if mode := dirInfo.Mode().Perm(); mode != 0o700 {
+		t.Errorf("identity dir mode: got %o, want 700", mode)
 	}
 }
 

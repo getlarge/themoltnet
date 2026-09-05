@@ -483,7 +483,20 @@ func completeCentralIdentityInit(opts agentsInitOpts, identityDir, configPath st
 	if err := writeIdentityEnv(identityDir, opts.name, creds); err != nil {
 		return err
 	}
-	return nil
+	// Seed the selector when none exists, as register / init-from-env /
+	// migrate all do. Without this the primary onboarding path left no default
+	// identity, so every later command failed with "no active identity
+	// selected" unless MOLTNET_ACTIVE_IDENTITY was exported by hand.
+	if selector, err := readIdentitySelector(); err != nil {
+		return err
+	} else if selector == nil || selector.DefaultIdentity == "" {
+		if err := writeIdentitySelector(opts.name); err != nil {
+			return err
+		}
+	}
+	// Warm the activation cache so `agents activation validate` does not
+	// report invalid immediately after a successful init.
+	return runAgentsActivationRefreshCmd(io.Discard, opts.name, false)
 }
 
 func writeIdentityEnv(identityDir, alias string, creds *CredentialsFile) error {

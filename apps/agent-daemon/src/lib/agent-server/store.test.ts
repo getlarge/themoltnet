@@ -17,6 +17,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   AgentServerStore,
   AgentServerStoreError,
+  assertStoreName,
   resolveAgentServerRoot,
 } from './store.js';
 
@@ -437,5 +438,45 @@ describe('AgentServerStore', () => {
     expect(removed.sort()).toEqual(['large', 'old']);
     expect(existsSync(store.runDir('recent'))).toBe(true);
     expect(existsSync(store.runDir('active'))).toBe(true);
+  });
+
+  it('clears the persisted default when the identity it names is removed', () => {
+    const store = freshStore();
+    store.ensure();
+    store.writeAgentConfig('alpha', { identity_id: 'a' } as never);
+    store.writeAgentConfig('beta', { identity_id: 'b' } as never);
+    store.writeIdentitySelector('alpha');
+    expect(store.readIdentitySelector()?.default_identity).toBe('alpha');
+
+    // Removing a non-default identity must leave the selector alone.
+    store.removeAgentConfig('beta');
+    expect(store.readIdentitySelector()?.default_identity).toBe('alpha');
+
+    // Removing the default must clear it: a selector naming a deleted alias
+    // makes resolution succeed on a dangling identity and surface as a
+    // generic "not found".
+    store.removeAgentConfig('alpha');
+    expect(store.readIdentitySelector()?.default_identity).toBeUndefined();
+  });
+});
+
+describe('identity alias grammar', () => {
+  // The alias is a directory name in a store the Go CLI, the daemon and
+  // @moltnet/agent-config all write, so the three grammars must accept exactly
+  // the same strings. Mirrors agentNamePattern in apps/moltnet-cli.
+  it('matches the Go CLI grammar', () => {
+    for (const valid of ['agent', 'agent.v2', 'Agent_1', 'a', 'a'.repeat(63)]) {
+      expect(() => assertStoreName('identity alias', valid)).not.toThrow();
+    }
+    for (const invalid of [
+      '',
+      '.hidden',
+      '-leading',
+      'a'.repeat(64),
+      'has/slash',
+      'has space',
+    ]) {
+      expect(() => assertStoreName('identity alias', invalid)).toThrow();
+    }
   });
 });

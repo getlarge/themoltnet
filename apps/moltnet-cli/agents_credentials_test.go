@@ -573,6 +573,7 @@ func TestResolveCredentialsPathPrecedence(t *testing.T) {
 }
 
 func TestResolveCredentialsPathDoesNotDiscoverRepositoryGitConfig(t *testing.T) {
+	isolateIdentityEnv(t)
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	repoDir := t.TempDir()
