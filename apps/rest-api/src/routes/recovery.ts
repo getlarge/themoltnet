@@ -227,6 +227,18 @@ export async function recoveryRoutes(
     async (request) => {
       const agent = await verifyRecoveryProof(request, 'identity');
 
+      // Identity recovery needs a Kratos identity to recover. Since the
+      // decoupling an agent may legitimately have none — its identity was
+      // deleted upstream and not yet reprovisioned — in which case there is
+      // nothing for Kratos to issue a code against. Fail with a clear reason
+      // rather than sending null and getting an opaque error back.
+      if (!agent.identityId) {
+        throw createProblem(
+          'invalid-challenge',
+          'Agent has no Ory identity bound; it must be reprovisioned before identity recovery is possible',
+        );
+      }
+
       // Call Kratos Admin API to create the recovery code.
       try {
         const data = await identityClient.createRecoveryCodeForIdentity({
@@ -282,7 +294,7 @@ export async function recoveryRoutes(
     },
     async (request) => {
       const agent = await verifyRecoveryProof(request, 'credentials');
-      const deterministicClientId = agentOAuth2ClientId(agent.identityId);
+      const deterministicClientId = agentOAuth2ClientId(agent.id);
 
       let existingClient;
       try {

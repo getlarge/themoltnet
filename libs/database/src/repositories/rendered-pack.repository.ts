@@ -33,6 +33,7 @@ const renderedPackSelection = {
   renderMethod: renderedPacks.renderMethod,
   totalTokens: renderedPacks.totalTokens,
   creatorAgentId: renderedPacks.creatorAgentId,
+  creatorAgentIdentityId: agents.identityId,
   creatorAgentFingerprint: agents.fingerprint,
   creatorAgentPublicKey: agents.publicKey,
   creatorHumanId: renderedPacks.creatorHumanId,
@@ -45,6 +46,7 @@ const renderedPackSelection = {
 } as const;
 
 interface RenderedPackRow extends RenderedPack {
+  creatorAgentIdentityId: string | null;
   creatorAgentFingerprint: string | null;
   creatorAgentPublicKey: string | null;
   creatorHumanIdentityId: string | null;
@@ -62,6 +64,7 @@ function normalizeRenderedPack(row: RenderedPackRow): RenderedPackWithCreator {
     totalTokens: row.totalTokens,
     creator: resolvePrincipal({
       creatorAgentId: row.creatorAgentId,
+      creatorAgentIdentityId: row.creatorAgentIdentityId,
       creatorAgentFingerprint: row.creatorAgentFingerprint,
       creatorAgentPublicKey: row.creatorAgentPublicKey,
       creatorHumanId: row.creatorHumanId,
@@ -90,7 +93,7 @@ export function createRenderedPackRepository(db: Database) {
       const [row] = (await getExecutor(db)
         .select(renderedPackSelection)
         .from(renderedPacks)
-        .leftJoin(agents, eq(renderedPacks.creatorAgentId, agents.identityId))
+        .leftJoin(agents, eq(renderedPacks.creatorAgentId, agents.id))
         .leftJoin(humans, eq(renderedPacks.creatorHumanId, humans.id))
         .where(eq(renderedPacks.id, id))
         .limit(1)) as RenderedPackRow[];
@@ -102,7 +105,7 @@ export function createRenderedPackRepository(db: Database) {
       const [row] = (await getExecutor(db)
         .select(renderedPackSelection)
         .from(renderedPacks)
-        .leftJoin(agents, eq(renderedPacks.creatorAgentId, agents.identityId))
+        .leftJoin(agents, eq(renderedPacks.creatorAgentId, agents.id))
         .leftJoin(humans, eq(renderedPacks.creatorHumanId, humans.id))
         .where(eq(renderedPacks.packCid, packCid))
         .limit(1)) as RenderedPackRow[];
@@ -116,7 +119,7 @@ export function createRenderedPackRepository(db: Database) {
       const [row] = (await getExecutor(db)
         .select(renderedPackSelection)
         .from(renderedPacks)
-        .leftJoin(agents, eq(renderedPacks.creatorAgentId, agents.identityId))
+        .leftJoin(agents, eq(renderedPacks.creatorAgentId, agents.id))
         .leftJoin(humans, eq(renderedPacks.creatorHumanId, humans.id))
         .where(eq(renderedPacks.sourcePackId, sourcePackId))
         .orderBy(desc(renderedPacks.createdAt))
@@ -132,7 +135,7 @@ export function createRenderedPackRepository(db: Database) {
       const rows = (await getExecutor(db)
         .select(renderedPackSelection)
         .from(renderedPacks)
-        .leftJoin(agents, eq(renderedPacks.creatorAgentId, agents.identityId))
+        .leftJoin(agents, eq(renderedPacks.creatorAgentId, agents.id))
         .leftJoin(humans, eq(renderedPacks.creatorHumanId, humans.id))
         .where(eq(renderedPacks.sourcePackId, sourcePackId))
         .orderBy(desc(renderedPacks.createdAt))
@@ -150,7 +153,7 @@ export function createRenderedPackRepository(db: Database) {
       const rows = (await getExecutor(db)
         .select(renderedPackSelection)
         .from(renderedPacks)
-        .leftJoin(agents, eq(renderedPacks.creatorAgentId, agents.identityId))
+        .leftJoin(agents, eq(renderedPacks.creatorAgentId, agents.id))
         .leftJoin(humans, eq(renderedPacks.creatorHumanId, humans.id))
         .where(inArray(renderedPacks.sourcePackId, sourcePackIds))
         .orderBy(desc(renderedPacks.createdAt))
@@ -178,7 +181,7 @@ export function createRenderedPackRepository(db: Database) {
         getExecutor(db)
           .select(renderedPackSelection)
           .from(renderedPacks)
-          .leftJoin(agents, eq(renderedPacks.creatorAgentId, agents.identityId))
+          .leftJoin(agents, eq(renderedPacks.creatorAgentId, agents.id))
           .leftJoin(humans, eq(renderedPacks.creatorHumanId, humans.id))
           .where(where)
           .orderBy(desc(renderedPacks.createdAt))
