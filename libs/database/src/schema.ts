@@ -217,10 +217,9 @@ export const diaries = pgTable(
 
     // Principal that originally created this diary. Exactly one of
     // creator_agent_id / creator_human_id is set per row (XOR check).
-    creatorAgentId: uuid('creator_agent_id').references(
-      () => agents.identityId,
-      { onDelete: 'restrict' },
-    ),
+    creatorAgentId: uuid('creator_agent_id').references(() => agents.id, {
+      onDelete: 'restrict',
+    }),
     creatorHumanId: uuid('creator_human_id').references(() => humans.id, {
       onDelete: 'restrict',
     }),
@@ -294,10 +293,9 @@ export const diaryEntries = pgTable(
     tags: text('tags').array(),
     // Strong provenance: authenticated principal that created the entry.
     // Exactly one of creator_agent_id / creator_human_id is set per row (XOR check).
-    creatorAgentId: uuid('creator_agent_id').references(
-      () => agents.identityId,
-      { onDelete: 'restrict' },
-    ),
+    creatorAgentId: uuid('creator_agent_id').references(() => agents.id, {
+      onDelete: 'restrict',
+    }),
     creatorHumanId: uuid('creator_human_id').references(() => humans.id, {
       onDelete: 'restrict',
     }),
@@ -369,13 +367,26 @@ export const diaryEntries = pgTable(
  * Agents Table
  *
  * Stores Ed25519 public keys for agents (mirrors Ory Kratos identity traits)
- * This is a denormalized cache for quick lookups without hitting Ory
+ * This is a denormalized cache for quick lookups without hitting Ory.
+ *
+ * `id` is MoltNet's own identifier and the target of every agent foreign key
+ * below, as well as the Keto subject (`Agent:<id>`). It is deliberately
+ * decoupled from Ory: losing every Kratos identity (as happened on
+ * 2026-09-04) must not orphan the graph.
  */
 export const agents = pgTable(
   'agents',
   {
-    // Ory Kratos identity ID
-    identityId: uuid('identity_id').primaryKey(),
+    // Internal MoltNet agent ID. Seeded during the decoupling migration from
+    // whatever identity_id held at the time, so historic values look like
+    // Kratos identity IDs — they are opaque and no longer meaningful to Ory.
+    // Immutable: nothing may update this column.
+    id: uuid('id').primaryKey().defaultRandom(),
+
+    // Binding to the Ory Kratos identity. NULL means no live Kratos identity
+    // (deleted upstream, or not yet provisioned); the agent keeps its data,
+    // ownership and permissions and simply cannot authenticate until relinked.
+    identityId: uuid('identity_id').unique(),
 
     // Ed25519 public key (base64 encoded with prefix)
     publicKey: text('public_key').notNull(),
@@ -474,7 +485,7 @@ export const signingCredentials = pgTable(
   'signing_credentials',
   {
     id: uuid('id').defaultRandom().primaryKey(),
-    ownerAgentId: uuid('owner_agent_id').references(() => agents.identityId, {
+    ownerAgentId: uuid('owner_agent_id').references(() => agents.id, {
       onDelete: 'restrict',
     }),
     ownerHumanId: uuid('owner_human_id').references(() => humans.id, {
@@ -539,7 +550,7 @@ export const signingCredentialEvents = pgTable(
     teamId: uuid('team_id')
       .notNull()
       .references(() => teams.id, { onDelete: 'restrict' }),
-    actorAgentId: uuid('actor_agent_id').references(() => agents.identityId, {
+    actorAgentId: uuid('actor_agent_id').references(() => agents.id, {
       onDelete: 'restrict',
     }),
     actorHumanId: uuid('actor_human_id').references(() => humans.id, {
@@ -807,10 +818,9 @@ export const contextPacks = pgTable(
       .notNull(),
     // Strong provenance: authenticated principal that materialized the pack.
     // Exactly one of creator_agent_id / creator_human_id is set per row (XOR check).
-    creatorAgentId: uuid('creator_agent_id').references(
-      () => agents.identityId,
-      { onDelete: 'restrict' },
-    ),
+    creatorAgentId: uuid('creator_agent_id').references(() => agents.id, {
+      onDelete: 'restrict',
+    }),
     creatorHumanId: uuid('creator_human_id').references(() => humans.id, {
       onDelete: 'restrict',
     }),
@@ -905,10 +915,9 @@ export const teams = pgTable(
 
     // Principal that created this team. Exactly one of creator_agent_id /
     // creator_human_id is set per row (XOR check).
-    creatorAgentId: uuid('creator_agent_id').references(
-      () => agents.identityId,
-      { onDelete: 'restrict' },
-    ),
+    creatorAgentId: uuid('creator_agent_id').references(() => agents.id, {
+      onDelete: 'restrict',
+    }),
     creatorHumanId: uuid('creator_human_id').references(() => humans.id, {
       onDelete: 'restrict',
     }),
@@ -953,10 +962,9 @@ export const groups = pgTable(
 
     // Principal that created this group. Exactly one of creator_agent_id /
     // creator_human_id is set per row (XOR check).
-    creatorAgentId: uuid('creator_agent_id').references(
-      () => agents.identityId,
-      { onDelete: 'restrict' },
-    ),
+    creatorAgentId: uuid('creator_agent_id').references(() => agents.id, {
+      onDelete: 'restrict',
+    }),
     creatorHumanId: uuid('creator_human_id').references(() => humans.id, {
       onDelete: 'restrict',
     }),
@@ -1007,10 +1015,9 @@ export const teamInvites = pgTable(
 
     // Principal that created this invite. Exactly one of creator_agent_id /
     // creator_human_id is set per row (XOR check).
-    creatorAgentId: uuid('creator_agent_id').references(
-      () => agents.identityId,
-      { onDelete: 'restrict' },
-    ),
+    creatorAgentId: uuid('creator_agent_id').references(() => agents.id, {
+      onDelete: 'restrict',
+    }),
     creatorHumanId: uuid('creator_human_id').references(() => humans.id, {
       onDelete: 'restrict',
     }),
@@ -1152,10 +1159,9 @@ export const renderedPacks = pgTable(
     totalTokens: integer('total_tokens').notNull(),
     // Principal that rendered this pack. Exactly one of creator_agent_id /
     // creator_human_id is set per row (XOR check).
-    creatorAgentId: uuid('creator_agent_id').references(
-      () => agents.identityId,
-      { onDelete: 'restrict' },
-    ),
+    creatorAgentId: uuid('creator_agent_id').references(() => agents.id, {
+      onDelete: 'restrict',
+    }),
     creatorHumanId: uuid('creator_human_id').references(() => humans.id, {
       onDelete: 'restrict',
     }),
@@ -1272,7 +1278,7 @@ export const tasks = pgTable(
       .default(sql`'[]'::jsonb`),
     correlationId: uuid('correlation_id'),
     proposedByAgentId: uuid('proposed_by_agent_id').references(
-      () => agents.identityId,
+      () => agents.id,
       { onDelete: 'restrict' },
     ),
     proposedByHumanId: uuid('proposed_by_human_id').references(
@@ -1283,7 +1289,7 @@ export const tasks = pgTable(
     ),
     acceptedAttemptN: integer('accepted_attempt_n'),
     claimCondition: jsonb('claim_condition'),
-    claimAgentId: uuid('claim_agent_id').references(() => agents.identityId, {
+    claimAgentId: uuid('claim_agent_id').references(() => agents.id, {
       onDelete: 'restrict',
     }),
     claimExpiresAt: timestamp('claim_expires_at', { withTimezone: true }),
@@ -1308,7 +1314,7 @@ export const tasks = pgTable(
     completedAt: timestamp('completed_at', { withTimezone: true }),
     expiresAt: timestamp('expires_at', { withTimezone: true }),
     cancelledByAgentId: uuid('cancelled_by_agent_id').references(
-      () => agents.identityId,
+      () => agents.id,
       { onDelete: 'restrict' },
     ),
     cancelledByHumanId: uuid('cancelled_by_human_id').references(
@@ -1429,10 +1435,9 @@ export const correlationSeals = pgTable(
       length: 100,
     }).notNull(),
     /** Optional caller (agent or human) that triggered the seal. */
-    sealedByAgentId: uuid('sealed_by_agent_id').references(
-      () => agents.identityId,
-      { onDelete: 'set null' },
-    ),
+    sealedByAgentId: uuid('sealed_by_agent_id').references(() => agents.id, {
+      onDelete: 'set null',
+    }),
     sealedByHumanId: uuid('sealed_by_human_id').references(() => humans.id, {
       onDelete: 'set null',
     }),
@@ -1546,7 +1551,7 @@ export const executorManifestRegistrations = pgTable(
       }),
     agentIdentityId: uuid('agent_identity_id')
       .notNull()
-      .references(() => agents.identityId, { onDelete: 'cascade' }),
+      .references(() => agents.id, { onDelete: 'cascade' }),
     signature: text('signature').notNull(),
     registeredAt: timestamp('registered_at', { withTimezone: true })
       .notNull()
@@ -1577,7 +1582,7 @@ export const taskAttempts = pgTable(
     attemptN: integer('attempt_n').notNull(),
     claimedByAgentId: uuid('claimed_by_agent_id')
       .notNull()
-      .references(() => agents.identityId, { onDelete: 'restrict' }),
+      .references(() => agents.id, { onDelete: 'restrict' }),
     leaseId: uuid('lease_id'),
     // Historical authority binding: intentionally not an FK so deleting a
     // mutable profile cannot erase or block cleanup of immutable attempts.
@@ -1851,10 +1856,9 @@ export const taskArtifacts = pgTable(
     cid: varchar('cid', { length: 100 }).notNull(),
     // NULL when the artifact was bound by a human proposer; attribution
     // lives on tasks.proposed_by_human_id in that case.
-    createdByAgentId: uuid('created_by_agent_id').references(
-      () => agents.identityId,
-      { onDelete: 'restrict' },
-    ),
+    createdByAgentId: uuid('created_by_agent_id').references(() => agents.id, {
+      onDelete: 'restrict',
+    }),
     expiresAt: timestamp('expires_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()

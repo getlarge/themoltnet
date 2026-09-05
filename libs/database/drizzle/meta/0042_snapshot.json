@@ -1,18 +1,241 @@
 {
-  "id": "add9fbb0-f43c-40f2-b890-e40904200deb",
-  "prevId": "909fc1fb-ea2d-4c0a-83ec-0d9cd248b060",
+  "id": "369c2c49-03a5-4912-9110-5d54f62c5c4b",
+  "prevId": "add9fbb0-f43c-40f2-b890-e40904200deb",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.agent_enrollments": {
+      "name": "agent_enrollments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "token_hash": {
+          "name": "token_hash",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "team_id": {
+          "name": "team_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "creator_agent_id": {
+          "name": "creator_agent_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "creator_human_id": {
+          "name": "creator_human_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "redeemed_at": {
+          "name": "redeemed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "revoked_at": {
+          "name": "revoked_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "resulting_agent_id": {
+          "name": "resulting_agent_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "agent_enrollments_token_hash_idx": {
+          "name": "agent_enrollments_token_hash_idx",
+          "columns": [
+            {
+              "expression": "token_hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "agent_enrollments_team_idx": {
+          "name": "agent_enrollments_team_idx",
+          "columns": [
+            {
+              "expression": "team_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "agent_enrollments_creator_agent_idx": {
+          "name": "agent_enrollments_creator_agent_idx",
+          "columns": [
+            {
+              "expression": "creator_agent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "creator_agent_id IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "agent_enrollments_creator_human_idx": {
+          "name": "agent_enrollments_creator_human_idx",
+          "columns": [
+            {
+              "expression": "creator_human_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "creator_human_id IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "agent_enrollments_pending_expiry_idx": {
+          "name": "agent_enrollments_pending_expiry_idx",
+          "columns": [
+            {
+              "expression": "expires_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "redeemed_at IS NULL AND revoked_at IS NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "agent_enrollments_team_id_teams_id_fk": {
+          "name": "agent_enrollments_team_id_teams_id_fk",
+          "tableFrom": "agent_enrollments",
+          "tableTo": "teams",
+          "columnsFrom": [
+            "team_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "agent_enrollments_creator_agent_id_agents_id_fk": {
+          "name": "agent_enrollments_creator_agent_id_agents_id_fk",
+          "tableFrom": "agent_enrollments",
+          "tableTo": "agents",
+          "columnsFrom": [
+            "creator_agent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "agent_enrollments_creator_human_id_humans_id_fk": {
+          "name": "agent_enrollments_creator_human_id_humans_id_fk",
+          "tableFrom": "agent_enrollments",
+          "tableTo": "humans",
+          "columnsFrom": [
+            "creator_human_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "agent_enrollments_resulting_agent_id_agents_id_fk": {
+          "name": "agent_enrollments_resulting_agent_id_agents_id_fk",
+          "tableFrom": "agent_enrollments",
+          "tableTo": "agents",
+          "columnsFrom": [
+            "resulting_agent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "agent_enrollments_creator_xor": {
+          "name": "agent_enrollments_creator_xor",
+          "value": "(creator_agent_id IS NOT NULL) <> (creator_human_id IS NOT NULL)"
+        },
+        "agent_enrollments_redemption_result_pair": {
+          "name": "agent_enrollments_redemption_result_pair",
+          "value": "(redeemed_at IS NULL) = (resulting_agent_id IS NULL)"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.agents": {
       "name": "agents",
       "schema": "",
       "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
         "identity_id": {
           "name": "identity_id",
           "type": "uuid",
-          "primaryKey": true,
-          "notNull": true
+          "primaryKey": false,
+          "notNull": false
         },
         "public_key": {
           "name": "public_key",
@@ -60,7 +283,15 @@
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "agents_identity_id_unique": {
+          "name": "agents_identity_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "identity_id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -431,15 +662,15 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "context_packs_creator_agent_id_agents_identity_id_fk": {
-          "name": "context_packs_creator_agent_id_agents_identity_id_fk",
+        "context_packs_creator_agent_id_agents_id_fk": {
+          "name": "context_packs_creator_agent_id_agents_id_fk",
           "tableFrom": "context_packs",
           "tableTo": "agents",
           "columnsFrom": [
             "creator_agent_id"
           ],
           "columnsTo": [
-            "identity_id"
+            "id"
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
@@ -555,15 +786,15 @@
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "correlation_seals_sealed_by_agent_id_agents_identity_id_fk": {
-          "name": "correlation_seals_sealed_by_agent_id_agents_identity_id_fk",
+        "correlation_seals_sealed_by_agent_id_agents_id_fk": {
+          "name": "correlation_seals_sealed_by_agent_id_agents_id_fk",
           "tableFrom": "correlation_seals",
           "tableTo": "agents",
           "columnsFrom": [
             "sealed_by_agent_id"
           ],
           "columnsTo": [
-            "identity_id"
+            "id"
           ],
           "onDelete": "set null",
           "onUpdate": "no action"
@@ -730,15 +961,15 @@
         }
       },
       "foreignKeys": {
-        "diaries_creator_agent_id_agents_identity_id_fk": {
-          "name": "diaries_creator_agent_id_agents_identity_id_fk",
+        "diaries_creator_agent_id_agents_id_fk": {
+          "name": "diaries_creator_agent_id_agents_id_fk",
           "tableFrom": "diaries",
           "tableTo": "agents",
           "columnsFrom": [
             "creator_agent_id"
           ],
           "columnsTo": [
-            "identity_id"
+            "id"
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
@@ -1019,15 +1250,15 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "diary_entries_creator_agent_id_agents_identity_id_fk": {
-          "name": "diary_entries_creator_agent_id_agents_identity_id_fk",
+        "diary_entries_creator_agent_id_agents_id_fk": {
+          "name": "diary_entries_creator_agent_id_agents_id_fk",
           "tableFrom": "diary_entries",
           "tableTo": "agents",
           "columnsFrom": [
             "creator_agent_id"
           ],
           "columnsTo": [
-            "identity_id"
+            "id"
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
@@ -1526,15 +1757,15 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "executor_manifest_registrations_agent_identity_id_agents_identity_id_fk": {
-          "name": "executor_manifest_registrations_agent_identity_id_agents_identity_id_fk",
+        "executor_manifest_registrations_agent_identity_id_agents_id_fk": {
+          "name": "executor_manifest_registrations_agent_identity_id_agents_id_fk",
           "tableFrom": "executor_manifest_registrations",
           "tableTo": "agents",
           "columnsFrom": [
             "agent_identity_id"
           ],
           "columnsTo": [
-            "identity_id"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -1943,15 +2174,15 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "groups_creator_agent_id_agents_identity_id_fk": {
-          "name": "groups_creator_agent_id_agents_identity_id_fk",
+        "groups_creator_agent_id_agents_id_fk": {
+          "name": "groups_creator_agent_id_agents_id_fk",
           "tableFrom": "groups",
           "tableTo": "agents",
           "columnsFrom": [
             "creator_agent_id"
           ],
           "columnsTo": [
-            "identity_id"
+            "id"
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
@@ -2266,15 +2497,15 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "rendered_packs_creator_agent_id_agents_identity_id_fk": {
-          "name": "rendered_packs_creator_agent_id_agents_identity_id_fk",
+        "rendered_packs_creator_agent_id_agents_id_fk": {
+          "name": "rendered_packs_creator_agent_id_agents_id_fk",
           "tableFrom": "rendered_packs",
           "tableTo": "agents",
           "columnsFrom": [
             "creator_agent_id"
           ],
           "columnsTo": [
-            "identity_id"
+            "id"
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
@@ -2495,15 +2726,15 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "runtime_models_created_by_agent_id_agents_identity_id_fk": {
-          "name": "runtime_models_created_by_agent_id_agents_identity_id_fk",
+        "runtime_models_created_by_agent_id_agents_id_fk": {
+          "name": "runtime_models_created_by_agent_id_agents_id_fk",
           "tableFrom": "runtime_models",
           "tableTo": "agents",
           "columnsFrom": [
             "created_by_agent_id"
           ],
           "columnsTo": [
-            "identity_id"
+            "id"
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
@@ -2634,15 +2865,15 @@
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "runtime_policies_created_by_agent_id_agents_identity_id_fk": {
-          "name": "runtime_policies_created_by_agent_id_agents_identity_id_fk",
+        "runtime_policies_created_by_agent_id_agents_id_fk": {
+          "name": "runtime_policies_created_by_agent_id_agents_id_fk",
           "tableFrom": "runtime_policies",
           "tableTo": "agents",
           "columnsFrom": [
             "created_by_agent_id"
           ],
           "columnsTo": [
-            "identity_id"
+            "id"
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
@@ -3026,15 +3257,15 @@
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "runtime_profiles_created_by_agent_id_agents_identity_id_fk": {
-          "name": "runtime_profiles_created_by_agent_id_agents_identity_id_fk",
+        "runtime_profiles_created_by_agent_id_agents_id_fk": {
+          "name": "runtime_profiles_created_by_agent_id_agents_id_fk",
           "tableFrom": "runtime_profiles",
           "tableTo": "agents",
           "columnsFrom": [
             "created_by_agent_id"
           ],
           "columnsTo": [
-            "identity_id"
+            "id"
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
@@ -4079,15 +4310,15 @@
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "signing_credential_events_actor_agent_id_agents_identity_id_fk": {
-          "name": "signing_credential_events_actor_agent_id_agents_identity_id_fk",
+        "signing_credential_events_actor_agent_id_agents_id_fk": {
+          "name": "signing_credential_events_actor_agent_id_agents_id_fk",
           "tableFrom": "signing_credential_events",
           "tableTo": "agents",
           "columnsFrom": [
             "actor_agent_id"
           ],
           "columnsTo": [
-            "identity_id"
+            "id"
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
@@ -4465,15 +4696,15 @@
         }
       },
       "foreignKeys": {
-        "signing_credentials_owner_agent_id_agents_identity_id_fk": {
-          "name": "signing_credentials_owner_agent_id_agents_identity_id_fk",
+        "signing_credentials_owner_agent_id_agents_id_fk": {
+          "name": "signing_credentials_owner_agent_id_agents_id_fk",
           "tableFrom": "signing_credentials",
           "tableTo": "agents",
           "columnsFrom": [
             "owner_agent_id"
           ],
           "columnsTo": [
-            "identity_id"
+            "id"
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
@@ -5233,15 +5464,15 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "task_artifacts_created_by_agent_id_agents_identity_id_fk": {
-          "name": "task_artifacts_created_by_agent_id_agents_identity_id_fk",
+        "task_artifacts_created_by_agent_id_agents_id_fk": {
+          "name": "task_artifacts_created_by_agent_id_agents_id_fk",
           "tableFrom": "task_artifacts",
           "tableTo": "agents",
           "columnsFrom": [
             "created_by_agent_id"
           ],
           "columnsTo": [
-            "identity_id"
+            "id"
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
@@ -5630,15 +5861,15 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "task_attempts_claimed_by_agent_id_agents_identity_id_fk": {
-          "name": "task_attempts_claimed_by_agent_id_agents_identity_id_fk",
+        "task_attempts_claimed_by_agent_id_agents_id_fk": {
+          "name": "task_attempts_claimed_by_agent_id_agents_id_fk",
           "tableFrom": "task_attempts",
           "tableTo": "agents",
           "columnsFrom": [
             "claimed_by_agent_id"
           ],
           "columnsTo": [
-            "identity_id"
+            "id"
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
@@ -6257,15 +6488,15 @@
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "tasks_proposed_by_agent_id_agents_identity_id_fk": {
-          "name": "tasks_proposed_by_agent_id_agents_identity_id_fk",
+        "tasks_proposed_by_agent_id_agents_id_fk": {
+          "name": "tasks_proposed_by_agent_id_agents_id_fk",
           "tableFrom": "tasks",
           "tableTo": "agents",
           "columnsFrom": [
             "proposed_by_agent_id"
           ],
           "columnsTo": [
-            "identity_id"
+            "id"
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
@@ -6283,28 +6514,28 @@
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "tasks_claim_agent_id_agents_identity_id_fk": {
-          "name": "tasks_claim_agent_id_agents_identity_id_fk",
+        "tasks_claim_agent_id_agents_id_fk": {
+          "name": "tasks_claim_agent_id_agents_id_fk",
           "tableFrom": "tasks",
           "tableTo": "agents",
           "columnsFrom": [
             "claim_agent_id"
           ],
           "columnsTo": [
-            "identity_id"
+            "id"
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "tasks_cancelled_by_agent_id_agents_identity_id_fk": {
-          "name": "tasks_cancelled_by_agent_id_agents_identity_id_fk",
+        "tasks_cancelled_by_agent_id_agents_id_fk": {
+          "name": "tasks_cancelled_by_agent_id_agents_id_fk",
           "tableFrom": "tasks",
           "tableTo": "agents",
           "columnsFrom": [
             "cancelled_by_agent_id"
           ],
           "columnsTo": [
-            "identity_id"
+            "id"
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
@@ -6495,15 +6726,15 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "team_invites_creator_agent_id_agents_identity_id_fk": {
-          "name": "team_invites_creator_agent_id_agents_identity_id_fk",
+        "team_invites_creator_agent_id_agents_id_fk": {
+          "name": "team_invites_creator_agent_id_agents_id_fk",
           "tableFrom": "team_invites",
           "tableTo": "agents",
           "columnsFrom": [
             "creator_agent_id"
           ],
           "columnsTo": [
-            "identity_id"
+            "id"
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
@@ -6627,15 +6858,15 @@
         }
       },
       "foreignKeys": {
-        "teams_creator_agent_id_agents_identity_id_fk": {
-          "name": "teams_creator_agent_id_agents_identity_id_fk",
+        "teams_creator_agent_id_agents_id_fk": {
+          "name": "teams_creator_agent_id_agents_id_fk",
           "tableFrom": "teams",
           "tableTo": "agents",
           "columnsFrom": [
             "creator_agent_id"
           ],
           "columnsTo": [
-            "identity_id"
+            "id"
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
