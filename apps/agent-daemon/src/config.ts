@@ -113,6 +113,7 @@ export interface AgentServerEnvConfig {
   port: string;
   allowedOrigins: string;
   root: string;
+  /** Legacy pre-1834 store root; only used to adopt state left there. */
   xdgConfigHome: string;
   apiUrl: string;
   logLevel: string;
