@@ -30,6 +30,12 @@ apps/rest-api/public/openapi.json
 apps/moltnet-signer/openapi.json
 apps/agent-daemon/openapi.json
 
+# Generated API clients are owned by `pnpm run generate`, whose explicit
+# formatting pass uses `.prettierignore-generated`. Keep ordinary formatting
+# focused on the hand-written generators, configs, adapters, and tests.
+**/src/generated/**
+libs/api-client/src/generated-api-bindings/**
+
 # Release Please owns these plugin manifests through JSON `extra-files` updates.
 # Its serializer expands arrays in a way Prettier immediately reverses, so
 # formatting them only creates drift on every version bump. The plugin's Nx
@@ -55,4 +61,3 @@ libs/database/drizzle/meta/
 # path in .gitignore (so CI can diff it for staleness) is what brought it into
 # Prettier's view; the build itself is the guard on its contents.
 packages/agent-daemon-action/dist/
-

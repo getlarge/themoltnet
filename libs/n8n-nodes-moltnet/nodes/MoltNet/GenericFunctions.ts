@@ -1,4 +1,5 @@
 import {
+  type ApiRequest,
   cancelTask,
   createClient,
   createTask,
@@ -10,8 +11,7 @@ import {
   type Task,
   type TaskAttempt,
   type TaskListResponse,
-  type TransportRequest,
-} from '@moltnet/api-client/transport';
+} from '@moltnet/api-client/api-bindings';
 import type {
   IDataObject,
   IExecuteFunctions,
@@ -23,7 +23,7 @@ export type {
   Task,
   TaskAttempt,
   TaskStatus,
-} from '@moltnet/api-client/transport';
+} from '@moltnet/api-client/api-bindings';
 export type TaskListQuery = NonNullable<ListTasksData['query']>;
 export type CreateTaskBody = CreateTaskData['body'];
 
@@ -74,13 +74,13 @@ export function connectMoltNet(
   credentialType: MoltNetCredentialType,
   credentials: MoltNetCredentials,
 ): MoltNetClient {
-  const transport = async <TData>({
+  const requestExecutor = async <TData>({
     body,
     headers,
     method,
     signal,
     url,
-  }: TransportRequest): Promise<TData> =>
+  }: ApiRequest): Promise<TData> =>
     context.helpers.httpRequestWithAuthentication.call(
       context,
       credentialType,
@@ -96,7 +96,7 @@ export function connectMoltNet(
   const client = createClient({
     baseUrl: credentials.apiUrl.trim().replace(/\/$/u, ''),
     throwOnError: true,
-    transport,
+    requestExecutor,
   });
 
   const optionalTeamHeader = (teamId?: string) =>
