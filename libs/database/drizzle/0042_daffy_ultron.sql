@@ -3,33 +3,32 @@
 -- `agents.identity_id` was the primary key, so a Kratos identity ID was at once
 -- MoltNet's internal agent ID, the target of 21 foreign keys, the Keto subject
 -- (`Agent:<uuid>`) and the join key in Hydra client metadata. Deleting
--- identities upstream therefore orphaned the whole graph (incident 2026-09-04).
+-- identities upstream left every reference pointing at something Ory no longer
+-- knew about, and recovery was impossible without rewriting the graph, because
+-- restored identities get new UUIDs (incident 2026-09-04).
 --
--- `agents.id` is SEEDED from the current `identity_id`, so every FK value and
--- every `Agent:` Keto tuple stays valid with NO data rewrite. Afterwards
--- `identity_id` is a nullable unique column binding an agent to Ory, and losing
--- Kratos again costs one UPDATE per agent instead of rebuilding the graph.
+-- `agents.id` is a FRESH random UUID, exactly as a new registration produces.
+-- Seeding it from `identity_id` would have avoided rewriting references, but it
+-- would also leave every existing agent on the `id == identity_id` path — the
+-- one path where code that conflates the two still appears to work. Making them
+-- diverge immediately means any such code fails loudly now rather than on the
+-- first new registration.
 --
--- NOTE: drizzle-kit generated a destructive version of this migration
--- (`ADD COLUMN "id" uuid PRIMARY KEY DEFAULT gen_random_uuid()`), which would
--- assign random IDs and orphan all 21 FK columns.
+-- Consequence: the 21 referencing columns are rewritten here, and the 758 Keto
+-- `Agent:<uuid>` tuples must be rewritten from `identity_id` to `agents.id`
+-- immediately afterwards. Until that runs, agents authenticate but resolve no
+-- permissions, so this migration and the Keto rewrite belong inside one
+-- maintenance window.
 --
--- It also emitted DROP CONSTRAINT statements using its own naming convention,
--- which does not match reality: production carries a mix of drizzle-style
--- names (`..._agents_identity_id_fk`), Postgres defaults (`..._fkey`) and at
--- least one truncated at the 63-character identifier limit. A rehearsal
--- against a restored copy failed on the first `_fkey` constraint. Constraints
--- are therefore DROPPED by their discovered name and RECREATED under drizzle's
--- canonical `<table>_<column>_agents_id_fk`, so the migration works against any
--- existing naming while leaving a schema that matches the drizzle snapshot.
+-- NOTE: drizzle-kit generated a destructive version of this migration and
+-- emitted DROP statements using only its own naming convention. Production
+-- carries a mix of drizzle-style names, Postgres `_fkey` defaults and at least
+-- one truncated at the 63-character identifier limit, so constraints are
+-- dropped by their DISCOVERED name and recreated under drizzle's canonical
+-- `<table>_<column>_agents_id_fk`.
 
-ALTER TABLE "agents" ADD COLUMN "id" uuid;--> statement-breakpoint
-
--- Seed from the existing primary key: this is what keeps all 21 FK columns and
--- every Keto Agent: tuple valid without touching them.
-UPDATE "agents" SET "id" = "identity_id";--> statement-breakpoint
-
-ALTER TABLE "agents" ALTER COLUMN "id" SET NOT NULL;--> statement-breakpoint
+-- A fresh identifier per agent, matching what registration generates.
+ALTER TABLE "agents" ADD COLUMN "id" uuid NOT NULL DEFAULT gen_random_uuid();--> statement-breakpoint
 
 -- Capture each FK targeting agents(identity_id) with its REAL name and delete
 -- rule before dropping anything.
@@ -56,9 +55,11 @@ BEGIN
   IF n = 0 THEN
     RAISE EXCEPTION 'No foreign keys target agents(identity_id); refusing to continue';
   END IF;
-  RAISE NOTICE 'Retargeting % foreign keys to agents(id)', n;
+  RAISE NOTICE 'Repointing % foreign keys to agents(id)', n;
 END $$;--> statement-breakpoint
 
+-- Drop first: the child values still match identity_id, so rewriting them
+-- while the old constraints stand would violate them.
 DO $$
 DECLARE r record;
 BEGIN
@@ -67,7 +68,23 @@ BEGIN
   END LOOP;
 END $$;--> statement-breakpoint
 
--- Drop the old primary key by its real name; drizzle-kit could not resolve it.
+-- Rewrite every referencing column from the Kratos identity to the new
+-- internal id.
+DO $$
+DECLARE r record; moved bigint; total bigint := 0;
+BEGIN
+  FOR r IN SELECT * FROM "_fk_backup" LOOP
+    EXECUTE format(
+      'UPDATE %I c SET %I = a."id" FROM "agents" a WHERE c.%I = a."identity_id"',
+      r.table_name, r.column_name, r.column_name);
+    GET DIAGNOSTICS moved = ROW_COUNT;
+    total := total + moved;
+  END LOOP;
+  RAISE NOTICE 'Repointed % referencing row(s)', total;
+END $$;--> statement-breakpoint
+
+-- Swap the primary key. The old name is resolved dynamically; drizzle-kit
+-- could not determine it.
 DO $$
 DECLARE pk_name text;
 BEGIN
@@ -84,8 +101,6 @@ END $$;--> statement-breakpoint
 
 ALTER TABLE "agents" ADD CONSTRAINT "agents_pkey" PRIMARY KEY ("id");--> statement-breakpoint
 
-ALTER TABLE "agents" ALTER COLUMN "id" SET DEFAULT gen_random_uuid();--> statement-breakpoint
-
 -- identity_id becomes optional: NULL means "no live Kratos identity", and the
 -- agent keeps its data, ownership and permissions regardless.
 ALTER TABLE "agents" ALTER COLUMN "identity_id" DROP NOT NULL;--> statement-breakpoint
@@ -93,10 +108,9 @@ ALTER TABLE "agents" ALTER COLUMN "identity_id" DROP NOT NULL;--> statement-brea
 ALTER TABLE "agents" ADD CONSTRAINT "agents_identity_id_unique" UNIQUE("identity_id");--> statement-breakpoint
 
 -- Recreate under drizzle's canonical name, preserving the original delete rule
--- and deliberately WITHOUT ON UPDATE CASCADE. The 2026-09-04 relink added
--- cascade so one UPDATE could move an identity across all 21 child columns;
--- agents.id is immutable by design, so cascade would now be inert at best and
--- would silently rewrite 21 tables on a stray UPDATE at worst.
+-- and deliberately WITHOUT ON UPDATE CASCADE: agents.id is immutable by design,
+-- so cascade would be inert at best and would silently rewrite 21 tables on a
+-- stray UPDATE at worst.
 DO $$
 DECLARE r record; new_name text;
 BEGIN
@@ -110,13 +124,15 @@ END $$;--> statement-breakpoint
 
 -- Post-conditions: fail rather than leave a half-migrated graph.
 DO $$
-DECLARE mismatched bigint; retargeted bigint; expected bigint; leftover bigint;
+DECLARE still_seeded bigint; retargeted bigint; expected bigint; leftover bigint;
+        r record; orphans bigint; total_orphans bigint := 0;
 BEGIN
   SELECT count(*) INTO expected FROM "_fk_backup";
 
-  SELECT count(*) INTO mismatched FROM "agents" WHERE "id" IS DISTINCT FROM "identity_id";
-  IF mismatched > 0 THEN
-    RAISE EXCEPTION 'agents.id was not seeded from identity_id for % row(s)', mismatched;
+  -- Every agent must have diverged from its Kratos identity.
+  SELECT count(*) INTO still_seeded FROM "agents" WHERE "id" = "identity_id";
+  IF still_seeded > 0 THEN
+    RAISE EXCEPTION '% agent(s) still carry id = identity_id', still_seeded;
   END IF;
 
   SELECT count(*) INTO leftover
@@ -139,7 +155,19 @@ BEGIN
     RAISE EXCEPTION 'Expected % foreign keys on agents(id), found %', expected, retargeted;
   END IF;
 
-  RAISE NOTICE 'Decoupling complete: % foreign keys now target agents(id)', retargeted;
+  -- No referencing row may have been left behind by the rewrite.
+  FOR r IN SELECT * FROM "_fk_backup" LOOP
+    EXECUTE format(
+      'SELECT count(*) FROM %I c LEFT JOIN "agents" a ON a."id" = c.%I WHERE c.%I IS NOT NULL AND a."id" IS NULL',
+      r.table_name, r.column_name, r.column_name) INTO orphans;
+    IF orphans > 0 THEN
+      RAISE EXCEPTION '%.% has % orphaned reference(s) after rewrite',
+        r.table_name, r.column_name, orphans;
+    END IF;
+    total_orphans := total_orphans + orphans;
+  END LOOP;
+
+  RAISE NOTICE 'Decoupling complete: % foreign keys on agents(id), 0 orphans', retargeted;
 END $$;--> statement-breakpoint
 
 DROP TABLE "_fk_backup";
