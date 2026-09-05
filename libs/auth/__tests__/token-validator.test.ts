@@ -26,6 +26,9 @@ function createMockTalosApi() {
 
 function createMockTalosAgentResolver() {
   return vi.fn().mockResolvedValue({
+    // Equal to the identity here because migration 0041 seeds agents.id from
+    // identity_id, which is what production looks like for existing agents.
+    agentId: VALID_IDENTITY_ID,
     identityId: VALID_IDENTITY_ID,
     publicKey: 'ed25519:AAAA+/bbbb==',
     fingerprint: 'A1B2-C3D4-E5F6-07A8',
@@ -50,6 +53,7 @@ const MOLTNET_EXT_CLAIMS = {
 };
 
 const EXPECTED_AUTH_CONTEXT = {
+  agentId: VALID_IDENTITY_ID,
   identityId: VALID_IDENTITY_ID,
   publicKey: 'ed25519:AAAA+/bbbb==',
   fingerprint: 'A1B2-C3D4-E5F6-07A8',
@@ -475,6 +479,7 @@ describe('TokenValidator', () => {
 
       expect(result).toEqual({
         subjectType: 'agent',
+        agentId: VALID_IDENTITY_ID,
         identityId: VALID_IDENTITY_ID,
         publicKey: 'ed25519:AAAA+/bbbb==',
         fingerprint: 'A1B2-C3D4-E5F6-07A8',

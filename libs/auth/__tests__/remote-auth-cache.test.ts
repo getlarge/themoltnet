@@ -21,6 +21,7 @@ afterEach(() => {
 
 const context: AgentAuthContext = {
   subjectType: 'agent',
+  agentId: 'identity-1',
   identityId: 'identity-1',
   publicKey: 'public-key',
   fingerprint: 'fingerprint',

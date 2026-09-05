@@ -98,9 +98,12 @@ export function initHumanOnboardingWorkflow(): void {
   // ── Steps ──────────────────────────────────────────────────
 
   const registerInKetoStep = DBOS.registerStep(
-    async (identityId: string): Promise<void> => {
+    // Keto subject is humans.id, not the Kratos identity: an identity can be
+    // recreated, and a subject that moves with it detaches the human from
+    // every permission they hold.
+    async (humanId: string): Promise<void> => {
       const { relationshipWriter } = getDeps();
-      await relationshipWriter.registerHuman(identityId);
+      await relationshipWriter.registerHuman(humanId);
     },
     {
       name: 'onboarding.step.registerInKeto',
@@ -112,12 +115,12 @@ export function initHumanOnboardingWorkflow(): void {
   );
 
   const grantTeamOwnerStep = DBOS.registerStep(
-    async (teamId: string, identityId: string): Promise<void> => {
+    async (teamId: string, humanId: string): Promise<void> => {
       const { relationshipWriter } = getDeps();
       // Keto PUT is idempotent — safe to retry
       await relationshipWriter.grantTeamOwners(
         teamId,
-        identityId,
+        humanId,
         KetoNamespace.Human,
       );
     },
@@ -147,19 +150,16 @@ export function initHumanOnboardingWorkflow(): void {
   );
 
   const cleanupIdentityGrantsStep = DBOS.registerStep(
-    async (
-      identityId: string,
-      personalTeamId: string | null,
-    ): Promise<void> => {
+    async (humanId: string, personalTeamId: string | null): Promise<void> => {
       const { relationshipWriter } = getDeps();
       const cleanup: Promise<void>[] = [
-        relationshipWriter.removeHumanRelations(identityId),
+        relationshipWriter.removeHumanRelations(humanId),
       ];
       if (personalTeamId) {
         cleanup.push(
           relationshipWriter.removeTeamMemberRelation(
             personalTeamId,
-            identityId,
+            humanId,
             KetoNamespace.Human,
           ),
         );
@@ -224,7 +224,7 @@ export function initHumanOnboardingWorkflow(): void {
       let personalTeamId: string | null = null;
       try {
         // Step 2: Register in Keto
-        await registerInKetoStep(identityId);
+        await registerInKetoStep(humanId);
 
         // Step 3: Create personal team (FK target for creator_human_id is humans.id)
         const resolvedPersonalTeamId = await transactionRunner.runInTransaction(
@@ -247,7 +247,7 @@ export function initHumanOnboardingWorkflow(): void {
         personalTeamId = resolvedPersonalTeamId;
 
         // Step 4: Grant team ownership (Keto uses identityId)
-        await grantTeamOwnerStep(resolvedPersonalTeamId, identityId);
+        await grantTeamOwnerStep(resolvedPersonalTeamId, humanId);
 
         // Step 5: Create private diary (FK target for creator_human_id is humans.id)
         const privateDiaryId = await transactionRunner.runInTransaction(
@@ -284,7 +284,7 @@ export function initHumanOnboardingWorkflow(): void {
         );
 
         try {
-          await cleanupIdentityGrantsStep(identityId, personalTeamId);
+          await cleanupIdentityGrantsStep(humanId, personalTeamId);
           await transactionRunner.runInTransaction(
             () => humanRepository.clearIdentityIdIfMatches(humanId, identityId),
             { name: 'onboarding.tx.compensateIdentityBinding' },
