@@ -45,6 +45,8 @@ export const WhoamiOutputSchema = Type.Object({
   authenticated: Type.Boolean(),
   identity: Type.Optional(
     Type.Object({
+      /** Internal `agents.id` / `humans.id` — the durable principal id. */
+      principalId: Type.String(),
       identityId: Type.String(),
       clientId: Type.String(),
       publicKey: Type.String(),

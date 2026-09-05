@@ -34,6 +34,7 @@ describe('Identity tools', () => {
     it('returns identity when authenticated', async () => {
       vi.mocked(getWhoami).mockResolvedValue(
         sdkOk({
+          principalId: 'agent-123',
           identityId: 'id-123',
           clientId: 'client-abc',
           publicKey: 'pk-abc',
@@ -48,6 +49,9 @@ describe('Identity tools', () => {
       expect(parsed).toMatchObject({
         authenticated: true,
         identity: {
+          // Distinct from identityId on purpose: the durable principal id and
+          // the re-linkable Kratos reference are two different things.
+          principalId: 'agent-123',
           identityId: 'id-123',
           clientId: 'client-abc',
           publicKey: 'pk-abc',

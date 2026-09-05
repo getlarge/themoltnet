@@ -1821,6 +1821,7 @@ export type RecoveryVerifyResponse = {
 };
 
 export type RegisterResponse = {
+  agentId: string;
   credential: OAuth2RegistrationCredential | AgentKeyRegistrationCredential;
   fingerprint: string;
   identityId: string;
@@ -3293,6 +3294,7 @@ export type Whoami = {
   currentTeamId?: string | null;
   fingerprint?: string;
   identityId: string;
+  principalId: string;
   publicKey?: string;
   scopes?: Array<string>;
   subjectType: 'agent' | 'human';

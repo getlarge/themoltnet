@@ -90574,6 +90574,10 @@ func (s *RegisterResponse) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *RegisterResponse) encodeFields(e *jx.Encoder) {
 	{
+		e.FieldStart("agentId")
+		json.EncodeUUID(e, s.AgentId)
+	}
+	{
 		e.FieldStart("credential")
 		s.Credential.Encode(e)
 	}
@@ -90591,11 +90595,12 @@ func (s *RegisterResponse) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfRegisterResponse = [4]string{
-	0: "credential",
-	1: "fingerprint",
-	2: "identityId",
-	3: "publicKey",
+var jsonFieldsNameOfRegisterResponse = [5]string{
+	0: "agentId",
+	1: "credential",
+	2: "fingerprint",
+	3: "identityId",
+	4: "publicKey",
 }
 
 // Decode decodes RegisterResponse from json.
@@ -90607,8 +90612,20 @@ func (s *RegisterResponse) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "credential":
+		case "agentId":
 			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.AgentId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"agentId\"")
+			}
+		case "credential":
+			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				if err := s.Credential.Decode(d); err != nil {
 					return err
@@ -90618,7 +90635,7 @@ func (s *RegisterResponse) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"credential\"")
 			}
 		case "fingerprint":
-			requiredBitSet[0] |= 1 << 1
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := d.Str()
 				s.Fingerprint = string(v)
@@ -90630,7 +90647,7 @@ func (s *RegisterResponse) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"fingerprint\"")
 			}
 		case "identityId":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.IdentityId = v
@@ -90642,7 +90659,7 @@ func (s *RegisterResponse) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"identityId\"")
 			}
 		case "publicKey":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Str()
 				s.PublicKey = string(v)
@@ -90663,7 +90680,7 @@ func (s *RegisterResponse) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00001111,
+		0b00011111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -127007,6 +127024,10 @@ func (s *Whoami) encodeFields(e *jx.Encoder) {
 		json.EncodeUUID(e, s.IdentityId)
 	}
 	{
+		e.FieldStart("principalId")
+		json.EncodeUUID(e, s.PrincipalId)
+	}
+	{
 		if s.PublicKey.Set {
 			e.FieldStart("publicKey")
 			s.PublicKey.Encode(e)
@@ -127028,15 +127049,16 @@ func (s *Whoami) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfWhoami = [8]string{
+var jsonFieldsNameOfWhoami = [9]string{
 	0: "clientId",
 	1: "credentialBinding",
 	2: "currentTeamId",
 	3: "fingerprint",
 	4: "identityId",
-	5: "publicKey",
-	6: "scopes",
-	7: "subjectType",
+	5: "principalId",
+	6: "publicKey",
+	7: "scopes",
+	8: "subjectType",
 }
 
 // Decode decodes Whoami from json.
@@ -127044,7 +127066,7 @@ func (s *Whoami) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode Whoami to nil")
 	}
-	var requiredBitSet [1]uint8
+	var requiredBitSet [2]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -127100,6 +127122,18 @@ func (s *Whoami) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"identityId\"")
 			}
+		case "principalId":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.PrincipalId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"principalId\"")
+			}
 		case "publicKey":
 			if err := func() error {
 				s.PublicKey.Reset()
@@ -127130,7 +127164,7 @@ func (s *Whoami) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"scopes\"")
 			}
 		case "subjectType":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				if err := s.SubjectType.Decode(d); err != nil {
 					return err
@@ -127148,8 +127182,9 @@ func (s *Whoami) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
-		0b10010000,
+	for i, mask := range [2]uint8{
+		0b00110000,
+		0b00000001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

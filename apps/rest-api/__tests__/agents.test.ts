@@ -10,6 +10,7 @@ import {
   type MockServices,
   OTHER_AGENT_ID,
   OWNER_ID,
+  OWNER_IDENTITY_ID,
   resetMockServices,
   TEST_BEARER_TOKEN,
   VALID_AUTH_CONTEXT,
@@ -75,7 +76,10 @@ describe('Agent routes', () => {
       );
       mocks.signingRequestRepository.findBySignature.mockResolvedValue({
         id: 'sr-1',
-        agentId: OWNER_ID,
+        // `signing_requests.agent_id` stores a Kratos identity, not agents.id:
+        // the column carries no foreign key, so migration 0041's FK-driven
+        // rewrite never reached it. Retargeting it needs its own migration.
+        agentId: OWNER_IDENTITY_ID,
         message: 'test message',
         nonce: 'nonce-1',
       } as any);
@@ -169,9 +173,7 @@ describe('Agent routes', () => {
 
   describe('GET /agents/whoami', () => {
     it('returns current agent identity with subjectType and currentTeamId', async () => {
-      mocks.agentRepository.findByIdentityId.mockResolvedValue(
-        createMockAgent(),
-      );
+      mocks.agentRepository.findById.mockResolvedValue(createMockAgent());
 
       const response = await app.inject({
         method: 'GET',
@@ -181,7 +183,10 @@ describe('Agent routes', () => {
 
       expect(response.statusCode).toBe(200);
       const body = response.json();
-      expect(body.identityId).toBe(OWNER_ID);
+      // principalId is agents.id — the durable one. identityId is the Kratos
+      // binding this request authenticated as.
+      expect(body.principalId).toBe(OWNER_ID);
+      expect(body.identityId).toBe(OWNER_IDENTITY_ID);
       expect(body.fingerprint).toBe('C212-DAFA-27C5-6C57');
       expect(body.subjectType).toBe('agent');
       expect(body.scopes).toEqual(VALID_AUTH_CONTEXT.scopes);
@@ -191,9 +196,7 @@ describe('Agent routes', () => {
 
     it('includes credentialBinding when authenticated via an agent key', async () => {
       const keyApp = await createTestApp(mocks, KEY_AUTH_CONTEXT);
-      mocks.agentRepository.findByIdentityId.mockResolvedValue(
-        createMockAgent(),
-      );
+      mocks.agentRepository.findById.mockResolvedValue(createMockAgent());
 
       const response = await keyApp.inject({
         method: 'GET',
@@ -218,9 +221,7 @@ describe('Agent routes', () => {
           keyId: 'identity-key-123',
         },
       });
-      mocks.agentRepository.findByIdentityId.mockResolvedValue(
-        createMockAgent(),
-      );
+      mocks.agentRepository.findById.mockResolvedValue(createMockAgent());
 
       const response = await keyApp.inject({
         method: 'GET',
@@ -247,7 +248,10 @@ describe('Agent routes', () => {
 
       expect(response.statusCode).toBe(200);
       const body = response.json();
-      expect(body.identityId).toBe(OWNER_ID);
+      // principalId is humans.id (the FK target and Keto subject);
+      // identityId is the Kratos binding. Distinct values on purpose.
+      expect(body.principalId).toBe(OWNER_ID);
+      expect(body.identityId).toBe(OWNER_IDENTITY_ID);
       expect(body.subjectType).toBe('human');
       expect(body.scopes).toEqual(HUMAN_AUTH_CONTEXT.scopes);
       expect(body).not.toHaveProperty('publicKey');
