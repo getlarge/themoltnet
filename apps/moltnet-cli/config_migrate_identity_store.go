@@ -61,21 +61,29 @@ func migrateLegacyIdentityStore(credentialsPath, requestedAlias string, dryRun b
 		return nil, err
 	}
 	if existing != nil {
-		// The public key IS the agent's identity: it is the cryptographic
-		// material, and the server keys registration idempotency on its
-		// fingerprint. identity_id is only a binding to an Ory Kratos identity
-		// — recreatable (see the 2026-09-04 incident, PR #2163) and soon
-		// nullable — so a differing identity_id with a matching key is a
-		// relink of the same agent, not a collision. Anchoring the guard on it
-		// would refuse to re-migrate an agent whose identity was restored.
-		if existing.Keys.PublicKey != creds.Keys.PublicKey {
+		// Neither field the CLI holds is a stable agent identifier:
+		// identity_id binds to an Ory Kratos identity that can be recreated
+		// (2026-09-04 incident) and re-linked, and the keypair can be rotated.
+		// The one durable identifier is agents.id, which registration does not
+		// return, so the CLI cannot tell a rotation or relink of THIS agent
+		// from a different agent reusing the alias.
+		//
+		// Refuse rather than guess: silently overwriting would destroy another
+		// identity's credentials, and there is no local evidence to justify it.
+		// Once agents.id is exposed at registration this becomes decidable and
+		// the guard should key on it.
+		if existing.IdentityID != creds.IdentityID ||
+			existing.Keys.PublicKey != creds.Keys.PublicKey {
 			return nil, fmt.Errorf(
-				"central identity %q already exists with a different public key",
-				alias,
+				"central identity %q already exists and does not match the bundle "+
+					"being migrated (bound identity and/or public key differ).\n"+
+					"This may be a key rotation, a re-linked Kratos identity, or a "+
+					"different agent reusing the alias — the CLI cannot tell, because "+
+					"it holds no stable agent identifier.\n"+
+					"Migrate under another alias with --name <alias>, or remove %s "+
+					"first if you are certain it is the same agent.",
+				alias, filepath.Dir(target),
 			)
-		}
-		if existing.IdentityID != creds.IdentityID {
-			result["identity_id_changed"] = true
 		}
 		return result, nil
 	}
