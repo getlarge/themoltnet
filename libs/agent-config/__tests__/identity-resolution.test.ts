@@ -1,8 +1,25 @@
 import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import type * as NodeOS from 'node:os';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+// getConfigDir() resolves through os.homedir(), which does NOT follow a
+// reassigned process.env.HOME. Isolating via the env var therefore let these
+// tests write into the developer's real ~/.config/moltnet — including
+// overwriting identity-selector.json. Mock homedir instead, and assert the
+// isolation actually held before any test writes anything.
+const homeRef = vi.hoisted(() => ({ value: '' }));
+
+vi.mock('node:os', async (importOriginal) => {
+  const actual = await importOriginal<typeof NodeOS>();
+  return {
+    ...actual,
+    default: { ...actual, homedir: () => homeRef.value || actual.homedir() },
+    homedir: () => homeRef.value || actual.homedir(),
+  };
+});
 
 import {
   assertIdentityAlias,
@@ -19,8 +36,13 @@ const savedEnv = { ...process.env };
 
 async function freshHome(): Promise<string> {
   const home = await mkdtemp(join(tmpdir(), 'moltnet-identity-'));
-  process.env.XDG_CONFIG_HOME = join(home, '.config');
-  await mkdir(getConfigDir(), { recursive: true });
+  homeRef.value = home;
+  // Fail loudly rather than write to a real config directory.
+  const dir = getConfigDir();
+  if (!dir.startsWith(home)) {
+    throw new Error(`test isolation failed: getConfigDir() = ${dir}`);
+  }
+  await mkdir(dir, { recursive: true });
   return home;
 }
 
@@ -41,11 +63,11 @@ async function writeIdentity(alias: string, id: string): Promise<void> {
 
 beforeEach(() => {
   delete process.env.MOLTNET_ACTIVE_IDENTITY;
-  delete process.env.XDG_CONFIG_HOME;
 });
 
 afterEach(() => {
   process.env = { ...savedEnv };
+  homeRef.value = '';
 });
 
 // The alias turns an untrusted string into a filesystem path for credential
