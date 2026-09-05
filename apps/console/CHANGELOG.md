@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.12.0](https://github.com/getlarge/themoltnet/compare/console-v0.11.0...console-v0.12.0) (2026-09-05)
+
+
+### Features
+
+* **console:** show which scopes the daemon requires ([585fc37](https://github.com/getlarge/themoltnet/commit/585fc37840b4312d3b5db9f5a2801b65dc4f027e))
+* **credentials:** add crypto:sign to the canonical daemon grant ([a540bac](https://github.com/getlarge/themoltnet/commit/a540bac32c6f9fc3edfc35b3ed1908d64143ae1c))
+
+
+### Bug Fixes
+
+* **sdk:** keep request headers on auth retry; warn when the daemon cannot sign ([5b28b4a](https://github.com/getlarge/themoltnet/commit/5b28b4a0505c17ce912c92dfacd68bb4dd8819db))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @themoltnet/sdk bumped to 0.140.1
+
 ## [0.11.0](https://github.com/getlarge/themoltnet/compare/console-v0.10.1...console-v0.11.0) (2026-09-04)
 
 

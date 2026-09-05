@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.53.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.52.0...rest-api-v0.53.0) (2026-09-05)
+
+
+### Features
+
+* **auth:** always enforce credential scopes ([fd35de4](https://github.com/getlarge/themoltnet/commit/fd35de451899fb28c72865491bc3a1f5348d14f9))
+* **auth:** always enforce credential scopes ([efb849e](https://github.com/getlarge/themoltnet/commit/efb849eab492fb3f4456fb8b5900229e75093f3d))
+
 ## [0.52.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.51.0...rest-api-v0.52.0) (2026-09-04)
 
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.140.1](https://github.com/getlarge/themoltnet/compare/sdk-v0.140.0...sdk-v0.140.1) (2026-09-05)
+
+
+### Bug Fixes
+
+* **sdk:** keep request headers on auth retry; warn when the daemon cannot sign ([5b28b4a](https://github.com/getlarge/themoltnet/commit/5b28b4a0505c17ce912c92dfacd68bb4dd8819db))
+* **sdk:** keep request headers when replaying after a 401 ([1463889](https://github.com/getlarge/themoltnet/commit/1463889593341fe83adb92cc961843295bc62225))
+
 ## [0.140.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.139.0...sdk-v0.140.0) (2026-09-02)
 
 
