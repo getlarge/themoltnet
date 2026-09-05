@@ -1,20 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import {
-  createClient,
-  getTask,
-  type TransportRequest,
-} from '../src/transport.js';
+import { type ApiRequest,createClient, getTask } from '../src/api-bindings.js';
 
-describe('transport client', () => {
-  it('routes generated requests through the injected transport', async () => {
-    const transport = vi.fn(async (_request: TransportRequest) => ({
+describe('API bindings', () => {
+  it('routes generated requests through the caller-provided executor', async () => {
+    const requestExecutor = vi.fn(async (_request: ApiRequest) => ({
       id: '33333333-3333-4333-8333-333333333333',
       status: 'running',
     }));
     const client = createClient({
       baseUrl: 'https://api.themolt.net',
-      transport,
+      requestExecutor,
     });
 
     const { data } = await getTask({
@@ -28,7 +24,7 @@ describe('transport client', () => {
       id: '33333333-3333-4333-8333-333333333333',
       status: 'running',
     });
-    expect(transport).toHaveBeenCalledWith({
+    expect(requestExecutor).toHaveBeenCalledWith({
       body: undefined,
       headers: { 'x-moltnet-team-id': 'team-id' },
       method: 'GET',
