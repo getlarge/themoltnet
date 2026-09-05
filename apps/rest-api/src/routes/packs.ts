@@ -343,18 +343,18 @@ export async function packRoutes(fastify: FastifyInstance) {
         supersedesPackId?: string;
       };
       authContext:
-        | { identityId: string; subjectType: 'agent' }
+        | { identityId: string; subjectType: 'agent'; agentId: string }
         | { identityId: string; subjectType: 'human'; humanId: string };
     },
     persist: boolean,
   ) => {
-    const { identityId, subjectNs } = requireKetoSubject(request);
+    const { subjectId, subjectNs } = requireKetoSubject(request);
 
     let diary: Awaited<ReturnType<typeof fastify.diaryService.findDiary>>;
     try {
       diary = await fastify.diaryService.findDiary(
         request.params.id,
-        identityId,
+        subjectId,
         subjectNs,
       );
     } catch (err) {
@@ -381,7 +381,10 @@ export async function packRoutes(fastify: FastifyInstance) {
     const payload = {
       v: 'moltnet:pack:v1',
       diaryId: diary.id,
-      createdBy: request.authContext.identityId,
+      // Provenance on a durable artifact must name the durable principal:
+      // a Kratos identity can be recreated, so it cannot identify its author
+      // later. Not part of the pack CID, so existing CIDs are unaffected.
+      createdBy: subjectId,
       createdAt,
       packType: 'custom' as const,
       params: request.body.params,
@@ -415,7 +418,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         await fastify.contextPackService.validateSupersession({
           diaryId: diary.id,
           supersedesPackId: request.body.supersedesPackId,
-          actor: { identityId, subjectNs },
+          actor: { identityId: subjectId, subjectNs },
         });
       } catch (err) {
         if (err instanceof PackServiceError) translatePackServiceError(err);
@@ -566,13 +569,13 @@ export async function packRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       let pack;
       try {
         pack = await fastify.contextPackService.getPackForProvenance({
           packId: request.params.id,
-          actor: { identityId, subjectNs },
+          actor: { identityId: subjectId, subjectNs },
         });
       } catch (err) {
         if (err instanceof PackServiceError)
@@ -585,7 +588,7 @@ export async function packRoutes(fastify: FastifyInstance) {
           fastify,
           rootPack: pack,
           depth: request.query.depth ?? 2,
-          identityId,
+          identityId: subjectId,
           subjectNs,
         });
       } catch (error) {
@@ -627,13 +630,13 @@ export async function packRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       let pack;
       try {
         pack = await fastify.contextPackService.getPackForProvenance({
           packCid: request.params.cid,
-          actor: { identityId, subjectNs },
+          actor: { identityId: subjectId, subjectNs },
         });
       } catch (err) {
         if (err instanceof PackServiceError)
@@ -646,7 +649,7 @@ export async function packRoutes(fastify: FastifyInstance) {
           fastify,
           rootPack: pack,
           depth: request.query.depth ?? 2,
-          identityId,
+          identityId: subjectId,
           subjectNs,
         });
       } catch (error) {
@@ -687,13 +690,13 @@ export async function packRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       try {
         return await fastify.contextPackService.diffPacks({
           packAId: request.params.id,
           packBId: request.params.otherId,
-          actor: { identityId, subjectNs },
+          actor: { identityId: subjectId, subjectNs },
         });
       } catch (err) {
         if (err instanceof PackServiceError)
@@ -728,13 +731,13 @@ export async function packRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       try {
         return await fastify.contextPackService.diffPacks({
           packACid: request.params.cid,
           packBCid: request.params.otherCid,
-          actor: { identityId, subjectNs },
+          actor: { identityId: subjectId, subjectNs },
         });
       } catch (err) {
         if (err instanceof PackServiceError)
@@ -770,7 +773,7 @@ export async function packRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       if (request.query.diaryId && request.query.containsEntry) {
         throw createProblem(
@@ -796,7 +799,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         try {
           const catalog = await fastify.contextPackService.listPacksByTeam({
             teamId,
-            actor: { identityId, subjectNs },
+            actor: { identityId: subjectId, subjectNs },
             limit,
             offset,
             includeRendered: request.query.includeRendered,
@@ -825,7 +828,7 @@ export async function packRoutes(fastify: FastifyInstance) {
       try {
         packs = await fastify.contextPackService.listPacksByEntry({
           entryId: request.query.containsEntry,
-          actor: { identityId, subjectNs },
+          actor: { identityId: subjectId, subjectNs },
           limit,
           offset,
           includeRendered: request.query.includeRendered,
@@ -904,12 +907,12 @@ export async function packRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       try {
         return await fastify.contextPackService.getPackById({
           packId: request.params.id,
-          actor: { identityId, subjectNs },
+          actor: { identityId: subjectId, subjectNs },
           expandEntries: wantsExpandedEntries(request.query.expand),
         });
       } catch (err) {
@@ -1029,12 +1032,12 @@ export async function packRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       try {
         return await fastify.contextPackService.listPacksByDiary({
           diaryId: request.params.id,
-          actor: { identityId, subjectNs },
+          actor: { identityId: subjectId, subjectNs },
           limit: request.query.limit ?? 20,
           offset: request.query.offset ?? 0,
           expandEntries: wantsExpandedEntries(request.query.expand),
@@ -1078,7 +1081,7 @@ export async function packRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       const pack = await fastify.contextPackRepository.findById(
         request.params.id,
@@ -1089,7 +1092,7 @@ export async function packRoutes(fastify: FastifyInstance) {
 
       const allowed = await fastify.permissionChecker.canManagePack(
         pack.id,
-        identityId,
+        subjectId,
         subjectNs,
       );
       if (!allowed) {
