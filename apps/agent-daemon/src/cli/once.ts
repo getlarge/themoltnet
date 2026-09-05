@@ -144,16 +144,18 @@ export async function runOnce(
       ? null
       : loadRuntimeCredentialConfig(credentialSources);
   const initialOpts = opts;
-  const agentRootDir = resolve(
-    process.cwd(),
-    values['agent-root'] ?? process.cwd(),
-  );
+  // Credential resolution follows --agent-root only when it was actually
+  // passed. The old cwd default meant "search the current checkout", which is
+  // exactly the repository auto-discovery the central-store cutover removed.
+  const explicitAgentRootDir = values['agent-root']
+    ? resolve(process.cwd(), values['agent-root'])
+    : undefined;
   const { ctx, signingPrivateKey, agentIdentity, hostCapabilitySigner } =
     await (async () => {
       let gate = 'resolve_agent_context';
       try {
         const resolvedContext = await resolveAgentContext(initialOpts.agent, {
-          agentRootDir,
+          agentRootDir: explicitAgentRootDir,
           authMode: cfg.authMode,
         });
         // Authenticate and validate team binding before resolving signing
