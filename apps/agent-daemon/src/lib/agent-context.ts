@@ -183,7 +183,14 @@ export async function resolveAgentContext(
   // aliases the CLI creates and accepted names getIdentityDir then rejected
   // with a raw "invalid identity alias".
   assertIdentityAlias(agentName);
-  const agentDir = resolveIdentityDirectory(agentName, options.agentRootDir);
+  // agent-key is configless: the key comes from the environment, so the
+  // directory is only used for state and mounting and must NOT be gated on a
+  // moltnet.json that will never exist there.
+  const { agentDir, agentRootDir } = resolveIdentityLocation(
+    agentName,
+    options.agentRootDir,
+    { requireConfig: options.authMode !== 'agent-key' },
+  );
   if (options.authMode === 'agent-key') {
     // No config dir: the key (or its MOLTNET_AGENT_KEY_REF) comes from the
     // environment. The Node registry is still needed so a keyring or file
@@ -193,7 +200,7 @@ export async function resolveAgentContext(
     });
     return {
       agentDir,
-      agentRootDir: agentDir,
+      agentRootDir,
       agent,
       credentialSource: 'environment',
       authMechanism: 'agent-key',
@@ -212,7 +219,7 @@ export async function resolveAgentContext(
   const config = await readConfig(agentDir);
   return {
     agentDir,
-    agentRootDir: agentDir,
+    agentRootDir,
     agent,
     credentialSource: 'config',
     authMechanism: config?.agent_key_ref ? 'agent-key' : 'oauth2',
@@ -229,16 +236,27 @@ export async function resolveAgentContext(
  * central store they never populated, and failed with a bare "No credentials
  * found".
  */
-function resolveIdentityDirectory(
+/**
+ * `agentDir` is where credentials live; `agentRootDir` is the directory that
+ * OWNS it and is mounted into the sandbox. They differ for a legacy bundle
+ * (`<root>/.moltnet/<agent>` inside `<root>`) and coincide for a central
+ * identity, which owns nothing above itself. Collapsing them mounted the
+ * credentials directory itself into the guest.
+ */
+function resolveIdentityLocation(
   agentName: string,
-  explicitRootDir?: string,
-): string {
+  explicitRootDir: string | undefined,
+  { requireConfig }: { requireConfig: boolean },
+): { agentDir: string; agentRootDir: string } {
   const root = explicitRootDir?.trim();
   if (root) {
     const bundle = join(root, '.moltnet', agentName);
-    if (existsSync(join(bundle, 'moltnet.json'))) return bundle;
+    if (!requireConfig || existsSync(join(bundle, 'moltnet.json'))) {
+      return { agentDir: bundle, agentRootDir: root };
+    }
   }
-  return getIdentityDir(agentName);
+  const central = getIdentityDir(agentName);
+  return { agentDir: central, agentRootDir: central };
 }
 
 function isTransientWhoamiError(error: unknown): boolean {

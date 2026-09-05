@@ -118,6 +118,9 @@ describe('resolveAgentContext', () => {
       });
 
       expect(ctx.agentDir).toBe(bundle);
+      // The OWNING root is what gets mounted into the sandbox, not the
+      // credentials directory itself.
+      expect(ctx.agentRootDir).toBe(agentRoot);
       expect(connectMock).toHaveBeenCalledWith(
         expect.objectContaining({ configDir: bundle }),
       );
@@ -177,8 +180,14 @@ describe('resolveAgentContext', () => {
         authMode: 'agent-key',
       });
 
-      const agentDir = '/central/identities/legreffier';
-      expect(ctx.agentDir).toBe(agentDir);
+      // agent-key is configless — it never reads moltnet.json — so an
+      // explicit --agent-root is honoured without requiring that file to
+      // exist. Asserting the central dir here blessed the regression that
+      // sent configless runs to a store they had never populated, which is
+      // what agent-key.e2e.test.ts catches end to end.
+      expect(ctx.agentDir).toBe(join(root, '.moltnet', 'legreffier'));
+      expect(ctx.agentRootDir).toBe(root);
+      expect(ctx.credentialSource).toBe('environment');
       // No configDir: the key (or its reference) comes from the environment;
       // the Node registry is supplied so keyring/file references resolve.
       expect(connectMock).toHaveBeenCalledTimes(1);
