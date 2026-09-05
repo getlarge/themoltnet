@@ -140,7 +140,7 @@ jobs:
           tar.exe -cf - --exclude=.git . | wsl.exe --distribution $distro -- bash -lc 'tar -xf - -C ~/src/themoltnet'
       - name: Restore WSL bundle runtime
         id: wsl-bundle-runtime
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: \\wsl.localhost\Ubuntu-24.04\root\.cache\moltnet-release
           key: wsl2-agent-bundle-runtime-linux-x64-${{ hashFiles('.tool-versions') }}
@@ -170,7 +170,7 @@ jobs:
         run: wsl.exe --distribution Ubuntu-24.04 -- bash -lc 'cat "$HOME/moltnet-agent-server.log" 2>/dev/null || true'
       - name: Save WSL bundle runtime
         if: success() && steps.wsl-bundle-runtime.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: \\wsl.localhost\Ubuntu-24.04\root\.cache\moltnet-release
           key: wsl2-agent-bundle-runtime-linux-x64-${{ hashFiles('.tool-versions') }}
@@ -465,7 +465,7 @@ jobs:
       - name: Cache golangci-lint
         if: steps.matrix.outputs.has-agents == 'true'
         id: golangci-lint-cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: .cache/golangci-lint/v2.5.0/bin
           key: golangci-lint-${{ runner.os }}-${{ runner.arch }}-go1.25-v2.5.0
@@ -526,7 +526,7 @@ jobs:
           fi
       - name: Restore golangci-lint
         id: golangci-lint-cache
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: .cache/golangci-lint/v2.5.0/bin
           key: golangci-lint-${{ runner.os }}-${{ runner.arch }}-go1.25-v2.5.0
@@ -1282,7 +1282,7 @@ jobs:
       - name: Restore Gondolin APT cache
         id: gondolin-apt-cache
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ~/.cache/moltnet/apt/archives
           key: ${{ steps.gondolin-apt-key.outputs.prefix }}${{ matrix.lane.cache_key }}-${{ github.run_id }}-${{ github.run_attempt }}
@@ -1304,13 +1304,13 @@ jobs:
           sudo chown -R "$(id -u):$(id -g)" "$apt_archives"
       - name: Save Gondolin APT cache
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: ~/.cache/moltnet/apt/archives
           key: ${{ steps.gondolin-apt-cache.outputs.cache-primary-key }}
       - name: Cache Gondolin snapshots
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.cache/moltnet/gondolin
           key: ${{ runner.os }}-${{ runner.arch }}-gondolin-snapshot-v2-agent-daemon-e2e-${{ matrix.lane.cache_key }}-${{ hashFiles('sandbox.json', 'libs/pi-extension/src/snapshot.ts', 'pnpm-lock.yaml') }}
@@ -1385,7 +1385,7 @@ jobs:
       - name: Cache Playwright browsers
         id: pw-cache
         if: needs.affected.outputs.e2e-browser == 'true'
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ steps.pw-version.outputs.version }}
@@ -1475,7 +1475,7 @@ jobs:
       - name: Cache Playwright browsers
         id: pw-cache
         if: needs.affected.outputs.e2e-mcp == 'true'
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ steps.pw-version.outputs.version }}

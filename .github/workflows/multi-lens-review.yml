@@ -241,7 +241,7 @@ jobs:
           path: .trusted-workflow
           sparse-checkout: apps/multi-lens-review/scripts
           persist-credentials: false
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: multi-lens-review-input
           path: ${{ runner.temp }}/multi-lens-review

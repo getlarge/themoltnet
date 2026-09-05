@@ -156,7 +156,7 @@ runs:
 
     # Cache the resolved .deb files so warm runs skip the ~90s download.
     # We use the **explicit restore + save** pattern (not the combined
-    # `actions/cache@v5`) because the auto post-step the combined form
+    # `actions/cache@v6`) because the auto post-step the combined form
     # registers does not run reliably from inside a composite action
     # when the parent step exits non-zero — we observed the post-job
     # save being skipped on the very first failed smoke test, leaving

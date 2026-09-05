@@ -2149,7 +2149,7 @@ jobs:
       - name: Hand the payload to the isolated signing job
         run: tar -cf "$RUNNER_TEMP/payload.tar" -C dist/agent-bundle "moltnet-agent-${{ matrix.platform }}"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: unsigned-payload-${{ matrix.platform }}
           path: ${{ runner.temp }}/payload.tar
@@ -2173,7 +2173,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: unsigned-payload-darwin-arm64
           path: ${{ runner.temp }}
@@ -2305,7 +2305,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: unsigned-payload-linux-x64
           path: ${{ runner.temp }}
