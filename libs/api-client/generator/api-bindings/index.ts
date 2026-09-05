@@ -1,5 +1,6 @@
 export { buildUrl, createClient, createConfig } from './client.js';
 export type {
+  ApiRequest,
   Auth,
   Client,
   ClientMeta,
@@ -8,12 +9,11 @@ export type {
   CreateClientConfig,
   Options,
   QuerySerializerOptions,
+  RequestExecutor,
   RequestOptions,
   RequestResult,
   ResponseStyle,
   TDataShape,
-  Transport,
-  TransportRequest,
 } from './types.js';
 
 export const jsonBodySerializer = (body: unknown) => body;

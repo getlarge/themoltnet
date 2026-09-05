@@ -11,26 +11,24 @@ export interface Config extends Client.Config {
   name: string;
 }
 
-type TransportClientPlugin = Plugin.Types<Config>;
-type ResolvedTransportClientPlugin = Omit<
-  Plugin.Config<TransportClientPlugin>,
+type ApiBindingsPlugin = Plugin.Types<Config>;
+type ResolvedApiBindingsPlugin = Omit<
+  Plugin.Config<ApiBindingsPlugin>,
   'name'
 > & {
   name: string;
 };
 
-const defaultConfig: Plugin.Config<TransportClientPlugin> = {
+const defaultConfig: Plugin.Config<ApiBindingsPlugin> = {
   ...clientDefaultMeta,
   config: {
     ...clientDefaultConfig,
     bundle: true,
   },
   handler: clientPluginHandler,
-  // Overridden with the absolute source path by openapi-transport.config.ts.
+  // Overridden with the absolute source path by the generator config.
   name: '',
 };
 
-export const transportClientPlugin = (
-  name: string,
-): ResolvedTransportClientPlugin =>
+export const apiBindingsPlugin = (name: string): ResolvedApiBindingsPlugin =>
   definePluginConfig({ ...defaultConfig, name })();
