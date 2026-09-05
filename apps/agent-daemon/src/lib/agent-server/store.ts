@@ -24,30 +24,35 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
-import { homedir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
 
-import type { MoltNetConfig } from '@themoltnet/sdk';
+import {
+  assertIdentityAlias,
+  getConfigDir,
+  IDENTITY_ALIAS_PATTERN,
+  type MoltNetConfig,
+} from '@themoltnet/sdk';
 
 export const AGENT_SERVER_STATE_VERSION = 1;
 export const IDENTITY_SELECTOR_VERSION = 1;
 
-// Must stay identical to the Go CLI's agentNamePattern (agents_init.go) and to
-// identityAliasPattern in @moltnet/agent-config: an alias is a directory name in
-// a store all three write. The previous grammar rejected `.` and allowed 64
-// characters, so a CLI-created `agent.v2` was unreadable by the daemon and a
-// 64-character daemon alias was rejected by the CLI.
-const NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$/;
+// Imported, not restated. An alias is a directory name in a store the Go CLI,
+// this daemon and @moltnet/agent-config all write, so a local copy is a
+// standing drift risk — the previous one rejected `.` and allowed 64
+// characters, which made a CLI-created `agent.v2` unreadable here.
+const NAME_RE = IDENTITY_ALIAS_PATTERN;
 const PROVIDER_ID_RE = /^[a-z0-9][a-z0-9-]{0,63}$/;
 
 export function assertStoreName(kind: string, value: string): string {
-  if (!NAME_RE.test(value)) {
+  try {
+    return assertIdentityAlias(value);
+  } catch {
+    // Re-thrown as a store error so callers keep the typed `invalid_name` code.
     throw new AgentServerStoreError(
       'invalid_name',
       `${kind} must match ${NAME_RE.source}`,
     );
   }
-  return value;
 }
 
 export function assertProviderId(value: string): string {
@@ -91,7 +96,9 @@ export class AgentServerStoreError extends Error {
 export function resolveAgentServerRoot(input: { root?: string }): string {
   const override = input.root?.trim();
   if (override) return override;
-  return join(homedir(), '.config', 'moltnet');
+  // Delegates to @moltnet/agent-config instead of rebuilding the path, so the
+  // daemon cannot drift from the CLI and SDK the way it did with XDG.
+  return getConfigDir();
 }
 
 /** The pre-#1834 root that honoured XDG_CONFIG_HOME, if it differs. */
