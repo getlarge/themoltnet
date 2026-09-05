@@ -19,18 +19,27 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const updateManifestURL = "https://themolt.net/download/manifest.json"
+// Update discovery asks GitHub which cli releases exist, not
+// themolt.net/download/manifest.json.  That manifest serves the deliberately
+// pinned version behind /install and /download/*, which is a reviewed decision
+// about what the website hands a brand-new user — not a statement about what
+// has shipped.  Homebrew, apt, scoop and npm all receive a release the moment
+// the release job finishes, so sourcing the *notification* from the pin only
+// hid versions users could already install, for as long as the pin PR sat
+// unmerged.
+const updateReleasesURL = "https://api.github.com/repos/getlarge/themoltnet/releases?per_page=100"
 const updateCacheTTL = 24 * time.Hour
+const updateTagPrefix = "cli-v"
 
 // Package variables make the transport boundary testable without changing the
-// public, pinned manifest endpoint used by released binaries.
-var cliUpdateManifestURL = updateManifestURL
+// public endpoint used by released binaries.
+var cliUpdateReleasesURL = updateReleasesURL
 var cliUpdateHTTPClient = &http.Client{}
 
-type updateManifest struct {
-	CLI struct {
-		Version string `json:"version"`
-	} `json:"cli"`
+type githubRelease struct {
+	TagName    string `json:"tag_name"`
+	Draft      bool   `json:"draft"`
+	Prerelease bool   `json:"prerelease"`
 }
 
 type updateCache struct {
@@ -78,6 +87,7 @@ func newUpdateCmd(version string) *cobra.Command {
 
 func checkCLIUpdate(ctx context.Context, current string, force bool) (updateResult, error) {
 	exe, _ := os.Executable()
+	exe = resolveCLIExecutable(exe)
 	method := detectCLIInstallMethod(exe)
 	result := updateResult{Current: normalVersion(current), InstallMethod: method, ReleaseURL: "https://themolt.net/download", Command: cliUpdateCommand(method, exe)}
 	cache, cacheErr := readUpdateCache("cli")
@@ -100,26 +110,51 @@ func checkCLIUpdate(ctx context.Context, current string, force bool) (updateResu
 func fetchCLILatest(ctx context.Context) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, cliUpdateManifestURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, cliUpdateReleasesURL, nil)
 	if err != nil {
 		return "", err
 	}
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("User-Agent", "moltnet-cli")
 	res, err := cliUpdateHTTPClient.Do(req)
 	if err != nil {
 		return "", err
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("manifest returned HTTP %d", res.StatusCode)
+		return "", fmt.Errorf("release listing returned HTTP %d", res.StatusCode)
 	}
-	var manifest updateManifest
-	if err := json.NewDecoder(res.Body).Decode(&manifest); err != nil {
-		return "", fmt.Errorf("invalid manifest: %w", err)
+	var releases []githubRelease
+	if err := json.NewDecoder(res.Body).Decode(&releases); err != nil {
+		return "", fmt.Errorf("invalid release listing: %w", err)
 	}
-	if !validVersion(manifest.CLI.Version) {
-		return "", errors.New("manifest has no valid CLI version")
+	latest := ""
+	for _, release := range releases {
+		// An unauthenticated caller never sees drafts, but a token in CI does,
+		// and this repository carries stuck drafts months old — one would
+		// otherwise masquerade as the newest release.  Same lesson as
+		// tools/ci/check-download-pins.sh.
+		if release.Draft || release.Prerelease {
+			continue
+		}
+		if !strings.HasPrefix(release.TagName, updateTagPrefix) {
+			continue
+		}
+		candidate := strings.TrimPrefix(release.TagName, updateTagPrefix)
+		if !validVersion(candidate) {
+			continue
+		}
+		// The listing is ordered by creation date, not version: a patch cut on
+		// an older line can appear ahead of a newer minor.  Compare every
+		// candidate rather than trusting position.
+		if latest == "" || compareVersions(candidate, latest) > 0 {
+			latest = candidate
+		}
 	}
-	return manifest.CLI.Version, nil
+	if latest == "" {
+		return "", errors.New("no valid CLI release found")
+	}
+	return latest, nil
 }
 
 func updateCachePath(product string) (string, error) {
@@ -193,6 +228,24 @@ func compareVersions(a, b string) int {
 	return 0
 }
 
+// os.Executable reports the path the binary was invoked through, which for a
+// Homebrew cask on macOS is the shim (/opt/homebrew/bin/moltnet), not its
+// Caskroom target.  Install-method detection matches on the real location, so
+// every macOS brew install was misreported as "direct" and offered the curl
+// installer — which would overwrite Homebrew's symlink and desync its version
+// tracking.  Linux was unaffected: os.Executable reads /proc/self/exe, which is
+// already resolved.
+func resolveCLIExecutable(exe string) string {
+	if exe == "" {
+		return exe
+	}
+	resolved, err := filepath.EvalSymlinks(exe)
+	if err != nil {
+		return exe
+	}
+	return resolved
+}
+
 func detectCLIInstallMethod(exe string) string {
 	p := filepath.ToSlash(exe)
 	switch {
@@ -225,11 +278,16 @@ func isCLIWorkspaceInvocation() bool {
 func cliUpdateCommand(method, exe string) string {
 	switch method {
 	case "homebrew":
-		return "brew upgrade --cask moltnet"
+		// `brew upgrade` consults the local tap clone; third-party taps are not
+		// in the core JSON API.  Without a fetch, a stale clone still advertises
+		// the installed version and the upgrade no-ops with "already installed".
+		return "brew update && brew upgrade --cask moltnet"
 	case "apt":
 		return "sudo apt update && sudo apt install --only-upgrade moltnet"
 	case "scoop":
-		return "scoop update moltnet"
+		// scoop-update.ps1 calls Sync-Bucket only when invoked with no app
+		// argument, so `scoop update moltnet` alone never refreshes the bucket.
+		return "scoop update && scoop update moltnet"
 	case "npm":
 		return "npm install -g @themoltnet/cli@latest"
 	default:
