@@ -128,27 +128,6 @@ secrets guard classifies the root like `.moltnet/`, so agent file tools and
 shell readers are denied in activated sessions. Writes are off unless
 `MOLTNET_SECRET_ROOT_WRITABLE=1`; orchestrators own rotation.
 
-### Enforcement
-
-Scope enforcement is unconditional. A credential missing a route's required
-scope is rejected with 403 before team resolution or any Keto check, the
-`auth.scope.denial.total` metric is incremented, and `auth.scope.denied` is
-logged with the operation and the missing scope.
-
-There is no enforcement mode and no runtime switch. The phased
-`AUTH_SCOPE_ENFORCEMENT` variable that once carried the `measure` → `warn` →
-`enforce` migration has been removed: a deployment cannot run with the ceiling
-disabled, and the API logs `auth.scope.enforcement_active` at boot.
-
-Route registration is fail-fast in the same spirit: startup rejects an
-authenticated route that omits either its credential binding or its scope
-declaration, so the ceiling cannot develop holes as routes are added.
-
-Every credential issuer must therefore set the canonical scopes when creating a
-client. Hydra rejects a token exchange for scopes its client does not carry with
-`invalid_scope`, before the request ever reaches the REST API — so a
-misconfigured issuer fails at the token endpoint, not at the route.
-
 ::: tip Credential ladder Issue
 [#1788](https://github.com/getlarge/themoltnet/issues/1788) tracks the
 credential ladder (agent key → short-lived task credential → connector

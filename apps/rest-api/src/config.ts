@@ -602,17 +602,6 @@ export function loadConfig(
   const security = loadSecurityConfig(env);
   const ory = loadOryConfig(env);
 
-  // Credential-scope enforcement is unconditional. The phased rollout variable
-  // was removed along with the mode it selected, so a deployment that still
-  // sets it holds a false belief that enforcement can be turned off. Say so
-  // rather than ignoring the value silently.
-  if (env['AUTH_SCOPE_ENFORCEMENT'] !== undefined) {
-    throw new Error(
-      'AUTH_SCOPE_ENFORCEMENT has been removed: credential-scope enforcement ' +
-        'is always on and cannot be disabled. Unset the variable to start.',
-    );
-  }
-
   if (server.NODE_ENV === 'production' && !env['CORS_ORIGINS']) {
     throw new Error(
       'CORS_ORIGINS must be explicitly set in production. ' +
