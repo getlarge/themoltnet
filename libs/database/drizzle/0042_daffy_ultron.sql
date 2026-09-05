@@ -12,63 +12,62 @@
 --
 -- NOTE: drizzle-kit generated a destructive version of this migration
 -- (`ADD COLUMN "id" uuid PRIMARY KEY DEFAULT gen_random_uuid()`), which would
--- assign random IDs and orphan all 21 FK columns. The constraint names and the
--- resulting schema below match what drizzle expects; only the data handling and
--- the primary-key swap are done by hand.
+-- assign random IDs and orphan all 21 FK columns.
+--
+-- It also emitted DROP CONSTRAINT statements using its own naming convention,
+-- which does not match reality: production carries a mix of drizzle-style
+-- names (`..._agents_identity_id_fk`), Postgres defaults (`..._fkey`) and at
+-- least one truncated at the 63-character identifier limit. A rehearsal
+-- against a restored copy failed on the first `_fkey` constraint. Constraints
+-- are therefore DROPPED by their discovered name and RECREATED under drizzle's
+-- canonical `<table>_<column>_agents_id_fk`, so the migration works against any
+-- existing naming while leaving a schema that matches the drizzle snapshot.
 
-ALTER TABLE "agent_enrollments" DROP CONSTRAINT "agent_enrollments_creator_agent_id_agents_identity_id_fk";
---> statement-breakpoint
-ALTER TABLE "agent_enrollments" DROP CONSTRAINT "agent_enrollments_resulting_agent_id_agents_identity_id_fk";
---> statement-breakpoint
-ALTER TABLE "context_packs" DROP CONSTRAINT "context_packs_creator_agent_id_agents_identity_id_fk";
---> statement-breakpoint
-ALTER TABLE "correlation_seals" DROP CONSTRAINT "correlation_seals_sealed_by_agent_id_agents_identity_id_fk";
---> statement-breakpoint
-ALTER TABLE "diaries" DROP CONSTRAINT "diaries_creator_agent_id_agents_identity_id_fk";
---> statement-breakpoint
-ALTER TABLE "diary_entries" DROP CONSTRAINT "diary_entries_creator_agent_id_agents_identity_id_fk";
---> statement-breakpoint
-ALTER TABLE "executor_manifest_registrations" DROP CONSTRAINT "executor_manifest_registrations_agent_identity_id_agents_identity_id_fk";
---> statement-breakpoint
-ALTER TABLE "groups" DROP CONSTRAINT "groups_creator_agent_id_agents_identity_id_fk";
---> statement-breakpoint
-ALTER TABLE "rendered_packs" DROP CONSTRAINT "rendered_packs_creator_agent_id_agents_identity_id_fk";
---> statement-breakpoint
-ALTER TABLE "runtime_models" DROP CONSTRAINT "runtime_models_created_by_agent_id_agents_identity_id_fk";
---> statement-breakpoint
-ALTER TABLE "runtime_policies" DROP CONSTRAINT "runtime_policies_created_by_agent_id_agents_identity_id_fk";
---> statement-breakpoint
-ALTER TABLE "runtime_profiles" DROP CONSTRAINT "runtime_profiles_created_by_agent_id_agents_identity_id_fk";
---> statement-breakpoint
-ALTER TABLE "signing_credential_events" DROP CONSTRAINT "signing_credential_events_actor_agent_id_agents_identity_id_fk";
---> statement-breakpoint
-ALTER TABLE "signing_credentials" DROP CONSTRAINT "signing_credentials_owner_agent_id_agents_identity_id_fk";
---> statement-breakpoint
-ALTER TABLE "task_artifacts" DROP CONSTRAINT "task_artifacts_created_by_agent_id_agents_identity_id_fk";
---> statement-breakpoint
-ALTER TABLE "task_attempts" DROP CONSTRAINT "task_attempts_claimed_by_agent_id_agents_identity_id_fk";
---> statement-breakpoint
-ALTER TABLE "tasks" DROP CONSTRAINT "tasks_proposed_by_agent_id_agents_identity_id_fk";
---> statement-breakpoint
-ALTER TABLE "tasks" DROP CONSTRAINT "tasks_claim_agent_id_agents_identity_id_fk";
---> statement-breakpoint
-ALTER TABLE "tasks" DROP CONSTRAINT "tasks_cancelled_by_agent_id_agents_identity_id_fk";
---> statement-breakpoint
-ALTER TABLE "team_invites" DROP CONSTRAINT "team_invites_creator_agent_id_agents_identity_id_fk";
---> statement-breakpoint
-ALTER TABLE "teams" DROP CONSTRAINT "teams_creator_agent_id_agents_identity_id_fk";
---> statement-breakpoint
--- Add the internal ID unseeded, then copy the current primary key into it.
--- This is the step that keeps every existing reference valid.
 ALTER TABLE "agents" ADD COLUMN "id" uuid;--> statement-breakpoint
 
+-- Seed from the existing primary key: this is what keeps all 21 FK columns and
+-- every Keto Agent: tuple valid without touching them.
 UPDATE "agents" SET "id" = "identity_id";--> statement-breakpoint
 
 ALTER TABLE "agents" ALTER COLUMN "id" SET NOT NULL;--> statement-breakpoint
 
--- Drop the old primary key by its real name. drizzle-kit could not resolve this
--- and left it commented out; resolving it dynamically also survives a database
--- whose constraint was not named by the Postgres default.
+-- Capture each FK targeting agents(identity_id) with its REAL name and delete
+-- rule before dropping anything.
+CREATE TEMP TABLE "_fk_backup" AS
+SELECT tc.constraint_name, tc.table_name, kcu.column_name, rc.delete_rule
+FROM information_schema.table_constraints tc
+JOIN information_schema.key_column_usage kcu
+  ON tc.constraint_name = kcu.constraint_name
+ AND tc.table_schema = kcu.table_schema
+JOIN information_schema.constraint_column_usage ccu
+  ON ccu.constraint_name = tc.constraint_name
+ AND ccu.table_schema = tc.table_schema
+JOIN information_schema.referential_constraints rc
+  ON rc.constraint_name = tc.constraint_name
+ AND rc.constraint_schema = tc.table_schema
+WHERE tc.constraint_type = 'FOREIGN KEY'
+  AND ccu.table_name = 'agents'
+  AND ccu.column_name = 'identity_id';--> statement-breakpoint
+
+DO $$
+DECLARE n bigint;
+BEGIN
+  SELECT count(*) INTO n FROM "_fk_backup";
+  IF n = 0 THEN
+    RAISE EXCEPTION 'No foreign keys target agents(identity_id); refusing to continue';
+  END IF;
+  RAISE NOTICE 'Retargeting % foreign keys to agents(id)', n;
+END $$;--> statement-breakpoint
+
+DO $$
+DECLARE r record;
+BEGIN
+  FOR r IN SELECT * FROM "_fk_backup" LOOP
+    EXECUTE format('ALTER TABLE %I DROP CONSTRAINT %I', r.table_name, r.constraint_name);
+  END LOOP;
+END $$;--> statement-breakpoint
+
+-- Drop the old primary key by its real name; drizzle-kit could not resolve it.
 DO $$
 DECLARE pk_name text;
 BEGIN
@@ -77,74 +76,57 @@ BEGIN
   WHERE tc.table_schema = 'public'
     AND tc.table_name = 'agents'
     AND tc.constraint_type = 'PRIMARY KEY';
-
   IF pk_name IS NULL THEN
     RAISE EXCEPTION 'agents primary key not found; refusing to continue';
   END IF;
-
   EXECUTE format('ALTER TABLE "agents" DROP CONSTRAINT %I', pk_name);
 END $$;--> statement-breakpoint
 
 ALTER TABLE "agents" ADD CONSTRAINT "agents_pkey" PRIMARY KEY ("id");--> statement-breakpoint
 
--- New agents get a generated ID; existing rows keep their seeded value.
 ALTER TABLE "agents" ALTER COLUMN "id" SET DEFAULT gen_random_uuid();--> statement-breakpoint
 
 -- identity_id becomes optional: NULL means "no live Kratos identity", and the
 -- agent keeps its data, ownership and permissions regardless.
 ALTER TABLE "agents" ALTER COLUMN "identity_id" DROP NOT NULL;--> statement-breakpoint
 
-ALTER TABLE "agents" ADD CONSTRAINT "agents_identity_id_unique" UNIQUE("identity_id");
---> statement-breakpoint
-ALTER TABLE "agent_enrollments" ADD CONSTRAINT "agent_enrollments_creator_agent_id_agents_id_fk" FOREIGN KEY ("creator_agent_id") REFERENCES "public"."agents"("id") ON DELETE restrict ON UPDATE no action;
---> statement-breakpoint
-ALTER TABLE "agent_enrollments" ADD CONSTRAINT "agent_enrollments_resulting_agent_id_agents_id_fk" FOREIGN KEY ("resulting_agent_id") REFERENCES "public"."agents"("id") ON DELETE restrict ON UPDATE no action;
---> statement-breakpoint
-ALTER TABLE "context_packs" ADD CONSTRAINT "context_packs_creator_agent_id_agents_id_fk" FOREIGN KEY ("creator_agent_id") REFERENCES "public"."agents"("id") ON DELETE restrict ON UPDATE no action;
---> statement-breakpoint
-ALTER TABLE "correlation_seals" ADD CONSTRAINT "correlation_seals_sealed_by_agent_id_agents_id_fk" FOREIGN KEY ("sealed_by_agent_id") REFERENCES "public"."agents"("id") ON DELETE set null ON UPDATE no action;
---> statement-breakpoint
-ALTER TABLE "diaries" ADD CONSTRAINT "diaries_creator_agent_id_agents_id_fk" FOREIGN KEY ("creator_agent_id") REFERENCES "public"."agents"("id") ON DELETE restrict ON UPDATE no action;
---> statement-breakpoint
-ALTER TABLE "diary_entries" ADD CONSTRAINT "diary_entries_creator_agent_id_agents_id_fk" FOREIGN KEY ("creator_agent_id") REFERENCES "public"."agents"("id") ON DELETE restrict ON UPDATE no action;
---> statement-breakpoint
-ALTER TABLE "executor_manifest_registrations" ADD CONSTRAINT "executor_manifest_registrations_agent_identity_id_agents_id_fk" FOREIGN KEY ("agent_identity_id") REFERENCES "public"."agents"("id") ON DELETE cascade ON UPDATE no action;
---> statement-breakpoint
-ALTER TABLE "groups" ADD CONSTRAINT "groups_creator_agent_id_agents_id_fk" FOREIGN KEY ("creator_agent_id") REFERENCES "public"."agents"("id") ON DELETE restrict ON UPDATE no action;
---> statement-breakpoint
-ALTER TABLE "rendered_packs" ADD CONSTRAINT "rendered_packs_creator_agent_id_agents_id_fk" FOREIGN KEY ("creator_agent_id") REFERENCES "public"."agents"("id") ON DELETE restrict ON UPDATE no action;
---> statement-breakpoint
-ALTER TABLE "runtime_models" ADD CONSTRAINT "runtime_models_created_by_agent_id_agents_id_fk" FOREIGN KEY ("created_by_agent_id") REFERENCES "public"."agents"("id") ON DELETE restrict ON UPDATE no action;
---> statement-breakpoint
-ALTER TABLE "runtime_policies" ADD CONSTRAINT "runtime_policies_created_by_agent_id_agents_id_fk" FOREIGN KEY ("created_by_agent_id") REFERENCES "public"."agents"("id") ON DELETE restrict ON UPDATE no action;
---> statement-breakpoint
-ALTER TABLE "runtime_profiles" ADD CONSTRAINT "runtime_profiles_created_by_agent_id_agents_id_fk" FOREIGN KEY ("created_by_agent_id") REFERENCES "public"."agents"("id") ON DELETE restrict ON UPDATE no action;
---> statement-breakpoint
-ALTER TABLE "signing_credential_events" ADD CONSTRAINT "signing_credential_events_actor_agent_id_agents_id_fk" FOREIGN KEY ("actor_agent_id") REFERENCES "public"."agents"("id") ON DELETE restrict ON UPDATE no action;
---> statement-breakpoint
-ALTER TABLE "signing_credentials" ADD CONSTRAINT "signing_credentials_owner_agent_id_agents_id_fk" FOREIGN KEY ("owner_agent_id") REFERENCES "public"."agents"("id") ON DELETE restrict ON UPDATE no action;
---> statement-breakpoint
-ALTER TABLE "task_artifacts" ADD CONSTRAINT "task_artifacts_created_by_agent_id_agents_id_fk" FOREIGN KEY ("created_by_agent_id") REFERENCES "public"."agents"("id") ON DELETE restrict ON UPDATE no action;
---> statement-breakpoint
-ALTER TABLE "task_attempts" ADD CONSTRAINT "task_attempts_claimed_by_agent_id_agents_id_fk" FOREIGN KEY ("claimed_by_agent_id") REFERENCES "public"."agents"("id") ON DELETE restrict ON UPDATE no action;
---> statement-breakpoint
-ALTER TABLE "tasks" ADD CONSTRAINT "tasks_proposed_by_agent_id_agents_id_fk" FOREIGN KEY ("proposed_by_agent_id") REFERENCES "public"."agents"("id") ON DELETE restrict ON UPDATE no action;
---> statement-breakpoint
-ALTER TABLE "tasks" ADD CONSTRAINT "tasks_claim_agent_id_agents_id_fk" FOREIGN KEY ("claim_agent_id") REFERENCES "public"."agents"("id") ON DELETE restrict ON UPDATE no action;
---> statement-breakpoint
-ALTER TABLE "tasks" ADD CONSTRAINT "tasks_cancelled_by_agent_id_agents_id_fk" FOREIGN KEY ("cancelled_by_agent_id") REFERENCES "public"."agents"("id") ON DELETE restrict ON UPDATE no action;
---> statement-breakpoint
-ALTER TABLE "team_invites" ADD CONSTRAINT "team_invites_creator_agent_id_agents_id_fk" FOREIGN KEY ("creator_agent_id") REFERENCES "public"."agents"("id") ON DELETE restrict ON UPDATE no action;
---> statement-breakpoint
-ALTER TABLE "teams" ADD CONSTRAINT "teams_creator_agent_id_agents_id_fk" FOREIGN KEY ("creator_agent_id") REFERENCES "public"."agents"("id") ON DELETE restrict ON UPDATE no action;
---> statement-breakpoint
--- Post-conditions: fail loudly rather than leave a half-migrated graph.
+ALTER TABLE "agents" ADD CONSTRAINT "agents_identity_id_unique" UNIQUE("identity_id");--> statement-breakpoint
+
+-- Recreate under drizzle's canonical name, preserving the original delete rule
+-- and deliberately WITHOUT ON UPDATE CASCADE. The 2026-09-04 relink added
+-- cascade so one UPDATE could move an identity across all 21 child columns;
+-- agents.id is immutable by design, so cascade would now be inert at best and
+-- would silently rewrite 21 tables on a stray UPDATE at worst.
 DO $$
-DECLARE mismatched bigint; retargeted bigint; orphaned bigint;
+DECLARE r record; new_name text;
 BEGIN
+  FOR r IN SELECT * FROM "_fk_backup" LOOP
+    new_name := left(r.table_name || '_' || r.column_name || '_agents_id_fk', 63);
+    EXECUTE format(
+      'ALTER TABLE %I ADD CONSTRAINT %I FOREIGN KEY (%I) REFERENCES "agents"("id") ON DELETE %s',
+      r.table_name, new_name, r.column_name, r.delete_rule);
+  END LOOP;
+END $$;--> statement-breakpoint
+
+-- Post-conditions: fail rather than leave a half-migrated graph.
+DO $$
+DECLARE mismatched bigint; retargeted bigint; expected bigint; leftover bigint;
+BEGIN
+  SELECT count(*) INTO expected FROM "_fk_backup";
+
   SELECT count(*) INTO mismatched FROM "agents" WHERE "id" IS DISTINCT FROM "identity_id";
   IF mismatched > 0 THEN
     RAISE EXCEPTION 'agents.id was not seeded from identity_id for % row(s)', mismatched;
+  END IF;
+
+  SELECT count(*) INTO leftover
+  FROM information_schema.constraint_column_usage ccu
+  JOIN information_schema.table_constraints tc
+    ON tc.constraint_name = ccu.constraint_name AND tc.table_schema = ccu.table_schema
+  WHERE ccu.table_name = 'agents' AND ccu.column_name = 'identity_id'
+    AND tc.constraint_type = 'FOREIGN KEY';
+  IF leftover > 0 THEN
+    RAISE EXCEPTION '% foreign key(s) still target agents(identity_id)', leftover;
   END IF;
 
   SELECT count(*) INTO retargeted
@@ -153,16 +135,11 @@ BEGIN
     ON tc.constraint_name = ccu.constraint_name AND tc.table_schema = ccu.table_schema
   WHERE ccu.table_name = 'agents' AND ccu.column_name = 'id'
     AND tc.constraint_type = 'FOREIGN KEY';
-  IF retargeted <> 21 THEN
-    RAISE EXCEPTION 'Expected 21 foreign keys on agents(id), found %', retargeted;
+  IF retargeted <> expected THEN
+    RAISE EXCEPTION 'Expected % foreign keys on agents(id), found %', expected, retargeted;
   END IF;
 
-  SELECT count(*) INTO orphaned FROM "teams" t
-  LEFT JOIN "agents" a ON a."id" = t."creator_agent_id"
-  WHERE t."creator_agent_id" IS NOT NULL AND a."id" IS NULL;
-  IF orphaned > 0 THEN
-    RAISE EXCEPTION '% team(s) reference a non-existent agent after migration', orphaned;
-  END IF;
+  RAISE NOTICE 'Decoupling complete: % foreign keys now target agents(id)', retargeted;
+END $$;--> statement-breakpoint
 
-  RAISE NOTICE 'Decoupling complete: 21 foreign keys now target agents(id)';
-END $$;
+DROP TABLE "_fk_backup";
