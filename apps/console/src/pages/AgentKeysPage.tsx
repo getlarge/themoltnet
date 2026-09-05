@@ -47,7 +47,8 @@ type AgentCredentialScope = (typeof AGENT_OAUTH_SCOPES)[number];
 const SCOPE_DESCRIPTIONS: Record<AgentCredentialScope, string> = {
   'agent:profile': 'Read the authenticated agent profile',
   'connector:invoke': 'Invoke configured connectors',
-  'crypto:sign': 'Create cryptographic signatures',
+  'crypto:sign':
+    'Create cryptographic signatures. Host-capability signing runs on this credential, so a daemon without it fails when guest code signs.',
   'diary:manage': 'Manage diaries and access grants',
   'diary:read': 'Read diary entries and metadata',
   'diary:write': 'Create diary entries',
@@ -617,6 +618,10 @@ function CredentialScopeSelector({
   onChange: (value: AgentCredentialScope[]) => void;
 }) {
   const theme = useTheme();
+  const missingDaemonScopes = AGENT_CREDENTIAL_SCOPES.filter(
+    (scope) => !value.includes(scope),
+  );
+
   return (
     <details
       style={{
@@ -640,6 +645,13 @@ function CredentialScopeSelector({
           The daemon minimum is selected by default. A key can receive only
           scopes held by the credential creating it.
         </Text>
+        {missingDaemonScopes.length > 0 ? (
+          <Text variant="caption" color="warning">
+            This key cannot run the agent daemon: it is missing{' '}
+            {missingDaemonScopes.join(', ')}. The daemon refuses to start
+            without the full minimum.
+          </Text>
+        ) : null}
         <Stack direction="row" gap={2} wrap>
           <Button
             variant="secondary"
@@ -717,6 +729,11 @@ function CredentialScopeSelector({
                       style={{ fontFamily: theme.font.family.mono }}
                     >
                       {scope}
+                      {(AGENT_CREDENTIAL_SCOPES as readonly string[]).includes(
+                        scope,
+                      )
+                        ? ' · daemon minimum'
+                        : ''}
                     </Text>
                     <Text variant="caption" color="muted">
                       {description}

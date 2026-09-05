@@ -277,6 +277,30 @@ describe('AgentKeysPage', () => {
     );
   });
 
+  it('warns when the selection cannot run the daemon', async () => {
+    // Deselecting a daemon-minimum scope is silent until the daemon refuses to
+    // start, so the picker has to say so at issue time.
+    renderPage();
+    const dialog = await openCreateDialog('narrow-runtime');
+    fireEvent.click(
+      within(dialog).getByText(
+        new RegExp(
+          `Credential scopes \\(${AGENT_CREDENTIAL_SCOPES.length} selected\\)`,
+        ),
+      ),
+    );
+    expect(
+      within(dialog).queryByText(/cannot run the agent daemon/i),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(
+      within(dialog).getByRole('checkbox', { name: /crypto:sign/i }),
+    );
+
+    const warning = within(dialog).getByText(/cannot run the agent daemon/i);
+    expect(warning).toHaveTextContent('crypto:sign');
+  });
+
   it('reuses the idempotency key when a create request is retried', async () => {
     const key = makeKey({ id: 'key-1', name: 'retry-daemon' });
     apiMocks.createAgentKey

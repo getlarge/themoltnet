@@ -30265,7 +30265,7 @@ var CREDENTIAL_SCOPES = {
 	TeamRead: "team:read"
 };
 var ALL_CREDENTIAL_SCOPES = Object.freeze(Object.values(CREDENTIAL_SCOPES));
-CREDENTIAL_SCOPES.AgentProfile, CREDENTIAL_SCOPES.RuntimeRead, CREDENTIAL_SCOPES.TaskRead, CREDENTIAL_SCOPES.TaskClaim, CREDENTIAL_SCOPES.TaskExecute;
+CREDENTIAL_SCOPES.AgentProfile, CREDENTIAL_SCOPES.CryptoSign, CREDENTIAL_SCOPES.RuntimeRead, CREDENTIAL_SCOPES.TaskRead, CREDENTIAL_SCOPES.TaskClaim, CREDENTIAL_SCOPES.TaskExecute;
 /** Full grant ceiling for first-party agent OAuth2 clients. */
 var AGENT_OAUTH_SCOPES = Object.freeze(ALL_CREDENTIAL_SCOPES.filter((scope) => scope !== CREDENTIAL_SCOPES.HumanProfile));
 [
