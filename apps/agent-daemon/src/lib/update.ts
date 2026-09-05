@@ -1,3 +1,4 @@
+import { realpathSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { homedir, platform } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -5,6 +6,21 @@ import { dirname, join } from 'node:path';
 import { loadUpdateEnvConfig } from '../config.js';
 
 export const UPDATE_MANIFEST_URL = 'https://themolt.net/download/manifest.json';
+/**
+ * `npm install -g @themoltnet/agent-daemon@latest` resolves the registry's own
+ * dist-tag, so for an npm install the registry is the precise answer — the
+ * manifest serves the themolt.net pin, which gates the bundle installer's
+ * default and says nothing about what npm already has. It is also the origin an
+ * npm install already talks to, so this adds no new dependency in CI, where the
+ * daemon runs as `npx @themoltnet/agent-daemon` and would otherwise reach for
+ * api.github.com from shared runner IPs.
+ *
+ * Bundle and direct installs stay on the manifest: `curl .../install/agent | sh`
+ * installs the installer's own RELEASE_PINNED_VERSION, so the pin genuinely is
+ * the newest version those paths can reach by default.
+ */
+export const UPDATE_NPM_REGISTRY_URL =
+  'https://registry.npmjs.org/@themoltnet/agent-daemon/latest';
 export const UPDATE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const UPDATE_ERROR_CACHE_TTL_MS = 5 * 60 * 1000;
 export type DaemonInstallMethod = 'bundle' | 'npm' | 'direct';
@@ -22,10 +38,26 @@ interface UpdateCache {
   error?: string;
 }
 
+/**
+ * Node does not resolve `process.argv[1]`: invoked through npm's bin shim it
+ * reports `/usr/local/bin/moltnet-agent`, not the `node_modules` path this
+ * matches on. Every global npm install therefore looked like `direct` and was
+ * offered the bundle installer, which would drop a bundle on top of an npm
+ * install. Resolve first; a missing path falls back to the input.
+ */
+export function resolveDaemonExecutable(executable: string): string {
+  if (!executable) return executable;
+  try {
+    return realpathSync(executable);
+  } catch {
+    return executable;
+  }
+}
+
 export function detectDaemonInstallMethod(
   executable = process.argv[1] ?? '',
 ): DaemonInstallMethod {
-  const path = executable.replaceAll('\\', '/');
+  const path = resolveDaemonExecutable(executable).replaceAll('\\', '/');
   if (path.includes('/node_modules/@themoltnet/agent-daemon/')) return 'npm';
   if (path.includes('/.local/share/moltnet/') || path.includes('/opt/moltnet/'))
     return 'bundle';
@@ -64,14 +96,18 @@ export async function checkDaemonUpdate(input: {
       return result;
     }
   }
+  const viaNpm = installMethod === 'npm';
+  const source = viaNpm ? UPDATE_NPM_REGISTRY_URL : UPDATE_MANIFEST_URL;
+  const label = viaNpm ? 'npm registry' : 'manifest';
   try {
-    const response = await (input.fetchFn ?? fetch)(UPDATE_MANIFEST_URL, {
+    const response = await (input.fetchFn ?? fetch)(source, {
       signal: AbortSignal.timeout(5000),
     });
     if (!response.ok)
-      throw new Error(`manifest returned HTTP ${response.status}`);
-    const latest = manifestVersion(await response.json());
-    if (!latest) throw new Error('manifest has no valid agent version');
+      throw new Error(`${label} returned HTTP ${response.status}`);
+    const body: unknown = await response.json();
+    const latest = viaNpm ? distTagVersion(body) : manifestVersion(body);
+    if (!latest) throw new Error(`${label} has no valid agent version`);
     await writeCache({ checkedAt: now.toISOString(), latest }).catch(
       () => undefined,
     );
@@ -87,6 +123,13 @@ export async function checkDaemonUpdate(input: {
       `could not check for MoltNet agent updates: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
+}
+function distTagVersion(value: unknown): string | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const version = (value as { version?: unknown }).version;
+  return typeof version === 'string' && validVersion(version)
+    ? normalizeVersion(version)
+    : undefined;
 }
 function manifestVersion(value: unknown): string | undefined {
   if (!value || typeof value !== 'object') return undefined;

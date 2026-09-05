@@ -28,13 +28,19 @@ import (
 // hid versions users could already install, for as long as the pin PR sat
 // unmerged.
 const updateReleasesURL = "https://api.github.com/repos/getlarge/themoltnet/releases?per_page=100"
+const updateNPMURL = "https://registry.npmjs.org/@themoltnet/cli/latest"
 const updateCacheTTL = 24 * time.Hour
 const updateTagPrefix = "cli-v"
 
 // Package variables make the transport boundary testable without changing the
 // public endpoint used by released binaries.
 var cliUpdateReleasesURL = updateReleasesURL
+var cliUpdateNPMURL = updateNPMURL
 var cliUpdateHTTPClient = &http.Client{}
+
+type npmDistTag struct {
+	Version string `json:"version"`
+}
 
 type githubRelease struct {
 	TagName    string `json:"tag_name"`
@@ -96,7 +102,7 @@ func checkCLIUpdate(ctx context.Context, current string, force bool) (updateResu
 		result.UpdateAvailable = compareVersions(result.Latest, result.Current) > 0
 		return result, nil
 	}
-	latest, err := fetchCLILatest(ctx)
+	latest, err := fetchCLILatest(ctx, method)
 	if err != nil {
 		_ = writeUpdateCache("cli", updateCache{CheckedAt: time.Now().UTC(), Error: err.Error()})
 		return result, fmt.Errorf("could not check for MoltNet CLI updates: %w", err)
@@ -107,7 +113,46 @@ func checkCLIUpdate(ctx context.Context, current string, force bool) (updateResu
 	return result, nil
 }
 
-func fetchCLILatest(ctx context.Context) (string, error) {
+// Ask the channel the user would actually install from.  `npm install -g
+// @themoltnet/cli@latest` resolves the registry's own dist-tag, so the registry
+// is both the precise answer and the one origin an npm install already talks
+// to — it also keeps `npx @themoltnet/cli` in CI off api.github.com, whose
+// unauthenticated 60/hr budget is shared across runner egress IPs.
+func fetchCLILatest(ctx context.Context, method string) (string, error) {
+	if method == "npm" {
+		return fetchCLILatestFromNPM(ctx)
+	}
+	return fetchCLILatestFromReleases(ctx)
+}
+
+func fetchCLILatestFromNPM(ctx context.Context) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, cliUpdateNPMURL, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "moltnet-cli")
+	res, err := cliUpdateHTTPClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("npm registry returned HTTP %d", res.StatusCode)
+	}
+	var tag npmDistTag
+	if err := json.NewDecoder(res.Body).Decode(&tag); err != nil {
+		return "", fmt.Errorf("invalid npm registry response: %w", err)
+	}
+	if !validVersion(tag.Version) {
+		return "", errors.New("npm registry has no valid CLI version")
+	}
+	return normalVersion(tag.Version), nil
+}
+
+func fetchCLILatestFromReleases(ctx context.Context) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, cliUpdateReleasesURL, nil)

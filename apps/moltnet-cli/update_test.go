@@ -83,7 +83,7 @@ func TestFetchCLILatestPicksNewestPublishedCLIRelease(t *testing.T) {
 			oldURL := cliUpdateReleasesURL
 			cliUpdateReleasesURL = server.URL
 			defer func() { cliUpdateReleasesURL = oldURL }()
-			got, err := fetchCLILatest(context.Background())
+			got, err := fetchCLILatest(context.Background(), "homebrew")
 			if tt.err != "" {
 				if err == nil || !strings.Contains(err.Error(), tt.err) {
 					t.Fatalf("error = %v, want %q", err, tt.err)
@@ -206,5 +206,56 @@ func TestUpdateCachePermissions(t *testing.T) {
 	}
 	if filepath.Base(path) != "cli.json" {
 		t.Fatalf("cache path = %q", path)
+	}
+}
+
+// `npm install -g @themoltnet/cli@latest` resolves the registry dist-tag, so an
+// npm install must ask the registry rather than the GitHub release listing.
+func TestFetchCLILatestUsesNPMRegistryForNPMInstalls(t *testing.T) {
+	var hits []string
+	registry := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits = append(hits, "npm"+r.URL.Path)
+		_, _ = w.Write([]byte(`{"version":"1.91.0"}`))
+	}))
+	defer registry.Close()
+	releases := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		hits = append(hits, "github")
+		_, _ = w.Write([]byte(`[{"tag_name":"cli-v1.88.0"}]`))
+	}))
+	defer releases.Close()
+
+	oldNPM, oldReleases := cliUpdateNPMURL, cliUpdateReleasesURL
+	cliUpdateNPMURL, cliUpdateReleasesURL = registry.URL, releases.URL
+	defer func() { cliUpdateNPMURL, cliUpdateReleasesURL = oldNPM, oldReleases }()
+
+	got, err := fetchCLILatest(context.Background(), "npm")
+	if err != nil || got != "1.91.0" {
+		t.Fatalf("npm = %q, %v; want 1.91.0", got, err)
+	}
+	if len(hits) != 1 || !strings.HasPrefix(hits[0], "npm") {
+		t.Fatalf("npm install hit %v, want the registry only", hits)
+	}
+
+	hits = nil
+	if got, err = fetchCLILatest(context.Background(), "homebrew"); err != nil || got != "1.88.0" {
+		t.Fatalf("homebrew = %q, %v; want 1.88.0", got, err)
+	}
+	if len(hits) != 1 || hits[0] != "github" {
+		t.Fatalf("homebrew hit %v, want the release listing only", hits)
+	}
+}
+
+func TestFetchCLILatestRejectsBadNPMResponses(t *testing.T) {
+	for name, body := range map[string]string{"malformed": `{`, "prerelease": `{"version":"1.91.0-rc.1"}`} {
+		t.Run(name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte(body)) }))
+			defer server.Close()
+			old := cliUpdateNPMURL
+			cliUpdateNPMURL = server.URL
+			defer func() { cliUpdateNPMURL = old }()
+			if _, err := fetchCLILatest(context.Background(), "npm"); err == nil {
+				t.Fatal("want an error")
+			}
+		})
 	}
 }
