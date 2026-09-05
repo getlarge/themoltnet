@@ -72,14 +72,14 @@ describe('runtime session routes', () => {
     mocks.permissionChecker.canReportTask.mockResolvedValue(true);
     mocks.permissionChecker.canViewTask.mockResolvedValue(true);
     mocks.taskRepository.findById.mockResolvedValue({
-      claimAgentId: VALID_AUTH_CONTEXT.identityId,
+      claimAgentId: VALID_AUTH_CONTEXT.agentId,
       claimExpiresAt: ACTIVE_CLAIM_EXPIRES_AT,
       id: TASK_ID,
       teamId: TEAM_ID,
     });
     mocks.taskRepository.findAttempt.mockResolvedValue({
       attemptN: 1,
-      claimedByAgentId: VALID_AUTH_CONTEXT.identityId,
+      claimedByAgentId: VALID_AUTH_CONTEXT.agentId,
       status: 'running',
       taskId: TASK_ID,
     });
@@ -138,7 +138,7 @@ describe('runtime session routes', () => {
 
   it('rejects uploads when the task belongs to another team', async () => {
     mocks.taskRepository.findById.mockResolvedValue({
-      claimAgentId: VALID_AUTH_CONTEXT.identityId,
+      claimAgentId: VALID_AUTH_CONTEXT.agentId,
       claimExpiresAt: ACTIVE_CLAIM_EXPIRES_AT,
       id: TASK_ID,
       teamId: OTHER_TEAM_ID,
@@ -161,7 +161,7 @@ describe('runtime session routes', () => {
 
   it('rejects upload after the task claim lease expires', async () => {
     mocks.taskRepository.findById.mockResolvedValue({
-      claimAgentId: VALID_AUTH_CONTEXT.identityId,
+      claimAgentId: VALID_AUTH_CONTEXT.agentId,
       claimExpiresAt: new Date(Date.now() - 1_000),
       id: TASK_ID,
       teamId: TEAM_ID,
@@ -206,7 +206,7 @@ describe('runtime session routes', () => {
   it('rejects checkpoint upload before the attempt is running', async () => {
     mocks.taskRepository.findAttempt.mockResolvedValue({
       attemptN: 1,
-      claimedByAgentId: VALID_AUTH_CONTEXT.identityId,
+      claimedByAgentId: VALID_AUTH_CONTEXT.agentId,
       status: 'claimed',
       taskId: TASK_ID,
     });
@@ -249,7 +249,7 @@ describe('runtime session routes', () => {
     expect(response.statusCode).toBe(404);
     expect(mocks.permissionChecker.canViewTask).toHaveBeenCalledWith(
       'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
-      VALID_AUTH_CONTEXT.identityId,
+      VALID_AUTH_CONTEXT.agentId,
       expect.any(String),
     );
     expect(mocks.runtimeSessionStorage.putObject).not.toHaveBeenCalled();

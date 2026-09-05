@@ -354,7 +354,7 @@ export function taskRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const {
-        identityId,
+        subjectId,
         subjectNs: callerNs,
         subjectType,
       } = requireKetoSubject(request);
@@ -382,11 +382,11 @@ export function taskRoutes(fastify: FastifyInstance) {
           dispatchTimeoutSec: request.body.dispatchTimeoutSec,
           runningTimeoutSec: request.body.runningTimeoutSec,
           idempotencyKey: request.headers['idempotency-key'],
-          callerId: identityId,
+          callerId: subjectId,
           callerNs,
           callerIsAgent: subjectType === 'agent',
-          // Keto permission checks key on identityId, but the
-          // proposedBy*Id columns FK to humans.id / agents.identity_id.
+          // Keto permission checks key on the internal principal id, and the
+          // proposedBy*Id columns FK to humans.id / agents.id.
           // authContextToCreator resolves the correct write-side id.
           proposerId: authContextToCreator(request).id,
         });
@@ -425,7 +425,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs: callerNs } = requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'tasks');
       try {
         return await fastify.taskService.list({
@@ -449,7 +449,7 @@ export function taskRoutes(fastify: FastifyInstance) {
           completedBefore: request.query.completedBefore,
           limit: request.query.limit,
           cursor: request.query.cursor,
-          callerId: identityId,
+          callerId: subjectId,
           callerNs,
         });
       } catch (error) {
@@ -488,7 +488,7 @@ export function taskRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const {
-        identityId,
+        subjectId,
         subjectNs: callerNs,
         subjectType,
       } = requireKetoSubject(request);
@@ -498,7 +498,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         const plan = await fastify.taskService.planDeleteMany({
           ids: request.body.ids,
           teamId,
-          callerId: identityId,
+          callerId: subjectId,
           callerNs,
           force,
           reason: request.body.reason,
@@ -517,7 +517,7 @@ export function taskRoutes(fastify: FastifyInstance) {
             accepted: plan.accepted.length,
             skipped: plan.skipped.length,
             force,
-            requestedBy: { id: identityId, ns: subjectType },
+            requestedBy: { id: subjectId, ns: subjectType },
           },
           'task.delete.plan',
         );
@@ -530,7 +530,7 @@ export function taskRoutes(fastify: FastifyInstance) {
               requested: request.body.ids.length,
               skipped: plan.skipped.length,
               force,
-              requestedBy: { id: identityId, ns: subjectType },
+              requestedBy: { id: subjectId, ns: subjectType },
             },
             'task.delete.noop',
           );
@@ -552,7 +552,7 @@ export function taskRoutes(fastify: FastifyInstance) {
               operationId,
               reason: request.body.reason,
               requestedBy: {
-                id: identityId,
+                id: subjectId,
                 ns: subjectType,
               },
             },
@@ -569,7 +569,7 @@ export function taskRoutes(fastify: FastifyInstance) {
               accepted: plan.accepted.length,
               skipped: plan.skipped.length,
               force,
-              requestedBy: { id: identityId, ns: subjectType },
+              requestedBy: { id: subjectId, ns: subjectType },
             },
             'task.delete.workflow_queued',
           );
@@ -584,7 +584,7 @@ export function taskRoutes(fastify: FastifyInstance) {
                 accepted: plan.accepted.length,
                 skipped: plan.skipped.length,
                 force,
-                requestedBy: { id: identityId, ns: subjectType },
+                requestedBy: { id: subjectId, ns: subjectType },
               },
               'task.delete.workflow_enqueue_failed',
             );
@@ -600,7 +600,7 @@ export function taskRoutes(fastify: FastifyInstance) {
               accepted: plan.accepted.length,
               skipped: plan.skipped.length,
               force,
-              requestedBy: { id: identityId, ns: subjectType },
+              requestedBy: { id: subjectId, ns: subjectType },
             },
             'task.delete.workflow_duplicate',
           );
@@ -648,7 +648,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs: callerNs } = requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'task analytics');
       const completedBefore = request.query.completedBefore
         ? new Date(request.query.completedBefore)
@@ -667,7 +667,7 @@ export function taskRoutes(fastify: FastifyInstance) {
           tags: request.query.tags,
           taskTypes: request.query.taskTypes,
           teamId,
-          callerId: identityId,
+          callerId: subjectId,
           callerNs,
         });
         return toAnalyticsResponse({ completedAfter, completedBefore, result });
@@ -708,12 +708,12 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs: callerNs } = requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'tasks');
       try {
         return await fastify.taskService.get(
           request.params.id,
-          identityId,
+          subjectId,
           callerNs,
           teamId,
         );
@@ -754,13 +754,13 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs: callerNs } = requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'tasks');
       try {
         return await fastify.taskService.updateMetadata(request.params.id, {
           ...('title' in request.body ? { title: request.body.title } : {}),
           ...('tags' in request.body ? { tags: request.body.tags } : {}),
-          callerId: identityId,
+          callerId: subjectId,
           callerNs,
           teamId,
         });
@@ -798,12 +798,12 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs: callerNs } = requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'tasks');
       try {
         await fastify.taskService.get(
           request.params.id,
-          identityId,
+          subjectId,
           callerNs,
           teamId,
         );
@@ -814,7 +814,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       if (
         !(await fastify.permissionChecker.canManageTask(
           request.params.id,
-          identityId,
+          subjectId,
           callerNs,
         ))
       ) {
@@ -865,12 +865,13 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const { subjectId: callerId, subjectNs: callerNs } =
+        requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'tasks');
       try {
         await fastify.taskService.get(
           request.params.id,
-          identityId,
+          callerId,
           callerNs,
           teamId,
         );
@@ -881,7 +882,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       if (
         !(await fastify.permissionChecker.canManageTask(
           request.params.id,
-          identityId,
+          callerId,
           callerNs,
         ))
       ) {
@@ -956,12 +957,13 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const { subjectId: callerId, subjectNs: callerNs } =
+        requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'tasks');
       try {
         await fastify.taskService.get(
           request.params.id,
-          identityId,
+          callerId,
           callerNs,
           teamId,
         );
@@ -972,7 +974,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       if (
         !(await fastify.permissionChecker.canManageTask(
           request.params.id,
-          identityId,
+          callerId,
           callerNs,
         ))
       ) {
@@ -1028,10 +1030,10 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs: callerNs } = requireKetoSubject(request);
       try {
         return await fastify.taskService.registerExecutorManifest(
-          identityId,
+          subjectId,
           callerNs,
           request.body,
         );
@@ -1085,12 +1087,12 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs: callerNs } = requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'tasks');
       try {
         const result = await fastify.taskService.claim(
           request.params.id,
-          identityId,
+          subjectId,
           callerNs,
           request.body.leaseTtlSec,
           {
@@ -1147,13 +1149,13 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs: callerNs } = requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'tasks');
       try {
         return await fastify.taskService.heartbeat(
           request.params.id,
           request.params.n,
-          identityId,
+          subjectId,
           callerNs,
           request.body.leaseTtlSec,
           teamId,
@@ -1195,13 +1197,13 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs: callerNs } = requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'tasks');
       try {
         return await fastify.taskService.complete(
           request.params.id,
           request.params.n,
-          identityId,
+          subjectId,
           callerNs,
           {
             output: request.body.output,
@@ -1252,13 +1254,13 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs: callerNs } = requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'tasks');
       try {
         return await fastify.taskService.failAttempt(
           request.params.id,
           request.params.n,
-          identityId,
+          subjectId,
           callerNs,
           request.body.error,
           teamId,
@@ -1303,13 +1305,13 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs: callerNs } = requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'tasks');
       try {
         return await fastify.taskService.abort(
           request.params.id,
           request.params.n,
-          identityId,
+          subjectId,
           callerNs,
           request.body.reason,
           teamId,
@@ -1351,16 +1353,16 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs: callerNs } = requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'tasks');
       try {
         return await fastify.taskService.cancel(
           request.params.id,
-          identityId,
+          subjectId,
           callerNs,
           request.body.reason,
           // cancelledBy*Id FKs to humans.id/agents.identity_id, not the
-          // Kratos identityId used for the Keto check above.
+          // Kratos subjectId used for the Keto check above.
           authContextToCreator(request).id,
           teamId,
         );
@@ -1399,12 +1401,12 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs: callerNs } = requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'tasks');
       try {
         return await fastify.taskService.listAttempts(
           request.params.id,
-          identityId,
+          subjectId,
           callerNs,
           teamId,
         );
@@ -1444,13 +1446,13 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs: callerNs } = requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'tasks');
       try {
         return await fastify.taskService.listMessages(
           request.params.id,
           request.params.n,
-          identityId,
+          subjectId,
           callerNs,
           {
             afterSeq: request.query.afterSeq,
@@ -1494,13 +1496,13 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs: callerNs } = requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'tasks');
       try {
         return await fastify.taskService.appendMessages(
           request.params.id,
           request.params.n,
-          identityId,
+          subjectId,
           callerNs,
           request.body.messages,
           teamId,

@@ -125,13 +125,13 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
       const { entryId } = request.params;
       const { targetId, relation, status = 'proposed' } = request.body;
 
       const allowed = await fastify.permissionChecker.canEditEntry(
         entryId,
-        identityId,
+        subjectId,
         subjectNs,
       );
       if (!allowed) {
@@ -216,7 +216,7 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
       const { entryId } = request.params;
       const {
         relation,
@@ -229,7 +229,7 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
 
       const allowed = await fastify.permissionChecker.canViewEntry(
         entryId,
-        identityId,
+        subjectId,
         subjectNs,
       );
       if (!allowed) {
@@ -303,7 +303,7 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
       const { id } = request.params;
       const { status } = request.body;
 
@@ -314,7 +314,7 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
 
       const allowed = await fastify.permissionChecker.canEditAnyEntry(
         [relation.sourceId, relation.targetId],
-        identityId,
+        subjectId,
         subjectNs,
       );
       if (!allowed) {
@@ -363,7 +363,7 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
       const { id } = request.params;
 
       const relation = await fastify.entryRelationRepository.findById(id);
@@ -373,7 +373,7 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
 
       const allowed = await fastify.permissionChecker.canEditAnyEntry(
         [relation.sourceId, relation.targetId],
-        identityId,
+        subjectId,
         subjectNs,
       );
       if (!allowed) {

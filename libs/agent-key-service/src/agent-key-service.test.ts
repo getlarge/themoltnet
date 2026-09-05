@@ -33,7 +33,7 @@ const logger = {
 };
 
 const subject: AgentKeySubject = {
-  identityId: AGENT_ID,
+  agentId: AGENT_ID,
   scopes: [...AGENT_OAUTH_SCOPES],
   subjectNs: KetoNamespace.Agent,
   subjectType: 'agent',

@@ -132,10 +132,10 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
           `${TEAM_HEADER} header is required: runtime model creation is team-scoped`,
         );
       }
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
       const canManage = await fastify.permissionChecker.canManageTeamRuntime(
         teamId,
-        identityId,
+        subjectId,
         subjectNs,
       );
       if (!canManage) throw createProblem('forbidden');
@@ -202,10 +202,10 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
       // Team-scoped entries: caller must be able to access the team.
       // Global entries: any authenticated caller can read.
       if (row.teamId) {
-        const { identityId, subjectNs } = requireKetoSubject(request);
+        const { subjectId, subjectNs } = requireKetoSubject(request);
         const canAccess = await fastify.permissionChecker.canAccessTeam(
           row.teamId,
-          identityId,
+          subjectId,
           subjectNs,
         );
         if (!canAccess) throw createProblem('not-found');
@@ -252,10 +252,10 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
           'Global catalog entries are not modifiable via the public API',
         );
       }
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
       const canManage = await fastify.permissionChecker.canManageTeamRuntime(
         existing.teamId,
-        identityId,
+        subjectId,
         subjectNs,
       );
       if (!canManage) throw createProblem('forbidden');
@@ -335,10 +335,10 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
           'Global catalog entries are not deletable via the public API',
         );
       }
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
       const canManage = await fastify.permissionChecker.canManageTeamRuntime(
         existing.teamId,
-        identityId,
+        subjectId,
         subjectNs,
       );
       if (!canManage) throw createProblem('forbidden');

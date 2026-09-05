@@ -276,10 +276,12 @@ describe('POST /tasks', () => {
 
     expect(humanMocks.taskService.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        // Keto/permission checks key on the Kratos identityId…
-        callerId: HUMAN_IDENTITY,
+        // Both the Keto subject and the proposed_by_human_id write are
+        // humans.id. The Kratos identityId is no longer a join key anywhere:
+        // that conflation is what made an upstream identity deletion able to
+        // orphan the whole graph.
+        callerId: HUMAN_ROW_ID,
         callerIsAgent: false,
-        // …but the proposed_by_human_id write must use humans.id.
         proposerId: HUMAN_ROW_ID,
       }),
     );

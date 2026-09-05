@@ -136,8 +136,7 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs, subjectType } =
-        requireKetoSubject(request);
+      const { subjectId, subjectNs, subjectType } = requireKetoSubject(request);
       if (subjectType !== 'agent') {
         throw createProblem(
           'forbidden',
@@ -153,7 +152,7 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
             request.query.contentType ??
             normalizeContentType(request.headers['content-type']) ??
             'application/octet-stream',
-          identityId,
+          identityId: subjectId,
           kind: request.query.kind,
           subjectNs,
           taskId: request.params.taskId,
@@ -216,7 +215,7 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
     async (request) => {
       // Unlike attempt-output uploads, staging is open to humans: task
       // proposers (Diary write) may be human and attach inputs via the API.
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
       try {
         return await taskArtifacts.stageUpload({
           body: request.body,
@@ -225,7 +224,7 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
             request.query.contentType ??
             normalizeContentType(request.headers['content-type']) ??
             'application/octet-stream',
-          identityId,
+          identityId: subjectId,
           subjectNs,
           teamId: requireCurrentTeamId(request, 'task artifacts'),
         });
@@ -269,11 +268,11 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
       try {
         const result = await taskArtifacts.listForTask({
           cursor: request.query.cursor,
-          identityId,
+          identityId: subjectId,
           limit: request.query.limit,
           subjectNs,
           taskId: request.params.taskId,
@@ -352,11 +351,11 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
       try {
         const { artifact, stream } = await taskArtifacts.downloadForTask({
           cid: request.params.cid,
-          identityId,
+          identityId: subjectId,
           subjectNs,
           taskId: request.params.taskId,
           teamId: requireCurrentTeamId(request, 'task artifacts'),
@@ -437,12 +436,12 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
       try {
         const { artifact, stream } = await taskArtifacts.download({
           attemptN: request.params.attemptN,
           cid: request.params.cid,
-          identityId,
+          identityId: subjectId,
           subjectNs,
           taskId: request.params.taskId,
           teamId: requireCurrentTeamId(request, 'task artifacts'),

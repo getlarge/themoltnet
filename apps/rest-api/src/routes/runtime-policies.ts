@@ -45,9 +45,12 @@ const SECURITY: Array<Record<string, string[]>> = [
 ];
 
 function runtimePolicySubject(request: FastifyRequest): RuntimePolicySubject {
-  const subject = requireKetoSubject(request);
+  const { subjectId, ...subject } = requireKetoSubject(request);
   const creator = authContextToCreator(request);
   return {
+    // `identityId` on this contract is the Keto subject, now the internal
+    // principal id. Mapped explicitly pending the contract rename.
+    identityId: subjectId,
     ...subject,
     creatorId: creator.id,
   };

@@ -80,8 +80,7 @@ export async function runtimeSessionRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs, subjectType } =
-        requireKetoSubject(request);
+      const { subjectId, subjectNs, subjectType } = requireKetoSubject(request);
       if (subjectType !== 'agent') {
         throw createProblem(
           'forbidden',
@@ -92,7 +91,7 @@ export async function runtimeSessionRoutes(fastify: FastifyInstance) {
       const session = await runtimeSessions.upload({
         attemptN: request.params.attemptN,
         body: request.body,
-        identityId,
+        identityId: subjectId,
         query: request.query,
         subjectNs,
         taskId: request.params.taskId,
@@ -130,10 +129,10 @@ export async function runtimeSessionRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
       const session = await runtimeSessions.getMetadata({
         attemptN: request.params.attemptN,
-        identityId,
+        identityId: subjectId,
         subjectNs,
         taskId: request.params.taskId,
         teamId: requireCurrentTeamId(request, 'runtime sessions'),
@@ -178,10 +177,10 @@ export async function runtimeSessionRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
       const { object, session, stream } = await runtimeSessions.download({
         attemptN: request.params.attemptN,
-        identityId,
+        identityId: subjectId,
         subjectNs,
         taskId: request.params.taskId,
         teamId: requireCurrentTeamId(request, 'runtime sessions'),

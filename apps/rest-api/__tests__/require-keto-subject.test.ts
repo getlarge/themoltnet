@@ -21,6 +21,7 @@ function authContext(subjectType: AuthContext['subjectType']): AuthContext {
         ...base,
         subjectType,
         clientId: 'agent-client',
+        agentId: 'agent-id',
         publicKey: 'public-key',
         fingerprint: 'fingerprint',
       };
@@ -32,7 +33,9 @@ describe('requireKetoSubject', () => {
     ['human', KetoNamespace.Human],
   ] as const)('maps a %s caller to its Keto namespace', (type, namespace) => {
     expect(requireKetoSubject({ authContext: authContext(type) })).toEqual({
-      identityId: `${type}-identity`,
+      // The Keto subject is the internal principal id, never the Kratos
+      // identity: identities are recreatable, permissions are not.
+      subjectId: `${type}-id`,
       subjectType: type,
       subjectNs: namespace,
     });

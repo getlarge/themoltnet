@@ -83,12 +83,12 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
           ? request.body.renderedMarkdown
           : undefined;
 
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       try {
         const canRead = await fastify.permissionChecker.canReadPack(
           sourcePack.id,
-          identityId,
+          subjectId,
           subjectNs,
         );
         if (!canRead) {
@@ -157,12 +157,12 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
           ? request.body.renderedMarkdown
           : undefined;
 
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       try {
         const canWrite = await fastify.permissionChecker.canWritePack(
           sourcePack.id,
-          identityId,
+          subjectId,
           subjectNs,
         );
         if (!canWrite) {
@@ -224,12 +224,12 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       try {
         return await fastify.contextPackService.getLatestRenderedPack({
           sourcePackId: request.params.id,
-          actor: { identityId, subjectNs },
+          actor: { identityId: subjectId, subjectNs },
         });
       } catch (err) {
         if (err instanceof PackServiceError)
@@ -277,12 +277,12 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       try {
         return await fastify.contextPackService.listRenderedPacksByDiary({
           diaryId: request.params.id,
-          actor: { identityId, subjectNs },
+          actor: { identityId: subjectId, subjectNs },
           limit: request.query.limit ?? 20,
           offset: request.query.offset ?? 0,
           sourcePackId: request.query.sourcePackId,
@@ -321,12 +321,12 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
 
       try {
         return await fastify.contextPackService.getRenderedPackById({
           renderedPackId: request.params.id,
-          actor: { identityId, subjectNs },
+          actor: { identityId: subjectId, subjectNs },
         });
       } catch (err) {
         if (err instanceof PackServiceError)
@@ -375,10 +375,10 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
       }
 
       // Permission check via source pack
-      const { identityId, subjectNs } = requireKetoSubject(request);
+      const { subjectId, subjectNs } = requireKetoSubject(request);
       const allowed = await fastify.permissionChecker.canManagePack(
         rendered.sourcePackId,
-        identityId,
+        subjectId,
         subjectNs,
       );
       if (!allowed) {

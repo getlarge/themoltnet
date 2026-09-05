@@ -20,7 +20,22 @@ describe('PrincipalIdentitySchema', () => {
   it('accepts an agent variant', () => {
     const value = {
       kind: 'agent',
-      identityId: '11111111-1111-1111-1111-111111111111',
+      agentId: '11111111-1111-1111-1111-111111111111',
+      identityId: '44444444-4444-4444-4444-444444444444',
+      fingerprint: 'A1B2-C3D4-E5F6-1234',
+      publicKey: 'ed25519:base64payload',
+    };
+    expect(Value.Check(PrincipalIdentitySchema, value)).toBe(true);
+  });
+
+  it('accepts an agent variant whose Kratos identity is gone', () => {
+    // The reason identityId is a nullable union: an upstream identity
+    // deletion must degrade to `null`, not to a serialization error on every
+    // read of that agent's resources.
+    const value = {
+      kind: 'agent',
+      agentId: '11111111-1111-1111-1111-111111111111',
+      identityId: null,
       fingerprint: 'A1B2-C3D4-E5F6-1234',
       publicKey: 'ed25519:base64payload',
     };

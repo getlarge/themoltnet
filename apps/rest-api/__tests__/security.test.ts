@@ -89,7 +89,8 @@ describe('Security features', () => {
       // Authenticated callers carry a non-null AuthContext baked in at build
       // time, so this test needs its own app instance, not the shared one.
       const authenticatedApp = await createTestApp(mocks, VALID_AUTH_CONTEXT);
-      mocks.agentRepository.findByIdentityId.mockResolvedValue({
+      mocks.agentRepository.findById.mockResolvedValue({
+        id: VALID_AUTH_CONTEXT.agentId,
         identityId: VALID_AUTH_CONTEXT.identityId,
         publicKey: VALID_AUTH_CONTEXT.publicKey,
         fingerprint: VALID_AUTH_CONTEXT.fingerprint,
