@@ -756,6 +756,54 @@ restoring from backup.
 
 ---
 
+## Status — 2026-09-05
+
+Implemented on `feat/decouple-kratos-identity` (5 commits), full workspace
+typecheck green, 82 database unit tests + 15 auth suites + 4 models suites
+passing. Database _integration_ suites need a local Postgres that was not
+running; they were not exercised.
+
+| Task                                                      | State                                   |
+| --------------------------------------------------------- | --------------------------------------- |
+| 1. Schema — `agents.id` PK, `identity_id` nullable        | done (`a940d0473`)                      |
+| 2. Repository — `findById`, `findByIds`, `relinkIdentity` | done (`2d5309c60`)                      |
+| 3. Token webhook resolves by `agent_id`                   | done (`a4be90e33`)                      |
+| 4. Auth context + Keto subject                            | done (`a4be90e33`)                      |
+| 5. Hydra `agent_id` backfill                              | **reverted — see hazard below**         |
+| 6. Registration writes `agent_id`                         | not started (DBOS gate)                 |
+| 7. Relink + `Human:` tuple migration                      | 7a done in the incident; 7b outstanding |
+
+### Findings that changed the plan
+
+**Two DBOS workflows are affected, not one.** `human-onboarding-workflow.ts`
+registers Keto subjects as well as `registration-workflow.ts`. Both now carry
+changed source, so the drain-before-deploy gate in
+[upgrade-and-versioning](../../../.claude/skills/dbos-typescript/references/upgrade-and-versioning.md)
+applies to what is already committed, not only to the registration reorder.
+
+**The backfill has an ordering hazard.** It was run before migration 0041 and
+then reverted. Its values are only correct if `agents.id` seeds from
+`identity_id` _as it stands at migration time_; any identity change in between
+silently desynchronises Hydra from the seeded ID, with nothing to detect it.
+Redo it only after 0041 is applied, and gate it on a verification that every
+Hydra `agent_id` resolves to an existing `agents.id`.
+
+**Agents migrate for free; humans do not.** `agents.id` is seeded, so the 758
+`Agent:` tuples keep matching untouched. `humans.id` already differs from
+`identity_id`, so the 23 `Human:` tuples must be rewritten. Switching the human
+Keto subject without that rewrite leaves every human authenticated with zero
+permissions — prefer dual-writing `Human:<humans.id>` before deploy and dropping
+`Human:<identity_id>` after, which removes the window.
+
+**Two bugs were invisible to the compiler**, both `uuid` to `uuid`: 16 creator
+JOINs still matched `agents.identityId`, and the batch creator path called
+`findByIdentityIds` with `agents.id` values. Both would have looked correct on
+seeded rows and failed only for new agents or after a relink. Any remaining
+audit of this refactor should grep for identity/agent-ID conflation rather than
+trusting a green typecheck.
+
+---
+
 ## Post-Incident Follow-Ups
 
 Work identified during the 2026-09-04 outage that is **not** part of the
