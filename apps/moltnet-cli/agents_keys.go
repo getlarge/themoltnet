@@ -282,6 +282,13 @@ func runAgentsKeysCreateCmd(opts agentsKeysCreateOpts) error {
 	if _, err := prepareAgentKeyStore(opts.store, opts.credPath); err != nil {
 		return err
 	}
+	// Same for --scopes: a typo or an empty value is a flag mistake, and the
+	// operator should hear about it without first needing usable credentials.
+	// buildCreateAgentKey re-parses; this is a pre-flight, not the source of
+	// truth for the request body.
+	if _, err := parseCredentialScopes(opts.scopes, opts.scopesSet); err != nil {
+		return err
+	}
 	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath)
 	if err != nil {
 		return err
