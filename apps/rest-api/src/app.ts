@@ -13,7 +13,6 @@ import {
   type RelationshipReader,
   type RelationshipWriter,
   routeUsesPrincipalAuth,
-  type ScopeEnforcementMode,
   type SessionResolver,
   type TeamResolver,
   type TokenValidator,
@@ -105,8 +104,6 @@ import type {
 export interface SecurityOptions {
   /** Comma-separated list of allowed CORS origins */
   corsOrigins: string;
-  /** Phased credential-scope rollout. Defaults to `measure`. */
-  scopeEnforcementMode?: ScopeEnforcementMode;
   /** Max requests per minute for authenticated users */
   rateLimitGlobalAuth: number;
   /** Max requests per minute for anonymous users */
@@ -330,28 +327,25 @@ export async function registerApiRoutes(
   const scopeDenialCounter = createMetricCounter(
     'moltnet-rest-api',
     'auth.scope.denial.total',
-    'Credential scope would-be and enforced denials',
+    'Credential scope denials',
   );
-  const scopeEnforcementMode =
-    options.security.scopeEnforcementMode ?? 'measure';
   await app.register(authPlugin, {
     tokenValidator: options.tokenValidator,
     permissionChecker: options.permissionChecker,
     relationshipWriter: options.relationshipWriter,
     teamResolver: options.teamResolver,
     sessionResolver: options.sessionResolver,
-    scopeEnforcementMode,
     enforceRouteScopeDeclarations: true,
-    onScopeDenial: ({ mode, operationId, requiredScope, subjectType }) => {
+    onScopeDenial: ({ operationId, requiredScope, subjectType }) => {
       scopeDenialCounter.add(1, {
-        'auth.scope.mode': mode,
         'auth.scope.operation': operationId,
         'auth.scope.required': requiredScope,
         'auth.subject_type': subjectType,
       });
     },
   });
-  app.log.info({ mode: scopeEnforcementMode }, 'auth.scope.enforcement_mode');
+  // Credential-scope enforcement is unconditional and has no runtime switch.
+  app.log.info('auth.scope.enforcement_active');
 
   // Auth-aware routes share the same provider-failure contract. Add it once
   // at registration time so OpenAPI and generated clients model 429/503 for

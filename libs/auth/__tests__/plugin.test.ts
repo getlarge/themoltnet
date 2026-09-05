@@ -957,7 +957,6 @@ describe('declarative route scope enforcement', () => {
       permissionChecker: mockPermissionChecker,
       relationshipWriter: createMockRelationshipWriter(),
       teamResolver: { findPersonalTeamId: vi.fn().mockResolvedValue(null) },
-      scopeEnforcementMode: 'enforce',
     } as never);
     app.get(
       '/scoped',
@@ -990,7 +989,7 @@ describe('declarative route scope enforcement', () => {
     expect(mockPermissionChecker.canAccessTeam).not.toHaveBeenCalled();
   });
 
-  it('measures a would-be denial without blocking the request', async () => {
+  it('emits denial telemetry while still denying the request', async () => {
     const mockTokenValidator = createMockTokenValidator();
     const mockPermissionChecker = createMockPermissionChecker();
     const onScopeDenial = vi.fn();
@@ -1001,7 +1000,6 @@ describe('declarative route scope enforcement', () => {
       permissionChecker: mockPermissionChecker,
       relationshipWriter: createMockRelationshipWriter(),
       teamResolver: { findPersonalTeamId: vi.fn().mockResolvedValue(null) },
-      scopeEnforcementMode: 'measure',
       onScopeDenial,
     } as never);
     app.get(
@@ -1028,21 +1026,19 @@ describe('declarative route scope enforcement', () => {
       },
     });
 
-    expect(response.statusCode).toBe(200);
+    expect(response.statusCode).toBe(403);
     expect(onScopeDenial).toHaveBeenCalledWith({
-      mode: 'measure',
       operationId: 'executeTask',
       requiredScope: 'task:execute',
       subjectType: 'agent',
     });
-    expect(mockPermissionChecker.canAccessTeam).toHaveBeenCalledOnce();
+    expect(mockPermissionChecker.canAccessTeam).not.toHaveBeenCalled();
   });
 
-  it('warns on a would-be denial without blocking the request', async () => {
+  it('logs auth.scope.denied for every denial', async () => {
     const records: Record<string, unknown>[] = [];
     const mockTokenValidator = createMockTokenValidator();
     const mockPermissionChecker = createMockPermissionChecker();
-    const onScopeDenial = vi.fn();
     mockTokenValidator.resolveAuthContext.mockResolvedValue(VALID_AUTH_CONTEXT);
     const app = Fastify({
       loggerInstance: pino(
@@ -1063,8 +1059,6 @@ describe('declarative route scope enforcement', () => {
       permissionChecker: mockPermissionChecker,
       relationshipWriter: createMockRelationshipWriter(),
       teamResolver: { findPersonalTeamId: vi.fn().mockResolvedValue(null) },
-      scopeEnforcementMode: 'warn',
-      onScopeDenial,
     } as never);
     app.get(
       '/scoped',
@@ -1090,70 +1084,52 @@ describe('declarative route scope enforcement', () => {
       },
     });
 
-    expect(response.statusCode).toBe(200);
-    expect(onScopeDenial).toHaveBeenCalledWith({
-      mode: 'warn',
-      operationId: 'executeTask',
-      requiredScope: 'task:execute',
-      subjectType: 'agent',
-    });
+    expect(response.statusCode).toBe(403);
     expect(records).toContainEqual(
       expect.objectContaining({
         msg: 'auth.scope.denied',
-        mode: 'warn',
         operationId: 'executeTask',
         requiredScope: 'task:execute',
         subjectType: 'agent',
       }),
     );
-    expect(mockPermissionChecker.canAccessTeam).toHaveBeenCalledOnce();
   });
 
-  it.each([
-    ['measure', 200],
-    ['warn', 200],
-    ['enforce', 403],
-  ] as const)(
-    'isolates a throwing denial telemetry sink in %s mode',
-    async (mode, expectedStatus) => {
-      const mockTokenValidator = createMockTokenValidator();
-      mockTokenValidator.resolveAuthContext.mockResolvedValue(
-        VALID_AUTH_CONTEXT,
-      );
-      const app = Fastify();
-      await app.register(authPlugin, {
-        tokenValidator: mockTokenValidator,
-        permissionChecker: createMockPermissionChecker(),
-        relationshipWriter: createMockRelationshipWriter(),
-        teamResolver: { findPersonalTeamId: vi.fn().mockResolvedValue(null) },
-        scopeEnforcementMode: mode,
-        onScopeDenial: () =>
-          Promise.reject(new Error('metrics backend unavailable')),
-      } as never);
-      app.get(
-        '/scoped',
-        {
-          config: {
-            auth: {
-              credentialBindingScope: 'identity',
-              requiredScopes: ['task:execute'],
-            },
+  it('isolates a throwing denial telemetry sink and still denies', async () => {
+    const mockTokenValidator = createMockTokenValidator();
+    mockTokenValidator.resolveAuthContext.mockResolvedValue(VALID_AUTH_CONTEXT);
+    const app = Fastify();
+    await app.register(authPlugin, {
+      tokenValidator: mockTokenValidator,
+      permissionChecker: createMockPermissionChecker(),
+      relationshipWriter: createMockRelationshipWriter(),
+      teamResolver: { findPersonalTeamId: vi.fn().mockResolvedValue(null) },
+      onScopeDenial: () =>
+        Promise.reject(new Error('metrics backend unavailable')),
+    } as never);
+    app.get(
+      '/scoped',
+      {
+        config: {
+          auth: {
+            credentialBindingScope: 'identity',
+            requiredScopes: ['task:execute'],
           },
-          schema: { operationId: 'executeTask' },
-          preHandler: [requireAuth],
         },
-        async () => ({ ok: true }),
-      );
+        schema: { operationId: 'executeTask' },
+        preHandler: [requireAuth],
+      },
+      async () => ({ ok: true }),
+    );
 
-      const response = await app.inject({
-        method: 'GET',
-        url: '/scoped',
-        headers: { authorization: `Bearer ${VALID_TOKEN}` },
-      });
+    const response = await app.inject({
+      method: 'GET',
+      url: '/scoped',
+      headers: { authorization: `Bearer ${VALID_TOKEN}` },
+    });
 
-      expect(response.statusCode).toBe(expectedStatus);
-    },
-  );
+    expect(response.statusCode).toBe(403);
+  });
 
   it('fails route registration when principal auth declarations are incomplete', async () => {
     const app = Fastify();

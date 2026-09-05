@@ -811,7 +811,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     oryClients,
     security: {
       corsOrigins: config.security.CORS_ORIGINS,
-      scopeEnforcementMode: config.security.AUTH_SCOPE_ENFORCEMENT,
       rateLimitGlobalAuth: config.security.RATE_LIMIT_GLOBAL_AUTH,
       rateLimitGlobalAnon: config.security.RATE_LIMIT_GLOBAL_ANON,
       rateLimitEmbedding: config.security.RATE_LIMIT_EMBEDDING,

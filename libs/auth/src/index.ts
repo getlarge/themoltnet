@@ -59,7 +59,6 @@ export {
   requireScopes,
   routeUsesPrincipalAuth,
   type ScopeDenialEvent,
-  type ScopeEnforcementMode,
   type TeamResolver,
 } from './plugin.js';
 export {

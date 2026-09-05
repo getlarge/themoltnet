@@ -70,7 +70,7 @@ const VALID_AUTH_CONTEXT: AuthContext = {
   publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
   fingerprint: 'C212-DAFA-27C5-6C57',
   clientId: 'hydra-client-uuid',
-  scopes: ['diary:read', 'diary:write', 'agent:profile'],
+  scopes: ['agent:profile', 'crypto:sign', 'diary:read', 'diary:write'],
   currentTeamId: null,
 };
 

@@ -212,6 +212,88 @@ func TestBuildCreateAgentKey(t *testing.T) {
 		}
 	})
 
+	t.Run("omits scopes when unset so the server default applies", func(t *testing.T) {
+		t.Parallel()
+		req, _, _, err := buildCreateAgentKey(agentsKeysCreateOpts{
+			teamID: testTeamID, agentID: testAgentID, name: "ci",
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(req.Scopes) != 0 {
+			t.Errorf("scopes = %v, want empty", req.Scopes)
+		}
+	})
+
+	t.Run("passes the requested scopes through in order", func(t *testing.T) {
+		t.Parallel()
+		req, _, _, err := buildCreateAgentKey(agentsKeysCreateOpts{
+			teamID: testTeamID, agentID: testAgentID, name: "daemon",
+			scopes: []string{"agent:profile", "runtime:read", "task:read", "task:claim", "task:execute"}, scopesSet: true,
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		want := []moltnetapi.CredentialScope{
+			"agent:profile", "runtime:read", "task:read", "task:claim", "task:execute",
+		}
+		if len(req.Scopes) != len(want) {
+			t.Fatalf("scopes = %v, want %v", req.Scopes, want)
+		}
+		for i, scope := range want {
+			if req.Scopes[i] != scope {
+				t.Errorf("scopes[%d] = %q, want %q", i, req.Scopes[i], scope)
+			}
+		}
+	})
+
+	t.Run("rejects an unknown scope", func(t *testing.T) {
+		t.Parallel()
+		_, _, _, err := buildCreateAgentKey(agentsKeysCreateOpts{
+			teamID: testTeamID, agentID: testAgentID, name: "ci",
+			scopes: []string{"agent:profile", "task:teleport"}, scopesSet: true,
+		})
+		if err == nil || !strings.Contains(err.Error(), "task:teleport") {
+			t.Fatalf("expected unknown-scope error, got %v", err)
+		}
+	})
+
+	t.Run("rejects a duplicated scope", func(t *testing.T) {
+		t.Parallel()
+		_, _, _, err := buildCreateAgentKey(agentsKeysCreateOpts{
+			teamID: testTeamID, agentID: testAgentID, name: "ci",
+			scopes: []string{"task:read", "task:read"}, scopesSet: true,
+		})
+		if err == nil || !strings.Contains(err.Error(), "more than once") {
+			t.Fatalf("expected duplicate-scope error, got %v", err)
+		}
+	})
+
+	t.Run("rejects an empty scope value", func(t *testing.T) {
+		t.Parallel()
+		_, _, _, err := buildCreateAgentKey(agentsKeysCreateOpts{
+			teamID: testTeamID, agentID: testAgentID, name: "ci",
+			scopes: []string{"task:read", "  "}, scopesSet: true,
+		})
+		if err == nil || !strings.Contains(err.Error(), "empty value") {
+			t.Fatalf("expected empty-scope error, got %v", err)
+		}
+	})
+
+	t.Run("rejects an explicitly empty --scopes instead of widening the grant", func(t *testing.T) {
+		t.Parallel()
+		// pflag parses `--scopes ""` to a zero-length slice. Treating that as
+		// "unset" would mint the full default agent grant for a caller who
+		// believed they had narrowed it.
+		_, _, _, err := buildCreateAgentKey(agentsKeysCreateOpts{
+			teamID: testTeamID, agentID: testAgentID, name: "ci",
+			scopes: nil, scopesSet: true,
+		})
+		if err == nil || !strings.Contains(err.Error(), "--scopes was given but empty") {
+			t.Fatalf("expected empty --scopes error, got %v", err)
+		}
+	})
+
 	t.Run("rejects missing name", func(t *testing.T) {
 		t.Parallel()
 		_, _, _, err := buildCreateAgentKey(agentsKeysCreateOpts{teamID: testTeamID, agentID: testAgentID})
@@ -686,6 +768,34 @@ func TestAgentsKeysHelp(t *testing.T) {
 	}
 }
 
+// The opts-level tests construct agentsKeysCreateOpts directly, so they cannot
+// catch --scopes being unwired from cobra or pflag parsing the value into a
+// shape the parser never sees. These drive the real command.
+func TestAgentsKeysCreateScopesFlagWiring(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name    string
+		arg     string
+		wantErr string
+	}{
+		{name: "empty value does not silently widen the grant", arg: "", wantErr: "--scopes was given but empty"},
+		{name: "unknown scope fails before any request", arg: "task:read,task:teleport", wantErr: "task:teleport"},
+		{name: "duplicate scope is rejected", arg: "task:read,task:read", wantErr: "more than once"},
+		{name: "blank element is rejected", arg: "task:read, ", wantErr: "empty value"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			root := NewRootCmd("test", "")
+			_, _, err := executeCommand(root, "agents", "keys", "create",
+				"--team-id", testTeamID, "--agent-id", testAgentID,
+				"--name", "ci", "--scopes", tc.arg)
+			if err == nil || !strings.Contains(err.Error(), tc.wantErr) {
+				t.Fatalf("expected error containing %q, got %v", tc.wantErr, err)
+			}
+		})
+	}
+}
+
 func TestAgentsKeysCreateHelpFlags(t *testing.T) {
 	t.Parallel()
 	root := NewRootCmd("test", "")
@@ -693,7 +803,7 @@ func TestAgentsKeysCreateHelpFlags(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	for _, want := range []string{"--team-id", "--identity-scoped", "--agent-id", "--name", "--ttl-days", "--idempotency-key"} {
+	for _, want := range []string{"--team-id", "--identity-scoped", "--agent-id", "--name", "--scopes", "--ttl-days", "--idempotency-key"} {
 		if !strings.Contains(stdout, want) {
 			t.Errorf("create help should contain %q, got: %s", want, stdout)
 		}

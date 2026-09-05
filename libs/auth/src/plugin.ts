@@ -47,18 +47,13 @@ export interface AuthPluginOptions {
   teamResolver: TeamResolver;
   /** Optional Kratos session resolver for direct session-based auth (dashboard). */
   sessionResolver?: SessionResolver;
-  /** Phased scope rollout. Defaults to `enforce` for library consumers. */
-  scopeEnforcementMode?: ScopeEnforcementMode;
-  /** Low-cardinality sink for would-be and enforced scope denials. */
+  /** Low-cardinality sink for enforced scope denials. */
   onScopeDenial?: (event: ScopeDenialEvent) => void | Promise<void>;
   /** Fail route registration when principal-auth policy is incomplete. */
   enforceRouteScopeDeclarations?: boolean;
 }
 
-export type ScopeEnforcementMode = 'measure' | 'warn' | 'enforce';
-
 export interface ScopeDenialEvent {
-  mode: ScopeEnforcementMode;
   operationId: string;
   requiredScope: string;
   subjectType: AuthContext['subjectType'];
@@ -95,7 +90,6 @@ declare module 'fastify' {
     relationshipWriter: RelationshipWriter;
     teamResolver: TeamResolver;
     sessionResolver: SessionResolver | null;
-    scopeEnforcementMode: ScopeEnforcementMode;
     onScopeDenial: ((event: ScopeDenialEvent) => void | Promise<void>) | null;
   }
   interface FastifyRequest {
@@ -168,10 +162,6 @@ export const authPlugin = fp(
     decorateSafe('relationshipWriter', opts.relationshipWriter);
     decorateSafe('teamResolver', opts.teamResolver);
     decorateSafe('sessionResolver', opts.sessionResolver ?? null);
-    decorateSafe(
-      'scopeEnforcementMode',
-      opts.scopeEnforcementMode ?? 'enforce',
-    );
     decorateSafe('onScopeDenial', opts.onScopeDenial ?? null);
 
     if (opts.enforceRouteScopeDeclarations) {
@@ -587,7 +577,6 @@ async function enforceRouteScopes(
   );
   if (!missingScope) return;
 
-  const mode = request.server.scopeEnforcementMode;
   const schema =
     typeof request.routeOptions.schema === 'object' &&
     request.routeOptions.schema !== null
@@ -599,16 +588,16 @@ async function enforceRouteScopes(
       : 'unknown-operation';
   try {
     await request.server.onScopeDenial?.({
-      mode,
       operationId,
       requiredScope: missingScope,
       subjectType: authContext.subjectType,
     });
   } catch (error) {
+    // Telemetry is best-effort: a metrics failure must never convert a scope
+    // denial into an allow.
     request.log.error(
       {
         err: error,
-        mode,
         operationId,
         requiredScope: missingScope,
         subjectType: authContext.subjectType,
@@ -617,24 +606,15 @@ async function enforceRouteScopes(
     );
   }
 
-  if (mode !== 'measure') {
-    request.log.warn(
-      {
-        mode,
-        operationId,
-        requiredScope: missingScope,
-        subjectType: authContext.subjectType,
-      },
-      'auth.scope.denied',
-    );
-  }
-  if (mode === 'enforce') {
-    await requireScopes([...requiredScopes]).call(
-      request.server,
-      request,
-      reply,
-    );
-  }
+  request.log.warn(
+    {
+      operationId,
+      requiredScope: missingScope,
+      subjectType: authContext.subjectType,
+    },
+    'auth.scope.denied',
+  );
+  await requireScopes([...requiredScopes]).call(request.server, request, reply);
 }
 
 export function requireScopes(scopes: string[]): preHandlerAsyncHookHandler {
