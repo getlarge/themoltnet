@@ -49,8 +49,18 @@ export function createRetryFetch(
         authRetries++;
         tokenManager.invalidate();
         const freshToken = await tokenManager.authenticate();
-        // Rebuild headers with the fresh token before replaying
-        const headers = new Headers(fetchInit?.headers);
+        // Rebuild headers with the fresh token before replaying.
+        //
+        // Seed from `input` when it carries them: the generated client calls
+        // fetch(Request) with no init, so reading only `fetchInit` yields an
+        // empty set — and because `init.headers` *replaces* a Request's
+        // headers rather than merging, the replay would silently drop every
+        // header except this Authorization. That lost `x-moltnet-team-id` on
+        // team-scoped routes, turning a token refresh into a 400.
+        const headers = new Headers(
+          fetchInit?.headers ??
+            (input instanceof Request ? input.headers : undefined),
+        );
         headers.set('Authorization', `Bearer ${freshToken}`);
         return doFetch({ ...fetchInit, headers });
       }

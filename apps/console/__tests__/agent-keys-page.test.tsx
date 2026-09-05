@@ -3,6 +3,7 @@ import type {
   AgentKeyWithSecret,
   TeamAgentKey,
 } from '@moltnet/api-client';
+import { AGENT_CREDENTIAL_SCOPES } from '@moltnet/models';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   fireEvent,
@@ -225,13 +226,9 @@ describe('AgentKeysPage', () => {
     expect(apiMocks.createAgentKey).toHaveBeenCalledWith(
       expect.objectContaining({
         body: expect.objectContaining({
-          scopes: [
-            'agent:profile',
-            'runtime:read',
-            'task:read',
-            'task:claim',
-            'task:execute',
-          ],
+          // Bound to the constant: the Console offers exactly the canonical
+          // daemon grant by default, so widening it must not need a test edit.
+          scopes: [...AGENT_CREDENTIAL_SCOPES],
         }),
       }),
     );
@@ -256,20 +253,20 @@ describe('AgentKeysPage', () => {
     renderPage();
     const dialog = await openCreateDialog('custom-runtime');
     fireEvent.click(
-      within(dialog).getByText(/Credential scopes \(5 selected\)/),
+      within(dialog).getByText(
+        new RegExp(
+          `Credential scopes \\(${AGENT_CREDENTIAL_SCOPES.length} selected\\)`,
+        ),
+      ),
     );
-    fireEvent.click(
-      within(dialog).getByRole('checkbox', { name: /task:claim/i }),
-    );
-    fireEvent.click(
-      within(dialog).getByRole('checkbox', { name: /task:execute/i }),
-    );
-    fireEvent.click(
-      within(dialog).getByRole('checkbox', { name: /agent:profile/i }),
-    );
-    fireEvent.click(
-      within(dialog).getByRole('checkbox', { name: /runtime:read/i }),
-    );
+    // Deselect every default except task:read, derived from the constant so
+    // that widening the canonical grant does not leave a stale scope checked.
+    for (const scope of AGENT_CREDENTIAL_SCOPES) {
+      if (scope === 'task:read') continue;
+      fireEvent.click(
+        within(dialog).getByRole('checkbox', { name: new RegExp(scope, 'i') }),
+      );
+    }
     fireEvent.click(within(dialog).getByRole('button', { name: 'Create key' }));
 
     await screen.findByRole('dialog', { name: 'Store this secret now' });
@@ -278,6 +275,30 @@ describe('AgentKeysPage', () => {
         body: expect.objectContaining({ scopes: ['task:read'] }),
       }),
     );
+  });
+
+  it('warns when the selection cannot run the daemon', async () => {
+    // Deselecting a daemon-minimum scope is silent until the daemon refuses to
+    // start, so the picker has to say so at issue time.
+    renderPage();
+    const dialog = await openCreateDialog('narrow-runtime');
+    fireEvent.click(
+      within(dialog).getByText(
+        new RegExp(
+          `Credential scopes \\(${AGENT_CREDENTIAL_SCOPES.length} selected\\)`,
+        ),
+      ),
+    );
+    expect(
+      within(dialog).queryByText(/cannot run the agent daemon/i),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(
+      within(dialog).getByRole('checkbox', { name: /crypto:sign/i }),
+    );
+
+    const warning = within(dialog).getByText(/cannot run the agent daemon/i);
+    expect(warning).toHaveTextContent('crypto:sign');
   });
 
   it('reuses the idempotency key when a create request is retried', async () => {

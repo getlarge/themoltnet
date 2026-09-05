@@ -27,6 +27,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { computeBytesCid, computeJsonCid } from '@moltnet/crypto-service';
+import { AGENT_CREDENTIAL_SCOPES } from '@moltnet/models';
 // eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises the daemon app entry point.
 import { runOnce } from '@themoltnet/agent-daemon/cli/once.js';
 // eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises daemon app internals.
@@ -153,13 +154,10 @@ const silentLogger: AgentRuntimeLogger = {
   child: () => silentLogger,
 };
 
-const DAEMON_CREDENTIAL_SCOPES = [
-  'agent:profile',
-  'runtime:read',
-  'task:read',
-  'task:claim',
-  'task:execute',
-] as const;
+// Bound to the canonical constant rather than a local copy: this suite issues
+// real keys and starts a real daemon, so a drifting duplicate would fail at
+// startup with a missing-scope error rather than a useful assertion.
+const DAEMON_CREDENTIAL_SCOPES = AGENT_CREDENTIAL_SCOPES;
 
 describe('Agent daemon agent-key auth (e2e)', () => {
   let harness: DaemonTestHarness;
@@ -566,7 +564,7 @@ describe('Agent daemon agent-key auth (e2e)', () => {
           teamId,
         ]),
       ).rejects.toThrow(
-        /missing required scopes.*runtime:read task:read task:claim task:execute/,
+        /missing required scopes.*crypto:sign runtime:read task:read task:claim task:execute/,
       );
       const unchanged = await oauthAgent.tasks.get(task.id);
       expect(unchanged.status).toBe(task.status);

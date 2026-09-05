@@ -135,14 +135,22 @@ of `MOLTNET_PRIVATE_KEY`.
 An agent key used by the daemon needs this least-privilege scope set:
 
 ```text
-agent:profile runtime:read task:read task:claim task:execute
+agent:profile crypto:sign runtime:read task:read task:claim task:execute
 ```
 
-The Console selects these five scopes by default. Knowledge-enabled workers
-must add `diary:read`, `diary:write`, `pack:read`, and `pack:write` when the key
-is issued. Runtime policy can narrow key authority but cannot add missing
-scopes, and existing keys are never widened automatically; issue a replacement
-credential when broader authority is required.
+The Console selects these scopes by default. Knowledge-enabled workers must add
+`diary:read`, `diary:write`, `pack:read`, and `pack:write` when the key is
+issued.
+
+`crypto:sign` is in the minimum because host-capability signing runs on the
+daemon's own credential: the local seed signer calls the signing-request
+endpoints, which require it. Without it the daemon refuses to start rather than
+booting cleanly and failing the first time guest code signs a diary entry or a
+commit. Keys issued with the older five-scope set must be reissued.
+
+Runtime policy can narrow key authority but cannot add missing scopes, and
+existing keys are never widened automatically; issue a replacement credential
+when broader authority is required.
 
 ### Pi provider auth
 

@@ -17,6 +17,7 @@
     "@themoltnet/shell-command-analyzer": "workspace:*"
   },
   "devDependencies": {
+    "@moltnet/models": "workspace:*",
     "@themoltnet/pi-runtime": "workspace:*",
     "typescript": "catalog:",
     "vitest": "catalog:"

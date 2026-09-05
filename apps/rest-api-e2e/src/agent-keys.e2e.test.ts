@@ -341,7 +341,7 @@ describe('agent keys', () => {
         taskType: 'freeform',
         title: 'Daemon scope ceiling',
         diaryId: agent.privateDiaryId,
-        input: { brief: 'prove the five-scope daemon grant is sufficient' },
+        input: { brief: 'prove the canonical daemon grant is sufficient' },
       },
     });
     expect(task.error).toBeUndefined();

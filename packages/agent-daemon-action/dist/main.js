@@ -1,20 +1,21 @@
 import { createRequire } from "node:module";
-import { readFileSync } from "node:fs";
+import { constants, readFileSync } from "node:fs";
 import * as os$1 from "os";
 import os, { EOL } from "os";
 import * as crypto$2 from "crypto";
 import crypto$1, { createHash } from "crypto";
 import * as fs from "fs";
-import { constants, existsSync, promises, readFileSync as readFileSync$1 } from "fs";
+import { constants as constants$1, existsSync, promises, readFileSync as readFileSync$1 } from "fs";
 import * as path from "path";
 import * as events from "events";
+import "assert";
 import { Readable } from "node:stream";
-import { createHash as createHash$1 } from "node:crypto";
+import { createHash as createHash$1, randomBytes } from "node:crypto";
 import "string_decoder";
 import "child_process";
 import "timers";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { lstat, mkdir, open, readFile, realpath, rename, rm, stat, unlink } from "node:fs/promises";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { homedir } from "node:os";
 //#region \0rolldown/runtime.js
 var __create = Object.create;
@@ -15918,7 +15919,7 @@ var Summary = class {
 			const pathFromEnv = process.env[SUMMARY_ENV_VAR];
 			if (!pathFromEnv) throw new Error(`Unable to find environment variable for $${SUMMARY_ENV_VAR}. Check if your runtime environment supports job summaries.`);
 			try {
-				yield access(pathFromEnv, constants.R_OK | constants.W_OK);
+				yield access(pathFromEnv, constants$1.R_OK | constants$1.W_OK);
 			} catch (_a) {
 				throw new Error(`Unable to access summary file: '${pathFromEnv}'. Check if the file has correct read/write permissions.`);
 			}
@@ -16183,7 +16184,7 @@ var __awaiter$6 = function(thisArg, _arguments, P, generator) {
 		step((generator = generator.apply(thisArg, _arguments || [])).next());
 	});
 };
-var { chmod, copyFile, lstat, mkdir, open, readdir, rename, rm, rmdir, stat, symlink, unlink } = fs.promises;
+var { chmod, copyFile, lstat: lstat$1, mkdir: mkdir$1, open: open$1, readdir, rename: rename$1, rm: rm$1, rmdir, stat: stat$1, symlink, unlink: unlink$1 } = fs.promises;
 var IS_WINDOWS$1 = process.platform === "win32";
 fs.constants.O_RDONLY;
 /**
@@ -16206,7 +16207,7 @@ function tryGetExecutablePath(filePath, extensions) {
 	return __awaiter$6(this, void 0, void 0, function* () {
 		let stats = void 0;
 		try {
-			stats = yield stat(filePath);
+			stats = yield stat$1(filePath);
 		} catch (err) {
 			if (err.code !== "ENOENT") console.log(`Unexpected error attempting to determine if executable file exists '${filePath}': ${err}`);
 		}
@@ -16221,7 +16222,7 @@ function tryGetExecutablePath(filePath, extensions) {
 			filePath = originalFilePath + extension;
 			stats = void 0;
 			try {
-				stats = yield stat(filePath);
+				stats = yield stat$1(filePath);
 			} catch (err) {
 				if (err.code !== "ENOENT") console.log(`Unexpected error attempting to determine if executable file exists '${filePath}': ${err}`);
 			}
@@ -18203,8 +18204,8 @@ function withCustomRequest(customRequest) {
 //#endregion
 //#region ../../node_modules/.pnpm/@octokit+auth-token@6.0.0/node_modules/@octokit/auth-token/dist-bundle/index.js
 var b64url = "(?:[a-zA-Z0-9_-]+)";
-var sep = "\\.";
-var jwtRE = new RegExp(`^${b64url}${sep}${b64url}${sep}${b64url}$`);
+var sep$1 = "\\.";
+var jwtRE = new RegExp(`^${b64url}${sep$1}${b64url}${sep$1}${b64url}$`);
 var isJWT = jwtRE.test.bind(jwtRE);
 async function auth(token) {
 	const isApp = isJWT(token);
@@ -19844,6 +19845,28 @@ function getOctokit(token, options, ...additionalPlugins) {
 	return new (GitHub.plugin(...additionalPlugins))(getOctokitOptions(token, options));
 }
 //#endregion
+//#region ../../libs/sdk/src/config.ts
+/** Read one environment value behind the SDK's config boundary. */
+function readEnvironmentVariable(name) {
+	return globalThis.process?.env?.[name];
+}
+/**
+* Read MoltNet credentials from environment variables.
+* Reads MOLTNET_CLIENT_ID, MOLTNET_CLIENT_SECRET, MOLTNET_API_URL,
+* MOLTNET_AGENT_KEY, MOLTNET_AGENT_KEY_REF, and MOLTNET_PRIVATE_KEY_REF.
+*/
+function readEnvCredentials() {
+	return {
+		clientId: readEnvironmentVariable("MOLTNET_CLIENT_ID"),
+		clientSecret: readEnvironmentVariable("MOLTNET_CLIENT_SECRET"),
+		apiUrl: readEnvironmentVariable("MOLTNET_API_URL"),
+		agentKey: readEnvironmentVariable("MOLTNET_AGENT_KEY"),
+		agentKeyRef: readEnvironmentVariable("MOLTNET_AGENT_KEY_REF"),
+		privateKeyRef: readEnvironmentVariable("MOLTNET_PRIVATE_KEY_REF"),
+		credentialsPath: readEnvironmentVariable("MOLTNET_CREDENTIALS_PATH")
+	};
+}
+//#endregion
 //#region ../../libs/sdk/src/errors.ts
 var MoltNetError = class extends Error {
 	code;
@@ -19895,6 +19918,37 @@ function problemToError(problem, statusCode) {
 		detail: problem.detail,
 		validationErrors
 	});
+}
+/**
+* Resolve the API base URL from an ordered list of candidates, falling back to
+* the hosted default, with any trailing slash stripped. Candidates are tried in
+* order — pass them highest-precedence first (typically explicit option, then
+* env, then config file) so every caller shares one precedence rule.
+*/
+function normalizeApiUrl(...candidates) {
+	return stripTrailingSlash(candidates.find((c) => c) ?? "https://api.themolt.net");
+}
+/**
+* Long-lived credentials may only travel over HTTPS, or plaintext HTTP to a
+* loopback address for local development and e2e stacks.
+*/
+function requireSecureCredentialApiUrl(apiUrl) {
+	const url = new URL(apiUrl);
+	const host = url.hostname.replace(/^\[|\]$/g, "");
+	const loopback = host === "localhost" || host === "::1" || /^127(\.\d{1,3}){3}$/.test(host);
+	if (url.protocol === "https:" || url.protocol === "http:" && loopback) return apiUrl;
+	throw new MoltNetError(`Refusing to send credentials to insecure API URL ${JSON.stringify(apiUrl)}; use HTTPS or an HTTP loopback address.`, { code: "INVALID_CONFIG" });
+}
+/** Reject a config-selected endpoint that is unsafe for long-lived credentials. */
+function assertTrustedConfigApiUrl(apiUrl) {
+	const url = new URL(apiUrl);
+	const host = url.hostname.replace(/^\[|\]$/g, "");
+	const loopback = host === "localhost" || host === "::1" || /^127(\.\d{1,3}){3}$/.test(host);
+	const moltNet = url.protocol === "https:" && (host === "themolt.net" || host.endsWith(".themolt.net"));
+	if (!loopback && !moltNet) throw new MoltNetError("Config-provided API endpoints must use HTTPS on themolt.net or a loopback host.", { code: "INVALID_CONFIG" });
+}
+function stripTrailingSlash(apiUrl) {
+	return apiUrl.replace(/\/$/, "");
 }
 //#endregion
 //#region ../../libs/api-client/src/generated/core/bodySerializer.gen.ts
@@ -20561,9 +20615,9 @@ var revokeAgentEnrollment = (options) => (options.client ?? client).delete({
 	...options
 });
 /**
-* List agent API keys bound to the active team. Team credential managers may list every agent.
+* List agent API keys for the selected binding. Team scope is the default; identity scope is agent self-service.
 */
-var listAgentKeys = (options) => (options.client ?? client).get({
+var listAgentKeys = (options) => (options?.client ?? client).get({
 	security: [
 		{
 			scheme: "bearer",
@@ -20583,7 +20637,7 @@ var listAgentKeys = (options) => (options.client ?? client).get({
 	...options
 });
 /**
-* Issue a secret API key bound to one agent and the active team.
+* Issue a secret API key bound to one agent identity or, by default, the active team.
 */
 var createAgentKey = (options) => (options.client ?? client).post({
 	security: [
@@ -21844,6 +21898,17 @@ var requestRecoveryChallenge = (options) => (options.client ?? client).post({
 	}
 });
 /**
+* Replace an agent OAuth2 client secret after proving possession of its Ed25519 identity key. The replacement credentials are sealed to that key.
+*/
+var recoverAgentCredentials = (options) => (options.client ?? client).post({
+	url: "/recovery/credentials",
+	...options,
+	headers: {
+		"Content-Type": "application/json",
+		...options.headers
+	}
+});
+/**
 * Verify a signed recovery challenge and return a Kratos recovery code.
 */
 var verifyRecoveryChallenge = (options) => (options.client ?? client).post({
@@ -23080,7 +23145,7 @@ var removeTeamMember = (options) => (options.client ?? client).delete({
 	...options
 });
 /**
-* Update a member role between member and manager. Requires manage_members permission.
+* Update an agent role between member, executor, and manager, or a human role between member and manager. Requires manage_members permission.
 */
 var updateTeamMemberRole = (options) => (options.client ?? client).patch({
 	security: [
@@ -23358,6 +23423,15 @@ function stripUndefinedQuery(query) {
 }
 //#endregion
 //#region ../../libs/sdk/src/namespaces/agent-keys.ts
+function bindingHeaders(options) {
+	return options.bindingScope === "identity" ? {} : requiredTeamHeaders(options);
+}
+function bindingQuery(query, options) {
+	return stripUndefinedQuery(options.bindingScope === "identity" ? {
+		...query,
+		bindingScope: "identity"
+	} : query);
+}
 function createAgentKeysNamespace(context) {
 	const { client, auth } = context;
 	return {
@@ -23365,8 +23439,8 @@ function createAgentKeysNamespace(context) {
 			return unwrapResult(await listAgentKeys({
 				client,
 				auth,
-				headers: requiredTeamHeaders(options),
-				query: stripUndefinedQuery(query)
+				headers: bindingHeaders(options),
+				query: bindingQuery(query, options)
 			}));
 		},
 		async create(body, options) {
@@ -23374,26 +23448,31 @@ function createAgentKeysNamespace(context) {
 				client,
 				auth,
 				headers: {
-					...requiredTeamHeaders(options),
+					...bindingHeaders(options),
 					"idempotency-key": options.idempotencyKey
 				},
-				body
+				body: options.bindingScope === "identity" ? {
+					...body,
+					bindingScope: "identity"
+				} : body
 			}));
 		},
 		async rotate(keyId, options) {
 			return unwrapResult(await rotateAgentKey({
 				client,
 				auth,
-				headers: requiredTeamHeaders(options),
-				path: { keyId }
+				headers: bindingHeaders(options),
+				path: { keyId },
+				query: bindingQuery(void 0, options)
 			}));
 		},
 		async revoke(keyId, body, options) {
 			const result = await revokeAgentKey({
 				client,
 				auth,
-				headers: requiredTeamHeaders(options),
+				headers: bindingHeaders(options),
 				path: { keyId },
+				query: bindingQuery(void 0, options),
 				body
 			});
 			if (result.error) unwrapResult(result);
@@ -23409,9 +23488,10 @@ function createAgentKeysNamespace(context) {
 */
 function createWhoami(context) {
 	const { client, auth } = context;
-	return async () => unwrapResult(await getWhoami({
+	return async (options) => unwrapResult(await getWhoami({
 		client,
-		auth
+		auth,
+		...options?.signal ? { signal: options.signal } : {}
 	}));
 }
 //#endregion
@@ -24950,7 +25030,7 @@ var concatBytes = (...arrs) => {
 	return r;
 };
 /** WebCrypto OS-level CSPRNG (random number generator). Will throw when not available. */
-var randomBytes = (len = L) => {
+var randomBytes$1 = (len = L) => {
 	return cr().getRandomValues(u8n(len));
 };
 var big = BigInt;
@@ -25246,7 +25326,7 @@ var etc = {
 	concatBytes,
 	mod: M,
 	invert,
-	randomBytes
+	randomBytes: randomBytes$1
 };
 var W = 8;
 var pwindows = Math.ceil(256 / W) + 1;
@@ -25312,8 +25392,46 @@ var wNAF = (n) => {
 };
 //#endregion
 //#region ../../libs/sdk/src/namespaces/entries.ts
+/**
+* Thrown when a signed entry's signing request completed but the final entry
+* creation failed. Carries `signingRequestId` so the caller can reconcile the
+* partial completion — the request is already signed; retry the create with
+* this id rather than starting a new sign cycle.
+*/
+var SignedEntryCreateError = class extends Error {
+	signingRequestId;
+	constructor(signingRequestId, cause) {
+		super(`signed entry creation failed after the signing request completed (signingRequestId=${signingRequestId}); retry the create with this id to avoid duplicating the request or entry`, { cause });
+		this.name = "SignedEntryCreateError";
+		this.signingRequestId = signingRequestId;
+	}
+};
 function createEntriesNamespace(context) {
 	const { client, auth } = context;
+	async function createSignedEntry(diaryId, body, sign) {
+		const signingRequest = unwrapResult(await createSigningRequest({
+			client,
+			auth,
+			body: {
+				message: computeContentCid(body.entryType ?? "semantic", body.title ?? null, body.content, body.tags ?? null),
+				verificationMethod: "agent-ed25519"
+			}
+		}));
+		await sign(signingRequest);
+		try {
+			return unwrapResult(await createDiaryEntry({
+				client,
+				auth,
+				path: { diaryId },
+				body: {
+					...body,
+					signingRequestId: signingRequest.id
+				}
+			}));
+		} catch (error) {
+			throw new SignedEntryCreateError(signingRequest.id, error);
+		}
+	}
 	return {
 		async create(diaryId, body) {
 			return unwrapResult(await createDiaryEntry({
@@ -25375,32 +25493,21 @@ function createEntriesNamespace(context) {
 			}));
 		},
 		async createSigned(diaryId, body, privateKey) {
-			const signingRequest = unwrapResult(await createSigningRequest({
-				client,
-				auth,
-				body: {
-					message: computeContentCid(body.entryType ?? "semantic", body.title ?? null, body.content, body.tags ?? null),
-					verificationMethod: "agent-ed25519"
-				}
-			}));
 			const privateKeyBytes = new Uint8Array(Buffer.from(privateKey, "base64"));
-			const signature = await signAsync(new Uint8Array(Buffer.from(signingRequest.signingInput, "base64")), privateKeyBytes);
-			const signatureB64 = Buffer.from(signature).toString("base64");
-			unwrapResult(await submitSignature({
-				client,
-				auth,
-				path: { id: signingRequest.id },
-				body: { signature: signatureB64 }
-			}));
-			return unwrapResult(await createDiaryEntry({
-				client,
-				auth,
-				path: { diaryId },
-				body: {
-					...body,
-					signingRequestId: signingRequest.id
-				}
-			}));
+			return createSignedEntry(diaryId, body, async (signingRequest) => {
+				const signature = await signAsync(new Uint8Array(Buffer.from(signingRequest.signingInput, "base64")), privateKeyBytes);
+				unwrapResult(await submitSignature({
+					client,
+					auth,
+					path: { id: signingRequest.id },
+					body: { signature: Buffer.from(signature).toString("base64") }
+				}));
+			});
+		},
+		async createSignedWith(diaryId, body, signer) {
+			return createSignedEntry(diaryId, body, async ({ id }) => {
+				await signer.signDiaryEntry({ signingRequestId: id });
+			});
 		}
 	};
 }
@@ -25610,6 +25717,12 @@ function createRecoveryNamespace(context) {
 		},
 		async verifyChallenge(body) {
 			return unwrapResult(await verifyRecoveryChallenge({
+				client,
+				body
+			}));
+		},
+		async recoverCredentials(body) {
+			return unwrapResult(await recoverAgentCredentials({
 				client,
 				body
 			}));
@@ -29392,41 +29505,6 @@ function Evaluate(type, options = {}) {
 	return EvaluateAction(type, options);
 }
 //#endregion
-//#region ../../libs/tasks/src/context.ts
-/**
-* How an executor delivers a context entry to its underlying LLM.
-* V1 bindings only; Tier-2 (reference_file, mcp_resource, imported_file,
-* tool_response_seed, additional_context_hook) ship in a later slice.
-*/
-var CONTEXT_BINDINGS = [
-	"skill",
-	"context_inline",
-	"prompt_prefix",
-	"user_inline"
-];
-/** Maximum UTF-16 code units accepted in one ContextRef content field. */
-var CONTEXT_REF_MAX_CONTENT_LENGTH = 65536;
-var ContextBinding = Unsafe(Union(CONTEXT_BINDINGS.map((binding) => Literal(binding)), { $id: "ContextBinding" }));
-/** Reusable input fragment for any task type. Soft cap at 5 items. */
-var TaskContext = _Array_(_Object_({
-	slug: String$1({
-		minLength: 1,
-		maxLength: 64,
-		pattern: "^[a-zA-Z0-9_-]+$"
-	}),
-	binding: ContextBinding,
-	content: String$1({
-		minLength: 1,
-		maxLength: CONTEXT_REF_MAX_CONTENT_LENGTH
-	})
-}, {
-	$id: "ContextRef",
-	additionalProperties: false
-}), {
-	$id: "TaskContext",
-	maxItems: 5
-});
-//#endregion
 //#region ../../libs/tasks/src/rubric.ts
 /**
 * Rubric — structured acceptance criteria used by judgment tasks.
@@ -29529,7 +29607,524 @@ function validateRubricWeights(rubric) {
 	return null;
 }
 //#endregion
-//#region ../../libs/tasks/src/runtime-models.ts
+//#region ../../libs/tasks/src/success-criteria.ts
+/**
+* SuccessCriteria — proposer-stated acceptance criteria, evaluated in two
+* complementary places.
+*
+* Before this envelope existed, criteria were scattered: a vestigial
+* `criteriaCid` column nobody resolved, free-form prose on
+* `fulfill_brief.input`, and inline `rubric` / `criteria[]` fields on
+* judgment-task inputs. None of those were machine-verifiable
+* end-to-end.
+*
+* This module defines a single, content-addressable envelope a proposer
+* attaches to any task type. It has four orthogonal sections — pick
+* whichever apply per task type:
+*
+*   - `gates`        Promise-level structural/process checks
+*   - `assertions`   Declarative claims about output JSON
+*   - `rubric`       Weighted-criteria scoring instrument, reused
+*                    verbatim from `./rubric.ts`.
+*   - `sideEffects`  Required process side-effects (e.g. diary entry)
+*
+* ## Two roles, two task types
+*
+* **Producer self-assessment** (fulfillment tasks: `fulfill_brief`,
+* `curate_pack`, `render_pack`). The producer **LLM** evaluates the
+* criteria against its own output and emits a `VerificationRecord`
+* inside `output.verification`. The daemon is pure passthrough — it
+* does not run `evaluateAssertions`, does not inspect the verification
+* record. The REST API is dumb storage; it never re-runs assertions and
+* never runs LLMs. The cross-field rule
+* `requireVerificationWhenCriteriaPresent` enforces "verification
+* required iff successCriteria present" at task-output validation time
+* (server-side schema check). Self-assessment is a truthful self-rating,
+* NOT enforcement — `verification.passed=false` does not block /complete
+* and does not affect `acceptedAttemptN`. See
+* `docs/use/tasks-and-runtime.md` for the full producer/judge flow.
+*
+* **Binding evaluation** (judgment tasks: `assess_brief`, `judge_pack`).
+* A separate task whose IS the application of `successCriteria` to
+* someone else's output. Different agent (enforced at claim time), same
+* envelope. The judge's verdict is binding: this is the *gate* in the
+* MoltNet model. The rubric inside `successCriteria.rubric` IS the job
+* spec for the judge.
+*
+* The clean chain: producer task with `successCriteria` → producer
+* self-assesses honestly → proposer (or automation) creates a downstream
+* judgment task that references the same `successCriteria` (or a
+* stricter rubric) → judgment task delivers the binding verdict.
+*
+* Storage: SuccessCriteria lives inline at `task.input.successCriteria`,
+* pinned via the task's `inputCid`. No separate column or hash. When
+* #881 lands, the `rubric` field can graduate to `{ rubricCid }` lookup
+* without changing this envelope, and producer + judge tasks can pin
+* the SAME rubric across the chain for end-to-end auditability.
+*/
+var SchemaCheckSpec = _Object_({ schemaCid: String$1({ minLength: 1 }) }, { additionalProperties: false });
+var CidEqualsSpec = _Object_({
+	path: String$1({ minLength: 1 }),
+	expected: String$1({ minLength: 1 })
+}, { additionalProperties: false });
+var Gate = Union([
+	_Object_({
+		id: String$1({ minLength: 1 }),
+		kind: Literal("submit-tool-call"),
+		description: String$1({ minLength: 1 }),
+		required: Boolean$1()
+	}, { additionalProperties: false }),
+	_Object_({
+		id: String$1({ minLength: 1 }),
+		kind: Literal("schema-check"),
+		spec: SchemaCheckSpec,
+		required: Boolean$1()
+	}, { additionalProperties: false }),
+	_Object_({
+		id: String$1({ minLength: 1 }),
+		kind: Literal("cid-equals"),
+		spec: CidEqualsSpec,
+		required: Boolean$1()
+	}, { additionalProperties: false })
+], { $id: "Gate" });
+var AssertionOp = Union([
+	Literal("exists"),
+	Literal("equals"),
+	Literal("matches"),
+	Literal("in-range"),
+	Literal("min-length")
+], { $id: "AssertionOp" });
+var Assertion = _Object_({
+	id: String$1({ minLength: 1 }),
+	path: String$1({ minLength: 1 }),
+	op: AssertionOp,
+	value: Optional(Unknown())
+}, {
+	$id: "Assertion",
+	additionalProperties: false
+});
+var SideEffectsSpec = _Object_({
+	diaryEntryRequired: Optional(Boolean$1()),
+	diaryEntryTags: Optional(_Array_(String$1({ minLength: 1 }))),
+	referencedEntries: Optional(Integer({ minimum: 0 }))
+}, {
+	$id: "SideEffectsSpec",
+	additionalProperties: false
+});
+var SuccessCriteria = _Object_({
+	version: Literal(1),
+	gates: Optional(_Array_(Gate)),
+	assertions: Optional(_Array_(Assertion)),
+	rubric: Optional(Rubric),
+	minComposite: Optional(Number$1({
+		minimum: 0,
+		maximum: 1
+	})),
+	sideEffects: Optional(SideEffectsSpec)
+}, {
+	$id: "SuccessCriteria",
+	additionalProperties: false
+});
+var VerificationResultStatus = Union([
+	Literal("pass"),
+	Literal("fail"),
+	Literal("skip")
+], { $id: "VerificationResultStatus" });
+var VerificationResultKind = Union([
+	Literal("gate"),
+	Literal("assertion"),
+	Literal("rubric"),
+	Literal("sideEffect")
+], { $id: "VerificationResultKind" });
+var VerificationResult = _Object_({
+	id: String$1({ minLength: 1 }),
+	kind: VerificationResultKind,
+	status: VerificationResultStatus,
+	detail: Optional(String$1())
+}, {
+	$id: "VerificationResult",
+	additionalProperties: false
+});
+var VerificationRecord = _Object_({
+	inputCid: String$1({ minLength: 1 }),
+	results: _Array_(VerificationResult),
+	passed: Boolean$1({ description: "True iff every verification result has status \"pass\" or \"skip\"; false when any result has status \"fail\"." })
+}, {
+	$id: "VerificationRecord",
+	additionalProperties: false
+});
+_Object_({
+	artifacts: _Array_(_Object_({
+		id: String$1({ format: "uuid" }),
+		teamId: String$1({ format: "uuid" }),
+		taskId: String$1({ format: "uuid" }),
+		attemptN: Union([Integer({ minimum: 1 }), Null()]),
+		kind: String$1({
+			minLength: 1,
+			maxLength: 100
+		}),
+		title: String$1({
+			minLength: 1,
+			maxLength: 255
+		}),
+		contentType: String$1({
+			minLength: 1,
+			maxLength: 200
+		}),
+		contentEncoding: Union([String$1({
+			minLength: 1,
+			maxLength: 100
+		}), Null()]),
+		sizeBytes: Integer({ minimum: 0 }),
+		cid: String$1({
+			minLength: 1,
+			maxLength: 100
+		}),
+		createdByAgentId: Union([String$1({ format: "uuid" }), Null()]),
+		expiresAt: Union([String$1({ format: "date-time" }), Null()]),
+		createdAt: String$1({ format: "date-time" })
+	}, { $id: "TaskArtifact" })),
+	nextCursor: Union([String$1({ minLength: 1 }), Null()])
+}, { $id: "TaskArtifactList" });
+_Object_({
+	limit: Optional(Integer({
+		minimum: 1,
+		maximum: 100
+	})),
+	cursor: Optional(String$1({ minLength: 1 }))
+}, {
+	$id: "ListTaskArtifactsQuery",
+	additionalProperties: false
+});
+var HeaderSafeContentType = String$1({
+	minLength: 1,
+	maxLength: 200,
+	pattern: "^[\\x21-\\x7e][\\x20-\\x7e]*$"
+});
+var HeaderSafeContentEncoding = String$1({
+	minLength: 1,
+	maxLength: 100,
+	pattern: "^[\\x21-\\x7e][\\x20-\\x7e]*$"
+});
+_Object_({
+	kind: String$1({
+		minLength: 1,
+		maxLength: 100
+	}),
+	title: String$1({
+		minLength: 1,
+		maxLength: 255
+	}),
+	contentType: Optional(HeaderSafeContentType),
+	contentEncoding: Optional(HeaderSafeContentEncoding)
+}, {
+	$id: "UploadTaskArtifactQuery",
+	additionalProperties: false
+});
+String$1({
+	$id: "TaskArtifactContent",
+	description: "Task artifact content stream.",
+	format: "binary"
+});
+_Object_({ taskId: String$1({ format: "uuid" }) }, {
+	$id: "TaskArtifactTaskParams",
+	additionalProperties: false
+});
+_Object_({
+	taskId: String$1({ format: "uuid" }),
+	attemptN: Integer({ minimum: 1 })
+}, {
+	$id: "TaskArtifactAttemptParams",
+	additionalProperties: false
+});
+_Object_({
+	taskId: String$1({ format: "uuid" }),
+	attemptN: Integer({ minimum: 1 }),
+	cid: String$1({
+		minLength: 1,
+		maxLength: 100
+	})
+}, {
+	$id: "TaskArtifactContentParams",
+	additionalProperties: false
+});
+_Object_({
+	contentType: Optional(HeaderSafeContentType),
+	contentEncoding: Optional(HeaderSafeContentEncoding)
+}, {
+	$id: "StageTaskArtifactQuery",
+	additionalProperties: false
+});
+_Object_({
+	cid: String$1({
+		minLength: 1,
+		maxLength: 100
+	}),
+	sizeBytes: Integer({ minimum: 0 }),
+	contentType: String$1({
+		minLength: 1,
+		maxLength: 200
+	})
+}, { $id: "StagedTaskArtifact" });
+_Object_({
+	taskId: String$1({ format: "uuid" }),
+	cid: String$1({
+		minLength: 1,
+		maxLength: 100
+	})
+}, {
+	$id: "TaskArtifactTaskContentParams",
+	additionalProperties: false
+});
+new TextEncoder();
+new TextDecoder();
+//#endregion
+//#region ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/hashes/hasher.js
+var DEFAULT_MIN_DIGEST_LENGTH = 20;
+function from({ name, code, encode, minDigestLength, maxDigestLength }) {
+	return new Hasher(name, code, encode, minDigestLength, maxDigestLength);
+}
+/**
+* Hasher represents a hashing algorithm implementation that produces as
+* `MultihashDigest`.
+*/
+var Hasher = class {
+	name;
+	code;
+	encode;
+	minDigestLength;
+	maxDigestLength;
+	constructor(name, code, encode, minDigestLength, maxDigestLength) {
+		this.name = name;
+		this.code = code;
+		this.encode = encode;
+		this.minDigestLength = minDigestLength ?? DEFAULT_MIN_DIGEST_LENGTH;
+		this.maxDigestLength = maxDigestLength;
+	}
+	digest(input, options) {
+		if (options?.truncate != null) {
+			if (options.truncate < this.minDigestLength) throw new Error(`Invalid truncate option, must be greater than or equal to ${this.minDigestLength}`);
+			if (this.maxDigestLength != null && options.truncate > this.maxDigestLength) throw new Error(`Invalid truncate option, must be less than or equal to ${this.maxDigestLength}`);
+		}
+		if (input instanceof Uint8Array) {
+			const result = this.encode(input);
+			if (result instanceof Uint8Array) return createDigest(result, this.code, options?.truncate);
+			return result.then((digest) => createDigest(digest, this.code, options?.truncate));
+		} else throw Error("Unknown type, must be binary type");
+	}
+};
+/**
+* Create a Digest from the passed uint8array and code, optionally truncating it
+* first.
+*/
+function createDigest(digest, code, truncate) {
+	if (truncate != null && truncate !== digest.byteLength) {
+		if (truncate > digest.byteLength) throw new Error(`Invalid truncate option, must be less than or equal to ${digest.byteLength}`);
+		digest = digest.subarray(0, truncate);
+	}
+	return create(code, digest);
+}
+from({
+	name: "sha2-256",
+	code: 18,
+	encode: (input) => coerce(crypto$1.createHash("sha256").update(input).digest())
+});
+from({
+	name: "sha2-512",
+	code: 19,
+	encode: (input) => coerce(crypto$1.createHash("sha512").update(input).digest())
+});
+//#endregion
+//#region ../../libs/tasks/src/task-types/assess-brief.ts
+/**
+* `assess_brief` — independently evaluate a fulfilled brief.
+*
+* output_kind: judgment
+* criteria: required (`successCriteria.rubric` — same envelope as
+*   `judge_pack`)
+* references: required (must reference the target `fulfill_brief` task)
+*
+* The assessor is a different agent from the producer (enforced by the
+* server / runtime at claim time — not in the wire schema).
+*
+* The rubric in `successCriteria` IS the job spec — the assessor applies
+* it to the target task's output and emits per-criterion scores. Other
+* sections (`assertions`, `gates`, `sideEffects`) MAY be present and are
+* evaluated against the *assessor's output*.
+*/
+var ASSESS_BRIEF_TYPE = "assess_brief";
+var AssessBriefInput = _Object_({
+	targetTaskId: String$1({ format: "uuid" }),
+	successCriteria: SuccessCriteria
+}, {
+	$id: "AssessBriefInput",
+	additionalProperties: false
+});
+var AssessBriefOutput = _Object_({
+	scores: _Array_(_Object_({
+		criterionId: String$1({ minLength: 1 }),
+		score: Number$1({
+			minimum: 0,
+			maximum: 1
+		}),
+		rationale: Optional(String$1()),
+		evidence: Optional(_Object_({
+			commitsVerified: Number$1(),
+			commitsTotal: Number$1(),
+			signatureFailures: _Array_(String$1())
+		}, { additionalProperties: false }))
+	}, {
+		$id: "AssessBriefScore",
+		additionalProperties: false
+	}), { minItems: 1 }),
+	composite: Number$1({
+		minimum: 0,
+		maximum: 1
+	}),
+	verdict: String$1({ minLength: 1 }),
+	judgeModel: Optional(String$1())
+}, {
+	$id: "AssessBriefOutput",
+	additionalProperties: false
+});
+/**
+* Async preflight (#1096):
+*   - `targetTaskId` resolves to a real task the caller can see.
+*   - The target is a `fulfill_brief` (you cannot grade an arbitrary
+*     task type as if it were a brief fulfillment).
+*   - Unless readiness checks are explicitly deferred, the target is
+*     `completed` with an accepted attempt — grading an in-flight or
+*     failed task would either race or grade nothing.
+*
+* Agent-distinctness ("assessor ≠ producer") is a runtime / auth-
+* layer concern and intentionally NOT checked here. It belongs in
+* an auth-aware claim-time check.
+*/
+async function validateAssessBriefInputAsync(input, ctx) {
+	const { targetTaskId } = input;
+	const errors = [];
+	const target = await ctx.resolveTask(targetTaskId);
+	if (!target) {
+		errors.push({
+			field: "targetTaskId",
+			message: `targetTaskId ${targetTaskId} does not resolve to a task you can read`
+		});
+		return errors;
+	}
+	if (target.taskType !== "fulfill_brief") errors.push({
+		field: "targetTaskId",
+		message: `targetTaskId ${targetTaskId} is a ${target.taskType}, not a fulfill_brief`
+	});
+	if (!ctx.deferReadinessChecks && (target.status !== "completed" || target.acceptedAttemptN === null)) errors.push({
+		field: "targetTaskId",
+		message: `targetTaskId ${targetTaskId} is not completed with an accepted attempt (status=${target.status}, acceptedAttemptN=${target.acceptedAttemptN})`
+	});
+	return errors;
+}
+//#endregion
+//#region ../../libs/tasks/src/task-types/curate-pack.ts
+/**
+* `curate_pack` — select and rank diary entries into a context pack.
+*
+* output_kind: artifact
+* criteria: not required (rubric-less curation recipe)
+* references: optional (e.g. a prior rendered pack being re-curated)
+*
+* This is step 1 of the three-session attribution loop (#875). The agent
+* runs a structured exploration over a diary — tag inventory, hybrid
+* search, type/tag narrowing — and emits a ranked entry list via
+* `moltnet_pack_create`. The prompt is deterministic given the input
+* (no operator interaction), so two runs with the same input should
+* converge on similar packs.
+*
+* Related: `render_pack`, `judge_pack`.
+*/
+var CURATE_PACK_TYPE = "curate_pack";
+var EntryTypeFilter = Union([
+	Literal("episodic"),
+	Literal("semantic"),
+	Literal("procedural"),
+	Literal("reflection")
+]);
+var CuratePackInput = _Object_({
+	diaryId: String$1({ format: "uuid" }),
+	taskPrompt: String$1({ minLength: 1 }),
+	entryTypes: Optional(_Array_(EntryTypeFilter, { minItems: 1 })),
+	tagFilters: Optional(_Object_({
+		include: Optional(_Array_(String$1())),
+		exclude: Optional(_Array_(String$1())),
+		prefix: Optional(String$1())
+	}, { additionalProperties: false })),
+	tokenBudget: Optional(Number$1({ minimum: 500 })),
+	recipe: Optional(Union([Literal("topic-focused-v1"), Literal("scope-inventory-v1")])),
+	successCriteria: Optional(SuccessCriteria)
+}, {
+	$id: "CuratePackInput",
+	additionalProperties: false
+});
+/**
+* Index of the curated pack plus the reasoning trace. The pack itself
+* lives in the database (created via `moltnet_pack_create`); this output
+* is the receipt.
+*/
+var CuratePackOutput = _Object_({
+	packId: String$1({ format: "uuid" }),
+	packCid: String$1({ minLength: 1 }),
+	entries: _Array_(_Object_({
+		entryId: String$1({ format: "uuid" }),
+		rank: Number$1({ minimum: 1 }),
+		rationale: String$1({ minLength: 1 })
+	}, { additionalProperties: false }), { minItems: 1 }),
+	recipeParams: Record(String$1(), Unknown()),
+	checkpoints: Optional(_Array_(_Object_({
+		phase: String$1({ minLength: 1 }),
+		candidateIds: _Array_(String$1({ format: "uuid" })),
+		droppedIds: Optional(_Array_(String$1({ format: "uuid" }))),
+		notes: String$1({ minLength: 1 })
+	}, { additionalProperties: false }))),
+	summary: String$1({ minLength: 1 }),
+	verification: Optional(VerificationRecord)
+}, {
+	$id: "CuratePackOutput",
+	additionalProperties: false
+});
+//#endregion
+//#region ../../libs/runtime-profiles/src/context.ts
+/**
+* How an executor delivers a context entry to its underlying LLM.
+* V1 bindings only; Tier-2 (reference_file, mcp_resource, imported_file,
+* tool_response_seed, additional_context_hook) ship in a later slice.
+*/
+var CONTEXT_BINDINGS = [
+	"skill",
+	"context_inline",
+	"prompt_prefix",
+	"user_inline"
+];
+/** Maximum UTF-16 code units accepted in one ContextRef content field. */
+var CONTEXT_REF_MAX_CONTENT_LENGTH = 65536;
+var ContextBinding = Unsafe(Union(CONTEXT_BINDINGS.map((binding) => Literal(binding)), { $id: "ContextBinding" }));
+/** Reusable input fragment for any task type. Soft cap at 5 items. */
+var TaskContext = _Array_(_Object_({
+	slug: String$1({
+		minLength: 1,
+		maxLength: 64,
+		pattern: "^[a-zA-Z0-9_-]+$"
+	}),
+	binding: ContextBinding,
+	content: String$1({
+		minLength: 1,
+		maxLength: CONTEXT_REF_MAX_CONTENT_LENGTH
+	})
+}, {
+	$id: "ContextRef",
+	additionalProperties: false
+}), {
+	$id: "TaskContext",
+	maxItems: 5
+});
+//#endregion
+//#region ../../libs/runtime-profiles/src/runtime-models.ts
 /**
 * Runtime model catalog: a list of supported provider/model couples that
 * MoltNet daemons can target. Backed by the `runtime_models` table.
@@ -29577,7 +30172,7 @@ _Object_({
 	additionalProperties: false
 });
 //#endregion
-//#region ../../libs/tasks/src/runtime-profile-context-recipes.ts
+//#region ../../libs/runtime-profiles/src/runtime-profile-context-recipes.ts
 var RUNTIME_PROFILE_CONTEXT_CATALOGUE = {
 	version: 1,
 	fragments: {
@@ -29588,12 +30183,12 @@ var RUNTIME_PROFILE_CONTEXT_CATALOGUE = {
 		},
 		"accountable-delivery-v1": {
 			binding: "prompt_prefix",
-			content: "# Accountable delivery\n\n- Pair every commit made during this task with a signed diary entry created by the `moltnet_create_entry` custom tool. Put the returned id in a `MoltNet-Diary: <id>` commit trailer.\n- Keep commit signing enabled; do not bypass the agent git configuration.\n- Push a branch and open or update a pull request only when the task asks for it. For GitHub mutations, use the credential-bound `GH_TOKEN` command form required by the runtime kernel.\n- Keep changes, commits, and any requested pull request coherent enough to review independently.",
+			content: "# Accountable delivery\n\n- Pair every commit made during this task with a task-provenance diary entry created by the `moltnet_create_entry` custom tool. Put the returned id in a `MoltNet-Diary: <id>` commit trailer. The tool does not currently promise a content signature unless you pass `signed: true` while the runtime kernel declares the `agent-signing` host capability; never describe an entry as signed otherwise.\n- When the runtime kernel declares `agent-signing`, sign commits normally with `git commit -S`: the signature is brokered to the trusted host through `SSH_AUTH_SOCK` and no private key exists in the guest. Without that capability commits are unsigned; do not disable signing the runtime provides, and never try to obtain a key from host configuration.\n- Push a branch and open or update a pull request only when the task asks for it. Use a host-brokered GitHub placeholder only when the runtime kernel declares one; if no GitHub credential is active, the authenticated operation is unavailable.\n- Keep changes, commits, and any requested pull request coherent enough to review independently.",
 			slug: "accountable-delivery-v1"
 		},
 		"judgment-diary-v1": {
 			binding: "prompt_prefix",
-			content: "# Judgment diary discipline\n\n- For an `assess_brief`, `judge_pack`, or `pr_review` task, create a signed diary entry with the `moltnet_create_entry` custom tool before submitting the structured judgment. Capture the rationale and evidence that support the verdict.\n- Add the `judgment` tag and the active task type tag (`assess_brief`, `judge_pack`, or `pr_review`). For `judge_pack`, also add `rubric:<rubricId>` from the task facts.\n- Do not use a shell `moltnet entry` command: task provenance is injected only by the custom tool.",
+			content: "# Judgment diary discipline\n\n- For an `assess_brief`, `judge_pack`, or `pr_review` task, create a diary entry with the `moltnet_create_entry` custom tool before submitting the structured judgment. Capture the rationale and evidence that support the verdict. Do not claim a content signature unless you created the entry with `signed: true` under a runtime that declares the `agent-signing` host capability.\n- Add the `judgment` tag and the active task type tag (`assess_brief`, `judge_pack`, or `pr_review`). For `judge_pack`, also add `rubric:<rubricId>` from the task facts.\n- Do not use a shell `moltnet entry` command: task provenance is injected only by the custom tool.",
 			slug: "judgment-diary-v1"
 		},
 		"proactive-memory-v1": {
@@ -29608,7 +30203,7 @@ var RUNTIME_PROFILE_CONTEXT_CATALOGUE = {
 		},
 		"task-diary-discipline-v1": {
 			binding: "prompt_prefix",
-			content: "# Task diary discipline\n\n- During a daemon task, create diary entries only through the `moltnet_create_entry` custom tool. It binds entries to the current task diary and injects task, type, attempt, and correlation provenance tags.\n- Do not shell out to `moltnet entry create`, `moltnet entry create-signed`, or any other `moltnet entry` subcommand from bash while a task is running. Those paths bypass the custom tool's task-tag injection, so task-filtered diary queries cannot find the entry.\n- You may add useful tags, but do not try to replace task provenance supplied by the runtime.",
+			content: "# Task diary discipline\n\n- During a daemon task, create diary entries only through the `moltnet_create_entry` custom tool. It binds entries to the current task diary and injects task, type, attempt, and correlation provenance tags.\n- Do not shell out to `moltnet entry create`, `moltnet entry create-signed`, or any other `moltnet entry` subcommand from bash while a task is running. For a content-signed entry pass `signed: true` to the custom tool instead; it signs on the trusted host. Those shell paths bypass the custom tool's task-tag injection, so task-filtered diary queries cannot find the entry.\n- You may add useful tags, but do not try to replace task provenance supplied by the runtime.",
 			slug: "task-diary-discipline-v1"
 		},
 		"verification-and-artifacts-v1": {
@@ -29670,7 +30265,7 @@ var CREDENTIAL_SCOPES = {
 	TeamRead: "team:read"
 };
 var ALL_CREDENTIAL_SCOPES = Object.freeze(Object.values(CREDENTIAL_SCOPES));
-CREDENTIAL_SCOPES.AgentProfile, CREDENTIAL_SCOPES.RuntimeRead, CREDENTIAL_SCOPES.TaskRead, CREDENTIAL_SCOPES.TaskClaim, CREDENTIAL_SCOPES.TaskExecute;
+CREDENTIAL_SCOPES.AgentProfile, CREDENTIAL_SCOPES.CryptoSign, CREDENTIAL_SCOPES.RuntimeRead, CREDENTIAL_SCOPES.TaskRead, CREDENTIAL_SCOPES.TaskClaim, CREDENTIAL_SCOPES.TaskExecute;
 /** Full grant ceiling for first-party agent OAuth2 clients. */
 var AGENT_OAUTH_SCOPES = Object.freeze(ALL_CREDENTIAL_SCOPES.filter((scope) => scope !== CREDENTIAL_SCOPES.HumanProfile));
 [
@@ -29988,10 +30583,10 @@ _Object_({
 		Literal("completed"),
 		Literal("failed")
 	]),
-	githubCode: Optional(String$1()),
+	githubCode: Optional(String$1({ description: "GitHub manifest code sealed to the onboarding agent public key." })),
 	identityId: Optional(String$1()),
 	clientId: Optional(String$1()),
-	clientSecret: Optional(String$1()),
+	clientSecret: Optional(String$1({ description: "OAuth2 client secret sealed to the onboarding agent public key." })),
 	installationId: Optional(String$1())
 });
 _Object_({
@@ -30016,7 +30611,11 @@ _Object_({ name: String$1({
 	maxLength: 255
 }) });
 _Object_({
-	role: Optional(Union([Literal("manager"), Literal("member")])),
+	role: Optional(Union([
+		Literal("manager"),
+		Literal("executor"),
+		Literal("member")
+	])),
 	maxUses: Optional(Integer({
 		minimum: 1,
 		default: 1
@@ -30028,10 +30627,15 @@ _Object_({
 	}))
 });
 _Object_({ code: String$1({ minLength: 1 }) });
-_Object_({ role: Union([Literal("manager"), Literal("member")]) });
+_Object_({ role: Union([
+	Literal("manager"),
+	Literal("executor"),
+	Literal("member")
+]) });
 var TeamRoleSchema = Union([
 	Literal("owner"),
 	Literal("manager"),
+	Literal("executor"),
 	Literal("member")
 ]);
 _Object_({
@@ -30042,7 +30646,11 @@ var DateTimeUnsafe = Unsafe(String$1({ format: "date-time" }));
 _Object_({
 	id: UuidSchema,
 	code: String$1(),
-	role: Union([Literal("manager"), Literal("member")]),
+	role: Union([
+		Literal("manager"),
+		Literal("executor"),
+		Literal("member")
+	]),
 	maxUses: Integer(),
 	useCount: Integer(),
 	expiresAt: DateTimeUnsafe,
@@ -30074,11 +30682,19 @@ _Object_({
 });
 _Object_({
 	teamId: UuidSchema,
-	role: Union([Literal("manager"), Literal("member")])
+	role: Union([
+		Literal("manager"),
+		Literal("executor"),
+		Literal("member")
+	])
 });
 _Object_({
 	updated: Boolean$1(),
-	role: Union([Literal("manager"), Literal("member")])
+	role: Union([
+		Literal("manager"),
+		Literal("executor"),
+		Literal("member")
+	])
 });
 _Object_({ deleted: Boolean$1() });
 _Object_({ removed: Boolean$1() });
@@ -30088,6 +30704,7 @@ var FoundingMemberSchema = _Object_({
 	role: Union([
 		Literal("owner"),
 		Literal("manager"),
+		Literal("executor"),
 		Literal("member")
 	])
 });
@@ -30582,7 +31199,7 @@ var ToolEnforcementSchema = Union([
 	Literal(TOOL_ENFORCEMENT_VALUES[2])
 ], { description: "Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed)." });
 //#endregion
-//#region ../../libs/tasks/src/runtime-profiles.ts
+//#region ../../libs/runtime-profiles/src/runtime-profiles.ts
 var RuntimeProfileName = String$1({
 	minLength: 1,
 	maxLength: 100,
@@ -30781,7 +31398,7 @@ _Object_({
 	additionalProperties: false
 });
 //#endregion
-//#region ../../libs/tasks/src/runtime-sessions.ts
+//#region ../../libs/runtime-profiles/src/runtime-sessions.ts
 var RuntimeSessionKind = Union([
 	Literal("root"),
 	Literal("extend"),
@@ -30839,7 +31456,7 @@ _Object_({
 	additionalProperties: false
 });
 //#endregion
-//#region ../../libs/tasks/src/runtime-slots.ts
+//#region ../../libs/runtime-profiles/src/runtime-slots.ts
 var RuntimeWorkspaceKind = Union([
 	Literal("origin"),
 	Literal("fork"),
@@ -30963,488 +31580,6 @@ _Object_({
 	}))
 }, {
 	$id: "ListRuntimeSlotsQuery",
-	additionalProperties: false
-});
-//#endregion
-//#region ../../libs/tasks/src/success-criteria.ts
-/**
-* SuccessCriteria — proposer-stated acceptance criteria, evaluated in two
-* complementary places.
-*
-* Before this envelope existed, criteria were scattered: a vestigial
-* `criteriaCid` column nobody resolved, free-form prose on
-* `fulfill_brief.input`, and inline `rubric` / `criteria[]` fields on
-* judgment-task inputs. None of those were machine-verifiable
-* end-to-end.
-*
-* This module defines a single, content-addressable envelope a proposer
-* attaches to any task type. It has four orthogonal sections — pick
-* whichever apply per task type:
-*
-*   - `gates`        Promise-level structural/process checks
-*   - `assertions`   Declarative claims about output JSON
-*   - `rubric`       Weighted-criteria scoring instrument, reused
-*                    verbatim from `./rubric.ts`.
-*   - `sideEffects`  Required process side-effects (e.g. diary entry)
-*
-* ## Two roles, two task types
-*
-* **Producer self-assessment** (fulfillment tasks: `fulfill_brief`,
-* `curate_pack`, `render_pack`). The producer **LLM** evaluates the
-* criteria against its own output and emits a `VerificationRecord`
-* inside `output.verification`. The daemon is pure passthrough — it
-* does not run `evaluateAssertions`, does not inspect the verification
-* record. The REST API is dumb storage; it never re-runs assertions and
-* never runs LLMs. The cross-field rule
-* `requireVerificationWhenCriteriaPresent` enforces "verification
-* required iff successCriteria present" at task-output validation time
-* (server-side schema check). Self-assessment is a truthful self-rating,
-* NOT enforcement — `verification.passed=false` does not block /complete
-* and does not affect `acceptedAttemptN`. See
-* `docs/use/tasks-and-runtime.md` for the full producer/judge flow.
-*
-* **Binding evaluation** (judgment tasks: `assess_brief`, `judge_pack`).
-* A separate task whose IS the application of `successCriteria` to
-* someone else's output. Different agent (enforced at claim time), same
-* envelope. The judge's verdict is binding: this is the *gate* in the
-* MoltNet model. The rubric inside `successCriteria.rubric` IS the job
-* spec for the judge.
-*
-* The clean chain: producer task with `successCriteria` → producer
-* self-assesses honestly → proposer (or automation) creates a downstream
-* judgment task that references the same `successCriteria` (or a
-* stricter rubric) → judgment task delivers the binding verdict.
-*
-* Storage: SuccessCriteria lives inline at `task.input.successCriteria`,
-* pinned via the task's `inputCid`. No separate column or hash. When
-* #881 lands, the `rubric` field can graduate to `{ rubricCid }` lookup
-* without changing this envelope, and producer + judge tasks can pin
-* the SAME rubric across the chain for end-to-end auditability.
-*/
-var SchemaCheckSpec = _Object_({ schemaCid: String$1({ minLength: 1 }) }, { additionalProperties: false });
-var CidEqualsSpec = _Object_({
-	path: String$1({ minLength: 1 }),
-	expected: String$1({ minLength: 1 })
-}, { additionalProperties: false });
-var Gate = Union([
-	_Object_({
-		id: String$1({ minLength: 1 }),
-		kind: Literal("submit-tool-call"),
-		description: String$1({ minLength: 1 }),
-		required: Boolean$1()
-	}, { additionalProperties: false }),
-	_Object_({
-		id: String$1({ minLength: 1 }),
-		kind: Literal("schema-check"),
-		spec: SchemaCheckSpec,
-		required: Boolean$1()
-	}, { additionalProperties: false }),
-	_Object_({
-		id: String$1({ minLength: 1 }),
-		kind: Literal("cid-equals"),
-		spec: CidEqualsSpec,
-		required: Boolean$1()
-	}, { additionalProperties: false })
-], { $id: "Gate" });
-var AssertionOp = Union([
-	Literal("exists"),
-	Literal("equals"),
-	Literal("matches"),
-	Literal("in-range"),
-	Literal("min-length")
-], { $id: "AssertionOp" });
-var Assertion = _Object_({
-	id: String$1({ minLength: 1 }),
-	path: String$1({ minLength: 1 }),
-	op: AssertionOp,
-	value: Optional(Unknown())
-}, {
-	$id: "Assertion",
-	additionalProperties: false
-});
-var SideEffectsSpec = _Object_({
-	diaryEntryRequired: Optional(Boolean$1()),
-	diaryEntryTags: Optional(_Array_(String$1({ minLength: 1 }))),
-	referencedEntries: Optional(Integer({ minimum: 0 }))
-}, {
-	$id: "SideEffectsSpec",
-	additionalProperties: false
-});
-var SuccessCriteria = _Object_({
-	version: Literal(1),
-	gates: Optional(_Array_(Gate)),
-	assertions: Optional(_Array_(Assertion)),
-	rubric: Optional(Rubric),
-	minComposite: Optional(Number$1({
-		minimum: 0,
-		maximum: 1
-	})),
-	sideEffects: Optional(SideEffectsSpec)
-}, {
-	$id: "SuccessCriteria",
-	additionalProperties: false
-});
-var VerificationResultStatus = Union([
-	Literal("pass"),
-	Literal("fail"),
-	Literal("skip")
-], { $id: "VerificationResultStatus" });
-var VerificationResultKind = Union([
-	Literal("gate"),
-	Literal("assertion"),
-	Literal("rubric"),
-	Literal("sideEffect")
-], { $id: "VerificationResultKind" });
-var VerificationResult = _Object_({
-	id: String$1({ minLength: 1 }),
-	kind: VerificationResultKind,
-	status: VerificationResultStatus,
-	detail: Optional(String$1())
-}, {
-	$id: "VerificationResult",
-	additionalProperties: false
-});
-var VerificationRecord = _Object_({
-	inputCid: String$1({ minLength: 1 }),
-	results: _Array_(VerificationResult),
-	passed: Boolean$1({ description: "True iff every verification result has status \"pass\" or \"skip\"; false when any result has status \"fail\"." })
-}, {
-	$id: "VerificationRecord",
-	additionalProperties: false
-});
-_Object_({
-	artifacts: _Array_(_Object_({
-		id: String$1({ format: "uuid" }),
-		teamId: String$1({ format: "uuid" }),
-		taskId: String$1({ format: "uuid" }),
-		attemptN: Union([Integer({ minimum: 1 }), Null()]),
-		kind: String$1({
-			minLength: 1,
-			maxLength: 100
-		}),
-		title: String$1({
-			minLength: 1,
-			maxLength: 255
-		}),
-		contentType: String$1({
-			minLength: 1,
-			maxLength: 200
-		}),
-		contentEncoding: Union([String$1({
-			minLength: 1,
-			maxLength: 100
-		}), Null()]),
-		sizeBytes: Integer({ minimum: 0 }),
-		cid: String$1({
-			minLength: 1,
-			maxLength: 100
-		}),
-		createdByAgentId: Union([String$1({ format: "uuid" }), Null()]),
-		expiresAt: Union([String$1({ format: "date-time" }), Null()]),
-		createdAt: String$1({ format: "date-time" })
-	}, { $id: "TaskArtifact" })),
-	nextCursor: Union([String$1({ minLength: 1 }), Null()])
-}, { $id: "TaskArtifactList" });
-_Object_({
-	limit: Optional(Integer({
-		minimum: 1,
-		maximum: 100
-	})),
-	cursor: Optional(String$1({ minLength: 1 }))
-}, {
-	$id: "ListTaskArtifactsQuery",
-	additionalProperties: false
-});
-var HeaderSafeContentType = String$1({
-	minLength: 1,
-	maxLength: 200,
-	pattern: "^[\\x21-\\x7e][\\x20-\\x7e]*$"
-});
-var HeaderSafeContentEncoding = String$1({
-	minLength: 1,
-	maxLength: 100,
-	pattern: "^[\\x21-\\x7e][\\x20-\\x7e]*$"
-});
-_Object_({
-	kind: String$1({
-		minLength: 1,
-		maxLength: 100
-	}),
-	title: String$1({
-		minLength: 1,
-		maxLength: 255
-	}),
-	contentType: Optional(HeaderSafeContentType),
-	contentEncoding: Optional(HeaderSafeContentEncoding)
-}, {
-	$id: "UploadTaskArtifactQuery",
-	additionalProperties: false
-});
-String$1({
-	$id: "TaskArtifactContent",
-	description: "Task artifact content stream.",
-	format: "binary"
-});
-_Object_({ taskId: String$1({ format: "uuid" }) }, {
-	$id: "TaskArtifactTaskParams",
-	additionalProperties: false
-});
-_Object_({
-	taskId: String$1({ format: "uuid" }),
-	attemptN: Integer({ minimum: 1 })
-}, {
-	$id: "TaskArtifactAttemptParams",
-	additionalProperties: false
-});
-_Object_({
-	taskId: String$1({ format: "uuid" }),
-	attemptN: Integer({ minimum: 1 }),
-	cid: String$1({
-		minLength: 1,
-		maxLength: 100
-	})
-}, {
-	$id: "TaskArtifactContentParams",
-	additionalProperties: false
-});
-_Object_({
-	contentType: Optional(HeaderSafeContentType),
-	contentEncoding: Optional(HeaderSafeContentEncoding)
-}, {
-	$id: "StageTaskArtifactQuery",
-	additionalProperties: false
-});
-_Object_({
-	cid: String$1({
-		minLength: 1,
-		maxLength: 100
-	}),
-	sizeBytes: Integer({ minimum: 0 }),
-	contentType: String$1({
-		minLength: 1,
-		maxLength: 200
-	})
-}, { $id: "StagedTaskArtifact" });
-_Object_({
-	taskId: String$1({ format: "uuid" }),
-	cid: String$1({
-		minLength: 1,
-		maxLength: 100
-	})
-}, {
-	$id: "TaskArtifactTaskContentParams",
-	additionalProperties: false
-});
-new TextEncoder();
-new TextDecoder();
-//#endregion
-//#region ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/hashes/hasher.js
-var DEFAULT_MIN_DIGEST_LENGTH = 20;
-function from({ name, code, encode, minDigestLength, maxDigestLength }) {
-	return new Hasher(name, code, encode, minDigestLength, maxDigestLength);
-}
-/**
-* Hasher represents a hashing algorithm implementation that produces as
-* `MultihashDigest`.
-*/
-var Hasher = class {
-	name;
-	code;
-	encode;
-	minDigestLength;
-	maxDigestLength;
-	constructor(name, code, encode, minDigestLength, maxDigestLength) {
-		this.name = name;
-		this.code = code;
-		this.encode = encode;
-		this.minDigestLength = minDigestLength ?? DEFAULT_MIN_DIGEST_LENGTH;
-		this.maxDigestLength = maxDigestLength;
-	}
-	digest(input, options) {
-		if (options?.truncate != null) {
-			if (options.truncate < this.minDigestLength) throw new Error(`Invalid truncate option, must be greater than or equal to ${this.minDigestLength}`);
-			if (this.maxDigestLength != null && options.truncate > this.maxDigestLength) throw new Error(`Invalid truncate option, must be less than or equal to ${this.maxDigestLength}`);
-		}
-		if (input instanceof Uint8Array) {
-			const result = this.encode(input);
-			if (result instanceof Uint8Array) return createDigest(result, this.code, options?.truncate);
-			return result.then((digest) => createDigest(digest, this.code, options?.truncate));
-		} else throw Error("Unknown type, must be binary type");
-	}
-};
-/**
-* Create a Digest from the passed uint8array and code, optionally truncating it
-* first.
-*/
-function createDigest(digest, code, truncate) {
-	if (truncate != null && truncate !== digest.byteLength) {
-		if (truncate > digest.byteLength) throw new Error(`Invalid truncate option, must be less than or equal to ${digest.byteLength}`);
-		digest = digest.subarray(0, truncate);
-	}
-	return create(code, digest);
-}
-from({
-	name: "sha2-256",
-	code: 18,
-	encode: (input) => coerce(crypto$1.createHash("sha256").update(input).digest())
-});
-from({
-	name: "sha2-512",
-	code: 19,
-	encode: (input) => coerce(crypto$1.createHash("sha512").update(input).digest())
-});
-//#endregion
-//#region ../../libs/tasks/src/task-types/assess-brief.ts
-/**
-* `assess_brief` — independently evaluate a fulfilled brief.
-*
-* output_kind: judgment
-* criteria: required (`successCriteria.rubric` — same envelope as
-*   `judge_pack`)
-* references: required (must reference the target `fulfill_brief` task)
-*
-* The assessor is a different agent from the producer (enforced by the
-* server / runtime at claim time — not in the wire schema).
-*
-* The rubric in `successCriteria` IS the job spec — the assessor applies
-* it to the target task's output and emits per-criterion scores. Other
-* sections (`assertions`, `gates`, `sideEffects`) MAY be present and are
-* evaluated against the *assessor's output*.
-*/
-var ASSESS_BRIEF_TYPE = "assess_brief";
-var AssessBriefInput = _Object_({
-	targetTaskId: String$1({ format: "uuid" }),
-	successCriteria: SuccessCriteria
-}, {
-	$id: "AssessBriefInput",
-	additionalProperties: false
-});
-var AssessBriefOutput = _Object_({
-	scores: _Array_(_Object_({
-		criterionId: String$1({ minLength: 1 }),
-		score: Number$1({
-			minimum: 0,
-			maximum: 1
-		}),
-		rationale: Optional(String$1()),
-		evidence: Optional(_Object_({
-			commitsVerified: Number$1(),
-			commitsTotal: Number$1(),
-			signatureFailures: _Array_(String$1())
-		}, { additionalProperties: false }))
-	}, {
-		$id: "AssessBriefScore",
-		additionalProperties: false
-	}), { minItems: 1 }),
-	composite: Number$1({
-		minimum: 0,
-		maximum: 1
-	}),
-	verdict: String$1({ minLength: 1 }),
-	judgeModel: Optional(String$1())
-}, {
-	$id: "AssessBriefOutput",
-	additionalProperties: false
-});
-/**
-* Async preflight (#1096):
-*   - `targetTaskId` resolves to a real task the caller can see.
-*   - The target is a `fulfill_brief` (you cannot grade an arbitrary
-*     task type as if it were a brief fulfillment).
-*   - Unless readiness checks are explicitly deferred, the target is
-*     `completed` with an accepted attempt — grading an in-flight or
-*     failed task would either race or grade nothing.
-*
-* Agent-distinctness ("assessor ≠ producer") is a runtime / auth-
-* layer concern and intentionally NOT checked here. It belongs in
-* an auth-aware claim-time check.
-*/
-async function validateAssessBriefInputAsync(input, ctx) {
-	const { targetTaskId } = input;
-	const errors = [];
-	const target = await ctx.resolveTask(targetTaskId);
-	if (!target) {
-		errors.push({
-			field: "targetTaskId",
-			message: `targetTaskId ${targetTaskId} does not resolve to a task you can read`
-		});
-		return errors;
-	}
-	if (target.taskType !== "fulfill_brief") errors.push({
-		field: "targetTaskId",
-		message: `targetTaskId ${targetTaskId} is a ${target.taskType}, not a fulfill_brief`
-	});
-	if (!ctx.deferReadinessChecks && (target.status !== "completed" || target.acceptedAttemptN === null)) errors.push({
-		field: "targetTaskId",
-		message: `targetTaskId ${targetTaskId} is not completed with an accepted attempt (status=${target.status}, acceptedAttemptN=${target.acceptedAttemptN})`
-	});
-	return errors;
-}
-//#endregion
-//#region ../../libs/tasks/src/task-types/curate-pack.ts
-/**
-* `curate_pack` — select and rank diary entries into a context pack.
-*
-* output_kind: artifact
-* criteria: not required (rubric-less curation recipe)
-* references: optional (e.g. a prior rendered pack being re-curated)
-*
-* This is step 1 of the three-session attribution loop (#875). The agent
-* runs a structured exploration over a diary — tag inventory, hybrid
-* search, type/tag narrowing — and emits a ranked entry list via
-* `moltnet_pack_create`. The prompt is deterministic given the input
-* (no operator interaction), so two runs with the same input should
-* converge on similar packs.
-*
-* Related: `render_pack`, `judge_pack`.
-*/
-var CURATE_PACK_TYPE = "curate_pack";
-var EntryTypeFilter = Union([
-	Literal("episodic"),
-	Literal("semantic"),
-	Literal("procedural"),
-	Literal("reflection")
-]);
-var CuratePackInput = _Object_({
-	diaryId: String$1({ format: "uuid" }),
-	taskPrompt: String$1({ minLength: 1 }),
-	entryTypes: Optional(_Array_(EntryTypeFilter, { minItems: 1 })),
-	tagFilters: Optional(_Object_({
-		include: Optional(_Array_(String$1())),
-		exclude: Optional(_Array_(String$1())),
-		prefix: Optional(String$1())
-	}, { additionalProperties: false })),
-	tokenBudget: Optional(Number$1({ minimum: 500 })),
-	recipe: Optional(Union([Literal("topic-focused-v1"), Literal("scope-inventory-v1")])),
-	successCriteria: Optional(SuccessCriteria)
-}, {
-	$id: "CuratePackInput",
-	additionalProperties: false
-});
-/**
-* Index of the curated pack plus the reasoning trace. The pack itself
-* lives in the database (created via `moltnet_pack_create`); this output
-* is the receipt.
-*/
-var CuratePackOutput = _Object_({
-	packId: String$1({ format: "uuid" }),
-	packCid: String$1({ minLength: 1 }),
-	entries: _Array_(_Object_({
-		entryId: String$1({ format: "uuid" }),
-		rank: Number$1({ minimum: 1 }),
-		rationale: String$1({ minLength: 1 })
-	}, { additionalProperties: false }), { minItems: 1 }),
-	recipeParams: Record(String$1(), Unknown()),
-	checkpoints: Optional(_Array_(_Object_({
-		phase: String$1({ minLength: 1 }),
-		candidateIds: _Array_(String$1({ format: "uuid" })),
-		droppedIds: Optional(_Array_(String$1({ format: "uuid" }))),
-		notes: String$1({ minLength: 1 })
-	}, { additionalProperties: false }))),
-	summary: String$1({ minLength: 1 }),
-	verification: Optional(VerificationRecord)
-}, {
-	$id: "CuratePackOutput",
 	additionalProperties: false
 });
 //#endregion
@@ -31740,8 +31875,8 @@ async function validateJudgePackInputAsync(input, ctx) {
 //#endregion
 //#region ../../libs/tasks/src/task-types/judge-eval-attempt.ts
 /**
-* `judge_eval_attempt` — score one completed `run_eval` attempt against a
-* hidden judge rubric.
+* `judge_eval_attempt` — score one completed artifact-producing attempt
+* against a hidden judge rubric.
 *
 * output_kind: judgment
 * criteria: required (`successCriteria.rubric`)
@@ -31845,9 +31980,9 @@ async function validateJudgeEvalAttemptInputAsync(input, ctx) {
 		field: "targetTaskId",
 		message: `targetTaskId=${inp.targetTaskId} does not resolve to a task you can read`
 	}];
-	if (target.taskType !== "run_eval") errors.push({
+	if (target.outputKind !== "artifact") errors.push({
 		field: "targetTaskId",
-		message: `targetTaskId=${inp.targetTaskId} is a ${target.taskType}, not a run_eval`
+		message: `targetTaskId=${inp.targetTaskId} has outputKind=${target.outputKind}; only artifact-producing tasks can be judged`
 	});
 	if (!ctx.deferReadinessChecks && (target.status !== "completed" || target.acceptedAttemptN === null)) errors.push({
 		field: "targetTaskId",
@@ -31859,7 +31994,7 @@ async function validateJudgeEvalAttemptInputAsync(input, ctx) {
 	});
 	if (!target.correlationId) errors.push({
 		field: "targetTaskId",
-		message: "target run_eval has no correlation_id; cannot enforce duplicate-judge protection"
+		message: "target producer has no correlation_id; cannot enforce duplicate-judge protection"
 	});
 	if (errors.length > 0 || !target.correlationId) return errors;
 	const rubric = inp.successCriteria.rubric;
@@ -36881,15 +37016,22 @@ function createTasksNamespace(context) {
 			return response;
 		},
 		async create(bodyOrBuilt, options) {
-			const { body, teamId } = options !== void 0 ? {
+			const { body, teamId, idempotencyKey } = options !== void 0 ? {
 				body: bodyOrBuilt,
-				teamId: options.teamId
-			} : bodyOrBuilt;
+				teamId: options.teamId,
+				idempotencyKey: options.idempotencyKey
+			} : {
+				...bodyOrBuilt,
+				idempotencyKey: void 0
+			};
 			return rememberTask(unwrapResult(await createTask$1({
 				client,
 				auth,
 				body,
-				headers: requiredTeamHeaders({ teamId })
+				headers: {
+					...requiredTeamHeaders({ teamId }),
+					...idempotencyKey ? { "idempotency-key": idempotencyKey } : {}
+				}
 			})));
 		},
 		buildTask,
@@ -36931,7 +37073,8 @@ function createTasksNamespace(context) {
 				client,
 				auth,
 				headers: headersForTask(id, options),
-				path: { id }
+				path: { id },
+				signal: options?.signal
 			})));
 		},
 		async claim(id, body, options) {
@@ -37026,7 +37169,8 @@ function createTasksNamespace(context) {
 				client,
 				auth,
 				headers: headersForTask(id, options),
-				path: { id }
+				path: { id },
+				signal: options?.signal
 			}));
 		},
 		async listMessages(id, n, query, options) {
@@ -37218,62 +37362,6 @@ function createAgent(options) {
 	};
 }
 //#endregion
-//#region ../../libs/sdk/src/config.ts
-/** Read one environment value behind the SDK's config boundary. */
-function readEnvironmentVariable(name) {
-	return globalThis.process?.env?.[name];
-}
-/**
-* Read MoltNet credentials from environment variables.
-* Reads MOLTNET_CLIENT_ID, MOLTNET_CLIENT_SECRET, MOLTNET_API_URL, and
-* MOLTNET_AGENT_KEY.
-*/
-function readEnvCredentials() {
-	return {
-		clientId: readEnvironmentVariable("MOLTNET_CLIENT_ID"),
-		clientSecret: readEnvironmentVariable("MOLTNET_CLIENT_SECRET"),
-		apiUrl: readEnvironmentVariable("MOLTNET_API_URL"),
-		agentKey: readEnvironmentVariable("MOLTNET_AGENT_KEY"),
-		credentialsPath: readEnvironmentVariable("MOLTNET_CREDENTIALS_PATH")
-	};
-}
-/**
-* Resolve the API base URL from an ordered list of candidates, falling back to
-* the hosted default, with any trailing slash stripped. Candidates are tried in
-* order — pass them highest-precedence first (typically explicit option, then
-* env, then config file) so every caller shares one precedence rule.
-*/
-function normalizeApiUrl(...candidates) {
-	return (candidates.find((c) => c) ?? "https://api.themolt.net").replace(/\/$/, "");
-}
-//#endregion
-//#region ../../libs/agent-config/src/config.ts
-function getConfigDir() {
-	return join(homedir(), ".config", "moltnet");
-}
-async function readConfig(configDir) {
-	const dir = configDir ?? getConfigDir();
-	try {
-		const content = await readFile(join(dir, "moltnet.json"), "utf-8");
-		return JSON.parse(content);
-	} catch {
-		return null;
-	}
-}
-//#endregion
-//#region ../../libs/crypto-service/src/ssh.ts
-/**
-* SSH key format conversion for MoltNet Ed25519 keys
-*
-* Converts MoltNet agent keys (ed25519:<base64>) to OpenSSH format
-* for use with git commit signing and SSH authentication.
-*/
-if (!etc.sha512Sync) etc.sha512Sync = (...m) => {
-	const hash = createHash("sha512");
-	m.forEach((msg) => hash.update(msg));
-	return hash.digest();
-};
-//#endregion
 //#region ../../libs/sdk/src/retry.ts
 var AUTH_RETRY_DEFAULT = 1;
 /**
@@ -37300,7 +37388,7 @@ function createRetryFetch(tokenManager, options) {
 				authRetries++;
 				tokenManager.invalidate();
 				const freshToken = await tokenManager.authenticate();
-				const headers = new Headers(fetchInit?.headers);
+				const headers = new Headers(fetchInit?.headers ?? (input instanceof Request ? input.headers : void 0));
 				headers.set("Authorization", `Bearer ${freshToken}`);
 				return doFetch({
 					...fetchInit,
@@ -37338,48 +37426,6 @@ function createAgentKeyFetch(retry) {
 		return response;
 	};
 }
-var SecretProviderRegistry = class {
-	#providers = /* @__PURE__ */ new Map();
-	register(provider) {
-		const name = provider.name.trim();
-		if (!name) throw new Error("Secret provider name must not be empty");
-		this.#providers.set(name, provider);
-		return this;
-	}
-	get(name) {
-		return this.#providers.get(name);
-	}
-	async resolve(reference) {
-		const providerName = reference.provider.trim();
-		const key = reference.key.trim();
-		if (!providerName || !key) throw new Error("Secret reference requires provider and key");
-		const provider = this.get(providerName);
-		if (!provider) throw new Error(`Secret provider ${JSON.stringify(providerName)} is not registered`);
-		const value = await provider.read(key);
-		if (!value) throw new Error(`Secret provider ${JSON.stringify(providerName)} has no value for the requested key`);
-		return value;
-	}
-};
-var EnvironmentSecretProvider = class {
-	name = "env";
-	constructor(readValue = readEnvironmentVariable) {
-		this.readValue = readValue;
-	}
-	read(key) {
-		if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) return Promise.reject(/* @__PURE__ */ new Error("Environment secret key must be a variable name"));
-		return Promise.resolve(this.readValue(key) || null);
-	}
-};
-function createDefaultSecretProviderRegistry() {
-	return new SecretProviderRegistry().register(new EnvironmentSecretProvider());
-}
-function oauth2SecretKey(identityId, clientId) {
-	return `oauth2/${identityId}/${clientId}`;
-}
-function assertOAuth2SecretReferenceBinding(reference, identityId, clientId) {
-	const expectedKey = oauth2SecretKey(identityId, clientId);
-	if (!(reference.provider === "env" ? reference.key === "MOLTNET_CLIENT_SECRET" : reference.key === expectedKey)) throw new Error("OAuth2 secret reference is not bound to this MoltNet identity and client");
-}
 //#endregion
 //#region ../../libs/sdk/src/token.ts
 var TokenManager = class {
@@ -37388,6 +37434,7 @@ var TokenManager = class {
 	tokenUrl;
 	scopes;
 	expiryBufferMs;
+	signal;
 	cached = null;
 	constructor(options) {
 		const apiUrl = options.apiUrl.replace(/\/$/, "");
@@ -37396,6 +37443,7 @@ var TokenManager = class {
 		this.tokenUrl = `${apiUrl}/oauth2/token`;
 		this.scopes = options.scopes ?? AGENT_OAUTH_SCOPES;
 		this.expiryBufferMs = options.expiryBufferMs ?? 3e4;
+		this.signal = options.signal;
 	}
 	/** Return a valid access token, obtaining or refreshing as needed. */
 	async getToken() {
@@ -37415,7 +37463,8 @@ var TokenManager = class {
 			response = await fetch(this.tokenUrl, {
 				method: "POST",
 				headers: { "Content-Type": "application/x-www-form-urlencoded" },
-				body: body.toString()
+				body: body.toString(),
+				signal: this.signal
 			});
 		} catch (error) {
 			throw new NetworkError(error instanceof Error ? error.message : "Token request failed", { detail: error instanceof Error ? error.cause?.toString() : String(error) });
@@ -37442,123 +37491,38 @@ var TokenManager = class {
 };
 //#endregion
 //#region ../../libs/sdk/src/connect.ts
-async function resolveConnection(options) {
-	const env = readEnvCredentials();
-	requireActivatedConfigDir(options.configDir, env.credentialsPath);
-	const explicitAgentKey = options.agentKey?.trim();
-	if (explicitAgentKey) return {
-		mode: "agentKey",
-		agentKey: explicitAgentKey,
-		apiUrl: requireAgentKeyApiUrl(options.apiUrl, env.apiUrl)
-	};
-	if (options.clientId && options.clientSecret) return {
-		mode: "oauth2",
-		clientId: options.clientId,
-		clientSecret: options.clientSecret,
-		apiUrl: normalizeApiUrl(options.apiUrl, env.apiUrl)
-	};
-	const envAgentKey = env.agentKey?.trim();
-	if (envAgentKey) return {
-		mode: "agentKey",
-		agentKey: envAgentKey,
-		apiUrl: requireAgentKeyApiUrl(options.apiUrl, env.apiUrl)
-	};
-	if (env.clientId && env.clientSecret) return {
-		mode: "oauth2",
-		clientId: env.clientId,
-		clientSecret: env.clientSecret,
-		apiUrl: normalizeApiUrl(options.apiUrl, env.apiUrl)
-	};
-	const config = await readConfig(options.configDir);
-	if (config?.oauth2?.client_id) {
-		const legacySecret = config.oauth2.client_secret;
-		const secretReference = config.oauth2.client_secret_ref;
-		if (legacySecret && secretReference) throw new MoltNetError("Invalid OAuth2 config: set exactly one of client_secret or client_secret_ref.", { code: "INVALID_CONFIG" });
-		const apiUrl = normalizeApiUrl(options.apiUrl, env.apiUrl, config.endpoints?.api);
-		if (!options.apiUrl && !env.apiUrl) requireTrustedConfigApiUrl(apiUrl);
-		let clientSecret;
-		if (secretReference) {
-			requireBoundSecretReference(config, secretReference);
-			try {
-				clientSecret = await (options.secretProviders ?? createDefaultSecretProviderRegistry()).resolve(secretReference);
-			} catch (error) {
-				throw new MoltNetError("Unable to resolve OAuth2 client secret.", {
-					code: "NO_CREDENTIALS",
-					detail: error instanceof Error ? error.message : String(error)
-				});
-			}
-		} else if (legacySecret) {
-			console.warn("Warning: plaintext oauth2.client_secret is deprecated; migrate it to a secret provider.");
-			clientSecret = legacySecret;
-		} else throw new MoltNetError("Invalid OAuth2 config: set exactly one of client_secret or client_secret_ref.", { code: "INVALID_CONFIG" });
-		return {
-			mode: "oauth2",
-			clientId: config.oauth2.client_id,
-			clientSecret,
-			apiUrl
-		};
-	}
-	throw new MoltNetError("No credentials found. Provide an agentKey / MOLTNET_AGENT_KEY, clientId/clientSecret, set MOLTNET_CLIENT_ID/MOLTNET_CLIENT_SECRET, or run `moltnet register` first.", { code: "NO_CREDENTIALS" });
-}
-function requireAgentKeyApiUrl(explicitApiUrl, environmentApiUrl) {
-	const apiUrl = explicitApiUrl?.trim() || environmentApiUrl?.trim();
-	if (!apiUrl) throw new MoltNetError("Agent-key authentication requires an explicit API endpoint. Set apiUrl or MOLTNET_API_URL; agent-key mode does not read moltnet.json.", { code: "INVALID_CONFIG" });
-	return normalizeApiUrl(apiUrl);
-}
-function requireActivatedConfigDir(configDir, activatedCredentialsPath) {
-	if (!configDir || !activatedCredentialsPath) return;
-	const normalize = (value) => value.replaceAll("\\", "/").replace(/\/+$/, "");
-	if (`${normalize(configDir)}/moltnet.json` !== normalize(activatedCredentialsPath)) throw new MoltNetError("configDir does not match the identity activated by `moltnet start`.", { code: "INVALID_CONFIG" });
-}
-function requireBoundSecretReference(config, reference) {
-	try {
-		assertOAuth2SecretReferenceBinding(reference, config.identity_id, config.oauth2.client_id);
-	} catch {
-		throw new MoltNetError("OAuth2 secret reference is not bound to this MoltNet identity and client.", { code: "INVALID_CONFIG" });
-	}
-}
-function requireTrustedConfigApiUrl(apiUrl) {
-	const url = new URL(apiUrl);
-	const loopback = url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "[::1]";
-	const moltNet = url.protocol === "https:" && (url.hostname === "themolt.net" || url.hostname.endsWith(".themolt.net"));
-	if (!loopback && !moltNet) throw new MoltNetError("Config-provided OAuth2 endpoints must use HTTPS on themolt.net or a loopback host.", { code: "INVALID_CONFIG" });
-}
 /**
-* Connect to MoltNet and return an authenticated Agent facade.
+* Connect with one required in-memory credential mode: a static agent key or
+* OAuth2 client credentials.
 *
-* Credential resolution, highest precedence first. Explicit in-code options —
-* of either kind — always win over the environment and config file:
-* 1. Explicit `agentKey` option → agent-key mode (static bearer)
-* 2. Explicit `clientId` / `clientSecret` → OAuth2 client-credentials
-* 3. `MOLTNET_AGENT_KEY` env → agent-key mode
-* 4. `MOLTNET_CLIENT_ID` / `MOLTNET_CLIENT_SECRET` env → OAuth2
-* 5. Config file (`~/.config/moltnet/moltnet.json`) → OAuth2, resolving a
-*    `client_secret_ref` only at this use boundary
-*
-* In agent-key mode the key is sent directly as a bearer token — no OAuth2
-* round-trip — and 429 backoff still applies; a rejected key surfaces an
-* `AuthenticationError`.
+* This entry point never reads environment variables, config files, keyrings,
+* or other ambient credential providers. Node applications that intentionally
+* use ambient credential resolution should import `connect` from
+* `@themoltnet/sdk/node`.
 */
-async function connect(options = {}) {
-	const resolved = await resolveConnection(options);
-	if (resolved.mode === "agentKey") {
-		const client = createClient({
-			baseUrl: resolved.apiUrl,
-			fetch: createAgentKeyFetch(options.retry)
-		});
-		const auth = () => Promise.resolve(resolved.agentKey);
+function connect$1(options) {
+	return Promise.resolve().then(() => createConnection(options));
+}
+function createConnection(options) {
+	const apiUrl = requireSecureCredentialApiUrl(normalizeApiUrl(options.apiUrl));
+	if (typeof options.agentKey === "string") {
+		const agentKey = options.agentKey.trim();
+		if (!agentKey) throw new TypeError("connect requires a non-empty agent key.");
 		return createAgent({
-			client,
-			auth
+			client: createClient({
+				baseUrl: apiUrl,
+				fetch: withConnectionSignal(createAgentKeyFetch(options.retry), options.signal)
+			}),
+			auth: () => Promise.resolve(agentKey)
 		});
 	}
-	const creds = resolved;
 	const autoToken = options.autoToken ?? true;
 	const tokenManager = new TokenManager({
-		clientId: creds.clientId,
-		clientSecret: creds.clientSecret,
-		apiUrl: creds.apiUrl,
-		scopes: options.scopes
+		apiUrl,
+		clientId: options.clientId,
+		clientSecret: options.clientSecret,
+		scopes: options.scopes,
+		signal: options.signal
 	});
 	const retryFetch = autoToken && options.retry !== false ? createRetryFetch(tokenManager, options.retry === void 0 ? void 0 : options.retry) : void 0;
 	const customFetch = retryFetch ?? (autoToken && !retryFetch ? async (input, init) => {
@@ -37566,15 +37530,39 @@ async function connect(options = {}) {
 		if (response.status === 401) tokenManager.invalidate();
 		return response;
 	} : void 0);
+	const connectionFetch = options.signal ? withConnectionSignal(customFetch ?? fetch, options.signal) : customFetch;
 	return createAgent({
 		client: createClient({
-			baseUrl: creds.apiUrl,
-			...customFetch && { fetch: customFetch }
+			baseUrl: apiUrl,
+			...connectionFetch && { fetch: connectionFetch }
 		}),
 		tokenManager,
 		auth: autoToken ? () => tokenManager.getToken() : void 0
 	});
 }
+function withConnectionSignal(fetchImpl, connectionSignal) {
+	if (!connectionSignal) return fetchImpl;
+	return (input, init) => {
+		const requestSignal = init?.signal ?? (input instanceof Request ? input.signal : void 0);
+		return fetchImpl(input, {
+			...init,
+			signal: requestSignal ? AbortSignal.any([connectionSignal, requestSignal]) : connectionSignal
+		});
+	};
+}
+//#endregion
+//#region ../../libs/crypto-service/src/ssh.ts
+/**
+* SSH key format conversion for MoltNet Ed25519 keys
+*
+* Converts MoltNet agent keys (ed25519:<base64>) to OpenSSH format
+* for use with git commit signing and SSH authentication.
+*/
+if (!etc.sha512Sync) etc.sha512Sync = (...m) => {
+	const hash = createHash("sha512");
+	m.forEach((msg) => hash.update(msg));
+	return hash.digest();
+};
 new TextEncoder();
 //#endregion
 //#region ../../libs/crypto-service/src/crypto.service.ts
@@ -39390,6 +39378,752 @@ var _decodeOptions = {
 };
 _decodeOptions.tags[CID_CBOR_TAG] = cidDecoder;
 ({ ..._decodeOptions }), _decodeOptions.tags.slice();
+new TextEncoder().encode("SSHSIG");
+var OS_KEYRING_SECRET_PROVIDER = "os-keyring";
+var READ_ONLY_CAPABILITIES = Object.freeze({
+	read: true,
+	write: false,
+	delete: false
+});
+var READ_WRITE_CAPABILITIES = Object.freeze({
+	read: true,
+	write: true,
+	delete: true
+});
+var SecretConflictError = class extends Error {
+	code = "SECRET_CONFLICT";
+	constructor(providerName) {
+		super(`Secret provider ${JSON.stringify(providerName)} already contains a different secret for this key`);
+		this.name = "SecretConflictError";
+	}
+};
+/**
+* `ensure` failed after the destination may have been mutated. `changed` is
+* true when the write succeeded but read-back verification did not, so the
+* caller can roll the destination back.
+*/
+var SecretEnsureError = class extends Error {
+	code = "SECRET_ENSURE_FAILED";
+	constructor(providerName, changed, detail) {
+		super(`Secret provider ${JSON.stringify(providerName)}: ${detail}`);
+		this.changed = changed;
+		this.name = "SecretEnsureError";
+	}
+};
+var SecretProviderReadOnlyError = class extends Error {
+	code = "SECRET_PROVIDER_READ_ONLY";
+	constructor(providerName, operation) {
+		super(`Secret provider ${JSON.stringify(providerName)} does not support ${operation}`);
+		this.name = "SecretProviderReadOnlyError";
+	}
+};
+var SecretProviderRegistry = class {
+	#providers = /* @__PURE__ */ new Map();
+	#locks = /* @__PURE__ */ new Map();
+	register(provider) {
+		const name = provider.name.trim();
+		if (!name) throw new Error("Secret provider name must not be empty");
+		this.#providers.set(name, provider);
+		return this;
+	}
+	get(name) {
+		return this.#providers.get(name);
+	}
+	#require(reference) {
+		const providerName = reference.provider.trim();
+		const key = reference.key.trim();
+		if (!providerName || !key) throw new Error("Secret reference requires provider and key");
+		const provider = this.get(providerName);
+		if (!provider) throw new Error(`Secret provider ${JSON.stringify(providerName)} is not registered`);
+		return {
+			providerName,
+			key,
+			provider
+		};
+	}
+	async resolve(reference) {
+		const { providerName, key, provider } = this.#require(reference);
+		const value = await provider.read(key);
+		if (!value) throw new Error(`Secret provider ${JSON.stringify(providerName)} has no value for the requested key`);
+		return value;
+	}
+	/**
+	* Serialize mutations per provider/key within this process. The Go CLI
+	* holds an advisory `flock` for the same operation; Node has no portable
+	* `flock`, so cross-process exclusion against `moltnet` is not provided.
+	*/
+	#serialized(providerName, key, work) {
+		const scope = `${providerName}\0${key}`;
+		const run = (this.#locks.get(scope) ?? Promise.resolve()).then(work, work);
+		const settled = run.then(() => void 0, () => void 0);
+		this.#locks.set(scope, settled);
+		settled.then(() => {
+			if (this.#locks.get(scope) === settled) this.#locks.delete(scope);
+		});
+		return run;
+	}
+	/**
+	* Store `value` only when the destination is absent or already equal, then
+	* read it back. Mirrors the Go registry's `Ensure`: a verification failure
+	* after a successful write surfaces as `SecretEnsureError` with
+	* `changed === true` so the caller can roll back.
+	*/
+	ensure(reference, value) {
+		if (!value) return Promise.reject(/* @__PURE__ */ new Error("Secret value is required"));
+		const { providerName, key, provider } = this.#require(reference);
+		if (!provider.capabilities.write || !provider.write) return Promise.reject(new SecretProviderReadOnlyError(providerName, "write"));
+		const write = provider.write.bind(provider);
+		return this.#serialized(providerName, key, async () => {
+			const existing = await provider.read(key);
+			if (existing === value) return { changed: false };
+			if (existing) throw new SecretConflictError(providerName);
+			await write(key, value);
+			let verified;
+			try {
+				verified = await provider.read(key);
+			} catch (cause) {
+				const error = new SecretEnsureError(providerName, true, "could not verify the stored value");
+				error.cause = cause;
+				throw error;
+			}
+			if (verified !== value) throw new SecretEnsureError(providerName, true, "stored value does not match");
+			return { changed: true };
+		});
+	}
+	delete(reference) {
+		const { providerName, key, provider } = this.#require(reference);
+		if (!provider.capabilities.delete || !provider.delete) return Promise.reject(new SecretProviderReadOnlyError(providerName, "delete"));
+		const remove = provider.delete.bind(provider);
+		return this.#serialized(providerName, key, () => remove(key));
+	}
+	/** Never throws and never returns the value. */
+	async probe(reference) {
+		let located;
+		try {
+			located = this.#require(reference);
+		} catch {
+			return "inaccessible";
+		}
+		try {
+			return await located.provider.probe(located.key);
+		} catch {
+			return "inaccessible";
+		}
+	}
+};
+var EnvironmentSecretProvider = class {
+	name = "env";
+	capabilities = READ_ONLY_CAPABILITIES;
+	constructor(readValue = readEnvironmentVariable) {
+		this.readValue = readValue;
+	}
+	read(key) {
+		if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) return Promise.reject(/* @__PURE__ */ new Error("Environment secret key must be a variable name"));
+		return Promise.resolve(this.readValue(key) || null);
+	}
+	async probe(key) {
+		try {
+			return await this.read(key) ? "present" : "absent";
+		} catch {
+			return "inaccessible";
+		}
+	}
+};
+function createDefaultSecretProviderRegistry() {
+	return new SecretProviderRegistry().register(new EnvironmentSecretProvider());
+}
+/**
+* A reference must name this credential's own secret: the canonical key, the
+* fixed environment variable for `env`, or — for `file`, whose orchestrators
+* (systemd) forbid `/` in credential IDs — the flattened `.`-joined form.
+*/
+function assertSecretReferenceBoundTo(reference, binding) {
+	if (!(reference.provider === "env" ? binding.envKey !== void 0 && reference.key === binding.envKey : reference.key === binding.canonicalKey || reference.provider === "file" && reference.key === binding.canonicalKey.replaceAll("/", "."))) throw new Error(binding.description);
+}
+/** Environment variable each kind may be read from through the `env` provider. */
+var CREDENTIAL_ENV_KEYS = Object.freeze({
+	"oauth2-client-secret": "MOLTNET_CLIENT_SECRET",
+	"identity-seed": "MOLTNET_PRIVATE_KEY",
+	"agent-key": "MOLTNET_AGENT_KEY"
+});
+var BINDING_MESSAGES = Object.freeze({
+	"oauth2-client-secret": "OAuth2 secret reference is not bound to this MoltNet identity and client",
+	"identity-seed": "Identity seed reference is not bound to this MoltNet identity",
+	"agent-key": "Agent key reference is not bound to this MoltNet identity"
+});
+function oauth2SecretKey(identityId, clientId) {
+	return `oauth2/${identityId}/${clientId}`;
+}
+function identitySeedKey(fingerprint) {
+	return `identity/${fingerprint}/seed`;
+}
+function agentKeyKey(identityId) {
+	return `agent-key/${identityId}`;
+}
+var PROVIDER_NAME = /^[a-z][a-z0-9-]*$/;
+var SECRET_REFERENCE_MESSAGE = "Secret reference must be <provider>:<key> with a lowercase provider name";
+function normalizeSecretReference(reference) {
+	const provider = reference.provider.trim();
+	const key = reference.key.trim();
+	if (!PROVIDER_NAME.test(provider) || !key) throw new Error(SECRET_REFERENCE_MESSAGE);
+	return {
+		provider,
+		key
+	};
+}
+/**
+* Parse the `<provider>:<key>` form used by environment references such as
+* `MOLTNET_AGENT_KEY_REF=file:agent-key.identity-1`. The first colon splits.
+*/
+function parseSecretReferenceString(value) {
+	const trimmed = value.trim();
+	const separator = trimmed.indexOf(":");
+	return normalizeSecretReference({
+		provider: separator > 0 ? trimmed.slice(0, separator) : "",
+		key: separator > 0 ? trimmed.slice(separator + 1) : ""
+	});
+}
+function requireId(value, name) {
+	const trimmed = value?.trim();
+	if (!trimmed) throw new Error(`Credential binding requires ${name}`);
+	return trimmed;
+}
+/** Canonical provider key for a credential kind bound to this agent. */
+function expectedSecretKey(kind, ids) {
+	switch (kind) {
+		case "oauth2-client-secret": return oauth2SecretKey(requireId(ids.identityId, "identityId"), requireId(ids.clientId, "clientId"));
+		case "identity-seed": return identitySeedKey(requireId(ids.fingerprint, "fingerprint"));
+		case "agent-key": return agentKeyKey(requireId(ids.identityId, "identityId"));
+	}
+}
+/** Binding check for a MoltNet-owned credential kind from the table above. */
+function assertSecretReferenceBinding(kind, reference, ids) {
+	const canonicalKey = expectedSecretKey(kind, ids);
+	if (kind === "agent-key" && reference.provider === "env") throw new Error("agent_key_ref cannot use the env provider; set MOLTNET_AGENT_KEY directly or reference a keyring/file secret");
+	assertSecretReferenceBoundTo(reference, {
+		canonicalKey,
+		envKey: CREDENTIAL_ENV_KEYS[kind],
+		description: BINDING_MESSAGES[kind]
+	});
+}
+//#endregion
+//#region ../../libs/sdk/src/credential-resolver.ts
+/** Classifies a failed credential lookup without carrying the value. */
+var CredentialResolutionError = class extends Error {
+	constructor(kind, code, detail) {
+		super(`${kind}: ${detail}`);
+		this.kind = kind;
+		this.code = code;
+		this.name = "CredentialResolutionError";
+	}
+};
+var LEGACY_FIELDS = Object.freeze({
+	"oauth2-client-secret": "oauth2.client_secret",
+	"identity-seed": "keys.private_key",
+	"agent-key": "agent_key"
+});
+var warned = /* @__PURE__ */ new Set();
+/**
+* Emit the deprecation warning for a plaintext/file-path credential field
+* once per process. Consumers that own a credential (for example
+* `@themoltnet/github-agent`) call this with their own config field so every
+* legacy form warns the same way.
+*/
+function warnLegacyCredentialFieldOnce(field) {
+	if (warned.has(field)) return;
+	warned.add(field);
+	console.warn(`Warning: plaintext ${field} in moltnet.json is deprecated; run 'moltnet config migrate' to move it to a secret provider reference (see docs/reference/agent-configuration.md).`);
+}
+/** Emit the deprecation warning for a MoltNet-owned credential kind. */
+function warnLegacyCredentialOnce(kind) {
+	warnLegacyCredentialFieldOnce(LEGACY_FIELDS[kind]);
+}
+/**
+* Resolve through the registry, normalizing any provider failure into a
+* value-free `provider_failure` error. Provider messages are retained only
+* as `cause` so callers decide whether to surface them.
+*/
+async function resolveThroughRegistry(kind, registry, reference) {
+	try {
+		return await registry.resolve(reference);
+	} catch (cause) {
+		const error = new CredentialResolutionError(kind, "provider_failure", `secret provider ${JSON.stringify(reference.provider)} could not resolve the reference`);
+		error.cause = cause;
+		throw error;
+	}
+}
+async function resolveOAuth2ClientSecret(config, registry) {
+	const kind = "oauth2-client-secret";
+	const oauth2 = config.oauth2;
+	if (!oauth2) throw new CredentialResolutionError(kind, "missing", "config does not contain OAuth2 credentials");
+	const legacy = oauth2.client_secret;
+	const hasLegacy = Boolean(legacy?.trim());
+	const reference = oauth2.client_secret_ref;
+	if (hasLegacy && reference) throw new CredentialResolutionError(kind, "ambiguous", "config must set exactly one of client_secret or client_secret_ref");
+	if (reference) {
+		try {
+			assertSecretReferenceBinding(kind, reference, {
+				identityId: config.identity_id,
+				clientId: oauth2.client_id
+			});
+		} catch (cause) {
+			throw new CredentialResolutionError(kind, "unbound", cause.message);
+		}
+		return resolveThroughRegistry(kind, registry, reference);
+	}
+	if (hasLegacy && legacy) {
+		warnLegacyCredentialOnce(kind);
+		return legacy;
+	}
+	throw new CredentialResolutionError(kind, "missing", "config must set exactly one of client_secret or client_secret_ref");
+}
+/**
+* Resolve a team-bound agent key from `agent_key_ref`. Returns `null` when
+* the config has no reference (callers then fall back to OAuth2).
+*/
+async function resolveAgentKey(config, registry) {
+	const kind = "agent-key";
+	const reference = config.agent_key_ref;
+	if (!reference) return null;
+	try {
+		assertSecretReferenceBinding(kind, reference, { identityId: config.identity_id });
+	} catch (cause) {
+		throw new CredentialResolutionError(kind, "unbound", cause.message);
+	}
+	const value = (await resolveThroughRegistry(kind, registry, reference)).trim();
+	if (!value) throw new CredentialResolutionError(kind, "invalid_value", "agent key is empty");
+	return value;
+}
+/**
+* Resolve an environment-supplied `<provider>:<key>` reference. The runtime
+* environment is deployer-controlled, so — unlike references in
+* `moltnet.json` — no identity binding is enforced; only the shape is.
+*/
+async function resolveEnvSecretReference(raw, registry) {
+	const reference = parseSecretReferenceString(raw);
+	let value;
+	try {
+		value = (await registry.resolve(reference)).trim();
+	} catch (cause) {
+		throw new Error(`Secret provider ${JSON.stringify(reference.provider)} could not resolve ${reference.provider}:${reference.key}`, { cause });
+	}
+	if (!value) throw new Error(`Secret reference ${reference.provider}:${reference.key} resolved to an empty value`);
+	return value;
+}
+//#endregion
+//#region ../../libs/agent-config/src/config.ts
+function getConfigDir() {
+	return join(homedir(), ".config", "moltnet");
+}
+async function readConfig(configDir) {
+	const dir = configDir ?? getConfigDir();
+	try {
+		const content = await readFile(join(dir, "moltnet.json"), "utf-8");
+		return JSON.parse(content);
+	} catch {
+		return null;
+	}
+}
+//#endregion
+//#region ../../libs/sdk/src/connect-ambient.ts
+async function resolveConnection(options) {
+	const env = readEnvCredentials();
+	requireActivatedConfigDir(options.configDir, env.credentialsPath);
+	const explicitAgentKey = options.agentKey?.trim();
+	if (explicitAgentKey) return {
+		mode: "agentKey",
+		agentKey: explicitAgentKey,
+		apiUrl: requireAgentKeyApiUrl(options.apiUrl, env.apiUrl)
+	};
+	if (options.clientId && options.clientSecret) return {
+		mode: "oauth2",
+		clientId: options.clientId,
+		clientSecret: options.clientSecret,
+		apiUrl: normalizeApiUrl(options.apiUrl, env.apiUrl)
+	};
+	const envAgentKey = env.agentKey?.trim();
+	const envAgentKeyRef = env.agentKeyRef?.trim();
+	if (envAgentKey && envAgentKeyRef) throw new MoltNetError("Set only one of MOLTNET_AGENT_KEY or MOLTNET_AGENT_KEY_REF.", { code: "INVALID_CONFIG" });
+	if (envAgentKey) return {
+		mode: "agentKey",
+		agentKey: envAgentKey,
+		apiUrl: requireAgentKeyApiUrl(options.apiUrl, env.apiUrl)
+	};
+	if (envAgentKeyRef) {
+		const apiUrl = requireAgentKeyApiUrl(options.apiUrl, env.apiUrl);
+		let agentKey;
+		try {
+			agentKey = await resolveEnvSecretReference(envAgentKeyRef, options.secretProviders ?? createDefaultSecretProviderRegistry());
+		} catch (error) {
+			throw new MoltNetError("Unable to resolve MOLTNET_AGENT_KEY_REF.", {
+				code: "NO_CREDENTIALS",
+				detail: error instanceof Error ? error.message : String(error)
+			});
+		}
+		return {
+			mode: "agentKey",
+			agentKey,
+			apiUrl
+		};
+	}
+	if (env.clientId && env.clientSecret) return {
+		mode: "oauth2",
+		clientId: env.clientId,
+		clientSecret: env.clientSecret,
+		apiUrl: normalizeApiUrl(options.apiUrl, env.apiUrl)
+	};
+	const config = await readConfig(options.configDir);
+	if (config?.agent_key_ref) {
+		const apiUrl = normalizeApiUrl(options.apiUrl, env.apiUrl, config.endpoints?.api);
+		if (!options.apiUrl && !env.apiUrl) assertTrustedConfigApiUrl(apiUrl);
+		requireSecureCredentialApiUrl(apiUrl);
+		let agentKey;
+		try {
+			agentKey = await resolveAgentKey(config, options.secretProviders ?? createDefaultSecretProviderRegistry());
+		} catch (error) {
+			if (error instanceof CredentialResolutionError && error.code !== "provider_failure") throw new MoltNetError(error.code === "unbound" ? "Agent key reference is not bound to this MoltNet identity." : "Invalid agent_key_ref: the reference resolved to an empty value.", { code: "INVALID_CONFIG" });
+			throw new MoltNetError("Unable to resolve agent_key_ref.", {
+				code: "NO_CREDENTIALS",
+				detail: error instanceof Error ? error.message : String(error)
+			});
+		}
+		if (agentKey) return {
+			mode: "agentKey",
+			agentKey,
+			apiUrl
+		};
+	}
+	if (config?.oauth2?.client_id) {
+		const apiUrl = normalizeApiUrl(options.apiUrl, env.apiUrl, config.endpoints?.api);
+		if (!options.apiUrl && !env.apiUrl) assertTrustedConfigApiUrl(apiUrl);
+		let clientSecret;
+		try {
+			clientSecret = await resolveOAuth2ClientSecret(config, options.secretProviders ?? createDefaultSecretProviderRegistry());
+		} catch (error) {
+			if (error instanceof CredentialResolutionError && error.code !== "provider_failure") throw new MoltNetError(error.code === "unbound" ? "OAuth2 secret reference is not bound to this MoltNet identity and client." : "Invalid OAuth2 config: set exactly one of client_secret or client_secret_ref.", { code: "INVALID_CONFIG" });
+			throw new MoltNetError("Unable to resolve OAuth2 client secret.", {
+				code: "NO_CREDENTIALS",
+				detail: error instanceof Error ? error.message : String(error)
+			});
+		}
+		return {
+			mode: "oauth2",
+			clientId: config.oauth2.client_id,
+			clientSecret,
+			apiUrl
+		};
+	}
+	throw new MoltNetError("No credentials found. Provide an agentKey / MOLTNET_AGENT_KEY / MOLTNET_AGENT_KEY_REF, clientId/clientSecret, set MOLTNET_CLIENT_ID/MOLTNET_CLIENT_SECRET, or run `moltnet register` first.", { code: "NO_CREDENTIALS" });
+}
+function requireAgentKeyApiUrl(explicitApiUrl, environmentApiUrl) {
+	const apiUrl = explicitApiUrl?.trim() || environmentApiUrl?.trim();
+	if (!apiUrl) throw new MoltNetError("Agent-key authentication requires an explicit API endpoint. Set apiUrl or MOLTNET_API_URL; agent-key mode does not read moltnet.json.", { code: "INVALID_CONFIG" });
+	return requireSecureCredentialApiUrl(normalizeApiUrl(apiUrl));
+}
+function requireActivatedConfigDir(configDir, activatedCredentialsPath) {
+	if (!configDir || !activatedCredentialsPath) return;
+	const normalize = (value) => value.replaceAll("\\", "/").replace(/\/+$/, "");
+	if (`${normalize(configDir)}/moltnet.json` !== normalize(activatedCredentialsPath)) throw new MoltNetError("configDir does not match the identity activated by `moltnet start`.", { code: "INVALID_CONFIG" });
+}
+/**
+* Connect to MoltNet and return an authenticated Agent facade.
+*
+* Credential resolution, highest precedence first. Explicit in-code options —
+* of either kind — always win over the environment and config file:
+* 1. Explicit `agentKey` option → agent-key mode (static bearer)
+* 2. Explicit `clientId` / `clientSecret` → OAuth2 client-credentials
+* 3. `MOLTNET_AGENT_KEY` env → agent-key mode
+* 4. `MOLTNET_AGENT_KEY_REF` env → resolved agent-key mode
+* 5. `MOLTNET_CLIENT_ID` / `MOLTNET_CLIENT_SECRET` env → OAuth2
+* 6. Config file (`~/.config/moltnet/moltnet.json`) → `agent_key_ref`, then
+*    OAuth2, resolving credential references only at this use boundary
+*
+* In agent-key mode the key is sent directly as a bearer token — no OAuth2
+* round-trip — and 429 backoff still applies; a rejected key surfaces an
+* `AuthenticationError`.
+*/
+async function connectAmbient(options = {}) {
+	const resolved = await resolveConnection(options);
+	const retry = options.retry === void 0 ? {} : { retry: options.retry };
+	const signal = options.signal ? { signal: options.signal } : {};
+	if (resolved.mode === "agentKey") return connect$1({
+		agentKey: resolved.agentKey,
+		apiUrl: resolved.apiUrl,
+		...signal,
+		...retry
+	});
+	return connect$1({
+		clientId: resolved.clientId,
+		clientSecret: resolved.clientSecret,
+		apiUrl: resolved.apiUrl,
+		...signal,
+		...options.scopes === void 0 ? {} : { scopes: options.scopes },
+		...options.autoToken === void 0 ? {} : { autoToken: options.autoToken },
+		...retry
+	});
+}
+//#endregion
+//#region ../../libs/sdk/src/file-secret-provider.ts
+var FILE_SECRET_PROVIDER = "file";
+var MOLTNET_SECRET_ROOT_ENV = "MOLTNET_SECRET_ROOT";
+var MOLTNET_SECRET_ROOT_WRITABLE_ENV = "MOLTNET_SECRET_ROOT_WRITABLE";
+var DEFAULT_SECRET_MAX_BYTES = 65536;
+var KEY_SEGMENT = /^[A-Za-z0-9._-]+$/;
+var GROUP_OTHER_WRITE = 18;
+/** Carries the logical key and a failure class; never file contents. */
+var FileSecretProviderError = class extends Error {
+	constructor(code, key, detail) {
+		super(`file secret ${JSON.stringify(key)}: ${detail} (${code})`);
+		this.code = code;
+		this.key = key;
+		this.name = "FileSecretProviderError";
+	}
+};
+function validateFileSecretKey(key) {
+	const reject = (detail) => {
+		throw new FileSecretProviderError("invalid_key", key, detail);
+	};
+	if (!key) reject("key is empty");
+	if (key.includes("\0")) reject("key contains NUL");
+	if (key.startsWith("/") || key.startsWith("\\") || /^[A-Za-z]:/.test(key)) reject("key must be relative");
+	for (const segment of key.split("/")) {
+		if (segment === "") reject("key has an empty segment");
+		if (segment === "." || segment === "..") reject("key must not traverse");
+		if (!KEY_SEGMENT.test(segment)) reject("key segments must match [A-Za-z0-9._-]");
+	}
+}
+function fileSecretProviderOptionsFromEnv(readEnv = readEnvironmentVariable, platform = process.platform) {
+	const root = readEnv("MOLTNET_SECRET_ROOT")?.trim() || void 0;
+	const writable = readEnv(MOLTNET_SECRET_ROOT_WRITABLE_ENV)?.trim() === "1";
+	const parsed = Number.parseInt(readEnv("MOLTNET_SECRET_MAX_BYTES") ?? "", 10);
+	return {
+		root,
+		writable,
+		maxBytes: Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_SECRET_MAX_BYTES,
+		platform
+	};
+}
+/**
+* Read-only-by-default provider over one trusted directory that an
+* orchestrator projects secrets into (Docker secrets, Kubernetes projected
+* volumes, systemd `LoadCredential`). The root is absolute, comes from
+* runtime configuration, never from `moltnet.json`, and values are resolved
+* on every read so orchestrator rotation needs no restart.
+*
+* Trust assumption: the root and its ancestors are owned by the deployer.
+* Containment is verified by resolving symlinks immediately before each
+* operation; Node has no rooted (`openat`-style) filesystem API, so an
+* adversary who can rewrite links under the root between that check and the
+* access is outside this provider's threat model. The Go CLI enforces the
+* same boundary with `os.Root`.
+*/
+var FileSecretProvider = class {
+	name = FILE_SECRET_PROVIDER;
+	capabilities;
+	#root;
+	#rootRejected;
+	#writable;
+	#maxBytes;
+	#platform;
+	constructor(options = {}) {
+		const root = options.root?.trim();
+		this.#root = root && isAbsolute(root) ? root : void 0;
+		this.#rootRejected = Boolean(root) && !isAbsolute(root ?? "");
+		this.#writable = options.writable === true;
+		this.#maxBytes = options.maxBytes ?? 65536;
+		this.#platform = options.platform ?? process.platform;
+		this.capabilities = this.#writable ? READ_WRITE_CAPABILITIES : READ_ONLY_CAPABILITIES;
+	}
+	async read(key) {
+		const target = await this.#resolveExisting(key);
+		if (!target) return null;
+		const handle = await open(target, constants.O_RDONLY | constants.O_NOFOLLOW);
+		try {
+			const info = await handle.stat();
+			if (!info.isFile()) throw new FileSecretProviderError("unsafe_target", key, "not a regular file");
+			if (info.size > this.#maxBytes) throw new FileSecretProviderError("oversized", key, `exceeds ${this.#maxBytes} bytes`);
+			const buffer = Buffer.alloc(this.#maxBytes + 1);
+			const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
+			if (bytesRead > this.#maxBytes) throw new FileSecretProviderError("oversized", key, `exceeds ${this.#maxBytes} bytes`);
+			return stripOneNewline(buffer.subarray(0, bytesRead).toString("utf8"));
+		} finally {
+			await handle.close();
+		}
+	}
+	async write(key, value) {
+		const root = this.#requireWritable(key);
+		const target = resolveFileSecretPath(root, key);
+		if ((await lstatOrNull(target, key))?.isSymbolicLink()) throw new FileSecretProviderError("unsafe_target", key, "refusing to write through a symlink");
+		const ancestorReal = await realpath(await firstExistingAncestor(dirname(target))).catch(() => {
+			throw new FileSecretProviderError("unsafe_target", key, "cannot resolve parent directory");
+		});
+		assertInsideOrAtRoot(await resolveRoot(root, key), ancestorReal, key);
+		await mkdir(dirname(target), {
+			recursive: true,
+			mode: 448
+		});
+		const temp = `${target}.${randomBytes(8).toString("hex")}.tmp`;
+		try {
+			const handle = await open(temp, "wx", 384);
+			try {
+				await handle.writeFile(value);
+				await handle.sync();
+			} finally {
+				await handle.close();
+			}
+			await rename(temp, target);
+		} catch (error) {
+			await rm(temp, { force: true }).catch(() => void 0);
+			throw error;
+		}
+	}
+	async delete(key) {
+		const root = this.#requireWritable(key);
+		const target = resolveFileSecretPath(root, key);
+		const existing = await lstatOrNull(target, key);
+		if (!existing) return;
+		if (!existing.isFile()) throw new FileSecretProviderError("unsafe_target", key, "refusing to delete a non-regular file");
+		const parentReal = await realpath(dirname(target)).catch(() => {
+			throw new FileSecretProviderError("unsafe_target", key, "cannot resolve parent directory");
+		});
+		assertInsideOrAtRoot(await resolveRoot(root, key), parentReal, key);
+		await unlink(target);
+	}
+	async probe(key) {
+		try {
+			return await this.read(key) === null ? "absent" : "present";
+		} catch {
+			return "inaccessible";
+		}
+	}
+	#requireRoot(key) {
+		if (!this.#root) throw new FileSecretProviderError("provider_unavailable", key, this.#rootRejected ? `${MOLTNET_SECRET_ROOT_ENV} must be an absolute path` : `${MOLTNET_SECRET_ROOT_ENV} is not set`);
+		return this.#root;
+	}
+	#requireWritable(key) {
+		this.#requireRoot(key);
+		if (!this.#writable) throw new FileSecretProviderError("read_only", key, `set ${MOLTNET_SECRET_ROOT_WRITABLE_ENV}=1 to allow writes`);
+		return this.#root;
+	}
+	/** Real path of an existing, contained, safe regular file; null when absent. */
+	async #resolveExisting(key) {
+		const root = this.#requireRoot(key);
+		const rootReal = await resolveRoot(root, key);
+		const candidate = resolveFileSecretPath(root, key);
+		let real;
+		try {
+			real = await realpath(candidate);
+		} catch (error) {
+			if (error.code === "ENOENT") return null;
+			throw new FileSecretProviderError("unsafe_target", key, "cannot resolve path");
+		}
+		assertStrictlyInsideRoot(rootReal, real, key);
+		const info = await stat(real);
+		if (!info.isFile()) throw new FileSecretProviderError("unsafe_target", key, "not a regular file");
+		if (this.#platform !== "win32" && (info.mode & GROUP_OTHER_WRITE) !== 0) throw new FileSecretProviderError("unsafe_target", key, "group or other write permission set");
+		return real;
+	}
+};
+function resolveFileSecretPath(root, key) {
+	validateFileSecretKey(key);
+	const normalizedRoot = resolve(root);
+	const target = resolve(normalizedRoot, key.split("/").map((segment) => basename(segment)).join(sep));
+	assertStrictlyInsideRoot(normalizedRoot, target, key);
+	return target;
+}
+async function resolveRoot(root, key) {
+	try {
+		return await realpath(root);
+	} catch {
+		throw new FileSecretProviderError("provider_unavailable", key, "secret root does not exist");
+	}
+}
+function relativeToRoot(rootReal, candidateReal) {
+	return relative(rootReal, resolve(candidateReal));
+}
+function escapesRoot(rel) {
+	return rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel);
+}
+/** A secret target must be a descendant of the root, never the root itself. */
+function assertStrictlyInsideRoot(rootReal, candidateReal, key) {
+	const rel = relativeToRoot(rootReal, candidateReal);
+	if (rel === "") throw new FileSecretProviderError("symlink_escape", key, "resolves to the secret root itself");
+	if (escapesRoot(rel)) throw new FileSecretProviderError("symlink_escape", key, "resolves outside the secret root");
+}
+/** A parent directory may be the root itself or any descendant of it. */
+function assertInsideOrAtRoot(rootReal, candidateReal, key) {
+	if (escapesRoot(relativeToRoot(rootReal, candidateReal))) throw new FileSecretProviderError("symlink_escape", key, "resolves outside the secret root");
+}
+/** `lstat` that treats only ENOENT as "absent"; other failures surface. */
+async function lstatOrNull(target, key) {
+	try {
+		return await lstat(target);
+	} catch (error) {
+		if (error.code === "ENOENT") return null;
+		throw new FileSecretProviderError("unsafe_target", key, "cannot inspect target");
+	}
+}
+async function firstExistingAncestor(path) {
+	let current = path;
+	for (;;) {
+		if (await lstat(current).then(() => true, () => false)) return current;
+		const parent = dirname(current);
+		if (parent === current) return current;
+		current = parent;
+	}
+}
+function stripOneNewline(value) {
+	if (value.endsWith("\r\n")) return value.slice(0, -2);
+	if (value.endsWith("\n")) return value.slice(0, -1);
+	return value;
+}
+//#endregion
+//#region ../../libs/sdk/src/node.ts
+/**
+* Lazy Node adapter. Browser SDK installs never pull in native keyring
+* packages, and Node consumers only load the adapter when an os-keyring
+* reference is actually used.
+*/
+var OSKeyringSecretProvider = class {
+	name = OS_KEYRING_SECRET_PROVIDER;
+	capabilities = READ_WRITE_CAPABILITIES;
+	providerPromise;
+	constructor(platform = process.platform) {
+		this.platform = platform;
+	}
+	async read(key) {
+		return (await this.provider()).read(key);
+	}
+	async write(key, value) {
+		await (await this.provider()).write(key, value);
+	}
+	async delete(key) {
+		await (await this.provider()).delete(key);
+	}
+	async probe(key) {
+		try {
+			return await (await this.provider()).probe(key);
+		} catch {
+			return "inaccessible";
+		}
+	}
+	provider() {
+		this.providerPromise ??= import("./assets/src-ZLiymdU8.js").then(({ OSKeyringSecretProvider: Provider }) => new Provider(this.platform)).catch((error) => {
+			throw new Error("OS keyring support requires @themoltnet/os-keyring; install it in this Node application", { cause: error });
+		});
+		return this.providerPromise;
+	}
+};
+function createNodeSecretProviderRegistry(platform = process.platform, readEnv = readEnvironmentVariable) {
+	return createDefaultSecretProviderRegistry().register(new OSKeyringSecretProvider(platform)).register(new FileSecretProvider(fileSecretProviderOptionsFromEnv(readEnv, platform)));
+}
+/** Node entry point: includes the lazy OS keyring unless callers supply a registry. */
+function connect(options = {}) {
+	return connectAmbient({
+		...options,
+		secretProviders: options.secretProviders ?? createNodeSecretProviderRegistry()
+	});
+}
 //#endregion
 //#region src/cancel-superseded.ts
 var ACTIVE_STATUSES = [
@@ -39861,4 +40595,4 @@ main().catch((err) => {
 	setFailed(err instanceof Error ? err.message : String(err));
 });
 //#endregion
-export {};
+export { __require as n, __toESM as r, __commonJSMin as t };

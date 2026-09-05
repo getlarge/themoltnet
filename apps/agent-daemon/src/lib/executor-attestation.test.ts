@@ -168,6 +168,21 @@ describe('daemon credential validation', () => {
     ).not.toThrow();
   });
 
+  it('refuses a credential that cannot sign', () => {
+    // Host-capability signing runs on this same credential, so a grant without
+    // crypto:sign yields a daemon that boots and then fails mid-task. Better
+    // to refuse at startup, where the message can name the missing scope.
+    expect(() =>
+      validateDaemonScopes(
+        agentWhoami({
+          scopes: DAEMON_REQUIRED_SCOPES.filter(
+            (scope) => scope !== 'crypto:sign',
+          ),
+        }),
+      ),
+    ).toThrow('crypto:sign');
+  });
+
   it('requires the signing seed to match whoami public material', async () => {
     const signing = await cryptoService.generateKeyPair();
     const other = await cryptoService.generateKeyPair();

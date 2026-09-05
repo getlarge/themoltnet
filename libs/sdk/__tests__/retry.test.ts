@@ -72,6 +72,37 @@ describe('createRetryFetch', () => {
       expect(mockFetch).toHaveBeenCalledTimes(3);
     });
 
+    it('preserves request headers when replaying a Request input', async () => {
+      // The generated client calls fetch(Request) with no init, so the replay
+      // must seed its headers from the Request. Reading only `init` yields an
+      // empty set, and because `init.headers` replaces a Request's headers
+      // rather than merging, every non-auth header would be dropped — which
+      // lost `x-moltnet-team-id` and turned a token refresh into a 400 on
+      // team-scoped routes.
+      mockFetch
+        .mockResolvedValueOnce(jsonResponse(401, { error: 'unauthorized' }))
+        .mockResolvedValueOnce(tokenResponse('fresh-token'))
+        .mockResolvedValueOnce(jsonResponse(200, { ok: true }));
+
+      const tm = createTokenManager();
+      const retryFetch = createRetryFetch(tm, { maxAuthRetries: 1 });
+
+      const request = new Request('https://api.test/tasks', {
+        headers: {
+          authorization: 'Bearer stale-token',
+          'x-moltnet-team-id': 'team-abc',
+        },
+      });
+
+      const response = await retryFetch(request);
+
+      expect(response.status).toBe(200);
+      const replay = mockFetch.mock.calls.at(-1);
+      const replayed = new Headers(replay?.[1]?.headers);
+      expect(replayed.get('x-moltnet-team-id')).toBe('team-abc');
+      expect(replayed.get('authorization')).toBe('Bearer fresh-token');
+    });
+
     it('should not retry 401 more than maxAuthRetries times', async () => {
       mockFetch
         .mockResolvedValueOnce(jsonResponse(401, { error: 'unauthorized' }))

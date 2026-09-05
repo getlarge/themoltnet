@@ -10,6 +10,7 @@
 
 import { randomUUID } from 'node:crypto';
 
+import { AGENT_CREDENTIAL_SCOPES } from '@moltnet/models';
 import {
   decideToolCall,
   resolveSessionToolPolicy,
@@ -46,12 +47,11 @@ describe('Tool-policy enforcement (daemon)', () => {
       {
         agentId: creds.identityId,
         name: 'tool-policy-knowledge-key',
+        // Canonical daemon grant plus the knowledge scopes this suite needs.
+        // Derived so adding a scope to the daemon minimum cannot leave the key
+        // unable to start the daemon.
         scopes: [
-          'agent:profile',
-          'runtime:read',
-          'task:read',
-          'task:claim',
-          'task:execute',
+          ...AGENT_CREDENTIAL_SCOPES,
           'diary:read',
           'diary:write',
           'pack:read',

@@ -77,6 +77,44 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec nx run @moltnet/tools:test:agent-bundle
 
+  # Documented in packages/agent-daemon-action/README.md under "Releasing this
+  # action" — but never actually implemented, which is how the committed bundle
+  # drifted three weeks behind its sources while everyone believed CI guarded
+  # it. The composite action executes dist/, not src/, and the bundle inlines
+  # libs/sdk, so a stale copy ships old SDK behaviour to every workflow using
+  # the action.
+  #
+  # tools/src/release/github-action-publisher.ts asserts the same thing via
+  # assertGitPathClean, but only during `nx release` — too late, and it
+  # inspects dist/main.js alone.
+  check-dist-agent-daemon-action:
+    name: Action bundle is current
+    needs: [affected]
+    if: needs.affected.outputs.check-dist-agent-daemon-action == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec nx run @themoltnet/agent-daemon-action:build
+      # `git status --porcelain`, not `git diff`: the build code-splits into
+      # content-hashed assets/ chunks, and a renamed chunk arrives *untracked*,
+      # which `git diff` does not report.
+      - name: Fail when the committed bundle is out of date
+        run: |
+          if [ -n "$(git status --porcelain -- packages/agent-daemon-action/dist/)" ]; then
+            git status --short -- packages/agent-daemon-action/dist/
+            echo "::error::packages/agent-daemon-action/dist/ is out of date. Run 'pnpm exec nx run @themoltnet/agent-daemon-action:build' and commit the result."
+            exit 1
+          fi
+
   wsl-agent-daemon:
     name: WSL2 agent daemon acceptance
     needs: [affected]
@@ -214,6 +252,7 @@ jobs:
       wsl-agent-daemon: ${{ steps.compute.outputs.wsl-agent-daemon }}
       landing: ${{ steps.compute.outputs.landing }}
       legreffier-plugin: ${{ steps.compute.outputs.legreffier-plugin }}
+      check-dist-agent-daemon-action: ${{ steps.compute.outputs.check-dist-agent-daemon-action }}
       agents-matrix: ${{ steps.matrix.outputs.matrix }}
       has-agents: ${{ steps.matrix.outputs.has-agents }}
       tier: ${{ steps.matrix.outputs.tier }}
@@ -364,6 +403,14 @@ jobs:
             echo "legreffier-plugin=true" >> "$GITHUB_OUTPUT"
           else
             echo "legreffier-plugin=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          # The action's committed bundle inlines libs/sdk, so anything the
+          # bundle absorbs can make it stale, not just its own sources.
+          if contains "@themoltnet/agent-daemon-action" "@themoltnet/sdk"; then
+            echo "check-dist-agent-daemon-action=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "check-dist-agent-daemon-action=false" >> "$GITHUB_OUTPUT"
           fi
 
           if contains "@themoltnet/os-keyring" "@themoltnet/sdk" "moltnet-cli"; then

@@ -99,8 +99,12 @@ The default agent key is deliberately narrower than an OAuth credential. The
 minimum set for the bundled daemon is:
 
 ```text
-agent:profile runtime:read task:read task:claim task:execute
+agent:profile crypto:sign runtime:read task:read task:claim task:execute
 ```
+
+`crypto:sign` is included because host-capability signing runs on the daemon's
+own credential, not on a derived one: the local seed signer calls the
+signing-request endpoints. The daemon refuses to start without it.
 
 Agent OAuth and direct agent-key credentials deliberately exclude
 `human:profile`; the TypeScript SDK requests the full agent grant by default and
