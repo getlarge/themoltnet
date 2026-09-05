@@ -68,6 +68,8 @@ export interface TokenValidatorConfig {
 }
 
 export interface TalosAgentIdentity {
+  /** Internal `agents.id` — used as the Keto subject. */
+  agentId: string;
   identityId: string;
   publicKey: string;
   fingerprint: string;
@@ -338,8 +340,17 @@ function extractAuthContextFromClaims(
     return null;
   }
 
+  // Tokens minted before the webhook emitted moltnet:agent_id stay valid for
+  // their full 24h life (and are served from the grant cache for it), so fall
+  // back to the identity. That is correct rather than an alias: migration 0041
+  // seeds agents.id from identity_id, so for every agent predating this change
+  // the two values are equal. Remove once no pre-change token can be live.
+  const agentId =
+    (claims['moltnet:agent_id'] as string | undefined) ?? identityId;
+
   return {
     subjectType: 'agent',
+    agentId,
     identityId,
     publicKey,
     fingerprint,
@@ -403,6 +414,9 @@ async function fetchClientMetadata(
     metrics?.recordUpstreamRequest('oauth2.client_metadata', 'success');
     return {
       subjectType: 'agent',
+      // agent_id is backfilled on every MoltNet client; identity_id remains a
+      // correct fallback for any client created before that backfill.
+      agentId: metadata.agent_id ?? metaIdentityId,
       identityId: metaIdentityId,
       publicKey: metaPublicKey,
       fingerprint: metaFingerprint,
@@ -631,6 +645,7 @@ export function createTokenValidator(
       return {
         context: {
           subjectType: 'agent',
+          agentId: agent.agentId,
           identityId: agent.identityId,
           publicKey: agent.publicKey,
           fingerprint: agent.fingerprint,

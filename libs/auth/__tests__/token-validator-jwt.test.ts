@@ -24,6 +24,7 @@ const EXPECTED_AUTH_CONTEXT = {
   clientId: CLIENT_ID,
   currentTeamId: null,
   fingerprint: 'A1B2-C3D4-E5F6-07A8',
+  agentId: IDENTITY_ID,
   identityId: IDENTITY_ID,
   publicKey: 'ed25519:AAAA+/bbbb==',
   scopes: ['diary:read', 'diary:write'],

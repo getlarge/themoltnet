@@ -274,6 +274,15 @@ function applyAuthContext(
   request.authContext = authContext;
   setRequestContextField('identityId', authContext.identityId);
   setRequestContextField('subjectType', authContext.subjectType);
+  // Log the internal principal ID alongside the Kratos identity: it is the
+  // Keto subject and the FK target, so it is what a permission or ownership
+  // investigation actually needs. During the 2026-09-04 incident the logs
+  // carried only identityId, which by then resolved to nothing.
+  if (authContext.subjectType === 'agent') {
+    setRequestContextField('agentId', authContext.agentId);
+  } else {
+    setRequestContextField('humanId', authContext.humanId);
+  }
   if (authContext.clientId)
     setRequestContextField('clientId', authContext.clientId);
   if (authContext.currentTeamId)
@@ -292,6 +301,9 @@ function applyAuthContext(
   const bindings: Record<string, string> = {
     identityId: authContext.identityId,
     subjectType: authContext.subjectType,
+    ...(authContext.subjectType === 'agent'
+      ? { agentId: authContext.agentId }
+      : { humanId: authContext.humanId }),
   };
   if (authContext.clientId) bindings.clientId = authContext.clientId;
   if (authContext.currentTeamId)
@@ -372,9 +384,24 @@ async function resolveTeamContext(
       authContext.subjectType === 'human'
         ? KetoNamespace.Human
         : KetoNamespace.Agent;
+    // Keto subjects are internal IDs, never Kratos identities: an identity can
+    // be recreated, and a subject that moves with it silently detaches the
+    // principal from every permission it holds.
+    //
+    // Agents migrate for free — agents.id is seeded from identity_id, so
+    // existing Agent: tuples already match. Humans cannot: humans.id already
+    // differs from identity_id, so their 23 Human:<identity_id> tuples must be
+    // rewritten to Human:<humans.id>. That rewrite runs as a Keto migration
+    // during API deployment; until it does, a human authenticates but resolves
+    // no permissions. Prefer dual-writing the new tuples before deploy and
+    // dropping the old ones after, which closes the window entirely.
+    const subjectId =
+      authContext.subjectType === 'human'
+        ? authContext.humanId
+        : authContext.agentId;
     const canAccess = await request.server.permissionChecker.canAccessTeam(
       teamId,
-      authContext.identityId,
+      subjectId,
       subjectNs,
     );
     if (!canAccess) {

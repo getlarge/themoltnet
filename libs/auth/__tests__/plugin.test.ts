@@ -19,6 +19,7 @@ import type { AuthContext, HumanAuthContext } from '../src/types.js';
 const VALID_TOKEN = 'ory_at_valid_token_123';
 const VALID_AUTH_CONTEXT: AuthContext = {
   subjectType: 'agent',
+  agentId: '550e8400-e29b-41d4-a716-446655440000',
   identityId: '550e8400-e29b-41d4-a716-446655440000',
   publicKey: 'ed25519:AAAA+/bbbb==',
   fingerprint: 'A1B2-C3D4-E5F6-07A8',
@@ -29,6 +30,9 @@ const VALID_AUTH_CONTEXT: AuthContext = {
 
 const VALID_SESSION_CONTEXT: HumanAuthContext = {
   subjectType: 'human',
+  // Keto subject for humans is humans.id, which genuinely differs from the
+  // Kratos identity — unlike agents there is no seeding trick.
+  humanId: '770e8400-e29b-41d4-a716-446655440002',
   identityId: '660e8400-e29b-41d4-a716-446655440001',
   clientId: null,
   scopes: ['diary:read', 'diary:write', 'agent:profile', 'team:read'],
@@ -394,7 +398,7 @@ describe('requireAuth preHandler', () => {
     expect(response.json().authContext.currentTeamId).toBe('team-123');
     expect(mockPermissionChecker.canAccessTeam).toHaveBeenCalledWith(
       'team-123',
-      VALID_AUTH_CONTEXT.identityId,
+      VALID_AUTH_CONTEXT.agentId,
       KetoNamespace.Agent,
     );
   });
@@ -433,7 +437,7 @@ describe('requireAuth preHandler', () => {
     expect(response.json().authContext.currentTeamId).toBe('team-123');
     expect(mockPermissionChecker.canAccessTeam).toHaveBeenCalledWith(
       'team-123',
-      VALID_AUTH_CONTEXT.identityId,
+      VALID_AUTH_CONTEXT.agentId,
       KetoNamespace.Agent,
     );
   });
@@ -603,6 +607,7 @@ describe('requireAuth preHandler', () => {
 
     expect(response.statusCode).toBe(200);
     expect(observedAlsFields).toMatchObject({
+      agentId: VALID_AUTH_CONTEXT.identityId,
       identityId: VALID_AUTH_CONTEXT.identityId,
       subjectType: 'agent',
       clientId: VALID_AUTH_CONTEXT.clientId,
@@ -775,7 +780,7 @@ describe('optionalAuth preHandler', () => {
     });
     expect(mockPermissionChecker.canAccessTeam).toHaveBeenCalledWith(
       'team-123',
-      VALID_SESSION_CONTEXT.identityId,
+      VALID_SESSION_CONTEXT.humanId,
       KetoNamespace.Human,
     );
   });
