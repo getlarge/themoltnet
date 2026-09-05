@@ -154,8 +154,15 @@ func TestWriteConfig(t *testing.T) {
 }
 
 func TestOptionalSections(t *testing.T) {
+	isolateIdentityEnv(t)
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
+	// WriteConfig writes to the SELECTED identity and now refuses to invent
+	// one, so the test must name it rather than relying on an ambient
+	// MOLTNET_AGENT_NAME leaking in from the developer's shell.
+	if err := writeIdentitySelector("optional-sections"); err != nil {
+		t.Fatal(err)
+	}
 
 	config := &CredentialsFile{
 		IdentityID:   "uuid-sections",
@@ -219,8 +226,15 @@ func TestOptionalSections(t *testing.T) {
 }
 
 func TestOptionalSections_OmitEmpty(t *testing.T) {
+	isolateIdentityEnv(t)
 	tmpDir := t.TempDir()
 	t.Setenv("HOME", tmpDir)
+	// WriteConfig writes to the SELECTED identity and now refuses to invent
+	// one, so the test must name it rather than relying on an ambient
+	// MOLTNET_AGENT_NAME leaking in from the developer's shell.
+	if err := writeIdentitySelector("optional-sections"); err != nil {
+		t.Fatal(err)
+	}
 
 	config := &CredentialsFile{
 		IdentityID:   "uuid-no-sections",
