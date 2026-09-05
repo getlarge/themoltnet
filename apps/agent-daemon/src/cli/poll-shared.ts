@@ -44,7 +44,7 @@ import {
   type AttestedDaemonRuntime,
   attestPreparedRuntime,
   resolveExecutorSigningPrivateKey,
-  validateDaemonScopesLogged,
+  validateDaemonScopes,
   validateExecutorSigningIdentity,
 } from '../lib/executor-attestation.js';
 import { finalizeTask } from '../lib/finalize.js';
@@ -259,12 +259,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         configuredPrivateKeyRef: cfg.signingPrivateKeyRef,
       });
       gate = 'validate_scopes';
-      await validateDaemonScopesLogged(whoami, {
-        serviceName: `agent-daemon.${opts.modeLabel}`,
-        level: cfg.logLevel || (baseCommon.debug ? 'debug' : 'info'),
-        agent: baseCommon.agent,
-        authMode: cfg.authMode,
-      });
+      validateDaemonScopes(whoami);
       gate = 'validate_signing_identity';
       await validateExecutorSigningIdentity({
         whoami,

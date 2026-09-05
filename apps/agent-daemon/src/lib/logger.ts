@@ -118,30 +118,3 @@ export async function logDaemonStartupFailure(input: {
   );
   await shutdown();
 }
-
-/**
- * Emit a boot-time warning through the same short-lived logger as
- * {@link logDaemonStartupFailure}. Startup validation runs before the root
- * logger exists, so a warning there has nowhere structured to go otherwise.
- */
-export async function logDaemonStartupWarning(input: {
-  serviceName: string;
-  level: string;
-  agent: string;
-  authMode: string;
-  message: string;
-}): Promise<void> {
-  const { logger, shutdown } = createRootLogger({
-    name: input.serviceName,
-    level: input.level,
-  });
-  logger.warn(
-    {
-      event: 'agent-daemon.startup_warning',
-      agent: input.agent,
-      authMode: input.authMode,
-    },
-    input.message,
-  );
-  await shutdown();
-}

@@ -168,29 +168,19 @@ describe('daemon credential validation', () => {
     ).not.toThrow();
   });
 
-  it('warns without failing when the credential cannot sign', () => {
-    // The five documented scopes omit crypto:sign, but host-capability
-    // signing runs on this same credential. Whether a task may invoke it is a
-    // per-task policy decision, so this is a warning, not a startup failure.
-    const warnings: string[] = [];
+  it('refuses a credential that cannot sign', () => {
+    // Host-capability signing runs on this same credential, so a grant without
+    // crypto:sign yields a daemon that boots and then fails mid-task. Better
+    // to refuse at startup, where the message can name the missing scope.
     expect(() =>
       validateDaemonScopes(
-        agentWhoami({ scopes: [...DAEMON_REQUIRED_SCOPES] }),
-        (message) => warnings.push(message),
+        agentWhoami({
+          scopes: DAEMON_REQUIRED_SCOPES.filter(
+            (scope) => scope !== 'crypto:sign',
+          ),
+        }),
       ),
-    ).not.toThrow();
-    expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toContain('crypto:sign');
-    expect(warnings[0]).toContain('capability:agent-signing');
-  });
-
-  it('stays silent when the credential already carries crypto:sign', () => {
-    const warnings: string[] = [];
-    validateDaemonScopes(
-      agentWhoami({ scopes: [...DAEMON_REQUIRED_SCOPES, 'crypto:sign'] }),
-      (message) => warnings.push(message),
-    );
-    expect(warnings).toEqual([]);
+    ).toThrow('crypto:sign');
   });
 
   it('requires the signing seed to match whoami public material', async () => {

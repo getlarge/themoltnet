@@ -51,9 +51,16 @@ export const ALL_CREDENTIAL_SCOPES = Object.freeze(
 /**
  * Minimum grant for the agent daemon. Task credentials attenuate this further
  * to `task:execute` alone.
+ *
+ * `crypto:sign` is part of the minimum because host-capability signing runs on
+ * the daemon's own credential: the local seed signer calls the signing-request
+ * endpoints, which require it. A grant without it produces a daemon that boots
+ * cleanly and then fails the first time guest code signs a diary entry or a
+ * commit.
  */
 export const AGENT_CREDENTIAL_SCOPES = [
   CREDENTIAL_SCOPES.AgentProfile,
+  CREDENTIAL_SCOPES.CryptoSign,
   CREDENTIAL_SCOPES.RuntimeRead,
   CREDENTIAL_SCOPES.TaskRead,
   CREDENTIAL_SCOPES.TaskClaim,
