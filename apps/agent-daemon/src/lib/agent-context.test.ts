@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const {
   connectMock,
   execFileSyncMock,
+  getIdentityDirMock,
   readConfigMock,
   AuthenticationErrorMock,
 } = vi.hoisted(() => {
@@ -20,19 +21,31 @@ const {
   return {
     connectMock: vi.fn(),
     execFileSyncMock: vi.fn(),
+    getIdentityDirMock: vi.fn((name: string) =>
+      join('/central/identities', name),
+    ),
     readConfigMock: vi.fn(),
     AuthenticationErrorMock,
   };
 });
 
-vi.mock('node:child_process', () => ({
-  execFileSync: execFileSyncMock,
-}));
-
 vi.mock('@themoltnet/sdk', () => ({
   readConfig: readConfigMock,
+  getIdentityDir: getIdentityDirMock,
   AuthenticationError: AuthenticationErrorMock,
+  // Not mocked away: the alias grammar is shared with the Go CLI and the
+  // daemon store, and mocking it would hide a divergence between them.
+  assertIdentityAlias: (alias: string) => {
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$/.test(alias)) {
+      throw new Error(`invalid identity alias: ${alias}`);
+    }
+    return alias;
+  },
 }));
+
+// Retained while fixtures exercise callers that still pass agentRootDir; the
+// resolver no longer invokes Git for credential discovery.
+vi.mock('node:child_process', () => ({ execFileSync: execFileSyncMock }));
 
 const createNodeSecretProviderRegistryMock = vi.hoisted(() => vi.fn());
 
@@ -54,6 +67,7 @@ describe('resolveAgentContext', () => {
     readConfigMock.mockReset();
     readConfigMock.mockResolvedValue(null);
     connectMock.mockResolvedValue({ agent: 'connected' });
+    getIdentityDirMock.mockClear();
     execFileSyncMock.mockReset();
     createNodeSecretProviderRegistryMock.mockReset();
     createNodeSecretProviderRegistryMock.mockReturnValue({
@@ -61,22 +75,20 @@ describe('resolveAgentContext', () => {
     });
   });
 
-  it('uses an explicit repo-free root when credentials exist there', async () => {
+  it('selects the central identity independently of an explicit repository root', async () => {
     const root = mkdtempSync(join(tmpdir(), 'daemon-agent-root-'));
     execFileSyncMock.mockImplementation(() => {
       throw new Error('not a git repo');
     });
 
     try {
-      writeCredentials(root, 'legreffier');
-
       const ctx = await resolveAgentContext('legreffier', {
         agentRootDir: root,
       });
 
-      const agentDir = join(root, '.moltnet', 'legreffier');
+      const agentDir = '/central/identities/legreffier';
       expect(ctx.agentDir).toBe(agentDir);
-      expect(ctx.agentRootDir).toBe(root);
+      expect(ctx.agentRootDir).toBe(agentDir);
       expect(connectMock).toHaveBeenCalledWith(
         expect.objectContaining({
           configDir: agentDir,
@@ -89,21 +101,64 @@ describe('resolveAgentContext', () => {
     }
   });
 
-  it('falls back to the git root when the explicit root has no credentials', async () => {
+  // `--agent-root` is a documented flag ("Directory that owns .moltnet/<agent>")
+  // still accepted by once, poll and sync-sessions. The central-store cutover
+  // stopped honouring it while keeping the flag, so every caller that passed
+  // one — sandboxed runs, the e2e harness — was silently sent to a central
+  // store it had never populated and failed with "No credentials found".
+  it('honours an explicit --agent-root that owns a bundle', async () => {
+    const agentRoot = mkdtempSync(join(tmpdir(), 'daemon-explicit-root-'));
+    const bundle = join(agentRoot, '.moltnet', 'legreffier');
+    mkdirSync(bundle, { recursive: true });
+    writeFileSync(join(bundle, 'moltnet.json'), JSON.stringify({ oauth2: {} }));
+
+    try {
+      const ctx = await resolveAgentContext('legreffier', {
+        agentRootDir: agentRoot,
+      });
+
+      expect(ctx.agentDir).toBe(bundle);
+      // The OWNING root is what gets mounted into the sandbox, not the
+      // credentials directory itself.
+      expect(ctx.agentRootDir).toBe(agentRoot);
+      expect(connectMock).toHaveBeenCalledWith(
+        expect.objectContaining({ configDir: bundle }),
+      );
+    } finally {
+      rmSync(agentRoot, { recursive: true, force: true });
+    }
+  });
+
+  // Explicit override, not rediscovery: without the flag nothing is searched.
+  it('ignores a bundle when no --agent-root was passed', async () => {
+    const cwdBundle = mkdtempSync(join(tmpdir(), 'daemon-implicit-root-'));
+    mkdirSync(join(cwdBundle, '.moltnet', 'legreffier'), { recursive: true });
+    writeFileSync(
+      join(cwdBundle, '.moltnet', 'legreffier', 'moltnet.json'),
+      JSON.stringify({ oauth2: {} }),
+    );
+
+    try {
+      const ctx = await resolveAgentContext('legreffier');
+      expect(ctx.agentDir).toBe('/central/identities/legreffier');
+    } finally {
+      rmSync(cwdBundle, { recursive: true, force: true });
+    }
+  });
+
+  it('does not fall back to the Git root', async () => {
     const sandboxRoot = mkdtempSync(join(tmpdir(), 'daemon-sandbox-root-'));
     const gitRoot = mkdtempSync(join(tmpdir(), 'daemon-git-root-'));
     execFileSyncMock.mockReturnValue(`${gitRoot}\n`);
 
     try {
-      writeCredentials(gitRoot, 'legreffier');
-
       const ctx = await resolveAgentContext('legreffier', {
         agentRootDir: sandboxRoot,
       });
 
-      const agentDir = join(gitRoot, '.moltnet', 'legreffier');
+      const agentDir = '/central/identities/legreffier';
       expect(ctx.agentDir).toBe(agentDir);
-      expect(ctx.agentRootDir).toBe(gitRoot);
+      expect(ctx.agentRootDir).toBe(agentDir);
       expect(connectMock).toHaveBeenCalledWith(
         expect.objectContaining({ configDir: agentDir }),
       );
@@ -125,8 +180,14 @@ describe('resolveAgentContext', () => {
         authMode: 'agent-key',
       });
 
-      const agentDir = join(root, '.moltnet', 'legreffier');
-      expect(ctx.agentDir).toBe(agentDir);
+      // agent-key is configless — it never reads moltnet.json — so an
+      // explicit --agent-root is honoured without requiring that file to
+      // exist. Asserting the central dir here blessed the regression that
+      // sent configless runs to a store they had never populated, which is
+      // what agent-key.e2e.test.ts catches end to end.
+      expect(ctx.agentDir).toBe(join(root, '.moltnet', 'legreffier'));
+      expect(ctx.agentRootDir).toBe(root);
+      expect(ctx.credentialSource).toBe('environment');
       // No configDir: the key (or its reference) comes from the environment;
       // the Node registry is supplied so keyring/file references resolve.
       expect(connectMock).toHaveBeenCalledTimes(1);
@@ -167,9 +228,7 @@ describe('resolveAgentContext', () => {
     });
 
     try {
-      const agentDir = join(root, '.moltnet', 'legreffier');
-      mkdirSync(agentDir, { recursive: true });
-      writeFileSync(join(agentDir, 'moltnet.json'), '{}\n', 'utf8');
+      const agentDir = '/central/identities/legreffier';
 
       const ctx = await resolveAgentContext('legreffier', {
         agentRootDir: root,

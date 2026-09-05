@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import {
   chmod,
   mkdir,
@@ -90,20 +91,122 @@ export type MoltNetConfig = MoltNetConfigBase &
   );
 
 export function getConfigDir(): string {
+  // One root, shared with the Go CLI's GetConfigDir and the daemon's
+  // resolveAgentServerRoot. Deliberately does NOT honour XDG_CONFIG_HOME:
+  // following it here would silently relocate the store for every existing
+  // install that has the variable set. The daemon used to honour it and now
+  // does not, adopting any state left at the old location on startup.
   return join(homedir(), '.config', 'moltnet');
 }
 
+/** Legacy pre-central-store location, still read so upgrades keep working. */
+export function getLegacyConfigPath(): string {
+  return join(getConfigDir(), 'moltnet.json');
+}
+
+export interface IdentitySelector {
+  version: 1;
+  default_identity?: string;
+}
+
+/**
+ * The one identity-alias grammar. Must stay identical to agentNamePattern in
+ * apps/moltnet-cli (Go) and NAME_RE in the daemon's AgentServerStore: an alias
+ * is a directory name in a store all three write, so a value one accepts and
+ * another rejects makes an identity unreadable by half the system.
+ */
+export const IDENTITY_ALIAS_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$/;
+
+export function assertIdentityAlias(alias: string): string {
+  if (!IDENTITY_ALIAS_PATTERN.test(alias)) {
+    throw new Error(`invalid identity alias: ${alias}`);
+  }
+  return alias;
+}
+
+export function getIdentityDir(alias: string): string {
+  return join(getConfigDir(), 'identities', assertIdentityAlias(alias));
+}
+
+/** Resolve an explicit credentials directory, active identity, or default. */
+export async function resolveConfigDir(
+  configDir?: string,
+): Promise<string | null> {
+  if (configDir) return configDir;
+  let alias = process.env.MOLTNET_ACTIVE_IDENTITY?.trim();
+  if (!alias) {
+    try {
+      const content = await readFile(
+        join(getConfigDir(), 'identity-selector.json'),
+        'utf-8',
+      );
+      const selector = JSON.parse(content) as IdentitySelector;
+      if (selector.version !== 1) {
+        throw new Error(
+          `identity selector version ${String(selector.version)} is not supported`,
+        );
+      }
+      alias = selector.default_identity?.trim();
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+      throw error;
+    }
+  }
+  return alias ? getIdentityDir(alias) : null;
+}
+
+/**
+ * Synchronous best-effort path resolution.
+ *
+ * Deliberately total: this function is re-exported from @themoltnet/sdk with an
+ * unchanged signature, so throwing here breaks every downstream caller at
+ * runtime with nothing for TypeScript to flag. It is also used inside error
+ * messages, where throwing replaces the real failure with a misleading one.
+ *
+ * It reads the selector synchronously so it agrees with resolveConfigDir's
+ * ladder — explicit -> MOLTNET_ACTIVE_IDENTITY -> selector — instead of
+ * answering the same question differently. Falls back to the legacy path so an
+ * install that predates the central store still resolves.
+ */
 export function getConfigPath(configDir?: string): string {
-  return join(configDir ?? getConfigDir(), 'moltnet.json');
+  if (configDir) return join(configDir, 'moltnet.json');
+  const alias =
+    process.env.MOLTNET_ACTIVE_IDENTITY?.trim() ||
+    readIdentitySelectorSync()?.default_identity?.trim();
+  if (alias) return join(getIdentityDir(alias), 'moltnet.json');
+  return getLegacyConfigPath();
+}
+
+function readIdentitySelectorSync(): IdentitySelector | null {
+  try {
+    const selector = JSON.parse(
+      readFileSync(join(getConfigDir(), 'identity-selector.json'), 'utf-8'),
+    ) as IdentitySelector;
+    return selector.version === 1 ? selector : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function readConfig(
   configDir?: string,
 ): Promise<MoltNetConfig | null> {
-  const dir = configDir ?? getConfigDir();
+  const dir = await resolveConfigDir(configDir);
+  if (dir) {
+    const config = await readConfigFile(join(dir, 'moltnet.json'));
+    if (config) return config;
+  }
+  if (configDir) return null;
+  // No active identity, or none resolved: fall back to the pre-central-store
+  // document. Without this, an existing install upgrading to a release that
+  // moved the store is told "no config found - run `moltnet register` first"
+  // while its credentials sit untouched one directory up.
+  return readConfigFile(getLegacyConfigPath());
+}
+
+async function readConfigFile(path: string): Promise<MoltNetConfig | null> {
   try {
-    const content = await readFile(join(dir, 'moltnet.json'), 'utf-8');
-    return JSON.parse(content) as MoltNetConfig;
+    return JSON.parse(await readFile(path, 'utf-8')) as MoltNetConfig;
   } catch {
     return null;
   }
@@ -113,8 +216,13 @@ export async function writeConfig(
   config: MoltNetConfig,
   configDir?: string,
 ): Promise<string> {
-  const dir = configDir ?? getConfigDir();
-  await mkdir(dir, { recursive: true });
+  const dir = await resolveConfigDir(configDir);
+  if (!dir) {
+    throw new Error(
+      'no active identity selected; set MOLTNET_ACTIVE_IDENTITY before writing config',
+    );
+  }
+  await mkdir(dir, { recursive: true, mode: 0o700 });
   const filePath = join(dir, 'moltnet.json');
   // Write to a sibling temp file and rename so the config is either fully
   // committed or untouched; callers rely on this when rolling back secrets.

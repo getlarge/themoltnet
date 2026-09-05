@@ -4,9 +4,10 @@ import { join } from 'node:path';
 import { toSSHPrivateKey, toSSHPublicKey } from '@moltnet/crypto-service/ssh';
 
 import {
-  getConfigDir,
   getConfigPath,
+  getLegacyConfigPath,
   readConfig,
+  resolveConfigDir,
   updateConfigSection,
 } from './config.js';
 
@@ -22,10 +23,20 @@ export async function exportSSHKey(opts?: {
   outputDir?: string;
   privateKey?: string;
 }): Promise<{ privatePath: string; publicPath: string }> {
+  const configDir = await resolveConfigDir(opts?.configDir);
   const config = await readConfig(opts?.configDir);
   if (!config) {
     throw new Error(
       `No config found at ${getConfigPath(opts?.configDir)} — run \`moltnet register\` first`,
+    );
+  }
+  if (!configDir) {
+    // readConfig found the pre-central-store document but there is nowhere to
+    // write derived artifacts. Name the remedy rather than the symptom.
+    throw new Error(
+      `Found credentials at ${getLegacyConfigPath()} but no active identity is selected. ` +
+        'Migrate it with `moltnet config migrate --credentials <path>`, ' +
+        'or set MOLTNET_ACTIVE_IDENTITY.',
     );
   }
   const seed =
@@ -39,9 +50,8 @@ export async function exportSSHKey(opts?: {
 
   const privateKeySSH = toSSHPrivateKey(seed);
   const publicKeySSH = toSSHPublicKey(config.keys.public_key);
-  const outputDir =
-    opts?.outputDir ?? join(opts?.configDir ?? getConfigDir(), 'ssh');
-  await mkdir(outputDir, { recursive: true });
+  const outputDir = opts?.outputDir ?? join(configDir, 'ssh');
+  await mkdir(outputDir, { recursive: true, mode: 0o700 });
 
   const privatePath = join(outputDir, 'id_ed25519');
   const publicPath = join(outputDir, 'id_ed25519.pub');
@@ -50,7 +60,7 @@ export async function exportSSHKey(opts?: {
   await updateConfigSection(
     'ssh',
     { private_key_path: privatePath, public_key_path: publicPath },
-    opts?.configDir,
+    configDir,
   );
   return { privatePath, publicPath };
 }
