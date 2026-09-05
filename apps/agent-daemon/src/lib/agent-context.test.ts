@@ -33,6 +33,14 @@ vi.mock('@themoltnet/sdk', () => ({
   readConfig: readConfigMock,
   getIdentityDir: getIdentityDirMock,
   AuthenticationError: AuthenticationErrorMock,
+  // Not mocked away: the alias grammar is shared with the Go CLI and the
+  // daemon store, and mocking it would hide a divergence between them.
+  assertIdentityAlias: (alias: string) => {
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$/.test(alias)) {
+      throw new Error(`invalid identity alias: ${alias}`);
+    }
+    return alias;
+  },
 }));
 
 // Retained while fixtures exercise callers that still pass agentRootDir; the

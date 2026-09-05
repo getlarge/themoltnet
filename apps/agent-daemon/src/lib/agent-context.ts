@@ -1,5 +1,6 @@
 import {
   type Agent,
+  assertIdentityAlias,
   AuthenticationError,
   getIdentityDir,
   readConfig,
@@ -167,11 +168,11 @@ export async function resolveAgentContext(
     authMode?: DaemonAuthMode;
   } = {},
 ): Promise<DaemonAgentContext> {
-  if (!/^[a-zA-Z0-9_-]+$/.test(agentName)) {
-    throw new Error(
-      `Invalid agent name "${agentName}": must match /^[a-zA-Z0-9_-]+$/`,
-    );
-  }
+  // One grammar, shared with the Go CLI and the daemon store. The previous
+  // inline pattern rejected `.` and had no length bound, so it both refused
+  // aliases the CLI creates and accepted names getIdentityDir then rejected
+  // with a raw "invalid identity alias".
+  assertIdentityAlias(agentName);
   void options.agentRootDir; // retained for source compatibility; no discovery.
   const agentDir = getIdentityDir(agentName);
   if (options.authMode === 'agent-key') {

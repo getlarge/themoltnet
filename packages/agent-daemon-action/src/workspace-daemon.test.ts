@@ -150,8 +150,23 @@ describe('workspace daemon action contract', () => {
   it('retains config materialization for OAuth execution', () => {
     const run = actionStep('Materialize MoltNet agent dir from env').run!;
 
-    expect(run).toContain('OAuth mode reconstructs the agent');
-    expect(run).toContain('npx -y @themoltnet/cli config init-from-env');
+    expect(run).toContain('OAuth mode reconstructs a central identity');
+    expect(run).toContain('config init-from-env');
+
+    // The alias becomes a $HOME path segment and three GITHUB_ENV values, so a
+    // newline would inject environment variables into every later step and
+    // "../" would escape the identity store. Validation must cover the
+    // inherited MOLTNET_AGENT_NAME too, not just the agent-name input.
+    expect(run).toContain('^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$');
+    const validationIndex = run.indexOf('[A-Za-z0-9._-]{0,62}');
+    const githubEnvIndex = run.indexOf('$GITHUB_ENV');
+    expect(validationIndex).toBeGreaterThan(-1);
+    expect(githubEnvIndex).toBeGreaterThan(validationIndex);
+
+    // A published CLI predating the central identity store writes the legacy
+    // repository layout, leaving AGENT_DIR empty; that must fail loudly here.
+    expect(run).toContain('MOLTNET_CLI_VERSION');
+    expect(run).toContain('$AGENT_DIR/moltnet.json');
   });
 
   it('keeps multi-lens workers on the minimal configless secret set', () => {
