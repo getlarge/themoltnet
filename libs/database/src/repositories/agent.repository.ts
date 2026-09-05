@@ -35,6 +35,49 @@ export function createAgentRepository(db: Database) {
     },
 
     /**
+     * Create or fetch an agent by its key fingerprint, without requiring a
+     * Kratos identity.
+     *
+     * Registration creates the agent row FIRST, so `agents.id` exists before
+     * the Kratos identity is minted and can be written into the identity's
+     * metadata_public. At that point `identity_id` is still NULL, so it cannot
+     * serve as the conflict target — the fingerprint (uniquely indexed, and
+     * derived from the agent's public key) is the only stable key available.
+     *
+     * Idempotent: a retried registration resolves to the same agent row rather
+     * than orphaning the first one.
+     */
+    async upsertByFingerprint(agent: {
+      publicKey: string;
+      fingerprint: string;
+    }): Promise<Agent> {
+      const [result] = await getExecutor(db)
+        .insert(agents)
+        .values({ publicKey: agent.publicKey, fingerprint: agent.fingerprint })
+        .onConflictDoUpdate({
+          target: agents.fingerprint,
+          set: { publicKey: agent.publicKey, updatedAt: new Date() },
+        })
+        .returning();
+
+      return result;
+    },
+
+    /**
+     * Delete an agent by its internal ID. Used by registration compensation,
+     * which knows the agent it created but may have no Kratos identity to
+     * delete by (the identity step may never have run).
+     */
+    async deleteById(agentId: string): Promise<boolean> {
+      const result = await getExecutor(db)
+        .delete(agents)
+        .where(eq(agents.id, agentId))
+        .returning({ id: agents.id });
+
+      return result.length > 0;
+    },
+
+    /**
      * Find agent by Ory identity ID
      */
     async findByIdentityId(identityId: string): Promise<Agent | null> {

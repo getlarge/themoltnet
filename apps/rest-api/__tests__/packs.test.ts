@@ -17,6 +17,7 @@ import {
   DIARY_ID,
   type MockServices,
   OWNER_ID,
+  OWNER_IDENTITY_ID,
   resetMockServices,
   TEST_BEARER_TOKEN,
   VALID_AUTH_CONTEXT,
@@ -28,7 +29,8 @@ const PACK_ID_2 = '990e8400-e29b-41d4-a716-446655440001';
 const PACK_CID = 'bafytestpack';
 const MOCK_CREATOR = {
   kind: 'agent' as const,
-  identityId: OWNER_ID,
+  agentId: OWNER_ID,
+  identityId: OWNER_IDENTITY_ID,
   fingerprint: VALID_AUTH_CONTEXT.fingerprint,
   publicKey: VALID_AUTH_CONTEXT.publicKey,
 };
@@ -66,7 +68,8 @@ const MOCK_RENDERED_PACK = {
   creatorHumanId: null,
   creator: {
     kind: 'agent' as const,
-    identityId: OWNER_ID,
+    agentId: OWNER_ID,
+    identityId: OWNER_IDENTITY_ID,
     fingerprint: 'AAAA-BBBB-CCCC-DDDD',
     publicKey: 'ed25519:abc',
   },
@@ -147,7 +150,8 @@ describe('Pack routes', () => {
           totalTokens: 42,
           creator: {
             kind: 'agent' as const,
-            identityId: OWNER_ID,
+            agentId: OWNER_ID,
+            identityId: OWNER_IDENTITY_ID,
             fingerprint: VALID_AUTH_CONTEXT.fingerprint,
             publicKey: VALID_AUTH_CONTEXT.publicKey,
           },

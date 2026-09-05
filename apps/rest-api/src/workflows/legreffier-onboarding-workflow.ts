@@ -171,7 +171,11 @@ export function initLegreffierOnboardingWorkflow(): void {
           const handle = await DBOS.startWorkflow(
             registrationWorkflow.compensateSelfRegistration,
             { workflowID: `legreffier-compensation:${workflowId}` },
-          )(registration.identityId, registration.identityOwnedForCompensation);
+          )(
+            registration.agentId,
+            registration.identityId,
+            registration.identityOwnedForCompensation,
+          );
           await handle.getResult();
         } catch (err) {
           logger.error(
@@ -208,7 +212,11 @@ export function initLegreffierOnboardingWorkflow(): void {
           const handle = await DBOS.startWorkflow(
             registrationWorkflow.compensateSelfRegistration,
             { workflowID: `legreffier-compensation:${workflowId}` },
-          )(registration.identityId, registration.identityOwnedForCompensation);
+          )(
+            registration.agentId,
+            registration.identityId,
+            registration.identityOwnedForCompensation,
+          );
           await handle.getResult();
         } catch (err) {
           logger.error(
