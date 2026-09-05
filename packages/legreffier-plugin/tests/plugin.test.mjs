@@ -11,12 +11,13 @@ const repositoryRoot = join(root, '..', '..');
 
 const read = (path) => readFile(join(pluginRoot, path), 'utf8');
 
-const runHook = (command, gitConfigGlobal) =>
+const runHook = (command, gitConfigGlobal, extraEnv = {}) =>
   spawnSync('/bin/sh', ['-c', command], {
     encoding: 'utf8',
     env: {
       GIT_CONFIG_GLOBAL: gitConfigGlobal,
       PATH: '/usr/bin:/bin',
+      ...extraEnv,
     },
   });
 
@@ -164,6 +165,15 @@ test('keeps the secrets hook fail-closed for activated agents', async () => {
   );
   assert.equal(central.status, 0);
   assert.match(central.stdout, /permissionDecision\"?:\"deny/);
+
+  // An identity created by `moltnet register` has no gitconfig, so
+  // GIT_CONFIG_GLOBAL is never exported for it. Keying activation solely on
+  // that variable let such a session run entirely unguarded.
+  const envActivated = runHook(secrets, '', {
+    MOLTNET_ACTIVE_IDENTITY: 'legreffier',
+  });
+  assert.equal(envActivated.status, 0);
+  assert.match(envActivated.stdout, /permissionDecision\"?:\"deny/);
 });
 
 test('blocks the human OAuth MCP for activated agents', async () => {
@@ -190,6 +200,20 @@ test('blocks the human OAuth MCP for activated agents', async () => {
   );
   assert.equal(central.status, 0);
   assert.match(central.stdout, /permissionDecision\"?:\"deny/);
+
+  const envActivated = runHook(principal, '', {
+    MOLTNET_ACTIVE_IDENTITY: 'legreffier',
+  });
+  assert.equal(envActivated.status, 0);
+  assert.match(envActivated.stdout, /permissionDecision\"?:\"deny/);
+
+  // Activation stays session-scoped: a persisted default identity on the
+  // machine must NOT gate a human shell out of its own OAuth MCP.
+  const humanWithSelector = runHook(principal, '', {
+    HOME: '/Users/test',
+  });
+  assert.equal(humanWithSelector.status, 0);
+  assert.equal(humanWithSelector.stdout, '');
 });
 
 test('ships a complete OpenAI public-review fixture', async () => {

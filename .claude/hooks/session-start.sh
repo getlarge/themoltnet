@@ -24,16 +24,38 @@ fi
 # Set MOLTNET_AGENT_NAME and credential env vars in Claude Code project settings.
 identity="${MOLTNET_ACTIVE_IDENTITY:-${MOLTNET_AGENT_NAME:-}}"
 if [ -n "$identity" ] && [ -n "${MOLTNET_IDENTITY_ID:-}" ]; then
+  # The alias becomes a path segment and is written into a file that is later
+  # sourced, so validate it before either use. This is the same grammar the Go
+  # CLI enforces (agentNamePattern).
+  case "$identity" in
+    [A-Za-z0-9]*) ;;
+    *) echo "moltnet: refusing invalid identity alias '$identity'" >&2; exit 1 ;;
+  esac
+  if [ "${#identity}" -gt 63 ] || printf '%s' "$identity" | LC_ALL=C grep -q '[^A-Za-z0-9._-]'; then
+    echo "moltnet: refusing invalid identity alias '$identity'" >&2
+    exit 1
+  fi
+
   identity_dir="$HOME/.config/moltnet/identities/$identity"
   if [ ! -f "$identity_dir/moltnet.json" ]; then
-    npx --yes @themoltnet/cli config init-from-env \
+    # Pinnable: the published CLI only grows central-identity support from the
+    # release that introduces it, and an older cached build silently writes the
+    # legacy repository layout, so the check above never satisfies and this
+    # hook re-runs every session.
+    npx --yes "@themoltnet/cli@${MOLTNET_CLI_VERSION:-latest}" config init-from-env \
       --name "$identity"
+    if [ ! -f "$identity_dir/moltnet.json" ]; then
+      echo "moltnet: config init-from-env did not create $identity_dir/moltnet.json." >&2
+      echo "moltnet: the resolved @themoltnet/cli predates the central identity store;" >&2
+      echo "moltnet: pin a supported release with MOLTNET_CLI_VERSION." >&2
+      exit 1
+    fi
   fi
 
   # Export GIT_CONFIG_GLOBAL for commit signing
   GITCONFIG="$identity_dir/gitconfig"
   if [ -f "$GITCONFIG" ] && [ -n "${CLAUDE_ENV_FILE:-}" ]; then
-    echo "export GIT_CONFIG_GLOBAL='$GITCONFIG'" >> "$CLAUDE_ENV_FILE"
-    echo "export MOLTNET_ACTIVE_IDENTITY='$identity'" >> "$CLAUDE_ENV_FILE"
+    printf "export GIT_CONFIG_GLOBAL='%s'\n" "$GITCONFIG" >> "$CLAUDE_ENV_FILE"
+    printf "export MOLTNET_ACTIVE_IDENTITY='%s'\n" "$identity" >> "$CLAUDE_ENV_FILE"
   fi
 fi
