@@ -290,11 +290,16 @@ describe('agent keys', () => {
     });
   });
 
-  it('runs the daemon hot path on the documented five scopes and no further', async () => {
-    // AGENT_CREDENTIAL_SCOPES is what the daemon README and the Console both
-    // promise is sufficient. This asserts both halves of that promise: the
-    // claim/heartbeat path works, and the set is a real ceiling — it cannot
-    // cancel work or mint credentials.
+  it('claims and heartbeats on the five-scope grant while staying a ceiling', async () => {
+    // AGENT_CREDENTIAL_SCOPES covers the claim/heartbeat path and is a real
+    // ceiling: it cannot cancel work or mint credentials.
+    //
+    // Deliberately NOT "the daemon hot path": host-capability diary signing
+    // also runs on the daemon's own credential (libs/agent-runtime/src/
+    // host-capabilities/local-seed-signer.ts calls crypto.signingRequests
+    // get/submit, which require `crypto:sign`), and that scope is not in this
+    // grant. Naming the wider guarantee here would assert something this test
+    // does not check.
     const client = createClient({ baseUrl: harness.baseUrl });
 
     const { data: daemonKey, error: daemonKeyError } = await createAgentKey({

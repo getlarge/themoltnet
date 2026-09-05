@@ -11,11 +11,14 @@ import {
 } from './helpers.js';
 
 /**
- * One read-only probe per scope family. Write scopes (`diary:write`,
- * `pack:write`, `task:claim`, `task:manage`, `runtime:manage`, `diary:manage`,
- * `team:manage`) are deliberately absent: Fastify validates the body before the
- * preHandler chain, so probing them here would assert schema validation rather
- * than the scope gate. Those families are covered by their own route suites.
+ * One probe per scope family that a request can reach without a body: Fastify
+ * validates the body before the preHandler chain, so a POST probe with a stub
+ * payload would assert schema validation rather than the scope gate.
+ *
+ * `pack:write` and `task:claim` are therefore NOT covered here and, as of this
+ * writing, are not covered by their route suites either — those suites run on
+ * the full-grant VALID_AUTH_CONTEXT, so their 403s are Keto denials, not scope
+ * denials. Adding them needs a minimal valid payload per route.
  *
  * `connector:invoke` and `human:profile` are in the vocabulary but declared by
  * no route — connector issuance was never built, and `human:profile` is carried
@@ -83,6 +86,24 @@ const PROBES: readonly ScopeProbe[] = [
     scope: 'team:read',
     teamBound: true,
   },
+  {
+    family: 'diary management',
+    request: { method: 'DELETE', url: `/diaries/${DIARY_ID}` },
+    scope: 'diary:manage',
+    teamBound: true,
+  },
+  {
+    family: 'diary write',
+    request: { method: 'DELETE', url: `/relations/${DIARY_ID}` },
+    scope: 'diary:write',
+    teamBound: true,
+  },
+  {
+    family: 'runtime management',
+    request: { method: 'DELETE', url: `/runtime-models/${DIARY_ID}` },
+    scope: 'runtime:manage',
+    teamBound: true,
+  },
 ];
 
 describe('credential scope policy matrix', () => {
@@ -116,11 +137,37 @@ describe('credential scope policy matrix', () => {
         },
       });
 
+      // Assert no scope denial at all, not merely none naming `scope`: a
+      // route that later declares a second required scope would 403 naming
+      // that other one, and a `${scope}`-specific assertion would still pass,
+      // silently retiring the minimality guarantee this probe exists for.
+      // A plain `statusCode !== 403` is too strong — team-bound probes are
+      // legitimately Keto-denied by the mocks, which is not a scope failure.
       expect(response.json()).not.toMatchObject({
-        detail: `Missing required scope: ${scope}`,
+        detail: expect.stringMatching(/^Missing required scope:/),
       });
     },
   );
+
+  it('keeps agent-key revocation reachable without any credential scope', async () => {
+    // POST /agent-keys/:keyId/revoke is the only production route declaring
+    // `requiredScopes: []`. It is a deliberate self-revocation escape hatch: a
+    // narrowly scoped or compromised key must always be killable by its holder,
+    // with Keto still deciding *which* key. Adding `key:manage` here — as its
+    // three siblings have — would make a five-scope daemon key unrevokable by
+    // its own holder, a security regression with every other test still green.
+    const response = await app.inject({
+      method: 'POST',
+      url: `/agent-keys/${DIARY_ID}/revoke`,
+      headers: { authorization: 'Bearer task:execute' },
+      body: { reason: 'key_compromise' },
+    });
+
+    expect(response.statusCode).not.toBe(403);
+    expect(response.json()).not.toMatchObject({
+      detail: expect.stringMatching(/^Missing required scope:/),
+    });
+  });
 
   it.each(PROBES)(
     'rejects a credential holding only an unrelated scope on the $family gate',

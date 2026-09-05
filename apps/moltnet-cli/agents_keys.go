@@ -256,6 +256,7 @@ type agentsKeysCreateOpts struct {
 	agentID        string
 	name           string
 	scopes         []string
+	scopesSet      bool
 	ttlDays        int
 	ttlSet         bool
 	idempotencyKey string
@@ -343,11 +344,16 @@ func runAgentsKeysCreateWithClient(ctx context.Context, client *moltnetapi.Clien
 // server decision (it must be a subset of both the canonical agent grant and
 // the caller's own scopes), and re-deriving it locally would go stale.
 //
-// Omitting the flag means "unset" — the server applies the default agent grant.
-// `--scopes ""` is a single empty value, not an unset flag, and is rejected:
-// a caller who typed it meant to narrow and should hear that it did nothing.
-func parseCredentialScopes(values []string) ([]moltnetapi.CredentialScope, error) {
+// Omitting the flag means "unset": the server applies the default agent grant.
+// Passing it empty is not the same thing and must not silently widen the key.
+// pflag parses `--scopes ""` to a zero-length slice, so without `set` a script
+// doing `--scopes "$SCOPES"` with an unset variable would mint a full-grant key
+// while its author believed they had narrowed it.
+func parseCredentialScopes(values []string, set bool) ([]moltnetapi.CredentialScope, error) {
 	if len(values) == 0 {
+		if set {
+			return nil, fmt.Errorf("--scopes was given but empty; omit the flag to accept the default agent grant")
+		}
 		return nil, nil
 	}
 	seen := make(map[string]struct{}, len(values))
@@ -392,7 +398,7 @@ func buildCreateAgentKey(opts agentsKeysCreateOpts) (*moltnetapi.CreateAgentKeyR
 		Name:         opts.name,
 		BindingScope: binding.bindingScope,
 	}
-	scopes, err := parseCredentialScopes(opts.scopes)
+	scopes, err := parseCredentialScopes(opts.scopes, opts.scopesSet)
 	if err != nil {
 		return nil, moltnetapi.CreateAgentKeyParams{}, "", err
 	}

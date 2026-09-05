@@ -229,7 +229,7 @@ func TestBuildCreateAgentKey(t *testing.T) {
 		t.Parallel()
 		req, _, _, err := buildCreateAgentKey(agentsKeysCreateOpts{
 			teamID: testTeamID, agentID: testAgentID, name: "daemon",
-			scopes: []string{"agent:profile", "runtime:read", "task:read", "task:claim", "task:execute"},
+			scopes: []string{"agent:profile", "runtime:read", "task:read", "task:claim", "task:execute"}, scopesSet: true,
 		})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -251,7 +251,7 @@ func TestBuildCreateAgentKey(t *testing.T) {
 		t.Parallel()
 		_, _, _, err := buildCreateAgentKey(agentsKeysCreateOpts{
 			teamID: testTeamID, agentID: testAgentID, name: "ci",
-			scopes: []string{"agent:profile", "task:teleport"},
+			scopes: []string{"agent:profile", "task:teleport"}, scopesSet: true,
 		})
 		if err == nil || !strings.Contains(err.Error(), "task:teleport") {
 			t.Fatalf("expected unknown-scope error, got %v", err)
@@ -262,7 +262,7 @@ func TestBuildCreateAgentKey(t *testing.T) {
 		t.Parallel()
 		_, _, _, err := buildCreateAgentKey(agentsKeysCreateOpts{
 			teamID: testTeamID, agentID: testAgentID, name: "ci",
-			scopes: []string{"task:read", "task:read"},
+			scopes: []string{"task:read", "task:read"}, scopesSet: true,
 		})
 		if err == nil || !strings.Contains(err.Error(), "more than once") {
 			t.Fatalf("expected duplicate-scope error, got %v", err)
@@ -273,10 +273,24 @@ func TestBuildCreateAgentKey(t *testing.T) {
 		t.Parallel()
 		_, _, _, err := buildCreateAgentKey(agentsKeysCreateOpts{
 			teamID: testTeamID, agentID: testAgentID, name: "ci",
-			scopes: []string{"task:read", "  "},
+			scopes: []string{"task:read", "  "}, scopesSet: true,
 		})
 		if err == nil || !strings.Contains(err.Error(), "empty value") {
 			t.Fatalf("expected empty-scope error, got %v", err)
+		}
+	})
+
+	t.Run("rejects an explicitly empty --scopes instead of widening the grant", func(t *testing.T) {
+		t.Parallel()
+		// pflag parses `--scopes ""` to a zero-length slice. Treating that as
+		// "unset" would mint the full default agent grant for a caller who
+		// believed they had narrowed it.
+		_, _, _, err := buildCreateAgentKey(agentsKeysCreateOpts{
+			teamID: testTeamID, agentID: testAgentID, name: "ci",
+			scopes: nil, scopesSet: true,
+		})
+		if err == nil || !strings.Contains(err.Error(), "--scopes was given but empty") {
+			t.Fatalf("expected empty --scopes error, got %v", err)
 		}
 	})
 
@@ -751,6 +765,34 @@ func TestAgentsKeysHelp(t *testing.T) {
 		if !strings.Contains(stdout, want) {
 			t.Errorf("agents keys help should mention %q, got: %s", want, stdout)
 		}
+	}
+}
+
+// The opts-level tests construct agentsKeysCreateOpts directly, so they cannot
+// catch --scopes being unwired from cobra or pflag parsing the value into a
+// shape the parser never sees. These drive the real command.
+func TestAgentsKeysCreateScopesFlagWiring(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name    string
+		arg     string
+		wantErr string
+	}{
+		{name: "empty value does not silently widen the grant", arg: "", wantErr: "--scopes was given but empty"},
+		{name: "unknown scope fails before any request", arg: "task:read,task:teleport", wantErr: "task:teleport"},
+		{name: "duplicate scope is rejected", arg: "task:read,task:read", wantErr: "more than once"},
+		{name: "blank element is rejected", arg: "task:read, ", wantErr: "empty value"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			root := NewRootCmd("test", "")
+			_, _, err := executeCommand(root, "agents", "keys", "create",
+				"--team-id", testTeamID, "--agent-id", testAgentID,
+				"--name", "ci", "--scopes", tc.arg)
+			if err == nil || !strings.Contains(err.Error(), tc.wantErr) {
+				t.Fatalf("expected error containing %q, got %v", tc.wantErr, err)
+			}
+		})
 	}
 }
 
