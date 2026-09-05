@@ -14811,10 +14811,6 @@
             "format": "uuid",
             "type": "string"
           },
-          "principalId": {
-            "format": "uuid",
-            "type": "string"
-          },
           "publicKey": {
             "type": "string"
           },
@@ -14823,6 +14819,10 @@
               "type": "string"
             },
             "type": "array"
+          },
+          "subjectId": {
+            "format": "uuid",
+            "type": "string"
           },
           "subjectType": {
             "anyOf": [
@@ -14842,7 +14842,7 @@
           }
         },
         "required": [
-          "principalId",
+          "subjectId",
           "identityId",
           "subjectType"
         ],

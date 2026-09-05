@@ -313,6 +313,8 @@ describe('assessStartupBinding', () => {
 
   function agentWhoami(overrides: Partial<Whoami> = {}): Whoami {
     return {
+      // Distinct from identityId: agents.id is the durable one.
+      subjectId: 'agent-1',
       identityId: 'id-1',
       scopes: ['agent:profile'],
       subjectType: 'agent',
@@ -378,6 +380,7 @@ describe('validateStartupBinding', () => {
 
   it('returns the whoami when the bound key matches the team', async () => {
     const whoami: Whoami = {
+      subjectId: 'agent-1',
       identityId: 'id-1',
       scopes: ['agent:profile'],
       subjectType: 'agent',
@@ -407,6 +410,7 @@ describe('validateStartupBinding', () => {
 
   it('throws a fatal when the key is bound to another team', async () => {
     const whoami: Whoami = {
+      subjectId: 'agent-1',
       identityId: 'id-1',
       scopes: ['agent:profile'],
       subjectType: 'agent',
@@ -425,6 +429,7 @@ describe('validateStartupBinding', () => {
   });
 
   const pinnedWhoami: Whoami = {
+    subjectId: 'agent-1',
     identityId: 'id-1',
     publicKey: 'pk-1',
     fingerprint: 'fp-1',
@@ -432,6 +437,7 @@ describe('validateStartupBinding', () => {
     subjectType: 'agent',
   };
   const expectedIdentity = {
+    subjectId: 'agent-1',
     identityId: 'id-1',
     publicKey: 'pk-1',
     fingerprint: 'fp-1',
@@ -475,6 +481,7 @@ describe('validateStartupBinding', () => {
 
   it('retries transient whoami failures before startup validation', async () => {
     const whoami: Whoami = {
+      subjectId: 'agent-1',
       identityId: 'id-1',
       scopes: ['agent:profile'],
       subjectType: 'agent',
